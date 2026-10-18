@@ -24,8 +24,12 @@ const CORNERS := [
 	[Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(0, 1, 0)],
 ]
 const WATER_TOP := 0.875
+const AIR := Mat.AIR
+const WATER := Mat.WATER
 
 static var _faces: Array = []
+## (tile * 6 + direction) -> 4 atlas UVs
+static var _uv_cache := {}
 
 
 ## Per direction: corners in clockwise order seen from outside, their UVs and the normal.
@@ -55,34 +59,47 @@ static func face_table() -> Array:
 
 
 ## Returns [solid_mesh_or_null, water_mesh_or_null] for the column of cells x0..x0+size, z0..z0+size.
+## Reads the cell bytes directly (outside the map is air, below it is stone), which is
+## several times faster than get_cell() per neighbour.
 static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 	var faces := face_table()
 	var solid := MeshBuffers.new()
 	var water := MeshBuffers.new()
-	var x1 := mini(x0 + size, w.size_x)
-	var z1 := mini(z0 + size, w.size_z)
-	for y in w.size_y:
+	var cells: PackedByteArray = w.cells
+	var sx: int = w.size_x
+	var sy: int = w.size_y
+	var sz: int = w.size_z
+	var layer := sx * sz
+	var x1 := mini(x0 + size, sx)
+	var z1 := mini(z0 + size, sz)
+	var nb := PackedByteArray()
+	nb.resize(6)
+	for y in sy:
 		for z in range(z0, z1):
+			var row := y * layer + z * sx
 			for x in range(x0, x1):
-				var m: int = w.get_cell(x, y, z)
-				if m == Mat.AIR:
+				var i := row + x
+				var m := cells[i]
+				if m == AIR:
 					continue
+				# Neighbours in DIRS order: +x, -x, +y, -y, +z, -z.
+				nb[0] = cells[i + 1] if x + 1 < sx else AIR
+				nb[1] = cells[i - 1] if x > 0 else AIR
+				nb[2] = cells[i + layer] if y + 1 < sy else AIR
+				nb[3] = cells[i - layer] if y > 0 else Mat.STONE
+				nb[4] = cells[i + sx] if z + 1 < sz else AIR
+				nb[5] = cells[i - sx] if z > 0 else AIR
 				var base := Vector3(x, y, z)
-				if m == Mat.WATER:
-					var top_open: bool = w.get_cell(x, y + 1, z) == Mat.AIR
-					var h := WATER_TOP if top_open else 1.0
+				if m == WATER:
+					var h := WATER_TOP if nb[2] == AIR else 1.0
 					for d in 6:
-						var dir: Vector3i = DIRS[d]
-						if d != FACE_BOTTOM and w.get_cell(x + dir.x, y + dir.y, z + dir.z) == Mat.AIR:
+						if d != FACE_BOTTOM and nb[d] == AIR:
 							add_face(water, faces[d], base, m, d, 1.0, h)
 					continue
 				for d in 6:
-					var dir: Vector3i = DIRS[d]
-					if d == FACE_BOTTOM and y == 0:
-						continue
-					if Mat.is_solid(w.get_cell(x + dir.x, y + dir.y, z + dir.z)):
-						continue
-					add_face(solid, faces[d], base, m, d, 1.0, 1.0)
+					var n := nb[d]
+					if n == AIR or n == WATER:
+						add_face(solid, faces[d], base, m, d, 1.0, 1.0)
 	return [null if solid.is_empty() else solid.to_mesh(), null if water.is_empty() else water.to_mesh()]
 
 
@@ -93,10 +110,16 @@ static func build_cap(w, level: int) -> ArrayMesh:
 		return null
 	var top: Dictionary = face_table()[FACE_TOP]
 	var buf := MeshBuffers.new()
+	var cells: PackedByteArray = w.cells
+	var sx: int = w.size_x
+	var layer: int = sx * w.size_z
+	var row := level * layer
 	for z in w.size_z:
-		for x in w.size_x:
-			var m: int = w.get_cell(x, level, z)
-			if Mat.is_solid(m) and w.is_solid(x, level + 1, z):
+		for x in sx:
+			var i := row + z * sx + x
+			var m := cells[i]
+			var above := cells[i + layer]
+			if m != AIR and m != WATER and above != AIR and above != WATER:
 				add_face(buf, top, Vector3(x, level, z), m, FACE_TOP, 0.4, 1.0)
 	return null if buf.is_empty() else buf.to_mesh()
 
@@ -108,19 +131,25 @@ static func add_face(buf, face: Dictionary, base: Vector3, m: int, d: int, shade
 	elif d == FACE_BOTTOM:
 		kind = 2
 	var tile := m * 3 + kind
-	var tx := float(tile % ATLAS_TILES)
-	var ty := float(floori(tile / float(ATLAS_TILES)))
+	var key := tile * 6 + d
+	var uvs: Array = _uv_cache.get(key, [])
+	if uvs.is_empty():
+		var tx := float(tile % ATLAS_TILES)
+		var ty := float(floori(tile / float(ATLAS_TILES)))
+		for uv in face.uvs:
+			uvs.append(Vector2(
+				(tx + UV_EPS + uv.x * (1.0 - 2.0 * UV_EPS)) / ATLAS_TILES,
+				(ty + UV_EPS + uv.y * (1.0 - 2.0 * UV_EPS)) / ATLAS_TILES))
+		_uv_cache[key] = uvs
 	var corners: Array = face.corners
-	var fuv: Array = face.uvs
 	var pts := []
-	var uvs := []
-	for i in 4:
-		var c: Vector3 = corners[i]
-		pts.append(base + Vector3(c.x, c.y * height, c.z))
-		var uv: Vector2 = fuv[i]
-		uvs.append(Vector2(
-			(tx + UV_EPS + uv.x * (1.0 - 2.0 * UV_EPS)) / ATLAS_TILES,
-			(ty + UV_EPS + uv.y * (1.0 - 2.0 * UV_EPS)) / ATLAS_TILES))
+	if height == 1.0:
+		for c in corners:
+			pts.append(base + c)
+	else:
+		for i in 4:
+			var c: Vector3 = corners[i]
+			pts.append(base + Vector3(c.x, c.y * height, c.z))
 	var flag := 0.0
 	if m == Mat.LEAVES:
 		flag = 1.0

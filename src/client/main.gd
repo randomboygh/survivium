@@ -73,6 +73,7 @@ var show_help := true
 var dig_mode := true
 var cam_target := Vector3.ZERO
 var fps_clock := 0.0
+var mesh_ms := 0
 
 
 func _ready() -> void:
@@ -82,7 +83,9 @@ func _ready() -> void:
 	# Let the loading text show before the heavy generation.
 	await get_tree().process_frame
 	await get_tree().process_frame
+	var t0 := Time.get_ticks_msec()
 	world = WorldGen.generate(WORLD_SEED)
+	print("world generated in %d ms" % (Time.get_ticks_msec() - t0))
 	_build_materials()
 	_build_scene()
 	var keys: Array[Vector2i] = []
@@ -100,7 +103,7 @@ func _process(delta: float) -> void:
 		return
 	if not pending_chunks.is_empty():
 		var t0 := Time.get_ticks_msec()
-		while not pending_chunks.is_empty() and Time.get_ticks_msec() - t0 < 12:
+		while not pending_chunks.is_empty() and Time.get_ticks_msec() - t0 < 40:
 			_build_chunk(pending_chunks.pop_front())
 		var total := ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
 		loading.text = "Построение мира… %d%%" % int(100.0 * (total - pending_chunks.size()) / total)
@@ -109,6 +112,7 @@ func _process(delta: float) -> void:
 			_place_props()
 			creatures.setup(world, player, WORLD_SEED)
 			ready_to_play = true
+			print("meshes built in %d ms" % mesh_ms)
 			print("world ready in %d ms" % Time.get_ticks_msec())
 	_update_time(delta)
 	_update_weather(delta)
@@ -359,7 +363,9 @@ func _refresh_bushes() -> void:
 # --- World edits -----------------------------------------------------------
 
 func _build_chunk(key: Vector2i) -> void:
+	var t0 := Time.get_ticks_msec()
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
+	mesh_ms += Time.get_ticks_msec() - t0
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = world_mat
