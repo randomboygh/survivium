@@ -72,6 +72,7 @@ var selected := 0
 var show_help := true
 var dig_mode := true
 var cam_target := Vector3.ZERO
+var fps_clock := 0.0
 
 
 func _ready() -> void:
@@ -108,6 +109,7 @@ func _process(delta: float) -> void:
 			_place_props()
 			creatures.setup(world, player, WORLD_SEED)
 			ready_to_play = true
+			print("world ready in %d ms" % Time.get_ticks_msec())
 	_update_time(delta)
 	_update_weather(delta)
 	if ready_to_play:
@@ -116,6 +118,16 @@ func _process(delta: float) -> void:
 	_update_cut()
 	_update_camera(delta)
 	_update_hud()
+	if ready_to_play:
+		_report_fps(delta)
+
+
+## Prints the frame rate every 5 seconds to the log (the browser console on the web).
+func _report_fps(delta: float) -> void:
+	fps_clock += delta
+	if fps_clock >= 5.0:
+		fps_clock = 0.0
+		print("fps %d" % Engine.get_frames_per_second())
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -58,6 +58,12 @@ jobs:
           ~/godot/godot --headless --path . --export-release "Web" build/web/index.html
           ls -la build/web
 
+      - name: Smoke test in a browser
+        run: |
+          python3 -m http.server 8060 --directory build/web >/dev/null 2>&1 &
+          npm install --no-save --no-package-lock --silent playwright-core@1.48.2
+          node tests/browser_smoke.mjs
+
       - name: Upload web build (download from the run page)
         uses: actions/upload-artifact@v4
         with:
