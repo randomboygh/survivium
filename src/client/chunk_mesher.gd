@@ -112,13 +112,14 @@ static func build_cap(w, level: int) -> ArrayMesh:
 	var buf := MeshBuffers.new()
 	var cells: PackedByteArray = w.cells
 	var sx: int = w.size_x
-	var layer: int = sx * w.size_z
-	var row := level * layer
-	for z in w.size_z:
+	var sz: int = w.size_z
+	var layer: int = sx * sz
+	var row: int = level * layer
+	for z in sz:
 		for x in sx:
-			var i := row + z * sx + x
-			var m := cells[i]
-			var above := cells[i + layer]
+			var i: int = row + z * sx + x
+			var m: int = cells[i]
+			var above: int = cells[i + layer]
 			if m != AIR and m != WATER and above != AIR and above != WATER:
 				add_face(buf, top, Vector3(x, level, z), m, FACE_TOP, 0.4, 1.0)
 	return null if buf.is_empty() else buf.to_mesh()
