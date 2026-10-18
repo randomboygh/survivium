@@ -1,0 +1,36 @@
+extends Control
+## On-screen joystick for touch screens. `value` is the stick offset, up to 1 in length.
+
+const RADIUS := 70.0
+
+var value := Vector2.ZERO
+var _pressed := false
+
+
+func _ready() -> void:
+	custom_minimum_size = Vector2(RADIUS * 2.0, RADIUS * 2.0)
+	size = custom_minimum_size
+	mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_pressed = event.pressed
+		value = Vector2.ZERO
+		if _pressed:
+			_set_from(event.position)
+		accept_event()
+	elif event is InputEventMouseMotion and _pressed:
+		_set_from(event.position)
+		accept_event()
+	queue_redraw()
+
+
+func _set_from(p: Vector2) -> void:
+	value = ((p - size * 0.5) / RADIUS).limit_length(1.0)
+
+
+func _draw() -> void:
+	var c := size * 0.5
+	draw_circle(c, RADIUS, Color(1, 1, 1, 0.15))
+	draw_circle(c + value * RADIUS, RADIUS * 0.4, Color(1, 1, 1, 0.45))
