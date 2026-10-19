@@ -9,6 +9,8 @@ const AiRules := preload("res://src/shared/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const PlayerScript := preload("res://src/client/player.gd")
+const Trees := preload("res://src/shared/trees.gd")
+const Foliage := preload("res://src/client/foliage.gd")
 
 var checks := 0
 var failures := 0
@@ -27,6 +29,7 @@ func _init() -> void:
 	_test_shapes()
 	_test_ai_relations()
 	_test_pixel_view()
+	_test_trees()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -488,3 +491,38 @@ func _test_pixel_view() -> void:
 	var ray: Array = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
 	var t: float = (ray[0].y - cell.y) / -ray[1].y
 	_check((ray[0] + ray[1] * t).distance_to(cell) < 0.001, "view ray hits the point under the pixel")
+
+
+func _test_trees() -> void:
+	# Every species at every scale stays within the height it promises, so the
+	# generator can tell whether a tree fits under the top of the world.
+	var rng := RandomNumberGenerator.new()
+	var fits := true
+	for species in Trees.SPECIES.size():
+		for scale in [0.6, 0.8, 1.0, 1.3]:
+			for k in 6:
+				rng.seed = k
+				var w := WorldData.new(32, 40, 32)
+				Trees.place(w, 15, 1, 15, species, rng, scale)
+				var top := 0
+				for col in 32 * 32:
+					for y in 40:
+						if (w.leaf_cols[col] | w.log_cols[col]) & (1 << y):
+							top = maxi(top, y)
+				fits = fits and top <= Trees.height(species, scale)
+	_check(fits, "trees stay within Trees.height")
+	var w := WorldGen.generate(42, 128, 40, 128)
+	var kinds := {}
+	for at in w.trees:
+		kinds[w.trees[at]] = true
+		_check(w.log_cols[at.y * w.size_x + at.x] != 0, "a noted tree has a trunk")
+	_check(kinds.size() == Trees.SPECIES.size(), "the generator grows every species")
+	# Crowns of spruces take needle cards, of oaks leaf cards.
+	var chunk: Dictionary = Foliage.build_chunk(w, 0, 0, 128)
+	var buf: PackedFloat32Array = chunk.clumps[1]
+	var rows := {}
+	for i in chunk.clumps[0]:
+		var row := int(buf[i * 20 + 19]) % Foliage.DEEP_ROW
+		rows[row >= 3] = true
+	_check(rows.size() == 2, "crowns have both broad leaves and needles")
+

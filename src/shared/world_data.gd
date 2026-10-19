@@ -42,6 +42,8 @@ var log_cols := PackedInt64Array()
 var wild_cols := PackedInt64Array()
 var sloped_cols := PackedInt64Array()
 var corner_cols := PackedInt64Array()
+## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z).
+var trees := {}
 ## Bits of all levels, and of the top level.
 var all_bits: int
 var top_bit: int

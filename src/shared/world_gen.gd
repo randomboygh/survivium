@@ -13,6 +13,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
+const Trees := preload("res://src/shared/trees.gd")
 
 ## Places of the layout, in fractions of the map (x east, y south): centres, and radii
 ## in fractions of the map's side.
@@ -413,7 +414,7 @@ static func _seal(w: WorldData, flags: PackedByteArray, tops: PackedByteArray) -
 					w.set_natural(nx, yy, nz, true)
 
 
-## Trees on grass two cells apart (the middle of the leaf clumps, see _place_tree):
+## Trees on grass two cells apart (the lattice of the crowns, see Trees.place):
 ## a dense forest east of the river, groves where the forest noise is high, a few in
 ## the swamp and lone trees on open ground.
 static func _forests(w: WorldData, world_seed: int, forest: PackedByteArray, heights: PackedInt32Array,
@@ -433,7 +434,7 @@ static func _forests(w: WorldData, world_seed: int, forest: PackedByteArray, hei
 			var col := z * sx + x
 			var hh := heights[col]
 			if water_top[col] >= 0 or tops[col] != Mat.GRASS or w.get_cell(x, hh, z) != Mat.GRASS \
-					or w.get_cell(x, hh + 1, z) != Mat.AIR or hh + 14 >= sy:
+					or w.get_cell(x, hh + 1, z) != Mat.AIR:
 				continue
 			# Trunks side by side would merge into a wall of logs.
 			if w.get_cell(x - 2, hh + 1, z) == Mat.LOG or w.get_cell(x + 2, hh + 1, z) == Mat.LOG \
@@ -443,10 +444,19 @@ static func _forests(w: WorldData, world_seed: int, forest: PackedByteArray, hei
 			var chance := lerpf(0.004, 0.2, dense)
 			if forest[col] > grove_t:
 				chance = maxf(chance, 0.1)
-			if Vector2((x - swamp.x) / swamp_r.x, (z - swamp.y) / swamp_r.y).length() < 1.0:
+			var in_swamp := Vector2((x - swamp.x) / swamp_r.x, (z - swamp.y) / swamp_r.y).length() < 1.0
+			if in_swamp:
 				chance = 0.03
-			if rng.randf() < chance:
-				_place_tree(w, x, hh + 1, z, rng)
+			if rng.randf() >= chance:
+				continue
+			# Spruces on the higher ground, oaks in the lowland forest and the swamp, mixed
+			# where they meet; under the top of the world and in the swamp trees stay small.
+			var species := Trees.SPRUCE if hh + rng.randi_range(-2, 2) > w.sea_level + 6 else Trees.OAK
+			var scale := Trees.fit(species, sy - 1 - hh)
+			if in_swamp:
+				scale = minf(scale, rng.randf_range(0.6, 0.85))
+			if scale > 0.0:
+				Trees.place(w, x, hh + 1, z, species, rng, scale)
 
 
 ## Nearest dry grass cell to the middle of the map.
@@ -466,62 +476,6 @@ static func find_spawn(w: WorldData) -> Vector3i:
 						and w.slope_mask(x, y - 1, z) == WorldData.FULL:
 					return Vector3i(x, y, z)
 	return Vector3i(cx, w.size_y - 1, cz)
-
-
-## A trunk of 6 or 8 cells and a crown of leaves around points two cells apart, each
-## point becoming one place for leaf cards (see Foliage). The points fill a low, wide
-## ellipsoid: in the oblique view the top and the front of a crown both show, so a ball
-## would look tall and narrow, while this one reads as round on screen (width about
-## equal to height plus depth). Cells and column masks are written directly: a forest
-## has a few hundred thousand leaves, too many for set_cell.
-static func _place_tree(w: WorldData, x: int, y: int, z: int, rng: RandomNumberGenerator) -> void:
-	var sx := w.size_x
-	var sy := w.size_y
-	var sz := w.size_z
-	var layer := sx * sz
-	var cells := w.cells
-	var air := w.air_cols
-	var leaf := w.leaf_cols
-	var trunk := 6 + 2 * rng.randi_range(0, 1)
-	var col := z * sx + x
-	for i in trunk:
-		cells[(y + i) * layer + col] = Mat.LOG
-	var trunk_bits := ((1 << trunk) - 1) << y
-	w.log_cols[col] |= trunk_bits
-	air[col] &= ~trunk_bits
-	# Radii in points; points sit on even levels, the middle one just above the trunk.
-	var rx := 2.2 + rng.randf_range(-0.2, 0.3)
-	var rz := 1.8 + rng.randf_range(-0.2, 0.2)
-	var ry := 1.5 + rng.randf_range(-0.1, 0.3)
-	var middle := ((y + trunk - 1) & ~1) + 2
-	for dy in range(-2, 3):
-		for dz in range(-2, 3):
-			for dx in range(-3, 4):
-				var d := Vector3(dx / rx, dy / ry, dz / rz)
-				if d.length() > 1.0 + rng.randf_range(-0.1, 0.1):
-					continue
-				var py := middle + 2 * dy
-				for oz in range(-1, 2):
-					var pz := z + 2 * dz + oz
-					if pz < 0 or pz >= sz:
-						continue
-					for ox in range(-1, 2):
-						var px := x + 2 * dx + ox
-						if px < 0 or px >= sx:
-							continue
-						var c := pz * sx + px
-						var bits := 0
-						for oy in range(-1, 2):
-							var yy := py + oy
-							if yy < 0 or yy >= sy:
-								continue
-							var i := yy * layer + c
-							if cells[i] == Mat.AIR:
-								cells[i] = Mat.LEAVES
-								bits |= 1 << yy
-						if bits != 0:
-							leaf[c] |= bits
-							air[c] &= ~bits
 
 
 ## Byte value of a noise level in the grids below.

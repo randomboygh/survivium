@@ -3,8 +3,7 @@ extends Node
 ## the player, animals, camera, time of day, seasons, weather and the level cutaway.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px tall) in an
 ## oblique 3/4 view, is colour graded and scaled up by a whole number without
-## filtering (see PixelView); the UI is drawn at full resolution, scaled for the
-## screen's pixel density.
+## filtering (see PixelView); the interface (Hud) is scaled by a whole number too.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -15,7 +14,7 @@ const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const VoxelProps := preload("res://src/client/voxel_props.gd")
 const PlayerScript := preload("res://src/client/player.gd")
 const CreaturesScript := preload("res://src/client/creatures.gd")
-const TouchStick := preload("res://src/client/touch_stick.gd")
+const Hud := preload("res://src/client/hud.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const EffectsScript := preload("res://src/client/effects.gd")
@@ -37,8 +36,6 @@ const CELL := WorldData.CELL
 ## get this much margin.
 const CULL_MARGIN := 24.0
 ## Smallest UI height in UI units; the UI scale is lowered on short screens to keep it.
-const UI_MIN_HEIGHT := 320.0
-const UI_MARGIN := 16.0
 const DAY_LENGTH := 240.0
 const DAYS_PER_SEASON := 2.0
 const REACH := 7.0
@@ -47,7 +44,8 @@ const WINTER := 3
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
-const HELP := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить, 1–7 / колесо — блок\nQ / E — срез уровней вниз / вверх\nZ — следующий сезон, X — осадки, T — ускорить время\nG — тени, H — скрыть подсказку"
+## How often the hint under the mouse pointer is updated, in seconds.
+const TIP_INTERVAL := 0.1
 
 var world
 var player
@@ -85,21 +83,22 @@ var drifts: MultiMeshInstance3D
 ## Where the player's last footprint was left, and which foot made it.
 var last_print := Vector3.ZERO
 var left_foot := false
-var ui: Control
-var hud: Label
-var hotbar: Label
-var loading: Label
-var stick
-var touch_buttons: GridContainer
-var mode_button: Button
-var block_button: Button
+var hud
 var touch := false
+var jump_held := false
+var tip_clock := 0.0
+var mouse_pos := Vector2(-1, -1)
+var last_touch_ms := -100000
+## Touch indices now on the screen.
+var fingers := {}
+var atlas: Texture2D
 var image_size := Vector2i(640, 360)
 var safe_rect := Rect2()
 var safe_clock := 0.0
 var ready_to_play := false
 
 var time_of_day := 0.3
+var day := 1
 var time_speed := 1.0
 var season := 1
 var season_clock := 0.0
@@ -133,7 +132,7 @@ func _ready() -> void:
 	_build_ui()
 	get_viewport().size_changed.connect(_on_screen_resized)
 	_on_screen_resized()
-	loading.text = "Генерация мира…"
+	hud.set_loading("Генерация мира…")
 	# Let the loading text show before the heavy generation.
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -194,29 +193,35 @@ func _process(delta: float) -> void:
 				if _is_near(key, home):
 					near_pending -= 1
 				_build_chunk(key)
-			loading.text = "Построение мира… %d%%" % int(100.0 * (near_total - near_pending) / near_total)
+			hud.set_loading("Построение мира… %d%%" % int(100.0 * (near_total - near_pending) / near_total))
 			if near_pending == 0:
-				loading.visible = false
+				hud.set_loading("")
+				hud.perf.world_ms = Time.get_ticks_msec()
+				# Freezes while the world was being built are not the game's.
+				hud.perf.reset()
+				hud.perf.chunks = near_total
 				_place_props()
 				creatures.setup(world, player, WORLD_SEED)
 				ready_to_play = true
 				print("near meshes built in %d ms" % mesh_ms)
 				print("world ready in %d ms" % Time.get_ticks_msec())
 		if pending_chunks.is_empty():
+			hud.perf.chunks = ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
 			print("meshes built in %d ms" % mesh_ms)
 			print("whole map ready in %d ms" % Time.get_ticks_msec())
 	_update_time(delta)
 	_update_weather(delta)
 	if ready_to_play:
 		player.move_input = _read_move()
-		player.step(minf(delta, 0.05), Input.is_physical_key_pressed(KEY_SPACE))
+		player.step(minf(delta, 0.05), Input.is_physical_key_pressed(KEY_SPACE) or jump_held)
 		_leave_footprints()
 	_update_cut()
 	_update_camera(delta)
-	_update_hud()
-	_poll_safe_rect(delta)
 	if ready_to_play:
+		hud.update_state()
+		_update_tip(delta)
 		_report_fps(delta)
+	_poll_safe_rect(delta)
 
 
 ## A boot print every stride on the ground, left and right in turn, none in the water.
@@ -232,27 +237,49 @@ func _leave_footprints() -> void:
 		last_print = player.position
 
 
-## Prints the frame rate every 5 seconds to the log (the browser console on the web).
+## Prints the frame statistics every 5 seconds to the log (the browser console on the web).
 func _report_fps(delta: float) -> void:
 	fps_clock += delta
 	if fps_clock >= 5.0:
 		fps_clock = 0.0
-		print("fps %d" % Engine.get_frames_per_second())
+		print("fps %d | %s" % [Engine.get_frames_per_second(), hud.perf.summary().replace("\n", " | ")])
+
+
+## Touch and mouse switch the layout: the joystick and action buttons show after a
+## touch, key hints and the pointer hint after the mouse moves. Browsers report a
+## moving finger as mouse motion too, so motion counts as a mouse only while no finger
+## is down and a while after the last touch.
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			fingers[event.index] = true
+		else:
+			fingers.erase(event.index)
+		_set_touch(true)
+		last_touch_ms = Time.get_ticks_msec()
+	elif event is InputEventScreenDrag:
+		_set_touch(true)
+		last_touch_ms = Time.get_ticks_msec()
+	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
+		if fingers.is_empty() and Time.get_ticks_msec() - last_touch_ms > 1000:
+			_set_touch(false)
+		mouse_pos = event.position
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.physical_keycode
 		if key >= KEY_1 and key < KEY_1 + Mat.PLACEABLE.size():
-			selected = key - KEY_1
-			_update_block_button()
+			select_block(key - KEY_1)
 		match key:
 			KEY_Q, KEY_PAGEDOWN:
-				_shift_cut(-1)
+				shift_cut(-1)
 			KEY_E, KEY_PAGEUP:
-				_shift_cut(1)
+				shift_cut(1)
+			KEY_R:
+				reset_view_level()
 			KEY_Z:
-				_next_season()
+				next_season()
 			KEY_X:
 				raining = not raining
 			KEY_T:
@@ -261,21 +288,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				sun.shadow_enabled = not sun.shadow_enabled
 			KEY_H:
 				show_help = not show_help
-			KEY_F3:
-				_print_debug()
+				hud.show_keys(show_help)
 	elif event is InputEventMouseButton and event.pressed:
 		var n: int = Mat.PLACEABLE.size()
+		# With a mouse each button is a hand: the left one digs, the right one places.
+		# A tap on a touch screen uses the hand chosen on the hotbar.
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
-				_edit(event.position, dig_mode)
+				_edit(event.position, dig_mode or not touch)
 			MOUSE_BUTTON_RIGHT:
 				_edit(event.position, false)
 			MOUSE_BUTTON_WHEEL_UP:
-				selected = (selected - 1 + n) % n
-				_update_block_button()
+				select_block((selected - 1 + n) % n, false)
 			MOUSE_BUTTON_WHEEL_DOWN:
-				selected = (selected + 1) % n
-				_update_block_button()
+				select_block((selected + 1) % n, false)
 
 
 # --- Setup -----------------------------------------------------------------
@@ -313,56 +339,26 @@ func _on_screen_resized() -> void:
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
+	# The interface keeps running while the pause menu stops the game.
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(layer)
-	# All UI lives under one scaled root, so anchors work in UI units.
-	ui = Control.new()
-	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(ui)
-	hud = _label(ui, Vector2(UI_MARGIN, UI_MARGIN * 0.5))
-	hotbar = _label(ui, Vector2.ZERO)
-	hotbar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE, Control.PRESET_MODE_MINSIZE, 12)
-	hotbar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	loading = _label(ui, Vector2.ZERO)
-	loading.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	loading.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	loading.grow_vertical = Control.GROW_DIRECTION_BOTH
-	loading.add_theme_font_size_override("font_size", 28)
-	if touch:
-		# On touch screens the selected block is shown on its button instead of a hotbar.
-		hotbar.visible = false
-		stick = TouchStick.new()
-		ui.add_child(stick)
-		stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, UI_MARGIN)
-		stick.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		touch_buttons = GridContainer.new()
-		touch_buttons.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		touch_buttons.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		touch_buttons.add_theme_constant_override("h_separation", 6)
-		touch_buttons.add_theme_constant_override("v_separation", 6)
-		ui.add_child(touch_buttons)
-		mode_button = _button(touch_buttons, "Копать", _toggle_dig_mode)
-		block_button = _button(touch_buttons, "", _next_block)
-		# The default font has no arrow glyphs.
-		_button(touch_buttons, "Ниже", func() -> void: _shift_cut(-1))
-		_button(touch_buttons, "Выше", func() -> void: _shift_cut(1))
-		_button(touch_buttons, "Сезон", _next_season)
-		_button(touch_buttons, "Осадки", func() -> void: raining = not raining)
-		_update_block_button()
+	hud = Hud.new()
+	hud.game = self
+	layer.add_child(hud)
+	hud.set_touch(touch)
 
 
-## Fits the UI root into `rect` (screen pixels) at the screen's pixel density.
 func _layout_ui(rect: Rect2) -> void:
 	safe_rect = rect
-	var s := maxf(1.0, DisplayServer.screen_get_scale())
-	s = clampf(rect.size.y / UI_MIN_HEIGHT, 1.0, s)
-	ui.scale = Vector2(s, s)
-	ui.position = rect.position
-	ui.size = rect.size / s
-	if touch_buttons != null:
-		# Three columns fit next to the stick in landscape, two in portrait.
-		touch_buttons.columns = 3 if ui.size.x >= 520.0 else 2
-		touch_buttons.reset_size()
-		touch_buttons.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, UI_MARGIN)
+	hud.fit(rect)
+
+
+func _set_touch(on: bool) -> void:
+	if on != touch:
+		touch = on
+		hud.set_touch(on)
+		if on:
+			hud.show_tip(Vector2.ZERO, "")
 
 
 ## The part of the screen the player can see. Mobile browsers can lay the page out
@@ -405,56 +401,33 @@ func _poll_safe_rect(delta: float) -> void:
 		_layout_ui(r)
 
 
-func _toggle_dig_mode() -> void:
-	dig_mode = not dig_mode
-	mode_button.text = "Копать" if dig_mode else "Ставить"
+func set_dig_mode(on: bool) -> void:
+	dig_mode = on
+	hud.refresh_hands()
 
 
-func _next_block() -> void:
-	selected = (selected + 1) % Mat.PLACEABLE.size()
-	_update_block_button()
-
-
-func _update_block_button() -> void:
-	if block_button != null:
-		block_button.text = Mat.NAMES[Mat.PLACEABLE[selected]]
+## Takes block `i` of the hotbar into the right hand; `use` also makes it the hand in use.
+func select_block(i: int, use := true) -> void:
+	selected = i
+	if use:
+		dig_mode = false
+	hud.refresh_hands()
 
 
 ## F3: prints the view and UI layout and the player state to the log.
-func _print_debug() -> void:
-	var stick_rect := Rect2()
-	var buttons_rect := Rect2()
-	if stick != null:
-		stick_rect = stick.get_global_rect()
-		buttons_rect = touch_buttons.get_global_rect()
+func print_debug() -> void:
+	var r: Dictionary = hud.debug_rects()
 	var p: Vector3 = player.position if player != null else Vector3.ZERO
-	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, player (%.2f, %.2f, %.2f), season %s" % [
+	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
 		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), viewport.size,
-		container.stretch_shrink, safe_rect, ui.scale.x, stick_rect, buttons_rect, p.x, p.y, p.z,
-		SEASONS[season]])
-
-
-func _label(parent: Node, pos: Vector2) -> Label:
-	var l := Label.new()
-	l.position = pos
-	l.add_theme_constant_override("outline_size", 6)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	parent.add_child(l)
-	return l
-
-
-func _button(parent: Node, text: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(96, 44)
-	b.pressed.connect(action)
-	parent.add_child(b)
-	return b
+		container.stretch_shrink, safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.season,
+		p.x, p.y, p.z, SEASONS[season], touch, hud.stick.value.x, hud.stick.value.y])
 
 
 func _build_materials() -> void:
-	RenderingServer.global_shader_parameter_set("terrain_atlas", PixelTextures.build_atlas())
+	atlas = PixelTextures.build_atlas()
+	RenderingServer.global_shader_parameter_set("terrain_atlas", atlas)
+	hud.set_block_icons(atlas, PixelTextures.TILE, PixelTextures.TILES)
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
 	RenderingServer.global_shader_parameter_set("world_size", Vector2(world.size_x, world.size_z) * CELL)
 	world_mat = _material(WorldShader)
@@ -464,7 +437,8 @@ func _build_materials() -> void:
 	leaves_mat = _material(LeavesShader)
 	leaves_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps())
 	leaves_mat.set_shader_parameter("clump_size", Foliage.CLUMP_SIZE)
-	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_SIZES.size())
+	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_ROWS)
+	leaves_mat.set_shader_parameter("branch_row", PixelTextures.BRANCH_ROW)
 	leaf_shadow_mat = _material(LeafShadowShader)
 	grass_mesh = Foliage.quad_mesh(Foliage.TUFT_SIZE, false)
 	clump_mesh = Foliage.quad_mesh(Foliage.CLUMP_SIZE, true)
@@ -536,13 +510,13 @@ func _place_props() -> void:
 				and world.slope_mask(x, y - 1, z) == world.FULL:
 			bush_cells.append(Vector3i(x, y, z))
 	var bush_mat := _material(LeavesShader)
-	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP, [Foliage.BUSH_CLUMP]))
+	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP, [Foliage.BUSH_CLUMP], false))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
 	bushes = _multimesh(Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true), bush_mat, true, true)
 	bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	bushes.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(bushes)
-	bush_shade = _multimesh(Foliage.disc_mesh(Foliage.BUSH_DISC), leaf_shadow_mat, false, false)
+	bush_shade = _multimesh(Foliage.disc_mesh(Foliage.BUSH_DISC), leaf_shadow_mat, false, true)
 	bush_shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	bush_shade.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(bush_shade)
@@ -606,6 +580,7 @@ func _refresh_bushes() -> void:
 	var discs := PackedFloat32Array()
 	for cell in bush_cells:
 		Foliage.put(discs, (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0))
+		discs.append_array([Foliage.BERRIES, 0.0, 0.0, 0.0])
 	bush_shade.multimesh.instance_count = bush_cells.size()
 	if not bush_cells.is_empty():
 		bush_shade.multimesh.buffer = discs
@@ -628,7 +603,7 @@ func _build_chunk(key: Vector2i) -> void:
 		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var crowns := _multimesh(clump_mesh, leaves_mat, true, true)
 		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var shade := _multimesh(disc_mesh, leaf_shadow_mat, false, false)
+		var shade := _multimesh(disc_mesh, leaf_shadow_mat, false, true)
 		shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		var parts: Array = [solid, water, tufts, crowns, shade]
 		for n in parts:
@@ -658,14 +633,19 @@ func _multimesh(mesh: Mesh, material: Material, colors: bool, custom: bool) -> M
 	return node
 
 
-func _edit(screen_pos: Vector2, dig: bool) -> void:
+## The cell under a screen point, as VoxelRaycast.cast returns it (empty if none).
+func _pick(screen_pos: Vector2) -> Dictionary:
 	if not ready_to_play:
-		return
+		return {}
 	var vp_pos := (screen_pos - container.global_position) / float(container.stretch_shrink)
 	var center := Vector2(camera.global_position.x, camera.global_position.z)
 	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(image_size) * 0.5, world.size_y * CELL + 1.0)
 	var max_level: int = mini(cut_level, world.size_y - 1)
-	var hit := VoxelRaycast.cast(world, ray[0] / CELL, ray[1], 500.0, max_level)
+	return VoxelRaycast.cast(world, ray[0] / CELL, ray[1], 500.0, max_level)
+
+
+func _edit(screen_pos: Vector2, dig: bool) -> void:
+	var hit := _pick(screen_pos)
 	if hit.is_empty():
 		return
 	var cell: Vector3i = hit.cell
@@ -734,13 +714,18 @@ func _update_cut() -> void:
 		_apply_cut()
 
 
-func _shift_cut(d: int) -> void:
+func shift_cut(d: int) -> void:
 	if world == null:
 		return
 	var base: int = cut_level if cut_level < world.size_y else player.level() + 1
 	manual_level = clampi(base + d, 1, world.size_y)
 	if manual_level >= world.size_y - 1:
 		manual_level = -1
+
+
+## Back to the automatic cut that follows the player.
+func reset_view_level() -> void:
+	manual_level = -1
 
 
 func _apply_cut() -> void:
@@ -754,10 +739,13 @@ func _apply_cut() -> void:
 
 func _update_time(delta: float) -> void:
 	var step := delta * time_speed / DAY_LENGTH
-	time_of_day = fmod(time_of_day + step, 1.0)
+	time_of_day += step
+	if time_of_day >= 1.0:
+		time_of_day -= 1.0
+		day += 1
 	season_clock += step
 	if season_clock >= DAYS_PER_SEASON:
-		_next_season()
+		next_season()
 	var h := -cos(time_of_day * TAU)
 	daylight = clampf(h * 1.6 + 0.35, 0.0, 1.0)
 	# Low warm light near sunrise and sunset, full light at midday.
@@ -816,10 +804,11 @@ func _update_grade(golden: float, night: float) -> void:
 	grade_mat.set_shader_parameter("shadow_tint", Color(0.0, 0.01, 0.04).lerp(Color(0.02, 0.03, 0.09), night))
 
 
-func _next_season() -> void:
+func next_season() -> void:
 	season = (season + 1) % 4
 	season_clock = 0.0
 	print("season: %s" % SEASONS[season])
+	hud.toast("Наступила %s" % SEASONS[season].to_lower() if season != 1 else "Наступило лето")
 
 
 func _update_weather(delta: float) -> void:
@@ -892,27 +881,25 @@ func _read_move() -> Vector2:
 		v.y -= 1.0
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
 		v.y += 1.0
-	if stick != null:
-		v += stick.value
+	if touch:
+		v += hud.stick.value
 	return v
 
 
-func _update_hud() -> void:
-	if not ready_to_play:
+## With a mouse, names the cell under the pointer and what the buttons do with it.
+func _update_tip(delta: float) -> void:
+	tip_clock += delta
+	if touch or tip_clock < TIP_INTERVAL or mouse_pos.x < 0.0:
 		return
-	var hours := int(time_of_day * 24.0)
-	var minutes := int(fmod(time_of_day * 24.0 * 60.0, 60.0))
-	var weather := "ясно"
-	if raining:
-		weather = "снегопад" if season == WINTER else "дождь"
-	var cut := "" if cut_level >= world.size_y else " · срез %d" % cut_level
-	var text := "%s · %02d:%02d · %s\nУровень %d%s · FPS %d" % [
-		SEASONS[season], hours, minutes, weather, player.level(), cut, Engine.get_frames_per_second()]
-	if show_help:
-		text += "\n\n" + HELP
-	hud.text = text
-	var parts := []
-	for i in Mat.PLACEABLE.size():
-		var block: String = Mat.NAMES[Mat.PLACEABLE[i]]
-		parts.append("[%d %s]" % [i + 1, block] if i == selected else "%d %s" % [i + 1, block])
-	hotbar.text = "   ".join(parts)
+	tip_clock = 0.0
+	var hit := _pick(mouse_pos)
+	if hit.is_empty():
+		hud.show_tip(mouse_pos, "")
+		return
+	var cell: Vector3i = hit.cell
+	var text: String = "%s · уровень %d" % [Mat.NAMES[world.get_cell(cell.x, cell.y, cell.z)], cell.y]
+	if _too_far(cell):
+		text += "\nдалеко"
+	else:
+		text += "\nЛКМ копать · ПКМ поставить"
+	hud.show_tip(mouse_pos, text)

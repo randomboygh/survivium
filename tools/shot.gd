@@ -9,6 +9,8 @@ extends SceneTree
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
+const Trees := preload("res://src/shared/trees.gd")
+const Foliage := preload("res://src/client/foliage.gd")
 const CELL := 0.5
 
 const SHOTS := {
@@ -48,6 +50,13 @@ const SHOTS := {
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
+	"grove": {"time": 0.42, "season": 1, "grove": true},
+	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
+	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
+	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
+	"ui": {"time": 0.45, "season": 1, "stats": true},
+	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
+	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
 }
 
 var main: Node
@@ -102,6 +111,12 @@ func _run() -> void:
 			main.player.position = _place(main.world, shot.place)
 		if shot.has("water"):
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
+		if shot.get("grove", false):
+			# Away from the campfire by the spawn, which melts the snow around it.
+			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
+		main._set_touch(shot.get("touch", false))
+		main.hud.perf.visible = shot.get("stats", false)
+		main.hud.show_keys(shot_name == "ui")
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 			main.roof.build(main.world)
@@ -130,10 +145,21 @@ func _run() -> void:
 			main.player.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
+		# Messages fade after a few seconds, longer than the settling above takes here.
+		if shot.get("toast", false):
+			main.hud.toast("Наступило лето")
+			await process_frame
+			await process_frame
+		if shot.get("menu", false):
+			main.hud.toggle_menu()
+			await process_frame
+			await process_frame
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
 		print("saved ", shot_name)
+		if shot.get("menu", false):
+			main.hud.toggle_menu()
 	quit()
 
 
@@ -400,6 +426,48 @@ func _lab(w, at: Vector3i) -> void:
 	for z in range(at.z - 22, at.z + 25, 8):
 		for x in range(at.x - 32, at.x + 35, 8):
 			main._on_cell_changed(Vector3i(x, h, z))
+	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
+
+
+## A flat meadow at `at` with trees of every species: oaks in the back row (some go
+## bare in winter, the others keep their leaves), spruces of three sizes in front.
+## Grown once; later grove shots reuse it.
+func _grove(w, at: Vector3i) -> void:
+	var h := at.y
+	var oaks := [-24, -8, 8, 24]
+	var spruces := [-16, 0, 16]
+	if w.get_cell(at.x, h - 1, at.z - 30) != Mat.GRASS or w.get_cell(at.x, h, at.z - 30) != Mat.AIR:
+		for z in range(at.z - 34, at.z + 30):
+			for x in range(at.x - 44, at.x + 46):
+				for y in w.size_y:
+					var m := Mat.AIR
+					if y < h:
+						m = Mat.GRASS if y == h - 1 else Mat.DIRT
+					w.set_cell(x, y, z, m)
+					w.set_natural(x, y, z, true)
+		for key in w.trees.keys():
+			if absi(key.x - at.x) < 52 and absi(key.y - at.z) < 40:
+				w.trees.erase(key)
+		var keep: Array[Vector3i] = []
+		for b in main.bush_cells:
+			if absi(b.x - at.x) > 46 or absi(b.z - at.z) > 36:
+				keep.append(b)
+		main.bush_cells = keep
+		main._refresh_bushes()
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 3
+		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
+		for i in oaks.size():
+			var x: int = (at.x + oaks[i]) | 1
+			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.OAK) != (i % 2 == 0):
+				x += 2
+			Trees.place(w, x, h, (at.z - 8) | 1, Trees.OAK, rng)
+		var sizes := [0.75, 1.0, 1.2]
+		for i in spruces.size():
+			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.SPRUCE, rng, sizes[i])
+		for z in range(at.z - 38, at.z + 34, 8):
+			for x in range(at.x - 48, at.x + 50, 8):
+				main._on_cell_changed(Vector3i(x, h, z))
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
 
 

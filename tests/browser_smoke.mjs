@@ -53,6 +53,10 @@ async function debug(page, log) {
     ui: field(/ ui (\[[^\]]*\])/),
     stick: field(/stick (\[[^\]]*\])/),
     buttons: field(/buttons (\[[^\]]*\])/),
+    jump: field(/jump (\[[^\]]*\])/),
+    hotbar: field(/hotbar (\[[^\]]*\])/),
+    menu: field(/menu (\[[^\]]*\])/),
+    season: field(/season (\[[^\]]*\])/),
     player: field(/player \(([^)]*)\)/),
   };
 }
@@ -95,7 +99,10 @@ async function screenshot(name, page) {
   const visibleBottom = (390 * dpr);
   const inside = (r) => r.length === 4 && r[0] >= 0 && r[1] >= 0 && r[0] + r[2] <= 844 * dpr + 1 && r[1] + r[3] <= visibleBottom + 1;
   if (!inside(d0.stick)) errors.push(`phone: joystick is outside the visible screen: ${d0.stick}`);
-  if (!inside(d0.buttons)) errors.push(`phone: buttons are outside the visible screen: ${d0.buttons}`);
+  if (!inside(d0.buttons)) errors.push(`phone: the action button is outside the visible screen: ${d0.buttons}`);
+  if (!inside(d0.jump)) errors.push(`phone: the jump button is outside the visible screen: ${d0.jump}`);
+  if (!inside(d0.hotbar)) errors.push(`phone: the hotbar is outside the visible screen: ${d0.hotbar}`);
+  if (!inside(d0.menu)) errors.push(`phone: the menu button is outside the visible screen: ${d0.menu}`);
 
   if (d0.stick.length === 4) {
     // Push the joystick to the right for a second.
@@ -111,13 +118,41 @@ async function screenshot(name, page) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     const d1 = await debug(page, log);
     if (!(d1.player[0] - d0.player[0] > 0.5)) errors.push(`phone: joystick did not move the player: ${d0.player} -> ${d1.player}`);
+
+    // Hold the joystick with one finger and jump with another: the second finger
+    // must reach the jump button.
+    if (d1.jump.length === 4) {
+      const jx = (d1.jump[0] + d1.jump[2] / 2) / dpr;
+      const jy = (d1.jump[1] + d1.jump[3] / 2) / dpr;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 0 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 0 }, { x: jx, y: jy, id: 1 }] });
+      await page.waitForTimeout(600);
+      let rose = false;
+      let last = d1;
+      for (let i = 0; i < 3 && !rose; i++) {
+        last = await debug(page, log);
+        rose = last.player[1] - d1.player[1] > 0.05;
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      if (!rose) errors.push(`phone: jump with a second finger while holding the joystick did nothing: ${d1.player} -> ${last.player}`);
+    }
   }
-  if (d0.buttons.length === 4) {
-    // "Сезон" is the middle button of the second row.
-    const before = log.length;
-    await page.touchscreen.tap((d0.buttons[0] + d0.buttons[2] / 2) / dpr, (d0.buttons[1] + d0.buttons[3] * 0.75) / dpr);
-    await page.waitForTimeout(1000);
-    if (!log.slice(before).some((t) => t.startsWith('season:'))) errors.push('phone: the season button did not react to a tap');
+  if (d0.menu.length === 4) {
+    // Open the pause menu and tap "Следующий сезон" in it.
+    const center = (r) => [(r[0] + r[2] / 2) / dpr, (r[1] + r[3] / 2) / dpr];
+    await page.touchscreen.tap(...center(d0.menu));
+    await page.waitForTimeout(500);
+    const d2 = await debug(page, log);
+    if (d2.season.length === 4 && d2.season[2] > 0) {
+      const before = log.length;
+      await page.touchscreen.tap(...center(d2.season));
+      await page.waitForTimeout(1000);
+      if (!log.slice(before).some((t) => t.startsWith('season:'))) errors.push('phone: the season button in the menu did not react to a tap');
+    } else {
+      errors.push(`phone: the menu did not open: ${d2.line}`);
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
   }
   await page.waitForTimeout(1000);
   await screenshot('phone', page);

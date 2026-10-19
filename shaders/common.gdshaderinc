@@ -58,6 +58,20 @@ float hash13(vec3 p3) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
+// Share of its leaves a tree still has, by what it does over the year (the alpha of
+// its leaf cards' colour, see Foliage): a bare one (0.8) drops them all once winter
+// comes, one that keeps them (1) holds most of its dry leaves, evergreens (0.6) keep
+// their needles, bushes (0.4) follow the season.
+float leaves_left(float kind) {
+	if (kind > 0.5 && kind < 0.7) {
+		return 1.0;
+	}
+	if (kind > 0.7 && kind < 0.9) {
+		return leaf_amount < 0.7 ? 0.0 : leaf_amount;
+	}
+	return kind > 0.9 ? 0.35 + 0.65 * leaf_amount : leaf_amount;
+}
+
 // Moving cloud shadows: 1 in the sun, lower under a cloud. Sampled per world texel,
 // so cloud edges are pixel steps like everything else.
 float cloud_light(vec3 p) {
@@ -122,9 +136,11 @@ float roof_level(vec2 xz) {
 	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / world_size).r * 255.0 - 1.0;
 }
 
-// True when the cell on `level` lies under a roof, an overhang or a cave ceiling.
-bool roofed(vec2 xz, float level) {
-	return level < roof_level(xz) - 0.5;
+// True at height `y` under a roof, an overhang or a cave ceiling: below the bottom of
+// the column's highest covering cell. The faces of that cell itself, its ramps and
+// walls included, lie within its span and are not under it.
+bool roofed(vec2 xz, float y) {
+	return y < roof_level(xz) * CELL - 0.01;
 }
 
 float warm_spot(vec3 p, float jitter) {

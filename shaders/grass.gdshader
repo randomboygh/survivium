@@ -32,7 +32,7 @@ void vertex() {
 	}
 	VERTEX.x += round(sway) / TEXELS * tip;
 	// Tufts under a roof or an overhang see no snow and no rain.
-	sky = roofed(root.xz, floor(root.y / CELL + 0.01) - 1.0) ? 0.0 : 1.0;
+	sky = roofed(root.xz, root.y) ? 0.0 : 1.0;
 	snow_here = sky * snow_amount * (1.0 - warm_spot(root, custom.z));
 	VERTEX.y = root.y + (VERTEX.y - root.y) * (1.0 - snow_here * 0.9);
 	VERTEX = shear(VERTEX);

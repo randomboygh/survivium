@@ -200,8 +200,7 @@ void fragment() {
 	// Snow covers whole texels on upward faces and a fringe on top of walls. The
 	// wind leaves a few spots bare, it melts away around fires, and none falls on
 	// the faces of a cell under a roof, an overhang or a cave ceiling.
-	float level = floor(world_pos.y / CELL - world_normal.y * 0.5 - 0.001);
-	bool roof = roofed(world_pos.xz, level);
+	bool roof = roofed(world_pos.xz, world_pos.y);
 	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);

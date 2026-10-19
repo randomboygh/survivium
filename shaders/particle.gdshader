@@ -21,7 +21,7 @@ void fragment() {
 	if (world_pos.y > cut_height + 0.01 || COLOR.a < 0.02) {
 		discard;
 	}
-	if (sky_only > 0.5 && roofed(world_pos.xz, floor(world_pos.y / CELL))) {
+	if (sky_only > 0.5 && roofed(world_pos.xz, world_pos.y)) {
 		discard;
 	}
 	ALBEDO = COLOR.rgb * brightness;

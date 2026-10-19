@@ -5,9 +5,12 @@
 // pointed leaves of the texture tilt that normal a little and flutter in the wind, so
 // band edges follow leaf outlines and shimmer. Cards sway in whole pixels, thin out in
 // winter, take snow on top, and turn see-through around the player when they hide them.
+// Single leaves differ a little in tone and their upper edges catch the light, so they
+// show one by one the way grass blades do.
 // INSTANCE_CUSTOM: xyz = normal of the crown at the card, w = row of the clump texture
-// (whole part) + sway phase (fraction).
-// COLOR: tint of the tree; alpha below 1 marks a bush with berries.
+// (whole part, plus 8 for the deep layer of a crown) + sway phase (fraction).
+// COLOR: tint of the tree; alpha what it does in winter (see Foliage): 1 keeps dry
+// leaves under snow, 0.8 goes bare, 0.6 is evergreen, 0.4 is a bush with berries.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 
@@ -17,6 +20,8 @@ uniform sampler2D clump_texture : filter_nearest;
 uniform float clump_size = 1.5;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
+// Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
+uniform int branch_row = -1;
 
 varying vec3 center;
 varying flat vec4 custom;
@@ -35,7 +40,17 @@ void vertex() {
 void fragment() {
 	float phase = fract(custom.w);
 	float variant = floor(phase * 4.0);
-	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (floor(custom.w) + UV.y) / float(clump_rows)));
+	float row = floor(custom.w);
+	bool deep = row >= 7.5;
+	row -= deep ? 8.0 : 0.0;
+	bool evergreen = tint.a > 0.5 && tint.a < 0.7;
+	float amount = leaves_left(tint.a);
+	// A bare tree's deep layer shows its branches.
+	bool branches = deep && amount < 0.01 && branch_row >= 0;
+	if (branches) {
+		row = float(branch_row);
+	}
+	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (row + UV.y) / float(clump_rows)));
 	vec2 texel = floor(vec2(center.x, center.z - center.y) * TEXELS + UV * clump_size * TEXELS);
 	if (m.a < 0.5 || cut_dither(center.y, texel)) {
 		discard;
@@ -43,7 +58,8 @@ void fragment() {
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters
 	// thin out (red is a random number per leaf).
 	float leaf = m.r;
-	if (hash13(floor(center)) > leaf_amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * leaf_amount) {
+	bool edge = m.a < 0.9;
+	if (!branches && (hash13(floor(center)) > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them.
@@ -60,19 +76,28 @@ void fragment() {
 	vec2 tilt = (m.gb * 2.0 - 1.0) * 0.5;
 	tilt.x += sin(TIME * 2.3 + leaf * 6.28 + center.x * 0.7) * (0.04 + length(wind) * 0.3);
 	vec3 n = normalize(custom.xyz + vec3(tilt.x, tilt.y, -tilt.y * 0.4));
-	// Autumn colours differ from tree to tree.
+	// Autumn colours differ from tree to tree; evergreens hardly change.
 	vec3 season = foliage_tint * (1.0 + (hash12(floor(center.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
-	vec3 col = tint.rgb * season;
+	season = evergreen ? mix(vec3(1.0), season, 0.15) : season;
+	// Three tones of single leaves, and a lighter upper edge on each.
+	float tone = 1.0 + (floor(fract(leaf * 5.31) * 3.0) - 1.0) * 0.04;
+	vec3 col = tint.rgb * season * tone * (edge ? 1.06 : 1.0);
+	if (branches) {
+		col = vec3(0.3, 0.24, 0.2) * tone * (edge ? 1.15 : 1.0);
+	}
 	// The underside of the crown is shaded by the crown itself whatever the sun does,
 	// a step darker and cooler toward the bottom.
 	float under = n.y;
 	col *= under < -0.05 ? vec3(0.68, 0.76, 0.86) : vec3(1.0);
 	// Clumps marked in the alpha of their colour carry berries.
-	if (tint.a < 0.99 && fract(leaf * 31.3) > 0.93 && leaf_amount > 0.5) {
+	if (tint.a < 0.5 && fract(leaf * 31.3) > 0.93 && leaf_amount > 0.5) {
 		col = vec3(0.72, 0.14, 0.16);
 	}
-	// Snow lies on the leaves of the crown's top.
-	if (under > 0.5 && fract(leaf * 7.3) < snow_amount * 1.2 - 0.1) {
+	// Snow lies on the leaves of the crown's top, on the upper half of the sprigs on top
+	// of an evergreen's tiers, and on some bare twigs.
+	float snowy = fract(leaf * 7.3);
+	if (branches ? (edge && snowy < snow_amount * 0.4) :
+			(evergreen ? under > 0.4 && UV.y < 0.5 && snowy < snow_amount * 1.1 : under > 0.5 && snowy < snow_amount * 1.2 - 0.1)) {
 		col = vec3(0.68, 0.72, 0.8);
 	}
 	col *= 1.0 - 0.25 * wetness;
