@@ -94,6 +94,10 @@ heat_map={
 "type": "sampler2D",
 "value": ""
 }
+roof_map={
+"type": "sampler2D",
+"value": ""
+}
 world_size={
 "type": "vec2",
 "value": Vector2(128, 128)

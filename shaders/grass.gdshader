@@ -17,6 +17,7 @@ const int GRASS_TOP = 3;
 varying vec3 root;
 varying flat vec3 custom;
 varying flat float snow_here;
+varying flat float sky;
 varying float clouds;
 
 void vertex() {
@@ -30,7 +31,9 @@ void vertex() {
 		sway += sign(away.x + 0.001) * 2.0 * (1.0 - d / 0.6) + 0.5 * sign(away.x);
 	}
 	VERTEX.x += round(sway) / TEXELS * tip;
-	snow_here = snow_amount * (1.0 - warm_spot(root, custom.z));
+	// Tufts under a roof or an overhang see no snow and no rain.
+	sky = roofed(root.xz, floor(root.y / CELL + 0.01) - 1.0) ? 0.0 : 1.0;
+	snow_here = sky * snow_amount * (1.0 - warm_spot(root, custom.z));
 	VERTEX.y = root.y + (VERTEX.y - root.y) * (1.0 - snow_here * 0.9);
 	VERTEX = shear(VERTEX);
 	NORMAL = vec3(0.0, 1.0, 0.0);
@@ -52,7 +55,7 @@ void fragment() {
 	vec2 origin = vec2(float(GRASS_TOP % 8), float(GRASS_TOP / 8)) * TEXELS;
 	vec3 ground = texture(terrain_atlas, (origin + vec2(t) + 0.5) / (8.0 * TEXELS)).rgb;
 	vec3 col = ground * grass_tint * grass_variation(root.xz) * mix(0.8, 1.18, m.r) * custom.y;
-	col *= 1.0 - 0.3 * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
+	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
 	float fade = depth_fade(root.y);
 	ALBEDO = col * (1.0 - fade);
 	EMISSION = depth_haze * fade;

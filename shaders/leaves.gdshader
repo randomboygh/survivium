@@ -73,7 +73,7 @@ void fragment() {
 	}
 	// Snow lies on the leaves of the crown's top.
 	if (under > 0.5 && fract(leaf * 7.3) < snow_amount * 1.2 - 0.1) {
-		col = vec3(0.84, 0.88, 0.95);
+		col = vec3(0.68, 0.72, 0.8);
 	}
 	col *= 1.0 - 0.25 * wetness;
 	float fade = depth_fade(center.y);

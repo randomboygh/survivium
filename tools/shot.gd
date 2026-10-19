@@ -19,6 +19,8 @@ const SHOTS := {
 	"rain": {"time": 0.5, "season": 1, "rain": true},
 	"autumn": {"time": 0.42, "season": 2},
 	"winter": {"time": 0.45, "season": 3, "rain": true},
+	"winter-dusk": {"time": 0.74, "season": 3},
+	"winter-night": {"time": 0.97, "season": 3},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
@@ -39,6 +41,9 @@ const SHOTS := {
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
 	"plateau": {"time": 0.42, "season": 1, "place": "plateau"},
 	"tracks": {"time": 0.42, "season": 1, "walk": true},
+	"hidden": {"time": 0.42, "season": 1, "wall": true},
+	"pit": {"time": 0.42, "season": 1, "place": "canyon", "cut": -3},
+	"pit-winter": {"time": 0.45, "season": 3, "place": "canyon", "cut": -3},
 	"tracks-winter": {"time": 0.45, "season": 3, "walk": true},
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
@@ -79,8 +84,6 @@ func _run() -> void:
 		main.raining = shot.get("rain", false)
 		main.show_help = false
 		main.manual_level = -1
-		if shot.has("cut"):
-			main.manual_level = main.player.level() + shot.cut
 		if shot.get("shore", false):
 			main.player.position = _shore(main.world, main.player.position)
 		if shot.get("slopes", false):
@@ -101,6 +104,13 @@ func _run() -> void:
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
+			main.roof.build(main.world)
+		if shot.get("wall", false):
+			_wall(main.world, Vector3i((main.player.position / CELL).floor()))
+			main.roof.build(main.world)
+		if shot.has("cut"):
+			main.manual_level = main.player.level() + int(shot.cut)
+			main._update_cut()
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
@@ -110,9 +120,10 @@ func _run() -> void:
 			main.grass = main.GRASS[main.season]
 			main.leaf_amount = main.LEAF_AMOUNT[main.season]
 		if shot.get("walk", false):
-			# A walk in a hook south-east, then west, leaving footprints.
+			# A walk in a hook south-west, then west, over the open ground, leaving
+			# footprints.
 			for i in 140:
-				main.player.move_input = Vector2(0.6, 0.8) if i < 70 else Vector2(-1.0, 0.2)
+				main.player.move_input = Vector2(-0.6, 0.8) if i < 70 else Vector2(-1.0, -0.2)
 				main.player.step(1.0 / 30.0, false)
 				main._leave_footprints()
 				await process_frame
@@ -346,6 +357,18 @@ func _hut(w, at: Vector3) -> Vector3:
 
 ## Replaces the ground around cell `at` with test shapes for corners: a diagonal creek,
 ## a stone plateau with outer and inner corners, a channel two cells wide with a bend.
+## A stone wall three levels high two cells south of the player, between them and
+## the camera, to look at how the player shows through what hides them.
+func _wall(w, at: Vector3i) -> void:
+	for z in range(at.z + 2, at.z + 4):
+		for x in range(at.x - 5, at.x + 6):
+			for y in range(at.y, at.y + 3):
+				w.set_cell(x, y, z, Mat.STONE)
+				w.set_natural(x, y, z, false)
+	for x in range(at.x - 8, at.x + 9, 8):
+		main._on_cell_changed(Vector3i(x, at.y, at.z + 2))
+
+
 func _lab(w, at: Vector3i) -> void:
 	var h := at.y
 	for z in range(at.z - 18, at.z + 20):

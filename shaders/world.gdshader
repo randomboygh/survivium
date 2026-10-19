@@ -16,7 +16,7 @@
 //          128..256
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
-//   COLOR.r = shade (dark caps of the cut)
+//   COLOR.r = shade (dark caps of the cut); COLOR.a = relief of a snowdrift (flag 512)
 shader_type spatial;
 render_mode world_vertex_coords, cull_back;
 
@@ -80,7 +80,9 @@ vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
 // the wind, bluish hollows and a few glints.
 vec3 snow_color(vec2 xz, vec2 wt) {
 	float drift = ground_patch(xz, 9.0);
-	vec3 c = drift > 0.62 ? vec3(0.86, 0.89, 0.95) : (drift < 0.36 ? vec3(0.76, 0.81, 0.91) : vec3(0.81, 0.85, 0.93));
+	// Kept well under 1 because the noon light adds up to more than 1 and the screen
+	// encoding lifts bright tones further: 0.66 here is a soft white on screen.
+	vec3 c = drift > 0.62 ? vec3(0.66, 0.7, 0.78) : (drift < 0.36 ? vec3(0.56, 0.61, 0.72) : vec3(0.61, 0.65, 0.75));
 	float ripple = ground_patch(vec2(xz.x * 1.5, xz.y * 6.0) + 50.0, 13.0);
 	if (ripple > 0.6) {
 		c *= vec3(1.06, 1.05, 1.03);
@@ -89,7 +91,7 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 	}
 	float n = hash12(wt + 29.0);
 	if (n > 0.985) {
-		c = vec3(0.98, 0.99, 1.0);
+		c = vec3(0.86, 0.9, 0.96);
 	} else if (n < 0.05) {
 		c *= vec3(0.9, 0.92, 0.97);
 	}
@@ -196,8 +198,11 @@ void fragment() {
 		}
 	}
 	// Snow covers whole texels on upward faces and a fringe on top of walls. The
-	// wind leaves a few spots bare, and it melts away around fires.
-	float snow_here = snow_amount * (1.0 - warm);
+	// wind leaves a few spots bare, it melts away around fires, and none falls on
+	// the faces of a cell under a roof, an overhang or a cave ceiling.
+	float level = floor(world_pos.y / CELL - world_normal.y * 0.5 - 0.001);
+	bool roof = roofed(world_pos.xz, level);
+	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	float snow = 0.0;
@@ -213,7 +218,11 @@ void fragment() {
 	if (snow > 0.0) {
 		col = mix(col, snow_color(world_pos.xz, wt), snow);
 	}
-	float wet = wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
+	if ((flag & 512) != 0) {
+		// A snowdrift: its relief is a soft shade baked into the vertex colour.
+		col *= COLOR.a;
+	}
+	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
 	float fade = depth_fade(world_pos.y);
 	ALBEDO = col * (1.0 - fade);

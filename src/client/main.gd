@@ -20,6 +20,7 @@ const PixelView := preload("res://src/client/pixel_view.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const EffectsScript := preload("res://src/client/effects.gd")
 const TracksScript := preload("res://src/client/tracks.gd")
+const RoofMap := preload("res://src/client/roof_map.gd")
 const Drifts := preload("res://src/client/drifts.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
@@ -79,6 +80,7 @@ var bush_shade: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
 var effects
 var tracks
+var roof: RoofMap
 var drifts: MultiMeshInstance3D
 ## Where the player's last footprint was left, and which foot made it.
 var last_print := Vector3.ZERO
@@ -138,6 +140,8 @@ func _ready() -> void:
 	var t0 := Time.get_ticks_msec()
 	world = WorldGen.generate(WORLD_SEED)
 	print("world generated in %d ms" % (Time.get_ticks_msec() - t0))
+	roof = RoofMap.new()
+	roof.build(world)
 	_build_materials()
 	_build_scene()
 	var keys: Array[Vector2i] = []
@@ -217,6 +221,7 @@ func _process(delta: float) -> void:
 
 ## A boot print every stride on the ground, left and right in turn, none in the water.
 func _leave_footprints() -> void:
+	tracks.focus = player.position
 	if not player.on_ground or player.water_depth > 0.0:
 		last_print = player.position
 		return
@@ -686,6 +691,7 @@ func _too_far(cell: Vector3i) -> bool:
 
 
 func _on_cell_changed(cell: Vector3i) -> void:
+	roof.touch(world, cell)
 	# Slopes and corners look at the neighbours, and edges of a top at theirs.
 	var keys := {}
 	for dz in range(-2, 3):
@@ -869,7 +875,10 @@ func _update_camera(delta: float) -> void:
 	container.position = container.position.round()
 	player.place_sprite()
 	RenderingServer.global_shader_parameter_set("player_pos", player.position)
-	if player.on_ground or player.swimming:
+	# The levels below fade from the player's feet, or from a level picked by hand.
+	if manual_level >= 0:
+		RenderingServer.global_shader_parameter_set("view_height", (manual_level + 1) * CELL)
+	elif player.on_ground or player.swimming:
 		RenderingServer.global_shader_parameter_set("view_height", player.level() * CELL)
 
 

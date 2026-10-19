@@ -554,6 +554,28 @@ func _fill_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 
 ## Level a walker stands on in this column (the cell above the highest ground),
 ## or -1 over open water. Tree crowns are ignored so animals walk under them.
+## Level of the highest cell in the column that keeps rain and snow off what lies
+## below (anything but air, water and leaves), -1 when there is none.
+func roof_level(x: int, z: int) -> int:
+	if x < 0 or z < 0 or x >= size_x or z >= size_z:
+		return -1
+	var col := z * size_x + x
+	var solid := ~(air_cols[col] | water_cols[col] | leaf_cols[col]) & all_bits
+	return top_level(solid)
+
+
+## Level of the highest set bit, -1 for none.
+static func top_level(bits: int) -> int:
+	if bits == 0:
+		return -1
+	var level := 0
+	for shift in [32, 16, 8, 4, 2, 1]:
+		if bits >> shift != 0:
+			bits >>= shift
+			level += shift
+	return level
+
+
 func surface_y(x: int, z: int) -> int:
 	for y in range(size_y - 1, -1, -1):
 		var m := get_cell(x, y, z)
