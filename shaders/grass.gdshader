@@ -39,6 +39,7 @@ void vertex() {
 void fragment() {
 	vec2 cell = vec2(float(int(custom.x + 0.5)) * 8.0, 0.0);
 	vec4 m = texture(tuft_texture, (cell + UV * 8.0) / vec2(32.0, 8.0));
+	// Tufts are too small to show above the cut.
 	if (m.a < 0.5 || root.y > cut_height + 0.01 || snow_here > 0.85) {
 		discard;
 	}
@@ -52,7 +53,9 @@ void fragment() {
 	vec3 ground = texture(terrain_atlas, (origin + vec2(t) + 0.5) / (8.0 * TEXELS)).rgb;
 	vec3 col = ground * grass_tint * grass_variation(root.xz) * mix(0.8, 1.18, m.r) * custom.y;
 	col *= 1.0 - 0.3 * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
-	ALBEDO = col * cut_shade(root.y);
+	float fade = depth_fade(root.y);
+	ALBEDO = col * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(root);

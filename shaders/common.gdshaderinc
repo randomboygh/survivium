@@ -2,12 +2,15 @@
 //
 // Oblique 3/4 view: the camera looks straight down, and each vertex is moved north by
 // its height (z -= y). On screen a cell's top and its south wall are then both exactly
-// 16x16 pixels, like a classic 2D 3/4 tile, while depth, shadows and lights still work
+// 8x8 pixels, like a classic 2D 3/4 tile, while depth, shadows and lights still work
 // on real 3D geometry. Shaders keep the unsheared position in `world_pos` for the
 // cutaway, snow and texel maths. Godot renders shadow maps with the same vertex
 // function, so casters and receivers are sheared alike.
 
 global uniform float cut_height;
+// 1 when the cut follows the player under a roof and what lies above shows as a ghost,
+// 0 when the player moved the cut by hand to look at the levels below.
+global uniform float cut_ghost;
 global uniform float snow_amount;
 global uniform float wetness;
 global uniform vec3 foliage_tint;
@@ -19,11 +22,20 @@ global uniform vec3 player_pos;
 // 1 in leaf, falls to a few leaves in winter.
 global uniform float leaf_amount;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
-// Warmth around fires, one texel per cell: r = heat 0..1, g = level of the fire / 64.
+// Warmth around fires, one texel per world unit: r = heat 0..1, g = height of the
+// fire's unit / 64.
 global uniform sampler2D heat_map : filter_linear;
 global uniform vec2 world_size;
+// Height of the ground the player last stood on, and what the levels far below it
+// fade into (the background outdoors, darkness in a cave or a room), see depth_fade.
+global uniform float view_height;
+global uniform vec3 depth_haze;
 
+// Texels per world unit, and per cell (a cell is half a unit, see WorldData.CELL).
+// Texture tiles are 16x16 and span two cells.
 const float TEXELS = 16.0;
+const float CELL = 0.5;
+const float CELL_TEXELS = 8.0;
 // Rings of light around a torch or fire before it fades out.
 const float LIGHT_RINGS = 7.0;
 
@@ -80,8 +92,8 @@ vec3 grass_variation(vec2 xz) {
 	return k;
 }
 
-// Each cell's top uses its tile mirrored one of four ways, so the 16x16 tile does
-// not repeat visibly.
+// Each 16x16 tile on the ground (two by two cells) is mirrored one of four ways, so it
+// does not repeat visibly.
 ivec2 tile_mirror(ivec2 t, vec2 cell) {
 	float h = hash12(cell + 71.0);
 	if (h < 0.5) {
@@ -105,12 +117,49 @@ float warm_spot(vec3 p, float jitter) {
 	return step(0.45 + (jitter - 0.5) * 0.2, heat_at(p));
 }
 
-// Levels below the cut get darker, like looking down into a pit.
-float cut_shade(float y) {
-	if (cut_height > 999.0) {
-		return 1.0;
+// Ordered 4x4 dither: the threshold (0..1) of texel `t`.
+float bayer4(vec2 t) {
+	ivec2 i = ivec2(mod(t, 4.0));
+	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+	return (float(m[i.y * 4 + i.x]) + 0.5) / 16.0;
+}
+
+// Levels above a cut under a roof stay faintly visible instead of vanishing, so a cave
+// or a room shows how much lies above it and how tall the trees around are: the four
+// levels over the cut keep every other texel, the next four every fourth, the four
+// after that every eighth, and the rest is gone. Texels are counted on the screen
+// plane, so the pattern stays put on the world as the view moves; the player always
+// shows through. A cut moved by hand hides everything above it. True where the texel
+// of height `y` at `texel` is left out.
+bool cut_dither(float y, vec2 texel) {
+	if (y <= cut_height + 0.01) {
+		return false;
 	}
-	return 1.0 - clamp(max(0.0, cut_height - 1.0 - y) * 0.12, 0.0, 0.6);
+	if (cut_ghost < 0.5) {
+		return true;
+	}
+	// The ghost leaves a clear window around the player.
+	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
+	if (length((texel + 0.5) / TEXELS - body) < 1.75) {
+		return true;
+	}
+	float band = floor(floor((y - cut_height) / CELL - 0.01) / 4.0);
+	return band > 2.5 || bayer4(texel) >= 0.5 / exp2(band);
+}
+
+bool above_cut(vec3 p) {
+	return cut_dither(p.y, floor(vec2(p.x, p.z - p.y) * TEXELS));
+}
+
+// How much of the colour at height `y` gives way to `depth_haze`: levels below the
+// player's feet fade one even step per level, so a pit or a drop shows its depth,
+// and what shows above the cut is a dim ghost, dimmer higher up.
+float depth_fade(float y) {
+	if (y > cut_height + 0.01) {
+		return clamp(0.35 + 0.03 * floor((y - cut_height) / CELL - 0.01), 0.0, 0.7);
+	}
+	float below = floor((view_height - y) / CELL + 0.01) - 1.0;
+	return clamp(below * 0.04, 0.0, 0.5);
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,
