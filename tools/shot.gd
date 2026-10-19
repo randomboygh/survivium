@@ -127,7 +127,7 @@ func _run() -> void:
 			main.roof.build(main.world)
 		if shot.has("cut"):
 			main.manual_level = main.player.level() + int(shot.cut)
-			main._update_cut()
+			main._update_cut(0.0)
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame

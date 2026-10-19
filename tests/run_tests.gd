@@ -116,6 +116,32 @@ func _test_cap() -> void:
 	var cap := ChunkMesher.build_cap(w, 0)
 	_check(cap != null and cap.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 4,
 		"cap closes only cells covered from above")
+	# The cap built chunk by chunk has the same tops as the one built at once.
+	w = WorldData.new(8, 4, 8)
+	for z in 8:
+		for x in 8:
+			for y in 3:
+				if (x * 7 + z * 3) % 5 != 0 or y == 0:
+					w.set_cell(x, y, z, Mat.STONE if (x + z) % 3 else Mat.DIRT)
+	var whole := _mesh_area(ChunkMesher.build_cap(w, 1))
+	var parts := 0.0
+	for z0 in [0, 4]:
+		for x0 in [0, 4]:
+			parts += _mesh_area(ChunkMesher.build_cap(w, 1, x0, z0, 4))
+	_check(whole > 0.0 and absf(parts - whole) < 0.001, "cap built chunk by chunk covers the same area")
+
+
+## Total area of the triangles of a mesh (0 for none).
+func _mesh_area(mesh: ArrayMesh) -> float:
+	if mesh == null:
+		return 0.0
+	var arrays := mesh.surface_get_arrays(0)
+	var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	var area := 0.0
+	for i in range(0, idx.size(), 3):
+		area += (v[idx[i + 1]] - v[idx[i]]).cross(v[idx[i + 2]] - v[idx[i]]).length() * 0.5
+	return area
 
 
 func _test_raycast() -> void:
