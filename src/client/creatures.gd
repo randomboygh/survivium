@@ -75,7 +75,7 @@ func _process(delta: float) -> void:
 			c.think = 0.4 + rng.randf() * 0.3
 			_decide(c, spec)
 		_move(c, spec, delta)
-		var lift := c.sprite.texture.get_height() / (2.0 * PixelView.PIXELS_PER_UNIT)
+		var lift: float = c.sprite.texture.get_height() / (2.0 * PixelView.PIXELS_PER_UNIT)
 		c.sprite.position = PixelView.snap(c.pos + Vector3(0.0, lift, 0.0), view_basis)
 		c.sprite.modulate = Color(light, light, light)
 		c.sprite.visible = c.pos.y <= cut_height

@@ -246,8 +246,9 @@ func _build_ui() -> void:
 		ui.add_child(touch_buttons)
 		mode_button = _button(touch_buttons, "Копать", _toggle_dig_mode)
 		block_button = _button(touch_buttons, "", _next_block)
-		_button(touch_buttons, "Срез ▼", func() -> void: _shift_cut(-1))
-		_button(touch_buttons, "Срез ▲", func() -> void: _shift_cut(1))
+		# The default font has no arrow glyphs.
+		_button(touch_buttons, "Ниже", func() -> void: _shift_cut(-1))
+		_button(touch_buttons, "Выше", func() -> void: _shift_cut(1))
 		_button(touch_buttons, "Сезон", _next_season)
 		_button(touch_buttons, "Осадки", func() -> void: raining = not raining)
 		_update_block_button()
