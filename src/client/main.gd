@@ -1,9 +1,10 @@
 extends Node
 ## Technical prototype entry point. Generates the world, builds chunk meshes, and runs
-## the player, animals, pixel-snapped camera, time of day, seasons, weather and the
-## level cutaway. The 3D scene renders into a low-resolution SubViewport (about 360 px
-## tall) that is scaled up by a whole number without filtering (see PixelView); the UI
-## is drawn at full resolution, scaled for the screen's pixel density.
+## the player, animals, camera, time of day, seasons, weather and the level cutaway.
+## The 3D scene renders into a low-resolution SubViewport (about 360 px tall) in an
+## oblique 3/4 view, is colour graded and scaled up by a whole number without
+## filtering (see PixelView); the UI is drawn at full resolution, scaled for the
+## screen's pixel density.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -15,12 +16,20 @@ const PlayerScript := preload("res://src/client/player.gd")
 const CreaturesScript := preload("res://src/client/creatures.gd")
 const TouchStick := preload("res://src/client/touch_stick.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const Foliage := preload("res://src/client/foliage.gd")
+const EffectsScript := preload("res://src/client/effects.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
+const GrassShader := preload("res://shaders/grass.gdshader")
+const LeavesShader := preload("res://shaders/leaves.gdshader")
+const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
+const GradeShader := preload("res://shaders/grade.gdshader")
 
 const WORLD_SEED := 20261018
 const CHUNK := 16
-const CAMERA_DISTANCE := 40.0
+## Meshes are drawn up to a level height north of where they are, so culling boxes
+## get this much margin.
+const CULL_MARGIN := 24.0
 ## Smallest UI height in UI units; the UI scale is lowered on short screens to keep it.
 const UI_MIN_HEIGHT := 320.0
 const UI_MARGIN := 16.0
@@ -29,8 +38,9 @@ const DAYS_PER_SEASON := 2.0
 const REACH := 7.0
 const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
 const WINTER := 3
-const FOLIAGE := [Vector3(0.9, 1.12, 0.75), Vector3(1.0, 1.0, 1.0), Vector3(1.5, 0.95, 0.35), Vector3(0.8, 0.68, 0.5)]
-const GRASS := [Vector3(0.95, 1.1, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.2, 1.0, 0.55), Vector3(0.85, 0.82, 0.7)]
+const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
+const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
+const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 const HELP := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить, 1–7 / колесо — блок\nQ / E — срез уровней вниз / вверх\nZ — следующий сезон, X — осадки, T — ускорить время\nG — тени, H — скрыть подсказку"
 
 var world
@@ -43,15 +53,21 @@ var camera: Camera3D
 var sun: DirectionalLight3D
 var env: Environment
 var world_mat: ShaderMaterial
-var voxel_mat: ShaderMaterial
 var water_mat: ShaderMaterial
+var grass_mat: ShaderMaterial
+var leaves_mat: ShaderMaterial
+var leaf_shadow_mat: ShaderMaterial
+var grade_mat: ShaderMaterial
+var grass_mesh: ArrayMesh
+var clump_mesh: ArrayMesh
+var disc_mesh: ArrayMesh
 var chunk_nodes := {}
 var pending_chunks: Array[Vector2i] = []
 var cap_node: MeshInstance3D
 var bushes: MultiMeshInstance3D
+var bush_shade: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
-var rain: CPUParticles3D
-var snowfall: CPUParticles3D
+var effects
 var ui: Control
 var hud: Label
 var hotbar: Label
@@ -75,13 +91,20 @@ var snow := 0.0
 var wet := 0.0
 var foliage := Vector3.ONE
 var grass := Vector3.ONE
+var leaf_amount := 1.0
+var clouds := 0.3
+var cloud_pos := Vector2.ZERO
+var wind_clock := 0.0
+var daylight := 1.0
 var cut_level := -1
 var manual_level := -1
 var indoor := false
 var selected := 0
 var show_help := true
 var dig_mode := true
-var cam_target := Vector3.ZERO
+## Screen-plane point the camera follows smoothly (see PixelView.screen_plane).
+var cam_target := Vector2.ZERO
+var view_scale := 1
 var fps_clock := 0.0
 var mesh_ms := 0
 
@@ -194,6 +217,9 @@ func _build_view() -> void:
 	container.stretch = true
 	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grade_mat = ShaderMaterial.new()
+	grade_mat.shader = GradeShader
+	container.material = grade_mat
 	add_child(container)
 	viewport = SubViewport.new()
 	viewport.msaa_3d = Viewport.MSAA_DISABLED
@@ -206,9 +232,11 @@ func _on_screen_resized() -> void:
 	var screen := get_viewport().get_visible_rect().size
 	var view: Array = PixelView.layout(screen)
 	var scale: int = view[0]
-	image_size = view[1]
+	# A margin of pixels around the screen leaves room for the sub-pixel camera shift.
+	image_size = view[1] + Vector2i(2, 2) * PixelView.MARGIN
+	view_scale = scale
 	container.stretch_shrink = scale
-	container.position = Vector2.ZERO
+	container.position = -Vector2.ONE * PixelView.MARGIN * scale
 	container.size = Vector2(image_size * scale)
 	if camera != null:
 		camera.size = PixelView.camera_size(image_size.y)
@@ -358,15 +386,25 @@ func _button(parent: Node, text: String, action: Callable) -> Button:
 
 
 func _build_materials() -> void:
-	var atlas := PixelTextures.build_atlas()
-	world_mat = ShaderMaterial.new()
-	world_mat.shader = WorldShader
-	world_mat.set_shader_parameter("atlas", atlas)
-	voxel_mat = world_mat.duplicate() as ShaderMaterial
-	voxel_mat.set_shader_parameter("use_atlas", false)
-	water_mat = ShaderMaterial.new()
-	water_mat.shader = WaterShader
-	water_mat.set_shader_parameter("atlas", atlas)
+	RenderingServer.global_shader_parameter_set("terrain_atlas", PixelTextures.build_atlas())
+	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
+	world_mat = _material(WorldShader)
+	water_mat = _material(WaterShader)
+	grass_mat = _material(GrassShader)
+	grass_mat.set_shader_parameter("tuft_texture", PixelTextures.build_tufts())
+	leaves_mat = _material(LeavesShader)
+	leaves_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps())
+	leaves_mat.set_shader_parameter("clump_size", Foliage.CLUMP_SIZE)
+	leaf_shadow_mat = _material(LeafShadowShader)
+	grass_mesh = Foliage.quad_mesh(Foliage.TUFT_SIZE, false)
+	clump_mesh = Foliage.quad_mesh(Foliage.CLUMP_SIZE, true)
+	disc_mesh = Foliage.disc_mesh(Foliage.SHADOW_DISC)
+
+
+func _material(shader: Shader) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = shader
+	return m
 
 
 func _build_scene() -> void:
@@ -380,20 +418,22 @@ func _build_scene() -> void:
 	sun = DirectionalLight3D.new()
 	sun.shadow_enabled = true
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	sun.directional_shadow_max_distance = 50.0
+	sun.directional_shadow_max_distance = PixelView.CAMERA_HEIGHT + 20.0
+	sun.shadow_bias = 0.03
+	sun.shadow_normal_bias = 1.0
 	world_root.add_child(sun)
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.size = PixelView.camera_size(image_size.y)
-	camera.near = 0.1
-	camera.far = 200.0
-	camera.rotation_degrees = Vector3(-55.0, 0.0, 0.0)
+	camera.near = 1.0
+	camera.far = PixelView.CAMERA_HEIGHT + 10.0
 	world_root.add_child(camera)
 	camera.current = true
 
 	cap_node = MeshInstance3D.new()
 	cap_node.material_override = world_mat
+	cap_node.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(cap_node)
 
 	player = PlayerScript.new()
@@ -401,40 +441,13 @@ func _build_scene() -> void:
 	world_root.add_child(player)
 	var spawn: Vector3i = WorldGen.find_spawn(world)
 	player.position = Vector3(spawn.x + 0.5, spawn.y, spawn.z + 0.5)
-	cam_target = player.position
+	cam_target = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 
 	creatures = CreaturesScript.new()
-	creatures.view_basis = camera.basis
 	world_root.add_child(creatures)
 
-	rain = _precipitation(Vector2(0.04, 0.5), Color(0.7, 0.8, 1.0, 0.6), 15.0, 9.8, 5.0)
-	snowfall = _precipitation(Vector2(0.09, 0.09), Color(1, 1, 1, 0.9), 2.0, 1.0, 30.0)
-
-
-func _precipitation(size: Vector2, color: Color, speed: float, gravity: float, spread: float) -> CPUParticles3D:
-	var p := CPUParticles3D.new()
-	p.amount = 500
-	p.lifetime = 14.0 / (speed + gravity)
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	p.emission_box_extents = Vector3(18.0, 0.5, 18.0)
-	p.direction = Vector3(0.0, -1.0, 0.0)
-	p.spread = spread
-	p.initial_velocity_min = speed
-	p.initial_velocity_max = speed * 1.1
-	p.gravity = Vector3(0.0, -gravity, 0.0)
-	p.local_coords = false
-	p.emitting = false
-	var quad := QuadMesh.new()
-	quad.size = size
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.albedo_color = color
-	quad.material = mat
-	p.mesh = quad
-	world_root.add_child(p)
-	return p
+	effects = EffectsScript.new()
+	world_root.add_child(effects)
 
 
 func _place_props() -> void:
@@ -446,33 +459,47 @@ func _place_props() -> void:
 		var y: int = world.surface_y(x, z)
 		if y > 0 and y < world.size_y and world.get_cell(x, y - 1, z) == Mat.GRASS and world.get_cell(x, y, z) == Mat.AIR:
 			bush_cells.append(Vector3i(x, y, z))
-	bushes = MultiMeshInstance3D.new()
-	bushes.material_override = voxel_mat
+	var bush_mat := _material(LeavesShader)
+	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP))
+	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
+	bushes = _multimesh(Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true), bush_mat, true, true)
+	bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bushes.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(bushes)
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = VoxelProps.bush(rng).build_mesh()
-	bushes.multimesh = mm
+	bush_shade = _multimesh(Foliage.disc_mesh(Foliage.BUSH_DISC), leaf_shadow_mat, false, false)
+	bush_shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	bush_shade.extra_cull_margin = CULL_MARGIN
+	world_root.add_child(bush_shade)
 	_refresh_bushes()
 
-	# A chest next to the spawn point.
+	# A chest and a campfire next to the spawn point.
 	var c: Vector3 = player.position + Vector3(2.0, 0.0, 1.0)
 	var cell := Vector3i(floori(c.x), floori(c.y), floori(c.z))
 	if world.get_cell(cell.x, cell.y, cell.z) == Mat.AIR and world.is_solid(cell.x, cell.y - 1, cell.z):
 		var chest := MeshInstance3D.new()
 		chest.mesh = VoxelProps.chest().build_mesh()
-		chest.material_override = voxel_mat
+		chest.material_override = world_mat
 		chest.scale = Vector3.ONE / 16.0
 		chest.position = Vector3(cell)
+		chest.extra_cull_margin = CULL_MARGIN
 		world_root.add_child(chest)
+	var f: Vector3 = player.position + Vector3(-2.0, 0.0, 2.0)
+	var fire := Vector3i(floori(f.x), floori(f.y), floori(f.z))
+	if world.get_cell(fire.x, fire.y, fire.z) == Mat.AIR and world.is_solid(fire.x, fire.y - 1, fire.z):
+		effects.add_campfire(fire, world_mat)
 
 
 func _refresh_bushes() -> void:
-	var mm := bushes.multimesh
-	mm.instance_count = bush_cells.size()
-	var basis := Basis.from_scale(Vector3.ONE / 16.0)
-	for i in bush_cells.size():
-		mm.set_instance_transform(i, Transform3D(basis, Vector3(bush_cells[i])))
+	var part: Array = Foliage.bushes(bush_cells)
+	bushes.multimesh.instance_count = part[0]
+	if part[0] > 0:
+		bushes.multimesh.buffer = part[1]
+	var discs := PackedFloat32Array()
+	for cell in bush_cells:
+		Foliage.put(discs, Vector3(cell) + Vector3(0.5, 0.5, 0.5))
+	bush_shade.multimesh.instance_count = bush_cells.size()
+	if not bush_cells.is_empty():
+		bush_shade.multimesh.buffer = discs
 
 
 # --- World edits -----------------------------------------------------------
@@ -480,29 +507,56 @@ func _refresh_bushes() -> void:
 func _build_chunk(key: Vector2i) -> void:
 	var t0 := Time.get_ticks_msec()
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
+	var plants: Dictionary = Foliage.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	mesh_ms += Time.get_ticks_msec() - t0
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = world_mat
-		world_root.add_child(solid)
 		var water := MeshInstance3D.new()
 		water.material_override = water_mat
 		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		world_root.add_child(water)
-		chunk_nodes[key] = [solid, water]
+		var tufts := _multimesh(grass_mesh, grass_mat, false, true)
+		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var crowns := _multimesh(clump_mesh, leaves_mat, true, true)
+		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var shade := _multimesh(disc_mesh, leaf_shadow_mat, false, false)
+		shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		var parts: Array = [solid, water, tufts, crowns, shade]
+		for n in parts:
+			n.extra_cull_margin = CULL_MARGIN
+			world_root.add_child(n)
+		chunk_nodes[key] = parts
 	var nodes: Array = chunk_nodes[key]
 	nodes[0].mesh = meshes[0]
 	nodes[1].mesh = meshes[1]
+	for i in 3:
+		var part: Array = plants[["grass", "clumps", "shadows"][i]]
+		var mm: MultiMesh = nodes[2 + i].multimesh
+		mm.instance_count = part[0]
+		if part[0] > 0:
+			mm.buffer = part[1]
+
+
+func _multimesh(mesh: Mesh, material: Material, colors: bool, custom: bool) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = colors
+	mm.use_custom_data = custom
+	mm.mesh = mesh
+	var node := MultiMeshInstance3D.new()
+	node.multimesh = mm
+	node.material_override = material
+	return node
 
 
 func _edit(screen_pos: Vector2, dig: bool) -> void:
 	if not ready_to_play:
 		return
 	var vp_pos := (screen_pos - container.global_position) / float(container.stretch_shrink)
-	var origin := camera.project_ray_origin(vp_pos)
-	var dir := camera.project_ray_normal(vp_pos)
+	var center := Vector2(camera.global_position.x, camera.global_position.z)
+	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(image_size) * 0.5, world.size_y + 1.0)
 	var max_level: int = mini(cut_level, world.size_y - 1)
-	var hit := VoxelRaycast.cast(world, origin, dir, 250.0, max_level)
+	var hit := VoxelRaycast.cast(world, ray[0], ray[1], 250.0, max_level)
 	if hit.is_empty():
 		return
 	var cell: Vector3i = hit.cell
@@ -586,8 +640,7 @@ func _shift_cut(d: int) -> void:
 
 func _apply_cut() -> void:
 	var h := 1000.0 if cut_level >= world.size_y else float(cut_level) + 1.0
-	for m in [world_mat, voxel_mat, water_mat]:
-		m.set_shader_parameter("cut_height", h)
+	RenderingServer.global_shader_parameter_set("cut_height", h)
 	creatures.cut_height = h
 	cap_node.mesh = ChunkMesher.build_cap(world, cut_level) if cut_level < world.size_y - 1 else null
 
@@ -601,16 +654,57 @@ func _update_time(delta: float) -> void:
 	if season_clock >= DAYS_PER_SEASON:
 		_next_season()
 	var h := -cos(time_of_day * TAU)
-	var day := clampf(h * 1.6 + 0.35, 0.0, 1.0)
-	sun.rotation_degrees = Vector3(-lerpf(15.0, 75.0, maxf(h, 0.0)), 90.0 - (time_of_day - 0.25) * 360.0, 0.0)
-	sun.light_energy = 1.1 * day
-	sun.light_color = Color(1.0, 0.72, 0.5).lerp(Color(1.0, 0.97, 0.9), clampf(h * 2.0, 0.0, 1.0))
-	env.ambient_light_color = Color(0.25, 0.3, 0.5).lerp(Color(0.75, 0.78, 0.85), day)
-	env.ambient_light_energy = lerpf(0.35, 0.6, day)
-	env.background_color = Color(0.03, 0.05, 0.12).lerp(Color(0.16, 0.36, 0.55), day)
-	creatures.daylight = day
+	daylight = clampf(h * 1.6 + 0.35, 0.0, 1.0)
+	# Low warm light near sunrise and sunset, full light at midday.
+	var golden := clampf(1.0 - absf(h) * 3.0, 0.0, 1.0) if h > -0.25 else 0.0
+	if h > 0.0:
+		# The sun crosses the southern sky from east to west, a little off south at
+		# noon so shadows fall to the side and stay visible.
+		_aim_sun((time_of_day - 0.5) * 180.0 - 25.0, lerpf(12.0, 55.0, h))
+		sun.light_color = Color(1.0, 0.95, 0.85).lerp(Color(1.0, 0.6, 0.38), golden)
+		sun.light_energy = lerpf(0.25, 0.85, clampf(h * 4.0, 0.0, 1.0))
+	else:
+		_aim_sun((fmod(time_of_day + 0.5, 1.0) - 0.5) * 180.0 - 25.0, lerpf(12.0, 50.0, -h))
+		sun.light_color = Color(0.6, 0.7, 1.0)
+		sun.light_energy = lerpf(0.05, 0.35, clampf(-h * 4.0, 0.0, 1.0))
+	var night := 1.0 - daylight
+	env.ambient_light_color = Color(0.55, 0.62, 0.78).lerp(Color(0.6, 0.5, 0.6), golden).lerp(Color(0.16, 0.2, 0.36), night)
+	env.ambient_light_energy = lerpf(0.45, 0.9, night)
+	env.background_color = Color(0.2, 0.32, 0.38).lerp(Color(0.04, 0.06, 0.12), night)
+	creatures.daylight = daylight
 	if player != null:
-		player.torch.light_energy = 1.6 if indoor else 1.6 * (1.0 - day)
+		player.torch.light_energy = 1.1 if indoor else 1.1 * clampf(night * 2.5 - 1.5, 0.0, 1.0)
+	_update_grade(golden, night)
+
+
+## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)
+## at `elevation` degrees above the horizon.
+func _aim_sun(azimuth: float, elevation: float) -> void:
+	var az := deg_to_rad(azimuth)
+	var el := deg_to_rad(elevation)
+	var to_sun := Vector3(-sin(az) * cos(el), sin(el), cos(az) * cos(el))
+	sun.global_transform.basis = Basis.looking_at(-to_sun, Vector3.UP)
+
+
+## The colour grade sets the mood: warm at sunrise and sunset, blue and muted at
+## night, grey in rain, cool in winter.
+func _update_grade(golden: float, night: float) -> void:
+	var tint := Vector3(1.02, 1.0, 0.97).lerp(Vector3(1.08, 0.97, 0.88), golden).lerp(Vector3(0.82, 0.92, 1.15), night)
+	var saturation := lerpf(lerpf(0.92, 1.05, golden), 0.6, night)
+	var exposure := lerpf(1.0, 1.15, night)
+	var contrast := 1.06
+	var rain_k := wet if season != WINTER else (0.6 if raining else 0.0)
+	saturation *= 1.0 - 0.3 * rain_k
+	tint *= Vector3.ONE.lerp(Vector3(0.95, 0.98, 1.03), rain_k)
+	exposure *= 1.0 - 0.08 * rain_k
+	if season == WINTER:
+		tint *= Vector3(0.97, 1.0, 1.04)
+	grade_mat.set_shader_parameter("tint", Color(tint.x, tint.y, tint.z))
+	grade_mat.set_shader_parameter("saturation", saturation)
+	grade_mat.set_shader_parameter("exposure", exposure)
+	grade_mat.set_shader_parameter("contrast", contrast)
+	grade_mat.set_shader_parameter("keep_highlights", lerpf(0.0, 0.8, night))
+	grade_mat.set_shader_parameter("shadow_tint", Color(0.0, 0.01, 0.04).lerp(Color(0.02, 0.03, 0.09), night))
 
 
 func _next_season() -> void:
@@ -629,32 +723,44 @@ func _update_weather(delta: float) -> void:
 	var k := minf(1.0, delta * 0.4)
 	foliage = foliage.lerp(FOLIAGE[season], k)
 	grass = grass.lerp(GRASS[season], k)
-	for m in [world_mat, voxel_mat]:
-		m.set_shader_parameter("snow_amount", snow)
-		m.set_shader_parameter("wetness", wet)
-		m.set_shader_parameter("foliage_tint", foliage)
-		m.set_shader_parameter("grass_tint", grass)
+	leaf_amount = lerpf(leaf_amount, LEAF_AMOUNT[season], k)
+	clouds = lerpf(clouds, 0.8 if raining else 0.28, minf(1.0, delta * 0.3))
+	wind_clock += delta
+	var gust := 0.25 + 0.25 * sin(wind_clock * 0.35) + 0.15 * sin(wind_clock * 1.3)
+	var wind := Vector2(gust + (0.8 if raining else 0.0), 0.15)
+	cloud_pos += Vector2(-0.6, -0.25) * delta * (1.0 + wind.x)
+	var g := RenderingServer
+	g.global_shader_parameter_set("snow_amount", snow)
+	g.global_shader_parameter_set("wetness", wet)
+	g.global_shader_parameter_set("foliage_tint", foliage)
+	g.global_shader_parameter_set("grass_tint", grass)
+	g.global_shader_parameter_set("leaf_amount", leaf_amount)
+	g.global_shader_parameter_set("cloud_cover", clouds)
+	g.global_shader_parameter_set("cloud_offset", cloud_pos)
+	g.global_shader_parameter_set("wind", wind)
 	var ice := clampf((snow - 0.3) / 0.5, 0.0, 1.0)
 	water_mat.set_shader_parameter("ice_amount", ice)
 	world.water_frozen = ice > 0.8
-	rain.emitting = raining and not winter and not indoor
-	snowfall.emitting = raining and winter and not indoor
-	var above := cam_target + Vector3(0.0, 12.0, 0.0)
-	rain.position = above
-	snowfall.position = above
+	if player != null:
+		effects.update(delta, cam_target, float(player.level()), raining, winter, season, daylight, indoor)
 
 
 # --- Camera, input, HUD ----------------------------------------------------
 
+## The camera renders from a whole pixel; the leftover fraction of a pixel shifts the
+## upscaled image, so the view glides smoothly while the pixel art stays on its grid.
 func _update_camera(delta: float) -> void:
 	if camera == null:
 		return
-	cam_target = cam_target.lerp(player.position + Vector3(0.0, 0.5, 0.0), minf(1.0, delta * 6.0))
-	# The camera and the player's sprite move in whole low-res pixels, so the pixel art
-	# does not shimmer.
-	var b := camera.global_transform.basis
-	camera.global_position = PixelView.snap(cam_target, b) + b.z * CAMERA_DISTANCE
-	player.place_sprite(b)
+	var target := PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
+	cam_target = cam_target.lerp(target, minf(1.0, delta * 6.0))
+	var snapped := PixelView.snap_plane(cam_target)
+	camera.global_transform = PixelView.camera_transform(snapped)
+	var frac := (cam_target - snapped) * PixelView.PIXELS_PER_UNIT
+	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
+	container.position = container.position.round()
+	player.place_sprite()
+	RenderingServer.global_shader_parameter_set("player_pos", player.position)
 
 
 func _read_move() -> Vector2:

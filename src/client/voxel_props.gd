@@ -5,22 +5,6 @@ const VoxelModel := preload("res://src/client/voxel_model.gd")
 const RES := VoxelModel.RES
 
 
-static func bush(rng: RandomNumberGenerator) -> VoxelModel:
-	var m := VoxelModel.new()
-	for y in RES:
-		for z in RES:
-			for x in RES:
-				var q := Vector3((x - 7.5) / 6.5, (y - 5.0) / 5.0, (z - 7.5) / 6.5)
-				if q.length() > 1.0 or rng.randf() < 0.12:
-					continue
-				var shade := rng.randf_range(0.8, 1.1)
-				if q.length() > 0.8 and rng.randf() < 0.06:
-					m.set_voxel(Vector3i(x, y, z), Color(0.75, 0.12, 0.15))
-				else:
-					m.set_voxel(Vector3i(x, y, z), Color(0.25, 0.5, 0.2) * shade, true)
-	return m
-
-
 static func chest() -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.55, 0.36, 0.2)

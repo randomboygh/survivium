@@ -7,6 +7,8 @@ const AiRules := preload("res://src/shared/ai_rules.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const SpriteArt := preload("res://src/client/sprite_art.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const PlayerScript := preload("res://src/client/player.gd")
+const SpriteShader := preload("res://shaders/sprite.gdshader")
 
 const RESPAWN_EVERY := 15.0
 
@@ -19,18 +21,17 @@ class Creature:
 	var hunger := 0.0
 	var think := 0.0
 	var prey: Creature = null
-	var sprite: Sprite3D
+	var sprite: MeshInstance3D
 
 
 var world
 var player: Node3D
 var daylight := 1.0
 var cut_height := 1000.0
-## Camera basis; sprites are snapped to its pixel grid.
-var view_basis := Basis.IDENTITY
 var creatures: Array[Creature] = []
 var rng := RandomNumberGenerator.new()
-var textures := {}
+## kind -> [mesh, material]
+var looks := {}
 var respawn_timer := 0.0
 
 
@@ -41,7 +42,9 @@ func setup(w, p: Node3D, seed_value: int) -> void:
 	for kind in AiRules.SPECIES:
 		if kind == "human":
 			continue
-		textures[kind] = SpriteArt.texture(kind)
+		var tex := SpriteArt.texture(kind)
+		looks[kind] = [PixelView.sprite_mesh(tex.get_width(), tex.get_height()),
+			PlayerScript.sprite_material(SpriteShader, tex)]
 		for i in AiRules.SPECIES[kind].count:
 			_spawn(kind, false)
 
@@ -64,7 +67,6 @@ func _process(delta: float) -> void:
 		for kind in AiRules.SPECIES:
 			if kind != "human" and count(kind) < AiRules.SPECIES[kind].count:
 				_spawn(kind, true)
-	var light := 0.35 + 0.65 * daylight
 	for c in creatures.duplicate():
 		if not creatures.has(c):
 			continue
@@ -75,9 +77,7 @@ func _process(delta: float) -> void:
 			c.think = 0.4 + rng.randf() * 0.3
 			_decide(c, spec)
 		_move(c, spec, delta)
-		var lift: float = c.sprite.texture.get_height() / (2.0 * PixelView.PIXELS_PER_UNIT)
-		c.sprite.position = PixelView.snap(c.pos + Vector3(0.0, lift, 0.0), view_basis)
-		c.sprite.modulate = Color(light, light, light)
+		c.sprite.position = PixelView.snap(c.pos)
 		c.sprite.visible = c.pos.y <= cut_height
 
 
@@ -146,7 +146,7 @@ func _move(c: Creature, spec: Dictionary, delta: float) -> void:
 		if ny > 0 and ny < world.size_y and absi(ny - roundi(c.pos.y)) <= 1:
 			c.pos = Vector3(np.x, lerpf(c.pos.y, float(ny), minf(1.0, delta * 12.0)), np.z)
 			if absf(step.x) > 0.001:
-				c.sprite.flip_h = step.x < 0.0
+				c.sprite.scale.x = -1.0 if step.x < 0.0 else 1.0
 		else:
 			c.target = c.pos
 	if c.state == "hunt" and c.prey != null:
@@ -181,8 +181,10 @@ func _spawn(kind: String, away_from_player: bool) -> void:
 		c.target = pos
 		c.hunger = rng.randf() * 0.5
 		c.think = rng.randf() * 0.5
-		c.sprite = Sprite3D.new()
-		PixelView.setup_sprite(c.sprite, textures[kind])
+		c.sprite = MeshInstance3D.new()
+		c.sprite.mesh = looks[kind][0]
+		c.sprite.material_override = looks[kind][1]
+		c.sprite.extra_cull_margin = 24.0
 		add_child(c.sprite)
 		creatures.append(c)
 		return

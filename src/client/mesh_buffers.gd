@@ -9,15 +9,15 @@ var colors := PackedColorArray()
 var indices := PackedInt32Array()
 
 
-## `p` and `uv` hold 4 corners in clockwise order (Godot front faces).
-## `flag` goes to UV2.x: 1 = foliage, 2 = grass top (tinted by season in the shader).
-func quad(p: Array, n: Vector3, uv: Array, color: Color, flag: float) -> void:
+## `p` and `uv` hold 4 corners in clockwise order (Godot front faces). `packed` goes to
+## UV2 and is decoded by the shader (see world.gdshader).
+func quad(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2) -> void:
 	var start := verts.size()
 	for i in 4:
 		verts.append(p[i])
 		normals.append(n)
 		uvs.append(uv[i])
-		uv2s.append(Vector2(flag, 0.0))
+		uv2s.append(packed)
 		colors.append(color)
 	indices.append_array(PackedInt32Array([start, start + 1, start + 2, start, start + 2, start + 3]))
 
