@@ -15,7 +15,7 @@ const WorldData := preload("res://src/shared/world_data.gd")
 const TUFTS_PER_CELL := 7
 const TUFT_SIZE := 0.5
 ## Leaf cluster cards: size in cells (16 px, see PixelTextures.CLUMP), cards on each
-## open top or south face of a leaf cell (one fewer on east and west faces).
+## open face of a leaf cell the camera sees.
 const CLUMP_SIZE := 1.0
 const CARDS_PER_FACE := 2
 ## Leaves within this many cells give the crown's middle for the light.
@@ -106,7 +106,7 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 						# Cards cover each face the camera can see, poking out of it a
 						# little, so the outline is a ragged edge of leaves and no gap
 						# shows the trunk inside.
-						var count := CARDS_PER_FACE if f.x == 0 else CARDS_PER_FACE - 1
+						var count := CARDS_PER_FACE
 						for k in count:
 							var c := Vector3(x + 0.5, y + 0.5, z + 0.5) + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
 							var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX

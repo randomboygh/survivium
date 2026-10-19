@@ -87,7 +87,7 @@ void light() {
 		// takes one step off.
 		float ndl = dot(NORMAL, LIGHT);
 		float shadow = min(step(0.5, ATTENUATION), step(0.99, clouds));
-		float step_n = (ndl > 0.68 ? 3.0 : (ndl > 0.38 ? 2.0 : (ndl > 0.08 ? 1.0 : 0.0))) - (1.0 - shadow);
+		float step_n = (ndl > 0.6 ? 3.0 : (ndl > 0.38 ? 2.0 : (ndl > 0.08 ? 1.0 : 0.0))) - (1.0 - shadow);
 		vec3 band = step_n > 2.5 ? vec3(1.55, 1.45, 0.7) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? vec3(0.7) : vec3(0.32)));
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
