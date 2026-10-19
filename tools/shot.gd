@@ -8,6 +8,8 @@ extends SceneTree
 ## searched in cells (half a world unit); the player stands in world units.
 
 const Mat := preload("res://src/shared/materials.gd")
+const Trees := preload("res://src/shared/trees.gd")
+const Foliage := preload("res://src/client/foliage.gd")
 const CELL := 0.5
 
 const SHOTS := {
@@ -30,6 +32,9 @@ const SHOTS := {
 	"forest": {"time": 0.42, "season": 1, "forest": true},
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
+	"grove": {"time": 0.42, "season": 1, "grove": true},
+	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
+	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
 }
 
 var main: Node
@@ -77,6 +82,9 @@ func _run() -> void:
 			main.player.position = _lone_trees(main.world, main.player.position)
 		if shot.get("forest", false):
 			main.player.position = _forest(main.world, main.player.position)
+		if shot.get("grove", false):
+			# Away from the campfire by the spawn, which melts the snow around it.
+			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 		# Let snow, wetness, tints and particles settle.
@@ -260,6 +268,48 @@ func _lab(w, at: Vector3i) -> void:
 	for z in range(at.z - 22, at.z + 25, 8):
 		for x in range(at.x - 32, at.x + 35, 8):
 			main._on_cell_changed(Vector3i(x, h, z))
+	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
+
+
+## A flat meadow at `at` with trees of every species: oaks in the back row (some go
+## bare in winter, the others keep their leaves), spruces of three sizes in front.
+## Grown once; later grove shots reuse it.
+func _grove(w, at: Vector3i) -> void:
+	var h := at.y
+	var oaks := [-24, -8, 8, 24]
+	var spruces := [-16, 0, 16]
+	if w.get_cell(at.x, h - 1, at.z - 30) != Mat.GRASS or w.get_cell(at.x, h, at.z - 30) != Mat.AIR:
+		for z in range(at.z - 34, at.z + 30):
+			for x in range(at.x - 44, at.x + 46):
+				for y in w.size_y:
+					var m := Mat.AIR
+					if y < h:
+						m = Mat.GRASS if y == h - 1 else Mat.DIRT
+					w.set_cell(x, y, z, m)
+					w.set_natural(x, y, z, true)
+		for key in w.trees.keys():
+			if absi(key.x - at.x) < 52 and absi(key.y - at.z) < 40:
+				w.trees.erase(key)
+		var keep: Array[Vector3i] = []
+		for b in main.bush_cells:
+			if absi(b.x - at.x) > 46 or absi(b.z - at.z) > 36:
+				keep.append(b)
+		main.bush_cells = keep
+		main._refresh_bushes()
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 3
+		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
+		for i in oaks.size():
+			var x: int = (at.x + oaks[i]) | 1
+			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.OAK) != (i % 2 == 0):
+				x += 2
+			Trees.place(w, x, h, (at.z - 8) | 1, Trees.OAK, rng)
+		var sizes := [0.75, 1.0, 1.2]
+		for i in spruces.size():
+			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.SPRUCE, rng, sizes[i])
+		for z in range(at.z - 38, at.z + 34, 8):
+			for x in range(at.x - 48, at.x + 50, 8):
+				main._on_cell_changed(Vector3i(x, h, z))
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
 
 

@@ -9,9 +9,15 @@ const TILE := 16
 const TILES := 8
 const TUFT := 8
 ## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
-## one of CLUMP_SIZES across (one row of the texture each).
+## one of CLUMP_SIZES across. The texture has a row per size of broad-leaf bunch, then a
+## row per size of needle sprig (from NEEDLE_ROW), then bare branches (BRANCH_ROW).
 const CLUMP := 24
 const CLUMP_SIZES := [24, 16, 11]
+const NEEDLE_ROW := 3
+const BRANCH_ROW := 6
+const CLUMP_ROWS := 7
+## Alpha of the pixels on the upper edge of a leaf, needle or twig (see _mark_edges).
+const EDGE_ALPHA := 0.8
 
 
 static func build_atlas() -> ImageTexture:
@@ -54,11 +60,14 @@ static func build_tufts() -> ImageTexture:
 ## Leaf cluster cards: one row per size in `sizes`, four variants in each, every
 ## variant `cell` px square with the bunch centred in it. A bunch is a dense heap of
 ## pointed leaves, the outer ones pointing outward, so the edge of a crown is jagged with
-## leaf tips. Red is a random number per leaf (for wind and falling leaves), green and
+## leaf tips. With `conifers` the needle and branch rows follow (see CLUMP_ROWS).
+## Red is a random number per leaf (for its tone, wind and falling leaves), green and
 ## blue tilt the leaf's normal left/right and up/down (0.5 = no tilt), so the light bands
-## of the crown end along leaf outlines.
-static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES) -> ImageTexture:
-	var img := Image.create_empty(cell * 4, cell * sizes.size(), false, Image.FORMAT_RGBA8)
+## of the crown end along leaf outlines. Alpha marks the upper edge of every leaf, so
+## single leaves show the way grass blades do.
+static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := true) -> ImageTexture:
+	var rows := sizes.size() * (2 if conifers else 1) + (1 if conifers else 0)
+	var img := Image.create_empty(cell * 4, cell * rows, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 23
@@ -67,6 +76,14 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES) -> ImageText
 		var size: int = sizes[row]
 		for v in 4:
 			_leaf_bunch(img, Vector2i(v * cell, row * cell), cell, size, c, rng)
+			if conifers:
+				_needle_sprig(img, Vector2i(v * cell, (row + sizes.size()) * cell), cell, size, c, rng)
+	if conifers:
+		for v in 4:
+			_branches(img, Vector2i(v * cell, 2 * sizes.size() * cell), cell, rng)
+	for row in rows:
+		for v in 4:
+			_mark_edges(img, Vector2i(v * cell, row * cell), cell)
 	return ImageTexture.create_from_image(img)
 
 
@@ -88,9 +105,7 @@ static func _leaf_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: V
 		var side := Vector2(-dir.y, dir.x)
 		var l := length * rng.randf_range(0.8, 1.15)
 		var wide := rng.randf_range(1.0, 1.5)
-		var id := rng.randf()
-		var tx := rng.randf_range(0.25, 0.75)
-		var ty := rng.randf_range(0.25, 0.75)
+		var leaf := Color(rng.randf(), rng.randf_range(0.25, 0.75), rng.randf_range(0.25, 0.75), 1)
 		for y in range(floori(p.y - l), ceili(p.y + l) + 1):
 			for x in range(floori(p.x - l), ceili(p.x + l) + 1):
 				if x < 0 or y < 0 or x >= cell or y >= cell:
@@ -103,7 +118,68 @@ static func _leaf_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: V
 				var t := along / 0.35 if along < 0.35 else (1.0 - along) / 0.65
 				if absf(d.dot(side)) > wide * t + 0.15:
 					continue
-				img.set_pixel(origin.x + x, origin.y + y, Color(id, tx, ty, 1))
+				img.set_pixel(origin.x + x, origin.y + y, leaf)
+
+
+## Draws a spruce sprig `size` px across: a short twig across the card with needles
+## hanging from it in short strokes, wider than tall, its lower edge a fringe of tips.
+static func _needle_sprig(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
+	var half := size / 2.0
+	var length := clampf(size / 6.0, 2.0, 3.5)
+	var needles := []
+	for k in int(size * 6.0):
+		var u := rng.randf_range(-1.0, 1.0)
+		# Thick in the middle, thinning toward the ends of the sprig; the twig droops.
+		var fall := (1.0 - u * u) * half * 0.55
+		var p := c + Vector2(u * (half - 1.0), u * u * half * 0.3 - fall * 0.5 + rng.randf() * fall)
+		needles.append(p)
+	needles.sort_custom(func(p, q): return p.y < q.y)
+	for p: Vector2 in needles:
+		# Needles hang down and away from the middle of the sprig.
+		var dir := Vector2(clampf((p.x - c.x) / half, -1.0, 1.0) * 0.8 + rng.randf_range(-0.4, 0.4), 1.0).normalized()
+		var needle := Color(rng.randf(), rng.randf_range(0.3, 0.7), rng.randf_range(0.3, 0.7), 1)
+		var l := length * rng.randf_range(0.7, 1.2)
+		for i in ceili(l) + 1:
+			var q := (p + dir * i).round()
+			if q.x >= 0 and q.y >= 0 and q.x < cell and q.y < cell:
+				img.set_pixel(origin.x + int(q.x), origin.y + int(q.y), needle)
+
+
+## Draws bare twigs: branches growing up and outward from the bottom of the card,
+## forking into thinner twigs on the way.
+static func _branches(img: Image, origin: Vector2i, cell: int, rng: RandomNumberGenerator) -> void:
+	var tips := []
+	for k in 4:
+		tips.append([Vector2(rng.randf_range(cell * 0.2, cell * 0.8), cell - 1.0),
+			Vector2(rng.randf_range(-0.9, 0.9), -1.0).normalized(), rng.randf_range(cell * 0.5, cell * 0.85), 0])
+	while not tips.is_empty():
+		var t: Array = tips.pop_back()
+		var p: Vector2 = t[0]
+		var dir: Vector2 = t[1]
+		var l: float = t[2]
+		var twig := Color(rng.randf(), 0.5, rng.randf_range(0.4, 0.7), 1)
+		for i in int(l):
+			var q := (p + dir * i).round()
+			if q.x < 0 or q.y < 0 or q.x >= cell or q.y >= cell:
+				break
+			img.set_pixel(origin.x + int(q.x), origin.y + int(q.y), twig)
+			if t[3] < 3 and i > 1 and rng.randf() < 0.2:
+				var side := 1.0 if rng.randf() < 0.5 else -1.0
+				tips.append([q, dir.rotated(rng.randf_range(0.4, 0.9) * side), (l - i) * 0.75, t[3] + 1])
+			dir = dir.rotated(rng.randf_range(-0.15, 0.15))
+
+
+## Marks the upper edge of every leaf in a card: a pixel whose upper neighbour is empty
+## or another leaf gets EDGE_ALPHA, and the shader lights it a little.
+static func _mark_edges(img: Image, origin: Vector2i, cell: int) -> void:
+	for y in range(cell - 1, -1, -1):
+		for x in cell:
+			var p := img.get_pixel(origin.x + x, origin.y + y)
+			if p.a < 0.5:
+				continue
+			var up := img.get_pixel(origin.x + x, origin.y + y - 1) if y > 0 else Color(0, 0, 0, 0)
+			if up.a < 0.5 or not is_equal_approx(up.r, p.r):
+				img.set_pixel(origin.x + x, origin.y + y, Color(p.r, p.g, p.b, EDGE_ALPHA))
 
 
 ## Tileable noise for cloud shadows and water ripples.
