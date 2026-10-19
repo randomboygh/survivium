@@ -538,8 +538,11 @@ func _forest(w, at: Vector3) -> Vector3:
 			var n := 0
 			for dz in range(-16, 17, 2):
 				for dx in range(-24, 25, 2):
-					var top: int = w.surface_y(x + dx, z + dz)
-					if top > 0 and w.get_cell(x + dx, top - 1, z + dz) == Mat.LEAVES:
+					# Columns with leaves (surface_y looks through crowns, so it
+					# cannot tell a tree from the ground under it).
+					var cx := x + dx
+					var cz := z + dz
+					if cx >= 0 and cz >= 0 and cx < w.size_x and cz < w.size_z and w.leaf_cols[cz * w.size_x + cx] != 0:
 						n += 1
 			if n > best_n:
 				best_n = n
