@@ -371,7 +371,8 @@ func _build_materials() -> void:
 	leaves_mat = _material(LeavesShader)
 	leaves_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps())
 	leaves_mat.set_shader_parameter("clump_size", Foliage.CLUMP_SIZE)
-	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_SIZES.size())
+	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_ROWS)
+	leaves_mat.set_shader_parameter("branch_row", PixelTextures.BRANCH_ROW)
 	leaf_shadow_mat = _material(LeafShadowShader)
 	grass_mesh = Foliage.quad_mesh(Foliage.TUFT_SIZE, false)
 	clump_mesh = Foliage.quad_mesh(Foliage.CLUMP_SIZE, true)
@@ -438,13 +439,13 @@ func _place_props() -> void:
 				and world.slope_mask(x, y - 1, z) == world.FULL:
 			bush_cells.append(Vector3i(x, y, z))
 	var bush_mat := _material(LeavesShader)
-	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP, [Foliage.BUSH_CLUMP]))
+	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP, [Foliage.BUSH_CLUMP], false))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
 	bushes = _multimesh(Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true), bush_mat, true, true)
 	bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	bushes.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(bushes)
-	bush_shade = _multimesh(Foliage.disc_mesh(Foliage.BUSH_DISC), leaf_shadow_mat, false, false)
+	bush_shade = _multimesh(Foliage.disc_mesh(Foliage.BUSH_DISC), leaf_shadow_mat, false, true)
 	bush_shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	bush_shade.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(bush_shade)
@@ -499,6 +500,7 @@ func _refresh_bushes() -> void:
 	var discs := PackedFloat32Array()
 	for cell in bush_cells:
 		Foliage.put(discs, (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0))
+		discs.append_array([Foliage.BERRIES, 0.0, 0.0, 0.0])
 	bush_shade.multimesh.instance_count = bush_cells.size()
 	if not bush_cells.is_empty():
 		bush_shade.multimesh.buffer = discs
@@ -521,7 +523,7 @@ func _build_chunk(key: Vector2i) -> void:
 		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var crowns := _multimesh(clump_mesh, leaves_mat, true, true)
 		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var shade := _multimesh(disc_mesh, leaf_shadow_mat, false, false)
+		var shade := _multimesh(disc_mesh, leaf_shadow_mat, false, true)
 		shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		var parts: Array = [solid, water, tufts, crowns, shade]
 		for n in parts:

@@ -9,6 +9,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
+const Trees := preload("res://src/shared/trees.gd")
 
 
 static func generate(world_seed: int, sx := 256, sy := 40, sz := 256) -> WorldData:
@@ -113,7 +114,7 @@ static func generate(world_seed: int, sx := 256, sy := 40, sz := 256) -> WorldDa
 	for z in range(5, sz - 5, 2):
 		for x in range(5, sx - 5, 2):
 			var hh := heights[z * sx + x]
-			if hh < 0 or w.get_cell(x, hh, z) != Mat.GRASS or hh + 14 >= sy:
+			if hh < 0 or w.get_cell(x, hh, z) != Mat.GRASS:
 				continue
 			# Trunks side by side would merge into a wall of logs.
 			if w.get_cell(x - 2, hh + 1, z) == Mat.LOG or w.get_cell(x + 2, hh + 1, z) == Mat.LOG \
@@ -121,7 +122,12 @@ static func generate(world_seed: int, sx := 256, sy := 40, sz := 256) -> WorldDa
 				continue
 			if rng.randf() > 0.06:
 				continue
-			_place_tree(w, x, hh + 1, z, rng)
+			# Spruces on the higher ground, oaks below, mixed where they meet.
+			var species := Trees.SPRUCE if hh + rng.randi_range(-2, 2) > sea + 4 else Trees.OAK
+			# Under the top of the world trees grow smaller, or not at all.
+			var scale := Trees.fit(species, sy - 1 - hh)
+			if scale > 0.0:
+				Trees.place(w, x, hh + 1, z, species, rng, scale)
 	w.mark_all_dirty()
 	w.refresh_shapes()
 	return w
@@ -144,35 +150,6 @@ static func find_spawn(w: WorldData) -> Vector3i:
 						and w.slope_mask(x, y - 1, z) == WorldData.FULL:
 					return Vector3i(x, y, z)
 	return Vector3i(cx, w.size_y - 1, cz)
-
-
-## A trunk of 6 or 8 cells and a crown of leaves around points two cells apart, each
-## point becoming one place for leaf cards (see Foliage). The points fill a low, wide
-## ellipsoid: in the oblique view the top and the front of a crown both show, so a ball
-## would look tall and narrow, while this one reads as round on screen (width about
-## equal to height plus depth).
-static func _place_tree(w: WorldData, x: int, y: int, z: int, rng: RandomNumberGenerator) -> void:
-	var trunk := 6 + 2 * rng.randi_range(0, 1)
-	for i in trunk:
-		w.set_cell(x, y + i, z, Mat.LOG)
-	# Radii in points; points sit on even levels, the middle one just above the trunk.
-	var rx := 2.2 + rng.randf_range(-0.2, 0.3)
-	var rz := 1.8 + rng.randf_range(-0.2, 0.2)
-	var ry := 1.5 + rng.randf_range(-0.1, 0.3)
-	var middle := ((y + trunk - 1) & ~1) + 2
-	var points: Array[Vector3i] = []
-	for dy in range(-2, 3):
-		for dz in range(-2, 3):
-			for dx in range(-3, 4):
-				var d := Vector3(dx / rx, dy / ry, dz / rz)
-				if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1):
-					points.append(Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz))
-	for p in points:
-		for oy in range(-1, 2):
-			for oz in range(-1, 2):
-				for ox in range(-1, 2):
-					if w.get_cell(p.x + ox, p.y + oy, p.z + oz) == Mat.AIR:
-						w.set_cell(p.x + ox, p.y + oy, p.z + oz, Mat.LEAVES)
 
 
 ## Byte value of a noise level in the grids below.

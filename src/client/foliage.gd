@@ -8,7 +8,9 @@ extends RefCounted
 ## crowns cast round shadows.
 
 const Mat := preload("res://src/shared/materials.gd")
+const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const Trees := preload("res://src/shared/trees.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 
 ## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
@@ -26,6 +28,22 @@ const DEEP := Color(0.7, 0.76, 0.84)
 const CROWN_REACH := 2
 ## How much the bumps of a crown (a smooth wave about two units across) bend its normal.
 const BUMP := 0.45
+## What a tree does over the year, in the alpha of its cards' colour (see
+## leaves.gdshader): keeps dry leaves under snow caps in winter, drops all of them (bare
+## branches show), keeps its needles; bushes carry berries.
+const KEEPS_LEAVES := 1.0
+const GOES_BARE := 0.8
+const EVERGREEN := 0.6
+const BERRIES := 0.4
+## Rows of the deep cards are offset by this, so the shader can swap them for bare
+## branches in winter.
+const DEEP_ROW := 8
+## A crown point belongs to the nearest trunk within this many cells.
+const TREE_REACH := 8
+## How far the normals of a spruce's cards lean up on the top of a tier, and down under
+## the tier above.
+const TIER_UP := 0.8
+const TIER_DOWN := -0.35
 ## Bushes are made of smaller clusters, this many pixels across, this many per bush.
 const BUSH_CLUMP := 10
 const BUSH_CARDS := 6
@@ -70,7 +88,8 @@ static func disc_mesh(size: float) -> ArrayMesh:
 
 ## Returns {"grass": [count, buffer], "clumps": [count, buffer], "shadows": [count, buffer]}
 ## for the cells x0..x0+size, z0..z0+size. Buffers are laid out for MultiMesh with
-## 3D transforms in world units; grass has custom data, clumps colours and custom data.
+## 3D transforms in world units; grass has custom data, clumps colours and custom data,
+## shadows custom data (what the tree does over the year, as in the clumps' alpha).
 ## Leaf clumps stand on a lattice two cells apart (odd x and z, even levels), where the
 ## generator centres its crowns.
 static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
@@ -89,6 +108,7 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 	var nc := 0
 	var ns := 0
 	var rng := RandomNumberGenerator.new()
+	var trunks := _trunks_near(w, x0, z0, x1, z1)
 	for z in range(z0, z1):
 		for x in range(x0, x1):
 			var col := z * sx + x
@@ -117,22 +137,56 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 			if x & 1 == 0 or z & 1 == 0:
 				continue
 			var leaves: int = w.leaf_cols[col] & EVEN_LEVELS
+			if leaves == 0:
+				continue
+			var tree := _tree_at(trunks, x, z)
+			var looks: Dictionary = Trees.SPECIES[tree[1]]
+			var needles: bool = looks.leaves == Trees.NEEDLES
+			var tints: Array = looks.tints
+			var base: Color = tints[tree[2] % tints.size()]
+			base.a = EVERGREEN if needles else (GOES_BARE if _goes_bare(tree[2], tree[1]) else KEEPS_LEAVES)
+			var first_row := PixelTextures.NEEDLE_ROW if needles else 0
+			var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
+			if needles and tree[0] == Vector2i(x, z):
+				# Small sprigs in front of a spruce's trunk where the tiers are around
+				# it: the trunk shows only under the lowest tier.
+				var core: int = (w.log_cols[col] & w.leaf_cols[col + 1] | leaves) & EVEN_LEVELS
+				while core != 0:
+					var bit := core & -core
+					core ^= bit
+					rng.seed = hash(Vector3i(x, WorldData.level_of(bit), z))
+					for up in [0.0, 0.5]:
+						var at := (Vector3(x, WorldData.level_of(bit), z) + Vector3(0.5, 0.5, 0.5)) * CELL + Vector3(0.0, up, 0.45)
+						_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + 1 + DEEP_ROW, rng)
+						nc += 1
 			while leaves != 0:
 				var bit := leaves & -leaves
 				leaves ^= bit
 				var y := WorldData.level_of(bit)
 				var faces := _open_faces(w, x, y, z)
-				if faces.is_empty():
-					continue
 				var mid := (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) * CELL
-				var middle := mid + _crown_offset(w, x, y, z)
+				if faces.is_empty():
+					# Inside a spruce a dark sprig fills the room between the tiers, so
+					# the ground never shows through.
+					if needles:
+						rng.seed = hash(Vector3i(x, y, z))
+						var inner := base * DEEP
+						inner.a = base.a
+						_card(clumps, PixelView.snap(mid), _tier_normal(mid, Vector3(axis.x, mid.y, axis.z), TIER_DOWN), inner, first_row + DEEP_ROW, rng)
+						nc += 1
+					continue
+				# Broad leaves take the normal from the middle of the crown nearby, needles
+				# from the trunk, leaning up on top of a tier and down under the next one.
+				var middle := Vector3(axis.x, mid.y, axis.z) if needles else mid + _crown_offset(w, x, y, z)
+				var lean := (TIER_UP if faces[0] == Vector3i.UP else TIER_DOWN) if needles else 0.0
 				rng.seed = hash(Vector3i(x, y, z))
-				var tree := hash(Vector2i(x / 6, z / 6)) % 3
-				var base: Color = [Color(0.27, 0.43, 0.25), Color(0.3, 0.46, 0.22), Color(0.25, 0.41, 0.27)][tree]
 				# Large bunches on the inside of the crown, smaller ones toward its
 				# outline (points open on three or more sides), the smallest at the very
 				# edge, so the middle is dense and the edge jagged.
-				var rows := [0, 1] if faces.size() < 3 else [1, 2]
+				# Spruce tiers stay dense out to their rim, only the lone points of the
+				# top take small sprigs, so the tip is pointed.
+				var small: bool = faces.size() >= 4 and tree[0] == Vector2i(x, z) if needles else faces.size() >= 3
+				var rows := [1, 2] if small else [0, 1]
 				for f in faces:
 					# Cards cover each face the camera can see, poking out of it a
 					# little, so no gap shows the trunk inside.
@@ -140,14 +194,20 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 						var c := mid + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
 						var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX
 						c += spread - Vector3(f) * Vector3(f).dot(spread)
-						_card(clumps, PixelView.snap(c), middle, base, rows[rng.randi_range(0, 1)], rng)
+						c = PixelView.snap(c)
+						var n := _tier_normal(c, middle, lean) if needles else _card_normal(c, middle)
+						_card(clumps, c, n, base, first_row + rows[rng.randi_range(0, 1)], rng)
 						nc += 1
 				# A deeper, darker layer behind the outer cards (a little inward and
 				# north, so it is drawn behind them) fills the gaps between them.
-				var deep := mid + Vector3(0.0, 0.0, -0.25) - (mid - middle).limit_length(0.3)
-				_card(clumps, PixelView.snap(deep), middle, base * DEEP, 0, rng)
+				var deep := PixelView.snap(mid + Vector3(0.0, 0.0, -0.25) - (mid - middle).limit_length(0.3))
+				var dn := _tier_normal(deep, middle, lean) if needles else _card_normal(deep, middle)
+				var dark := base * DEEP
+				dark.a = base.a
+				_card(clumps, deep, dn, dark, first_row + DEEP_ROW, rng)
 				nc += 1
 				put(shadows, mid)
+				shadows.append_array([base.a, 0.0, 0.0, 0.0])
 				ns += 1
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
 
@@ -165,8 +225,8 @@ static func bushes(cells: Array[Vector3i]) -> Array:
 			if k == 0:
 				o = Vector3(0.0, 0.2, 0.0)
 			put(buf, PixelView.snap((Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.3, 0.0) + o))
-			# Alpha below 1 marks a cluster with berries (see leaves.gdshader).
-			buf.append_array([0.3, 0.46, 0.22, 0.5])
+			# The alpha marks a cluster with berries (see leaves.gdshader).
+			buf.append_array([0.3, 0.46, 0.22, BERRIES])
 			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
 			buf.append_array([n.x, n.y, n.z, rng.randf() * 0.99])
 	return [cells.size() * BUSH_CARDS, buf]
@@ -183,13 +243,51 @@ static func _open_faces(w, x: int, y: int, z: int) -> Array[Vector3i]:
 	return open
 
 
-## Appends a leaf cluster card at `c`: transform, tint, and the crown's normal with the
-## card's row of the clump texture plus a sway phase in the last value.
-static func _card(buf: PackedFloat32Array, c: Vector3, middle: Vector3, tint: Color, row: int, rng: RandomNumberGenerator) -> void:
+## Appends a leaf cluster card at `c`: transform, tint (its alpha what the tree does
+## in winter), and the normal `n` with the card's row of the clump texture plus a sway
+## phase in the last value.
+static func _card(buf: PackedFloat32Array, c: Vector3, n: Vector3, tint: Color, row: int, rng: RandomNumberGenerator) -> void:
 	put(buf, c)
-	buf.append_array([tint.r, tint.g, tint.b, 1.0])
-	var n := _card_normal(c, middle)
+	buf.append_array([tint.r, tint.g, tint.b, tint.a])
 	buf.append_array([n.x, n.y, n.z, row + rng.randf() * 0.99])
+
+
+## Trees whose trunks stand within TREE_REACH cells of the cells x0..x1, z0..z1:
+## [column, species, hash of the column] each.
+static func _trunks_near(w, x0: int, z0: int, x1: int, z1: int) -> Array:
+	var found := []
+	var trees: Dictionary = w.trees
+	if trees.is_empty():
+		return found
+	for z in range((z0 - TREE_REACH) | 1, z1 + TREE_REACH, 2):
+		for x in range((x0 - TREE_REACH) | 1, x1 + TREE_REACH, 2):
+			var at := Vector2i(x, z)
+			if trees.has(at):
+				found.append([at, trees[at], hash(at)])
+	return found
+
+
+## Whether the tree on column `at` drops all its leaves in winter (the others of a
+## deciduous species keep dry leaves under snow caps).
+static func goes_bare(at: Vector2i, species: int) -> bool:
+	return _goes_bare(hash(at), species)
+
+
+static func _goes_bare(h: int, species: int) -> bool:
+	return (h >> 8) % 100 < Trees.SPECIES[species].bare * 100.0
+
+
+## The tree a crown point in column x, z belongs to: the nearest trunk, or an oak where
+## no tree is noted (crowns made by hand).
+static func _tree_at(trunks: Array, x: int, z: int) -> Array:
+	var best := [Vector2i(x, z), Trees.OAK, hash(Vector2i(x / 6, z / 6))]
+	var best_d := TREE_REACH * TREE_REACH + 1
+	for t in trunks:
+		var d: int = (t[0] - Vector2i(x, z)).length_squared()
+		if d < best_d:
+			best_d = d
+			best = t
+	return best
 
 
 ## Offset in world units from a crown point to the middle of the crown points within
@@ -212,6 +310,16 @@ static func _card_normal(c: Vector3, middle: Vector3) -> Vector3:
 	var bump := Vector3(sin(c.y * 2.1 + c.z * 1.3 + 1.0), sin(c.x * 1.7 + c.z * 2.3), sin(c.x * 1.1 + c.y * 1.9 + 2.0))
 	var n := (c - middle).normalized() + bump * BUMP + Vector3(0.0, 0.3, 0.0)
 	return n.normalized()
+
+
+## Normal for a spruce card at `c`: out from the trunk (`axis` at the card's height),
+## leaning up or down (`lean`), with smaller bumps than a broad crown.
+static func _tier_normal(c: Vector3, axis: Vector3, lean: float) -> Vector3:
+	var out := c - axis
+	out.y = 0.0
+	var bump := Vector3(sin(c.y * 2.1 + c.z * 1.3 + 1.0), 0.0, sin(c.x * 1.1 + c.y * 1.9 + 2.0))
+	var n := (out.normalized() if out.length() > 0.2 else Vector3.ZERO) + bump * 0.2 + Vector3(0.0, lean, 0.0)
+	return n.normalized() if n.length() > 0.1 else Vector3.UP
 
 
 ## Appends a translation-only transform in MultiMesh buffer order.
