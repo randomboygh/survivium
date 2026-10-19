@@ -665,7 +665,7 @@ func _shift_cut(d: int) -> void:
 func _apply_cut() -> void:
 	var h := 1000.0 if cut_level >= world.size_y else (cut_level + 1) * CELL
 	RenderingServer.global_shader_parameter_set("cut_height", h)
-	creatures.cut_height = h
+	RenderingServer.global_shader_parameter_set("cut_ghost", 1.0 if manual_level < 0 else 0.0)
 	cap_node.mesh = ChunkMesher.build_cap(world, cut_level) if cut_level < world.size_y - 1 else null
 
 
@@ -695,6 +695,10 @@ func _update_time(delta: float) -> void:
 	env.ambient_light_color = Color(0.55, 0.62, 0.78).lerp(Color(0.6, 0.5, 0.6), golden).lerp(Color(0.16, 0.2, 0.36), night)
 	env.ambient_light_energy = lerpf(0.45, 0.9, night)
 	env.background_color = Color(0.2, 0.32, 0.38).lerp(Color(0.04, 0.06, 0.12), night)
+	# Levels far below the player fade into the background outdoors and into darkness
+	# under a roof (see depth_fade in common.gdshaderinc).
+	var haze := (Color(0.02, 0.02, 0.03) if cut_level < world.size_y else env.background_color).srgb_to_linear()
+	RenderingServer.global_shader_parameter_set("depth_haze", Vector3(haze.r, haze.g, haze.b))
 	creatures.daylight = daylight
 	if player != null:
 		player.torch.light_energy = 1.1 if indoor else 1.1 * clampf(night * 2.5 - 1.5, 0.0, 1.0)
@@ -785,6 +789,8 @@ func _update_camera(delta: float) -> void:
 	container.position = container.position.round()
 	player.place_sprite()
 	RenderingServer.global_shader_parameter_set("player_pos", player.position)
+	if player.on_ground:
+		RenderingServer.global_shader_parameter_set("view_height", player.level() * CELL)
 
 
 func _read_move() -> Vector2:

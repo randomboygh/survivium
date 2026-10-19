@@ -31,7 +31,6 @@ class Creature:
 var world
 var player: Node3D
 var daylight := 1.0
-var cut_height := 1000.0
 var creatures: Array[Creature] = []
 var rng := RandomNumberGenerator.new()
 ## kind -> [mesh, material]
@@ -82,7 +81,6 @@ func _process(delta: float) -> void:
 			_decide(c, spec)
 		_move(c, spec, delta)
 		c.sprite.position = PixelView.snap(c.pos)
-		c.sprite.visible = c.pos.y <= cut_height
 
 
 func _decide(c: Creature, spec: Dictionary) -> void:

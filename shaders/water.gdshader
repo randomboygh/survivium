@@ -27,7 +27,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (world_pos.y > cut_height + 0.01) {
+	if (above_cut(world_pos)) {
 		discard;
 	}
 	vec2 tex = floor(world_pos.xz * TEXELS);
@@ -95,7 +95,9 @@ void fragment() {
 		}
 	}
 	col = mix(col, vec3(0.74, 0.85, 0.92) + 0.06 * hash12(tex), ice_amount);
-	ALBEDO = col * cut_shade(world_pos.y);
+	float fade = depth_fade(world_pos.y);
+	ALBEDO = col * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	ALPHA = mix(alpha, 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

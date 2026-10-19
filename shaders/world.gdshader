@@ -90,7 +90,7 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 
 void fragment() {
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
-	if (world_pos.y > cut_height + 0.01 && !IN_SHADOW_PASS) {
+	if (!IN_SHADOW_PASS && above_cut(world_pos)) {
 		discard;
 	}
 	int a = int(packed.x + 0.5);
@@ -207,8 +207,9 @@ void fragment() {
 	}
 	float wet = wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
-	col *= cut_shade(world_pos.y);
-	ALBEDO = col;
+	float fade = depth_fade(world_pos.y);
+	ALBEDO = col * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
 	AO_LIGHT_AFFECT = 0.6;

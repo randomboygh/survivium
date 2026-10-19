@@ -18,10 +18,12 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(sprite_texture, UV);
-	if (c.a < 0.5 || world_pos.y > cut_height + 0.01) {
+	if (c.a < 0.5 || above_cut(world_pos)) {
 		discard;
 	}
-	ALBEDO = c.rgb * cut_shade(world_pos.y);
+	float fade = depth_fade(world_pos.y);
+	ALBEDO = c.rgb * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	// Lit as if facing up and toward the viewer, on both sides (mirrored sprites
 	// show their back face).
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);
