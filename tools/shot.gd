@@ -26,6 +26,10 @@ const SHOTS := {
 	"corners": {"time": 0.42, "season": 1, "corners": true},
 	"corners-winter": {"time": 0.45, "season": 3, "corners": true},
 	"lab": {"time": 0.42, "season": 1, "lab": true},
+	"trees": {"time": 0.42, "season": 1, "trees": true},
+	"forest": {"time": 0.42, "season": 1, "forest": true},
+	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
+	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
 }
 
 var main: Node
@@ -69,6 +73,10 @@ func _run() -> void:
 			main.player.position = _cave(main.world, main.player.position)
 		if shot.get("corners", false):
 			main.player.position = _corners(main.world, main.player.position)
+		if shot.get("trees", false):
+			main.player.position = _lone_trees(main.world, main.player.position)
+		if shot.get("forest", false):
+			main.player.position = _forest(main.world, main.player.position)
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 		# Let snow, wetness, tints and particles settle.
@@ -253,3 +261,61 @@ func _lab(w, at: Vector3i) -> void:
 		for x in range(at.x - 32, at.x + 35, 8):
 			main._on_cell_changed(Vector3i(x, h, z))
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
+
+
+## The open spot near `at` with the most crowns around it.
+func _forest(w, at: Vector3) -> Vector3:
+	var from := at / CELL
+	var best := from
+	var best_n := -1
+	for z in range(int(from.z) - 80, int(from.z) + 81, 6):
+		for x in range(int(from.x) - 80, int(from.x) + 81, 6):
+			var y: int = w.surface_y(x, z)
+			if y <= w.sea_level or w.get_cell(x, y, z) != Mat.AIR:
+				continue
+			var n := 0
+			for dz in range(-16, 17, 2):
+				for dx in range(-24, 25, 2):
+					var top: int = w.surface_y(x + dx, z + dz)
+					if top > 0 and w.get_cell(x + dx, top - 1, z + dz) == Mat.LEAVES:
+						n += 1
+			if n > best_n:
+				best_n = n
+				best = Vector3(x + 0.5, y, z + 0.5)
+	return best * CELL
+
+
+## The open spot near `at` with the most trees standing apart from the others.
+func _lone_trees(w, at: Vector3) -> Vector3:
+	var from := at / CELL
+	var trunks: Array[Vector2i] = []
+	for z in range(1, w.size_z - 1):
+		for x in range(1, w.size_x - 1):
+			for y in range(w.surface_y(x, z) - 1, 0, -1):
+				if w.get_cell(x, y, z) == Mat.LOG and w.get_cell(x, y - 1, z) != Mat.LOG:
+					trunks.append(Vector2i(x, z))
+					break
+	var lone: Array[Vector2i] = []
+	for t in trunks:
+		var alone := true
+		for o in trunks:
+			if o != t and absi(o.x - t.x) <= 6 and absi(o.y - t.y) <= 6:
+				alone = false
+				break
+		if alone:
+			lone.append(t)
+	var best := from
+	var best_n := -1
+	for z in range(int(from.z) - 96, int(from.z) + 97, 4):
+		for x in range(int(from.x) - 96, int(from.x) + 97, 4):
+			var y: int = w.surface_y(x, z)
+			if y <= w.sea_level or w.get_cell(x, y, z) != Mat.AIR:
+				continue
+			var n := 0
+			for t in lone:
+				if absi(t.x - x) <= 24 and absi(t.y - z) <= 14:
+					n += 1
+			if n > best_n:
+				best_n = n
+				best = Vector3(x + 0.5, y, z + 0.5)
+	return best * CELL

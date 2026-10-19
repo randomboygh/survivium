@@ -1,7 +1,11 @@
 extends RefCounted
 ## Grass tufts and tree crowns for one chunk, as MultiMesh instance buffers.
-## Tufts stand on grass tops; every exposed point of a crown becomes a round leaf clump
-## plus a flat shadow-only disc, so crowns look soft and cast round shadows.
+## Tufts stand on grass tops. A crown is drawn the way t3ssel8r draws his trees: leaf
+## cluster cards cover its open faces, and each card is lit with the normal of the crown
+## at that spot (away from the middle of the leaves around it), bent toward a few large
+## bumps, so the light falls on the crown as one mass with some big lumps instead of on
+## each card. Every exposed point of a crown also gets a flat shadow-only disc, so
+## crowns cast round shadows.
 
 const Mat := preload("res://src/shared/materials.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
@@ -10,9 +14,21 @@ const WorldData := preload("res://src/shared/world_data.gd")
 ## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
 const TUFTS_PER_CELL := 2
 const TUFT_SIZE := 0.5
-const CLUMP_SIZE := 1.25
-## Bushes are made of smaller clumps, this many pixels across.
-const BUSH_CLUMP := 12
+## Leaf cluster cards: size in world units (24 px, see PixelTextures.CLUMP; the bunch of
+## leaves in a card is one of three sizes), cards on each open face of a crown point the
+## camera sees.
+const CLUMP_SIZE := 1.5
+const CARDS_PER_FACE := 1
+## Tint of the layer of large cards deeper in the crown, which fills the gaps between
+## the outer cards: darker and cooler, as light gets less far into the leaves.
+const DEEP := Color(0.7, 0.76, 0.84)
+## Crown points within this many steps give the crown's middle for the light.
+const CROWN_REACH := 2
+## How much the bumps of a crown (a smooth wave about two units across) bend its normal.
+const BUMP := 0.45
+## Bushes are made of smaller clusters, this many pixels across, this many per bush.
+const BUSH_CLUMP := 10
+const BUSH_CARDS := 6
 const BUSH_DISC := 0.9
 const SHADOW_DISC := 1.6
 ## One pixel and one cell in world units.
@@ -105,51 +121,97 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				var bit := leaves & -leaves
 				leaves ^= bit
 				var y := WorldData.level_of(bit)
-				# Outward direction of the crown: away from the leaves around this clump.
-				var out := Vector3.ZERO
-				var open := false
-				for ny in range(-1, 2):
-					for nz in range(-1, 2):
-						for nx in range(-1, 2):
-							var n: int = w.get_cell(x + 2 * nx, y + 2 * ny, z + 2 * nz)
-							if n != Mat.LEAVES and n != Mat.LOG:
-								out += Vector3(nx, ny, nz)
-								open = open or absi(nx) + absi(ny) + absi(nz) == 1
-				if not open:
+				var faces := _open_faces(w, x, y, z)
+				if faces.is_empty():
 					continue
-				rng.seed = hash(Vector3i(x, y, z))
 				var mid := (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) * CELL
-				var c := mid + Vector3(rng.randi_range(-4, 4) * PX, rng.randi_range(-4, 4) * PX, 0.0)
-				put(clumps, PixelView.snap(c))
-				var shade := rng.randf_range(0.9, 1.08)
+				var middle := mid + _crown_offset(w, x, y, z)
+				rng.seed = hash(Vector3i(x, y, z))
 				var tree := hash(Vector2i(x / 6, z / 6)) % 3
-				var base: Color = [Color(0.3, 0.47, 0.22), Color(0.33, 0.5, 0.2), Color(0.28, 0.44, 0.24)][tree]
-				clumps.append_array([base.r * shade, base.g * shade, base.b * shade, 1.0])
-				out = out.normalized() if out.length() > 0.01 else Vector3.UP
-				clumps.append_array([out.x, out.y, out.z, rng.randf()])
+				var base: Color = [Color(0.27, 0.43, 0.25), Color(0.3, 0.46, 0.22), Color(0.25, 0.41, 0.27)][tree]
+				# Large bunches on the inside of the crown, smaller ones toward its
+				# outline (points open on three or more sides), the smallest at the very
+				# edge, so the middle is dense and the edge jagged.
+				var rows := [0, 1] if faces.size() < 3 else [1, 2]
+				for f in faces:
+					# Cards cover each face the camera can see, poking out of it a
+					# little, so no gap shows the trunk inside.
+					for k in CARDS_PER_FACE:
+						var c := mid + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
+						var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX
+						c += spread - Vector3(f) * Vector3(f).dot(spread)
+						_card(clumps, PixelView.snap(c), middle, base, rows[rng.randi_range(0, 1)], rng)
+						nc += 1
+				# A deeper, darker layer behind the outer cards (a little inward and
+				# north, so it is drawn behind them) fills the gaps between them.
+				var deep := mid + Vector3(0.0, 0.0, -0.25) - (mid - middle).limit_length(0.3)
+				_card(clumps, PixelView.snap(deep), middle, base * DEEP, 0, rng)
 				nc += 1
 				put(shadows, mid)
 				ns += 1
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
 
 
-## Clumps of berry bushes standing on the given cells: [count, buffer] like crowns.
+## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like
+## crowns, lit as one low dome per bush.
 static func bushes(cells: Array[Vector3i]) -> Array:
 	var buf := PackedFloat32Array()
 	var rng := RandomNumberGenerator.new()
-	var offsets := [Vector2(-3, 0), Vector2(3, 1), Vector2(0, 5)]
 	for cell in cells:
 		rng.seed = hash(cell)
-		var mid := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL
-		for o in offsets:
-			var p := mid + Vector3((o.x + rng.randi_range(-1, 1)) * PX, 0.4 + o.y * PX, 0.0)
-			put(buf, PixelView.snap(p))
-			var shade := rng.randf_range(0.9, 1.05)
-			# Alpha below 1 marks a clump with berries (see leaves.gdshader).
-			buf.append_array([0.3 * shade, 0.46 * shade, 0.22 * shade, 0.5])
-			var out := Vector3(o.x / 4.0, 0.6 + o.y / 6.0, 0.3).normalized()
-			buf.append_array([out.x, out.y, out.z, rng.randf()])
-	return [cells.size() * offsets.size(), buf]
+		for k in BUSH_CARDS:
+			var a := TAU * (k + rng.randf_range(-0.2, 0.2)) / BUSH_CARDS
+			var o := Vector3(cos(a) * 0.22, rng.randf_range(0.0, 0.15), sin(a) * 0.15)
+			if k == 0:
+				o = Vector3(0.0, 0.2, 0.0)
+			put(buf, PixelView.snap((Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.3, 0.0) + o))
+			# Alpha below 1 marks a cluster with berries (see leaves.gdshader).
+			buf.append_array([0.3, 0.46, 0.22, 0.5])
+			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
+			buf.append_array([n.x, n.y, n.z, rng.randf() * 0.99])
+	return [cells.size() * BUSH_CARDS, buf]
+
+
+## Faces of a crown point the camera can see (top, south, east, west) whose
+## neighbouring point (two cells on) is neither leaves nor a trunk.
+static func _open_faces(w, x: int, y: int, z: int) -> Array[Vector3i]:
+	var open: Array[Vector3i] = []
+	for d in [Vector3i(0, 1, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 0), Vector3i(-1, 0, 0)]:
+		var n: int = w.get_cell(x + 2 * d.x, y + 2 * d.y, z + 2 * d.z)
+		if n != Mat.LEAVES and n != Mat.LOG:
+			open.append(d)
+	return open
+
+
+## Appends a leaf cluster card at `c`: transform, tint, and the crown's normal with the
+## card's row of the clump texture plus a sway phase in the last value.
+static func _card(buf: PackedFloat32Array, c: Vector3, middle: Vector3, tint: Color, row: int, rng: RandomNumberGenerator) -> void:
+	put(buf, c)
+	buf.append_array([tint.r, tint.g, tint.b, 1.0])
+	var n := _card_normal(c, middle)
+	buf.append_array([n.x, n.y, n.z, row + rng.randf() * 0.99])
+
+
+## Offset in world units from a crown point to the middle of the crown points within
+## CROWN_REACH steps of it (a step is two cells, one world unit).
+static func _crown_offset(w, x: int, y: int, z: int) -> Vector3:
+	var sum := Vector3.ZERO
+	var n := 0
+	for dy in range(-CROWN_REACH, CROWN_REACH + 1):
+		for dz in range(-CROWN_REACH, CROWN_REACH + 1):
+			for dx in range(-CROWN_REACH, CROWN_REACH + 1):
+				if w.get_cell(x + 2 * dx, y + 2 * dy, z + 2 * dz) == Mat.LEAVES:
+					sum += Vector3(dx, dy, dz)
+					n += 1
+	return sum / n
+
+
+## Normal for a card at `c`: away from the crown's middle, bent by a few large bumps,
+## and a little up, so a lone or flat canopy faces the sky.
+static func _card_normal(c: Vector3, middle: Vector3) -> Vector3:
+	var bump := Vector3(sin(c.y * 2.1 + c.z * 1.3 + 1.0), sin(c.x * 1.7 + c.z * 2.3), sin(c.x * 1.1 + c.y * 1.9 + 2.0))
+	var n := (c - middle).normalized() + bump * BUMP + Vector3(0.0, 0.3, 0.0)
+	return n.normalized()
 
 
 ## Appends a translation-only transform in MultiMesh buffer order.

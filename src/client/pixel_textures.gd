@@ -1,6 +1,6 @@
 extends RefCounted
 ## Procedural pixel textures: 16x16 cell materials packed into one atlas, grass tufts,
-## leaf clumps and the cloud noise. Placeholder art until the content editor exists.
+## leaf clusters and the cloud noise. Placeholder art until the content editor exists.
 ## The palette is muted and warm; mood and colour shifts come from the colour grade.
 
 const Mat := preload("res://src/shared/materials.gd")
@@ -8,7 +8,10 @@ const Mat := preload("res://src/shared/materials.gd")
 const TILE := 16
 const TILES := 8
 const TUFT := 8
-const CLUMP := 20
+## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
+## one of CLUMP_SIZES across (one row of the texture each).
+const CLUMP := 24
+const CLUMP_SIZES := [24, 16, 11]
 
 
 static func build_atlas() -> ImageTexture:
@@ -48,34 +51,59 @@ static func build_tufts() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-## Four leaf clump variants side by side, `size` px square: a lumpy round blob.
-## Red is the brightness of each texel (leaves and gaps).
-static func build_clumps(size := CLUMP) -> ImageTexture:
-	var img := Image.create_empty(size * 4, size, false, Image.FORMAT_RGBA8)
+## Leaf cluster cards: one row per size in `sizes`, four variants in each, every
+## variant `cell` px square with the bunch centred in it. A bunch is a dense heap of
+## pointed leaves, the outer ones pointing outward, so the edge of a crown is jagged with
+## leaf tips. Red is a random number per leaf (for wind and falling leaves), green and
+## blue tilt the leaf's normal left/right and up/down (0.5 = no tilt), so the light bands
+## of the crown end along leaf outlines.
+static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES) -> ImageTexture:
+	var img := Image.create_empty(cell * 4, cell * sizes.size(), false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 23
-	var noise := FastNoiseLite.new()
-	noise.frequency = 0.35
-	var c := (size - 1) / 2.0
-	for v in 4:
-		noise.seed = v * 7 + 1
-		for y in size:
-			for x in size:
-				var d := Vector2(x - c, y - c)
-				var bump := noise.get_noise_2d(x, y) * 2.8 * size / CLUMP
-				if d.length() > c - 0.6 + bump:
-					continue
-				# Leafy lumps a few pixels across, and only rarely a single dark gap,
-				# so the clump reads as a calm mass rather than noise.
-				var b := 0.55 + noise.get_noise_2d(x * 1.4 + 40, y * 1.4) * 0.5
-				if rng.randf() < 0.04:
-					b -= 0.3
-				# A darker rim along the lower edge separates overlapping clumps.
-				if d.y > 0.0 and d.length() > c - 1.8 + bump:
-					b -= 0.45
-				img.set_pixel(v * size + x, y, Color(clampf(b, 0.0, 1.0), 0, 0, 1))
+	var c := Vector2(cell - 1, cell - 1) / 2.0
+	for row in sizes.size():
+		var size: int = sizes[row]
+		for v in 4:
+			_leaf_bunch(img, Vector2i(v * cell, row * cell), cell, size, c, rng)
 	return ImageTexture.create_from_image(img)
+
+
+## Draws one bunch `size` px across into the `cell` px square at `origin`.
+static func _leaf_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
+	var length := clampf(size / 3.2, 3.0, 5.5)
+	var leaves := []
+	for k in int(size * 4.5):
+		var a := rng.randf() * TAU
+		var r := sqrt(rng.randf()) * (size / 2.0 - length * 0.9)
+		leaves.append(c + Vector2(cos(a), sin(a)) * r)
+	# Lower leaves are nearer the viewer and drawn over the upper ones.
+	leaves.sort_custom(func(p, q): return p.y < q.y)
+	for p: Vector2 in leaves:
+		# Leaves point away from the middle of the bunch and hang a little.
+		var out := p - c
+		var dir := (out.normalized() if out.length() > 1.5 else Vector2.from_angle(rng.randf() * TAU)) + Vector2(0.0, 0.4)
+		dir = dir.normalized().rotated(rng.randf_range(-0.5, 0.5))
+		var side := Vector2(-dir.y, dir.x)
+		var l := length * rng.randf_range(0.8, 1.15)
+		var wide := rng.randf_range(1.0, 1.5)
+		var id := rng.randf()
+		var tx := rng.randf_range(0.25, 0.75)
+		var ty := rng.randf_range(0.25, 0.75)
+		for y in range(floori(p.y - l), ceili(p.y + l) + 1):
+			for x in range(floori(p.x - l), ceili(p.x + l) + 1):
+				if x < 0 or y < 0 or x >= cell or y >= cell:
+					continue
+				var d := Vector2(x, y) - p
+				var along := d.dot(dir) / l
+				if along < 0.0 or along > 1.0:
+					continue
+				# A lens: widest a third of the way along, pointed at the tip.
+				var t := along / 0.35 if along < 0.35 else (1.0 - along) / 0.65
+				if absf(d.dot(side)) > wide * t + 0.15:
+					continue
+				img.set_pixel(origin.x + x, origin.y + y, Color(id, tx, ty, 1))
 
 
 ## Tileable noise for cloud shadows and water ripples.
