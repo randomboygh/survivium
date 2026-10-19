@@ -14,10 +14,14 @@ const WorldData := preload("res://src/shared/world_data.gd")
 ## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
 const TUFTS_PER_CELL := 7
 const TUFT_SIZE := 0.5
-## Leaf cluster cards: size in cells (16 px, see PixelTextures.CLUMP), cards on each
-## open face of a leaf cell the camera sees.
-const CLUMP_SIZE := 1.0
-const CARDS_PER_FACE := 2
+## Leaf cluster cards: size in cells (24 px, see PixelTextures.CLUMP; the bunch of
+## leaves in a card is one of three sizes), cards on each open face of a leaf cell the
+## camera sees.
+const CLUMP_SIZE := 1.5
+const CARDS_PER_FACE := 1
+## Tint of the layer of large cards deeper in the crown, which fills the gaps between
+## the outer cards: darker and cooler, as light gets less far into the leaves.
+const DEEP := Color(0.7, 0.76, 0.84)
 ## Leaves within this many cells give the crown's middle for the light.
 const CROWN_REACH := 2
 ## How much the bumps of a crown (a smooth wave about two cells across) bend its normal.
@@ -102,21 +106,24 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 					rng.seed = hash(Vector3i(x, y, z))
 					var tree := hash(Vector2i(x / 3, z / 3)) % 3
 					var base: Color = [Color(0.27, 0.43, 0.25), Color(0.3, 0.46, 0.22), Color(0.25, 0.41, 0.27)][tree]
+					# Large bunches on the inside of the crown, smaller ones toward its
+					# outline (cells open on three or more sides), the smallest at the very
+					# edge, so the middle is dense and the edge jagged.
+					var rows := [0, 1] if faces.size() < 3 else [1, 2]
 					for f in faces:
 						# Cards cover each face the camera can see, poking out of it a
-						# little, so the outline is a ragged edge of leaves and no gap
-						# shows the trunk inside.
-						var count := CARDS_PER_FACE
-						for k in count:
+						# little, so no gap shows the trunk inside.
+						for k in CARDS_PER_FACE:
 							var c := Vector3(x + 0.5, y + 0.5, z + 0.5) + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
 							var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX
 							c += spread - Vector3(f) * Vector3(f).dot(spread)
-							c = PixelView.snap(c)
-							put(clumps, c)
-							clumps.append_array([base.r, base.g, base.b, 1.0])
-							var n := _card_normal(c, middle)
-							clumps.append_array([n.x, n.y, n.z, rng.randf()])
+							_card(clumps, PixelView.snap(c), middle, base, rows[rng.randi_range(0, 1)], rng)
 							nc += 1
+					# A deeper, darker layer behind the outer cards (a little inward and
+					# north, so it is drawn behind them) fills the gaps between them.
+					var deep := Vector3(x + 0.5, y + 0.5, z + 0.25) - (Vector3(x + 0.5, y + 0.5, z + 0.5) - middle).limit_length(0.3)
+					_card(clumps, PixelView.snap(deep), middle, base * DEEP, 0, rng)
+					nc += 1
 					put(shadows, Vector3(x + 0.5, y + 0.5, z + 0.5))
 					ns += 1
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
@@ -138,7 +145,7 @@ static func bushes(cells: Array[Vector3i]) -> Array:
 			# Alpha below 1 marks a cluster with berries (see leaves.gdshader).
 			buf.append_array([0.3, 0.46, 0.22, 0.5])
 			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
-			buf.append_array([n.x, n.y, n.z, rng.randf()])
+			buf.append_array([n.x, n.y, n.z, rng.randf() * 0.99])
 	return [cells.size() * BUSH_CARDS, buf]
 
 
@@ -151,6 +158,15 @@ static func _open_faces(w, x: int, y: int, z: int) -> Array[Vector3i]:
 		if n != Mat.LEAVES and n != Mat.LOG:
 			open.append(d)
 	return open
+
+
+## Appends a leaf cluster card at `c`: transform, tint, and the crown's normal with the
+## card's row of the clump texture plus a sway phase in the last value.
+static func _card(buf: PackedFloat32Array, c: Vector3, middle: Vector3, tint: Color, row: int, rng: RandomNumberGenerator) -> void:
+	put(buf, c)
+	buf.append_array([tint.r, tint.g, tint.b, 1.0])
+	var n := _card_normal(c, middle)
+	buf.append_array([n.x, n.y, n.z, row + rng.randf() * 0.99])
 
 
 ## Middle of the leaves within CROWN_REACH of a leaf cell, in world units.

@@ -5,7 +5,8 @@
 // pointed leaves of the texture tilt that normal a little and flutter in the wind, so
 // band edges follow leaf outlines and shimmer. Cards sway in whole pixels, thin out in
 // winter, take snow on top, and turn see-through around the player when they hide them.
-// INSTANCE_CUSTOM: xyz = normal of the crown at the card, w = sway phase.
+// INSTANCE_CUSTOM: xyz = normal of the crown at the card, w = row of the clump texture
+// (whole part) + sway phase (fraction).
 // COLOR: tint of the tree; alpha below 1 marks a bush with berries.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
@@ -13,7 +14,9 @@ render_mode world_vertex_coords, cull_disabled;
 #include "res://shaders/common.gdshaderinc"
 
 uniform sampler2D clump_texture : filter_nearest;
-uniform float clump_size = 1.25;
+uniform float clump_size = 1.5;
+// Rows of the clump texture, one per size of leaf bunch.
+uniform int clump_rows = 1;
 
 varying vec3 center;
 varying flat vec4 custom;
@@ -24,21 +27,22 @@ void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
 	tint = COLOR;
-	float sway = sin(TIME * 1.1 + center.x * 0.4 + custom.w * 6.28) * (0.3 + length(wind) * 1.4);
+	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
 	VERTEX = shear(VERTEX);
 }
 
 void fragment() {
-	float variant = mod(floor(custom.w * 4.0), 4.0);
-	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, UV.y));
+	float phase = fract(custom.w);
+	float variant = floor(phase * 4.0);
+	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (floor(custom.w) + UV.y) / float(clump_rows)));
 	if (m.a < 0.5 || center.y > cut_height + 0.01) {
 		discard;
 	}
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters
 	// thin out (red is a random number per leaf).
 	float leaf = m.r;
-	if (hash13(floor(center)) > leaf_amount || fract(leaf * 13.7 + custom.w) > 0.6 + 0.4 * leaf_amount) {
+	if (hash13(floor(center)) > leaf_amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * leaf_amount) {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them.

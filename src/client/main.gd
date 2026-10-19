@@ -396,6 +396,7 @@ func _build_materials() -> void:
 	leaves_mat = _material(LeavesShader)
 	leaves_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps())
 	leaves_mat.set_shader_parameter("clump_size", Foliage.CLUMP_SIZE)
+	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_SIZES.size())
 	leaf_shadow_mat = _material(LeafShadowShader)
 	grass_mesh = Foliage.quad_mesh(Foliage.TUFT_SIZE, false)
 	clump_mesh = Foliage.quad_mesh(Foliage.CLUMP_SIZE, true)
@@ -462,7 +463,7 @@ func _place_props() -> void:
 				and world.slope_mask(x, y - 1, z) == world.FULL:
 			bush_cells.append(Vector3i(x, y, z))
 	var bush_mat := _material(LeavesShader)
-	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP))
+	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP, [Foliage.BUSH_CLUMP]))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
 	bushes = _multimesh(Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true), bush_mat, true, true)
 	bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
