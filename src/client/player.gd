@@ -3,6 +3,7 @@ extends Node3D
 ## cannot enter water. `position` is the middle of the feet.
 
 const SpriteArt := preload("res://src/client/sprite_art.gd")
+const PixelView := preload("res://src/client/pixel_view.gd")
 
 const HALF_WIDTH := 0.3
 const HEIGHT := 0.9
@@ -22,13 +23,9 @@ var torch: OmniLight3D
 
 func _ready() -> void:
 	sprite = Sprite3D.new()
-	sprite.texture = SpriteArt.texture("player")
-	sprite.pixel_size = 1.0 / 16.0
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	sprite.shaded = false
-	sprite.position.y = sprite.texture.get_height() / 32.0
+	PixelView.setup_sprite(sprite, SpriteArt.texture("player"))
+	# Placed by place_sprite() on whole screen pixels, not by the body's position.
+	sprite.top_level = true
 	add_child(sprite)
 	torch = OmniLight3D.new()
 	torch.position = Vector3(0.0, 1.2, 0.0)
@@ -56,6 +53,12 @@ func step(delta: float, jump: bool) -> void:
 		p.y = ny
 		on_ground = false
 	position = p
+
+
+## Puts the sprite over the body, snapped to the pixel grid of a camera with basis `b`.
+func place_sprite(b: Basis) -> void:
+	var lift := sprite.texture.get_height() / (2.0 * PixelView.PIXELS_PER_UNIT)
+	sprite.global_position = PixelView.snap(position + Vector3(0.0, lift, 0.0), b)
 
 
 func level() -> int:

@@ -7,6 +7,7 @@ const WorldGen := preload("res://src/shared/world_gen.gd")
 const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
 const AiRules := preload("res://src/shared/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
+const PixelView := preload("res://src/client/pixel_view.gd")
 
 var checks := 0
 var failures := 0
@@ -19,6 +20,7 @@ func _init() -> void:
 	_test_raycast()
 	_test_walking_rules()
 	_test_ai_relations()
+	_test_pixel_view()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -125,3 +127,32 @@ func _test_ai_relations() -> void:
 	_check(not AiRules.is_food("wolf", "human"), "a lone wolf does not see a human as food")
 	_check(AiRules.is_threat("rabbit", "human"), "rabbit fears people")
 	_check(AiRules.is_active("wolf", 0.0) and not AiRules.is_active("wolf", 1.0), "wolves are active at night")
+
+
+func _test_pixel_view() -> void:
+	var screens := [Vector2(1280, 720), Vector2(1366, 768), Vector2(1920, 1080), Vector2(2532, 1170),
+		Vector2(1170, 2532), Vector2(2400, 1008), Vector2(375, 667), Vector2(3840, 2160)]
+	var whole := true
+	for screen in screens:
+		var view: Array = PixelView.layout(screen)
+		var scale: int = view[0]
+		var image: Vector2i = view[1]
+		var covered := Vector2(image * scale)
+		whole = whole and image.x % 2 == 0 and image.y % 2 == 0 \
+			and covered.x >= screen.x and covered.y >= screen.y \
+			and covered.x - screen.x < 2 * scale and covered.y - screen.y < 2 * scale \
+			and absf(image.y - PixelView.TARGET_HEIGHT) <= PixelView.TARGET_HEIGHT * 0.25
+	_check(whole, "low-res image is scaled by a whole number and covers the screen")
+	_check(is_equal_approx(PixelView.camera_size(360), 22.5), "16 pixels per world unit")
+	var b := Basis.from_euler(Vector3(deg_to_rad(-55.0), 0.0, 0.0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var on_grid := true
+	for i in 50:
+		var p := Vector3(rng.randf_range(-100, 100), rng.randf_range(0, 20), rng.randf_range(-100, 100))
+		var q := PixelView.snap(p, b)
+		for axis in [b.x, b.y]:
+			var pixels: float = q.dot(axis) * PixelView.PIXELS_PER_UNIT
+			on_grid = on_grid and absf(pixels - roundf(pixels)) < 0.001
+		on_grid = on_grid and absf(q.dot(b.z) - p.dot(b.z)) < 0.001 and q.distance_to(p) < 0.07
+	_check(on_grid, "snapped points land on whole pixels")

@@ -6,6 +6,7 @@ extends Node3D
 const AiRules := preload("res://src/shared/ai_rules.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const SpriteArt := preload("res://src/client/sprite_art.gd")
+const PixelView := preload("res://src/client/pixel_view.gd")
 
 const RESPAWN_EVERY := 15.0
 
@@ -25,6 +26,8 @@ var world
 var player: Node3D
 var daylight := 1.0
 var cut_height := 1000.0
+## Camera basis; sprites are snapped to its pixel grid.
+var view_basis := Basis.IDENTITY
 var creatures: Array[Creature] = []
 var rng := RandomNumberGenerator.new()
 var textures := {}
@@ -72,7 +75,8 @@ func _process(delta: float) -> void:
 			c.think = 0.4 + rng.randf() * 0.3
 			_decide(c, spec)
 		_move(c, spec, delta)
-		c.sprite.position = c.pos + Vector3(0.0, c.sprite.texture.get_height() / 32.0, 0.0)
+		var lift := c.sprite.texture.get_height() / (2.0 * PixelView.PIXELS_PER_UNIT)
+		c.sprite.position = PixelView.snap(c.pos + Vector3(0.0, lift, 0.0), view_basis)
 		c.sprite.modulate = Color(light, light, light)
 		c.sprite.visible = c.pos.y <= cut_height
 
@@ -178,12 +182,7 @@ func _spawn(kind: String, away_from_player: bool) -> void:
 		c.hunger = rng.randf() * 0.5
 		c.think = rng.randf() * 0.5
 		c.sprite = Sprite3D.new()
-		c.sprite.texture = textures[kind]
-		c.sprite.pixel_size = 1.0 / 16.0
-		c.sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		c.sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		c.sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-		c.sprite.shaded = false
+		PixelView.setup_sprite(c.sprite, textures[kind])
 		add_child(c.sprite)
 		creatures.append(c)
 		return

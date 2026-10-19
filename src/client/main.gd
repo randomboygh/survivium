@@ -2,7 +2,8 @@ extends Node
 ## Technical prototype entry point. Generates the world, builds chunk meshes, and runs
 ## the player, animals, pixel-snapped camera, time of day, seasons, weather and the
 ## level cutaway. The 3D scene renders into a low-resolution SubViewport (about 360 px
-## tall) that is scaled up without filtering; the UI stays at full resolution.
+## tall) that is scaled up by a whole number without filtering (see PixelView); the UI
+## is drawn at full resolution, scaled for the screen's pixel density.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -13,14 +14,16 @@ const VoxelProps := preload("res://src/client/voxel_props.gd")
 const PlayerScript := preload("res://src/client/player.gd")
 const CreaturesScript := preload("res://src/client/creatures.gd")
 const TouchStick := preload("res://src/client/touch_stick.gd")
+const PixelView := preload("res://src/client/pixel_view.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
 
 const WORLD_SEED := 20261018
 const CHUNK := 16
-const TARGET_HEIGHT := 360.0
-const CAMERA_SIZE := 22.0
 const CAMERA_DISTANCE := 40.0
+## Smallest UI height in UI units; the UI scale is lowered on short screens to keep it.
+const UI_MIN_HEIGHT := 320.0
+const UI_MARGIN := 16.0
 const DAY_LENGTH := 240.0
 const DAYS_PER_SEASON := 2.0
 const REACH := 7.0
@@ -49,11 +52,18 @@ var bushes: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
 var rain: CPUParticles3D
 var snowfall: CPUParticles3D
+var ui: Control
 var hud: Label
 var hotbar: Label
 var loading: Label
 var stick
+var touch_buttons: GridContainer
 var mode_button: Button
+var block_button: Button
+var touch := false
+var image_size := Vector2i(640, 360)
+var safe_rect := Rect2()
+var safe_clock := 0.0
 var ready_to_play := false
 
 var time_of_day := 0.3
@@ -77,8 +87,12 @@ var mesh_ms := 0
 
 
 func _ready() -> void:
+	touch = DisplayServer.is_touchscreen_available()
+	show_help = not touch
 	_build_view()
 	_build_ui()
+	get_viewport().size_changed.connect(_on_screen_resized)
+	_on_screen_resized()
 	loading.text = "Генерация мира…"
 	# Let the loading text show before the heavy generation.
 	await get_tree().process_frame
@@ -122,6 +136,7 @@ func _process(delta: float) -> void:
 	_update_cut()
 	_update_camera(delta)
 	_update_hud()
+	_poll_safe_rect(delta)
 	if ready_to_play:
 		_report_fps(delta)
 
@@ -139,6 +154,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var key: int = event.physical_keycode
 		if key >= KEY_1 and key < KEY_1 + Mat.PLACEABLE.size():
 			selected = key - KEY_1
+			_update_block_button()
 		match key:
 			KEY_Q, KEY_PAGEDOWN:
 				_shift_cut(-1)
@@ -154,6 +170,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				sun.shadow_enabled = not sun.shadow_enabled
 			KEY_H:
 				show_help = not show_help
+			KEY_F3:
+				_print_debug()
 	elif event is InputEventMouseButton and event.pressed:
 		var n: int = Mat.PLACEABLE.size()
 		match event.button_index:
@@ -163,15 +181,16 @@ func _unhandled_input(event: InputEvent) -> void:
 				_edit(event.position, false)
 			MOUSE_BUTTON_WHEEL_UP:
 				selected = (selected - 1 + n) % n
+				_update_block_button()
 			MOUSE_BUTTON_WHEEL_DOWN:
 				selected = (selected + 1) % n
+				_update_block_button()
 
 
 # --- Setup -----------------------------------------------------------------
 
 func _build_view() -> void:
 	container = SubViewportContainer.new()
-	container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	container.stretch = true
 	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -179,49 +198,143 @@ func _build_view() -> void:
 	viewport = SubViewport.new()
 	viewport.msaa_3d = Viewport.MSAA_DISABLED
 	container.add_child(viewport)
-	get_viewport().size_changed.connect(_update_shrink)
-	_update_shrink()
 	world_root = Node3D.new()
 	viewport.add_child(world_root)
 
 
-func _update_shrink() -> void:
-	var h := get_viewport().get_visible_rect().size.y
-	container.stretch_shrink = maxi(1, roundi(h / TARGET_HEIGHT))
+func _on_screen_resized() -> void:
+	var screen := get_viewport().get_visible_rect().size
+	var view: Array = PixelView.layout(screen)
+	var scale: int = view[0]
+	image_size = view[1]
+	container.stretch_shrink = scale
+	container.position = Vector2.ZERO
+	container.size = Vector2(image_size * scale)
+	if camera != null:
+		camera.size = PixelView.camera_size(image_size.y)
+	_layout_ui(_safe_rect())
 
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
-	hud = _label(layer, Vector2(12, 8))
-	hotbar = _label(layer, Vector2(12, 0))
+	# All UI lives under one scaled root, so anchors work in UI units.
+	ui = Control.new()
+	ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(ui)
+	hud = _label(ui, Vector2(UI_MARGIN, UI_MARGIN * 0.5))
+	hotbar = _label(ui, Vector2.ZERO)
 	hotbar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE, Control.PRESET_MODE_MINSIZE, 12)
 	hotbar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	loading = _label(layer, Vector2.ZERO)
+	loading = _label(ui, Vector2.ZERO)
 	loading.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	loading.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	loading.grow_vertical = Control.GROW_DIRECTION_BOTH
 	loading.add_theme_font_size_override("font_size", 28)
-	if DisplayServer.is_touchscreen_available():
+	if touch:
+		# On touch screens the selected block is shown on its button instead of a hotbar.
+		hotbar.visible = false
 		stick = TouchStick.new()
-		layer.add_child(stick)
-		stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 24)
-		var buttons := HBoxContainer.new()
-		layer.add_child(buttons)
-		mode_button = _button(buttons, "Копать", _toggle_dig_mode)
-		_button(buttons, "Блок", func() -> void: selected = (selected + 1) % Mat.PLACEABLE.size())
-		_button(buttons, "Срез ▼", func() -> void: _shift_cut(-1))
-		_button(buttons, "Срез ▲", func() -> void: _shift_cut(1))
-		_button(buttons, "Сезон", _next_season)
-		_button(buttons, "Осадки", func() -> void: raining = not raining)
-		buttons.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 24)
-		hotbar.offset_bottom -= 64.0
-		hotbar.offset_top -= 64.0
+		ui.add_child(stick)
+		stick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, UI_MARGIN)
+		stick.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		touch_buttons = GridContainer.new()
+		touch_buttons.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		touch_buttons.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		touch_buttons.add_theme_constant_override("h_separation", 6)
+		touch_buttons.add_theme_constant_override("v_separation", 6)
+		ui.add_child(touch_buttons)
+		mode_button = _button(touch_buttons, "Копать", _toggle_dig_mode)
+		block_button = _button(touch_buttons, "", _next_block)
+		_button(touch_buttons, "Срез ▼", func() -> void: _shift_cut(-1))
+		_button(touch_buttons, "Срез ▲", func() -> void: _shift_cut(1))
+		_button(touch_buttons, "Сезон", _next_season)
+		_button(touch_buttons, "Осадки", func() -> void: raining = not raining)
+		_update_block_button()
+
+
+## Fits the UI root into `rect` (screen pixels) at the screen's pixel density.
+func _layout_ui(rect: Rect2) -> void:
+	safe_rect = rect
+	var s := maxf(1.0, DisplayServer.screen_get_scale())
+	s = clampf(rect.size.y / UI_MIN_HEIGHT, 1.0, s)
+	ui.scale = Vector2(s, s)
+	ui.position = rect.position
+	ui.size = rect.size / s
+	if touch_buttons != null:
+		# Three columns fit next to the stick in landscape, two in portrait.
+		touch_buttons.columns = 3 if ui.size.x >= 520.0 else 2
+		touch_buttons.reset_size()
+		touch_buttons.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, UI_MARGIN)
+
+
+## The part of the screen the player can see. Mobile browsers can lay the page out
+## under their toolbars, so on the web this is the canvas clipped to the browser's
+## visual viewport; elsewhere it is the whole window.
+func _safe_rect() -> Rect2:
+	var full := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	if not OS.has_feature("web"):
+		return full
+	var js: Variant = JavaScriptBridge.eval("""(function () {
+		var c = document.querySelector('canvas'), v = window.visualViewport;
+		if (!c || !v) return '';
+		var b = c.getBoundingClientRect();
+		if (b.width <= 0 || b.height <= 0) return '';
+		var k = c.width / b.width;
+		var x0 = Math.max(b.left, v.offsetLeft), y0 = Math.max(b.top, v.offsetTop);
+		var x1 = Math.min(b.right, v.offsetLeft + v.width), y1 = Math.min(b.bottom, v.offsetTop + v.height);
+		return [(x0 - b.left) * k, (y0 - b.top) * k, (x1 - x0) * k, (y1 - y0) * k].join(',');
+	})()""", true)
+	if typeof(js) != TYPE_STRING or js == "":
+		return full
+	var v: PackedFloat64Array = String(js).split_floats(",")
+	if v.size() != 4:
+		return full
+	var r := full.intersection(Rect2(v[0], v[1], v[2], v[3]))
+	return r if r.size.x > 100.0 and r.size.y > 100.0 else full
+
+
+## Browsers do not always report toolbars appearing or hiding, so the visible part
+## of the screen is re-checked twice a second.
+func _poll_safe_rect(delta: float) -> void:
+	if not OS.has_feature("web"):
+		return
+	safe_clock += delta
+	if safe_clock < 0.5:
+		return
+	safe_clock = 0.0
+	var r := _safe_rect()
+	if not r.is_equal_approx(safe_rect):
+		_layout_ui(r)
 
 
 func _toggle_dig_mode() -> void:
 	dig_mode = not dig_mode
 	mode_button.text = "Копать" if dig_mode else "Ставить"
+
+
+func _next_block() -> void:
+	selected = (selected + 1) % Mat.PLACEABLE.size()
+	_update_block_button()
+
+
+func _update_block_button() -> void:
+	if block_button != null:
+		block_button.text = Mat.NAMES[Mat.PLACEABLE[selected]]
+
+
+## F3: prints the view and UI layout and the player state to the log.
+func _print_debug() -> void:
+	var stick_rect := Rect2()
+	var buttons_rect := Rect2()
+	if stick != null:
+		stick_rect = stick.get_global_rect()
+		buttons_rect = touch_buttons.get_global_rect()
+	var p: Vector3 = player.position if player != null else Vector3.ZERO
+	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, player (%.2f, %.2f, %.2f), season %s" % [
+		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), viewport.size,
+		container.stretch_shrink, safe_rect, ui.scale.x, stick_rect, buttons_rect, p.x, p.y, p.z,
+		SEASONS[season]])
 
 
 func _label(parent: Node, pos: Vector2) -> Label:
@@ -237,7 +350,7 @@ func _button(parent: Node, text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(96, 56)
+	b.custom_minimum_size = Vector2(96, 44)
 	b.pressed.connect(action)
 	parent.add_child(b)
 	return b
@@ -271,7 +384,7 @@ func _build_scene() -> void:
 
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = CAMERA_SIZE
+	camera.size = PixelView.camera_size(image_size.y)
 	camera.near = 0.1
 	camera.far = 200.0
 	camera.rotation_degrees = Vector3(-55.0, 0.0, 0.0)
@@ -290,6 +403,7 @@ func _build_scene() -> void:
 	cam_target = player.position
 
 	creatures = CreaturesScript.new()
+	creatures.view_basis = camera.basis
 	world_root.add_child(creatures)
 
 	rain = _precipitation(Vector2(0.04, 0.5), Color(0.7, 0.8, 1.0, 0.6), 15.0, 9.8, 5.0)
@@ -501,6 +615,7 @@ func _update_time(delta: float) -> void:
 func _next_season() -> void:
 	season = (season + 1) % 4
 	season_clock = 0.0
+	print("season: %s" % SEASONS[season])
 
 
 func _update_weather(delta: float) -> void:
@@ -534,13 +649,11 @@ func _update_camera(delta: float) -> void:
 	if camera == null:
 		return
 	cam_target = cam_target.lerp(player.position + Vector3(0.0, 0.5, 0.0), minf(1.0, delta * 6.0))
-	# Snap the camera to whole low-res pixels so the pixel art does not shimmer.
+	# The camera and the player's sprite move in whole low-res pixels, so the pixel art
+	# does not shimmer.
 	var b := camera.global_transform.basis
-	var px := camera.size / float(viewport.size.y)
-	var rx := snappedf(cam_target.dot(b.x), px)
-	var uy := snappedf(cam_target.dot(b.y), px)
-	var fz := cam_target.dot(b.z)
-	camera.global_position = b.x * rx + b.y * uy + b.z * (fz + CAMERA_DISTANCE)
+	camera.global_position = PixelView.snap(cam_target, b) + b.z * CAMERA_DISTANCE
+	player.place_sprite(b)
 
 
 func _read_move() -> Vector2:

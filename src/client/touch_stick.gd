@@ -1,7 +1,7 @@
 extends Control
 ## On-screen joystick for touch screens. `value` is the stick offset, up to 1 in length.
 
-const RADIUS := 70.0
+const RADIUS := 56.0
 
 var value := Vector2.ZERO
 var _pressed := false
