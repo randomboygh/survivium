@@ -4,8 +4,8 @@ extends RefCounted
 ## cluster cards cover its open faces, and each card is lit with the normal of the crown
 ## at that spot (away from the middle of the leaves around it), bent toward a few large
 ## bumps, so the light falls on the crown as one mass with some big lumps instead of on
-## each card. Every exposed point of a crown also gets a flat shadow-only disc, so
-## crowns cast round shadows.
+## each card. Under the crown lie flat shadow-only discs, one per level of a tree's
+## crown, so a crown casts one round shadow.
 
 const Mat := preload("res://src/shared/materials.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
@@ -172,6 +172,9 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 			if leaves == 0:
 				continue
 			var tree := _tree_at(trunks, x, z)
+			# Crowns of noted trees cast their shadow as a whole (see _tree_shadows),
+			# others one disc per point.
+			var grown: bool = w.trees.has(tree[0])
 			var looks: Dictionary = Trees.SPECIES[tree[1]]
 			var needles: bool = looks.leaves == Trees.NEEDLES
 			var tints: Array = looks.tints
@@ -238,9 +241,16 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				dark.a = base.a
 				_card(clumps, deep, dn, dark, first_row + DEEP_ROW, rng)
 				nc += 1
-				put(shadows, mid)
-				shadows.append_array([base.a, 0.0, 0.0, 0.0])
-				ns += 1
+				if not grown:
+					put(shadows, mid)
+					shadows.append_array([base.a, 0.0, 0.0, 0.0])
+					ns += 1
+	# Trees whose trunks stand in this chunk cast one shadow per level of their crown.
+	var wide := _trunks_near(w, x0 - TREE_REACH, z0 - TREE_REACH, x1 + TREE_REACH, z1 + TREE_REACH)
+	for t in trunks:
+		var at: Vector2i = t[0]
+		if at.x >= x0 and at.x < x1 and at.y >= z0 and at.y < z1:
+			ns += _tree_shadows(w, t, wide, shadows)
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
 
 
@@ -311,6 +321,46 @@ static func _trunks_near(w, x0: int, z0: int, x1: int, z1: int) -> Array:
 			if trees.has(at):
 				found.append([at, trees[at], hash(at)])
 	return found
+
+
+## Appends flat shadow discs for the crown of tree `t` ([column, species, hash], see
+## _trunks_near), one per level of its points, each an ellipse around the points of
+## that level, so the crown casts one round shadow instead of a cluster of circles.
+## `trunks` are the trees around, to tell which points belong to `t`. Returns the
+## number of discs.
+static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -> int:
+	var at: Vector2i = t[0]
+	var looks: Dictionary = Trees.SPECIES[t[1]]
+	var kind := EVERGREEN if looks.leaves == Trees.NEEDLES else (GOES_BARE if _goes_bare(t[2], t[1]) else KEEPS_LEAVES)
+	# Per level: min x, max x, min z, max z of the points.
+	var levels := {}
+	for dz in range(-TREE_REACH, TREE_REACH + 1, 2):
+		for dx in range(-TREE_REACH, TREE_REACH + 1, 2):
+			var x := at.x + dx
+			var z := at.y + dz
+			if x < 0 or z < 0 or x >= w.size_x or z >= w.size_z:
+				continue
+			var leaves: int = w.leaf_cols[z * w.size_x + x] & EVEN_LEVELS
+			if leaves == 0 or _tree_at(trunks, x, z)[0] != at:
+				continue
+			while leaves != 0:
+				var bit := leaves & -leaves
+				leaves ^= bit
+				var y := WorldData.level_of(bit)
+				if levels.has(y):
+					var b: Array = levels[y]
+					levels[y] = [mini(b[0], x), maxi(b[1], x), mini(b[2], z), maxi(b[3], z)]
+				else:
+					levels[y] = [x, x, z, z]
+	for y in levels:
+		var b: Array = levels[y]
+		# Each point fills the cells around it, one on either side.
+		var c := Vector3((b[0] + b[1]) * 0.5 + 0.5, y + 0.5, (b[2] + b[3]) * 0.5 + 0.5) * CELL
+		var wx: float = (b[1] - b[0] + 3) * CELL * 1.05 / SHADOW_DISC
+		var wz: float = (b[3] - b[2] + 3) * CELL * 1.05 / SHADOW_DISC
+		buf.append_array([wx, 0.0, 0.0, c.x, 0.0, 1.0, 0.0, c.y, 0.0, 0.0, wz, c.z])
+		buf.append_array([kind, 0.0, 0.0, 0.0])
+	return levels.size()
 
 
 ## Whether the tree on column `at` drops all its leaves in winter (the others of a
