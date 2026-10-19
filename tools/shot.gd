@@ -30,6 +30,10 @@ const SHOTS := {
 	"forest": {"time": 0.42, "season": 1, "forest": true},
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
+	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
+	"ui": {"time": 0.45, "season": 1, "stats": true},
+	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
+	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
 }
 
 var main: Node
@@ -77,6 +81,11 @@ func _run() -> void:
 			main.player.position = _lone_trees(main.world, main.player.position)
 		if shot.get("forest", false):
 			main.player.position = _forest(main.world, main.player.position)
+		main._set_touch(shot.get("touch", false))
+		main.hud.perf.visible = shot.get("stats", false)
+		main.hud.show_keys(shot_name == "ui")
+		if shot.get("toast", false):
+			main.hud.toast("Наступило лето")
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 		# Let snow, wetness, tints and particles settle.
@@ -87,10 +96,16 @@ func _run() -> void:
 			main.foliage = main.FOLIAGE[main.season]
 			main.grass = main.GRASS[main.season]
 			main.leaf_amount = main.LEAF_AMOUNT[main.season]
+		if shot.get("menu", false):
+			main.hud.toggle_menu()
+			await process_frame
+			await process_frame
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
 		print("saved ", shot_name)
+		if shot.get("menu", false):
+			main.hud.toggle_menu()
 	quit()
 
 

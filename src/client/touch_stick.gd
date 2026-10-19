@@ -31,9 +31,17 @@ func _set_from(p: Vector2) -> void:
 
 
 func _draw() -> void:
-	var c := size * 0.5
-	var knob := c + value * RADIUS
-	draw_circle(c, RADIUS, Color(0, 0, 0, 0.25))
-	draw_arc(c, RADIUS - 1.0, 0.0, TAU, 48, Color(1, 1, 1, 0.5), 2.0, true)
-	draw_circle(knob, RADIUS * 0.4, Color(1, 1, 1, 0.55))
-	draw_arc(knob, RADIUS * 0.4, 0.0, TAU, 32, Color(0, 0, 0, 0.4), 2.0, true)
+	var c := (size * 0.5).floor()
+	var knob := (c + value * RADIUS).floor()
+	_octagon(c, RADIUS, Color(0.06, 0.04, 0.02, 0.45))
+	_octagon(knob, RADIUS * 0.4 + 2.0, Color("#0f0a06"))
+	_octagon(knob, RADIUS * 0.4, Color("#c9b896"))
+
+
+## A pixel-style octagon: a square with its corners cut at 30%.
+func _octagon(c: Vector2, r: float, color: Color) -> void:
+	var k := roundf(r * 0.4)
+	var pts := PackedVector2Array([
+		c + Vector2(-r + k, -r), c + Vector2(r - k, -r), c + Vector2(r, -r + k), c + Vector2(r, r - k),
+		c + Vector2(r - k, r), c + Vector2(-r + k, r), c + Vector2(-r, r - k), c + Vector2(-r, -r + k)])
+	draw_colored_polygon(pts, color)
