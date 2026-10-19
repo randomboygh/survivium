@@ -18,6 +18,7 @@ const SHOTS := {
 	"winter": {"time": 0.45, "season": 3, "rain": true},
 	"cave": {"time": 0.45, "season": 1, "cut": -2},
 	"shore": {"time": 0.4, "season": 1, "shore": true},
+	"slopes": {"time": 0.42, "season": 1, "slopes": true},
 }
 
 var main: Node
@@ -53,6 +54,8 @@ func _run() -> void:
 			main.manual_level = main.player.level() + shot.cut
 		if shot.get("shore", false):
 			main.player.position = _shore(main.world, main.player.position)
+		if shot.get("slopes", false):
+			main.player.position = _hills(main.world, main.player.position)
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
@@ -77,10 +80,32 @@ func _shore(w, from: Vector3) -> Vector3:
 			var y: int = w.surface_y(x, z)
 			if y <= w.sea_level or y > w.sea_level + 2:
 				continue
-			if w.get_cell(x, w.sea_level, z + 3) != Mat.WATER:
+			# Open water south of it, not a creek in a ravine.
+			if w.get_cell(x, w.sea_level, z + 3) != Mat.WATER or w.get_cell(x, w.sea_level, z + 9) != Mat.WATER:
 				continue
 			var p := Vector3(x + 0.5, y, z + 0.5)
 			if p.distance_to(from) < best_d:
 				best_d = p.distance_to(from)
 				best = p
+	return best
+
+
+## The spot near `from` with the most sloping ground around it.
+func _hills(w, from: Vector3) -> Vector3:
+	var best := from
+	var best_n := -1
+	for z in range(int(from.z) - 24, int(from.z) + 25, 3):
+		for x in range(int(from.x) - 24, int(from.x) + 25, 3):
+			var y: int = w.surface_y(x, z)
+			if y <= w.sea_level or w.get_cell(x, y, z) != Mat.AIR:
+				continue
+			var n := 0
+			for dz in range(-5, 6):
+				for dx in range(-7, 8):
+					var top: int = w.surface_y(x + dx, z + dz) - 1
+					if top >= 0 and w.slope_mask(x + dx, top, z + dz) != w.FULL:
+						n += 1
+			if n > best_n:
+				best_n = n
+				best = Vector3(x + 0.5, y, z + 0.5)
 	return best

@@ -8,6 +8,7 @@ const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
 const AiRules := preload("res://src/shared/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const PlayerScript := preload("res://src/client/player.gd")
 
 var checks := 0
 var failures := 0
@@ -19,6 +20,7 @@ func _init() -> void:
 	_test_cap()
 	_test_raycast()
 	_test_walking_rules()
+	_test_slopes()
 	_test_ai_relations()
 	_test_pixel_view()
 	print("%d checks, %d failed" % [checks, failures])
@@ -112,6 +114,59 @@ func _test_walking_rules() -> void:
 	_check(not w.blocks_body(1, 1, 1), "frozen water can be walked over")
 	_check(w.surface_y(1, 1) == 1, "ice is a surface")
 	_check(w.blocks_body(-1, 1, 1), "map edge blocks")
+
+
+## Natural dirt one level higher for x >= 4 (a step facing west) and two levels higher
+## for x >= 6 (a cliff), on a dirt floor.
+func _slope_world() -> WorldData:
+	var w := WorldData.new(10, 6, 10)
+	for z in 10:
+		for x in 10:
+			for y in range(0, 1 + int(x >= 4) + 2 * int(x >= 6)):
+				w.set_cell(x, y, z, Mat.DIRT)
+				w.set_natural(x, y, z, true)
+	return w
+
+
+func _test_slopes() -> void:
+	var w := _slope_world()
+	_check(w.slope_mask(4, 1, 5) == WorldData.NE | WorldData.SE, "a one-level step of loose ground is a ramp")
+	_check(w.slope_mask(5, 3, 5) == WorldData.FULL and w.slope_mask(5, 1, 5) == WorldData.FULL,
+		"a drop of two levels stays a cliff")
+	_check(is_equal_approx(w.ground_height(4.5, 5.5), 1.5), "ground halfway up a ramp is half a level higher")
+	_check(w.slope_mask(4, 1, 0) == WorldData.NE | WorldData.SE, "a ramp at the map edge still slopes")
+	w.set_cell(4, 1, 7, Mat.STONE)
+	_check(w.slope_mask(4, 1, 7) == WorldData.FULL, "stone and built blocks never slope")
+	w.set_cell(4, 2, 3, Mat.PLANKS)
+	_check(w.slope_mask(4, 1, 3) == WorldData.FULL, "ground under a block does not slope")
+	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
+	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
+	var tilted := false
+	for n in normals:
+		tilted = tilted or (n.y > 0.6 and n.y < 0.8 and n.x < -0.6)
+	_check(tilted, "ramps are drawn tilted toward the low side")
+	# Walk east up the ramp without jumping, and stop at the cliff.
+	var player = PlayerScript.new()
+	player.world = w
+	player.position = Vector3(2.5, 1.0, 5.5)
+	player.on_ground = true
+	player.move_input = Vector2(1, 0)
+	var climbed := true
+	for i in 120:
+		player.step(1.0 / 60.0, false)
+		if player.position.x > 4.2 and player.position.x < 4.6:
+			climbed = climbed and player.position.y > 1.3 and player.position.y < 1.95
+	_check(climbed and is_equal_approx(player.position.y, 2.0), "walking up a ramp needs no jump")
+	_check(player.position.x < 5.75, "a two-level cliff stops the walker")
+	player.move_input = Vector2(-1, 0)
+	var smooth := true
+	var last_y: float = player.position.y
+	for i in 120:
+		player.step(1.0 / 60.0, false)
+		smooth = smooth and last_y - player.position.y < 0.2
+		last_y = player.position.y
+	_check(smooth and is_equal_approx(player.position.y, 1.0), "walking down a ramp keeps the feet on it")
+	player.free()
 
 
 func _test_ai_relations() -> void:

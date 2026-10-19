@@ -31,3 +31,8 @@ static func is_solid(m: int) -> bool:
 ## Solid cells that count as a roof for the level cutaway (tree trunks and crowns do not).
 static func is_roof(m: int) -> bool:
 	return is_solid(m) and m != LEAVES and m != LOG
+
+
+## Loose ground that lies as a slope where it steps down one level (see WorldData.slope_mask).
+static func can_slope(m: int) -> bool:
+	return m == GRASS or m == DIRT or m == SAND or m == CLAY

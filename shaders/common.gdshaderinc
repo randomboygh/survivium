@@ -121,7 +121,8 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 	float ndl = clamp(dot(normal, light), 0.0, 1.0);
 	if (directional) {
 		float shadow = min(mix(0.2, 1.0, step(0.5, attenuation)), clouds);
-		float lit = ndl > 0.55 ? 1.0 : (ndl > 0.2 ? 0.7 : (ndl > 0.02 ? 0.4 : 0.0));
+		// The top band is only reached by slopes facing the sun, never by flat ground.
+		float lit = ndl > 0.9 ? 1.12 : (ndl > 0.55 ? 1.0 : (ndl > 0.2 ? 0.7 : (ndl > 0.02 ? 0.4 : 0.0)));
 		return light_color * lit * shadow / PI;
 	}
 	// Rings of equal steps in log brightness: tight next to the flame, wider and

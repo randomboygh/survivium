@@ -22,6 +22,18 @@ func quad(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2) -> voi
 	indices.append_array(PackedInt32Array([start, start + 1, start + 2, start, start + 2, start + 3]))
 
 
+## One triangle, corners clockwise like `quad`.
+func tri(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2) -> void:
+	var start := verts.size()
+	for i in 3:
+		verts.append(p[i])
+		normals.append(n)
+		uvs.append(uv[i])
+		uv2s.append(packed)
+		colors.append(color)
+	indices.append_array(PackedInt32Array([start, start + 1, start + 2]))
+
+
 func is_empty() -> bool:
 	return verts.is_empty()
 

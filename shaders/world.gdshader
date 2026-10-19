@@ -8,7 +8,8 @@
 //   UV2.x = tile + 64 * edges + 16384 * flag; tile 63 means "colour from COLOR only"
 //          (voxels); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
 //          outline, 3 contact shadow; flag 1 = season-tinted foliage voxel,
-//          flag 2 = wall with open sky above (gets a snow fringe)
+//          flag 2 = wall with open sky above (gets a snow fringe), flag 4 = sloping
+//          top (textured in screen texels so it is not stretched)
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut)
@@ -123,6 +124,11 @@ void fragment() {
 			}
 		}
 		ivec2 tm = top ? tile_mirror(t, floor(world_pos.xz)) : t;
+		if (flag == 4) {
+			// A slope covers more or fewer screen rows than a flat top: take texels
+			// where they show on screen, one texel per pixel.
+			tm = ivec2(mod(floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS), TEXELS));
+		}
 		if (top && pick == GRASS * 3 && bare_ground(world_pos.xz) > 0.5) {
 			pick = DIRT * 3;
 		}
