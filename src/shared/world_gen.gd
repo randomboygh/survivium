@@ -2,8 +2,9 @@ extends RefCounted
 ## Deterministic world generator: the same seed always gives the same world.
 ## Layers (relief, ridges, soil, caves, ores, forest, ravines, steepness) are independent
 ## noises, so rare places come from rare combinations rather than from hand-made
-## "special places". Loose ground is marked natural and lies as slopes wherever it steps
-## down one level; stone, the steep patches and the ravines keep sheer walls.
+## "special places". Every generated cell is marked wild: loose ground lies as slopes
+## wherever it steps down one level, while stone, the steep patches and the ravines keep
+## sheer walls; cliffs and banks turn their corners diagonally (see WorldData).
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -34,6 +35,7 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 	cells.resize(sx * sy * sz)
 	var natural := PackedByteArray()
 	natural.resize(sx * sy * sz)
+	natural.fill(WorldData.WILD)
 	var heights := PackedInt32Array()
 	heights.resize(layer)
 
@@ -70,7 +72,8 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 				if m == Mat.STONE and ores[i] > ore_t:
 					m = Mat.COPPER_ORE
 				cells[i] = m
-				natural[i] = 1 if sloping or y < height else 0
+				if y == height and not sloping:
+					natural[i] = WorldData.WILD | WorldData.SHEER
 			for y in range(height + 1, sea + 1):
 				cells[y * layer + col] = Mat.WATER
 			# Caves stay under dry land so they never touch the sea; in mountains

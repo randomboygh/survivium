@@ -1,6 +1,9 @@
 // Water: see-through over shallows and darker in the deep, foam that laps at the
 // shore, drifting ripple lines and sparkles, rain rings, ice in winter.
-// UV2.x: foam bits for the N, S, W, E edges that touch land; UV2.y: depth in cells.
+// UV2.x: foam bits for the half edges that touch land (2 per edge N, S, W, E: the
+// west or north half, then the other), then for the diagonals of corners NW, NE, SE,
+// SW filled with land, then for those of cut-off corners of the land beside;
+// UV2.y: depth in cells.
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -47,8 +50,10 @@ void fragment() {
 		col += vec3(0.35) * s * (1.0 - ice_amount);
 		// Foam along the shore, washing in and out by a texel or two.
 		int foam = int(data.x + 0.5);
+		int mid = int(TEXELS) / 2;
 		for (int e = 0; e < 4; e++) {
-			if (((foam >> e) & 1) == 0) {
+			int half = (e < 2 ? t.x : t.y) / mid;
+			if (((foam >> (2 * e + half)) & 1) == 0) {
 				continue;
 			}
 			float along = e < 2 ? tex.x : tex.y;
@@ -57,6 +62,23 @@ void fragment() {
 				col = foam_color;
 				alpha = 0.95;
 			} else if (float(dist[e]) < wash + 2.0) {
+				col = mix(col, foam_color, 0.25);
+			}
+		}
+		// Along diagonals: the water lies away from a filled corner and on the corner's
+		// side of a cut one.
+		for (int k = 0; k < 4; k++) {
+			bool filled = ((foam >> (8 + k)) & 1) != 0;
+			if (!filled && ((foam >> (12 + k)) & 1) == 0) {
+				continue;
+			}
+			int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
+			float d = float(filled ? sd : -sd);
+			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
+			if (d < wash) {
+				col = foam_color;
+				alpha = 0.95;
+			} else if (d < wash + 2.0) {
 				col = mix(col, foam_color, 0.25);
 			}
 		}

@@ -21,6 +21,7 @@ func _init() -> void:
 	_test_raycast()
 	_test_walking_rules()
 	_test_slopes()
+	_test_corners()
 	_test_ai_relations()
 	_test_pixel_view()
 	print("%d checks, %d failed" % [checks, failures])
@@ -167,6 +168,66 @@ func _test_slopes() -> void:
 		last_y = player.position.y
 	_check(smooth and is_equal_approx(player.position.y, 1.0), "walking down a ramp keeps the feet on it")
 	player.free()
+
+
+## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its
+## north-east quarter (x 5..6, z 3..4), so it has outer corners and one inner corner.
+func _corner_world() -> WorldData:
+	var w := WorldData.new(10, 6, 10)
+	w.natural.fill(WorldData.WILD)
+	for z in 10:
+		for x in 10:
+			w.cells[x] = Mat.STONE
+			w.cells[z * 10 + x] = Mat.STONE
+			if x >= 3 and x <= 6 and z >= 3 and z <= 6 and not (x >= 5 and z <= 4):
+				for y in range(1, 3):
+					w.cells[(y * 10 + z) * 10 + x] = Mat.STONE
+	return w
+
+
+func _test_corners() -> void:
+	var w := _corner_world()
+	_check(w.corner_cut(3, 2, 3, 0) and w.corner_cut(3, 1, 3, 0), "an outer corner of a cliff is cut on every level")
+	_check(not w.corner_cut(4, 2, 3, 0) and not w.corner_cut(3, 2, 3, 2), "straight edges and inner sides are not cut")
+	_check(w.corner_fill(5, 1, 4, 3) and w.corner_fill(5, 2, 4, 3), "an inner corner is filled on every level")
+	_check(w.corner_fills(5, 3, 4) == 0, "nothing is filled above the cliff")
+	_check(is_equal_approx(w.ground_height(3.05, 3.05), 1.0) and is_equal_approx(w.ground_height(3.4, 3.4), 3.0),
+		"a cut corner leaves the ground below it open")
+	_check(is_equal_approx(w.ground_height(5.1, 4.9), 3.0), "a filled corner is ground up to the cliff top")
+	var player = PlayerScript.new()
+	player.world = w
+	_check(not player._collides(Vector3(2.9, 1.0, 2.9)) and player._collides(Vector3(3.05, 1.0, 3.05)),
+		"a walker fits into a cut corner but not into the cliff")
+	_check(player._collides(Vector3(5.31, 1.0, 4.64)) and not player._collides(Vector3(5.5, 1.0, 4.3)),
+		"a filled corner blocks a walker")
+	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
+	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
+	var diagonal := false
+	for n in normals:
+		diagonal = diagonal or (absf(n.x) > 0.6 and absf(n.z) > 0.6 and absf(n.y) < 0.01)
+	_check(diagonal, "cut and filled corners get diagonal walls")
+	# Placed blocks keep their corners.
+	w.set_cell(3, 2, 3, Mat.STONE)
+	_check(not w.corner_cut(3, 2, 3, 0) and not w.corner_cut(3, 1, 3, 0), "placed blocks stay square")
+	player.free()
+	# The mesher decides corners the same way the world does.
+	var g := WorldGen.generate(7, 48, 20, 48)
+	var x0 := 14
+	var z0 := 14
+	var c := ChunkMesher.padded(g, x0, z0, x0 + 20, z0 + 20)
+	var plan: PackedByteArray = ChunkMesher.shapes_and_corners(g, c, x0, z0, x0 + 20, z0 + 20)[1]
+	var same := true
+	var cuts := 0
+	var fills := 0
+	for y in g.size_y:
+		for z in range(z0 + 1, z0 + 19):
+			for x in range(x0 + 1, x0 + 19):
+				var p: int = plan[((y + 1) * 20 + z - z0) * 20 + x - x0]
+				same = same and p == g.corner_cuts(x, y, z) | g.corner_fills(x, y, z) << 4
+				cuts += int(p & 15 != 0)
+				fills += int(p >= 16)
+	_check(same, "the mesher shapes corners as the world does")
+	_check(cuts > 0 and fills > 0, "generated cliffs have cut and filled corners")
 
 
 func _test_ai_relations() -> void:

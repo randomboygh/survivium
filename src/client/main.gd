@@ -594,17 +594,11 @@ func _too_far(cell: Vector3i) -> bool:
 
 
 func _on_cell_changed(cell: Vector3i) -> void:
-	var cx := floori(cell.x / float(CHUNK))
-	var cz := floori(cell.z / float(CHUNK))
-	var keys := {Vector2i(cx, cz): true}
-	if cell.x % CHUNK == 0:
-		keys[Vector2i(cx - 1, cz)] = true
-	if cell.x % CHUNK == CHUNK - 1:
-		keys[Vector2i(cx + 1, cz)] = true
-	if cell.z % CHUNK == 0:
-		keys[Vector2i(cx, cz - 1)] = true
-	if cell.z % CHUNK == CHUNK - 1:
-		keys[Vector2i(cx, cz + 1)] = true
+	# Slopes and corners look at the neighbours, and edges of a top at theirs.
+	var keys := {}
+	for dz in range(-2, 3):
+		for dx in range(-2, 3):
+			keys[Vector2i(floori((cell.x + dx) / float(CHUNK)), floori((cell.z + dz) / float(CHUNK)))] = true
 	for key in keys:
 		if chunk_nodes.has(key):
 			_build_chunk(key)

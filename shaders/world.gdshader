@@ -7,9 +7,12 @@
 //          the top of a wall)
 //   UV2.x = tile + 64 * edges + 16384 * flag; tile 63 means "colour from COLOR only"
 //          (voxels); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
-//          outline, 3 contact shadow; flag 1 = season-tinted foliage voxel,
-//          flag 2 = wall with open sky above (gets a snow fringe), flag 4 = sloping
-//          top (textured in screen texels so it is not stretched)
+//          outline, 3 contact shadow; flag bits: 1 = season-tinted foliage voxel,
+//          2 = wall with open sky above (gets a snow fringe), 4 = sloping top or
+//          diagonal wall (textured in screen texels so it is not stretched), 8 = an
+//          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
+//          lying on the corner's side of it if bit 64, with the edge code in bits
+//          128..256
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut)
@@ -138,7 +141,7 @@ void fragment() {
 		} else if (top && pick % 3 == 0 && COLOR.r > 0.5) {
 			col *= ground_variety(pick / 3, world_pos.xz, wt);
 		}
-	} else if (flag == 1) {
+	} else if ((flag & 1) != 0) {
 		col *= foliage_tint;
 	}
 	// Edge shading: a light rim on convex edges, a dark outline where the face meets
@@ -158,6 +161,23 @@ void fragment() {
 			ao = min(ao, dist[e] == 0 ? 0.6 : 0.8);
 		}
 	}
+	if ((flag & 8) != 0) {
+		// Texel distance to the diagonal half a cell from corner k, counted on the face.
+		int k = (flag >> 4) & 3;
+		int mid = int(TEXELS) / 2;
+		int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
+		int dd = (flag & 64) != 0 ? -sd : sd;
+		int code = (flag >> 7) & 3;
+		if (code == 1 && dd == 0) {
+			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
+		} else if (code == 2 && dd == 0) {
+			col *= 0.45;
+		} else if (code == 2 && dd == 1) {
+			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
+		} else if (code == 3 && dd <= 1) {
+			ao = min(ao, dd == 0 ? 0.6 : 0.8);
+		}
+	}
 	// Snow covers whole texels on upward faces and a fringe on top of walls. The
 	// wind leaves a few spots bare, and it melts away around fires.
 	float snow_here = snow_amount * (1.0 - warm);
@@ -169,7 +189,7 @@ void fragment() {
 	} else if (top) {
 		float swept = step(ground_patch(world_pos.xz, 5.0) + (h - 0.5) * 0.05, 0.07);
 		snow = step(h, snow_here * 1.15 - 0.05) * (1.0 - swept);
-	} else if (flag == 2) {
+	} else if ((flag & 2) != 0) {
 		float fringe = snow_here * (0.12 + 0.12 * h);
 		snow = step(1.0 - fringe, fract(world_pos.y)) * step(0.3, snow_here);
 	}

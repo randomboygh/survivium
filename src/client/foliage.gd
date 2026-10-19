@@ -76,10 +76,19 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 						continue
 					rng.seed = hash(Vector3i(x, y, z))
 					var mask: int = w.slope_mask(x, y, z)
+					# Only cells on an edge can have corners cut off.
+					var cuts := 0
+					if x == 0 or z == 0 or x == sx - 1 or z == sz - 1 or cells[i - 1] == Mat.AIR or cells[i + 1] == Mat.AIR \
+							or cells[i - sx] == Mat.AIR or cells[i + sx] == Mat.AIR or cells[i - 1] == Mat.WATER \
+							or cells[i + 1] == Mat.WATER or cells[i - sx] == Mat.WATER or cells[i + sx] == Mat.WATER:
+						cuts = w.corner_cuts(x, y, z)
 					for k in TUFTS_PER_CELL:
 						var fx := rng.randi_range(1, 15) * PX
 						var fz := rng.randi_range(1, 15) * PX
-						put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz), z + fz))
+						var q := WorldData.corner_at(fx, fz)
+						if cuts & (1 << q) and WorldData.in_corner(q, fx, fx, fz, fz):
+							continue
+						put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz, cuts), z + fz))
 						grass.append_array([float(rng.randi_range(0, 3)), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 						ng += 1
 				elif m == Mat.LEAVES:

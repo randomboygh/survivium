@@ -1,6 +1,7 @@
 extends Node3D
 ## Player body on the cell grid: walks, steps up one level by itself, walks up and
-## down slopes, jumps, cannot enter water. `position` is the middle of the feet.
+## down slopes, goes around cut corners of cliffs, jumps, cannot enter water.
+## `position` is the middle of the feet.
 
 const SpriteArt := preload("res://src/client/sprite_art.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
@@ -133,7 +134,8 @@ func _collides(p: Vector3) -> bool:
 	for y in range(y0, y1 + 1):
 		for z in range(z0, z1 + 1):
 			for x in range(x0, x1 + 1):
-				if not world.blocks_body(x, y, z):
+				var f := _footprint(x, z, p)
+				if not world.blocks_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y):
 					continue
 				# A sloping cell only blocks below its surface under the feet.
 				if y != y0 or p.y + 0.001 < y + _cell_top(x, y, z, p):
@@ -148,12 +150,21 @@ func _ground_top(p: Vector3, lo: float, hi: float) -> float:
 	for y in range(floori(lo), floori(hi) + 1):
 		for z in range(floori(p.z - HALF_WIDTH), floori(p.z + HALF_WIDTH) + 1):
 			for x in range(floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH) + 1):
-				if not world.is_solid(x, y, z):
+				var f := _footprint(x, z, p)
+				if not world.ground_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y):
 					continue
 				var top := y + _cell_top(x, y, z, p)
 				if top >= lo - 0.001 and top <= hi + 0.001:
 					best = maxf(best, top)
 	return best
+
+
+## The part of the cell (x, z) under the footprint of a body at `p`, in 0..1 cell
+## coordinates: position = (min x, min z), end = (max x, max z).
+func _footprint(x: int, z: int, p: Vector3) -> Rect2:
+	var a := Vector2(clampf(p.x - HALF_WIDTH - x, 0.0, 1.0), clampf(p.z - HALF_WIDTH - z, 0.0, 1.0))
+	var b := Vector2(clampf(p.x + HALF_WIDTH - x, 0.0, 1.0), clampf(p.z + HALF_WIDTH - z, 0.0, 1.0))
+	return Rect2(a, b - a)
 
 
 ## Top of a solid cell under the footprint at `p`, 0..1: 1 for a cube, the highest
@@ -164,6 +175,7 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 	var mask: int = world.slope_mask(x, y, z)
 	if mask == WorldData.FULL:
 		return 1.0
+	var cuts: int = world.corner_cuts(x, y, z)
 	var ax := clampf(p.x - HALF_WIDTH - x, 0.0, 1.0)
 	var bx := clampf(p.x + HALF_WIDTH - x, 0.0, 1.0)
 	var az := clampf(p.z - HALF_WIDTH - z, 0.0, 1.0)
@@ -171,5 +183,5 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 	var top := 0.0
 	for i in 3:
 		for k in 3:
-			top = maxf(top, WorldData.slope_height(mask, lerpf(ax, bx, i * 0.5), lerpf(az, bz, k * 0.5)))
+			top = maxf(top, WorldData.slope_height(mask, lerpf(ax, bx, i * 0.5), lerpf(az, bz, k * 0.5), cuts))
 	return top
