@@ -52,6 +52,8 @@ var _tip_label: Label
 var _loading: PanelContainer
 var _loading_label: Label
 var _menu: PanelContainer
+## Dims the game behind the menu and keeps taps from reaching it.
+var _shade: ColorRect
 var _menu_buttons := {}
 
 
@@ -391,12 +393,21 @@ func toggle_stats() -> void:
 
 func toggle_menu() -> void:
 	_menu.visible = not _menu.visible
+	_shade.visible = _menu.visible
+	# Over the hotbar and the touch buttons.
+	_shade.move_to_front()
+	_menu.move_to_front()
 	# A game on this device stops while the menu is open (a server game will not).
 	get_tree().paused = _menu.visible
 	_update_menu()
 
 
 func _build_menu() -> void:
+	_shade = ColorRect.new()
+	_shade.color = Color(0, 0, 0, 0.4)
+	_shade.visible = false
+	_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_shade)
 	_menu = _panel(self)
 	_menu.visible = false
 	var box := VBoxContainer.new()
@@ -494,7 +505,7 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(200, 36)
+	b.custom_minimum_size = Vector2(200, 30)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.pressed.connect(action)
 	parent.add_child(b)

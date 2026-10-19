@@ -84,8 +84,6 @@ func _run() -> void:
 		main._set_touch(shot.get("touch", false))
 		main.hud.perf.visible = shot.get("stats", false)
 		main.hud.show_keys(shot_name == "ui")
-		if shot.get("toast", false):
-			main.hud.toast("Наступило лето")
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 		# Let snow, wetness, tints and particles settle.
@@ -96,6 +94,11 @@ func _run() -> void:
 			main.foliage = main.FOLIAGE[main.season]
 			main.grass = main.GRASS[main.season]
 			main.leaf_amount = main.LEAF_AMOUNT[main.season]
+		# Messages fade after a few seconds, longer than the settling above takes here.
+		if shot.get("toast", false):
+			main.hud.toast("Наступило лето")
+			await process_frame
+			await process_frame
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			await process_frame
