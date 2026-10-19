@@ -21,7 +21,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить\n1–7, колесо — блок\nQ / E — срез ниже / выше\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить\n1–7, колесо — блок\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -36,7 +36,7 @@ var _top: HBoxContainer
 var _stats_button: Button
 var _menu_button: Button
 var _level: BoxContainer
-var _level_label: Label
+var _level_label: Button
 var _bar: PanelContainer
 var _hand_left
 var _hand_right
@@ -97,12 +97,15 @@ func _ready() -> void:
 	_level.add_theme_constant_override("separation", 0)
 	add_child(_level)
 	var up := _icon_button(_level, "up", "Уровень выше", func() -> void: game.shift_cut(1))
-	_level_label = UiStyle.label()
-	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_level_label.custom_minimum_size = Vector2(44, 0)
-	_level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var label_box := _panel(_level)
-	label_box.add_child(_level_label)
+	# The level itself is a button: a tap on a chosen cut returns to the player's level.
+	_level_label = Button.new()
+	_level_label.focus_mode = Control.FOCUS_NONE
+	_level_label.custom_minimum_size = Vector2(60, 36)
+	_level_label.tooltip_text = "Вернуться к уровню игрока"
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		_level_label.add_theme_stylebox_override(state, UiStyle.panel())
+	_level_label.pressed.connect(func() -> void: game.reset_view_level())
+	_level.add_child(_level_label)
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.shift_cut(-1))
 	for b in [up, down]:
 		b.custom_minimum_size = Vector2(36, 36)
@@ -313,9 +316,11 @@ func update_state() -> void:
 	if game.manual_level >= 0:
 		_level_label.text = "Срез %d" % game.cut_level
 		_level_label.add_theme_color_override("font_color", UiStyle.ACCENT)
+		_level_label.add_theme_color_override("font_hover_color", UiStyle.ACCENT)
 	else:
 		_level_label.text = "Ур. %d" % game.player.level()
 		_level_label.add_theme_color_override("font_color", UiStyle.INK)
+		_level_label.add_theme_color_override("font_hover_color", UiStyle.INK)
 
 
 ## Marks the hand in use and the selected block; called when either changes.

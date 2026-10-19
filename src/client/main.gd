@@ -75,6 +75,8 @@ var jump_held := false
 var tip_clock := 0.0
 var mouse_pos := Vector2(-1, -1)
 var last_touch_ms := -100000
+## Touch indices now on the screen.
+var fingers := {}
 var atlas: Texture2D
 var image_size := Vector2i(640, 360)
 var safe_rect := Rect2()
@@ -178,14 +180,22 @@ func _report_fps(delta: float) -> void:
 
 
 ## Touch and mouse switch the layout: the joystick and action buttons show after a
-## touch, key hints and the pointer hint after the mouse moves.
+## touch, key hints and the pointer hint after the mouse moves. Browsers report a
+## moving finger as mouse motion too, so motion counts as a mouse only while no finger
+## is down and a while after the last touch.
 func _input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			fingers[event.index] = true
+		else:
+			fingers.erase(event.index)
+		_set_touch(true)
+		last_touch_ms = Time.get_ticks_msec()
+	elif event is InputEventScreenDrag:
 		_set_touch(true)
 		last_touch_ms = Time.get_ticks_msec()
 	elif event is InputEventMouseMotion and event.device != InputEvent.DEVICE_ID_EMULATION:
-		# Browsers follow a tap with mouse events of their own; those are not a mouse.
-		if Time.get_ticks_msec() - last_touch_ms > 1000:
+		if fingers.is_empty() and Time.get_ticks_msec() - last_touch_ms > 1000:
 			_set_touch(false)
 		mouse_pos = event.position
 
@@ -200,6 +210,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				shift_cut(-1)
 			KEY_E, KEY_PAGEUP:
 				shift_cut(1)
+			KEY_R:
+				reset_view_level()
 			KEY_Z:
 				next_season()
 			KEY_X:
@@ -340,10 +352,10 @@ func select_block(i: int, use := true) -> void:
 func print_debug() -> void:
 	var r: Dictionary = hud.debug_rects()
 	var p: Vector3 = player.position if player != null else Vector3.ZERO
-	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, season %s, player (%.2f, %.2f, %.2f), season now %s" % [
+	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
 		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), viewport.size,
 		container.stretch_shrink, safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.season,
-		p.x, p.y, p.z, SEASONS[season]])
+		p.x, p.y, p.z, SEASONS[season], touch, hud.stick.value.x, hud.stick.value.y])
 
 
 func _build_materials() -> void:
@@ -626,6 +638,11 @@ func shift_cut(d: int) -> void:
 	manual_level = clampi(base + d, 1, world.size_y)
 	if manual_level >= world.size_y - 1:
 		manual_level = -1
+
+
+## Back to the automatic cut that follows the player.
+func reset_view_level() -> void:
+	manual_level = -1
 
 
 func _apply_cut() -> void:
