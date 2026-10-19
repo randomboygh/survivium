@@ -20,6 +20,11 @@ varying flat vec2 data;
 varying float clouds;
 
 void vertex() {
+	// Ice fills its cell to the top, level with the ground beside it, where it is
+	// walked on (see WorldData.water_frozen).
+	if (ice_amount > 0.8 && abs(fract(VERTEX.y / CELL) - 0.5) < 0.01) {
+		VERTEX.y += 0.5 * CELL;
+	}
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	data = UV2;

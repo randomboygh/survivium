@@ -16,7 +16,8 @@
 //          128..256
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
-//   COLOR.r = shade (dark caps of the cut)
+//   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
+//          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1)
 shader_type spatial;
 render_mode world_vertex_coords, cull_back;
 
@@ -75,15 +76,25 @@ vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
 	return k;
 }
 
-// Snow is not flat white: drifts in three soft tones, bluish hollows and glints.
+// Snow is not flat white: drifts in three soft tones, none of them pure white so the
+// noon sun does not wash the field out, wind ripples a shade apart stretched along
+// the wind, bluish hollows and a few glints.
 vec3 snow_color(vec2 xz, vec2 wt) {
 	float drift = ground_patch(xz, 9.0);
-	vec3 c = drift > 0.62 ? vec3(0.95, 0.97, 1.0) : (drift < 0.36 ? vec3(0.85, 0.89, 0.97) : vec3(0.9, 0.93, 0.99));
+	// Kept well under 1 because the noon light adds up to more than 1 and the screen
+	// encoding lifts bright tones further: 0.66 here is a soft white on screen.
+	vec3 c = drift > 0.62 ? vec3(0.66, 0.7, 0.78) : (drift < 0.36 ? vec3(0.56, 0.61, 0.72) : vec3(0.61, 0.65, 0.75));
+	float ripple = ground_patch(vec2(xz.x * 1.5, xz.y * 6.0) + 50.0, 13.0);
+	if (ripple > 0.6) {
+		c *= vec3(1.06, 1.05, 1.03);
+	} else if (ripple < 0.4) {
+		c *= vec3(0.94, 0.95, 0.98);
+	}
 	float n = hash12(wt + 29.0);
 	if (n > 0.985) {
-		c = vec3(1.0);
-	} else if (n < 0.04) {
-		c *= vec3(0.92, 0.94, 0.98);
+		c = vec3(0.86, 0.9, 0.96);
+	} else if (n < 0.05) {
+		c *= vec3(0.9, 0.92, 0.97);
 	}
 	return c;
 }
@@ -188,10 +199,16 @@ void fragment() {
 		}
 	}
 	// Snow covers whole texels on upward faces and a fringe on top of walls. The
-	// wind leaves a few spots bare, and it melts away around fires.
-	float snow_here = snow_amount * (1.0 - warm);
+	// wind leaves a few spots bare, it melts away around fires, and none falls on
+	// the faces of a cell under a roof, an overhang or a cave ceiling.
+	bool roof = roofed(world_pos.xz, world_pos.y);
+	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
+	// Moss on the tops of stone in damp patches, not by a fire.
+	if (top && tile == 3 * 3 && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
+	}
 	float snow = 0.0;
 	if (snow_here <= 0.0) {
 		// No snow: skip the snow patterns.
@@ -205,7 +222,11 @@ void fragment() {
 	if (snow > 0.0) {
 		col = mix(col, snow_color(world_pos.xz, wt), snow);
 	}
-	float wet = wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
+	if (tile == NONE) {
+		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.
+		col *= COLOR.a * 2.0;
+	}
+	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
 	float fade = depth_fade(world_pos.y);
 	ALBEDO = col * (1.0 - fade);

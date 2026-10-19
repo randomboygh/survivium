@@ -26,10 +26,15 @@ class Creature:
 	var think := 0.0
 	var prey: Creature = null
 	var sprite: MeshInstance3D
+	## Way walked since the last footprint, and which foot made it.
+	var stride := 0.0
+	var left := false
 
 
 var world
 var player: Node3D
+## Footprints (see tracks.gd); animals leave paw prints sized by their mass.
+var tracks
 var daylight := 1.0
 var creatures: Array[Creature] = []
 var rng := RandomNumberGenerator.new()
@@ -147,6 +152,12 @@ func _move(c: Creature, spec: Dictionary, delta: float) -> void:
 			c.pos = Vector3(np.x, lerpf(c.pos.y, ny, minf(1.0, delta * 12.0)), np.z)
 			if absf(step.x) > 0.001:
 				c.sprite.scale.x = -1.0 if step.x < 0.0 else 1.0
+			c.stride += step.length()
+			var size: float = clampf(0.5 + spec.mass / 80.0, 0.5, 1.0)
+			if tracks != null and c.stride >= 0.25 + 0.3 * size:
+				c.stride = 0.0
+				c.left = not c.left
+				tracks.leave(Vector3(c.pos.x, ny, c.pos.z), Vector2(step.x, step.z), c.left, false, size)
 		else:
 			c.target = c.pos
 	if c.state == "hunt" and c.prey != null:

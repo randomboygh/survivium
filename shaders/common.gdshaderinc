@@ -25,6 +25,9 @@ global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 // Warmth around fires, one texel per world unit: r = heat 0..1, g = height of the
 // fire's unit / 64.
 global uniform sampler2D heat_map : filter_linear;
+// One texel per column: the level of the highest cell that keeps the weather off,
+// plus one, over 255 (see roof_map.gd).
+global uniform sampler2D roof_map : filter_nearest;
 global uniform vec2 world_size;
 // Height of the ground the player last stood on, and what the levels far below it
 // fade into (the background outdoors, darkness in a cave or a room), see depth_fade.
@@ -127,6 +130,19 @@ float heat_at(vec3 p) {
 
 // 1 in the warm circle around a fire where snow melts and rain dries, with a
 // dithered rim (`jitter` is a per-texel random number).
+// Level of the highest cell over the column at `xz` that keeps rain and snow off,
+// -1 when the sky is open all the way down.
+float roof_level(vec2 xz) {
+	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / world_size).r * 255.0 - 1.0;
+}
+
+// True at height `y` under a roof, an overhang or a cave ceiling: below the bottom of
+// the column's highest covering cell. The faces of that cell itself, its ramps and
+// walls included, lie within its span and are not under it.
+bool roofed(vec2 xz, float y) {
+	return y < roof_level(xz) * CELL - 0.01;
+}
+
 float warm_spot(vec3 p, float jitter) {
 	return step(0.45 + (jitter - 0.5) * 0.2, heat_at(p));
 }
@@ -141,24 +157,24 @@ float bayer4(vec2 t) {
 // Levels above a cut under a roof stay faintly visible instead of vanishing, so a cave
 // or a room shows how much lies above it and how tall the trees around are: the four
 // levels over the cut keep every other texel, the next four every fourth, the four
-// after that every eighth, and the rest is gone. Texels are counted on the screen
-// plane, so the pattern stays put on the world as the view moves; the player always
-// shows through. A cut moved by hand hides everything above it. True where the texel
-// of height `y` at `texel` is left out.
+// after that every eighth, and the rest is gone. A level picked by hand grades
+// faster, one step per level, so a pit or a cave shows how many levels deep it is:
+// the level above the picked one keeps every other texel, the next every fourth,
+// then every eighth and sixteenth, and the fifth is gone. Texels are counted on the
+// screen plane, so the pattern stays put on the world as the view moves; the player
+// always shows through. True where the texel of height `y` at `texel` is left out.
 bool cut_dither(float y, vec2 texel) {
 	if (y <= cut_height + 0.01) {
 		return false;
-	}
-	if (cut_ghost < 0.5) {
-		return true;
 	}
 	// The ghost leaves a clear window around the player.
 	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
 	if (length((texel + 0.5) / TEXELS - body) < 1.75) {
 		return true;
 	}
-	float band = floor(floor((y - cut_height) / CELL - 0.01) / 4.0);
-	return band > 2.5 || bayer4(texel) >= 0.5 / exp2(band);
+	float above = floor((y - cut_height) / CELL - 0.01);
+	float band = cut_ghost < 0.5 ? above : floor(above / 4.0);
+	return band > (cut_ghost < 0.5 ? 3.5 : 2.5) || bayer4(texel) >= 0.5 / exp2(band);
 }
 
 bool above_cut(vec3 p) {
@@ -166,14 +182,15 @@ bool above_cut(vec3 p) {
 }
 
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
-// player's feet fade one even step per level, so a pit or a drop shows its depth,
-// and what shows above the cut is a dim ghost, dimmer higher up.
+// player's feet (below the picked level, when one is picked by hand, then in bigger
+// steps) fade one even step per level, so a pit or a drop shows its depth, and what
+// shows above the cut is a dim ghost, dimmer higher up.
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
 		return clamp(0.35 + 0.03 * floor((y - cut_height) / CELL - 0.01), 0.0, 0.7);
 	}
 	float below = floor((view_height - y) / CELL + 0.01) - 1.0;
-	return clamp(below * 0.04, 0.0, 0.5);
+	return cut_ghost < 0.5 ? clamp(below * 0.08, 0.0, 0.6) : clamp(below * 0.04, 0.0, 0.5);
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,

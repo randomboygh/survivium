@@ -8,6 +8,10 @@ const Mat := preload("res://src/shared/materials.gd")
 const TILE := 16
 const TILES := 8
 const TUFT := 8
+## Ground plants: PLANTS variants, each PLANT_W x PLANT_H px (see build_plants).
+const PLANT_W := 8
+const PLANT_H := 16
+const PLANTS := 14
 ## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
 ## one of CLUMP_SIZES across. The texture has a row per size of broad-leaf bunch, then a
 ## row per size of needle sprig (from NEEDLE_ROW), then bare branches (BRANCH_ROW).
@@ -36,25 +40,94 @@ static func build_atlas() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-## Four tuft variants side by side, 8x8 each. Alpha is the blade mask, red is the
-## height along the blade (0 at the root, 1 at the tip).
-static func build_tufts() -> ImageTexture:
-	var img := Image.create_empty(TUFT * 4, TUFT, false, Image.FORMAT_RGBA8)
+## Ground plants side by side, each PLANT_W x PLANT_H px, drawn from the bottom row up
+## (see grass.gdshader for the kinds): grass tufts 0..3, whose alpha is the blade mask
+## and red the height along the blade (0 at the root, 1 at the tip), coloured from the
+## ground; then plants in their own colours: flowers 4..7 (white, yellow, violet,
+## pink), ears of dry grass 8..9, reeds with cattails 10..11, low herbs 12..13.
+static func build_plants() -> ImageTexture:
+	var img := Image.create_empty(PLANT_W * PLANTS, PLANT_H, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
 		var blades := 3 + v % 2 + rng.randi_range(0, 1)
 		for b in blades:
-			var x := rng.randi_range(1, TUFT - 2)
+			var x := rng.randi_range(1, PLANT_W - 2)
 			var h := rng.randi_range(3, TUFT - 1 - (v % 2))
 			var lean := rng.randi_range(-1, 1)
 			for i in h:
 				var px := x + (lean if i >= h / 2 else 0)
-				px = clampi(px, 0, TUFT - 1)
+				px = clampi(px, 0, PLANT_W - 1)
 				var k := float(i + 1) / h
-				img.set_pixel(v * TUFT + px, TUFT - 1 - i, Color(k, 0, 0, 1))
+				_plant_px(img, v, px, i, Color(k, 0, 0, 1))
+	var stem := Color(0.27, 0.46, 0.2)
+	var stem_dark := Color(0.2, 0.36, 0.16)
+	var heads := [Color(0.95, 0.95, 0.88), Color(0.96, 0.8, 0.22), Color(0.62, 0.45, 0.86), Color(0.92, 0.4, 0.5)]
+	for v in 4:
+		var head: Color = heads[v]
+		for f in 2 + v % 2:
+			var x: int = [2, 5, 3][f] + rng.randi_range(-1, 0)
+			var h := rng.randi_range(4, 7)
+			for i in h:
+				_plant_px(img, 4 + v, x, i, stem if i % 2 == 0 else stem_dark)
+			# A leaf off the stem, then the head two texels wide with a lit corner.
+			_plant_px(img, 4 + v, x + (1 if f % 2 == 0 else -1), h / 2, stem)
+			_plant_px(img, 4 + v, x, h, head.darkened(0.15))
+			_plant_px(img, 4 + v, x + 1, h, head)
+			_plant_px(img, 4 + v, x, h + 1, head)
+			_plant_px(img, 4 + v, x + 1, h + 1, head.lightened(0.2))
+	var straw := Color(0.76, 0.66, 0.38)
+	var straw_dark := Color(0.62, 0.52, 0.3)
+	var grain := Color(0.86, 0.76, 0.46)
+	for v in 2:
+		for e in 2 + v:
+			var x: int = [2, 5, 4][e]
+			var h := rng.randi_range(8, 11)
+			var lean := rng.randi_range(-1, 1)
+			for i in h:
+				_plant_px(img, 8 + v, x + (lean if i > h * 2 / 3 else 0), i, straw if i % 3 != 2 else straw_dark)
+			var tx := x + lean
+			for i in 4:
+				_plant_px(img, 8 + v, tx, h + i, grain if i % 2 == 0 else straw_dark)
+				_plant_px(img, 8 + v, tx + 1, h + i, straw_dark if i % 2 == 0 else grain)
+	var reed := Color(0.3, 0.5, 0.22)
+	var reed_dark := Color(0.22, 0.4, 0.17)
+	var cattail := Color(0.42, 0.27, 0.14)
+	for v in 2:
+		for r in 3:
+			var x: int = [1, 4, 6][r]
+			var h := rng.randi_range(9, 13) + (2 if r == 1 else 0)
+			for i in h:
+				_plant_px(img, 10 + v, x, i, reed if (i + r) % 3 != 0 else reed_dark)
+			if r == 1:
+				for i in 4:
+					_plant_px(img, 10 + v, x, h + i, cattail)
+					_plant_px(img, 10 + v, x + 1, h + i, cattail.darkened(0.2))
+				_plant_px(img, 10 + v, x, h + 4, reed_dark)
+				_plant_px(img, 10 + v, x, h + 5, straw)
+			else:
+				# A blade leaning away from the middle at the top.
+				_plant_px(img, 10 + v, x + (1 if r == 2 else -1), h - 1, reed_dark)
+	var herb := Color(0.25, 0.44, 0.19)
+	var herb_light := Color(0.36, 0.56, 0.25)
+	for v in 2:
+		for i in 12:
+			var x := rng.randi_range(1, PLANT_W - 2)
+			var y := rng.randi_range(0, 2 + (1 if x > 2 and x < 6 else 0))
+			_plant_px(img, 12 + v, x, y, herb_light if rng.randf() < 0.35 else herb)
+		if v == 1:
+			for i in 3:
+				_plant_px(img, 12 + v, rng.randi_range(1, PLANT_W - 2), rng.randi_range(2, 4), Color(0.94, 0.94, 0.9))
 	return ImageTexture.create_from_image(img)
+
+
+## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is
+## dropped.
+static func _plant_px(img: Image, v: int, x: int, row: int, c: Color) -> void:
+	if x < 0 or x >= PLANT_W or row < 0 or row >= PLANT_H:
+		return
+	img.set_pixel(v * PLANT_W + x, PLANT_H - 1 - row, c)
 
 
 ## Leaf cluster cards: one row per size in `sizes`, four variants in each, every

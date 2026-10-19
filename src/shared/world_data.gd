@@ -10,12 +10,16 @@ const Mat := preload("res://src/shared/materials.gd")
 
 ## Size of a cell in world units; a world unit is 16 px on screen.
 const CELL := 0.5
+## Open water lies this far up its top cell (4 px under the ground beside it). Ice
+## fills the cell to the top.
+const WATER_TOP := 0.5
 
 var size_x: int
 var size_y: int
 var size_z: int
 var sea_level := 12
-## In winter lakes freeze and can be walked on.
+## In winter water freezes and is walked on like ground; otherwise it is waded and
+## swum through.
 var water_frozen := false
 var cells := PackedByteArray()
 ## WILD for every cell the generator left in place, SHEER besides on loose ground that
@@ -502,26 +506,20 @@ func is_solid(x: int, y: int, z: int) -> bool:
 	return Mat.is_solid(get_cell(x, y, z))
 
 
-## True when a walking body cannot be in this cell: solid, water, the map edge,
-## or air anywhere above open water (there is no swimming yet). The whole column over
-## the water blocks, so neither a step up nor a jump lands on an invisible floor.
+## True when a walking body cannot be in this cell: solid, frozen water, or the map
+## edge. Open water is waded and swum through.
 func blocks_body(x: int, y: int, z: int) -> bool:
 	if x < 0 or z < 0 or x >= size_x or z >= size_z:
 		return true
 	var m := get_cell(x, y, z)
 	if m == Mat.WATER:
-		return true
-	if m == Mat.AIR and not water_frozen:
-		var below := y - 1
-		while below >= 0 and get_cell(x, below, z) == Mat.AIR:
-			below -= 1
-		return get_cell(x, below, z) == Mat.WATER
+		return water_frozen
 	return Mat.is_solid(m)
 
 
 ## True when a body taking the part ax..bx, az..bz (0..1) of the cell at (x, y, z) is
 ## blocked, as blocks_body says for whole cells. A cut corner holds what is beside it
-## (air, or water that cannot be entered); a filled corner is ground.
+## (air or water); a filled corner is ground.
 func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if _ground(x, y, z):
 		var cuts := corner_cuts(x, y, z)
@@ -536,7 +534,7 @@ func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 
 
 ## True when the part ax..bx, az..bz (0..1) of the cell at (x, y, z) stands on its top:
-## solid there, not only its cut corner, or ground filling its corner.
+## solid there, not only its cut corner, ground filling its corner, or ice.
 func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if _ground(x, y, z):
 		var cuts := corner_cuts(x, y, z)
@@ -544,7 +542,8 @@ func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 			if cuts & (1 << k) and in_corner(k, ax, bx, az, bz):
 				return false
 		return true
-	return is_solid(x, y, z) or _fill_touched(x, y, z, ax, bx, az, bz)
+	return is_solid(x, y, z) or water_frozen and get_cell(x, y, z) == Mat.WATER \
+		or _fill_touched(x, y, z, ax, bx, az, bz)
 
 
 func _fill_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
@@ -557,6 +556,28 @@ func _fill_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 
 ## Level a walker stands on in this column (the cell above the highest ground),
 ## or -1 over open water. Tree crowns are ignored so animals walk under them.
+## Level of the highest cell in the column that keeps rain and snow off what lies
+## below (anything but air, water and leaves), -1 when there is none.
+func roof_level(x: int, z: int) -> int:
+	if x < 0 or z < 0 or x >= size_x or z >= size_z:
+		return -1
+	var col := z * size_x + x
+	var solid := ~(air_cols[col] | water_cols[col] | leaf_cols[col]) & all_bits
+	return top_level(solid)
+
+
+## Level of the highest set bit, -1 for none.
+static func top_level(bits: int) -> int:
+	if bits == 0:
+		return -1
+	var level := 0
+	for shift in [32, 16, 8, 4, 2, 1]:
+		if bits >> shift != 0:
+			bits >>= shift
+			level += shift
+	return level
+
+
 func surface_y(x: int, z: int) -> int:
 	for y in range(size_y - 1, -1, -1):
 		var m := get_cell(x, y, z)

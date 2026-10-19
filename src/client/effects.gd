@@ -187,6 +187,7 @@ func _emitter(amount: int, lifetime: float, size: Vector2, brightness: float) ->
 	var mat := ShaderMaterial.new()
 	mat.shader = ParticleShader
 	mat.set_shader_parameter("brightness", brightness)
+	mat.set_shader_parameter("sky_only", 1.0)
 	quad.material = mat
 	p.mesh = quad
 	p.extra_cull_margin = 32.0
