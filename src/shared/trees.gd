@@ -18,7 +18,7 @@ const NEEDLES := 1
 
 ## name: id for content files; title: shown to players.
 ## leaves: BROAD or NEEDLES. trunk: [min, max] cells of trunk under the crown's middle
-## (oak) or under the lowest tier (spruce). crown: radii across x, up, across z in
+## (oak), or showing under the lowest tier on screen (spruce). crown: radii across x, up, across z in
 ## points of the crown lattice (oak), or [radius of the lowest tier, min tiers, max
 ## tiers] (spruce). tints: leaf colours, one picked per tree. bare: share of trees that
 ## drop all their leaves in winter (branches show, with snow on them); the others keep
@@ -33,7 +33,7 @@ const SPECIES := [
 	},
 	{
 		"name": "spruce", "title": "Ель", "leaves": NEEDLES,
-		"trunk": [7, 8], "crown": [2.3, 5, 7],
+		"trunk": [1, 1], "crown": [2.3, 5, 7],
 		"tints": [Color(0.18, 0.34, 0.22), Color(0.2, 0.36, 0.21), Color(0.17, 0.32, 0.24)],
 		"bare": 0.0,
 	},
@@ -44,7 +44,7 @@ const SPECIES := [
 static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = SPECIES[species]
 	if s.leaves == NEEDLES:
-		return roundi(s.trunk[1] * scale) + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
+		return _hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
 	return roundi(s.trunk[1] * scale) + 2 * floori((s.crown[1] + 0.3) * scale * 1.1) + 4
 
 
@@ -98,27 +98,47 @@ static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumb
 ## above it stays narrow, so the tiers show as layers of drooping branches, widest at
 ## the bottom.
 static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> void:
-	var bare := maxi(1, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
 	var tiers := maxi(3, roundi(rng.randi_range(s.crown[1], s.crown[2]) * scale))
 	var radius: float = (s.crown[0] + rng.randf_range(-0.2, 0.2)) * scale
-	var low := ((y + bare) + 1) & ~1
-	var top := low + 2 * (tiers - 1)
-	for i in range(y, top):
-		w.set_cell(x, i, z, Mat.LOG)
-	var points: Array[Vector3i] = []
 	var reach := ceili(radius)
+	# Offsets of the points: dx, tier, dz.
+	var offsets: Array[Vector3i] = []
+	var front := 0
 	for k in tiers:
-		var t := (k + 0.6) / tiers
-		var r := radius * (1.0 - t) + 0.35
+		var r := _tier_radius(radius, k, tiers)
 		if k % 2 == 1:
 			r *= 0.68
 		for dz in range(-reach, reach + 1):
 			for dx in range(-reach, reach + 1):
 				# A little narrower across z, as the top and front of a tier both show.
 				if Vector2(dx, dz / 0.85).length() <= r + rng.randf_range(-0.15, 0.15):
-					points.append(Vector3i(x + 2 * dx, low + 2 * k, z + 2 * dz))
+					offsets.append(Vector3i(dx, k, dz))
+					if k == 0 and dx == 0:
+						front = maxi(front, dz)
+	# In the oblique view the front of the lowest tier hangs over the trunk by its
+	# depth and the sprigs below it, so the trunk below the tier is that long plus the
+	# bit that should show.
+	var bare := _hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
+	var low := ((y + bare) + 1) & ~1
+	var top := low + 2 * (tiers - 1)
+	for i in range(y, top):
+		w.set_cell(x, i, z, Mat.LOG)
+	var points: Array[Vector3i] = []
+	for o in offsets:
+		points.append(Vector3i(x + 2 * o.x, low + 2 * o.y, z + 2 * o.z))
 	points.append(Vector3i(x, top + 2, z))
 	_fill(w, points)
+
+
+## Radius in points of tier `k` of `tiers` (before the narrow tiers are narrowed).
+static func _tier_radius(radius: float, k: int, tiers: int) -> float:
+	return radius * (1.0 - (k + 0.6) / tiers) + 0.35
+
+
+## Cells of trunk a spruce's lowest tier hides on screen when its point in front of
+## the trunk is `front` points south of it.
+static func _hidden_trunk(front: int) -> int:
+	return maxi(1, 3 * front - 1)
 
 
 ## Each crown point fills the air cells of the 3x3x3 block around it with leaves.

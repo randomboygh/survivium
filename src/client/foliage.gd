@@ -166,6 +166,14 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				var faces := _open_faces(w, x, y, z)
 				var mid := (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) * CELL
 				if faces.is_empty():
+					# Inside a spruce a dark sprig fills the room between the tiers, so
+					# the ground never shows through.
+					if needles:
+						rng.seed = hash(Vector3i(x, y, z))
+						var inner := base * DEEP
+						inner.a = base.a
+						_card(clumps, PixelView.snap(mid), _tier_normal(mid, Vector3(axis.x, mid.y, axis.z), TIER_DOWN), inner, first_row + DEEP_ROW, rng)
+						nc += 1
 					continue
 				# Broad leaves take the normal from the middle of the crown nearby, needles
 				# from the trunk, leaning up on top of a tier and down under the next one.
@@ -177,7 +185,8 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				# edge, so the middle is dense and the edge jagged.
 				# Spruce tiers stay dense out to their rim, only the lone points of the
 				# top take small sprigs, so the tip is pointed.
-				var rows := [0, 1] if faces.size() < (4 if needles else 3) else [1, 2]
+				var small: bool = faces.size() >= 4 and tree[0] == Vector2i(x, z) if needles else faces.size() >= 3
+				var rows := [1, 2] if small else [0, 1]
 				for f in faces:
 					# Cards cover each face the camera can see, poking out of it a
 					# little, so no gap shows the trunk inside.
