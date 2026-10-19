@@ -7,6 +7,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/materials.gd")
 const MeshBuffers := preload("res://src/client/mesh_buffers.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
 
 const DIRS := [
 	Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0),
@@ -23,7 +24,8 @@ const CORNERS := [
 	[Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 1, 1), Vector3(0, 1, 1)],
 	[Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(0, 1, 0)],
 ]
-const WATER_TOP := 0.875
+## Water stands a quarter of a level below the shore, so the bank shows above it.
+const WATER_TOP := 0.75
 const AIR := Mat.AIR
 const WATER := Mat.WATER
 const LEAVES := Mat.LEAVES
@@ -37,9 +39,12 @@ const EDGE_N := 0
 const EDGE_S := 2
 const EDGE_W := 4
 const EDGE_E := 6
-## Face flags (see world.gdshader): a season-tinted voxel, a wall with open sky above.
+## Face flags (see world.gdshader): a season-tinted voxel, a wall with open sky above,
+## the sloping top of a cell.
 const FOLIAGE_VOXEL := 1
 const OPEN_TOP := 2
+const SLOPE := 4
+const FULL := WorldData.FULL
 ## A tree trunk is drawn 6 texels wide.
 const TRUNK_MIN := 5.0 / 16.0
 const TRUNK_MAX := 11.0 / 16.0
@@ -102,6 +107,8 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 	var no_tiles := float(NO_TILE * 0x41041)
 	var nb := PackedByteArray()
 	nb.resize(6)
+	var shapes := _slope_masks(w, c, x0 - 1, z0 - 1, x1 + 1, z1 + 1)
+	var side_offsets := [dx, -dx, 0, 0, dz, -dz]
 	for y in sy:
 		for z in range(z0, z1):
 			var i := (y + 1) * dy + (z - z0 + 1) * dz + 1
@@ -122,10 +129,12 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 					_water_faces(w, water, faces, nb, x, y, z)
 				elif m == Mat.LOG and _is_trunk(nb):
 					_trunk_faces(solid, faces, nb, base, m)
+				elif shapes[i] != FULL:
+					_slope_faces(solid, faces, nb, shapes, side_offsets, i, base, m, _around(c, cov, i, dy, dz))
 				else:
 					for d in 6:
 						var n := nb[d]
-						if n != AIR and n != WATER and n != LEAVES:
+						if n != AIR and n != WATER and n != LEAVES and shapes[i + side_offsets[d]] == FULL:
 							# The ground under a thin trunk still shows around it.
 							if not (d == FACE_TOP and n == Mat.LOG and _trunk_at(w, x, y + 1, z)):
 								continue
@@ -152,12 +161,7 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 								edges |= CONTACT << EDGE_E
 							elif not cov[c[i + dx]] and not cov[c[i + dy + dx + dz]]:
 								edges |= DARK << EDGE_E
-							# Top tiles of level neighbours N, S, W, E for transitions.
-							var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
-							var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
-							var tw := c[i - dx] * 3 if cov[c[i - dx]] and not cov[c[i - dx + dy]] else NO_TILE
-							var te := c[i + dx] * 3 if cov[c[i + dx]] and not cov[c[i + dx + dy]] else NO_TILE
-							around = float(tn | ts << 6 | tw << 12 | te << 18)
+							around = _around(c, cov, i, dy, dz)
 						elif d == FACE_SOUTH:
 							if not cov[c[i + dy]]:
 								flag = OPEN_TOP
@@ -171,6 +175,77 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 						_add_cell_face(solid, d, base, white, Vector2(pack(tile, edges, flag), around))
 				i += 1
 	return [null if solid.is_empty() else solid.to_mesh(), null if water.is_empty() else water.to_mesh()]
+
+
+## Top tiles of the level neighbours N, S, W, E of padded cell `i`, packed for UV2.y
+## (material transitions, see world.gdshader).
+static func _around(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> float:
+	var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
+	var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
+	var tw := c[i - 1] * 3 if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_TILE
+	var te := c[i + 1] * 3 if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_TILE
+	return float(tn | ts << 6 | tw << 12 | te << 18)
+
+
+## Slope masks (see WorldData.slope_mask) for the padded cells `c` of x0..x1, z0..z1
+## (exclusive ends), FULL for everything that is not sloping ground.
+static func _slope_masks(w, c: PackedByteArray, x0: int, z0: int, x1: int, z1: int) -> PackedByteArray:
+	var shapes := PackedByteArray()
+	shapes.resize(c.size())
+	shapes.fill(FULL)
+	var sy: int = w.size_y
+	var row := x1 - x0
+	var dy := row * (z1 - z0)
+	for y in sy:
+		var i := (y + 1) * dy
+		for z in range(z0, z1):
+			for x in range(x0, x1):
+				if Mat.can_slope(c[i]) and c[i + dy] == AIR:
+					shapes[i] = w.slope_mask(x, y, z)
+				i += 1
+	return shapes
+
+
+## A cell with a sloping top: two triangles over the corner heights of its mask, side
+## walls cut to the slope where nothing covers them, and the bottom if open.
+static func _slope_faces(buf, faces: Array, nb: PackedByteArray, shapes: PackedByteArray, side_offsets: Array,
+		i: int, base: Vector3, m: int, around: float) -> void:
+	var mask := shapes[i]
+	var h := [float(mask & WorldData.NW != 0), float(mask & WorldData.NE != 0),
+		float(mask & WorldData.SE != 0), float(mask & WorldData.SW != 0)]
+	var nw := Vector3(0, h[0], 0)
+	var ne := Vector3(1, h[1], 0)
+	var se := Vector3(1, h[2], 1)
+	var sw := Vector3(0, h[3], 1)
+	var tris := [[nw, ne, se], [nw, se, sw]] if WorldData.split_nw_se(mask) else [[nw, ne, sw], [ne, se, sw]]
+	var white := Color(1, 1, 1)
+	var top := Vector2(pack(m * 3, 0, SLOPE), around)
+	for t in tris:
+		var a: Vector3 = t[0]
+		var b: Vector3 = t[1]
+		var e: Vector3 = t[2]
+		var n := -(b - a).cross(e - a).normalized()
+		buf.tri([base + a, base + b, base + e], n, [Vector2(a.x, a.z), Vector2(b.x, b.z), Vector2(e.x, e.z)], white, top)
+	for d in [0, 1, 3, 4, 5]:
+		var n := nb[d]
+		if n != AIR and n != WATER and n != LEAVES and (d == FACE_BOTTOM or shapes[i + side_offsets[d]] == FULL):
+			continue
+		var face: Dictionary = faces[d]
+		var pts := []
+		var uvs := []
+		var height := 0.0
+		for v: Vector3 in face.corners:
+			var p := v
+			if v.y > 0.5:
+				# Top corners of a wall follow the slope: NW, NE, SE, SW heights.
+				p.y = h[0] if v.x < 0.5 and v.z < 0.5 else (h[1] if v.z < 0.5 else (h[2] if v.x > 0.5 else h[3]))
+				height += p.y
+			pts.append(base + p)
+			uvs.append(face_uv(d, p))
+		if d != FACE_BOTTOM and height == 0.0:
+			continue
+		var tile := m * 3 + (2 if d == FACE_BOTTOM else 1)
+		buf.quad(pts, face.normal, uvs, white, Vector2(pack(tile, 0, 0), float(NO_TILE * 0x41041)))
 
 
 ## Copy of the cells in x0..x1, z0..z1 (exclusive ends, may reach outside the map)

@@ -5,8 +5,10 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/materials.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
 
-const TUFTS_PER_CELL := 6
+## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
+const TUFTS_PER_CELL := 7
 const TUFT_SIZE := 0.5
 const CLUMP_SIZE := 1.25
 ## Bushes are made of smaller clumps, this many pixels across.
@@ -73,9 +75,11 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 					if y + 1 < sy and cells[i + layer] != Mat.AIR:
 						continue
 					rng.seed = hash(Vector3i(x, y, z))
+					var mask: int = w.slope_mask(x, y, z)
 					for k in TUFTS_PER_CELL:
-						var p := Vector3(x + rng.randi_range(1, 15) * PX, y + 1, z + rng.randi_range(1, 15) * PX)
-						put(grass, p)
+						var fx := rng.randi_range(1, 15) * PX
+						var fz := rng.randi_range(1, 15) * PX
+						put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz), z + fz))
 						grass.append_array([float(rng.randi_range(0, 3)), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 						ng += 1
 				elif m == Mat.LEAVES:

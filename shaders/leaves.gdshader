@@ -1,6 +1,6 @@
 // Tree crowns made of round leaf clumps (MultiMesh, see foliage.gd). Each clump is
 // shaded as a small ball, bent toward the outside of the crown, so the stepped light
-// gives the crown its volume. Clumps sway in whole pixels, thin out in winter, take
+// gives each clump a lit cap and a shaded underside, like t3ssel8r's trees. Clumps sway in whole pixels, thin out in winter, take
 // snow on top, and turn see-through around the player when they hide them.
 // INSTANCE_CUSTOM: xyz = outward direction of the crown, w = sway phase.
 // COLOR: per-clump tint.
@@ -51,13 +51,13 @@ void fragment() {
 	q.y = -q.y;
 	float nz = sqrt(max(0.0, 1.0 - dot(q, q)));
 	vec3 ball = q.x * vec3(1.0, 0.0, 0.0) + q.y * vec3(0.0, 0.7071, -0.7071) + nz * vec3(0.0, 0.7071, 0.7071);
-	// Mostly the crown's shape, a little of the clump's own roundness, and a jitter
-	// per texel so the light bands break up like leaves.
-	vec3 jitter = vec3(hash12(texel) - 0.5, hash12(texel + 3.0) - 0.5, 0.0) * 0.5;
-	vec3 n = normalize(ball * 0.2 + custom.xyz + jitter + (m.r - 0.5) * vec3(0.0, 0.6, 0.0));
+	// The clump's own roundness bent toward the outside of the crown, so each clump
+	// gets a clean lit cap and a shaded underside; the leafy lumps of the texture
+	// (not per-texel noise) break the band edges up.
+	vec3 n = normalize(ball * 0.8 + custom.xyz * 0.6 + (m.r - 0.5) * vec3(0.3, 1.5, 0.0) + vec3(0.0, 0.15, 0.0));
 	// Autumn colours differ from clump to clump.
 	vec3 season = foliage_tint * (1.0 + (hash12(floor(center.xz) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
-	vec3 col = tint.rgb * season * mix(0.72, 1.12, m.r);
+	vec3 col = tint.rgb * season * mix(0.86, 1.06, m.r);
 	// Clumps marked in the alpha of their colour carry berries.
 	if (tint.a < 0.99 && hash12(texel + 11.0) > 0.95 && leaf_amount > 0.5) {
 		col = vec3(0.72, 0.14, 0.16) * mix(0.8, 1.2, m.r);

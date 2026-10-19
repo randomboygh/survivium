@@ -388,6 +388,7 @@ func _button(parent: Node, text: String, action: Callable) -> Button:
 func _build_materials() -> void:
 	RenderingServer.global_shader_parameter_set("terrain_atlas", PixelTextures.build_atlas())
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
+	RenderingServer.global_shader_parameter_set("world_size", Vector2(world.size_x, world.size_z))
 	world_mat = _material(WorldShader)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
@@ -457,7 +458,8 @@ func _place_props() -> void:
 		var x := rng.randi_range(1, world.size_x - 2)
 		var z := rng.randi_range(1, world.size_z - 2)
 		var y: int = world.surface_y(x, z)
-		if y > 0 and y < world.size_y and world.get_cell(x, y - 1, z) == Mat.GRASS and world.get_cell(x, y, z) == Mat.AIR:
+		if y > 0 and y < world.size_y and world.get_cell(x, y - 1, z) == Mat.GRASS and world.get_cell(x, y, z) == Mat.AIR \
+				and world.slope_mask(x, y - 1, z) == world.FULL:
 			bush_cells.append(Vector3i(x, y, z))
 	var bush_mat := _material(LeavesShader)
 	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP))
@@ -476,6 +478,7 @@ func _place_props() -> void:
 	var c: Vector3 = player.position + Vector3(2.0, 0.0, 1.0)
 	var cell := Vector3i(floori(c.x), floori(c.y), floori(c.z))
 	if world.get_cell(cell.x, cell.y, cell.z) == Mat.AIR and world.is_solid(cell.x, cell.y - 1, cell.z):
+		_level_ground(cell - Vector3i(0, 1, 0))
 		var chest := MeshInstance3D.new()
 		chest.mesh = VoxelProps.chest().build_mesh()
 		chest.material_override = world_mat
@@ -486,7 +489,16 @@ func _place_props() -> void:
 	var f: Vector3 = player.position + Vector3(-2.0, 0.0, 2.0)
 	var fire := Vector3i(floori(f.x), floori(f.y), floori(f.z))
 	if world.get_cell(fire.x, fire.y, fire.z) == Mat.AIR and world.is_solid(fire.x, fire.y - 1, fire.z):
+		_level_ground(fire - Vector3i(0, 1, 0))
 		effects.add_campfire(fire, world_mat)
+	RenderingServer.global_shader_parameter_set("heat_map", effects.heat_map(world.size_x, world.size_z))
+
+
+## Props stand on level ground: a slope under them becomes a whole cube.
+func _level_ground(cell: Vector3i) -> void:
+	if world.slope_mask(cell.x, cell.y, cell.z) != world.FULL:
+		world.set_natural(cell.x, cell.y, cell.z, false)
+		_on_cell_changed(cell)
 
 
 func _refresh_bushes() -> void:

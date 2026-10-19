@@ -140,11 +140,9 @@ func _move(c: Creature, spec: Dictionary, delta: float) -> void:
 	if speed > 0.0 and to.length() > 0.1:
 		var step := to.normalized() * minf(speed * delta, to.length())
 		var np := c.pos + step
-		var gx := floori(np.x)
-		var gz := floori(np.z)
-		var ny: int = world.surface_y(gx, gz)
-		if ny > 0 and ny < world.size_y and absi(ny - roundi(c.pos.y)) <= 1:
-			c.pos = Vector3(np.x, lerpf(c.pos.y, float(ny), minf(1.0, delta * 12.0)), np.z)
+		var ny: float = world.ground_height(np.x, np.z)
+		if ny > 0.0 and ny < world.size_y and absf(ny - c.pos.y) <= 1.05:
+			c.pos = Vector3(np.x, lerpf(c.pos.y, ny, minf(1.0, delta * 12.0)), np.z)
 			if absf(step.x) > 0.001:
 				c.sprite.scale.x = -1.0 if step.x < 0.0 else 1.0
 		else:
@@ -172,7 +170,7 @@ func _spawn(kind: String, away_from_player: bool) -> void:
 		var y: int = world.surface_y(x, z)
 		if y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue
-		var pos := Vector3(x + 0.5, y, z + 0.5)
+		var pos := Vector3(x + 0.5, world.ground_height(x + 0.5, z + 0.5), z + 0.5)
 		if away_from_player and pos.distance_to(player.position) < 20.0:
 			continue
 		var c := Creature.new()

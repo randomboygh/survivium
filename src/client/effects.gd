@@ -9,13 +9,15 @@ const VoxelModel := preload("res://src/client/voxel_model.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
 
 const PX := 1.0 / 16.0
+## Cells around a fire where snow melts and the ground stays dry.
+const HEAT_RADIUS := 3.0
 
 var rain: CPUParticles3D
 var snowfall: CPUParticles3D
 var fireflies: CPUParticles3D
 var leaves: CPUParticles3D
 var pollen: CPUParticles3D
-## Each fire: {"light": OmniLight3D, "base": float}
+## Each fire: {"light": OmniLight3D, "base": float, "cell": Vector3i}
 var fires: Array = []
 var flicker_clock := 0.0
 var rng := RandomNumberGenerator.new()
@@ -122,15 +124,36 @@ func add_campfire(cell: Vector3i, material: Material) -> void:
 
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.47, 0.18)
-	light.omni_range = 5.5
+	light.omni_range = 8.0
 	light.omni_attenuation = 1.2
 	light.position = PixelView.shear(c + Vector3(0.0, 0.6, 0.0))
 	add_child(light)
-	fires.append({"light": light, "base": 1.8})
+	fires.append({"light": light, "base": 1.8, "cell": cell})
 
 
 ## Moves the weather emitters over the view and turns them on and off.
 ## `view` is the screen-plane centre; `ground` the height the player stands on.
+## Warmth around the fires for the shaders (heat_map, see common.gdshaderinc): one
+## texel per cell, r = heat falling off over HEAT_RADIUS cells, g = the fire's level.
+## Snow melts and rain dries there.
+func heat_map(size_x: int, size_z: int) -> ImageTexture:
+	var img := Image.create_empty(size_x, size_z, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 1))
+	var r := ceili(HEAT_RADIUS)
+	for f in fires:
+		var c: Vector3i = f.cell
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				var x := c.x + dx
+				var z := c.z + dz
+				if x < 0 or z < 0 or x >= size_x or z >= size_z:
+					continue
+				var heat := clampf(1.3 - Vector2(dx, dz).length() / HEAT_RADIUS, 0.0, 1.0)
+				if heat > img.get_pixel(x, z).r:
+					img.set_pixel(x, z, Color(heat, c.y / 64.0, 0.0, 1.0))
+	return ImageTexture.create_from_image(img)
+
+
 func update(delta: float, view: Vector2, ground: float, raining: bool, winter: bool, season: int, daylight: float, indoor: bool) -> void:
 	var sky := ground + 7.0
 	# A point at height h shows at screen-plane y = z - h, so emitters sit further south.

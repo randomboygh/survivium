@@ -2,3 +2,4 @@
 build/
 *.import
 node_modules/
+*.uid

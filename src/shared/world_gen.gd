@@ -1,7 +1,9 @@
 extends RefCounted
 ## Deterministic world generator: the same seed always gives the same world.
-## Layers (relief, ridges, soil, caves, ores, forest) are independent noises, so rare
-## places come from rare combinations rather than from hand-made "special places".
+## Layers (relief, ridges, soil, caves, ores, forest, ravines, steepness) are independent
+## noises, so rare places come from rare combinations rather than from hand-made
+## "special places". Loose ground is marked natural and lies as slopes wherever it steps
+## down one level; stone, the steep patches and the ravines keep sheer walls.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -16,17 +18,22 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 	var ridges := _grid_2d(world_seed + 1, 0.018, 3, sx, sz)
 	var soil := _grid_2d(world_seed + 4, 0.05, 2, sx, sz)
 	var forest := _grid_2d(world_seed + 5, 0.03, 2, sx, sz)
+	var gullies := _grid_2d(world_seed + 6, 0.02, 1, sx, sz)
+	var steep := _grid_2d(world_seed + 7, 0.09, 2, sx, sz)
 	# 3D grids use the same layout as the cells: (y * sz + z) * sx + x.
 	var caves := _grid_3d(world_seed + 2, 0.06, 2, sx, sz, sy)
 	var ores := _grid_3d(world_seed + 3, 0.15, 1, sx, sz, sy)
 	var cave_t := _byte(0.42)
 	var ore_t := _byte(0.55)
 	var soil_t := _byte(0.25)
+	var steep_t := _byte(0.4)
 	var center := Vector2(sx, sz) * 0.5
 	var radius := minf(sx, sz) * 0.5
 	var layer := sx * sz
 	var cells := PackedByteArray()
 	cells.resize(sx * sy * sz)
+	var natural := PackedByteArray()
+	natural.resize(sx * sy * sz)
 	var heights := PackedInt32Array()
 	heights.resize(layer)
 
@@ -40,13 +47,19 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 			var r := maxf(0.0, ridges[col] / 127.5 - 1.0)
 			var height := int(round(sea - 4 + (3.0 + h * 6.0 + r * r * 30.0) * mask))
 			height = clampi(height, 1, sy - 3)
-			heights[col] = height
 			var rocky := height > sea + 6
+			# Ravines: narrow winding cuts three levels deep along a noise's zero
+			# line, through the lowlands; below the sea they fill as creeks.
+			var gully := absi(gullies[col] - 128)
+			if not rocky and height > sea and mask > 0.6 and gully < 5:
+				height -= 3 if gully < 4 else 2
+			heights[col] = height
 			var top := Mat.GRASS
 			if rocky:
 				top = Mat.STONE
 			elif height <= sea + 1:
 				top = Mat.SAND if soil[col] < soil_t else Mat.CLAY
+			var sloping := steep[col] < steep_t
 			for y in range(0, height + 1):
 				var i := y * layer + col
 				var m := Mat.STONE
@@ -57,6 +70,7 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 				if m == Mat.STONE and ores[i] > ore_t:
 					m = Mat.COPPER_ORE
 				cells[i] = m
+				natural[i] = 1 if sloping or y < height else 0
 			for y in range(height + 1, sea + 1):
 				cells[y * layer + col] = Mat.WATER
 			# Caves stay under dry land so they never touch the sea; in mountains
@@ -68,6 +82,7 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 					if caves[i] > cave_t:
 						cells[i] = Mat.AIR
 	w.cells = cells
+	w.natural = natural
 
 	# Trees grow only where the forest noise allows.
 	var forest_t := _byte(0.1)
@@ -80,6 +95,10 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 		for x in range(2, sx - 2):
 			var hh := heights[z * sx + x]
 			if hh < 0 or w.get_cell(x, hh, z) != Mat.GRASS or hh + 7 >= sy:
+				continue
+			# Trunks side by side would merge into a wall of logs.
+			if w.get_cell(x - 1, hh + 1, z) == Mat.LOG or w.get_cell(x + 1, hh + 1, z) == Mat.LOG \
+					or w.get_cell(x, hh + 1, z - 1) == Mat.LOG or w.get_cell(x, hh + 1, z + 1) == Mat.LOG:
 				continue
 			if rng.randf() > 0.08:
 				continue

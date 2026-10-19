@@ -1,9 +1,11 @@
 extends Node3D
-## Player body on the cell grid: walks, steps up one level by itself, jumps,
-## cannot enter water. `position` is the middle of the feet.
+## Player body on the cell grid: walks, steps up one level by itself, walks up and
+## down slopes, jumps, cannot enter water. `position` is the middle of the feet.
 
 const SpriteArt := preload("res://src/client/sprite_art.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const Mat := preload("res://src/shared/materials.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
 const XrayShader := preload("res://shaders/sprite_xray.gdshader")
 
@@ -13,6 +15,8 @@ const SPEED := 4.0
 const GRAVITY := 22.0
 const JUMP_SPEED := 7.5
 const MAX_FALL := 15.0
+## Walking down a slope keeps the feet on it up to this drop per step.
+const STEP_DOWN := 0.55
 
 var world
 ## Movement wish: x = east, y = south, length up to 1.
@@ -43,7 +47,8 @@ func _ready() -> void:
 	xray.top_level = true
 	add_child(xray)
 	torch = OmniLight3D.new()
-	torch.omni_range = 4.5
+	torch.omni_range = 6.5
+	torch.omni_attenuation = 1.4
 	torch.light_color = Color(1.0, 0.55, 0.25)
 	torch.light_energy = 0.0
 	torch.top_level = true
@@ -62,13 +67,18 @@ func step(delta: float, jump: bool) -> void:
 	var p := position
 	p = _try_move(p, Vector3(dir.x * SPEED * delta, 0.0, 0.0))
 	p = _try_move(p, Vector3(0.0, 0.0, dir.y * SPEED * delta))
+	if on_ground and not jump:
+		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
+		if below > -INF:
+			p.y = below
 	if jump and on_ground:
 		velocity_y = JUMP_SPEED
 	velocity_y = maxf(velocity_y - GRAVITY * delta, -MAX_FALL)
 	var ny := p.y + velocity_y * delta
 	if _collides(Vector3(p.x, ny, p.z)):
 		if velocity_y < 0.0:
-			p.y = floorf(ny) + 1.0
+			var ground := _ground_top(p, ny, p.y)
+			p.y = ground if ground > -INF else floorf(ny) + 1.0
 			on_ground = true
 		velocity_y = 0.0
 	else:
@@ -103,11 +113,13 @@ func _try_move(p: Vector3, d: Vector3) -> Vector3:
 	var np := p + d
 	if not _collides(np):
 		return np
-	# Step up one level when the obstacle is one cell high.
+	# Step up onto ground at most one level higher: a block or the rising slope.
 	if on_ground:
-		var up := Vector3(np.x, floorf(p.y + 0.01) + 1.0, np.z)
-		if not _collides(up) and not _collides(Vector3(p.x, up.y, p.z)):
-			return up
+		var top := _ground_top(np, p.y, p.y + 1.01)
+		if top > p.y:
+			var up := Vector3(np.x, top, np.z)
+			if not _collides(up) and not _collides(Vector3(p.x, top, p.z)):
+				return up
 	return p
 
 
@@ -121,6 +133,43 @@ func _collides(p: Vector3) -> bool:
 	for y in range(y0, y1 + 1):
 		for z in range(z0, z1 + 1):
 			for x in range(x0, x1 + 1):
-				if world.blocks_body(x, y, z):
+				if not world.blocks_body(x, y, z):
+					continue
+				# A sloping cell only blocks below its surface under the feet.
+				if y != y0 or p.y + 0.001 < y + _cell_top(x, y, z, p):
 					return true
 	return false
+
+
+## Height of the highest ground the feet at `p` would stand on, among surfaces between
+## `lo` and `hi`; -INF when there is none.
+func _ground_top(p: Vector3, lo: float, hi: float) -> float:
+	var best := -INF
+	for y in range(floori(lo), floori(hi) + 1):
+		for z in range(floori(p.z - HALF_WIDTH), floori(p.z + HALF_WIDTH) + 1):
+			for x in range(floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH) + 1):
+				if not world.is_solid(x, y, z):
+					continue
+				var top := y + _cell_top(x, y, z, p)
+				if top >= lo - 0.001 and top <= hi + 0.001:
+					best = maxf(best, top)
+	return best
+
+
+## Top of a solid cell under the footprint at `p`, 0..1: 1 for a cube, the highest
+## point of the slope under the feet otherwise.
+func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
+	if not Mat.can_slope(world.get_cell(x, y, z)):
+		return 1.0
+	var mask: int = world.slope_mask(x, y, z)
+	if mask == WorldData.FULL:
+		return 1.0
+	var ax := clampf(p.x - HALF_WIDTH - x, 0.0, 1.0)
+	var bx := clampf(p.x + HALF_WIDTH - x, 0.0, 1.0)
+	var az := clampf(p.z - HALF_WIDTH - z, 0.0, 1.0)
+	var bz := clampf(p.z + HALF_WIDTH - z, 0.0, 1.0)
+	var top := 0.0
+	for i in 3:
+		for k in 3:
+			top = maxf(top, WorldData.slope_height(mask, lerpf(ax, bx, i * 0.5), lerpf(az, bz, k * 0.5)))
+	return top
