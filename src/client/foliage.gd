@@ -221,9 +221,9 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
 
 
-## Leaf clusters of the bushes standing on the given cells, of the types `types` notes
-## by cell (see Bushes): [count, buffer] like crowns, lit as one low dome per bush.
-## Bushes go bare in winter like some trees.
+## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like
+## crowns, lit as one low dome per bush. `types` notes the type of each by its cell
+## (see Bushes). Bushes go bare in winter like some trees.
 static func bushes(cells: Array[Vector3i], types: Dictionary) -> Array:
 	var buf := PackedFloat32Array()
 	var rng := RandomNumberGenerator.new()

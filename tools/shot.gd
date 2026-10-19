@@ -7,10 +7,10 @@ extends SceneTree
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
 
-const Bushes := preload("res://src/shared/bushes.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
+const Bushes := preload("res://src/shared/bushes.gd")
 const CELL := 0.5
 
 const SHOTS := {
@@ -103,8 +103,8 @@ func _run() -> void:
 			main.wet = 1.0 if main.raining and main.season != 3 else 0.0
 			main.foliage = main.FOLIAGE[main.season]
 			main.grass = main.GRASS[main.season]
-			main.leaf_amount = main.LEAF_AMOUNT[main.season]
 			main.berry_amount = main.BERRY_AMOUNT[main.season]
+			main.leaf_amount = main.LEAF_AMOUNT[main.season]
 		# Messages fade after a few seconds, longer than the settling above takes here.
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
