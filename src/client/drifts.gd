@@ -77,11 +77,14 @@ static func mound_mesh() -> ArrayMesh:
 
 static func _triangle(verts: PackedVector3Array, normals: PackedVector4Array, a: Vector3, b: Vector3, c: Vector3) -> void:
 	var nrm := (b - a).cross(c - a).normalized()
-	# Wound to face outward.
-	if nrm.dot(a + b + c) < 0.0:
+	# Godot's front faces wind clockwise, which puts the right-hand cross product on
+	# the inside: a triangle whose cross product points outward is turned around, and
+	# `nrm` is kept as the outward normal either way.
+	if nrm.dot(a + b + c) > 0.0:
 		var t := b
 		b = c
 		c = t
+	else:
 		nrm = -nrm
 	var shade := 1.0 + RELIEF * (0.6 * nrm.y + nrm.z - 0.3 * nrm.x)
 	var v := Vector4(nrm.x, nrm.y, nrm.z, shade)
