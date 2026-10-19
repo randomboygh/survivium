@@ -9,7 +9,7 @@ const VoxelModel := preload("res://src/client/voxel_model.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
 
 const PX := 1.0 / 16.0
-## Cells around a fire where snow melts and the ground stays dry.
+## World units around a fire where snow melts and the ground stays dry.
 const HEAT_RADIUS := 3.0
 
 var rain: CPUParticles3D
@@ -17,7 +17,7 @@ var snowfall: CPUParticles3D
 var fireflies: CPUParticles3D
 var leaves: CPUParticles3D
 var pollen: CPUParticles3D
-## Each fire: {"light": OmniLight3D, "base": float, "cell": Vector3i}
+## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it stands in)}
 var fires: Array = []
 var flicker_clock := 0.0
 var rng := RandomNumberGenerator.new()
@@ -73,17 +73,17 @@ func _ready() -> void:
 	pollen.color_ramp = _ramp([Color(1, 1, 0.85, 0.0), Color(1, 1, 0.85, 0.7), Color(1, 1, 0.85, 0.0)])
 
 
-## A campfire on the cell above `ground`: stones, logs, flames, sparks, smoke and a
-## flickering light. Returns the voxel model's mesh instance for the caller's material.
-func add_campfire(cell: Vector3i, material: Material) -> void:
+## A campfire one world unit square with its north-west corner at `corner`: stones,
+## logs, flames, sparks, smoke and a flickering light, the model drawn with `material`.
+func add_campfire(corner: Vector3, material: Material) -> void:
 	var model := MeshInstance3D.new()
 	model.mesh = _campfire_model().build_mesh()
 	model.material_override = material
 	model.scale = Vector3.ONE / 16.0
-	model.position = Vector3(cell)
+	model.position = corner
 	model.extra_cull_margin = 16.0
 	add_child(model)
-	var c := Vector3(cell) + Vector3(0.5, 0.15, 0.5)
+	var c := corner + Vector3(0.5, 0.15, 0.5)
 
 	var flames := _emitter(36, 0.7, Vector2(2.0 * PX, 2.0 * PX), 1.0)
 	flames.local_coords = false
@@ -128,20 +128,20 @@ func add_campfire(cell: Vector3i, material: Material) -> void:
 	light.omni_attenuation = 1.2
 	light.position = PixelView.shear(c + Vector3(0.0, 0.6, 0.0))
 	add_child(light)
-	fires.append({"light": light, "base": 1.8, "cell": cell})
+	fires.append({"light": light, "base": 1.8, "unit": Vector3i(c.floor())})
 
 
 ## Moves the weather emitters over the view and turns them on and off.
 ## `view` is the screen-plane centre; `ground` the height the player stands on.
 ## Warmth around the fires for the shaders (heat_map, see common.gdshaderinc): one
-## texel per cell, r = heat falling off over HEAT_RADIUS cells, g = the fire's level.
-## Snow melts and rain dries there.
+## texel per world unit, r = heat falling off over HEAT_RADIUS units, g = the height of
+## the fire's unit. Snow melts and rain dries there.
 func heat_map(size_x: int, size_z: int) -> ImageTexture:
 	var img := Image.create_empty(size_x, size_z, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 1))
 	var r := ceili(HEAT_RADIUS)
 	for f in fires:
-		var c: Vector3i = f.cell
+		var c: Vector3i = f.unit
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				var x := c.x + dx

@@ -1,6 +1,9 @@
 // Water: see-through over shallows and darker in the deep, foam that laps at the
 // shore, drifting ripple lines and sparkles, rain rings, ice in winter.
-// UV2.x: foam bits for the N, S, W, E edges that touch land; UV2.y: depth in cells.
+// UV2.x: foam bits for the half edges that touch land (2 per edge N, S, W, E: the
+// west or north half, then the other), then for the diagonals of corners NW, NE, SE,
+// SW filled with land, then for those of cut-off corners of the land beside;
+// UV2.y: depth in cells (half a world unit each).
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -24,13 +27,14 @@ void vertex() {
 }
 
 void fragment() {
-	if (world_pos.y > cut_height + 0.01) {
+	if (above_cut(world_pos)) {
 		discard;
 	}
 	vec2 tex = floor(world_pos.xz * TEXELS);
-	ivec2 t = clamp(ivec2(floor(UV * TEXELS)), ivec2(0), ivec2(15));
-	int dist[4] = int[](t.y, 15 - t.y, t.x, 15 - t.x);
-	float depth = clamp((data.y - 1.0) / 3.0, 0.0, 1.0);
+	int last = int(CELL_TEXELS) - 1;
+	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
+	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
+	float depth = clamp((data.y * CELL - 1.0) / 3.0, 0.0, 1.0);
 	vec3 col = mix(shallow, deep, depth);
 	float alpha = mix(0.45, 1.0, depth);
 	if (world_normal.y < 0.5) {
@@ -47,8 +51,10 @@ void fragment() {
 		col += vec3(0.35) * s * (1.0 - ice_amount);
 		// Foam along the shore, washing in and out by a texel or two.
 		int foam = int(data.x + 0.5);
+		int mid = int(CELL_TEXELS) / 2;
 		for (int e = 0; e < 4; e++) {
-			if (((foam >> e) & 1) == 0) {
+			int half = (e < 2 ? t.x : t.y) / mid;
+			if (((foam >> (2 * e + half)) & 1) == 0) {
 				continue;
 			}
 			float along = e < 2 ? tex.x : tex.y;
@@ -60,18 +66,38 @@ void fragment() {
 				col = mix(col, foam_color, 0.25);
 			}
 		}
-		// Rain rings: each cell gets a ring now and then while it rains.
+		// Along diagonals: the water lies away from a filled corner and on the corner's
+		// side of a cut one.
+		for (int k = 0; k < 4; k++) {
+			bool filled = ((foam >> (8 + k)) & 1) != 0;
+			if (!filled && ((foam >> (12 + k)) & 1) == 0) {
+				continue;
+			}
+			int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
+			float d = float(filled ? sd : -sd);
+			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
+			if (d < wash) {
+				col = foam_color;
+				alpha = 0.95;
+			} else if (d < wash + 2.0) {
+				col = mix(col, foam_color, 0.25);
+			}
+		}
+		// Rain rings: each square of two by two cells gets a ring now and then while it
+		// rains.
 		if (wetness > 0.05) {
 			vec2 cell = floor(world_pos.xz);
 			float phase = fract(TIME * 0.8 + hash12(cell) * 7.0);
 			vec2 c = vec2(hash12(cell + 3.0), hash12(cell + 5.0)) * 10.0 + 3.0;
-			float r = length(vec2(t) + 0.5 - c);
+			float r = length(floor(fract(world_pos.xz) * TEXELS) + 0.5 - c);
 			float ring = step(abs(r - phase * 3.0), 0.5) * step(phase, 0.7) * step(hash12(cell + floor(TIME * 0.8 + hash12(cell) * 7.0)), wetness * 0.45);
 			col = mix(col, col * 1.4 + 0.08, ring);
 		}
 	}
 	col = mix(col, vec3(0.74, 0.85, 0.92) + 0.06 * hash12(tex), ice_amount);
-	ALBEDO = col * cut_shade(world_pos.y);
+	float fade = depth_fade(world_pos.y);
+	ALBEDO = col * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	ALPHA = mix(alpha, 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

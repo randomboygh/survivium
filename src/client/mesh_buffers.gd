@@ -38,10 +38,11 @@ func is_empty() -> bool:
 	return verts.is_empty()
 
 
-func to_mesh() -> ArrayMesh:
+## The mesh, its vertices scaled by `scale` (cells to world units for the world).
+func to_mesh(scale := 1.0) -> ArrayMesh:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_VERTEX] = verts if scale == 1.0 else Transform3D.IDENTITY.scaled(Vector3.ONE * scale) * verts
 	arrays[Mesh.ARRAY_NORMAL] = normals
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_TEX_UV2] = uv2s

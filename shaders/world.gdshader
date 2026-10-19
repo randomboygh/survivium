@@ -3,13 +3,17 @@
 // seasons need no extra textures.
 //
 // Vertex data (see chunk_mesher.gd):
-//   UV   = position on the face, 0..1 (v = 0 at the north edge of a top face and at
-//          the top of a wall)
+//   UV   = position on the cell's face, 0..1 (v = 0 at the north edge of a top face
+//          and at the top of a wall), for edges; merged plain tops run past 1. The
+//          texture itself is laid by world position, a 16x16 tile over two cells.
 //   UV2.x = tile + 64 * edges + 16384 * flag; tile 63 means "colour from COLOR only"
 //          (voxels); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
-//          outline, 3 contact shadow; flag 1 = season-tinted foliage voxel,
-//          flag 2 = wall with open sky above (gets a snow fringe), flag 4 = sloping
-//          top (textured in screen texels so it is not stretched)
+//          outline, 3 contact shadow; flag bits: 1 = season-tinted foliage voxel,
+//          2 = wall with open sky above (gets a snow fringe), 4 = sloping top or
+//          diagonal wall (textured in screen texels so it is not stretched), 8 = an
+//          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
+//          lying on the corner's side of it if bit 64, with the edge code in bits
+//          128..256
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut)
@@ -86,16 +90,17 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 
 void fragment() {
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
-	if (world_pos.y > cut_height + 0.01 && !IN_SHADOW_PASS) {
+	if (!IN_SHADOW_PASS && above_cut(world_pos)) {
 		discard;
 	}
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
 	int edges = (a / 64) % 256;
 	int flag = a / 16384;
-	ivec2 t = clamp(ivec2(floor(UV * TEXELS)), ivec2(0), ivec2(15));
+	int last = int(CELL_TEXELS) - 1;
+	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
 	// Texel distance to the N, S, W, E edges of the face.
-	int dist[4] = int[](t.y, 15 - t.y, t.x, 15 - t.x);
+	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
 	vec3 col = COLOR.rgb;
 	bool top = world_normal.y > 0.5;
 	vec2 wt = floor(world_pos.xz * TEXELS);
@@ -123,7 +128,14 @@ void fragment() {
 				}
 			}
 		}
-		ivec2 tm = top ? tile_mirror(t, floor(world_pos.xz)) : t;
+		// The tile's texel at this spot of the world: x and z on tops, across and down
+		// on walls.
+		vec2 across = abs(world_normal.y) > 0.5 ? world_pos.xz
+			: vec2(abs(world_normal.x) > 0.5 ? world_pos.z : world_pos.x, -world_pos.y);
+		ivec2 tm = ivec2(mod(floor(across * TEXELS), TEXELS));
+		if (top) {
+			tm = tile_mirror(tm, floor(world_pos.xz));
+		}
 		if (flag == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
 			// where they show on screen, one texel per pixel.
@@ -138,7 +150,7 @@ void fragment() {
 		} else if (top && pick % 3 == 0 && COLOR.r > 0.5) {
 			col *= ground_variety(pick / 3, world_pos.xz, wt);
 		}
-	} else if (flag == 1) {
+	} else if ((flag & 1) != 0) {
 		col *= foliage_tint;
 	}
 	// Edge shading: a light rim on convex edges, a dark outline where the face meets
@@ -158,6 +170,23 @@ void fragment() {
 			ao = min(ao, dist[e] == 0 ? 0.6 : 0.8);
 		}
 	}
+	if ((flag & 8) != 0) {
+		// Texel distance to the diagonal half a cell from corner k, counted on the face.
+		int k = (flag >> 4) & 3;
+		int mid = int(CELL_TEXELS) / 2;
+		int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
+		int dd = (flag & 64) != 0 ? -sd : sd;
+		int code = (flag >> 7) & 3;
+		if (code == 1 && dd == 0) {
+			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
+		} else if (code == 2 && dd == 0) {
+			col *= 0.45;
+		} else if (code == 2 && dd == 1) {
+			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
+		} else if (code == 3 && dd <= 1) {
+			ao = min(ao, dd == 0 ? 0.6 : 0.8);
+		}
+	}
 	// Snow covers whole texels on upward faces and a fringe on top of walls. The
 	// wind leaves a few spots bare, and it melts away around fires.
 	float snow_here = snow_amount * (1.0 - warm);
@@ -169,17 +198,18 @@ void fragment() {
 	} else if (top) {
 		float swept = step(ground_patch(world_pos.xz, 5.0) + (h - 0.5) * 0.05, 0.07);
 		snow = step(h, snow_here * 1.15 - 0.05) * (1.0 - swept);
-	} else if (flag == 2) {
-		float fringe = snow_here * (0.12 + 0.12 * h);
-		snow = step(1.0 - fringe, fract(world_pos.y)) * step(0.3, snow_here);
+	} else if ((flag & 2) != 0) {
+		float fringe = snow_here * (0.24 + 0.24 * h);
+		snow = step(1.0 - fringe, fract(world_pos.y / CELL)) * step(0.3, snow_here);
 	}
 	if (snow > 0.0) {
 		col = mix(col, snow_color(world_pos.xz, wt), snow);
 	}
 	float wet = wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
-	col *= cut_shade(world_pos.y);
-	ALBEDO = col;
+	float fade = depth_fade(world_pos.y);
+	ALBEDO = col * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
 	AO_LIGHT_AFFECT = 0.6;

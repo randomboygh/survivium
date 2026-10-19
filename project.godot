@@ -66,6 +66,18 @@ player_pos={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
+cut_ghost={
+"type": "float",
+"value": 1.0
+}
+view_height={
+"type": "float",
+"value": 0.0
+}
+depth_haze={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
 leaf_amount={
 "type": "float",
 "value": 1.0

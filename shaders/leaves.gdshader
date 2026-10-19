@@ -36,7 +36,8 @@ void fragment() {
 	float phase = fract(custom.w);
 	float variant = floor(phase * 4.0);
 	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (floor(custom.w) + UV.y) / float(clump_rows)));
-	if (m.a < 0.5 || center.y > cut_height + 0.01) {
+	vec2 texel = floor(vec2(center.x, center.z - center.y) * TEXELS + UV * clump_size * TEXELS);
+	if (m.a < 0.5 || cut_dither(center.y, texel)) {
 		discard;
 	}
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters
@@ -75,7 +76,9 @@ void fragment() {
 		col = vec3(0.9, 0.93, 1.0);
 	}
 	col *= 1.0 - 0.25 * wetness;
-	ALBEDO = col * cut_shade(center.y);
+	float fade = depth_fade(center.y);
+	ALBEDO = col * (1.0 - fade);
+	EMISSION = depth_haze * fade;
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
