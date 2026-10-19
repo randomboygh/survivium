@@ -16,7 +16,8 @@
 //          128..256
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
-//   COLOR.r = shade (dark caps of the cut); COLOR.a = relief of a snowdrift (flag 512)
+//   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
+//          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1)
 shader_type spatial;
 render_mode world_vertex_coords, cull_back;
 
@@ -204,6 +205,10 @@ void fragment() {
 	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
+	// Moss on the tops of stone in damp patches, not by a fire.
+	if (top && tile == 3 * 3 && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
+	}
 	float snow = 0.0;
 	if (snow_here <= 0.0) {
 		// No snow: skip the snow patterns.
@@ -217,9 +222,9 @@ void fragment() {
 	if (snow > 0.0) {
 		col = mix(col, snow_color(world_pos.xz, wt), snow);
 	}
-	if ((flag & 512) != 0) {
-		// A snowdrift: its relief is a soft shade baked into the vertex colour.
-		col *= COLOR.a;
+	if (tile == NONE) {
+		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.
+		col *= COLOR.a * 2.0;
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;

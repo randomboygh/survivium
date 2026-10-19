@@ -46,14 +46,12 @@ const EDGE_E := 6
 ## Face flags (see world.gdshader): a season-tinted voxel, a wall with open sky above,
 ## a face textured in screen texels (slopes and diagonal walls), a diagonal edge across
 ## corner k (flag bits 16..32) on the corner's side of it or away from it, with an edge
-## code (bits 128..256), a snowdrift (512).
+## code (bits 128..256).
 const FOLIAGE_VOXEL := 1
 const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
 const DIAG_CORNER := 64
-## A snowdrift mound (see drifts.gd): shaded by COLOR.a on top of the snow pattern.
-const DRIFT := 512
 const FULL := WorldData.FULL
 const CORNER_DIRS := WorldData.CORNER_DIRS
 ## Pieces of a top (see _piece): a whole quarter of the cell, the part of a quarter away

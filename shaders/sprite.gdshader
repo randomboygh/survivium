@@ -21,7 +21,9 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(sprite_texture, UV);
-	if (world_pos.y < water_line || above_cut(world_pos)) {
+	// The player stays whole whatever level is cut; everyone else goes with their level.
+	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;
+	if (world_pos.y < water_line || (!me && above_cut(world_pos))) {
 		discard;
 	}
 	if (world_pos.y < water_line + 1.0 / TEXELS) {

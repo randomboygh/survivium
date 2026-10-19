@@ -9,15 +9,18 @@ const PixelView := preload("res://src/client/pixel_view.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 
 const CELL := WorldData.CELL
-## Tile 63 of the terrain shader: colour from COLOR only.
+## Tile 63 of the terrain shader: colour from COLOR only, shaded by COLOR.a.
 const PLAIN := 63
 ## The mound's own colour where the snow pattern leaves a texel bare: a snow tone.
 const SHADE := Color(0.6, 0.64, 0.74)
 ## One candidate column in this many, on a grid of every other column.
 const SPARSITY := 12
 ## A mound is lit like the flat ground around it (its normals point up, so the toon
-## light gives it no hard band); its relief is a soft shade baked into COLOR.a, a
-## little brighter on the side toward the sun, dimmer on the far side.
+## light gives it no hard band); its relief is a soft shade baked into COLOR.a. The
+## sun crosses the southern sky, so the cap and the south slope are brighter than the
+## field and the north slope dimmer; the mound also casts its own thin shadow north.
+## The body has to be visibly lighter than the field: a shadow crescent alone, with
+## no body to belong to, reads as a hollow.
 const RELIEF := 0.12
 
 
@@ -48,12 +51,14 @@ static func mound_mesh() -> ArrayMesh:
 	uvs.resize(n)
 	var uv2 := PackedVector2Array()
 	uv2.resize(n)
-	uv2.fill(Vector2(Mesher.pack(PLAIN, 0, Mesher.DRIFT), 0.0))
+	uv2.fill(Vector2(Mesher.pack(PLAIN, 0, 0), 0.0))
 	var colors := PackedColorArray()
 	colors.resize(n)
 	for i in n:
 		var c := SHADE
-		c.a = normals[i].w
+		# Vertex colours are stored in 8 bits, so a shade above 1 would be clamped:
+		# it travels halved and the shader doubles it.
+		c.a = normals[i].w * 0.5
 		colors[i] = c
 	var flat := PackedVector3Array()
 	flat.resize(n)
@@ -78,8 +83,7 @@ static func _triangle(verts: PackedVector3Array, normals: PackedVector4Array, a:
 		b = c
 		c = t
 		nrm = -nrm
-	# The sun crosses the southern sky: south-facing facets are the bright ones.
-	var shade := 1.0 + RELIEF * nrm.z - 0.3 * RELIEF * nrm.x
+	var shade := 1.0 + RELIEF * (0.6 * nrm.y + nrm.z - 0.3 * nrm.x)
 	var v := Vector4(nrm.x, nrm.y, nrm.z, shade)
 	verts.append_array([a, b, c])
 	normals.append_array([v, v, v])

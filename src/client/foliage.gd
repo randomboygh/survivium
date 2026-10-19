@@ -13,9 +13,16 @@ const PixelView := preload("res://src/client/pixel_view.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 
-## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
-const TUFTS_PER_CELL := 2
-const TUFT_SIZE := 0.5
+## Ground plants (see PixelTextures.build_plants and grass.gdshader): one or two grass
+## tufts on most grass cells, lush patches keep all of them and thin meadows fewer; a
+## flower, an ear of dry grass or a low herb on some cells; reeds along the water,
+## except on sand.
+const PLANT_W := PixelTextures.PLANT_W / 16.0
+const PLANT_H := PixelTextures.PLANT_H / 16.0
+const FLOWER := 4
+const EAR := 8
+const REED := 10
+const HERB := 12
 ## Leaf cluster cards: size in world units (24 px, see PixelTextures.CLUMP; the bunch of
 ## leaves in a card is one of three sizes), cards on each open face of a crown point the
 ## camera sees.
@@ -58,9 +65,15 @@ const EVEN_LEVELS := 0x5555555555555555
 
 ## Upright quad of `size`, bottom edge (or centre when `centered`) at the origin.
 static func quad_mesh(size: float, centered: bool) -> ArrayMesh:
-	var h := size * 0.5
-	var y0 := -h if centered else 0.0
-	var y1 := y0 + size
+	return plant_mesh(size, size, centered)
+
+
+## Upright quad `width` by `height`, bottom edge (or centre when `centered`) at the
+## origin.
+static func plant_mesh(width: float, height: float, centered := false) -> ArrayMesh:
+	var h := width * 0.5
+	var y0 := -height * 0.5 if centered else 0.0
+	var y1 := y0 + height
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-h, y0, 0), Vector3(-h, y1, 0), Vector3(h, y1, 0), Vector3(h, y0, 0)])
@@ -120,19 +133,38 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				tops ^= bit
 				var y := WorldData.level_of(bit)
 				var i := y * layer + col
-				if cells[i] != Mat.GRASS:
+				var m := cells[i]
+				if not Mat.can_slope(m):
 					continue
 				rng.seed = hash(Vector3i(x, y, z))
 				var mask := WorldData.FULL & ~(shapes[i] & 15)
 				var cuts := shapes[i] >> 4
-				for k in TUFTS_PER_CELL:
+				var kinds: Array[int] = []
+				if m == Mat.GRASS:
+					# No tuft on a quarter of the cells and two on another quarter, so
+					# the ground shows between them before the shader thins the meadows.
+					var roll := rng.randf()
+					for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
+						kinds.append(rng.randi_range(0, 3))
+					var extra := rng.randf()
+					if extra < 0.16:
+						kinds.append(FLOWER + rng.randi_range(0, 3))
+					elif extra < 0.28:
+						kinds.append(EAR + rng.randi_range(0, 1))
+					elif extra < 0.4:
+						kinds.append(HERB + rng.randi_range(0, 1))
+				# Reeds line grassy and muddy banks, not the sand of a beach.
+				if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
+					for k in rng.randi_range(1, 2):
+						kinds.append(REED + rng.randi_range(0, 1))
+				for kind in kinds:
 					var fx := rng.randi_range(1, 7) / 8.0
 					var fz := rng.randi_range(1, 7) / 8.0
 					var q := WorldData.corner_at(fx, fz)
 					if cuts & (1 << q) and WorldData.in_corner(q, fx, fx, fz, fz):
 						continue
 					put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz, cuts), z + fz) * CELL)
-					grass.append_array([float(rng.randi_range(0, 3)), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
+					grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 					ng += 1
 			if x & 1 == 0 or z & 1 == 0:
 				continue
@@ -210,6 +242,20 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				shadows.append_array([base.a, 0.0, 0.0, 0.0])
 				ns += 1
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
+
+
+## True for a ground cell at the water's edge: open water beside it at its own level
+## or one below.
+static func _by_water(w, x: int, y: int, z: int) -> bool:
+	var bits := (1 << y) | (1 << (y - 1) if y > 0 else 0)
+	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var nx := x + d.x
+		var nz := z + d.y
+		if nx < 0 or nz < 0 or nx >= w.size_x or nz >= w.size_z:
+			continue
+		if w.water_cols[nz * w.size_x + nx] & bits:
+			return true
+	return false
 
 
 ## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like

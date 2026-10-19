@@ -7,6 +7,7 @@ extends SceneTree
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
 
+const WorldData := preload("res://src/shared/world_data.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
 const Trees := preload("res://src/shared/trees.gd")
@@ -25,6 +26,7 @@ const SHOTS := {
 	"winter-night": {"time": 0.97, "season": 3},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
+	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	"shore": {"time": 0.4, "season": 1, "shore": true},
 	"slopes": {"time": 0.42, "season": 1, "slopes": true},
@@ -135,10 +137,11 @@ func _run() -> void:
 			main.grass = main.GRASS[main.season]
 			main.leaf_amount = main.LEAF_AMOUNT[main.season]
 		if shot.get("walk", false):
-			# A walk in a hook south-west, then west, over the open ground, leaving
+			# A walk in a hook south-east, then west, over a flat open spot, leaving
 			# footprints.
-			for i in 140:
-				main.player.move_input = Vector2(-0.6, 0.8) if i < 70 else Vector2(-1.0, -0.2)
+			main.player.position = _flat_near(main.world, main.player.position)
+			for i in 100:
+				main.player.move_input = Vector2(0.6, 0.8) if i < 50 else Vector2(-1.0, 0.0)
 				main.player.step(1.0 / 30.0, false)
 				main._leave_footprints()
 				await process_frame
@@ -158,9 +161,41 @@ func _run() -> void:
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
 		print("saved ", shot_name)
+		if shot.get("wall", false):
+			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 	quit()
+
+
+## The nearest spot to `p` with level dry ground and no trees for 7 cells around.
+func _flat_near(w, p: Vector3) -> Vector3:
+	var cx := floori(p.x / CELL)
+	var cz := floori(p.z / CELL)
+	for r in range(0, 60):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := cx + dx
+				var z := cz + dz
+				var y: int = w.surface_y(x, z)
+				if y <= w.sea_level or w.get_cell(x, y - 1, z) != Mat.GRASS:
+					continue
+				var flat := true
+				for oz in range(-7, 8):
+					for ox in range(-7, 8):
+						var nx := x + ox
+						var nz := z + oz
+						if nx < 1 or nz < 1 or nx >= w.size_x - 1 or nz >= w.size_z - 1 or w.surface_y(nx, nz) != y \
+								or w.leaf_cols[nz * w.size_x + nx] != 0 or w.slope_mask(nx, y - 1, nz) != WorldData.FULL:
+							flat = false
+							break
+					if not flat:
+						break
+				if flat:
+					return (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return p
 
 
 ## Standing spot at a place of the island's layout (see WorldGen).
@@ -385,12 +420,31 @@ func _hut(w, at: Vector3) -> Vector3:
 ## a stone plateau with outer and inner corners, a channel two cells wide with a bend.
 ## A stone wall three levels high two cells south of the player, between them and
 ## the camera, to look at how the player shows through what hides them.
+## The cells a wall replaced, to put back after its shot: the world is shared by all
+## the shots of one run.
+var wall_cells: Array = []
+
+
 func _wall(w, at: Vector3i) -> void:
 	for z in range(at.z + 2, at.z + 4):
 		for x in range(at.x - 5, at.x + 6):
 			for y in range(at.y, at.y + 3):
+				wall_cells.append([Vector3i(x, y, z), w.get_cell(x, y, z), w.is_natural(x, y, z)])
 				w.set_cell(x, y, z, Mat.STONE)
 				w.set_natural(x, y, z, false)
+	_wall_changed(at)
+
+
+func _unwall(w, at: Vector3i) -> void:
+	for c in wall_cells:
+		w.set_cell(c[0].x, c[0].y, c[0].z, c[1])
+		w.set_natural(c[0].x, c[0].y, c[0].z, c[2])
+	wall_cells.clear()
+	_wall_changed(at)
+	main.roof.build(w)
+
+
+func _wall_changed(at: Vector3i) -> void:
 	for x in range(at.x - 8, at.x + 9, 8):
 		main._on_cell_changed(Vector3i(x, at.y, at.z + 2))
 
