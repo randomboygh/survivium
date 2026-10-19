@@ -210,7 +210,7 @@ static func theme() -> Theme:
 	t.set_constant("line_spacing", "Label", 4)
 	t.set_stylebox("panel", "PanelContainer", panel())
 	t.set_stylebox("panel", "Panel", panel())
-	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 		t.set_stylebox(state, "Button", button(state))
 	for c in ["font_color", "font_hover_color", "font_focus_color"]:
 		t.set_color(c, "Button", INK)
@@ -239,7 +239,7 @@ static func button(state: String, accent := false) -> StyleBoxTexture:
 		shade = ACCENT_DARK
 	elif state == "hover":
 		fill = BUTTON_HOVER
-	elif state == "pressed":
+	elif state == "pressed" or state == "hover_pressed":
 		fill = BUTTON_SHADE
 		shade = BUTTON_SHADE
 	var box := _nine_patch(12, 4, "button", fill, shade, Vector4(10, 6, 10, 8))

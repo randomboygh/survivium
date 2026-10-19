@@ -26,6 +26,7 @@ var selected := false:
 		queue_redraw()
 
 var _box: StyleBox
+var _touch_ms := -100000
 var _box_selected: StyleBox
 
 
@@ -38,8 +39,15 @@ func _init(side := 40) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	# Taps come as touches from any finger, so a slot can be picked while the other thumb
+	# walks; mouse clicks that copy a tap are skipped.
+	if event is InputEventScreenTouch and event.pressed:
+		_touch_ms = Time.get_ticks_msec()
 		pressed.emit()
+		accept_event()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if event.device != InputEvent.DEVICE_ID_EMULATION and Time.get_ticks_msec() - _touch_ms > 1000:
+			pressed.emit()
 		accept_event()
 
 

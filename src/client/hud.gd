@@ -11,6 +11,7 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const PerfPanel := preload("res://src/client/perf_panel.gd")
 const TouchStick := preload("res://src/client/touch_stick.gd")
+const TouchButton := preload("res://src/client/touch_button.gd")
 const Mat := preload("res://src/shared/materials.gd")
 
 const MARGIN := 8.0
@@ -136,28 +137,27 @@ func _ready() -> void:
 
 	stick = TouchStick.new()
 	add_child(stick)
-	_action = Button.new()
-	_action.focus_mode = Control.FOCUS_NONE
+	_action = TouchButton.new()
 	_action.custom_minimum_size = Vector2(84, 84)
 	_action.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_action.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		_action.add_theme_stylebox_override(state, UiStyle.octagon(UiStyle.ACCENT if state != "pressed" else UiStyle.ACCENT_DARK))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		_action.add_theme_stylebox_override(state, UiStyle.octagon(UiStyle.ACCENT if not state.ends_with("pressed") else UiStyle.ACCENT_DARK))
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		_action.add_theme_color_override(c, UiStyle.DARK_INK)
-	_action.pressed.connect(func() -> void: game.set_dig_mode(not game.dig_mode))
+	_action.held.connect(func(on: bool) -> void:
+		if on:
+			game.set_dig_mode(not game.dig_mode))
 	add_child(_action)
-	_jump = Button.new()
+	_jump = TouchButton.new()
 	_jump.text = "Прыжок"
 	_jump.icon = UiStyle.icon("up")
-	_jump.focus_mode = Control.FOCUS_NONE
 	_jump.custom_minimum_size = Vector2(56, 56)
 	_jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_jump.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	_jump.add_theme_stylebox_override("normal", UiStyle.panel())
 	_jump.add_theme_stylebox_override("hover", UiStyle.panel())
-	_jump.button_down.connect(func() -> void: game.jump_held = true)
-	_jump.button_up.connect(func() -> void: game.jump_held = false)
+	_jump.held.connect(func(on: bool) -> void: game.jump_held = on)
 	add_child(_jump)
 
 	_keys = _panel(self)

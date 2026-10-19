@@ -118,6 +118,24 @@ async function screenshot(name, page) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     const d1 = await debug(page, log);
     if (!(d1.player[0] - d0.player[0] > 0.5)) errors.push(`phone: joystick did not move the player: ${d0.player} -> ${d1.player}`);
+
+    // Hold the joystick with one finger and jump with another: the second finger
+    // must reach the jump button.
+    if (d1.jump.length === 4) {
+      const jx = (d1.jump[0] + d1.jump[2] / 2) / dpr;
+      const jy = (d1.jump[1] + d1.jump[3] / 2) / dpr;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 0 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 0 }, { x: jx, y: jy, id: 1 }] });
+      await page.waitForTimeout(600);
+      let rose = false;
+      let last = d1;
+      for (let i = 0; i < 3 && !rose; i++) {
+        last = await debug(page, log);
+        rose = last.player[1] - d1.player[1] > 0.05;
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      if (!rose) errors.push(`phone: jump with a second finger while holding the joystick did nothing: ${d1.player} -> ${last.player}`);
+    }
   }
   if (d0.menu.length === 4) {
     // Open the pause menu and tap "Следующий сезон" in it.
