@@ -1,27 +1,83 @@
-// Water surface: translucent with stepped sparkles; turns to ice in winter.
+// Water: see-through over shallows and darker in the deep, foam that laps at the
+// shore, drifting ripple lines and sparkles, rain rings, ice in winter.
+// UV2.x: foam bits for the N, S, W, E edges that touch land; UV2.y: depth in cells.
 shader_type spatial;
-render_mode blend_mix, cull_back, depth_draw_opaque, specular_schlick_ggx;
+render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
-uniform sampler2D atlas : source_color, filter_nearest;
-uniform float cut_height = 1000.0;
+#include "res://shaders/common.gdshaderinc"
+
 uniform float ice_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec3 shallow : source_color = vec3(0.36, 0.62, 0.6);
+uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
+uniform vec3 foam_color : source_color = vec3(0.85, 0.93, 0.92);
 
 varying vec3 world_pos;
+varying vec3 world_normal;
+varying flat vec2 data;
+varying float clouds;
 
 void vertex() {
-	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_pos = VERTEX;
+	world_normal = NORMAL;
+	data = UV2;
+	VERTEX = shear(VERTEX);
 }
 
 void fragment() {
 	if (world_pos.y > cut_height + 0.01) {
 		discard;
 	}
-	vec3 col = texture(atlas, UV).rgb;
-	vec2 texel = floor(world_pos.xz * 16.0) + floor(TIME * 2.0);
-	float sparkle = step(0.985, fract(sin(dot(texel, vec2(12.9898, 78.233))) * 43758.5453));
-	col += vec3(0.25) * sparkle * (1.0 - ice_amount);
-	ALBEDO = mix(col, vec3(0.78, 0.88, 0.95), ice_amount);
-	ALPHA = mix(0.72, 1.0, ice_amount);
-	ROUGHNESS = mix(0.15, 0.6, ice_amount);
-	SPECULAR = 0.6;
+	vec2 tex = floor(world_pos.xz * TEXELS);
+	ivec2 t = clamp(ivec2(floor(UV * TEXELS)), ivec2(0), ivec2(15));
+	int dist[4] = int[](t.y, 15 - t.y, t.x, 15 - t.x);
+	float depth = clamp((data.y - 1.0) / 3.0, 0.0, 1.0);
+	vec3 col = mix(shallow, deep, depth);
+	float alpha = mix(0.45, 1.0, depth);
+	if (world_normal.y < 0.5) {
+		col *= 0.8;
+		alpha = 0.9;
+	} else {
+		// Drifting ripple lines: thin bands of a slowly moving noise.
+		float n = texture(cloud_noise, (tex / TEXELS + vec2(TIME * 0.05, TIME * 0.02)) / 6.0).r;
+		float n2 = texture(cloud_noise, (tex / TEXELS - vec2(TIME * 0.03, -TIME * 0.04)) / 9.0 + 0.5).r;
+		float line = step(abs(n - 0.55), 0.012) + step(abs(n2 - 0.45), 0.01);
+		col = mix(col, col * 1.35 + 0.05, clamp(line, 0.0, 1.0) * 0.8);
+		// Sparkles.
+		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0));
+		col += vec3(0.35) * s * (1.0 - ice_amount);
+		// Foam along the shore, washing in and out by a texel or two.
+		int foam = int(data.x + 0.5);
+		for (int e = 0; e < 4; e++) {
+			if (((foam >> e) & 1) == 0) {
+				continue;
+			}
+			float along = e < 2 ? tex.x : tex.y;
+			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + along * 0.6)) + step(0.75, hash12(vec2(along, floor(TIME * 1.5))));
+			if (float(dist[e]) < wash) {
+				col = foam_color;
+				alpha = 0.95;
+			} else if (float(dist[e]) < wash + 2.0) {
+				col = mix(col, foam_color, 0.25);
+			}
+		}
+		// Rain rings: each cell gets a ring now and then while it rains.
+		if (wetness > 0.05) {
+			vec2 cell = floor(world_pos.xz);
+			float phase = fract(TIME * 0.8 + hash12(cell) * 7.0);
+			vec2 c = vec2(hash12(cell + 3.0), hash12(cell + 5.0)) * 10.0 + 3.0;
+			float r = length(vec2(t) + 0.5 - c);
+			float ring = step(abs(r - phase * 3.0), 0.5) * step(phase, 0.7) * step(hash12(cell + floor(TIME * 0.8 + hash12(cell) * 7.0)), wetness * 0.45);
+			col = mix(col, col * 1.4 + 0.08, ring);
+		}
+	}
+	col = mix(col, vec3(0.74, 0.85, 0.92) + 0.06 * hash12(tex), ice_amount);
+	ALBEDO = col * cut_shade(world_pos.y);
+	ALPHA = mix(alpha, 1.0, ice_amount);
+	ROUGHNESS = 1.0;
+	SPECULAR = 0.0;
+	clouds = cloud_light(world_pos);
+}
+
+void light() {
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
 }

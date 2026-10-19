@@ -27,3 +27,54 @@ window/dpi/allow_hidpi=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 anti_aliasing/quality/msaa_3d=0
+
+[shader_globals]
+
+cut_height={
+"type": "float",
+"value": 1000.0
+}
+snow_amount={
+"type": "float",
+"value": 0.0
+}
+wetness={
+"type": "float",
+"value": 0.0
+}
+foliage_tint={
+"type": "vec3",
+"value": Vector3(1, 1, 1)
+}
+grass_tint={
+"type": "vec3",
+"value": Vector3(1, 1, 1)
+}
+wind={
+"type": "vec2",
+"value": Vector2(0.3, 0)
+}
+cloud_offset={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+cloud_cover={
+"type": "float",
+"value": 0.3
+}
+player_pos={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+leaf_amount={
+"type": "float",
+"value": 1.0
+}
+cloud_noise={
+"type": "sampler2D",
+"value": ""
+}
+terrain_atlas={
+"type": "sampler2D",
+"value": ""
+}

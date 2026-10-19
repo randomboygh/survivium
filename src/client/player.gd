@@ -4,6 +4,8 @@ extends Node3D
 
 const SpriteArt := preload("res://src/client/sprite_art.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const SpriteShader := preload("res://shaders/sprite.gdshader")
+const XrayShader := preload("res://shaders/sprite_xray.gdshader")
 
 const HALF_WIDTH := 0.3
 const HEIGHT := 0.9
@@ -17,22 +19,42 @@ var world
 var move_input := Vector2.ZERO
 var velocity_y := 0.0
 var on_ground := false
-var sprite: Sprite3D
+var sprite: MeshInstance3D
+## The same sprite drawn as a silhouette where walls or crowns hide the player.
+var xray: MeshInstance3D
 var torch: OmniLight3D
 
 
 func _ready() -> void:
-	sprite = Sprite3D.new()
-	PixelView.setup_sprite(sprite, SpriteArt.texture("player"))
-	# Placed by place_sprite() on whole screen pixels, not by the body's position.
+	var tex := SpriteArt.texture("player")
+	var mesh := PixelView.sprite_mesh(tex.get_width(), tex.get_height())
+	sprite = MeshInstance3D.new()
+	sprite.mesh = mesh
+	sprite.material_override = sprite_material(SpriteShader, tex)
+	sprite.extra_cull_margin = 24.0
+	# Placed by place_sprite() on whole pixels, not by the body's position.
 	sprite.top_level = true
 	add_child(sprite)
+	xray = MeshInstance3D.new()
+	xray.mesh = mesh
+	xray.material_override = sprite_material(XrayShader, tex)
+	xray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	xray.extra_cull_margin = 24.0
+	xray.top_level = true
+	add_child(xray)
 	torch = OmniLight3D.new()
-	torch.position = Vector3(0.0, 1.2, 0.0)
-	torch.omni_range = 7.0
-	torch.light_color = Color(1.0, 0.75, 0.45)
+	torch.omni_range = 4.5
+	torch.light_color = Color(1.0, 0.55, 0.25)
 	torch.light_energy = 0.0
+	torch.top_level = true
 	add_child(torch)
+
+
+static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = shader
+	m.set_shader_parameter("sprite_texture", tex)
+	return m
 
 
 func step(delta: float, jump: bool) -> void:
@@ -55,10 +77,12 @@ func step(delta: float, jump: bool) -> void:
 	position = p
 
 
-## Puts the sprite over the body, snapped to the pixel grid of a camera with basis `b`.
-func place_sprite(b: Basis) -> void:
-	var lift := sprite.texture.get_height() / (2.0 * PixelView.PIXELS_PER_UNIT)
-	sprite.global_position = PixelView.snap(position + Vector3(0.0, lift, 0.0), b)
+## Puts the sprite on the body, snapped to whole pixels, and the torch above it
+## (lights live where the shaders draw, so its position is sheared).
+func place_sprite() -> void:
+	sprite.global_position = PixelView.snap(position)
+	xray.global_position = sprite.global_position
+	torch.global_position = PixelView.shear(position + Vector3(0.0, 1.2, 0.3))
 
 
 func level() -> int:

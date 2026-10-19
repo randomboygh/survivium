@@ -144,15 +144,21 @@ func _test_pixel_view() -> void:
 			and absf(image.y - PixelView.TARGET_HEIGHT) <= PixelView.TARGET_HEIGHT * 0.25
 	_check(whole, "low-res image is scaled by a whole number and covers the screen")
 	_check(is_equal_approx(PixelView.camera_size(360), 22.5), "16 pixels per world unit")
-	var b := Basis.from_euler(Vector3(deg_to_rad(-55.0), 0.0, 0.0))
+	# A cell's top and its south wall both cover 16 x 16 pixels on screen.
+	var top := PixelView.screen_plane(Vector3(3, 2, 5)) - PixelView.screen_plane(Vector3(3, 2, 4))
+	var wall := PixelView.screen_plane(Vector3(3, 1, 5)) - PixelView.screen_plane(Vector3(3, 2, 5))
+	_check(top == Vector2(0, 1) and wall == Vector2(0, 1), "top and wall of a cell are equally tall on screen")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var on_grid := true
 	for i in 50:
 		var p := Vector3(rng.randf_range(-100, 100), rng.randf_range(0, 20), rng.randf_range(-100, 100))
-		var q := PixelView.snap(p, b)
-		for axis in [b.x, b.y]:
-			var pixels: float = q.dot(axis) * PixelView.PIXELS_PER_UNIT
-			on_grid = on_grid and absf(pixels - roundf(pixels)) < 0.001
-		on_grid = on_grid and absf(q.dot(b.z) - p.dot(b.z)) < 0.001 and q.distance_to(p) < 0.07
+		var c := PixelView.screen_plane(PixelView.snap(p)) * PixelView.PIXELS_PER_UNIT
+		on_grid = on_grid and absf(c.x - roundf(c.x)) < 0.001 and absf(c.y - roundf(c.y)) < 0.001
+		on_grid = on_grid and PixelView.snap(p).distance_to(p) < 0.06
 	_check(on_grid, "snapped points land on whole pixels")
+	# A view ray through a pixel passes every point drawn on that pixel.
+	var cell := Vector3(10.5, 4.0, 20.25)
+	var ray: Array = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
+	var t: float = (ray[0].y - cell.y) / -ray[1].y
+	_check((ray[0] + ray[1] * t).distance_to(cell) < 0.001, "view ray hits the point under the pixel")
