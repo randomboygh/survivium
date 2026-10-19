@@ -1,6 +1,6 @@
 extends RefCounted
 ## Procedural pixel textures: 16x16 cell materials packed into one atlas, grass tufts,
-## leaf clumps and the cloud noise. Placeholder art until the content editor exists.
+## leaf clusters and the cloud noise. Placeholder art until the content editor exists.
 ## The palette is muted and warm; mood and colour shifts come from the colour grade.
 
 const Mat := preload("res://src/shared/materials.gd")
@@ -8,7 +8,7 @@ const Mat := preload("res://src/shared/materials.gd")
 const TILE := 16
 const TILES := 8
 const TUFT := 8
-const CLUMP := 20
+const CLUMP := 12
 
 
 static func build_atlas() -> ImageTexture:
@@ -48,33 +48,42 @@ static func build_tufts() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-## Four leaf clump variants side by side, `size` px square: a lumpy round blob.
-## Red is the brightness of each texel (leaves and gaps).
+## Four leaf cluster variants side by side, `size` px square: a loose bunch of small
+## overlapping leaves with a ragged outline. Red is the brightness of each texel, green
+## and blue tilt the leaf it belongs to left/right and up/down (0.5 = facing the crown
+## normal), so single leaves catch the light on their own and break up the light bands
+## of the crown.
 static func build_clumps(size := CLUMP) -> ImageTexture:
 	var img := Image.create_empty(size * 4, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 23
-	var noise := FastNoiseLite.new()
-	noise.frequency = 0.35
 	var c := (size - 1) / 2.0
+	var leaf := maxf(1.6, size / 6.0)
 	for v in 4:
-		noise.seed = v * 7 + 1
-		for y in size:
-			for x in size:
-				var d := Vector2(x - c, y - c)
-				var bump := noise.get_noise_2d(x, y) * 2.8 * size / CLUMP
-				if d.length() > c - 0.6 + bump:
-					continue
-				# Leafy lumps a few pixels across, and only rarely a single dark gap,
-				# so the clump reads as a calm mass rather than noise.
-				var b := 0.55 + noise.get_noise_2d(x * 1.4 + 40, y * 1.4) * 0.5
-				if rng.randf() < 0.04:
-					b -= 0.3
-				# A darker rim along the lower edge separates overlapping clumps.
-				if d.y > 0.0 and d.length() > c - 1.8 + bump:
-					b -= 0.45
-				img.set_pixel(v * size + x, y, Color(clampf(b, 0.0, 1.0), 0, 0, 1))
+		var leaves := []
+		for k in int(size * 2.2):
+			var a := rng.randf() * TAU
+			var r := sqrt(rng.randf()) * (c - leaf * 0.7)
+			leaves.append(Vector2(c + cos(a) * r, c + sin(a) * r))
+		# Lower leaves are nearer the viewer and drawn over the upper ones.
+		leaves.sort_custom(func(p, q): return p.y < q.y)
+		for p in leaves:
+			var rx := leaf * rng.randf_range(0.8, 1.2)
+			var ry := leaf * rng.randf_range(0.6, 0.95)
+			var b := rng.randf_range(0.4, 0.75)
+			var tx := rng.randf_range(0.15, 0.85)
+			var ty := rng.randf_range(0.2, 0.9)
+			for y in range(floori(p.y - ry), ceili(p.y + ry) + 1):
+				for x in range(floori(p.x - rx), ceili(p.x + rx) + 1):
+					if x < 0 or y < 0 or x >= size or y >= size:
+						continue
+					var d := Vector2((x - p.x) / rx, (y - p.y) / ry)
+					if d.length() > 1.0:
+						continue
+					# Each leaf is a little lighter at its top than at its tip.
+					var k := b + (0.12 if d.y < -0.3 else (-0.12 if d.y > 0.5 else 0.0))
+					img.set_pixel(v * size + x, y, Color(clampf(k, 0.0, 1.0), tx, ty, 1))
 	return ImageTexture.create_from_image(img)
 
 

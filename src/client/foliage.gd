@@ -1,7 +1,10 @@
 extends RefCounted
 ## Grass tufts and tree crowns for one chunk, as MultiMesh instance buffers.
-## Tufts stand on grass tops; every exposed leaf cell becomes a round leaf clump plus a
-## flat shadow-only disc, so crowns look soft and cast round shadows.
+## Tufts stand on grass tops. A crown is drawn the way t3ssel8r draws his trees: many
+## small leaf cluster cards covering its open faces, all lit with the normal of the
+## crown as a whole (from the middle of the leaves around them) rather than each as a
+## ball of its own, so the light falls on the crown as one soft mass. Every exposed leaf
+## cell also gets a flat shadow-only disc, so crowns cast round shadows.
 
 const Mat := preload("res://src/shared/materials.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
@@ -10,9 +13,15 @@ const WorldData := preload("res://src/shared/world_data.gd")
 ## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
 const TUFTS_PER_CELL := 7
 const TUFT_SIZE := 0.5
-const CLUMP_SIZE := 1.25
-## Bushes are made of smaller clumps, this many pixels across.
-const BUSH_CLUMP := 12
+## Leaf cluster cards: size in cells (12 px, see PixelTextures.CLUMP), cards on each
+## open top or south face of a leaf cell (one fewer on east and west faces).
+const CLUMP_SIZE := 0.75
+const CARDS_PER_FACE := 3
+## Leaves within this many cells give the crown's middle for the light.
+const CROWN_REACH := 2
+## Bushes are made of smaller clusters, this many pixels across, this many per bush.
+const BUSH_CLUMP := 10
+const BUSH_CARDS := 6
 const BUSH_DISC := 0.9
 const SHADOW_DISC := 1.6
 const PX := 1.0 / 16.0
@@ -83,49 +92,79 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 						grass.append_array([float(rng.randi_range(0, 3)), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 						ng += 1
 				elif m == Mat.LEAVES:
-					# Outward direction of the crown: away from the leaves around this cell.
-					var out := Vector3.ZERO
-					var open := false
-					for ny in range(-1, 2):
-						for nz in range(-1, 2):
-							for nx in range(-1, 2):
-								var n: int = w.get_cell(x + nx, y + ny, z + nz)
-								if n != Mat.LEAVES and n != Mat.LOG:
-									out += Vector3(nx, ny, nz)
-									open = open or absi(nx) + absi(ny) + absi(nz) == 1
-					if not open:
+					var faces := _open_faces(w, x, y, z)
+					if faces.is_empty():
 						continue
+					var normal := _crown_normal(w, x, y, z)
 					rng.seed = hash(Vector3i(x, y, z))
-					var c := Vector3(x + 0.5 + rng.randi_range(-4, 4) * PX, y + 0.5 + rng.randi_range(-4, 4) * PX, z + 0.5)
-					put(clumps, PixelView.snap(c))
-					var shade := rng.randf_range(0.9, 1.08)
 					var tree := hash(Vector2i(x / 3, z / 3)) % 3
 					var base: Color = [Color(0.3, 0.47, 0.22), Color(0.33, 0.5, 0.2), Color(0.28, 0.44, 0.24)][tree]
-					clumps.append_array([base.r * shade, base.g * shade, base.b * shade, 1.0])
-					out = out.normalized() if out.length() > 0.01 else Vector3.UP
-					clumps.append_array([out.x, out.y, out.z, rng.randf()])
-					nc += 1
+					for f in faces:
+						# Cards cover each face the camera can see, poking out of it a
+						# little, so the outline is a ragged edge of leaves and no gap
+						# shows the trunk inside.
+						var count := CARDS_PER_FACE if f.x == 0 else CARDS_PER_FACE - 1
+						for k in count:
+							var c := Vector3(x + 0.5, y + 0.5, z + 0.5) + Vector3(f) * (0.5 + rng.randi_range(0, 3) * PX)
+							var spread := Vector3(rng.randi_range(-5, 5), rng.randi_range(-5, 5), rng.randi_range(-5, 5)) * PX
+							c += spread - Vector3(f) * Vector3(f).dot(spread)
+							put(clumps, PixelView.snap(c))
+							var shade := rng.randf_range(0.93, 1.06)
+							clumps.append_array([base.r * shade, base.g * shade, base.b * shade, 1.0])
+							clumps.append_array([normal.x, normal.y, normal.z, rng.randf()])
+							nc += 1
 					put(shadows, Vector3(x + 0.5, y + 0.5, z + 0.5))
 					ns += 1
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
 
 
-## Clumps of berry bushes standing on the given cells: [count, buffer] like crowns.
+## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like
+## crowns, lit as one low dome per bush.
 static func bushes(cells: Array[Vector3i]) -> Array:
 	var buf := PackedFloat32Array()
 	var rng := RandomNumberGenerator.new()
-	var offsets := [Vector2(-3, 0), Vector2(3, 1), Vector2(0, 5)]
 	for cell in cells:
 		rng.seed = hash(cell)
-		for o in offsets:
-			var p := Vector3(cell.x + 0.5 + (o.x + rng.randi_range(-1, 1)) * PX, cell.y + 0.4 + o.y * PX, cell.z + 0.5)
-			put(buf, PixelView.snap(p))
-			var shade := rng.randf_range(0.9, 1.05)
-			# Alpha below 1 marks a clump with berries (see leaves.gdshader).
+		for k in BUSH_CARDS:
+			var a := TAU * (k + rng.randf_range(-0.2, 0.2)) / BUSH_CARDS
+			var o := Vector3(cos(a) * 0.22, rng.randf_range(0.0, 0.15), sin(a) * 0.15)
+			if k == 0:
+				o = Vector3(0.0, 0.2, 0.0)
+			put(buf, PixelView.snap(Vector3(cell.x + 0.5, cell.y + 0.3, cell.z + 0.5) + o))
+			var shade := rng.randf_range(0.93, 1.05)
+			# Alpha below 1 marks a cluster with berries (see leaves.gdshader).
 			buf.append_array([0.3 * shade, 0.46 * shade, 0.22 * shade, 0.5])
-			var out := Vector3(o.x / 4.0, 0.6 + o.y / 6.0, 0.3).normalized()
-			buf.append_array([out.x, out.y, out.z, rng.randf()])
-	return [cells.size() * offsets.size(), buf]
+			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
+			buf.append_array([n.x, n.y, n.z, rng.randf()])
+	return [cells.size() * BUSH_CARDS, buf]
+
+
+## Faces of a leaf cell the camera can see (top, south, east, west) that touch
+## neither leaves nor a trunk.
+static func _open_faces(w, x: int, y: int, z: int) -> Array[Vector3i]:
+	var open: Array[Vector3i] = []
+	for d in [Vector3i(0, 1, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 0), Vector3i(-1, 0, 0)]:
+		var n: int = w.get_cell(x + d.x, y + d.y, z + d.z)
+		if n != Mat.LEAVES and n != Mat.LOG:
+			open.append(d)
+	return open
+
+
+## Outward normal of the crown at a leaf cell: away from the middle of the leaves
+## around it, so neighbouring cells get nearly the same light.
+static func _crown_normal(w, x: int, y: int, z: int) -> Vector3:
+	var sum := Vector3.ZERO
+	var n := 0
+	for dy in range(-CROWN_REACH, CROWN_REACH + 1):
+		for dz in range(-CROWN_REACH, CROWN_REACH + 1):
+			for dx in range(-CROWN_REACH, CROWN_REACH + 1):
+				if w.get_cell(x + dx, y + dy, z + dz) == Mat.LEAVES:
+					sum += Vector3(dx, dy, dz)
+					n += 1
+	var out := -sum / n
+	# A lone leaf cell, or one in the middle of a flat canopy, faces up.
+	out += Vector3(0.0, 0.35, 0.0)
+	return out.normalized()
 
 
 ## Appends a translation-only transform in MultiMesh buffer order.

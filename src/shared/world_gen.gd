@@ -100,7 +100,7 @@ static func generate(world_seed: int, sx := 128, sy := 20, sz := 128) -> WorldDa
 			if w.get_cell(x - 1, hh + 1, z) == Mat.LOG or w.get_cell(x + 1, hh + 1, z) == Mat.LOG \
 					or w.get_cell(x, hh + 1, z - 1) == Mat.LOG or w.get_cell(x, hh + 1, z + 1) == Mat.LOG:
 				continue
-			if rng.randf() > 0.08:
+			if rng.randf() > 0.06:
 				continue
 			_place_tree(w, x, hh + 1, z, rng)
 	return w
@@ -124,19 +124,25 @@ static func find_spawn(w: WorldData) -> Vector3i:
 	return Vector3i(cx, w.size_y - 1, cz)
 
 
+## A trunk with a crown shaped as a low, wide ellipsoid: in the oblique view the top
+## and the front of a crown both show, so a ball would look tall and narrow, while
+## this one reads as round on screen (width about equal to height plus depth).
 static func _place_tree(w: WorldData, x: int, y: int, z: int, rng: RandomNumberGenerator) -> void:
 	var trunk := 3 + rng.randi_range(0, 1)
 	for i in trunk:
 		w.set_cell(x, y + i, z, Mat.LOG)
-	for dy in range(trunk - 1, trunk + 2):
-		for dz in range(-1, 2):
-			for dx in range(-1, 2):
-				var corner := absi(dx) == 1 and absi(dz) == 1
-				if corner and (dy == trunk + 1 or rng.randf() < 0.3):
+	var rx := 2.2 + rng.randf_range(-0.2, 0.3)
+	var rz := 1.8 + rng.randf_range(-0.2, 0.2)
+	var ry := 1.5 + rng.randf_range(-0.1, 0.3)
+	var cy := y + trunk + 0.5
+	for dy in range(-2, 3):
+		for dz in range(-2, 3):
+			for dx in range(-3, 4):
+				var d := Vector3(dx / rx, (y + trunk + dy - cy + 0.5) / ry, dz / rz)
+				if d.length() > 1.0 + rng.randf_range(-0.1, 0.1):
 					continue
-				if w.get_cell(x + dx, y + dy, z + dz) == Mat.AIR:
-					w.set_cell(x + dx, y + dy, z + dz, Mat.LEAVES)
-	w.set_cell(x, y + trunk + 2, z, Mat.LEAVES)
+				if w.get_cell(x + dx, y + trunk + dy, z + dz) == Mat.AIR:
+					w.set_cell(x + dx, y + trunk + dy, z + dz, Mat.LEAVES)
 
 
 ## Byte value of a noise level in the grids below.
