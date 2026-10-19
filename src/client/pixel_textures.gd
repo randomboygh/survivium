@@ -63,10 +63,14 @@ static func build_clumps(size := CLUMP) -> ImageTexture:
 		for y in size:
 			for x in size:
 				var d := Vector2(x - c, y - c)
-				var bump := noise.get_noise_2d(x, y) * 2.2 * size / CLUMP
+				var bump := noise.get_noise_2d(x, y) * 2.8 * size / CLUMP
 				if d.length() > c - 0.6 + bump:
 					continue
-				var b := 0.5 + noise.get_noise_2d(x * 2.3 + 40, y * 2.3) * 0.6 + rng.randf_range(-0.1, 0.1)
+				# Leafy lumps a few pixels across, and only rarely a single dark gap,
+				# so the clump reads as a calm mass rather than noise.
+				var b := 0.55 + noise.get_noise_2d(x * 1.4 + 40, y * 1.4) * 0.5
+				if rng.randf() < 0.04:
+					b -= 0.3
 				# A darker rim along the lower edge separates overlapping clumps.
 				if d.y > 0.0 and d.length() > c - 1.8 + bump:
 					b -= 0.45

@@ -6,7 +6,8 @@ extends RefCounted
 const Mat := preload("res://src/shared/materials.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 
-const TUFTS_PER_CELL := 6
+## Lush patches keep all of them, thin meadows fewer (see grass.gdshader).
+const TUFTS_PER_CELL := 7
 const TUFT_SIZE := 0.5
 const CLUMP_SIZE := 1.25
 ## Bushes are made of smaller clumps, this many pixels across.

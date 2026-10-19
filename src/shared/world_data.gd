@@ -42,15 +42,19 @@ func is_solid(x: int, y: int, z: int) -> bool:
 
 
 ## True when a walking body cannot be in this cell: solid, water, the map edge,
-## or air right above open water (there is no swimming yet).
+## or air anywhere above open water (there is no swimming yet). The whole column over
+## the water blocks, so neither a step up nor a jump lands on an invisible floor.
 func blocks_body(x: int, y: int, z: int) -> bool:
 	if x < 0 or z < 0 or x >= size_x or z >= size_z:
 		return true
 	var m := get_cell(x, y, z)
 	if m == Mat.WATER:
 		return true
-	if m == Mat.AIR and not water_frozen and get_cell(x, y - 1, z) == Mat.WATER:
-		return true
+	if m == Mat.AIR and not water_frozen:
+		var below := y - 1
+		while below >= 0 and get_cell(x, below, z) == Mat.AIR:
+			below -= 1
+		return get_cell(x, below, z) == Mat.WATER
 	return Mat.is_solid(m)
 
 

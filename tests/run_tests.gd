@@ -106,6 +106,7 @@ func _test_walking_rules() -> void:
 	w.set_cell(1, 0, 1, Mat.WATER)
 	_check(w.blocks_body(1, 0, 1), "water cannot be entered")
 	_check(w.blocks_body(1, 1, 1), "open water cannot be walked over")
+	_check(w.blocks_body(1, 2, 1), "no invisible floor a level above the water")
 	_check(w.surface_y(1, 1) == -1, "open water has no surface to stand on")
 	w.water_frozen = true
 	_check(not w.blocks_body(1, 1, 1), "frozen water can be walked over")

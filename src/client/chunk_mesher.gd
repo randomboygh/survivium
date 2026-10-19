@@ -23,7 +23,8 @@ const CORNERS := [
 	[Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 1, 1), Vector3(0, 1, 1)],
 	[Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(0, 1, 0)],
 ]
-const WATER_TOP := 0.875
+## Water stands a quarter of a level below the shore, so the bank shows above it.
+const WATER_TOP := 0.75
 const AIR := Mat.AIR
 const WATER := Mat.WATER
 const LEAVES := Mat.LEAVES

@@ -388,6 +388,7 @@ func _button(parent: Node, text: String, action: Callable) -> Button:
 func _build_materials() -> void:
 	RenderingServer.global_shader_parameter_set("terrain_atlas", PixelTextures.build_atlas())
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
+	RenderingServer.global_shader_parameter_set("world_size", Vector2(world.size_x, world.size_z))
 	world_mat = _material(WorldShader)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
@@ -487,6 +488,7 @@ func _place_props() -> void:
 	var fire := Vector3i(floori(f.x), floori(f.y), floori(f.z))
 	if world.get_cell(fire.x, fire.y, fire.z) == Mat.AIR and world.is_solid(fire.x, fire.y - 1, fire.z):
 		effects.add_campfire(fire, world_mat)
+	RenderingServer.global_shader_parameter_set("heat_map", effects.heat_map(world.size_x, world.size_z))
 
 
 func _refresh_bushes() -> void:

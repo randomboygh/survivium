@@ -78,3 +78,11 @@ terrain_atlas={
 "type": "sampler2D",
 "value": ""
 }
+heat_map={
+"type": "sampler2D",
+"value": ""
+}
+world_size={
+"type": "vec2",
+"value": Vector2(128, 128)
+}
