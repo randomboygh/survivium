@@ -7,6 +7,7 @@ extends RefCounted
 ## each card. Under the crown lie flat shadow-only discs, one per level of a tree's
 ## crown, so a crown casts one round shadow.
 
+const Bushes := preload("res://src/shared/bushes.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
@@ -30,11 +31,10 @@ const CROWN_REACH := 2
 const BUMP := 0.45
 ## What a tree does over the year, in the alpha of its cards' colour (see
 ## leaves.gdshader): keeps dry leaves under snow caps in winter, drops all of them (bare
-## branches show), keeps its needles; bushes carry berries.
+## branches show), keeps its needles; bushes are below 0.5 (see bush_kind).
 const KEEPS_LEAVES := 1.0
 const GOES_BARE := 0.8
 const EVERGREEN := 0.6
-const BERRIES := 0.4
 ## Rows of the deep cards are offset by this, so the shader can swap them for bare
 ## branches in winter.
 const DEEP_ROW := 8
@@ -44,9 +44,8 @@ const TREE_REACH := 8
 ## the tier above.
 const TIER_UP := 0.8
 const TIER_DOWN := -0.35
-## Bushes are made of smaller clusters, this many pixels across, this many per bush.
-const BUSH_CLUMP := 10
-const BUSH_CARDS := 6
+## Bushes are made of smaller clusters, this many pixels across (see Bushes).
+const BUSH_CLUMP := 12
 const BUSH_DISC := 0.9
 const SHADOW_DISC := 1.6
 ## One pixel and one cell in world units.
@@ -222,24 +221,43 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
 
 
-## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like
-## crowns, lit as one low dome per bush.
-static func bushes(cells: Array[Vector3i]) -> Array:
+## Leaf clusters of the bushes standing on the given cells, of the types `types` notes
+## by cell (see Bushes): [count, buffer] like crowns, lit as one low dome per bush.
+## Bushes go bare in winter like some trees.
+static func bushes(cells: Array[Vector3i], types: Dictionary) -> Array:
 	var buf := PackedFloat32Array()
 	var rng := RandomNumberGenerator.new()
+	var count := 0
 	for cell in cells:
+		var type: int = types.get(cell, Bushes.SHRUB)
+		var b: Dictionary = Bushes.TYPES[type]
+		var spread: Vector3 = b.spread
+		var cards: int = b.cards
 		rng.seed = hash(cell)
-		for k in BUSH_CARDS:
-			var a := TAU * (k + rng.randf_range(-0.2, 0.2)) / BUSH_CARDS
-			var o := Vector3(cos(a) * 0.22, rng.randf_range(0.0, 0.15), sin(a) * 0.15)
+		for k in cards:
+			# Clusters around the middle, the first one on top, the others in a ring
+			# and up its height.
+			var a := TAU * (k + rng.randf_range(-0.2, 0.2)) / (cards - 1)
+			var o := Vector3(cos(a) * spread.x, rng.randf_range(-0.3, 1.0) * spread.y, sin(a) * spread.z)
 			if k == 0:
-				o = Vector3(0.0, 0.2, 0.0)
-			put(buf, PixelView.snap((Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.3, 0.0) + o))
-			# The alpha marks a cluster with berries (see leaves.gdshader).
-			buf.append_array([0.3, 0.46, 0.22, BERRIES])
+				o = Vector3(0.0, spread.y + 0.12, 0.0)
+			put(buf, PixelView.snap((Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, b.rise, 0.0) + o))
+			var tint: Color = b.tint
+			buf.append_array([tint.r, tint.g, tint.b, bush_kind(type)])
 			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
-			buf.append_array([n.x, n.y, n.z, rng.randf() * 0.99])
-	return [cells.size() * BUSH_CARDS, buf]
+			var row := (1 if b.small else 0) + (PixelTextures.BERRY_ROW if rng.randf() < b.berry_cards else 0)
+			# Every other cluster shows bare twigs in winter, the others fall.
+			if k % 2 == 1:
+				row += DEEP_ROW
+			buf.append_array([n.x, n.y, n.z, row + rng.randf() * 0.99])
+		count += cards
+	return [count, buf]
+
+
+## What a bush of `type` does over the year, in the alpha of its colour: below 0.5 for
+## every bush, which also names the type for its berries (see leaves.gdshader).
+static func bush_kind(type: int) -> float:
+	return 0.1 * (type + 1)
 
 
 ## Faces of a crown point the camera can see (top, south, east, west) whose

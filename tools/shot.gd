@@ -7,6 +7,7 @@ extends SceneTree
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
 
+const Bushes := preload("res://src/shared/bushes.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
@@ -35,6 +36,7 @@ const SHOTS := {
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
+	"grove-spring": {"time": 0.42, "season": 0, "grove": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -102,6 +104,7 @@ func _run() -> void:
 			main.foliage = main.FOLIAGE[main.season]
 			main.grass = main.GRASS[main.season]
 			main.leaf_amount = main.LEAF_AMOUNT[main.season]
+			main.berry_amount = main.BERRY_AMOUNT[main.season]
 		# Messages fade after a few seconds, longer than the settling above takes here.
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
@@ -290,7 +293,8 @@ func _lab(w, at: Vector3i) -> void:
 
 
 ## A flat meadow at `at` with trees of every species: oaks in the back row (some go
-## bare in winter, the others keep their leaves), spruces of three sizes in front.
+## bare in winter, the others keep their leaves), spruces of three sizes in front,
+## bushes of every type between them.
 ## Grown once; later grove shots reuse it.
 func _grove(w, at: Vector3i) -> void:
 	var h := at.y
@@ -308,11 +312,18 @@ func _grove(w, at: Vector3i) -> void:
 		for key in w.trees.keys():
 			if absi(key.x - at.x) < 52 and absi(key.y - at.z) < 40:
 				w.trees.erase(key)
-		var keep: Array[Vector3i] = []
-		for b in main.bush_cells:
-			if absi(b.x - at.x) > 46 or absi(b.z - at.z) > 36:
-				keep.append(b)
-		main.bush_cells = keep
+		for b: Vector3i in w.bushes.keys():
+			if absi(b.x - at.x) <= 46 and absi(b.z - at.z) <= 36:
+				w.bushes.erase(b)
+		# Bushes of every type in turn in a row before the spruces, blueberries between
+		# them.
+		var k := 0
+		for dx in range(-21, 22, 6):
+			Bushes.place(w, at.x + dx, h, at.z + 10 + (k % 2), k % Bushes.TYPES.size())
+			k += 1
+		for dx in [-9, -7, 7, 9]:
+			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.BLUEBERRY)
+		main.bush_cells.assign(w.bushes.keys())
 		main._refresh_bushes()
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 3

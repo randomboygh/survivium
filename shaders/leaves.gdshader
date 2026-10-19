@@ -10,7 +10,8 @@
 // INSTANCE_CUSTOM: xyz = normal of the crown at the card, w = row of the clump texture
 // (whole part, plus 8 for the deep layer of a crown) + sway phase (fraction).
 // COLOR: tint of the tree; alpha what it does in winter (see Foliage): 1 keeps dry
-// leaves under snow, 0.8 goes bare, 0.6 is evergreen, 0.4 is a bush with berries.
+// leaves under snow, 0.8 goes bare, 0.6 is evergreen, 0.1, 0.2.. a bush of type 0, 1..
+// (see Foliage.bush_kind), whose berries are pixels of the texture marked in alpha.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 
@@ -22,6 +23,10 @@ uniform float clump_size = 1.5;
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
 uniform int branch_row = -1;
+// Colours of ripe berries by bush type (see Bushes), black for none.
+uniform vec3 berry_colors[4];
+// Share of the berries ripe, by season.
+global uniform float berry_amount;
 
 varying vec3 center;
 varying flat vec4 custom;
@@ -58,7 +63,8 @@ void fragment() {
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters
 	// thin out (red is a random number per leaf).
 	float leaf = m.r;
-	bool edge = m.a < 0.9;
+	bool berry = m.a < 0.75;
+	bool edge = !berry && m.a < 0.9;
 	if (!branches && (hash13(floor(center)) > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
 		discard;
 	}
@@ -73,7 +79,7 @@ void fragment() {
 	}
 	// The crown's normal, tilted by the leaf this texel belongs to; leaves flutter
 	// on their own in the wind.
-	vec2 tilt = (m.gb * 2.0 - 1.0) * 0.5;
+	vec2 tilt = berry ? vec2(0.0) : (m.gb * 2.0 - 1.0) * 0.5;
 	tilt.x += sin(TIME * 2.3 + leaf * 6.28 + center.x * 0.7) * (0.04 + length(wind) * 0.3);
 	vec3 n = normalize(custom.xyz + vec3(tilt.x, tilt.y, -tilt.y * 0.4));
 	// Autumn colours differ from tree to tree; evergreens hardly change.
@@ -85,14 +91,18 @@ void fragment() {
 	if (branches) {
 		col = vec3(0.3, 0.24, 0.2) * tone * (edge ? 1.15 : 1.0);
 	}
+	// Berries of a bush, each ripe or not by its own number; an unripe one is hidden
+	// among the leaves. Green of the texture shades a berry from shine to shadow.
+	if (berry && tint.a < 0.5) {
+		vec3 ripe = berry_colors[clamp(int(round(tint.a * 10.0)) - 1, 0, 3)];
+		if (ripe != vec3(0.0) && fract(leaf * 3.7) < berry_amount) {
+			col = ripe * (m.g > 0.75 ? 1.45 : (m.g > 0.25 ? 1.0 : 0.72));
+		}
+	}
 	// The underside of the crown is shaded by the crown itself whatever the sun does,
 	// a step darker and cooler toward the bottom.
 	float under = n.y;
 	col *= under < -0.05 ? vec3(0.68, 0.76, 0.86) : vec3(1.0);
-	// Clumps marked in the alpha of their colour carry berries.
-	if (tint.a < 0.5 && fract(leaf * 31.3) > 0.93 && leaf_amount > 0.5) {
-		col = vec3(0.72, 0.14, 0.16);
-	}
 	// Snow lies on the leaves of the crown's top, on the upper half of the sprigs on top
 	// of an evergreen's tiers, and on some bare twigs.
 	float snowy = fract(leaf * 7.3);

@@ -82,6 +82,10 @@ leaf_amount={
 "type": "float",
 "value": 1.0
 }
+berry_amount={
+"type": "float",
+"value": 1.0
+}
 cloud_noise={
 "type": "sampler2D",
 "value": ""
