@@ -2,7 +2,7 @@
 //
 // Oblique 3/4 view: the camera looks straight down, and each vertex is moved north by
 // its height (z -= y). On screen a cell's top and its south wall are then both exactly
-// 16x16 pixels, like a classic 2D 3/4 tile, while depth, shadows and lights still work
+// 8x8 pixels, like a classic 2D 3/4 tile, while depth, shadows and lights still work
 // on real 3D geometry. Shaders keep the unsheared position in `world_pos` for the
 // cutaway, snow and texel maths. Godot renders shadow maps with the same vertex
 // function, so casters and receivers are sheared alike.
@@ -23,7 +23,11 @@ global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 global uniform sampler2D heat_map : filter_linear;
 global uniform vec2 world_size;
 
+// Texels per world unit, and per cell (a cell is half a unit, see WorldData.CELL).
+// Texture tiles are 16x16 and span two cells.
 const float TEXELS = 16.0;
+const float CELL = 0.5;
+const float CELL_TEXELS = 8.0;
 // Rings of light around a torch or fire before it fades out.
 const float LIGHT_RINGS = 7.0;
 
@@ -80,8 +84,8 @@ vec3 grass_variation(vec2 xz) {
 	return k;
 }
 
-// Each cell's top uses its tile mirrored one of four ways, so the 16x16 tile does
-// not repeat visibly.
+// Each 16x16 tile on the ground (two by two cells) is mirrored one of four ways, so it
+// does not repeat visibly.
 ivec2 tile_mirror(ivec2 t, vec2 cell) {
 	float h = hash12(cell + 71.0);
 	if (h < 0.5) {
@@ -110,7 +114,7 @@ float cut_shade(float y) {
 	if (cut_height > 999.0) {
 		return 1.0;
 	}
-	return 1.0 - clamp(max(0.0, cut_height - 1.0 - y) * 0.12, 0.0, 0.6);
+	return 1.0 - clamp(max(0.0, cut_height - CELL - y) * 0.12, 0.0, 0.6);
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,

@@ -21,7 +21,9 @@ func _init() -> void:
 	_test_raycast()
 	_test_walking_rules()
 	_test_slopes()
+	_test_steps()
 	_test_corners()
+	_test_shapes()
 	_test_ai_relations()
 	_test_pixel_view()
 	print("%d checks, %d failed" % [checks, failures])
@@ -36,9 +38,9 @@ func _check(cond: bool, what: String) -> void:
 
 
 func _test_generation() -> void:
-	var a := WorldGen.generate(42, 64, 20, 64)
-	var b := WorldGen.generate(42, 64, 20, 64)
-	var c := WorldGen.generate(43, 64, 20, 64)
+	var a := WorldGen.generate(42, 64, 40, 64)
+	var b := WorldGen.generate(42, 64, 40, 64)
+	var c := WorldGen.generate(43, 64, 40, 64)
 	_check(a.cells == b.cells, "same seed gives the same world")
 	_check(a.cells != c.cells, "different seeds give different worlds")
 	var counts := {}
@@ -77,6 +79,29 @@ func _test_mesher() -> void:
 	w.set_cell(0, 0, 0, Mat.WATER)
 	meshes = ChunkMesher.build_chunk(w, 0, 0, 16)
 	_check(meshes[1] != null, "water gets its own mesh")
+	_check(verts[0].distance_to(verts[2]) < 0.75, "meshes are in world units, half a unit per cell")
+	# A flat floor: its tops away from the edges are merged into rows.
+	var f := WorldData.new(8, 4, 8)
+	for z in 8:
+		for x in 8:
+			f.set_cell(x, 0, z, Mat.STONE)
+	var tops := 0
+	var rows := ChunkMesher.build_chunk(f, 0, 0, 16)[0] as ArrayMesh
+	for n in rows.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]:
+		tops += int(n.y > 0.9)
+	# 28 tops on the rim have edges; the 6 rows of 6 inside are one quad each.
+	_check(tops == (28 + 6) * 4, "plain tops in a row are drawn as one quad")
+	# A pond: water away from the shore is merged into rows too, foam stays per cell.
+	var pond := WorldData.new(8, 3, 8)
+	for z in 8:
+		for x in 8:
+			pond.set_cell(x, 0, z, Mat.STONE)
+			pond.set_cell(x, 1, z, Mat.STONE if x == 0 or z == 0 or x == 7 or z == 7 else Mat.WATER)
+	var surface := ChunkMesher.build_chunk(pond, 0, 0, 16)[1] as ArrayMesh
+	tops = 0
+	for n in surface.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]:
+		tops += int(n.y > 0.9)
+	_check(tops == (20 + 4) * 4, "open water in a row is drawn as one quad")
 
 
 func _test_cap() -> void:
@@ -134,7 +159,7 @@ func _test_slopes() -> void:
 	_check(w.slope_mask(4, 1, 5) == WorldData.NE | WorldData.SE, "a one-level step of loose ground is a ramp")
 	_check(w.slope_mask(5, 3, 5) == WorldData.FULL and w.slope_mask(5, 1, 5) == WorldData.FULL,
 		"a drop of two levels stays a cliff")
-	_check(is_equal_approx(w.ground_height(4.5, 5.5), 1.5), "ground halfway up a ramp is half a level higher")
+	_check(is_equal_approx(w.ground_height(4.5, 5.5), 1.5), "ground halfway up a ramp is half a cell higher")
 	_check(w.slope_mask(4, 1, 0) == WorldData.NE | WorldData.SE, "a ramp at the map edge still slopes")
 	w.set_cell(4, 1, 7, Mat.STONE)
 	_check(w.slope_mask(4, 1, 7) == WorldData.FULL, "stone and built blocks never slope")
@@ -149,25 +174,53 @@ func _test_slopes() -> void:
 	# Walk east up the ramp without jumping, and stop at the cliff.
 	var player = PlayerScript.new()
 	player.world = w
-	player.position = Vector3(2.5, 1.0, 5.5)
+	player.position = Vector3(2.5, 1.0, 5.5) * WorldData.CELL
 	player.on_ground = true
 	player.move_input = Vector2(1, 0)
 	var climbed := true
-	for i in 120:
+	for i in 60:
 		player.step(1.0 / 60.0, false)
-		if player.position.x > 4.2 and player.position.x < 4.6:
-			climbed = climbed and player.position.y > 1.3 and player.position.y < 1.95
-	_check(climbed and is_equal_approx(player.position.y, 2.0), "walking up a ramp needs no jump")
-	_check(player.position.x < 5.75, "a two-level cliff stops the walker")
+		var p: Vector3 = player.position / WorldData.CELL
+		if p.x > 4.2 and p.x < 4.6:
+			climbed = climbed and p.y > 1.3 and p.y < 1.95
+	_check(climbed and is_equal_approx(player.position.y / WorldData.CELL, 2.0), "walking up a ramp needs no jump")
+	_check(player.position.x / WorldData.CELL < 5.6, "a two-cell cliff stops the walker")
 	player.move_input = Vector2(-1, 0)
 	var smooth := true
-	var last_y: float = player.position.y
-	for i in 120:
+	var last_y: float = player.position.y / WorldData.CELL
+	for i in 60:
 		player.step(1.0 / 60.0, false)
-		smooth = smooth and last_y - player.position.y < 0.2
-		last_y = player.position.y
-	_check(smooth and is_equal_approx(player.position.y, 1.0), "walking down a ramp keeps the feet on it")
+		smooth = smooth and last_y - player.position.y / WorldData.CELL < 0.2
+		last_y = player.position.y / WorldData.CELL
+	_check(smooth and is_equal_approx(player.position.y / WorldData.CELL, 1.0), "walking down a ramp keeps the feet on it")
 	player.free()
+
+
+## Walks east from x = 2 toward a sheer step of `height` cells of stone at x >= 5,
+## jumping if `jump`; returns where the feet end, in cells.
+func _walk_to_step(height: int, jump: bool) -> Vector3:
+	var w := WorldData.new(10, 6, 10)
+	for z in 10:
+		for x in 10:
+			for y in 1 + (height if x >= 5 else 0):
+				w.set_cell(x, y, z, Mat.STONE)
+	var player = PlayerScript.new()
+	player.world = w
+	player.position = Vector3(2.5, 1.0, 5.5) * WorldData.CELL
+	player.on_ground = true
+	player.move_input = Vector2(1, 0)
+	for i in 90:
+		player.step(1.0 / 60.0, jump and i == 20)
+	var p: Vector3 = player.position / WorldData.CELL
+	player.free()
+	return p
+
+
+func _test_steps() -> void:
+	_check(_walk_to_step(1, false).x < 4.6, "a sheer step of one cell is not walked up")
+	var up := _walk_to_step(1, true)
+	_check(up.x > 6.0 and is_equal_approx(up.y, 2.0), "a jump gets up onto a step of one cell")
+	_check(_walk_to_step(2, true).x < 4.6, "a step of two cells cannot be jumped up")
 
 
 ## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its
@@ -182,6 +235,7 @@ func _corner_world() -> WorldData:
 			if x >= 3 and x <= 6 and z >= 3 and z <= 6 and not (x >= 5 and z <= 4):
 				for y in range(1, 3):
 					w.cells[(y * 10 + z) * 10 + x] = Mat.STONE
+	w.rebuild_columns()
 	return w
 
 
@@ -196,9 +250,9 @@ func _test_corners() -> void:
 	_check(is_equal_approx(w.ground_height(5.1, 4.9), 3.0), "a filled corner is ground up to the cliff top")
 	var player = PlayerScript.new()
 	player.world = w
-	_check(not player._collides(Vector3(2.9, 1.0, 2.9)) and player._collides(Vector3(3.05, 1.0, 3.05)),
+	_check(not player._collides(Vector3(2.6, 1.0, 2.6)) and player._collides(Vector3(3.05, 1.0, 3.05)),
 		"a walker fits into a cut corner but not into the cliff")
-	_check(player._collides(Vector3(5.31, 1.0, 4.64)) and not player._collides(Vector3(5.5, 1.0, 4.3)),
+	_check(player._collides(Vector3(5.6, 1.0, 4.3)) and not player._collides(Vector3(5.9, 1.0, 4.0)),
 		"a filled corner blocks a walker")
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
@@ -210,24 +264,125 @@ func _test_corners() -> void:
 	w.set_cell(3, 2, 3, Mat.STONE)
 	_check(not w.corner_cut(3, 2, 3, 0) and not w.corner_cut(3, 1, 3, 0), "placed blocks stay square")
 	player.free()
-	# The mesher decides corners the same way the world does.
-	var g := WorldGen.generate(7, 48, 20, 48)
-	var x0 := 14
-	var z0 := 14
-	var c := ChunkMesher.padded(g, x0, z0, x0 + 20, z0 + 20)
-	var plan: PackedByteArray = ChunkMesher.shapes_and_corners(g, c, x0, z0, x0 + 20, z0 + 20)[1]
-	var same := true
+
+
+## The shapes the world works out a column at a time match the rules written out for
+## one cell at a time (below), on a generated world and after digging and building.
+func _test_shapes() -> void:
+	var g := WorldGen.generate(7, 64, 40, 64)
+	_check(_shapes_match(g), "shapes of a generated world follow the rules")
+	var slopes := 0
 	var cuts := 0
 	var fills := 0
-	for y in g.size_y:
-		for z in range(z0 + 1, z0 + 19):
-			for x in range(x0 + 1, x0 + 19):
-				var p: int = plan[((y + 1) * 20 + z - z0) * 20 + x - x0]
-				same = same and p == g.corner_cuts(x, y, z) | g.corner_fills(x, y, z) << 4
-				cuts += int(p & 15 != 0)
-				fills += int(p >= 16)
-	_check(same, "the mesher shapes corners as the world does")
-	_check(cuts > 0 and fills > 0, "generated cliffs have cut and filled corners")
+	for col in g.size_x * g.size_z:
+		slopes += int(g.sloped_cols[col] != 0)
+	for i in g.shapes.size():
+		cuts += int(g.shapes[i] >= 16 and Mat.is_solid(g.cells[i]))
+		fills += int(g.shapes[i] >= 16 and not Mat.is_solid(g.cells[i]))
+	_check(slopes > 0 and cuts > 0 and fills > 0, "generated ground has slopes and cut and filled corners")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	for i in 300:
+		var x := rng.randi_range(0, g.size_x - 1)
+		var z := rng.randi_range(0, g.size_z - 1)
+		var y := clampi(g.surface_y(x, z) + rng.randi_range(-2, 1), 0, g.size_y - 1)
+		g.set_cell(x, y, z, [Mat.AIR, Mat.DIRT, Mat.STONE][i % 3])
+	_check(_shapes_match(g), "shapes follow the rules after digging and building")
+
+
+func _shapes_match(w: WorldData) -> bool:
+	for y in w.size_y:
+		for z in w.size_z:
+			for x in w.size_x:
+				var corners := 0
+				var m := w.get_cell(x, y, z)
+				for k in 4:
+					if _ref_cut(w, x, y, z, k) or _ref_fill(w, x, y, z, k):
+						corners |= 1 << k
+				if w.slope_mask(x, y, z) != _ref_slope(w, x, y, z) \
+						or w.corner_cuts(x, y, z) | w.corner_fills(x, y, z) != corners:
+					printerr("shape differs at %s (%s): slope %d / %d, corners %d / %d" % [Vector3i(x, y, z), Mat.NAMES[m],
+						w.slope_mask(x, y, z), _ref_slope(w, x, y, z), w.corner_cuts(x, y, z) | w.corner_fills(x, y, z), corners])
+					return false
+	return true
+
+
+func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
+	if not _ref_can_slope(w, x, y, z):
+		return WorldData.FULL
+	var low := 0
+	for k in 4:
+		var o: Vector2i = WorldData.SIDES[k]
+		if _ref_low(w, x + o.x, y, z + o.y):
+			low |= 1 << k
+	if low != 0:
+		return WorldData.RAMPS[low]
+	var mask := WorldData.FULL
+	for k in 4:
+		var o: Vector2i = WorldData.CORNER_DIRS[k]
+		if _ref_low(w, x + o.x, y, z + o.y) and _ref_can_slope(w, x + o.x, y, z) and _ref_can_slope(w, x, y, z + o.y):
+			if mask != WorldData.FULL:
+				return WorldData.FULL
+			mask = WorldData.FULL & ~(1 << k)
+	return mask
+
+
+func _ref_can_slope(w: WorldData, x: int, y: int, z: int) -> bool:
+	return w.in_bounds(x, y, z) and w.natural[(y * w.size_z + z) * w.size_x + x] == WorldData.WILD \
+		and Mat.can_slope(w.get_cell(x, y, z)) and w.get_cell(x, y + 1, z) == Mat.AIR
+
+
+func _ref_low(w: WorldData, x: int, y: int, z: int) -> bool:
+	if x < 0 or z < 0 or x >= w.size_x or z >= w.size_z:
+		return false
+	var m := w.get_cell(x, y, z)
+	return (m == Mat.AIR or m == Mat.WATER) and w.get_cell(x, y - 1, z) != Mat.AIR
+
+
+func _ref_ground(w: WorldData, x: int, y: int, z: int) -> bool:
+	var m := w.get_cell(x, y, z)
+	return m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES and m != Mat.LOG
+
+
+func _ref_cut_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
+	var o: Vector2i = WorldData.CORNER_DIRS[k]
+	var a := w.get_cell(x + o.x, y, z)
+	if a != Mat.AIR and a != Mat.WATER or w.get_cell(x, y, z + o.y) != a or w.get_cell(x + o.x, y, z + o.y) != a:
+		return false
+	if not (_ref_ground(w, x, y, z) and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) \
+			and w.is_natural(x, y, z + o.y) and w.is_natural(x + o.x, y, z + o.y)):
+		return false
+	var mask := _ref_slope(w, x, y, z)
+	return mask == WorldData.FULL or mask & (1 << k) == 0
+
+
+func _ref_cut(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
+	while _ref_cut_here(w, x, y, z, k):
+		var above := w.get_cell(x, y + 1, z)
+		if above == Mat.AIR or above == Mat.WATER or above == Mat.LEAVES:
+			return true
+		y += 1
+	return false
+
+
+func _ref_fill_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
+	var o: Vector2i = WorldData.CORNER_DIRS[k]
+	var m := w.get_cell(x, y, z)
+	if m != Mat.AIR and m != Mat.WATER:
+		return false
+	return _ref_ground(w, x + o.x, y, z) and _ref_ground(w, x, y, z + o.y) and _ref_ground(w, x + o.x, y, z + o.y) \
+		and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) and w.is_natural(x, y, z + o.y) \
+		and w.is_natural(x + o.x, y, z + o.y) and _ref_slope(w, x + o.x, y, z) == WorldData.FULL \
+		and _ref_slope(w, x, y, z + o.y) == WorldData.FULL
+
+
+func _ref_fill(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
+	while _ref_fill_here(w, x, y, z, k):
+		var below := w.get_cell(x, y - 1, z)
+		if below != Mat.AIR and below != Mat.WATER and below != Mat.LEAVES:
+			return true
+		y -= 1
+	return false
 
 
 func _test_ai_relations() -> void:

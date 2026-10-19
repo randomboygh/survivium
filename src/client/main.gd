@@ -8,6 +8,7 @@ extends Node
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
 const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
@@ -26,7 +27,9 @@ const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
 const GradeShader := preload("res://shaders/grade.gdshader")
 
 const WORLD_SEED := 20261018
+## Chunk size in cells.
 const CHUNK := 16
+const CELL := WorldData.CELL
 ## Meshes are drawn up to a level height north of where they are, so culling boxes
 ## get this much margin.
 const CULL_MARGIN := 24.0
@@ -129,7 +132,7 @@ func _ready() -> void:
 	for cz in ceili(world.size_z / float(CHUNK)):
 		for cx in ceili(world.size_x / float(CHUNK)):
 			keys.append(Vector2i(cx, cz))
-	var spawn := Vector2(player.position.x, player.position.z) / CHUNK
+	var spawn := Vector2(player.position.x, player.position.z) / (CHUNK * CELL)
 	var nearer := func(a: Vector2i, b: Vector2i) -> bool: return Vector2(a).distance_to(spawn) < Vector2(b).distance_to(spawn)
 	keys.sort_custom(nearer)
 	pending_chunks = keys
@@ -388,7 +391,7 @@ func _button(parent: Node, text: String, action: Callable) -> Button:
 func _build_materials() -> void:
 	RenderingServer.global_shader_parameter_set("terrain_atlas", PixelTextures.build_atlas())
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
-	RenderingServer.global_shader_parameter_set("world_size", Vector2(world.size_x, world.size_z))
+	RenderingServer.global_shader_parameter_set("world_size", Vector2(world.size_x, world.size_z) * CELL)
 	world_mat = _material(WorldShader)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
@@ -441,7 +444,7 @@ func _build_scene() -> void:
 	player.world = world
 	world_root.add_child(player)
 	var spawn: Vector3i = WorldGen.find_spawn(world)
-	player.position = Vector3(spawn.x + 0.5, spawn.y, spawn.z + 0.5)
+	player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 	cam_target = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 
 	creatures = CreaturesScript.new()
@@ -474,24 +477,38 @@ func _place_props() -> void:
 	world_root.add_child(bush_shade)
 	_refresh_bushes()
 
-	# A chest and a campfire next to the spawn point.
-	var c: Vector3 = player.position + Vector3(2.0, 0.0, 1.0)
-	var cell := Vector3i(floori(c.x), floori(c.y), floori(c.z))
-	if world.get_cell(cell.x, cell.y, cell.z) == Mat.AIR and world.is_solid(cell.x, cell.y - 1, cell.z):
-		_level_ground(cell - Vector3i(0, 1, 0))
+	# A chest and a campfire next to the spawn point, each on two by two cells.
+	var chest_spot := _prop_spot(player.position + Vector3(2.0, 0.0, 1.0))
+	if chest_spot.y >= 0:
 		var chest := MeshInstance3D.new()
 		chest.mesh = VoxelProps.chest().build_mesh()
 		chest.material_override = world_mat
 		chest.scale = Vector3.ONE / 16.0
-		chest.position = Vector3(cell)
+		chest.position = Vector3(chest_spot) * CELL
 		chest.extra_cull_margin = CULL_MARGIN
 		world_root.add_child(chest)
-	var f: Vector3 = player.position + Vector3(-2.0, 0.0, 2.0)
-	var fire := Vector3i(floori(f.x), floori(f.y), floori(f.z))
-	if world.get_cell(fire.x, fire.y, fire.z) == Mat.AIR and world.is_solid(fire.x, fire.y - 1, fire.z):
-		_level_ground(fire - Vector3i(0, 1, 0))
-		effects.add_campfire(fire, world_mat)
-	RenderingServer.global_shader_parameter_set("heat_map", effects.heat_map(world.size_x, world.size_z))
+	var fire := _prop_spot(player.position + Vector3(-2.0, 0.0, 2.0))
+	if fire.y >= 0:
+		effects.add_campfire(Vector3(fire) * CELL, world_mat)
+	RenderingServer.global_shader_parameter_set("heat_map", effects.heat_map(ceili(world.size_x * CELL), ceili(world.size_z * CELL)))
+
+
+## The north-west cell of two by two free cells on ground at one level near the world
+## point `p`, the ground under them levelled; y = -1 when there is no such spot.
+func _prop_spot(p: Vector3) -> Vector3i:
+	var x := floori(p.x / CELL)
+	var z := floori(p.z / CELL)
+	var y: int = world.surface_y(x, z)
+	if y <= 0:
+		return Vector3i(0, -1, 0)
+	for dz in 2:
+		for dx in 2:
+			if world.get_cell(x + dx, y, z + dz) != Mat.AIR or not world.is_solid(x + dx, y - 1, z + dz):
+				return Vector3i(0, -1, 0)
+	for dz in 2:
+		for dx in 2:
+			_level_ground(Vector3i(x + dx, y - 1, z + dz))
+	return Vector3i(x, y, z)
 
 
 ## Props stand on level ground: a slope under them becomes a whole cube.
@@ -508,7 +525,7 @@ func _refresh_bushes() -> void:
 		bushes.multimesh.buffer = part[1]
 	var discs := PackedFloat32Array()
 	for cell in bush_cells:
-		Foliage.put(discs, Vector3(cell) + Vector3(0.5, 0.5, 0.5))
+		Foliage.put(discs, (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0))
 	bush_shade.multimesh.instance_count = bush_cells.size()
 	if not bush_cells.is_empty():
 		bush_shade.multimesh.buffer = discs
@@ -566,9 +583,9 @@ func _edit(screen_pos: Vector2, dig: bool) -> void:
 		return
 	var vp_pos := (screen_pos - container.global_position) / float(container.stretch_shrink)
 	var center := Vector2(camera.global_position.x, camera.global_position.z)
-	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(image_size) * 0.5, world.size_y + 1.0)
+	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(image_size) * 0.5, world.size_y * CELL + 1.0)
 	var max_level: int = mini(cut_level, world.size_y - 1)
-	var hit := VoxelRaycast.cast(world, ray[0], ray[1], 250.0, max_level)
+	var hit := VoxelRaycast.cast(world, ray[0] / CELL, ray[1], 500.0, max_level)
 	if hit.is_empty():
 		return
 	var cell: Vector3i = hit.cell
@@ -589,7 +606,7 @@ func _edit(screen_pos: Vector2, dig: bool) -> void:
 
 
 func _too_far(cell: Vector3i) -> bool:
-	var center := Vector3(cell) + Vector3(0.5, 0.5, 0.5)
+	var center := (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL
 	return center.distance_to(player.position + Vector3(0.0, 0.5, 0.0)) > REACH
 
 
@@ -617,11 +634,12 @@ func _on_cell_changed(cell: Vector3i) -> void:
 func _update_cut() -> void:
 	if world == null or player == null:
 		return
+	# The player stands on `level` and is two cells tall.
 	var level: int = player.level()
-	var px := floori(player.position.x)
-	var pz := floori(player.position.z)
+	var px := floori(player.position.x / CELL)
+	var pz := floori(player.position.z / CELL)
 	indoor = false
-	for y in range(level + 1, mini(level + 9, world.size_y)):
+	for y in range(level + 2, mini(level + 18, world.size_y)):
 		if Mat.is_roof(world.get_cell(px, y, pz)):
 			indoor = true
 			break
@@ -629,7 +647,7 @@ func _update_cut() -> void:
 	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
-		target = level
+		target = level + 1
 	if target != cut_level:
 		cut_level = target
 		_apply_cut()
@@ -638,14 +656,14 @@ func _update_cut() -> void:
 func _shift_cut(d: int) -> void:
 	if world == null:
 		return
-	var base: int = cut_level if cut_level < world.size_y else player.level()
+	var base: int = cut_level if cut_level < world.size_y else player.level() + 1
 	manual_level = clampi(base + d, 1, world.size_y)
 	if manual_level >= world.size_y - 1:
 		manual_level = -1
 
 
 func _apply_cut() -> void:
-	var h := 1000.0 if cut_level >= world.size_y else float(cut_level) + 1.0
+	var h := 1000.0 if cut_level >= world.size_y else (cut_level + 1) * CELL
 	RenderingServer.global_shader_parameter_set("cut_height", h)
 	creatures.cut_height = h
 	cap_node.mesh = ChunkMesher.build_cap(world, cut_level) if cut_level < world.size_y - 1 else null
@@ -748,7 +766,7 @@ func _update_weather(delta: float) -> void:
 	water_mat.set_shader_parameter("ice_amount", ice)
 	world.water_frozen = ice > 0.8
 	if player != null:
-		effects.update(delta, cam_target, float(player.level()), raining, winter, season, daylight, indoor)
+		effects.update(delta, cam_target, player.position.y, raining, winter, season, daylight, indoor)
 
 
 # --- Camera, input, HUD ----------------------------------------------------

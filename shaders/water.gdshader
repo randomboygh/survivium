@@ -3,7 +3,7 @@
 // UV2.x: foam bits for the half edges that touch land (2 per edge N, S, W, E: the
 // west or north half, then the other), then for the diagonals of corners NW, NE, SE,
 // SW filled with land, then for those of cut-off corners of the land beside;
-// UV2.y: depth in cells.
+// UV2.y: depth in cells (half a world unit each).
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -31,9 +31,10 @@ void fragment() {
 		discard;
 	}
 	vec2 tex = floor(world_pos.xz * TEXELS);
-	ivec2 t = clamp(ivec2(floor(UV * TEXELS)), ivec2(0), ivec2(15));
-	int dist[4] = int[](t.y, 15 - t.y, t.x, 15 - t.x);
-	float depth = clamp((data.y - 1.0) / 3.0, 0.0, 1.0);
+	int last = int(CELL_TEXELS) - 1;
+	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
+	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
+	float depth = clamp((data.y * CELL - 1.0) / 3.0, 0.0, 1.0);
 	vec3 col = mix(shallow, deep, depth);
 	float alpha = mix(0.45, 1.0, depth);
 	if (world_normal.y < 0.5) {
@@ -50,7 +51,7 @@ void fragment() {
 		col += vec3(0.35) * s * (1.0 - ice_amount);
 		// Foam along the shore, washing in and out by a texel or two.
 		int foam = int(data.x + 0.5);
-		int mid = int(TEXELS) / 2;
+		int mid = int(CELL_TEXELS) / 2;
 		for (int e = 0; e < 4; e++) {
 			int half = (e < 2 ? t.x : t.y) / mid;
 			if (((foam >> (2 * e + half)) & 1) == 0) {
@@ -82,12 +83,13 @@ void fragment() {
 				col = mix(col, foam_color, 0.25);
 			}
 		}
-		// Rain rings: each cell gets a ring now and then while it rains.
+		// Rain rings: each square of two by two cells gets a ring now and then while it
+		// rains.
 		if (wetness > 0.05) {
 			vec2 cell = floor(world_pos.xz);
 			float phase = fract(TIME * 0.8 + hash12(cell) * 7.0);
 			vec2 c = vec2(hash12(cell + 3.0), hash12(cell + 5.0)) * 10.0 + 3.0;
-			float r = length(vec2(t) + 0.5 - c);
+			float r = length(floor(fract(world_pos.xz) * TEXELS) + 0.5 - c);
 			float ring = step(abs(r - phase * 3.0), 0.5) * step(phase, 0.7) * step(hash12(cell + floor(TIME * 0.8 + hash12(cell) * 7.0)), wetness * 0.45);
 			col = mix(col, col * 1.4 + 0.08, ring);
 		}

@@ -3,8 +3,9 @@
 // seasons need no extra textures.
 //
 // Vertex data (see chunk_mesher.gd):
-//   UV   = position on the face, 0..1 (v = 0 at the north edge of a top face and at
-//          the top of a wall)
+//   UV   = position on the cell's face, 0..1 (v = 0 at the north edge of a top face
+//          and at the top of a wall), for edges; merged plain tops run past 1. The
+//          texture itself is laid by world position, a 16x16 tile over two cells.
 //   UV2.x = tile + 64 * edges + 16384 * flag; tile 63 means "colour from COLOR only"
 //          (voxels); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
 //          outline, 3 contact shadow; flag bits: 1 = season-tinted foliage voxel,
@@ -96,9 +97,10 @@ void fragment() {
 	int tile = a % 64;
 	int edges = (a / 64) % 256;
 	int flag = a / 16384;
-	ivec2 t = clamp(ivec2(floor(UV * TEXELS)), ivec2(0), ivec2(15));
+	int last = int(CELL_TEXELS) - 1;
+	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
 	// Texel distance to the N, S, W, E edges of the face.
-	int dist[4] = int[](t.y, 15 - t.y, t.x, 15 - t.x);
+	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
 	vec3 col = COLOR.rgb;
 	bool top = world_normal.y > 0.5;
 	vec2 wt = floor(world_pos.xz * TEXELS);
@@ -126,7 +128,14 @@ void fragment() {
 				}
 			}
 		}
-		ivec2 tm = top ? tile_mirror(t, floor(world_pos.xz)) : t;
+		// The tile's texel at this spot of the world: x and z on tops, across and down
+		// on walls.
+		vec2 across = abs(world_normal.y) > 0.5 ? world_pos.xz
+			: vec2(abs(world_normal.x) > 0.5 ? world_pos.z : world_pos.x, -world_pos.y);
+		ivec2 tm = ivec2(mod(floor(across * TEXELS), TEXELS));
+		if (top) {
+			tm = tile_mirror(tm, floor(world_pos.xz));
+		}
 		if (flag == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
 			// where they show on screen, one texel per pixel.
@@ -164,7 +173,7 @@ void fragment() {
 	if ((flag & 8) != 0) {
 		// Texel distance to the diagonal half a cell from corner k, counted on the face.
 		int k = (flag >> 4) & 3;
-		int mid = int(TEXELS) / 2;
+		int mid = int(CELL_TEXELS) / 2;
 		int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
 		int dd = (flag & 64) != 0 ? -sd : sd;
 		int code = (flag >> 7) & 3;
@@ -190,8 +199,8 @@ void fragment() {
 		float swept = step(ground_patch(world_pos.xz, 5.0) + (h - 0.5) * 0.05, 0.07);
 		snow = step(h, snow_here * 1.15 - 0.05) * (1.0 - swept);
 	} else if ((flag & 2) != 0) {
-		float fringe = snow_here * (0.12 + 0.12 * h);
-		snow = step(1.0 - fringe, fract(world_pos.y)) * step(0.3, snow_here);
+		float fringe = snow_here * (0.24 + 0.24 * h);
+		snow = step(1.0 - fringe, fract(world_pos.y / CELL)) * step(0.3, snow_here);
 	}
 	if (snow > 0.0) {
 		col = mix(col, snow_color(world_pos.xz, wt), snow);

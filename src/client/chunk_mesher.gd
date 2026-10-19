@@ -1,11 +1,13 @@
 extends RefCounted
 ## Builds meshes from the cell grid: one quad per visible cell face, with the data the
 ## world shader needs for edges and material transitions (see world.gdshader). Natural
-## ground also gets slopes (see WorldData.slope_mask) and diagonal corners: cut-off
-## outer corners and filled inner ones (see WorldData.corner_cut and corner_fill).
-## A chunk mesh holds all levels of a 16x16 column; the cutaway hides upper levels
-## in the shader, and `build_cap` closes the cut with dark tops. Leaves are not cubes:
-## Foliage draws them as leaf clumps.
+## ground also gets slopes and diagonal corners, cut-off outer corners and filled inner
+## ones, as WorldData shapes them. A chunk mesh holds all levels of a 16x16 column of
+## cells; only the cells next to something open are looked at, found from the world's
+## column masks, and plain tops in a row are merged into one long quad. The cutaway
+## hides upper levels in the shader, and `build_cap` closes the cut with dark tops.
+## Leaves are not cubes: Foliage draws them as leaf clumps. Meshes are built in cells
+## and scaled to world units.
 
 const Mat := preload("res://src/shared/materials.gd")
 const MeshBuffers := preload("res://src/client/mesh_buffers.gd")
@@ -26,8 +28,8 @@ const CORNERS := [
 	[Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 1, 1), Vector3(0, 1, 1)],
 	[Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(0, 1, 0)],
 ]
-## Water stands a quarter of a level below the shore, so the bank shows above it.
-const WATER_TOP := 0.75
+## Water stands half a cell (4 px) below the shore, so the bank shows above it.
+const WATER_TOP := 0.5
 const AIR := Mat.AIR
 const WATER := Mat.WATER
 const LEAVES := Mat.LEAVES
@@ -68,9 +70,10 @@ const SIDE_CORNERS := [[1, 2], [0, 3], [], [], [3, 2], [0, 1]]
 ## the corner of the neighbour across each, and the two half edges of each quarter.
 const HALF_CORNER := [3, 2, 0, 1, 1, 2, 0, 3]
 const QUARTER_HALVES := [[0, 4], [1, 6], [3, 7], [2, 5]]
-## A tree trunk is drawn 6 texels wide.
-const TRUNK_MIN := 5.0 / 16.0
-const TRUNK_MAX := 11.0 / 16.0
+## A tree trunk is drawn 6 texels wide in its 8-texel cell.
+const TRUNK_MIN := 1.0 / 8.0
+const TRUNK_MAX := 7.0 / 8.0
+const CELL := WorldData.CELL
 
 static var _faces: Array = []
 ## Per direction: [corners, uvs, normal] of a whole cell face.
@@ -111,16 +114,18 @@ static func pack(tile: int, edges: int, flag: int) -> float:
 
 
 ## Returns [solid_mesh_or_null, water_mesh_or_null] for the column of cells x0..x0+size, z0..z0+size.
-## Works on a copy of the chunk's cells with a border of one cell (outside the map is
-## air, below it is stone), so neighbour lookups are plain array reads.
+## Works on copies of the chunk's cells and shapes with a border of PAD cells (outside
+## the map is air, below it is stone), so neighbour lookups are plain array reads.
 static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
+	w.refresh_shapes()
 	var faces := face_table()
 	var solid := MeshBuffers.new()
 	var water := MeshBuffers.new()
-	var sy: int = w.size_y
-	var x1 := mini(x0 + size, w.size_x)
+	var sx: int = w.size_x
+	var x1 := mini(x0 + size, sx)
 	var z1 := mini(z0 + size, w.size_z)
-	var c := padded(w, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
+	var c := padded(w, w.cells, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
+	var sh := padded(w, w.shapes, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
 	var cov := covers_table()
 	# Strides of the padded grid: +x, +z, +y.
 	var dx := 1
@@ -130,19 +135,27 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 	var no_tiles := float(NO_TILE * 0x41041)
 	var nb := PackedByteArray()
 	nb.resize(6)
-	var shaped := shapes_and_corners(w, c, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
-	var shapes: PackedByteArray = shaped[0]
-	var plan: PackedByteArray = shaped[1]
-	var side_offsets := [dx, -dx, 0, 0, dz, -dz]
-	for y in sy:
-		for z in range(z0, z1):
-			var i := (y + 1) * dy + (z - z0 + PAD) * dz + PAD
-			for x in range(x0, x1):
+	var side_offsets := PackedInt32Array([dx, -dx, 0, 0, dz, -dz])
+	# Plain tops (no edges, corners or transitions) and plain water wait here to be
+	# merged into rows.
+	var plain := PackedInt32Array()
+	var water_plain := PackedInt32Array()
+	var cands := _candidates(w, x0, z0, x1, z1)
+	var j := 0
+	for z in range(z0, z1):
+		for x in range(x0, x1):
+			var cand := cands[j]
+			j += 1
+			var column := (z - z0 + PAD) * dz + PAD + x - x0
+			while cand != 0:
+				var bit := cand & -cand
+				cand ^= bit
+				var y := WorldData.level_of(bit)
+				var i := (y + 1) * dy + column
 				var m := c[i]
 				if m == AIR or m == LEAVES:
-					if plan[i] >= 16:
-						_fill_faces(solid, c, cov, plan, i, dy, dz, Vector3(x, y, z))
-					i += 1
+					if sh[i] >= 16:
+						_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
 					continue
 				# Neighbours in DIRS order: +x, -x, +y, -y, +z, -z.
 				nb[0] = c[i + dx]
@@ -153,20 +166,40 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 				nb[5] = c[i - dz]
 				var base := Vector3(x, y, z)
 				if m == WATER:
-					_water_faces(w, water, faces, nb, x, y, z, _foam(c, cov, plan, i, dz) | (plan[i] >> 4) << 8)
-					if plan[i] >= 16:
-						_fill_faces(solid, c, cov, plan, i, dy, dz, base)
+					var fills := sh[i] >> 4
+					var foam := fills << 8
+					# Open water has no land beside it, so no foam.
+					if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
+						foam |= _foam(c, sh, cov, i, dz)
+					var depth := 1
+					while depth < 8 and c[i - depth * dy] == WATER:
+						depth += 1
+					if foam == 0 and nb[2] == AIR and nb[0] != AIR and nb[1] != AIR and nb[4] != AIR and nb[5] != AIR:
+						water_plain.append(((y * 64 + depth) * 64 + z - z0) * 64 + x - x0)
+					else:
+						_water_faces(water, faces, nb, base, depth, foam)
+					if fills != 0:
+						_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 				elif m == Mat.LOG and _is_trunk(nb):
 					_trunk_faces(solid, faces, nb, base, m)
-				elif shapes[i] != FULL:
-					_slope_faces(solid, faces, nb, shapes, side_offsets, i, base, m, _around(c, cov, i, dy, dz), plan[i] & 15)
-					if plan[i] & 15:
-						_cut_water(w, water, c, i, dy, base, plan[i] & 15)
+				elif sh[i] & 15 != 0:
+					var cuts := sh[i] >> 4
+					_slope_faces(solid, faces, nb, sh, side_offsets, i, base, m, _around(c, cov, i, dy, dz), cuts)
+					if cuts:
+						_cut_water(w, water, c, i, dy, base, cuts)
 				else:
-					var cuts := plan[i] & 15
+					var cuts := sh[i] >> 4
+					# Most tops lie under open sky amid the same flat ground: no sides, no
+					# edges, no transitions.
+					if cuts == 0 and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
+							and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
+							and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
+							and not cov[c[i + dy - dz]]:
+						plain.append(((y * 64 + m * 3) * 64 + z - z0) * 64 + x - x0)
+						continue
 					for d in 6:
 						var n := nb[d]
-						if n != AIR and n != WATER and n != LEAVES and shapes[i + side_offsets[d]] == FULL:
+						if cov[n] and sh[i + side_offsets[d]] & 15 == 0:
 							# The ground under a thin trunk still shows around it.
 							if not (d == FACE_TOP and n == Mat.LOG and _trunk_at(w, x, y + 1, z)):
 								continue
@@ -176,11 +209,15 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 						var around := no_tiles
 						if d == FACE_TOP:
 							edges = _top_edges(c, cov, i, dy, dz)
-							around = _around(c, cov, i, dy, dz)
-							var halves := _covered_halves(c, plan, i, dy, dz, edges)
+							var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
+							var a := _around_tiles(c, cov, i, dy, dz)
 							if cuts != 0 or halves != 0:
-								_top_pieces(solid, base, m, cuts, edges, halves, around)
+								_top_pieces(solid, base, m, cuts, edges, halves, float(a))
 								continue
+							if edges == 0 and _plain_around(a, tile):
+								plain.append(((y * 64 + tile) * 64 + z - z0) * 64 + x - x0)
+								continue
+							around = float(a)
 						elif d == FACE_SOUTH:
 							if not cov[c[i + dy]]:
 								flag = OPEN_TOP
@@ -191,21 +228,119 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 								edges |= DARK << EDGE_W
 							if not cov[c[i + dx]] and not cov[c[i + dx + dz]] and not cov[c[i + dx + dz + dy]]:
 								edges |= DARK << EDGE_E
-						var packed := Vector2(pack(tile, edges, flag), around)
 						if cuts != 0:
-							_cut_side(solid, faces, d, base, cuts, white, packed)
+							_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around))
 						else:
-							_add_cell_face(solid, d, base, white, packed)
+							_add_cell_face(solid, d, base, white, Vector2(pack(tile, edges, flag), around))
 					if cuts != 0:
 						_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts)
 					# The ground under a cut corner of the cell above shows there.
-					var exposed := plan[i + dy] & 15 & ~cuts if cov[c[i + dy]] else 0
+					var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
 					if exposed != 0:
 						var edges := _top_edges(c, cov, i, dy, dz)
-						_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges, _covered_halves(c, plan, i, dy, dz, edges),
-							shapes[i + dy] == FULL)
-				i += 1
-	return [null if solid.is_empty() else solid.to_mesh(), null if water.is_empty() else water.to_mesh()]
+						_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
+							_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0)
+	_plain_rows(solid, plain, x0, z0)
+	_plain_rows(water, water_plain, x0, z0, true)
+	return [null if solid.is_empty() else solid.to_mesh(CELL), null if water.is_empty() else water.to_mesh(CELL)]
+
+
+## Cells of each column of x0..x1, z0..z1 (row by row) that may show a face, as bit
+## masks of levels: those that hide what is behind them next to an open or sloping
+## cell, under a cut corner or a trunk; water next to air; open cells with filled
+## corners. Columns at the map's border count as next to open air.
+static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Array:
+	var sx: int = w.size_x
+	var sz: int = w.size_z
+	var all: int = w.all_bits
+	var top_bit: int = w.top_bit
+	var air_cols: PackedInt64Array = w.air_cols
+	var water_cols: PackedInt64Array = w.water_cols
+	var leaf_cols: PackedInt64Array = w.leaf_cols
+	var sloped_cols: PackedInt64Array = w.sloped_cols
+	var corner_cols: PackedInt64Array = w.corner_cols
+	var log_cols: PackedInt64Array = w.log_cols
+	var out := PackedInt64Array()
+	out.resize((x1 - x0) * (z1 - z0))
+	var j := 0
+	for z in range(z0, z1):
+		for x in range(x0, x1):
+			var col := z * sx + x
+			var air := air_cols[col]
+			var water := water_cols[col]
+			var open := air | water | leaf_cols[col]
+			var sloped := sloped_cols[col]
+			var corners := corner_cols[col]
+			var cover := ~open & all
+			var near := (open >> 1) | top_bit | (open << 1) & all | sloped | (sloped >> 1) | (sloped << 1) & all \
+				| (corners & cover) >> 1 | log_cols[col] >> 1
+			var air_near := (air >> 1) | top_bit
+			if x == 0 or z == 0 or x == sx - 1 or z == sz - 1:
+				near = all
+				air_near = all
+			else:
+				var a := air_cols[col - 1] | air_cols[col + 1] | air_cols[col - sx] | air_cols[col + sx]
+				near |= a | water_cols[col - 1] | water_cols[col + 1] | water_cols[col - sx] | water_cols[col + sx] \
+					| leaf_cols[col - 1] | leaf_cols[col + 1] | leaf_cols[col - sx] | leaf_cols[col + sx] \
+					| sloped_cols[col - 1] | sloped_cols[col + 1] | sloped_cols[col - sx] | sloped_cols[col + sx]
+				air_near |= a
+			out[j] = cover & near | water & air_near | corners & open
+			j += 1
+	return out
+
+
+## Top tiles of the level neighbours N, S, W, E of padded cell `i`, packed for UV2.y
+## (material transitions, see world.gdshader).
+static func _around_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> int:
+	var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
+	var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
+	var tw := c[i - 1] * 3 if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_TILE
+	var te := c[i + 1] * 3 if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_TILE
+	return tn | ts << 6 | tw << 12 | te << 18
+
+
+static func _around(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> float:
+	return float(_around_tiles(c, cov, i, dy, dz))
+
+
+## True when no neighbour tile differs from `tile`, so the top has no transitions.
+static func _plain_around(a: int, tile: int) -> bool:
+	for e in 4:
+		var t := a >> (6 * e) & 63
+		if t != NO_TILE and t != tile:
+			return false
+	return true
+
+
+## Draws the plain tops (keys from build_chunk: level, tile or water depth, z and x in
+## the chunk) as one quad per row of neighbours with the same tile. The shaders texture
+## tops by their world position, so a long quad looks the same as the cells it covers.
+static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := false) -> void:
+	keys.sort()
+	var corners: Array = face_table()[FACE_TOP].corners
+	var height := WATER_TOP if water else 1.0
+	var white := Color(1, 1, 1)
+	var no_tiles := float(NO_TILE * 0x41041)
+	var n := keys.size()
+	var j := 0
+	while j < n:
+		var first := keys[j]
+		var end := j + 1
+		while end < n and keys[end] == first + (end - j) and (first & 63) + (end - j) < 64:
+			end += 1
+		var length := end - j
+		var lx := first & 63
+		var lz := first >> 6 & 63
+		var tile := first >> 12 & 63
+		var y := first >> 18
+		var base := Vector3(x0 + lx, y, z0 + lz)
+		var pts := []
+		var uvs := []
+		for v: Vector3 in corners:
+			pts.append(base + Vector3(v.x * length, v.y * height, v.z))
+			uvs.append(Vector2(v.x * length, v.z))
+		buf.quad(pts, Vector3.UP, uvs, white, Vector2(0.0, tile) if water else Vector2(pack(tile, 0, 0), no_tiles))
+		j = end
 
 
 ## Edge codes of the top of padded cell `i`: what the oblique view shows next to each
@@ -233,17 +368,19 @@ static func _top_edges(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int
 ## Half edges (bits, see HALF_CORNER) of the top of padded cell `i` where the ground
 ## goes on at the same height, so their edge code must not show: a filled corner of the
 ## neighbour, or a cut corner of the wall above the neighbour instead of a wall rising.
-static func _covered_halves(c: PackedByteArray, plan: PackedByteArray, i: int, dy: int, dz: int, edges: int) -> int:
+static func _covered_halves(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
+		edges: int) -> int:
 	# Mostly there are no corners around at all.
-	if plan[i - dz] | plan[i + dz] | plan[i - 1] | plan[i + 1] < 16 \
-			and (plan[i + dy - dz] | plan[i + dy - 1] | plan[i + dy + 1]) & 15 == 0:
+	if sh[i - dz] | sh[i + dz] | sh[i - 1] | sh[i + 1] | sh[i + dy - dz] | sh[i + dy - 1] | sh[i + dy + 1] < 16:
 		return 0
 	var halves := 0
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
 		var bit: int = 1 << HALF_CORNER[h]
-		if plan[n] >> 4 & bit or edges >> (2 * e) & 3 == CONTACT and plan[n + dy] & bit:
+		# A fill of the open neighbour, or a cut of the ground above it.
+		if not cov[c[n]] and sh[n] >> 4 & bit \
+				or edges >> (2 * e) & 3 == CONTACT and cov[c[n + dy]] and sh[n + dy] >> 4 & bit:
 			halves |= 1 << h
 	return halves
 
@@ -321,17 +458,17 @@ static func _cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vect
 
 ## Ground filling the corners of open padded cell `i`: a diagonal wall, and its top
 ## where nothing lies on it.
-static func _fill_faces(buf, c: PackedByteArray, cov: PackedByteArray, plan: PackedByteArray, i: int, dy: int,
+static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int,
 		dz: int, base: Vector3) -> void:
 	var white := Color(1, 1, 1)
 	var no_tiles := float(NO_TILE * 0x41041)
-	var fills := plan[i] >> 4
+	var fills := sh[i] >> 4
 	for k in 4:
 		if fills & (1 << k) == 0:
 			continue
 		var o: Vector2i = CORNER_DIRS[k]
 		var mf := c[i + o.x]
-		var open_top: bool = not cov[c[i + dy]] and plan[i + dy] >> 4 & (1 << k) == 0
+		var open_top: bool = not cov[c[i + dy]] and sh[i + dy] >> 4 & (1 << k) == 0
 		_diag_wall(buf, base, k, false, white, Vector2(pack(mf * 3 + 1, 0, SLOPE | (OPEN_TOP if open_top else 0)), no_tiles))
 		# The top continues the ground around it: under a slope beside, the slope's.
 		if cov[c[i + o.x + dy]]:
@@ -414,84 +551,12 @@ static func _wound(buf, vs: Array, n: Vector3, uvs: Array, color: Color, packed:
 		buf.tri(vs, n, uvs, color, packed)
 
 
-## Top tiles of the level neighbours N, S, W, E of padded cell `i`, packed for UV2.y
-## (material transitions, see world.gdshader).
-static func _around(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> float:
-	var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
-	var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
-	var tw := c[i - 1] * 3 if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_TILE
-	var te := c[i + 1] * 3 if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_TILE
-	return float(tn | ts << 6 | tw << 12 | te << 18)
-
-
-## Shapes of the padded cells `c` of x0..x1, z0..z1 (exclusive ends): slope masks (see
-## WorldData.slope_mask, FULL for everything that is not sloping ground), and corners
-## as WorldData shapes them (cut corners in the low 4 bits, filled ones in the high 4,
-## bit 1 << k for corner k) for all but the outermost ring. One pass over the copy picks
-## the few cells on an edge or in an inner corner before WorldData decides.
-static func shapes_and_corners(w, c: PackedByteArray, x0: int, z0: int, x1: int, z1: int) -> Array:
-	var shapes := PackedByteArray()
-	shapes.resize(c.size())
-	shapes.fill(FULL)
-	var plan := PackedByteArray()
-	plan.resize(c.size())
-	var cov := covers_table()
-	var sy: int = w.size_y
-	var nx := x1 - x0
-	var nz := z1 - z0
-	var dy := nx * nz
-	var cut_cells := PackedInt32Array()
-	var fill_cells := PackedInt32Array()
-	for y in sy:
-		var i := (y + 1) * dy
-		for z in nz:
-			var inner := z > 0 and z < nz - 1
-			for x in nx:
-				var m := c[i]
-				if m == AIR or m == WATER:
-					if inner and x > 0 and x < nx - 1 and (cov[c[i - 1]] or cov[c[i + 1]]) and (cov[c[i - nx]] or cov[c[i + nx]]):
-						fill_cells.append(i)
-				elif cov[m]:
-					if Mat.can_slope(m) and c[i + dy] == AIR:
-						shapes[i] = w.slope_mask(x0 + x, y, z0 + z)
-					if inner and x > 0 and x < nx - 1 and m != Mat.LOG \
-							and not (cov[c[i - 1]] and cov[c[i + 1]] and cov[c[i - nx]] and cov[c[i + nx]]):
-						cut_cells.append(i)
-				i += 1
-	var ox := []
-	var oz := []
-	for o: Vector2i in CORNER_DIRS:
-		ox.append(o.x)
-		oz.append(o.y * nx)
-	# Cuts from the top down: a corner is cut only under open cells or the same cut.
-	for n in range(cut_cells.size() - 1, -1, -1):
-		var i := cut_cells[n]
-		for k in 4:
-			var a := c[i + ox[k]]
-			if (a == AIR or a == WATER) and c[i + oz[k]] == a and c[i + ox[k] + oz[k]] == a \
-					and (shapes[i] == FULL or shapes[i] & (1 << k) == 0) and (not cov[c[i + dy]] or plan[i + dy] & (1 << k)):
-				var r := i % dy
-				if w.corner_cut_here(x0 + r % nx, i / dy - 1, z0 + r / nx, k):
-					plan[i] |= 1 << k
-	# Fills from the bottom up: a fill stands on ground or on the same fill.
-	for i in fill_cells:
-		for k in 4:
-			var a: int = i + ox[k]
-			var b: int = i + oz[k]
-			if cov[c[a]] and cov[c[b]] and cov[c[a + oz[k]]] and shapes[a] == FULL and shapes[b] == FULL \
-					and (cov[c[i - dy]] or plan[i - dy] & (16 << k)):
-				var r := i % dy
-				if w.corner_fill_here(x0 + r % nx, i / dy - 1, z0 + r / nx, k):
-					plan[i] |= 16 << k
-	return [shapes, plan]
-
-
 ## A cell with a sloping top: two triangles over the corner heights of its mask, side
 ## walls cut to the slope where nothing covers them, and the bottom if open. Cut corners
 ## clip the triangles, halve the side walls and leave a wall up to the slope.
-static func _slope_faces(buf, faces: Array, nb: PackedByteArray, shapes: PackedByteArray, side_offsets: Array,
+static func _slope_faces(buf, faces: Array, nb: PackedByteArray, sh: PackedByteArray, side_offsets: Array,
 		i: int, base: Vector3, m: int, around: float, cuts: int) -> void:
-	var mask := shapes[i]
+	var mask := FULL & ~(sh[i] & 15)
 	var h := [float(mask & WorldData.NW != 0), float(mask & WorldData.NE != 0),
 		float(mask & WorldData.SE != 0), float(mask & WorldData.SW != 0)]
 	var nw := Vector3(0, h[0], 0)
@@ -529,7 +594,7 @@ static func _slope_faces(buf, faces: Array, nb: PackedByteArray, shapes: PackedB
 				white, top)
 	for d in [0, 1, 3, 4, 5]:
 		var n := nb[d]
-		if n != AIR and n != WATER and n != LEAVES and (d == FACE_BOTTOM or shapes[i + side_offsets[d]] == FULL):
+		if n != AIR and n != WATER and n != LEAVES and (d == FACE_BOTTOM or sh[i + side_offsets[d]] & 15 == 0):
 			continue
 		var face: Dictionary = faces[d]
 		if d == FACE_BOTTOM:
@@ -594,36 +659,36 @@ static func _keep(k: int, p: Vector3) -> float:
 	return 0.5 + p.x - p.z
 
 
-## Copy of the cells in x0..x1, z0..z1 (exclusive ends, may reach outside the map)
-## and levels -1..size_y, in that order (x fastest).
-static func padded(w, x0: int, z0: int, x1: int, z1: int) -> PackedByteArray:
+## Copy of `src` (cells or shapes of the world) in x0..x1, z0..z1 (exclusive ends, may
+## reach outside the map) and levels -1..size_y, in that order (x fastest). Outside the
+## map and above it the value is 0 (air, no shape), below it `below`.
+static func padded(w, src: PackedByteArray, below: int, x0: int, z0: int, x1: int, z1: int) -> PackedByteArray:
 	var sx: int = w.size_x
 	var sy: int = w.size_y
 	var sz: int = w.size_z
-	var cells: PackedByteArray = w.cells
 	var width := x1 - x0
 	var air_row := PackedByteArray()
 	air_row.resize(width)
-	var stone_row := PackedByteArray()
-	stone_row.resize(width)
-	stone_row.fill(Mat.STONE)
+	var below_row := PackedByteArray()
+	below_row.resize(width)
+	below_row.fill(below)
 	var left := PackedByteArray()
-	left.resize(maxi(0, -x0))
+	left.resize(clampi(-x0, 0, width))
 	var right := PackedByteArray()
-	right.resize(maxi(0, x1 - sx))
-	var a := maxi(x0, 0)
-	var b := mini(x1, sx)
+	right.resize(clampi(x1 - sx, 0, width))
+	var a := clampi(x0, 0, sx)
+	var b := clampi(x1, 0, sx)
 	var c := PackedByteArray()
 	for y in range(-1, sy + 1):
 		for z in range(z0, z1):
 			if y < 0:
-				c.append_array(stone_row)
+				c.append_array(below_row)
 			elif y >= sy or z < 0 or z >= sz:
 				c.append_array(air_row)
 			else:
 				var row := (y * sz + z) * sx
 				c.append_array(left)
-				c.append_array(cells.slice(row + a, row + b))
+				c.append_array(src.slice(row + a, row + b))
 				c.append_array(right)
 	return c
 
@@ -639,50 +704,71 @@ static func covers_table() -> PackedByteArray:
 
 ## Dark tops of solid cells on `level` that are covered by solid cells above:
 ## what you see in the cut when looking into a mountain. Cut corners stay open, and
-## fills sliced by the cut show as dark triangles.
+## fills sliced by the cut show as dark triangles. Rows of whole tops of the same
+## material are merged.
 static func build_cap(w, level: int) -> ArrayMesh:
 	if level < 0 or level >= w.size_y - 1:
 		return null
-	var top: Dictionary = face_table()[FACE_TOP]
+	w.refresh_shapes()
 	var buf := MeshBuffers.new()
 	var cells: PackedByteArray = w.cells
+	var shapes: PackedByteArray = w.shapes
 	var sx: int = w.size_x
 	var sz: int = w.size_z
 	var layer: int = sx * sz
 	var row: int = level * layer
+	var bit := 1 << level
+	var both := bit | bit << 1
 	var dark := Color(0.4, 0.4, 0.4)
 	var no_tiles := float(NO_TILE * 0x41041)
+	var corners: Array = face_table()[FACE_TOP].corners
 	for z in sz:
-		for x in sx:
-			var i: int = row + z * sx + x
-			var m: int = cells[i]
-			var above: int = cells[i + layer]
+		# A run of whole tops waiting to be drawn: first x and tile.
+		var run_x := -1
+		var run_tile := -1
+		for x in sx + 1:
+			var tile := -1
+			var col := z * sx + x
+			var i: int = row + col
+			var open := 0
+			if x < sx:
+				open = w.air_cols[col] | w.water_cols[col] | w.leaf_cols[col]
+				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16:
+					tile = cells[i] * 3
+			if tile != run_tile and run_x >= 0:
+				var base := Vector3(run_x, level, z)
+				var pts := []
+				var uvs := []
+				for v: Vector3 in corners:
+					pts.append(base + Vector3(v.x * (x - run_x), v.y, v.z))
+					uvs.append(Vector2(v.x * (x - run_x), v.z))
+				buf.quad(pts, Vector3.UP, uvs, dark, Vector2(pack(run_tile, 0, 0), no_tiles))
+				run_x = -1
+			if tile >= 0:
+				if run_x < 0:
+					run_x = x
+					run_tile = tile
+				continue
+			run_tile = -1
+			if x >= sx:
+				continue
 			var base := Vector3(x, level, z)
-			# Only cells beside an open cell or with an open cell beside them above can
-			# have shaped corners.
-			var edge := x == 0 or z == 0 or x == sx - 1 or z == sz - 1 \
-				or not (_covers(cells[i - 1]) and _covers(cells[i + 1]) and _covers(cells[i - sx]) and _covers(cells[i + sx]) \
-				and _covers(cells[i + layer - 1]) and _covers(cells[i + layer + 1]) and _covers(cells[i + layer - sx]) \
-				and _covers(cells[i + layer + sx]))
-			var packed := Vector2(pack(m * 3, 0, 0), no_tiles)
-			if _covers(m) and _covers(above):
-				var cuts: int = w.corner_cuts(x, level, z) | w.corner_cuts(x, level + 1, z) if edge else 0
-				if cuts == 0:
-					_add(buf, top, FACE_TOP, base, Vector3.ONE, Vector3.ZERO, dark, packed)
-				else:
-					for q in 4:
-						_piece(buf, base, 1.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.UP, dark, packed)
-			elif (m == AIR or m == WATER) and x > 0 and z > 0 and x < sx - 1 and z < sz - 1 \
-					and (_covers(cells[i - 1]) or _covers(cells[i + 1])) and (_covers(cells[i - sx]) or _covers(cells[i + sx])):
-				var fills: int = w.corner_fills(x, level, z)
-				if fills != 0 and not _covers(above):
-					fills &= w.corner_fills(x, level + 1, z)
+			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)
+			if open & both == 0:
+				var cuts: int = (shapes[i] | shapes[i + layer]) >> 4
+				for q in 4:
+					_piece(buf, base, 1.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.UP, dark, packed)
+			elif open & bit and shapes[i] >= 16 and cells[i] != LEAVES:
+				var fills: int = shapes[i] >> 4
+				if open & bit << 1:
+					# Open above: only where the same corner is filled there too.
+					fills &= shapes[i + layer] >> 4 if cells[i + layer] != LEAVES else 0
 				for k in 4:
 					if fills & (1 << k):
 						var o: Vector2i = CORNER_DIRS[k]
 						var mf: int = w.get_cell(x + o.x, level, z)
 						_piece(buf, base, 1.0, k, CORNER, Vector3.UP, dark, Vector2(pack(mf * 3, 0, 0), no_tiles))
-	return null if buf.is_empty() else buf.to_mesh()
+	return null if buf.is_empty() else buf.to_mesh(CELL)
 
 
 ## Adds the whole face `d` of the cell at `base`.
@@ -745,12 +831,12 @@ static func _trunk_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, 
 
 ## Foam bits of the water in padded cell `i`: the half edges (see HALF_CORNER) that
 ## touch land, not where the land beside has its corner cut and the water goes on.
-static func _foam(c: PackedByteArray, cov: PackedByteArray, plan: PackedByteArray, i: int, dz: int) -> int:
+static func _foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dz: int) -> int:
 	var foam := 0
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
-		if cov[c[n]] and plan[n] & (1 << HALF_CORNER[h]) == 0:
+		if cov[c[n]] and sh[n] >> 4 & (1 << HALF_CORNER[h]) == 0:
 			foam |= 1 << h
 	return foam
 
@@ -758,13 +844,10 @@ static func _foam(c: PackedByteArray, cov: PackedByteArray, plan: PackedByteArra
 ## Water: the top face carries foam bits (UV2.x: the half edges that touch land, then
 ## the filled corners, then the cut corners of the land beside, see water.gdshader) and
 ## the depth to the bottom in cells (UV2.y). Filled corners are left out of the top.
-static func _water_faces(w, buf, faces: Array, nb: PackedByteArray, x: int, y: int, z: int, foam: int) -> void:
+static func _water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, depth: int, foam: int) -> void:
 	if nb[0] != AIR and nb[1] != AIR and nb[2] != AIR and nb[4] != AIR and nb[5] != AIR:
 		return
 	var h := WATER_TOP if nb[2] == AIR else 1.0
-	var depth := 1
-	while depth < 8 and w.get_cell(x, y - depth, z) == WATER:
-		depth += 1
 	var fills := foam >> 8 & 15
 	var white := Color(1, 1, 1)
 	var data := Vector2(float(foam), float(depth))
@@ -772,6 +855,6 @@ static func _water_faces(w, buf, faces: Array, nb: PackedByteArray, x: int, y: i
 		if d != FACE_BOTTOM and nb[d] == AIR:
 			if d == FACE_TOP and fills != 0:
 				for q in 4:
-					_piece(buf, Vector3(x, y, z), h, q, CUT if fills & (1 << q) else QUARTER, Vector3.UP, white, data)
+					_piece(buf, base, h, q, CUT if fills & (1 << q) else QUARTER, Vector3.UP, white, data)
 				continue
-			_add(buf, faces[d], d, Vector3(x, y, z), Vector3(1.0, h, 1.0), Vector3.ZERO, white, data)
+			_add(buf, faces[d], d, base, Vector3(1.0, h, 1.0), Vector3.ZERO, white, data)

@@ -4,9 +4,11 @@ extends SceneTree
 ## xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
 ##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [name ...]
 ## Each shot sets the time of day, season, weather and an offset of the player from
-## the spawn point, waits for the weather to settle and saves <name>.png.
+## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
+## searched in cells (half a world unit); the player stands in world units.
 
 const Mat := preload("res://src/shared/materials.gd")
+const CELL := 0.5
 
 const SHOTS := {
 	"day": {"time": 0.45, "season": 1},
@@ -16,7 +18,7 @@ const SHOTS := {
 	"rain": {"time": 0.5, "season": 1, "rain": true},
 	"autumn": {"time": 0.42, "season": 2},
 	"winter": {"time": 0.45, "season": 3, "rain": true},
-	"cave": {"time": 0.45, "season": 1, "cut": -2},
+	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"shore": {"time": 0.4, "season": 1, "shore": true},
 	"slopes": {"time": 0.42, "season": 1, "slopes": true},
 	"corners": {"time": 0.42, "season": 1, "corners": true},
@@ -62,7 +64,7 @@ func _run() -> void:
 		if shot.get("corners", false):
 			main.player.position = _corners(main.world, main.player.position)
 		if shot.get("lab", false):
-			_lab(main.world, Vector3i(main.player.position))
+			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
@@ -79,7 +81,8 @@ func _run() -> void:
 
 
 ## Nearest dry cell next to open water, to look at the shore.
-func _shore(w, from: Vector3) -> Vector3:
+func _shore(w, at: Vector3) -> Vector3:
+	var from := at / CELL
 	var best := from
 	var best_d := INF
 	for z in range(1, w.size_z - 1):
@@ -88,89 +91,91 @@ func _shore(w, from: Vector3) -> Vector3:
 			if y <= w.sea_level or y > w.sea_level + 2:
 				continue
 			# Open water south of it, not a creek in a ravine.
-			if w.get_cell(x, w.sea_level, z + 3) != Mat.WATER or w.get_cell(x, w.sea_level, z + 9) != Mat.WATER:
+			if w.get_cell(x, w.sea_level, z + 6) != Mat.WATER or w.get_cell(x, w.sea_level, z + 18) != Mat.WATER:
 				continue
 			var p := Vector3(x + 0.5, y, z + 0.5)
 			if p.distance_to(from) < best_d:
 				best_d = p.distance_to(from)
 				best = p
-	return best
+	return best * CELL
 
 
-## The spot near `from` with the most sloping ground around it.
-func _hills(w, from: Vector3) -> Vector3:
+## The spot near `at` with the most sloping ground around it.
+func _hills(w, at: Vector3) -> Vector3:
+	var from := at / CELL
 	var best := from
 	var best_n := -1
-	for z in range(int(from.z) - 24, int(from.z) + 25, 3):
-		for x in range(int(from.x) - 24, int(from.x) + 25, 3):
+	for z in range(int(from.z) - 48, int(from.z) + 49, 6):
+		for x in range(int(from.x) - 48, int(from.x) + 49, 6):
 			var y: int = w.surface_y(x, z)
 			if y <= w.sea_level or w.get_cell(x, y, z) != Mat.AIR:
 				continue
 			var n := 0
-			for dz in range(-5, 6):
-				for dx in range(-7, 8):
+			for dz in range(-10, 11, 2):
+				for dx in range(-14, 15, 2):
 					var top: int = w.surface_y(x + dx, z + dz) - 1
 					if top >= 0 and w.slope_mask(x + dx, top, z + dz) != w.FULL:
 						n += 1
 			if n > best_n:
 				best_n = n
 				best = Vector3(x + 0.5, y, z + 0.5)
-	return best
+	return best * CELL
 
 
-## The dry spot near `from` with the most cut or filled corners on the cliffs around it.
-func _corners(w, from: Vector3) -> Vector3:
+## The dry spot near `at` with the most cut or filled corners on the cliffs around it.
+func _corners(w, at: Vector3) -> Vector3:
+	var from := at / CELL
 	var best := from
 	var best_n := -1
-	for z in range(int(from.z) - 40, int(from.z) + 41, 4):
-		for x in range(int(from.x) - 40, int(from.x) + 41, 4):
+	for z in range(int(from.z) - 80, int(from.z) + 81, 8):
+		for x in range(int(from.x) - 80, int(from.x) + 81, 8):
 			var y: int = w.surface_y(x, z)
 			if y <= w.sea_level or w.get_cell(x, y, z) != Mat.AIR:
 				continue
 			var n := 0
-			for dz in range(-5, 6):
-				for dx in range(-8, 9):
+			for dz in range(-10, 11, 2):
+				for dx in range(-16, 17, 2):
 					var top: int = w.surface_y(x + dx, z + dz)
-					for ty in range(maxi(0, top - 4), top):
+					for ty in range(maxi(0, top - 8), top):
 						if w.corner_cuts(x + dx, ty, z + dz) != 0:
 							n += 1
 			if n > best_n:
 				best_n = n
 				best = Vector3(x + 0.5, y, z + 0.5)
-	return best
+	return best * CELL
 
 
-## Replaces the ground around `at` with test shapes for corners: a diagonal creek, a
-## stone plateau with outer and inner corners, a one-wide channel with a bend.
+## Replaces the ground around cell `at` with test shapes for corners: a diagonal creek,
+## a stone plateau with outer and inner corners, a channel two cells wide with a bend.
 func _lab(w, at: Vector3i) -> void:
 	var h := at.y
-	for z in range(at.z - 9, at.z + 10):
-		for x in range(at.x - 14, at.x + 15):
+	for z in range(at.z - 18, at.z + 20):
+		for x in range(at.x - 28, at.x + 30):
 			var lx := x - at.x
 			var lz := z - at.z
 			var top := h
 			var water := -1
-			if lx - lz >= 4 and lx - lz <= 6:
+			if lx - lz >= 8 and lx - lz <= 13:
+				top = h - 8
+				water = h - 5
+			elif lx + lz >= 18 and lx + lz <= 21 and lx < 20:
 				top = h - 4
 				water = h - 3
-			elif lx + lz >= 9 and lx + lz <= 10 and lx < 10:
-				top = h - 2
-				water = h - 2
-			elif lx >= -12 and lx <= -6 and lz >= -7 and lz <= -2 and not (lx >= -8 and lz <= -5):
-				top = h + 2
-			elif lz == 4 and lx >= -12 and lx <= -2 or lx == -2 and lz >= 4 and lz <= 8:
-				top = h - 2
+			elif lx >= -24 and lx <= -11 and lz >= -14 and lz <= -3 and not (lx >= -16 and lz <= -9):
+				top = h + 4
+			elif (lz == 8 or lz == 9) and lx >= -24 and lx <= -3 or (lx == -4 or lx == -3) and lz >= 8 and lz <= 17:
+				top = h - 4
 			for y in w.size_y:
 				var m := Mat.AIR
 				if y < top:
-					m = Mat.STONE if top > h or y < top - 2 else Mat.DIRT
+					m = Mat.STONE if top > h or y < top - 4 else Mat.DIRT
 					if y == top - 1 and top <= h:
 						m = Mat.GRASS
 				elif y <= water:
 					m = Mat.WATER
 				w.set_cell(x, y, z, m)
-				w.natural[(y * w.size_z + z) * w.size_x + x] = w.WILD
-	for z in range(at.z - 11, at.z + 12, 4):
-		for x in range(at.x - 16, at.x + 17, 4):
+				w.set_natural(x, y, z, true)
+	for z in range(at.z - 22, at.z + 25, 8):
+		for x in range(at.x - 32, at.x + 35, 8):
 			main._on_cell_changed(Vector3i(x, h, z))
-	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5)
+	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL

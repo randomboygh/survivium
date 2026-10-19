@@ -8,9 +8,13 @@ const Mat := preload("res://src/shared/materials.gd")
 const SpriteArt := preload("res://src/client/sprite_art.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const PlayerScript := preload("res://src/client/player.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
 
 const RESPAWN_EVERY := 15.0
+const CELL := WorldData.CELL
+## Animals walk slopes and hop up a sheer step of one cell, not of two.
+const MAX_STEP := 0.55
 
 
 class Creature:
@@ -140,8 +144,8 @@ func _move(c: Creature, spec: Dictionary, delta: float) -> void:
 	if speed > 0.0 and to.length() > 0.1:
 		var step := to.normalized() * minf(speed * delta, to.length())
 		var np := c.pos + step
-		var ny: float = world.ground_height(np.x, np.z)
-		if ny > 0.0 and ny < world.size_y and absf(ny - c.pos.y) <= 1.05:
+		var ny := _ground(np.x, np.z)
+		if ny > 0.0 and absf(ny - c.pos.y) <= MAX_STEP:
 			c.pos = Vector3(np.x, lerpf(c.pos.y, ny, minf(1.0, delta * 12.0)), np.z)
 			if absf(step.x) > 0.001:
 				c.sprite.scale.x = -1.0 if step.x < 0.0 else 1.0
@@ -158,6 +162,11 @@ func _move(c: Creature, spec: Dictionary, delta: float) -> void:
 			c.state = "wander"
 
 
+## Height of the ground at a world point, in world units; below 0 over open water.
+func _ground(x: float, z: float) -> float:
+	return world.ground_height(x / CELL, z / CELL) * CELL
+
+
 func _remove(c: Creature) -> void:
 	creatures.erase(c)
 	c.sprite.queue_free()
@@ -170,7 +179,8 @@ func _spawn(kind: String, away_from_player: bool) -> void:
 		var y: int = world.surface_y(x, z)
 		if y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue
-		var pos := Vector3(x + 0.5, world.ground_height(x + 0.5, z + 0.5), z + 0.5)
+		var pos := Vector3(x + 0.5, 0.0, z + 0.5) * CELL
+		pos.y = _ground(pos.x, pos.z)
 		if away_from_player and pos.distance_to(player.position) < 20.0:
 			continue
 		var c := Creature.new()
