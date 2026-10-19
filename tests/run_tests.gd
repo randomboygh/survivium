@@ -20,6 +20,7 @@ func _init() -> void:
 	_test_cap()
 	_test_raycast()
 	_test_walking_rules()
+	_test_water()
 	_test_slopes()
 	_test_steps()
 	_test_corners()
@@ -132,14 +133,67 @@ func _test_raycast() -> void:
 func _test_walking_rules() -> void:
 	var w := WorldData.new(4, 4, 4)
 	w.set_cell(1, 0, 1, Mat.WATER)
-	_check(w.blocks_body(1, 0, 1), "water cannot be entered")
-	_check(w.blocks_body(1, 1, 1), "open water cannot be walked over")
-	_check(w.blocks_body(1, 2, 1), "no invisible floor a level above the water")
+	_check(not w.blocks_body(1, 0, 1), "open water can be entered")
+	_check(not w.blocks_body(1, 1, 1), "no invisible floor over the water")
 	_check(w.surface_y(1, 1) == -1, "open water has no surface to stand on")
 	w.water_frozen = true
-	_check(not w.blocks_body(1, 1, 1), "frozen water can be walked over")
+	_check(w.blocks_body(1, 0, 1), "ice cannot be entered")
 	_check(w.surface_y(1, 1) == 1, "ice is a surface")
 	_check(w.blocks_body(-1, 1, 1), "map edge blocks")
+
+
+## A pool along x on a stone floor: water in levels 3..4 (open surface at 4.5) over
+## x 3..8, shallow (level 4 only) at x = 3; a bank one level above the water (top 6)
+## at x >= 9 and one two levels above it (top 7) at x <= 2.
+func _pool_world() -> WorldData:
+	var w := WorldData.new(12, 10, 6)
+	for z in 6:
+		for x in 12:
+			var top := 6 if x <= 2 else (5 if x >= 9 else (3 if x == 3 else 2))
+			for y in top + 1:
+				w.set_cell(x, y, z, Mat.STONE)
+			for y in range(top + 1, 5):
+				w.set_cell(x, y, z, Mat.WATER)
+	return w
+
+
+func _test_water() -> void:
+	var w := _pool_world()
+	var player = PlayerScript.new()
+	player.world = w
+	player.position = Vector3(3.5, 4.0, 2.5) * WorldData.CELL
+	player.on_ground = true
+	player.step(1.0 / 60.0, false)
+	_check(player.on_ground and not player.swimming and is_equal_approx(player.water_depth, 0.5),
+		"water one cell deep is waded on the bottom")
+	player.move_input = Vector2(1, 0)
+	var swam := false
+	for i in 40:
+		player.step(1.0 / 60.0, false)
+		var p: Vector3 = player.position / WorldData.CELL
+		swam = swam or player.swimming and absf(p.y - (4.5 - PlayerScript.SWIM_DEPTH)) < 0.05 and p.x > 4.5
+	_check(swam, "deeper water is swum with the head above the surface")
+	for i in 240:
+		player.step(1.0 / 60.0, false)
+	var out: Vector3 = player.position / WorldData.CELL
+	_check(out.x > 9.0 and is_equal_approx(out.y, 6.0) and player.on_ground,
+		"a swimmer pulls out onto a bank one level above the water")
+	player.move_input = Vector2(-1, 0)
+	for i in 360:
+		player.step(1.0 / 60.0, false)
+	_check(player.position.x / WorldData.CELL > 2.4, "a bank two levels above the water cannot be climbed")
+	_check(player.swimming or player.water_depth > 0.0, "the swimmer stays in the water below a high bank")
+	w.water_frozen = true
+	player.step(1.0 / 60.0, false)
+	player.step(1.0 / 60.0, false)
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.on_ground,
+		"a swimmer caught by the frost stands on the ice")
+	player.move_input = Vector2(1, 0)
+	for i in 120:
+		player.step(1.0 / 60.0, false)
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.position.x / WorldData.CELL > 7.0,
+		"ice is walked on")
+	player.free()
 
 
 ## Natural dirt one level higher for x >= 4 (a step facing west) and two levels higher

@@ -7,6 +7,9 @@ render_mode world_vertex_coords, cull_disabled, shadows_disabled;
 #include "res://shaders/common.gdshaderinc"
 
 uniform sampler2D sprite_texture : source_color, filter_nearest;
+// Height of the water surface around a wading or swimming sprite, in world units:
+// below it the body is hidden, along it a line of ripples.
+uniform float water_line = -1000.0;
 
 varying vec3 world_pos;
 varying float clouds;
@@ -18,7 +21,18 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(sprite_texture, UV);
-	if (c.a < 0.5 || above_cut(world_pos)) {
+	if (world_pos.y < water_line || above_cut(world_pos)) {
+		discard;
+	}
+	if (world_pos.y < water_line + 1.0 / TEXELS) {
+		// The ripple reaches a pixel past the body on each side.
+		vec2 px = 1.0 / vec2(textureSize(sprite_texture, 0));
+		float a = max(c.a, max(texture(sprite_texture, UV + vec2(px.x, 0.0)).a, texture(sprite_texture, UV - vec2(px.x, 0.0)).a));
+		if (a < 0.5) {
+			discard;
+		}
+		c.rgb = vec3(0.85, 0.93, 0.92);
+	} else if (c.a < 0.5) {
 		discard;
 	}
 	float fade = depth_fade(world_pos.y);

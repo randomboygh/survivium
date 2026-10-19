@@ -790,7 +790,7 @@ func _update_camera(delta: float) -> void:
 	container.position = container.position.round()
 	player.place_sprite()
 	RenderingServer.global_shader_parameter_set("player_pos", player.position)
-	if player.on_ground:
+	if player.on_ground or player.swimming:
 		RenderingServer.global_shader_parameter_set("view_height", player.level() * CELL)
 
 

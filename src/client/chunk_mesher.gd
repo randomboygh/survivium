@@ -29,7 +29,7 @@ const CORNERS := [
 	[Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(0, 1, 0)],
 ]
 ## Water stands half a cell (4 px) below the shore, so the bank shows above it.
-const WATER_TOP := 0.5
+const WATER_TOP := WorldData.WATER_TOP
 const AIR := Mat.AIR
 const WATER := Mat.WATER
 const LEAVES := Mat.LEAVES

@@ -30,6 +30,9 @@ const SHOTS := {
 	"forest": {"time": 0.42, "season": 1, "forest": true},
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
+	"wade": {"time": 0.42, "season": 1, "water": 1},
+	"swim": {"time": 0.42, "season": 1, "water": 2},
+	"ice": {"time": 0.45, "season": 3, "water": 2},
 }
 
 var main: Node
@@ -77,6 +80,8 @@ func _run() -> void:
 			main.player.position = _lone_trees(main.world, main.player.position)
 		if shot.get("forest", false):
 			main.player.position = _forest(main.world, main.player.position)
+		if shot.has("water"):
+			main.player.position = _in_water(main.world, main.player.position, shot.water)
 		if shot.get("lab", false):
 			_lab(main.world, Vector3i((main.player.position / CELL).floor()))
 		# Let snow, wetness, tints and particles settle.
@@ -112,6 +117,36 @@ func _shore(w, at: Vector3) -> Vector3:
 				best_d = p.distance_to(from)
 				best = p
 	return best * CELL
+
+
+## Water near `at` at the edge of a sea or lake, with the feet on the bottom (a
+## swimmer floats up from there): one cell deep for `depth` 1, else at least `depth`
+## deep. Open water lies south, the shore a few cells north.
+func _in_water(w, at: Vector3, depth: int) -> Vector3:
+	var from := at / CELL
+	var sea: int = w.sea_level
+	var best := at
+	var best_d := INF
+	for z in range(8, w.size_z - 12):
+		for x in range(8, w.size_x - 8):
+			var d := Vector2(x, z).distance_to(Vector2(from.x, from.z))
+			if d >= best_d or w.get_cell(x, sea + 1 - depth, z) != Mat.WATER:
+				continue
+			if depth == 1 and w.get_cell(x, sea - 1, z) == Mat.WATER:
+				continue
+			var open := true
+			for o in [Vector2i(-5, 6), Vector2i(0, 6), Vector2i(5, 6), Vector2i(-5, 10), Vector2i(5, 10)]:
+				open = open and w.get_cell(x + o.x, sea - 1, z + o.y) == Mat.WATER
+			if not open or w.surface_y(x, z - (2 if depth == 1 else 4)) <= sea or w.surface_y(x, z - 1) > 0 and depth == 1:
+				continue
+			var y := sea + 1 - depth
+			while w.get_cell(x, y - 1, z) == Mat.WATER:
+				y -= 1
+			if w.corner_fills(x, y, z) != 0 or w.corner_fills(x, sea, z) != 0:
+				continue
+			best = Vector3(x + 0.5, y, z + 0.5) * CELL
+			best_d = d
+	return best
 
 
 ## The spot near `at` with the most sloping ground around it.
