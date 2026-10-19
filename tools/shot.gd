@@ -8,6 +8,7 @@ extends SceneTree
 ## searched in cells (half a world unit); the player stands in world units.
 
 const Mat := preload("res://src/shared/materials.gd")
+const WorldGen := preload("res://src/shared/world_gen.gd")
 const CELL := 0.5
 
 const SHOTS := {
@@ -30,6 +31,15 @@ const SHOTS := {
 	"forest": {"time": 0.42, "season": 1, "forest": true},
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
+	"river": {"time": 0.42, "season": 1, "place": "river"},
+	"canyon": {"time": 0.42, "season": 1, "place": "canyon"},
+	"lake": {"time": 0.42, "season": 1, "place": "lake"},
+	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
+	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
+	"beach": {"time": 0.42, "season": 1, "place": "beach"},
+	"plateau": {"time": 0.42, "season": 1, "place": "plateau"},
+	"tracks": {"time": 0.42, "season": 1, "walk": true},
+	"tracks-winter": {"time": 0.45, "season": 3, "walk": true},
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
@@ -52,7 +62,12 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	while not main.ready_to_play:
+	# The shots look at far places too, so the whole map must be built: many chunks
+	# a frame here, not the one a frame of the game.
+	while not main.ready_to_play or not main.pending_chunks.is_empty():
+		for i in 24:
+			if main.ready_to_play and not main.pending_chunks.is_empty():
+				main._build_chunk(main._next_chunk())
 		await process_frame
 	var spawn: Vector3 = main.player.position
 	for shot_name in names:
@@ -80,6 +95,8 @@ func _run() -> void:
 			main.player.position = _lone_trees(main.world, main.player.position)
 		if shot.get("forest", false):
 			main.player.position = _forest(main.world, main.player.position)
+		if shot.has("place"):
+			main.player.position = _place(main.world, shot.place)
 		if shot.has("water"):
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
 		if shot.get("lab", false):
@@ -92,11 +109,76 @@ func _run() -> void:
 			main.foliage = main.FOLIAGE[main.season]
 			main.grass = main.GRASS[main.season]
 			main.leaf_amount = main.LEAF_AMOUNT[main.season]
+		if shot.get("walk", false):
+			# A walk in a hook south-east, then west, leaving footprints.
+			for i in 140:
+				main.player.move_input = Vector2(0.6, 0.8) if i < 70 else Vector2(-1.0, 0.2)
+				main.player.step(1.0 / 30.0, false)
+				main._leave_footprints()
+				await process_frame
+			main.player.move_input = Vector2.ZERO
+			for i in 10:
+				await process_frame
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
 		print("saved ", shot_name)
 	quit()
+
+
+## Standing spot at a place of the island's layout (see WorldGen).
+func _place(w, what: String) -> Vector3:
+	var size := Vector2(w.size_x, w.size_z)
+	var side: float = minf(size.x, size.y)
+	match what:
+		"river":
+			var p: Vector2 = WorldGen.RIVER[4] * size
+			return _dry_near(w, p + Vector2(-6.0, 0.0), 12)
+		"canyon":
+			var p: Vector2 = WorldGen.RIVER[1] * size
+			return _dry_near(w, p + Vector2(-4.0, 0.0), 10)
+		"lake":
+			var p := Vector2(WorldGen.LAKE.x, WorldGen.LAKE.y) * size + Vector2(0.0, WorldGen.LAKE.z * side + 4.0)
+			return _dry_near(w, p, 12)
+		"swamp":
+			return _dry_near(w, Vector2(WorldGen.SWAMP.x, WorldGen.SWAMP.y) * size, 20)
+		"plateau":
+			return _dry_near(w, Vector2(WorldGen.PLATEAU.x, WorldGen.PLATEAU.y) * size + Vector2(0.0, 10.0), 20)
+		"cliffs":
+			return _coast(w, Vector2(0.4, 0.42) * size, Vector2(-1.0, 0.0), 3.0)
+		"beach":
+			return _coast(w, Vector2(0.72, 0.8) * size, Vector2(0.3, 1.0).normalized(), 4.0)
+	return main.player.position
+
+
+## Nearest dry standing spot to the cell point `p` within `radius` cells.
+func _dry_near(w, p: Vector2, radius: int) -> Vector3:
+	var best := Vector3.ZERO
+	var best_d := INF
+	for dz in range(-radius, radius + 1):
+		for dx in range(-radius, radius + 1):
+			var x := int(p.x) + dx
+			var z := int(p.y) + dz
+			var y: int = w.surface_y(x, z)
+			if y <= w.sea_level or y >= w.size_y - 2 or w.get_cell(x, y, z) != Mat.AIR:
+				continue
+			var d := Vector2(dx, dz).length()
+			if d < best_d:
+				best_d = d
+				best = Vector3(x + 0.5, y, z + 0.5)
+	return best * CELL if best_d < INF else main.player.position
+
+
+## Walks from the cell point `from` toward `dir` until the sea, and stands `back`
+## cells before it.
+func _coast(w, from: Vector2, dir: Vector2, back: float) -> Vector3:
+	var p := from
+	for i in 200:
+		var q := p + dir
+		if w.surface_y(int(q.x), int(q.y)) <= w.sea_level:
+			break
+		p = q
+	return _dry_near(w, p - dir * back, 4)
 
 
 ## Nearest dry cell next to open water, to look at the shore.

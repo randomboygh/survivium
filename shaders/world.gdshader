@@ -75,15 +75,23 @@ vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
 	return k;
 }
 
-// Snow is not flat white: drifts in three soft tones, bluish hollows and glints.
+// Snow is not flat white: drifts in three soft tones, none of them pure white so the
+// noon sun does not wash the field out, wind ripples a shade apart stretched along
+// the wind, bluish hollows and a few glints.
 vec3 snow_color(vec2 xz, vec2 wt) {
 	float drift = ground_patch(xz, 9.0);
-	vec3 c = drift > 0.62 ? vec3(0.95, 0.97, 1.0) : (drift < 0.36 ? vec3(0.85, 0.89, 0.97) : vec3(0.9, 0.93, 0.99));
+	vec3 c = drift > 0.62 ? vec3(0.86, 0.89, 0.95) : (drift < 0.36 ? vec3(0.76, 0.81, 0.91) : vec3(0.81, 0.85, 0.93));
+	float ripple = ground_patch(vec2(xz.x * 1.5, xz.y * 6.0) + 50.0, 13.0);
+	if (ripple > 0.6) {
+		c *= vec3(1.06, 1.05, 1.03);
+	} else if (ripple < 0.4) {
+		c *= vec3(0.94, 0.95, 0.98);
+	}
 	float n = hash12(wt + 29.0);
 	if (n > 0.985) {
-		c = vec3(1.0);
-	} else if (n < 0.04) {
-		c *= vec3(0.92, 0.94, 0.98);
+		c = vec3(0.98, 0.99, 1.0);
+	} else if (n < 0.05) {
+		c *= vec3(0.9, 0.92, 0.97);
 	}
 	return c;
 }

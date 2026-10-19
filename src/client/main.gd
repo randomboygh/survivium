@@ -19,6 +19,8 @@ const TouchStick := preload("res://src/client/touch_stick.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const EffectsScript := preload("res://src/client/effects.gd")
+const TracksScript := preload("res://src/client/tracks.gd")
+const Drifts := preload("res://src/client/drifts.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
 const GrassShader := preload("res://shaders/grass.gdshader")
@@ -66,11 +68,21 @@ var clump_mesh: ArrayMesh
 var disc_mesh: ArrayMesh
 var chunk_nodes := {}
 var pending_chunks: Array[Vector2i] = []
+## Play starts when the chunks within NEAR_CHUNKS of the spawn are built; the rest of
+## the map is built in the background, nearest to the player first.
+const NEAR_CHUNKS := 3
+var near_pending := 0
+var near_total := 0
 var cap_node: MeshInstance3D
 var bushes: MultiMeshInstance3D
 var bush_shade: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
 var effects
+var tracks
+var drifts: MultiMeshInstance3D
+## Where the player's last footprint was left, and which foot made it.
+var last_print := Vector3.ZERO
+var left_foot := false
 var ui: Control
 var hud: Label
 var hotbar: Label
@@ -136,6 +148,31 @@ func _ready() -> void:
 	var nearer := func(a: Vector2i, b: Vector2i) -> bool: return Vector2(a).distance_to(spawn) < Vector2(b).distance_to(spawn)
 	keys.sort_custom(nearer)
 	pending_chunks = keys
+	var home := Vector2i(spawn.floor())
+	for key in keys:
+		if _is_near(key, home):
+			near_total += 1
+	near_pending = near_total
+
+
+func _is_near(key: Vector2i, home: Vector2i) -> bool:
+	return maxi(absi(key.x - home.x), absi(key.y - home.y)) <= NEAR_CHUNKS
+
+
+## The pending chunk nearest to the player.
+func _next_chunk() -> Vector2i:
+	var at := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
+	var best := 0
+	var best_d := 1 << 30
+	for i in pending_chunks.size():
+		var k := pending_chunks[i]
+		var d := maxi(absi(k.x - at.x), absi(k.y - at.y))
+		if d < best_d:
+			best_d = d
+			best = i
+			if d <= 1:
+				break
+	return pending_chunks.pop_at(best)
 
 
 func _process(delta: float) -> void:
@@ -143,28 +180,51 @@ func _process(delta: float) -> void:
 		return
 	if not pending_chunks.is_empty():
 		var t0 := Time.get_ticks_msec()
-		while not pending_chunks.is_empty() and Time.get_ticks_msec() - t0 < 40:
-			_build_chunk(pending_chunks.pop_front())
-		var total := ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
-		loading.text = "Построение мира… %d%%" % int(100.0 * (total - pending_chunks.size()) / total)
+		if ready_to_play:
+			# One far chunk a frame, so the frame rate holds while the map finishes.
+			_build_chunk(_next_chunk())
+		else:
+			var home := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
+			while near_pending > 0 and Time.get_ticks_msec() - t0 < 40:
+				var key: Vector2i = pending_chunks.pop_front()
+				if _is_near(key, home):
+					near_pending -= 1
+				_build_chunk(key)
+			loading.text = "Построение мира… %d%%" % int(100.0 * (near_total - near_pending) / near_total)
+			if near_pending == 0:
+				loading.visible = false
+				_place_props()
+				creatures.setup(world, player, WORLD_SEED)
+				ready_to_play = true
+				print("near meshes built in %d ms" % mesh_ms)
+				print("world ready in %d ms" % Time.get_ticks_msec())
 		if pending_chunks.is_empty():
-			loading.visible = false
-			_place_props()
-			creatures.setup(world, player, WORLD_SEED)
-			ready_to_play = true
 			print("meshes built in %d ms" % mesh_ms)
-			print("world ready in %d ms" % Time.get_ticks_msec())
+			print("whole map ready in %d ms" % Time.get_ticks_msec())
 	_update_time(delta)
 	_update_weather(delta)
 	if ready_to_play:
 		player.move_input = _read_move()
 		player.step(minf(delta, 0.05), Input.is_physical_key_pressed(KEY_SPACE))
+		_leave_footprints()
 	_update_cut()
 	_update_camera(delta)
 	_update_hud()
 	_poll_safe_rect(delta)
 	if ready_to_play:
 		_report_fps(delta)
+
+
+## A boot print every stride on the ground, left and right in turn, none in the water.
+func _leave_footprints() -> void:
+	if not player.on_ground or player.water_depth > 0.0:
+		last_print = player.position
+		return
+	var moved := Vector2(player.position.x - last_print.x, player.position.z - last_print.z)
+	if moved.length() >= 0.55:
+		left_foot = not left_foot
+		tracks.leave(player.position, moved, left_foot, true, 1.0)
+		last_print = player.position
 
 
 ## Prints the frame rate every 5 seconds to the log (the browser console on the web).
@@ -448,7 +508,12 @@ func _build_scene() -> void:
 	player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 	cam_target = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 
+	tracks = TracksScript.new()
+	tracks.world = world
+	world_root.add_child(tracks)
+
 	creatures = CreaturesScript.new()
+	creatures.tracks = tracks
 	world_root.add_child(creatures)
 
 	effects = EffectsScript.new()
@@ -477,6 +542,15 @@ func _place_props() -> void:
 	bush_shade.extra_cull_margin = CULL_MARGIN
 	world_root.add_child(bush_shade)
 	_refresh_bushes()
+	# Snowdrifts, shown with the snow cover.
+	drifts = _multimesh(Drifts.mound_mesh(), world_mat, false, false)
+	var mounds: Array = Drifts.build(world)
+	drifts.multimesh.instance_count = mounds[0]
+	if mounds[0] > 0:
+		drifts.multimesh.buffer = mounds[1]
+	drifts.visible = false
+	drifts.extra_cull_margin = CULL_MARGIN
+	world_root.add_child(drifts)
 
 	# A chest and a campfire next to the spawn point, each on two by two cells.
 	var chest_spot := _prop_spot(player.position + Vector3(2.0, 0.0, 1.0))
@@ -772,6 +846,11 @@ func _update_weather(delta: float) -> void:
 	world.water_frozen = ice > 0.8
 	if player != null:
 		effects.update(delta, cam_target, player.position.y, raining, winter, season, daylight, indoor)
+	if tracks != null:
+		tracks.snow = snow
+		tracks.wet = wet
+	if drifts != null:
+		drifts.visible = snow > 0.6
 
 
 # --- Camera, input, HUD ----------------------------------------------------
