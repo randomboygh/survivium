@@ -148,8 +148,8 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 			var first_row := PixelTextures.NEEDLE_ROW if needles else 0
 			var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
 			if needles and tree[0] == Vector2i(x, z):
-				# Cards in front of a spruce's trunk where the tiers are around it: the
-				# trunk shows only through the gaps under the lowest tiers.
+				# Small sprigs in front of a spruce's trunk where the tiers are around
+				# it: the trunk shows only under the lowest tier.
 				var core: int = (w.log_cols[col] & w.leaf_cols[col + 1] | leaves) & EVEN_LEVELS
 				while core != 0:
 					var bit := core & -core
@@ -157,7 +157,7 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 					rng.seed = hash(Vector3i(x, WorldData.level_of(bit), z))
 					for up in [0.0, 0.5]:
 						var at := (Vector3(x, WorldData.level_of(bit), z) + Vector3(0.5, 0.5, 0.5)) * CELL + Vector3(0.0, up, 0.45)
-						_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + DEEP_ROW, rng)
+						_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + 1 + DEEP_ROW, rng)
 						nc += 1
 			while leaves != 0:
 				var bit := leaves & -leaves
@@ -175,7 +175,9 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 				# Large bunches on the inside of the crown, smaller ones toward its
 				# outline (points open on three or more sides), the smallest at the very
 				# edge, so the middle is dense and the edge jagged.
-				var rows := [0, 1] if faces.size() < 3 else [1, 2]
+				# Spruce tiers stay dense out to their rim, only the lone points of the
+				# top take small sprigs, so the tip is pointed.
+				var rows := [0, 1] if faces.size() < (4 if needles else 3) else [1, 2]
 				for f in faces:
 					# Cards cover each face the camera can see, poking out of it a
 					# little, so no gap shows the trunk inside.

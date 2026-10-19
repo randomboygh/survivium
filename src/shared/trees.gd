@@ -33,7 +33,7 @@ const SPECIES := [
 	},
 	{
 		"name": "spruce", "title": "Ель", "leaves": NEEDLES,
-		"trunk": [3, 4], "crown": [2.4, 5, 7],
+		"trunk": [7, 8], "crown": [2.3, 5, 7],
 		"tints": [Color(0.18, 0.34, 0.22), Color(0.2, 0.36, 0.21), Color(0.17, 0.32, 0.24)],
 		"bare": 0.0,
 	},

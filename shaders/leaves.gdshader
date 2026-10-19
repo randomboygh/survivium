@@ -80,8 +80,8 @@ void fragment() {
 	vec3 season = foliage_tint * (1.0 + (hash12(floor(center.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
 	season = evergreen ? mix(vec3(1.0), season, 0.15) : season;
 	// Three tones of single leaves, and a lighter upper edge on each.
-	float tone = 1.0 + (floor(fract(leaf * 5.31) * 3.0) - 1.0) * 0.07;
-	vec3 col = tint.rgb * season * tone * (edge ? 1.12 : 1.0);
+	float tone = 1.0 + (floor(fract(leaf * 5.31) * 3.0) - 1.0) * 0.04;
+	vec3 col = tint.rgb * season * tone * (edge ? 1.06 : 1.0);
 	if (branches) {
 		col = vec3(0.3, 0.24, 0.2) * tone * (edge ? 1.15 : 1.0);
 	}

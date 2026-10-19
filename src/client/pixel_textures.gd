@@ -122,15 +122,16 @@ static func _leaf_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: V
 
 
 ## Draws a spruce sprig `size` px across: a short twig across the card with needles
-## hanging from it in short strokes, wider than tall, its lower edge a fringe of tips.
+## hanging from it in short strokes, a dense mass a little wider than tall, its lower
+## edge a fringe of tips.
 static func _needle_sprig(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
 	var half := size / 2.0
 	var length := clampf(size / 6.0, 2.0, 3.5)
 	var needles := []
-	for k in int(size * 6.0):
+	for k in int(size * 9.0):
 		var u := rng.randf_range(-1.0, 1.0)
 		# Thick in the middle, thinning toward the ends of the sprig; the twig droops.
-		var fall := (1.0 - u * u) * half * 0.55
+		var fall := (1.0 - u * u * 0.7) * half * 0.85
 		var p := c + Vector2(u * (half - 1.0), u * u * half * 0.3 - fall * 0.5 + rng.randf() * fall)
 		needles.append(p)
 	needles.sort_custom(func(p, q): return p.y < q.y)
