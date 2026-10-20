@@ -64,6 +64,10 @@ const SHOTS := {
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
 	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
+	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
+	"ui-test": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test"},
+	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
+	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
 }
 
 var main: Node
@@ -161,8 +165,11 @@ func _run() -> void:
 			main.hud.toast("Наступило лето")
 			await process_frame
 			await process_frame
+		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
+			if shot.has("page"):
+				main.hud.open_settings(shot.page)
 			await process_frame
 			await process_frame
 		var img := root.get_texture().get_image()
@@ -171,6 +178,7 @@ func _run() -> void:
 		print("saved ", shot_name)
 		if shot.get("wall", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
+		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 	quit()

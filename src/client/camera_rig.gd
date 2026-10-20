@@ -18,6 +18,8 @@ var world_root: Node3D
 var camera: Camera3D
 var grade_mat: ShaderMaterial
 var image_size := Vector2i(640, 360)
+## Wanted height of the low-res image; the pixel size setting lowers it.
+var target_height := PixelView.TARGET_HEIGHT
 var view_scale := 1
 var safe_rect := Rect2()
 var safe_clock := 0.0
@@ -64,7 +66,7 @@ func look_at_player() -> void:
 
 func on_screen_resized() -> void:
 	var screen: Vector2 = game.get_viewport().get_visible_rect().size
-	var view: Array = PixelView.layout(screen)
+	var view: Array = PixelView.layout(screen, target_height)
 	var scale: int = view[0]
 	# A margin of pixels around the screen leaves room for the sub-pixel camera shift.
 	image_size = view[1] + Vector2i(2, 2) * PixelView.MARGIN

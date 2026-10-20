@@ -56,6 +56,7 @@ async function debug(page, log) {
     jump: field(/jump (\[[^\]]*\])/),
     hotbar: field(/hotbar (\[[^\]]*\])/),
     menu: field(/menu (\[[^\]]*\])/),
+    test: field(/test (\[[^\]]*\])/),
     season: field(/season (\[[^\]]*\])/),
     player: field(/player \(([^)]*)\)/),
   };
@@ -138,16 +139,25 @@ async function screenshot(name, page) {
     }
   }
   if (d0.menu.length === 4) {
-    // Open the pause menu and tap "Следующий сезон" in it.
+    // Open the pause menu, the playtest page in it, and tap the season's "next" arrow.
     const center = (r) => [(r[0] + r[2] / 2) / dpr, (r[1] + r[3] / 2) / dpr];
     await page.touchscreen.tap(...center(d0.menu));
     await page.waitForTimeout(500);
     const d2 = await debug(page, log);
-    if (d2.season.length === 4 && d2.season[2] > 0) {
-      const before = log.length;
-      await page.touchscreen.tap(...center(d2.season));
-      await page.waitForTimeout(1000);
-      if (!log.slice(before).some((t) => t.startsWith('season:'))) errors.push('phone: the season button in the menu did not react to a tap');
+    if (d2.test.length === 4 && d2.test[2] > 0) {
+      await page.touchscreen.tap(...center(d2.test));
+      await page.waitForTimeout(500);
+      const d3 = await debug(page, log);
+      if (d3.season.length === 4 && d3.season[2] > 0) {
+        const before = log.length;
+        await page.touchscreen.tap(...center(d3.season));
+        await page.waitForTimeout(1000);
+        if (!log.slice(before).some((t) => t.startsWith('season:'))) errors.push('phone: the season arrow on the playtest page did not react to a tap');
+      } else {
+        errors.push(`phone: the playtest page did not open: ${d3.line}`);
+      }
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
     } else {
       errors.push(`phone: the menu did not open: ${d2.line}`);
     }
