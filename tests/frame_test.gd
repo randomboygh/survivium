@@ -4,10 +4,10 @@ extends SceneTree
 ## caught in CI instead of on a phone. Run:
 ## godot --headless --path . --script res://tests/frame_test.gd
 ##
-## The budgets in main.gd are wall-clock, so their part of a frame costs about the
+## The budgets in chunk_streamer.gd are wall-clock, so their part of a frame costs about the
 ## same on any machine; the rest scales with the machine, and a phone runs GDScript
 ## about ten times slower than a desktop. So each frame is judged in two parts, with
-## main.budget_us telling them apart: the budgeted loops may take the budgets plus one
+## main.chunks.budget_us telling them apart: the budgeted loops may take the budgets plus one
 ## step, and the rest may take an idle frame of the finished map plus a quarter of
 ## what a whole chunk costs here. Chunk-sized work slipping into one frame fails the
 ## test on any machine, and a slow runner does not.
@@ -15,6 +15,7 @@ extends SceneTree
 const Mat := preload("res://src/shared/materials.gd")
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const Foliage := preload("res://src/client/foliage.gd")
+const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
 const Shot := preload("res://tools/shot.gd")
 const CELL := 0.5
 const CHUNK := 16
@@ -93,10 +94,10 @@ func _run() -> void:
 		_key(KEY_D, east)
 		_key(KEY_A, not east)
 		moved = maxf(moved, main.player.position.distance_to(start))
-		return main.pending_chunks.is_empty() and main.job_mesh == null)
+		return main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null)
 	_key(KEY_D, false)
 	_key(KEY_A, false)
-	_check(main.map_done, "the whole map streams in")
+	_check(main.chunks.map_done, "the whole map streams in")
 	_check(moved > 4.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
 
 	# Standing still on the finished map.
@@ -112,10 +113,10 @@ func _run() -> void:
 			if maxi(absi(dx), absi(dz)) == 2:
 				cells.append(Vector3i(p.x + dx, w.surface_y(p.x + dx, p.z + dz) - 1, p.z + dz))
 	var bush := Vector3i.ZERO
-	for c: Vector3i in main.bush_cells:
+	for c: Vector3i in main.props.bush_cells:
 		if bush == Vector3i.ZERO or (c - p).length_squared() < (bush - p).length_squared():
 			bush = c
-	var bushes_before: int = main.bush_cells.size()
+	var bushes_before: int = main.props.bush_cells.size()
 	_check(bushes_before > 0, "the map has bushes")
 	cells.append(bush - Vector3i(0, 1, 0))
 	var before: Array[int] = []
@@ -125,24 +126,24 @@ func _run() -> void:
 		if i % 10 == 0 and i / 10 < cells.size():
 			var c: Vector3i = cells[i / 10]
 			w.set_cell(c.x, c.y, c.z, Mat.AIR)
-			main._on_cell_changed(c)
+			main.chunks.on_cell_changed(c)
 		return false)
 	await _scenario("filling", cells.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < cells.size():
 			var c: Vector3i = cells[i / 10]
 			w.set_cell(c.x, c.y, c.z, before[i / 10])
-			main._on_cell_changed(c)
+			main.chunks.on_cell_changed(c)
 		return false)
-	_check(main.dirty_chunks.is_empty() and main.job_mesh == null, "edits are all built")
-	_check(main.bush_cells.size() == bushes_before - 1 and not main.world.bushes.has(bush), "the bush dug under is gone")
+	_check(main.chunks.dirty_chunks.is_empty() and main.chunks.job_mesh == null, "edits are all built")
+	_check(main.props.bush_cells.size() == bushes_before - 1 and not main.world.bushes.has(bush), "the bush dug under is gone")
 
 	# The cut moving up and down four times a second, as when walking in and out of
 	# a cave: the caps of the chunks around are rebuilt each time.
 	var level: int = main.player.level()
 	await _scenario("cut changes", 100000, func(_i: int) -> bool:
-		main.manual_level = level - 4 if int(clock / 0.25) % 2 == 0 else -1
+		main.chunks.manual_level = level - 4 if int(clock / 0.25) % 2 == 0 else -1
 		return clock >= 4.0)
-	main.manual_level = -1
+	main.chunks.manual_level = -1
 
 	# Jumping in a cave: the view stays cut at the floor level the whole time. The
 	# player lands first, and the automatic cut follows the floor after CUT_DELAY.
@@ -150,14 +151,14 @@ func _run() -> void:
 	main.player.on_ground = false
 	await _scenario("landing in a cave", 100000, func(_i: int) -> bool:
 		return main.player.on_ground and clock >= 1.0)
-	_check(main.indoor and main.cut_level < w.size_y, "the view is cut in the cave")
-	var cut: int = main.cut_level
+	_check(main.chunks.indoor and main.chunks.cut_level < w.size_y, "the view is cut in the cave")
+	var cut: int = main.chunks.cut_level
 	await _scenario("jumping in a cave", 100000, func(_i: int) -> bool:
-		main.jump_held = fmod(clock, 0.8) < 0.1
-		if main.cut_level != cut:
+		main.controls.jump_held = fmod(clock, 0.8) < 0.1
+		if main.chunks.cut_level != cut:
 			flips += 1
 		return clock >= 4.0)
-	main.jump_held = false
+	main.controls.jump_held = false
 	_check(flips == 0, "jumping in a cave does not move the cut (%d flips)" % flips)
 
 	# An idle frame of the finished map is the engine's own share: it grows with the
@@ -166,7 +167,7 @@ func _run() -> void:
 	for r in runs:
 		if r[0] == "idle":
 			idle_ms = _mean(r[1])
-	var step_limit: float = (main.EDIT_BUDGET_US + main.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
+	var step_limit: float = (ChunkStreamer.EDIT_BUDGET_US + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
 	var free_limit: float = idle_ms + 2.0 + 0.25 * chunk_ms
 	print("a frame may spend %.1f ms in the budgeted loops and %.1f ms outside them (an idle frame is %.1f ms)" % [
 		step_limit, free_limit, idle_ms])
@@ -205,11 +206,11 @@ func _scenario(what: String, frames: int, act: Callable) -> void:
 		if act.call(i):
 			break
 		var t := Time.get_ticks_usec()
-		var b: int = main.budget_us
+		var b: int = main.chunks.budget_us
 		await process_frame
 		clock += root.get_process_delta_time()
 		times.append((Time.get_ticks_usec() - t) / 1000.0)
-		steps.append((main.budget_us - b) / 1000.0)
+		steps.append((main.chunks.budget_us - b) / 1000.0)
 	runs.append([what, times, steps])
 
 

@@ -96,6 +96,19 @@ static func plant_mesh(width: float, height: float, centered := false) -> ArrayM
 	return mesh
 
 
+## A node drawing `mesh` with `material` as many times as its multimesh is filled.
+static func multimesh(mesh: Mesh, material: Material, colors: bool, custom: bool) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = colors
+	mm.use_custom_data = custom
+	mm.mesh = mesh
+	var node := MultiMeshInstance3D.new()
+	node.multimesh = mm
+	node.material_override = material
+	return node
+
+
 ## Flat square of `size` lying in the x-z plane, centred on the origin.
 static func disc_mesh(size: float) -> ArrayMesh:
 	var h := size * 0.5

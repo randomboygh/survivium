@@ -14,6 +14,11 @@ comments, commits and PRs are in English.
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
 - Scripts are loaded with `preload` consts, no `class_name`.
+- `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
+  node as `game`: `chunk_streamer.gd` (chunks, streaming budgets, caps, the level cut), `sky.gd`
+  (time, seasons, weather, light, colour grade), `controls.gd` (keys, mouse, touch, edits),
+  `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (bushes, drifts, chest, campfire).
+  New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push
 
@@ -43,7 +48,7 @@ draws the island from above; `tools/bench_*.gd` time generation, meshing and edi
 ## Performance rule
 
 Nothing map-sized or chunk-sized runs in one frame. Chunk meshes and plants are built a column of
-cells at a time through `ChunkMesher` / `Foliage` jobs that `main.gd` runs within per-frame budgets
+cells at a time through `ChunkMesher` / `Foliage` jobs that `chunk_streamer.gd` runs within per-frame budgets
 (edits first, then far chunks, then caps). `tests/frame_test.gd` enforces this. The phone browser is about 10x slower than a desktop in
 GDScript. Notes: `plan/architecture/performance.md`.
 
@@ -55,6 +60,6 @@ GDScript. Notes: `plan/architecture/performance.md`.
 - MultiMesh instance data is half float on GLES3/web: put new per-instance data in COLOR, not in a
   packed int. Vertex COLOR is 8-bit and clamps above 1.
 - Silhouettes behind geometry use `render_mode depth_test_inverted`.
-- Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `main._input` treats
+- Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `controls.input` treats
   mouse motion as a mouse only with no finger down and more than 1 s after the last touch. The
   joystick and `TouchButton` follow their own touch index so two thumbs work at once.
