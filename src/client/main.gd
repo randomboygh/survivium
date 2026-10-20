@@ -44,11 +44,12 @@ const REACH := 7.0
 ## ones are off the screen on any device and are built when they come near.
 const CAP_RANGE := 6
 ## How much of a frame may go to building caps, to remeshing edited chunks and to
-## building the far chunks of the map, in microseconds; a chunk is built row by row
-## (ChunkMesher.row, Foliage.row), so what does not fit waits for the next frame.
+## building the far chunks of the map, in microseconds; a chunk is built a column of
+## cells at a time (ChunkMesher.step, Foliage.step), so what does not fit waits for
+## the next frame.
 const CAP_BUDGET_US := 3000
 const EDIT_BUDGET_US := 12000
-const STREAM_BUDGET_US := 4000
+const STREAM_BUDGET_US := 3000
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
@@ -625,9 +626,10 @@ func _build_chunk(key: Vector2i) -> void:
 	_apply_chunk(key, meshes, plants)
 
 
-## Builds chunks row by row within the frame's budget: edited chunks first (the
-## chunk of the edit before its neighbours), then the far chunks of the map nearest
-## to the player. At least one row is built a frame, so a job always ends.
+## Builds chunks a column of cells at a time within the frame's budget: edited
+## chunks first (the chunk of the edit before its neighbours), then the far chunks of
+## the map nearest to the player. At least one column is built a frame, so a job
+## always ends.
 func _run_jobs() -> void:
 	var t0 := Time.get_ticks_usec()
 	while true:
@@ -646,7 +648,7 @@ func _run_jobs() -> void:
 		var budget := EDIT_BUDGET_US if job_edit else STREAM_BUDGET_US
 		var done := false
 		while not done and Time.get_ticks_usec() - t0 < budget:
-			done = ChunkMesher.row(job_mesh) and Foliage.row(job_plants)
+			done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
 		if not done:
 			break
 		_apply_chunk(job_key, ChunkMesher.finish(job_mesh), Foliage.finish(job_plants))
