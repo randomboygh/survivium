@@ -54,7 +54,8 @@ const CUT_DELAY := 0.2
 ## The player is down in a ravine, a pit or a cave mouth when earth (not trunks or
 ## leaves) stands SUNK_RISE levels above the feet within SUNK_REACH cells on at
 ## least SUNK_SIDES of the eight compass directions: then the view is cut at the
-## player's level as under a roof, so the ground above shows as a ghost.
+## lowest rim around, so the walls and the ground beyond stay whole and only the
+## trees and hills above it show as a ghost.
 const SUNK_REACH := 6
 const SUNK_RISE := 3
 const SUNK_SIDES := 5
@@ -118,8 +119,9 @@ var cut_clock := 0.0
 var ground_level := 0
 var indoor := false
 ## The player stands well below the ground around (see SUNK_SIDES), and where that
-## was last worked out: Vector3i(x, level, z).
+## was last worked out: Vector3i(x, level, z); the level of the lowest rim around.
 var sunk := false
+var sunk_rim := 0
 var sunk_at := Vector3i(0, -1000, 0)
 
 
@@ -531,8 +533,10 @@ func update_cut(delta: float) -> void:
 	var target: int = world.size_y
 	if manual_level >= 0:
 		target = manual_level
-	elif indoor or sunk:
+	elif indoor:
 		target = level + 1
+	elif sunk:
+		target = sunk_rim
 	if target != cut_target:
 		cut_target = target
 		cut_clock = 0.0
@@ -546,17 +550,25 @@ func update_cut(delta: float) -> void:
 
 
 ## How many of the eight compass directions from column (x, z) meet earth SUNK_RISE
-## levels above `level` within SUNK_REACH cells.
+## levels above `level` within SUNK_REACH cells; sunk_rim becomes the top of the
+## lowest of the walls met.
 func _walled_sides(x: int, level: int, z: int) -> int:
 	var y := level + SUNK_RISE
 	if y >= world.size_y:
 		return 0
 	var sides := 0
+	sunk_rim = world.size_y - 1
 	for d in COMPASS:
 		for r in range(1, SUNK_REACH + 1):
-			var m: int = world.get_cell(x + d.x * r, y, z + d.y * r)
-			if Mat.is_roof(m):
+			var cx := x + d.x * r
+			var cz := z + d.y * r
+			if Mat.is_roof(world.get_cell(cx, y, cz)):
 				sides += 1
+				# The top of the earth in that column, from the level met upward.
+				var top := y
+				while top + 1 < world.size_y and Mat.is_roof(world.get_cell(cx, top + 1, cz)):
+					top += 1
+				sunk_rim = mini(sunk_rim, top)
 				break
 	return sides
 
