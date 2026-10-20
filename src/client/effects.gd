@@ -133,29 +133,28 @@ func add_campfire(corner: Vector3, material: Material) -> void:
 	fires.append({"light": light, "base": 1.8, "unit": Vector3i(c.floor())})
 
 
-## Moves the weather emitters over the view and turns them on and off.
-## `view` is the screen-plane centre; `ground` the height the player stands on.
 ## Warmth around the fires for the shaders (heat_map, see common.gdshaderinc): one
 ## texel per world unit, r = heat falling off over HEAT_RADIUS units, g = the height of
-## the fire's unit. Snow melts and rain dries there.
-func heat_map(size_x: int, size_z: int) -> ImageTexture:
-	var img := Image.create_empty(size_x, size_z, false, Image.FORMAT_RGBA8)
+## the fire's unit. Snow melts and rain dries there. Like the roof map it repeats every
+## `size` units (see RoofMap.WRAP).
+func heat_map(size: int) -> ImageTexture:
+	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 1))
 	var r := ceili(HEAT_RADIUS)
 	for f in fires:
 		var c: Vector3i = f.unit
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
-				var x := c.x + dx
-				var z := c.z + dz
-				if x < 0 or z < 0 or x >= size_x or z >= size_z:
-					continue
+				var x := posmod(c.x + dx, size)
+				var z := posmod(c.z + dz, size)
 				var heat := clampf(1.3 - Vector2(dx, dz).length() / HEAT_RADIUS, 0.0, 1.0)
 				if heat > img.get_pixel(x, z).r:
 					img.set_pixel(x, z, Color(heat, c.y / 64.0, 0.0, 1.0))
 	return ImageTexture.create_from_image(img)
 
 
+## Moves the weather emitters over the view and turns them on and off.
+## `view` is the screen-plane centre; `ground` the height the player stands on.
 func update(delta: float, view: Vector2, ground: float, raining: bool, winter: bool, season: int, daylight: float, indoor: bool) -> void:
 	var sky := ground + 7.0
 	# A point at height h shows at screen-plane y = z - h, so emitters sit further south.

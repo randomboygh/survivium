@@ -15,7 +15,9 @@ const browser = await chromium.launch({
 });
 const errors = [];
 
-async function open(name, options, init) {
+// Opens the page, makes the world from the first screen and waits until it is built:
+// the phone taps "Создать мир", the desktop presses Enter.
+async function open(name, options, init, tapDpr) {
   const context = await browser.newContext(options);
   if (init) await context.addInitScript(init);
   const page = await context.newPage();
@@ -31,8 +33,19 @@ async function open(name, options, init) {
     errors.push(`${name}: ${e.message}`);
   });
   await page.goto(URL);
+  // The world setup screen prints where its start button is.
+  let deadline = Date.now() + 120000;
+  const shown = () => log.find((t) => t.startsWith('world setup shown'));
+  while (!shown() && Date.now() < deadline) await page.waitForTimeout(500);
+  if (!shown()) errors.push(`${name}: the world setup screen did not show within 120 s`);
+  else if (tapDpr) {
+    const r = (shown().match(/-?[\d.]+/g) || []).map(Number);
+    await page.touchscreen.tap((r[0] + r[2] / 2) / tapDpr, (r[1] + r[3] / 2) / tapDpr);
+  } else {
+    await page.keyboard.press('Enter');
+  }
   // Wait until the world is built (main.gd prints "world ready").
-  const deadline = Date.now() + 180000;
+  deadline = Date.now() + 180000;
   while (!log.some((t) => t.includes('world ready')) && Date.now() < deadline) await page.waitForTimeout(1000);
   if (!log.some((t) => t.includes('world ready'))) errors.push(`${name}: world was not ready within 180 s`);
   await page.waitForTimeout(2000);
@@ -94,6 +107,7 @@ async function screenshot(name, page) {
     // browsers report while their toolbar is shown.
     `Object.defineProperty(window, 'innerHeight', { configurable: true,
       get: () => document.documentElement.clientHeight + ${TOOLBAR} });`,
+    dpr,
   );
   const d0 = await debug(page, log);
   console.log(`phone layout: ${d0.line}`);

@@ -24,11 +24,12 @@ global uniform float leaf_amount;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 // Warmth around fires, one texel per world unit: r = heat 0..1, g = height of the
 // fire's unit / 64.
-global uniform sampler2D heat_map : filter_linear;
+global uniform sampler2D heat_map : filter_linear, repeat_enable;
 // One texel per column: the level of the highest cell that keeps the weather off,
 // plus one, over 255 (see roof_map.gd).
-global uniform sampler2D roof_map : filter_nearest;
-global uniform vec2 world_size;
+global uniform sampler2D roof_map : filter_nearest, repeat_enable;
+// The world has no edge: the heat and roof maps repeat every wrap_size world units.
+global uniform vec2 wrap_size;
 // Height of the ground the player last stood on, and what the levels far below it
 // fade into (the background outdoors, darkness in a cave or a room), see depth_fade.
 global uniform float view_height;
@@ -124,7 +125,7 @@ ivec2 tile_mirror(ivec2 t, vec2 cell) {
 
 // Warmth of the nearest fire at p: 0 far away, up to 1 next to it.
 float heat_at(vec3 p) {
-	vec4 h = texture(heat_map, floor(p.xz * TEXELS) / TEXELS / world_size);
+	vec4 h = texture(heat_map, floor(p.xz * TEXELS) / TEXELS / wrap_size);
 	return h.r * step(abs(p.y - h.g * 64.0 - 0.5), 2.5);
 }
 
@@ -133,7 +134,7 @@ float heat_at(vec3 p) {
 // Level of the highest cell over the column at `xz` that keeps rain and snow off,
 // -1 when the sky is open all the way down.
 float roof_level(vec2 xz) {
-	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / world_size).r * 255.0 - 1.0;
+	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / wrap_size).r * 255.0 - 1.0;
 }
 
 // True at height `y` under a roof, an overhang or a cave ceiling: below the bottom of

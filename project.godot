@@ -102,7 +102,7 @@ roof_map={
 "type": "sampler2D",
 "value": ""
 }
-world_size={
+wrap_size={
 "type": "vec2",
-"value": Vector2(128, 128)
+"value": Vector2(256, 256)
 }

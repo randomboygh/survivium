@@ -14,6 +14,7 @@ const TouchStick := preload("res://src/client/touch_stick.gd")
 const TouchButton := preload("res://src/client/touch_button.gd")
 const SettingsMenu := preload("res://src/client/settings_menu.gd")
 const Minimap := preload("res://src/client/minimap.gd")
+const MapView := preload("res://src/client/map_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
 
 const MARGIN := 8.0
@@ -43,6 +44,7 @@ var _test_button: Button
 var _menu_button: Button
 var _level: BoxContainer
 var minimap: Minimap
+var map_view: MapView
 var _level_label: Button
 var _bar: PanelContainer
 var _hand_left
@@ -120,6 +122,11 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(36, 36)
 	minimap = Minimap.new()
 	add_child(minimap)
+	map_view = MapView.new()
+	map_view.minimap = minimap
+	add_child(map_view)
+	minimap.open_map.connect(map_view.open)
+	minimap.painted.connect(map_view.queue_redraw)
 
 	_bar = _panel(self)
 	_bar.add_theme_stylebox_override("panel", _bar_box())
@@ -196,6 +203,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if game == null or game.world == null:
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
 			KEY_ESCAPE:
@@ -285,6 +294,7 @@ func _place() -> void:
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 	_settings.fit(size)
+	map_view.fit(size, touch)
 
 
 func _pages() -> int:

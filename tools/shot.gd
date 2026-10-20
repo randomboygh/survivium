@@ -14,6 +14,9 @@ const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const CELL := 0.5
+## How far around the player (in cells) the shore, water and lone tree searches look:
+## the world has no edge, only the chunks generated around.
+const SEARCH := 120
 
 const SHOTS := {
 	"day": {"time": 0.45, "season": 1},
@@ -73,6 +76,9 @@ const SHOTS := {
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
 	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
+	# The first screen (the world to make) and the whole map of what is explored.
+	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
+	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
 }
 
 var main: Node
@@ -87,6 +93,7 @@ func _initialize() -> void:
 	names = args.slice(1) if args.size() > 1 else SHOTS.keys()
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	main = load("res://scenes/main.tscn").instantiate()
+	main.skip_setup = true
 	root.add_child(main)
 	_run()
 
@@ -183,11 +190,26 @@ func _run() -> void:
 		if shot.get("test", false) or shot.get("menu", false):
 			await process_frame
 			await process_frame
+		var setup: Control = null
+		if shot.get("setup", false):
+			setup = main.WorldSetup.new(main)
+			main.hud.add_child(setup)
+			# The map of the setup screen is drawn a few rows a frame.
+			for i in 120:
+				await process_frame
+		if shot.get("map", false):
+			main.hud.map_view.open()
+			await process_frame
+			await process_frame
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
 		if shot.has("keys"):
 			_hold(shot.keys, false)
+		if setup != null:
+			setup.queue_free()
+		if shot.get("map", false):
+			main.hud.map_view.close()
 		print("saved ", shot_name)
 		if shot.get("wall", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
@@ -226,8 +248,8 @@ func _flat_near(w, p: Vector3) -> Vector3:
 					for ox in range(-7, 8):
 						var nx := x + ox
 						var nz := z + oz
-						if nx < 1 or nz < 1 or nx >= w.size_x - 1 or nz >= w.size_z - 1 or w.surface_y(nx, nz) != y \
-								or w.leaf_cols[nz * w.size_x + nx] != 0 or w.slope_mask(nx, y - 1, nz) != WorldData.FULL:
+						if w.surface_y(nx, nz) != y or w.leaf_col(nx, nz) != 0 \
+								or w.slope_mask(nx, y - 1, nz) != WorldData.FULL:
 							flat = false
 							break
 					if not flat:
@@ -257,8 +279,7 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 					for ox in range(-2, 3):
 						var nx := x + ox
 						var nz := z + oz
-						if nx < 1 or nz < 1 or nx >= w.size_x - 1 or nz >= w.size_z - 1 or w.surface_y(nx, nz) != y \
-								or w.get_cell(nx, y - 1, nz) != Mat.GRASS or w.leaf_cols[nz * w.size_x + nx] != 0:
+						if w.surface_y(nx, nz) != y or w.get_cell(nx, y - 1, nz) != Mat.GRASS or w.leaf_col(nx, nz) != 0:
 							ok = false
 						elif what == "meadow" and Foliage.tier_at(nx, nz) != Foliage.TALL_TIER:
 							ok = false
@@ -273,7 +294,7 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 	return p
 
 
-## Standing spot at the nearest place of a kind on the island (see WorldGen.find_place):
+## Standing spot at the nearest place of a kind (see WorldGen.find_place):
 ## the chunks there are built first, then a dry spot by the water is picked.
 func _place(w, what: String) -> Vector3:
 	var at: Vector3 = main.player.position
@@ -285,9 +306,9 @@ func _place(w, what: String) -> Vector3:
 		"lake", "river", "canyon", "swamp":
 			return _dry_near(w, p, 24)
 		"cliffs":
-			return _coast(w, p, Vector2(p - Vector2(w.size_x, w.size_z) * 0.5).normalized(), 3.0)
+			return _coast(w, p, _seaward(w, p), 3.0)
 		"beach":
-			return _coast(w, p, Vector2(p - Vector2(w.size_x, w.size_z) * 0.5).normalized(), 4.0)
+			return _coast(w, p, _seaward(w, p), 4.0)
 	return _dry_near(w, p, 20)
 
 
@@ -309,6 +330,22 @@ func _dry_near(w, p: Vector2, radius: int) -> Vector3:
 	return best * CELL if best_d < INF else main.player.position
 
 
+## The one of eight directions from the cell point `p` in which the sea is nearest.
+func _seaward(w, p: Vector2) -> Vector2:
+	var best := Vector2.DOWN
+	var best_d := INF
+	for k in 8:
+		var dir := Vector2.RIGHT.rotated(k * PI / 4.0)
+		for i in 120:
+			var q := p + dir * i
+			if w.surface_y(int(q.x), int(q.y)) <= w.sea_level:
+				if i < best_d:
+					best_d = i
+					best = dir
+				break
+	return best
+
+
 ## Walks from the cell point `from` toward `dir` until the sea, and stands `back`
 ## cells before it.
 func _coast(w, from: Vector2, dir: Vector2, back: float) -> Vector3:
@@ -326,8 +363,8 @@ func _shore(w, at: Vector3) -> Vector3:
 	var from := at / CELL
 	var best := from
 	var best_d := INF
-	for z in range(1, w.size_z - 1):
-		for x in range(1, w.size_x - 1):
+	for z in range(int(from.z) - SEARCH, int(from.z) + SEARCH):
+		for x in range(int(from.x) - SEARCH, int(from.x) + SEARCH):
 			var y: int = w.surface_y(x, z)
 			if y <= w.sea_level or y > w.sea_level + 2:
 				continue
@@ -349,8 +386,8 @@ func _in_water(w, at: Vector3, depth: int) -> Vector3:
 	var sea: int = w.sea_level
 	var best := at
 	var best_d := INF
-	for z in range(8, w.size_z - 12):
-		for x in range(8, w.size_x - 8):
+	for z in range(int(from.z) - SEARCH, int(from.z) + SEARCH):
+		for x in range(int(from.x) - SEARCH, int(from.x) + SEARCH):
 			var d := Vector2(x, z).distance_to(Vector2(from.x, from.z))
 			if d >= best_d or w.get_cell(x, sea + 1 - depth, z) != Mat.WATER:
 				continue
@@ -577,9 +614,9 @@ func _grove(w, at: Vector3i) -> void:
 						m = Mat.GRASS if y == h - 1 else Mat.DIRT
 					w.set_cell(x, y, z, m)
 					w.set_natural(x, y, z, true)
-		for key in w.trees.keys():
+		for key: Vector2i in w.trees.keys():
 			if absi(key.x - at.x) < 52 and absi(key.y - at.z) < 40:
-				w.trees.erase(key)
+				w.remove_tree(key.x, key.y)
 		for b: Vector3i in w.bushes.keys():
 			if absi(b.x - at.x) <= 46 and absi(b.z - at.z) <= 36:
 				w.remove_bush(b)
@@ -625,7 +662,7 @@ func _forest(w, at: Vector3) -> Vector3:
 					# cannot tell a tree from the ground under it).
 					var cx := x + dx
 					var cz := z + dz
-					if cx >= 0 and cz >= 0 and cx < w.size_x and cz < w.size_z and w.leaf_cols[cz * w.size_x + cx] != 0:
+					if w.leaf_col(cx, cz) != 0:
 						n += 1
 			if n > best_n:
 				best_n = n
@@ -637,8 +674,8 @@ func _forest(w, at: Vector3) -> Vector3:
 func _lone_trees(w, at: Vector3) -> Vector3:
 	var from := at / CELL
 	var trunks: Array[Vector2i] = []
-	for z in range(1, w.size_z - 1):
-		for x in range(1, w.size_x - 1):
+	for z in range(int(from.z) - SEARCH, int(from.z) + SEARCH):
+		for x in range(int(from.x) - SEARCH, int(from.x) + SEARCH):
 			for y in range(w.surface_y(x, z) - 1, 0, -1):
 				if w.get_cell(x, y, z) == Mat.LOG and w.get_cell(x, y - 1, z) != Mat.LOG:
 					trunks.append(Vector2i(x, z))

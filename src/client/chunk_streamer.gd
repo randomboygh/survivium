@@ -4,7 +4,8 @@ extends RefCounted
 ## chunks near the spawn before play, then the chunks within LOAD_RANGE of the
 ## player, nearest first, a column of cells (or a row of the generator) at a time
 ## within a frame budget. Edited chunks are rebuilt first; chunks that fall beyond
-## UNLOAD_RANGE lose their meshes (their cells stay). The caps over the cut are kept
+## UNLOAD_RANGE lose their meshes, and beyond DROP_RANGE their cells too unless the
+## player changed them (they are made again the same). The caps over the cut are kept
 ## on the chunks around the player, and the cut itself moves: automatic under a roof
 ## or in a cave, manual with the level buttons. `game` is the Main node that owns the
 ## scene.
@@ -27,12 +28,16 @@ const NEAR_CHUNKS := 3
 ## ground the player walks onto is there before the far chunks.
 const URGENT_CHUNKS := NEAR_CHUNKS + 1
 ## Chunks within this many chunks of the player are built, farther than any screen
-## shows; beyond UNLOAD_RANGE their meshes are freed.
-const LOAD_RANGE := 6
-const UNLOAD_RANGE := 9
+## shows (a phone held sideways shows about three chunks each way, and the tallest
+## mountains a few more to the south); beyond UNLOAD_RANGE their meshes are freed.
+const LOAD_RANGE := 5
+const UNLOAD_RANGE := 8
+## Beyond this many chunks the generator forgets chunks the player has not changed. A
+## chunk LOAD_RANGE away needs the terrain of chunks two farther, which must stay.
+const DROP_RANGE := LOAD_RANGE + 4
 ## Chunks this far (in chunks) from the player's get a cap over the level cut; farther
 ## ones are off the screen on any device and are built when they come near.
-const CAP_RANGE := 6
+const CAP_RANGE := 5
 ## How much of a frame may go to building caps, to remeshing edited chunks and to
 ## generating and building the far chunks of the map, in microseconds; a chunk is
 ## built a column of cells at a time (ChunkMesher.step, Foliage.step, WorldGen.step),
@@ -40,8 +45,9 @@ const CAP_RANGE := 6
 const CAP_BUDGET_US := 3000
 const EDIT_BUDGET_US := 9000
 const STREAM_BUDGET_US := 3000
-## Chunks whose meshes are freed in one frame at most.
+## Chunks whose meshes are freed, and chunks forgotten, in one frame at most.
 const UNLOADS_PER_FRAME := 2
+const DROPS_PER_FRAME := 4
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
@@ -57,6 +63,7 @@ var chunk_nodes := {}
 var pending_chunks: Array[Vector2i] = []
 var load_home := Vector2i(-1000000, 0)
 var unload_queue: Array[Vector2i] = []
+var drop_queue: Array[Vector2i] = []
 var near_pending := 0
 var near_total := 0
 ## One cap over the cut per chunk (see update_caps): nodes, the level each was built
@@ -155,14 +162,18 @@ func _list_pending() -> void:
 		return
 	load_home = home
 	pending_chunks.clear()
-	for cz in range(maxi(0, home.y - LOAD_RANGE), mini(gen.chunks_z(), home.y + LOAD_RANGE + 1)):
-		for cx in range(maxi(0, home.x - LOAD_RANGE), mini(gen.chunks_x(), home.x + LOAD_RANGE + 1)):
+	for cz in range(home.y - LOAD_RANGE, home.y + LOAD_RANGE + 1):
+		for cx in range(home.x - LOAD_RANGE, home.x + LOAD_RANGE + 1):
 			var key := Vector2i(cx, cz)
 			if not chunk_nodes.has(key) and not (has_target and key == job_key):
 				pending_chunks.append(key)
 	for key: Vector2i in chunk_nodes:
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > UNLOAD_RANGE and not unload_queue.has(key):
 			unload_queue.append(key)
+	drop_queue.clear()
+	for key: Vector2i in gen.stages:
+		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > DROP_RANGE:
+			drop_queue.append(key)
 	if not pending_chunks.is_empty():
 		map_done = false
 
@@ -217,6 +228,8 @@ func build_around() -> void:
 	map_done = true
 	while not unload_queue.is_empty():
 		_unload_some()
+	while not drop_queue.is_empty():
+		_drop_some()
 	game.roof.flush()
 
 
@@ -224,11 +237,11 @@ func build_around() -> void:
 ## stage], or empty when it can be. A chunk is meshed once it is SHAPED, which takes
 ## the chunks around it PLANTED, which takes the chunks around those with terrain.
 func _prerequisite(key: Vector2i) -> Array:
-	var m := gen.missing(key, 2, WorldGen.TERRAIN)
-	if m.x >= 0:
+	var m: Variant = gen.missing(key, 2, WorldGen.TERRAIN)
+	if m != null:
 		return [m, WorldGen.TERRAIN]
 	m = gen.missing(key, 1, WorldGen.PLANTED)
-	if m.x >= 0:
+	if m != null:
 		return [m, WorldGen.PLANTED]
 	if gen.stage_of(key) < WorldGen.SHAPED:
 		return [key, WorldGen.SHAPED]
@@ -307,6 +320,17 @@ func run_jobs() -> void:
 			print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), gen_us / 1000, mesh_us / 1000])
 	mesh_us += Time.get_ticks_usec() - t0
 	_unload_some()
+	_drop_some()
+
+
+## Forgets a few chunks far from the player a frame (see WorldGen.forget).
+func _drop_some() -> void:
+	var n := 0
+	var at := _player_chunk()
+	while not drop_queue.is_empty() and n < DROPS_PER_FRAME:
+		var key: Vector2i = drop_queue.pop_back()
+		if maxi(absi(key.x - at.x), absi(key.y - at.y)) > DROP_RANGE and gen.forget(key):
+			n += 1
 
 
 ## Frees the meshes of a couple of far chunks a frame.
@@ -376,11 +400,11 @@ func on_cell_changed(cell: Vector3i) -> void:
 		game.hud.minimap.touch(world, cell)
 	# Slopes and corners look at the neighbours, and edges of a top at theirs. The
 	# chunk of the cell goes first in the queue, its neighbours after (see run_jobs).
-	var home := Vector2i(floori(cell.x / float(CHUNK)), floori(cell.z / float(CHUNK)))
+	var home := WorldData.chunk_key(cell.x, cell.z)
 	var keys := {}
 	for dz in range(-2, 3):
 		for dx in range(-2, 3):
-			keys[Vector2i(floori((cell.x + dx) / float(CHUNK)), floori((cell.z + dz) / float(CHUNK)))] = true
+			keys[WorldData.chunk_key(cell.x + dx, cell.z + dz)] = true
 	if job_mesh != null and keys.has(job_key):
 		# The chunk being built changed under the job: start it over.
 		job_mesh = null
@@ -470,8 +494,8 @@ func update_caps() -> void:
 	if home != cap_home:
 		cap_home = home
 		cap_order.clear()
-		for cz in range(maxi(0, home.y - CAP_RANGE), mini(ceili(world.size_z / float(CHUNK)), home.y + CAP_RANGE + 1)):
-			for cx in range(maxi(0, home.x - CAP_RANGE), mini(ceili(world.size_x / float(CHUNK)), home.x + CAP_RANGE + 1)):
+		for cz in range(home.y - CAP_RANGE, home.y + CAP_RANGE + 1):
+			for cx in range(home.x - CAP_RANGE, home.x + CAP_RANGE + 1):
 				cap_order.append(Vector2i(cx, cz))
 		var nearer := func(a: Vector2i, b: Vector2i) -> bool:
 			return maxi(absi(a.x - home.x), absi(a.y - home.y)) < maxi(absi(b.x - home.x), absi(b.y - home.y))

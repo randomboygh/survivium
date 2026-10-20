@@ -1,14 +1,15 @@
 extends Node
-## Technical prototype entry point: generates the world, builds the scene and runs the
-## frame. The work is split between modules that each hold their own state and get
-## `self` as `game`: ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time
-## of day, seasons, weather, light and colour grade), Controls (keys, mouse, touch and
-## the edits they make), CameraRig (the pixel-perfect view and the camera), Props
-## (bushes, drifts, the chest and the campfire) and Settings (the saved settings and
-## the playtest switches). The 3D scene renders into a low-resolution SubViewport
-## (about 360 px tall) in an oblique 3/4 view, is colour graded and scaled up by a
-## whole number without filtering (see PixelView); the interface (Hud) is scaled by a
-## whole number too.
+## Technical prototype entry point: asks for the world (WorldSetup: seed and settings,
+## with a map of it), generates it, builds the scene and runs the frame. The work is
+## split between modules that each hold their own state and get `self` as `game`:
+## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
+## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
+## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
+## the chest and the campfire) and Settings (the saved settings and the playtest
+## switches). The 3D scene renders into a low-resolution SubViewport (about 360 px
+## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
+## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
+## too.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -29,13 +30,13 @@ const Drifts := preload("res://src/client/drifts.gd")
 const EffectsScript := preload("res://src/client/effects.gd")
 const TracksScript := preload("res://src/client/tracks.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
+const WorldSetup := preload("res://src/client/world_setup.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
 const GrassShader := preload("res://shaders/grass.gdshader")
 const LeavesShader := preload("res://shaders/leaves.gdshader")
 const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
 
-const WORLD_SEED := 20261018
 const CELL := WorldData.CELL
 
 var world
@@ -73,6 +74,11 @@ var ready_to_play := false
 var last_print := Vector3.ZERO
 var left_foot := false
 var fps_clock := 0.0
+## Tests and tools start the world from the saved settings without the setup screen.
+var skip_setup := false
+var world_seed := 0
+## Time spent on the setup screen, left out of the load time.
+var setup_ms := 0
 
 
 func _ready() -> void:
@@ -88,16 +94,32 @@ func _ready() -> void:
 	_build_ui()
 	get_viewport().size_changed.connect(view.on_screen_resized)
 	view.on_screen_resized()
+	if skip_setup:
+		start_world()
+		return
+	var setup := WorldSetup.new(self)
+	hud.add_child(setup)
+	var shown := Time.get_ticks_msec()
+	setup.done.connect(func() -> void:
+		setup_ms = Time.get_ticks_msec() - shown
+		setup.queue_free()
+		start_world())
+	view.on_screen_resized()
+
+
+## Generates the world the settings ask for and builds the scene around the spawn.
+func start_world() -> void:
 	hud.set_loading("Генерация мира…")
 	# Let the loading text show before the heavy generation.
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var t0 := Time.get_ticks_msec()
-	gen = WorldGen.new(WORLD_SEED)
+	world_seed = settings.values.world_seed
+	gen = WorldGen.new(world_seed, 48, settings.world_options())
 	world = gen.world
-	print("world laid out in %d ms" % (Time.get_ticks_msec() - t0))
+	print("world %d %s: spawn found in %d ms" % [world_seed, settings.world_options(), Time.get_ticks_msec() - t0])
 	roof = RoofMap.new()
-	roof.prepare(world)
+	roof.prepare()
 	hud.minimap.setup(gen)
 	_build_materials()
 	_build_scene()
@@ -111,7 +133,7 @@ func _process(delta: float) -> void:
 	if not ready_to_play:
 		if chunks.build_near(40):
 			hud.set_loading("")
-			hud.perf.world_ms = Time.get_ticks_msec()
+			hud.perf.world_ms = Time.get_ticks_msec() - setup_ms
 			# Freezes while the world was being built are not the game's.
 			hud.perf.reset()
 			hud.perf.chunks = chunks.near_total
@@ -120,10 +142,10 @@ func _process(delta: float) -> void:
 			player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
 			props.place()
-			creatures.setup(world, player, WORLD_SEED)
+			creatures.setup(world, player, world_seed)
 			ready_to_play = true
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
-			print("world ready in %d ms" % Time.get_ticks_msec())
+			print("world ready in %d ms (not counting %d ms on the setup screen)" % [Time.get_ticks_msec() - setup_ms, setup_ms])
 		else:
 			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
 	sky.update(delta)
@@ -149,7 +171,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	controls.unhandled_input(event)
+	if world != null:
+		controls.unhandled_input(event)
 
 
 ## A boot print every stride on the ground, left and right in turn, none in the water.
@@ -201,7 +224,6 @@ func _build_materials() -> void:
 	RenderingServer.global_shader_parameter_set("terrain_atlas", atlas)
 	hud.set_block_icons(atlas, PixelTextures.TILE, PixelTextures.TILES)
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
-	RenderingServer.global_shader_parameter_set("world_size", Vector2(world.size_x, world.size_z) * CELL)
 	world_mat = _material(WorldShader)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
@@ -245,7 +267,7 @@ func _build_scene() -> void:
 	player = PlayerScript.new()
 	player.world = world
 	world_root.add_child(player)
-	# A guess from the coarse layout; the exact spot is found once the ground is made.
+	# A guess from the laid-out columns; the exact spot is found once the ground is made.
 	player.position = (Vector3(gen.spawn_guess) + Vector3(0.5, 0.0, 0.5)) * CELL
 	view.look_at_player()
 

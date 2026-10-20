@@ -188,8 +188,8 @@ func _spawn(kind: String, away_from_player: bool) -> void:
 	var px := floori(player.position.x / CELL)
 	var pz := floori(player.position.z / CELL)
 	for attempt in 40:
-		var x := clampi(px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH), 2, world.size_x - 3)
-		var z := clampi(pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH), 2, world.size_z - 3)
+		var x := px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
+		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var y: int = world.surface_y(x, z)
 		if y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue

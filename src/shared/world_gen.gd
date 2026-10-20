@@ -1,14 +1,16 @@
 extends RefCounted
-## Deterministic world generator: the same seed always gives the same island, whatever
-## order its chunks are made in. Nothing is laid out by hand. At the start only a coarse
-## layout of the whole map is made (one sample per COARSE cells): the base relief, the
-## sea, the lakes that fill its basins and the rivers that run from the mountains down
-## to the lakes and the sea. Everything else is made a chunk at a time, when the player
-## comes near (see ChunkStreamer), in three stages that each read only what the stages
-## before left in place:
-## 1. TERRAIN: the columns of the chunk from noise layers (relief, ridges, mountains,
-##    cliffs, plateaus, ravines, soil, climate), the water of the coarse layout cut in,
-##    a biome per column, then the cells: stone with ore, dirt, the top, water, caves.
+## Deterministic world generator: the same seed and settings always give the same
+## world, whatever order its chunks are made in. The world has no edge: everything
+## comes from noise at the column itself, so any chunk can be made at any time, as the
+## player comes near (see ChunkStreamer), and made again the same after it was dropped.
+## Continents and oceans come from a very slow noise, mountains, plateaus and cliff
+## coasts from slower and faster ones over the land, rivers run along the zero lines of
+## a noise and lakes fill its high spots, both at the level of the sea, and the climate
+## (warmth and moisture) is noise too, so biomes spread over hundreds of cells. A chunk
+## is made in three stages that each read only what the stages before left in place:
+## 1. TERRAIN: the columns of the chunk and a margin around it are laid out (height,
+##    water, top, biome), then the cells are written: stone with ore, dirt, the top,
+##    water, caves. The trees of planted neighbours that reach in are grown again.
 ## 2. PLANTED: trees by biome, once the chunks around have their terrain (a crown may
 ##    reach into the next chunk). Which column gets a tree is a hash of the column, so
 ##    neighbours agree without looking at each other's cells.
@@ -18,7 +20,7 @@ extends RefCounted
 ## marked wild: loose ground lies as slopes wherever it steps down one cell, while
 ## stone, steep patches, cliffs and canyon walls keep sheer walls. Water above the sea
 ## never stands beside open air: banks are raised to its level and caves keep away
-## from it. Sizes are in cells (8 px).
+## from it. Each stage is done a few rows (or a tree) at a time; sizes are in cells.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -26,19 +28,23 @@ const Trees := preload("res://src/shared/trees.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 
 const CHUNK := WorldData.CHUNK
-## Cells per sample of the coarse layout.
-const COARSE := 16
 ## Columns around a chunk the terrain stage lays out too, so banks, caves and trees
 ## can look at their neighbours.
 const MARGIN := 3
 const WINDOW := CHUNK + 2 * MARGIN
+## Cells between the samples of the slow noises (continents, rivers, lakes), which are
+## sampled exactly and interpolated with their slopes in between.
+const LATTICE := 4
+## How far a tree reaches from its trunk, so a chunk made again knows which trees of
+## its neighbours to grow again (see Trees.place).
+const TREE_REACH := 10
 
 ## Stages of a chunk (see above); 0 is nothing yet.
 const TERRAIN := 1
 const PLANTED := 2
 const SHAPED := 3
 
-## Biomes of a column, from its height, temperature and moisture.
+## Biomes of a column, from its height, warmth and moisture.
 const SEA := 0
 const BEACH := 1
 const MEADOW := 2
@@ -47,19 +53,43 @@ const TAIGA := 4
 const SWAMP := 5
 const ROCK := 6
 const PLATEAU := 7
-const BIOME_NAMES := ["Море", "Берег", "Луг", "Лес", "Тайга", "Болото", "Скалы", "Плато"]
+const DESERT := 8
+const TUNDRA := 9
+const BIOME_NAMES := ["Море", "Берег", "Луг", "Лес", "Тайга", "Болото", "Скалы", "Плато", "Пустыня", "Тундра"]
 ## Chance of a tree on a lattice column (every other column each way) per biome, and
 ## the share of spruces among them; groves of the forest noise raise the chance on
 ## meadows. Content data of the core mod will replace these tables.
-const TREE_CHANCE := [0.0, 0.0, 0.004, 0.14, 0.12, 0.03, 0.0, 0.0]
-const SPRUCE_SHARE := [0.0, 0.0, 0.2, 0.15, 0.9, 0.0, 0.0, 0.0]
+const TREE_CHANCE := [0.0, 0.0, 0.004, 0.14, 0.12, 0.03, 0.0, 0.0, 0.0, 0.02]
+const SPRUCE_SHARE := [0.0, 0.0, 0.2, 0.15, 0.9, 0.0, 0.0, 0.0, 0.0, 1.0]
 const GROVE_CHANCE := 0.08
 ## One bush try per this many cells of a biome's ground.
-const BUSH_SPARSITY := [0, 0, 160, 120, 140, 200, 0, 400]
+const BUSH_SPARSITY := [0, 0, 160, 120, 140, 200, 0, 400, 900, 150]
 
-## The eight samples around one, the straight ones first.
-const AROUND := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1),
-	Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+## Relief kinds of a column.
+const PLAIN := 0
+const MOUNTAIN := 1
+const HIGHLAND := 2
+const CLIFFS := 3
+const SEA_FLOOR := 4
+## Water of a column: none, the sea, a lake or a river (a canyon floor counts as river).
+const DRY := 0
+const OCEAN := 1
+const LAKE := 2
+const RIVER := 3
+const CANYON := 4
+
+## World settings, each a level from 0 (little) to 2 (much); 1 is the usual world.
+## size: how large continents and islands are; water: the share of the ocean;
+## mountains: how much of the land rises into mountains; rivers: how many rivers and
+## lakes; biomes: how far one climate stretches.
+const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1}
+const SIZE_SCALE := [0.4, 1.0, 2.2]
+const WATER_SHARE := [0.25, 0.4, 0.58]
+## Where the mountain noise starts and ends raising mountains.
+const MOUNTAIN_FROM := [0.5, 0.3, 0.12]
+const RIVER_FROM := [0.1, -0.1, -0.3]
+const LAKE_FROM := [0.66, 0.55, 0.45]
+const BIOME_SCALE := [0.5, 1.0, 2.0]
 
 ## Column flags while laying out: the top keeps a sheer wall; caves may open at the
 ## surface here.
@@ -68,35 +98,20 @@ const ENTRANCE := 2
 
 var world: WorldData
 var world_seed: int
-var size_x: int
+var settings: Dictionary
 var size_y: int
-var size_z: int
 var sea: int
-## The coarse layout, `gw` by `gh` samples: base height, the flooded height and
-## where each sample drains to (the sample's index, -1 at the sea), the level of the
-## lake over it (-1 for none) and how deep it is there, the level of a river through
-## it (-1 for none), and the distance to the nearest water in samples (capped).
-var gw: int
-var gh: int
-var g_height := PackedInt32Array()
-var g_filled := PackedInt32Array()
-var g_flow := PackedInt32Array()
-var g_lake := PackedInt32Array()
-var g_depth := PackedByteArray()
-var g_river := PackedInt32Array()
-var g_wet := PackedByteArray()
-## Rivers: each a Dictionary with points (cell coordinates, about a cell apart),
-## levels (the top water cell at each point), widths (half width of the water) and
-## canyon (1 where the river runs between sheer walls).
-var rivers: Array = []
-## Points of the rivers by the chunk they are in: [river, point] pairs.
-var river_index := {}
+## The continent noise's value at the coast: below it is the ocean.
+var coast_level := 0.0
 ## Stage of each chunk, by Vector2i(cx, cz); absent means nothing is made yet.
 var stages := {}
-## The laid-out columns of chunks between TERRAIN and SHAPED (see _layout), by chunk.
+## The laid-out columns of chunks between TERRAIN and SHAPED (see _window), by chunk.
 var layouts := {}
-## Where the player is first put: a meadow near the middle of the map, refined by
-## find_spawn once its chunk is made.
+## The candidate trees of each planted chunk (see _tree_candidates), so they can grow
+## again into a neighbour made again.
+var planted := {}
+## Where the player is first put: a meadow near the origin, refined by find_spawn once
+## its chunk is made.
 var spawn_guess: Vector3i
 
 var n_hills: FastNoiseLite
@@ -113,53 +128,63 @@ var n_mouths: FastNoiseLite
 var n_pools: FastNoiseLite
 var n_temp: FastNoiseLite
 var n_moist: FastNoiseLite
+var n_swamp: FastNoiseLite
+var n_flow: FastNoiseLite
+var n_dunes: FastNoiseLite
 var n_caves: FastNoiseLite
 var n_ores: FastNoiseLite
-var n_meander: FastNoiseLite
-var n_swamp: FastNoiseLite
-## The 2D noises sampled for a window, in the order _layout reads them.
+## The slow noises sampled on the lattice: continents, rivers (along its zero lines)
+## and lakes (over its high spots).
+var n_land: FastNoiseLite
+var n_river: FastNoiseLite
+var n_lake: FastNoiseLite
+## The 2D noises sampled for a window, in the order _layout_row reads them.
 var window_noises: Array
 
 
-## A chunk's generation job, stepped a row of columns at a time (see start, step).
+## A chunk's generation job, stepped a row of columns (or a tree) at a time (see start,
+## step).
 class Job extends RefCounted:
 	var key: Vector2i
 	var stage: int
-	## Rows (or trees) done so far and to do.
+	## Steps done so far and to do.
 	var row := 0
 	var rows: int
 	## The window of laid-out columns (TERRAIN).
 	var lay: Dictionary
-	## Candidate tree columns (PLANTED): x, z, species, hash.
+	## Candidate trees (PLANTED), or the neighbours' trees to grow again (TERRAIN):
+	## x, z, species, ground height.
 	var trees: Array = []
 	var done := false
 
 
-## The whole world at once, for tests and tools.
-static func generate(world_seed: int, sx := 1024, sy := 48, sz := 1024) -> WorldData:
-	var gen := new(world_seed, sx, sy, sz)
-	gen.generate_all()
+## A world made at once over the chunks 0..area (all SHAPED), for tests and tools.
+static func generate(seed_value: int, area := Vector2i(4, 4), sy := 48, options := {}) -> WorldData:
+	var gen := new(seed_value, sy, options)
+	gen.generate_area(Vector2i.ZERO, area)
 	return gen.world
 
 
-func _init(seed_value: int, sx := 1024, sy := 48, sz := 1024) -> void:
+func _init(seed_value: int, sy := 48, options := {}) -> void:
 	world_seed = seed_value
-	size_x = sx
 	size_y = sy
-	size_z = sz
-	world = WorldData.new(sx, sy, sz)
+	settings = DEFAULT_SETTINGS.duplicate()
+	for k in options:
+		if settings.has(k):
+			settings[k] = clampi(int(options[k]), 0, 2)
+	world = WorldData.new(sy)
 	sea = world.sea_level
 	_noises()
-	_coarse_layout()
+	coast_level = _coast_level()
+	spawn_guess = _pick_spawn()
 
 
-## Generates every chunk of the map, stage by stage.
-func generate_all() -> void:
-	var cw := ceili(size_x / float(CHUNK))
-	var ch := ceili(size_z / float(CHUNK))
+## Makes the chunks from..to (ends exclusive) SHAPED, with what they need around.
+func generate_area(from: Vector2i, to: Vector2i) -> void:
 	for stage: int in [TERRAIN, PLANTED, SHAPED]:
-		for cz in ch:
-			for cx in cw:
+		var grow := SHAPED - stage
+		for cz in range(from.y - grow, to.y + grow):
+			for cx in range(from.x - grow, to.x + grow):
 				if stages.get(Vector2i(cx, cz), 0) < stage:
 					run(Vector2i(cx, cz), stage)
 	world.refresh_shapes()
@@ -176,40 +201,40 @@ func stage_of(key: Vector2i) -> int:
 	return stages.get(key, 0)
 
 
-func chunks_x() -> int:
-	return ceili(size_x / float(CHUNK))
-
-
-func chunks_z() -> int:
-	return ceili(size_z / float(CHUNK))
-
-
-func in_map(key: Vector2i) -> bool:
-	return key.x >= 0 and key.y >= 0 and key.x < chunks_x() and key.y < chunks_z()
-
-
-## True when every chunk within `reach` of `key` (on the map) has reached `stage`.
+## True when every chunk within `reach` of `key` has reached `stage`.
 func around(key: Vector2i, reach: int, stage: int) -> bool:
 	for dz in range(-reach, reach + 1):
 		for dx in range(-reach, reach + 1):
-			var k := Vector2i(key.x + dx, key.y + dz)
-			if in_map(k) and stages.get(k, 0) < stage:
+			if stages.get(Vector2i(key.x + dx, key.y + dz), 0) < stage:
 				return false
 	return true
 
 
 ## The first chunk within `reach` of `key` that has not reached `stage`, nearest to
-## `key` first, or `key` itself with x = -1 when all have.
-func missing(key: Vector2i, reach: int, stage: int) -> Vector2i:
+## `key` first, or null when all have.
+func missing(key: Vector2i, reach: int, stage: int) -> Variant:
 	for r in range(0, reach + 1):
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				if maxi(absi(dx), absi(dz)) != r:
 					continue
 				var k := Vector2i(key.x + dx, key.y + dz)
-				if in_map(k) and stages.get(k, 0) < stage:
+				if stages.get(k, 0) < stage:
 					return k
-	return Vector2i(-1, 0)
+	return null
+
+
+## Drops a chunk the player has not changed: its cells, trees and bushes are made
+## again the same when it is needed again. Chunks the player changed stay.
+func forget(key: Vector2i) -> bool:
+	var c: WorldData.Chunk = world.chunks.get(key)
+	if c != null and c.edited:
+		return false
+	world.remove_chunk(key)
+	stages.erase(key)
+	layouts.erase(key)
+	planted.erase(key)
+	return true
 
 
 # --- Jobs --------------------------------------------------------------------
@@ -225,33 +250,28 @@ func start(key: Vector2i, stage: int) -> Job:
 	job.stage = stage
 	match stage:
 		TERRAIN:
-			job.lay = _window(key)
-			job.rows = WINDOW + CHUNK
+			job.lay = _window(key.x * CHUNK - MARGIN, key.y * CHUNK - MARGIN, WINDOW, WINDOW)
+			job.trees = _regrown(key)
+			job.rows = window_noises.size() + 1 + WINDOW + CHUNK + job.trees.size()
 		PLANTED:
 			job.trees = _tree_candidates(key, layouts[key])
 			job.rows = job.trees.size()
 		SHAPED:
-			job.rows = 1 + CHUNK / 4
+			job.rows = 2 * SHAPE_BANDS
 	return job
 
 
-## Does the next `n` rows (or trees) of the job; true when the stage is done.
+## Does the next `n` steps of the job; true when the stage is done.
 func step(job: Job, n: int) -> bool:
 	world.track_edits = false
 	while n > 0 and job.row < job.rows:
 		match job.stage:
 			TERRAIN:
-				if job.row < WINDOW:
-					_layout_row(job.key, job.lay, job.row)
-					if job.row == WINDOW - 1:
-						_rivers(job.key, job.lay)
-						_banks(job.lay)
-				else:
-					_fill_row(job.key, job.lay, job.row - WINDOW)
+				_terrain_step(job, job.row)
 			PLANTED:
 				_plant(job.trees[job.row])
 			SHAPED:
-				_shape_rows(job.key, job.row)
+				_shape_step(job.key, job.row)
 		job.row += 1
 		n -= 1
 	world.track_edits = true
@@ -260,19 +280,55 @@ func step(job: Job, n: int) -> bool:
 		stages[job.key] = job.stage
 		if job.stage == TERRAIN:
 			layouts[job.key] = job.lay
+		elif job.stage == PLANTED:
+			planted[job.key] = job.trees
+			_reshape_edges(job.key)
 		elif job.stage == SHAPED:
 			_bushes(job.key, layouts[job.key])
 			layouts.erase(job.key)
+			var c: WorldData.Chunk = world.chunks.get(job.key)
+			if c != null:
+				c.final = true
 	return job.done
+
+
+## The steps of the terrain stage: sample the noises one by one, the slow ones on the
+## lattice, lay out the rows of the window, raise the banks, write the rows of cells,
+## then grow the neighbours' trees that reach in.
+func _terrain_step(job: Job, row: int) -> void:
+	var noises := window_noises.size()
+	if row < noises:
+		_sample(job.lay, row)
+		return
+	row -= noises
+	if row == 0:
+		_lattice(job.lay)
+		return
+	row -= 1
+	if row < WINDOW:
+		_layout_row(job.lay, row)
+		if row == WINDOW - 1:
+			_banks(job.lay)
+		return
+	row -= WINDOW
+	if row < CHUNK:
+		if row == 0:
+			world.add_chunk(job.key)
+		_fill_row(job.key, job.lay, row)
+		return
+	row -= CHUNK
+	_plant(job.trees[row], true)
 
 
 # --- Noises -------------------------------------------------------------------
 
 func _noises() -> void:
+	var size: float = SIZE_SCALE[settings.size]
+	var biomes: float = BIOME_SCALE[settings.biomes]
 	n_hills = _noise(0, 0.005, 4)
 	n_ridges = _noise(1, 0.009, 3)
-	n_mount = _noise(2, 0.0022, 2)
-	n_shape = _noise(3, 0.004, 2)
+	n_mount = _noise(2, 0.0022 / sqrt(size), 2)
+	n_shape = _noise(3, 0.012, 2)
 	n_cliff = _noise(4, 0.006, 2)
 	n_plateau = _noise(5, 0.0035, 2)
 	n_steep = _noise(6, 0.045, 2)
@@ -281,14 +337,18 @@ func _noises() -> void:
 	n_gully = _noise(9, 0.01, 1)
 	n_mouths = _noise(10, 0.03, 1)
 	n_pools = _noise(11, 0.07, 2)
-	n_temp = _noise(12, 0.003, 2)
-	n_moist = _noise(13, 0.004, 2)
+	n_temp = _noise(12, 0.0005 / biomes, 1)
+	n_moist = _noise(13, 0.0008 / biomes, 2)
+	n_swamp = _noise(17, 0.006, 2)
+	n_flow = _noise(18, 0.0009, 2)
+	n_dunes = _noise(19, 0.035, 2)
 	n_caves = _noise(14, 0.03, 2)
 	n_ores = _noise(15, 0.075, 1)
-	n_meander = _noise(16, 0.02, 1)
-	n_swamp = _noise(17, 0.006, 2)
+	n_land = _noise(20, 0.00028 / size, 4)
+	n_river = _noise(21, 0.0018, 2)
+	n_lake = _noise(22, 0.004, 2)
 	window_noises = [n_hills, n_ridges, n_mount, n_shape, n_cliff, n_plateau, n_steep, n_soil,
-		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp]
+		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes]
 
 
 func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
@@ -300,21 +360,22 @@ func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
 	return n
 
 
+## The continent noise's value below which lies the ocean, so that about the share of
+## the world the water setting asks for is sea.
+func _coast_level() -> float:
+	var values := PackedFloat32Array()
+	n_land.offset = Vector3.ZERO
+	var spread := 0.5 / n_land.frequency
+	for i in 32:
+		for j in 32:
+			values.append(n_land.get_noise_2d((i - 16) * spread * 0.37, (j - 16) * spread * 0.41))
+	values.sort()
+	return values[int(values.size() * WATER_SHARE[settings.water])]
+
+
 ## Byte value of a noise level, as the sampled grids hold them (0..255 for -1..1).
 static func _byte(v: float) -> int:
 	return int((v * 0.5 + 0.5) * 255.0)
-
-
-## A noise's byte at a point, the same as a grid sampled there would hold.
-static func _at(n: FastNoiseLite, x: int, z: int) -> int:
-	n.offset = Vector3.ZERO
-	return _byte(n.get_noise_2d(x, z))
-
-
-## Warmth of a column from its temperature noise byte, 0 cold to 1 warm: the south of
-## the island is warm, the north taiga, and the hills are colder than the lowlands.
-func _temperature(temp: int, z: int, height: int) -> float:
-	return (temp / 255.0) * 0.5 + 0.8 - 0.6 * (1.0 - z / float(size_z)) - (height - sea) * 0.025
 
 
 ## A hash of a column, 0..2^24, different for each `salt` and world.
@@ -328,420 +389,172 @@ func _chance(x: int, z: int, salt: int) -> float:
 	return _hash(x, z, salt) / float(1 << 24)
 
 
-# --- Relief -------------------------------------------------------------------
+# --- Laying out columns -------------------------------------------------------------
 
-## Base height of the land at a column from its noise bytes: the island mask over
-## plains of low hills, mountains with sharp ridges along the noise's zero lines, the
-## terraces of a plateau and the raised rim of a cliff coast. Shared by the coarse
-## layout and the columns of a chunk, so both agree. Returns [height, kind] with kind
-## 0 plain, 1 mountain, 2 plateau, 3 cliff coast, 4 sea floor.
-func _relief(x: int, z: int, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int) -> Array:
-	var half := minf(size_x, size_z) * 0.5
-	var wobble := (shape - 128) / 128.0
-	# Island mask: land in the middle, sea at the edges, a ragged coast.
-	var d := Vector2(x - size_x * 0.5, z - size_z * 0.52).length() / half * (1.0 + 0.15 * wobble)
-	var mask := 1.0 - smoothstep(0.72, 0.9, d)
+## A window of columns to lay out: `w` by `h` columns `step` cells apart from column
+## x0, z0. Its noises are sampled by _sample and _lattice, its rows laid out by
+## _layout_row into one entry per column (j = lz * w + lx): height, water (the top
+## water cell, -1 for none), top, flags, biome, relief kind and what water it is.
+func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
+	var count := w * h
+	var lay := {"x0": x0, "z0": z0, "w": w, "h": h, "step": step, "grids": []}
+	for k: String in ["heights", "water"]:
+		var a := PackedInt32Array()
+		a.resize(count)
+		lay[k] = a
+	lay.water.fill(-1)
+	for k: String in ["tops", "flags", "biome", "kind", "feature"]:
+		var a := PackedByteArray()
+		a.resize(count)
+		lay[k] = a
+	for k: String in ["land", "coast", "river", "lake"]:
+		var a := PackedFloat32Array()
+		a.resize(count)
+		lay[k] = a
+	return lay
+
+
+## Samples window noise `k` over the window (bytes, see _byte).
+func _sample(lay: Dictionary, k: int) -> void:
+	var n: FastNoiseLite = window_noises[k]
+	var step: int = lay.step
+	var f := n.frequency
+	# A grid of one sample every `step` cells: the noise runs `step` times faster.
+	n.frequency = f * step
+	n.offset = Vector3(lay.x0 / float(step), lay.z0 / float(step), 0.0)
+	lay.grids.append(n.get_image(lay.w, lay.h, false, false, false).get_data())
+	n.frequency = f
+	n.offset = Vector3.ZERO
+
+
+## The slow noises of the window on a lattice of points LATTICE cells apart (all over
+## the world, so windows agree), which _lattice_row interpolates with their slopes row
+## by row: the continent noise and how far a column is from the coast (cells, less than
+## zero at sea), how far it is from the middle of a river, and how far inside a lake
+## (less than zero outside).
+func _lattice(lay: Dictionary) -> void:
+	var step: int = lay.step
+	var x0: int = lay.x0
+	var z0: int = lay.z0
+	var span := maxi(LATTICE, step)
+	var gx0 := floori(x0 / float(span)) - 1
+	var gz0 := floori(z0 / float(span)) - 1
+	var gw := floori((x0 + (lay.w - 1) * step) / float(span)) + 3 - gx0
+	var gh := floori((z0 + (lay.h - 1) * step) / float(span)) + 3 - gz0
+	lay.lattice = [_grid(n_land, gx0, gz0, gw, gh, span), _grid(n_river, gx0, gz0, gw, gh, span),
+		_grid(n_lake, gx0, gz0, gw, gh, span), gx0, gz0, gw, gh, span]
+
+
+## The slow noises of row `lz` of a window, interpolated from the lattice: the land and
+## the distances to the coast, to the middle of a river and to a lake shore.
+func _lattice_row(lay: Dictionary, lz: int) -> void:
+	var g: Array = lay.lattice
+	var land: PackedFloat32Array = g[0]
+	var river: PackedFloat32Array = g[1]
+	var lake: PackedFloat32Array = g[2]
+	var gx0: int = g[3]
+	var gw: int = g[5]
+	var gh: int = g[6]
+	var span: int = g[7]
+	var step: int = lay.step
+	var x0: int = lay.x0
+	var w: int = lay.w
+	var out_land: PackedFloat32Array = lay.land
+	var out_coast: PackedFloat32Array = lay.coast
+	var out_river: PackedFloat32Array = lay.river
+	var out_lake: PackedFloat32Array = lay.lake
+	var lake_from: float = LAKE_FROM[settings.rivers]
+	var z: int = lay.z0 + lz * step
+	var gz0: int = g[4]
+	var fz := z / float(span) - gz0
+	var iz := clampi(floori(fz), 1, gh - 3)
+	var tz := fz - iz
+	for lx in w:
+		var x := x0 + lx * step
+		var fx := x / float(span) - gx0
+		var ix := clampi(floori(fx), 1, gw - 3)
+		var tx := fx - ix
+		var j := lz * w + lx
+		var c := _smooth(land, gw, ix, iz, tx, tz, span)
+		out_land[j] = c.x
+		out_coast[j] = (c.x - coast_level) / maxf(c.y, 1e-6)
+		var r := _smooth(river, gw, ix, iz, tx, tz, span)
+		out_river[j] = absf(r.x) / maxf(r.y, 1e-6)
+		var l := _smooth(lake, gw, ix, iz, tx, tz, span)
+		out_lake[j] = (l.x - lake_from) / maxf(l.y, 1e-6)
+
+
+## Values of a noise at the lattice points gx0.., gz0.. (gw by gh), `span` cells apart.
+static func _grid(n: FastNoiseLite, gx0: int, gz0: int, gw: int, gh: int, span: int) -> PackedFloat32Array:
+	n.offset = Vector3.ZERO
+	var out := PackedFloat32Array()
+	out.resize(gw * gh)
+	for j in gh:
+		for i in gw:
+			out[j * gw + i] = n.get_noise_2d((gx0 + i) * span, (gz0 + j) * span)
+	return out
+
+
+## The value of a lattice grid at (ix + tx, iz + tz) and the length of its slope per
+## cell, both interpolated between the four points around.
+static func _smooth(g: PackedFloat32Array, gw: int, ix: int, iz: int, tx: float, tz: float, span: int) -> Vector2:
+	var j := iz * gw + ix
+	var v00 := g[j]
+	var v10 := g[j + 1]
+	var v01 := g[j + gw]
+	var v11 := g[j + gw + 1]
+	var v := lerpf(lerpf(v00, v10, tx), lerpf(v01, v11, tx), tz)
+	# Slopes at the four points from their neighbours, interpolated the same way.
+	var sx := lerpf(lerpf(g[j + 1] - g[j - 1], g[j + 2] - g[j], tx),
+		lerpf(g[j + gw + 1] - g[j + gw - 1], g[j + gw + 2] - g[j + gw], tx), tz)
+	var sz := lerpf(lerpf(g[j + gw] - g[j - gw], g[j + gw + 1] - g[j - gw + 1], tx),
+		lerpf(g[j + 2 * gw] - g[j], g[j + 2 * gw + 1] - g[j + 1], tx), tz)
+	return Vector2(v, Vector2(sx, sz).length() / (2.0 * span))
+
+
+## Base height of the land at a column: the ocean floor deepening away from the coast,
+## low coasts rising inland into plains of low hills, mountains with sharp ridges along
+## the noise's zero lines, the terraces of a plateau and the raised rim of a cliff
+## coast. Returns [height, kind]; `coast` is the distance from the coast in cells.
+func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int) -> Array:
+	# A ragged coast: the distance wobbles with a faster noise.
+	coast += (shape - 128) / 128.0 * 6.0
 	var h := hills / 255.0
-	var land := sea + 2.0 + h * 7.0
-	var kind := 0
+	var inland := clampf(coast / 64.0, 0.0, 1.0)
+	var land := sea + 1.0 + inland * (1.0 + h * 7.0)
+	var floor_h := sea - 2.0 - minf(5.0, -coast / 8.0)
+	var kind := PLAIN
+	var mask := smoothstep(-6.0, 6.0, coast)
 	# Cliff coasts: the land keeps its height right up to the water and drops into
 	# the sea in one sheer wall.
 	var cliffy := smoothstep(0.35, 0.6, cliff / 127.5 - 1.0)
-	if cliffy > 0.5 and d > 0.6:
-		mask = 1.0 if mask > 0.5 else 0.0
-		land += 4.0
-		kind = 3
+	if cliffy > 0.5 and coast < 48.0:
+		mask = 1.0 if coast > 0.0 else 0.0
+		land = maxf(land, sea + 4.0 + h * 3.0)
+		kind = CLIFFS
 	# Mountains inland where the mountain noise is high.
-	var mountain := smoothstep(0.3, 0.7, mount / 127.5 - 1.0) * smoothstep(0.85, 0.6, d)
+	var from: float = MOUNTAIN_FROM[settings.mountains]
+	var mountain := smoothstep(from, from + 0.4, mount / 127.5 - 1.0) * smoothstep(24.0, 120.0, coast)
 	if mountain > 0.0:
 		var ridge := 1.0 - absf(ridges / 127.5 - 1.0)
 		land += mountain * (3.0 + h * 4.0 + ridge * ridge * 18.0)
 		if mountain > 0.3:
-			kind = 1
+			kind = MOUNTAIN
 	# Plateaus rise in terraces four cells apart, with sheer edges.
 	var plat := plateau / 127.5 - 1.0
-	if plat > 0.42 and d < 0.7 and mountain < 0.3:
+	if plat > 0.42 and coast > 64.0 and mountain < 0.3:
 		land = sea + 6.0 + 4.0 * floorf(h * 3.0 + smoothstep(0.42, 0.7, plat) * 2.0)
-		kind = 2
-	var height := clampi(int(round(lerpf(sea - 7.0, land, mask))), 2, size_y - 6)
+		kind = HIGHLAND
+	var height := clampi(int(round(lerpf(floor_h, land, mask))), 2, size_y - 6)
 	if height < sea:
-		kind = 4
+		kind = SEA_FLOOR
 	return [height, kind]
 
 
-# --- Coarse layout --------------------------------------------------------------
-
-## Lays out the whole map coarsely: base heights, drainage, lakes, rivers, distance
-## to water, and the spawn.
-func _coarse_layout() -> void:
-	gw = ceili(size_x / float(COARSE))
-	gh = ceili(size_z / float(COARSE))
-	var n := gw * gh
-	g_height.resize(n)
-	for j in gh:
-		for i in gw:
-			var x := i * COARSE + COARSE / 2
-			var z := j * COARSE + COARSE / 2
-			g_height[j * gw + i] = _relief(x, z, _at(n_hills, x, z), _at(n_ridges, x, z), _at(n_mount, x, z),
-				_at(n_shape, x, z), _at(n_cliff, x, z), _at(n_plateau, x, z))[0]
-	_flood()
-	_lakes()
-	_trace_rivers()
-	_wetness()
-	_pick_spawn()
-
-
-## Priority flood from the sea and the map's edge: the height each sample would fill
-## to before draining, and the neighbour it drains through.
-func _flood() -> void:
-	var n := gw * gh
-	g_filled.resize(n)
-	g_filled.fill(-1)
-	g_flow.resize(n)
-	g_flow.fill(-1)
-	# A binary heap of [filled height, index].
-	var heap: Array = []
-	for j in gh:
-		for i in gw:
-			var k := j * gw + i
-			if g_height[k] < sea or i == 0 or j == 0 or i == gw - 1 or j == gh - 1:
-				g_filled[k] = maxi(g_height[k], sea - 1)
-				_heap_push(heap, [g_filled[k], k])
-	while not heap.is_empty():
-		var top: Array = _heap_pop(heap)
-		var k: int = top[1]
-		if top[0] != g_filled[k]:
-			continue
-		var i := k % gw
-		var j := k / gw
-		for d: Vector2i in AROUND:
-			var ni := i + d.x
-			var nj := j + d.y
-			if ni < 0 or nj < 0 or ni >= gw or nj >= gh:
-				continue
-			var nk := nj * gw + ni
-			if g_filled[nk] >= 0:
-				continue
-			g_filled[nk] = maxi(g_height[nk], g_filled[k])
-			g_flow[nk] = k
-			_heap_push(heap, [g_filled[nk], nk])
-
-
-static func _heap_push(heap: Array, item: Array) -> void:
-	heap.append(item)
-	var i := heap.size() - 1
-	while i > 0:
-		var p := (i - 1) / 2
-		if heap[p][0] <= heap[i][0]:
-			break
-		var t: Array = heap[p]
-		heap[p] = heap[i]
-		heap[i] = t
-		i = p
-
-
-static func _heap_pop(heap: Array) -> Array:
-	var top: Array = heap[0]
-	var last: Array = heap.pop_back()
-	if not heap.is_empty():
-		heap[0] = last
-		var i := 0
-		var n := heap.size()
-		while true:
-			var l := 2 * i + 1
-			var r := l + 1
-			var m := i
-			if l < n and heap[l][0] < heap[m][0]:
-				m = l
-			if r < n and heap[r][0] < heap[m][0]:
-				m = r
-			if m == i:
-				break
-			var t: Array = heap[m]
-			heap[m] = heap[i]
-			heap[i] = t
-			i = m
-	return top
-
-
-## Lakes fill the basins above the sea: samples that flood above their own height.
-## A lake's level is one under the height it would spill at, so it never does; it is
-## deeper away from its shore. Basins of a single sample stay dry hollows.
-func _lakes() -> void:
-	var n := gw * gh
-	g_lake.resize(n)
-	g_lake.fill(-1)
-	g_depth.resize(n)
-	var seen := PackedByteArray()
-	seen.resize(n)
-	for k in n:
-		if seen[k] or g_filled[k] <= g_height[k] or g_filled[k] <= sea:
-			continue
-		# The connected basin at this filled height.
-		var level := g_filled[k]
-		var cells := PackedInt32Array([k])
-		seen[k] = 1
-		var at := 0
-		while at < cells.size():
-			var c := cells[at]
-			at += 1
-			var i := c % gw
-			var j := c / gw
-			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var ni := i + d.x
-				var nj := j + d.y
-				if ni < 0 or nj < 0 or ni >= gw or nj >= gh:
-					continue
-				var nk := nj * gw + ni
-				if not seen[nk] and g_filled[nk] == level and g_filled[nk] > g_height[nk]:
-					seen[nk] = 1
-					cells.append(nk)
-		if cells.size() < 2:
-			continue
-		for c in cells:
-			g_lake[c] = level - 1
-	for k in n:
-		if g_lake[k] < 0:
-			continue
-		var i := k % gw
-		var j := k / gw
-		var inner := 2
-		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var ni := i + d.x
-			var nj := j + d.y
-			if ni < 0 or nj < 0 or ni >= gw or nj >= gh or g_lake[nj * gw + ni] != g_lake[k]:
-				inner = 0
-		g_depth[k] = inner
-
-
-## Rivers start at the highest samples of the mountains, a few samples apart, and
-## follow the drainage down. One stops where it meets a lake, another river or the
-## sea; past a lake it goes on from the lake's outflow. Its level only drops, stays
-## two under the ground beside it and comes down to the level of what it flows into
-## before it gets there.
-func _trace_rivers() -> void:
-	var n := gw * gh
-	g_river.resize(n)
-	g_river.fill(-1)
-	var order: Array = []
-	for k in n:
-		if g_height[k] >= sea + 12 and g_lake[k] < 0:
-			order.append([g_height[k], k])
-	order.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
-	var sources: Array[int] = []
-	var spacing := maxi(3, gw / 10)
-	for item in order:
-		var k: int = item[1]
-		var i := k % gw
-		var j := k / gw
-		var near := false
-		for s in sources:
-			if absi(s % gw - i) < spacing and absi(s / gw - j) < spacing:
-				near = true
-				break
-		if not near:
-			sources.append(k)
-		if sources.size() >= maxi(2, gw / 8):
-			break
-	for s in sources:
-		_trace_river(s)
-	# Points of the rivers by chunk, for the chunks' layout.
-	for r in rivers.size():
-		var pts: PackedVector2Array = rivers[r].points
-		for p in pts.size():
-			var key := Vector2i(floori(pts[p].x / CHUNK), floori(pts[p].y / CHUNK))
-			if not river_index.has(key):
-				river_index[key] = []
-			river_index[key].append([r, p])
-
-
-func _trace_river(source: int) -> void:
-	var path: Array[int] = [source]
-	var level := g_height[source] - 2
-	var levels: Array[int] = [level]
-	var k := source
-	var end_level := sea
-	var travelled := 0
-	while true:
-		var nk := g_flow[k]
-		if nk < 0:
-			# Off the map or into the sea: the sea sample is the last point.
-			break
-		travelled += 1
-		if g_lake[nk] >= 0:
-			end_level = g_lake[nk]
-			_river_segment(path, levels, end_level)
-			# Through the lake to where it drains.
-			var lake := g_lake[nk]
-			while nk >= 0 and g_lake[nk] == lake:
-				nk = g_flow[nk]
-			if nk < 0:
-				return
-			path = [nk]
-			level = mini(lake - 1, g_height[nk] - 2)
-			levels = [level]
-			k = nk
-			continue
-		if g_river[nk] >= 0:
-			# Into another river: come down to its level there.
-			path.append(nk)
-			levels.append(g_river[nk])
-			_river_segment(path, levels, g_river[nk])
-			return
-		path.append(nk)
-		if g_height[nk] < sea:
-			levels.append(sea)
-			_river_segment(path, levels, sea)
-			return
-		level = maxi(sea, mini(level, g_height[nk] - 2))
-		levels.append(level)
-		k = nk
-		if travelled > gw * 4:
-			break
-	_river_segment(path, levels, sea)
-
-
-## Makes a river along the samples of `path` with the levels given, brought down to
-## `end_level` over the last samples, and notes the samples it runs through.
-func _river_segment(path: Array[int], levels: Array[int], end_level: int) -> void:
-	if path.size() < 2:
-		return
-	var n := path.size()
-	# The level never rises and reaches the end level over the last few samples.
-	for i in n:
-		var ramp: int = end_level + (n - 1 - i) * 2
-		levels[i] = maxi(end_level, mini(levels[i], ramp))
-	for i in range(1, n):
-		levels[i] = mini(levels[i], levels[i - 1])
-	for i in n:
-		if g_river[path[i]] < 0:
-			g_river[path[i]] = levels[i]
-	# A smooth course through the middles of the samples, a cell a step, meandering.
-	var pts: Array[Vector2] = []
-	for k in path:
-		# Each sample's point sits a little off its middle, so the course does not
-		# follow the grid.
-		var i := k % gw
-		var j := k / gw
-		pts.append(Vector2(i * COARSE + COARSE * 0.5 + (_chance(i, j, 6) - 0.5) * 8.0,
-			j * COARSE + COARSE * 0.5 + (_chance(i, j, 7) - 0.5) * 8.0))
-	var points := PackedVector2Array()
-	var point_levels := PackedInt32Array()
-	var widths := PackedFloat32Array()
-	var canyon := PackedByteArray()
-	var length := 0.0
-	for i in n - 1:
-		var p0 := pts[maxi(i - 1, 0)]
-		var p1 := pts[i]
-		var p2 := pts[i + 1]
-		var p3 := pts[mini(i + 2, n - 1)]
-		var steps := maxi(1, ceili(p1.distance_to(p2)))
-		for s in steps:
-			var t := s / float(steps)
-			var p := 0.5 * (2.0 * p1 + (p2 - p0) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t * t
-				+ (3.0 * p1 - p0 - 3.0 * p2 + p3) * t * t * t)
-			var along := (p2 - p0).normalized()
-			var side := Vector2(-along.y, along.x)
-			p += side * (n_meander.get_noise_1d(length) * 5.0 + n_meander.get_noise_1d(length * 0.2 + 1000.0) * 7.0)
-			points.append(p)
-			point_levels.append(levels[i])
-			widths.append(minf(1.2 + length * 0.004, 3.4))
-			canyon.append(1 if g_height[path[i]] - levels[i] > 5 else 0)
-			length += 1.0
-	rivers.append({"points": points, "levels": point_levels, "widths": widths, "canyon": canyon})
-
-
-## Distance of each sample to water (the sea, a lake or a river), in samples, up to 15.
-func _wetness() -> void:
-	var n := gw * gh
-	g_wet.resize(n)
-	g_wet.fill(15)
-	var queue := PackedInt32Array()
-	for k in n:
-		if g_height[k] < sea or g_lake[k] >= 0 or g_river[k] >= 0:
-			g_wet[k] = 0
-			queue.append(k)
-	var at := 0
-	while at < queue.size():
-		var k := queue[at]
-		at += 1
-		var i := k % gw
-		var j := k / gw
-		var d: int = g_wet[k] + 1
-		if d >= 15:
-			continue
-		for o: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var ni := i + o.x
-			var nj := j + o.y
-			if ni < 0 or nj < 0 or ni >= gw or nj >= gh:
-				continue
-			var nk := nj * gw + ni
-			if g_wet[nk] > d:
-				g_wet[nk] = d
-				queue.append(nk)
-
-
-## The sample nearest the middle of the map that is low, dry land near water, on an
-## open meadow when there is one (the climate as the terrain stage reads it, and no
-## grove): where the player starts.
-func _pick_spawn() -> void:
-	var ci := gw / 2
-	var cj := gh / 2
-	var best := -1
-	var best_d := 1 << 30
-	for k in gw * gh:
-		var i := k % gw
-		var j := k / gw
-		var h := g_height[k]
-		if h < sea + 3 or h > sea + 8 or g_lake[k] >= 0 or g_river[k] >= 0 or g_wet[k] < 1:
-			continue
-		var x := i * COARSE + COARSE / 2
-		var z := j * COARSE + COARSE / 2
-		var t := _temperature(_at(n_temp, x, z), z, h)
-		var m := (_at(n_moist, x, z) / 255.0) * 0.6 + 0.4 - g_wet[k] * 0.04
-		var d := (i - ci) * (i - ci) + (j - cj) * (j - cj)
-		if t < 0.5 or m > 0.7 or _at(n_forest, x, z) > _byte(0.2):
-			d += 1 << 20
-		if d < best_d:
-			best_d = d
-			best = k
-	if best < 0:
-		best = cj * gw + ci
-	spawn_guess = Vector3i((best % gw) * COARSE + COARSE / 2, g_height[best] + 1, (best / gw) * COARSE + COARSE / 2)
-
-
-# --- Terrain of a chunk -----------------------------------------------------------
-
-## The window of a chunk's terrain stage: the noise grids over the chunk and its
-## margin, and the arrays the layout fills, one entry per window column (j = lz *
-## WINDOW + lx, column x0 - MARGIN + lx): height, water_top (the top water cell, -1
-## for none), tops, flags, biome.
-func _window(key: Vector2i) -> Dictionary:
-	var x0 := key.x * CHUNK - MARGIN
-	var z0 := key.y * CHUNK - MARGIN
-	var grids: Array = []
-	for n: FastNoiseLite in window_noises:
-		n.offset = Vector3(x0, z0, 0.0)
-		grids.append(n.get_image(WINDOW, WINDOW, false, false, false).get_data())
-	var count := WINDOW * WINDOW
-	var heights := PackedInt32Array()
-	heights.resize(count)
-	var water := PackedInt32Array()
-	water.resize(count)
-	water.fill(-1)
-	var tops := PackedByteArray()
-	tops.resize(count)
-	var flags := PackedByteArray()
-	flags.resize(count)
-	var biome := PackedByteArray()
-	biome.resize(count)
-	return {"x0": x0, "z0": z0, "grids": grids, "heights": heights, "water": water, "tops": tops,
-		"flags": flags, "biome": biome}
-
-
-## Lays out one row of the window: height, top, flags and biome of each column, the
-## sea and the lakes of the coarse layout cut in.
-func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
+## Lays out one row of the window: height, top, flags and biome of each column, with
+## the sea, the lakes and the rivers cut in.
+func _layout_row(lay: Dictionary, lz: int) -> void:
+	_lattice_row(lay, lz)
 	var grids: Array = lay.grids
 	var hills: PackedByteArray = grids[0]
 	var ridges: PackedByteArray = grids[1]
@@ -751,72 +564,121 @@ func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
 	var plateau: PackedByteArray = grids[5]
 	var steep: PackedByteArray = grids[6]
 	var soil: PackedByteArray = grids[7]
-	var gully: PackedByteArray = grids[8]
-	var mouths: PackedByteArray = grids[9]
-	var pools: PackedByteArray = grids[10]
-	var temp: PackedByteArray = grids[11]
-	var moist: PackedByteArray = grids[12]
-	var swamp: PackedByteArray = grids[13]
+	var gully: PackedByteArray = grids[9]
+	var mouths: PackedByteArray = grids[10]
+	var pools: PackedByteArray = grids[11]
+	var temp: PackedByteArray = grids[12]
+	var moist: PackedByteArray = grids[13]
+	var swamp: PackedByteArray = grids[14]
+	var flow: PackedByteArray = grids[15]
+	var dunes: PackedByteArray = grids[16]
+	var coast: PackedFloat32Array = lay.coast
+	var river: PackedFloat32Array = lay.river
+	var lake: PackedFloat32Array = lay.lake
 	var heights: PackedInt32Array = lay.heights
 	var water: PackedInt32Array = lay.water
 	var tops: PackedByteArray = lay.tops
 	var flags: PackedByteArray = lay.flags
 	var biome: PackedByteArray = lay.biome
-	var x0: int = lay.x0
-	var z0: int = lay.z0
-	var z: int = z0 + lz
+	var kinds: PackedByteArray = lay.kind
+	var features: PackedByteArray = lay.feature
+	var w: int = lay.w
 	var soil_t := _byte(0.25)
 	var steep_t := _byte(0.4)
 	var mouth_t := _byte(0.55)
 	var pool_t := _byte(0.12)
 	var mud_t := _byte(0.0)
-	for lx in WINDOW:
-		var j := lz * WINDOW + lx
-		var x := x0 + lx
-		var r := _relief(x, z, hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j])
+	var swamp_t := _byte(0.35)
+	var river_from: float = RIVER_FROM[settings.rivers]
+	for lx in w:
+		var j := lz * w + lx
+		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j])
 		var height: int = r[0]
 		var kind: int = r[1]
 		var f := 0
+		var feature := DRY
 		var top := Mat.GRASS
 		var b := MEADOW
-		var in_map: bool = x >= 0 and z >= 0 and x < size_x and z < size_z
-		var gi := clampi(x / COARSE, 0, gw - 1)
-		var gj := clampi(z / COARSE, 0, gh - 1)
-		var gk := gj * gw + gi
-		var wet: int = g_wet[gk] if in_map else 0
-		var lake: int = g_lake[gk] if in_map else -1
-		var sheer := steep[j] >= steep_t or kind == 3 or kind == 2
-		var rocky := height > sea + 12 or (kind == 3 and height >= sea)
-		# Climate: colder to the north and up the hills, wetter near water.
-		var t := _temperature(temp[j], z, height)
-		var m := (moist[j] / 255.0) * 0.6 + 0.4 - wet * 0.04
-		# Ravines: narrow winding cuts along a noise's zero line through the dry
-		# lowlands, four to six cells deep.
-		var g := absi(gully[j] - 128)
-		if kind == 0 and not sheer and height > sea + 1 and wet >= 2 and g < 5 and lake < 0:
-			height -= 6 if g < 4 else 4
-			sheer = false
+		var sheer := steep[j] >= steep_t or kind == CLIFFS or kind == HIGHLAND
+		var rocky := height > sea + 12 or (kind == CLIFFS and height >= sea)
 		var wt := -1
 		if height < sea:
 			wt = sea
 			b = SEA
-		elif lake >= 0 and height < lake:
-			# A lake over this sample: deeper away from the shore.
-			height = mini(height, lake - 1 - g_depth[gk])
-			wt = lake
-			b = SEA
-		if rocky:
+			feature = OCEAN
+		else:
+			# Lakes over the high spots of the lake noise in the plains, with gentle
+			# shores.
+			var in_lake := lake[j]
+			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0:
+				if in_lake > 0.0:
+					height = mini(height, sea - 1 - mini(4, int(in_lake / 3.0)))
+					wt = sea
+					b = SEA
+					feature = LAKE
+				else:
+					height = mini(height, sea + 1 + int(-in_lake))
+			# Rivers along the zero lines of the river noise, as wide as the flow noise
+			# lets them be; where it fades the valley rises and the river ends.
+			var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0)
+			if wt < 0 and flowing > 0.0:
+				var d := river[j]
+				var rw := 0.8 + 4.2 * flowing
+				var canyon := kind == MOUNTAIN or kind == HIGHLAND or height > sea + 10
+				var rf := rw + (3.5 if canyon else 1.5)
+				var wet_bed := flowing > 0.2
+				var bed := sea if wet_bed else int(lerpf(height, sea, flowing / 0.2))
+				if d <= rw and wet_bed:
+					height = mini(height, sea - (2 if d < rw - 1.0 else 1))
+					wt = sea
+					b = SEA
+					top = Mat.SAND
+					sheer = false
+					feature = RIVER
+				elif d <= rf:
+					if canyon:
+						height = mini(height, bed)
+						top = Mat.SAND
+						sheer = false
+						feature = CANYON
+					else:
+						height = clampi(height, bed, bed + 1)
+						sheer = false
+				elif canyon and d <= rf + 2.0:
+					# The canyon walls stay sheer.
+					if height > bed + 2:
+						sheer = true
+				else:
+					# A valley: the ground beyond the bank rises a cell per cell at most.
+					height = mini(height, bed + 1 + int(d - rf))
+		# How near water is, in steps of 16 cells: the coast, a lake or a river.
+		var near := minf(coast[j], -lake[j])
+		if flow[j] / 127.5 - 1.0 > river_from + 0.07:
+			near = minf(near, river[j])
+		var wet := clampi(int(near / 16.0), 0, 15)
+		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
+		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * 0.006
+		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * 0.04
+		# Ravines: narrow winding cuts along a noise's zero line through the dry
+		# lowlands, four to six cells deep.
+		var g := absi(gully[j] - 128)
+		if kind == PLAIN and not sheer and wt < 0 and height > sea + 1 and wet >= 2 and g < 5 and feature == DRY:
+			height -= 6 if g < 4 else 4
+		if rocky and wt < 0:
 			top = Mat.STONE
 			b = ROCK
 		elif b == SEA:
-			top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
-		elif kind == 2:
+			if feature != RIVER:
+				top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
+		elif feature == CANYON:
+			b = BEACH
+		elif kind == HIGHLAND:
 			b = PLATEAU
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
 		elif height <= sea + 2 and wet <= 1:
 			b = BEACH
 			top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
-		elif kind == 0 and height <= sea + 4 and swamp[j] > _byte(0.35) and wet <= 4:
+		elif kind == PLAIN and height <= sea + 4 and swamp[j] > swamp_t and wet <= 4 and t > 0.3:
 			# A swamp: flat wet ground a level or two above the sea, with pools.
 			b = SWAMP
 			height = sea + 1 + int(soil[j] > _byte(0.4))
@@ -828,9 +690,22 @@ func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
 			else:
 				top = Mat.CLAY if p > mud_t else Mat.GRASS
 			sheer = false
-		elif t < 0.3 or height > sea + 9:
+		elif t < 0.2:
+			# Tundra: cold lowland, bare stone and clay showing through the grass.
+			b = TUNDRA
+			if soil[j] < _byte(-0.35):
+				top = Mat.STONE
+			elif soil[j] > _byte(0.45):
+				top = Mat.CLAY
+		elif t < 0.38 or height > sea + 14:
 			b = TAIGA
-		elif m > 0.76:
+		elif t > 0.66 and m < 0.56:
+			# Desert: sand in low dunes.
+			b = DESERT
+			top = Mat.SAND
+			if kind == PLAIN and not sheer:
+				height += int(dunes[j] / 255.0 * 2.6)
+		elif m > 0.7:
 			b = FOREST
 		if sheer:
 			f |= SHEER_TOP
@@ -843,85 +718,8 @@ func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
 		tops[j] = top
 		flags[j] = f
 		biome[j] = b
-
-
-## Cuts the rivers through the window: each column takes the nearest point of a
-## river within reach. Where the ground stands far above the water the river runs in
-## a canyon, a wide dry floor between sheer walls; elsewhere the banks rise a cell at
-## most per cell, so loose ground lies as slopes down to the water.
-func _rivers(key: Vector2i, lay: Dictionary) -> void:
-	var near: Array = []
-	for dz in range(-1, 2):
-		for dx in range(-1, 2):
-			near.append_array(river_index.get(Vector2i(key.x + dx, key.y + dz), []))
-	if near.is_empty():
-		return
-	var heights: PackedInt32Array = lay.heights
-	var water: PackedInt32Array = lay.water
-	var tops: PackedByteArray = lay.tops
-	var flags: PackedByteArray = lay.flags
-	var biome: PackedByteArray = lay.biome
-	var x0: int = lay.x0
-	var z0: int = lay.z0
-	var count := WINDOW * WINDOW
-	var best_d := PackedFloat32Array()
-	best_d.resize(count)
-	best_d.fill(1e9)
-	var best := PackedInt32Array()
-	best.resize(count)
-	best.fill(-1)
-	for i in near.size():
-		var ref: Array = near[i]
-		var river: Dictionary = rivers[ref[0]]
-		var pi: int = ref[1]
-		var p: Vector2 = river.points[pi]
-		var rw: float = river.widths[pi]
-		var cny: bool = river.canyon[pi] != 0
-		var reach := rw + (3.5 if cny else 1.5) + (2.0 if cny else 5.0)
-		for lz in range(maxi(0, floori(p.y - reach) - z0), mini(WINDOW, ceili(p.y + reach + 1.0) - z0)):
-			for lx in range(maxi(0, floori(p.x - reach) - x0), mini(WINDOW, ceili(p.x + reach + 1.0) - x0)):
-				var d := Vector2(x0 + lx + 0.5, z0 + lz + 0.5).distance_to(p)
-				var j := lz * WINDOW + lx
-				if d <= reach and d < best_d[j]:
-					best_d[j] = d
-					best[j] = i
-	for j in count:
-		var i := best[j]
-		if i < 0:
-			continue
-		var ref: Array = near[i]
-		var river: Dictionary = rivers[ref[0]]
-		var pi: int = ref[1]
-		var d := best_d[j]
-		var rw: float = river.widths[pi]
-		var cny: bool = river.canyon[pi] != 0
-		var rf := rw + (3.5 if cny else 1.5)
-		var lv: int = river.levels[pi]
-		if d <= rw:
-			heights[j] = mini(heights[j], lv - (2 if d < rw - 1.0 else 1))
-			water[j] = maxi(water[j], lv)
-			tops[j] = Mat.SAND
-			flags[j] = 0
-			biome[j] = SEA
-		elif d <= rf:
-			if water[j] >= 0:
-				continue
-			if cny:
-				heights[j] = lv
-				tops[j] = Mat.SAND
-				flags[j] = 0
-			else:
-				heights[j] = clampi(heights[j], lv, lv + 1)
-				flags[j] &= ~ENTRANCE
-			if biome[j] != SWAMP:
-				biome[j] = BEACH if heights[j] <= lv + 1 else biome[j]
-		elif cny:
-			# The canyon walls stay sheer.
-			if heights[j] > lv + 2:
-				flags[j] |= SHEER_TOP
-		elif water[j] < 0:
-			# A valley: the ground beyond the bank rises a cell per cell at most.
-			heights[j] = mini(heights[j], lv + 1 + int(d - rf))
+		kinds[j] = kind
+		features[j] = feature
 
 
 ## Water above the sea must not stand beside open air: the ground beside water rises
@@ -929,52 +727,65 @@ func _rivers(key: Vector2i, lay: Dictionary) -> void:
 func _banks(lay: Dictionary) -> void:
 	var heights: PackedInt32Array = lay.heights
 	var water: PackedInt32Array = lay.water
+	var w: int = lay.w
+	var h: int = lay.h
 	var raised := PackedInt32Array()
 	raised.resize(heights.size())
-	for lz in range(1, WINDOW - 1):
-		for lx in range(1, WINDOW - 1):
-			var j := lz * WINDOW + lx
+	for lz in range(1, h - 1):
+		for lx in range(1, w - 1):
+			var j := lz * w + lx
 			if water[j] >= 0:
 				continue
-			var h := heights[j]
-			h = maxi(h, maxi(maxi(water[j - 1], water[j + 1]), maxi(water[j - WINDOW], water[j + WINDOW])))
-			raised[j] = h - heights[j]
+			var hh := heights[j]
+			hh = maxi(hh, maxi(maxi(water[j - 1], water[j + 1]), maxi(water[j - w], water[j + w])))
+			raised[j] = hh - heights[j]
 	for j in heights.size():
 		heights[j] += raised[j]
 
+
+## The columns of a window laid out at once (tools, the spawn, the map).
+func lay_out(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
+	var lay := _window(x0, z0, w, h, step)
+	for k in window_noises.size():
+		_sample(lay, k)
+	_lattice(lay)
+	for lz in h:
+		_layout_row(lay, lz)
+	if step == 1 and w > 2 and h > 2:
+		_banks(lay)
+	return lay
+
+
+# --- Cells of a chunk -------------------------------------------------------------
 
 ## Writes the cells of one row of the chunk from the laid-out columns: stone with ore,
 ## a few cells of dirt (not under stone tops), the top, water up to its level, and
 ## caves under dry land away from water.
 func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
-	var w := world
-	var sx := size_x
+	var c: WorldData.Chunk = world.chunks[key]
 	var sy := size_y
-	var layer := sx * size_z
-	var z := key.y * CHUNK + row
-	if z >= size_z:
-		return
+	var layer := WorldData.LAYER
 	var heights: PackedInt32Array = lay.heights
 	var water: PackedInt32Array = lay.water
 	var tops: PackedByteArray = lay.tops
 	var flags: PackedByteArray = lay.flags
-	var cells := w.cells
-	var natural := w.natural
-	var air_cols := w.air_cols
-	var water_cols := w.water_cols
-	var wild_cols := w.wild_cols
-	var all: int = w.all_bits
+	var cells := c.cells
+	var natural := c.natural
+	var air_cols := c.air
+	var water_cols := c.water
+	var wild_cols := c.wild
+	var all: int = world.all_bits
 	var cave_t := _byte(0.42)
 	var ore_t := _byte(0.55)
 	var ore_top_t := _byte(0.7)
 	var x_first := key.x * CHUNK
-	var x_last := mini(x_first + CHUNK, sx)
+	var z := key.y * CHUNK + row
 	# Does any column of the row want caves? Then sample the 3D noises along it.
 	var caves := PackedByteArray()
 	var ores := PackedByteArray()
 	var want := false
-	for x in range(x_first, x_last):
-		if heights[(row + MARGIN) * WINDOW + x - x_first + MARGIN] > sea + 2:
+	for lx in CHUNK:
+		if heights[(row + MARGIN) * WINDOW + lx + MARGIN] > sea + 2:
 			want = true
 			break
 	if want:
@@ -983,26 +794,24 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		# A slice of 3D noise: x along the row, y up (every other level), z this row.
 		caves = _slice(n_caves, CHUNK, sy)
 		ores = _slice(n_ores, CHUNK, sy)
-	for x in range(x_first, x_last):
-		var lx := x - x_first + MARGIN
-		var j := (row + MARGIN) * WINDOW + lx
-		var col := z * sx + x
+	for lx in CHUNK:
+		var j := (row + MARGIN) * WINDOW + lx + MARGIN
+		var col := (row << WorldData.SHIFT) | lx
 		var height := heights[j]
 		var wt := water[j]
 		var top: int = tops[j]
 		var rocky := top == Mat.STONE
 		var dirt := height if rocky else maxi(0, height - 4)
 		var i := col
-		var ore := want and ores.size() > 0
 		for y in dirt:
-			cells[i] = Mat.COPPER_ORE if ore and ores[(y >> 1) * CHUNK + x - x_first] > ore_t else Mat.STONE
+			cells[i] = Mat.COPPER_ORE if want and ores[(y >> 1) * CHUNK + lx] > ore_t else Mat.STONE
 			natural[i] = WorldData.WILD
 			i += layer
 		for y in range(dirt, height):
 			cells[i] = Mat.DIRT
 			natural[i] = WorldData.WILD
 			i += layer
-		cells[i] = Mat.COPPER_ORE if rocky and ore and ores[(height >> 1) * CHUNK + x - x_first] > ore_top_t else top
+		cells[i] = Mat.COPPER_ORE if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
 		natural[i] = WorldData.WILD | WorldData.SHEER if flags[j] & SHEER_TOP else WorldData.WILD
 		var y := height + 1
 		while y <= wt:
@@ -1022,8 +831,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 			var cave_top := height + 1 if flags[j] & ENTRANCE else height - 3
 			i = layer + col
 			for yc in range(1, cave_top):
-				var cx := x - x_first
-				if caves[(yc >> 1) * CHUNK + cx] + caves[((yc + 1) >> 1) * CHUNK + cx] > 2 * cave_t:
+				if caves[(yc >> 1) * CHUNK + lx] + caves[((yc + 1) >> 1) * CHUNK + lx] > 2 * cave_t:
 					cells[i] = Mat.AIR
 					air_bits |= 1 << yc
 				i += layer
@@ -1054,22 +862,20 @@ static func _slice(n: FastNoiseLite, width: int, depth: int) -> PackedByteArray:
 ## The lattice columns of the chunk (x and z odd) that get a tree: a hash of the
 ## column against the chance of its biome, on grass above water, not beside another
 ## candidate to the west or north (trunks side by side would merge into a wall).
-func _tree_candidates(key: Vector2i, lay: Dictionary) -> Array:
+func _tree_candidates(_key: Vector2i, lay: Dictionary) -> Array:
 	var out := []
 	var x0: int = lay.x0
 	var z0: int = lay.z0
 	for lz in range(MARGIN, MARGIN + CHUNK):
-		if (z0 + lz) % 2 == 0:
+		if (z0 + lz) & 1 == 0:
 			continue
 		for lx in range(MARGIN, MARGIN + CHUNK):
-			if (x0 + lx) % 2 == 0:
+			if (x0 + lx) & 1 == 0:
 				continue
 			var species := _tree_at(lay, lx, lz)
 			if species < 0 or _tree_at(lay, lx - 2, lz) >= 0 or _tree_at(lay, lx, lz - 2) >= 0:
 				continue
-			var x := x0 + lx
-			var z := z0 + lz
-			out.append([x, z, species, lay.heights[lz * WINDOW + lx]])
+			out.append([x0 + lx, z0 + lz, species, lay.heights[lz * WINDOW + lx]])
 	return out
 
 
@@ -1079,8 +885,6 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var j := lz * WINDOW + lx
 	var x: int = lay.x0 + lx
 	var z: int = lay.z0 + lz
-	if x < 2 or z < 2 or x >= size_x - 2 or z >= size_z - 2:
-		return -1
 	var tops: PackedByteArray = lay.tops
 	var water: PackedInt32Array = lay.water
 	var flags: PackedByteArray = lay.flags
@@ -1100,45 +904,85 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	return Trees.SPRUCE if _chance(x, z, 2) < spruce else Trees.OAK
 
 
-## Grows one candidate tree: [x, z, species, ground height].
-func _plant(t: Array) -> void:
+## Grows one candidate tree: [x, z, species, ground height]. Chunks already SHAPED
+## take nothing (see WorldData.Chunk.final). `again` grows a tree that was grown
+## before, into a neighbour made again, unless the player cut its trunk.
+func _plant(t: Array, again := false) -> void:
 	var x: int = t[0]
 	var z: int = t[1]
 	var species: int = t[2]
 	var hh: int = t[3]
+	var base := world.get_cell(x, hh + 1, z)
+	if again:
+		if base != Mat.LOG or not world.trees.has(Vector2i(x, z)):
+			return
+	elif base != Mat.AIR and base != Mat.LEAVES:
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _hash(x, z, 3)
 	var scale := Trees.fit(species, size_y - 1 - hh)
-	var col := z * size_x + x
-	if world.cells[(hh + 1) * size_x * size_z + col] != Mat.AIR and world.cells[(hh + 1) * size_x * size_z + col] != Mat.LEAVES:
-		return
 	if scale > 0.0:
 		Trees.place(world, x, hh + 1, z, species, rng, scale)
 
 
+## The trees of the planted neighbours of a chunk made again that reach into it.
+func _regrown(key: Vector2i) -> Array:
+	var out := []
+	var x0 := key.x * CHUNK - TREE_REACH
+	var z0 := key.y * CHUNK - TREE_REACH
+	var x1 := (key.x + 1) * CHUNK + TREE_REACH
+	var z1 := (key.y + 1) * CHUNK + TREE_REACH
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			for t: Array in planted.get(Vector2i(key.x + dx, key.y + dz), []):
+				if t[0] >= x0 and t[0] < x1 and t[1] >= z0 and t[1] < z1:
+					out.append(t)
+	return out
+
+
 # --- Shapes and bushes ---------------------------------------------------------------
 
-## Slopes first (one step), then the corners a few rows at a time, for the chunk and
-## two columns around it, so the chunk's mesh can read its neighbours' shapes.
-func _shape_rows(key: Vector2i, row: int) -> void:
-	var x0 := maxi(0, key.x * CHUNK - 2)
-	var z0 := maxi(0, key.y * CHUNK - 2)
-	var x1 := mini(size_x, key.x * CHUNK + CHUNK + 2)
-	var z1 := mini(size_z, key.y * CHUNK + CHUNK + 2)
-	if row == 0:
-		world.update_slopes(x0, z0, x1, z1)
-		return
-	var step := ceili((z1 - z0) / float(CHUNK / 4))
-	var za := z0 + (row - 1) * step
-	var zb := mini(z1, za + step)
-	if za < zb:
-		world.update_corners(x0, za, x1, zb)
+## The shape stage works on bands of rows: the slopes of every band first, then the
+## corners, which look at the slopes beside them.
+const SHAPE_BANDS := 4
+
+
+## Slopes or corners of one band of rows of the chunk and two columns around it, so
+## the chunk's mesh can read its neighbours' shapes.
+func _shape_step(key: Vector2i, row: int) -> void:
+	var x0 := key.x * CHUNK - 2
+	var x1 := key.x * CHUNK + CHUNK + 2
+	var z0 := key.y * CHUNK - 2
+	var band := (CHUNK + 4) / SHAPE_BANDS
+	var za := z0 + (row % SHAPE_BANDS) * band
+	if row < SHAPE_BANDS:
+		world.update_slopes(x0, za, x1, za + band)
+	else:
+		world.update_corners(x0, za, x1, za + band)
+
+
+## A chunk made again after it was dropped (see forget) lost the shapes its shaped
+## neighbours wrote along its edges, which their meshes read: works them out again on
+## the strips of the chunk inside those neighbours' shape windows. A chunk made for the
+## first time has no shaped neighbour yet (shaping needs the chunks around planted).
+func _reshape_edges(key: Vector2i) -> void:
+	var x0 := key.x * CHUNK
+	var z0 := key.y * CHUNK
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			if (dx != 0 or dz != 0) and stage_of(key + Vector2i(dx, dz)) == SHAPED:
+				var xa := x0 + (CHUNK - 2 if dx > 0 else 0)
+				var za := z0 + (CHUNK - 2 if dz > 0 else 0)
+				var xb := x0 + (2 if dx < 0 else CHUNK)
+				var zb := z0 + (2 if dz < 0 else CHUNK)
+				world.update_slopes(xa, za, xb, zb)
+				world.update_corners(xa, za, xb, zb)
 
 
 ## Bushes of the chunk by biome: a hash of each cell against the biome's sparsity, on
 ## level grass in the open; blueberries under spruces, raspberries near oaks and at
 ## the edges of woods, plain shrubs elsewhere.
-func _bushes(key: Vector2i, lay: Dictionary) -> void:
+func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 	var biome: PackedByteArray = lay.biome
 	var x0: int = lay.x0
 	var z0: int = lay.z0
@@ -1150,7 +994,7 @@ func _bushes(key: Vector2i, lay: Dictionary) -> void:
 				continue
 			var x := x0 + lx
 			var z := z0 + lz
-			if x < 1 or z < 1 or x >= size_x - 1 or z >= size_z - 1 or _hash(x, z, 4) % sparsity != 0:
+			if _hash(x, z, 4) % sparsity != 0:
 				continue
 			var y: int = world.surface_y(x, z)
 			if not Bushes.fits(world, x, y, z):
@@ -1165,7 +1009,36 @@ func _bushes(key: Vector2i, lay: Dictionary) -> void:
 			Bushes.place(world, x, y, z, type)
 
 
-# --- Spawn and the map ---------------------------------------------------------------
+# --- Spawn, places and the map ---------------------------------------------------------
+
+## A dry open meadow near the origin, on the lowland near water: where the player
+## starts. Columns are tried on a spiral 16 cells apart; any dry land does when no
+## meadow turns up.
+func _pick_spawn() -> Vector3i:
+	var fallback := Vector3i(0, size_y - 1, 0)
+	var found_land := false
+	var forest_t := _byte(0.3)
+	for r in range(0, 160):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := dx * 16
+				var z := dz * 16
+				var lay := lay_out(x, z, 1, 1)
+				var h: int = lay.heights[0]
+				if lay.water[0] >= 0 or lay.flags[0] & SHEER_TOP:
+					continue
+				if not found_land:
+					found_land = true
+					fallback = Vector3i(x, h + 1, z)
+				var grids: Array = lay.grids
+				var forest: PackedByteArray = grids[8]
+				if lay.biome[0] == MEADOW and h >= sea + 3 and h <= sea + 8 and forest[0] <= forest_t \
+						and lay.river[0] > 12.0:
+					return Vector3i(x, h + 1, z)
+	return fallback
+
 
 ## Nearest dry grass cell to `around` on level ground (the chunks there must be
 ## SHAPED), or the guess itself.
@@ -1185,98 +1058,74 @@ static func find_spawn(w: WorldData, around: Vector3i) -> Vector3i:
 	return Vector3i(around.x, w.size_y - 1, around.z)
 
 
-## The biome each kind of place of `find_place` wants in its chunk, where a coarse
-## sample alone does not tell (the beach rule beats the swamp rule on a column, a
-## coarse lowland can be dry).
-const PLACE_BIOMES := {"swamp": SWAMP, "forest": FOREST, "plateau": PLATEAU, "beach": BEACH, "mountain": ROCK}
-
-
-## A cell near `near` (in cells) that holds `what`: "lake", "river", "canyon" (a
+## A column near `near` (in cells) that holds `what`: "lake", "river", "canyon" (a
 ## river between sheer walls), "swamp", "plateau", "cliffs" (a cliff coast), "beach",
-## "mountain" or "forest"; `near` itself when there is none. Coarse samples are
-## sorted by distance; where a sample cannot tell the biome, the chunk's terrain is
-## made (it would be anyway) and must hold a good share of it. For tools and tests.
-func find_place(what: String, near: Vector2i) -> Vector2i:
-	var found: Array = []
-	for k in gw * gh:
-		var i := k % gw
-		var j := k / gw
-		var x := i * COARSE + COARSE / 2
-		var z := j * COARSE + COARSE / 2
-		var ok := false
-		match what:
-			"lake":
-				ok = g_lake[k] >= 0
-			"river":
-				ok = g_river[k] >= 0 and g_lake[k] < 0 and g_height[k] >= sea
-			"canyon":
-				ok = g_river[k] >= 0 and g_lake[k] < 0 and g_height[k] - g_river[k] > 5
-			"swamp":
-				ok = g_height[k] >= sea + 1 and g_height[k] <= sea + 4 and g_wet[k] <= 4 and g_wet[k] >= 1 \
-					and _at(n_swamp, x, z) > _byte(0.35) and _kind_at(x, z) == 0
-			"plateau":
-				ok = _kind_at(x, z) == 2
-			"cliffs":
-				ok = _kind_at(x, z) == 3 and g_height[k] >= sea and g_wet[k] <= 1
-			"beach":
-				ok = g_height[k] >= sea and g_height[k] <= sea + 2 and g_wet[k] <= 1 and _kind_at(x, z) == 0
-			"mountain":
-				ok = _kind_at(x, z) == 1
-			"forest":
-				ok = g_height[k] >= sea + 3 and g_height[k] <= sea + 9 and _at(n_moist, x, z) > _byte(0.5)
-		if ok:
-			found.append([(x - near.x) * (x - near.x) + (z - near.y) * (z - near.y), x, z])
-	found.sort()
-	if not PLACE_BIOMES.has(what):
-		return Vector2i(found[0][1], found[0][2]) if not found.is_empty() else near
-	var biome: int = PLACE_BIOMES[what]
-	for f in found.slice(0, 48):
-		var key := Vector2i(f[1] / CHUNK, f[2] / CHUNK)
-		if stage_of(key) < TERRAIN:
-			run(key, TERRAIN)
-		# A shaped chunk has dropped its layout: lay the window out again (cheap).
-		var lay: Dictionary = layouts.get(key, {})
-		if lay.is_empty():
-			lay = _window(key)
-			for lz in WINDOW:
-				_layout_row(key, lay, lz)
-		var biomes: PackedByteArray = lay.biome
-		var count := 0
-		var best := -1
-		var best_d := 1 << 30
-		for j in biomes.size():
-			if biomes[j] != biome:
-				continue
-			count += 1
-			var lx := j % WINDOW - MARGIN
-			var lz := j / WINDOW - MARGIN
-			var d := (lx - CHUNK / 2) * (lx - CHUNK / 2) + (lz - CHUNK / 2) * (lz - CHUNK / 2)
-			if d < best_d:
-				best_d = d
-				best = j
-		if count >= WINDOW * WINDOW / 5:
-			return Vector2i(key.x * CHUNK + best % WINDOW - MARGIN, key.y * CHUNK + best / WINDOW - MARGIN)
+## "mountain", "forest", "taiga", "desert" or "tundra"; `near` itself when there is
+## none within `reach` cells. Columns are laid out on a spiral `stride` cells apart.
+## For tools and tests.
+func find_place(what: String, near: Vector2i, reach := 6000, stride := 16) -> Vector2i:
+	if _is_place(what, lay_out(near.x, near.y, 1, 1), 0):
+		return near
+	for r in range(1, reach / stride):
+		# The ring of radius r: the rows north and south, the columns west and east.
+		var a := r * stride
+		for side: Array in [[-a, -a, 2 * r + 1, 1], [-a, a, 2 * r + 1, 1], [-a, -a + stride, 1, 2 * r - 1],
+				[a, -a + stride, 1, 2 * r - 1]]:
+			var x0: int = near.x + side[0]
+			var z0: int = near.y + side[1]
+			var lay := lay_out(x0, z0, side[2], side[3], stride)
+			for j in side[2] * side[3]:
+				if _is_place(what, lay, j):
+					var w: int = side[2]
+					return Vector2i(x0 + (j % w) * stride, z0 + (j / w) * stride)
 	return near
 
 
-func _kind_at(x: int, z: int) -> int:
-	return _relief(x, z, _at(n_hills, x, z), _at(n_ridges, x, z), _at(n_mount, x, z), _at(n_shape, x, z),
-		_at(n_cliff, x, z), _at(n_plateau, x, z))[1]
+func _is_place(what: String, lay: Dictionary, j: int) -> bool:
+	var b: int = lay.biome[j]
+	var kind: int = lay.kind[j]
+	var feature: int = lay.feature[j]
+	match what:
+		"lake":
+			return feature == LAKE and lay.lake[j] > 6.0
+		"river":
+			return feature == RIVER and kind == PLAIN
+		"canyon":
+			return feature == CANYON
+		"swamp":
+			return b == SWAMP
+		"plateau":
+			return b == PLATEAU
+		"cliffs":
+			return kind == CLIFFS and lay.heights[j] >= sea + 3 and lay.coast[j] < 6.0
+		"beach":
+			return b == BEACH and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
+		"mountain":
+			return b == ROCK and kind == MOUNTAIN
+		"forest":
+			return b == FOREST
+		"taiga":
+			return b == TAIGA and lay.heights[j] <= sea + 9
+		"desert":
+			return b == DESERT
+		"tundra":
+			return b == TUNDRA
+	return false
 
 
-## Colour of a coarse sample for a map of the island: the sea by depth, lakes and
-## rivers blue, land by height from meadow green to the grey of the mountains.
-func coarse_color(i: int, j: int) -> Color:
-	var k := j * gw + i
-	var h := g_height[k]
-	if h < sea:
-		return Color(0.16, 0.3, 0.5).lerp(Color(0.1, 0.2, 0.38), clampf((sea - h) / 7.0, 0.0, 1.0))
-	if g_lake[k] >= 0 or g_river[k] >= 0:
-		return Color(0.25, 0.45, 0.6)
-	var t := clampf((h - sea) / 22.0, 0.0, 1.0)
-	var c := Color(0.42, 0.58, 0.28).lerp(Color(0.6, 0.6, 0.55), smoothstep(0.35, 0.7, t))
-	if t > 0.75:
-		c = c.lerp(Color(0.85, 0.85, 0.88), (t - 0.75) * 4.0)
-	if h <= sea + 2:
-		c = c.lerp(Color(0.8, 0.74, 0.5), 0.6)
-	return c
+## Colour of a laid-out column for a map of the world before it is walked: the sea by
+## depth, lakes and rivers blue, land by biome, lighter higher up.
+func column_color(lay: Dictionary, j: int) -> Color:
+	var h: int = lay.heights[j]
+	var wt: int = lay.water[j]
+	if wt >= 0:
+		var deep := clampf((wt - h - 1) / 6.0, 0.0, 1.0)
+		return Color(0.36, 0.6, 0.68).lerp(Color(0.12, 0.24, 0.42), deep)
+	var c: Color = MAP_COLORS[lay.biome[j]]
+	return c * (0.75 + 0.5 * clampf((h - sea) / 24.0, 0.0, 1.0))
+
+
+## Colours of the biomes on the map.
+const MAP_COLORS := [Color(0.12, 0.24, 0.42), Color(0.84, 0.76, 0.5), Color(0.42, 0.6, 0.28),
+	Color(0.24, 0.44, 0.2), Color(0.22, 0.38, 0.3), Color(0.36, 0.44, 0.3), Color(0.56, 0.56, 0.56),
+	Color(0.55, 0.58, 0.4), Color(0.86, 0.74, 0.46), Color(0.6, 0.66, 0.6)]
