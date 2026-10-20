@@ -1,0 +1,64 @@
+# Виды существ. Кто кому еда или угроза, выводится из свойств (src/shared/ai_rules.gd):
+# хищник берёт добычу до 0.8 своей массы, мясоед в 1.25 раза тяжелее опасен и без охоты.
+# mass — кг; diet — plants и/или meat; speed — ячеек в секунду; sight — дальность
+# зрения в ячейках; human_wariness — 0..1, с 0.5 человек считается угрозой;
+# active — day, night или any; count — сколько живёт на острове; sprite — имя
+# спрайта у клиента. human — игроки.
+- id: human
+  title: Человек
+  mass: 70
+  diet: [plants, meat]
+  speed: 4.0
+  sight: 0.0
+  human_wariness: 0.0
+  active: day
+- id: rabbit
+  title: Заяц
+  mass: 2
+  diet: [plants]
+  speed: 5.5
+  sight: 9
+  human_wariness: 0.9
+  active: day
+  count: 14
+  sprite: rabbit
+- id: squirrel
+  title: Белка
+  mass: 0.5
+  diet: [plants]
+  speed: 5.0
+  sight: 7
+  human_wariness: 0.7
+  active: day
+  count: 10
+  sprite: squirrel
+- id: cat
+  title: Дикая кошка
+  mass: 4
+  diet: [meat]
+  speed: 5.5
+  sight: 10
+  human_wariness: 0.6
+  active: any
+  count: 4
+  sprite: cat
+- id: deer
+  title: Олень
+  mass: 60
+  diet: [plants]
+  speed: 6.5
+  sight: 13
+  human_wariness: 0.8
+  active: day
+  count: 8
+  sprite: deer
+- id: wolf
+  title: Волк
+  mass: 40
+  diet: [meat]
+  speed: 6.0
+  sight: 14
+  human_wariness: 0.6
+  active: night
+  count: 4
+  sprite: wolf

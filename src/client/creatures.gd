@@ -48,9 +48,9 @@ func setup(w, p: Node3D, seed_value: int) -> void:
 	player = p
 	rng.seed = seed_value
 	for kind in AiRules.SPECIES:
-		if kind == "human":
+		if kind == AiRules.HUMAN:
 			continue
-		var tex := SpriteArt.texture(kind)
+		var tex := SpriteArt.texture(AiRules.SPECIES[kind].sprite)
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width(), tex.get_height()),
 			PlayerScript.sprite_material(SpriteShader, tex)]
 		for i in AiRules.SPECIES[kind].count:
@@ -73,7 +73,7 @@ func _process(delta: float) -> void:
 	if respawn_timer > RESPAWN_EVERY:
 		respawn_timer = 0.0
 		for kind in AiRules.SPECIES:
-			if kind != "human" and count(kind) < AiRules.SPECIES[kind].count:
+			if kind != AiRules.HUMAN and count(kind) < AiRules.SPECIES[kind].count:
 				_spawn(kind, true)
 	for c in creatures.duplicate():
 		if not creatures.has(c):
@@ -92,7 +92,7 @@ func _decide(c: Creature, spec: Dictionary) -> void:
 	var sight: float = spec.sight
 	var threat_pos: Variant = null
 	var threat_d := INF
-	if AiRules.is_threat(c.kind, "human"):
+	if AiRules.is_threat(c.kind, AiRules.HUMAN):
 		var d := c.pos.distance_to(player.position)
 		if d < sight * 0.6:
 			threat_pos = player.position

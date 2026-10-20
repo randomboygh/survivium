@@ -3,21 +3,36 @@ extends RefCounted
 ## creature is food, a threat or nobody is derived here, so a newly added species
 ## fits into the world without any per-species rules.
 
-## Species properties. "human" stands for players.
-const SPECIES := {
-	"human": {"name": "Человек", "mass": 70.0, "diet": ["plants", "meat"], "speed": 4.0,
-		"sight": 0.0, "human_wariness": 0.0, "active": "day", "count": 0},
-	"rabbit": {"name": "Заяц", "mass": 2.0, "diet": ["plants"], "speed": 5.5,
-		"sight": 9.0, "human_wariness": 0.9, "active": "day", "count": 14},
-	"squirrel": {"name": "Белка", "mass": 0.5, "diet": ["plants"], "speed": 5.0,
-		"sight": 7.0, "human_wariness": 0.7, "active": "day", "count": 10},
-	"cat": {"name": "Дикая кошка", "mass": 4.0, "diet": ["meat"], "speed": 5.5,
-		"sight": 10.0, "human_wariness": 0.6, "active": "any", "count": 4},
-	"deer": {"name": "Олень", "mass": 60.0, "diet": ["plants"], "speed": 6.5,
-		"sight": 13.0, "human_wariness": 0.8, "active": "day", "count": 8},
-	"wolf": {"name": "Волк", "mass": 40.0, "diet": ["meat"], "speed": 6.0,
-		"sight": 14.0, "human_wariness": 0.6, "active": "night", "count": 4},
-}
+const Content := preload("res://src/shared/content.gd")
+
+## Players.
+const HUMAN := "core:human"
+
+## id -> record from `content/*/data/creatures.yaml` (see Content): title, mass,
+## diet, speed, sight, human_wariness, active, count, sprite.
+static var SPECIES := {}
+
+
+static func _static_init() -> void:
+	refresh()
+
+
+static func refresh() -> void:
+	SPECIES = {}
+	for r in Content.records("creatures"):
+		SPECIES[r.id] = r
+
+
+## What is wrong with the loaded creatures for the engine, if anything.
+static func check() -> PackedStringArray:
+	var out: PackedStringArray = []
+	if not SPECIES.has(HUMAN):
+		out.append("creatures: the engine needs `%s` for the players" % HUMAN)
+	for id in SPECIES:
+		if id != HUMAN and SPECIES[id].sprite == "":
+			out.append("creatures: `%s` has no sprite" % id)
+	return out
+
 
 ## A predator takes prey up to this share of its own mass.
 const PREY_RATIO := 0.8
@@ -34,7 +49,7 @@ static func is_food(eater: String, target: String) -> bool:
 static func is_threat(self_kind: String, other: String) -> bool:
 	var a: Dictionary = SPECIES[self_kind]
 	var b: Dictionary = SPECIES[other]
-	if other == "human":
+	if other == HUMAN:
 		return a.human_wariness >= 0.5
 	return is_food(other, self_kind) or ("meat" in b.diet and b.mass >= a.mass * THREAT_RATIO)
 
