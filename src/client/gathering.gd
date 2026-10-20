@@ -186,6 +186,8 @@ func on_season(season: int) -> void:
 	var keys := {}
 	for cell: Vector3i in world.bush_picked:
 		keys[WorldData.chunk_key(cell.x, cell.z)] = true
+	for cell: Vector3i in world.bush_picked.keys() + world.bush_twigs.keys():
+		world.note_bush(cell)
 	world.bush_picked.clear()
 	world.bush_twigs.clear()
 	for key in keys:

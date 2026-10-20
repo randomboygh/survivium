@@ -55,6 +55,11 @@ var bush_twigs := {}
 ## see Items) or Items.SACK; `data` is how many items for an item, the stacks
 ## ([[id, count]...]) for a sack. A chunk with any is kept as an edited one.
 var drops := {}
+## Chunks the player changed since they were last saved (see note_edit, WorldGen.pack).
+var unsaved := {}
+## Per-cell records of the bushes (by the bush's cell, Vector3i), kept and saved with
+## the chunk the bush stands in. Each name is a Dictionary var of this class.
+const BUSH_MAPS := ["bushes", "bush_picked", "bush_twigs"]
 ## While the generator writes cells, edits are not tracked: it works out the shapes
 ## of each chunk itself once the chunks around are final (see WorldGen).
 var track_edits := true
@@ -176,6 +181,7 @@ func remove_chunk(key: Vector2i) -> void:
 		trees.erase(t)
 	tree_chunks.erase(key)
 	drops.erase(key)
+	unsaved.erase(key)
 
 
 func has_chunk(key: Vector2i) -> bool:
@@ -381,6 +387,7 @@ func _touch(c: Chunk, x: int, z: int) -> void:
 	if not track_edits:
 		return
 	c.edited = true
+	unsaved[c.key] = true
 	var d := _dirty
 	if d[0] >= d[2]:
 		_dirty = PackedInt32Array([x - 2, z - 2, x + 3, z + 3])
@@ -830,6 +837,7 @@ func add_tree(x: int, z: int, species: int) -> void:
 
 
 func remove_tree(x: int, z: int) -> void:
+	note_edit(x, z)
 	var at := Vector2i(x, z)
 	trees.erase(at)
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
@@ -854,7 +862,7 @@ func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1) -> vo
 	var c := chunk_at(x, z)
 	if c == null:
 		return
-	c.edited = true
+	note_edit(x, z)
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if not drops.has(key):
 		drops[key] = []
@@ -866,6 +874,7 @@ func take_drop(key: Vector2i, i: int) -> Array:
 	var list: Array = drops[key]
 	var d: Array = list[i]
 	list.remove_at(i)
+	note_edit(key.x << SHIFT, key.y << SHIFT)
 	if list.is_empty():
 		drops.erase(key)
 	return d
@@ -873,12 +882,11 @@ func take_drop(key: Vector2i, i: int) -> Array:
 
 ## Notes something gathered from the bush in `cell`: its chunk is kept as edited.
 func note_bush(cell: Vector3i) -> void:
-	var c := chunk_at(cell.x, cell.z)
-	if c != null:
-		c.edited = true
+	note_edit(cell.x, cell.z)
 
 
 func remove_bush(cell: Vector3i) -> void:
+	note_edit(cell.x, cell.z)
 	bushes.erase(cell)
 	bush_picked.erase(cell)
 	bush_twigs.erase(cell)
@@ -947,3 +955,84 @@ func surface_y(x: int, z: int) -> int:
 	if c.water[col] & (1 << y) and not water_frozen:
 		return -1
 	return y + 1
+
+
+## Notes a change by the player to the chunk of column (x, z) that is not a cell (a
+## drop, a tree or bush gone, a bush's records): the chunk is kept from then on and
+## saved. The generator's writes are not changes.
+func note_edit(x: int, z: int) -> void:
+	if not track_edits:
+		return
+	var c := chunk_at(x, z)
+	if c != null:
+		c.edited = true
+		unsaved[c.key] = true
+
+
+# --- Saving --------------------------------------------------------------------
+
+## Everything kept for chunk `key`, for a save (see WorldStore): the cells, flags,
+## shapes and column masks as they are, the trees with their trunk in it, its bushes
+## with their records (BUSH_MAPS) and what lies on its ground.
+func pack_chunk(key: Vector2i) -> Dictionary:
+	var c: Chunk = chunks[key]
+	var tree_list := []
+	for at: Vector2i in tree_chunks.get(key, {}):
+		tree_list.append([at, trees[at]])
+	var bush_lists := {}
+	var cells: Dictionary = bush_chunks.get(key, {})
+	for name: String in BUSH_MAPS:
+		var map: Dictionary = get(name)
+		var list := []
+		for cell: Vector3i in cells:
+			if map.has(cell):
+				list.append([cell, map[cell]])
+		bush_lists[name] = list
+	return {"key": key, "levels": size_y, "cells": c.cells, "natural": c.natural, "shapes": c.shapes,
+		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
+		"corner": c.corner, "trees": tree_list, "bushes": bush_lists, "drops": drops.get(key, []).duplicate(true)}
+
+
+## True when `d` is a chunk packed by pack_chunk for a world of this height.
+func can_unpack(d: Dictionary) -> bool:
+	if not d.get("key") is Vector2i or d.get("levels") != size_y:
+		return false
+	for name in ["cells", "natural", "shapes"]:
+		if not d.get(name) is PackedByteArray or d[name].size() != LAYER * size_y:
+			return false
+	for name in ["air", "water", "leaf", "logs", "wild", "sloped", "corner"]:
+		if not d.get(name) is PackedInt64Array or d[name].size() != LAYER:
+			return false
+	return true
+
+
+## Puts a chunk packed by pack_chunk back, final and edited, in place of what is kept
+## there; false (and nothing changed) when it does not fit (see can_unpack).
+func unpack_chunk(d: Dictionary) -> bool:
+	if not can_unpack(d):
+		return false
+	var key: Vector2i = d.key
+	remove_chunk(key)
+	var c := Chunk.new()
+	c.key = key
+	for name in ["cells", "natural", "shapes", "air", "water", "leaf", "logs", "wild", "sloped", "corner"]:
+		c.set(name, d[name])
+	c.edited = true
+	c.final = true
+	chunks[key] = c
+	if key == _last_key:
+		_last = c
+	for t: Array in d.get("trees", []):
+		add_tree(t[0].x, t[0].y, t[1])
+	var lists: Dictionary = d.get("bushes", {})
+	for name: String in BUSH_MAPS:
+		var map: Dictionary = get(name)
+		for b: Array in lists.get(name, []):
+			if name == "bushes":
+				add_bush(b[0], b[1])
+			else:
+				map[b[0]] = b[1]
+	var on_ground: Array = d.get("drops", [])
+	if not on_ground.is_empty():
+		drops[key] = on_ground
+	return true

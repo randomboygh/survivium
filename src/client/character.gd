@@ -20,7 +20,8 @@ signal state_changed
 var game
 var inventory := Inventory.new()
 var vitals := Vitals.new()
-## Where the character comes back after death: the spawn, in world units.
+## Where the character comes back after death, in world units: beside the campfire
+## (the spawn's, until fires are made), else where the player first stood.
 var home := Vector3.ZERO
 var _nagged := {}
 
@@ -28,6 +29,15 @@ var _nagged := {}
 func _init(g) -> void:
 	game = g
 	inventory.changed.connect(func() -> void: state_changed.emit())
+
+
+## Picks the place to come back to after death, once the props are placed.
+func find_home() -> void:
+	var fire: Variant = game.props.cells.get("campfire")
+	if fire is Vector3i:
+		home = (Vector3(fire) + Vector3(2.5, 0.0, 0.5)) * CELL
+	else:
+		home = game.player.position
 
 
 ## Runs the body for a frame of `delta` seconds and sets the pace of the player.

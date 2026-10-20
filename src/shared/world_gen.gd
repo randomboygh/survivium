@@ -22,6 +22,9 @@ extends RefCounted
 ## stone, steep patches, cliffs and canyon walls keep sheer walls. Water above the sea
 ## never stands beside open air: banks are raised to its level and caves keep away
 ## from it. Each stage is done a few rows (or a tree) at a time; sizes are in cells.
+## A chunk the player changed comes back from the save (`saved`, see WorldStore) in
+## place of its terrain stage, SHAPED at once, and grows its trees again into the
+## chunks around that are not final, as its planting would have.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -119,6 +122,9 @@ var planted := {}
 ## Where the player is first put: a meadow near the origin, refined by find_spawn once
 ## its chunk is made.
 var spawn_guess: Vector3i
+## Where chunks the player changed are kept between runs: has_chunk(key) and
+## read_chunk(key) -> Dictionary (see WorldStore); null makes every chunk anew.
+var saved
 
 var n_hills: FastNoiseLite
 var n_ridges: FastNoiseLite
@@ -161,6 +167,8 @@ class Job extends RefCounted:
 	## Candidate trees (PLANTED), or the neighbours' trees to grow again (TERRAIN):
 	## x, z, species, ground height.
 	var trees: Array = []
+	## The saved record of a chunk brought back instead of made (see pack).
+	var restore: Dictionary
 	var done := false
 
 
@@ -243,6 +251,15 @@ func forget(key: Vector2i) -> bool:
 	return true
 
 
+## The record of chunk `key` for the save: what WorldData keeps of it and the trees
+## it planted, which grow again into the chunks around when those are made anew.
+func pack(key: Vector2i) -> Dictionary:
+	world.refresh_shapes()
+	var d := world.pack_chunk(key)
+	d["planted"] = planted.get(key, [])
+	return d
+
+
 # --- Jobs --------------------------------------------------------------------
 
 ## Begins `stage` of chunk `key`, which must have reached the stage before it (and its
@@ -254,6 +271,14 @@ func start(key: Vector2i, stage: int) -> Job:
 	var job := Job.new()
 	job.key = key
 	job.stage = stage
+	if stage == TERRAIN and saved != null and saved.has_chunk(key):
+		var d: Dictionary = saved.read_chunk(key)
+		if world.can_unpack(d):
+			job.restore = d
+			job.trees = d.get("planted", [])
+			job.rows = 1 + job.trees.size()
+			return job
+		push_error("saved chunk %s is broken or of another world: made anew" % key)
 	match stage:
 		TERRAIN:
 			job.lay = _window(key.x * CHUNK - MARGIN, key.y * CHUNK - MARGIN, WINDOW, WINDOW)
@@ -270,6 +295,13 @@ func start(key: Vector2i, stage: int) -> Job:
 ## Does the next `n` steps of the job; true when the stage is done.
 func step(job: Job, n: int) -> bool:
 	world.track_edits = false
+	while n > 0 and job.row < job.rows and not job.restore.is_empty():
+		if job.row == 0:
+			world.unpack_chunk(job.restore)
+		else:
+			_plant(job.trees[job.row - 1], true)
+		job.row += 1
+		n -= 1
 	while n > 0 and job.row < job.rows:
 		match job.stage:
 			TERRAIN:
@@ -283,6 +315,11 @@ func step(job: Job, n: int) -> bool:
 	world.track_edits = true
 	if job.row >= job.rows and not job.done:
 		job.done = true
+		if not job.restore.is_empty():
+			job.stage = SHAPED
+			stages[job.key] = SHAPED
+			planted[job.key] = job.trees
+			return true
 		stages[job.key] = job.stage
 		if job.stage == TERRAIN:
 			layouts[job.key] = job.lay
