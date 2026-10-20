@@ -1,7 +1,7 @@
 extends RefCounted
 ## Game settings: what the player can change and keep between runs (time speed,
 ## graphics, interface, the world made at the start) and the playtest switches that
-## are not saved (season, weather, time of day, fast forward). Every value lives here;
+## are not saved (season, weather, time of day, fast forward, player speed). Every value lives here;
 ## `apply` pushes them into the modules, so the menu, the hotkeys and the tools all go
 ## through the same place.
 ## Saved as user://settings.cfg (IndexedDB in the browser). `game` is the Main node.
@@ -9,8 +9,9 @@ extends RefCounted
 const PixelView := preload("res://src/client/pixel_view.gd")
 
 const PATH := "user://settings.cfg"
-## Game minutes per real second: ×1 is a 4 minute day (see Sky.DAY_LENGTH).
-const TIME_SPEEDS := [0.5, 1.0, 2.0, 5.0]
+## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
+## a 40 minute day, slow enough for the meditative pace.
+const TIME_SPEEDS := [0.05, 0.1, 0.2, 0.5, 1.0]
 ## How much larger than normal the world pixel is; the image gets that much smaller.
 const PIXEL_SIZES := [1.0, 1.5, 2.0]
 const FPS_LIMITS := [0, 30, 60]
@@ -32,16 +33,20 @@ const DEFAULTS := {
 	"world_rivers": 1,
 	"world_biomes": 1,
 }
-## Playtest fast forward, on top of the time speed setting.
-const FAST_FORWARD := 20.0
+## Playtest clock: stopped, normal, or faster on top of the time speed setting.
+const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
+## What the T key switches to: a whole day in about 24 seconds.
+const FAST_FORWARD := 100.0
+## Playtest multipliers of the player's walking speed, for looking around the map.
+const PLAYER_SPEEDS := [1.0, 2.0, 4.0, 8.0]
 
 var game
 ## Current values of the saved settings, by name (see DEFAULTS).
 var values := {}
-## Playtest switch: time runs FAST_FORWARD times faster. Not saved.
-var fast_forward := false
-## Playtest switch: the clock stands still. Not saved.
-var time_stopped := false
+## Playtest switch: how many times faster the clock runs (0 stops it). Not saved.
+var time_boost := 1.0
+## Playtest switch: the player's speed multiplier. Not saved.
+var player_speed := 1.0
 
 
 func _init(g) -> void:
@@ -94,11 +99,13 @@ func pixel_size() -> float:
 func apply() -> void:
 	var sky = game.sky
 	if sky != null:
-		sky.time_speed = 0.0 if time_stopped else time_speed() * (FAST_FORWARD if fast_forward else 1.0)
+		sky.time_speed = time_speed() * time_boost
 		if sky.sun != null:
 			sky.sun.shadow_enabled = values.shadows
 	if game.effects != null:
 		game.effects.enabled = values.effects
+	if game.player != null:
+		game.player.speed_scale = player_speed
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
 	game.controls.show_help = values.show_help
 	var view = game.view
@@ -132,11 +139,11 @@ func set_hour(hour: float) -> void:
 	game.sky.time_of_day = fposmod(hour / 24.0, 1.0)
 
 
-func set_fast_forward(on: bool) -> void:
-	fast_forward = on
+func set_time_boost(k: float) -> void:
+	time_boost = k
 	apply()
 
 
-func set_time_stopped(on: bool) -> void:
-	time_stopped = on
+func set_player_speed(k: float) -> void:
+	player_speed = k
 	apply()
