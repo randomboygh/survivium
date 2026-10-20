@@ -37,6 +37,7 @@ var _toasts: VBoxContainer
 var perf: PanelContainer
 var _top: HBoxContainer
 var _stats_button: Button
+var _test_button: Button
 var _menu_button: Button
 var _level: BoxContainer
 var _level_label: Button
@@ -95,6 +96,7 @@ func _ready() -> void:
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
+	_test_button = _icon_button(_top, "flask", "Для проверки", toggle_test)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
 	_level = BoxContainer.new()
@@ -423,6 +425,14 @@ func open_settings(page: String) -> void:
 	_settings.fit(size)
 
 
+## The flask button: the playtest page over the running game, without the pause.
+func toggle_test() -> void:
+	if _settings.visible and _settings.page == "test":
+		_settings.close()
+	else:
+		open_settings("test")
+
+
 func _build_menu() -> void:
 	_shade = ColorRect.new()
 	_shade.color = Color(0, 0, 0, 0.4)
@@ -462,7 +472,7 @@ func _update_menu() -> void:
 func debug_rects() -> Dictionary:
 	var out := {}
 	var items := {"stick": stick, "buttons": _action, "jump": _jump, "hotbar": _bar, "menu": _menu_button,
-		"test": _menu_buttons["test"]}
+		"test": _test_button}
 	for k in items:
 		var c: Control = items[k]
 		out[k] = c.get_global_rect() if c.is_visible_in_tree() else Rect2()

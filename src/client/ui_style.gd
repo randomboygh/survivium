@@ -87,6 +87,17 @@ const ICONS := {
 		"wwwwwwwww",
 		"wwwwwwwww",
 	],
+	"flask": [
+		"..wwwww..",
+		"...w.w...",
+		"...w.w...",
+		"...w.w...",
+		"..w...w..",
+		".w.....w.",
+		"w..a.a..w",
+		"w.aaaaa.w",
+		".wwwwwww.",
+	],
 	"chart": [
 		"........a",
 		"......a.a",
