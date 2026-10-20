@@ -24,6 +24,8 @@ const PlayerScript := preload("res://src/client/player.gd")
 const CreaturesScript := preload("res://src/client/creatures.gd")
 const Hud := preload("res://src/client/hud.gd")
 const Foliage := preload("res://src/client/foliage.gd")
+const Bushes := preload("res://src/shared/bushes.gd")
+const Drifts := preload("res://src/client/drifts.gd")
 const EffectsScript := preload("res://src/client/effects.gd")
 const TracksScript := preload("res://src/client/tracks.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
@@ -37,6 +39,7 @@ const WORLD_SEED := 20261018
 const CELL := WorldData.CELL
 
 var world
+var gen: WorldGen
 var player
 var creatures
 var effects
@@ -49,17 +52,22 @@ var controls: Controls
 var view: CameraRig
 var props: Props
 var settings: SettingsScript
-## The 3D scene, inside the view's SubViewport.
+## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
+## shown with the snow cover.
 var world_root: Node3D
+var drifts_root: Node3D
 var atlas: Texture2D
 var world_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var grass_mat: ShaderMaterial
 var leaves_mat: ShaderMaterial
 var leaf_shadow_mat: ShaderMaterial
+var bush_mat: ShaderMaterial
 var grass_mesh: ArrayMesh
 var clump_mesh: ArrayMesh
 var disc_mesh: ArrayMesh
+var bush_mesh: ArrayMesh
+var drift_mesh: ArrayMesh
 var ready_to_play := false
 ## Where the player's last footprint was left, and which foot made it.
 var last_print := Vector3.ZERO
@@ -85,14 +93,16 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var t0 := Time.get_ticks_msec()
-	world = WorldGen.generate(WORLD_SEED)
-	print("world generated in %d ms" % (Time.get_ticks_msec() - t0))
+	gen = WorldGen.new(WORLD_SEED)
+	world = gen.world
+	print("world laid out in %d ms" % (Time.get_ticks_msec() - t0))
 	roof = RoofMap.new()
-	roof.build(world)
+	roof.prepare(world)
+	hud.minimap.setup(gen)
 	_build_materials()
 	_build_scene()
 	settings.apply()
-	chunks.prepare(world)
+	chunks.prepare(gen)
 
 
 func _process(delta: float) -> void:
@@ -105,10 +115,14 @@ func _process(delta: float) -> void:
 			# Freezes while the world was being built are not the game's.
 			hud.perf.reset()
 			hud.perf.chunks = chunks.near_total
+			# The ground is known now: the exact spawn, on level grass.
+			var spawn: Vector3i = WorldGen.find_spawn(world, Vector3i((player.position / CELL).floor()))
+			player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
+			view.look_at_player()
 			props.place()
 			creatures.setup(world, player, WORLD_SEED)
 			ready_to_play = true
-			print("near meshes built in %d ms" % (chunks.mesh_us / 1000))
+			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % Time.get_ticks_msec())
 		else:
 			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
@@ -120,6 +134,8 @@ func _process(delta: float) -> void:
 	chunks.update_cut(delta)
 	chunks.run_jobs()
 	chunks.update_caps()
+	roof.flush()
+	hud.minimap.flush()
 	view.update(delta)
 	if ready_to_play:
 		hud.update_state()
@@ -196,9 +212,21 @@ func _build_materials() -> void:
 	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_ROWS)
 	leaves_mat.set_shader_parameter("branch_row", PixelTextures.BRANCH_ROW)
 	leaf_shadow_mat = _material(LeafShadowShader)
+	bush_mat = _material(LeavesShader)
+	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_bush_clumps(Foliage.BUSH_CLUMP))
+	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
+	bush_mat.set_shader_parameter("clump_rows", PixelTextures.BUSH_ROWS)
+	bush_mat.set_shader_parameter("branch_row", PixelTextures.BUSH_TWIG_ROW)
+	var berry_colors := PackedVector3Array()
+	for b: Dictionary in Bushes.TYPES:
+		var c: Color = b.berries
+		berry_colors.append(Vector3(c.r, c.g, c.b))
+	bush_mat.set_shader_parameter("berry_colors", berry_colors)
 	grass_mesh = Foliage.plant_mesh(Foliage.PLANT_W, Foliage.PLANT_H)
 	clump_mesh = Foliage.quad_mesh(Foliage.CLUMP_SIZE, true)
 	disc_mesh = Foliage.disc_mesh(Foliage.SHADOW_DISC)
+	bush_mesh = Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true)
+	drift_mesh = Drifts.mound_mesh()
 
 
 func _material(shader: Shader) -> ShaderMaterial:
@@ -211,11 +239,14 @@ func _build_scene() -> void:
 	sky.build(world_root)
 	view.build_camera()
 
+	drifts_root = Node3D.new()
+	drifts_root.visible = false
+	world_root.add_child(drifts_root)
 	player = PlayerScript.new()
 	player.world = world
 	world_root.add_child(player)
-	var spawn: Vector3i = WorldGen.find_spawn(world)
-	player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
+	# A guess from the coarse layout; the exact spot is found once the ground is made.
+	player.position = (Vector3(gen.spawn_guess) + Vector3(0.5, 0.0, 0.5)) * CELL
 	view.look_at_player()
 
 	tracks = TracksScript.new()

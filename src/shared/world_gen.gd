@@ -168,7 +168,7 @@ func generate_all() -> void:
 ## Runs one stage of a chunk at once.
 func run(key: Vector2i, stage: int) -> void:
 	var job := start(key, stage)
-	while not step(job, 1 << 30):
+	while job != null and not step(job, 1 << 30):
 		pass
 
 
@@ -217,7 +217,9 @@ func missing(key: Vector2i, reach: int, stage: int) -> Vector2i:
 ## Begins `stage` of chunk `key`, which must have reached the stage before it (and its
 ## neighbours the one before that, see the top of the file).
 func start(key: Vector2i, stage: int) -> Job:
-	assert(stages.get(key, 0) == stage - 1, "stages of a chunk go in order")
+	if stages.get(key, 0) != stage - 1:
+		push_error("stages of chunk %s go in order: at %d, asked for %d" % [key, stages.get(key, 0), stage])
+		return null
 	var job := Job.new()
 	job.key = key
 	job.stage = stage
@@ -1168,6 +1170,53 @@ static func find_spawn(w: WorldData, around: Vector3i) -> Vector3i:
 						and w.slope_mask(x, y - 1, z) == WorldData.FULL:
 					return Vector3i(x, y, z)
 	return Vector3i(around.x, w.size_y - 1, around.z)
+
+
+## The cell at the middle of the coarse sample nearest to `near` (in cells) that
+## holds `what`: "lake", "river", "canyon" (a river between sheer walls), "swamp",
+## "plateau", "cliffs" (a cliff coast), "beach", "mountain" or "forest"; `near`
+## itself when there is none. For tools and tests.
+func find_place(what: String, near: Vector2i) -> Vector2i:
+	var best := near
+	var best_d := 1 << 30
+	for k in gw * gh:
+		var i := k % gw
+		var j := k / gw
+		var x := i * COARSE + COARSE / 2
+		var z := j * COARSE + COARSE / 2
+		var ok := false
+		match what:
+			"lake":
+				ok = g_lake[k] >= 0
+			"river":
+				ok = g_river[k] >= 0 and g_lake[k] < 0 and g_height[k] >= sea
+			"canyon":
+				ok = g_river[k] >= 0 and g_lake[k] < 0 and g_height[k] - g_river[k] > 5
+			"swamp":
+				ok = g_height[k] >= sea + 1 and g_height[k] <= sea + 3 and g_wet[k] <= 4 and g_wet[k] >= 1 \
+					and _at(n_swamp, x, z) > _byte(0.45) and _kind_at(x, z) == 0
+			"plateau":
+				ok = _kind_at(x, z) == 2
+			"cliffs":
+				ok = _kind_at(x, z) == 3 and g_height[k] >= sea and g_wet[k] <= 1
+			"beach":
+				ok = g_height[k] >= sea and g_height[k] <= sea + 2 and g_wet[k] <= 1 and _kind_at(x, z) == 0
+			"mountain":
+				ok = _kind_at(x, z) == 1
+			"forest":
+				ok = g_height[k] >= sea + 3 and g_height[k] <= sea + 9 and _at(n_moist, x, z) > _byte(0.5)
+		if not ok:
+			continue
+		var d := (x - near.x) * (x - near.x) + (z - near.y) * (z - near.y)
+		if d < best_d:
+			best_d = d
+			best = Vector2i(x, z)
+	return best
+
+
+func _kind_at(x: int, z: int) -> int:
+	return _relief(x, z, _at(n_hills, x, z), _at(n_ridges, x, z), _at(n_mount, x, z), _at(n_shape, x, z),
+		_at(n_cliff, x, z), _at(n_plateau, x, z))[1]
 
 
 ## Colour of a coarse sample for a map of the island: the sea by depth, lakes and

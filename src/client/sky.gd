@@ -174,5 +174,5 @@ func _update_weather(delta: float) -> void:
 	if game.tracks != null:
 		game.tracks.snow = snow
 		game.tracks.wet = wet
-	if game.props.drifts != null:
-		game.props.drifts.visible = snow > 0.6
+	if game.drifts_root != null:
+		game.drifts_root.visible = snow > 0.6

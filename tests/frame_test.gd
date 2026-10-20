@@ -85,19 +85,19 @@ func _run() -> void:
 	print("longest step of a job %.2f ms" % (worst_step / 1000.0))
 	_check(worst_step / 1000.0 < chunk_ms / 4.0, "a step of a job is under a quarter of a chunk")
 
-	# Streaming the whole map while walking east and west, four seconds each way
-	# (the keys, as the game reads them), so the chunks ahead of the player are
-	# urgent and the caps' home moves. The map takes 5-15 s to stream.
+	# Streaming the chunks around while walking east and west, four seconds each
+	# way (the keys, as the game reads them), so the chunks ahead of the player are
+	# generated and built as urgent and the caps' home moves.
 	var start: Vector3 = main.player.position
 	await _scenario("streaming while walking", 100000, func(_i: int) -> bool:
 		var east := int(clock / 4.0) % 2 == 0
 		_key(KEY_D, east)
 		_key(KEY_A, not east)
 		moved = maxf(moved, main.player.position.distance_to(start))
-		return main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null)
+		return main.chunks.map_done)
 	_key(KEY_D, false)
 	_key(KEY_A, false)
-	_check(main.chunks.map_done, "the whole map streams in")
+	_check(main.chunks.map_done, "the chunks around stream in")
 	_check(moved > 4.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
 
 	# Standing still on the finished map.
@@ -113,10 +113,10 @@ func _run() -> void:
 			if maxi(absi(dx), absi(dz)) == 2:
 				cells.append(Vector3i(p.x + dx, w.surface_y(p.x + dx, p.z + dz) - 1, p.z + dz))
 	var bush := Vector3i.ZERO
-	for c: Vector3i in main.props.bush_cells:
+	for c: Vector3i in w.bushes:
 		if bush == Vector3i.ZERO or (c - p).length_squared() < (bush - p).length_squared():
 			bush = c
-	var bushes_before: int = main.props.bush_cells.size()
+	var bushes_before: int = w.bushes.size()
 	_check(bushes_before > 0, "the map has bushes")
 	cells.append(bush - Vector3i(0, 1, 0))
 	var before: Array[int] = []
@@ -135,7 +135,7 @@ func _run() -> void:
 			main.chunks.on_cell_changed(c)
 		return false)
 	_check(main.chunks.dirty_chunks.is_empty() and main.chunks.job_mesh == null, "edits are all built")
-	_check(main.props.bush_cells.size() == bushes_before - 1 and not main.world.bushes.has(bush), "the bush dug under is gone")
+	_check(w.bushes.size() == bushes_before - 1 and not w.bushes.has(bush), "the bush dug under is gone")
 
 	# The cut moving up and down four times a second, as when walking in and out of
 	# a cave: the caps of the chunks around are rebuilt each time.
