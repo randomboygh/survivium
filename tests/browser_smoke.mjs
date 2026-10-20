@@ -56,6 +56,7 @@ async function debug(page, log) {
     jump: field(/jump (\[[^\]]*\])/),
     hotbar: field(/hotbar (\[[^\]]*\])/),
     menu: field(/menu (\[[^\]]*\])/),
+    test: field(/test (\[[^\]]*\])/),
     season: field(/season (\[[^\]]*\])/),
     player: field(/player \(([^)]*)\)/),
   };
@@ -137,20 +138,30 @@ async function screenshot(name, page) {
       if (!rose) errors.push(`phone: jump with a second finger while holding the joystick did nothing: ${d1.player} -> ${last.player}`);
     }
   }
-  if (d0.menu.length === 4) {
-    // Open the pause menu and tap "Следующий сезон" in it.
+  if (d0.test.length === 4) {
+    // Open the playtest page with the flask button and tap the season's "next" arrow.
     const center = (r) => [(r[0] + r[2] / 2) / dpr, (r[1] + r[3] / 2) / dpr];
-    await page.touchscreen.tap(...center(d0.menu));
+    await page.touchscreen.tap(...center(d0.test));
     await page.waitForTimeout(500);
     const d2 = await debug(page, log);
     if (d2.season.length === 4 && d2.season[2] > 0) {
       const before = log.length;
       await page.touchscreen.tap(...center(d2.season));
       await page.waitForTimeout(1000);
-      if (!log.slice(before).some((t) => t.startsWith('season:'))) errors.push('phone: the season button in the menu did not react to a tap');
+      if (!log.slice(before).some((t) => t.startsWith('season:'))) errors.push('phone: the season arrow on the playtest page did not react to a tap');
     } else {
-      errors.push(`phone: the menu did not open: ${d2.line}`);
+      errors.push(`phone: the playtest page did not open: ${d2.line}`);
     }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+  }
+  if (d0.menu.length === 4) {
+    // The pause menu opens and closes.
+    const center = (r) => [(r[0] + r[2] / 2) / dpr, (r[1] + r[3] / 2) / dpr];
+    await page.touchscreen.tap(...center(d0.menu));
+    await page.waitForTimeout(500);
+    const d3 = await debug(page, log);
+    if (!/menu \[/.test(d3.line)) errors.push(`phone: no debug line after opening the menu: ${d3.line}`);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
   }
