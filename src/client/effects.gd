@@ -154,7 +154,8 @@ func add_campfire(corner: Vector3, material: Material) -> void:
 	model.material_override = material
 	model.scale = Vector3.ONE / 16.0
 	model.position = corner
-	model.extra_cull_margin = 16.0
+	# 24 world units in the model's 1/16 scale, against the shear of the view.
+	model.extra_cull_margin = 24.0 * 16.0
 	add_child(model)
 	var c := corner + Vector3(0.5, 0.15, 0.5)
 

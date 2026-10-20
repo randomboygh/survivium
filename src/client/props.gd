@@ -13,7 +13,11 @@ const RoofMap := preload("res://src/client/roof_map.gd")
 const Items := preload("res://src/shared/items.gd")
 
 const CELL := WorldData.CELL
+## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
+## thing `y` units north of its place) does not cull it. The models are scaled down to
+## 1/16 and the margin grows the box before that, so they get it 16 times over.
 const CULL_MARGIN := 24.0
+const MODEL_CULL_MARGIN := CULL_MARGIN * 16.0
 
 var game
 ## Meshes of the things on the ground by model, and their nodes by chunk.
@@ -40,7 +44,7 @@ func place() -> void:
 		chest.material_override = game.world_mat
 		chest.scale = Vector3.ONE / 16.0
 		chest.position = Vector3(chest_spot) * CELL
-		chest.extra_cull_margin = CULL_MARGIN
+		chest.extra_cull_margin = MODEL_CULL_MARGIN
 		world_root.add_child(chest)
 	var fire := _saved_or_new("campfire", at + Vector3(-2.0, 0.0, 2.0))
 	if fire.y >= 0:
@@ -114,7 +118,7 @@ func show_drops(key: Vector2i) -> void:
 		# Turned in steps of 45 degrees, which keep the pixels tidy.
 		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
 		node.position = d[1]
-		node.extra_cull_margin = CULL_MARGIN
+		node.extra_cull_margin = MODEL_CULL_MARGIN
 		game.world_root.add_child(node)
 		nodes.append(node)
 	drop_nodes[key] = nodes

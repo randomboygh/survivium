@@ -22,6 +22,7 @@ const Inventory := preload("res://src/shared/inventory.gd")
 const Vitals := preload("res://src/shared/vitals.gd")
 const WorldStore := preload("res://src/shared/world_store.gd")
 const Tracks := preload("res://src/client/tracks.gd")
+const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
 
 var checks := 0
 var failures := 0
@@ -51,6 +52,7 @@ func _init() -> void:
 	_test_inventory()
 	_test_vitals()
 	_test_tracks()
+	_test_hidden()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -1191,3 +1193,23 @@ func _test_tracks() -> void:
 	t.leave(feet, Vector2(0, 1), true, true, 1.0)
 	_check(t.next == 1, "prints on the stone floor of a cave")
 	t.free()
+
+
+## The cut finds earth that hides the player from the camera: the near wall of a
+## ravine running diagonally across the view, not a wall the head looks over.
+func _test_hidden() -> void:
+	var cs := ChunkStreamer.new(null)
+	cs.world = WorldData.new(12, Vector2i(32, 32))
+	# Ground up to level 7 except a ravine one cell wide along x == z, floor level 1.
+	for z in 32:
+		for x in 32:
+			for y in (1 if x == z else 7):
+				cs.world.set_cell(x, y, z, Mat.STONE)
+	_check(cs._hiding_level(16, 1, 16) == 3, "the near wall of a diagonal ravine hides the player")
+	# Two levels deep: the head shows over the wall.
+	cs.world = WorldData.new(12, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			for y in (1 if x == z else 3):
+				cs.world.set_cell(x, y, z, Mat.STONE)
+	_check(cs._hiding_level(16, 1, 16) == -1, "a wall the head looks over does not cut the view")

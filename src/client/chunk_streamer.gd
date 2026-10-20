@@ -59,6 +59,8 @@ const CUT_DELAY := 0.2
 const SUNK_REACH := 6
 const SUNK_RISE := 3
 const SUNK_SIDES := 5
+## Levels above the feet searched for earth that hides the player from the camera.
+const HIDE_REACH := 16
 const COMPASS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
 	Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1)]
 ## The parts of a chunk's meshes, in the order of chunk_nodes' arrays.
@@ -123,6 +125,9 @@ var indoor := false
 var sunk := false
 var sunk_rim := 0
 var sunk_at := Vector3i(0, -1000, 0)
+## The lowest level of earth between the camera and the player's body, -1 for none
+## (see _hiding_level); worked out with sunk.
+var hidden_by := -1
 
 
 func _init(g) -> void:
@@ -553,13 +558,19 @@ func update_cut(delta: float) -> void:
 	if at != sunk_at:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
+		hidden_by = _hiding_level(px, level, pz)
 	var target: int = world.size_y
 	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
 		target = level + 1
-	elif sunk:
-		target = sunk_rim
+	else:
+		if sunk:
+			target = sunk_rim
+		# Whatever stands between the camera and the player goes, from any side: a
+		# ravine running across the view, the near wall of a diagonal one, a hill.
+		if hidden_by >= 0:
+			target = mini(target, hidden_by - 1)
 	if target != cut_target:
 		cut_target = target
 		cut_clock = 0.0
@@ -594,6 +605,21 @@ func _walled_sides(x: int, level: int, z: int) -> int:
 				sunk_rim = mini(sunk_rim, top)
 				break
 	return sides
+
+
+## The lowest level of earth (not trunks or leaves) that covers most of the body of a
+## player standing on `level` in column (x, z), as the camera sees it, or -1. In the
+## 3/4 view a cell (x, y, z) covers the screen rows z - y - 1 .. z - y + 1 (its top
+## and its south face) and the body, two cells tall, the rows pz - level - 1.5 ..
+## pz - level + 0.5; earth above the head counts where it covers more than half of
+## them. A wall the head looks over hides only the legs and is left alone.
+func _hiding_level(x: int, level: int, z: int) -> int:
+	for y in range(level + 2, mini(level + 2 + HIDE_REACH, world.size_y)):
+		var ahead := z + y - level
+		for cz in [ahead - 1, ahead]:
+			if Mat.is_roof(world.get_cell(x, y, cz)):
+				return y
+	return -1
 
 
 func shift_cut(d: int) -> void:
