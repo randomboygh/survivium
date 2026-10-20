@@ -46,7 +46,7 @@ func update(delta: float) -> void:
 	var days: float = delta * game.sky.time_speed / game.sky.DAY_LENGTH
 	vitals.step(delta, days, player.swimming, inventory.load_share())
 	player.load_scale = inventory.speed_factor() * vitals.speed_factor()
-	if player.jumped:
+	if player.jumped and not player.air_jumps:
 		vitals.spend("jump")
 	if vitals.is_dead():
 		die()

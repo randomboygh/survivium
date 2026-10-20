@@ -50,6 +50,8 @@ var player_speed := 1.0
 ## Playtest switch: blocks are placed without taking them from the bag, and digging
 ## gives none. Not saved.
 var free_build := false
+## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
+var air_jumps := false
 
 
 func _init(g) -> void:
@@ -109,6 +111,7 @@ func apply() -> void:
 		game.effects.enabled = values.effects
 	if game.player != null:
 		game.player.speed_scale = player_speed
+		game.player.air_jumps = air_jumps
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
 	game.controls.show_help = values.show_help
 	var view = game.view
@@ -164,6 +167,11 @@ func set_time_boost(k: float) -> void:
 
 func set_player_speed(k: float) -> void:
 	player_speed = k
+	apply()
+
+
+func set_air_jumps(on: bool) -> void:
+	air_jumps = on
 	apply()
 
 

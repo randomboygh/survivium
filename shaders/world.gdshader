@@ -141,7 +141,8 @@ void fragment() {
 	// Texel distance to the N, S, W, E edges of the face.
 	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
 	vec3 col = COLOR.rgb;
-	bool top = world_normal.y > 0.5;
+	// The steep middle of a curved slope still counts as its top.
+	bool top = world_normal.y > 0.5 || (flag == 4 && tile != NONE && tile % 3 == 0);
 	// The dark caps of the cut (see ChunkMesher.build_cap) are cross-sections, not
 	// ground: nothing grows on them.
 	bool cap = tile != NONE && COLOR.r < 0.5;

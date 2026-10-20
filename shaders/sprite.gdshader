@@ -27,10 +27,12 @@ void fragment() {
 	vec4 c = texture(sprite_texture, uv);
 	// The player stays whole whatever level is cut; everyone else goes with their level.
 	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;
-	if (world_pos.y < water_line || (!me && above_cut(world_pos))) {
+	// The whole body casts its shadow, under the water too, so the shadow on the bed
+	// has the body's full shape; only the drawn sprite stops at the surface.
+	if ((world_pos.y < water_line && !IN_SHADOW_PASS) || (!me && above_cut(world_pos))) {
 		discard;
 	}
-	if (world_pos.y < water_line + 1.0 / TEXELS) {
+	if (world_pos.y < water_line + 1.0 / TEXELS && !IN_SHADOW_PASS) {
 		// The ripple reaches a pixel past the body on each side.
 		vec2 px = 1.0 / vec2(textureSize(sprite_texture, 0));
 		float a = max(c.a, max(texture(sprite_texture, uv + vec2(px.x, 0.0)).a, texture(sprite_texture, uv - vec2(px.x, 0.0)).a));

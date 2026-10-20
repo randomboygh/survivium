@@ -58,6 +58,7 @@ const SHOTS := {
 	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
+	"lake-morning": {"time": 0.36, "season": 1, "place": "lake"},
 	"beach-morning": {"time": 0.33, "season": 1, "place": "beach"},
 	"slopes-winter-morning": {"time": 0.33, "season": 3, "slopes": true},
 	"beach-winter": {"time": 0.33, "season": 3, "place": "beach"},
