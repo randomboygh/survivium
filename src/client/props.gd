@@ -1,7 +1,8 @@
 extends RefCounted
 ## Things standing on the ground that are not cells and not part of a chunk: the
-## chest and the campfire next to the spawn. Bushes and snowdrifts are grown by the
-## world generator and drawn with the chunk they stand in (see ChunkStreamer,
+## chest and the campfire next to the spawn, and the items lying on the ground
+## (WorldData.drops: what a felled tree leaves, a death sack). Bushes and snowdrifts
+## are grown by the world generator and drawn with the chunk they stand in (see ChunkStreamer,
 ## Foliage.finish); a bush that goes is taken out of the world and its chunk is
 ## rebuilt. `game` is the Main node that owns the scene.
 
