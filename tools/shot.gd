@@ -102,6 +102,8 @@ const SHOTS := {
 	"ui-main-menu-pc": {"time": 0.42, "season": 1, "main_menu": "live"},
 	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky"},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
+	# The list of saved worlds, over a few saves made up for it.
+	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
 }
 
 var main: Node
@@ -119,6 +121,18 @@ func _initialize() -> void:
 	main.skip_setup = true
 	root.add_child(main)
 	_run()
+
+
+## Saved worlds made up for the world list, in a folder of their own.
+func _fake_saves() -> void:
+	main.WorldStore.root = "user://shot_saves"
+	var worlds := [[main.world_seed, main.world_options, 12, "2026-10-20T18:40:00"],
+		[48151623, {"size": 0, "water": 2, "mountains": 1, "rivers": 0, "biomes": 1}, 3, "2026-10-19T21:05:00"],
+		[777, {"size": 1, "water": 1, "mountains": 2, "rivers": 1, "biomes": 1}, 41, "2026-10-18T12:30:00"]]
+	for w: Array in worlds:
+		var store = main.WorldStore.new(main.WorldStore.world_dir(w[0], w[1]))
+		store.write_json(main.WorldStore.WORLD, {"format": main.WorldStore.FORMAT, "seed": w[0], "settings": w[1],
+			"sky": {"day": w[2]}, "saved": w[3], "played": 1800.0})
 
 
 func _run() -> void:
@@ -238,6 +252,10 @@ func _run() -> void:
 				main.menu._new_world()
 				for i in 120:
 					await process_frame
+			if shot.main_menu == "worlds":
+				_fake_saves()
+				main.menu._open_worlds()
+				await process_frame
 			await process_frame
 		if shot.get("map", false):
 			main.hud.map_view.open()

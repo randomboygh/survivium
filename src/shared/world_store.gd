@@ -55,6 +55,27 @@ static func write_current(seed_value: int, options: Dictionary) -> void:
 	write_json_at(root + "/current.json", {"seed": seed_value, "settings": options})
 
 
+## The saved worlds, the one saved last first: {"dir", "seed", "settings", "day",
+## "saved", "played"} each, from their world.json.
+static func list_worlds() -> Array:
+	var out := []
+	if not DirAccess.dir_exists_absolute(root):
+		return out
+	for name in DirAccess.get_directories_at(root):
+		var meta := read_json_at("%s/%s/%s" % [root, name, WORLD])
+		if meta.get("format") != float(FORMAT) or not meta.get("seed") is float:
+			continue
+		var settings := {}
+		var saved_settings: Dictionary = meta.get("settings", {})
+		for k in ["size", "water", "mountains", "rivers", "biomes"]:
+			settings[k] = int(saved_settings.get(k, 1))
+		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings,
+			"day": int(meta.get("sky", {}).get("day", 1)), "saved": str(meta.get("saved", "")),
+			"played": float(meta.get("played", 0.0))})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.saved > b.saved)
+	return out
+
+
 ## True once the world has been saved.
 func exists() -> bool:
 	return FileAccess.file_exists(dir + "/" + WORLD)

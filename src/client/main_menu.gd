@@ -3,8 +3,9 @@ extends Control
 ## played last (see SaveGame), which is built behind it meanwhile. "Играть" goes into
 ## that world (as soon as it is built), "Продолжить" once it has a save; "Новый мир"
 ## opens WorldSetup over the menu and restarts the game when the world asked for is
-## another one (a world made before comes back from its save), "Настройки" opens the
-## settings page.
+## another one (a world made before comes back from its save), "Миры" lists the saved
+## worlds to go back to one or delete it (WorldList), "Настройки" opens the settings
+## page.
 ## The network game and the editor are not there yet, so their buttons are disabled,
 ## and "Выход" is disabled in the browser. Until the world is built a painted sky
 ## stands in for it and then fades out. The game's interface is hidden while the menu
@@ -14,6 +15,7 @@ extends Control
 const UiStyle := preload("res://src/client/ui_style.gd")
 const WorldSetup := preload("res://src/client/world_setup.gd")
 const SettingsMenu := preload("res://src/client/settings_menu.gd")
+const WorldList := preload("res://src/client/world_list.gd")
 
 const WIDTH := 200
 const BUTTON_H := 30
@@ -42,6 +44,7 @@ var _buttons := {}
 var _order := []
 var _focus := 0
 var _settings: SettingsMenu
+## The screen open over the menu: WorldSetup or WorldList.
 var _setup: Control
 ## "Играть" was pressed before the world was built: go in once it is.
 var _want_play := false
@@ -97,6 +100,7 @@ func _ready() -> void:
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_status)
 	_add_button(box, "new", "Новый мир", _new_world)
+	_add_button(box, "worlds", "Миры", _open_worlds)
 	_add_button(box, "net", "Сетевая игра", Callable(), "скоро")
 	_add_button(box, "editor", "Редактор", Callable(), "скоро")
 	_add_button(box, "settings", "Настройки", _open_settings)
@@ -193,13 +197,27 @@ func _new_world() -> void:
 	_setup.done.connect(func() -> void:
 		_close_setup()
 		# The world behind the menu is the one asked for: just go in.
-		var seed_value: int = game.settings.values.world_seed
-		var options: Dictionary = game.settings.world_options()
-		if seed_value == game.world_seed and options == game.world_options:
-			play()
-		else:
-			game.save.switch_world(seed_value, options)
-			game.restart())
+		_go_to(game.settings.values.world_seed, game.settings.world_options()))
+
+
+## Into the world of `seed_value` and `options`: the one behind the menu at once, any
+## other by a restart (from its save if it has one).
+func _go_to(seed_value: int, options: Dictionary) -> void:
+	if seed_value == game.world_seed and options == game.world_options:
+		play()
+	else:
+		game.save.switch_world(seed_value, options)
+		game.restart()
+
+
+func _open_worlds() -> void:
+	_column.visible = false
+	_setup = WorldList.new(game)
+	_screen.add_child(_setup)
+	_setup.cancelled.connect(_close_setup)
+	_setup.chosen.connect(func(seed_value: int, options: Dictionary) -> void:
+		_close_setup()
+		_go_to(seed_value, options))
 
 
 func _close_setup() -> void:

@@ -75,6 +75,8 @@ func _run() -> void:
 		frames += 1
 	_check(frames < 100 and main.save.has_save, "the game saves while playing (%d frames)" % frames)
 	main.save.flush()
+	var listed := WorldStore.list_worlds()
+	_check(listed.size() == 1 and listed[0].seed == main.world_seed and listed[0].day == 5, "the world list shows the save")
 	var stood: Vector3 = main.player.position
 	var props: Dictionary = main.props.cells.duplicate()
 	var seed_value: int = main.world_seed
