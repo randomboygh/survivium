@@ -41,8 +41,9 @@ comments, commits and PRs are in English.
   (time, seasons, weather, light, colour grade), `controls.gd` (keys, mouse, touch, edits),
   `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (chest, campfire), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
-  full screen), `world_setup.gd` (the first screen: seed and world settings; tests and tools set
-  `main.skip_setup`),
+  full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
+  "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
+  world; tests and tools set `main.skip_setup` to start without it),
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
   `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›").
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
