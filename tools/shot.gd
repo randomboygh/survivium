@@ -85,21 +85,21 @@ func _initialize() -> void:
 func _run() -> void:
 	# The shots look at far places too, so the whole map must be built: many chunks
 	# a frame here, not the one a frame of the game.
-	while not main.ready_to_play or not main.pending_chunks.is_empty():
+	while not main.ready_to_play or not main.chunks.pending_chunks.is_empty():
 		for i in 24:
-			if main.ready_to_play and not main.pending_chunks.is_empty():
-				main._build_chunk(main._next_chunk())
+			if main.ready_to_play and not main.chunks.pending_chunks.is_empty():
+				main.chunks.build_chunk(main.chunks.next_chunk())
 		await process_frame
 	var spawn: Vector3 = main.player.position
 	for shot_name in names:
 		main.player.position = spawn
 		var shot: Dictionary = SHOTS[shot_name]
-		main.time_of_day = shot.time
-		main.time_speed = 0.0
-		main.season = shot.season
-		main.raining = shot.get("rain", false)
-		main.show_help = false
-		main.manual_level = -1
+		main.sky.time_of_day = shot.time
+		main.sky.time_speed = 0.0
+		main.sky.season = shot.season
+		main.sky.raining = shot.get("rain", false)
+		main.controls.show_help = false
+		main.chunks.manual_level = -1
 		if shot.get("shore", false):
 			main.player.position = _shore(main.world, main.player.position)
 		if shot.get("slopes", false):
@@ -123,7 +123,7 @@ func _run() -> void:
 		if shot.get("grove", false):
 			# Away from the campfire by the spawn, which melts the snow around it.
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
-		main._set_touch(shot.get("touch", false))
+		main.controls.set_touch(shot.get("touch", false))
 		main.hud.perf.visible = shot.get("stats", false)
 		main.hud.show_keys(shot_name == "ui")
 		if shot.get("lab", false):
@@ -133,17 +133,17 @@ func _run() -> void:
 			_wall(main.world, Vector3i((main.player.position / CELL).floor()))
 			main.roof.build(main.world)
 		if shot.has("cut"):
-			main.manual_level = main.player.level() + int(shot.cut)
-			main._update_cut(0.0)
+			main.chunks.manual_level = main.player.level() + int(shot.cut)
+			main.chunks.update_cut(0.0)
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
-			main.snow = 1.0 if main.season == 3 else 0.0
-			main.wet = 1.0 if main.raining and main.season != 3 else 0.0
-			main.foliage = main.FOLIAGE[main.season]
-			main.grass = main.GRASS[main.season]
-			main.berry_amount = main.BERRY_AMOUNT[main.season]
-			main.leaf_amount = main.LEAF_AMOUNT[main.season]
+			main.sky.snow = 1.0 if main.sky.season == 3 else 0.0
+			main.sky.wet = 1.0 if main.sky.raining and main.sky.season != 3 else 0.0
+			main.sky.foliage = main.sky.FOLIAGE[main.sky.season]
+			main.sky.grass = main.sky.GRASS[main.sky.season]
+			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.sky.season]
+			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.sky.season]
 		if shot.get("walk", false):
 			# A walk in a hook south-east, then west, over a flat open spot, leaving
 			# footprints.
@@ -450,13 +450,13 @@ func _hut(w, at: Vector3) -> Vector3:
 				var m := Mat.PLANKS if dy == 4 or wall and not (door and dy < 2) else Mat.AIR
 				w.set_cell(best.x + dx, best.y + dy, best.z + dz, m)
 	# Bushes inside would hide the player.
-	for c: Vector3i in main.bush_cells.duplicate():
+	for c: Vector3i in main.props.bush_cells.duplicate():
 		if absi(c.x - best.x) <= 5 and absi(c.z - best.z) <= 5:
-			main.bush_cells.erase(c)
-	main._refresh_bushes()
+			main.props.bush_cells.erase(c)
+	main.props.refresh_bushes()
 	for dz in range(-8, 9, 8):
 		for dx in range(-8, 9, 8):
-			main._on_cell_changed(best + Vector3i(dx, 0, dz))
+			main.chunks.on_cell_changed(best + Vector3i(dx, 0, dz))
 	return (Vector3(best) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
@@ -490,7 +490,7 @@ func _unwall(w, at: Vector3i) -> void:
 
 func _wall_changed(at: Vector3i) -> void:
 	for x in range(at.x - 8, at.x + 9, 8):
-		main._on_cell_changed(Vector3i(x, at.y, at.z + 2))
+		main.chunks.on_cell_changed(Vector3i(x, at.y, at.z + 2))
 
 
 func _lab(w, at: Vector3i) -> void:
@@ -523,7 +523,7 @@ func _lab(w, at: Vector3i) -> void:
 				w.set_natural(x, y, z, true)
 	for z in range(at.z - 22, at.z + 25, 8):
 		for x in range(at.x - 32, at.x + 35, 8):
-			main._on_cell_changed(Vector3i(x, h, z))
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
 
 
@@ -558,8 +558,8 @@ func _grove(w, at: Vector3i) -> void:
 			k += 1
 		for dx in [-9, -7, 7, 9]:
 			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.BLUEBERRY)
-		main.bush_cells.assign(w.bushes.keys())
-		main._refresh_bushes()
+		main.props.bush_cells.assign(w.bushes.keys())
+		main.props.refresh_bushes()
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 3
 		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
@@ -573,7 +573,7 @@ func _grove(w, at: Vector3i) -> void:
 			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.SPRUCE, rng, sizes[i])
 		for z in range(at.z - 38, at.z + 34, 8):
 			for x in range(at.x - 48, at.x + 50, 8):
-				main._on_cell_changed(Vector3i(x, h, z))
+				main.chunks.on_cell_changed(Vector3i(x, h, z))
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
 
 

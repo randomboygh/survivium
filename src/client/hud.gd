@@ -96,7 +96,7 @@ func _ready() -> void:
 	_level = BoxContainer.new()
 	_level.add_theme_constant_override("separation", 0)
 	add_child(_level)
-	var up := _icon_button(_level, "up", "Уровень выше", func() -> void: game.shift_cut(1))
+	var up := _icon_button(_level, "up", "Уровень выше", func() -> void: game.chunks.shift_cut(1))
 	# The level itself is a button: a tap on a chosen cut returns to the player's level.
 	_level_label = Button.new()
 	_level_label.focus_mode = Control.FOCUS_NONE
@@ -104,9 +104,9 @@ func _ready() -> void:
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_level_label.add_theme_stylebox_override(state, UiStyle.panel())
-	_level_label.pressed.connect(func() -> void: game.reset_view_level())
+	_level_label.pressed.connect(func() -> void: game.chunks.reset_view_level())
 	_level.add_child(_level_label)
-	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.shift_cut(-1))
+	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
 		b.custom_minimum_size = Vector2(36, 36)
 
@@ -115,11 +115,11 @@ func _ready() -> void:
 	var bar_row := HBoxContainer.new()
 	bar_row.add_theme_constant_override("separation", int(GAP))
 	_bar.add_child(bar_row)
-	_hand_left = _slot(bar_row, func() -> void: game.set_dig_mode(true))
+	_hand_left = _slot(bar_row, func() -> void: game.controls.set_dig_mode(true))
 	_hand_left.tag = "Л"
 	_hand_left.texture = UiStyle.icon("pick")
 	_hand_left.icon_size = Vector2(24, 22)
-	_hand_right = _slot(bar_row, func() -> void: game.set_dig_mode(false))
+	_hand_right = _slot(bar_row, func() -> void: game.controls.set_dig_mode(false))
 	_hand_right.tag = "П"
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
@@ -150,7 +150,7 @@ func _ready() -> void:
 		_action.add_theme_color_override(c, UiStyle.DARK_INK)
 	_action.held.connect(func(on: bool) -> void:
 		if on:
-			game.set_dig_mode(not game.dig_mode))
+			game.controls.set_dig_mode(not game.controls.dig_mode))
 	add_child(_action)
 	_jump = TouchButton.new()
 	_jump.text = "Прыжок"
@@ -160,7 +160,7 @@ func _ready() -> void:
 	_jump.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	_jump.add_theme_stylebox_override("normal", UiStyle.panel())
 	_jump.add_theme_stylebox_override("hover", UiStyle.panel())
-	_jump.held.connect(func(on: bool) -> void: game.jump_held = on)
+	_jump.held.connect(func(on: bool) -> void: game.controls.jump_held = on)
 	add_child(_jump)
 
 	_keys = _panel(self)
@@ -232,7 +232,7 @@ func _place() -> void:
 	stick.visible = touch
 	_action.visible = touch
 	_jump.visible = touch
-	_keys.visible = not touch and game != null and game.show_help
+	_keys.visible = not touch and game != null and game.controls.show_help
 	var bottom := h - MARGIN
 	stick.position = Vector2(MARGIN + 4, bottom - stick.size.y)
 	_action.size = _action.custom_minimum_size
@@ -305,16 +305,16 @@ func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 
 
 func update_state() -> void:
-	var hours := int(game.time_of_day * 24.0)
-	var minutes := int(fmod(game.time_of_day * 24.0 * 60.0, 60.0))
-	var winter: bool = game.season == game.WINTER
-	_clock.text = "%s · день %d · %02d:%02d" % [game.SEASONS[game.season], game.day, hours, minutes]
-	var icon := "sun" if game.daylight > 0.35 else "moon"
-	if game.raining:
+	var hours := int(game.sky.time_of_day * 24.0)
+	var minutes := int(fmod(game.sky.time_of_day * 24.0 * 60.0, 60.0))
+	var winter: bool = game.sky.season == game.sky.WINTER
+	_clock.text = "%s · день %d · %02d:%02d" % [game.sky.SEASONS[game.sky.season], game.sky.day, hours, minutes]
+	var icon := "sun" if game.sky.daylight > 0.35 else "moon"
+	if game.sky.raining:
 		icon = "snow" if winter else "rain"
 	_set_icon(_clock_icon, icon)
-	if game.manual_level >= 0:
-		_level_label.text = "Срез %d" % game.cut_level
+	if game.chunks.manual_level >= 0:
+		_level_label.text = "Срез %d" % game.chunks.cut_level
 		_level_label.add_theme_color_override("font_color", UiStyle.ACCENT)
 		_level_label.add_theme_color_override("font_hover_color", UiStyle.ACCENT)
 	else:
@@ -327,15 +327,15 @@ func update_state() -> void:
 func _update_hands() -> void:
 	if game == null:
 		return
-	_hand_left.selected = game.dig_mode
-	_hand_right.selected = not game.dig_mode
+	_hand_left.selected = game.controls.dig_mode
+	_hand_right.selected = not game.controls.dig_mode
 	for i in _slots.size():
-		_slots[i].selected = i == game.selected
-		_slots[i].tag = "П" if i == game.selected else ""
+		_slots[i].selected = i == game.controls.selected
+		_slots[i].tag = "П" if i == game.controls.selected else ""
 	if not _slots.is_empty():
-		_hand_right.texture = _slots[game.selected].texture
-	_action.text = "Копать" if game.dig_mode else "Ставить"
-	_action.icon = UiStyle.icon("pick_dark" if game.dig_mode else "place_dark")
+		_hand_right.texture = _slots[game.controls.selected].texture
+	_action.text = "Копать" if game.controls.dig_mode else "Ставить"
+	_action.icon = UiStyle.icon("pick_dark" if game.controls.dig_mode else "place_dark")
 
 
 func refresh_hands() -> void:
@@ -343,7 +343,7 @@ func refresh_hands() -> void:
 
 
 func _select_slot(i: int) -> void:
-	game.select_block(i)
+	game.controls.select_block(i)
 
 
 func set_loading(text: String) -> void:
@@ -425,19 +425,19 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
 	_menu_buttons["stats"] = _add_menu_button(box, "", toggle_stats)
 	box.add_child(UiStyle.label("Для проверки", UiStyle.MUTED))
-	_menu_buttons["season"] = _add_menu_button(box, "Следующий сезон", func() -> void: game.next_season())
+	_menu_buttons["season"] = _add_menu_button(box, "Следующий сезон", func() -> void: game.sky.next_season())
 	_menu_buttons["rain"] = _add_menu_button(box, "", func() -> void:
-		game.raining = not game.raining
+		game.sky.raining = not game.sky.raining
 		_update_menu())
 	_menu_buttons["time"] = _add_menu_button(box, "", func() -> void:
-		game.time_speed = 1.0 if game.time_speed > 1.0 else 20.0
+		game.sky.time_speed = 1.0 if game.sky.time_speed > 1.0 else 20.0
 		_update_menu())
 	_menu_buttons["shadows"] = _add_menu_button(box, "", func() -> void:
-		game.sun.shadow_enabled = not game.sun.shadow_enabled
+		game.sky.sun.shadow_enabled = not game.sky.sun.shadow_enabled
 		_update_menu())
 	_menu_buttons["keys"] = _add_menu_button(box, "", func() -> void:
-		game.show_help = not game.show_help
-		show_keys(game.show_help)
+		game.controls.show_help = not game.controls.show_help
+		show_keys(game.controls.show_help)
 		_update_menu())
 
 
@@ -446,10 +446,10 @@ func _update_menu() -> void:
 		return
 	var on := func(v: bool) -> String: return "вкл" if v else "выкл"
 	_menu_buttons["stats"].text = "Статистика: %s" % on.call(perf.visible)
-	_menu_buttons["rain"].text = "Осадки: %s" % on.call(game.raining)
-	_menu_buttons["time"].text = "Время ×20: %s" % on.call(game.time_speed > 1.0)
-	_menu_buttons["shadows"].text = "Тени: %s" % on.call(game.sun != null and game.sun.shadow_enabled)
-	_menu_buttons["keys"].text = "Подсказка клавиш: %s" % on.call(game.show_help)
+	_menu_buttons["rain"].text = "Осадки: %s" % on.call(game.sky.raining)
+	_menu_buttons["time"].text = "Время ×20: %s" % on.call(game.sky.time_speed > 1.0)
+	_menu_buttons["shadows"].text = "Тени: %s" % on.call(game.sky.sun != null and game.sky.sun.shadow_enabled)
+	_menu_buttons["keys"].text = "Подсказка клавиш: %s" % on.call(game.controls.show_help)
 	_menu_buttons["keys"].visible = not touch
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
