@@ -141,9 +141,14 @@ void fragment() {
 }
 
 void light() {
-	// Trees, cliffs and the player cast no shadow on the surface under the open sky:
-	// it shows on the bed under the water instead. Water under a roof or in a cave
-	// stays in the dark of what covers it; clouds shade it anyway.
-	float shade = LIGHT_IS_DIRECTIONAL && open_sky > 0.5 ? 1.0 : ATTENUATION;
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds);
+	// Under the open sky the surface takes no hard shadow: a shadow of a tree, a cliff
+	// or the player goes on under the water as a fainter one on the bed (half the
+	// shade of a shadow on land), so it neither lies on the water nor stops at the
+	// shore. Water under a roof or in a cave stays in the dark of what covers it.
+	vec3 lit = toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	if (LIGHT_IS_DIRECTIONAL && open_sky > 0.5) {
+		vec3 sun = toon_light(NORMAL, LIGHT, LIGHT_COLOR, 1.0, true, clouds);
+		lit = mix(lit, sun, 0.5);
+	}
+	DIFFUSE_LIGHT += lit;
 }
