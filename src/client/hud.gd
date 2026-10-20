@@ -111,7 +111,7 @@ func _ready() -> void:
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
-	_test_button = _icon_button(_top, "flask", "Для проверки", toggle_test)
+	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
 	_bag_button = _icon_button(_top, "bag", "Сумка", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
@@ -521,7 +521,7 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["stats"] = _add_menu_button(box, "", toggle_stats)
-	_menu_buttons["test"] = _add_menu_button(box, "Для проверки", open_settings.bind("test"))
+	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 	_settings = SettingsMenu.new(game)
 	_settings.closed.connect(func() -> void:
