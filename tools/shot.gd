@@ -88,6 +88,11 @@ const SHOTS := {
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
+	# Gathering on the felled clearing with berry bushes: some things picked up and
+	# berries picked; then the bag open on a touch screen and with a mouse.
+	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
+	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
+	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -181,6 +186,8 @@ func _run() -> void:
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
 		if shot.get("clearing", false):
 			_clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
+		if shot.get("gather", false):
+			_gather()
 		main.controls.set_touch(shot.get("touch", false))
 		main.hud.perf.visible = shot.get("stats", false)
 		main.hud.show_keys(shot_name == "ui")
@@ -235,7 +242,10 @@ func _run() -> void:
 			main.hud.toggle_menu()
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
-		if shot.get("test", false) or shot.get("menu", false):
+		if shot.get("bag", false):
+			main.hud.toggle_bag()
+			main.hud.bag._choose(1)
+		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false):
 			await process_frame
 			await process_frame
 		var setup: Control = null
@@ -285,7 +295,36 @@ func _run() -> void:
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
+		if shot.get("bag", false):
+			main.hud.toggle_bag()
+		if shot.get("gather", false):
+			main.character.inventory.take_all()
+			main.character.vitals.revive(1.0)
 	quit()
+
+
+## On the felled clearing: berry bushes by the player, the things lying nearest picked
+## up, a bush picked, some blocks dug, and the character a little tired and hungry.
+func _gather() -> void:
+	var w = main.world
+	var at := Vector3i((main.player.position / CELL).floor())
+	for i in 3:
+		var cell := at + Vector3i(-6 + i * 3, 0, 5)
+		w.add_bush(cell, [Bushes.RASPBERRY, Bushes.BLUEBERRY, Bushes.SHRUB][i])
+		main.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
+	var g = main.gathering
+	g._from_bush(at + Vector3i(-6, 0, 5))
+	g._from_bush(at + Vector3i(0, 0, 5))
+	for key: Vector2i in w.drops.keys():
+		var list: Array = w.drops[key]
+		for i in range(list.size() - 1, -1, -1):
+			if i < list.size() and list[i][1].x < main.player.position.x - 1.0:
+				g._pick_up(key, i)
+	main.character.inventory.add("core:dirt", 4)
+	main.character.inventory.add("core:stone", 5)
+	main.character.vitals.stamina = 45.0
+	main.character.vitals.satiety = 35.0
+	main.hud.refresh_counts()
 
 
 ## The nearest spot to `p` with level dry ground and no trees for 7 cells around.

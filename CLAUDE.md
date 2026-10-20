@@ -31,10 +31,10 @@ comments, commits and PRs are in English.
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
-- `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, creatures,
-  trees, bushes), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
+- `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
+  creatures, trees, bushes), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
   reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI); the
-  registries `materials.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd` fill their static vars from
+  registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd` fill their static vars from
   them when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`.
   New numbers that describe content go into the YAML and the schema, not into constants.
 - Scripts are loaded with `preload` consts, no `class_name`.
@@ -50,7 +50,9 @@ comments, commits and PRs are in English.
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
   `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›"), `save_game.gd`
   (picks the world played last, puts the player, clock and props back, autosaves; modules keep
-  their part of the player with `save.track(name, obj)`).
+  their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
+  `Inventory` and `Vitals` from `src/shared/`, action costs, death), `gathering.gd` (picking up
+  drops, berries and branches off bushes by a tap near them).
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push

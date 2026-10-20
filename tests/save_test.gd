@@ -52,6 +52,8 @@ func _run() -> void:
 	var bag := Bag.new()
 	main.save.track("bag", bag)
 	bag.items = {"core:stick": 3.0}
+	main.character.inventory.add("core:branch", 7)
+	main.character.vitals.satiety = 42.0
 	main.save.begin()
 	# A pit dug three cells deep beside the player, who then steps aside.
 	var w = main.world
@@ -95,6 +97,8 @@ func _run() -> void:
 	var bag2 := Bag.new()
 	main.save.track("bag", bag2)
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
+	_check(main.character.inventory.count("core:branch") == 7, "the character's bag comes back")
+	_check(absf(main.character.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

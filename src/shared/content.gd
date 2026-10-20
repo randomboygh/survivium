@@ -1,7 +1,7 @@
 extends RefCounted
 ## Mods and their data files. A mod is a folder under `content/` with `mod.yaml` and
-## `data/<kind>.yaml`, one file per kind of record (materials, creatures, trees,
-## bushes), each a list of records with an `id`. Ids carry the mod's namespace:
+## `data/<kind>.yaml`, one file per kind of record (materials, items, creatures,
+## trees, bushes), each a list of records with an `id`. Ids carry the mod's namespace:
 ## `grass` in the core mod is `core:grass`, and a reference without a namespace
 ## means the same mod. A later mod may redefine a record of an earlier one by id.
 ##
@@ -9,7 +9,7 @@ extends RefCounted
 ## unknown fields, missing fields without a default and broken references are
 ## reported with the file and the id. The game loads what it can and reports the
 ## problems; `tools/validate.gd` runs the same checks in CI and fails on any.
-## The registries (materials.gd, ai_rules.gd, trees.gd, bushes.gd) read their kind
+## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd) read their kind
 ## with `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.OAK` or `AiRules.SPECIES` as before.
 
@@ -21,9 +21,9 @@ static var MODS: Array = ["core"]
 
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
-## ref:<kind> (an id of a record of that kind). `min`/`max` bound numbers, in a list
-## each item. A field without
-## `default` is required. `id` and `title` are implied for every kind.
+## ref:<kind> (an id of a record of that kind; an empty default means none). `min`/`max`
+## bound numbers, in a list each item. A field without `default` is required. `id` and
+## `title` are implied for every kind.
 const SCHEMAS := {
 	"materials": {
 		"solid": {"type": "bool", "default": true},
@@ -31,6 +31,15 @@ const SCHEMAS := {
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
+		"item": {"type": "ref:items", "default": ""},
+	},
+	"items": {
+		"weight": {"type": "float", "min": 0.0},
+		"stack": {"type": "int", "min": 1},
+		"food": {"type": "float", "min": 0.0, "default": 0.0},
+		"place": {"type": "ref:materials", "default": ""},
+		"model": {"type": "string", "default": ""},
+		"icon": {"type": "string", "default": ""},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},
@@ -48,7 +57,7 @@ const SCHEMAS := {
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
-		"seed": {"type": "string", "default": ""},
+		"seed": {"type": "ref:items", "default": ""},
 	},
 	"bushes": {
 		"tint": {"type": "color"},
@@ -58,6 +67,9 @@ const SCHEMAS := {
 		"rise": {"type": "float", "min": 0.0},
 		"spread": {"type": "vec3"},
 		"small": {"type": "bool", "default": false},
+		"fruit": {"type": "ref:items", "default": ""},
+		"fruit_count": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
+		"twigs": {"type": "int", "min": 0, "default": 0},
 	},
 }
 const MOD_SCHEMA := {
@@ -310,6 +322,8 @@ static func _check_refs() -> void:
 			for r in _kinds[kind]:
 				var refs: Array = r[key] if spec.type == "list" else [r[key]]
 				for ref in refs:
+					if ref == "" and spec.get("default") == "":
+						continue
 					if find(of, ref).is_empty():
 						problems.append("%s/data/%s.yaml: %s.%s: no %s `%s`" % [r.mod, kind, r.id, key, of, ref])
 

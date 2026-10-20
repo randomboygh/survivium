@@ -44,15 +44,22 @@ var tree_chunks := {}
 ## cells with a bush by chunk (Vector2i), for the chunk that draws them.
 var bushes := {}
 var bush_chunks := {}
-## Things lying on the ground (the logs, branches and seeds of a felled tree), by
-## chunk (Vector2i): [kind, position in world units, angle about y] each. A chunk with
-## any is kept as an edited one.
+## What has been gathered from bushes this year, by the bush's cell: berries picked
+## (true) and branches broken off (how many). Spring clears both (see Gathering); a
+## chunk with any is kept as an edited one.
+var bush_picked := {}
+var bush_twigs := {}
+## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
+## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
+## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
+## see Items) or Items.SACK; `data` is how many items for an item, the stacks
+## ([[id, count]...]) for a sack. A chunk with any is kept as an edited one.
 var drops := {}
 ## Chunks the player changed since they were last saved (see note_edit, WorldGen.pack).
 var unsaved := {}
 ## Per-cell records of the bushes (by the bush's cell, Vector3i), kept and saved with
 ## the chunk the bush stands in. Each name is a Dictionary var of this class.
-const BUSH_MAPS := ["bushes"]
+const BUSH_MAPS := ["bushes", "bush_picked", "bush_twigs"]
 ## While the generator writes cells, edits are not tracked: it works out the shapes
 ## of each chunk itself once the chunks around are final (see WorldGen).
 var track_edits := true
@@ -167,6 +174,8 @@ func remove_chunk(key: Vector2i) -> void:
 		_last = null
 	for cell: Vector3i in bush_chunks.get(key, {}):
 		bushes.erase(cell)
+		bush_picked.erase(cell)
+		bush_twigs.erase(cell)
 	bush_chunks.erase(key)
 	for t: Vector2i in tree_chunks.get(key, {}):
 		trees.erase(t)
@@ -845,8 +854,9 @@ func add_bush(cell: Vector3i, type: int) -> void:
 	bush_chunks[key][cell] = true
 
 
-## Lays a thing of `kind` on the ground at `pos` (world units), turned by `angle`.
-func add_drop(kind: String, pos: Vector3, angle: float) -> void:
+## Lays a thing of `kind` on the ground at `pos` (world units), turned by `angle`;
+## `data` is how many (see drops).
+func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1) -> void:
 	var x := floori(pos.x / CELL)
 	var z := floori(pos.z / CELL)
 	var c := chunk_at(x, z)
@@ -856,12 +866,30 @@ func add_drop(kind: String, pos: Vector3, angle: float) -> void:
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if not drops.has(key):
 		drops[key] = []
-	drops[key].append([kind, pos, angle])
+	drops[key].append([kind, pos, angle, data])
+
+
+## Takes thing `i` of chunk `key` off the ground and returns it (see drops).
+func take_drop(key: Vector2i, i: int) -> Array:
+	var list: Array = drops[key]
+	var d: Array = list[i]
+	list.remove_at(i)
+	note_edit(key.x << SHIFT, key.y << SHIFT)
+	if list.is_empty():
+		drops.erase(key)
+	return d
+
+
+## Notes something gathered from the bush in `cell`: its chunk is kept as edited.
+func note_bush(cell: Vector3i) -> void:
+	note_edit(cell.x, cell.z)
 
 
 func remove_bush(cell: Vector3i) -> void:
 	note_edit(cell.x, cell.z)
 	bushes.erase(cell)
+	bush_picked.erase(cell)
+	bush_twigs.erase(cell)
 	var key := Vector2i(cell.x >> SHIFT, cell.z >> SHIFT)
 	if bush_chunks.has(key):
 		bush_chunks[key].erase(cell)

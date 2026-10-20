@@ -234,6 +234,8 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 func next_season() -> void:
 	season = (season + 1) % 4
 	season_clock = 0.0
+	if game.gathering != null and game.world != null:
+		game.gathering.on_season(season)
 	print("season: %s" % SEASONS[season])
 	game.hud.toast("Наступила %s" % SEASONS[season].to_lower() if season != 1 else "Наступило лето")
 
