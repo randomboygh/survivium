@@ -5,6 +5,7 @@ extends Node
 ## oblique 3/4 view, is colour graded and scaled up by a whole number without
 ## filtering (see PixelView); the interface (Hud) is scaled by a whole number too.
 
+const Bushes := preload("res://src/shared/bushes.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -54,6 +55,8 @@ const WINTER := 3
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
+## Share of the berries ripe on bushes.
+const BERRY_AMOUNT := [0.0, 1.0, 0.55, 0.0]
 ## How often the hint under the mouse pointer is updated, in seconds.
 const TIP_INTERVAL := 0.1
 
@@ -127,6 +130,7 @@ var wet := 0.0
 var foliage := Vector3.ONE
 var grass := Vector3.ONE
 var leaf_amount := 1.0
+var berry_amount := 1.0
 var clouds := 0.3
 var cloud_pos := Vector2.ZERO
 var wind_clock := 0.0
@@ -525,17 +529,20 @@ func _build_scene() -> void:
 
 func _place_props() -> void:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = WORLD_SEED + 100
-	for i in 400:
-		var x := rng.randi_range(1, world.size_x - 2)
-		var z := rng.randi_range(1, world.size_z - 2)
-		var y: int = world.surface_y(x, z)
-		if y > 0 and y < world.size_y and world.get_cell(x, y - 1, z) == Mat.GRASS and world.get_cell(x, y, z) == Mat.AIR \
-				and world.slope_mask(x, y - 1, z) == world.FULL:
-			bush_cells.append(Vector3i(x, y, z))
+	# Until the world generator places bushes, they are scattered plainly.
+	if world.bushes.is_empty():
+		Bushes.scatter(world, WORLD_SEED + 100)
+	bush_cells.assign(world.bushes.keys())
 	var bush_mat := _material(LeavesShader)
-	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps(Foliage.BUSH_CLUMP, [Foliage.BUSH_CLUMP], false))
+	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_bush_clumps(Foliage.BUSH_CLUMP))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
+	bush_mat.set_shader_parameter("clump_rows", PixelTextures.BUSH_ROWS)
+	bush_mat.set_shader_parameter("branch_row", PixelTextures.BUSH_TWIG_ROW)
+	var berry_colors := PackedVector3Array()
+	for b: Dictionary in Bushes.TYPES:
+		var c: Color = b.berries
+		berry_colors.append(Vector3(c.r, c.g, c.b))
+	bush_mat.set_shader_parameter("berry_colors", berry_colors)
 	bushes = _multimesh(Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true), bush_mat, true, true)
 	bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	bushes.extra_cull_margin = CULL_MARGIN
@@ -597,14 +604,14 @@ func _level_ground(cell: Vector3i) -> void:
 
 
 func _refresh_bushes() -> void:
-	var part: Array = Foliage.bushes(bush_cells)
+	var part: Array = Foliage.bushes(bush_cells, world.bushes)
 	bushes.multimesh.instance_count = part[0]
 	if part[0] > 0:
 		bushes.multimesh.buffer = part[1]
 	var discs := PackedFloat32Array()
 	for cell in bush_cells:
 		Foliage.put(discs, (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0))
-		discs.append_array([Foliage.BERRIES, 0.0, 0.0, 0.0])
+		discs.append_array([Foliage.bush_kind(world.bushes.get(cell, Bushes.SHRUB)), 0.0, 0.0, 0.0])
 	bush_shade.multimesh.instance_count = bush_cells.size()
 	if not bush_cells.is_empty():
 		bush_shade.multimesh.buffer = discs
@@ -715,6 +722,8 @@ func _on_cell_changed(cell: Vector3i) -> void:
 	if bush_cells.has(cell) or bush_cells.has(above):
 		bush_cells.erase(cell)
 		bush_cells.erase(above)
+		world.bushes.erase(cell)
+		world.bushes.erase(above)
 		_refresh_bushes()
 
 
@@ -909,6 +918,7 @@ func _update_weather(delta: float) -> void:
 	foliage = foliage.lerp(FOLIAGE[season], k)
 	grass = grass.lerp(GRASS[season], k)
 	leaf_amount = lerpf(leaf_amount, LEAF_AMOUNT[season], k)
+	berry_amount = lerpf(berry_amount, BERRY_AMOUNT[season], k)
 	clouds = lerpf(clouds, 0.8 if raining else 0.28, minf(1.0, delta * 0.3))
 	wind_clock += delta
 	var gust := 0.25 + 0.25 * sin(wind_clock * 0.35) + 0.15 * sin(wind_clock * 1.3)
@@ -920,6 +930,7 @@ func _update_weather(delta: float) -> void:
 	g.global_shader_parameter_set("foliage_tint", foliage)
 	g.global_shader_parameter_set("grass_tint", grass)
 	g.global_shader_parameter_set("leaf_amount", leaf_amount)
+	g.global_shader_parameter_set("berry_amount", berry_amount)
 	g.global_shader_parameter_set("cloud_cover", clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)
 	g.global_shader_parameter_set("wind", wind)

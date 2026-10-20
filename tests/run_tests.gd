@@ -11,6 +11,8 @@ const PixelView := preload("res://src/client/pixel_view.gd")
 const PlayerScript := preload("res://src/client/player.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
+const Bushes := preload("res://src/shared/bushes.gd")
+const PixelTextures := preload("res://src/client/pixel_textures.gd")
 
 var checks := 0
 var failures := 0
@@ -30,6 +32,7 @@ func _init() -> void:
 	_test_ai_relations()
 	_test_pixel_view()
 	_test_trees()
+	_test_bushes()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -552,3 +555,28 @@ func _test_trees() -> void:
 		rows[row >= 3] = true
 	_check(rows.size() == 2, "crowns have both broad leaves and needles")
 
+
+
+func _test_bushes() -> void:
+	var w := WorldGen.generate(42, 128, 40, 128)
+	Bushes.scatter(w, 7)
+	var kinds := {}
+	var on_grass := true
+	for at: Vector3i in w.bushes:
+		kinds[w.bushes[at]] = true
+		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR
+	_check(on_grass, "bushes stand in air on grass")
+	_check(kinds.size() == Bushes.TYPES.size(), "the scattering grows every type of bush")
+	# Each bush draws its type's clusters, berry bushes some with berries.
+	var cells: Array[Vector3i] = []
+	cells.assign(w.bushes.keys())
+	var part: Array = Foliage.bushes(cells, w.bushes)
+	var want := 0
+	for at in cells:
+		want += Bushes.TYPES[w.bushes[at]].cards
+	_check(part[0] == want, "bushes draw their clusters")
+	var buf: PackedFloat32Array = part[1]
+	var ripe := false
+	for i in part[0]:
+		ripe = ripe or int(buf[i * 20 + 19]) % Foliage.DEEP_ROW >= PixelTextures.BERRY_ROW
+	_check(ripe, "berry bushes have clusters with berries")

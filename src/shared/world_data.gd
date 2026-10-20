@@ -44,6 +44,8 @@ var sloped_cols := PackedInt64Array()
 var corner_cols := PackedInt64Array()
 ## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z).
 var trees := {}
+## Bushes grown in the world: type (see Bushes) by the cell they stand in.
+var bushes := {}
 ## Bits of all levels, and of the top level.
 var all_bits: int
 var top_bit: int

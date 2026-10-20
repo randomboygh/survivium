@@ -22,6 +22,14 @@ const BRANCH_ROW := 6
 const CLUMP_ROWS := 7
 ## Alpha of the pixels on the upper edge of a leaf, needle or twig (see _mark_edges).
 const EDGE_ALPHA := 0.8
+## Bush clusters: rows of bunches of leaves this many px across, then the same with
+## berries on them, then bare twigs. Berry pixels carry BERRY_ALPHA, red a random number
+## per berry and green its shading (1 the shine, 0 the shaded side).
+const BUSH_SIZES := [12, 8]
+const BERRY_ROW := 2
+const BUSH_TWIG_ROW := 4
+const BUSH_ROWS := 5
+const BERRY_ALPHA := 0.65
 
 
 static func build_atlas() -> ImageTexture:
@@ -158,6 +166,56 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := 
 		for v in 4:
 			_mark_edges(img, Vector2i(v * cell, row * cell), cell)
 	return ImageTexture.create_from_image(img)
+
+
+## Leaf clusters of bushes, `cell` px squares: four variants of each of BUSH_SIZES, then
+## the same bunches with berries, then twigs (see BUSH_SIZES).
+static func build_bush_clumps(cell: int) -> ImageTexture:
+	var img := Image.create_empty(cell * 4, cell * BUSH_ROWS, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 41
+	var c := Vector2(cell - 1, cell - 1) / 2.0
+	for row in BUSH_SIZES.size():
+		for v in 4:
+			var plain := Vector2i(v * cell, row * cell)
+			var ripe := Vector2i(v * cell, (row + BERRY_ROW) * cell)
+			# The same bunch twice, the second time with berries.
+			var state := rng.state
+			_leaf_bunch(img, plain, cell, BUSH_SIZES[row], c, rng)
+			rng.state = state
+			_leaf_bunch(img, ripe, cell, BUSH_SIZES[row], c, rng)
+			_mark_edges(img, plain, cell)
+			_mark_edges(img, ripe, cell)
+			_berries(img, ripe, cell, 3, rng)
+	for v in 4:
+		var twigs := Vector2i(v * cell, BUSH_TWIG_ROW * cell)
+		_branches(img, twigs, cell, rng)
+		_mark_edges(img, twigs, cell)
+	return ImageTexture.create_from_image(img)
+
+
+## Draws `count` round berries two by two pixels on the leaves of the `cell` px
+## square at `origin`, apart from each other, more of them on the lower half.
+static func _berries(img: Image, origin: Vector2i, cell: int, count: int, rng: RandomNumberGenerator) -> void:
+	var placed: Array[Vector2i] = []
+	for attempt in 60:
+		if placed.size() >= count:
+			return
+		var p := Vector2i(rng.randi_range(1, cell - 3), roundi(lerpf(1.0, cell - 3.0, sqrt(rng.randf()))))
+		var on_leaves := true
+		for d in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+			if img.get_pixelv(origin + p + d).a < 0.5:
+				on_leaves = false
+		var apart := placed.all(func(q: Vector2i) -> bool: return absi(q.x - p.x) > 2 or absi(q.y - p.y) > 2)
+		if not on_leaves or not apart:
+			continue
+		placed.append(p)
+		var berry := rng.randf()
+		img.set_pixelv(origin + p, Color(berry, 1.0, 0.0, BERRY_ALPHA))
+		img.set_pixelv(origin + p + Vector2i(1, 0), Color(berry, 0.5, 0.0, BERRY_ALPHA))
+		img.set_pixelv(origin + p + Vector2i(0, 1), Color(berry, 0.5, 0.0, BERRY_ALPHA))
+		img.set_pixelv(origin + p + Vector2i(1, 1), Color(berry, 0.0, 0.0, BERRY_ALPHA))
 
 
 ## Draws one bunch `size` px across into the `cell` px square at `origin`.

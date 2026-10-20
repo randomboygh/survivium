@@ -61,15 +61,15 @@ float hash13(vec3 p3) {
 // Share of its leaves a tree still has, by what it does over the year (the alpha of
 // its leaf cards' colour, see Foliage): a bare one (0.8) drops them all once winter
 // comes, one that keeps them (1) holds most of its dry leaves, evergreens (0.6) keep
-// their needles, bushes (0.4) follow the season.
+// their needles, bushes (below 0.5) go bare like the bare ones.
 float leaves_left(float kind) {
 	if (kind > 0.5 && kind < 0.7) {
 		return 1.0;
 	}
-	if (kind > 0.7 && kind < 0.9) {
+	if (kind > 0.7 && kind < 0.9 || kind < 0.5) {
 		return leaf_amount < 0.7 ? 0.0 : leaf_amount;
 	}
-	return kind > 0.9 ? 0.35 + 0.65 * leaf_amount : leaf_amount;
+	return 0.35 + 0.65 * leaf_amount;
 }
 
 // Moving cloud shadows: 1 in the sun, lower under a cloud. Sampled per world texel,
