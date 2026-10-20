@@ -96,7 +96,7 @@ func open(which: String) -> void:
 				func() -> int: return int(s.values.show_help),
 				func(i: int) -> void: s.set_value("show_help", i == 1))
 	else:
-		_title.text = "Для проверки"
+		_title.text = "Тестирование"
 		_add_row("Сезон", sky.SEASONS,
 			func() -> int: return sky.season,
 			func(i: int) -> void: s.set_season(i))
@@ -128,6 +128,9 @@ func open(which: String) -> void:
 		_add_row("Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
 			func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
 			func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]))
+		_add_row("Стройка", ["из сумки", "бесплатно"],
+			func() -> int: return int(s.free_build),
+			func(i: int) -> void: s.set_free_build(i == 1))
 		_add_row("Статистика", ["выкл", "вкл"],
 			func() -> int: return int(game.hud.perf.visible),
 			func(i: int) -> void:

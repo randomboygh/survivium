@@ -514,6 +514,18 @@ func on_cell_changed(cell: Vector3i) -> void:
 	game.props.on_cell_changed(cell)
 
 
+## Builds the mesh of chunk `key` again, by itself: what is drawn on it changed (the
+## berries of a bush) but no cell did.
+func remesh_chunk(key: Vector2i) -> void:
+	if not chunk_nodes.has(key):
+		return
+	if job_mesh != null and job_key == key:
+		_drop_job()
+		if not job_edit:
+			has_target = true
+	dirty_chunks[key] = true
+
+
 # --- Level cutaway -----------------------------------------------------------
 
 func update_cut(delta: float) -> void:

@@ -9,6 +9,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/materials.gd")
 const Content := preload("res://src/shared/content.gd")
+const Items := preload("res://src/shared/items.gd")
 
 ## Leaves of a species.
 const BROAD := 0
@@ -25,8 +26,8 @@ const TREE_REACH := 8
 
 ## Index -> record from `content/*/data/trees.yaml` (see Content): id, title,
 ## leaves (BROAD or NEEDLES), trunk [min, max], crown [3 radii], tints (Colors),
-## bare (share of trees that drop their leaves in winter), seed (what a felled tree
-## drops besides logs and branches). What each means is in the data file; a tree is noted in WorldData.trees by its species index.
+## bare (share of trees that drop their leaves in winter), seed (the item a felled
+## tree drops besides logs and branches, "" none). What each means is in the data file; a tree is noted in WorldData.trees by its species index.
 static var SPECIES: Array = []
 
 
@@ -244,14 +245,14 @@ static func _drops(w, cut: Vector3i, away: Vector2, s: Dictionary, logs: int, le
 	var along := atan2(dir.y, dir.x)
 	for i in maxi(1, (logs + 1) / 2):
 		var p := base + dir * (2.0 + i * 1.8) + side * rng.randf_range(-0.4, 0.4)
-		_drop(w, "log", p, along + rng.randf_range(-0.3, 0.3))
+		_drop(w, Items.LOG, p, along + rng.randf_range(-0.3, 0.3))
 	if leaves == 0:
 		return
 	var crown: float = 2.0 * s.crown[0]
 	var land := base + dir * (logs + crown)
 	for i in clampi(leaves / 60, 2, 8):
 		var p := land + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * crown
-		_drop(w, "branch", p, rng.randf() * TAU)
+		_drop(w, Items.BRANCH, p, rng.randf() * TAU)
 	if s.seed != "":
 		for i in rng.randi_range(2, 4):
 			var p := land + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * crown * 0.8

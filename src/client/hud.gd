@@ -1,7 +1,8 @@
 extends Control
 ## The game screen interface (plan/design/ui.md): clock, level cutaway, statistics and
 ## menu buttons, hotbar with both hands, joystick and action buttons on touch screens,
-## key hints with a mouse, short messages, the hover hint and the pause menu.
+## key hints with a mouse, short messages, the hover hint, the pause menu, the
+## character's state (VitalsPanel) and the bag (InventoryWindow).
 ##
 ## The root is scaled by a whole number so one UI pixel is one pixel of the world, and
 ## the layout follows the shape of the screen: wide, tablet-like and portrait screens
@@ -16,6 +17,10 @@ const SettingsMenu := preload("res://src/client/settings_menu.gd")
 const Minimap := preload("res://src/client/minimap.gd")
 const MapView := preload("res://src/client/map_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
+const Items := preload("res://src/shared/items.gd")
+const ItemIcons := preload("res://src/client/item_icons.gd")
+const VitalsPanel := preload("res://src/client/vitals_panel.gd")
+const InventoryWindow := preload("res://src/client/inventory_window.gd")
 
 const MARGIN := 8.0
 const CELL := 0.5
@@ -25,7 +30,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить\n1–7, колесо — блок\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -38,6 +43,9 @@ var _clock_icon: TextureRect
 var _clock: Label
 var _toasts: VBoxContainer
 var perf: PanelContainer
+var vitals: VitalsPanel
+var bag: InventoryWindow
+var _bag_button: Button
 var _top: HBoxContainer
 var _stats_button: Button
 var _test_button: Button
@@ -88,6 +96,8 @@ func _ready() -> void:
 	_clock = UiStyle.label()
 	row.add_child(_clock)
 	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	vitals = VitalsPanel.new()
+	_left.add_child(vitals)
 	perf = PerfPanel.new()
 	perf.visible = false
 	perf.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -101,7 +111,8 @@ func _ready() -> void:
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
-	_test_button = _icon_button(_top, "flask", "Для проверки", toggle_test)
+	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
+	_bag_button = _icon_button(_top, "bag", "Сумка", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
 	_level = BoxContainer.new()
@@ -194,6 +205,10 @@ func _ready() -> void:
 	_loading_label.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	_loading.add_child(_loading_label)
 
+	bag = InventoryWindow.new(game)
+	add_child(bag)
+	game.character.state_changed.connect(refresh_counts)
+
 	_build_menu()
 	_update_hands()
 
@@ -208,7 +223,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
 			KEY_ESCAPE:
-				toggle_menu()
+				if bag.visible:
+					toggle_bag()
+				else:
+					toggle_menu()
 				get_viewport().set_input_as_handled()
 			KEY_F3:
 				toggle_stats()
@@ -255,7 +273,7 @@ func _place() -> void:
 	stick.visible = touch
 	_action.visible = touch
 	_jump.visible = touch
-	_keys.visible = not touch and game != null and game.controls.show_help
+	_keys.visible = not touch and game != null and game.controls.show_help and not bag.visible
 	var bottom := h - MARGIN
 	stick.position = Vector2(MARGIN + 4, bottom - stick.size.y)
 	_action.size = _action.custom_minimum_size
@@ -294,7 +312,9 @@ func _place() -> void:
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 	_settings.fit(size)
+	bag.fit(size)
 	map_view.fit(size, touch)
+	refresh_counts()
 
 
 func _pages() -> int:
@@ -317,6 +337,7 @@ func _next_page() -> void:
 
 ## Fills the hotbar with block icons cut from the terrain atlas.
 func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
+	ItemIcons.use_atlas(atlas, tile, tiles)
 	for i in _slots.size():
 		var m: int = Mat.PLACEABLE[i]
 		var t := m * 3
@@ -325,8 +346,21 @@ func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 		# The middle 12x12 of the 16 px tile, drawn twice as large.
 		icon.region = Rect2((t % tiles) * tile + 2, floori(t / float(tiles)) * tile + 2, 12, 12)
 		_slots[i].texture = icon
-		_slots[i].number = str(i + 1)
+	refresh_counts()
 	_update_hands()
+
+
+## Shows on each hotbar block how many the bag holds (none with free building) and,
+## with a mouse, its key.
+func refresh_counts() -> void:
+	if game == null:
+		return
+	var free: bool = game.settings.free_build
+	for i in _slots.size():
+		var n: int = game.character.inventory.count(Items.placed_by[Mat.PLACEABLE[i]])
+		_slots[i].number = "" if free else str(n)
+		_slots[i].modulate = Color.WHITE if free or n > 0 else Color(1, 1, 1, 0.5)
+		_slots[i].key = "" if touch else str(i + 1)
 
 
 func update_state() -> void:
@@ -334,6 +368,9 @@ func update_state() -> void:
 	var minutes := int(fmod(game.sky.time_of_day * 24.0 * 60.0, 60.0))
 	var winter: bool = game.sky.season == game.sky.WINTER
 	_clock.text = "%s · день %d · %02d:%02d" % [game.sky.SEASONS[game.sky.season], game.sky.day, hours, minutes]
+	vitals.update(game.character.vitals, game.character.inventory.load_share(), get_process_delta_time())
+	if bag.visible:
+		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
 	_set_icon(_clock_icon, game.sky.icon())
 	if game.chunks.manual_level >= 0:
@@ -406,10 +443,18 @@ func show_tip(screen_pos: Vector2, text: String) -> void:
 
 func show_keys(on: bool) -> void:
 	_place()
-	_keys.visible = on and not touch
+	_keys.visible = on and not touch and not bag.visible
 
 
 # --- Statistics and menu ---------------------------------------------------------
+
+## Opens or closes the bag over the running game.
+func toggle_bag() -> void:
+	bag.toggle()
+	vitals.pinned = bag.visible
+	_bag_button.modulate = UiStyle.ACCENT if bag.visible else Color.WHITE
+	_place()
+
 
 func toggle_stats() -> void:
 	perf.visible = not perf.visible
@@ -476,7 +521,7 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["stats"] = _add_menu_button(box, "", toggle_stats)
-	_menu_buttons["test"] = _add_menu_button(box, "Для проверки", open_settings.bind("test"))
+	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 	_settings = SettingsMenu.new(game)
 	_settings.closed.connect(func() -> void:
@@ -500,7 +545,7 @@ func _update_menu() -> void:
 func debug_rects() -> Dictionary:
 	var out := {}
 	var items := {"stick": stick, "buttons": _action, "jump": _jump, "hotbar": _bar, "menu": _menu_button,
-		"test": _test_button}
+		"test": _test_button, "bag": _bag_button}
 	for k in items:
 		var c: Control = items[k]
 		out[k] = c.get_global_rect() if c.is_visible_in_tree() else Rect2()

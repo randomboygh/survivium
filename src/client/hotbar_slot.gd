@@ -1,6 +1,7 @@
 extends Control
-## One item cell of the hotbar or a hand: a sunken well with an icon, a tag in the top
-## left corner (which hand holds it: Л, П or Л+П) and a number or key in the bottom right.
+## One item cell of the hotbar, a hand or the bag: a sunken well with an icon, a tag in
+## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
+## a number (how many) in the bottom right.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 
@@ -19,6 +20,10 @@ var tag := "":
 var number := "":
 	set(v):
 		number = v
+		queue_redraw()
+var key := "":
+	set(v):
+		key = v
 		queue_redraw()
 var selected := false:
 	set(v):
@@ -59,6 +64,9 @@ func _draw() -> void:
 	var fs := UiStyle.FONT_SIZE
 	if tag != "":
 		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
+	if key != "":
+		var kw := font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		_text(font, key, Vector2(size.x - 3 - kw, 3 + font.get_ascent(fs)), UiStyle.MUTED)
 	if number != "":
 		var w := font.get_string_size(number, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		_text(font, number, Vector2(size.x - 3 - w, size.y - 3 - font.get_descent(fs)), UiStyle.INK)
