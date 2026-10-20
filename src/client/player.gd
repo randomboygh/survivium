@@ -39,6 +39,8 @@ const FLOAT_SPEED := 4.0
 var world
 ## Movement wish: x = east, y = south, length up to 1.
 var move_input := Vector2.ZERO
+## Playtest multiplier of the walking speed (Settings.PLAYER_SPEEDS).
+var speed_scale := 1.0
 var velocity_y := 0.0
 var on_ground := false
 var swimming := false
@@ -129,7 +131,7 @@ func step(delta: float, jump: bool) -> void:
 		surface = -INF
 	water_depth = maxf(0.0, surface - p.y)
 	water_level = surface if water_depth > 0.0 else -INF
-	var speed := SPEED * (SWIM if swimming else (WADE if water_depth > 0.3 else 1.0))
+	var speed := SPEED * speed_scale * (SWIM if swimming else (WADE if water_depth > 0.3 else 1.0))
 	# In water the body gets out onto ground up to one level above the water's cell.
 	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
 	var dir := move_input.limit_length(1.0)

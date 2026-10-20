@@ -4,8 +4,9 @@ extends RefCounted
 ## comes from noise at the column itself, so any chunk can be made at any time, as the
 ## player comes near (see ChunkStreamer), and made again the same after it was dropped.
 ## Continents and oceans come from a very slow noise, mountains, plateaus and cliff
-## coasts from slower and faster ones over the land, rivers run along the zero lines of
-## a noise and lakes fill its high spots, both at the level of the sea, and the climate
+## coasts from slower and faster ones over the land (and flat beaches where the cliff
+## noise is low), rivers run along the zero lines of a noise, widening towards the sea,
+## and lakes fill its high spots, both at the level of the sea, and the climate
 ## (warmth and moisture) is noise too, so biomes spread over hundreds of cells. A chunk
 ## is made in three stages that each read only what the stages before left in place:
 ## 1. TERRAIN: the columns of the chunk and a margin around it are laid out (height,
@@ -95,6 +96,11 @@ const BIOME_SCALE := [0.5, 1.0, 2.0]
 ## surface here.
 const SHEER_TOP := 1
 const ENTRANCE := 2
+## Cells of level sand along a flat coast (see _relief).
+const FLAT_BEACH := 28.0
+## Rivers widen towards the sea or a lake over this many cells, so they are brooks
+## at their sources and broad at their mouths.
+const MOUTH_REACH := 400.0
 
 var world: WorldData
 var world_seed: int
@@ -520,14 +526,19 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 	# A ragged coast: the distance wobbles with a faster noise.
 	coast += (shape - 128) / 128.0 * 6.0
 	var h := hills / 255.0
-	var inland := clampf(coast / 64.0, 0.0, 1.0)
-	var land := sea + 1.0 + inland * (1.0 + h * 7.0)
-	var floor_h := sea - 2.0 - minf(5.0, -coast / 8.0)
+	# Where the cliff noise is low the coast is a flat beach: the land stays a level
+	# above the sea for a band of FLAT_BEACH cells, and the sea floor slopes gently.
+	var cl := cliff / 127.5 - 1.0
+	var flat := 1.0 - smoothstep(-0.3, -0.05, cl)
+	var inland := clampf((coast - FLAT_BEACH * flat) / 64.0, 0.0, 1.0)
+	# The hills grow in further from the coast than the land rises.
+	var land := sea + 1.0 + inland * (1.0 + h * 7.0 * inland)
+	var floor_h := lerpf(sea - 2.0 - minf(5.0, -coast / 8.0), sea - 1.0 - minf(6.0, -coast / 10.0), flat)
 	var kind := PLAIN
 	var mask := smoothstep(-6.0, 6.0, coast)
 	# Cliff coasts: the land keeps its height right up to the water and drops into
 	# the sea in one sheer wall.
-	var cliffy := smoothstep(0.35, 0.6, cliff / 127.5 - 1.0)
+	var cliffy := smoothstep(0.35, 0.6, cl)
 	if cliffy > 0.5 and coast < 48.0:
 		mask = 1.0 if coast > 0.0 else 0.0
 		land = maxf(land, sea + 4.0 + h * 3.0)
@@ -602,34 +613,40 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		var sheer := steep[j] >= steep_t or kind == CLIFFS or kind == HIGHLAND
 		var rocky := height > sea + 12 or (kind == CLIFFS and height >= sea)
 		var wt := -1
+		# Rivers along the zero lines of the river noise, where the flow noise lets
+		# them run, narrow at the source and wider towards the sea or a lake.
+		var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0)
+		var d := river[j]
+		var mouth := 1.0 - smoothstep(0.0, MOUTH_REACH, minf(coast[j], -lake[j]))
+		var rw := 0.6 + (1.6 + 4.4 * mouth) * flowing
+		var wet_bed := flowing > 0.2
+		# The river's bed, also cut into the floor of the lake or the sea it flows
+		# into, so the channel runs on without a step until the floor is deeper.
+		var channel := sea - (2 if d < rw - 1.0 else 1) if wet_bed and d <= rw else size_y
 		if height < sea:
 			wt = sea
 			b = SEA
 			feature = OCEAN
+			height = mini(height, channel)
 		else:
 			# Lakes over the high spots of the lake noise in the plains, with gentle
 			# shores.
 			var in_lake := lake[j]
 			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0:
 				if in_lake > 0.0:
-					height = mini(height, sea - 1 - mini(4, int(in_lake / 3.0)))
+					height = mini(mini(height, sea - 1 - mini(4, int(in_lake / 3.0))), channel)
 					wt = sea
 					b = SEA
 					feature = LAKE
 				else:
 					height = mini(height, sea + 1 + int(-in_lake))
-			# Rivers along the zero lines of the river noise, as wide as the flow noise
-			# lets them be; where it fades the valley rises and the river ends.
-			var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0)
+			# Where the flow fades the valley rises and the river ends.
 			if wt < 0 and flowing > 0.0:
-				var d := river[j]
-				var rw := 0.8 + 4.2 * flowing
 				var canyon := kind == MOUNTAIN or kind == HIGHLAND or height > sea + 10
 				var rf := rw + (3.5 if canyon else 1.5)
-				var wet_bed := flowing > 0.2
 				var bed := sea if wet_bed else int(lerpf(height, sea, flowing / 0.2))
 				if d <= rw and wet_bed:
-					height = mini(height, sea - (2 if d < rw - 1.0 else 1))
+					height = mini(height, channel)
 					wt = sea
 					b = SEA
 					top = Mat.SAND

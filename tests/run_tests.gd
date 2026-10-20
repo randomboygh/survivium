@@ -116,6 +116,20 @@ func _test_generation() -> void:
 	# Settings change the world: more water, a different world.
 	var wet := WorldGen.new(42, 40, {"water": 2})
 	_check(wet.coast_level > a.gen.coast_level, "more water lifts the coast")
+	# A river runs into a lake without a step in its bed: where a river column
+	# meets the lake, the lake floor is seldom higher (only beside the channel).
+	var mouth := WorldGen.new(20261018).lay_out(72, -1844, 256, 256)
+	var meets := 0
+	var steps := 0
+	for j in mouth.feature.size():
+		if mouth.feature[j] != WorldGen.RIVER or j < 256 or j >= 255 * 256 or j % 256 == 0 or j % 256 == 255:
+			continue
+		for dj: int in [-1, 1, -256, 256]:
+			if mouth.feature[j + dj] in [WorldGen.LAKE, WorldGen.OCEAN]:
+				meets += 1
+				if mouth.heights[j + dj] > mouth.heights[j]:
+					steps += 1
+	_check(meets > 0 and steps * 4 < meets, "rivers flow into lakes without a step (%d of %d higher)" % [steps, meets])
 
 
 ## A world of `seed` made at once over four by four chunks at its spawn: {"gen", "world",
