@@ -359,7 +359,8 @@ func _update_weather(delta: float) -> void:
 		game.tracks.snow = snow
 		game.tracks.wet = wet
 	if game.drifts_root != null:
-		game.drifts_root.visible = snow > 0.6
+		# The terrain shader shrinks them as the snow melts (drift_size).
+		game.drifts_root.visible = snow > 0.3
 
 
 ## Lightning in a storm: every few seconds a flash, sometimes twice, and a bolt

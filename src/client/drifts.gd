@@ -1,6 +1,7 @@
 extends RefCounted
-## Snowdrifts: low mounds on open level ground that show up with the snow cover. They
-## are drawn with the terrain shader, so they take the snow colour and the stepped
+## Snowdrifts: low mounds on open level ground that show up with the snow cover and
+## sink and shrink as it melts (drift_size in the terrain shader). They are drawn
+## with the terrain shader, so they take the snow colour and the stepped
 ## light, and they are never walked on: the body passes through them.
 
 const Mat := preload("res://src/shared/materials.gd")
@@ -12,7 +13,7 @@ const CELL := WorldData.CELL
 ## Tile 63 of the terrain shader: colour from COLOR only, shaded by COLOR.a.
 const PLAIN := 63
 ## The mound's own colour where the snow pattern leaves a texel bare: a snow tone.
-const SHADE := Color(0.6, 0.64, 0.74)
+const SHADE := Color(0.68, 0.71, 0.79)
 ## One candidate column in this many, on a grid of every other column.
 const SPARSITY := 12
 ## A mound is lit like the flat ground around it (its normals point up, so the toon
@@ -47,8 +48,12 @@ static func mound_mesh() -> ArrayMesh:
 			if upper.x > 0.0:
 				_triangle(verts, normals, p01, p10, p11)
 	var n := verts.size()
+	# UV marks a drift for the terrain shader, which shrinks it as the snow melts:
+	# 4 plus the vertex's place on the round base.
 	var uvs := PackedVector2Array()
 	uvs.resize(n)
+	for i in n:
+		uvs[i] = Vector2(4.0, 4.0) + Vector2(verts[i].x, verts[i].z)
 	var uv2 := PackedVector2Array()
 	uv2.resize(n)
 	uv2.fill(Vector2(Mesher.pack(PLAIN, 0, 0), 0.0))

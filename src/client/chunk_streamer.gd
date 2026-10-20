@@ -51,6 +51,15 @@ const DROPS_PER_FRAME := 4
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
+## The player is down in a ravine, a pit or a cave mouth when earth (not trunks or
+## leaves) stands SUNK_RISE levels above the feet within SUNK_REACH cells on at
+## least SUNK_SIDES of the eight compass directions: then the view is cut at the
+## player's level as under a roof, so the ground above shows as a ghost.
+const SUNK_REACH := 6
+const SUNK_RISE := 3
+const SUNK_SIDES := 5
+const COMPASS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
+	Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1)]
 ## The parts of a chunk's meshes, in the order of chunk_nodes' arrays.
 const PARTS := ["solid", "water", "grass", "clumps", "shadows", "bushes", "drifts"]
 
@@ -108,6 +117,10 @@ var cut_clock := 0.0
 ## The level the player last stood on: a jump does not move the cut.
 var ground_level := 0
 var indoor := false
+## The player stands well below the ground around (see SUNK_SIDES), and where that
+## was last worked out: Vector3i(x, level, z).
+var sunk := false
+var sunk_at := Vector3i(0, -1000, 0)
 
 
 func _init(g) -> void:
@@ -464,6 +477,8 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 ## first, and tells the roof map and the props.
 func on_cell_changed(cell: Vector3i) -> void:
 	game.roof.touch(world, cell)
+	# The ground around the player may have risen or gone: look again.
+	sunk_at.y = -1000
 	if game.hud != null and game.hud.minimap != null:
 		game.hud.minimap.touch(world, cell)
 	# Slopes and corners look at the neighbours, and edges of a top at theirs. The
@@ -509,10 +524,14 @@ func update_cut(delta: float) -> void:
 		if Mat.is_roof(world.get_cell(px, y, pz)):
 			indoor = true
 			break
+	var at := Vector3i(px, level, pz)
+	if at != sunk_at:
+		sunk_at = at
+		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
 	var target: int = world.size_y
 	if manual_level >= 0:
 		target = manual_level
-	elif indoor:
+	elif indoor or sunk:
 		target = level + 1
 	if target != cut_target:
 		cut_target = target
@@ -524,6 +543,22 @@ func update_cut(delta: float) -> void:
 	if cut_level < 0 or manual_level >= 0 or cut_clock >= CUT_DELAY:
 		cut_level = target
 		_apply_cut()
+
+
+## How many of the eight compass directions from column (x, z) meet earth SUNK_RISE
+## levels above `level` within SUNK_REACH cells.
+func _walled_sides(x: int, level: int, z: int) -> int:
+	var y := level + SUNK_RISE
+	if y >= world.size_y:
+		return 0
+	var sides := 0
+	for d in COMPASS:
+		for r in range(1, SUNK_REACH + 1):
+			var m: int = world.get_cell(x + d.x * r, y, z + d.y * r)
+			if Mat.is_roof(m):
+				sides += 1
+				break
+	return sides
 
 
 func shift_cut(d: int) -> void:
