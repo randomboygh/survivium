@@ -59,7 +59,7 @@ const EVERGREEN := 0.6
 ## branches in winter.
 const DEEP_ROW := 8
 ## A crown point belongs to the nearest trunk within this many cells.
-const TREE_REACH := 8
+const TREE_REACH := Trees.TREE_REACH
 ## How far the normals of a spruce's cards lean up on the top of a tier, and down under
 ## the tier above.
 const TIER_UP := 0.8

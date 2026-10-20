@@ -68,6 +68,10 @@ const SHOTS := {
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
 	"grove-spring": {"time": 0.42, "season": 0, "grove": true},
+	"grove-autumn-morning": {"time": 0.31, "season": 2, "grove": true},
+	# A clearing with an oak and a spruce, then the same after both are felled.
+	"clearing": {"time": 0.42, "season": 1, "clearing": true},
+	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -136,6 +140,8 @@ func _run() -> void:
 		if shot.get("grove", false):
 			# Away from the campfire by the spawn, which melts the snow around it.
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
+		if shot.get("clearing", false):
+			_clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
 		main.controls.set_touch(shot.get("touch", false))
 		main.hud.perf.visible = shot.get("stats", false)
 		main.hud.show_keys(shot_name == "ui")
@@ -643,6 +649,39 @@ func _grove(w, at: Vector3i) -> void:
 			for x in range(at.x - 48, at.x + 50, 8):
 				main.chunks.on_cell_changed(Vector3i(x, h, z))
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
+
+
+## A flat clearing at `at` (level of the ground there) with an oak west of the player
+## and a spruce east of them, grown afresh each time; `fell` fells both away from the
+## player a cell above their feet, as the axe would.
+func _clearing(w, at: Vector3i, fell: bool) -> void:
+	var h: int = w.surface_y(at.x, at.z)
+	for z in range(at.z - 24, at.z + 24):
+		for x in range(at.x - 30, at.x + 30):
+			for y in w.size_y:
+				var m := Mat.AIR
+				if y < h:
+					m = Mat.GRASS if y == h - 1 else Mat.DIRT
+				w.set_cell(x, y, z, m)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 40 and absi(key.y - at.z) < 34:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 30 and absi(b.z - at.z) <= 24:
+			w.remove_bush(b)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var oak := Vector2i((at.x - 7) | 1, (at.z - 3) | 1)
+	var spruce := Vector2i((at.x + 7) | 1, (at.z - 3) | 1)
+	Trees.place(w, oak.x, h, oak.y, Trees.OAK, rng)
+	Trees.place(w, spruce.x, h, spruce.y, Trees.SPRUCE, rng, 0.8)
+	for z in range(at.z - 28, at.z + 28, 8):
+		for x in range(at.x - 34, at.x + 34, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	main.player.position = (Vector3(at.x, h, at.z) + Vector3(0.5, 0.0, 0.5)) * CELL
+	if fell:
+		for t in [oak, spruce]:
+			main.controls._fell(Vector3i(t.x, h + 1, t.y))
 
 
 ## The open spot near `at` with the most crowns around it.

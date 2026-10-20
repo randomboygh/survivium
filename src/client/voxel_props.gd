@@ -23,3 +23,75 @@ static func chest() -> VoxelModel:
 		for x in range(7, 9):
 			m.set_voxel(Vector3i(x, y, 12), metal)
 	return m
+
+
+## What a felled tree leaves (see Trees.fell), centred on the origin and lying on it,
+## by kind: a log, a branch, an acorn, a cone.
+static func drop(kind: String) -> VoxelModel:
+	match kind:
+		"log":
+			return _log()
+		"branch":
+			return _branch()
+		"acorn":
+			return _acorn()
+		"cone":
+			return _cone()
+	return null
+
+
+## A log a cell and a half long along x, its cut ends light with a dark ring.
+static func _log() -> VoxelModel:
+	var m := VoxelModel.new()
+	var bark := Color(0.27, 0.19, 0.13)
+	var wood := Color(0.6, 0.46, 0.3)
+	for x in range(-6, 6):
+		for y in range(0, 4):
+			for z in range(-2, 2):
+				# Rounded: the corners of the cross-section are left out.
+				if (y == 0 or y == 3) and (z == -2 or z == 1):
+					continue
+				var c := bark * (0.85 if (x * 3 + z) % 5 == 0 else 1.0) * (1.1 if y == 3 else 1.0)
+				if x == -6 or x == 5:
+					c = wood if (y == 1 or y == 2) and (z == -1 or z == 0) else wood * 0.8
+				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A branch with three twigs, leaves at their ends.
+static func _branch() -> VoxelModel:
+	var m := VoxelModel.new()
+	var twig := Color(0.3, 0.21, 0.14)
+	var leaf := Color(0.3, 0.45, 0.22)
+	for x in range(-7, 8):
+		m.set_voxel(Vector3i(x, 0, 0), twig)
+		if x < -3:
+			m.set_voxel(Vector3i(x, 0, 1), twig)
+	for i in 4:
+		m.set_voxel(Vector3i(-2 + i, 0, -1 - i), twig)
+		m.set_voxel(Vector3i(1 + i, 0, 1 + i), twig)
+		m.set_voxel(Vector3i(4 + i, 0, -1 - i / 2), twig)
+	for p in [Vector3i(7, 0, 0), Vector3i(1, 0, -4), Vector3i(4, 0, 4), Vector3i(7, 0, -2)]:
+		for d in [Vector3i(0, 1, 0), Vector3i(1, 1, 0), Vector3i(0, 1, 1), Vector3i(-1, 0, 0), Vector3i(0, 0, -1)]:
+			m.set_voxel(p + d, leaf, true)
+	return m
+
+
+static func _acorn() -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in 2:
+		for z in 2:
+			m.set_voxel(Vector3i(x - 1, 0, z - 1), Color(0.62, 0.45, 0.22))
+			m.set_voxel(Vector3i(x - 1, 1, z - 1), Color(0.42, 0.32, 0.2))
+	return m
+
+
+static func _cone() -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-1, 3):
+		for z in 2:
+			var c := Color(0.45, 0.3, 0.18) * (0.8 if (x + z) % 2 == 0 else 1.0)
+			m.set_voxel(Vector3i(x, 0, z - 1), c)
+			if x >= 0 and x <= 1:
+				m.set_voxel(Vector3i(x, 1, z - 1), c * 1.1)
+	return m

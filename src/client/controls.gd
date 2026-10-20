@@ -7,6 +7,7 @@ const Mat := preload("res://src/shared/materials.gd")
 const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const Trees := preload("res://src/shared/trees.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a cell can be dug or placed, in world units.
@@ -154,6 +155,8 @@ func _edit(screen_pos: Vector2, dig: bool) -> void:
 	if dig:
 		if cell.y == 0 or too_far(cell):
 			return
+		if world.get_cell(cell.x, cell.y, cell.z) == Mat.LOG and _fell(cell):
+			return
 		world.set_cell(cell.x, cell.y, cell.z, Mat.AIR)
 	else:
 		var normal: Vector3i = hit.normal
@@ -165,6 +168,32 @@ func _edit(screen_pos: Vector2, dig: bool) -> void:
 			return
 		world.set_cell(cell.x, cell.y, cell.z, Mat.PLACEABLE[selected])
 	game.chunks.on_cell_changed(cell)
+
+
+## Fells the tree whose trunk holds `cell`, away from the player; false if it is no
+## trunk of a tree.
+func _fell(cell: Vector3i) -> bool:
+	var world = game.world
+	var away := Vector2(cell.x + 0.5, cell.z + 0.5) * CELL - Vector2(game.player.position.x, game.player.position.z)
+	var before := {}
+	for key in world.drops:
+		before[key] = world.drops[key].size()
+	var gone: Array[Vector3i] = Trees.fell(world, cell, away)
+	if gone.is_empty():
+		return false
+	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
+	# map and the minimap.
+	var cols := {}
+	for c in gone:
+		var col := Vector2i(c.x, c.z)
+		if not cols.has(col) or c.y < cols[col].y:
+			cols[col] = c
+	for col in cols:
+		game.chunks.on_cell_changed(cols[col])
+	for key in world.drops:
+		if world.drops[key].size() != before.get(key, 0):
+			game.props.show_drops(key)
+	return true
 
 
 func too_far(cell: Vector3i) -> bool:

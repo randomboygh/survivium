@@ -44,6 +44,10 @@ var tree_chunks := {}
 ## cells with a bush by chunk (Vector2i), for the chunk that draws them.
 var bushes := {}
 var bush_chunks := {}
+## Things lying on the ground (the logs, branches and seeds of a felled tree), by
+## chunk (Vector2i): [kind, position in world units, angle about y] each. A chunk with
+## any is kept as an edited one.
+var drops := {}
 ## While the generator writes cells, edits are not tracked: it works out the shapes
 ## of each chunk itself once the chunks around are final (see WorldGen).
 var track_edits := true
@@ -162,6 +166,7 @@ func remove_chunk(key: Vector2i) -> void:
 	for t: Vector2i in tree_chunks.get(key, {}):
 		trees.erase(t)
 	tree_chunks.erase(key)
+	drops.erase(key)
 
 
 func has_chunk(key: Vector2i) -> bool:
@@ -825,6 +830,20 @@ func add_bush(cell: Vector3i, type: int) -> void:
 	if not bush_chunks.has(key):
 		bush_chunks[key] = {}
 	bush_chunks[key][cell] = true
+
+
+## Lays a thing of `kind` on the ground at `pos` (world units), turned by `angle`.
+func add_drop(kind: String, pos: Vector3, angle: float) -> void:
+	var x := floori(pos.x / CELL)
+	var z := floori(pos.z / CELL)
+	var c := chunk_at(x, z)
+	if c == null:
+		return
+	c.edited = true
+	var key := Vector2i(x >> SHIFT, z >> SHIFT)
+	if not drops.has(key):
+		drops[key] = []
+	drops[key].append([kind, pos, angle])
 
 
 func remove_bush(cell: Vector3i) -> void:
