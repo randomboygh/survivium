@@ -9,7 +9,7 @@ const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 
-const COLORS := {
+var colors: Dictionary = {
 	Mat.GRASS: Color(0.36, 0.56, 0.24), Mat.DIRT: Color(0.5, 0.36, 0.22), Mat.STONE: Color(0.55, 0.55, 0.55),
 	Mat.SAND: Color(0.86, 0.78, 0.52), Mat.CLAY: Color(0.6, 0.45, 0.38), Mat.COPPER_ORE: Color(0.6, 0.5, 0.4),
 	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.LEAVES: Color(0.16, 0.36, 0.14),
@@ -46,7 +46,7 @@ func _initialize() -> void:
 					depth += 1
 				c = Color(0.4, 0.66, 0.7).lerp(Color(0.1, 0.22, 0.4), clampf((depth - 1) / 6.0, 0.0, 1.0))
 			else:
-				c = COLORS.get(m, Color.MAGENTA)
+				c = colors.get(m, Color.MAGENTA)
 				c = c * (0.75 + 0.5 * (y - w.sea_level) / float(w.size_y - w.sea_level))
 				var north := tops[maxi(z - 1, 0) * sx + x]
 				var west := tops[z * sx + maxi(x - 1, 0)]
@@ -55,7 +55,7 @@ func _initialize() -> void:
 				elif north - y >= 2 or west - y >= 2:
 					c = c.darkened(0.35)
 				if w.leaf_cols[col] != 0:
-					c = c.lerp(COLORS[Mat.LEAVES], 0.7)
+					c = c.lerp(colors[Mat.LEAVES], 0.7)
 				if w.air_cols[col] & ((1 << y) - 1) != 0:
 					c = c.lerp(Color(0.8, 0.2, 0.2), 0.3)
 			img.set_pixel(x, z, Color(c.r, c.g, c.b))

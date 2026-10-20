@@ -584,14 +584,14 @@ func _test_trees() -> void:
 							top = maxi(top, y)
 				fits = fits and top <= Trees.height(species, scale)
 	_check(fits, "trees stay within Trees.height")
-	var w := WorldGen.generate(42, 128, 40, 128)
+	var w := _north_strip()
 	var kinds := {}
 	for at in w.trees:
 		kinds[w.trees[at]] = true
 		_check(w.log_cols[at.y * w.size_x + at.x] != 0, "a noted tree has a trunk")
 	_check(kinds.size() == Trees.SPECIES.size(), "the generator grows every species")
 	# Crowns of spruces take needle cards, of oaks leaf cards.
-	var chunk: Dictionary = Foliage.build_chunk(w, 0, 0, 128)
+	var chunk: Dictionary = Foliage.build_chunk(w, STRIP_X0 * 16, STRIP_Z * 16, STRIP_CHUNKS * 16)
 	var buf: PackedFloat32Array = chunk.clumps[1]
 	var rows := {}
 	for i in chunk.clumps[0]:
@@ -601,16 +601,29 @@ func _test_trees() -> void:
 
 
 
+## A strip of chunks across the taiga of the north of the island, where both species
+## of tree and every type of bush grow: the world the tree and bush tests look at.
+const STRIP_X0 := 26
+const STRIP_Z := 8
+const STRIP_CHUNKS := 12
+
+
+func _north_strip() -> WorldData:
+	var gen := WorldGen.new(42)
+	for x in range(STRIP_X0, STRIP_X0 + STRIP_CHUNKS):
+		_ensure_stage(gen, Vector2i(x, STRIP_Z), WorldGen.SHAPED)
+	return gen.world
+
+
 func _test_bushes() -> void:
-	var w := WorldGen.generate(42, 128, 40, 128)
-	Bushes.scatter(w, 7)
+	var w := _north_strip()
 	var kinds := {}
 	var on_grass := true
 	for at: Vector3i in w.bushes:
 		kinds[w.bushes[at]] = true
 		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR
 	_check(on_grass, "bushes stand in air on grass")
-	_check(kinds.size() == Bushes.TYPES.size(), "the scattering grows every type of bush")
+	_check(kinds.size() == Bushes.TYPES.size(), "the generator grows every type of bush")
 	# Each bush draws its type's clusters, berry bushes some with berries.
 	var cells: Array[Vector3i] = []
 	cells.assign(w.bushes.keys())

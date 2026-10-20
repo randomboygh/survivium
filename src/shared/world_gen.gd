@@ -51,9 +51,9 @@ const BIOME_NAMES := ["Море", "Берег", "Луг", "Лес", "Тайга"
 ## Chance of a tree on a lattice column (every other column each way) per biome, and
 ## the share of spruces among them; groves of the forest noise raise the chance on
 ## meadows. Content data of the core mod will replace these tables.
-const TREE_CHANCE := [0.0, 0.0, 0.004, 0.2, 0.16, 0.03, 0.0, 0.0]
+const TREE_CHANCE := [0.0, 0.0, 0.004, 0.14, 0.12, 0.03, 0.0, 0.0]
 const SPRUCE_SHARE := [0.0, 0.0, 0.2, 0.15, 0.9, 0.0, 0.0, 0.0]
-const GROVE_CHANCE := 0.1
+const GROVE_CHANCE := 0.08
 ## One bush try per this many cells of a biome's ground.
 const BUSH_SPARSITY := [0, 0, 160, 120, 140, 200, 0, 400]
 
@@ -309,6 +309,12 @@ static func _byte(v: float) -> int:
 static func _at(n: FastNoiseLite, x: int, z: int) -> int:
 	n.offset = Vector3.ZERO
 	return _byte(n.get_noise_2d(x, z))
+
+
+## Warmth of a column from its temperature noise byte, 0 cold to 1 warm: the south of
+## the island is warm, the north taiga, and the hills are colder than the lowlands.
+func _temperature(temp: int, z: int, height: int) -> float:
+	return (temp / 255.0) * 0.5 + 0.8 - 0.6 * (1.0 - z / float(size_z)) - (height - sea) * 0.025
 
 
 ## A hash of a column, 0..2^24, different for each `salt` and world.
@@ -675,8 +681,9 @@ func _wetness() -> void:
 				queue.append(nk)
 
 
-## The sample nearest the middle of the map that is low, dry land near water: where
-## the player starts.
+## The sample nearest the middle of the map that is low, dry land near water, on an
+## open meadow when there is one (the climate as the terrain stage reads it, and no
+## grove): where the player starts.
 func _pick_spawn() -> void:
 	var ci := gw / 2
 	var cj := gh / 2
@@ -688,7 +695,13 @@ func _pick_spawn() -> void:
 		var h := g_height[k]
 		if h < sea + 3 or h > sea + 8 or g_lake[k] >= 0 or g_river[k] >= 0 or g_wet[k] < 1:
 			continue
+		var x := i * COARSE + COARSE / 2
+		var z := j * COARSE + COARSE / 2
+		var t := _temperature(_at(n_temp, x, z), z, h)
+		var m := (_at(n_moist, x, z) / 255.0) * 0.6 + 0.4 - g_wet[k] * 0.04
 		var d := (i - ci) * (i - ci) + (j - cj) * (j - cj)
+		if t < 0.5 or m > 0.7 or _at(n_forest, x, z) > _byte(0.2):
+			d += 1 << 20
 		if d < best_d:
 			best_d = d
 			best = k
@@ -775,7 +788,7 @@ func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
 		var sheer := steep[j] >= steep_t or kind == 3 or kind == 2
 		var rocky := height > sea + 12 or (kind == 3 and height >= sea)
 		# Climate: colder to the north and up the hills, wetter near water.
-		var t: float = (temp[j] / 255.0) * 0.5 + 0.7 - 0.8 * z / float(size_z) - (height - sea) * 0.025
+		var t := _temperature(temp[j], z, height)
 		var m := (moist[j] / 255.0) * 0.6 + 0.4 - wet * 0.04
 		# Ravines: narrow winding cuts along a noise's zero line through the dry
 		# lowlands, four to six cells deep.
@@ -803,7 +816,7 @@ func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
 		elif height <= sea + 2 and wet <= 1:
 			b = BEACH
 			top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
-		elif kind == 0 and height <= sea + 3 and swamp[j] > _byte(0.45) and wet <= 4:
+		elif kind == 0 and height <= sea + 4 and swamp[j] > _byte(0.35) and wet <= 4:
 			# A swamp: flat wet ground a level or two above the sea, with pools.
 			b = SWAMP
 			height = sea + 1 + int(soil[j] > _byte(0.4))
@@ -815,9 +828,9 @@ func _layout_row(_key: Vector2i, lay: Dictionary, lz: int) -> void:
 			else:
 				top = Mat.CLAY if p > mud_t else Mat.GRASS
 			sheer = false
-		elif t < 0.45 or height > sea + 9:
+		elif t < 0.3 or height > sea + 9:
 			b = TAIGA
-		elif m > 0.64:
+		elif m > 0.76:
 			b = FOREST
 		if sheer:
 			f |= SHEER_TOP
@@ -1142,7 +1155,7 @@ func _bushes(key: Vector2i, lay: Dictionary) -> void:
 			var y: int = world.surface_y(x, z)
 			if not Bushes.fits(world, x, y, z):
 				continue
-			var near := Bushes._tree_near(world, x, z, 10)
+			var near := Bushes.tree_near(world, x, z, 10)
 			var roll := _chance(x, z, 5)
 			var type := Bushes.SHRUB
 			if near == Trees.SPRUCE:
@@ -1172,13 +1185,19 @@ static func find_spawn(w: WorldData, around: Vector3i) -> Vector3i:
 	return Vector3i(around.x, w.size_y - 1, around.z)
 
 
-## The cell at the middle of the coarse sample nearest to `near` (in cells) that
-## holds `what`: "lake", "river", "canyon" (a river between sheer walls), "swamp",
-## "plateau", "cliffs" (a cliff coast), "beach", "mountain" or "forest"; `near`
-## itself when there is none. For tools and tests.
+## The biome each kind of place of `find_place` wants in its chunk, where a coarse
+## sample alone does not tell (the beach rule beats the swamp rule on a column, a
+## coarse lowland can be dry).
+const PLACE_BIOMES := {"swamp": SWAMP, "forest": FOREST, "plateau": PLATEAU, "beach": BEACH, "mountain": ROCK}
+
+
+## A cell near `near` (in cells) that holds `what`: "lake", "river", "canyon" (a
+## river between sheer walls), "swamp", "plateau", "cliffs" (a cliff coast), "beach",
+## "mountain" or "forest"; `near` itself when there is none. Coarse samples are
+## sorted by distance; where a sample cannot tell the biome, the chunk's terrain is
+## made (it would be anyway) and must hold a good share of it. For tools and tests.
 func find_place(what: String, near: Vector2i) -> Vector2i:
-	var best := near
-	var best_d := 1 << 30
+	var found: Array = []
 	for k in gw * gh:
 		var i := k % gw
 		var j := k / gw
@@ -1193,8 +1212,8 @@ func find_place(what: String, near: Vector2i) -> Vector2i:
 			"canyon":
 				ok = g_river[k] >= 0 and g_lake[k] < 0 and g_height[k] - g_river[k] > 5
 			"swamp":
-				ok = g_height[k] >= sea + 1 and g_height[k] <= sea + 3 and g_wet[k] <= 4 and g_wet[k] >= 1 \
-					and _at(n_swamp, x, z) > _byte(0.45) and _kind_at(x, z) == 0
+				ok = g_height[k] >= sea + 1 and g_height[k] <= sea + 4 and g_wet[k] <= 4 and g_wet[k] >= 1 \
+					and _at(n_swamp, x, z) > _byte(0.35) and _kind_at(x, z) == 0
 			"plateau":
 				ok = _kind_at(x, z) == 2
 			"cliffs":
@@ -1205,13 +1224,34 @@ func find_place(what: String, near: Vector2i) -> Vector2i:
 				ok = _kind_at(x, z) == 1
 			"forest":
 				ok = g_height[k] >= sea + 3 and g_height[k] <= sea + 9 and _at(n_moist, x, z) > _byte(0.5)
-		if not ok:
-			continue
-		var d := (x - near.x) * (x - near.x) + (z - near.y) * (z - near.y)
-		if d < best_d:
-			best_d = d
-			best = Vector2i(x, z)
-	return best
+		if ok:
+			found.append([(x - near.x) * (x - near.x) + (z - near.y) * (z - near.y), x, z])
+	found.sort()
+	if not PLACE_BIOMES.has(what):
+		return Vector2i(found[0][1], found[0][2]) if not found.is_empty() else near
+	var biome: int = PLACE_BIOMES[what]
+	for f in found.slice(0, 48):
+		var key := Vector2i(f[1] / CHUNK, f[2] / CHUNK)
+		if stage_of(key) < TERRAIN:
+			run(key, TERRAIN)
+		var lay: Dictionary = layouts[key]
+		var biomes: PackedByteArray = lay.biome
+		var count := 0
+		var best := -1
+		var best_d := 1 << 30
+		for j in biomes.size():
+			if biomes[j] != biome:
+				continue
+			count += 1
+			var lx := j % WINDOW - MARGIN
+			var lz := j / WINDOW - MARGIN
+			var d := (lx - CHUNK / 2) * (lx - CHUNK / 2) + (lz - CHUNK / 2) * (lz - CHUNK / 2)
+			if d < best_d:
+				best_d = d
+				best = j
+		if count >= WINDOW * WINDOW / 5:
+			return Vector2i(key.x * CHUNK + best % WINDOW - MARGIN, key.y * CHUNK + best / WINDOW - MARGIN)
+	return near
 
 
 func _kind_at(x: int, z: int) -> int:

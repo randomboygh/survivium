@@ -14,8 +14,9 @@ const WorldGen := preload("res://src/shared/world_gen.gd")
 const SIZE := 72
 const STEP := 2
 const FRAME := 2
-## Colours of the ground by its top, shaded by height.
-const COLORS := {
+## Colours of the ground by its top, shaded by height (a var: the materials are data
+## of the core mod, not constants).
+var colors: Dictionary = {
 	Mat.GRASS: Color(0.38, 0.56, 0.26), Mat.DIRT: Color(0.5, 0.38, 0.24), Mat.STONE: Color(0.56, 0.56, 0.56),
 	Mat.SAND: Color(0.84, 0.76, 0.5), Mat.CLAY: Color(0.6, 0.47, 0.38), Mat.COPPER_ORE: Color(0.62, 0.5, 0.4),
 	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.PLANKS: Color(0.6, 0.45, 0.25), Mat.BRICK: Color(0.6, 0.3, 0.25),
@@ -98,7 +99,7 @@ func _color(w: WorldData, x: int, z: int) -> Color:
 		var floor_y := WorldData.top_level(~(air | water) & w.all_bits)
 		return SHALLOW.lerp(DEEP, clampf((y - floor_y - 1) / 6.0, 0.0, 1.0))
 	var m: int = w.cells[y * w.size_x * w.size_z + col]
-	var c: Color = COLORS.get(m, Color(0.5, 0.5, 0.5))
+	var c: Color = colors.get(m, Color(0.5, 0.5, 0.5))
 	c = c * (0.7 + 0.6 * clampf((y - sea) / float(top - sea), 0.0, 1.0))
 	if w.leaf_cols[col] != 0:
 		c = c.lerp(LEAVES, 0.75)

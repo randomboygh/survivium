@@ -10,14 +10,23 @@ comments, commits and PRs are in English.
 
 - `src/shared/` must not preload anything from `src/client/`: it is the world model the future
   server will run (data, generation, materials, trees, bushes, AI rules, raycast).
+- `world_gen.gd` lays the whole island out coarsely at start (one sample per 16 cells: relief,
+  lakes, rivers, wetness, spawn guess), then makes each chunk in three stages, `TERRAIN` (cells of
+  the chunk from a window with a 3-cell margin) → `PLANTED` (trees, needs TERRAIN on the 3×3 around)
+  → `SHAPED` (slopes, corners, bushes; needs PLANTED on the 3×3 around); a mesh needs SHAPED. Stages
+  are stepped a row or a tree at a time through `start`/`step` jobs, and the result does not depend
+  on the order chunks are made in (`run_tests.gd` checks that). Everything is a hash of the column
+  and the seed, so a chunk can be made at any time; `WorldData.track_edits` is off meanwhile.
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
-  node as `game`: `chunk_streamer.gd` (chunks, streaming budgets, caps, the level cut), `sky.gd`
+  node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
+  player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, seasons, weather, light, colour grade), `controls.gd` (keys, mouse, touch, edits),
-  `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (bushes, drifts, chest, campfire),
+  `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (chest, campfire), `minimap.gd`
+  (painted per chunk from the cells, the island view from the coarse layout),
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
   `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›").
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
@@ -50,8 +59,9 @@ draws the island from above; `tools/bench_*.gd` time generation, meshing and edi
 ## Performance rule
 
 Nothing map-sized or chunk-sized runs in one frame. Chunk meshes and plants are built a column of
-cells at a time through `ChunkMesher` / `Foliage` jobs that `chunk_streamer.gd` runs within per-frame budgets
-(edits first, then far chunks, then caps). `tests/frame_test.gd` enforces this. The phone browser is about 10x slower than a desktop in
+cells at a time through `ChunkMesher` / `Foliage` jobs, and chunks are generated a row at a time
+through `WorldGen` jobs, all run by `chunk_streamer.gd` within per-frame budgets (edits first, then
+far chunks, then caps). `tests/frame_test.gd` enforces this. The phone browser is about 10x slower than a desktop in
 GDScript. Notes: `plan/architecture/performance.md`.
 
 ## Gotchas
