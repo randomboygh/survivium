@@ -1234,7 +1234,12 @@ func find_place(what: String, near: Vector2i) -> Vector2i:
 		var key := Vector2i(f[1] / CHUNK, f[2] / CHUNK)
 		if stage_of(key) < TERRAIN:
 			run(key, TERRAIN)
-		var lay: Dictionary = layouts[key]
+		# A shaped chunk has dropped its layout: lay the window out again (cheap).
+		var lay: Dictionary = layouts.get(key, {})
+		if lay.is_empty():
+			lay = _window(key)
+			for lz in WINDOW:
+				_layout_row(key, lay, lz)
 		var biomes: PackedByteArray = lay.biome
 		var count := 0
 		var best := -1
