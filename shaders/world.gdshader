@@ -142,6 +142,9 @@ void fragment() {
 	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
 	vec3 col = COLOR.rgb;
 	bool top = world_normal.y > 0.5;
+	// The dark caps of the cut (see ChunkMesher.build_cap) are cross-sections, not
+	// ground: nothing grows on them.
+	bool cap = tile != NONE && COLOR.r < 0.5;
 	vec2 wt = floor(world_pos.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
 	if (tile != NONE) {
@@ -180,13 +183,14 @@ void fragment() {
 			// where they show on screen, one texel per pixel.
 			tm = ivec2(mod(floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS), TEXELS));
 		}
-		if (top && pick == GRASS * 3 && bare_ground(world_pos.xz) > 0.5) {
+		// A cap of the cut shows the inside of the cells it cuts: soil, not turf.
+		if (top && pick == GRASS * 3 && (cap || bare_ground(world_pos.xz) > 0.5)) {
 			pick = DIRT * 3;
 		}
 		col *= tile_texel(pick, tm);
 		if (pick == GRASS * 3) {
 			col *= grass_tint * grass_variation(world_pos.xz);
-		} else if (top && pick % 3 == 0 && COLOR.r > 0.5) {
+		} else if (top && pick % 3 == 0 && !cap) {
 			col *= ground_variety(pick / 3, world_pos.xz, wt);
 		}
 	} else if ((flag & 1) != 0) {
@@ -235,7 +239,7 @@ void fragment() {
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire.
-	if (top && tile == 3 * 3 && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	if (top && tile == 3 * 3 && !cap && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	float snow = 0.0;
