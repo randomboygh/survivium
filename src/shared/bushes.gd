@@ -43,7 +43,7 @@ static func fits(w, x: int, y: int, z: int) -> bool:
 
 ## Grows a bush of `type` in cell x, y, z (the first cell above the ground).
 static func place(w, x: int, y: int, z: int, type: int) -> void:
-	w.bushes[Vector3i(x, y, z)] = type
+	w.add_bush(Vector3i(x, y, z), type)
 
 
 ## A plain scattering until the world generator places bushes per biome: about one
