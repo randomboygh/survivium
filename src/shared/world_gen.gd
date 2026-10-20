@@ -95,10 +95,16 @@ const RIVER_FROM := [0.1, -0.1, -0.3]
 const LAKE_FROM := [0.66, 0.55, 0.45]
 const BIOME_SCALE := [0.5, 1.0, 2.0]
 
-## Column flags while laying out: the top keeps a sheer wall; caves may open at the
-## surface here.
+## Column flags while laying out: the top keeps a sheer wall; a cave mouth is here
+## (see _entrances), with bigger caves under it.
 const SHEER_TOP := 1
 const ENTRANCE := 2
+## A cave mouth opens sideways where its ground drops by WALL cells or more within
+## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
+## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
+const WALL := 5
+const ADIT := 4
+const PIT_DEPTH := 12
 ## Cells of level sand along a flat coast (see _relief).
 const FLAT_BEACH := 28.0
 ## Rivers widen towards the sea or a lake over this many cells, so they are brooks
@@ -143,6 +149,7 @@ var n_moist: FastNoiseLite
 var n_swamp: FastNoiseLite
 var n_flow: FastNoiseLite
 var n_dunes: FastNoiseLite
+var n_roll: FastNoiseLite
 var n_caves: FastNoiseLite
 var n_ores: FastNoiseLite
 ## The slow noises sampled on the lattice: continents, rivers (along its zero lines)
@@ -351,6 +358,7 @@ func _terrain_step(job: Job, row: int) -> void:
 	if row < WINDOW:
 		_layout_row(job.lay, row)
 		if row == WINDOW - 1:
+			_entrances(job.lay)
 			_banks(job.lay)
 		return
 	row -= WINDOW
@@ -378,20 +386,21 @@ func _noises() -> void:
 	n_soil = _noise(7, 0.025, 2)
 	n_forest = _noise(8, 0.015, 2)
 	n_gully = _noise(9, 0.01, 1)
-	n_mouths = _noise(10, 0.03, 1)
+	n_mouths = _noise(10, 0.02, 1)
 	n_pools = _noise(11, 0.07, 2)
 	n_temp = _noise(12, 0.0005 / biomes, 1)
 	n_moist = _noise(13, 0.0008 / biomes, 2)
 	n_swamp = _noise(17, 0.006, 2)
 	n_flow = _noise(18, 0.0009, 2)
 	n_dunes = _noise(19, 0.035, 2)
+	n_roll = _noise(23, 0.003, 2)
 	n_caves = _noise(14, 0.03, 2)
 	n_ores = _noise(15, 0.075, 1)
 	n_land = _noise(20, 0.00028 / size, 4)
 	n_river = _noise(21, 0.0018, 2)
 	n_lake = _noise(22, 0.004, 2)
 	window_noises = [n_hills, n_ridges, n_mount, n_shape, n_cliff, n_plateau, n_steep, n_soil,
-		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes]
+		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes, n_roll]
 
 
 func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
@@ -437,7 +446,8 @@ func _chance(x: int, z: int, salt: int) -> float:
 ## A window of columns to lay out: `w` by `h` columns `step` cells apart from column
 ## x0, z0. Its noises are sampled by _sample and _lattice, its rows laid out by
 ## _layout_row into one entry per column (j = lz * w + lx): height, water (the top
-## water cell, -1 for none), top, flags, biome, relief kind and what water it is.
+## water cell, -1 for none), top, flags, biome, relief kind and what water it is, and
+## by _entrances the floor of a cave mouth's gallery and the depth of its pit.
 func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	var count := w * h
 	var lay := {"x0": x0, "z0": z0, "w": w, "h": h, "step": step, "grids": []}
@@ -446,7 +456,7 @@ func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 		a.resize(count)
 		lay[k] = a
 	lay.water.fill(-1)
-	for k: String in ["tops", "flags", "biome", "kind", "feature"]:
+	for k: String in ["tops", "flags", "biome", "kind", "feature", "adit", "pit"]:
 		var a := PackedByteArray()
 		a.resize(count)
 		lay[k] = a
@@ -559,7 +569,7 @@ static func _smooth(g: PackedFloat32Array, gw: int, ix: int, iz: int, tx: float,
 ## low coasts rising inland into plains of low hills, mountains with sharp ridges along
 ## the noise's zero lines, the terraces of a plateau and the raised rim of a cliff
 ## coast. Returns [height, kind]; `coast` is the distance from the coast in cells.
-func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int) -> Array:
+func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int, roll: int) -> Array:
 	# A ragged coast: the distance wobbles with a faster noise.
 	coast += (shape - 128) / 128.0 * 6.0
 	var h := hills / 255.0
@@ -568,8 +578,10 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 	var cl := cliff / 127.5 - 1.0
 	var flat := 1.0 - smoothstep(-0.3, -0.05, cl)
 	var inland := clampf((coast - FLAT_BEACH * flat) / 64.0, 0.0, 1.0)
-	# The hills grow in further from the coast than the land rises.
-	var land := sea + 1.0 + inland * (1.0 + h * 7.0 * inland)
+	# The hills grow in further from the coast than the land rises, and only where
+	# the rolling noise is high: elsewhere the plains lie nearly level.
+	var rolling := 0.2 + 0.8 * smoothstep(-0.05, 0.4, roll / 127.5 - 1.0)
+	var land := sea + 1.0 + inland * (1.0 + h * 7.0 * inland * rolling)
 	var floor_h := lerpf(sea - 2.0 - minf(5.0, -coast / 8.0), sea - 1.0 - minf(6.0, -coast / 10.0), flat)
 	var kind := PLAIN
 	var mask := smoothstep(-6.0, 6.0, coast)
@@ -620,6 +632,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var swamp: PackedByteArray = grids[14]
 	var flow: PackedByteArray = grids[15]
 	var dunes: PackedByteArray = grids[16]
+	var roll: PackedByteArray = grids[17]
 	var coast: PackedFloat32Array = lay.coast
 	var river: PackedFloat32Array = lay.river
 	var lake: PackedFloat32Array = lay.lake
@@ -634,13 +647,14 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var soil_t := _byte(0.25)
 	var steep_t := _byte(0.4)
 	var mouth_t := _byte(0.55)
+	var rough_t := _byte(0.3)
 	var pool_t := _byte(0.12)
 	var mud_t := _byte(0.0)
 	var swamp_t := _byte(0.35)
 	var river_from: float = RIVER_FROM[settings.rivers]
 	for lx in w:
 		var j := lz * w + lx
-		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j])
+		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j])
 		var height: int = r[0]
 		var kind: int = r[1]
 		var f := 0
@@ -713,10 +727,11 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
 		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * 0.006
 		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * 0.04
-		# Ravines: narrow winding cuts along a noise's zero line through the dry
-		# lowlands, four to six cells deep.
+		# Ravines: narrow winding cuts along a noise's zero line, four to six cells
+		# deep, through the dry hot lowland and the rolling hills only.
 		var g := absi(gully[j] - 128)
-		if kind == PLAIN and not sheer and wt < 0 and height > sea + 1 and wet >= 2 and g < 5 and feature == DRY:
+		var rough := (t > 0.6 and m < 0.6) or roll[j] > rough_t
+		if kind == PLAIN and rough and not sheer and wt < 0 and height > sea + 1 and wet >= 2 and g < 5 and feature == DRY:
 			height -= 6 if g < 4 else 4
 		if rocky and wt < 0:
 			top = Mat.STONE
@@ -763,9 +778,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			b = FOREST
 		if sheer:
 			f |= SHEER_TOP
-		# In the hills caves come up to the surface here and there, in the mountains
-		# more often.
-		if height > sea + 5 and mouths[j] > (mouth_t - 20 if rocky else mouth_t):
+		# Cave mouths here and there in the hills, more often in the mountains.
+		if height > sea + 3 and mouths[j] > (mouth_t - 20 if rocky else mouth_t):
 			f |= ENTRANCE
 		heights[j] = height
 		water[j] = wt
@@ -774,6 +788,48 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		biome[j] = b
 		kinds[j] = kind
 		features[j] = feature
+
+
+## Where each cave mouth of the window opens (columns three in from its edge, which
+## see the same neighbours in every window, before the banks are raised): beside a
+## drop of WALL cells or more a gallery at the foot of the drop, else on rolling ground
+## high enough a pit, deepest in the middle of the mouth. None within three columns of
+## water.
+func _entrances(lay: Dictionary) -> void:
+	var heights: PackedInt32Array = lay.heights
+	var water: PackedInt32Array = lay.water
+	var flags: PackedByteArray = lay.flags
+	var adit: PackedByteArray = lay.adit
+	var pit: PackedByteArray = lay.pit
+	var mouths: PackedByteArray = lay.grids[10]
+	var w: int = lay.w
+	var pit_t := _byte(0.68)
+	# Pits only in the rolling half of the land.
+	var roll: PackedByteArray = lay.grids[17]
+	var pit_roll_t := _byte(0.1)
+	for lz in range(3, lay.h - 3):
+		for lx in range(3, w - 3):
+			var j := lz * w + lx
+			if flags[j] & ENTRANCE == 0:
+				continue
+			var hh := heights[j]
+			var foot := hh
+			var top := hh
+			var dry := true
+			for dz in range(-3, 4):
+				var base := j + dz * w
+				for dx in range(-3, 4):
+					if water[base + dx] >= 0:
+						dry = false
+					foot = mini(foot, heights[base + dx])
+					top = maxi(top, heights[base + dx])
+			if not dry:
+				continue
+			if top - foot >= WALL:
+				if hh > foot and foot > sea:
+					adit[j] = foot + 1
+			elif hh > sea + 5 and mouths[j] > pit_t and roll[j] > pit_roll_t:
+				pit[j] = mini(mini(2 + (mouths[j] - pit_t) / 4, PIT_DEPTH), hh - 2)
 
 
 ## Water above the sea must not stand beside open air: the ground beside water rises
@@ -806,6 +862,7 @@ func lay_out(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	for lz in h:
 		_layout_row(lay, lz)
 	if step == 1 and w > 2 and h > 2:
+		_entrances(lay)
 		_banks(lay)
 	return lay
 
@@ -830,6 +887,9 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 	var wild_cols := c.wild
 	var all: int = world.all_bits
 	var cave_t := _byte(0.42)
+	var mouth_cave_t := _byte(0.3)
+	var adit: PackedByteArray = lay.adit
+	var pit: PackedByteArray = lay.pit
 	var ore_t := _byte(0.55)
 	var ore_top_t := _byte(0.7)
 	var x_first := key.x * CHUNK
@@ -879,16 +939,29 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 			natural[i] = WorldData.WILD
 		var air_bits := all & ~((1 << (maxi(height, wt) + 1)) - 1)
 		water_cols[col] = ((1 << (wt + 1)) - 1) & ~((1 << (height + 1)) - 1) if wt > height else 0
-		# Caves stay under dry land away from any water, so they never leak; at the
-		# cave mouths they break the surface.
-		if want and height > sea + 2 and wt < 0 and _dry_around(water, j):
-			var cave_top := height + 1 if flags[j] & ENTRANCE else height - 3
-			i = layer + col
-			for yc in range(1, cave_top):
-				if caves[(yc >> 1) * CHUNK + lx] + caves[((yc + 1) >> 1) * CHUNK + lx] > 2 * cave_t:
-					cells[i] = Mat.AIR
-					air_bits |= 1 << yc
-				i += layer
+		# Caves stay three cells under dry land away from any water, so they never
+		# leak, and are bigger under a cave mouth. The mouth itself is a gallery cut
+		# into the foot of a wall or a pit from the surface (see _entrances).
+		if height > sea + 2 and wt < 0 and _dry_around(water, j):
+			if want:
+				var t2 := 2 * (mouth_cave_t if flags[j] & ENTRANCE else cave_t)
+				i = layer + col
+				for yc in range(1, height - 3):
+					if caves[(yc >> 1) * CHUNK + lx] + caves[((yc + 1) >> 1) * CHUNK + lx] > t2:
+						cells[i] = Mat.AIR
+						air_bits |= 1 << yc
+					i += layer
+			var from := 0
+			var to := -1
+			if adit[j] > 0:
+				from = adit[j]
+				to = mini(from + ADIT - 1, height)
+			elif pit[j] > 0:
+				from = height - pit[j] + 1
+				to = height
+			for yc in range(from, to + 1):
+				cells[yc * layer + col] = Mat.AIR
+				air_bits |= 1 << yc
 		air_cols[col] = air_bits
 		wild_cols[col] = all
 
@@ -942,7 +1015,7 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var tops: PackedByteArray = lay.tops
 	var water: PackedInt32Array = lay.water
 	var flags: PackedByteArray = lay.flags
-	if tops[j] != Mat.GRASS or water[j] >= 0 or flags[j] & SHEER_TOP or lay.heights[j] >= size_y - 8:
+	if tops[j] != Mat.GRASS or water[j] >= 0 or flags[j] & (SHEER_TOP | ENTRANCE) or lay.heights[j] >= size_y - 8:
 		return -1
 	var b: int = lay.biome[j]
 	var chance: float = TREE_CHANCE[b]
@@ -1114,7 +1187,8 @@ static func find_spawn(w: WorldData, around: Vector3i) -> Vector3i:
 
 ## A column near `near` (in cells) that holds `what`: "lake", "river", "canyon" (a
 ## river between sheer walls), "swamp", "plateau", "cliffs" (a cliff coast), "beach",
-## "mountain", "forest", "taiga", "desert" or "tundra"; `near` itself when there is
+## "mountain", "pit" (a cave mouth in the plains), "adit" (one in the mountains),
+## "forest", "taiga", "desert" or "tundra"; `near` itself when there is
 ## none within `reach` cells. Columns are laid out on a spiral `stride` cells apart.
 ## For tools and tests.
 func find_place(what: String, near: Vector2i, reach := 6000, stride := 16) -> Vector2i:
@@ -1156,6 +1230,11 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 			return b == BEACH and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
 		"mountain":
 			return b == ROCK and kind == MOUNTAIN
+		"pit":
+			var mouths: PackedByteArray = lay.grids[10]
+			return lay.flags[j] & ENTRANCE and kind == PLAIN and mouths[j] > _byte(0.7) and lay.heights[j] > sea + 7
+		"adit":
+			return lay.flags[j] & ENTRANCE and kind == MOUNTAIN
 		"forest":
 			return b == FOREST
 		"taiga":
