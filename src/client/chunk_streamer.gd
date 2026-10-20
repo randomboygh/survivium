@@ -83,6 +83,14 @@ var has_target := false
 var job_gen: WorldGen.Job
 var job_mesh: ChunkMesher.Job
 var job_plants: Foliage.Job
+## Once the columns of the chunk are built: the part being finished (see run_jobs; -1
+## while the columns are still being built) and what the parts made so far.
+var job_part := -1
+var job_meshes := []
+var job_plant_parts := {}
+## Chunks just shaped whose columns the roof map (part 0) and the minimap (part 1)
+## still have to take, one a frame: Vector3i(key.x, key.y, part).
+var paint_queue: Array[Vector3i] = []
 ## True once every chunk within LOAD_RANGE of the player is built.
 var map_done := false
 ## Time spent in the budgeted loops (chunk steps, caps), for tests/frame_test.gd to
@@ -203,7 +211,7 @@ func build_chunk(key: Vector2i) -> void:
 	var need := _prerequisite(key)
 	while not need.is_empty():
 		gen.run(need[0], need[1])
-		_on_generated(need[0], need[1])
+		_on_generated(need[0], need[1], true)
 		need = _prerequisite(key)
 	gen_us += Time.get_ticks_usec() - t0
 	t0 = Time.get_ticks_usec()
@@ -219,9 +227,10 @@ func build_chunk(key: Vector2i) -> void:
 func build_around() -> void:
 	load_home = Vector2i(-1000000, 0)
 	has_target = false
-	job_mesh = null
-	job_plants = null
+	_drop_job()
 	job_gen = null
+	while not paint_queue.is_empty():
+		_paint(paint_queue.pop_front())
 	_list_pending()
 	while not pending_chunks.is_empty():
 		build_chunk(next_chunk())
@@ -249,23 +258,73 @@ func _prerequisite(key: Vector2i) -> Array:
 
 
 ## A chunk reached a stage: once it is SHAPED its columns are final, so the roof
-## map and the minimap take them.
-func _on_generated(key: Vector2i, stage: int) -> void:
-	if stage == WorldGen.SHAPED:
-		game.roof.fill_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
-		if game.hud != null and game.hud.minimap != null:
-			game.hud.minimap.paint_chunk(world, key)
+## map and the minimap take them, at once with `now` (the loading screen and tools),
+## else one a frame (see run_jobs).
+func _on_generated(key: Vector2i, stage: int, now := false) -> void:
+	if stage != WorldGen.SHAPED:
+		return
+	for part in 2:
+		if now:
+			_paint(Vector3i(key.x, key.y, part))
+		else:
+			paint_queue.append(Vector3i(key.x, key.y, part))
+
+
+## Paints chunk (item.x, item.y) into the roof map (item.z 0) or the minimap (1).
+func _paint(item: Vector3i) -> void:
+	var key := Vector2i(item.x, item.y)
+	if not world.has_chunk(key):
+		return
+	if item.z == 0:
+		game.roof.fill_chunk(world, key)
+	elif game.hud != null and game.hud.minimap != null:
+		game.hud.minimap.paint_chunk(world, key)
+
+
+## Does part `job_part` of finishing the chunk being built (the meshes, the plants,
+## then handing them to the renderer); true after the last.
+func _finish_part() -> bool:
+	var i := job_part
+	if i < ChunkMesher.FINISH_PARTS:
+		job_meshes.append(ChunkMesher.finish_part(job_mesh, i))
+	elif i < ChunkMesher.FINISH_PARTS + Foliage.FINISH_PARTS:
+		Foliage.finish_part(job_plants, i - ChunkMesher.FINISH_PARTS, job_plant_parts)
+	else:
+		_apply_chunk(job_key, job_meshes, job_plant_parts)
+		_drop_job()
+		return true
+	job_part += 1
+	return false
+
+
+## Forgets the mesh and plant jobs of the chunk being built.
+func _drop_job() -> void:
+	job_mesh = null
+	job_plants = null
+	job_part = -1
+	job_meshes = []
+	job_plant_parts = {}
 
 
 ## Generates and builds chunks a step at a time within the frame's budget: edited
 ## chunks first (the chunk of the edit before its neighbours), then the chunks
 ## nearest to the player, generating what each needs before its meshes. At least one
-## step is taken a frame, so a job always ends.
+## step is taken a frame, so a job always ends. The pieces of work that cost more than
+## a step (painting a shaped chunk into the roof map or the minimap, making a mesh or
+## the plant buffers, handing them to the renderer) go one a frame, before anything
+## else in it; an edit may do several while its budget lasts.
 func run_jobs() -> void:
 	var t0 := Time.get_ticks_usec()
 	_list_pending()
+	var worked := false
+	if not paint_queue.is_empty():
+		_paint(paint_queue.pop_front())
+		budget_us += Time.get_ticks_usec() - t0
+		worked = true
 	while true:
 		var t1 := Time.get_ticks_usec()
+		if t1 - t0 >= job_budget and worked:
+			break
 		if job_mesh == null and job_gen == null:
 			if not dirty_chunks.is_empty():
 				job_key = dirty_chunks.keys()[0]
@@ -292,32 +351,36 @@ func run_jobs() -> void:
 		var done := false
 		if job_gen != null:
 			var tg := Time.get_ticks_usec()
-			while not done and Time.get_ticks_usec() - t0 < job_budget:
+			while not done and (Time.get_ticks_usec() - t0 < job_budget or not worked):
 				done = gen.step(job_gen, 1)
+				worked = true
 			gen_us += Time.get_ticks_usec() - tg
 			budget_us += Time.get_ticks_usec() - t1
 			if done:
 				_on_generated(job_gen.key, job_gen.stage)
 				job_gen = null
-			if not done or Time.get_ticks_usec() - t0 >= job_budget:
-				break
 			continue
-		while not done and Time.get_ticks_usec() - t0 < job_budget:
-			done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
-		budget_us += Time.get_ticks_usec() - t1
-		# Making the meshes and handing them to the renderer costs a few milliseconds
-		# more: with the budget spent, that waits for the next frame.
-		if not done or Time.get_ticks_usec() - t0 >= job_budget:
+		if job_part < 0:
+			while not done and (Time.get_ticks_usec() - t0 < job_budget or not worked):
+				done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
+				worked = true
+			budget_us += Time.get_ticks_usec() - t1
+			if not done:
+				break
+			job_part = 0
+			continue
+		if worked and not job_edit:
 			break
-		_apply_chunk(job_key, ChunkMesher.finish(job_mesh), Foliage.finish(job_plants))
-		job_mesh = null
-		job_plants = null
-		has_target = false
-		if not job_edit:
-			game.hud.perf.chunks = chunk_nodes.size()
-		if not job_edit and pending_chunks.is_empty() and not map_done:
-			map_done = true
-			print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), gen_us / 1000, mesh_us / 1000])
+		var finished := _finish_part()
+		worked = true
+		budget_us += Time.get_ticks_usec() - t1
+		if finished:
+			has_target = false
+			if not job_edit:
+				game.hud.perf.chunks = chunk_nodes.size()
+			if not job_edit and pending_chunks.is_empty() and not map_done:
+				map_done = true
+				print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), gen_us / 1000, mesh_us / 1000])
 	mesh_us += Time.get_ticks_usec() - t0
 	_unload_some()
 	_drop_some()
@@ -407,8 +470,7 @@ func on_cell_changed(cell: Vector3i) -> void:
 			keys[WorldData.chunk_key(cell.x + dx, cell.z + dz)] = true
 	if job_mesh != null and keys.has(job_key):
 		# The chunk being built changed under the job: start it over.
-		job_mesh = null
-		job_plants = null
+		_drop_job()
 		if job_edit:
 			keys[job_key] = true
 		else:
