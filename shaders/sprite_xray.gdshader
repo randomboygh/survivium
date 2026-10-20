@@ -6,6 +6,9 @@ render_mode world_vertex_coords, unshaded, depth_test_inverted, depth_draw_never
 #include "res://shaders/common.gdshaderinc"
 
 uniform sampler2D sprite_texture : source_color, filter_nearest;
+// The frame of a sprite sheet to show, as a UV offset and size; a negative width
+// mirrors the frame. The whole texture by default.
+uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 uniform vec4 silhouette : source_color = vec4(0.55, 0.75, 1.0, 0.55);
 uniform float water_line = -1000.0;
 
@@ -17,7 +20,8 @@ void vertex() {
 }
 
 void fragment() {
-	vec4 c = texture(sprite_texture, UV);
+	vec2 uv = frame_uv.xy + UV * frame_uv.zw;
+	vec4 c = texture(sprite_texture, uv);
 	if (c.a < 0.5 || world_pos.y < water_line) {
 		discard;
 	}

@@ -53,6 +53,11 @@ const SHOTS := {
 	"pit": {"time": 0.42, "season": 1, "place": "canyon", "cut": -3},
 	"pit-winter": {"time": 0.45, "season": 3, "place": "canyon", "cut": -3},
 	"tracks-winter": {"time": 0.45, "season": 3, "walk": true},
+	# The character walking in a direction, caught mid-stride.
+	"walk-s": {"time": 0.42, "season": 1, "go": [0.0, 1.0]},
+	"walk-e": {"time": 0.42, "season": 1, "go": [1.0, 0.0]},
+	"walk-ne": {"time": 0.42, "season": 1, "go": [1.0, -1.0]},
+	"walk-w": {"time": 0.42, "season": 1, "go": [-1.0, 0.0]},
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
@@ -156,6 +161,12 @@ func _run() -> void:
 			main.player.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
+		if shot.has("go"):
+			# Keeps walking while the shot is taken, so the walk animation shows.
+			main.player.position = _flat_near(main.world, main.player.position)
+			main.player.move_input = Vector2(shot.go[0], shot.go[1])
+			for i in 12:
+				await process_frame
 		# Messages fade after a few seconds, longer than the settling above takes here.
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
@@ -168,6 +179,7 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		main.player.move_input = Vector2.ZERO
 		print("saved ", shot_name)
 		if shot.get("wall", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
