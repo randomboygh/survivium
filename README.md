@@ -54,7 +54,8 @@
 
 - Движок: Godot 4.5.1, рендерер Compatibility (чтобы работать в браузере), чистый GDScript.
 - Открыть проект: Godot → Import → `project.godot`.
-- Тесты: `godot --headless --path . --import`, затем `godot --headless --path . --script res://tests/run_tests.gd`.
+- Тесты: `godot --headless --path . --import`, затем `godot --headless --path . --script res://tests/run_tests.gd`;
+  тест фризов (игра без экрана, предел времени кадра): `godot --headless --path . --script res://tests/frame_test.gd`.
 - GitHub Actions (`.github/workflows/build.yml`) на каждый пуш и PR запускает тесты, собирает web-версию,
   проверяет её в Chrome (`tests/browser_smoke.mjs`, в том числе как телефон с сенсором) и из `main`
   публикует на GitHub Pages.
@@ -72,7 +73,8 @@
 - `shaders/`: шейдеры мира, воды, травы, крон, теней, спрайтов, частиц и цветокора; общий код и сдвиг
   проекции 3/4 в `common.gdshaderinc`.
 - `assets/fonts/`: пиксельный шрифт Press Start 2P (лицензия OFL).
-- `tests/`: headless-тесты (`run_tests.gd`) и проверка сборки в браузере (`browser_smoke.mjs`).
+- `tests/`: headless-тесты (`run_tests.gd` проверяет данные и меши, `frame_test.gd` ловит фризы) и
+  проверка сборки в браузере (`browser_smoke.mjs`).
 - `tools/`: скриншоты сцен без браузера (`shot.gd`), карта острова сверху (`map.gd`), замеры
   генерации, мешей и правок (`bench_gen.gd`, `bench_mesh.gd`, `bench_edit.gd`).
 

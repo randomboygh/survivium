@@ -52,6 +52,9 @@ jobs:
       - name: Run tests
         run: ~/godot/godot --headless --path . --script res://tests/run_tests.gd
 
+      - name: Play without a screen and check frame times
+        run: timeout 600 ~/godot/godot --headless --path . --script res://tests/frame_test.gd
+
       - name: Export web build
         run: |
           mkdir -p build/web

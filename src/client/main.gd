@@ -48,8 +48,12 @@ const CAP_RANGE := 6
 ## cells at a time (ChunkMesher.step, Foliage.step), so what does not fit waits for
 ## the next frame.
 const CAP_BUDGET_US := 3000
-const EDIT_BUDGET_US := 12000
+const EDIT_BUDGET_US := 9000
 const STREAM_BUDGET_US := 3000
+## A far chunk within this many chunks of the player is about to come into view, so
+## it gets the edit budget instead of the streaming one, and the player does not
+## outrun the map.
+const URGENT_CHUNKS := NEAR_CHUNKS + 1
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
@@ -101,10 +105,16 @@ var job_key := Vector2i.ZERO
 var job_mesh: ChunkMesher.Job
 var job_plants: Foliage.Job
 var job_edit := false
+var job_budget := 0
 var map_done := false
+## Time spent in the budgeted loops (chunk steps, caps), for tests/frame_test.gd to
+## tell it from what a frame does outside a budget.
+var budget_us := 0
 var bushes: MultiMeshInstance3D
 var bush_shade: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
+## Where each bush's cards and shadow sit in the multimeshes: [first card, cards, disc].
+var bush_slots := {}
 var effects
 var tracks
 var roof: RoofMap
@@ -600,18 +610,40 @@ func _level_ground(cell: Vector3i) -> void:
 		_on_cell_changed(cell)
 
 
+## Builds every bush of the map: once, at the start (5 ms on a desktop for 240 bushes,
+## a freeze on a phone, so a bush that goes is hidden by _remove_bush instead).
 func _refresh_bushes() -> void:
 	var part: Array = Foliage.bushes(bush_cells, world.bushes)
 	bushes.multimesh.instance_count = part[0]
 	if part[0] > 0:
 		bushes.multimesh.buffer = part[1]
 	var discs := PackedFloat32Array()
+	bush_slots.clear()
+	var first := 0
 	for cell in bush_cells:
+		var type: int = world.bushes.get(cell, Bushes.SHRUB)
 		Foliage.put(discs, (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0))
-		discs.append_array([Foliage.bush_kind(world.bushes.get(cell, Bushes.SHRUB)), 0.0, 0.0, 0.0])
+		discs.append_array([Foliage.bush_kind(type), 0.0, 0.0, 0.0])
+		var cards: int = Bushes.TYPES[type].cards
+		bush_slots[cell] = [first, cards, bush_slots.size()]
+		first += cards
 	bush_shade.multimesh.instance_count = bush_cells.size()
 	if not bush_cells.is_empty():
 		bush_shade.multimesh.buffer = discs
+
+
+## Takes the bush on `cell` out of the world and scales its cards and shadow away.
+func _remove_bush(cell: Vector3i) -> void:
+	bush_cells.erase(cell)
+	world.bushes.erase(cell)
+	if not bush_slots.has(cell):
+		return
+	var slot: Array = bush_slots[cell]
+	bush_slots.erase(cell)
+	var gone := Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
+	for i in range(slot[0], slot[0] + slot[1]):
+		bushes.multimesh.set_instance_transform(i, gone)
+	bush_shade.multimesh.set_instance_transform(slot[2], gone)
 
 
 # --- World edits -----------------------------------------------------------
@@ -633,30 +665,38 @@ func _build_chunk(key: Vector2i) -> void:
 func _run_jobs() -> void:
 	var t0 := Time.get_ticks_usec()
 	while true:
+		var t1 := Time.get_ticks_usec()
 		if job_mesh == null:
 			if not dirty_chunks.is_empty():
 				job_key = dirty_chunks.keys()[0]
 				dirty_chunks.erase(job_key)
 				job_edit = true
+				job_budget = EDIT_BUDGET_US
 			elif ready_to_play and not pending_chunks.is_empty():
 				job_key = _next_chunk()
 				job_edit = false
+				var at := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
+				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
+				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
 			else:
 				break
 			job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
 			job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
-		var budget := EDIT_BUDGET_US if job_edit else STREAM_BUDGET_US
 		var done := false
-		while not done and Time.get_ticks_usec() - t0 < budget:
+		while not done and Time.get_ticks_usec() - t0 < job_budget:
 			done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
-		if not done:
+		budget_us += Time.get_ticks_usec() - t1
+		# Making the meshes and handing them to the renderer costs a few milliseconds
+		# more: with the budget spent, that waits for the next frame.
+		if not done or Time.get_ticks_usec() - t0 >= job_budget:
 			break
 		_apply_chunk(job_key, ChunkMesher.finish(job_mesh), Foliage.finish(job_plants))
 		job_mesh = null
 		job_plants = null
+		if not job_edit:
+			hud.perf.chunks = chunk_nodes.size()
 		if not job_edit and pending_chunks.is_empty() and not map_done:
 			map_done = true
-			hud.perf.chunks = ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
 			print("meshes built in %d ms" % (mesh_us / 1000))
 			print("whole map ready in %d ms" % Time.get_ticks_msec())
 	mesh_us += Time.get_ticks_usec() - t0
@@ -768,13 +808,9 @@ func _on_cell_changed(cell: Vector3i) -> void:
 		queue[key] = true
 	dirty_chunks = queue
 	# A bush disappears when its cell is filled or the ground under it is dug.
-	var above := cell + Vector3i(0, 1, 0)
-	if bush_cells.has(cell) or bush_cells.has(above):
-		bush_cells.erase(cell)
-		bush_cells.erase(above)
-		world.bushes.erase(cell)
-		world.bushes.erase(above)
-		_refresh_bushes()
+	for c in [cell, cell + Vector3i(0, 1, 0)]:
+		if bush_cells.has(c):
+			_remove_bush(c)
 
 
 # --- Level cutaway -----------------------------------------------------------
@@ -872,6 +908,7 @@ func _update_caps() -> void:
 		cap_levels[key] = want
 		if Time.get_ticks_usec() - t0 > CAP_BUDGET_US:
 			break
+	budget_us += Time.get_ticks_usec() - t0
 
 
 # --- Time, seasons, weather --------------------------------------------------

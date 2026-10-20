@@ -20,7 +20,11 @@ comments, commits and PRs are in English.
 ```
 godot --headless --path . --import
 godot --headless --path . --script res://tests/run_tests.gd
+timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 ```
+
+`frame_test.gd` plays scenarios headless (walk, dig, cut change, streaming) and fails when
+chunk-sized work lands in one frame; CI runs it too.
 
 Run `--import` again after pulling new assets (fonts, textures), or HUD scripts fail with null
 errors that look like code bugs. Wrap headless runs in `timeout`: a runtime error in an awaiting
@@ -40,7 +44,7 @@ draws the island from above; `tools/bench_*.gd` time generation, meshing and edi
 
 Nothing map-sized or chunk-sized runs in one frame. Chunk meshes and plants are built a column of
 cells at a time through `ChunkMesher` / `Foliage` jobs that `main.gd` runs within per-frame budgets
-(edits first, then far chunks, then caps). The phone browser is about 10x slower than a desktop in
+(edits first, then far chunks, then caps). `tests/frame_test.gd` enforces this. The phone browser is about 10x slower than a desktop in
 GDScript. Notes: `plan/architecture/performance.md`.
 
 ## Gotchas

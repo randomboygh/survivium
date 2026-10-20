@@ -46,6 +46,9 @@ const SHOTS := {
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
 	"plateau": {"time": 0.42, "season": 1, "place": "plateau"},
 	"tracks": {"time": 0.42, "season": 1, "walk": true},
+	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
+	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
+	"ears": {"time": 0.42, "season": 1, "find": "ears"},
 	"hidden": {"time": 0.42, "season": 1, "wall": true},
 	"pit": {"time": 0.42, "season": 1, "place": "canyon", "cut": -3},
 	"pit-winter": {"time": 0.45, "season": 3, "place": "canyon", "cut": -3},
@@ -115,6 +118,8 @@ func _run() -> void:
 			main.player.position = _place(main.world, shot.place)
 		if shot.has("water"):
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
+		if shot.has("find"):
+			main.player.position = _find(main.world, main.player.position, shot.find)
 		if shot.get("grove", false):
 			# Away from the campfire by the spawn, which melts the snow around it.
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
@@ -197,6 +202,42 @@ func _flat_near(w, p: Vector3) -> Vector3:
 					if not flat:
 						break
 				if flat:
+					return (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return p
+
+
+## The nearest spot to `p` inside a tall-grass meadow or a field of ears (see Foliage):
+## flat grass with the same cover for 2 cells around.
+func _find(w, p: Vector3, what: String) -> Vector3:
+	var cx := floori(p.x / CELL)
+	var cz := floori(p.z / CELL)
+	for r in range(0, 150):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := cx + dx
+				var z := cz + dz
+				var y: int = w.surface_y(x, z)
+				if y <= w.sea_level or w.get_cell(x, y - 1, z) != Mat.GRASS:
+					continue
+				var ok := true
+				for oz in range(-2, 3):
+					for ox in range(-2, 3):
+						var nx := x + ox
+						var nz := z + oz
+						if nx < 1 or nz < 1 or nx >= w.size_x - 1 or nz >= w.size_z - 1 or w.surface_y(nx, nz) != y \
+								or w.get_cell(nx, y - 1, nz) != Mat.GRASS or w.leaf_cols[nz * w.size_x + nx] != 0:
+							ok = false
+						elif what == "meadow" and Foliage.tier_at(nx, nz) != Foliage.TALL_TIER:
+							ok = false
+						elif what == "ears" and not Foliage.ear_field_at(w, nx, y, nz):
+							ok = false
+						if not ok:
+							break
+					if not ok:
+						break
+				if ok:
 					return (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
 	return p
 
@@ -352,7 +393,7 @@ func _corners(w, at: Vector3) -> Vector3:
 
 
 ## The cave floor near `at` deepest under the ground, with room to stand around it.
-func _cave(w, at: Vector3) -> Vector3:
+static func _cave(w, at: Vector3) -> Vector3:
 	var from := at / CELL
 	var best := from
 	var best_depth := 0
