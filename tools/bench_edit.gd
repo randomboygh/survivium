@@ -28,19 +28,19 @@ func _initialize() -> void:
 	for i in 5:
 		Foliage.build_chunk(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
 	print("one chunk foliage: %.1f ms" % ((Time.get_ticks_usec() - t) / 5000.0))
-	# The longest single row of each, the smallest step the game can take in a frame.
+	# The longest single column of each, the smallest step the game can take in a frame.
 	var worst_mesh := 0
 	var worst_plants := 0
 	var job := ChunkMesher.start(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
 	var plants := Foliage.start(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
-	for i in CHUNK:
+	for i in CHUNK * CHUNK:
 		t = Time.get_ticks_usec()
-		ChunkMesher.row(job)
+		ChunkMesher.step(job, 1)
 		worst_mesh = maxi(worst_mesh, Time.get_ticks_usec() - t)
 		t = Time.get_ticks_usec()
-		Foliage.row(plants)
+		Foliage.step(plants, 1)
 		worst_plants = maxi(worst_plants, Time.get_ticks_usec() - t)
-	print("longest row: mesh %.2f ms, foliage %.2f ms" % [worst_mesh / 1000.0, worst_plants / 1000.0])
+	print("longest column: mesh %.2f ms, foliage %.2f ms" % [worst_mesh / 1000.0, worst_plants / 1000.0])
 	for level in [y - 1, y + 4, 10]:
 		t = Time.get_ticks_usec()
 		var cap := ChunkMesher.build_cap(w, level)
