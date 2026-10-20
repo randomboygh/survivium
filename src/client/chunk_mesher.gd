@@ -30,9 +30,9 @@ const CORNERS := [
 ]
 ## Water stands half a cell (4 px) below the shore, so the bank shows above it.
 const WATER_TOP := WorldData.WATER_TOP
-const AIR := Mat.AIR
-const WATER := Mat.WATER
-const LEAVES := Mat.LEAVES
+static var AIR: int = Mat.AIR
+static var WATER: int = Mat.WATER
+static var LEAVES: int = Mat.LEAVES
 ## Tile index meaning "no texture" (voxels) or "no neighbour" (transitions).
 const NO_TILE := 63
 ## Plain tops merged per step of a job once its columns are done: as costly as a column.

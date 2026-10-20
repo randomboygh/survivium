@@ -13,6 +13,12 @@ comments, commits and PRs are in English.
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
+- `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, creatures,
+  trees, bushes), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
+  reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI); the
+  registries `materials.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd` fill their static vars from
+  them when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`.
+  New numbers that describe content go into the YAML and the schema, not into constants.
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (chunks, streaming budgets, caps, the level cut), `sky.gd`
@@ -24,6 +30,7 @@ comments, commits and PRs are in English.
 
 ```
 godot --headless --path . --import
+godot --headless --path . --script res://tools/validate.gd
 godot --headless --path . --script res://tests/run_tests.gd
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 ```
@@ -54,6 +61,8 @@ GDScript. Notes: `plan/architecture/performance.md`.
 
 ## Gotchas
 
+- A static func named like a method of `Script` (`reload`, `get_class`...) is shadowed: `Mat.reload()`
+  recompiles the script and resets its static vars instead of calling yours.
 - `var i := expr` is a parse error when `expr` is a Variant (e.g. a field of an untyped object); type
   such vars explicitly.
 - Godot front faces wind clockwise; a hand-built mesh wound counter-clockwise is inside out.
