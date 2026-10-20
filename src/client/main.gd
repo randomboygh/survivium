@@ -3,11 +3,12 @@ extends Node
 ## frame. The work is split between modules that each hold their own state and get
 ## `self` as `game`: ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time
 ## of day, seasons, weather, light and colour grade), Controls (keys, mouse, touch and
-## the edits they make), CameraRig (the pixel-perfect view and the camera) and Props
-## (bushes, drifts, the chest and the campfire). The 3D scene renders into a
-## low-resolution SubViewport (about 360 px tall) in an oblique 3/4 view, is colour
-## graded and scaled up by a whole number without filtering (see PixelView); the
-## interface (Hud) is scaled by a whole number too.
+## the edits they make), CameraRig (the pixel-perfect view and the camera), Props
+## (bushes, drifts, the chest and the campfire) and Settings (the saved settings and
+## the playtest switches). The 3D scene renders into a low-resolution SubViewport
+## (about 360 px tall) in an oblique 3/4 view, is colour graded and scaled up by a
+## whole number without filtering (see PixelView); the interface (Hud) is scaled by a
+## whole number too.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -17,6 +18,7 @@ const SkyScript := preload("res://src/client/sky.gd")
 const Controls := preload("res://src/client/controls.gd")
 const CameraRig := preload("res://src/client/camera_rig.gd")
 const Props := preload("res://src/client/props.gd")
+const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PlayerScript := preload("res://src/client/player.gd")
 const CreaturesScript := preload("res://src/client/creatures.gd")
@@ -46,6 +48,7 @@ var sky: SkyScript
 var controls: Controls
 var view: CameraRig
 var props: Props
+var settings: SettingsScript
 ## The 3D scene, inside the view's SubViewport.
 var world_root: Node3D
 var atlas: Texture2D
@@ -66,6 +69,8 @@ var fps_clock := 0.0
 
 func _ready() -> void:
 	controls = Controls.new(self)
+	settings = SettingsScript.new(self)
+	settings.load()
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
 	sky = SkyScript.new(self)
@@ -86,6 +91,7 @@ func _ready() -> void:
 	roof.build(world)
 	_build_materials()
 	_build_scene()
+	settings.apply()
 	chunks.prepare(world)
 
 
@@ -155,9 +161,9 @@ func _report_fps(delta: float) -> void:
 func print_debug() -> void:
 	var r: Dictionary = hud.debug_rects()
 	var p: Vector3 = player.position if player != null else Vector3.ZERO
-	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
+	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, test %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
 		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), view.viewport.size,
-		view.container.stretch_shrink, view.safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.season,
+		view.container.stretch_shrink, view.safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.test, r.season,
 		p.x, p.y, p.z, SkyScript.SEASONS[sky.season], controls.touch, hud.stick.value.x, hud.stick.value.y])
 
 

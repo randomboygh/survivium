@@ -19,6 +19,8 @@ var leaves: CPUParticles3D
 var pollen: CPUParticles3D
 ## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it stands in)}
 var fires: Array = []
+## The effects setting: off stops the weather and the ambient particles.
+var enabled := true
 var flicker_clock := 0.0
 var rng := RandomNumberGenerator.new()
 
@@ -162,11 +164,11 @@ func update(delta: float, view: Vector2, ground: float, raining: bool, winter: b
 	leaves.position = Vector3(view.x, ground + 5.0, view.y + ground + 5.0)
 	fireflies.position = Vector3(view.x, ground + 1.0, view.y + ground + 1.0)
 	pollen.position = Vector3(view.x, ground + 1.5, view.y + ground + 1.5)
-	rain.emitting = raining and not winter and not indoor
-	snowfall.emitting = raining and winter and not indoor
-	leaves.emitting = season == 2 and not indoor
-	fireflies.emitting = daylight < 0.3 and (season == 0 or season == 1) and not raining
-	pollen.emitting = daylight > 0.6 and (season == 0 or season == 1) and not raining and not indoor
+	rain.emitting = enabled and raining and not winter and not indoor
+	snowfall.emitting = enabled and raining and winter and not indoor
+	leaves.emitting = enabled and season == 2 and not indoor
+	fireflies.emitting = enabled and daylight < 0.3 and (season == 0 or season == 1) and not raining
+	pollen.emitting = enabled and daylight > 0.6 and (season == 0 or season == 1) and not raining and not indoor
 	flicker_clock += delta
 	if flicker_clock > 0.09:
 		flicker_clock = 0.0
