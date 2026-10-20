@@ -62,9 +62,53 @@ func _test_generation() -> void:
 		counts[m] = counts.get(m, 0) + 1
 	for m in [Mat.GRASS, Mat.STONE, Mat.WATER, Mat.DIRT]:
 		_check(counts.get(m, 0) > 0, "world contains %s" % Mat.NAMES[m])
-	var spawn := WorldGen.find_spawn(a)
+	var spawn := WorldGen.find_spawn(a, Vector3i(32, 0, 32))
 	_check(spawn.y > a.sea_level, "spawn is above the sea")
 	_check(a.get_cell(spawn.x, spawn.y, spawn.z) == Mat.AIR, "spawn cell is free")
+	# The world does not depend on the order its chunks are made in: generated
+	# chunk by chunk around a point, stage by stage, it is the same as generated whole.
+	var gen := WorldGen.new(42, 64, 40, 64)
+	for cz in range(gen.chunks_z() - 1, -1, -1):
+		for cx in range(gen.chunks_x() - 1, -1, -1):
+			_ensure_stage(gen, Vector2i(cx, cz), WorldGen.SHAPED)
+	_check(gen.world.cells == a.cells, "chunks made in another order give the same cells")
+	_check(gen.world.trees == a.trees and gen.world.bushes == a.bushes, "and the same trees and bushes")
+	_check(gen.world.shapes == a.shapes, "and the same shapes")
+	# Water above the sea never leaks: nothing open under it, and the only air beside
+	# it is a river's step down.
+	var leaks := 0
+	var layer := a.size_x * a.size_z
+	for col in layer:
+		var water: int = a.water_cols[col]
+		var x := col % a.size_x
+		var z := col / a.size_x
+		while water != 0:
+			var bit := water & -water
+			water ^= bit
+			var y := WorldData.level_of(bit)
+			if y <= a.sea_level:
+				continue
+			if a.get_cell(x, y - 1, z) == Mat.AIR:
+				leaks += 1
+			for d: Vector2i in WorldData.SIDES:
+				if a.get_cell(x + d.x, y, z + d.y) == Mat.AIR and a.water_cols[(z + d.y) * a.size_x + x + d.x] & (bit - 1) == 0:
+					leaks += 1
+	_check(leaks == 0, "water above the sea does not leak (%d leaks)" % leaks)
+
+
+## Brings a chunk to `stage` the way the game does: its own earlier stages first,
+## then the chunks around it to the stage before.
+func _ensure_stage(gen, key: Vector2i, stage: int) -> void:
+	if gen.stage_of(key) >= stage:
+		return
+	_ensure_stage(gen, key, stage - 1)
+	if stage > WorldGen.TERRAIN:
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var k: Vector2i = key + Vector2i(dx, dz)
+				if gen.in_map(k):
+					_ensure_stage(gen, k, stage - 1)
+	gen.run(key, stage)
 
 
 func _test_mesher() -> void:
@@ -547,14 +591,14 @@ func _test_trees() -> void:
 							top = maxi(top, y)
 				fits = fits and top <= Trees.height(species, scale)
 	_check(fits, "trees stay within Trees.height")
-	var w := WorldGen.generate(42, 128, 40, 128)
+	var w := _north_strip()
 	var kinds := {}
 	for at in w.trees:
 		kinds[w.trees[at]] = true
 		_check(w.log_cols[at.y * w.size_x + at.x] != 0, "a noted tree has a trunk")
 	_check(kinds.size() == Trees.SPECIES.size(), "the generator grows every species")
 	# Crowns of spruces take needle cards, of oaks leaf cards.
-	var chunk: Dictionary = Foliage.build_chunk(w, 0, 0, 128)
+	var chunk: Dictionary = Foliage.build_chunk(w, STRIP_X0 * 16, STRIP_Z * 16, STRIP_CHUNKS * 16)
 	var buf: PackedFloat32Array = chunk.clumps[1]
 	var rows := {}
 	for i in chunk.clumps[0]:
@@ -564,16 +608,29 @@ func _test_trees() -> void:
 
 
 
+## A strip of chunks across the taiga of the north of the island, where both species
+## of tree and every type of bush grow: the world the tree and bush tests look at.
+const STRIP_X0 := 26
+const STRIP_Z := 8
+const STRIP_CHUNKS := 12
+
+
+func _north_strip() -> WorldData:
+	var gen := WorldGen.new(42)
+	for x in range(STRIP_X0, STRIP_X0 + STRIP_CHUNKS):
+		_ensure_stage(gen, Vector2i(x, STRIP_Z), WorldGen.SHAPED)
+	return gen.world
+
+
 func _test_bushes() -> void:
-	var w := WorldGen.generate(42, 128, 40, 128)
-	Bushes.scatter(w, 7)
+	var w := _north_strip()
 	var kinds := {}
 	var on_grass := true
 	for at: Vector3i in w.bushes:
 		kinds[w.bushes[at]] = true
 		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR
 	_check(on_grass, "bushes stand in air on grass")
-	_check(kinds.size() == Bushes.TYPES.size(), "the scattering grows every type of bush")
+	_check(kinds.size() == Bushes.TYPES.size(), "the generator grows every type of bush")
 	# Each bush draws its type's clusters, berry bushes some with berries.
 	var cells: Array[Vector3i] = []
 	cells.assign(w.bushes.keys())

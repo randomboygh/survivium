@@ -10,7 +10,7 @@ const CHUNK := 16
 
 func _initialize() -> void:
 	var t0 := Time.get_ticks_usec()
-	var w := WorldGen.generate(20261018)
+	var w := WorldGen.generate(20261018, 256, 48, 256)
 	var t1 := Time.get_ticks_usec()
 	var chunks_x := w.size_x / CHUNK
 	var chunks_z := w.size_z / CHUNK

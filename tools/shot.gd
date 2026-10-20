@@ -92,12 +92,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	# The shots look at far places too, so the whole map must be built: many chunks
-	# a frame here, not the one a frame of the game.
-	while not main.ready_to_play or not main.chunks.pending_chunks.is_empty():
-		for i in 24:
-			if main.ready_to_play and not main.chunks.pending_chunks.is_empty():
-				main.chunks.build_chunk(main.chunks.next_chunk())
+	while not main.ready_to_play:
 		await process_frame
 	var spawn: Vector3 = main.player.position
 	for shot_name in names:
@@ -125,6 +120,8 @@ func _run() -> void:
 			main.player.position = _forest(main.world, main.player.position)
 		if shot.has("place"):
 			main.player.position = _place(main.world, shot.place)
+		# The shots look at far places too: the chunks around the new spot at once.
+		main.chunks.build_around()
 		if shot.has("water"):
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
 		if shot.has("find"):
@@ -276,29 +273,22 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 	return p
 
 
-## Standing spot at a place of the island's layout (see WorldGen).
+## Standing spot at the nearest place of a kind on the island (see WorldGen.find_place):
+## the chunks there are built first, then a dry spot by the water is picked.
 func _place(w, what: String) -> Vector3:
-	var size := Vector2(w.size_x, w.size_z)
-	var side: float = minf(size.x, size.y)
+	var at: Vector3 = main.player.position
+	var near := Vector2i(int(at.x / CELL), int(at.z / CELL))
+	var p := Vector2(main.gen.find_place(what, near))
+	main.player.position = Vector3(p.x + 0.5, w.size_y - 1, p.y + 0.5) * CELL
+	main.chunks.build_around()
 	match what:
-		"river":
-			var p: Vector2 = WorldGen.RIVER[4] * size
-			return _dry_near(w, p + Vector2(-6.0, 0.0), 12)
-		"canyon":
-			var p: Vector2 = WorldGen.RIVER[1] * size
-			return _dry_near(w, p + Vector2(-4.0, 0.0), 10)
-		"lake":
-			var p := Vector2(WorldGen.LAKE.x, WorldGen.LAKE.y) * size + Vector2(0.0, WorldGen.LAKE.z * side + 4.0)
-			return _dry_near(w, p, 12)
-		"swamp":
-			return _dry_near(w, Vector2(WorldGen.SWAMP.x, WorldGen.SWAMP.y) * size, 20)
-		"plateau":
-			return _dry_near(w, Vector2(WorldGen.PLATEAU.x, WorldGen.PLATEAU.y) * size + Vector2(0.0, 10.0), 20)
+		"lake", "river", "canyon", "swamp":
+			return _dry_near(w, p, 24)
 		"cliffs":
-			return _coast(w, Vector2(0.4, 0.42) * size, Vector2(-1.0, 0.0), 3.0)
+			return _coast(w, p, Vector2(p - Vector2(w.size_x, w.size_z) * 0.5).normalized(), 3.0)
 		"beach":
-			return _coast(w, Vector2(0.72, 0.8) * size, Vector2(0.3, 1.0).normalized(), 4.0)
-	return main.player.position
+			return _coast(w, p, Vector2(p - Vector2(w.size_x, w.size_z) * 0.5).normalized(), 4.0)
+	return _dry_near(w, p, 20)
 
 
 ## Nearest dry standing spot to the cell point `p` within `radius` cells.
@@ -426,7 +416,8 @@ func _corners(w, at: Vector3) -> Vector3:
 	return best * CELL
 
 
-## The cave floor near `at` deepest under the ground, with room to stand around it.
+## The cave floor near `at` deepest under the ground, under a roof the cut can find,
+## with room to stand around it.
 static func _cave(w, at: Vector3) -> Vector3:
 	var from := at / CELL
 	var best := from
@@ -437,6 +428,15 @@ static func _cave(w, at: Vector3) -> Vector3:
 			for y in range(1, top - 6):
 				if w.get_cell(x, y, z) != Mat.AIR or w.get_cell(x, y + 1, z) != Mat.AIR \
 						or w.get_cell(x, y - 1, z) == Mat.AIR or w.get_cell(x, y - 1, z) == Mat.WATER:
+					continue
+				# A roof within the levels the cut looks at (see ChunkStreamer.update_cut),
+				# or the spot is the floor of a tall cavern and the view stays uncut.
+				var roofed := false
+				for ry in range(y + 2, mini(y + 18, top)):
+					if Mat.is_roof(w.get_cell(x, ry, z)):
+						roofed = true
+						break
+				if not roofed:
 					continue
 				var room := 0
 				for dz in range(-3, 4):
@@ -484,10 +484,9 @@ func _hut(w, at: Vector3) -> Vector3:
 				var m := Mat.PLANKS if dy == 4 or wall and not (door and dy < 2) else Mat.AIR
 				w.set_cell(best.x + dx, best.y + dy, best.z + dz, m)
 	# Bushes inside would hide the player.
-	for c: Vector3i in main.props.bush_cells.duplicate():
+	for c: Vector3i in w.bushes.keys():
 		if absi(c.x - best.x) <= 5 and absi(c.z - best.z) <= 5:
-			main.props.bush_cells.erase(c)
-	main.props.refresh_bushes()
+			w.remove_bush(c)
 	for dz in range(-8, 9, 8):
 		for dx in range(-8, 9, 8):
 			main.chunks.on_cell_changed(best + Vector3i(dx, 0, dz))
@@ -583,7 +582,7 @@ func _grove(w, at: Vector3i) -> void:
 				w.trees.erase(key)
 		for b: Vector3i in w.bushes.keys():
 			if absi(b.x - at.x) <= 46 and absi(b.z - at.z) <= 36:
-				w.bushes.erase(b)
+				w.remove_bush(b)
 		# Bushes of every type in turn in a row before the spruces, blueberries between
 		# them.
 		var k := 0
@@ -592,8 +591,6 @@ func _grove(w, at: Vector3i) -> void:
 			k += 1
 		for dx in [-9, -7, 7, 9]:
 			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.BLUEBERRY)
-		main.props.bush_cells.assign(w.bushes.keys())
-		main.props.refresh_bushes()
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 3
 		# Oaks that go bare in winter and oaks that keep their leaves, in turn.

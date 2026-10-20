@@ -63,34 +63,12 @@ static func fits(w, x: int, y: int, z: int) -> bool:
 
 ## Grows a bush of `type` in cell x, y, z (the first cell above the ground).
 static func place(w, x: int, y: int, z: int, type: int) -> void:
-	w.bushes[Vector3i(x, y, z)] = type
-
-
-## A plain scattering until the world generator places bushes per biome: about one
-## try per 160 cells of the map, blueberries near spruces, raspberries near oaks and in
-## the open, plain shrubs among them.
-static func scatter(w, world_seed: int) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = world_seed
-	for i in w.size_x * w.size_z / 160:
-		var x := rng.randi_range(1, w.size_x - 2)
-		var z := rng.randi_range(1, w.size_z - 2)
-		var y: int = w.surface_y(x, z)
-		if not fits(w, x, y, z):
-			continue
-		var near := _tree_near(w, x, z, 10)
-		var roll := rng.randf()
-		var type := SHRUB
-		if near == Trees.SPRUCE:
-			type = BLUEBERRY if roll < 0.7 else SHRUB
-		elif roll < (0.5 if near == Trees.OAK else 0.35):
-			type = RASPBERRY
-		place(w, x, y, z, type)
+	w.add_bush(Vector3i(x, y, z), type)
 
 
 ## Species of a tree within `reach` cells of column x, z, -1 for none. Trunks stand on
 ## odd columns.
-static func _tree_near(w, x: int, z: int, reach: int) -> int:
+static func tree_near(w, x: int, z: int, reach: int) -> int:
 	for tz in range((z - reach) | 1, z + reach + 1, 2):
 		for tx in range((x - reach) | 1, x + reach + 1, 2):
 			var at := Vector2i(tx, tz)

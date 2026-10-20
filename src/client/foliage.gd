@@ -8,6 +8,7 @@ extends RefCounted
 ## crown, so a crown casts one round shadow.
 
 const Bushes := preload("res://src/shared/bushes.gd")
+const Drifts := preload("res://src/client/drifts.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
@@ -395,9 +396,21 @@ static func _column(job: Job, x: int, z: int) -> void:
 			job.ns += 1
 
 
-## The plants once every column is built (see build_chunk).
+## The plants once every column is built (see build_chunk), with the bushes of the
+## chunk (their shadows go with the trees') and its snowdrifts.
 static func finish(job: Job) -> Dictionary:
-	return {"grass": [job.ng, job.grass], "clumps": [job.nc, job.clumps], "shadows": [job.ns, job.shadows]}
+	var w = job.w
+	var cells: Array[Vector3i] = w.bushes_in(job.x0, job.z0)
+	var bush_part: Array = bushes(cells, w.bushes)
+	var s := BUSH_DISC / SHADOW_DISC
+	for cell in cells:
+		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0)
+		job.shadows.append_array([s, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, s, p.z])
+		job.shadows.append_array([bush_kind(w.bushes.get(cell, Bushes.SHRUB)), 0.0, 0.0, 0.0])
+		job.ns += 1
+	var drifts: Array = Drifts.build(w, job.x0, job.z0, job.x1 - job.x0)
+	return {"grass": [job.ng, job.grass], "clumps": [job.nc, job.clumps], "shadows": [job.ns, job.shadows],
+		"bushes": bush_part, "drifts": drifts}
 
 
 ## True for a ground cell at the water's edge: open water beside it at its own level
