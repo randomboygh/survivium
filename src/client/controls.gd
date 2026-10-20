@@ -71,7 +71,8 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_X:
 				game.settings.set_raining(not game.sky.raining)
 			KEY_T:
-				game.settings.set_fast_forward(not game.settings.fast_forward)
+				var s = game.settings
+				s.set_time_boost(1.0 if s.time_boost > 1.0 else s.FAST_FORWARD)
 			KEY_G:
 				game.settings.set_value("shadows", not game.settings.values.shadows)
 			KEY_H:

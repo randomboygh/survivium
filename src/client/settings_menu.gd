@@ -71,7 +71,7 @@ func open(which: String) -> void:
 	var sky = game.sky
 	if which == "settings":
 		_title.text = "Настройки"
-		_add_row("Скорость времени", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "×%s" % _num(v)),
+		_add_row("Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(sky.DAY_LENGTH / v / 60.0)),
 			func() -> int: return s.values.time_speed,
 			func(i: int) -> void: s.set_value("time_speed", i))
 		_add_row("Пиксель", ["обычный", "крупный", "огромный"],
@@ -113,12 +113,12 @@ func open(which: String) -> void:
 		_add_row("Час", range(24).map(func(h: int) -> String: return "%02d:00" % h),
 			func() -> int: return int(sky.time_of_day * 24.0) % 24,
 			func(i: int) -> void: s.set_hour(i))
-		_add_row("Ход времени", ["стоит", "обычный", "×%d" % int(Settings.FAST_FORWARD)],
-			func() -> int: return 0 if s.time_stopped else (2 if s.fast_forward else 1),
-			func(i: int) -> void:
-				s.time_stopped = i == 0
-				s.fast_forward = i == 2
-				s.apply())
+		_add_row("Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
+			func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
+			func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]))
+		_add_row("Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
+			func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
+			func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]))
 		_add_row("Статистика", ["выкл", "вкл"],
 			func() -> int: return int(game.hud.perf.visible),
 			func(i: int) -> void:
@@ -234,7 +234,3 @@ func debug_rects() -> Dictionary:
 		var b: Button = r.right
 		out[r.name.text] = b.get_global_rect() if b.is_visible_in_tree() else Rect2()
 	return out
-
-
-static func _num(v: float) -> String:
-	return str(int(v)) if v == floorf(v) else str(v)
