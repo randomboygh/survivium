@@ -1,0 +1,5 @@
+# Базовая игра. Остальные моды лежат рядом в том же формате (plan/architecture/modding.md).
+id: core
+title: Основа
+version: "0.1"
+api: 1

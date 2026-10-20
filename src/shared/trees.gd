@@ -8,36 +8,59 @@ extends RefCounted
 ## the species of a crown; a chopped tree may stay noted, which harms nothing.
 
 const Mat := preload("res://src/shared/materials.gd")
-
-const OAK := 0
-const SPRUCE := 1
+const Content := preload("res://src/shared/content.gd")
 
 ## Leaves of a species.
 const BROAD := 0
 const NEEDLES := 1
 
-## name: id for content files; title: shown to players.
-## leaves: BROAD or NEEDLES. trunk: [min, max] cells of trunk under the crown's middle
-## (oak), or showing under the lowest tier on screen (spruce). crown: radii across x, up, across z in
-## points of the crown lattice (oak), or [radius of the lowest tier, min tiers, max
-## tiers] (spruce). tints: leaf colours, one picked per tree. bare: share of trees that
-## drop all their leaves in winter (branches show, with snow on them); the others keep
-## dry leaves with snow caps on top. Evergreens keep their needles and take snow on
-## each tier.
-const SPECIES := [
-	{
-		"name": "oak", "title": "Дуб", "leaves": BROAD,
-		"trunk": [6, 8], "crown": [2.2, 1.5, 1.8],
-		"tints": [Color(0.27, 0.43, 0.25), Color(0.3, 0.46, 0.22), Color(0.25, 0.41, 0.27)],
-		"bare": 0.6,
-	},
-	{
-		"name": "spruce", "title": "Ель", "leaves": NEEDLES,
-		"trunk": [1, 1], "crown": [2.3, 5, 7],
-		"tints": [Color(0.18, 0.34, 0.22), Color(0.2, 0.36, 0.21), Color(0.17, 0.32, 0.24)],
-		"bare": 0.0,
-	},
-]
+## Species the engine and the generator refer to; the validator demands them.
+const KNOWN := {"OAK": "core:oak", "SPRUCE": "core:spruce"}
+
+static var OAK := 0
+static var SPRUCE := 0
+
+## Index -> record from `content/*/data/trees.yaml` (see Content): id, title,
+## leaves (BROAD or NEEDLES), trunk [min, max], crown [3 radii], tints (Colors),
+## bare (share of trees that drop their leaves in winter). What each means is in
+## the data file; a tree is noted in WorldData.trees by its species index.
+static var SPECIES: Array = []
+
+
+static func _static_init() -> void:
+	refresh()
+
+
+static func refresh() -> void:
+	SPECIES = []
+	for r in Content.records("trees"):
+		var s: Dictionary = r.duplicate()
+		s.leaves = NEEDLES if r.leaves == "needles" else BROAD
+		SPECIES.append(s)
+	OAK = index(KNOWN.OAK)
+	SPRUCE = index(KNOWN.SPRUCE)
+
+
+## Index of the species with `id`, or -1.
+static func index(id: String) -> int:
+	for i in SPECIES.size():
+		if SPECIES[i].id == id:
+			return i
+	return -1
+
+
+## What is wrong with the loaded trees for the engine, if anything.
+static func check() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for name in KNOWN:
+		if index(KNOWN[name]) < 0:
+			out.append("trees: the engine needs `%s`" % KNOWN[name])
+	for s in SPECIES:
+		if s.trunk[0] > s.trunk[1]:
+			out.append("trees: `%s`: trunk [min, max] has min above max" % s.id)
+		if s.leaves == NEEDLES and s.crown[1] > s.crown[2]:
+			out.append("trees: `%s`: crown [radius, min tiers, max tiers] has min above max" % s.id)
+	return out
 
 
 ## Most cells a tree of `species` grown at `scale` takes above the ground it stands on.

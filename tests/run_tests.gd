@@ -13,6 +13,8 @@ const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
+const Yaml := preload("res://src/shared/yaml.gd")
+const Content := preload("res://src/shared/content.gd")
 
 var checks := 0
 var failures := 0
@@ -33,6 +35,8 @@ func _init() -> void:
 	_test_pixel_view()
 	_test_trees()
 	_test_bushes()
+	_test_yaml()
+	_test_content()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -518,17 +522,17 @@ func _ref_fill(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 func _test_ai_relations() -> void:
 	# The example from the design: a cat is food for a wolf, the wolf is a threat
 	# to the cat, and the cat hunts squirrels, with no rule written for the cat.
-	_check(AiRules.is_food("wolf", "cat"), "wolf sees a cat as food")
-	_check(AiRules.is_threat("cat", "wolf"), "cat sees a wolf as a threat")
-	_check(not AiRules.is_food("cat", "wolf"), "cat does not hunt wolves")
-	_check(AiRules.is_food("cat", "squirrel"), "cat hunts squirrels")
-	_check(AiRules.is_food("cat", "rabbit"), "cat hunts rabbits")
-	_check(AiRules.is_threat("squirrel", "cat"), "squirrel fears a cat")
-	_check(not AiRules.is_threat("cat", "deer"), "cat ignores deer")
-	_check(not AiRules.is_food("deer", "rabbit"), "herbivores hunt nobody")
-	_check(not AiRules.is_food("wolf", "human"), "a lone wolf does not see a human as food")
-	_check(AiRules.is_threat("rabbit", "human"), "rabbit fears people")
-	_check(AiRules.is_active("wolf", 0.0) and not AiRules.is_active("wolf", 1.0), "wolves are active at night")
+	_check(AiRules.is_food("core:wolf", "core:cat"), "wolf sees a cat as food")
+	_check(AiRules.is_threat("core:cat", "core:wolf"), "cat sees a wolf as a threat")
+	_check(not AiRules.is_food("core:cat", "core:wolf"), "cat does not hunt wolves")
+	_check(AiRules.is_food("core:cat", "core:squirrel"), "cat hunts squirrels")
+	_check(AiRules.is_food("core:cat", "core:rabbit"), "cat hunts rabbits")
+	_check(AiRules.is_threat("core:squirrel", "core:cat"), "squirrel fears a cat")
+	_check(not AiRules.is_threat("core:cat", "core:deer"), "cat ignores deer")
+	_check(not AiRules.is_food("core:deer", "core:rabbit"), "herbivores hunt nobody")
+	_check(not AiRules.is_food("core:wolf", "core:human"), "a lone wolf does not see a human as food")
+	_check(AiRules.is_threat("core:rabbit", "core:human"), "rabbit fears people")
+	_check(AiRules.is_active("core:wolf", 0.0) and not AiRules.is_active("core:wolf", 1.0), "wolves are active at night")
 
 
 func _test_pixel_view() -> void:
@@ -637,3 +641,87 @@ func _test_bushes() -> void:
 	for i in part[0]:
 		ripe = ripe or int(buf[i * 20 + 19]) % Foliage.DEEP_ROW >= PixelTextures.BERRY_ROW
 	_check(ripe, "berry bushes have clusters with berries")
+
+
+func _test_yaml() -> void:
+	var yaml := Yaml.new()
+	var doc: Variant = yaml.parse("""
+# a comment
+id: core
+version: "0.1"
+deps: [a, 'b c', 3, 2.5, true, ~]
+colors:
+  - "#aabbcc"   # not a comment
+items:
+  - id: grass
+    title: Трава
+    spread: {x: 1, y: -2.5}
+  - id: dirt
+    nested:
+      - 1
+      - 2
+  -
+    id: stone
+empty:
+flat:
+- a
+- "b: c"
+""", "test.yaml")
+	_check(yaml.error == "", "yaml parses: " + yaml.error)
+	_check(doc is Dictionary and doc.get("id") == "core" and doc.get("version") == "0.1", "yaml reads scalars")
+	_check(doc.get("deps") == ["a", "b c", 3, 2.5, true, null], "yaml reads flow lists")
+	_check(doc.get("colors") == ["#aabbcc"], "yaml keeps # inside quotes")
+	var items: Array = doc.get("items", [])
+	_check(items.size() == 3 and items[0] == {"id": "grass", "title": "Трава", "spread": {"x": 1, "y": -2.5}},
+		"yaml reads mappings in a list")
+	_check(items.size() == 3 and items[1].get("nested") == [1, 2] and items[2] == {"id": "stone"},
+		"yaml reads nested lists and items on their own line")
+	_check(doc.get("empty") == null and doc.has("empty"), "an empty value is null")
+	_check(doc.get("flat") == ["a", "b: c"], "a list may sit at its key's indent")
+	for bad in ["a: [1, 2", "a: 1\n\tb: 2", "a: 1\na: 2", "- 1\n  - 2", "x: \"abc", "a: 1\n b: 2"]:
+		yaml.parse(bad, "bad.yaml")
+		_check(yaml.error.begins_with("bad.yaml:"), "yaml rejects %s" % bad.c_escape())
+
+
+func _test_content() -> void:
+	_check(Content.problems.is_empty(), "core content loads without problems")
+	_check(Mat.check().is_empty() and AiRules.check().is_empty() and Trees.check().is_empty() and Bushes.check().is_empty(),
+		"core content satisfies the engine")
+	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Mat.NAMES[Mat.GRASS] == "Трава", "materials get their indices")
+	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, Mat.PLANKS, Mat.BRICK, Mat.SAND, Mat.CLAY, Mat.LOG], "hotbar order comes from the data")
+	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.SAND),
+		"material flags come from the data")
+	_check(Trees.SPECIES[Trees.SPRUCE].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.OAK].tints[0] is Color, "trees get their looks")
+	_check(Bushes.TYPES[Bushes.SHRUB].berries == Color.BLACK and Bushes.TYPES[Bushes.BLUEBERRY].spread is Vector3, "bushes get their looks")
+	_check(AiRules.SPECIES["core:wolf"].diet == ["meat"] and AiRules.SPECIES["core:wolf"].sprite == "wolf", "creatures get their properties")
+	# The checks catch what a mod author gets wrong.
+	var before := Content.MODS.duplicate()
+	var mod := "res://content/_test"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write(mod + "/mod.yaml", "id: _test\ntitle: Test\nversion: \"1\"\napi: 1\n")
+	_write(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
+	_write(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
+	_write(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
+	Content.MODS.append("_test")
+	Content.refresh()
+	var found := {}
+	for p in Content.problems:
+		for what in ["Bad Id", "glass.solid", "glass.weight", "duplicate id", "bear.mass", "bear.diet",
+				"bear.human_wariness", "bear.active", "pine.trunk", "pine.tints"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 10, "the loader reports every kind of mistake (%d of 10): %s" % [found.size(), Content.problems])
+	_check(Content.find("materials", "_test:glass").title == "Стекло", "a duplicate id within a mod is skipped")
+	Content.MODS.assign(before)
+	for f in ["data/materials.yaml", "data/creatures.yaml", "data/trees.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	_check(Content.problems.is_empty(), "core content loads clean again")
+
+
+func _write(path: String, text: String) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text)
+	f.close()

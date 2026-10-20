@@ -6,33 +6,53 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/materials.gd")
 const Trees := preload("res://src/shared/trees.gd")
+const Content := preload("res://src/shared/content.gd")
 
-const SHRUB := 0
-const RASPBERRY := 1
-const BLUEBERRY := 2
+## Types the engine refers to; the validator demands them.
+const KNOWN := {"SHRUB": "core:shrub", "RASPBERRY": "core:raspberry", "BLUEBERRY": "core:blueberry"}
 
-## name: id for content files; title: shown to players. tint: leaf colour. berries:
-## colour of ripe berries, black for none; berry_cards: share of the clusters that
-## carry them. cards: leaf clusters per bush; rise: height of their middle above the
-## ground in world units; spread: how far they reach out across x and z, and up;
-## small: smaller bunches of leaves (a low, fine-leaved bush).
-const TYPES := [
-	{
-		"name": "shrub", "title": "Куст", "tint": Color(0.2, 0.33, 0.17),
-		"berries": Color(0, 0, 0), "berry_cards": 0.0,
-		"cards": 6, "rise": 0.3, "spread": Vector3(0.22, 0.15, 0.15), "small": false,
-	},
-	{
-		"name": "raspberry", "title": "Малина", "tint": Color(0.23, 0.36, 0.15),
-		"berries": Color(0.78, 0.13, 0.2), "berry_cards": 0.5,
-		"cards": 9, "rise": 0.38, "spread": Vector3(0.26, 0.4, 0.16), "small": false,
-	},
-	{
-		"name": "blueberry", "title": "Черника", "tint": Color(0.19, 0.33, 0.21),
-		"berries": Color(0.2, 0.24, 0.52), "berry_cards": 0.6,
-		"cards": 8, "rise": 0.16, "spread": Vector3(0.28, 0.08, 0.2), "small": true,
-	},
-]
+static var SHRUB := 0
+static var RASPBERRY := 0
+static var BLUEBERRY := 0
+
+## Index -> record from `content/*/data/bushes.yaml` (see Content): id, title, tint
+## (Color), berries (Color, black for none), berry_cards, cards, rise, spread
+## (Vector3), small. What each means is in the data file; a bush is noted in
+## WorldData.bushes by its type index.
+static var TYPES: Array = []
+
+
+static func _static_init() -> void:
+	refresh()
+
+
+static func refresh() -> void:
+	TYPES = []
+	for r in Content.records("bushes"):
+		var b: Dictionary = r.duplicate()
+		if b.berries == null:
+			b.berries = Color.BLACK
+		TYPES.append(b)
+	SHRUB = index(KNOWN.SHRUB)
+	RASPBERRY = index(KNOWN.RASPBERRY)
+	BLUEBERRY = index(KNOWN.BLUEBERRY)
+
+
+## Index of the type with `id`, or -1.
+static func index(id: String) -> int:
+	for i in TYPES.size():
+		if TYPES[i].id == id:
+			return i
+	return -1
+
+
+## What is wrong with the loaded bushes for the engine, if anything.
+static func check() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for name in KNOWN:
+		if index(KNOWN[name]) < 0:
+			out.append("bushes: the engine needs `%s`" % KNOWN[name])
+	return out
 
 
 ## True when a bush can stand in cell x, y, z: air on level grass.
