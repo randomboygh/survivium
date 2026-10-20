@@ -21,6 +21,7 @@ const Items := preload("res://src/shared/items.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
 const Vitals := preload("res://src/shared/vitals.gd")
 const WorldStore := preload("res://src/shared/world_store.gd")
+const Tracks := preload("res://src/client/tracks.gd")
 
 var checks := 0
 var failures := 0
@@ -49,6 +50,7 @@ func _init() -> void:
 	_test_items()
 	_test_inventory()
 	_test_vitals()
+	_test_tracks()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -1171,3 +1173,21 @@ func _test_save() -> void:
 	_check(WorldStore.world_dir(42, {"size": 2, "water": 0}) == WorldStore.root + "/42-20111", "a world's directory names its seed and settings")
 	store.erase()
 	_check(not DirAccess.dir_exists_absolute("user://test_saves/save"), "a save is erased")
+
+
+## Footprints: stone takes them only under a roof (the dust of a cave floor).
+func _test_tracks() -> void:
+	var w := WorldData.new(8, Vector2i(4, 4))
+	for z in 4:
+		for x in 4:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var t := Tracks.new()
+	t.world = w
+	t._ready()
+	var feet := Vector3(0.75, WorldData.CELL, 0.75)
+	t.leave(feet, Vector2(0, 1), true, true, 1.0)
+	_check(t.next == 0, "no prints on stone in the open")
+	w.set_cell(1, 3, 1, Mat.STONE)
+	t.leave(feet, Vector2(0, 1), true, true, 1.0)
+	_check(t.next == 1, "prints on the stone floor of a cave")
+	t.free()

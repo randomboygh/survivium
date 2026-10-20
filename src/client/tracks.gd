@@ -1,8 +1,9 @@
 extends Node3D
 ## Footprints left behind by the player and the animals: a ring of flat quads over the
 ## ground, drawn with track.gdshader, which darkens the ground under each print and
-## fades it out with age. Prints stay longer in snow and on ice than on soil; stone,
-## planks and open water take none.
+## fades it out with age. Prints stay longer in snow and on ice than on soil; stone
+## takes them only under a roof, in the dust of a cave floor; planks, stone in the open
+## and open water take none.
 
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
@@ -94,6 +95,10 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 	elif ground == Mat.DIRT or ground == Mat.CLAY or ground == Mat.SAND:
 		tint = Color(0.7, 0.65, 0.58) if wet < 0.5 else Color(0.58, 0.53, 0.48)
 		life = 45.0
+	elif (ground == Mat.STONE or ground == Mat.COPPER_ORE) and world.roof_level(cell.x, cell.z) > cell.y:
+		# Dust on the floor of a cave.
+		tint = Color(0.66, 0.64, 0.62)
+		life = 60.0
 	else:
 		return
 	if heading.length_squared() < 0.0001:
