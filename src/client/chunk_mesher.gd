@@ -116,132 +116,204 @@ static func pack(tile: int, edges: int, flag: int) -> float:
 ## Returns [solid_mesh_or_null, water_mesh_or_null] for the column of cells x0..x0+size, z0..z0+size.
 ## Works on copies of the chunk's cells and shapes with a border of PAD cells (outside
 ## the map is air, below it is stone), so neighbour lookups are plain array reads.
+## The state of a chunk's meshes being built row by row (see `start`, `row`, `finish`),
+## so the game can spread the work over frames.
+class Job extends RefCounted:
+	var w
+	var x0: int
+	var z0: int
+	var x1: int
+	var z1: int
+	var z: int
+	var faces: Array
+	var solid
+	var water
+	var c: PackedByteArray
+	var sh: PackedByteArray
+	var cov: PackedByteArray
+	var dz: int
+	var dy: int
+	var nb: PackedByteArray
+	var side_offsets: PackedInt32Array
+	var plain: PackedInt32Array
+	var water_plain: PackedInt32Array
+	var cands: PackedInt64Array
+
+
+## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once.
 static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
+	var job := start(w, x0, z0, size)
+	while not row(job):
+		pass
+	return finish(job)
+
+
+## Begins building the meshes of a chunk; `row` then builds one row of cells at a time.
+static func start(w, x0: int, z0: int, size: int) -> Job:
 	w.refresh_shapes()
-	var faces := face_table()
-	var solid := MeshBuffers.new()
-	var water := MeshBuffers.new()
+	var job := Job.new()
+	job.w = w
+	job.x0 = x0
+	job.z0 = z0
+	job.z = z0
+	job.faces = face_table()
+	job.solid = MeshBuffers.new()
+	job.water = MeshBuffers.new()
 	var sx: int = w.size_x
 	var x1 := mini(x0 + size, sx)
 	var z1 := mini(z0 + size, w.size_z)
-	var c := padded(w, w.cells, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
-	var sh := padded(w, w.shapes, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
-	var cov := covers_table()
+	job.x1 = x1
+	job.z1 = z1
+	job.c = padded(w, w.cells, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
+	job.sh = padded(w, w.shapes, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
+	job.cov = covers_table()
 	# Strides of the padded grid: +x, +z, +y.
-	var dx := 1
-	var dz: int = x1 - x0 + 2 * PAD
-	var dy: int = dz * (z1 - z0 + 2 * PAD)
-	var white := Color(1, 1, 1)
-	var no_tiles := float(NO_TILE * 0x41041)
-	var nb := PackedByteArray()
-	nb.resize(6)
-	var side_offsets := PackedInt32Array([dx, -dx, 0, 0, dz, -dz])
+	job.dz = x1 - x0 + 2 * PAD
+	job.dy = job.dz * (z1 - z0 + 2 * PAD)
+	job.nb = PackedByteArray()
+	job.nb.resize(6)
+	job.side_offsets = PackedInt32Array([1, -1, 0, 0, job.dz, -job.dz])
 	# Plain tops (no edges, corners or transitions) and plain water wait here to be
 	# merged into rows.
-	var plain := PackedInt32Array()
-	var water_plain := PackedInt32Array()
-	var cands := _candidates(w, x0, z0, x1, z1)
-	var j := 0
-	for z in range(z0, z1):
-		for x in range(x0, x1):
-			var cand := cands[j]
-			j += 1
-			var column := (z - z0 + PAD) * dz + PAD + x - x0
-			while cand != 0:
-				var bit := cand & -cand
-				cand ^= bit
-				var y := WorldData.level_of(bit)
-				var i := (y + 1) * dy + column
-				var m := c[i]
-				if m == AIR or m == LEAVES:
-					if sh[i] >= 16:
-						_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
-					continue
-				# Neighbours in DIRS order: +x, -x, +y, -y, +z, -z.
-				nb[0] = c[i + dx]
-				nb[1] = c[i - dx]
-				nb[2] = c[i + dy]
-				nb[3] = c[i - dy]
-				nb[4] = c[i + dz]
-				nb[5] = c[i - dz]
-				var base := Vector3(x, y, z)
-				if m == WATER:
-					var fills := sh[i] >> 4
-					var foam := fills << 8
-					# Open water has no land beside it, so no foam.
-					if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
-						foam |= _foam(c, sh, cov, i, dz)
-					var depth := 1
-					while depth < 8 and c[i - depth * dy] == WATER:
-						depth += 1
-					if foam == 0 and nb[2] == AIR and nb[0] != AIR and nb[1] != AIR and nb[4] != AIR and nb[5] != AIR:
-						water_plain.append(((y * 64 + depth) * 64 + z - z0) * 64 + x - x0)
-					else:
-						_water_faces(water, faces, nb, base, depth, foam)
-					if fills != 0:
-						_fill_faces(solid, c, sh, cov, i, dy, dz, base)
-				elif m == Mat.LOG and _is_trunk(nb):
-					_trunk_faces(solid, faces, nb, base, m)
-				elif sh[i] & 15 != 0:
-					var cuts := sh[i] >> 4
-					_slope_faces(solid, faces, nb, sh, side_offsets, i, base, m, _around(c, cov, i, dy, dz), cuts)
-					if cuts:
-						_cut_water(w, water, c, i, dy, base, cuts)
+	job.plain = PackedInt32Array()
+	job.water_plain = PackedInt32Array()
+	job.cands = _candidates(w, x0, z0, x1, z1)
+	return job
+
+
+## Builds the next row of cells of the chunk. Returns true once every row is built.
+static func row(job: Job) -> bool:
+	if job.z >= job.z1:
+		return true
+	var w = job.w
+	var x0 := job.x0
+	var z0 := job.z0
+	var x1 := job.x1
+	var z := job.z
+	var faces := job.faces
+	var solid = job.solid
+	var water = job.water
+	var c := job.c
+	var sh := job.sh
+	var cov := job.cov
+	var dx := 1
+	var dz := job.dz
+	var dy := job.dy
+	var white := Color(1, 1, 1)
+	var no_tiles := float(NO_TILE * 0x41041)
+	var nb := job.nb
+	var side_offsets := job.side_offsets
+	var plain := job.plain
+	var water_plain := job.water_plain
+	var cands := job.cands
+	var j := (z - z0) * (x1 - x0)
+	for x in range(x0, x1):
+		var cand := cands[j]
+		j += 1
+		var column := (z - z0 + PAD) * dz + PAD + x - x0
+		while cand != 0:
+			var bit := cand & -cand
+			cand ^= bit
+			var y := WorldData.level_of(bit)
+			var i := (y + 1) * dy + column
+			var m := c[i]
+			if m == AIR or m == LEAVES:
+				if sh[i] >= 16:
+					_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
+				continue
+			# Neighbours in DIRS order: +x, -x, +y, -y, +z, -z.
+			nb[0] = c[i + dx]
+			nb[1] = c[i - dx]
+			nb[2] = c[i + dy]
+			nb[3] = c[i - dy]
+			nb[4] = c[i + dz]
+			nb[5] = c[i - dz]
+			var base := Vector3(x, y, z)
+			if m == WATER:
+				var fills := sh[i] >> 4
+				var foam := fills << 8
+				# Open water has no land beside it, so no foam.
+				if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
+					foam |= _foam(c, sh, cov, i, dz)
+				var depth := 1
+				while depth < 8 and c[i - depth * dy] == WATER:
+					depth += 1
+				if foam == 0 and nb[2] == AIR and nb[0] != AIR and nb[1] != AIR and nb[4] != AIR and nb[5] != AIR:
+					water_plain.append(((y * 64 + depth) * 64 + z - z0) * 64 + x - x0)
 				else:
-					var cuts := sh[i] >> 4
-					# Most tops lie under open sky amid the same flat ground: no sides, no
-					# edges, no transitions.
-					if cuts == 0 and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
-							and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
-							and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
-							and not cov[c[i + dy - dz]]:
-						plain.append(((y * 64 + m * 3) * 64 + z - z0) * 64 + x - x0)
-						continue
-					for d in 6:
-						var n := nb[d]
-						if cov[n] and sh[i + side_offsets[d]] & 15 == 0:
-							# The ground under a thin trunk still shows around it.
-							if not (d == FACE_TOP and n == Mat.LOG and _trunk_at(w, x, y + 1, z)):
-								continue
-						var tile := m * 3 + (0 if d == FACE_TOP else (2 if d == FACE_BOTTOM else 1))
-						var edges := 0
-						var flag := 0
-						var around := no_tiles
-						if d == FACE_TOP:
-							edges = _top_edges(c, cov, i, dy, dz)
-							var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
-							var a := _around_tiles(c, cov, i, dy, dz)
-							if cuts != 0 or halves != 0:
-								_top_pieces(solid, base, m, cuts, edges, halves, float(a))
-								continue
-							if edges == 0 and _plain_around(a, tile):
-								plain.append(((y * 64 + tile) * 64 + z - z0) * 64 + x - x0)
-								continue
-							around = float(a)
-						elif d == FACE_SOUTH:
-							if not cov[c[i + dy]]:
-								flag = OPEN_TOP
-							# Outlines where nothing nearer or level is beside or below.
-							if not cov[c[i - dy + dz]] and not cov[c[i - dy]]:
-								edges |= DARK << EDGE_S
-							if not cov[c[i - dx]] and not cov[c[i - dx + dz]] and not cov[c[i - dx + dz + dy]]:
-								edges |= DARK << EDGE_W
-							if not cov[c[i + dx]] and not cov[c[i + dx + dz]] and not cov[c[i + dx + dz + dy]]:
-								edges |= DARK << EDGE_E
-						if cuts != 0:
-							_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around))
-						else:
-							_add_cell_face(solid, d, base, white, Vector2(pack(tile, edges, flag), around))
+					_water_faces(water, faces, nb, base, depth, foam)
+				if fills != 0:
+					_fill_faces(solid, c, sh, cov, i, dy, dz, base)
+			elif m == Mat.LOG and _is_trunk(nb):
+				_trunk_faces(solid, faces, nb, base, m)
+			elif sh[i] & 15 != 0:
+				var cuts := sh[i] >> 4
+				_slope_faces(solid, faces, nb, sh, side_offsets, i, base, m, _around(c, cov, i, dy, dz), cuts)
+				if cuts:
+					_cut_water(w, water, c, i, dy, base, cuts)
+			else:
+				var cuts := sh[i] >> 4
+				# Most tops lie under open sky amid the same flat ground: no sides, no
+				# edges, no transitions.
+				if cuts == 0 and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
+						and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
+						and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
+						and not cov[c[i + dy - dz]]:
+					plain.append(((y * 64 + m * 3) * 64 + z - z0) * 64 + x - x0)
+					continue
+				for d in 6:
+					var n := nb[d]
+					if cov[n] and sh[i + side_offsets[d]] & 15 == 0:
+						# The ground under a thin trunk still shows around it.
+						if not (d == FACE_TOP and n == Mat.LOG and _trunk_at(w, x, y + 1, z)):
+							continue
+					var tile := m * 3 + (0 if d == FACE_TOP else (2 if d == FACE_BOTTOM else 1))
+					var edges := 0
+					var flag := 0
+					var around := no_tiles
+					if d == FACE_TOP:
+						edges = _top_edges(c, cov, i, dy, dz)
+						var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
+						var a := _around_tiles(c, cov, i, dy, dz)
+						if cuts != 0 or halves != 0:
+							_top_pieces(solid, base, m, cuts, edges, halves, float(a))
+							continue
+						if edges == 0 and _plain_around(a, tile):
+							plain.append(((y * 64 + tile) * 64 + z - z0) * 64 + x - x0)
+							continue
+						around = float(a)
+					elif d == FACE_SOUTH:
+						if not cov[c[i + dy]]:
+							flag = OPEN_TOP
+						# Outlines where nothing nearer or level is beside or below.
+						if not cov[c[i - dy + dz]] and not cov[c[i - dy]]:
+							edges |= DARK << EDGE_S
+						if not cov[c[i - dx]] and not cov[c[i - dx + dz]] and not cov[c[i - dx + dz + dy]]:
+							edges |= DARK << EDGE_W
+						if not cov[c[i + dx]] and not cov[c[i + dx + dz]] and not cov[c[i + dx + dz + dy]]:
+							edges |= DARK << EDGE_E
 					if cuts != 0:
-						_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts)
-					# The ground under a cut corner of the cell above shows there.
-					var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
-					if exposed != 0:
-						var edges := _top_edges(c, cov, i, dy, dz)
-						_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
-							_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0)
-	_plain_rows(solid, plain, x0, z0)
-	_plain_rows(water, water_plain, x0, z0, true)
+						_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around))
+					else:
+						_add_cell_face(solid, d, base, white, Vector2(pack(tile, edges, flag), around))
+				if cuts != 0:
+					_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts)
+				# The ground under a cut corner of the cell above shows there.
+				var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
+				if exposed != 0:
+					var edges := _top_edges(c, cov, i, dy, dz)
+					_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
+						_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0)
+	job.z += 1
+	return job.z >= job.z1
+
+
+## The meshes once every row is built: [solid, water], null where empty.
+static func finish(job: Job) -> Array:
+	var solid = job.solid
+	var water = job.water
+	_plain_rows(solid, job.plain, job.x0, job.z0)
+	_plain_rows(water, job.water_plain, job.x0, job.z0, true)
 	return [null if solid.is_empty() else solid.to_mesh(CELL), null if water.is_empty() else water.to_mesh(CELL)]
 
 

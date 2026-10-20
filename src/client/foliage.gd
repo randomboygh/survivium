@@ -105,15 +105,14 @@ static func disc_mesh(size: float) -> ArrayMesh:
 ## shadows custom data (what the tree does over the year, as in the clumps' alpha).
 ## Leaf clumps stand on a lattice two cells apart (odd x and z, even levels), where the
 ## generator centres its crowns.
-static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
-	w.refresh_shapes()
-	var cells: PackedByteArray = w.cells
-	var shapes: PackedByteArray = w.shapes
-	var sx: int = w.size_x
-	var sz: int = w.size_z
-	var layer: int = sx * sz
-	var x1 := mini(x0 + size, sx)
-	var z1 := mini(z0 + size, sz)
+## The state of a chunk's plants being built row by row (see `start`, `row`, `finish`).
+class Job extends RefCounted:
+	var w
+	var x0: int
+	var z0: int
+	var x1: int
+	var z1: int
+	var z: int
 	var grass := PackedFloat32Array()
 	var clumps := PackedFloat32Array()
 	var shadows := PackedFloat32Array()
@@ -121,137 +120,191 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 	var nc := 0
 	var ns := 0
 	var rng := RandomNumberGenerator.new()
-	var trunks := _trunks_near(w, x0, z0, x1, z1)
-	for z in range(z0, z1):
-		for x in range(x0, x1):
-			var col := z * sx + x
-			var air: int = w.air_cols[col]
-			# Ground with air above.
-			var tops: int = ~(air | w.water_cols[col] | w.leaf_cols[col]) & w.all_bits & ((air >> 1) | w.top_bit)
-			while tops != 0:
-				var bit := tops & -tops
-				tops ^= bit
-				var y := WorldData.level_of(bit)
-				var i := y * layer + col
-				var m := cells[i]
-				if not Mat.can_slope(m):
-					continue
-				rng.seed = hash(Vector3i(x, y, z))
-				var mask := WorldData.FULL & ~(shapes[i] & 15)
-				var cuts := shapes[i] >> 4
-				var kinds: Array[int] = []
-				if m == Mat.GRASS:
-					# No tuft on a quarter of the cells and two on another quarter, so
-					# the ground shows between them before the shader thins the meadows.
-					var roll := rng.randf()
-					for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
-						kinds.append(rng.randi_range(0, 3))
-					var extra := rng.randf()
-					if extra < 0.16:
-						kinds.append(FLOWER + rng.randi_range(0, 3))
-					elif extra < 0.28:
-						kinds.append(EAR + rng.randi_range(0, 1))
-					elif extra < 0.4:
-						kinds.append(HERB + rng.randi_range(0, 1))
-				# Reeds line grassy and muddy banks, not the sand of a beach.
-				if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
-					for k in rng.randi_range(1, 2):
-						kinds.append(REED + rng.randi_range(0, 1))
-				for kind in kinds:
-					var fx := rng.randi_range(1, 7) / 8.0
-					var fz := rng.randi_range(1, 7) / 8.0
-					var q := WorldData.corner_at(fx, fz)
-					if cuts & (1 << q) and WorldData.in_corner(q, fx, fx, fz, fz):
-						continue
-					put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz, cuts), z + fz) * CELL)
-					grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
-					ng += 1
-			if x & 1 == 0 or z & 1 == 0:
+	var trunks: Array
+
+
+static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
+	var job := start(w, x0, z0, size)
+	while not row(job):
+		pass
+	return finish(job)
+
+
+## Begins building the plants of a chunk; `row` then does one row of cells at a time.
+static func start(w, x0: int, z0: int, size: int) -> Job:
+	w.refresh_shapes()
+	var job := Job.new()
+	job.w = w
+	job.x0 = x0
+	job.z0 = z0
+	job.z = z0
+	job.x1 = mini(x0 + size, w.size_x)
+	job.z1 = mini(z0 + size, w.size_z)
+	job.trunks = _trunks_near(w, x0, z0, job.x1, job.z1)
+	return job
+
+
+## Builds the plants of the next row of cells. Returns true once every row is built.
+static func row(job: Job) -> bool:
+	if job.z >= job.z1:
+		return true
+	var w = job.w
+	var cells: PackedByteArray = w.cells
+	var shapes: PackedByteArray = w.shapes
+	var sx: int = w.size_x
+	var layer: int = sx * w.size_z
+	var x0 := job.x0
+	var x1 := job.x1
+	var z := job.z
+	var grass := job.grass
+	var clumps := job.clumps
+	var shadows := job.shadows
+	var ng := job.ng
+	var nc := job.nc
+	var ns := job.ns
+	var rng := job.rng
+	var trunks := job.trunks
+	for x in range(x0, x1):
+		var col := z * sx + x
+		var air: int = w.air_cols[col]
+		# Ground with air above.
+		var tops: int = ~(air | w.water_cols[col] | w.leaf_cols[col]) & w.all_bits & ((air >> 1) | w.top_bit)
+		while tops != 0:
+			var bit := tops & -tops
+			tops ^= bit
+			var y := WorldData.level_of(bit)
+			var i := y * layer + col
+			var m := cells[i]
+			if not Mat.can_slope(m):
 				continue
-			var leaves: int = w.leaf_cols[col] & EVEN_LEVELS
-			if leaves == 0:
-				continue
-			var tree := _tree_at(trunks, x, z)
-			# Crowns of noted trees cast their shadow as a whole (see _tree_shadows),
-			# others one disc per point.
-			var grown: bool = w.trees.has(tree[0])
-			var looks: Dictionary = Trees.SPECIES[tree[1]]
-			var needles: bool = looks.leaves == Trees.NEEDLES
-			var tints: Array = looks.tints
-			var base: Color = tints[tree[2] % tints.size()]
-			base.a = EVERGREEN if needles else (GOES_BARE if _goes_bare(tree[2], tree[1]) else KEEPS_LEAVES)
-			var first_row := PixelTextures.NEEDLE_ROW if needles else 0
-			var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
-			if needles and tree[0] == Vector2i(x, z):
-				# Small sprigs in front of a spruce's trunk where the tiers are around
-				# it: the trunk shows only under the lowest tier.
-				var core: int = (w.log_cols[col] & w.leaf_cols[col + 1] | leaves) & EVEN_LEVELS
-				while core != 0:
-					var bit := core & -core
-					core ^= bit
-					rng.seed = hash(Vector3i(x, WorldData.level_of(bit), z))
-					for up in [0.0, 0.5]:
-						var at := (Vector3(x, WorldData.level_of(bit), z) + Vector3(0.5, 0.5, 0.5)) * CELL + Vector3(0.0, up, 0.45)
-						_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + 1 + DEEP_ROW, rng)
-						nc += 1
-			while leaves != 0:
-				var bit := leaves & -leaves
-				leaves ^= bit
-				var y := WorldData.level_of(bit)
-				var faces := _open_faces(w, x, y, z)
-				var mid := (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) * CELL
-				if faces.is_empty():
-					# Inside a spruce a dark sprig fills the room between the tiers, so
-					# the ground never shows through.
-					if needles:
-						rng.seed = hash(Vector3i(x, y, z))
-						var inner := base * DEEP
-						inner.a = base.a
-						_card(clumps, PixelView.snap(mid), _tier_normal(mid, Vector3(axis.x, mid.y, axis.z), TIER_DOWN), inner, first_row + DEEP_ROW, rng)
-						nc += 1
+			rng.seed = hash(Vector3i(x, y, z))
+			var mask := WorldData.FULL & ~(shapes[i] & 15)
+			var cuts := shapes[i] >> 4
+			var kinds: Array[int] = []
+			if m == Mat.GRASS:
+				# No tuft on a quarter of the cells and two on another quarter, so
+				# the ground shows between them before the shader thins the meadows.
+				var roll := rng.randf()
+				for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
+					kinds.append(rng.randi_range(0, 3))
+				var extra := rng.randf()
+				if extra < 0.16:
+					kinds.append(FLOWER + rng.randi_range(0, 3))
+				elif extra < 0.28:
+					kinds.append(EAR + rng.randi_range(0, 1))
+				elif extra < 0.4:
+					kinds.append(HERB + rng.randi_range(0, 1))
+			# Reeds line grassy and muddy banks, not the sand of a beach.
+			if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
+				for k in rng.randi_range(1, 2):
+					kinds.append(REED + rng.randi_range(0, 1))
+			for kind in kinds:
+				var fx := rng.randi_range(1, 7) / 8.0
+				var fz := rng.randi_range(1, 7) / 8.0
+				var q := WorldData.corner_at(fx, fz)
+				if cuts & (1 << q) and WorldData.in_corner(q, fx, fx, fz, fz):
 					continue
-				# Broad leaves take the normal from the middle of the crown nearby, needles
-				# from the trunk, leaning up on top of a tier and down under the next one.
-				var middle := Vector3(axis.x, mid.y, axis.z) if needles else mid + _crown_offset(w, x, y, z)
-				var lean := (TIER_UP if faces[0] == Vector3i.UP else TIER_DOWN) if needles else 0.0
-				rng.seed = hash(Vector3i(x, y, z))
-				# Large bunches on the inside of the crown, smaller ones toward its
-				# outline (points open on three or more sides), the smallest at the very
-				# edge, so the middle is dense and the edge jagged.
-				# Spruce tiers stay dense out to their rim, only the lone points of the
-				# top take small sprigs, so the tip is pointed.
-				var small: bool = faces.size() >= 4 and tree[0] == Vector2i(x, z) if needles else faces.size() >= 3
-				var rows := [1, 2] if small else [0, 1]
-				for f in faces:
-					# Cards cover each face the camera can see, poking out of it a
-					# little, so no gap shows the trunk inside.
-					for k in CARDS_PER_FACE:
-						var c := mid + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
-						var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX
-						c += spread - Vector3(f) * Vector3(f).dot(spread)
-						c = PixelView.snap(c)
-						var n := _tier_normal(c, middle, lean) if needles else _card_normal(c, middle)
-						_card(clumps, c, n, base, first_row + rows[rng.randi_range(0, 1)], rng)
-						nc += 1
-				# A deeper, darker layer behind the outer cards (a little inward and
-				# north, so it is drawn behind them) fills the gaps between them.
-				var deep := PixelView.snap(mid + Vector3(0.0, 0.0, -0.25) - (mid - middle).limit_length(0.3))
-				var dn := _tier_normal(deep, middle, lean) if needles else _card_normal(deep, middle)
-				var dark := base * DEEP
-				dark.a = base.a
-				_card(clumps, deep, dn, dark, first_row + DEEP_ROW, rng)
-				nc += 1
-				if not grown:
-					put(shadows, mid)
-					shadows.append_array([base.a, 0.0, 0.0, 0.0])
-					ns += 1
+				put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz, cuts), z + fz) * CELL)
+				grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
+				ng += 1
+		if x & 1 == 0 or z & 1 == 0:
+			continue
+		var leaves: int = w.leaf_cols[col] & EVEN_LEVELS
+		if leaves == 0:
+			continue
+		var tree := _tree_at(trunks, x, z)
+		# Crowns of noted trees cast their shadow as a whole (see _tree_shadows),
+		# others one disc per point.
+		var grown: bool = w.trees.has(tree[0])
+		var looks: Dictionary = Trees.SPECIES[tree[1]]
+		var needles: bool = looks.leaves == Trees.NEEDLES
+		var tints: Array = looks.tints
+		var base: Color = tints[tree[2] % tints.size()]
+		base.a = EVERGREEN if needles else (GOES_BARE if _goes_bare(tree[2], tree[1]) else KEEPS_LEAVES)
+		var first_row := PixelTextures.NEEDLE_ROW if needles else 0
+		var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
+		if needles and tree[0] == Vector2i(x, z):
+			# Small sprigs in front of a spruce's trunk where the tiers are around
+			# it: the trunk shows only under the lowest tier.
+			var core: int = (w.log_cols[col] & w.leaf_cols[col + 1] | leaves) & EVEN_LEVELS
+			while core != 0:
+				var bit := core & -core
+				core ^= bit
+				rng.seed = hash(Vector3i(x, WorldData.level_of(bit), z))
+				for up in [0.0, 0.5]:
+					var at := (Vector3(x, WorldData.level_of(bit), z) + Vector3(0.5, 0.5, 0.5)) * CELL + Vector3(0.0, up, 0.45)
+					_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + 1 + DEEP_ROW, rng)
+					nc += 1
+		while leaves != 0:
+			var bit := leaves & -leaves
+			leaves ^= bit
+			var y := WorldData.level_of(bit)
+			var faces := _open_faces(w, x, y, z)
+			var mid := (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) * CELL
+			if faces.is_empty():
+				# Inside a spruce a dark sprig fills the room between the tiers, so
+				# the ground never shows through.
+				if needles:
+					rng.seed = hash(Vector3i(x, y, z))
+					var inner := base * DEEP
+					inner.a = base.a
+					_card(clumps, PixelView.snap(mid), _tier_normal(mid, Vector3(axis.x, mid.y, axis.z), TIER_DOWN), inner, first_row + DEEP_ROW, rng)
+					nc += 1
+				continue
+			# Broad leaves take the normal from the middle of the crown nearby, needles
+			# from the trunk, leaning up on top of a tier and down under the next one.
+			var middle := Vector3(axis.x, mid.y, axis.z) if needles else mid + _crown_offset(w, x, y, z)
+			var lean := (TIER_UP if faces[0] == Vector3i.UP else TIER_DOWN) if needles else 0.0
+			rng.seed = hash(Vector3i(x, y, z))
+			# Large bunches on the inside of the crown, smaller ones toward its
+			# outline (points open on three or more sides), the smallest at the very
+			# edge, so the middle is dense and the edge jagged.
+			# Spruce tiers stay dense out to their rim, only the lone points of the
+			# top take small sprigs, so the tip is pointed.
+			var small: bool = faces.size() >= 4 and tree[0] == Vector2i(x, z) if needles else faces.size() >= 3
+			var rows := [1, 2] if small else [0, 1]
+			for f in faces:
+				# Cards cover each face the camera can see, poking out of it a
+				# little, so no gap shows the trunk inside.
+				for k in CARDS_PER_FACE:
+					var c := mid + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
+					var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX
+					c += spread - Vector3(f) * Vector3(f).dot(spread)
+					c = PixelView.snap(c)
+					var n := _tier_normal(c, middle, lean) if needles else _card_normal(c, middle)
+					_card(clumps, c, n, base, first_row + rows[rng.randi_range(0, 1)], rng)
+					nc += 1
+			# A deeper, darker layer behind the outer cards (a little inward and
+			# north, so it is drawn behind them) fills the gaps between them.
+			var deep := PixelView.snap(mid + Vector3(0.0, 0.0, -0.25) - (mid - middle).limit_length(0.3))
+			var dn := _tier_normal(deep, middle, lean) if needles else _card_normal(deep, middle)
+			var dark := base * DEEP
+			dark.a = base.a
+			_card(clumps, deep, dn, dark, first_row + DEEP_ROW, rng)
+			nc += 1
+			if not grown:
+				put(shadows, mid)
+				shadows.append_array([base.a, 0.0, 0.0, 0.0])
+				ns += 1
+	job.ng = ng
+	job.nc = nc
+	job.ns = ns
+	job.z += 1
+	return job.z >= job.z1
+
+
+## The plants once every row is built (see build_chunk).
+static func finish(job: Job) -> Dictionary:
+	var w = job.w
+	var shadows := job.shadows
+	var ns := job.ns
 	# Trees whose trunks stand in this chunk cast one shadow per level of their crown.
-	var wide := _trunks_near(w, x0 - TREE_REACH, z0 - TREE_REACH, x1 + TREE_REACH, z1 + TREE_REACH)
-	for t in trunks:
+	var wide := _trunks_near(w, job.x0 - TREE_REACH, job.z0 - TREE_REACH, job.x1 + TREE_REACH, job.z1 + TREE_REACH)
+	for t in job.trunks:
 		var at: Vector2i = t[0]
-		if at.x >= x0 and at.x < x1 and at.y >= z0 and at.y < z1:
+		if at.x >= job.x0 and at.x < job.x1 and at.y >= job.z0 and at.y < job.z1:
 			ns += _tree_shadows(w, t, wide, shadows)
-	return {"grass": [ng, grass], "clumps": [nc, clumps], "shadows": [ns, shadows]}
+	return {"grass": [job.ng, job.grass], "clumps": [job.nc, job.clumps], "shadows": [ns, shadows]}
 
 
 ## True for a ground cell at the water's edge: open water beside it at its own level
