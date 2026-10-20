@@ -88,7 +88,7 @@ var job_plants: Foliage.Job
 var job_part := -1
 var job_meshes := []
 var job_plant_parts := {}
-## Chunks just shaped whose columns the roof map (part 0) and the minimap (part 1)
+## Chunks just made whose columns the roof map (part 0) and the minimap (part 1)
 ## still have to take, one a frame: Vector3i(key.x, key.y, part).
 var paint_queue: Array[Vector3i] = []
 ## True once every chunk within LOAD_RANGE of the player is built.
@@ -259,11 +259,16 @@ func _prerequisite(key: Vector2i) -> Array:
 
 ## A chunk reached a stage: once it is SHAPED its columns are final, so the roof
 ## map and the minimap take them, at once with `now` (the loading screen and tools),
-## else one a frame (see run_jobs).
+## else one a frame (see run_jobs). The minimap paints its ground already at TERRAIN,
+## two chunks ahead of the meshes, so the world is not seen being made at its edge;
+## the trees come in with SHAPED.
 func _on_generated(key: Vector2i, stage: int, now := false) -> void:
-	if stage != WorldGen.SHAPED:
-		return
-	for part in 2:
+	var parts: Array
+	if stage == WorldGen.SHAPED:
+		parts = [0, 1]
+	elif stage == WorldGen.TERRAIN:
+		parts = [1]
+	for part: int in parts:
 		if now:
 			_paint(Vector3i(key.x, key.y, part))
 		else:
