@@ -63,6 +63,8 @@ const SHOTS := {
 	"slopes-winter-morning": {"time": 0.33, "season": 3, "slopes": true},
 	"beach-winter": {"time": 0.33, "season": 3, "place": "beach"},
 	"plateau": {"time": 0.42, "season": 1, "place": "plateau"},
+	"pit-mouth": {"time": 0.42, "season": 1, "place": "pit"},
+	"adit": {"time": 0.42, "season": 1, "place": "adit"},
 	"tracks": {"time": 0.42, "season": 1, "walk": true},
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},

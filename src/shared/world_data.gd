@@ -855,9 +855,11 @@ static func far_corner(a: int, b: int, hv: int) -> int:
 
 
 ## Height above level y of corner `far` of the top in column (x, z) whose corner `near`
-## meets the corner at `hv` above level y; NO_CORNER where no top there meets it.
+## meets the corner at `hv` above level y; NO_CORNER where no top there meets it. A
+## corner is -1, 0 or 1 above its top's level, so the tops that can meet it lie a level
+## above, at or below the corner itself: the same levels from either cell beside it.
 func _patch_far(x: int, y: int, z: int, near: int, far: int, hv: int) -> int:
-	for dl: int in [0, 1, -1, -2]:
+	for dl: int in [hv + 1, hv, hv - 1]:
 		var l := y + dl
 		var up := get_cell(x, l + 1, z)
 		if (up == Mat.AIR or up == Mat.WATER) and _surface_ground(get_cell(x, l, z)) and l >= 0:

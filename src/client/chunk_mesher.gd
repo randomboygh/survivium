@@ -808,14 +808,11 @@ static func _corner_heights(sh: PackedByteArray, i: int, dy: int) -> PackedInt32
 	return h
 
 
-## Levels tried for the top of a column beside a slope, nearest first.
-const NEAR_LEVELS := [0, 1, -1, -2]
-
-
 ## Height of corner `far` of the top in the padded column of cell `j` (same level)
-## whose corner `near` meets one at `hv` (see WorldData._patch_far).
+## whose corner `near` meets one at `hv` (see WorldData._patch_far: the levels tried
+## are a level above, at and below the corner).
 static func _patch_far(c: PackedByteArray, sh: PackedByteArray, j: int, dy: int, near: int, far: int, hv: int) -> int:
-	for dl: int in NEAR_LEVELS:
+	for dl: int in [hv + 1, hv, hv - 1]:
 		var l := j + dl * dy
 		if l - dy < 0 or l + dy >= c.size():
 			continue
