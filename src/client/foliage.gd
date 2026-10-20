@@ -169,8 +169,8 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	job.z0 = z0
 	job.z = z0
 	job.x = x0
-	job.x1 = mini(x0 + size, w.size_x)
-	job.z1 = mini(z0 + size, w.size_z)
+	job.x1 = x0 + size
+	job.z1 = z0 + size
 	job.trunks = _trunks_near(w, x0, z0, job.x1, job.z1)
 	job.wide = _trunks_near(w, x0 - TREE_REACH, z0 - TREE_REACH, job.x1 + TREE_REACH, job.z1 + TREE_REACH)
 	return job
@@ -217,7 +217,7 @@ static func tier_at(x: int, z: int) -> int:
 ## over it, and fields lie where the ear noise is high.
 static func ear_field_at(w, x: int, y: int, z: int) -> bool:
 	_fields()
-	if y > w.sea_level + FERTILE_LEVELS or w.leaf_cols[z * w.size_x + x] != 0:
+	if y > w.sea_level + FERTILE_LEVELS or w.leaf_col(x, z) != 0:
 		return false
 	return ear_noise.get_noise_2d(x, z) > 0.4
 
@@ -246,19 +246,21 @@ static func step(job: Job, columns: int) -> bool:
 
 static func _column(job: Job, x: int, z: int) -> void:
 	var w = job.w
-	var cells: PackedByteArray = w.cells
-	var shapes: PackedByteArray = w.shapes
-	var sx: int = w.size_x
-	var layer: int = sx * w.size_z
+	var ch: WorldData.Chunk = w.chunk_at(x, z)
+	if ch == null:
+		return
+	var cells := ch.cells
+	var shapes := ch.shapes
+	var layer := WorldData.LAYER
 	var grass := job.grass
 	var clumps := job.clumps
 	var shadows := job.shadows
 	var rng := job.rng
 	var trunks := job.trunks
-	var col := z * sx + x
-	var air: int = w.air_cols[col]
+	var col := WorldData.col_of(x, z)
+	var air: int = ch.air[col]
 	# Ground with air above.
-	var tops: int = ~(air | w.water_cols[col] | w.leaf_cols[col]) & w.all_bits & ((air >> 1) | w.top_bit)
+	var tops: int = ~(air | ch.water[col] | ch.leaf[col]) & w.all_bits & ((air >> 1) | w.top_bit)
 	while tops != 0:
 		var bit := tops & -tops
 		tops ^= bit
@@ -317,7 +319,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 			job.ng += 1
 	if x & 1 == 0 or z & 1 == 0:
 		return
-	var leaves: int = w.leaf_cols[col] & EVEN_LEVELS
+	var leaves: int = ch.leaf[col] & EVEN_LEVELS
 	if leaves == 0:
 		return
 	var tree := _tree_at(trunks, x, z)
@@ -334,7 +336,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 	if needles and tree[0] == Vector2i(x, z):
 		# Small sprigs in front of a spruce's trunk where the tiers are around
 		# it: the trunk shows only under the lowest tier.
-		var core: int = (w.log_cols[col] & w.leaf_cols[col + 1] | leaves) & EVEN_LEVELS
+		var core: int = (ch.logs[col] & w.leaf_col(x + 1, z) | leaves) & EVEN_LEVELS
 		while core != 0:
 			var bit := core & -core
 			core ^= bit
@@ -420,9 +422,7 @@ static func _by_water(w, x: int, y: int, z: int) -> bool:
 	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 		var nx := x + d.x
 		var nz := z + d.y
-		if nx < 0 or nz < 0 or nx >= w.size_x or nz >= w.size_z:
-			continue
-		if w.water_cols[nz * w.size_x + nx] & bits:
+		if w.water_col(nx, nz) & bits:
 			return true
 	return false
 
@@ -516,9 +516,7 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 		for dx in range(-TREE_REACH, TREE_REACH + 1, 2):
 			var x := at.x + dx
 			var z := at.y + dz
-			if x < 0 or z < 0 or x >= w.size_x or z >= w.size_z:
-				continue
-			var leaves: int = w.leaf_cols[z * w.size_x + x] & EVEN_LEVELS
+			var leaves: int = w.leaf_col(x, z) & EVEN_LEVELS
 			if leaves == 0 or _tree_at(trunks, x, z)[0] != at:
 				continue
 			while leaves != 0:

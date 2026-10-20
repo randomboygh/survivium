@@ -155,6 +155,48 @@ const ICONS := {
 		"www..www",
 		"ww....ww",
 	],
+	"plus": [
+		"...ww...",
+		"...ww...",
+		"...ww...",
+		"wwwwwwww",
+		"wwwwwwww",
+		"...ww...",
+		"...ww...",
+		"...ww...",
+	],
+	"minus": [
+		"........",
+		"........",
+		"........",
+		"wwwwwwww",
+		"wwwwwwww",
+		"........",
+		"........",
+		"........",
+	],
+	"target": [
+		"...www...",
+		".ww...ww.",
+		".w.....w.",
+		"w...a...w",
+		"w..aaa..w",
+		"w...a...w",
+		".w.....w.",
+		".ww...ww.",
+		"...www...",
+	],
+	"dice": [
+		".wwwwwww.",
+		"wwwwwwwww",
+		"wkwwwwwkw",
+		"wwwwwwwww",
+		"wwwwkwwww",
+		"wwwwwwwww",
+		"wkwwwwwkw",
+		"wwwwwwwww",
+		".wwwwwww.",
+	],
 	"pick": [
 		"...gggggg...",
 		"..ggdrrdgg..",
@@ -240,12 +282,22 @@ static func theme() -> Theme:
 	t.set_color("font_disabled_color", "Button", Color(MUTED, 0.5))
 	t.set_color("icon_normal_color", "Button", Color.WHITE)
 	t.set_constant("h_separation", "Button", 6)
+	for state in ["normal", "focus", "read_only"]:
+		t.set_stylebox(state, "LineEdit", field(state == "focus"))
+	t.set_color("font_color", "LineEdit", INK)
+	t.set_color("caret_color", "LineEdit", ACCENT)
+	t.set_color("selection_color", "LineEdit", HIGHLIGHT)
 	return t
 
 
 ## Panel: two pixels of outline, two of highlight, then the fill.
 static func panel() -> StyleBoxTexture:
 	return _nine_patch(12, 4, "panel", PANEL, EDGE, Vector4(6, 6, 6, 6))
+
+
+## A text field: a sunken well like a slot, with room around the text.
+static func field(focused := false) -> StyleBoxTexture:
+	return _nine_patch(12, 4, "slot", WELL, ACCENT if focused else EDGE, Vector4(6, 6, 6, 6))
 
 
 ## Item slot: a sunken well with a shadow along the top and left edges.

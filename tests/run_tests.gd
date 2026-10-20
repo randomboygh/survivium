@@ -52,48 +52,116 @@ func _check(cond: bool, what: String) -> void:
 
 
 func _test_generation() -> void:
-	var a := WorldGen.generate(42, 64, 40, 64)
-	var b := WorldGen.generate(42, 64, 40, 64)
-	var c := WorldGen.generate(43, 64, 40, 64)
-	_check(a.cells == b.cells, "same seed gives the same world")
-	_check(a.cells != c.cells, "different seeds give different worlds")
+	var a := _land(42)
+	var b := _land(42)
+	var c := _land(43)
+	var keys: Array = a.area
+	_check(_same(a.world, b.world, keys), "same seed gives the same world")
+	_check(not _same(a.world, c.world, keys), "different seeds give different worlds")
 	var counts := {}
-	for m in a.cells:
-		counts[m] = counts.get(m, 0) + 1
+	for key: Vector2i in keys:
+		for m in a.world.chunks[key].cells:
+			counts[m] = counts.get(m, 0) + 1
 	for m in [Mat.GRASS, Mat.STONE, Mat.WATER, Mat.DIRT]:
 		_check(counts.get(m, 0) > 0, "world contains %s" % Mat.NAMES[m])
-	var spawn := WorldGen.find_spawn(a, Vector3i(32, 0, 32))
-	_check(spawn.y > a.sea_level, "spawn is above the sea")
-	_check(a.get_cell(spawn.x, spawn.y, spawn.z) == Mat.AIR, "spawn cell is free")
+	var w: WorldData = a.world
+	var spawn := WorldGen.find_spawn(w, a.gen.spawn_guess)
+	_check(spawn.y > w.sea_level, "spawn is above the sea")
+	_check(w.get_cell(spawn.x, spawn.y, spawn.z) == Mat.AIR, "spawn cell is free")
 	# The world does not depend on the order its chunks are made in: generated
-	# chunk by chunk around a point, stage by stage, it is the same as generated whole.
-	var gen := WorldGen.new(42, 64, 40, 64)
-	for cz in range(gen.chunks_z() - 1, -1, -1):
-		for cx in range(gen.chunks_x() - 1, -1, -1):
-			_ensure_stage(gen, Vector2i(cx, cz), WorldGen.SHAPED)
-	_check(gen.world.cells == a.cells, "chunks made in another order give the same cells")
-	_check(gen.world.trees == a.trees and gen.world.bushes == a.bushes, "and the same trees and bushes")
-	_check(gen.world.shapes == a.shapes, "and the same shapes")
-	# Water above the sea never leaks: nothing open under it, and the only air beside
-	# it is a river's step down.
+	# chunk by chunk from the other corner, stage by stage, it is the same as
+	# generated at once.
+	var gen := WorldGen.new(42, 40)
+	for i in range(keys.size() - 1, -1, -1):
+		_ensure_stage(gen, keys[i], WorldGen.SHAPED)
+	_check(_same(gen.world, w, keys), "chunks made in another order give the same cells and shapes")
+	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and the same trees and bushes")
+	# Chunks dropped far away are made again the same, with the crowns of the trees
+	# around that reach into them: a chunk of the area, a planted one beside it and
+	# one with terrain only beyond that.
+	var first: Vector2i = keys[0]
+	var dropped: Array[Vector2i] = [first + Vector2i(1, 1), first + Vector2i(-1, 1), first + Vector2i(-2, 2)]
+	var stages: Array[int] = []
+	for k in dropped:
+		stages.append(gen.stage_of(k))
+		gen.forget(k)
+	for i in dropped.size():
+		_ensure_stage(gen, dropped[i], stages[i])
+	for k in keys:
+		_ensure_stage(gen, k, WorldGen.SHAPED)
+	_check(_same_cells(gen.world, w, keys + dropped) and _same_view(gen, gen.world, w, keys + dropped),
+		"chunks dropped and made again are the same")
+	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and so are their trees and bushes")
+	# Water above the sea never leaks: nothing open under it, and no air beside it.
 	var leaks := 0
-	var layer := a.size_x * a.size_z
-	for col in layer:
-		var water: int = a.water_cols[col]
-		var x := col % a.size_x
-		var z := col / a.size_x
-		while water != 0:
-			var bit := water & -water
-			water ^= bit
-			var y := WorldData.level_of(bit)
-			if y <= a.sea_level:
-				continue
-			if a.get_cell(x, y - 1, z) == Mat.AIR:
-				leaks += 1
-			for d: Vector2i in WorldData.SIDES:
-				if a.get_cell(x + d.x, y, z + d.y) == Mat.AIR and a.water_cols[(z + d.y) * a.size_x + x + d.x] & (bit - 1) == 0:
+	for key: Vector2i in keys:
+		var ch: WorldData.Chunk = w.chunks[key]
+		for col in WorldData.LAYER:
+			var water: int = ch.water[col]
+			var x: int = key.x * 16 + (col & 15)
+			var z: int = key.y * 16 + (col >> 4)
+			while water != 0:
+				var bit := water & -water
+				water ^= bit
+				var y := WorldData.level_of(bit)
+				if y <= w.sea_level:
+					continue
+				if w.get_cell(x, y - 1, z) == Mat.AIR:
 					leaks += 1
+				for d: Vector2i in WorldData.SIDES:
+					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
+						leaks += 1
 	_check(leaks == 0, "water above the sea does not leak (%d leaks)" % leaks)
+	# Settings change the world: more water, a different world.
+	var wet := WorldGen.new(42, 40, {"water": 2})
+	_check(wet.coast_level > a.gen.coast_level, "more water lifts the coast")
+
+
+## A world of `seed` made at once over four by four chunks at its spawn: {"gen", "world",
+## "area" (the chunk keys, row by row)}.
+func _land(seed_value: int) -> Dictionary:
+	var gen := WorldGen.new(seed_value, 40)
+	var from := WorldData.chunk_key(gen.spawn_guess.x, gen.spawn_guess.z) - Vector2i(2, 2)
+	gen.generate_area(from, from + Vector2i(4, 4))
+	var area := []
+	for cz in range(from.y, from.y + 4):
+		for cx in range(from.x, from.x + 4):
+			area.append(Vector2i(cx, cz))
+	return {"gen": gen, "world": gen.world, "area": area}
+
+
+## True when the chunks `keys` have the same cells and shapes in both worlds.
+func _same(a: WorldData, b: WorldData, keys: Array) -> bool:
+	for key: Vector2i in keys:
+		var ca: WorldData.Chunk = a.chunks.get(key)
+		var cb: WorldData.Chunk = b.chunks.get(key)
+		if ca == null or cb == null or ca.cells != cb.cells or ca.shapes != cb.shapes:
+			return false
+	return true
+
+
+func _same_cells(a: WorldData, b: WorldData, keys: Array) -> bool:
+	for key: Vector2i in keys:
+		var ca: WorldData.Chunk = a.chunks.get(key)
+		var cb: WorldData.Chunk = b.chunks.get(key)
+		if ca == null or cb == null or ca.cells != cb.cells:
+			return false
+	return true
+
+
+## The shapes the meshes of the shaped chunks among `keys` read: the chunk and a
+## column around it (the shapes of a chunk not shaped yet are only a draft).
+func _same_view(gen, a: WorldData, b: WorldData, keys: Array) -> bool:
+	for key: Vector2i in keys:
+		if gen.stage_of(key) < WorldGen.SHAPED:
+			continue
+		var x0 := key.x * WorldData.CHUNK
+		var z0 := key.y * WorldData.CHUNK
+		var x1 := x0 + WorldData.CHUNK
+		var z1 := z0 + WorldData.CHUNK
+		if a.padded(true, 0, x0 - 1, z0 - 1, x1 + 1, z1 + 1) != b.padded(true, 0, x0 - 1, z0 - 1, x1 + 1, z1 + 1):
+			return false
+	return true
 
 
 ## Brings a chunk to `stage` the way the game does: its own earlier stages first,
@@ -105,14 +173,12 @@ func _ensure_stage(gen, key: Vector2i, stage: int) -> void:
 	if stage > WorldGen.TERRAIN:
 		for dz in range(-1, 2):
 			for dx in range(-1, 2):
-				var k: Vector2i = key + Vector2i(dx, dz)
-				if gen.in_map(k):
-					_ensure_stage(gen, k, stage - 1)
+				_ensure_stage(gen, key + Vector2i(dx, dz), stage - 1)
 	gen.run(key, stage)
 
 
 func _test_mesher() -> void:
-	var w := WorldData.new(4, 4, 4)
+	var w := WorldData.new(4, Vector2i(4, 4))
 	w.set_cell(1, 1, 1, Mat.STONE)
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var arrays: Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)
@@ -139,7 +205,7 @@ func _test_mesher() -> void:
 	_check(meshes[1] != null, "water gets its own mesh")
 	_check(verts[0].distance_to(verts[2]) < 0.75, "meshes are in world units, half a unit per cell")
 	# A flat floor: its tops away from the edges are merged into rows.
-	var f := WorldData.new(8, 4, 8)
+	var f := WorldData.new(4, Vector2i(8, 8))
 	for z in 8:
 		for x in 8:
 			f.set_cell(x, 0, z, Mat.STONE)
@@ -150,7 +216,7 @@ func _test_mesher() -> void:
 	# 28 tops on the rim have edges; the 6 rows of 6 inside are one quad each.
 	_check(tops == (28 + 6) * 4, "plain tops in a row are drawn as one quad")
 	# A pond: water away from the shore is merged into rows too, foam stays per cell.
-	var pond := WorldData.new(8, 3, 8)
+	var pond := WorldData.new(3, Vector2i(8, 8))
 	for z in 8:
 		for x in 8:
 			pond.set_cell(x, 0, z, Mat.STONE)
@@ -163,7 +229,7 @@ func _test_mesher() -> void:
 
 
 func _test_cap() -> void:
-	var w := WorldData.new(4, 4, 4)
+	var w := WorldData.new(4, Vector2i(4, 4))
 	w.set_cell(1, 0, 1, Mat.STONE)
 	w.set_cell(1, 1, 1, Mat.STONE)
 	w.set_cell(2, 0, 1, Mat.STONE)
@@ -171,7 +237,7 @@ func _test_cap() -> void:
 	_check(cap != null and cap.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 4,
 		"cap closes only cells covered from above")
 	# The cap built chunk by chunk has the same tops as the one built at once.
-	w = WorldData.new(8, 4, 8)
+	w = WorldData.new(4, Vector2i(8, 8))
 	for z in 8:
 		for x in 8:
 			for y in 3:
@@ -199,7 +265,7 @@ func _mesh_area(mesh: ArrayMesh) -> float:
 
 
 func _test_raycast() -> void:
-	var w := WorldData.new(8, 8, 8)
+	var w := WorldData.new(8, Vector2i(8, 8))
 	for z in 8:
 		for x in 8:
 			w.set_cell(x, 0, z, Mat.STONE)
@@ -214,7 +280,7 @@ func _test_raycast() -> void:
 
 
 func _test_walking_rules() -> void:
-	var w := WorldData.new(4, 4, 4)
+	var w := WorldData.new(4, Vector2i(4, 4))
 	w.set_cell(1, 0, 1, Mat.WATER)
 	_check(not w.blocks_body(1, 0, 1), "open water can be entered")
 	_check(not w.blocks_body(1, 1, 1), "no invisible floor over the water")
@@ -222,16 +288,16 @@ func _test_walking_rules() -> void:
 	w.water_frozen = true
 	_check(w.blocks_body(1, 0, 1), "ice cannot be entered")
 	_check(w.surface_y(1, 1) == 1, "ice is a surface")
-	_check(w.blocks_body(-1, 1, 1), "map edge blocks")
+	_check(w.blocks_body(-1, 1, 1), "nothing walks where no chunk is kept")
 
 
 ## A pool along x on a stone floor: water in levels 3..4 (open surface at 4.5) over
 ## x 3..8, shallow (level 4 only) at x = 3; a bank one level above the water (top 6)
 ## at x >= 9 and one two levels above it (top 7) at x <= 2.
 func _pool_world() -> WorldData:
-	var w := WorldData.new(12, 10, 6)
-	for z in 6:
-		for x in 12:
+	var w := WorldData.new(10, Vector2i(16, 6))
+	for z in 16:
+		for x in 16:
 			var top := 6 if x <= 2 else (5 if x >= 9 else (3 if x == 3 else 2))
 			for y in top + 1:
 				w.set_cell(x, y, z, Mat.STONE)
@@ -282,7 +348,7 @@ func _test_water() -> void:
 ## Natural dirt one level higher for x >= 4 (a step facing west) and two levels higher
 ## for x >= 6 (a cliff), on a dirt floor.
 func _slope_world() -> WorldData:
-	var w := WorldData.new(10, 6, 10)
+	var w := WorldData.new(6, Vector2i(10, 10))
 	for z in 10:
 		for x in 10:
 			for y in range(0, 1 + int(x >= 4) + 2 * int(x >= 6)):
@@ -336,9 +402,9 @@ func _test_slopes() -> void:
 ## Walks east from x = 2 toward a sheer step of `height` cells of stone at x >= 5,
 ## jumping if `jump`; returns where the feet end, in cells.
 func _walk_to_step(height: int, jump: bool) -> Vector3:
-	var w := WorldData.new(10, 6, 10)
-	for z in 10:
-		for x in 10:
+	var w := WorldData.new(6, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
 			for y in 1 + (height if x >= 5 else 0):
 				w.set_cell(x, y, z, Mat.STONE)
 	var player = PlayerScript.new()
@@ -363,15 +429,15 @@ func _test_steps() -> void:
 ## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its
 ## north-east quarter (x 5..6, z 3..4), so it has outer corners and one inner corner.
 func _corner_world() -> WorldData:
-	var w := WorldData.new(10, 6, 10)
-	w.natural.fill(WorldData.WILD)
+	var w := WorldData.new(6, Vector2i(10, 10))
+	var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	c.natural.fill(WorldData.WILD)
 	for z in 10:
 		for x in 10:
-			w.cells[x] = Mat.STONE
-			w.cells[z * 10 + x] = Mat.STONE
+			c.cells[z * 16 + x] = Mat.STONE
 			if x >= 3 and x <= 6 and z >= 3 and z <= 6 and not (x >= 5 and z <= 4):
 				for y in range(1, 3):
-					w.cells[(y * 10 + z) * 10 + x] = Mat.STONE
+					c.cells[(y * 16 + z) * 16 + x] = Mat.STONE
 	w.rebuild_columns()
 	return w
 
@@ -406,31 +472,38 @@ func _test_corners() -> void:
 ## The shapes the world works out a column at a time match the rules written out for
 ## one cell at a time (below), on a generated world and after digging and building.
 func _test_shapes() -> void:
-	var g := WorldGen.generate(7, 64, 40, 64)
-	_check(_shapes_match(g), "shapes of a generated world follow the rules")
+	var land := _land(7)
+	var g: WorldData = land.world
+	var keys: Array = land.area
+	var from: Vector2i = keys[0] * 16
+	var to: Vector2i = keys[keys.size() - 1] * 16 + Vector2i(16, 16)
+	_check(_shapes_match(g, from, to), "shapes of a generated world follow the rules")
 	var slopes := 0
 	var cuts := 0
 	var fills := 0
-	for col in g.size_x * g.size_z:
-		slopes += int(g.sloped_cols[col] != 0)
-	for i in g.shapes.size():
-		cuts += int(g.shapes[i] >= 16 and Mat.is_solid(g.cells[i]))
-		fills += int(g.shapes[i] >= 16 and not Mat.is_solid(g.cells[i]))
+	for key: Vector2i in keys:
+		var c: WorldData.Chunk = g.chunks[key]
+		for col in WorldData.LAYER:
+			slopes += int(c.sloped[col] != 0)
+		for i in c.shapes.size():
+			cuts += int(c.shapes[i] >= 16 and Mat.is_solid(c.cells[i]))
+			fills += int(c.shapes[i] >= 16 and not Mat.is_solid(c.cells[i]))
 	_check(slopes > 0 and cuts > 0 and fills > 0, "generated ground has slopes and cut and filled corners")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
 	for i in 300:
-		var x := rng.randi_range(0, g.size_x - 1)
-		var z := rng.randi_range(0, g.size_z - 1)
+		var x := rng.randi_range(from.x, to.x - 1)
+		var z := rng.randi_range(from.y, to.y - 1)
 		var y := clampi(g.surface_y(x, z) + rng.randi_range(-2, 1), 0, g.size_y - 1)
 		g.set_cell(x, y, z, [Mat.AIR, Mat.DIRT, Mat.STONE][i % 3])
-	_check(_shapes_match(g), "shapes follow the rules after digging and building")
+	_check(_shapes_match(g, from, to), "shapes follow the rules after digging and building")
 
 
-func _shapes_match(w: WorldData) -> bool:
+## True when the shapes of the columns from..to follow the rules.
+func _shapes_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 	for y in w.size_y:
-		for z in w.size_z:
-			for x in w.size_x:
+		for z in range(from.y, to.y):
+			for x in range(from.x, to.x):
 				var corners := 0
 				var m := w.get_cell(x, y, z)
 				for k in 4:
@@ -465,12 +538,12 @@ func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
 
 
 func _ref_can_slope(w: WorldData, x: int, y: int, z: int) -> bool:
-	return w.in_bounds(x, y, z) and w.natural[(y * w.size_z + z) * w.size_x + x] == WorldData.WILD \
+	return w.in_bounds(x, y, z) and w.chunk_at(x, z).natural[y * WorldData.LAYER + WorldData.col_of(x, z)] == WorldData.WILD \
 		and Mat.can_slope(w.get_cell(x, y, z)) and w.get_cell(x, y + 1, z) == Mat.AIR
 
 
 func _ref_low(w: WorldData, x: int, y: int, z: int) -> bool:
-	if x < 0 or z < 0 or x >= w.size_x or z >= w.size_z:
+	if w.chunk_at(x, z) == null:
 		return false
 	var m := w.get_cell(x, y, z)
 	return (m == Mat.AIR or m == Mat.WATER) and w.get_cell(x, y - 1, z) != Mat.AIR
@@ -582,48 +655,54 @@ func _test_trees() -> void:
 		for scale in [0.6, 0.8, 1.0, 1.3]:
 			for k in 6:
 				rng.seed = k
-				var w := WorldData.new(32, 40, 32)
+				var w := WorldData.new(40, Vector2i(32, 32))
 				Trees.place(w, 15, 1, 15, species, rng, scale)
 				var top := 0
-				for col in 32 * 32:
-					for y in 40:
-						if (w.leaf_cols[col] | w.log_cols[col]) & (1 << y):
-							top = maxi(top, y)
+				for c: WorldData.Chunk in w.chunks.values():
+					for col in WorldData.LAYER:
+						top = maxi(top, WorldData.top_level(c.leaf[col] | c.logs[col]))
 				fits = fits and top <= Trees.height(species, scale)
 	_check(fits, "trees stay within Trees.height")
-	var w := _north_strip()
+	var strips := _woods()
+	var w: WorldData = strips.world
 	var kinds := {}
+	var trunks := true
 	for at in w.trees:
 		kinds[w.trees[at]] = true
-		_check(w.log_cols[at.y * w.size_x + at.x] != 0, "a noted tree has a trunk")
+		trunks = trunks and w.log_col(at.x, at.y) != 0
+	_check(not w.trees.is_empty() and trunks, "every noted tree has a trunk")
 	_check(kinds.size() == Trees.SPECIES.size(), "the generator grows every species")
 	# Crowns of spruces take needle cards, of oaks leaf cards.
-	var chunk: Dictionary = Foliage.build_chunk(w, STRIP_X0 * 16, STRIP_Z * 16, STRIP_CHUNKS * 16)
-	var buf: PackedFloat32Array = chunk.clumps[1]
 	var rows := {}
-	for i in chunk.clumps[0]:
-		var row := int(buf[i * 20 + 19]) % Foliage.DEEP_ROW
-		rows[row >= 3] = true
+	for key: Vector2i in strips.keys:
+		var chunk: Dictionary = Foliage.build_chunk(w, key.x * 16, key.y * 16, 16)
+		var buf: PackedFloat32Array = chunk.clumps[1]
+		for i in chunk.clumps[0]:
+			var row := int(buf[i * 20 + 19]) % Foliage.DEEP_ROW
+			rows[row >= 3] = true
 	_check(rows.size() == 2, "crowns have both broad leaves and needles")
 
 
-
-## A strip of chunks across the taiga of the north of the island, where both species
-## of tree and every type of bush grow: the world the tree and bush tests look at.
-const STRIP_X0 := 26
-const STRIP_Z := 8
-const STRIP_CHUNKS := 12
+## Strips of chunks across a taiga and a forest near the spawn, where both species of
+## tree and every type of bush grow: the world the tree and bush tests look at
+## ({"world", "keys"}).
+const STRIP_CHUNKS := 6
 
 
-func _north_strip() -> WorldData:
+func _woods() -> Dictionary:
 	var gen := WorldGen.new(42)
-	for x in range(STRIP_X0, STRIP_X0 + STRIP_CHUNKS):
-		_ensure_stage(gen, Vector2i(x, STRIP_Z), WorldGen.SHAPED)
-	return gen.world
+	var keys: Array[Vector2i] = []
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	for what in ["taiga", "forest"]:
+		var at := WorldData.chunk_key(gen.find_place(what, near).x, gen.find_place(what, near).y)
+		for x in range(at.x - STRIP_CHUNKS / 2, at.x + STRIP_CHUNKS / 2):
+			_ensure_stage(gen, Vector2i(x, at.y), WorldGen.SHAPED)
+			keys.append(Vector2i(x, at.y))
+	return {"world": gen.world, "keys": keys}
 
 
 func _test_bushes() -> void:
-	var w := _north_strip()
+	var w: WorldData = _woods().world
 	var kinds := {}
 	var on_grass := true
 	for at: Vector3i in w.bushes:

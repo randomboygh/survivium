@@ -8,6 +8,7 @@ extends RefCounted
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const VoxelProps := preload("res://src/client/voxel_props.gd")
+const RoofMap := preload("res://src/client/roof_map.gd")
 
 const CELL := WorldData.CELL
 const CULL_MARGIN := 24.0
@@ -38,7 +39,7 @@ func place() -> void:
 	var fire := _prop_spot(at + Vector3(-2.0, 0.0, 2.0))
 	if fire.y >= 0:
 		game.effects.add_campfire(Vector3(fire) * CELL, game.world_mat)
-	RenderingServer.global_shader_parameter_set("heat_map", game.effects.heat_map(ceili(world.size_x * CELL), ceili(world.size_z * CELL)))
+	RenderingServer.global_shader_parameter_set("heat_map", game.effects.heat_map(RoofMap.WRAP / 2))
 
 
 ## The north-west cell of two by two free cells on ground at one level near the world

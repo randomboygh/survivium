@@ -13,26 +13,31 @@ const CHUNK := 16
 
 
 func _initialize() -> void:
-	var w := WorldGen.generate(20261018, 256, 48, 256)
-	var x := w.size_x / 2
-	var z := w.size_z / 2
+	var gen := WorldGen.new(20261018)
+	var x: int = gen.spawn_guess.x
+	var z: int = gen.spawn_guess.z
+	var home := Vector2i(x >> 4, z >> 4)
+	gen.generate_area(home - Vector2i(8, 8), home + Vector2i(8, 8))
+	var w := gen.world
 	var y := w.surface_y(x, z)
+	var cx0 := (x >> 4) * CHUNK
+	var cz0 := (z >> 4) * CHUNK
 	# Warm up (shapes, tables).
-	ChunkMesher.build_chunk(w, 0, 0, CHUNK)
-	Foliage.build_chunk(w, 0, 0, CHUNK)
+	ChunkMesher.build_chunk(w, cx0, cz0, CHUNK)
+	Foliage.build_chunk(w, cx0, cz0, CHUNK)
 	var t := Time.get_ticks_usec()
 	for i in 5:
-		ChunkMesher.build_chunk(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
+		ChunkMesher.build_chunk(w, cx0, cz0, CHUNK)
 	print("one chunk mesh: %.1f ms" % ((Time.get_ticks_usec() - t) / 5000.0))
 	t = Time.get_ticks_usec()
 	for i in 5:
-		Foliage.build_chunk(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
+		Foliage.build_chunk(w, cx0, cz0, CHUNK)
 	print("one chunk foliage: %.1f ms" % ((Time.get_ticks_usec() - t) / 5000.0))
 	# The longest single column of each, the smallest step the game can take in a frame.
 	var worst_mesh := 0
 	var worst_plants := 0
-	var job := ChunkMesher.start(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
-	var plants := Foliage.start(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
+	var job := ChunkMesher.start(w, cx0, cz0, CHUNK)
+	var plants := Foliage.start(w, cx0, cz0, CHUNK)
 	for i in CHUNK * CHUNK:
 		t = Time.get_ticks_usec()
 		ChunkMesher.step(job, 1)
@@ -43,30 +48,22 @@ func _initialize() -> void:
 	print("longest column: mesh %.2f ms, foliage %.2f ms" % [worst_mesh / 1000.0, worst_plants / 1000.0])
 	for level in [y - 1, y + 4, 10]:
 		t = Time.get_ticks_usec()
-		var cap := ChunkMesher.build_cap(w, level)
-		var t_all := Time.get_ticks_usec() - t
-		t = Time.get_ticks_usec()
 		var n := 0
-		for cz in range(z / CHUNK - 6, z / CHUNK + 7):
-			for cx in range(x / CHUNK - 6, x / CHUNK + 7):
-				if cx >= 0 and cz >= 0 and cx * CHUNK < w.size_x and cz * CHUNK < w.size_z:
-					ChunkMesher.build_cap(w, level, cx * CHUNK, cz * CHUNK, CHUNK)
-					n += 1
-		print("cap at level %d: whole map %d ms (%d verts), %d chunks around the player %d ms" % [
-			level, t_all / 1000, 0 if cap == null else cap.surface_get_array_len(0), n,
-			(Time.get_ticks_usec() - t) / 1000])
-		var parts := 0.0
-		for cz in range(0, w.size_z, CHUNK):
-			for cx in range(0, w.size_x, CHUNK):
-				parts += _area(ChunkMesher.build_cap(w, level, cx, cz, CHUNK))
-		print("  area whole %.1f, by chunks %.1f" % [_area(cap), parts])
+		var verts := 0
+		for cz in range(home.y - 6, home.y + 7):
+			for cx in range(home.x - 6, home.x + 7):
+				var cap := ChunkMesher.build_cap(w, level, cx * CHUNK, cz * CHUNK, CHUNK)
+				verts += 0 if cap == null else cap.surface_get_array_len(0)
+				n += 1
+		print("cap at level %d: %d chunks around the player %d ms (%d verts)" % [
+			level, n, (Time.get_ticks_usec() - t) / 1000, verts])
 	var roof := RoofMap.new()
 	t = Time.get_ticks_usec()
 	roof.build(w)
 	print("roof build: %d ms" % ((Time.get_ticks_usec() - t) / 1000))
 	# A dig at a chunk corner touches four chunks.
-	var cx := (x / CHUNK) * CHUNK
-	var cz := (z / CHUNK) * CHUNK
+	var cx := cx0
+	var cz := cz0
 	t = Time.get_ticks_usec()
 	w.set_cell(cx, y - 1, cz, Mat.AIR)
 	roof.touch(w, Vector3i(cx, y - 1, cz))
@@ -82,14 +79,3 @@ func _initialize() -> void:
 		(t1 - t) / 1000.0, keys.size(), (Time.get_ticks_usec() - t1) / 1000])
 	quit()
 
-
-static func _area(mesh: ArrayMesh) -> float:
-	if mesh == null:
-		return 0.0
-	var arrays := mesh.surface_get_arrays(0)
-	var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-	var area := 0.0
-	for i in range(0, idx.size(), 3):
-		area += (v[idx[i + 1]] - v[idx[i]]).cross(v[idx[i + 2]] - v[idx[i]]).length() * 0.5
-	return area

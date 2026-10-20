@@ -12,7 +12,7 @@ const TrackShader := preload("res://shaders/track.gdshader")
 ## Prints kept at once; the oldest is reused.
 const SIZE := 2048
 ## Prints farther than this from `focus` are not kept: nobody sees them, and the
-## animals all over the island would cycle the ring in seconds.
+## animals all over the world would cycle the ring in seconds.
 const REACH := 24.0
 ## Quad size in world units: four texels.
 const QUAD := 0.25

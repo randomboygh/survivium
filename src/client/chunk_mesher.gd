@@ -166,13 +166,12 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	job.faces = face_table()
 	job.solid = MeshBuffers.new()
 	job.water = MeshBuffers.new()
-	var sx: int = w.size_x
-	var x1 := mini(x0 + size, sx)
-	var z1 := mini(z0 + size, w.size_z)
+	var x1 := x0 + size
+	var z1 := z0 + size
 	job.x1 = x1
 	job.z1 = z1
-	job.c = padded(w, w.cells, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
-	job.sh = padded(w, w.shapes, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
+	job.c = w.padded(false, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
+	job.sh = w.padded(true, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
 	job.cov = covers_table()
 	# Strides of the padded grid: +x, +z, +y.
 	job.dz = x1 - x0 + 2 * PAD
@@ -341,24 +340,25 @@ static func finish(job: Job) -> Array:
 ## Cells of each column of x0..x1, z0..z1 (row by row) that may show a face, as bit
 ## masks of levels: those that hide what is behind them next to an open or sloping
 ## cell, under a cut corner or a trunk; water next to air; open cells with filled
-## corners. Columns at the map's border count as next to open air.
+## corners. Where no chunk is kept beside, the cells count as next to open air.
 static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Array:
-	var sx: int = w.size_x
-	var sz: int = w.size_z
 	var all: int = w.all_bits
 	var top_bit: int = w.top_bit
-	var air_cols: PackedInt64Array = w.air_cols
-	var water_cols: PackedInt64Array = w.water_cols
-	var leaf_cols: PackedInt64Array = w.leaf_cols
-	var sloped_cols: PackedInt64Array = w.sloped_cols
-	var corner_cols: PackedInt64Array = w.corner_cols
-	var log_cols: PackedInt64Array = w.log_cols
+	# The masks of the columns and a ring of one around them.
+	var cols: Dictionary = w.column_masks(x0 - 1, z0 - 1, x1 + 1, z1 + 1)
+	var sx := x1 - x0 + 2
+	var air_cols: PackedInt64Array = cols.air
+	var water_cols: PackedInt64Array = cols.water
+	var leaf_cols: PackedInt64Array = cols.leaf
+	var sloped_cols: PackedInt64Array = cols.sloped
+	var corner_cols: PackedInt64Array = cols.corner
+	var log_cols: PackedInt64Array = cols.logs
 	var out := PackedInt64Array()
 	out.resize((x1 - x0) * (z1 - z0))
 	var j := 0
 	for z in range(z0, z1):
 		for x in range(x0, x1):
-			var col := z * sx + x
+			var col := (z - z0 + 1) * sx + x - x0 + 1
 			var air := air_cols[col]
 			var water := water_cols[col]
 			var open := air | water | leaf_cols[col]
@@ -368,15 +368,11 @@ static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Arr
 			var near := (open >> 1) | top_bit | (open << 1) & all | sloped | (sloped >> 1) | (sloped << 1) & all \
 				| (corners & cover) >> 1 | log_cols[col] >> 1
 			var air_near := (air >> 1) | top_bit
-			if x == 0 or z == 0 or x == sx - 1 or z == sz - 1:
-				near = all
-				air_near = all
-			else:
-				var a := air_cols[col - 1] | air_cols[col + 1] | air_cols[col - sx] | air_cols[col + sx]
-				near |= a | water_cols[col - 1] | water_cols[col + 1] | water_cols[col - sx] | water_cols[col + sx] \
-					| leaf_cols[col - 1] | leaf_cols[col + 1] | leaf_cols[col - sx] | leaf_cols[col + sx] \
-					| sloped_cols[col - 1] | sloped_cols[col + 1] | sloped_cols[col - sx] | sloped_cols[col + sx]
-				air_near |= a
+			var a := air_cols[col - 1] | air_cols[col + 1] | air_cols[col - sx] | air_cols[col + sx]
+			near |= a | water_cols[col - 1] | water_cols[col + 1] | water_cols[col - sx] | water_cols[col + sx] \
+				| leaf_cols[col - 1] | leaf_cols[col + 1] | leaf_cols[col - sx] | leaf_cols[col + sx] \
+				| sloped_cols[col - 1] | sloped_cols[col + 1] | sloped_cols[col - sx] | sloped_cols[col + sx]
+			air_near |= a
 			out[j] = cover & near | water & air_near | corners & open
 			j += 1
 	return out
@@ -755,40 +751,6 @@ static func _keep(k: int, p: Vector3) -> float:
 	return 0.5 + p.x - p.z
 
 
-## Copy of `src` (cells or shapes of the world) in x0..x1, z0..z1 (exclusive ends, may
-## reach outside the map) and levels -1..size_y, in that order (x fastest). Outside the
-## map and above it the value is 0 (air, no shape), below it `below`.
-static func padded(w, src: PackedByteArray, below: int, x0: int, z0: int, x1: int, z1: int) -> PackedByteArray:
-	var sx: int = w.size_x
-	var sy: int = w.size_y
-	var sz: int = w.size_z
-	var width := x1 - x0
-	var air_row := PackedByteArray()
-	air_row.resize(width)
-	var below_row := PackedByteArray()
-	below_row.resize(width)
-	below_row.fill(below)
-	var left := PackedByteArray()
-	left.resize(clampi(-x0, 0, width))
-	var right := PackedByteArray()
-	right.resize(clampi(x1 - sx, 0, width))
-	var a := clampi(x0, 0, sx)
-	var b := clampi(x1, 0, sx)
-	var c := PackedByteArray()
-	for y in range(-1, sy + 1):
-		for z in range(z0, z1):
-			if y < 0:
-				c.append_array(below_row)
-			elif y >= sy or z < 0 or z >= sz:
-				c.append_array(air_row)
-			else:
-				var row := (y * sz + z) * sx
-				c.append_array(left)
-				c.append_array(src.slice(row + a, row + b))
-				c.append_array(right)
-	return c
-
-
 ## 1 for materials that hide what is behind them (not air, water or leaves).
 static func covers_table() -> PackedByteArray:
 	if _covers_lut.is_empty():
@@ -801,40 +763,39 @@ static func covers_table() -> PackedByteArray:
 ## Dark tops of solid cells on `level` that are covered by solid cells above:
 ## what you see in the cut when looking into a mountain. Cut corners stay open, and
 ## fills sliced by the cut show as dark triangles. Rows of whole tops of the same
-## material are merged. Covers the cells x0..x0+size, z0..z0+size (the whole map by
-## default), so the game can rebuild the cap chunk by chunk.
-static func build_cap(w, level: int, x0 := 0, z0 := 0, size := 1 << 30) -> ArrayMesh:
+## material are merged. Covers the cells x0..x0+size, z0..z0+size (a chunk from the
+## origin by default), so the game can rebuild the cap chunk by chunk.
+static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> ArrayMesh:
 	if level < 0 or level >= w.size_y - 1:
 		return null
 	w.refresh_shapes()
 	var buf := MeshBuffers.new()
-	var cells: PackedByteArray = w.cells
-	var shapes: PackedByteArray = w.shapes
-	var sx: int = w.size_x
-	var sz: int = w.size_z
-	var x1: int = mini(x0 + size, sx)
-	var z1: int = mini(z0 + size, sz)
-	var layer: int = sx * sz
+	var x1: int = x0 + size
+	var z1: int = z0 + size
+	var layer := WorldData.LAYER
 	var row: int = level * layer
 	var bit := 1 << level
 	var both := bit | bit << 1
 	var dark := Color(0.4, 0.4, 0.4)
 	var no_tiles := float(NO_TILE * 0x41041)
 	var corners: Array = face_table()[FACE_TOP].corners
-	var air_cols: PackedInt64Array = w.air_cols
-	var water_cols: PackedInt64Array = w.water_cols
-	var leaf_cols: PackedInt64Array = w.leaf_cols
+	var cells := PackedByteArray()
+	var shapes := PackedByteArray()
 	for z in range(z0, z1):
 		# A run of whole tops waiting to be drawn: first x and tile.
 		var run_x := -1
 		var run_tile := -1
 		for x in range(x0, x1 + 1):
 			var tile := -1
-			var col := z * sx + x
-			var i: int = row + col
+			var c: WorldData.Chunk = w.chunk_at(x, z) if x < x1 else null
+			var i := 0
 			var open := 0
-			if x < x1:
-				open = air_cols[col] | water_cols[col] | leaf_cols[col]
+			if c != null:
+				var col := WorldData.col_of(x, z)
+				i = row + col
+				cells = c.cells
+				shapes = c.shapes
+				open = c.air[col] | c.water[col] | c.leaf[col]
 				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16:
 					tile = cells[i] * 3
 			if tile != run_tile and run_x >= 0:
@@ -852,7 +813,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := 1 << 30) -> Array
 					run_tile = tile
 				continue
 			run_tile = -1
-			if x >= x1:
+			if c == null:
 				continue
 			var base := Vector3(x, level, z)
 			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)

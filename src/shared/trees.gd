@@ -87,7 +87,7 @@ static func fit(species: int, room: int) -> float:
 ## for stunted or old trees.
 static func place(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> void:
 	var s: Dictionary = SPECIES[species]
-	w.trees[Vector2i(x, z)] = species
+	w.add_tree(x, z, species)
 	if s.leaves == NEEDLES:
 		_conifer(w, x, y, z, s, rng, scale)
 	else:

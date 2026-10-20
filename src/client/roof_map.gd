@@ -2,49 +2,55 @@ extends RefCounted
 ## The roof map for the shaders (roof_map in common.gdshaderinc): one texel per column
 ## holding the level of the highest cell that keeps the weather off, plus one, so snow,
 ## rain and their particles stay off the ground under overhangs, roofs and cave
-## ceilings while an open ravine takes them. Columns are filled as their chunks are
-## generated; the texture is sent to the renderer once a frame at most (flush).
+## ceilings while an open ravine takes them. The world has no edge, so the map covers
+## WRAP by WRAP columns and repeats: column (x, z) is texel (x, z) modulo WRAP, far more
+## than the view shows. Columns are filled as their chunks are generated; the texture
+## is sent to the renderer once a frame at most (flush).
+
+## Columns the map covers each way before it repeats (a multiple of the chunk size).
+const WRAP := 512
+const MASK := WRAP - 1
 
 var image: Image
 var texture: ImageTexture
 var dirty := false
 
 
-## An empty map of the world's size, to be filled chunk by chunk.
-func prepare(w) -> void:
-	image = Image.create_empty(w.size_x, w.size_z, false, Image.FORMAT_R8)
+## An empty map, to be filled chunk by chunk.
+func prepare(_w = null) -> void:
+	image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_R8)
 	texture = ImageTexture.create_from_image(image)
 	RenderingServer.global_shader_parameter_set("roof_map", texture)
+	RenderingServer.global_shader_parameter_set("wrap_size", Vector2(WRAP, WRAP) * 0.5)
 
 
-## Builds the whole map at once (tools, and worlds generated whole).
+## The map of every chunk kept, at once (tools).
 func build(w) -> void:
-	prepare(w)
-	fill_chunk(w, 0, 0, maxi(w.size_x, w.size_z))
+	prepare()
+	for key: Vector2i in w.chunks:
+		fill_chunk(w, key.x * w.CHUNK, key.y * w.CHUNK, w.CHUNK)
 	flush()
 
 
-## Fills the columns x0..x0+size, z0..z0+size.
+## Fills the columns x0..x0+size, z0..z0+size of a chunk.
 func fill_chunk(w, x0: int, z0: int, size: int) -> void:
-	var x1: int = mini(w.size_x, x0 + size)
-	var z1: int = mini(w.size_z, z0 + size)
 	var data := PackedByteArray()
-	data.resize((x1 - x0) * (z1 - z0))
+	data.resize(size * size)
 	var i := 0
-	for z in range(z0, z1):
-		for x in range(x0, x1):
+	for z in range(z0, z0 + size):
+		for x in range(x0, x0 + size):
 			data[i] = w.roof_level(x, z) + 1
 			i += 1
-	image.blit_rect(Image.create_from_data(x1 - x0, z1 - z0, false, Image.FORMAT_R8, data),
-		Rect2i(0, 0, x1 - x0, z1 - z0), Vector2i(x0, z0))
+	image.blit_rect(Image.create_from_data(size, size, false, Image.FORMAT_R8, data),
+		Rect2i(0, 0, size, size), Vector2i(x0 & MASK, z0 & MASK))
 	dirty = true
 
 
 ## Refreshes the column of a changed cell.
 func touch(w, cell: Vector3i) -> void:
-	if image == null or cell.x < 0 or cell.z < 0 or cell.x >= w.size_x or cell.z >= w.size_z:
+	if image == null:
 		return
-	image.set_pixel(cell.x, cell.z, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, 0.0, 0.0))
+	image.set_pixel(cell.x & MASK, cell.z & MASK, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, 0.0, 0.0))
 	dirty = true
 
 

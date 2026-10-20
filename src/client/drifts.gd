@@ -92,19 +92,19 @@ static func _triangle(verts: PackedVector3Array, normals: PackedVector4Array, a:
 	normals.append_array([v, v, v])
 
 
-## Mound transforms for the cells x0..x0+size, z0..z0+size (the whole map by
-## default): [count, MultiMesh buffer]. Mounds lie on level loose ground under the
+## Mound transforms for the cells x0..x0+size, z0..z0+size (a chunk from the origin
+## by default): [count, MultiMesh buffer]. Mounds lie on level loose ground under the
 ## open sky with level open ground all around, a few cells apart, each of its own
 ## size, drawn out west to east as the prevailing wind leaves them.
-static func build(w, x0 := 0, z0 := 0, size := 1 << 30) -> Array:
+static func build(w, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> Array:
 	var buf := PackedFloat32Array()
 	var count := 0
 	var rng := RandomNumberGenerator.new()
 	var sea: int = w.sea_level
-	var z1: int = mini(w.size_z - 2, z0 + size)
-	var x1: int = mini(w.size_x - 2, x0 + size)
-	for z in range(maxi(2, (z0 + 1) & ~1), z1, 2):
-		for x in range(maxi(2, (x0 + 1) & ~1), x1, 2):
+	var z1: int = z0 + size
+	var x1: int = x0 + size
+	for z in range((z0 + 1) & ~1, z1, 2):
+		for x in range((x0 + 1) & ~1, x1, 2):
 			if hash(Vector2i(x, z)) % SPARSITY != 0:
 				continue
 			var y: int = w.surface_y(x, z)

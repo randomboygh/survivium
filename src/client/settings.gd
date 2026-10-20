@@ -1,8 +1,9 @@
 extends RefCounted
 ## Game settings: what the player can change and keep between runs (time speed,
-## graphics, interface) and the playtest switches that are not saved (season, weather,
-## time of day, fast forward). Every value lives here; `apply` pushes them into the
-## modules, so the menu, the hotkeys and the tools all go through the same place.
+## graphics, interface, the world made at the start) and the playtest switches that
+## are not saved (season, weather, time of day, fast forward). Every value lives here;
+## `apply` pushes them into the modules, so the menu, the hotkeys and the tools all go
+## through the same place.
 ## Saved as user://settings.cfg (IndexedDB in the browser). `game` is the Main node.
 
 const PixelView := preload("res://src/client/pixel_view.gd")
@@ -23,6 +24,13 @@ const DEFAULTS := {
 	"fps_limit": 0,
 	"ui_scale": 0,
 	"show_help": true,
+	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
+	"world_seed": 20261018,
+	"world_size": 1,
+	"world_water": 1,
+	"world_mountains": 1,
+	"world_rivers": 1,
+	"world_biomes": 1,
 }
 ## Playtest fast forward, on top of the time speed setting.
 const FAST_FORWARD := 20.0
@@ -63,6 +71,14 @@ func set_value(key: String, v: Variant) -> void:
 	values[key] = v
 	apply()
 	save()
+
+
+## The world settings for WorldGen: size, water, mountains, rivers, biomes.
+func world_options() -> Dictionary:
+	var out := {}
+	for k in ["size", "water", "mountains", "rivers", "biomes"]:
+		out[k] = values["world_" + k]
+	return out
 
 
 func time_speed() -> float:

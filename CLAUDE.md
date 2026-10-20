@@ -10,13 +10,21 @@ comments, commits and PRs are in English.
 
 - `src/shared/` must not preload anything from `src/client/`: it is the world model the future
   server will run (data, generation, materials, trees, bushes, AI rules, raycast).
-- `world_gen.gd` lays the whole island out coarsely at start (one sample per 16 cells: relief,
-  lakes, rivers, wetness, spawn guess), then makes each chunk in three stages, `TERRAIN` (cells of
-  the chunk from a window with a 3-cell margin) → `PLANTED` (trees, needs TERRAIN on the 3×3 around)
+- The world has no edge. `world_data.gd` keeps the cells in `Chunk`s by key (`chunk_at`,
+  `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
+  0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
+  rivers, lakes) on a world-wide lattice every `LATTICE` cells, distances to coast and river as
+  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`). It makes each chunk in
+  three stages, `TERRAIN` (cells of the chunk from a window with a 3-cell margin) → `PLANTED` (trees, needs TERRAIN on the 3×3 around)
   → `SHAPED` (slopes, corners, bushes; needs PLANTED on the 3×3 around); a mesh needs SHAPED. Stages
   are stepped a row or a tree at a time through `start`/`step` jobs, and the result does not depend
   on the order chunks are made in (`run_tests.gd` checks that). Everything is a hash of the column
-  and the seed, so a chunk can be made at any time; `WorldData.track_edits` is off meanwhile.
+  and the seed, so a chunk can be made at any time; `WorldData.track_edits` is off meanwhile, and
+  generator writes skip SHAPED (`final`) chunks. Unedited chunks beyond `DROP_RANGE` are forgotten
+  (`gen.forget`) and made again the same, regrowing the neighbours' trees that reach in.
+  `lay_out(x0, z0, w, h, step)` gives the layout of any window (maps, the setup screen,
+  `find_place`). Texture maps over the world (roof, heat) wrap every `RoofMap.WRAP` cells
+  (`wrap_size` shader global).
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
@@ -32,7 +40,9 @@ comments, commits and PRs are in English.
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, seasons, weather, light, colour grade), `controls.gd` (keys, mouse, touch, edits),
   `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (chest, campfire), `minimap.gd`
-  (painted per chunk from the cells, the island view from the coarse layout),
+  (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
+  full screen), `world_setup.gd` (the first screen: seed and world settings; tests and tools set
+  `main.skip_setup`),
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
   `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›").
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
@@ -61,7 +71,7 @@ user's phone numbers count (stats panel, F3).
 Screenshots without a GPU: `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver
 opengl3 --resolution 1280x720 --script res://tools/shot.gd -- <dir> [shot names]` (slow, run in the
 background). Shots share one world per run, so a shot that edits cells restores them. `tools/map.gd`
-draws the island from above; `tools/bench_*.gd` time generation, meshing and edits.
+draws the land around the spawn from above; `tools/bench_*.gd` time generation, meshing and edits.
 
 ## Performance rule
 

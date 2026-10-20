@@ -45,6 +45,7 @@ func _initialize() -> void:
 	# which would hide the game's own time.
 	OS.low_processor_usage_mode_sleep_usec = 0
 	main = load("res://scenes/main.tscn").instantiate()
+	main.skip_setup = true
 	root.add_child(main)
 	_run()
 
