@@ -12,6 +12,7 @@ const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const PerfPanel := preload("res://src/client/perf_panel.gd")
 const TouchStick := preload("res://src/client/touch_stick.gd")
 const TouchButton := preload("res://src/client/touch_button.gd")
+const SettingsMenu := preload("res://src/client/settings_menu.gd")
 const Mat := preload("res://src/shared/materials.gd")
 
 const MARGIN := 8.0
@@ -26,6 +27,8 @@ const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — 
 var game
 var touch := false
 var portrait := false
+## The interface scale setting: whole steps above the scale picked from the screen.
+var scale_bonus := 0
 
 var _left: VBoxContainer
 var _clock_icon: TextureRect
@@ -34,6 +37,7 @@ var _toasts: VBoxContainer
 var perf: PanelContainer
 var _top: HBoxContainer
 var _stats_button: Button
+var _test_button: Button
 var _menu_button: Button
 var _level: BoxContainer
 var _level_label: Button
@@ -53,6 +57,7 @@ var _tip_label: Label
 var _loading: PanelContainer
 var _loading_label: Label
 var _menu: PanelContainer
+var _settings: SettingsMenu
 ## Dims the game behind the menu and keeps taps from reaching it.
 var _shade: ColorRect
 var _menu_buttons := {}
@@ -91,6 +96,7 @@ func _ready() -> void:
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
+	_test_button = _icon_button(_top, "flask", "Для проверки", toggle_test)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
 	_level = BoxContainer.new()
@@ -201,7 +207,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Fits the UI into `rect` (screen pixels): picks a whole-number scale from the shorter
 ## side and places everything for the screen's shape and the input in use.
 func fit(rect: Rect2) -> void:
-	var s := maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE))
+	var s := maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE)) + scale_bonus
 	scale = Vector2(s, s)
 	position = rect.position
 	size = (rect.size / s).floor()
@@ -270,6 +276,7 @@ func _place() -> void:
 	_loading.position = ((size - _loading.size) * 0.5).floor()
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
+	_settings.fit(size)
 
 
 func _pages() -> int:
@@ -397,6 +404,9 @@ func toggle_stats() -> void:
 
 
 func toggle_menu() -> void:
+	if _settings.visible:
+		_settings.close()
+		return
 	_menu.visible = not _menu.visible
 	_shade.visible = _menu.visible
 	# Over the hotbar and the touch buttons.
@@ -405,6 +415,22 @@ func toggle_menu() -> void:
 	# A game on this device stops while the menu is open (a server game will not).
 	get_tree().paused = _menu.visible
 	_update_menu()
+
+
+## Opens the settings or the playtest page in place of the pause menu.
+func open_settings(page: String) -> void:
+	_menu.visible = false
+	_settings.move_to_front()
+	_settings.open(page)
+	_settings.fit(size)
+
+
+## The flask button: the playtest page over the running game, without the pause.
+func toggle_test() -> void:
+	if _settings.visible and _settings.page == "test":
+		_settings.close()
+	else:
+		open_settings("test")
 
 
 func _build_menu() -> void:
@@ -423,34 +449,21 @@ func _build_menu() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
+	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["stats"] = _add_menu_button(box, "", toggle_stats)
-	box.add_child(UiStyle.label("Для проверки", UiStyle.MUTED))
-	_menu_buttons["season"] = _add_menu_button(box, "Следующий сезон", func() -> void: game.sky.next_season())
-	_menu_buttons["rain"] = _add_menu_button(box, "", func() -> void:
-		game.sky.raining = not game.sky.raining
-		_update_menu())
-	_menu_buttons["time"] = _add_menu_button(box, "", func() -> void:
-		game.sky.time_speed = 1.0 if game.sky.time_speed > 1.0 else 20.0
-		_update_menu())
-	_menu_buttons["shadows"] = _add_menu_button(box, "", func() -> void:
-		game.sky.sun.shadow_enabled = not game.sky.sun.shadow_enabled
-		_update_menu())
-	_menu_buttons["keys"] = _add_menu_button(box, "", func() -> void:
-		game.controls.show_help = not game.controls.show_help
-		show_keys(game.controls.show_help)
-		_update_menu())
+	_menu_buttons["test"] = _add_menu_button(box, "Для проверки", open_settings.bind("test"))
+	_settings = SettingsMenu.new(game)
+	_settings.closed.connect(func() -> void:
+		if get_tree().paused:
+			_menu.visible = true
+			_update_menu())
+	add_child(_settings)
 
 
 func _update_menu() -> void:
 	if game == null or not _menu.visible:
 		return
-	var on := func(v: bool) -> String: return "вкл" if v else "выкл"
-	_menu_buttons["stats"].text = "Статистика: %s" % on.call(perf.visible)
-	_menu_buttons["rain"].text = "Осадки: %s" % on.call(game.sky.raining)
-	_menu_buttons["time"].text = "Время ×20: %s" % on.call(game.sky.time_speed > 1.0)
-	_menu_buttons["shadows"].text = "Тени: %s" % on.call(game.sky.sun != null and game.sky.sun.shadow_enabled)
-	_menu_buttons["keys"].text = "Подсказка клавиш: %s" % on.call(game.controls.show_help)
-	_menu_buttons["keys"].visible = not touch
+	_menu_buttons["stats"].text = "Статистика: %s" % ("вкл" if perf.visible else "выкл")
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 
@@ -459,10 +472,12 @@ func _update_menu() -> void:
 func debug_rects() -> Dictionary:
 	var out := {}
 	var items := {"stick": stick, "buttons": _action, "jump": _jump, "hotbar": _bar, "menu": _menu_button,
-		"season": _menu_buttons["season"]}
+		"test": _test_button}
 	for k in items:
 		var c: Control = items[k]
 		out[k] = c.get_global_rect() if c.is_visible_in_tree() else Rect2()
+	# The "next" arrow of the season row while the playtest page is open.
+	out["season"] = _settings.debug_rects().get("Сезон", Rect2()) if _settings.visible else Rect2()
 	return out
 
 

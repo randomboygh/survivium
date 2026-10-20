@@ -69,14 +69,13 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_Z:
 				game.sky.next_season()
 			KEY_X:
-				game.sky.raining = not game.sky.raining
+				game.settings.set_raining(not game.sky.raining)
 			KEY_T:
-				game.sky.time_speed = 1.0 if game.sky.time_speed > 1.0 else 20.0
+				game.settings.set_fast_forward(not game.settings.fast_forward)
 			KEY_G:
-				game.sky.sun.shadow_enabled = not game.sky.sun.shadow_enabled
+				game.settings.set_value("shadows", not game.settings.values.shadows)
 			KEY_H:
-				show_help = not show_help
-				game.hud.show_keys(show_help)
+				game.settings.set_value("show_help", not show_help)
 	elif event is InputEventMouseButton and event.pressed:
 		var n: int = Mat.PLACEABLE.size()
 		# With a mouse each button is a hand: the left one digs, the right one places.
