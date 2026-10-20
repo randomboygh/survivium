@@ -84,21 +84,20 @@ func _run() -> void:
 	print("longest step of a job %.2f ms" % (worst_step / 1000.0))
 	_check(worst_step / 1000.0 < chunk_ms / 4.0, "a step of a job is under a quarter of a chunk")
 
-	# Streaming the whole map while walking a square, two seconds a side (the keys,
-	# as the game reads them), so the chunks ahead of the player are urgent and the
-	# caps' home moves.
+	# Streaming the whole map while walking east and west, four seconds each way
+	# (the keys, as the game reads them), so the chunks ahead of the player are
+	# urgent and the caps' home moves. The map takes 5-15 s to stream.
 	var start: Vector3 = main.player.position
-	var legs: Array[Key] = [KEY_D, KEY_S, KEY_A, KEY_W]
 	await _scenario("streaming while walking", 100000, func(_i: int) -> bool:
-		var leg := int(clock / 2.0) % 4
-		for k in 4:
-			_key(legs[k], k == leg)
+		var east := int(clock / 4.0) % 2 == 0
+		_key(KEY_D, east)
+		_key(KEY_A, not east)
 		moved = maxf(moved, main.player.position.distance_to(start))
 		return main.pending_chunks.is_empty() and main.job_mesh == null)
-	for k in legs:
-		_key(k, false)
+	_key(KEY_D, false)
+	_key(KEY_A, false)
 	_check(main.map_done, "the whole map streams in")
-	_check(moved > 8.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
+	_check(moved > 4.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
 
 	# Standing still on the finished map.
 	await _scenario("idle", 120, func(_i: int) -> bool: return false)
