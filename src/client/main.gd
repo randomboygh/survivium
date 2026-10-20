@@ -50,6 +50,10 @@ const CAP_RANGE := 6
 const CAP_BUDGET_US := 3000
 const EDIT_BUDGET_US := 12000
 const STREAM_BUDGET_US := 3000
+## A far chunk within this many chunks of the player is about to come into view, so
+## it gets the edit budget instead of the streaming one, and the player does not
+## outrun the map.
+const URGENT_CHUNKS := NEAR_CHUNKS + 1
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
@@ -101,6 +105,7 @@ var job_key := Vector2i.ZERO
 var job_mesh: ChunkMesher.Job
 var job_plants: Foliage.Job
 var job_edit := false
+var job_budget := 0
 var map_done := false
 var bushes: MultiMeshInstance3D
 var bush_shade: MultiMeshInstance3D
@@ -638,25 +643,29 @@ func _run_jobs() -> void:
 				job_key = dirty_chunks.keys()[0]
 				dirty_chunks.erase(job_key)
 				job_edit = true
+				job_budget = EDIT_BUDGET_US
 			elif ready_to_play and not pending_chunks.is_empty():
 				job_key = _next_chunk()
 				job_edit = false
+				var at := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
+				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
+				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
 			else:
 				break
 			job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
 			job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
-		var budget := EDIT_BUDGET_US if job_edit else STREAM_BUDGET_US
 		var done := false
-		while not done and Time.get_ticks_usec() - t0 < budget:
+		while not done and Time.get_ticks_usec() - t0 < job_budget:
 			done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
 		if not done:
 			break
 		_apply_chunk(job_key, ChunkMesher.finish(job_mesh), Foliage.finish(job_plants))
 		job_mesh = null
 		job_plants = null
+		if not job_edit:
+			hud.perf.chunks = chunk_nodes.size()
 		if not job_edit and pending_chunks.is_empty() and not map_done:
 			map_done = true
-			hud.perf.chunks = ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
 			print("meshes built in %d ms" % (mesh_us / 1000))
 			print("whole map ready in %d ms" % Time.get_ticks_msec())
 	mesh_us += Time.get_ticks_usec() - t0
