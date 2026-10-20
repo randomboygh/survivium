@@ -43,10 +43,12 @@ const REACH := 7.0
 ## Chunks this far (in chunks) from the player's get a cap over the level cut; farther
 ## ones are off the screen on any device and are built when they come near.
 const CAP_RANGE := 6
-## How much of a frame may go to building caps and to remeshing edited chunks, in
-## microseconds; what does not fit waits for the next frame.
+## How much of a frame may go to building caps, to remeshing edited chunks and to
+## building the far chunks of the map, in microseconds; a chunk is built row by row
+## (ChunkMesher.row, Foliage.row), so what does not fit waits for the next frame.
 const CAP_BUDGET_US := 3000
-const EDIT_BUDGET_US := 6000
+const EDIT_BUDGET_US := 12000
+const STREAM_BUDGET_US := 4000
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
@@ -91,10 +93,14 @@ var cap_nodes := {}
 var cap_levels := {}
 var cap_order: Array[Vector2i] = []
 var cap_home := Vector2i(-1000000, 0)
-## Chunks that changed since they were last meshed, remeshed a few a frame, and the
-## time meshing took this frame.
+## Chunks that changed since they were last meshed, and the chunk being built now
+## (see _run_jobs): its key, its mesh and plant jobs, and whether it is an edit.
 var dirty_chunks := {}
-var edit_spent_us := 0
+var job_key := Vector2i.ZERO
+var job_mesh: ChunkMesher.Job
+var job_plants: Foliage.Job
+var job_edit := false
+var map_done := false
 var bushes: MultiMeshInstance3D
 var bush_shade: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
@@ -150,7 +156,7 @@ var dig_mode := true
 var cam_target := Vector2.ZERO
 var view_scale := 1
 var fps_clock := 0.0
-var mesh_ms := 0
+var mesh_us := 0
 
 
 func _ready() -> void:
@@ -209,34 +215,26 @@ func _next_chunk() -> Vector2i:
 func _process(delta: float) -> void:
 	if world == null:
 		return
-	if not pending_chunks.is_empty():
+	if not pending_chunks.is_empty() and not ready_to_play:
 		var t0 := Time.get_ticks_msec()
-		if ready_to_play:
-			# One far chunk a frame, so the frame rate holds while the map finishes.
-			_build_chunk(_next_chunk())
-		else:
-			var home := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
-			while near_pending > 0 and Time.get_ticks_msec() - t0 < 40:
-				var key: Vector2i = pending_chunks.pop_front()
-				if _is_near(key, home):
-					near_pending -= 1
-				_build_chunk(key)
-			hud.set_loading("Построение мира… %d%%" % int(100.0 * (near_total - near_pending) / near_total))
-			if near_pending == 0:
-				hud.set_loading("")
-				hud.perf.world_ms = Time.get_ticks_msec()
-				# Freezes while the world was being built are not the game's.
-				hud.perf.reset()
-				hud.perf.chunks = near_total
-				_place_props()
-				creatures.setup(world, player, WORLD_SEED)
-				ready_to_play = true
-				print("near meshes built in %d ms" % mesh_ms)
-				print("world ready in %d ms" % Time.get_ticks_msec())
-		if pending_chunks.is_empty():
-			hud.perf.chunks = ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
-			print("meshes built in %d ms" % mesh_ms)
-			print("whole map ready in %d ms" % Time.get_ticks_msec())
+		var home := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
+		while near_pending > 0 and Time.get_ticks_msec() - t0 < 40:
+			var key: Vector2i = pending_chunks.pop_front()
+			if _is_near(key, home):
+				near_pending -= 1
+			_build_chunk(key)
+		hud.set_loading("Построение мира… %d%%" % int(100.0 * (near_total - near_pending) / near_total))
+		if near_pending == 0:
+			hud.set_loading("")
+			hud.perf.world_ms = Time.get_ticks_msec()
+			# Freezes while the world was being built are not the game's.
+			hud.perf.reset()
+			hud.perf.chunks = near_total
+			_place_props()
+			creatures.setup(world, player, WORLD_SEED)
+			ready_to_play = true
+			print("near meshes built in %d ms" % (mesh_us / 1000))
+			print("world ready in %d ms" % Time.get_ticks_msec())
 	_update_time(delta)
 	_update_weather(delta)
 	if ready_to_play:
@@ -244,7 +242,7 @@ func _process(delta: float) -> void:
 		player.step(minf(delta, 0.05), Input.is_physical_key_pressed(KEY_SPACE) or jump_held)
 		_leave_footprints()
 	_update_cut(delta)
-	_remesh_dirty()
+	_run_jobs()
 	_update_caps()
 	_update_camera(delta)
 	if ready_to_play:
@@ -252,8 +250,6 @@ func _process(delta: float) -> void:
 		_update_tip(delta)
 		_report_fps(delta)
 	_poll_safe_rect(delta)
-	# Edits made by the input of the next frame count towards that frame's budget.
-	edit_spent_us = 0
 
 
 ## A boot print every stride on the ground, left and right in turn, none in the water.
@@ -619,13 +615,52 @@ func _refresh_bushes() -> void:
 
 # --- World edits -----------------------------------------------------------
 
+## Builds the meshes and plants of a chunk at once (the loading screen and tools).
 func _build_chunk(key: Vector2i) -> void:
 	var t0 := Time.get_ticks_usec()
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	var plants: Dictionary = Foliage.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
-	edit_spent_us += Time.get_ticks_usec() - t0
-	mesh_ms += (Time.get_ticks_usec() - t0) / 1000
+	mesh_us += Time.get_ticks_usec() - t0
 	dirty_chunks.erase(key)
+	_apply_chunk(key, meshes, plants)
+
+
+## Builds chunks row by row within the frame's budget: edited chunks first (the
+## chunk of the edit before its neighbours), then the far chunks of the map nearest
+## to the player. At least one row is built a frame, so a job always ends.
+func _run_jobs() -> void:
+	var t0 := Time.get_ticks_usec()
+	while true:
+		if job_mesh == null:
+			if not dirty_chunks.is_empty():
+				job_key = dirty_chunks.keys()[0]
+				dirty_chunks.erase(job_key)
+				job_edit = true
+			elif ready_to_play and not pending_chunks.is_empty():
+				job_key = _next_chunk()
+				job_edit = false
+			else:
+				break
+			job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
+			job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
+		var budget := EDIT_BUDGET_US if job_edit else STREAM_BUDGET_US
+		var done := false
+		while not done and Time.get_ticks_usec() - t0 < budget:
+			done = ChunkMesher.row(job_mesh) and Foliage.row(job_plants)
+		if not done:
+			break
+		_apply_chunk(job_key, ChunkMesher.finish(job_mesh), Foliage.finish(job_plants))
+		job_mesh = null
+		job_plants = null
+		if not job_edit and pending_chunks.is_empty() and not map_done:
+			map_done = true
+			hud.perf.chunks = ceili(world.size_x / float(CHUNK)) * ceili(world.size_z / float(CHUNK))
+			print("meshes built in %d ms" % (mesh_us / 1000))
+			print("whole map ready in %d ms" % Time.get_ticks_msec())
+	mesh_us += Time.get_ticks_usec() - t0
+
+
+func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 	cap_levels.erase(key)
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
@@ -707,16 +742,29 @@ func _too_far(cell: Vector3i) -> bool:
 func _on_cell_changed(cell: Vector3i) -> void:
 	roof.touch(world, cell)
 	# Slopes and corners look at the neighbours, and edges of a top at theirs. The
-	# chunk of the cell is remeshed at once so the edit shows this frame; the
-	# neighbours follow in the next frames (see _remesh_dirty).
+	# chunk of the cell goes first in the queue, its neighbours after (see _run_jobs).
 	var home := Vector2i(floori(cell.x / float(CHUNK)), floori(cell.z / float(CHUNK)))
+	var keys := {}
 	for dz in range(-2, 3):
 		for dx in range(-2, 3):
-			var key := Vector2i(floori((cell.x + dx) / float(CHUNK)), floori((cell.z + dz) / float(CHUNK)))
-			if chunk_nodes.has(key):
-				dirty_chunks[key] = true
+			keys[Vector2i(floori((cell.x + dx) / float(CHUNK)), floori((cell.z + dz) / float(CHUNK)))] = true
+	if job_mesh != null and keys.has(job_key):
+		# The chunk being built changed under the job: start it over.
+		job_mesh = null
+		job_plants = null
+		if job_edit:
+			keys[job_key] = true
+		else:
+			pending_chunks.append(job_key)
+	var queue := {}
 	if chunk_nodes.has(home):
-		_build_chunk(home)
+		queue[home] = true
+	for key in keys:
+		if chunk_nodes.has(key):
+			queue[key] = true
+	for key in dirty_chunks:
+		queue[key] = true
+	dirty_chunks = queue
 	# A bush disappears when its cell is filled or the ground under it is dug.
 	var above := cell + Vector3i(0, 1, 0)
 	if bush_cells.has(cell) or bush_cells.has(above):
@@ -725,13 +773,6 @@ func _on_cell_changed(cell: Vector3i) -> void:
 		world.bushes.erase(cell)
 		world.bushes.erase(above)
 		_refresh_bushes()
-
-
-## Remeshes edited chunks while the frame's meshing budget lasts, at least one a frame
-## when nothing else was meshed this frame.
-func _remesh_dirty() -> void:
-	while not dirty_chunks.is_empty() and edit_spent_us < EDIT_BUDGET_US:
-		_build_chunk(dirty_chunks.keys()[0])
 
 
 # --- Level cutaway -----------------------------------------------------------
