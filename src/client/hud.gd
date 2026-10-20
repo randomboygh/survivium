@@ -334,11 +334,8 @@ func update_state() -> void:
 	var minutes := int(fmod(game.sky.time_of_day * 24.0 * 60.0, 60.0))
 	var winter: bool = game.sky.season == game.sky.WINTER
 	_clock.text = "%s · день %d · %02d:%02d" % [game.sky.SEASONS[game.sky.season], game.sky.day, hours, minutes]
-	var icon := "sun" if game.sky.daylight > 0.35 else "moon"
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
-	if game.sky.raining:
-		icon = "snow" if winter else "rain"
-	_set_icon(_clock_icon, icon)
+	_set_icon(_clock_icon, game.sky.icon())
 	if game.chunks.manual_level >= 0:
 		_level_label.text = "Срез %d" % game.chunks.cut_level
 		_level_label.add_theme_color_override("font_color", UiStyle.ACCENT)

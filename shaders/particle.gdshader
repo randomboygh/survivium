@@ -9,6 +9,8 @@ uniform float brightness = 1.0;
 // 1 for weather (rain, snow, leaves, pollen, fireflies), which never falls under a
 // roof, an overhang or a cave ceiling; 0 for fire, which burns anywhere.
 uniform float sky_only = 0.0;
+// How lit the open sky is: weather is unshaded, so it dims with the night.
+uniform float light = 1.0;
 
 varying vec3 world_pos;
 
@@ -24,6 +26,6 @@ void fragment() {
 	if (sky_only > 0.5 && roofed(world_pos.xz, world_pos.y)) {
 		discard;
 	}
-	ALBEDO = COLOR.rgb * brightness;
+	ALBEDO = COLOR.rgb * brightness * light;
 	ALPHA = COLOR.a;
 }

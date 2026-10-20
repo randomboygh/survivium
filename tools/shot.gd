@@ -28,6 +28,17 @@ const SHOTS := {
 	"winter": {"time": 0.45, "season": 3, "rain": true},
 	"winter-dusk": {"time": 0.74, "season": 3},
 	"winter-night": {"time": 0.97, "season": 3},
+	# Nights by the moon, dawn, and the kinds of weather.
+	"night-dark": {"time": 0.95, "season": 1, "moon": 0.0},
+	"night-full": {"time": 0.95, "season": 1, "moon": 1.0},
+	"dawn": {"time": 0.255, "season": 1, "moon": 1.0},
+	"sunrise": {"time": 0.28, "season": 1, "moon": 1.0},
+	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
+	"downpour": {"time": 0.5, "season": 1, "weather": "downpour"},
+	"storm": {"time": 0.6, "season": 1, "weather": "storm"},
+	"hail": {"time": 0.45, "season": 0, "weather": "hail"},
+	"blizzard": {"time": 0.45, "season": 3, "weather": "blizzard"},
+	"sandstorm": {"time": 0.45, "season": 1, "weather": "sandstorm"},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
@@ -109,6 +120,9 @@ func _run() -> void:
 		main.sky.time_speed = 0.0
 		main.sky.season = shot.season
 		main.sky.raining = shot.get("rain", false)
+		if shot.has("weather"):
+			main.sky.set_weather(_weather_index(shot.weather))
+		main.sky.moon_override = shot.get("moon", -1.0)
 		main.controls.show_help = false
 		main.chunks.manual_level = -1
 		if shot.get("shore", false):
@@ -152,6 +166,7 @@ func _run() -> void:
 		for i in 90:
 			await process_frame
 			main.sky.snow = 1.0 if main.sky.season == 3 else 0.0
+			main.sky.settle_weather()
 			main.sky.wet = 1.0 if main.sky.raining and main.sky.season != 3 else 0.0
 			main.sky.foliage = main.sky.FOLIAGE[main.sky.season]
 			main.sky.grass = main.sky.GRASS[main.sky.season]
@@ -292,6 +307,13 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 				if ok:
 					return (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
 	return p
+
+
+func _weather_index(id: String) -> int:
+	for i in main.sky.WEATHERS.size():
+		if main.sky.WEATHERS[i].id == id:
+			return i
+	return 0
 
 
 ## Standing spot at the nearest place of a kind (see WorldGen.find_place):
