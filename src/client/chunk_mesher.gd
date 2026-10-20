@@ -705,8 +705,9 @@ static func covers_table() -> PackedByteArray:
 ## Dark tops of solid cells on `level` that are covered by solid cells above:
 ## what you see in the cut when looking into a mountain. Cut corners stay open, and
 ## fills sliced by the cut show as dark triangles. Rows of whole tops of the same
-## material are merged.
-static func build_cap(w, level: int) -> ArrayMesh:
+## material are merged. Covers the cells x0..x0+size, z0..z0+size (the whole map by
+## default), so the game can rebuild the cap chunk by chunk.
+static func build_cap(w, level: int, x0 := 0, z0 := 0, size := 1 << 30) -> ArrayMesh:
 	if level < 0 or level >= w.size_y - 1:
 		return null
 	w.refresh_shapes()
@@ -715,6 +716,8 @@ static func build_cap(w, level: int) -> ArrayMesh:
 	var shapes: PackedByteArray = w.shapes
 	var sx: int = w.size_x
 	var sz: int = w.size_z
+	var x1: int = mini(x0 + size, sx)
+	var z1: int = mini(z0 + size, sz)
 	var layer: int = sx * sz
 	var row: int = level * layer
 	var bit := 1 << level
@@ -722,17 +725,20 @@ static func build_cap(w, level: int) -> ArrayMesh:
 	var dark := Color(0.4, 0.4, 0.4)
 	var no_tiles := float(NO_TILE * 0x41041)
 	var corners: Array = face_table()[FACE_TOP].corners
-	for z in sz:
+	var air_cols: PackedInt64Array = w.air_cols
+	var water_cols: PackedInt64Array = w.water_cols
+	var leaf_cols: PackedInt64Array = w.leaf_cols
+	for z in range(z0, z1):
 		# A run of whole tops waiting to be drawn: first x and tile.
 		var run_x := -1
 		var run_tile := -1
-		for x in sx + 1:
+		for x in range(x0, x1 + 1):
 			var tile := -1
 			var col := z * sx + x
 			var i: int = row + col
 			var open := 0
-			if x < sx:
-				open = w.air_cols[col] | w.water_cols[col] | w.leaf_cols[col]
+			if x < x1:
+				open = air_cols[col] | water_cols[col] | leaf_cols[col]
 				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16:
 					tile = cells[i] * 3
 			if tile != run_tile and run_x >= 0:
@@ -750,7 +756,7 @@ static func build_cap(w, level: int) -> ArrayMesh:
 					run_tile = tile
 				continue
 			run_tile = -1
-			if x >= sx:
+			if x >= x1:
 				continue
 			var base := Vector3(x, level, z)
 			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)

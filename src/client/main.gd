@@ -39,6 +39,16 @@ const CULL_MARGIN := 24.0
 const DAY_LENGTH := 240.0
 const DAYS_PER_SEASON := 2.0
 const REACH := 7.0
+## Chunks this far (in chunks) from the player's get a cap over the level cut; farther
+## ones are off the screen on any device and are built when they come near.
+const CAP_RANGE := 6
+## How much of a frame may go to building caps and to remeshing edited chunks, in
+## microseconds; what does not fit waits for the next frame.
+const CAP_BUDGET_US := 3000
+const EDIT_BUDGET_US := 6000
+## How long the automatic cut must agree before the view follows it, so stepping
+## under the rim of a roof does not flip the view back and forth.
+const CUT_DELAY := 0.2
 const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
 const WINTER := 3
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
@@ -72,7 +82,16 @@ var pending_chunks: Array[Vector2i] = []
 const NEAR_CHUNKS := 3
 var near_pending := 0
 var near_total := 0
-var cap_node: MeshInstance3D
+## One cap over the cut per chunk (see _update_caps): nodes, the level each was
+## built for, and the chunks within CAP_RANGE of the player, nearest first.
+var cap_nodes := {}
+var cap_levels := {}
+var cap_order: Array[Vector2i] = []
+var cap_home := Vector2i(-1000000, 0)
+## Chunks that changed since they were last meshed, remeshed a few a frame, and the
+## time meshing took this frame.
+var dirty_chunks := {}
+var edit_spent_us := 0
 var bushes: MultiMeshInstance3D
 var bush_shade: MultiMeshInstance3D
 var bush_cells: Array[Vector3i] = []
@@ -114,6 +133,11 @@ var wind_clock := 0.0
 var daylight := 1.0
 var cut_level := -1
 var manual_level := -1
+## The cut the player's position asks for, and how long it has asked for it.
+var cut_target := -1
+var cut_clock := 0.0
+## The level the player last stood on: a jump does not move the cut.
+var ground_level := 0
 var indoor := false
 var selected := 0
 var show_help := true
@@ -215,13 +239,17 @@ func _process(delta: float) -> void:
 		player.move_input = _read_move()
 		player.step(minf(delta, 0.05), Input.is_physical_key_pressed(KEY_SPACE) or jump_held)
 		_leave_footprints()
-	_update_cut()
+	_update_cut(delta)
+	_remesh_dirty()
+	_update_caps()
 	_update_camera(delta)
 	if ready_to_play:
 		hud.update_state()
 		_update_tip(delta)
 		_report_fps(delta)
 	_poll_safe_rect(delta)
+	# Edits made by the input of the next frame count towards that frame's budget.
+	edit_spent_us = 0
 
 
 ## A boot print every stride on the ground, left and right in turn, none in the water.
@@ -475,16 +503,12 @@ func _build_scene() -> void:
 	world_root.add_child(camera)
 	camera.current = true
 
-	cap_node = MeshInstance3D.new()
-	cap_node.material_override = world_mat
-	cap_node.extra_cull_margin = CULL_MARGIN
-	world_root.add_child(cap_node)
-
 	player = PlayerScript.new()
 	player.world = world
 	world_root.add_child(player)
 	var spawn: Vector3i = WorldGen.find_spawn(world)
 	player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
+	ground_level = player.level()
 	cam_target = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 
 	tracks = TracksScript.new()
@@ -589,10 +613,13 @@ func _refresh_bushes() -> void:
 # --- World edits -----------------------------------------------------------
 
 func _build_chunk(key: Vector2i) -> void:
-	var t0 := Time.get_ticks_msec()
+	var t0 := Time.get_ticks_usec()
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	var plants: Dictionary = Foliage.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
-	mesh_ms += Time.get_ticks_msec() - t0
+	edit_spent_us += Time.get_ticks_usec() - t0
+	mesh_ms += (Time.get_ticks_usec() - t0) / 1000
+	dirty_chunks.erase(key)
+	cap_levels.erase(key)
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = world_mat
@@ -672,31 +699,41 @@ func _too_far(cell: Vector3i) -> bool:
 
 func _on_cell_changed(cell: Vector3i) -> void:
 	roof.touch(world, cell)
-	# Slopes and corners look at the neighbours, and edges of a top at theirs.
-	var keys := {}
+	# Slopes and corners look at the neighbours, and edges of a top at theirs. The
+	# chunk of the cell is remeshed at once so the edit shows this frame; the
+	# neighbours follow in the next frames (see _remesh_dirty).
+	var home := Vector2i(floori(cell.x / float(CHUNK)), floori(cell.z / float(CHUNK)))
 	for dz in range(-2, 3):
 		for dx in range(-2, 3):
-			keys[Vector2i(floori((cell.x + dx) / float(CHUNK)), floori((cell.z + dz) / float(CHUNK)))] = true
-	for key in keys:
-		if chunk_nodes.has(key):
-			_build_chunk(key)
+			var key := Vector2i(floori((cell.x + dx) / float(CHUNK)), floori((cell.z + dz) / float(CHUNK)))
+			if chunk_nodes.has(key):
+				dirty_chunks[key] = true
+	if chunk_nodes.has(home):
+		_build_chunk(home)
 	# A bush disappears when its cell is filled or the ground under it is dug.
 	var above := cell + Vector3i(0, 1, 0)
 	if bush_cells.has(cell) or bush_cells.has(above):
 		bush_cells.erase(cell)
 		bush_cells.erase(above)
 		_refresh_bushes()
-	if cut_level < world.size_y:
-		_apply_cut()
+
+
+## Remeshes edited chunks while the frame's meshing budget lasts, at least one a frame
+## when nothing else was meshed this frame.
+func _remesh_dirty() -> void:
+	while not dirty_chunks.is_empty() and edit_spent_us < EDIT_BUDGET_US:
+		_build_chunk(dirty_chunks.keys()[0])
 
 
 # --- Level cutaway -----------------------------------------------------------
 
-func _update_cut() -> void:
+func _update_cut(delta: float) -> void:
 	if world == null or player == null:
 		return
+	if player.on_ground:
+		ground_level = player.level()
 	# The player stands on `level` and is two cells tall.
-	var level: int = player.level()
+	var level := ground_level
 	var px := floori(player.position.x / CELL)
 	var pz := floori(player.position.z / CELL)
 	indoor = false
@@ -709,7 +746,14 @@ func _update_cut() -> void:
 		target = manual_level
 	elif indoor:
 		target = level + 1
-	if target != cut_level:
+	if target != cut_target:
+		cut_target = target
+		cut_clock = 0.0
+	if target == cut_level:
+		return
+	# A chosen level applies at once; the automatic one once it has held for a moment.
+	cut_clock += delta
+	if cut_level < 0 or manual_level >= 0 or cut_clock >= CUT_DELAY:
 		cut_level = target
 		_apply_cut()
 
@@ -732,7 +776,50 @@ func _apply_cut() -> void:
 	var h := 1000.0 if cut_level >= world.size_y else (cut_level + 1) * CELL
 	RenderingServer.global_shader_parameter_set("cut_height", h)
 	RenderingServer.global_shader_parameter_set("cut_ghost", 1.0 if manual_level < 0 else 0.0)
-	cap_node.mesh = ChunkMesher.build_cap(world, cut_level) if cut_level < world.size_y - 1 else null
+	# The caps follow in _update_caps, nearest chunk first; with no cut they go at once.
+	if cut_level >= world.size_y - 1:
+		for key in cap_levels:
+			cap_nodes[key].mesh = null
+		cap_levels.clear()
+
+
+## Brings the caps of the chunks around the player to the current cut, nearest first,
+## a few a frame. The cap of a chunk is rebuilt when the cut moves or the chunk is
+## edited (its entry in cap_levels goes); chunks out of range lose theirs.
+func _update_caps() -> void:
+	if not ready_to_play:
+		return
+	var home := Vector2i((Vector2(player.position.x, player.position.z) / (CHUNK * CELL)).floor())
+	if home != cap_home:
+		cap_home = home
+		cap_order.clear()
+		for cz in range(maxi(0, home.y - CAP_RANGE), mini(ceili(world.size_z / float(CHUNK)), home.y + CAP_RANGE + 1)):
+			for cx in range(maxi(0, home.x - CAP_RANGE), mini(ceili(world.size_x / float(CHUNK)), home.x + CAP_RANGE + 1)):
+				cap_order.append(Vector2i(cx, cz))
+		var nearer := func(a: Vector2i, b: Vector2i) -> bool:
+			return maxi(absi(a.x - home.x), absi(a.y - home.y)) < maxi(absi(b.x - home.x), absi(b.y - home.y))
+		cap_order.sort_custom(nearer)
+		for key in cap_levels.keys():
+			if maxi(absi(key.x - home.x), absi(key.y - home.y)) > CAP_RANGE:
+				cap_nodes[key].mesh = null
+				cap_levels.erase(key)
+	var want: int = cut_level if cut_level < world.size_y - 1 else -1
+	if want < 0:
+		return
+	var t0 := Time.get_ticks_usec()
+	for key in cap_order:
+		if cap_levels.get(key, -1) == want or not chunk_nodes.has(key):
+			continue
+		if not cap_nodes.has(key):
+			var node := MeshInstance3D.new()
+			node.material_override = world_mat
+			node.extra_cull_margin = CULL_MARGIN
+			world_root.add_child(node)
+			cap_nodes[key] = node
+		cap_nodes[key].mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
+		cap_levels[key] = want
+		if Time.get_ticks_usec() - t0 > CAP_BUDGET_US:
+			break
 
 
 # --- Time, seasons, weather --------------------------------------------------

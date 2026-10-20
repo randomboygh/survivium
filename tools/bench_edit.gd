@@ -1,0 +1,82 @@
+extends SceneTree
+## Times what a single edit, a cut-level change and a roof touch cost, as the game does
+## them, so freezes can be chased without a phone:
+## godot --headless --path . --script res://tools/bench_edit.gd
+
+const WorldGen := preload("res://src/shared/world_gen.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
+const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
+const Foliage := preload("res://src/client/foliage.gd")
+const RoofMap := preload("res://src/client/roof_map.gd")
+const Mat := preload("res://src/shared/materials.gd")
+const CHUNK := 16
+
+
+func _initialize() -> void:
+	var w := WorldGen.generate(20261018)
+	var x := w.size_x / 2
+	var z := w.size_z / 2
+	var y := w.surface_y(x, z)
+	# Warm up (shapes, tables).
+	ChunkMesher.build_chunk(w, 0, 0, CHUNK)
+	Foliage.build_chunk(w, 0, 0, CHUNK)
+	var t := Time.get_ticks_usec()
+	for i in 5:
+		ChunkMesher.build_chunk(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
+	print("one chunk mesh: %.1f ms" % ((Time.get_ticks_usec() - t) / 5000.0))
+	t = Time.get_ticks_usec()
+	for i in 5:
+		Foliage.build_chunk(w, (x / CHUNK) * CHUNK, (z / CHUNK) * CHUNK, CHUNK)
+	print("one chunk foliage: %.1f ms" % ((Time.get_ticks_usec() - t) / 5000.0))
+	for level in [y - 1, y + 4, 10]:
+		t = Time.get_ticks_usec()
+		var cap := ChunkMesher.build_cap(w, level)
+		var t_all := Time.get_ticks_usec() - t
+		t = Time.get_ticks_usec()
+		var n := 0
+		for cz in range(z / CHUNK - 6, z / CHUNK + 7):
+			for cx in range(x / CHUNK - 6, x / CHUNK + 7):
+				if cx >= 0 and cz >= 0 and cx * CHUNK < w.size_x and cz * CHUNK < w.size_z:
+					ChunkMesher.build_cap(w, level, cx * CHUNK, cz * CHUNK, CHUNK)
+					n += 1
+		print("cap at level %d: whole map %d ms (%d verts), %d chunks around the player %d ms" % [
+			level, t_all / 1000, 0 if cap == null else cap.surface_get_array_len(0), n,
+			(Time.get_ticks_usec() - t) / 1000])
+		var parts := 0.0
+		for cz in range(0, w.size_z, CHUNK):
+			for cx in range(0, w.size_x, CHUNK):
+				parts += _area(ChunkMesher.build_cap(w, level, cx, cz, CHUNK))
+		print("  area whole %.1f, by chunks %.1f" % [_area(cap), parts])
+	var roof := RoofMap.new()
+	t = Time.get_ticks_usec()
+	roof.build(w)
+	print("roof build: %d ms" % ((Time.get_ticks_usec() - t) / 1000))
+	# A dig at a chunk corner touches four chunks.
+	var cx := (x / CHUNK) * CHUNK
+	var cz := (z / CHUNK) * CHUNK
+	t = Time.get_ticks_usec()
+	w.set_cell(cx, y - 1, cz, Mat.AIR)
+	roof.touch(w, Vector3i(cx, y - 1, cz))
+	var t1 := Time.get_ticks_usec()
+	var keys := {}
+	for dz in range(-2, 3):
+		for dx in range(-2, 3):
+			keys[Vector2i(floori((cx + dx) / float(CHUNK)), floori((cz + dz) / float(CHUNK)))] = true
+	for key: Vector2i in keys:
+		ChunkMesher.build_chunk(w, key.x * CHUNK, key.y * CHUNK, CHUNK)
+		Foliage.build_chunk(w, key.x * CHUNK, key.y * CHUNK, CHUNK)
+	print("dig at a chunk corner: set+roof %.1f ms, %d chunks remeshed %d ms" % [
+		(t1 - t) / 1000.0, keys.size(), (Time.get_ticks_usec() - t1) / 1000])
+	quit()
+
+
+static func _area(mesh: ArrayMesh) -> float:
+	if mesh == null:
+		return 0.0
+	var arrays := mesh.surface_get_arrays(0)
+	var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	var area := 0.0
+	for i in range(0, idx.size(), 3):
+		area += (v[idx[i + 1]] - v[idx[i]]).cross(v[idx[i + 2]] - v[idx[i]]).length() * 0.5
+	return area
