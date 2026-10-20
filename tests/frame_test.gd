@@ -18,17 +18,22 @@ const Foliage := preload("res://src/client/foliage.gd")
 const Shot := preload("res://tools/shot.gd")
 const CELL := 0.5
 const CHUNK := 16
-## Frames over a limit allowed in a scenario, one plus one per this many frames: the
-## OS stalls the process now and then, a real freeze comes back with every chunk.
-const STALLS_PER_FRAMES := 500
+## Frames over a limit allowed in a scenario, one plus one per this many frames: a
+## virtual machine stalls the process now and then (a cloud container: up to 50 ms,
+## several times in a few thousand frames; a GitHub runner: hardly ever), a real
+## freeze comes back with every chunk or every cut change.
+const STALLS_PER_FRAMES := 250
 
 var main: Node
 var checks := 0
 var failures := 0
 var chunk_ms := 0.0
-## What the scenarios' callables count (a lambda gets its own copy of a local).
+## What the scenarios' callables count (a lambda gets its own copy of a local), and
+## the game time the running scenario has played: the game paces the cut and the
+## jumps by it, and a frame here can be a millisecond or ten.
 var moved := 0.0
 var flips := 0
+var clock := 0.0
 ## Each scenario's name, frame times and the budgeted part of each, judged once the
 ## idle frame of the finished map is known.
 var runs: Array = []
@@ -79,20 +84,20 @@ func _run() -> void:
 	print("longest step of a job %.2f ms" % (worst_step / 1000.0))
 	_check(worst_step / 1000.0 < chunk_ms / 4.0, "a step of a job is under a quarter of a chunk")
 
-	# Streaming the whole map while walking a square (the keys, as the game reads
-	# them), so the chunks ahead of the player are urgent and the caps' home moves.
+	# Streaming the whole map while walking east and west, four seconds each way
+	# (the keys, as the game reads them), so the chunks ahead of the player are
+	# urgent and the caps' home moves. The map takes 5-15 s to stream.
 	var start: Vector3 = main.player.position
-	var legs: Array[Key] = [KEY_D, KEY_S, KEY_A, KEY_W]
-	await _scenario("streaming while walking", 100000, func(i: int) -> bool:
-		if i % 500 == 0:
-			_key(legs[(i / 500 + 3) % 4], false)
-			_key(legs[(i / 500) % 4], true)
+	await _scenario("streaming while walking", 100000, func(_i: int) -> bool:
+		var east := int(clock / 4.0) % 2 == 0
+		_key(KEY_D, east)
+		_key(KEY_A, not east)
 		moved = maxf(moved, main.player.position.distance_to(start))
 		return main.pending_chunks.is_empty() and main.job_mesh == null)
-	for k in legs:
-		_key(k, false)
+	_key(KEY_D, false)
+	_key(KEY_A, false)
 	_check(main.map_done, "the whole map streams in")
-	_check(moved > 8.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
+	_check(moved > 4.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
 
 	# Standing still on the finished map.
 	await _scenario("idle", 120, func(_i: int) -> bool: return false)
@@ -131,27 +136,27 @@ func _run() -> void:
 	_check(main.dirty_chunks.is_empty() and main.job_mesh == null, "edits are all built")
 	_check(main.bush_cells.size() == bushes_before - 1 and not main.world.bushes.has(bush), "the bush dug under is gone")
 
-	# The cut moving up and down every half second, as when walking in and out of a
-	# cave: the caps of the chunks around are rebuilt each time.
+	# The cut moving up and down four times a second, as when walking in and out of
+	# a cave: the caps of the chunks around are rebuilt each time.
 	var level: int = main.player.level()
-	await _scenario("cut changes", 240, func(i: int) -> bool:
-		if i % 30 == 0:
-			main.manual_level = level - 4 if (i / 30) % 2 == 0 else -1
-		return false)
+	await _scenario("cut changes", 100000, func(_i: int) -> bool:
+		main.manual_level = level - 4 if int(clock / 0.25) % 2 == 0 else -1
+		return clock >= 4.0)
 	main.manual_level = -1
 
-	# Jumping in a cave: the view stays cut at the floor level the whole time.
+	# Jumping in a cave: the view stays cut at the floor level the whole time. The
+	# player lands first, and the automatic cut follows the floor after CUT_DELAY.
 	main.player.position = Shot._cave(w, main.player.position)
 	main.player.on_ground = false
-	for i in 60:
-		await process_frame
+	await _scenario("landing in a cave", 100000, func(_i: int) -> bool:
+		return main.player.on_ground and clock >= 1.0)
 	_check(main.indoor and main.cut_level < w.size_y, "the view is cut in the cave")
 	var cut: int = main.cut_level
-	await _scenario("jumping in a cave", 240, func(i: int) -> bool:
-		main.jump_held = i % 40 < 5
+	await _scenario("jumping in a cave", 100000, func(_i: int) -> bool:
+		main.jump_held = fmod(clock, 0.8) < 0.1
 		if main.cut_level != cut:
 			flips += 1
-		return false)
+		return clock >= 4.0)
 	main.jump_held = false
 	_check(flips == 0, "jumping in a cave does not move the cut (%d flips)" % flips)
 
@@ -195,12 +200,14 @@ func _run() -> void:
 func _scenario(what: String, frames: int, act: Callable) -> void:
 	var times := PackedFloat32Array()
 	var steps := PackedFloat32Array()
+	clock = 0.0
 	for i in frames:
 		if act.call(i):
 			break
 		var t := Time.get_ticks_usec()
 		var b: int = main.budget_us
 		await process_frame
+		clock += root.get_process_delta_time()
 		times.append((Time.get_ticks_usec() - t) / 1000.0)
 		steps.append((main.budget_us - b) / 1000.0)
 	runs.append([what, times, steps])
