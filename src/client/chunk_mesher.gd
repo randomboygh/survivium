@@ -2,7 +2,8 @@ extends RefCounted
 ## Builds meshes from the cell grid: one quad per visible cell face, with the data the
 ## world shader needs for edges and material transitions (see world.gdshader). Natural
 ## ground also gets slopes and diagonal corners, cut-off outer corners and filled inner
-## ones, as WorldData shapes them. A chunk mesh holds all levels of a 16x16 column of
+## ones, as WorldData shapes them; a slope is a smooth curved surface shared with the
+## slopes beside it (see `patch`). A chunk mesh holds all levels of a 16x16 column of
 ## cells; only the cells next to something open are looked at, found from the world's
 ## column masks, and plain tops in a row are merged into one long quad. The cutaway
 ## hides upper levels in the shader, and `build_cap` closes the cut with dark tops.
@@ -66,7 +67,8 @@ const CORNER := 2
 ## material's corner shape (Mat.corner_shape): 1 a straight diagonal (stone), 1.5 a
 ## little rounded (soil), 2 a quarter circle (sand). A curve is drawn in CURVE_STEPS
 ## straight pieces. Each ends at the middle of a side whatever its shape, so cells of
-## any shape meet without gaps. Slopes keep the straight cut.
+## any shape meet without gaps. Slopes keep the straight cut, their curved surface
+## rounds them.
 const CORNER_P := [1.0, 1.5, 2.0]
 const CURVE_STEPS := 4
 ## Diagonals reach a hair past their line, so the texels it runs through belong to the
@@ -283,11 +285,13 @@ static func _column(job: Job, x: int, z: int) -> void:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and _is_trunk(nb):
 			_trunk_faces(solid, faces, nb, base, m)
-		elif sh[i] & 15 != 0:
+		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
-			_slope_faces(solid, faces, nb, sh, side_offsets, i, base, m, _around(c, cov, i, dy, dz), cuts)
+			_slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, _around(c, cov, i, dy, dz), cuts)
 			if cuts:
 				_cut_water(w, water, c, i, dy, base, cuts)
+		elif sh[i] & 15 != 0 and sh[i] < 16:
+			_deep_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m)
 		else:
 			var cuts := sh[i] >> 4
 			# Most tops lie under open sky amid the same flat ground: no sides, no
@@ -685,8 +689,9 @@ static func _piece(buf, base: Vector3, h: float, q: int, kind: int, n: Vector3, 
 
 
 ## The wall along the curve of corner k (see corner_curve), facing the corner (a cut)
-## or away from it (a fill): a straight piece of wall per piece of the curve, each
-## turned its own way, so the toon light shades a round corner in steps.
+## or away from it (a fill): a straight piece of wall per piece of the curve. A
+## straight corner is flat; a round one has the curve's own normals at its points, so
+## the light runs smoothly around it.
 static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2, shape := 0) -> void:
 	var o := Vector2(CORNER_DIRS[k])
 	var curve := corner_curve(k, shape)
@@ -697,10 +702,34 @@ static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, 
 		var side := Vector2(d.y, -d.x).normalized()
 		if side.dot(o) < 0.0:
 			side = -side
-		var n := Vector3(side.x, 0.0, side.y) * (1.0 if outward else -1.0)
+		var facing := 1.0 if outward else -1.0
+		var n := Vector3(side.x, 0.0, side.y) * facing
 		var vs := [base + Vector3(p1.x, 0.0, p1.y), base + Vector3(p2.x, 0.0, p2.y),
 			base + Vector3(p2.x, 1.0, p2.y), base + Vector3(p1.x, 1.0, p1.y)]
-		_wound(buf, vs, n, [Vector2(p1.x, 1.0), Vector2(p2.x, 1.0), Vector2(p2.x, 0.0), Vector2(p1.x, 0.0)], color, packed)
+		var uvs := [Vector2(p1.x, 1.0), Vector2(p2.x, 1.0), Vector2(p2.x, 0.0), Vector2(p1.x, 0.0)]
+		if shape == 0:
+			_wound(buf, vs, n, uvs, color, packed)
+			continue
+		# A round corner is shaded smoothly: each point gets the curve's own normal.
+		var n1 := _curve_normal(p1, o, shape) * facing
+		var n2 := _curve_normal(p2, o, shape) * facing
+		var ns := [n1, n2, n2, n1]
+		if (vs[1] - vs[0]).cross(vs[2] - vs[0]).dot(n) > 0.0:
+			vs.reverse()
+			uvs.reverse()
+			ns.reverse()
+		buf.tri_n([vs[0], vs[1], vs[2]], [ns[0], ns[1], ns[2]], [uvs[0], uvs[1], uvs[2]], color, packed)
+		buf.tri_n([vs[0], vs[2], vs[3]], [ns[0], ns[2], ns[3]], [uvs[0], uvs[2], uvs[3]], color, packed)
+
+
+## Normal of the curve of a corner toward `o` with corner shape `shape` at point `q`,
+## pointing to the corner: across the curve u^p + v^p = 0.5^p.
+static func _curve_normal(q: Vector2, o: Vector2, shape: int) -> Vector3:
+	var p: float = CORNER_P[shape]
+	var u := maxf((q.x - 0.5) * o.x, 0.0)
+	var v := maxf((q.y - 0.5) * o.y, 0.0)
+	var g := Vector2(pow(u, p - 1.0) * o.x, pow(v, p - 1.0) * o.y).normalized()
+	return Vector3(g.x, 0.0, g.y)
 
 
 ## Adds a triangle or quad with corners in either order, turned to face along `n`.
@@ -717,79 +746,332 @@ static func _wound(buf, vs: Array, n: Vector3, uvs: Array, color: Color, packed:
 		buf.tri(vs, n, uvs, color, packed)
 
 
-## A cell with a sloping top: two triangles over the corner heights of its mask, side
-## walls cut to the slope where nothing covers them, and the bottom if open. Cut corners
-## clip the triangles, halve the side walls and leave a wall up to the slope.
-static func _slope_faces(buf, faces: Array, nb: PackedByteArray, sh: PackedByteArray, side_offsets: Array,
-		i: int, base: Vector3, m: int, around: float, cuts: int) -> void:
-	var mask := FULL & ~(sh[i] & 15)
-	var h := [float(mask & WorldData.NW != 0), float(mask & WorldData.NE != 0),
-		float(mask & WorldData.SE != 0), float(mask & WorldData.SW != 0)]
-	var nw := Vector3(0, h[0], 0)
-	var ne := Vector3(1, h[1], 0)
-	var se := Vector3(1, h[2], 1)
-	var sw := Vector3(0, h[3], 1)
-	var tris := [[nw, ne, se], [nw, se, sw]] if WorldData.split_nw_se(mask, cuts) else [[nw, ne, sw], [ne, se, sw]]
+## Steps of a sloping top's surface along a side where it curves: a grid of squares,
+## each two triangles with the surface's own normals at their corners. Along a side
+## where it stays level (a ramp's high and low sides) one step is enough.
+const PATCH_STEPS := 4
+## Hermite weights at the steps of 1 and of PATCH_STEPS (see WorldData.patch_height):
+## of the height at the near and far end, of the slope there, and their changes.
+static var _hw := {}
+
+
+## The weights at `steps` steps: [a0, a1, b0, b1, da0, da1, db0, db1] per point.
+static func _hermite_steps(steps: int) -> Array:
+	if not _hw.has(steps):
+		var out := []
+		for j in steps + 1:
+			var t := float(j) / steps
+			out.append(PackedFloat32Array([1.0 - t * t * (3.0 - 2.0 * t), t * t * (3.0 - 2.0 * t),
+				t * (1.0 - t) * (1.0 - t), t * t * (t - 1.0), 6.0 * t * (t - 1.0), 6.0 * t * (1.0 - t),
+				1.0 - 4.0 * t + 3.0 * t * t, 3.0 * t * t - 2.0 * t]))
+		_hw[steps] = out
+	return _hw[steps]
+
+
+## Steps of patch `p` along x and along z: one along a side where it stays level, all
+## where something is cut.
+static func _patch_steps(p: PackedFloat32Array, cuts: int) -> Vector2i:
+	if cuts != 0:
+		return Vector2i(PATCH_STEPS, PATCH_STEPS)
+	var nu := 1 if p[0] == p[1] and p[3] == p[2] and p[4] == 0.0 and p[5] == 0.0 and p[6] == 0.0 \
+		and p[7] == 0.0 else PATCH_STEPS
+	var nv := 1 if p[0] == p[3] and p[1] == p[2] and p[8] == 0.0 and p[9] == 0.0 and p[10] == 0.0 \
+		and p[11] == 0.0 else PATCH_STEPS
+	return Vector2i(nu, nv)
+
+
+## The surface of the sloping top of padded cell `i` (see WorldData.make_patch, which
+## WorldData.surface_patch builds the same from the world).
+static func patch(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int) -> PackedFloat32Array:
+	var h := _corner_heights(sh, i, dy)
+	var far := PackedInt32Array()
+	far.resize(8)
+	for k in 4:
+		var o: Vector2i = CORNER_DIRS[k]
+		var d := (k + 2) & 3
+		var diag := i + o.x + o.y * dz
+		far[2 * k] = WorldData.far_corner(_patch_far(c, sh, i + o.x, dy, k ^ 1, k, h[k]),
+			_patch_far(c, sh, diag, dy, d, 3 - k, h[k]), h[k])
+		far[2 * k + 1] = WorldData.far_corner(_patch_far(c, sh, i + o.y * dz, dy, 3 - k, k, h[k]),
+			_patch_far(c, sh, diag, dy, d, k ^ 1, h[k]), h[k])
+	return WorldData.make_patch(h, far)
+
+
+## Heights of the corners of the top of padded ground cell `i` (see WorldData.corner_heights).
+static func _corner_heights(sh: PackedByteArray, i: int, dy: int) -> PackedInt32Array:
+	var s := sh[i]
+	var below := sh[i - dy] if s & 15 else 0
+	var h := PackedInt32Array([1, 1, 1, 1])
+	for k in 4:
+		if s & (1 << k):
+			h[k] = -1 if below & (1 << k) else 0
+	return h
+
+
+## Levels tried for the top of a column beside a slope, nearest first.
+const NEAR_LEVELS := [0, 1, -1, -2]
+
+
+## Height of corner `far` of the top in the padded column of cell `j` (same level)
+## whose corner `near` meets one at `hv` (see WorldData._patch_far).
+static func _patch_far(c: PackedByteArray, sh: PackedByteArray, j: int, dy: int, near: int, far: int, hv: int) -> int:
+	for dl: int in NEAR_LEVELS:
+		var l := j + dl * dy
+		if l - dy < 0 or l + dy >= c.size():
+			continue
+		var up := c[l + dy]
+		var m := c[l]
+		if (up == AIR or up == WATER) and m != AIR and m != WATER and m != LEAVES and m != Mat.LOG:
+			if _corner_height(sh, l, dy, near) + dl == hv:
+				return _corner_height(sh, l, dy, far) + dl
+	return WorldData.NO_CORNER
+
+
+## Height of corner k of the top of padded ground cell `i` (see _corner_heights).
+static func _corner_height(sh: PackedByteArray, i: int, dy: int, k: int) -> int:
+	var bit := 1 << k
+	if sh[i] & bit == 0:
+		return 1
+	return -1 if sh[i - dy] & bit else 0
+
+
+## Heights of the surface of the padded column of cell `j` at its corners above the
+## level of `j`: its top's, or for a cell that a slope above goes down into, the slope's.
+## Empty where the column has no surface on this level.
+static func _column_heights(c: PackedByteArray, sh: PackedByteArray, j: int, dy: int) -> PackedInt32Array:
+	var up := c[j + dy]
+	if up == AIR or up == WATER:
+		var m := c[j]
+		if m == AIR or m == WATER or m == LEAVES:
+			return PackedInt32Array()
+		return _corner_heights(sh, j, dy)
+	if sh[j] & 15 and j + 2 * dy < c.size():
+		var h := _corner_heights(sh, j + dy, dy)
+		for k in 4:
+			h[k] += 1
+		return h
+	return PackedInt32Array()
+
+
+## Heights and normals of patch `p` raised by `lift` at the points of a grid of
+## `steps` (x, z) squares, row by row from the north-west.
+static func _patch_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> Array:
+	var hwu := _hermite_steps(steps.x)
+	var hwv := _hermite_steps(steps.y)
+	var nu := steps.x + 1
+	var hs := PackedFloat32Array()
+	var ns := PackedVector3Array()
+	hs.resize(nu * (steps.y + 1))
+	ns.resize(nu * (steps.y + 1))
+	for b in steps.y + 1:
+		var wv: PackedFloat32Array = hwv[b]
+		# Along this row the patch is a cubic in u: its weights at the west (0) and
+		# east (1) ends, of the height, of its slope along x, and of the change along z.
+		var r := PackedFloat32Array()
+		r.resize(8)
+		for i in 2:
+			var kn: int = i
+			var ks: int = 3 - i
+			r[i] = p[kn] * wv[0] + p[ks] * wv[1] + p[8 + kn] * wv[2] + p[8 + ks] * wv[3]
+			r[2 + i] = p[4 + kn] * wv[0] + p[4 + ks] * wv[1]
+			r[4 + i] = p[kn] * wv[4] + p[ks] * wv[5] + p[8 + kn] * wv[6] + p[8 + ks] * wv[7]
+			r[6 + i] = p[4 + kn] * wv[4] + p[4 + ks] * wv[5]
+		for a in nu:
+			var wu: PackedFloat32Array = hwu[a]
+			var h := lift + r[0] * wu[0] + r[1] * wu[1] + r[2] * wu[2] + r[3] * wu[3]
+			var gx := r[0] * wu[4] + r[1] * wu[5] + r[2] * wu[6] + r[3] * wu[7]
+			var gz := r[4] * wu[0] + r[5] * wu[1] + r[6] * wu[2] + r[7] * wu[3]
+			hs[b * nu + a] = h
+			ns[b * nu + a] = Vector3(-gx, 1.0, -gz).normalized()
+	return [hs, ns]
+
+
+## A cell with a sloping top: the smooth surface of its patch, cut where its corners
+## are cut (with a wall up to the surface there), side walls up to the surface where
+## nothing covers them, and the bottom if open.
+static func _slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArray, nb: PackedByteArray,
+		side_offsets: PackedInt32Array, i: int, dy: int, base: Vector3, m: int, around: float, cuts: int) -> void:
+	var p := patch(c, sh, i, dy, side_offsets[4])
+	var steps := _patch_steps(p, cuts)
+	var grid := _patch_grid(p, 0.0, steps)
+	var hs: PackedFloat32Array = grid[0]
+	var ns: PackedVector3Array = grid[1]
 	var white := Color(1, 1, 1)
 	var top := Vector2(pack(m * 3, 0, SLOPE), around)
-	var wall := Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILE * 0x41041))
-	for t in tris:
-		var a: Vector3 = t[0]
-		var b: Vector3 = t[1]
-		var e: Vector3 = t[2]
-		var n := -(b - a).cross(e - a).normalized()
-		var poly: Array = t
-		for k in 4:
-			if cuts & (1 << k):
-				var clipped := _clip(poly, k)
-				poly = clipped[0]
-				var ends: Array = clipped[1]
-				# The slope ends at the cut in a wall as high as the slope there.
-				if ends.size() == 2 and (ends[0].y > 0.01 or ends[1].y > 0.01):
-					var p: Vector3 = ends[0]
-					var q: Vector3 = ends[1]
-					var o := Vector2(CORNER_DIRS[k])
-					_wound(buf, [base + Vector3(p.x, 0.0, p.z), base + Vector3(q.x, 0.0, q.z), base + q, base + p],
-						Vector3(o.x, 0.0, o.y).normalized(),
-						[Vector2(p.x, 1.0), Vector2(q.x, 1.0), Vector2(q.x, 1.0 - q.y), Vector2(p.x, 1.0 - p.y)], white, wall)
-		for j in range(1, poly.size() - 1):
-			var p0: Vector3 = poly[0]
-			var p1: Vector3 = poly[j]
-			var p2: Vector3 = poly[j + 1]
-			buf.tri([base + p0, base + p1, base + p2], n, [Vector2(p0.x, p0.z), Vector2(p1.x, p1.z), Vector2(p2.x, p2.z)],
-				white, top)
+	if cuts == 0:
+		_surface(buf, base, hs, ns, steps, top)
+	else:
+		_cut_surface(buf, base, hs, ns, cuts, top, Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILE * 0x41041)))
+	var own := _corner_heights(sh, i, dy)
 	for d in [0, 1, 3, 4, 5]:
-		var n := nb[d]
-		if n != AIR and n != WATER and n != LEAVES and (d == FACE_BOTTOM or sh[i + side_offsets[d]] & 15 == 0):
+		var nm := nb[d]
+		if nm != AIR and nm != WATER and nm != LEAVES and (d == FACE_BOTTOM or sh[i + side_offsets[d]] & 15 == 0):
 			continue
-		var face: Dictionary = faces[d]
 		if d == FACE_BOTTOM:
 			for q in 4:
 				_piece(buf, base, 0.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.DOWN, white,
 					Vector2(pack(m * 3 + 2, 0, 0), float(NO_TILE * 0x41041)))
 			continue
-		# Corners at both ends of this side and the heights of the slope there.
-		var ks: Array = SIDE_CORNERS[d]
-		var c0 := Vector2(CORNER_DIRS[ks[0]]) * 0.5 + Vector2(0.5, 0.5)
-		var c1 := Vector2(CORNER_DIRS[ks[1]]) * 0.5 + Vector2(0.5, 0.5)
-		var h0: float = h[ks[0]]
-		var h1: float = h[ks[1]]
-		# The whole side, or the halves next to corners that are not cut.
-		var spans := [[0.0, 1.0]] if cuts & (1 << ks[0] | 1 << ks[1]) == 0 else [[0.0, 0.5], [0.5, 1.0]]
-		for span: Array in spans:
-			if cuts & (1 << ks[0 if span[0] < 0.5 else 1]):
+		_patch_side(buf, faces, c, sh, i, dy, side_offsets[d], d, base, m, hs, steps, own, cuts)
+
+
+## The grid of a surface as triangles sharing its points (they are many on a slope).
+static func _surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVector3Array, steps: Vector2i,
+		packed: Vector2) -> void:
+	var start: int = buf.verts.size()
+	var nu := steps.x + 1
+	var white := Color(1, 1, 1)
+	for b in steps.y + 1:
+		var z := float(b) / steps.y
+		for a in nu:
+			var x := float(a) / steps.x
+			buf.verts.append(base + Vector3(x, hs[b * nu + a], z))
+			buf.normals.append(ns[b * nu + a])
+			buf.uvs.append(Vector2(x, z))
+			buf.uv2s.append(packed)
+			buf.colors.append(white)
+	for b in steps.y:
+		for a in steps.x:
+			var j := start + b * nu + a
+			# Clockwise from above (Godot front faces).
+			buf.indices.append_array(PackedInt32Array([j, j + 1, j + nu + 1, j, j + nu + 1, j + nu]))
+
+
+## The surface of a sloping top with cut corners: each triangle of the grid clipped to
+## the cuts, with a wall at each cut as high as the slope there.
+static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVector3Array,
+		cuts: int, top: Vector2, wall: Vector2) -> void:
+	var white := Color(1, 1, 1)
+	var n := PATCH_STEPS + 1
+	var step := 1.0 / PATCH_STEPS
+	for b in PATCH_STEPS:
+		for a in PATCH_STEPS:
+			var j00 := b * n + a
+			var q00 := Vector3(a * step, hs[j00], b * step)
+			var q10 := Vector3((a + 1) * step, hs[j00 + 1], b * step)
+			var q11 := Vector3((a + 1) * step, hs[j00 + n + 1], (b + 1) * step)
+			var q01 := Vector3(a * step, hs[j00 + n], (b + 1) * step)
+			# Most squares lie wholly beside the cuts, or wholly in one.
+			var whole := true
+			var gone := false
+			for k in 4:
+				if cuts & (1 << k):
+					var inside := 0
+					for q: Vector3 in [q00, q10, q11, q01]:
+						inside += int(_keep(k, q) < 0.0)
+					whole = whole and inside == 0
+					gone = gone or inside == 4
+			if gone:
 				continue
-			var a := c0.lerp(c1, span[0])
-			var b := c0.lerp(c1, span[1])
-			var ha := lerpf(h0, h1, span[0])
-			var hb := lerpf(h0, h1, span[1])
-			if ha + hb == 0.0:
+			if whole:
+				buf.tri_n([base + q00, base + q10, base + q11], [ns[j00], ns[j00 + 1], ns[j00 + n + 1]],
+					[Vector2(q00.x, q00.z), Vector2(q10.x, q10.z), Vector2(q11.x, q11.z)], white, top)
+				buf.tri_n([base + q00, base + q11, base + q01], [ns[j00], ns[j00 + n + 1], ns[j00 + n]],
+					[Vector2(q00.x, q00.z), Vector2(q11.x, q11.z), Vector2(q01.x, q01.z)], white, top)
 				continue
-			var tile := m * 3 + 1
-			_wound(buf, [base + Vector3(a.x, 0.0, a.y), base + Vector3(b.x, 0.0, b.y), base + Vector3(b.x, hb, b.y),
-				base + Vector3(a.x, ha, a.y)], face.normal,
-				[face_uv(d, Vector3(a.x, 0.0, a.y)), face_uv(d, Vector3(b.x, 0.0, b.y)), face_uv(d, Vector3(b.x, hb, b.y)),
-				face_uv(d, Vector3(a.x, ha, a.y))], white, Vector2(pack(tile, 0, 0), float(NO_TILE * 0x41041)))
+			for t: Array in [[q00, q10, q11, ns[j00], ns[j00 + 1], ns[j00 + n + 1]],
+					[q00, q11, q01, ns[j00], ns[j00 + n + 1], ns[j00 + n]]]:
+				var poly: Array = [t[0], t[1], t[2]]
+				for k in 4:
+					if cuts & (1 << k) and not poly.is_empty():
+						var clipped := _clip(poly, k)
+						poly = clipped[0]
+						var ends: Array = clipped[1]
+						if ends.size() == 2 and (ends[0].y > 0.01 or ends[1].y > 0.01):
+							var e0: Vector3 = ends[0]
+							var e1: Vector3 = ends[1]
+							var ha := maxf(e0.y, 0.0)
+							var hb := maxf(e1.y, 0.0)
+							var o := Vector2(CORNER_DIRS[k])
+							_wound(buf, [base + Vector3(e0.x, 0.0, e0.z), base + Vector3(e1.x, 0.0, e1.z),
+								base + Vector3(e1.x, hb, e1.z), base + Vector3(e0.x, ha, e0.z)],
+								Vector3(o.x, 0.0, o.y).normalized(),
+								[Vector2(e0.x, 1.0), Vector2(e1.x, 1.0), Vector2(e1.x, 1.0 - hb), Vector2(e0.x, 1.0 - ha)],
+								white, wall)
+				for j in range(1, poly.size() - 1):
+					var pts: Array = [poly[0], poly[j], poly[j + 1]]
+					var nrm := []
+					var uvs := []
+					for q: Vector3 in pts:
+						nrm.append(_normal_in(t, q))
+						uvs.append(Vector2(q.x, q.z))
+					buf.tri_n([base + pts[0], base + pts[1], base + pts[2]], nrm, uvs, white, top)
+
+
+## The normal at point q of triangle t ([3 corners, their 3 normals]), blended from its
+## corners' by where q lies in it (seen from above).
+static func _normal_in(t: Array, q: Vector3) -> Vector3:
+	var a := Vector2(t[0].x, t[0].z)
+	var b := Vector2(t[1].x, t[1].z)
+	var e := Vector2(t[2].x, t[2].z)
+	var p := Vector2(q.x, q.z)
+	var area := (b - a).cross(e - a)
+	var wb := (p - a).cross(e - a) / area
+	var we := (b - a).cross(p - a) / area
+	var n: Vector3 = t[3] * (1.0 - wb - we) + t[4] * wb + t[5] * we
+	return n.normalized()
+
+
+## A covered cell that the slope above goes down into: its sides up to that slope's
+## surface where nothing covers them.
+static func _deep_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArray, nb: PackedByteArray,
+		side_offsets: PackedInt32Array, i: int, dy: int, base: Vector3, m: int) -> void:
+	var p := patch(c, sh, i + dy, dy, side_offsets[4])
+	var steps := _patch_steps(p, 0)
+	var hs: PackedFloat32Array = _patch_grid(p, 1.0, steps)[0]
+	var own := _column_heights(c, sh, i, dy)
+	for d in [0, 1, 4, 5]:
+		var nm := nb[d]
+		if nm != AIR and nm != WATER and nm != LEAVES and sh[i + side_offsets[d]] & 15 == 0:
+			continue
+		_patch_side(buf, faces, c, sh, i, dy, side_offsets[d], d, base, m, hs, steps, own, 0)
+
+
+## Side `d` of padded cell `i` up to the surface whose heights on a grid of `steps`
+## are `hs` (cut at 0 and 1), a piece per step of the grid along it; none where the
+## column beside has a surface meeting this one at both ends of the side, halves next
+## to cut corners left out.
+static func _patch_side(buf, faces: Array, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, off: int,
+		d: int, base: Vector3, m: int, hs: PackedFloat32Array, steps: Vector2i, own: PackedInt32Array,
+		cuts: int) -> void:
+	var ks: Array = SIDE_CORNERS[d]
+	var other := _column_heights(c, sh, i + off, dy)
+	if not other.is_empty():
+		var k0: int = ks[0]
+		var k1: int = ks[1]
+		var m0: int = k0 ^ 1 if d < 2 else 3 - k0
+		var m1: int = k1 ^ 1 if d < 2 else 3 - k1
+		if other[m0] == own[k0] and other[m1] == own[k1]:
+			return
+	var face: Dictionary = faces[d]
+	var c0 := Vector2(CORNER_DIRS[ks[0]]) * 0.5 + Vector2(0.5, 0.5)
+	var c1 := Vector2(CORNER_DIRS[ks[1]]) * 0.5 + Vector2(0.5, 0.5)
+	var packed := Vector2(pack(m * 3 + 1, 0, 0), float(NO_TILE * 0x41041))
+	var white := Color(1, 1, 1)
+	var count := steps.y if d < 2 else steps.x
+	for s in count:
+		if cuts & (1 << ks[0 if 2 * s < count else 1]):
+			continue
+		var a := c0.lerp(c1, float(s) / count)
+		var b := c0.lerp(c1, float(s + 1) / count)
+		var ha := clampf(_grid_at(hs, steps, a), 0.0, 1.0)
+		var hb := clampf(_grid_at(hs, steps, b), 0.0, 1.0)
+		if ha < 0.001 and hb < 0.001:
+			continue
+		var vs := [base + Vector3(a.x, 0.0, a.y), base + Vector3(b.x, 0.0, b.y)]
+		var uvs := [face_uv(d, Vector3(a.x, 0.0, a.y)), face_uv(d, Vector3(b.x, 0.0, b.y))]
+		if hb >= 0.001:
+			vs.append(base + Vector3(b.x, hb, b.y))
+			uvs.append(face_uv(d, Vector3(b.x, hb, b.y)))
+		if ha >= 0.001:
+			vs.append(base + Vector3(a.x, ha, a.y))
+			uvs.append(face_uv(d, Vector3(a.x, ha, a.y)))
+		_wound(buf, vs, face.normal, uvs, white, packed)
+
+
+## The grid height at a point of the cell's edge (on a grid point).
+static func _grid_at(hs: PackedFloat32Array, steps: Vector2i, q: Vector2) -> float:
+	return hs[roundi(q.y * steps.y) * (steps.x + 1) + roundi(q.x * steps.x)]
 
 
 ## Clips a convex polygon of points in a cell (x, z in 0..1, y the height) to the side of

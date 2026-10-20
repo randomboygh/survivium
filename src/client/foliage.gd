@@ -314,7 +314,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 			var q := WorldData.corner_at(fx, fz)
 			if cuts & (1 << q) and WorldData.in_corner(q, fx, fx, fz, fz):
 				continue
-			put(grass, Vector3(x + fx, y + WorldData.slope_height(mask, fx, fz, cuts), z + fz) * CELL)
+			var h: float = 1.0 if mask == WorldData.FULL else w.surface_height(x, y, z, fx, fz)
+			put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
 			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 			job.ng += 1
 	if x & 1 == 0 or z & 1 == 0:

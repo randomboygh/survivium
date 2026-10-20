@@ -483,12 +483,13 @@ func on_cell_changed(cell: Vector3i) -> void:
 	sunk_at.y = -1000
 	if game.hud != null and game.hud.minimap != null:
 		game.hud.minimap.touch(world, cell)
-	# Slopes and corners look at the neighbours, and edges of a top at theirs. The
-	# chunk of the cell goes first in the queue, its neighbours after (see run_jobs).
+	# Slopes and corners look at the neighbours, edges of a top at theirs, and the
+	# surface of a slope at the slopes beside it (three columns in all). The chunk of
+	# the cell goes first in the queue, its neighbours after (see run_jobs).
 	var home := WorldData.chunk_key(cell.x, cell.z)
 	var keys := {}
-	for dz in range(-2, 3):
-		for dx in range(-2, 3):
+	for dz in range(-3, 4):
+		for dx in range(-3, 4):
 			keys[WorldData.chunk_key(cell.x + dx, cell.z + dz)] = true
 	if job_mesh != null and keys.has(job_key):
 		# The chunk being built changed under the job: start it over.

@@ -34,6 +34,18 @@ func tri(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2) -> void
 	indices.append_array(PackedInt32Array([start, start + 1, start + 2]))
 
 
+## One triangle with a normal per corner (a curved surface), corners clockwise.
+func tri_n(p: Array, n: Array, uv: Array, color: Color, packed: Vector2) -> void:
+	var start := verts.size()
+	for i in 3:
+		verts.append(p[i])
+		normals.append(n[i])
+		uvs.append(uv[i])
+		uv2s.append(packed)
+		colors.append(color)
+	indices.append_array(PackedInt32Array([start, start + 1, start + 2]))
+
+
 func is_empty() -> bool:
 	return verts.is_empty()
 

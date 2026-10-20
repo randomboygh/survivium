@@ -141,7 +141,8 @@ void fragment() {
 	// Texel distance to the N, S, W, E edges of the face.
 	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
 	vec3 col = COLOR.rgb;
-	bool top = world_normal.y > 0.5;
+	// The steep middle of a curved slope still counts as its top.
+	bool top = world_normal.y > 0.5 || (flag == 4 && tile != NONE && tile % 3 == 0);
 	vec2 wt = floor(world_pos.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
 	if (tile != NONE) {
