@@ -23,7 +23,9 @@ comments, commits and PRs are in English.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (chunks, streaming budgets, caps, the level cut), `sky.gd`
   (time, seasons, weather, light, colour grade), `controls.gd` (keys, mouse, touch, edits),
-  `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (bushes, drifts, chest, campfire).
+  `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (bushes, drifts, chest, campfire),
+  `settings.gd` (saved settings, playtest switches; every module reads its values from there),
+  `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›").
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push
