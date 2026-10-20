@@ -447,6 +447,30 @@ func _test_steps() -> void:
 	var up := _walk_to_step(1, true)
 	_check(up.x > 6.0 and is_equal_approx(up.y, 2.0), "a jump gets up onto a step of one cell")
 	_check(_walk_to_step(2, true).x < 4.6, "a step of two cells cannot be jumped up")
+	_check(_climb_pit(false) < 3.0, "jumping cannot get out of a pit four cells deep")
+	_check(_climb_pit(true) > 4.9, "air jumps get out of a pit four cells deep")
+
+
+## Presses jump again and again for 5 s at the bottom of a pit four cells deep and one
+## cell wide, walking east; returns the highest the feet got, in cells.
+func _climb_pit(air_jumps: bool) -> float:
+	var w := WorldData.new(10, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			for y in (1 if x == 5 and z == 5 else 5):
+				w.set_cell(x, y, z, Mat.STONE)
+	var player = PlayerScript.new()
+	player.world = w
+	player.air_jumps = air_jumps
+	player.position = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
+	player.on_ground = true
+	player.move_input = Vector2(1, 0)
+	var top := 0.0
+	for i in 300:
+		player.step(1.0 / 60.0, i % 20 < 3)
+		top = maxf(top, player.position.y / WorldData.CELL)
+	player.free()
+	return top
 
 
 ## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its

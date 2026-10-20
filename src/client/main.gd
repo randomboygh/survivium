@@ -184,7 +184,7 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu.
 		var playing := menu == null or not menu.is_open
 		player.move_input = controls.read_move() if playing else Vector2.ZERO
-		var jump: bool = controls.jump() and playing and character.can_jump()
+		var jump: bool = controls.jump() and playing and (player.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
 		character.update(minf(delta, 0.05))
 		_leave_footprints()

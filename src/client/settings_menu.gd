@@ -128,6 +128,9 @@ func open(which: String) -> void:
 		_add_row("Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
 			func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
 			func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]))
+		_add_row("Прыжки", ["с земли", "и в воздухе"],
+			func() -> int: return int(s.air_jumps),
+			func(i: int) -> void: s.set_air_jumps(i == 1))
 		_add_row("Стройка", ["из сумки", "бесплатно"],
 			func() -> int: return int(s.free_build),
 			func(i: int) -> void: s.set_free_build(i == 1))
