@@ -95,6 +95,7 @@ func throw_away(i: int, n: int) -> void:
 	var taken = inventory.take_slot(i, n)
 	if taken == null:
 		return
+	game.gathering.hold_back(game.player.position)
 	_lay(taken[0], taken[1])
 
 

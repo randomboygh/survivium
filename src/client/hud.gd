@@ -30,7 +30,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить (держи — мазком)\nF — действие перед собой\nV — инструмент, C — кисть\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -144,11 +144,18 @@ func _ready() -> void:
 	var bar_row := HBoxContainer.new()
 	bar_row.add_theme_constant_override("separation", int(GAP))
 	_bar.add_child(bar_row)
-	_hand_left = _slot(bar_row, func() -> void: game.controls.set_dig_mode(true))
+	# A tap on the hand in use changes what it holds: the next tool, the next brush.
+	_hand_left = _slot(bar_row, func() -> void:
+		if game.controls.dig_mode:
+			game.controls.cycle_tool()
+		else:
+			game.controls.set_dig_mode(true))
 	_hand_left.tag = "Л"
-	_hand_left.texture = UiStyle.icon("pick")
-	_hand_left.icon_size = Vector2(24, 22)
-	_hand_right = _slot(bar_row, func() -> void: game.controls.set_dig_mode(false))
+	_hand_right = _slot(bar_row, func() -> void:
+		if game.controls.dig_mode:
+			game.controls.set_dig_mode(false)
+		else:
+			game.controls.cycle_brush())
 	_hand_right.tag = "П"
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
@@ -177,9 +184,7 @@ func _ready() -> void:
 		_action.add_theme_stylebox_override(state, UiStyle.octagon(UiStyle.ACCENT if not state.ends_with("pressed") else UiStyle.ACCENT_DARK))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		_action.add_theme_color_override(c, UiStyle.DARK_INK)
-	_action.held.connect(func(on: bool) -> void:
-		if on:
-			game.controls.set_dig_mode(not game.controls.dig_mode))
+	_action.held.connect(func(on: bool) -> void: game.controls.action_held = on)
 	add_child(_action)
 	_jump = TouchButton.new()
 	_jump.text = "Прыжок"
@@ -394,7 +399,11 @@ func _update_hands() -> void:
 		_slots[i].tag = "П" if i == game.controls.selected else ""
 	if not _slots.is_empty():
 		_hand_right.texture = _slots[game.controls.selected].texture
-	_action.text = "Копать" if game.controls.dig_mode else "Ставить"
+	var tool: String = game.controls.tool
+	_hand_left.texture = ItemIcons.of_item(tool) if tool != "" else ItemIcons.picture("hand")
+	var brush: int = game.controls.BRUSHES[game.controls.brush]
+	_hand_right.number = "%d×%d" % [brush, brush] if brush > 1 else ""
+	_action.text = game.controls.action_name()
 	_action.icon = UiStyle.icon("pick_dark" if game.controls.dig_mode else "place_dark")
 
 

@@ -94,6 +94,11 @@ const SHOTS := {
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# Working by the spawn: the tools lying by the chest, a stone floor painted with the
+	# 3x3 brush, a pit dug with the shovel and berries knocked off a bush with the sword
+	# lying about, the cursor frame on what the action button digs next.
+	"work": {"time": 0.42, "season": 1, "touch": true, "work": true},
+	"work-pc": {"time": 0.42, "season": 1, "work": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -190,6 +195,8 @@ func _run() -> void:
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
+		if shot.get("work", false):
+			_work()
 		main.hud.perf.visible = shot.get("stats", false)
 		main.hud.show_keys(shot_name == "ui")
 		if shot.get("lab", false):
@@ -298,10 +305,48 @@ func _run() -> void:
 			main.hud.toggle_test()
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
-		if shot.get("gather", false):
+		if shot.get("gather", false) or shot.get("work", false):
 			main.character.inventory.take_all()
 			main.character.vitals.revive(1.0)
+		if shot.get("work", false):
+			main.settings.set_value("auto_pickup", true)
+			main.controls.hold("")
+			main.controls._cursor_clock = 0.0
 	quit()
+
+
+## By the spawn: a floor painted, a pit dug, berries knocked down, the tools taken but
+## for those by the chest left lying, and the frame on what the action button digs.
+func _work() -> void:
+	var c = main.controls
+	var w = main.world
+	main.settings.set_value("auto_pickup", false)
+	main.settings.give_tools()
+	main.character.inventory.add("core:stone", 20)
+	var f: Vector3i = c.feet()
+	c.select_block(Mat.PLACEABLE.find(Mat.STONE))
+	c.brush = 2
+	var spot := f + Vector3i(-4, 0, -4)
+	spot.y = w.surface_y(spot.x, spot.z)
+	c.place_at(spot, Vector3i.UP)
+	c.brush = 0
+	c.hold("core:wooden_shovel")
+	for i in 3:
+		var cell := f + Vector3i(2 + i, 0, -5)
+		cell.y = w.surface_y(cell.x, cell.z) - 1
+		c._cooldown = 0.0
+		c.dig_at(cell, Vector3i.UP)
+	var bush := f + Vector3i(0, 0, -7)
+	bush.y = w.surface_y(bush.x, bush.z)
+	if not w.bushes.has(bush):
+		w.add_bush(bush, Bushes.RASPBERRY)
+		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
+	c.hold("core:wooden_sword")
+	main.gathering.gather({"bush": bush})
+	c.hold("core:wooden_shovel")
+	main.player.facing = "ne"
+	main.cursor.show_cells(c._front_preview(), true)
+	c._cursor_clock = 1000.0
 
 
 ## On the felled clearing: berry bushes by the player, the things lying nearest picked

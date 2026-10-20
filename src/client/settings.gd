@@ -25,6 +25,8 @@ const DEFAULTS := {
 	"fps_limit": 0,
 	"ui_scale": 0,
 	"show_help": true,
+	# Things lying near the player fly into the bag by themselves (see Gathering).
+	"auto_pickup": true,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
 	"world_seed": 20261018,
 	"world_size": 1,
@@ -50,6 +52,8 @@ var player_speed := 1.0
 ## Playtest switch: blocks are placed without taking them from the bag, and digging
 ## gives none. Not saved.
 var free_build := false
+## Playtest: the stone and wooden tools the game has before crafting, into the bag.
+const TOOL_SET := ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword"]
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
 var air_jumps := false
 
@@ -179,3 +183,10 @@ func set_free_build(on: bool) -> void:
 	free_build = on
 	if game.hud != null:
 		game.hud.refresh_counts()
+
+
+## Puts one of each tool of TOOL_SET the bag lacks into it.
+func give_tools() -> void:
+	for id in TOOL_SET:
+		if game.character.inventory.count(id) == 0:
+			game.character.give(id, 1)

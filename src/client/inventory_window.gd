@@ -1,7 +1,8 @@
 extends PanelContainer
 ## The bag window (plan/design/ui.md, section 5): the slots with their items, the
 ## weight against the limit, the character's state in numbers, and what can be done
-## with the chosen item (eat, throw away). Opens over the running world, which goes
+## with the chosen item (eat, take a tool in hand, plant a bush in front of the player,
+## throw away). Opens over the running world, which goes
 ## on; taps and clicks inside it do not reach the world. Crafting by hand comes here
 ## as a tab with the crafting step.
 
@@ -9,6 +10,7 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const Items := preload("res://src/shared/items.gd")
+const Tools := preload("res://src/shared/tools.gd")
 
 const SLOT := 40
 
@@ -19,6 +21,8 @@ var _grid: GridContainer
 var _slots := []
 var _info: Label
 var _eat: Button
+var _hold: Button
+var _plant: Button
 var _drop_one: Button
 var _drop_all: Button
 var _chosen := -1
@@ -62,9 +66,11 @@ func _ready() -> void:
 	actions.add_theme_constant_override("v_separation", 6)
 	box.add_child(actions)
 	_eat = _button("Съесть", func() -> void: game.character.eat(_chosen))
+	_hold = _button("В руку", func() -> void: game.controls.hold(game.character.inventory.slots[_chosen][0]))
+	_plant = _button("Посадить", func() -> void: game.gathering.plant(game.character.inventory.slots[_chosen][0]))
 	_drop_one = _button("Выбросить 1", func() -> void: game.character.throw_away(_chosen, 1))
 	_drop_all = _button("Выбросить все", func() -> void: game.character.throw_away(_chosen, 1 << 20))
-	for b in [_eat, _drop_one, _drop_all]:
+	for b in [_eat, _hold, _plant, _drop_one, _drop_all]:
 		actions.add_child(b)
 	game.character.state_changed.connect(refresh)
 
@@ -124,6 +130,8 @@ func refresh() -> void:
 		_info.text = "%s ×%d · %.1f кг%s" % [Items.title(id), chosen[1], Items.weight(id) * chosen[1],
 			" · сытость +%d" % roundi(food) if food > 0.0 else ""]
 	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0
+	_hold.visible = chosen != null and Tools.is_tool_item(chosen[0]) and game.controls.tool != chosen[0]
+	_plant.visible = chosen != null and Items.get_item(chosen[0]).get("plant", "") != ""
 	_drop_one.visible = chosen != null
 	_drop_all.visible = chosen != null and chosen[1] > 1
 	reset_size()

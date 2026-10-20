@@ -17,6 +17,7 @@ const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
 const Shot := preload("res://tools/shot.gd")
+const Tools := preload("res://src/shared/tools.gd")
 const CELL := 0.5
 const CHUNK := 16
 ## Frames over a limit allowed in a scenario, one plus one per this many frames: a
@@ -168,6 +169,48 @@ func _run() -> void:
 		return clock >= 4.0)
 	main.controls.jump_held = false
 	_check(flips == 0, "jumping in a cave does not move the cut (%d flips)" % flips)
+
+	# Working as a player does: a 3x3 floor of stone painted with the brush beside the
+	# player, dug out again with the pickaxe a cell every tenth frame, what falls taken
+	# up by itself, then digging in front with the action button held.
+	var c = main.controls
+	var inv = main.character.inventory
+	main.settings.give_tools()
+	inv.add("core:stone", 9)
+	var spot: Vector3i = c.feet() + Vector3i(2, 0, 0)
+	while spot.y < w.size_y - 1 and w.is_solid(spot.x, spot.y, spot.z):
+		spot.y += 1
+	while spot.y > 1 and not w.is_solid(spot.x, spot.y - 1, spot.z):
+		spot.y -= 1
+	c.select_block(Mat.PLACEABLE.find(Mat.STONE))
+	c.brush = 2
+	var stone_before: int = inv.count("core:stone")
+	var placed: int = c.place_at(spot, Vector3i.UP)
+	_check(placed > 0 and inv.count("core:stone") == stone_before - placed, "the brush places blocks from the bag")
+	var laid: Array[Vector3i] = []
+	for cell in Tools.brush_cells(spot, Vector3i.UP, 3):
+		if w.get_cell(cell.x, cell.y, cell.z) == Mat.STONE:
+			laid.append(cell)
+	c.hold("core:stone_pickaxe")
+	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
+		if i % 10 == 0 and i / 10 < laid.size():
+			c._cooldown = 0.0
+			c.dig_at(laid[i / 10], Vector3i.UP)
+		return false)
+	var all_dug := true
+	for cell in laid:
+		all_dug = all_dug and w.get_cell(cell.x, cell.y, cell.z) == Mat.AIR
+	_check(all_dug, "the pickaxe digs the stone placed")
+	_check(inv.count("core:stone") >= stone_before - placed + laid.size() - 2, "what is dug beside the player flies into the bag")
+	# Back on the surface, where the ground in front is soil.
+	main.player.position = start
+	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.on_ground and clock >= 0.5)
+	var dug_before: int = inv.count("core:stone") + inv.count("core:dirt")
+	c.hold("core:wooden_shovel")
+	c.action_held = true
+	await _scenario("action button", 100000, func(_i: int) -> bool: return clock >= 2.0)
+	c.action_held = false
+	_check(inv.count("core:stone") + inv.count("core:dirt") > dug_before, "the action button digs in front of the player")
 
 	# An idle frame of the finished map is the engine's own share: it grows with the
 	# chunks on the map and the machine, not with the game's work.

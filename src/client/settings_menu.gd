@@ -91,6 +91,9 @@ func open(which: String) -> void:
 		_add_row("Предел FPS", Settings.FPS_LIMITS.map(func(v: int) -> String: return "нет" if v == 0 else str(v)),
 			func() -> int: return s.values.fps_limit,
 			func(i: int) -> void: s.set_value("fps_limit", i))
+		_add_row("Автоподбор", ["выкл", "вкл"],
+			func() -> int: return int(s.values.auto_pickup),
+			func(i: int) -> void: s.set_value("auto_pickup", i == 1))
 		if not game.controls.touch:
 			_add_row("Подсказка клавиш", ["выкл", "вкл"],
 				func() -> int: return int(s.values.show_help),
@@ -134,6 +137,10 @@ func open(which: String) -> void:
 		_add_row("Стройка", ["из сумки", "бесплатно"],
 			func() -> int: return int(s.free_build),
 			func(i: int) -> void: s.set_free_build(i == 1))
+		# Not a switch: either arrow puts the tools into the bag.
+		_add_row("Инструменты", ["выдать", "выдать"],
+			func() -> int: return 0,
+			func(_i: int) -> void: s.give_tools())
 		_add_row("Статистика", ["выкл", "вкл"],
 			func() -> int: return int(game.hud.perf.visible),
 			func(i: int) -> void:

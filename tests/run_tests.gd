@@ -20,6 +20,7 @@ const Content := preload("res://src/shared/content.gd")
 const Items := preload("res://src/shared/items.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
 const Vitals := preload("res://src/shared/vitals.gd")
+const Tools := preload("res://src/shared/tools.gd")
 const WorldStore := preload("res://src/shared/world_store.gd")
 const Tracks := preload("res://src/client/tracks.gd")
 const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
@@ -50,6 +51,7 @@ func _init() -> void:
 	_test_content()
 	_test_items()
 	_test_inventory()
+	_test_tools()
 	_test_vitals()
 	_test_tracks()
 	_test_hidden()
@@ -999,6 +1001,46 @@ func _test_items() -> void:
 	_check(Bushes.TYPES[Bushes.SHRUB].fruit == "" and Bushes.TYPES[Bushes.SHRUB].twigs > 0, "a plain bush gives branches only")
 
 
+func _test_tools() -> void:
+	var hand := Tools.of("")
+	var axe := Tools.of("core:stone_axe")
+	var pick := Tools.of("core:stone_pickaxe")
+	var shovel := Tools.of("core:wooden_shovel")
+	_check(hand == Tools.HAND and Tools.of("core:branch") == Tools.HAND and axe.tool == "axe", "items that are no tools are bare hands")
+	_check(Tools.can_dig(hand, Mat.DIRT) and Tools.can_dig(hand, Mat.LEAVES) and not Tools.can_dig(hand, Mat.STONE),
+		"hands dig soft ground and leaves, not stone")
+	_check(Tools.swing_time(hand, Mat.DIRT) > Tools.swing_time(shovel, Mat.DIRT), "a shovel digs faster than hands")
+	_check(Tools.can_dig(pick, Mat.STONE) and Tools.can_dig(pick, Mat.COPPER_ORE) and not Tools.can_dig(shovel, Mat.STONE),
+		"stone and ore only with a pickaxe")
+	_check(Tools.can_dig(axe, Mat.PLANKS) and not Tools.can_dig(pick, Mat.LOG) and not Tools.can_dig(hand, Mat.WATER),
+		"wood with an axe, water never")
+	_check(Tools.why_not(hand, Mat.STONE) != "" and Tools.why_not(pick, Mat.STONE) == "", "a reason when a tool cannot dig")
+	_check(Tools.step_of(Vector2(0, 1)) == Vector2i(0, 1) and Tools.step_of(Vector2(-0.7, -0.7)) == Vector2i(-1, -1),
+		"facing snaps to 8 steps")
+	var f := Vector3i(5, 3, 5)
+	_check(Tools.front_cells(f, Vector2i(1, 0)) == [Vector3i(6, 3, 5), Vector3i(6, 4, 5), Vector3i(6, 2, 5), Vector3i(5, 5, 5), Vector3i(5, 2, 5)],
+		"the action button digs in front, above it, below it, over the head, under the feet")
+	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
+	_check(wall[0] == f and wall[1] == f + Vector3i.UP and wall.size() == 9, "a swing at a wall takes the cell above next (a passage)")
+	for c in wall:
+		_check(c.x == f.x, "a swing at a wall stays in the wall")
+	var floor_cells := Tools.brush_cells(f, Vector3i.UP, 3)
+	_check(floor_cells.size() == 9 and floor_cells[0] == f, "a brush starts at its centre")
+	for c in floor_cells:
+		_check(c.y == f.y and absi(c.x - f.x) <= 1 and absi(c.z - f.z) <= 1, "a brush on a floor lies flat around its centre")
+	_check(Tools.brush_cells(f, Vector3i.BACK, 2).size() == 4 and Tools.brush_cells(f, Vector3i.BACK, 1) == [f], "brush sizes")
+	_check(Trees.SPECIES[Trees.OAK].hits > axe.power, "an oak takes more than one swing")
+	var b: Dictionary = Bushes.TYPES[Bushes.RASPBERRY]
+	_check(Items.get_item(b.item).plant == b.id, "a dug-out bush is an item that plants it again")
+	var w := WorldData.new(2, Vector2i(2, 2))
+	w.heap_drop("core:dirt", Vector3(1.0, 1.0, 1.0), 1)
+	w.heap_drop("core:dirt", Vector3(1.1, 1.0, 1.0), 2)
+	w.heap_drop("core:stone", Vector3(1.1, 1.0, 1.0), 1)
+	w.heap_drop("core:dirt", Vector3(3.0, 1.0, 1.0), 1)
+	var list: Array = w.drops[Vector2i.ZERO]
+	_check(list.size() == 3 and list[0][3] == 3, "what is dug together lies in one heap")
+
+
 func _test_inventory() -> void:
 	var inv := Inventory.new(3)
 	var log_stack := Items.stack_size("core:log")
@@ -1040,7 +1082,7 @@ func _test_vitals() -> void:
 	v.step(0.0, 0.2, false)
 	_check(v.health > h, "a well fed body heals")
 	v.stamina = 2.0
-	_check(not v.spend("fell") and v.stamina == 2.0, "a tired body cannot fell a tree")
+	_check(not v.spend("chop") and v.stamina == 2.0, "a tired body cannot chop a tree")
 	v.step(1.0, 0.0, false)
 	_check(v.stamina > 2.0 and v.speed_factor() < 1.0 or v.stamina >= Vitals.TIRED, "stamina comes back at rest")
 	v.stamina = 0.0
