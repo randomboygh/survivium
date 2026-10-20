@@ -1,8 +1,10 @@
 extends Control
 ## The main menu (plan/design/ui.md, section 2): the first screen, over the live world
-## of the saved seed, which is built behind it meanwhile. "Играть" goes into that world
-## (as soon as it is built), "Новый мир" opens WorldSetup over the menu and restarts the
-## game when the world asked for is another one, "Настройки" opens the settings page.
+## played last (see SaveGame), which is built behind it meanwhile. "Играть" goes into
+## that world (as soon as it is built), "Продолжить" once it has a save; "Новый мир"
+## opens WorldSetup over the menu and restarts the game when the world asked for is
+## another one (a world made before comes back from its save), "Настройки" opens the
+## settings page.
 ## The network game and the editor are not there yet, so their buttons are disabled,
 ## and "Выход" is disabled in the browser. Until the world is built a painted sky
 ## stands in for it and then fades out. The game's interface is hidden while the menu
@@ -102,7 +104,9 @@ func _ready() -> void:
 		_add_button(box, "quit", "Выход", Callable(), "вкладка")
 		_buttons.quit.tooltip_text = "В браузере игра закрывается вместе с вкладкой"
 	else:
-		_add_button(box, "quit", "Выход", func() -> void: get_tree().quit())
+		_add_button(box, "quit", "Выход", func() -> void:
+			game.save.flush()
+			get_tree().quit())
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_buttons.play.add_theme_stylebox_override(state, UiStyle.button(state, true))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
@@ -149,7 +153,10 @@ func open() -> void:
 	_screen.visible = true
 	_column.visible = true
 	_want_play = false
-	_seed_label.text = "мир · зерно %d" % game.settings.values.world_seed
+	_seed_label.text = "мир · зерно %d" % game.world_seed
+	if game.save.has_save:
+		_seed_label.text += " · день %d" % game.sky.day
+	_buttons.play.text = "Продолжить" if game.save.has_save else "Играть"
 	game.hud.visible = false
 	_set_focus(0)
 	_fit()
@@ -186,9 +193,12 @@ func _new_world() -> void:
 	_setup.done.connect(func() -> void:
 		_close_setup()
 		# The world behind the menu is the one asked for: just go in.
-		if game.settings.values.world_seed == game.world_seed and game.settings.world_options() == game.world_options:
+		var seed_value: int = game.settings.values.world_seed
+		var options: Dictionary = game.settings.world_options()
+		if seed_value == game.world_seed and options == game.world_options:
 			play()
 		else:
+			game.save.switch_world(seed_value, options)
 			game.restart())
 
 

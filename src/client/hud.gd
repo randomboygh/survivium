@@ -428,8 +428,11 @@ func toggle_menu() -> void:
 	# Over the hotbar and the touch buttons.
 	_shade.move_to_front()
 	_menu.move_to_front()
-	# A game on this device stops while the menu is open (a server game will not).
+	# A game on this device stops while the menu is open (a server game will not),
+	# and is saved.
 	get_tree().paused = _menu.visible
+	if _menu.visible:
+		game.save.flush()
 	_update_menu()
 
 

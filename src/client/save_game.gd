@@ -1,0 +1,195 @@
+extends RefCounted
+## Saving the game on this device (see WorldStore for the files). Picks the world the
+## game starts with: the one played last, else the one the settings ask for; when it
+## was saved, the chunks the player changed come back from the save as the generator
+## reaches them, and the player, the clock and the props are put back. Once the
+## player has entered the world, the changed chunks and the player are saved every
+## INTERVAL seconds, a few chunks a frame, and all at once when the menu opens, the
+## game loses focus or quits. Other modules keep their part of the player with
+## track(). Off for tests and tools (`enabled`). `game` is the Main node.
+
+const WorldStore := preload("res://src/shared/world_store.gd")
+const WorldData := preload("res://src/shared/world_data.gd")
+const WorldGen := preload("res://src/shared/world_gen.gd")
+
+const PLAYER := "players/local.json"
+## Seconds between saves while playing.
+const INTERVAL := 30.0
+## Chunks written in one frame of a save while playing (under a millisecond each
+## on a desktop, a zstd file of about a kilobyte).
+const CHUNKS_PER_FRAME := 1
+
+var game
+var enabled := true
+var store: WorldStore
+## The world has a save (read at the start or written since): its world.json and
+## the player's record.
+var has_save := false
+var meta := {}
+var player_record := {}
+## The player was put back where the save had them (else they start at the spawn).
+var player_placed := false
+## Saving runs once the player has been in the world.
+var active := false
+## Seconds played in this world, over all runs.
+var played := 0.0
+## Objects that keep a part of the player (to_dict, from_dict), by section name.
+var sections := {}
+## The chunks of the save under way, written a few a frame.
+var _queue: Array[Vector2i] = []
+var _writing := false
+var _clock := 0.0
+
+
+func _init(g) -> void:
+	game = g
+
+
+## Sets the seed and settings of the world to start (game.world_seed, world_options)
+## and reads its save if it has one.
+func choose_world() -> void:
+	var current := WorldStore.read_current() if enabled else {}
+	if current.is_empty():
+		game.world_seed = game.settings.values.world_seed
+		game.world_options = game.settings.world_options()
+	else:
+		game.world_seed = int(current.seed)
+		game.world_options = {}
+		for k: String in WorldGen.DEFAULT_SETTINGS:
+			game.world_options[k] = int(current.settings.get(k, WorldGen.DEFAULT_SETTINGS[k]))
+	if not enabled:
+		return
+	store = WorldStore.new(WorldStore.world_dir(game.world_seed, game.world_options))
+	if not store.exists():
+		return
+	meta = store.read_json(WorldStore.WORLD)
+	if meta.get("format") != float(WorldStore.FORMAT):
+		push_error("save %s has format %s, not %d: started anew" % [store.dir, meta.get("format"), WorldStore.FORMAT])
+		meta = {}
+		return
+	has_save = true
+	player_record = store.read_json(PLAYER)
+	played = meta.get("played", 0.0)
+	print("save %s: %d chunks, %.0f s played" % [store.dir, store.chunk_count(), played])
+
+
+## Makes `seed_value` and `options` the world to start next time; the world being
+## played is saved first.
+func switch_world(seed_value: int, options: Dictionary) -> void:
+	flush()
+	if enabled:
+		WorldStore.write_current(seed_value, options)
+
+
+## Puts the saved player back into the scene just built.
+func restore_player() -> void:
+	var p: Variant = player_record.get("position")
+	if has_save and p is Array and p.size() == 3:
+		game.player.position = Vector3(p[0], p[1], p[2])
+		player_placed = true
+
+
+## Puts the saved clock and season back into the sky.
+func restore_clock() -> void:
+	if not has_save:
+		return
+	var sky = game.sky
+	var s: Dictionary = meta.get("sky", {})
+	sky.day = int(s.get("day", sky.day))
+	sky.time_of_day = fposmod(s.get("time", sky.time_of_day), 1.0)
+	sky.season = posmod(int(s.get("season", sky.season)), 4)
+	sky.season_clock = s.get("season_clock", sky.season_clock)
+
+
+## The saved cell of a prop ("chest", "campfire"), or null.
+func prop_cell(name: String) -> Variant:
+	var c: Variant = meta.get("props", {}).get(name)
+	if c is Array and c.size() == 3:
+		return Vector3i(int(c[0]), int(c[1]), int(c[2]))
+	return null
+
+
+## Keeps `obj` (with to_dict() and from_dict(d)) in the player's section `name`; it
+## gets what was saved there at once.
+func track(name: String, obj) -> void:
+	sections[name] = obj
+	if player_record.get(name) is Dictionary:
+		obj.from_dict(player_record[name])
+
+
+## The player has entered the world: saving starts.
+func begin() -> void:
+	active = enabled
+
+
+func update(delta: float) -> void:
+	if not active:
+		return
+	played += delta
+	_clock += delta
+	if not _writing and _clock >= INTERVAL:
+		_clock = 0.0
+		_writing = true
+		_take_unsaved()
+	if not _writing:
+		return
+	var n := 0
+	while not _queue.is_empty() and n < CHUNKS_PER_FRAME:
+		_write_chunk(_queue.pop_back())
+		n += 1
+	if _queue.is_empty():
+		_write_world()
+		_writing = false
+
+
+## Saves everything now.
+func flush() -> void:
+	if not active:
+		return
+	_take_unsaved()
+	while not _queue.is_empty():
+		_write_chunk(_queue.pop_back())
+	_write_world()
+	_writing = false
+	_clock = 0.0
+
+
+func _take_unsaved() -> void:
+	var world: WorldData = game.world
+	for key: Vector2i in world.unsaved:
+		if not _queue.has(key):
+			_queue.append(key)
+	world.unsaved.clear()
+
+
+func _write_chunk(key: Vector2i) -> void:
+	if game.world.has_chunk(key) and not store.write_chunk(key, game.gen.pack(key)):
+		game.world.unsaved[key] = true
+
+
+## world.json and the player, and this world as the one to start next time.
+func _write_world() -> void:
+	var sky = game.sky
+	var props := {}
+	for name: String in game.props.cells:
+		var c: Vector3i = game.props.cells[name]
+		props[name] = [c.x, c.y, c.z]
+	meta = {
+		"format": WorldStore.FORMAT,
+		"seed": game.world_seed,
+		"settings": game.world_options,
+		"levels": game.world.size_y,
+		"created": meta.get("created", Time.get_datetime_string_from_system()),
+		"saved": Time.get_datetime_string_from_system(),
+		"played": played,
+		"sky": {"day": sky.day, "time": sky.time_of_day, "season": sky.season, "season_clock": sky.season_clock},
+		"props": props,
+	}
+	var p: Vector3 = game.player.position
+	player_record = {"format": WorldStore.FORMAT, "position": [p.x, p.y, p.z]}
+	for name: String in sections:
+		player_record[name] = sections[name].to_dict()
+	store.write_json(PLAYER, player_record)
+	store.write_json(WorldStore.WORLD, meta)
+	WorldStore.write_current(game.world_seed, game.world_options)
+	has_save = true
