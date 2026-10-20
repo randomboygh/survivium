@@ -47,6 +47,7 @@ const SCHEMAS := {
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"seed": {"type": "string", "default": ""},
 	},
 	"bushes": {
 		"tint": {"type": "color"},

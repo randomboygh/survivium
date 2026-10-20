@@ -37,6 +37,7 @@ func _init() -> void:
 	_test_pixel_view()
 	_test_trees()
 	_test_bushes()
+	_test_felling()
 	_test_sprite_sheet()
 	_test_yaml()
 	_test_content()
@@ -844,3 +845,47 @@ func _write(path: String, text: String) -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_string(text)
 	f.close()
+
+
+func _test_felling() -> void:
+	# Two oaks side by side on flat ground; the first is cut a cell above its foot.
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	Trees.place(w, 15, 1, 23, Trees.OAK, rng)
+	Trees.place(w, 31, 1, 23, Trees.OAK, rng)
+	var leaves_of_second := 0
+	for z in range(14, 33):
+		for x in range(24, 41):
+			leaves_of_second += _bits(w.leaf_col(x, z))
+	var gone := Trees.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
+	_check(not gone.is_empty() and gone[0] == Vector3i(15, 2, 23), "a cut trunk is felled from the cut")
+	_check(w.log_col(15, 23) == 0b10, "the stump stays below the cut")
+	var left := 0
+	for z in range(10, 37):
+		for x in range(6, 24):
+			left += _bits(w.leaf_col(x, z))
+	_check(left == 0, "the felled crown is gone")
+	var second := 0
+	for z in range(14, 33):
+		for x in range(24, 41):
+			second += _bits(w.leaf_col(x, z))
+	_check(second == leaves_of_second, "the neighbouring crown stays")
+	var kinds := {}
+	for key in w.drops:
+		for d: Array in w.drops[key]:
+			kinds[d[0]] = true
+			_check(d[1].z > 23 * WorldData.CELL, "the tree falls away from the axe")
+	_check(kinds.has("log") and kinds.has("branch") and kinds.has("acorn"), "a felled oak leaves logs, branches and acorns")
+	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
+
+
+func _bits(v: int) -> int:
+	var n := 0
+	while v != 0:
+		v &= v - 1
+		n += 1
+	return n

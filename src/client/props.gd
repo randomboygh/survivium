@@ -14,6 +14,9 @@ const CELL := WorldData.CELL
 const CULL_MARGIN := 24.0
 
 var game
+## Meshes of the things on the ground by kind, and their nodes by chunk.
+var drop_meshes := {}
+var drop_nodes := {}
 
 
 func _init(g) -> void:
@@ -76,6 +79,30 @@ func remove_bush(cell: Vector3i) -> void:
 		return
 	game.world.remove_bush(cell)
 	game.chunks.on_cell_changed(cell)
+
+
+## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh.
+func show_drops(key: Vector2i) -> void:
+	for node: Node in drop_nodes.get(key, []):
+		node.queue_free()
+	var nodes := []
+	for d: Array in game.world.drops.get(key, []):
+		var kind: String = d[0]
+		if not drop_meshes.has(kind):
+			var model = VoxelProps.drop(kind)
+			drop_meshes[kind] = model.build_mesh() if model != null else null
+		if drop_meshes[kind] == null:
+			continue
+		var node := MeshInstance3D.new()
+		node.mesh = drop_meshes[kind]
+		node.material_override = game.world_mat
+		# Turned in steps of 45 degrees, which keep the pixels tidy.
+		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
+		node.position = d[1]
+		node.extra_cull_margin = CULL_MARGIN
+		game.world_root.add_child(node)
+		nodes.append(node)
+	drop_nodes[key] = nodes
 
 
 ## A bush disappears when its cell is filled or the ground under it is dug.
