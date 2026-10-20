@@ -35,6 +35,8 @@ const WATER := Mat.WATER
 const LEAVES := Mat.LEAVES
 ## Tile index meaning "no texture" (voxels) or "no neighbour" (transitions).
 const NO_TILE := 63
+## Plain tops merged per step of a job once its columns are done: as costly as a column.
+const PLAIN_RUNS := 64
 ## Edge codes, 2 bits per edge in the order N, S, W, E (see world.gdshader).
 const LIGHT := 1
 const DARK := 2
@@ -138,6 +140,9 @@ class Job extends RefCounted:
 	var side_offsets: PackedInt32Array
 	var plain: PackedInt32Array
 	var water_plain: PackedInt32Array
+	## How many of the plain tops are drawn (see _plain_rows).
+	var plain_j := 0
+	var water_j := 0
 	var cands: PackedInt64Array
 
 
@@ -193,7 +198,18 @@ static func step(job: Job, columns: int) -> bool:
 		if job.x >= job.x1:
 			job.x = job.x0
 			job.z += 1
-	return job.z >= job.z1
+			if job.z >= job.z1:
+				job.plain.sort()
+				job.water_plain.sort()
+	# Then the plain tops, PLAIN_RUNS merged quads per column (a chunk of open ground
+	# has over a thousand).
+	while columns > 0 and job.z >= job.z1 and (job.plain_j < job.plain.size() or job.water_j < job.water_plain.size()):
+		if job.plain_j < job.plain.size():
+			job.plain_j = _plain_rows(job.solid, job.plain, job.x0, job.z0, false, job.plain_j, PLAIN_RUNS)
+		else:
+			job.water_j = _plain_rows(job.water, job.water_plain, job.x0, job.z0, true, job.water_j, PLAIN_RUNS)
+		columns -= 1
+	return job.z >= job.z1 and job.plain_j >= job.plain.size() and job.water_j >= job.water_plain.size()
 
 
 static func _column(job: Job, x: int, z: int) -> void:
@@ -319,8 +335,6 @@ static func _column(job: Job, x: int, z: int) -> void:
 static func finish(job: Job) -> Array:
 	var solid = job.solid
 	var water = job.water
-	_plain_rows(solid, job.plain, job.x0, job.z0)
-	_plain_rows(water, job.water_plain, job.x0, job.z0, true)
 	return [null if solid.is_empty() else solid.to_mesh(CELL), null if water.is_empty() else water.to_mesh(CELL)]
 
 
@@ -391,18 +405,20 @@ static func _plain_around(a: int, tile: int) -> bool:
 	return true
 
 
-## Draws the plain tops (keys from build_chunk: level, tile or water depth, z and x in
-## the chunk) as one quad per row of neighbours with the same tile. The shaders texture
+## Draws the plain tops (sorted keys from build_chunk: level, tile or water depth, z
+## and x in the chunk) as one quad per row of neighbours with the same tile, up to
+## `runs` quads from key `from` on; returns the key to go on from. The shaders texture
 ## tops by their world position, so a long quad looks the same as the cells it covers.
-static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := false) -> void:
-	keys.sort()
+static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := false, from := 0,
+		runs := 1 << 30) -> int:
 	var corners: Array = face_table()[FACE_TOP].corners
 	var height := WATER_TOP if water else 1.0
 	var white := Color(1, 1, 1)
 	var no_tiles := float(NO_TILE * 0x41041)
 	var n := keys.size()
-	var j := 0
-	while j < n:
+	var j := from
+	while j < n and runs > 0:
+		runs -= 1
 		var first := keys[j]
 		var end := j + 1
 		while end < n and keys[end] == first + (end - j) and (first & 63) + (end - j) < 64:
@@ -420,6 +436,7 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 			uvs.append(Vector2(v.x * length, v.z))
 		buf.quad(pts, Vector3.UP, uvs, white, Vector2(0.0, tile) if water else Vector2(pack(tile, 0, 0), no_tiles))
 		j = end
+	return j
 
 
 ## Edge codes of the top of padded cell `i`: what the oblique view shows next to each
