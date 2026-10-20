@@ -28,21 +28,26 @@ func prepare(_w = null) -> void:
 func build(w) -> void:
 	prepare()
 	for key: Vector2i in w.chunks:
-		fill_chunk(w, key.x * w.CHUNK, key.y * w.CHUNK, w.CHUNK)
+		fill_chunk(w, key)
 	flush()
 
 
-## Fills the columns x0..x0+size, z0..z0+size of a chunk.
-func fill_chunk(w, x0: int, z0: int, size: int) -> void:
+## Fills the columns of chunk `key` straight from its masks (see WorldData.roof_level);
+## an absent chunk leaves them open.
+func fill_chunk(w, key: Vector2i) -> void:
+	var n: int = w.CHUNK
 	var data := PackedByteArray()
-	data.resize(size * size)
-	var i := 0
-	for z in range(z0, z0 + size):
-		for x in range(x0, x0 + size):
-			data[i] = w.roof_level(x, z) + 1
-			i += 1
-	image.blit_rect(Image.create_from_data(size, size, false, Image.FORMAT_R8, data),
-		Rect2i(0, 0, size, size), Vector2i(x0 & MASK, z0 & MASK))
+	data.resize(n * n)
+	var c = w.chunks.get(key)
+	if c != null:
+		var air: PackedInt64Array = c.air
+		var water: PackedInt64Array = c.water
+		var leaf: PackedInt64Array = c.leaf
+		var all: int = w.all_bits
+		for col in n * n:
+			data[col] = w.top_level(~(air[col] | water[col] | leaf[col]) & all) + 1
+	image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_R8, data),
+		Rect2i(0, 0, n, n), Vector2i((key.x * n) & MASK, (key.y * n) & MASK))
 	dirty = true
 
 

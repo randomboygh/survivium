@@ -332,9 +332,20 @@ static func _column(job: Job, x: int, z: int) -> void:
 
 ## The meshes once every column is built: [solid, water], null where empty.
 static func finish(job: Job) -> Array:
-	var solid = job.solid
-	var water = job.water
-	return [null if solid.is_empty() else solid.to_mesh(CELL), null if water.is_empty() else water.to_mesh(CELL)]
+	var out := []
+	for i in FINISH_PARTS:
+		out.append(finish_part(job, i))
+	return out
+
+
+## Making the meshes takes longer than a column, so ChunkStreamer makes them one a
+## frame: part 0 is the solid mesh, part 1 the water.
+const FINISH_PARTS := 2
+
+
+static func finish_part(job: Job, i: int) -> ArrayMesh:
+	var b = job.solid if i == 0 else job.water
+	return null if b.is_empty() else b.to_mesh(CELL)
 
 
 ## Cells of each column of x0..x1, z0..z1 (row by row) that may show a face, as bit

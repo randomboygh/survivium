@@ -861,19 +861,36 @@ static func top_level(bits: int) -> int:
 	if bits == 0:
 		return -1
 	var level := 0
-	for shift in [32, 16, 8, 4, 2, 1]:
-		if bits >> shift != 0:
-			bits >>= shift
-			level += shift
+	if bits >> 32 != 0:
+		bits >>= 32
+		level = 32
+	if bits >> 16 != 0:
+		bits >>= 16
+		level += 16
+	if bits >> 8 != 0:
+		bits >>= 8
+		level += 8
+	if bits >> 4 != 0:
+		bits >>= 4
+		level += 4
+	if bits >> 2 != 0:
+		bits >>= 2
+		level += 2
+	if bits >> 1 != 0:
+		level += 1
 	return level
 
 
+## The level just above the highest cell of column (x, z) that is not air or leaves, 0
+## where no chunk is kept, -1 when that cell is open (unfrozen) water.
 func surface_y(x: int, z: int) -> int:
-	for y in range(size_y - 1, -1, -1):
-		var m := get_cell(x, y, z)
-		if m == Mat.AIR or m == Mat.LEAVES:
-			continue
-		if m == Mat.WATER and not water_frozen:
-			return -1
-		return y + 1
-	return 0
+	var c := chunk_at(x, z)
+	if c == null:
+		return 0
+	var col := ((z & MASK) << SHIFT) | (x & MASK)
+	var y := top_level(~(c.air[col] | c.leaf[col]) & all_bits)
+	if y < 0:
+		return 0
+	if c.water[col] & (1 << y) and not water_frozen:
+		return -1
+	return y + 1

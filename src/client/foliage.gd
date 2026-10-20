@@ -401,18 +401,33 @@ static func _column(job: Job, x: int, z: int) -> void:
 ## The plants once every column is built (see build_chunk), with the bushes of the
 ## chunk (their shadows go with the trees') and its snowdrifts.
 static func finish(job: Job) -> Dictionary:
+	var out := {}
+	for i in FINISH_PARTS:
+		finish_part(job, i, out)
+	return out
+
+
+## Finishing takes longer than a column, so ChunkStreamer does it a part a frame into
+## `out`: part 0 the bushes and the buffers of the columns, part 1 the snowdrifts.
+const FINISH_PARTS := 2
+
+
+static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 	var w = job.w
+	if i == 1:
+		out.drifts = Drifts.build(w, job.x0, job.z0, job.x1 - job.x0)
+		return
 	var cells: Array[Vector3i] = w.bushes_in(job.x0, job.z0)
-	var bush_part: Array = bushes(cells, w.bushes)
+	out.bushes = bushes(cells, w.bushes)
 	var s := BUSH_DISC / SHADOW_DISC
 	for cell in cells:
 		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0)
 		job.shadows.append_array([s, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, s, p.z])
 		job.shadows.append_array([bush_kind(w.bushes.get(cell, Bushes.SHRUB)), 0.0, 0.0, 0.0])
 		job.ns += 1
-	var drifts: Array = Drifts.build(w, job.x0, job.z0, job.x1 - job.x0)
-	return {"grass": [job.ng, job.grass], "clumps": [job.nc, job.clumps], "shadows": [job.ns, job.shadows],
-		"bushes": bush_part, "drifts": drifts}
+	out.grass = [job.ng, job.grass]
+	out.clumps = [job.nc, job.clumps]
+	out.shadows = [job.ns, job.shadows]
 
 
 ## True for a ground cell at the water's edge: open water beside it at its own level
