@@ -17,6 +17,10 @@ const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
 const PlayerArt := preload("res://src/client/player_art.gd")
 const Yaml := preload("res://src/shared/yaml.gd")
 const Content := preload("res://src/shared/content.gd")
+const Items := preload("res://src/shared/items.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
+const Vitals := preload("res://src/shared/vitals.gd")
+const WorldStore := preload("res://src/shared/world_store.gd")
 
 var checks := 0
 var failures := 0
@@ -38,9 +42,13 @@ func _init() -> void:
 	_test_trees()
 	_test_bushes()
 	_test_felling()
+	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
 	_test_content()
+	_test_items()
+	_test_inventory()
+	_test_vitals()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -841,6 +849,76 @@ func _test_content() -> void:
 	_check(Content.problems.is_empty(), "core content loads clean again")
 
 
+func _test_items() -> void:
+	_check(Items.check().is_empty(), "core items satisfy the engine")
+	_check(Items.dug[Mat.GRASS] == "core:dirt" and Items.dug[Mat.STONE] == "core:stone" and Items.dug[Mat.LEAVES] == "",
+		"dug cells give their items")
+	for m in Mat.PLACEABLE:
+		_check(Items.get_item(Items.placed_by[m]).place == Mat.IDS[m], "an item places hotbar block %s" % Mat.IDS[m])
+	_check(Items.get_item("log").id == "core:log" and Items.title("core:branch") == "Ветка", "bare drop names are core items")
+	_check(Trees.SPECIES[Trees.OAK].seed == "core:acorn" and Items.has(Trees.SPECIES[Trees.SPRUCE].seed), "tree seeds are items")
+	_check(Bushes.TYPES[Bushes.RASPBERRY].fruit == "core:raspberry" and Items.food(Bushes.TYPES[Bushes.BLUEBERRY].fruit) > 0.0,
+		"berries are food")
+	_check(Bushes.TYPES[Bushes.SHRUB].fruit == "" and Bushes.TYPES[Bushes.SHRUB].twigs > 0, "a plain bush gives branches only")
+
+
+func _test_inventory() -> void:
+	var inv := Inventory.new(3)
+	var log_stack := Items.stack_size("core:log")
+	_check(inv.add("core:branch", 5) == 5 and inv.count("core:branch") == 5, "items go into the bag")
+	_check(inv.add("core:branch", 3) == 3 and inv.slots[1] == null, "a stack is topped up before a new slot")
+	_check(inv.add("core:log", log_stack * 3) == log_stack * 2, "only what fits goes in")
+	_check(inv.room_for("core:log") == 0 and inv.room_for("core:branch") == Items.stack_size("core:branch") - 8, "room is counted by stacks")
+	var w := 8 * Items.weight("core:branch") + log_stack * 2 * Items.weight("core:log")
+	_check(is_equal_approx(inv.weight(), w), "the bag weighs its items")
+	_check(inv.remove("core:log", 1) == 1 and inv.count("core:log") == log_stack * 2 - 1, "items come out of the bag")
+	var heavy := Inventory.new()
+	_check(heavy.speed_factor() == 1.0, "an empty bag does not slow")
+	heavy.add("core:stone", ceili(Inventory.WEIGHT_LIMIT * 1.25 / Items.weight("core:stone")))
+	var f := heavy.speed_factor()
+	_check(heavy.overloaded() and f < 1.0 and f > Inventory.OVERLOAD_PACE, "overload slows the pace")
+	heavy.add("core:stone", 200)
+	_check(heavy.speed_factor() == Inventory.OVERLOAD_PACE, "heavy overload almost stops")
+	var copy := Inventory.new(3)
+	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
+	_check(copy.count("core:branch") == 8 and copy.count("core:log") == inv.count("core:log"), "the bag survives a save as JSON")
+	copy.from_dict({"slots": [["core:nothing", 3], ["core:branch", 2]]})
+	_check(copy.slots[0] == null and copy.count("core:branch") == 2, "unknown items are left out on load")
+	var all := inv.take_all()
+	_check(inv.is_empty() and all.size() == 3, "a death empties the bag into a sack")
+
+
+func _test_vitals() -> void:
+	var v := Vitals.new()
+	v.satiety = 30.0
+	v.step(0.0, 20.0 / Vitals.HUNGER_PER_DAY, false)
+	_check(is_equal_approx(v.satiety, 10.0) and v.health == Vitals.MAX, "hunger empties satiety over game days")
+	v.step(0.0, 0.5, false)
+	_check(v.health < Vitals.MAX and v.hurt_by == "hunger", "only starving hurts")
+	_check(v.stamina_cap() < Vitals.MAX, "hunger lowers stamina")
+	_check(v.eat(40.0) and v.satiety == 40.0, "food fills satiety")
+	v.satiety = Vitals.MAX
+	_check(not v.eat(5.0), "a full character does not eat")
+	var h := v.health
+	v.step(0.0, 0.2, false)
+	_check(v.health > h, "a well fed body heals")
+	v.stamina = 2.0
+	_check(not v.spend("fell") and v.stamina == 2.0, "a tired body cannot fell a tree")
+	v.step(1.0, 0.0, false)
+	_check(v.stamina > 2.0 and v.speed_factor() < 1.0 or v.stamina >= Vitals.TIRED, "stamina comes back at rest")
+	v.stamina = 0.0
+	h = v.health
+	v.step(1.0, 0.0, true)
+	_check(v.health < h and v.hurt_by == "water", "a swimmer out of breath loses health")
+	v.health = 0.0
+	_check(v.is_dead(), "no health is death")
+	v.revive(0.5)
+	_check(v.health == Vitals.MAX * 0.5 and v.stamina == Vitals.MAX, "a revived body starts afresh")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(v.to_dict())))
+	_check(copy.health == v.health and copy.satiety == v.satiety, "the body survives a save as JSON")
+
+
 func _write(path: String, text: String) -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_string(text)
@@ -879,7 +957,7 @@ func _test_felling() -> void:
 		for d: Array in w.drops[key]:
 			kinds[d[0]] = true
 			_check(d[1].z > 23 * WorldData.CELL, "the tree falls away from the axe")
-	_check(kinds.has("log") and kinds.has("branch") and kinds.has("acorn"), "a felled oak leaves logs, branches and acorns")
+	_check(kinds.has("core:log") and kinds.has("core:branch") and kinds.has("core:acorn"), "a felled oak leaves logs, branches and acorns")
 	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
 
 
@@ -889,3 +967,74 @@ func _bits(v: int) -> int:
 		v &= v - 1
 		n += 1
 	return n
+
+
+## A forest chunk the player changed (a tree felled, a hole dug, a block placed, a bush
+## gone) is saved, and a new run of the same world brings it back as it was, whatever
+## order the chunks around are made in; its trees grow again into the chunks around.
+func _test_save() -> void:
+	var a := WorldGen.new(42)
+	var at := a.find_place("forest", Vector2i(a.spawn_guess.x, a.spawn_guess.z))
+	var home := WorldData.chunk_key(at.x, at.y)
+	var area: Array[Vector2i] = []
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			area.append(home + Vector2i(dx, dz))
+	for k in area:
+		_ensure_stage(a, k, WorldGen.SHAPED)
+	var w := a.world
+	_check(w.unsaved.is_empty(), "the generator's writes are not changes to save")
+	var trunks: Array = w.tree_chunks.get(home, {}).keys()
+	_check(not trunks.is_empty(), "the forest chunk has trees")
+	if trunks.is_empty():
+		return
+	var trunk: Vector2i = trunks[0]
+	var foot := w.surface_y(trunk.x, trunk.y)
+	for y in range(w.size_y - 1, 0, -1):
+		if w.get_cell(trunk.x, y, trunk.y) == Mat.LOG and w.get_cell(trunk.x, y - 1, trunk.y) != Mat.LOG:
+			foot = y
+			break
+	Trees.fell(w, Vector3i(trunk.x, foot + 1, trunk.y), Vector2(1.0, 0.0))
+	var x0 := home.x * WorldData.CHUNK
+	var z0 := home.y * WorldData.CHUNK
+	var top := w.surface_y(x0 + 1, z0 + 1)
+	for y in range(top - 3, top):
+		w.set_cell(x0 + 1, y, z0 + 1, Mat.AIR)
+	w.set_cell(x0 + 14, w.surface_y(x0 + 14, z0 + 8), z0 + 8, Mat.STONE)
+	var bushes: Array = w.bush_chunks.get(home, {}).keys()
+	if not bushes.is_empty():
+		w.remove_bush(bushes[0])
+	_check(w.unsaved.has(home) and not a.forget(home), "a changed chunk is kept and waits to be saved")
+	var store := WorldStore.new("user://test_saves/save")
+	store.erase()
+	store = WorldStore.new("user://test_saves/save")
+	for k: Vector2i in w.unsaved:
+		_check(store.write_chunk(k, a.pack(k)), "chunk %s is written" % k)
+	var written := w.unsaved.size()
+	w.unsaved.clear()
+	var again := WorldStore.new("user://test_saves/save")
+	_check(again.chunk_count() == written, "the save lists its chunks")
+	# A new run, the chunks made from the far corner: the changed chunk comes back
+	# after some of its neighbours have their terrain.
+	var b := WorldGen.new(42)
+	b.saved = again
+	for i in range(area.size() - 1, -1, -1):
+		_ensure_stage(b, area[i], WorldGen.SHAPED)
+	_check(_same_cells(b.world, w, area) and _same_view(b, b.world, w, area), "changed chunks come back from the save")
+	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops,
+		"with their trees, bushes and what lies on the ground")
+	_check(b.world.unsaved.is_empty() and b.world.chunks[home].edited, "and stay kept without a new save")
+	# A neighbour dropped and made again regrows the crowns of the saved chunk's trees.
+	var remade := 0
+	for side in area:
+		if not b.world.chunks[side].edited:
+			b.forget(side)
+			_ensure_stage(b, side, WorldGen.SHAPED)
+			remade += 1
+	_check(remade > 0 and _same_cells(b.world, w, area), "neighbours made again get the saved chunk's crowns")
+	# The rest of the files.
+	_check(store.write_json("world.json", {"seed": 42.0}) and store.exists() and store.read_json("world.json").seed == 42.0,
+		"world.json is written and read")
+	_check(WorldStore.world_dir(42, {"size": 2, "water": 0}) == WorldStore.root + "/42-20111", "a world's directory names its seed and settings")
+	store.erase()
+	_check(not DirAccess.dir_exists_absolute("user://test_saves/save"), "a save is erased")

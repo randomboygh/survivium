@@ -1,6 +1,8 @@
 extends RefCounted
-## Input: keys, mouse and touch, and what they do to the world (dig, place, pick a
-## block, move the cut, the playtest keys). Touch and mouse switch the interface
+## Input: keys, mouse and touch, and what they do to the world (gather, dig, place,
+## pick a block, open the bag, move the cut, the playtest keys). Digging puts what
+## the cell gives into the bag and placing takes the block from it (Character), unless
+## the playtest switch for free building is on. Touch and mouse switch the interface
 ## layout. `game` is the Main node that owns the scene.
 
 const Mat := preload("res://src/shared/materials.gd")
@@ -8,6 +10,7 @@ const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Trees := preload("res://src/shared/trees.gd")
+const Items := preload("res://src/shared/items.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a cell can be dug or placed, in world units.
@@ -67,6 +70,8 @@ func unhandled_input(event: InputEvent) -> void:
 				game.chunks.shift_cut(1)
 			KEY_R:
 				game.chunks.reset_view_level()
+			KEY_I, KEY_TAB:
+				game.hud.toggle_bag()
 			KEY_Z:
 				game.sky.next_season()
 			KEY_X:
@@ -84,7 +89,12 @@ func unhandled_input(event: InputEvent) -> void:
 		# A tap on a touch screen uses the hand chosen on the hotbar.
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
-				_edit(event.position, dig_mode or not touch)
+				# A tap or a click near something to gather takes it before digging.
+				var target: Dictionary = game.gathering.target_at(event.position)
+				if not target.is_empty():
+					game.gathering.gather(target)
+				else:
+					_edit(event.position, dig_mode or not touch)
 			MOUSE_BUTTON_RIGHT:
 				_edit(event.position, false)
 			MOUSE_BUTTON_WHEEL_UP:
@@ -156,9 +166,16 @@ func _edit(screen_pos: Vector2, dig: bool) -> void:
 	if dig:
 		if cell.y == 0 or too_far(cell):
 			return
-		if world.get_cell(cell.x, cell.y, cell.z) == Mat.LOG and _fell(cell):
+		var was: int = world.get_cell(cell.x, cell.y, cell.z)
+		if was == Mat.LOG and world.trees.has(Vector2i(cell.x, cell.z)):
+			if game.character.act("fell"):
+				_fell(cell)
+			return
+		if not game.character.act("dig"):
 			return
 		world.set_cell(cell.x, cell.y, cell.z, Mat.AIR)
+		if not game.settings.free_build and Items.dug[was] != "":
+			game.character.give(Items.dug[was], 1)
 	else:
 		var normal: Vector3i = hit.normal
 		cell += normal
@@ -167,7 +184,16 @@ func _edit(screen_pos: Vector2, dig: bool) -> void:
 		var cur: int = world.get_cell(cell.x, cell.y, cell.z)
 		if cur != Mat.AIR and cur != Mat.WATER or game.player.overlaps_cell(cell):
 			return
-		world.set_cell(cell.x, cell.y, cell.z, Mat.PLACEABLE[selected])
+		var block: int = Mat.PLACEABLE[selected]
+		var item: String = Items.placed_by[block]
+		if not game.settings.free_build and game.character.inventory.count(item) == 0:
+			game.character.nag("no_block", "В сумке нет: %s" % Items.title(item))
+			return
+		if not game.character.act("place"):
+			return
+		if not game.settings.free_build:
+			game.character.inventory.remove(item, 1)
+		world.set_cell(cell.x, cell.y, cell.z, block)
 	game.chunks.on_cell_changed(cell)
 
 
@@ -208,6 +234,10 @@ func update_tip(delta: float) -> void:
 	if touch or tip_clock < TIP_INTERVAL or mouse_pos.x < 0.0:
 		return
 	tip_clock = 0.0
+	var target: Dictionary = game.gathering.target_at(mouse_pos)
+	if not target.is_empty():
+		game.hud.show_tip(mouse_pos, game.gathering.describe(target))
+		return
 	var hit := pick(mouse_pos)
 	if hit.is_empty():
 		game.hud.show_tip(mouse_pos, "")

@@ -226,7 +226,8 @@ func build_chunk(key: Vector2i) -> void:
 	var need := _prerequisite(key)
 	while not need.is_empty():
 		gen.run(need[0], need[1])
-		_on_generated(need[0], need[1], true)
+		# A chunk from the save comes back SHAPED in place of its terrain.
+		_on_generated(need[0], gen.stage_of(need[0]), true)
 		need = _prerequisite(key)
 	gen_us += Time.get_ticks_usec() - t0
 	t0 = Time.get_ticks_usec()
@@ -377,6 +378,7 @@ func run_jobs() -> void:
 			gen_us += Time.get_ticks_usec() - tg
 			budget_us += Time.get_ticks_usec() - t1
 			if done:
+				# A chunk from the save comes back SHAPED in place of its terrain.
 				_on_generated(job_gen.key, job_gen.stage)
 				job_gen = null
 			continue
@@ -464,6 +466,9 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 			else:
 				game.world_root.add_child(n)
 		chunk_nodes[key] = parts
+		# What lies on the ground of a chunk from the save.
+		if world.drops.has(key) and not game.props.drop_nodes.has(key):
+			game.props.show_drops(key)
 	var nodes: Array = chunk_nodes[key]
 	nodes[0].mesh = meshes[0]
 	nodes[1].mesh = meshes[1]
@@ -507,6 +512,18 @@ func on_cell_changed(cell: Vector3i) -> void:
 		queue[key] = true
 	dirty_chunks = queue
 	game.props.on_cell_changed(cell)
+
+
+## Builds the mesh of chunk `key` again, by itself: what is drawn on it changed (the
+## berries of a bush) but no cell did.
+func remesh_chunk(key: Vector2i) -> void:
+	if not chunk_nodes.has(key):
+		return
+	if job_mesh != null and job_key == key:
+		_drop_job()
+		if not job_edit:
+			has_target = true
+	dirty_chunks[key] = true
 
 
 # --- Level cutaway -----------------------------------------------------------

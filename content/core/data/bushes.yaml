@@ -2,13 +2,16 @@
 # пучками листвы. tint — цвет листвы; berries — цвет спелых ягод (нет поля — без
 # ягод); berry_cards — доля пучков с ягодами; cards — пучков на куст; rise — высота
 # их середины над землёй в единицах мира; spread — разброс по x, вверх и по z;
-# small — мелкие пучки (низкий мелколистный куст).
+# small — мелкие пучки (низкий мелколистный куст); fruit — предмет-ягоды, которые
+# собирают летом и осенью, fruit_count — сколько их с куста (от и до); twigs — сколько
+# веток можно наломать с куста за год.
 - id: shrub
   title: Куст
   tint: "#33542b"
   cards: 6
   rise: 0.3
   spread: [0.22, 0.15, 0.15]
+  twigs: 3
 - id: raspberry
   title: Малина
   tint: "#3b5c26"
@@ -17,6 +20,9 @@
   cards: 9
   rise: 0.38
   spread: [0.26, 0.4, 0.16]
+  fruit: raspberry
+  fruit_count: [2, 4]
+  twigs: 2
 - id: blueberry
   title: Черника
   tint: "#305436"
@@ -26,3 +32,6 @@
   rise: 0.16
   spread: [0.28, 0.08, 0.2]
   small: true
+  fruit: blueberry
+  fruit_count: [2, 3]
+  twigs: 1

@@ -1,7 +1,7 @@
 extends RefCounted
 ## Game settings: what the player can change and keep between runs (time speed,
 ## graphics, interface, the world made at the start) and the playtest switches that
-## are not saved (season, weather, time of day, fast forward, player speed). Every value lives here;
+## are not saved (season, weather, time of day, fast forward, player speed, free building). Every value lives here;
 ## `apply` pushes them into the modules, so the menu, the hotkeys and the tools all go
 ## through the same place.
 ## Saved as user://settings.cfg (IndexedDB in the browser). `game` is the Main node.
@@ -47,6 +47,9 @@ var values := {}
 var time_boost := 1.0
 ## Playtest switch: the player's speed multiplier. Not saved.
 var player_speed := 1.0
+## Playtest switch: blocks are placed without taking them from the bag, and digging
+## gives none. Not saved.
+var free_build := false
 
 
 func _init(g) -> void:
@@ -128,6 +131,8 @@ func set_season(s: int) -> void:
 	sky.season = posmod(s, 4)
 	sky.season_clock = 0.0
 	print("season: %s" % sky.SEASONS[sky.season])
+	if game.gathering != null and game.world != null:
+		game.gathering.on_season(sky.season)
 
 
 func set_raining(on: bool) -> void:
@@ -160,3 +165,9 @@ func set_time_boost(k: float) -> void:
 func set_player_speed(k: float) -> void:
 	player_speed = k
 	apply()
+
+
+func set_free_build(on: bool) -> void:
+	free_build = on
+	if game.hud != null:
+		game.hud.refresh_counts()

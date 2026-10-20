@@ -8,6 +8,7 @@ const Mat := preload("res://src/shared/materials.gd")
 const AiRules := preload("res://src/shared/ai_rules.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
+const Items := preload("res://src/shared/items.gd")
 
 
 func _init() -> void:
@@ -16,11 +17,12 @@ func _init() -> void:
 	problems.append_array(AiRules.check())
 	problems.append_array(Trees.check())
 	problems.append_array(Bushes.check())
+	problems.append_array(Items.check())
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():
-		print("content OK: %d materials, %d creatures, %d trees, %d bushes" % [
-			Mat.COUNT, AiRules.SPECIES.size(), Trees.SPECIES.size(), Bushes.TYPES.size()])
+		print("content OK: %d materials, %d items, %d creatures, %d trees, %d bushes" % [
+			Mat.COUNT, Items.IDS.size(), AiRules.SPECIES.size(), Trees.SPECIES.size(), Bushes.TYPES.size()])
 	else:
 		printerr("%d content problems" % problems.size())
 	quit(1 if problems.size() > 0 else 0)

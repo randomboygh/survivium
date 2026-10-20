@@ -45,6 +45,10 @@ var world
 var move_input := Vector2.ZERO
 ## Playtest multiplier of the walking speed (Settings.PLAYER_SPEEDS).
 var speed_scale := 1.0
+## What the load and tiredness leave of the pace (see Character).
+var load_scale := 1.0
+## Whether the last step started a jump.
+var jumped := false
 var velocity_y := 0.0
 var on_ground := false
 var swimming := false
@@ -150,7 +154,7 @@ func step(delta: float, jump: bool) -> void:
 		surface = -INF
 	water_depth = maxf(0.0, surface - p.y)
 	water_level = surface if water_depth > 0.0 else -INF
-	var speed := SPEED * speed_scale * (SWIM if swimming else (WADE if water_depth > 0.3 else 1.0))
+	var speed := SPEED * speed_scale * load_scale * (SWIM if swimming else (WADE if water_depth > 0.3 else 1.0))
 	# In water the body gets out onto ground up to one level above the water's cell.
 	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
 	var dir := move_input.limit_length(1.0)
@@ -172,7 +176,8 @@ func step(delta: float, jump: bool) -> void:
 		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
 		if below > -INF:
 			p.y = below
-	if jump and on_ground:
+	jumped = jump and on_ground
+	if jumped:
 		velocity_y = JUMP_SPEED
 	elif _pull_up > 0.0 and velocity_y <= 0.0:
 		velocity_y = sqrt(2.0 * GRAVITY * (_pull_up + 0.2))

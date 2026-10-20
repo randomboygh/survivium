@@ -1,0 +1,77 @@
+# Предметы: то, что лежит в сумке и на земле. weight — вес одной штуки в кг; stack —
+# сколько штук помещается в одну ячейку сумки; food — сытость от одной штуки (0 —
+# несъедобно); place — материал ячейки, который предмет ставит в мир (нет поля — не
+# ставится); model — воксельная модель предмета на земле (нет поля — свёрток);
+# icon — картинка в сумке (нет поля — плитка материала из place).
+- id: branch
+  title: Ветка
+  weight: 0.3
+  stack: 20
+  model: branch
+  icon: branch
+- id: log
+  title: Бревно
+  weight: 5.0
+  stack: 4
+  place: log
+  model: log
+  icon: log
+- id: acorn
+  title: Жёлудь
+  weight: 0.02
+  stack: 50
+  model: acorn
+  icon: acorn
+- id: cone
+  title: Шишка
+  weight: 0.05
+  stack: 50
+  model: cone
+  icon: cone
+- id: raspberry
+  title: Малина
+  weight: 0.1
+  stack: 30
+  food: 4
+  icon: raspberry
+- id: blueberry
+  title: Черника
+  weight: 0.1
+  stack: 30
+  food: 3
+  icon: blueberry
+- id: dirt
+  title: Земля
+  weight: 1.5
+  stack: 20
+  place: dirt
+- id: stone
+  title: Камень
+  weight: 2.0
+  stack: 20
+  place: stone
+- id: sand
+  title: Песок
+  weight: 1.5
+  stack: 20
+  place: sand
+- id: clay
+  title: Глина
+  weight: 1.5
+  stack: 20
+  place: clay
+- id: planks
+  title: Доски
+  weight: 1.0
+  stack: 20
+  place: planks
+- id: brick
+  title: Кирпич
+  weight: 1.5
+  stack: 20
+  place: brick
+- id: copper_ore
+  title: Медная руда
+  weight: 2.5
+  stack: 20
+  icon: copper_ore

@@ -6,8 +6,10 @@ extends Node
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
-## the chest and the campfire) and Settings (the saved settings and the playtest
-## switches). The 3D scene renders into a low-resolution SubViewport (about 360 px
+## the chest and the campfire), Character (the bag and the body: health, satiety,
+## stamina, death), Gathering (picking things up, berries and branches), Settings (the
+## saved settings and the playtest switches) and SaveGame (the saved world and player).
+## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
 ## too.
@@ -20,6 +22,8 @@ const SkyScript := preload("res://src/client/sky.gd")
 const Controls := preload("res://src/client/controls.gd")
 const CameraRig := preload("res://src/client/camera_rig.gd")
 const Props := preload("res://src/client/props.gd")
+const CharacterScript := preload("res://src/client/character.gd")
+const Gathering := preload("res://src/client/gathering.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PlayerScript := preload("res://src/client/player.gd")
@@ -33,6 +37,8 @@ const TracksScript := preload("res://src/client/tracks.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
 const WorldSetup := preload("res://src/client/world_setup.gd")
 const MainMenu := preload("res://src/client/main_menu.gd")
+const SaveGame := preload("res://src/client/save_game.gd")
+const WorldStore := preload("res://src/shared/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
 const GrassShader := preload("res://shaders/grass.gdshader")
@@ -54,7 +60,10 @@ var sky: SkyScript
 var controls: Controls
 var view: CameraRig
 var props: Props
+var character: CharacterScript
+var gathering: Gathering
 var settings: SettingsScript
+var save: SaveGame
 var menu: MainMenu
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
 ## shown with the snow cover.
@@ -77,8 +86,10 @@ var ready_to_play := false
 var last_print := Vector3.ZERO
 var left_foot := false
 var fps_clock := 0.0
-## Tests and tools start the world from the saved settings without the main menu.
+## Tests and tools start the world from the saved settings without the main menu,
+## and nothing is saved unless they give a `save_root` (see WorldStore.root).
 var skip_setup := false
+var save_root := ""
 ## The seed and WorldGen settings of the world being played.
 var world_seed := 0
 var world_options := {}
@@ -93,10 +104,20 @@ func _ready() -> void:
 	controls = Controls.new(self)
 	settings = SettingsScript.new(self)
 	settings.load()
+	save = SaveGame.new(self)
+	save.enabled = not skip_setup or save_root != ""
+	if save_root != "":
+		WorldStore.root = save_root
+	save.choose_world()
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
 	sky = SkyScript.new(self)
+	save.restore_clock()
 	props = Props.new(self)
+	character = CharacterScript.new(self)
+	save.track("inventory", character.inventory)
+	save.track("vitals", character.vitals)
+	gathering = Gathering.new(self)
 	view.build(self)
 	world_root = view.world_root
 	_build_ui()
@@ -113,16 +134,16 @@ func restart() -> void:
 	get_tree().reload_current_scene()
 
 
-## Generates the world the settings ask for and builds the scene around the spawn.
+## Generates the world chosen (see SaveGame.choose_world) and builds the scene around
+## the spawn, or where the player was when it was saved.
 func start_world() -> void:
 	hud.set_loading("Генерация мира…")
 	# Let the loading text show before the heavy generation.
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var t0 := Time.get_ticks_msec()
-	world_seed = settings.values.world_seed
-	world_options = settings.world_options()
 	gen = WorldGen.new(world_seed, 48, world_options)
+	gen.saved = save.store
 	world = gen.world
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
 	roof = RoofMap.new()
@@ -130,6 +151,7 @@ func start_world() -> void:
 	hud.minimap.setup(gen)
 	_build_materials()
 	_build_scene()
+	save.restore_player()
 	settings.apply()
 	chunks.prepare(gen)
 
@@ -144,11 +166,13 @@ func _process(delta: float) -> void:
 			# Freezes while the world was being built are not the game's.
 			hud.perf.reset()
 			hud.perf.chunks = chunks.near_total
-			# The ground is known now: the exact spawn, on level grass.
-			var spawn: Vector3i = WorldGen.find_spawn(world, Vector3i((player.position / CELL).floor()))
-			player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
+			if not save.player_placed:
+				# The ground is known now: the exact spawn, on level grass.
+				var spawn: Vector3i = WorldGen.find_spawn(world, Vector3i((player.position / CELL).floor()))
+				player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
 			props.place()
+			character.find_home()
 			creatures.setup(world, player, world_seed)
 			ready_to_play = true
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
@@ -160,8 +184,11 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu.
 		var playing := menu == null or not menu.is_open
 		player.move_input = controls.read_move() if playing else Vector2.ZERO
-		player.step(minf(delta, 0.05), controls.jump() and playing)
+		var jump: bool = controls.jump() and playing and character.can_jump()
+		player.step(minf(delta, 0.05), jump)
+		character.update(minf(delta, 0.05))
 		_leave_footprints()
+		save.update(delta)
 	chunks.update_cut(delta)
 	chunks.run_jobs()
 	chunks.update_caps()
@@ -173,6 +200,14 @@ func _process(delta: float) -> void:
 		controls.update_tip(delta)
 		_report_fps(delta)
 	view.poll_safe_rect(delta)
+
+
+## The game is saved when the window closes or loses focus (a phone app sent to the
+## background, a hidden browser tab).
+func _notification(what: int) -> void:
+	if save != null and what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_FOCUS_OUT,
+			NOTIFICATION_APPLICATION_PAUSED]:
+		save.flush()
 
 
 func _input(event: InputEvent) -> void:
@@ -236,6 +271,8 @@ func _build_menu() -> void:
 	add_child(layer)
 	menu = MainMenu.new(self)
 	layer.add_child(menu)
+	menu.opened.connect(save.flush)
+	menu.closed.connect(save.begin)
 	menu.open()
 	if play_at_once:
 		play_at_once = false

@@ -88,6 +88,11 @@ const SHOTS := {
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
+	# Gathering on the felled clearing with berry bushes: some things picked up and
+	# berries picked; then the bag open on a touch screen and with a mouse.
+	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
+	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
+	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -105,6 +110,8 @@ const SHOTS := {
 	"ui-main-menu-pc": {"time": 0.42, "season": 1, "main_menu": "live"},
 	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky"},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
+	# The list of saved worlds, over a few saves made up for it.
+	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
 }
 
 var main: Node
@@ -122,6 +129,18 @@ func _initialize() -> void:
 	main.skip_setup = true
 	root.add_child(main)
 	_run()
+
+
+## Saved worlds made up for the world list, in a folder of their own.
+func _fake_saves() -> void:
+	main.WorldStore.root = "user://shot_saves"
+	var worlds := [[main.world_seed, main.world_options, 12, "2026-10-20T18:40:00"],
+		[48151623, {"size": 0, "water": 2, "mountains": 1, "rivers": 0, "biomes": 1}, 3, "2026-10-19T21:05:00"],
+		[777, {"size": 1, "water": 1, "mountains": 2, "rivers": 1, "biomes": 1}, 41, "2026-10-18T12:30:00"]]
+	for w: Array in worlds:
+		var store = main.WorldStore.new(main.WorldStore.world_dir(w[0], w[1]))
+		store.write_json(main.WorldStore.WORLD, {"format": main.WorldStore.FORMAT, "seed": w[0], "settings": w[1],
+			"sky": {"day": w[2]}, "saved": w[3], "played": 1800.0})
 
 
 func _run() -> void:
@@ -167,6 +186,8 @@ func _run() -> void:
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
 		if shot.get("clearing", false):
 			_clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
+		if shot.get("gather", false):
+			_gather()
 		main.controls.set_touch(shot.get("touch", false))
 		main.hud.perf.visible = shot.get("stats", false)
 		main.hud.show_keys(shot_name == "ui")
@@ -221,7 +242,10 @@ func _run() -> void:
 			main.hud.toggle_menu()
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
-		if shot.get("test", false) or shot.get("menu", false):
+		if shot.get("bag", false):
+			main.hud.toggle_bag()
+			main.hud.bag._choose(1)
+		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false):
 			await process_frame
 			await process_frame
 		var setup: Control = null
@@ -241,6 +265,10 @@ func _run() -> void:
 				main.menu._new_world()
 				for i in 120:
 					await process_frame
+			if shot.main_menu == "worlds":
+				_fake_saves()
+				main.menu._open_worlds()
+				await process_frame
 			await process_frame
 		if shot.get("map", false):
 			main.hud.map_view.open()
@@ -267,7 +295,36 @@ func _run() -> void:
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
+		if shot.get("bag", false):
+			main.hud.toggle_bag()
+		if shot.get("gather", false):
+			main.character.inventory.take_all()
+			main.character.vitals.revive(1.0)
 	quit()
+
+
+## On the felled clearing: berry bushes by the player, the things lying nearest picked
+## up, a bush picked, some blocks dug, and the character a little tired and hungry.
+func _gather() -> void:
+	var w = main.world
+	var at := Vector3i((main.player.position / CELL).floor())
+	for i in 3:
+		var cell := at + Vector3i(-6 + i * 3, 0, 5)
+		w.add_bush(cell, [Bushes.RASPBERRY, Bushes.BLUEBERRY, Bushes.SHRUB][i])
+		main.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
+	var g = main.gathering
+	g._from_bush(at + Vector3i(-6, 0, 5))
+	g._from_bush(at + Vector3i(0, 0, 5))
+	for key: Vector2i in w.drops.keys():
+		var list: Array = w.drops[key]
+		for i in range(list.size() - 1, -1, -1):
+			if i < list.size() and list[i][1].x < main.player.position.x - 1.0:
+				g._pick_up(key, i)
+	main.character.inventory.add("core:dirt", 4)
+	main.character.inventory.add("core:stone", 5)
+	main.character.vitals.stamina = 45.0
+	main.character.vitals.satiety = 35.0
+	main.hud.refresh_counts()
 
 
 ## The nearest spot to `p` with level dry ground and no trees for 7 cells around.

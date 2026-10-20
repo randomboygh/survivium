@@ -1,0 +1,106 @@
+extends SceneTree
+## Plays, saves and starts the game again without a screen: what the player dug, where
+## they stood, the clock, the props and a module's part of the player come back. The
+## saves go to a test folder of their own. Run:
+## godot --headless --path . --script res://tests/save_test.gd
+
+const Mat := preload("res://src/shared/materials.gd")
+const WorldStore := preload("res://src/shared/world_store.gd")
+const ROOT := "user://test_saves/game"
+
+var checks := 0
+var failures := 0
+
+
+## A module's part of the player (see SaveGame.track).
+class Bag extends RefCounted:
+	var items := {}
+
+	func to_dict() -> Dictionary:
+		return {"items": items}
+
+	func from_dict(d: Dictionary) -> void:
+		items = d.get("items", {})
+
+
+func _initialize() -> void:
+	OS.low_processor_usage_mode_sleep_usec = 0
+	_run()
+
+
+func _check(cond: bool, what: String) -> void:
+	checks += 1
+	if not cond:
+		failures += 1
+		printerr("FAIL: " + what)
+
+
+func _start() -> Node:
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.skip_setup = true
+	main.save_root = ROOT
+	root.add_child(main)
+	while not main.ready_to_play:
+		await process_frame
+	return main
+
+
+func _run() -> void:
+	WorldStore.new(ROOT).erase()
+	var main: Node = await _start()
+	_check(not main.save.has_save, "a new world has no save")
+	var bag := Bag.new()
+	main.save.track("bag", bag)
+	bag.items = {"core:stick": 3.0}
+	main.character.inventory.add("core:branch", 7)
+	main.character.vitals.satiety = 42.0
+	main.save.begin()
+	# A pit dug three cells deep beside the player, who then steps aside.
+	var w = main.world
+	var p := Vector3i((main.player.position / main.CELL).floor())
+	var pit := Vector3i(p.x + 3, 0, p.z)
+	var top: int = w.surface_y(pit.x, pit.z)
+	for y in range(top - 3, top):
+		w.set_cell(pit.x, y, pit.z, Mat.AIR)
+		main.chunks.on_cell_changed(Vector3i(pit.x, y, pit.z))
+	main.player.position += Vector3(-1.0, 0.0, 0.5)
+	main.sky.day = 5
+	main.sky.time_of_day = 0.6
+	for i in 10:
+		await process_frame
+	# A save while playing goes a few chunks a frame.
+	main.save._clock = main.save.INTERVAL
+	var frames := 0
+	await process_frame
+	while main.save._writing and frames < 100:
+		await process_frame
+		frames += 1
+	_check(frames < 100 and main.save.has_save, "the game saves while playing (%d frames)" % frames)
+	main.save.flush()
+	var listed := WorldStore.list_worlds()
+	_check(listed.size() == 1 and listed[0].seed == main.world_seed and listed[0].day == 5, "the world list shows the save")
+	var stood: Vector3 = main.player.position
+	var props: Dictionary = main.props.cells.duplicate()
+	var seed_value: int = main.world_seed
+	main.queue_free()
+	await process_frame
+	await process_frame
+
+	main = await _start()
+	w = main.world
+	_check(main.save.has_save and main.world_seed == seed_value, "the same world starts again from its save")
+	_check(w.get_cell(pit.x, top - 1, pit.z) == Mat.AIR and w.get_cell(pit.x, top - 3, pit.z) == Mat.AIR,
+		"the pit dug is still there")
+	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
+	_check(main.sky.day == 5 and absf(main.sky.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
+	_check(main.props.cells == props, "the props stand where they stood")
+	var bag2 := Bag.new()
+	main.save.track("bag", bag2)
+	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
+	_check(main.character.inventory.count("core:branch") == 7, "the character's bag comes back")
+	_check(absf(main.character.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
+	main.queue_free()
+	await process_frame
+	WorldStore.new(ROOT).erase()
+	print("%d checks, %d failed" % [checks, failures])
+	quit(1 if failures > 0 else 0)

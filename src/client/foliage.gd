@@ -418,7 +418,7 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 		out.drifts = Drifts.build(w, job.x0, job.z0, job.x1 - job.x0)
 		return
 	var cells: Array[Vector3i] = w.bushes_in(job.x0, job.z0)
-	out.bushes = bushes(cells, w.bushes)
+	out.bushes = bushes(cells, w.bushes, w.bush_picked)
 	var s := BUSH_DISC / SHADOW_DISC
 	for cell in cells:
 		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0)
@@ -444,8 +444,9 @@ static func _by_water(w, x: int, y: int, z: int) -> bool:
 
 ## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like
 ## crowns, lit as one low dome per bush. `types` notes the type of each by its cell
-## (see Bushes). Bushes go bare in winter like some trees.
-static func bushes(cells: Array[Vector3i], types: Dictionary) -> Array:
+## (see Bushes); a bush in `picked` shows no berries. Bushes go bare in winter like
+## some trees.
+static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}) -> Array:
 	var buf := PackedFloat32Array()
 	var rng := RandomNumberGenerator.new()
 	var count := 0
@@ -454,6 +455,7 @@ static func bushes(cells: Array[Vector3i], types: Dictionary) -> Array:
 		var b: Dictionary = Bushes.TYPES[type]
 		var spread: Vector3 = b.spread
 		var cards: int = b.cards
+		var berries: float = 0.0 if picked.has(cell) else b.berry_cards
 		rng.seed = hash(cell)
 		for k in cards:
 			# Clusters around the middle, the first one on top, the others in a ring
@@ -466,7 +468,7 @@ static func bushes(cells: Array[Vector3i], types: Dictionary) -> Array:
 			var tint: Color = b.tint
 			buf.append_array([tint.r, tint.g, tint.b, bush_kind(type)])
 			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
-			var row := (1 if b.small else 0) + (PixelTextures.BERRY_ROW if rng.randf() < b.berry_cards else 0)
+			var row := (1 if b.small else 0) + (PixelTextures.BERRY_ROW if rng.randf() < berries else 0)
 			# Every other cluster shows bare twigs in winter, the others fall.
 			if k % 2 == 1:
 				row += DEEP_ROW

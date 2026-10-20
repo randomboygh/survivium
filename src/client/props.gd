@@ -9,28 +9,30 @@ const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const VoxelProps := preload("res://src/client/voxel_props.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
+const Items := preload("res://src/shared/items.gd")
 
 const CELL := WorldData.CELL
 const CULL_MARGIN := 24.0
 
 var game
-## Meshes of the things on the ground by kind, and their nodes by chunk.
+## Meshes of the things on the ground by model, and their nodes by chunk.
 var drop_meshes := {}
 var drop_nodes := {}
+## The north-west cell of each prop placed, by name ("chest", "campfire"), for the save.
+var cells := {}
 
 
 func _init(g) -> void:
 	game = g
 
 
-## Puts the chest and the campfire into the world; the near chunks are built by
-## then, so the ground under them is known.
+## Puts the chest and the campfire into the world, where the save had them or next to
+## the player; the near chunks are built by then, so the ground under them is known.
 func place() -> void:
-	var world = game.world
 	var world_root: Node3D = game.world_root
 	# A chest and a campfire next to the spawn point, each on two by two cells.
 	var at: Vector3 = game.player.position
-	var chest_spot := _prop_spot(at + Vector3(2.0, 0.0, 1.0))
+	var chest_spot := _saved_or_new("chest", at + Vector3(2.0, 0.0, 1.0))
 	if chest_spot.y >= 0:
 		var chest := MeshInstance3D.new()
 		chest.mesh = VoxelProps.chest().build_mesh()
@@ -39,10 +41,19 @@ func place() -> void:
 		chest.position = Vector3(chest_spot) * CELL
 		chest.extra_cull_margin = CULL_MARGIN
 		world_root.add_child(chest)
-	var fire := _prop_spot(at + Vector3(-2.0, 0.0, 2.0))
+	var fire := _saved_or_new("campfire", at + Vector3(-2.0, 0.0, 2.0))
 	if fire.y >= 0:
 		game.effects.add_campfire(Vector3(fire) * CELL, game.world_mat)
 	RenderingServer.global_shader_parameter_set("heat_map", game.effects.heat_map(RoofMap.WRAP / 2))
+
+
+## The cell of prop `name` from the save, else a new spot near `p` (see _prop_spot).
+func _saved_or_new(name: String, p: Vector3) -> Vector3i:
+	var saved: Variant = game.save.prop_cell(name)
+	var spot: Vector3i = saved if saved != null else _prop_spot(p)
+	if spot.y >= 0:
+		cells[name] = spot
+	return spot
 
 
 ## The north-west cell of two by two free cells on ground at one level near the world
@@ -88,13 +99,16 @@ func show_drops(key: Vector2i) -> void:
 	var nodes := []
 	for d: Array in game.world.drops.get(key, []):
 		var kind: String = d[0]
-		if not drop_meshes.has(kind):
-			var model = VoxelProps.drop(kind)
-			drop_meshes[kind] = model.build_mesh() if model != null else null
-		if drop_meshes[kind] == null:
+		var name: String = "sack" if kind == Items.SACK else Items.get_item(kind).get("model", "")
+		if name == "":
+			name = "bundle"
+		if not drop_meshes.has(name):
+			var model = VoxelProps.drop(name)
+			drop_meshes[name] = model.build_mesh() if model != null else null
+		if drop_meshes[name] == null:
 			continue
 		var node := MeshInstance3D.new()
-		node.mesh = drop_meshes[kind]
+		node.mesh = drop_meshes[name]
 		node.material_override = game.world_mat
 		# Turned in steps of 45 degrees, which keep the pixels tidy.
 		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
