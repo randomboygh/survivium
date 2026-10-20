@@ -96,7 +96,7 @@ func open(which: String) -> void:
 				func() -> int: return int(s.values.show_help),
 				func(i: int) -> void: s.set_value("show_help", i == 1))
 	else:
-		_title.text = "Для проверки"
+		_title.text = "Тестирование"
 		_add_row("Сезон", sky.SEASONS,
 			func() -> int: return sky.season,
 			func(i: int) -> void: s.set_season(i))
