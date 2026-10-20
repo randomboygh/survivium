@@ -395,7 +395,8 @@ func _corners(w, at: Vector3) -> Vector3:
 	return best * CELL
 
 
-## The cave floor near `at` deepest under the ground, with room to stand around it.
+## The cave floor near `at` deepest under the ground, under a roof the cut can find,
+## with room to stand around it.
 static func _cave(w, at: Vector3) -> Vector3:
 	var from := at / CELL
 	var best := from
@@ -406,6 +407,15 @@ static func _cave(w, at: Vector3) -> Vector3:
 			for y in range(1, top - 6):
 				if w.get_cell(x, y, z) != Mat.AIR or w.get_cell(x, y + 1, z) != Mat.AIR \
 						or w.get_cell(x, y - 1, z) == Mat.AIR or w.get_cell(x, y - 1, z) == Mat.WATER:
+					continue
+				# A roof within the levels the cut looks at (see ChunkStreamer.update_cut),
+				# or the spot is the floor of a tall cavern and the view stays uncut.
+				var roofed := false
+				for ry in range(y + 2, mini(y + 18, top)):
+					if Mat.is_roof(w.get_cell(x, ry, z)):
+						roofed = true
+						break
+				if not roofed:
 					continue
 				var room := 0
 				for dz in range(-3, 4):
