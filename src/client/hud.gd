@@ -13,9 +13,11 @@ const PerfPanel := preload("res://src/client/perf_panel.gd")
 const TouchStick := preload("res://src/client/touch_stick.gd")
 const TouchButton := preload("res://src/client/touch_button.gd")
 const SettingsMenu := preload("res://src/client/settings_menu.gd")
+const Minimap := preload("res://src/client/minimap.gd")
 const Mat := preload("res://src/shared/materials.gd")
 
 const MARGIN := 8.0
+const CELL := 0.5
 const GAP := 4.0
 const SLOT := 40
 ## UI height the scale aims for on the shorter side of the screen.
@@ -40,6 +42,7 @@ var _stats_button: Button
 var _test_button: Button
 var _menu_button: Button
 var _level: BoxContainer
+var minimap: Minimap
 var _level_label: Button
 var _bar: PanelContainer
 var _hand_left
@@ -115,6 +118,8 @@ func _ready() -> void:
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
 		b.custom_minimum_size = Vector2(36, 36)
+	minimap = Minimap.new()
+	add_child(minimap)
 
 	_bar = _panel(self)
 	_bar.add_theme_stylebox_override("panel", _bar_box())
@@ -234,6 +239,9 @@ func _place() -> void:
 		_level.position = Vector2(w - MARGIN - _level.size.x, MARGIN + _top.size.y + 6)
 	else:
 		_level.position = Vector2(_top.position.x - 6 - _level.size.x, MARGIN)
+	# The minimap under the buttons in the corner (under the level buttons in portrait).
+	var under: Control = _level if portrait else _top
+	minimap.position = Vector2(w - MARGIN - minimap.size.x, under.position.y + under.size.y + 6)
 
 	stick.visible = touch
 	_action.visible = touch
@@ -317,6 +325,7 @@ func update_state() -> void:
 	var winter: bool = game.sky.season == game.sky.WINTER
 	_clock.text = "%s · день %d · %02d:%02d" % [game.sky.SEASONS[game.sky.season], game.sky.day, hours, minutes]
 	var icon := "sun" if game.sky.daylight > 0.35 else "moon"
+	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
 	if game.sky.raining:
 		icon = "snow" if winter else "rain"
 	_set_icon(_clock_icon, icon)

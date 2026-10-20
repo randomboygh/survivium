@@ -13,7 +13,7 @@ const CHUNK := 16
 
 
 func _initialize() -> void:
-	var w := WorldGen.generate(20261018)
+	var w := WorldGen.generate(20261018, 256, 48, 256)
 	var x := w.size_x / 2
 	var z := w.size_z / 2
 	var y := w.surface_y(x, z)

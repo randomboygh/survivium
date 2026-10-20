@@ -15,6 +15,8 @@ const RESPAWN_EVERY := 15.0
 const CELL := WorldData.CELL
 ## Animals walk slopes and hop up a sheer step of one cell, not of two.
 const MAX_STEP := 0.55
+## Animals appear within this many cells of the player, where the world is made.
+const SPAWN_REACH := 80
 
 
 class Creature:
@@ -182,9 +184,12 @@ func _remove(c: Creature) -> void:
 
 
 func _spawn(kind: String, away_from_player: bool) -> void:
+	# Within the ground made around the player (see ChunkStreamer.LOAD_RANGE).
+	var px := floori(player.position.x / CELL)
+	var pz := floori(player.position.z / CELL)
 	for attempt in 40:
-		var x := rng.randi_range(2, world.size_x - 3)
-		var z := rng.randi_range(2, world.size_z - 3)
+		var x := clampi(px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH), 2, world.size_x - 3)
+		var z := clampi(pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH), 2, world.size_z - 3)
 		var y: int = world.surface_y(x, z)
 		if y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue

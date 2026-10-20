@@ -10,6 +10,8 @@ const Mat := preload("res://src/shared/materials.gd")
 
 ## Size of a cell in world units; a world unit is 16 px on screen.
 const CELL := 0.5
+## Chunk size in cells: the unit the world is generated, meshed and streamed in.
+const CHUNK := 16
 ## Open water lies this far up its top cell (4 px under the ground beside it). Ice
 ## fills the cell to the top.
 const WATER_TOP := 0.5
@@ -17,6 +19,7 @@ const WATER_TOP := 0.5
 var size_x: int
 var size_y: int
 var size_z: int
+## The top cell of the sea, about five twelfths of the way up (12 of 40, 20 of 48).
 var sea_level := 12
 ## In winter water freezes and is walked on like ground; otherwise it is waded and
 ## swum through.
@@ -44,8 +47,13 @@ var sloped_cols := PackedInt64Array()
 var corner_cols := PackedInt64Array()
 ## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z).
 var trees := {}
-## Bushes grown in the world: type (see Bushes) by the cell they stand in.
+## Bushes grown in the world: type (see Bushes) by the cell they stand in, and the
+## cells with a bush by chunk (Vector2i), for the chunk that draws them.
 var bushes := {}
+var bush_chunks := {}
+## While the generator writes cells, edits are not tracked: it works out the shapes
+## of each chunk itself once the chunks around are final (see WorldGen).
+var track_edits := true
 ## Bits of all levels, and of the top level.
 var all_bits: int
 var top_bit: int
@@ -77,6 +85,7 @@ func _init(sx: int, sy: int, sz: int) -> void:
 	size_x = sx
 	size_y = sy
 	size_z = sz
+	sea_level = maxi(4, sy * 5 / 12)
 	cells.resize(sx * sy * sz)
 	natural.resize(sx * sy * sz)
 	shapes.resize(sx * sy * sz)
@@ -166,6 +175,8 @@ func mark_all_dirty() -> void:
 ## A change at column (x, z) can reshape the cells up to two columns away: slopes look
 ## at their neighbours, corners at the slopes beside them.
 func _touch(x: int, z: int) -> void:
+	if not track_edits:
+		return
 	var d := _dirty
 	if d[0] >= d[2]:
 		_dirty = PackedInt32Array([maxi(0, x - 2), maxi(0, z - 2), mini(size_x, x + 3), mini(size_z, z + 3)])
@@ -187,19 +198,15 @@ func refresh_shapes() -> void:
 ## The rules are those of slope_mask, corner_cut and corner_fill, applied to whole
 ## columns of bits at once; only the few cells that may slope are looked at one by one.
 func update_shapes(x0: int, z0: int, x1: int, z1: int) -> void:
-	var layer := size_x * size_z
-	for z in range(z0, z1):
-		for x in range(x0, x1):
-			var col := z * size_x + x
-			var m := sloped_cols[col] | corner_cols[col]
-			while m != 0:
-				var bit := m & -m
-				m ^= bit
-				shapes[level_of(bit) * layer + col] = 0
-			sloped_cols[col] = 0
-			corner_cols[col] = 0
-	# Masks of the region and a ring of columns around it, `wl` columns wide. Outside
-	# the map every cell is air, nothing is wild and nothing slopes down there.
+	update_slopes(x0, z0, x1, z1)
+	update_corners(x0, z0, x1, z1)
+
+
+## Masks of the columns x0..x1, z0..z1 and a ring of one around them, `wl` columns
+## wide: air, water, open (air, water or leaves), ground, wild cells and cells with
+## open air or water above a lower neighbour. Outside the map every cell is air,
+## nothing is wild and nothing slopes down there.
+func _masks(x0: int, z0: int, x1: int, z1: int) -> Dictionary:
 	var wl := x1 - x0 + 2
 	var hl := z1 - z0 + 2
 	var air := PackedInt64Array()
@@ -231,6 +238,31 @@ func update_shapes(x0: int, z0: int, x1: int, z1: int) -> void:
 			ground[j] = ~(o | log_cols[col]) & all_bits
 			wild[j] = wild_cols[col]
 			low[j] = (a | wt) & ~(a << 1) & all_bits
+	return {"wl": wl, "hl": hl, "air": air, "water": water, "open": open, "ground": ground, "wild": wild, "low": low}
+
+
+## Clears the shapes of the columns x0..x1, z0..z1 (ends exclusive) and works out
+## their slopes; update_corners then adds the corners, which look at the slopes
+## beside them (all of a region's slopes must be done before its corners).
+func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
+	var layer := size_x * size_z
+	for z in range(z0, z1):
+		for x in range(x0, x1):
+			var col := z * size_x + x
+			var m := sloped_cols[col] | corner_cols[col]
+			while m != 0:
+				var bit := m & -m
+				m ^= bit
+				shapes[level_of(bit) * layer + col] = 0
+			sloped_cols[col] = 0
+			corner_cols[col] = 0
+	var mk := _masks(x0, z0, x1, z1)
+	var wl: int = mk.wl
+	var hl: int = mk.hl
+	var air: PackedInt64Array = mk.air
+	var open: PackedInt64Array = mk.open
+	var wild: PackedInt64Array = mk.wild
+	var low: PackedInt64Array = mk.low
 	var diag := PackedInt32Array([-wl - 1, -wl + 1, wl + 1, wl - 1])
 	# Slopes: loose wild ground with air above.
 	for lz in range(1, hl - 1):
@@ -270,6 +302,20 @@ func update_shapes(x0: int, z0: int, x1: int, z1: int) -> void:
 				if mask != FULL:
 					shapes[i] = FULL & ~mask
 					sloped_cols[col] |= bit
+
+
+## Works out the cut and filled corners of the columns x0..x1, z0..z1 (ends
+## exclusive) from the cells and slopes around them (see corner_cut, corner_fill).
+func update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
+	var layer := size_x * size_z
+	var mk := _masks(x0, z0, x1, z1)
+	var wl: int = mk.wl
+	var hl: int = mk.hl
+	var air: PackedInt64Array = mk.air
+	var water: PackedInt64Array = mk.water
+	var open: PackedInt64Array = mk.open
+	var ground: PackedInt64Array = mk.ground
+	var wild: PackedInt64Array = mk.wild
 	var sloped := PackedInt64Array()
 	sloped.resize(wl * hl)
 	for lz in hl:
@@ -554,6 +600,31 @@ func _fill_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 		if fills & (1 << k) and touches_corner(k, ax, bx, az, bz):
 			return true
 	return false
+
+
+## Notes a bush of `type` (see Bushes) in `cell`.
+func add_bush(cell: Vector3i, type: int) -> void:
+	bushes[cell] = type
+	var key := Vector2i(floori(cell.x / float(CHUNK)), floori(cell.z / float(CHUNK)))
+	if not bush_chunks.has(key):
+		bush_chunks[key] = {}
+	bush_chunks[key][cell] = true
+
+
+func remove_bush(cell: Vector3i) -> void:
+	bushes.erase(cell)
+	var key := Vector2i(floori(cell.x / float(CHUNK)), floori(cell.z / float(CHUNK)))
+	if bush_chunks.has(key):
+		bush_chunks[key].erase(cell)
+
+
+## Cells with a bush in the chunk whose first column is x0, z0.
+func bushes_in(x0: int, z0: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	var found: Dictionary = bush_chunks.get(Vector2i(x0 / CHUNK, z0 / CHUNK), {})
+	for cell: Vector3i in found:
+		out.append(cell)
+	return out
 
 
 ## Level a walker stands on in this column (the cell above the highest ground),
