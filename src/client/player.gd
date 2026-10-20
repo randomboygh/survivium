@@ -83,8 +83,9 @@ func _ready() -> void:
 	xray.top_level = true
 	add_child(xray)
 	torch = OmniLight3D.new()
-	torch.omni_range = 6.5
-	torch.omni_attenuation = 1.4
+	# Rings of 1, 2, 3 and 5 world units (see toon_light).
+	torch.omni_range = 5.0
+	torch.omni_attenuation = 0.0
 	torch.light_color = Color(1.0, 0.55, 0.25)
 	torch.light_energy = 0.0
 	torch.top_level = true

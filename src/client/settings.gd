@@ -131,7 +131,20 @@ func set_season(s: int) -> void:
 
 
 func set_raining(on: bool) -> void:
-	game.sky.raining = on
+	set_weather(game.sky.RAIN if on else game.sky.CLEAR)
+
+
+## Pins the weather to Sky.WEATHERS[`index`]; -1 lets it change by itself again.
+func set_weather(index: int) -> void:
+	if index < 0:
+		game.sky.weather_auto = true
+	else:
+		game.sky.set_weather(index)
+
+
+## Pins the moonlight (0 new moon .. 1 full moon); -1 follows the phase of the moon.
+func set_moon(light: float) -> void:
+	game.sky.moon_override = light
 
 
 ## Moves the clock to `hour` (0-24) of the current day.

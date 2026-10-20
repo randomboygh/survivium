@@ -14,6 +14,8 @@ const VALUE_WIDTH := 84
 const ARROW := 32
 const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
+## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
+const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолуние", 1.0]]
 
 signal closed
 
@@ -98,9 +100,16 @@ func open(which: String) -> void:
 		_add_row("Сезон", sky.SEASONS,
 			func() -> int: return sky.season,
 			func(i: int) -> void: s.set_season(i))
-		_add_row("Осадки", ["нет", "идут"],
-			func() -> int: return int(sky.raining),
-			func(i: int) -> void: s.set_raining(i == 1))
+		_add_row("Погода", ["сама"] + sky.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
+			func() -> int: return 0 if sky.weather_auto else sky.weather + 1,
+			func(i: int) -> void: s.set_weather(i - 1))
+		_add_row("Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
+			func() -> int:
+				for i in MOONS.size():
+					if is_equal_approx(sky.moon_override, MOONS[i][1]):
+						return i + 1
+				return 0,
+			func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]))
 		_add_row("Время суток", HOURS,
 			func() -> int:
 				var h: float = sky.time_of_day * 24.0

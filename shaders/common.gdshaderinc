@@ -40,8 +40,10 @@ global uniform vec3 depth_haze;
 const float TEXELS = 16.0;
 const float CELL = 0.5;
 const float CELL_TEXELS = 8.0;
-// Rings of light around a torch or fire before it fades out.
-const float LIGHT_RINGS = 7.0;
+// Rings of light around a torch or a fire: outer edges as shares of the light's range,
+// 1, 2, 3 and 5 parts of 5 (Fibonacci), and how bright each ring is.
+const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 1.0);
+const vec4 LIGHT_RING_LEVELS = vec4(1.0, 0.55, 0.3, 0.14);
 
 vec3 shear(vec3 p) {
 	return vec3(p.x, p.y, p.z - p.y);
@@ -206,10 +208,16 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 		float lit = ndl > 0.9 ? 1.12 : (ndl > 0.55 ? 1.0 : (ndl > 0.2 ? 0.7 : (ndl > 0.02 ? 0.4 : 0.0)));
 		return light_color * lit * shadow / PI;
 	}
-	// Rings of equal steps in log brightness: tight next to the flame, wider and
-	// paler farther out, as the light falls off.
-	float a = ndl * attenuation;
-	float ring = floor(-log2(max(a, 1e-4)) * 1.25);
-	float lit = pow(max(0.0, 1.0 - max(ring, 0.0) / LIGHT_RINGS), 1.4);
-	return light_color * lit / PI;
+	// Torches and fires have no falloff of their own (omni_attenuation 0), so Godot's
+	// attenuation is (1 - (d/r)^4)^2 and gives back the distance d as a share of the
+	// range r. The light is cut into flat rings by that distance, each paler and wider
+	// than the one inside it.
+	float d = sqrt(sqrt(max(1.0 - sqrt(attenuation), 0.0)));
+	float lit = d < LIGHT_RING_EDGES.x ? LIGHT_RING_LEVELS.x
+		: (d < LIGHT_RING_EDGES.y ? LIGHT_RING_LEVELS.y
+		: (d < LIGHT_RING_EDGES.z ? LIGHT_RING_LEVELS.z
+		: (d < LIGHT_RING_EDGES.w ? LIGHT_RING_LEVELS.w : 0.0)));
+	// Faces turned away from the light get none, grazing ones a little less.
+	float face = ndl > 0.2 ? 1.0 : (ndl > 0.02 ? 0.7 : 0.0);
+	return light_color * lit * face / PI;
 }

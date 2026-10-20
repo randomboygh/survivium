@@ -134,6 +134,7 @@ func update(delta: float) -> void:
 	cam_target = cam_target.lerp(target, minf(1.0, delta * 6.0))
 	var snapped := PixelView.snap_plane(cam_target)
 	camera.global_transform = PixelView.camera_transform(snapped)
+	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
 	var frac := (cam_target - snapped) * PixelView.PIXELS_PER_UNIT
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
