@@ -14,16 +14,28 @@ const PixelView := preload("res://src/client/pixel_view.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 
-## Ground plants (see PixelTextures.build_plants and grass.gdshader): one or two grass
-## tufts on most grass cells, lush patches keep all of them and thin meadows fewer; a
-## flower, an ear of dry grass or a low herb on some cells; reeds along the water,
-## except on sand.
+## Ground plants (see PixelTextures.build_plants and grass.gdshader). Grass grows in
+## tiers that follow the ground's own patches (ground_patch, the noise that also tints
+## the ground): bare dirt on the lowest spots, low sparse grass on thin ground, the
+## ordinary tufts in between (the shader thins them further), and small meadows of
+## tall grass, three tufts a cell, on the lush islands. Flowers and low herbs grow in
+## clumps of their own; ears of dry grass stand in fields on flat fertile lowland and
+## hardly anywhere else; reeds line the water, except on sand.
 const PLANT_W := PixelTextures.PLANT_W / 16.0
 const PLANT_H := PixelTextures.PLANT_H / 16.0
 const FLOWER := 4
 const EAR := 8
 const REED := 10
 const HERB := 12
+const LOW := 14
+const TALL := 18
+## Grass tiers by the patch noise.
+const BARE_TIER := 0
+const LOW_TIER := 1
+const MID_TIER := 2
+const TALL_TIER := 3
+## Lowland for ears: this many levels above the sea at most.
+const FERTILE_LEVELS := 10
 ## Leaf cluster cards: size in world units (24 px, see PixelTextures.CLUMP; the bunch of
 ## leaves in a card is one of three sizes), cards on each open face of a crown point the
 ## camera sees.
@@ -145,6 +157,52 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	return job
 
 
+## Meadows of tall grass, clumps of flowers and herbs and the fields of ears: slow
+## noises over the map.
+static var meadow_noise: FastNoiseLite
+static var flower_noise: FastNoiseLite
+static var herb_noise: FastNoiseLite
+static var ear_noise: FastNoiseLite
+
+
+static func _fields() -> void:
+	if flower_noise != null:
+		return
+	meadow_noise = _field_noise(20, 0.028)
+	flower_noise = _field_noise(21, 0.09)
+	herb_noise = _field_noise(22, 0.12)
+	ear_noise = _field_noise(23, 0.035)
+
+
+static func _field_noise(seed: int, freq: float) -> FastNoiseLite:
+	var n := FastNoiseLite.new()
+	n.seed = seed
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.frequency = freq
+	return n
+
+
+## Grass tier of a column: tall meadows by a slow noise of their own, so they come as
+## whole islands that the small patches do not break up and never repeat the way the
+## tiled patches do; bare and low by the patch noise at the middle of the cell (the same
+## noise that tints the ground).
+static func tier_at(x: int, z: int) -> int:
+	_fields()
+	if meadow_noise.get_noise_2d(x, z) > 0.4:
+		return TALL_TIER
+	var patch := PixelTextures.ground_patch(Vector2(x + 0.5, z + 0.5) * CELL)
+	return BARE_TIER if patch < 0.2 else (LOW_TIER if patch < 0.38 else MID_TIER)
+
+
+## True in a field of ears: fertile ground is flat grass on the lowland with no crown
+## over it, and fields lie where the ear noise is high.
+static func ear_field_at(w, x: int, y: int, z: int) -> bool:
+	_fields()
+	if y > w.sea_level + FERTILE_LEVELS or w.leaf_cols[z * w.size_x + x] != 0:
+		return false
+	return ear_noise.get_noise_2d(x, z) > 0.4
+
+
 ## Builds the plants of the next `columns` columns of cells. Returns true once every
 ## column is built.
 static func step(job: Job, columns: int) -> bool:
@@ -186,18 +244,36 @@ static func _column(job: Job, x: int, z: int) -> void:
 		var cuts := shapes[i] >> 4
 		var kinds: Array[int] = []
 		if m == Mat.GRASS:
-			# No tuft on a quarter of the cells and two on another quarter, so
-			# the ground shows between them before the shader thins the meadows.
-			var roll := rng.randf()
-			for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
-				kinds.append(rng.randi_range(0, 3))
-			var extra := rng.randf()
-			if extra < 0.16:
-				kinds.append(FLOWER + rng.randi_range(0, 3))
-			elif extra < 0.28:
+			_fields()
+			var tier := tier_at(x, z)
+			var flat := mask == WorldData.FULL and cuts == 0
+			if tier == TALL_TIER:
+				for k in 3:
+					kinds.append(TALL + rng.randi_range(0, 3))
+			elif tier == LOW_TIER:
+				if rng.randf() < 0.65:
+					kinds.append(LOW + rng.randi_range(0, 3))
+			elif tier == MID_TIER:
+				# No tuft on a quarter of the cells and two on another quarter, so
+				# the ground shows between them before the shader thins the meadows.
+				var roll := rng.randf()
+				for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
+					kinds.append(rng.randi_range(0, 3))
+			if tier != BARE_TIER:
+				# Flowers and herbs in clumps, dense inside and nearly absent outside.
+				var flowers := 0.55 if flower_noise.get_noise_2d(x, z) > 0.3 else 0.03
+				var herbs := 0.7 if herb_noise.get_noise_2d(x, z) > 0.35 else 0.04
+				var extra := rng.randf()
+				if extra < flowers:
+					kinds.append(FLOWER + rng.randi_range(0, 3))
+				elif extra < flowers + herbs:
+					kinds.append(HERB + rng.randi_range(0, 1))
+			if tier != TALL_TIER and flat and ear_field_at(w, x, y, z):
+				# A field of ears, with a lone ear here and there outside it.
+				for k in rng.randi_range(1, 2):
+					kinds.append(EAR + rng.randi_range(0, 1))
+			elif tier == MID_TIER and flat and rng.randf() < 0.01:
 				kinds.append(EAR + rng.randi_range(0, 1))
-			elif extra < 0.4:
-				kinds.append(HERB + rng.randi_range(0, 1))
 		# Reeds line grassy and muddy banks, not the sand of a beach.
 		if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
 			for k in rng.randi_range(1, 2):
