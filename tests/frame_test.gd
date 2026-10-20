@@ -18,9 +18,11 @@ const Foliage := preload("res://src/client/foliage.gd")
 const Shot := preload("res://tools/shot.gd")
 const CELL := 0.5
 const CHUNK := 16
-## Frames over a limit allowed in a scenario, one plus one per this many frames: the
-## OS stalls the process now and then, a real freeze comes back with every chunk.
-const STALLS_PER_FRAMES := 500
+## Frames over a limit allowed in a scenario, one plus one per this many frames: a
+## virtual machine stalls the process now and then (a cloud container: up to 50 ms,
+## several times in a few thousand frames; a GitHub runner: hardly ever), a real
+## freeze comes back with every chunk or every cut change.
+const STALLS_PER_FRAMES := 250
 
 var main: Node
 var checks := 0
@@ -135,11 +137,11 @@ func _run() -> void:
 	_check(main.dirty_chunks.is_empty() and main.job_mesh == null, "edits are all built")
 	_check(main.bush_cells.size() == bushes_before - 1 and not main.world.bushes.has(bush), "the bush dug under is gone")
 
-	# The cut moving up and down every half second, as when walking in and out of a
-	# cave: the caps of the chunks around are rebuilt each time.
+	# The cut moving up and down four times a second, as when walking in and out of
+	# a cave: the caps of the chunks around are rebuilt each time.
 	var level: int = main.player.level()
 	await _scenario("cut changes", 100000, func(_i: int) -> bool:
-		main.manual_level = level - 4 if int(clock / 0.5) % 2 == 0 else -1
+		main.manual_level = level - 4 if int(clock / 0.25) % 2 == 0 else -1
 		return clock >= 4.0)
 	main.manual_level = -1
 
