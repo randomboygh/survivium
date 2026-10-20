@@ -47,8 +47,13 @@ var move_input := Vector2.ZERO
 var speed_scale := 1.0
 ## What the load and tiredness leave of the pace (see Character).
 var load_scale := 1.0
+## Playtest switch: a press of jump in the air jumps again, to climb out of a deep
+## pit by pressing it over and over.
+var air_jumps := false
 ## Whether the last step started a jump.
 var jumped := false
+## Whether jump was held in the last step: an air jump needs a fresh press.
+var _jump_was := false
 var velocity_y := 0.0
 var on_ground := false
 var swimming := false
@@ -176,7 +181,8 @@ func step(delta: float, jump: bool) -> void:
 		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
 		if below > -INF:
 			p.y = below
-	jumped = jump and on_ground
+	jumped = jump and (on_ground or (air_jumps and not _jump_was))
+	_jump_was = jump
 	if jumped:
 		velocity_y = JUMP_SPEED
 	elif _pull_up > 0.0 and velocity_y <= 0.0:
