@@ -12,6 +12,7 @@ const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
 const XrayShader := preload("res://shaders/sprite_xray.gdshader")
+const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 
 const CELL := WorldData.CELL
 ## Body and motion in cells: a little narrower than a cell, a little under two tall.
@@ -35,6 +36,9 @@ const SWIM := 0.45
 ## Water slows a fall to this many cells a second and lifts a sunk swimmer this fast.
 const SINK_SPEED := 5.0
 const FLOAT_SPEED := 4.0
+## On ice the body picks up and loses speed this slowly (cells a second, per second),
+## so it glides on after the stick is let go.
+const ICE_GRIP := 14.0
 
 var world
 ## Movement wish: x = east, y = south, length up to 1.
@@ -48,6 +52,9 @@ var swimming := false
 var water_depth := 0.0
 ## Height of that surface in cells, -INF out of water.
 var water_level := -INF
+## The velocity on the ground plane in cells a second (x east, y south); on ice it
+## lags behind the wish.
+var glide := Vector2.ZERO
 ## Height the body pushed against while in water can pull itself up by this step.
 var _pull_up := 0.0
 ## Which way the body faces, one of SpriteSheet.COMPASS; set by the last movement.
@@ -61,6 +68,8 @@ var sheet: SpriteSheet
 var sprite: MeshInstance3D
 ## The same sprite drawn as a silhouette where walls or crowns hide the player.
 var xray: MeshInstance3D
+## The part of the sprite under the water, tinted, drawn over the water.
+var underwater: MeshInstance3D
 var torch: OmniLight3D
 
 
@@ -82,6 +91,15 @@ func _ready() -> void:
 	xray.extra_cull_margin = 24.0
 	xray.top_level = true
 	add_child(xray)
+	underwater = MeshInstance3D.new()
+	underwater.mesh = mesh
+	underwater.material_override = sprite_material(UnderwaterShader, tex)
+	# After the water, which is drawn at priority 0.
+	underwater.material_override.render_priority = 1
+	underwater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	underwater.extra_cull_margin = 24.0
+	underwater.top_level = true
+	add_child(underwater)
 	torch = OmniLight3D.new()
 	# Rings of 1, 2, 3 and 5 world units (see toon_light).
 	torch.omni_range = 5.0
@@ -103,8 +121,8 @@ static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
 func set_look(layers: Array) -> void:
 	look = layers
 	sheet = PlayerArt.sheet(look)
-	sprite.material_override.set_shader_parameter("sprite_texture", sheet.texture)
-	xray.material_override.set_shader_parameter("sprite_texture", sheet.texture)
+	for layer in [sprite, xray, underwater]:
+		layer.material_override.set_shader_parameter("sprite_texture", sheet.texture)
 
 
 ## Picks the direction and animation for this step: the body turns the way it is
@@ -138,8 +156,18 @@ func step(delta: float, jump: bool) -> void:
 	var dir := move_input.limit_length(1.0)
 	_animate(dir, speed, delta)
 	_pull_up = 0.0
-	p = _try_move(p, Vector3(dir.x * speed * delta, 0.0, 0.0), reach)
-	p = _try_move(p, Vector3(0.0, 0.0, dir.y * speed * delta), reach)
+	if on_ice(p):
+		glide = glide.move_toward(dir * speed, ICE_GRIP * delta)
+	else:
+		glide = dir * speed
+	var before := p
+	p = _try_move(p, Vector3(glide.x * delta, 0.0, 0.0), reach)
+	p = _try_move(p, Vector3(0.0, 0.0, glide.y * delta), reach)
+	# A wall stops the glide along it.
+	if absf(p.x - before.x) < absf(glide.x * delta) * 0.5:
+		glide.x = 0.0
+	if absf(p.z - before.z) < absf(glide.y * delta) * 0.5:
+		glide.y = 0.0
 	if on_ground and not jump:
 		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
 		if below > -INF:
@@ -173,6 +201,13 @@ func step(delta: float, jump: bool) -> void:
 	position = p * CELL
 
 
+## True when the body at `p` (in cells) stands on frozen water.
+func on_ice(p: Vector3) -> bool:
+	if not on_ground or not world.water_frozen:
+		return false
+	return world.get_cell(floori(p.x), floori(p.y + 0.01) - 1, floori(p.z)) == Mat.WATER
+
+
 ## Puts the sprite on the body, snapped to whole pixels, and the torch above it
 ## (lights live where the shaders draw, so its position is sheared).
 func place_sprite() -> void:
@@ -180,13 +215,13 @@ func place_sprite() -> void:
 	if swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
 		# A swimmer bobs on the water by a pixel.
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT
-	xray.global_position = sprite.global_position
 	var line := water_level * CELL if water_level > -INF else -1000.0
 	var frame := sheet.frame_uv(facing, anim, anim_time)
-	sprite.material_override.set_shader_parameter("water_line", line)
-	sprite.material_override.set_shader_parameter("frame_uv", frame)
-	xray.material_override.set_shader_parameter("water_line", line)
-	xray.material_override.set_shader_parameter("frame_uv", frame)
+	for layer in [sprite, xray, underwater]:
+		layer.global_position = sprite.global_position
+		layer.material_override.set_shader_parameter("water_line", line)
+		layer.material_override.set_shader_parameter("frame_uv", frame)
+	underwater.visible = line > -1000.0
 	torch.global_position = PixelView.shear(position + Vector3(0.0, 1.2, 0.3))
 
 

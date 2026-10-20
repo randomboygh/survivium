@@ -453,15 +453,17 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 	var wl: int = mk.wl
 	var hl: int = mk.hl
 	var air: PackedInt64Array = mk.air
+	var water: PackedInt64Array = mk.water
 	var open: PackedInt64Array = mk.open
 	var wild: PackedInt64Array = mk.wild
 	var low: PackedInt64Array = mk.low
 	var diag := PackedInt32Array([-wl - 1, -wl + 1, wl + 1, wl - 1])
-	# Slopes: loose wild ground with air above.
+	# Slopes: loose wild ground with air or water above, so lake and river beds get
+	# ramps too.
 	for lz in range(1, hl - 1):
 		for lx in range(1, wl - 1):
 			var j := lz * wl + lx
-			var cand := ~open[j] & ((air[j] >> 1) | top_bit) & wild[j]
+			var cand := ~open[j] & (((air[j] | water[j]) >> 1) | top_bit) & wild[j]
 			if cand == 0:
 				continue
 			var x := x0 - 1 + lx
@@ -749,8 +751,11 @@ func _can_slope(x: int, y: int, z: int) -> bool:
 	if y < 0 or y >= size_y:
 		return false
 	var c := chunk_at(x, z)
-	return c != null and c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] == WILD \
-		and Mat.can_slope(get_cell(x, y, z)) and get_cell(x, y + 1, z) == Mat.AIR
+	if c == null or c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] != WILD \
+			or not Mat.can_slope(get_cell(x, y, z)):
+		return false
+	var above := get_cell(x, y + 1, z)
+	return above == Mat.AIR or above == Mat.WATER
 
 
 func is_solid(x: int, y: int, z: int) -> bool:

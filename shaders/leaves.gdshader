@@ -108,7 +108,7 @@ void fragment() {
 	float snowy = fract(leaf * 7.3);
 	if (branches ? (edge && snowy < snow_amount * 0.4) :
 			(evergreen ? under > 0.4 && UV.y < 0.5 && snowy < snow_amount * 1.1 : under > 0.5 && snowy < snow_amount * 1.2 - 0.1)) {
-		col = vec3(0.68, 0.72, 0.8);
+		col = vec3(0.73, 0.76, 0.82);
 	}
 	col *= 1.0 - 0.25 * wetness;
 	float fade = depth_fade(center.y);

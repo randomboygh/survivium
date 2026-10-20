@@ -61,6 +61,14 @@ const CORNER_DIRS := WorldData.CORNER_DIRS
 const QUARTER := 0
 const CUT := 1
 const CORNER := 2
+## Cut and filled corners run from the middle of one side of the cell to the middle of
+## the next along a curve u^p + v^p = 0.5^p around the cell's middle, p by the
+## material's corner shape (Mat.corner_shape): 1 a straight diagonal (stone), 1.5 a
+## little rounded (soil), 2 a quarter circle (sand). A curve is drawn in CURVE_STEPS
+## straight pieces. Each ends at the middle of a side whatever its shape, so cells of
+## any shape meet without gaps. Slopes keep the straight cut.
+const CORNER_P := [1.0, 1.5, 2.0]
+const CURVE_STEPS := 4
 ## Diagonals reach a hair past their line, so the texels it runs through belong to the
 ## ground side and the shader's edge texels match what is drawn.
 const EPS := 0.002
@@ -81,6 +89,8 @@ static var _faces: Array = []
 ## Per direction: [corners, uvs, normal] of a whole cell face.
 static var _cell_faces: Array = []
 static var _covers_lut := PackedByteArray()
+## Points of the corner curves, by corner and shape (see corner_curve).
+static var _curves := {}
 
 
 ## Per direction: corners in clockwise order seen from outside, and the normal.
@@ -256,6 +266,9 @@ static func _column(job: Job, x: int, z: int) -> void:
 		if m == WATER:
 			var fills := sh[i] >> 4
 			var foam := fills << 8
+			for k in 4:
+				if fills & (1 << k):
+					foam |= _fill_shape(c, cov, i, dy, k) << (16 + 2 * k)
 			# Open water has no land beside it, so no foam.
 			if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
 				foam |= _foam(c, sh, cov, i, dz)
@@ -317,7 +330,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 					if not cov[c[i + dx]] and not cov[c[i + dx + dz]] and not cov[c[i + dx + dz + dy]]:
 						edges |= DARK << EDGE_E
 				if cuts != 0:
-					_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around))
+					_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around),
+						Mat.corner_shape[m])
 				else:
 					_add_cell_face(solid, d, base, white, Vector2(pack(tile, edges, flag), around))
 			if cuts != 0:
@@ -512,17 +526,18 @@ static func _top_pieces(buf, base: Vector3, m: int, cuts: int, edges: int, halve
 		if cuts & (1 << q):
 			# Beyond a north diagonal lies lower ground (outline), below a south one the wall.
 			var flag := _diag(q, false, DARK if q < 2 else LIGHT)
-			_piece(buf, base, 1.0, q, CUT, Vector3.UP, white, Vector2(pack(m * 3, e, flag), around))
+			_piece(buf, base, 1.0, q, CUT, Vector3.UP, white, Vector2(pack(m * 3, e, flag), around), Mat.corner_shape[m])
 		else:
 			_piece(buf, base, 1.0, q, QUARTER, Vector3.UP, white, Vector2(pack(m * 3, e, 0), around))
 
 
 ## Side `d` of a cell with cut corners: halves of a side next to an uncut corner, the
 ## bottom in pieces.
-static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color: Color, packed: Vector2) -> void:
+static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color: Color, packed: Vector2,
+		shape := 0) -> void:
 	if d == FACE_BOTTOM:
 		for q in 4:
-			_piece(buf, base, 0.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.DOWN, color, packed)
+			_piece(buf, base, 0.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.DOWN, color, packed, shape)
 		return
 	var ks: Array = SIDE_CORNERS[d]
 	for j in 2:
@@ -544,19 +559,21 @@ static func _cut_walls(w, buf, water, c: PackedByteArray, cov: PackedByteArray, 
 			continue
 		var edges := 0 if cov[c[i - dy]] else DARK << EDGE_S
 		var flag := SLOPE | (0 if cov[c[i + dy]] else OPEN_TOP)
-		_diag_wall(buf, base, k, true, white, Vector2(pack(m * 3 + 1, edges, flag), no_tiles))
-	_cut_water(w, water, c, i, dy, base, cuts)
+		_diag_wall(buf, base, k, true, white, Vector2(pack(m * 3 + 1, edges, flag), no_tiles), Mat.corner_shape[m])
+	_cut_water(w, water, c, i, dy, base, cuts, Mat.corner_shape[m])
 
 
-## Water standing in the cut corners of padded cell `i` beside water with air above.
-static func _cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vector3, cuts: int) -> void:
+## Water standing in the cut corners of padded cell `i` beside water with air above,
+## up to the curve of corner shape `shape`.
+static func _cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vector3, cuts: int, shape := 0) -> void:
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
 		if cuts & (1 << k) and c[i + o.x] == WATER and c[i + o.x + dy] == AIR:
 			var depth := 1
 			while depth < 8 and w.get_cell(int(base.x) + o.x, int(base.y) - depth, int(base.z)) == WATER:
 				depth += 1
-			_piece(water, base, WATER_TOP, k, CORNER, Vector3.UP, Color(1, 1, 1), Vector2(float(1 << (12 + k)), float(depth)))
+			var foam := 1 << (12 + k) | shape << (16 + 2 * k)
+			_piece(water, base, WATER_TOP, k, CORNER, Vector3.UP, Color(1, 1, 1), Vector2(float(foam), float(depth)), shape)
 
 
 ## Ground filling the corners of open padded cell `i`: a diagonal wall, and its top
@@ -572,7 +589,9 @@ static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: Packe
 		var o: Vector2i = CORNER_DIRS[k]
 		var mf := c[i + o.x]
 		var open_top: bool = not cov[c[i + dy]] and sh[i + dy] >> 4 & (1 << k) == 0
-		_diag_wall(buf, base, k, false, white, Vector2(pack(mf * 3 + 1, 0, SLOPE | (OPEN_TOP if open_top else 0)), no_tiles))
+		var shape := _fill_shape(c, cov, i, dy, k)
+		_diag_wall(buf, base, k, false, white, Vector2(pack(mf * 3 + 1, 0, SLOPE | (OPEN_TOP if open_top else 0)), no_tiles),
+			shape)
 		# The top continues the ground around it: under a slope beside, the slope's.
 		if cov[c[i + o.x + dy]]:
 			mf = c[i + o.x + dy]
@@ -586,7 +605,15 @@ static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: Packe
 			# A fill at a north corner faces the view across its diagonal (rim), one at a
 			# south corner faces away (outline).
 			var flag := _diag(k, true, LIGHT if k < 2 else DARK)
-			_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white, Vector2(pack(mf * 3, edges, flag), no_tiles))
+			_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white, Vector2(pack(mf * 3, edges, flag), no_tiles), shape)
+
+
+## Corner shape of the ground filling corner k of open padded cell `i`: that of the
+## material its top is drawn with (see _fill_faces), which the shader rounds its edge by.
+static func _fill_shape(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, k: int) -> int:
+	var o: Vector2i = CORNER_DIRS[k]
+	var mf := c[i + o.x + dy] if cov[c[i + o.x + dy]] else c[i + o.x]
+	return Mat.corner_shape[mf]
 
 
 ## Tops of padded cell `i` under the cut corners of the cell above: the ground beside
@@ -608,36 +635,72 @@ static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int,
 			Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILE * 0x41041)))
 
 
-## A flat piece of quarter `q` of a cell at height `h` (see QUARTER, CUT, CORNER).
-static func _piece(buf, base: Vector3, h: float, q: int, kind: int, n: Vector3, color: Color, packed: Vector2) -> void:
+## The corner curve of corner k for corner shape `shape` (see CORNER_P), on the top
+## of a cell: points from the middle of its west or east side to the middle of its
+## north or south side.
+static func corner_curve(k: int, shape: int) -> PackedVector2Array:
+	var key := k * 4 + shape
+	if _curves.has(key):
+		return _curves[key]
+	var o := Vector2(CORNER_DIRS[k])
+	var p: float = CORNER_P[shape]
+	var steps := 1 if shape == 0 else CURVE_STEPS
+	var pts := PackedVector2Array()
+	for j in steps + 1:
+		var a := PI * 0.5 * j / steps
+		var cs := cos(a)
+		var sn := sin(a)
+		var r := 0.5 / pow(pow(cs, p) + pow(sn, p), 1.0 / p) if j > 0 and j < steps else 0.5
+		pts.append(Vector2(0.5, 0.5) + Vector2(cs * o.x, sn * o.y) * r)
+	_curves[key] = pts
+	return pts
+
+
+## A flat piece of quarter `q` of a cell at height `h` (see QUARTER, CUT, CORNER); the
+## curve of a cut or a corner has corner shape `shape`.
+static func _piece(buf, base: Vector3, h: float, q: int, kind: int, n: Vector3, color: Color, packed: Vector2,
+		shape := 0) -> void:
 	var o := Vector2(CORNER_DIRS[q])
 	var corner := Vector2(0.5, 0.5) + o * 0.5
-	var p1 := Vector2(0.5, corner.y)
-	var p2 := Vector2(corner.x, 0.5)
 	var pts: Array
 	if kind == QUARTER:
-		pts = [Vector2(0.5, 0.5), p1, corner, p2]
-	elif kind == CUT:
-		pts = [Vector2(0.5, 0.5), p1 + o * EPS, p2 + o * EPS]
+		pts = [Vector2(0.5, 0.5), Vector2(0.5, corner.y), corner, Vector2(corner.x, 0.5)]
 	else:
-		pts = [corner, p1 - o * EPS, p2 - o * EPS]
+		# A fan from the middle of the cell (a cut) or from the corner (the corner beyond
+		# the curve).
+		var hub := Vector2(0.5, 0.5) if kind == CUT else corner
+		var curve := corner_curve(q, shape)
+		var off := o * (EPS if kind == CUT else -EPS)
+		for j in curve.size() - 1:
+			pts = [hub, curve[j] + off, curve[j + 1] + off]
+			var tri := []
+			for p: Vector2 in pts:
+				tri.append(base + Vector3(p.x, h, p.y))
+			_wound(buf, tri, n, pts, color, packed)
+		return
 	var vs := []
 	for p: Vector2 in pts:
 		vs.append(base + Vector3(p.x, h, p.y))
 	_wound(buf, vs, n, pts, color, packed)
 
 
-## The wall along the diagonal of corner k, facing the corner (a cut) or away from it
-## (a fill).
-static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2) -> void:
+## The wall along the curve of corner k (see corner_curve), facing the corner (a cut)
+## or away from it (a fill): a straight piece of wall per piece of the curve, each
+## turned its own way, so the toon light shades a round corner in steps.
+static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2, shape := 0) -> void:
 	var o := Vector2(CORNER_DIRS[k])
-	var corner := Vector2(0.5, 0.5) + o * 0.5
-	var p1 := Vector2(0.5, corner.y)
-	var p2 := Vector2(corner.x, 0.5)
-	var n := Vector3(o.x, 0.0, o.y).normalized() * (1.0 if outward else -1.0)
-	var vs := [base + Vector3(p1.x, 0.0, p1.y), base + Vector3(p2.x, 0.0, p2.y),
-		base + Vector3(p2.x, 1.0, p2.y), base + Vector3(p1.x, 1.0, p1.y)]
-	_wound(buf, vs, n, [Vector2(p1.x, 1.0), Vector2(p2.x, 1.0), Vector2(p2.x, 0.0), Vector2(p1.x, 0.0)], color, packed)
+	var curve := corner_curve(k, shape)
+	for j in curve.size() - 1:
+		var p1 := curve[j]
+		var p2 := curve[j + 1]
+		var d := p2 - p1
+		var side := Vector2(d.y, -d.x).normalized()
+		if side.dot(o) < 0.0:
+			side = -side
+		var n := Vector3(side.x, 0.0, side.y) * (1.0 if outward else -1.0)
+		var vs := [base + Vector3(p1.x, 0.0, p1.y), base + Vector3(p2.x, 0.0, p2.y),
+			base + Vector3(p2.x, 1.0, p2.y), base + Vector3(p1.x, 1.0, p1.y)]
+		_wound(buf, vs, n, [Vector2(p1.x, 1.0), Vector2(p2.x, 1.0), Vector2(p2.x, 0.0), Vector2(p1.x, 0.0)], color, packed)
 
 
 ## Adds a triangle or quad with corners in either order, turned to face along `n`.
@@ -830,8 +893,10 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)
 			if open & both == 0:
 				var cuts: int = (shapes[i] | shapes[i + layer]) >> 4
+				# Slopes keep the straight cut.
+				var shape: int = 0 if shapes[i] & 15 != 0 else Mat.corner_shape[cells[i]]
 				for q in 4:
-					_piece(buf, base, 1.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.UP, dark, packed)
+					_piece(buf, base, 1.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.UP, dark, packed, shape)
 			elif open & bit and shapes[i] >= 16 and cells[i] != LEAVES:
 				var fills: int = shapes[i] >> 4
 				if open & bit << 1:
@@ -841,7 +906,8 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 					if fills & (1 << k):
 						var o: Vector2i = CORNER_DIRS[k]
 						var mf: int = w.get_cell(x + o.x, level, z)
-						_piece(buf, base, 1.0, k, CORNER, Vector3.UP, dark, Vector2(pack(mf * 3, 0, 0), no_tiles))
+						_piece(buf, base, 1.0, k, CORNER, Vector3.UP, dark, Vector2(pack(mf * 3, 0, 0), no_tiles),
+							Mat.corner_shape[mf])
 	return null if buf.is_empty() else buf.to_mesh(CELL)
 
 
@@ -929,6 +995,7 @@ static func _water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, 
 		if d != FACE_BOTTOM and nb[d] == AIR:
 			if d == FACE_TOP and fills != 0:
 				for q in 4:
-					_piece(buf, base, h, q, CUT if fills & (1 << q) else QUARTER, Vector3.UP, white, data)
+					_piece(buf, base, h, q, CUT if fills & (1 << q) else QUARTER, Vector3.UP, white, data,
+						foam >> (16 + 2 * q) & 3)
 				continue
 			_add(buf, faces[d], d, base, Vector3(1.0, h, 1.0), Vector3.ZERO, white, data)

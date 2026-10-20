@@ -1,8 +1,8 @@
 extends Node3D
 ## Footprints left behind by the player and the animals: a ring of flat quads over the
 ## ground, drawn with track.gdshader, which darkens the ground under each print and
-## fades it out with age. Prints stay longer in snow than on soil; stone, planks and
-## water take none.
+## fades it out with age. Prints stay longer in snow and on ice than on soil; stone,
+## planks and open water take none.
 
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
@@ -59,6 +59,8 @@ func _ready() -> void:
 	material = ShaderMaterial.new()
 	material.shader = TrackShader
 	node.material_override = material
+	# After the water, so prints show on the ice.
+	material.render_priority = 1
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.extra_cull_margin = 24.0
 	add_child(node)
@@ -82,6 +84,10 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 	if snow > 0.6 and ground != Mat.WATER and world.roof_level(cell.x, cell.z) == cell.y:
 		tint = Color(0.62, 0.68, 0.84)
 		life = 120.0
+	elif ground == Mat.WATER and world.water_frozen:
+		# Scuffs of frost on the ice.
+		tint = Color(0.78, 0.86, 0.9)
+		life = 90.0
 	elif ground == Mat.GRASS:
 		tint = Color(0.72, 0.68, 0.58) if wet < 0.5 else Color(0.6, 0.56, 0.5)
 		life = 20.0 if wet < 0.5 else 40.0

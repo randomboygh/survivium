@@ -30,6 +30,7 @@ const SCHEMAS := {
 		"roof": {"type": "bool", "default": true},
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
+		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},

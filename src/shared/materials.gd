@@ -40,6 +40,9 @@ static var RECORDS: Array = []
 ## Blocks the player can place, in hotbar order.
 static var PLACEABLE: Array = []
 static var flags: PackedByteArray = []
+## How round the cut corners of natural ground are, by material: 0 a straight cut at
+## 45 degrees, 1 a little rounded, 2 a quarter circle (see ChunkMesher.CORNER_P).
+static var corner_shape: PackedByteArray = []
 
 
 static func _static_init() -> void:
@@ -52,12 +55,14 @@ static func refresh() -> void:
 	IDS = []
 	NAMES = []
 	flags = []
+	corner_shape = []
 	var hotbar := []
 	for i in COUNT:
 		var r: Dictionary = RECORDS[i]
 		IDS.append(r.id)
 		NAMES.append(r.title)
 		flags.append((SOLID if r.solid else 0) | (ROOF if r.roof else 0) | (SLOPE if r.slope else 0))
+		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
 		if r.hotbar > 0:
 			hotbar.append([r.hotbar, i])
 	hotbar.sort()

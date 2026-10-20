@@ -18,12 +18,17 @@
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
 //          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1)
+//   A snowdrift has tile 63 and UV = 4 + the vertex's place on the mound's round
+//          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
 render_mode world_vertex_coords, cull_back;
 
 #include "res://shaders/common.gdshaderinc"
 
 global uniform sampler2D terrain_atlas : source_color, filter_nearest;
+// Corner shape of each material (Mat.corner_shape): 0 a straight cut, 1 a little
+// rounded, 2 a quarter circle; the exponent p of the curve is 1, 1.5 or 2.
+uniform int corner_shapes[21];
 
 const int NONE = 63;
 const int GRASS = 1;
@@ -38,7 +43,22 @@ varying vec3 world_normal;
 varying flat vec2 packed;
 varying float clouds;
 
+// How big the snowdrifts are: full in deep snow, sinking and shrinking to nothing as
+// the snow cover thins, so they melt away in spring instead of vanishing at once.
+float drift_size() {
+	return clamp((snow_amount - 0.3) / 0.5, 0.0, 1.0);
+}
+
+bool is_drift(float packed_tile, vec2 uv) {
+	return int(packed_tile + 0.5) % 64 == NONE && uv.x > 2.5;
+}
+
 void vertex() {
+	if (is_drift(UV2.x, UV)) {
+		// The mound stands on the top of its cell and is lower than a cell.
+		float base = floor(VERTEX.y / CELL + 0.01) * CELL;
+		VERTEX.y = base + (VERTEX.y - base) * drift_size();
+	}
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	packed = UV2;
@@ -81,9 +101,10 @@ vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
 // the wind, bluish hollows and a few glints.
 vec3 snow_color(vec2 xz, vec2 wt) {
 	float drift = ground_patch(xz, 9.0);
-	// Kept well under 1 because the noon light adds up to more than 1 and the screen
-	// encoding lifts bright tones further: 0.66 here is a soft white on screen.
-	vec3 c = drift > 0.62 ? vec3(0.66, 0.7, 0.78) : (drift < 0.36 ? vec3(0.56, 0.61, 0.72) : vec3(0.61, 0.65, 0.75));
+	// Kept under 1 because the noon light adds up to more than 1 and the screen
+	// encoding lifts bright tones further: 0.73 here is a near white on screen, the
+	// hollows stay a light blue grey.
+	vec3 c = drift > 0.62 ? vec3(0.73, 0.76, 0.82) : (drift < 0.36 ? vec3(0.64, 0.68, 0.77) : vec3(0.69, 0.72, 0.8));
 	float ripple = ground_patch(vec2(xz.x * 1.5, xz.y * 6.0) + 50.0, 13.0);
 	if (ripple > 0.6) {
 		c *= vec3(1.06, 1.05, 1.03);
@@ -103,6 +124,13 @@ void fragment() {
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
 	if (!IN_SHADOW_PASS && above_cut(world_pos)) {
 		discard;
+	}
+	if (is_drift(packed.x, UV)) {
+		// The shrinking footprint of a melting drift, with a dithered rim.
+		float r = length(UV - 4.0) * 2.0;
+		if (r > drift_size() + (bayer4(floor(world_pos.xz * TEXELS)) - 0.5) * 0.15) {
+			discard;
+		}
 	}
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
@@ -182,11 +210,12 @@ void fragment() {
 		}
 	}
 	if ((flag & 8) != 0) {
-		// Texel distance to the diagonal half a cell from corner k, counted on the face.
+		// Texel distance to the curve of corner k (the diagonal half a cell from the
+		// corner, or a rounder curve, see ChunkMesher.corner_curve), counted on the
+		// face, positive toward the middle of the cell.
 		int k = (flag >> 4) & 3;
-		int mid = int(CELL_TEXELS) / 2;
-		int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
-		int dd = (flag & 64) != 0 ? -sd : sd;
+		int dd = corner_distance(t, k, corner_shapes[tile / 3]);
+		dd = (flag & 64) != 0 ? -dd : dd;
 		int code = (flag >> 7) & 3;
 		if (code == 1 && dd == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
