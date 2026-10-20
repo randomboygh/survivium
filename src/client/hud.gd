@@ -449,6 +449,12 @@ func toggle_test() -> void:
 		open_settings("test")
 
 
+## Leaves the pause for the main menu over the running world.
+func _to_main_menu() -> void:
+	toggle_menu()
+	game.menu.open()
+
+
 func _build_menu() -> void:
 	_shade = ColorRect.new()
 	_shade.color = Color(0, 0, 0, 0.4)
@@ -468,6 +474,7 @@ func _build_menu() -> void:
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["stats"] = _add_menu_button(box, "", toggle_stats)
 	_menu_buttons["test"] = _add_menu_button(box, "Для проверки", open_settings.bind("test"))
+	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 	_settings = SettingsMenu.new(game)
 	_settings.closed.connect(func() -> void:
 		if get_tree().paused:
@@ -480,6 +487,8 @@ func _update_menu() -> void:
 	if game == null or not _menu.visible:
 		return
 	_menu_buttons["stats"].text = "Статистика: %s" % ("вкл" if perf.visible else "выкл")
+	# Tests and tools play without the main menu.
+	_menu_buttons["main"].visible = game.menu != null
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 

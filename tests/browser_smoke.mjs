@@ -15,8 +15,9 @@ const browser = await chromium.launch({
 });
 const errors = [];
 
-// Opens the page, makes the world from the first screen and waits until it is built:
-// the phone taps "Создать мир", the desktop presses Enter.
+// Opens the page, goes into the world from the main menu and waits until it is built:
+// the phone taps "Новый мир" and then "Создать мир" on the setup screen (the same world,
+// so the menu goes straight in), the desktop presses Enter on "Играть".
 async function open(name, options, init, tapDpr) {
   const context = await browser.newContext(options);
   if (init) await context.addInitScript(init);
@@ -33,19 +34,28 @@ async function open(name, options, init, tapDpr) {
     errors.push(`${name}: ${e.message}`);
   });
   await page.goto(URL);
-  // The world setup screen prints where its start button is.
-  let deadline = Date.now() + 120000;
-  const shown = () => log.find((t) => t.startsWith('world setup shown'));
-  while (!shown() && Date.now() < deadline) await page.waitForTimeout(500);
-  if (!shown()) errors.push(`${name}: the world setup screen did not show within 120 s`);
-  else if (tapDpr) {
-    const r = (shown().match(/-?[\d.]+/g) || []).map(Number);
+  // The main menu and the setup screen print where their buttons are.
+  const waitFor = async (prefix, what) => {
+    const deadline = Date.now() + 120000;
+    const line = () => log.find((t) => t.startsWith(prefix));
+    while (!line() && Date.now() < deadline) await page.waitForTimeout(500);
+    if (!line()) errors.push(`${name}: ${what} did not show within 120 s`);
+    return line();
+  };
+  const tap = async (rect) => {
+    const r = (rect.match(/-?[\d.]+/g) || []).map(Number);
     await page.touchscreen.tap((r[0] + r[2] / 2) / tapDpr, (r[1] + r[3] / 2) / tapDpr);
-  } else {
+  };
+  const menu = await waitFor('main menu shown', 'the main menu');
+  if (menu && tapDpr) {
+    await tap(menu.slice(menu.indexOf('new')));
+    const setup = await waitFor('world setup shown', 'the world setup screen');
+    if (setup) await tap(setup);
+  } else if (menu) {
     await page.keyboard.press('Enter');
   }
   // Wait until the world is built (main.gd prints "world ready").
-  deadline = Date.now() + 180000;
+  const deadline = Date.now() + 180000;
   while (!log.some((t) => t.includes('world ready')) && Date.now() < deadline) await page.waitForTimeout(1000);
   if (!log.some((t) => t.includes('world ready'))) errors.push(`${name}: world was not ready within 180 s`);
   await page.waitForTimeout(2000);
