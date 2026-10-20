@@ -393,7 +393,7 @@ func _corners(w, at: Vector3) -> Vector3:
 
 
 ## The cave floor near `at` deepest under the ground, with room to stand around it.
-func _cave(w, at: Vector3) -> Vector3:
+static func _cave(w, at: Vector3) -> Vector3:
 	var from := at / CELL
 	var best := from
 	var best_depth := 0

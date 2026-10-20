@@ -133,6 +133,10 @@ class Job extends RefCounted:
 	var ns := 0
 	var rng := RandomNumberGenerator.new()
 	var trunks: Array
+	## The trees around the chunk, to tell which crown points belong to a trunk, and
+	## how many trunks have cast their shadow.
+	var wide: Array
+	var tree := 0
 
 
 static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
@@ -154,6 +158,7 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	job.x1 = mini(x0 + size, w.size_x)
 	job.z1 = mini(z0 + size, w.size_z)
 	job.trunks = _trunks_near(w, x0, z0, job.x1, job.z1)
+	job.wide = _trunks_near(w, x0 - TREE_REACH, z0 - TREE_REACH, job.x1 + TREE_REACH, job.z1 + TREE_REACH)
 	return job
 
 
@@ -203,8 +208,9 @@ static func ear_field_at(w, x: int, y: int, z: int) -> bool:
 	return ear_noise.get_noise_2d(x, z) > 0.4
 
 
-## Builds the plants of the next `columns` columns of cells. Returns true once every
-## column is built.
+## Builds the plants of the next `columns` columns of cells, then the shadow of one
+## tree per column (a forest chunk has dozens, each as costly as a few columns).
+## Returns true once every column is built and every tree has its shadow.
 static func step(job: Job, columns: int) -> bool:
 	while columns > 0 and job.z < job.z1:
 		_column(job, job.x, job.z)
@@ -213,7 +219,15 @@ static func step(job: Job, columns: int) -> bool:
 		if job.x >= job.x1:
 			job.x = job.x0
 			job.z += 1
-	return job.z >= job.z1
+	# Trees whose trunks stand in this chunk cast one shadow per level of their crown.
+	while columns > 0 and job.z >= job.z1 and job.tree < job.trunks.size():
+		var t: Array = job.trunks[job.tree]
+		job.tree += 1
+		columns -= 1
+		var at: Vector2i = t[0]
+		if at.x >= job.x0 and at.x < job.x1 and at.y >= job.z0 and at.y < job.z1:
+			job.ns += _tree_shadows(job.w, t, job.wide, job.shadows)
+	return job.z >= job.z1 and job.tree >= job.trunks.size()
 
 
 static func _column(job: Job, x: int, z: int) -> void:
@@ -370,16 +384,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 
 ## The plants once every column is built (see build_chunk).
 static func finish(job: Job) -> Dictionary:
-	var w = job.w
-	var shadows := job.shadows
-	var ns := job.ns
-	# Trees whose trunks stand in this chunk cast one shadow per level of their crown.
-	var wide := _trunks_near(w, job.x0 - TREE_REACH, job.z0 - TREE_REACH, job.x1 + TREE_REACH, job.z1 + TREE_REACH)
-	for t in job.trunks:
-		var at: Vector2i = t[0]
-		if at.x >= job.x0 and at.x < job.x1 and at.y >= job.z0 and at.y < job.z1:
-			ns += _tree_shadows(w, t, wide, shadows)
-	return {"grass": [job.ng, job.grass], "clumps": [job.nc, job.clumps], "shadows": [ns, shadows]}
+	return {"grass": [job.ng, job.grass], "clumps": [job.nc, job.clumps], "shadows": [job.ns, job.shadows]}
 
 
 ## True for a ground cell at the water's edge: open water beside it at its own level

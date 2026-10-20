@@ -50,7 +50,8 @@
 
 - Движок: Godot 4.5 (рендерер Compatibility, чтобы работать в браузере).
 - Открыть проект: Godot → Import → `project.godot`.
-- Тесты: `godot --headless --path . --script res://tests/run_tests.gd`.
+- Тесты: `godot --headless --path . --script res://tests/run_tests.gd`; тест фризов (игра без экрана,
+  предел времени кадра): `godot --headless --path . --script res://tests/frame_test.gd`.
 - GitHub Actions на каждый пуш запускает тесты, собирает web-версию и публикует её на GitHub Pages
   (в настройках репозитория: Settings → Pages → Source: GitHub Actions).
 
@@ -61,6 +62,7 @@
 - `assets/fonts/`: пиксельный шрифт Press Start 2P (лицензия OFL).
 - `shaders/`: шейдеры мира (кромки, переходы, срез, снег, мокрость, сезоны), воды, травы, крон, спрайтов,
   частиц и цветокора; общий код в `common.gdshaderinc`.
-- `tests/`: headless-тесты.
+- `tests/`: headless-тесты (`run_tests.gd` — проверки данных и мешей, `frame_test.gd` — фризы,
+  `browser_smoke.mjs` — запуск web-сборки в Chrome на CI).
 - `tools/shot.gd`: скриншоты сцен (день, вечер, ночь, дождь, осень, зима, пещера, берег) без браузера:
   `xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots`.
