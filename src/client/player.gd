@@ -298,8 +298,9 @@ func _collides(p: Vector3) -> bool:
 				var f := _footprint(x, z, p)
 				if not world.blocks_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y):
 					continue
-				# A sloping cell only blocks below its surface under the feet.
-				if y != y0 or p.y + 0.001 < y + _cell_top(x, y, z, p):
+				# A sloping cell only blocks below its surface under the feet, which may
+				# lie below the cell where the slope goes on down.
+				if p.y + 0.001 < y + _cell_top(x, y, z, p):
 					return true
 	return false
 
@@ -328,21 +329,22 @@ func _footprint(x: int, z: int, p: Vector3) -> Rect2:
 	return Rect2(a, b - a)
 
 
-## Top of a solid cell under the footprint at `p`, 0..1: 1 for a cube, the highest
-## point of the slope under the feet otherwise.
+## Top of a solid cell under the footprint at `p` above its level: 1 for a cube, the
+## highest point of the slope under the feet otherwise (below 0 where the slope goes
+## on down into the cell below).
 func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 	if not Mat.can_slope(world.get_cell(x, y, z)):
 		return 1.0
 	var mask: int = world.slope_mask(x, y, z)
 	if mask == WorldData.FULL:
 		return 1.0
-	var cuts: int = world.corner_cuts(x, y, z)
+	var patch: PackedFloat32Array = world.surface_patch(x, y, z)
 	var ax := clampf(p.x - HALF_WIDTH - x, 0.0, 1.0)
 	var bx := clampf(p.x + HALF_WIDTH - x, 0.0, 1.0)
 	var az := clampf(p.z - HALF_WIDTH - z, 0.0, 1.0)
 	var bz := clampf(p.z + HALF_WIDTH - z, 0.0, 1.0)
-	var top := 0.0
+	var top := -INF
 	for i in 3:
 		for k in 3:
-			top = maxf(top, WorldData.slope_height(mask, lerpf(ax, bx, i * 0.5), lerpf(az, bz, k * 0.5), cuts))
+			top = maxf(top, WorldData.patch_height(patch, lerpf(ax, bx, i * 0.5), lerpf(az, bz, k * 0.5)))
 	return top
