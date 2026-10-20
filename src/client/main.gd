@@ -1,6 +1,7 @@
 extends Node
-## Technical prototype entry point: asks for the world (WorldSetup: seed and settings,
-## with a map of it), generates it, builds the scene and runs the frame. The work is
+## Technical prototype entry point: starts the world of the saved settings and shows
+## the main menu over it while it is built (MainMenu; a new world from its WorldSetup
+## screen restarts the scene), builds the scene and runs the frame. The work is
 ## split between modules that each hold their own state and get `self` as `game`:
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
@@ -31,6 +32,7 @@ const EffectsScript := preload("res://src/client/effects.gd")
 const TracksScript := preload("res://src/client/tracks.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
 const WorldSetup := preload("res://src/client/world_setup.gd")
+const MainMenu := preload("res://src/client/main_menu.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
 const GrassShader := preload("res://shaders/grass.gdshader")
@@ -53,6 +55,7 @@ var controls: Controls
 var view: CameraRig
 var props: Props
 var settings: SettingsScript
+var menu: MainMenu
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
 ## shown with the snow cover.
 var world_root: Node3D
@@ -74,14 +77,19 @@ var ready_to_play := false
 var last_print := Vector3.ZERO
 var left_foot := false
 var fps_clock := 0.0
-## Tests and tools start the world from the saved settings without the setup screen.
+## Tests and tools start the world from the saved settings without the main menu.
 var skip_setup := false
+## The seed and WorldGen settings of the world being played.
 var world_seed := 0
-## Time spent on the setup screen, left out of the load time.
-var setup_ms := 0
+var world_options := {}
+## When the scene started, for the load time.
+var start_ms := 0
+## Set before a restart for another world: the scene that comes up goes straight in.
+static var play_at_once := false
 
 
 func _ready() -> void:
+	start_ms = Time.get_ticks_msec()
 	controls = Controls.new(self)
 	settings = SettingsScript.new(self)
 	settings.load()
@@ -94,17 +102,15 @@ func _ready() -> void:
 	_build_ui()
 	get_viewport().size_changed.connect(view.on_screen_resized)
 	view.on_screen_resized()
-	if skip_setup:
-		start_world()
-		return
-	var setup := WorldSetup.new(self)
-	hud.add_child(setup)
-	var shown := Time.get_ticks_msec()
-	setup.done.connect(func() -> void:
-		setup_ms = Time.get_ticks_msec() - shown
-		setup.queue_free()
-		start_world())
-	view.on_screen_resized()
+	if not skip_setup:
+		_build_menu()
+	start_world()
+
+
+## Starts the game again for the world the settings now ask for, past the menu.
+func restart() -> void:
+	play_at_once = true
+	get_tree().reload_current_scene()
 
 
 ## Generates the world the settings ask for and builds the scene around the spawn.
@@ -115,9 +121,10 @@ func start_world() -> void:
 	await get_tree().process_frame
 	var t0 := Time.get_ticks_msec()
 	world_seed = settings.values.world_seed
-	gen = WorldGen.new(world_seed, 48, settings.world_options())
+	world_options = settings.world_options()
+	gen = WorldGen.new(world_seed, 48, world_options)
 	world = gen.world
-	print("world %d %s: spawn found in %d ms" % [world_seed, settings.world_options(), Time.get_ticks_msec() - t0])
+	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
@@ -133,7 +140,7 @@ func _process(delta: float) -> void:
 	if not ready_to_play:
 		if chunks.build_near(40):
 			hud.set_loading("")
-			hud.perf.world_ms = Time.get_ticks_msec() - setup_ms
+			hud.perf.world_ms = Time.get_ticks_msec() - start_ms
 			# Freezes while the world was being built are not the game's.
 			hud.perf.reset()
 			hud.perf.chunks = chunks.near_total
@@ -145,13 +152,15 @@ func _process(delta: float) -> void:
 			creatures.setup(world, player, world_seed)
 			ready_to_play = true
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
-			print("world ready in %d ms (not counting %d ms on the setup screen)" % [Time.get_ticks_msec() - setup_ms, setup_ms])
+			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
 			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
 	sky.update(delta)
 	if ready_to_play:
-		player.move_input = controls.read_move()
-		player.step(minf(delta, 0.05), controls.jump())
+		# The player stands still behind the main menu.
+		var playing := menu == null or not menu.is_open
+		player.move_input = controls.read_move() if playing else Vector2.ZERO
+		player.step(minf(delta, 0.05), controls.jump() and playing)
 		_leave_footprints()
 	chunks.update_cut(delta)
 	chunks.run_jobs()
@@ -217,6 +226,20 @@ func _build_ui() -> void:
 	hud.game = self
 	layer.add_child(hud)
 	hud.set_touch(controls.touch)
+
+
+## The main menu in a layer over the interface, open from the start.
+func _build_menu() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 2
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	menu = MainMenu.new(self)
+	layer.add_child(menu)
+	menu.open()
+	if play_at_once:
+		play_at_once = false
+		menu.play()
 
 
 func _build_materials() -> void:

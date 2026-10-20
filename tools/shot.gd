@@ -79,6 +79,12 @@ const SHOTS := {
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
+	# The main menu over the live world, over the painted sky it shows while the world is
+	# built, and with the setup screen of a new world open over it.
+	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
+	"ui-main-menu-pc": {"time": 0.42, "season": 1, "main_menu": "live"},
+	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky"},
+	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 }
 
 var main: Node
@@ -197,6 +203,17 @@ func _run() -> void:
 			# The map of the setup screen is drawn a few rows a frame.
 			for i in 120:
 				await process_frame
+		if shot.has("main_menu"):
+			main._build_menu()
+			# Painted sky only for "sky": the world is built already, so it would fade.
+			main.menu._fading = shot.main_menu == "sky"
+			main.menu._backdrop.visible = shot.main_menu == "sky"
+			await process_frame
+			if shot.main_menu == "setup":
+				main.menu._new_world()
+				for i in 120:
+					await process_frame
+			await process_frame
 		if shot.get("map", false):
 			main.hud.map_view.open()
 			await process_frame
@@ -208,6 +225,10 @@ func _run() -> void:
 			_hold(shot.keys, false)
 		if setup != null:
 			setup.queue_free()
+		if shot.has("main_menu"):
+			main.menu.get_parent().queue_free()
+			main.menu = null
+			main.hud.visible = true
 		if shot.get("map", false):
 			main.hud.map_view.close()
 		print("saved ", shot_name)

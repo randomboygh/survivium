@@ -3,8 +3,9 @@ extends Control
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
 ## as rows "name ‹ value ›" like the settings window, with a map of the land around
 ## the spawn drawn a few rows a frame as the choice changes. "Создать мир" (or Enter)
-## keeps the choice in Settings and starts the world. It covers the whole screen, the
-## panel in the middle. `game` is the Main node.
+## keeps the choice in Settings and starts the world, "Назад" (or Escape) leaves it.
+## It covers the whole screen over a shade of the world behind, the panel in the
+## middle. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -27,9 +28,10 @@ const KINDS := [
 	["Равнины", [2, 0, 0, 2, 2]],
 ]
 const OPTIONS := ["size", "water", "mountains", "rivers", "biomes"]
-const BACKDROP := Color(0.06, 0.06, 0.07)
+const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 
 signal done
+signal cancelled
 
 var game
 var _rows := []
@@ -112,7 +114,17 @@ func _ready() -> void:
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
 		start.add_theme_color_override(c, UiStyle.DARK_INK)
 	start.pressed.connect(_start)
-	outer.add_child(start)
+	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 6)
+	outer.add_child(buttons)
+	var back := Button.new()
+	back.text = "Назад"
+	back.focus_mode = Control.FOCUS_NONE
+	back.custom_minimum_size = Vector2(96, 36)
+	back.pressed.connect(cancelled.emit)
+	buttons.add_child(back)
+	buttons.add_child(start)
 	_start_button = start
 	_refresh()
 	_set_focus(1)
@@ -300,6 +312,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_ENTER, KEY_KP_ENTER:
 			if not event.echo:
 				_start()
+		KEY_ESCAPE:
+			if not event.echo:
+				cancelled.emit()
 		KEY_UP, KEY_W:
 			_set_focus(_focus - 1)
 		KEY_DOWN, KEY_S:
