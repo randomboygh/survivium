@@ -44,6 +44,8 @@ const float CELL_TEXELS = 8.0;
 // 1, 2, 3 and 5 parts of 5 (Fibonacci), and how bright each ring is.
 const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 1.0);
 const vec4 LIGHT_RING_LEVELS = vec4(1.0, 0.55, 0.3, 0.14);
+// The least a face gets of the sun or the moon: what level ground gets in a shadow.
+const float SHADOW_FLOOR = 0.14;
 
 vec3 shear(vec3 p) {
 	return vec3(p.x, p.y, p.z - p.y);
@@ -221,7 +223,10 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 		float shadow = min(mix(0.2, 1.0, step(0.5, attenuation)), clouds);
 		// The top band is only reached by slopes facing the sun, never by flat ground.
 		float lit = ndl > 0.9 ? 1.12 : (ndl > 0.55 ? 1.0 : (ndl > 0.2 ? 0.7 : (ndl > 0.02 ? 0.4 : 0.0)));
-		return light_color * lit * shadow / PI;
+		// A face turned away from a low sun is no darker than ground in a shadow, so
+		// the slopes of a terraced shore merge with the shadows beside them instead of
+		// cutting black triangles into it.
+		return light_color * max(lit * shadow, SHADOW_FLOOR) / PI;
 	}
 	// Torches and fires have no falloff of their own (omni_attenuation 0), so Godot's
 	// attenuation is (1 - (d/r)^4)^2 and gives back the distance d as a share of the

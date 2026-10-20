@@ -22,7 +22,10 @@ comments, commits and PRs are in English.
   and the seed, so a chunk can be made at any time; `WorldData.track_edits` is off meanwhile, and
   generator writes skip SHAPED (`final`) chunks. Unedited chunks beyond `DROP_RANGE` are forgotten
   (`gen.forget`) and made again the same, regrowing the neighbours' trees that reach in.
-  `lay_out(x0, z0, w, h, step)` gives the layout of any window (maps, the setup screen,
+  Saves (`world_store.gd`): one folder per world under `user://saves` with `world.json`, players and
+  only the changed chunks (`WorldGen.pack`); a player's change that is not a cell goes through
+  `WorldData.note_edit` so the chunk is kept and saved, and a saved chunk comes back SHAPED in place
+  of its TERRAIN stage. `lay_out(x0, z0, w, h, step)` gives the layout of any window (maps, the setup screen,
   `find_place`). Texture maps over the world (roof, heat) wrap every `RoofMap.WRAP` cells
   (`wrap_size` shader global).
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
@@ -45,7 +48,9 @@ comments, commits and PRs are in English.
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
   world; tests and tools set `main.skip_setup` to start without it),
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
-  `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›").
+  `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›"), `save_game.gd`
+  (picks the world played last, puts the player, clock and props back, autosaves; modules keep
+  their part of the player with `save.track(name, obj)`).
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push
@@ -54,6 +59,7 @@ comments, commits and PRs are in English.
 godot --headless --path . --import
 godot --headless --path . --script res://tools/validate.gd
 godot --headless --path . --script res://tests/run_tests.gd
+timeout 300 godot --headless --path . --script res://tests/save_test.gd
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 ```
 

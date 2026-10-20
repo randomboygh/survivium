@@ -17,6 +17,7 @@ const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
 const PlayerArt := preload("res://src/client/player_art.gd")
 const Yaml := preload("res://src/shared/yaml.gd")
 const Content := preload("res://src/shared/content.gd")
+const WorldStore := preload("res://src/shared/world_store.gd")
 
 var checks := 0
 var failures := 0
@@ -38,6 +39,7 @@ func _init() -> void:
 	_test_trees()
 	_test_bushes()
 	_test_felling()
+	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
 	_test_content()
@@ -889,3 +891,74 @@ func _bits(v: int) -> int:
 		v &= v - 1
 		n += 1
 	return n
+
+
+## A forest chunk the player changed (a tree felled, a hole dug, a block placed, a bush
+## gone) is saved, and a new run of the same world brings it back as it was, whatever
+## order the chunks around are made in; its trees grow again into the chunks around.
+func _test_save() -> void:
+	var a := WorldGen.new(42)
+	var at := a.find_place("forest", Vector2i(a.spawn_guess.x, a.spawn_guess.z))
+	var home := WorldData.chunk_key(at.x, at.y)
+	var area: Array[Vector2i] = []
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			area.append(home + Vector2i(dx, dz))
+	for k in area:
+		_ensure_stage(a, k, WorldGen.SHAPED)
+	var w := a.world
+	_check(w.unsaved.is_empty(), "the generator's writes are not changes to save")
+	var trunks: Array = w.tree_chunks.get(home, {}).keys()
+	_check(not trunks.is_empty(), "the forest chunk has trees")
+	if trunks.is_empty():
+		return
+	var trunk: Vector2i = trunks[0]
+	var foot := w.surface_y(trunk.x, trunk.y)
+	for y in range(w.size_y - 1, 0, -1):
+		if w.get_cell(trunk.x, y, trunk.y) == Mat.LOG and w.get_cell(trunk.x, y - 1, trunk.y) != Mat.LOG:
+			foot = y
+			break
+	Trees.fell(w, Vector3i(trunk.x, foot + 1, trunk.y), Vector2(1.0, 0.0))
+	var x0 := home.x * WorldData.CHUNK
+	var z0 := home.y * WorldData.CHUNK
+	var top := w.surface_y(x0 + 1, z0 + 1)
+	for y in range(top - 3, top):
+		w.set_cell(x0 + 1, y, z0 + 1, Mat.AIR)
+	w.set_cell(x0 + 14, w.surface_y(x0 + 14, z0 + 8), z0 + 8, Mat.STONE)
+	var bushes: Array = w.bush_chunks.get(home, {}).keys()
+	if not bushes.is_empty():
+		w.remove_bush(bushes[0])
+	_check(w.unsaved.has(home) and not a.forget(home), "a changed chunk is kept and waits to be saved")
+	var store := WorldStore.new("user://test_saves/save")
+	store.erase()
+	store = WorldStore.new("user://test_saves/save")
+	for k: Vector2i in w.unsaved:
+		_check(store.write_chunk(k, a.pack(k)), "chunk %s is written" % k)
+	var written := w.unsaved.size()
+	w.unsaved.clear()
+	var again := WorldStore.new("user://test_saves/save")
+	_check(again.chunk_count() == written, "the save lists its chunks")
+	# A new run, the chunks made from the far corner: the changed chunk comes back
+	# after some of its neighbours have their terrain.
+	var b := WorldGen.new(42)
+	b.saved = again
+	for i in range(area.size() - 1, -1, -1):
+		_ensure_stage(b, area[i], WorldGen.SHAPED)
+	_check(_same_cells(b.world, w, area) and _same_view(b, b.world, w, area), "changed chunks come back from the save")
+	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops,
+		"with their trees, bushes and what lies on the ground")
+	_check(b.world.unsaved.is_empty() and b.world.chunks[home].edited, "and stay kept without a new save")
+	# A neighbour dropped and made again regrows the crowns of the saved chunk's trees.
+	var remade := 0
+	for side in area:
+		if not b.world.chunks[side].edited:
+			b.forget(side)
+			_ensure_stage(b, side, WorldGen.SHAPED)
+			remade += 1
+	_check(remade > 0 and _same_cells(b.world, w, area), "neighbours made again get the saved chunk's crowns")
+	# The rest of the files.
+	_check(store.write_json("world.json", {"seed": 42.0}) and store.exists() and store.read_json("world.json").seed == 42.0,
+		"world.json is written and read")
+	_check(WorldStore.world_dir(42, {"size": 2, "water": 0}) == WorldStore.root + "/42-20111", "a world's directory names its seed and settings")
+	store.erase()
+	_check(not DirAccess.dir_exists_absolute("user://test_saves/save"), "a save is erased")
