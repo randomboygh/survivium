@@ -3,7 +3,8 @@
 # roof — считается крышей при срезе уровней; slope — рыхлый грунт, ложится склоном
 # там, где ступенька вниз; hotbar — место на панели блоков (0 — не ставится);
 # corners — срезанные углы природного грунта: sharp — прямой срез под 45°, soft —
-# чуть скруглённый, round — по четверти круга.
+# чуть скруглённый, round — по четверти круга; item — предмет, который даёт выкопанная
+# ячейка (нет поля — ничего).
 - id: air
   title: Воздух
   solid: false
@@ -12,19 +13,23 @@
   title: Трава
   corners: soft
   slope: true
+  item: dirt
 - id: dirt
   title: Земля
   corners: soft
   slope: true
   hotbar: 2
+  item: dirt
 - id: stone
   title: Камень
   hotbar: 1
+  item: stone
 - id: sand
   title: Песок
   corners: round
   slope: true
   hotbar: 5
+  item: sand
 - id: water
   title: Вода
   solid: false
@@ -33,19 +38,24 @@
   title: Бревно
   roof: false
   hotbar: 7
+  item: log
 - id: leaves
   title: Листва
   roof: false
 - id: planks
   title: Доски
   hotbar: 3
+  item: planks
 - id: clay
   title: Глина
   corners: soft
   slope: true
   hotbar: 6
+  item: clay
 - id: copper_ore
   title: Медная руда
+  item: copper_ore
 - id: brick
   title: Кирпич
   hotbar: 4
+  item: brick

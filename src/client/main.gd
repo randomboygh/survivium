@@ -6,7 +6,8 @@ extends Node
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
-## the chest and the campfire) and Settings (the saved settings and the playtest
+## the chest and the campfire), Character (the bag and the body: health, satiety,
+## stamina, death), Gathering (picking things up, berries and branches) and Settings (the saved settings and the playtest
 ## switches). The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -20,6 +21,8 @@ const SkyScript := preload("res://src/client/sky.gd")
 const Controls := preload("res://src/client/controls.gd")
 const CameraRig := preload("res://src/client/camera_rig.gd")
 const Props := preload("res://src/client/props.gd")
+const CharacterScript := preload("res://src/client/character.gd")
+const Gathering := preload("res://src/client/gathering.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PlayerScript := preload("res://src/client/player.gd")
@@ -54,6 +57,8 @@ var sky: SkyScript
 var controls: Controls
 var view: CameraRig
 var props: Props
+var character: CharacterScript
+var gathering: Gathering
 var settings: SettingsScript
 var menu: MainMenu
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
@@ -97,6 +102,8 @@ func _ready() -> void:
 	chunks = ChunkStreamer.new(self)
 	sky = SkyScript.new(self)
 	props = Props.new(self)
+	character = CharacterScript.new(self)
+	gathering = Gathering.new(self)
 	view.build(self)
 	world_root = view.world_root
 	_build_ui()
@@ -148,6 +155,7 @@ func _process(delta: float) -> void:
 			var spawn: Vector3i = WorldGen.find_spawn(world, Vector3i((player.position / CELL).floor()))
 			player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
+			character.home = player.position
 			props.place()
 			creatures.setup(world, player, world_seed)
 			ready_to_play = true
@@ -160,7 +168,9 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu.
 		var playing := menu == null or not menu.is_open
 		player.move_input = controls.read_move() if playing else Vector2.ZERO
-		player.step(minf(delta, 0.05), controls.jump() and playing)
+		var jump: bool = controls.jump() and playing and character.can_jump()
+		player.step(minf(delta, 0.05), jump)
+		character.update(minf(delta, 0.05))
 		_leave_footprints()
 	chunks.update_cut(delta)
 	chunks.run_jobs()

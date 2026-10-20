@@ -25,10 +25,11 @@ static func chest() -> VoxelModel:
 	return m
 
 
-## What a felled tree leaves (see Trees.fell), centred on the origin and lying on it,
-## by kind: a log, a branch, an acorn, a cone.
-static func drop(kind: String) -> VoxelModel:
-	match kind:
+## Things lying on the ground (see WorldData.drops), centred on the origin and lying
+## on it, by model name (an item's `model`): a log, a branch, an acorn, a cone, a sack
+## left by a death and a bundle for any item without a model of its own.
+static func drop(model: String) -> VoxelModel:
+	match model:
 		"log":
 			return _log()
 		"branch":
@@ -37,6 +38,10 @@ static func drop(kind: String) -> VoxelModel:
 			return _acorn()
 		"cone":
 			return _cone()
+		"sack":
+			return _sack()
+		"bundle":
+			return _bundle()
 	return null
 
 
@@ -94,4 +99,35 @@ static func _cone() -> VoxelModel:
 			m.set_voxel(Vector3i(x, 0, z - 1), c)
 			if x >= 0 and x <= 1:
 				m.set_voxel(Vector3i(x, 1, z - 1), c * 1.1)
+	return m
+
+
+## A tied cloth sack, a little taller than wide.
+static func _sack() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cloth := Color(0.62, 0.52, 0.36)
+	var rope := Color(0.36, 0.26, 0.16)
+	for y in range(0, 8):
+		var r := 4 if y < 5 else (3 if y < 6 else 1)
+		for z in range(-r, r):
+			for x in range(-r, r):
+				if (x == -r or x == r - 1) and (z == -r or z == r - 1):
+					continue
+				var c := cloth * (0.88 if (x + y * 2 + z) % 4 == 0 else 1.0)
+				m.set_voxel(Vector3i(x, y, z), rope if y == 6 else c)
+	m.set_voxel(Vector3i(0, 8, 0), rope)
+	m.set_voxel(Vector3i(-1, 8, -1), rope)
+	return m
+
+
+## A small bundle of cloth for things without a model of their own.
+static func _bundle() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cloth := Color(0.55, 0.47, 0.34)
+	for y in range(0, 3):
+		for z in range(-2, 2):
+			for x in range(-3, 3):
+				if y == 2 and (x == -3 or x == 2):
+					continue
+				m.set_voxel(Vector3i(x, y, z), cloth * (0.85 if (x + z) % 3 == 0 else 1.0))
 	return m

@@ -156,6 +156,17 @@ const ICONS := {
 		"wwwwwwwww",
 		"wwwwwwwww",
 	],
+	"bag": [
+		"...www...",
+		"..w...w..",
+		".wwwwwww.",
+		"wwwwwwwww",
+		"wwwaaawww",
+		"wwwwawwww",
+		"wwwwwwwww",
+		"wwwwwwwww",
+		".wwwwwww.",
+	],
 	"flask": [
 		"..wwwww..",
 		"...w.w...",

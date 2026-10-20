@@ -9,12 +9,13 @@ const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const VoxelProps := preload("res://src/client/voxel_props.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
+const Items := preload("res://src/shared/items.gd")
 
 const CELL := WorldData.CELL
 const CULL_MARGIN := 24.0
 
 var game
-## Meshes of the things on the ground by kind, and their nodes by chunk.
+## Meshes of the things on the ground by model, and their nodes by chunk.
 var drop_meshes := {}
 var drop_nodes := {}
 
@@ -88,13 +89,16 @@ func show_drops(key: Vector2i) -> void:
 	var nodes := []
 	for d: Array in game.world.drops.get(key, []):
 		var kind: String = d[0]
-		if not drop_meshes.has(kind):
-			var model = VoxelProps.drop(kind)
-			drop_meshes[kind] = model.build_mesh() if model != null else null
-		if drop_meshes[kind] == null:
+		var name: String = "sack" if kind == Items.SACK else Items.get_item(kind).get("model", "")
+		if name == "":
+			name = "bundle"
+		if not drop_meshes.has(name):
+			var model = VoxelProps.drop(name)
+			drop_meshes[name] = model.build_mesh() if model != null else null
+		if drop_meshes[name] == null:
 			continue
 		var node := MeshInstance3D.new()
-		node.mesh = drop_meshes[kind]
+		node.mesh = drop_meshes[name]
 		node.material_override = game.world_mat
 		# Turned in steps of 45 degrees, which keep the pixels tidy.
 		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
