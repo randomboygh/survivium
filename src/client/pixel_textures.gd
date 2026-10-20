@@ -10,8 +10,8 @@ const TILES := 8
 const TUFT := 8
 ## Ground plants: PLANTS variants, each PLANT_W x PLANT_H px (see build_plants).
 const PLANT_W := 8
-const PLANT_H := 16
-const PLANTS := 14
+const PLANT_H := 24
+const PLANTS := 22
 ## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
 ## one of CLUMP_SIZES across. The texture has a row per size of broad-leaf bunch, then a
 ## row per size of needle sprig (from NEEDLE_ROW), then bare branches (BRANCH_ROW).
@@ -127,6 +127,26 @@ static func build_plants() -> ImageTexture:
 		if v == 1:
 			for i in 3:
 				_plant_px(img, 12 + v, rng.randi_range(1, PLANT_W - 2), rng.randi_range(2, 4), Color(0.94, 0.94, 0.9))
+	# Low grass: two or three short blades, the ground shows between them.
+	for v in 4:
+		for b in 2 + v % 2:
+			var x: int = [1, 5, 3, 6][b + v % 2]
+			var h := rng.randi_range(2, 4)
+			for i in h:
+				_plant_px(img, 14 + v, x, i, Color(float(i + 1) / h, 0, 0, 1))
+	# Tall grass: five or six long blades that lean more and more toward the tip, so a
+	# meadow of them waves as one; red is still the height for the tip light.
+	for v in 4:
+		var blades := 5 + v % 2
+		for b in blades:
+			var x := 1 + (b * 6) / blades + rng.randi_range(0, 1)
+			var h := rng.randi_range(13, 17 + 2 * (v / 2))
+			var lean := 1 if (x + v) % 2 == 0 else -1
+			for i in h:
+				var px := x + (lean if i >= h * 2 / 3 else 0) + (lean if i >= h * 5 / 6 else 0)
+				px = clampi(px, 0, PLANT_W - 1)
+				var k := float(i + 1) / h
+				_plant_px(img, 18 + v, px, i, Color(k, 0, 0, 1))
 	return ImageTexture.create_from_image(img)
 
 
@@ -314,15 +334,45 @@ static func _mark_edges(img: Image, origin: Vector2i, cell: int) -> void:
 				img.set_pixel(origin.x + x, origin.y + y, Color(p.r, p.g, p.b, EDGE_ALPHA))
 
 
-## Tileable noise for cloud shadows and water ripples.
+## The cloud noise image, kept so scripts can read the same patches the shaders do.
+static var cloud_image: Image
+
+
+## Tileable noise for cloud shadows, water ripples and the ground patches.
 static func build_cloud_noise() -> ImageTexture:
 	var noise := FastNoiseLite.new()
 	noise.seed = 5
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.frequency = 0.02
 	noise.fractal_octaves = 3
-	var img := noise.get_seamless_image(128, 128)
-	return ImageTexture.create_from_image(img)
+	cloud_image = noise.get_seamless_image(128, 128)
+	return ImageTexture.create_from_image(cloud_image)
+
+
+## The cloud noise at `uv` (wrapping), bilinear like the shaders' sampler.
+static func cloud_sample(uv: Vector2) -> float:
+	if cloud_image == null:
+		build_cloud_noise()
+	var n := cloud_image.get_width()
+	var p := Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0)) * n - Vector2(0.5, 0.5)
+	var x0 := floori(p.x)
+	var y0 := floori(p.y)
+	var fx := p.x - x0
+	var fy := p.y - y0
+	var a := cloud_image.get_pixel(posmod(x0, n), posmod(y0, n)).r
+	var b := cloud_image.get_pixel(posmod(x0 + 1, n), posmod(y0, n)).r
+	var c := cloud_image.get_pixel(posmod(x0, n), posmod(y0 + 1, n)).r
+	var d := cloud_image.get_pixel(posmod(x0 + 1, n), posmod(y0 + 1, n)).r
+	return lerpf(lerpf(a, b, fx), lerpf(c, d, fx), fy)
+
+
+## The ground patch noise at a world position, the same as `ground_patch` in
+## common.gdshaderinc: lush islands near 1, bare dirt under 0.2.
+static func ground_patch(xz: Vector2, salt := 0.0) -> float:
+	var t := (xz * 16.0).floor() / 16.0
+	var a := cloud_sample(t / 23.0 + Vector2(salt * 0.37, salt * 0.61))
+	var b := cloud_sample(t / 7.0 + Vector2(salt * 0.71, 0.5 + salt * 0.13))
+	return clampf((a - 0.5) + (b - 0.5) * 0.45 + 0.5, 0.0, 1.0)
 
 
 static func _vary(c: Color, rng: RandomNumberGenerator, amount := 0.05) -> Color:
