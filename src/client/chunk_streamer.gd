@@ -535,6 +535,11 @@ func update_cut(delta: float) -> void:
 		return
 	if player.on_ground:
 		ground_level = player.level()
+	else:
+		# A jump does not move the cut, but a climb by jumps in the air (a playtest
+		# switch) takes it along a level behind the feet, so the view leaves a cave
+		# with the player instead of on landing.
+		ground_level = maxi(ground_level, player.level() - 1)
 	# The player stands on `level` and is two cells tall.
 	var level := ground_level
 	var px := floori(player.position.x / CELL)
