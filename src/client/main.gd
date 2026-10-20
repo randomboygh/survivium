@@ -248,6 +248,11 @@ func _build_materials() -> void:
 	hud.set_block_icons(atlas, PixelTextures.TILE, PixelTextures.TILES)
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
 	world_mat = _material(WorldShader)
+	var shapes := PackedInt32Array()
+	shapes.resize(21)
+	for m in mini(Mat.COUNT, 21):
+		shapes[m] = Mat.corner_shape[m]
+	world_mat.set_shader_parameter("corner_shapes", shapes)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
 	grass_mat.set_shader_parameter("plant_texture", PixelTextures.build_plants())

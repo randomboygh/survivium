@@ -64,6 +64,8 @@ const SHOTS := {
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
 	"hidden": {"time": 0.42, "season": 1, "wall": true},
+	# A trench four levels deep in a forest: the view is cut at the player's level.
+	"ravine": {"time": 0.42, "season": 1, "forest": true, "trench": true},
 	"pit": {"time": 0.42, "season": 1, "place": "canyon", "cut": -3},
 	"pit-winter": {"time": 0.45, "season": 3, "place": "canyon", "cut": -3},
 	"tracks-winter": {"time": 0.45, "season": 3, "walk": true},
@@ -171,6 +173,8 @@ func _run() -> void:
 		if shot.get("wall", false):
 			_wall(main.world, Vector3i((main.player.position / CELL).floor()))
 			main.roof.build(main.world)
+		if shot.get("trench", false):
+			main.player.position = _trench(main.world, Vector3i((main.player.position / CELL).floor()))
 		if shot.has("cut"):
 			main.chunks.manual_level = main.player.level() + int(shot.cut)
 			main.chunks.update_cut(0.0)
@@ -253,7 +257,7 @@ func _run() -> void:
 		if shot.get("map", false):
 			main.hud.map_view.close()
 		print("saved ", shot_name)
-		if shot.get("wall", false):
+		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
 		if shot.get("menu", false):
@@ -605,6 +609,20 @@ func _unwall(w, at: Vector3i) -> void:
 	wall_cells.clear()
 	_wall_changed(at)
 	main.roof.build(w)
+
+
+## Digs a trench three cells wide and four deep running north to south through `at`
+## (kept in wall_cells to be filled again) and returns the spot on its floor.
+func _trench(w, at: Vector3i) -> Vector3:
+	for z in range(at.z - 10, at.z + 11):
+		for x in range(at.x - 1, at.x + 2):
+			for y in range(at.y - 4, at.y):
+				wall_cells.append([Vector3i(x, y, z), w.get_cell(x, y, z), w.is_natural(x, y, z)])
+				w.set_cell(x, y, z, Mat.AIR)
+	for z in range(at.z - 16, at.z + 17, 8):
+		_wall_changed(Vector3i(at.x, at.y, z - 2))
+	main.roof.build(w)
+	return Vector3(at.x + 0.5, at.y - 4, at.z + 0.5) * CELL
 
 
 func _wall_changed(at: Vector3i) -> void:

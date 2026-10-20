@@ -1,16 +1,20 @@
 # Материалы ячеек. Порядок задаёт номера ячеек в мире, поэтому воздух идёт первым
 # (пустая ячейка = 0). Поля: solid — твёрдая (через неё не пройти, по ней ходят);
 # roof — считается крышей при срезе уровней; slope — рыхлый грунт, ложится склоном
-# там, где ступенька вниз; hotbar — место на панели блоков (0 — не ставится).
+# там, где ступенька вниз; hotbar — место на панели блоков (0 — не ставится);
+# corners — срезанные углы природного грунта: sharp — прямой срез под 45°, soft —
+# чуть скруглённый, round — по четверти круга.
 - id: air
   title: Воздух
   solid: false
   roof: false
 - id: grass
   title: Трава
+  corners: soft
   slope: true
 - id: dirt
   title: Земля
+  corners: soft
   slope: true
   hotbar: 2
 - id: stone
@@ -18,6 +22,7 @@
   hotbar: 1
 - id: sand
   title: Песок
+  corners: round
   slope: true
   hotbar: 5
 - id: water
@@ -36,6 +41,7 @@
   hotbar: 3
 - id: clay
   title: Глина
+  corners: soft
   slope: true
   hotbar: 6
 - id: copper_ore

@@ -150,6 +150,21 @@ float warm_spot(vec3 p, float jitter) {
 	return step(0.45 + (jitter - 0.5) * 0.2, heat_at(p));
 }
 
+// Texel distance from texel t of a cell's top to the curve of corner k with corner
+// shape `shape`, positive toward the middle of the cell: the row of texels on the
+// curve is 0 on the middle's side and -1 on the corner's.
+int corner_distance(ivec2 t, int k, int shape) {
+	int mid = int(CELL_TEXELS) / 2;
+	if (shape == 0) {
+		return k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
+	}
+	vec2 o = vec2(k == 1 || k == 2 ? 1.0 : -1.0, k >= 2 ? 1.0 : -1.0);
+	vec2 uv = max((vec2(t) + 0.5 - float(mid)) * o, vec2(0.0));
+	float p = shape == 1 ? 1.5 : 2.0;
+	float r = pow(pow(uv.x, p) + pow(uv.y, p), 1.0 / p);
+	return int(floor(float(mid) - r + 0.5));
+}
+
 // Ordered 4x4 dither: the threshold (0..1) of texel `t`.
 float bayer4(vec2 t) {
 	ivec2 i = ivec2(mod(t, 4.0));

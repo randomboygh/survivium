@@ -554,7 +554,7 @@ func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
 
 func _ref_can_slope(w: WorldData, x: int, y: int, z: int) -> bool:
 	return w.in_bounds(x, y, z) and w.chunk_at(x, z).natural[y * WorldData.LAYER + WorldData.col_of(x, z)] == WorldData.WILD \
-		and Mat.can_slope(w.get_cell(x, y, z)) and w.get_cell(x, y + 1, z) == Mat.AIR
+		and Mat.can_slope(w.get_cell(x, y, z)) and w.get_cell(x, y + 1, z) in [Mat.AIR, Mat.WATER]
 
 
 func _ref_low(w: WorldData, x: int, y: int, z: int) -> bool:

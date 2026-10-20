@@ -1,8 +1,10 @@
 // Water: see-through over shallows and darker in the deep, foam that laps at the
-// shore, drifting ripple lines and sparkles, rain rings, ice in winter.
+// shore, drifting ripple lines and sparkles, rain rings, ice in winter (footprints
+// on the ice are tracks.gd's).
 // UV2.x: foam bits for the half edges that touch land (2 per edge N, S, W, E: the
 // west or north half, then the other), then for the diagonals of corners NW, NE, SE,
-// SW filled with land, then for those of cut-off corners of the land beside;
+// SW filled with land, then for those of cut-off corners of the land beside, then
+// the shape of each of those four corners' curves (2 bits each, see corner_distance);
 // UV2.y: depth in cells (half a world unit each).
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
@@ -18,6 +20,34 @@ varying vec3 world_pos;
 varying vec3 world_normal;
 varying flat vec2 data;
 varying float clouds;
+// 1 under the open sky, where nothing casts a shadow on the surface (see light()).
+varying float open_sky;
+
+// Ice: clear blue-green over the shallows and darker over the deep, milky frost
+// patches, straight white cracks and glints that do not move, and a dusting of snow
+// in the hollows of the patch noise while snow lies.
+vec3 ice_color(vec2 tex, float depth, bool side) {
+	vec2 xz = tex / TEXELS;
+	vec3 c = mix(vec3(0.46, 0.64, 0.72), vec3(0.28, 0.43, 0.58), depth);
+	if (side) {
+		return c * 0.85;
+	}
+	float frost = ground_patch(xz, 17.0);
+	c = frost > 0.6 ? mix(c, vec3(0.68, 0.78, 0.84), 0.55) : (frost < 0.36 ? c * vec3(0.92, 0.96, 1.0) : c);
+	// Cracks: thin bands of two still noises, on a texel grid.
+	float n = texture(cloud_noise, xz / 5.0 + 0.3).r;
+	float n2 = texture(cloud_noise, xz / 3.0 + 0.7).r;
+	float crack = step(abs(n - 0.5), 0.008) + step(abs(n2 - 0.52), 0.006) * step(0.55, frost);
+	c = mix(c, vec3(0.8, 0.88, 0.93), clamp(crack, 0.0, 1.0) * 0.85);
+	float h = hash12(tex + 61.0);
+	if (h > 0.994) {
+		c = vec3(0.95, 0.98, 1.0);
+	}
+	if (ground_patch(xz, 9.0) + (h - 0.5) * 0.08 < snow_amount * 0.4 - 0.1) {
+		c = mix(c, vec3(0.73, 0.76, 0.82), 0.9);
+	}
+	return c;
+}
 
 void vertex() {
 	// Ice fills its cell to the top, level with the ground beside it, where it is
@@ -78,7 +108,7 @@ void fragment() {
 			if (!filled && ((foam >> (12 + k)) & 1) == 0) {
 				continue;
 			}
-			int sd = k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
+			int sd = corner_distance(t, k, (foam >> (16 + 2 * k)) & 3);
 			float d = float(filled ? sd : -sd);
 			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
 			if (d < wash) {
@@ -99,7 +129,7 @@ void fragment() {
 			col = mix(col, col * 1.4 + 0.08, ring);
 		}
 	}
-	col = mix(col, vec3(0.74, 0.85, 0.92) + 0.06 * hash12(tex), ice_amount);
+	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5), ice_amount);
 	float fade = depth_fade(world_pos.y);
 	ALBEDO = col * (1.0 - fade);
 	EMISSION = depth_haze * fade;
@@ -107,8 +137,13 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
+	open_sky = roofed(world_pos.xz, world_pos.y) ? 0.0 : 1.0;
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	// Trees, cliffs and the player cast no shadow on the surface under the open sky:
+	// it shows on the bed under the water instead. Water under a roof or in a cave
+	// stays in the dark of what covers it; clouds shade it anyway.
+	float shade = LIGHT_IS_DIRECTIONAL && open_sky > 0.5 ? 1.0 : ATTENUATION;
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds);
 }
