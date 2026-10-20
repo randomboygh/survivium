@@ -53,6 +53,11 @@ const SHOTS := {
 	"pit": {"time": 0.42, "season": 1, "place": "canyon", "cut": -3},
 	"pit-winter": {"time": 0.45, "season": 3, "place": "canyon", "cut": -3},
 	"tracks-winter": {"time": 0.45, "season": 3, "walk": true},
+	# The character walking in a direction, caught mid-stride.
+	"walk-s": {"time": 0.42, "season": 1, "keys": [KEY_S]},
+	"walk-e": {"time": 0.42, "season": 1, "keys": [KEY_D]},
+	"walk-ne": {"time": 0.42, "season": 1, "keys": [KEY_D, KEY_W]},
+	"walk-w": {"time": 0.42, "season": 1, "keys": [KEY_A]},
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
@@ -157,6 +162,12 @@ func _run() -> void:
 			main.player.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
+		if shot.has("keys"):
+			# Holds the keys while the shot is taken, so the walk animation shows.
+			main.player.position = _flat_near(main.world, main.player.position)
+			_hold(shot.keys, true)
+			for i in 12:
+				await process_frame
 		# Messages fade after a few seconds, longer than the settling above takes here.
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
@@ -175,6 +186,8 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		if shot.has("keys"):
+			_hold(shot.keys, false)
 		print("saved ", shot_name)
 		if shot.get("wall", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
@@ -187,6 +200,14 @@ func _run() -> void:
 
 
 ## The nearest spot to `p` with level dry ground and no trees for 7 cells around.
+func _hold(keys: Array, down: bool) -> void:
+	for key in keys:
+		var ev := InputEventKey.new()
+		ev.physical_keycode = key
+		ev.pressed = down
+		Input.parse_input_event(ev)
+
+
 func _flat_near(w, p: Vector3) -> Vector3:
 	var cx := floori(p.x / CELL)
 	var cz := floori(p.z / CELL)

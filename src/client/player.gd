@@ -5,7 +5,8 @@ extends Node3D
 ## out onto ground up to one level above the water, and walks on ice in winter.
 ## `position` is the middle of the feet in world units; the body moves in cells.
 
-const SpriteArt := preload("res://src/client/sprite_art.gd")
+const PlayerArt := preload("res://src/client/player_art.gd")
+const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -47,6 +48,14 @@ var water_depth := 0.0
 var water_level := -INF
 ## Height the body pushed against while in water can pull itself up by this step.
 var _pull_up := 0.0
+## Which way the body faces, one of SpriteSheet.COMPASS; set by the last movement.
+var facing := "s"
+## The animation playing and how long it has, in seconds of animation time.
+var anim := "idle"
+var anim_time := 0.0
+## Layers of the look, names from PlayerArt.LAYERS: what is worn and held.
+var look: Array = ["body", "hair", "shirt", "trousers", "boots", "axe"]
+var sheet: SpriteSheet
 var sprite: MeshInstance3D
 ## The same sprite drawn as a silhouette where walls or crowns hide the player.
 var xray: MeshInstance3D
@@ -54,8 +63,9 @@ var torch: OmniLight3D
 
 
 func _ready() -> void:
-	var tex := SpriteArt.texture("player")
-	var mesh := PixelView.sprite_mesh(tex.get_width(), tex.get_height())
+	sheet = PlayerArt.sheet(look)
+	var tex := sheet.texture
+	var mesh := PixelView.sprite_mesh(sheet.frame_size.x, sheet.frame_size.y)
 	sprite = MeshInstance3D.new()
 	sprite.mesh = mesh
 	sprite.material_override = sprite_material(SpriteShader, tex)
@@ -86,6 +96,30 @@ static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
 	return m
 
 
+## Changes what the body wears and holds: the sheet is drawn again with these layers.
+func set_look(layers: Array) -> void:
+	look = layers
+	sheet = PlayerArt.sheet(look)
+	sprite.material_override.set_shader_parameter("sprite_texture", sheet.texture)
+	xray.material_override.set_shader_parameter("sprite_texture", sheet.texture)
+
+
+## Picks the direction and animation for this step: the body turns the way it is
+## pushed and walks, jumps or stands; the walk goes as fast as the feet.
+func _animate(dir: Vector2, speed: float, delta: float) -> void:
+	if dir.length() > 0.1:
+		facing = SpriteSheet.direction_of(dir)
+	var next := "idle"
+	if not on_ground and not swimming:
+		next = "jump"
+	elif dir.length() > 0.1:
+		next = "walk"
+	if next != anim:
+		anim = next
+		anim_time = 0.0
+	anim_time += delta * speed / SPEED
+
+
 func step(delta: float, jump: bool) -> void:
 	var p := position / CELL
 	var surface := _water_surface(p)
@@ -99,6 +133,7 @@ func step(delta: float, jump: bool) -> void:
 	# In water the body gets out onto ground up to one level above the water's cell.
 	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
 	var dir := move_input.limit_length(1.0)
+	_animate(dir, speed, delta)
 	_pull_up = 0.0
 	p = _try_move(p, Vector3(dir.x * speed * delta, 0.0, 0.0), reach)
 	p = _try_move(p, Vector3(0.0, 0.0, dir.y * speed * delta), reach)
@@ -144,8 +179,11 @@ func place_sprite() -> void:
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT
 	xray.global_position = sprite.global_position
 	var line := water_level * CELL if water_level > -INF else -1000.0
+	var frame := sheet.frame_uv(facing, anim, anim_time)
 	sprite.material_override.set_shader_parameter("water_line", line)
+	sprite.material_override.set_shader_parameter("frame_uv", frame)
 	xray.material_override.set_shader_parameter("water_line", line)
+	xray.material_override.set_shader_parameter("frame_uv", frame)
 	torch.global_position = PixelView.shear(position + Vector3(0.0, 1.2, 0.3))
 
 

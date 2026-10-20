@@ -13,6 +13,8 @@ const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
+const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
+const PlayerArt := preload("res://src/client/player_art.gd")
 const Yaml := preload("res://src/shared/yaml.gd")
 const Content := preload("res://src/shared/content.gd")
 
@@ -35,6 +37,7 @@ func _init() -> void:
 	_test_pixel_view()
 	_test_trees()
 	_test_bushes()
+	_test_sprite_sheet()
 	_test_yaml()
 	_test_content()
 	print("%d checks, %d failed" % [checks, failures])
@@ -643,6 +646,29 @@ func _test_bushes() -> void:
 	_check(ripe, "berry bushes have clusters with berries")
 
 
+func _test_sprite_sheet() -> void:
+	_check(SpriteSheet.direction_of(Vector2(0, 1)) == "s", "pushing south faces south")
+	_check(SpriteSheet.direction_of(Vector2(1, 0)) == "e", "pushing east faces east")
+	_check(SpriteSheet.direction_of(Vector2(-1, -1)) == "nw", "pushing north-west faces north-west")
+	_check(SpriteSheet.direction_of(Vector2(0.3, -1)) == "n", "a push mostly north faces north")
+	var s := PlayerArt.sheet(["body", "hair", "shirt", "trousers", "boots", "axe"])
+	_check(s.columns == 5, "player sheet has five columns")
+	_check(s.texture.get_width() == 5 * 14 and s.texture.get_height() == 5 * 18, "player sheet is five by five frames")
+	var img := s.texture.get_image()
+	var drawn := 0
+	for y in 18:
+		for x in 14:
+			if img.get_pixel(x, y).a > 0.5:
+				drawn += 1
+	_check(drawn > 80 and drawn < 14 * 18, "the standing frame is drawn with room around it")
+	_check(img.get_pixel(5, 17).a > 0.5, "the feet stand on the bottom row of the frame")
+	var uv := s.frame_uv("s", "idle", 0.0)
+	_check(uv == Vector4(0.0, 0.0, 0.2, 0.2), "the first frame is the top-left fifth")
+	var w := s.frame_uv("w", "walk", 0.0)
+	_check(w.z < 0.0 and is_equal_approx(w.y, 0.4), "west is east mirrored")
+	_check(s.frame_uv("s", "walk", 0.25) != s.frame_uv("s", "walk", 0.0), "walking changes frames in time")
+	var bare := PlayerArt.sheet(["body"])
+	_check(bare.texture.get_image().get_pixel(5, 17).a < 0.5, "without boots the bottom row is empty")
 func _test_yaml() -> void:
 	var yaml := Yaml.new()
 	var doc: Variant = yaml.parse("""
