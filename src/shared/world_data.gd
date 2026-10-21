@@ -912,6 +912,15 @@ func surface_height(x: int, y: int, z: int, fx: float, fz: float) -> float:
 	return patch_height(surface_patch(x, y, z), fx, fz)
 
 
+## The highest level of column (x, z) that is not air or leaves, -1 for none.
+func _top(x: int, z: int) -> int:
+	var c := chunk_at(x, z)
+	if c == null:
+		return -1
+	var col := ((z & MASK) << SHIFT) | (x & MASK)
+	return top_level(~(c.air[col] | c.leaf[col]) & all_bits)
+
+
 ## Height of the ground a walker stands on at (x, z), in cells: the top of the highest
 ## ground there, following slopes and cut or filled corners. -1 over open water.
 func ground_height(x: float, z: float) -> float:
@@ -922,7 +931,11 @@ func ground_height(x: float, z: float) -> float:
 	var k := corner_at(fx, fz)
 	# Only the corner triangle of the quarter the point is in can be cut or filled.
 	var inside := in_corner(k, fx, fx, fz, fz)
-	for y in range(size_y - 1, -1, -1):
+	# Nothing to stand on above the highest cell of this column and of the three
+	# beside corner k (a filled corner needs ground beside it at its own level).
+	var d: Vector2i = CORNER_DIRS[k]
+	var top := maxi(maxi(_top(cx, cz), _top(cx + d.x, cz)), maxi(_top(cx, cz + d.y), _top(cx + d.x, cz + d.y)))
+	for y in range(top, -1, -1):
 		var m := get_cell(cx, y, cz)
 		if m == Mat.AIR or m == Mat.LEAVES or m == Mat.WATER:
 			if inside and corner_fill(cx, y, cz, k):

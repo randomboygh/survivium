@@ -17,6 +17,11 @@ const CELL := WorldData.CELL
 const MAX_STEP := 0.55
 ## Animals appear within this many cells of the player, where the world is made.
 const SPAWN_REACH := 80
+## Animals off the screen by more than this many world units move and think in steps
+## of FAR_STEP seconds instead of every frame: most of them are far away, and each
+## step looks up the ground under them.
+const FAR_MARGIN := 4.0
+const FAR_STEP := 0.1
 
 
 class Creature:
@@ -31,6 +36,8 @@ class Creature:
 	## Way walked since the last footprint, and which foot made it.
 	var stride := 0.0
 	var left := false
+	## Time gathered off the screen since the last step (see FAR_STEP).
+	var away := 0.0
 
 
 var world
@@ -77,17 +84,36 @@ func _process(delta: float) -> void:
 		for kind in AiRules.SPECIES:
 			if kind != AiRules.HUMAN and count(kind) < AiRules.SPECIES[kind].count:
 				_spawn(kind, true)
+	var seen := _seen()
 	for c in creatures.duplicate():
 		if not creatures.has(c):
 			continue
+		var dt := delta
+		if not seen.has_point(PixelView.screen_plane(c.pos)):
+			c.away += delta
+			if c.away < FAR_STEP:
+				continue
+			dt = c.away
+		c.away = 0.0
 		var spec: Dictionary = AiRules.SPECIES[c.kind]
-		c.hunger = minf(1.0, c.hunger + delta * 0.012)
-		c.think -= delta
+		c.hunger = minf(1.0, c.hunger + dt * 0.012)
+		c.think -= dt
 		if c.think <= 0.0:
 			c.think = 0.4 + rng.randf() * 0.3
 			_decide(c, spec)
-		_move(c, spec, delta)
+		_move(c, spec, dt)
 		c.sprite.position = PixelView.snap(c.pos)
+
+
+## The screen-plane rectangle the camera shows, FAR_MARGIN larger all round (all of
+## the plane without a camera).
+func _seen() -> Rect2:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return Rect2(-1e9, -1e9, 2e9, 2e9)
+	var half := get_viewport().get_visible_rect().size / PixelView.PIXELS_PER_UNIT * 0.5 + Vector2.ONE * FAR_MARGIN
+	var centre := Vector2(cam.global_position.x, cam.global_position.z)
+	return Rect2(centre - half, half * 2.0)
 
 
 func _decide(c: Creature, spec: Dictionary) -> void:
@@ -203,6 +229,8 @@ func _spawn(kind: String, away_from_player: bool) -> void:
 		c.target = pos
 		c.hunger = rng.randf() * 0.5
 		c.think = rng.randf() * 0.5
+		# Off the screen the animals take their steps in different frames.
+		c.away = rng.randf() * FAR_STEP
 		c.sprite = MeshInstance3D.new()
 		c.sprite.mesh = looks[kind][0]
 		c.sprite.material_override = looks[kind][1]

@@ -42,6 +42,14 @@ var enabled := true
 ## Base of each trunk by its column (see WorldData.trees), found once: Vector2(height
 ## or -INF where none was found, the level looked from).
 var _trunk_base := {}
+## The feet of the trunks of a chunk by Vector3i(chunk x, chunk z, the level they were
+## looked for from): [the chunk's number of trees then, PackedVector3Array].
+var _chunk_feet := {}
+## The trunk shadows of the fires, which stand still, are the first instances and are
+## written again only when something they depend on changes: what they were made for
+## (fires, their light's strength, the trees around) and how many there are.
+var _trunks_for := ""
+var _trunks_count := 0
 
 
 func _ready() -> void:
@@ -80,10 +88,47 @@ func _process(_delta: float) -> void:
 		var moon := clampf(game.sky.sky_light / 0.45, 0.0, 1.0)
 		material_override.set_shader_parameter("night", lerpf(NIGHT_LIGHT.x, NIGHT_LIGHT.y, moon))
 		var lights := _lights()
+		n = _fire_trunks(lights)
 		for l: Dictionary in lights:
 			n = _cast_all(l, n)
 		_show_lights(lights)
+	else:
+		_trunks_for = ""
 	mm.visible_instance_count = n
+
+
+## Puts the shadows the fires' lights throw from tree trunks first, unless they are
+## there already from the last frame; returns the next free instance.
+func _fire_trunks(lights: Array) -> int:
+	var w = game.world
+	var key := ""
+	for l: Dictionary in lights:
+		if l.torch:
+			continue
+		var trees := 0
+		var k := _chunks_lit(l)
+		for kz in range(k.position.y, k.end.y + 1):
+			for kx in range(k.position.x, k.end.x + 1):
+				trees += w.tree_chunks.get(Vector2i(kx, kz), {}).size()
+		key += "%s %.2f %d;" % [l.at, l.strength, trees]
+	if key == _trunks_for:
+		return _trunks_count
+	var n := 0
+	for l: Dictionary in lights:
+		if not l.torch:
+			n = _cast_trunks(l, n)
+	_trunks_for = key
+	_trunks_count = n
+	return n
+
+
+## The chunks (as a rectangle of chunk keys, ends included) a light reaches.
+func _chunks_lit(l: Dictionary) -> Rect2i:
+	var at: Vector3 = l.at
+	var r: float = l.range
+	var k0 := Vector2i(floori((at.x - r) / CELL) >> WorldData.SHIFT, floori((at.z - r) / CELL) >> WorldData.SHIFT)
+	var k1 := Vector2i(floori((at.x + r) / CELL) >> WorldData.SHIFT, floori((at.z + r) / CELL) >> WorldData.SHIFT)
+	return Rect2i(k0, k1 - k0)
 
 
 ## Tells the shader where the lights nearest to the player are.
@@ -124,25 +169,56 @@ func _lights() -> Array:
 	return out
 
 
-## Adds the shadows thrown by light `l` from instance `n` on; returns the next free one.
+## Adds the shadows that move, thrown by light `l`, from instance `n` on: the player's
+## and the animals', and the trunks' from the torch; returns the next free instance.
 func _cast_all(l: Dictionary, n: int) -> int:
 	if not l.torch:
 		n = _cast(l, game.player.position, game.player.HEIGHT * CELL, PLAYER_WIDTH, n)
+	var at: Vector3 = l.at
+	var r2: float = l.range * l.range
 	for c in game.creatures.creatures:
+		# Most animals are far from every light.
+		if Vector2(c.pos.x - at.x, c.pos.z - at.z).length_squared() >= r2:
+			continue
 		var aabb: AABB = c.sprite.mesh.get_aabb()
 		n = _cast(l, c.pos, aabb.size.y, aabb.size.x * 0.4, n)
-	var w = game.world
-	var at: Vector3 = l.at
-	var r: float = l.range
-	var k0 := Vector2i(floori((at.x - r) / CELL) >> WorldData.SHIFT, floori((at.z - r) / CELL) >> WorldData.SHIFT)
-	var k1 := Vector2i(floori((at.x + r) / CELL) >> WorldData.SHIFT, floori((at.z + r) / CELL) >> WorldData.SHIFT)
-	for kz in range(k0.y, k1.y + 1):
-		for kx in range(k0.x, k1.x + 1):
-			for col: Vector2i in w.tree_chunks.get(Vector2i(kx, kz), {}):
-				var base := _base(w, col, at)
-				if base > -INF:
-					n = _cast(l, Vector3((col.x + 0.5) * CELL, base, (col.y + 0.5) * CELL), 64.0, TRUNK_WIDTH, n)
+	if l.torch:
+		n = _cast_trunks(l, n)
 	return n
+
+
+## Adds the shadows thrown by light `l` from the tree trunks around it from instance
+## `n` on; returns the next free one.
+func _cast_trunks(l: Dictionary, n: int) -> int:
+	var at: Vector3 = l.at
+	var r2: float = l.range * l.range
+	var k := _chunks_lit(l)
+	for kz in range(k.position.y, k.end.y + 1):
+		for kx in range(k.position.x, k.end.x + 1):
+			for foot: Vector3 in _feet(Vector2i(kx, kz), at):
+				if Vector2(foot.x - at.x, foot.z - at.z).length_squared() < r2:
+					n = _cast(l, foot, 64.0, TRUNK_WIDTH, n)
+	return n
+
+
+## The feet of the trunks of chunk `key` seen from a light at `at` (see _base), kept
+## while the chunk's trees stay the same.
+func _feet(key: Vector2i, at: Vector3) -> PackedVector3Array:
+	var w = game.world
+	var trees: Dictionary = w.tree_chunks.get(key, {})
+	var id := Vector3i(key.x, key.y, floori(at.y / CELL))
+	var known: Array = _chunk_feet.get(id, [])
+	if not known.is_empty() and known[0] == trees.size():
+		return known[1]
+	var feet := PackedVector3Array()
+	for col: Vector2i in trees:
+		var base := _base(w, col, at)
+		if base > -INF:
+			feet.append(Vector3((col.x + 0.5) * CELL, base, (col.y + 0.5) * CELL))
+	if _chunk_feet.size() > MAX_TRUNKS:
+		_chunk_feet.clear()
+	_chunk_feet[id] = [trees.size(), feet]
+	return feet
 
 
 ## Height of the foot of the trunk in column `col` near the light at `at`, or -INF.

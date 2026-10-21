@@ -41,6 +41,5 @@ func look(id: String) -> Dictionary:
 	if item.sprite != "":
 		return {"sprite": "res://content/%s/sprites/held/%s.png" % [item.mod, item.sprite], "anim": item.anim}
 	if not _pictures.has(id):
-		var tex := ItemIcons.of_item(id)
-		_pictures[id] = tex.get_image() if tex != null else null
+		_pictures[id] = ItemIcons.image_of(id)
 	return {"icon": id, "picture": _pictures[id], "anim": item.anim}

@@ -64,6 +64,8 @@ var _level: BoxContainer
 var minimap: Minimap
 var map_view: MapView
 var _level_label: Button
+## The colour last given to the level label's text (none yet: transparent).
+var _level_ink := Color(0, 0, 0, 0)
 var _bar: PanelContainer
 var _hand_left
 var _hand_right
@@ -450,14 +452,14 @@ func update_state() -> void:
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
 	minimap.set_marks(game.props.placed)
 	_set_icon(_clock_icon, game.sky.icon())
-	if game.chunks.manual_level >= 0:
-		_level_label.text = "Срез %d" % game.chunks.cut_level
-		_level_label.add_theme_color_override("font_color", UiStyle.ACCENT)
-		_level_label.add_theme_color_override("font_hover_color", UiStyle.ACCENT)
-	else:
-		_level_label.text = "Ур. %d" % game.player.level()
-		_level_label.add_theme_color_override("font_color", UiStyle.INK)
-		_level_label.add_theme_color_override("font_hover_color", UiStyle.INK)
+	var cut: bool = game.chunks.manual_level >= 0
+	_level_label.text = "Срез %d" % game.chunks.cut_level if cut else "Ур. %d" % game.player.level()
+	var ink := UiStyle.ACCENT if cut else UiStyle.INK
+	# A colour set anew tells the button its theme changed, which lays it out again.
+	if _level_ink != ink:
+		_level_ink = ink
+		_level_label.add_theme_color_override("font_color", ink)
+		_level_label.add_theme_color_override("font_hover_color", ink)
 
 
 ## Shows what each hand holds and marks the hand in use and the blocks in the hands;
