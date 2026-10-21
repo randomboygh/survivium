@@ -14,7 +14,7 @@ const ItemIcons := preload("res://src/client/item_icons.gd")
 const Items := preload("res://src/shared/items.gd")
 const CharacterScript := preload("res://src/client/character.gd")
 
-const WIDTH := 272
+const WIDTH := 252
 const BUTTON_H := 30
 const SLOT := 32
 const COLUMNS := 8
