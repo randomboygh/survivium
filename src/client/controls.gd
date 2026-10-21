@@ -1,16 +1,22 @@
 extends RefCounted
 ## Input: keys, mouse and touch, and what they do to the world (plan/design/ui.md,
-## "Работа с ячейками"). The left hand holds a tool from the bag or nothing (bare hands)
-## and digs, chops and gathers with it (Tools) as far as the tool reaches; the right
-## hand holds a block of the hotbar and places it with a brush (Tools.BRUSHES: squares
-## 1, 2 or 3 cells across, two cells one above the other, a line) within
-## Tools.PLACE_REACH. Both keep working while the button or finger is held: digging
-## swings again at the cell under it as fast as the tool swings, placing paints the
-## brush along the plane the stroke began in (a floor, a wall), every cell on the way. The action button and F work in front of the player with the hand in use (see
-## act_in_front). What is dug falls on the ground for Gathering to take up; placing
-## takes the block from the bag (Character), unless the playtest switch for free
-## building is on. Also opening the bag, moving the cut and the playtest keys. Touch and
-## mouse switch the interface layout. `game` is the Main node that owns the scene.
+## "Работа с ячейками"; plan/design/character.md, "Взаимодействие с миром"). Each hand
+## holds any item of the bag or nothing (`hands`), and one of them is in use (`active`):
+## a tool digs, chops, mows and gathers (Tools) as far as it reaches, bare hands (or
+## anything that is no tool) cut grass, dig soft ground slowly and gather, a block is
+## placed with the brush (Tools.BRUSHES: squares 1, 2 or 3 cells across, two cells one
+## above the other, a line) within Tools.PLACE_REACH, seeds and bushes are planted, a
+## workbench or a campfire is set down, food is eaten. With a mouse the left button
+## works with the left hand and the right button with the right one; a tap on a touch
+## screen, the action button and F work with the hand in use. Both keep working while
+## the button or finger is held: digging swings again at the cell under it as fast as
+## the tool swings, placing paints the brush along the plane the stroke began in (a
+## floor, a wall), every cell on the way. The action button works in front of the
+## player (see act_in_front). What is dug or cut falls on the ground for Gathering to
+## take up; placing takes the block from the bag (Character), unless the playtest
+## switch for free building is on. Also opening the bag, moving the cut and the
+## playtest keys. Touch and mouse switch the interface layout. `game` is the Main node
+## that owns the scene.
 
 const Mat := preload("res://src/shared/materials.gd")
 const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
@@ -20,6 +26,8 @@ const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Items := preload("res://src/shared/items.gd")
 const Tools := preload("res://src/shared/tools.gd")
+const Foliage := preload("res://src/client/foliage.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
 
 const CELL := WorldData.CELL
 ## How often the hint under the mouse pointer is updated, in seconds.
@@ -34,23 +42,23 @@ const CURSOR_TIME := 0.6
 var game
 var touch := false
 var jump_held := false
-var selected := 0
-var dig_mode := true
 var show_help := true
 var tip_clock := 0.0
 var mouse_pos := Vector2(-1, -1)
 var last_touch_ms := -100000
 ## Touch indices now on the screen.
 var fingers := {}
-## The item in the left hand: a tool from the bag, or "" for bare hands.
-var tool := ""
+## What the left and the right hand hold: item ids ("" for nothing, a block by its
+## item), and the hand in use (0 left, 1 right). Saved with the player.
+var hands: Array[String] = ["", ""]
+var active := 0
 ## The right hand's brush, an index into Tools.BRUSHES.
 var brush := 0
 ## Whether the action button is held.
 var action_held := false
 ## Damage each tree being chopped has taken, by its trunk's column (not saved).
 var chops := {}
-## A button or finger held on the world: {"button", "dig", "pos", "held", "pending"
+## A button or finger held on the world: {"button", "hand", "dig", "pos", "held", "pending"
 ## (not worked yet), "normal", "first", "last" (the plane and the first and last cells
 ## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}.
 var _stroke := {}
@@ -63,6 +71,20 @@ func _init(g) -> void:
 	game = g
 	touch = DisplayServer.is_touchscreen_available()
 	show_help = not touch
+
+
+func to_dict() -> Dictionary:
+	return {"hands": hands.duplicate(), "active": active, "brush": brush}
+
+
+func from_dict(d: Dictionary) -> void:
+	var held_ids: Variant = d.get("hands")
+	if held_ids is Array and held_ids.size() == 2:
+		for h in 2:
+			var id: Variant = held_ids[h]
+			hands[h] = id if id is String and (id == "" or Items.has(id)) else ""
+	active = clampi(int(d.get("active", 0)), 0, 1)
+	brush = clampi(int(d.get("brush", 0)), 0, Tools.BRUSHES.size() - 1)
 
 
 ## Touch and mouse switch the layout: the joystick and action buttons show after a
@@ -93,8 +115,8 @@ func input(event: InputEvent) -> void:
 func unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.physical_keycode
-		if key >= KEY_1 and key < KEY_1 + Mat.PLACEABLE.size():
-			select_block(key - KEY_1)
+		if key >= KEY_1 and key < KEY_1 + Inventory.HOTBAR:
+			select_slot(key - KEY_1)
 		match key:
 			KEY_Q, KEY_PAGEDOWN:
 				game.chunks.shift_cut(-1)
@@ -123,33 +145,52 @@ func unhandled_input(event: InputEvent) -> void:
 		if not _stroke.is_empty():
 			_stroke.pos = event.position
 	elif event is InputEventMouseButton and event.pressed:
-		var n: int = Mat.PLACEABLE.size()
-		# With a mouse each button is a hand: the left one digs, the right one places.
-		# A tap on a touch screen uses the hand chosen on the hotbar.
+		var n := Inventory.HOTBAR
+		# With a mouse each button is a hand; a tap on a touch screen uses the hand in use.
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
-				# A tap or a click near something to gather takes it before digging.
-				var target: Dictionary = game.gathering.target_at(event.position)
-				if not target.is_empty() and (dig_mode or not touch or target.has("drop")):
-					if _cooldown <= 0.0 and game.gathering.gather(target):
-						_cooldown = tool_record().swing
-				else:
-					_start_stroke(MOUSE_BUTTON_LEFT, event.position, dig_mode or not touch)
+				tap(active if touch else 0, event.position, MOUSE_BUTTON_LEFT)
 			MOUSE_BUTTON_RIGHT:
-				_start_stroke(MOUSE_BUTTON_RIGHT, event.position, false)
+				tap(1, event.position, MOUSE_BUTTON_RIGHT)
 			MOUSE_BUTTON_WHEEL_UP:
-				select_block((selected - 1 + n) % n, false)
+				select_slot((_slot_index() - 1 + n) % n)
 			MOUSE_BUTTON_WHEEL_DOWN:
-				select_block((selected + 1) % n, false)
+				select_slot((_slot_index() + 1) % n)
+
+
+## A tap or a click at `pos` with hand `hand` (pressed with mouse `button`, which may
+## stay held): something to gather or open there first (a thing on the ground or set
+## on it with any hand, a bush with a tool or bare hands), else what the hand's item is
+## for (see Tools.use_of).
+func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
+	if hand != active:
+		set_active(hand)
+	var use := use_of()
+	var target: Dictionary = game.gathering.target_at(pos)
+	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
+		if _cooldown <= 0.0 and game.gathering.gather(target):
+			_cooldown = tool_record().swing
+		return
+	match use:
+		"place":
+			_start_stroke(button, pos, false)
+		"plant", "sow":
+			var hit := pick(pos)
+			if not hit.is_empty() and _cooldown <= 0.0 and game.gathering.plant_at(held(), hit.cell):
+				_cooldown = FRONT_PLACE_SWING
+		"prop":
+			game.props.put_from_bag(held())
+		"eat":
+			_eat_held()
+		_:
+			_start_stroke(button, pos, true)
 
 
 ## Runs the held strokes and the action button for a frame; called while playing.
 func update(delta: float) -> void:
 	_cooldown = maxf(0.0, _cooldown - delta)
 	_cursor_clock = maxf(0.0, _cursor_clock - delta)
-	if tool != "" and game.character.inventory.count(tool) == 0:
-		tool = ""
-		game.hud.refresh_hands()
+	_check_hands()
 	if not _stroke.is_empty():
 		if _stroke.held and not Input.is_mouse_button_pressed(_stroke.button):
 			_stroke.held = false
@@ -179,65 +220,135 @@ func set_touch(on: bool) -> void:
 				game.cursor.show_cells([], true)
 
 
-func set_dig_mode(on: bool) -> void:
-	dig_mode = on
+## Makes hand `hand` (0 left, 1 right) the hand in use.
+func set_active(hand: int) -> void:
+	active = hand
 	game.hud.refresh_hands()
 
 
-## Takes block `i` of the hotbar into the right hand; `use` also makes it the hand in use.
-func select_block(i: int, use := true) -> void:
-	selected = i
-	if use:
-		dig_mode = false
-	game.hud.refresh_hands()
+## The item in hand `hand` (the hand in use for -1), "" for nothing.
+func held(hand := -1) -> String:
+	return hands[active if hand < 0 else hand]
 
 
-## The record of what the left hand holds (see Tools.of).
-func tool_record() -> Dictionary:
-	return Tools.of(tool)
+## The record of what hand `hand` holds as a tool (see Tools.of): bare hands for
+## anything that is no tool.
+func tool_record(hand := -1) -> Dictionary:
+	return Tools.of(held(hand))
 
 
-## Takes item `id` (a tool in the bag, "" for nothing) into the left hand and uses it.
-func hold(id: String) -> void:
-	tool = id if Tools.is_tool_item(id) else ""
-	dig_mode = true
+## What the item in hand `hand` is used for (see Tools.use_of).
+func use_of(hand := -1) -> String:
+	return Tools.use_of(held(hand))
+
+
+## Puts item `id` ("" for nothing) into hand `hand` (the hand in use for -1), which is
+## then the hand in use; a tool the bag holds one of leaves the other hand.
+func put_in_hand(id: String, hand := -1, say := true) -> void:
+	var h := active if hand < 0 else hand
+	if id != "" and hands[1 - h] == id and Tools.is_tool_item(id) and game.character.inventory.count(id) < 2:
+		hands[1 - h] = ""
+	hands[h] = id
+	active = h
 	game.hud.refresh_hands()
 	game.hud.bag.refresh()
-	game.hud.toast("В руке: %s" % (Items.title(tool) if tool != "" else "ничего"))
+	if say:
+		game.hud.toast("%s: %s" % ["Левая рука" if h == 0 else "Правая рука", Items.title(id) if id != "" else "пусто"])
 
 
-## The next tool in the bag into the left hand, after the last one bare hands again.
+## Takes item `id` from the bag into the hand in use (the bag's «В руку»).
+func hold(id: String) -> void:
+	put_in_hand(id)
+
+
+## Takes what lies in slot `i` of the hotbar (the bag's first row) into the hand in
+## use; an empty slot empties the hand.
+func select_slot(i: int) -> void:
+	var s = game.character.inventory.slots[i]
+	put_in_hand(s[0] if s != null else "", -1, false)
+
+
+## The hotbar slot holding what the hand in use holds, -1 for none.
+func _slot_index() -> int:
+	var slots: Array = game.character.inventory.slots
+	for i in Inventory.HOTBAR:
+		if slots[i] != null and slots[i][0] == held():
+			return i
+	return -1
+
+
+## A tool that has left the bag (thrown away, broken) leaves the hand; a tool the bag
+## holds one of is in one hand only.
+func _check_hands() -> void:
+	var inv = game.character.inventory
+	var changed := false
+	for h in 2:
+		if hands[h] != "" and Tools.is_tool_item(hands[h]) and inv.count(hands[h]) == 0:
+			hands[h] = ""
+			changed = true
+	if hands[0] != "" and hands[0] == hands[1] and Tools.is_tool_item(hands[0]) and inv.count(hands[0]) < 2:
+		hands[1 - active] = ""
+		changed = true
+	if changed:
+		game.hud.refresh_hands()
+
+
+## The next tool in the bag into the hand in use, after the last one nothing again.
 func cycle_tool() -> void:
 	var ids: Array = [""]
 	for s in game.character.inventory.slots:
 		if s != null and Tools.is_tool_item(s[0]) and not ids.has(s[0]):
 			ids.append(s[0])
-	hold(ids[(ids.find(tool) + 1) % ids.size()])
+	var at := ids.find(held())
+	put_in_hand(ids[(at + 1) % ids.size()])
 
 
-## The next brush for the right hand, which is then the hand in use.
+## The next brush for placing blocks.
 func cycle_brush() -> void:
 	brush = (brush + 1) % Tools.BRUSHES.size()
-	dig_mode = false
 	game.hud.refresh_hands()
 	game.hud.toast("Кисть: %s" % brush_record().title)
 
 
-## The right hand's brush (one of Tools.BRUSHES).
+## The brush blocks are placed with (one of Tools.BRUSHES).
 func brush_record() -> Dictionary:
 	return Tools.BRUSHES[brush]
 
 
 ## What the action button does with the hand in use, for its label.
 func action_name() -> String:
-	if not dig_mode:
-		return "Ставить"
+	match use_of():
+		"place":
+			return "Ставить"
+		"plant", "sow":
+			return "Сажать"
+		"prop":
+			return "Поставить"
+		"eat":
+			return "Съесть"
+		"hand":
+			return "Собрать"
 	match tool_record().tool:
 		"axe":
 			return "Рубить"
 		"sword":
 			return "Бить"
+		"scythe":
+			return "Косить"
 	return "Копать"
+
+
+## Eats one of the food in the hand in use from the bag.
+func _eat_held() -> void:
+	if _cooldown > 0.0:
+		return
+	var slots: Array = game.character.inventory.slots
+	for i in slots.size():
+		if slots[i] != null and slots[i][0] == held():
+			game.character.eat(i)
+			_cooldown = 0.5
+			return
+	game.character.nag("no_food", "В сумке нет: %s" % Items.title(held()))
 
 
 ## Whether the jump key or the jump button is held.
@@ -359,36 +470,81 @@ func _on_line(cell: Vector3i) -> Vector3i:
 	return out
 
 
-## Digs at `cell`, tapped on its face `normal`, with the tool in the left hand: as many
-## cells around it as the tool takes in a swing, or a hit at a tree whose trunk it is.
-## True if anything was done.
+## Works at `cell`, tapped on its face `normal`, with the hand in use: an axe chops the
+## tree whose trunk or crown it is, bare hands gather from that tree, hands, a sword or a
+## scythe cut the grass on top of it, else the tool digs as many cells around it as it
+## takes in a swing. True if anything was done.
 func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
 	var world = game.world
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cell.y == 0 or m == Mat.AIR:
 		return false
-	if too_far(cell, tool_record().reach):
+	var t := tool_record()
+	if too_far(cell, t.reach):
 		game.character.nag("far", "Слишком далеко")
 		return false
-	if _is_trunk(cell):
-		return chop(cell)
-	var t := tool_record()
+	var tree: Variant = tree_of(cell)
+	if tree != null:
+		if t.tool == "axe":
+			return chop(trunk_cell(tree))
+		if t.tool == "hand":
+			if game.gathering.gather({"tree": tree}):
+				_cooldown = t.swing
+				return true
+			return false
+		if m == Mat.LOG:
+			game.character.nag("tool", "Дерево рубят топором")
+			return false
+	if Tools.mows(t) and can_mow(cell):
+		return _mow(_mow_targets([cell], t))
 	if not Tools.can_dig(t, m):
 		game.character.nag("tool", Tools.why_not(t, m))
 		return false
 	return _dig(_dig_targets(Tools.area_cells(cell, normal), t), Tools.swing_time(t, m))
 
 
-## The first cells of `order` the tool `t` can dig, as many as it takes in a swing.
-func _dig_targets(order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
+## The first cells of `order` the tool `t` can dig, as many as it takes in a swing
+## (`n` when given).
+func _dig_targets(order: Array[Vector3i], t: Dictionary, n := -1) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	for c in order:
-		if out.size() >= t.area:
+		if out.size() >= (t.area if n < 0 else n):
 			break
 		var m: int = game.world.get_cell(c.x, c.y, c.z)
-		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and not _is_trunk(c) and not too_far(c, t.reach):
+		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and tree_of(c) == null and not too_far(c, t.reach):
 			out.append(c)
 	return out
+
+
+## Whether the grass on top of `cell` can be cut: a material with a top to cut (see
+## Tools.mown), open to the air above, with no bush on it.
+func can_mow(cell: Vector3i) -> bool:
+	var world = game.world
+	var up := cell + Vector3i.UP
+	return Tools.mown(world.get_cell(cell.x, cell.y, cell.z)) >= 0 and world.get_cell(up.x, up.y, up.z) == Mat.AIR \
+		and not world.bushes.has(up)
+
+
+## The cells tool `t` cuts the grass of when it swings at the first of `order` it can
+## cut: that one, and for a scythe the ones beside it in an arc in front of the body.
+func _mow_targets(order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for c in order:
+		if can_mow(c) and not too_far(c, t.reach):
+			for s in (Tools.sweep(c, step()) if t.area > 1 else [c]):
+				if out.size() < t.area and can_mow(s) and not too_far(s, t.reach):
+					out.append(s)
+			break
+	return out
+
+
+## Cuts the grass on top of `cells` in one swing of the tool in use (see Gathering.mow).
+func _mow(cells: Array[Vector3i]) -> bool:
+	if cells.is_empty() or not game.gathering.mow(cells):
+		return false
+	_cooldown = tool_record().swing
+	game.workshop.use_tool()
+	return true
 
 
 ## Digs `cells` in one swing of `swing` seconds; what they give (their item, now and
@@ -404,7 +560,7 @@ func _dig(cells: Array[Vector3i], swing: float) -> bool:
 		game.chunks.on_cell_changed(c)
 		if game.settings.free_build:
 			continue
-		var at := _floor_under(c)
+		var at := floor_under(c)
 		var rec: Dictionary = Mat.RECORDS[was]
 		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
 			if id != "":
@@ -418,7 +574,7 @@ func _dig(cells: Array[Vector3i], swing: float) -> bool:
 
 
 ## Where a thing let go in `cell` comes to lie: on the ground under it, in world units.
-func _floor_under(cell: Vector3i) -> Vector3:
+func floor_under(cell: Vector3i) -> Vector3:
 	var world = game.world
 	var y := cell.y
 	while y > 1 and y > cell.y - 64 and not world.is_solid(cell.x, y - 1, cell.z):
@@ -432,6 +588,38 @@ func _is_trunk(cell: Vector3i) -> bool:
 	return game.world.get_cell(cell.x, cell.y, cell.z) == Mat.LOG and game.world.trees.has(Vector2i(cell.x, cell.z))
 
 
+## The trunk's column of the tree that `cell` is part of: a log of its trunk, or leaves
+## of its crown (whose nearest trunk it is); null for anything else.
+func tree_of(cell: Vector3i) -> Variant:
+	var world = game.world
+	var m: int = world.get_cell(cell.x, cell.y, cell.z)
+	if m == Mat.LOG:
+		return Vector2i(cell.x, cell.z) if world.trees.has(Vector2i(cell.x, cell.z)) else null
+	if m != Mat.LEAVES:
+		return null
+	var best: Variant = null
+	var best_d := Trees.TREE_REACH * Trees.TREE_REACH * 2 + 1
+	var r := Trees.TREE_REACH
+	for tz in range(cell.z - r, cell.z + r + 1):
+		for tx in range(cell.x - r, cell.x + r + 1):
+			var at := Vector2i(tx, tz)
+			var d := (at - Vector2i(cell.x, cell.z)).length_squared()
+			if d < best_d and world.trees.has(at) and world.log_col(tx, tz) != 0:
+				best_d = d
+				best = at
+	return best
+
+
+## The cell of tree `col`'s trunk an axe hits: the lowest log at the player's level or
+## above, else the lowest.
+func trunk_cell(col: Vector2i) -> Vector3i:
+	var logs: int = game.world.log_col(col.x, col.y)
+	var from := maxi(0, feet().y - 1)
+	var above := logs & ~((1 << from) - 1)
+	var bits := above if above != 0 else logs
+	return Vector3i(col.x, WorldData.level_of(bits & -bits), col.y)
+
+
 ## A hit with the axe at the tree whose trunk holds `cell`; it falls when the hits add
 ## up to its species' `hits`. True if the axe swung.
 func chop(cell: Vector3i) -> bool:
@@ -439,7 +627,7 @@ func chop(cell: Vector3i) -> bool:
 	if t.tool != "axe":
 		game.character.nag("tool", "Дерево рубят топором")
 		return false
-	if not game.character.act("chop"):
+	if not _is_trunk(cell) or not game.character.act("chop"):
 		return false
 	game.workshop.use_tool()
 	var col := Vector2i(cell.x, cell.z)
@@ -454,13 +642,15 @@ func chop(cell: Vector3i) -> bool:
 	return true
 
 
-## Places the right hand's block with the brush around `center`, across face `normal`:
-## each cell that is free, within reach and next to something solid. Returns how many
-## were placed.
+## Places the block in the hand in use with the brush around `center`, across face
+## `normal`: each cell that is free, within reach and next to something solid. Returns
+## how many were placed.
 func place_at(center: Vector3i, normal: Vector3i) -> int:
 	var world = game.world
-	var block: int = Mat.PLACEABLE[selected]
-	var item: String = Items.placed_by[block]
+	var item := held()
+	var block := Mat.index(Items.get_item(item).get("place", ""))
+	if block < 0:
+		return 0
 	var free: bool = game.settings.free_build
 	var placed := 0
 	var far := false
@@ -499,34 +689,61 @@ func _can_place(cell: Vector3i) -> bool:
 	return false
 
 
-## The action button: works in front of the player with the hand in use. The left hand
-## chops a tree in front with an axe, uses itself or the tool on a bush in front (see
-## Gathering.gather), else digs the cells in front in the order of Tools.front_cells. The
-## right hand fills a hole in front, else places in front at the feet, else above that.
+## The action button: works in front of the player with the hand in use. A block is
+## placed in front (filling a hole first), seeds and bushes planted, a workbench or a
+## campfire set down, food eaten. A tool or bare hands first work the nearest tree or
+## bush in front that they can do something to (see Gathering.useful: an axe chops,
+## hands gather, a sword knocks berries off, a shovel digs a bush out), then cut the
+## grass in front (hands, sword, scythe), then dig one cell, in the order of
+## Tools.front_cells.
 func act_in_front() -> void:
-	if not dig_mode:
-		_place_in_front()
-		return
-	var t := tool_record()
-	var f := feet()
-	var s := step()
-	if t.tool == "axe":
-		var trunk: Variant = _trunk_in_front(f, s)
-		if trunk != null:
-			chop(trunk)
+	match use_of():
+		"place":
+			_place_in_front()
 			return
-	var bush: Variant = _bush_in_front(f, s)
-	if bush != null and t.tool != "pickaxe":
-		game.gathering.gather({"bush": bush})
-		_cooldown = t.swing
+		"plant", "sow":
+			_cooldown = FRONT_PLACE_SWING if game.gathering.plant(held()) else 0.3
+			return
+		"prop":
+			game.props.put_from_bag(held())
+			_cooldown = 0.5
+			return
+		"eat":
+			_eat_held()
+			return
+	var t := tool_record()
+	var target := _plant_in_front()
+	if not target.is_empty():
+		if target.has("trunk"):
+			chop(target.trunk)
+		elif game.gathering.gather(target):
+			_cooldown = t.swing
+		else:
+			_cooldown = 0.3
 		return
-	var cells := _dig_targets(_front_order(f, s), t)
-	if cells.is_empty():
-		game.character.nag("front", "Перед тобой нечего %s" % ("рубить" if t.tool == "axe" else "копать"))
-		_cooldown = 0.3
+	var work := _front_work(t)
+	if work.has("mow"):
+		_mow(work.mow)
 		return
-	var c: Vector3i = cells[0]
-	_dig(cells, Tools.swing_time(t, game.world.get_cell(c.x, c.y, c.z)))
+	if work.has("dig"):
+		var c: Vector3i = work.dig[0]
+		_dig(work.dig, Tools.swing_time(t, game.world.get_cell(c.x, c.y, c.z)))
+		return
+	var what := "рубить" if t.tool == "axe" else ("косить" if t.tool == "scythe" else "копать")
+	game.character.nag("front", "Перед тобой нечего %s" % what)
+	_cooldown = 0.3
+
+
+## What a swing of tool `t` in front would do: {"mow": cells} (the grass first, for
+## the tools that cut it), {"dig": [cell]} (one cell), or {}.
+func _front_work(t: Dictionary) -> Dictionary:
+	var order := _front_order(feet(), step())
+	if Tools.mows(t):
+		var cells := _mow_targets(order, t)
+		if not cells.is_empty():
+			return {"mow": cells}
+	var cells := _dig_targets(order, t, 1)
+	return {"dig": cells} if not cells.is_empty() else {}
 
 
 func _place_in_front() -> void:
@@ -551,48 +768,62 @@ func _front_order(f: Vector3i, s: Vector2i) -> Array[Vector3i]:
 	return cells
 
 
-## The cell of a tree's trunk one or two columns in front, or null.
-func _trunk_in_front(f: Vector3i, s: Vector2i) -> Variant:
-	for d in [1, 2]:
-		for dy in [0, 1, -1, 2]:
-			var cell := f + Vector3i(s.x * d, dy, s.y * d)
-			if _is_trunk(cell):
-				return cell
-	return null
-
-
-## The cell of a bush one or two columns in front, or null.
-func _bush_in_front(f: Vector3i, s: Vector2i) -> Variant:
-	for d in [1, 2]:
+## The nearest tree or bush in front (Tools.sector) that the hand in use can do
+## something to: {"trunk": cell} for an axe at a tree, {"tree": column} for bare hands,
+## {"bush": cell}; {} for none.
+func _plant_in_front() -> Dictionary:
+	var world = game.world
+	var f := feet()
+	var t := tool_record()
+	for o in Tools.sector(step()):
+		var col := Vector2i(f.x + o.x, f.z + o.y)
+		if world.trees.has(col) and t.tool in ["axe", "hand"]:
+			var trunk := trunk_cell(col)
+			if world.log_col(col.x, col.y) != 0 and absi(trunk.y - f.y) <= 2:
+				if t.tool == "axe":
+					return {"trunk": trunk}
+				if game.gathering.useful({"tree": col}):
+					return {"tree": col}
 		for dy in [0, -1, 1]:
-			var cell := f + Vector3i(s.x * d, dy, s.y * d)
-			if game.world.bushes.has(cell):
-				return cell
-	return null
+			var cell := Vector3i(col.x, f.y + dy, col.y)
+			if world.bushes.has(cell) and game.gathering.useful({"bush": cell}):
+				return {"bush": cell}
+	return {}
 
 
 ## The cells the action button would work on now, for the cursor frame.
 func _front_preview() -> Array[Vector3i]:
 	var f := feet()
 	var s := step()
-	if not dig_mode:
-		var front := f + Vector3i(s.x, 0, s.y)
-		for cell in [front + Vector3i.DOWN, front, front + Vector3i.UP]:
-			if _can_place(cell):
-				return [cell]
-		return []
-	var t := tool_record()
-	if t.tool == "axe":
-		var trunk: Variant = _trunk_in_front(f, s)
-		if trunk != null:
-			return [trunk]
-	var bush: Variant = _bush_in_front(f, s)
-	if bush != null and t.tool != "pickaxe":
-		return [bush]
-	return _dig_targets(_front_order(f, s), t)
+	match use_of():
+		"place":
+			var front := f + Vector3i(s.x, 0, s.y)
+			for cell in [front + Vector3i.DOWN, front, front + Vector3i.UP]:
+				if _can_place(cell):
+					return [cell]
+			return []
+		"plant", "sow":
+			var spot: Variant = game.gathering.plant_spot(held())
+			var cells: Array[Vector3i] = []
+			if spot != null:
+				cells.append(spot)
+			return cells
+		"prop", "eat":
+			return []
+	var target := _plant_in_front()
+	if target.has("trunk"):
+		return [target.trunk]
+	if target.has("bush"):
+		return [target.bush]
+	if target.has("tree"):
+		return [trunk_cell(target.tree)]
+	var work := _front_work(tool_record())
+	var out: Array[Vector3i] = []
+	out.assign(work.get("mow", work.get("dig", [])))
+	return out
 
 
-## Frames what a tap at `screen_pos` would work on: the cells to dig or to fill, red
+## Frames what a tap at `screen_pos` would work on: the cells to dig, cut or fill, red
 ## when nothing can be done there.
 func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 	var hit := pick(screen_pos)
@@ -603,11 +834,19 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 	if dig:
 		var t := tool_record()
 		var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
-		if _is_trunk(cell):
-			game.cursor.show_cells([cell], t.tool == "axe" and not too_far(cell, tool_record().reach))
+		var near := not too_far(cell, t.reach)
+		var tree: Variant = tree_of(cell)
+		if tree != null and (t.tool in ["axe", "hand"] or m == Mat.LOG):
+			var trunk := trunk_cell(tree)
+			var ok: bool = near and (t.tool == "axe" or t.tool == "hand" and game.gathering.useful({"tree": tree}))
+			game.cursor.show_cells([trunk if t.tool == "axe" else cell], ok)
+			return
+		if Tools.mows(t) and can_mow(cell):
+			var mown := _mow_targets([cell], t)
+			game.cursor.show_cells(mown if not mown.is_empty() else [cell], not mown.is_empty())
 			return
 		var cells := _dig_targets(Tools.area_cells(cell, hit.normal), t)
-		var ok: bool = Tools.can_dig(t, m) and not too_far(cell, tool_record().reach) and cell.y > 0
+		var ok: bool = Tools.can_dig(t, m) and near and cell.y > 0
 		game.cursor.show_cells(cells if ok else [cell], ok)
 		return
 	var normal: Vector3i = hit.normal
@@ -659,13 +898,13 @@ func too_far(cell: Vector3i, reach: int) -> bool:
 
 
 ## With a mouse, names the cell under the pointer and what the buttons do with it, and
-## frames what the left button would dig.
+## frames what the hand in use would work on.
 func update_tip(delta: float) -> void:
 	tip_clock += delta
 	if touch or tip_clock < TIP_INTERVAL or mouse_pos.x < 0.0:
 		return
 	tip_clock = 0.0
-	_show_preview(mouse_pos, _stroke.is_empty() or _stroke.dig)
+	_show_preview(mouse_pos, _stroke.dig if not _stroke.is_empty() else use_of() != "place")
 	var target: Dictionary = game.gathering.target_at(mouse_pos)
 	if not target.is_empty():
 		game.hud.show_tip(mouse_pos, game.gathering.describe(target))
@@ -676,15 +915,37 @@ func update_tip(delta: float) -> void:
 		return
 	var cell: Vector3i = hit.cell
 	var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
-	var text: String = "%s · уровень %d" % [Mat.NAMES[m], cell.y]
-	var t := tool_record()
-	if too_far(cell, tool_record().reach):
-		text += "\nдалеко"
-	elif _is_trunk(cell):
-		text += "\nЛКМ рубить" if t.tool == "axe" else "\nрубят топором"
-	elif Tools.can_dig(t, m):
+	var lines := ["%s · уровень %d" % [Mat.NAMES[m], cell.y]]
+	for h in 2:
+		lines.append("%s %s" % ["ЛКМ" if h == 0 else "ПКМ", _hint(h, cell, m)])
+	game.hud.show_tip(mouse_pos, "\n".join(lines))
+
+
+## What hand `hand` would do at `cell` of material `m`, for the hint.
+func _hint(hand: int, cell: Vector3i, m: int) -> String:
+	var use := use_of(hand)
+	match use:
+		"place":
+			return "поставить"
+		"plant", "sow":
+			return "посадить"
+		"prop":
+			return "поставить перед собой"
+		"eat":
+			return "съесть"
+	var t := tool_record(hand)
+	if too_far(cell, t.reach):
+		return "далеко"
+	var tree: Variant = tree_of(cell)
+	if tree != null and t.tool == "axe":
+		return "рубить"
+	if tree != null and t.tool == "hand":
+		return "наломать веток"
+	if m == Mat.LOG and tree != null:
+		return "рубят топором"
+	if Tools.mows(t) and can_mow(cell):
+		return "косить" if t.tool == "scythe" else "сорвать траву"
+	if Tools.can_dig(t, m):
 		var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
-		text += "\nЛКМ копать%s · ПКМ поставить" % (" (руками медленно)" if slow else "")
-	else:
-		text += "\n%s · ПКМ поставить" % Tools.why_not(t, m)
-	game.hud.show_tip(mouse_pos, text)
+		return "копать%s" % (" (руками медленно)" if slow else "")
+	return Tools.why_not(t, m).to_lower()

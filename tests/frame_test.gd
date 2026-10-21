@@ -183,7 +183,11 @@ func _run() -> void:
 		spot.y += 1
 	while spot.y > 1 and not w.is_solid(spot.x, spot.y - 1, spot.z):
 		spot.y -= 1
-	c.select_block(Mat.PLACEABLE.find(Mat.STONE))
+	var slot0 = inv.slots[0]
+	c.select_slot(0)
+	_check(slot0 != null and c.held() == slot0[0], "a hotbar slot is the bag's first row")
+	await _portrait_hotbar()
+	c.put_in_hand("core:stone")
 	c.brush = 2
 	var stone_before: int = inv.count("core:stone")
 	var placed: int = c.place_at(spot, Vector3i.UP)
@@ -206,12 +210,29 @@ func _run() -> void:
 	# Back on the surface, where the ground in front is soil.
 	main.player.position = start
 	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.on_ground and clock >= 0.5)
+	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
+	# into the bag, dirt shows where the grass was.
+	c.put_in_hand("core:stone_scythe", 1)
+	var mown: Dictionary = c._front_work(c.tool_record())
+	if mown.has("mow"):
+		var fibre: int = inv.count("core:fiber")
+		var first: Vector3i = mown.mow[0]
+		c.action_held = true
+		await _scenario("mowing", 100000, func(_i: int) -> bool: return clock >= 1.5)
+		c.action_held = false
+		_check(w.get_cell(first.x, first.y, first.z) == Mat.DIRT and inv.count("core:fiber") > fibre,
+			"the scythe cuts the grass in front into fibre and leaves dirt")
 	var dug_before: int = inv.count("core:stone") + inv.count("core:dirt")
-	c.hold("core:wooden_shovel")
+	c.put_in_hand("core:wooden_shovel", 0)
+	_check(c.active == 0 and c.held() == "core:wooden_shovel" and c.hands[1] == "core:stone_scythe", "each hand holds its own tool")
 	c.action_held = true
 	await _scenario("action button", 100000, func(_i: int) -> bool: return clock >= 2.0)
 	c.action_held = false
 	_check(inv.count("core:stone") + inv.count("core:dirt") > dug_before, "the action button digs in front of the player")
+	var hands_saved: Dictionary = c.to_dict()
+	c.put_in_hand("", 0)
+	c.from_dict(hands_saved)
+	_check(c.held() == "core:wooden_shovel", "the hands are saved with the player")
 	# A stack into the chest by the spawn and back (the window's buttons).
 	var bag = main.hud.bag
 	main.hud.open_chest()
@@ -324,3 +345,39 @@ func _mean(times: PackedFloat32Array) -> float:
 	for ms in times:
 		total += ms
 	return total / maxi(times.size(), 1)
+
+
+## A portrait phone screen shows four hotbar slots between two arrows, which page
+## through the rest; a finger dragged along the slots moves them a slot per slot.
+func _portrait_hotbar() -> void:
+	var hud = main.hud
+	var was := Rect2(hud.position, hud.size * hud.scale)
+	hud.fit(Rect2(0, 0, 1200, 2608))
+	await process_frame
+	_check(hud._visible_slots == 4 and hud._prev_button.visible and hud._next_button.visible,
+		"a portrait screen shows four hotbar slots between arrows")
+	hud._next_page()
+	var paged: int = hud._first
+	hud._next_page()
+	_check(paged == 4 and hud._first == 0 and hud._slots[0].visible and not hud._slots[4].visible,
+		"the arrows page through the hotbar and back")
+	await process_frame
+	var slot = hud._slots[1]
+	var at: Vector2 = slot.get_global_transform_with_canvas() * (slot.size * 0.5)
+	var held: String = main.controls.held()
+	var touch := InputEventScreenTouch.new()
+	touch.index = 3
+	touch.position = at
+	touch.pressed = true
+	hud._input(touch)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 3
+	drag.position = at - Vector2((hud.SLOT + hud.GAP) * hud.scale.x * 2.3, 0.0)
+	hud._input(drag)
+	touch.pressed = false
+	touch.position = drag.position
+	hud._input(touch)
+	_check(hud._first == 2 and main.controls.held() == held, "a finger dragged along the hotbar scrolls it two slots")
+	hud.fit(Rect2(0, 0, 2608, 1200))
+	_check(hud._visible_slots == 8 and not hud._prev_button.visible, "a landscape phone screen shows all hotbar slots")
+	hud.fit(was)

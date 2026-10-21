@@ -9,6 +9,8 @@ const Items := preload("res://src/shared/items.gd")
 
 ## Slots of a bag without a backpack, and the weight carried at full pace (kg).
 const SLOTS := 16
+## The first row of slots, shown on the hotbar (taken into a hand from there).
+const HOTBAR := 8
 const WEIGHT_LIMIT := 40.0
 ## Past the limit the pace falls steadily, to OVERLOAD_PACE at OVERLOAD times the limit.
 const OVERLOAD := 1.5

@@ -1,7 +1,7 @@
 extends PanelContainer
 ## The bag window (plan/design/ui.md, section 5): the slots with their items, the
 ## weight against the limit, the character's state in numbers, and what can be done
-## with the chosen item (eat, take a tool in hand, plant a bush or place a thing in
+## with the chosen item (eat, take it in the hand in use, plant a bush or place a thing in
 ## front of the player, repair a worn tool at a workbench, throw away). Opened at a
 ## chest, it shows the chest's slots under the bag's and moves whole stacks between
 ## them; walking away from the chest closes its part. The craft tab (CraftPanel) shows
@@ -12,11 +12,14 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const Items := preload("res://src/shared/items.gd")
-const Tools := preload("res://src/shared/tools.gd")
 const CraftPanel := preload("res://src/client/craft_panel.gd")
 const Workshop := preload("res://src/client/workshop.gd")
 
 const SLOT := 40
+## Room kept between the window and the edges of the screen, in UI pixels.
+const EDGE := 4
+## Room kept free at the bottom of the screen for the hotbar (and its frame).
+const HOTBAR := 52
 
 var game
 var _state: Label
@@ -71,9 +74,7 @@ func _ready() -> void:
 	_state = UiStyle.label()
 	box.add_child(_state)
 	craft = CraftPanel.new(game)
-	craft.on_layout = func() -> void:
-		reset_size()
-		position = ((get_parent_area_size() - size) * 0.5).floor()
+	craft.on_layout = _place
 	craft.visible = false
 	box.add_child(craft)
 	_bag_page = VBoxContainer.new()
@@ -178,17 +179,33 @@ func toggle() -> void:
 		open()
 
 
-## Lays the slots out for a screen `screen` UI pixels large: eight across on a wide
-## screen, four on a narrow one, the window in the middle.
+## Lays the slots out for a screen `screen` UI pixels large: eight across when they fit
+## between the edges with the window's frame (12 px), else four; the craft tab as wide
+## as the slots, its recipes' buttons under their text with four across.
 func fit(screen: Vector2) -> void:
-	_grid.columns = 8 if screen.x >= 8 * (SLOT + 4) + 40 else 4
+	var room := screen.x - 2 * EDGE - 12
+	_grid.columns = 8 if room >= 8 * (SLOT + 4) - 4 else 4
 	_chest_grid.columns = _grid.columns
 	craft.custom_minimum_size.x = _grid.columns * (SLOT + 4) - 4
 	craft.narrow = _grid.columns < 8
-	# The rest of the window (tabs, state, stations, queue) takes about 170 UI pixels.
+	# The rest of the window (tabs, state, stations, queue) takes about 170 UI pixels;
+	# _place takes more off the list if the window still does not fit.
 	craft.list_height = clampi(int(screen.y) - 190, 70, 300)
+	craft.refresh()
+	_place()
+
+
+## Sizes the window round what it shows, shortens the list of recipes when the window
+## is taller than the room above the hotbar, and centres it there.
+func _place() -> void:
+	var screen := get_parent_area_size()
+	var room := Vector2(screen.x, screen.y - HOTBAR)
 	reset_size()
-	position = ((screen - size) * 0.5).floor()
+	var over := size.y - (room.y - 2 * EDGE)
+	if craft.visible and over > 0.0:
+		craft.shrink_list(over)
+		reset_size()
+	position = ((room - size) * 0.5).floor().max(Vector2(EDGE, EDGE))
 
 
 func _choose(i: int) -> void:
@@ -233,6 +250,8 @@ func refresh() -> void:
 		slot.texture = ItemIcons.of_item(s[0]) if s != null else null
 		slot.number = str(s[1]) if s != null and s[1] > 1 else ""
 		slot.selected = i == _chosen
+		# The first row is the hotbar: its slots carry their numbers.
+		slot.key = str(i + 1) if i < inv.HOTBAR else ""
 	_chest_title.visible = _chest != null
 	_chest_grid.visible = _chest != null
 	if _chest != null:
@@ -259,14 +278,13 @@ func refresh() -> void:
 			" · сытость +%d" % roundi(food) if food > 0.0 else "",
 			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else ""]
 	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0
-	_hold.visible = chosen != null and Tools.is_tool_item(chosen[0]) and game.controls.tool != chosen[0]
+	_hold.visible = chosen != null and game.controls.held() != chosen[0]
 	_plant.visible = chosen != null and Items.get_item(chosen[0]).get("plant", "") != ""
 	_put.visible = chosen != null and Items.get_item(chosen[0]).get("prop", "none") != "none"
 	_repair.visible = chosen != null and inv.worn(_chosen) > 0
 	_drop_one.visible = chosen != null
 	_drop_all.visible = chosen != null and chosen[1] > 1
-	reset_size()
-	position = ((get_parent_area_size() - size) * 0.5).floor()
+	_place()
 
 
 ## The state line alone, which changes every frame; the chest's part closes when the

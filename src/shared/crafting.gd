@@ -11,6 +11,7 @@ const Items := preload("res://src/shared/items.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
+const Plants := preload("res://src/shared/plants.gd")
 
 ## Records in the order of the data files, and by id.
 static var RECIPES: Array = []
@@ -94,14 +95,17 @@ static func take(r: Dictionary, inv) -> bool:
 	return true
 
 
-## Every item a player can get: what cells, trees and bushes give, and what recipes
+## Every item a player can get: what cells, the plants on them, trees and bushes give, and what recipes
 ## make from those; the recipes that can never be made are reported by check().
 static func reachable() -> Dictionary:
 	var have := {}
 	for rec: Dictionary in Mat.RECORDS:
-		for id in [rec.item, rec.bonus]:
+		for id in [rec.item, rec.bonus] + rec.mow_gives.keys():
 			if id != "":
 				have[id] = true
+	for p: Dictionary in Plants.BY_ID.values():
+		for id in p.gives:
+			have[id] = true
 	have[Items.BRANCH] = true
 	have[Items.LOG] = true
 	for s: Dictionary in Trees.SPECIES:

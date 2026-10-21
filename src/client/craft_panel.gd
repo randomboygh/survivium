@@ -13,13 +13,13 @@ const Crafting := preload("res://src/shared/crafting.gd")
 
 ## Jobs of the queue shown, the rest counted.
 const SHOWN_JOBS := 2
-## Height of a recipe's row, in UI pixels.
-const ROW_HEIGHT := 34
 
 var game
 ## How tall the list of recipes may grow before it scrolls, in UI pixels (set by the
 ## window for the screen, see InventoryWindow.fit).
 var list_height := 160
+## The list's height limit now: list_height, less what the window took off so it fits.
+var _cap := 160
 ## A narrow window (a phone held upright): a recipe's buttons go under its text.
 var narrow := false
 ## Called after a refresh changed what the tab shows, to fit the window round it.
@@ -53,7 +53,10 @@ func _init(g) -> void:
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
-	var head := HBoxContainer.new()
+	# The take-up button goes under the stations near when they do not fit side by side.
+	var head := HFlowContainer.new()
+	head.add_theme_constant_override("h_separation", 6)
+	head.add_theme_constant_override("v_separation", 4)
 	add_child(head)
 	_near = UiStyle.label("", UiStyle.MUTED)
 	_near.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -75,6 +78,9 @@ func _ready() -> void:
 		var line := HBoxContainer.new()
 		var label := UiStyle.label()
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# A long name is cut, the cancel button stays on the screen.
+		label.clip_text = true
+		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		line.add_child(label)
 		line.add_child(_button("Отмена", func() -> void: game.workshop.cancel(i)))
 		_queue_box.add_child(line)
@@ -145,8 +151,8 @@ func refresh_now() -> void:
 			_list.add_child(_rows[r.id].row)
 			_list.move_child(_rows[r.id].row, i + 1)
 		_update_row(r, _rows[r.id])
-	var row_height := ROW_HEIGHT * (2 if narrow else 1) + 4
-	_scroll.custom_minimum_size.y = mini(list_height, maxi(40, known.size() * row_height))
+	_cap = list_height
+	_fit_list()
 	if on_layout.is_valid():
 		on_layout.call()
 
@@ -179,6 +185,23 @@ func _where(r: Dictionary) -> String:
 	return Crafting.TOOL_NAMES.get(r.tool, r.tool)
 
 
+## Takes `px` UI pixels off the list of recipes (it scrolls), so the window fits the
+## screen's height.
+func shrink_list(px: float) -> void:
+	_cap = maxi(40, int(_scroll.custom_minimum_size.y - ceilf(px)))
+	_fit_list()
+
+
+## The list as tall as its rows (their wrapped text is known once laid out at the
+## list's width), up to the limit; true when that changed the height.
+func _fit_list() -> bool:
+	var h := float(mini(_cap, maxi(40, ceili(_list.get_combined_minimum_size().y))))
+	if h == _scroll.custom_minimum_size.y:
+		return false
+	_scroll.custom_minimum_size.y = h
+	return true
+
+
 ## Called every frame while the window is open: the refresh asked for, a refresh when
 ## the player walked up to a station or away, else the progress of the first job.
 func refresh_progress() -> void:
@@ -187,6 +210,9 @@ func refresh_progress() -> void:
 	if _dirty or str(game.workshop.stations().keys()) != _stations_seen:
 		refresh_now()
 		return
+	# Rows that wrapped differently at the list's real width.
+	if _fit_list() and on_layout.is_valid():
+		on_layout.call()
 	var jobs: Array = game.workshop.queue.jobs
 	if not jobs.is_empty():
 		_progress.value = game.workshop.queue.progress()
@@ -218,6 +244,8 @@ func _row(r: Dictionary) -> Dictionary:
 	if r.at != "":
 		title += " · %s" % Items.title(r.at)
 	var title_label := UiStyle.label(title)
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_label.custom_minimum_size.x = 100
 	text.add_child(title_label)
 	var needs := UiStyle.label()
 	needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
