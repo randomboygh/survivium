@@ -146,6 +146,8 @@ const SHOTS := {
 	# with an axe being made and more queued.
 	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
+	# The spawn campfire opened: the craft tab with its buttons by the cross.
+	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
 	# The same workbench, kiln and chest with the window closed.
 	"stations": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true},
 	# The same with the player standing on the chest, by the front edge of its lid, and on
@@ -360,6 +362,11 @@ func _run() -> void:
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, true)
+		if shot.get("campfire", false):
+			for e in main.props.placed:
+				if e.fire != null:
+					main.hud.open_prop(e)
+					break
 		if shot.get("craft", false):
 			_craft()
 			if shot.get("closed", false):
@@ -371,7 +378,7 @@ func _run() -> void:
 				for i in 30:
 					await process_frame
 		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
-				or shot.get("craft", false) or shot.get("chests", false):
+				or shot.get("craft", false) or shot.get("chests", false) or shot.get("campfire", false):
 			# The window settles its height a frame after it opens (see InventoryWindow.refresh).
 			for i in 3:
 				await process_frame
@@ -426,7 +433,8 @@ func _run() -> void:
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
-		if shot.get("bag", false) or shot.get("chest", false) or shot.get("chests", false) or (shot.get("craft", false) and not shot.get("closed", false)):
+		if shot.get("bag", false) or shot.get("chest", false) or shot.get("chests", false) or shot.get("campfire", false) \
+				or (shot.get("craft", false) and not shot.get("closed", false)):
 			main.hud.toggle_bag()
 		if shot.get("craft", false):
 			while not main.workshop.queue.jobs.is_empty():

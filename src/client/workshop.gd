@@ -24,7 +24,8 @@ signal changed
 var game
 var queue := CraftQueue.new()
 var knowledge := Knowledge.new()
-## The queue stands still while paused (the pause button of the craft tab).
+## The queue stands still while paused (the pause button of the craft tab); an empty
+## queue is never paused.
 var paused := false:
 	set(v):
 		paused = v
@@ -76,6 +77,8 @@ func start(r: Dictionary, times := 1) -> int:
 func cancel(i: int) -> void:
 	for s in queue.cancel(i):
 		_receive(s[0], s[1])
+	if queue.jobs.is_empty():
+		paused = false
 
 
 ## Cancels every job of the queue, the last first.

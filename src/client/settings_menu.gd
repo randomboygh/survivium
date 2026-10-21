@@ -8,9 +8,9 @@ extends PanelContainer
 const UiStyle := preload("res://src/client/ui_style.gd")
 const Settings := preload("res://src/client/settings.gd")
 
-## Room for the longest name (16 letters of the 8 px font).
-const NAME_WIDTH := 130
-const VALUE_WIDTH := 84
+## Room for the longest name (18 letters of the 8 px font).
+const NAME_WIDTH := 150
+const VALUE_WIDTH := 100
 const ARROW := 32
 const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
