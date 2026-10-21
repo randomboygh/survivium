@@ -22,6 +22,9 @@
 //          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
 render_mode world_vertex_coords, cull_back;
+// Marks the pixels it wins as tall for the player's silhouette (see sprite_xray);
+// low props and snow drifts use a copy that marks them low (see main.low_variant).
+stencil_mode write, compare_always, 2;
 
 #include "res://shaders/common.gdshaderinc"
 

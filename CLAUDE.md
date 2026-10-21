@@ -112,7 +112,12 @@ GDScript. Notes: `plan/architecture/performance.md`.
 - Godot front faces wind clockwise; a hand-built mesh wound counter-clockwise is inside out.
 - MultiMesh instance data is half float on GLES3/web: put new per-instance data in COLOR, not in a
   packed int. Vertex COLOR is 8-bit and clamps above 1.
-- Silhouettes behind geometry use `render_mode depth_test_inverted`.
+- Silhouettes behind geometry use `render_mode depth_test_inverted`; the player's skips pixels the stencil
+  marks low (1: grass, bushes, low props; tall world and crowns write 2).
+- A light with shadows is drawn in a pass of its own and added in sRGB, not in linear light: it looks
+  brighter over other light. Fires and the torch scale their energy for it (`Effects.SHADOW_ENERGY`) and
+  cast shadows only at night; which things cast from which light goes by render layers
+  (`PixelView.LAYER_*`, `shadow_caster_mask`).
 - Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `controls.input` treats
   mouse motion as a mouse only with no finger down and more than 1 s after the last touch. The
   joystick and `TouchButton` follow their own touch index so two thumbs work at once.

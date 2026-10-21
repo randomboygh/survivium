@@ -79,6 +79,9 @@ var world_root: Node3D
 var drifts_root: Node3D
 var atlas: Texture2D
 var world_mat: ShaderMaterial
+## The world shader for low things (chests, workbenches, campfires, things on the
+## ground, snow drifts): the player's silhouette does not show behind them.
+var low_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var grass_mat: ShaderMaterial
 var leaves_mat: ShaderMaterial
@@ -309,6 +312,8 @@ func _build_materials() -> void:
 	for m in mini(Mat.COUNT, 21):
 		shapes[m] = Mat.corner_shape[m]
 	world_mat.set_shader_parameter("corner_shapes", shapes)
+	low_mat = _material(low_variant(WorldShader))
+	low_mat.set_shader_parameter("corner_shapes", shapes)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
 	grass_mat.set_shader_parameter("plant_texture", PixelTextures.build_plants())
@@ -318,7 +323,7 @@ func _build_materials() -> void:
 	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_ROWS)
 	leaves_mat.set_shader_parameter("branch_row", PixelTextures.BRANCH_ROW)
 	leaf_shadow_mat = _material(LeafShadowShader)
-	bush_mat = _material(LeavesShader)
+	bush_mat = _material(low_variant(LeavesShader))
 	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_bush_clumps(Foliage.BUSH_CLUMP))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
 	bush_mat.set_shader_parameter("clump_rows", PixelTextures.BUSH_ROWS)
@@ -333,6 +338,15 @@ func _build_materials() -> void:
 	disc_mesh = Foliage.disc_mesh(Foliage.SHADOW_DISC)
 	bush_mesh = Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true)
 	drift_mesh = Drifts.mound_mesh()
+
+
+## A copy of `shader` (world or leaves, which mark what they draw as tall in the
+## stencil buffer) that marks it low, so the player's silhouette (sprite_xray) does
+## not show behind it.
+static func low_variant(shader: Shader) -> Shader:
+	var low := Shader.new()
+	low.code = shader.code.replace("stencil_mode write, compare_always, 2;", "stencil_mode write, compare_always, 1;")
+	return low
 
 
 func _material(shader: Shader) -> ShaderMaterial:
@@ -366,4 +380,5 @@ func _build_scene() -> void:
 	effects = EffectsScript.new()
 	world_root.add_child(effects)
 	cursor = CursorScript.new()
+	cursor.world = world
 	world_root.add_child(cursor)
