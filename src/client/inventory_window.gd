@@ -71,6 +71,9 @@ func _ready() -> void:
 	_state = UiStyle.label()
 	box.add_child(_state)
 	craft = CraftPanel.new(game)
+	craft.on_layout = func() -> void:
+		reset_size()
+		position = ((get_parent_area_size() - size) * 0.5).floor()
 	craft.visible = false
 	box.add_child(craft)
 	_bag_page = VBoxContainer.new()

@@ -22,6 +22,8 @@ var game
 var list_height := 160
 ## A narrow window (a phone held upright): a recipe's buttons go under its text.
 var narrow := false
+## Called after a refresh changed what the tab shows, to fit the window round it.
+var on_layout := Callable()
 var _near: Label
 var _take_up: Button
 var _queue_box: VBoxContainer
@@ -56,6 +58,8 @@ func _ready() -> void:
 	_near = UiStyle.label("", UiStyle.MUTED)
 	_near.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_near.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# A wrapping label with no width of its own would be laid out a letter a line.
+	_near.custom_minimum_size.x = 120
 	head.add_child(_near)
 	_take_up = _button("Забрать", func() -> void:
 		if game.props.take_up(_station):
@@ -91,6 +95,7 @@ func _ready() -> void:
 	_scroll.add_child(_list)
 	_empty = UiStyle.label("Рецептов пока нет. Собери волокно (копай траву), ветки и кремень (копай землю).", UiStyle.MUTED)
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_empty.custom_minimum_size.x = 160
 	_list.add_child(_empty)
 	game.workshop.changed.connect(refresh)
 
@@ -142,6 +147,8 @@ func refresh_now() -> void:
 		_update_row(r, _rows[r.id])
 	var row_height := ROW_HEIGHT * (2 if narrow else 1) + 4
 	_scroll.custom_minimum_size.y = mini(list_height, maxi(40, known.size() * row_height))
+	if on_layout.is_valid():
+		on_layout.call()
 
 
 func _show_queue() -> void:
@@ -214,6 +221,7 @@ func _row(r: Dictionary) -> Dictionary:
 	text.add_child(title_label)
 	var needs := UiStyle.label()
 	needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	needs.custom_minimum_size.x = 100
 	text.add_child(needs)
 	line.add_child(text)
 	var one := _button("Сделать", func() -> void: game.workshop.start(r, 1))

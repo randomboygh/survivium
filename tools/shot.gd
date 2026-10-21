@@ -109,7 +109,7 @@ const SHOTS := {
 	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
 	# The same workbench and kiln with the window closed.
-	"stations": {"time": 0.42, "season": 1, "craft": true, "closed": true},
+	"stations": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
