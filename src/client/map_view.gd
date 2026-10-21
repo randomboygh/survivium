@@ -176,7 +176,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
 	draw_rect(rect, BACKGROUND)
-	minimap.draw_map(self, rect, centre, zoom())
+	minimap.draw_map(self, rect, centre, zoom(), true)
 	var p := (rect.get_center() + (Vector2(minimap.player_cell) - centre) / Minimap.STEP * zoom()).floor()
 	var r := 1.0 + maxi(0, zoom_index - 2)
 	draw_rect(Rect2(p - Vector2(r + 1, r + 1), Vector2(2 * r + 3, 2 * r + 3)), UiStyle.DARK_INK)

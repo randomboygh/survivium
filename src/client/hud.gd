@@ -377,6 +377,7 @@ func update_state() -> void:
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
+	minimap.set_marks(game.props.placed)
 	_set_icon(_clock_icon, game.sky.icon())
 	if game.chunks.manual_level >= 0:
 		_level_label.text = "Срез %d" % game.chunks.cut_level

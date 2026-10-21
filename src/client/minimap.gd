@@ -5,12 +5,15 @@ extends Control
 ## world has no edge, so the explored map is kept in square regions of REGION chunks,
 ## each an image sent to the renderer once a frame at most. The corner shows the ground
 ## around the player with the player as a dot in the middle; a tap on it (or M) opens
-## the whole map (MapView), which draws the same regions.
+## the whole map (MapView), which draws the same regions. Things the player placed
+## (a workbench, a campfire, chests) are marked on both: a dot of the colour of their
+## picture here, the picture itself on the whole map.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
+const ItemIcons := preload("res://src/client/item_icons.gd")
 
 ## The map on screen, in UI pixels, and the cells per pixel.
 const SIZE := 72
@@ -38,6 +41,10 @@ const UNSEEN := Color(0.1, 0.1, 0.12)
 var regions := {}
 ## The player's column.
 var player_cell := Vector2i.ZERO
+## The things placed, [middle column, item id] each (see set_marks), and the colour
+## of each item's mark by id.
+var marks: Array = []
+var _mark_colors := {}
 var sea := 0
 var top := 0
 ## Asks for the whole map (see Hud).
@@ -147,6 +154,37 @@ func flush() -> void:
 		painted.emit()
 
 
+## Marks the things placed (Props.placed: "item", "cell" the north-west of its two
+## by two cells) when they changed.
+func set_marks(placed: Array) -> void:
+	var now := []
+	for e: Dictionary in placed:
+		var c: Vector3i = e.cell
+		now.append([Vector2i(c.x + 1, c.z + 1), e.item])
+	if now != marks:
+		marks = now
+		queue_redraw()
+		painted.emit()
+
+
+## The colour of item `id`'s mark: the mean of its picture's pixels.
+func _mark_color(id: String) -> Color:
+	if not _mark_colors.has(id):
+		var c := UiStyle.INK
+		var tex := ItemIcons.of_item(id)
+		if tex != null:
+			var img := tex.get_image()
+			var sum := Color(0, 0, 0, 0)
+			for y in img.get_height():
+				for x in img.get_width():
+					var p := img.get_pixel(x, y)
+					sum += Color(p.r, p.g, p.b, 1.0) * p.a
+			if sum.a > 0.0:
+				c = Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a)
+		_mark_colors[id] = c
+	return _mark_colors[id]
+
+
 func set_player(cell: Vector2i) -> void:
 	if cell != player_cell:
 		player_cell = cell
@@ -154,8 +192,9 @@ func set_player(cell: Vector2i) -> void:
 
 
 ## Draws the explored map on `canvas` inside `rect` (its UI pixels), the column
-## `centre` (in cells, may be fractional) in the middle, `zoom` UI pixels per map pixel.
-func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float) -> void:
+## `centre` (in cells, may be fractional) in the middle, `zoom` UI pixels per map pixel,
+## and the marks of the things placed, as pictures with `pictures`.
+func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pictures := false) -> void:
 	var span := REGION * WorldData.CHUNK
 	var mid := rect.get_center()
 	# The regions the rectangle shows.
@@ -173,6 +212,21 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float) -> 
 			if shown.size.x <= 0.0 or shown.size.y <= 0.0:
 				continue
 			canvas.draw_texture_rect_region(r.texture, shown, Rect2((shown.position - at) / zoom, shown.size / zoom))
+	for m: Array in marks:
+		var p := (mid + (Vector2(m[0]) - centre) / STEP * zoom).floor()
+		if pictures:
+			var tex := ItemIcons.of_item(m[1])
+			if tex == null:
+				continue
+			var box := Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
+			if rect.encloses(box):
+				canvas.draw_rect(box, UiStyle.DARK_INK)
+				canvas.draw_texture(tex, box.position + Vector2(1, 1))
+		else:
+			var box := Rect2(p - Vector2(2, 2), Vector2(5, 5))
+			if rect.encloses(box):
+				canvas.draw_rect(box, UiStyle.DARK_INK)
+				canvas.draw_rect(box.grow(-1), _mark_color(m[1]))
 
 
 func _gui_input(event: InputEvent) -> void:
