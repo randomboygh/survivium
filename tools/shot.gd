@@ -147,6 +147,9 @@ const SHOTS := {
 	# The death screen: dead of hunger by the spawn with a few things in the bag.
 	"death": {"time": 0.42, "season": 1, "touch": true, "death": true},
 	"death-pc": {"time": 0.42, "season": 1, "death": true},
+	# Back after that death beside the sack, glowing where the character fell.
+	"sack": {"time": 0.42, "season": 1, "death": true, "revive": true},
+	"sack-night": {"time": 0.95, "season": 1, "death": true, "revive": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -367,6 +370,11 @@ func _run() -> void:
 			main.character.vitals.hurt_by = "hunger"
 			for i in 10:
 				await process_frame
+			if shot.get("revive", false):
+				var fell: Array = main.character.death.at
+				main.death_screen._revive(Vector3(fell[0] - 1.5, fell[1], fell[2] + 1.0))
+				for i in 30:
+					await process_frame
 		var setup: Control = null
 		if shot.get("setup", false):
 			setup = main.WorldSetup.new(main)
@@ -393,6 +401,10 @@ func _run() -> void:
 			main.hud.map_view.open()
 			main.hud.map_view.zoom_index = shot.get("map_zoom", main.hud.map_view.FIRST_ZOOM)
 			await process_frame
+			await process_frame
+		if shot.get("revive", false):
+			# The key hints come back with the interface; they would hide the sack.
+			main.hud.show_keys(false)
 			await process_frame
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)

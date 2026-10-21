@@ -347,7 +347,8 @@ func remove_bush(cell: Vector3i) -> void:
 	game.chunks.on_cell_changed(cell)
 
 
-## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh.
+## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh; a death's
+## sack glows (Effects.sack_glow).
 func show_drops(key: Vector2i) -> void:
 	for node: Node in drop_nodes.get(key, []):
 		node.queue_free()
@@ -365,6 +366,8 @@ func show_drops(key: Vector2i) -> void:
 		node.extra_cull_margin = MODEL_CULL_MARGIN
 		game.world_root.add_child(node)
 		nodes.append(node)
+		if d[0] == Items.SACK:
+			nodes.append(game.effects.sack_glow(d[1]))
 	drop_nodes[key] = nodes
 
 

@@ -31,6 +31,8 @@ var _cause: Label
 var _when: Label
 var _lost: GridContainer
 var _sack: Label
+var _sack_row: HBoxContainer
+var _note: Label
 var _respawn: VBoxContainer
 var _menu_button: Button
 var _new_button: Button
@@ -61,16 +63,29 @@ func _ready() -> void:
 	_cause.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_when = _text(box, UiStyle.MUTED)
 	_when.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_gap(box)
-	_text(box, UiStyle.ACCENT).text = "Потеряно"
+	_heading(box, "Потеряно")
 	_lost = GridContainer.new()
 	_lost.columns = COLUMNS
 	_lost.add_theme_constant_override("h_separation", 2)
 	_lost.add_theme_constant_override("v_separation", 2)
 	_lost.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	box.add_child(_lost)
-	_sack = _text(box, UiStyle.INK)
-	_text(box, UiStyle.MUTED).text = "Остаются с вами: изученные рецепты."
+	_sack_row = HBoxContainer.new()
+	_sack_row.add_theme_constant_override("separation", 6)
+	box.add_child(_sack_row)
+	var icon := TextureRect.new()
+	icon.texture = UiStyle.icon("bag")
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.custom_minimum_size = Vector2(10, 10)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_sack_row.add_child(icon)
+	_sack = UiStyle.label("", UiStyle.INK)
+	_sack.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sack.custom_minimum_size = Vector2(WIDTH - 16, 0)
+	_sack_row.add_child(_sack)
+	_note = _text(box, UiStyle.MUTED)
+	_heading(box, "Остаётся с вами")
+	_text(box, UiStyle.INK).text = "Изученные рецепты"
 	_gap(box)
 	_respawn = VBoxContainer.new()
 	_respawn.add_theme_constant_override("separation", 6)
@@ -91,6 +106,22 @@ func _text(parent: Node, color: Color) -> Label:
 	l.custom_minimum_size = Vector2(WIDTH, 0)
 	parent.add_child(l)
 	return l
+
+
+## A section's name in amber with a line to the panel's edge.
+func _heading(parent: Node, text: String) -> void:
+	_gap(parent)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	row.add_child(UiStyle.label(text, UiStyle.ACCENT))
+	var line := ColorRect.new()
+	line.color = UiStyle.HIGHLIGHT
+	line.custom_minimum_size = Vector2(0, 2)
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(line)
 
 
 func _gap(parent: Node) -> void:
@@ -137,7 +168,7 @@ func _fill() -> void:
 	_cause.text = cause[1]
 	_cause.visible = cause[1] != ""
 	var t := float(death.get("time", 0.0)) * 24.0
-	_when.text = "День %d, %02d:%02d" % [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))]
+	_when.text = "день %d · %02d:%02d" % [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))]
 	for c in _lost.get_children():
 		c.queue_free()
 	var lost: Array = death.get("lost", [])
@@ -149,16 +180,18 @@ func _fill() -> void:
 		_lost.add_child(s)
 	_lost.visible = not lost.is_empty()
 	var points: Array = character.respawn_points()
+	_sack_row.visible = not lost.is_empty()
 	if lost.is_empty():
-		_sack.text = "Сумка была пуста: вещей не потеряно."
+		_note.text = "Ничего: сумка была пуста"
 	else:
-		_sack.text = "Вещи из сумки лежат в мешке там, где вы упали%s. Мешок ждёт, пока его не заберут." % _where(death.get("sack"), points[0])
+		_sack.text = "Мешок с вещами %s" % _where(death.get("sack"), points[0])
+		_note.text = "Он светится и ждёт там, где вы упали, пока его не заберут"
 	for c in _respawn.get_children():
 		c.queue_free()
 		_respawn.remove_child(c)
 	for p: Array in points:
 		var at: Vector3 = p[1]
-		var b := _button(_respawn, "Возродиться: " + (p[0] as String).to_lower(), func() -> void: _revive(at))
+		var b := _button(_respawn, "Возродиться " + (p[0] as String).to_lower(), func() -> void: _revive(at))
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
 			b.add_theme_stylebox_override(state, UiStyle.button(state, true))
 		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
@@ -169,18 +202,18 @@ func _fill() -> void:
 	_fit()
 
 
-## ": 40 м к северо-востоку от костра старта", from respawn point `point` ([title,
+## "в 40 м к северо-востоку от костра старта", from respawn point `point` ([title,
 ## position]) to the sack at `sack` ([x, y, z] or null).
 static func _where(sack: Variant, point: Array) -> String:
 	if not (sack is Array) or sack.size() != 3:
-		return ""
+		return "там, где вы упали"
 	var from: Vector3 = point[1]
 	var d := Vector2(float(sack[0]) - from.x, float(sack[2]) - from.z)
 	var title := (point[0] as String).trim_prefix("У ").trim_prefix("у ")
 	if d.length() < 3.0:
-		return ", у самого %s" % title
+		return "у самого %s" % title
 	var sector := posmod(roundi(atan2(d.x, -d.y) / (TAU / 8.0)), 8)
-	return ": %d м %s от %s" % [roundi(d.length()), DIRECTIONS[sector], title]
+	return "в %d м %s от %s" % [roundi(d.length()), DIRECTIONS[sector], title]
 
 
 func _revive(at: Vector3) -> void:
