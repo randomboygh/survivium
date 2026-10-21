@@ -1,70 +1,76 @@
 extends PanelContainer
-## The bag window (plan/design/ui.md, section 5): the slots with their items, tabs by
-## kind of item that dim the rest, the weight against the limit, sorting, and what can
-## be done with the chosen item (eat, take it in the hand in use, plant a bush or place
-## a thing in front of the player, repair a worn tool at a workbench, throw away, move
-## it to another slot (of the bag or the chest), destroy it with the bin, which turns
-## red at the first tap and destroys at the second). Opened at a chest, it shows the
-## chest's slots under the bag's and moves stacks between them; walking away from the
-## chest closes its part. The craft tab (CraftPanel) shows the recipes known and the queue; opened at a
-## station it starts there. On a wide screen what is done with the item stands beside
-## the slots, else under them. Opens over the running world, which goes on; taps and
-## clicks inside it do not reach the world.
+## The bag window (plan/design/ui.md, section 5), as wide whatever it shows: the bag's
+## slots with a column of tabs by kind of item on the left (the other slots dim) and
+## the sorting buttons on the right (they sort the bag past the hotbar row and the
+## chest shown). The chests within reach stand under the bag, one at a time, picked by
+## their tabs on the right, each with «Забрать». A tap picks a slot; a tap on another
+## slot (of the bag or a chest) moves the stack there, swaps the two or tops up a stack
+## of the same item, and lets it go; a tap on the chosen one lets it go too. The panel at the bottom names
+## the chosen stack with its weight and what can be done with it: eat, take it in the
+## hand in use («Взять»), plant, set down, repair, throw away one or all, destroy (the
+## bin turns red at the first tap and destroys at the second). The craft tab
+## (CraftPanel) has its own cells and panels; opened at a station it starts there.
+## Opens over the running world, which goes on; taps inside it do not reach the world.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const TabRow := preload("res://src/client/tab_row.gd")
+const IconTabs := preload("res://src/client/icon_tabs.gd")
 const Items := preload("res://src/shared/items.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
 const CraftPanel := preload("res://src/client/craft_panel.gd")
 const Workshop := preload("res://src/client/workshop.gd")
 
-const SLOT := 40
 ## Room kept between the window and the edges of the screen, in UI pixels.
 const EDGE := 4
 ## Room kept free at the bottom of the screen for the hotbar (its frame and the tab
 ## with the bag's load on it).
 const HOTBAR := 68
-## The width of the column beside the slots on a wide screen.
-const SIDE := 208
+## The gap between the columns of tabs and the slots.
+const GAP := 4
+## Slots across; and the side of a slot, the larger when the window fits the screen.
+const COLUMNS := 8
+const SLOT := 40
+const SLOT_SMALL := 36
 
 var game
+## The side of a slot now (see fit).
+var slot := SLOT
+var _bag_tab: Button
+var _craft_tab: Button
+var _bag_page: VBoxContainer
+var craft: CraftPanel
+var _kinds: IconTabs
+var _chest_tabs: IconTabs
 var _weight: Label
-var _kinds: TabRow
 var _grid: GridContainer
 var _slots := []
+var _chest_head: HBoxContainer
+var _chest_title: Label
+var _chest_grid: GridContainer
+var _chest_slots := []
 var _info: Label
 var _eat: Button
 var _hold: Button
 var _plant: Button
-var _drop_one: Button
-var _drop_all: Button
 var _put: Button
 var _repair: Button
-var _move: Button
-## The bin: red after the first tap (_confirming), the second destroys.
+## Throw away one and all, and the bin, side by side.
+var _drop: HBoxContainer
 var _destroy: Button
+## The bin waits for its second tap.
 var _confirming := false
-## «Переместить» was tapped: the next slot tapped is where the chosen stack goes.
-var _moving := false
-var _bag_tab: Button
-var _craft_tab: Button
-var _bag_page: BoxContainer
-var _bag_side: VBoxContainer
-var craft: CraftPanel
-var _chosen := -1
-var _chest_head: HBoxContainer
-var _chest_grid: GridContainer
-var _chest_slots := []
-var _to_chest: Button
-var _to_bag: Button
-var _take_chest: Button
-## The chest shown (an Inventory), null when none is open, its record in Props.placed
-## and its chosen slot.
-var _chest = null
+## The chosen stack: the bag it is in (the character's or a chest's) and its slot.
+var _from = null
+var _at := -1
+## The chests within reach (records of Props.placed), the one shown, and what they were
+## at the last look (to notice walking up to one or away).
+var _chests: Array = []
 var _chest_entry := {}
-var _chosen_chest := -1
+var _chests_seen := ""
+## A _place waits for the end of the frame.
+var _place_queued := false
 
 
 func _init(g) -> void:
@@ -74,6 +80,13 @@ func _init(g) -> void:
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
+	# Containers learn their least size late (and a wrapping label its height only once
+	# laid out at its width): size the window again once that settles, or it would keep
+	# the height of what it showed before.
+	minimum_size_changed.connect(func() -> void:
+		if not _place_queued:
+			_place_queued = true
+			_place.call_deferred())
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
@@ -83,116 +96,132 @@ func _ready() -> void:
 	_craft_tab = _button("Крафт", show_tab.bind("craft"))
 	head.add_child(_bag_tab)
 	head.add_child(_craft_tab)
-	var gap := Control.new()
-	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(gap)
-	head.add_child(_button("Закрыть", close))
+	# The bag's weight in the free room of the head, on the bag tab.
+	_weight = UiStyle.label()
+	_weight.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_weight.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_weight.tooltip_text = "Вес сумки"
+	_weight.mouse_filter = Control.MOUSE_FILTER_PASS
+	head.add_child(_weight)
+	var shut := _button("", close)
+	shut.icon = UiStyle.icon("close")
+	shut.tooltip_text = "Закрыть"
+	shut.custom_minimum_size.x = 30
+	head.add_child(shut)
 	craft = CraftPanel.new(game)
 	craft.on_layout = _place
 	craft.visible = false
 	box.add_child(craft)
-	_bag_page = BoxContainer.new()
-	_bag_page.vertical = true
-	_bag_page.add_theme_constant_override("separation", 8)
-	box.add_child(_bag_page)
-	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 6)
-	_bag_page.add_child(left)
-	_kinds = TabRow.new()
-	_kinds.picked.connect(func(_k: String) -> void: refresh())
-	left.add_child(_kinds)
-	_weight = UiStyle.label()
-	left.add_child(_weight)
-	_grid = GridContainer.new()
-	_grid.add_theme_constant_override("h_separation", 4)
-	_grid.add_theme_constant_override("v_separation", 4)
-	left.add_child(_grid)
-	for i in game.character.inventory.slots.size():
-		var s = HotbarSlot.new(SLOT)
-		s.pressed.connect(_choose.bind(i))
-		_grid.add_child(s)
-		_slots.append(s)
-	_chest_head = HBoxContainer.new()
-	left.add_child(_chest_head)
-	var chest_title := UiStyle.label("Сундук", UiStyle.ACCENT)
-	chest_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	chest_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_chest_head.add_child(chest_title)
-	_chest_head.add_child(TabRow.small_button("Сортировать", func() -> void:
-		_chosen_chest = -1
-		_chest.sort("kind")))
-	_chest_grid = GridContainer.new()
-	_chest_grid.add_theme_constant_override("h_separation", 4)
-	_chest_grid.add_theme_constant_override("v_separation", 4)
-	left.add_child(_chest_grid)
-	for i in game.props.CHEST_SLOTS:
-		var s = HotbarSlot.new(SLOT)
-		s.pressed.connect(_choose_in_chest.bind(i))
-		_chest_grid.add_child(s)
-		_chest_slots.append(s)
 
-	_bag_side = VBoxContainer.new()
-	_bag_side.add_theme_constant_override("separation", 6)
-	_bag_page.add_child(_bag_side)
-	# Sorting leaves the first row alone: it is the hotbar, laid out by the player.
-	var sorts := HFlowContainer.new()
-	sorts.add_theme_constant_override("h_separation", 4)
-	sorts.add_theme_constant_override("v_separation", 4)
-	_bag_side.add_child(sorts)
-	var sort_label := UiStyle.label("Сортировать:", UiStyle.MUTED)
-	sort_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	sorts.add_child(sort_label)
+	_bag_page = VBoxContainer.new()
+	_bag_page.add_theme_constant_override("separation", 6)
+	box.add_child(_bag_page)
+	var middle := HBoxContainer.new()
+	middle.add_theme_constant_override("separation", GAP)
+	_bag_page.add_child(middle)
+	_kinds = IconTabs.new()
+	_kinds.picked.connect(func(_k: String) -> void: refresh())
+	middle.add_child(_kinds)
+	var cells := VBoxContainer.new()
+	cells.add_theme_constant_override("separation", 4)
+	middle.add_child(cells)
+	_grid = _slot_grid(cells, game.character.inventory.slots.size(), _slots, _tap.bind(true))
+	_chest_head = HBoxContainer.new()
+	_chest_head.add_theme_constant_override("separation", 6)
+	cells.add_child(_chest_head)
+	_chest_title = UiStyle.label("", UiStyle.ACCENT)
+	_chest_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_chest_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_chest_head.add_child(_chest_title)
+	_chest_head.add_child(TabRow.small_button("Забрать", func() -> void:
+		var e := _chest_entry
+		_let_go()
+		game.props.take_up(e)
+		refresh()))
+	_chest_grid = _slot_grid(cells, game.props.CHEST_SLOTS, _chest_slots, _tap.bind(false))
+	# Sorting on the right, over the tabs of the chests near.
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 2)
+	right.custom_minimum_size.x = IconTabs.SIDE
+	middle.add_child(right)
 	for k in Inventory.SORTS:
-		var b := TabRow.small_button(Inventory.SORTS[k], func() -> void:
-			_chosen = -1
-			game.character.inventory.sort(k, Inventory.HOTBAR))
-		b.tooltip_text = "Кроме первого ряда: это панель внизу экрана"
-		sorts.add_child(b)
+		var icon: Texture2D = ItemIcons.picture("weight") if k == "weight" else UiStyle.icon("sort_" + k)
+		var b := TabRow.icon_button(icon, "Сортировать %s (без первого ряда)" % Inventory.SORTS[k], sort.bind(k))
+		b.custom_minimum_size = Vector2(IconTabs.SIDE, IconTabs.SIDE - 2)
+		right.add_child(b)
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 8
+	right.add_child(spacer)
+	_chest_tabs = IconTabs.new()
+	_chest_tabs.picked.connect(func(k: String) -> void:
+		_show_chest(_chests[int(k)])
+		refresh())
+	right.add_child(_chest_tabs)
+
+	# The panel at the bottom: the chosen stack and what can be done with it.
+	var bottom := PanelContainer.new()
+	bottom.add_theme_stylebox_override("panel", _well())
+	_bag_page.add_child(bottom)
+	var info := VBoxContainer.new()
+	info.add_theme_constant_override("separation", 6)
+	bottom.add_child(info)
 	_info = UiStyle.label("", UiStyle.MUTED)
-	_info.custom_minimum_size = Vector2(120, 22)
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_bag_side.add_child(_info)
+	_info.custom_minimum_size.x = 120
+	info.add_child(_info)
 	var actions := HFlowContainer.new()
 	actions.add_theme_constant_override("h_separation", 6)
 	actions.add_theme_constant_override("v_separation", 6)
-	_bag_side.add_child(actions)
-	_eat = _button("Съесть", func() -> void: game.character.eat(_chosen))
-	_hold = _button("В руку", func() -> void: game.controls.hold(game.character.inventory.slots[_chosen][0]))
-	_plant = _button("Посадить", func() -> void: game.gathering.plant(game.character.inventory.slots[_chosen][0]))
-	_drop_one = _button("Выбросить 1", func() -> void: game.character.throw_away(_chosen, 1))
-	_drop_all = _button("Выбросить все", func() -> void: game.character.throw_away(_chosen, 1 << 20))
+	actions.custom_minimum_size.y = 30
+	info.add_child(actions)
+	_eat = _button("Съесть", func() -> void: game.character.eat(_at))
+	_hold = _button("Взять", func() -> void: game.controls.hold(_from.slots[_at][0]))
+	_plant = _button("Посадить", func() -> void: game.gathering.plant(_from.slots[_at][0]))
 	_put = _button("Поставить", func() -> void:
-		if game.props.put_from_bag(game.character.inventory.slots[_chosen][0], _chosen):
+		if game.props.put_from_bag(_from.slots[_at][0], _at):
 			close())
-	_repair = _button("Починить", func() -> void: game.workshop.repair(_chosen))
-	_to_chest = _button("В сундук", _move_to_chest)
-	_to_bag = _button("В сумку", _move_to_bag)
-	_take_chest = _button("Забрать сундук", func() -> void:
-		var e := _chest_entry
-		show_chest({})
-		game.props.take_up(e))
-	_move = _button("Переместить", func() -> void:
-		_moving = not _moving
-		_confirming = false
-		refresh())
-	_destroy = _button("", func() -> void:
-		if _confirming:
-			destroy_chosen()
-		else:
-			_confirming = true
-			_moving = false
-			refresh())
-	_destroy.icon = UiStyle.icon("trash")
-	_destroy.custom_minimum_size.x = 34
-	for b in [_to_chest, _to_bag, _take_chest, _eat, _hold, _plant, _put, _repair, _move, _drop_one, _drop_all, _destroy]:
+	_repair = _button("Починить", func() -> void: game.workshop.repair(_at))
+	for b in [_eat, _hold, _plant, _put, _repair]:
 		actions.add_child(b)
+	_drop = TabRow.split([
+		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.character.throw_away(_at, 1)],
+		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.character.throw_away(_at, 1 << 20)],
+		[UiStyle.icon("trash"), "Уничтожить", func() -> void:
+			if _confirming:
+				destroy_chosen()
+			else:
+				_confirming = true
+				refresh()],
+	])
+	for b in _drop.get_children():
+		b.custom_minimum_size = Vector2(30, 30)
+	_destroy = _drop.get_child(2)
+	actions.add_child(_drop)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
+
+
+## A grid of `n` slots in `parent`, kept in `cells`; a tap on slot i calls `tap` with i.
+func _slot_grid(parent: Node, n: int, cells: Array, tap: Callable) -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = COLUMNS
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
+	parent.add_child(grid)
+	for i in n:
+		var s = HotbarSlot.new(SLOT)
+		s.pressed.connect(func() -> void: tap.call(i))
+		grid.add_child(s)
+		cells.append(s)
+	return grid
 
 
 ## Shows the bag ("bag") or the craft tab ("craft").
 func show_tab(tab: String) -> void:
 	_bag_page.visible = tab == "bag"
+	# Off the bag tab the label stays, empty, to keep the cross on the right.
+	if tab != "bag":
+		_weight.text = ""
 	craft.visible = tab == "craft"
 	_bag_tab.modulate = UiStyle.ACCENT if tab == "bag" else Color.WHITE
 	_craft_tab.modulate = UiStyle.ACCENT if tab == "craft" else Color.WHITE
@@ -203,34 +232,32 @@ func show_tab(tab: String) -> void:
 func open() -> void:
 	visible = true
 	move_to_front()
+	_chests_seen = "-"
 	refresh()
 	craft.refresh_now()
 
 
 func close() -> void:
 	visible = false
-	show_chest({})
+	_let_go()
+	_chest_entry = {}
 	craft.at_station({})
 
 
-## Shows the chest of placed thing `e` (see Props.placed) under the bag, or hides it
-## for {}.
+## Shows the chest of placed thing `e` (see Props.placed) under the bag, on the bag tab.
 func show_chest(e: Dictionary) -> void:
-	if _chest != null and _chest.changed.is_connected(refresh):
-		_chest.changed.disconnect(refresh)
-	_chest = e.get("items")
+	_chests_seen = "-"
+	_show_chest(e)
+	show_tab("bag")
+
+
+func _show_chest(e: Dictionary) -> void:
 	_chest_entry = e
-	_chosen_chest = -1
-	if _chest != null:
-		show_tab("bag")
-	if _chest != null:
-		_chest.changed.connect(refresh)
-	refresh()
+	_confirming = false
 
 
 ## Opens the craft tab at station `e` (see Props.placed).
 func show_station(e: Dictionary) -> void:
-	show_chest({})
 	show_tab("craft")
 	craft.at_station(e)
 
@@ -242,32 +269,37 @@ func toggle() -> void:
 		open()
 
 
-## Lays the slots out for a screen `screen` UI pixels large: eight across when they fit
-## between the edges with the window's frame (12 px), else four; what is done with
-## the item (and the craft tab's blocks) beside the slots when there is room for both,
-## else under them.
+## Lays the window out for a screen `screen` UI pixels large: eight slots across with
+## a column of tabs on each side, the slots smaller when the larger do not fit; the
+## window keeps that width on both tabs.
 func fit(screen: Vector2) -> void:
 	var room := screen.x - 2 * EDGE - 12
-	_grid.columns = 8 if room >= 8 * (SLOT + 4) - 4 else 4
-	_chest_grid.columns = _grid.columns
-	var slots_width := _grid.columns * (SLOT + 4) - 4
-	var wide := _grid.columns == 8 and room >= slots_width + 8 + SIDE
-	_bag_page.vertical = not wide
-	_bag_side.custom_minimum_size.x = SIDE if wide else 0
-	craft.columns = _grid.columns
-	craft.side_width = SIDE
-	craft.wide = wide
-	# The rest of the window (tabs, stations, the kinds of items, and under the cells on
-	# a narrow screen the blocks) takes about 200 UI pixels, 420 under; _place takes
-	# more off the cells if the window still does not fit.
-	craft.list_height = clampi(int(screen.y) - (200 if wide else 420), SLOT, 300)
+	slot = SLOT if room >= _width(SLOT) else SLOT_SMALL
+	for s in _slots + _chest_slots:
+		s.custom_minimum_size = Vector2(slot, slot)
+	_bag_page.custom_minimum_size.x = _width(slot)
+	# A wrapping label is measured at its least width: as wide as the panel it is in.
+	_info.custom_minimum_size.x = _width(slot) - 12
+	craft.slot = slot
+	craft.custom_minimum_size.x = _width(slot)
+	craft.fit_width(_width(slot))
+	# The rest of the craft tab (tabs, the station's line, the panels at the bottom)
+	# takes about 200 UI pixels; _place takes more off the cells if the window still
+	# does not fit.
+	craft.list_height = clampi(int(screen.y) - HOTBAR - 220, slot, 300)
 	craft.refresh()
 	_place()
 
 
-## Sizes the window round what it shows, shortens the list of recipes when the window
+## The width inside the window's frame with slots `side` across.
+static func _width(side: int) -> int:
+	return 2 * IconTabs.SIDE + 2 * GAP + COLUMNS * (side + 4) - 4
+
+
+## Sizes the window round what it shows, shortens the craft tab's cells when the window
 ## is taller than the room above the hotbar, and centres it there.
 func _place() -> void:
+	_place_queued = false
 	var screen := get_parent_area_size()
 	var room := Vector2(screen.x, screen.y - HOTBAR)
 	reset_size()
@@ -278,73 +310,51 @@ func _place() -> void:
 	position = ((room - size) * 0.5).floor().max(Vector2(EDGE, EDGE))
 
 
-func _choose(i: int) -> void:
-	if _moving:
-		_move_chosen(game.character.inventory, i)
+## A tap on slot `i` of the bag (`in_bag`) or of the chest shown: picks it, lets the
+## chosen one go, or moves the chosen stack there and lets it go.
+func _tap(i: int, in_bag: bool) -> void:
+	var to = game.character.inventory if in_bag else _chest_entry.get("items")
+	if to == null:
 		return
-	_chosen = i if _chosen != i else -1
-	_chosen_chest = -1
 	_confirming = false
+	if _from == null:
+		if to.slots[i] != null:
+			_from = to
+			_at = i
+	elif _from == to and _at == i:
+		_let_go()
+	else:
+		if not _from.put_into(_at, to, i):
+			game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
+		_let_go()
 	refresh()
 
 
-func _choose_in_chest(i: int) -> void:
-	if _moving:
-		_move_chosen(_chest, i)
-		return
-	_chosen_chest = i if _chosen_chest != i else -1
-	_chosen = -1
+func _let_go() -> void:
+	_from = null
+	_at = -1
 	_confirming = false
+
+
+## Sorts the bag past the hotbar row and the chest shown, by `by` (see Inventory.SORTS).
+func sort(by: String) -> void:
+	_let_go()
+	game.character.inventory.sort(by, Inventory.HOTBAR)
+	if _chest_entry.get("items") != null:
+		_chest_entry.items.sort(by)
 	refresh()
 
 
-## The chosen stack goes to slot `i` of bag `to` (the bag or the chest), swapping with
-## what is there, and stays chosen in its new place.
-func _move_chosen(to, i: int) -> void:
-	_moving = false
-	var from = _chest if _chosen_chest >= 0 else game.character.inventory
-	var at := _chosen_chest if _chosen_chest >= 0 else _chosen
-	if at >= 0 and not from.put_into(at, to, i):
-		game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
-		i = at
-		to = from
-	var in_chest: bool = to == _chest and _chest != game.character.inventory
-	_chosen = -1 if in_chest else i
-	_chosen_chest = i if in_chest else -1
-	refresh()
-
-
-## The chosen stack (of the bag or the chest) is gone for good: the second tap of
-## «Уничтожить».
+## The chosen stack is gone for good: the second tap of the bin.
 func destroy_chosen() -> void:
-	_confirming = false
-	var from = _chest if _chosen_chest >= 0 else game.character.inventory
-	var i := _chosen_chest if _chosen_chest >= 0 else _chosen
-	var taken = from.take_slot(i, 1 << 20) if from != null and i >= 0 else null
+	var taken = _from.take_slot(_at, 1 << 20) if _from != null else null
+	_let_go()
 	if taken != null:
 		game.hud.toast("Уничтожено: %s ×%d" % [Items.title(taken[0]), taken[1]])
 	refresh()
 
 
-## The chosen stack of the bag goes into the chest, as much as fits; not a chest with
-## things in it.
-func _move_to_chest() -> void:
-	var s = game.character.inventory.slots[_chosen]
-	if game.character.inventory.contents(_chosen) != null:
-		game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
-		return
-	if game.character.inventory.move_slot(_chosen, _chest) < s[1]:
-		game.character.nag("chest_full", "В сундуке нет места")
-
-
-## The chosen stack of the chest goes into the bag, as much as fits.
-func _move_to_bag() -> void:
-	var s = _chest.slots[_chosen_chest]
-	if _chest.move_slot(_chosen_chest, game.character.inventory) < s[1]:
-		game.character.nag("full", "Сумка полна")
-
-
-## Shows the bag (and the chest) as it is now.
+## Shows the bag and the chest as they are now.
 func refresh() -> void:
 	if not visible:
 		return
@@ -353,93 +363,118 @@ func refresh() -> void:
 	if not _bag_page.visible:
 		return
 	var inv = game.character.inventory
-	_weight.text = "Вес %.1f из %d кг%s" % [inv.weight(), inv.weight_limit, " · перегруз" if inv.overloaded() else ""]
+	var chest = _chest_entry.get("items")
+	_weight.text = "%.1f / %d кг" % [inv.weight(), inv.weight_limit]
 	_weight.add_theme_color_override("font_color", UiStyle.DANGER if inv.overloaded() else UiStyle.INK)
-	if _chosen >= 0 and inv.slots[_chosen] == null:
-		_chosen = -1
+	if _from != null and (_from.slots[_at] == null or (_from != inv and not _chests.any(
+			func(e: Dictionary) -> bool: return e.items == _from))):
+		_let_go()
 	# Tabs of the kinds of things in the bag and the chest; the rest is dimmed.
 	var have := {}
-	for s in inv.slots + (_chest.slots if _chest != null else []):
+	for s in inv.slots + (chest.slots if chest != null else []):
 		if s != null:
 			have[Items.category(s[0])] = true
-	var kinds := Items.CATEGORIES.keys().filter(func(k: String) -> bool: return have.has(k))
-	_kinds.set_tabs(kinds, Items.CATEGORIES)
-	_kinds.visible = not kinds.is_empty()
-	_show_slots(inv, _slots, _chosen)
+	var kinds := IconTabs.kinds(have)
+	_kinds.set_tabs(kinds[0], kinds[1], kinds[2])
+	_show_slots(inv, _slots)
 	for i in _slots.size():
 		# The first row is the hotbar: its slots carry their numbers.
 		_slots[i].key = str(i + 1) if i < inv.HOTBAR else ""
-	_chest_head.visible = _chest != null
-	_chest_grid.visible = _chest != null
-	if _chest != null:
-		if _chosen_chest >= 0 and _chest.slots[_chosen_chest] == null:
-			_chosen_chest = -1
-		_show_slots(_chest, _chest_slots, _chosen_chest)
-	var in_chest = _chest.slots[_chosen_chest] if _chest != null and _chosen_chest >= 0 else null
-	var chosen = inv.slots[_chosen] if _chosen >= 0 else null
-	_confirming = _confirming and (chosen != null or in_chest != null)
-	_moving = _moving and (chosen != null or in_chest != null)
-	_to_bag.visible = in_chest != null
-	_to_chest.visible = _chest != null and chosen != null
-	_take_chest.visible = _chest != null and not _moving and not _confirming
-	if _moving:
-		_info.text = "Куда положить? Выбери ячейку сумки%s" % (" или сундука" if _chest != null else "")
-	elif _confirming:
-		var s = in_chest if in_chest != null else chosen
-		_info.text = "Уничтожить %s ×%d? Нажми корзину ещё раз" % [Items.title(s[0]), s[1]]
-	elif in_chest != null:
-		_info.text = "%s ×%d · в сундуке" % [Items.title(in_chest[0]), in_chest[1]]
-	elif chosen == null:
-		_info.text = "Выбери ячейку" if not inv.is_empty() else "Пусто. Подбирай ветки, ягоды и брёвна."
-	else:
-		var id: String = chosen[0]
-		var food := Items.food(id)
-		var worn: int = inv.worn(_chosen)
-		_info.text = "%s ×%d · %.1f кг%s%s%s" % [Items.title(id), chosen[1], inv.slot_weight(_chosen),
-			" · с вещами" if inv.contents(_chosen) != null else "",
-			" · сытость +%d" % roundi(food) if food > 0.0 else "",
-			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else ""]
-	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0
-	_hold.visible = chosen != null and game.controls.held() != chosen[0]
-	_plant.visible = chosen != null and Items.get_item(chosen[0]).get("plant", "") != ""
-	_put.visible = chosen != null and Items.get_item(chosen[0]).get("prop", "none") != "none"
-	_repair.visible = chosen != null and inv.worn(_chosen) > 0
-	_drop_one.visible = chosen != null
-	_drop_all.visible = chosen != null and chosen[1] > 1
-	_move.visible = chosen != null or in_chest != null
-	_move.modulate = UiStyle.ACCENT if _moving else Color.WHITE
-	_destroy.visible = chosen != null or in_chest != null
-	_destroy.tooltip_text = "Нажми ещё раз — уничтожить навсегда" if _confirming else "Уничтожить"
-	if _confirming != _destroy.has_theme_stylebox_override("normal"):
-		for state in ["normal", "hover", "pressed", "hover_pressed"]:
-			if _confirming:
-				_destroy.add_theme_stylebox_override(state, UiStyle.button(state, false, true))
-			else:
-				_destroy.remove_theme_stylebox_override(state)
+	_chest_head.visible = chest != null
+	_chest_grid.visible = chest != null
+	if chest != null:
+		var n := _chests.find(_chest_entry)
+		_chest_title.text = "Сундук%s · %.1f кг" % [" %d из %d" % [n + 1, _chests.size()] if _chests.size() > 1 else "", chest.weight()]
+		_show_slots(chest, _chest_slots)
+	_show_info(inv)
 	_place()
 
 
-## Shows the stacks of bag `bag` in cells `cells`, cell `chosen` lit and, with a kind
-## of item chosen, the other cells dimmed.
-func _show_slots(bag, cells: Array, chosen: int) -> void:
+## The stacks of bag `bag` in cells `cells`, the chosen one lit and, with a kind of item
+## chosen, the other cells dimmed.
+func _show_slots(bag, cells: Array) -> void:
 	for i in cells.size():
 		var s = bag.slots[i]
 		var cell = cells[i]
 		cell.texture = ItemIcons.of_item(s[0]) if s != null else null
-		cell.number = str(s[1]) if s != null and s[1] > 1 else ""
-		cell.selected = i == chosen
+		cell.number = "×%d" % s[1] if s != null and s[1] > 1 else ""
+		cell.selected = bag == _from and i == _at
 		var shown: bool = _kinds.chosen == "" or s != null and Items.category(s[0]) == _kinds.chosen
 		cell.modulate = Color.WHITE if shown else Color(1, 1, 1, 0.3)
 
 
-## What changes while the window is open: the chest's part closes when the player has
-## walked away from it, the craft tab follows its queue.
+## The panel at the bottom: the chosen stack, its weight and what it is, and the
+## buttons for what can be done with it.
+func _show_info(inv) -> void:
+	var s = _from.slots[_at] if _from != null else null
+	var mine: bool = s != null and _from == inv
+	if s == null:
+		_info.text = "Выбери ячейку; тап по другой переложит вещь туда" if not inv.is_empty() \
+			else "Пусто. Подбирай ветки, ягоды и брёвна."
+	elif _confirming:
+		_info.text = "Уничтожить %s ×%d? Нажми корзину ещё раз" % [Items.title(s[0]), s[1]]
+	else:
+		var id: String = s[0]
+		var food := Items.food(id)
+		var worn: int = _from.worn(_at)
+		_info.text = "%s ×%d · %.1f кг%s%s%s%s" % [Items.title(id), s[1], Inventory.stack_weight(s),
+			" · с вещами" if _from.contents(_at) != null else "",
+			" · сытость +%d" % roundi(food) if food > 0.0 else "",
+			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else "",
+			"" if mine else " · в сундуке"]
+	_info.add_theme_color_override("font_color", UiStyle.DANGER if _confirming else (UiStyle.INK if s != null else UiStyle.MUTED))
+	_eat.visible = mine and Items.food(s[0]) > 0.0
+	_hold.visible = mine and game.controls.held() != s[0]
+	_plant.visible = mine and Items.get_item(s[0]).get("plant", "") != ""
+	_put.visible = mine and Items.get_item(s[0]).get("prop", "none") != "none"
+	_repair.visible = mine and inv.worn(_at) > 0
+	_drop.visible = s != null
+	_drop.get_child(0).visible = mine
+	_drop.get_child(1).visible = mine and s[1] > 1
+	_destroy.tooltip_text = "Нажми ещё раз — уничтожить навсегда" if _confirming else "Уничтожить"
+	TabRow.light(_destroy, _confirming, _confirming)
+
+
+## What changes while the window is open: the chests within reach (walking up to one
+## adds its tab, walking away takes it off), the craft tab's queue.
 func refresh_state() -> void:
-	if _chest != null:
-		if not game.props.placed.has(_chest_entry) \
-				or game.props.center(_chest_entry).distance_to(game.player.position) > game.gathering.REACH + 1.0:
-			show_chest({})
+	var near := []
+	var here: Vector3 = game.player.position
+	for e: Dictionary in game.props.placed:
+		if e.items != null and game.props.center(e).distance_to(here) <= game.gathering.REACH + 1.0:
+			near.append(e)
+	var seen := ""
+	for e in near:
+		seen += str(e.cell)
+	if seen != _chests_seen:
+		_chests_seen = seen
+		for e in _chests:
+			if e.items.changed.is_connected(refresh):
+				e.items.changed.disconnect(refresh)
+		_chests = near
+		for e in _chests:
+			e.items.changed.connect(refresh)
+		if not _chests.has(_chest_entry):
+			_show_chest(_chests[0] if not _chests.is_empty() else {})
+		var keys := []
+		var icons := {}
+		var tips := {}
+		for i in _chests.size():
+			keys.append(str(i))
+			icons[str(i)] = ItemIcons.picture("chest")
+			tips[str(i)] = "Сундук %d" % (i + 1)
+		_chest_tabs.set_tabs(keys, icons, tips)
+		_chest_tabs.visible = _chests.size() > 1
+		refresh.call_deferred()
+	_chest_tabs.select(str(_chests.find(_chest_entry)))
 	craft.refresh_progress()
+
+
+func _well() -> StyleBox:
+	var box := UiStyle.slot()
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		box.set_content_margin(side, 6)
+	return box
 
 
 func _button(text: String, action: Callable) -> Button:

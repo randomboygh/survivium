@@ -114,6 +114,9 @@ const SHOTS := {
 	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
+	# A second chest set down beside the player: the bag button opens the bag with both
+	# chests, a tab each.
+	"chests": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true},
 	# A workbench, a kiln and a chest placed by the spawn, the craft tab open at the workbench
 	# with an axe being made and more queued.
 	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},
@@ -279,8 +282,8 @@ func _run() -> void:
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
 			main.hud.bag.show_tab("bag")
-			main.hud.bag._chosen = -1
-			main.hud.bag._choose(shot.get("slot", 1))
+			main.hud.bag._let_go()
+			main.hud.bag._tap(shot.get("slot", 1), true)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
@@ -289,15 +292,26 @@ func _run() -> void:
 			main.props.chest_items.add("core:log", 3)
 			main.props.chest_items.add("core:raspberry", 12)
 			main.hud.open_chest()
-			main.hud.bag._choose_in_chest(0)
+			main.hud.bag._kinds.pick("")
+			main.hud.bag._tap(0, false)
+		if shot.get("chests", false):
+			main.character.inventory.add("core:chest", 1)
+			main.player.facing = "e"
+			main.props.put_from_bag("core:chest")
+			main.props.chest_items.add("core:raspberry", 12)
+			main.hud.toggle_bag()
+			main.hud.bag.show_tab("bag")
+			main.hud.bag._kinds.pick("")
+			main.hud.bag._tap(0, true)
 		if shot.get("craft", false):
 			_craft()
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
 		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
-				or shot.get("craft", false):
-			await process_frame
-			await process_frame
+				or shot.get("craft", false) or shot.get("chests", false):
+			# The window settles its height a frame after it opens (see InventoryWindow.refresh).
+			for i in 3:
+				await process_frame
 		var setup: Control = null
 		if shot.get("setup", false):
 			setup = main.WorldSetup.new(main)
@@ -346,7 +360,7 @@ func _run() -> void:
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
-		if shot.get("bag", false) or shot.get("chest", false) or (shot.get("craft", false) and not shot.get("closed", false)):
+		if shot.get("bag", false) or shot.get("chest", false) or shot.get("chests", false) or (shot.get("craft", false) and not shot.get("closed", false)):
 			main.hud.toggle_bag()
 		if shot.get("craft", false):
 			while not main.workshop.queue.jobs.is_empty():

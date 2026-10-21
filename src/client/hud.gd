@@ -435,7 +435,7 @@ func refresh_counts() -> void:
 	for i in _slots.size():
 		var s = slots[i]
 		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
-		_slots[i].number = str(s[1]) if s != null and s[1] > 1 else ""
+		_slots[i].number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		_slots[i].key = str(i + 1)
 	_update_hands()
 	_bag_meter.queue_redraw()
@@ -480,7 +480,7 @@ func _update_hands() -> void:
 		if c.use_of(h) == "place":
 			slot.number = brush.title if brush.title != "1×1" else ""
 		else:
-			slot.number = str(n) if n > 1 else ""
+			slot.number = "×%d" % n if n > 1 else ""
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var item: String = slots[i][0] if slots[i] != null else ""
