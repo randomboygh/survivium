@@ -897,24 +897,88 @@ func _test_sprite_sheet() -> void:
 	_check(SpriteSheet.direction_of(Vector2(1, 0)) == "e", "pushing east faces east")
 	_check(SpriteSheet.direction_of(Vector2(-1, -1)) == "nw", "pushing north-west faces north-west")
 	_check(SpriteSheet.direction_of(Vector2(0.3, -1)) == "n", "a push mostly north faces north")
-	var s := PlayerArt.sheet(["body", "hair", "shirt", "trousers", "boots", "axe"])
-	_check(s.columns == 5, "player sheet has five columns")
-	_check(s.texture.get_width() == 5 * 14 and s.texture.get_height() == 5 * 18, "player sheet is five by five frames")
+	var look := ["body", "hair", "shirt", "trousers", "boots"]
+	var s := PlayerArt.sheet(look)
+	var cols := s.columns
+	_check(cols == 13, "player sheet has thirteen columns: standing, walking, four works of two")
+	_check(s.texture.get_width() == cols * 22 and s.texture.get_height() == 8 * 24, "player sheet has eight directions of 22 by 24 frames")
 	var img := s.texture.get_image()
 	var drawn := 0
-	for y in 18:
-		for x in 14:
+	for y in 24:
+		for x in 22:
 			if img.get_pixel(x, y).a > 0.5:
 				drawn += 1
-	_check(drawn > 80 and drawn < 14 * 18, "the standing frame is drawn with room around it")
-	_check(img.get_pixel(5, 17).a > 0.5, "the feet stand on the bottom row of the frame")
+	_check(drawn > 80 and drawn < 22 * 24 / 2, "the standing frame is drawn with room around it")
+	_check(img.get_pixel(8, 23).a > 0.5, "the feet stand on the bottom row of the frame")
 	var uv := s.frame_uv("s", "idle", 0.0)
-	_check(uv == Vector4(0.0, 0.0, 0.2, 0.2), "the first frame is the top-left fifth")
-	var w := s.frame_uv("w", "walk", 0.0)
-	_check(w.z < 0.0 and is_equal_approx(w.y, 0.4), "west is east mirrored")
+	_check(uv == Vector4(0.0, 0.0, 1.0 / cols, 1.0 / 8.0), "the first frame is the top-left one")
 	_check(s.frame_uv("s", "walk", 0.25) != s.frame_uv("s", "walk", 0.0), "walking changes frames in time")
+	var w := s.frame_uv("w", "idle", 0.0)
+	_check(w.z > 0.0 and is_equal_approx(w.y, 6.0 / 8.0), "west has a row of its own")
+	var east := img.get_region(Rect2i(0, 2 * 24, 22, 24))
+	east.flip_x()
+	_check(east.get_data() == img.get_region(Rect2i(0, 6 * 24, 22, 24)).get_data(), "west is east mirrored when the hands are empty")
 	var bare := PlayerArt.sheet(["body"])
-	_check(bare.texture.get_image().get_pixel(5, 17).a < 0.5, "without boots the bottom row is empty")
+	_check(bare.texture.get_image().get_pixel(8, 23).a < 0.5, "without boots the bottom row is empty")
+	# A tool in the right hand: in front of the body facing east, behind it facing west.
+	var axe := {"model": "axe", "colour": Color(0.56, 0.57, 0.6)}
+	var armed := PlayerArt.sheet(look, {"right": axe, "active": "right"})
+	var hand: Dictionary = armed.layers[-1]
+	_check(hand.name == "right" and not hand.behind.has("e") and hand.behind.has("w"), "the right hand is near facing east and far facing west")
+	_check(hand.behind.has("n") and not hand.behind.has("s"), "a tool goes behind the body with the back turned")
+	var with_axe := armed.texture.get_image()
+	_check(with_axe.get_region(Rect2i(0, 0, 22, 24)).get_data() != img.get_region(Rect2i(0, 0, 22, 24)).get_data(), "a held tool shows")
+	var col := PlayerArt.WORK_COLUMNS.chop
+	_check(with_axe.get_region(Rect2i(col * 22, 0, 22, 24)).get_data() != with_axe.get_region(Rect2i((col + 1) * 22, 0, 22, 24)).get_data(), "a chop winds up and strikes")
+	_check(armed.frame_uv("s", "chop", 0.0) != armed.frame_uv("s", "chop", 2.5), "a chop changes frames")
+	var west := with_axe.get_region(Rect2i(0, 6 * 24, 22, 24))
+	west.flip_x()
+	_check(west.get_data() != with_axe.get_region(Rect2i(0, 2 * 24, 22, 24)).get_data(), "a tool stays in its hand when the body turns west")
+	var steps = PlayerArt.build(look, {"left": axe, "active": "left"})
+	var count := 0
+	while not steps.step():
+		count += 1
+	_check(count > 8 and steps.target.texture.get_image().get_data() == PlayerArt.sheet(look, {"left": axe, "active": "left"}).texture.get_image().get_data(),
+		"a sheet built a row a step is the one built at once")
+	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
+	var spilled := 0
+	for row in 8:
+		for c in cols:
+			var r := Rect2i(c * 22, row * 24, 22, 24)
+			for y in range(r.position.y, r.end.y):
+				for x in range(r.position.x, r.end.x):
+					var edge := x == r.position.x or x == r.end.x - 1 or y == r.position.y or y == r.end.y - 1
+					if not edge or with_axe.get_pixel(x, y).a < 0.5:
+						continue
+					var inside := false
+					for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+						var n := Vector2i(x, y) + d
+						inside = inside or (r.has_point(n) and with_axe.get_pixelv(n).a > 0.5 and with_axe.get_pixelv(n) != SpriteSheet.OUTLINE)
+					if not inside:
+						spilled += 1
+	_check(spilled == 0, "the outline keeps within each frame")
+	# The player plays the work of the tool in the hand in use once, then stands again.
+	var p = PlayerScript.new()
+	p.sheet = PlayerArt.sheet(look)
+	p.on_ground = true
+	p.held = {"left": {"model": "shovel", "colour": Color.WHITE}, "right": axe, "active": "left"}
+	p.work("", 0.4, Vector3(-5.0, 0.0, 0.0))
+	_check(p.work_kind == "dig" and p.facing == "w", "a shovel digs, turned towards the cell")
+	p._animate(Vector2.ZERO, 0.0, 0.1)
+	_check(p.anim == "dig", "the work plays")
+	p._animate(Vector2.ZERO, 0.0, 0.5)
+	_check(p.anim == "idle" and p.work_kind == "", "after the swing the body stands again")
+	p.held.active = "right"
+	p.work("", 0.4)
+	_check(p.work_kind == "chop", "an axe chops")
+	p.held.active = "left"
+	p.held.left = {}
+	p.work_kind = ""
+	p.work("", 0.4)
+	_check(p.work_kind == "reach", "bare hands reach")
+	p.free()
+
+
 func _test_yaml() -> void:
 	var yaml := Yaml.new()
 	var doc: Variant = yaml.parse("""

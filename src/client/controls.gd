@@ -133,6 +133,7 @@ func unhandled_input(event: InputEvent) -> void:
 				if not target.is_empty() and (dig_mode or not touch or target.has("drop")):
 					if _cooldown <= 0.0 and game.gathering.gather(target):
 						_cooldown = tool_record().swing
+						game.player.work("", _cooldown, target.at)
 				else:
 					_start_stroke(MOUSE_BUTTON_LEFT, event.position, dig_mode or not touch)
 			MOUSE_BUTTON_RIGHT:
@@ -413,6 +414,7 @@ func _dig(cells: Array[Vector3i], swing: float) -> bool:
 	for key in keys:
 		game.props.show_drops(key)
 	_cooldown = swing
+	game.player.work("", swing, (Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL)
 	game.workshop.use_tool()
 	return true
 
@@ -446,6 +448,7 @@ func chop(cell: Vector3i) -> bool:
 	var s: Dictionary = Trees.SPECIES[game.world.trees[col]]
 	chops[col] = chops.get(col, 0) + maxi(1, t.power)
 	_cooldown = Tools.swing_time(t, Mat.LOG)
+	game.player.work("", _cooldown, (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL)
 	if chops[col] < s.hits:
 		game.hud.toast("%s: осталось ударов %d" % [s.title, ceili((s.hits - chops[col]) / float(maxi(1, t.power)))])
 		return true
@@ -480,6 +483,7 @@ func place_at(center: Vector3i, normal: Vector3i) -> int:
 		placed += 1
 	if placed > 0:
 		_cooldown = PLACE_SWING
+		game.player.work("reach", PLACE_SWING, (Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL)
 	elif far:
 		game.character.nag("far", "Слишком далеко")
 	return placed
@@ -519,6 +523,7 @@ func act_in_front() -> void:
 	if bush != null and t.tool != "pickaxe":
 		game.gathering.gather({"bush": bush})
 		_cooldown = t.swing
+		game.player.work("", t.swing, (Vector3(bush) + Vector3(0.5, 0.4, 0.5)) * CELL)
 		return
 	var cells := _dig_targets(_front_order(f, s), t)
 	if cells.is_empty():

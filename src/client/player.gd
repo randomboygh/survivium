@@ -39,6 +39,11 @@ const FLOAT_SPEED := 4.0
 ## On ice the body picks up and loses speed this slowly (cells a second, per second),
 ## so it glides on after the stick is let go.
 const ICE_GRIP := 14.0
+## The shortest a work plays, in seconds, so quick placing still shows.
+const MIN_WORK := 0.2
+## How many sheets of looks and things held are kept, so changing hands back and forth
+## takes no building.
+const SHEETS_KEPT := 6
 
 var world
 ## Movement wish: x = east, y = south, length up to 1.
@@ -71,8 +76,19 @@ var facing := "s"
 ## The animation playing and how long it has, in seconds of animation time.
 var anim := "idle"
 var anim_time := 0.0
-## Layers of the look, names from PlayerArt.LAYERS: what is worn and held.
-var look: Array = ["body", "hair", "shirt", "trousers", "boots", "axe"]
+## Layers of the look, names from PlayerArt.LAYERS: what is worn.
+var look: Array = ["body", "hair", "shirt", "trousers", "boots"]
+## What the hands hold and which one is in use (see PlayerArt.sheet).
+var held := {"left": {}, "right": {}, "active": "right"}
+## The work playing (a key of PlayerArt.WORK_COLUMNS, "" none), how long it lasts and
+## how far it has got, in seconds.
+var work_kind := ""
+var _work_length := 0.0
+var _work_time := 0.0
+## The sheet being built for a new look (see _redraw) and the sheets built, by look.
+var _build = null
+var _build_key := ""
+var _sheets := {}
 var sheet: SpriteSheet
 var sprite: MeshInstance3D
 ## The same sprite drawn as a silhouette where walls or crowns hide the player.
@@ -83,7 +99,9 @@ var torch: OmniLight3D
 
 
 func _ready() -> void:
-	sheet = PlayerArt.sheet(look)
+	PlayerArt.prepare(look)
+	sheet = PlayerArt.sheet(look, held)
+	_sheets[str(look) + str(held)] = sheet
 	var tex := sheet.texture
 	var mesh := PixelView.sprite_mesh(sheet.frame_size.x, sheet.frame_size.y)
 	sprite = MeshInstance3D.new()
@@ -126,19 +144,75 @@ static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
 	return m
 
 
-## Changes what the body wears and holds: the sheet is drawn again with these layers.
+## Changes what the body wears: the sheet is drawn again with these layers.
 func set_look(layers: Array) -> void:
 	look = layers
-	sheet = PlayerArt.sheet(look)
+	_redraw()
+
+
+## Puts things in the hands, each {} or {"model", "colour"} (see PlayerArt.sheet), and
+## says which hand is in use ("left" or "right"); the sheet is drawn again on a change.
+func hold(left: Dictionary, right: Dictionary, active: String) -> void:
+	var next := {"left": left, "right": right, "active": active}
+	if str(next) == str(held):
+		return
+	held = next
+	if sprite != null:
+		_redraw()
+
+
+## Builds the sheet of the look and what is held over the next frames (see
+## place_sprite), or takes it from the ones built before.
+func _redraw() -> void:
+	var key := str(look) + str(held)
+	_build = null
+	if _sheets.has(key):
+		_use(_sheets[key])
+		return
+	_build = PlayerArt.build(look, held)
+	_build_key = key
+
+
+func _use(s: SpriteSheet) -> void:
+	sheet = s
 	for layer in [sprite, xray, underwater]:
 		layer.material_override.set_shader_parameter("sprite_texture", sheet.texture)
 
 
+## Swings the hand in use once over `seconds`, turned towards world point `at` (none
+## when INF): `kind` is a work of PlayerArt.WORK_COLUMNS, or "" for the one of the
+## tool in that hand. A swing that comes while one is past its strike starts anew, so
+## work held down keeps swinging.
+func work(kind: String, seconds: float, at := Vector3.INF) -> void:
+	if kind == "":
+		var thing: Dictionary = held.get(held.active, {})
+		kind = PlayerArt.WORK.get(thing.get("model", ""), "reach")
+	if work_kind != "" and _work_time < _work_length * 0.5:
+		return
+	work_kind = kind
+	_work_length = maxf(seconds, MIN_WORK)
+	_work_time = 0.0
+	if at != Vector3.INF:
+		var to := Vector2(at.x - position.x, at.z - position.z)
+		if to.length() > 0.1 * CELL:
+			facing = SpriteSheet.direction_of(to)
+
+
 ## Picks the direction and animation for this step: the body turns the way it is
-## pushed and walks, jumps or stands; the walk goes as fast as the feet.
+## pushed and walks, jumps or stands, unless a work is playing; the walk goes as fast
+## as the feet.
 func _animate(dir: Vector2, speed: float, delta: float) -> void:
 	if dir.length() > 0.1:
 		facing = SpriteSheet.direction_of(dir)
+	if work_kind != "":
+		# A work plays once over its length, then the body walks or stands again.
+		_work_time += delta
+		if _work_time < _work_length:
+			var frames: Array = sheet.animations[work_kind].frames
+			anim = work_kind
+			anim_time = minf(_work_time / _work_length, 0.999) * frames.size() / sheet.animations[work_kind].fps
+			return
+		work_kind = ""
 	var next := "idle"
 	if not on_ground and not swimming:
 		next = "jump"
@@ -219,9 +293,16 @@ func on_ice(p: Vector3) -> bool:
 	return world.get_cell(floori(p.x), floori(p.y + 0.01) - 1, floori(p.z)) == Mat.WATER
 
 
-## Puts the sprite on the body, snapped to whole pixels, and the torch above it
-## (lights live where the shaders draw, so its position is sheared).
+## Puts the sprite on the body, snapped to whole pixels, and the torch above it (lights
+## live where the shaders draw, so its position is sheared); first a step of building
+## a new sheet if one is being built.
 func place_sprite() -> void:
+	if _build != null and _build.step():
+		if _sheets.size() >= SHEETS_KEPT:
+			_sheets.erase(_sheets.keys()[0])
+		_sheets[_build_key] = _build.target
+		_use(_build.target)
+		_build = null
 	sprite.global_position = PixelView.snap(position)
 	if swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
 		# A swimmer bobs on the water by a pixel.

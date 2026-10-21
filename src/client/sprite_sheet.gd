@@ -12,7 +12,8 @@ extends RefCounted
 ##   directions: drawn directions, one row each, e.g. ["s", "se", "e", "ne", "n"].
 ##   mirror: {direction: drawn direction} for directions shown flipped.
 ##   animations: {name: {"frames": [column, ...], "fps": float}}.
-##   outline: true draws a one-pixel outline around the composited figure.
+##   outline: true draws a one-pixel outline around the composited figure (the
+##     outermost pixels of each frame have to stay clear for it).
 ## A layer is {"name": String, "image": Image, "behind": [direction, ...]}: the image
 ## is the whole grid for that layer; in the directions listed in `behind` the layer
 ## goes under the ones before it (a tool held in the far hand).
@@ -30,6 +31,10 @@ var outline: bool
 var layers: Array = []
 var texture: ImageTexture
 var columns := 1
+## The image being composited (see begin).
+var _img: Image
+## Images filled with OUTLINE, by size.
+static var _dark := {}
 
 
 func _init(description: Dictionary) -> void:
@@ -45,29 +50,43 @@ func _init(description: Dictionary) -> void:
 
 ## Replaces the layers and builds the texture.
 func set_layers(new_layers: Array) -> void:
-	layers = new_layers
-	var img := Image.create_empty(frame_size.x * columns, frame_size.y * directions.size(), false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
+	begin(new_layers)
 	for row in directions.size():
-		var dir: String = directions[row]
-		var order: Array = []
-		for layer in layers:
-			if layer.get("behind", []).has(dir):
-				order.append(layer)
-		for layer in layers:
-			if not layer.get("behind", []).has(dir):
-				order.append(layer)
-		var rect := Rect2i(0, row * frame_size.y, frame_size.x * columns, frame_size.y)
-		for layer in order:
-			img.blend_rect(layer.image, rect, rect.position)
+		compose_row(row)
+	finish()
+
+
+## Starts compositing `new_layers` into a new image a row at a time (compose_row), so
+## the work can be spread over frames; finish() puts the image into the texture.
+func begin(new_layers: Array) -> void:
+	layers = new_layers
+	_img = Image.create_empty(frame_size.x * columns, frame_size.y * directions.size(), false, Image.FORMAT_RGBA8)
+	_img.fill(Color(0, 0, 0, 0))
+
+
+## Composites the frames of one direction and outlines them.
+func compose_row(row: int) -> void:
+	var dir: String = directions[row]
+	var order: Array = []
+	for layer in layers:
+		if layer.get("behind", []).has(dir):
+			order.append(layer)
+	for layer in layers:
+		if not layer.get("behind", []).has(dir):
+			order.append(layer)
+	var rect := Rect2i(0, row * frame_size.y, frame_size.x * columns, frame_size.y)
+	for layer in order:
+		_img.blend_rect(layer.image, rect, rect.position)
 	if outline:
-		for row in directions.size():
-			for col in columns:
-				_outline(img, Rect2i(col * frame_size.x, row * frame_size.y, frame_size.x, frame_size.y))
+		_outline(_img, rect)
+
+
+func finish() -> void:
 	if texture == null:
-		texture = ImageTexture.create_from_image(img)
+		texture = ImageTexture.create_from_image(_img)
 	else:
-		texture.set_image(img)
+		texture.set_image(_img)
+	_img = null
 
 
 ## The eight-way direction a movement wish points to (x east, y south).
@@ -94,18 +113,20 @@ func frame_uv(dir: String, anim: String, t: float) -> Vector4:
 	return Vector4(col * w, row * h, w, h)
 
 
-## Draws OUTLINE on every clear pixel of the frame `r` next to a drawn one (4
-## neighbours), the way the text sprites in sprite_art.gd outline themselves.
+## Draws OUTLINE on every clear pixel of `r` next to a drawn one (4 neighbours), the
+## way the text sprites in sprite_art.gd outline themselves: the figure is stamped dark
+## one pixel each way under itself. The outermost pixels of a frame have to stay clear,
+## or the outline would spill into the next frame.
 static func _outline(img: Image, r: Rect2i) -> void:
-	var edge: Array[Vector2i] = []
-	for y in range(r.position.y, r.end.y):
-		for x in range(r.position.x, r.end.x):
-			if img.get_pixel(x, y).a > 0.5:
-				continue
-			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var n: Vector2i = Vector2i(x, y) + d
-				if r.has_point(n) and img.get_pixel(n.x, n.y).a > 0.5:
-					edge.append(Vector2i(x, y))
-					break
-	for p in edge:
-		img.set_pixelv(p, OUTLINE)
+	var part := img.get_region(r)
+	var whole := Rect2i(Vector2i.ZERO, r.size)
+	if not _dark.has(r.size):
+		var d := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
+		d.fill(OUTLINE)
+		_dark[r.size] = d
+	var out := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
+	out.fill(Color(0, 0, 0, 0))
+	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		out.blit_rect_mask(_dark[r.size], part, whole, d)
+	out.blend_rect(part, whole, Vector2i.ZERO)
+	img.blit_rect(out, whole, r.position)
