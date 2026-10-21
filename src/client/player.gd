@@ -421,9 +421,13 @@ func _footprint(x: int, z: int, p: Vector3) -> Rect2:
 
 
 ## Top of a solid cell under the footprint at `p` above its level: 1 for a cube, the
+## top of a thing standing in it (see WorldData.blockers), the
 ## highest point of the slope under the feet otherwise (below 0 where the slope goes
 ## on down into the cell below).
 func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
+	var thing: float = world.blocker_top(x, y, z) if not world.blockers.is_empty() else 0.0
+	if thing > 0.0:
+		return thing
 	if not Mat.can_slope(world.get_cell(x, y, z)):
 		return 1.0
 	var mask: int = world.slope_mask(x, y, z)

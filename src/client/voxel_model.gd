@@ -37,6 +37,10 @@ func build_mesh() -> ArrayMesh:
 			for c in face.corners:
 				pts.append(base + c)
 			var flag := ChunkMesher.FOLIAGE_VOXEL if foliage.has(p) else 0
-			buf.quad(pts, face.normal, zero_uv, voxels[p], Vector2(ChunkMesher.pack(ChunkMesher.NO_TILE, 0, flag), no_tiles))
+			# The world shader doubles the colour by its alpha (a snowdrift's relief shade,
+			# see world.gdshader): half alpha keeps the voxel's own colour.
+			var col: Color = voxels[p]
+			col.a = 0.5
+			buf.quad(pts, face.normal, zero_uv, col, Vector2(ChunkMesher.pack(ChunkMesher.NO_TILE, 0, flag), no_tiles))
 	return buf.to_mesh()
 

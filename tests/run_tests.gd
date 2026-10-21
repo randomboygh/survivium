@@ -461,6 +461,37 @@ func _test_steps() -> void:
 	_check(_walk_to_step(2, true).x < 4.6, "a step of two cells cannot be jumped up")
 	_check(_climb_pit(false) < 3.0, "jumping cannot get out of a pit four cells deep")
 	_check(_climb_pit(true) > 4.9, "air jumps get out of a pit four cells deep")
+	_check(_walk_to_thing(false).x < 4.6, "a chest is not walked through")
+	var on_top := _walk_to_thing(true)
+	_check(is_equal_approx(on_top.y, 2.25), "a jump gets up onto a chest")
+
+
+## Walks east into a thing standing on cells x 5..6 (a chest 1.25 cells high, see
+## WorldData.blockers), jumping at the start when `jump`; returns where the feet end
+## up after 0.4 s, in cells.
+func _walk_to_thing(jump: bool) -> Vector3:
+	var w := WorldData.new(6, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	for z in range(5, 7):
+		for x in range(5, 7):
+			w.blockers[Vector3i(x, 1, z)] = 1.25
+	_check(w.blocks_body(5, 1, 5) and w.blocks_body(5, 2, 5) and not w.blocks_body(5, 3, 5) and w.blocker_top(5, 2, 5) == 0.25,
+		"a thing 1.25 cells high fills its cell and a quarter of the one above")
+	var player = PlayerScript.new()
+	player.world = w
+	player.position = Vector3(3.0, 1.0, 5.9) * WorldData.CELL
+	player.on_ground = true
+	player.move_input = Vector2(1, 0)
+	for i in 24:
+		player.step(1.0 / 60.0, jump and i == 0)
+	player.move_input = Vector2.ZERO
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+	var p: Vector3 = player.position / WorldData.CELL
+	player.free()
+	return p
 
 
 ## Presses jump again and again for 5 s at the bottom of a pit four cells deep and one
@@ -1182,6 +1213,9 @@ func _test_tools() -> void:
 	_check(Tools.mown(Mat.GRASS) == Mat.DIRT and Tools.mown(Mat.DIRT) == -1, "cutting grass leaves dirt")
 	_check(Tools.mows(hand) and Tools.mows(scythe) and Tools.mows(Tools.of("core:wooden_sword")) and not Tools.mows(shovel),
 		"hands, a sword and a scythe cut grass")
+	_check(Tools.mows_low(hand) and Tools.mows_low(scythe) and not Tools.mows_low(Tools.of("core:wooden_sword")),
+		"a sword cuts only what grows tall on grass, hands and a scythe the grass too")
+	_check(shovel.area == 1 and pick.area == 1, "a tool digs one cell a swing")
 	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].mow_gives.keys()[0]), "cut grass gives fibre")
 	var rng := RandomNumberGenerator.new()
@@ -1338,6 +1372,25 @@ func _test_inventory() -> void:
 	mess.put_into(1, box, 0)
 	_check(box.count("core:fiber") == Items.stack_size("core:fiber") and mess.slots[1] == ["core:fiber", 5],
 		"onto a stack of the same item, as much as it takes")
+	# A chest taken up with things in it keeps them and weighs them.
+	var chest := Inventory.new(4)
+	chest.nests = false
+	chest.add("core:stone", 5)
+	var bag := Inventory.new(4)
+	_check(bag.add("core:chest", 1, 0, chest.to_dict()) == 1 and bag.contents(0) != null, "a chest goes into the bag with what it holds")
+	_check(is_equal_approx(bag.weight(), Items.weight("core:chest") + 5 * Items.weight("core:stone")), "and weighs it too")
+	_check(bag.add("core:chest", 1) == 1 and bag.slots[1] != null and bag.slots[1].size() == 2, "an empty chest takes a slot of its own")
+	_check(bag.remove("core:chest", 2) == 1 and bag.contents(0) != null, "a chest with things in it is not used up")
+	_check(bag.move_slot(0, chest) == 0, "a chest with things in it does not go into a chest")
+	var kept := Inventory.new(4)
+	kept.from_dict(JSON.parse_string(JSON.stringify(bag.to_dict())))
+	var inner := Inventory.new(4)
+	inner.from_dict(kept.contents(0))
+	_check(inner.count("core:stone") == 5, "the chest's things survive a save")
+	_check(not bag.put_into(0, chest, 1) and bag.contents(0) != null and chest.slots[1] == null,
+		"nor is it moved into a chest's slot")
+	var put = bag.take_slot(0, 1)
+	_check(put.size() == 4 and put[3] is Dictionary and bag.is_empty(), "a chest taken out of the bag brings its things")
 
 
 func _test_vitals() -> void:

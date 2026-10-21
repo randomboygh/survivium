@@ -5,8 +5,11 @@ extends RefCounted
 ## with next to the spawn, and the items lying on the ground (WorldData.drops: what a
 ## felled tree leaves, a death sack). Bushes and snowdrifts are grown by the world
 ## generator and drawn with the chunk they stand in (see ChunkStreamer, Foliage.finish);
-## a bush that goes is taken out of the world and its chunk is rebuilt. `game` is the
-## Main node that owns the scene.
+## a bush that goes is taken out of the world and its chunk is rebuilt. Chests and
+## stations are solid (WorldData.blockers): the player goes round them or jumps on them.
+## A chest is taken up with what it holds; a campfire cannot be carried, but it can be
+## put out, lit again for a branch, and destroyed without a trace. `game` is the Main
+## node that owns the scene.
 
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
@@ -15,6 +18,7 @@ const RoofMap := preload("res://src/client/roof_map.gd")
 const Items := preload("res://src/shared/items.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
+const VoxelModel := preload("res://src/client/voxel_model.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
@@ -36,7 +40,8 @@ var drop_meshes := {}
 var drop_nodes := {}
 ## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its two by two
 ## cells), "node": its model (null for a campfire, drawn by Effects), "items": what a
-## chest holds (an Inventory, else null)}. Saved with the world (SaveGame).
+## chest holds (an Inventory, else null), "fire": a campfire's record in Effects (see
+## add_campfire), "lit": false for a campfire put out}. Saved with the world (SaveGame).
 var placed: Array = []
 ## What the chest by the spawn holds (the first chest placed).
 var chest_items = null
@@ -54,7 +59,8 @@ func place() -> void:
 	if meta.get("placed") is Array:
 		for e in meta.placed:
 			if e is Dictionary and Items.has(e.get("item", "")) and e.get("cell") is Array and e.cell.size() == 3:
-				_put(Items.get_item(e.item).id, Vector3i(int(e.cell[0]), int(e.cell[1]), int(e.cell[2])), e.get("items"))
+				_put(Items.get_item(e.item).id, Vector3i(int(e.cell[0]), int(e.cell[1]), int(e.cell[2])), e.get("items"),
+					not e.get("out", false))
 	elif meta.get("props") is Dictionary:
 		# A save from before things could be placed: the chest and the campfire by name.
 		for name in ["chest", "campfire"]:
@@ -71,14 +77,22 @@ func place() -> void:
 
 
 ## Places thing `item` (an item with a `prop`) with its north-west cell at `cell`;
-## `items` is what a chest holds, as Inventory.to_dict() gave it.
-func _put(item: String, cell: Vector3i, items: Variant) -> Dictionary:
+## `items` is what a chest holds, as Inventory.to_dict() gave it; `lit` false puts a
+## campfire there cold.
+func _put(item: String, cell: Vector3i, items: Variant, lit := true) -> Dictionary:
 	var kind: String = Items.get_item(item).prop
-	var e := {"item": item, "cell": cell, "node": null, "items": null}
+	var e := {"item": item, "cell": cell, "node": null, "items": null, "fire": null, "lit": true}
 	if kind == "campfire":
-		game.effects.add_campfire(Vector3(cell) * CELL, game.world_mat)
+		e.fire = game.effects.add_campfire(Vector3(cell) * CELL, game.world_mat)
+		if not lit:
+			game.effects.put_out(e.fire)
+			e.lit = false
 	else:
 		var model = VoxelProps.prop(kind)
+		var top := VoxelProps.height(model) / (VoxelModel.RES * CELL)
+		for dz in 2:
+			for dx in 2:
+				game.world.blockers[cell + Vector3i(dx, 0, dz)] = top
 		var node := MeshInstance3D.new()
 		node.mesh = model.build_mesh()
 		node.material_override = game.world_mat
@@ -89,6 +103,7 @@ func _put(item: String, cell: Vector3i, items: Variant) -> Dictionary:
 		e.node = node
 	if kind == "chest":
 		e.items = Inventory.new(CHEST_SLOTS)
+		e.items.nests = false
 		if items is Dictionary:
 			e.items.from_dict(items)
 		if chest_items == null:
@@ -109,6 +124,8 @@ func to_list() -> Array:
 		var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
 		if e.items != null:
 			d.items = e.items.to_dict()
+		if not e.lit:
+			d.out = true
 		out.append(d)
 	return out
 
@@ -138,12 +155,12 @@ func nearest(p: Vector3, reach: float) -> Dictionary:
 	return best
 
 
-## The stations (items with a prop other than a chest) within `reach` world units of
-## world point `p`: item id -> true.
+## The stations (items with a prop other than a chest; a campfire while it burns)
+## within `reach` world units of world point `p`: item id -> true.
 func stations_near(p: Vector3, reach: float) -> Dictionary:
 	var out := {}
 	for e in placed:
-		if e.items == null and center(e).distance_to(p) <= reach:
+		if e.items == null and e.lit and center(e).distance_to(p) <= reach:
 			out[e.item] = true
 	return out
 
@@ -156,11 +173,17 @@ func chest_center() -> Variant:
 	return null
 
 
-## Places item `id` from the bag on two by two free cells of level ground in front of
-## the player; true if it was placed.
-func put_from_bag(id: String) -> bool:
+## Places item `id` from the bag (from bag slot `slot` when given, else the first that
+## holds it) on two by two free cells of level ground in front of the player; a chest
+## brings back what it held. True if it was placed.
+func put_from_bag(id: String, slot := -1) -> bool:
 	var item := Items.get_item(id)
-	if item.get("prop", "none") == "none" or game.character.inventory.count(item.id) == 0:
+	var inv = game.character.inventory
+	if slot < 0:
+		for i in inv.slots.size():
+			if slot < 0 and inv.slots[i] != null and inv.slots[i][0] == item.get("id", ""):
+				slot = i
+	if item.get("prop", "none") == "none" or slot < 0 or inv.slots[slot] == null or inv.slots[slot][0] != item.id:
 		return false
 	var spot: Variant = _spot_in_front()
 	if spot == null:
@@ -168,37 +191,84 @@ func put_from_bag(id: String) -> bool:
 		return false
 	if not game.character.act("place"):
 		return false
-	game.character.inventory.remove(item.id, 1)
+	var taken: Array = inv.take_slot(slot, 1)
 	for dz in 2:
 		for dx in 2:
 			_level_ground(spot + Vector3i(dx, -1, dz))
 			remove_bush(spot + Vector3i(dx, 0, dz))
-	_put(item.id, spot, null)
+	_put(item.id, spot, taken[3] if taken.size() > 3 else null)
 	if item.prop == "campfire":
 		_update_heat()
 	game.world.note_edit(spot.x, spot.z)
 	return true
 
 
-## Takes placed thing `e` back into the bag: not a campfire (it burns), not a chest
-## with things in it. True if it was taken.
+## Takes placed thing `e` back into the bag, a chest with what it holds (its weight
+## and theirs go to the bag); not a campfire (see put_out and destroy). True if it was
+## taken.
 func take_up(e: Dictionary) -> bool:
 	if Items.get_item(e.item).prop == "campfire":
-		game.character.nag("take", "Костёр не унести")
+		game.character.nag("take", "Костёр не унести: его можно потушить и разобрать")
 		return false
-	if e.items != null and not e.items.is_empty():
-		game.character.nag("take", "Сначала освободи сундук")
-		return false
-	if game.character.inventory.room_for(e.item) < 1:
+	var inv = game.character.inventory
+	var full: bool = e.items != null and not e.items.is_empty()
+	if (inv.add(e.item, 1, 0, e.items.to_dict()) if full else game.character.give(e.item, 1)) < 1:
 		game.character.nag("full", "Сумка полна")
 		return false
-	game.character.give(e.item, 1)
+	if full:
+		game.hud.toast("+1 %s с вещами" % Items.title(e.item))
+	_remove(e)
+	return true
+
+
+## Puts out campfire `e` (see placed): it no longer burns, warms or lets anything be
+## made at it.
+func put_out(e: Dictionary) -> void:
+	if e.fire == null or not e.lit:
+		return
+	game.effects.put_out(e.fire)
+	e.lit = false
+	_update_heat()
+	game.world.note_edit(e.cell.x, e.cell.z)
+
+
+## Lights campfire `e` again for a branch from the bag; true if it burns.
+func light(e: Dictionary) -> bool:
+	if e.fire == null or e.lit:
+		return e.lit
+	if game.character.inventory.remove(Items.BRANCH, 1) < 1:
+		game.character.nag("light", "Чтобы разжечь, нужна ветка")
+		return false
+	game.effects.remove_campfire(e.fire)
+	e.fire = game.effects.add_campfire(Vector3(e.cell) * CELL, game.world_mat)
+	e.lit = true
+	_update_heat()
+	game.world.note_edit(e.cell.x, e.cell.z)
+	return true
+
+
+## Destroys campfire `e` that has been put out: nothing is left of it.
+func destroy(e: Dictionary) -> bool:
+	if e.fire == null or e.lit:
+		return false
+	_remove(e)
+	return true
+
+
+## Takes placed thing `e` out of the world.
+func _remove(e: Dictionary) -> void:
 	if e.node != null:
 		e.node.queue_free()
+	if e.fire != null:
+		game.effects.remove_campfire(e.fire)
+		_update_heat()
+	for dz in 2:
+		for dx in 2:
+			game.world.blockers.erase(e.cell + Vector3i(dx, 0, dz))
 	if e.items == chest_items:
 		chest_items = null
 	placed.erase(e)
-	return true
+	game.world.note_edit(e.cell.x, e.cell.z)
 
 
 ## The north-west cell of two by two cells in front of the player where a thing can be

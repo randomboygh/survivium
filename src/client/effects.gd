@@ -148,7 +148,9 @@ func _ready() -> void:
 
 ## A campfire one world unit square with its north-west corner at `corner`: stones,
 ## logs, flames, sparks, smoke and a flickering light, the model drawn with `material`.
-func add_campfire(corner: Vector3, material: Material) -> void:
+## Returns its record for put_out and remove_campfire: {"model", "parts" (what burns),
+## "fire" (its entry in fires, null once put out)}.
+func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	var model := MeshInstance3D.new()
 	model.mesh = _campfire_model().build_mesh()
 	model.material_override = material
@@ -203,7 +205,26 @@ func add_campfire(corner: Vector3, material: Material) -> void:
 	light.omni_attenuation = 0.0
 	light.position = PixelView.shear(c + Vector3(0.0, 0.6, 0.0))
 	add_child(light)
-	fires.append({"light": light, "base": 1.8, "unit": Vector3i(c.floor())})
+	var fire := {"light": light, "base": 1.8, "unit": Vector3i(c.floor())}
+	fires.append(fire)
+	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire}
+
+
+## Puts out campfire `rec` (see add_campfire): the flames, smoke and light go, its warmth
+## too (the caller remakes the heat map), and grey ash lies on the cold logs.
+func put_out(rec: Dictionary) -> void:
+	for node: Node in rec.parts:
+		node.queue_free()
+	rec.parts = []
+	fires.erase(rec.fire)
+	rec.fire = null
+	(rec.model as MeshInstance3D).mesh = _campfire_model(false).build_mesh()
+
+
+## Takes campfire `rec` (see add_campfire) out of the world.
+func remove_campfire(rec: Dictionary) -> void:
+	put_out(rec)
+	rec.model.queue_free()
 
 
 ## Warmth around the fires for the shaders (heat_map, see common.gdshaderinc): one
@@ -345,11 +366,13 @@ func _curve(values: Array) -> Curve:
 	return c
 
 
-func _campfire_model() -> VoxelModel:
+## The stones and logs of a campfire with glowing embers, or `lit` false cold with ash
+## and charred logs.
+func _campfire_model(lit := true) -> VoxelModel:
 	var m := VoxelModel.new()
 	var stone := Color(0.55, 0.55, 0.58)
-	var log_color := Color(0.45, 0.3, 0.2)
-	var ember := Color(1.0, 0.5, 0.2)
+	var log_color := Color(0.45, 0.3, 0.2) if lit else Color(0.22, 0.18, 0.16)
+	var ember := Color(1.0, 0.5, 0.2) if lit else Color(0.62, 0.6, 0.58)
 	for a in 16:
 		var ang := a * TAU / 16.0
 		var p := Vector2(7.5, 7.5) + Vector2(cos(ang), sin(ang)) * 5.5

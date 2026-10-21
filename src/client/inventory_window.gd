@@ -59,6 +59,7 @@ var _chest_grid: GridContainer
 var _chest_slots := []
 var _to_chest: Button
 var _to_bag: Button
+var _take_chest: Button
 ## The chest shown (an Inventory), null when none is open, its record in Props.placed
 ## and its chosen slot.
 var _chest = null
@@ -161,11 +162,15 @@ func _ready() -> void:
 	_drop_one = _button("Выбросить 1", func() -> void: game.character.throw_away(_chosen, 1))
 	_drop_all = _button("Выбросить все", func() -> void: game.character.throw_away(_chosen, 1 << 20))
 	_put = _button("Поставить", func() -> void:
-		if game.props.put_from_bag(game.character.inventory.slots[_chosen][0]):
+		if game.props.put_from_bag(game.character.inventory.slots[_chosen][0], _chosen):
 			close())
 	_repair = _button("Починить", func() -> void: game.workshop.repair(_chosen))
 	_to_chest = _button("В сундук", _move_to_chest)
 	_to_bag = _button("В сумку", _move_to_bag)
+	_take_chest = _button("Забрать сундук", func() -> void:
+		var e := _chest_entry
+		show_chest({})
+		game.props.take_up(e))
 	_move = _button("Переместить", func() -> void:
 		_moving = not _moving
 		_confirming = false
@@ -179,7 +184,7 @@ func _ready() -> void:
 			refresh())
 	_destroy.icon = UiStyle.icon("trash")
 	_destroy.custom_minimum_size.x = 34
-	for b in [_to_chest, _to_bag, _eat, _hold, _plant, _put, _repair, _move, _drop_one, _drop_all, _destroy]:
+	for b in [_to_chest, _to_bag, _take_chest, _eat, _hold, _plant, _put, _repair, _move, _drop_one, _drop_all, _destroy]:
 		actions.add_child(b)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
@@ -299,8 +304,10 @@ func _move_chosen(to, i: int) -> void:
 	_moving = false
 	var from = _chest if _chosen_chest >= 0 else game.character.inventory
 	var at := _chosen_chest if _chosen_chest >= 0 else _chosen
-	if at >= 0:
-		from.put_into(at, to, i)
+	if at >= 0 and not from.put_into(at, to, i):
+		game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
+		i = at
+		to = from
 	var in_chest: bool = to == _chest and _chest != game.character.inventory
 	_chosen = -1 if in_chest else i
 	_chosen_chest = i if in_chest else -1
@@ -319,9 +326,13 @@ func destroy_chosen() -> void:
 	refresh()
 
 
-## The chosen stack of the bag goes into the chest, as much as fits.
+## The chosen stack of the bag goes into the chest, as much as fits; not a chest with
+## things in it.
 func _move_to_chest() -> void:
 	var s = game.character.inventory.slots[_chosen]
+	if game.character.inventory.contents(_chosen) != null:
+		game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
+		return
 	if game.character.inventory.move_slot(_chosen, _chest) < s[1]:
 		game.character.nag("chest_full", "В сундуке нет места")
 
@@ -370,6 +381,7 @@ func refresh() -> void:
 	_moving = _moving and (chosen != null or in_chest != null)
 	_to_bag.visible = in_chest != null
 	_to_chest.visible = _chest != null and chosen != null
+	_take_chest.visible = _chest != null and not _moving and not _confirming
 	if _moving:
 		_info.text = "Куда положить? Выбери ячейку сумки%s" % (" или сундука" if _chest != null else "")
 	elif _confirming:
@@ -383,7 +395,8 @@ func refresh() -> void:
 		var id: String = chosen[0]
 		var food := Items.food(id)
 		var worn: int = inv.worn(_chosen)
-		_info.text = "%s ×%d · %.1f кг%s%s" % [Items.title(id), chosen[1], Items.weight(id) * chosen[1],
+		_info.text = "%s ×%d · %.1f кг%s%s%s" % [Items.title(id), chosen[1], inv.slot_weight(_chosen),
+			" · с вещами" if inv.contents(_chosen) != null else "",
 			" · сытость +%d" % roundi(food) if food > 0.0 else "",
 			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else ""]
 	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0

@@ -7,7 +7,8 @@ extends BoxContainer
 ## buttons to make one, five or as many as the bag allows; and the queue, a cell for each job, the one chosen named
 ## with its time left and a cancel. Side by side on a wide screen, the blocks under
 ## the cells on a narrow one. Opened at a station, it can take the station back into
-## the bag. Works through Workshop.
+## the bag; at a campfire, put it out, light it again for a branch and destroy it once
+## it is out. Works through Workshop.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
@@ -43,6 +44,9 @@ var _left: VBoxContainer
 var _right: VBoxContainer
 var _stations: HBoxContainer
 var _take_up: Button
+## A campfire's buttons: put it out or light it again, and destroy it once it is out.
+var _fire: Button
+var _destroy: Button
 var _tabs: TabRow
 var _scroll: ScrollContainer
 var _grid: GridContainer
@@ -110,6 +114,18 @@ func _ready() -> void:
 			_station = {}
 			refresh())
 	head.add_child(_take_up)
+	_fire = TabRow.small_button("Потушить", func() -> void:
+		if _station.lit:
+			game.props.put_out(_station)
+		else:
+			game.props.light(_station)
+		refresh())
+	head.add_child(_fire)
+	_destroy = TabRow.small_button("Уничтожить", func() -> void:
+		if game.props.destroy(_station):
+			_station = {}
+			refresh())
+	head.add_child(_destroy)
 	_tabs = TabRow.new()
 	_tabs.picked.connect(func(_k: String) -> void: refresh_now())
 	_left.add_child(_tabs)
@@ -227,9 +243,14 @@ func refresh_now() -> void:
 	if not _station.is_empty() and not game.props.placed.has(_station):
 		_station = {}
 	_show_stations(known, stations)
-	_take_up.visible = not _station.is_empty()
+	var fire: bool = not _station.is_empty() and _station.fire != null
+	_take_up.visible = not _station.is_empty() and not fire
 	if _take_up.visible:
 		_take_up.text = "Забрать: %s" % Items.title(_station.item)
+	_fire.visible = fire
+	_destroy.visible = fire and not _station.lit
+	if fire:
+		_fire.text = "Потушить костёр" if _station.lit else "Разжечь (ветка)"
 	# Tabs of the kinds of things the recipes known make.
 	var kinds := []
 	for k in Items.CATEGORIES:
