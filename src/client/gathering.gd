@@ -148,7 +148,7 @@ func gather(target: Dictionary) -> bool:
 		return false
 	var done := false
 	match game.controls.tool_record().tool:
-		"sword":
+		"sword", "scythe":
 			done = _knock_berries(target.bush)
 		"axe":
 			done = _fell_bush(target.bush)
@@ -271,7 +271,7 @@ func _take(d: Array) -> Array:
 	if d[0] == Items.SACK:
 		var rest := []
 		for s: Array in d[3]:
-			var got: int = character.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0)
+			var got: int = character.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0, s[3] if s.size() > 3 else null)
 			if got < s[1]:
 				rest.append([s[0], s[1] - got] + s.slice(2))
 		game.hud.toast("Вещи из мешка забраны" if rest.is_empty() else "Забрано не всё: сумка полна")
@@ -391,8 +391,9 @@ func _tree_seeds_left(col: Vector2i, s: Dictionary) -> int:
 ## grows tall on it (tall grass, flowers, ears, reeds; see Plants), and the cell stays
 ## grass cut short until spring (WorldData.turf); grass with nothing tall on it is cut
 ## down to the material under it (its `mow`) and gives its `mow_gives` with what the
-## low grass had. What is cut falls on the cell. True if anything was cut.
-func mow(cells: Array[Vector3i]) -> bool:
+## low grass had. What is cut falls on the cell, and the berries of ripe bushes on the
+## grass cells `knock` (a scythe's arc) fall beside them. True if anything was cut.
+func mow(cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 	if not game.character.act("cut"):
 		return false
 	var world = game.world
@@ -425,9 +426,34 @@ func mow(cells: Array[Vector3i]) -> bool:
 		for id in gives:
 			world.heap_drop(Items.get_item(id).get("id", id), at, gives[id], rng.randf() * TAU)
 		keys[WorldData.chunk_key(c.x, c.z)] = true
+	for c in knock:
+		var at := c + Vector3i.UP
+		if not world.bushes.has(at):
+			continue
+		var b: Dictionary = Bushes.TYPES[world.bushes[at]]
+		if not _ripe(at, b):
+			continue
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([at, game.sky.day])
+		var p := (Vector3(at) + Vector3(0.5, 0.0, 0.5)) * CELL
+		world.heap_drop(b.fruit, p + Vector3(rng.randf_range(-SCATTER, SCATTER), 0.0, rng.randf_range(-SCATTER, SCATTER)),
+			_berry_count(at, b), rng.randf() * TAU)
+		world.bush_picked[at] = true
+		world.note_bush(at)
+		game.chunks.remesh_chunk(WorldData.chunk_key(at.x, at.z))
+		keys[WorldData.chunk_key(floori(p.x / CELL), floori(p.z / CELL))] = true
 	for key in keys:
 		game.props.show_drops(key)
 	return true
+
+
+## Whether something grows tall on grass cell `cell` (more than low tufts), what a tool
+## that cuts only tall grass can cut.
+func has_tall(cell: Vector3i) -> bool:
+	for id in Foliage.plants_on(game.world, cell.x, cell.y, cell.z):
+		if id != Plants.TUFT:
+			return true
+	return false
 
 
 ## A shovel digs the bush out whole: it lies on the ground as an item to plant again.

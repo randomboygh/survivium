@@ -111,11 +111,11 @@ const SHOTS := {
 	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
-	# A workbench and a kiln placed by the spawn, the craft tab open at the workbench
+	# A workbench, a kiln and a chest placed by the spawn, the craft tab open at the workbench
 	# with an axe being made and more queued.
 	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
-	# The same workbench and kiln with the window closed.
+	# The same workbench, kiln and chest with the window closed.
 	"stations": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
@@ -363,12 +363,14 @@ func _run() -> void:
 func _craft() -> void:
 	var inv = main.character.inventory
 	for st in [["core:fiber", 14], ["core:branch", 16], ["core:flint", 3], ["core:log", 2], ["core:clay", 6],
-			["core:workbench", 1], ["core:kiln", 1]]:
+			["core:workbench", 1], ["core:kiln", 1], ["core:chest", 1]]:
 		inv.add(st[0], st[1])
 	main.player.facing = "s"
 	main.props.put_from_bag("core:workbench")
 	main.player.facing = "e"
 	main.props.put_from_bag("core:kiln")
+	main.player.facing = "w"
+	main.props.put_from_bag("core:chest")
 	main.player.facing = "s"
 	var shop = main.workshop
 	shop.start(Crafting.get_recipe("core:cord"), 2)

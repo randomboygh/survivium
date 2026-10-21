@@ -277,6 +277,38 @@ func _run() -> void:
 	await _scenario("crafting at a workbench", 100000, func(_i: int) -> bool: return shop.queue.jobs.is_empty() or clock >= 2.0)
 	_check(inv.count("core:stone_axe") == axes + 1, "a stone axe is made at the workbench")
 	main.hud.toggle_bag()
+	var bench: Vector3i = main.props.cell_of("core:workbench")
+	_check(main.world.blocks_body(bench.x, bench.y, bench.z), "a workbench is solid")
+
+	# The chest by the spawn taken up with a stone in it, and set down again with it.
+	main.props.chest_items.add("core:stone", 1)
+	var chest_e := {}
+	for e in main.props.placed:
+		if e.items == main.props.chest_items:
+			chest_e = e
+	var light_bag: float = inv.weight()
+	_check(main.props.take_up(chest_e) and inv.weight() > light_bag + 2.0 and main.props.chest_items == null,
+		"the chest is taken up with what it holds")
+	var chest_back := false
+	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
+		main.player.facing = facing
+		chest_back = chest_back or main.props.put_from_bag("core:chest")
+	_check(chest_back and main.props.chest_items != null and main.props.chest_items.count("core:stone") == 1,
+		"and set down again with it")
+	# The campfire by the spawn put out (no station then), lit again for a branch, put
+	# out and destroyed.
+	var fire_e := {}
+	for e in main.props.placed:
+		if e.item == "core:campfire":
+			fire_e = e
+	main.props.put_out(fire_e)
+	inv.add("core:branch", 1)
+	var branches: int = inv.count("core:branch")
+	_check(not fire_e.lit and not main.props.stations_near(main.props.center(fire_e), 3.0).has("core:campfire"),
+		"a campfire put out is no station")
+	_check(main.props.light(fire_e) and fire_e.lit and inv.count("core:branch") == branches - 1, "it is lit again for a branch")
+	main.props.put_out(fire_e)
+	_check(main.props.destroy(fire_e) and not main.props.placed.has(fire_e), "a campfire put out is destroyed without a trace")
 
 	# An idle frame of the finished map is the engine's own share: it grows with the
 	# chunks on the map and the machine, not with the game's work.

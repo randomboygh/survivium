@@ -15,13 +15,11 @@ const Items := preload("res://src/shared/items.gd")
 
 ## Bare hands: grass, leaves, soft ground (slowly, see HAND_SLOW), berries and branches.
 ## Not an item, so not in the data files.
-const HAND := {"id": "", "title": "Руки", "tool": "hand", "power": 1, "area": 1, "swing": 0.45, "reach": 8}
+const HAND := {"id": "", "title": "Руки", "tool": "hand", "power": 1, "area": 1, "swing": 0.45, "reach": 8, "mows": "all"}
 ## Hands dig soft ground this many times slower than they swing.
 const HAND_SLOW := 2.0
 ## How far blocks, plants and seeds are placed from the body, in cells.
 const PLACE_REACH := 10
-## Tools that cut the top of grass.
-const MOWERS := ["hand", "sword", "scythe"]
 ## Brushes of the hand that places: squares across the tapped face, two cells one on
 ## top of the other (a wall a body tall, or the opening of a passage), and a line (one
 ## cell, the stroke kept straight along the way it first went).
@@ -76,9 +74,14 @@ static func mown(m: int) -> int:
 	return Mat.index(to) if to != "" else -1
 
 
-## Whether tool `t` cuts the top of grass.
+## Whether tool `t` cuts grass: what grows tall on it at least (the item's `mows`).
 static func mows(t: Dictionary) -> bool:
-	return t.tool in MOWERS
+	return t.get("mows", "none") != "none"
+
+
+## Whether tool `t` cuts grass down to the ground too, not only what grows tall on it.
+static func mows_low(t: Dictionary) -> bool:
+	return t.get("mows", "none") == "all"
 
 
 ## Whether tool `t` (see of) can dig a cell of material `m`.

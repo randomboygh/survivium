@@ -50,6 +50,7 @@ const SCHEMAS := {
 		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
 		"power": {"type": "int", "min": 0, "default": 0},
 		"area": {"type": "int", "min": 1, "default": 1},
+		"mows": {"type": "enum", "values": ["none", "tall", "all"], "default": "none"},
 		"swing": {"type": "float", "min": 0.05, "default": 0.5},
 		"plant": {"type": "ref:bushes", "default": ""},
 		"sow": {"type": "ref:materials", "default": ""},

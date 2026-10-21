@@ -499,7 +499,7 @@ func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
 		if m == Mat.LOG:
 			game.character.nag("tool", "Дерево рубят топором")
 			return false
-	if Tools.mows(t) and can_mow(cell):
+	if Tools.mows(t) and can_mow(cell, t):
 		return _mow(_mow_targets([cell], t))
 	if not Tools.can_dig(t, m):
 		game.character.nag("tool", Tools.why_not(t, m))
@@ -515,18 +515,22 @@ func _dig_targets(order: Array[Vector3i], t: Dictionary, n := -1) -> Array[Vecto
 		if out.size() >= (t.area if n < 0 else n):
 			break
 		var m: int = game.world.get_cell(c.x, c.y, c.z)
-		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and tree_of(c) == null and not too_far(c, t.reach):
+		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and tree_of(c) == null and not too_far(c, t.reach) \
+				and game.world.blocker_top(c.x, c.y + 1, c.z) <= 0.0 and game.world.blocker_top(c.x, c.y, c.z) <= 0.0:
 			out.append(c)
 	return out
 
 
 ## Whether the grass on top of `cell` can be cut: a material with a top to cut (see
-## Tools.mown), open to the air above, with no bush on it.
-func can_mow(cell: Vector3i) -> bool:
+## Tools.mown), open to the air above, with no bush on it; by tool `t` when given, which
+## may cut only what grows tall on it (see Tools.mows_low).
+func can_mow(cell: Vector3i, t := {}) -> bool:
 	var world = game.world
 	var up := cell + Vector3i.UP
-	return Tools.mown(world.get_cell(cell.x, cell.y, cell.z)) >= 0 and world.get_cell(up.x, up.y, up.z) == Mat.AIR \
-		and not world.bushes.has(up)
+	if Tools.mown(world.get_cell(cell.x, cell.y, cell.z)) < 0 or world.get_cell(up.x, up.y, up.z) != Mat.AIR \
+			or world.bushes.has(up) or world.blocker_top(up.x, up.y, up.z) > 0.0:
+		return false
+	return t.is_empty() or Tools.mows_low(t) or game.gathering.has_tall(cell)
 
 
 ## The cells tool `t` cuts the grass of when it swings at the first of `order` it can
@@ -534,9 +538,9 @@ func can_mow(cell: Vector3i) -> bool:
 func _mow_targets(order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	for c in order:
-		if can_mow(c) and not too_far(c, t.reach):
+		if can_mow(c, t) and not too_far(c, t.reach):
 			for s in (Tools.sweep(c, step()) if t.area > 1 else [c]):
-				if out.size() < t.area and can_mow(s) and not too_far(s, t.reach):
+				if out.size() < t.area and can_mow(s, t) and not too_far(s, t.reach):
 					out.append(s)
 			break
 	return out
@@ -544,9 +548,12 @@ func _mow_targets(order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
 
 ## Cuts the grass on top of `cells` in one swing of the tool in use (see Gathering.mow).
 func _mow(cells: Array[Vector3i]) -> bool:
-	if cells.is_empty() or not game.gathering.mow(cells):
+	# A scythe's arc knocks the berries off the ripe bushes in it too.
+	var arc: Array[Vector3i] = Tools.sweep(cells[0], step()) if not cells.is_empty() and tool_record().area > 1 else []
+	if cells.is_empty() or not game.gathering.mow(cells, arc):
 		return false
-	_cooldown = tool_record().swing
+	var t: Dictionary = tool_record()
+	_cooldown = t.swing
 	game.player.work("", _cooldown, (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	game.workshop.use_tool()
 	return true
@@ -688,7 +695,7 @@ func _can_place(cell: Vector3i) -> bool:
 	if not world.in_bounds(cell.x, cell.y, cell.z) or cell.y > game.chunks.cut_level or too_far(cell, Tools.PLACE_REACH):
 		return false
 	var cur: int = world.get_cell(cell.x, cell.y, cell.z)
-	if cur != Mat.AIR and cur != Mat.WATER or game.player.overlaps_cell(cell):
+	if cur != Mat.AIR and cur != Mat.WATER or game.player.overlaps_cell(cell) or world.blocker_top(cell.x, cell.y, cell.z) > 0.0:
 		return false
 	for d in [Vector3i.DOWN, Vector3i.UP, Vector3i.LEFT, Vector3i.RIGHT, Vector3i.FORWARD, Vector3i.BACK]:
 		var n: Vector3i = cell + d
@@ -741,9 +748,21 @@ func act_in_front() -> void:
 		var c: Vector3i = work.dig[0]
 		_dig(work.dig, Tools.swing_time(t, game.world.get_cell(c.x, c.y, c.z)))
 		return
-	var what := "рубить" if t.tool == "axe" else ("косить" if t.tool == "scythe" else "копать")
-	game.character.nag("front", "Перед тобой нечего %s" % what)
+	game.character.nag("front", "Перед тобой нечего %s" % _nothing_to(t))
 	_cooldown = 0.3
+
+
+## What tool `t` found nothing to do in front: "рубить", "косить", "копать", or
+## "добыть" for a sword and at a bush with nothing left on it.
+func _nothing_to(t: Dictionary) -> String:
+	if t.tool == "sword":
+		return "добыть"
+	var f := feet()
+	for o in Tools.sector(step()):
+		for dy in [0, -1, 1]:
+			if game.world.bushes.has(Vector3i(f.x + o.x, f.y + dy, f.z + o.y)):
+				return "добыть"
+	return "рубить" if t.tool == "axe" else ("косить" if t.tool == "scythe" else "копать")
 
 
 ## What a swing of tool `t` in front would do: {"mow": cells} (the grass first, for
@@ -853,7 +872,7 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 			var ok: bool = near and (t.tool == "axe" or t.tool == "hand" and game.gathering.useful({"tree": tree}))
 			game.cursor.show_cells([trunk if t.tool == "axe" else cell], ok)
 			return
-		if Tools.mows(t) and can_mow(cell):
+		if Tools.mows(t) and can_mow(cell, t):
 			var mown := _mow_targets([cell], t)
 			game.cursor.show_cells(mown if not mown.is_empty() else [cell], not mown.is_empty())
 			return
@@ -955,8 +974,8 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 		return "наломать веток"
 	if m == Mat.LOG and tree != null:
 		return "рубят топором"
-	if Tools.mows(t) and can_mow(cell):
-		return "косить" if t.tool == "scythe" else "сорвать траву"
+	if Tools.mows(t) and can_mow(cell, t):
+		return "косить" if t.tool == "scythe" else ("срезать траву" if t.tool == "sword" else "сорвать траву")
 	if Tools.can_dig(t, m):
 		var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
 		return "копать%s" % (" (руками медленно)" if slow else "")

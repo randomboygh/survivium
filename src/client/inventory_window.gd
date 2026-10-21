@@ -44,6 +44,7 @@ var _chest_grid: GridContainer
 var _chest_slots := []
 var _to_chest: Button
 var _to_bag: Button
+var _take_chest: Button
 ## The chest shown (an Inventory), null when none is open, its record in Props.placed
 ## and its chosen slot.
 var _chest = null
@@ -116,12 +117,16 @@ func _ready() -> void:
 	_drop_one = _button("Выбросить 1", func() -> void: game.character.throw_away(_chosen, 1))
 	_drop_all = _button("Выбросить все", func() -> void: game.character.throw_away(_chosen, 1 << 20))
 	_put = _button("Поставить", func() -> void:
-		if game.props.put_from_bag(game.character.inventory.slots[_chosen][0]):
+		if game.props.put_from_bag(game.character.inventory.slots[_chosen][0], _chosen):
 			close())
 	_repair = _button("Починить", func() -> void: game.workshop.repair(_chosen))
 	_to_chest = _button("В сундук", _move_to_chest)
 	_to_bag = _button("В сумку", _move_to_bag)
-	for b in [_to_chest, _to_bag, _eat, _hold, _plant, _put, _repair, _drop_one, _drop_all]:
+	_take_chest = _button("Забрать сундук", func() -> void:
+		var e := _chest_entry
+		show_chest({})
+		game.props.take_up(e))
+	for b in [_to_chest, _to_bag, _take_chest, _eat, _hold, _plant, _put, _repair, _drop_one, _drop_all]:
 		actions.add_child(b)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
@@ -220,9 +225,13 @@ func _choose_in_chest(i: int) -> void:
 	refresh()
 
 
-## The chosen stack of the bag goes into the chest, as much as fits.
+## The chosen stack of the bag goes into the chest, as much as fits; not a chest with
+## things in it.
 func _move_to_chest() -> void:
 	var s = game.character.inventory.slots[_chosen]
+	if game.character.inventory.contents(_chosen) != null:
+		game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
+		return
 	if game.character.inventory.move_slot(_chosen, _chest) < s[1]:
 		game.character.nag("chest_full", "В сундуке нет места")
 
@@ -265,6 +274,7 @@ func refresh() -> void:
 	var in_chest = _chest.slots[_chosen_chest] if _chest != null and _chosen_chest >= 0 else null
 	_to_bag.visible = in_chest != null
 	_to_chest.visible = _chest != null and _chosen >= 0 and inv.slots[_chosen] != null
+	_take_chest.visible = _chest != null
 	var chosen = inv.slots[_chosen] if _chosen >= 0 else null
 	if in_chest != null:
 		_info.text = "%s ×%d · в сундуке" % [Items.title(in_chest[0]), in_chest[1]]
@@ -274,7 +284,9 @@ func refresh() -> void:
 		var id: String = chosen[0]
 		var food := Items.food(id)
 		var worn: int = inv.worn(_chosen)
-		_info.text = "%s ×%d · %.1f кг%s%s" % [Items.title(id), chosen[1], Items.weight(id) * chosen[1],
+		var held: Variant = inv.contents(_chosen)
+		_info.text = "%s ×%d · %.1f кг%s%s%s" % [Items.title(id), chosen[1], inv.slot_weight(_chosen),
+			" · с вещами" if held != null else "",
 			" · сытость +%d" % roundi(food) if food > 0.0 else "",
 			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else ""]
 	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0
