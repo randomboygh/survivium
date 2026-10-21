@@ -5,6 +5,69 @@ const VoxelModel := preload("res://src/client/voxel_model.gd")
 const RES := VoxelModel.RES
 
 
+## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
+## world unit, the front to the south).
+static func prop(kind: String) -> VoxelModel:
+	match kind:
+		"workbench":
+			return workbench()
+		"kiln":
+			return kiln()
+	return chest()
+
+
+## A workbench: a plank top on four legs, a log for a stool's worth of work on it.
+static func workbench() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.62, 0.45, 0.27)
+	var dark := Color(0.4, 0.27, 0.15)
+	var stone := Color(0.5, 0.52, 0.54)
+	for y in range(0, 7):
+		for p in [Vector2i(2, 4), Vector2i(13, 4), Vector2i(2, 11), Vector2i(13, 11)]:
+			m.set_voxel(Vector3i(p.x, y, p.y), dark)
+	for z in range(3, 13):
+		for x in range(1, 15):
+			var c := wood if z % 3 != 0 else wood * 0.88
+			m.set_voxel(Vector3i(x, 7, z), c)
+			if x == 1 or x == 14 or z == 3 or z == 12:
+				m.set_voxel(Vector3i(x, 6, z), dark)
+	# A flint and a cut branch lying on top.
+	for x in range(4, 7):
+		m.set_voxel(Vector3i(x, 8, 6), stone)
+	for x in range(8, 13):
+		m.set_voxel(Vector3i(x, 8, 9), dark)
+	return m
+
+
+## A kiln: a squat dome of clay-daubed stone with a dark mouth to the south and a glow in it.
+static func kiln() -> VoxelModel:
+	var m := VoxelModel.new()
+	var clay := Color(0.66, 0.42, 0.3)
+	var stone := Color(0.52, 0.5, 0.48)
+	var soot := Color(0.12, 0.1, 0.09)
+	var glow := Color(0.95, 0.5, 0.18)
+	for y in range(0, 12):
+		var r := 6.5 - maxf(0.0, y - 5.0) * 0.75
+		for z in range(1, 15):
+			for x in range(1, 15):
+				var d := Vector2(x - 7.5, z - 7.5).length()
+				if d > r:
+					continue
+				var c := clay if (x * 7 + y * 3 + z * 5) % 4 != 0 else stone
+				if y == 0 or (d > r - 1.2 and (x + y) % 5 == 0):
+					c = stone
+				m.set_voxel(Vector3i(x, y, z), c * (1.08 if y >= 9 else 1.0))
+	for y in range(1, 5):
+		for x in range(6, 10):
+			m.set_voxel(Vector3i(x, y, 13), soot if y > 1 else glow)
+			m.set_voxel(Vector3i(x, y, 14), soot if y > 1 else glow)
+	for y in range(12, 14):
+		for x in range(7, 9):
+			for z in range(7, 9):
+				m.set_voxel(Vector3i(x, y, z), soot)
+	return m
+
+
 static func chest() -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.55, 0.36, 0.2)
@@ -51,6 +114,10 @@ static func drop(model: String) -> VoxelModel:
 			return _bush()
 		"fiber":
 			return _fiber()
+		"flint":
+			return _flint()
+		"cord":
+			return _cord()
 		"raspberry":
 			return _berries(Color(0.78, 0.13, 0.2))
 		"blueberry":
@@ -229,4 +296,33 @@ static func _bundle() -> VoxelModel:
 				if y == 2 and (x == -3 or x == 2):
 					continue
 				m.set_voxel(Vector3i(x, y, z), cloth * (0.85 if (x + z) % 3 == 0 else 1.0))
+	return m
+
+
+## A knapped flint: a dark grey lump with a pale edge.
+static func _flint() -> VoxelModel:
+	var m := VoxelModel.new()
+	var dark := Color(0.3, 0.31, 0.34)
+	var edge := Color(0.62, 0.62, 0.6)
+	for x in range(-2, 2):
+		for z in range(-1, 2):
+			m.set_voxel(Vector3i(x, 0, z), dark)
+	for x in range(-1, 1):
+		m.set_voxel(Vector3i(x, 1, 0), dark)
+	m.set_voxel(Vector3i(1, 0, -1), edge)
+	m.set_voxel(Vector3i(1, 0, 0), edge)
+	return m
+
+
+## A coil of cord.
+static func _cord() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cord := Color(0.72, 0.6, 0.38)
+	for x in range(-2, 3):
+		for z in range(-2, 3):
+			var d := Vector2(x, z).length()
+			if d > 1.2 and d < 2.6:
+				m.set_voxel(Vector3i(x, 0, z), cord * (0.85 if (x + z) % 2 == 0 else 1.0))
+	m.set_voxel(Vector3i(2, 0, 0), cord * 0.8)
+	m.set_voxel(Vector3i(3, 0, 1), cord * 0.8)
 	return m

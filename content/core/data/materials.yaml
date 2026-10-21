@@ -28,6 +28,8 @@
   hotbar: 2
   item: dirt
   dig: shovel
+  bonus: flint
+  bonus_chance: 0.08
 - id: stone
   title: Камень
   hotbar: 1
@@ -40,6 +42,8 @@
   hotbar: 5
   item: sand
   dig: shovel
+  bonus: flint
+  bonus_chance: 0.06
 - id: water
   title: Вода
   solid: false

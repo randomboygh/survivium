@@ -413,6 +413,7 @@ func _dig(cells: Array[Vector3i], swing: float) -> bool:
 	for key in keys:
 		game.props.show_drops(key)
 	_cooldown = swing
+	game.workshop.use_tool()
 	return true
 
 
@@ -440,6 +441,7 @@ func chop(cell: Vector3i) -> bool:
 		return false
 	if not game.character.act("chop"):
 		return false
+	game.workshop.use_tool()
 	var col := Vector2i(cell.x, cell.z)
 	var s: Dictionary = Trees.SPECIES[game.world.trees[col]]
 	chops[col] = chops.get(col, 0) + maxi(1, t.power)

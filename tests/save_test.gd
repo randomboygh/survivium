@@ -53,7 +53,16 @@ func _run() -> void:
 	main.save.track("bag", bag)
 	bag.items = {"core:stick": 3.0}
 	main.character.inventory.add("core:branch", 7)
+	main.character.inventory.add("core:fiber", 9)
 	main.character.vitals.satiety = 42.0
+	# A cord being made, a worn axe, a workbench placed and a log in the spawn chest.
+	var shop = main.workshop
+	_check(shop.start(shop.knowledge.recipes().filter(func(r: Dictionary) -> bool: return r.id == "core:cord")[0], 2) == 2,
+		"cord is known from fibre and queued")
+	main.character.inventory.add("core:stone_axe", 1, 17)
+	main.character.inventory.add("core:workbench", 1)
+	_check(main.props.put_from_bag("core:workbench"), "a workbench is placed in front of the player")
+	main.props.chest_items.add("core:log", 2)
 	main.save.begin()
 	# A pit dug three cells deep beside the player, who then steps aside.
 	var w = main.world
@@ -80,7 +89,7 @@ func _run() -> void:
 	var listed := WorldStore.list_worlds()
 	_check(listed.size() == 1 and listed[0].seed == main.world_seed and listed[0].day == 5, "the world list shows the save")
 	var stood: Vector3 = main.player.position
-	var props: Dictionary = main.props.cells.duplicate()
+	var props: Array = main.props.to_list()
 	var seed_value: int = main.world_seed
 	main.queue_free()
 	await process_frame
@@ -93,7 +102,14 @@ func _run() -> void:
 		"the pit dug is still there")
 	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
 	_check(main.sky.day == 5 and absf(main.sky.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
-	_check(main.props.cells == props, "the props stand where they stood")
+	_check(str(main.props.to_list()) == str(props), "the props stand where they stood")
+	_check(main.props.cell_of("core:workbench") != null and main.props.chest_items.count("core:log") == 2,
+		"the workbench placed and what the chest holds come back")
+	_check(main.workshop.queue.jobs.size() >= 1 and main.workshop.knowledge.seen.has("core:fiber"),
+		"the crafting queue and what the character knows come back")
+	var axe_slot: int = main.character.inventory.slots.find(main.character.inventory.slots.filter(
+		func(x) -> bool: return x != null and x[0] == "core:stone_axe")[0])
+	_check(main.character.inventory.worn(axe_slot) == 17, "a tool's wear comes back")
 	var bag2 := Bag.new()
 	main.save.track("bag", bag2)
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")

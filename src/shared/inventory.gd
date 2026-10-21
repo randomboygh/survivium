@@ -2,7 +2,8 @@ extends RefCounted
 ## A bag of item stacks: a fixed number of slots, each empty or holding one item id up
 ## to its stack size, and the weight of it all (plan/design/character.md). Weight has a
 ## limit from strength: past it the carrier slows down (see speed_factor) but may
-## still pick things up. Shared, so the server can keep the same bag.
+## still pick things up. A tool wears with use (see wear_tool): its slot keeps how many
+## swings it has taken. Shared, so the server can keep the same bag.
 
 const Items := preload("res://src/shared/items.gd")
 
@@ -15,7 +16,8 @@ const OVERLOAD_PACE := 0.15
 
 signal changed
 
-## Each slot: [id, count], or null for an empty one.
+## Each slot: [id, count], [id, count, worn] for a tool that has taken `worn` swings, or
+## null for an empty one.
 var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
 
@@ -24,20 +26,20 @@ func _init(n := SLOTS) -> void:
 	slots.resize(n)
 
 
-## Puts up to `n` of item `id` into the bag, topping up stacks first; returns how many
-## went in (fewer when the slots are full).
-func add(id: String, n: int) -> int:
+## Puts up to `n` of item `id` (worn by `worn` swings) into the bag, topping up stacks
+## first; returns how many went in (fewer when the slots are full).
+func add(id: String, n: int, worn := 0) -> int:
 	var left := n
 	var size := Items.stack_size(id)
 	for s in slots:
-		if left > 0 and s != null and s[0] == id and s[1] < size:
+		if left > 0 and s != null and s[0] == id and s[1] < size and _worn(s) == worn:
 			var k := mini(left, size - s[1])
 			s[1] += k
 			left -= k
 	for i in slots.size():
 		if left > 0 and slots[i] == null:
 			var k := mini(left, size)
-			slots[i] = [id, k]
+			slots[i] = [id, k, worn] if worn > 0 else [id, k]
 			left -= k
 	if left < n:
 		changed.emit()
@@ -73,7 +75,8 @@ func remove(id: String, n: int) -> int:
 	return n - left
 
 
-## Takes up to `n` items out of slot `i`; returns the stack taken ([id, count]) or null.
+## Takes up to `n` items out of slot `i`; returns the stack taken ([id, count], or
+## [id, count, worn] for a worn tool) or null.
 func take_slot(i: int, n: int):
 	var s = slots[i]
 	if s == null or n <= 0:
@@ -83,7 +86,52 @@ func take_slot(i: int, n: int):
 	if s[1] == 0:
 		slots[i] = null
 	changed.emit()
-	return [s[0], k]
+	return [s[0], k, s[2]] if _worn(s) > 0 else [s[0], k]
+
+
+## Moves as much of slot `i` as fits into bag `to` (keeping its wear); returns how many.
+func move_slot(i: int, to) -> int:
+	var s = slots[i]
+	if s == null:
+		return 0
+	var n: int = to.add(s[0], s[1], _worn(s))
+	take_slot(i, n)
+	return n
+
+
+## Swings the tool in slot `i` has taken.
+func worn(i: int) -> int:
+	return _worn(slots[i]) if slots[i] != null else 0
+
+
+static func _worn(s: Array) -> int:
+	return s[2] if s.size() > 2 else 0
+
+
+## One swing of tool `id` that lasts `durability` swings: the first such tool in the
+## bag wears; true when it broke and is gone.
+func wear_tool(id: String, durability: int) -> bool:
+	if durability <= 0:
+		return false
+	for i in slots.size():
+		var s = slots[i]
+		if s != null and s[0] == id:
+			var w := _worn(s) + 1
+			if w >= durability:
+				take_slot(i, 1)
+				return true
+			slots[i] = [s[0], s[1], w]
+			changed.emit()
+			return false
+	return false
+
+
+## The tool in slot `i` is as good as new.
+func mend(i: int) -> void:
+	var s = slots[i]
+	if s != null and _worn(s) > 0:
+		slots[i] = [s[0], s[1]]
+		changed.emit()
 
 
 func count(id: String) -> int:
@@ -149,6 +197,7 @@ func from_dict(d: Dictionary) -> void:
 	var saved: Array = d.get("slots", [])
 	for i in mini(saved.size(), slots.size()):
 		var s = saved[i]
-		if s is Array and s.size() == 2 and Items.has(s[0]) and int(s[1]) > 0:
-			slots[i] = [Items.get_item(s[0]).id, int(s[1])]
+		if s is Array and s.size() in [2, 3] and Items.has(s[0]) and int(s[1]) > 0:
+			var w: int = int(s[2]) if s.size() == 3 else 0
+			slots[i] = [Items.get_item(s[0]).id, int(s[1]), w] if w > 0 else [Items.get_item(s[0]).id, int(s[1])]
 	changed.emit()

@@ -101,7 +101,8 @@ func restore_clock() -> void:
 	sky.season_clock = s.get("season_clock", sky.season_clock)
 
 
-## The saved cell of a prop ("chest", "campfire"), or null.
+## The cell of a prop ("chest", "campfire") in a save from before things could be
+## placed (see Props.place), or null.
 func prop_cell(name: String) -> Variant:
 	var c: Variant = meta.get("props", {}).get(name)
 	if c is Array and c.size() == 3:
@@ -170,10 +171,6 @@ func _write_chunk(key: Vector2i) -> void:
 ## world.json and the player, and this world as the one to start next time.
 func _write_world() -> void:
 	var sky = game.sky
-	var props := {}
-	for name: String in game.props.cells:
-		var c: Vector3i = game.props.cells[name]
-		props[name] = [c.x, c.y, c.z]
 	meta = {
 		"format": WorldStore.FORMAT,
 		"seed": game.world_seed,
@@ -183,8 +180,7 @@ func _write_world() -> void:
 		"saved": Time.get_datetime_string_from_system(),
 		"played": played,
 		"sky": {"day": sky.day, "time": sky.time_of_day, "season": sky.season, "season_clock": sky.season_clock},
-		"props": props,
-		"chest": game.props.chest_items.to_dict(),
+		"placed": game.props.to_list(),
 	}
 	var p: Vector3 = game.player.position
 	player_record = {"format": WorldStore.FORMAT, "position": [p.x, p.y, p.z]}

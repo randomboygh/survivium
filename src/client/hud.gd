@@ -30,7 +30,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить (держи — мазком)\nF — действие перед собой\nV — инструмент, C — кисть\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить (держи — мазком)\nF — действие перед собой\nV — инструмент, C — кисть\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка и крафт\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -457,11 +457,22 @@ func show_keys(on: bool) -> void:
 
 # --- Statistics and menu ---------------------------------------------------------
 
-## Opens the bag with the chest beside it.
+## Opens the bag with the chest by the spawn beside it.
 func open_chest() -> void:
+	for e: Dictionary in game.props.placed:
+		if e.items != null and e.items == game.props.chest_items:
+			open_prop(e)
+
+
+## Opens the bag at placed thing `e` (see Props.placed): a chest beside the bag, the
+## craft tab at a station.
+func open_prop(e: Dictionary) -> void:
 	if not bag.visible:
 		toggle_bag()
-	bag.show_chest(game.props.chest_items)
+	if e.items != null:
+		bag.show_chest(e)
+	else:
+		bag.show_station(e)
 
 
 ## Opens or closes the bag over the running game.

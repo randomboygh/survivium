@@ -52,8 +52,9 @@ var bush_twigs := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
-## see Items) or Items.SACK; `data` is how many items for an item, the stacks
-## ([[id, count]...]) for a sack. A chunk with any is kept as an edited one.
+## see Items) or Items.SACK; `data` is how many items for an item ({"n", "worn"} for a
+## worn tool, see Inventory), the stacks ([[id, count]...]) for a sack. A chunk with any
+## is kept as an edited one.
 var drops := {}
 ## Things of one kind laid this close to a heap (world units) join it (see heap_drop).
 const HEAP := 0.35
