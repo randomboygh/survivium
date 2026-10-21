@@ -121,6 +121,8 @@ const SHOTS := {
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
+	# The workbench, kiln, chest and campfire by the spawn marked on the map, close up.
+	"ui-map-marks": {"time": 0.45, "season": 1, "touch": true, "craft": true, "closed": true, "map": true, "map_zoom": 8},
 	# The main menu over the live world, over the painted sky it shows while the world is
 	# built, and with the setup screen of a new world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
@@ -301,6 +303,7 @@ func _run() -> void:
 			await process_frame
 		if shot.get("map", false):
 			main.hud.map_view.open()
+			main.hud.map_view.zoom_index = shot.get("map_zoom", main.hud.map_view.FIRST_ZOOM)
 			await process_frame
 			await process_frame
 		var img := root.get_texture().get_image()
