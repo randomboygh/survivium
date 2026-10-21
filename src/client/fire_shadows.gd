@@ -1,7 +1,8 @@
 extends MultiMeshInstance3D
-## Drawn shadows from fires and the torch: a flat wedge on the ground behind the player,
-## each animal and each tree trunk in a fire's light, pointing away from it and as dark
-## as the fire's ring it lies in (fire_shadow.gdshader multiplies it into the ground).
+## Drawn shadows from every fire on the screen and the torch: a flat wedge on the ground
+## behind the player, each animal and each tree trunk in a fire's light, pointing away
+## from it and as dark as the fire's ring it lies in (fire_shadow.gdshader multiplies it
+## into the ground).
 ## A few draws a frame where a real shadow (Effects, the "real" fire shadows setting)
 ## draws everything around the fire six times more; it shades nothing but the ground.
 
@@ -11,11 +12,12 @@ const Mat := preload("res://src/shared/materials.gd")
 const FireShadowShader := preload("res://shaders/fire_shadow.gdshader")
 
 const CELL := WorldData.CELL
-const MAX_SHADOWS := 64
+const MAX_SHADOWS := 512
 ## Trunks remembered before the memory is cleared.
 const MAX_TRUNKS := 4096
-## How many fires, the nearest to the player, throw shadows.
-const FIRES := 2
+## Fires within this many world units of the player (and their light's range) throw
+## shadows: as far as a wide screen shows.
+const VIEW_REACH := 32.0
 ## World units a fire's light stands above its ground, and the torch's above the feet
 ## and to the south of them (see Effects.add_campfire and Player.place_sprite).
 const FIRE_HEIGHT := 0.6
@@ -31,6 +33,8 @@ const MAX_SPREAD := 5.0
 ## The light of a dark night and of the full moon as a share of a fire's brightest ring
 ## (fire_shadow.gdshader).
 const NIGHT_LIGHT := Vector2(0.14, 0.6)
+## Lights the shader knows of, the nearest to the player (`lights` in fire_shadow.gdshader).
+const MAX_LIGHTS := 8
 
 var game
 ## The fire shadows setting is on "drawn".
@@ -78,7 +82,28 @@ func _process(_delta: float) -> void:
 		var lights := _lights()
 		for l: Dictionary in lights:
 			n = _cast_all(l, n)
+		_show_lights(lights)
 	mm.visible_instance_count = n
+
+
+## Tells the shader where the lights nearest to the player are.
+func _show_lights(lights: Array) -> void:
+	var p: Vector3 = game.player.position
+	var near := lights.duplicate()
+	near.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
+	var at := PackedVector4Array()
+	var strengths := PackedFloat32Array()
+	at.resize(MAX_LIGHTS)
+	strengths.resize(MAX_LIGHTS)
+	var count := mini(near.size(), MAX_LIGHTS)
+	for i in count:
+		var l: Dictionary = near[i]
+		at[i] = Vector4(l.at.x, l.at.y + l.height, l.at.z, l.range)
+		strengths[i] = l.strength
+	var mat: ShaderMaterial = material_override
+	mat.set_shader_parameter("lights", at)
+	mat.set_shader_parameter("strengths", strengths)
+	mat.set_shader_parameter("light_count", count)
 
 
 ## The lights that throw shadows: {"at": ground under the light, "height", "range",
@@ -87,11 +112,9 @@ func _lights() -> Array:
 	var out := []
 	var p: Vector3 = game.player.position
 	var effects = game.effects
-	var near: Array = effects.fires.duplicate()
-	near.sort_custom(func(a, b) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
-	for f in near.slice(0, FIRES):
+	for f in effects.fires:
 		var light: OmniLight3D = f.light
-		if p.distance_to(f.at) < light.omni_range + 8.0:
+		if p.distance_to(f.at) < light.omni_range + VIEW_REACH:
 			out.append({"at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
 				"strength": light.shadow_opacity, "torch": false})
 	var torch: OmniLight3D = game.player.torch

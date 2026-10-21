@@ -41,6 +41,10 @@ const SHOTS := {
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
 	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true},
 	"torch-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 2},
+	# Two more campfires by the one at the spawn and an animal by the player: drawn
+	# shadows from every fire.
+	"three-fires": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4),
+		"more_fires": [Vector3(4.5, 0.0, -4.0), Vector3(-3.5, 0.0, -5.0)], "animal": Vector3(-1.6, 0.0, -2.6)},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
@@ -203,6 +207,7 @@ func _run() -> void:
 	while not main.ready_to_play:
 		await process_frame
 	var spawn: Vector3 = main.player.position
+	var added_fires := []
 	for shot_name in names:
 		main.player.position = spawn
 		var shot: Dictionary = SHOTS[shot_name]
@@ -239,6 +244,10 @@ func _run() -> void:
 			for e: Dictionary in main.props.placed:
 				if e.fire != null:
 					main.player.position = main.props.center(e) + shot.by_fire
+					for off: Vector3 in shot.get("more_fires", []):
+						var spot: Vector3i = main.props._prop_spot(main.props.center(e) + off)
+						if spot.y >= 0:
+							added_fires.append(main.props._put(main.props.CAMPFIRE, spot, null))
 					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
@@ -279,6 +288,13 @@ func _run() -> void:
 			main.sky.grass = main.sky.GRASS[main.sky.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.sky.season]
 			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.sky.season]
+		if shot.has("animal") and not main.creatures.creatures.is_empty():
+			# Stands still where it is put until the shot is taken.
+			var c = main.creatures.creatures[0]
+			c.pos = main.player.position + shot.animal
+			c.pos.y = main.creatures._ground(c.pos.x, c.pos.z)
+			c.target = c.pos
+			c.think = 100.0
 		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
@@ -397,6 +413,9 @@ func _run() -> void:
 		if shot.get("map", false):
 			main.hud.map_view.close()
 		print("saved ", shot_name)
+		for e in added_fires:
+			main.props._remove(e)
+		added_fires.clear()
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
