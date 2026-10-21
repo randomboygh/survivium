@@ -156,6 +156,35 @@
   reach: 8
   durability: 80
   repair: {planks: 1}
+- id: stone_sword
+  title: Каменный меч
+  weight: 1.4
+  stack: 1
+  model: stone_sword
+  icon: stone_sword
+  tool: sword
+  sprite: stone_sword
+  anim: slash
+  mows: tall
+  power: 2
+  swing: 0.4
+  reach: 8
+  durability: 120
+  repair: {flint: 1, cord: 1}
+- id: wooden_pickaxe
+  title: Деревянная кирка
+  weight: 1.2
+  stack: 1
+  model: wooden_pickaxe
+  icon: wooden_pickaxe
+  tool: pickaxe
+  sprite: wooden_pickaxe
+  anim: chop
+  power: 2
+  swing: 0.8
+  reach: 10
+  durability: 30
+  repair: {planks: 1}
 - id: shrub_bush
   title: Куст
   weight: 2.0
@@ -194,6 +223,23 @@
   reach: 8
   durability: 150
   repair: {flint: 1, cord: 1}
+- id: wooden_scythe
+  title: Деревянная коса
+  weight: 1.0
+  stack: 1
+  model: wooden_scythe
+  icon: wooden_scythe
+  tool: scythe
+  sprite: wooden_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 1
+  area: 2
+  swing: 0.6
+  reach: 8
+  durability: 40
+  repair: {planks: 1}
 - id: grain
   title: Зерно
   weight: 0.02

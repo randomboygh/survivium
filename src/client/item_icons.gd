@@ -443,6 +443,14 @@ const PICTURES := {
 	],
 }
 
+## Pictures drawn as another one with some colours swapped: name -> [the picture,
+## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe).
+const RECOLOURED := {
+	"stone_sword": ["sword", {"t": "S", "B": "s"}],
+	"wooden_pickaxe": ["pickaxe", {"s": "B", "S": "t"}],
+	"wooden_scythe": ["scythe", {"s": "B", "S": "t"}],
+}
+
 static var _cache := {}
 static var _atlas: Texture2D
 static var _tile := 16
@@ -462,6 +470,10 @@ static func picture(name: String) -> Texture2D:
 	if _cache.has(name):
 		return _cache[name]
 	var rows: Array = PICTURES.get(name, [])
+	var swap: Dictionary = {}
+	if RECOLOURED.has(name):
+		rows = PICTURES[RECOLOURED[name][0]]
+		swap = RECOLOURED[name][1]
 	if rows.is_empty():
 		return null
 	var img := Image.create_empty(rows[0].length(), rows.size(), false, Image.FORMAT_RGBA8)
@@ -469,8 +481,9 @@ static func picture(name: String) -> Texture2D:
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
-			if PALETTE.has(row[x]):
-				img.set_pixel(x, y, PALETTE[row[x]])
+			var letter: String = swap.get(row[x], row[x])
+			if PALETTE.has(letter):
+				img.set_pixel(x, y, PALETTE[letter])
 	var tex := ImageTexture.create_from_image(img)
 	_cache[name] = tex
 	return tex

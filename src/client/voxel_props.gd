@@ -167,14 +167,14 @@ static func drop(model: String) -> VoxelModel:
 			return _cone()
 		"axe":
 			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
-		"pickaxe":
-			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(4, 0, -3), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(4, 0, 1), Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(5, 0, -3), Vector3i(5, 0, 3), Vector3i(4, 1, 0)])
+		"pickaxe", "wooden_pickaxe":
+			return _tool(Color(0.42, 0.44, 0.46) if model == "pickaxe" else Color(0.55, 0.4, 0.24), [Vector3i(4, 0, -3), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(4, 0, 1), Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(5, 0, -3), Vector3i(5, 0, 3), Vector3i(4, 1, 0)])
 		"shovel":
 			return _tool(Color(0.42, 0.29, 0.18), [Vector3i(5, 0, -1), Vector3i(5, 0, 1), Vector3i(6, 0, -1), Vector3i(6, 0, 0), Vector3i(6, 0, 1), Vector3i(7, 0, -1), Vector3i(7, 0, 0), Vector3i(7, 0, 1), Vector3i(8, 0, 0)])
-		"sword":
-			return _sword()
-		"scythe":
-			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
+		"sword", "stone_sword":
+			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else Color(0.55, 0.57, 0.6))
+		"scythe", "wooden_scythe":
+			return _tool(Color(0.42, 0.44, 0.46) if model == "scythe" else Color(0.55, 0.4, 0.24), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
 		"grain":
 			return _heap(Color(0.82, 0.66, 0.32))
 		"flour":
@@ -274,9 +274,9 @@ static func _tool(head: Color, cells: Array) -> VoxelModel:
 
 
 ## A wooden sword lying flat: the blade along x, a cross guard and a grip.
-static func _sword() -> VoxelModel:
+static func _sword(blade: Color) -> VoxelModel:
 	var m := VoxelModel.new()
-	var wood := Color(0.5, 0.37, 0.22)
+	var wood := blade
 	var dark := Color(0.3, 0.2, 0.12)
 	for x in range(-2, 8):
 		for z in 2:
