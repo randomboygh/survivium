@@ -279,13 +279,14 @@ func _slot_index() -> int:
 	return -1
 
 
-## A tool that has left the bag (thrown away, broken) leaves the hand; a tool the bag
-## holds one of is in one hand only.
+## What has left the bag (the last block placed, the last seed sown, a tool thrown
+## away or broken) leaves the hand, which is bare then; a tool the bag holds one of is
+## in one hand only.
 func _check_hands() -> void:
 	var inv = game.character.inventory
 	var changed := false
 	for h in 2:
-		if hands[h] != "" and Tools.is_tool_item(hands[h]) and inv.count(hands[h]) == 0:
+		if hands[h] != "" and inv.count(hands[h]) == 0:
 			hands[h] = ""
 			changed = true
 	if hands[0] != "" and hands[0] == hands[1] and Tools.is_tool_item(hands[0]) and inv.count(hands[0]) < 2:
@@ -710,7 +711,7 @@ func _can_place(cell: Vector3i) -> bool:
 ## bush in front that they can do something to (see Gathering.useful: an axe chops,
 ## hands gather, a sword knocks berries off, a shovel digs a bush out), then cut the
 ## grass in front (hands, sword, scythe), then dig one cell, in the order of
-## Tools.front_cells.
+## Tools.front_cells; with none of that the hand swings at the air.
 func act_in_front() -> void:
 	match use_of():
 		"place":
@@ -748,21 +749,12 @@ func act_in_front() -> void:
 		var c: Vector3i = work.dig[0]
 		_dig(work.dig, Tools.swing_time(t, game.world.get_cell(c.x, c.y, c.z)))
 		return
-	game.character.nag("front", "Перед тобой нечего %s" % _nothing_to(t))
-	_cooldown = 0.3
-
-
-## What tool `t` found nothing to do in front: "рубить", "косить", "копать", or
-## "добыть" for a sword and at a bush with nothing left on it.
-func _nothing_to(t: Dictionary) -> String:
-	if t.tool == "sword":
-		return "добыть"
-	var f := feet()
-	for o in Tools.sector(step()):
-		for dy in [0, -1, 1]:
-			if game.world.bushes.has(Vector3i(f.x + o.x, f.y + dy, f.z + o.y)):
-				return "добыть"
-	return "рубить" if t.tool == "axe" else ("косить" if t.tool == "scythe" else "копать")
+	# Nothing in front: the hand swings at the air, without a word and for less stamina.
+	if game.character.act("swing"):
+		_cooldown = t.swing
+		game.player.work("", t.swing)
+	else:
+		_cooldown = 0.3
 
 
 ## What a swing of tool `t` in front would do: {"mow": cells} (the grass first, for
