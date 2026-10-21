@@ -1344,6 +1344,34 @@ func _test_inventory() -> void:
 	_check(copy.slots[0] == null and copy.count("core:branch") == 2, "unknown items are left out on load")
 	var all := inv.take_all()
 	_check(inv.is_empty() and all.size() == 3, "a death empties the bag into a sack")
+	_check(Items.category("core:stone_axe") == "tools" and Items.category("core:workbench") == "stations"
+		and Items.category("core:raspberry") == "food" and Items.category("core:grain") == "plants"
+		and Items.category("core:stone") == "blocks" and Items.category("core:fiber") == "materials",
+		"an item's kind follows from what it does")
+	var mess := Inventory.new(8)
+	mess.slots = [["core:fiber", 1], null, ["core:stone", 3], ["core:fiber", 2], null, ["core:stone_axe", 1, 5],
+		["core:raspberry", 4], ["core:fiber", 4]]
+	mess.sort("kind", 1)
+	_check(mess.slots[0] == ["core:fiber", 1] and mess.slots[1] == ["core:stone_axe", 1, 5]
+		and mess.slots[2] == ["core:fiber", 6] and mess.slots[3] == ["core:stone", 3]
+		and mess.slots[4] == ["core:raspberry", 4] and mess.slots[5] == null and mess.slots[7] == null,
+		"sorting by kind tops up stacks, keeps a worn tool apart and leaves the first slots alone")
+	mess.sort("weight")
+	_check(mess.slots[0] == ["core:stone", 3] and mess.slots[1] == ["core:stone_axe", 1, 5] and mess.count("core:fiber") == 7,
+		"sorting by weight puts the heaviest stacks first")
+	mess.sort("name")
+	_check(mess.slots[0][0] == "core:fiber" and mess.slots[1][0] == "core:stone_axe" and mess.slots[4] == null,
+		"sorting by name follows the titles")
+	var box := Inventory.new(2)
+	mess.slots = [["core:fiber", 7], ["core:stone", 3], null]
+	mess.put_into(0, mess, 2)
+	_check(mess.slots[0] == null and mess.slots[2] == ["core:fiber", 7], "a stack moves to an empty slot")
+	mess.put_into(1, mess, 2)
+	_check(mess.slots[1] == ["core:fiber", 7] and mess.slots[2] == ["core:stone", 3], "two stacks swap")
+	box.slots = [["core:fiber", Items.stack_size("core:fiber") - 2], null]
+	mess.put_into(1, box, 0)
+	_check(box.count("core:fiber") == Items.stack_size("core:fiber") and mess.slots[1] == ["core:fiber", 5],
+		"onto a stack of the same item, as much as it takes")
 	# A chest taken up with things in it keeps them and weighs them.
 	var chest := Inventory.new(4)
 	chest.nests = false
@@ -1359,6 +1387,8 @@ func _test_inventory() -> void:
 	var inner := Inventory.new(4)
 	inner.from_dict(kept.contents(0))
 	_check(inner.count("core:stone") == 5, "the chest's things survive a save")
+	_check(not bag.put_into(0, chest, 1) and bag.contents(0) != null and chest.slots[1] == null,
+		"nor is it moved into a chest's slot")
 	var put = bag.take_slot(0, 1)
 	_check(put.size() == 4 and put[3] is Dictionary and bag.is_empty(), "a chest taken out of the bag brings its things")
 

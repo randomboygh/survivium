@@ -7,7 +7,10 @@ extends Control
 ## The root is scaled by a whole number so one UI pixel is one pixel of the world, and
 ## the layout follows the shape of the screen: wide, tablet-like and portrait screens
 ## place the hotbar beside or above the touch controls. When the slots do not all fit
-## (portrait shows four), arrows on both sides and a finger dragged along them scroll.
+## (portrait shows four), arrows on both sides and a finger dragged along them scroll
+## a slot at a time. A tab on the hotbar shows how many of the bag's slots are taken
+## and its load; the minimap sits under the buttons in the corner with the level
+## buttons on its left.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
@@ -28,6 +31,10 @@ const GAP := 4.0
 const SLOT := 40
 ## UI height the scale aims for on the shorter side of the screen.
 const TARGET_SIDE := 400.0
+## The width of the level buttons beside the minimap.
+const LEVEL_WIDTH := 68
+## The tab on the hotbar with the bag's slots and load, in UI pixels.
+const METER_WIDTH := 108
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
 const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
@@ -46,6 +53,9 @@ var perf: PanelContainer
 var vitals: VitalsPanel
 var bag: InventoryWindow
 var _bag_button: Button
+## The tab on the hotbar with how many slots are taken and the load (a tap opens the
+## bag).
+var _bag_meter: Button
 var _top: HBoxContainer
 var _stats_button: Button
 var _test_button: Button
@@ -123,14 +133,16 @@ func _ready() -> void:
 	_bag_button = _icon_button(_top, "bag", "Сумка", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
+	# The level buttons in a column beside the minimap, as tall as it.
 	_level = BoxContainer.new()
+	_level.vertical = true
 	_level.add_theme_constant_override("separation", 0)
 	add_child(_level)
 	var up := _icon_button(_level, "up", "Уровень выше", func() -> void: game.chunks.shift_cut(1))
 	# The level itself is a button: a tap on a chosen cut returns to the player's level.
 	_level_label = Button.new()
 	_level_label.focus_mode = Control.FOCUS_NONE
-	_level_label.custom_minimum_size = Vector2(60, 36)
+	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, 32)
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_level_label.add_theme_stylebox_override(state, UiStyle.panel())
@@ -138,7 +150,7 @@ func _ready() -> void:
 	_level.add_child(_level_label)
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
-		b.custom_minimum_size = Vector2(36, 36)
+		b.custom_minimum_size = Vector2(LEVEL_WIDTH, 24)
 	minimap = Minimap.new()
 	add_child(minimap)
 	map_view = MapView.new()
@@ -178,6 +190,15 @@ func _ready() -> void:
 		_slots.append(s)
 	_next_button = _icon_button(bar_row, "next", "Следующие ячейки", _next_page)
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
+	_bag_meter = Button.new()
+	_bag_meter.focus_mode = Control.FOCUS_NONE
+	_bag_meter.custom_minimum_size = Vector2(METER_WIDTH, 16)
+	_bag_meter.size = _bag_meter.custom_minimum_size
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		_bag_meter.add_theme_stylebox_override(state, _bar_box())
+	_bag_meter.draw.connect(_draw_bag_meter)
+	_bag_meter.pressed.connect(toggle_bag)
+	add_child(_bag_meter)
 
 	stick = TouchStick.new()
 	add_child(stick)
@@ -270,15 +291,10 @@ func _place() -> void:
 	_left.position = Vector2(MARGIN, MARGIN)
 	_top.reset_size()
 	_top.position = Vector2(w - MARGIN - _top.size.x, MARGIN)
-	_level.vertical = portrait
+	# The minimap under the buttons in the corner, the level buttons on its left.
+	minimap.position = Vector2(w - MARGIN - minimap.size.x, _top.position.y + _top.size.y + 6)
 	_level.reset_size()
-	if portrait:
-		_level.position = Vector2(w - MARGIN - _level.size.x, MARGIN + _top.size.y + 6)
-	else:
-		_level.position = Vector2(_top.position.x - 6 - _level.size.x, MARGIN)
-	# The minimap under the buttons in the corner (under the level buttons in portrait).
-	var under: Control = _level if portrait else _top
-	minimap.position = Vector2(w - MARGIN - minimap.size.x, under.position.y + under.size.y + 6)
+	_level.position = Vector2(minimap.position.x - 6 - _level.size.x, minimap.position.y)
 
 	stick.visible = touch
 	_action.visible = touch
@@ -314,6 +330,8 @@ func _place() -> void:
 		else:
 			y = minf(stick.position.y, _jump.position.y) - 8 - bh
 	_bar.position = Vector2(x, y)
+	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
+	_bag_meter.position = Vector2(x + bw - METER_WIDTH, y - _bag_meter.size.y + 2)
 
 	_keys.reset_size()
 	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
@@ -334,19 +352,19 @@ func _show_page() -> void:
 		_slots[i].visible = i >= _first and i < _first + _visible_slots
 	_next_button.visible = _visible_slots < _slots.size()
 	_prev_button.visible = _next_button.visible
+	# The arrows stop at the ends: the slots do not go round.
+	_prev_button.disabled = _first <= 0
+	_next_button.disabled = _first >= _slots.size() - _visible_slots
 
 
-## The next slots; past the last, back to the first.
+## The next slot (as a finger dragging the slots one along); none past the last.
 func _next_page() -> void:
-	var last := _slots.size() - _visible_slots
-	_first = 0 if _first >= last else mini(_first + _visible_slots, last)
-	_show_page()
+	_scroll(1)
 
 
-## The slots before; before the first, on to the last.
+## The slot before; none before the first.
 func _prev_page() -> void:
-	_first = _slots.size() - _visible_slots if _first <= 0 else maxi(_first - _visible_slots, 0)
-	_show_page()
+	_scroll(-1)
 
 
 ## Moves the shown slots `by` slots along.
@@ -408,8 +426,8 @@ func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 	refresh_counts()
 
 
-## Shows the bag's first row on the hotbar: each item with how many there are and, with
-## a mouse, its key; then the hands.
+## Shows the bag's first row on the hotbar: each item with how many there are and its
+## number (its key with a keyboard, as in the bag); then the hands and the bag button.
 func refresh_counts() -> void:
 	if game == null:
 		return
@@ -418,8 +436,9 @@ func refresh_counts() -> void:
 		var s = slots[i]
 		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
 		_slots[i].number = str(s[1]) if s != null and s[1] > 1 else ""
-		_slots[i].key = "" if touch else str(i + 1)
+		_slots[i].key = str(i + 1)
 	_update_hands()
+	_bag_meter.queue_redraw()
 
 
 func update_state() -> void:
@@ -427,7 +446,7 @@ func update_state() -> void:
 	var minutes := int(fmod(game.sky.time_of_day * 24.0 * 60.0, 60.0))
 	var winter: bool = game.sky.season == game.sky.WINTER
 	_clock.text = "%s · день %d · %02d:%02d" % [game.sky.SEASONS[game.sky.season], game.sky.day, hours, minutes]
-	vitals.update(game.character.vitals, game.character.inventory.load_share(), get_process_delta_time())
+	vitals.update(game.character.vitals, get_process_delta_time())
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
@@ -553,7 +572,6 @@ func open_prop(e: Dictionary) -> void:
 ## Opens or closes the bag over the running game.
 func toggle_bag() -> void:
 	bag.toggle()
-	vitals.pinned = bag.visible
 	_bag_button.modulate = UiStyle.ACCENT if bag.visible else Color.WHITE
 	_place()
 
@@ -684,7 +702,7 @@ func _slot(parent: Node, action: Callable):
 
 func _icon_button(parent: Node, icon: String, tip: String, action: Callable) -> Button:
 	var b := Button.new()
-	b.icon = UiStyle.icon(icon)
+	b.icon = UiStyle.icon(icon) if icon != "" else null
 	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(40, 40)
@@ -705,6 +723,34 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	b.pressed.connect(action)
 	parent.add_child(b)
 	return b
+
+
+## The tab on the hotbar: the bag, how many of its slots are taken (amber when all),
+## and a bar of the load against the limit (amber near it, red past it).
+func _draw_bag_meter() -> void:
+	if game == null:
+		return
+	var inv = game.character.inventory
+	var c: Control = _bag_meter
+	var w := c.size.x
+	var icon := UiStyle.icon("bag")
+	c.draw_texture(icon, Vector2(5, 4))
+	var taken := 0
+	for s in inv.slots:
+		if s != null:
+			taken += 1
+	var text := "%d/%d" % [taken, inv.slots.size()]
+	var font := UiStyle.font()
+	var fs := UiStyle.FONT_SIZE
+	c.draw_string(font, Vector2(17, 4 + font.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+		UiStyle.ACCENT if taken >= inv.slots.size() else UiStyle.INK)
+	var share: float = inv.load_share()
+	var bar := Rect2(61, 6, w - 66, 5)
+	c.draw_rect(bar.grow(1), UiStyle.EDGE)
+	c.draw_rect(bar, UiStyle.WELL)
+	c.draw_rect(Rect2(bar.position, Vector2(roundf(bar.size.x * clampf(share, 0.0, 1.0)), bar.size.y)),
+		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
+	c.tooltip_text = "Сумка: %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 
 
 func _set_icon(rect: TextureRect, name: String) -> void:

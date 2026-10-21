@@ -25,6 +25,7 @@ const BUTTON_SHADE := Color("#2a1f16")
 const DARK_INK := Color("#1c140d")
 const COLD := Color("#7cc0f0")
 const DANGER := Color("#e0613f")
+const DANGER_DARK := Color("#a8432a")
 const GOOD := Color("#8fcf6a")
 
 const PALETTE := {
@@ -225,6 +226,28 @@ const ICONS := {
 		"ww...",
 		"w....",
 	],
+	"trash": [
+		"...www...",
+		"wwwwwwwww",
+		".........",
+		".wwwwwww.",
+		".w.w.w.w.",
+		".w.w.w.w.",
+		".w.w.w.w.",
+		".w.w.w.w.",
+		"..wwwww..",
+	],
+	"clock": [
+		"..wwwww..",
+		".w.....w.",
+		"w...a...w",
+		"w...a...w",
+		"w...aaa.w",
+		"w.......w",
+		"w.......w",
+		".w.....w.",
+		"..wwwww..",
+	],
 	"close": [
 		"ww....ww",
 		"www..www",
@@ -385,10 +408,14 @@ static func slot(selected := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "slot", WELL, ACCENT if selected else EDGE, Vector4.ZERO)
 
 
-static func button(state: String, accent := false) -> StyleBoxTexture:
+## A button's frame; `accent` lights it amber, `danger` red (a second tap destroys).
+static func button(state: String, accent := false, danger := false) -> StyleBoxTexture:
 	var fill := BUTTON
 	var shade := BUTTON_SHADE
-	if accent:
+	if danger:
+		fill = DANGER
+		shade = DANGER_DARK
+	elif accent:
 		fill = ACCENT
 		shade = ACCENT_DARK
 	elif state == "hover":

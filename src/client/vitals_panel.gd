@@ -1,8 +1,8 @@
 extends PanelContainer
-## The character's state under the clock: health, satiety and stamina as short bars,
-## and the load when it is near the limit. Shown only while something changes
-## noticeably or is low (plan/design/ui.md: "indicator appears only on significant
-## change or in a critical state"), and always while the bag is open.
+## The character's state under the clock: health, satiety and stamina as short bars
+## (the load is on the bag button). Shown only while something changes noticeably or
+## is low (plan/design/ui.md: "indicator appears only on significant change or in a
+## critical state"), or while pinned.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
@@ -21,11 +21,10 @@ const ROWS := [
 	["stamina", "bolt", UiStyle.GOOD],
 ]
 
-## Keep it shown whatever the state (while the bag is open).
+## Keep it shown whatever the state.
 var pinned := false
 var _values := {}
 var _shown := {}
-var _load := 0.0
 var _linger := 0.0
 var _canvas: Control
 
@@ -41,8 +40,8 @@ func _ready() -> void:
 	visible = false
 
 
-## Takes the state of `vitals` and the bag's load share for this frame.
-func update(vitals, load_share: float, delta: float) -> void:
+## Takes the state of `vitals` for this frame.
+func update(vitals, delta: float) -> void:
 	var low := false
 	for r in ROWS:
 		var v: float = vitals.get(r[0])
@@ -53,13 +52,8 @@ func update(vitals, load_share: float, delta: float) -> void:
 			_shown[r[0]] = v
 			_canvas.queue_redraw()
 		low = low or v < LOW[r[0]]
-	var heavy := load_share > 0.9
-	if heavy != (_load > 0.9) or absf(load_share - _load) > 0.02:
-		_load = load_share
-		_canvas.custom_minimum_size.y = ROW * (ROWS.size() + (1 if heavy else 0)) - 2
-		_canvas.queue_redraw()
 	_linger = maxf(0.0, _linger - delta)
-	visible = pinned or low or heavy or _linger > 0.0
+	visible = pinned or low or _linger > 0.0
 
 
 func _draw_rows() -> void:
@@ -67,8 +61,6 @@ func _draw_rows() -> void:
 	for r in ROWS:
 		_row(y, r[1], _values.get(r[0], 0.0) / Vitals.MAX, r[2])
 		y += ROW
-	if _load > 0.9:
-		_row(y, "weight", minf(_load, 1.5) / 1.5, UiStyle.DANGER if _load > 1.0 else UiStyle.MUTED)
 
 
 func _row(y: int, icon: String, share: float, color: Color) -> void:

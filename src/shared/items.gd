@@ -25,6 +25,11 @@ static var IDS: PackedStringArray = []
 static var dug: PackedStringArray = []
 static var placed_by: PackedStringArray = []
 
+## The kinds of items the bag and the craft tab sort and filter by, in their order,
+## with their names; an item's kind follows from what it does (see category).
+const CATEGORIES := {"tools": "Инструменты", "stations": "Станки", "materials": "Материалы",
+	"blocks": "Блоки", "food": "Еда", "plants": "Посадки"}
+
 
 static func _static_init() -> void:
 	refresh()
@@ -76,6 +81,25 @@ static func stack_size(id: String) -> int:
 
 static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
+
+
+## The kind of item `id` (a key of CATEGORIES): a tool, a thing set down in the world,
+## food, something planted or sown, a block, else a material. The one place that
+## decides it, so a `category` field of the data can take over here when items need
+## one (decided with the user: derived for now).
+static func category(id: String) -> String:
+	var item := get_item(id)
+	if item.get("tool", "none") != "none":
+		return "tools"
+	if item.get("prop", "none") != "none":
+		return "stations"
+	if item.get("food", 0.0) > 0.0:
+		return "food"
+	if item.get("plant", "") != "" or item.get("sow", "") != "":
+		return "plants"
+	if item.get("place", "") != "":
+		return "blocks"
+	return "materials"
 
 
 ## What is wrong with the loaded items for the engine, if anything.

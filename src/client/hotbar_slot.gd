@@ -38,14 +38,18 @@ var _box: StyleBox
 var _touch_ms := -100000
 var _down := -1
 var _box_selected: StyleBox
+static var _boxes := []
 
 
 func _init(side := 40) -> void:
 	custom_minimum_size = Vector2(side, side)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_box = UiStyle.slot(false)
-	_box_selected = UiStyle.slot(true)
+	# One frame of each kind for every slot: a frame is drawn pixel by pixel.
+	if _boxes.is_empty():
+		_boxes = [UiStyle.slot(false), UiStyle.slot(true)]
+	_box = _boxes[0]
+	_box_selected = _boxes[1]
 
 
 func _gui_input(event: InputEvent) -> void:

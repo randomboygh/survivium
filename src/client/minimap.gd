@@ -18,7 +18,8 @@ const ItemIcons := preload("res://src/client/item_icons.gd")
 ## The map on screen, in UI pixels, and the cells per pixel.
 const SIZE := 72
 const STEP := 2
-const FRAME := 2
+## The panel's frame round the map: its outline and highlight, then a sunken edge.
+const FRAME := 4
 ## Chunks along a side of a region, and its pixels.
 const REGION := 32
 const REGION_SHIFT := 5
@@ -47,6 +48,7 @@ var marks: Array = []
 var _mark_colors := {}
 var sea := 0
 var top := 0
+var _frame := UiStyle.panel()
 ## Asks for the whole map (see Hud).
 signal open_map
 ## New ground was painted in (the whole map redraws).
@@ -240,11 +242,17 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
+## In the frame of the panels and buttons beside it: the map sunk into it like a slot,
+## shaded along the top and left, the player an amber dot outlined dark.
 func _draw() -> void:
-	draw_style_box(UiStyle.panel(), Rect2(Vector2.ZERO, size))
+	draw_style_box(_frame, Rect2(Vector2.ZERO, size))
 	var inner := Rect2(FRAME, FRAME, SIZE, SIZE)
+	draw_rect(inner.grow(1), UiStyle.EDGE)
 	draw_rect(inner, UNSEEN)
 	draw_map(self, inner, Vector2(player_cell), 1.0)
+	draw_rect(Rect2(inner.position, Vector2(SIZE, 1)), UiStyle.WELL_SHADE)
+	draw_rect(Rect2(inner.position, Vector2(1, SIZE)), UiStyle.WELL_SHADE)
 	var mid := inner.position + (inner.size * 0.5).floor()
+	draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.EDGE)
 	draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
 	draw_rect(Rect2(mid, Vector2(1, 1)), UiStyle.INK)

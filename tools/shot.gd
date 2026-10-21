@@ -97,6 +97,9 @@ const SHOTS := {
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# The same bag with only the food lit and the chosen stack about to be destroyed.
+	"bag-destroy": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"kind": "food", "slot": 0, "destroy": true},
 	# Working by the spawn: the tools lying by the chest, a stone floor painted with the
 	# 3x3 brush, a pit dug with the shovel and berries knocked off a bush with the sword
 	# lying about, the cursor frame on what the action button digs next.
@@ -274,7 +277,14 @@ func _run() -> void:
 				main.hud.open_settings(shot.page)
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
-			main.hud.bag._choose(1)
+			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
+			main.hud.bag.show_tab("bag")
+			main.hud.bag._chosen = -1
+			main.hud.bag._choose(shot.get("slot", 1))
+			if shot.has("kind"):
+				main.hud.bag._kinds.pick(shot.kind)
+			if shot.get("destroy", false):
+				main.hud.bag._destroy.pressed.emit()
 		if shot.get("chest", false):
 			main.props.chest_items.add("core:log", 3)
 			main.props.chest_items.add("core:raspberry", 12)
