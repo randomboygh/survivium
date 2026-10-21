@@ -99,10 +99,10 @@ func _receive(id: String, n: int) -> void:
 
 # --- Wear -------------------------------------------------------------------------
 
-## One swing of the tool in the left hand: it wears when wear is on, and may break.
+## One swing of the tool in the hand in use: it wears when wear is on, and may break.
 func use_tool() -> void:
-	var id: String = game.controls.tool
-	if id == "" or not game.settings.tool_wear:
+	var id: String = game.controls.held()
+	if id == "" or Items.get_item(id).get("tool", "none") == "none" or not game.settings.tool_wear:
 		return
 	if game.character.inventory.wear_tool(id, Items.get_item(id).durability):
 		game.hud.toast("Сломалось: %s" % Items.title(id))

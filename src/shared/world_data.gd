@@ -49,6 +49,15 @@ var bush_chunks := {}
 ## chunk with any is kept as an edited one.
 var bush_picked := {}
 var bush_twigs := {}
+## What has been gathered by hand from standing trees this year, by the trunk's column:
+## branches broken off and seeds picked (how many). Spring clears both (see Gathering);
+## a chunk with any is kept as an edited one.
+var tree_twigs := {}
+var tree_seeds := {}
+## What grows on grass cells the player changed, by chunk (Vector2i) and then by cell:
+## "" for grass cut short (its tall plants gone until spring, see Gathering.mow), or the
+## id of the crop sown there (see Plants; Foliage draws it). Saved with the chunk.
+var turf := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
@@ -63,6 +72,9 @@ var unsaved := {}
 ## Per-cell records of the bushes (by the bush's cell, Vector3i), kept and saved with
 ## the chunk the bush stands in. Each name is a Dictionary var of this class.
 const BUSH_MAPS := ["bushes", "bush_picked", "bush_twigs"]
+## Per-tree records (by the trunk's column, Vector2i), kept and saved with the chunk of
+## the trunk.
+const TREE_MAPS := ["tree_twigs", "tree_seeds"]
 ## While the generator writes cells, edits are not tracked: it works out the shapes
 ## of each chunk itself once the chunks around are final (see WorldGen).
 var track_edits := true
@@ -186,8 +198,11 @@ func remove_chunk(key: Vector2i) -> void:
 	bush_chunks.erase(key)
 	for t: Vector2i in tree_chunks.get(key, {}):
 		trees.erase(t)
+		tree_twigs.erase(t)
+		tree_seeds.erase(t)
 	tree_chunks.erase(key)
 	drops.erase(key)
+	turf.erase(key)
 	unsaved.erase(key)
 
 
@@ -228,6 +243,21 @@ func set_cell(x: int, y: int, z: int, m: int) -> void:
 	c.leaf[col] = c.leaf[col] & ~bit | (bit if m == Mat.LEAVES else 0)
 	c.logs[col] = c.logs[col] & ~bit | (bit if m == Mat.LOG else 0)
 	c.wild[col] &= ~bit
+	if turf.has(c.key):
+		turf[c.key].erase(Vector3i(x, y, z))
+	_touch(c, x, z)
+
+
+## Makes cell x, y, z of material `m` and keeps its shape: the grass cut off the top of
+## natural ground leaves the slope it lay on. For loose ground into loose ground only
+## (see Mat.can_slope); set_cell is for anything else.
+func set_material(x: int, y: int, z: int, m: int) -> void:
+	if y < 0 or y >= size_y:
+		return
+	var c := chunk_at(x, z)
+	if c == null:
+		return
+	c.cells[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] = m
 	_touch(c, x, z)
 
 
@@ -1066,6 +1096,8 @@ func remove_tree(x: int, z: int) -> void:
 	note_edit(x, z)
 	var at := Vector2i(x, z)
 	trees.erase(at)
+	tree_twigs.erase(at)
+	tree_seeds.erase(at)
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if tree_chunks.has(key):
 		tree_chunks[key].erase(at)
@@ -1120,6 +1152,28 @@ func take_drop(key: Vector2i, i: int) -> Array:
 
 ## Notes something gathered from the bush in `cell`: its chunk is kept as edited.
 func note_bush(cell: Vector3i) -> void:
+	note_edit(cell.x, cell.z)
+
+
+## What grows on grass cell `cell` (see turf): "" cut short, a crop's id, null for what
+## the world grew there.
+func turf_at(cell: Vector3i) -> Variant:
+	var key := Vector2i(cell.x >> SHIFT, cell.z >> SHIFT)
+	return turf[key].get(cell) if turf.has(key) else null
+
+
+## Notes what grows on grass cell `cell` (see turf_at; null for what the world grew).
+func set_turf(cell: Vector3i, what: Variant) -> void:
+	var key := Vector2i(cell.x >> SHIFT, cell.z >> SHIFT)
+	if what == null:
+		if turf.has(key):
+			turf[key].erase(cell)
+			if turf[key].is_empty():
+				turf.erase(key)
+	else:
+		if not turf.has(key):
+			turf[key] = {}
+		turf[key][cell] = what
 	note_edit(cell.x, cell.z)
 
 
@@ -1210,13 +1264,21 @@ func note_edit(x: int, z: int) -> void:
 # --- Saving --------------------------------------------------------------------
 
 ## Everything kept for chunk `key`, for a save (see WorldStore): the cells, flags,
-## shapes and column masks as they are, the trees with their trunk in it, its bushes
+## shapes and column masks as they are, the trees with their trunk in it and their
+## records (TREE_MAPS), what grows on its changed grass (turf), its bushes
 ## with their records (BUSH_MAPS) and what lies on its ground.
 func pack_chunk(key: Vector2i) -> Dictionary:
 	var c: Chunk = chunks[key]
 	var tree_list := []
+	var tree_lists := {}
+	for name: String in TREE_MAPS:
+		tree_lists[name] = []
 	for at: Vector2i in tree_chunks.get(key, {}):
 		tree_list.append([at, trees[at]])
+		for name: String in TREE_MAPS:
+			var map: Dictionary = get(name)
+			if map.has(at):
+				tree_lists[name].append([at, map[at]])
 	var bush_lists := {}
 	var cells: Dictionary = bush_chunks.get(key, {})
 	for name: String in BUSH_MAPS:
@@ -1228,7 +1290,7 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		bush_lists[name] = list
 	return {"key": key, "levels": size_y, "cells": c.cells, "natural": c.natural, "shapes": c.shapes,
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
-		"corner": c.corner, "trees": tree_list, "bushes": bush_lists, "drops": drops.get(key, []).duplicate(true)}
+		"corner": c.corner, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(), "drops": drops.get(key, []).duplicate(true)}
 
 
 ## True when `d` is a chunk packed by pack_chunk for a world of this height.
@@ -1262,6 +1324,11 @@ func unpack_chunk(d: Dictionary) -> bool:
 		_last = c
 	for t: Array in d.get("trees", []):
 		add_tree(t[0].x, t[0].y, t[1])
+	var records: Dictionary = d.get("tree_records", {})
+	for name: String in TREE_MAPS:
+		var map: Dictionary = get(name)
+		for t: Array in records.get(name, []):
+			map[t[0]] = t[1]
 	var lists: Dictionary = d.get("bushes", {})
 	for name: String in BUSH_MAPS:
 		var map: Dictionary = get(name)
@@ -1270,6 +1337,9 @@ func unpack_chunk(d: Dictionary) -> bool:
 				add_bush(b[0], b[1])
 			else:
 				map[b[0]] = b[1]
+	var grown: Dictionary = d.get("turf", {})
+	if not grown.is_empty():
+		turf[key] = grown.duplicate()
 	var on_ground: Array = d.get("drops", [])
 	if not on_ground.is_empty():
 		drops[key] = on_ground
