@@ -56,7 +56,16 @@ comments, commits and PRs are in English.
   their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
   `Inventory` and `Vitals` from `src/shared/`, action costs, death), `gathering.gd` (picking up
   drops by a tap or by themselves near the player, bushes and trees by what is in the hand, cutting
-  grass into what grows on it, planting).
+  grass into what grows on it, planting), `hands.gd` (what the player is drawn holding in each
+  hand). The player's sprite (`figure.gd`) is put together from the core mod's pictures, laid out
+  by `content/core/sprites/player.yaml`: the bare figure in layers with the hands moving through
+  every animation (idle, walk, jump, swim, the works an item's `anim` names), `player/hands.png`
+  marking where each hand is in each frame and the way what it holds points, and a sheet per tool
+  held (`held/<item sprite>.png`) put at the hand; a thing without one is its icon, made small and
+  turned with the hand; drawn for the right hand in use, the left one is the opposite direction
+  mirrored; built a part of a row a frame; swings start with `player.work`. The pictures were drawn
+  by `tools/art/` (the poses, the tools' turns) and saved by `tools/make_sprites.gd`; they can be
+  painted over by hand.
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push

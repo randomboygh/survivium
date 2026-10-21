@@ -102,6 +102,13 @@ const SHOTS := {
 	# lying about, the cursor frame on what the action button digs next.
 	"work": {"time": 0.42, "season": 1, "touch": true, "work": true},
 	"work-pc": {"time": 0.42, "season": 1, "work": true},
+	# What the hands hold, by the spawn: an axe in the left hand chopping facing east, the
+	# same standing facing us with a stone block in the right hand, a shovel winding up
+	# to dig facing south-east, a sword striking facing west.
+	"hands-chop": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "e", "work": "chop", "strike": true}},
+	"hands-front": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "s", "right": true}},
+	"hands-dig": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_shovel", "facing": "se", "work": "dig"}},
+	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# A workbench and a kiln placed by the spawn, the craft tab open at the workbench
@@ -245,6 +252,8 @@ func _run() -> void:
 			main.player.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
+		if shot.has("hands"):
+			await _hands(shot.hands)
 		if shot.has("keys"):
 			# Holds the keys while the shot is taken, so the walk animation shows.
 			main.player.position = _flat_near(main.world, main.player.position)
@@ -368,6 +377,33 @@ func _craft() -> void:
 	for e in main.props.placed:
 		if e.item == "core:workbench":
 			main.hud.open_prop(e)
+
+
+## Puts the tool `h.tool` in the left hand and a stone block in the right, the right
+## one in use if `h.right`, turns the player to `h.facing` and holds the work `h.work`
+## still at its wind-up, or at its strike if `h.strike`.
+func _hands(h: Dictionary) -> void:
+	main.player.position = _flat_near(main.world, main.player.position)
+	var inv = main.character.inventory
+	inv.add(h.tool, 1)
+	inv.add("core:stone", 10)
+	# The tool in the left hand, a stone block in the right one; the tool's hand in use
+	# unless the shot says the right one.
+	main.controls.put_in_hand("core:stone", 1, false)
+	main.controls.put_in_hand(h.tool, 0, false)
+	if h.get("right", false):
+		main.controls.set_active(1)
+	await process_frame
+	# The sheet with the new things in hand is built over a few frames.
+	while main.player._build != null:
+		await process_frame
+	main.player.facing = h.facing
+	if h.has("work"):
+		main.player.work(h.work, 1000.0)
+		if h.get("strike", false):
+			main.player._work_time = 600.0
+	await process_frame
+	await process_frame
 
 
 ## By the spawn: a floor painted, a pit dug, berries knocked down, the tools taken but

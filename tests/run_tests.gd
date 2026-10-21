@@ -14,7 +14,7 @@ const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
-const PlayerArt := preload("res://src/client/player_art.gd")
+const Figure := preload("res://src/client/figure.gd")
 const Yaml := preload("res://src/shared/yaml.gd")
 const Content := preload("res://src/shared/content.gd")
 const Items := preload("res://src/shared/items.gd")
@@ -927,24 +927,130 @@ func _test_sprite_sheet() -> void:
 	_check(SpriteSheet.direction_of(Vector2(1, 0)) == "e", "pushing east faces east")
 	_check(SpriteSheet.direction_of(Vector2(-1, -1)) == "nw", "pushing north-west faces north-west")
 	_check(SpriteSheet.direction_of(Vector2(0.3, -1)) == "n", "a push mostly north faces north")
-	var s := PlayerArt.sheet(["body", "hair", "shirt", "trousers", "boots", "axe"])
-	_check(s.columns == 5, "player sheet has five columns")
-	_check(s.texture.get_width() == 5 * 14 and s.texture.get_height() == 5 * 18, "player sheet is five by five frames")
+	var look := ["body", "hair", "shirt", "trousers", "boots"]
+	var s := Figure.sheet(look)
+	var cols := s.columns
+	var fw := s.frame_size.x
+	var fh := s.frame_size.y
+	_check(cols == 40 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four; 32 by 32 frames")
+	_check(s.texture.get_width() == cols * fw and s.texture.get_height() == 8 * fh, "player sheet has eight directions")
 	var img := s.texture.get_image()
 	var drawn := 0
-	for y in 18:
-		for x in 14:
+	for y in fh:
+		for x in fw:
 			if img.get_pixel(x, y).a > 0.5:
 				drawn += 1
-	_check(drawn > 80 and drawn < 14 * 18, "the standing frame is drawn with room around it")
-	_check(img.get_pixel(5, 17).a > 0.5, "the feet stand on the bottom row of the frame")
+	_check(drawn > 80 and drawn < fw * fh / 2, "the standing frame is drawn with room around it")
+	_check(img.get_pixel(fw / 2, fh - 1).a > 0.5, "the feet stand on the bottom row of the frame")
 	var uv := s.frame_uv("s", "idle", 0.0)
-	_check(uv == Vector4(0.0, 0.0, 0.2, 0.2), "the first frame is the top-left fifth")
-	var w := s.frame_uv("w", "walk", 0.0)
-	_check(w.z < 0.0 and is_equal_approx(w.y, 0.4), "west is east mirrored")
+	_check(uv == Vector4(0.0, 0.0, 1.0 / cols, 1.0 / 8.0), "the first frame is the top-left one")
 	_check(s.frame_uv("s", "walk", 0.25) != s.frame_uv("s", "walk", 0.0), "walking changes frames in time")
-	var bare := PlayerArt.sheet(["body"])
-	_check(bare.texture.get_image().get_pixel(5, 17).a < 0.5, "without boots the bottom row is empty")
+	var w := s.frame_uv("w", "idle", 0.0)
+	_check(w.z > 0.0 and is_equal_approx(w.y, 6.0 / 8.0), "west has a row of its own")
+	var east := img.get_region(Rect2i(0, 2 * fh, fw, fh))
+	east.flip_x()
+	_check(east.get_data() == img.get_region(Rect2i(0, 6 * fh, fw, fh)).get_data(), "west is east mirrored when the hands are empty")
+	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2, fh - 2) != img.get_pixel(fw / 2, fh - 2), "without boots the feet are bare")
+	# The bare figure knows where its hands are; the one in use moves in the works.
+	var anchors: Array = Figure.anchors()
+	var works: Dictionary = Figure.data().works
+	var chop: Array = works.chop.columns
+	_check(anchors[0][chop[0]].right.at != anchors[0][chop[1]].right.at, "the hand in use winds up and strikes")
+	_check(anchors[0][chop[0]].left.at == anchors[0][0].left.at, "the other hand stays put")
+	_check(anchors[2][0].right.front and not anchors[2][0].left.front, "facing east the right hand is near, the left far")
+	_check(not anchors[4][0].right.front, "with the back turned a hand is behind the body")
+	_check(anchors[0][works.mow.columns[1]].left.is_empty(), "in a two-handed work the left hand holds the same thing")
+	_check(Figure.opposite("se") == "sw" and Figure.opposite("w") == "e" and Figure.opposite("n") == "n", "opposite directions")
+	# Things held have sheets of their own, put at the hands.
+	var held_dir := Figure.SPRITES + "/held/"
+	var axe := {"sprite": held_dir + "axe.png", "anim": "chop"}
+	var cell := Vector2i(Figure.data().held.cell[0], Figure.data().held.cell[1])
+	_check(Figure.held_sheet(axe.sprite).get_size() == Vector2i(5, 8) * cell, "a tool's sheet: carried and its four frames, in eight directions")
+	var armed := Figure.sheet(look, {"right": axe, "active": "right"})
+	var with_axe := armed.texture.get_image()
+	_check(with_axe.get_region(Rect2i(0, 0, fw, fh)).get_data() != img.get_region(Rect2i(0, 0, fw, fh)).get_data(), "a held tool shows")
+	_check(with_axe.get_region(Rect2i(chop[0] * fw, 0, fw, fh)).get_data() != with_axe.get_region(Rect2i(chop[1] * fw, 0, fw, fh)).get_data(), "a chop winds up and strikes")
+	var slash: Array = works.slash.columns
+	_check(with_axe.get_region(Rect2i(slash[0] * fw, 0, fw, fh)).get_data() != img.get_region(Rect2i(slash[0] * fw, 0, fw, fh)).get_data(), "in another work a tool is carried")
+	var west := with_axe.get_region(Rect2i(0, 6 * fh, fw, fh))
+	west.flip_x()
+	_check(west.get_data() != with_axe.get_region(Rect2i(0, 2 * fh, fw, fh)).get_data(), "a tool stays in its hand when the body turns west")
+	# The left hand in use: each direction is the opposite one, mirrored, hands swapped.
+	var lefty := Figure.sheet(look, {"left": axe, "active": "left"}).texture.get_image()
+	var mirrored := with_axe.get_region(Rect2i(chop[1] * fw, 6 * fh, fw, fh))
+	mirrored.flip_x()
+	_check(lefty.get_region(Rect2i(chop[1] * fw, 2 * fh, fw, fh)).get_data() == mirrored.get_data(), "an axe in the left hand chops as the right one mirrored")
+	var lump := {"icon": "test:nothing", "picture": null, "anim": "reach"}
+	var steps = Figure.new(look, {"left": axe, "right": lump, "active": "left"})
+	var count := 0
+	while not steps.step():
+		count += 1
+	_check(count == 8 * ceili(cols / float(Figure.PART)) and steps.target.texture.get_image().get_data() == Figure.sheet(look, steps.held).texture.get_image().get_data(),
+		"a sheet built a part of a row a step is the one built at once")
+	_check(Figure.icon_turns("test:nothing", null)[0].get_used_rect().has_area(), "a thing without a picture is a lump")
+	# A thing without a sheet is its icon, made small and turned with the hand.
+	var icon := Image.create_empty(12, 12, false, Image.FORMAT_RGBA8)
+	icon.fill(Color(0, 0, 0, 0))
+	icon.fill_rect(Rect2i(5, 1, 2, 10), Color.RED)
+	var turns: Array = Figure.icon_turns("test:stick", icon)
+	var small: Image = turns[0]
+	_check(small.get_width() <= Figure.data().held.icon and small.get_height() <= Figure.data().held.icon, "an icon in a hand is made small")
+	var lying: Rect2i = turns[2].get_used_rect()
+	_check(lying.size.x > lying.size.y and small.get_used_rect().size.y > small.get_used_rect().size.x, "an icon turns a quarter on its side")
+	var stick := {"icon": "test:stick", "picture": icon, "anim": "chop"}
+	var swung := Figure.sheet(look, {"right": stick, "active": "right"}).texture.get_image()
+	_check(swung.get_region(Rect2i(chop[0] * fw, 2 * fh, fw, fh)).get_data() != swung.get_region(Rect2i(chop[2] * fw, 2 * fh, fw, fh)).get_data(),
+		"an icon swings with the hand in its work")
+	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
+	var spilled := 0
+	for row in 8:
+		for c in cols:
+			var r := Rect2i(c * fw, row * fh, fw, fh)
+			for y in range(r.position.y, r.end.y):
+				for x in range(r.position.x, r.end.x):
+					var edge := x == r.position.x or x == r.end.x - 1 or y == r.position.y or y == r.end.y - 1
+					if not edge or with_axe.get_pixel(x, y).a < 0.5:
+						continue
+					var inside := false
+					for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+						var n := Vector2i(x, y) + d
+						inside = inside or (r.has_point(n) and with_axe.get_pixelv(n).a > 0.5 and with_axe.get_pixelv(n) != SpriteSheet.OUTLINE)
+					if not inside:
+						spilled += 1
+	_check(spilled == 0, "the outline keeps within each frame")
+	# The player plays the work of the thing in the hand in use once, then stands again.
+	var p = PlayerScript.new()
+	p.sheet = s
+	p.on_ground = true
+	p.held = {"left": {"sprite": held_dir + "shovel.png", "anim": "dig"}, "right": axe, "active": "left"}
+	p.work("", 0.4, Vector3(-5.0, 0.0, 0.0))
+	_check(p.work_kind == "dig" and p.facing == "w", "a shovel digs, turned towards the cell")
+	p._animate(Vector2.ZERO, 0.0, 0.1)
+	_check(p.anim == "dig", "the work plays")
+	p._animate(Vector2.ZERO, 0.0, 0.5)
+	_check(p.anim == "idle" and p.work_kind == "", "after the swing the body stands again")
+	p.held.active = "right"
+	p.work("", 0.4)
+	_check(p.work_kind == "chop", "an axe chops")
+	p.held.active = "left"
+	p.held.left = {}
+	p.work_kind = ""
+	p.work("", 0.4)
+	_check(p.work_kind == "reach", "bare hands reach")
+	p.work_kind = ""
+	p.on_ground = false
+	p.velocity_y = 1.0
+	p._animate(Vector2.ZERO, 0.0, 0.1)
+	var rising := s.frame_uv(p.facing, p.anim, p.anim_time)
+	p.velocity_y = -1.0
+	p._animate(Vector2.ZERO, 0.0, 0.1)
+	_check(p.anim == "jump" and rising != s.frame_uv(p.facing, p.anim, p.anim_time), "a jump goes up, then comes down")
+	p.swimming = true
+	p._animate(Vector2.ZERO, 0.0, 0.1)
+	_check(p.anim == "swim", "in deep water the body swims")
+	p.free()
+
+
 func _test_yaml() -> void:
 	var yaml := Yaml.new()
 	var doc: Variant = yaml.parse("""

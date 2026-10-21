@@ -58,6 +58,9 @@ const SCHEMAS := {
 		"durability": {"type": "int", "min": 0, "default": 0},
 		"repair": {"type": "amounts", "of": "ref:items", "default": {}},
 		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "campfire"], "default": "none"},
+		"sprite": {"type": "string", "default": ""},
+		"anim": {"type": "string", "default": "reach"},
+		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},

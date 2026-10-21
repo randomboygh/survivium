@@ -8,8 +8,9 @@ extends Node
 ## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
 ## chests, workbenches, kilns, campfires), Character (the bag and the body: health,
 ## satiety, stamina, death), Gathering (picking things up, berries and branches),
-## Workshop (recipes known, the crafting queue, tool wear), Settings (the
-## saved settings and the playtest switches) and SaveGame (the saved world and player).
+## Workshop (recipes known, the crafting queue, tool wear), Hands (what the player
+## is drawn holding), Settings (the saved settings and the playtest switches) and
+## SaveGame (the saved world and player).
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -26,6 +27,7 @@ const Props := preload("res://src/client/props.gd")
 const CharacterScript := preload("res://src/client/character.gd")
 const Gathering := preload("res://src/client/gathering.gd")
 const Workshop := preload("res://src/client/workshop.gd")
+const HandsScript := preload("res://src/client/hands.gd")
 const CursorScript := preload("res://src/client/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
@@ -66,6 +68,7 @@ var props: Props
 var character: CharacterScript
 var gathering: Gathering
 var workshop: Workshop
+var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
 var save: SaveGame
@@ -123,6 +126,7 @@ func _ready() -> void:
 	save.track("inventory", character.inventory)
 	save.track("vitals", character.vitals)
 	gathering = Gathering.new(self)
+	hands = HandsScript.new(self)
 	workshop = Workshop.new(self)
 	save.track("knowledge", workshop.knowledge)
 	save.track("crafting", workshop.queue)
@@ -201,6 +205,7 @@ func _process(delta: float) -> void:
 		if playing:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)
+		hands.update()
 		_leave_footprints()
 		save.update(delta)
 	chunks.update_cut(delta)

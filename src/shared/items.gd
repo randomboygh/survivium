@@ -16,7 +16,7 @@ static var BRANCH := ""
 static var LOG := ""
 
 ## id -> record from the data files: id, title, weight (kg), stack, food, place (a
-## material id or ""), model, icon.
+## material id or ""), model, icon, sprite, anim, hands.
 static var BY_ID := {}
 ## Item ids in the order of the data files.
 static var IDS: PackedStringArray = []

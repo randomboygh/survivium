@@ -1,21 +1,17 @@
 extends RefCounted
 ## A sheet of animation frames for an upright sprite, described by data: a grid of
 ## frames with one row per drawn direction, the directions that are mirrors of a
-## drawn one, named animations as lists of columns, and layers (body, hair, clothes,
-## a tool in hand) drawn over each other in order. The layers are composited into
-## one texture, so a sprite is one quad with one texture whatever it wears; changing
-## a layer builds the texture again. The description is shaped like the data a mod
-## will carry (see plan/architecture/modding.md), so it can move there as is.
+## drawn one, and named animations as lists of columns. Whoever draws the frames (see
+## Figure) puts them into one texture, so a sprite is one quad with one texture
+## whatever it wears and holds. The description is shaped like the data a mod will
+## carry (see plan/architecture/modding.md), so it can move there as is.
 ##
 ## Description keys:
 ##   frame: [width, height] of a frame in pixels; the feet stand on the bottom row.
 ##   directions: drawn directions, one row each, e.g. ["s", "se", "e", "ne", "n"].
 ##   mirror: {direction: drawn direction} for directions shown flipped.
 ##   animations: {name: {"frames": [column, ...], "fps": float}}.
-##   outline: true draws a one-pixel outline around the composited figure.
-## A layer is {"name": String, "image": Image, "behind": [direction, ...]}: the image
-## is the whole grid for that layer; in the directions listed in `behind` the layer
-## goes under the ones before it (a tool held in the far hand).
+##   outline: true when the figure is outlined (see outline_rect).
 
 const OUTLINE := Color(0.12, 0.1, 0.08)
 ## All eight directions in order of the compass turned clockwise from south, so
@@ -27,9 +23,10 @@ var directions: Array
 var mirror: Dictionary
 var animations: Dictionary
 var outline: bool
-var layers: Array = []
 var texture: ImageTexture
 var columns := 1
+## Images filled with OUTLINE, by size.
+static var _dark := {}
 
 
 func _init(description: Dictionary) -> void:
@@ -43,27 +40,13 @@ func _init(description: Dictionary) -> void:
 			columns = maxi(columns, col + 1)
 
 
-## Replaces the layers and builds the texture.
-func set_layers(new_layers: Array) -> void:
-	layers = new_layers
-	var img := Image.create_empty(frame_size.x * columns, frame_size.y * directions.size(), false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	for row in directions.size():
-		var dir: String = directions[row]
-		var order: Array = []
-		for layer in layers:
-			if layer.get("behind", []).has(dir):
-				order.append(layer)
-		for layer in layers:
-			if not layer.get("behind", []).has(dir):
-				order.append(layer)
-		var rect := Rect2i(0, row * frame_size.y, frame_size.x * columns, frame_size.y)
-		for layer in order:
-			img.blend_rect(layer.image, rect, rect.position)
-	if outline:
-		for row in directions.size():
-			for col in columns:
-				_outline(img, Rect2i(col * frame_size.x, row * frame_size.y, frame_size.x, frame_size.y))
+## The size of the whole grid in pixels.
+func image_size() -> Vector2i:
+	return Vector2i(frame_size.x * columns, frame_size.y * directions.size())
+
+
+## Puts the drawn grid into the texture.
+func show(img: Image) -> void:
 	if texture == null:
 		texture = ImageTexture.create_from_image(img)
 	else:
@@ -94,18 +77,20 @@ func frame_uv(dir: String, anim: String, t: float) -> Vector4:
 	return Vector4(col * w, row * h, w, h)
 
 
-## Draws OUTLINE on every clear pixel of the frame `r` next to a drawn one (4
-## neighbours), the way the text sprites in sprite_art.gd outline themselves.
-static func _outline(img: Image, r: Rect2i) -> void:
-	var edge: Array[Vector2i] = []
-	for y in range(r.position.y, r.end.y):
-		for x in range(r.position.x, r.end.x):
-			if img.get_pixel(x, y).a > 0.5:
-				continue
-			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var n: Vector2i = Vector2i(x, y) + d
-				if r.has_point(n) and img.get_pixel(n.x, n.y).a > 0.5:
-					edge.append(Vector2i(x, y))
-					break
-	for p in edge:
-		img.set_pixelv(p, OUTLINE)
+## Draws OUTLINE on every clear pixel of `r` next to a drawn one (4 neighbours), the
+## way the text sprites in sprite_art.gd outline themselves: the figure is stamped dark
+## one pixel each way under itself. The outermost pixels of a frame have to stay clear,
+## or the outline would spill into the next frame.
+static func outline_rect(img: Image, r: Rect2i) -> void:
+	var part := img.get_region(r)
+	var whole := Rect2i(Vector2i.ZERO, r.size)
+	if not _dark.has(r.size):
+		var d := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
+		d.fill(OUTLINE)
+		_dark[r.size] = d
+	var out := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
+	out.fill(Color(0, 0, 0, 0))
+	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		out.blit_rect_mask(_dark[r.size], part, whole, d)
+	out.blend_rect(part, whole, Vector2i.ZERO)
+	img.blit_rect(out, whole, r.position)

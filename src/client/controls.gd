@@ -170,6 +170,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
 		if _cooldown <= 0.0 and game.gathering.gather(target):
 			_cooldown = tool_record().swing
+			game.player.work("", _cooldown, target.at)
 		return
 	match use:
 		"place":
@@ -178,6 +179,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 			var hit := pick(pos)
 			if not hit.is_empty() and _cooldown <= 0.0 and game.gathering.plant_at(held(), hit.cell):
 				_cooldown = FRONT_PLACE_SWING
+				game.player.work("reach", FRONT_PLACE_SWING, (Vector3(hit.cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 		"prop":
 			game.props.put_from_bag(held())
 		"eat":
@@ -347,6 +349,7 @@ func _eat_held() -> void:
 		if slots[i] != null and slots[i][0] == held():
 			game.character.eat(i)
 			_cooldown = 0.5
+			game.player.work("", _cooldown)
 			return
 	game.character.nag("no_food", "В сумке нет: %s" % Items.title(held()))
 
@@ -490,6 +493,7 @@ func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
 		if t.tool == "hand":
 			if game.gathering.gather({"tree": tree}):
 				_cooldown = t.swing
+				game.player.work("", t.swing, (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL)
 				return true
 			return false
 		if m == Mat.LOG:
@@ -543,6 +547,7 @@ func _mow(cells: Array[Vector3i]) -> bool:
 	if cells.is_empty() or not game.gathering.mow(cells):
 		return false
 	_cooldown = tool_record().swing
+	game.player.work("", _cooldown, (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	game.workshop.use_tool()
 	return true
 
@@ -569,6 +574,7 @@ func _dig(cells: Array[Vector3i], swing: float) -> bool:
 	for key in keys:
 		game.props.show_drops(key)
 	_cooldown = swing
+	game.player.work("", swing, (Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL)
 	game.workshop.use_tool()
 	return true
 
@@ -634,6 +640,7 @@ func chop(cell: Vector3i) -> bool:
 	var s: Dictionary = Trees.SPECIES[game.world.trees[col]]
 	chops[col] = chops.get(col, 0) + maxi(1, t.power)
 	_cooldown = Tools.swing_time(t, Mat.LOG)
+	game.player.work("", _cooldown, (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL)
 	if chops[col] < s.hits:
 		game.hud.toast("%s: осталось ударов %d" % [s.title, ceili((s.hits - chops[col]) / float(maxi(1, t.power)))])
 		return true
@@ -670,6 +677,7 @@ func place_at(center: Vector3i, normal: Vector3i) -> int:
 		placed += 1
 	if placed > 0:
 		_cooldown = PLACE_SWING
+		game.player.work("reach", PLACE_SWING, (Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL)
 	elif far:
 		game.character.nag("far", "Слишком далеко")
 	return placed
@@ -703,6 +711,8 @@ func act_in_front() -> void:
 			return
 		"plant", "sow":
 			_cooldown = FRONT_PLACE_SWING if game.gathering.plant(held()) else 0.3
+			if _cooldown == FRONT_PLACE_SWING:
+				game.player.work("reach", FRONT_PLACE_SWING)
 			return
 		"prop":
 			game.props.put_from_bag(held())
@@ -718,6 +728,8 @@ func act_in_front() -> void:
 			chop(target.trunk)
 		elif game.gathering.gather(target):
 			_cooldown = t.swing
+			var at: Vector3 = Vector3(target.bush) + Vector3(0.5, 0.4, 0.5) if target.has("bush") else Vector3(trunk_cell(target.tree)) + Vector3(0.5, 0.5, 0.5)
+			game.player.work("", t.swing, at * CELL)
 		else:
 			_cooldown = 0.3
 		return

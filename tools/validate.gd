@@ -10,6 +10,7 @@ const Trees := preload("res://src/shared/trees.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const Items := preload("res://src/shared/items.gd")
 const Crafting := preload("res://src/shared/crafting.gd")
+const Figure := preload("res://src/client/figure.gd")
 const Plants := preload("res://src/shared/plants.gd")
 
 
@@ -22,6 +23,7 @@ func _init() -> void:
 	problems.append_array(Items.check())
 	problems.append_array(Crafting.check())
 	problems.append_array(Plants.check())
+	problems.append_array(_check_held())
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():
@@ -31,3 +33,30 @@ func _init() -> void:
 	else:
 		printerr("%d content problems" % problems.size())
 	quit(1 if problems.size() > 0 else 0)
+
+
+## Things held: the work each item names is one of the figure's (player.yaml `works`)
+## and takes as many hands as the item says; its picture in hand is there, a frame
+## wide for carrying plus one for each frame of its work.
+func _check_held() -> PackedStringArray:
+	var out: PackedStringArray = []
+	var fig := Figure.data()
+	for id in Items.IDS:
+		var item := Items.get_item(id)
+		if not fig.works.has(item.anim):
+			out.append("items: `%s`: the player has no work `%s`" % [id, item.anim])
+			continue
+		var work: Dictionary = fig.works[item.anim]
+		if work.hands != item.hands:
+			out.append("items: `%s`: `%s` takes %d hands, not %d" % [id, item.anim, work.hands, item.hands])
+		if item.sprite == "":
+			continue
+		var path := "res://content/%s/sprites/held/%s.png" % [item.mod, item.sprite]
+		if not ResourceLoader.exists(path):
+			out.append("items: `%s`: no picture %s" % [id, path])
+			continue
+		var size: Vector2i = load(path).get_size()
+		var want := Vector2i(fig.held.cell[0] * (1 + work.columns.size()), fig.held.cell[1] * fig.directions.size())
+		if size != want:
+			out.append("items: `%s`: %s is %dx%d, a sheet carried and worked by `%s` is %dx%d" % [id, path.get_file(), size.x, size.y, item.anim, want.x, want.y])
+	return out

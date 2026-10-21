@@ -15,6 +15,13 @@
 # repair — что уходит на починку на верстаке. prop — вещь, которая ставится в мир из сумки
 # на клетки 2×2: chest (сундук), workbench (верстак), kiln (печь для обжига), campfire (костёр);
 # у верстака, печи и костра делают то, что в recipes.yaml указывает на них в `at`.
+# В руках: sprite — лист кадров инструмента в руке, sprites/held/<sprite>.png этого мода
+# (раскладка в sprites/player.yaml); нет поля — в руке его иконка, уменьшенная, и игра
+# поворачивает её вместе с рукой. anim — работа персонажа (works в sprites/player.yaml),
+# которой с ним работают: chop (рубить сверху), dig (копать вниз перед собой), slash (бить
+# сбоку), reach (тянуться: ставить, собирать; так и без поля), mow (косить двумя руками),
+# aim (держать перед собой двумя руками), eat (подносить ко рту); hands — сколько рук он
+# занимает (mow и aim — две).
 - id: branch
   title: Ветка
   weight: 0.3
@@ -47,6 +54,7 @@
   food: 4
   model: raspberry
   icon: raspberry
+  anim: eat
 - id: blueberry
   title: Черника
   weight: 0.1
@@ -54,6 +62,7 @@
   food: 3
   model: blueberry
   icon: blueberry
+  anim: eat
 - id: dirt
   title: Земля
   weight: 1.5
@@ -96,6 +105,8 @@
   model: axe
   icon: axe
   tool: axe
+  sprite: axe
+  anim: chop
   power: 2
   swing: 0.6
   reach: 9
@@ -108,6 +119,8 @@
   model: pickaxe
   icon: pickaxe
   tool: pickaxe
+  sprite: pickaxe
+  anim: chop
   power: 2
   swing: 0.55
   reach: 10
@@ -120,6 +133,8 @@
   model: shovel
   icon: shovel
   tool: shovel
+  sprite: shovel
+  anim: dig
   power: 1
   area: 2
   swing: 0.35
@@ -133,6 +148,8 @@
   model: sword
   icon: sword
   tool: sword
+  sprite: sword
+  anim: slash
   power: 1
   swing: 0.4
   reach: 8
@@ -166,6 +183,9 @@
   model: scythe
   icon: scythe
   tool: scythe
+  sprite: scythe
+  anim: mow
+  hands: 2
   power: 1
   area: 3
   swing: 0.5
@@ -193,6 +213,7 @@
   food: 25
   model: flatbread
   icon: flatbread
+  anim: eat
 - id: grass_seeds
   title: Семена трав
   weight: 0.01
