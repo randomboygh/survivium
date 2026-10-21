@@ -189,6 +189,12 @@ func play() -> void:
 		_want_play = true
 
 
+## The menu opened on the new world's setup (from the death screen).
+func new_world() -> void:
+	open()
+	_new_world()
+
+
 func _new_world() -> void:
 	_column.visible = false
 	_setup = WorldSetup.new(game)
