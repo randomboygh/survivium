@@ -1,6 +1,6 @@
-extends HFlowContainer
-## What a thing is, as a flow of small wells with a picture and a few letters, a
-## tooltip naming each (plan/design/ui.md, section 5): the craft tab's recipe (what it
+extends VFlowContainer
+## What a thing is, as small wells with a picture and a few letters in columns of ROWS,
+## a tooltip naming each (plan/design/ui.md, section 5): the craft tab's recipe (what it
 ## needs, have / need, the station and tool, the time) and, for it and the stack chosen
 ## in the bag, what the thing weighs, feeds, does and how long it lasts (item_wells).
 ## Short ones read red.
@@ -11,9 +11,24 @@ const Items := preload("res://src/shared/items.gd")
 const Workshop := preload("res://src/client/workshop.gd")
 
 
+## Wells down a column; more go into the next column.
+const ROWS := 3
+const GAP := 4
+
+
 func _init() -> void:
-	add_theme_constant_override("h_separation", 4)
-	add_theme_constant_override("v_separation", 4)
+	add_theme_constant_override("h_separation", GAP)
+	add_theme_constant_override("v_separation", GAP)
+
+
+## As tall as ROWS wells, shown or not, so the panel keeps its height.
+func _ready() -> void:
+	var well := _well()
+	well.get_child(0).get_child(1).text = "0"
+	add_child(well)
+	custom_minimum_size.y = ROWS * well.get_combined_minimum_size().y + (ROWS - 1) * GAP
+	remove_child(well)
+	well.free()
 
 
 ## Shows `wells`: [picture, letters, short, tooltip] each.
@@ -43,7 +58,6 @@ static func _well() -> PanelContainer:
 	p.add_theme_stylebox_override("panel", box)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 3)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
 	var icon := TextureRect.new()

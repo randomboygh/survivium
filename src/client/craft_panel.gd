@@ -3,11 +3,12 @@ extends VBoxContainer
 ## tab: a column of tabs by kind of item on the left, the recipes known as cells
 ## (dimmed when they cannot be made now), the stations near as a column of pictures on
 ## the right (hands first, then the stations of the recipes known, the far ones
-## dimmed). Under them two panels: the recipe chosen, as small wells with pictures
-## (see FactChips): what it needs (have / need, short in red), its station and tool
-## («нет» in red when missing), its time (the recipe's: no skills yet), then what it
-## makes weighs, does and lasts, with «сделать | ×5 | MAX»; and the queue, narrow: small cells for the jobs, the time
-## left of the one chosen, the count, and at the bottom the pause and «отменить |
+## dimmed). Under them two panels: the recipe chosen, as small wells with pictures in
+## columns (see FactChips): what it needs (have / need, short in red), its station and
+## tool («нет» in red when missing), its time (the recipe's: no skills yet), then what
+## it makes weighs, does and lasts, with a wide «сделать» under «×5 | макс» on the
+## right; and the queue, narrow: small cells for the jobs, the time left of the one
+## chosen, the count, and at the bottom the pause and «отменить |
 ## отменить все». Opened at a station, buttons in the window's head (by
 ## the cross, see station_buttons) take it back into the bag; at a campfire, put it
 ## out, light it again for a branch and destroy it once it is out. Works through
@@ -56,7 +57,7 @@ var _details: PanelContainer
 var _icon: TextureRect
 var _title: Label
 var _facts: FactChips
-var _make: HBoxContainer
+var _make: VBoxContainer
 ## The panel of the queue.
 var _queue_empty: Label
 var _queue_count: Label
@@ -152,19 +153,18 @@ func _ready() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.custom_minimum_size.x = 100
 	top.add_child(_title)
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 6)
+	box.add_child(body)
 	_facts = FactChips.new()
-	box.add_child(_facts)
-	_make = TabRow.split([
-		[UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)],
+	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(_facts)
+	# «Сделать» is the button most pressed: wide, under «×5 | макс».
+	_make = TabRow.block([
 		["×5", "Сделать пять", func() -> void: _start(5)],
-		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
-	])
-	_make.size_flags_horizontal = Control.SIZE_SHRINK_END
-	# «Сделать» is the button most pressed: the widest.
-	for b in _make.get_children():
-		b.custom_minimum_size = Vector2(36, 30)
-	_make.get_child(0).custom_minimum_size.x = 76
-	box.add_child(_make)
+		["макс", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
+	], [UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)])
+	body.add_child(_make)
 
 	var queue := _panel(bottom)
 	queue.custom_minimum_size.x = QUEUE_WIDTH
@@ -223,7 +223,7 @@ func _ready() -> void:
 ## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
 	_title.custom_minimum_size.x = w - QUEUE_WIDTH - 6 - 12 - 30
-	_facts.custom_minimum_size.x = w - QUEUE_WIDTH - 6 - 12
+
 
 
 ## Opened at placed thing `e` (a station), or {} for none.
@@ -367,7 +367,7 @@ func _show_details(near: Dictionary) -> void:
 	var time := [UiStyle.icon("clock"), "%d с" % roundi(r.time), false, "Время изготовления"]
 	_facts.show_wells(needs + where + [time] + FactChips.item_wells(r.makes, r.count))
 	var can := Crafting.why_not(r, inv, near) == ""
-	for b in _make.get_children():
+	for b in _make.get_child(0).get_children() + [_make.get_child(1)]:
 		b.disabled = not can
 
 
