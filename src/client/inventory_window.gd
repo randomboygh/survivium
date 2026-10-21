@@ -31,6 +31,8 @@ const EDGE := 4
 ## Room kept free at the bottom of the screen for the hotbar (its frame and the tab
 ## with the bag's load on it).
 const HOTBAR := 68
+## The room inside the window's frame (UiStyle.TIGHT).
+const FRAME := 6
 ## The gap between the columns of tabs and the slots.
 const GAP := 4
 ## Slots across; and the side of a slot, the larger when the window fits the screen.
@@ -90,6 +92,8 @@ func _init(g) -> void:
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
+	# A frame round slots and buttons, not text: kept thin for the phone's width.
+	add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
 	# Containers learn their least size late (and a wrapping label its height only once
 	# laid out at its width): size the window again once that settles, or it would keep
 	# the height of what it showed before.
@@ -315,14 +319,14 @@ func toggle() -> void:
 ## a column of tabs on each side, the slots smaller when the larger do not fit; the
 ## window keeps that width on both tabs.
 func fit(screen: Vector2) -> void:
-	var room := screen.x - 2 * EDGE - 12
+	var room := screen.x - 2 * EDGE - 2 * FRAME
 	slot = SLOT if room >= _width(SLOT) else SLOT_SMALL
 	for s in _slots + _chest_slots:
 		s.custom_minimum_size = Vector2(slot, slot)
 	_bag_page.custom_minimum_size.x = _width(slot)
 	# A wrapping label is measured at its least width: as wide as the panel it is in
 	# (less the buttons by it, see _show_info).
-	_info.custom_minimum_size.x = _width(slot) - 12
+	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD
 	craft.slot = slot
 	craft.custom_minimum_size.x = _width(slot)
 	craft.fit_width(_width(slot))
@@ -497,7 +501,7 @@ func _show_info(inv) -> void:
 	_put.visible = mine and Items.get_item(s[0]).get("prop", "none") != "none"
 	_repair.visible = mine and inv.worn(_at) > 0
 	# The name wraps in what the buttons by it leave.
-	var room := _width(slot) - 12
+	var room := _width(slot) - 2 * UiStyle.WELL_PAD
 	for b in [_plant, _put, _repair]:
 		if b.visible:
 			room -= int(b.get_combined_minimum_size().x) + 6
@@ -551,7 +555,7 @@ func refresh_state() -> void:
 func _well() -> StyleBox:
 	var box := UiStyle.slot()
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		box.set_content_margin(side, 6)
+		box.set_content_margin(side, UiStyle.WELL_PAD)
 	return box
 
 

@@ -176,7 +176,7 @@ func _ready() -> void:
 	queue.add_child(box)
 	_queue_empty = UiStyle.label("Очередь пуста", UiStyle.MUTED)
 	_queue_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_queue_empty.custom_minimum_size.x = QUEUE_WIDTH - 12
+	_queue_empty.custom_minimum_size.x = QUEUE_WIDTH - 2 * UiStyle.WELL_PAD
 	box.add_child(_queue_empty)
 	_job_row = HBoxContainer.new()
 	_job_row.add_theme_constant_override("separation", 4)
@@ -225,7 +225,7 @@ func _ready() -> void:
 ## The tab is `w` UI pixels wide: the recipe's name is measured at its panel's width
 ## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
-	_title.custom_minimum_size.x = w - QUEUE_WIDTH - 6 - 12 - 30
+	_title.custom_minimum_size.x = w - QUEUE_WIDTH - 6 - 2 * UiStyle.WELL_PAD - 30
 
 
 
@@ -390,7 +390,7 @@ func _show_queue() -> void:
 		_job = 0
 		return
 	_job = clampi(_job, 0, jobs.size() - 1)
-	var fit := maxi(1, (QUEUE_WIDTH - 12 - 16) / (JOB_SLOT + 4))
+	var fit := maxi(1, (QUEUE_WIDTH - 2 * UiStyle.WELL_PAD - 16) / (JOB_SLOT + 4))
 	var n := mini(jobs.size(), fit)
 	while _job_slots.size() < n:
 		var cell = HotbarSlot.new(JOB_SLOT)
@@ -478,7 +478,7 @@ func _panel(parent: Node) -> PanelContainer:
 	var p := PanelContainer.new()
 	var box := UiStyle.slot()
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		box.set_content_margin(side, 6)
+		box.set_content_margin(side, UiStyle.WELL_PAD)
 	p.add_theme_stylebox_override("panel", box)
 	parent.add_child(p)
 	return p

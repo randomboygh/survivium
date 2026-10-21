@@ -104,6 +104,8 @@ func _ready() -> void:
 	_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_left)
 	var clock := _panel(_left)
+	# The clock shares the top line with the buttons: kept thin.
+	clock.add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	clock.add_child(row)

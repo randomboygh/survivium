@@ -616,9 +616,19 @@ static func theme() -> Theme:
 	return t
 
 
-## Panel: two pixels of outline, two of highlight, then the fill.
-static func panel() -> StyleBoxTexture:
-	return _nine_patch(12, 4, "panel", PANEL, EDGE, Vector4(6, 6, 6, 6))
+## The room between a panel's edge and what it holds (left, top, right, bottom): its
+## frame is 4 px, so text keeps a few pixels clear of it.
+const PAD := Vector4(10, 8, 10, 8)
+## The room in a frame round slots and buttons, or a line that must stay short (the
+## clock): the old thin one.
+const TIGHT := Vector4(6, 6, 6, 6)
+## The same in a sunken well holding text (the bag's and the craft tab's panels).
+const WELL_PAD := 8
+
+
+## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.
+static func panel(pad := PAD) -> StyleBoxTexture:
+	return _nine_patch(12, 4, "panel", PANEL, EDGE, pad)
 
 
 ## A text field: a sunken well like a slot, with room around the text.
