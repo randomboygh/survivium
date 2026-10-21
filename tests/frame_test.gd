@@ -186,6 +186,7 @@ func _run() -> void:
 	var slot0 = inv.slots[0]
 	c.select_slot(0)
 	_check(slot0 != null and c.held() == slot0[0], "a hotbar slot is the bag's first row")
+	await _portrait_hotbar()
 	c.put_in_hand("core:stone")
 	c.brush = 2
 	var stone_before: int = inv.count("core:stone")
@@ -344,3 +345,39 @@ func _mean(times: PackedFloat32Array) -> float:
 	for ms in times:
 		total += ms
 	return total / maxi(times.size(), 1)
+
+
+## A portrait phone screen shows four hotbar slots between two arrows, which page
+## through the rest; a finger dragged along the slots moves them a slot per slot.
+func _portrait_hotbar() -> void:
+	var hud = main.hud
+	var was := Rect2(hud.position, hud.size * hud.scale)
+	hud.fit(Rect2(0, 0, 1200, 2608))
+	await process_frame
+	_check(hud._visible_slots == 4 and hud._prev_button.visible and hud._next_button.visible,
+		"a portrait screen shows four hotbar slots between arrows")
+	hud._next_page()
+	var paged: int = hud._first
+	hud._next_page()
+	_check(paged == 4 and hud._first == 0 and hud._slots[0].visible and not hud._slots[4].visible,
+		"the arrows page through the hotbar and back")
+	await process_frame
+	var slot = hud._slots[1]
+	var at: Vector2 = slot.get_global_transform_with_canvas() * (slot.size * 0.5)
+	var held: String = main.controls.held()
+	var touch := InputEventScreenTouch.new()
+	touch.index = 3
+	touch.position = at
+	touch.pressed = true
+	hud._input(touch)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 3
+	drag.position = at - Vector2((hud.SLOT + hud.GAP) * hud.scale.x * 2.3, 0.0)
+	hud._input(drag)
+	touch.pressed = false
+	touch.position = drag.position
+	hud._input(touch)
+	_check(hud._first == 2 and main.controls.held() == held, "a finger dragged along the hotbar scrolls it two slots")
+	hud.fit(Rect2(0, 0, 2608, 1200))
+	_check(hud._visible_slots == 8 and not hud._prev_button.visible, "a landscape phone screen shows all hotbar slots")
+	hud.fit(was)

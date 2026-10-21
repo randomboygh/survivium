@@ -6,7 +6,8 @@ extends Control
 ##
 ## The root is scaled by a whole number so one UI pixel is one pixel of the world, and
 ## the layout follows the shape of the screen: wide, tablet-like and portrait screens
-## place the hotbar beside or above the touch controls, and portrait shows fewer slots.
+## place the hotbar beside or above the touch controls. When the slots do not all fit
+## (portrait shows four), arrows on both sides and a finger dragged along them scroll.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
@@ -57,9 +58,17 @@ var _bar: PanelContainer
 var _hand_left
 var _hand_right
 var _slots := []
+var _bar_row: HBoxContainer
+var _prev_button: Button
 var _next_button: Button
-var _page := 0
-var _visible_slots := 7
+## The first hotbar slot shown and how many are shown.
+var _first := 0
+var _visible_slots := 8
+## The finger dragging the hotbar slots along (-1 none), its x in the bar where the
+## slots last moved, and whether it has moved far enough to be a drag, not a tap.
+var _swipe := -1
+var _swipe_x := 0.0
+var _swiped := false
 var stick
 var _action: Button
 var _jump: Button
@@ -143,6 +152,7 @@ func _ready() -> void:
 	var bar_row := HBoxContainer.new()
 	bar_row.add_theme_constant_override("separation", int(GAP))
 	_bar.add_child(bar_row)
+	_bar_row = bar_row
 	# A tap on a hand makes it the hand in use; on the hand in use it changes what it
 	# holds: the next brush for a block, else the next tool.
 	_hand_left = _slot(bar_row, _tap_hand.bind(0))
@@ -160,8 +170,11 @@ func _ready() -> void:
 	sep_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sep_box.add_child(sep)
 	bar_row.add_child(sep_box)
+	_prev_button = _icon_button(bar_row, "prev", "Предыдущие ячейки", _prev_page)
+	_prev_button.custom_minimum_size = Vector2(28, SLOT)
 	for i in Inventory.HOTBAR:
 		var s = _slot(bar_row, _select_slot.bind(i))
+		s.on_release = true
 		_slots.append(s)
 	_next_button = _icon_button(bar_row, "next", "Следующие ячейки", _next_page)
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
@@ -278,13 +291,15 @@ func _place() -> void:
 	_jump.size = _jump.custom_minimum_size
 	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x, bottom - _jump.size.y)
 
-	# As many slots as fit across the screen (hands, separator and paging take the rest).
+	# All the slots when they fit across the screen beside the hands and the separator,
+	# else as many as fit between the two arrows, four at most in portrait.
 	var fixed := 2 * SLOT + 12 + 3 * GAP + 8
-	var fit_slots := floori((w - 2 * MARGIN - fixed - 28 - GAP) / (SLOT + GAP))
-	_visible_slots = clampi(fit_slots, 1, _slots.size())
-	if fit_slots >= _slots.size():
+	var room := w - 2 * MARGIN - fixed
+	if floori(room / (SLOT + GAP)) >= _slots.size():
 		_visible_slots = _slots.size()
-	_page = mini(_page, _pages() - 1)
+	else:
+		_visible_slots = clampi(floori((room - 2 * (28 + GAP)) / (SLOT + GAP)), 1, 4 if portrait else _slots.size())
+	_first = clampi(_first, 0, _slots.size() - _visible_slots)
 	_show_page()
 	_bar.reset_size()
 	var bw := _bar.size.x
@@ -314,20 +329,75 @@ func _place() -> void:
 	refresh_counts()
 
 
-func _pages() -> int:
-	return ceili(_slots.size() / float(_visible_slots))
-
-
 func _show_page() -> void:
 	for i in _slots.size():
-		var first := _page * _visible_slots
-		_slots[i].visible = i >= first and i < first + _visible_slots
+		_slots[i].visible = i >= _first and i < _first + _visible_slots
 	_next_button.visible = _visible_slots < _slots.size()
+	_prev_button.visible = _next_button.visible
 
 
+## The next slots; past the last, back to the first.
 func _next_page() -> void:
-	_page = (_page + 1) % _pages()
+	var last := _slots.size() - _visible_slots
+	_first = 0 if _first >= last else mini(_first + _visible_slots, last)
 	_show_page()
+
+
+## The slots before; before the first, on to the last.
+func _prev_page() -> void:
+	_first = _slots.size() - _visible_slots if _first <= 0 else maxi(_first - _visible_slots, 0)
+	_show_page()
+
+
+## Moves the shown slots `by` slots along.
+func _scroll(by: int) -> void:
+	_first = clampi(_first + by, 0, _slots.size() - _visible_slots)
+	_show_page()
+
+
+## A finger dragged along the hotbar slots moves them a slot for each slot it passes;
+## the tap it began with picks nothing.
+func _input(event: InputEvent) -> void:
+	if _bar == null or not _prev_button.visible or not _bar.is_visible_in_tree():
+		_swipe = -1
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed and _swipe < 0 and _in_slots(event.position):
+			_swipe = event.index
+			_swipe_x = _bar_x(event.position)
+			_swiped = false
+		elif not event.pressed and event.index == _swipe:
+			_swipe = -1
+	elif event is InputEventScreenDrag and event.index == _swipe:
+		var x := _bar_x(event.position)
+		if not _swiped and absf(x - _swipe_x) > 6.0:
+			_swiped = true
+			for s in _slots:
+				s.cancel_tap()
+		if _swiped:
+			var step := SLOT + GAP
+			while _swipe_x - x >= step:
+				_scroll(1)
+				_swipe_x -= step
+			while x - _swipe_x >= step:
+				_scroll(-1)
+				_swipe_x += step
+
+
+## Screen point `pos` in UI pixels of the hotbar row.
+func _bar_point(pos: Vector2) -> Vector2:
+	return _bar_row.get_global_transform_with_canvas().affine_inverse() * pos
+
+
+func _bar_x(pos: Vector2) -> float:
+	return _bar_point(pos).x
+
+
+## Whether screen point `pos` is on the slots between the arrows.
+func _in_slots(pos: Vector2) -> bool:
+	var p := _bar_point(pos)
+	return p.y >= 0.0 and p.y <= _bar_row.size.y and p.x >= _prev_button.position.x \
+		and p.x <= _next_button.position.x + _next_button.size.x
 
 
 # --- Per-frame state -------------------------------------------------------------
