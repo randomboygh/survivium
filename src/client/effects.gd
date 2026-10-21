@@ -12,6 +12,23 @@ const ParticleShader := preload("res://shaders/particle.gdshader")
 const PX := 1.0 / 16.0
 ## World units around a fire where snow melts and the ground stays dry.
 const HEAT_RADIUS := 3.0
+## How many fires, the nearest to the view, cast shadows. Each one draws what is
+## around it into a shadow map again whenever something there moves, and lights it
+## in a pass of its own.
+const SHADOW_FIRES := 2
+## A light with shadows is added to the picture in a pass of its own, in screen colours
+## rather than in light, and comes out brighter over the ambient light and the moon
+## than the same light drawn with the rest: such a fire or torch burns lower, by the
+## first factor on a dark night and by the second under a full moon or by day
+## (see shadow_energy).
+const SHADOW_ENERGY := Vector2(0.8, 0.6)
+## Fires cast shadows only while the light of the sky (sky.gd sky_light) is below this:
+## by day their faint light, drawn in a pass of its own, would glare yellow over the
+## sunlit ground.
+const SHADOW_SKY := 0.5
+## Around a fire the torch goes out (see torch_off), world units from the fire.
+const TORCH_OFF_NEAR := 3.0
+const TORCH_OFF_FAR := 5.5
 
 var rain: CPUParticles3D
 ## More rain on top of `rain` in a downpour or a storm.
@@ -31,10 +48,18 @@ var bolt_time := 0.0
 var fireflies: CPUParticles3D
 var leaves: CPUParticles3D
 var pollen: CPUParticles3D
-## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it stands in)}
+## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it
+## stands in), "at": Vector3 (its middle on the ground)}
 var fires: Array = []
 ## The effects setting: off stops the weather and the ambient particles.
 var enabled := true
+## The shadows setting: fires (the nearest SHADOW_FIRES to the view) and the torch
+## cast shadows.
+var shadows := true
+## What a fire or the torch with shadows burns at, as a share (see SHADOW_ENERGY).
+var shadow_energy := SHADOW_ENERGY.x
+## True while the sky is dark enough for fires to cast shadows (see SHADOW_SKY).
+var dark := true
 var flicker_clock := 0.0
 var rng := RandomNumberGenerator.new()
 
@@ -203,9 +228,10 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	light.omni_range = 8.0
 	# No falloff of its own: the shaders step the light into rings (see toon_light).
 	light.omni_attenuation = 0.0
+	light.shadow_caster_mask = 0xFFFFF & ~PixelView.LAYER_SUN_CASTER
 	light.position = PixelView.shear(c + Vector3(0.0, 0.6, 0.0))
 	add_child(light)
-	var fire := {"light": light, "base": 1.8, "unit": Vector3i(c.floor())}
+	var fire := {"light": light, "base": 1.8, "unit": Vector3i(c.floor()), "at": c}
 	fires.append(fire)
 	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire}
 
@@ -285,12 +311,46 @@ func update(delta: float, view: Vector2, ground: float, sky, indoor: bool) -> vo
 	if bolt_time <= 0.0 and bolt.visible:
 		bolt.visible = false
 		bolt_light.light_energy = 0.0
+	shadow_energy = lerpf(SHADOW_ENERGY.x, SHADOW_ENERGY.y, clampf(sky.sky_light / 0.45, 0.0, 1.0))
+	dark = sky.sky_light < SHADOW_SKY
+	# At dusk the shadows darken in over a short while instead of popping in.
+	var opacity := clampf((SHADOW_SKY - sky.sky_light) / 0.08, 0.0, 1.0)
+	for f in fires:
+		f.light.shadow_opacity = opacity
 	flicker_clock += delta
 	if flicker_clock > 0.09:
 		flicker_clock = 0.0
 		# Fires matter at night; by day they only warm the ground a little.
+		pick_shadow_fires(view)
 		for f in fires:
-			f.light.light_energy = f.base * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.8, 1.1)
+			var energy: float = f.base * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.8, 1.1)
+			f.light.light_energy = energy * (shadow_energy if f.light.shadow_enabled else 1.0)
+
+
+## How much the torch gives way to the fires around world point `p`: 1 within
+## TORCH_OFF_NEAR world units of a burning fire, 0 beyond TORCH_OFF_FAR. A light with
+## shadows is added to the picture in a pass of its own, in screen colours rather than in
+## light, so where the torch and a fire overlap they would glare twice as bright.
+func torch_off(p: Vector3) -> float:
+	var off := 0.0
+	for f in fires:
+		var d := Vector2(p.x - f.at.x, p.z - f.at.z).length()
+		if absf(p.y - f.at.y) < 3.0:
+			off = maxf(off, clampf((TORCH_OFF_FAR - d) / (TORCH_OFF_FAR - TORCH_OFF_NEAR), 0.0, 1.0))
+	return off
+
+
+## Lets the SHADOW_FIRES fires nearest to the screen-plane point `view` cast shadows.
+func pick_shadow_fires(view: Vector2) -> void:
+	var near := []
+	if shadows and dark:
+		var by_distance := fires.duplicate()
+		var at := func(f: Dictionary) -> Vector2:
+			return Vector2(f.unit.x, f.unit.z - f.unit.y)
+		by_distance.sort_custom(func(a, b) -> bool: return at.call(a).distance_squared_to(view) < at.call(b).distance_squared_to(view))
+		near = by_distance.slice(0, SHADOW_FIRES)
+	for f in fires:
+		f.light.shadow_enabled = f in near
 
 
 ## A lightning bolt somewhere around the screen-plane point `view`: a jagged line

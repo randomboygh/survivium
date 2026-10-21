@@ -32,6 +32,21 @@ const SHOTS := {
 	# Nights by the moon, dawn, and the kinds of weather.
 	"night-dark": {"time": 0.95, "season": 1, "moon": 0.0},
 	"night-full": {"time": 0.95, "season": 1, "moon": 1.0},
+	# The player a step north-east of the campfire by the spawn: shadows of the player,
+	# the grass, bushes and trees thrown by the fire and the torch.
+	"fire-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
+	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
+	# The torch among lone trees on a dark night: shadows of the trunks, bushes and grass.
+	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true},
+	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
+	# The campfire at dusk, when its shadows start.
+	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
+	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": false},
+	# The same with the shadows setting off.
+	"fire-no-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "shadows": false},
+	"fire-no-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "shadows": false},
+	# Only the moon casts shadows, as before fires did.
+	"fire-moon-before": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": false},
 	"dawn": {"time": 0.255, "season": 1, "moon": 1.0},
 	"sunrise": {"time": 0.28, "season": 1, "moon": 1.0},
 	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
@@ -186,6 +201,11 @@ func _run() -> void:
 		if shot.has("weather"):
 			main.sky.set_weather(_weather_index(shot.weather))
 		main.sky.moon_override = shot.get("moon", -1.0)
+		main.settings.set_value("shadows", shot.get("shadows", true))
+		if shot.has("fire_shadows"):
+			main.effects.shadows = shot.fire_shadows
+		# Fires burn steadily in shots, so shots with and without shadows compare.
+		main.effects.flicker_clock = -INF
 		main.controls.show_help = false
 		main.chunks.manual_level = -1
 		if shot.get("shore", false):
@@ -204,6 +224,11 @@ func _run() -> void:
 			main.player.position = _forest(main.world, main.player.position)
 		if shot.has("place"):
 			main.player.position = _place(main.world, shot.place)
+		if shot.has("by_fire"):
+			for e: Dictionary in main.props.placed:
+				if e.fire != null:
+					main.player.position = main.props.center(e) + shot.by_fire
+					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
 		if shot.has("water"):
@@ -243,6 +268,11 @@ func _run() -> void:
 			main.sky.grass = main.sky.GRASS[main.sky.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.sky.season]
 			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.sky.season]
+		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
+		for f: Dictionary in main.effects.fires:
+			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
+					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
+		await process_frame
 		if shot.get("walk", false):
 			# A walk in a hook south-east, then west, over a flat open spot, leaving
 			# footprints.

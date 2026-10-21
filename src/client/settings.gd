@@ -118,6 +118,7 @@ func apply() -> void:
 			sky.sun.shadow_enabled = values.shadows
 	if game.effects != null:
 		game.effects.enabled = values.effects
+		game.effects.shadows = values.shadows
 	if game.player != null:
 		game.player.speed_scale = player_speed
 		game.player.air_jumps = air_jumps

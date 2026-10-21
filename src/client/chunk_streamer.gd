@@ -12,6 +12,7 @@ extends RefCounted
 
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const Foliage := preload("res://src/client/foliage.gd")
+const PixelView := preload("res://src/client/pixel_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
@@ -455,14 +456,15 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		water.material_override = game.water_mat
 		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var tufts := Foliage.multimesh(game.grass_mesh, game.grass_mat, false, true)
-		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		tufts.layers = PixelView.LAYER_FIRE_CASTER
 		var crowns := Foliage.multimesh(game.clump_mesh, game.leaves_mat, true, true)
 		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var shade := Foliage.multimesh(game.disc_mesh, game.leaf_shadow_mat, false, true)
 		shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		shade.layers = PixelView.LAYER_SUN_CASTER
 		var bushes := Foliage.multimesh(game.bush_mesh, game.bush_mat, true, true)
-		bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var drifts := Foliage.multimesh(game.drift_mesh, game.world_mat, false, false)
+		bushes.layers = PixelView.LAYER_FIRE_CASTER
+		var drifts := Foliage.multimesh(game.drift_mesh, game.low_mat, false, false)
 		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts]
 		for n in parts:
 			n.extra_cull_margin = CULL_MARGIN

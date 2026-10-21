@@ -1,7 +1,10 @@
 // Silhouette of the player where something in front hides them (rock, a wall, a
-// crown): drawn only where the depth test fails, that is behind what is already drawn.
+// crown): drawn only where the depth test fails, that is behind what is already drawn,
+// and not where the nearest thing is low (grass, bushes, a chest), which marks its
+// pixels 1 in the stencil buffer.
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, depth_test_inverted, depth_draw_never, cull_disabled, blend_mix;
+stencil_mode read, compare_not_equal, 1;
 
 #include "res://shaders/common.gdshaderinc"
 

@@ -25,6 +25,9 @@ const CELL := WorldData.CELL
 ## thing `y` units north of its place) does not cull it. The models are scaled down to
 ## 1/16 and the margin grows the box before that, so they get it 16 times over.
 const CULL_MARGIN := 24.0
+## Things lower than this (world units; the player is 1 tall) are low: the player's
+## silhouette does not show behind them (see sprite_xray.gdshader).
+const LOW_HEIGHT := 0.75
 ## Slots of a chest.
 const CHEST_SLOTS := 16
 ## Seconds a thing taken from the ground takes to fly to the player.
@@ -83,7 +86,7 @@ func _put(item: String, cell: Vector3i, items: Variant, lit := true) -> Dictiona
 	var kind: String = Items.get_item(item).prop
 	var e := {"item": item, "cell": cell, "node": null, "items": null, "fire": null, "lit": true}
 	if kind == "campfire":
-		e.fire = game.effects.add_campfire(Vector3(cell) * CELL, game.world_mat)
+		e.fire = game.effects.add_campfire(Vector3(cell) * CELL, game.low_mat)
 		if not lit:
 			game.effects.put_out(e.fire)
 			e.lit = false
@@ -95,7 +98,7 @@ func _put(item: String, cell: Vector3i, items: Variant, lit := true) -> Dictiona
 				game.world.blockers[cell + Vector3i(dx, 0, dz)] = top
 		var node := MeshInstance3D.new()
 		node.mesh = model.build_mesh()
-		node.material_override = game.world_mat
+		node.material_override = game.low_mat if VoxelProps.height(model) / 16.0 < LOW_HEIGHT else game.world_mat
 		node.scale = Vector3.ONE / 16.0
 		node.position = Vector3(cell) * CELL
 		node.extra_cull_margin = MODEL_CULL_MARGIN
@@ -240,7 +243,7 @@ func light(e: Dictionary) -> bool:
 		game.character.nag("light", "Чтобы разжечь, нужна ветка")
 		return false
 	game.effects.remove_campfire(e.fire)
-	e.fire = game.effects.add_campfire(Vector3(e.cell) * CELL, game.world_mat)
+	e.fire = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat)
 	e.lit = true
 	_update_heat()
 	game.world.note_edit(e.cell.x, e.cell.z)
@@ -356,7 +359,7 @@ func show_drops(key: Vector2i) -> void:
 			continue
 		var node := MeshInstance3D.new()
 		node.mesh = mesh
-		node.material_override = game.world_mat
+		node.material_override = game.low_mat
 		# Turned in steps of 45 degrees, which keep the pixels tidy.
 		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
 		node.position = d[1]
@@ -406,7 +409,7 @@ func fly(kind: String, from: Vector3) -> void:
 		return
 	var node := MeshInstance3D.new()
 	node.mesh = mesh
-	node.material_override = game.world_mat
+	node.material_override = game.low_mat
 	node.scale = Vector3.ONE / 16.0
 	node.position = from
 	node.extra_cull_margin = CULL_MARGIN
