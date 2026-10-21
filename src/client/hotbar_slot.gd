@@ -30,8 +30,13 @@ var selected := false:
 		selected = v
 		queue_redraw()
 
+## When set, a touch picks the slot as the finger lifts over it, not as it lands (the
+## hotbar, where a finger also drags the slots along); cancel_tap() forgets the touch.
+var on_release := false
+
 var _box: StyleBox
 var _touch_ms := -100000
+var _down := -1
 var _box_selected: StyleBox
 
 
@@ -46,14 +51,25 @@ func _init(side := 40) -> void:
 func _gui_input(event: InputEvent) -> void:
 	# Taps come as touches from any finger, so a slot can be picked while the other thumb
 	# walks; mouse clicks that copy a tap are skipped.
-	if event is InputEventScreenTouch and event.pressed:
+	if event is InputEventScreenTouch:
 		_touch_ms = Time.get_ticks_msec()
-		pressed.emit()
+		if event.pressed and not on_release:
+			pressed.emit()
+		elif event.pressed:
+			_down = event.index
+		elif event.index == _down:
+			_down = -1
+			if Rect2(Vector2.ZERO, size).has_point(event.position):
+				pressed.emit()
 		accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if event.device != InputEvent.DEVICE_ID_EMULATION and Time.get_ticks_msec() - _touch_ms > 1000:
 			pressed.emit()
 		accept_event()
+
+
+func cancel_tap() -> void:
+	_down = -1
 
 
 func _draw() -> void:
