@@ -246,7 +246,7 @@ const ICONS := {
 		"bbb......",
 		"bbb.www..",
 	],
-	"drop": [
+	"drop_one": [
 		"...wwwwww...",
 		"..wwwwwwwww.",
 		".wwwwwwwwww.",
@@ -258,6 +258,20 @@ const ICONS := {
 		".....aaaa...",
 		"......aa....",
 		"............",
+		".wwwwwwwwww.",
+	],
+	"drop_all": [
+		"...wwwwww...",
+		"..wwwwwwwww.",
+		".wwwwwwwwww.",
+		".w.ww.ww.ww.",
+		"...ww.ww.ww.",
+		"....w..w.w..",
+		"............",
+		"...aa...aa..",
+		"...aa...aa..",
+		"......aa....",
+		"......aa....",
 		".wwwwwwwwww.",
 	],
 	"hammer": [

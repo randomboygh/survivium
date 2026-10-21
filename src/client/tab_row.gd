@@ -76,19 +76,14 @@ static func split(parts: Array) -> HBoxContainer:
 	return row
 
 
-## A block of buttons at the bottom right of a panel, `width` wide: a wide one (`wide`:
-## [picture or text, tooltip, action]) under a row of two (`top`), joined into one
-## (`joined`) or apart. The row is the first child, the wide one the second.
-static func block(top: Array, wide: Array, width := 80, joined := true) -> VBoxContainer:
+## A block of buttons at the bottom right of a panel: a wide one (`wide`: [picture or
+## text, tooltip, action], `width` across, as wide as the row) under the row `top`,
+## joined to it (`joined`) or apart. The row is the first child, the wide one the second.
+static func block(top: Control, wide: Array, width: int, joined := true) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.size_flags_vertical = Control.SIZE_SHRINK_END
 	box.add_theme_constant_override("separation", -2 if joined else 4)
-	var row := split(top)
-	if not joined:
-		row.add_theme_constant_override("separation", 4)
-	for b in row.get_children():
-		b.custom_minimum_size = Vector2((width + 2) / 2 if joined else (width - 4) / 2, 30)
-	box.add_child(row)
+	box.add_child(top)
 	var b := _part(wide)
 	b.custom_minimum_size = Vector2(width, 30)
 	box.add_child(b)

@@ -9,10 +9,10 @@ extends PanelContainer
 ## that one; with sorting by hand on, a tap on another slot (of the bag or a chest)
 ## moves the stack there, swaps the two or tops up a stack of the same item, and lets
 ## it go; a tap on the chosen one lets it go. The panel at the bottom names the chosen
-## stack (eat, plant, set down, repair by the name), shows what it is in small wells
+## stack (plant, set down, repair by the name), shows what it is in small wells
 ## (FactChips: weight, food, work, wear) and, on the right, a wide «Взять» (into the
-## hand in use) under throwing the stack away and the bin (red at the first tap, it
-## destroys at the second). The craft tab (CraftPanel) has its own cells and
+## hand in use; «Съесть» for food) under throwing away one | all and the bin (red at
+## the first tap, it destroys at the second). The craft tab (CraftPanel) has its own cells and
 ## panels; opened at a station it starts there.
 ## Opens over the running world, which goes on; taps inside it do not reach the world.
 
@@ -61,13 +61,13 @@ var _manual_button: Button
 var _chest_slots := []
 var _info: Label
 var _facts: FactChips
-var _eat: Button
-var _hold: Button
+## «Взять» into the hand in use, «Съесть» for food.
+var _use: Button
 var _plant: Button
 var _put: Button
 var _repair: Button
-## Throw the stack away, and the bin.
-var _throw: Button
+## Throw away one and all, and the bin.
+var _throw: HBoxContainer
 var _destroy: Button
 ## The bin waits for its second tap.
 var _confirming := false
@@ -199,13 +199,12 @@ func _ready() -> void:
 	_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_info.custom_minimum_size.x = 120
 	name_row.add_child(_info)
-	_eat = _button("Съесть", func() -> void: game.character.eat(_at))
 	_plant = _button("Посадить", func() -> void: game.gathering.plant(_from.slots[_at][0]))
 	_put = _button("Поставить", func() -> void:
 		if game.props.put_from_bag(_from.slots[_at][0], _at):
 			close())
 	_repair = _button("Починить", func() -> void: game.workshop.repair(_at))
-	for b in [_eat, _plant, _put, _repair]:
+	for b in [_plant, _put, _repair]:
 		name_row.add_child(b)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 6)
@@ -213,20 +212,31 @@ func _ready() -> void:
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(_facts)
-	# «Взять» wide under «выбросить» and the bin, apart.
-	var block := TabRow.block([
-		[UiStyle.icon("drop"), "Выбросить", func() -> void: game.character.throw_away(_at, 1 << 20)],
-		[UiStyle.icon("trash"), "Уничтожить", func() -> void:
-			if _confirming:
-				destroy_chosen()
-			else:
-				_confirming = true
-				refresh()],
-	], ["Взять", "Взять в руку", func() -> void: game.controls.hold(_from.slots[_at][0])], 80, false)
+	# «Взять» (or «Съесть») wide under «выбросить | выбросить все» and the bin, apart.
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 4)
+	_throw = TabRow.split([
+		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.character.throw_away(_at, 1)],
+		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.character.throw_away(_at, 1 << 20)],
+	])
+	top.add_child(_throw)
+	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
+		if _confirming:
+			destroy_chosen()
+		else:
+			_confirming = true
+			refresh())
+	top.add_child(_destroy)
+	for b in _throw.get_children() + [_destroy]:
+		b.custom_minimum_size = Vector2(30, 30)
+	var block := TabRow.block(top, ["Взять", "", func() -> void:
+		var id: String = _from.slots[_at][0]
+		if Items.food(id) > 0.0:
+			game.character.eat(_at)
+		else:
+			game.controls.hold(id)], 3 * 30 - 2 + 4, false)
 	body.add_child(block)
-	_throw = block.get_child(0).get_child(0)
-	_destroy = block.get_child(0).get_child(1)
-	_hold = block.get_child(1)
+	_use = block.get_child(1)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
 
@@ -483,18 +493,21 @@ func _show_info(inv) -> void:
 			"" if mine else " · в сундуке"]
 		_facts.show_wells(FactChips.item_wells(id, s[1], _from.worn(_at), Inventory.stack_weight(s)))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
-	_eat.visible = mine and Items.food(s[0]) > 0.0
 	_plant.visible = mine and Items.get_item(s[0]).get("plant", "") != ""
 	_put.visible = mine and Items.get_item(s[0]).get("prop", "none") != "none"
 	_repair.visible = mine and inv.worn(_at) > 0
 	# The name wraps in what the buttons by it leave.
 	var room := _width(slot) - 12
-	for b in [_eat, _plant, _put, _repair]:
+	for b in [_plant, _put, _repair]:
 		if b.visible:
 			room -= int(b.get_combined_minimum_size().x) + 6
 	_info.custom_minimum_size.x = room
-	_hold.disabled = not mine or game.controls.held() == s[0]
-	_throw.disabled = not mine
+	var food: bool = s != null and Items.food(s[0]) > 0.0
+	_use.text = "Съесть" if food else "Взять"
+	_use.tooltip_text = "Съесть одну" if food else "Взять в руку"
+	_use.disabled = not mine or not food and game.controls.held() == s[0]
+	_throw.get_child(0).disabled = not mine
+	_throw.get_child(1).disabled = not mine or s[1] < 2
 	_destroy.disabled = s == null
 	_destroy.tooltip_text = "Нажми ещё раз — уничтожить навсегда" if _confirming else "Уничтожить"
 	TabRow.light(_destroy, _confirming, _confirming)

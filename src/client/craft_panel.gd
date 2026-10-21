@@ -6,7 +6,7 @@ extends VBoxContainer
 ## dimmed). Under them two panels: the recipe chosen, as small wells with pictures in
 ## columns (see FactChips): what it needs (have / need, short in red), its station and
 ## tool («нет» in red when missing), its time (the recipe's: no skills yet), then what
-## it makes weighs, does and lasts, with a wide «сделать» under «×5 | макс» on the
+## it makes weighs, does and lasts, with a wide «сделать» under «×5 | MAX» on the
 ## right; and the queue, narrow: small cells for the jobs, the time left of the one
 ## chosen, the count, and at the bottom the pause and «отменить |
 ## отменить все». Opened at a station, buttons in the window's head (by
@@ -159,11 +159,14 @@ func _ready() -> void:
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(_facts)
-	# «Сделать» is the button most pressed: wide, under «×5 | макс».
-	_make = TabRow.block([
+	# «Сделать» is the button most pressed: wide, under «×5 | MAX».
+	var more := TabRow.split([
 		["×5", "Сделать пять", func() -> void: _start(5)],
-		["макс", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
-	], [UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)])
+		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
+	])
+	for b in more.get_children():
+		b.custom_minimum_size = Vector2(41, 30)
+	_make = TabRow.block(more, [UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)], 2 * 41 - 2)
 	body.add_child(_make)
 
 	var queue := _panel(bottom)
