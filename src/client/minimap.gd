@@ -167,20 +167,21 @@ func set_marks(placed: Array) -> void:
 		painted.emit()
 
 
-## The colour of item `id`'s mark: the mean of its picture's pixels.
+## The colour of item `id`'s mark: the mean of its picture's pixels (from the
+## picture's rows: reading a texture back is slow in the browser).
 func _mark_color(id: String) -> Color:
 	if not _mark_colors.has(id):
 		var c := UiStyle.INK
-		var tex := ItemIcons.of_item(id)
-		if tex != null:
-			var img := tex.get_image()
-			var sum := Color(0, 0, 0, 0)
-			for y in img.get_height():
-				for x in img.get_width():
-					var p := img.get_pixel(x, y)
+		var item := ItemIcons.Items.get_item(id)
+		var rows: Array = ItemIcons.PICTURES.get(item.get("icon", ""), [])
+		var sum := Color(0, 0, 0, 0)
+		for row: String in rows:
+			for ch in row:
+				if ItemIcons.PALETTE.has(ch):
+					var p: Color = ItemIcons.PALETTE[ch]
 					sum += Color(p.r, p.g, p.b, 1.0) * p.a
-			if sum.a > 0.0:
-				c = Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a)
+		if sum.a > 0.0:
+			c = Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a)
 		_mark_colors[id] = c
 	return _mark_colors[id]
 
@@ -212,21 +213,25 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pic
 			if shown.size.x <= 0.0 or shown.size.y <= 0.0:
 				continue
 			canvas.draw_texture_rect_region(r.texture, shown, Rect2((shown.position - at) / zoom, shown.size / zoom))
+	# Dots of things placed side by side would cover each other: the first placed is
+	# drawn. Pictures overlap, the later on top, and part when the map is zoomed in.
+	var drawn: Array[Rect2] = []
 	for m: Array in marks:
 		var p := (mid + (Vector2(m[0]) - centre) / STEP * zoom).floor()
+		var tex: Texture2D = ItemIcons.of_item(m[1]) if pictures else null
+		if pictures and tex == null:
+			continue
+		var box := Rect2(p - Vector2(2, 2), Vector2(5, 5))
 		if pictures:
-			var tex := ItemIcons.of_item(m[1])
-			if tex == null:
-				continue
-			var box := Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
-			if rect.encloses(box):
-				canvas.draw_rect(box, UiStyle.DARK_INK)
-				canvas.draw_texture(tex, box.position + Vector2(1, 1))
+			box = Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
+		if not rect.encloses(box) or (not pictures and drawn.any(func(b: Rect2) -> bool: return b.intersects(box))):
+			continue
+		drawn.append(box)
+		canvas.draw_rect(box, UiStyle.DARK_INK)
+		if pictures:
+			canvas.draw_texture(tex, box.position + Vector2(1, 1))
 		else:
-			var box := Rect2(p - Vector2(2, 2), Vector2(5, 5))
-			if rect.encloses(box):
-				canvas.draw_rect(box, UiStyle.DARK_INK)
-				canvas.draw_rect(box.grow(-1), _mark_color(m[1]))
+			canvas.draw_rect(box.grow(-1), _mark_color(m[1]))
 
 
 func _gui_input(event: InputEvent) -> void:

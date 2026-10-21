@@ -8,8 +8,9 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 const Minimap := preload("res://src/client/minimap.gd")
 
 ## UI pixels per map pixel (a map pixel is two by two cells); below one the map
-## shrinks, so a long walk fits on the screen.
-const ZOOMS := [0.25, 0.5, 1.0, 2.0, 3.0, 4.0, 6.0]
+## shrinks, so a long walk fits on the screen; the closest parts the marks of things
+## placed side by side.
+const ZOOMS := [0.25, 0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 9.0, 12.0]
 ## The zoom the map opens at the first time.
 const FIRST_ZOOM := 3
 const BUTTON := 36
@@ -178,6 +179,6 @@ func _draw() -> void:
 	draw_rect(rect, BACKGROUND)
 	minimap.draw_map(self, rect, centre, zoom(), true)
 	var p := (rect.get_center() + (Vector2(minimap.player_cell) - centre) / Minimap.STEP * zoom()).floor()
-	var r := 1.0 + maxi(0, zoom_index - 2)
+	var r := 1.0 + clampi(zoom_index - 2, 0, 4)
 	draw_rect(Rect2(p - Vector2(r + 1, r + 1), Vector2(2 * r + 3, 2 * r + 3)), UiStyle.DARK_INK)
 	draw_rect(Rect2(p - Vector2(r, r), Vector2(2 * r + 1, 2 * r + 1)), UiStyle.ACCENT)
