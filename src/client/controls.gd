@@ -1,12 +1,12 @@
 extends RefCounted
 ## Input: keys, mouse and touch, and what they do to the world (plan/design/ui.md,
 ## "Работа с ячейками"). The left hand holds a tool from the bag or nothing (bare hands)
-## and digs, chops and gathers with it (Tools); the right hand holds a block of the
-## hotbar and places it with a square brush 1, 2 or 3 cells across. Both work on what is
-## tapped or clicked within REACH of the player and keep working while the button or
-## finger is held: digging swings again at the cell under it as fast as the tool
-## swings, placing paints the brush along the plane the stroke began in (a floor, a
-## wall). The action button and F work in front of the player with the hand in use (see
+## and digs, chops and gathers with it (Tools) as far as the tool reaches; the right
+## hand holds a block of the hotbar and places it with a brush (Tools.BRUSHES: squares
+## 1, 2 or 3 cells across, two cells one above the other, a line) within
+## Tools.PLACE_REACH. Both keep working while the button or finger is held: digging
+## swings again at the cell under it as fast as the tool swings, placing paints the
+## brush along the plane the stroke began in (a floor, a wall), every cell on the way. The action button and F work in front of the player with the hand in use (see
 ## act_in_front). What is dug falls on the ground for Gathering to take up; placing
 ## takes the block from the bag (Character), unless the playtest switch for free
 ## building is on. Also opening the bag, moving the cut and the playtest keys. Touch and
@@ -22,12 +22,8 @@ const Items := preload("res://src/shared/items.gd")
 const Tools := preload("res://src/shared/tools.gd")
 
 const CELL := WorldData.CELL
-## How far from the player a cell can be worked, in world units (eight cells).
-const REACH := 4.0
 ## How often the hint under the mouse pointer is updated, in seconds.
 const TIP_INTERVAL := 0.1
-## Brush sizes of the right hand, in cells across.
-const BRUSHES := [1, 2, 3]
 ## Seconds between two placings of a stroke, and of the action button (slower, so a
 ## bridge grows a cell at a time while walking).
 const PLACE_SWING := 0.1
@@ -48,14 +44,15 @@ var last_touch_ms := -100000
 var fingers := {}
 ## The item in the left hand: a tool from the bag, or "" for bare hands.
 var tool := ""
-## The right hand's brush, an index into BRUSHES.
+## The right hand's brush, an index into Tools.BRUSHES.
 var brush := 0
 ## Whether the action button is held.
 var action_held := false
 ## Damage each tree being chopped has taken, by its trunk's column (not saved).
 var chops := {}
 ## A button or finger held on the world: {"button", "dig", "pos", "held", "pending"
-## (not worked yet), "normal" and "last" (the plane and the last cell of a placing stroke)}.
+## (not worked yet), "normal", "first", "last" (the plane and the first and last cells
+## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}.
 var _stroke := {}
 ## Seconds until the hands can swing again.
 var _cooldown := 0.0
@@ -218,12 +215,17 @@ func cycle_tool() -> void:
 	hold(ids[(ids.find(tool) + 1) % ids.size()])
 
 
-## The next brush size for the right hand, which is then the hand in use.
+## The next brush for the right hand, which is then the hand in use.
 func cycle_brush() -> void:
-	brush = (brush + 1) % BRUSHES.size()
+	brush = (brush + 1) % Tools.BRUSHES.size()
 	dig_mode = false
 	game.hud.refresh_hands()
-	game.hud.toast("Кисть %d×%d" % [BRUSHES[brush], BRUSHES[brush]])
+	game.hud.toast("Кисть: %s" % brush_record().title)
+
+
+## The right hand's brush (one of Tools.BRUSHES).
+func brush_record() -> Dictionary:
+	return Tools.BRUSHES[brush]
 
 
 ## What the action button does with the hand in use, for its label.
@@ -304,7 +306,8 @@ func _on_plane(screen_pos: Vector2, ref: Vector3i, normal: Vector3i) -> Variant:
 
 
 func _start_stroke(button: int, pos: Vector2, dig: bool) -> void:
-	_stroke = {"button": button, "dig": dig, "pos": pos, "held": true, "pending": true, "normal": null, "last": Vector3i.ZERO}
+	_stroke = {"button": button, "dig": dig, "pos": pos, "held": true, "pending": true, "normal": null,
+		"first": Vector3i.ZERO, "last": Vector3i.ZERO, "axis": -1}
 	if _cooldown <= 0.0:
 		_run_stroke()
 
@@ -316,23 +319,44 @@ func _run_stroke() -> void:
 		if not hit.is_empty():
 			dig_at(hit.cell, hit.normal)
 		return
-	var cell: Vector3i
-	var normal: Vector3i
 	if _stroke.normal == null:
 		var hit := pick(_stroke.pos)
 		if hit.is_empty():
 			return
-		normal = hit.normal
-		cell = hit.cell + normal
+		var normal: Vector3i = hit.normal
+		var cell: Vector3i = hit.cell + normal
 		_stroke.normal = normal
-	else:
-		normal = _stroke.normal
-		var on: Variant = _on_plane(_stroke.pos, _stroke.last, normal)
-		if on == null or on == _stroke.last:
-			return
-		cell = on
-	_stroke.last = cell
-	place_at(cell, normal)
+		_stroke.first = cell
+		_stroke.last = cell
+		place_at(cell, normal)
+		return
+	var on: Variant = _on_plane(_stroke.pos, _stroke.last, _stroke.normal)
+	if on == null:
+		return
+	var to: Vector3i = _on_line(on)
+	# A finger moves faster than a cell a frame: every cell on the way gets the brush.
+	var from: Vector3i = _stroke.last
+	var steps: int = maxi(maxi(absi(to.x - from.x), absi(to.y - from.y)), absi(to.z - from.z))
+	for i in range(1, steps + 1):
+		var cell := Vector3i((Vector3(from) + Vector3(to - from) * (float(i) / steps)).round())
+		_stroke.last = cell
+		place_at(cell, _stroke.normal)
+
+
+## A placing stroke with the line brush keeps to the way it first moved from its first
+## cell; other brushes go anywhere in the plane.
+func _on_line(cell: Vector3i) -> Vector3i:
+	if not brush_record().get("line", false):
+		return cell
+	var d: Vector3i = cell - _stroke.first
+	if _stroke.axis < 0:
+		if d == Vector3i.ZERO:
+			return cell
+		var a := Vector3(absi(d.x), absi(d.y), absi(d.z))
+		_stroke.axis = 0 if a.x >= a.y and a.x >= a.z else (1 if a.y >= a.z else 2)
+	var out: Vector3i = _stroke.first
+	out[_stroke.axis] = cell[_stroke.axis]
+	return out
 
 
 ## Digs at `cell`, tapped on its face `normal`, with the tool in the left hand: as many
@@ -343,7 +367,7 @@ func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cell.y == 0 or m == Mat.AIR:
 		return false
-	if too_far(cell):
+	if too_far(cell, tool_record().reach):
 		game.character.nag("far", "Слишком далеко")
 		return false
 	if _is_trunk(cell):
@@ -362,12 +386,13 @@ func _dig_targets(order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
 		if out.size() >= t.area:
 			break
 		var m: int = game.world.get_cell(c.x, c.y, c.z)
-		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and not _is_trunk(c) and not too_far(c):
+		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and not _is_trunk(c) and not too_far(c, t.reach):
 			out.append(c)
 	return out
 
 
-## Digs `cells` in one swing of `swing` seconds; what they give falls under them.
+## Digs `cells` in one swing of `swing` seconds; what they give (their item, now and
+## then their bonus) falls under them.
 func _dig(cells: Array[Vector3i], swing: float) -> bool:
 	if cells.is_empty() or not game.character.act("dig"):
 		return false
@@ -377,10 +402,14 @@ func _dig(cells: Array[Vector3i], swing: float) -> bool:
 		var was: int = world.get_cell(c.x, c.y, c.z)
 		world.set_cell(c.x, c.y, c.z, Mat.AIR)
 		game.chunks.on_cell_changed(c)
-		if not game.settings.free_build and Items.dug[was] != "":
-			var at := _floor_under(c)
-			world.heap_drop(Items.dug[was], at, 1, randf() * TAU)
-			keys[WorldData.chunk_key(c.x, c.z)] = true
+		if game.settings.free_build:
+			continue
+		var at := _floor_under(c)
+		var rec: Dictionary = Mat.RECORDS[was]
+		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
+			if id != "":
+				world.heap_drop(id, at, 1, randf() * TAU)
+				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		game.props.show_drops(key)
 	_cooldown = swing
@@ -433,9 +462,9 @@ func place_at(center: Vector3i, normal: Vector3i) -> int:
 	var free: bool = game.settings.free_build
 	var placed := 0
 	var far := false
-	for cell in Tools.brush_cells(center, normal, BRUSHES[brush]):
+	for cell in Tools.brush_shape(center, normal, brush_record()):
 		if not _can_place(cell):
-			far = far or too_far(cell)
+			far = far or too_far(cell, Tools.PLACE_REACH)
 			continue
 		if not free and game.character.inventory.count(item) == 0:
 			game.character.nag("no_block", "В сумке нет: %s" % Items.title(item))
@@ -456,7 +485,7 @@ func place_at(center: Vector3i, normal: Vector3i) -> int:
 
 func _can_place(cell: Vector3i) -> bool:
 	var world = game.world
-	if not world.in_bounds(cell.x, cell.y, cell.z) or cell.y > game.chunks.cut_level or too_far(cell):
+	if not world.in_bounds(cell.x, cell.y, cell.z) or cell.y > game.chunks.cut_level or too_far(cell, Tools.PLACE_REACH):
 		return false
 	var cur: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cur != Mat.AIR and cur != Mat.WATER or game.player.overlaps_cell(cell):
@@ -489,7 +518,7 @@ func act_in_front() -> void:
 		game.gathering.gather({"bush": bush})
 		_cooldown = t.swing
 		return
-	var cells := _dig_targets(Tools.front_cells(f, s), t)
+	var cells := _dig_targets(_front_order(f, s), t)
 	if cells.is_empty():
 		game.character.nag("front", "Перед тобой нечего %s" % ("рубить" if t.tool == "axe" else "копать"))
 		_cooldown = 0.3
@@ -509,6 +538,15 @@ func _place_in_front() -> void:
 			return
 	game.character.nag("front", "Перед тобой некуда ставить")
 	_cooldown = 0.3
+
+
+## The cells the action button digs, in order (Tools.front_cells); the one under the
+## feet only while the player stands still, so walking does not drop them into a pit.
+func _front_order(f: Vector3i, s: Vector2i) -> Array[Vector3i]:
+	var cells := Tools.front_cells(f, s)
+	if game.player.move_input.length() > 0.1:
+		cells.pop_back()
+	return cells
 
 
 ## The cell of a tree's trunk one or two columns in front, or null.
@@ -549,7 +587,7 @@ func _front_preview() -> Array[Vector3i]:
 	var bush: Variant = _bush_in_front(f, s)
 	if bush != null and t.tool != "pickaxe":
 		return [bush]
-	return _dig_targets(Tools.front_cells(f, s), t)
+	return _dig_targets(_front_order(f, s), t)
 
 
 ## Frames what a tap at `screen_pos` would work on: the cells to dig or to fill, red
@@ -564,10 +602,10 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 		var t := tool_record()
 		var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
 		if _is_trunk(cell):
-			game.cursor.show_cells([cell], t.tool == "axe" and not too_far(cell))
+			game.cursor.show_cells([cell], t.tool == "axe" and not too_far(cell, tool_record().reach))
 			return
 		var cells := _dig_targets(Tools.area_cells(cell, hit.normal), t)
-		var ok: bool = Tools.can_dig(t, m) and not too_far(cell) and cell.y > 0
+		var ok: bool = Tools.can_dig(t, m) and not too_far(cell, tool_record().reach) and cell.y > 0
 		game.cursor.show_cells(cells if ok else [cell], ok)
 		return
 	var normal: Vector3i = hit.normal
@@ -580,7 +618,7 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 	else:
 		cell += normal
 	var cells: Array[Vector3i] = []
-	for c in Tools.brush_cells(cell, normal, BRUSHES[brush]):
+	for c in Tools.brush_shape(cell, normal, brush_record()):
 		if _can_place(c):
 			cells.append(c)
 	game.cursor.show_cells(cells if not cells.is_empty() else [cell], not cells.is_empty())
@@ -612,9 +650,10 @@ func _fell(cell: Vector3i) -> bool:
 	return true
 
 
-func too_far(cell: Vector3i) -> bool:
+## Whether `cell` is farther than `reach` cells from the player.
+func too_far(cell: Vector3i, reach: int) -> bool:
 	var center := (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL
-	return center.distance_to(game.player.position + Vector3(0.0, 0.5, 0.0)) > REACH
+	return center.distance_to(game.player.position + Vector3(0.0, 0.5, 0.0)) > reach * CELL
 
 
 ## With a mouse, names the cell under the pointer and what the buttons do with it, and
@@ -637,7 +676,7 @@ func update_tip(delta: float) -> void:
 	var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
 	var text: String = "%s · уровень %d" % [Mat.NAMES[m], cell.y]
 	var t := tool_record()
-	if too_far(cell):
+	if too_far(cell, tool_record().reach):
 		text += "\nдалеко"
 	elif _is_trunk(cell):
 		text += "\nЛКМ рубить" if t.tool == "axe" else "\nрубят топором"

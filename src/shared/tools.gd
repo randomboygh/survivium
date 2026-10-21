@@ -1,19 +1,32 @@
 extends RefCounted
 ## Tools and what they can do to cells: a material says what digs it (its `dig`) and how
 ## hard it is (`hardness`), a tool item says what it is (`tool`), its power, how many
-## cells a swing takes (`area`) and how long a swing lasts (plan/design/character.md,
-## "Копание"). Bare hands are the tool when nothing is held. Also the order cells are
-## worked in: around a cell that was tapped, and in front of the body for the action
-## button (as in Terraria). Shared, so the server can check the same rules.
+## cells a swing takes (`area`), how long a swing lasts and how far it reaches
+## (plan/design/character.md, "Взаимодействие с миром"). Bare hands are the tool when
+## nothing is held. Also the order cells are worked in: around a cell that was tapped,
+## and in front of the body for the action button (as in Terraria), and the shapes of
+## the brush blocks are placed with. Shared, so the server can check the same rules.
 
 const Mat := preload("res://src/shared/materials.gd")
 const Items := preload("res://src/shared/items.gd")
 
 ## Bare hands: leaves, soft ground (slowly, see HAND_SLOW), berries and branches. Not an
 ## item, so not in the data files.
-const HAND := {"id": "", "title": "Руки", "tool": "hand", "power": 1, "area": 1, "swing": 0.45}
+const HAND := {"id": "", "title": "Руки", "tool": "hand", "power": 1, "area": 1, "swing": 0.45, "reach": 6}
 ## Hands dig soft ground this many times slower than they swing.
 const HAND_SLOW := 2.0
+## How far blocks are placed from the body, in cells.
+const PLACE_REACH := 8
+## Brushes of the hand that places: squares across the tapped face, two cells one on
+## top of the other (a wall a body tall, or the opening of a passage), and a line (one
+## cell, the stroke kept straight along the way it first went).
+const BRUSHES := [
+	{"title": "1×1", "size": 1},
+	{"title": "2×2", "size": 2},
+	{"title": "3×3", "size": 3},
+	{"title": "1×2", "size": 1, "tall": true},
+	{"title": "линия", "size": 1, "line": true},
+]
 
 
 ## The tool record of item `id` (see Items), bare hands for "" or an item that is no tool.
@@ -109,6 +122,14 @@ static func _axes(normal: Vector3i) -> Array[Vector3i]:
 		if _across(d, normal):
 			axes.append(d)
 	return axes
+
+
+## Cells of `brush` (one of BRUSHES) placed around `center` on face `normal`, in the
+## order of brush_cells.
+static func brush_shape(center: Vector3i, normal: Vector3i, brush: Dictionary) -> Array[Vector3i]:
+	if brush.get("tall", false):
+		return [center, center + Vector3i.UP]
+	return brush_cells(center, normal, brush.size)
 
 
 ## Whether direction `d` lies across a face with `normal` (is at right angles to it).

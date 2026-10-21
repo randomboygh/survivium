@@ -34,6 +34,8 @@ const SCHEMAS := {
 		"item": {"type": "ref:items", "default": ""},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
 		"hardness": {"type": "int", "min": 0, "default": 1},
+		"bonus": {"type": "ref:items", "default": ""},
+		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
@@ -47,6 +49,7 @@ const SCHEMAS := {
 		"area": {"type": "int", "min": 1, "default": 1},
 		"swing": {"type": "float", "min": 0.05, "default": 0.5},
 		"plant": {"type": "ref:bushes", "default": ""},
+		"reach": {"type": "int", "min": 1, "default": 8},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},

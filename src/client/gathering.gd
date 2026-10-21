@@ -17,7 +17,8 @@ const WorldData := preload("res://src/shared/world_data.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 
 const CELL := WorldData.CELL
-## How far from the player a thing can be taken, in world units (as Controls.REACH).
+## How far from the player a thing on the ground or the chest can be taken or opened,
+## in world units (eight cells, as Tools.PLACE_REACH).
 const REACH := 4.0
 ## How near the point on the screen a thing must be, in pixels of the world image: a
 ## finger is wider than a mouse pointer.
@@ -44,8 +45,9 @@ func _init(g) -> void:
 	game = g
 
 
-## The thing to gather nearest the screen point, or {}: {"drop": [chunk key, index]}
-## or {"bush": cell}, with "at" its position in world units.
+## The thing to gather nearest the screen point, or {}: {"drop": [chunk key, index]},
+## {"bush": cell} or {"chest": true}, with "at" its position in world units. Bushes are
+## within the reach of the tool in hand, things on the ground and the chest within REACH.
 func target_at(screen_pos: Vector2) -> Dictionary:
 	if not game.ready_to_play:
 		return {}
@@ -56,6 +58,13 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 	var best_d := radius
 	var player_pos: Vector3 = game.player.position + Vector3(0.0, 0.5, 0.0)
 	var world = game.world
+	var bush_reach: float = game.controls.tool_record().reach * CELL
+	var chest: Variant = game.props.chest_center()
+	if chest != null and chest.distance_to(player_pos) <= REACH:
+		var d := _screen_distance(chest, vp_pos)
+		if d < best_d + 6.0:
+			best_d = d
+			best = {"chest": true, "at": chest}
 	var home := WorldData.chunk_key(floori(player_pos.x / CELL), floori(player_pos.z / CELL))
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
@@ -72,7 +81,7 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 			for cell in world.bushes_in(x0, z0):
 				var at := (Vector3(cell) + Vector3(0.5, 0.4, 0.5)) * CELL
 				var d := _screen_distance(at, vp_pos)
-				if d < best_d and at.distance_to(player_pos) <= REACH:
+				if d < best_d and at.distance_to(player_pos) <= bush_reach:
 					best_d = d
 					best = {"bush": cell, "at": at}
 	return best
@@ -88,6 +97,8 @@ func _screen_distance(p: Vector3, vp_pos: Vector2) -> float:
 
 ## What a tap on `target` would do, for the hint under the pointer.
 func describe(target: Dictionary) -> String:
+	if target.has("chest"):
+		return "Сундук\nЛКМ открыть"
 	if target.has("drop"):
 		var d: Array = game.world.drops[target.drop[0]][target.drop[1]]
 		if d[0] == Items.SACK:
@@ -110,6 +121,9 @@ func describe(target: Dictionary) -> String:
 func gather(target: Dictionary) -> bool:
 	if target.has("drop"):
 		return _pick_up(target.drop[0], target.drop[1])
+	if target.has("chest"):
+		game.hud.open_chest()
+		return true
 	if not game.world.bushes.has(target.bush):
 		return false
 	match game.controls.tool_record().tool:

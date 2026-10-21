@@ -49,6 +49,8 @@ static func drop(model: String) -> VoxelModel:
 			return _sword()
 		"bush":
 			return _bush()
+		"fiber":
+			return _fiber()
 		"raspberry":
 			return _berries(Color(0.78, 0.13, 0.2))
 		"blueberry":
@@ -165,6 +167,18 @@ static func _bush() -> VoxelModel:
 				if (x * 7 + z * 3 + y * 5) % 6 == 0:
 					continue
 				m.set_voxel(Vector3i(x, y, z), leaf * (1.15 if (x + y + z) % 3 == 0 else 1.0), true)
+	return m
+
+
+## A twist of grass fibre lying flat.
+static func _fiber() -> VoxelModel:
+	var m := VoxelModel.new()
+	var light := Color(0.62, 0.6, 0.36)
+	var green := Color(0.38, 0.5, 0.25)
+	for x in range(-4, 5):
+		m.set_voxel(Vector3i(x, 0, 0), light if x % 2 == 0 else green)
+		m.set_voxel(Vector3i(x, 0, 1 if x % 3 == 0 else -1), green)
+	m.set_voxel(Vector3i(0, 1, 0), light)
 	return m
 
 

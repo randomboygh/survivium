@@ -6,7 +6,8 @@
 # axe (рубит деревья и деревянные ячейки), pickaxe (камень и руда), shovel (мягкий грунт
 # быстро, выкапывает кусты), sword (сбивает ягоды с кустов); power — сила: твёрдость
 # материала, которую он берёт, и урон дереву за удар; area — сколько ячеек за один
-# взмах; swing — секунд на взмах. plant — куст, который сажает предмет.
+# взмах; swing — секунд на взмах; reach — на сколько ячеек от персонажа достаёт (без
+# инструмента руки достают на 6, блоки ставятся на 8). plant — куст, который сажает предмет.
 - id: branch
   title: Ветка
   weight: 0.3
@@ -90,6 +91,7 @@
   tool: axe
   power: 2
   swing: 0.6
+  reach: 7
 - id: stone_pickaxe
   title: Каменная кирка
   weight: 2.0
@@ -99,6 +101,7 @@
   tool: pickaxe
   power: 2
   swing: 0.55
+  reach: 8
 - id: wooden_shovel
   title: Деревянная лопата
   weight: 1.2
@@ -109,6 +112,7 @@
   power: 1
   area: 2
   swing: 0.35
+  reach: 8
 - id: wooden_sword
   title: Деревянный меч
   weight: 1.0
@@ -118,6 +122,7 @@
   tool: sword
   power: 1
   swing: 0.4
+  reach: 6
 - id: shrub_bush
   title: Куст
   weight: 2.0
@@ -139,3 +144,9 @@
   model: bush
   icon: bush_blueberry
   plant: blueberry
+- id: fiber
+  title: Волокно
+  weight: 0.05
+  stack: 50
+  model: fiber
+  icon: fiber

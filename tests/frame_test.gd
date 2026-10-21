@@ -211,6 +211,17 @@ func _run() -> void:
 	await _scenario("action button", 100000, func(_i: int) -> bool: return clock >= 2.0)
 	c.action_held = false
 	_check(inv.count("core:stone") + inv.count("core:dirt") > dug_before, "the action button digs in front of the player")
+	# A stack into the chest by the spawn and back (the window's buttons).
+	var bag = main.hud.bag
+	main.hud.open_chest()
+	bag._chosen = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "core:stone")[0])
+	var stones: int = inv.count("core:stone")
+	bag._move_to_chest()
+	_check(inv.count("core:stone") == 0 and main.props.chest_items.count("core:stone") == stones, "a stack goes into the chest")
+	bag._chosen_chest = 0
+	bag._move_to_bag()
+	_check(inv.count("core:stone") == stones and main.props.chest_items.is_empty(), "and back into the bag")
+	bag.close()
 
 	# An idle frame of the finished map is the engine's own share: it grows with the
 	# chunks on the map and the machine, not with the game's work.

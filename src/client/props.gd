@@ -1,6 +1,6 @@
 extends RefCounted
 ## Things standing on the ground that are not cells and not part of a chunk: the
-## chest and the campfire next to the spawn, and the items lying on the ground
+## chest (with what it holds) and the campfire next to the spawn, and the items lying on the ground
 ## (WorldData.drops: what a felled tree leaves, a death sack). Bushes and snowdrifts
 ## are grown by the world generator and drawn with the chunk they stand in (see ChunkStreamer,
 ## Foliage.finish); a bush that goes is taken out of the world and its chunk is
@@ -12,12 +12,15 @@ const VoxelProps := preload("res://src/client/voxel_props.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
 const Items := preload("res://src/shared/items.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
 ## thing `y` units north of its place) does not cull it. The models are scaled down to
 ## 1/16 and the margin grows the box before that, so they get it 16 times over.
 const CULL_MARGIN := 24.0
+## Slots of the chest.
+const CHEST_SLOTS := 16
 ## Seconds a thing taken from the ground takes to fly to the player.
 const FLY_TIME := 0.2
 const MODEL_CULL_MARGIN := CULL_MARGIN * 16.0
@@ -28,6 +31,8 @@ var drop_meshes := {}
 var drop_nodes := {}
 ## The north-west cell of each prop placed, by name ("chest", "campfire"), for the save.
 var cells := {}
+## What the chest holds; saved with the world (SaveGame).
+var chest_items := Inventory.new(CHEST_SLOTS)
 
 
 func _init(g) -> void:
@@ -40,7 +45,6 @@ func place() -> void:
 	var world_root: Node3D = game.world_root
 	# A chest and a campfire next to the spawn point, each on two by two cells.
 	var at: Vector3 = game.player.position
-	var new_world: bool = not game.save.player_placed
 	var chest_spot := _saved_or_new("chest", at + Vector3(2.0, 0.0, 1.0))
 	if chest_spot.y >= 0:
 		var chest := MeshInstance3D.new()
@@ -50,27 +54,13 @@ func place() -> void:
 		chest.position = Vector3(chest_spot) * CELL
 		chest.extra_cull_margin = MODEL_CULL_MARGIN
 		world_root.add_child(chest)
+		var saved: Variant = game.save.meta.get("chest")
+		if saved is Dictionary:
+			chest_items.from_dict(saved)
 	var fire := _saved_or_new("campfire", at + Vector3(-2.0, 0.0, 2.0))
-	if new_world:
-		_lay_tools(Vector3i((at / CELL).floor()))
 	if fire.y >= 0:
 		game.effects.add_campfire(Vector3(fire) * CELL, game.world_mat)
 	RenderingServer.global_shader_parameter_set("heat_map", game.effects.heat_map(RoofMap.WRAP / 2))
-
-
-## Until tools are crafted, a new world has a set of them lying in a row just south of
-## the spawn cell `at`.
-func _lay_tools(at: Vector3i) -> void:
-	var world = game.world
-	var ids: Array = game.settings.TOOL_SET
-	for i in ids.size():
-		var x := at.x - 3 + i * 2
-		var z := at.z + 2
-		var h: float = world.ground_height(x + 0.5, z + 0.5)
-		if h > 0.0:
-			world.add_drop(ids[i], Vector3(x + 0.5, h, z + 0.5) * CELL, PI / 4.0)
-	show_drops(WorldData.chunk_key(at.x - 3, at.z + 2))
-	show_drops(WorldData.chunk_key(at.x + 3, at.z + 2))
 
 
 ## The cell of prop `name` from the save, else a new spot near `p` (see _prop_spot).
@@ -108,6 +98,12 @@ func _level_ground(cell: Vector3i) -> void:
 	if world.slope_mask(cell.x, cell.y, cell.z) != world.FULL:
 		world.set_natural(cell.x, cell.y, cell.z, false)
 		game.chunks.on_cell_changed(cell)
+
+
+## The middle of the chest in world units, or null when there is none.
+func chest_center() -> Variant:
+	var c: Variant = cells.get("chest")
+	return (Vector3(c) + Vector3(1.0, 0.5, 1.0)) * CELL if c is Vector3i else null
 
 
 ## Takes the bush on `cell` out of the world; its chunk is rebuilt without it.

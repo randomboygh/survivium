@@ -1029,6 +1029,11 @@ func _test_tools() -> void:
 	for c in floor_cells:
 		_check(c.y == f.y and absi(c.x - f.x) <= 1 and absi(c.z - f.z) <= 1, "a brush on a floor lies flat around its centre")
 	_check(Tools.brush_cells(f, Vector3i.BACK, 2).size() == 4 and Tools.brush_cells(f, Vector3i.BACK, 1) == [f], "brush sizes")
+	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[3]) == [f, f + Vector3i.UP], "the tall brush is two cells one on another")
+	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[4]) == [f], "the line brush places one cell at a time")
+	_check(hand.reach < pick.reach and Tools.of("core:wooden_sword").reach < pick.reach, "tools reach farther than hands and a sword")
+	_check(Items.has(Mat.RECORDS[Mat.GRASS].bonus) and Mat.RECORDS[Mat.GRASS].bonus_chance > 0.0 and Mat.RECORDS[Mat.STONE].bonus == "",
+		"grass sometimes gives fibre")
 	_check(Trees.SPECIES[Trees.OAK].hits > axe.power, "an oak takes more than one swing")
 	var b: Dictionary = Bushes.TYPES[Bushes.RASPBERRY]
 	_check(Items.get_item(b.item).plant == b.id, "a dug-out bush is an item that plants it again")

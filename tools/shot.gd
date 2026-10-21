@@ -99,6 +99,8 @@ const SHOTS := {
 	# lying about, the cursor frame on what the action button digs next.
 	"work": {"time": 0.42, "season": 1, "touch": true, "work": true},
 	"work-pc": {"time": 0.42, "season": 1, "work": true},
+	# The chest by the spawn opened beside the bag.
+	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -253,7 +255,12 @@ func _run() -> void:
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			main.hud.bag._choose(1)
-		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false):
+		if shot.get("chest", false):
+			main.props.chest_items.add("core:log", 3)
+			main.props.chest_items.add("core:raspberry", 12)
+			main.hud.open_chest()
+			main.hud.bag._choose_in_chest(0)
+		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false):
 			await process_frame
 			await process_frame
 		var setup: Control = null
@@ -303,8 +310,10 @@ func _run() -> void:
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
-		if shot.get("bag", false):
+		if shot.get("bag", false) or shot.get("chest", false):
 			main.hud.toggle_bag()
+		if shot.get("chest", false):
+			main.props.chest_items.take_all()
 		if shot.get("gather", false) or shot.get("work", false):
 			main.character.inventory.take_all()
 			main.character.vitals.revive(1.0)

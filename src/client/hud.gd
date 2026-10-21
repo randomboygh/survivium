@@ -401,8 +401,8 @@ func _update_hands() -> void:
 		_hand_right.texture = _slots[game.controls.selected].texture
 	var tool: String = game.controls.tool
 	_hand_left.texture = ItemIcons.of_item(tool) if tool != "" else ItemIcons.picture("hand")
-	var brush: int = game.controls.BRUSHES[game.controls.brush]
-	_hand_right.number = "%d×%d" % [brush, brush] if brush > 1 else ""
+	var brush: Dictionary = game.controls.brush_record()
+	_hand_right.number = brush.title if brush.title != "1×1" else ""
 	_action.text = game.controls.action_name()
 	_action.icon = UiStyle.icon("pick_dark" if game.controls.dig_mode else "place_dark")
 
@@ -456,6 +456,13 @@ func show_keys(on: bool) -> void:
 
 
 # --- Statistics and menu ---------------------------------------------------------
+
+## Opens the bag with the chest beside it.
+func open_chest() -> void:
+	if not bag.visible:
+		toggle_bag()
+	bag.show_chest(game.props.chest_items)
+
 
 ## Opens or closes the bag over the running game.
 func toggle_bag() -> void:

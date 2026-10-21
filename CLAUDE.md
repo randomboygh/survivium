@@ -43,7 +43,7 @@ comments, commits and PRs are in English.
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: the left hand's tool, the right hand's brush,
   strokes, the action button in front; rules in `src/shared/tools.gd`),
-  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (chest, campfire, items lying on the ground, `WorldData.drops`), `minimap.gd`
+  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (chest and what it holds, campfire, items lying on the ground, `WorldData.drops`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
