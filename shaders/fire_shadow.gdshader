@@ -15,10 +15,14 @@ render_mode world_vertex_coords, unshaded, blend_mul, depth_draw_never, cull_dis
 uniform float night = 0.14;
 // The lights nearest to the player (FireShadows.MAX_LIGHTS): xyz where the light is
 // (unsheared), w its range; and how strong each is now. Where other lights shine into a
-// shadow it is only as dark as the light it lacks.
+// shadow it is lighter.
 uniform vec4 lights[8];
 uniform float strengths[8];
 uniform int light_count = 0;
+// How much of the other lights' light counts against a shadow: all of it would make
+// shadows between close fires all but vanish, none would draw them as dark as under one
+// fire, even over another fire.
+const float OTHER_LIGHTS = 0.35;
 
 varying vec3 world_pos;
 varying flat vec4 shape;
@@ -55,7 +59,7 @@ void fragment() {
 	for (int i = 0; i < light_count; i++) {
 		all += ring(distance(world_pos, lights[i].xyz) / lights[i].w) * strengths[i];
 	}
-	all = max(all, own);
+	all = own + OTHER_LIGHTS * max(all - own, 0.0);
 	float left = (night + all - own) / (night + all);
 	// What the warm light leaves is the cool light of the night.
 	ALBEDO = vec3(left, mix(left, 1.0, 0.06), mix(left, 1.0, 0.2));

@@ -45,6 +45,9 @@ const SHOTS := {
 	# shadows from every fire.
 	"three-fires": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4),
 		"more_fires": [Vector3(4.5, 0.0, -4.0), Vector3(-3.5, 0.0, -5.0)], "animal": Vector3(-1.6, 0.0, -2.6)},
+	# The same three fires close round the player, so the shadows cross.
+	"three-fires-close": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.6),
+		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8)},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
