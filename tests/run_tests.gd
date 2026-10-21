@@ -903,6 +903,23 @@ func _test_bushes() -> void:
 				for id in ids:
 					found[id] = true
 	_check(same and found.has(Plants.TUFT), "grass has its plants, the same each time")
+	# Cut short, grass keeps only its low tufts; sown with grain, ears stand on it.
+	var tall := Vector3i(-1, -1, -1)
+	for at: Vector3i in w.bushes:
+		for dz in range(-3, 4):
+			for dx in range(-3, 4):
+				var c := at + Vector3i(dx, -1, dz)
+				if tall.y < 0 and Foliage.plants_on(w, c.x, c.y, c.z).any(func(id) -> bool: return id != Plants.TUFT):
+					tall = c
+	_check(tall.y >= 0, "some grass has more than tufts on it")
+	if tall.y >= 0:
+		w.set_turf(tall, "")
+		var short := Foliage.plants_on(w, tall.x, tall.y, tall.z)
+		_check(not short.is_empty() and short.all(func(id) -> bool: return id == Plants.TUFT), "grass cut short has only tufts")
+		w.set_turf(tall, Plants.EARS)
+		_check(Foliage.plants_on(w, tall.x, tall.y, tall.z).count(Plants.EARS) >= 2, "sown grass grows ears")
+		w.set_cell(tall.x, tall.y, tall.z, Mat.DIRT)
+		_check(w.turf_at(tall) == null, "a changed cell forgets what grew on it")
 
 
 func _test_sprite_sheet() -> void:
@@ -1062,8 +1079,9 @@ func _test_tools() -> void:
 	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].mow_gives.keys()[0]), "cut grass gives fibre")
 	var rng := RandomNumberGenerator.new()
-	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("core:wheat", 0) == 2,
-		"ears give wheat")
+	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("core:grain", 0) == 4,
+		"ears give grain")
+	_check(Tools.use_of("core:grain") == "sow" and Items.get_item("core:grain").crop == Plants.EARS, "grain is sown into ears")
 	_check(Plants.harvest(["core:nothing"], rng).is_empty(), "an unknown plant gives nothing")
 	_check(Trees.SPECIES[Trees.OAK].twigs > 0 and Trees.SPECIES[Trees.OAK].seeds > 0, "a standing oak gives branches and acorns by hand")
 	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
@@ -1097,7 +1115,7 @@ func _test_crafting() -> void:
 	_check(Crafting.check().is_empty(), "every recipe can be made, at a real station: %s" % Crafting.check())
 	var have := Crafting.reachable()
 	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe", "core:workbench",
-			"core:kiln", "core:brick", "core:wheat", "core:grass_seeds"]:
+			"core:kiln", "core:brick", "core:grain", "core:grass_seeds", "core:flatbread"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
 	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
 	var cord := Crafting.get_recipe("core:cord")
@@ -1305,6 +1323,8 @@ func _test_save() -> void:
 	if not bushes.is_empty():
 		w.remove_bush(bushes[0])
 	w.tree_twigs[trunk] = 2
+	var lawn := Vector3i(x0 + 8, w.surface_y(x0 + 8, z0 + 3) - 1, z0 + 3)
+	w.set_turf(lawn, "")
 	# Grass cut off a natural slope leaves dirt of the same shape.
 	var cut := Vector3i(-1, -1, -1)
 	for z in range(z0, z0 + WorldData.CHUNK):
@@ -1334,8 +1354,8 @@ func _test_save() -> void:
 	for i in range(area.size() - 1, -1, -1):
 		_ensure_stage(b, area[i], WorldGen.SHAPED)
 	_check(_same_cells(b.world, w, area) and _same_view(b, b.world, w, area), "changed chunks come back from the save")
-	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops and b.world.tree_twigs == w.tree_twigs,
-		"with their trees, bushes, what was gathered and what lies on the ground")
+	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops and b.world.tree_twigs == w.tree_twigs
+		and b.world.turf_at(lawn) == "", "with their trees, bushes, what was gathered and cut and what lies on the ground")
 	_check(b.world.unsaved.is_empty() and b.world.chunks[home].edited, "and stay kept without a new save")
 	# A neighbour dropped and made again regrows the crowns of the saved chunk's trees.
 	var remade := 0

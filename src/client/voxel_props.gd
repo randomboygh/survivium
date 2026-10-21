@@ -90,7 +90,7 @@ static func chest() -> VoxelModel:
 
 ## Things lying on the ground (see WorldData.drops), centred on the origin and lying
 ## on it, by model name (an item's `model`): a log, a branch, an acorn, a cone, the
-## tools, a dug-out bush, a sheaf of ears, seeds, a sack left by a death and a bundle for any item without a
+## tools, a dug-out bush, grain, flour, a flatbread, seeds, a sack left by a death and a bundle for any item without a
 ## model of its own (a block has one of its colour, see block()).
 static func drop(model: String) -> VoxelModel:
 	match model:
@@ -112,8 +112,12 @@ static func drop(model: String) -> VoxelModel:
 			return _sword()
 		"scythe":
 			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
-		"wheat":
-			return _wheat()
+		"grain":
+			return _heap(Color(0.82, 0.66, 0.32))
+		"flour":
+			return _heap(Color(0.92, 0.9, 0.84))
+		"flatbread":
+			return _flatbread()
 		"seeds":
 			return _seeds()
 		"bush":
@@ -255,18 +259,29 @@ static func _fiber() -> VoxelModel:
 	return m
 
 
-## A sheaf of ears lying flat: golden stalks with heavier ears at one end.
-static func _wheat() -> VoxelModel:
+## A small heap of something loose (grain, flour) of colour `c`.
+static func _heap(c: Color) -> VoxelModel:
 	var m := VoxelModel.new()
-	var stalk := Color(0.72, 0.6, 0.32)
-	var ear := Color(0.86, 0.72, 0.38)
-	for z in range(-1, 2):
-		for x in range(-4, 3):
-			m.set_voxel(Vector3i(x, 0, z), stalk * (0.9 if (x + z) % 2 == 0 else 1.0))
-		for x in range(3, 6):
-			m.set_voxel(Vector3i(x, 0, z), ear * (1.1 if (x + z) % 2 == 0 else 1.0))
-	m.set_voxel(Vector3i(4, 1, 0), ear * 1.15)
-	m.set_voxel(Vector3i(-1, 1, 0), Color(0.45, 0.32, 0.18))
+	for z in range(-2, 2):
+		for x in range(-2, 2):
+			m.set_voxel(Vector3i(x, 0, z), c * (0.88 if (x + z) % 2 == 0 else 1.0))
+	for p in [Vector3i(-1, 1, -1), Vector3i(0, 1, -1), Vector3i(-1, 1, 0), Vector3i(0, 1, 0)]:
+		m.set_voxel(p, c * 1.1)
+	return m
+
+
+## A round flatbread lying flat.
+static func _flatbread() -> VoxelModel:
+	var m := VoxelModel.new()
+	var crust := Color(0.72, 0.5, 0.26)
+	var top := Color(0.84, 0.66, 0.38)
+	for z in range(-3, 3):
+		for x in range(-3, 3):
+			if (x == -3 or x == 2) and (z == -3 or z == 2):
+				continue
+			m.set_voxel(Vector3i(x, 0, z), crust)
+			if absi(x * 2 + 1) < 5 and absi(z * 2 + 1) < 5:
+				m.set_voxel(Vector3i(x, 1, z), top * (0.9 if (x * 3 + z) % 4 == 0 else 1.0))
 	return m
 
 

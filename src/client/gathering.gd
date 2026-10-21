@@ -4,9 +4,10 @@ extends RefCounted
 ## plants: hands pick berries in summer and autumn and break branches off bushes and
 ## standing trees (seeds too in autumn), a sword knocks the berries to the ground, an
 ## axe fells a bush into branches, a shovel digs it out to plant elsewhere; hands, a
-## sword and a scythe cut the grass off the ground (Controls), which gives fibre and
-## what grew on it (Plants: wheat from ears, seeds from flowers). Bushes and seeds are
-## planted from the hand or the bag. A tap or a click finds the nearest thing to gather
+## sword and a scythe cut the grass (Controls): first what grows tall on it (Plants:
+## grain from ears, seeds from flowers, fibre from tall grass), then the grass itself
+## down to the ground, for fibre. Bushes, grass seeds and grain are planted from the
+## hand or the bag. A tap or a click finds the nearest thing to gather
 ## within a finger's reach of the point on the screen (plan/design/ui.md: cells are too
 ## small to hit), within reach of the player. Things lying close to the player fly into
 ## the bag by themselves unless the setting is off; what the player threw away waits
@@ -386,9 +387,11 @@ func _tree_seeds_left(col: Vector2i, s: Dictionary) -> int:
 	return s.seeds - game.world.tree_seeds.get(col, 0)
 
 
-## Cuts the grass off the top of `cells` (see Controls.can_mow): each becomes the
-## material under it (its `mow`), and what it gives (the material's `mow_gives` and what
-## the plants on it give, see Plants) falls on it. True if anything was cut.
+## Cuts the grass on top of `cells` (see Controls.can_mow) in two stages: first what
+## grows tall on it (tall grass, flowers, ears, reeds; see Plants), and the cell stays
+## grass cut short until spring (WorldData.turf); grass with nothing tall on it is cut
+## down to the material under it (its `mow`) and gives its `mow_gives` with what the
+## low grass had. What is cut falls on the cell. True if anything was cut.
 func mow(cells: Array[Vector3i]) -> bool:
 	if not game.character.act("cut"):
 		return false
@@ -400,14 +403,22 @@ func mow(cells: Array[Vector3i]) -> bool:
 		if to < 0:
 			continue
 		var plants := Foliage.plants_on(world, c.x, c.y, c.z)
+		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([c, game.sky.day])
-		var gives := Plants.harvest(plants, rng)
-		var own: Dictionary = Mat.RECORDS[m].mow_gives
-		for id in own:
-			gives[id] = gives.get(id, 0) + own[id]
-		world.set_material(c.x, c.y, c.z, to)
-		game.chunks.on_cell_changed(c)
+		var gives := {}
+		if not tall.is_empty():
+			gives = Plants.harvest(tall, rng)
+			world.set_turf(c, "")
+			game.chunks.remesh_chunk(WorldData.chunk_key(c.x, c.z))
+		else:
+			gives = Plants.harvest(plants, rng)
+			var own: Dictionary = Mat.RECORDS[m].mow_gives
+			for id in own:
+				gives[id] = gives.get(id, 0) + own[id]
+			world.set_turf(c, null)
+			world.set_material(c.x, c.y, c.z, to)
+			game.chunks.on_cell_changed(c)
 		if game.settings.free_build:
 			continue
 		var at: Vector3 = game.controls.floor_under(c + Vector3i.UP)
@@ -487,6 +498,7 @@ func plant_at(id: String, cell: Vector3i) -> bool:
 		game.chunks.remesh_chunk(WorldData.chunk_key(at.x, at.z))
 	else:
 		world.set_material(cell.x, cell.y, cell.z, Mat.index(item.sow))
+		world.set_turf(cell, item.crop)
 		game.chunks.on_cell_changed(cell)
 	return true
 
@@ -528,7 +540,7 @@ func _twigs_left(cell: Vector3i, b: Dictionary) -> int:
 
 
 ## A new season: in spring the bushes and trees have their berries, branches and
-## seeds again.
+## seeds again, and grass cut short grows tall.
 func on_season(season: int) -> void:
 	if season != SPRING:
 		return
@@ -544,5 +556,12 @@ func on_season(season: int) -> void:
 	world.bush_twigs.clear()
 	world.tree_twigs.clear()
 	world.tree_seeds.clear()
+	# Grass cut short grows tall again; what was sown stays.
+	for key: Vector2i in world.turf.keys():
+		var cells: Dictionary = world.turf[key]
+		for cell: Vector3i in cells.keys():
+			if cells[cell] == "":
+				world.set_turf(cell, null)
+				keys[key] = true
 	for key in keys:
 		game.chunks.remesh_chunk(key)

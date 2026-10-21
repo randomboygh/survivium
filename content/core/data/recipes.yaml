@@ -16,6 +16,11 @@
   makes: campfire
   needs: {branch: 5, fiber: 5}
   time: 4
+- id: flour
+  title: Мука
+  makes: flour
+  needs: {grain: 4}
+  time: 4
 - id: workbench
   title: Верстак
   makes: workbench
@@ -81,3 +86,9 @@
   needs: {clay: 1}
   at: kiln
   time: 4
+- id: flatbread
+  title: Лепёшка
+  makes: flatbread
+  needs: {flour: 2}
+  at: kiln
+  time: 5

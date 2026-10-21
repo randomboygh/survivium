@@ -232,6 +232,8 @@ func refresh() -> void:
 		slot.texture = ItemIcons.of_item(s[0]) if s != null else null
 		slot.number = str(s[1]) if s != null and s[1] > 1 else ""
 		slot.selected = i == _chosen
+		# The first row is the hotbar: its slots carry their numbers.
+		slot.key = str(i + 1) if i < inv.HOTBAR else ""
 	_chest_title.visible = _chest != null
 	_chest_grid.visible = _chest != null
 	if _chest != null:

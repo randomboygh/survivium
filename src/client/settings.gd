@@ -7,6 +7,8 @@ extends RefCounted
 ## Saved as user://settings.cfg (IndexedDB in the browser). `game` is the Main node.
 
 const PixelView := preload("res://src/client/pixel_view.gd")
+const Mat := preload("res://src/shared/materials.gd")
+const Items := preload("res://src/shared/items.gd")
 
 const PATH := "user://settings.cfg"
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
@@ -182,8 +184,14 @@ func set_air_jumps(on: bool) -> void:
 	apply()
 
 
+## Free building places blocks without spending them, but a block is taken in the hand
+## from the bag, so turning it on puts one of each block the bag lacks into it.
 func set_free_build(on: bool) -> void:
 	free_build = on
+	if on and game.character != null:
+		for m in Mat.PLACEABLE:
+			if game.character.inventory.count(Items.placed_by[m]) == 0:
+				game.character.give(Items.placed_by[m], 1)
 	if game.hud != null:
 		game.hud.refresh_counts()
 

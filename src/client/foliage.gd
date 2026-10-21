@@ -259,6 +259,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var rng := job.rng
 	var trunks := job.trunks
 	var col := WorldData.col_of(x, z)
+	var turf: Dictionary = w.turf.get(ch.key, {})
 	var air: int = ch.air[col]
 	# Ground with air above.
 	var tops: int = ~(air | ch.water[col] | ch.leaf[col]) & w.all_bits & ((air >> 1) | w.top_bit)
@@ -274,6 +275,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 		var mask := WorldData.FULL & ~(shapes[i] & 15)
 		var cuts := shapes[i] >> 4
 		var kinds := _kinds(w, x, y, z, m, mask == WorldData.FULL and cuts == 0, rng)
+		if not turf.is_empty() and turf.has(Vector3i(x, y, z)):
+			kinds = _turf(kinds, turf[Vector3i(x, y, z)], rng)
 		for kind in kinds:
 			var fx := rng.randi_range(1, 7) / 8.0
 			var fz := rng.randi_range(1, 7) / 8.0
@@ -416,9 +419,30 @@ static func plants_on(w, x: int, y: int, z: int) -> Array:
 	var shape: int = ch.shapes[y * WorldData.LAYER + WorldData.col_of(x, z)]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(Vector3i(x, y, z))
+	var kinds := _kinds(w, x, y, z, m, shape == 0, rng)
+	var grown: Variant = w.turf_at(Vector3i(x, y, z))
+	if grown != null:
+		kinds = _turf(kinds, grown, rng)
 	var out := []
-	for kind in _kinds(w, x, y, z, m, shape == 0, rng):
+	for kind in kinds:
 		out.append(plant_of(kind))
+	return out
+
+
+## The plants of a grass cell the player changed (see WorldData.turf): cut short, only
+## low grass is left of what grew there (`grown` ""); sown, ears stand among it.
+static func _turf(kinds: Array[int], grown: String, rng: RandomNumberGenerator) -> Array[int]:
+	var out: Array[int] = []
+	for kind in kinds:
+		if kind >= TALL:
+			out.append(LOW + kind - TALL)
+		elif kind < FLOWER or kind >= LOW:
+			out.append(kind)
+	if grown == Plants.EARS:
+		for k in 2:
+			out.append(EAR + rng.randi_range(0, 1))
+	elif grown == Plants.FLOWERS:
+		out.append(FLOWER + rng.randi_range(0, 3))
 	return out
 
 

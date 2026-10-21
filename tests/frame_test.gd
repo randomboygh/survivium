@@ -183,7 +183,10 @@ func _run() -> void:
 		spot.y += 1
 	while spot.y > 1 and not w.is_solid(spot.x, spot.y - 1, spot.z):
 		spot.y -= 1
-	c.select_block(Mat.PLACEABLE.find(Mat.STONE))
+	var slot0 = inv.slots[0]
+	c.select_slot(0)
+	_check(slot0 != null and c.held() == slot0[0], "a hotbar slot is the bag's first row")
+	c.put_in_hand("core:stone")
 	c.brush = 2
 	var stone_before: int = inv.count("core:stone")
 	var placed: int = c.place_at(spot, Vector3i.UP)

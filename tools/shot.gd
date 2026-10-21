@@ -376,7 +376,7 @@ func _work() -> void:
 	main.settings.give_tools()
 	main.character.inventory.add("core:stone", 20)
 	var f: Vector3i = c.feet()
-	c.select_block(Mat.PLACEABLE.find(Mat.STONE))
+	c.put_in_hand("core:stone")
 	c.brush = 2
 	var spot := f + Vector3i(-4, 0, -4)
 	spot.y = w.surface_y(spot.x, spot.z)
@@ -395,16 +395,22 @@ func _work() -> void:
 		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
 	c.hold("core:wooden_sword")
 	main.gathering.gather({"bush": bush})
-	# A patch of grass cut by the scythe west of the player: dirt with fibre on it.
+	# A patch of grass cut by the scythe west of the player: the near row cut once (short
+	# grass), the next cut twice (dirt with fibre on it), the far row cut twice and sown
+	# with grain (ears).
 	c.put_in_hand("core:stone_scythe", 1, false)
+	main.character.inventory.add("core:grain", 5)
 	var mown := 0
 	for i in 15:
 		var cell := f + Vector3i(-7 + i % 5, 0, 1 + i / 5)
 		cell.y = w.surface_y(cell.x, cell.z) - 1
 		var one: Array[Vector3i] = [cell]
-		if c.can_mow(cell) and main.gathering.mow(one):
-			mown += 1
-	print("grass cut on %d cells" % mown)
+		for k in 1 if i < 5 else 2:
+			if c.can_mow(cell) and main.gathering.mow(one):
+				mown += 1
+		if i >= 10:
+			main.gathering.plant_at("core:grain", cell)
+	print("grass cut %d times" % mown)
 	c.put_in_hand("core:wooden_shovel", 0, false)
 	c.set_active(1)
 	main.player.facing = "s"

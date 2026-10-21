@@ -53,6 +53,7 @@ const SCHEMAS := {
 		"swing": {"type": "float", "min": 0.05, "default": 0.5},
 		"plant": {"type": "ref:bushes", "default": ""},
 		"sow": {"type": "ref:materials", "default": ""},
+		"crop": {"type": "ref:plants", "default": ""},
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
 		"repair": {"type": "amounts", "of": "ref:items", "default": {}},

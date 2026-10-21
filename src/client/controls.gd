@@ -27,6 +27,7 @@ const Trees := preload("res://src/shared/trees.gd")
 const Items := preload("res://src/shared/items.gd")
 const Tools := preload("res://src/shared/tools.gd")
 const Foliage := preload("res://src/client/foliage.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
 
 const CELL := WorldData.CELL
 ## How often the hint under the mouse pointer is updated, in seconds.
@@ -70,7 +71,6 @@ func _init(g) -> void:
 	game = g
 	touch = DisplayServer.is_touchscreen_available()
 	show_help = not touch
-	hands[1] = Items.placed_by[Mat.PLACEABLE[0]]
 
 
 func to_dict() -> Dictionary:
@@ -115,8 +115,8 @@ func input(event: InputEvent) -> void:
 func unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.physical_keycode
-		if key >= KEY_1 and key < KEY_1 + Mat.PLACEABLE.size():
-			select_block(key - KEY_1)
+		if key >= KEY_1 and key < KEY_1 + Inventory.HOTBAR:
+			select_slot(key - KEY_1)
 		match key:
 			KEY_Q, KEY_PAGEDOWN:
 				game.chunks.shift_cut(-1)
@@ -145,7 +145,7 @@ func unhandled_input(event: InputEvent) -> void:
 		if not _stroke.is_empty():
 			_stroke.pos = event.position
 	elif event is InputEventMouseButton and event.pressed:
-		var n: int = Mat.PLACEABLE.size()
+		var n := Inventory.HOTBAR
 		# With a mouse each button is a hand; a tap on a touch screen uses the hand in use.
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
@@ -153,9 +153,9 @@ func unhandled_input(event: InputEvent) -> void:
 			MOUSE_BUTTON_RIGHT:
 				tap(1, event.position, MOUSE_BUTTON_RIGHT)
 			MOUSE_BUTTON_WHEEL_UP:
-				select_block((_block_index() - 1 + n) % n)
+				select_slot((_slot_index() - 1 + n) % n)
 			MOUSE_BUTTON_WHEEL_DOWN:
-				select_block((_block_index() + 1) % n)
+				select_slot((_slot_index() + 1) % n)
 
 
 ## A tap or a click at `pos` with hand `hand` (pressed with mouse `button`, which may
@@ -261,18 +261,19 @@ func hold(id: String) -> void:
 	put_in_hand(id)
 
 
-## Takes block `i` of the hotbar into the hand in use.
-func select_block(i: int) -> void:
-	put_in_hand(Items.placed_by[Mat.PLACEABLE[i]], -1, false)
+## Takes what lies in slot `i` of the hotbar (the bag's first row) into the hand in
+## use; an empty slot empties the hand.
+func select_slot(i: int) -> void:
+	var s = game.character.inventory.slots[i]
+	put_in_hand(s[0] if s != null else "", -1, false)
 
 
-## The hotbar block held in the hand in use, else in the other hand; -1 for none.
-func _block_index(hand := -1) -> int:
-	var h := active if hand < 0 else hand
-	for id in [hands[h], hands[1 - h]]:
-		var m := Mat.index(Items.get_item(id).get("place", "")) if id != "" else -1
-		if m >= 0 and Mat.PLACEABLE.has(m):
-			return Mat.PLACEABLE.find(m)
+## The hotbar slot holding what the hand in use holds, -1 for none.
+func _slot_index() -> int:
+	var slots: Array = game.character.inventory.slots
+	for i in Inventory.HOTBAR:
+		if slots[i] != null and slots[i][0] == held():
+			return i
 	return -1
 
 

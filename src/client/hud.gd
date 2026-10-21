@@ -16,11 +16,10 @@ const TouchButton := preload("res://src/client/touch_button.gd")
 const SettingsMenu := preload("res://src/client/settings_menu.gd")
 const Minimap := preload("res://src/client/minimap.gd")
 const MapView := preload("res://src/client/map_view.gd")
-const Mat := preload("res://src/shared/materials.gd")
-const Items := preload("res://src/shared/items.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const VitalsPanel := preload("res://src/client/vitals_panel.gd")
 const InventoryWindow := preload("res://src/client/inventory_window.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
 
 const MARGIN := 8.0
 const CELL := 0.5
@@ -30,7 +29,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–7, колесо — блок в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -161,7 +160,7 @@ func _ready() -> void:
 	sep_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sep_box.add_child(sep)
 	bar_row.add_child(sep_box)
-	for i in Mat.PLACEABLE.size():
+	for i in Inventory.HOTBAR:
 		var s = _slot(bar_row, _select_slot.bind(i))
 		_slots.append(s)
 	_next_button = _icon_button(bar_row, "next", "Следующие ячейки", _next_page)
@@ -333,31 +332,22 @@ func _next_page() -> void:
 
 # --- Per-frame state -------------------------------------------------------------
 
-## Fills the hotbar with block icons cut from the terrain atlas.
+## Gives the item pictures the terrain atlas, for blocks without a picture of their own.
 func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 	ItemIcons.use_atlas(atlas, tile, tiles)
-	for i in _slots.size():
-		var m: int = Mat.PLACEABLE[i]
-		var t := m * 3
-		var icon := AtlasTexture.new()
-		icon.atlas = atlas
-		# The middle 12x12 of the 16 px tile, drawn twice as large.
-		icon.region = Rect2((t % tiles) * tile + 2, floori(t / float(tiles)) * tile + 2, 12, 12)
-		_slots[i].texture = icon
 	refresh_counts()
-	_update_hands()
 
 
-## Shows on each hotbar block how many the bag holds (none with free building) and,
-## with a mouse, its key.
+## Shows the bag's first row on the hotbar: each item with how many there are and, with
+## a mouse, its key; then the hands.
 func refresh_counts() -> void:
 	if game == null:
 		return
-	var free: bool = game.settings.free_build
+	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
-		var n: int = game.character.inventory.count(Items.placed_by[Mat.PLACEABLE[i]])
-		_slots[i].number = "" if free else str(n)
-		_slots[i].modulate = Color.WHITE if free or n > 0 else Color(1, 1, 1, 0.5)
+		var s = slots[i]
+		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
+		_slots[i].number = str(s[1]) if s != null and s[1] > 1 else ""
 		_slots[i].key = "" if touch else str(i + 1)
 	_update_hands()
 
@@ -401,10 +391,11 @@ func _update_hands() -> void:
 			slot.number = brush.title if brush.title != "1×1" else ""
 		else:
 			slot.number = str(n) if n > 1 else ""
+	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
-		var item: String = Items.placed_by[Mat.PLACEABLE[i]]
-		_slots[i].selected = c.held() == item
-		_slots[i].tag = "Л" if c.hands[0] == item else ("П" if c.hands[1] == item else "")
+		var item: String = slots[i][0] if slots[i] != null else ""
+		_slots[i].selected = item != "" and c.held() == item
+		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else ""))
 	_action.text = c.action_name()
 	_action.icon = UiStyle.icon("place_dark" if c.use_of() in ["place", "plant", "sow", "prop"] else "pick_dark")
 
@@ -425,7 +416,7 @@ func _tap_hand(hand: int) -> void:
 
 
 func _select_slot(i: int) -> void:
-	game.controls.select_block(i)
+	game.controls.select_slot(i)
 
 
 func set_loading(text: String) -> void:
