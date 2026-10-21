@@ -132,22 +132,30 @@ static func chest() -> VoxelModel:
 ## The boxes model `m` (a thing on 2x2 cells) takes in each of its cells, for
 ## WorldData.blockers: [north-west, north-east, south-west, south-east], each in cell
 ## units from that cell's corner (8 voxels a cell), with no size where it leaves the
-## cell empty.
+## cell empty. A layer much smaller than the one under it (a flint lying on a
+## workbench) is left out of the box's top, so it does not lift the player off the planks.
 static func footprint(m: VoxelModel) -> Array[AABB]:
 	var lo: Array[Vector3i] = []
 	var hi: Array[Vector3i] = []
+	var layers: Array[Dictionary] = []
 	for i in 4:
 		lo.append(Vector3i(8, 0, 8))
 		hi.append(Vector3i.ZERO)
+		layers.append({})
 	for p: Vector3i in m.voxels:
 		var i := (p.z >> 3) * 2 + (p.x >> 3)
 		var q := Vector3i(p.x & 7, 0, p.z & 7)
 		lo[i] = lo[i].min(q)
-		hi[i] = hi[i].max(q + Vector3i(1, p.y + 1, 1))
+		hi[i] = hi[i].max(q + Vector3i(1, 0, 1))
+		layers[i][p.y] = layers[i].get(p.y, 0) + 1
 	var out: Array[AABB] = []
 	for i in 4:
 		var size := (hi[i] - lo[i]).max(Vector3i.ZERO)
-		out.append(AABB(Vector3(lo[i].x, 0, lo[i].z) / 8.0, Vector3(size.x, hi[i].y, size.z) / 8.0) if size.x > 0 else AABB())
+		var top := 0
+		for y: int in layers[i]:
+			if y + 1 > top and layers[i][y] * 4 >= layers[i].get(y - 1, 0):
+				top = y + 1
+		out.append(AABB(Vector3(lo[i].x, 0, lo[i].z) / 8.0, Vector3(size.x, top, size.z) / 8.0) if size.x > 0 else AABB())
 	return out
 
 

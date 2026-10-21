@@ -466,12 +466,38 @@ func _test_steps() -> void:
 	_check(is_equal_approx(chest[0].position.x, 0.125) and is_equal_approx(chest[3].end.x, 0.875)
 		and is_equal_approx(chest[0].position.z, 0.375) and is_equal_approx(chest[3].end.z, 0.75)
 		and is_equal_approx(chest[0].end.y, 1.25), "a chest's boxes are the model's, not its whole cells")
+	var bench := VoxelProps.footprint(VoxelProps.prop("workbench"))
+	_check(is_equal_approx(bench[0].end.y, 1.0) and is_equal_approx(bench[3].end.y, 1.0)
+		and is_equal_approx(VoxelProps.footprint(VoxelProps.prop("kiln"))[0].end.y, 1.75),
+		"a workbench is stood on at its planks, not on what lies on them; the kiln's dome counts")
 	_check(_walk_to_thing(false, 5.9).x < 4.7, "a chest is not walked through")
 	_check(_walk_to_thing(false, 7.3).x > 6.0, "the strip south of a chest's lock is walked along")
 	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")
 	var on_top := _walk_to_thing(true, 5.9)
 	_check(is_equal_approx(on_top.y, 2.25), "a jump gets up onto a chest")
-	_check(is_equal_approx(_walk_to_thing(true, 7.3).y, 1.0), "a jump by the chest's front does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 7.0).y, 1.0), "a jump by the chest's front does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 5.1).y, 1.0), "a jump by the chest's back does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 5.5).y, 2.25), "a jump just inside the chest's back edge stands on its lid")
+	_check(is_equal_approx(_drop_by_block(4.7), 1.0) and is_equal_approx(_drop_by_block(4.9), 2.0),
+		"the feet stand on a block only near its north edge, not a body's depth beyond it")
+
+
+## Drops the player at `z` from above a stone block on cell (5, 1, 5) of a stone floor;
+## returns the height the feet come to rest at, in cells.
+func _drop_by_block(z: float) -> float:
+	var w := WorldData.new(6, Vector2i(16, 16))
+	for cz in 16:
+		for cx in 16:
+			w.set_cell(cx, 0, cz, Mat.STONE)
+	w.set_cell(5, 1, 5, Mat.STONE)
+	var player = PlayerScript.new()
+	player.world = w
+	player.position = Vector3(5.5, 2.5, z) * WorldData.CELL
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+	var y: float = player.position.y / WorldData.CELL
+	player.free()
+	return y
 
 
 ## Walks east at `z` past a chest standing on cells x 5..6, z 5..6 (see
@@ -553,7 +579,7 @@ func _test_corners() -> void:
 	player.world = w
 	_check(not player._collides(Vector3(2.6, 1.0, 2.6)) and player._collides(Vector3(3.05, 1.0, 3.05)),
 		"a walker fits into a cut corner but not into the cliff")
-	_check(player._collides(Vector3(5.6, 1.0, 4.3)) and not player._collides(Vector3(5.9, 1.0, 4.0)),
+	_check(player._collides(Vector3(5.6, 1.0, 4.55)) and not player._collides(Vector3(5.9, 1.0, 4.0)),
 		"a filled corner blocks a walker")
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]

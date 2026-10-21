@@ -17,6 +17,10 @@ const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 const CELL := WorldData.CELL
 ## Body and motion in cells: a little narrower than a cell, a little under two tall.
 const HALF_WIDTH := 0.44
+## The body is thin north to south: the sprite has no depth, and the 3/4 view draws
+## anything deeper as feet off what they stand on (in the air over the back edge of a
+## chest's lid, or hanging in front of it).
+const HALF_DEPTH := 0.2
 const HEIGHT := 1.8
 const SPEED := 8.0
 const GRAVITY := 44.0
@@ -339,7 +343,7 @@ func level() -> int:
 func overlaps_cell(cell: Vector3i) -> bool:
 	var p := position / CELL
 	return cell.x == clampi(cell.x, floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH)) \
-		and cell.z == clampi(cell.z, floori(p.z - HALF_WIDTH), floori(p.z + HALF_WIDTH)) \
+		and cell.z == clampi(cell.z, floori(p.z - HALF_DEPTH), floori(p.z + HALF_DEPTH)) \
 		and cell.y == clampi(cell.y, floori(p.y + 0.001), floori(p.y + HEIGHT))
 
 
@@ -382,8 +386,8 @@ func _water_surface(p: Vector3) -> float:
 func _collides(p: Vector3) -> bool:
 	var x0 := floori(p.x - HALF_WIDTH)
 	var x1 := floori(p.x + HALF_WIDTH)
-	var z0 := floori(p.z - HALF_WIDTH)
-	var z1 := floori(p.z + HALF_WIDTH)
+	var z0 := floori(p.z - HALF_DEPTH)
+	var z1 := floori(p.z + HALF_DEPTH)
 	var y0 := floori(p.y + 0.001)
 	var y1 := floori(p.y + HEIGHT)
 	for y in range(y0, y1 + 1):
@@ -404,7 +408,7 @@ func _collides(p: Vector3) -> bool:
 func _ground_top(p: Vector3, lo: float, hi: float) -> float:
 	var best := -INF
 	for y in range(floori(lo), floori(hi) + 1):
-		for z in range(floori(p.z - HALF_WIDTH), floori(p.z + HALF_WIDTH) + 1):
+		for z in range(floori(p.z - HALF_DEPTH), floori(p.z + HALF_DEPTH) + 1):
 			for x in range(floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH) + 1):
 				var f := _footprint(x, z, p)
 				if not world.ground_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y):
@@ -418,8 +422,8 @@ func _ground_top(p: Vector3, lo: float, hi: float) -> float:
 ## The part of the cell (x, z) under the footprint of a body at `p`, in 0..1 cell
 ## coordinates: position = (min x, min z), end = (max x, max z).
 func _footprint(x: int, z: int, p: Vector3) -> Rect2:
-	var a := Vector2(clampf(p.x - HALF_WIDTH - x, 0.0, 1.0), clampf(p.z - HALF_WIDTH - z, 0.0, 1.0))
-	var b := Vector2(clampf(p.x + HALF_WIDTH - x, 0.0, 1.0), clampf(p.z + HALF_WIDTH - z, 0.0, 1.0))
+	var a := Vector2(clampf(p.x - HALF_WIDTH - x, 0.0, 1.0), clampf(p.z - HALF_DEPTH - z, 0.0, 1.0))
+	var b := Vector2(clampf(p.x + HALF_WIDTH - x, 0.0, 1.0), clampf(p.z + HALF_DEPTH - z, 0.0, 1.0))
 	return Rect2(a, b - a)
 
 
@@ -441,8 +445,8 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 	var patch: PackedFloat32Array = world.surface_patch(x, y, z)
 	var ax := clampf(p.x - HALF_WIDTH - x, 0.0, 1.0)
 	var bx := clampf(p.x + HALF_WIDTH - x, 0.0, 1.0)
-	var az := clampf(p.z - HALF_WIDTH - z, 0.0, 1.0)
-	var bz := clampf(p.z + HALF_WIDTH - z, 0.0, 1.0)
+	var az := clampf(p.z - HALF_DEPTH - z, 0.0, 1.0)
+	var bz := clampf(p.z + HALF_DEPTH - z, 0.0, 1.0)
 	var top := -INF
 	for i in 3:
 		for k in 3:
