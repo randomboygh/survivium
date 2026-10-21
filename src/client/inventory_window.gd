@@ -16,6 +16,10 @@ const CraftPanel := preload("res://src/client/craft_panel.gd")
 const Workshop := preload("res://src/client/workshop.gd")
 
 const SLOT := 40
+## Room kept between the window and the edges of the screen, in UI pixels.
+const EDGE := 4
+## Room kept free at the bottom of the screen for the hotbar (and its frame).
+const HOTBAR := 52
 
 var game
 var _state: Label
@@ -70,9 +74,7 @@ func _ready() -> void:
 	_state = UiStyle.label()
 	box.add_child(_state)
 	craft = CraftPanel.new(game)
-	craft.on_layout = func() -> void:
-		reset_size()
-		position = ((get_parent_area_size() - size) * 0.5).floor()
+	craft.on_layout = _place
 	craft.visible = false
 	box.add_child(craft)
 	_bag_page = VBoxContainer.new()
@@ -177,17 +179,33 @@ func toggle() -> void:
 		open()
 
 
-## Lays the slots out for a screen `screen` UI pixels large: eight across on a wide
-## screen, four on a narrow one, the window in the middle.
+## Lays the slots out for a screen `screen` UI pixels large: eight across when they fit
+## between the edges with the window's frame (12 px), else four; the craft tab as wide
+## as the slots, its recipes' buttons under their text with four across.
 func fit(screen: Vector2) -> void:
-	_grid.columns = 8 if screen.x >= 8 * (SLOT + 4) + 40 else 4
+	var room := screen.x - 2 * EDGE - 12
+	_grid.columns = 8 if room >= 8 * (SLOT + 4) - 4 else 4
 	_chest_grid.columns = _grid.columns
 	craft.custom_minimum_size.x = _grid.columns * (SLOT + 4) - 4
 	craft.narrow = _grid.columns < 8
-	# The rest of the window (tabs, state, stations, queue) takes about 170 UI pixels.
+	# The rest of the window (tabs, state, stations, queue) takes about 170 UI pixels;
+	# _place takes more off the list if the window still does not fit.
 	craft.list_height = clampi(int(screen.y) - 190, 70, 300)
+	craft.refresh()
+	_place()
+
+
+## Sizes the window round what it shows, shortens the list of recipes when the window
+## is taller than the room above the hotbar, and centres it there.
+func _place() -> void:
+	var screen := get_parent_area_size()
+	var room := Vector2(screen.x, screen.y - HOTBAR)
 	reset_size()
-	position = ((screen - size) * 0.5).floor()
+	var over := size.y - (room.y - 2 * EDGE)
+	if craft.visible and over > 0.0:
+		craft.shrink_list(over)
+		reset_size()
+	position = ((room - size) * 0.5).floor().max(Vector2(EDGE, EDGE))
 
 
 func _choose(i: int) -> void:
@@ -266,8 +284,7 @@ func refresh() -> void:
 	_repair.visible = chosen != null and inv.worn(_chosen) > 0
 	_drop_one.visible = chosen != null
 	_drop_all.visible = chosen != null and chosen[1] > 1
-	reset_size()
-	position = ((get_parent_area_size() - size) * 0.5).floor()
+	_place()
 
 
 ## The state line alone, which changes every frame; the chest's part closes when the
