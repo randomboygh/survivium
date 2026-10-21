@@ -32,6 +32,10 @@ const SCHEMAS := {
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
 		"item": {"type": "ref:items", "default": ""},
+		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
+		"hardness": {"type": "int", "min": 0, "default": 1},
+		"bonus": {"type": "ref:items", "default": ""},
+		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
@@ -40,6 +44,12 @@ const SCHEMAS := {
 		"place": {"type": "ref:materials", "default": ""},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
+		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword"], "default": "none"},
+		"power": {"type": "int", "min": 0, "default": 0},
+		"area": {"type": "int", "min": 1, "default": 1},
+		"swing": {"type": "float", "min": 0.05, "default": 0.5},
+		"plant": {"type": "ref:bushes", "default": ""},
+		"reach": {"type": "int", "min": 1, "default": 8},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},
@@ -58,6 +68,7 @@ const SCHEMAS := {
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"seed": {"type": "ref:items", "default": ""},
+		"hits": {"type": "int", "min": 1, "default": 4},
 	},
 	"bushes": {
 		"tint": {"type": "color"},
@@ -70,6 +81,7 @@ const SCHEMAS := {
 		"fruit": {"type": "ref:items", "default": ""},
 		"fruit_count": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"twigs": {"type": "int", "min": 0, "default": 0},
+		"item": {"type": "ref:items", "default": ""},
 	},
 }
 const MOD_SCHEMA := {

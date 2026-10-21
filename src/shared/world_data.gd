@@ -55,6 +55,8 @@ var bush_twigs := {}
 ## see Items) or Items.SACK; `data` is how many items for an item, the stacks
 ## ([[id, count]...]) for a sack. A chunk with any is kept as an edited one.
 var drops := {}
+## Things of one kind laid this close to a heap (world units) join it (see heap_drop).
+const HEAP := 0.35
 ## Chunks the player changed since they were last saved (see note_edit, WorldGen.pack).
 var unsaved := {}
 ## Per-cell records of the bushes (by the bush's cell, Vector3i), kept and saved with
@@ -1090,6 +1092,18 @@ func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1) -> vo
 	if not drops.has(key):
 		drops[key] = []
 	drops[key].append([kind, pos, angle, data])
+
+
+## Lays `n` items `kind` at `pos` like add_drop, onto a heap of the same kind lying
+## within HEAP of it if there is one (what a swing digs out piles up, not one per cell).
+func heap_drop(kind: String, pos: Vector3, n: int, angle := 0.0) -> void:
+	var key := Vector2i(floori(pos.x / CELL) >> SHIFT, floori(pos.z / CELL) >> SHIFT)
+	for d: Array in drops.get(key, []):
+		if d[0] == kind and d[3] is int and d[1].distance_to(pos) <= HEAP:
+			d[3] += n
+			note_edit(floori(pos.x / CELL), floori(pos.z / CELL))
+			return
+	add_drop(kind, pos, angle, n)
 
 
 ## Takes thing `i` of chunk `key` off the ground and returns it (see drops).

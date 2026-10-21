@@ -9,7 +9,7 @@ comments, commits and PRs are in English.
 ## Layout and dependencies
 
 - `src/shared/` must not preload anything from `src/client/`: it is the world model the future
-  server will run (data, generation, materials, trees, bushes, AI rules, raycast).
+  server will run (data, generation, materials, trees, bushes, tools, AI rules, raycast).
 - The world has no edge. `world_data.gd` keeps the cells in `Chunk`s by key (`chunk_at`,
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
@@ -41,8 +41,9 @@ comments, commits and PRs are in English.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
-  (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits),
-  `camera_rig.gd` (pixel view, camera, safe rect), `props.gd` (chest, campfire, items lying on the ground, `WorldData.drops`), `minimap.gd`
+  (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: the left hand's tool, the right hand's brush,
+  strokes, the action button in front; rules in `src/shared/tools.gd`),
+  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (chest and what it holds, campfire, items lying on the ground, `WorldData.drops`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
@@ -52,7 +53,7 @@ comments, commits and PRs are in English.
   (picks the world played last, puts the player, clock and props back, autosaves; modules keep
   their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
   `Inventory` and `Vitals` from `src/shared/`, action costs, death), `gathering.gd` (picking up
-  drops, berries and branches off bushes by a tap near them).
+  drops by a tap or by themselves near the player, bushes by what is in the hand).
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push
@@ -92,7 +93,7 @@ GDScript. Notes: `plan/architecture/performance.md`.
 
 ## Gotchas
 
-- A static func named like a method of `Script` (`reload`, `get_class`...) is shadowed: `Mat.reload()`
+- A static func named like a method of `Script` (`reload`, `get_class`, `is_tool`...) is shadowed: `Mat.reload()`
   recompiles the script and resets its static vars instead of calling yours.
 - `var i := expr` is a parse error when `expr` is a Variant (e.g. a field of an untyped object); type
   such vars explicitly.

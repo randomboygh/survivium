@@ -2,7 +2,12 @@
 # сколько штук помещается в одну ячейку сумки; food — сытость от одной штуки (0 —
 # несъедобно); place — материал ячейки, который предмет ставит в мир (нет поля — не
 # ставится); model — воксельная модель предмета на земле (нет поля — свёрток);
-# icon — картинка в сумке (нет поля — плитка материала из place).
+# icon — картинка в сумке (нет поля — плитка материала из place). Инструменты: tool —
+# axe (рубит деревья и деревянные ячейки), pickaxe (камень и руда), shovel (мягкий грунт
+# быстро, выкапывает кусты), sword (сбивает ягоды с кустов); power — сила: твёрдость
+# материала, которую он берёт, и урон дереву за удар; area — сколько ячеек за один
+# взмах; swing — секунд на взмах; reach — на сколько ячеек от персонажа достаёт (без
+# инструмента руки достают на 6, блоки ставятся на 8). plant — куст, который сажает предмет.
 - id: branch
   title: Ветка
   weight: 0.3
@@ -33,12 +38,14 @@
   weight: 0.1
   stack: 30
   food: 4
+  model: raspberry
   icon: raspberry
 - id: blueberry
   title: Черника
   weight: 0.1
   stack: 30
   food: 3
+  model: blueberry
   icon: blueberry
 - id: dirt
   title: Земля
@@ -75,3 +82,71 @@
   weight: 2.5
   stack: 20
   icon: copper_ore
+- id: stone_axe
+  title: Каменный топор
+  weight: 1.5
+  stack: 1
+  model: axe
+  icon: axe
+  tool: axe
+  power: 2
+  swing: 0.6
+  reach: 7
+- id: stone_pickaxe
+  title: Каменная кирка
+  weight: 2.0
+  stack: 1
+  model: pickaxe
+  icon: pickaxe
+  tool: pickaxe
+  power: 2
+  swing: 0.55
+  reach: 8
+- id: wooden_shovel
+  title: Деревянная лопата
+  weight: 1.2
+  stack: 1
+  model: shovel
+  icon: shovel
+  tool: shovel
+  power: 1
+  area: 2
+  swing: 0.35
+  reach: 8
+- id: wooden_sword
+  title: Деревянный меч
+  weight: 1.0
+  stack: 1
+  model: sword
+  icon: sword
+  tool: sword
+  power: 1
+  swing: 0.4
+  reach: 6
+- id: shrub_bush
+  title: Куст
+  weight: 2.0
+  stack: 5
+  model: bush
+  icon: bush
+  plant: shrub
+- id: raspberry_bush
+  title: Куст малины
+  weight: 2.0
+  stack: 5
+  model: bush
+  icon: bush_raspberry
+  plant: raspberry
+- id: blueberry_bush
+  title: Кустик черники
+  weight: 1.0
+  stack: 5
+  model: bush
+  icon: bush_blueberry
+  plant: blueberry
+- id: fiber
+  title: Волокно
+  weight: 0.05
+  stack: 50
+  model: fiber
+  icon: fiber

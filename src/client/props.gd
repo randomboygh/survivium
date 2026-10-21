@@ -1,6 +1,6 @@
 extends RefCounted
 ## Things standing on the ground that are not cells and not part of a chunk: the
-## chest and the campfire next to the spawn, and the items lying on the ground
+## chest (with what it holds) and the campfire next to the spawn, and the items lying on the ground
 ## (WorldData.drops: what a felled tree leaves, a death sack). Bushes and snowdrifts
 ## are grown by the world generator and drawn with the chunk they stand in (see ChunkStreamer,
 ## Foliage.finish); a bush that goes is taken out of the world and its chunk is
@@ -11,12 +11,18 @@ const WorldData := preload("res://src/shared/world_data.gd")
 const VoxelProps := preload("res://src/client/voxel_props.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
 const Items := preload("res://src/shared/items.gd")
+const PixelTextures := preload("res://src/client/pixel_textures.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
 ## thing `y` units north of its place) does not cull it. The models are scaled down to
 ## 1/16 and the margin grows the box before that, so they get it 16 times over.
 const CULL_MARGIN := 24.0
+## Slots of the chest.
+const CHEST_SLOTS := 16
+## Seconds a thing taken from the ground takes to fly to the player.
+const FLY_TIME := 0.2
 const MODEL_CULL_MARGIN := CULL_MARGIN * 16.0
 
 var game
@@ -25,6 +31,8 @@ var drop_meshes := {}
 var drop_nodes := {}
 ## The north-west cell of each prop placed, by name ("chest", "campfire"), for the save.
 var cells := {}
+## What the chest holds; saved with the world (SaveGame).
+var chest_items := Inventory.new(CHEST_SLOTS)
 
 
 func _init(g) -> void:
@@ -46,6 +54,9 @@ func place() -> void:
 		chest.position = Vector3(chest_spot) * CELL
 		chest.extra_cull_margin = MODEL_CULL_MARGIN
 		world_root.add_child(chest)
+		var saved: Variant = game.save.meta.get("chest")
+		if saved is Dictionary:
+			chest_items.from_dict(saved)
 	var fire := _saved_or_new("campfire", at + Vector3(-2.0, 0.0, 2.0))
 	if fire.y >= 0:
 		game.effects.add_campfire(Vector3(fire) * CELL, game.world_mat)
@@ -89,6 +100,12 @@ func _level_ground(cell: Vector3i) -> void:
 		game.chunks.on_cell_changed(cell)
 
 
+## The middle of the chest in world units, or null when there is none.
+func chest_center() -> Variant:
+	var c: Variant = cells.get("chest")
+	return (Vector3(c) + Vector3(1.0, 0.5, 1.0)) * CELL if c is Vector3i else null
+
+
 ## Takes the bush on `cell` out of the world; its chunk is rebuilt without it.
 func remove_bush(cell: Vector3i) -> void:
 	if not game.world.bushes.has(cell):
@@ -103,17 +120,11 @@ func show_drops(key: Vector2i) -> void:
 		node.queue_free()
 	var nodes := []
 	for d: Array in game.world.drops.get(key, []):
-		var kind: String = d[0]
-		var name: String = "sack" if kind == Items.SACK else Items.get_item(kind).get("model", "")
-		if name == "":
-			name = "bundle"
-		if not drop_meshes.has(name):
-			var model = VoxelProps.drop(name)
-			drop_meshes[name] = model.build_mesh() if model != null else null
-		if drop_meshes[name] == null:
+		var mesh := _drop_mesh(d[0])
+		if mesh == null:
 			continue
 		var node := MeshInstance3D.new()
-		node.mesh = drop_meshes[name]
+		node.mesh = mesh
 		node.material_override = game.world_mat
 		# Turned in steps of 45 degrees, which keep the pixels tidy.
 		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
@@ -122,6 +133,57 @@ func show_drops(key: Vector2i) -> void:
 		game.world_root.add_child(node)
 		nodes.append(node)
 	drop_nodes[key] = nodes
+
+
+## The mesh of a thing of `kind` lying on the ground (see WorldData.drops): its item's
+## model, a clod of the block's colour for a block, else a bundle.
+func _drop_mesh(kind: String) -> Mesh:
+	var item := Items.get_item(kind)
+	var name: String = "sack" if kind == Items.SACK else item.get("model", "")
+	var m := Mat.index(item.get("place", "")) if name == "" else -1
+	if m >= 0:
+		name = "block:%d" % m
+	elif name == "":
+		name = "bundle"
+	if not drop_meshes.has(name):
+		var model = VoxelProps.block(_tile_colour(m)) if m >= 0 else VoxelProps.drop(name)
+		drop_meshes[name] = model.build_mesh() if model != null else null
+	return drop_meshes[name]
+
+
+## The average colour of material `m`'s tile in the terrain atlas.
+func _tile_colour(m: int) -> Color:
+	var atlas: Texture2D = game.atlas
+	if atlas == null:
+		return Color(0.5, 0.4, 0.3)
+	var img := atlas.get_image()
+	var tile: int = PixelTextures.TILE
+	var t := m * 3
+	var x0: int = (t % PixelTextures.TILES) * tile
+	var y0: int = floori(t / float(PixelTextures.TILES)) * tile
+	var sum := Color(0, 0, 0, 0)
+	for y in tile:
+		for x in tile:
+			sum += img.get_pixel(x0 + x, y0 + y)
+	return sum / float(tile * tile)
+
+
+## A thing taken from the ground at `from` flies to the player and is gone.
+func fly(kind: String, from: Vector3) -> void:
+	var mesh := _drop_mesh(kind)
+	if mesh == null:
+		return
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = game.world_mat
+	node.scale = Vector3.ONE / 16.0
+	node.position = from
+	node.extra_cull_margin = CULL_MARGIN
+	game.world_root.add_child(node)
+	var tw := node.create_tween()
+	tw.tween_property(node, "position", game.player.position + Vector3(0.0, 0.5, 0.0), FLY_TIME) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(node.queue_free)
 
 
 ## A bush disappears when its cell is filled or the ground under it is dug.

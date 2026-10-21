@@ -1,7 +1,9 @@
 extends PanelContainer
 ## The bag window (plan/design/ui.md, section 5): the slots with their items, the
 ## weight against the limit, the character's state in numbers, and what can be done
-## with the chosen item (eat, throw away). Opens over the running world, which goes
+## with the chosen item (eat, take a tool in hand, plant a bush in front of the player,
+## throw away). Opened at the chest, it shows the chest's slots under the bag's and
+## moves whole stacks between them; walking away from the chest closes its part. Opens over the running world, which goes
 ## on; taps and clicks inside it do not reach the world. Crafting by hand comes here
 ## as a tab with the crafting step.
 
@@ -9,6 +11,7 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const Items := preload("res://src/shared/items.gd")
+const Tools := preload("res://src/shared/tools.gd")
 
 const SLOT := 40
 
@@ -19,9 +22,19 @@ var _grid: GridContainer
 var _slots := []
 var _info: Label
 var _eat: Button
+var _hold: Button
+var _plant: Button
 var _drop_one: Button
 var _drop_all: Button
 var _chosen := -1
+var _chest_title: Label
+var _chest_grid: GridContainer
+var _chest_slots := []
+var _to_chest: Button
+var _to_bag: Button
+## The chest shown (an Inventory), null when none is open, and its chosen slot.
+var _chest = null
+var _chosen_chest := -1
 
 
 func _init(g) -> void:
@@ -54,6 +67,17 @@ func _ready() -> void:
 		s.pressed.connect(_choose.bind(i))
 		_grid.add_child(s)
 		_slots.append(s)
+	_chest_title = UiStyle.label("Сундук", UiStyle.ACCENT)
+	box.add_child(_chest_title)
+	_chest_grid = GridContainer.new()
+	_chest_grid.add_theme_constant_override("h_separation", 4)
+	_chest_grid.add_theme_constant_override("v_separation", 4)
+	box.add_child(_chest_grid)
+	for i in game.props.CHEST_SLOTS:
+		var s = HotbarSlot.new(SLOT)
+		s.pressed.connect(_choose_in_chest.bind(i))
+		_chest_grid.add_child(s)
+		_chest_slots.append(s)
 	_info = UiStyle.label("", UiStyle.MUTED)
 	_info.custom_minimum_size.y = 22
 	box.add_child(_info)
@@ -62,9 +86,13 @@ func _ready() -> void:
 	actions.add_theme_constant_override("v_separation", 6)
 	box.add_child(actions)
 	_eat = _button("Съесть", func() -> void: game.character.eat(_chosen))
+	_hold = _button("В руку", func() -> void: game.controls.hold(game.character.inventory.slots[_chosen][0]))
+	_plant = _button("Посадить", func() -> void: game.gathering.plant(game.character.inventory.slots[_chosen][0]))
 	_drop_one = _button("Выбросить 1", func() -> void: game.character.throw_away(_chosen, 1))
 	_drop_all = _button("Выбросить все", func() -> void: game.character.throw_away(_chosen, 1 << 20))
-	for b in [_eat, _drop_one, _drop_all]:
+	_to_chest = _button("В сундук", _move_to_chest)
+	_to_bag = _button("В сумку", _move_to_bag)
+	for b in [_to_chest, _to_bag, _eat, _hold, _plant, _drop_one, _drop_all]:
 		actions.add_child(b)
 	game.character.state_changed.connect(refresh)
 
@@ -77,6 +105,18 @@ func open() -> void:
 
 func close() -> void:
 	visible = false
+	show_chest(null)
+
+
+## Shows chest `items` (an Inventory) under the bag, or hides it for null.
+func show_chest(items) -> void:
+	if _chest != null and _chest.changed.is_connected(refresh):
+		_chest.changed.disconnect(refresh)
+	_chest = items
+	_chosen_chest = -1
+	if _chest != null:
+		_chest.changed.connect(refresh)
+	refresh()
 
 
 func toggle() -> void:
@@ -90,13 +130,37 @@ func toggle() -> void:
 ## screen, four on a narrow one, the window in the middle.
 func fit(screen: Vector2) -> void:
 	_grid.columns = 8 if screen.x >= 8 * (SLOT + 4) + 40 else 4
+	_chest_grid.columns = _grid.columns
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
 
 
 func _choose(i: int) -> void:
 	_chosen = i if _chosen != i else -1
+	_chosen_chest = -1
 	refresh()
+
+
+func _choose_in_chest(i: int) -> void:
+	_chosen_chest = i if _chosen_chest != i else -1
+	_chosen = -1
+	refresh()
+
+
+## The chosen stack of the bag goes into the chest, as much as fits.
+func _move_to_chest() -> void:
+	var s = game.character.inventory.slots[_chosen]
+	var n: int = _chest.add(s[0], s[1])
+	if n < s[1]:
+		game.character.nag("chest_full", "В сундуке нет места")
+	game.character.inventory.take_slot(_chosen, n)
+
+
+## The chosen stack of the chest goes into the bag, as much as fits.
+func _move_to_bag() -> void:
+	var s = _chest.slots[_chosen_chest]
+	var n: int = game.character.give(s[0], s[1])
+	_chest.take_slot(_chosen_chest, n)
 
 
 ## Shows the bag and the state as they are now.
@@ -115,8 +179,23 @@ func refresh() -> void:
 		slot.texture = ItemIcons.of_item(s[0]) if s != null else null
 		slot.number = str(s[1]) if s != null and s[1] > 1 else ""
 		slot.selected = i == _chosen
+	_chest_title.visible = _chest != null
+	_chest_grid.visible = _chest != null
+	if _chest != null:
+		if _chosen_chest >= 0 and _chest.slots[_chosen_chest] == null:
+			_chosen_chest = -1
+		for i in _chest_slots.size():
+			var s = _chest.slots[i]
+			_chest_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
+			_chest_slots[i].number = str(s[1]) if s != null and s[1] > 1 else ""
+			_chest_slots[i].selected = i == _chosen_chest
+	var in_chest = _chest.slots[_chosen_chest] if _chest != null and _chosen_chest >= 0 else null
+	_to_bag.visible = in_chest != null
+	_to_chest.visible = _chest != null and _chosen >= 0 and inv.slots[_chosen] != null
 	var chosen = inv.slots[_chosen] if _chosen >= 0 else null
-	if chosen == null:
+	if in_chest != null:
+		_info.text = "%s ×%d · в сундуке" % [Items.title(in_chest[0]), in_chest[1]]
+	elif chosen == null:
 		_info.text = "Выбери ячейку" if not inv.is_empty() else "Пусто. Подбирай ветки, ягоды и брёвна."
 	else:
 		var id: String = chosen[0]
@@ -124,14 +203,21 @@ func refresh() -> void:
 		_info.text = "%s ×%d · %.1f кг%s" % [Items.title(id), chosen[1], Items.weight(id) * chosen[1],
 			" · сытость +%d" % roundi(food) if food > 0.0 else ""]
 	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0
+	_hold.visible = chosen != null and Tools.is_tool_item(chosen[0]) and game.controls.tool != chosen[0]
+	_plant.visible = chosen != null and Items.get_item(chosen[0]).get("plant", "") != ""
 	_drop_one.visible = chosen != null
 	_drop_all.visible = chosen != null and chosen[1] > 1
 	reset_size()
 	position = ((get_parent_area_size() - size) * 0.5).floor()
 
 
-## The state line alone, which changes every frame.
+## The state line alone, which changes every frame; the chest's part closes when the
+## player has walked away from it.
 func refresh_state() -> void:
+	if _chest != null:
+		var at: Variant = game.props.chest_center()
+		if at == null or at.distance_to(game.player.position) > game.gathering.REACH + 1.0:
+			show_chest(null)
 	var v = game.character.vitals
 	var text := "Здоровье %d · Сытость %d · Силы %d" % [roundi(v.health), roundi(v.satiety), roundi(v.stamina)]
 	if _state.text != text:

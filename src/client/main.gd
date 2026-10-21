@@ -24,6 +24,7 @@ const CameraRig := preload("res://src/client/camera_rig.gd")
 const Props := preload("res://src/client/props.gd")
 const CharacterScript := preload("res://src/client/character.gd")
 const Gathering := preload("res://src/client/gathering.gd")
+const CursorScript := preload("res://src/client/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PlayerScript := preload("res://src/client/player.gd")
@@ -62,6 +63,7 @@ var view: CameraRig
 var props: Props
 var character: CharacterScript
 var gathering: Gathering
+var cursor: CursorScript
 var settings: SettingsScript
 var save: SaveGame
 var menu: MainMenu
@@ -187,6 +189,9 @@ func _process(delta: float) -> void:
 		var jump: bool = controls.jump() and playing and (player.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
 		character.update(minf(delta, 0.05))
+		if playing:
+			controls.update(minf(delta, 0.05))
+			gathering.update(delta)
 		_leave_footprints()
 		save.update(delta)
 	chunks.update_cut(delta)
@@ -346,3 +351,5 @@ func _build_scene() -> void:
 
 	effects = EffectsScript.new()
 	world_root.add_child(effects)
+	cursor = CursorScript.new()
+	world_root.add_child(cursor)
