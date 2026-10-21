@@ -123,14 +123,23 @@ func move_slot(i: int, to) -> int:
 	return n
 
 
+## Moves what fits of slots `from` on into bag `to` (the window's «всё в сундук» skips
+## the hotbar row); returns how many things went.
+func move_all(to, from := 0) -> int:
+	var n := 0
+	for i in range(from, slots.size()):
+		n += move_slot(i, to)
+	return n
+
+
 ## Ways to sort a bag (see sort), with their names for the window.
-const SORTS := {"kind": "по виду", "weight": "по весу", "name": "по названию"}
+const SORTS := {"kind": "по виду", "weight": "по весу"}
 
 
 ## Puts the stacks of slots `from` on in order `by` (a key of SORTS): by kind (see
-## Items.category, then the order of the data files), heaviest stack first, or by
-## name; stacks of one item are topped up first (a slot that keeps more than a count,
-## a worn tool, moves whole) and the empty slots go last. The slots before `from` (the
+## Items.category, then the order of the data files) or heaviest stack first; stacks
+## of one item are topped up first (a slot that keeps more than a count, a worn tool,
+## moves whole) and the empty slots go last. The slots before `from` (the
 ## hotbar row) stay as they are.
 func sort(by: String, from := 0) -> void:
 	var counts := {}
@@ -157,11 +166,6 @@ func sort(by: String, from := 0) -> void:
 			var wb := stack_weight(b)
 			if wa != wb:
 				return wa > wb
-		elif by == "name":
-			var ta: String = Items.title(a[0])
-			var tb: String = Items.title(b[0])
-			if ta != tb:
-				return ta.naturalnocasecmp_to(tb) < 0
 		else:
 			var ka: int = order.find(Items.category(a[0]))
 			var kb: int = order.find(Items.category(b[0]))

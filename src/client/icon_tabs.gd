@@ -44,9 +44,15 @@ func set_tabs(keys: Array, icons: Dictionary, tips: Dictionary) -> bool:
 			_buttons[k] = b
 	else:
 		for k in keys:
-			_buttons[k].icon = icons.get(k)
+			_buttons[k].icon = UiStyle.centred(icons.get(k))
 	_light()
 	return chosen != was
+
+
+## Tooltip `tip` on tab `key`.
+func set_tip(key: String, tip: String) -> void:
+	if _buttons.has(key):
+		_buttons[key].tooltip_text = tip
 
 
 func pick(key: String) -> void:

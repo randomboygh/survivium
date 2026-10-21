@@ -22,7 +22,6 @@ const float WIDTH = 0.5;
 const float HEIGHT = 1.5;
 const float PLANTS = 22.0;
 const int GRASS_TOP = 3;
-const float SHADOW_SQUASH = 0.25;
 // Kinds of plant by their index in the texture.
 const int GRASS = 0;
 const int FLOWER = 1;
@@ -67,12 +66,6 @@ void vertex() {
 	// Tufts and herbs sink under the snow, reeds and ears poke out of it.
 	float sink = kind == REED ? 0.3 : (kind == EAR ? 0.5 : 0.9);
 	VERTEX.y = root.y + (VERTEX.y - root.y) * (1.0 - snow_here * sink);
-	// Plants cast shadows only from fires and the torch (see PixelView.LAYER_FIRE_CASTER),
-	// which burn about as high as the tall grass: at full height every blade would throw
-	// a streak across the whole light. A squat copy throws short tufts of shadow.
-	if (IN_SHADOW_PASS) {
-		VERTEX.y = root.y + (VERTEX.y - root.y) * SHADOW_SQUASH;
-	}
 	VERTEX = shear(VERTEX);
 	NORMAL = vec3(0.0, 1.0, 0.0);
 }

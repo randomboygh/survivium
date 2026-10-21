@@ -25,7 +25,7 @@ const DROWN := 8.0
 const TIRED := 10.0
 const TIRED_PACE := 0.7
 ## What the actions cost.
-const COSTS := {"jump": 4.0, "dig": 3.0, "place": 1.0, "chop": 5.0, "cut": 1.0, "gather": 1.0, "pick_up": 0.5}
+const COSTS := {"jump": 4.0, "dig": 3.0, "place": 1.0, "chop": 5.0, "cut": 1.0, "gather": 1.0, "pick_up": 0.5, "swing": 0.5}
 
 var health := MAX
 var satiety := 80.0

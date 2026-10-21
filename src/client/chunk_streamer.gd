@@ -456,14 +456,14 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		water.material_override = game.water_mat
 		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var tufts := Foliage.multimesh(game.grass_mesh, game.grass_mat, false, true)
-		tufts.layers = PixelView.LAYER_FIRE_CASTER
+		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var crowns := Foliage.multimesh(game.clump_mesh, game.leaves_mat, true, true)
 		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var shade := Foliage.multimesh(game.disc_mesh, game.leaf_shadow_mat, false, true)
 		shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 		shade.layers = PixelView.LAYER_SUN_CASTER
 		var bushes := Foliage.multimesh(game.bush_mesh, game.bush_mat, true, true)
-		bushes.layers = PixelView.LAYER_FIRE_CASTER
+		bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var drifts := Foliage.multimesh(game.drift_mesh, game.low_mat, false, false)
 		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts]
 		for n in parts:

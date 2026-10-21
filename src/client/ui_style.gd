@@ -33,7 +33,9 @@ const PALETTE := {
 	"g": Color("#a9b0b4"), "d": Color("#6f777b"), "r": Color("#8a5a2b"), "k": DARK_INK,
 }
 
-## Icons, one character per pixel (see PALETTE; "." is transparent).
+## Icons, one character per pixel (see PALETTE; "." is transparent). An icon is cut to
+## its drawn pixels and made even across and down (see _even), so a button centres
+## what is drawn.
 const ICONS := {
 	"sun": [
 		"....y....",
@@ -244,35 +246,33 @@ const ICONS := {
 		"bbb......",
 		"bbb.www..",
 	],
-	"sort_name": [
-		".w...www.",
-		"w.w.w..w.",
-		"www..www.",
-		"w.w.w..w.",
-		"w.w.w..w.",
-		".........",
-		"aaaaaaaaa",
-		".aaaaaaa.",
-		"...aaa...",
-	],
 	"drop_one": [
-		"...ww....",
-		"...ww....",
-		"...ww....",
-		".wwwwww..",
-		"..wwww...",
-		"...ww....",
-		".........",
-		"wwwwwwww.",
+		"...wwwwww...",
+		"..wwwwwwwww.",
+		".wwwwwwwwww.",
+		".w.ww.ww.ww.",
+		"...ww.ww.ww.",
+		"....w..w.w..",
+		"............",
+		"......aa....",
+		".....aaaa...",
+		"......aa....",
+		"............",
+		".wwwwwwwwww.",
 	],
 	"drop_all": [
-		".w....w..",
-		".w....w..",
-		".w....w..",
-		"www..www.",
-		".w....w..",
-		".........",
-		"wwwwwwww.",
+		"...wwwwww...",
+		"..wwwwwwwww.",
+		".wwwwwwwwww.",
+		".w.ww.ww.ww.",
+		"...ww.ww.ww.",
+		"....w..w.w..",
+		"............",
+		"...aa...aa..",
+		"...aa...aa..",
+		"......aa....",
+		"......aa....",
+		".wwwwwwwwww.",
 	],
 	"hammer": [
 		"..wwwwwwww..",
@@ -287,11 +287,18 @@ const ICONS := {
 		".....ww.....",
 	],
 	"cancel_all": [
-		"ww..ww..ww..ww",
-		".wwww....wwww.",
-		"..ww......ww..",
-		".wwww....wwww.",
-		"ww..ww..ww..ww",
+		"mm....mm....",
+		"mmm..mmm....",
+		".mmmmmm.....",
+		"..mkkk......",
+		"..mkww....ww",
+		".mmkwww..www",
+		"mmm..wwwwww.",
+		"mm....wwww..",
+		"......wwww..",
+		".....wwwwww.",
+		"....www..www",
+		"....ww....ww",
 	],
 	"pause": [
 		"ww..ww",
@@ -310,6 +317,100 @@ const ICONS := {
 		"wwww..",
 		"www...",
 		"w.....",
+	],
+	"take": [
+		".....w.....",
+		"...w.w.w...",
+		"....www....",
+		".....w.....",
+		"...wwwww...",
+		"..w.....w..",
+		".wwwwwwwww.",
+		"wwwwwwwwwww",
+		"wwwwaaawwww",
+		"wwwwwwwwwww",
+		".wwwwwwwww.",
+	],
+	"to_chest": [
+		"....ww....",
+		"....ww....",
+		"..wwwwww..",
+		"...wwww...",
+		"....ww....",
+		"..........",
+		"wwwwwwwwww",
+		"w...aa...w",
+		"wwwwwwwwww",
+		"w........w",
+		"wwwwwwwwww",
+	],
+	"to_chest_all": [
+		".ww....ww.",
+		".ww....ww.",
+		"wwww..wwww",
+		".ww....ww.",
+		"..........",
+		"wwwwwwwwww",
+		"w...aa...w",
+		"wwwwwwwwww",
+		"w........w",
+		"wwwwwwwwww",
+	],
+	"put_out": [
+		"....b....",
+		"....b....",
+		"...bbb...",
+		"...bbb...",
+		"..bbbbb..",
+		".bbbbbbb.",
+		".bbbbwbb.",
+		".bbbbwbb.",
+		"..bbbbb..",
+		"...bbb...",
+	],
+	"light": [
+		"....a....",
+		"...aa....",
+		"...aaa...",
+		"..aaya.a.",
+		"..ayyaaa.",
+		".aayyyaa.",
+		".ayyyyya.",
+		".ayywyya.",
+		"..ayyya..",
+		"...aaa...",
+	],
+	"swap": [
+		"......w...",
+		"......ww..",
+		"wwwwwwwww.",
+		"......ww..",
+		"......w...",
+		"...w......",
+		"..ww......",
+		".wwwwwwwww",
+		"..ww......",
+		"...w......",
+	],
+	"power": [
+		"y..y..y.",
+		".y.y.y..",
+		"..yyy...",
+		"yyyayyyy",
+		"..yyy...",
+		".y.y.y..",
+		"y..y..y.",
+		"...y....",
+	],
+	"shield": [
+		"gggggggg",
+		"gwwwwwwg",
+		"gwwwwwwg",
+		"gwwwwwwg",
+		".gwwwwg.",
+		".gwwwwg.",
+		"..gwwg..",
+		"...gg...",
 	],
 	"trash": [
 		"...www...",
@@ -427,6 +528,7 @@ const ICONS := {
 
 static var _font: FontFile
 static var _icons := {}
+static var _centred := {}
 
 
 static func font() -> FontFile:
@@ -449,8 +551,44 @@ static func icon(name: String) -> ImageTexture:
 			for x in row.length():
 				if PALETTE.has(row[x]):
 					img.set_pixel(x, y, PALETTE[row[x]])
-		_icons[name] = ImageTexture.create_from_image(img)
+		_icons[name] = ImageTexture.create_from_image(_even(img))
 	return _icons[name]
+
+
+## Picture `texture` (an icon or an item's picture) for a button: cut to its drawn
+## pixels and made even across and down, so it sits in the middle of the button's
+## face (its sides are even) to the pixel.
+static func centred(texture: Texture2D) -> Texture2D:
+	if texture == null:
+		return null
+	var key := texture.get_instance_id()
+	if not _centred.has(key):
+		var img := texture.get_image()
+		var used := img.get_used_rect()
+		_centred[key] = texture if used.position == Vector2i.ZERO and used.size == img.get_size() \
+			and used.size.x % 2 == 0 and used.size.y % 2 == 0 else ImageTexture.create_from_image(_even(img))
+	return _centred[key]
+
+
+## Image `img` cut to its drawn pixels, with the middle column (row) doubled when it is
+## odd across (down): an odd picture has no middle on an even face.
+static func _even(img: Image) -> Image:
+	img = img.get_region(img.get_used_rect())
+	if img.get_width() % 2 == 1:
+		var w := img.get_width()
+		var out := Image.create_empty(w + 1, img.get_height(), false, img.get_format())
+		var mid := w / 2
+		out.blit_rect(img, Rect2i(0, 0, mid + 1, img.get_height()), Vector2i.ZERO)
+		out.blit_rect(img, Rect2i(mid, 0, w - mid, img.get_height()), Vector2i(mid + 1, 0))
+		img = out
+	if img.get_height() % 2 == 1:
+		var h := img.get_height()
+		var out := Image.create_empty(img.get_width(), h + 1, false, img.get_format())
+		var mid := h / 2
+		out.blit_rect(img, Rect2i(0, 0, img.get_width(), mid + 1), Vector2i.ZERO)
+		out.blit_rect(img, Rect2i(0, mid, img.get_width(), h - mid), Vector2i(0, mid + 1))
+		img = out
+	return img
 
 
 ## The theme of the whole UI: pixel font, panels and buttons.
@@ -478,9 +616,19 @@ static func theme() -> Theme:
 	return t
 
 
-## Panel: two pixels of outline, two of highlight, then the fill.
-static func panel() -> StyleBoxTexture:
-	return _nine_patch(12, 4, "panel", PANEL, EDGE, Vector4(6, 6, 6, 6))
+## The room between a panel's edge and what it holds (left, top, right, bottom): its
+## frame is 4 px, so text keeps a few pixels clear of it.
+const PAD := Vector4(10, 8, 10, 8)
+## The room in a frame round slots and buttons, or a line that must stay short (the
+## clock): the old thin one.
+const TIGHT := Vector4(6, 6, 6, 6)
+## The same in a sunken well holding text (the bag's and the craft tab's panels).
+const WELL_PAD := 8
+
+
+## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.
+static func panel(pad := PAD) -> StyleBoxTexture:
+	return _nine_patch(12, 4, "panel", PANEL, EDGE, pad)
 
 
 ## A text field: a sunken well like a slot, with room around the text.
@@ -515,9 +663,12 @@ static func button(state: String, accent := false, danger := false) -> StyleBoxT
 	return box
 
 
-## Big round-ish action button: an octagon with cut corners.
-static func octagon(fill: Color) -> StyleBoxTexture:
-	return _nine_patch(24, 8, "octagon", fill, EDGE, Vector4(8, 8, 8, 8))
+## Big round-ish touch button: an octagon with cut corners, a light rim along the top
+## and a lip of `shade` along the bottom (none when pressed, `fill` darker then).
+static func octagon(fill: Color, shade: Color, pressed := false) -> StyleBoxTexture:
+	# Pressed, what is on it goes down by the lip.
+	return _nine_patch(24, 9, "octagon_down" if pressed else "octagon", fill, shade,
+		Vector4(8, 11, 8, 7) if pressed else Vector4(8, 8, 8, 10))
 
 
 static func label(text := "", color := INK) -> Label:
@@ -566,12 +717,18 @@ static func _pixel(kind: String, x: int, y: int, n: int, fill: Color, edge: Colo
 			if d < 2:
 				return EDGE
 			return edge if y >= n - 4 else fill
-		"octagon":
+		"octagon", "octagon_down":
 			var cx := mini(x, n - 1 - x)
 			var cy := mini(y, n - 1 - y)
 			if cx + cy < 7:
 				return Color(0, 0, 0, 0)
 			if cx + cy < 9 or cx < 2 or cy < 2:
+				return EDGE
+			if kind == "octagon_down":
+				return edge.darkened(0.15) if y < 4 or cx + cy < 11 and y < n / 2 else edge
+			if y >= n - 5:
 				return edge
+			if y < 4 or cx + cy < 11 and y < n / 2:
+				return fill.lightened(0.3)
 			return fill
 	return fill
