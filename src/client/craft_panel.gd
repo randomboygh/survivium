@@ -7,9 +7,10 @@ extends VBoxContainer
 ## it needs (have / need, short in red), its station and tool («нет» in red when
 ## missing), its time (the recipe's: no skills yet) and «сделать | ×5 | MAX»; and the
 ## queue, a cell for each job, the one chosen named with its time left, «отменить |
-## отменить все» and a pause. Opened at a station, a line over the cells names it and
-## can take it back into the bag; at a campfire, put it out, light it again for a
-## branch and destroy it once it is out. Works through Workshop.
+## отменить все» and a pause. Opened at a station, buttons in the window's head (by
+## the cross, see station_buttons) take it back into the bag; at a campfire, put it
+## out, light it again for a branch and destroy it once it is out. Works through
+## Workshop.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
@@ -37,9 +38,8 @@ var _cap := 160
 ## Called after a refresh changed what the tab shows, to fit the window round it.
 var on_layout := Callable()
 
-## The line of the station the tab was opened at.
-var _head: HBoxContainer
-var _head_title: Label
+## The buttons of the station the tab was opened at, put in the window's head.
+var station_buttons: HBoxContainer
 var _take_up: Button
 ## A campfire's buttons: put it out or light it again, and destroy it once it is out.
 var _fire: Button
@@ -84,30 +84,26 @@ func _init(g) -> void:
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
-	_head = HBoxContainer.new()
-	_head.add_theme_constant_override("separation", 4)
-	add_child(_head)
-	_head_title = UiStyle.label("", UiStyle.ACCENT)
-	_head_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_head_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_head.add_child(_head_title)
-	_take_up = TabRow.small_button("Забрать", func() -> void:
+	station_buttons = HBoxContainer.new()
+	station_buttons.add_theme_constant_override("separation", 4)
+	station_buttons.visible = false
+	_take_up = TabRow.icon_button(UiStyle.icon("take"), "Забрать в сумку", func() -> void:
 		if game.props.take_up(_station):
 			_station = {}
 			refresh())
-	_head.add_child(_take_up)
-	_fire = TabRow.small_button("Потушить", func() -> void:
+	_fire = TabRow.icon_button(UiStyle.icon("put_out"), "Потушить", func() -> void:
 		if _station.lit:
 			game.props.put_out(_station)
 		else:
 			game.props.light(_station)
 		refresh())
-	_head.add_child(_fire)
-	_destroy = TabRow.small_button("Уничтожить", func() -> void:
+	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
 		if game.props.destroy(_station):
 			_station = {}
 			refresh())
-	_head.add_child(_destroy)
+	for b in [_take_up, _fire, _destroy]:
+		b.custom_minimum_size = Vector2(30, 30)
+		station_buttons.add_child(b)
 
 	var middle := HBoxContainer.new()
 	middle.add_theme_constant_override("separation", 4)
@@ -164,8 +160,10 @@ func _ready() -> void:
 		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
 	])
 	_make.size_flags_horizontal = Control.SIZE_SHRINK_END
+	# «Сделать» is the button most pressed: the widest.
 	for b in _make.get_children():
 		b.custom_minimum_size = Vector2(36, 30)
+	_make.get_child(0).custom_minimum_size.x = 76
 	box.add_child(_make)
 
 	var queue := _panel(bottom)
@@ -293,18 +291,19 @@ func _start(n: int) -> void:
 	game.workshop.start(Crafting.get_recipe(_chosen), n)
 
 
-## The station the tab was opened at, and what can be done with it.
+## What can be done with the station the tab was opened at.
 func _show_head() -> void:
-	_head.visible = not _station.is_empty()
-	if not _head.visible:
+	station_buttons.visible = not _station.is_empty()
+	if not station_buttons.visible:
 		return
 	var fire: bool = _station.fire != null
-	_head_title.text = Items.title(_station.item)
 	_take_up.visible = not fire
+	_take_up.tooltip_text = "Забрать в сумку: %s" % Items.title(_station.item)
 	_fire.visible = fire
 	_destroy.visible = fire and not _station.lit
 	if fire:
-		_fire.text = "Потушить костёр" if _station.lit else "Разжечь (ветка)"
+		_fire.icon = UiStyle.icon("put_out" if _station.lit else "light")
+		_fire.tooltip_text = "Потушить костёр" if _station.lit else "Разжечь (ветка)"
 
 
 ## Hands first (what is made anywhere), then the stations of the recipes known: lit

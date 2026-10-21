@@ -33,7 +33,8 @@ const PALETTE := {
 	"g": Color("#a9b0b4"), "d": Color("#6f777b"), "r": Color("#8a5a2b"), "k": DARK_INK,
 }
 
-## Icons, one character per pixel (see PALETTE; "." is transparent).
+## Icons, one character per pixel (see PALETTE; "." is transparent). An icon is cut to
+## its drawn pixels, so a button centres what is drawn.
 const ICONS := {
 	"sun": [
 		"....y....",
@@ -311,6 +312,80 @@ const ICONS := {
 		"www...",
 		"w.....",
 	],
+	"take": [
+		".....w.....",
+		"...w.w.w...",
+		"....www....",
+		".....w.....",
+		"...wwwww...",
+		"..w.....w..",
+		".wwwwwwwww.",
+		"wwwwwwwwwww",
+		"wwwwaaawwww",
+		"wwwwwwwwwww",
+		".wwwwwwwww.",
+	],
+	"to_chest": [
+		"....ww....",
+		"....ww....",
+		"..wwwwww..",
+		"...wwww...",
+		"....ww....",
+		"..........",
+		"wwwwwwwwww",
+		"w...aa...w",
+		"wwwwwwwwww",
+		"w........w",
+		"wwwwwwwwww",
+	],
+	"to_chest_all": [
+		".ww....ww.",
+		".ww....ww.",
+		"wwww..wwww",
+		".ww....ww.",
+		"..........",
+		"wwwwwwwwww",
+		"w...aa...w",
+		"wwwwwwwwww",
+		"w........w",
+		"wwwwwwwwww",
+	],
+	"put_out": [
+		"....b....",
+		"....b....",
+		"...bbb...",
+		"...bbb...",
+		"..bbbbb..",
+		".bbbbbbb.",
+		".bbbbwbb.",
+		".bbbbwbb.",
+		"..bbbbb..",
+		"...bbb...",
+	],
+	"light": [
+		"....a....",
+		"...aa....",
+		"...aaa...",
+		"..aaya.a.",
+		"..ayyaaa.",
+		".aayyyaa.",
+		".ayyyyya.",
+		".ayywyya.",
+		"..ayyya..",
+		"...aaa...",
+	],
+	"swap": [
+		"......w...",
+		"......ww..",
+		"wwwwwwwww.",
+		"......ww..",
+		"......w...",
+		"...w......",
+		"..ww......",
+		".wwwwwwwww",
+		"..ww......",
+		"...w......",
+	],
 	"trash": [
 		"...www...",
 		"wwwwwwwww",
@@ -449,6 +524,7 @@ static func icon(name: String) -> ImageTexture:
 			for x in row.length():
 				if PALETTE.has(row[x]):
 					img.set_pixel(x, y, PALETTE[row[x]])
+		img = img.get_region(img.get_used_rect())
 		_icons[name] = ImageTexture.create_from_image(img)
 	return _icons[name]
 
@@ -515,9 +591,12 @@ static func button(state: String, accent := false, danger := false) -> StyleBoxT
 	return box
 
 
-## Big round-ish action button: an octagon with cut corners.
-static func octagon(fill: Color) -> StyleBoxTexture:
-	return _nine_patch(24, 8, "octagon", fill, EDGE, Vector4(8, 8, 8, 8))
+## Big round-ish touch button: an octagon with cut corners, a light rim along the top
+## and a lip of `shade` along the bottom (none when pressed, `fill` darker then).
+static func octagon(fill: Color, shade: Color, pressed := false) -> StyleBoxTexture:
+	# Pressed, what is on it goes down by the lip.
+	return _nine_patch(24, 9, "octagon_down" if pressed else "octagon", fill, shade,
+		Vector4(8, 11, 8, 7) if pressed else Vector4(8, 8, 8, 10))
 
 
 static func label(text := "", color := INK) -> Label:
@@ -566,12 +645,18 @@ static func _pixel(kind: String, x: int, y: int, n: int, fill: Color, edge: Colo
 			if d < 2:
 				return EDGE
 			return edge if y >= n - 4 else fill
-		"octagon":
+		"octagon", "octagon_down":
 			var cx := mini(x, n - 1 - x)
 			var cy := mini(y, n - 1 - y)
 			if cx + cy < 7:
 				return Color(0, 0, 0, 0)
 			if cx + cy < 9 or cx < 2 or cy < 2:
+				return EDGE
+			if kind == "octagon_down":
+				return edge.darkened(0.15) if y < 4 or cx + cy < 11 and y < n / 2 else edge
+			if y >= n - 5:
 				return edge
+			if y < 4 or cx + cy < 11 and y < n / 2:
+				return fill.lightened(0.3)
 			return fill
 	return fill

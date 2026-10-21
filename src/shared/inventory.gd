@@ -123,6 +123,15 @@ func move_slot(i: int, to) -> int:
 	return n
 
 
+## Moves what fits of slots `from` on into bag `to` (the window's «всё в сундук» skips
+## the hotbar row); returns how many things went.
+func move_all(to, from := 0) -> int:
+	var n := 0
+	for i in range(from, slots.size()):
+		n += move_slot(i, to)
+	return n
+
+
 ## Ways to sort a bag (see sort), with their names for the window.
 const SORTS := {"kind": "по виду", "weight": "по весу", "name": "по названию"}
 

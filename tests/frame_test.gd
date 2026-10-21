@@ -233,9 +233,11 @@ func _run() -> void:
 	c.put_in_hand("", 0)
 	c.from_dict(hands_saved)
 	_check(c.held() == "core:wooden_shovel", "the hands are saved with the player")
-	# A stack into the chest by the spawn and back: a tap on it, a tap on a free slot.
+	# A stack into the chest by the spawn and back, sorting by hand: a tap on it, a tap
+	# on a free slot.
 	var bag = main.hud.bag
 	main.hud.open_chest()
+	bag._manual = true
 	var at: int = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "core:stone")[0])
 	var free: int = main.props.chest_items.slots.find(null)
 	var stones: int = main.props.chest_items.count("core:stone") + inv.slots[at][1]
@@ -245,6 +247,20 @@ func _run() -> void:
 	bag._tap(free, false)
 	bag._tap(at, true)
 	_check(inv.slots[at] != null and main.props.chest_items.slots[free] == null, "and back into the bag")
+	bag._manual = false
+	# Else a tap only picks.
+	var bag_before: Array = inv.slots.duplicate(true)
+	bag._tap(at, true)
+	bag._tap(free, false)
+	_check(inv.slots == bag_before and main.props.chest_items.slots[free] == null, "a second tap picks, it moves nothing")
+	# «Скинуть всё в сундук» leaves the hotbar row.
+	var chest_before: Array = main.props.chest_items.slots.duplicate(true)
+	inv.slots[inv.slots.size() - 1] = ["core:flint", 1]
+	bag._put_all_in_chest()
+	_check(inv.slots.slice(0, inv.HOTBAR) == bag_before.slice(0, inv.HOTBAR) and inv.slots[inv.slots.size() - 1] == null
+		and main.props.chest_items.count("core:flint") > 0, "all the bag past the hotbar row goes into the chest")
+	inv.slots = bag_before
+	main.props.chest_items.slots = chest_before
 	bag.close()
 
 	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,

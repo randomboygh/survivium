@@ -1426,6 +1426,11 @@ func _test_inventory() -> void:
 		"nor is it moved into a chest's slot")
 	var put = bag.take_slot(0, 1)
 	_check(put.size() == 4 and put[3] is Dictionary and bag.is_empty(), "a chest taken out of the bag brings its things")
+	var spread := Inventory.new(4)
+	spread.slots = [["core:fiber", 3], ["core:stone", 2], ["core:fiber", 4], null]
+	var into := Inventory.new(4)
+	_check(spread.move_all(into, 1) == 6 and spread.slots[0] == ["core:fiber", 3] and spread.slots[1] == null
+		and into.count("core:fiber") == 4 and into.count("core:stone") == 2, "«all into the chest» leaves the first slots be")
 
 
 func _test_vitals() -> void:

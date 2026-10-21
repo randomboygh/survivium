@@ -206,10 +206,7 @@ func _ready() -> void:
 	_action.custom_minimum_size = Vector2(84, 84)
 	_action.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_action.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-		_action.add_theme_stylebox_override(state, UiStyle.octagon(UiStyle.ACCENT if not state.ends_with("pressed") else UiStyle.ACCENT_DARK))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		_action.add_theme_color_override(c, UiStyle.DARK_INK)
+	_octagon_look(_action, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
 	_action.held.connect(func(on: bool) -> void: game.controls.action_held = on)
 	add_child(_action)
 	_jump = TouchButton.new()
@@ -218,8 +215,7 @@ func _ready() -> void:
 	_jump.custom_minimum_size = Vector2(56, 56)
 	_jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_jump.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	_jump.add_theme_stylebox_override("normal", UiStyle.panel())
-	_jump.add_theme_stylebox_override("hover", UiStyle.panel())
+	_octagon_look(_jump, UiStyle.BUTTON, UiStyle.BUTTON_SHADE, UiStyle.INK)
 	_jump.held.connect(func(on: bool) -> void: game.controls.jump_held = on)
 	add_child(_jump)
 
@@ -698,6 +694,17 @@ func _slot(parent: Node, action: Callable):
 	s.pressed.connect(action)
 	parent.add_child(s)
 	return s
+
+
+## The look of a big touch button: an octagon of `fill` with a lip of `shade`, pressed
+## down while held; `ink` for its words.
+func _octagon_look(b: Button, fill: Color, shade: Color, ink: Color) -> void:
+	for state in ["normal", "hover", "disabled"]:
+		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade))
+	for state in ["pressed", "hover_pressed"]:
+		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade, true))
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(c, ink)
 
 
 func _icon_button(parent: Node, icon: String, tip: String, action: Callable) -> Button:
