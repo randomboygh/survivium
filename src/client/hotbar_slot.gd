@@ -7,6 +7,9 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 
 signal pressed
 
+## The colour of the slot's number (its key).
+const KEY_COLOR := Color("#7a6850")
+
 var texture: Texture2D:
 	set(v):
 		texture = v
@@ -85,8 +88,9 @@ func _draw() -> void:
 	if tag != "":
 		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":
+		# The slot's number is a quiet mark: dim and without the outline.
 		var kw := font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		_text(font, key, Vector2(size.x - 3 - kw, 3 + font.get_ascent(fs)), UiStyle.MUTED)
+		draw_string(font, Vector2(size.x - 3 - kw, 3 + font.get_ascent(fs)).round(), key, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, KEY_COLOR)
 	if number != "":
 		var w := font.get_string_size(number, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		_text(font, number, Vector2(size.x - 3 - w, size.y - 3 - font.get_descent(fs)), UiStyle.INK)

@@ -24,6 +24,11 @@ signal changed
 var game
 var queue := CraftQueue.new()
 var knowledge := Knowledge.new()
+## The queue stands still while paused (the pause button of the craft tab).
+var paused := false:
+	set(v):
+		paused = v
+		changed.emit()
 
 
 func _init(g) -> void:
@@ -73,8 +78,16 @@ func cancel(i: int) -> void:
 		_receive(s[0], s[1])
 
 
+## Cancels every job of the queue, the last first.
+func cancel_all() -> void:
+	for i in range(queue.jobs.size() - 1, -1, -1):
+		cancel(i)
+
+
 ## Works on the queue for a frame of `delta` seconds; called while playing.
 func update(delta: float) -> void:
+	if paused:
+		return
 	for r in queue.step(delta, _can_work):
 		_receive(r.makes, r.count)
 		game.hud.toast("Готово: %s" % r.title)

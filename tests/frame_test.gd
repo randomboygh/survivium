@@ -233,16 +233,18 @@ func _run() -> void:
 	c.put_in_hand("", 0)
 	c.from_dict(hands_saved)
 	_check(c.held() == "core:wooden_shovel", "the hands are saved with the player")
-	# A stack into the chest by the spawn and back (the window's buttons).
+	# A stack into the chest by the spawn and back: a tap on it, a tap on a free slot.
 	var bag = main.hud.bag
 	main.hud.open_chest()
-	bag._chosen = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "core:stone")[0])
-	var stones: int = inv.count("core:stone")
-	bag._move_to_chest()
-	_check(inv.count("core:stone") == 0 and main.props.chest_items.count("core:stone") == stones, "a stack goes into the chest")
-	bag._chosen_chest = 0
-	bag._move_to_bag()
-	_check(inv.count("core:stone") == stones and main.props.chest_items.is_empty(), "and back into the bag")
+	var at: int = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "core:stone")[0])
+	var free: int = main.props.chest_items.slots.find(null)
+	var stones: int = main.props.chest_items.count("core:stone") + inv.slots[at][1]
+	bag._tap(at, true)
+	bag._tap(free, false)
+	_check(inv.slots[at] == null and main.props.chest_items.count("core:stone") == stones, "a stack goes into the chest")
+	bag._tap(free, false)
+	bag._tap(at, true)
+	_check(inv.slots[at] != null and main.props.chest_items.slots[free] == null, "and back into the bag")
 	bag.close()
 
 	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,
