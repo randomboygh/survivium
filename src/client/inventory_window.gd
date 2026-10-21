@@ -8,10 +8,11 @@ extends PanelContainer
 ## past the hotbar row into it, take it up. A tap picks a slot, a tap on another picks
 ## that one; with sorting by hand on, a tap on another slot (of the bag or a chest)
 ## moves the stack there, swaps the two or tops up a stack of the same item, and lets
-## it go; a tap on the chosen one lets it go. The panel at the bottom names
-## the chosen stack with its weight and what can be done with it: eat, take it in the
-## hand in use («Взять»), plant, set down, repair, throw away one or all, destroy (the
-## bin turns red at the first tap and destroys at the second). The craft tab
+## it go; a tap on the chosen one lets it go. The panel at the bottom names the chosen
+## stack, what it is in rows (FactRows: weight, food, work, wear) and what can be done
+## with it: eat, take it in the hand in use («Взять»), plant, set down, repair, throw
+## away one or all, destroy (the bin turns red at the first tap and destroys at the
+## second). The craft tab
 ## (CraftPanel) has its own cells and panels; opened at a station it starts there.
 ## Opens over the running world, which goes on; taps inside it do not reach the world.
 
@@ -23,7 +24,7 @@ const IconTabs := preload("res://src/client/icon_tabs.gd")
 const Items := preload("res://src/shared/items.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
 const CraftPanel := preload("res://src/client/craft_panel.gd")
-const Workshop := preload("res://src/client/workshop.gd")
+const FactRows := preload("res://src/client/fact_rows.gd")
 
 ## Room kept between the window and the edges of the screen, in UI pixels.
 const EDGE := 4
@@ -59,6 +60,7 @@ var _manual := false
 var _manual_button: Button
 var _chest_slots := []
 var _info: Label
+var _facts: FactRows
 var _eat: Button
 var _hold: Button
 var _plant: Button
@@ -190,6 +192,8 @@ func _ready() -> void:
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_info.custom_minimum_size.x = 120
 	info.add_child(_info)
+	_facts = FactRows.new()
+	info.add_child(_facts)
 	var actions := HFlowContainer.new()
 	actions.add_theme_constant_override("h_separation", 6)
 	actions.add_theme_constant_override("v_separation", 6)
@@ -303,6 +307,7 @@ func fit(screen: Vector2) -> void:
 	_bag_page.custom_minimum_size.x = _width(slot)
 	# A wrapping label is measured at its least width: as wide as the panel it is in.
 	_info.custom_minimum_size.x = _width(slot) - 12
+	_facts.fit_width(_width(slot) - 12)
 	craft.slot = slot
 	craft.custom_minimum_size.x = _width(slot)
 	craft.fit_width(_width(slot))
@@ -469,13 +474,11 @@ func _show_info(inv) -> void:
 		_info.text = "Уничтожить %s ×%d? Нажми корзину ещё раз" % [Items.title(s[0]), s[1]]
 	else:
 		var id: String = s[0]
-		var food := Items.food(id)
-		var worn: int = _from.worn(_at)
-		_info.text = "%s ×%d · %.1f кг%s%s%s%s" % [Items.title(id), s[1], Inventory.stack_weight(s),
+		_info.text = "%s ×%d%s%s" % [Items.title(id), s[1],
 			" · с вещами" if _from.contents(_at) != null else "",
-			" · сытость +%d" % roundi(food) if food > 0.0 else "",
-			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else "",
 			"" if mine else " · в сундуке"]
+		_facts.show_rows(FactRows.item_rows(id, s[1], _from.worn(_at), Inventory.stack_weight(s)))
+	_facts.visible = s != null and not _confirming
 	_info.add_theme_color_override("font_color", UiStyle.DANGER if _confirming else (UiStyle.INK if s != null else UiStyle.MUTED))
 	_eat.visible = mine and Items.food(s[0]) > 0.0
 	_hold.visible = mine and game.controls.held() != s[0]

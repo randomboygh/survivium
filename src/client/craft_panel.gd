@@ -3,11 +3,12 @@ extends VBoxContainer
 ## tab: a column of tabs by kind of item on the left, the recipes known as cells
 ## (dimmed when they cannot be made now), the stations near as a column of pictures on
 ## the right (hands first, then the stations of the recipes known, the far ones
-## dimmed). Under them two panels: the recipe chosen, with its weight, pictures of what
-## it needs (have / need, short in red), its station and tool («нет» in red when
-## missing), its time (the recipe's: no skills yet) and «сделать | ×5 | MAX»; and the
-## queue, a cell for each job, the one chosen named with its time left, «отменить |
-## отменить все» and a pause. Opened at a station, buttons in the window's head (by
+## dimmed). Under them two panels: the recipe chosen, in rows (see FactRows): what it
+## needs (have / need, short in red), its station and tool («нет» in red when missing),
+## its time (the recipe's: no skills yet), then what it makes weighs, does and lasts,
+## with «сделать | ×5 | MAX»; and the queue, narrow: small cells for the jobs, the time
+## left of the one chosen, the count, and at the bottom the pause and «отменить |
+## отменить все». Opened at a station, buttons in the window's head (by
 ## the cross, see station_buttons) take it back into the bag; at a campfire, put it
 ## out, light it again for a branch and destroy it once it is out. Works through
 ## Workshop.
@@ -17,14 +18,15 @@ const ItemIcons := preload("res://src/client/item_icons.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const TabRow := preload("res://src/client/tab_row.gd")
 const IconTabs := preload("res://src/client/icon_tabs.gd")
+const FactRows := preload("res://src/client/fact_rows.gd")
 const Items := preload("res://src/shared/items.gd")
 const Crafting := preload("res://src/shared/crafting.gd")
 const CraftQueue := preload("res://src/shared/craft_queue.gd")
 
 const COLUMNS := 8
-const JOB_SLOT := 32
+const JOB_SLOT := 24
 ## The width of the queue's panel, in UI pixels.
-const QUEUE_WIDTH := 150
+const QUEUE_WIDTH := 96
 ## What «MAX» asks for: the whole queue, as far as the materials go.
 const MOST := CraftQueue.MAX_JOBS
 
@@ -53,10 +55,10 @@ var _empty: Label
 var _details: PanelContainer
 var _icon: TextureRect
 var _title: Label
-var _needs: HFlowContainer
+var _facts: FactRows
 var _make: HBoxContainer
 ## The panel of the queue.
-var _queue_title: Label
+var _queue_empty: Label
 var _queue_count: Label
 var _controls: HBoxContainer
 var _pause: Button
@@ -150,10 +152,8 @@ func _ready() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.custom_minimum_size.x = 100
 	top.add_child(_title)
-	_needs = HFlowContainer.new()
-	_needs.add_theme_constant_override("h_separation", 4)
-	_needs.add_theme_constant_override("v_separation", 4)
-	box.add_child(_needs)
+	_facts = FactRows.new()
+	box.add_child(_facts)
 	_make = TabRow.split([
 		[UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)],
 		["×5", "Сделать пять", func() -> void: _start(5)],
@@ -171,13 +171,37 @@ func _ready() -> void:
 	box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	queue.add_child(box)
-	var title := HBoxContainer.new()
-	box.add_child(title)
-	_queue_title = UiStyle.label("Очередь", UiStyle.MUTED)
-	_queue_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_child(_queue_title)
+	_queue_empty = UiStyle.label("Очередь пуста", UiStyle.MUTED)
+	_queue_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_queue_empty.custom_minimum_size.x = QUEUE_WIDTH - 12
+	box.add_child(_queue_empty)
+	_job_row = HBoxContainer.new()
+	_job_row.add_theme_constant_override("separation", 4)
+	box.add_child(_job_row)
+	_job_more = UiStyle.label("", UiStyle.MUTED)
+	_job_more.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_job_row.add_child(_job_more)
+	var line := HBoxContainer.new()
+	box.add_child(line)
+	_job_label = UiStyle.label()
+	# A long word is cut, the panel keeps its width.
+	_job_label.clip_text = true
+	_job_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_job_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_job_label.custom_minimum_size.x = 30
+	line.add_child(_job_label)
 	_queue_count = UiStyle.label("", UiStyle.MUTED)
-	title.add_child(_queue_count)
+	_queue_count.tooltip_text = "Работ в очереди"
+	_queue_count.mouse_filter = Control.MOUSE_FILTER_PASS
+	line.add_child(_queue_count)
+	_progress = ProgressBar.new()
+	_progress.show_percentage = false
+	_progress.custom_minimum_size = Vector2(0, 6)
+	_progress.max_value = 1.0
+	box.add_child(_progress)
+	var push := Control.new()
+	push.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(push)
 	_controls = HBoxContainer.new()
 	_controls.add_theme_constant_override("separation", 4)
 	box.add_child(_controls)
@@ -192,23 +216,6 @@ func _ready() -> void:
 		[UiStyle.icon("close"), "Отменить выбранную", func() -> void: game.workshop.cancel(_job)],
 		[UiStyle.icon("cancel_all"), "Отменить все", func() -> void: game.workshop.cancel_all()],
 	]))
-	_job_row = HBoxContainer.new()
-	_job_row.add_theme_constant_override("separation", 4)
-	box.add_child(_job_row)
-	_job_more = UiStyle.label("", UiStyle.MUTED)
-	_job_more.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_job_row.add_child(_job_more)
-	_job_label = UiStyle.label()
-	# A long name is cut, the panel keeps its width.
-	_job_label.clip_text = true
-	_job_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_job_label.custom_minimum_size.x = 60
-	box.add_child(_job_label)
-	_progress = ProgressBar.new()
-	_progress.show_percentage = false
-	_progress.custom_minimum_size = Vector2(0, 6)
-	_progress.max_value = 1.0
-	box.add_child(_progress)
 	game.workshop.changed.connect(refresh)
 
 
@@ -216,6 +223,7 @@ func _ready() -> void:
 ## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
 	_title.custom_minimum_size.x = w - QUEUE_WIDTH - 6 - 12 - 30
+	_facts.fit_width(w - QUEUE_WIDTH - 6 - 12)
 
 
 ## Opened at placed thing `e` (a station), or {} for none.
@@ -341,27 +349,22 @@ func _show_details(near: Dictionary) -> void:
 		return
 	var inv = game.character.inventory
 	_icon.texture = ItemIcons.of_item(r.makes)
-	_title.text = "%s%s · %.1f кг" % [r.title, " ×%d" % r.count if r.count > 1 else "", Items.weight(r.makes) * r.count]
-	var chips := []
+	_title.text = "%s%s" % [r.title, " ×%d" % r.count if r.count > 1 else ""]
+	var needs := []
 	for id in r.needs:
 		var have: int = inv.count(id)
-		chips.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Items.title(id)])
+		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Items.title(id)])
+	var where := []
 	if r.at != "":
-		chips.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
+		where.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
 	if r.tool != "none":
 		var has := Crafting.has_tool(r, inv)
 		var name: String = Crafting.TOOL_NAMES.get(r.tool, r.tool)
-		chips.append([ItemIcons.picture(r.tool), "" if has else "нет", not has, name.capitalize()])
-	# The time of the recipe; with skills it will be the time at the character's skill.
-	chips.append([UiStyle.icon("clock"), "%d с" % roundi(r.time), false, "Время"])
-	while _needs.get_child_count() < chips.size():
-		_needs.add_child(_chip(null, ""))
-	for i in _needs.get_child_count():
-		var chip: PanelContainer = _needs.get_child(i)
-		chip.visible = i < chips.size()
-		if chip.visible:
-			_set_chip(chip, chips[i][0], chips[i][1], chips[i][2])
-			chip.tooltip_text = chips[i][3]
+		where.append([ItemIcons.picture(r.tool), "" if has else "нет", not has, name.capitalize()])
+	var rows := [["Нужно", needs], ["Станок", where if not where.is_empty() else "руками"],
+		# The time of the recipe; with skills it will be the time at the character's skill.
+		["Время", "%d с" % roundi(r.time)]]
+	_facts.show_rows(rows + FactRows.item_rows(r.makes, r.count))
 	var can := Crafting.why_not(r, inv, near) == ""
 	for b in _make.get_children():
 		b.disabled = not can
@@ -372,9 +375,9 @@ func _show_details(near: Dictionary) -> void:
 func _show_queue() -> void:
 	var shop = game.workshop
 	var jobs: Array = shop.queue.jobs
-	_queue_title.text = "Очередь" if not jobs.is_empty() else "Очередь пуста"
-	_queue_count.text = "%d/%d" % [jobs.size(), CraftQueue.MAX_JOBS] if not jobs.is_empty() else ""
-	for c in [_controls, _job_row, _job_label, _progress]:
+	_queue_empty.visible = jobs.is_empty()
+	_queue_count.text = "%d/%d" % [jobs.size(), CraftQueue.MAX_JOBS]
+	for c in [_controls, _job_row, _job_label.get_parent(), _progress]:
 		c.visible = not jobs.is_empty()
 	_pause.icon = UiStyle.icon("play" if shop.paused else "pause")
 	_pause.tooltip_text = "Продолжить" if shop.paused else "Пауза"
@@ -383,7 +386,7 @@ func _show_queue() -> void:
 		_job = 0
 		return
 	_job = clampi(_job, 0, jobs.size() - 1)
-	var fit := maxi(1, (QUEUE_WIDTH - 12 - 20) / (JOB_SLOT + 4))
+	var fit := maxi(1, (QUEUE_WIDTH - 12 - 16) / (JOB_SLOT + 4))
 	var n := mini(jobs.size(), fit)
 	while _job_slots.size() < n:
 		var cell = HotbarSlot.new(JOB_SLOT)
@@ -401,18 +404,23 @@ func _show_queue() -> void:
 			cell.selected = i == _job
 	_job_more.visible = jobs.size() > n
 	_job_more.text = "+%d" % (jobs.size() - n)
+	# The job chosen by its time left (its name is on its cell's tooltip).
 	var r := Crafting.get_recipe(jobs[_job].recipe)
-	var text := r.get("title", jobs[_job].recipe) as String
+	var name := r.get("title", jobs[_job].recipe) as String
+	var text := ""
 	if _job > 0:
-		text += " · %d-й" % (_job + 1)
+		text = "%d-я" % (_job + 1)
 	elif shop.paused:
-		text += " · пауза"
+		text = "пауза"
 	elif shop.waiting():
-		text += " · ждёт: %s" % _where(r)
+		text = "ждёт"
+		name += ", ждёт: %s" % _where(r)
 	else:
-		text += " · %d с" % ceili(jobs[0].left)
+		text = "%d с" % ceili(jobs[0].left)
 	_job_label.text = text
-	_job_label.tooltip_text = text
+	_job_label.tooltip_text = name
+	for i in n:
+		_job_slots[i].tooltip_text = Crafting.get_recipe(jobs[i].recipe).get("title", "")
 	_progress.value = shop.queue.progress()
 
 
