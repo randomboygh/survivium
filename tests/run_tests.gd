@@ -9,6 +9,7 @@ const AiRules := preload("res://src/shared/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const PlayerScript := preload("res://src/client/player.gd")
+const VoxelProps := preload("res://src/client/voxel_props.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
@@ -461,27 +462,34 @@ func _test_steps() -> void:
 	_check(_walk_to_step(2, true).x < 4.6, "a step of two cells cannot be jumped up")
 	_check(_climb_pit(false) < 3.0, "jumping cannot get out of a pit four cells deep")
 	_check(_climb_pit(true) > 4.9, "air jumps get out of a pit four cells deep")
-	_check(_walk_to_thing(false).x < 4.6, "a chest is not walked through")
-	var on_top := _walk_to_thing(true)
+	var chest := VoxelProps.footprint(VoxelProps.prop("chest"))
+	_check(is_equal_approx(chest[0].position.x, 0.125) and is_equal_approx(chest[3].end.x, 0.875)
+		and is_equal_approx(chest[0].position.z, 0.375) and is_equal_approx(chest[3].end.z, 0.75)
+		and is_equal_approx(chest[0].end.y, 1.25), "a chest's boxes are the model's, not its whole cells")
+	_check(_walk_to_thing(false, 5.9).x < 4.7, "a chest is not walked through")
+	_check(_walk_to_thing(false, 7.3).x > 6.0, "the strip south of a chest's lock is walked along")
+	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")
+	var on_top := _walk_to_thing(true, 5.9)
 	_check(is_equal_approx(on_top.y, 2.25), "a jump gets up onto a chest")
+	_check(is_equal_approx(_walk_to_thing(true, 7.3).y, 1.0), "a jump by the chest's front does not stand on air")
 
 
-## Walks east into a thing standing on cells x 5..6 (a chest 1.25 cells high, see
+## Walks east at `z` past a chest standing on cells x 5..6, z 5..6 (see
 ## WorldData.blockers), jumping at the start when `jump`; returns where the feet end
 ## up after 0.4 s, in cells.
-func _walk_to_thing(jump: bool) -> Vector3:
+func _walk_to_thing(jump: bool, z: float) -> Vector3:
 	var w := WorldData.new(6, Vector2i(16, 16))
-	for z in 16:
-		for x in 16:
-			w.set_cell(x, 0, z, Mat.STONE)
-	for z in range(5, 7):
-		for x in range(5, 7):
-			w.blockers[Vector3i(x, 1, z)] = 1.25
+	for cz in 16:
+		for cx in 16:
+			w.set_cell(cx, 0, cz, Mat.STONE)
+	var boxes := VoxelProps.footprint(VoxelProps.prop("chest"))
+	for i in 4:
+		w.blockers[Vector3i(5 + (i & 1), 1, 5 + (i >> 1))] = boxes[i]
 	_check(w.blocks_body(5, 1, 5) and w.blocks_body(5, 2, 5) and not w.blocks_body(5, 3, 5) and w.blocker_top(5, 2, 5) == 0.25,
 		"a thing 1.25 cells high fills its cell and a quarter of the one above")
 	var player = PlayerScript.new()
 	player.world = w
-	player.position = Vector3(3.0, 1.0, 5.9) * WorldData.CELL
+	player.position = Vector3(3.0, 1.0, z) * WorldData.CELL
 	player.on_ground = true
 	player.move_input = Vector2(1, 0)
 	for i in 24:
