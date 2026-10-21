@@ -1,22 +1,17 @@
 extends RefCounted
 ## A sheet of animation frames for an upright sprite, described by data: a grid of
 ## frames with one row per drawn direction, the directions that are mirrors of a
-## drawn one, named animations as lists of columns, and layers (body, hair, clothes,
-## a tool in hand) drawn over each other in order. The layers are composited into
-## one texture, so a sprite is one quad with one texture whatever it wears; changing
-## a layer builds the texture again. The description is shaped like the data a mod
-## will carry (see plan/architecture/modding.md), so it can move there as is.
+## drawn one, and named animations as lists of columns. Whoever draws the frames (see
+## Figure) puts them into one texture, so a sprite is one quad with one texture
+## whatever it wears and holds. The description is shaped like the data a mod will
+## carry (see plan/architecture/modding.md), so it can move there as is.
 ##
 ## Description keys:
 ##   frame: [width, height] of a frame in pixels; the feet stand on the bottom row.
 ##   directions: drawn directions, one row each, e.g. ["s", "se", "e", "ne", "n"].
 ##   mirror: {direction: drawn direction} for directions shown flipped.
 ##   animations: {name: {"frames": [column, ...], "fps": float}}.
-##   outline: true draws a one-pixel outline around the composited figure (the
-##     outermost pixels of each frame have to stay clear for it).
-## A layer is {"name": String, "image": Image, "behind": [direction, ...]}: the image
-## is the whole grid for that layer; in the directions listed in `behind` the layer
-## goes under the ones before it (a tool held in the far hand).
+##   outline: true when the figure is outlined (see outline_rect).
 
 const OUTLINE := Color(0.12, 0.1, 0.08)
 ## All eight directions in order of the compass turned clockwise from south, so
@@ -28,11 +23,8 @@ var directions: Array
 var mirror: Dictionary
 var animations: Dictionary
 var outline: bool
-var layers: Array = []
 var texture: ImageTexture
 var columns := 1
-## The image being composited (see begin).
-var _img: Image
 ## Images filled with OUTLINE, by size.
 static var _dark := {}
 
@@ -48,45 +40,17 @@ func _init(description: Dictionary) -> void:
 			columns = maxi(columns, col + 1)
 
 
-## Replaces the layers and builds the texture.
-func set_layers(new_layers: Array) -> void:
-	begin(new_layers)
-	for row in directions.size():
-		compose_row(row)
-	finish()
+## The size of the whole grid in pixels.
+func image_size() -> Vector2i:
+	return Vector2i(frame_size.x * columns, frame_size.y * directions.size())
 
 
-## Starts compositing `new_layers` into a new image a row at a time (compose_row), so
-## the work can be spread over frames; finish() puts the image into the texture.
-func begin(new_layers: Array) -> void:
-	layers = new_layers
-	_img = Image.create_empty(frame_size.x * columns, frame_size.y * directions.size(), false, Image.FORMAT_RGBA8)
-	_img.fill(Color(0, 0, 0, 0))
-
-
-## Composites the frames of one direction and outlines them.
-func compose_row(row: int) -> void:
-	var dir: String = directions[row]
-	var order: Array = []
-	for layer in layers:
-		if layer.get("behind", []).has(dir):
-			order.append(layer)
-	for layer in layers:
-		if not layer.get("behind", []).has(dir):
-			order.append(layer)
-	var rect := Rect2i(0, row * frame_size.y, frame_size.x * columns, frame_size.y)
-	for layer in order:
-		_img.blend_rect(layer.image, rect, rect.position)
-	if outline:
-		_outline(_img, rect)
-
-
-func finish() -> void:
+## Puts the drawn grid into the texture.
+func show(img: Image) -> void:
 	if texture == null:
-		texture = ImageTexture.create_from_image(_img)
+		texture = ImageTexture.create_from_image(img)
 	else:
-		texture.set_image(_img)
-	_img = null
+		texture.set_image(img)
 
 
 ## The eight-way direction a movement wish points to (x east, y south).
@@ -117,7 +81,7 @@ func frame_uv(dir: String, anim: String, t: float) -> Vector4:
 ## way the text sprites in sprite_art.gd outline themselves: the figure is stamped dark
 ## one pixel each way under itself. The outermost pixels of a frame have to stay clear,
 ## or the outline would spill into the next frame.
-static func _outline(img: Image, r: Rect2i) -> void:
+static func outline_rect(img: Image, r: Rect2i) -> void:
 	var part := img.get_region(r)
 	var whole := Rect2i(Vector2i.ZERO, r.size)
 	if not _dark.has(r.size):

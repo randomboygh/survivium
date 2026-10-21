@@ -5,7 +5,7 @@ extends Node3D
 ## out onto ground up to one level above the water, and walks on ice in winter.
 ## `position` is the middle of the feet in world units; the body moves in cells.
 
-const PlayerArt := preload("res://src/client/player_art.gd")
+const Figure := preload("res://src/client/figure.gd")
 const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Mat := preload("res://src/shared/materials.gd")
@@ -76,11 +76,11 @@ var facing := "s"
 ## The animation playing and how long it has, in seconds of animation time.
 var anim := "idle"
 var anim_time := 0.0
-## Layers of the look, names from PlayerArt.LAYERS: what is worn.
+## Layers of the look (content/core/sprites/player.yaml `layers`): what is worn.
 var look: Array = ["body", "hair", "shirt", "trousers", "boots"]
-## What the hands hold and which one is in use (see PlayerArt.sheet).
+## What the hands hold and which one is in use (see Figure).
 var held := {"left": {}, "right": {}, "active": "right"}
-## The work playing (a key of PlayerArt.WORK_COLUMNS, "" none), how long it lasts and
+## The work playing (one of player.yaml `works`, "" none), how long it lasts and
 ## how far it has got, in seconds.
 var work_kind := ""
 var _work_length := 0.0
@@ -99,8 +99,8 @@ var torch: OmniLight3D
 
 
 func _ready() -> void:
-	PlayerArt.prepare(look)
-	sheet = PlayerArt.sheet(look, held)
+	Figure.prepare(look)
+	sheet = Figure.sheet(look, held)
 	_sheets[str(look) + str(held)] = sheet
 	var tex := sheet.texture
 	var mesh := PixelView.sprite_mesh(sheet.frame_size.x, sheet.frame_size.y)
@@ -150,7 +150,7 @@ func set_look(layers: Array) -> void:
 	_redraw()
 
 
-## Puts things in the hands, each {} or {"model", "colour"} (see PlayerArt.sheet), and
+## Puts things in the hands, each {} or {"sprite", "colour", "anim"} (see Figure), and
 ## says which hand is in use ("left" or "right"); the sheet is drawn again on a change.
 func hold(left: Dictionary, right: Dictionary, active: String) -> void:
 	var next := {"left": left, "right": right, "active": active}
@@ -169,7 +169,7 @@ func _redraw() -> void:
 	if _sheets.has(key):
 		_use(_sheets[key])
 		return
-	_build = PlayerArt.build(look, held)
+	_build = Figure.new(look, held)
 	_build_key = key
 
 
@@ -180,13 +180,15 @@ func _use(s: SpriteSheet) -> void:
 
 
 ## Swings the hand in use once over `seconds`, turned towards world point `at` (none
-## when INF): `kind` is a work of PlayerArt.WORK_COLUMNS, or "" for the one of the
+## when INF): `kind` is one of player.yaml `works`, or "" for the one of the
 ## tool in that hand. A swing that comes while one is past its strike starts anew, so
 ## work held down keeps swinging.
 func work(kind: String, seconds: float, at := Vector3.INF) -> void:
 	if kind == "":
 		var thing: Dictionary = held.get(held.active, {})
-		kind = PlayerArt.WORK.get(thing.get("model", ""), "reach")
+		kind = thing.get("anim", "")
+		if not Figure.data().works.has(kind):
+			kind = "reach"
 	if work_kind != "" and _work_time < _work_length * 0.5:
 		return
 	work_kind = kind

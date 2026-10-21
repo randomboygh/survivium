@@ -1,22 +1,14 @@
 extends RefCounted
-## What the player holds, shown in the hands of the sprite (PlayerArt): every frame it
+## What the player holds, shown in the hands of the sprite (Figure): every frame it
 ## reads the two hands and the one in use from Controls and gives their looks to the
-## player when they change. A tool is drawn by its kind (an item's `tool`) with a head
-## coloured by what it is made of; a block is a lump of its tile's colour, anything else
-## a lump of cloth. `game` is the Main node that owns the scene.
+## player when they change. A thing is drawn by its item's `sprite`, a picture in its
+## mod; a block without one is a lump of its tile's colour, anything else a lump of
+## cloth. `game` is the Main node that owns the scene.
 
 const Items := preload("res://src/shared/items.gd")
 const Mat := preload("res://src/shared/materials.gd")
-const PlayerArt := preload("res://src/client/player_art.gd")
+const Figure := preload("res://src/client/figure.gd")
 
-## The colour of a tool's head by what it is made of: the first word of its id.
-const HEADS := {
-	"stone": Color(0.56, 0.57, 0.6),
-	"wooden": Color(0.72, 0.55, 0.32),
-	"copper": Color(0.8, 0.48, 0.25),
-	"iron": Color(0.7, 0.72, 0.76),
-}
-const METAL := Color(0.62, 0.64, 0.68)
 ## A thing that is neither a tool nor a block.
 const CLOTH := Color(0.78, 0.7, 0.52)
 
@@ -55,18 +47,19 @@ func update() -> void:
 	game.player.hold(look(left), look(right), active)
 
 
-## The look of item `id` in a hand (see PlayerArt.sheet), {} for an empty hand.
+## The look of item `id` in a hand (see Figure), {} for an empty hand: the sheet of its
+## `sprite` in its mod, or a lump tinted with the colour of the block it places or of
+## cloth, and the work it is used with (`anim`).
 func look(id: String) -> Dictionary:
 	var item := Items.get_item(id)
 	if item.is_empty():
 		return {}
-	var tool: String = item.get("tool", "none")
-	if PlayerArt.SHAPES.has(tool):
-		var made: String = item.id.get_slice(":", 1).get_slice("_", 0)
-		return {"model": tool, "colour": HEADS.get(made, METAL)}
+	if item.sprite != "":
+		return {"sprite": "res://content/%s/sprites/held/%s.png" % [item.mod, item.sprite], "anim": item.anim}
+	var out := {"sprite": Figure.LUMP, "anim": item.anim, "colour": CLOTH}
 	var m := Mat.index(item.get("place", ""))
-	if m < 0:
-		return {"model": "thing", "colour": CLOTH}
-	if not _blocks.has(m):
-		_blocks[m] = game.props._tile_colour(m)
-	return {"model": "block", "colour": _blocks[m]}
+	if m >= 0:
+		if not _blocks.has(m):
+			_blocks[m] = game.props._tile_colour(m)
+		out.colour = _blocks[m]
+	return out
