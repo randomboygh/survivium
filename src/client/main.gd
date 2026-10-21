@@ -7,9 +7,9 @@ extends Node
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
 ## chests, workbenches, kilns, campfires), Character (the bag and the body: health,
-## satiety, stamina, death), Gathering (picking things up, berries and branches),
-## Workshop (recipes known, the crafting queue, tool wear), Hands (what the player
-## is drawn holding), Settings (the saved settings and the playtest switches) and
+## satiety, stamina, death; DeathScreen shows a death), Gathering (picking things up,
+## berries and branches), Workshop (recipes known, the crafting queue, tool wear),
+## Hands (what the player is drawn holding), Settings (the saved settings and the playtest switches) and
 ## SaveGame (the saved world and player).
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
@@ -43,6 +43,7 @@ const TracksScript := preload("res://src/client/tracks.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
 const WorldSetup := preload("res://src/client/world_setup.gd")
 const MainMenu := preload("res://src/client/main_menu.gd")
+const DeathScreen := preload("res://src/client/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
 const WorldStore := preload("res://src/shared/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
@@ -75,6 +76,7 @@ var cursor: CursorScript
 var settings: SettingsScript
 var save: SaveGame
 var menu: MainMenu
+var death_screen: DeathScreen
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
 ## shown with the snow cover.
 var world_root: Node3D
@@ -130,6 +132,7 @@ func _ready() -> void:
 	character = CharacterScript.new(self)
 	save.track("inventory", character.inventory)
 	save.track("vitals", character.vitals)
+	save.track("character", character)
 	gathering = Gathering.new(self)
 	hands = HandsScript.new(self)
 	workshop = Workshop.new(self)
@@ -192,6 +195,7 @@ func _process(delta: float) -> void:
 			view.look_at_player()
 			props.place()
 			character.find_home()
+			player.visible = not character.is_dead()
 			creatures.setup(world, player, world_seed)
 			ready_to_play = true
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
@@ -200,8 +204,8 @@ func _process(delta: float) -> void:
 			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
 	sky.update(delta)
 	if ready_to_play:
-		# The player stands still behind the main menu.
-		var playing := menu == null or not menu.is_open
+		# The player stands still behind the main menu, and lies dead behind the death screen.
+		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.move_input = controls.read_move() if playing else Vector2.ZERO
 		var jump: bool = controls.jump() and playing and (player.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
@@ -221,6 +225,7 @@ func _process(delta: float) -> void:
 	view.update(delta)
 	if ready_to_play:
 		hud.update_state()
+		death_screen.update()
 		controls.update_tip(delta)
 		_report_fps(delta)
 	view.poll_safe_rect(delta)
@@ -239,7 +244,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if world != null:
+	if world != null and not character.is_dead():
 		controls.unhandled_input(event)
 
 
@@ -285,6 +290,12 @@ func _build_ui() -> void:
 	hud.game = self
 	layer.add_child(hud)
 	hud.set_touch(controls.touch)
+	var over := CanvasLayer.new()
+	over.layer = layer.layer
+	over.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(over)
+	death_screen = DeathScreen.new(self)
+	over.add_child(death_screen)
 
 
 ## The main menu in a layer over the interface, open from the start.

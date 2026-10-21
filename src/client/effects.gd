@@ -452,3 +452,39 @@ func _campfire_model(lit := true) -> VoxelModel:
 	for p in [Vector3i(6, 0, 6), Vector3i(9, 0, 9), Vector3i(7, 0, 9), Vector3i(9, 0, 6), Vector3i(6, 1, 9)]:
 		m.set_voxel(p, ember)
 	return m
+
+
+## A glow over a sack left by a death, so it is found from afar: amber motes rising
+## high from a ring around it, and a small warm light on the ground at night.
+func sack_glow(at: Vector3) -> Node3D:
+	var root := Node3D.new()
+	add_child(root)
+	var p := _emitter(36, 2.6, Vector2(PX, PX), 2.2)
+	remove_child(p)
+	root.add_child(p)
+	p.position = at + Vector3(0.0, 0.2, 0.0)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	p.emission_ring_axis = Vector3.UP
+	p.emission_ring_radius = 0.45
+	p.emission_ring_inner_radius = 0.15
+	p.emission_ring_height = 0.2
+	p.direction = Vector3.UP
+	p.spread = 6.0
+	p.initial_velocity_min = 0.9
+	p.initial_velocity_max = 1.8
+	p.gravity = Vector3.ZERO
+	p.scale_amount_min = 2.0
+	p.scale_amount_max = 3.0
+	p.color_ramp = _ramp([Color(1.0, 0.8, 0.3, 0.0), Color(1.0, 0.88, 0.45, 1.0), Color(1.0, 0.7, 0.25, 0.9), Color(1.0, 0.55, 0.15, 0.0)])
+	var mat: ShaderMaterial = (p.mesh as QuadMesh).material
+	mat.set_shader_parameter("sky_only", 0.0)
+	p.emitting = true
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.75, 0.3)
+	light.light_energy = 2.5
+	light.omni_range = 3.0
+	light.omni_attenuation = 0.0
+	light.shadow_enabled = false
+	light.position = PixelView.shear(at + Vector3(0.0, 0.5, 0.0))
+	root.add_child(light)
+	return root

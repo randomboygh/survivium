@@ -54,7 +54,8 @@ comments, commits and PRs are in English.
   `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›"), `save_game.gd`
   (picks the world played last, puts the player, clock and props back, autosaves; modules keep
   their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
-  `Inventory` and `Vitals` from `src/shared/`, action costs, death), `gathering.gd` (picking up
+  `Inventory` and `Vitals` from `src/shared/`, action costs, death: the bag in a sack, the character
+  lies dead, kept in the save, until `death_screen.gd` brings them back at a respawn point), `gathering.gd` (picking up
   drops by a tap or by themselves near the player, bushes and trees by what is in the hand, cutting
   grass into what grows on it, planting), `hands.gd` (what the player is drawn holding in each
   hand). The player's sprite (`figure.gd`) is put together from the core mod's pictures, laid out

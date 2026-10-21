@@ -115,6 +115,34 @@ func _run() -> void:
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
 	_check(main.character.inventory.count("core:branch") == 7, "the character's bag comes back")
 	_check(absf(main.character.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
+
+	# Death: the bag goes into a sack, the character lies dead until brought back, and a
+	# world left dead is entered dead.
+	main.save.begin()
+	var ch = main.character
+	ch.vitals.health = 0.0
+	ch.vitals.hurt_by = "hunger"
+	await process_frame
+	await process_frame
+	_check(ch.is_dead() and ch.inventory.is_empty() and not main.player.visible, "a death empties the bag and hides the player")
+	_check(main.death_screen.visible and not main.hud.visible, "the death screen is shown")
+	_check(ch.death.lost.any(func(st: Array) -> bool: return st[0] == "core:branch" and st[1] == 7),
+		"the death screen knows what was lost")
+	var fell: Vector3 = main.player.position
+	main.queue_free()
+	await process_frame
+	await process_frame
+
+	main = await _start()
+	ch = main.character
+	await process_frame
+	_check(ch.is_dead() and ch.death.get("cause") == "hunger" and main.death_screen.visible, "a world left dead is entered dead")
+	_check(main.player.position.distance_to(fell) < 0.01 and not main.player.visible, "the dead lie where they fell")
+	main.death_screen._revive(ch.respawn_points()[0][1])
+	await process_frame
+	_check(not ch.is_dead() and not main.death_screen.visible and main.hud.visible and main.player.visible,
+		"the character comes back at the campfire")
+	_check(ch.vitals.health > 0.0 and main.player.position.distance_to(ch.home) < 0.01, "brought back with health, at home")
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

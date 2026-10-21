@@ -1,8 +1,10 @@
 extends RefCounted
 ## The player's character: the bag (Inventory) and the body (Vitals), what the load and
 ## tiredness do to the pace, what actions cost, eating, throwing things away, and
-## death: the bag's contents stay on the spot in a sack and the character comes back
-## at the spawn (plan/design/character.md). `game` is the Main node.
+## death: the bag's contents stay on the spot in a sack and the character lies dead
+## (the death screen, DeathScreen) until the player brings them back at a respawn
+## point (plan/design/character.md). The death is kept in the save, so a world left
+## dead is entered dead. `game` is the Main node.
 
 const Inventory := preload("res://src/shared/inventory.gd")
 const Vitals := preload("res://src/shared/vitals.gd")
@@ -23,6 +25,10 @@ var vitals := Vitals.new()
 ## Where the character comes back after death, in world units: beside the campfire
 ## (the spawn's, until fires are made), else where the player first stood.
 var home := Vector3.ZERO
+## The character's death while they lie dead, else empty: "cause" (Vitals.hurt_by),
+## "day" and "time" (the clock), "at" (where they fell, world units), "sack" (where
+## the sack lies, or null) and "lost" ([id, count] of each stack the sack holds).
+var death := {}
 var _nagged := {}
 
 
@@ -42,6 +48,8 @@ func find_home() -> void:
 
 ## Runs the body for a frame of `delta` seconds and sets the pace of the player.
 func update(delta: float) -> void:
+	if is_dead():
+		return
 	var player = game.player
 	var days: float = delta * game.sky.time_speed / game.sky.DAY_LENGTH
 	vitals.step(delta, days, player.swimming, inventory.load_share())
@@ -105,30 +113,90 @@ func throw_away(i: int, n: int) -> void:
 
 
 ## Health is gone: the bag's things stay in a sack where the character fell, and the
-## character comes back at the spawn.
+## character lies dead until revive().
 func die() -> void:
-	var cause := "от голода" if vitals.hurt_by == "hunger" else ("в воде" if vitals.hurt_by == "water" else "")
+	var player = game.player
+	var at: Vector3 = player.position
 	var stacks := inventory.take_all()
+	var sack: Variant = null
 	if not stacks.is_empty():
-		lay(Items.SACK, stacks)
+		sack = lay(Items.SACK, stacks)
+	death = {
+		"cause": vitals.hurt_by,
+		"day": game.sky.day,
+		"time": game.sky.time_of_day,
+		"at": [at.x, at.y, at.z],
+		"sack": [sack.x, sack.y, sack.z] if sack is Vector3 else null,
+		"lost": stacks.map(func(st: Array) -> Array: return [st[0], st[1]]),
+	}
+	player.velocity_y = 0.0
+	player.visible = false
+	if game.hud.bag.visible:
+		game.hud.toggle_bag()
+	state_changed.emit()
+	game.save.flush()
+
+
+func is_dead() -> bool:
+	return not death.is_empty()
+
+
+## The places the character may come back at, as [title, position in world units]:
+## the spawn's campfire for now (beds and the player's own fires later).
+func respawn_points() -> Array:
+	return [["У костра старта", home]]
+
+
+## Brings the dead character back at `at` with part of their health.
+func revive(at: Vector3) -> void:
+	death = {}
 	vitals.revive(REVIVE_HEALTH)
 	var player = game.player
-	player.position = home
+	player.position = at
 	player.velocity_y = 0.0
+	player.visible = true
 	game.view.look_at_player()
-	game.hud.toast("Персонаж погиб %s. Вещи остались в мешке." % cause if cause != "" else "Персонаж погиб. Вещи остались в мешке.")
 	state_changed.emit()
 
 
+## How the character died, for the death screen: a title and a line under it.
+static func cause_text(cause: String) -> Array:
+	match cause:
+		"hunger":
+			return ["Вы умерли", "от голода"]
+		"water":
+			return ["Вы утонули", "в воде кончились силы"]
+	return ["Вы погибли", ""]
+
+
+## The death, kept in the player's save (see SaveGame.track).
+func to_dict() -> Dictionary:
+	return {"death": death.duplicate(true)}
+
+
+func from_dict(d: Dictionary) -> void:
+	var saved: Variant = d.get("death")
+	death = {}
+	if saved is Dictionary and not saved.is_empty():
+		death = saved.duplicate(true)
+		# Counts come back from JSON as floats.
+		var lost := []
+		for st: Variant in death.get("lost", []):
+			if st is Array and st.size() >= 2 and Items.has(str(st[0])):
+				lost.append([str(st[0]), int(st[1])])
+		death.lost = lost
+
+
 ## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
-## sack's stacks, or {"n", "worn"} for a worn tool) at the player's feet.
-func lay(kind: String, data: Variant) -> void:
+## sack's stacks, or {"n", "worn"} for a worn tool) at the player's feet; returns where.
+func lay(kind: String, data: Variant) -> Vector3:
 	var world = game.world
 	var p: Vector3 = game.player.position
 	var h: float = world.ground_height(p.x / CELL, p.z / CELL)
 	var at := Vector3(p.x, h * CELL if h >= 0.0 else p.y, p.z)
 	world.add_drop(kind, at, randf() * TAU, data)
 	game.props.show_drops(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
+	return at
 
 
 ## A message under the clock, at most once in NAG_INTERVAL for the same `reason`.
