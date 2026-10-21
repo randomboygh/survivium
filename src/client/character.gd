@@ -33,7 +33,7 @@ func _init(g) -> void:
 
 ## Picks the place to come back to after death, once the props are placed.
 func find_home() -> void:
-	var fire: Variant = game.props.cells.get("campfire")
+	var fire: Variant = game.props.cell_of(game.props.CAMPFIRE)
 	if fire is Vector3i:
 		home = (Vector3(fire) + Vector3(2.5, 0.0, 0.5)) * CELL
 	else:
@@ -66,9 +66,10 @@ func act(action: String) -> bool:
 	return false
 
 
-## Puts `n` of item `id` into the bag and says what came in; returns how many fit.
-func give(id: String, n: int) -> int:
-	var got := inventory.add(id, n)
+## Puts `n` of item `id` (a tool worn by `worn` swings) into the bag and says what
+## came in; returns how many fit.
+func give(id: String, n: int, worn := 0) -> int:
+	var got := inventory.add(id, n, worn)
 	if got > 0:
 		game.hud.toast("+%d %s" % [got, Items.title(id)])
 		if inventory.overloaded():
@@ -96,7 +97,7 @@ func throw_away(i: int, n: int) -> void:
 	if taken == null:
 		return
 	game.gathering.hold_back(game.player.position)
-	_lay(taken[0], taken[1])
+	lay(taken[0], {"n": taken[1], "worn": taken[2]} if taken.size() > 2 else taken[1])
 
 
 ## Health is gone: the bag's things stay in a sack where the character fell, and the
@@ -105,7 +106,7 @@ func die() -> void:
 	var cause := "от голода" if vitals.hurt_by == "hunger" else ("в воде" if vitals.hurt_by == "water" else "")
 	var stacks := inventory.take_all()
 	if not stacks.is_empty():
-		_lay(Items.SACK, stacks)
+		lay(Items.SACK, stacks)
 	vitals.revive(REVIVE_HEALTH)
 	var player = game.player
 	player.position = home
@@ -115,8 +116,9 @@ func die() -> void:
 	state_changed.emit()
 
 
-## Lays a thing of `kind` (an item or a sack, see WorldData.drops) at the player's feet.
-func _lay(kind: String, data: Variant) -> void:
+## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
+## sack's stacks, or {"n", "worn"} for a worn tool) at the player's feet.
+func lay(kind: String, data: Variant) -> void:
 	var world = game.world
 	var p: Vector3 = game.player.position
 	var h: float = world.ground_height(p.x / CELL, p.z / CELL)

@@ -141,6 +141,9 @@ func open(which: String) -> void:
 		_add_row("Инструменты", ["выдать", "выдать"],
 			func() -> int: return 0,
 			func(_i: int) -> void: s.give_tools())
+		_add_row("Износ инструментов", ["выкл", "вкл"],
+			func() -> int: return int(s.tool_wear),
+			func(i: int) -> void: s.set_tool_wear(i == 1))
 		_add_row("Статистика", ["выкл", "вкл"],
 			func() -> int: return int(game.hud.perf.visible),
 			func(i: int) -> void:

@@ -6,8 +6,9 @@ extends Node
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
-## the chest and the campfire), Character (the bag and the body: health, satiety,
-## stamina, death), Gathering (picking things up, berries and branches), Settings (the
+## chests, workbenches, kilns, campfires), Character (the bag and the body: health,
+## satiety, stamina, death), Gathering (picking things up, berries and branches),
+## Workshop (recipes known, the crafting queue, tool wear), Settings (the
 ## saved settings and the playtest switches) and SaveGame (the saved world and player).
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
@@ -24,6 +25,7 @@ const CameraRig := preload("res://src/client/camera_rig.gd")
 const Props := preload("res://src/client/props.gd")
 const CharacterScript := preload("res://src/client/character.gd")
 const Gathering := preload("res://src/client/gathering.gd")
+const Workshop := preload("res://src/client/workshop.gd")
 const CursorScript := preload("res://src/client/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
@@ -63,6 +65,7 @@ var view: CameraRig
 var props: Props
 var character: CharacterScript
 var gathering: Gathering
+var workshop: Workshop
 var cursor: CursorScript
 var settings: SettingsScript
 var save: SaveGame
@@ -120,6 +123,10 @@ func _ready() -> void:
 	save.track("inventory", character.inventory)
 	save.track("vitals", character.vitals)
 	gathering = Gathering.new(self)
+	workshop = Workshop.new(self)
+	save.track("knowledge", workshop.knowledge)
+	save.track("crafting", workshop.queue)
+	workshop.settle()
 	view.build(self)
 	world_root = view.world_root
 	_build_ui()
@@ -189,6 +196,7 @@ func _process(delta: float) -> void:
 		var jump: bool = controls.jump() and playing and (player.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
 		character.update(minf(delta, 0.05))
+		workshop.update(minf(delta, 0.05))
 		if playing:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)

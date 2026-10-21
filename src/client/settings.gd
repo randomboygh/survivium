@@ -56,6 +56,9 @@ var free_build := false
 const TOOL_SET := ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword"]
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
 var air_jumps := false
+## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
+## preset, which does not exist yet). Not saved.
+var tool_wear := false
 
 
 func _init(g) -> void:
@@ -183,6 +186,10 @@ func set_free_build(on: bool) -> void:
 	free_build = on
 	if game.hud != null:
 		game.hud.refresh_counts()
+
+
+func set_tool_wear(on: bool) -> void:
+	tool_wear = on
 
 
 ## Puts one of each tool of TOOL_SET the bag lacks into it.

@@ -1,0 +1,77 @@
+# Рецепты: что делают руками в сумке, на верстаке и в печи. makes — предмет, count —
+# сколько штук выходит; needs — материалы и сколько их уходит; at — станок, у которого
+# делают (предмет с `prop`: верстак, печь, костёр; нет поля — руками, где угодно);
+# tool — инструмент, который должен быть в сумке (axe, pickaxe, shovel, sword); time —
+# секунд работы. Рецепт становится известен, когда в сумке побывали все его материалы.
+# Название рецепта — то, что видно в окне крафта.
+
+# Руками
+- id: cord
+  title: Верёвка
+  makes: cord
+  needs: {fiber: 3}
+  time: 2
+- id: campfire
+  title: Костёр
+  makes: campfire
+  needs: {branch: 5, fiber: 5}
+  time: 4
+- id: workbench
+  title: Верстак
+  makes: workbench
+  needs: {branch: 8, cord: 2}
+  time: 6
+
+# На верстаке
+- id: stone_axe
+  title: Каменный топор
+  makes: stone_axe
+  needs: {flint: 1, branch: 2, cord: 1}
+  at: workbench
+  time: 5
+- id: stone_pickaxe
+  title: Каменная кирка
+  makes: stone_pickaxe
+  needs: {flint: 2, branch: 2, cord: 1}
+  at: workbench
+  time: 6
+- id: planks
+  title: Доски
+  makes: planks
+  count: 2
+  needs: {log: 1}
+  at: workbench
+  tool: axe
+  time: 3
+- id: wooden_shovel
+  title: Деревянная лопата
+  makes: wooden_shovel
+  needs: {planks: 2, branch: 1}
+  at: workbench
+  time: 5
+- id: wooden_sword
+  title: Деревянный меч
+  makes: wooden_sword
+  needs: {planks: 2, cord: 1}
+  at: workbench
+  time: 5
+- id: chest
+  title: Сундук
+  makes: chest
+  needs: {planks: 6}
+  at: workbench
+  time: 8
+- id: kiln
+  title: Печь для обжига
+  makes: kiln
+  needs: {stone: 8, clay: 4}
+  at: workbench
+  time: 10
+
+# В печи
+- id: brick
+  title: Кирпич
+  makes: brick
+  needs: {clay: 1}
+  at: kiln
+  time: 4

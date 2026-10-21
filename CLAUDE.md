@@ -9,7 +9,8 @@ comments, commits and PRs are in English.
 ## Layout and dependencies
 
 - `src/shared/` must not preload anything from `src/client/`: it is the world model the future
-  server will run (data, generation, materials, trees, bushes, tools, AI rules, raycast).
+  server will run (data, generation, materials, trees, bushes, tools, recipes and the crafting
+  queue, AI rules, raycast).
 - The world has no edge. `world_data.gd` keeps the cells in `Chunk`s by key (`chunk_at`,
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
@@ -32,9 +33,10 @@ comments, commits and PRs are in English.
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
-  creatures, trees, bushes), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
-  reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI); the
-  registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd` fill their static vars from
+  creatures, trees, bushes, recipes), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
+  reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI, and that
+  every recipe can be made from what the world gives); the
+  registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd` fill their static vars from
   them when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`.
   New numbers that describe content go into the YAML and the schema, not into constants.
 - Scripts are loaded with `preload` consts, no `class_name`.
@@ -43,7 +45,7 @@ comments, commits and PRs are in English.
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: the left hand's tool, the right hand's brush,
   strokes, the action button in front; rules in `src/shared/tools.gd`),
-  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (chest and what it holds, campfire, items lying on the ground, `WorldData.drops`), `minimap.gd`
+  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another

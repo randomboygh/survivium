@@ -21,6 +21,9 @@ const Items := preload("res://src/shared/items.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
 const Vitals := preload("res://src/shared/vitals.gd")
 const Tools := preload("res://src/shared/tools.gd")
+const Crafting := preload("res://src/shared/crafting.gd")
+const CraftQueue := preload("res://src/shared/craft_queue.gd")
+const Knowledge := preload("res://src/shared/knowledge.gd")
 const WorldStore := preload("res://src/shared/world_store.gd")
 const Tracks := preload("res://src/client/tracks.gd")
 const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
@@ -52,6 +55,8 @@ func _init() -> void:
 	_test_items()
 	_test_inventory()
 	_test_tools()
+	_test_crafting()
+	_test_wear()
 	_test_vitals()
 	_test_tracks()
 	_test_hidden()
@@ -969,18 +974,19 @@ func _test_content() -> void:
 	_write(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
 	_write(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
 	_write(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
+	_write(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: core:cord\n  needs: {core:fiber: 0}\n- id: dust\n  title: y\n  makes: core:cord\n  needs: {stone_dust: 1}\n")
 	Content.MODS.append("_test")
 	Content.refresh()
 	var found := {}
 	for p in Content.problems:
 		for what in ["Bad Id", "glass.solid", "glass.weight", "duplicate id", "bear.mass", "bear.diet",
-				"bear.human_wariness", "bear.active", "pine.trunk", "pine.tints"]:
+				"bear.human_wariness", "bear.active", "pine.trunk", "pine.tints", "rope.needs", "`_test:stone_dust`"]:
 			if what in p:
 				found[what] = true
-	_check(found.size() == 10, "the loader reports every kind of mistake (%d of 10): %s" % [found.size(), Content.problems])
+	_check(found.size() == 12, "the loader reports every kind of mistake (%d of 12): %s" % [found.size(), Content.problems])
 	_check(Content.find("materials", "_test:glass").title == "Стекло", "a duplicate id within a mod is skipped")
 	Content.MODS.assign(before)
-	for f in ["data/materials.yaml", "data/creatures.yaml", "data/trees.yaml", "mod.yaml"]:
+	for f in ["data/materials.yaml", "data/creatures.yaml", "data/trees.yaml", "data/recipes.yaml", "mod.yaml"]:
 		DirAccess.remove_absolute(mod + "/" + f)
 	DirAccess.remove_absolute(mod + "/data")
 	DirAccess.remove_absolute(mod)
@@ -1044,6 +1050,74 @@ func _test_tools() -> void:
 	w.heap_drop("core:dirt", Vector3(3.0, 1.0, 1.0), 1)
 	var list: Array = w.drops[Vector2i.ZERO]
 	_check(list.size() == 3 and list[0][3] == 3, "what is dug together lies in one heap")
+
+
+func _test_crafting() -> void:
+	_check(Crafting.check().is_empty(), "every recipe can be made, at a real station: %s" % Crafting.check())
+	var have := Crafting.reachable()
+	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:workbench", "core:kiln", "core:brick"]:
+		_check(have.has(id), "%s can be had from a new world" % id)
+	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
+	var cord := Crafting.get_recipe("core:cord")
+	var axe := Crafting.get_recipe("core:stone_axe")
+	var planks := Crafting.get_recipe("core:planks")
+	_check(cord.at == "" and cord.needs == {"core:fiber": 3} and axe.at == "core:workbench", "recipes come from the data")
+	var inv := Inventory.new()
+	var knows := Knowledge.new()
+	knows.look_at(inv)
+	_check(not knows.knows(cord) and knows.recipes().is_empty(), "nothing is known with an empty bag")
+	var heard := []
+	knows.learned.connect(func(id: String) -> void: heard.append(id))
+	inv.add("core:fiber", 7)
+	knows.look_at(inv)
+	_check(knows.knows(cord) and heard == ["core:cord"], "a recipe is learned when its materials have been in the bag")
+	var copy := Knowledge.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
+	_check(copy.knows(cord) and copy.seen.has("core:fiber"), "knowledge survives a save")
+	_check(Crafting.why_not(cord, inv, {}) == "" and Crafting.why_not(axe, inv, {}).begins_with("Нужен станок"),
+		"by hand anywhere, at a station only near it")
+	_check(Crafting.why_not(planks, inv, {"core:workbench": true}).begins_with("Нужен инструмент"), "planks need an axe in the bag")
+	var q := CraftQueue.new()
+	_check(q.add(cord, inv) and q.add(cord, inv) and not q.add(cord, inv), "the queue takes the materials of each job")
+	_check(inv.count("core:fiber") == 1, "materials are gone while queued")
+	var stacks := q.cancel(1)
+	for st in stacks:
+		inv.add(st[0], st[1])
+	_check(inv.count("core:fiber") == 4 and q.jobs.size() == 1, "a cancel gives the materials back")
+	var made := q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return false)
+	_check(made.is_empty() and q.progress() == 0.0, "a job waits while it cannot be worked on")
+	q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return true)
+	_check(is_equal_approx(q.progress(), 0.5), "a job takes its time")
+	made = q.step(cord.time, func(_r: Dictionary) -> bool: return true)
+	_check(made.size() == 1 and made[0].makes == "core:cord" and q.jobs.is_empty(), "a job is done when its time is up")
+	var q2 := CraftQueue.new()
+	q2.add(cord, inv)
+	q2.step(0.5, func(_r: Dictionary) -> bool: return true)
+	var q3 := CraftQueue.new()
+	q3.from_dict(JSON.parse_string(JSON.stringify(q2.to_dict())))
+	_check(q3.jobs.size() == 1 and is_equal_approx(q3.jobs[0].left, cord.time - 0.5), "the queue survives a save")
+
+
+func _test_wear() -> void:
+	var inv := Inventory.new(4)
+	var d: int = Items.get_item("core:stone_axe").durability
+	_check(d > 0 and Items.get_item("core:stone_axe").repair.has("core:flint"), "tools wear and are repaired with materials")
+	inv.add("core:stone_axe", 1)
+	for i in d - 1:
+		inv.wear_tool("core:stone_axe", d)
+	_check(inv.worn(0) == d - 1 and inv.count("core:stone_axe") == 1, "a tool wears with each swing")
+	var copy := Inventory.new(4)
+	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
+	_check(copy.worn(0) == d - 1, "wear survives a save")
+	var chest := Inventory.new(4)
+	_check(copy.move_slot(0, chest) == 1 and chest.worn(0) == d - 1, "a worn tool keeps its wear in the chest")
+	inv.add("core:stone_axe", 1)
+	_check(inv.slots[1] != null and inv.worn(1) == 0, "a new tool does not join a worn one")
+	_check(inv.wear_tool("core:stone_axe", d) and inv.count("core:stone_axe") == 1, "a worn-out tool breaks")
+	inv.wear_tool("core:stone_axe", d)
+	var at := inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null)[0])
+	inv.mend(at)
+	_check(inv.worn(at) == 0, "a repaired tool is as good as new")
 
 
 func _test_inventory() -> void:

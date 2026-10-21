@@ -18,6 +18,7 @@ const Foliage := preload("res://src/client/foliage.gd")
 const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
 const Shot := preload("res://tools/shot.gd")
 const Tools := preload("res://src/shared/tools.gd")
+const Crafting := preload("res://src/shared/crafting.gd")
 const CELL := 0.5
 const CHUNK := 16
 ## Frames over a limit allowed in a scenario, one plus one per this many frames: a
@@ -222,6 +223,39 @@ func _run() -> void:
 	bag._move_to_bag()
 	_check(inv.count("core:stone") == stones and main.props.chest_items.is_empty(), "and back into the bag")
 	bag.close()
+
+	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,
+	# the workbench placed in front, a stone axe made at it, with the craft tab open.
+	var shop = main.workshop
+	inv.add("core:fiber", 9)
+	inv.add("core:branch", 10)
+	inv.add("core:flint", 1)
+	main.hud.toggle_bag()
+	bag.show_tab("craft")
+	for id in ["core:cord", "core:workbench"]:
+		var r := Crafting.get_recipe(id)
+		var n: int = shop.start(r, 3 if id == "core:cord" else 1)
+		_check(n > 0, "%s is known and queued" % r.title)
+		for j in shop.queue.jobs:
+			j.left = 0.05
+		await _scenario("crafting " + id, 100000, func(_i: int) -> bool: return shop.queue.jobs.is_empty() or clock >= 2.0)
+	_check(inv.count("core:workbench") == 1, "a workbench is made by hand")
+	# Out of the pit the action button dug, the player turns until there is room.
+	main.player.position = start + Vector3(1.5, 0.0, 1.5)
+	await _scenario("stepping out of the pit", 100000, func(_i: int) -> bool: return main.player.on_ground and clock >= 0.5)
+	var put := false
+	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
+		main.player.facing = facing
+		put = put or main.props.put_from_bag("core:workbench")
+	_check(put and shop.stations().has("core:workbench"), "a workbench placed works as a station")
+	var axe := Crafting.get_recipe("core:stone_axe")
+	var axes: int = inv.count("core:stone_axe")
+	_check(shop.start(axe) == 1, "an axe is queued at the workbench")
+	for j in shop.queue.jobs:
+		j.left = 0.05
+	await _scenario("crafting at a workbench", 100000, func(_i: int) -> bool: return shop.queue.jobs.is_empty() or clock >= 2.0)
+	_check(inv.count("core:stone_axe") == axes + 1, "a stone axe is made at the workbench")
+	main.hud.toggle_bag()
 
 	# An idle frame of the finished map is the engine's own share: it grows with the
 	# chunks on the map and the machine, not with the game's work.

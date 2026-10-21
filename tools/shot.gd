@@ -11,6 +11,7 @@ const WorldData := preload("res://src/shared/world_data.gd")
 const Mat := preload("res://src/shared/materials.gd")
 const WorldGen := preload("res://src/shared/world_gen.gd")
 const Trees := preload("res://src/shared/trees.gd")
+const Crafting := preload("res://src/shared/crafting.gd")
 const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const CELL := 0.5
@@ -103,6 +104,12 @@ const SHOTS := {
 	"work-pc": {"time": 0.42, "season": 1, "work": true},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
+	# A workbench and a kiln placed by the spawn, the craft tab open at the workbench
+	# with an axe being made and more queued.
+	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},
+	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
+	# The same workbench and kiln with the window closed.
+	"stations": {"time": 0.42, "season": 1, "craft": true, "closed": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -262,7 +269,12 @@ func _run() -> void:
 			main.props.chest_items.add("core:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._choose_in_chest(0)
-		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false):
+		if shot.get("craft", false):
+			_craft()
+			if shot.get("closed", false):
+				main.hud.toggle_bag()
+		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
+				or shot.get("craft", false):
 			await process_frame
 			await process_frame
 		var setup: Control = null
@@ -312,8 +324,15 @@ func _run() -> void:
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
-		if shot.get("bag", false) or shot.get("chest", false):
+		if shot.get("bag", false) or shot.get("chest", false) or (shot.get("craft", false) and not shot.get("closed", false)):
 			main.hud.toggle_bag()
+		if shot.get("craft", false):
+			while not main.workshop.queue.jobs.is_empty():
+				main.workshop.queue.cancel(0)
+			for e in main.props.placed.duplicate():
+				if e.item in ["core:workbench", "core:kiln"]:
+					main.props.take_up(e)
+			main.character.inventory.take_all()
 		if shot.get("chest", false):
 			main.props.chest_items.take_all()
 		if shot.get("gather", false) or shot.get("work", false):
@@ -324,6 +343,28 @@ func _run() -> void:
 			main.controls.hold("")
 			main.controls._cursor_clock = 0.0
 	quit()
+
+
+## By the spawn: a workbench and a kiln set down in front of the player, what the first
+## tools are made of in the bag, an axe being made and a pickaxe queued, the craft tab
+## open at the workbench.
+func _craft() -> void:
+	var inv = main.character.inventory
+	for st in [["core:fiber", 14], ["core:branch", 16], ["core:flint", 3], ["core:log", 2], ["core:clay", 6],
+			["core:workbench", 1], ["core:kiln", 1]]:
+		inv.add(st[0], st[1])
+	main.player.facing = "s"
+	main.props.put_from_bag("core:workbench")
+	main.player.facing = "e"
+	main.props.put_from_bag("core:kiln")
+	main.player.facing = "s"
+	var shop = main.workshop
+	shop.start(Crafting.get_recipe("core:cord"), 2)
+	shop.queue.jobs[0].left = 0.5
+	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
+	for e in main.props.placed:
+		if e.item == "core:workbench":
+			main.hud.open_prop(e)
 
 
 ## By the spawn: a floor painted, a pit dug, berries knocked down, the tools taken but

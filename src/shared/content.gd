@@ -1,7 +1,7 @@
 extends RefCounted
 ## Mods and their data files. A mod is a folder under `content/` with `mod.yaml` and
 ## `data/<kind>.yaml`, one file per kind of record (materials, items, creatures,
-## trees, bushes), each a list of records with an `id`. Ids carry the mod's namespace:
+## trees, bushes, recipes), each a list of records with an `id`. Ids carry the mod's namespace:
 ## `grass` in the core mod is `core:grass`, and a reference without a namespace
 ## means the same mod. A later mod may redefine a record of an earlier one by id.
 ##
@@ -9,7 +9,7 @@ extends RefCounted
 ## unknown fields, missing fields without a default and broken references are
 ## reported with the file and the id. The game loads what it can and reports the
 ## problems; `tools/validate.gd` runs the same checks in CI and fails on any.
-## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd) read their kind
+## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd) read their kind
 ## with `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.OAK` or `AiRules.SPECIES` as before.
 
@@ -21,8 +21,9 @@ static var MODS: Array = ["core"]
 
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
-## ref:<kind> (an id of a record of that kind; an empty default means none). `min`/`max`
-## bound numbers, in a list each item. A field without `default` is required. `id` and
+## ref:<kind> (an id of a record of that kind; an empty default means none), amounts
+## (a mapping of ids of `of` to how many, at least 1 each). `min`/`max` bound numbers,
+## in a list each item. A field without `default` is required. `id` and
 ## `title` are implied for every kind.
 const SCHEMAS := {
 	"materials": {
@@ -50,6 +51,9 @@ const SCHEMAS := {
 		"swing": {"type": "float", "min": 0.05, "default": 0.5},
 		"plant": {"type": "ref:bushes", "default": ""},
 		"reach": {"type": "int", "min": 1, "default": 8},
+		"durability": {"type": "int", "min": 0, "default": 0},
+		"repair": {"type": "amounts", "of": "ref:items", "default": {}},
+		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "campfire"], "default": "none"},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},
@@ -82,6 +86,14 @@ const SCHEMAS := {
 		"fruit_count": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"item": {"type": "ref:items", "default": ""},
+	},
+	"recipes": {
+		"makes": {"type": "ref:items"},
+		"count": {"type": "int", "min": 1, "default": 1},
+		"needs": {"type": "amounts", "of": "ref:items"},
+		"at": {"type": "ref:items", "default": ""},
+		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword"], "default": "none"},
+		"time": {"type": "float", "min": 0.0, "default": 2.0},
 	},
 }
 const MOD_SCHEMA := {
@@ -279,6 +291,17 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 					return what
 				items.append(one[0])
 			out[0] = items
+		"amounts":
+			if not v is Dictionary or v.is_empty():
+				return "expected a mapping of ids to how many, like {branch: 2}"
+			var amounts := {}
+			for k in v:
+				if not k is String or k == "":
+					return "expected ids as keys"
+				if not v[k] is int or v[k] < 1:
+					return "`%s`: expected a whole number of at least 1" % k
+				amounts[qualify(k, mod)] = v[k]
+			out[0] = amounts
 		_:
 			if type.begins_with("ref:"):
 				if not v is String or v == "":
@@ -312,6 +335,8 @@ static func _zero(spec: Dictionary) -> Variant:
 			return Color.MAGENTA
 		"vec3":
 			return Vector3.ZERO
+		"amounts":
+			return {}
 		"list":
 			var items := []
 			var item_spec := spec.duplicate()
@@ -327,12 +352,12 @@ static func _check_refs() -> void:
 	for kind in SCHEMAS:
 		for key in SCHEMAS[kind]:
 			var spec: Dictionary = SCHEMAS[kind][key]
-			var target: String = spec.get("of", spec.type) if spec.type == "list" else spec.type
+			var target: String = spec.get("of", spec.type) if spec.type in ["list", "amounts"] else spec.type
 			if not target.begins_with("ref:"):
 				continue
 			var of := target.substr(4)
 			for r in _kinds[kind]:
-				var refs: Array = r[key] if spec.type == "list" else [r[key]]
+				var refs: Array = r[key] if spec.type == "list" else (r[key].keys() if spec.type == "amounts" else [r[key]])
 				for ref in refs:
 					if ref == "" and spec.get("default") == "":
 						continue

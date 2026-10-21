@@ -8,6 +8,10 @@
 # материала, которую он берёт, и урон дереву за удар; area — сколько ячеек за один
 # взмах; swing — секунд на взмах; reach — на сколько ячеек от персонажа достаёт (без
 # инструмента руки достают на 6, блоки ставятся на 8). plant — куст, который сажает предмет.
+# durability — сколько взмахов инструмент выдерживает, пока включён износ (0 — не изнашивается);
+# repair — что уходит на починку на верстаке. prop — вещь, которая ставится в мир из сумки
+# на клетки 2×2: chest (сундук), workbench (верстак), kiln (печь для обжига), campfire (костёр);
+# у верстака, печи и костра делают то, что в recipes.yaml указывает на них в `at`.
 - id: branch
   title: Ветка
   weight: 0.3
@@ -92,6 +96,8 @@
   power: 2
   swing: 0.6
   reach: 7
+  durability: 120
+  repair: {flint: 1, cord: 1}
 - id: stone_pickaxe
   title: Каменная кирка
   weight: 2.0
@@ -102,6 +108,8 @@
   power: 2
   swing: 0.55
   reach: 8
+  durability: 150
+  repair: {flint: 1, cord: 1}
 - id: wooden_shovel
   title: Деревянная лопата
   weight: 1.2
@@ -113,6 +121,8 @@
   area: 2
   swing: 0.35
   reach: 8
+  durability: 100
+  repair: {planks: 1}
 - id: wooden_sword
   title: Деревянный меч
   weight: 1.0
@@ -123,6 +133,8 @@
   power: 1
   swing: 0.4
   reach: 6
+  durability: 80
+  repair: {planks: 1}
 - id: shrub_bush
   title: Куст
   weight: 2.0
@@ -150,3 +162,39 @@
   stack: 50
   model: fiber
   icon: fiber
+- id: flint
+  title: Кремень
+  weight: 0.3
+  stack: 20
+  model: flint
+  icon: flint
+- id: cord
+  title: Верёвка
+  weight: 0.1
+  stack: 20
+  model: cord
+  icon: cord
+- id: workbench
+  title: Верстак
+  weight: 8.0
+  stack: 1
+  icon: workbench
+  prop: workbench
+- id: kiln
+  title: Печь для обжига
+  weight: 20.0
+  stack: 1
+  icon: kiln
+  prop: kiln
+- id: campfire
+  title: Костёр
+  weight: 3.0
+  stack: 5
+  icon: campfire
+  prop: campfire
+- id: chest
+  title: Сундук
+  weight: 6.0
+  stack: 1
+  icon: chest
+  prop: chest
