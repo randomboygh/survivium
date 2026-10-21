@@ -1254,7 +1254,8 @@ func _test_tools() -> void:
 func _test_crafting() -> void:
 	_check(Crafting.check().is_empty(), "every recipe can be made, at a real station: %s" % Crafting.check())
 	var have := Crafting.reachable()
-	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe", "core:workbench",
+	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe", "core:stone_sword", "core:wooden_pickaxe", "core:wooden_scythe",
+			"core:workbench",
 			"core:kiln", "core:brick", "core:grain", "core:grass_seeds", "core:flatbread"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
 	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
