@@ -110,6 +110,7 @@ func _ready() -> void:
 	sprite.extra_cull_margin = 24.0
 	# Placed by place_sprite() on whole pixels, not by the body's position.
 	sprite.top_level = true
+	sprite.layers = PixelView.LAYER_PLAYER
 	add_child(sprite)
 	xray = MeshInstance3D.new()
 	xray.mesh = mesh
@@ -133,6 +134,8 @@ func _ready() -> void:
 	torch.omni_attenuation = 0.0
 	torch.light_color = Color(1.0, 0.55, 0.25)
 	torch.light_energy = 0.0
+	# Shadows of everything around but the player holding it (see sky.gd for when).
+	torch.shadow_caster_mask = 0xFFFFF & ~(PixelView.LAYER_PLAYER | PixelView.LAYER_SUN_CASTER)
 	torch.top_level = true
 	add_child(torch)
 

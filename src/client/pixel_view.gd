@@ -14,6 +14,16 @@ const TARGET_HEIGHT := 360.0
 const MARGIN := 1
 ## Height of the camera above the world; it must be above the highest level.
 const CAMERA_HEIGHT := 48.0
+## Render layers that pick which lights a thing casts its shadow from (each light's
+## shadow_caster_mask); everything else is on layer 1 and casts from every light.
+## Grass and bushes cast only from fires and the torch: by day the leaf shadow discs
+## stand for bushes, and grass casts none.
+const LAYER_FIRE_CASTER := 2
+## The shadow discs under crowns and bushes cast only from the sun and the moon: from
+## a fire below a crown they would throw the crown's shadow upward.
+const LAYER_SUN_CASTER := 4
+## The player's sprite, which the torch in the player's hand does not shade.
+const LAYER_PLAYER := 8
 ## Direction of view rays in the unsheared world: down and north at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
 
