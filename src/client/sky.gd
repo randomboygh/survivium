@@ -119,7 +119,6 @@ func build(parent: Node3D) -> void:
 	sun.directional_shadow_max_distance = game.view.CAMERA_HEIGHT + 20.0
 	sun.shadow_bias = 0.03
 	sun.shadow_normal_bias = 1.0
-	sun.shadow_caster_mask = 0xFFFFF & ~PixelView.LAYER_FIRE_CASTER
 	parent.add_child(sun)
 
 
@@ -176,7 +175,7 @@ func _update_time(delta: float) -> void:
 	if game.player != null:
 		var dark := 1.0 if game.chunks.indoor else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
 		dark *= 1.0 - game.effects.torch_off(game.player.position)
-		var shadows: bool = dark > 0.0 and game.effects.shadows
+		var shadows: bool = dark > 0.0 and game.effects.shadows and not game.effects.fire_shadowing
 		game.player.torch.shadow_enabled = shadows
 		game.player.torch.light_energy = 1.3 * dark * (game.effects.shadow_energy if shadows else 1.0)
 	_update_grade(golden, night, minf(moonlight, 1.0))

@@ -85,6 +85,9 @@ func open(which: String) -> void:
 		_add_row("Тени", ["выкл", "вкл"],
 			func() -> int: return int(s.values.shadows),
 			func(i: int) -> void: s.set_value("shadows", i == 1))
+		_add_row("Тени от огня", ["выкл", "нарисованные", "настоящие"],
+			func() -> int: return s.values.fire_shadows,
+			func(i: int) -> void: s.set_value("fire_shadows", i))
 		_add_row("Эффекты", ["выкл", "вкл"],
 			func() -> int: return int(s.values.effects),
 			func(i: int) -> void: s.set_value("effects", i == 1))

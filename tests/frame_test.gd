@@ -233,6 +233,13 @@ func _run() -> void:
 	c.put_in_hand("", 0)
 	c.from_dict(hands_saved)
 	_check(c.held() == "core:wooden_shovel", "the hands are saved with the player")
+	# The last of what the hand in use holds leaves the bag: the hand is bare.
+	inv.add("core:sand", 1)
+	c.put_in_hand("core:sand", 1, false)
+	inv.remove("core:sand", inv.count("core:sand"))
+	await process_frame
+	_check(c.held() == "" and c.hands[0] == "core:wooden_shovel", "a hand whose last item is gone is bare")
+	c.put_in_hand("core:wooden_shovel", 0, false)
 	# A stack into the chest by the spawn and back, sorting by hand: a tap on it, a tap
 	# on a free slot.
 	var bag = main.hud.bag
