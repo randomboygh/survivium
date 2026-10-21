@@ -194,10 +194,20 @@ const SHAPES := {
 }
 
 
-## The sheet of tool `sprite` (a key of SHAPES) with the frames of work `anim` (a key
+## Sheets drawn as another tool with some colours swapped: name -> [a key of SHAPES,
+## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe).
+const RECOLOURED := {
+	"stone_sword": ["sword", {"P": "A", "p": "a"}],
+	"wooden_pickaxe": ["pickaxe", {"q": "R", "a": "m", "A": "p"}],
+	"wooden_scythe": ["scythe", {"q": "R", "a": "m", "A": "p"}],
+}
+
+
+## The sheet of tool `sprite` (a key of SHAPES or RECOLOURED) with the frames of work `anim` (a key
 ## of player.yaml `works`).
 static func sheet(sprite: String, anim: String) -> Image:
-	var shape: Dictionary = SHAPES[sprite]
+	var swap: Dictionary = RECOLOURED[sprite][1] if RECOLOURED.has(sprite) else {}
+	var shape: Dictionary = SHAPES[RECOLOURED[sprite][0]] if RECOLOURED.has(sprite) else SHAPES[sprite]
 	var dirs: Array = Figure.data().directions
 	var cell := Vector2i(Figure.data().held.cell[0], Figure.data().held.cell[1])
 	var grip := Vector2i(Figure.data().held.grip[0], Figure.data().held.grip[1])
@@ -229,7 +239,7 @@ static func sheet(sprite: String, anim: String) -> Image:
 			for p: Vector2i in pixels:
 				var at: Vector2i = r.position + grip + p
 				if r.has_point(at):
-					img.set_pixelv(at, Color.html(INK[pixels[p]]))
+					img.set_pixelv(at, Color.html(INK[swap.get(pixels[p], pixels[p])]))
 			if flipped:
 				var part := img.get_region(r)
 				part.flip_x()

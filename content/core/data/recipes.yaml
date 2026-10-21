@@ -66,6 +66,24 @@
   needs: {planks: 2, cord: 1}
   at: workbench
   time: 5
+- id: stone_sword
+  title: Каменный меч
+  makes: stone_sword
+  needs: {flint: 2, branch: 1, cord: 1}
+  at: workbench
+  time: 5
+- id: wooden_pickaxe
+  title: Деревянная кирка
+  makes: wooden_pickaxe
+  needs: {planks: 2, branch: 2}
+  at: workbench
+  time: 4
+- id: wooden_scythe
+  title: Деревянная коса
+  makes: wooden_scythe
+  needs: {planks: 1, branch: 2, cord: 1}
+  at: workbench
+  time: 4
 - id: chest
   title: Сундук
   makes: chest

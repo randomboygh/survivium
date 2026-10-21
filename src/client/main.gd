@@ -380,4 +380,5 @@ func _build_scene() -> void:
 	effects = EffectsScript.new()
 	world_root.add_child(effects)
 	cursor = CursorScript.new()
+	cursor.world = world
 	world_root.add_child(cursor)

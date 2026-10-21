@@ -18,7 +18,6 @@ const RoofMap := preload("res://src/client/roof_map.gd")
 const Items := preload("res://src/shared/items.gd")
 const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const Inventory := preload("res://src/shared/inventory.gd")
-const VoxelModel := preload("res://src/client/voxel_model.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
@@ -92,10 +91,10 @@ func _put(item: String, cell: Vector3i, items: Variant, lit := true) -> Dictiona
 			e.lit = false
 	else:
 		var model = VoxelProps.prop(kind)
-		var top := VoxelProps.height(model) / (VoxelModel.RES * CELL)
-		for dz in 2:
-			for dx in 2:
-				game.world.blockers[cell + Vector3i(dx, 0, dz)] = top
+		var boxes := VoxelProps.footprint(model)
+		for i in 4:
+			if boxes[i].has_volume():
+				game.world.blockers[cell + Vector3i(i & 1, 0, i >> 1)] = boxes[i]
 		var node := MeshInstance3D.new()
 		node.mesh = model.build_mesh()
 		node.material_override = game.low_mat if VoxelProps.height(model) / 16.0 < LOW_HEIGHT else game.world_mat
