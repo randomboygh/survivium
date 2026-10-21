@@ -44,7 +44,7 @@ func set_tabs(keys: Array, icons: Dictionary, tips: Dictionary) -> bool:
 			_buttons[k] = b
 	else:
 		for k in keys:
-			_buttons[k].icon = icons.get(k)
+			_buttons[k].icon = UiStyle.centred(icons.get(k))
 	_light()
 	return chosen != was
 

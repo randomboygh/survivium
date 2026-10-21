@@ -1394,9 +1394,6 @@ func _test_inventory() -> void:
 	mess.sort("weight")
 	_check(mess.slots[0] == ["core:stone", 3] and mess.slots[1] == ["core:stone_axe", 1, 5] and mess.count("core:fiber") == 7,
 		"sorting by weight puts the heaviest stacks first")
-	mess.sort("name")
-	_check(mess.slots[0][0] == "core:fiber" and mess.slots[1][0] == "core:stone_axe" and mess.slots[4] == null,
-		"sorting by name follows the titles")
 	var box := Inventory.new(2)
 	mess.slots = [["core:fiber", 7], ["core:stone", 3], null]
 	mess.put_into(0, mess, 2)

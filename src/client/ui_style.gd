@@ -34,7 +34,8 @@ const PALETTE := {
 }
 
 ## Icons, one character per pixel (see PALETTE; "." is transparent). An icon is cut to
-## its drawn pixels, so a button centres what is drawn.
+## its drawn pixels and made even across and down (see _even), so a button centres
+## what is drawn.
 const ICONS := {
 	"sun": [
 		"....y....",
@@ -244,17 +245,6 @@ const ICONS := {
 		"bbb.wwwww",
 		"bbb......",
 		"bbb.www..",
-	],
-	"sort_name": [
-		".w...www.",
-		"w.w.w..w.",
-		"www..www.",
-		"w.w.w..w.",
-		"w.w.w..w.",
-		".........",
-		"aaaaaaaaa",
-		".aaaaaaa.",
-		"...aaa...",
 	],
 	"drop_one": [
 		"...ww....",
@@ -502,6 +492,7 @@ const ICONS := {
 
 static var _font: FontFile
 static var _icons := {}
+static var _centred := {}
 
 
 static func font() -> FontFile:
@@ -524,9 +515,44 @@ static func icon(name: String) -> ImageTexture:
 			for x in row.length():
 				if PALETTE.has(row[x]):
 					img.set_pixel(x, y, PALETTE[row[x]])
-		img = img.get_region(img.get_used_rect())
-		_icons[name] = ImageTexture.create_from_image(img)
+		_icons[name] = ImageTexture.create_from_image(_even(img))
 	return _icons[name]
+
+
+## Picture `texture` (an icon or an item's picture) for a button: cut to its drawn
+## pixels and made even across and down, so it sits in the middle of the button's
+## face (its sides are even) to the pixel.
+static func centred(texture: Texture2D) -> Texture2D:
+	if texture == null:
+		return null
+	var key := texture.get_instance_id()
+	if not _centred.has(key):
+		var img := texture.get_image()
+		var used := img.get_used_rect()
+		_centred[key] = texture if used.position == Vector2i.ZERO and used.size == img.get_size() \
+			and used.size.x % 2 == 0 and used.size.y % 2 == 0 else ImageTexture.create_from_image(_even(img))
+	return _centred[key]
+
+
+## Image `img` cut to its drawn pixels, with the middle column (row) doubled when it is
+## odd across (down): an odd picture has no middle on an even face.
+static func _even(img: Image) -> Image:
+	img = img.get_region(img.get_used_rect())
+	if img.get_width() % 2 == 1:
+		var w := img.get_width()
+		var out := Image.create_empty(w + 1, img.get_height(), false, img.get_format())
+		var mid := w / 2
+		out.blit_rect(img, Rect2i(0, 0, mid + 1, img.get_height()), Vector2i.ZERO)
+		out.blit_rect(img, Rect2i(mid, 0, w - mid, img.get_height()), Vector2i(mid + 1, 0))
+		img = out
+	if img.get_height() % 2 == 1:
+		var h := img.get_height()
+		var out := Image.create_empty(img.get_width(), h + 1, false, img.get_format())
+		var mid := h / 2
+		out.blit_rect(img, Rect2i(0, 0, img.get_width(), mid + 1), Vector2i.ZERO)
+		out.blit_rect(img, Rect2i(0, mid, img.get_width(), h - mid), Vector2i(0, mid + 1))
+		img = out
+	return img
 
 
 ## The theme of the whole UI: pixel font, panels and buttons.

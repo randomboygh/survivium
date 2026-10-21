@@ -58,7 +58,7 @@ func _light() -> void:
 ## A small square button with a picture (`texture`, an icon) and a tooltip.
 static func icon_button(texture: Texture2D, tip: String, action: Callable) -> Button:
 	var b := small_button("", action)
-	b.icon = texture
+	b.icon = UiStyle.centred(texture)
 	b.tooltip_text = tip
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.expand_icon = false
