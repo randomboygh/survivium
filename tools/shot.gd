@@ -138,9 +138,12 @@ const SHOTS := {
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
 	# The same workbench, kiln and chest with the window closed.
 	"stations": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true},
-	# The same with the player standing on the chest, by the front edge of its lid.
+	# The same with the player standing on the chest, by the front edge of its lid, and on
+	# the workbench as far back as its planks hold.
 	"stations-top": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true,
-		"on_chest": true},
+		"on": ["core:chest", Vector3(1.0, 1.5, 1.6)]},
+	"bench-top": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true,
+		"on": ["core:workbench", Vector3(1.0, 1.5, 0.2)]},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
@@ -340,10 +343,10 @@ func _run() -> void:
 			_craft()
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
-			if shot.get("on_chest", false):
+			if shot.has("on"):
 				for e in main.props.placed:
-					if e.item == "core:chest":
-						main.player.position = (Vector3(e.cell) + Vector3(1.0, 1.5, 1.6)) * main.CELL
+					if e.item == shot.on[0]:
+						main.player.position = (Vector3(e.cell) + shot.on[1]) * main.CELL
 				for i in 30:
 					await process_frame
 		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
