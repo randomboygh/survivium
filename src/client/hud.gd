@@ -30,7 +30,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить (держи — мазком)\nF — действие перед собой\nV — инструмент, C — кисть\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка и крафт\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–7, колесо — блок в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -144,18 +144,11 @@ func _ready() -> void:
 	var bar_row := HBoxContainer.new()
 	bar_row.add_theme_constant_override("separation", int(GAP))
 	_bar.add_child(bar_row)
-	# A tap on the hand in use changes what it holds: the next tool, the next brush.
-	_hand_left = _slot(bar_row, func() -> void:
-		if game.controls.dig_mode:
-			game.controls.cycle_tool()
-		else:
-			game.controls.set_dig_mode(true))
+	# A tap on a hand makes it the hand in use; on the hand in use it changes what it
+	# holds: the next brush for a block, else the next tool.
+	_hand_left = _slot(bar_row, _tap_hand.bind(0))
 	_hand_left.tag = "Л"
-	_hand_right = _slot(bar_row, func() -> void:
-		if game.controls.dig_mode:
-			game.controls.set_dig_mode(false)
-		else:
-			game.controls.cycle_brush())
+	_hand_right = _slot(bar_row, _tap_hand.bind(1))
 	_hand_right.tag = "П"
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
@@ -366,6 +359,7 @@ func refresh_counts() -> void:
 		_slots[i].number = "" if free else str(n)
 		_slots[i].modulate = Color.WHITE if free or n > 0 else Color(1, 1, 1, 0.5)
 		_slots[i].key = "" if touch else str(i + 1)
+	_update_hands()
 
 
 func update_state() -> void:
@@ -388,27 +382,46 @@ func update_state() -> void:
 		_level_label.add_theme_color_override("font_hover_color", UiStyle.INK)
 
 
-## Marks the hand in use and the selected block; called when either changes.
+## Shows what each hand holds and marks the hand in use and the blocks in the hands;
+## called when any of it changes.
 func _update_hands() -> void:
 	if game == null:
 		return
-	_hand_left.selected = game.controls.dig_mode
-	_hand_right.selected = not game.controls.dig_mode
+	var c = game.controls
+	var free: bool = game.settings.free_build
+	for h in 2:
+		var slot = _hand_left if h == 0 else _hand_right
+		var id: String = c.hands[h]
+		slot.selected = c.active == h
+		slot.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand")
+		var n: int = game.character.inventory.count(id) if id != "" else 0
+		slot.modulate = Color(1, 1, 1, 0.5) if id != "" and n == 0 and not (free and c.use_of(h) == "place") else Color.WHITE
+		var brush: Dictionary = c.brush_record()
+		if c.use_of(h) == "place":
+			slot.number = brush.title if brush.title != "1×1" else ""
+		else:
+			slot.number = str(n) if n > 1 else ""
 	for i in _slots.size():
-		_slots[i].selected = i == game.controls.selected
-		_slots[i].tag = "П" if i == game.controls.selected else ""
-	if not _slots.is_empty():
-		_hand_right.texture = _slots[game.controls.selected].texture
-	var tool: String = game.controls.tool
-	_hand_left.texture = ItemIcons.of_item(tool) if tool != "" else ItemIcons.picture("hand")
-	var brush: Dictionary = game.controls.brush_record()
-	_hand_right.number = brush.title if brush.title != "1×1" else ""
-	_action.text = game.controls.action_name()
-	_action.icon = UiStyle.icon("pick_dark" if game.controls.dig_mode else "place_dark")
+		var item: String = Items.placed_by[Mat.PLACEABLE[i]]
+		_slots[i].selected = c.held() == item
+		_slots[i].tag = "Л" if c.hands[0] == item else ("П" if c.hands[1] == item else "")
+	_action.text = c.action_name()
+	_action.icon = UiStyle.icon("place_dark" if c.use_of() in ["place", "plant", "sow", "prop"] else "pick_dark")
 
 
 func refresh_hands() -> void:
 	_update_hands()
+
+
+## A tap on hand `hand` of the hotbar.
+func _tap_hand(hand: int) -> void:
+	var c = game.controls
+	if c.active != hand:
+		c.set_active(hand)
+	elif c.use_of() == "place":
+		c.cycle_brush()
+	else:
+		c.cycle_tool()
 
 
 func _select_slot(i: int) -> void:

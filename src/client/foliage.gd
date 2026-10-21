@@ -14,6 +14,7 @@ const PixelTextures := preload("res://src/client/pixel_textures.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
 const Trees := preload("res://src/shared/trees.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
+const Plants := preload("res://src/shared/plants.gd")
 
 ## Ground plants (see PixelTextures.build_plants and grass.gdshader). Grass grows in
 ## tiers that follow the ground's own patches (ground_patch, the noise that also tints
@@ -272,42 +273,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 		rng.seed = hash(Vector3i(x, y, z))
 		var mask := WorldData.FULL & ~(shapes[i] & 15)
 		var cuts := shapes[i] >> 4
-		var kinds: Array[int] = []
-		if m == Mat.GRASS:
-			_fields()
-			var tier := tier_at(x, z)
-			var flat := mask == WorldData.FULL and cuts == 0
-			if tier == TALL_TIER:
-				for k in 3:
-					kinds.append(TALL + rng.randi_range(0, 3))
-			elif tier == LOW_TIER:
-				if rng.randf() < 0.65:
-					kinds.append(LOW + rng.randi_range(0, 3))
-			elif tier == MID_TIER:
-				# No tuft on a quarter of the cells and two on another quarter, so
-				# the ground shows between them before the shader thins the meadows.
-				var roll := rng.randf()
-				for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
-					kinds.append(rng.randi_range(0, 3))
-			if tier != BARE_TIER:
-				# Flowers and herbs in clumps, dense inside and nearly absent outside.
-				var flowers := 0.55 if flower_noise.get_noise_2d(x, z) > 0.3 else 0.03
-				var herbs := 0.7 if herb_noise.get_noise_2d(x, z) > 0.35 else 0.04
-				var extra := rng.randf()
-				if extra < flowers:
-					kinds.append(FLOWER + rng.randi_range(0, 3))
-				elif extra < flowers + herbs:
-					kinds.append(HERB + rng.randi_range(0, 1))
-			if tier != TALL_TIER and flat and ear_field_at(w, x, y, z):
-				# A field of ears, with a lone ear here and there outside it.
-				for k in rng.randi_range(1, 2):
-					kinds.append(EAR + rng.randi_range(0, 1))
-			elif tier == MID_TIER and flat and rng.randf() < 0.01:
-				kinds.append(EAR + rng.randi_range(0, 1))
-		# Reeds line grassy and muddy banks, not the sand of a beach.
-		if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
-			for k in rng.randi_range(1, 2):
-				kinds.append(REED + rng.randi_range(0, 1))
+		var kinds := _kinds(w, x, y, z, m, mask == WorldData.FULL and cuts == 0, rng)
 		for kind in kinds:
 			var fx := rng.randi_range(1, 7) / 8.0
 			var fz := rng.randi_range(1, 7) / 8.0
@@ -397,6 +363,80 @@ static func _column(job: Job, x: int, z: int) -> void:
 			put(shadows, mid)
 			shadows.append_array([base.a, 0.0, 0.0, 0.0])
 			job.ns += 1
+
+## The plants growing on ground cell x, y, z of material `m` (with air above), as kinds
+## of PixelTextures.build_plants, drawn from `rng` seeded by the cell; `flat` when the
+## cell is a whole level top.
+static func _kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumberGenerator) -> Array[int]:
+	var kinds: Array[int] = []
+	if m == Mat.GRASS:
+		_fields()
+		var tier := tier_at(x, z)
+		if tier == TALL_TIER:
+			for k in 3:
+				kinds.append(TALL + rng.randi_range(0, 3))
+		elif tier == LOW_TIER:
+			if rng.randf() < 0.65:
+				kinds.append(LOW + rng.randi_range(0, 3))
+		elif tier == MID_TIER:
+			# No tuft on a quarter of the cells and two on another quarter, so
+			# the ground shows between them before the shader thins the meadows.
+			var roll := rng.randf()
+			for k in (0 if roll < 0.25 else (1 if roll < 0.75 else 2)):
+				kinds.append(rng.randi_range(0, 3))
+		if tier != BARE_TIER:
+			# Flowers and herbs in clumps, dense inside and nearly absent outside.
+			var flowers := 0.55 if flower_noise.get_noise_2d(x, z) > 0.3 else 0.03
+			var herbs := 0.7 if herb_noise.get_noise_2d(x, z) > 0.35 else 0.04
+			var extra := rng.randf()
+			if extra < flowers:
+				kinds.append(FLOWER + rng.randi_range(0, 3))
+			elif extra < flowers + herbs:
+				kinds.append(HERB + rng.randi_range(0, 1))
+		if tier != TALL_TIER and flat and ear_field_at(w, x, y, z):
+			# A field of ears, with a lone ear here and there outside it.
+			for k in rng.randi_range(1, 2):
+				kinds.append(EAR + rng.randi_range(0, 1))
+		elif tier == MID_TIER and flat and rng.randf() < 0.01:
+			kinds.append(EAR + rng.randi_range(0, 1))
+	# Reeds line grassy and muddy banks, not the sand of a beach.
+	if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
+		for k in rng.randi_range(1, 2):
+			kinds.append(REED + rng.randi_range(0, 1))
+	return kinds
+
+
+## The plants on the top of ground cell x, y, z (ids of Plants), the ones drawn there:
+## what cutting that grass gives besides its material's own (see Gathering).
+static func plants_on(w, x: int, y: int, z: int) -> Array:
+	var m: int = w.get_cell(x, y, z)
+	if not Mat.can_slope(m) or w.get_cell(x, y + 1, z) != Mat.AIR:
+		return []
+	var ch: WorldData.Chunk = w.chunk_at(x, z)
+	var shape: int = ch.shapes[y * WorldData.LAYER + WorldData.col_of(x, z)]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(Vector3i(x, y, z))
+	var out := []
+	for kind in _kinds(w, x, y, z, m, shape == 0, rng):
+		out.append(plant_of(kind))
+	return out
+
+
+## The id (see Plants) of plant kind `kind`.
+static func plant_of(kind: int) -> String:
+	if kind >= TALL:
+		return Plants.TALL
+	if kind >= LOW:
+		return Plants.TUFT
+	if kind >= HERB:
+		return Plants.HERBS
+	if kind >= REED:
+		return Plants.REEDS
+	if kind >= EAR:
+		return Plants.EARS
+	if kind >= FLOWER:
+		return Plants.FLOWERS
+	return Plants.TUFT
 
 
 ## The plants once every column is built (see build_chunk), with the bushes of the

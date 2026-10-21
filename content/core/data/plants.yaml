@@ -1,0 +1,26 @@
+# Растения на траве: что срезанный слой травы даёт сверх `mow_gives` своего материала за
+# каждое растение, которое на нём росло (какие растения где растут, решает клиент: луга
+# высокой травы, пятна цветов и трав, поля колосков на равнине, тростник у воды). gives —
+# предметы и сколько их; chance — как часто растение их даёт (0–1).
+- id: tuft
+  title: Трава
+  gives: {grass_seeds: 1}
+  chance: 0.08
+- id: tall_grass
+  title: Высокая трава
+  gives: {fiber: 1}
+  chance: 0.5
+- id: flowers
+  title: Цветы
+  gives: {grass_seeds: 1}
+  chance: 0.6
+- id: herbs
+  title: Травы
+  gives: {fiber: 1}
+  chance: 0.5
+- id: ears
+  title: Колоски
+  gives: {wheat: 1}
+- id: reeds
+  title: Тростник
+  gives: {fiber: 2}

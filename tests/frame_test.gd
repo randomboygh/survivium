@@ -206,12 +206,29 @@ func _run() -> void:
 	# Back on the surface, where the ground in front is soil.
 	main.player.position = start
 	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.on_ground and clock >= 0.5)
+	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
+	# into the bag, dirt shows where the grass was.
+	c.put_in_hand("core:stone_scythe", 1)
+	var mown: Dictionary = c._front_work(c.tool_record())
+	if mown.has("mow"):
+		var fibre: int = inv.count("core:fiber")
+		var first: Vector3i = mown.mow[0]
+		c.action_held = true
+		await _scenario("mowing", 100000, func(_i: int) -> bool: return clock >= 1.5)
+		c.action_held = false
+		_check(w.get_cell(first.x, first.y, first.z) == Mat.DIRT and inv.count("core:fiber") > fibre,
+			"the scythe cuts the grass in front into fibre and leaves dirt")
 	var dug_before: int = inv.count("core:stone") + inv.count("core:dirt")
-	c.hold("core:wooden_shovel")
+	c.put_in_hand("core:wooden_shovel", 0)
+	_check(c.active == 0 and c.held() == "core:wooden_shovel" and c.hands[1] == "core:stone_scythe", "each hand holds its own tool")
 	c.action_held = true
 	await _scenario("action button", 100000, func(_i: int) -> bool: return clock >= 2.0)
 	c.action_held = false
 	_check(inv.count("core:stone") + inv.count("core:dirt") > dug_before, "the action button digs in front of the player")
+	var hands_saved: Dictionary = c.to_dict()
+	c.put_in_hand("", 0)
+	c.from_dict(hands_saved)
+	_check(c.held() == "core:wooden_shovel", "the hands are saved with the player")
 	# A stack into the chest by the spawn and back (the window's buttons).
 	var bag = main.hud.bag
 	main.hud.open_chest()

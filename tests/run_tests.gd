@@ -22,6 +22,7 @@ const Inventory := preload("res://src/shared/inventory.gd")
 const Vitals := preload("res://src/shared/vitals.gd")
 const Tools := preload("res://src/shared/tools.gd")
 const Crafting := preload("res://src/shared/crafting.gd")
+const Plants := preload("res://src/shared/plants.gd")
 const CraftQueue := preload("res://src/shared/craft_queue.gd")
 const Knowledge := preload("res://src/shared/knowledge.gd")
 const WorldStore := preload("res://src/shared/world_store.gd")
@@ -890,6 +891,18 @@ func _test_bushes() -> void:
 	for i in part[0]:
 		ripe = ripe or int(buf[i * 20 + 19]) % Foliage.DEEP_ROW >= PixelTextures.BERRY_ROW
 	_check(ripe, "berry bushes have clusters with berries")
+	# The plants on grass, for what cutting it gives, are the ones drawn there.
+	var found := {}
+	var same := true
+	for at: Vector3i in w.bushes:
+		for dz in range(-3, 4):
+			for dx in range(-3, 4):
+				var c := at + Vector3i(dx, -1, dz)
+				var ids := Foliage.plants_on(w, c.x, c.y, c.z)
+				same = same and ids == Foliage.plants_on(w, c.x, c.y, c.z)
+				for id in ids:
+					found[id] = true
+	_check(same and found.has(Plants.TUFT), "grass has its plants, the same each time")
 
 
 func _test_sprite_sheet() -> void:
@@ -1024,8 +1037,35 @@ func _test_tools() -> void:
 	_check(Tools.step_of(Vector2(0, 1)) == Vector2i(0, 1) and Tools.step_of(Vector2(-0.7, -0.7)) == Vector2i(-1, -1),
 		"facing snaps to 8 steps")
 	var f := Vector3i(5, 3, 5)
-	_check(Tools.front_cells(f, Vector2i(1, 0)) == [Vector3i(6, 3, 5), Vector3i(6, 4, 5), Vector3i(6, 2, 5), Vector3i(5, 5, 5), Vector3i(5, 2, 5)],
-		"the action button digs in front, above it, below it, over the head, under the feet")
+	var order := Tools.front_cells(f, Vector2i(1, 0))
+	_check(order.slice(0, 6) == [Vector3i(6, 3, 5), Vector3i(7, 3, 5), Vector3i(6, 3, 6), Vector3i(6, 3, 4), Vector3i(7, 3, 6), Vector3i(7, 3, 4)],
+		"the action button digs in front, beyond it, left and right of it, beyond those")
+	_check(order[6] == Vector3i(6, 2, 5) and order[12] == Vector3i(6, 4, 5) and order.size() == 20,
+		"then a level lower, then a level higher")
+	_check(order[18] == f + Vector3i(0, 2, 0) and order[19] == f + Vector3i.DOWN, "and last over the head and under the feet")
+	var diagonal := Tools.front_ring(Vector2i(1, 1))
+	_check(diagonal[0] == Vector3i(1, 0, 1) and diagonal[1] == Vector3i(2, 0, 2) and Vector3i(1, 0, 0) in diagonal \
+		and Vector3i(0, 0, 1) in diagonal, "facing a diagonal, the sides are the columns touching both")
+	_check(Tools.sweep(Vector3i(6, 2, 5), Vector2i(1, 0)) == [Vector3i(6, 2, 5), Vector3i(6, 2, 6), Vector3i(6, 2, 4)],
+		"a scythe sweeps an arc in front")
+	var sector := Tools.sector(Vector2i(0, 1))
+	_check(sector[0] == Vector2i(0, 1) and Vector2i(1, 0) in sector and Vector2i(2, 1) in sector and not Vector2i(0, -1) in sector \
+		and not Vector2i(1, -1) in sector, "trees and bushes are found ahead and beside, not behind")
+	_check(Tools.use_of("") == "hand" and Tools.use_of("core:stone_axe") == "tool" and Tools.use_of("core:stone") == "place" \
+		and Tools.use_of("core:raspberry_bush") == "plant" and Tools.use_of("core:grass_seeds") == "sow" \
+		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("core:raspberry") == "eat" and Tools.use_of("core:branch") == "hand",
+		"what a held item is used for")
+	var scythe := Tools.of("core:stone_scythe")
+	_check(Tools.mown(Mat.GRASS) == Mat.DIRT and Tools.mown(Mat.DIRT) == -1, "cutting grass leaves dirt")
+	_check(Tools.mows(hand) and Tools.mows(scythe) and Tools.mows(Tools.of("core:wooden_sword")) and not Tools.mows(shovel),
+		"hands, a sword and a scythe cut grass")
+	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
+	_check(Items.has(Mat.RECORDS[Mat.GRASS].mow_gives.keys()[0]), "cut grass gives fibre")
+	var rng := RandomNumberGenerator.new()
+	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("core:wheat", 0) == 2,
+		"ears give wheat")
+	_check(Plants.harvest(["core:nothing"], rng).is_empty(), "an unknown plant gives nothing")
+	_check(Trees.SPECIES[Trees.OAK].twigs > 0 and Trees.SPECIES[Trees.OAK].seeds > 0, "a standing oak gives branches and acorns by hand")
 	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
 	_check(wall[0] == f and wall[1] == f + Vector3i.UP and wall.size() == 9, "a swing at a wall takes the cell above next (a passage)")
 	for c in wall:
@@ -1037,7 +1077,8 @@ func _test_tools() -> void:
 	_check(Tools.brush_cells(f, Vector3i.BACK, 2).size() == 4 and Tools.brush_cells(f, Vector3i.BACK, 1) == [f], "brush sizes")
 	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[3]) == [f, f + Vector3i.UP], "the tall brush is two cells one on another")
 	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[4]) == [f], "the line brush places one cell at a time")
-	_check(hand.reach < pick.reach and Tools.of("core:wooden_sword").reach < pick.reach, "tools reach farther than hands and a sword")
+	_check(hand.reach < pick.reach and Tools.of("core:wooden_sword").reach < pick.reach and Tools.PLACE_REACH >= pick.reach,
+		"tools reach farther than hands and a sword")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].bonus) and Mat.RECORDS[Mat.GRASS].bonus_chance > 0.0 and Mat.RECORDS[Mat.STONE].bonus == "",
 		"grass sometimes gives fibre")
 	_check(Trees.SPECIES[Trees.OAK].hits > axe.power, "an oak takes more than one swing")
@@ -1055,7 +1096,8 @@ func _test_tools() -> void:
 func _test_crafting() -> void:
 	_check(Crafting.check().is_empty(), "every recipe can be made, at a real station: %s" % Crafting.check())
 	var have := Crafting.reachable()
-	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:workbench", "core:kiln", "core:brick"]:
+	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe", "core:workbench",
+			"core:kiln", "core:brick", "core:wheat", "core:grass_seeds"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
 	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
 	var cord := Crafting.get_recipe("core:cord")
@@ -1262,6 +1304,19 @@ func _test_save() -> void:
 	var bushes: Array = w.bush_chunks.get(home, {}).keys()
 	if not bushes.is_empty():
 		w.remove_bush(bushes[0])
+	w.tree_twigs[trunk] = 2
+	# Grass cut off a natural slope leaves dirt of the same shape.
+	var cut := Vector3i(-1, -1, -1)
+	for z in range(z0, z0 + WorldData.CHUNK):
+		for x in range(x0, x0 + WorldData.CHUNK):
+			var y := w.surface_y(x, z) - 1
+			if cut.y < 0 and w.get_cell(x, y, z) == Mat.GRASS and w.is_natural(x, y, z) and w.slope_mask(x, y, z) != WorldData.FULL:
+				cut = Vector3i(x, y, z)
+	if cut.y >= 0:
+		var mask := w.slope_mask(cut.x, cut.y, cut.z)
+		w.set_material(cut.x, cut.y, cut.z, Mat.DIRT)
+		w.refresh_shapes()
+		_check(w.get_cell(cut.x, cut.y, cut.z) == Mat.DIRT and w.slope_mask(cut.x, cut.y, cut.z) == mask, "cut grass keeps its slope")
 	_check(w.unsaved.has(home) and not a.forget(home), "a changed chunk is kept and waits to be saved")
 	var store := WorldStore.new("user://test_saves/save")
 	store.erase()
@@ -1279,8 +1334,8 @@ func _test_save() -> void:
 	for i in range(area.size() - 1, -1, -1):
 		_ensure_stage(b, area[i], WorldGen.SHAPED)
 	_check(_same_cells(b.world, w, area) and _same_view(b, b.world, w, area), "changed chunks come back from the save")
-	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops,
-		"with their trees, bushes and what lies on the ground")
+	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops and b.world.tree_twigs == w.tree_twigs,
+		"with their trees, bushes, what was gathered and what lies on the ground")
 	_check(b.world.unsaved.is_empty() and b.world.chunks[home].edited, "and stay kept without a new save")
 	# A neighbour dropped and made again regrows the crowns of the saved chunk's trees.
 	var remade := 0

@@ -53,7 +53,7 @@ var player_speed := 1.0
 ## gives none. Not saved.
 var free_build := false
 ## Playtest: the stone and wooden tools the game has before crafting, into the bag.
-const TOOL_SET := ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword"]
+const TOOL_SET := ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe"]
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
 var air_jumps := false
 ## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»

@@ -1,7 +1,7 @@
 extends PanelContainer
 ## The bag window (plan/design/ui.md, section 5): the slots with their items, the
 ## weight against the limit, the character's state in numbers, and what can be done
-## with the chosen item (eat, take a tool in hand, plant a bush or place a thing in
+## with the chosen item (eat, take it in the hand in use, plant a bush or place a thing in
 ## front of the player, repair a worn tool at a workbench, throw away). Opened at a
 ## chest, it shows the chest's slots under the bag's and moves whole stacks between
 ## them; walking away from the chest closes its part. The craft tab (CraftPanel) shows
@@ -12,7 +12,6 @@ const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const Items := preload("res://src/shared/items.gd")
-const Tools := preload("res://src/shared/tools.gd")
 const CraftPanel := preload("res://src/client/craft_panel.gd")
 const Workshop := preload("res://src/client/workshop.gd")
 
@@ -259,7 +258,7 @@ func refresh() -> void:
 			" · сытость +%d" % roundi(food) if food > 0.0 else "",
 			" · прочность %d%%" % roundi(Workshop.condition(id, worn) * 100.0) if worn > 0 else ""]
 	_eat.visible = chosen != null and Items.food(chosen[0]) > 0.0
-	_hold.visible = chosen != null and Tools.is_tool_item(chosen[0]) and game.controls.tool != chosen[0]
+	_hold.visible = chosen != null and game.controls.held() != chosen[0]
 	_plant.visible = chosen != null and Items.get_item(chosen[0]).get("plant", "") != ""
 	_put.visible = chosen != null and Items.get_item(chosen[0]).get("prop", "none") != "none"
 	_repair.visible = chosen != null and inv.worn(_chosen) > 0

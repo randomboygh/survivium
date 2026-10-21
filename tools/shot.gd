@@ -395,8 +395,19 @@ func _work() -> void:
 		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
 	c.hold("core:wooden_sword")
 	main.gathering.gather({"bush": bush})
-	c.hold("core:wooden_shovel")
-	main.player.facing = "ne"
+	# A patch of grass cut by the scythe west of the player: dirt with fibre on it.
+	c.put_in_hand("core:stone_scythe", 1, false)
+	var mown := 0
+	for i in 15:
+		var cell := f + Vector3i(-7 + i % 5, 0, 1 + i / 5)
+		cell.y = w.surface_y(cell.x, cell.z) - 1
+		var one: Array[Vector3i] = [cell]
+		if c.can_mow(cell) and main.gathering.mow(one):
+			mown += 1
+	print("grass cut on %d cells" % mown)
+	c.put_in_hand("core:wooden_shovel", 0, false)
+	c.set_active(1)
+	main.player.facing = "s"
 	main.cursor.show_cells(c._front_preview(), true)
 	c._cursor_clock = 1000.0
 
