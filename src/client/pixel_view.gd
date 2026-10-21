@@ -16,9 +16,6 @@ const MARGIN := 1
 const CAMERA_HEIGHT := 48.0
 ## Render layers that pick which lights a thing casts its shadow from (each light's
 ## shadow_caster_mask); everything else is on layer 1 and casts from every light.
-## Grass and bushes cast only from fires and the torch: by day the leaf shadow discs
-## stand for bushes, and grass casts none.
-const LAYER_FIRE_CASTER := 2
 ## The shadow discs under crowns and bushes cast only from the sun and the moon: from
 ## a fire below a crown they would throw the crown's shadow upward.
 const LAYER_SUN_CASTER := 4

@@ -45,7 +45,7 @@ comments, commits and PRs are in English.
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
   is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; rules in `src/shared/tools.gd`),
-  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
+  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
@@ -117,7 +117,9 @@ GDScript. Notes: `plan/architecture/performance.md`.
 - A light with shadows is drawn in a pass of its own and added in sRGB, not in linear light: it looks
   brighter over other light. Fires and the torch scale their energy for it (`Effects.SHADOW_ENERGY`) and
   cast shadows only at night; which things cast from which light goes by render layers
-  (`PixelView.LAYER_*`, `shadow_caster_mask`).
+  (`PixelView.LAYER_*`, `shadow_caster_mask`). An omni light's dual-paraboloid shadow casts nothing in
+  Compatibility; a cube shadow plus its pass cost ~+400 draw calls, so by default fire shadows are drawn
+  on the ground (`fire_shadows.gd`) and the real one is a setting.
 - Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `controls.input` treats
   mouse motion as a mouse only with no finger down and more than 1 s after the last touch. The
   joystick and `TouchButton` follow their own touch index so two thumbs work at once.

@@ -22,6 +22,10 @@ const UI_SCALES := [0, 1, 2]
 const DEFAULTS := {
 	"time_speed": 1,
 	"shadows": true,
+	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
+	# real ones from the nearest fire or the torch (see Effects.SHADOW_FIRE_REACH), the
+	# slowest thing to draw at night.
+	"fire_shadows": 1,
 	"effects": true,
 	"pixel_size": 0,
 	"fps_limit": 0,
@@ -118,7 +122,9 @@ func apply() -> void:
 			sky.sun.shadow_enabled = values.shadows
 	if game.effects != null:
 		game.effects.enabled = values.effects
-		game.effects.shadows = values.shadows
+		game.effects.shadows = values.shadows and values.fire_shadows == 2
+	if game.fire_shadows != null:
+		game.fire_shadows.enabled = values.shadows and values.fire_shadows == 1
 	if game.player != null:
 		game.player.speed_scale = player_speed
 		game.player.air_jumps = air_jumps

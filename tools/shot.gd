@@ -33,20 +33,23 @@ const SHOTS := {
 	"night-dark": {"time": 0.95, "season": 1, "moon": 0.0},
 	"night-full": {"time": 0.95, "season": 1, "moon": 1.0},
 	# The player a step north-east of the campfire by the spawn: shadows of the player,
-	# the grass, bushes and trees thrown by the fire and the torch.
+	# animals and trunks drawn on the ground (the fire shadows setting on "drawn").
 	"fire-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
 	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
-	# The torch among lone trees on a dark night: shadows of the trunks, bushes and grass.
+	# The same with real shadows: of the player, the grass, bushes and trees.
+	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
+	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
 	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true},
+	"torch-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 2},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
 	# The campfire at dusk, when its shadows start.
-	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
-	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": false},
+	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
+	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	# The same with the shadows setting off.
 	"fire-no-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "shadows": false},
 	"fire-no-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "shadows": false},
 	# Only the moon casts shadows, as before fires did.
-	"fire-moon-before": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": false},
+	"fire-moon-before": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	"dawn": {"time": 0.255, "season": 1, "moon": 1.0},
 	"sunrise": {"time": 0.28, "season": 1, "moon": 1.0},
 	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
@@ -210,9 +213,8 @@ func _run() -> void:
 		if shot.has("weather"):
 			main.sky.set_weather(_weather_index(shot.weather))
 		main.sky.moon_override = shot.get("moon", -1.0)
+		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.set_value("shadows", shot.get("shadows", true))
-		if shot.has("fire_shadows"):
-			main.effects.shadows = shot.fire_shadows
 		# Fires burn steadily in shots, so shots with and without shadows compare.
 		main.effects.flicker_clock = -INF
 		main.controls.show_help = false

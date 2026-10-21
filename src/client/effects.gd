@@ -12,10 +12,11 @@ const ParticleShader := preload("res://shaders/particle.gdshader")
 const PX := 1.0 / 16.0
 ## World units around a fire where snow melts and the ground stays dry.
 const HEAT_RADIUS := 3.0
-## How many fires, the nearest to the view, cast shadows. Each one draws what is
-## around it into a shadow map again whenever something there moves, and lights it
-## in a pass of its own.
-const SHADOW_FIRES := 2
+## One light at a time casts shadows: the fire nearest to the view within this many
+## world units of it, else the torch. Each light with shadows draws what is around it
+## into a shadow map whenever something there moves, and lights it again in a pass
+## of its own; on the phone two of them took the frame from 60 to about 30 FPS.
+const SHADOW_FIRE_REACH := 10.0
 ## A light with shadows is added to the picture in a pass of its own, in screen colours
 ## rather than in light, and comes out brighter over the ambient light and the moon
 ## than the same light drawn with the rest: such a fire or torch burns lower, by the
@@ -53,9 +54,11 @@ var pollen: CPUParticles3D
 var fires: Array = []
 ## The effects setting: off stops the weather and the ambient particles.
 var enabled := true
-## The shadows setting: fires (the nearest SHADOW_FIRES to the view) and the torch
-## cast shadows.
+## The fire shadows setting: the nearest fire or the torch casts shadows (see
+## SHADOW_FIRE_REACH).
 var shadows := true
+## True while a fire casts shadows, and the torch then casts none.
+var fire_shadowing := false
 ## What a fire or the torch with shadows burns at, as a share (see SHADOW_ENERGY).
 var shadow_energy := SHADOW_ENERGY.x
 ## True while the sky is dark enough for fires to cast shadows (see SHADOW_SKY).
@@ -340,17 +343,20 @@ func torch_off(p: Vector3) -> float:
 	return off
 
 
-## Lets the SHADOW_FIRES fires nearest to the screen-plane point `view` cast shadows.
+## Lets the fire nearest to the screen-plane point `view`, if within SHADOW_FIRE_REACH,
+## cast shadows.
 func pick_shadow_fires(view: Vector2) -> void:
-	var near := []
+	var best = null
 	if shadows and dark:
-		var by_distance := fires.duplicate()
-		var at := func(f: Dictionary) -> Vector2:
-			return Vector2(f.unit.x, f.unit.z - f.unit.y)
-		by_distance.sort_custom(func(a, b) -> bool: return at.call(a).distance_squared_to(view) < at.call(b).distance_squared_to(view))
-		near = by_distance.slice(0, SHADOW_FIRES)
+		var best_d := SHADOW_FIRE_REACH * SHADOW_FIRE_REACH
+		for f in fires:
+			var d := Vector2(f.unit.x, f.unit.z - f.unit.y).distance_squared_to(view)
+			if d < best_d:
+				best_d = d
+				best = f
 	for f in fires:
-		f.light.shadow_enabled = f in near
+		f.light.shadow_enabled = f == best
+	fire_shadowing = best != null
 
 
 ## A lightning bolt somewhere around the screen-plane point `view`: a jagged line

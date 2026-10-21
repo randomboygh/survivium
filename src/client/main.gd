@@ -38,6 +38,7 @@ const Foliage := preload("res://src/client/foliage.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const Drifts := preload("res://src/client/drifts.gd")
 const EffectsScript := preload("res://src/client/effects.gd")
+const FireShadowsScript := preload("res://src/client/fire_shadows.gd")
 const TracksScript := preload("res://src/client/tracks.gd")
 const RoofMap := preload("res://src/client/roof_map.gd")
 const WorldSetup := preload("res://src/client/world_setup.gd")
@@ -57,6 +58,7 @@ var gen: WorldGen
 var player
 var creatures
 var effects
+var fire_shadows
 var tracks
 var roof: RoofMap
 var hud
@@ -379,6 +381,9 @@ func _build_scene() -> void:
 
 	effects = EffectsScript.new()
 	world_root.add_child(effects)
+	fire_shadows = FireShadowsScript.new()
+	fire_shadows.game = self
+	world_root.add_child(fire_shadows)
 	cursor = CursorScript.new()
 	cursor.world = world
 	world_root.add_child(cursor)
