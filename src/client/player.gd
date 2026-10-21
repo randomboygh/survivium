@@ -201,7 +201,7 @@ func work(kind: String, seconds: float, at := Vector3.INF) -> void:
 
 
 ## Picks the direction and animation for this step: the body turns the way it is
-## pushed and walks, jumps or stands, unless a work is playing; the walk goes as fast
+## pushed and walks, jumps, swims or stands, unless a work is playing; the walk goes as fast
 ## as the feet.
 func _animate(dir: Vector2, speed: float, delta: float) -> void:
 	if dir.length() > 0.1:
@@ -216,14 +216,22 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 			return
 		work_kind = ""
 	var next := "idle"
-	if not on_ground and not swimming:
+	if swimming:
+		next = "swim"
+	elif not on_ground:
 		next = "jump"
 	elif dir.length() > 0.1:
 		next = "walk"
 	if next != anim:
 		anim = next
 		anim_time = 0.0
-	anim_time += delta * speed / SPEED
+	if anim == "jump":
+		# Going up, then coming down.
+		anim_time = 0.0 if velocity_y > 0.0 else 1.0 / Figure.data().animations.jump.fps
+	elif anim == "idle":
+		anim_time += delta
+	else:
+		anim_time += delta * speed / SPEED
 
 
 func step(delta: float, jump: bool) -> void:

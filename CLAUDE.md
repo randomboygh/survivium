@@ -58,11 +58,13 @@ comments, commits and PRs are in English.
   drops by a tap or by themselves near the player, bushes by what is in the hand), `hands.gd`
   (what the player is drawn holding in each hand). The player's sprite (`figure.gd`) is put
   together from the core mod's pictures, laid out by `content/core/sprites/player.yaml`: the bare
-  figure in layers with the hands moving through every animation (walk, the works an item's `anim`
-  names), `player/hands.png` marking where each hand is in each frame, and a sheet per thing held
-  (`held/<item sprite>.png`) put at the hand; drawn for the right hand in use, the left one is the
-  opposite direction mirrored; built a row a frame; swings start with `player.work`. The
-  placeholder pictures are drawn by `tools/art/` and saved by `tools/make_sprites.gd`.
+  figure in layers with the hands moving through every animation (idle, walk, jump, swim, the
+  works an item's `anim` names), `player/hands.png` marking where each hand is in each frame and
+  the way what it holds points, and a sheet per tool held (`held/<item sprite>.png`) put at the
+  hand; a thing without one is its icon, made small and turned with the hand; drawn for the right
+  hand in use, the left one is the opposite direction mirrored; built a row a frame; swings start
+  with `player.work`. The pictures were drawn by `tools/art/` (the poses, the tools' turns) and
+  saved by `tools/make_sprites.gd`; they can be painted over by hand.
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push
