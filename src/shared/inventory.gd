@@ -101,6 +101,88 @@ func move_slot(i: int, to) -> int:
 	return n
 
 
+## Ways to sort a bag (see sort), with their names for the window.
+const SORTS := {"kind": "по виду", "weight": "по весу", "name": "по названию"}
+
+
+## Puts the stacks of slots `from` on in order `by` (a key of SORTS): by kind (see
+## Items.category, then the order of the data files), heaviest stack first, or by
+## name; stacks of one item are topped up first (a slot that keeps more than a count,
+## a worn tool, moves whole) and the empty slots go last. The slots before `from` (the
+## hotbar row) stay as they are.
+func sort(by: String, from := 0) -> void:
+	var counts := {}
+	var stacks := []
+	for i in range(from, slots.size()):
+		var s = slots[i]
+		if s == null:
+			continue
+		# A worn tool (or anything else a slot keeps beside the count) stays whole.
+		if s.size() > 2:
+			stacks.append(s)
+		else:
+			counts[s[0]] = counts.get(s[0], 0) + s[1]
+	for id in counts:
+		var size := Items.stack_size(id)
+		var left: int = counts[id]
+		while left > 0:
+			stacks.append([id, mini(left, size)])
+			left -= size
+	var order := Items.CATEGORIES.keys()
+	stacks.sort_custom(func(a: Array, b: Array) -> bool:
+		if by == "weight":
+			var wa: float = Items.weight(a[0]) * a[1]
+			var wb: float = Items.weight(b[0]) * b[1]
+			if wa != wb:
+				return wa > wb
+		elif by == "name":
+			var ta: String = Items.title(a[0])
+			var tb: String = Items.title(b[0])
+			if ta != tb:
+				return ta.naturalnocasecmp_to(tb) < 0
+		else:
+			var ka: int = order.find(Items.category(a[0]))
+			var kb: int = order.find(Items.category(b[0]))
+			if ka != kb:
+				return ka < kb
+		var ia: int = Items.IDS.find(a[0])
+		var ib: int = Items.IDS.find(b[0])
+		if ia != ib:
+			return ia < ib
+		# One item: fuller stacks first, then the less worn.
+		if a[1] != b[1]:
+			return a[1] > b[1]
+		return _worn(a) < _worn(b))
+	var before := slots.slice(from)
+	for i in range(from, slots.size()):
+		var k := i - from
+		slots[i] = stacks[k] if k < stacks.size() else null
+	if slots.slice(from) != before:
+		changed.emit()
+
+
+## Puts the stack of slot `i` into slot `j` of bag `to` (this bag or another, a
+## chest): onto a stack of the same item as much as it takes, else the two swap.
+func put_into(i: int, to, j: int) -> void:
+	var a = slots[i]
+	var b = to.slots[j]
+	if a == null or (to == self and i == j):
+		return
+	var room: int = Items.stack_size(a[0]) - b[1] if b != null and b[0] == a[0] and a.size() == 2 and b.size() == 2 else 0
+	if room > 0:
+		var k := mini(a[1], room)
+		b[1] += k
+		a[1] -= k
+		if a[1] == 0:
+			slots[i] = null
+	else:
+		to.slots[j] = a
+		slots[i] = b
+	changed.emit()
+	if to != self:
+		to.changed.emit()
+
+
 ## Swings the tool in slot `i` has taken.
 func worn(i: int) -> int:
 	return _worn(slots[i]) if slots[i] != null else 0

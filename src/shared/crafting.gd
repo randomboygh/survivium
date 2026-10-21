@@ -74,7 +74,7 @@ static func why_not(r: Dictionary, inv, stations: Dictionary) -> String:
 	return ""
 
 
-const TOOL_NAMES := {"axe": "топор", "pickaxe": "кирка", "shovel": "лопата", "sword": "меч"}
+const TOOL_NAMES := {"axe": "топор", "pickaxe": "кирка", "shovel": "лопата", "sword": "меч", "scythe": "коса"}
 
 
 ## "2 Ветка, 1 Верёвка" for a mapping of item ids to how many.

@@ -347,8 +347,9 @@ func _mean(times: PackedFloat32Array) -> float:
 	return total / maxi(times.size(), 1)
 
 
-## A portrait phone screen shows four hotbar slots between two arrows, which page
-## through the rest; a finger dragged along the slots moves them a slot per slot.
+## A portrait phone screen shows four hotbar slots between two arrows, which move them
+## a slot at a time and stop at the ends; a finger dragged along the slots moves them a
+## slot per slot.
 func _portrait_hotbar() -> void:
 	var hud = main.hud
 	var was := Rect2(hud.position, hud.size * hud.scale)
@@ -356,11 +357,20 @@ func _portrait_hotbar() -> void:
 	await process_frame
 	_check(hud._visible_slots == 4 and hud._prev_button.visible and hud._next_button.visible,
 		"a portrait screen shows four hotbar slots between arrows")
+	_check(hud._prev_button.disabled and not hud._next_button.disabled, "at the first slot only the next arrow works")
 	hud._next_page()
-	var paged: int = hud._first
-	hud._next_page()
-	_check(paged == 4 and hud._first == 0 and hud._slots[0].visible and not hud._slots[4].visible,
-		"the arrows page through the hotbar and back")
+	var stepped: int = hud._first
+	for i in 8:
+		hud._next_page()
+	var last: int = hud._first
+	var stopped: bool = hud._next_button.disabled
+	hud._prev_page()
+	_check(stepped == 1 and last == 4 and stopped and hud._first == 3,
+		"the arrows move the hotbar a slot at a time and stop at the last slot")
+	for i in 8:
+		hud._prev_page()
+	_check(hud._first == 0 and hud._slots[0].visible and not hud._slots[4].visible and hud._prev_button.disabled,
+		"and back to the first, without going round")
 	await process_frame
 	var slot = hud._slots[1]
 	var at: Vector2 = slot.get_global_transform_with_canvas() * (slot.size * 0.5)
