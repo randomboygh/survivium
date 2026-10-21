@@ -1,13 +1,17 @@
 extends RefCounted
 ## Gathering: picking up what lies on the ground (the logs, branches and seeds of a
-## felled tree, what was dug, thrown things, a sack), and what the hand or the tool in it
-## does to a bush: hands pick berries in summer and autumn and break branches off, a
-## sword knocks the berries to the ground, an axe cuts a branch off, a shovel digs the
-## bush out to plant elsewhere. A tap or a click finds the nearest such thing within a
-## finger's reach of the point on the screen (plan/design/ui.md: cells are too small to
-## hit), within the hands' reach of the player. Things lying close to the player fly
-## into the bag by themselves unless the setting is off; what the player threw away
-## waits until the player has walked off. Berries and branches come back every spring.
+## felled tree, what was dug, thrown things, a sack), and what the hand in use does to
+## plants: hands pick berries in summer and autumn and break branches off bushes and
+## standing trees (seeds too in autumn), a sword knocks the berries to the ground, an
+## axe fells a bush into branches, a shovel digs it out to plant elsewhere; hands, a
+## sword and a scythe cut the grass (Controls): first what grows tall on it (Plants:
+## grain from ears, seeds from flowers, fibre from tall grass), then the grass itself
+## down to the ground, for fibre. Bushes, grass seeds and grain are planted from the
+## hand or the bag. A tap or a click finds the nearest thing to gather
+## within a finger's reach of the point on the screen (plan/design/ui.md: cells are too
+## small to hit), within reach of the player. Things lying close to the player fly into
+## the bag by themselves unless the setting is off; what the player threw away waits
+## until the player has walked off. Berries, branches and seeds come back every spring.
 ## `game` is the Main node.
 
 const Items := preload("res://src/shared/items.gd")
@@ -15,11 +19,15 @@ const Tools := preload("res://src/shared/tools.gd")
 const Bushes := preload("res://src/shared/bushes.gd")
 const WorldData := preload("res://src/shared/world_data.gd")
 const PixelView := preload("res://src/client/pixel_view.gd")
+const Mat := preload("res://src/shared/materials.gd")
+const Trees := preload("res://src/shared/trees.gd")
+const Plants := preload("res://src/shared/plants.gd")
+const Foliage := preload("res://src/client/foliage.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
-## in world units (eight cells, as Tools.PLACE_REACH).
-const REACH := 4.0
+## in world units (ten cells, as Tools.PLACE_REACH).
+const REACH := 5.0
 ## How near the point on the screen a thing must be, in pixels of the world image: a
 ## finger is wider than a mouse pointer.
 const FINGER := 14.0
@@ -27,6 +35,7 @@ const POINTER := 7.0
 ## Things lying this close to the one taken (world units) come along with it.
 const PILE := 0.8
 const SPRING := 0
+const AUTUMN := 2
 ## Things lying this close to the player's feet (world units) are taken by themselves,
 ## checked this often (seconds).
 const PICKUP := 1.6
@@ -116,20 +125,25 @@ func describe(target: Dictionary) -> String:
 	var tool: String = game.controls.tool_record().tool
 	if tool == "shovel":
 		return "%s\nЛКМ выкопать" % b.title
-	if _ripe(cell, b) and tool != "axe":
+	if tool == "axe":
+		return "%s\nЛКМ срубить" % b.title
+	if _ripe(cell, b):
 		return "%s, ягоды\nЛКМ %s" % [b.title, "сбить" if tool == "sword" else "собрать"]
-	if _twigs_left(cell, b) > 0 and tool != "sword":
-		return "%s\nЛКМ %s" % [b.title, "срезать ветку" if tool == "axe" else "наломать веток"]
+	if _twigs_left(cell, b) > 0 and tool == "hand":
+		return "%s\nЛКМ наломать веток" % b.title
 	return "%s\nпусто до весны" % b.title
 
 
-## Gathers `target` (see target_at) with what is in the hand; true if anything was done.
+## Gathers `target` (see target_at; also {"tree": trunk's column}) with what is in the
+## hand in use; true if anything was done.
 func gather(target: Dictionary) -> bool:
 	if target.has("drop"):
 		return _pick_up(target.drop[0], target.drop[1])
 	if target.has("prop"):
 		game.hud.open_prop(target.prop)
 		return true
+	if target.has("tree"):
+		return _from_tree(target.tree)
 	if not game.world.bushes.has(target.bush):
 		return false
 	var done := false
@@ -137,14 +151,40 @@ func gather(target: Dictionary) -> bool:
 		"sword":
 			done = _knock_berries(target.bush)
 		"axe":
-			done = _cut_branch(target.bush)
+			done = _fell_bush(target.bush)
 		"shovel":
 			done = _dig_out(target.bush)
-		_:
+		"hand":
 			return _from_bush(target.bush)
+		_:
+			game.character.nag("bush", "Куст: руки собирают, топор рубит, лопата выкапывает")
+			return false
 	if done:
 		game.workshop.use_tool()
 	return done
+
+
+## Whether gather(target) would do anything to the tree or bush of `target` with the
+## hand in use now (the action button passes over the ones it would not).
+func useful(target: Dictionary) -> bool:
+	var tool: String = game.controls.tool_record().tool
+	if target.has("tree"):
+		if tool != "hand" or not _has_crown(target.tree):
+			return false
+		var s: Dictionary = Trees.SPECIES[game.world.trees[target.tree]]
+		return _tree_seeds_left(target.tree, s) > 0 or _tree_twigs_left(target.tree, s) > 0
+	var cell: Vector3i = target.bush
+	if not game.world.bushes.has(cell):
+		return false
+	var b: Dictionary = Bushes.TYPES[game.world.bushes[cell]]
+	match tool:
+		"axe", "shovel":
+			return true
+		"sword":
+			return _ripe(cell, b)
+		"hand":
+			return _ripe(cell, b) or _twigs_left(cell, b) > 0
+	return false
 
 
 ## Takes by themselves the things lying near the player's feet, unless the setting is
@@ -292,17 +332,101 @@ func _knock_berries(cell: Vector3i) -> bool:
 	return true
 
 
-## An axe cuts a branch off a bush while it has any left this year: it falls beside it.
-func _cut_branch(cell: Vector3i) -> bool:
+## An axe fells a bush: it is gone, and the branches it had left this year lie beside it.
+func _fell_bush(cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[game.world.bushes[cell]]
-	if _twigs_left(cell, b) <= 0:
-		game.character.nag("bush", "Веток на кусте больше нет до весны")
+	if not game.character.act("chop"):
 		return false
+	var n := maxi(1, _twigs_left(cell, b))
+	game.props.remove_bush(cell)
+	_scatter(cell, Items.BRANCH, n)
+	return true
+
+
+## Hands at a standing tree: in autumn its seeds while it has any left this year, else
+## a branch while it has any; they go into the bag.
+func _from_tree(col: Vector2i) -> bool:
+	var world = game.world
+	var character = game.character
+	if not world.trees.has(col) or not _has_crown(col):
+		return false
+	var s: Dictionary = Trees.SPECIES[world.trees[col]]
+	var seeds := _tree_seeds_left(col, s) > 0
+	if not seeds and _tree_twigs_left(col, s) <= 0:
+		character.nag("tree", "%s: больше ничего до весны" % s.title)
+		return false
+	if not character.act("gather"):
+		return false
+	var id: String = s.seed if seeds else Items.BRANCH
+	if character.give(Items.get_item(id).get("id", id), 1) == 0:
+		return false
+	var map: Dictionary = world.tree_seeds if seeds else world.tree_twigs
+	map[col] = map.get(col, 0) + 1
+	world.note_edit(col.x, col.y)
+	return true
+
+
+## Whether the tree with its trunk in `col` still has its crown (a felled one leaves a
+## stump): leaves on the columns around the top of its trunk.
+func _has_crown(col: Vector2i) -> bool:
+	var world = game.world
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			if world.leaf_col(col.x + dx, col.y + dz) != 0:
+				return true
+	return false
+
+
+func _tree_twigs_left(col: Vector2i, s: Dictionary) -> int:
+	return s.twigs - game.world.tree_twigs.get(col, 0)
+
+
+func _tree_seeds_left(col: Vector2i, s: Dictionary) -> int:
+	if game.sky.season != AUTUMN or s.seed == "":
+		return 0
+	return s.seeds - game.world.tree_seeds.get(col, 0)
+
+
+## Cuts the grass on top of `cells` (see Controls.can_mow) in two stages: first what
+## grows tall on it (tall grass, flowers, ears, reeds; see Plants), and the cell stays
+## grass cut short until spring (WorldData.turf); grass with nothing tall on it is cut
+## down to the material under it (its `mow`) and gives its `mow_gives` with what the
+## low grass had. What is cut falls on the cell. True if anything was cut.
+func mow(cells: Array[Vector3i]) -> bool:
 	if not game.character.act("cut"):
 		return false
-	_scatter(cell, Items.BRANCH, 1)
-	game.world.bush_twigs[cell] = game.world.bush_twigs.get(cell, 0) + 1
-	game.world.note_bush(cell)
+	var world = game.world
+	var keys := {}
+	for c in cells:
+		var m: int = world.get_cell(c.x, c.y, c.z)
+		var to := Tools.mown(m)
+		if to < 0:
+			continue
+		var plants := Foliage.plants_on(world, c.x, c.y, c.z)
+		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([c, game.sky.day])
+		var gives := {}
+		if not tall.is_empty():
+			gives = Plants.harvest(tall, rng)
+			world.set_turf(c, "")
+			game.chunks.remesh_chunk(WorldData.chunk_key(c.x, c.z))
+		else:
+			gives = Plants.harvest(plants, rng)
+			var own: Dictionary = Mat.RECORDS[m].mow_gives
+			for id in own:
+				gives[id] = gives.get(id, 0) + own[id]
+			world.set_turf(c, null)
+			world.set_material(c.x, c.y, c.z, to)
+			game.chunks.on_cell_changed(c)
+		if game.settings.free_build:
+			continue
+		var at: Vector3 = game.controls.floor_under(c + Vector3i.UP)
+		for id in gives:
+			world.heap_drop(Items.get_item(id).get("id", id), at, gives[id], rng.randf() * TAU)
+		keys[WorldData.chunk_key(c.x, c.z)] = true
+	for key in keys:
+		game.props.show_drops(key)
 	return true
 
 
@@ -328,28 +452,74 @@ func _scatter(cell: Vector3i, id: String, n: int) -> void:
 	game.props.show_drops(WorldData.chunk_key(floori(p.x / CELL), floori(p.z / CELL)))
 
 
-## Plants item `id` (one with `plant`) from the bag in front of the player, on grass;
-## true if it was planted.
+## Plants item `id` from the bag in front of the player: a bush (an item with
+## `plant`) on grass, seeds (with `sow`) on the bare ground they grow on; true if it was
+## planted.
 func plant(id: String) -> bool:
+	var spot: Variant = plant_spot(id)
+	if spot == null:
+		var item := Items.get_item(id)
+		game.character.nag("plant", "Сажать можно на ровную траву перед собой" if item.get("plant", "") != "" \
+			else "Сеять можно на голую землю перед собой")
+		return false
+	return plant_at(id, spot)
+
+
+## The ground cell in front of the player where item `id` would be planted (see
+## plant_at), or null.
+func plant_spot(id: String) -> Variant:
+	var feet: Vector3i = game.controls.feet()
+	for o in Tools.front_ring(game.controls.step()):
+		for dy in [-1, 0, -2]:
+			var cell: Vector3i = feet + o + Vector3i(0, dy, 0)
+			if _can_plant(id, cell):
+				return cell
+	return null
+
+
+## Plants item `id` from the bag on ground cell `cell` (the cell a bush stands on, or
+## the ground that seeds turn into their `sow`); true if it was planted.
+func plant_at(id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
-	var type := Bushes.index(item.get("plant", ""))
-	if type < 0 or game.character.inventory.count(item.id) == 0:
+	if item.is_empty() or game.character.inventory.count(item.id) == 0:
+		game.character.nag("no_seed", "В сумке нет: %s" % Items.title(id))
+		return false
+	if not _can_plant(id, cell):
+		game.character.nag("plant", "Сюда не посадить")
+		return false
+	if not game.character.act("gather"):
 		return false
 	var world = game.world
-	var feet: Vector3i = game.controls.feet()
-	var step: Vector2i = game.controls.step()
-	for dy in [0, -1, 1]:
-		var cell: Vector3i = feet + Vector3i(step.x, dy, step.y)
-		if Bushes.fits(world, cell.x, cell.y, cell.z) and not world.bushes.has(cell):
-			if not game.character.act("gather"):
-				return false
-			game.character.inventory.remove(item.id, 1)
-			Bushes.place(world, cell.x, cell.y, cell.z, type)
-			world.note_bush(cell)
-			game.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
-			return true
-	game.character.nag("plant", "Сажать можно на ровную траву перед собой")
-	return false
+	game.character.inventory.remove(item.id, 1)
+	if item.plant != "":
+		var at := cell + Vector3i.UP
+		Bushes.place(world, at.x, at.y, at.z, Bushes.index(item.plant))
+		world.note_bush(at)
+		game.chunks.remesh_chunk(WorldData.chunk_key(at.x, at.z))
+	else:
+		world.set_material(cell.x, cell.y, cell.z, Mat.index(item.sow))
+		world.set_turf(cell, item.crop)
+		game.chunks.on_cell_changed(cell)
+	return true
+
+
+## Whether item `id` can be planted on ground cell `cell` within reach: a bush on level
+## grass with air above, seeds on the ground their `sow` grows from (what that material
+## is cut down to) open to the air.
+func _can_plant(id: String, cell: Vector3i) -> bool:
+	var item := Items.get_item(id)
+	var world = game.world
+	if item.is_empty() or game.controls.too_far(cell, Tools.PLACE_REACH):
+		return false
+	var at := cell + Vector3i.UP
+	if item.plant != "":
+		return Bushes.index(item.plant) >= 0 and Bushes.fits(world, at.x, at.y, at.z) and not world.bushes.has(at) \
+			and not game.player.overlaps_cell(at)
+	if item.sow == "":
+		return false
+	var grows := Mat.index(item.sow)
+	return grows >= 0 and Tools.mown(grows) == world.get_cell(cell.x, cell.y, cell.z) \
+		and world.get_cell(at.x, at.y, at.z) == Mat.AIR and not world.bushes.has(at)
 
 
 ## How many berries the bush in `cell` gives today.
@@ -369,7 +539,8 @@ func _twigs_left(cell: Vector3i, b: Dictionary) -> int:
 	return b.twigs - game.world.bush_twigs.get(cell, 0)
 
 
-## A new season: in spring the bushes have their berries and branches again.
+## A new season: in spring the bushes and trees have their berries, branches and
+## seeds again, and grass cut short grows tall.
 func on_season(season: int) -> void:
 	if season != SPRING:
 		return
@@ -379,7 +550,18 @@ func on_season(season: int) -> void:
 		keys[WorldData.chunk_key(cell.x, cell.z)] = true
 	for cell: Vector3i in world.bush_picked.keys() + world.bush_twigs.keys():
 		world.note_bush(cell)
+	for col: Vector2i in world.tree_twigs.keys() + world.tree_seeds.keys():
+		world.note_edit(col.x, col.y)
 	world.bush_picked.clear()
 	world.bush_twigs.clear()
+	world.tree_twigs.clear()
+	world.tree_seeds.clear()
+	# Grass cut short grows tall again; what was sown stays.
+	for key: Vector2i in world.turf.keys():
+		var cells: Dictionary = world.turf[key]
+		for cell: Vector3i in cells.keys():
+			if cells[cell] == "":
+				world.set_turf(cell, null)
+				keys[key] = true
 	for key in keys:
 		game.chunks.remesh_chunk(key)

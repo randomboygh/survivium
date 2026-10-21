@@ -130,6 +130,7 @@ func _ready() -> void:
 	workshop = Workshop.new(self)
 	save.track("knowledge", workshop.knowledge)
 	save.track("crafting", workshop.queue)
+	save.track("hands", controls)
 	workshop.settle()
 	view.build(self)
 	world_root = view.world_root

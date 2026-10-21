@@ -128,6 +128,8 @@ const SHOTS := {
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
+	# The workbench, kiln, chest and campfire by the spawn marked on the map, close up.
+	"ui-map-marks": {"time": 0.45, "season": 1, "touch": true, "craft": true, "closed": true, "map": true, "map_zoom": 8},
 	# The main menu over the live world, over the painted sky it shows while the world is
 	# built, and with the setup screen of a new world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
@@ -310,6 +312,7 @@ func _run() -> void:
 			await process_frame
 		if shot.get("map", false):
 			main.hud.map_view.open()
+			main.hud.map_view.zoom_index = shot.get("map_zoom", main.hud.map_view.FIRST_ZOOM)
 			await process_frame
 			await process_frame
 		var img := root.get_texture().get_image()
@@ -384,8 +387,12 @@ func _hands(h: Dictionary) -> void:
 	var inv = main.character.inventory
 	inv.add(h.tool, 1)
 	inv.add("core:stone", 10)
-	main.controls.hold(h.tool)
-	main.controls.select_block(Mat.PLACEABLE.find(Mat.STONE), h.get("right", false))
+	# The tool in the left hand, a stone block in the right one; the tool's hand in use
+	# unless the shot says the right one.
+	main.controls.put_in_hand("core:stone", 1, false)
+	main.controls.put_in_hand(h.tool, 0, false)
+	if h.get("right", false):
+		main.controls.set_active(1)
 	await process_frame
 	# The sheet with the new things in hand is built over a few frames.
 	while main.player._build != null:
@@ -408,7 +415,7 @@ func _work() -> void:
 	main.settings.give_tools()
 	main.character.inventory.add("core:stone", 20)
 	var f: Vector3i = c.feet()
-	c.select_block(Mat.PLACEABLE.find(Mat.STONE))
+	c.put_in_hand("core:stone")
 	c.brush = 2
 	var spot := f + Vector3i(-4, 0, -4)
 	spot.y = w.surface_y(spot.x, spot.z)
@@ -427,8 +434,25 @@ func _work() -> void:
 		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
 	c.hold("core:wooden_sword")
 	main.gathering.gather({"bush": bush})
-	c.hold("core:wooden_shovel")
-	main.player.facing = "ne"
+	# A patch of grass cut by the scythe west of the player: the near row cut once (short
+	# grass), the next cut twice (dirt with fibre on it), the far row cut twice and sown
+	# with grain (ears).
+	c.put_in_hand("core:stone_scythe", 1, false)
+	main.character.inventory.add("core:grain", 5)
+	var mown := 0
+	for i in 15:
+		var cell := f + Vector3i(-7 + i % 5, 0, 1 + i / 5)
+		cell.y = w.surface_y(cell.x, cell.z) - 1
+		var one: Array[Vector3i] = [cell]
+		for k in 1 if i < 5 else 2:
+			if c.can_mow(cell) and main.gathering.mow(one):
+				mown += 1
+		if i >= 10:
+			main.gathering.plant_at("core:grain", cell)
+	print("grass cut %d times" % mown)
+	c.put_in_hand("core:wooden_shovel", 0, false)
+	c.set_active(1)
+	main.player.facing = "s"
 	main.cursor.show_cells(c._front_preview(), true)
 	c._cursor_clock = 1000.0
 

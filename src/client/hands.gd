@@ -6,7 +6,6 @@ extends RefCounted
 ## node that owns the scene.
 
 const Items := preload("res://src/shared/items.gd")
-const Mat := preload("res://src/shared/materials.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 
 var game
@@ -22,21 +21,9 @@ func _init(g) -> void:
 
 func update() -> void:
 	var c = game.controls
-	var left: String
-	var right: String
-	var active: String
-	if "hands" in c:
-		left = c.hands[0]
-		right = c.hands[1]
-		active = "left" if c.active == 0 else "right"
-	else:
-		# The left hand holds a tool, the right one the block of the hotbar while the
-		# bag has it.
-		left = c.tool
-		right = Items.placed_by[Mat.PLACEABLE[c.selected]]
-		if not game.settings.free_build and game.character.inventory.count(right) == 0:
-			right = ""
-		active = "left" if c.dig_mode else "right"
+	var left: String = c.hands[0]
+	var right: String = c.hands[1]
+	var active := "left" if c.active == 0 else "right"
 	var key := "%s|%s|%s" % [left, right, active]
 	if key == _shown:
 		return

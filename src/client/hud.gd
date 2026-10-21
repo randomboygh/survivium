@@ -6,7 +6,8 @@ extends Control
 ##
 ## The root is scaled by a whole number so one UI pixel is one pixel of the world, and
 ## the layout follows the shape of the screen: wide, tablet-like and portrait screens
-## place the hotbar beside or above the touch controls, and portrait shows fewer slots.
+## place the hotbar beside or above the touch controls. When the slots do not all fit
+## (portrait shows four), arrows on both sides and a finger dragged along them scroll.
 
 const UiStyle := preload("res://src/client/ui_style.gd")
 const HotbarSlot := preload("res://src/client/hotbar_slot.gd")
@@ -16,11 +17,10 @@ const TouchButton := preload("res://src/client/touch_button.gd")
 const SettingsMenu := preload("res://src/client/settings_menu.gd")
 const Minimap := preload("res://src/client/minimap.gd")
 const MapView := preload("res://src/client/map_view.gd")
-const Mat := preload("res://src/shared/materials.gd")
-const Items := preload("res://src/shared/items.gd")
 const ItemIcons := preload("res://src/client/item_icons.gd")
 const VitalsPanel := preload("res://src/client/vitals_panel.gd")
 const InventoryWindow := preload("res://src/client/inventory_window.gd")
+const Inventory := preload("res://src/shared/inventory.gd")
 
 const MARGIN := 8.0
 const CELL := 0.5
@@ -30,7 +30,7 @@ const SLOT := 40
 const TARGET_SIDE := 400.0
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — копать, ПКМ — поставить (держи — мазком)\nF — действие перед собой\nV — инструмент, C — кисть\n1–7, колесо — блок\nЛКМ у вещи или куста — взять\nI — сумка и крафт\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -58,9 +58,17 @@ var _bar: PanelContainer
 var _hand_left
 var _hand_right
 var _slots := []
+var _bar_row: HBoxContainer
+var _prev_button: Button
 var _next_button: Button
-var _page := 0
-var _visible_slots := 7
+## The first hotbar slot shown and how many are shown.
+var _first := 0
+var _visible_slots := 8
+## The finger dragging the hotbar slots along (-1 none), its x in the bar where the
+## slots last moved, and whether it has moved far enough to be a drag, not a tap.
+var _swipe := -1
+var _swipe_x := 0.0
+var _swiped := false
 var stick
 var _action: Button
 var _jump: Button
@@ -144,18 +152,12 @@ func _ready() -> void:
 	var bar_row := HBoxContainer.new()
 	bar_row.add_theme_constant_override("separation", int(GAP))
 	_bar.add_child(bar_row)
-	# A tap on the hand in use changes what it holds: the next tool, the next brush.
-	_hand_left = _slot(bar_row, func() -> void:
-		if game.controls.dig_mode:
-			game.controls.cycle_tool()
-		else:
-			game.controls.set_dig_mode(true))
+	_bar_row = bar_row
+	# A tap on a hand makes it the hand in use; on the hand in use it changes what it
+	# holds: the next brush for a block, else the next tool.
+	_hand_left = _slot(bar_row, _tap_hand.bind(0))
 	_hand_left.tag = "Л"
-	_hand_right = _slot(bar_row, func() -> void:
-		if game.controls.dig_mode:
-			game.controls.set_dig_mode(false)
-		else:
-			game.controls.cycle_brush())
+	_hand_right = _slot(bar_row, _tap_hand.bind(1))
 	_hand_right.tag = "П"
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
@@ -168,8 +170,11 @@ func _ready() -> void:
 	sep_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sep_box.add_child(sep)
 	bar_row.add_child(sep_box)
-	for i in Mat.PLACEABLE.size():
+	_prev_button = _icon_button(bar_row, "prev", "Предыдущие ячейки", _prev_page)
+	_prev_button.custom_minimum_size = Vector2(28, SLOT)
+	for i in Inventory.HOTBAR:
 		var s = _slot(bar_row, _select_slot.bind(i))
+		s.on_release = true
 		_slots.append(s)
 	_next_button = _icon_button(bar_row, "next", "Следующие ячейки", _next_page)
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
@@ -286,13 +291,15 @@ func _place() -> void:
 	_jump.size = _jump.custom_minimum_size
 	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x, bottom - _jump.size.y)
 
-	# As many slots as fit across the screen (hands, separator and paging take the rest).
+	# All the slots when they fit across the screen beside the hands and the separator,
+	# else as many as fit between the two arrows, four at most in portrait.
 	var fixed := 2 * SLOT + 12 + 3 * GAP + 8
-	var fit_slots := floori((w - 2 * MARGIN - fixed - 28 - GAP) / (SLOT + GAP))
-	_visible_slots = clampi(fit_slots, 1, _slots.size())
-	if fit_slots >= _slots.size():
+	var room := w - 2 * MARGIN - fixed
+	if floori(room / (SLOT + GAP)) >= _slots.size():
 		_visible_slots = _slots.size()
-	_page = mini(_page, _pages() - 1)
+	else:
+		_visible_slots = clampi(floori((room - 2 * (28 + GAP)) / (SLOT + GAP)), 1, 4 if portrait else _slots.size())
+	_first = clampi(_first, 0, _slots.size() - _visible_slots)
 	_show_page()
 	_bar.reset_size()
 	var bw := _bar.size.x
@@ -322,50 +329,97 @@ func _place() -> void:
 	refresh_counts()
 
 
-func _pages() -> int:
-	return ceili(_slots.size() / float(_visible_slots))
-
-
 func _show_page() -> void:
 	for i in _slots.size():
-		var first := _page * _visible_slots
-		_slots[i].visible = i >= first and i < first + _visible_slots
+		_slots[i].visible = i >= _first and i < _first + _visible_slots
 	_next_button.visible = _visible_slots < _slots.size()
+	_prev_button.visible = _next_button.visible
 
 
+## The next slots; past the last, back to the first.
 func _next_page() -> void:
-	_page = (_page + 1) % _pages()
+	var last := _slots.size() - _visible_slots
+	_first = 0 if _first >= last else mini(_first + _visible_slots, last)
 	_show_page()
+
+
+## The slots before; before the first, on to the last.
+func _prev_page() -> void:
+	_first = _slots.size() - _visible_slots if _first <= 0 else maxi(_first - _visible_slots, 0)
+	_show_page()
+
+
+## Moves the shown slots `by` slots along.
+func _scroll(by: int) -> void:
+	_first = clampi(_first + by, 0, _slots.size() - _visible_slots)
+	_show_page()
+
+
+## A finger dragged along the hotbar slots moves them a slot for each slot it passes;
+## the tap it began with picks nothing.
+func _input(event: InputEvent) -> void:
+	if _bar == null or not _prev_button.visible or not _bar.is_visible_in_tree():
+		_swipe = -1
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed and _swipe < 0 and _in_slots(event.position):
+			_swipe = event.index
+			_swipe_x = _bar_x(event.position)
+			_swiped = false
+		elif not event.pressed and event.index == _swipe:
+			_swipe = -1
+	elif event is InputEventScreenDrag and event.index == _swipe:
+		var x := _bar_x(event.position)
+		if not _swiped and absf(x - _swipe_x) > 6.0:
+			_swiped = true
+			for s in _slots:
+				s.cancel_tap()
+		if _swiped:
+			var step := SLOT + GAP
+			while _swipe_x - x >= step:
+				_scroll(1)
+				_swipe_x -= step
+			while x - _swipe_x >= step:
+				_scroll(-1)
+				_swipe_x += step
+
+
+## Screen point `pos` in UI pixels of the hotbar row.
+func _bar_point(pos: Vector2) -> Vector2:
+	return _bar_row.get_global_transform_with_canvas().affine_inverse() * pos
+
+
+func _bar_x(pos: Vector2) -> float:
+	return _bar_point(pos).x
+
+
+## Whether screen point `pos` is on the slots between the arrows.
+func _in_slots(pos: Vector2) -> bool:
+	var p := _bar_point(pos)
+	return p.y >= 0.0 and p.y <= _bar_row.size.y and p.x >= _prev_button.position.x \
+		and p.x <= _next_button.position.x + _next_button.size.x
 
 
 # --- Per-frame state -------------------------------------------------------------
 
-## Fills the hotbar with block icons cut from the terrain atlas.
+## Gives the item pictures the terrain atlas, for blocks without a picture of their own.
 func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 	ItemIcons.use_atlas(atlas, tile, tiles)
-	for i in _slots.size():
-		var m: int = Mat.PLACEABLE[i]
-		var t := m * 3
-		var icon := AtlasTexture.new()
-		icon.atlas = atlas
-		# The middle 12x12 of the 16 px tile, drawn twice as large.
-		icon.region = Rect2((t % tiles) * tile + 2, floori(t / float(tiles)) * tile + 2, 12, 12)
-		_slots[i].texture = icon
 	refresh_counts()
-	_update_hands()
 
 
-## Shows on each hotbar block how many the bag holds (none with free building) and,
-## with a mouse, its key.
+## Shows the bag's first row on the hotbar: each item with how many there are and, with
+## a mouse, its key; then the hands.
 func refresh_counts() -> void:
 	if game == null:
 		return
-	var free: bool = game.settings.free_build
+	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
-		var n: int = game.character.inventory.count(Items.placed_by[Mat.PLACEABLE[i]])
-		_slots[i].number = "" if free else str(n)
-		_slots[i].modulate = Color.WHITE if free or n > 0 else Color(1, 1, 1, 0.5)
+		var s = slots[i]
+		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
+		_slots[i].number = str(s[1]) if s != null and s[1] > 1 else ""
 		_slots[i].key = "" if touch else str(i + 1)
+	_update_hands()
 
 
 func update_state() -> void:
@@ -377,6 +431,7 @@ func update_state() -> void:
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
+	minimap.set_marks(game.props.placed)
 	_set_icon(_clock_icon, game.sky.icon())
 	if game.chunks.manual_level >= 0:
 		_level_label.text = "Срез %d" % game.chunks.cut_level
@@ -388,31 +443,51 @@ func update_state() -> void:
 		_level_label.add_theme_color_override("font_hover_color", UiStyle.INK)
 
 
-## Marks the hand in use and the selected block; called when either changes.
+## Shows what each hand holds and marks the hand in use and the blocks in the hands;
+## called when any of it changes.
 func _update_hands() -> void:
 	if game == null:
 		return
-	_hand_left.selected = game.controls.dig_mode
-	_hand_right.selected = not game.controls.dig_mode
+	var c = game.controls
+	var free: bool = game.settings.free_build
+	for h in 2:
+		var slot = _hand_left if h == 0 else _hand_right
+		var id: String = c.hands[h]
+		slot.selected = c.active == h
+		slot.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand")
+		var n: int = game.character.inventory.count(id) if id != "" else 0
+		slot.modulate = Color(1, 1, 1, 0.5) if id != "" and n == 0 and not (free and c.use_of(h) == "place") else Color.WHITE
+		var brush: Dictionary = c.brush_record()
+		if c.use_of(h) == "place":
+			slot.number = brush.title if brush.title != "1×1" else ""
+		else:
+			slot.number = str(n) if n > 1 else ""
+	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
-		_slots[i].selected = i == game.controls.selected
-		_slots[i].tag = "П" if i == game.controls.selected else ""
-	if not _slots.is_empty():
-		_hand_right.texture = _slots[game.controls.selected].texture
-	var tool: String = game.controls.tool
-	_hand_left.texture = ItemIcons.of_item(tool) if tool != "" else ItemIcons.picture("hand")
-	var brush: Dictionary = game.controls.brush_record()
-	_hand_right.number = brush.title if brush.title != "1×1" else ""
-	_action.text = game.controls.action_name()
-	_action.icon = UiStyle.icon("pick_dark" if game.controls.dig_mode else "place_dark")
+		var item: String = slots[i][0] if slots[i] != null else ""
+		_slots[i].selected = item != "" and c.held() == item
+		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else ""))
+	_action.text = c.action_name()
+	_action.icon = UiStyle.icon("place_dark" if c.use_of() in ["place", "plant", "sow", "prop"] else "pick_dark")
 
 
 func refresh_hands() -> void:
 	_update_hands()
 
 
+## A tap on hand `hand` of the hotbar.
+func _tap_hand(hand: int) -> void:
+	var c = game.controls
+	if c.active != hand:
+		c.set_active(hand)
+	elif c.use_of() == "place":
+		c.cycle_brush()
+	else:
+		c.cycle_tool()
+
+
 func _select_slot(i: int) -> void:
-	game.controls.select_block(i)
+	game.controls.select_slot(i)
 
 
 func set_loading(text: String) -> void:

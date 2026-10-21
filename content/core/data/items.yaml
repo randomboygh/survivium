@@ -3,11 +3,14 @@
 # несъедобно); place — материал ячейки, который предмет ставит в мир (нет поля — не
 # ставится); model — воксельная модель предмета на земле (нет поля — свёрток);
 # icon — картинка в сумке (нет поля — плитка материала из place). Инструменты: tool —
-# axe (рубит деревья и деревянные ячейки), pickaxe (камень и руда), shovel (мягкий грунт
-# быстро, выкапывает кусты), sword (сбивает ягоды с кустов); power — сила: твёрдость
+# axe (рубит деревья, кусты и деревянные ячейки), pickaxe (камень и руда), shovel (мягкий
+# грунт быстро, выкапывает кусты), sword (сбивает ягоды с кустов, косит траву по клетке),
+# scythe (косит траву, колоски и цветы дугой перед собой); power — сила: твёрдость
 # материала, которую он берёт, и урон дереву за удар; area — сколько ячеек за один
 # взмах; swing — секунд на взмах; reach — на сколько ячеек от персонажа достаёт (без
-# инструмента руки достают на 6, блоки ставятся на 8). plant — куст, который сажает предмет.
+# инструмента руки достают на 8, блоки ставятся на 10). plant — куст, который сажает предмет;
+# sow — материал, в который посеянный предмет превращает голую землю (семена трав — в траву);
+# crop — растение (plants.yaml), которое потом растёт на ней (зерно — колоски).
 # durability — сколько взмахов инструмент выдерживает, пока включён износ (0 — не изнашивается);
 # repair — что уходит на починку на верстаке. prop — вещь, которая ставится в мир из сумки
 # на клетки 2×2: chest (сундук), workbench (верстак), kiln (печь для обжига), campfire (костёр);
@@ -106,7 +109,7 @@
   anim: chop
   power: 2
   swing: 0.6
-  reach: 7
+  reach: 9
   durability: 120
   repair: {flint: 1, cord: 1}
 - id: stone_pickaxe
@@ -120,7 +123,7 @@
   anim: chop
   power: 2
   swing: 0.55
-  reach: 8
+  reach: 10
   durability: 150
   repair: {flint: 1, cord: 1}
 - id: wooden_shovel
@@ -135,7 +138,7 @@
   power: 1
   area: 2
   swing: 0.35
-  reach: 8
+  reach: 10
   durability: 100
   repair: {planks: 1}
 - id: wooden_sword
@@ -149,7 +152,7 @@
   anim: slash
   power: 1
   swing: 0.4
-  reach: 6
+  reach: 8
   durability: 80
   repair: {planks: 1}
 - id: shrub_bush
@@ -173,6 +176,51 @@
   model: bush
   icon: bush_blueberry
   plant: blueberry
+- id: stone_scythe
+  title: Каменная коса
+  weight: 1.5
+  stack: 1
+  model: scythe
+  icon: scythe
+  tool: scythe
+  sprite: scythe
+  anim: mow
+  hands: 2
+  power: 1
+  area: 3
+  swing: 0.5
+  reach: 8
+  durability: 150
+  repair: {flint: 1, cord: 1}
+- id: grain
+  title: Зерно
+  weight: 0.02
+  stack: 50
+  model: grain
+  icon: grain
+  sow: grass
+  crop: ears
+- id: flour
+  title: Мука
+  weight: 0.1
+  stack: 30
+  model: flour
+  icon: flour
+- id: flatbread
+  title: Лепёшка
+  weight: 0.2
+  stack: 10
+  food: 25
+  model: flatbread
+  icon: flatbread
+  anim: eat
+- id: grass_seeds
+  title: Семена трав
+  weight: 0.01
+  stack: 50
+  model: seeds
+  icon: seeds
+  sow: grass
 - id: fiber
   title: Волокно
   weight: 0.05

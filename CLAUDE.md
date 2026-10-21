@@ -33,18 +33,18 @@ comments, commits and PRs are in English.
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
-  creatures, trees, bushes, recipes), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
+  creatures, trees, bushes, recipes, plants), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
   reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI, and that
   every recipe can be made from what the world gives); the
-  registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd` fill their static vars from
+  registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd`, `plants.gd` fill their static vars from
   them when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`.
   New numbers that describe content go into the YAML and the schema, not into constants.
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
-  (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: the left hand's tool, the right hand's brush,
-  strokes, the action button in front; rules in `src/shared/tools.gd`),
+  (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
+  is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; rules in `src/shared/tools.gd`),
   `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
@@ -55,16 +55,17 @@ comments, commits and PRs are in English.
   (picks the world played last, puts the player, clock and props back, autosaves; modules keep
   their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
   `Inventory` and `Vitals` from `src/shared/`, action costs, death), `gathering.gd` (picking up
-  drops by a tap or by themselves near the player, bushes by what is in the hand), `hands.gd`
-  (what the player is drawn holding in each hand). The player's sprite (`figure.gd`) is put
-  together from the core mod's pictures, laid out by `content/core/sprites/player.yaml`: the bare
-  figure in layers with the hands moving through every animation (idle, walk, jump, swim, the
-  works an item's `anim` names), `player/hands.png` marking where each hand is in each frame and
-  the way what it holds points, and a sheet per tool held (`held/<item sprite>.png`) put at the
-  hand; a thing without one is its icon, made small and turned with the hand; drawn for the right
-  hand in use, the left one is the opposite direction mirrored; built a row a frame; swings start
-  with `player.work`. The pictures were drawn by `tools/art/` (the poses, the tools' turns) and
-  saved by `tools/make_sprites.gd`; they can be painted over by hand.
+  drops by a tap or by themselves near the player, bushes and trees by what is in the hand, cutting
+  grass into what grows on it, planting), `hands.gd` (what the player is drawn holding in each
+  hand). The player's sprite (`figure.gd`) is put together from the core mod's pictures, laid out
+  by `content/core/sprites/player.yaml`: the bare figure in layers with the hands moving through
+  every animation (idle, walk, jump, swim, the works an item's `anim` names), `player/hands.png`
+  marking where each hand is in each frame and the way what it holds points, and a sheet per tool
+  held (`held/<item sprite>.png`) put at the hand; a thing without one is its icon, made small and
+  turned with the hand; drawn for the right hand in use, the left one is the opposite direction
+  mirrored; built a part of a row a frame; swings start with `player.work`. The pictures were drawn
+  by `tools/art/` (the poses, the tools' turns) and saved by `tools/make_sprites.gd`; they can be
+  painted over by hand.
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
 ## Checks before every push

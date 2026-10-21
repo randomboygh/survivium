@@ -1,7 +1,7 @@
 extends RefCounted
 ## Mods and their data files. A mod is a folder under `content/` with `mod.yaml` and
 ## `data/<kind>.yaml`, one file per kind of record (materials, items, creatures,
-## trees, bushes, recipes), each a list of records with an `id`. Ids carry the mod's namespace:
+## trees, bushes, recipes, plants), each a list of records with an `id`. Ids carry the mod's namespace:
 ## `grass` in the core mod is `core:grass`, and a reference without a namespace
 ## means the same mod. A later mod may redefine a record of an earlier one by id.
 ##
@@ -9,7 +9,7 @@ extends RefCounted
 ## unknown fields, missing fields without a default and broken references are
 ## reported with the file and the id. The game loads what it can and reports the
 ## problems; `tools/validate.gd` runs the same checks in CI and fails on any.
-## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd) read their kind
+## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd, plants.gd) read their kind
 ## with `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.OAK` or `AiRules.SPECIES` as before.
 
@@ -37,6 +37,8 @@ const SCHEMAS := {
 		"hardness": {"type": "int", "min": 0, "default": 1},
 		"bonus": {"type": "ref:items", "default": ""},
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"mow": {"type": "ref:materials", "default": ""},
+		"mow_gives": {"type": "amounts", "of": "ref:items", "default": {}},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
@@ -45,11 +47,13 @@ const SCHEMAS := {
 		"place": {"type": "ref:materials", "default": ""},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
-		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword"], "default": "none"},
+		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
 		"power": {"type": "int", "min": 0, "default": 0},
 		"area": {"type": "int", "min": 1, "default": 1},
 		"swing": {"type": "float", "min": 0.05, "default": 0.5},
 		"plant": {"type": "ref:bushes", "default": ""},
+		"sow": {"type": "ref:materials", "default": ""},
+		"crop": {"type": "ref:plants", "default": ""},
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
 		"repair": {"type": "amounts", "of": "ref:items", "default": {}},
@@ -76,6 +80,8 @@ const SCHEMAS := {
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"seed": {"type": "ref:items", "default": ""},
 		"hits": {"type": "int", "min": 1, "default": 4},
+		"twigs": {"type": "int", "min": 0, "default": 0},
+		"seeds": {"type": "int", "min": 0, "default": 0},
 	},
 	"bushes": {
 		"tint": {"type": "color"},
@@ -95,8 +101,12 @@ const SCHEMAS := {
 		"count": {"type": "int", "min": 1, "default": 1},
 		"needs": {"type": "amounts", "of": "ref:items"},
 		"at": {"type": "ref:items", "default": ""},
-		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword"], "default": "none"},
+		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
 		"time": {"type": "float", "min": 0.0, "default": 2.0},
+	},
+	"plants": {
+		"gives": {"type": "amounts", "of": "ref:items"},
+		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 	},
 }
 const MOD_SCHEMA := {
