@@ -26,6 +26,9 @@ var narrow := false
 var on_layout := Callable()
 var _near: Label
 var _take_up: Button
+## A campfire's buttons: put it out or light it again, and destroy it once it is out.
+var _fire: Button
+var _destroy: Button
 var _queue_box: VBoxContainer
 var _progress: ProgressBar
 var _list: VBoxContainer
@@ -69,6 +72,18 @@ func _ready() -> void:
 			_station = {}
 			refresh())
 	head.add_child(_take_up)
+	_fire = _button("Потушить", func() -> void:
+		if _station.lit:
+			game.props.put_out(_station)
+		else:
+			game.props.light(_station)
+		refresh())
+	head.add_child(_fire)
+	_destroy = _button("Уничтожить", func() -> void:
+		if game.props.destroy(_station):
+			_station = {}
+			refresh())
+	head.add_child(_destroy)
 	_queue_box = VBoxContainer.new()
 	_queue_box.add_theme_constant_override("separation", 2)
 	add_child(_queue_box)
@@ -132,9 +147,14 @@ func refresh_now() -> void:
 	for id in stations:
 		names.append(Items.title(id))
 	_near.text = "Рядом: %s" % ", ".join(names) if not names.is_empty() else "Рядом станков нет: делается то, что руками"
-	_take_up.visible = not _station.is_empty()
+	var fire: bool = not _station.is_empty() and _station.fire != null
+	_take_up.visible = not _station.is_empty() and not fire
 	if _take_up.visible:
 		_take_up.text = "Забрать: %s" % Items.title(_station.item)
+	_fire.visible = fire
+	_destroy.visible = fire and not _station.lit
+	if fire:
+		_fire.text = "Потушить костёр" if _station.lit else "Разжечь (ветка)"
 	_show_queue()
 	if _rows_narrow != narrow:
 		for id in _rows:

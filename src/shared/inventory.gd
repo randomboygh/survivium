@@ -3,7 +3,9 @@ extends RefCounted
 ## to its stack size, and the weight of it all (plan/design/character.md). Weight has a
 ## limit from strength: past it the carrier slows down (see speed_factor) but may
 ## still pick things up. A tool wears with use (see wear_tool): its slot keeps how many
-## swings it has taken. Shared, so the server can keep the same bag.
+## swings it has taken. A chest taken up with things in it keeps them (its contents,
+## as to_dict() gives them) and weighs them too. Shared, so the server can keep the
+## same bag.
 
 const Items := preload("res://src/shared/items.gd")
 
@@ -18,10 +20,12 @@ const OVERLOAD_PACE := 0.15
 
 signal changed
 
-## Each slot: [id, count], [id, count, worn] for a tool that has taken `worn` swings, or
-## null for an empty one.
+## Each slot: [id, count], [id, count, worn] for a tool that has taken `worn` swings,
+## [id, 1, 0, contents] for a chest with things in it, or null for an empty one.
 var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
+## Whether a chest with things in it may go in (not into another chest).
+var nests := true
 
 
 func _init(n := SLOTS) -> void:
@@ -29,12 +33,20 @@ func _init(n := SLOTS) -> void:
 
 
 ## Puts up to `n` of item `id` (worn by `worn` swings) into the bag, topping up stacks
-## first; returns how many went in (fewer when the slots are full).
-func add(id: String, n: int, worn := 0) -> int:
+## first; returns how many went in (fewer when the slots are full). A chest with
+## `contents` goes in alone, into a slot of its own.
+func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
+	if contents is Dictionary:
+		var free := slots.find(null)
+		if not nests or free < 0 or n < 1:
+			return 0
+		slots[free] = [id, 1, worn, contents]
+		changed.emit()
+		return 1
 	var left := n
 	var size := Items.stack_size(id)
 	for s in slots:
-		if left > 0 and s != null and s[0] == id and s[1] < size and _worn(s) == worn:
+		if left > 0 and s != null and s[0] == id and s[1] < size and _worn(s) == worn and s.size() < 4:
 			var k := mini(left, size - s[1])
 			s[1] += k
 			left -= k
@@ -60,13 +72,13 @@ func room_for(id: String) -> int:
 	return room
 
 
-## Takes up to `n` of item `id` out of the bag, from the last stacks first; returns
-## how many were taken.
+## Takes up to `n` of item `id` out of the bag, from the last stacks first, never a
+## chest with things in it; returns how many were taken.
 func remove(id: String, n: int) -> int:
 	var left := n
 	for i in range(slots.size() - 1, -1, -1):
 		var s = slots[i]
-		if left > 0 and s != null and s[0] == id:
+		if left > 0 and s != null and s[0] == id and s.size() < 4:
 			var k := mini(left, s[1])
 			s[1] -= k
 			left -= k
@@ -77,8 +89,9 @@ func remove(id: String, n: int) -> int:
 	return n - left
 
 
-## Takes up to `n` items out of slot `i`; returns the stack taken ([id, count], or
-## [id, count, worn] for a worn tool) or null.
+## Takes up to `n` items out of slot `i`; returns the stack taken ([id, count],
+## [id, count, worn] for a worn tool, [id, 1, 0, contents] for a chest with things in
+## it) or null.
 func take_slot(i: int, n: int):
 	var s = slots[i]
 	if s == null or n <= 0:
@@ -88,15 +101,24 @@ func take_slot(i: int, n: int):
 	if s[1] == 0:
 		slots[i] = null
 	changed.emit()
+	if s.size() > 3:
+		return [s[0], k, _worn(s), s[3]]
 	return [s[0], k, s[2]] if _worn(s) > 0 else [s[0], k]
 
 
-## Moves as much of slot `i` as fits into bag `to` (keeping its wear); returns how many.
+## What the chest in slot `i` holds (as to_dict() gives it), or null.
+func contents(i: int) -> Variant:
+	var s = slots[i]
+	return s[3] if s != null and s.size() > 3 else null
+
+
+## Moves as much of slot `i` as fits into bag `to` (keeping its wear and contents);
+## returns how many.
 func move_slot(i: int, to) -> int:
 	var s = slots[i]
 	if s == null:
 		return 0
-	var n: int = to.add(s[0], s[1], _worn(s))
+	var n: int = to.add(s[0], s[1], _worn(s), contents(i))
 	take_slot(i, n)
 	return n
 
@@ -163,12 +185,24 @@ func is_empty() -> bool:
 	return true
 
 
-## Weight of everything in the bag, kg.
+## Weight of everything in the bag, kg, with what chests in it hold.
 func weight() -> float:
 	var w := 0.0
-	for s in slots:
-		if s != null:
-			w += Items.weight(s[0]) * s[1]
+	for i in slots.size():
+		w += slot_weight(i)
+	return w
+
+
+## Weight of slot `i`, kg: its items and what a chest among them holds.
+func slot_weight(i: int) -> float:
+	var s = slots[i]
+	if s == null:
+		return 0.0
+	var w: float = Items.weight(s[0]) * s[1]
+	if s.size() > 3:
+		for held in s[3].get("slots", []):
+			if held is Array and held.size() >= 2:
+				w += Items.weight(held[0]) * float(held[1])
 	return w
 
 
@@ -199,7 +233,11 @@ func from_dict(d: Dictionary) -> void:
 	var saved: Array = d.get("slots", [])
 	for i in mini(saved.size(), slots.size()):
 		var s = saved[i]
-		if s is Array and s.size() in [2, 3] and Items.has(s[0]) and int(s[1]) > 0:
-			var w: int = int(s[2]) if s.size() == 3 else 0
-			slots[i] = [Items.get_item(s[0]).id, int(s[1]), w] if w > 0 else [Items.get_item(s[0]).id, int(s[1])]
+		if s is Array and s.size() in [2, 3, 4] and Items.has(s[0]) and int(s[1]) > 0:
+			var w: int = int(s[2]) if s.size() >= 3 else 0
+			var id: String = Items.get_item(s[0]).id
+			if s.size() == 4 and s[3] is Dictionary:
+				slots[i] = [id, 1, w, s[3]]
+			else:
+				slots[i] = [id, int(s[1]), w] if w > 0 else [id, int(s[1])]
 	changed.emit()

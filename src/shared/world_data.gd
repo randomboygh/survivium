@@ -58,6 +58,10 @@ var tree_seeds := {}
 ## "" for grass cut short (its tall plants gone until spring, see Gathering.mow), or the
 ## id of the crop sown there (see Plants; Foliage draws it). Saved with the chunk.
 var turf := {}
+## Things standing on cells that bodies do not pass (placed chests and stations, see
+## Props): cell -> how high the thing's top is above the cell's floor, in cells; above
+## 1 it fills the cell over it too.
+var blockers := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
@@ -1034,10 +1038,13 @@ func is_solid(x: int, y: int, z: int) -> bool:
 	return Mat.is_solid(get_cell(x, y, z))
 
 
-## True when a walking body cannot be in this cell: solid, frozen water, or where no
-## chunk is kept. Open water is waded and swum through.
+## True when a walking body cannot be in this cell: solid, frozen water, a thing
+## standing in it (see blockers) or where no chunk is kept. Open water is waded and
+## swum through.
 func blocks_body(x: int, y: int, z: int) -> bool:
 	if chunk_at(x, z) == null:
+		return true
+	if not blockers.is_empty() and blocker_top(x, y, z) > 0.0:
 		return true
 	var m := get_cell(x, y, z)
 	if m == Mat.WATER:
@@ -1063,6 +1070,16 @@ func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 
 ## True when the part ax..bx, az..bz (0..1) of the cell at (x, y, z) stands on its top:
 ## solid there, not only its cut corner, ground filling its corner, or ice.
+## How high above the floor of cell (x, y, z) the top of a thing standing there is
+## (see blockers), at most 1; 0 when none stands in it.
+func blocker_top(x: int, y: int, z: int) -> float:
+	var c := Vector3i(x, y, z)
+	if blockers.has(c):
+		return minf(blockers[c], 1.0)
+	c.y -= 1
+	return maxf(blockers.get(c, 0.0) - 1.0, 0.0)
+
+
 func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if _ground(x, y, z):
 		var cuts := corner_cuts(x, y, z)
@@ -1071,7 +1088,7 @@ func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 				return false
 		return true
 	return is_solid(x, y, z) or water_frozen and get_cell(x, y, z) == Mat.WATER \
-		or _fill_touched(x, y, z, ax, bx, az, bz)
+		or _fill_touched(x, y, z, ax, bx, az, bz) or not blockers.is_empty() and blocker_top(x, y, z) > 0.0
 
 
 func _fill_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:

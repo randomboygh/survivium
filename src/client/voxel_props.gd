@@ -68,24 +68,73 @@ static func kiln() -> VoxelModel:
 	return m
 
 
+## A chest: a plank box with a rounded lid, iron bands over it and an iron lock plate
+## with a keyhole on the front (to the south).
 static func chest() -> VoxelModel:
 	var m := VoxelModel.new()
-	var wood := Color(0.55, 0.36, 0.2)
-	var band := Color(0.35, 0.22, 0.12)
-	var metal := Color(0.8, 0.68, 0.35)
-	for y in range(0, 10):
-		for z in range(4, 12):
-			for x in range(2, 14):
-				var c := wood
-				if x == 2 or x == 13 or y == 0 or y == 9 or y == 6 or z == 4 or z == 11:
-					c = band
-				if (y + x) % 5 == 0 and c == wood:
-					c = wood * 0.9
+	var wood := Color(0.6, 0.4, 0.22)
+	var seam := Color(0.36, 0.23, 0.12)
+	var iron := Color(0.38, 0.38, 0.4)
+	var rivet := Color(0.62, 0.62, 0.64)
+	var brass := Color(0.86, 0.7, 0.32)
+	# The body: planks lying along x, a dark seam between them every three voxels, each
+	# plank its own shade so the wood reads as boards.
+	for y in range(0, 7):
+		for z in range(3, 13):
+			for x in range(1, 15):
+				var inside: bool = x > 1 and x < 14 and z > 3 and z < 12 and y > 0
+				if inside:
+					continue
+				var c := wood * (0.92 + 0.08 * float((floori(y / 3.0) * 5 + 3) % 3))
+				if y % 3 == 2:
+					c = seam
+				if (x * 7 + y * 13 + z * 3) % 11 == 0:
+					c = c * 0.9
 				m.set_voxel(Vector3i(x, y, z), c)
-	for y in range(4, 8):
-		for x in range(7, 9):
-			m.set_voxel(Vector3i(x, y, 12), metal)
+	# The lid: a half round over the box, planks along x again.
+	for z in range(3, 13):
+		var t := (z - 7.5) / 5.0
+		var top := 7 + int(round(2.0 * sqrt(maxf(0.0, 1.0 - t * t))))
+		for y in range(7, top + 1):
+			for x in range(1, 15):
+				var shell: bool = x == 1 or x == 14 or y == top or z == 3 or z == 12
+				if not shell:
+					continue
+				var c := wood * (1.06 if (z + y) % 2 == 0 else 1.0)
+				if (z - 3) % 3 == 0 and y == top:
+					c = seam
+				m.set_voxel(Vector3i(x, y, z), c)
+	# Iron bands over the lid and down the front and the back, and on the corners.
+	for x in [3, 12]:
+		for z in range(3, 13):
+			var t := (z - 7.5) / 5.0
+			var top := 7 + int(round(2.0 * sqrt(maxf(0.0, 1.0 - t * t))))
+			m.set_voxel(Vector3i(x, top, z), iron)
+		for y in range(0, 10):
+			for z in [3, 12]:
+				if m.voxels.has(Vector3i(x, y, z)):
+					m.set_voxel(Vector3i(x, y, z), rivet if y % 3 == 1 else iron)
+	for y in range(0, 7):
+		for c in [Vector3i(1, y, 3), Vector3i(14, y, 3), Vector3i(1, y, 12), Vector3i(14, y, 12)]:
+			m.set_voxel(c, iron)
+	# The lid's rim and the lock plate with its keyhole.
+	for x in range(1, 15):
+		m.set_voxel(Vector3i(x, 7, 12), iron if x % 4 != 2 else rivet)
+	for y in range(4, 9):
+		for x in range(6, 10):
+			m.set_voxel(Vector3i(x, y, 13), brass)
+	m.set_voxel(Vector3i(7, 5, 13), seam * 0.5)
+	m.set_voxel(Vector3i(8, 5, 13), seam * 0.5)
+	m.set_voxel(Vector3i(7, 6, 13), seam * 0.5)
 	return m
+
+
+## How high model `m` stands, in voxels (16 a world unit).
+static func height(m: VoxelModel) -> float:
+	var top := 0
+	for p: Vector3i in m.voxels:
+		top = maxi(top, p.y + 1)
+	return top
 
 
 ## Things lying on the ground (see WorldData.drops), centred on the origin and lying

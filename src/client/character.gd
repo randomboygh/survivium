@@ -91,8 +91,12 @@ func eat(i: int) -> bool:
 	return true
 
 
-## Throws `n` items of bag slot `i` on the ground at the player's feet.
+## Throws `n` items of bag slot `i` on the ground at the player's feet; not a chest
+## with things in it (it is put down instead).
 func throw_away(i: int, n: int) -> void:
+	if inventory.contents(i) != null:
+		nag("throw", "Сундук с вещами не бросить: поставь его")
+		return
 	var taken = inventory.take_slot(i, n)
 	if taken == null:
 		return
