@@ -625,6 +625,17 @@ static func theme() -> Theme:
 	t.set_color("font_color", "LineEdit", INK)
 	t.set_color("caret_color", "LineEdit", ACCENT)
 	t.set_color("selection_color", "LineEdit", HIGHLIGHT)
+	# A thin bar in a sunken groove for the lists that scroll.
+	var groove := StyleBoxFlat.new()
+	groove.bg_color = WELL
+	groove.content_margin_left = SCROLL_BAR / 2.0
+	groove.content_margin_right = SCROLL_BAR / 2.0
+	t.set_stylebox("scroll", "VScrollBar", groove)
+	t.set_stylebox("scroll_focus", "VScrollBar", groove)
+	for state in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		var grip := StyleBoxFlat.new()
+		grip.bg_color = MUTED if state == "grabber" else ACCENT
+		t.set_stylebox(state, "VScrollBar", grip)
 	return t
 
 
@@ -634,8 +645,10 @@ const PAD := Vector4(10, 8, 10, 8)
 ## The room in a frame round slots and buttons, or a line that must stay short (the
 ## clock): the old thin one.
 const TIGHT := Vector4(6, 6, 6, 6)
-## The same in a sunken well holding text (the bag's and the craft tab's panels).
+## The room in a sunken well holding text (the bag's and the craft tab's panels).
 const WELL_PAD := 8
+## The width of a scroll bar.
+const SCROLL_BAR := 6
 
 
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.

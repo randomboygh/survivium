@@ -27,8 +27,9 @@ const DEFAULTS := {
 	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
 	# real ones from the nearest fire or the torch (see Effects.SHADOW_FIRE_REACH), the
 	# slowest thing to draw at night, 3 mixed: the nearest fire's real shadow of the
-	# player alone and the rest drawn (Effects.player_only).
-	"fire_shadows": 1,
+	# player alone and the rest drawn (Effects.player_only; 74 FPS on the phone by a
+	# campfire against 83 drawn and 63 real).
+	"fire_shadows": 3,
 	"effects": true,
 	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
 	"sun_rays": true,
@@ -48,6 +49,13 @@ const DEFAULTS := {
 	"world_rivers": 1,
 	"world_biomes": 1,
 }
+## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
+## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
+const QUALITIES := [
+	{"pixel_size": 1, "shadows": false, "fire_shadows": 0, "effects": false, "sun_rays": false, "mist": false},
+	{"pixel_size": 0, "shadows": true, "fire_shadows": 1, "effects": true, "sun_rays": false, "mist": true},
+	{"pixel_size": 0, "shadows": true, "fire_shadows": 3, "effects": true, "sun_rays": true, "mist": true},
+]
 ## Playtest clock: stopped, normal, or faster on top of the time speed setting.
 const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
 ## What the T key switches to: a whole day in about 24 seconds.
@@ -105,6 +113,23 @@ func save() -> void:
 ## Changes one setting, applies it and saves.
 func set_value(key: String, v: Variant) -> void:
 	values[key] = v
+	apply()
+	save()
+
+
+## The graphics quality preset the settings match (an index into QUALITIES), or -1
+## when they were set by hand to a mix of their own.
+func quality() -> int:
+	for i in QUALITIES.size():
+		var q: Dictionary = QUALITIES[i]
+		if q.keys().all(func(k: String) -> bool: return values[k] == q[k]):
+			return i
+	return -1
+
+
+## Sets the graphics settings of quality preset `i` (see QUALITIES), applies and saves.
+func set_quality(i: int) -> void:
+	values.merge(QUALITIES[i], true)
 	apply()
 	save()
 
