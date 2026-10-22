@@ -92,6 +92,9 @@ var water_level := -INF
 ## The velocity on the ground plane in cells a second (x east, y south); on ice it
 ## lags behind the wish.
 var glide := Vector2.ZERO
+## Where (world units) the last step tried to move the body and something was in
+## the way, Vector3.INF if nothing was: what it pushed against (a fire burns).
+var bumped := Vector3.INF
 ## Height the body pushed against while in water can pull itself up by this step.
 var _pull_up := 0.0
 ## The column the feet were last in: walking off it leaves a trail in the snow.
@@ -123,6 +126,7 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	# In water the body gets out onto ground up to one level above the water's cell.
 	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
 	_pull_up = 0.0
+	bumped = Vector3.INF
 	if on_ice(p):
 		glide = glide.move_toward(dir * speed, ICE_GRIP * delta)
 	else:
@@ -266,6 +270,7 @@ func _try_move(p: Vector3, d: Vector3, reach: float) -> Vector3:
 		var top := _ground_top(np, p.y, reach)
 		if top > p.y and not _collides(Vector3(np.x, top, np.z)):
 			_pull_up = maxf(_pull_up, top - p.y)
+	bumped = np * CELL
 	return p
 
 
