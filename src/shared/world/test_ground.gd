@@ -12,33 +12,50 @@ extends "res://src/shared/world/world_gen.gd"
 ##   pits       x -8..8,    z -44..-26  a pit 4 deep, a shaft 12 deep
 ##   cave       x 12..44,   z -46..-24  a stone hill 12 high, a tunnel from the south
 ##                                      into a hall, a dirt floor
+##   bushes     x 62..96,   z -9..2     rows of raspberries, blueberries, shrubs and
+##                                      mixed, two cells apart, in the open
 ##   forest     x -46..-14, z -10..10   rows of oaks and spruces, rows of bushes
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
 ##   biomes     x -8..48,   z 14..38    strips: meadow, forest, taiga, swamp, desert,
-##                                      tundra, beach
+##                                      tundra, beach; bushes under the trees
+##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
+##                                      a row each of grass, sand, clay and stone
 
 ## The seed of the test world; a rolled seed is never negative.
 const SEED := -1
 ## Order of the grounds on the map (and in plan/design/ui.md).
-const GROUNDS := ["Ступени", "Ямы", "Пещера", "Лес и кусты", "Материалы", "Домик", "Пруд", "Биомы"]
+const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Биомы", "Рельеф"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 const POND_DEPTHS := [1, 2, 3, 5]
 const STRIP_BIOMES := [MEADOW, FOREST, TAIGA, SWAMP, DESERT, TUNDRA, BEACH]
 const HILL := 12
+## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
+## RELIEF_STRIDE apart (see relief_rise): a lone cell, a square, an L (inner corner), a
+## ring round a hollow, a pit, a stepped pyramid, a diagonal stair, a two-cell cliff
+## beside a one-cell step, a ridge and a trench, a checkerboard, a round hill, a cross.
+const RELIEF := ["cell", "square", "ell", "ring", "pit", "pyramid", "stair", "cliff", "ridge", "checker",
+	"round", "cross"]
+const RELIEF_PLOT := 10
+const RELIEF_STRIDE := 12
+const RELIEF_X := -70
+const RELIEF_Z := 44
 
 ## Top of the meadow (filled in _init: two cells above the sea).
 var ground := 22
 ## Tops of the material strips, one each 4 cells from x = 16.
 var strip_tops: Array = []
+## Tops of the rows of the relief ground, north to south.
+var relief_tops: Array = []
 
 
 func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	super(SEED, sy, {})
 	ground = sea + 2
 	strip_tops = [Mat.GRASS, Mat.DIRT, Mat.SAND, Mat.CLAY, Mat.STONE, Mat.COPPER_ORE, Mat.BRICK, Mat.PLANKS]
+	relief_tops = [Mat.GRASS, Mat.SAND, Mat.CLAY, Mat.STONE]
 
 
 ## The spawn: the middle of the meadow between the grounds.
@@ -84,10 +101,55 @@ func column(x: int, z: int) -> Array:
 			TUNDRA:
 				return [g, -1, Mat.STONE if posmod(x * 7 + z * 3, 11) == 0 else Mat.GRASS, b, false]
 		return [g, -1, Mat.GRASS, b, false]
+	# Relief: a row of shapes for each top.
+	var rx := x - RELIEF_X
+	var rz := z - RELIEF_Z
+	if rx >= 0 and rz >= 0 and rx < RELIEF.size() * RELIEF_STRIDE and rz < relief_tops.size() * RELIEF_STRIDE:
+		var px := rx % RELIEF_STRIDE
+		var pz := rz % RELIEF_STRIDE
+		if px < RELIEF_PLOT and pz < RELIEF_PLOT:
+			var top: int = relief_tops[rz / RELIEF_STRIDE]
+			return [g + relief_rise(RELIEF[rx / RELIEF_STRIDE], px, pz), -1, top,
+				ROCK if top == Mat.STONE else MEADOW, false]
 	# Material strips: 3 cells of each top, a cell of grass between.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		return [g, -1, strip_tops[(x - 16) / 4], MEADOW, false]
 	return [g, -1, Mat.GRASS, MEADOW, false]
+
+
+## How many cells the relief shape `shape` rises (or sinks) at cell px, pz of its plot.
+func relief_rise(shape: String, px: int, pz: int) -> int:
+	var inside := px >= 3 and px < 7 and pz >= 3 and pz < 7
+	match shape:
+		"cell":
+			return 1 if px == 4 and pz == 4 else 0
+		"square":
+			return 1 if inside else 0
+		"ell":
+			return 1 if px >= 2 and pz >= 2 and px < 8 and pz < 8 and (px < 5 or pz >= 5) else 0
+		"ring":
+			var edge := px >= 2 and pz >= 2 and px < 8 and pz < 8
+			return 1 if edge and not inside else 0
+		"pit":
+			return -1 if inside else 0
+		"pyramid":
+			return clampi(mini(mini(px, pz), mini(9 - px, 9 - pz)) - 1, 0, 3)
+		"stair":
+			return clampi((px + pz) / 3 - 1, 0, 4)
+		"cliff":
+			if pz < 2 or pz >= 8:
+				return 0
+			return 2 if px >= 6 else (1 if px >= 3 else 0)
+		"ridge":
+			return 1 if px == 3 and pz >= 1 and pz < 9 else (-1 if px == 6 and pz >= 1 and pz < 9 else 0)
+		"checker":
+			return 1 if px >= 1 and pz >= 1 and px < 9 and pz < 9 and ((px - 1) / 2 + (pz - 1) / 2) % 2 == 0 else 0
+		"round":
+			var d := Vector2(px - 4.5, pz - 4.5).length()
+			return clampi(int(3.5 - d * 0.8), 0, 3)
+		"cross":
+			return 1 if (px >= 4 and px < 6 and pz >= 1 and pz < 9) or (pz >= 4 and pz < 6 and px >= 1 and px < 9) else 0
+	return 0
 
 
 ## What column x, z has over its plain fill: [from y, to y (inclusive), material,
@@ -133,6 +195,18 @@ func plan_trees() -> Array:
 ## The bushes of the plan: [x, z, type].
 func plan_bushes() -> Array:
 	var out := []
+	# The bush garden: a row of each kind and a mixed one.
+	var kinds := [Bushes.RASPBERRY, Bushes.BLUEBERRY, Bushes.SHRUB]
+	for row in 4:
+		for x in range(63, 95, 2):
+			var kind: int = kinds[row] if row < 3 else kinds[posmod(x, 3)]
+			out.append([x, -8 + row * 3, kind])
+	# Under the trees of the forest and taiga strips.
+	for z in range(15, 38, 3):
+		out.append([0, z, Bushes.RASPBERRY])
+		out.append([6, z, Bushes.SHRUB])
+		out.append([9, z, Bushes.BLUEBERRY])
+		out.append([14, z, Bushes.BLUEBERRY])
 	for x in range(-45, -32, 3):
 		out.append([x, 0, Bushes.RASPBERRY])
 	for x in range(-30, -20, 3):
