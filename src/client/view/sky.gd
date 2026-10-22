@@ -303,6 +303,7 @@ func _update_weather(delta: float) -> void:
 	# winter, and are gone as the trees leaf out again.
 	g.global_shader_parameter_set("leaf_litter", clampf((1.0 - leaf_amount) / (1.0 - LEAF_AMOUNT[Clock.WINTER]), 0.0, 1.0))
 	g.global_shader_parameter_set("berry_amount", berry_amount)
+	g.global_shader_parameter_set("night_glow", smoothstep(0.6, 0.15, daylight))
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)
 	g.global_shader_parameter_set("wind", wind)

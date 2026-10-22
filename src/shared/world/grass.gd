@@ -7,8 +7,9 @@ extends RefCounted
 ## shader thins them further), and small meadows of tall grass, three tufts a cell, on
 ## the lush islands. Flowers and low herbs grow in clumps of their own; ears of dry grass
 ## stand in fields on flat fertile lowland and hardly anywhere else; reeds line the
-## water, except on sand. A cell the player cut or sowed (WorldData.turf) changes what
-## grows on it.
+## water, except on sand. In the shade of the crowns moss grows in patches on the forest
+## floor and mushrooms in groups, and here and there groups of mushrooms that glow at
+## night. A cell the player cut or sowed (WorldData.turf) changes what grows on it.
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
@@ -16,13 +17,20 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const CELL := WorldData.CELL
 ## Plant kinds, the rows of PixelTextures.build_plants and grass.gdshader: tufts from
-## 0, then flowers, ears, reeds, herbs, low tufts and tall tufts.
+## 0, then flowers, ears, reeds, herbs, low tufts, tall tufts, moss, mushrooms, glowing
+## mushrooms, and last the spores that rise from those at night and their glow (drawn
+## only, see Foliage).
 const FLOWER := 4
 const EAR := 8
 const REED := 10
 const HERB := 12
 const LOW := 14
 const TALL := 18
+const MOSS := 22
+const MUSHROOM := 24
+const GLOW := 26
+const SPORE := 28
+const HALO := 29
 ## Grass tiers by the patch noise.
 const BARE_TIER := 0
 const LOW_TIER := 1
@@ -37,6 +45,10 @@ static var meadow_noise: FastNoiseLite
 static var flower_noise: FastNoiseLite
 static var herb_noise: FastNoiseLite
 static var ear_noise: FastNoiseLite
+## Patches of moss and the places where mushrooms and glowing mushrooms come up in groups.
+static var moss_noise: FastNoiseLite
+static var mushroom_noise: FastNoiseLite
+static var glow_noise: FastNoiseLite
 ## The tileable noise of the ground patches, the clouds and the water's ripples (see
 ## PixelTextures.build_cloud_noise), kept so scripts read the same patches the shaders do.
 static var cloud_image: Image
@@ -49,6 +61,9 @@ static func _fields() -> void:
 	flower_noise = _field_noise(21, 0.09)
 	herb_noise = _field_noise(22, 0.12)
 	ear_noise = _field_noise(23, 0.035)
+	moss_noise = _field_noise(24, 0.08)
+	mushroom_noise = _field_noise(25, 0.16)
+	glow_noise = _field_noise(26, 0.11)
 
 
 static func _field_noise(seed: int, freq: float) -> FastNoiseLite:
@@ -151,11 +166,26 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 				out.append(EAR + rng.randi_range(0, 1))
 		elif tier == MID_TIER and flat and rng.randf() < 0.01:
 			out.append(EAR + rng.randi_range(0, 1))
+		if w.leaf_col(x, z) != 0:
+			_forest_floor(x, z, out, rng)
 	# Reeds line grassy and muddy banks, not the sand of a beach.
 	if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
 	return out
+
+
+## What grows in the shade of a crown on grass column x, z, added to `out`: moss in
+## patches, mushrooms in small groups (each card is two or three of them) where their
+## noise is high, and rarer groups of glowing mushrooms.
+static func _forest_floor(x: int, z: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+	if moss_noise.get_noise_2d(x, z) > -0.05 and rng.randf() < 0.6:
+		out.append(MOSS + rng.randi_range(0, 1))
+	if glow_noise.get_noise_2d(x, z) > 0.5:
+		if rng.randf() < 0.55:
+			out.append(GLOW + rng.randi_range(0, 1))
+	elif mushroom_noise.get_noise_2d(x, z) > 0.4 and rng.randf() < 0.5:
+		out.append(MUSHROOM + rng.randi_range(0, 1))
 
 
 ## The plants on the top of ground cell x, y, z (ids of Plants), the ones drawn there:
@@ -192,6 +222,8 @@ static func has_tall(w, cell: Vector3i) -> bool:
 static func turf_kinds(grown_kinds: Array[int], grown: String, rng: RandomNumberGenerator) -> Array[int]:
 	var out: Array[int] = []
 	for kind in grown_kinds:
+		if kind >= MOSS:
+			continue
 		if kind >= TALL:
 			out.append(LOW + kind - TALL)
 		elif kind < FLOWER or kind >= LOW:
@@ -206,6 +238,12 @@ static func turf_kinds(grown_kinds: Array[int], grown: String, rng: RandomNumber
 
 ## The id (see Plants) of plant kind `kind`.
 static func plant_of(kind: int) -> String:
+	if kind >= GLOW:
+		return Plants.GLOW
+	if kind >= MUSHROOM:
+		return Plants.MUSHROOMS
+	if kind >= MOSS:
+		return Plants.MOSS
 	if kind >= TALL:
 		return Plants.TALL
 	if kind >= LOW:

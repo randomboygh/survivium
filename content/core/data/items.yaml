@@ -1,6 +1,6 @@
 # Предметы: то, что лежит в сумке и на земле. weight — вес одной штуки в кг; stack —
 # сколько штук помещается в одну ячейку сумки; food — сытость от одной штуки (0 —
-# несъедобно); place — материал ячейки, который предмет ставит в мир (нет поля — не
+# несъедобно); heal — сколько здоровья возвращает одна штука (бинт); place — материал ячейки, который предмет ставит в мир (нет поля — не
 # ставится); model — воксельная модель предмета на земле (нет поля — свёрток);
 # icon — картинка в сумке (нет поля — плитка материала из place). Инструменты: tool —
 # axe (рубит деревья, кусты и деревянные ячейки), pickaxe (камень и руда), shovel (мягкий
@@ -262,6 +262,43 @@
   model: flatbread
   icon: flatbread
   anim: eat
+- id: mushroom
+  title: Гриб
+  weight: 0.05
+  stack: 30
+  food: 5
+  model: mushroom
+  icon: mushroom
+  anim: eat
+- id: glow_mushroom
+  title: Светящийся гриб
+  weight: 0.05
+  stack: 30
+  food: 2
+  model: glow_mushroom
+  icon: glow_mushroom
+  anim: eat
+- id: fried_mushrooms
+  title: Жареные грибы
+  weight: 0.15
+  stack: 10
+  food: 18
+  model: fried_mushrooms
+  icon: fried_mushrooms
+  anim: eat
+- id: moss
+  title: Мох
+  weight: 0.05
+  stack: 50
+  model: moss
+  icon: moss
+- id: bandage
+  title: Бинт
+  weight: 0.05
+  stack: 20
+  heal: 30
+  model: bandage
+  icon: bandage
 - id: grass_seeds
   title: Семена трав
   weight: 0.01

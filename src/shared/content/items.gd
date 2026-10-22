@@ -15,7 +15,7 @@ const SACK := "sack"
 static var BRANCH := ""
 static var LOG := ""
 
-## id -> record from the data files: id, title, weight (kg), stack, food, place (a
+## id -> record from the data files: id, title, weight (kg), stack, food, heal, place (a
 ## material id or ""), model, icon, sprite, anim, hands.
 static var BY_ID := {}
 ## Item ids in the order of the data files.
@@ -28,7 +28,7 @@ static var placed_by: PackedStringArray = []
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
 const CATEGORIES := {"tools": "Инструменты", "stations": "Станки", "materials": "Материалы",
-	"blocks": "Блоки", "food": "Еда", "plants": "Посадки"}
+	"blocks": "Блоки", "food": "Еда", "heal": "Лечение", "plants": "Посадки"}
 
 
 static func _static_init() -> void:
@@ -83,6 +83,11 @@ static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
 
+## Health one of item `id` gives back (a bandage), 0 for none.
+static func heal(id: String) -> float:
+	return get_item(id).get("heal", 0.0)
+
+
 ## The kind of item `id` (a key of CATEGORIES): a tool, a thing set down in the world,
 ## food, something planted or sown, a block, else a material. The one place that
 ## decides it, so a `category` field of the data can take over here when items need
@@ -95,6 +100,8 @@ static func category(id: String) -> String:
 		return "stations"
 	if item.get("food", 0.0) > 0.0:
 		return "food"
+	if item.get("heal", 0.0) > 0.0:
+		return "heal"
 	if item.get("plant", "") != "" or item.get("sow", "") != "":
 		return "plants"
 	if item.get("place", "") != "":
