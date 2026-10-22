@@ -21,12 +21,14 @@ global uniform float cloud_cover;
 global uniform vec3 player_pos;
 // 1 in leaf, falls to a few leaves in winter.
 global uniform float leaf_amount;
+// How many fallen leaves lie under the crowns, 0..1 (see sky.gd).
+global uniform float leaf_litter;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 // Warmth around fires, one texel per world unit: r = heat 0..1, g = height of the
 // fire's unit / 64.
 global uniform sampler2D heat_map : filter_linear, repeat_enable;
-// One texel per column: the level of the highest cell that keeps the weather off,
-// plus one, over 255 (see roof_map.gd).
+// One texel per column: r = the level of the highest cell that keeps the weather off,
+// plus one, over 255; g = 1 under a tree's crown (see roof_map.gd).
 global uniform sampler2D roof_map : filter_nearest, repeat_enable;
 // The world has no edge: the heat and roof maps repeat every wrap_size world units.
 global uniform vec2 wrap_size;
@@ -72,7 +74,9 @@ float leaves_left(float kind) {
 		return 1.0;
 	}
 	if (kind > 0.7 && kind < 0.9 || kind < 0.5) {
-		return leaf_amount < 0.7 ? 0.0 : leaf_amount;
+		// The last leaves go between 0.7 and the 0.55 of winter (sooner in a windy
+		// autumn, see Clock.leaf_fall).
+		return leaf_amount < 0.7 ? max(0.0, leaf_amount - 0.55) / 0.15 * 0.7 : leaf_amount;
 	}
 	return 0.35 + 0.65 * leaf_amount;
 }
@@ -139,6 +143,11 @@ float heat_at(vec3 p) {
 // -1 when the sky is open all the way down.
 float roof_level(vec2 xz) {
 	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / wrap_size).r * 255.0 - 1.0;
+}
+
+// True when the column at `xz` lies under a tree's crown.
+bool under_crown(vec2 xz) {
+	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / wrap_size).g > 0.5;
 }
 
 // True at height `y` under a roof, an overhang or a cave ceiling: below the bottom of

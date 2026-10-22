@@ -1,6 +1,8 @@
 extends Node3D
 ## Pixel particle effects and lights: campfires, rain, downpours, hail, snow,
-## blizzards, blowing sand, lightning, fireflies, falling leaves and floating pollen.
+## blizzards, blowing sand, lightning, fireflies, falling leaves, leaves torn off by
+## an autumn gale and floating pollen. The weather's particles fly with the wind
+## (Clock.wind_dir).
 ## Everything is drawn with particle.gdshader as 1-2 px squares (a lightning bolt as
 ## 1 px lines). Weather emitters follow the view; `update()` switches them by weather,
 ## season and time of day.
@@ -48,6 +50,8 @@ var bolt_light: OmniLight3D
 var bolt_time := 0.0
 var fireflies: CPUParticles3D
 var leaves: CPUParticles3D
+## Leaves an autumn gale tears off the trees, flying low and fast.
+var gale: CPUParticles3D
 var pollen: CPUParticles3D
 ## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it
 ## stands in), "at": Vector3 (its middle on the ground)}
@@ -145,6 +149,17 @@ func _ready() -> void:
 	leaves.scale_amount_min = 1.0
 	leaves.scale_amount_max = 2.0
 
+	gale = _emitter(160, 3.0, Vector2(PX, PX), 1.0)
+	gale.direction = Vector3(1.0, -0.1, 0.1)
+	gale.spread = 15.0
+	gale.initial_velocity_min = 4.0
+	gale.initial_velocity_max = 7.0
+	gale.gravity = Vector3(0.0, -0.4, 0.0)
+	gale.emission_box_extents = Vector3(26.0, 2.5, 28.0)
+	gale.color_initial_ramp = leaves.color_initial_ramp
+	gale.scale_amount_min = 1.0
+	gale.scale_amount_max = 2.0
+
 	pollen = _emitter(24, 6.0, Vector2(PX, PX), 1.0)
 	pollen.direction = Vector3(1.0, 0.2, 0.0)
 	pollen.spread = 60.0
@@ -153,7 +168,7 @@ func _ready() -> void:
 	pollen.gravity = Vector3.ZERO
 	pollen.emission_box_extents = Vector3(18.0, 1.5, 12.0)
 	pollen.color_ramp = _ramp([Color(1, 1, 0.85, 0.0), Color(1, 1, 0.85, 0.7), Color(1, 1, 0.85, 0.0)])
-	weather_emitters = [rain, downpour, hail, snowfall, blizzard, sand, leaves]
+	weather_emitters = [rain, downpour, hail, snowfall, blizzard, sand, leaves, gale]
 
 	bolt_mesh = ImmediateMesh.new()
 	bolt = MeshInstance3D.new()
@@ -285,11 +300,23 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	rain.position = Vector3(view.x, top, view.y + top)
 	for p in [downpour, hail, snowfall]:
 		p.position = rain.position
-	# Storms blow low over the ground from the west, so they start west of the view.
+	# Storms blow low over the ground, so they start upwind of the view.
+	var dir: Vector2 = clock.wind_dir()
+	var wind: float = clock.storm_wind
 	var low := ground + 1.5
-	blizzard.position = Vector3(view.x - 10.0, low, view.y + low)
+	blizzard.position = Vector3(view.x - dir.x * 10.0, low, view.y + low - dir.y * 10.0)
 	sand.position = blizzard.position
+	gale.position = blizzard.position
 	leaves.position = Vector3(view.x, ground + 5.0, view.y + ground + 5.0)
+	_blow(rain, dir, 0.1 + 0.1 * wind, -1.0)
+	_blow(downpour, dir, 0.15 + 0.12 * wind, -1.0)
+	_blow(hail, dir, 0.1 + 0.1 * wind, -1.0)
+	_blow(snowfall, dir, 0.15 + 0.2 * wind, -1.0)
+	_blow(blizzard, dir, 1.0, -0.25)
+	_blow(sand, dir, 1.0, 0.05)
+	_blow(gale, dir, 1.0, -0.1)
+	_blow(leaves, dir, 1.0, -0.4)
+	_blow(pollen, dir, 1.0, 0.2)
 	fireflies.position = Vector3(view.x, ground + 1.0, view.y + ground + 1.0)
 	pollen.position = Vector3(view.x, ground + 1.5, view.y + ground + 1.5)
 	var outside := enabled and not indoor
@@ -303,6 +330,7 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	sand.emitting = outside and clock.sand > 0.3
 	var calm: bool = clock.rain < 0.15 and clock.snowing < 0.15 and clock.sand < 0.3 and clock.storm_wind < 1.5
 	leaves.emitting = outside and season == 2
+	gale.emitting = outside and season == 2 and wind > 0.8 and sky.leaf_amount > 0.57
 	fireflies.emitting = enabled and daylight < 0.3 and (season == 0 or season == 1) and calm
 	pollen.emitting = outside and daylight > 0.6 and (season == 0 or season == 1) and calm
 	# Particles are unshaded: on a dark night rain shows only near the torch light.
@@ -328,6 +356,12 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 		for f in fires:
 			var energy: float = f.base * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.8, 1.1)
 			f.light.light_energy = energy * (shadow_energy if f.light.shadow_enabled else 1.0)
+
+
+## Points emitter `p` `down` (negative falls) and `side` along the wind `dir` (x east,
+## y south).
+func _blow(p: CPUParticles3D, dir: Vector2, side: float, down: float) -> void:
+	p.direction = Vector3(dir.x * side, down, dir.y * side)
 
 
 ## How much the torch gives way to the fires around world point `p`: 1 within

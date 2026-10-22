@@ -5,6 +5,7 @@ extends RefCounted
 ## hunt when hungry; the eaten are gone and new ones come in their place around the
 ## people. The client draws them (Creatures) as they come, go and walk.
 
+const Body := preload("res://src/shared/game/body.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -181,6 +182,9 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 				a.stride = 0.0
 				a.left = not a.left
 				stepped.emit(a, Vector3(a.pos.x, ny, a.pos.z), Vector2(step.x, step.z), a.left, size)
+				# Paths of the animals in the snow are trails the player walks easier.
+				if clock != null and clock.snow > Body.SNOW_DEEP.x:
+					world.tread(floori(a.pos.x / CELL), floori(a.pos.z / CELL), clock.now())
 		else:
 			a.target = a.pos
 	if a.state == "hunt" and a.prey != null:

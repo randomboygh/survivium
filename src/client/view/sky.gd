@@ -194,19 +194,28 @@ func _update_weather(delta: float) -> void:
 	var k2 := minf(1.0, delta * 0.4)
 	foliage = foliage.lerp(FOLIAGE[season], k2)
 	grass = grass.lerp(GRASS[season], k2)
-	leaf_amount = lerpf(leaf_amount, LEAF_AMOUNT[season], k2)
+	# The autumn wind strips the leaves early, down to what winter leaves.
+	var leaves: float = LEAF_AMOUNT[season]
+	if season == Clock.AUTUMN:
+		leaves = lerpf(leaves, LEAF_AMOUNT[Clock.WINTER], clock.leaf_fall)
+	leaf_amount = lerpf(leaf_amount, leaves, k2)
 	berry_amount = lerpf(berry_amount, BERRY_AMOUNT[season], k2)
 	wind_clock += delta
 	var storm_wind: float = clock.storm_wind
 	var gust := 0.25 + 0.25 * sin(wind_clock * 0.35) + 0.15 * sin(wind_clock * 1.3)
-	var wind := Vector2(gust * (1.0 + storm_wind * 0.5) + storm_wind, 0.15)
-	cloud_pos += Vector2(-0.6, -0.25) * delta * (1.0 + wind.x)
+	var dir: Vector2 = clock.wind_dir()
+	var strength := gust * (1.0 + storm_wind * 0.5) + storm_wind
+	var wind := dir * strength + Vector2(-dir.y, dir.x) * 0.15
+	cloud_pos -= (dir * 0.6 + Vector2(0.0, 0.25)) * delta * (1.0 + strength)
 	var g := RenderingServer
 	g.global_shader_parameter_set("snow_amount", clock.snow)
 	g.global_shader_parameter_set("wetness", clock.wet)
 	g.global_shader_parameter_set("foliage_tint", foliage)
 	g.global_shader_parameter_set("grass_tint", grass)
 	g.global_shader_parameter_set("leaf_amount", leaf_amount)
+	# Fallen leaves lie under the crowns as the trees lose them, under the snow in
+	# winter, and are gone as the trees leaf out again.
+	g.global_shader_parameter_set("leaf_litter", clampf((1.0 - leaf_amount) / (1.0 - LEAF_AMOUNT[Clock.WINTER]), 0.0, 1.0))
 	g.global_shader_parameter_set("berry_amount", berry_amount)
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)

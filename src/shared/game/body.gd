@@ -2,7 +2,9 @@ extends RefCounted
 ## A body on the cell grid: walks up and down slopes, jumps up onto a sheer step of one
 ## cell (8 px) but not of two, goes around cut corners of cliffs. It wades through
 ## shallow water, swims in deep water with its head above the surface, pulls itself
-## out onto ground up to one level above the water, and walks on ice in winter. A
+## out onto ground up to one level above the water, and walks on ice in winter. Out in
+## the open the weather slows it (see weather_pace): deep snow, except on a trail, a
+## strong head wind, and a blizzard or a sand storm that hide the way. A
 ## position is the middle of the feet in world units, kept by whoever owns the body
 ## (the player's node on the client); the body moves in cells.
 
@@ -38,14 +40,37 @@ const FLOAT_SPEED := 4.0
 ## On ice the body picks up and loses speed this slowly (cells a second, per second),
 ## so it glides on after the stick is let go.
 const ICE_GRIP := 14.0
+## Snow lying (Clock.snow) slows walking from SNOW_DEEP.x, by up to SNOW_SLOW at
+## SNOW_DEEP.y; a fresh trail takes TRAIL_EASE of that off. Trails last TRAIL_DAYS, and
+## falling snow fills them faster.
+const SNOW_DEEP := Vector2(0.5, 1.0)
+const SNOW_SLOW := 0.2
+const TRAIL_EASE := 0.75
+const TRAIL_DAYS := 0.5
+## Wind (Clock.storm_wind) is felt from WIND_FELT and is full at WIND_FULL; a full head
+## wind takes HEAD_WIND off the pace and a full tail wind adds TAIL_WIND.
+const WIND_FELT := 0.8
+const WIND_FULL := 2.5
+const HEAD_WIND := 0.25
+const TAIL_WIND := 0.1
+## Falling snow slows by up to SNOWFALL_SLOW, and a full blizzard or sand storm (wind
+## and snow or sand together) by HIDDEN_WAY more: the way ahead is hard to see.
+const SNOWFALL_SLOW := 0.05
+const HIDDEN_WAY := 0.15
+## The weather never takes the pace below this share.
+const WEATHER_FLOOR := 0.5
 
 var world
+## The weather the body walks in (Clock), null for none.
+var clock
 ## Movement wish: x = east, y = south, length up to 1.
 var move_input := Vector2.ZERO
 ## Playtest multiplier of the walking speed (Settings.PLAYER_SPEEDS).
 var speed_scale := 1.0
 ## What the load and tiredness leave of the pace (see Character).
 var load_scale := 1.0
+## What the weather leaves of the pace (see weather_pace), set each step.
+var weather_scale := 1.0
 ## Playtest switch: a press of jump in the air jumps again, to climb out of a deep
 ## pit by pressing it over and over.
 var air_jumps := false
@@ -65,6 +90,8 @@ var water_level := -INF
 var glide := Vector2.ZERO
 ## Height the body pushed against while in water can pull itself up by this step.
 var _pull_up := 0.0
+## The column the feet were last in: walking off it leaves a trail in the snow.
+var _col := Vector2i(1 << 30, 0)
 
 
 ## The pace the body at `at` (world units) walks at now, in cells a second: slower in
@@ -86,10 +113,11 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		surface = -INF
 	water_depth = maxf(0.0, surface - p.y)
 	water_level = surface if water_depth > 0.0 else -INF
+	var dir := move_input.limit_length(1.0)
+	weather_scale = weather_pace(p, dir)
 	var speed := _pace(water_depth)
 	# In water the body gets out onto ground up to one level above the water's cell.
 	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
-	var dir := move_input.limit_length(1.0)
 	_pull_up = 0.0
 	if on_ice(p):
 		glide = glide.move_toward(dir * speed, ICE_GRIP * delta)
@@ -107,6 +135,7 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
 		if below > -INF:
 			p.y = below
+	_leave_trail(p)
 	jumped = jump and (on_ground or (air_jumps and not _jump_was))
 	_jump_was = jump
 	if jumped:
@@ -159,7 +188,43 @@ static func overlaps(at: Vector3, cell: Vector3i) -> bool:
 
 ## The pace with the feet `depth` cells under the water surface.
 func _pace(depth: float) -> float:
-	return SPEED * speed_scale * load_scale * (SWIM if swimming else (WADE if depth > 0.3 else 1.0))
+	return SPEED * speed_scale * load_scale * weather_scale * (SWIM if swimming else (WADE if depth > 0.3 else 1.0))
+
+
+## What the weather leaves of the pace of the body at `p` (in cells) walking `dir`
+## (x east, y south): 1 under a roof or with no clock. In the open deep snow slows
+## it unless the column is a fresh trail, the wind against it slows it and the wind
+## behind it helps, and a blizzard or a sand storm slows it more.
+func weather_pace(p: Vector3, dir: Vector2) -> float:
+	if clock == null:
+		return 1.0
+	var x := floori(p.x)
+	var z := floori(p.z)
+	if world.roof_level(x, z) >= floori(p.y + 0.01):
+		return 1.0
+	var k := 1.0
+	if on_ground and water_depth <= 0.0:
+		var deep: float = smoothstep(SNOW_DEEP.x, SNOW_DEEP.y, clock.snow)
+		if deep > 0.0:
+			var life: float = TRAIL_DAYS * (1.0 - 0.75 * clock.snowing)
+			k -= SNOW_SLOW * deep * (1.0 - TRAIL_EASE * world.trail(x, z, clock.now(), life))
+	var wind: float = clampf((clock.storm_wind - WIND_FELT) / (WIND_FULL - WIND_FELT), 0.0, 1.0)
+	if wind > 0.0 and dir != Vector2.ZERO:
+		var along: float = dir.normalized().dot(clock.wind_dir())
+		k += wind * along * (TAIL_WIND if along > 0.0 else HEAD_WIND)
+	var hidden: float = clampf(clock.storm_wind / WIND_FULL, 0.0, 1.0) * maxf(clock.snowing, clock.sand)
+	k -= SNOWFALL_SLOW * clock.snowing + HIDDEN_WAY * hidden * hidden
+	return maxf(k, WEATHER_FLOOR)
+
+
+## Walking off a column of snow leaves a trail in it (see WorldData.trodden).
+func _leave_trail(p: Vector3) -> void:
+	var col := Vector2i(floori(p.x), floori(p.z))
+	if col == _col:
+		return
+	if clock != null and on_ground and clock.snow > SNOW_DEEP.x and _col.x != 1 << 30:
+		world.tread(_col.x, _col.y, clock.now())
+	_col = col
 
 
 ## Moves by `d` unless something is in the way. On the ground the body follows ground
