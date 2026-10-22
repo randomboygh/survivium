@@ -3,7 +3,8 @@ extends PanelContainer
 ## lists of rows "name ‹ value ›": a tap or a click on an arrow picks the next value,
 ## which suits a thumb as well as a mouse; the keyboard moves between rows with the
 ## arrows and changes a value with Left / Right or Enter. Values come from and go to
-## Settings (plan/design/ui.md, section 6).
+## Settings (plan/design/ui.md, section 6). The playtest page also shows the version
+## of the build and opens the list of recent changes ("changes" page).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Settings := preload("res://src/client/settings.gd")
@@ -16,19 +17,24 @@ const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
 const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолуние", 1.0]]
+## Written by tools/build_info.py in CI; a local run has none and shows "dev".
+const BUILD_INFO := "res://build_info.json"
 
 signal closed
 
 var game
-## "settings" or "test": which page is shown.
+## "settings", "test" or "changes": which page is shown.
 var page := ""
 var _title: Label
+var _version: Label
+var _changes: Button
 var _scroll: ScrollContainer
 var _list: VBoxContainer
 ## Rows of the page: {"key", "values": Array of String, "get": Callable, "set": Callable, "label": Label}
 var _rows := []
 var _focus := -1
 var _back: Button
+var _screen := Vector2.ZERO
 
 
 func _init(g) -> void:
@@ -45,6 +51,9 @@ func _ready() -> void:
 	_title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_title)
+	_version = UiStyle.label("", UiStyle.MUTED)
+	_version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_version)
 	# The rows scroll when the window is taller than a small screen with a big interface.
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -54,12 +63,23 @@ func _ready() -> void:
 	_list.add_theme_constant_override("separation", 4)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_list)
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 6)
+	box.add_child(buttons)
+	_changes = Button.new()
+	_changes.text = "Что нового"
+	_changes.focus_mode = Control.FOCUS_NONE
+	_changes.custom_minimum_size = Vector2(0, 32)
+	_changes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_changes.pressed.connect(open.bind("changes"))
+	buttons.add_child(_changes)
 	_back = Button.new()
 	_back.text = "Назад"
 	_back.focus_mode = Control.FOCUS_NONE
 	_back.custom_minimum_size = Vector2(0, 32)
-	_back.pressed.connect(close)
-	box.add_child(_back)
+	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_back.pressed.connect(_go_back)
+	buttons.add_child(_back)
 
 
 func open(which: String) -> void:
@@ -72,7 +92,14 @@ func open(which: String) -> void:
 	var s = game.settings
 	var sky = game.sky
 	var clock = game.clock
-	if which == "settings":
+	var info := build_info()
+	_version.text = "Версия %s · %s · %s" % [info.version, info.commit, info.date]
+	_version.visible = which != "settings"
+	_changes.visible = which == "test"
+	if which == "changes":
+		_title.text = "Что нового"
+		_add_changes(info.changes)
+	elif which == "settings":
 		_title.text = "Настройки"
 		_add_row("Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
 			func() -> int: return s.values.time_speed,
@@ -160,6 +187,27 @@ func open(which: String) -> void:
 	refresh()
 	_set_focus(0)
 	_scroll.scroll_vertical = 0
+	if _screen != Vector2.ZERO:
+		fit(_screen)
+
+
+## The version of this build and its recent changes, newest first:
+## {"version", "commit", "date", "changes": [{"pr", "date", "text"}]}.
+static func build_info() -> Dictionary:
+	var info := {"version": "dev", "commit": "", "date": "", "changes": []}
+	if FileAccess.file_exists(BUILD_INFO):
+		var data = JSON.parse_string(FileAccess.get_file_as_string(BUILD_INFO))
+		if data is Dictionary:
+			info.merge(data, true)
+	return info
+
+
+## "Назад": the changes go back to the playtest page, the other pages close.
+func _go_back() -> void:
+	if page == "changes":
+		open("test")
+	else:
+		close()
 
 
 func close() -> void:
@@ -178,12 +226,31 @@ func refresh() -> void:
 
 ## Sizes the window for a screen `screen` UI pixels large and centres it.
 func fit(screen: Vector2) -> void:
+	_screen = screen
 	_list.reset_size()
 	var rows_h := _list.size.y
 	var rest := _title.size.y + _back.size.y + 2 * 6 + 2 * 6
+	if _version.visible:
+		rest += _version.size.y + 6
 	_scroll.custom_minimum_size = Vector2(_list.size.x, minf(rows_h, screen.y - 2 * 8 - rest))
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
+
+
+## One wrapped paragraph a change, as wide as the rows of the other pages.
+func _add_changes(changes: Array) -> void:
+	if changes.is_empty():
+		_list.add_child(_paragraph("Список изменений появится в сборке с сайта.", UiStyle.MUTED))
+	for c in changes:
+		_list.add_child(_paragraph("#%d · %s" % [int(c.pr), c.date], UiStyle.ACCENT))
+		_list.add_child(_paragraph(str(c.text), UiStyle.INK))
+
+
+func _paragraph(text: String, color: Color) -> Label:
+	var l := UiStyle.label(text, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2, 0)
+	return l
 
 
 func _add_row(name: String, values: Array, getter: Callable, setter: Callable) -> void:
@@ -243,16 +310,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	match event.physical_keycode:
 		KEY_ESCAPE:
 			if not event.echo:
-				close()
+				_go_back()
+		KEY_UP, KEY_W, KEY_DOWN, KEY_S when _rows.is_empty():
+			var down: bool = event.physical_keycode in [KEY_DOWN, KEY_S]
+			_scroll.scroll_vertical += 24 if down else -24
 		KEY_UP, KEY_W:
 			_set_focus(_focus - 1)
 			_scroll.ensure_control_visible(_rows[_focus].name)
 		KEY_DOWN, KEY_S:
 			_set_focus(_focus + 1)
 			_scroll.ensure_control_visible(_rows[_focus].name)
-		KEY_LEFT, KEY_A:
+		KEY_LEFT, KEY_A when not _rows.is_empty():
 			_step(_focus, -1)
-		KEY_RIGHT, KEY_D, KEY_ENTER, KEY_SPACE:
+		KEY_RIGHT, KEY_D, KEY_ENTER, KEY_SPACE when not _rows.is_empty():
 			_step(_focus, 1)
 		_:
 			return

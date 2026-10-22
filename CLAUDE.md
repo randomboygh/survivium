@@ -97,6 +97,16 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   painted over by hand.
   New state goes into the module it belongs to, not into `main.gd`; a new system is a new module.
 
+## Version and changes
+
+The client's version is `<stage>.<PR>`: the stage is `application/config/version` in
+`project.godot` (raise it by hand when an MVP stage closes), the PR is the last one merged into
+main, so `0.1.67` is the build with PR #67 in it. CI writes it with `tools/build_info.py` into
+`build_info.json` (not in git; a local run shows `dev`), along with the lines
+`Что нового: …` from the descriptions of the last merged PRs; the «Тестирование» page shows the
+version and opens them («Что нового»). So every PR description has one such line in Russian,
+for a player, not a programmer (a PR without one is left out of the list).
+
 ## Checks before every push
 
 ```

@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   pages: write
   id-token: write
 
@@ -60,6 +61,12 @@ jobs:
 
       - name: Play without a screen and check frame times
         run: timeout 600 ~/godot/godot --headless --path . --script res://tests/frame_test.gd
+
+      - name: Version and recent changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tools/build_info.py build_info.json
 
       - name: Export web build
         run: |
