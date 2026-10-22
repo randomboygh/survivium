@@ -60,9 +60,9 @@ func update(delta: float) -> void:
 		return
 	var player = game.player
 	var days: float = delta * game.sky.time_speed / game.sky.DAY_LENGTH
-	vitals.step(delta, days, player.swimming, inventory.load_share())
-	player.load_scale = inventory.speed_factor() * vitals.speed_factor()
-	if player.jumped and not player.air_jumps:
+	vitals.step(delta, days, player.body.swimming, inventory.load_share())
+	player.body.load_scale = inventory.speed_factor() * vitals.speed_factor()
+	if player.body.jumped and not player.body.air_jumps:
 		vitals.spend("jump")
 	if vitals.is_dead():
 		die()
@@ -137,7 +137,7 @@ func die() -> void:
 		"sack": [sack.x, sack.y, sack.z] if sack is Vector3 else null,
 		"lost": stacks.map(func(st: Array) -> Array: return [st[0], st[1]]),
 	}
-	player.velocity_y = 0.0
+	player.body.velocity_y = 0.0
 	player.visible = false
 	if game.hud.bag.visible:
 		game.hud.toggle_bag()
@@ -161,7 +161,7 @@ func revive(at: Vector3) -> void:
 	vitals.revive(REVIVE_HEALTH)
 	var player = game.player
 	player.position = at
-	player.velocity_y = 0.0
+	player.body.velocity_y = 0.0
 	player.visible = true
 	game.view.look_at_player()
 	state_changed.emit()
@@ -234,7 +234,7 @@ func facing_step() -> Vector2i:
 
 
 func moving() -> bool:
-	return game.player.move_input.length() > 0.1
+	return game.player.body.move_input.length() > 0.1
 
 
 func overlaps_cell(cell: Vector3i) -> bool:

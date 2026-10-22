@@ -14,7 +14,7 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                crafting (recipes), tools, ai_rules
   world/       world_data, world_gen, world_store, voxel_raycast, grass (what grows on a cell)
   game/        rules of play: inventory, vitals, knowledge, craft_queue, world_actions (dig,
-               build, chop, gather, plant)
+               build, chop, gather, plant), body (walking, jumping, swimming on the cells)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
@@ -117,7 +117,9 @@ user's phone numbers count (stats panel, F3).
 Screenshots without a GPU: `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver
 opengl3 --resolution 1280x720 --script res://tools/shot.gd -- <dir> [shot names]` (slow, run in the
 background). Shots share one world per run, so a shot that edits cells restores them. `tools/map.gd`
-draws the land around the spawn from above; `tools/bench_*.gd` time generation, meshing and edits.
+draws the land around the spawn from above; `tools/bench_*.gd` time generation, meshing and edits;
+`tools/profile.gd` times each module of a frame headless and counts draw calls under xvfb (`-- spikes`
+times one-off actions).
 
 ## Performance rule
 

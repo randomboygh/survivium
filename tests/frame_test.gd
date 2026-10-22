@@ -164,9 +164,9 @@ func _run() -> void:
 	# Jumping in a cave: the view stays cut at the floor level the whole time. The
 	# player lands first, and the automatic cut follows the floor after CUT_DELAY.
 	main.player.position = Shot._cave(w, main.player.position)
-	main.player.on_ground = false
+	main.player.body.on_ground = false
 	await _scenario("landing in a cave", 100000, func(_i: int) -> bool:
-		return main.player.on_ground and clock >= 1.0)
+		return main.player.body.on_ground and clock >= 1.0)
 	_check(main.chunks.indoor and main.chunks.cut_level < w.size_y, "the view is cut in the cave")
 	var cut: int = main.chunks.cut_level
 	await _scenario("jumping in a cave", 100000, func(_i: int) -> bool:
@@ -215,7 +215,7 @@ func _run() -> void:
 	_check(inv.count("core:stone") >= stone_before - placed + laid.size() - 2, "what is dug beside the player flies into the bag")
 	# Back on the surface, where the ground in front is soil.
 	main.player.position = start
-	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.on_ground and clock >= 0.5)
+	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.body.on_ground and clock >= 0.5)
 	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
 	# into the bag, dirt shows where the grass was.
 	c.put_in_hand("core:stone_scythe", 1)
@@ -294,7 +294,7 @@ func _run() -> void:
 	_check(inv.count("core:workbench") == 1, "a workbench is made by hand")
 	# Out of the pit the action button dug, the player turns until there is room.
 	main.player.position = start + Vector3(1.5, 0.0, 1.5)
-	await _scenario("stepping out of the pit", 100000, func(_i: int) -> bool: return main.player.on_ground and clock >= 0.5)
+	await _scenario("stepping out of the pit", 100000, func(_i: int) -> bool: return main.player.body.on_ground and clock >= 0.5)
 	var put := false
 	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
 		main.player.facing = facing

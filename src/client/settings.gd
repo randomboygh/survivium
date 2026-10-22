@@ -126,8 +126,8 @@ func apply() -> void:
 	if game.fire_shadows != null:
 		game.fire_shadows.enabled = values.shadows and values.fire_shadows == 1
 	if game.player != null:
-		game.player.speed_scale = player_speed
-		game.player.air_jumps = air_jumps
+		game.player.body.speed_scale = player_speed
+		game.player.body.air_jumps = air_jumps
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
 	game.controls.show_help = values.show_help
 	var view = game.view

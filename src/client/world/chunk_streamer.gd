@@ -558,7 +558,7 @@ func update_cut(delta: float) -> void:
 	var player = game.player
 	if world == null or player == null:
 		return
-	if player.on_ground:
+	if player.body.on_ground:
 		ground_level = player.level()
 	else:
 		# A jump does not move the cut, but a climb by jumps in the air (a playtest

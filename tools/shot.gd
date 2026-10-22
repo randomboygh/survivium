@@ -317,11 +317,11 @@ func _run() -> void:
 			# footprints.
 			main.player.position = _flat_near(main.world, main.player.position)
 			for i in 100:
-				main.player.move_input = Vector2(0.6, 0.8) if i < 50 else Vector2(-1.0, 0.0)
+				main.player.body.move_input = Vector2(0.6, 0.8) if i < 50 else Vector2(-1.0, 0.0)
 				main.player.step(1.0 / 30.0, false)
 				main._leave_footprints()
 				await process_frame
-			main.player.move_input = Vector2.ZERO
+			main.player.body.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
 		if shot.has("hands"):

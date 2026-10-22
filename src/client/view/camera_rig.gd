@@ -144,5 +144,5 @@ func update(delta: float) -> void:
 	var manual_level: int = game.chunks.manual_level
 	if manual_level >= 0:
 		RenderingServer.global_shader_parameter_set("view_height", (manual_level + 1) * CELL)
-	elif player.on_ground or player.swimming:
+	elif player.body.on_ground or player.body.swimming:
 		RenderingServer.global_shader_parameter_set("view_height", player.level() * CELL)
