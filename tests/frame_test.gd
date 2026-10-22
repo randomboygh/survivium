@@ -334,9 +334,13 @@ func _run() -> void:
 		if e.item == "core:campfire":
 			fire_e = e
 
-	# Standing by the campfire on a moonless night: the shadows the fire throws from the
-	# player, the animals and the trees are drawn every frame.
+	# Standing by the campfire on a moonless night with the fire shadows drawn: the
+	# shadows the fire throws from the player, the animals and the trees are drawn every
+	# frame.
 	var day: float = main.clock.time_of_day
+	var fire_setting: int = main.settings.values.fire_shadows
+	main.settings.values.fire_shadows = 1
+	main.settings.apply()
 	main.clock.time_of_day = 0.95
 	main.sky.moon_override = 0.0
 	main.player.position = main.placed.center(fire_e) + Vector3(0.6, 0.0, -1.4)
@@ -350,10 +354,8 @@ func _run() -> void:
 		if quiet >= 30:
 			break
 	_check(main.fire_shadows.multimesh.visible_instance_count > 0, "the campfire throws shadows at night")
-	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
-	# Mixed fire shadows: the nearest fire's real shadow falls from the player alone,
-	# the rest stays drawn, and the torch casts none.
-	var fire_setting: int = main.settings.values.fire_shadows
+	# Mixed fire shadows, the default: the nearest fire's real shadow falls from the
+	# player alone, the rest stays drawn, and the torch casts none.
 	main.settings.values.fire_shadows = 3
 	main.settings.apply()
 	await create_timer(0.3).timeout
@@ -361,6 +363,7 @@ func _run() -> void:
 	_check(real_fires.size() == 1 and real_fires[0].light.shadow_caster_mask == PixelView.LAYER_PLAYER
 		and main.fire_shadows.enabled and not main.player.torch.shadow_enabled,
 		"mixed fire shadows: the fire's real shadow is the player's, the rest drawn")
+	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
 	main.settings.values.fire_shadows = fire_setting
 	main.settings.apply()
 	main.clock.time_of_day = day
