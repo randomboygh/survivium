@@ -9,6 +9,7 @@ const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
+const Body := preload("res://src/shared/game/body.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
@@ -369,35 +370,35 @@ func _pool_world() -> WorldData:
 func _test_water() -> void:
 	var w := _pool_world()
 	var player = PlayerScript.new()
-	player.world = w
+	player.body.world = w
 	player.position = Vector3(3.5, 4.0, 2.5) * WorldData.CELL
-	player.on_ground = true
+	player.body.on_ground = true
 	player.step(1.0 / 60.0, false)
-	_check(player.on_ground and not player.swimming and is_equal_approx(player.water_depth, 0.5),
+	_check(player.body.on_ground and not player.body.swimming and is_equal_approx(player.body.water_depth, 0.5),
 		"water one cell deep is waded on the bottom")
-	player.move_input = Vector2(1, 0)
+	player.body.move_input = Vector2(1, 0)
 	var swam := false
 	for i in 40:
 		player.step(1.0 / 60.0, false)
 		var p: Vector3 = player.position / WorldData.CELL
-		swam = swam or player.swimming and absf(p.y - (4.5 - PlayerScript.SWIM_DEPTH)) < 0.05 and p.x > 4.5
+		swam = swam or player.body.swimming and absf(p.y - (4.5 - Body.SWIM_DEPTH)) < 0.05 and p.x > 4.5
 	_check(swam, "deeper water is swum with the head above the surface")
 	for i in 240:
 		player.step(1.0 / 60.0, false)
 	var out: Vector3 = player.position / WorldData.CELL
-	_check(out.x > 9.0 and is_equal_approx(out.y, 6.0) and player.on_ground,
+	_check(out.x > 9.0 and is_equal_approx(out.y, 6.0) and player.body.on_ground,
 		"a swimmer pulls out onto a bank one level above the water")
-	player.move_input = Vector2(-1, 0)
+	player.body.move_input = Vector2(-1, 0)
 	for i in 360:
 		player.step(1.0 / 60.0, false)
 	_check(player.position.x / WorldData.CELL > 2.4, "a bank two levels above the water cannot be climbed")
-	_check(player.swimming or player.water_depth > 0.0, "the swimmer stays in the water below a high bank")
+	_check(player.body.swimming or player.body.water_depth > 0.0, "the swimmer stays in the water below a high bank")
 	w.water_frozen = true
 	player.step(1.0 / 60.0, false)
 	player.step(1.0 / 60.0, false)
-	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.on_ground,
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.body.on_ground,
 		"a swimmer caught by the frost stands on the ice")
-	player.move_input = Vector2(1, 0)
+	player.body.move_input = Vector2(1, 0)
 	for i in 120:
 		player.step(1.0 / 60.0, false)
 	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.position.x / WorldData.CELL > 7.0,
@@ -436,10 +437,10 @@ func _test_slopes() -> void:
 	_check(tilted, "ramps are drawn tilted toward the low side")
 	# Walk east up the ramp without jumping, and stop at the cliff.
 	var player = PlayerScript.new()
-	player.world = w
+	player.body.world = w
 	player.position = Vector3(2.5, 1.0, 5.5) * WorldData.CELL
-	player.on_ground = true
-	player.move_input = Vector2(1, 0)
+	player.body.on_ground = true
+	player.body.move_input = Vector2(1, 0)
 	var climbed := true
 	for i in 60:
 		player.step(1.0 / 60.0, false)
@@ -448,7 +449,7 @@ func _test_slopes() -> void:
 			climbed = climbed and p.y > 1.3 and p.y < 1.995
 	_check(climbed and is_equal_approx(player.position.y / WorldData.CELL, 2.0), "walking up a ramp needs no jump")
 	_check(player.position.x / WorldData.CELL < 5.6, "a two-cell cliff stops the walker")
-	player.move_input = Vector2(-1, 0)
+	player.body.move_input = Vector2(-1, 0)
 	var smooth := true
 	var last_y: float = player.position.y / WorldData.CELL
 	for i in 60:
@@ -468,10 +469,10 @@ func _walk_to_step(height: int, jump: bool) -> Vector3:
 			for y in 1 + (height if x >= 5 else 0):
 				w.set_cell(x, y, z, Mat.STONE)
 	var player = PlayerScript.new()
-	player.world = w
+	player.body.world = w
 	player.position = Vector3(2.5, 1.0, 5.5) * WorldData.CELL
-	player.on_ground = true
-	player.move_input = Vector2(1, 0)
+	player.body.on_ground = true
+	player.body.move_input = Vector2(1, 0)
 	for i in 90:
 		player.step(1.0 / 60.0, jump and i == 20)
 	var p: Vector3 = player.position / WorldData.CELL
@@ -515,7 +516,7 @@ func _drop_by_block(z: float) -> float:
 			w.set_cell(cx, 0, cz, Mat.STONE)
 	w.set_cell(5, 1, 5, Mat.STONE)
 	var player = PlayerScript.new()
-	player.world = w
+	player.body.world = w
 	player.position = Vector3(5.5, 2.5, z) * WorldData.CELL
 	for i in 60:
 		player.step(1.0 / 60.0, false)
@@ -538,13 +539,13 @@ func _walk_to_thing(jump: bool, z: float) -> Vector3:
 	_check(w.blocks_body(5, 1, 5) and w.blocks_body(5, 2, 5) and not w.blocks_body(5, 3, 5) and w.blocker_top(5, 2, 5) == 0.25,
 		"a thing 1.25 cells high fills its cell and a quarter of the one above")
 	var player = PlayerScript.new()
-	player.world = w
+	player.body.world = w
 	player.position = Vector3(3.0, 1.0, z) * WorldData.CELL
-	player.on_ground = true
-	player.move_input = Vector2(1, 0)
+	player.body.on_ground = true
+	player.body.move_input = Vector2(1, 0)
 	for i in 24:
 		player.step(1.0 / 60.0, jump and i == 0)
-	player.move_input = Vector2.ZERO
+	player.body.move_input = Vector2.ZERO
 	for i in 60:
 		player.step(1.0 / 60.0, false)
 	var p: Vector3 = player.position / WorldData.CELL
@@ -561,11 +562,11 @@ func _climb_pit(air_jumps: bool) -> float:
 			for y in (1 if x == 5 and z == 5 else 5):
 				w.set_cell(x, y, z, Mat.STONE)
 	var player = PlayerScript.new()
-	player.world = w
-	player.air_jumps = air_jumps
+	player.body.world = w
+	player.body.air_jumps = air_jumps
 	player.position = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
-	player.on_ground = true
-	player.move_input = Vector2(1, 0)
+	player.body.on_ground = true
+	player.body.move_input = Vector2(1, 0)
 	var top := 0.0
 	for i in 300:
 		player.step(1.0 / 60.0, i % 20 < 3)
@@ -600,10 +601,10 @@ func _test_corners() -> void:
 		"a cut corner leaves the ground below it open")
 	_check(is_equal_approx(w.ground_height(5.1, 4.9), 3.0), "a filled corner is ground up to the cliff top")
 	var player = PlayerScript.new()
-	player.world = w
-	_check(not player._collides(Vector3(2.6, 1.0, 2.6)) and player._collides(Vector3(3.05, 1.0, 3.05)),
+	player.body.world = w
+	_check(not player.body._collides(Vector3(2.6, 1.0, 2.6)) and player.body._collides(Vector3(3.05, 1.0, 3.05)),
 		"a walker fits into a cut corner but not into the cliff")
-	_check(player._collides(Vector3(5.6, 1.0, 4.55)) and not player._collides(Vector3(5.9, 1.0, 4.0)),
+	_check(player.body._collides(Vector3(5.6, 1.0, 4.55)) and not player.body._collides(Vector3(5.9, 1.0, 4.0)),
 		"a filled corner blocks a walker")
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
@@ -1156,7 +1157,7 @@ func _test_sprite_sheet() -> void:
 	# The player plays the work of the thing in the hand in use once, then stands again.
 	var p = PlayerScript.new()
 	p.sheet = s
-	p.on_ground = true
+	p.body.on_ground = true
 	p.held = {"left": {"sprite": held_dir + "shovel.png", "anim": "dig"}, "right": axe, "active": "left"}
 	p.work("", 0.4, Vector3(-5.0, 0.0, 0.0))
 	_check(p.work_kind == "dig" and p.facing == "w", "a shovel digs, turned towards the cell")
@@ -1173,14 +1174,14 @@ func _test_sprite_sheet() -> void:
 	p.work("", 0.4)
 	_check(p.work_kind == "reach", "bare hands reach")
 	p.work_kind = ""
-	p.on_ground = false
-	p.velocity_y = 1.0
+	p.body.on_ground = false
+	p.body.velocity_y = 1.0
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	var rising := s.frame_uv(p.facing, p.anim, p.anim_time)
-	p.velocity_y = -1.0
+	p.body.velocity_y = -1.0
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	_check(p.anim == "jump" and rising != s.frame_uv(p.facing, p.anim, p.anim_time), "a jump goes up, then comes down")
-	p.swimming = true
+	p.body.swimming = true
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	_check(p.anim == "swim", "in deep water the body swims")
 	p.free()

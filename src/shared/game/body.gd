@@ -1,0 +1,269 @@
+extends RefCounted
+## A body on the cell grid: walks up and down slopes, jumps up onto a sheer step of one
+## cell (8 px) but not of two, goes around cut corners of cliffs. It wades through
+## shallow water, swims in deep water with its head above the surface, pulls itself
+## out onto ground up to one level above the water, and walks on ice in winter. A
+## position is the middle of the feet in world units, kept by whoever owns the body
+## (the player's node on the client); the body moves in cells.
+
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+
+const CELL := WorldData.CELL
+## Body and motion in cells: a little narrower than a cell, a little under two tall.
+const HALF_WIDTH := 0.44
+## The body is thin north to south: the sprite has no depth, and the 3/4 view draws
+## anything deeper as feet off what they stand on (in the air over the back edge of a
+## chest's lid, or hanging in front of it).
+const HALF_DEPTH := 0.2
+const HEIGHT := 1.8
+const SPEED := 8.0
+const GRAVITY := 44.0
+## A jump rises about 1.45 cells: onto a block of one cell, not of two.
+const JUMP_SPEED := 11.3
+const MAX_FALL := 30.0
+## Walking keeps the feet on the ground up and down slopes by up to this much per step;
+## a sheer step of a whole cell is not walked up or down.
+const STEP_UP := 0.5
+const STEP_DOWN := 0.6
+## A swimmer floats with the feet this deep under the surface, so water up to one
+## cell deep is waded and deeper water is swum.
+const SWIM_DEPTH := 0.95
+## Speed in water up to the knees and deeper, and while swimming, against walking.
+const WADE := 0.65
+const SWIM := 0.45
+## Water slows a fall to this many cells a second and lifts a sunk swimmer this fast.
+const SINK_SPEED := 5.0
+const FLOAT_SPEED := 4.0
+## On ice the body picks up and loses speed this slowly (cells a second, per second),
+## so it glides on after the stick is let go.
+const ICE_GRIP := 14.0
+
+var world
+## Movement wish: x = east, y = south, length up to 1.
+var move_input := Vector2.ZERO
+## Playtest multiplier of the walking speed (Settings.PLAYER_SPEEDS).
+var speed_scale := 1.0
+## What the load and tiredness leave of the pace (see Character).
+var load_scale := 1.0
+## Playtest switch: a press of jump in the air jumps again, to climb out of a deep
+## pit by pressing it over and over.
+var air_jumps := false
+## Whether the last step started a jump.
+var jumped := false
+## Whether jump was held in the last step: an air jump needs a fresh press.
+var _jump_was := false
+var velocity_y := 0.0
+var on_ground := false
+var swimming := false
+## How deep the feet are under the water surface, 0 out of water.
+var water_depth := 0.0
+## Height of that surface in cells, -INF out of water.
+var water_level := -INF
+## The velocity on the ground plane in cells a second (x east, y south); on ice it
+## lags behind the wish.
+var glide := Vector2.ZERO
+## Height the body pushed against while in water can pull itself up by this step.
+var _pull_up := 0.0
+
+
+## The pace the body at `at` (world units) walks at now, in cells a second: slower in
+## water, and slower still swimming.
+func speed_at(at: Vector3) -> float:
+	var p := at / CELL
+	var surface := _water_surface(p)
+	return _pace(0.0 if surface == -INF or world.water_frozen else maxf(0.0, surface - p.y))
+
+
+## Moves the body standing at `at` (world units) for `delta` seconds by move_input,
+## jumping when `jump` is held; returns where it is then.
+func step(at: Vector3, delta: float, jump: bool) -> Vector3:
+	var p := at / CELL
+	var surface := _water_surface(p)
+	if surface > -INF and world.water_frozen:
+		# The water froze around the body: stand on the ice.
+		p.y = ceilf(surface)
+		surface = -INF
+	water_depth = maxf(0.0, surface - p.y)
+	water_level = surface if water_depth > 0.0 else -INF
+	var speed := _pace(water_depth)
+	# In water the body gets out onto ground up to one level above the water's cell.
+	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
+	var dir := move_input.limit_length(1.0)
+	_pull_up = 0.0
+	if on_ice(p):
+		glide = glide.move_toward(dir * speed, ICE_GRIP * delta)
+	else:
+		glide = dir * speed
+	var before := p
+	p = _try_move(p, Vector3(glide.x * delta, 0.0, 0.0), reach)
+	p = _try_move(p, Vector3(0.0, 0.0, glide.y * delta), reach)
+	# A wall stops the glide along it.
+	if absf(p.x - before.x) < absf(glide.x * delta) * 0.5:
+		glide.x = 0.0
+	if absf(p.z - before.z) < absf(glide.y * delta) * 0.5:
+		glide.y = 0.0
+	if on_ground and not jump:
+		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
+		if below > -INF:
+			p.y = below
+	jumped = jump and (on_ground or (air_jumps and not _jump_was))
+	_jump_was = jump
+	if jumped:
+		velocity_y = JUMP_SPEED
+	elif _pull_up > 0.0 and velocity_y <= 0.0:
+		velocity_y = sqrt(2.0 * GRAVITY * (_pull_up + 0.2))
+	var float_y := surface - SWIM_DEPTH
+	swimming = velocity_y <= 0.0 and p.y <= float_y + 0.01
+	if swimming:
+		# Deep water holds the body up with its head above the surface.
+		velocity_y = 0.0
+		on_ground = false
+		var fy := move_toward(p.y, float_y, FLOAT_SPEED * delta)
+		if not _collides(Vector3(p.x, fy, p.z)) or _collides(p):
+			p.y = fy
+		return p * CELL
+	velocity_y = maxf(velocity_y - GRAVITY * delta, -SINK_SPEED if water_depth > 0.0 else -MAX_FALL)
+	var ny := p.y + velocity_y * delta
+	if _collides(Vector3(p.x, ny, p.z)):
+		if velocity_y < 0.0:
+			var ground := _ground_top(p, ny, p.y)
+			p.y = ground if ground > -INF else floorf(ny) + 1.0
+			on_ground = true
+		velocity_y = 0.0
+	else:
+		p.y = ny
+		on_ground = false
+	return p * CELL
+
+
+## True when the body at `p` (in cells) stands on frozen water.
+func on_ice(p: Vector3) -> bool:
+	if not on_ground or not world.water_frozen:
+		return false
+	return world.get_cell(floori(p.x), floori(p.y + 0.01) - 1, floori(p.z)) == Mat.WATER
+
+
+## The level of the cell the feet at `at` (world units) are in.
+static func level_at(at: Vector3) -> int:
+	return floori(at.y / CELL + 0.01)
+
+
+## True if the body standing at `at` (world units) would overlap the cell.
+static func overlaps(at: Vector3, cell: Vector3i) -> bool:
+	var p := at / CELL
+	return cell.x == clampi(cell.x, floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH)) \
+		and cell.z == clampi(cell.z, floori(p.z - HALF_DEPTH), floori(p.z + HALF_DEPTH)) \
+		and cell.y == clampi(cell.y, floori(p.y + 0.001), floori(p.y + HEIGHT))
+
+
+## The pace with the feet `depth` cells under the water surface.
+func _pace(depth: float) -> float:
+	return SPEED * speed_scale * load_scale * (SWIM if swimming else (WADE if depth > 0.3 else 1.0))
+
+
+## Moves by `d` unless something is in the way. On the ground the body follows ground
+## rising a little (a slope, not a sheer step); in water, ground up to `reach` ahead
+## sets _pull_up for a climb out.
+func _try_move(p: Vector3, d: Vector3, reach: float) -> Vector3:
+	if d == Vector3.ZERO:
+		return p
+	var np := p + d
+	if not _collides(np):
+		return np
+	if on_ground:
+		var top := _ground_top(np, p.y, p.y + STEP_UP)
+		if top > p.y:
+			var up := Vector3(np.x, top, np.z)
+			if not _collides(up) and not _collides(Vector3(p.x, top, p.z)):
+				return up
+	if reach > p.y:
+		var top := _ground_top(np, p.y, reach)
+		if top > p.y and not _collides(Vector3(np.x, top, np.z)):
+			_pull_up = maxf(_pull_up, top - p.y)
+	return p
+
+
+## Height of the water surface in the column under the middle of the body when the
+## feet are in water there, -INF otherwise. The surface is where it is drawn: below
+## the top of its cell under open air, at the top under a ceiling.
+func _water_surface(p: Vector3) -> float:
+	var x := floori(p.x)
+	var y := floori(p.y + 0.001)
+	var z := floori(p.z)
+	if world.get_cell(x, y, z) != Mat.WATER:
+		return -INF
+	while world.get_cell(x, y + 1, z) == Mat.WATER:
+		y += 1
+	return y + (WorldData.WATER_TOP if world.get_cell(x, y + 1, z) == Mat.AIR else 1.0)
+
+
+func _collides(p: Vector3) -> bool:
+	var x0 := floori(p.x - HALF_WIDTH)
+	var x1 := floori(p.x + HALF_WIDTH)
+	var z0 := floori(p.z - HALF_DEPTH)
+	var z1 := floori(p.z + HALF_DEPTH)
+	var y0 := floori(p.y + 0.001)
+	var y1 := floori(p.y + HEIGHT)
+	for y in range(y0, y1 + 1):
+		for z in range(z0, z1 + 1):
+			for x in range(x0, x1 + 1):
+				var f := _footprint(x, z, p)
+				if not world.blocks_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y):
+					continue
+				# A sloping cell only blocks below its surface under the feet, which may
+				# lie below the cell where the slope goes on down.
+				if p.y + 0.001 < y + _cell_top(x, y, z, p):
+					return true
+	return false
+
+
+## Height of the highest ground the feet at `p` would stand on, among surfaces between
+## `lo` and `hi`; -INF when there is none.
+func _ground_top(p: Vector3, lo: float, hi: float) -> float:
+	var best := -INF
+	for y in range(floori(lo), floori(hi) + 1):
+		for z in range(floori(p.z - HALF_DEPTH), floori(p.z + HALF_DEPTH) + 1):
+			for x in range(floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH) + 1):
+				var f := _footprint(x, z, p)
+				if not world.ground_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y):
+					continue
+				var top := y + _cell_top(x, y, z, p)
+				if top >= lo - 0.001 and top <= hi + 0.001:
+					best = maxf(best, top)
+	return best
+
+
+## The part of the cell (x, z) under the footprint of a body at `p`, in 0..1 cell
+## coordinates: position = (min x, min z), end = (max x, max z).
+static func _footprint(x: int, z: int, p: Vector3) -> Rect2:
+	var a := Vector2(clampf(p.x - HALF_WIDTH - x, 0.0, 1.0), clampf(p.z - HALF_DEPTH - z, 0.0, 1.0))
+	var b := Vector2(clampf(p.x + HALF_WIDTH - x, 0.0, 1.0), clampf(p.z + HALF_DEPTH - z, 0.0, 1.0))
+	return Rect2(a, b - a)
+
+
+## Top of a solid cell under the footprint at `p` above its level: 1 for a cube, the
+## top of a thing standing in it (see WorldData.blockers), the
+## highest point of the slope under the feet otherwise (below 0 where the slope goes
+## on down into the cell below).
+func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
+	if not world.blockers.is_empty():
+		var f := _footprint(x, z, p)
+		var thing: float = world.blocker_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y)
+		if thing > 0.0:
+			return thing
+	if not Mat.can_slope(world.get_cell(x, y, z)):
+		return 1.0
+	var mask: int = world.slope_mask(x, y, z)
+	if mask == WorldData.FULL:
+		return 1.0
+	var patch: PackedFloat32Array = world.surface_patch(x, y, z)
+	var ax := clampf(p.x - HALF_WIDTH - x, 0.0, 1.0)
+	var bx := clampf(p.x + HALF_WIDTH - x, 0.0, 1.0)
+	var az := clampf(p.z - HALF_DEPTH - z, 0.0, 1.0)
+	var bz := clampf(p.z + HALF_DEPTH - z, 0.0, 1.0)
+	var top := -INF
+	for i in 3:
+		for k in 3:
+			top = maxf(top, WorldData.patch_height(patch, lerpf(ax, bx, i * 0.5), lerpf(az, bz, k * 0.5)))
+	return top

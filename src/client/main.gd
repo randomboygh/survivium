@@ -217,8 +217,8 @@ func _process(delta: float) -> void:
 	if ready_to_play:
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
-		player.move_input = controls.read_move() if playing else Vector2.ZERO
-		var jump: bool = controls.jump() and playing and (player.air_jumps or character.can_jump())
+		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
+		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
 		character.update(minf(delta, 0.05))
 		workshop.update(minf(delta, 0.05))
@@ -262,7 +262,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## A boot print every stride on the ground, left and right in turn, none in the water.
 func _leave_footprints() -> void:
 	tracks.focus = player.position
-	if not player.on_ground or player.water_depth > 0.0:
+	if not player.body.on_ground or player.body.water_depth > 0.0:
 		last_print = player.position
 		return
 	var moved := Vector2(player.position.x - last_print.x, player.position.z - last_print.z)
@@ -387,7 +387,7 @@ func _build_scene() -> void:
 	drifts_root.visible = false
 	world_root.add_child(drifts_root)
 	player = PlayerScript.new()
-	player.world = world
+	player.body.world = world
 	world_root.add_child(player)
 	# A guess from the laid-out columns; the exact spot is found once the ground is made.
 	player.position = (Vector3(gen.spawn_guess) + Vector3(0.5, 0.0, 0.5)) * CELL
