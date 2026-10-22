@@ -71,9 +71,10 @@ func open(which: String) -> void:
 	_focus = -1
 	var s = game.settings
 	var sky = game.sky
+	var clock = game.clock
 	if which == "settings":
 		_title.text = "Настройки"
-		_add_row("Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(sky.DAY_LENGTH / v / 60.0)),
+		_add_row("Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
 			func() -> int: return s.values.time_speed,
 			func(i: int) -> void: s.set_value("time_speed", i))
 		_add_row("Пиксель", ["обычный", "крупный", "огромный"],
@@ -103,11 +104,11 @@ func open(which: String) -> void:
 				func(i: int) -> void: s.set_value("show_help", i == 1))
 	else:
 		_title.text = "Тестирование"
-		_add_row("Сезон", sky.SEASONS,
-			func() -> int: return sky.season,
+		_add_row("Сезон", clock.SEASONS,
+			func() -> int: return clock.season,
 			func(i: int) -> void: s.set_season(i))
-		_add_row("Погода", ["сама"] + sky.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
-			func() -> int: return 0 if sky.weather_auto else sky.weather + 1,
+		_add_row("Погода", ["сама"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
+			func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
 			func(i: int) -> void: s.set_weather(i - 1))
 		_add_row("Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
 			func() -> int:
@@ -118,7 +119,7 @@ func open(which: String) -> void:
 			func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]))
 		_add_row("Время суток", HOURS,
 			func() -> int:
-				var h: float = sky.time_of_day * 24.0
+				var h: float = clock.time_of_day * 24.0
 				var best := 0
 				for i in HOUR_OF.size():
 					if h >= HOUR_OF[i] - 0.5:
@@ -126,7 +127,7 @@ func open(which: String) -> void:
 				return best,
 			func(i: int) -> void: s.set_hour(HOUR_OF[i]))
 		_add_row("Час", range(24).map(func(h: int) -> String: return "%02d:00" % h),
-			func() -> int: return int(sky.time_of_day * 24.0) % 24,
+			func() -> int: return int(clock.time_of_day * 24.0) % 24,
 			func(i: int) -> void: s.set_hour(i))
 		_add_row("Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
 			func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),

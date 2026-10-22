@@ -277,9 +277,9 @@ func heat_map(size: int) -> ImageTexture:
 
 
 ## Moves the weather emitters over the view and turns them on and off by the weather
-## of `sky` (sky.gd). `view` is the screen-plane centre; `ground` the height the
-## player stands on.
-func update(delta: float, view: Vector2, ground: float, sky, indoor: bool) -> void:
+## of `clock` (Clock) and the light of `sky` (sky.gd). `view` is the screen-plane
+## centre; `ground` the height the player stands on.
+func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool) -> void:
 	var top := ground + 7.0
 	# A point at height h shows at screen-plane y = z - h, so emitters sit further south.
 	rain.position = Vector3(view.x, top, view.y + top)
@@ -293,15 +293,15 @@ func update(delta: float, view: Vector2, ground: float, sky, indoor: bool) -> vo
 	fireflies.position = Vector3(view.x, ground + 1.0, view.y + ground + 1.0)
 	pollen.position = Vector3(view.x, ground + 1.5, view.y + ground + 1.5)
 	var outside := enabled and not indoor
-	var season: int = sky.season
+	var season: int = clock.season
 	var daylight: float = sky.daylight
-	rain.emitting = outside and sky.rain > 0.15
-	downpour.emitting = outside and sky.rain > 0.7
-	hail.emitting = outside and sky.hail > 0.3
-	snowfall.emitting = outside and sky.snowing > 0.15
-	blizzard.emitting = outside and sky.snowing > 0.8
-	sand.emitting = outside and sky.sand > 0.3
-	var calm: bool = sky.rain < 0.15 and sky.snowing < 0.15 and sky.sand < 0.3 and sky.storm_wind < 1.5
+	rain.emitting = outside and clock.rain > 0.15
+	downpour.emitting = outside and clock.rain > 0.7
+	hail.emitting = outside and clock.hail > 0.3
+	snowfall.emitting = outside and clock.snowing > 0.15
+	blizzard.emitting = outside and clock.snowing > 0.8
+	sand.emitting = outside and clock.sand > 0.3
+	var calm: bool = clock.rain < 0.15 and clock.snowing < 0.15 and clock.sand < 0.3 and clock.storm_wind < 1.5
 	leaves.emitting = outside and season == 2
 	fireflies.emitting = enabled and daylight < 0.3 and (season == 0 or season == 1) and calm
 	pollen.emitting = outside and daylight > 0.6 and (season == 0 or season == 1) and calm

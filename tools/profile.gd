@@ -71,14 +71,15 @@ func _frame(delta: float) -> void:
 	var g = main
 	var d := minf(delta, 0.05)
 	t_last = Time.get_ticks_usec()
-	g.sky._update_time(delta)
 	var pl = g.player
+	g.clock.step(delta, pl.position)
+	g.sky._update_light()
 	# The weather without Effects, which it calls: Effects is timed on its own.
 	g.player = null
 	g.sky._update_weather(delta)
 	g.player = pl
-	_lap("sky")
-	g.effects.update(delta, g.view.cam_target, pl.position.y, g.sky, g.chunks.indoor)
+	_lap("clock + sky")
+	g.effects.update(delta, g.view.cam_target, pl.position.y, g.sky, g.clock, g.chunks.indoor)
 	_lap("effects")
 	pl.body.move_input = g.controls.read_move()
 	var jump: bool = g.controls.jump() and (pl.body.air_jumps or g.character.can_jump())
@@ -142,11 +143,11 @@ func _profile() -> void:
 		for n in nodes:
 			n.set_process(true)
 		main.player.position = spawn
-		main.sky.time_of_day = s.time
-		main.sky.time_speed = 0.0
-		main.sky.season = s.season
-		main.sky.raining = s.get("rain", false)
-		main.sky.set_weather(_weather_index(s.get("weather", "clear")))
+		main.clock.time_of_day = s.time
+		main.clock.time_speed = 0.0
+		main.clock.season = s.season
+		main.clock.raining = s.get("rain", false)
+		main.clock.set_weather(_weather_index(s.get("weather", "clear")))
 		main.sky.moon_override = s.get("moon", -1.0)
 		main.settings.values.fire_shadows = s.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.set_value("shadows", s.get("shadows", true))
@@ -170,9 +171,9 @@ func _profile() -> void:
 			main.hud.toggle_bag()
 		for i in SETTLE:
 			await process_frame
-			main.sky.snow = 1.0 if main.sky.season == 3 else 0.0
-			main.sky.settle_weather()
-			main.sky.wet = 1.0 if main.sky.raining and main.sky.season != 3 else 0.0
+			main.clock.snow = 1.0 if main.clock.season == 3 else 0.0
+			main.clock.settle_weather()
+			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else 0.0
 		if s.has("keys"):
 			_hold(s.keys, true)
 		for n in nodes:
@@ -283,7 +284,7 @@ func _spikes() -> void:
 	await _spike("a toast", func() -> void: hud.toast("Готово: Верёвка"))
 	main.player.facing = "e"
 	await _spike("a campfire put down", func() -> void: main.props.put_from_bag("core:campfire"))
-	main.sky.time_of_day = 0.95
+	main.clock.time_of_day = 0.95
 	await _spike("night falls (torch on)", func() -> void: pass)
 	quit()
 

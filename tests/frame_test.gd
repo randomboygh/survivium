@@ -335,8 +335,8 @@ func _run() -> void:
 
 	# Standing by the campfire on a moonless night: the shadows the fire throws from the
 	# player, the animals and the trees are drawn every frame.
-	var day: float = main.sky.time_of_day
-	main.sky.time_of_day = 0.95
+	var day: float = main.clock.time_of_day
+	main.clock.time_of_day = 0.95
 	main.sky.moon_override = 0.0
 	main.player.position = main.placed.center(fire_e) + Vector3(0.6, 0.0, -1.4)
 	# Until the chunks stop being built (the earlier scenarios left work queued), so
@@ -350,7 +350,7 @@ func _run() -> void:
 			break
 	_check(main.fire_shadows.multimesh.visible_instance_count > 0, "the campfire throws shadows at night")
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
-	main.sky.time_of_day = day
+	main.clock.time_of_day = day
 	main.sky.moon_override = -1.0
 	main.placed.put_out(fire_e)
 	inv.add("core:branch", 1)

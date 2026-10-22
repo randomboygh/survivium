@@ -159,7 +159,7 @@ func open() -> void:
 	_want_play = false
 	_seed_label.text = "мир · зерно %d" % game.world_seed
 	if game.save.has_save:
-		_seed_label.text += " · день %d" % game.sky.day
+		_seed_label.text += " · день %d" % game.clock.day
 	_buttons.play.text = "Продолжить" if game.save.has_save else "Играть"
 	game.hud.visible = false
 	_set_focus(0)
