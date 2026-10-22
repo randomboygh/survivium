@@ -165,6 +165,10 @@ const SHOTS := {
 	# with an axe being made and more queued.
 	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
+	# A recipe with many facts (a stone scythe) on a narrow phone screen, and the craft tab
+	# before any recipe is known: no queue then.
+	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "core:stone_scythe"},
+	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
 	# The spawn campfire opened: the craft tab with its buttons by the cross.
 	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
 	# The same workbench, kiln and chest with the window closed.
@@ -450,6 +454,15 @@ func _run() -> void:
 					break
 		if shot.get("craft", false):
 			_craft()
+			if shot.has("recipe"):
+				main.character.inventory.add("core:cord", 2)
+				main.hud.bag.craft._choose(shot.recipe)
+			if shot.get("unknown", false):
+				while not main.workshop.queue.jobs.is_empty():
+					main.workshop.queue.cancel(0)
+				main.workshop.knowledge.seen.clear()
+				main.workshop.knowledge._known.clear()
+				main.hud.bag.craft.refresh_now()
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
 			if shot.has("on"):

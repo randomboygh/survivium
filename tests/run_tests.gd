@@ -1660,6 +1660,19 @@ func _test_world_actions() -> void:
 	who.item = "core:wooden_sword"
 	_check(not actions.dig_at(who, Vector3i(11, 1, 10), Vector3i.UP).is_empty() and w.get_cell(11, 1, 10) == Mat.DIRT,
 		"a sword swings at the ground it cannot dig")
+	# Grass with something tall on it, within reach: a sword cuts what is tall and
+	# bare hands the grass itself, in a swing of one cell (the scythe's is an arc).
+	var tall := Vector3i(-1, -1, -1)
+	for z in range(13, 16):
+		for x in range(6, 16):
+			w.set_cell(x, 1, z, Mat.GRASS)
+			if tall.x < 0 and Grass.has_tall(w, Vector3i(x, 1, z)) and not actions.too_far(who, Vector3i(x, 1, z), 6):
+				tall = Vector3i(x, 1, z)
+	_check(tall.x >= 0 and not actions.dig_at(who, tall, Vector3i.UP).is_empty() and not Grass.has_tall(w, tall)
+		and w.get_cell(tall.x, 1, tall.z) == Mat.GRASS, "a sword cuts the tall grass it is aimed at")
+	who.item = ""
+	_check(not actions.dig_at(who, tall, Vector3i.UP).is_empty() and w.get_cell(tall.x, 1, tall.z) == Mat.DIRT,
+		"bare hands cut the grass down to the ground")
 	who.item = "core:stone"
 	who.inventory.add("core:stone", 3)
 	var placed := actions.place_at(who, Vector3i(12, 2, 10), Vector3i.UP, 40)
