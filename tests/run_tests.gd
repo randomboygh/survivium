@@ -26,6 +26,7 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
+const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -60,6 +61,7 @@ func _init() -> void:
 	_test_placed()
 	_test_clock()
 	_test_death()
+	_test_wildlife()
 	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
@@ -1730,6 +1732,85 @@ func _bits(v: int) -> int:
 ## A forest chunk the player changed (a tree felled, a hole dug, a block placed, a bush
 ## gone) is saved, and a new run of the same world brings it back as it was, whatever
 ## order the chunks around are made in; its trees grow again into the chunks around.
+## The animals live without the client: they come onto the grass around the people the
+## same for the same seed, flee from people, rest outside their hours, hunt, and the
+## ones no one looks at move in steps.
+func _test_wildlife() -> void:
+	var size := WorldData.CHUNK * 11
+	var w := WorldData.new(8, Vector2i(size, size))
+	for z in size:
+		for x in size:
+			w.set_cell(x, 5, z, Mat.GRASS)
+	var person := Who.new()
+	person.position = Vector3(size / 2.0, 6.0, size / 2.0) * WorldData.CELL
+	var made := []
+	for i in 2:
+		var life := Wildlife.new()
+		life.world = w
+		life.clock = Clock.new()
+		life.people = [person]
+		var born := [0]
+		life.born.connect(func(_a: Wildlife.Animal) -> void: born[0] += 1)
+		life.start(7)
+		made.append(life.animals.map(func(a: Wildlife.Animal) -> String: return "%s %v" % [a.kind, a.pos]))
+		var all := 0
+		for kind in AiRules.SPECIES:
+			if kind != AiRules.HUMAN:
+				all += AiRules.SPECIES[kind].count
+		_check(life.animals.size() == all and born[0] == all, "as many animals come as their species say")
+	_check(made[0] == made[1], "the same seed brings the same animals to the same places")
+
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.people = [person]
+	var at := person.position + Vector3(3.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var rabbit := _animal(life, "core:rabbit", at)
+	var prints := [0]
+	life.stepped.connect(func(_a: Wildlife.Animal, _at: Vector3, _dir: Vector2, _left: bool, _size: float) -> void: prints[0] += 1)
+	for i in 20:
+		life.update(0.05)
+	_check(rabbit.pos.distance_to(person.position) > 5.0 and rabbit.pos.x > at.x and prints[0] > 0,
+		"a rabbit runs from a person, leaving prints")
+
+	# Far from the people from now on.
+	life.people = [Who.new()]
+	life.animals.clear()
+	life.clock.time_of_day = 0.5
+	var wolf := _animal(life, "core:wolf", at)
+	life.update(0.05)
+	_check(wolf.state == "rest" and wolf.pos == at, "a wolf rests by day")
+	life.clock.time_of_day = 0.0
+	wolf.hunger = 1.0
+	wolf.think = 0.0
+	rabbit = _animal(life, "core:rabbit", at + Vector3(0.5, 0.0, 0.0))
+	var eaten := []
+	life.gone.connect(func(a: Wildlife.Animal) -> void: eaten.append(a))
+	life.update(0.05)
+	_check(eaten == [rabbit] and life.animals == [wolf] and wolf.hunger == 0.0, "a hungry wolf hunts a rabbit at night")
+
+	wolf.near = false
+	wolf.think = 100.0
+	wolf.state = "wander"
+	wolf.target = wolf.pos + Vector3(4.0, 0.0, 0.0)
+	var from := wolf.pos
+	life.update(0.05)
+	_check(wolf.pos == from and is_equal_approx(wolf.away, 0.05), "an animal no one looks at waits for its step")
+	life.update(0.06)
+	_check(wolf.pos != from and wolf.away == 0.0, "and then takes it at once")
+
+
+## Puts an animal of `kind` at `at` into `life`, about to think.
+func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:
+	var a := Wildlife.Animal.new()
+	a.kind = kind
+	a.pos = at
+	a.target = at
+	life.animals.append(a)
+	return a
+
+
 func _test_save() -> void:
 	var a := WorldGen.new(42)
 	var at := a.find_place("forest", Vector2i(a.spawn_guess.x, a.spawn_guess.z))

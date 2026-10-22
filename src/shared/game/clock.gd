@@ -108,6 +108,12 @@ func _pass_time(delta: float) -> void:
 		next_season()
 
 
+## How much of the day's light there is now, 0 at night and 1 by day (dawn and dusk
+## between).
+func daylight() -> float:
+	return clampf(-cos(time_of_day * TAU) * 1.6 + 0.35, 0.0, 1.0)
+
+
 ## Moonlight (0..1) on day `t` of the game: full every MOON_DAYS days, dark for a few
 ## nights around the new moon.
 static func moon_phase_light(t: float) -> float:

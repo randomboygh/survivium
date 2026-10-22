@@ -33,6 +33,7 @@ const Gathering := preload("res://src/client/game/gathering.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
+const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
@@ -82,6 +83,7 @@ var gathering: Gathering
 var actions: WorldActions
 var workshop: Workshop
 var placed: Placed
+var wildlife: Wildlife
 var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
@@ -188,6 +190,9 @@ func start_world() -> void:
 	character.world = world
 	clock.world = world
 	clock.gen = gen
+	wildlife = Wildlife.new()
+	wildlife.world = world
+	wildlife.clock = clock
 	actions = WorldActions.new(world, clock, settings)
 	actions.cell_changed.connect(chunks.on_cell_changed)
 	actions.looks_changed.connect(chunks.remesh_chunk)
@@ -222,7 +227,9 @@ func _process(delta: float) -> void:
 			props.place()
 			character.find_home(placed)
 			player.visible = not character.is_dead()
-			creatures.setup(world, player, world_seed)
+			wildlife.people = [character]
+			wildlife.start(world_seed)
+			creatures.watch(wildlife)
 			ready_to_play = true
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))

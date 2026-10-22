@@ -71,7 +71,7 @@ func _update_light() -> void:
 	var time_of_day: float = clock.time_of_day
 	var snow: float = clock.snow
 	var h := -cos(time_of_day * TAU)
-	daylight = clampf(h * 1.6 + 0.35, 0.0, 1.0)
+	daylight = clock.daylight()
 	moon = moon_override if moon_override >= 0.0 else Clock.moon_phase_light(clock.day + time_of_day)
 	# Clouds hide the moon; snow on the ground gives its light back.
 	var overcast := clampf((clock.clouds - 0.3) / 0.6, 0.0, 1.0)
@@ -105,7 +105,6 @@ func _update_light() -> void:
 	var cut_on: bool = game.chunks.cut_level < game.world.size_y
 	var haze := (Color(0.02, 0.02, 0.03) if cut_on else env.background_color).srgb_to_linear()
 	RenderingServer.global_shader_parameter_set("depth_haze", Vector3(haze.r, haze.g, haze.b))
-	game.creatures.daylight = daylight
 	if game.player != null:
 		var dark := 1.0 if game.chunks.indoor else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
 		dark *= 1.0 - game.effects.torch_off(game.player.position)
