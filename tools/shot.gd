@@ -60,6 +60,15 @@ const SHOTS := {
 	"fire-moon-before": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	"dawn": {"time": 0.255, "season": 1, "moon": 1.0},
 	"sunrise": {"time": 0.28, "season": 1, "moon": 1.0},
+	# Sun rays: a clear day, a low sun, and the breaking clouds after rain.
+	"rays-day": {"time": 0.45, "season": 1},
+	"rays-evening": {"time": 0.72, "season": 1},
+	"rays-after-rain": {"time": 0.4, "season": 1, "weather": "cloudy", "after_rain": 1.0},
+	"mist-morning": {"time": 0.27, "season": 1},
+	"mist-shore": {"time": 0.27, "season": 1, "shore": true},
+	"mist-lake": {"time": 0.27, "season": 1, "place": "lake"},
+	"mist-off": {"time": 0.27, "season": 1, "rays": false, "mist": false},
+	"rays-off": {"time": 0.45, "season": 1, "rays": false},
 	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
 	"downpour": {"time": 0.5, "season": 1, "weather": "downpour"},
 	"storm": {"time": 0.6, "season": 1, "weather": "storm"},
@@ -240,6 +249,8 @@ func _run() -> void:
 		main.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
+		main.settings.values.sun_rays = shot.get("rays", true)
+		main.settings.values.mist = shot.get("mist", true)
 		main.settings.set_value("shadows", shot.get("shadows", true))
 		# Fires burn steadily in shots, so shots with and without shadows compare.
 		main.effects.flicker_clock = -INF
@@ -304,7 +315,8 @@ func _run() -> void:
 			await process_frame
 			main.clock.snow = 1.0 if main.clock.season == 3 else 0.0
 			main.clock.settle_weather()
-			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else 0.0
+			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else shot.get("after_rain", 0.0)
+			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.sky.foliage = main.sky.FOLIAGE[main.clock.season]
 			main.sky.grass = main.sky.GRASS[main.clock.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.clock.season]

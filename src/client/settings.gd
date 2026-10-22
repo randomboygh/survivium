@@ -24,9 +24,14 @@ const DEFAULTS := {
 	"shadows": true,
 	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
 	# real ones from the nearest fire or the torch (see Effects.SHADOW_FIRE_REACH), the
-	# slowest thing to draw at night.
+	# slowest thing to draw at night, 3 mixed: the nearest fire's real shadow of the
+	# player alone and the rest drawn (Effects.player_only).
 	"fire_shadows": 1,
 	"effects": true,
+	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
+	"sun_rays": true,
+	# Mist in the low places in the morning (Sky._update_mist).
+	"mist": true,
 	"pixel_size": 0,
 	"fps_limit": 0,
 	"ui_scale": 0,
@@ -65,11 +70,12 @@ var air_jumps := false
 ## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
 ## preset, which does not exist yet). Not saved.
 var tool_wear := false
-## Sides of the sun's shadow map to compare on a phone (the engine's default is 4096;
-## the map is drawn again every frame the sun casts shadows).
+## Sides of the sun's shadow map to compare on a phone (the map is drawn again every
+## frame the sun casts shadows). The engine's default is 4096; at 16 pixels a world unit
+## 2048 shows the same shadows with a quarter of its texels.
 const SHADOW_MAPS := [1024, 2048, 4096]
 ## Playtest switch: the side of the sun's shadow map, an index into SHADOW_MAPS. Not saved.
-var shadow_map := 2
+var shadow_map := 1
 
 
 func _init(g) -> void:
@@ -125,11 +131,15 @@ func apply() -> void:
 	var sky = game.sky
 	if sky != null and sky.sun != null:
 		sky.sun.shadow_enabled = values.shadows
+	if sky != null:
+		sky.rays_on = values.sun_rays
+		sky.mist_on = values.mist
 	if game.effects != null:
 		game.effects.enabled = values.effects
-		game.effects.shadows = values.shadows and values.fire_shadows == 2
+		game.effects.shadows = values.shadows and values.fire_shadows >= 2
+		game.effects.player_only = values.fire_shadows == 3
 	if game.fire_shadows != null:
-		game.fire_shadows.enabled = values.shadows and values.fire_shadows == 1
+		game.fire_shadows.enabled = values.shadows and values.fire_shadows in [1, 3]
 	if game.player != null:
 		game.player.body.speed_scale = player_speed
 		game.player.body.air_jumps = air_jumps

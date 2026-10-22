@@ -163,18 +163,20 @@ func _lights() -> Array:
 		var light: OmniLight3D = f.light
 		if p.distance_to(f.at) < light.omni_range + VIEW_REACH:
 			out.append({"at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
-				"strength": light.shadow_opacity, "torch": false})
+				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01:
 		out.append({"at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT, "range": torch.omni_range,
-			"strength": clampf(torch.light_energy / 1.3, 0.0, 1.0), "torch": true})
+			"strength": clampf(torch.light_energy / 1.3, 0.0, 1.0), "torch": true, "real": false})
 	return out
 
 
 ## Adds the shadows that move, thrown by light `l`, from instance `n` on: the player's
 ## and the animals', and the trunks' from the torch; returns the next free instance.
 func _cast_all(l: Dictionary, n: int) -> int:
-	if not l.torch:
+	# A fire with a real shadow (the "mixed" setting, see Effects.player_only) throws
+	# the player's itself.
+	if not l.torch and not l.real:
 		n = _cast(l, game.player.position, game.player.HEIGHT * CELL, PLAYER_WIDTH, n)
 	var at: Vector3 = l.at
 	var r2: float = l.range * l.range

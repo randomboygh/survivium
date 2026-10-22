@@ -36,6 +36,12 @@ global uniform vec2 wrap_size;
 // fade into (the background outdoors, darkness in a cave or a room), see depth_fade.
 global uniform float view_height;
 global uniform vec3 depth_haze;
+// Mist lying in the low places on a morning (see Sky._update_mist): how thick it is
+// (0 none), its colour, the height it fills up to, and how far its banks have drifted.
+global uniform float mist;
+global uniform vec3 mist_color;
+global uniform float mist_level;
+global uniform vec2 mist_offset;
 
 // Texels per world unit, and per cell (a cell is half a unit, see WorldData.CELL).
 // Texture tiles are 16x16 and span two cells.
@@ -225,6 +231,26 @@ float depth_fade(float y) {
 	}
 	float below = floor((view_height - y) / CELL + 0.01) - 1.0;
 	return cut_ghost < 0.5 ? clamp(below * 0.08, 0.0, 0.6) : clamp(below * 0.04, 0.0, 0.5);
+}
+
+// How deep below `mist_level` the mist grows to its full thickness, in world units.
+const float MIST_DEPTH = 2.5;
+
+// What veils the colour at `p`: the levels below fading away (`fade`, from
+// depth_fade) and the morning mist, thicker the lower `p` lies and in drifting
+// banks, in dithered steps. rgb is the colour given off in place, a how much of the
+// thing's own colour gives way.
+vec4 veil(vec3 p, float fade) {
+	if (mist <= 0.0) {
+		return vec4(depth_haze * fade, fade);
+	}
+	vec2 xz = floor(p.xz * TEXELS) / TEXELS;
+	float n = texture(cloud_noise, (xz + mist_offset) / 48.0).r * 0.65
+		+ texture(cloud_noise, (xz - mist_offset * 0.7) / 17.0 + 0.37).r * 0.35;
+	float low = clamp((mist_level - p.y) / MIST_DEPTH, 0.0, 1.0);
+	float k = clamp(low * (0.6 + (n - 0.5) * 3.0), 0.0, 1.0) * mist;
+	float m = floor(k * 4.0 + bayer4(floor(vec2(p.x, p.z - p.y) * TEXELS))) / 4.0;
+	return vec4(depth_haze * fade * (1.0 - m) + mist_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,

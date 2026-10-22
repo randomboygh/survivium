@@ -36,9 +36,9 @@ void fragment() {
 	float t = under > CELL ? 1.0 : 0.0;
 	vec3 water = mix(shallow, deep, 0.35 + 0.4 * t);
 	vec3 col = mix(c.rgb, water, 0.45 + 0.2 * t);
-	float fade = depth_fade(world_pos.y);
-	ALBEDO = col * (1.0 - fade);
-	EMISSION = depth_haze * fade;
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	ALBEDO = col * (1.0 - veiled.a);
+	EMISSION = veiled.rgb;
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);
 	ALPHA = 1.0;
 	ROUGHNESS = 1.0;
