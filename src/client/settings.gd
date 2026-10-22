@@ -28,6 +28,10 @@ const DEFAULTS := {
 	# player alone and the rest drawn (Effects.player_only).
 	"fire_shadows": 1,
 	"effects": true,
+	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
+	"sun_rays": true,
+	# Mist in the low places in the morning (Sky._update_mist).
+	"mist": true,
 	"pixel_size": 0,
 	"fps_limit": 0,
 	"ui_scale": 0,
@@ -127,6 +131,9 @@ func apply() -> void:
 	var sky = game.sky
 	if sky != null and sky.sun != null:
 		sky.sun.shadow_enabled = values.shadows
+	if sky != null:
+		sky.rays_on = values.sun_rays
+		sky.mist_on = values.mist
 	if game.effects != null:
 		game.effects.enabled = values.effects
 		game.effects.shadows = values.shadows and values.fire_shadows >= 2
