@@ -59,6 +59,7 @@ func _init() -> void:
 	_test_world_actions()
 	_test_placed()
 	_test_clock()
+	_test_death()
 	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
@@ -1688,6 +1689,36 @@ func _test_clock() -> void:
 	_check(clock.snow == 0.0 and not w.water_frozen, "and melts in summer")
 
 
+## A character dies without the client: the bag goes into a sack on the ground where
+## they fell, the death is kept in the save, and they come back with half their health.
+func _test_death() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var ch := Survivor.new()
+	ch.world = w
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.at = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
+	ch.give("core:branch", 3)
+	ch.vitals.satiety = 0.0
+	ch.vitals.health = 0.0
+	ch.update(0.1)
+	var sack: Array = []
+	for d: Array in w.drops.get(WorldData.chunk_key(5, 5), []):
+		if d[0] == Items.SACK:
+			sack = d
+	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
+		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
+	var again := Survivor.new()
+	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
+	_check(again.is_dead() and again.death.lost == [["core:branch", 3]], "the death is kept in the save")
+	ch.revive(Vector3(2.5, 1.0, 2.5) * WorldData.CELL)
+	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
+		"and they come back with half their health at the respawn point")
+
+
 func _bits(v: int) -> int:
 	var n := 0
 	while v != 0:
@@ -1821,6 +1852,18 @@ func _test_hidden() -> void:
 
 
 ## The one acting, for the rules in src/shared/game/ without the client (see WorldActions).
+## A character standing at `at` (see Character).
+class Survivor extends "res://src/shared/game/character.gd":
+	var at := Vector3.ZERO
+	var back_at := Vector3.ZERO
+
+	func _where() -> Vector3:
+		return at
+
+	func _came_back(to: Vector3) -> void:
+		back_at = to
+
+
 class Who extends RefCounted:
 	var inventory := Inventory.new()
 	var position := Vector3.ZERO

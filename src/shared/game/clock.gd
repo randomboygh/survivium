@@ -209,6 +209,19 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	world.water_frozen = ice() > 0.8
 
 
+## The time of the clock as plain data for the save.
+func to_dict() -> Dictionary:
+	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock}
+
+
+## Puts back the time of a save (see to_dict).
+func from_dict(d: Dictionary) -> void:
+	day = int(d.get("day", day))
+	time_of_day = fposmod(d.get("time", time_of_day), 1.0)
+	season = posmod(int(d.get("season", season)), 4)
+	season_clock = d.get("season_clock", season_clock)
+
+
 ## How much of the water is ice, 0..1, by the snow lying.
 func ice() -> float:
 	return clampf((snow - 0.3) / 0.5, 0.0, 1.0)

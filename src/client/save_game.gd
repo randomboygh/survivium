@@ -5,8 +5,10 @@ extends RefCounted
 ## reaches them, and the player, the clock and the props are put back. Once the
 ## player has entered the world, the changed chunks and the player are saved every
 ## INTERVAL seconds, a few chunks a frame, and all at once when the menu opens, the
-## game loses focus or quits. Other modules keep their part of the player with
-## track(). Off for tests and tools (`enabled`). `game` is the Main node.
+## game loses focus or quits. What goes in, the systems of src/shared tell themselves
+## (Clock, Placed, Character, the bag: to_dict or to_list); other modules keep their
+## part of the player with track(). Off for tests and tools (`enabled`). `game` is the
+## Main node.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -91,14 +93,8 @@ func restore_player() -> void:
 
 ## Puts the saved clock and season back (the save keeps them as "sky").
 func restore_clock() -> void:
-	if not has_save:
-		return
-	var clock = game.clock
-	var s: Dictionary = meta.get("sky", {})
-	clock.day = int(s.get("day", clock.day))
-	clock.time_of_day = fposmod(s.get("time", clock.time_of_day), 1.0)
-	clock.season = posmod(int(s.get("season", clock.season)), 4)
-	clock.season_clock = s.get("season_clock", clock.season_clock)
+	if has_save and meta.get("sky") is Dictionary:
+		game.clock.from_dict(meta.sky)
 
 
 ## The cell of a prop ("chest", "campfire") in a save from before things could be
@@ -170,7 +166,6 @@ func _write_chunk(key: Vector2i) -> void:
 
 ## world.json and the player, and this world as the one to start next time.
 func _write_world() -> void:
-	var clock = game.clock
 	meta = {
 		"format": WorldStore.FORMAT,
 		"seed": game.world_seed,
@@ -179,7 +174,7 @@ func _write_world() -> void:
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),
 		"played": played,
-		"sky": {"day": clock.day, "time": clock.time_of_day, "season": clock.season, "season_clock": clock.season_clock},
+		"sky": game.clock.to_dict(),
 		"placed": game.placed.to_list(),
 	}
 	var p: Vector3 = game.player.position
