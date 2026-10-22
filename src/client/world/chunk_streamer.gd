@@ -71,14 +71,19 @@ var game
 var world: WorldData
 var gen: WorldGen
 var chunk_nodes := {}
-## Chunks within LOAD_RANGE still to build, and the chunk the player was in when
-## they were listed.
+## Chunks within LOAD_RANGE still to build, and the chunk they were listed around
+## (the player's, see focus).
 var pending_chunks: Array[Vector2i] = []
 var load_home := Vector2i(-1000000, 0)
 var unload_queue: Array[Vector2i] = []
 var drop_queue: Array[Vector2i] = []
 var near_pending := 0
 var near_total := 0
+## While the character lies dead, the respawn point the death screen offers first
+## (world units), else Vector3.INF: the chunks are built around it instead of around
+## the body, so coming back there lands in a world already made, and none are freed
+## meanwhile (the place of death stays behind the screen). See set_focus.
+var focus := Vector3.INF
 ## One cap over the cut per chunk (see update_caps): nodes, the level each was built
 ## for, and the chunks within CAP_RANGE of the player, nearest first.
 var cap_nodes := {}
@@ -179,14 +184,30 @@ func _player_chunk() -> Vector2i:
 	return Vector2i(_player_chunk_pos().floor())
 
 
+## The chunk the chunks are built around: the player's, or the focus.
+func _load_chunk() -> Vector2i:
+	if not focus.is_finite():
+		return _player_chunk()
+	return Vector2i((Vector2(focus.x, focus.z) / (CHUNK * CELL)).floor())
+
+
+## Builds the chunks around `at` (world units) instead of the player's, Vector3.INF
+## for the player again (see focus).
+func set_focus(at: Vector3) -> void:
+	if at == focus:
+		return
+	focus = at
+	load_home = Vector2i(-1000000, 0)
+
+
 func _is_near(key: Vector2i, home: Vector2i) -> bool:
 	return maxi(absi(key.x - home.x), absi(key.y - home.y)) <= NEAR_CHUNKS
 
 
-## Lists the chunks within LOAD_RANGE of the player that have no meshes yet, and
-## queues the ones beyond UNLOAD_RANGE to lose theirs.
+## Lists the chunks within LOAD_RANGE of the player (or the focus) that have no
+## meshes yet, and queues the ones beyond UNLOAD_RANGE to lose theirs.
 func _list_pending() -> void:
-	var home := _player_chunk()
+	var home := _load_chunk()
 	if home == load_home:
 		return
 	load_home = home
@@ -196,10 +217,15 @@ func _list_pending() -> void:
 			var key := Vector2i(cx, cz)
 			if not chunk_nodes.has(key) and not (has_target and key == job_key):
 				pending_chunks.append(key)
-	for key: Vector2i in chunk_nodes:
-		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > UNLOAD_RANGE and not unload_queue.has(key):
-			unload_queue.append(key)
+	unload_queue.clear()
 	drop_queue.clear()
+	if focus.is_finite():
+		if not pending_chunks.is_empty():
+			map_done = false
+		return
+	for key: Vector2i in chunk_nodes:
+		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > UNLOAD_RANGE:
+			unload_queue.append(key)
 	for key: Vector2i in gen.stages:
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > DROP_RANGE:
 			drop_queue.append(key)
@@ -207,9 +233,9 @@ func _list_pending() -> void:
 		map_done = false
 
 
-## The pending chunk nearest to the player.
+## The pending chunk nearest to the player (or the focus).
 func next_chunk() -> Vector2i:
-	var at := _player_chunk()
+	var at := _load_chunk()
 	var best := 0
 	var best_d := 1 << 30
 	for i in pending_chunks.size():
@@ -364,7 +390,7 @@ func run_jobs() -> void:
 					job_key = next_chunk()
 					has_target = true
 				job_edit = false
-				var at := _player_chunk()
+				var at := _load_chunk()
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
 			else:
