@@ -7,10 +7,12 @@ extends Node
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
 ## chests, workbenches, kilns, campfires), Character (the bag and the body: health,
-## satiety, stamina, death; DeathScreen shows a death), Gathering (picking things up,
-## berries and branches), Workshop (recipes known, the crafting queue, tool wear),
+## satiety, stamina, death; DeathScreen shows a death), Gathering (what a tap gathers,
+## things taken up by themselves), Workshop (recipes known, the crafting queue, tool wear),
 ## Hands (what the player is drawn holding), Settings (the saved settings and the playtest switches) and
-## SaveGame (the saved world and player).
+## SaveGame (the saved world and player). WorldActions (src/shared) holds the rules of
+## what the hands do to the world; its signals redraw the chunks and the things on the
+## ground.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -26,6 +28,7 @@ const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const Props := preload("res://src/client/game/props.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
 const Gathering := preload("res://src/client/game/gathering.gd")
+const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Workshop := preload("res://src/client/game/workshop.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
@@ -70,6 +73,9 @@ var view: CameraRig
 var props: Props
 var character: CharacterScript
 var gathering: Gathering
+## The rules of what the hands do to the world (dig, build, chop, gather), once the
+## world is made.
+var actions: WorldActions
 var workshop: Workshop
 var hands: HandsScript
 var cursor: CursorScript
@@ -167,6 +173,11 @@ func start_world() -> void:
 	gen = WorldGen.new(world_seed, 48, world_options)
 	gen.saved = save.store
 	world = gen.world
+	actions = WorldActions.new(world, sky, settings)
+	actions.cell_changed.connect(chunks.on_cell_changed)
+	actions.looks_changed.connect(chunks.remesh_chunk)
+	actions.drops_changed.connect(props.show_drops)
+	actions.taken.connect(props.fly)
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
 	roof = RoofMap.new()
 	roof.prepare()

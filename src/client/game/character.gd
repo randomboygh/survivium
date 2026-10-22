@@ -29,6 +29,14 @@ var home := Vector3.ZERO
 ## "day" and "time" (the clock), "at" (where they fell, world units), "sack" (where
 ## the sack lies, or null) and "lost" ([id, count] of each stack the sack holds).
 var death := {}
+## Where the player threw things away: those are not taken by themselves until the
+## player has walked off (see WorldActions.pick_up_near).
+var held_back: Array[Vector3] = []
+## Where the body is, in world units. The character is the one who acts for the rules
+## in src/shared/game/ (see WorldActions, `who`).
+var position: Vector3:
+	get:
+		return game.player.position
 var _nagged := {}
 
 
@@ -108,7 +116,7 @@ func throw_away(i: int, n: int) -> void:
 	var taken = inventory.take_slot(i, n)
 	if taken == null:
 		return
-	game.gathering.hold_back(game.player.position)
+	held_back.append(game.player.position)
 	lay(taken[0], {"n": taken[1], "worn": taken[2]} if taken.size() > 2 else taken[1])
 
 
@@ -199,6 +207,11 @@ func lay(kind: String, data: Variant) -> Vector3:
 	return at
 
 
+## Says `text` under the clock at once.
+func say(text: String) -> void:
+	game.hud.toast(text)
+
+
 ## A message under the clock, at most once in NAG_INTERVAL for the same `reason`.
 func nag(reason: String, text: String) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -206,3 +219,43 @@ func nag(reason: String, text: String) -> void:
 		return
 	_nagged[reason] = now
 	game.hud.toast(text)
+
+
+# --- What the rules ask of the one who acts (see WorldActions) ----------------------
+
+## The cell the feet are in.
+func feet() -> Vector3i:
+	return game.controls.feet()
+
+
+## The column step the body faces (one of 8 ways).
+func facing_step() -> Vector2i:
+	return game.controls.step()
+
+
+func moving() -> bool:
+	return game.player.move_input.length() > 0.1
+
+
+func overlaps_cell(cell: Vector3i) -> bool:
+	return game.player.overlaps_cell(cell)
+
+
+## The item in the hand in use, "" for nothing.
+func held() -> String:
+	return game.controls.held()
+
+
+## The record of what the hand in use holds as a tool (see Tools.of).
+func tool() -> Dictionary:
+	return game.controls.tool_record()
+
+
+## The brush blocks are placed with (one of Tools.BRUSHES).
+func brush() -> Dictionary:
+	return game.controls.brush_record()
+
+
+## A swing of the tool in use wears it (see Workshop.use_tool).
+func use_tool() -> void:
+	game.workshop.use_tool()

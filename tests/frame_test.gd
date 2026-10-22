@@ -213,7 +213,7 @@ func _run() -> void:
 	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
 	# into the bag, dirt shows where the grass was.
 	c.put_in_hand("core:stone_scythe", 1)
-	var mown: Dictionary = c._front_work(c.tool_record())
+	var mown: Dictionary = main.actions.front_work(main.character, c.tool_record())
 	if mown.has("mow"):
 		var fibre: int = inv.count("core:fiber")
 		var first: Vector3i = mown.mow[0]

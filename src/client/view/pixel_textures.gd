@@ -4,6 +4,7 @@ extends RefCounted
 ## The palette is muted and warm; mood and colour shifts come from the colour grade.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 
 const TILE := 16
 const TILES := 8
@@ -334,45 +335,10 @@ static func _mark_edges(img: Image, origin: Vector2i, cell: int) -> void:
 				img.set_pixel(origin.x + x, origin.y + y, Color(p.r, p.g, p.b, EDGE_ALPHA))
 
 
-## The cloud noise image, kept so scripts can read the same patches the shaders do.
-static var cloud_image: Image
-
-
-## Tileable noise for cloud shadows, water ripples and the ground patches.
+## Tileable noise for cloud shadows, water ripples and the ground patches (see
+## Grass.cloud_noise, which scripts read the same patches from).
 static func build_cloud_noise() -> ImageTexture:
-	var noise := FastNoiseLite.new()
-	noise.seed = 5
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	noise.frequency = 0.02
-	noise.fractal_octaves = 3
-	cloud_image = noise.get_seamless_image(128, 128)
-	return ImageTexture.create_from_image(cloud_image)
-
-
-## The cloud noise at `uv` (wrapping), bilinear like the shaders' sampler.
-static func cloud_sample(uv: Vector2) -> float:
-	if cloud_image == null:
-		build_cloud_noise()
-	var n := cloud_image.get_width()
-	var p := Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0)) * n - Vector2(0.5, 0.5)
-	var x0 := floori(p.x)
-	var y0 := floori(p.y)
-	var fx := p.x - x0
-	var fy := p.y - y0
-	var a := cloud_image.get_pixel(posmod(x0, n), posmod(y0, n)).r
-	var b := cloud_image.get_pixel(posmod(x0 + 1, n), posmod(y0, n)).r
-	var c := cloud_image.get_pixel(posmod(x0, n), posmod(y0 + 1, n)).r
-	var d := cloud_image.get_pixel(posmod(x0 + 1, n), posmod(y0 + 1, n)).r
-	return lerpf(lerpf(a, b, fx), lerpf(c, d, fx), fy)
-
-
-## The ground patch noise at a world position, the same as `ground_patch` in
-## common.gdshaderinc: lush islands near 1, bare dirt under 0.2.
-static func ground_patch(xz: Vector2, salt := 0.0) -> float:
-	var t := (xz * 16.0).floor() / 16.0
-	var a := cloud_sample(t / 23.0 + Vector2(salt * 0.37, salt * 0.61))
-	var b := cloud_sample(t / 7.0 + Vector2(salt * 0.71, 0.5 + salt * 0.13))
-	return clampf((a - 0.5) + (b - 0.5) * 0.45 + 0.5, 0.0, 1.0)
+	return ImageTexture.create_from_image(Grass.cloud_noise())
 
 
 static func _vary(c: Color, rng: RandomNumberGenerator, amount := 0.05) -> Color:
