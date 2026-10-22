@@ -13,6 +13,7 @@ extends RefCounted
 const Mat := preload("res://src/shared/content/materials.gd")
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 
 const DIRS := [
 	Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0),
@@ -82,9 +83,13 @@ const SIDE_CORNERS := [[1, 2], [0, 3], [], [], [3, 2], [0, 1]]
 ## the corner of the neighbour across each, and the two half edges of each quarter.
 const HALF_CORNER := [3, 2, 0, 1, 1, 2, 0, 3]
 const QUARTER_HALVES := [[0, 4], [1, 6], [3, 7], [2, 5]]
-## A tree trunk is drawn 6 texels wide in its 8-texel cell.
-const TRUNK_MIN := 1.0 / 8.0
-const TRUNK_MAX := 7.0 / 8.0
+## A log pillar that is no noted tree is drawn as a trunk 6 texels wide in its 8-texel
+## cell; a tree's trunk has its own girth (see Trees.trunk_box).
+const PILLAR := Rect2i(1, 1, 6, 6)
+## What tops a piece of a trunk (see _bark).
+const CAP_NONE := 0
+const CAP_CUT := 1
+const CAP_BARK := 2
 const CELL := WorldData.CELL
 
 static var _faces: Array = []
@@ -284,7 +289,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and _is_trunk(nb):
-			_trunk_faces(solid, faces, nb, base, m)
+			_trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
 			_slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, _around(c, cov, i, dy, dz), cuts)
@@ -1232,20 +1237,151 @@ static func _trunk_at(w, x: int, y: int, z: int) -> bool:
 	return w.get_cell(x, y, z) == Mat.LOG and _is_trunk(nb)
 
 
-static func _trunk_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, m: int) -> void:
-	var offset := Vector3(TRUNK_MIN, 0.0, TRUNK_MIN)
-	var size := Vector3(TRUNK_MAX - TRUNK_MIN, 1.0, TRUNK_MAX - TRUNK_MIN)
-	var white := Color(1, 1, 1)
-	for d in 6:
-		if (d == FACE_TOP or d == FACE_BOTTOM) and _covers(nb[d]) or d == FACE_TOP and nb[d] == Mat.LOG:
+## The trunk of a tree in its log cell at x, y, z: a column of bark of the tree's own
+## girth and crook (see Trees.trunk_box) with its front corners cut, so the light gives
+## it a lit and a shaded side, with a dark outline on the sides seen from the front. Its sides slant
+## from cell to cell as it thins and bends; at the foot it flares out and sends out a
+## few roots.
+static func _trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, base: Vector3, m: int) -> void:
+	var col := Vector2i(x, z)
+	var species: int = w.trees.get(col, -1)
+	if species >= Trees.SPECIES.size():
+		species = -1
+	var k := 0
+	while k < 64 and w.get_cell(x, y - k - 1, z) == Mat.LOG:
+		k += 1
+	var box := PILLAR if species < 0 else Trees.trunk_box(species, col, k)
+	var color := Color(1, 1, 1) if species < 0 else _bark_tone(col)
+	var top := CAP_CUT if not _covers(nb[2]) else CAP_NONE
+	# Going up into more trunk, the bark slants to where the next cell has it.
+	var up := box
+	if nb[2] == Mat.LOG:
+		top = CAP_NONE
+		if species >= 0:
+			up = Trees.trunk_box(species, col, k + 1)
+	var bottom := not _covers(nb[3]) and nb[3] != Mat.LOG
+	if k > 0 or species < 0:
+		_bark(buf, base, box, up, 0, 8, top, bottom, m, color)
+		return
+	# The foot flares out two texels each way, then the roots.
+	_bark(buf, base, box.grow(2), box, 0, 4, CAP_NONE, bottom, m, color)
+	_bark(buf, base, box, up, 4, 8, top, false, m, color)
+	var foot := box.grow(2)
+	var s: Dictionary = Trees.SPECIES[species]
+	var roots: int = s.roots[0] + posmod(hash(col * 3 + Vector2i(1, 2)), s.roots[1] - s.roots[0] + 1)
+	# On the sides that show: east, west and south.
+	var first := posmod(hash(col * 5 + Vector2i(7, 3)), 3)
+	for i in roots:
+		var h := hash(Vector3i(col.x, i + 11, col.y))
+		var side := (first + i) % 3
+		var across := foot.size.y if side < 2 else foot.size.x
+		var wide := 2 + (h & 1)
+		var at := 2 + posmod(h >> 1, maxi(1, across - 4 - wide))
+		var root := _root(foot, side, -1, 3 + posmod(h >> 5, 3), at, wide)
+		_bark(buf, base, root, root, 0, 1 + (h >> 8 & 1), CAP_BARK, false, m, color)
+
+
+## The part `from`..`to` texels out from the side `side` (E, W, S, N) of `foot` of a root
+## `wide` texels across, `at` texels along that side.
+static func _root(foot: Rect2i, side: int, from: int, to: int, at: int, wide: int) -> Rect2i:
+	match side:
+		0:
+			return Rect2i(foot.end.x + from, foot.position.y + at, to - from, wide)
+		1:
+			return Rect2i(foot.position.x - to, foot.position.y + at, to - from, wide)
+		2:
+			return Rect2i(foot.position.x + at, foot.end.y + from, wide, to - from)
+	return Rect2i(foot.position.x + at, foot.position.y - to, wide, to - from)
+
+
+## The tone of the bark of the tree in column `col`: a little darker or lighter and
+## warmer or greyer than the next one.
+static func _bark_tone(col: Vector2i) -> Color:
+	var h := hash(col * 13 + Vector2i(5, 9))
+	var light := 0.86 + 0.14 * float(h & 255) / 255.0
+	var warm := float(h >> 8 & 255) / 255.0
+	return Color(light, light * (0.95 + 0.05 * warm), light * (0.9 + 0.1 * (1.0 - warm)))
+
+
+## A column of bark from `r0` at `y0` texels up to `r1` at `y1` (texels of the cell at
+## `base` seen from above, x west to east, y north to south), its front corners cut by a
+## quarter of its width (see _ring); with its bottom when asked and its top as `top`
+## says: CAP_NONE, CAP_CUT (the end grain of a stump) or CAP_BARK (a root).
+static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, top: int, bottom: bool, m: int, color: Color) -> void:
+	var c := mini(r0.size.x, r1.size.x) / 4
+	var low := _ring(r0, c)
+	var high := _ring(r1, c)
+	var mid := Vector2(r0.get_center())
+	var side := m * 3 + 1
+	var around := float(NO_TILE * 0x41041)
+	for i in 8:
+		var a: Vector2 = low[i]
+		var b: Vector2 = low[(i + 1) % 8]
+		if a == b:
 			continue
-		var tile := m * 3 + (0 if d == FACE_TOP else 1)
+		var e := b - a
+		var out := Vector2(e.y, -e.x).normalized()
+		if out.dot((a + b) * 0.5 - mid) < 0.0:
+			out = -out
+		# The cut corners seen from the front carry the outline at their outer edge.
 		var edges := 0
-		if d == FACE_SOUTH:
-			edges = (DARK << EDGE_W) | (DARK << EDGE_E)
-		elif d == FACE_TOP:
-			edges = (DARK << EDGE_N) | (DARK << EDGE_W) | (DARK << EDGE_E) | (LIGHT << EDGE_S)
-		_add(buf, faces[d], d, base, size, offset, white, Vector2(pack(tile, edges, 0), float(NO_TILE * 0x41041)))
+		var ua := 0.5
+		var ub := 0.5
+		if i == 3 and c > 0:
+			edges = DARK << EDGE_E
+			ua = 1.0
+			ub = 1.0 - c / 8.0
+		elif i == 5 and c > 0:
+			edges = DARK << EDGE_W
+			ua = c / 8.0
+			ub = 0.0
+		var pts := [_texel(base, high[i], y1), _texel(base, high[(i + 1) % 8], y1), _texel(base, b, y0),
+			_texel(base, a, y0)]
+		var uvs := [Vector2(ua, 1.0 - y1 / 8.0), Vector2(ub, 1.0 - y1 / 8.0), Vector2(ub, 1.0 - y0 / 8.0),
+			Vector2(ua, 1.0 - y0 / 8.0)]
+		_facing(buf, pts, Vector3(out.x, 0.0, out.y), uvs, color, Vector2(pack(side, edges, 0), around))
+	var caps: Array = []
+	if top != CAP_NONE:
+		caps.append([high, y1, Vector3.UP, m * 3 + (0 if top == CAP_CUT else 1)])
+	if bottom:
+		caps.append([low, y0, Vector3.DOWN, m * 3 + 2])
+	for cap: Array in caps:
+		var ring: Array = cap[0]
+		var packed := Vector2(pack(cap[3], 0, 0), around)
+		var rows := [[ring[0], ring[1], ring[3], ring[6]]]
+		if c > 0:
+			rows.append([ring[6], ring[3], ring[4], ring[5]])
+		for q: Array in rows:
+			var pts := []
+			var uvs := []
+			for p: Vector2 in q:
+				pts.append(_texel(base, p, cap[1]))
+				uvs.append(Vector2(clampf(p.x / 8.0, 0.0, 1.0), clampf(p.y / 8.0, 0.0, 1.0)))
+			_facing(buf, pts, cap[2], uvs, color, packed)
+
+
+## The eight corners round `r`, clockwise from the north-west one, with its south corners
+## cut by `c` texels; the north ones, hidden behind it, stay square (and come twice).
+static func _ring(r: Rect2i, c: int) -> Array:
+	var l := r.position.x
+	var e := r.end.x
+	var n := r.position.y
+	var s := r.end.y
+	return [Vector2(l, n), Vector2(e, n), Vector2(e, n), Vector2(e, s - c),
+		Vector2(e - c, s), Vector2(l + c, s), Vector2(l, s - c), Vector2(l, n)]
+
+
+## The point `p` (texels across the cell at `base` from above) `up` texels up.
+static func _texel(base: Vector3, p: Vector2, up: float) -> Vector3:
+	return base + Vector3(p.x, up, p.y) / 8.0
+
+
+## A quad with its corners turned clockwise as seen from the side `n` faces.
+static func _facing(buf, pts: Array, n: Vector3, uvs: Array, color: Color, packed: Vector2) -> void:
+	if (pts[1] - pts[0]).cross(pts[2] - pts[0]).dot(n) > 0.0:
+		pts.reverse()
+		uvs.reverse()
+	buf.quad(pts, n, uvs, color, packed)
 
 
 ## Foam bits of the water in padded cell `i`: the half edges (see HALF_CORNER) that

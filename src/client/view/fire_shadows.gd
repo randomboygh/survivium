@@ -9,6 +9,7 @@ extends MultiMeshInstance3D
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 const FireShadowShader := preload("res://shaders/fire_shadow.gdshader")
 
 const CELL := WorldData.CELL
@@ -25,6 +26,7 @@ const TORCH_HEIGHT := 1.2
 const TORCH_AHEAD := 0.3
 ## Widths of the shadows at their foot, world units.
 const PLAYER_WIDTH := 0.4
+## A trunk's, for one 6 texels across; a thicker one throws a wider shadow.
 const TRUNK_WIDTH := 0.5
 ## Casters stand on the light's ground within this many world units up or down.
 const SAME_GROUND := 0.6
@@ -161,18 +163,20 @@ func _lights() -> Array:
 		var light: OmniLight3D = f.light
 		if p.distance_to(f.at) < light.omni_range + VIEW_REACH:
 			out.append({"at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
-				"strength": light.shadow_opacity, "torch": false})
+				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01:
 		out.append({"at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT, "range": torch.omni_range,
-			"strength": clampf(torch.light_energy / 1.3, 0.0, 1.0), "torch": true})
+			"strength": clampf(torch.light_energy / 1.3, 0.0, 1.0), "torch": true, "real": false})
 	return out
 
 
 ## Adds the shadows that move, thrown by light `l`, from instance `n` on: the player's
 ## and the animals', and the trunks' from the torch; returns the next free instance.
 func _cast_all(l: Dictionary, n: int) -> int:
-	if not l.torch:
+	# A fire with a real shadow (the "mixed" setting, see Effects.player_only) throws
+	# the player's itself.
+	if not l.torch and not l.real:
 		n = _cast(l, game.player.position, game.player.HEIGHT * CELL, PLAYER_WIDTH, n)
 	var at: Vector3 = l.at
 	var r2: float = l.range * l.range
@@ -197,8 +201,17 @@ func _cast_trunks(l: Dictionary, n: int) -> int:
 		for kx in range(k.position.x, k.end.x + 1):
 			for foot: Vector3 in _feet(Vector2i(kx, kz), at):
 				if Vector2(foot.x - at.x, foot.z - at.z).length_squared() < r2:
-					n = _cast(l, foot, 64.0, TRUNK_WIDTH, n)
+					n = _cast(l, foot, 64.0, _girth(foot), n)
 	return n
+
+
+## How wide the trunk standing at `foot` is at its foot (see Trees.trunk_box).
+func _girth(foot: Vector3) -> float:
+	var col := Vector2i(floori(foot.x / CELL), floori(foot.z / CELL))
+	var species: int = game.world.trees.get(col, -1)
+	if species < 0 or species >= Trees.SPECIES.size():
+		return TRUNK_WIDTH
+	return TRUNK_WIDTH * Trees.trunk_box(species, col, 0).size.x / 6.0
 
 
 ## The feet of the trunks of chunk `key` seen from a light at `at` (see _base), kept
