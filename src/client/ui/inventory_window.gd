@@ -546,7 +546,7 @@ func refresh_state() -> void:
 			icons[str(i)] = ItemIcons.picture("chest")
 			tips[str(i)] = "Сундук %d" % (i + 1)
 		_chest_tabs.set_tabs(keys, icons, tips)
-		_chest_tabs.visible = _chests.size() > 1
+		_chest_tabs.visible = not _chests.is_empty()
 		refresh.call_deferred()
 	_chest_tabs.select(str(_chests.find(_chest_entry)))
 	craft.refresh_progress()
