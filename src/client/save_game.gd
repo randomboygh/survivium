@@ -180,7 +180,7 @@ func _write_world() -> void:
 		"saved": Time.get_datetime_string_from_system(),
 		"played": played,
 		"sky": {"day": sky.day, "time": sky.time_of_day, "season": sky.season, "season_clock": sky.season_clock},
-		"placed": game.props.to_list(),
+		"placed": game.placed.to_list(),
 	}
 	var p: Vector3 = game.player.position
 	player_record = {"format": WorldStore.FORMAT, "position": [p.x, p.y, p.z]}

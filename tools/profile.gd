@@ -159,9 +159,9 @@ func _profile() -> void:
 		if s.get("underground", false):
 			main.player.position = _cave(main.world, main.player.position)
 		if s.has("by_fire"):
-			for e: Dictionary in main.props.placed:
-				if e.fire != null:
-					main.player.position = main.props.center(e) + s.by_fire
+			for e: Dictionary in main.placed.things:
+				if main.placed.is_fire(e):
+					main.player.position = main.placed.center(e) + s.by_fire
 					break
 		if s.has("keys"):
 			main.player.position = _flat_near(main.world, main.player.position)

@@ -14,7 +14,8 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                crafting (recipes), tools, ai_rules
   world/       world_data, world_gen, world_store, voxel_raycast, grass (what grows on a cell)
   game/        rules of play: inventory, vitals, knowledge, craft_queue, world_actions (dig,
-               build, chop, gather, plant), body (walking, jumping, swimming on the cells)
+               build, chop, gather, plant), body (walking, jumping, swimming on the cells),
+               placed (chests, stations, campfires on 2x2 cells), workshop (crafting)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
@@ -22,7 +23,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
                voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art
   input/       controls, cursor, touch_stick, touch_button
   game/        game systems whose rules still live in the client: character, gathering,
-               workshop, props, creatures
+               props (the placed things and the drops drawn), creatures
   ui/          hud, menus, windows, maps, panels and their widgets, ui_style
 ```
 
@@ -67,7 +68,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
   is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; what the hands do to the world is `src/shared/game/world_actions.gd`, each tool's rules `src/shared/content/tools.gd`),
-  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/content/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
+  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (draws the things placed on 2×2 cells, whose rules are `src/shared/game/placed.gd`: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; and the items lying on the ground, `WorldData.drops`), crafting is `src/shared/game/workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; `game.workshop`; recipes in `src/shared/content/crafting.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another

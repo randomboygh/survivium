@@ -130,7 +130,7 @@ func _ready() -> void:
 	_chest_buttons.add_child(TabRow.icon_button(UiStyle.icon("take"), "Забрать сундук в сумку", func() -> void:
 		var e := _chest_entry
 		_let_go()
-		game.props.take_up(e)
+		game.placed.take_up(game.character, e)
 		refresh()))
 	for b in [_to_chest, into.get_child(1), _chest_buttons.get_child(1)]:
 		b.custom_minimum_size = Vector2(30, 30)
@@ -159,7 +159,7 @@ func _ready() -> void:
 	_chest_gap = Control.new()
 	_chest_gap.custom_minimum_size.y = 4
 	cells.add_child(_chest_gap)
-	_chest_grid = _slot_grid(cells, game.props.CHEST_SLOTS, _chest_slots, _tap.bind(false))
+	_chest_grid = _slot_grid(cells, game.placed.CHEST_SLOTS, _chest_slots, _tap.bind(false))
 	# Sorting on the right, over the tabs of the chests near.
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 2)
@@ -522,8 +522,8 @@ func _show_info(inv) -> void:
 func refresh_state() -> void:
 	var near := []
 	var here: Vector3 = game.player.position
-	for e: Dictionary in game.props.placed:
-		if e.items != null and game.props.center(e).distance_to(here) <= game.gathering.REACH + 1.0:
+	for e: Dictionary in game.placed.things:
+		if e.items != null and game.placed.center(e).distance_to(here) <= game.gathering.REACH + 1.0:
 			near.append(e)
 	var seen := ""
 	for e in near:

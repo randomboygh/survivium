@@ -8,7 +8,7 @@ extends VFlowContainer
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
-const Workshop := preload("res://src/client/game/workshop.gd")
+const Workshop := preload("res://src/shared/game/workshop.gd")
 
 
 ## Wells down a column; more go into the next column.

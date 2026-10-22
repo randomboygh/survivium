@@ -23,6 +23,8 @@ const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
+const Workshop := preload("res://src/shared/game/workshop.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -54,6 +56,7 @@ func _init() -> void:
 	_test_bushes()
 	_test_felling()
 	_test_world_actions()
+	_test_placed()
 	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
@@ -1614,6 +1617,47 @@ func _test_world_actions() -> void:
 	_check(hits > 1 and hits <= Trees.SPECIES[Trees.OAK].hits and not w.drops.is_empty(), "an oak falls after its hits")
 
 
+## The rules of placed things and crafting run without the client: a workbench put
+## down from the bag is solid and lets a stone axe be made near it, and a campfire is
+## put out, lit again for a branch and destroyed.
+func _test_placed() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var placed := Placed.new()
+	placed.world = w
+	var who := Who.new()
+	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	who.inventory.add("core:workbench", 1)
+	_check(not placed.put_from_bag(who, "core:workbench", -1, 1), "nothing is placed above the level cut")
+	_check(placed.put_from_bag(who, "core:workbench", -1, 40) and placed.things.size() == 1
+		and who.inventory.count("core:workbench") == 0, "a workbench is placed from the bag")
+	var bench: Vector3i = placed.things[0].cell
+	_check(bench.y == 2 and bench.z < 12 and w.blockers.has(bench), "in front of the one who placed it, and solid")
+	var shop := Workshop.new(who, placed, {"tool_wear": false})
+	var axe := Crafting.get_recipe("core:stone_axe")
+	for id in ["core:flint", "core:cord"]:
+		who.inventory.add(id, 1)
+	who.inventory.add("core:branch", 2)
+	_check(shop.start(axe) == 1, "a stone axe is started by the workbench")
+	who.position = Vector3(40.5, 2.0, 40.5) * WorldData.CELL
+	shop.update(axe.time + 1.0)
+	_check(who.inventory.count("core:stone_axe") == 0 and shop.waiting(), "away from the workbench the work waits")
+	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	shop.update(axe.time + 1.0)
+	_check(who.inventory.count("core:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
+	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
+	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "a campfire that burns is a station")
+	placed.put_out(fire)
+	_check(not fire.lit and not placed.light(who, fire), "a campfire put out needs a branch to burn again")
+	who.inventory.add("core:branch", 1)
+	_check(placed.light(who, fire) and fire.lit and who.inventory.count("core:branch") == 0, "it is lit for a branch")
+	placed.put_out(fire)
+	_check(placed.destroy(fire) and not placed.things.has(fire), "and destroyed once it is out")
+
+
 func _bits(v: int) -> int:
 	var n := 0
 	while v != 0:
@@ -1783,6 +1827,9 @@ class Who extends RefCounted:
 
 	func use_tool() -> void:
 		pass
+
+	func lay(_kind: String, _data: Variant) -> Vector3:
+		return position
 
 	func nag(_reason: String, text: String) -> void:
 		said.append(text)

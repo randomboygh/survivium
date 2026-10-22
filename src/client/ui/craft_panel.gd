@@ -91,17 +91,17 @@ func _ready() -> void:
 	station_buttons.add_theme_constant_override("separation", 4)
 	station_buttons.visible = false
 	_take_up = TabRow.icon_button(UiStyle.icon("take"), "Забрать в сумку", func() -> void:
-		if game.props.take_up(_station):
+		if game.placed.take_up(game.character, _station):
 			_station = {}
 			refresh())
 	_fire = TabRow.icon_button(UiStyle.icon("put_out"), "Потушить", func() -> void:
 		if _station.lit:
-			game.props.put_out(_station)
+			game.placed.put_out(_station)
 		else:
-			game.props.light(_station)
+			game.placed.light(game.character, _station)
 		refresh())
 	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
-		if game.props.destroy(_station):
+		if game.placed.destroy(_station):
 			_station = {}
 			refresh())
 	for b in [_take_up, _fire, _destroy]:
@@ -251,7 +251,7 @@ func refresh_now() -> void:
 	var known: Array = shop.recipes()
 	var stations: Dictionary = shop.stations()
 	_stations_seen = str(stations.keys())
-	if not _station.is_empty() and not game.props.placed.has(_station):
+	if not _station.is_empty() and not game.placed.things.has(_station):
 		_station = {}
 	_show_head()
 	_show_stations(known, stations)
@@ -307,7 +307,7 @@ func _show_head() -> void:
 	station_buttons.visible = not _station.is_empty()
 	if not station_buttons.visible:
 		return
-	var fire: bool = _station.fire != null
+	var fire: bool = game.placed.is_fire(_station)
 	_take_up.visible = not fire
 	_take_up.tooltip_text = "Забрать в сумку: %s" % Items.title(_station.item)
 	_fire.visible = fire
