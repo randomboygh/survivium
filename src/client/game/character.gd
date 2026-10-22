@@ -47,7 +47,7 @@ func _init(g) -> void:
 
 ## Picks the place to come back to after death, once the props are placed.
 func find_home() -> void:
-	var fire: Variant = game.props.cell_of(game.props.CAMPFIRE)
+	var fire: Variant = game.placed.cell_of(game.placed.CAMPFIRE)
 	if fire is Vector3i:
 		home = (Vector3(fire) + Vector3(2.5, 0.0, 0.5)) * CELL
 	else:

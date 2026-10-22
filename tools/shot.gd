@@ -253,13 +253,13 @@ func _run() -> void:
 		if shot.has("place"):
 			main.player.position = _place(main.world, shot.place)
 		if shot.has("by_fire"):
-			for e: Dictionary in main.props.placed:
-				if e.fire != null:
-					main.player.position = main.props.center(e) + shot.by_fire
+			for e: Dictionary in main.placed.things:
+				if main.placed.is_fire(e):
+					main.player.position = main.placed.center(e) + shot.by_fire
 					for off: Vector3 in shot.get("more_fires", []):
-						var spot: Vector3i = main.props._prop_spot(main.props.center(e) + off)
+						var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + off)
 						if spot.y >= 0:
-							added_fires.append(main.props._put(main.props.CAMPFIRE, spot, null))
+							added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
 					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
@@ -355,8 +355,8 @@ func _run() -> void:
 			if shot.get("destroy", false):
 				main.hud.bag._destroy.pressed.emit()
 		if shot.get("chest", false):
-			main.props.chest_items.add("core:log", 3)
-			main.props.chest_items.add("core:raspberry", 12)
+			main.placed.chest_items.add("core:log", 3)
+			main.placed.chest_items.add("core:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, false)
@@ -364,14 +364,14 @@ func _run() -> void:
 			main.character.inventory.add("core:chest", 1)
 			main.player.facing = "e"
 			main.props.put_from_bag("core:chest")
-			main.props.chest_items.add("core:raspberry", 12)
+			main.placed.chest_items.add("core:raspberry", 12)
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, true)
 		if shot.get("campfire", false):
-			for e in main.props.placed:
-				if e.fire != null:
+			for e in main.placed.things:
+				if main.placed.is_fire(e):
 					main.hud.open_prop(e)
 					break
 		if shot.get("craft", false):
@@ -379,7 +379,7 @@ func _run() -> void:
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
 			if shot.has("on"):
-				for e in main.props.placed:
+				for e in main.placed.things:
 					if e.item == shot.on[0]:
 						main.player.position = (Vector3(e.cell) + shot.on[1]) * main.CELL
 				for i in 30:
@@ -450,7 +450,7 @@ func _run() -> void:
 			main.hud.map_view.close()
 		print("saved ", shot_name)
 		for e in added_fires:
-			main.props._remove(e)
+			main.placed._remove(e)
 		added_fires.clear()
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
@@ -465,12 +465,12 @@ func _run() -> void:
 		if shot.get("craft", false):
 			while not main.workshop.queue.jobs.is_empty():
 				main.workshop.queue.cancel(0)
-			for e in main.props.placed.duplicate():
+			for e in main.placed.things.duplicate():
 				if e.item in ["core:workbench", "core:kiln"]:
-					main.props.take_up(e)
+					main.placed.take_up(main.character, e)
 			main.character.inventory.take_all()
 		if shot.get("chest", false):
-			main.props.chest_items.take_all()
+			main.placed.chest_items.take_all()
 		if shot.get("gather", false) or shot.get("work", false):
 			main.character.inventory.take_all()
 			main.character.vitals.revive(1.0)
@@ -502,7 +502,7 @@ func _craft() -> void:
 	shop.start(Crafting.get_recipe("core:cord"), 2)
 	shop.queue.jobs[0].left = 0.5
 	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
-	for e in main.props.placed:
+	for e in main.placed.things:
 		if e.item == "core:workbench":
 			main.hud.open_prop(e)
 

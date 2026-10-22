@@ -5,14 +5,15 @@ extends Node
 ## split between modules that each hold their own state and get `self` as `game`:
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
 ## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
-## make), CameraRig (the pixel-perfect view and the camera), Props (bushes, drifts,
-## chests, workbenches, kilns, campfires), Character (the bag and the body: health,
-## satiety, stamina, death; DeathScreen shows a death), Gathering (what a tap gathers,
-## things taken up by themselves), Workshop (recipes known, the crafting queue, tool wear),
-## Hands (what the player is drawn holding), Settings (the saved settings and the playtest switches) and
-## SaveGame (the saved world and player). WorldActions (src/shared) holds the rules of
-## what the hands do to the world; its signals redraw the chunks and the things on the
-## ground.
+## make), CameraRig (the pixel-perfect view and the camera), Props (the chests,
+## workbenches, kilns and campfires drawn, the things on the ground), Character (the bag
+## and the body: health, satiety, stamina, death; DeathScreen shows a death), Gathering
+## (what a tap gathers, things taken up by themselves), Hands (what the player is drawn
+## holding), Settings (the saved settings and the playtest switches) and SaveGame (the
+## saved world and player). The rules live in src/shared: WorldActions (what the hands
+## do to the world), Placed (the things placed on two by two cells) and Workshop
+## (recipes known, the crafting queue, tool wear); their signals redraw the chunks and
+## the things.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -29,7 +30,8 @@ const Props := preload("res://src/client/game/props.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
 const Gathering := preload("res://src/client/game/gathering.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
-const Workshop := preload("res://src/client/game/workshop.gd")
+const Workshop := preload("res://src/shared/game/workshop.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
@@ -77,6 +79,7 @@ var gathering: Gathering
 ## world is made.
 var actions: WorldActions
 var workshop: Workshop
+var placed: Placed
 var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
@@ -135,13 +138,16 @@ func _ready() -> void:
 	sky = SkyScript.new(self)
 	save.restore_clock()
 	props = Props.new(self)
+	placed = Placed.new()
+	props.watch(placed)
+	placed.cell_changed.connect(chunks.on_cell_changed)
 	character = CharacterScript.new(self)
 	save.track("inventory", character.inventory)
 	save.track("vitals", character.vitals)
 	save.track("character", character)
 	gathering = Gathering.new(self)
 	hands = HandsScript.new(self)
-	workshop = Workshop.new(self)
+	workshop = Workshop.new(character, placed, settings)
 	save.track("knowledge", workshop.knowledge)
 	save.track("crafting", workshop.queue)
 	save.track("hands", controls)
@@ -173,6 +179,7 @@ func start_world() -> void:
 	gen = WorldGen.new(world_seed, 48, world_options)
 	gen.saved = save.store
 	world = gen.world
+	placed.world = world
 	actions = WorldActions.new(world, sky, settings)
 	actions.cell_changed.connect(chunks.on_cell_changed)
 	actions.looks_changed.connect(chunks.remesh_chunk)

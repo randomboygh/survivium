@@ -62,7 +62,7 @@ func _run() -> void:
 	main.character.inventory.add("core:stone_axe", 1, 17)
 	main.character.inventory.add("core:workbench", 1)
 	_check(main.props.put_from_bag("core:workbench"), "a workbench is placed in front of the player")
-	main.props.chest_items.add("core:log", 2)
+	main.placed.chest_items.add("core:log", 2)
 	main.save.begin()
 	# A pit dug three cells deep beside the player, who then steps aside.
 	var w = main.world
@@ -89,7 +89,7 @@ func _run() -> void:
 	var listed := WorldStore.list_worlds()
 	_check(listed.size() == 1 and listed[0].seed == main.world_seed and listed[0].day == 5, "the world list shows the save")
 	var stood: Vector3 = main.player.position
-	var props: Array = main.props.to_list()
+	var props: Array = main.placed.to_list()
 	var seed_value: int = main.world_seed
 	main.queue_free()
 	await process_frame
@@ -102,8 +102,8 @@ func _run() -> void:
 		"the pit dug is still there")
 	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
 	_check(main.sky.day == 5 and absf(main.sky.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
-	_check(str(main.props.to_list()) == str(props), "the props stand where they stood")
-	_check(main.props.cell_of("core:workbench") != null and main.props.chest_items.count("core:log") == 2,
+	_check(str(main.placed.to_list()) == str(props), "the props stand where they stood")
+	_check(main.placed.cell_of("core:workbench") != null and main.placed.chest_items.count("core:log") == 2,
 		"the workbench placed and what the chest holds come back")
 	_check(main.workshop.queue.jobs.size() >= 1 and main.workshop.knowledge.seen.has("core:fiber"),
 		"the crafting queue and what the character knows come back")

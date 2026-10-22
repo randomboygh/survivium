@@ -450,7 +450,7 @@ func update_state() -> void:
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
-	minimap.set_marks(game.props.placed)
+	minimap.set_marks(game.placed.things)
 	_set_icon(_clock_icon, game.sky.icon())
 	var cut: bool = game.chunks.manual_level >= 0
 	_level_label.text = "Срез %d" % game.chunks.cut_level if cut else "Ур. %d" % game.player.level()
@@ -553,8 +553,8 @@ func show_keys(on: bool) -> void:
 
 ## Opens the bag with the chest by the spawn beside it.
 func open_chest() -> void:
-	for e: Dictionary in game.props.placed:
-		if e.items != null and e.items == game.props.chest_items:
+	for e: Dictionary in game.placed.things:
+		if e.items != null and e.items == game.placed.chest_items:
 			open_prop(e)
 
 

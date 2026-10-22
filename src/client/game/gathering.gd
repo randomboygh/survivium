@@ -47,8 +47,8 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 	var player_pos: Vector3 = game.player.position + Vector3(0.0, 0.5, 0.0)
 	var world = game.world
 	var bush_reach: float = game.controls.tool_record().reach * CELL
-	for e: Dictionary in game.props.placed:
-		var at: Vector3 = game.props.center(e)
+	for e: Dictionary in game.placed.things:
+		var at: Vector3 = game.placed.center(e)
 		if at.distance_to(player_pos) <= REACH:
 			var d := _screen_distance(at, vp_pos)
 			if d < best_d + 6.0:
