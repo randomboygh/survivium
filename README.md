@@ -140,7 +140,8 @@
   `godot --headless --path . --script res://tools/validate.gd`.
 - Тесты: `godot --headless --path . --import`, затем `godot --headless --path . --script res://tests/run_tests.gd`;
   тест фризов (игра без экрана, предел времени кадра): `timeout 600 godot --headless --path . --script res://tests/frame_test.gd`;
-  тест сохранения (играет, сохраняет и запускает заново): `timeout 300 godot --headless --path . --script res://tests/save_test.gd`.
+  тест сохранения (играет, сохраняет и запускает заново): `timeout 300 godot --headless --path . --script res://tests/save_test.gd`;
+  тест первых инструментов (с пустой сумкой собирает материалы, ставит станки и делает все рецепты): `timeout 600 godot --headless --path . --script res://tests/progress_test.gd`.
 - GitHub Actions (`.github/workflows/build.yml`) на каждый пуш и PR проверяет данные, запускает тесты, собирает web-версию,
   проверяет её в Chrome (`tests/browser_smoke.mjs`, в том числе как телефон с сенсором) и из `main`
   публикует на GitHub Pages.
@@ -190,7 +191,8 @@
   проекции 3/4 в `common.gdshaderinc`.
 - `assets/fonts/`: пиксельный шрифт Press Start 2P (лицензия OFL).
 - `tests/`: headless-тесты (`run_tests.gd` проверяет данные, генератор, меши и правила,
-  `frame_test.gd` ловит фризы, `save_test.gd` сохранение) и проверка сборки в браузере
+  `frame_test.gd` ловит фризы, `save_test.gd` сохранение, `progress_test.gd` путь от голых рук
+  до всех рецептов) и проверка сборки в браузере
   (`browser_smoke.mjs`).
 - `content/core/`: данные базовой игры как мод (`mod.yaml`, `data/*.yaml`); `src/shared/content/content.gd`
   читает их и проверяет по схемам, `tools/validate.gd` делает то же в CI. В `sprites/` картинки

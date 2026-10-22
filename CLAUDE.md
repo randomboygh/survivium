@@ -119,11 +119,16 @@ godot --headless --path . --import
 godot --headless --path . --script res://tools/validate.gd
 godot --headless --path . --script res://tests/run_tests.gd
 timeout 300 godot --headless --path . --script res://tests/save_test.gd
+timeout 600 godot --headless --path . --script res://tests/progress_test.gd
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 ```
 
 `frame_test.gd` plays scenarios headless (walk, dig, cut change, streaming) and fails when
-chunk-sized work lands in one frame; CI runs it too.
+chunk-sized work lands in one frame; CI runs it too. `progress_test.gd` starts a new world with an
+empty bag and plays the way to every recipe through the game's own calls (taps, action button,
+craft tab): gathers the materials, sets down the stations, makes everything; it fails on the
+first thing it cannot get or make. Run it after any change to tools, materials, stations, recipes
+or what the hands do; CI runs it on every push.
 
 Run `--import` again after pulling new assets (fonts, textures), or HUD scripts fail with null
 errors that look like code bugs. Wrap headless runs in `timeout`: a runtime error in an awaiting
