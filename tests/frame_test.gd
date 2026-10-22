@@ -12,13 +12,13 @@ extends SceneTree
 ## what a whole chunk costs here. Chunk-sized work slipping into one frame fails the
 ## test on any machine, and a slow runner does not.
 
-const Mat := preload("res://src/shared/materials.gd")
-const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
-const Foliage := preload("res://src/client/foliage.gd")
-const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
+const Foliage := preload("res://src/client/world/foliage.gd")
+const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const Shot := preload("res://tools/shot.gd")
-const Tools := preload("res://src/shared/tools.gd")
-const Crafting := preload("res://src/shared/crafting.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
+const Crafting := preload("res://src/shared/content/crafting.gd")
 const CELL := 0.5
 const CHUNK := 16
 ## Frames over a limit allowed in a scenario, one plus one per this many frames: a

@@ -14,7 +14,7 @@ extends RefCounted
 ## (Figure).
 
 const PlayerArt := preload("res://tools/art/player_art.gd")
-const Figure := preload("res://src/client/figure.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 
 ## Colours of the letters of SHAPES.
 const INK := {

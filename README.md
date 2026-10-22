@@ -145,38 +145,42 @@
 
 ### Структура
 
-- `src/shared/`: мир и правила, которые будет крутить сервер; не зависит от клиента. Данные мира по
-  чанкам (`world_data.gd`), генератор (`world_gen.gd`: три стадии на чанк, всё из шума и хеша
-  столбца), сохранения по мирам (`world_store.gd`); загрузчик данных мода (`content.gd`, `yaml.gd`)
-  и реестры по ним: материалы, предметы, деревья, кусты, растения на траве, рецепты
-  (`crafting.gd`), инструменты (`tools.gd`), правила поведения зверей (`ai_rules.gd`); сумка
-  (`inventory.gd`), тело (`vitals.gd`), известные рецепты (`knowledge.gd`), очередь крафта
-  (`craft_queue.gd`), рейкаст.
-- `src/client/`: всё, что рисует и слушает ввод. `main.gd` собирает сцену и ведёт кадр, работу
-  делят модули:
-  - мир на экране: `chunk_streamer.gd` (генерация и меши чанков вокруг игрока по бюджету кадра,
-    крышки, срез уровней), `chunk_mesher.gd` и `foliage.gd` (меши чанков, трава, кроны, кусты),
-    `drifts.gd`, `tracks.gd`, `roof_map.gd`, `props.gd` (станки и сундуки, вещи на земле);
-  - картинка: `pixel_view.gd` (пиксельная проекция), `camera_rig.gd`, `sky.gd` (время, сезоны,
-    погода, свет, цветокор), `effects.gd` (частицы и огни), `fire_shadows.gd` (нарисованные тени
-    от огня), `pixel_textures.gd`, `voxel_props.gd`;
-  - персонаж и звери: `player.gd` (тело и спрайт; лист кадров собирает `figure.gd`, что в руках —
-    `hands.gd`), `character.gd` (сумка, тело, смерть), `gathering.gd` (подбор, кусты и деревья,
-    покос, посев), `workshop.gd` (крафт у станков), `creatures.gd`;
-  - ввод: `controls.gd` (клавиши, мышь, касания, руки, кисть, кнопка действия), `cursor.gd`
+Код разложен по слоям. `src/shared/` — это мир и правила, их будет крутить сервер, и оттуда ничего
+не загружается из `src/client/` (тест это проверяет). `src/client/` рисует и слушает ввод.
+
+- `src/shared/content/`: загрузчик данных мода (`content.gd`, `yaml.gd`) и реестры по ним:
+  материалы, предметы, деревья, кусты, растения на траве, рецепты (`crafting.gd`), инструменты
+  (`tools.gd`), правила поведения зверей (`ai_rules.gd`).
+- `src/shared/world/`: данные мира по чанкам (`world_data.gd`), генератор (`world_gen.gd`: три
+  стадии на чанк, всё из шума и хеша столбца), сохранения по мирам (`world_store.gd`), рейкаст.
+- `src/shared/game/`: правила игры: сумка (`inventory.gd`), тело (`vitals.gd`), известные рецепты
+  (`knowledge.gd`), очередь крафта (`craft_queue.gd`). Сюда по одной системе переезжают правила,
+  которые пока живут в `src/client/game/`.
+- `src/client/`: `main.gd` собирает сцену и ведёт кадр, `settings.gd` хранит настройки,
+  `save_game.gd` сохраняет и загружает мир. Остальное по папкам:
+  - `world/`: мир на экране: `chunk_streamer.gd` (генерация и меши чанков вокруг игрока по бюджету
+    кадра, крышки, срез уровней), `chunk_mesher.gd` и `foliage.gd` (меши чанков, трава, кроны,
+    кусты), `drifts.gd`, `tracks.gd`, `roof_map.gd`;
+  - `view/`: картинка: `pixel_view.gd` (пиксельная проекция), `camera_rig.gd`, `sky.gd` (время,
+    сезоны, погода, свет, цветокор), `effects.gd` (частицы и огни), `fire_shadows.gd` (нарисованные
+    тени от огня), `player.gd` (тело и спрайт; лист кадров собирает `figure.gd`, что в руках —
+    `hands.gd`), `pixel_textures.gd`, `voxel_props.gd`;
+  - `input/`: `controls.gd` (клавиши, мышь, касания, руки, кисть, кнопка действия), `cursor.gd`
     (рамка-курсор), `touch_stick.gd`, `touch_button.gd`;
-  - интерфейс: `hud.gd`, `main_menu.gd`, `world_setup.gd` («Новый мир»), `world_list.gd` («Миры»),
-    `settings.gd` и `settings_menu.gd` (настройки и «Тестирование»), `inventory_window.gd` и
-    `craft_panel.gd` (сумка и крафт), `death_screen.gd`, `vitals_panel.gd`, `minimap.gd`,
-    `map_view.gd`, `perf_panel.gd`, `item_icons.gd`, `ui_style.gd` и мелкие элементы;
-  - `save_game.gd`: сохранение и загрузка мира, автосохранение.
+  - `game/`: состояние игры, которое пока живёт в клиенте: `character.gd` (сумка, тело, смерть),
+    `gathering.gd` (подбор, кусты и деревья, покос, посев), `workshop.gd` (крафт у станков),
+    `props.gd` (станки и сундуки, вещи на земле), `creatures.gd`;
+  - `ui/`: `hud.gd`, `main_menu.gd`, `world_setup.gd` («Новый мир»), `world_list.gd` («Миры»),
+    `settings_menu.gd` (настройки и «Тестирование»), `inventory_window.gd` и `craft_panel.gd`
+    (сумка и крафт), `death_screen.gd`, `vitals_panel.gd`, `minimap.gd`, `map_view.gd`,
+    `perf_panel.gd`, `item_icons.gd`, `ui_style.gd` и мелкие элементы.
 - `shaders/`: шейдеры мира, воды, травы, крон, теней, спрайтов, частиц и цветокора; общий код и сдвиг
   проекции 3/4 в `common.gdshaderinc`.
 - `assets/fonts/`: пиксельный шрифт Press Start 2P (лицензия OFL).
 - `tests/`: headless-тесты (`run_tests.gd` проверяет данные, генератор, меши и правила,
   `frame_test.gd` ловит фризы, `save_test.gd` сохранение) и проверка сборки в браузере
   (`browser_smoke.mjs`).
-- `content/core/`: данные базовой игры как мод (`mod.yaml`, `data/*.yaml`); `src/shared/content.gd`
+- `content/core/`: данные базовой игры как мод (`mod.yaml`, `data/*.yaml`); `src/shared/content/content.gd`
   читает их и проверяет по схемам, `tools/validate.gd` делает то же в CI. В `sprites/` картинки
   персонажа: слои базового персонажа с пустыми руками (`player/*.png`), метки кистей рук
   (`player/hands.png`), листы инструментов в руках (`held/*.png`) и их раскладка (`player.yaml`). Новый

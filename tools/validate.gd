@@ -3,15 +3,15 @@ extends SceneTree
 ## quick check after editing data:
 ## godot --headless --path . --script res://tools/validate.gd
 
-const Content := preload("res://src/shared/content.gd")
-const Mat := preload("res://src/shared/materials.gd")
-const AiRules := preload("res://src/shared/ai_rules.gd")
-const Trees := preload("res://src/shared/trees.gd")
-const Bushes := preload("res://src/shared/bushes.gd")
-const Items := preload("res://src/shared/items.gd")
-const Crafting := preload("res://src/shared/crafting.gd")
-const Figure := preload("res://src/client/figure.gd")
-const Plants := preload("res://src/shared/plants.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
+const Bushes := preload("res://src/shared/content/bushes.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const Crafting := preload("res://src/shared/content/crafting.gd")
+const Figure := preload("res://src/client/view/figure.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 
 func _init() -> void:

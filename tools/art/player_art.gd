@@ -19,8 +19,8 @@ extends RefCounted
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
 ## two-handed work the other hand holds the same thing further along.
 
-const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
-const Figure := preload("res://src/client/figure.gd")
+const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}

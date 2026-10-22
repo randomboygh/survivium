@@ -5,7 +5,7 @@ extends SceneTree
 ## content/core/sprites/held/, a work of player.yaml, e.g. "axe:chop", "scythe:mow") or
 ## "-" for nothing; active: "left" or "right".
 
-const Figure := preload("res://src/client/figure.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 
 
 func _init() -> void:

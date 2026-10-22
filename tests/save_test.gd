@@ -4,8 +4,8 @@ extends SceneTree
 ## saves go to a test folder of their own. Run:
 ## godot --headless --path . --script res://tests/save_test.gd
 
-const Mat := preload("res://src/shared/materials.gd")
-const WorldStore := preload("res://src/shared/world_store.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
 const ROOT := "user://test_saves/game"
 
 var checks := 0

@@ -8,9 +8,9 @@ extends RefCounted
 ## game loses focus or quits. Other modules keep their part of the player with
 ## track(). Off for tests and tools (`enabled`). `game` is the Main node.
 
-const WorldStore := preload("res://src/shared/world_store.gd")
-const WorldData := preload("res://src/shared/world_data.gd")
-const WorldGen := preload("res://src/shared/world_gen.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
 const PLAYER := "players/local.json"
 ## Seconds between saves while playing.
