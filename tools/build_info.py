@@ -4,7 +4,8 @@ CI runs it before the web export. The version is <stage>.<PR>: the stage comes f
 application/config/version in project.godot (bumped by hand when an MVP stage closes),
 the PR is the last one merged into main, so "0.1.67" is the build with PR #67 in it.
 A pull request build is that number plus "+pr<N>". The changes are the lines
-"Что нового: ..." from the descriptions of the last merged PRs, newest first.
+"Что нового [вид]: ..." from the descriptions of the last merged PRs, newest first; a PR
+may have several, and a line without a kind is something new (see KINDS).
 
     python3 tools/build_info.py [out.json]   (GITHUB_TOKEN, GITHUB_REPOSITORY, HEAD_SHA from CI)
 """
@@ -17,8 +18,23 @@ import subprocess
 import sys
 import urllib.request
 
-ENTRIES = 15
-LINE = re.compile(r"^\s*(?:\*\*)?Что нового:(?:\*\*)?\s*(.+?)\s*$", re.MULTILINE)
+ENTRIES = 15  # PRs with a line
+LINE = re.compile(r"^\s*(?:\*\*)?Что нового\s*(?:\[([^\]]*)\])?\s*:(?:\*\*)?\s*(.+?)\s*$", re.MULTILINE)
+# The kind written in a line -> the kind the client draws an icon for.
+KINDS = {
+    "новое": "new",
+    "улучшено": "better",
+    "исправлено": "fix",
+    "быстрее": "fast",
+    "внутри": "inside",
+}
+
+
+def kind(tag: str) -> str:
+    tag = (tag or "").strip().lower()
+    if tag and tag not in KINDS:
+        print("unknown kind [%s], shown as new" % tag)
+    return KINDS.get(tag, "new")
 
 
 def stage() -> str:
@@ -53,11 +69,13 @@ def main() -> None:
         prs = merged_prs(repo, token)
         if prs:
             info["version"] = "%s.%d" % (stage(), prs[0]["number"])
+        shown = 0
         for p in prs:
-            m = LINE.search(p.get("body") or "")
-            if m:
-                info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "text": m.group(1)})
-            if len(info["changes"]) == ENTRIES:
+            lines = LINE.findall(p.get("body") or "")
+            for tag, text in lines:
+                info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "kind": kind(tag), "text": text})
+            shown += 1 if lines else 0
+            if shown == ENTRIES:
                 break
         ref = os.environ.get("GITHUB_REF", "")
         m = re.match(r"refs/pull/(\d+)/", ref)

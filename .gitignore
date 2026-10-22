@@ -4,3 +4,4 @@ build/
 node_modules/
 *.uid
 build_info.json
+__pycache__/
