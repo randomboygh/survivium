@@ -8,9 +8,28 @@ comments, commits and PRs are in English.
 
 ## Layout and dependencies
 
-- `src/shared/` must not preload anything from `src/client/`: it is the world model the future
-  server will run (data, generation, materials, trees, bushes, tools, recipes and the crafting
-  queue, AI rules, raycast).
+```
+src/shared/    the world model and the rules the server will run; loads nothing from src/client
+  content/     mod loader and registries: content, yaml, materials, items, trees, bushes, plants,
+               crafting (recipes), tools, ai_rules
+  world/       world_data, world_gen, world_store, voxel_raycast
+  game/        rules of play: inventory, vitals, knowledge, craft_queue
+src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
+  world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
+               tracks, roof_map
+  view/        the picture: pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures,
+               voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art
+  input/       controls, cursor, touch_stick, touch_button
+  game/        game systems whose rules still live in the client: character, gathering,
+               workshop, props, creatures
+  ui/          hud, menus, windows, maps, panels and their widgets, ui_style
+```
+
+- A new script goes into the folder of its layer. What happens in the game (a rule the server
+  must decide) goes into `src/shared/`; how it is drawn or asked for goes into `src/client/`.
+  `run_tests.gd` fails if anything under `src/shared/` loads a script from `src/client/`. The rules
+  in `src/client/game/` move to `src/shared/game/` one system at a time
+  (`plan/architecture/code-structure.md`).
 - The world has no edge. `world_data.gd` keeps the cells in `Chunk`s by key (`chunk_at`,
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
@@ -33,7 +52,7 @@ comments, commits and PRs are in English.
   VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
   `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
-  creatures, trees, bushes, recipes, plants), lists of records with namespaced ids (`core:grass`). `src/shared/content.gd`
+  creatures, trees, bushes, recipes, plants), lists of records with namespaced ids (`core:grass`). `src/shared/content/content.gd`
   reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI, and that
   every recipe can be made from what the world gives); the
   registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd`, `plants.gd` fill their static vars from
@@ -44,8 +63,8 @@ comments, commits and PRs are in English.
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
-  is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; rules in `src/shared/tools.gd`),
-  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
+  is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; rules in `src/shared/content/tools.gd`),
+  `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/content/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another

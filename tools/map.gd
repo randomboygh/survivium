@@ -8,9 +8,9 @@ extends SceneTree
 ## coloured by biome (WorldGen.column_color), so thousands of cells take seconds. The
 ## spawn is a white dot.
 
-const Mat := preload("res://src/shared/materials.gd")
-const WorldGen := preload("res://src/shared/world_gen.gd")
-const WorldData := preload("res://src/shared/world_data.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 
 var colors: Dictionary = {
 	Mat.GRASS: Color(0.36, 0.56, 0.24), Mat.DIRT: Color(0.5, 0.36, 0.22), Mat.STONE: Color(0.55, 0.55, 0.55),

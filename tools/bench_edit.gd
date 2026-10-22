@@ -3,12 +3,12 @@ extends SceneTree
 ## them, so freezes can be chased without a phone:
 ## godot --headless --path . --script res://tools/bench_edit.gd
 
-const WorldGen := preload("res://src/shared/world_gen.gd")
-const WorldData := preload("res://src/shared/world_data.gd")
-const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
-const Foliage := preload("res://src/client/foliage.gd")
-const RoofMap := preload("res://src/client/roof_map.gd")
-const Mat := preload("res://src/shared/materials.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
+const Foliage := preload("res://src/client/world/foliage.gd")
+const RoofMap := preload("res://src/client/world/roof_map.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
 const CHUNK := 16
 
 
