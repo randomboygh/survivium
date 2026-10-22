@@ -83,7 +83,7 @@ static func kinds(have: Dictionary) -> Array:
 			keys.append(k)
 	var icons := {"": UiStyle.icon("all"), "tools": ItemIcons.picture("pickaxe"), "stations": ItemIcons.picture("workbench"),
 		"materials": ItemIcons.picture("cord"), "blocks": ItemIcons.of_item("core:brick"),
-		"food": ItemIcons.picture("raspberry"), "plants": ItemIcons.picture("seeds")}
+		"food": ItemIcons.picture("raspberry"), "heal": ItemIcons.picture("bandage"), "plants": ItemIcons.picture("seeds")}
 	var names := {"": "Все"}
 	names.merge(Items.CATEGORIES)
 	return [keys, icons, names]

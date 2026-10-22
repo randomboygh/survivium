@@ -88,6 +88,14 @@ func eat(food: float) -> bool:
 	return true
 
 
+## Puts back `amount` health (a bandage); false when not hurt.
+func heal(amount: float) -> bool:
+	if health >= MAX - 0.5:
+		return false
+	health = minf(MAX, health + amount)
+	return true
+
+
 ## The pace the body allows: slower when tired.
 func speed_factor() -> float:
 	return TIRED_PACE if stamina < TIRED else 1.0
