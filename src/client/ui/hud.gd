@@ -467,7 +467,7 @@ func update_state() -> void:
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
-	minimap.set_marks(game.placed.things)
+	minimap.set_marks(game.placed.things, game.character.sacks)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
 	# Eight ways, so the arrow stays on the pixel grid.
