@@ -241,8 +241,15 @@ func _section_rows(key: String) -> Array:
 				["Износ инструментов", ["выкл", "вкл"],
 					func() -> int: return int(s.tool_wear),
 					func(i: int) -> void: s.set_tool_wear(i == 1)],
+				["Перегруз", ["вкл", "выкл"],
+					func() -> int: return int(s.no_overload),
+					func(i: int) -> void: s.set_no_overload(i == 1)],
+				["Возрождение", ["у костра", "и где упали"],
+					func() -> int: return int(s.revive_at_death),
+					func(i: int) -> void: s.revive_at_death = i == 1],
 				null,
 				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
+				{"action": "К месту последней смерти", "do": func() -> void: s.go_to_death()},
 			]
 		"debug":
 			return [
