@@ -1770,8 +1770,13 @@ func _test_death() -> void:
 	ch.world = w
 	ch.clock = Clock.new()
 	ch.body = Body.new()
+	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
+	ch.update(0.1)
+	ch.clock.time_of_day += 0.25
 	ch.at = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
+	ch.update(0.1)
 	ch.give("core:branch", 3)
+	_check(ch.act("dig") and ch.act("dig"), "the character digs twice")
 	ch.vitals.satiety = 0.0
 	ch.vitals.health = 0.0
 	ch.update(0.1)
@@ -1784,9 +1789,15 @@ func _test_death() -> void:
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
 	_check(again.is_dead() and again.death.lost == [["core:branch", 3]], "the death is kept in the save")
+	var lived: Dictionary = ch.death.life
+	_check(is_equal_approx(lived.walked, WorldData.CELL) and lived.dug == 2.0 and lived.got == 3.0
+		and absf(lived.days - 0.25) < 0.01 and ch.death.deaths == 1, "the death screen knows what the life did")
+	_check(again.death.life.dug == 2.0 and again.deaths == 1 and absf(again.best_days - 0.25) < 0.01,
+		"and the statistics are kept in the save")
 	ch.revive(Vector3(2.5, 1.0, 2.5) * WorldData.CELL)
 	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
 		"and they come back with half their health at the respawn point")
+	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
 
 
 func _bits(v: int) -> int:
@@ -2046,6 +2057,9 @@ class Who extends RefCounted:
 
 	func give(id: String, n: int, worn := 0) -> int:
 		return inventory.add(id, n, worn)
+
+	func note(_stat: String, _n: float = 1.0) -> void:
+		pass
 
 	func use_tool() -> void:
 		pass

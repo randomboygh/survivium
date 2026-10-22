@@ -1,7 +1,8 @@
 extends RefCounted
 ## The one who plays, as the rules see them (plan/design/character.md): the bag
 ## (Inventory) and the body's state (Vitals), what the load and tiredness do to the
-## pace, what actions cost, eating, throwing things away, and death: the bag's
+## pace, what actions cost, eating, throwing things away, what this life has done (for
+## the death screen's statistics), and death: the bag's
 ## contents stay on the spot in a sack and the character lies dead until brought back
 ## at a respawn point. The death is kept in the save. The rules in src/shared/game/ take
 ## a character as `who`; where it stands, what its hands hold and how it speaks to the
@@ -18,6 +19,11 @@ const CELL := WorldData.CELL
 const NAG_INTERVAL := 3.0
 ## Health after coming back from death, as a share of full.
 const REVIVE_HEALTH := 0.5
+## Actions counted in this life's statistics when paid for, by the name they count as.
+const COUNTED := {"dig": "dug", "place": "built"}
+## A step longer than this (world units) is a jump of the body to another place, not
+## a walk.
+const STRIDE_MAX := 3.0
 
 signal state_changed
 
@@ -33,8 +39,19 @@ var vitals := Vitals.new()
 var home := Vector3.ZERO
 ## The character's death while they lie dead, else empty: "cause" (Vitals.hurt_by),
 ## "day" and "time" (the clock), "at" (where they fell, world units), "sack" (where
-## the sack lies, or null) and "lost" ([id, count] of each stack the sack holds).
+## the sack lies, or null), "lost" ([id, count] of each stack the sack holds), "life"
+## (what that life did, see `life`, with "days" lived), "deaths" and "best" (see below).
 var death := {}
+## What this life has done, by name: "walked" (world units), "dug", "built", "trees",
+## "got" (things taken into the bag), "eaten", "crafted", "jumps".
+var life := {}
+## When this life began, in game days (Clock day plus time of day); -1 before the first
+## frame of a new character.
+var born := -1.0
+## Deaths in this world and the longest life before one, in game days.
+var deaths := 0
+var best_days := 0.0
+var _last_at := Vector3.INF
 ## Where things were thrown away: those are not taken by themselves until the
 ## character has walked off (see WorldActions.pick_up_near).
 var held_back: Array[Vector3] = []
@@ -88,10 +105,19 @@ func find_home(placed) -> void:
 func update(delta: float) -> void:
 	if is_dead():
 		return
+	if born < 0.0:
+		born = _now()
+	var p := position
+	var stride := Vector2(p.x - _last_at.x, p.z - _last_at.z).length() if _last_at.is_finite() else 0.0
+	if stride < STRIDE_MAX:
+		note("walked", stride)
+	_last_at = p
 	vitals.step(delta, clock.days(delta), body.swimming, inventory.load_share())
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
-	if body.jumped and not body.air_jumps:
-		vitals.spend("jump")
+	if body.jumped:
+		note("jumps")
+		if not body.air_jumps:
+			vitals.spend("jump")
 	if vitals.is_dead():
 		die()
 
@@ -105,6 +131,8 @@ func can_jump() -> bool:
 ## character is too tired.
 func act(action: String) -> bool:
 	if vitals.spend(action):
+		if COUNTED.has(action):
+			note(COUNTED[action])
 		return true
 	nag("tired", "Нет сил, нужно отдышаться")
 	return false
@@ -114,6 +142,7 @@ func act(action: String) -> bool:
 ## came in; returns how many fit.
 func give(id: String, n: int, worn := 0) -> int:
 	var got := inventory.add(id, n, worn)
+	note("got", got)
 	if got > 0:
 		say("+%d %s" % [got, Items.title(id)])
 		if inventory.overloaded():
@@ -132,7 +161,19 @@ func eat(i: int) -> bool:
 		nag("full_belly", "Больше не хочется")
 		return false
 	inventory.take_slot(i, 1)
+	note("eaten")
 	return true
+
+
+## Counts `n` more of `stat` in this life's statistics (see `life`).
+func note(stat: String, n: float = 1.0) -> void:
+	if n != 0.0:
+		life[stat] = life.get(stat, 0.0) + n
+
+
+## The clock in game days, for how long a life lasts.
+func _now() -> float:
+	return clock.day + clock.time_of_day
 
 
 ## Throws `n` items of bag slot `i` on the ground at the feet; not a chest with
@@ -166,7 +207,14 @@ func die() -> void:
 	var sack: Variant = null
 	if not stacks.is_empty():
 		sack = lay(Items.SACK, stacks)
+	var lived := maxf(0.0, _now() - born) if born >= 0.0 else 0.0
+	deaths += 1
+	var summary := life.duplicate()
+	summary.days = lived
 	death = {
+		"life": summary,
+		"deaths": deaths,
+		"best": best_days,
 		"cause": vitals.hurt_by,
 		"day": clock.day,
 		"time": clock.time_of_day,
@@ -175,6 +223,7 @@ func die() -> void:
 		"lost": stacks.map(func(st: Array) -> Array: return [st[0], st[1]]),
 	}
 	body.velocity_y = 0.0
+	best_days = maxf(best_days, lived)
 	_fell()
 	state_changed.emit()
 
@@ -197,6 +246,9 @@ func respawn_points() -> Array:
 ## Brings the dead character back at `at` (world units) with part of their health.
 func revive(at: Vector3) -> void:
 	death = {}
+	life = {}
+	born = _now()
+	_last_at = Vector3.INF
 	vitals.revive(REVIVE_HEALTH)
 	body.velocity_y = 0.0
 	_came_back(at)
@@ -218,12 +270,21 @@ static func cause_text(cause: String) -> Array:
 	return ["Вы погибли", ""]
 
 
-## The death, kept in the player's save (see SaveGame.track).
+## The death and this life's statistics, kept in the player's save (see SaveGame.track).
 func to_dict() -> Dictionary:
-	return {"death": death.duplicate(true)}
+	return {"death": death.duplicate(true), "life": life.duplicate(), "born": born, "deaths": deaths,
+		"best_days": best_days}
 
 
 func from_dict(d: Dictionary) -> void:
+	life = {}
+	var saved_life: Variant = d.get("life")
+	if saved_life is Dictionary:
+		for k: Variant in saved_life:
+			life[str(k)] = float(saved_life[k])
+	born = float(d.get("born", -1.0))
+	deaths = int(d.get("deaths", 0))
+	best_days = float(d.get("best_days", 0.0))
 	var saved: Variant = d.get("death")
 	death = {}
 	if saved is Dictionary and not saved.is_empty():
