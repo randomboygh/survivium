@@ -21,6 +21,8 @@ const HUNGRY_CAP := 60.0
 ## Stamina per second while swimming; with none left a swimmer loses health this fast.
 const SWIM_COST := 5.0
 const DROWN := 8.0
+## Health lost per second touching a burning campfire.
+const BURN := 6.0
 ## Below this much stamina the body is tired and walks slower.
 const TIRED := 10.0
 const TIRED_PACE := 0.7
@@ -30,7 +32,7 @@ const COSTS := {"jump": 4.0, "dig": 3.0, "place": 1.0, "chop": 5.0, "cut": 1.0, 
 var health := MAX
 var satiety := 80.0
 var stamina := MAX
-## Why health went down last ("hunger", "water"), for the message on death.
+## Why health went down last ("hunger", "water", "fire"), for the message on death.
 var hurt_by := ""
 
 
@@ -54,6 +56,11 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 		if load_factor > 1.0:
 			rest *= 0.5
 		stamina = minf(stamina_cap(), stamina + rest)
+
+
+## The body touches a burning fire for `delta` seconds.
+func burn(delta: float) -> void:
+	_hurt(BURN * delta, "fire")
 
 
 func _hurt(amount: float, why: String) -> void:

@@ -196,6 +196,7 @@ func start_world() -> void:
 	world = gen.world
 	placed.world = world
 	character.world = world
+	character.placed = placed
 	clock.world = world
 	clock.gen = gen
 	wildlife = Wildlife.new()
@@ -262,6 +263,8 @@ func _process(delta: float) -> void:
 		_leave_footprints()
 		save.update(delta)
 	chunks.update_cut(delta)
+	# Behind the death screen the world is made ready where the character comes back.
+	chunks.set_focus(character.respawn_points()[0][1] if ready_to_play and character.is_dead() else Vector3.INF)
 	chunks.run_jobs()
 	chunks.update_caps()
 	roof.flush()
