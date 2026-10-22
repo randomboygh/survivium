@@ -27,8 +27,9 @@ const DEFAULTS := {
 	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
 	# real ones from the nearest fire or the torch (see Effects.SHADOW_FIRE_REACH), the
 	# slowest thing to draw at night, 3 mixed: the nearest fire's real shadow of the
-	# player alone and the rest drawn (Effects.player_only).
-	"fire_shadows": 1,
+	# player alone and the rest drawn (Effects.player_only; 74 FPS on the phone by a
+	# campfire against 83 drawn and 63 real).
+	"fire_shadows": 3,
 	"effects": true,
 	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
 	"sun_rays": true,

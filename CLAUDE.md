@@ -167,8 +167,9 @@ GDScript. Notes: `plan/architecture/performance.md`.
   brighter over other light. Fires and the torch scale their energy for it (`Effects.SHADOW_ENERGY`) and
   cast shadows only at night; which things cast from which light goes by render layers
   (`PixelView.LAYER_*`, `shadow_caster_mask`). An omni light's dual-paraboloid shadow casts nothing in
-  Compatibility; a cube shadow plus its pass cost ~+400 draw calls, so by default fire shadows are drawn
-  on the ground (`fire_shadows.gd`) and the real one is a setting.
+  Compatibility; a cube shadow plus its pass cost ~+400 draw calls, so by default ("mixed") the nearest
+  fire casts a real shadow from the player alone (`shadow_caster_mask`) and the rest are drawn on the
+  ground (`fire_shadows.gd`); all real is a setting.
 - Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `controls.input` treats
   mouse motion as a mouse only with no finger down and more than 1 s after the last touch. The
   joystick and `TouchButton` follow their own touch index so two thumbs work at once.
