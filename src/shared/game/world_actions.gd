@@ -219,6 +219,9 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 	if Tools.mows(t) and can_mow(cell, t):
 		return mow_swing(who, mow_targets(who, [cell], t))
 	if not Tools.can_dig(t, m):
+		# A sword digs nothing: at the ground it swings all the same, as at the air.
+		if t.tool == "sword":
+			return swing_air(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 		who.nag("tool", Tools.why_not(t, m))
 		return {}
 	return dig(who, dig_targets(who, Tools.area_cells(cell, normal), t), Tools.swing_time(t, m))
@@ -443,9 +446,14 @@ func act_in_front(who, top: int) -> Dictionary:
 	if work.has("dig"):
 		var c: Vector3i = work.dig[0]
 		return dig(who, work.dig, Tools.swing_time(t, world.get_cell(c.x, c.y, c.z)))
-	# Nothing in front: the hand swings at the air, without a word and for less stamina.
+	return swing_air(who, Vector3.INF)
+
+
+## Nothing to work: the hand in use swings at the air (toward `at`, if finite), without
+## a word and for less stamina.
+func swing_air(who, at: Vector3) -> Dictionary:
 	if who.act("swing"):
-		return _work(t.swing, "", Vector3.INF)
+		return _work(who.tool().swing, "", at)
 	return {"swing": IDLE_SWING}
 
 

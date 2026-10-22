@@ -1604,6 +1604,9 @@ func _test_world_actions() -> void:
 	_check(not swing.is_empty() and w.get_cell(10, 1, 10) == Mat.AIR and dirt >= 1 and changed.has(Vector3i(10, 1, 10)),
 		"a shovel digs dirt, which falls on the ground")
 	_check(actions.dig_at(who, Vector3i(10, 0, 10), Vector3i.UP).is_empty(), "the bottom level is not dug")
+	who.item = "core:wooden_sword"
+	_check(not actions.dig_at(who, Vector3i(11, 1, 10), Vector3i.UP).is_empty() and w.get_cell(11, 1, 10) == Mat.DIRT,
+		"a sword swings at the ground it cannot dig")
 	who.item = "core:stone"
 	who.inventory.add("core:stone", 3)
 	var placed := actions.place_at(who, Vector3i(12, 2, 10), Vector3i.UP, 40)

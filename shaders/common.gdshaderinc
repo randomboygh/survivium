@@ -77,13 +77,25 @@ float leaves_left(float kind) {
 	return 0.35 + 0.65 * leaf_amount;
 }
 
+// Ordered 4x4 dither: the threshold (0..1) of texel `t`.
+float bayer4(vec2 t) {
+	ivec2 i = ivec2(mod(t, 4.0));
+	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+	return (float(m[i.y * 4 + i.x]) + 0.5) / 16.0;
+}
+
+// How wide the soft rim of a cloud shadow is, in noise values on each side of its edge.
+const float CLOUD_RIM = 0.07;
+
 // Moving cloud shadows: 1 in the sun, lower under a cloud. Sampled per world texel,
-// so cloud edges are pixel steps like everything else.
+// so cloud edges are pixel steps like everything else; the shadow thins out over a
+// wide rim by an ordered dither, so its edge reads soft.
 float cloud_light(vec3 p) {
-	vec2 t = floor(p.xz * TEXELS) / TEXELS;
-	float n = texture(cloud_noise, (t + cloud_offset) / 96.0).r;
+	vec2 t = floor(p.xz * TEXELS);
+	float n = texture(cloud_noise, (t / TEXELS + cloud_offset) / 96.0).r;
 	float edge = 1.0 - cloud_cover;
-	return mix(1.0, 0.6, step(edge, n));
+	float k = clamp((n - edge) / (2.0 * CLOUD_RIM) + 0.5, 0.0, 1.0);
+	return mix(1.0, 0.6, step(bayer4(t), k));
 }
 
 // Large soft patches of the ground (0..1), the same everywhere a shader asks: bare
@@ -165,13 +177,6 @@ int corner_distance(ivec2 t, int k, int shape) {
 	float p = shape == 1 ? 1.5 : 2.0;
 	float r = pow(pow(uv.x, p) + pow(uv.y, p), 1.0 / p);
 	return int(floor(float(mid) - r + 0.5));
-}
-
-// Ordered 4x4 dither: the threshold (0..1) of texel `t`.
-float bayer4(vec2 t) {
-	ivec2 i = ivec2(mod(t, 4.0));
-	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
-	return (float(m[i.y * 4 + i.x]) + 0.5) / 16.0;
 }
 
 // Levels above a cut under a roof stay faintly visible instead of vanishing, so a cave
