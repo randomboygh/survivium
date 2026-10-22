@@ -11,9 +11,14 @@ const Items := preload("res://src/shared/content/items.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 
 
-## Wells down a column; more go into the next column.
+## Wells down a column; more go into the next column, up to MAX_COLUMNS, and past that
+## the columns grow longer (a scythe's recipe has ten wells), so a narrow phone screen
+## keeps the panel beside them.
 const ROWS := 3
+const MAX_COLUMNS := 3
 const GAP := 4
+
+var _well_height := 0.0
 
 
 func _init() -> void:
@@ -26,13 +31,15 @@ func _ready() -> void:
 	var well := _well()
 	well.get_child(0).get_child(1).text = "0"
 	add_child(well)
-	custom_minimum_size.y = ROWS * well.get_combined_minimum_size().y + (ROWS - 1) * GAP
+	_well_height = well.get_combined_minimum_size().y
+	_fit_rows(ROWS)
 	remove_child(well)
 	well.free()
 
 
 ## Shows `wells`: [picture, letters, short, tooltip] each.
 func show_wells(wells: Array) -> void:
+	_fit_rows(maxi(ROWS, ceili(wells.size() / float(MAX_COLUMNS))))
 	while get_child_count() < wells.size():
 		add_child(_well())
 	for i in get_child_count():
@@ -47,6 +54,11 @@ func show_wells(wells: Array) -> void:
 			label.visible = w[1] != ""
 			label.add_theme_color_override("font_color", UiStyle.DANGER if w[2] else UiStyle.INK)
 			well.tooltip_text = w[3]
+
+
+func _fit_rows(rows: int) -> void:
+	if _well_height > 0.0:
+		custom_minimum_size.y = rows * _well_height + (rows - 1) * GAP
 
 
 ## A small well with a picture and a few letters.

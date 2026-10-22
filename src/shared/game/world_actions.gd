@@ -295,7 +295,10 @@ func mow_targets(who, order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
 func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	var t: Dictionary = who.tool()
 	# A scythe's arc knocks the berries off the ripe bushes in it too.
-	var arc: Array[Vector3i] = Tools.sweep(cells[0], who.facing_step()) if not cells.is_empty() and t.area > 1 else []
+	# (Not `x if c else []`: an untyped [] put into a typed array is a script error.)
+	var arc: Array[Vector3i] = []
+	if not cells.is_empty() and t.area > 1:
+		arc = Tools.sweep(cells[0], who.facing_step())
 	if cells.is_empty() or not mow(who, cells, arc):
 		return {}
 	var done := _work(t.swing, "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL)

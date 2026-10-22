@@ -59,6 +59,7 @@ var _title: Label
 var _facts: FactChips
 var _make: VBoxContainer
 ## The panel of the queue.
+var _queue_panel: Control
 var _queue_empty: Label
 var _queue_count: Label
 var _controls: HBoxContainer
@@ -136,6 +137,8 @@ func _ready() -> void:
 
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 6)
+	# The queue stays on the right while no recipe is chosen.
+	bottom.alignment = BoxContainer.ALIGNMENT_END
 	add_child(bottom)
 	_details = _panel(bottom)
 	_details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -171,6 +174,7 @@ func _ready() -> void:
 
 	var queue := _panel(bottom)
 	queue.custom_minimum_size.x = QUEUE_WIDTH
+	_queue_panel = queue
 	box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	queue.add_child(box)
@@ -287,6 +291,8 @@ func refresh_now() -> void:
 		_cells[id].selected = id == _chosen
 	_show_details(stations)
 	_show_queue()
+	# Nothing can be queued before a recipe is known.
+	_queue_panel.visible = not known.is_empty() or not shop.queue.jobs.is_empty()
 	_cap = list_height
 	_fit_list()
 	if on_layout.is_valid():

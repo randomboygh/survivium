@@ -29,6 +29,8 @@ const CELL := WorldData.CELL
 const TIP_INTERVAL := 0.1
 ## How long the cursor frame stays after a touch, in seconds.
 const CURSOR_TIME := 0.6
+## How long the debug hint stays after a tap on a touch screen, in seconds.
+const TOUCH_TIP_TIME := 4.0
 
 var game
 var touch := false
@@ -54,6 +56,7 @@ var _stroke := {}
 ## Seconds until the hands can swing again.
 var _cooldown := 0.0
 var _cursor_clock := 0.0
+var _touch_tip_clock := 0.0
 
 
 func _init(g) -> void:
@@ -154,6 +157,9 @@ func unhandled_input(event: InputEvent) -> void:
 func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if hand != active:
 		set_active(hand)
+	if touch and game.settings.debug_tips:
+		game.hud.show_tip(pos, _tip_text(pos), true)
+		_touch_tip_clock = TOUCH_TIP_TIME
 	var use := use_of()
 	var target: Dictionary = game.gathering.target_at(pos)
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
@@ -582,27 +588,71 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 
 
 ## With a mouse, names the cell under the pointer and what the buttons do with it, and
-## frames what the hand in use would work on.
+## frames what the hand in use would work on. On a touch screen the debug hint of a tap
+## (see tap) goes away after a while.
 func update_tip(delta: float) -> void:
 	tip_clock += delta
-	if touch or tip_clock < TIP_INTERVAL or mouse_pos.x < 0.0:
+	if touch:
+		if _touch_tip_clock > 0.0:
+			_touch_tip_clock -= delta
+			if _touch_tip_clock <= 0.0 or not game.settings.debug_tips:
+				_touch_tip_clock = 0.0
+				game.hud.show_tip(Vector2.ZERO, "")
+		return
+	if tip_clock < TIP_INTERVAL or mouse_pos.x < 0.0:
 		return
 	tip_clock = 0.0
 	_show_preview(mouse_pos, _stroke.dig if not _stroke.is_empty() else use_of() != "place")
-	var target: Dictionary = game.gathering.target_at(mouse_pos)
+	game.hud.show_tip(mouse_pos, _tip_text(mouse_pos))
+
+
+## The hint for screen point `pos`: the thing to gather there, else the cell and what the
+## hands do with it, with the debug lines when the playtest switch is on.
+func _tip_text(pos: Vector2) -> String:
+	var target: Dictionary = game.gathering.target_at(pos)
+	var hit := pick(pos)
+	var lines := []
 	if not target.is_empty():
-		game.hud.show_tip(mouse_pos, game.gathering.describe(target))
-		return
-	var hit := pick(mouse_pos)
-	if hit.is_empty():
-		game.hud.show_tip(mouse_pos, "")
-		return
-	var cell: Vector3i = hit.cell
-	var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
-	var lines := ["%s · уровень %d" % [Mat.NAMES[m], cell.y]]
-	for h in 2:
-		lines.append("%s %s" % ["ЛКМ" if h == 0 else "ПКМ", _hint(h, cell, m)])
-	game.hud.show_tip(mouse_pos, "\n".join(lines))
+		lines.append(game.gathering.describe(target))
+	elif not hit.is_empty():
+		var cell: Vector3i = hit.cell
+		var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
+		lines.append("%s · уровень %d" % [Mat.NAMES[m], cell.y])
+		for h in 2:
+			lines.append("%s %s" % ["ЛКМ" if h == 0 else "ПКМ", _hint(h, cell, m)])
+	if game.settings.debug_tips:
+		if not target.is_empty():
+			lines.append("цель: %s" % ", ".join(target.keys()))
+		if not hit.is_empty():
+			lines.append_array(_debug_lines(hit.cell, hit.normal))
+	return "\n".join(lines)
+
+
+## What the rules see at `cell` (tapped on face `normal`) for the hand in use, for the
+## debug hint: the cell, what grows on it, and each check WorldActions.dig_at goes through.
+func _debug_lines(cell: Vector3i, normal: Vector3i) -> Array:
+	var w = game.world
+	var actions = game.actions
+	var who = game.character
+	var m: int = w.get_cell(cell.x, cell.y, cell.z)
+	var up: int = w.get_cell(cell.x, cell.y + 1, cell.z)
+	var out := ["%v грань %v" % [cell, normal], "%s, над ней %s" % [Mat.RECORDS[m].id, Mat.RECORDS[up].id]]
+	var plants: Array = actions.Grass.plants_on(w, cell.x, cell.y, cell.z)
+	if not plants.is_empty():
+		out.append("растёт: %s" % ", ".join(plants))
+	var turf: Variant = w.turf_at(cell)
+	if turf != null:
+		out.append("дёрн: %s" % ("скошен" if turf == "" else turf))
+	var tree: Variant = actions.tree_of(cell)
+	if tree != null:
+		out.append("дерево %v" % tree)
+	var t := tool_record()
+	var mow: bool = Tools.mows(t) and actions.can_mow(cell, t)
+	out.append("%s: далеко %s · срезать %s (%d) · копать %s (%d)" % [t.id if t.has("id") else t.tool,
+		"да" if actions.too_far(who, cell, t.reach) else "нет", "да" if mow else "нет",
+		actions.mow_targets(who, [cell] as Array[Vector3i], t).size() if mow else 0,
+		"да" if Tools.can_dig(t, m) else "нет", actions.dig_targets(who, Tools.area_cells(cell, normal), t).size()])
+	return out
 
 
 ## What hand `hand` would do at `cell` of material `m`, for the hint.
