@@ -113,13 +113,13 @@ func pixel_size() -> float:
 
 
 ## Pushes every setting into the modules. Safe to call before the world is built: what
-## is not there yet is set when it appears (the sky reads the speed every frame).
+## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
+	if game.clock != null:
+		game.clock.time_speed = time_speed() * time_boost
 	var sky = game.sky
-	if sky != null:
-		sky.time_speed = time_speed() * time_boost
-		if sky.sun != null:
-			sky.sun.shadow_enabled = values.shadows
+	if sky != null and sky.sun != null:
+		sky.sun.shadow_enabled = values.shadows
 	if game.effects != null:
 		game.effects.enabled = values.effects
 		game.effects.shadows = values.shadows and values.fire_shadows == 2
@@ -146,24 +146,24 @@ func apply() -> void:
 # --- Playtest switches --------------------------------------------------------------
 
 func set_season(s: int) -> void:
-	var sky = game.sky
-	sky.season = posmod(s, 4)
-	sky.season_clock = 0.0
-	print("season: %s" % sky.SEASONS[sky.season])
+	var clock = game.clock
+	clock.season = posmod(s, 4)
+	clock.season_clock = 0.0
+	print("season: %s" % clock.SEASONS[clock.season])
 	if game.actions != null:
-		game.actions.on_season(sky.season)
+		game.actions.on_season(clock.season)
 
 
 func set_raining(on: bool) -> void:
-	set_weather(game.sky.RAIN if on else game.sky.CLEAR)
+	set_weather(game.clock.RAIN if on else game.clock.CLEAR)
 
 
-## Pins the weather to Sky.WEATHERS[`index`]; -1 lets it change by itself again.
+## Pins the weather to Clock.WEATHERS[`index`]; -1 lets it change by itself again.
 func set_weather(index: int) -> void:
 	if index < 0:
-		game.sky.weather_auto = true
+		game.clock.weather_auto = true
 	else:
-		game.sky.set_weather(index)
+		game.clock.set_weather(index)
 
 
 ## Pins the moonlight (0 new moon .. 1 full moon); -1 follows the phase of the moon.
@@ -173,7 +173,7 @@ func set_moon(light: float) -> void:
 
 ## Moves the clock to `hour` (0-24) of the current day.
 func set_hour(hour: float) -> void:
-	game.sky.time_of_day = fposmod(hour / 24.0, 1.0)
+	game.clock.time_of_day = fposmod(hour / 24.0, 1.0)
 
 
 func set_time_boost(k: float) -> void:

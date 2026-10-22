@@ -1,73 +1,24 @@
 extends RefCounted
-## Time of day, seasons and weather: the sun and the moon with its phases, the ambient
-## light and the background, the colour grade, snow, wetness, the tints of leaves and
-## grass, clouds, wind, fog and lightning. Everything the shaders need goes out as
-## global shader parameters. `game` is the Main node that owns the scene.
+## The sky drawn for the world's time and weather (Clock, src/shared): the sun and the
+## moon with its phases, the ambient light and the background, the colour grade, the
+## tints of leaves and grass in each season, clouds, wind, fog, lightning, snow and ice
+## on the ground. Everything the shaders need goes out as global shader parameters.
+## `game` is the Main node that owns the scene.
 
 const Bushes := preload("res://src/shared/content/bushes.gd")
-const WorldGen := preload("res://src/shared/world/world_gen.gd")
-const WorldData := preload("res://src/shared/world/world_data.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 
-const DAY_LENGTH := 240.0
-const DAYS_PER_SEASON := 2.0
-const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
-const WINTER := 3
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
 const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
-## Days from one full moon to the next. The first night of a world is a bright one.
-const MOON_DAYS := 8.0
-const MOON_START := 0.75
-
-## Kinds of weather, what each brings and how often it comes in each season (spring,
-## summer, autumn, winter). Strengths are 0..1: clouds is the share of the sky under
-## clouds, rain and snow how hard it falls (in winter rain and hail fall as snow),
-## sand blows in deserts only, fog is the haze over everything, wind adds to the gusts
-## and lightning strikes now and then.
-const WEATHERS := [
-	{"id": "clear", "name": "Ясно", "icon": "sun", "clouds": 0.28, "chance": [4, 6, 3, 3]},
-	{"id": "cloudy", "name": "Пасмурно", "icon": "cloud", "clouds": 0.75, "wind": 0.3, "chance": [3, 2, 3, 3]},
-	{"id": "fog", "name": "Туман", "icon": "fog", "clouds": 0.5, "fog": 0.75, "chance": [2, 0.5, 3, 1]},
-	{"id": "rain", "name": "Дождь", "icon": "rain", "clouds": 0.8, "rain": 0.5, "wind": 0.8, "chance": [3, 2, 3, 0]},
-	{"id": "downpour", "name": "Ливень", "icon": "rain", "clouds": 0.95, "rain": 1.0, "wind": 1.2, "fog": 0.3, "chance": [1, 1, 1.5, 0]},
-	{"id": "storm", "name": "Гроза", "icon": "storm", "clouds": 0.95, "rain": 0.9, "wind": 1.8, "fog": 0.2, "lightning": 1.0, "chance": [1, 1.5, 0.5, 0]},
-	{"id": "hail", "name": "Град", "icon": "hail", "clouds": 0.85, "rain": 0.3, "hail": 1.0, "wind": 1.0, "chance": [0.5, 0.5, 0.3, 0]},
-	{"id": "snow", "name": "Снегопад", "icon": "snow", "clouds": 0.8, "snow": 0.6, "wind": 0.4, "chance": [0, 0, 0, 4]},
-	{"id": "blizzard", "name": "Метель", "icon": "snow", "clouds": 0.95, "snow": 1.0, "wind": 2.5, "fog": 0.55, "chance": [0, 0, 0, 1.5]},
-	{"id": "sandstorm", "name": "Песчаная буря", "icon": "sand", "clouds": 0.4, "sand": 1.0, "wind": 2.5, "fog": 0.5, "chance": [0, 0, 0, 0]},
-]
-const CLEAR := 0
-const RAIN := 3
-## In a desert the precipitation turns into sand storms that often.
-const DESERT_SAND_CHANCE := 2.0
-## How long one weather lasts, in days of the game.
-const WEATHER_DAYS := Vector2(0.15, 0.5)
 
 var game
 var sun: DirectionalLight3D
 var env: Environment
 
-var time_of_day := 0.3
-var day := 1
-var time_speed := 1.0
-var season := 1
-var season_clock := 0.0
-## Index in WEATHERS of the weather now.
-var weather := CLEAR
-## The weather changes by itself; the playtest page can pin one.
-var weather_auto := true
-## Days of the game until the weather changes.
-var weather_left := 0.3
-## Strengths of the weather now, moving smoothly towards what `weather` brings.
-var rain := 0.0
-var snowing := 0.0
-var hail := 0.0
-var sand := 0.0
-var fog := 0.0
-var storm_wind := 0.0
 ## Brightness of a lightning flash, 0 most of the time.
 var flash := 0.0
 var flash_clock := 6.0
@@ -77,25 +28,11 @@ var moon_override := -1.0
 ## How bright the open sky is, 0 on a moonless night .. 1 by day; the torch and the
 ## weather particles follow it.
 var sky_light := 1.0
-## Biome under the player, checked now and then for the weather (deserts).
-var biome := -1
-var biome_clock := 0.0
 var rng := RandomNumberGenerator.new()
-## Precipitation of any kind is falling (rain, snow, hail). Setting it is the old
-## playtest switch: rain or clear.
-var raining: bool:
-	get:
-		var w: Dictionary = WEATHERS[weather]
-		return w.get("rain", 0.0) > 0.0 or w.get("snow", 0.0) > 0.0 or w.get("hail", 0.0) > 0.0
-	set(on):
-		weather = RAIN if on else CLEAR
-var snow := 0.0
-var wet := 0.0
 var foliage := Vector3.ONE
 var grass := Vector3.ONE
 var leaf_amount := 1.0
 var berry_amount := 1.0
-var clouds := 0.3
 var cloud_pos := Vector2.ZERO
 var wind_clock := 0.0
 var daylight := 1.0
@@ -123,25 +60,21 @@ func build(parent: Node3D) -> void:
 	parent.add_child(sun)
 
 
+## Draws the sky of the clock now, `delta` seconds after the last frame.
 func update(delta: float) -> void:
-	_update_time(delta)
+	_update_light()
 	_update_weather(delta)
 
 
-func _update_time(delta: float) -> void:
-	var step := delta * time_speed / DAY_LENGTH
-	time_of_day += step
-	if time_of_day >= 1.0:
-		time_of_day -= 1.0
-		day += 1
-	season_clock += step
-	if season_clock >= DAYS_PER_SEASON:
-		next_season()
+func _update_light() -> void:
+	var clock = game.clock
+	var time_of_day: float = clock.time_of_day
+	var snow: float = clock.snow
 	var h := -cos(time_of_day * TAU)
 	daylight = clampf(h * 1.6 + 0.35, 0.0, 1.0)
-	moon = moon_override if moon_override >= 0.0 else moon_phase_light(day + time_of_day)
+	moon = moon_override if moon_override >= 0.0 else Clock.moon_phase_light(clock.day + time_of_day)
 	# Clouds hide the moon; snow on the ground gives its light back.
-	var overcast := clampf((clouds - 0.3) / 0.6, 0.0, 1.0)
+	var overcast := clampf((clock.clouds - 0.3) / 0.6, 0.0, 1.0)
 	var moonlight := moon * (1.0 - 0.75 * overcast) * (1.0 + 0.5 * snow)
 	# Low warm light near sunrise and sunset, full light at midday.
 	var golden := clampf(1.0 - absf(h) * 3.0, 0.0, 1.0) if h > -0.25 else 0.0
@@ -182,13 +115,6 @@ func _update_time(delta: float) -> void:
 	_update_grade(golden, night, minf(moonlight, 1.0))
 
 
-## Moonlight (0..1) on day `t` of the game: full every MOON_DAYS days, dark for a few
-## nights around the new moon.
-static func moon_phase_light(t: float) -> float:
-	var phase := fposmod(t / MOON_DAYS + MOON_START, 1.0)
-	return smoothstep(-0.5, 0.7, cos(phase * TAU))
-
-
 ## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)
 ## at `elevation` degrees above the horizon.
 func _aim_sun(azimuth: float, elevation: float) -> void:
@@ -202,16 +128,21 @@ func _aim_sun(azimuth: float, elevation: float) -> void:
 ## the moon, near black and colourless without it, grey in rain, cool in winter. Fog,
 ## blizzards and sand storms lay a drifting haze over the picture.
 func _update_grade(golden: float, night: float, moonlight: float) -> void:
+	var clock = game.clock
+	var rain: float = clock.rain
+	var snowing: float = clock.snowing
+	var sand: float = clock.sand
+	var winter: bool = clock.season == Clock.WINTER
 	var tint := Vector3(1.02, 1.0, 0.97).lerp(Vector3(1.08, 0.97, 0.88), golden).lerp(Vector3(0.82, 0.92, 1.15), night)
 	var saturation := lerpf(lerpf(0.92, 1.05, golden), lerpf(0.45, 0.6, moonlight), night)
 	var exposure := lerpf(1.0, lerpf(1.0, 1.15, moonlight), night)
 	var contrast := 1.06
-	var wet_k := clampf(rain + snowing * 0.6 + hail, 0.0, 1.0)
-	var rain_k := maxf(wet, wet_k) if season != WINTER else wet_k
+	var wet_k := clampf(rain + snowing * 0.6 + clock.hail, 0.0, 1.0)
+	var rain_k := maxf(clock.wet, wet_k) if not winter else wet_k
 	saturation *= 1.0 - 0.3 * rain_k
 	tint *= Vector3.ONE.lerp(Vector3(0.95, 0.98, 1.03), rain_k)
 	exposure *= 1.0 - 0.08 * rain_k - 0.08 * clampf(rain - 0.5, 0.0, 0.5)
-	if season == WINTER:
+	if winter:
 		tint *= Vector3(0.97, 1.0, 1.04)
 	exposure += flash * 1.2
 	var indoor_k := 0.25 if game.chunks.indoor else 1.0
@@ -220,7 +151,7 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 	var white := clampf(snowing * 2.0 - 1.0, 0.0, 1.0)
 	haze_col = haze_col.lerp(Vector3(0.88, 0.9, 0.94), white).lerp(Vector3(0.78, 0.6, 0.38), sand)
 	haze_col *= lerpf(0.12, 1.0, sky_light)
-	var haze_amount := clampf(fog + sand * 0.2, 0.0, 0.85) * indoor_k
+	var haze_amount := clampf(clock.fog + sand * 0.2, 0.0, 0.85) * indoor_k
 	var grade_mat: ShaderMaterial = game.view.grade_mat
 	grade_mat.set_shader_parameter("tint", Color(tint.x, tint.y, tint.z))
 	grade_mat.set_shader_parameter("saturation", saturation * (1.0 - 0.3 * sand))
@@ -233,25 +164,22 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 	grade_mat.set_shader_parameter("haze_amount", haze_amount)
 	# Fog lies in banks; a storm is thick everywhere and streams with the wind.
 	grade_mat.set_shader_parameter("haze_patchy", lerpf(0.7, 0.3, maxf(sand, white)))
-	grade_mat.set_shader_parameter("haze_offset", cloud_pos * Vector2(1.5, 0.6) * (1.0 + 3.0 * storm_wind))
+	grade_mat.set_shader_parameter("haze_offset", cloud_pos * Vector2(1.5, 0.6) * (1.0 + 3.0 * clock.storm_wind))
 
 
-func next_season() -> void:
-	season = (season + 1) % 4
-	season_clock = 0.0
+## A new season began (see Clock.next_season): the bushes ripen or shed, and the
+## player is told.
+func on_season(season: int) -> void:
 	if game.actions != null:
 		game.actions.on_season(season)
-	print("season: %s" % SEASONS[season])
-	game.hud.toast("Наступила %s" % SEASONS[season].to_lower() if season != 1 else "Наступило лето")
+	print("season: %s" % Clock.SEASONS[season])
+	game.hud.toast("Наступила %s" % Clock.SEASONS[season].to_lower() if season != 1 else "Наступило лето")
 
 
 ## Name of the HUD icon for the sky now: the weather, or the moon by its phase at
 ## night when the sky is clear.
 func icon() -> String:
-	var w: Dictionary = WEATHERS[weather]
-	var name: String = w.icon
-	if name == "rain" and season == WINTER or name == "hail" and season == WINTER:
-		return "snow"
+	var name: String = game.clock.weather_icon()
 	if name != "sun":
 		return name
 	if daylight > 0.35:
@@ -259,115 +187,40 @@ func icon() -> String:
 	return "moon_full" if moon > 0.7 else ("moon" if moon > 0.2 else "moon_new")
 
 
-## Pins the weather (`auto` lets it change by itself again from `index`).
-func set_weather(index: int, auto := false) -> void:
-	weather = clampi(index, 0, WEATHERS.size() - 1)
-	weather_auto = auto
-	weather_left = rng.randf_range(WEATHER_DAYS.x, WEATHER_DAYS.y)
-
-
-## Jumps the weather strengths to what the weather brings (tools, screenshots).
-func settle_weather() -> void:
-	var w: Dictionary = WEATHERS[weather]
-	var winter := season == WINTER
-	rain = 0.0 if winter else w.get("rain", 0.0)
-	hail = 0.0 if winter else w.get("hail", 0.0)
-	snowing = maxf(w.get("snow", 0.0), maxf(w.get("rain", 0.0), w.get("hail", 0.0)) if winter else 0.0)
-	sand = w.get("sand", 0.0)
-	fog = w.get("fog", 0.0)
-	storm_wind = w.get("wind", 0.0)
-	clouds = w.clouds
-
-
-## Picks the next weather by the season and the biome under the player.
-func _next_weather() -> void:
-	var weights := PackedFloat32Array()
-	var total := 0.0
-	var desert := biome == WorldGen.DESERT
-	for w: Dictionary in WEATHERS:
-		var c: float = w.chance[season]
-		if desert:
-			# Deserts are dry: no rain or snow, sand storms instead.
-			if w.has("rain") or w.has("snow") or w.has("hail") or w.id == "fog":
-				c = 0.0
-			elif w.id == "sandstorm":
-				c = DESERT_SAND_CHANCE
-		weights.append(c)
-		total += c
-	var r := rng.randf() * total
-	for i in weights.size():
-		r -= weights[i]
-		if r <= 0.0:
-			weather = i
-			break
-	weather_left = rng.randf_range(WEATHER_DAYS.x, WEATHER_DAYS.y)
-
-
 func _update_weather(delta: float) -> void:
-	var winter := season == WINTER
-	if game.player != null:
-		biome_clock -= delta
-		if biome_clock <= 0.0:
-			biome_clock = 5.0
-			var p: Vector3 = game.player.position / WorldData.CELL
-			biome = game.gen.lay_out(floori(p.x), floori(p.z), 1, 1).biome[0]
-	if weather_auto:
-		weather_left -= delta * time_speed / DAY_LENGTH
-		if weather_left <= 0.0:
-			_next_weather()
-	var w: Dictionary = WEATHERS[weather]
-	var falls: float = w.get("rain", 0.0)
-	var flakes: float = w.get("snow", 0.0)
-	var stones: float = w.get("hail", 0.0)
-	if winter:
-		# Winter turns rain and hail into snow.
-		flakes = maxf(flakes, maxf(falls, stones))
-		falls = 0.0
-		stones = 0.0
-	var k := minf(1.0, delta * 0.25)
-	rain = lerpf(rain, falls, k)
-	snowing = lerpf(snowing, flakes, k)
-	hail = lerpf(hail, stones, k)
-	sand = lerpf(sand, w.get("sand", 0.0), k)
-	fog = lerpf(fog, w.get("fog", 0.0), k)
-	storm_wind = lerpf(storm_wind, w.get("wind", 0.0), k)
-	_update_lightning(delta, w.get("lightning", 0.0) > 0.0 and not winter)
-	if winter or snowing > 0.3:
-		snow = move_toward(snow, 1.0, delta * (0.02 + 0.06 * snowing))
-	else:
-		snow = move_toward(snow, 0.0, delta * 0.03)
-	wet = move_toward(wet, 1.0 if rain > 0.2 else 0.0, delta * (0.15 * rain if rain > 0.2 else 0.03))
+	var clock = game.clock
+	var season: int = clock.season
+	var w: Dictionary = Clock.WEATHERS[clock.weather]
+	_update_lightning(delta, w.get("lightning", 0.0) > 0.0 and season != Clock.WINTER)
 	var k2 := minf(1.0, delta * 0.4)
 	foliage = foliage.lerp(FOLIAGE[season], k2)
 	grass = grass.lerp(GRASS[season], k2)
 	leaf_amount = lerpf(leaf_amount, LEAF_AMOUNT[season], k2)
 	berry_amount = lerpf(berry_amount, BERRY_AMOUNT[season], k2)
-	clouds = lerpf(clouds, w.clouds, minf(1.0, delta * 0.3))
 	wind_clock += delta
+	var storm_wind: float = clock.storm_wind
 	var gust := 0.25 + 0.25 * sin(wind_clock * 0.35) + 0.15 * sin(wind_clock * 1.3)
 	var wind := Vector2(gust * (1.0 + storm_wind * 0.5) + storm_wind, 0.15)
 	cloud_pos += Vector2(-0.6, -0.25) * delta * (1.0 + wind.x)
 	var g := RenderingServer
-	g.global_shader_parameter_set("snow_amount", snow)
-	g.global_shader_parameter_set("wetness", wet)
+	g.global_shader_parameter_set("snow_amount", clock.snow)
+	g.global_shader_parameter_set("wetness", clock.wet)
 	g.global_shader_parameter_set("foliage_tint", foliage)
 	g.global_shader_parameter_set("grass_tint", grass)
 	g.global_shader_parameter_set("leaf_amount", leaf_amount)
 	g.global_shader_parameter_set("berry_amount", berry_amount)
-	g.global_shader_parameter_set("cloud_cover", clouds)
+	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)
 	g.global_shader_parameter_set("wind", wind)
-	var ice := clampf((snow - 0.3) / 0.5, 0.0, 1.0)
-	game.water_mat.set_shader_parameter("ice_amount", ice)
-	game.world.water_frozen = ice > 0.8
+	game.water_mat.set_shader_parameter("ice_amount", clock.ice())
 	if game.player != null:
-		game.effects.update(delta, game.view.cam_target, game.player.position.y, self, game.chunks.indoor)
+		game.effects.update(delta, game.view.cam_target, game.player.position.y, self, clock, game.chunks.indoor)
 	if game.tracks != null:
-		game.tracks.snow = snow
-		game.tracks.wet = wet
+		game.tracks.snow = clock.snow
+		game.tracks.wet = clock.wet
 	if game.drifts_root != null:
 		# The terrain shader shrinks them as the snow melts (drift_size).
-		game.drifts_root.visible = snow > 0.3
+		game.drifts_root.visible = clock.snow > 0.3
 
 
 ## Lightning in a storm: every few seconds a flash, sometimes twice, and a bolt

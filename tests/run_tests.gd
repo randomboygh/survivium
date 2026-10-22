@@ -25,6 +25,7 @@ const Inventory := preload("res://src/shared/game/inventory.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -57,6 +58,7 @@ func _init() -> void:
 	_test_felling()
 	_test_world_actions()
 	_test_placed()
+	_test_clock()
 	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
@@ -1656,6 +1658,34 @@ func _test_placed() -> void:
 	_check(placed.light(who, fire) and fire.lit and who.inventory.count("core:branch") == 0, "it is lit for a branch")
 	placed.put_out(fire)
 	_check(placed.destroy(fire) and not placed.things.has(fire), "and destroyed once it is out")
+
+
+## The world's clock runs without the client: days and seasons pass, and the snow of
+## a winter freezes the water and melts in summer.
+func _test_clock() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	var clock := Clock.new()
+	clock.world = w
+	var seasons: Array[int] = []
+	clock.season_changed.connect(func(s: int) -> void: seasons.append(s))
+	clock.time_of_day = 0.9
+	for i in 60:
+		clock.step(1.0)
+	_check(clock.day == 2 and is_equal_approx(clock.time_of_day, 0.9 + 60.0 / Clock.DAY_LENGTH - 1.0),
+		"a day is DAY_LENGTH seconds long")
+	clock.season_clock = Clock.DAYS_PER_SEASON - 0.001
+	clock.step(1.0)
+	_check(seasons == [2] and clock.season == 2 and clock.season_clock < 0.01, "the season changes after its days")
+	clock.season = Clock.WINTER
+	clock.set_weather(Clock.WEATHERS.map(func(d: Dictionary) -> String: return d.id).find("snow"))
+	for i in 60:
+		clock.step(1.0)
+	_check(clock.snow > 0.9 and w.water_frozen and clock.weather_icon() == "snow", "snow in winter lies and freezes the water")
+	clock.season = 1
+	clock.set_weather(Clock.CLEAR)
+	for i in 60:
+		clock.step(1.0)
+	_check(clock.snow == 0.0 and not w.water_frozen, "and melts in summer")
 
 
 func _bits(v: int) -> int:

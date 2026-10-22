@@ -442,10 +442,10 @@ func refresh_counts() -> void:
 
 
 func update_state() -> void:
-	var hours := int(game.sky.time_of_day * 24.0)
-	var minutes := int(fmod(game.sky.time_of_day * 24.0 * 60.0, 60.0))
-	var winter: bool = game.sky.season == game.sky.WINTER
-	_clock.text = "%s · день %d · %02d:%02d" % [game.sky.SEASONS[game.sky.season], game.sky.day, hours, minutes]
+	var hours := int(game.clock.time_of_day * 24.0)
+	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
+	var winter: bool = game.clock.season == game.clock.WINTER
+	_clock.text = "%s · день %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
 	vitals.update(game.character.vitals, get_process_delta_time())
 	if bag.visible:
 		bag.refresh_state()

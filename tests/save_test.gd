@@ -73,8 +73,8 @@ func _run() -> void:
 		w.set_cell(pit.x, y, pit.z, Mat.AIR)
 		main.chunks.on_cell_changed(Vector3i(pit.x, y, pit.z))
 	main.player.position += Vector3(-1.0, 0.0, 0.5)
-	main.sky.day = 5
-	main.sky.time_of_day = 0.6
+	main.clock.day = 5
+	main.clock.time_of_day = 0.6
 	for i in 10:
 		await process_frame
 	# A save while playing goes a few chunks a frame.
@@ -101,7 +101,7 @@ func _run() -> void:
 	_check(w.get_cell(pit.x, top - 1, pit.z) == Mat.AIR and w.get_cell(pit.x, top - 3, pit.z) == Mat.AIR,
 		"the pit dug is still there")
 	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
-	_check(main.sky.day == 5 and absf(main.sky.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
+	_check(main.clock.day == 5 and absf(main.clock.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
 	_check(str(main.placed.to_list()) == str(props), "the props stand where they stood")
 	_check(main.placed.cell_of("core:workbench") != null and main.placed.chest_items.count("core:log") == 2,
 		"the workbench placed and what the chest holds come back")

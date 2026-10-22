@@ -120,9 +120,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_C:
 				cycle_brush()
 			KEY_Z:
-				game.sky.next_season()
+				game.clock.next_season()
 			KEY_X:
-				game.settings.set_raining(not game.sky.raining)
+				game.settings.set_raining(not game.clock.raining)
 			KEY_T:
 				var s = game.settings
 				s.set_time_boost(1.0 if s.time_boost > 1.0 else s.FAST_FORWARD)

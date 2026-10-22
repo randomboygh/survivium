@@ -223,12 +223,12 @@ func _run() -> void:
 	for shot_name in names:
 		main.player.position = spawn
 		var shot: Dictionary = SHOTS[shot_name]
-		main.sky.time_of_day = shot.time
-		main.sky.time_speed = 0.0
-		main.sky.season = shot.season
-		main.sky.raining = shot.get("rain", false)
+		main.clock.time_of_day = shot.time
+		main.clock.time_speed = 0.0
+		main.clock.season = shot.season
+		main.clock.raining = shot.get("rain", false)
 		if shot.has("weather"):
-			main.sky.set_weather(_weather_index(shot.weather))
+			main.clock.set_weather(_weather_index(shot.weather))
 		main.sky.moon_override = shot.get("moon", -1.0)
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.set_value("shadows", shot.get("shadows", true))
@@ -293,13 +293,13 @@ func _run() -> void:
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
-			main.sky.snow = 1.0 if main.sky.season == 3 else 0.0
-			main.sky.settle_weather()
-			main.sky.wet = 1.0 if main.sky.raining and main.sky.season != 3 else 0.0
-			main.sky.foliage = main.sky.FOLIAGE[main.sky.season]
-			main.sky.grass = main.sky.GRASS[main.sky.season]
-			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.sky.season]
-			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.sky.season]
+			main.clock.snow = 1.0 if main.clock.season == 3 else 0.0
+			main.clock.settle_weather()
+			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else 0.0
+			main.sky.foliage = main.sky.FOLIAGE[main.clock.season]
+			main.sky.grass = main.sky.GRASS[main.clock.season]
+			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.clock.season]
+			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.clock.season]
 		if shot.has("animal") and not main.creatures.creatures.is_empty():
 			# Stands still where it is put until the shot is taken.
 			var c = main.creatures.creatures[0]
@@ -684,8 +684,8 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 
 
 func _weather_index(id: String) -> int:
-	for i in main.sky.WEATHERS.size():
-		if main.sky.WEATHERS[i].id == id:
+	for i in main.clock.WEATHERS.size():
+		if main.clock.WEATHERS[i].id == id:
 			return i
 	return 0
 

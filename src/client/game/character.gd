@@ -59,7 +59,7 @@ func update(delta: float) -> void:
 	if is_dead():
 		return
 	var player = game.player
-	var days: float = delta * game.sky.time_speed / game.sky.DAY_LENGTH
+	var days: float = game.clock.days(delta)
 	vitals.step(delta, days, player.body.swimming, inventory.load_share())
 	player.body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	if player.body.jumped and not player.body.air_jumps:
@@ -131,8 +131,8 @@ func die() -> void:
 		sack = lay(Items.SACK, stacks)
 	death = {
 		"cause": vitals.hurt_by,
-		"day": game.sky.day,
-		"time": game.sky.time_of_day,
+		"day": game.clock.day,
+		"time": game.clock.time_of_day,
 		"at": [at.x, at.y, at.z],
 		"sack": [sack.x, sack.y, sack.z] if sack is Vector3 else null,
 		"lost": stacks.map(func(st: Array) -> Array: return [st[0], st[1]]),

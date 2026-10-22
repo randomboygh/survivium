@@ -3,15 +3,15 @@ extends Node
 ## the main menu over it while it is built (MainMenu; a new world from its WorldSetup
 ## screen restarts the scene), builds the scene and runs the frame. The work is
 ## split between modules that each hold their own state and get `self` as `game`:
-## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (time of day, seasons,
-## weather, light and colour grade), Controls (keys, mouse, touch and the edits they
+## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (the light, colour grade
+## and weather drawn for the clock), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (the chests,
 ## workbenches, kilns and campfires drawn, the things on the ground), Character (the bag
 ## and the body: health, satiety, stamina, death; DeathScreen shows a death), Gathering
 ## (what a tap gathers, things taken up by themselves), Hands (what the player is drawn
 ## holding), Settings (the saved settings and the playtest switches) and SaveGame (the
-## saved world and player). The rules live in src/shared: WorldActions (what the hands
-## do to the world), Placed (the things placed on two by two cells) and Workshop
+## saved world and player). The rules live in src/shared: Clock (time of day, seasons
+## and weather), WorldActions (what the hands do to the world), Placed (the things placed on two by two cells) and Workshop
 ## (recipes known, the crafting queue, tool wear); their signals redraw the chunks and
 ## the things.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
@@ -24,6 +24,7 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 const Controls := preload("res://src/client/input/controls.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const Props := preload("res://src/client/game/props.gd")
@@ -70,6 +71,7 @@ var roof: RoofMap
 var hud
 var chunks: ChunkStreamer
 var sky: SkyScript
+var clock: Clock
 var controls: Controls
 var view: CameraRig
 var props: Props
@@ -136,6 +138,8 @@ func _ready() -> void:
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
 	sky = SkyScript.new(self)
+	clock = Clock.new()
+	clock.season_changed.connect(sky.on_season)
 	save.restore_clock()
 	props = Props.new(self)
 	placed = Placed.new()
@@ -180,7 +184,9 @@ func start_world() -> void:
 	gen.saved = save.store
 	world = gen.world
 	placed.world = world
-	actions = WorldActions.new(world, sky, settings)
+	clock.world = world
+	clock.gen = gen
+	actions = WorldActions.new(world, clock, settings)
 	actions.cell_changed.connect(chunks.on_cell_changed)
 	actions.looks_changed.connect(chunks.remesh_chunk)
 	actions.drops_changed.connect(props.show_drops)
@@ -220,6 +226,7 @@ func _process(delta: float) -> void:
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
 			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
+	clock.step(delta, player.position if player != null else Vector3.INF)
 	sky.update(delta)
 	if ready_to_play:
 		# The player stands still behind the main menu, and lies dead behind the death screen.
@@ -294,7 +301,7 @@ func print_debug() -> void:
 	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, test %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
 		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), view.viewport.size,
 		view.container.stretch_shrink, view.safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.test, r.season,
-		p.x, p.y, p.z, SkyScript.SEASONS[sky.season], controls.touch, hud.stick.value.x, hud.stick.value.y])
+		p.x, p.y, p.z, Clock.SEASONS[clock.season], controls.touch, hud.stick.value.x, hud.stick.value.y])
 
 
 # --- Setup -----------------------------------------------------------------
