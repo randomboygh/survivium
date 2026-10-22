@@ -1,34 +1,34 @@
 extends SceneTree
 ## Headless tests. Run: godot --headless --path . --script res://tests/run_tests.gd
 
-const Mat := preload("res://src/shared/materials.gd")
-const WorldData := preload("res://src/shared/world_data.gd")
-const WorldGen := preload("res://src/shared/world_gen.gd")
-const VoxelRaycast := preload("res://src/shared/voxel_raycast.gd")
-const AiRules := preload("res://src/shared/ai_rules.gd")
-const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
-const PixelView := preload("res://src/client/pixel_view.gd")
-const PlayerScript := preload("res://src/client/player.gd")
-const VoxelProps := preload("res://src/client/voxel_props.gd")
-const Trees := preload("res://src/shared/trees.gd")
-const Foliage := preload("res://src/client/foliage.gd")
-const Bushes := preload("res://src/shared/bushes.gd")
-const PixelTextures := preload("res://src/client/pixel_textures.gd")
-const SpriteSheet := preload("res://src/client/sprite_sheet.gd")
-const Figure := preload("res://src/client/figure.gd")
-const Yaml := preload("res://src/shared/yaml.gd")
-const Content := preload("res://src/shared/content.gd")
-const Items := preload("res://src/shared/items.gd")
-const Inventory := preload("res://src/shared/inventory.gd")
-const Vitals := preload("res://src/shared/vitals.gd")
-const Tools := preload("res://src/shared/tools.gd")
-const Crafting := preload("res://src/shared/crafting.gd")
-const Plants := preload("res://src/shared/plants.gd")
-const CraftQueue := preload("res://src/shared/craft_queue.gd")
-const Knowledge := preload("res://src/shared/knowledge.gd")
-const WorldStore := preload("res://src/shared/world_store.gd")
-const Tracks := preload("res://src/client/tracks.gd")
-const ChunkStreamer := preload("res://src/client/chunk_streamer.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const VoxelRaycast := preload("res://src/shared/world/voxel_raycast.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
+const PlayerScript := preload("res://src/client/view/player.gd")
+const VoxelProps := preload("res://src/client/view/voxel_props.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
+const Foliage := preload("res://src/client/world/foliage.gd")
+const Bushes := preload("res://src/shared/content/bushes.gd")
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
+const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
+const Figure := preload("res://src/client/view/figure.gd")
+const Yaml := preload("res://src/shared/content/yaml.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
+const Vitals := preload("res://src/shared/game/vitals.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
+const Crafting := preload("res://src/shared/content/crafting.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
+const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
+const Knowledge := preload("res://src/shared/game/knowledge.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Tracks := preload("res://src/client/world/tracks.gd")
+const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 
 var checks := 0
 var failures := 0
@@ -62,6 +62,7 @@ func _init() -> void:
 	_test_vitals()
 	_test_tracks()
 	_test_hidden()
+	_test_layers()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -72,6 +73,26 @@ func _check(cond: bool, what: String) -> void:
 		failures += 1
 		printerr("FAIL: " + what)
 
+
+
+## The world model and the rules under src/shared are what the server will run, so
+## nothing there may load a script from src/client.
+func _test_layers() -> void:
+	var bad: Array = []
+	for path: String in _scripts("res://src/shared"):
+		if FileAccess.get_file_as_string(path).contains("res://src/client/"):
+			bad.append(path)
+	_check(bad.is_empty(), "src/shared loads nothing from src/client: %s" % [bad])
+
+
+func _scripts(dir: String) -> Array:
+	var out: Array = []
+	for f: String in DirAccess.get_files_at(dir):
+		if f.ends_with(".gd"):
+			out.append(dir.path_join(f))
+	for d: String in DirAccess.get_directories_at(dir):
+		out.append_array(_scripts(dir.path_join(d)))
+	return out
 
 func _test_generation() -> void:
 	var a := _land(42)

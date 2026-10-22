@@ -6,7 +6,7 @@ extends SceneTree
 ## the pictures to make:
 ## godot --headless --path . --script res://tools/make_sprites.gd -- [picture ...]
 
-const Figure := preload("res://src/client/figure.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 const PlayerArt := preload("res://tools/art/player_art.gd")
 const ToolArt := preload("res://tools/art/tool_art.gd")
 

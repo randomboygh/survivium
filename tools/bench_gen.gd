@@ -3,7 +3,7 @@ extends SceneTree
 ## it, then a square of `size` chunks at once.
 ## godot --headless --path . --script res://tools/bench_gen.gd [size]
 
-const WorldGen := preload("res://src/shared/world_gen.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
 
 func _initialize() -> void:

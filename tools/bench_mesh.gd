@@ -2,9 +2,9 @@ extends SceneTree
 ## Times building the meshes and plants of 16 by 16 chunks around the spawn:
 ## godot --headless --path . --script res://tools/bench_mesh.gd
 
-const WorldGen := preload("res://src/shared/world_gen.gd")
-const ChunkMesher := preload("res://src/client/chunk_mesher.gd")
-const Foliage := preload("res://src/client/foliage.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
+const Foliage := preload("res://src/client/world/foliage.gd")
 const CHUNK := 16
 
 

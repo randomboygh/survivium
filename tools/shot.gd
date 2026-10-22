@@ -7,13 +7,13 @@ extends SceneTree
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
 
-const WorldData := preload("res://src/shared/world_data.gd")
-const Mat := preload("res://src/shared/materials.gd")
-const WorldGen := preload("res://src/shared/world_gen.gd")
-const Trees := preload("res://src/shared/trees.gd")
-const Crafting := preload("res://src/shared/crafting.gd")
-const Foliage := preload("res://src/client/foliage.gd")
-const Bushes := preload("res://src/shared/bushes.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
+const Crafting := preload("res://src/shared/content/crafting.gd")
+const Foliage := preload("res://src/client/world/foliage.gd")
+const Bushes := preload("res://src/shared/content/bushes.gd")
 const CELL := 0.5
 ## How far around the player (in cells) the shore, water and lone tree searches look:
 ## the world has no edge, only the chunks generated around.

@@ -6,9 +6,9 @@ extends RefCounted
 ## through the same place.
 ## Saved as user://settings.cfg (IndexedDB in the browser). `game` is the Main node.
 
-const PixelView := preload("res://src/client/pixel_view.gd")
-const Mat := preload("res://src/shared/materials.gd")
-const Items := preload("res://src/shared/items.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 const PATH := "user://settings.cfg"
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
