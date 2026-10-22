@@ -178,6 +178,11 @@ func open(which: String) -> void:
 		_add_row("Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
 			func() -> int: return s.shadow_map,
 			func(i: int) -> void: s.set_shadow_map(i))
+		# Not a switch either: an arrow leaves for the test world or back.
+		var going := "вернуться" if s.in_test_world() else "перейти"
+		_add_row("Тестовый мир", [going, going],
+			func() -> int: return 0,
+			func(_i: int) -> void: s.switch_test_world())
 		_add_row("Статистика", ["выкл", "вкл"],
 			func() -> int: return int(game.hud.perf.visible),
 			func(i: int) -> void:

@@ -14,6 +14,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
+const TestGround := preload("res://src/shared/world/test_ground.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
 
@@ -157,7 +158,7 @@ func open() -> void:
 	_screen.visible = true
 	_column.visible = true
 	_want_play = false
-	_seed_label.text = "мир · зерно %d" % game.world_seed
+	_seed_label.text = "тестовый мир" if game.world_seed == TestGround.SEED else "мир · зерно %d" % game.world_seed
 	if game.save.has_save:
 		_seed_label.text += " · день %d" % game.clock.day
 	_buttons.play.text = "Продолжить" if game.save.has_save else "Играть"

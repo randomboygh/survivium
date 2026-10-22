@@ -191,7 +191,21 @@ const SHOTS := {
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
+	# The grounds of the test world (TestGround), a run of their own: the player at
+	# `at` (cells). Named "ground-*", they switch the run to the test world.
+	"ground-spawn": {"time": 0.42, "season": 1, "at": [0, 0]},
+	"ground-steps": {"time": 0.42, "season": 1, "at": [-28, -24]},
+	"ground-pits": {"time": 0.42, "season": 1, "at": [0, -32]},
+	"ground-cave": {"time": 0.42, "season": 1, "at": [27, -20]},
+	"ground-cave-inside": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23},
+	"ground-forest": {"time": 0.42, "season": 1, "at": [-30, 2]},
+	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
+	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
+	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
+	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
 }
+
+const TEST_SAVES := "user://shot_ground"
 
 var main: Node
 var out_dir := "user://shots"
@@ -204,10 +218,24 @@ func _initialize() -> void:
 		out_dir = args[0]
 	names = args.slice(1) if args.size() > 1 else SHOTS.keys()
 	DirAccess.make_dir_recursive_absolute(out_dir)
+	var ground: bool = names.any(func(n: String) -> bool: return n.begins_with("ground-"))
+	if ground:
+		_test_world()
 	main = load("res://scenes/main.tscn").instantiate()
+	if ground:
+		main.save_root = TEST_SAVES
 	main.skip_setup = true
 	root.add_child(main)
 	_run()
+
+
+## Starts the run in the test world, in a folder of saves of its own made anew.
+func _test_world() -> void:
+	var store := load("res://src/shared/world/world_store.gd")
+	store._erase_dir(TEST_SAVES)
+	store.root = TEST_SAVES
+	DirAccess.make_dir_recursive_absolute(TEST_SAVES)
+	store.write_current(-1, {})
 
 
 ## Saved worlds made up for the world list, in a folder of their own.
@@ -261,6 +289,11 @@ func _run() -> void:
 			main.player.position = _forest(main.world, main.player.position)
 		if shot.has("place"):
 			main.player.position = _place(main.world, shot.place)
+		if shot.has("at"):
+			var at := Vector2i(shot.at[0], shot.at[1])
+			main.player.position = Vector3(at.x + 0.5, main.world.size_y - 1, at.y + 0.5) * CELL
+			main.chunks.build_around()
+			main.player.position.y = shot.get("y", main.world.surface_y(at.x, at.y)) * CELL
 		if shot.has("by_fire"):
 			for e: Dictionary in main.placed.things:
 				if main.placed.is_fire(e):
