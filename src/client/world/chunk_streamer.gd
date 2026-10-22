@@ -20,9 +20,9 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 ## Chunk size in cells.
 const CHUNK := WorldData.CHUNK
 const CELL := WorldData.CELL
-## Meshes are drawn up to a level height north of where they are, so culling boxes
-## get this much margin.
-const CULL_MARGIN := 24.0
+## World units the shaders may move what a chunk draws past its mesh (leaves and grass
+## swaying, ice raised): the margin of its culling box (see PixelView.sheared_box).
+const SWAY := 1.0
 ## Play starts when the chunks within NEAR_CHUNKS of the spawn are built.
 const NEAR_CHUNKS := 3
 ## Chunks this close to the player (in chunks) are built with the edit budget, so the
@@ -467,7 +467,6 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		var drifts := Foliage.multimesh(game.drift_mesh, game.low_mat, false, false)
 		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts]
 		for n in parts:
-			n.extra_cull_margin = CULL_MARGIN
 			if n == drifts:
 				game.drifts_root.add_child(n)
 			else:
@@ -485,6 +484,25 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		mm.instance_count = part[0]
 		if part[0] > 0:
 			mm.buffer = part[1]
+	for n: GeometryInstance3D in nodes:
+		_fit_box(n)
+
+
+## Culls a part of a chunk by what it draws, moved north as the shaders draw it, instead
+## of a margin of a level's height all round, which kept nearly every chunk loaded drawn
+## (636 draw calls against 301 at the spawn by day, 2026-10-21).
+static func _fit_box(n: GeometryInstance3D) -> void:
+	var box := AABB()
+	if n is MeshInstance3D:
+		if n.mesh == null:
+			return
+		box = n.mesh.get_aabb()
+	else:
+		var mm: MultiMesh = n.multimesh
+		if mm.instance_count == 0:
+			return
+		box = mm.get_aabb()
+	n.custom_aabb = PixelView.sheared_box(box, SWAY)
 
 
 ## Queues the chunks a changed cell touches for a rebuild, the chunk of the cell
@@ -679,10 +697,10 @@ func update_caps() -> void:
 		if not cap_nodes.has(key):
 			var node := MeshInstance3D.new()
 			node.material_override = game.world_mat
-			node.extra_cull_margin = CULL_MARGIN
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
 		cap_nodes[key].mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
+		_fit_box(cap_nodes[key])
 		cap_levels[key] = want
 		if Time.get_ticks_usec() - t0 > CAP_BUDGET_US:
 			break

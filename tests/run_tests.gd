@@ -636,6 +636,7 @@ func _test_shapes() -> void:
 			cuts += int(c.shapes[i] >= 16 and Mat.is_solid(c.cells[i]))
 			fills += int(c.shapes[i] >= 16 and not Mat.is_solid(c.cells[i]))
 	_check(slopes > 0 and cuts > 0 and fills > 0, "generated ground has slopes and cut and filled corners")
+	_check(_ground_matches(g, from, to), "the ground a walker stands on is the one found level by level from the sky")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
 	for i in 300:
@@ -644,6 +645,51 @@ func _test_shapes() -> void:
 		var y := clampi(g.surface_y(x, z) + rng.randi_range(-2, 1), 0, g.size_y - 1)
 		g.set_cell(x, y, z, [Mat.AIR, Mat.DIRT, Mat.STONE][i % 3])
 	_check(_shapes_match(g, from, to), "shapes follow the rules after digging and building")
+	_check(_ground_matches(g, from, to), "and so does the ground a walker stands on")
+
+
+## True when WorldData.ground_height, which starts below the highest cells around,
+## finds the same ground as a look down every level of the column from the top, at
+## points all over the columns from..to, with the water open and frozen.
+func _ground_matches(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var ok := true
+	for frozen in [false, true]:
+		w.water_frozen = frozen
+		for i in 3000:
+			var x := rng.randf_range(from.x, to.x)
+			var z := rng.randf_range(from.y, to.y)
+			if w.ground_height(x, z) != _ground_from_sky(w, x, z):
+				ok = false
+	w.water_frozen = false
+	return ok
+
+
+func _ground_from_sky(w: WorldData, x: float, z: float) -> float:
+	var cx := floori(x)
+	var cz := floori(z)
+	var fx := x - cx
+	var fz := z - cz
+	var k := WorldData.corner_at(fx, fz)
+	var inside := WorldData.in_corner(k, fx, fx, fz, fz)
+	for y in range(w.size_y - 1, -1, -1):
+		var m := w.get_cell(cx, y, cz)
+		if m == Mat.AIR or m == Mat.LEAVES or m == Mat.WATER:
+			if inside and w.corner_fill(cx, y, cz, k):
+				return y + 1.0
+			if m == Mat.WATER:
+				return y + 1.0 if w.water_frozen else -1.0
+			continue
+		if inside and w.corner_cut(cx, y, cz, k):
+			var o: Vector2i = WorldData.CORNER_DIRS[k]
+			if w.get_cell(cx + o.x, y, cz) == Mat.WATER and not w.water_frozen:
+				return -1.0
+			continue
+		if w.slope_mask(cx, y, cz) == WorldData.FULL:
+			return y + 1.0
+		return y + w.surface_height(cx, y, cz, fx, fz)
+	return 0.0
 
 
 ## True when the mesher builds the same surface for every sloping top of the columns
