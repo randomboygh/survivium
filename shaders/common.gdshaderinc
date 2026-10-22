@@ -89,11 +89,11 @@ float bayer4(vec2 t) {
 }
 
 // How wide the soft rim of a cloud shadow is, in noise values on each side of its edge.
-const float CLOUD_RIM = 0.07;
+const float CLOUD_RIM = 0.02;
 
 // Moving cloud shadows: 1 in the sun, lower under a cloud. Sampled per world texel,
-// so cloud edges are pixel steps like everything else; the shadow thins out over a
-// wide rim by an ordered dither, so its edge reads soft.
+// so cloud edges are pixel steps like everything else; the shadow is solid and thins
+// out only over a narrow rim by an ordered dither, so its edge reads soft.
 float cloud_light(vec3 p) {
 	vec2 t = floor(p.xz * TEXELS);
 	float n = texture(cloud_noise, (t / TEXELS + cloud_offset) / 96.0).r;
