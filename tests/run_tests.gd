@@ -12,6 +12,7 @@ const PlayerScript := preload("res://src/client/view/player.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
@@ -20,6 +21,7 @@ const Yaml := preload("res://src/shared/content/yaml.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -50,6 +52,7 @@ func _init() -> void:
 	_test_trees()
 	_test_bushes()
 	_test_felling()
+	_test_world_actions()
 	_test_save()
 	_test_sprite_sheet()
 	_test_yaml()
@@ -1030,8 +1033,8 @@ func _test_bushes() -> void:
 		for dz in range(-3, 4):
 			for dx in range(-3, 4):
 				var c := at + Vector3i(dx, -1, dz)
-				var ids := Foliage.plants_on(w, c.x, c.y, c.z)
-				same = same and ids == Foliage.plants_on(w, c.x, c.y, c.z)
+				var ids := Grass.plants_on(w, c.x, c.y, c.z)
+				same = same and ids == Grass.plants_on(w, c.x, c.y, c.z)
 				for id in ids:
 					found[id] = true
 	_check(same and found.has(Plants.TUFT), "grass has its plants, the same each time")
@@ -1041,15 +1044,15 @@ func _test_bushes() -> void:
 		for dz in range(-3, 4):
 			for dx in range(-3, 4):
 				var c := at + Vector3i(dx, -1, dz)
-				if tall.y < 0 and Foliage.plants_on(w, c.x, c.y, c.z).any(func(id) -> bool: return id != Plants.TUFT):
+				if tall.y < 0 and Grass.plants_on(w, c.x, c.y, c.z).any(func(id) -> bool: return id != Plants.TUFT):
 					tall = c
 	_check(tall.y >= 0, "some grass has more than tufts on it")
 	if tall.y >= 0:
 		w.set_turf(tall, "")
-		var short := Foliage.plants_on(w, tall.x, tall.y, tall.z)
+		var short := Grass.plants_on(w, tall.x, tall.y, tall.z)
 		_check(not short.is_empty() and short.all(func(id) -> bool: return id == Plants.TUFT), "grass cut short has only tufts")
 		w.set_turf(tall, Plants.EARS)
-		_check(Foliage.plants_on(w, tall.x, tall.y, tall.z).count(Plants.EARS) >= 2, "sown grass grows ears")
+		_check(Grass.plants_on(w, tall.x, tall.y, tall.z).count(Plants.EARS) >= 2, "sown grass grows ears")
 		w.set_cell(tall.x, tall.y, tall.z, Mat.DIRT)
 		_check(w.turf_at(tall) == null, "a changed cell forgets what grew on it")
 
@@ -1570,6 +1573,46 @@ func _test_felling() -> void:
 	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
 
 
+## The rules of the hands run on the world model alone, with a stand-in for the one who
+## acts: what the server will do.
+func _test_world_actions() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
+	var changed: Array[Vector3i] = []
+	actions.cell_changed.connect(func(c: Vector3i) -> void: changed.append(c))
+	var who := Who.new()
+	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	who.item = "core:wooden_shovel"
+	var swing := actions.dig_at(who, Vector3i(10, 1, 10), Vector3i.UP)
+	var dirt := 0
+	for key in w.drops:
+		for d: Array in w.drops[key]:
+			dirt += WorldActions.count(d) if d[0] == "core:dirt" else 0
+	_check(not swing.is_empty() and w.get_cell(10, 1, 10) == Mat.AIR and dirt >= 1 and changed.has(Vector3i(10, 1, 10)),
+		"a shovel digs dirt, which falls on the ground")
+	_check(actions.dig_at(who, Vector3i(10, 0, 10), Vector3i.UP).is_empty(), "the bottom level is not dug")
+	who.item = "core:stone"
+	who.inventory.add("core:stone", 3)
+	var placed := actions.place_at(who, Vector3i(12, 2, 10), Vector3i.UP, 40)
+	_check(placed.get("placed", 0) == 1 and w.get_cell(12, 2, 10) == Mat.STONE and who.inventory.count("core:stone") == 2,
+		"a block is placed from the bag")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	Trees.place(w, 15, 2, 23, Trees.OAK, rng)
+	who.position = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
+	who.item = "core:stone_axe"
+	var logs := w.log_col(15, 23)
+	var hits := 0
+	while w.log_col(15, 23) == logs and hits < 50:
+		actions.chop(who, actions.trunk_cell(who, Vector2i(15, 23)))
+		hits += 1
+	_check(hits > 1 and hits <= Trees.SPECIES[Trees.OAK].hits and not w.drops.is_empty(), "an oak falls after its hits")
+
+
 func _bits(v: int) -> int:
 	var n := 0
 	while v != 0:
@@ -1700,3 +1743,48 @@ func _test_hidden() -> void:
 			for y in (1 if x == z else 3):
 				cs.world.set_cell(x, y, z, Mat.STONE)
 	_check(cs._hiding_level(16, 1, 16) == -1, "a wall the head looks over does not cut the view")
+
+
+## The one acting, for the rules in src/shared/game/ without the client (see WorldActions).
+class Who extends RefCounted:
+	var inventory := Inventory.new()
+	var position := Vector3.ZERO
+	var held_back: Array[Vector3] = []
+	var item := ""
+	var said: Array[String] = []
+
+	func feet() -> Vector3i:
+		return Vector3i((position / WorldData.CELL).floor())
+
+	func facing_step() -> Vector2i:
+		return Vector2i(0, -1)
+
+	func moving() -> bool:
+		return false
+
+	func overlaps_cell(_cell: Vector3i) -> bool:
+		return false
+
+	func held() -> String:
+		return item
+
+	func tool() -> Dictionary:
+		return Tools.of(item)
+
+	func brush() -> Dictionary:
+		return Tools.BRUSHES[0]
+
+	func act(_action: String) -> bool:
+		return true
+
+	func give(id: String, n: int, worn := 0) -> int:
+		return inventory.add(id, n, worn)
+
+	func use_tool() -> void:
+		pass
+
+	func nag(_reason: String, text: String) -> void:
+		said.append(text)
+
+	func say(text: String) -> void:
+		said.append(text)

@@ -4,6 +4,7 @@ extends RefCounted
 ## grass, clouds, wind, fog and lightning. Everything the shaders need goes out as
 ## global shader parameters. `game` is the Main node that owns the scene.
 
+const Bushes := preload("res://src/shared/content/bushes.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
@@ -16,7 +17,7 @@ const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
-const BERRY_AMOUNT := [0.0, 1.0, 0.55, 0.0]
+const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 ## Days from one full moon to the next. The first night of a world is a bright one.
 const MOON_DAYS := 8.0
 const MOON_START := 0.75
@@ -238,8 +239,8 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 func next_season() -> void:
 	season = (season + 1) % 4
 	season_clock = 0.0
-	if game.gathering != null and game.world != null:
-		game.gathering.on_season(season)
+	if game.actions != null:
+		game.actions.on_season(season)
 	print("season: %s" % SEASONS[season])
 	game.hud.toast("Наступила %s" % SEASONS[season].to_lower() if season != 1 else "Наступило лето")
 

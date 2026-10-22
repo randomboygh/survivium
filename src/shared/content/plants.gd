@@ -1,7 +1,7 @@
 extends RefCounted
 ## Plants on grass: what each gives when the layer of grass it grows on is cut (see the
-## material's `mow`). Which plants grow where is up to the client, which draws them
-## (Foliage.plants_on); what they give is data here, so the server can hand it out.
+## material's `mow`). Which plants grow where is Grass.plants_on, the same for the
+## client that draws them and the server that hands out what they give.
 
 const Content := preload("res://src/shared/content/content.gd")
 

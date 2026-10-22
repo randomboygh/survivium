@@ -13,6 +13,7 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const CELL := 0.5
 ## How far around the player (in cells) the shore, water and lone tree searches look:
@@ -572,10 +573,10 @@ func _work() -> void:
 		cell.y = w.surface_y(cell.x, cell.z) - 1
 		var one: Array[Vector3i] = [cell]
 		for k in 1 if i < 5 else 2:
-			if c.can_mow(cell) and main.gathering.mow(one):
+			if main.actions.can_mow(cell) and main.actions.mow(main.character, one):
 				mown += 1
 		if i >= 10:
-			main.gathering.plant_at("core:grain", cell)
+			main.actions.plant_at(main.character, "core:grain", cell)
 	print("grass cut %d times" % mown)
 	c.put_in_hand("core:wooden_shovel", 0, false)
 	c.set_active(1)
@@ -593,14 +594,15 @@ func _gather() -> void:
 		var cell := at + Vector3i(-6 + i * 3, 0, 5)
 		w.add_bush(cell, [Bushes.RASPBERRY, Bushes.BLUEBERRY, Bushes.SHRUB][i])
 		main.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
-	var g = main.gathering
-	g._from_bush(at + Vector3i(-6, 0, 5))
-	g._from_bush(at + Vector3i(0, 0, 5))
+	var a = main.actions
+	var who = main.character
+	a._from_bush(who, at + Vector3i(-6, 0, 5))
+	a._from_bush(who, at + Vector3i(0, 0, 5))
 	for key: Vector2i in w.drops.keys():
 		var list: Array = w.drops[key]
 		for i in range(list.size() - 1, -1, -1):
 			if i < list.size() and list[i][1].x < main.player.position.x - 1.0:
-				g._pick_up(key, i)
+				a.pick_up(who, key, i)
 	main.character.inventory.add("core:dirt", 4)
 	main.character.inventory.add("core:stone", 5)
 	main.character.vitals.stamina = 45.0
@@ -646,7 +648,7 @@ func _flat_near(w, p: Vector3) -> Vector3:
 	return p
 
 
-## The nearest spot to `p` inside a tall-grass meadow or a field of ears (see Foliage):
+## The nearest spot to `p` inside a tall-grass meadow or a field of ears (see Grass):
 ## flat grass with the same cover for 2 cells around.
 func _find(w, p: Vector3, what: String) -> Vector3:
 	var cx := floori(p.x / CELL)
@@ -668,9 +670,9 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 						var nz := z + oz
 						if w.surface_y(nx, nz) != y or w.get_cell(nx, y - 1, nz) != Mat.GRASS or w.leaf_col(nx, nz) != 0:
 							ok = false
-						elif what == "meadow" and Foliage.tier_at(nx, nz) != Foliage.TALL_TIER:
+						elif what == "meadow" and Grass.tier_at(nx, nz) != Grass.TALL_TIER:
 							ok = false
-						elif what == "ears" and not Foliage.ear_field_at(w, nx, y, nz):
+						elif what == "ears" and not Grass.ear_field_at(w, nx, y, nz):
 							ok = false
 						if not ok:
 							break
@@ -1083,7 +1085,7 @@ func _clearing(w, at: Vector3i, fell: bool) -> void:
 	main.player.position = (Vector3(at.x, h, at.z) + Vector3(0.5, 0.0, 0.5)) * CELL
 	if fell:
 		for t in [oak, spruce]:
-			main.controls._fell(Vector3i(t.x, h + 1, t.y))
+			main.actions.fell(main.character, Vector3i(t.x, h + 1, t.y))
 
 
 ## The open spot near `at` with the most crowns around it.

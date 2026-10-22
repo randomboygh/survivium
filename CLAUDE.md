@@ -12,8 +12,9 @@ comments, commits and PRs are in English.
 src/shared/    the world model and the rules the server will run; loads nothing from src/client
   content/     mod loader and registries: content, yaml, materials, items, trees, bushes, plants,
                crafting (recipes), tools, ai_rules
-  world/       world_data, world_gen, world_store, voxel_raycast
-  game/        rules of play: inventory, vitals, knowledge, craft_queue
+  world/       world_data, world_gen, world_store, voxel_raycast, grass (what grows on a cell)
+  game/        rules of play: inventory, vitals, knowledge, craft_queue, world_actions (dig,
+               build, chop, gather, plant)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
@@ -29,7 +30,9 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   must decide) goes into `src/shared/`; how it is drawn or asked for goes into `src/client/`.
   `run_tests.gd` fails if anything under `src/shared/` loads a script from `src/client/`. The rules
   in `src/client/game/` move to `src/shared/game/` one system at a time
-  (`plan/architecture/code-structure.md`).
+  (`plan/architecture/code-structure.md`). A rule takes the one acting as `who` (on the client
+  `character.gd`, which answers for the body, the hands and the bag) and tells what it changed
+  through signals the client's views connect to (see `world_actions.gd`).
 - The world has no edge. `world_data.gd` keeps the cells in `Chunk`s by key (`chunk_at`,
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
@@ -63,7 +66,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
   (time, moon phases, seasons, the `WEATHERS` table, light, colour grade), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
-  is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; rules in `src/shared/content/tools.gd`),
+  is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; what the hands do to the world is `src/shared/game/world_actions.gd`, each tool's rules `src/shared/content/tools.gd`),
   `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (things placed on 2×2 cells: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; items lying on the ground, `WorldData.drops`), `workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; rules in `src/shared/content/crafting.gd`, `craft_queue.gd`, `knowledge.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
   full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
@@ -74,9 +77,10 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   (picks the world played last, puts the player, clock and props back, autosaves; modules keep
   their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
   `Inventory` and `Vitals` from `src/shared/`, action costs, death: the bag in a sack, the character
-  lies dead, kept in the save, until `death_screen.gd` brings them back at a respawn point), `gathering.gd` (picking up
-  drops by a tap or by themselves near the player, bushes and trees by what is in the hand, cutting
-  grass into what grows on it, planting), `hands.gd` (what the player is drawn holding in each
+  lies dead, kept in the save, until `death_screen.gd` brings them back at a respawn point), `gathering.gd` (what a tap
+  gathers: the nearest thing on the ground, bush or placed thing to the finger, and its hint; things
+  taken up by themselves near the player; the rules are `world_actions.gd`, what grows on grass
+  `src/shared/world/grass.gd`), `hands.gd` (what the player is drawn holding in each
   hand). The player's sprite (`figure.gd`) is put together from the core mod's pictures, laid out
   by `content/core/sprites/player.yaml`: the bare figure in layers with the hands moving through
   every animation (idle, walk, jump, swim, the works an item's `anim` names), `player/hands.png`

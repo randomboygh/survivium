@@ -203,7 +203,7 @@ func _ready() -> void:
 	_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_info.custom_minimum_size.x = 120
 	name_row.add_child(_info)
-	_plant = _button("Посадить", func() -> void: game.gathering.plant(_from.slots[_at][0]))
+	_plant = _button("Посадить", func() -> void: game.actions.plant(game.character, _from.slots[_at][0]))
 	_put = _button("Поставить", func() -> void:
 		if game.props.put_from_bag(_from.slots[_at][0], _at):
 			close())

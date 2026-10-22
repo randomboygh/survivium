@@ -8,6 +8,10 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Content := preload("res://src/shared/content/content.gd")
 
+## Share of the berries ripe on bushes in each season, spring to winter: what picking
+## gives and what the client draws.
+const BERRY_AMOUNT := [0.0, 1.0, 0.55, 0.0]
+
 ## Types the engine refers to; the validator demands them.
 const KNOWN := {"SHRUB": "core:shrub", "RASPBERRY": "core:raspberry", "BLUEBERRY": "core:blueberry"}
 

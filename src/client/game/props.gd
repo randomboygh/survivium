@@ -18,6 +18,7 @@ const RoofMap := preload("res://src/client/world/roof_map.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const WorldActions := preload("res://src/shared/game/world_actions.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
@@ -425,6 +426,4 @@ func fly(kind: String, from: Vector3) -> void:
 
 ## A bush disappears when its cell is filled or the ground under it is dug.
 func on_cell_changed(cell: Vector3i) -> void:
-	for c in [cell, cell + Vector3i(0, 1, 0)]:
-		if game.world.bushes.has(c):
-			game.world.remove_bush(c)
+	WorldActions.bushes_lose_ground(game.world, cell)

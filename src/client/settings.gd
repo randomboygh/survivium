@@ -150,8 +150,8 @@ func set_season(s: int) -> void:
 	sky.season = posmod(s, 4)
 	sky.season_clock = 0.0
 	print("season: %s" % sky.SEASONS[sky.season])
-	if game.gathering != null and game.world != null:
-		game.gathering.on_season(sky.season)
+	if game.actions != null:
+		game.actions.on_season(sky.season)
 
 
 func set_raining(on: bool) -> void:
