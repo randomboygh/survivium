@@ -17,6 +17,9 @@ const Settings := preload("res://src/client/settings.gd")
 const NAME_WIDTH := 150
 const VALUE_WIDTH := 100
 const ARROW := 32
+## A row across, and the room between two columns of rows (see fit).
+const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
+const COLUMN_GAP := 16
 const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
@@ -49,6 +52,8 @@ var _rows := []
 var _focus := -1
 var _back: Button
 var _screen := Vector2.ZERO
+## Rows side by side: 2 on a wide screen too low for them in one column (see fit).
+var _columns := 1
 
 
 func _init(g) -> void:
@@ -135,8 +140,6 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_tabs.visible = which == "settings"
-	# The settings page is as tall as its longest section, so the tabs do not move.
-	_list.custom_minimum_size.y = 0
 	if which == "changes":
 		_title.text = "Что нового"
 		_add_changes(info.changes)
@@ -144,10 +147,6 @@ func _fill() -> void:
 		_title.text = "Настройки"
 		for k in _tab_buttons:
 			TabRow.light(_tab_buttons[k], k == section)
-		var tallest := 0
-		for sec in SECTIONS:
-			tallest = maxi(tallest, _height(_section_rows(sec[0])))
-		_list.custom_minimum_size.y = tallest
 		for r in _section_rows(section):
 			if r == null:
 				var gap := Control.new()
@@ -279,12 +278,26 @@ func _section_rows(key: String) -> Array:
 	return []
 
 
-## How tall `rows` (see _section_rows) stand in the list.
-static func _height(rows: Array) -> int:
+## How tall `rows` (see _section_rows) stand in the list in `columns` columns: the rows
+## between gaps fill a grid.
+static func _height(rows: Array, columns: int) -> int:
 	var h := 0
+	var children := 0
+	var n := 0
+	for r in rows + [null]:
+		if r != null:
+			n += 1
+			continue
+		if n > 0:
+			var k := ceili(float(n) / columns)
+			h += k * ARROW + (k - 1) * 4
+			children += 1
+			n = 0
 	for r in rows:
-		h += (GAP if r == null else ARROW) + 4
-	return maxi(0, h - 4)
+		if r == null:
+			h += GAP
+			children += 1
+	return h + maxi(0, children - 1) * 4
 
 
 ## The version of this build and its recent changes, newest first:
@@ -320,19 +333,39 @@ func refresh() -> void:
 	reset_size()
 
 
-## Sizes the window for a screen `screen` UI pixels large and centres it.
+## Sizes the window for a screen `screen` UI pixels large and centres it: the rows in
+## two columns on a wide screen too low for them in one, scrolling if still too tall.
 func fit(screen: Vector2) -> void:
 	_screen = screen
-	_list.reset_size()
-	var rows_h := _list.size.y
 	var rest := _title.size.y + _back.size.y + 2 * 6 + 2 * 6
 	if _version.visible:
 		rest += _version.size.y + 6
 	if _tabs.visible:
 		rest += _tabs.size.y + 6
-	_scroll.custom_minimum_size = Vector2(_list.size.x, minf(rows_h, screen.y - 2 * 8 - rest))
+	var room := screen.y - 2 * 8 - rest
+	_set_columns(1)
+	if _list.get_combined_minimum_size().y > room \
+			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x >= 2 * ROW_WIDTH + COLUMN_GAP:
+		_set_columns(2)
+	_list.reset_size()
+	var rows_h := _list.size.y
+	_scroll.custom_minimum_size = Vector2(_list.size.x, minf(rows_h, room))
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
+
+
+## Puts the rows in `n` columns; the settings page is as tall as its longest section, so
+## the tabs do not move.
+func _set_columns(n: int) -> void:
+	_columns = n
+	for c in _list.get_children():
+		if c is GridContainer:
+			c.columns = n
+	var tallest := 0
+	if page == "settings":
+		for sec in SECTIONS:
+			tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
+	_list.custom_minimum_size.y = tallest
 
 
 ## One wrapped paragraph a change, as wide as the rows of the other pages.
@@ -347,15 +380,23 @@ func _add_changes(changes: Array) -> void:
 func _paragraph(text: String, color: Color) -> Label:
 	var l := UiStyle.label(text, color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2, 0)
+	l.custom_minimum_size = Vector2(ROW_WIDTH, 0)
 	return l
 
 
 ## A row "name ‹ value ›"; `other` is shown when `getter` gives -1 (none of `values`).
 func _add_row(name: String, values: Array, getter: Callable, setter: Callable, other := "") -> void:
+	# Rows go into a grid (see fit); a gap starts another.
+	var grid: Node = _list.get_child(_list.get_child_count() - 1) if _list.get_child_count() > 0 else null
+	if not grid is GridContainer:
+		grid = GridContainer.new()
+		grid.columns = _columns
+		grid.add_theme_constant_override("h_separation", COLUMN_GAP)
+		grid.add_theme_constant_override("v_separation", 4)
+		_list.add_child(grid)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
-	_list.add_child(row)
+	grid.add_child(row)
 	var label := UiStyle.label(name)
 	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
