@@ -59,6 +59,9 @@ jobs:
       - name: Save the game and start it again
         run: timeout 300 ~/godot/godot --headless --path . --script res://tests/save_test.gd
 
+      - name: Get the first tools from bare hands
+        run: timeout 600 ~/godot/godot --headless --path . --script res://tests/progress_test.gd
+
       - name: Play without a screen and check frame times
         run: timeout 600 ~/godot/godot --headless --path . --script res://tests/frame_test.gd
 
