@@ -366,6 +366,26 @@ func _run() -> void:
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
 	main.settings.values.fire_shadows = fire_setting
 	main.settings.apply()
+	# Graphics quality: a preset is matched by its settings, a change by hand is «своё».
+	var graphics: Dictionary = main.settings.values.duplicate()
+	main.settings.values.merge(main.settings.QUALITIES[1], true)
+	var preset: int = main.settings.quality()
+	main.settings.values.sun_rays = true
+	_check(preset == 1 and main.settings.quality() == -1, "a quality preset is matched, a change by hand is its own")
+	main.settings.values = graphics
+	main.settings.apply()
+	main.hud.open_settings("settings")
+	var menu = main.hud._settings
+	menu.show_section("graphics")
+	await process_frame
+	var tall: float = menu.get_combined_minimum_size().y
+	var first: String = menu._rows[0].name.text
+	menu.show_section("game")
+	await process_frame
+	_check(first == "Качество" and menu._rows[0].name.text == "Длина суток"
+		and is_equal_approx(menu.get_combined_minimum_size().y, tall),
+		"settings sections by tabs, the window as tall on each")
+	menu.close()
 	main.clock.time_of_day = day
 	main.sky.moon_override = -1.0
 	main.placed.put_out(fire_e)

@@ -188,7 +188,13 @@ const SHOTS := {
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
 	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
+	# The graphics section of the settings: the quality preset over the settings by hand.
+	"ui-settings-graphics": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics"},
+	"ui-settings-graphics-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings", "section": "graphics"},
 	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
+	# The playtest page's other tabs: the player's switches and the tools button, debugging.
+	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
+	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
 	# The first screen (the world to make) and the whole map of what is explored.
@@ -404,10 +410,14 @@ func _run() -> void:
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
 		if shot.get("test", false):
 			main.hud.toggle_test()
+			main.hud._settings.show_section(shot.get("section", "world"))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
+				# The window keeps the section shown last: an earlier shot may have left another.
+				if shot.page in ["settings", "test"]:
+					main.hud._settings.show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
