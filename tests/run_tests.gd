@@ -1816,6 +1816,9 @@ func _test_death() -> void:
 			sack = d
 	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
 		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
+		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
 	_check(again.is_dead() and again.death.lost == [["core:branch", 3]], "the death is kept in the save")
