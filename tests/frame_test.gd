@@ -16,6 +16,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Shot := preload("res://tools/shot.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -350,6 +351,18 @@ func _run() -> void:
 			break
 	_check(main.fire_shadows.multimesh.visible_instance_count > 0, "the campfire throws shadows at night")
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
+	# Mixed fire shadows: the nearest fire's real shadow falls from the player alone,
+	# the rest stays drawn, and the torch casts none.
+	var fire_setting: int = main.settings.values.fire_shadows
+	main.settings.values.fire_shadows = 3
+	main.settings.apply()
+	await create_timer(0.3).timeout
+	var real_fires: Array = main.effects.fires.filter(func(f: Dictionary) -> bool: return f.light.shadow_enabled)
+	_check(real_fires.size() == 1 and real_fires[0].light.shadow_caster_mask == PixelView.LAYER_PLAYER
+		and main.fire_shadows.enabled and not main.player.torch.shadow_enabled,
+		"mixed fire shadows: the fire's real shadow is the player's, the rest drawn")
+	main.settings.values.fire_shadows = fire_setting
+	main.settings.apply()
 	main.clock.time_of_day = day
 	main.sky.moon_override = -1.0
 	main.placed.put_out(fire_e)

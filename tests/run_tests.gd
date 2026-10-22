@@ -1598,8 +1598,23 @@ func _test_felling() -> void:
 	for z in range(14, 33):
 		for x in range(24, 41):
 			leaves_of_second += _bits(w.leaf_col(x, z))
+	# Trunks have their own girth within the species' range, thinner going up, and the
+	# bark of one wider than its cell stops a body beside it.
+	var girths := {}
+	for i in 40:
+		var box := Trees.trunk_box(Trees.OAK, Vector2i(2 * i + 1, 7), 0)
+		girths[box.size.x] = true
+		var g: Array = Trees.SPECIES[Trees.OAK].girth
+		_check(box.size.x >= g[0] and box.size.x <= g[1], "a trunk's girth is in its species' range")
+	_check(girths.size() > 2, "trunks differ in girth")
+	_check(Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 0).size.x,
+		"a trunk thins going up")
+	var box := Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 1)
+	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8), "thick bark east of a trunk is solid")
+	_check(not w.blocks_part(16, 2, 23, 0.7, 0.9, 0.4, 0.6), "a body further from the trunk is not stopped")
 	var gone := Trees.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
 	_check(not gone.is_empty() and gone[0] == Vector3i(15, 2, 23), "a cut trunk is felled from the cut")
+	_check(not w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6), "bark of a felled trunk stops nothing")
 	_check(w.log_col(15, 23) == 0b10, "the stump stays below the cut")
 	var left := 0
 	for z in range(10, 37):
@@ -1821,8 +1836,13 @@ func _test_death() -> void:
 	ch.world = w
 	ch.clock = Clock.new()
 	ch.body = Body.new()
+	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
+	ch.update(0.1)
+	ch.clock.time_of_day += 0.25
 	ch.at = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
+	ch.update(0.1)
 	ch.give("core:branch", 3)
+	_check(ch.act("dig") and ch.act("dig"), "the character digs twice")
 	ch.vitals.satiety = 0.0
 	ch.vitals.health = 0.0
 	ch.update(0.1)
@@ -1832,12 +1852,21 @@ func _test_death() -> void:
 			sack = d
 	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
 		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
+		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
 	_check(again.is_dead() and again.death.lost == [["core:branch", 3]], "the death is kept in the save")
+	var lived: Dictionary = ch.death.life
+	_check(is_equal_approx(lived.walked, WorldData.CELL) and lived.dug == 2.0 and lived.got == 3.0
+		and absf(lived.days - 0.25) < 0.01 and ch.death.deaths == 1, "the death screen knows what the life did")
+	_check(again.death.life.dug == 2.0 and again.deaths == 1 and absf(again.best_days - 0.25) < 0.01,
+		"and the statistics are kept in the save")
 	ch.revive(Vector3(2.5, 1.0, 2.5) * WorldData.CELL)
 	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
 		"and they come back with half their health at the respawn point")
+	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
 
 
 func _bits(v: int) -> int:
@@ -2097,6 +2126,9 @@ class Who extends RefCounted:
 
 	func give(id: String, n: int, worn := 0) -> int:
 		return inventory.add(id, n, worn)
+
+	func note(_stat: String, _n: float = 1.0) -> void:
+		pass
 
 	func use_tool() -> void:
 		pass

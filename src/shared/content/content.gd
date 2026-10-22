@@ -76,6 +76,10 @@ const SCHEMAS := {
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
 		"trunk": {"type": "list", "of": "int", "len": 2, "min": 0},
+		"girth": {"type": "list", "of": "int", "len": 2, "min": 2, "default": [6, 6]},
+		"taper": {"type": "float", "min": 0.0, "default": 0.0},
+		"crook": {"type": "int", "min": 0, "default": 0},
+		"roots": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},

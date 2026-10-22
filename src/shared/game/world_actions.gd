@@ -176,6 +176,7 @@ func fell(who, cell: Vector3i) -> bool:
 	var gone: Array[Vector3i] = Trees.fell(world, cell, away)
 	if gone.is_empty():
 		return false
+	who.note("trees")
 	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
 	# map and the minimap.
 	var cols := {}
@@ -575,8 +576,11 @@ func useful(who, target: Dictionary) -> bool:
 
 
 ## Takes by themselves the things lying near the feet of `who` when `on` (the setting);
-## what it threw away waits until it has walked off.
+## what it threw away waits until it has walked off. The dead take nothing: their sack
+## lies at their feet.
 func pick_up_near(who, on: bool) -> void:
+	if who.is_dead():
+		return
 	var feet: Vector3 = who.position
 	var held_back: Array[Vector3] = who.held_back
 	for i in range(held_back.size() - 1, -1, -1):

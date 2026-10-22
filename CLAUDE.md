@@ -21,7 +21,8 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                clock (time of day, seasons, moon phases, the weather and its WEATHERS table,
                the wind's side and the autumn leaf fall), storms (what a gale breaks and
                knocks off the trees and bushes around the player),
-               character (the bag, the body's state, action costs, eating, death and coming back),
+               character (the bag, the body's state, action costs, eating, what a life did, death and
+               coming back),
                wildlife (the animals: they come, wander, rest, flee, hunt)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
@@ -74,7 +75,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
-  (the light, colour grade, tints and weather drawn for `game.clock`, `src/shared/game/clock.gd`), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
+  (the light, colour grade, sun rays, morning mist, tints and weather drawn for `game.clock`, `src/shared/game/clock.gd`), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
   is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; what the hands do to the world is `src/shared/game/world_actions.gd`, each tool's rules `src/shared/content/tools.gd`),
   `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (draws the things placed on 2×2 cells, whose rules are `src/shared/game/placed.gd`: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; and the items lying on the ground, `WorldData.drops`), crafting is `src/shared/game/workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; `game.workshop`; recipes in `src/shared/content/crafting.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
   (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map

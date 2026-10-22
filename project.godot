@@ -75,6 +75,22 @@ view_height={
 "type": "float",
 "value": 0.0
 }
+mist={
+"type": "float",
+"value": 0.0
+}
+mist_color={
+"type": "vec3",
+"value": Vector3(0.8, 0.82, 0.85)
+}
+mist_level={
+"type": "float",
+"value": 0.0
+}
+mist_offset={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
 depth_haze={
 "type": "vec3",
 "value": Vector3(0, 0, 0)

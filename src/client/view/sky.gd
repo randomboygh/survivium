@@ -2,18 +2,27 @@ extends RefCounted
 ## The sky drawn for the world's time and weather (Clock, src/shared): the sun and the
 ## moon with its phases, the ambient light and the background, the colour grade, the
 ## tints of leaves and grass in each season, clouds, wind, fog, lightning, snow and ice
-## on the ground. Everything the shaders need goes out as global shader parameters.
+## on the ground, sun rays in the air and the morning mist. Everything the shaders need goes out as global shader parameters.
 ## `game` is the Main node that owns the scene.
 
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
 const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
+## How bright the sun rays (god rays) are at most, added in the air over the picture.
+const RAYS_BRIGHTNESS := 0.38
+## How thick the morning mist gets at most (a share of what it veils).
+const MIST_THICKNESS := 0.45
+## How high above the sea the mist fills the low places, in world units.
+const MIST_HEIGHT := 3.5
+## How long the air after rain shows the rays through the breaking clouds, in days.
+const AFTER_RAIN_DAYS := 0.08
 
 var game
 var sun: DirectionalLight3D
@@ -36,6 +45,14 @@ var berry_amount := 1.0
 var cloud_pos := Vector2.ZERO
 var wind_clock := 0.0
 var daylight := 1.0
+## Sun rays are drawn (the «Солнечные лучи» setting).
+var rays_on := true
+## Morning mist is drawn (the «Утренняя дымка» setting).
+var mist_on := true
+## 1 while it rains, fading to 0 over AFTER_RAIN_DAYS once it stops.
+var after_rain := 0.0
+## Towards the sun or the moon in the sky, as _aim_sun last put it.
+var to_sun := Vector3.UP
 
 
 func _init(g) -> void:
@@ -88,7 +105,9 @@ func _update_light() -> void:
 		_aim_sun((time_of_day - 0.5) * 180.0 - 25.0, lerpf(14.0, 55.0, h))
 		sun.light_color = Color(1.0, 0.95, 0.85).lerp(Color(1.0, 0.6, 0.38), golden)
 		sun.light_energy = 0.85 * rise
+		_update_rays(rise, golden)
 	else:
+		_update_rays(0.0, 0.0)
 		_aim_sun((fmod(time_of_day + 0.5, 1.0) - 0.5) * 180.0 - 25.0, lerpf(14.0, 50.0, -h))
 		sun.light_color = Color(0.6, 0.7, 1.0)
 		sun.light_energy = 0.35 * rise * minf(moonlight, 1.0)
@@ -108,10 +127,12 @@ func _update_light() -> void:
 	if game.player != null:
 		var dark := 1.0 if game.chunks.indoor else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
 		dark *= 1.0 - game.effects.torch_off(game.player.position)
-		var shadows: bool = dark > 0.0 and game.effects.shadows and not game.effects.fire_shadowing
+		var shadows: bool = dark > 0.0 and game.effects.shadows and not game.effects.player_only \
+				and not game.effects.fire_shadowing
 		game.player.torch.shadow_enabled = shadows
 		game.player.torch.light_energy = 1.3 * dark * (game.effects.shadow_energy if shadows else 1.0)
 	_update_grade(golden, night, minf(moonlight, 1.0))
+	_update_mist(golden)
 
 
 ## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)
@@ -119,8 +140,60 @@ func _update_light() -> void:
 func _aim_sun(azimuth: float, elevation: float) -> void:
 	var az := deg_to_rad(azimuth)
 	var el := deg_to_rad(elevation)
-	var to_sun := Vector3(-sin(az) * cos(el), sin(el), cos(az) * cos(el))
+	to_sun = Vector3(-sin(az) * cos(el), sin(el), cos(az) * cos(el))
 	sun.global_transform.basis = Basis.looking_at(-to_sun, Vector3.UP)
+
+
+## Sun rays in the air: by day in clear weather, and brighter in the wet air after
+## rain as the clouds break up; none while anything falls, in fog and under a roof.
+## Brighter and warmer when the sun is low. `rise` is how far the sun is up (0..1).
+func _update_rays(rise: float, golden: float) -> void:
+	var clock = game.clock
+	var grade_mat: ShaderMaterial = game.view.grade_mat
+	var clouds: float = clock.clouds
+	var clear := clampf((0.8 - clouds) / 0.4, 0.0, 1.0)
+	var breaking := after_rain * clampf((1.0 - clouds) / 0.3, 0.0, 1.0)
+	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
+	var amount := rise * maxf(clear * 0.9, breaking) * (1.0 + 0.3 * golden)
+	amount *= clampf(1.0 - falling * 4.0, 0.0, 1.0) * clampf(1.0 - clock.fog * 1.5, 0.0, 1.0)
+	if not rays_on or game.chunks.indoor:
+		amount = 0.0
+	grade_mat.set_shader_parameter("rays_amount", amount * RAYS_BRIGHTNESS)
+	if amount <= 0.0:
+		return
+	# The shafts come down from the sky, which is up on the image in this view, and
+	# lean the way the light runs east or west, as the shadows do, never further
+	# than about 30 degrees off straight down.
+	var dir := Vector2(clampf(-to_sun.x * 1.2, -0.6, 0.6), 1.0).normalized()
+	grade_mat.set_shader_parameter("rays_dir", dir)
+	grade_mat.set_shader_parameter("rays_color", Color(1.0, 0.96, 0.82).lerp(Color(1.0, 0.72, 0.45), golden))
+	# The shafts drift across with the clouds they shine between.
+	var across := Vector2(-dir.y, dir.x)
+	grade_mat.set_shader_parameter("rays_offset", -cloud_pos.dot(across) * PixelView.PIXELS_PER_UNIT * 0.5)
+
+
+## Mist in the low places around sunrise, thinning out by mid-morning, and a little
+## after rain: in still air, when nothing falls, outdoors. It lies up to MIST_HEIGHT
+## above the sea, so valleys, shores and plains are veiled and hills and crowns
+## stand out of it (see veil in common.gdshaderinc).
+func _update_mist(golden: float) -> void:
+	var clock = game.clock
+	var t: float = clock.time_of_day
+	var morning := smoothstep(0.17, 0.24, t) * (1.0 - smoothstep(0.3, 0.42, t))
+	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
+	var amount := maxf(morning, after_rain * 0.4) * MIST_THICKNESS
+	amount *= clampf(1.0 - falling * 3.0, 0.0, 1.0) * clampf(1.0 - clock.storm_wind * 1.2, 0.0, 1.0)
+	if not mist_on or game.chunks.indoor:
+		amount = 0.0
+	var g := RenderingServer
+	g.global_shader_parameter_set("mist", amount)
+	if amount <= 0.0:
+		return
+	var col := Color(0.9, 0.92, 0.96).lerp(Color(1.0, 0.9, 0.8), golden * 0.6)
+	col = (col * lerpf(0.45, 1.05, sky_light)).srgb_to_linear()
+	g.global_shader_parameter_set("mist_color", Vector3(col.r, col.g, col.b))
+	g.global_shader_parameter_set("mist_level", (game.world.sea_level + 1) * WorldData.CELL + MIST_HEIGHT)
+	g.global_shader_parameter_set("mist_offset", cloud_pos * 0.25)
 
 
 ## The colour grade sets the mood: warm at sunrise and sunset, blue and muted under
@@ -206,6 +279,10 @@ func _update_weather(delta: float) -> void:
 	var dir: Vector2 = clock.wind_dir()
 	var strength := gust * (1.0 + storm_wind * 0.5) + storm_wind
 	var wind := dir * strength + Vector2(-dir.y, dir.x) * 0.15
+	if clock.rain > 0.2:
+		after_rain = 1.0
+	else:
+		after_rain = maxf(0.0, after_rain - clock.days(delta) / AFTER_RAIN_DAYS)
 	cloud_pos -= (dir * 0.6 + Vector2(0.0, 0.25)) * delta * (1.0 + strength)
 	var g := RenderingServer
 	g.global_shader_parameter_set("snow_amount", clock.snow)

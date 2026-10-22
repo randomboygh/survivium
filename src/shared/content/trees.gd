@@ -62,9 +62,29 @@ static func check() -> PackedStringArray:
 	for s in SPECIES:
 		if s.trunk[0] > s.trunk[1]:
 			out.append("trees: `%s`: trunk [min, max] has min above max" % s.id)
+		if s.girth[0] > s.girth[1] or s.roots[0] > s.roots[1]:
+			out.append("trees: `%s`: girth and roots [min, max] need min not above max" % s.id)
 		if s.leaves == NEEDLES and s.crown[1] > s.crown[2]:
 			out.append("trees: `%s`: crown [radius, min tiers, max tiers] has min above max" % s.id)
 	return out
+
+
+## The trunk of the tree of `species` in column `col`, `k` cells above its foot, in
+## texels (8 to a cell) of its cell seen from above: x west to east, y north to south.
+## Each tree has its own girth within the species' range, thins by its taper going up
+## and may wander a texel or two east or west on the way (crook); a thick one is wider
+## than its cell.
+static func trunk_box(species: int, col: Vector2i, k: int) -> Rect2i:
+	var s: Dictionary = SPECIES[species]
+	var g: int = s.girth[0] + posmod(hash(col), s.girth[1] - s.girth[0] + 1)
+	var width := maxi(4, g - floori(k * s.taper))
+	var lean := 0
+	var crook: int = s.crook
+	for i in (k if crook > 0 else 0):
+		var turn := posmod(hash(Vector3i(col.x, i, col.y)), 5)
+		lean = clampi(lean + (1 if turn == 0 else (-1 if turn == 1 else 0)), -crook, crook)
+	var side := 4 - width / 2
+	return Rect2i(side + lean, side, width, width)
 
 
 ## Most cells a tree of `species` grown at `scale` takes above the ground it stands on.
