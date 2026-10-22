@@ -15,12 +15,14 @@ src/shared/    the world model and the rules the server will run; loads nothing 
   world/       world_data, world_gen, world_store, voxel_raycast, grass (what grows on a cell)
   game/        rules of play: inventory, vitals, knowledge, craft_queue, world_actions (dig,
                build, chop, gather, plant), body (walking, jumping, swimming on the cells,
-               slowed by snow, head wind and blizzards in the open; trails in the snow),
+               slowed by snow, head wind and blizzards in the open, carried by the wind in
+               a jump; trails in the snow),
                placed (chests, stations, campfires on 2x2 cells), workshop (crafting),
                clock (time of day, seasons, moon phases, the weather and its WEATHERS table,
                the wind's side and the autumn leaf fall), storms (what a gale breaks and
                knocks off the trees and bushes around the player),
-               character (the bag, the body's state, action costs, eating, death and coming back),
+               character (the bag, the body's state, action costs, eating, what a life did, death and
+               coming back),
                wildlife (the animals: they come, wander, rest, flee, hunt)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
