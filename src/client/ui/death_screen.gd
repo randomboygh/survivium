@@ -4,7 +4,10 @@ extends Control
 ## into a world they left dead. It says how the character died and when, what was lost
 ## (the bag's things, in a sack where they fell, and how far it is from where they
 ## come back) and what stays, and offers to come back at a respawn point
-## (Character.respawn_points), to go to the main menu or to start a new world. The
+## (Character.respawn_points), to go to the main menu or to start a new world. A
+## second panel tells what that life did (Character.life: how long it lasted, how far
+## the character walked, what they dug, built, felled, gathered, ate and made) and how
+## many deaths the world has seen. The
 ## game's interface is hidden meanwhile; the screen takes the interface's scale and
 ## safe rect, as the main menu does, and leaves the place of death in sight. `game` is the Main node.
 
@@ -19,6 +22,15 @@ const BUTTON_H := 30
 const SLOT := 32
 const COLUMNS := 8
 const MARGIN := 16
+const STATS_WIDTH := 200
+## The statistics shown, in order, as [name in Character.life, caption, the forms of
+## the noun counted (one, two, five)]; "days" and "walked" always, the rest when there
+## are any.
+const STATS := [["days", "прожито", []], ["walked", "пройдено", []],
+	["dug", "выкопано", ["блок", "блока", "блоков"]], ["built", "построено", ["блок", "блока", "блоков"]],
+	["trees", "срублено", ["дерево", "дерева", "деревьев"]], ["got", "добыто", ["вещь", "вещи", "вещей"]],
+	["crafted", "сделано", ["вещь", "вещи", "вещей"]], ["eaten", "поели", ["раз", "раза", "раз"]],
+	["jumps", "прыгнули", ["раз", "раза", "раз"]]]
 const SHADE := Color(0.10, 0.02, 0.02, 0.4)
 ## Directions from the respawn point to the sack, clockwise from north (-z).
 const DIRECTIONS := ["к северу", "к северо-востоку", "к востоку", "к юго-востоку", "к югу",
@@ -36,6 +48,9 @@ var _note: Label
 var _respawn: VBoxContainer
 var _menu_button: Button
 var _new_button: Button
+var _stats_panel: PanelContainer
+var _stats: GridContainer
+var _record: Label
 var _fit_for := Rect2()
 
 
@@ -98,6 +113,22 @@ func _ready() -> void:
 	for b: Button in [_menu_button, _new_button]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	_stats_panel = PanelContainer.new()
+	add_child(_stats_panel)
+	var stats_box := VBoxContainer.new()
+	stats_box.add_theme_constant_override("separation", 6)
+	_stats_panel.add_child(stats_box)
+	_heading(stats_box, "Эта жизнь")
+	_stats = GridContainer.new()
+	_stats.columns = 2
+	_stats.add_theme_constant_override("h_separation", 8)
+	_stats.add_theme_constant_override("v_separation", 6)
+	stats_box.add_child(_stats)
+	_record = UiStyle.label("", UiStyle.MUTED)
+	_record.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_record.custom_minimum_size = Vector2(STATS_WIDTH, 0)
+	stats_box.add_child(_record)
 
 
 func _text(parent: Node, color: Color) -> Label:
@@ -199,7 +230,72 @@ func _fill() -> void:
 	var has_menu: bool = game.menu != null
 	_menu_button.disabled = not has_menu
 	_new_button.disabled = not has_menu
+	_fill_stats(death)
 	_fit()
+
+
+## What the life that ended did, a value over its caption in two columns, and the
+## world's deaths under them; nothing for a death saved before lives were counted.
+func _fill_stats(death: Dictionary) -> void:
+	for c in _stats.get_children():
+		c.queue_free()
+		_stats.remove_child(c)
+	var lived: Variant = death.get("life")
+	_stats_panel.visible = lived is Dictionary
+	if not (lived is Dictionary):
+		return
+	for st: Array in STATS:
+		var v: float = lived.get(st[0], 0.0)
+		if v <= 0.0 and not st[0] in ["days", "walked"]:
+			continue
+		var tile := VBoxContainer.new()
+		tile.add_theme_constant_override("separation", 2)
+		tile.custom_minimum_size = Vector2((STATS_WIDTH - 8) / 2.0, 0)
+		var value := UiStyle.label(_value(st[0], v, st[2]), UiStyle.INK)
+		tile.add_child(value)
+		tile.add_child(UiStyle.label(st[1], UiStyle.MUTED))
+		_stats.add_child(tile)
+	var n := int(death.get("deaths", 1))
+	var best := float(death.get("best", 0.0))
+	var days := float(lived.get("days", 0.0))
+	if n <= 1:
+		_record.text = "Первая смерть в этом мире"
+	elif days > best:
+		_record.text = "Смерть №%d в этом мире\nНовый рекорд жизни!" % n
+	else:
+		_record.text = "Смерть №%d в этом мире\nРекорд жизни: %s" % [n, _days(best)]
+	_record.add_theme_color_override("font_color", UiStyle.ACCENT if n > 1 and days > best else UiStyle.MUTED)
+
+
+## A statistic `v` of `name` as it is shown: time lived, a distance, else a count of
+## the noun in `forms`.
+static func _value(name: String, v: float, forms: Array) -> String:
+	match name:
+		"days":
+			return _days(v)
+		"walked":
+			return ("%.1f км" % (v / 1000.0)).replace(".", ",") if v >= 1000.0 else "%d м" % roundi(v)
+	var n := roundi(v)
+	return "%d %s" % [n, _plural(n, forms)]
+
+
+## The form of a noun in `forms` (one, two, five) that goes with the number `n`.
+static func _plural(n: int, forms: Array) -> String:
+	if n % 10 == 1 and n % 100 != 11:
+		return forms[0]
+	if n % 10 >= 2 and n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
+		return forms[1]
+	return forms[2]
+
+
+## `d` game days as "2 дн 5 ч", "5 ч 20 мин" or "40 мин".
+static func _days(d: float) -> String:
+	var minutes := roundi(d * 24.0 * 60.0)
+	if minutes >= 24 * 60:
+		return "%d дн %d ч" % [minutes / (24 * 60), (minutes / 60) % 24]
+	if minutes >= 60:
+		return "%d ч %d мин" % [minutes / 60, minutes % 60]
+	return "%d мин" % minutes
 
 
 ## "в 40 м к северо-востоку от костра старта", from respawn point `point` ([title,
@@ -233,8 +329,9 @@ func _new_world() -> void:
 		game.menu.new_world()
 
 
-## The interface's scale and rect; the panel on the left of a wide screen and at the
-## bottom of a tall one, so the place of death in the middle stays in sight.
+## The interface's scale and rect; the panel on the left of a wide screen with the
+## statistics on the right, at the bottom of a tall one with the statistics at the top,
+## so the place of death in the middle stays in sight.
 func _fit() -> void:
 	var hud: Control = game.hud
 	_fit_for = Rect2(hud.position, hud.size * hud.scale)
@@ -243,10 +340,14 @@ func _fit() -> void:
 	size = hud.size
 	_panel.reset_size()
 	var p := _panel.size
+	_stats_panel.reset_size()
+	var q := _stats_panel.size
 	if size.x >= size.y * 1.2:
 		_panel.position = Vector2(MARGIN, (size.y - p.y) * 0.5).floor()
+		_stats_panel.position = Vector2(size.x - q.x - MARGIN, (size.y - q.y) * 0.5).floor()
 	else:
 		_panel.position = Vector2((size.x - p.x) * 0.5, size.y - p.y - MARGIN).floor()
+		_stats_panel.position = Vector2((size.x - q.x) * 0.5, MARGIN).floor()
 	queue_redraw()
 
 

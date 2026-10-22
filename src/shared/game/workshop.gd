@@ -111,6 +111,7 @@ func update(delta: float) -> void:
 		return
 	for r in queue.step(delta, _can_work):
 		_receive(r.makes, r.count)
+		who.note("crafted", r.count)
 		who.say("Готово: %s" % r.title)
 
 

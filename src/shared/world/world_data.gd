@@ -10,6 +10,7 @@ extends RefCounted
 ## keeps shapes and meshes fast on a fine grid.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 
 ## Size of a cell in world units; a world unit is 16 px on screen.
 const CELL := 0.5
@@ -1092,7 +1093,33 @@ func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 		return true
 	if not blockers.is_empty() and blocker_part(x, y, z, ax, bx, az, bz) > 0.0:
 		return true
+	if not trees.is_empty() and _bark_touched(x, y, z, ax, bx, az, bz):
+		return true
 	return _cell_blocks(x, y, z)
+
+
+const _SIDES: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+
+
+## Whether the part ax..bx, az..bz (0..1) of air cell (x, y, z) holds the bark of a trunk
+## beside it thicker than its own cell (see Trees.trunk_box).
+func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
+	if get_cell(x, y, z) != Mat.AIR:
+		return false
+	for o in _SIDES:
+		var col := Vector2i(x + o.x, z + o.y)
+		var species: int = trees.get(col, -1)
+		if species < 0 or species >= Trees.SPECIES.size() or get_cell(col.x, y, col.y) != Mat.LOG:
+			continue
+		var k := 0
+		while k < 64 and get_cell(col.x, y - k - 1, col.y) == Mat.LOG:
+			k += 1
+		var box := Trees.trunk_box(species, col, k)
+		# The box in texels of this cell.
+		box.position += o * 8
+		if ax * 8.0 < box.end.x and bx * 8.0 > box.position.x and az * 8.0 < box.end.y and bz * 8.0 > box.position.y:
+			return true
+	return false
 
 
 ## How high above the floor of cell (x, y, z) the top of a thing standing there is

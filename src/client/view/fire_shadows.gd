@@ -9,6 +9,7 @@ extends MultiMeshInstance3D
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 const FireShadowShader := preload("res://shaders/fire_shadow.gdshader")
 
 const CELL := WorldData.CELL
@@ -25,6 +26,7 @@ const TORCH_HEIGHT := 1.2
 const TORCH_AHEAD := 0.3
 ## Widths of the shadows at their foot, world units.
 const PLAYER_WIDTH := 0.4
+## A trunk's, for one 6 texels across; a thicker one throws a wider shadow.
 const TRUNK_WIDTH := 0.5
 ## Casters stand on the light's ground within this many world units up or down.
 const SAME_GROUND := 0.6
@@ -199,8 +201,17 @@ func _cast_trunks(l: Dictionary, n: int) -> int:
 		for kx in range(k.position.x, k.end.x + 1):
 			for foot: Vector3 in _feet(Vector2i(kx, kz), at):
 				if Vector2(foot.x - at.x, foot.z - at.z).length_squared() < r2:
-					n = _cast(l, foot, 64.0, TRUNK_WIDTH, n)
+					n = _cast(l, foot, 64.0, _girth(foot), n)
 	return n
+
+
+## How wide the trunk standing at `foot` is at its foot (see Trees.trunk_box).
+func _girth(foot: Vector3) -> float:
+	var col := Vector2i(floori(foot.x / CELL), floori(foot.z / CELL))
+	var species: int = game.world.trees.get(col, -1)
+	if species < 0 or species >= Trees.SPECIES.size():
+		return TRUNK_WIDTH
+	return TRUNK_WIDTH * Trees.trunk_box(species, col, 0).size.x / 6.0
 
 
 ## The feet of the trunks of chunk `key` seen from a light at `at` (see _base), kept
