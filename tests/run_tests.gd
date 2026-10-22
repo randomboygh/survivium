@@ -1743,7 +1743,8 @@ func _test_world_actions() -> void:
 
 ## The rules of placed things and crafting run without the client: a workbench put
 ## down from the bag is solid and lets a stone axe be made near it, and a campfire is
-## put out, lit again for a branch and destroyed.
+## solid, burns the one who walks into it, is put out, lit again for a branch and
+## destroyed.
 func _test_placed() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:
@@ -1774,7 +1775,31 @@ func _test_placed() -> void:
 	_check(who.inventory.count("core:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
 	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
 	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "a campfire that burns is a station")
+	var cook := Survivor.new()
+	cook.world = w
+	cook.clock = Clock.new()
+	cook.body = Body.new()
+	cook.body.world = w
+	cook.placed = placed
+	cook.at = Vector3(18.0, 2.0, 21.0) * WorldData.CELL
+	cook.update(0.5)
+	_check(cook.vitals.health == Vitals.MAX, "standing away from a campfire does not burn")
+	cook.body.move_input = Vector2(1.0, 0.0)
+	for i in 30:
+		cook.at = cook.body.step(cook.at, 1.0 / 30.0, false)
+		cook.update(1.0 / 30.0)
+	_check(cook.at.x / WorldData.CELL + Body.HALF_WIDTH <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
+	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health > Vitals.MAX - Vitals.BURN * 1.5
+		and cook.vitals.hurt_by == "fire", "and pushing against it burns a little")
+	cook.body.move_input = Vector2.ZERO
+	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
+	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
+	cook.at = Vector3(22.46, 2.0, 21.0) * WorldData.CELL
+	_check(placed.burns(cook.at), "standing close by its side burns")
+	cook.at = Vector3(Placed.center(fire).x, 3.0 * WorldData.CELL, Placed.center(fire).z)
+	_check(placed.burns(cook.at), "and standing on top of it")
 	placed.put_out(fire)
+	_check(not placed.burns(cook.at) and w.blockers.has(fire.cell), "a campfire put out does not burn, and is still solid")
 	_check(not fire.lit and not placed.light(who, fire), "a campfire put out needs a branch to burn again")
 	who.inventory.add("core:branch", 1)
 	_check(placed.light(who, fire) and fire.lit and who.inventory.count("core:branch") == 0, "it is lit for a branch")
@@ -1915,12 +1940,14 @@ func _test_death() -> void:
 			sack = d
 	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
 		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
+	_check(ch.sacks.size() == 1 and ch.sacks[0].is_equal_approx(sack[1]), "the character knows where the sack lies (the maps mark it)")
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
 	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
 		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
-	_check(again.is_dead() and again.death.lost == [["core:branch", 3]], "the death is kept in the save")
+	_check(again.is_dead() and again.death.lost == [["core:branch", 3]] and again.sacks.size() == 1
+		and again.sacks[0].is_equal_approx(sack[1]), "the death and the sack's place are kept in the save")
 	var lived: Dictionary = ch.death.life
 	_check(is_equal_approx(lived.walked, WorldData.CELL) and lived.dug == 2.0 and lived.got == 3.0
 		and absf(lived.days - 0.25) < 0.01 and ch.death.deaths == 1, "the death screen knows what the life did")
@@ -1930,6 +1957,20 @@ func _test_death() -> void:
 	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
 		"and they come back with half their health at the respawn point")
 	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
+	ch.at = sack[1]
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	_check(ch.inventory.count("core:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
+	# What lies at the feet flies into the bag only as far as the weight limit goes, so
+	# digging with the button held does not leave the body too heavy to jump.
+	ch.at = ch.back_at
+	var heap := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
+	w.heap_drop("core:stone", heap, 30, 0.0)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	var left := 0
+	for d: Array in w.drops.get(WorldData.chunk_key(floori(heap.x / WorldData.CELL), floori(heap.z / WorldData.CELL)), []):
+		left += WorldActions.count(d) if d[0] == "core:stone" else 0
+	_check(ch.inventory.count("core:stone") > 0 and not ch.inventory.overloaded() and left > 0
+		and ch.inventory.count("core:stone") + left == 30, "things are taken up by themselves only up to the weight limit")
 
 
 func _bits(v: int) -> int:
@@ -2160,6 +2201,7 @@ class Who extends RefCounted:
 	var inventory := Inventory.new()
 	var position := Vector3.ZERO
 	var held_back: Array[Vector3] = []
+	var sacks: Array[Vector3] = []
 	var item := ""
 	var said: Array[String] = []
 
