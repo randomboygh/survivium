@@ -119,6 +119,9 @@ func open(which: String) -> void:
 		_add_row("Эффекты", ["выкл", "вкл"],
 			func() -> int: return int(s.values.effects),
 			func(i: int) -> void: s.set_value("effects", i == 1))
+		_add_row("Солнечные лучи", ["выкл", "вкл"],
+			func() -> int: return int(s.values.sun_rays),
+			func(i: int) -> void: s.set_value("sun_rays", i == 1))
 		_add_row("Предел FPS", Settings.FPS_LIMITS.map(func(v: int) -> String: return "нет" if v == 0 else str(v)),
 			func() -> int: return s.values.fps_limit,
 			func(i: int) -> void: s.set_value("fps_limit", i))
