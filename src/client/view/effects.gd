@@ -19,6 +19,9 @@ const HEAT_RADIUS := 3.0
 ## into a shadow map whenever something there moves, and lights it again in a pass
 ## of its own; on the phone two of them took the frame from 60 to about 30 FPS.
 const SHADOW_FIRE_REACH := 10.0
+## What a fire's real shadow falls from: all but the shadow discs under crowns and
+## bushes (see PixelView.LAYER_SUN_CASTER).
+const FIRE_CASTERS := 0xFFFFF & ~PixelView.LAYER_SUN_CASTER
 ## A light with shadows is added to the picture in a pass of its own, in screen colours
 ## rather than in light, and comes out brighter over the ambient light and the moon
 ## than the same light drawn with the rest: such a fire or torch burns lower, by the
@@ -61,6 +64,9 @@ var enabled := true
 ## The fire shadows setting: the nearest fire or the torch casts shadows (see
 ## SHADOW_FIRE_REACH).
 var shadows := true
+## The fire shadows setting is on "mixed": the fire's real shadow falls from the player
+## alone, FireShadows draws the rest, and the torch casts none.
+var player_only := false
 ## True while a fire casts shadows, and the torch then casts none.
 var fire_shadowing := false
 ## What a fire or the torch with shadows burns at, as a share (see SHADOW_ENERGY).
@@ -246,7 +252,7 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	light.omni_range = 8.0
 	# No falloff of its own: the shaders step the light into rings (see toon_light).
 	light.omni_attenuation = 0.0
-	light.shadow_caster_mask = 0xFFFFF & ~PixelView.LAYER_SUN_CASTER
+	light.shadow_caster_mask = FIRE_CASTERS
 	light.position = PixelView.shear(c + Vector3(0.0, 0.6, 0.0))
 	add_child(light)
 	var fire := {"light": light, "base": 1.8, "unit": Vector3i(c.floor()), "at": c}
@@ -390,6 +396,8 @@ func pick_shadow_fires(view: Vector2) -> void:
 				best = f
 	for f in fires:
 		f.light.shadow_enabled = f == best
+	if best != null:
+		best.light.shadow_caster_mask = PixelView.LAYER_PLAYER if player_only else FIRE_CASTERS
 	fire_shadowing = best != null
 
 
