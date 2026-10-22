@@ -1265,7 +1265,6 @@ func _lone_trees(w, at: Vector3) -> Vector3:
 func _place_birds() -> void:
 	var life = main.wildlife
 	var p: Vector3 = main.player.position
-	var tree: Variant = life._tree_spot(p, 6.0)
 	var i := 0
 	for c in life.animals:
 		if c.kind != "birds:sparrow":
@@ -1275,12 +1274,13 @@ func _place_birds() -> void:
 		c.flying = false
 		c.perched = false
 		c.target = c.pos
+		var tree: Variant = life._tree_spot(p, 7.0) if i % 3 == 2 else null
 		if i % 3 == 1:
-			c.pos.y += 1.0 + (i % 4) * 0.5
+			c.pos.y = life._canopy(c.pos.x, c.pos.z) + 1.0 + (i % 4) * 0.5
 			c.flying = true
 			c.target = c.pos + Vector3(5.0, 0.0, 0.0)
-		elif i % 3 == 2 and tree != null:
-			c.pos = tree + Vector3((i % 4) * 0.3 - 0.4, 0.0, 0.0)
+		elif tree != null:
+			c.pos = tree
 			c.perched = true
 			c.target = c.pos
 		c.facing = 1.0 if i % 2 == 0 else -1.0
