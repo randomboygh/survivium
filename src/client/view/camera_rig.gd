@@ -124,6 +124,12 @@ func poll_safe_rect(delta: float) -> void:
 		layout_ui(r)
 
 
+## Where world point `p` is on the screen, in screen pixels (as drawn this frame).
+func screen_of(p: Vector3) -> Vector2:
+	var offset := (PixelView.screen_plane(p) - cam_target) * PixelView.PIXELS_PER_UNIT
+	return (Vector2(image_size) / 2.0 - Vector2.ONE * PixelView.MARGIN + offset) * view_scale
+
+
 ## The camera renders from a whole pixel; the leftover fraction of a pixel shifts the
 ## upscaled image, so the view glides smoothly while the pixel art stays on its grid.
 func update(delta: float) -> void:

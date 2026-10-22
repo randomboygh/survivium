@@ -8,24 +8,27 @@ extends PanelContainer
 ## until the game has sound (Графика starts with the quality preset, any change by hand
 ## makes it «своё»); the playtest page into Мир, Игрок, Отладка, with buttons for what
 ## is done once (into the test world, the tools into the bag). The playtest page also
-## shows the version of the build and opens the list of recent changes ("changes" page),
-## no taller than the settings and scrolling.
+## shows the version of the build and opens the list of recent changes ("changes" page,
+## its legend of kinds above the buttons), no taller than the settings and scrolling.
+## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
 
-## Room for the longest name (18 letters of the 8 px font).
+## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
 const VALUE_WIDTH := 100
 const ARROW := 32
-## A row across, and the room between two columns of rows (see fit).
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
 	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "быстрее", "inside": "внутри",
 }
+## A row across, and the room between two columns of rows (see fit).
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
 const COLUMN_GAP := 16
+## Room kept for the scroll bar on every page, so all of them are as wide.
+const BAR_ROOM := UiStyle.SCROLL_BAR + 4
 const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
@@ -40,6 +43,7 @@ const SOON := ["music", "sound"]
 ## The room between the quality preset and the settings by hand, or the rows and a
 ## button.
 const GAP := 8
+const TAB_HEIGHT := 28
 ## Written by tools/build_info.py in CI; a local run has none and shows "dev".
 const BUILD_INFO := "res://build_info.json"
 
@@ -59,6 +63,9 @@ var _version: Label
 var _changes: Button
 var _scroll: ScrollContainer
 var _list: VBoxContainer
+## The kinds of change and their icons, under the changes.
+var _legend: PanelContainer
+var _legend_grid: GridContainer
 ## Rows of the page: {"key", "values": Array of String, "get": Callable, "set": Callable, "label": Label}
 var _rows := []
 var _focus := -1
@@ -98,6 +105,16 @@ func _ready() -> void:
 	_list.add_theme_constant_override("separation", 4)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_list)
+	_legend = PanelContainer.new()
+	_legend.add_theme_stylebox_override("panel", UiStyle.field())
+	box.add_child(_legend)
+	_legend_grid = GridContainer.new()
+	_legend_grid.add_theme_constant_override("h_separation", 12)
+	_legend_grid.add_theme_constant_override("v_separation", 4)
+	_legend_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_legend.add_child(_legend_grid)
+	for k in CHANGE_KINDS:
+		_legend_grid.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 6)
 	box.add_child(buttons)
@@ -140,7 +157,7 @@ func _make_tabs(which: String) -> void:
 	for sec in PAGES.get(which, []):
 		var key: String = sec[0]
 		var b := TabRow.small_button(sec[1], show_section.bind(key))
-		b.custom_minimum_size.y = 28
+		b.custom_minimum_size.y = TAB_HEIGHT
 		b.disabled = key in SOON
 		b.tooltip_text = "Скоро" if b.disabled else ""
 		_tabs.add_child(b)
@@ -160,6 +177,7 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_tabs.visible = PAGES.has(which)
+	_legend.visible = which == "changes" and not info.changes.is_empty()
 	_make_tabs(which)
 	if which == "changes":
 		_title.text = "Что нового"
@@ -283,7 +301,7 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return s.quality(),
 					func(i: int) -> void: s.set_quality(i), "своё"],
 				null,
-				["Пиксель", ["обычный", "крупный", "огромный"],
+				["Масштаб", ["обычный", "крупный", "огромный"],
 					func() -> int: return s.values.pixel_size,
 					func(i: int) -> void: s.set_value("pixel_size", i)],
 				["Тени", ["выкл", "вкл"],
@@ -370,24 +388,34 @@ func refresh() -> void:
 func fit(screen: Vector2) -> void:
 	_screen = screen
 	var rest := _title.size.y + _back.size.y + 2 * 6 + 2 * 6
+	# As on the settings page, whose tabs the changes page has not.
+	var room := screen.y - 2 * 8 - rest - TAB_HEIGHT - 6
+	# Every page takes the columns the settings need, so all are as wide.
+	var n := 2 if _page_height("settings", 1) > room \
+			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x - BAR_ROOM >= 2 * ROW_WIDTH + COLUMN_GAP else 1
+	if n != _columns and page == "changes":
+		_columns = n
+		_fill()
+		return
+	_set_columns(n)
+	_legend_grid.columns = CHANGE_KINDS.size() if n > 1 else 3
 	if _version.visible:
-		rest += _version.size.y + 6
-	if _tabs.visible:
-		rest += _tabs.size.y + 6
-	var room := screen.y - 2 * 8 - rest
-	_set_columns(1)
-	if page == "settings":
-		if _list.get_combined_minimum_size().y > room \
-				and screen.x - 2 * 8 - 2 * UiStyle.PAD.x >= 2 * ROW_WIDTH + COLUMN_GAP:
-			_set_columns(2)
-	else:
-		room = minf(room, _page_height("settings", 1))
+		room -= _version.size.y + 6
+	if _legend.visible:
+		room -= _legend.get_combined_minimum_size().y + 6
+	if not _tabs.visible:
+		room += TAB_HEIGHT + 6
+	if page != "settings":
+		room = minf(room, _page_height("settings", n))
 	_list.reset_size()
-	var rows_h := _list.size.y
-	var bar := UiStyle.SCROLL_BAR + 4 if rows_h > room else 0
-	_scroll.custom_minimum_size = Vector2(_list.size.x + bar, minf(rows_h, room))
+	_scroll.custom_minimum_size = Vector2(content_width() + BAR_ROOM, minf(_list.size.y, room))
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
+
+
+## How wide the rows of every page stand: one or two columns.
+func content_width() -> int:
+	return _columns * ROW_WIDTH + (_columns - 1) * COLUMN_GAP
 
 
 ## Puts the rows in `n` columns; a page with tabs is as tall as its longest section, so
@@ -413,18 +441,12 @@ func _add_changes(changes: Array) -> void:
 	if changes.is_empty():
 		_list.add_child(_paragraph("Список изменений появится в сборке с сайта.", UiStyle.MUTED))
 		return
-	var legend := HFlowContainer.new()
-	legend.custom_minimum_size = Vector2(ROW_WIDTH, 0)
-	legend.add_theme_constant_override("h_separation", 12)
-	for k in CHANGE_KINDS:
-		legend.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
-	_list.add_child(legend)
 	var pr := -1
 	for c in changes:
 		if int(c.pr) != pr:
 			pr = int(c.pr)
 			_list.add_child(_paragraph("#%d · %s" % [pr, c.date], UiStyle.ACCENT))
-		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, ROW_WIDTH))
+		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, content_width()))
 
 
 ## A line of «Что нового» with the icon of its kind (CHANGE_KINDS) in front; `width` 0
@@ -449,7 +471,7 @@ func _change_line(kind: String, text: String, color: Color, width: int) -> HBoxC
 func _paragraph(text: String, color: Color) -> Label:
 	var l := UiStyle.label(text, color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(ROW_WIDTH, 0)
+	l.custom_minimum_size = Vector2(content_width(), 0)
 	return l
 
 
@@ -460,6 +482,7 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 	_grid().add_child(row)
 	var label := UiStyle.label(name)
 	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	var index := _rows.size()
@@ -491,6 +514,8 @@ func _grid() -> GridContainer:
 		return last
 	var grid := GridContainer.new()
 	grid.columns = _columns
+	# In the middle of the room kept for the scroll bar while it is hidden.
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	grid.add_theme_constant_override("h_separation", COLUMN_GAP)
 	grid.add_theme_constant_override("v_separation", 4)
 	_list.add_child(grid)

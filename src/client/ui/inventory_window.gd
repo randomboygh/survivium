@@ -235,7 +235,7 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(30, 30)
 	var block := TabRow.block(top, ["Взять", "", func() -> void:
 		var id: String = _from.slots[_at][0]
-		if Items.food(id) > 0.0:
+		if Items.food(id) > 0.0 or Items.heal(id) > 0.0:
 			game.character.eat(_at)
 		else:
 			game.controls.hold(id)], 3 * 30 - 2 + 4, false)
@@ -506,9 +506,10 @@ func _show_info(inv) -> void:
 		if b.visible:
 			room -= int(b.get_combined_minimum_size().x) + 6
 	_info.custom_minimum_size.x = room
-	var food: bool = s != null and Items.food(s[0]) > 0.0
-	_use.text = "Съесть" if food else "Взять"
-	_use.tooltip_text = "Съесть одну" if food else "Взять в руку"
+	var heals: bool = s != null and Items.heal(s[0]) > 0.0
+	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals
+	_use.text = "Перевязать" if heals else ("Съесть" if food else "Взять")
+	_use.tooltip_text = "Перевязать раны" if heals else ("Съесть одну" if food else "Взять в руку")
 	_use.disabled = not mine or not food and game.controls.held() == s[0]
 	_throw.get_child(0).disabled = not mine
 	_throw.get_child(1).disabled = not mine or s[1] < 2

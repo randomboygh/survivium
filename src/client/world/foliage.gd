@@ -20,6 +20,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 ## of their cards.
 const PLANT_W := PixelTextures.PLANT_W / 16.0
 const PLANT_H := PixelTextures.PLANT_H / 16.0
+## The glow about the glowing mushrooms is drawn on a card this much larger (grass.gdshader).
+const HALO_SCALE := 2.5
 ## Leaf cluster cards: size in world units (24 px, see PixelTextures.CLUMP; the bunch of
 ## leaves in a card is one of three sizes), cards on each open face of a crown point the
 ## camera sees.
@@ -223,6 +225,19 @@ static func _column(job: Job, x: int, z: int) -> void:
 			put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
 			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 			job.ng += 1
+			if kind >= Grass.GLOW and kind < Grass.SPORE:
+				# Spores rise from the glowing mushrooms at night, in a glow of their
+				# own (grass.gdshader; the glow's card is HALO_SCALE times larger).
+				var p := Vector3(x + fx, y + h, z + fz) * CELL
+				grass.append_array([HALO_SCALE, 0.0, 0.0, p.x, 0.0, HALO_SCALE, 0.0, p.y, 0.0, 0.0, 1.0, p.z - 0.01])
+				grass.append_array([float(Grass.HALO), rng.randf_range(0.8, 1.1), rng.randf(), 0.0])
+				job.ng += 1
+				for k in 2:
+					var sx := clampf(fx + rng.randf_range(-0.25, 0.25), 0.05, 0.95)
+					var sz := clampf(fz + rng.randf_range(-0.25, 0.25), 0.05, 0.95)
+					put(grass, Vector3(x + sx, y + h, z + sz) * CELL)
+					grass.append_array([float(Grass.SPORE), rng.randf_range(0.7, 1.2), rng.randf(), 0.0])
+					job.ng += 1
 	if x & 1 == 0 or z & 1 == 0:
 		return
 	var leaves: int = ch.leaf[col] & EVEN_LEVELS
