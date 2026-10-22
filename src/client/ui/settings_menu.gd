@@ -3,11 +3,13 @@ extends PanelContainer
 ## lists of rows "name ‹ value ›": a tap or a click on an arrow picks the next value,
 ## which suits a thumb as well as a mouse; the keyboard moves between rows with the
 ## arrows and changes a value with Left / Right or Enter. Values come from and go to
-## Settings (plan/design/ui.md, section 6). The settings page is split into sections by
-## tabs under its title (Игра, Графика, and Музыка, Звук dimmed until the game has
-## sound); Графика starts with the quality preset, any change by hand makes it «своё».
-## The playtest page also shows the version of the build and opens the list of recent
-## changes ("changes" page).
+## Settings (plan/design/ui.md, section 6). Both pages are split into sections by tabs
+## under the title (see PAGES): the settings into Игра, Графика, and Музыка, Звук dimmed
+## until the game has sound (Графика starts with the quality preset, any change by hand
+## makes it «своё»); the playtest page into Мир, Игрок, Отладка, with buttons for what
+## is done once (into the test world, the tools into the bag). The playtest page also
+## shows the version of the build and opens the list of recent changes ("changes" page),
+## no taller than the settings and scrolling.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
@@ -24,11 +26,15 @@ const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
 const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолуние", 1.0]]
-## The sections of the settings page: key and tab name.
-const SECTIONS := [["game", "Игра"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]]
+## The sections of the pages with tabs: key and tab name.
+const PAGES := {
+	"settings": [["game", "Игра"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
+	"test": [["world", "Мир"], ["player", "Игрок"], ["debug", "Отладка"]],
+}
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := ["music", "sound"]
-## The room between the quality preset and the settings by hand.
+## The room between the quality preset and the settings by hand, or the rows and a
+## button.
 const GAP := 8
 ## Written by tools/build_info.py in CI; a local run has none and shows "dev".
 const BUILD_INFO := "res://build_info.json"
@@ -38,11 +44,13 @@ signal closed
 var game
 ## "settings", "test" or "changes": which page is shown.
 var page := ""
-## The section of the settings page shown (a key of SECTIONS); kept between openings.
-var section := "game"
+## The section shown on each page with tabs (see PAGES); kept between openings.
+var sections := {"settings": "game", "test": "world"}
 var _title: Label
 var _tabs: HBoxContainer
 var _tab_buttons := {}
+## The page the tabs were made for.
+var _tabs_page := ""
 var _version: Label
 var _changes: Button
 var _scroll: ScrollContainer
@@ -77,18 +85,10 @@ func _ready() -> void:
 	_tabs.add_theme_constant_override("separation", 4)
 	_tabs.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_tabs)
-	for sec in SECTIONS:
-		var key: String = sec[0]
-		var b := TabRow.small_button(sec[1], show_section.bind(key))
-		b.custom_minimum_size.y = 28
-		b.disabled = key in SOON
-		b.tooltip_text = "Скоро" if b.disabled else ""
-		_tabs.add_child(b)
-		_tab_buttons[key] = b
 	# The rows scroll when the window is taller than a small screen with a big interface.
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	box.add_child(_scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 4)
@@ -118,10 +118,29 @@ func open(which: String) -> void:
 	_fill()
 
 
-## Shows section `key` of the settings page (see SECTIONS).
+## Shows section `key` of the page shown (see PAGES).
 func show_section(key: String) -> void:
-	section = key
+	sections[page] = key
 	_fill()
+
+
+## The tabs of page `which` (see PAGES), made when the page changes.
+func _make_tabs(which: String) -> void:
+	if _tabs_page == which:
+		return
+	_tabs_page = which
+	for b in _tabs.get_children():
+		_tabs.remove_child(b)
+		b.queue_free()
+	_tab_buttons.clear()
+	for sec in PAGES.get(which, []):
+		var key: String = sec[0]
+		var b := TabRow.small_button(sec[1], show_section.bind(key))
+		b.custom_minimum_size.y = 28
+		b.disabled = key in SOON
+		b.tooltip_text = "Скоро" if b.disabled else ""
+		_tabs.add_child(b)
+		_tab_buttons[key] = b
 
 
 ## Builds the rows of the page (and section) shown and shows them.
@@ -132,87 +151,28 @@ func _fill() -> void:
 	_rows.clear()
 	_focus = -1
 	var which := page
-	var s = game.settings
-	var sky = game.sky
-	var clock = game.clock
 	var info := build_info()
 	_version.text = "Версия %s · %s · %s" % [info.version, info.commit, info.date]
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
-	_tabs.visible = which == "settings"
+	_tabs.visible = PAGES.has(which)
+	_make_tabs(which)
 	if which == "changes":
 		_title.text = "Что нового"
 		_add_changes(info.changes)
-	elif which == "settings":
-		_title.text = "Настройки"
+	else:
+		_title.text = "Настройки" if which == "settings" else "Тестирование"
 		for k in _tab_buttons:
-			TabRow.light(_tab_buttons[k], k == section)
-		for r in _section_rows(section):
+			TabRow.light(_tab_buttons[k], k == sections[which])
+		for r in _section_rows(sections[which]):
 			if r == null:
 				var gap := Control.new()
 				gap.custom_minimum_size.y = GAP
 				_list.add_child(gap)
+			elif r is Dictionary:
+				_add_action(r.action, r.do)
 			else:
 				_add_row(r[0], r[1], r[2], r[3], r[4] if r.size() > 4 else "")
-	else:
-		_title.text = "Тестирование"
-		_add_row("Сезон", clock.SEASONS,
-			func() -> int: return clock.season,
-			func(i: int) -> void: s.set_season(i))
-		_add_row("Погода", ["сама"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
-			func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
-			func(i: int) -> void: s.set_weather(i - 1))
-		_add_row("Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
-			func() -> int:
-				for i in MOONS.size():
-					if is_equal_approx(sky.moon_override, MOONS[i][1]):
-						return i + 1
-				return 0,
-			func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]))
-		_add_row("Время суток", HOURS,
-			func() -> int:
-				var h: float = clock.time_of_day * 24.0
-				var best := 0
-				for i in HOUR_OF.size():
-					if h >= HOUR_OF[i] - 0.5:
-						best = i
-				return best,
-			func(i: int) -> void: s.set_hour(HOUR_OF[i]))
-		_add_row("Час", range(24).map(func(h: int) -> String: return "%02d:00" % h),
-			func() -> int: return int(clock.time_of_day * 24.0) % 24,
-			func(i: int) -> void: s.set_hour(i))
-		_add_row("Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
-			func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
-			func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]))
-		_add_row("Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
-			func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
-			func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]))
-		_add_row("Прыжки", ["с земли", "и в воздухе"],
-			func() -> int: return int(s.air_jumps),
-			func(i: int) -> void: s.set_air_jumps(i == 1))
-		_add_row("Стройка", ["из сумки", "бесплатно"],
-			func() -> int: return int(s.free_build),
-			func(i: int) -> void: s.set_free_build(i == 1))
-		# Not a switch: either arrow puts the tools into the bag.
-		_add_row("Инструменты", ["выдать", "выдать"],
-			func() -> int: return 0,
-			func(_i: int) -> void: s.give_tools())
-		_add_row("Износ инструментов", ["выкл", "вкл"],
-			func() -> int: return int(s.tool_wear),
-			func(i: int) -> void: s.set_tool_wear(i == 1))
-		_add_row("Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
-			func() -> int: return s.shadow_map,
-			func(i: int) -> void: s.set_shadow_map(i))
-		# Not a switch either: an arrow leaves for the test world or back.
-		var going := "вернуться" if s.in_test_world() else "перейти"
-		_add_row("Тестовый мир", [going, going],
-			func() -> int: return 0,
-			func(_i: int) -> void: s.switch_test_world())
-		_add_row("Статистика", ["выкл", "вкл"],
-			func() -> int: return int(game.hud.perf.visible),
-			func(i: int) -> void:
-				if game.hud.perf.visible != (i == 1):
-					game.hud.toggle_stats())
 	visible = true
 	refresh()
 	_set_focus(0)
@@ -221,13 +181,76 @@ func _fill() -> void:
 		fit(_screen)
 
 
-## The rows of section `key` of the settings page: [name, values, getter, setter] each,
-## and [..., the value shown when the getter gives -1] for the quality preset; null is a
-## gap.
+## The rows of section `key` (see PAGES): [name, values, getter, setter] each, and
+## [..., the value shown when the getter gives -1] for the quality preset; null is a
+## gap; {"action": text, "do": Callable} a button that does something once.
 func _section_rows(key: String) -> Array:
 	var s = game.settings
+	var sky = game.sky
 	var clock = game.clock
 	match key:
+		"world":
+			return [
+				["Сезон", clock.SEASONS,
+					func() -> int: return clock.season,
+					func(i: int) -> void: s.set_season(i)],
+				["Погода", ["сама"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
+					func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
+					func(i: int) -> void: s.set_weather(i - 1)],
+				["Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
+					func() -> int:
+						for i in MOONS.size():
+							if is_equal_approx(sky.moon_override, MOONS[i][1]):
+								return i + 1
+						return 0,
+					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1])],
+				["Время суток", HOURS,
+					func() -> int:
+						var h: float = clock.time_of_day * 24.0
+						var best := 0
+						for i in HOUR_OF.size():
+							if h >= HOUR_OF[i] - 0.5:
+								best = i
+						return best,
+					func(i: int) -> void: s.set_hour(HOUR_OF[i])],
+				["Час", range(24).map(func(h: int) -> String: return "%02d:00" % h),
+					func() -> int: return int(clock.time_of_day * 24.0) % 24,
+					func(i: int) -> void: s.set_hour(i)],
+				["Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
+					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
+					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i])],
+				null,
+				{"action": "Вернуться в свой мир" if s.in_test_world() else "Перейти в тестовый мир",
+					"do": func() -> void: s.switch_test_world()},
+			]
+		"player":
+			return [
+				["Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
+					func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
+					func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i])],
+				["Прыжки", ["с земли", "и в воздухе"],
+					func() -> int: return int(s.air_jumps),
+					func(i: int) -> void: s.set_air_jumps(i == 1)],
+				["Стройка", ["из сумки", "бесплатно"],
+					func() -> int: return int(s.free_build),
+					func(i: int) -> void: s.set_free_build(i == 1)],
+				["Износ инструментов", ["выкл", "вкл"],
+					func() -> int: return int(s.tool_wear),
+					func(i: int) -> void: s.set_tool_wear(i == 1)],
+				null,
+				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
+			]
+		"debug":
+			return [
+				["Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
+					func() -> int: return s.shadow_map,
+					func(i: int) -> void: s.set_shadow_map(i)],
+				["Статистика", ["выкл", "вкл"],
+					func() -> int: return int(game.hud.perf.visible),
+					func(i: int) -> void:
+						if game.hud.perf.visible != (i == 1):
+							game.hud.toggle_stats()],
+			]
 		"game":
 			var rows := [
 				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
@@ -333,8 +356,10 @@ func refresh() -> void:
 	reset_size()
 
 
-## Sizes the window for a screen `screen` UI pixels large and centres it: the rows in
-## two columns on a wide screen too low for them in one, scrolling if still too tall.
+## Sizes the window for a screen `screen` UI pixels large and centres it. The settings
+## page puts its rows in two columns on a wide screen too low for them in one; the
+## playtest and changes pages are no taller than the settings and scroll, a bar at the
+## side.
 func fit(screen: Vector2) -> void:
 	_screen = screen
 	var rest := _title.size.y + _back.size.y + 2 * 6 + 2 * 6
@@ -344,28 +369,36 @@ func fit(screen: Vector2) -> void:
 		rest += _tabs.size.y + 6
 	var room := screen.y - 2 * 8 - rest
 	_set_columns(1)
-	if _list.get_combined_minimum_size().y > room \
-			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x >= 2 * ROW_WIDTH + COLUMN_GAP:
-		_set_columns(2)
+	if page == "settings":
+		if _list.get_combined_minimum_size().y > room \
+				and screen.x - 2 * 8 - 2 * UiStyle.PAD.x >= 2 * ROW_WIDTH + COLUMN_GAP:
+			_set_columns(2)
+	else:
+		room = minf(room, _page_height("settings", 1))
 	_list.reset_size()
 	var rows_h := _list.size.y
-	_scroll.custom_minimum_size = Vector2(_list.size.x, minf(rows_h, room))
+	var bar := UiStyle.SCROLL_BAR + 4 if rows_h > room else 0
+	_scroll.custom_minimum_size = Vector2(_list.size.x + bar, minf(rows_h, room))
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
 
 
-## Puts the rows in `n` columns; the settings page is as tall as its longest section, so
+## Puts the rows in `n` columns; a page with tabs is as tall as its longest section, so
 ## the tabs do not move.
 func _set_columns(n: int) -> void:
 	_columns = n
 	for c in _list.get_children():
 		if c is GridContainer:
 			c.columns = n
+	_list.custom_minimum_size.y = _page_height(page, n)
+
+
+## How tall the longest section of page `which` (see PAGES) stands in `n` columns.
+func _page_height(which: String, n: int) -> int:
 	var tallest := 0
-	if page == "settings":
-		for sec in SECTIONS:
-			tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
-	_list.custom_minimum_size.y = tallest
+	for sec in PAGES.get(which, []):
+		tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
+	return tallest
 
 
 ## One wrapped paragraph a change, as wide as the rows of the other pages.
@@ -386,17 +419,9 @@ func _paragraph(text: String, color: Color) -> Label:
 
 ## A row "name ‹ value ›"; `other` is shown when `getter` gives -1 (none of `values`).
 func _add_row(name: String, values: Array, getter: Callable, setter: Callable, other := "") -> void:
-	# Rows go into a grid (see fit); a gap starts another.
-	var grid: Node = _list.get_child(_list.get_child_count() - 1) if _list.get_child_count() > 0 else null
-	if not grid is GridContainer:
-		grid = GridContainer.new()
-		grid.columns = _columns
-		grid.add_theme_constant_override("h_separation", COLUMN_GAP)
-		grid.add_theme_constant_override("v_separation", 4)
-		_list.add_child(grid)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
-	grid.add_child(row)
+	_grid().add_child(row)
 	var label := UiStyle.label(name)
 	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -411,6 +436,29 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 	var right := _arrow(row, "next", index, 1)
 	_rows.append({"name": label, "values": values, "get": getter, "set": setter, "label": value,
 		"left": left, "right": right, "other": other})
+
+
+## A button as wide as a row that does `action` once (a way into the test world).
+func _add_action(text: String, action: Callable) -> void:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	b.pressed.connect(action)
+	_grid().add_child(b)
+
+
+## The grid the next row goes into (see fit): the last one, or a new one after a gap.
+func _grid() -> GridContainer:
+	var last: Node = _list.get_child(_list.get_child_count() - 1) if _list.get_child_count() > 0 else null
+	if last is GridContainer:
+		return last
+	var grid := GridContainer.new()
+	grid.columns = _columns
+	grid.add_theme_constant_override("h_separation", COLUMN_GAP)
+	grid.add_theme_constant_override("v_separation", 4)
+	_list.add_child(grid)
+	return grid
 
 
 func _arrow(parent: Node, icon: String, row: int, dir: int) -> Button:
