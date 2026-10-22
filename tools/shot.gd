@@ -218,6 +218,10 @@ const SHOTS := {
 	# `at` (cells). Named "ground-*", they switch the run to the test world.
 	"ground-spawn": {"time": 0.42, "season": 1, "at": [0, 0]},
 	"ground-steps": {"time": 0.42, "season": 1, "at": [-28, -24]},
+	# In the trench between the loose and the stone ledges of 3 and 5 cells: the cut hides
+	# them, their rounded corners cut.
+	"ground-steps-cut": {"time": 0.42, "season": 1, "at": [-22, -35]},
+	"ground-steps-cut-n": {"time": 0.42, "season": 1, "at": [-18, -35]},
 	"ground-pits": {"time": 0.42, "season": 1, "at": [0, -32]},
 	"ground-cave": {"time": 0.42, "season": 1, "at": [27, -20]},
 	"ground-cave-inside": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23},

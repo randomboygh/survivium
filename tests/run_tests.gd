@@ -322,6 +322,15 @@ func _test_cap() -> void:
 		for x0 in [0, 4]:
 			parts += _mesh_area(ChunkMesher.build_cap(w, 1, x0, z0, 4))
 	_check(whole > 0.0 and absf(parts - whole) < 0.001, "cap built chunk by chunk covers the same area")
+	# West and north of the origin too: a row of whole tops there is one run.
+	w = WorldData.new(4)
+	w.add_chunk(WorldData.chunk_key(-6, -5))
+	for x in range(-6, -2):
+		w.set_cell(x, 0, -5, Mat.STONE)
+		w.set_cell(x, 1, -5, Mat.STONE)
+	var key := WorldData.chunk_key(-6, -5)
+	var west := _mesh_area(ChunkMesher.build_cap(w, 0, key.x * WorldData.CHUNK, key.y * WorldData.CHUNK))
+	_check(absf(west - 4.0 * WorldData.CELL * WorldData.CELL) < 0.001, "cap closes whole tops at negative x as well")
 
 
 ## Total area of the triangles of a mesh (0 for none).
