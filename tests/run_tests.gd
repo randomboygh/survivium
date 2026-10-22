@@ -595,7 +595,20 @@ func _test_ground() -> void:
 		and w.get_cell(54, g + 4, 0) == Mat.STONE, "the hut has walls, a door and a roof")
 	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
 		"every tree of the plan grows")
+	# The bush garden lies east, beyond the area above.
+	gen.generate_area(Vector2i(4, -1), Vector2i(6, 1))
 	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
+	gen.generate_area(Vector2i(-5, 3), Vector2i(1, 6))
+	# The relief ground: the lone cell of grass rises a cell, the ring's hollow does not,
+	# the cliff steps one cell then two; the row of stone is stone.
+	var rx: int = TestGround.RELIEF_X
+	var rz: int = TestGround.RELIEF_Z
+	var plot: int = TestGround.RELIEF_STRIDE
+	_check(w.get_cell(rx + 4, g + 1, rz + 4) == Mat.GRASS and w.get_cell(rx + 3, g + 1, rz + 4) == Mat.AIR
+		and w.get_cell(rx + 3 * plot + 4, g + 1, rz + 4) == Mat.AIR and w.get_cell(rx + 3 * plot + 2, g + 1, rz + 2) == Mat.GRASS
+		and w.get_cell(rx + 7 * plot + 4, g + 1, rz + 4) == Mat.GRASS and w.get_cell(rx + 7 * plot + 7, g + 2, rz + 4) == Mat.GRASS
+		and w.get_cell(rx + 4, g + 1, rz + 3 * plot + 4) == Mat.STONE, "the relief ground has its shapes")
+	_check(w.slope_mask(rx + plot + 4, g + 1, rz + 3) != WorldData.FULL, "the grass square of the relief ground slopes down at its edge")
 	var other := TestGround.new()
 	var keys: Array[Vector2i] = []
 	for cz in range(-4, 3):

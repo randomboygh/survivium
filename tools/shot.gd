@@ -230,6 +230,11 @@ const SHOTS := {
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
+	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
+	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
+	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
+	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
+	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
 }
 
 const TEST_SAVES := "user://shot_ground"
