@@ -35,20 +35,24 @@ const SHOTS := {
 	"night-full": {"time": 0.95, "season": 1, "moon": 1.0},
 	# The player a step north-east of the campfire by the spawn: shadows of the player,
 	# animals and trunks drawn on the ground (the fire shadows setting on "drawn").
-	"fire-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
-	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4)},
+	"fire-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
+	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
+	# The same on "mixed", the default: the player's shadow real, the rest drawn.
+	"fire-shadows-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	# The same with real shadows: of the player, the grass, bushes and trees.
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
-	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true},
+	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1},
 	"torch-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 2},
 	# Two more campfires by the one at the spawn and an animal by the player: drawn
 	# shadows from every fire.
 	"three-fires": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4),
-		"more_fires": [Vector3(4.5, 0.0, -4.0), Vector3(-3.5, 0.0, -5.0)], "animal": Vector3(-1.6, 0.0, -2.6)},
+		"more_fires": [Vector3(4.5, 0.0, -4.0), Vector3(-3.5, 0.0, -5.0)], "animal": Vector3(-1.6, 0.0, -2.6),
+		"fire_shadows": 1},
 	# The same three fires close round the player, so the shadows cross.
 	"three-fires-close": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.6),
-		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8)},
+		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8),
+		"fire_shadows": 1},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},

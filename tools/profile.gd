@@ -24,6 +24,7 @@ const SCENES := {
 	"night-moon": {"time": 0.95, "season": 1, "moon": 1.0},
 	"fire-off": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	"fire-drawn": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
+	"fire-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	"torch-forest-drawn": {"time": 0.95, "season": 1, "moon": 0.0, "forest": true, "fire_shadows": 1},
 	"torch-forest-real": {"time": 0.95, "season": 1, "moon": 0.0, "forest": true, "fire_shadows": 2},
