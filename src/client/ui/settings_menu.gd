@@ -148,6 +148,9 @@ func open(which: String) -> void:
 		_add_row("Износ инструментов", ["выкл", "вкл"],
 			func() -> int: return int(s.tool_wear),
 			func(i: int) -> void: s.set_tool_wear(i == 1))
+		_add_row("Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
+			func() -> int: return s.shadow_map,
+			func(i: int) -> void: s.set_shadow_map(i))
 		_add_row("Статистика", ["выкл", "вкл"],
 			func() -> int: return int(game.hud.perf.visible),
 			func(i: int) -> void:
