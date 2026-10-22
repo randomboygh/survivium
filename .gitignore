@@ -3,3 +3,4 @@ build/
 *.import
 node_modules/
 *.uid
+build_info.json

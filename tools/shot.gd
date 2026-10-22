@@ -175,6 +175,8 @@ const SHOTS := {
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
 	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
+	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
+	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
