@@ -16,11 +16,11 @@ const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
 const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 ## How bright the sun rays (god rays) are at most, added in the air over the picture.
-const RAYS_BRIGHTNESS := 0.38
+const RAYS_BRIGHTNESS := 0.45
 ## How thick the morning mist gets at most (a share of what it veils).
-const MIST_THICKNESS := 0.45
-## How high above the sea the mist fills the low places, in world units.
-const MIST_HEIGHT := 3.5
+const MIST_THICKNESS := 0.38
+## How high above the ground the player stands on the mist's top lies, in world units.
+const MIST_HEIGHT := 1.0
 ## How long the air after rain shows the rays through the breaking clouds, in days.
 const AFTER_RAIN_DAYS := 0.08
 
@@ -49,6 +49,9 @@ var daylight := 1.0
 var rays_on := true
 ## Morning mist is drawn (the «Утренняя дымка» setting).
 var mist_on := true
+## The ground the mist lies on: the player's, followed slowly so the layer does not
+## jump a step when they climb one.
+var mist_ground := NAN
 ## 1 while it rains, fading to 0 over AFTER_RAIN_DAYS once it stops.
 var after_rain := 0.0
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
@@ -79,11 +82,11 @@ func build(parent: Node3D) -> void:
 
 ## Draws the sky of the clock now, `delta` seconds after the last frame.
 func update(delta: float) -> void:
-	_update_light()
+	_update_light(delta)
 	_update_weather(delta)
 
 
-func _update_light() -> void:
+func _update_light(delta: float) -> void:
 	var clock = game.clock
 	var time_of_day: float = clock.time_of_day
 	var snow: float = clock.snow
@@ -132,7 +135,7 @@ func _update_light() -> void:
 		game.player.torch.shadow_enabled = shadows
 		game.player.torch.light_energy = 1.3 * dark * (game.effects.shadow_energy if shadows else 1.0)
 	_update_grade(golden, night, minf(moonlight, 1.0))
-	_update_mist(golden)
+	_update_mist(golden, delta)
 
 
 ## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)
@@ -167,33 +170,39 @@ func _update_rays(rise: float, golden: float) -> void:
 	var dir := Vector2(clampf(-to_sun.x * 1.2, -0.6, 0.6), 1.0).normalized()
 	grade_mat.set_shader_parameter("rays_dir", dir)
 	grade_mat.set_shader_parameter("rays_color", Color(1.0, 0.96, 0.82).lerp(Color(1.0, 0.72, 0.45), golden))
-	# The shafts drift across with the clouds they shine between.
-	var across := Vector2(-dir.y, dir.x)
-	grade_mat.set_shader_parameter("rays_offset", -cloud_pos.dot(across) * PixelView.PIXELS_PER_UNIT * 0.5)
+	# They fall on the sun's side of the image: the right in the morning, the left
+	# after noon, sliding across around noon.
+	grade_mat.set_shader_parameter("rays_anchor", 0.5 - 0.3 * clampf(dir.x * 6.0, -1.0, 1.0))
+	grade_mat.set_shader_parameter("rays_time", wind_clock)
 
 
-## Mist in the low places around sunrise, thinning out by mid-morning, and a little
-## after rain: in still air, when nothing falls, outdoors. It lies up to MIST_HEIGHT
-## above the sea, so valleys, shores and plains are veiled and hills and crowns
-## stand out of it (see veil in common.gdshaderinc).
-func _update_mist(golden: float) -> void:
+## Mist over the ground around sunrise, thinning out by mid-morning, and a little
+## after rain: in still air, when nothing falls, outdoors. An even layer over the
+## ground the player stands on and lower, MIST_HEIGHT deep (see veil in
+## common.gdshaderinc).
+func _update_mist(golden: float, delta: float) -> void:
 	var clock = game.clock
 	var t: float = clock.time_of_day
 	var morning := smoothstep(0.17, 0.24, t) * (1.0 - smoothstep(0.3, 0.42, t))
 	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
 	var amount := maxf(morning, after_rain * 0.4) * MIST_THICKNESS
 	amount *= clampf(1.0 - falling * 3.0, 0.0, 1.0) * clampf(1.0 - clock.storm_wind * 1.2, 0.0, 1.0)
-	if not mist_on or game.chunks.indoor:
+	if not mist_on or game.chunks.indoor or game.player == null:
 		amount = 0.0
 	var g := RenderingServer
 	g.global_shader_parameter_set("mist", amount)
 	if amount <= 0.0:
 		return
 	var col := Color(0.9, 0.92, 0.96).lerp(Color(1.0, 0.9, 0.8), golden * 0.6)
-	col = (col * lerpf(0.45, 1.05, sky_light)).srgb_to_linear()
+	col = (col * lerpf(0.6, 1.1, sky_light)).srgb_to_linear()
 	g.global_shader_parameter_set("mist_color", Vector3(col.r, col.g, col.b))
-	g.global_shader_parameter_set("mist_level", (game.world.sea_level + 1) * WorldData.CELL + MIST_HEIGHT)
-	g.global_shader_parameter_set("mist_offset", cloud_pos * 0.25)
+	var body = game.player.body
+	var ground: float = game.player.level() * WorldData.CELL
+	if is_nan(mist_ground) or absf(ground - mist_ground) > 2.0:
+		mist_ground = ground
+	elif body.on_ground or body.swimming:
+		mist_ground = move_toward(mist_ground, ground, delta * 0.6)
+	g.global_shader_parameter_set("mist_level", mist_ground + MIST_HEIGHT)
 
 
 ## The colour grade sets the mood: warm at sunrise and sunset, blue and muted under
