@@ -409,6 +409,14 @@ func _run() -> void:
 				main.character.inventory.add(st[0], st[1])
 			main.player.position += Vector3(14.0, 0.0, 9.0)
 			main.player.position = _flat_near(main.world, main.player.position)
+			# A life of two and a half days, the second in this world.
+			var ch = main.character
+			ch.life = {"walked": 1840.0, "dug": 64.0, "built": 23.0, "trees": 3.0, "got": 212.0, "eaten": 17.0,
+				"crafted": 6.0, "jumps": 148.0}
+			main.clock.day += 2
+			ch.born = main.clock.day + main.clock.time_of_day - 2.4
+			ch.deaths = 1
+			ch.best_days = 1.2
 			main.character.vitals.health = 0.0
 			main.character.vitals.satiety = 0.0
 			main.character.vitals.hurt_by = "hunger"

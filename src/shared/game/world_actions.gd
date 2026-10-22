@@ -176,6 +176,7 @@ func fell(who, cell: Vector3i) -> bool:
 	var gone: Array[Vector3i] = Trees.fell(world, cell, away)
 	if gone.is_empty():
 		return false
+	who.note("trees")
 	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
 	# map and the minimap.
 	var cols := {}
