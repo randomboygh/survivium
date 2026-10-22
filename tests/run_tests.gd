@@ -4,6 +4,7 @@ extends SceneTree
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const TestGround := preload("res://src/shared/world/test_ground.gd")
 const VoxelRaycast := preload("res://src/shared/world/voxel_raycast.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
@@ -51,6 +52,7 @@ func _init() -> void:
 	_test_water()
 	_test_slopes()
 	_test_steps()
+	_test_ground()
 	_test_corners()
 	_test_shapes()
 	_test_ai_relations()
@@ -561,6 +563,40 @@ func _walk_to_thing(jump: bool, z: float) -> Vector3:
 	var p: Vector3 = player.position / WorldData.CELL
 	player.free()
 	return p
+
+
+## The test world: its grounds are where the plan says, made the same in any order.
+func _test_ground() -> void:
+	var gen := TestGround.new()
+	gen.generate_area(Vector2i(-4, -4), Vector2i(4, 3))
+	var w: WorldData = gen.world
+	var g: int = gen.ground
+	_check(gen.spawn_guess == Vector3i(0, g + 1, 0) and w.get_cell(0, g, 0) == Mat.GRASS
+		and w.get_cell(0, g + 1, 0) == Mat.AIR, "the test world starts on the meadow")
+	_check(w.surface_y(3, -39) == g - 11 and w.get_cell(-5, g - 4, -39) == Mat.DIRT,
+		"the test world has a pit 4 deep and a shaft 12 deep")
+	_check(w.get_cell(27, g + 1, -30) == Mat.AIR and w.get_cell(27, g + 3, -30) == Mat.STONE
+		and w.get_cell(27, g, -30) == Mat.DIRT and w.get_cell(27, g + 4, -38) == Mat.AIR,
+		"the hill of the test world has a tunnel into a hall")
+	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.SAND
+		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
+	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.COPPER_ORE,
+		"the material strips are 4 cells deep")
+	_check(w.get_cell(50, g + 2, 0) == Mat.PLANKS and w.get_cell(53, g + 1, 3) == Mat.AIR
+		and w.get_cell(54, g + 4, 0) == Mat.STONE, "the hut has walls, a door and a roof")
+	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
+		"every tree of the plan grows")
+	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
+	var other := TestGround.new()
+	var keys: Array[Vector2i] = []
+	for cz in range(-4, 3):
+		for cx in range(-4, 4):
+			keys.append(Vector2i(cx, cz))
+	for i in range(keys.size() - 1, -1, -1):
+		_ensure_stage(other, keys[i], WorldGen.SHAPED)
+	_check(_same(other.world, w, keys) and other.world.trees == w.trees,
+		"the test world is the same made in another order")
+	_check(WorldStore.world_dir(TestGround.SEED, {}).ends_with("/test"), "the test world is saved apart")
 
 
 ## Presses jump again and again for 5 s at the bottom of a pit four cells deep and one

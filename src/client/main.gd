@@ -21,6 +21,7 @@ extends Node
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
@@ -175,6 +176,8 @@ func _ready() -> void:
 ## Starts the game again for the world the settings now ask for, past the menu.
 func restart() -> void:
 	play_at_once = true
+	# The pause menu may be open (the playtest page goes to the test world from it).
+	get_tree().paused = false
 	get_tree().reload_current_scene()
 
 
@@ -186,7 +189,9 @@ func start_world() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var t0 := Time.get_ticks_msec()
-	gen = WorldGen.new(world_seed, 48, world_options)
+	# The test world is laid out by hand (see TestGround), every other one from noise.
+	var maker: GDScript = TestGround if world_seed == TestGround.SEED else WorldGen
+	gen = maker.new(world_seed, 48, world_options)
 	gen.saved = save.store
 	world = gen.world
 	placed.world = world

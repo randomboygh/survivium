@@ -9,6 +9,8 @@ extends RefCounted
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const TestGround := preload("res://src/shared/world/test_ground.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
 
 const PATH := "user://settings.cfg"
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
@@ -234,3 +236,24 @@ func give_tools() -> void:
 	for id in TOOL_SET:
 		if game.character.inventory.count(id) == 0:
 			game.character.give(id, 1)
+
+
+func in_test_world() -> bool:
+	return game.world_seed == TestGround.SEED
+
+
+## Saves the world and goes over to the test world, or from it back to the world
+## saved last before it (the one set up on the first screen when there is none).
+func switch_test_world() -> void:
+	var seed_value := TestGround.SEED
+	var options: Dictionary = game.world_options
+	if in_test_world():
+		seed_value = values.world_seed
+		options = world_options()
+		for w: Dictionary in WorldStore.list_worlds():
+			if w.seed != TestGround.SEED:
+				seed_value = w.seed
+				options = w.settings
+				break
+	game.save.switch_world(seed_value, options)
+	game.restart()

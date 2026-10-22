@@ -10,6 +10,8 @@ extends RefCounted
 ## Android and the desktop it is a folder; the server will keep its worlds the same
 ## way. current.json in the root names the world the game starts with.
 
+const TestGround := preload("res://src/shared/world/test_ground.gd")
+
 const FORMAT := 1
 const WORLD := "world.json"
 ## Where the worlds are kept (tests keep theirs apart).
@@ -35,8 +37,10 @@ func _init(path: String) -> void:
 
 
 ## The directory of the world of `seed_value` and WorldGen `options`: the seed and one
-## digit per setting (size, water, mountains, rivers, biomes).
+## digit per setting (size, water, mountains, rivers, biomes); the test world is "test".
 static func world_dir(seed_value: int, options: Dictionary) -> String:
+	if seed_value == TestGround.SEED:
+		return root + "/test"
 	var digits := ""
 	for k in ["size", "water", "mountains", "rivers", "biomes"]:
 		digits += str(int(options.get(k, 1)))
