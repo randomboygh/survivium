@@ -1124,6 +1124,29 @@ func _test_bushes() -> void:
 		_check(Grass.plants_on(w, tall.x, tall.y, tall.z).count(Plants.EARS) >= 2, "sown grass grows ears")
 		w.set_cell(tall.x, tall.y, tall.z, Mat.DIRT)
 		_check(w.turf_at(tall) == null, "a changed cell forgets what grew on it")
+	# Moss and mushrooms grow in the shade of the crowns, and are picked with the rest.
+	var shade := {}
+	var open_moss := false
+	var picked := Vector3i(-1, -1, -1)
+	for col: Vector2i in w.trees:
+		for dz in range(-4, 5):
+			for dx in range(-4, 5):
+				var x := col.x + dx
+				var z := col.y + dz
+				var c := Vector3i(x, w.surface_y(x, z) - 1, z)
+				for id in Grass.plants_on(w, c.x, c.y, c.z):
+					if id in [Plants.MOSS, Plants.MUSHROOMS, Plants.GLOW]:
+						shade[id] = true
+						open_moss = open_moss or w.leaf_col(x, z) == 0
+						if picked.y < 0:
+							picked = c
+	_check(shade.has(Plants.MOSS) and (shade.has(Plants.MUSHROOMS) or shade.has(Plants.GLOW)) and not open_moss,
+		"moss and mushrooms grow under the crowns, not in the open: %s" % shade.keys())
+	if picked.y >= 0:
+		w.set_turf(picked, "")
+		_check(not Grass.plants_on(w, picked.x, picked.y, picked.z).any(func(id) -> bool: return Plants.BY_ID[id].pick),
+			"picked moss and mushrooms are gone until spring")
+		w.set_turf(picked, null)
 
 
 func _test_sprite_sheet() -> void:
@@ -1582,6 +1605,11 @@ func _test_vitals() -> void:
 	_check(v.eat(40.0) and v.satiety == 40.0, "food fills satiety")
 	v.satiety = Vitals.MAX
 	_check(not v.eat(5.0), "a full character does not eat")
+	v.health = 50.0
+	_check(v.heal(Items.heal("core:bandage")) and v.health > 50.0 and Tools.use_of("core:bandage") == "heal", "a bandage heals")
+	v.health = Vitals.MAX
+	_check(not v.heal(10.0), "a bandage is not used up on a healthy body")
+	v.health = 60.0
 	var h := v.health
 	v.step(0.0, 0.2, false)
 	_check(v.health > h, "a well fed body heals")

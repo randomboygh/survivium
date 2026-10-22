@@ -114,6 +114,11 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
+	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
+	"mushrooms": {"time": 0.42, "season": 1, "find": "core:mushrooms"},
+	"glow-day": {"time": 0.42, "season": 1, "find": "core:glow_mushrooms"},
+	"glow-night": {"time": 0.95, "season": 1, "moon": 0.0, "find": "core:glow_mushrooms"},
+	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "core:glow_mushrooms"},
 	"hidden": {"time": 0.42, "season": 1, "wall": true},
 	# A trench four levels deep in a forest: the view is cut at the player's level.
 	"ravine": {"time": 0.42, "season": 1, "forest": true, "trench": true},
@@ -199,6 +204,9 @@ const SHOTS := {
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
+	# The screen's answer to a hurt (red edges, the number over the head), and to a heal with food.
+	"ui-hurt": {"time": 0.45, "season": 1, "touch": true, "body": "hurt"},
+	"ui-fed": {"time": 0.45, "season": 1, "touch": true, "body": "fed"},
 	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
 	# The first screen (the world to make) and the whole map of what is explored.
@@ -428,6 +436,20 @@ func _run() -> void:
 			await process_frame
 			await process_frame
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
+		if shot.has("body"):
+			# What the screen shows when the body is hurt, or healed and fed.
+			var v = main.character.vitals
+			if shot.body == "fed":
+				v.health = 60.0
+				v.satiety = 30.0
+				for i in 3:
+					await process_frame
+				v.health = 75.0
+				v.satiety = 55.0
+			else:
+				v.health -= 12.0
+			for i in 4:
+				await process_frame
 		if shot.get("test", false):
 			main.hud.toggle_test()
 			main.hud._settings.show_section(shot.get("section", "world"))
@@ -765,6 +787,8 @@ func _flat_near(w, p: Vector3) -> Vector3:
 func _find(w, p: Vector3, what: String) -> Vector3:
 	var cx := floori(p.x / CELL)
 	var cz := floori(p.z / CELL)
+	if what.contains(":"):
+		return _find_plant(w, cx, cz, what)
 	for r in range(0, 150):
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
@@ -793,6 +817,27 @@ func _find(w, p: Vector3, what: String) -> Vector3:
 				if ok:
 					return (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
 	return p
+
+
+## A spot two cells south of the nearest grass with plant `id` on it (see Grass.plants_on),
+## where the plants are in front of the player; `p` when there is none.
+func _find_plant(w, cx: int, cz: int, id: String) -> Vector3:
+	for r in range(0, 150):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := cx + dx
+				var z := cz + dz
+				var y: int = w.surface_y(x, z)
+				# Crowns to the south would hide it in the 3/4 view.
+				var open := true
+				for k in range(1, 7):
+					open = open and w.leaf_col(x, z + k) == 0
+				if open and y > w.sea_level and Grass.plants_on(w, x, y - 1, z).has(id) and w.surface_y(x, z + 2) == y \
+						and not w.trees.has(Vector2i(x, z + 2)):
+					return (Vector3(x, y, z + 2) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return Vector3(cx + 0.5, w.surface_y(cx, cz), cz + 0.5) * CELL
 
 
 func _weather_index(id: String) -> int:

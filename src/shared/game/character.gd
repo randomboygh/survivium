@@ -161,10 +161,21 @@ func give(id: String, n: int, worn := 0) -> int:
 	return got
 
 
-## Eats one item from bag slot `i`; false if it is not food or the character is full.
+## Eats one item from bag slot `i`, or puts it on the wounds when it heals (a bandage);
+## false if it is neither, the character is full or not hurt.
 func eat(i: int) -> bool:
 	var s = inventory.slots[i]
-	if s == null or Items.food(s[0]) <= 0.0:
+	if s == null:
+		return false
+	if Items.heal(s[0]) > 0.0:
+		if not vitals.heal(Items.heal(s[0])):
+			nag("not_hurt", "Здоровье и так полное")
+			return false
+		inventory.take_slot(i, 1)
+		note("healed")
+		say("+%d здоровья" % roundi(Items.heal(s[0])))
+		return true
+	if Items.food(s[0]) <= 0.0:
 		return false
 	if not vitals.eat(Items.food(s[0])):
 		nag("full_belly", "Больше не хочется")

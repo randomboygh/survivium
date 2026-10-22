@@ -7,7 +7,8 @@ const Content := preload("res://src/shared/content/content.gd")
 
 ## Plants the engine refers to; the validator demands them.
 const KNOWN := {"TUFT": "core:tuft", "TALL": "core:tall_grass", "FLOWERS": "core:flowers",
-	"HERBS": "core:herbs", "EARS": "core:ears", "REEDS": "core:reeds"}
+	"HERBS": "core:herbs", "EARS": "core:ears", "REEDS": "core:reeds", "MOSS": "core:moss",
+	"MUSHROOMS": "core:mushrooms", "GLOW": "core:glow_mushrooms"}
 
 static var TUFT := ""
 static var TALL := ""
@@ -15,9 +16,12 @@ static var FLOWERS := ""
 static var HERBS := ""
 static var EARS := ""
 static var REEDS := ""
+static var MOSS := ""
+static var MUSHROOMS := ""
+static var GLOW := ""
 
 ## Id -> record from `content/*/data/plants.yaml` (see Content): id, title, gives
-## (item id -> how many), chance.
+## (item id -> how many), chance, pick (picked by hand rather than cut, for the hint).
 static var BY_ID := {}
 
 
@@ -35,6 +39,9 @@ static func refresh() -> void:
 	HERBS = KNOWN.HERBS
 	EARS = KNOWN.EARS
 	REEDS = KNOWN.REEDS
+	MOSS = KNOWN.MOSS
+	MUSHROOMS = KNOWN.MUSHROOMS
+	GLOW = KNOWN.GLOW
 
 
 ## What is wrong with the loaded plants for the engine, if anything.

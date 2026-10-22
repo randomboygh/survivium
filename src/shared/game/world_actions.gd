@@ -44,6 +44,7 @@ const PICKUP := 1.6
 const SCATTER := 0.45
 const SPRING := 0
 const AUTUMN := 2
+const WINTER := 3
 
 ## Cell `cell` changed (dug, filled, cut down to another material, a tree fell through it,
 ## a bush on it went): what is drawn around it is built again.
@@ -278,6 +279,24 @@ func can_mow(cell: Vector3i, t := {}) -> bool:
 	return t.is_empty() or Tools.mows_low(t) or Grass.has_tall(world, cell)
 
 
+## Plants `ids` without those that are gone in winter (mushrooms; a plant with
+## `winter` off) when it is winter.
+func in_season(ids: Array) -> Array:
+	if clock.season != WINTER:
+		return ids
+	return ids.filter(func(id: String) -> bool: return Plants.BY_ID.get(id, {}).get("winter", true))
+
+
+## The name of what is picked by hand on grass cell `cell` (moss, mushrooms; a plant with
+## `pick`), "" when nothing there is: cutting the cell picks it first.
+func picking(cell: Vector3i) -> String:
+	for id in in_season(Grass.plants_on(world, cell.x, cell.y, cell.z)):
+		var p: Dictionary = Plants.BY_ID.get(id, {})
+		if p.get("pick", false):
+			return p.title
+	return ""
+
+
 ## The cells tool `t` of `who` cuts the grass of when it swings at the first of `order`
 ## it can cut: that one, and for a scythe the ones beside it in an arc in front of the body.
 func mow_targets(who, order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
@@ -321,7 +340,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var to := Tools.mown(m)
 		if to < 0:
 			continue
-		var plants := Grass.plants_on(world, c.x, c.y, c.z)
+		var plants := in_season(Grass.plants_on(world, c.x, c.y, c.z))
 		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([c, clock.day])
