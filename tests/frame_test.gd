@@ -385,7 +385,26 @@ func _run() -> void:
 	_check(first == "Качество" and menu._rows[0].name.text == "Длина суток"
 		and is_equal_approx(menu.get_combined_minimum_size().y, tall),
 		"settings sections by tabs, the window as tall on each")
+	var wide: float = menu.size.x
+	menu.open("test")
+	menu.show_section("debug")
+	await process_frame
+	var test_wide: float = menu.size.x
+	menu.show_section("world")
+	menu.open("changes")
+	await process_frame
+	_check(is_equal_approx(test_wide, wide) and is_equal_approx(menu.size.x, wide),
+		"the settings, playtest and changes windows are as wide")
 	menu.close()
+	# A hurt reddens the screen's edges and puts its number over the player's head.
+	var feedback = main.hud.feedback
+	var health: float = main.character.vitals.health
+	main.character.vitals.health -= 10.0
+	await process_frame
+	await process_frame
+	_check(feedback._frame > 0.0 and feedback._frame_color == feedback.KINDS.hurt[0]
+		and feedback._floats.size() > 0, "a hurt shows the red frame and its number")
+	main.character.vitals.health = health
 	main.clock.time_of_day = day
 	main.sky.moon_override = -1.0
 	main.placed.put_out(fire_e)
