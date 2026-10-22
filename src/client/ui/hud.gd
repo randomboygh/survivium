@@ -24,6 +24,7 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const Body := preload("res://src/shared/game/body.gd")
 
 const MARGIN := 8.0
 const CELL := 0.5
@@ -47,6 +48,10 @@ var scale_bonus := 0
 
 var _left: VBoxContainer
 var _clock_icon: TextureRect
+## An arrow by the weather icon where the wind blows while it is strong enough to
+## slow walking against it.
+var _wind: Control
+var _wind_step := -1
 var _clock: Label
 var _toasts: VBoxContainer
 var perf: PanelContainer
@@ -115,6 +120,11 @@ func _ready() -> void:
 	_clock_icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	_clock_icon.custom_minimum_size = Vector2(10, 10)
 	row.add_child(_clock_icon)
+	_wind = Control.new()
+	_wind.custom_minimum_size = Vector2(11, 11)
+	_wind.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wind.draw.connect(_draw_wind)
+	row.add_child(_wind)
 	_clock = UiStyle.label()
 	row.add_child(_clock)
 	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -452,6 +462,12 @@ func update_state() -> void:
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
 	minimap.set_marks(game.placed.things)
 	_set_icon(_clock_icon, game.sky.icon())
+	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
+	# Eight ways, so the arrow stays on the pixel grid.
+	var step := posmod(roundi(game.clock.wind_angle / (PI / 4.0)), 8)
+	if step != _wind_step:
+		_wind_step = step
+		_wind.queue_redraw()
 	var cut: bool = game.chunks.manual_level >= 0
 	_level_label.text = "Срез %d" % game.chunks.cut_level if cut else "Ур. %d" % game.player.level()
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
@@ -762,6 +778,17 @@ func _draw_bag_meter() -> void:
 	c.draw_rect(Rect2(bar.position, Vector2(roundf(bar.size.x * clampf(share, 0.0, 1.0)), bar.size.y)),
 		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
 	c.tooltip_text = "Сумка: %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
+
+
+func _draw_wind() -> void:
+	var a := _wind_step * PI / 4.0
+	var d := Vector2(roundf(cos(a)), roundf(sin(a)))
+	var mid := (_wind.size * 0.5).floor() + Vector2(0.5, 0.5)
+	var tip := mid + d * 4.0
+	_wind.draw_line(mid - d * 5.0, tip, UiStyle.INK, 1.0)
+	for side: float in [-1.0, 1.0]:
+		var back := Vector2(roundf(cos(a + side * PI * 0.75)), roundf(sin(a + side * PI * 0.75)))
+		_wind.draw_line(tip, tip + back * 3.0, UiStyle.INK, 1.0)
 
 
 func _set_icon(rect: TextureRect, name: String) -> void:

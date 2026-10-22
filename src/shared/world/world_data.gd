@@ -69,6 +69,12 @@ var blockers := {}
 ## worn tool, see Inventory), the stacks ([[id, count]...]) for a sack. A chunk with any
 ## is kept as an edited one.
 var drops := {}
+## Columns walked over in the snow: the time (Clock.now) a body last left each one,
+## by Vector2i(x, z), so a trail is easier to walk (see Body). Not saved: snow
+## covers trails within half a day anyway.
+var trodden := {}
+## Trails are forgotten once there are this many (the old ones first).
+const TRAILS := 4096
 ## Things of one kind laid this close to a heap (world units) join it (see heap_drop).
 const HEAP := 0.35
 ## Chunks the player changed since they were last saved (see note_edit, WorldGen.pack).
@@ -1198,6 +1204,25 @@ func take_drop(key: Vector2i, i: int) -> Array:
 	if list.is_empty():
 		drops.erase(key)
 	return d
+
+
+## Notes that a body walked off column (x, z) in the snow at time `now` (days).
+func tread(x: int, z: int, now: float) -> void:
+	if trodden.size() >= TRAILS:
+		var old := now - 1.0
+		for col: Vector2i in trodden.keys():
+			if trodden[col] < old:
+				trodden.erase(col)
+		if trodden.size() >= TRAILS:
+			trodden.clear()
+	trodden[Vector2i(x, z)] = now
+
+
+## How fresh the trail in column (x, z) is at time `now`: 1 just walked, 0 after
+## `life` days or never.
+func trail(x: int, z: int, now: float, life: float) -> float:
+	var t: float = trodden.get(Vector2i(x, z), -INF)
+	return clampf(1.0 - (now - t) / life, 0.0, 1.0)
 
 
 ## Notes something gathered from the bush in `cell`: its chunk is kept as edited.

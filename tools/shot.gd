@@ -66,6 +66,11 @@ const SHOTS := {
 	"hail": {"time": 0.45, "season": 0, "weather": "hail"},
 	"blizzard": {"time": 0.45, "season": 3, "weather": "blizzard"},
 	"sandstorm": {"time": 0.45, "season": 1, "weather": "sandstorm"},
+	# The wind: its side, the autumn gale stripping the
+	# leaves and breaking branches, the leaves fallen under the crowns.
+	"blizzard-north": {"time": 0.45, "season": 3, "weather": "blizzard", "wind": -2.0},
+	"gale-autumn": {"time": 0.45, "season": 2, "forest": true, "weather": "storm", "wind": 0.6, "leaf_fall": 0.6, "windfall": true},
+	"litter-autumn": {"time": 0.42, "season": 2, "forest": true, "leaf_fall": 1.0},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
@@ -229,6 +234,8 @@ func _run() -> void:
 		main.clock.raining = shot.get("rain", false)
 		if shot.has("weather"):
 			main.clock.set_weather(_weather_index(shot.weather))
+		main.clock.wind_to = shot.get("wind", 0.0)
+		main.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.set_value("shadows", shot.get("shadows", true))
@@ -299,7 +306,13 @@ func _run() -> void:
 			main.sky.foliage = main.sky.FOLIAGE[main.clock.season]
 			main.sky.grass = main.sky.GRASS[main.clock.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.clock.season]
-			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.clock.season]
+			main.sky.leaf_amount = lerpf(main.sky.LEAF_AMOUNT[main.clock.season], main.sky.LEAF_AMOUNT[3], main.clock.leaf_fall)
+		if shot.get("windfall", false):
+			# A long storm: the wind breaks branches off the trees around.
+			main.clock.time_speed = 20.0
+			for i in 2000:
+				main.storms.step(main.storms.TICK, main.player.position)
+			main.clock.time_speed = 0.0
 		if shot.has("animal") and not main.wildlife.animals.is_empty():
 			# Stands still where it is put until the shot is taken.
 			var c = main.wildlife.animals[0]

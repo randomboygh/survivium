@@ -31,6 +31,7 @@ const Props := preload("res://src/client/game/props.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
 const Gathering := preload("res://src/client/game/gathering.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Storms := preload("res://src/shared/game/storms.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
@@ -81,6 +82,8 @@ var gathering: Gathering
 ## The rules of what the hands do to the world (dig, build, chop, gather), once the
 ## world is made.
 var actions: WorldActions
+## What strong wind does to the trees and bushes around the player.
+var storms: Storms
 var workshop: Workshop
 var placed: Placed
 var wildlife: Wildlife
@@ -198,6 +201,7 @@ func start_world() -> void:
 	actions.looks_changed.connect(chunks.remesh_chunk)
 	actions.drops_changed.connect(props.show_drops)
 	actions.taken.connect(props.fly)
+	storms = Storms.new(world, clock, actions)
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
 	roof = RoofMap.new()
 	roof.prepare()
@@ -249,6 +253,7 @@ func _process(delta: float) -> void:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)
 		hands.update()
+		storms.step(delta, player.position)
 		_leave_footprints()
 		save.update(delta)
 	chunks.update_cut(delta)
@@ -411,6 +416,7 @@ func _build_scene() -> void:
 	world_root.add_child(drifts_root)
 	player = PlayerScript.new()
 	player.body.world = world
+	player.body.clock = clock
 	character.body = player.body
 	world_root.add_child(player)
 	# A guess from the laid-out columns; the exact spot is found once the ground is made.

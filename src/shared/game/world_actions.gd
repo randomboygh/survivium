@@ -700,6 +700,18 @@ func _knock_berries(who, cell: Vector3i) -> bool:
 		return false
 	if not who.act("cut"):
 		return false
+	blow_berries(cell)
+	return true
+
+
+## The ripe berries of the bush in `cell` fall on the ground around it (a sword, a
+## storm); true if it had any.
+func blow_berries(cell: Vector3i) -> bool:
+	if not world.bushes.has(cell):
+		return false
+	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
+	if not ripe(cell, b):
+		return false
 	_scatter(cell, b.fruit, berry_count(cell, b))
 	world.bush_picked[cell] = true
 	world.note_bush(cell)
@@ -764,6 +776,21 @@ func _from_tree(who, col: Vector2i) -> bool:
 	var map: Dictionary = world.tree_seeds if seeds else world.tree_twigs
 	map[col] = map.get(col, 0) + 1
 	world.note_edit(col.x, col.y)
+	return true
+
+
+## The wind breaks a branch off the tree with its trunk in `col` while it has any left
+## this year: it lies at `at` (world units, on the ground under the crown). True if
+## one broke.
+func blow_branch(col: Vector2i, at: Vector3, angle: float) -> bool:
+	if not world.trees.has(col) or not has_crown(col):
+		return false
+	if _tree_twigs_left(col, Trees.SPECIES[world.trees[col]]) <= 0:
+		return false
+	world.tree_twigs[col] = world.tree_twigs.get(col, 0) + 1
+	world.note_edit(col.x, col.y)
+	world.heap_drop(Items.BRANCH, at, 1, angle)
+	drops_changed.emit(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
 	return true
 
 

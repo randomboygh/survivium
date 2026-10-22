@@ -246,6 +246,16 @@ void fragment() {
 	if (top && tile == 3 * 3 && !cap && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
+	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
+	// rust and yellow, thicker in patches.
+	if (top && !cap && tile != NONE && leaf_litter > 0.0 && under_crown(world_pos.xz)) {
+		float l = hash12(texel.xz + 41.0);
+		if (l < leaf_litter * (0.15 + 0.5 * ground_patch(world_pos.xz, 11.0))) {
+			float tone = fract(l * 37.1);
+			vec3 leaf = tone < 0.4 ? vec3(0.62, 0.34, 0.13) : (tone < 0.75 ? vec3(0.74, 0.52, 0.16) : vec3(0.46, 0.3, 0.17));
+			col = leaf * (0.9 + 0.2 * h);
+		}
+	}
 	float snow = 0.0;
 	if (snow_here <= 0.0) {
 		// No snow: skip the snow patterns.

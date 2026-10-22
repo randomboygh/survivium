@@ -60,6 +60,8 @@ void vertex() {
 		sway += sign(away.x + 0.001) * 2.0 * (1.0 - d / 0.6) + 0.5 * sign(away.x);
 	}
 	VERTEX.x += round(sway) / TEXELS * tip;
+	// A wind from the north or the south lays the tips over that way a little.
+	VERTEX.z += round(wind.y * 1.2 * reach) / TEXELS * tip;
 	// Plants under a roof or an overhang see no snow and no rain.
 	sky = roofed(root.xz, root.y) ? 0.0 : 1.0;
 	snow_here = sky * snow_amount * (1.0 - warm_spot(root, custom.z));

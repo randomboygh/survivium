@@ -23,6 +23,7 @@ const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Storms := preload("res://src/shared/game/storms.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
@@ -60,6 +61,7 @@ func _init() -> void:
 	_test_world_actions()
 	_test_placed()
 	_test_clock()
+	_test_weather()
 	_test_death()
 	_test_wildlife()
 	_test_save()
@@ -1692,6 +1694,69 @@ func _test_clock() -> void:
 	for i in 60:
 		clock.step(1.0)
 	_check(clock.snow == 0.0 and not w.water_frozen, "and melts in summer")
+
+
+## The weather works on the world without the client: deep snow, a head wind and a
+## blizzard slow walking in the open but not under a roof, a trail in the snow is
+## easier, the autumn wind strips the leaves, and a storm breaks branches off the
+## trees and knocks the berries off the bushes.
+func _test_weather() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.GRASS)
+	var clock := Clock.new()
+	clock.world = w
+	var body := Body.new()
+	body.world = w
+	body.clock = clock
+	body.on_ground = true
+	var p := Vector3(10.5, 2.0, 10.5)
+	_check(is_equal_approx(body.weather_pace(p, Vector2(-1.0, 0.0)), 1.0), "clear weather does not slow walking")
+	clock.season = Clock.WINTER
+	clock.set_weather(Clock.WEATHERS.map(func(d: Dictionary) -> String: return d.id).find("blizzard"))
+	clock.settle_weather()
+	clock.wind_angle = 0.0
+	clock.snow = 1.0
+	var head := body.weather_pace(p, Vector2(-1.0, 0.0))
+	var tail := body.weather_pace(p, Vector2(1.0, 0.0))
+	_check(head < tail and tail < 1.0 and head >= Body.WEATHER_FLOOR, "a blizzard slows walking, against the wind most (%.2f, %.2f)" % [head, tail])
+	var across := body.weather_pace(p, Vector2(0.0, 1.0))
+	w.tread(10, 10, clock.now())
+	_check(body.weather_pace(p, Vector2(0.0, 1.0)) > across, "a fresh trail in the snow is easier to walk")
+	w.set_cell(10, 6, 10, Mat.STONE)
+	_check(is_equal_approx(body.weather_pace(p, Vector2(-1.0, 0.0)), 1.0), "under a roof the weather does not slow walking")
+	clock.season = Clock.AUTUMN
+	clock.set_weather(Clock.WEATHERS.map(func(d: Dictionary) -> String: return d.id).find("storm"))
+	clock.settle_weather()
+	for i in 30:
+		clock.step(1.0)
+	_check(clock.leaf_fall > 0.05, "an autumn storm strips the leaves (%.2f)" % clock.leaf_fall)
+	clock.next_season()
+	clock.next_season()
+	_check(clock.season == Clock.SPRING and clock.leaf_fall == 0.0, "and spring grows them back")
+	clock.season = Clock.AUTUMN
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	Trees.place(w, 24, 2, 24, Trees.OAK, rng)
+	for key: Vector2i in w.chunks:
+		w.chunks[key].final = true
+	var actions := WorldActions.new(w, clock, {"free_build": false})
+	var storms := Storms.new(w, clock, actions)
+	clock.time_speed = 20.0
+	for i in 2000:
+		storms.step(Storms.TICK, Vector3(24.5, 2.0, 24.5) * WorldData.CELL)
+	var branches := 0
+	for key: Vector2i in w.drops:
+		for d: Array in w.drops[key]:
+			if d[0] == Items.BRANCH:
+				branches += WorldActions.count(d)
+	var s: Dictionary = Trees.SPECIES[Trees.OAK]
+	_check(branches > 0 and branches == w.tree_twigs.get(Vector2i(24, 24), 0) and branches <= s.twigs,
+		"a storm breaks branches off a tree, no more than it has (%d of %d)" % [branches, s.twigs])
+	w.tree_twigs[Vector2i(24, 24)] = s.twigs
+	_check(not actions.blow_branch(Vector2i(24, 24), Vector3(24.5, 2.0, 26.5) * WorldData.CELL, 0.0), "and none once they are gone")
 
 
 ## A character dies without the client: the bag goes into a sack on the ground where

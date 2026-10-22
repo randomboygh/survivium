@@ -2,8 +2,10 @@ extends RefCounted
 ## The world's time and weather: the time of day, days and seasons, the phases of the
 ## moon, and the weather that comes by the season and the land (deserts have sand
 ## storms), with how hard it rains, snows, hails and blows now, the snow lying on the
-## ground and how wet it is; water freezes under deep snow. The client draws all this
-## (Sky: the light, the colour grade, the clouds and the shaders' tints).
+## ground and how wet it is; water freezes under deep snow. The wind blows from a side
+## that turns with each change of weather, and in autumn it strips the leaves off the
+## trees. The client draws all this (Sky: the light, the colour grade, the clouds and
+## the shaders' tints).
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -11,6 +13,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const DAY_LENGTH := 240.0
 const DAYS_PER_SEASON := 2.0
 const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
+const SPRING := 0
+const AUTUMN := 2
 const WINTER := 3
 ## Days from one full moon to the next. The first night of a world is a bright one.
 const MOON_DAYS := 8.0
@@ -39,6 +43,15 @@ const RAIN := 3
 const DESERT_SAND_CHANCE := 2.0
 ## How long one weather lasts, in days of the game.
 const WEATHER_DAYS := Vector2(0.15, 0.5)
+## The wind mostly blows east (angle 0, x east, y south): a new weather turns it by a
+## random angle about that, this spread (radians), and it turns towards it this fast
+## (radians a second).
+const WIND_SPREAD := 0.9
+const WIND_TURN := 0.05
+## In autumn wind above LEAF_WIND strips the leaves: this share of them a day for each
+## unit of wind above it (a storm takes about half in a third of a day).
+const LEAF_WIND := 0.6
+const LEAF_FALL_RATE := 1.4
 
 ## A new season began (see next_season).
 signal season_changed(season: int)
@@ -66,6 +79,12 @@ var hail := 0.0
 var sand := 0.0
 var fog := 0.0
 var storm_wind := 0.0
+## Where the wind blows to (radians, 0 east, PI / 2 south), and where it turns to.
+var wind_angle := 0.0
+var wind_to := 0.0
+## Share of the leaves the autumn wind has taken off the trees this year, 0..1 (see
+## LEAF_FALL_RATE); spring grows them back.
+var leaf_fall := 0.0
 ## The share of the sky under clouds, moving towards what the weather brings.
 var clouds := 0.3
 ## Snow lying on the ground and how wet it is, 0..1.
@@ -121,9 +140,21 @@ static func moon_phase_light(t: float) -> float:
 	return smoothstep(-0.5, 0.7, cos(phase * TAU))
 
 
+## The time in days of the game since the world began.
+func now() -> float:
+	return day + time_of_day
+
+
+## Where the wind blows to, as a unit vector (x east, y south).
+func wind_dir() -> Vector2:
+	return Vector2(cos(wind_angle), sin(wind_angle))
+
+
 func next_season() -> void:
 	season = (season + 1) % 4
 	season_clock = 0.0
+	if season == SPRING:
+		leaf_fall = 0.0
 	season_changed.emit(season)
 
 
@@ -152,6 +183,7 @@ func settle_weather() -> void:
 	sand = w.get("sand", 0.0)
 	fog = w.get("fog", 0.0)
 	storm_wind = w.get("wind", 0.0)
+	wind_angle = wind_to
 	clouds = w.clouds
 
 
@@ -177,6 +209,7 @@ func _next_weather() -> void:
 			weather = i
 			break
 	weather_left = rng.randf_range(WEATHER_DAYS.x, WEATHER_DAYS.y)
+	wind_to = clampf(rng.randfn(0.0, WIND_SPREAD), -PI, PI)
 
 
 func _change_weather(delta: float, at: Vector3) -> void:
@@ -207,6 +240,9 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	fog = lerpf(fog, w.get("fog", 0.0), k)
 	storm_wind = lerpf(storm_wind, w.get("wind", 0.0), k)
 	clouds = lerpf(clouds, w.clouds, minf(1.0, delta * 0.3))
+	wind_angle = move_toward(wind_angle, wind_to, WIND_TURN * delta)
+	if season == AUTUMN and storm_wind > LEAF_WIND:
+		leaf_fall = minf(1.0, leaf_fall + days(delta) * LEAF_FALL_RATE * (storm_wind - LEAF_WIND))
 	if winter or snowing > 0.3:
 		snow = move_toward(snow, 1.0, delta * (0.02 + 0.06 * snowing))
 	else:
@@ -217,7 +253,7 @@ func _change_weather(delta: float, at: Vector3) -> void:
 
 ## The time of the clock as plain data for the save.
 func to_dict() -> Dictionary:
-	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock}
+	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock, "leaf_fall": leaf_fall}
 
 
 ## Puts back the time of a save (see to_dict).
@@ -226,6 +262,7 @@ func from_dict(d: Dictionary) -> void:
 	time_of_day = fposmod(d.get("time", time_of_day), 1.0)
 	season = posmod(int(d.get("season", season)), 4)
 	season_clock = d.get("season_clock", season_clock)
+	leaf_fall = clampf(d.get("leaf_fall", 0.0), 0.0, 1.0)
 
 
 ## How much of the water is ice, 0..1, by the snow lying.

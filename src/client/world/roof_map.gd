@@ -2,7 +2,8 @@ extends RefCounted
 ## The roof map for the shaders (roof_map in common.gdshaderinc): one texel per column
 ## holding the level of the highest cell that keeps the weather off, plus one, so snow,
 ## rain and their particles stay off the ground under overhangs, roofs and cave
-## ceilings while an open ravine takes them. The world has no edge, so the map covers
+## ceilings while an open ravine takes them; and whether a tree's crown is over the
+## column, for the leaves fallen under it. The world has no edge, so the map covers
 ## WRAP by WRAP columns and repeats: column (x, z) is texel (x, z) modulo WRAP, far more
 ## than the view shows. Columns are filled as their chunks are generated; the texture
 ## is sent to the renderer once a frame at most (flush).
@@ -18,7 +19,7 @@ var dirty := false
 
 ## An empty map, to be filled chunk by chunk.
 func prepare(_w = null) -> void:
-	image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_R8)
+	image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_RG8)
 	texture = ImageTexture.create_from_image(image)
 	RenderingServer.global_shader_parameter_set("roof_map", texture)
 	RenderingServer.global_shader_parameter_set("wrap_size", Vector2(WRAP, WRAP) * 0.5)
@@ -37,7 +38,7 @@ func build(w) -> void:
 func fill_chunk(w, key: Vector2i) -> void:
 	var n: int = w.CHUNK
 	var data := PackedByteArray()
-	data.resize(n * n)
+	data.resize(n * n * 2)
 	var c = w.chunks.get(key)
 	if c != null:
 		var air: PackedInt64Array = c.air
@@ -45,8 +46,9 @@ func fill_chunk(w, key: Vector2i) -> void:
 		var leaf: PackedInt64Array = c.leaf
 		var all: int = w.all_bits
 		for col in n * n:
-			data[col] = w.top_level(~(air[col] | water[col] | leaf[col]) & all) + 1
-	image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_R8, data),
+			data[col * 2] = w.top_level(~(air[col] | water[col] | leaf[col]) & all) + 1
+			data[col * 2 + 1] = 255 if leaf[col] != 0 else 0
+	image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_RG8, data),
 		Rect2i(0, 0, n, n), Vector2i((key.x * n) & MASK, (key.y * n) & MASK))
 	dirty = true
 
@@ -55,7 +57,8 @@ func fill_chunk(w, key: Vector2i) -> void:
 func touch(w, cell: Vector3i) -> void:
 	if image == null:
 		return
-	image.set_pixel(cell.x & MASK, cell.z & MASK, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, 0.0, 0.0))
+	var crown := 1.0 if w.leaf_col(cell.x, cell.z) != 0 else 0.0
+	image.set_pixel(cell.x & MASK, cell.z & MASK, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, crown, 0.0))
 	dirty = true
 
 
