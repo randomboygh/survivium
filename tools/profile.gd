@@ -74,7 +74,7 @@ func _frame(delta: float) -> void:
 	t_last = Time.get_ticks_usec()
 	var pl = g.player
 	g.clock.step(delta, pl.position)
-	g.sky._update_light()
+	g.sky._update_light(1.0 / 60.0)
 	# The weather without Effects, which it calls: Effects is timed on its own.
 	g.player = null
 	g.sky._update_weather(delta)

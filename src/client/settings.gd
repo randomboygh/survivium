@@ -33,7 +33,7 @@ const DEFAULTS := {
 	"effects": true,
 	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
 	"sun_rays": true,
-	# Mist in the low places in the morning (Sky._update_mist).
+	# Mist over the ground in the morning (Sky._update_mist).
 	"mist": true,
 	"pixel_size": 0,
 	"fps_limit": 0,
