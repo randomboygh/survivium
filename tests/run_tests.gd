@@ -1562,8 +1562,23 @@ func _test_felling() -> void:
 	for z in range(14, 33):
 		for x in range(24, 41):
 			leaves_of_second += _bits(w.leaf_col(x, z))
+	# Trunks have their own girth within the species' range, thinner going up, and the
+	# bark of one wider than its cell stops a body beside it.
+	var girths := {}
+	for i in 40:
+		var box := Trees.trunk_box(Trees.OAK, Vector2i(2 * i + 1, 7), 0)
+		girths[box.size.x] = true
+		var g: Array = Trees.SPECIES[Trees.OAK].girth
+		_check(box.size.x >= g[0] and box.size.x <= g[1], "a trunk's girth is in its species' range")
+	_check(girths.size() > 2, "trunks differ in girth")
+	_check(Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 0).size.x,
+		"a trunk thins going up")
+	var box := Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 1)
+	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8), "thick bark east of a trunk is solid")
+	_check(not w.blocks_part(16, 2, 23, 0.7, 0.9, 0.4, 0.6), "a body further from the trunk is not stopped")
 	var gone := Trees.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
 	_check(not gone.is_empty() and gone[0] == Vector3i(15, 2, 23), "a cut trunk is felled from the cut")
+	_check(not w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6), "bark of a felled trunk stops nothing")
 	_check(w.log_col(15, 23) == 0b10, "the stump stays below the cut")
 	var left := 0
 	for z in range(10, 37):
