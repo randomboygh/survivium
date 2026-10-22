@@ -300,11 +300,11 @@ func _run() -> void:
 			main.sky.grass = main.sky.GRASS[main.clock.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.clock.season]
 			main.sky.leaf_amount = main.sky.LEAF_AMOUNT[main.clock.season]
-		if shot.has("animal") and not main.creatures.creatures.is_empty():
+		if shot.has("animal") and not main.wildlife.animals.is_empty():
 			# Stands still where it is put until the shot is taken.
-			var c = main.creatures.creatures[0]
+			var c = main.wildlife.animals[0]
 			c.pos = main.player.position + shot.animal
-			c.pos.y = main.creatures._ground(c.pos.x, c.pos.z)
+			c.pos.y = main.wildlife.ground(c.pos.x, c.pos.z)
 			c.target = c.pos
 			c.think = 100.0
 		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))

@@ -17,7 +17,8 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                build, chop, gather, plant), body (walking, jumping, swimming on the cells),
                placed (chests, stations, campfires on 2x2 cells), workshop (crafting),
                clock (time of day, seasons, moon phases, the weather and its WEATHERS table),
-               character (the bag, the body's state, action costs, eating, death and coming back)
+               character (the bag, the body's state, action costs, eating, death and coming back),
+               wildlife (the animals: they come, wander, rest, flee, hunt)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
@@ -26,15 +27,15 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   input/       controls, cursor, touch_stick, touch_button
   game/        game systems on this device: character (extends the shared one with the
                player's place, hands and screen), gathering, props (the placed things and the
-               drops drawn), creatures (rules still here)
+               drops drawn), creatures (the animals drawn)
   ui/          hud, menus, windows, maps, panels and their widgets, ui_style
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server
   must decide) goes into `src/shared/`; how it is drawn or asked for goes into `src/client/`.
   `run_tests.gd` fails if anything under `src/shared/` loads a script from `src/client/`. The rules
-  in `src/client/game/` move to `src/shared/game/` one system at a time
-  (`plan/architecture/code-structure.md`). A rule takes the one acting as `who` (on the client
+  of play all live in `src/shared/game/`; the modules of `src/client/game/` draw what they do and
+  bring them the player's input (`plan/architecture/code-structure.md`). A rule takes the one acting as `who` (on the client
   `character.gd`, which answers for the body, the hands and the bag) and tells what it changed
   through signals the client's views connect to (see `world_actions.gd`).
 - The world has no edge. `world_data.gd` keeps the cells in `Chunk`s by key (`chunk_at`,
