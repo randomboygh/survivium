@@ -42,20 +42,27 @@ void fragment() {
 	float dither = (float(m[b.y * 4 + b.x]) + 0.5) / 16.0 - 0.5;
 	if (rays_amount > 0.0) {
 		// Shafts from noise read along a line across the rays, so each runs straight
-		// with the light; a slower noise along them lets a shaft fade in and out. In
-		// whole pixels, in three dithered steps of brightness.
+		// with the light: wide and thin ones from three scales, with hard edges in
+		// two steps (the shaft and its bright core). A slower noise along them lets a
+		// shaft fade out, dithered, so they come and go down the picture.
 		float s = dot(px, vec2(-rays_dir.y, rays_dir.x)) + rays_offset;
 		float t = dot(px, rays_dir);
-		float n = texture(cloud_noise, vec2(s / 320.0, 0.13)).r * 0.65 + texture(cloud_noise, vec2(s / 110.0, 0.61)).r * 0.35;
-		float along = texture(cloud_noise, vec2(s / 700.0 + 0.5, t / 300.0)).r;
-		float shaft = clamp((n - 0.5) * 7.0, 0.0, 1.0) * clamp((along - 0.42) * 4.0, 0.0, 1.0);
+		float n = texture(cloud_noise, vec2(s / 190.0, 0.13)).r * 0.55
+			+ texture(cloud_noise, vec2(s / 52.0, 0.61)).r * 0.3
+			+ texture(cloud_noise, vec2(s / 15.0, 0.87)).r * 0.15;
+		float along = texture(cloud_noise, vec2(s / 600.0 + 0.5, t / 360.0)).r;
+		float shaft = step(0.5, n) * 0.55 + step(0.57, n) * 0.45;
+		shaft *= step(dither + 0.5, clamp((along - 0.3) * 3.0, 0.0, 1.0));
 		// Only where the sun gets through the clouds (the ground's cloud_light, read
 		// at the ground under the pixel): through the gaps as the clouds break up.
 		float cloud = texture(cloud_noise, (px / 16.0 + cloud_offset) / 96.0).r;
-		shaft *= 1.0 - smoothstep(-0.12, 0.04, cloud - (1.0 - cloud_cover));
-		shaft = floor(shaft * 3.0 + dither * 0.9 + 0.5) / 3.0;
+		float sunlit = 1.0 - smoothstep(-0.12, 0.04, cloud - (1.0 - cloud_cover));
+		// A soft glow of the lit air behind the shafts, brighter towards the top of
+		// the picture where the light comes from.
+		float glow = 0.35 * (1.0 - 0.6 * UV.y);
+		float k = (shaft + glow) * sunlit * rays_amount;
 		// Light added in the air: screen blend, so bright ground does not burn out.
-		c = 1.0 - (1.0 - c) * (1.0 - rays_color * shaft * rays_amount);
+		c = 1.0 - (1.0 - c) * (1.0 - rays_color * k);
 	}
 	if (haze_amount > 0.0) {
 		// Banks from two layers of noise, in whole pixels, with a dithered edge.

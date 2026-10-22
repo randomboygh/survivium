@@ -130,9 +130,9 @@ void fragment() {
 		}
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5), ice_amount);
-	float fade = depth_fade(world_pos.y);
-	ALBEDO = col * (1.0 - fade);
-	EMISSION = depth_haze * fade;
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	ALBEDO = col * (1.0 - veiled.a);
+	EMISSION = veiled.rgb;
 	ALPHA = mix(alpha, 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

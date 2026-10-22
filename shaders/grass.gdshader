@@ -121,9 +121,9 @@ void fragment() {
 		col = m.rgb * grass_tint * custom.y;
 	}
 	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
-	float fade = depth_fade(root.y);
-	ALBEDO = col * (1.0 - fade);
-	EMISSION = depth_haze * fade;
+	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(root.y));
+	ALBEDO = col * (1.0 - veiled.a);
+	EMISSION = veiled.rgb;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(root);

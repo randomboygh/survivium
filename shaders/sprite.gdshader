@@ -43,9 +43,9 @@ void fragment() {
 	} else if (c.a < 0.5) {
 		discard;
 	}
-	float fade = depth_fade(world_pos.y);
-	ALBEDO = c.rgb * (1.0 - fade);
-	EMISSION = depth_haze * fade;
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	ALBEDO = c.rgb * (1.0 - veiled.a);
+	EMISSION = veiled.rgb;
 	// Lit as if facing up and toward the viewer, on both sides (mirrored sprites
 	// show their back face).
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);

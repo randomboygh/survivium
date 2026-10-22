@@ -275,9 +275,9 @@ void fragment() {
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
-	float fade = depth_fade(world_pos.y);
-	ALBEDO = col * (1.0 - fade);
-	EMISSION = depth_haze * fade;
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	ALBEDO = col * (1.0 - veiled.a);
+	EMISSION = veiled.rgb;
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
 	AO_LIGHT_AFFECT = 0.6;

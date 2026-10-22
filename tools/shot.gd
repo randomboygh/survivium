@@ -64,6 +64,10 @@ const SHOTS := {
 	"rays-day": {"time": 0.45, "season": 1},
 	"rays-evening": {"time": 0.72, "season": 1},
 	"rays-after-rain": {"time": 0.4, "season": 1, "weather": "cloudy", "after_rain": 1.0},
+	"mist-morning": {"time": 0.27, "season": 1},
+	"mist-shore": {"time": 0.27, "season": 1, "shore": true},
+	"mist-lake": {"time": 0.27, "season": 1, "place": "lake"},
+	"mist-off": {"time": 0.27, "season": 1, "rays": false, "mist": false},
 	"rays-off": {"time": 0.45, "season": 1, "rays": false},
 	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
 	"downpour": {"time": 0.5, "season": 1, "weather": "downpour"},
@@ -246,6 +250,7 @@ func _run() -> void:
 		main.sky.moon_override = shot.get("moon", -1.0)
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.values.sun_rays = shot.get("rays", true)
+		main.settings.values.mist = shot.get("mist", true)
 		main.settings.set_value("shadows", shot.get("shadows", true))
 		# Fires burn steadily in shots, so shots with and without shadows compare.
 		main.effects.flicker_clock = -INF

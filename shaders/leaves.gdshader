@@ -114,9 +114,9 @@ void fragment() {
 		col = vec3(0.73, 0.76, 0.82);
 	}
 	col *= 1.0 - 0.25 * wetness;
-	float fade = depth_fade(center.y);
-	ALBEDO = col * (1.0 - fade);
-	EMISSION = depth_haze * fade;
+	vec4 veiled = veil(center, depth_fade(center.y));
+	ALBEDO = col * (1.0 - veiled.a);
+	EMISSION = veiled.rgb;
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
