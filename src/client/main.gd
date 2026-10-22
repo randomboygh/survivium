@@ -6,14 +6,14 @@ extends Node
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (the light, colour grade
 ## and weather drawn for the clock), Controls (keys, mouse, touch and the edits they
 ## make), CameraRig (the pixel-perfect view and the camera), Props (the chests,
-## workbenches, kilns and campfires drawn, the things on the ground), Character (the bag
-## and the body: health, satiety, stamina, death; DeathScreen shows a death), Gathering
-## (what a tap gathers, things taken up by themselves), Hands (what the player is drawn
-## holding), Settings (the saved settings and the playtest switches) and SaveGame (the
-## saved world and player). The rules live in src/shared: Clock (time of day, seasons
-## and weather), WorldActions (what the hands do to the world), Placed (the things placed on two by two cells) and Workshop
-## (recipes known, the crafting queue, tool wear); their signals redraw the chunks and
-## the things.
+## workbenches, kilns and campfires drawn, the things on the ground), Character (the
+## player's character on this device; DeathScreen shows a death), Gathering (what a tap
+## gathers, things taken up by themselves), Hands (what the player is drawn holding),
+## Settings (the saved settings and the playtest switches) and SaveGame (the saved world
+## and player). The rules live in src/shared: Clock (time of day, seasons and weather),
+## Character (the bag, health, satiety, stamina, death), WorldActions (what the hands do
+## to the world), Placed (the things placed on two by two cells) and Workshop (recipes
+## known, the crafting queue, tool wear); their signals redraw the chunks and the things.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -146,6 +146,7 @@ func _ready() -> void:
 	props.watch(placed)
 	placed.cell_changed.connect(chunks.on_cell_changed)
 	character = CharacterScript.new(self)
+	character.clock = clock
 	save.track("inventory", character.inventory)
 	save.track("vitals", character.vitals)
 	save.track("character", character)
@@ -184,6 +185,7 @@ func start_world() -> void:
 	gen.saved = save.store
 	world = gen.world
 	placed.world = world
+	character.world = world
 	clock.world = world
 	clock.gen = gen
 	actions = WorldActions.new(world, clock, settings)
@@ -218,7 +220,7 @@ func _process(delta: float) -> void:
 				player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
 			props.place()
-			character.find_home()
+			character.find_home(placed)
 			player.visible = not character.is_dead()
 			creatures.setup(world, player, world_seed)
 			ready_to_play = true
@@ -402,6 +404,7 @@ func _build_scene() -> void:
 	world_root.add_child(drifts_root)
 	player = PlayerScript.new()
 	player.body.world = world
+	character.body = player.body
 	world_root.add_child(player)
 	# A guess from the laid-out columns; the exact spot is found once the ground is made.
 	player.position = (Vector3(gen.spawn_guess) + Vector3(0.5, 0.0, 0.5)) * CELL

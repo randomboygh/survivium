@@ -1,0 +1,236 @@
+extends RefCounted
+## The one who plays, as the rules see them (plan/design/character.md): the bag
+## (Inventory) and the body's state (Vitals), what the load and tiredness do to the
+## pace, what actions cost, eating, throwing things away, and death: the bag's
+## contents stay on the spot in a sack and the character lies dead until brought back
+## at a respawn point. The death is kept in the save. The rules in src/shared/game/ take
+## a character as `who`; where it stands, what its hands hold and how it speaks to the
+## player its owner fills in by extending this (on the client
+## src/client/game/character.gd).
+
+const Inventory := preload("res://src/shared/game/inventory.gd")
+const Vitals := preload("res://src/shared/game/vitals.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+
+const CELL := WorldData.CELL
+## A message for the same reason is not repeated sooner than this, in seconds.
+const NAG_INTERVAL := 3.0
+## Health after coming back from death, as a share of full.
+const REVIVE_HEALTH := 0.5
+
+signal state_changed
+
+## The world the character lives in, its clock (Clock) and its body (Body), set by the
+## owner as they come.
+var world
+var clock
+var body
+var inventory := Inventory.new()
+var vitals := Vitals.new()
+## Where the character comes back after death, in world units: beside the campfire
+## (the spawn's, until fires are made), else where they first stood.
+var home := Vector3.ZERO
+## The character's death while they lie dead, else empty: "cause" (Vitals.hurt_by),
+## "day" and "time" (the clock), "at" (where they fell, world units), "sack" (where
+## the sack lies, or null) and "lost" ([id, count] of each stack the sack holds).
+var death := {}
+## Where things were thrown away: those are not taken by themselves until the
+## character has walked off (see WorldActions.pick_up_near).
+var held_back: Array[Vector3] = []
+## Where the body is, in world units (see _where).
+var position: Vector3:
+	get:
+		return _where()
+var _nagged := {}
+
+
+func _init() -> void:
+	# A method, not a lambda: a lambda would keep the character, and the world it
+	# holds, alive through its own bag after the scene is gone.
+	inventory.changed.connect(_on_bag_changed)
+
+
+func _on_bag_changed() -> void:
+	state_changed.emit()
+
+
+## Where the body stands, in world units: the owner keeps it.
+func _where() -> Vector3:
+	return Vector3.ZERO
+
+
+## Tells the player `text` at once (on the client a line under the clock).
+func say(_text: String) -> void:
+	pass
+
+
+## Says `text`, at most once in NAG_INTERVAL for the same `reason`.
+func nag(reason: String, text: String) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _nagged.get(reason, -100.0) < NAG_INTERVAL:
+		return
+	_nagged[reason] = now
+	say(text)
+
+
+## Picks the place to come back to after death, once the things of `placed` (Placed)
+## are put down.
+func find_home(placed) -> void:
+	var fire: Variant = placed.cell_of(placed.CAMPFIRE)
+	if fire is Vector3i:
+		home = (Vector3(fire) + Vector3(2.5, 0.0, 0.5)) * CELL
+	else:
+		home = position
+
+
+## Runs the body's state for `delta` seconds and sets the pace of the body.
+func update(delta: float) -> void:
+	if is_dead():
+		return
+	vitals.step(delta, clock.days(delta), body.swimming, inventory.load_share())
+	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
+	if body.jumped and not body.air_jumps:
+		vitals.spend("jump")
+	if vitals.is_dead():
+		die()
+
+
+## Whether the character may jump now: not when overloaded or out of breath.
+func can_jump() -> bool:
+	return vitals.can("jump") and not inventory.overloaded()
+
+
+## Pays the stamina for `action` (see Vitals.COSTS); says so and returns false when the
+## character is too tired.
+func act(action: String) -> bool:
+	if vitals.spend(action):
+		return true
+	nag("tired", "Нет сил, нужно отдышаться")
+	return false
+
+
+## Puts `n` of item `id` (a tool worn by `worn` swings) into the bag and says what
+## came in; returns how many fit.
+func give(id: String, n: int, worn := 0) -> int:
+	var got := inventory.add(id, n, worn)
+	if got > 0:
+		say("+%d %s" % [got, Items.title(id)])
+		if inventory.overloaded():
+			nag("heavy", "Перегруз: %.1f из %d кг" % [inventory.weight(), inventory.weight_limit])
+	if got < n:
+		nag("full", "Сумка полна")
+	return got
+
+
+## Eats one item from bag slot `i`; false if it is not food or the character is full.
+func eat(i: int) -> bool:
+	var s = inventory.slots[i]
+	if s == null or Items.food(s[0]) <= 0.0:
+		return false
+	if not vitals.eat(Items.food(s[0])):
+		nag("full_belly", "Больше не хочется")
+		return false
+	inventory.take_slot(i, 1)
+	return true
+
+
+## Throws `n` items of bag slot `i` on the ground at the feet; not a chest with
+## things in it (it is put down instead).
+func throw_away(i: int, n: int) -> void:
+	if inventory.contents(i) != null:
+		nag("throw", "Сундук с вещами не бросить: поставь его")
+		return
+	var taken = inventory.take_slot(i, n)
+	if taken == null:
+		return
+	held_back.append(position)
+	lay(taken[0], {"n": taken[1], "worn": taken[2]} if taken.size() > 2 else taken[1])
+
+
+## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
+## sack's stacks, or {"n", "worn"} for a worn tool) at the feet; returns where.
+func lay(kind: String, data: Variant) -> Vector3:
+	var p := position
+	var h: float = world.ground_height(p.x / CELL, p.z / CELL)
+	var at := Vector3(p.x, h * CELL if h >= 0.0 else p.y, p.z)
+	world.add_drop(kind, at, randf() * TAU, data)
+	return at
+
+
+## Health is gone: the bag's things stay in a sack where the character fell, and the
+## character lies dead until revive().
+func die() -> void:
+	var at := position
+	var stacks := inventory.take_all()
+	var sack: Variant = null
+	if not stacks.is_empty():
+		sack = lay(Items.SACK, stacks)
+	death = {
+		"cause": vitals.hurt_by,
+		"day": clock.day,
+		"time": clock.time_of_day,
+		"at": [at.x, at.y, at.z],
+		"sack": [sack.x, sack.y, sack.z] if sack is Vector3 else null,
+		"lost": stacks.map(func(st: Array) -> Array: return [st[0], st[1]]),
+	}
+	body.velocity_y = 0.0
+	_fell()
+	state_changed.emit()
+
+
+## The owner's part of a death (on the client: the body is no longer drawn).
+func _fell() -> void:
+	pass
+
+
+func is_dead() -> bool:
+	return not death.is_empty()
+
+
+## The places the character may come back at, as [title, position in world units]:
+## the spawn's campfire for now (beds and the player's own fires later).
+func respawn_points() -> Array:
+	return [["У костра старта", home]]
+
+
+## Brings the dead character back at `at` (world units) with part of their health.
+func revive(at: Vector3) -> void:
+	death = {}
+	vitals.revive(REVIVE_HEALTH)
+	body.velocity_y = 0.0
+	_came_back(at)
+	state_changed.emit()
+
+
+## The owner's part of coming back: puts the body at `at`.
+func _came_back(_at: Vector3) -> void:
+	pass
+
+
+## How the character died, for the death screen: a title and a line under it.
+static func cause_text(cause: String) -> Array:
+	match cause:
+		"hunger":
+			return ["Вы умерли", "от голода"]
+		"water":
+			return ["Вы утонули", "в воде кончились силы"]
+	return ["Вы погибли", ""]
+
+
+## The death, kept in the player's save (see SaveGame.track).
+func to_dict() -> Dictionary:
+	return {"death": death.duplicate(true)}
+
+
+func from_dict(d: Dictionary) -> void:
+	var saved: Variant = d.get("death")
+	death = {}
+	if saved is Dictionary and not saved.is_empty():
+		death = saved.duplicate(true)
+		# Counts come back from JSON as floats.
+		var lost := []
+		for st: Variant in death.get("lost", []):
+			if st is Array and st.size() >= 2 and Items.has(str(st[0])):
+				lost.append([str(st[0]), int(st[1])])
+		death.lost = lost

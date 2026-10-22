@@ -16,15 +16,17 @@ src/shared/    the world model and the rules the server will run; loads nothing 
   game/        rules of play: inventory, vitals, knowledge, craft_queue, world_actions (dig,
                build, chop, gather, plant), body (walking, jumping, swimming on the cells),
                placed (chests, stations, campfires on 2x2 cells), workshop (crafting),
-               clock (time of day, seasons, moon phases, the weather and its WEATHERS table)
+               clock (time of day, seasons, moon phases, the weather and its WEATHERS table),
+               character (the bag, the body's state, action costs, eating, death and coming back)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
   view/        the picture: pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures,
                voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art
   input/       controls, cursor, touch_stick, touch_button
-  game/        game systems whose rules still live in the client: character, gathering,
-               props (the placed things and the drops drawn), creatures
+  game/        game systems on this device: character (extends the shared one with the
+               player's place, hands and screen), gathering, props (the placed things and the
+               drops drawn), creatures (rules still here)
   ui/          hud, menus, windows, maps, panels and their widgets, ui_style
 ```
 
@@ -77,8 +79,8 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
   `settings_menu.gd` (the settings and playtest pages, rows of "name ‹ value ›"), `save_game.gd`
   (picks the world played last, puts the player, clock and props back, autosaves; modules keep
-  their part of the player with `save.track(name, obj)`), `character.gd` (the bag and the body:
-  `Inventory` and `Vitals` from `src/shared/`, action costs, death: the bag in a sack, the character
+  their part of the player with `save.track(name, obj)`), `character.gd` (the player's character: it extends `src/shared/game/character.gd`, which holds the
+  bag and the body, `Inventory` and `Vitals`, action costs, death: the bag in a sack, the character
   lies dead, kept in the save, until `death_screen.gd` brings them back at a respawn point), `gathering.gd` (what a tap
   gathers: the nearest thing on the ground, bush or placed thing to the finger, and its hint; things
   taken up by themselves near the player; the rules are `world_actions.gd`, what grows on grass
@@ -135,6 +137,9 @@ GDScript. Notes: `plan/architecture/performance.md`.
 
 - A static func named like a method of `Script` (`reload`, `get_class`, `is_tool`...) is shadowed: `Mat.reload()`
   recompiles the script and resets its static vars instead of calling yours.
+- A lambda that uses `self` keeps the object alive; connected to a signal of something the object
+  holds (its bag, its queue) it makes a cycle a RefCounted is never freed from, with all it refers
+  to (the world). Connect a method instead (see `src/shared/game/character.gd`).
 - `var i := expr` is a parse error when `expr` is a Variant (e.g. a field of an untyped object); type
   such vars explicitly.
 - Godot front faces wind clockwise; a hand-built mesh wound counter-clockwise is inside out.
