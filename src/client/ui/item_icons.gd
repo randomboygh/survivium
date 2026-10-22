@@ -8,6 +8,7 @@ extends RefCounted
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
 const PALETTE := {
 	"b": Color("#4a3322"), "B": Color("#6b4a2f"), "t": Color("#9a7448"), "l": Color("#557a38"),
@@ -452,6 +453,8 @@ const RECOLOURED := {
 }
 
 static var _cache := {}
+## The images the pictures were made from, by name (see image_of).
+static var _images := {}
 static var _atlas: Texture2D
 static var _tile := 16
 static var _tiles := 1
@@ -486,7 +489,26 @@ static func picture(name: String) -> Texture2D:
 				img.set_pixel(x, y, PALETTE[letter])
 	var tex := ImageTexture.create_from_image(img)
 	_cache[name] = tex
+	_images[name] = img
+	UiStyle.remember(tex, img)
 	return tex
+
+
+## The image of item `id`'s picture (see of_item), null for none: made here, not read
+## back from the texture, which in the browser waits for the graphics card.
+static func image_of(id: String) -> Image:
+	var item := Items.get_item(id)
+	if item.is_empty():
+		return null
+	if item.icon != "":
+		picture(item.icon)
+		return _images.get(item.icon)
+	var m := Mat.index(item.place)
+	if m < 0 or _atlas == null:
+		return null
+	var at: Rect2 = (tile(m) as AtlasTexture).region
+	var atlas_img: Image = PixelTextures.atlas_image if PixelTextures.atlas_image != null else _atlas.get_image()
+	return atlas_img.get_region(Rect2i(at))
 
 
 ## The picture of item `id`: its icon, or the tile of the material it places.
@@ -512,4 +534,6 @@ static func tile(m: int) -> Texture2D:
 	icon.atlas = _atlas
 	icon.region = Rect2((t % _tiles) * _tile + 2, floori(t / float(_tiles)) * _tile + 2, 12, 12)
 	_cache[key] = icon
+	if PixelTextures.atlas_image != null:
+		UiStyle.remember(icon, PixelTextures.atlas_image.get_region(Rect2i(icon.region)))
 	return icon

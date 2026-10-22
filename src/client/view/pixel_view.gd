@@ -45,6 +45,17 @@ static func shear(p: Vector3) -> Vector3:
 	return Vector3(p.x, p.y, p.z - p.y)
 
 
+## The box that what a mesh with box `a` draws takes up once the shaders have moved
+## each point north by its height (shear), `margin` world units larger all round for
+## what the shaders sway or raise a little (leaves, grass, ice). Set as a node's
+## custom_aabb, it lets the camera cull the node exactly as it shows.
+static func sheared_box(a: AABB, margin: float) -> AABB:
+	var lo := a.position
+	var hi := a.end
+	return AABB(Vector3(lo.x, lo.y, lo.z - hi.y) - Vector3.ONE * margin,
+		Vector3(a.size.x, a.size.y, a.size.z + a.size.y) + Vector3.ONE * 2.0 * margin)
+
+
 ## Position of a world point on the screen plane, in world units (x right, y down).
 static func screen_plane(p: Vector3) -> Vector2:
 	return Vector2(p.x, p.z - p.y)

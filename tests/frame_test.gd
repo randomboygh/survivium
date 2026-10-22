@@ -26,6 +26,12 @@ const CHUNK := 16
 ## several times in a few thousand frames; a GitHub runner: hardly ever), a real
 ## freeze comes back with every chunk or every cut change.
 const STALLS_PER_FRAMES := 250
+## Standing on the finished map, a frame takes less than this share of a chunk: what
+## runs every frame (animals, fire shadows, the interface) runs all the time, and a
+## phone pays ten times as much for it (an animal looking for the ground from the sky
+## took 70 % of the frame until 2026-10-21).
+const IDLE_SHARE := 20.0
+const NIGHT := "idle at night by the campfire"
 
 var main: Node
 var checks := 0
@@ -326,6 +332,26 @@ func _run() -> void:
 	for e in main.props.placed:
 		if e.item == "core:campfire":
 			fire_e = e
+
+	# Standing by the campfire on a moonless night: the shadows the fire throws from the
+	# player, the animals and the trees are drawn every frame.
+	var day: float = main.sky.time_of_day
+	main.sky.time_of_day = 0.95
+	main.sky.moon_override = 0.0
+	main.player.position = main.props.center(fire_e) + Vector3(0.6, 0.0, -1.4)
+	# Until the chunks stop being built (the earlier scenarios left work queued), so
+	# the frames measured hold the fire's work and not the streamer's.
+	var quiet := 0
+	for i in 3000:
+		var b: int = main.chunks.budget_us
+		await process_frame
+		quiet = quiet + 1 if main.chunks.budget_us == b else 0
+		if quiet >= 30:
+			break
+	_check(main.fire_shadows.multimesh.visible_instance_count > 0, "the campfire throws shadows at night")
+	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
+	main.sky.time_of_day = day
+	main.sky.moon_override = -1.0
 	main.props.put_out(fire_e)
 	inv.add("core:branch", 1)
 	var branches: int = inv.count("core:branch")
@@ -345,6 +371,12 @@ func _run() -> void:
 	var free_limit: float = idle_ms + 2.0 + 0.25 * chunk_ms
 	print("a frame may spend %.1f ms in the budgeted loops and %.1f ms outside them (an idle frame is %.1f ms)" % [
 		step_limit, free_limit, idle_ms])
+	for r in runs:
+		if r[0] == "idle" or r[0] == NIGHT:
+			var outside: float = _mean(r[1]) - _mean(r[2])
+			print("%s: %.2f ms a frame past the budgets (limit %.2f)" % [r[0], outside, chunk_ms / IDLE_SHARE])
+			_check(outside < chunk_ms / IDLE_SHARE, "%s: a frame takes under 1/%d of a chunk past the budgets (%.2f ms of %.2f)" % [
+				r[0], IDLE_SHARE, outside, chunk_ms / IDLE_SHARE])
 	for r in runs:
 		var frames: PackedFloat32Array = r[1]
 		var steps: PackedFloat32Array = r[2]

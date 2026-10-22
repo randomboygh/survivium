@@ -393,7 +393,8 @@ func _tile_colour(m: int) -> Color:
 	var atlas: Texture2D = game.atlas
 	if atlas == null:
 		return Color(0.5, 0.4, 0.3)
-	var img := atlas.get_image()
+	# Read back from the texture only when the image is not kept (slow in the browser).
+	var img: Image = PixelTextures.atlas_image if PixelTextures.atlas_image != null else atlas.get_image()
 	var tile: int = PixelTextures.TILE
 	var t := m * 3
 	var x0: int = (t % PixelTextures.TILES) * tile

@@ -33,6 +33,11 @@ const BUSH_ROWS := 5
 const BERRY_ALPHA := 0.65
 
 
+## The atlas image, kept so scripts can read its tiles: reading a texture back is slow
+## in the browser.
+static var atlas_image: Image
+
+
 static func build_atlas() -> ImageTexture:
 	var img := Image.create_empty(TILE * TILES, TILE * TILES, false, Image.FORMAT_RGBA8)
 	img.fill(Color.MAGENTA)
@@ -46,6 +51,7 @@ static func build_atlas() -> ImageTexture:
 			for py in TILE:
 				for px in TILE:
 					img.set_pixel(ox + px, oy + py, _texel(m, kind, px, py, rng))
+	atlas_image = img
 	return ImageTexture.create_from_image(img)
 
 

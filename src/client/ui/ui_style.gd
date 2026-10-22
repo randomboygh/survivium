@@ -529,6 +529,8 @@ const ICONS := {
 static var _font: FontFile
 static var _icons := {}
 static var _centred := {}
+## Images that textures were made from, by the texture's instance id (see remember).
+static var _images := {}
 
 
 static func font() -> FontFile:
@@ -551,7 +553,9 @@ static func icon(name: String) -> ImageTexture:
 			for x in row.length():
 				if PALETTE.has(row[x]):
 					img.set_pixel(x, y, PALETTE[row[x]])
-		_icons[name] = ImageTexture.create_from_image(_even(img))
+		var even := _even(img)
+		_icons[name] = ImageTexture.create_from_image(even)
+		remember(_icons[name], even)
 	return _icons[name]
 
 
@@ -563,11 +567,19 @@ static func centred(texture: Texture2D) -> Texture2D:
 		return null
 	var key := texture.get_instance_id()
 	if not _centred.has(key):
-		var img := texture.get_image()
+		var img: Image = _images.get(key)
+		if img == null:
+			img = texture.get_image()
 		var used := img.get_used_rect()
 		_centred[key] = texture if used.position == Vector2i.ZERO and used.size == img.get_size() \
 			and used.size.x % 2 == 0 and used.size.y % 2 == 0 else ImageTexture.create_from_image(_even(img))
 	return _centred[key]
+
+
+## Keeps the image `texture` was made from, so the picture is not read back from the
+## texture, which in the browser waits for the graphics card.
+static func remember(texture: Texture2D, img: Image) -> void:
+	_images[texture.get_instance_id()] = img
 
 
 ## Image `img` cut to its drawn pixels, with the middle column (row) doubled when it is
