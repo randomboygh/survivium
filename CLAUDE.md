@@ -108,9 +108,12 @@ The client's version is `<stage>.<PR>`: the stage is `application/config/version
 `project.godot` (raise it by hand when an MVP stage closes), the PR is the last one merged into
 main, so `0.1.67` is the build with PR #67 in it. CI writes it with `tools/build_info.py` into
 `build_info.json` (not in git; a local run shows `dev`), along with the lines
-`Что нового: …` from the descriptions of the last merged PRs; the «Тестирование» page shows the
-version and opens them («Что нового»). So every PR description has one such line in Russian,
-for a player, not a programmer (a PR without one is left out of the list).
+`Что нового [вид]: …` from the descriptions of the last merged PRs; the «Тестирование» page shows
+the version and opens them («Что нового»), each with the icon of its kind. So every PR description
+has at least one such line in Russian, for a player, not a programmer (a PR without one is left out
+of the list). The kinds: `новое` (the default when the tag is left out), `улучшено`, `исправлено`,
+`быстрее`, `внутри` (code moved, tools, tests); a PR that does several things has a line for each,
+e.g. `Что нового [исправлено]: Костёр больше не гаснет под крышей.`
 
 ## Checks before every push
 

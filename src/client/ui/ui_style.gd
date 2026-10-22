@@ -31,6 +31,7 @@ const GOOD := Color("#8fcf6a")
 const PALETTE := {
 	"w": INK, "m": MUTED, "a": ACCENT, "y": Color("#f6d27a"), "b": Color("#9fd2f7"),
 	"g": Color("#a9b0b4"), "d": Color("#6f777b"), "r": Color("#8a5a2b"), "k": DARK_INK,
+	"e": GOOD,
 }
 
 ## Icons, one character per pixel (see PALETTE; "." is transparent). An icon is cut to
@@ -453,6 +454,57 @@ const ICONS := {
 		"...ww...",
 		"...ww...",
 		"...ww...",
+	],
+	# The kinds of change in «Что нового» (tools/build_info.py KINDS).
+	"change_new": [
+		"...ee...",
+		"...ee...",
+		"...ee...",
+		"eeeeeeee",
+		"eeeeeeee",
+		"...ee...",
+		"...ee...",
+		"...ee...",
+	],
+	"change_better": [
+		"...bb...",
+		"..bbbb..",
+		".bbbbbb.",
+		"bbbbbbbb",
+		"...bb...",
+		"...bb...",
+		"...bb...",
+		"...bb...",
+	],
+	"change_fix": [
+		"....g..g",
+		"....g..g",
+		"....gggg",
+		"...ggg..",
+		"..ggg...",
+		".ggg....",
+		"ggg.....",
+		"gg......",
+	],
+	"change_fast": [
+		"....yyy.",
+		"...yyy..",
+		"..yyy...",
+		".yyyyyy.",
+		"...yyy..",
+		"..yyy...",
+		".yy.....",
+		"y.......",
+	],
+	"change_inside": [
+		"...mm...",
+		".m.mm.m.",
+		"..mmmm..",
+		"mmm..mmm",
+		"mmm..mmm",
+		"..mmmm..",
+		".m.mm.m.",
+		"...mm...",
 	],
 	"minus": [
 		"........",

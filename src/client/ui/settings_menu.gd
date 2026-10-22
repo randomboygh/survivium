@@ -20,6 +20,10 @@ const NAME_WIDTH := 150
 const VALUE_WIDTH := 100
 const ARROW := 32
 ## A row across, and the room between two columns of rows (see fit).
+## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
+const CHANGE_KINDS := {
+	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "быстрее", "inside": "внутри",
+}
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
 const COLUMN_GAP := 16
 const HOURS := ["ночь", "утро", "день", "вечер"]
@@ -408,9 +412,38 @@ func _page_height(which: String, n: int) -> int:
 func _add_changes(changes: Array) -> void:
 	if changes.is_empty():
 		_list.add_child(_paragraph("Список изменений появится в сборке с сайта.", UiStyle.MUTED))
+		return
+	var legend := HFlowContainer.new()
+	legend.custom_minimum_size = Vector2(ROW_WIDTH, 0)
+	legend.add_theme_constant_override("h_separation", 12)
+	for k in CHANGE_KINDS:
+		legend.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
+	_list.add_child(legend)
+	var pr := -1
 	for c in changes:
-		_list.add_child(_paragraph("#%d · %s" % [int(c.pr), c.date], UiStyle.ACCENT))
-		_list.add_child(_paragraph(str(c.text), UiStyle.INK))
+		if int(c.pr) != pr:
+			pr = int(c.pr)
+			_list.add_child(_paragraph("#%d · %s" % [pr, c.date], UiStyle.ACCENT))
+		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, ROW_WIDTH))
+
+
+## A line of «Что нового» with the icon of its kind (CHANGE_KINDS) in front; `width` 0
+## keeps it to its text.
+func _change_line(kind: String, text: String, color: Color, width: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var icon := TextureRect.new()
+	icon.texture = UiStyle.icon("change_" + (kind if CHANGE_KINDS.has(kind) else "new"))
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	icon.custom_minimum_size = Vector2(8, UiStyle.FONT_SIZE)
+	row.add_child(icon)
+	var l := UiStyle.label(text, color)
+	if width > 0:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(width - 8 - 6, 0)
+	row.add_child(l)
+	return row
 
 
 func _paragraph(text: String, color: Color) -> Label:
