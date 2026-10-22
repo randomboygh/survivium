@@ -1982,6 +1982,73 @@ func _test_wildlife() -> void:
 	_check(wolf.pos == from and is_equal_approx(wolf.away, 0.05), "an animal no one looks at waits for its step")
 	life.update(0.06)
 	_check(wolf.pos != from and wolf.away == 0.0, "and then takes it at once")
+	_test_birds(w, person)
+
+
+## Birds (the birds mod) come in flocks around a lead, fly off from a person together
+## and come down again away from them, out of a cat's reach while in the air, and
+## sleep in the crowns at night.
+func _test_birds(w: WorldData, person: Who) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [person]
+	life.start(3)
+	var flocked: bool = life.count("birds:sparrow") == AiRules.SPECIES["birds:sparrow"].count
+	var leads := 0
+	for a in life.animals:
+		if a.kind != "birds:sparrow":
+			continue
+		if a.lead == null:
+			leads += 1
+		elif a.lead.kind != a.kind or a.pos.distance_to(a.lead.pos) > Wildlife.FLOCK_REACH * 2.0:
+			flocked = false
+	_check(flocked and leads >= 2 and leads <= 5, "sparrows come in flocks (%d)" % leads)
+
+	life.animals.clear()
+	var at := person.position + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var lead := _animal(life, "birds:sparrow", at + Vector3(1.0, 0.0, 0.0))
+	var mate := _animal(life, "birds:sparrow", at + Vector3(6.0, 0.0, 0.0))
+	mate.lead = lead
+	life.update(0.05)
+	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
+	var cat := _animal(life, "core:cat", lead.pos)
+	cat.hunger = 1.0
+	var high := 0.0
+	for i in 10:
+		life.update(0.05)
+		high = maxf(high, lead.pos.y - at.y)
+	_check(mate.flying and mate.state == "flee", "its flock takes fright with it")
+	_check(cat.state != "hunt" and life.animals.has(lead), "a cat does not hunt a bird in the air")
+	for i in 200:
+		life.update(0.05)
+	_check(high > 1.0 and not lead.flying and lead.pos.distance_to(person.position) > 8.0
+		and absf(lead.pos.y - life.ground(lead.pos.x, lead.pos.z)) < 0.01,
+		"it flies up and comes down away from the person (%.1f high, %.1f away)" % [high, lead.pos.distance_to(person.position)])
+
+	# A tree away from everyone, and night.
+	life.people = [Who.new()]
+	life.animals.clear()
+	var tx := floori(at.x / WorldData.CELL) + 6
+	var tz := floori(at.z / WorldData.CELL)
+	w.set_cell(tx, 6, tz, Mat.LOG)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.LEAVES)
+	w.add_tree(tx, tz, 0)
+	life.clock.time_of_day = 0.0
+	var bird := _animal(life, "birds:sparrow", at)
+	for i in 100:
+		life.update(0.05)
+	_check(bird.perched and bird.state == "rest" and is_equal_approx(bird.pos.y, 8 * WorldData.CELL),
+		"a sparrow sleeps in a tree crown at night")
+	w.remove_tree(tx, tz)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.AIR)
+	w.set_cell(tx, 6, tz, Mat.AIR)
 
 
 ## Puts an animal of `kind` at `at` into `life`, about to think.

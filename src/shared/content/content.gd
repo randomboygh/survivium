@@ -17,7 +17,7 @@ const Yaml := preload("res://src/shared/content/yaml.gd")
 
 const ROOT := "res://content"
 ## Mods in load order, until mod.yaml dependencies order them.
-static var MODS: Array = ["core"]
+static var MODS: Array = ["core", "birds"]
 
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
@@ -72,6 +72,11 @@ const SCHEMAS := {
 		"active": {"type": "enum", "values": ["day", "night", "any"]},
 		"count": {"type": "int", "min": 0, "default": 0},
 		"sprite": {"type": "string", "default": ""},
+		"frames": {"type": "int", "min": 1, "default": 1},
+		"flies": {"type": "bool", "default": false},
+		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
+		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
+		"likes": {"type": "list", "of": "ref:plants", "default": []},
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
