@@ -283,7 +283,7 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return s.quality(),
 					func(i: int) -> void: s.set_quality(i), "своё"],
 				null,
-				["Пиксель", ["обычный", "крупный", "огромный"],
+				["Масштаб", ["обычный", "крупный", "огромный"],
 					func() -> int: return s.values.pixel_size,
 					func(i: int) -> void: s.set_value("pixel_size", i)],
 				["Тени", ["выкл", "вкл"],
