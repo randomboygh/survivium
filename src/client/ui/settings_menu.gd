@@ -250,6 +250,9 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void:
 						if game.hud.perf.visible != (i == 1):
 							game.hud.toggle_stats()],
+				["Отладочные подсказки", ["выкл", "вкл"],
+					func() -> int: return int(s.debug_tips),
+					func(i: int) -> void: s.debug_tips = i == 1],
 			]
 		"game":
 			var rows := [

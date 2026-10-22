@@ -548,8 +548,8 @@ func toast(text: String) -> void:
 
 
 ## Hint next to the mouse pointer (`screen_pos` in screen pixels); empty text hides it.
-func show_tip(screen_pos: Vector2, text: String) -> void:
-	_tip.visible = text != "" and not touch
+func show_tip(screen_pos: Vector2, text: String, on_touch := false) -> void:
+	_tip.visible = text != "" and (on_touch or not touch)
 	if not _tip.visible:
 		return
 	_tip_label.text = text

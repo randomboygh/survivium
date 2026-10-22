@@ -80,6 +80,10 @@ var air_jumps := false
 ## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
 ## preset, which does not exist yet). Not saved.
 var tool_wear := false
+## Playtest switch: the hint under the pointer (on a touch screen, at a tap, for a few
+## seconds) tells what the cell is and why the hand in use does or does not work it. Not
+## saved.
+var debug_tips := false
 ## Sides of the sun's shadow map to compare on a phone (the map is drawn again every
 ## frame the sun casts shadows). The engine's default is 4096; at 16 pixels a world unit
 ## 2048 shows the same shadows with a quarter of its texels.

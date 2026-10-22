@@ -1140,8 +1140,8 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 	var cells := PackedByteArray()
 	var shapes := PackedByteArray()
 	for z in range(z0, z1):
-		# A run of whole tops waiting to be drawn: first x and tile.
-		var run_x := -1
+		# A run of whole tops waiting to be drawn: first x and tile (-1 for none).
+		var run_x := 0
 		var run_tile := -1
 		for x in range(x0, x1 + 1):
 			var tile := -1
@@ -1156,7 +1156,8 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 				open = c.air[col] | c.water[col] | c.leaf[col]
 				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16:
 					tile = cells[i] * 3
-			if tile != run_tile and run_x >= 0:
+			# (A run is marked by its tile: x may be negative.)
+			if tile != run_tile and run_tile >= 0:
 				var base := Vector3(run_x, level, z)
 				var pts := []
 				var uvs := []
@@ -1164,9 +1165,9 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 					pts.append(base + Vector3(v.x * (x - run_x), v.y, v.z))
 					uvs.append(Vector2(v.x * (x - run_x), v.z))
 				buf.quad(pts, Vector3.UP, uvs, dark, Vector2(pack(run_tile, 0, 0), no_tiles))
-				run_x = -1
+				run_tile = -1
 			if tile >= 0:
-				if run_x < 0:
+				if run_tile < 0:
 					run_x = x
 					run_tile = tile
 				continue
