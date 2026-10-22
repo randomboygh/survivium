@@ -1761,6 +1761,21 @@ func _test_weather() -> void:
 	var across := body.weather_pace(p, Vector2(0.0, 1.0))
 	w.tread(10, 10, clock.now())
 	_check(body.weather_pace(p, Vector2(0.0, 1.0)) > across, "a fresh trail in the snow is easier to walk")
+	_check(body.air_drift(p) == Vector2.ZERO, "the wind does not carry a body on the ground")
+	body.on_ground = false
+	_check(body.air_drift(p).x > 1.0, "a blizzard carries a body in the air downwind")
+	var jumper := Body.new()
+	jumper.world = w
+	jumper.clock = clock
+	var at := Vector3(20.5, 2.0, 30.5) * WorldData.CELL
+	jumper.step(at, 0.02, false)
+	at = jumper.step(at, 0.02, true)
+	while true:
+		at = jumper.step(at, 0.02, false)
+		if jumper.on_ground:
+			break
+	_check(at.x / WorldData.CELL > 20.5 + 0.5, "a jump in a blizzard lands downwind (%.2f cells)" % (at.x / WorldData.CELL - 20.5))
+	body.on_ground = true
 	w.set_cell(10, 6, 10, Mat.STONE)
 	_check(is_equal_approx(body.weather_pace(p, Vector2(-1.0, 0.0)), 1.0), "under a roof the weather does not slow walking")
 	clock.season = Clock.AUTUMN

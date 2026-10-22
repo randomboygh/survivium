@@ -4,7 +4,8 @@ extends RefCounted
 ## shallow water, swims in deep water with its head above the surface, pulls itself
 ## out onto ground up to one level above the water, and walks on ice in winter. Out in
 ## the open the weather slows it (see weather_pace): deep snow, except on a trail, a
-## strong head wind, and a blizzard or a sand storm that hide the way. A
+## strong head wind, and a blizzard or a sand storm that hide the way; a strong wind
+## carries it sideways in a jump (air_drift). A
 ## position is the middle of the feet in world units, kept by whoever owns the body
 ## (the player's node on the client); the body moves in cells.
 
@@ -59,6 +60,9 @@ const SNOWFALL_SLOW := 0.05
 const HIDDEN_WAY := 0.15
 ## The weather never takes the pace below this share.
 const WEATHER_FLOOR := 0.5
+## A full wind carries a body in the air this many cells a second along it (a jump in
+## a blizzard lands about a cell downwind).
+const AIR_DRIFT := 2.5
 
 var world
 ## The weather the body walks in (Clock), null for none.
@@ -126,6 +130,10 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var before := p
 	p = _try_move(p, Vector3(glide.x * delta, 0.0, 0.0), reach)
 	p = _try_move(p, Vector3(0.0, 0.0, glide.y * delta), reach)
+	var drift := air_drift(p)
+	if drift != Vector2.ZERO:
+		p = _try_move(p, Vector3(drift.x * delta, 0.0, 0.0), reach)
+		p = _try_move(p, Vector3(0.0, 0.0, drift.y * delta), reach)
 	# A wall stops the glide along it.
 	if absf(p.x - before.x) < absf(glide.x * delta) * 0.5:
 		glide.x = 0.0
@@ -215,6 +223,18 @@ func weather_pace(p: Vector3, dir: Vector2) -> float:
 	var hidden: float = clampf(clock.storm_wind / WIND_FULL, 0.0, 1.0) * maxf(clock.snowing, clock.sand)
 	k -= SNOWFALL_SLOW * clock.snowing + HIDDEN_WAY * hidden * hidden
 	return maxf(k, WEATHER_FLOOR)
+
+
+## How the wind carries the body at `p` (in cells) while it is in the air, in cells a
+## second (x east, y south): along the wind as strong as it is felt (see WIND_FELT), none
+## on the ground, in water or under a roof.
+func air_drift(p: Vector3) -> Vector2:
+	if clock == null or on_ground or swimming or water_depth > 0.0:
+		return Vector2.ZERO
+	var wind: float = clampf((clock.storm_wind - WIND_FELT) / (WIND_FULL - WIND_FELT), 0.0, 1.0)
+	if wind <= 0.0 or world.roof_level(floori(p.x), floori(p.z)) >= floori(p.y + 0.01):
+		return Vector2.ZERO
+	return clock.wind_dir() * (AIR_DRIFT * wind)
 
 
 ## Walking off a column of snow leaves a trail in it (see WorldData.trodden).
