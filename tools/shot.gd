@@ -199,6 +199,9 @@ const SHOTS := {
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
+	# The screen's answer to a hurt (red edges, the number over the head), and to a heal with food.
+	"ui-hurt": {"time": 0.45, "season": 1, "touch": true, "body": "hurt"},
+	"ui-fed": {"time": 0.45, "season": 1, "touch": true, "body": "fed"},
 	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
 	# The first screen (the world to make) and the whole map of what is explored.
@@ -421,6 +424,20 @@ func _run() -> void:
 			await process_frame
 			await process_frame
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
+		if shot.has("body"):
+			# What the screen shows when the body is hurt, or healed and fed.
+			var v = main.character.vitals
+			if shot.body == "fed":
+				v.health = 60.0
+				v.satiety = 30.0
+				for i in 3:
+					await process_frame
+				v.health = 75.0
+				v.satiety = 55.0
+			else:
+				v.health -= 12.0
+			for i in 4:
+				await process_frame
 		if shot.get("test", false):
 			main.hud.toggle_test()
 			main.hud._settings.show_section(shot.get("section", "world"))

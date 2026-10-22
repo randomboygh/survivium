@@ -8,7 +8,8 @@ extends Control
 ## page.
 ## The network game and the editor are not there yet, so their buttons are disabled,
 ## and "Выход" is disabled in the browser. Until the world is built a painted sky
-## stands in for it and then fades out. The game's interface is hidden while the menu
+## stands in for it, with clouds drifting, stars blinking, a few birds crossing and a
+## glint running over the name, and then fades out. The game's interface is hidden while the menu
 ## is open; the menu takes the scale and the safe rect the interface was fitted to.
 ## `game` is the Main node.
 
@@ -28,6 +29,26 @@ const FADE := 1.2
 const SKY := [Color("#22384a"), Color("#2c4a5a"), Color("#3a5d68"), Color("#4f7273"), Color("#6c857a"),
 	Color("#93977f"), Color("#b8a383")]
 const HILLS := [Color("#35503f"), Color("#263b2f")]
+## Clouds over the painted sky: height (share of the sky), width, UI px a second, start.
+const CLOUDS := [[0.18, 46, 3.0, 0.1], [0.30, 30, 5.0, 0.55], [0.42, 60, 2.0, 0.8], [0.55, 24, 7.0, 0.3],
+	[0.12, 20, 4.0, 0.7]]
+const CLOUD := Color("#93977f", 0.55)
+const CLOUD_LIT := Color("#d6c4a2", 0.5)
+## Seconds between two glints over the name.
+const GLINT_EVERY := 4.0
+const GLINT_SHADER := """
+shader_type canvas_item;
+uniform float glint = -1000.0;
+varying vec2 local;
+void vertex() { local = VERTEX; }
+void fragment() {
+	// A slanted band of light over the letters, not over their dark outline.
+	float d = local.x + local.y * 0.6 - glint;
+	float band = step(0.0, d) * step(d, 6.0) + 0.5 * step(6.0, d) * step(d, 9.0);
+	float lit = step(0.35, dot(COLOR.rgb, vec3(0.3, 0.5, 0.2)));
+	COLOR.rgb = mix(COLOR.rgb, vec3(1.0, 0.96, 0.84), 0.7 * band * lit);
+}
+"""
 
 signal opened
 signal closed
@@ -37,6 +58,10 @@ var game
 var is_open := false
 var _screen: Control
 var _backdrop: Control
+## What moves over the painted sky (see _draw_motion), and seconds it has been moving.
+var _motion: Control
+var _time := 0.0
+var _title: Label
 var _column: VBoxContainer
 var _seed_label: Label
 var _status: Label
@@ -68,6 +93,10 @@ func _ready() -> void:
 	_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_backdrop.draw.connect(_draw_sky)
 	add_child(_backdrop)
+	_motion = Control.new()
+	_motion.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_motion.draw.connect(_draw_motion)
+	_backdrop.add_child(_motion)
 	_screen = Control.new()
 	_screen.mouse_filter = Control.MOUSE_FILTER_STOP
 	_screen.draw.connect(_draw_focus)
@@ -81,7 +110,12 @@ func _ready() -> void:
 	title.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	title.add_theme_constant_override("outline_size", 8)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var glint := ShaderMaterial.new()
+	glint.shader = Shader.new()
+	glint.shader.code = GLINT_SHADER
+	title.material = glint
 	_column.add_child(title)
+	_title = title
 	_seed_label = UiStyle.label("", UiStyle.INK)
 	_seed_label.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	_seed_label.add_theme_constant_override("outline_size", 4)
@@ -246,6 +280,12 @@ func _process(delta: float) -> void:
 	var rect := Rect2(hud.position, hud.size * hud.scale)
 	if rect != _fit_for or scale != hud.scale:
 		_fit()
+	if _backdrop.visible:
+		_time += delta
+		_motion.queue_redraw()
+		# The glint runs while the world is being built.
+		var at := fmod(_time, GLINT_EVERY) * 120.0 - 20.0
+		_title.material.set_shader_parameter("glint", at if not game.ready_to_play else -1000.0)
 	if game.ready_to_play and _backdrop.visible and not _fading:
 		_fading = true
 		var tw := _backdrop.create_tween()
@@ -339,6 +379,43 @@ func _draw_sky() -> void:
 			var y := floorf(base - (sin(t) * 0.6 + sin(t * 2.3 + 1.0) * 0.3 + 1.0) * full.size.y * (0.06 - h * 0.015))
 			_backdrop.draw_rect(Rect2(x, y, 2, full.end.y - y), HILLS[h])
 			x += 2
+
+
+## The sky's moving parts, over the painted sky: pixel clouds drifting right at their
+## own pace, stars blinking at the top, and three birds flapping across now and then.
+func _draw_motion() -> void:
+	var s: float = scale.x
+	var full := Rect2(-position / s, get_viewport_rect().size / s).grow(2)
+	var top := full.position.y
+	var sky_h := full.size.y * 0.62
+	var span := full.size.x + 80.0
+	for c in CLOUDS:
+		var w: float = c[1]
+		var x := floorf(full.position.x + fposmod(c[3] * span + _time * c[2], span) - 60.0)
+		var y := floorf(top + sky_h * c[0])
+		# Rows of the cloud from the top: inset from both sides, the top one lit.
+		var rows := [[0.3, 0.35], [0.15, 0.2], [0.0, 0.0], [0.1, 0.05]]
+		for i in rows.size():
+			var a := floorf(w * rows[i][0])
+			var b := floorf(w * rows[i][1])
+			_motion.draw_rect(Rect2(x + a, y + i * 3, w - a - b, 3), CLOUD_LIT if i == 0 else CLOUD)
+	for i in 14:
+		var h := absi(hash(i * 7919))
+		var sx := full.position.x + float(h % 1000) / 1000.0 * full.size.x
+		var sy := top + float((h >> 10) % 1000) / 1000.0 * sky_h * 0.3
+		var blink := 0.5 + 0.5 * sin(_time * (1.0 + (h % 5) * 0.4) + i)
+		_motion.draw_rect(Rect2(floorf(sx), floorf(sy), 1, 1), Color(1.0, 0.95, 0.8, 0.25 + 0.6 * blink))
+	# The birds cross every 20 s, in a loose V.
+	var lap := fmod(_time, 20.0) / 12.0
+	if lap < 1.0:
+		var bx := full.position.x - 20.0 + lap * (full.size.x + 40.0)
+		var by := top + sky_h * 0.35 - lap * sky_h * 0.1
+		for k in 3:
+			var p := Vector2(floorf(bx - k * 9.0), floorf(by + (k % 2) * 6.0 + k * 2.0))
+			var up := int(_time * 6.0 + k) % 2 == 0
+			var dy := -1.0 if up else 1.0
+			for q in [Vector2(-2, dy), Vector2(-1, 0), Vector2(0, 0), Vector2(1, 0), Vector2(2, dy)]:
+				_motion.draw_rect(Rect2(p + q, Vector2.ONE), HILLS[1])
 
 
 ## Up and down pick a button, Enter presses it, Escape goes back into the world. Every
