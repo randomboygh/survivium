@@ -130,5 +130,8 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	// A plant is a flat card standing in the light with a normal pointing up: a fire
+	// lights all of it, tip too, even where the tip stands higher than the flame.
+	vec3 normal = LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT;
+	DIFFUSE_LIGHT += toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
 }

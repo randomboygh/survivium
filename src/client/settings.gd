@@ -65,6 +65,11 @@ var air_jumps := false
 ## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
 ## preset, which does not exist yet). Not saved.
 var tool_wear := false
+## Sides of the sun's shadow map to compare on a phone (the engine's default is 4096;
+## the map is drawn again every frame the sun casts shadows).
+const SHADOW_MAPS := [1024, 2048, 4096]
+## Playtest switch: the side of the sun's shadow map, an index into SHADOW_MAPS. Not saved.
+var shadow_map := 2
 
 
 func _init(g) -> void:
@@ -129,6 +134,8 @@ func apply() -> void:
 		game.player.body.speed_scale = player_speed
 		game.player.body.air_jumps = air_jumps
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
+	# Sixteen-bit depth, as the engine's own default map.
+	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
 	game.controls.show_help = values.show_help
 	var view = game.view
 	if view != null and view.target_height != PixelView.TARGET_HEIGHT / pixel_size():
@@ -205,6 +212,11 @@ func set_free_build(on: bool) -> void:
 
 func set_tool_wear(on: bool) -> void:
 	tool_wear = on
+
+
+func set_shadow_map(i: int) -> void:
+	shadow_map = i
+	apply()
 
 
 ## Puts one of each tool of TOOL_SET the bag lacks into it.
