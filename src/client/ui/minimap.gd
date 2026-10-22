@@ -7,13 +7,15 @@ extends Control
 ## around the player with the player as a dot in the middle; a tap on it (or M) opens
 ## the whole map (MapView), which draws the same regions. Things the player placed
 ## (a workbench, a campfire, chests) are marked on both: a dot of the colour of their
-## picture here, the picture itself on the whole map.
+## picture here, the picture itself on the whole map. So are the sacks of the player's
+## deaths, a red dot here kept at the edge while the sack is beyond it.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 ## The map on screen, in UI pixels, and the cells per pixel.
 const SIZE := 72
@@ -42,8 +44,8 @@ const UNSEEN := Color(0.1, 0.1, 0.12)
 var regions := {}
 ## The player's column.
 var player_cell := Vector2i.ZERO
-## The things placed, [middle column, item id] each (see set_marks), and the colour
-## of each item's mark by id.
+## The things placed and the sacks, [middle column, item id or Items.SACK] each (see
+## set_marks), and the colour of each item's mark by id.
 var marks: Array = []
 var _mark_colors := {}
 var sea := 0
@@ -157,9 +159,11 @@ func flush() -> void:
 
 
 ## Marks the things placed (Props.placed: "item", "cell" the north-west of its two
-## by two cells) when they changed.
-func set_marks(placed: Array) -> void:
+## by two cells) and the sacks at `sacks` (world units) when they changed.
+func set_marks(placed: Array, sacks: Array[Vector3] = []) -> void:
 	var now := []
+	for p in sacks:
+		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK])
 	for e: Dictionary in placed:
 		var c: Vector3i = e.cell
 		now.append([Vector2i(c.x + 1, c.z + 1), e.item])
@@ -172,6 +176,8 @@ func set_marks(placed: Array) -> void:
 ## The colour of item `id`'s mark: the mean of its picture's pixels (from the
 ## picture's rows: reading a texture back is slow in the browser).
 func _mark_color(id: String) -> Color:
+	if id == Items.SACK:
+		return UiStyle.DANGER
 	if not _mark_colors.has(id):
 		var c := UiStyle.INK
 		var item := ItemIcons.Items.get_item(id)
@@ -196,7 +202,7 @@ func set_player(cell: Vector2i) -> void:
 
 ## Draws the explored map on `canvas` inside `rect` (its UI pixels), the column
 ## `centre` (in cells, may be fractional) in the middle, `zoom` UI pixels per map pixel,
-## and the marks of the things placed, as pictures with `pictures`.
+## and the marks of the things placed and the sacks, as pictures with `pictures`.
 func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pictures := false) -> void:
 	var span := REGION * WorldData.CHUNK
 	var mid := rect.get_center()
@@ -216,16 +222,22 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pic
 				continue
 			canvas.draw_texture_rect_region(r.texture, shown, Rect2((shown.position - at) / zoom, shown.size / zoom))
 	# Dots of things placed side by side would cover each other: the first placed is
-	# drawn. Pictures overlap, the later on top, and part when the map is zoomed in.
+	# drawn (the sacks come first). Pictures overlap, the later on top, and part when
+	# the map is zoomed in. A sack beyond the edge is drawn at the edge, towards it.
 	var drawn: Array[Rect2] = []
 	for m: Array in marks:
 		var p := (mid + (Vector2(m[0]) - centre) / STEP * zoom).floor()
-		var tex: Texture2D = ItemIcons.of_item(m[1]) if pictures else null
-		if pictures and tex == null:
-			continue
+		var sack: bool = m[1] == Items.SACK
+		var tex: Texture2D = null
+		if pictures:
+			tex = ItemIcons.picture("sack") if sack else ItemIcons.of_item(m[1])
+			if tex == null:
+				continue
 		var box := Rect2(p - Vector2(2, 2), Vector2(5, 5))
 		if pictures:
 			box = Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
+		if sack and not rect.encloses(box):
+			box.position = box.position.clamp(rect.position, rect.end - box.size)
 		if not rect.encloses(box) or (not pictures and drawn.any(func(b: Rect2) -> bool: return b.intersects(box))):
 			continue
 		drawn.append(box)

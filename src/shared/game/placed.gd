@@ -1,10 +1,11 @@
 extends RefCounted
 ## Things standing on two by two cells that are not cells (an item's `prop`): chests
 ## with what they hold, workbenches, kilns and campfires, placed from the bag, and the
-## chest and the campfire a new world starts with next to the spawn. Chests and
-## stations are solid (WorldData.blockers): bodies go round them or jump on them. A
-## chest is taken up with what it holds; a campfire cannot be carried, but it can be
-## put out, lit again for a branch, and destroyed without a trace. The rules take the
+## chest and the campfire a new world starts with next to the spawn. They are solid
+## (WorldData.blockers): bodies go round them or jump on them, and a burning campfire
+## burns a body that touches it (see burns). A chest is taken up with what it holds; a
+## campfire cannot be carried, but it can be put out, lit again for a branch, and
+## destroyed without a trace. The rules take the
 ## one acting as `who` (see WorldActions) and tell what changed through signals: the
 ## client draws the things (Props) and rebuilds the chunks.
 
@@ -12,6 +13,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const Body := preload("res://src/shared/game/body.gd")
 
 const CELL := WorldData.CELL
 ## Slots of a chest.
@@ -19,6 +21,8 @@ const CHEST_SLOTS := 16
 ## The items of the chest and the campfire by the spawn of a new world.
 const CHEST := "core:chest"
 const CAMPFIRE := "core:campfire"
+## How close (in cells) a body standing by a burning campfire comes to be burnt.
+const SINGE := 0.05
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)
@@ -55,12 +59,11 @@ static func is_fire(e: Dictionary) -> bool:
 func put(item: String, cell: Vector3i, items: Variant = null, lit := true) -> Dictionary:
 	var kind: String = Items.get_item(item).prop
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or kind != "campfire"}
-	if kind != "campfire":
-		var whole := AABB(Vector3.ZERO, Vector3.ONE)
-		var boxes: Array = footprints.get(kind, [whole, whole, whole, whole])
-		for i in 4:
-			if boxes[i].has_volume():
-				world.blockers[cell + Vector3i(i & 1, 0, i >> 1)] = boxes[i]
+	var whole := AABB(Vector3.ZERO, Vector3.ONE)
+	var boxes: Array = footprints.get(kind, [whole, whole, whole, whole])
+	for i in 4:
+		if boxes[i].has_volume():
+			world.blockers[cell + Vector3i(i & 1, 0, i >> 1)] = boxes[i]
 	if kind == "chest":
 		e.items = Inventory.new(CHEST_SLOTS)
 		e.items.nests = false
@@ -137,6 +140,23 @@ func stations_near(p: Vector3, reach: float) -> Dictionary:
 		if e.items == null and e.lit and center(e).distance_to(p) <= reach:
 			out[e.item] = true
 	return out
+
+
+## True when a body with its feet at `p` (world units) touches a burning campfire:
+## beside it within SINGE or on top of it. Asked also for where a body pushed
+## (Body.bumped), which a step stops short of the fire.
+func burns(p: Vector3) -> bool:
+	var c := p / CELL
+	for e in things:
+		if not e.lit or not is_fire(e):
+			continue
+		var at: Vector3i = e.cell
+		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:
+			continue
+		if c.x + Body.HALF_WIDTH + SINGE > at.x and c.x - Body.HALF_WIDTH - SINGE < at.x + 2 \
+				and c.z + Body.HALF_DEPTH + SINGE > at.z and c.z - Body.HALF_DEPTH - SINGE < at.z + 2:
+			return true
+	return false
 
 
 ## The middle of the chest by the spawn in world units, or null when there is none.
