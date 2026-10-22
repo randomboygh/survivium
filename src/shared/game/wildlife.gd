@@ -115,10 +115,13 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	var threat_pos: Variant = null
 	var threat_d := INF
 	if AiRules.is_threat(a.kind, AiRules.HUMAN):
+		# A person within 0.6 of its sight startles it; once fleeing it stays wary until
+		# they are out of sight, so it does not wander back at the edge of its fear.
+		var wary := sight if a.state == "flee" else sight * 0.6
 		for who in people:
 			var at: Vector3 = who.position
 			var d := a.pos.distance_to(at)
-			if d < sight * 0.6 and d < threat_d:
+			if d < wary and d < threat_d:
 				threat_pos = at
 				threat_d = d
 	var prey: Animal = null
