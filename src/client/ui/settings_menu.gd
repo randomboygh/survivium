@@ -113,9 +113,11 @@ func open(which: String) -> void:
 		_add_row("Тени", ["выкл", "вкл"],
 			func() -> int: return int(s.values.shadows),
 			func(i: int) -> void: s.set_value("shadows", i == 1))
-		_add_row("Тени от огня", ["выкл", "нарисованные", "настоящие"],
-			func() -> int: return s.values.fire_shadows,
-			func(i: int) -> void: s.set_value("fire_shadows", i))
+		# From the lightest to draw to the heaviest; mixed (3) came after real (2).
+		var fire_order := [0, 1, 3, 2]
+		_add_row("Тени от огня", ["выкл", "нарисованные", "смешанные", "настоящие"],
+			func() -> int: return fire_order.find(s.values.fire_shadows),
+			func(i: int) -> void: s.set_value("fire_shadows", fire_order[i]))
 		_add_row("Эффекты", ["выкл", "вкл"],
 			func() -> int: return int(s.values.effects),
 			func(i: int) -> void: s.set_value("effects", i == 1))
