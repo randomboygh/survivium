@@ -184,6 +184,9 @@ const SHOTS := {
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
 	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
+	# The graphics section of the settings: the quality preset over the settings by hand.
+	"ui-settings-graphics": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics"},
+	"ui-settings-graphics-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings", "section": "graphics"},
 	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
 	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
@@ -404,6 +407,9 @@ func _run() -> void:
 			main.hud.toggle_menu()
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
+				# The window keeps the section shown last: an earlier shot may have left another.
+				if shot.page == "settings":
+					main.hud._settings.show_section(shot.get("section", "game"))
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
