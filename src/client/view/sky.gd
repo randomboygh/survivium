@@ -2,7 +2,7 @@ extends RefCounted
 ## The sky drawn for the world's time and weather (Clock, src/shared): the sun and the
 ## moon with its phases, the ambient light and the background, the colour grade, the
 ## tints of leaves and grass in each season, clouds, wind, fog, lightning, snow and ice
-## on the ground, sun rays in the air and the morning mist. Everything the shaders need goes out as global shader parameters.
+## on the ground, puddles after rain, sun rays in the air and the fog on the ground. Everything the shaders need goes out as global shader parameters.
 ## `game` is the Main node that owns the scene.
 
 const Bushes := preload("res://src/shared/content/bushes.gd")
@@ -20,10 +20,6 @@ const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 ## a quarter of a degree, about a texel at the tip of a tree's shadow.
 const SUN_STEPS := 1440
 const RAYS_BRIGHTNESS := 0.45
-## How thick the morning mist gets at most (a share of what it veils).
-const MIST_THICKNESS := 0.38
-## How high above the ground the player stands on the mist's top lies, in world units.
-const MIST_HEIGHT := 1.0
 ## How long the air after rain shows the rays through the breaking clouds, in days.
 const AFTER_RAIN_DAYS := 0.08
 
@@ -52,11 +48,11 @@ var wind_clock := 0.0
 var daylight := 1.0
 ## Sun rays are drawn (the «Солнечные лучи» setting).
 var rays_on := true
-## Morning mist is drawn (the «Утренняя дымка» setting).
-var mist_on := true
-## The ground the mist lies on: the player's, followed slowly so the layer does not
-## jump a step when they climb one.
-var mist_ground := NAN
+## Fog is drawn on the ground (the «Туман» setting); without it the fog is a plain
+## haze over the picture.
+var fog_on := true
+## How far the fog's banks have drifted with the wind.
+var fog_drift := Vector2.ZERO
 ## 1 while it rains, fading to 0 over AFTER_RAIN_DAYS once it stops.
 var after_rain := 0.0
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
@@ -144,7 +140,7 @@ func _update_light(delta: float) -> void:
 		game.player.torch.shadow_enabled = shadows
 		game.player.torch.light_energy = 1.3 * dark * (game.effects.shadow_energy if shadows else 1.0)
 	_update_grade(golden, night, minf(moonlight, 1.0))
-	_update_mist(golden, delta)
+	_update_fog(golden, delta)
 
 
 ## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)
@@ -185,33 +181,29 @@ func _update_rays(rise: float, golden: float) -> void:
 	grade_mat.set_shader_parameter("rays_time", wind_clock)
 
 
-## Mist over the ground around sunrise, thinning out by mid-morning, and a little
-## after rain: in still air, when nothing falls, outdoors. An even layer over the
-## ground the player stands on and lower, MIST_HEIGHT deep (see veil in
-## common.gdshaderinc).
-func _update_mist(golden: float, delta: float) -> void:
+## The fog on the ground (Clock.ground_fog, see fog_at in common.gdshaderinc): the
+## weather's or the morning's, and a light one after rain; outdoors only. Its colour
+## follows the light, its banks drift slowly with the wind.
+func _update_fog(golden: float, delta: float) -> void:
 	var clock = game.clock
-	var t: float = clock.time_of_day
-	var morning := smoothstep(0.17, 0.24, t) * (1.0 - smoothstep(0.3, 0.42, t))
+	var f: Vector2 = clock.ground_fog()
 	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
-	var amount := maxf(morning, after_rain * 0.4) * MIST_THICKNESS
-	amount *= clampf(1.0 - falling * 3.0, 0.0, 1.0) * clampf(1.0 - clock.storm_wind * 1.2, 0.0, 1.0)
-	if not mist_on or game.chunks.indoor or game.player == null:
-		amount = 0.0
+	var wet: float = after_rain * 0.35 * clampf(1.0 - falling * 3.0, 0.0, 1.0)
+	if wet > f.x:
+		f = Vector2(wet, 0.6)
+	if not fog_on or game.chunks.indoor or game.player == null:
+		f.x = 0.0
 	var g := RenderingServer
-	g.global_shader_parameter_set("mist", amount)
-	if amount <= 0.0:
+	g.global_shader_parameter_set("fog", f.x)
+	if f.x <= 0.0:
 		return
 	var col := Color(0.9, 0.92, 0.96).lerp(Color(1.0, 0.9, 0.8), golden * 0.6)
 	col = (col * lerpf(0.6, 1.1, sky_light)).srgb_to_linear()
-	g.global_shader_parameter_set("mist_color", Vector3(col.r, col.g, col.b))
-	var body = game.player.body
-	var ground: float = game.player.level() * WorldData.CELL
-	if is_nan(mist_ground) or absf(ground - mist_ground) > 2.0:
-		mist_ground = ground
-	elif body.on_ground or body.swimming:
-		mist_ground = move_toward(mist_ground, ground, delta * 0.6)
-	g.global_shader_parameter_set("mist_level", mist_ground + MIST_HEIGHT)
+	g.global_shader_parameter_set("fog_color", Vector3(col.r, col.g, col.b))
+	g.global_shader_parameter_set("fog_depth", f.y)
+	fog_drift -= clock.wind_dir() * delta * (0.15 + 0.3 * clock.storm_wind)
+	g.global_shader_parameter_set("fog_drift", fog_drift)
+	g.global_shader_parameter_set("fog_sea", (game.gen.sea + 1) * WorldData.CELL if game.gen != null else 0.0)
 
 
 ## The colour grade sets the mood: warm at sunrise and sunset, blue and muted under
@@ -241,7 +233,9 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 	var white := clampf(snowing * 2.0 - 1.0, 0.0, 1.0)
 	haze_col = haze_col.lerp(Vector3(0.88, 0.9, 0.94), white).lerp(Vector3(0.78, 0.6, 0.38), sand)
 	haze_col *= lerpf(0.12, 1.0, sky_light)
-	var haze_amount := clampf(clock.fog + sand * 0.2, 0.0, 0.85) * indoor_k
+	# Fog without the «Туман» setting is a plain haze too.
+	var fog_haze: float = 0.0 if fog_on else clock.ground_fog().x * 0.6
+	var haze_amount := clampf(clock.haze + fog_haze + sand * 0.2, 0.0, 0.85) * indoor_k
 	var grade_mat: ShaderMaterial = game.view.grade_mat
 	grade_mat.set_shader_parameter("tint", Color(tint.x, tint.y, tint.z))
 	grade_mat.set_shader_parameter("saturation", saturation * (1.0 - 0.3 * sand))
@@ -305,6 +299,7 @@ func _update_weather(delta: float) -> void:
 	var g := RenderingServer
 	g.global_shader_parameter_set("snow_amount", clock.snow)
 	g.global_shader_parameter_set("wetness", clock.wet)
+	g.global_shader_parameter_set("puddles", Vector2(0.0 if clock.season == Clock.WINTER else clock.puddles, clock.rain))
 	g.global_shader_parameter_set("foliage_tint", foliage)
 	g.global_shader_parameter_set("grass_tint", grass)
 	g.global_shader_parameter_set("leaf_amount", leaf_amount)

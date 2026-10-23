@@ -280,6 +280,34 @@ void fragment() {
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
+	// Puddles after rain on level open ground, not on sand, not by a fire: in patches
+	// and in the low cells, shrinking from their edges as they dry, a damp rim round
+	// them, and rings of drops on them while it rains.
+	if (puddles.x > 0.0 && top && !cap && !roof && flag != 4 && world_normal.y > 0.95 && tile != NONE
+			&& tile / 3 != SAND && snow <= 0.0 && warm < 0.5) {
+		vec2 at = world_pos.xz * 2.2;
+		float n = ground_patch(at, 17.0) + (h - 0.5) * 0.02;
+		float here = ground_top(world_pos.xz, vec2(0.0));
+		float around = (ground_top(world_pos.xz, vec2(1.0, 0.0)) + ground_top(world_pos.xz, vec2(-1.0, 0.0))
+			+ ground_top(world_pos.xz, vec2(0.0, 1.0)) + ground_top(world_pos.xz, vec2(0.0, -1.0))) * 0.25;
+		n += clamp((around - here) / CELL, 0.0, 1.0) * 0.1;
+		float edge = 1.0 - 0.24 * sqrt(puddles.x);
+		if (n > edge) {
+			// Still water shows the sky: a light cool grey over the darkened ground.
+			vec3 sky = vec3(0.42, 0.5, 0.6) * (0.96 + 0.08 * h);
+			col = mix(col * 0.6, sky, 0.55);
+			if (n < edge + 0.01) {
+				// A darker line where the water meets the ground.
+				col *= 0.8;
+			}
+			float drop = hash13(vec3(wt, floor(TIME * 5.0 + h * 7.0)));
+			if (drop > 1.0 - 0.05 * puddles.y) {
+				col += vec3(0.16, 0.18, 0.2);
+			}
+		} else if (n > edge - 0.03) {
+			col *= 0.78;
+		}
+	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
