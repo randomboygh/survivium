@@ -26,6 +26,8 @@ const DEFAULTS := {
 	"time_speed": 1,
 	# The time of day follows the device's clock (Clock.real_time).
 	"real_time": false,
+	# The season follows the device's calendar (Clock.real_season).
+	"real_season": false,
 	"shadows": true,
 	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
 	# real ones from the nearest fire or the torch (see Effects.SHADOW_FIRE_REACH), the
@@ -203,6 +205,7 @@ func apply() -> void:
 	if game.clock != null:
 		game.clock.time_speed = time_speed() * time_boost
 		game.clock.real_time = values.real_time
+		game.clock.real_season = values.real_season
 	var sky = game.sky
 	if sky != null and sky.sun != null:
 		sky.sun.shadow_enabled = values.shadows

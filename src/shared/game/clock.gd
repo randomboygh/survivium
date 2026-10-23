@@ -83,6 +83,9 @@ var time_speed := 1.0
 ## day, and days, seasons, the moon and the weather pass at that pace, a new day at
 ## midnight.
 var real_time := false
+## The season follows the calendar of the device (a setting): spring from March, summer
+## from June, autumn from September, winter from December.
+var real_season := false
 var season := 1
 var season_clock := 0.0
 ## Index in WEATHERS of the weather now.
@@ -164,9 +167,20 @@ func _pass_time(delta: float) -> void:
 	if time_of_day >= 1.0:
 		time_of_day -= 1.0
 		day += 1
+	if real_season:
+		var s := calendar_season()
+		if s != season:
+			_begin_season(s)
+		return
 	season_clock += d
 	if season_clock >= DAYS_PER_SEASON:
 		next_season()
+
+
+## The season of the device's date (the north's: winter is December to February).
+static func calendar_season() -> int:
+	var month: int = Time.get_date_dict_from_system().month
+	return (month / 3 + 3) % 4
 
 
 ## How much of the day's light there is now, 0 at night and 1 by day (dawn and dusk
@@ -193,7 +207,11 @@ func wind_dir() -> Vector2:
 
 
 func next_season() -> void:
-	season = (season + 1) % 4
+	_begin_season((season + 1) % 4)
+
+
+func _begin_season(s: int) -> void:
+	season = s
 	season_clock = 0.0
 	if season == SPRING:
 		leaf_fall = 0.0

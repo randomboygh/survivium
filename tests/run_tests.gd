@@ -2050,6 +2050,14 @@ func _test_clock() -> void:
 		"and waits when it is a little ahead, without skipping a day")
 	_check(is_equal_approx(clock.days(Clock.REAL_DAY), 1.0), "a real-time day is a real day long")
 	clock.real_time = false
+	seasons.clear()
+	clock.real_season = true
+	clock.season = (Clock.calendar_season() + 1) % 4
+	clock.step(1.0)
+	clock.step(1.0)
+	_check(clock.season == Clock.calendar_season() and seasons == [clock.season],
+		"the calendar season comes once and stays")
+	clock.real_season = false
 
 
 ## The weather works on the world without the client: deep snow, a head wind and a

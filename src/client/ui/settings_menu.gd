@@ -227,7 +227,7 @@ func _fill() -> void:
 			elif r is Dictionary:
 				_add_action(r.action, r.do)
 			else:
-				_add_row(r[0], r[1], r[2], r[3], r[4] if r.size() > 4 else "")
+				_add_row(r[0], r[1], r[2], r[3], r[4] if r.size() > 4 else "", r[5] if r.size() > 5 else Callable())
 	visible = true
 	refresh()
 	_set_focus(0)
@@ -237,7 +237,9 @@ func _fill() -> void:
 
 
 ## The rows of section `key` (see PAGES): [name, values, getter, setter] each, and
-## [..., the value shown when the getter gives -1] for the quality preset; null is a
+## [..., the value shown when the getter gives -1] for the quality preset, [..., "",
+## a Callable telling whether the row works now] for a row that is dimmed and does
+## nothing while another setting overrides it; null is a
 ## gap; {"action": text, "do": Callable} a button that does something once;
 ## {"marker": index} a marker with its button that takes the player there; {"place":
 ## name, "cell", "color", "tip"} the same for another place; {"note": text} a line of text.
@@ -245,12 +247,15 @@ func _section_rows(key: String) -> Array:
 	var s = game.settings
 	var sky = game.sky
 	var clock = game.clock
+	# What the clock decides by itself while it follows the device's time or calendar.
+	var game_time := func() -> bool: return not s.values.real_time
+	var game_season := func() -> bool: return not s.values.real_season
 	match key:
 		"world":
 			return [
 				["Сезон", clock.SEASONS,
 					func() -> int: return clock.season,
-					func(i: int) -> void: s.set_season(i)],
+					func(i: int) -> void: s.set_season(i), "", game_season],
 				["Погода", ["сама"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
 					func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
 					func(i: int) -> void: s.set_weather(i - 1)],
@@ -269,13 +274,13 @@ func _section_rows(key: String) -> Array:
 							if h >= HOUR_OF[i] - 0.5:
 								best = i
 						return best,
-					func(i: int) -> void: s.set_hour(HOUR_OF[i])],
+					func(i: int) -> void: s.set_hour(HOUR_OF[i]), "", game_time],
 				["Час", range(24).map(func(h: int) -> String: return "%02d:00" % h),
 					func() -> int: return int(clock.time_of_day * 24.0) % 24,
-					func(i: int) -> void: s.set_hour(i)],
+					func(i: int) -> void: s.set_hour(i), "", game_time],
 				["Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
 					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
-					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i])],
+					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", game_time],
 				null,
 				{"action": "Вернуться в свой мир" if s.in_test_world() else "Перейти в тестовый мир",
 					"do": func() -> void: s.switch_test_world()},
@@ -343,10 +348,13 @@ func _section_rows(key: String) -> Array:
 			var rows := [
 				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
 					func() -> int: return s.values.time_speed,
-					func(i: int) -> void: s.set_value("time_speed", i)],
+					func(i: int) -> void: s.set_value("time_speed", i), "", game_time],
 				["Время суток", ["игровое", "как в жизни"],
 					func() -> int: return int(s.values.real_time),
 					func(i: int) -> void: s.set_value("real_time", i == 1)],
+				["Сезон", ["игровой", "как в жизни"],
+					func() -> int: return int(s.values.real_season),
+					func(i: int) -> void: s.set_value("real_season", i == 1)],
 				["Автоподбор", ["всё", "что есть", "еду", "ничего"],
 					func() -> int: return s.values.pickup,
 					func(i: int) -> void: s.set_value("pickup", i)],
@@ -474,7 +482,15 @@ func refresh() -> void:
 	for r in _rows:
 		var i: int = r.get.call()
 		r.label.text = r.other if i < 0 and r.other != "" else r.values[clampi(i, 0, r.values.size() - 1)]
+		var on := _works(r)
+		r.left.disabled = not on
+		r.right.disabled = not on
+		r.row.modulate.a = 1.0 if on else 0.4
 	reset_size()
+
+
+func _works(r: Dictionary) -> bool:
+	return not r.works.is_valid() or r.works.call()
 
 
 ## Sizes the window for a screen `screen` UI pixels large and centres it. The settings
@@ -572,8 +588,9 @@ func _paragraph(text: String, color: Color) -> Label:
 	return l
 
 
-## A row "name ‹ value ›"; `other` is shown when `getter` gives -1 (none of `values`).
-func _add_row(name: String, values: Array, getter: Callable, setter: Callable, other := "") -> void:
+## A row "name ‹ value ›"; `other` is shown when `getter` gives -1 (none of `values`);
+## while `works` (if given) says false the row is faded and its arrows do nothing.
+func _add_row(name: String, values: Array, getter: Callable, setter: Callable, other := "", works := Callable()) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	_grid().add_child(row)
@@ -592,7 +609,7 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 	row.add_child(value)
 	var right := _arrow(row, "next", index, 1)
 	_rows.append({"name": label, "values": values, "get": getter, "set": setter, "label": value,
-		"left": left, "right": right, "other": other})
+		"left": left, "right": right, "other": other, "works": works, "row": row})
 
 
 ## A button as wide as a row that does `action` once (a way into the test world).
@@ -689,6 +706,8 @@ func _arrow(parent: Node, icon: String, row: int, dir: int) -> Button:
 ## none of them (-1, «своё») the first or the last.
 func _step(i: int, dir: int) -> void:
 	var r: Dictionary = _rows[i]
+	if not _works(r):
+		return
 	var n: int = r.values.size()
 	var cur: int = r.get.call()
 	if cur < 0:
