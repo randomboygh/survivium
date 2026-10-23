@@ -1,6 +1,6 @@
 extends RefCounted
 ## The pixel-perfect view: the low-resolution SubViewport the 3D scene renders into,
-## the colour grade over it, the whole-number upscale, the orthographic camera that
+## the colour grade over it, the upscale, the orthographic camera that
 ## follows the player, and the part of the screen the interface may use (the safe
 ## rect under browser toolbars). `game` is the Main node that owns the scene.
 
@@ -22,8 +22,12 @@ var grade_mat: ShaderMaterial
 var image_size := Vector2i(640, 360)
 ## Wanted height of the low-res image; the pixel size setting lowers it.
 var target_height := PixelView.TARGET_HEIGHT
-var view_scale := 1
+## How many screen pixels a low-res pixel takes (a fraction on a phone, see PixelView.layout).
+var view_scale := 1.0
 var safe_rect := Rect2()
+## A phone or a tablet: the view and the interface scale by fractions (see turns);
+## tools and tests set it to lay a computer's window out as a phone.
+var turning := turns()
 var safe_clock := 0.0
 ## Screen-plane point the camera follows smoothly (see PixelView.screen_plane).
 var cam_target := Vector2.ZERO
@@ -40,7 +44,7 @@ func _init(g) -> void:
 ## `world_root`.
 func build(parent: Node) -> void:
 	container = SubViewportContainer.new()
-	container.stretch = true
+	container.stretch = false
 	container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grade_mat = ShaderMaterial.new()
@@ -71,14 +75,15 @@ func look_at_player() -> void:
 
 func on_screen_resized() -> void:
 	var screen: Vector2 = game.get_viewport().get_visible_rect().size
-	var view: Array = PixelView.layout(screen, target_height, turns())
-	var scale: int = view[0]
+	var view: Array = PixelView.layout(screen, target_height, turning)
+	var scale: float = view[0]
 	# A margin of pixels around the screen leaves room for the sub-pixel camera shift.
 	image_size = view[1] + Vector2i(2, 2) * PixelView.MARGIN
 	view_scale = scale
-	container.stretch_shrink = scale
-	container.position = -Vector2.ONE * PixelView.MARGIN * scale
-	container.size = Vector2(image_size * scale)
+	viewport.size = image_size
+	container.size = Vector2(image_size)
+	container.scale = Vector2(scale, scale)
+	container.position = (-Vector2.ONE * PixelView.MARGIN * scale).round()
 	if camera != null:
 		camera.size = PixelView.camera_size(image_size.y)
 	layout_ui(_safe_rect())
@@ -91,7 +96,7 @@ static func turns() -> bool:
 
 func layout_ui(rect: Rect2) -> void:
 	safe_rect = rect
-	game.hud.fit(rect)
+	game.hud.fit(rect, turning, game.get_viewport().get_visible_rect().size)
 
 
 ## The part of the screen the player can see. Mobile browsers can lay the page out

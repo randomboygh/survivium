@@ -391,7 +391,7 @@ func step() -> Vector2i:
 ## The view ray through a screen point, in cells: [origin, direction].
 func _ray(screen_pos: Vector2) -> Array:
 	var view = game.view
-	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / float(view.container.stretch_shrink)
+	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / view.view_scale
 	var center: Vector2 = Vector2(view.camera.global_position.x, view.camera.global_position.z)
 	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(view.image_size) * 0.5, game.world.size_y * CELL + 1.0)
 	return [ray[0] / CELL, ray[1]]

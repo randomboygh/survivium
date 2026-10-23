@@ -343,9 +343,9 @@ func _report_fps(delta: float) -> void:
 func print_debug() -> void:
 	var r: Dictionary = hud.debug_rects()
 	var p: Vector3 = player.position if player != null else Vector3.ZERO
-	print("debug: screen %s, density %.2f, image %s x%d, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, test %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
+	print("debug: screen %s, density %.2f, image %s x%.2f, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, test %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
 		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), view.viewport.size,
-		view.container.stretch_shrink, view.safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.test, r.season,
+		view.view_scale, view.safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.test, r.season,
 		p.x, p.y, p.z, Clock.SEASONS[clock.season], controls.touch, hud.stick.value.x, hud.stick.value.y])
 
 

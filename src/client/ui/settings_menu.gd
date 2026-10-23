@@ -50,6 +50,8 @@ const LISTS := ["marks"]
 ## button.
 const GAP := 8
 const TAB_HEIGHT := 28
+## The steps of the interface and the touch controls size.
+const SIZES := ["очень мелкий", "мелкий", "обычный", "крупнее", "крупный"]
 ## Written by tools/build_info.py in CI; a local run has none and shows "dev".
 const BUILD_INFO := "res://build_info.json"
 
@@ -332,10 +334,18 @@ func _section_rows(key: String) -> Array:
 				["Тряска экрана", ["выкл", "вкл"],
 					func() -> int: return int(s.values.shake),
 					func(i: int) -> void: s.set_value("shake", i == 1)],
-				["Интерфейс", ["обычный", "крупнее", "крупный"],
-					func() -> int: return s.values.ui_scale,
-					func(i: int) -> void: s.set_value("ui_scale", i)],
+				["Интерфейс", SIZES,
+					func() -> int: return s.values.ui_size,
+					func(i: int) -> void: s.set_value("ui_size", i)],
 			]
+			if game.controls.touch:
+				rows.append(["Управление", SIZES,
+					func() -> int: return s.values.control_size,
+					func(i: int) -> void: s.set_value("control_size", i)])
+			if s.can_fullscreen():
+				rows.append(["Полный экран", ["выкл", "вкл"],
+					func() -> int: return int(s.fullscreen()),
+					func(i: int) -> void: s.set_fullscreen(i == 1)])
 			if not game.controls.touch:
 				rows.append(["Подсказка клавиш", ["выкл", "вкл"],
 					func() -> int: return int(s.values.show_help),

@@ -400,6 +400,17 @@ func _run() -> void:
 	await process_frame
 	_check(is_equal_approx(test_wide, wide) and is_equal_approx(menu.size.x, wide),
 		"the settings, playtest and changes windows are as wide")
+	# A narrower phone than the reference one has the same room in its interface, so the
+	# windows fit it as well.
+	var room := []
+	for screen in [Vector2(1200, 2608), Vector2(1080, 2400), Vector2(720, 1560)]:
+		main.hud.fit(Rect2(Vector2.ZERO, screen), true)
+		await process_frame
+		room.append(main.hud.size.x)
+		room.append(menu.size.x <= main.hud.size.x)
+	main.view.layout_ui(main.view.safe_rect)
+	_check(room[0] == room[2] and room[0] == room[4] and room[1] and room[3] and room[5],
+		"every phone's interface is as wide as the reference phone's, the windows fit: %s" % [room])
 	# Stepping through a row's values never moves the rows (a long value is cut).
 	menu.open("test")
 	menu.show_section("world")
