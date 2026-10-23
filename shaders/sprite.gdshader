@@ -18,8 +18,10 @@ uniform float water_line = -1000.0;
 // Colour of that line: foam on water, darker on the mud of a bog.
 uniform vec3 ripple = vec3(0.85, 0.93, 0.92);
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
-// stands (FireShadows): 1 out of them.
-instance uniform float shade = 1.0;
+// stands (FireShadows): 1 out of them. It comes as the sprite's scale along z, which
+// the flat quad does not use: an instance uniform read as 0 in the web build, and the
+// animals were drawn black.
+varying float shade;
 
 varying vec3 world_pos;
 varying float clouds;
@@ -43,6 +45,7 @@ void vertex() {
 		// Upright: turned to the camera about its origin.
 		VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	}
+	shade = length(MODEL_MATRIX[2].xyz);
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;

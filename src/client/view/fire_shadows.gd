@@ -616,17 +616,18 @@ func _in_shadow(l: Dictionary, p: Vector3, who) -> bool:
 	return _blocked(l, p)
 
 
-## Draws the sprites in `shades` that dark, and the rest as they are.
+## Draws the sprites in `shades` that dark, and the rest as they are (sprite.gdshader
+## reads the shade from the sprite's scale along z).
 func _shade(shades: Dictionary) -> void:
 	for sprite in _shaded.keys():
 		if not shades.has(sprite):
 			if is_instance_valid(sprite):
-				sprite.set_instance_shader_parameter("shade", 1.0)
+				sprite.scale.z = 1.0
 			_shaded.erase(sprite)
 	for sprite in shades:
 		# Shades are kept a few frames, and an animal may be gone meanwhile.
 		if not is_instance_valid(sprite):
 			continue
 		if absf(_shaded.get(sprite, 1.0) - shades[sprite]) > 0.01:
-			sprite.set_instance_shader_parameter("shade", shades[sprite])
+			sprite.scale.z = maxf(shades[sprite], 0.01)
 			_shaded[sprite] = shades[sprite]
