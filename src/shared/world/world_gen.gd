@@ -99,6 +99,8 @@ const BIOME_SCALE := [0.5, 1.0, 2.0]
 ## (see _entrances), with bigger caves under it.
 const SHEER_TOP := 1
 const ENTRANCE := 2
+## The water of the column is the mud of a bog (WorldData.BOG).
+const MIRE := 4
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
@@ -582,7 +584,8 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 	# the rolling noise is high: elsewhere the plains lie nearly level.
 	var rolling := 0.2 + 0.8 * smoothstep(-0.05, 0.4, roll / 127.5 - 1.0)
 	var land := sea + 1.0 + inland * (1.0 + h * 7.0 * inland * rolling)
-	var floor_h := lerpf(sea - 2.0 - minf(5.0, -coast / 8.0), sea - 1.0 - minf(6.0, -coast / 10.0), flat)
+	# Off a beach the water stays shallow for a few cells, then deepens slowly.
+	var floor_h := lerpf(sea - 2.0 - minf(5.0, -coast / 8.0), sea - 1.0 - minf(6.0, maxf(0.0, -coast - 6.0) / 12.0), flat)
 	var kind := PLAIN
 	var mask := smoothstep(-6.0, 6.0, coast)
 	# Cliff coasts: the land keeps its height right up to the water and drops into
@@ -651,6 +654,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var pool_t := _byte(0.12)
 	var mud_t := _byte(0.0)
 	var swamp_t := _byte(0.35)
+	var mire_reach := 36
+	var mire_t := _byte(-0.2)
 	var river_from: float = RIVER_FROM[settings.rivers]
 	for lx in w:
 		var j := lz * w + lx
@@ -690,7 +695,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 					b = SEA
 					feature = LAKE
 				else:
-					height = mini(height, sea + 1 + int(-in_lake))
+					# The shore at the water's level, so it slopes into the water.
+					height = mini(height, sea + int(-in_lake))
 			# Where the flow fades the valley rises and the river ends.
 			if wt < 0 and flowing > 0.0:
 				var canyon := kind == MOUNTAIN or kind == HIGHLAND or height > sea + 10
@@ -756,6 +762,13 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				wt = height
 				height -= 1 if p < pool_t + 20 else 2
 				top = Mat.CLAY
+			elif p > pool_t - mire_reach and soil[j] > mire_t:
+				# A mire along part of the pools' shores and in hollows of its own: mud
+				# two cells deep a body sinks into to the waist.
+				wt = height
+				height -= 2
+				top = Mat.CLAY
+				f |= MIRE
 			else:
 				top = Mat.CLAY if p > mud_t else Mat.GRASS
 			sheer = false
@@ -928,10 +941,11 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		cells[i] = Mat.COPPER_ORE if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
 		natural[i] = WorldData.WILD | WorldData.SHEER if flags[j] & SHEER_TOP else WorldData.WILD
 		var y := height + 1
+		var wet := WorldData.WILD | (WorldData.BOG if flags[j] & MIRE else 0)
 		while y <= wt:
 			i += layer
 			cells[i] = Mat.WATER
-			natural[i] = WorldData.WILD
+			natural[i] = wet
 			y += 1
 		for yy in range(maxi(height, wt) + 1, sy):
 			i += layer

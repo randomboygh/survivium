@@ -15,6 +15,8 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // Height of the water surface around a wading or swimming sprite, in world units:
 // below it the body is hidden, along it a line of ripples.
 uniform float water_line = -1000.0;
+// Colour of that line: foam on water, darker on the mud of a bog.
+uniform vec3 ripple = vec3(0.85, 0.93, 0.92);
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
 // stands (FireShadows): 1 out of them.
 instance uniform float shade = 1.0;
@@ -60,7 +62,7 @@ void fragment() {
 		if (a < 0.5) {
 			discard;
 		}
-		c.rgb = vec3(0.85, 0.93, 0.92);
+		c.rgb = ripple;
 	} else if (c.a < 0.5) {
 		discard;
 	}

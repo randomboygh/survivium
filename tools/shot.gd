@@ -310,6 +310,9 @@ const SHOTS := {
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
+	# The swamp strip: pools in the north, bogs in the south, and the player sunk in a bog.
+	"ground-swamp": {"time": 0.42, "season": 1, "at": [18, 26]},
+	"ground-bog": {"time": 0.42, "season": 1, "at": [16, 32], "y": 23},
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
