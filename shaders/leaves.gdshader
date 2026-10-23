@@ -26,6 +26,9 @@ uniform float clump_size = 1.5;
 // beyond it, in world units.
 const float SEE_THROUGH = 1.8;
 const float SEE_RIM = 0.5;
+// How far in front of the player a clump starts to clear, and as far again until it
+// clears in full.
+const float SEE_FRONT = 0.5;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
@@ -80,17 +83,20 @@ void fragment() {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them:
-	// every other texel within SEE_THROUGH, one in four over a rim beyond it. Counted
-	// in the world's texels, so the pattern does not crawl as the view moves.
+	// every other texel within SEE_THROUGH, fewer and fewer over a rim beyond it, and
+	// fewer for a clump hardly in front of the player. Counted in the world's texels,
+	// so the pattern does not crawl as the view moves; and graded both ways, so a step
+	// of the player takes or gives back single texels, not whole clumps at once, which
+	// flickered.
 	vec2 frag = screen_plane(center) + vec2((UV.x - 0.5) * clump_size, -(0.5 - UV.y) * clump_size * view_slope);
 	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
 	float near = length(frag - body);
 	float toward = view_slope / view_squash;
-	if (center.y - dot(center.xz, view_up) * toward > player_pos.y - dot(player_pos.xz, view_up) * toward + 1.0
-			&& near < SEE_THROUGH + SEE_RIM) {
-		if (bayer4(texel) < (near < SEE_THROUGH ? 0.5 : 0.25)) {
-			discard;
-		}
+	float before = center.y - dot(center.xz, view_up) * toward - (player_pos.y - dot(player_pos.xz, view_up) * toward);
+	float clear = 0.5 * clamp((SEE_THROUGH + SEE_RIM - near) / SEE_RIM, 0.0, 1.0)
+		* clamp((before - SEE_FRONT) / SEE_FRONT, 0.0, 1.0);
+	if (bayer4(texel) < clear) {
+		discard;
 	}
 	// The crown's normal, tilted by the leaf this texel belongs to; leaves flutter
 	// on their own in the wind.
