@@ -140,6 +140,10 @@ timeout 600 godot --headless --path . --script res://tests/progress_test.gd
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 ```
 
+`tests/run_all.sh` runs the same after `--import`: the first four side by side, each with its own
+`user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times
+(`GODOT=path` if `godot` is not on PATH; names as arguments run only those).
+
 `frame_test.gd` plays scenarios headless (walk, dig, cut change, streaming) and fails when
 chunk-sized work lands in one frame; CI runs it too. `progress_test.gd` starts a new world with an
 empty bag and plays the way to every recipe through the game's own calls (taps, action button,
@@ -151,9 +155,15 @@ Run `--import` again after pulling new assets (fonts, textures), or HUD scripts 
 errors that look like code bugs. Wrap headless runs in `timeout`: a runtime error in an awaiting
 script leaves Godot running. `--check-only --script res://x.gd` only parses.
 
-CI (`.github/workflows/build.yml`) also exports the web build and runs `tests/browser_smoke.mjs` in
-headless Chrome (desktop and a phone with DPR 3 and touch); it fails on SCRIPT ERROR / Parse Error
-and prints load timings and a screenshot. CI renders in software: its FPS means nothing, only the
+CI (`.github/workflows/build.yml`) runs its jobs side by side on machines of their own: the tests,
+`frame_test` alone, the web export, then `tests/browser_smoke.mjs` in headless Chrome as a desktop
+and as a phone with DPR 3 and touch (`node tests/browser_smoke.mjs desktop|phone`); it fails on
+SCRIPT ERROR / Parse Error and prints load timings and a screenshot. On a PR the browser test runs
+only when the PR touches what the browser may show differently (the `web` pattern in the `changes`
+job: `src/client/`, shaders, scenes, assets, sprites, the web save store, the export settings, the
+test itself, CI) or has the label `smoke`; on main it always runs, and Pages are published only when
+every job passed. A software-WebGL frame takes a second or more and each input event waits for
+one, so keep the smoke test's events few. CI renders in software: its FPS means nothing, only the
 user's phone numbers count (stats panel, F3).
 
 Screenshots without a GPU: `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver
