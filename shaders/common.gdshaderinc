@@ -76,6 +76,10 @@ global uniform float view_slope;
 // The direction to the sun or the moon in view space as the default view lights it;
 // the light itself is aimed so the shadows fall in place (PixelView.light_dir).
 global uniform vec3 sun_view;
+// The side of the sky the sun or the moon is on (x, z), one of eight, kept while it
+// moves within its side (Sky.light_side): open edges of the cells toward it get a
+// light rim, the others a dark outline.
+global uniform vec2 light_side;
 
 vec3 shear(vec3 p) {
 	vec2 s = p.xz + view_up * (dot(p.xz, view_up) * (view_squash - 1.0) + view_slope * p.y);
