@@ -10,8 +10,32 @@ extends Node3D
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const PX := 1.0 / 16.0
+const CELL := WorldData.CELL
+## See _place_fireflies.
+const FIREFLY_MOVE := 4.0
+const FIREFLY_TRIES := 120
+## Bits flying off worked material (see burst): emitters used in turn, bits in each, and
+## their colour by material id ("" for any other).
+const BURSTS := 4
+const BURST_BITS := 8
+const BITS := {
+	"core:grass": Color(0.42, 0.62, 0.26), "core:dirt": Color(0.5, 0.36, 0.22), "core:stone": Color(0.58, 0.58, 0.6),
+	"core:sand": Color(0.86, 0.77, 0.52), "core:clay": Color(0.62, 0.48, 0.38), "core:log": Color(0.72, 0.55, 0.33),
+	"core:leaves": Color(0.3, 0.55, 0.22), "core:planks": Color(0.7, 0.53, 0.3), "core:copper_ore": Color(0.66, 0.5, 0.38),
+	"core:brick": Color(0.64, 0.32, 0.26), "": Color(0.55, 0.5, 0.45),
+}
+## The pixels of a star sparkle (see _star).
+const STAR := [
+	"..x..",
+	"..x..",
+	"xxoxx",
+	"..x..",
+	"..x..",
+]
 ## World units around a fire where snow melts and the ground stays dry.
 const HEAT_RADIUS := 3.0
 ## One light at a time casts shadows: the fire nearest to the view within this many
@@ -52,6 +76,16 @@ var bolt_mesh: ImmediateMesh
 var bolt_light: OmniLight3D
 var bolt_time := 0.0
 var fireflies: CPUParticles3D
+## The world the fireflies fly over (WorldData): only over grass, bushes and under the
+## crowns, not over water, sand or stone. Their spots are picked around the view when it
+## has moved FIREFLY_MOVE world units, from FIREFLY_TRIES columns.
+var world
+var _firefly_home := Vector2.INF
+## Bits flying off what the hands work (see burst): the emitters, used in turn, and the
+## bursts waiting for the strike, [seconds left, where, material] each.
+var _bursts: Array[CPUParticles3D] = []
+var _burst_next := 0
+var _burst_wait := []
 var leaves: CPUParticles3D
 ## Leaves an autumn gale tears off the trees, flying low and fast.
 var gale: CPUParticles3D
@@ -142,6 +176,7 @@ func _ready() -> void:
 	fireflies.initial_velocity_max = 0.35
 	fireflies.gravity = Vector3.ZERO
 	fireflies.emission_box_extents = Vector3(18.0, 1.0, 12.0)
+	fireflies.emission_shape = CPUParticles3D.EMISSION_SHAPE_POINTS
 	fireflies.color_ramp = _ramp([Color(0.8, 1.0, 0.45, 0.0), Color(0.85, 1.0, 0.5, 1.0), Color(0.85, 1.0, 0.5, 1.0), Color(0.8, 1.0, 0.45, 0.0)])
 
 	leaves = _emitter(30, 7.0, Vector2(PX, PX), 1.0)
@@ -323,7 +358,13 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	_blow(gale, dir, 1.0, -0.1)
 	_blow(leaves, dir, 1.0, -0.4)
 	_blow(pollen, dir, 1.0, 0.2)
-	fireflies.position = Vector3(view.x, ground + 1.0, view.y + ground + 1.0)
+	_place_fireflies(view, ground)
+	for i in range(_burst_wait.size() - 1, -1, -1):
+		var b: Array = _burst_wait[i]
+		b[0] -= delta
+		if b[0] <= 0.0:
+			_burst_now(b[1], b[2])
+			_burst_wait.remove_at(i)
 	pollen.position = Vector3(view.x, ground + 1.5, view.y + ground + 1.5)
 	var outside := enabled and not indoor
 	var season: int = clock.season
@@ -337,7 +378,8 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	var calm: bool = clock.rain < 0.15 and clock.snowing < 0.15 and clock.sand < 0.3 and clock.storm_wind < 1.5
 	leaves.emitting = outside and season == 2
 	gale.emitting = outside and season == 2 and wind > 0.8 and sky.leaf_amount > 0.57
-	fireflies.emitting = enabled and daylight < 0.3 and (season == 0 or season == 1) and calm
+	fireflies.emitting = enabled and daylight < 0.3 and (season == 0 or season == 1) and calm \
+		and not fireflies.emission_points.is_empty()
 	pollen.emitting = outside and daylight > 0.6 and (season == 0 or season == 1) and calm
 	# Particles are unshaded: on a dark night rain shows only near the torch light.
 	var light := clampf(maxf(sky.sky_light, sky.flash), 0.12, 1.0)
@@ -437,6 +479,65 @@ func _bolt_line(a: Vector3, b: Vector3) -> void:
 	bolt_mesh.surface_add_vertex(b)
 
 
+## A few bits of material `m` (Mat) flying off world point `at` in `delay` seconds, when
+## the tool strikes: chips of a trunk, crumbs of earth and stone, leaves off a bush.
+func burst(at: Vector3, m: int, delay := 0.0) -> void:
+	if not enabled:
+		return
+	_burst_wait.append([delay, at, m])
+
+
+func _burst_now(at: Vector3, m: int) -> void:
+	if _bursts.size() < BURSTS:
+		var e := _emitter(BURST_BITS, 0.55, Vector2(PX, PX), 1.0)
+		e.one_shot = true
+		e.explosiveness = 0.9
+		e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		e.emission_sphere_radius = 0.12
+		e.direction = Vector3.UP
+		e.spread = 70.0
+		e.initial_velocity_min = 1.2
+		e.initial_velocity_max = 2.4
+		e.gravity = Vector3(0.0, -9.0, 0.0)
+		e.scale_amount_min = 1.0
+		e.scale_amount_max = 2.0
+		(e.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
+		_bursts.append(e)
+	var p := _bursts[_burst_next]
+	_burst_next = (_burst_next + 1) % BURSTS
+	var c: Color = BITS.get(Mat.IDS[m] if m >= 0 and m < Mat.IDS.size() else "", BITS[""])
+	p.color_ramp = _ramp([c.lightened(0.15), c, c.darkened(0.25)])
+	p.position = at
+	p.restart()
+
+
+## Picks where the fireflies come out around screen-plane point `view` (see update)
+## once it has moved: over grass, a bush or under a crown, a little above the ground.
+func _place_fireflies(view: Vector2, ground: float) -> void:
+	if world == null:
+		fireflies.position = Vector3(view.x, ground + 1.0, view.y + ground + 1.0)
+		return
+	if _firefly_home.distance_to(view) < FIREFLY_MOVE:
+		return
+	_firefly_home = view
+	var at := Vector3(view.x, ground + 1.0, view.y + ground + 1.0)
+	fireflies.position = at
+	var spots := PackedVector3Array()
+	var ext := fireflies.emission_box_extents
+	for i in FIREFLY_TRIES:
+		var x := floori((at.x + rng.randf_range(-ext.x, ext.x)) / CELL)
+		var z := floori((at.z + rng.randf_range(-ext.z, ext.z)) / CELL)
+		var y: int = world.surface_y(x, z)
+		if y <= 0:
+			continue
+		var top: int = world.get_cell(x, y - 1, z)
+		if top != Mat.GRASS and not world.bushes.has(Vector3i(x, y, z)) and world.leaf_col(x, z) == 0:
+			continue
+		var p := Vector3((x + rng.randf()) * CELL, (y + rng.randf_range(0.5, 2.5)) * CELL, (z + rng.randf()) * CELL)
+		spots.append(p - at)
+	fireflies.emission_points = spots
+
+
 func _emitter(amount: int, lifetime: float, size: Vector2, brightness: float) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
 	p.amount = amount
@@ -455,6 +556,21 @@ func _emitter(amount: int, lifetime: float, size: Vector2, brightness: float) ->
 	p.extra_cull_margin = 32.0
 	add_child(p)
 	return p
+
+
+## A star sparkle: a cross of pixels, its middle white (see sack_glow).
+static func _star() -> ImageTexture:
+	var n := STAR.size()
+	var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for y in n:
+		for x in n:
+			match STAR[y][x]:
+				"o":
+					img.set_pixel(x, y, Color(1, 1, 1, 1))
+				"x":
+					img.set_pixel(x, y, Color(0.8, 0.8, 0.8, 1))
+	return ImageTexture.create_from_image(img)
 
 
 func _ramp(colors: Array) -> Gradient:
@@ -496,30 +612,28 @@ func _campfire_model(lit := true) -> VoxelModel:
 	return m
 
 
-## A glow over a sack left by a death, so it is found from afar: amber motes rising
-## high from a ring around it, and a small warm light on the ground at night.
+## A glow over a sack left by a death, so it is found from afar: a few amber star
+## sparkles drifting slowly out of it every way and twinkling out, and a small warm
+## light on the ground at night.
 func sack_glow(at: Vector3) -> Node3D:
 	var root := Node3D.new()
 	add_child(root)
-	var p := _emitter(36, 2.6, Vector2(PX, PX), 2.2)
+	var p := _emitter(10, 2.4, Vector2(STAR.size(), STAR.size()) * PX, 2.2)
 	remove_child(p)
 	root.add_child(p)
-	p.position = at + Vector3(0.0, 0.2, 0.0)
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
-	p.emission_ring_axis = Vector3.UP
-	p.emission_ring_radius = 0.45
-	p.emission_ring_inner_radius = 0.15
-	p.emission_ring_height = 0.2
+	p.position = at + Vector3(0.0, 0.25, 0.0)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.2
 	p.direction = Vector3.UP
-	p.spread = 6.0
-	p.initial_velocity_min = 0.9
-	p.initial_velocity_max = 1.8
-	p.gravity = Vector3.ZERO
-	p.scale_amount_min = 2.0
-	p.scale_amount_max = 3.0
-	p.color_ramp = _ramp([Color(1.0, 0.8, 0.3, 0.0), Color(1.0, 0.88, 0.45, 1.0), Color(1.0, 0.7, 0.25, 0.9), Color(1.0, 0.55, 0.15, 0.0)])
+	p.spread = 180.0
+	p.initial_velocity_min = 0.12
+	p.initial_velocity_max = 0.3
+	p.gravity = Vector3(0.0, 0.05, 0.0)
+	p.color_ramp = _ramp([Color(1.0, 0.85, 0.4, 0.0), Color(1.0, 0.92, 0.55, 1.0), Color(1.0, 0.8, 0.35, 0.3),
+		Color(1.0, 0.85, 0.45, 1.0), Color(1.0, 0.65, 0.2, 0.0)])
 	var mat: ShaderMaterial = (p.mesh as QuadMesh).material
 	mat.set_shader_parameter("sky_only", 0.0)
+	mat.set_shader_parameter("shape", _star())
 	p.emitting = true
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.75, 0.3)

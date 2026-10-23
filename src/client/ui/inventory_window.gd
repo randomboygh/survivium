@@ -9,9 +9,9 @@ extends PanelContainer
 ## that one; with sorting by hand on, a tap on another slot (of the bag or a chest)
 ## moves the stack there, swaps the two or tops up a stack of the same item, and lets
 ## it go; a tap on the chosen one lets it go. The panel at the bottom names the chosen
-## stack (plant, set down, repair by the name), shows what it is in small wells
+## stack (plant, repair by the name), shows what it is in small wells
 ## (FactChips: weight, food, work, wear) and, on the right, a wide «Взять» (into the
-## hand in use; «Съесть» for food) under throwing away one | all and the bin (red at
+## hand in use; «Съесть» for food, «Поставить» for a chest, station or campfire) under throwing away one | all and the bin (red at
 ## the first tap, it destroys at the second). The craft tab (CraftPanel) has its own cells and
 ## panels; opened at a station it starts there.
 ## Opens over the running world, which goes on; taps inside it do not reach the world.
@@ -63,10 +63,9 @@ var _manual_button: Button
 var _chest_slots := []
 var _info: Label
 var _facts: FactChips
-## «Взять» into the hand in use, «Съесть» for food.
+## «Взять» into the hand in use, «Съесть» for food, «Поставить» for what is set down.
 var _use: Button
 var _plant: Button
-var _put: Button
 var _repair: Button
 ## Throw away one and all, and the bin.
 var _throw: HBoxContainer
@@ -204,11 +203,8 @@ func _ready() -> void:
 	_info.custom_minimum_size.x = 120
 	name_row.add_child(_info)
 	_plant = _button("Посадить", func() -> void: game.actions.plant(game.character, _from.slots[_at][0]))
-	_put = _button("Поставить", func() -> void:
-		if game.props.put_from_bag(_from.slots[_at][0], _at):
-			close())
 	_repair = _button("Починить", func() -> void: game.workshop.repair(_at))
-	for b in [_plant, _put, _repair]:
+	for b in [_plant, _repair]:
 		name_row.add_child(b)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 6)
@@ -237,12 +233,21 @@ func _ready() -> void:
 		var id: String = _from.slots[_at][0]
 		if Items.food(id) > 0.0 or Items.heal(id) > 0.0:
 			game.character.eat(_at)
+		elif _placeable(id):
+			if game.props.put_from_bag(id, _at):
+				close()
 		else:
 			game.controls.hold(id)], 3 * 30 - 2 + 4, false)
 	body.add_child(block)
 	_use = block.get_child(1)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
+
+
+## A thing set down on the ground (a chest, a station, a campfire): its wide button
+## puts it down instead of taking it in hand.
+static func _placeable(id: String) -> bool:
+	return Items.get_item(id).get("prop", "none") != "none"
 
 
 ## A grid of `n` slots in `parent`, kept in `cells`; a tap on slot i calls `tap` with i.
@@ -498,19 +503,19 @@ func _show_info(inv) -> void:
 		_facts.show_wells(FactChips.item_wells(id, s[1], _from.worn(_at), Inventory.stack_weight(s)))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
 	_plant.visible = mine and Items.get_item(s[0]).get("plant", "") != ""
-	_put.visible = mine and Items.get_item(s[0]).get("prop", "none") != "none"
 	_repair.visible = mine and inv.worn(_at) > 0
 	# The name wraps in what the buttons by it leave.
 	var room := _width(slot) - 2 * UiStyle.WELL_PAD
-	for b in [_plant, _put, _repair]:
+	for b in [_plant, _repair]:
 		if b.visible:
 			room -= int(b.get_combined_minimum_size().x) + 6
 	_info.custom_minimum_size.x = room
 	var heals: bool = s != null and Items.heal(s[0]) > 0.0
 	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals
-	_use.text = "Перевязать" if heals else ("Съесть" if food else "Взять")
-	_use.tooltip_text = "Перевязать раны" if heals else ("Съесть одну" if food else "Взять в руку")
-	_use.disabled = not mine or not food and game.controls.held() == s[0]
+	var put: bool = s != null and _placeable(s[0])
+	_use.text = "Перевязать" if heals else ("Съесть" if food else ("Поставить" if put else "Взять"))
+	_use.tooltip_text = "Перевязать раны" if heals else ("Съесть одну" if food else ("Поставить рядом" if put else "Взять в руку"))
+	_use.disabled = not mine or not food and not put and game.controls.held() == s[0]
 	_throw.get_child(0).disabled = not mine
 	_throw.get_child(1).disabled = not mine or s[1] < 2
 	_destroy.disabled = s == null

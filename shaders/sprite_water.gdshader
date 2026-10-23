@@ -18,11 +18,15 @@ uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
 varying vec3 world_pos;
 varying float clouds;
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	// Upright: turned to the camera about its origin.
 	VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 void fragment() {
@@ -49,5 +53,5 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

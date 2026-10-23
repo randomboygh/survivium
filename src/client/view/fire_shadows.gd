@@ -1,10 +1,16 @@
 extends MultiMeshInstance3D
-## Drawn shadows from every fire on the screen and the torch: a flat wedge on the ground
-## behind the player, each animal and each tree trunk in a fire's light, pointing away
-## from it and as dark as the fire's ring it lies in (fire_shadow.gdshader multiplies it
-## into the ground).
+## Drawn shadows from every fire on the screen and the torch, as dark as the fire's ring
+## they lie in (fire_shadow.gdshader multiplies them into the ground):
+## - a flat wedge on the ground behind the player, each animal and each tree trunk in a
+##   light, pointing away from it;
+## - the shadows of the blocks and of the things placed (chests, stations): each light
+##   keeps a map of how high what stands on its ground around it is (see _maps), and
+##   the shader looks along the way from each point of the ground to the light for
+##   something higher than that way there.
+## The animals and the player standing in them are drawn darker too (`shade` in
+## sprite.gdshader).
 ## A few draws a frame where a real shadow (Effects, the "real" fire shadows setting)
-## draws everything around the fire six times more; it shades nothing but the ground.
+## draws everything around the fire six times more.
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -32,11 +38,29 @@ const TRUNK_WIDTH := 0.5
 const SAME_GROUND := 0.6
 ## The far end of a wedge is at most this many times as wide as its foot.
 const MAX_SPREAD := 5.0
+## Frames between working out how dark the sprites in the shadows are.
+const SHADE_EVERY := 4
+## The torch's id among the lights, a unit no fire stands on (fires go by their unit).
+const TORCH_ID := Vector3i(0, -1048576, 0)
 ## The light of a dark night and of the full moon as a share of a fire's brightest ring
 ## (fire_shadow.gdshader).
 const NIGHT_LIGHT := Vector2(0.14, 0.6)
 ## Lights the shader knows of, the nearest to the player (`lights` in fire_shadow.gdshader).
 const MAX_LIGHTS := 8
+## The rings of a fire's light, as shares of its range, and how bright each is
+## (LIGHT_RING_EDGES and LIGHT_RING_LEVELS in common.gdshaderinc).
+const RING_EDGES := [0.2, 0.4, 0.6, 1.0]
+const RING_LEVELS := [1.0, 0.55, 0.3, 0.14]
+## Columns across a light's map (MAP_SIZE in fire_shadow.gdshader): a fire's light
+## reaches 16 cells from it, the torch's 10.
+const MAP := 32
+## Rows of the lights' maps made a frame.
+const MAP_ROWS := 8
+## How many levels of a column a map looks at over the light's ground: a block that
+## high already hides the light.
+const MAP_LEVELS := 3
+## Steps of the heights in a map a world unit (MAP_SCALE in fire_shadow.gdshader).
+const MAP_SCALE := 32.0
 
 var game
 ## The fire shadows setting is on "drawn".
@@ -49,10 +73,34 @@ var _trunk_base := {}
 var _chunk_feet := {}
 ## The trunk shadows of the fires, which stand still, are the first instances and are
 ## written again only when something they depend on changes: what they were made for
-## (fires, their light's strength, the trees around) and how many there are.
+## (fires, their light's strength and place among the lights, the trees around) and
+## how many there are.
 var _trunks_for := ""
 var _trunks_count := 0
+## The wedges of this frame, for the animals standing in them: [light id, foot,
+## direction, length, width at the foot, width at the far end, who throws it]; the
+## trunks' first, kept with their instances.
+var _wedges := []
+var _trunk_wedges := []
+## What stands on the ground around each light, by the light's id (see _lights): a
+## map of MAP by MAP columns from `origin` (the north-west column), each the height
+## over the light's ground `level` of the block or thing standing on it there, in
+## MAP_SCALE steps a world unit. {"origin": Vector2i, "level": int, "data":
+## PackedByteArray, "chunks": the chunks kept around it when it was made} once made;
+## "next" is the same, with "row", for one being made a few rows a frame.
+var _maps := {}
+## The maps of the lights the shader knows, side by side in their order, and the maps
+## it holds now.
+var _atlas: Image
+var _atlas_texture: ImageTexture
+var _atlas_for := []
+## Sprites drawn darker now, and how dark (see _shade).
+var _shaded := {}
 
+
+## Frames left until the sprites' shades are worked out again, and the last ones.
+var _shade_wait := 0
+var _last_shades := {}
 
 func _ready() -> void:
 	var mm := MultiMesh.new()
@@ -69,6 +117,14 @@ func _ready() -> void:
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The shadows are moved every frame wherever the casters are.
 	extra_cull_margin = 16384.0
+	_atlas = Image.create_empty(MAP * MAX_LIGHTS, MAP, false, Image.FORMAT_R8)
+	_atlas_texture = ImageTexture.create_from_image(_atlas)
+	mat.set_shader_parameter("block_map", _atlas_texture)
+	if game != null and game.actions != null:
+		game.actions.cell_changed.connect(_on_cell_changed)
+		game.placed.cell_changed.connect(_on_cell_changed)
+		game.placed.added.connect(_on_placed)
+		game.placed.removed.connect(_on_placed)
 
 
 ## A unit quad on the ground: x across from -0.5 to 0.5, z along from 0 to 1.
@@ -84,19 +140,34 @@ static func _wedge_mesh() -> ArrayMesh:
 
 
 func _process(_delta: float) -> void:
+	var t := Time.get_ticks_usec()
 	var mm := multimesh
 	var n := 0
+	var shades := {}
 	if enabled and game.ready_to_play and game.effects.dark:
 		var moon := clampf(game.sky.sky_light / 0.45, 0.0, 1.0)
-		material_override.set_shader_parameter("night", lerpf(NIGHT_LIGHT.x, NIGHT_LIGHT.y, moon))
+		var night := lerpf(NIGHT_LIGHT.x, NIGHT_LIGHT.y, moon)
+		material_override.set_shader_parameter("night", night)
 		var lights := _lights()
+		_update_maps(lights)
 		n = _fire_trunks(lights)
+		_wedges = _trunk_wedges.duplicate()
+		n = _cast_maps(lights, n)
 		for l: Dictionary in lights:
 			n = _cast_all(l, n)
 		_show_lights(lights)
+		# The sprites move slowly: their shades are worked out every few frames.
+		_shade_wait -= 1
+		if _shade_wait <= 0:
+			_shade_wait = SHADE_EVERY
+			_last_shades = _shades(lights, night)
+		shades = _last_shades
 	else:
+		_last_shades = {}
 		_trunks_for = ""
+	_shade(shades)
 	mm.visible_instance_count = n
+	game.hud.perf.note("тени огня", t)
 
 
 ## Puts the shadows the fires' lights throw from tree trunks first, unless they are
@@ -112,15 +183,17 @@ func _fire_trunks(lights: Array) -> int:
 		for kz in range(k.position.y, k.end.y + 1):
 			for kx in range(k.position.x, k.end.x + 1):
 				trees += w.tree_chunks.get(Vector2i(kx, kz), {}).size()
-		key += "%s %.2f %d;" % [l.at, l.strength, trees]
+		key += "%s %.2f %d %d;" % [l.at, l.strength, l.index, trees]
 	if key == _trunks_for:
 		return _trunks_count
 	var n := 0
+	_wedges = []
 	for l: Dictionary in lights:
 		if not l.torch:
 			n = _cast_trunks(l, n)
 	_trunks_for = key
 	_trunks_count = n
+	_trunk_wedges = _wedges
 	return n
 
 
@@ -133,28 +206,45 @@ func _chunks_lit(l: Dictionary) -> Rect2i:
 	return Rect2i(k0, k1 - k0)
 
 
-## Tells the shader where the lights nearest to the player are.
+## Tells the shader where the lights nearest to the player are, and their maps.
 func _show_lights(lights: Array) -> void:
-	var p: Vector3 = game.player.position
-	var near := lights.duplicate()
-	near.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
 	var at := PackedVector4Array()
 	var strengths := PackedFloat32Array()
+	var maps := PackedVector4Array()
 	at.resize(MAX_LIGHTS)
 	strengths.resize(MAX_LIGHTS)
-	var count := mini(near.size(), MAX_LIGHTS)
+	maps.resize(MAX_LIGHTS)
+	var count := mini(lights.size(), MAX_LIGHTS)
+	var now := []
 	for i in count:
-		var l: Dictionary = near[i]
+		var l: Dictionary = lights[i]
 		at[i] = Vector4(l.at.x, l.at.y + l.height, l.at.z, l.range)
 		strengths[i] = l.strength
+		var m: Dictionary = _maps.get(l.id, {})
+		if m.has("data"):
+			maps[i] = Vector4(m.origin.x, m.origin.y, m.level * CELL, 1.0)
+			now.append(m.data)
+		else:
+			now.append(null)
+	if now != _atlas_for:
+		_atlas_for = now
+		_atlas.fill(Color(0, 0, 0))
+		for i in now.size():
+			if now[i] != null:
+				_atlas.blit_rect(Image.create_from_data(MAP, MAP, false, Image.FORMAT_R8, now[i]),
+					Rect2i(0, 0, MAP, MAP), Vector2i(i * MAP, 0))
+		_atlas_texture.update(_atlas)
 	var mat: ShaderMaterial = material_override
 	mat.set_shader_parameter("lights", at)
 	mat.set_shader_parameter("strengths", strengths)
 	mat.set_shader_parameter("light_count", count)
+	mat.set_shader_parameter("maps", maps)
 
 
-## The lights that throw shadows: {"at": ground under the light, "height", "range",
-## "strength" 0..1, "torch": bool}.
+## The lights that throw shadows, the nearest to the player first: {"id": the fire's
+## unit or TORCH_ID, "at": ground under the light, "height", "range", "strength" 0..1,
+## "torch": bool, "real": it throws a real shadow, "index": its place among the
+## lights the shader knows (MAX_LIGHTS for none)}.
 func _lights() -> Array:
 	var out := []
 	var p: Vector3 = game.player.position
@@ -162,12 +252,16 @@ func _lights() -> Array:
 	for f in effects.fires:
 		var light: OmniLight3D = f.light
 		if p.distance_to(f.at) < light.omni_range + VIEW_REACH:
-			out.append({"at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
+			out.append({"id": f.unit, "at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
 				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01:
-		out.append({"at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT, "range": torch.omni_range,
-			"strength": clampf(torch.light_energy / 1.3, 0.0, 1.0), "torch": true, "real": false})
+		out.append({"id": TORCH_ID, "at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT,
+			"range": torch.omni_range, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
+			"torch": true, "real": false})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
+	for i in out.size():
+		out[i].index = mini(i, MAX_LIGHTS)
 	return out
 
 
@@ -177,15 +271,15 @@ func _cast_all(l: Dictionary, n: int) -> int:
 	# A fire with a real shadow (the "mixed" setting, see Effects.player_only) throws
 	# the player's itself.
 	if not l.torch and not l.real:
-		n = _cast(l, game.player.position, game.player.HEIGHT * CELL, PLAYER_WIDTH, n)
+		n = _cast(l, game.player.position, game.player.HEIGHT * CELL, PLAYER_WIDTH, n, game.player)
 	var at: Vector3 = l.at
 	var r2: float = l.range * l.range
 	for c in game.wildlife.animals:
-		# Most animals are far from every light.
-		if Vector2(c.pos.x - at.x, c.pos.z - at.z).length_squared() >= r2:
+		# Most animals are far from every light; birds in the air throw none on the ground.
+		if c.aloft() or Vector2(c.pos.x - at.x, c.pos.z - at.z).length_squared() >= r2:
 			continue
 		var aabb: AABB = game.creatures.looks[c.kind][0].get_aabb()
-		n = _cast(l, c.pos, aabb.size.y, aabb.size.x * 0.4, n)
+		n = _cast(l, c.pos, aabb.size.y, aabb.size.x * 0.4, n, c)
 	if l.torch:
 		n = _cast_trunks(l, n)
 	return n
@@ -201,7 +295,7 @@ func _cast_trunks(l: Dictionary, n: int) -> int:
 		for kx in range(k.position.x, k.end.x + 1):
 			for foot: Vector3 in _feet(Vector2i(kx, kz), at):
 				if Vector2(foot.x - at.x, foot.z - at.z).length_squared() < r2:
-					n = _cast(l, foot, 64.0, _girth(foot), n)
+					n = _cast(l, foot, 64.0, _girth(foot), n, null)
 	return n
 
 
@@ -255,8 +349,9 @@ func _base(w, col: Vector2i, at: Vector3) -> float:
 
 
 ## One shadow of a caster standing at `foot`, `height` tall and `width` wide, thrown by
-## light `l`, as instance `n`; returns the next free instance.
-func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int) -> int:
+## light `l`, as instance `n`; returns the next free instance. `who` is the caster (an
+## animal, the player, null for a trunk), whom its own shadow does not darken.
+func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int, who) -> int:
 	if n >= MAX_SHADOWS or absf(foot.y - l.at.y) > SAME_GROUND:
 		return n
 	var away := Vector2(foot.x - l.at.x, foot.z - l.at.z)
@@ -275,5 +370,263 @@ func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int) ->
 	multimesh.set_instance_transform(n, t)
 	var r: float = l.range
 	multimesh.set_instance_custom_data(n, Color(d / r, length / r, lh / r, 1.0 / spread))
-	multimesh.set_instance_color(n, Color(l.strength, 0.0, 0.0, 1.0))
+	multimesh.set_instance_color(n, Color(l.strength, _index_color(l), 0.0, 1.0))
+	_wedges.append([l.id, Vector2(foot.x, foot.z), dir, length, width, width * spread, who])
 	return n + 1
+
+
+## A light's place among those the shader knows, as the instance colour gives it.
+static func _index_color(l: Dictionary) -> float:
+	return (l.index + 0.5) / MAX_LIGHTS
+
+
+# --- Blocks and things --------------------------------------------------------
+
+## Adds a square over the ground of each light with a map from instance `n` on, where
+## the shader draws the shadows of what the map holds; returns the next free one.
+func _cast_maps(lights: Array, n: int) -> int:
+	for l: Dictionary in lights:
+		if n >= MAX_SHADOWS or l.index >= MAX_LIGHTS or not _maps.get(l.id, {}).has("data"):
+			continue
+		var m: Dictionary = _maps[l.id]
+		var r: float = l.range
+		var corner := Vector3(l.at.x - r, m.level * CELL + 0.01, l.at.z - r)
+		var t := Transform3D(Basis(Vector3(2.0 * r, 0.0, 0.0), Vector3.UP, Vector3(0.0, 0.0, 2.0 * r)),
+			corner + Vector3(r, 0.0, 0.0))
+		multimesh.set_instance_transform(n, t)
+		multimesh.set_instance_custom_data(n, Color(0.0, 0.0, 0.0, 1.0))
+		multimesh.set_instance_color(n, Color(l.strength, _index_color(l), 1.0, 1.0))
+		n += 1
+	return n
+
+
+## Makes the maps of the lights the shader knows when they have none, are out of date
+## or (the torch) have been left behind, a few rows a frame.
+func _update_maps(lights: Array) -> void:
+	var w = game.world
+	var known := {}
+	for l: Dictionary in lights:
+		if l.index >= MAX_LIGHTS:
+			continue
+		known[l.id] = true
+		var level := floori(l.at.y / CELL + 0.01)
+		var reach := ceili(l.range / CELL)
+		var col := Vector2i(floori(l.at.x / CELL), floori(l.at.z / CELL))
+		var m: Dictionary = _maps.get(l.id, {})
+		_maps[l.id] = m
+		if m.has("next"):
+			continue
+		var fresh: bool = m.has("data") and not m.get("stale", false) and m.level == level \
+			and m.chunks == _chunks_kept(w, m.origin)
+		if fresh:
+			# The window must hold all the light reaches (but for its last column, at the
+			# very edge of its light, on the side the window is a column short).
+			var off: Vector2i = col - m.origin
+			fresh = off.x >= reach - 1 and off.y >= reach - 1 and off.x <= MAP - reach and off.y <= MAP - reach
+		if not fresh:
+			var origin := col - Vector2i(MAP / 2, MAP / 2)
+			var data := PackedByteArray()
+			data.resize(MAP * MAP)
+			m.next = {"origin": origin, "level": level, "data": data, "row": 0,
+				"chunks": _chunks_kept(w, origin), "light": Vector2(l.at.x, l.at.z) / CELL}
+	for id in _maps.keys():
+		if not known.has(id):
+			_maps.erase(id)
+	# The rows of the frame go to the nearest light's map first.
+	var rows := MAP_ROWS
+	for l: Dictionary in lights:
+		var m: Dictionary = _maps.get(l.id, {})
+		if rows <= 0:
+			break
+		if not m.has("next"):
+			continue
+		var next: Dictionary = m.next
+		while rows > 0 and next.row < MAP:
+			_map_row(w, next, next.row)
+			next.row += 1
+			rows -= 1
+		if next.row >= MAP:
+			m.erase("next")
+			m.erase("stale")
+			next.erase("row")
+			m.merge(next, true)
+
+
+## How many of the chunks under a map from `origin` are kept: one that comes later
+## makes the map anew.
+func _chunks_kept(w, origin: Vector2i) -> int:
+	var n := 0
+	for kz in range(origin.y >> WorldData.SHIFT, ((origin.y + MAP - 1) >> WorldData.SHIFT) + 1):
+		for kx in range(origin.x >> WorldData.SHIFT, ((origin.x + MAP - 1) >> WorldData.SHIFT) + 1):
+			if w.has_chunk(Vector2i(kx, kz)):
+				n += 1
+	return n
+
+
+## Fills row `row` of map `m`: over each column, how high the blocks standing on the
+## light's ground go (up to MAP_LEVELS; trunks have shadows of their own), or the thing
+## placed there.
+func _map_row(w, m: Dictionary, row: int) -> void:
+	var z: int = m.origin.y + row
+	var level: int = m.level
+	var data: PackedByteArray = m.data
+	var all: int = w.all_bits
+	var blockers: Dictionary = w.blockers
+	var light: Vector2 = m.light
+	var block := roundi(CELL * MAP_SCALE)
+	var i := row * MAP
+	var x: int = m.origin.x
+	var x1 := x + MAP
+	while x < x1:
+		var c = w.chunk_at(x, z)
+		var end := mini(x1, (x | WorldData.MASK) + 1)
+		while x < end:
+			var h := 0
+			if c != null and level >= 0:
+				var col := ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
+				var solid: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col]) & all
+				var run := (solid >> level) & 7
+				h = 0 if run & 1 == 0 else (block if run & 2 == 0 else (2 * block if run & 4 == 0 else 3 * block))
+			# The thing the light stands on (a campfire) throws no shadow from it.
+			if h == 0 and not blockers.is_empty() \
+					and (absf(x + 0.5 - light.x) >= 1.0 or absf(z + 0.5 - light.y) >= 1.0):
+				var box: AABB = blockers.get(Vector3i(x, level, z), AABB())
+				if box.has_volume():
+					h = mini(roundi(box.end.y * CELL * MAP_SCALE), 255)
+			data[i] = h
+			i += 1
+			x += 1
+
+
+## A cell changed: the maps over it are made anew.
+func _on_cell_changed(cell: Vector3i) -> void:
+	for id in _maps:
+		var m: Dictionary = _maps[id]
+		if m.has("data") and not m.has("next") and cell.y >= m.level - 1 and cell.y < m.level + MAP_LEVELS \
+				and Rect2i(m.origin, Vector2i(MAP, MAP)).has_point(Vector2i(cell.x, cell.z)):
+			m.stale = true
+
+
+func _on_placed(e: Dictionary) -> void:
+	_on_cell_changed(e.cell)
+
+
+## True when something on light `l`'s map stands between the ground at `p` and the
+## light (as fire_shadow.gdshader's `blocked` sees it).
+func _blocked(l: Dictionary, p: Vector3) -> bool:
+	var m: Dictionary = _maps.get(l.id, {})
+	if not m.has("data"):
+		return false
+	var data: PackedByteArray = m.data
+	var a := Vector2(p.x, p.z) / CELL
+	var b := Vector2(l.at.x, l.at.z) / CELL
+	var lh: float = l.at.y + l.height - m.level * CELL
+	var d := b - a
+	var cell := Vector2i(floori(a.x), floori(a.y))
+	var last := Vector2i(floori(b.x), floori(b.y))
+	var step := Vector2i(int(signf(d.x)), int(signf(d.y)))
+	var inv := Vector2(1.0 / maxf(absf(d.x), 1e-6), 1.0 / maxf(absf(d.y), 1e-6))
+	# Where the way crosses the next line between columns, each way, as a share of it.
+	var t_next := Vector2(INF, INF)
+	if d.x != 0.0:
+		t_next.x = (cell.x + 1 - a.x if d.x > 0.0 else a.x - cell.x) * inv.x
+	if d.y != 0.0:
+		t_next.y = (cell.y + 1 - a.y if d.y > 0.0 else a.y - cell.y) * inv.y
+	for k in MAP * 2:
+		var t: float
+		if t_next.x < t_next.y:
+			t = t_next.x
+			t_next.x += inv.x
+			cell.x += step.x
+		else:
+			t = t_next.y
+			t_next.y += inv.y
+			cell.y += step.y
+		if t >= 1.0 or cell == last:
+			return false
+		var o: Vector2i = cell - m.origin
+		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP:
+			continue
+		if data[o.y * MAP + o.x] / MAP_SCALE > lh * t:
+			return true
+	return false
+
+
+# --- The animals and the player in the shadows ----------------------------------
+
+## How bright each light's ring is at `d`, a share of its range.
+static func _ring(d: float) -> float:
+	for i in RING_EDGES.size():
+		if d < RING_EDGES[i]:
+			return RING_LEVELS[i]
+	return 0.0
+
+
+## How dark each sprite standing in a drawn shadow is drawn, by the sprite: what the
+## light it is shaded from leaves of the light there (as fire_shadow.gdshader works it
+## out for the ground).
+func _shades(lights: Array, night: float) -> Dictionary:
+	var out := {}
+	var who := [[game.player, game.player.position, game.player.sprite]]
+	for a in game.wildlife.animals:
+		var sprite = game.creatures.sprite_of(a)
+		# Birds up in the air or in a crown are above the shadows on the ground.
+		if a.near and sprite != null and not a.aloft():
+			who.append([a, a.pos, sprite])
+	for w: Array in who:
+		var p: Vector3 = w[1]
+		var all := 0.0
+		var lit := []
+		for l: Dictionary in lights:
+			var d: float = p.distance_to(l.at + Vector3(0.0, l.height, 0.0)) / l.range
+			var own: float = _ring(d) * l.strength
+			if own <= 0.0:
+				continue
+			all += own
+			# The player's own torch throws no shadow on them.
+			if l.torch and w[0] == game.player:
+				continue
+			if _in_shadow(l, p, w[0]):
+				lit.append(own)
+		var shade := 1.0
+		for own: float in lit:
+			shade *= (night + all - own) / (night + all)
+		if shade < 0.99:
+			out[w[2]] = shade
+	return out
+
+
+## True when the ground at `p` is in a drawn shadow of light `l` that `who` does not
+## throw itself.
+func _in_shadow(l: Dictionary, p: Vector3, who) -> bool:
+	if absf(p.y - l.at.y) > SAME_GROUND:
+		return false
+	var q := Vector2(p.x, p.z)
+	for wedge: Array in _wedges:
+		if wedge[0] != l.id or wedge[6] == who:
+			continue
+		var dir: Vector2 = wedge[2]
+		var rel: Vector2 = q - wedge[1]
+		var along := rel.dot(dir)
+		if along < 0.0 or along > wedge[3]:
+			continue
+		var half: float = lerpf(wedge[4], wedge[5], along / wedge[3]) * 0.5
+		if absf(rel.dot(Vector2(dir.y, -dir.x))) < half:
+			return true
+	return _blocked(l, p)
+
+
+## Draws the sprites in `shades` that dark, and the rest as they are.
+func _shade(shades: Dictionary) -> void:
+	for sprite in _shaded.keys():
+		if not shades.has(sprite):
+			if is_instance_valid(sprite):
+				sprite.set_instance_shader_parameter("shade", 1.0)
+			_shaded.erase(sprite)
+	for sprite in shades:
+		# Shades are kept a few frames, and an animal may be gone meanwhile.
+		if not is_instance_valid(sprite):
+			continue
+		if absf(_shaded.get(sprite, 1.0) - shades[sprite]) > 0.01:
+			sprite.set_instance_shader_parameter("shade", shades[sprite])
+			_shaded[sprite] = shades[sprite]

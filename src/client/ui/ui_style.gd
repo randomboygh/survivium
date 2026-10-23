@@ -752,6 +752,22 @@ static func panel(pad := PAD) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "panel", PANEL, EDGE, pad)
 
 
+## A see-through frame for helpers that should not hide the world (the level buttons):
+## a faint shade inside a light line with a dark one round it; `pressed` shades more.
+static func outline(pressed := false) -> StyleBoxFlat:
+	var b := StyleBoxFlat.new()
+	b.bg_color = Color(EDGE, 0.35 if pressed else 0.12)
+	b.border_color = Color(INK, 0.6)
+	b.set_border_width_all(1)
+	b.expand_margin_left = 1
+	b.expand_margin_right = 1
+	b.expand_margin_top = 1
+	b.expand_margin_bottom = 1
+	b.shadow_color = Color(EDGE, 0.5)
+	b.shadow_size = 1
+	return b
+
+
 ## A text field: a sunken well like a slot, with room around the text.
 static func field(focused := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "slot", WELL, ACCENT if focused else EDGE, Vector4(6, 6, 6, 6))

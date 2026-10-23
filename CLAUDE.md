@@ -23,7 +23,8 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                knocks off the trees and bushes around the player),
                character (the bag, the body's state, action costs, eating, what a life did, death and
                coming back),
-               wildlife (the animals: they come, wander, rest, flee, hunt)
+               wildlife (the animals: they come, wander, rest, flee, hunt; flocks follow
+               their lead, flyers fly between places and roost in the crowns)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
@@ -32,7 +33,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   input/       controls, cursor, touch_stick, touch_button
   game/        game systems on this device: character (extends the shared one with the
                player's place, hands and screen), gathering, props (the placed things and the
-               drops drawn), creatures (the animals drawn)
+               drops drawn), creatures (the animals drawn), markers (the player's map markers)
   ui/          hud, menus, windows, maps, panels and their widgets, ui_style
 ```
 
@@ -47,7 +48,9 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
   rivers, lakes) on a world-wide lattice every `LATTICE` cells, distances to coast and river as
-  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`). It makes each chunk in
+  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`); mountains with scree and
+  snow above `WorldData.SNOW_LINE`, rivers climbing them in steps (rapids, waterfalls drawn by
+  `ChunkMesher._falls`), deltas at the sea, caves in mountains' sides (`_tunnels`). It makes each chunk in
   three stages, `TERRAIN` (cells of the chunk from a window with a 3-cell margin) → `PLANTED` (trees, needs TERRAIN on the 3×3 around)
   → `SHAPED` (slopes, corners, bushes; needs PLANTED on the 3×3 around); a mesh needs SHAPED. Stages
   are stepped a row or a tree at a time through `start`/`step` jobs, and the result does not depend
@@ -75,16 +78,22 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   every recipe can be made from what the world gives); the
   registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd`, `plants.gd` fill their static vars from
   them when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`.
-  New numbers that describe content go into the YAML and the schema, not into constants.
+  New numbers that describe content go into the YAML and the schema, not into constants. Mods load
+  in the order of `Content.MODS`; `content/birds/` (sparrows, see its README) is a creature added by
+  data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of its mod, a
+  row of `frames` frames (`creatures.gd`), and how it behaves comes from its properties
+  (`flies`, `flock`, `roost`, `likes` besides mass, diet and the rest).
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
   player, frees meshes beyond `UNLOAD_RANGE`, streaming budgets, caps, the level cut), `sky.gd`
-  (the light, colour grade, sun rays, morning mist, tints and weather drawn for `game.clock`, `src/shared/game/clock.gd`), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
+  (the light, colour grade, sun rays, the fog on the ground, puddles, tints and weather drawn for `game.clock`, `src/shared/game/clock.gd`), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
   is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; what the hands do to the world is `src/shared/game/world_actions.gd`, each tool's rules `src/shared/content/tools.gd`),
   `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (draws the things placed on 2×2 cells, whose rules are `src/shared/game/placed.gd`: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; and the items lying on the ground, `WorldData.drops`), crafting is `src/shared/game/workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; `game.workshop`; recipes in `src/shared/content/crafting.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
-  (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
-  full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
+  (painted per chunk from the cells into regions of 32 chunks, kept in the save; the ground drawn
+  through `shaders/map_ground.gdshader`, which rounds the explored land's corners), `map_view.gd` (the
+  explored map full screen in a panel; a tap sets a marker, `src/client/game/markers.gd`, kept in the
+  save and listed on the playtest page, which can teleport the player to one), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
   world; tests and tools set `main.skip_setup` to start without it),
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),
@@ -117,7 +126,7 @@ main, so `0.1.67` is the build with PR #67 in it. CI writes it with `tools/build
 the version and opens them («Что нового»), each with the icon of its kind. So every PR description
 has at least one such line in Russian, for a player, not a programmer (a PR without one is left out
 of the list). The kinds: `новое` (the default when the tag is left out), `улучшено`, `исправлено`,
-`быстрее`, `внутри` (code moved, tools, tests); a PR that does several things has a line for each,
+`оптимизировано`, `ядро` (code moved, tools, tests); a PR that does several things has a line for each,
 e.g. `Что нового [исправлено]: Костёр больше не гаснет под крышей.`
 
 ## Checks before every push

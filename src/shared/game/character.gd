@@ -24,6 +24,11 @@ const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
 ## a walk.
 const STRIDE_MAX := 3.0
+## A burning campfire touched throws the body back at this speed (cells a second) with
+## this hop, and burns again no sooner than BURN_PAUSE seconds after.
+const BURN_KNOCK := 11.0
+const BURN_HOP := 7.0
+const BURN_PAUSE := 0.4
 
 signal state_changed
 
@@ -52,6 +57,8 @@ var born := -1.0
 ## Deaths in this world and the longest life before one, in game days.
 var deaths := 0
 var best_days := 0.0
+## Where the character last fell, in world units; INF before the first death.
+var fell_at := Vector3.INF
 var _last_at := Vector3.INF
 ## Where things were thrown away: those are not taken by themselves until the
 ## character has walked off (see WorldActions.pick_up_near).
@@ -64,6 +71,8 @@ var position: Vector3:
 	get:
 		return _where()
 var _nagged := {}
+## Seconds until a fire burns the body again (see BURN_PAUSE).
+var _burn_wait := 0.0
 
 
 func _init() -> void:
@@ -116,17 +125,35 @@ func update(delta: float) -> void:
 	if stride < STRIDE_MAX:
 		note("walked", stride)
 	_last_at = p
-	vitals.step(delta, clock.days(delta), body.swimming, inventory.load_share())
+	vitals.step(delta, clock.days(delta), body.swimming, inventory.load_share() if inventory.heavy else 0.0)
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	if body.jumped:
 		note("jumps")
 		if not body.air_jumps:
 			vitals.spend("jump")
-	if placed != null and (placed.burns(p) or body.bumped.is_finite() and placed.burns(body.bumped)):
-		vitals.burn(delta)
-		nag("fire", "Горячо!")
+	_burn_wait = maxf(0.0, _burn_wait - delta)
+	if placed != null and _burn_wait <= 0.0:
+		_touch_fire(p)
 	if vitals.is_dead():
 		die()
+
+
+## A burning campfire the body at `p` stands by or pushed against burns it and throws
+## it back, away from the fire's middle.
+func _touch_fire(p: Vector3) -> void:
+	var fire: Dictionary = placed.burning(p)
+	if fire.is_empty() and body.bumped.is_finite():
+		fire = placed.burning(body.bumped)
+	if fire.is_empty():
+		return
+	vitals.burn()
+	_burn_wait = BURN_PAUSE
+	var mid: Vector3 = placed.center(fire)
+	var away := Vector2(p.x - mid.x, p.z - mid.z)
+	if away.length() < 0.01:
+		away = Vector2(0.0, 1.0)
+	body.knock(away, BURN_KNOCK, BURN_HOP)
+	nag("fire", "Горячо!")
 
 
 ## Whether the character may jump now: not when overloaded or out of breath.
@@ -228,6 +255,7 @@ func die() -> void:
 		sacks.append(sack)
 	var lived := maxf(0.0, _now() - born) if born >= 0.0 else 0.0
 	deaths += 1
+	fell_at = at
 	var summary := life.duplicate()
 	summary.days = lived
 	death = {
@@ -294,7 +322,8 @@ static func cause_text(cause: String) -> Array:
 ## The death and this life's statistics, kept in the player's save (see SaveGame.track).
 func to_dict() -> Dictionary:
 	return {"death": death.duplicate(true), "life": life.duplicate(), "born": born, "deaths": deaths,
-		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z])}
+		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z]),
+		"fell_at": [fell_at.x, fell_at.y, fell_at.z] if fell_at.is_finite() else null}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -306,6 +335,8 @@ func from_dict(d: Dictionary) -> void:
 	born = float(d.get("born", -1.0))
 	deaths = int(d.get("deaths", 0))
 	best_days = float(d.get("best_days", 0.0))
+	var fell: Variant = d.get("fell_at")
+	fell_at = Vector3(fell[0], fell[1], fell[2]) if fell is Array and fell.size() == 3 else Vector3.INF
 	sacks.clear()
 	for p: Variant in d.get("sacks", []):
 		if p is Array and p.size() == 3:

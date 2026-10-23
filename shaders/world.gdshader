@@ -13,7 +13,7 @@
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
 //          lying on the corner's side of it if bit 64, with the edge code in bits
-//          128..256
+//          128..256; 512 = a stone top whose moss was picked
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
@@ -56,6 +56,9 @@ bool is_drift(float packed_tile, vec2 uv) {
 	return int(packed_tile + 0.5) % 64 == NONE && uv.x > 2.5;
 }
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	if (is_drift(UV2.x, UV)) {
 		// The mound stands on the top of its cell and is lower than a cell.
@@ -66,6 +69,7 @@ void vertex() {
 	world_normal = NORMAL;
 	packed = UV2;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
@@ -235,15 +239,18 @@ void fragment() {
 			ao = min(ao, dd == 0 ? 0.6 : 0.8);
 		}
 	}
-	// Snow covers whole texels on upward faces and a fringe on top of walls. The
-	// wind leaves a few spots bare, it melts away around fires, and none falls on
-	// the faces of a cell under a roof, an overhang or a cave ceiling.
+	// Snow covers whole texels on upward faces and a fringe on top of walls, all year
+	// on the high mountains (two levels to thicken above the snow line). The wind
+	// leaves a few spots bare, it melts away around fires, and none falls on the faces
+	// of a cell under a roof, an overhang or a cave ceiling.
 	bool roof = roofed(world_pos.xz, world_pos.y);
-	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
+	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
+	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
-	// Moss on the tops of stone in damp patches, not by a fire.
-	if (top && tile == 3 * 3 && !cap && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	// Moss on the tops of stone in damp patches, not by a fire nor where it was
+	// picked (flag 512, see Grass.stone_moss).
+	if (top && tile == 3 * 3 && !cap && (flag & 512) == 0 && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
@@ -275,6 +282,34 @@ void fragment() {
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
+	// Puddles after rain on level open ground, not on sand, not by a fire: in patches
+	// and in the low cells, shrinking from their edges as they dry, a damp rim round
+	// them, and rings of drops on them while it rains.
+	if (puddles.x > 0.0 && top && !cap && !roof && flag != 4 && world_normal.y > 0.95 && tile != NONE
+			&& tile / 3 != SAND && snow <= 0.0 && warm < 0.5) {
+		vec2 at = world_pos.xz * 2.2;
+		float n = ground_patch(at, 17.0) + (h - 0.5) * 0.02;
+		float here = ground_top(world_pos.xz, vec2(0.0));
+		float around = (ground_top(world_pos.xz, vec2(1.0, 0.0)) + ground_top(world_pos.xz, vec2(-1.0, 0.0))
+			+ ground_top(world_pos.xz, vec2(0.0, 1.0)) + ground_top(world_pos.xz, vec2(0.0, -1.0))) * 0.25;
+		n += clamp((around - here) / CELL, 0.0, 1.0) * 0.1;
+		float edge = 1.0 - 0.24 * sqrt(puddles.x);
+		if (n > edge) {
+			// Still water shows the sky: a light cool grey over the darkened ground.
+			vec3 sky = vec3(0.42, 0.5, 0.6) * (0.96 + 0.08 * h);
+			col = mix(col * 0.6, sky, 0.55);
+			if (n < edge + 0.01) {
+				// A darker line where the water meets the ground.
+				col *= 0.8;
+			}
+			float drop = hash13(vec3(wt, floor(TIME * 5.0 + h * 7.0)));
+			if (drop > 1.0 - 0.05 * puddles.y) {
+				col += vec3(0.16, 0.18, 0.2);
+			}
+		} else if (n > edge - 0.03) {
+			col *= 0.78;
+		}
+	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
@@ -287,5 +322,5 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

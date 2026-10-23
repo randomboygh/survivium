@@ -82,7 +82,7 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 	var ground: int = world.get_cell(cell.x, cell.y, cell.z)
 	var tint: Color
 	var life: float
-	if snow > 0.6 and ground != Mat.WATER and world.roof_level(cell.x, cell.z) == cell.y:
+	if maxf(snow, world.peak_snow(cell.y + 1)) > 0.6 and ground != Mat.WATER and world.roof_level(cell.x, cell.z) == cell.y:
 		tint = Color(0.62, 0.68, 0.84)
 		life = 120.0
 	elif ground == Mat.WATER and world.water_frozen:
@@ -92,7 +92,7 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 	elif ground == Mat.GRASS:
 		tint = Color(0.72, 0.68, 0.58) if wet < 0.5 else Color(0.6, 0.56, 0.5)
 		life = 20.0 if wet < 0.5 else 40.0
-	elif ground == Mat.DIRT or ground == Mat.CLAY or ground == Mat.SAND:
+	elif ground == Mat.DIRT or ground == Mat.CLAY or ground == Mat.SAND or ground == Mat.SCREE:
 		tint = Color(0.7, 0.65, 0.58) if wet < 0.5 else Color(0.58, 0.53, 0.48)
 		life = 45.0
 	elif (ground == Mat.STONE or ground == Mat.COPPER_ORE) and world.roof_level(cell.x, cell.z) > cell.y:

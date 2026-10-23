@@ -50,6 +50,7 @@ func _init() -> void:
 	_test_raycast()
 	_test_walking_rules()
 	_test_water()
+	_test_bog()
 	_test_slopes()
 	_test_steps()
 	_test_ground()
@@ -57,6 +58,7 @@ func _init() -> void:
 	_test_shapes()
 	_test_ai_relations()
 	_test_pixel_view()
+	_test_mountains()
 	_test_trees()
 	_test_bushes()
 	_test_felling()
@@ -152,24 +154,7 @@ func _test_generation() -> void:
 		"chunks dropped and made again are the same")
 	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and so are their trees and bushes")
 	# Water above the sea never leaks: nothing open under it, and no air beside it.
-	var leaks := 0
-	for key: Vector2i in keys:
-		var ch: WorldData.Chunk = w.chunks[key]
-		for col in WorldData.LAYER:
-			var water: int = ch.water[col]
-			var x: int = key.x * 16 + (col & 15)
-			var z: int = key.y * 16 + (col >> 4)
-			while water != 0:
-				var bit := water & -water
-				water ^= bit
-				var y := WorldData.level_of(bit)
-				if y <= w.sea_level:
-					continue
-				if w.get_cell(x, y - 1, z) == Mat.AIR:
-					leaks += 1
-				for d: Vector2i in WorldData.SIDES:
-					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
-						leaks += 1
+	var leaks := _leaks(w, keys)
 	_check(leaks == 0, "water above the sea does not leak (%d leaks)" % leaks)
 	# Settings change the world: more water, a different world.
 	var wet := WorldGen.new(42, 40, {"water": 2})
@@ -188,6 +173,103 @@ func _test_generation() -> void:
 				if mouth.heights[j + dj] > mouth.heights[j]:
 					steps += 1
 	_check(meets > 0 and steps * 4 < meets, "rivers flow into lakes without a step (%d of %d higher)" % [steps, meets])
+
+
+## Cells of water above the sea in the chunks `keys` with air under them, or air beside
+## them that is not over lower water (a waterfall).
+func _leaks(w: WorldData, keys: Array) -> int:
+	var leaks := 0
+	for key: Vector2i in keys:
+		var ch: WorldData.Chunk = w.chunks[key]
+		for col in WorldData.LAYER:
+			var water: int = ch.water[col]
+			var x: int = key.x * 16 + (col & 15)
+			var z: int = key.y * 16 + (col >> 4)
+			while water != 0:
+				var bit := water & -water
+				water ^= bit
+				var y := WorldData.level_of(bit)
+				if y <= w.sea_level:
+					continue
+				if w.get_cell(x, y - 1, z) == Mat.AIR:
+					leaks += 1
+				for d: Vector2i in WorldData.SIDES:
+					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
+						leaks += 1
+	return leaks
+
+
+## Mountains rise to snowy rock near the top of the world; rivers come down them over
+## waterfalls and rapids and part into deltas at the sea; caves open in their sides.
+func _test_mountains() -> void:
+	var gen := WorldGen.new(20261018)
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var peak := gen.find_place("peak", near)
+	var top := gen.lay_out(peak.x - 32, peak.y - 32, 64, 64)
+	var highest := 0
+	var bare := 0
+	for j in top.heights.size():
+		highest = maxi(highest, top.heights[j])
+		if top.heights[j] >= gen.sea + WorldGen.ROCK_LINE + 3 and top.water[j] < 0:
+			bare += 1 if top.tops[j] in [Mat.SCREE, Mat.STONE] else 0
+	_check(peak != near and highest >= gen.size_y - 8, "high mountains reach near the top of the world (%d)" % highest)
+	_check(bare > 0, "their high slopes are bare scree and stone")
+	var w: WorldData = gen.world
+	_check(w.peak_snow(w.sea_level + WorldData.SNOW_LINE + 2) == 1.0 and w.peak_snow(w.sea_level + 10) == 0.0,
+		"snow lies all year above the snow line only")
+	# A waterfall: river water beside air over water two levels or more below, the
+	# same whichever order its chunks are made in, and nothing leaks.
+	var fall := gen.find_place("waterfall", near)
+	var from := WorldData.chunk_key(fall.x, fall.y) - Vector2i(1, 1)
+	gen.generate_area(from, from + Vector2i(3, 3))
+	var keys := []
+	for cz in range(from.y, from.y + 3):
+		for cx in range(from.x, from.x + 3):
+			keys.append(Vector2i(cx, cz))
+	var drops := 0
+	for dz in range(-16, 17):
+		for dx in range(-16, 17):
+			var x := fall.x + dx
+			var z := fall.y + dz
+			var y := WorldData.top_level(w.water_col(x, z))
+			if y <= w.sea_level or w.get_cell(x, y + 1, z) != Mat.AIR:
+				continue
+			for d: Vector2i in WorldData.SIDES:
+				if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.get_cell(x + d.x, y - 1, z + d.y) == Mat.AIR:
+					drops += 1
+	_check(drops > 0, "rivers in the mountains fall over steps")
+	_check(_leaks(w, keys) == 0, "and their water does not leak")
+	var other := WorldGen.new(20261018)
+	for i in range(keys.size() - 1, -1, -1):
+		_ensure_stage(other, keys[i], WorldGen.SHAPED)
+	_check(_same(other.world, w, keys), "made in another order the falls are the same")
+	_check(gen.find_place("rapids", near) != near and gen.find_place("delta", near) != near,
+		"rivers have rapids, and deltas at the sea")
+	# A cave cut into a mountain's side: open to the air at its mouth, under a roof
+	# further in.
+	var mountain := gen.find_place("mountain", near)
+	var cave := []
+	for gz in range(-6, 7):
+		for gx in range(-6, 7):
+			if cave.is_empty():
+				cave = gen._tunnel(floori(mountain.x / float(WorldGen.TUNNEL_GRID)) + gx,
+					floori(mountain.y / float(WorldGen.TUNNEL_GRID)) + gz)
+	_check(not cave.is_empty(), "mountains have caves in their sides")
+	if not cave.is_empty():
+		var mouth := Vector2(cave[0], cave[1])
+		var floor_y: int = cave[3]
+		var key := WorldData.chunk_key(int(mouth.x), int(mouth.y))
+		gen.generate_area(key - Vector2i(2, 2), key + Vector2i(3, 3))
+		var roofed := 0
+		for along in range(4, WorldGen.TUNNEL_LEN):
+			var p: Vector2 = mouth + cave[2] * along
+			for dz in range(-2, 3):
+				for dx in range(-2, 3):
+					var x := int(p.x) + dx
+					var z := int(p.y) + dz
+					if w.get_cell(x, floor_y + 1, z) == Mat.AIR and w.surface_y(x, z) > floor_y + 4:
+						roofed += 1
+		_check(roofed > 0, "a gallery runs into the mountain under its roof (%d cells)" % roofed)
 
 
 ## A world of `seed` made at once over four by four chunks at its spawn: {"gen", "world",
@@ -427,6 +509,34 @@ func _test_water() -> void:
 	player.free()
 
 
+## The pool of _pool_world as a bog: the body sinks to the waist in the mud, wades it
+## slowly and pulls itself out onto the bank.
+func _test_bog() -> void:
+	var w := _pool_world()
+	for z in 16:
+		for x in range(3, 9):
+			for y in range(3, 5):
+				var c: WorldData.Chunk = w.chunk_at(x, z)
+				var i := (y << 8) | ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
+				if c.cells[i] == Mat.WATER:
+					c.natural[i] |= WorldData.BOG
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(6.5, 4.5, 2.5) * WorldData.CELL
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+	var p: Vector3 = player.position / WorldData.CELL
+	_check(player.body.in_bog and player.body.on_ground and not player.body.swimming
+		and is_equal_approx(p.y, 4.5 - Body.BOG_SINK), "a body sinks to the waist in a bog and stands there")
+	_check(player.body.speed_at(player.position) < Body.SPEED * Body.WADE, "a bog is waded slower than water")
+	player.body.move_input = Vector2(1, 0)
+	for i in 300:
+		player.step(1.0 / 60.0, false)
+	var out: Vector3 = player.position / WorldData.CELL
+	_check(out.x > 9.0 and is_equal_approx(out.y, 6.0) and not player.body.in_bog, "a body climbs out of a bog onto the bank")
+	player.free()
+
+
 ## Natural dirt one level higher for x >= 4 (a step facing west) and two levels higher
 ## for x >= 6 (a cliff), on a dirt floor.
 func _slope_world() -> WorldData:
@@ -589,6 +699,8 @@ func _test_ground() -> void:
 		"the hill of the test world has a tunnel into a hall")
 	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.SAND
 		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
+	_check(w.is_bog(16, g, 28) and w.is_bog(16, g - 1, 28) and w.get_cell(16, g - 2, 28) == Mat.CLAY
+		and w.get_cell(16, g, 16) == Mat.WATER and not w.is_bog(16, g, 16), "the swamp strip has pools and bogs")
 	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.COPPER_ORE,
 		"the material strips are 4 cells deep")
 	_check(w.get_cell(50, g + 2, 0) == Mat.PLANKS and w.get_cell(53, g + 1, 3) == Mat.AIR
@@ -997,6 +1109,9 @@ func _test_pixel_view() -> void:
 			and covered.x - screen.x < 2 * scale and covered.y - screen.y < 2 * scale \
 			and absf(image.y - PixelView.TARGET_HEIGHT) <= PixelView.TARGET_HEIGHT * 0.25
 	_check(whole, "low-res image is scaled by a whole number and covers the screen")
+	_check(PixelView.layout(Vector2(1200, 2608), PixelView.TARGET_HEIGHT, true)[0]
+		== PixelView.layout(Vector2(2608, 1200), PixelView.TARGET_HEIGHT, true)[0],
+		"a phone shows the world as large held either way")
 	_check(is_equal_approx(PixelView.camera_size(360), 22.5), "16 pixels per world unit")
 	# A cell's top and its south wall both cover 16 x 16 pixels on screen.
 	var top := PixelView.screen_plane(Vector3(3, 2, 5)) - PixelView.screen_plane(Vector3(3, 2, 4))
@@ -1563,6 +1678,8 @@ func _test_inventory() -> void:
 	_check(heavy.overloaded() and f < 1.0 and f > Inventory.OVERLOAD_PACE, "overload slows the pace")
 	heavy.add("core:stone", 200)
 	_check(heavy.speed_factor() == Inventory.OVERLOAD_PACE, "heavy overload almost stops")
+	heavy.heavy = false
+	_check(heavy.speed_factor() == 1.0 and not heavy.overloaded(), "with overload off a full bag does not slow")
 	var copy := Inventory.new(3)
 	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
 	_check(copy.count("core:branch") == 8 and copy.count("core:log") == inv.count("core:log"), "the bag survives a save as JSON")
@@ -1626,6 +1743,10 @@ func _test_vitals() -> void:
 	v.satiety = 30.0
 	v.step(0.0, 20.0 / Vitals.HUNGER_PER_DAY, false)
 	_check(is_equal_approx(v.satiety, 10.0) and v.health == Vitals.MAX, "hunger empties satiety over game days")
+	v.hunger = false
+	v.step(0.0, 5.0, false)
+	_check(is_equal_approx(v.satiety, 10.0), "with hunger off satiety stays")
+	v.hunger = true
 	v.step(0.0, 0.5, false)
 	_check(v.health < Vitals.MAX and v.hurt_by == "hunger", "only starving hurts")
 	_check(v.stamina_cap() < Vitals.MAX, "hunger lowers stamina")
@@ -1768,6 +1889,28 @@ func _test_world_actions() -> void:
 		actions.chop(who, actions.trunk_cell(who, Vector2i(15, 23)))
 		hits += 1
 	_check(hits > 1 and hits <= Trees.SPECIES[Trees.OAK].hits and not w.drops.is_empty(), "an oak falls after its hits")
+	# Moss grows on bare stone in damp patches, where world.gdshader draws it: bare
+	# hands pick it, and the stone stays.
+	var rock := WorldData.new(8, Vector2i(96, 96))
+	var mossy := Vector3i(-1, -1, -1)
+	var dry := 0
+	for z in 96:
+		for x in 96:
+			rock.set_cell(x, 1, z, Mat.STONE)
+	for z in 96:
+		for x in 96:
+			if Grass.stone_moss(rock, x, 1, z):
+				if mossy.x < 0:
+					mossy = Vector3i(x, 1, z)
+			else:
+				dry += 1
+	_check(mossy.x >= 0 and dry > 0, "some stone is mossy, some is not")
+	var picker := WorldActions.new(rock, {"season": 1, "day": 0}, {"free_build": false})
+	_check(picker.can_mow(mossy, Tools.of("")) and picker.picking(mossy) != "", "bare hands can pick moss off stone")
+	_check(picker.mow(who, [mossy] as Array[Vector3i]) and rock.get_cell(mossy.x, mossy.y, mossy.z) == Mat.STONE
+		and not Grass.stone_moss(rock, mossy.x, mossy.y, mossy.z) and not rock.drops.is_empty()
+		and (rock.drops.values()[0][0][0] as String).ends_with("moss"), "picking it gives moss and leaves the stone bare")
+	_check(not picker.can_mow(mossy, Tools.of("")), "and there is no more to pick there")
 
 
 ## The rules of placed things and crafting run without the client: a workbench put
@@ -1802,6 +1945,13 @@ func _test_placed() -> void:
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
 	_check(who.inventory.count("core:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
+	for id in ["core:flint", "core:cord"]:
+		who.inventory.add(id, 1)
+	who.inventory.add("core:branch", 2)
+	var quick := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
+	_check(quick.start(axe) == 1, "another axe is started")
+	quick.update(0.01)
+	_check(who.inventory.count("core:stone_axe") == 2, "with instant crafting it is made in a frame")
 	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
 	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "a campfire that burns is a station")
 	var cook := Survivor.new()
@@ -1814,12 +1964,17 @@ func _test_placed() -> void:
 	cook.update(0.5)
 	_check(cook.vitals.health == Vitals.MAX, "standing away from a campfire does not burn")
 	cook.body.move_input = Vector2(1.0, 0.0)
+	var nearest := 0.0
+	var thrown := false
 	for i in 30:
 		cook.at = cook.body.step(cook.at, 1.0 / 30.0, false)
 		cook.update(1.0 / 30.0)
-	_check(cook.at.x / WorldData.CELL + Body.HALF_WIDTH <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
-	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health > Vitals.MAX - Vitals.BURN * 1.5
+		nearest = maxf(nearest, cook.at.x / WorldData.CELL + Body.HALF_WIDTH)
+		thrown = thrown or cook.body.shove.x < 0.0
+	_check(nearest <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
+	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health >= Vitals.MAX - Vitals.BURN * 3.0
 		and cook.vitals.hurt_by == "fire", "and pushing against it burns a little")
+	_check(thrown, "and throws the body back")
 	cook.body.move_input = Vector2.ZERO
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
 	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
@@ -1970,11 +2125,13 @@ func _test_death() -> void:
 	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
 		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
 	_check(ch.sacks.size() == 1 and ch.sacks[0].is_equal_approx(sack[1]), "the character knows where the sack lies (the maps mark it)")
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
 		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
+	_check(ch.fell_at.is_equal_approx(Vector3(5.5, 1.0, 5.5) * WorldData.CELL) and again.fell_at.is_equal_approx(ch.fell_at),
+		"the place of the last death is kept, in the save too")
 	_check(again.is_dead() and again.death.lost == [["core:branch", 3]] and again.sacks.size() == 1
 		and again.sacks[0].is_equal_approx(sack[1]), "the death and the sack's place are kept in the save")
 	var lived: Dictionary = ch.death.life
@@ -1986,20 +2143,43 @@ func _test_death() -> void:
 	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
 		"and they come back with half their health at the respawn point")
 	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
+	_check(ch.fell_at.is_finite(), "and the place of the last death is not forgotten")
 	ch.at = sack[1]
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	_check(ch.inventory.count("core:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
 	# What lies at the feet flies into the bag only as far as the weight limit goes, so
 	# digging with the button held does not leave the body too heavy to jump.
 	ch.at = ch.back_at
 	var heap := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
 	w.heap_drop("core:stone", heap, 30, 0.0)
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	var left := 0
 	for d: Array in w.drops.get(WorldData.chunk_key(floori(heap.x / WorldData.CELL), floori(heap.z / WorldData.CELL)), []):
 		left += WorldActions.count(d) if d[0] == "core:stone" else 0
 	_check(ch.inventory.count("core:stone") > 0 and not ch.inventory.overloaded() and left > 0
 		and ch.inventory.count("core:stone") + left == 30, "things are taken up by themselves only up to the weight limit")
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, WorldActions.PICKUP_ALL, true)
+	_check(ch.inventory.count("core:stone") == 30 and ch.inventory.overloaded(), "or past it when the setting says so")
+	ch.inventory.take_all()
+	var spot := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
+	var food := ""
+	for id: String in Items.IDS:
+		if Items.food(id) > 0.0 and food == "":
+			food = id
+	w.heap_drop("core:stick", spot, 2, 0.0)
+	w.heap_drop("core:branch", spot, 2, 0.0)
+	w.heap_drop(food, spot, 1, 0.0)
+	ch.inventory.add("core:branch", 1)
+	var acts := WorldActions.new(w, ch.clock, {"free_build": false})
+	acts.pick_up_near(ch, WorldActions.PICKUP_NONE)
+	_check(ch.inventory.count("core:branch") == 1 and ch.inventory.count(food) == 0, "pickup «ничего» takes nothing")
+	acts.pick_up_near(ch, WorldActions.PICKUP_FOOD)
+	_check(ch.inventory.count(food) == 1 and ch.inventory.count("core:branch") == 1, "pickup «еду» takes only food")
+	acts.pick_up_near(ch, WorldActions.PICKUP_KNOWN)
+	_check(ch.inventory.count("core:branch") == 3 and ch.inventory.count("core:stick") == 0,
+		"pickup «что есть» takes only what the bag already has")
+	acts.pick_up_near(ch, WorldActions.PICKUP_ALL)
+	_check(ch.inventory.count("core:stick") == 2, "pickup «всё» takes the rest")
 
 
 func _bits(v: int) -> int:
@@ -2080,6 +2260,73 @@ func _test_wildlife() -> void:
 	_check(wolf.pos == from and is_equal_approx(wolf.away, 0.05), "an animal no one looks at waits for its step")
 	life.update(0.06)
 	_check(wolf.pos != from and wolf.away == 0.0, "and then takes it at once")
+	_test_birds(w, person)
+
+
+## Birds (the birds mod) come in flocks around a lead, fly off from a person together
+## and come down again away from them, out of a cat's reach while in the air, and
+## sleep in the crowns at night.
+func _test_birds(w: WorldData, person: Who) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [person]
+	life.start(3)
+	var flocked: bool = life.count("birds:sparrow") == AiRules.SPECIES["birds:sparrow"].count
+	var leads := 0
+	for a in life.animals:
+		if a.kind != "birds:sparrow":
+			continue
+		if a.lead == null:
+			leads += 1
+		elif a.lead.kind != a.kind or a.pos.distance_to(a.lead.pos) > Wildlife.FLOCK_REACH * 2.0:
+			flocked = false
+	_check(flocked and leads >= 2 and leads <= 5, "sparrows come in flocks (%d)" % leads)
+
+	life.animals.clear()
+	var at := person.position + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var lead := _animal(life, "birds:sparrow", at + Vector3(1.0, 0.0, 0.0))
+	var mate := _animal(life, "birds:sparrow", at + Vector3(6.0, 0.0, 0.0))
+	mate.lead = lead
+	life.update(0.05)
+	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
+	var cat := _animal(life, "core:cat", lead.pos)
+	cat.hunger = 1.0
+	var high := 0.0
+	for i in 10:
+		life.update(0.05)
+		high = maxf(high, lead.pos.y - at.y)
+	_check(mate.flying and mate.state == "flee", "its flock takes fright with it")
+	_check(cat.state != "hunt" and life.animals.has(lead), "a cat does not hunt a bird in the air")
+	for i in 200:
+		life.update(0.05)
+	_check(high > 1.0 and not lead.flying and lead.pos.distance_to(person.position) > 8.0
+		and absf(lead.pos.y - life.ground(lead.pos.x, lead.pos.z)) < 0.01,
+		"it flies up and comes down away from the person (%.1f high, %.1f away)" % [high, lead.pos.distance_to(person.position)])
+
+	# A tree away from everyone, and night.
+	life.people = [Who.new()]
+	life.animals.clear()
+	var tx := floori(at.x / WorldData.CELL) + 6
+	var tz := floori(at.z / WorldData.CELL)
+	w.set_cell(tx, 6, tz, Mat.LOG)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.LEAVES)
+	w.add_tree(tx, tz, 0)
+	life.clock.time_of_day = 0.0
+	var bird := _animal(life, "birds:sparrow", at)
+	for i in 100:
+		life.update(0.05)
+	_check(bird.perched and bird.state == "rest" and is_equal_approx(bird.pos.y, 8 * WorldData.CELL),
+		"a sparrow sleeps in a tree crown at night")
+	w.remove_tree(tx, tz)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.AIR)
+	w.set_cell(tx, 6, tz, Mat.AIR)
 
 
 ## Puts an animal of `kind` at `at` into `life`, about to think.

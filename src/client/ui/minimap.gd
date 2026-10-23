@@ -8,7 +8,11 @@ extends Control
 ## the whole map (MapView), which draws the same regions. Things the player placed
 ## (a workbench, a campfire, chests) are marked on both: a dot of the colour of their
 ## picture here, the picture itself on the whole map. So are the sacks of the player's
-## deaths, a red dot here kept at the edge while the sack is beyond it.
+## deaths, a red dot here kept at the edge while the sack is beyond it, and the
+## player's markers (Markers), diamonds of their colour kept at the edge too, flags on the
+## whole map. The ground is drawn through shaders/map_ground.gdshader: the corners of
+## the explored land and of the frame are rounded. The regions are kept in the save
+## (see save_region, load_regions), so the explored map comes back with the world.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -16,12 +20,16 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Markers := preload("res://src/client/game/markers.gd")
+const GROUND_SHADER := preload("res://shaders/map_ground.gdshader")
 
 ## The map on screen, in UI pixels, and the cells per pixel.
 const SIZE := 72
 const STEP := 2
 ## The panel's frame round the map: its outline and highlight, then a sunken edge.
 const FRAME := 4
+## The radius of the map's rounded corners, in UI pixels.
+const CORNER := 4
 ## Chunks along a side of a region, and its pixels.
 const REGION := 32
 const REGION_SHIFT := 5
@@ -35,6 +43,7 @@ var colors: Dictionary = {
 	Mat.GRASS: Color(0.38, 0.56, 0.26), Mat.DIRT: Color(0.5, 0.38, 0.24), Mat.STONE: Color(0.56, 0.56, 0.56),
 	Mat.SAND: Color(0.84, 0.76, 0.5), Mat.CLAY: Color(0.6, 0.47, 0.38), Mat.COPPER_ORE: Color(0.62, 0.5, 0.4),
 	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.PLANKS: Color(0.6, 0.45, 0.25), Mat.BRICK: Color(0.6, 0.3, 0.25),
+	Mat.SCREE: Color(0.6, 0.58, 0.55),
 }
 const LEAVES := Color(0.18, 0.38, 0.16)
 const SHALLOW := Color(0.36, 0.6, 0.68)
@@ -44,6 +53,10 @@ const UNSEEN := Color(0.1, 0.1, 0.12)
 ## The explored map by region (Vector2i): {"image", "texture", "dirty"}. Region r holds
 ## the columns r * REGION * CHUNK on, each pixel two by two cells.
 var regions := {}
+## Regions painted since they were last saved (see save_region).
+var unsaved := {}
+## The player's markers (set by Hud), or null.
+var markers: Markers
 ## The player's column.
 var player_cell := Vector2i.ZERO
 ## The things placed and the sacks, [middle column, item id or Items.SACK] each (see
@@ -53,10 +66,59 @@ var _mark_colors := {}
 var sea := 0
 var top := 0
 var _frame := UiStyle.panel()
+## The ground in the sunken map, through the shader, and the marks and the player over it.
+var _ground: Layer
+var _top: Layer
 ## Asks for the whole map (see Hud).
 signal open_map
 ## New ground was painted in (the whole map redraws).
 signal painted
+
+
+## A child Control that `paint` draws (given the layer); the ground's carries its shader.
+class Layer extends Control:
+	var paint: Callable
+
+	func _init(p: Callable) -> void:
+		paint = p
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		paint.call(self)
+
+
+## A layer for the ground of the map, its shader clipping to its own rectangle with
+## corners of `radius` (see place_ground).
+static func ground_layer(p: Callable, radius: int) -> Layer:
+	var l := Layer.new(p)
+	var m := ShaderMaterial.new()
+	m.shader = GROUND_SHADER
+	m.set_shader_parameter("radius", float(radius))
+	l.material = m
+	return l
+
+
+## Puts a ground layer at `rect` of its parent.
+static func place_ground(l: Layer, rect: Rect2) -> void:
+	l.position = rect.position
+	l.size = rect.size
+	(l.material as ShaderMaterial).set_shader_parameter("clip", Vector4(0, 0, rect.size.x, rect.size.y))
+	l.queue_redraw()
+
+
+## Fills `rect` with `color`, its corners rounded by `radius` pixels as the shader
+## rounds them (a pixel goes when its middle is outside the circle in the corner).
+static func round_rect(canvas: CanvasItem, rect: Rect2, color: Color, radius: int) -> void:
+	for y in radius:
+		var cut := 0
+		while cut < radius and Vector2(radius - cut - 0.5, radius - y - 0.5).length_squared() > radius * radius:
+			cut += 1
+		var row := Rect2(rect.position.x + cut, 0, rect.size.x - 2 * cut, 1)
+		row.position.y = rect.position.y + y
+		canvas.draw_rect(row, color)
+		row.position.y = rect.end.y - 1 - y
+		canvas.draw_rect(row, color)
+	canvas.draw_rect(Rect2(rect.position.x, rect.position.y + radius, rect.size.x, rect.size.y - 2 * radius), color)
 
 
 func _init() -> void:
@@ -64,6 +126,21 @@ func _init() -> void:
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	tooltip_text = "Карта (M)"
+	_ground = ground_layer(func(l: Control) -> void:
+		draw_ground(l, Rect2(Vector2.ZERO, l.size), Vector2(player_cell), 1.0), CORNER)
+	add_child(_ground)
+	place_ground(_ground, Rect2(FRAME, FRAME, SIZE, SIZE))
+	_top = Layer.new(_draw_top)
+	_top.position = Vector2(FRAME, FRAME)
+	_top.size = Vector2(SIZE, SIZE)
+	add_child(_top)
+
+
+## Redraws the ground and everything over it.
+func redraw() -> void:
+	queue_redraw()
+	_ground.queue_redraw()
+	_top.queue_redraw()
 
 
 ## An empty map of a new world.
@@ -71,7 +148,25 @@ func setup(gen: WorldGen) -> void:
 	sea = gen.world.sea_level
 	top = gen.world.size_y
 	regions.clear()
-	queue_redraw()
+	unsaved.clear()
+	redraw()
+
+
+## Puts back the regions of a save (WorldStore.read_maps): their pixels by key.
+func load_regions(saved: Dictionary) -> void:
+	for key: Vector2i in saved:
+		var data: PackedByteArray = saved[key]
+		if data.size() != REGION_PX * REGION_PX * 4:
+			continue
+		regions[key] = {"image": Image.create_from_data(REGION_PX, REGION_PX, false, Image.FORMAT_RGBA8, data),
+			"texture": null, "dirty": true}
+
+
+## The pixels of region `key` for the save, and it is no longer unsaved.
+func save_region(key: Vector2i) -> PackedByteArray:
+	unsaved.erase(key)
+	var r: Dictionary = regions.get(key, {})
+	return PackedByteArray() if r.is_empty() else (r.image as Image).get_data()
 
 
 func _region(key: Vector2i) -> Dictionary:
@@ -102,6 +197,7 @@ func paint_chunk(w: WorldData, key: Vector2i) -> void:
 	img.blit_rect(Image.create_from_data(CHUNK_PX, CHUNK_PX, false, Image.FORMAT_RGBA8, data),
 		Rect2i(0, 0, CHUNK_PX, CHUNK_PX), Vector2i((key.x & (REGION - 1)) * CHUNK_PX, (key.y & (REGION - 1)) * CHUNK_PX))
 	r.dirty = true
+	unsaved[Vector2i(key.x >> REGION_SHIFT, key.y >> REGION_SHIFT)] = true
 
 
 ## Repaints the column of a changed cell.
@@ -117,6 +213,7 @@ func touch(w: WorldData, cell: Vector3i) -> void:
 	var img: Image = r.image
 	img.set_pixel((x & (span - 1)) / STEP, (z & (span - 1)) / STEP, _color(w, x, z))
 	r.dirty = true
+	unsaved[rk] = true
 
 
 ## Colour of a column from above: water by depth, else the top shaded by its height,
@@ -156,7 +253,7 @@ func flush() -> void:
 			else:
 				r.texture.update(r.image)
 	if changed:
-		queue_redraw()
+		redraw()
 		painted.emit()
 
 
@@ -164,14 +261,14 @@ func flush() -> void:
 ## by two cells) and the sacks at `sacks` (world units) when they changed.
 func set_marks(placed: Array, sacks: Array[Vector3] = []) -> void:
 	var now := []
-	for p in sacks:
-		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK])
 	for e: Dictionary in placed:
 		var c: Vector3i = e.cell
 		now.append([Vector2i(c.x + 1, c.z + 1), e.item])
+	for p in sacks:
+		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK])
 	if now != marks:
 		marks = now
-		queue_redraw()
+		_top.queue_redraw()
 		painted.emit()
 
 
@@ -201,19 +298,29 @@ func _mark_color(id: String) -> Color:
 func set_view_up(up: Vector2) -> void:
 	if not up.is_equal_approx(view_up):
 		view_up = up
-		queue_redraw()
+		redraw()
 
 
 func set_player(cell: Vector2i) -> void:
 	if cell != player_cell:
 		player_cell = cell
-		queue_redraw()
+		redraw()
 
 
-## Draws the explored map on `canvas` inside `rect` (its UI pixels), the column
-## `centre` (in cells, may be fractional) in the middle, `zoom` UI pixels per map pixel,
-## and the marks of the things placed and the sacks, as pictures with `pictures`.
-func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pictures := false) -> void:
+## Where column `cell` falls on a map drawn in `rect` (see draw_ground).
+static func to_screen(cell: Vector2, rect: Rect2, centre: Vector2, zoom: float) -> Vector2:
+	return (rect.get_center() + (cell - centre) / STEP * zoom).floor()
+
+
+## The column under point `p` of a map drawn in `rect` (see draw_ground).
+static func to_cell(p: Vector2, rect: Rect2, centre: Vector2, zoom: float) -> Vector2:
+	return centre + (p - rect.get_center()) / zoom * STEP
+
+
+## Draws the explored ground on `canvas` (a ground layer) inside `rect` (its UI
+## pixels), the column `centre` (in cells, may be fractional) in the middle, `zoom` UI
+## pixels per map pixel.
+func draw_ground(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float) -> void:
 	var span := REGION * WorldData.CHUNK
 	var mid := rect.get_center()
 	# The regions the rectangle shows.
@@ -231,10 +338,17 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pic
 			if shown.size.x <= 0.0 or shown.size.y <= 0.0:
 				continue
 			canvas.draw_texture_rect_region(r.texture, shown, Rect2((shown.position - at) / zoom, shown.size / zoom))
-	# Dots of things placed side by side would cover each other: the first placed is
-	# drawn (the sacks come first). Pictures overlap, the later on top, and part when
-	# the map is zoomed in. A sack beyond the edge is drawn at the edge, towards it.
-	var drawn: Array[Rect2] = []
+
+
+## Draws the marks of the things placed and the sacks over a map drawn as draw_ground
+## does, as pictures with `pictures`.
+func draw_marks(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pictures := false) -> void:
+	var mid := rect.get_center()
+	# Pictures overlap, the later on top, and part when the map is zoomed in. Dots of
+	# things side by side share their dark outline: the outlines go first, then the
+	# dots, so none hides another whole (the sacks, last, on top). A sack beyond the
+	# edge is drawn at the edge, towards it.
+	var dots: Array = []
 	for m: Array in marks:
 		var p := (mid + (Vector2(m[0]) - centre) / STEP * zoom).floor()
 		var sack: bool = m[1] == Items.SACK
@@ -248,14 +362,47 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pic
 			box = Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
 		if sack and not rect.encloses(box):
 			box.position = box.position.clamp(rect.position, rect.end - box.size)
-		if not rect.encloses(box) or (not pictures and drawn.any(func(b: Rect2) -> bool: return b.intersects(box))):
+		if not rect.encloses(box):
 			continue
-		drawn.append(box)
 		canvas.draw_rect(box, UiStyle.DARK_INK)
 		if pictures:
 			canvas.draw_texture(tex, box.position + Vector2(1, 1))
 		else:
-			canvas.draw_rect(box.grow(-1), _mark_color(m[1]))
+			dots.append([box.grow(-1), _mark_color(m[1])])
+	for d: Array in dots:
+		canvas.draw_rect(d[0], d[1])
+
+
+## Draws the markers over a map drawn as draw_ground does: dots kept at the edge, or
+## flags (`flags`, the marker `lit` outlined in the accent) left out beyond it.
+func draw_markers(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, flags := false, lit := -1) -> void:
+	if markers == null:
+		return
+	for i in markers.list.size():
+		var m: Dictionary = markers.list[i]
+		var p := to_screen(Vector2(m.cell), rect, centre, zoom)
+		var color := Markers.color_of(m)
+		if flags:
+			var box := Rect2(p.x - 1, p.y - 11, 9, 12)
+			if not rect.encloses(box):
+				continue
+			var ink := UiStyle.ACCENT if i == lit else UiStyle.DARK_INK
+			# A pole from the spot up, the flag on its right, a dark outline round both.
+			canvas.draw_rect(Rect2(p.x - 1, p.y - 11, 3, 12), ink)
+			canvas.draw_rect(Rect2(p.x + 1, p.y - 11, 7, 6), ink)
+			canvas.draw_rect(Rect2(p.x, p.y - 10, 1, 10), UiStyle.INK)
+			canvas.draw_rect(Rect2(p.x + 1, p.y - 10, 6, 4), color)
+			canvas.draw_rect(Rect2(p.x + 1, p.y - 7, 6, 1), color.darkened(0.3))
+		else:
+			# A diamond, not a square like the things placed.
+			var box := Rect2(p - Vector2(3, 3), Vector2(7, 7))
+			box.position = box.position.clamp(rect.position, rect.end - box.size)
+			var c := box.position + Vector2(3, 3)
+			for y in range(-3, 4):
+				var half := 3 - absi(y)
+				canvas.draw_rect(Rect2(c.x - half, c.y + y, 2 * half + 1, 1), UiStyle.DARK_INK)
+				if half > 0 and absi(y) < 3:
+					canvas.draw_rect(Rect2(c.x - half + 1, c.y + y, 2 * half - 1, 1), color)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -264,23 +411,31 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
-## In the frame of the panels and buttons beside it: the map sunk into it like a slot,
-## shaded along the top and left, the player an amber dot outlined dark.
+## In the frame of the panels and buttons beside it: the map sunk into it like a slot
+## with rounded corners (the ground over it, see _ground), shaded along the top and
+## left.
 func _draw() -> void:
 	draw_style_box(_frame, Rect2(Vector2.ZERO, size))
 	var inner := Rect2(FRAME, FRAME, SIZE, SIZE)
-	draw_rect(inner.grow(1), UiStyle.EDGE)
-	draw_rect(inner, UNSEEN)
-	draw_map(self, inner, Vector2(player_cell), 1.0)
-	draw_rect(Rect2(inner.position, Vector2(SIZE, 1)), UiStyle.WELL_SHADE)
-	draw_rect(Rect2(inner.position, Vector2(1, SIZE)), UiStyle.WELL_SHADE)
-	var mid := inner.position + (inner.size * 0.5).floor()
+	round_rect(self, inner.grow(1), UiStyle.EDGE, CORNER + 1)
+	round_rect(self, inner, UNSEEN, CORNER)
+
+
+## Over the ground: the marks, the markers, the shade of the slot's top and left, and
+## the player an amber dot outlined dark in the middle.
+func _draw_top(l: Control) -> void:
+	var inner := Rect2(Vector2.ZERO, l.size)
+	draw_marks(l, inner, Vector2(player_cell), 1.0)
+	draw_markers(l, inner, Vector2(player_cell), 1.0)
+	l.draw_rect(Rect2(CORNER, 0, SIZE - 2 * CORNER, 1), UiStyle.WELL_SHADE)
+	l.draw_rect(Rect2(0, CORNER, 1, SIZE - 2 * CORNER), UiStyle.WELL_SHADE)
+	var mid := (inner.size * 0.5).floor()
 	if not view_up.is_equal_approx(Vector2(0.0, -1.0)):
 		for i in range(3, 9):
 			var p := (mid + Vector2(0.5, 0.5) + view_up * i).floor()
-			draw_rect(Rect2(p - Vector2.ONE, Vector2(3, 3)), UiStyle.EDGE)
+			l.draw_rect(Rect2(p - Vector2.ONE, Vector2(3, 3)), UiStyle.EDGE)
 		for i in range(3, 9):
-			draw_rect(Rect2((mid + Vector2(0.5, 0.5) + view_up * i).floor(), Vector2.ONE), UiStyle.ACCENT)
-	draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.EDGE)
-	draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
-	draw_rect(Rect2(mid, Vector2(1, 1)), UiStyle.INK)
+			l.draw_rect(Rect2((mid + Vector2(0.5, 0.5) + view_up * i).floor(), Vector2.ONE), UiStyle.ACCENT)
+	l.draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.EDGE)
+	l.draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
+	l.draw_rect(Rect2(mid, Vector2(1, 1)), UiStyle.INK)

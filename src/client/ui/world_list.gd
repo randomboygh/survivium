@@ -2,7 +2,8 @@ extends Control
 ## The saved worlds (see WorldStore.list_worlds), the one saved last first: a row each
 ## with its seed, kind and day (and when it was saved, in the tooltip). Tapping a row picks that world
 ## (`chosen`); "Удалить" asks again and then deletes it from the device. The world
-## being played cannot be deleted. "Назад" (or Escape) leaves. It covers the whole
+## being played cannot be deleted. The test world has "Сбросить" in its place, which
+## asks again and forgets its save, so it is laid out anew (played, at once). "Назад" (or Escape) leaves. It covers the whole
 ## screen over a shade of the world behind, the panel in the middle. `game` is the
 ## Main node.
 
@@ -81,7 +82,7 @@ func _fill() -> void:
 		var pick := Button.new()
 		pick.text = "зерно %d\n%s · день %d" % [w.seed, _kind(w.settings), w.day]
 		if w.seed == TestGround.SEED:
-			pick.text = "Тестовый мир\nплощадки для проверок · день %d" % w.day
+			pick.text = "Тестовый мир\nплощадки · день %d" % w.day
 		pick.tooltip_text = "Сохранён %s, в игре %d мин" % [w.saved.replace("T", " "), int(w.played / 60.0)]
 		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -98,7 +99,11 @@ func _fill() -> void:
 		var del := Button.new()
 		del.focus_mode = Control.FOCUS_NONE
 		del.custom_minimum_size = Vector2(DELETE_WIDTH, ROW_H)
-		if current:
+		if w.seed == TestGround.SEED:
+			del.text = "Сбросить"
+			del.tooltip_text = "Вернуть тестовый мир к началу"
+			del.pressed.connect(func() -> void: _reset(del))
+		elif current:
 			# The world being played stays.
 			del.text = "сейчас"
 			del.disabled = true
@@ -113,18 +118,37 @@ func _fill() -> void:
 
 ## The first tap asks, the second deletes.
 func _delete(button: Button, dir: String) -> void:
-	if _armed != button:
-		if _armed != null:
-			_armed.text = "Удалить"
-			_armed.remove_theme_color_override("font_color")
-		_armed = button
-		button.text = "Точно?"
-		button.add_theme_color_override("font_color", UiStyle.DANGER)
+	if not _arm(button):
 		return
 	WorldStore.new(dir).erase()
 	print("world deleted: %s" % dir)
 	_fill()
 	_fit.call_deferred()
+
+
+## The first tap asks, the second forgets the test world's save (Settings.reset_test_world).
+func _reset(button: Button) -> void:
+	if not _arm(button):
+		return
+	print("test world reset")
+	game.settings.reset_test_world()
+	_fill()
+	_fit.call_deferred()
+
+
+## Whether `button` was asked already; else asks with it ("Точно?") and puts back the
+## one asked before.
+func _arm(button: Button) -> bool:
+	if _armed == button:
+		return true
+	if _armed != null:
+		_armed.text = _armed.get_meta("text")
+		_armed.remove_theme_color_override("font_color")
+	_armed = button
+	button.set_meta("text", button.text)
+	button.text = "Точно?"
+	button.add_theme_color_override("font_color", UiStyle.DANGER)
+	return false
 
 
 ## The name of the kind of world the settings match (see WorldSetup.KINDS).
