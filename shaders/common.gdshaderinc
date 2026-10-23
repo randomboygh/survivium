@@ -370,7 +370,12 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 	// Torches and fires have no falloff of their own (omni_attenuation 0), so Godot's
 	// attenuation is (1 - (d/r)^4)^2 and gives back the distance d as a share of the
 	// range r. The light is cut into flat rings by that distance, each paler and wider
-	// than the one inside it.
+	// than the one inside it. Beyond the range the attenuation is 0, which would read as
+	// the outer ring's edge and dither it over all the mesh the light touches (a chunk,
+	// cut off square far away), so nothing is lit there.
+	if (attenuation <= 0.0) {
+		return vec3(0.0);
+	}
 	float d = sqrt(sqrt(max(1.0 - sqrt(attenuation), 0.0)));
 	float lit = light_ring(d, texel);
 	// Faces turned away from the light get none, grazing ones a little less.
