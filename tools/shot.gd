@@ -2,7 +2,8 @@ extends SceneTree
 ## Renders the game and saves screenshots, for looking at visual changes without a
 ## browser. Needs a display (not --headless), for example:
 ## xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
-##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [name ...]
+##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [name ...]
+## `--phone` lays the window out as a phone's screen (fractional scales, CameraRig.turning).
 ## Each shot sets the time of day, season, weather and an offset of the player from
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
@@ -282,7 +283,9 @@ const SHOTS := {
 	"ui-hurt": {"time": 0.45, "season": 1, "touch": true, "body": "hurt"},
 	"ui-fed": {"time": 0.45, "season": 1, "touch": true, "body": "fed"},
 	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
-	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
+	# The interface a step smaller and the joystick and buttons the smallest.
+	"ui-small": {"time": 0.45, "season": 1, "touch": true, "ui_size": 1, "control_size": 0},
+	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_size": 4},
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
@@ -343,10 +346,13 @@ const TEST_SAVES := "user://shot_ground"
 var main: Node
 var out_dir := "user://shots"
 var names: Array = []
+var phone := false
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
+	phone = "--phone" in args
+	args.erase("--phone")
 	if args.size() > 0:
 		out_dir = args[0]
 	names = args.slice(1) if args.size() > 1 else SHOTS.keys()
@@ -387,6 +393,9 @@ func _fake_saves() -> void:
 func _run() -> void:
 	while not main.ready_to_play:
 		await process_frame
+	if phone:
+		main.view.turning = true
+		main.view.on_screen_resized()
 	var spawn: Vector3 = main.player.position
 	var added_fires := []
 	for shot_name in names:
@@ -553,7 +562,10 @@ func _run() -> void:
 			main.hud.toast("Наступило лето")
 			await process_frame
 			await process_frame
-		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
+		main.settings.set_value("ui_size", shot.get("ui_size", 2))
+		main.settings.set_value("control_size", shot.get("control_size", 2))
+		await process_frame
+		await process_frame
 		if shot.has("body"):
 			# What the screen shows when the body is hurt, or healed and fed.
 			var v = main.character.vitals
@@ -737,7 +749,8 @@ func _run() -> void:
 			_unwall_cells(main.world)
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
-		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
+		main.settings.set_value("ui_size", shot.get("ui_size", 2))
+		main.settings.set_value("control_size", shot.get("control_size", 2))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 		if shot.get("test", false):

@@ -33,8 +33,15 @@ const MARGIN := 8.0
 const CELL := 0.5
 const GAP := 4.0
 const SLOT := 40
-## UI height the scale aims for on the shorter side of the screen.
+## UI height the scale aims for on the shorter side of the screen: on a phone exactly,
+## so its windows fit any phone as they do the reference one (1200 px wide at ×3).
 const TARGET_SIDE := 400.0
+## The interface size setting, «очень мелкий» to «крупный»: on a phone the share of the
+## scale picked from the screen, on a computer whole steps around it (UI_STEPS).
+const UI_SIZES := [0.67, 0.83, 1.0, 1.33, 1.67]
+const UI_STEPS := [-2, -1, 0, 1, 2]
+## The size of the joystick and the touch buttons, the same five steps.
+const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
 ## The width of the level buttons beside the minimap.
 const LEVEL_WIDTH := 68
 ## The tab on the hotbar with the bag's slots and load, in UI pixels.
@@ -46,8 +53,10 @@ const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — 
 var game
 var touch := false
 var portrait := false
-## The interface scale setting: whole steps above the scale picked from the screen.
-var scale_bonus := 0
+## The interface and the touch controls size settings, indices into UI_SIZES and
+## CONTROL_SIZES.
+var ui_size := 2
+var control_size := 2
 
 var _left: VBoxContainer
 var _clock_icon: TextureRect
@@ -322,10 +331,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- Layout --------------------------------------------------------------------
 
-## Fits the UI into `rect` (screen pixels): picks a whole-number scale from the shorter
-## side and places everything for the screen's shape and the input in use.
-func fit(rect: Rect2) -> void:
-	var s := maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE)) + scale_bonus
+## Fits the UI into `rect` (screen pixels) and places everything for the screen's
+## shape and the input in use. On a computer the scale is a whole number picked from
+## the shorter side; on a phone or a tablet (`turning`) it is a fraction of the whole
+## `screen`'s shorter side (the whole screen, `rect` by default), so browser toolbars
+## coming and going do not change it.
+func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
+	var s: float
+	if turning:
+		var side := minf(screen.x, screen.y) if screen != Vector2.ZERO else minf(rect.size.x, rect.size.y)
+		s = maxf(1.0, side / TARGET_SIDE * UI_SIZES[ui_size])
+	else:
+		s = maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE) + UI_STEPS[ui_size])
 	scale = Vector2(s, s)
 	position = rect.position
 	size = (rect.size / s).floor()
@@ -359,11 +376,15 @@ func _place() -> void:
 	_jump.visible = touch
 	_keys.visible = not touch and game != null and game.controls.show_help and not bag.visible
 	var bottom := h - MARGIN
-	stick.position = Vector2(MARGIN + 4, bottom - stick.size.y)
+	var k: float = CONTROL_SIZES[control_size]
+	for c: Control in [stick, _action, _jump]:
+		c.scale = Vector2(k, k)
+	var stick_size: Vector2 = stick.size * k
+	stick.position = Vector2(MARGIN + 4, bottom - stick_size.y)
 	_action.size = _action.custom_minimum_size
-	_action.position = Vector2(w - MARGIN - _action.size.x, bottom - _action.size.y)
+	_action.position = Vector2(w - MARGIN - _action.size.x * k, bottom - _action.size.y * k)
 	_jump.size = _jump.custom_minimum_size
-	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x, bottom - _jump.size.y)
+	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x * k, bottom - _jump.size.y * k)
 
 	# All the slots when they fit across the screen beside the hands and the separator,
 	# else as many as fit between the two arrows, four at most in portrait.
@@ -381,7 +402,7 @@ func _place() -> void:
 	var x := floorf((w - bw) * 0.5)
 	var y := bottom - bh
 	if touch:
-		var free_left: float = stick.position.x + stick.size.x + 8
+		var free_left: float = stick.position.x + stick_size.x + 8
 		var free_right := _jump.position.x - 8
 		if free_right - free_left >= bw:
 			x = clampf(x, free_left, free_right - bw)

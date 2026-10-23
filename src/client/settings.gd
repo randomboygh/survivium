@@ -19,7 +19,6 @@ const TIME_SPEEDS := [0.05, 0.1, 0.2, 0.5, 1.0]
 ## How much larger than normal the world pixel is; the image gets that much smaller.
 const PIXEL_SIZES := [1.0, 1.5, 2.0]
 const FPS_LIMITS := [0, 30, 60]
-const UI_SCALES := [0, 1, 2]
 ## The settings that are saved, with their defaults.
 const DEFAULTS := {
 	"time_speed": 1,
@@ -37,7 +36,10 @@ const DEFAULTS := {
 	"fog": true,
 	"pixel_size": 0,
 	"fps_limit": 0,
-	"ui_scale": 0,
+	# The interface and the touch controls size, «очень мелкий» to «крупный» (see
+	# Hud.UI_SIZES, Hud.CONTROL_SIZES).
+	"ui_size": 2,
+	"control_size": 2,
 	"show_help": true,
 	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
 	# each (0..23), tilted steeper by CameraRig.TILT_STEP each (-3..3).
@@ -130,6 +132,9 @@ func load() -> void:
 	# Before the kinds of pickup it was on or off.
 	if not cfg.has_section_key("game", "pickup") and cfg.get_value("game", "auto_pickup", true) == false:
 		values.pickup = 3
+	# Before five sizes the interface had three, the normal one first.
+	if not cfg.has_section_key("game", "ui_size") and cfg.has_section_key("game", "ui_scale"):
+		values.ui_size = clampi(int(cfg.get_value("game", "ui_scale", 0)) + 2, 0, 4)
 
 
 func save() -> void:
@@ -212,11 +217,39 @@ func apply() -> void:
 		view.on_screen_resized()
 	var hud = game.hud
 	if hud != null:
-		if hud.scale_bonus != values.ui_scale:
-			hud.scale_bonus = values.ui_scale
+		if hud.ui_size != values.ui_size or hud.control_size != values.control_size:
+			hud.ui_size = values.ui_size
+			hud.control_size = values.control_size
 			if view != null:
 				view.layout_ui(view.safe_rect)
 		hud.show_keys(values.show_help)
+
+
+## Puts every setting back as it comes, all but the world the setup screen makes.
+func reset() -> void:
+	for k in DEFAULTS:
+		if not k.begins_with("world_"):
+			values[k] = DEFAULTS[k]
+	apply()
+	save()
+
+
+## Whether the game can fill the whole screen here: a computer's window, or a browser
+## that lets a page hide its own bars (not Safari on an iPhone).
+func can_fullscreen() -> bool:
+	if OS.has_feature("web"):
+		return JavaScriptBridge.eval("!!document.fullscreenEnabled", true) == true
+	return not OS.has_feature("mobile")
+
+
+func fullscreen() -> bool:
+	return DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN,
+		DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
+
+
+## Not saved: a browser lets a page take the whole screen only right after a tap.
+func set_fullscreen(on: bool) -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 
 
 # --- Playtest switches --------------------------------------------------------------
