@@ -17,6 +17,8 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float water_line = -1000.0;
 // Colour of that line: foam on water, darker on the mud of a bog.
 uniform vec3 ripple = vec3(0.85, 0.93, 0.92);
+// 1 while the sprite swims: the ripple splashes wider.
+uniform float splash = 0.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
 // stands (FireShadows): 1 out of them. It comes as the sprite's scale along z, which
 // the flat quad does not use: an instance uniform read as 0 in the web build, and the
@@ -62,9 +64,17 @@ void fragment() {
 		discard;
 	}
 	if (world_pos.y < water_line + 1.0 / TEXELS && !IN_SHADOW_PASS) {
-		// The ripple reaches a pixel past the body on each side.
+		// The ripple reaches a pixel past the body on each side; round a swimmer it
+		// splashes two more, in bits that come and go.
 		vec2 px = 1.0 / vec2(textureSize(sprite_texture, 0));
 		float a = max(c.a, max(texture(sprite_texture, uv + vec2(px.x, 0.0)).a, texture(sprite_texture, uv - vec2(px.x, 0.0)).a));
+		for (int k = 2; k <= 3; k++) {
+			if (splash > 0.5) {
+				float near = max(texture(sprite_texture, uv + vec2(px.x * float(k), 0.0)).a,
+					texture(sprite_texture, uv - vec2(px.x * float(k), 0.0)).a);
+				a = max(a, near * step(0.4, hash12(vec2(floor(uv.x / px.x), floor(TIME * 6.0) + float(k)))));
+			}
+		}
 		if (a < 0.5) {
 			discard;
 		}

@@ -335,6 +335,9 @@ const SHOTS := {
 	# the player wading the bog.
 	"ground-swamp": {"time": 0.42, "season": 1, "at": [18, 26]},
 	"ground-bog": {"time": 0.42, "season": 1, "at": [19, 33], "y": 23},
+	# Swimming in the deep end of the pond and in the deep corner of the swamp's pond.
+	"ground-swim": {"time": 0.42, "season": 1, "at": [-20, 26], "y": 18},
+	"ground-swim-swamp": {"time": 0.42, "season": 1, "at": [19, 27], "y": 21},
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
@@ -422,7 +425,7 @@ func _run() -> void:
 		main.settings.set_value("shadows", shot.get("shadows", true))
 		# Fires burn steadily in shots, so shots with and without shadows compare.
 		main.effects.flicker_clock = -INF
-		main.controls.show_help = false
+		main.settings.set_value("show_help", false)
 		main.chunks.manual_level = -1
 		if shot.get("shore", false):
 			main.player.position = _shore(main.world, main.player.position)
