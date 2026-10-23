@@ -27,6 +27,8 @@ const REGION := 32
 const REGION_SHIFT := 5
 const REGION_PX := REGION * WorldData.CHUNK / STEP
 const CHUNK_PX := WorldData.CHUNK / STEP
+## The way the camera looks, up on the screen (see set_view_up).
+var view_up := Vector2(0.0, -1.0)
 ## Colours of the ground by its top, shaded by height (a var: the materials are data
 ## of the core mod, not constants).
 var colors: Dictionary = {
@@ -194,6 +196,14 @@ func _mark_color(id: String) -> Color:
 	return _mark_colors[id]
 
 
+## The way the camera looks (up on the screen) when it is turned: a short line from
+## the player's dot shows it.
+func set_view_up(up: Vector2) -> void:
+	if not up.is_equal_approx(view_up):
+		view_up = up
+		queue_redraw()
+
+
 func set_player(cell: Vector2i) -> void:
 	if cell != player_cell:
 		player_cell = cell
@@ -265,6 +275,12 @@ func _draw() -> void:
 	draw_rect(Rect2(inner.position, Vector2(SIZE, 1)), UiStyle.WELL_SHADE)
 	draw_rect(Rect2(inner.position, Vector2(1, SIZE)), UiStyle.WELL_SHADE)
 	var mid := inner.position + (inner.size * 0.5).floor()
+	if not view_up.is_equal_approx(Vector2(0.0, -1.0)):
+		for i in range(3, 9):
+			var p := (mid + Vector2(0.5, 0.5) + view_up * i).floor()
+			draw_rect(Rect2(p - Vector2.ONE, Vector2(3, 3)), UiStyle.EDGE)
+		for i in range(3, 9):
+			draw_rect(Rect2((mid + Vector2(0.5, 0.5) + view_up * i).floor(), Vector2.ONE), UiStyle.ACCENT)
 	draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.EDGE)
 	draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
 	draw_rect(Rect2(mid, Vector2(1, 1)), UiStyle.INK)

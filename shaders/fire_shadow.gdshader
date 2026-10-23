@@ -55,7 +55,7 @@ void fragment() {
 	// Over its far part the wedge thins out to nothing by an ordered dither, in whole
 	// texels of the ground.
 	float fade = clamp((1.0 - UV.y) / FADE, 0.0, 1.0);
-	if (bayer4(floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS)) > fade) {
+	if (bayer4(floor(screen_plane(world_pos) * TEXELS)) > fade) {
 		discard;
 	}
 	float along = shape.x + UV.y * shape.y;

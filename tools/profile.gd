@@ -34,6 +34,13 @@ const SCENES := {
 	"cave": {"time": 0.45, "season": 1, "underground": true},
 	"bag": {"time": 0.45, "season": 1, "bag": true},
 	"stats": {"time": 0.45, "season": 1, "stats": true},
+	# The camera turned (steps of 15 degrees) or tilted (steps of 5 degrees), and
+	# turning a step every 20 frames (`spin`).
+	"day-turn-45": {"time": 0.45, "season": 1, "turn": 3},
+	"day-turn-180": {"time": 0.45, "season": 1, "turn": 12},
+	"day-tilt-low": {"time": 0.45, "season": 1, "tilt": -3},
+	"day-tilt-steep": {"time": 0.45, "season": 1, "tilt": 3},
+	"day-turning": {"time": 0.45, "season": 1, "spin": true},
 }
 
 ## Microseconds spent in each piece over the measured frames, by name, in the order
@@ -153,6 +160,9 @@ func _profile() -> void:
 		main.settings.values.fire_shadows = s.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.set_value("shadows", s.get("shadows", true))
 		main.chunks.manual_level = -1
+		main.settings.values.camera_turn = s.get("turn", 0)
+		main.settings.values.camera_tilt = s.get("tilt", 0)
+		main.view.look_at_player()
 		main.hud.perf.visible = s.get("stats", false)
 		if main.hud.bag.visible:
 			main.hud.toggle_bag()
@@ -189,6 +199,8 @@ func _profile() -> void:
 		var tris := 0.0
 		var last := Time.get_ticks_usec()
 		for i in frames:
+			if s.get("spin", false) and i % 20 == 0:
+				main.view.turn_by(1)
 			_frame(main.get_process_delta_time())
 			await process_frame
 			var now := Time.get_ticks_usec()

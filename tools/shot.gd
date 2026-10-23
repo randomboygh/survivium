@@ -15,6 +15,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 const CELL := 0.5
 ## How far around the player (in cells) the shore, water and lone tree searches look:
 ## the world has no edge, only the chunks generated around.
@@ -192,6 +193,16 @@ const SHOTS := {
 	"sack-night": {"time": 0.95, "season": 1, "death": true, "revive": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
+	# The camera turned (steps of 15 degrees to the left) and tilted (steps of 5
+	# degrees steeper): by day among trees, and the camera buttons under the minimap.
+	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 3},
+	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 6},
+	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 12},
+	"turn-trees": {"time": 0.45, "season": 1, "trees": true},
+	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -3},
+	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 3},
+	"turn-hut": {"time": 0.45, "season": 1, "hut": true, "turn": 9, "tilt": -2},
+	"turn-ui": {"time": 0.45, "season": 1, "turn": 2, "tilt": 1, "touch": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
 	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
@@ -363,6 +374,9 @@ func _run() -> void:
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
+		main.settings.values.camera_turn = shot.get("turn", 0)
+		main.settings.values.camera_tilt = shot.get("tilt", 0)
+		main.view.look_at_player()
 		if shot.get("work", false):
 			_work()
 		main.hud.perf.visible = shot.get("stats", false)
@@ -402,7 +416,7 @@ func _run() -> void:
 			c.pos.y = main.wildlife.ground(c.pos.x, c.pos.z)
 			c.target = c.pos
 			c.think = 100.0
-		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
+		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
 					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)

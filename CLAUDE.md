@@ -62,8 +62,13 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `find_place`). Texture maps over the world (roof, heat) wrap every `RoofMap.WRAP` cells
   (`wrap_size` shader global).
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
-  VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
-  `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
+  VERTEX like the others (oblique 3/4 view: `z -= y` in the default view, camera looks straight down);
+  lights go at `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. The camera turns in 15°
+  steps and tilts ±15° (`camera_rig.gd`, `PixelView.set_view`): the shear then runs up the image
+  (`view_up`, `view_slope`, `view_squash` globals), upright quads face the camera through
+  `face_view`, texels counted on the screen use `screen_plane`, screen directions go through
+  `PixelView.world_dir` / `screen_dir`, and chunk culling boxes are refitted for every view on
+  the way (`ChunkStreamer.refit_boxes`). Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
   creatures, trees, bushes, recipes, plants), lists of records with namespaced ids (`core:grass`). `src/shared/content/content.gd`
   reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI, and that

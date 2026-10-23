@@ -144,7 +144,11 @@ func _aim_sun(azimuth: float, elevation: float) -> void:
 	var az := deg_to_rad(azimuth)
 	var el := deg_to_rad(elevation)
 	to_sun = Vector3(-sin(az) * cos(el), sin(el), cos(az) * cos(el))
-	sun.global_transform.basis = Basis.looking_at(-to_sun, Vector3.UP)
+	# The light shines in the drawn world: turned with the view, so the shadows stay
+	# where they fall in the default view, while faces are lit as in it (sun_view).
+	sun.global_transform.basis = Basis.looking_at(-PixelView.light_dir(to_sun), Vector3.UP)
+	var view := PixelView.camera_transform(Vector2.ZERO).basis
+	RenderingServer.global_shader_parameter_set("sun_view", view.transposed() * to_sun)
 
 
 ## Sun rays in the air: by day in clear weather, and brighter in the wet air after

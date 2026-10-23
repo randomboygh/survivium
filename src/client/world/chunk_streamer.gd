@@ -514,6 +514,14 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		_fit_box(n)
 
 
+## Fits the culling boxes of every chunk shown to the views the camera may show next
+## (PixelView.box_views), when it turns or tilts.
+func refit_boxes() -> void:
+	for parts: Array in chunk_nodes.values():
+		for n: GeometryInstance3D in parts:
+			_fit_box(n)
+
+
 ## Culls a part of a chunk by what it draws, moved north as the shaders draw it, instead
 ## of a margin of a level's height all round, which kept nearly every chunk loaded drawn
 ## (636 draw calls against 301 at the spawn by day, 2026-10-21).

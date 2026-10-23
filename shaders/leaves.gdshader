@@ -42,7 +42,7 @@ void vertex() {
 	tint = COLOR;
 	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
-	VERTEX = shear(VERTEX);
+	VERTEX = shear(face_view(VERTEX, center));
 }
 
 void fragment() {
@@ -59,7 +59,7 @@ void fragment() {
 		row = float(branch_row);
 	}
 	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (row + UV.y) / float(clump_rows)));
-	vec2 texel = floor(vec2(center.x, center.z - center.y) * TEXELS + UV * clump_size * TEXELS);
+	vec2 texel = floor(screen_plane(center) * TEXELS + UV * clump_size * TEXELS);
 	if (m.a < 0.5 || cut_dither(center.y, texel)) {
 		discard;
 	}
@@ -72,9 +72,11 @@ void fragment() {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them.
-	vec2 frag = vec2(center.x + (UV.x - 0.5) * clump_size, center.z - center.y - (0.5 - UV.y) * clump_size);
-	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
-	if (center.y + center.z > player_pos.y + player_pos.z + 1.0 && length(frag - body) < 1.1) {
+	vec2 frag = screen_plane(center) + vec2((UV.x - 0.5) * clump_size, -(0.5 - UV.y) * clump_size * view_slope);
+	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
+	float toward = view_slope / view_squash;
+	if (center.y - dot(center.xz, view_up) * toward > player_pos.y - dot(player_pos.xz, view_up) * toward + 1.0
+			&& length(frag - body) < 1.1) {
 		ivec2 f = ivec2(FRAGCOORD.xy);
 		if ((f.x + f.y) % 2 == 0) {
 			discard;
@@ -130,7 +132,7 @@ void light() {
 		// ambient light adds the blue). A sun shadow (often of the crown's own upper
 		// leaves, which a convex crown would not cast on its sunny side) or a cloud
 		// takes one step off.
-		float ndl = dot(NORMAL, LIGHT);
+		float ndl = dot(NORMAL, sun_view);
 		float shadow = min(step(0.5, ATTENUATION), step(0.99, clouds));
 		float step_n = (ndl > 0.6 ? 3.0 : (ndl > 0.38 ? 2.0 : (ndl > 0.08 ? 1.0 : 0.0))) - (1.0 - shadow);
 		vec3 band = step_n > 2.5 ? vec3(1.55, 1.45, 0.7) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? vec3(0.7) : vec3(0.32)));

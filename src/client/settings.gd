@@ -39,6 +39,10 @@ const DEFAULTS := {
 	"fps_limit": 0,
 	"ui_scale": 0,
 	"show_help": true,
+	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
+	# each (0..23), tilted steeper by CameraRig.TILT_STEP each (-3..3).
+	"camera_turn": 0,
+	"camera_tilt": 0,
 	# Things lying near the player fly into the bag by themselves (see Gathering).
 	"auto_pickup": true,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
