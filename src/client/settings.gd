@@ -16,8 +16,10 @@ const PATH := "user://settings.cfg"
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
 ## a 40 minute day, slow enough for the meditative pace.
 const TIME_SPEEDS := [0.05, 0.1, 0.2, 0.5, 1.0]
-## How much larger than normal the world pixel is; the image gets that much smaller.
-const PIXEL_SIZES := [1.0, 1.5, 2.0]
+## How much larger than normal the world pixel is, «очень мелкий» to «крупный»; the
+## image gets that much smaller (a smaller pixel shows more of the world, and costs more
+## to draw).
+const PIXEL_SIZES := [0.75, 0.875, 1.0, 1.25, 1.5]
 const FPS_LIMITS := [0, 30, 60]
 ## The settings that are saved, with their defaults.
 const DEFAULTS := {
@@ -34,7 +36,7 @@ const DEFAULTS := {
 	"sun_rays": true,
 	# Fog drawn on the ground, deep in the low places (Sky._update_fog); off, a plain haze.
 	"fog": true,
-	"pixel_size": 0,
+	"pixel_scale": 2,
 	"fps_limit": 0,
 	# The interface and the touch controls size, «очень мелкий» to «крупный» (see
 	# Hud.UI_SIZES, Hud.CONTROL_SIZES).
@@ -63,9 +65,9 @@ const DEFAULTS := {
 ## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
 ## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
 const QUALITIES := [
-	{"pixel_size": 1, "shadows": false, "fire_shadows": 0, "effects": false, "sun_rays": false, "fog": false},
-	{"pixel_size": 0, "shadows": true, "fire_shadows": 1, "effects": true, "sun_rays": false, "fog": true},
-	{"pixel_size": 0, "shadows": true, "fire_shadows": 3, "effects": true, "sun_rays": true, "fog": true},
+	{"pixel_scale": 4, "shadows": false, "fire_shadows": 0, "effects": false, "sun_rays": false, "fog": false},
+	{"pixel_scale": 2, "shadows": true, "fire_shadows": 1, "effects": true, "sun_rays": false, "fog": true},
+	{"pixel_scale": 2, "shadows": true, "fire_shadows": 3, "effects": true, "sun_rays": true, "fog": true},
 ]
 ## Playtest clock: stopped, normal, or faster on top of the time speed setting.
 const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
@@ -117,6 +119,9 @@ var shadow_map := 1
 ## The full screen last asked for in the browser, and when (see fullscreen).
 var _fullscreen_wanted := false
 var _fullscreen_asked := -100000
+## How long the browser is given to fill the screen before a refusal is told, in seconds;
+## past the 1.5 s fullscreen() trusts the wish for.
+const FULLSCREEN_WAIT := 2.0
 
 
 func _init(g) -> void:
@@ -138,6 +143,9 @@ func load() -> void:
 	# Before five sizes the interface had three, the normal one first.
 	if not cfg.has_section_key("game", "ui_size") and cfg.has_section_key("game", "ui_scale"):
 		values.ui_size = clampi(int(cfg.get_value("game", "ui_scale", 0)) + 2, 0, 4)
+	# Before five steps the pixel had three, the normal one first, then 1.5 and 2.
+	if not cfg.has_section_key("game", "pixel_scale") and cfg.has_section_key("game", "pixel_size"):
+		values.pixel_scale = 2 if int(cfg.get_value("game", "pixel_size", 0)) == 0 else 4
 
 
 func save() -> void:
@@ -184,7 +192,7 @@ func time_speed() -> float:
 
 
 func pixel_size() -> float:
-	return PIXEL_SIZES[values.pixel_size]
+	return PIXEL_SIZES[values.pixel_scale]
 
 
 ## Pushes every setting into the modules. Safe to call before the world is built: what
@@ -237,17 +245,24 @@ func reset() -> void:
 	save()
 
 
-## Whether the game can fill the whole screen here: a computer's window, or a browser
-## that lets a page hide its own bars (not Safari on an iPhone).
+## Whether to offer the full screen here: a computer's window, or a browser (all but
+## Safari on an iPhone, which has no way for a page to hide its bars). Some phone
+## browsers keep the way to it hidden, so in a browser the row is always there and a
+## refusal is told when it is tried (see set_fullscreen).
 func can_fullscreen() -> bool:
 	if OS.has_feature("web"):
-		# Some phone browsers have only the older webkit names.
-		return JavaScriptBridge.eval("""(function () {
-			var e = document.documentElement;
-			return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled
-				|| e.requestFullscreen || e.webkitRequestFullscreen);
-		})()""", true) == true
+		return not OS.has_feature("web_ios") or _fullscreen_api()
 	return not OS.has_feature("mobile")
+
+
+## Whether the browser has a way for the page to fill the screen; some phone browsers
+## have only the older webkit names.
+func _fullscreen_api() -> bool:
+	return JavaScriptBridge.eval("""(function () {
+		var e = document.documentElement;
+		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled
+			|| e.requestFullscreen || e.webkitRequestFullscreen);
+	})()""", true) == true
 
 
 func fullscreen() -> bool:
@@ -260,23 +275,43 @@ func fullscreen() -> bool:
 		DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
 
 
-## Not saved: a browser lets a page take the whole screen only right after a tap.
+## Not saved: a browser lets a page take the whole screen only right after a tap. The
+## game reads the tap a frame after the browser has passed it on, which a strict
+## browser does not count, so the page also asks again when the finger is lifted.
+## When the screen is still not full a moment later, a toast says the browser refused.
 func set_fullscreen(on: bool) -> void:
 	if OS.has_feature("web"):
 		_fullscreen_wanted = on
 		_fullscreen_asked = Time.get_ticks_msec()
 		JavaScriptBridge.eval("""(function (on) {
 			var e = document.documentElement;
+			var full = function () { return document.fullscreenElement || document.webkitFullscreenElement; };
 			if (on) {
-				var go = e.requestFullscreen || e.webkitRequestFullscreen;
-				if (go) { var p = go.call(e); if (p && p.catch) p.catch(function () {}); }
+				var go = function () {
+					var ask = e.requestFullscreen || e.webkitRequestFullscreen;
+					if (ask && !full()) { try { var p = ask.call(e); if (p && p.catch) p.catch(function () {}); } catch (x) {} }
+				};
+				go();
+				['pointerup', 'touchend', 'mouseup'].forEach(function (k) {
+					document.addEventListener(k, go, {once: true, capture: true});
+				});
 			} else {
 				var back = document.exitFullscreen || document.webkitExitFullscreen;
-				if (back && (document.fullscreenElement || document.webkitFullscreenElement)) back.call(document);
+				if (back && full()) back.call(document);
 			}
 		})(%s)""" % ("true" if on else "false"), true)
+		if on:
+			game.get_tree().create_timer(FULLSCREEN_WAIT).timeout.connect(_check_fullscreen)
 		return
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
+
+
+## Tells the player when the browser did not let the game fill the screen.
+func _check_fullscreen() -> void:
+	if not _fullscreen_wanted or fullscreen():
+		return
+	if game.hud != null:
+		game.hud.toast("Браузер не дал игре весь экран: откройте её в Chrome")
 
 
 # --- Playtest switches --------------------------------------------------------------
