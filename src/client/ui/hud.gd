@@ -432,7 +432,8 @@ func _place() -> void:
 	var clock_room := _clock_panel.size.y - 2
 	y -= clock_room
 	_bar.position = Vector2(x, y)
-	_clock_panel.position = Vector2(x + bw - _clock_panel.size.x, y + bh - 2)
+	_clock_panel.position.y = y + bh - 2
+	_align_clock()
 	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
 	_bag_meter.position = Vector2(x + bw - METER_WIDTH, y - _bag_meter.size.y + 2)
 
@@ -577,6 +578,14 @@ func _place_top() -> void:
 		minimap.position.y + minimap.size.y + 6)
 
 
+## Keeps the clock's right edge on the hotbar's as its text and icons change width.
+func _align_clock() -> void:
+	var wide := _clock_panel.get_combined_minimum_size().x
+	if not is_equal_approx(_clock_panel.size.x, wide):
+		_clock_panel.size.x = wide
+	_clock_panel.position.x = _bar.position.x + _bar.size.x - wide
+
+
 ## The season, the day and the time, as the clock under the hotbar shows them.
 func clock_text() -> String:
 	var hours := int(game.clock.time_of_day * 24.0)
@@ -597,6 +606,7 @@ func update_state() -> void:
 	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
+	_align_clock()
 	# Eight ways, so the arrow stays on the pixel grid.
 	# The way it blows on the screen, as the camera is turned.
 	var blow := PixelView.screen_dir(Vector2.from_angle(game.clock.wind_angle)).angle()
