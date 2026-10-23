@@ -8,7 +8,8 @@
 //          texture itself is laid by world position, a 16x16 tile over two cells.
 //   UV2.x = tile + 64 * edges + 16384 * flag; tile 63 means "colour from COLOR only"
 //          (voxels); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
-//          outline, 3 contact shadow; flag bits: 1 = season-tinted foliage voxel,
+//          outline, 3 contact shadow (on tops 1 and 2 both mean open ground lower
+//          beside, drawn as a rim or an outline by the camera's turn); flag bits: 1 = season-tinted foliage voxel,
 //          2 = wall with open sky above (gets a snow fringe), 4 = sloping top or
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
@@ -40,6 +41,10 @@ const int STONE = 3;
 const int SAND = 4;
 // Which material grows over which at a boundary; 0 never blends.
 const int PRIORITY[12] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 1, 0);
+// Outward directions of the N, S, W, E edges of a face, and of the diagonals of
+// corners NW, NE, SE, SW (seen from the rest of the cell).
+const vec2 EDGE_OUT[4] = vec2[](vec2(0.0, -1.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(1.0, 0.0));
+const vec2 CORNER_OUT[4] = vec2[](vec2(-0.7071, -0.7071), vec2(0.7071, -0.7071), vec2(0.7071, 0.7071), vec2(-0.7071, 0.7071));
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -208,9 +213,25 @@ void fragment() {
 	// something farther away, a soft contact shadow in inner corners. On tops the
 	// outline gets a lit bevel inside it, so the far edge of a raised block reads
 	// clearly against the same ground behind it.
+	// An open edge of a top (1 or 2) is a rim where the wall below it faces the camera
+	// and an outline where that wall faces away or aside. The outline on a side of a
+	// wall shows only where the face beyond that side turns away from the camera: the
+	// side wall of the cell, or on a trunk's cut corner the side of the trunk beyond.
+	// Texture x runs east on north and south walls, south on east and west ones, and to
+	// the right seen from outside on slanted ones (ChunkMesher._bark).
+	vec2 nh = world_normal.xz;
+	bool square = abs(nh.x) > 0.9 || abs(nh.y) > 0.9;
+	vec2 east = square ? (abs(nh.y) > 0.9 ? vec2(1.0, 0.0) : vec2(0.0, 1.0)) : vec2(nh.y, -nh.x);
 	float ao = 1.0;
 	for (int e = 0; e < 4; e++) {
 		int code = (edges >> (2 * e)) & 3;
+		if (top && (code == 1 || code == 2)) {
+			code = dot(EDGE_OUT[e], view_up) < -0.1 ? 1 : 2;
+		} else if (!top && code == 2 && e >= 2) {
+			vec2 side = e == 3 ? east : -east;
+			vec2 beyond = square ? side : normalize(nh + side);
+			code = dot(beyond, view_up) > -0.05 ? 2 : 0;
+		}
 		if (code == 1 && dist[e] == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dist[e] == 0) {
@@ -229,6 +250,10 @@ void fragment() {
 		int dd = corner_distance(t, k, corner_shapes[tile / 3]);
 		dd = (flag & 64) != 0 ? -dd : dd;
 		int code = (flag >> 7) & 3;
+		if (top && (code == 1 || code == 2)) {
+			vec2 across = CORNER_OUT[k] * ((flag & 64) != 0 ? -1.0 : 1.0);
+			code = dot(across, view_up) < -0.1 ? 1 : 2;
+		}
 		if (code == 1 && dd == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dd == 0) {

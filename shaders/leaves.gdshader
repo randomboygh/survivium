@@ -8,7 +8,8 @@
 // Single leaves differ a little in tone and their upper edges catch the light, so they
 // show one by one the way grass blades do.
 // INSTANCE_CUSTOM: xyz = normal of the crown at the card, w = row of the clump texture
-// (whole part, plus 8 for the deep layer of a crown) + sway phase (fraction).
+// (whole part, plus 8 for the deep layer of a crown) + sway phase (fraction), negative
+// for a sprig drawn in front of a spruce's trunk.
 // COLOR: tint of the tree; alpha what it does in winter (see Foliage): 1 keeps dry
 // leaves under snow, 0.8 goes bare, 0.6 is evergreen, 0.1, 0.2.. a bush of type 0, 1..
 // (see Foliage.bush_kind), whose berries are pixels of the texture marked in alpha.
@@ -26,6 +27,10 @@ uniform float clump_size = 1.5;
 // beyond it, in world units.
 const float SEE_THROUGH = 1.8;
 const float SEE_RIM = 0.5;
+// How far a sprig is drawn in front of a spruce's trunk, and the deep layer of a crown
+// behind its outer cards, toward or away from the camera whichever way it looks.
+const float SPRIG_AHEAD = 0.4375;
+const float DEEP_BEHIND = 0.25;
 // How far in front of the player a clump starts to clear, and as far again until it
 // clears in full.
 const float SEE_FRONT = 0.5;
@@ -50,9 +55,18 @@ void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
 	tint = COLOR;
+	vec2 away = vec2(0.0);
+	if (custom.w < 0.0) {
+		away = -view_up * SPRIG_AHEAD;
+		custom.w = -custom.w;
+	} else if (tint.a >= 0.5 && custom.w >= 8.0) {
+		away = view_up * DEEP_BEHIND;
+	}
+	center.xz += away;
+	VERTEX.xz += away;
 	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
-	VERTEX = shear(face_view(VERTEX, center));
+	VERTEX = shear(stand_tall(face_view(VERTEX, center), center));
 	light_xz = VERTEX.xz;
 }
 
@@ -102,7 +116,8 @@ void fragment() {
 	// on their own in the wind.
 	vec2 tilt = berry ? vec2(0.0) : (m.gb * 2.0 - 1.0) * 0.5;
 	tilt.x += sin(TIME * 2.3 + leaf * 6.28 + center.x * 0.7) * (0.04 + length(wind) * 0.3);
-	vec3 n = normalize(custom.xyz + vec3(tilt.x, tilt.y, -tilt.y * 0.4));
+	vec2 r = vec2(-view_up.y, view_up.x);
+	vec3 n = normalize(custom.xyz + vec3(r.x * tilt.x + view_up.x * tilt.y * 0.4, tilt.y, r.y * tilt.x + view_up.y * tilt.y * 0.4));
 	// Autumn colours differ from tree to tree; evergreens hardly change.
 	vec3 season = foliage_tint * (1.0 + (hash12(floor(center.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
 	season = evergreen ? mix(vec3(1.0), season, 0.15) : season;

@@ -27,9 +27,10 @@ const LAYER_PLAYER := 8
 ## Direction of view rays in the unsheared world in the default view: down and north
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
-## The view's elevation in the default view, and how far the camera may tilt from it.
-const ELEVATION := PI / 4.0
-const MAX_TILT := PI / 12.0
+## How far the camera may tilt from the default view: a tilt of t draws a wall of one
+## cell (1 - t) as tall, while the tops stay 8 px, so at every step a wall is a whole
+## number of pixels (see set_view).
+const MAX_TILT := 0.5
 
 ## The view the shaders draw (see set_view): which way of the world is up on the image
 ## (x, z), how much the tops are stretched along it and how long a wall of one unit is,
@@ -66,11 +67,11 @@ static func camera_size(image_height: int) -> float:
 
 
 ## Sets the view: the camera turned `turn` radians to the left from looking north
-## (a quarter turn looks west) and tilted `tilt` radians from 45 degrees down (more is steeper). The
-## camera still looks straight down; the shaders move each point up the image by its
-## height (`slope`) and stretch the tops along it (`squash`), as a real camera at that
-## elevation would draw them, scaled so that the default view keeps its 16 px cells.
-## Sets the shader globals too.
+## (a quarter turn looks west) and tilted `tilt` steeper (see MAX_TILT). The camera
+## still looks straight down; the shaders move each point up the image by its height
+## (`slope`), so walls get shorter as a steeper camera would draw them, while the tops
+## keep their 8 px a cell (`squash` 1) and the pixel grid holds. Sets the shader
+## globals too.
 static func set_view(turn: float, tilt: float) -> void:
 	var v := view_of(turn, tilt)
 	up = v[0]
@@ -84,8 +85,7 @@ static func set_view(turn: float, tilt: float) -> void:
 
 ## [up, squash, slope] of a view (see set_view).
 static func view_of(turn: float, tilt: float) -> Array:
-	var el := ELEVATION + tilt
-	return [Vector2(-sin(turn), -cos(turn)), sqrt(2.0) * sin(el), sqrt(2.0) * cos(el)]
+	return [Vector2(-sin(turn), -cos(turn)), 1.0, 1.0 - tilt]
 
 
 ## Where the shaders draw a world point: moved up the image by its height, the tops

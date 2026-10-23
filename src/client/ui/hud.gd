@@ -605,10 +605,10 @@ func update_state() -> void:
 		_wind_step = step
 		_wind.queue_redraw()
 	var view = game.view
-	# The turn in degrees, and the tilt under it when there is one: "90°", "90°\n+10".
+	# The turn in degrees, and the tilt in steps under it when there is one: "90°", "90°\n+1".
 	var text := "%d°" % view.turn_degrees()
 	if view.tilt_steps != 0:
-		text += "\n%+d" % (view.tilt_steps * 5)
+		text += "\n%+d" % view.tilt_steps
 	if text != _camera_text:
 		_camera_text = text
 		_camera_reset.text = text

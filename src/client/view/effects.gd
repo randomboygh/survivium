@@ -74,6 +74,10 @@ var weather_emitters: Array[CPUParticles3D] = []
 var bolt: MeshInstance3D
 var bolt_mesh: ImmediateMesh
 var bolt_light: OmniLight3D
+## Lights that stay over a place of the world, with that place: [light, world point].
+## Lights live where the shaders draw (PixelView.shear), so they move when the
+## camera turns (see reanchor).
+var _anchored := []
 var bolt_time := 0.0
 var fireflies: CPUParticles3D
 ## The world the fireflies fly over (WorldData): only over grass, bushes and under the
@@ -288,8 +292,8 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	# No falloff of its own: the shaders step the light into rings (see toon_light).
 	light.omni_attenuation = 0.0
 	light.shadow_caster_mask = FIRE_CASTERS
-	light.position = PixelView.shear(c + Vector3(0.0, 0.6, 0.0))
 	add_child(light)
+	anchor(light, c + Vector3(0.0, 0.6, 0.0))
 	var fire := {"light": light, "base": 1.8, "unit": Vector3i(c.floor()), "at": c}
 	fires.append(fire)
 	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire}
@@ -641,6 +645,23 @@ func sack_glow(at: Vector3) -> Node3D:
 	light.omni_range = 3.0
 	light.omni_attenuation = 0.0
 	light.shadow_enabled = false
-	light.position = PixelView.shear(at + Vector3(0.0, 0.5, 0.0))
 	root.add_child(light)
+	anchor(light, at + Vector3(0.0, 0.5, 0.0))
 	return root
+
+
+## Puts `light` over world point `p` as the shaders draw it, and keeps it there when
+## the camera turns.
+func anchor(light: Light3D, p: Vector3) -> void:
+	light.position = PixelView.shear(p)
+	_anchored.append([light, p])
+
+
+## Puts the anchored lights where the view now draws their places; forgets the freed.
+func reanchor() -> void:
+	var kept := []
+	for a: Array in _anchored:
+		if is_instance_valid(a[0]):
+			a[0].position = PixelView.shear(a[1])
+			kept.append(a)
+	_anchored = kept
