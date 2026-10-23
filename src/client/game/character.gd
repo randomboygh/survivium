@@ -39,8 +39,14 @@ func _fell() -> void:
 
 
 func _came_back(at: Vector3) -> void:
-	game.player.position = at
+	teleport(at)
 	game.player.visible = true
+
+
+## Puts the body at `at` (world units) at once, the view with it.
+func teleport(at: Vector3) -> void:
+	game.player.position = at
+	body.velocity_y = 0.0
 	game.view.look_at_player()
 
 
