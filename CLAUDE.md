@@ -19,7 +19,9 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                a jump; trails in the snow),
                placed (chests, stations, campfires on 2x2 cells), workshop (crafting),
                clock (time of day, seasons, moon phases, the weather and its WEATHERS table,
-               the wind's side and the autumn leaf fall), storms (what a gale breaks and
+               the wind's side and the autumn leaf fall; or the device's time and calendar),
+               real_weather (the real weather where the device is, by IP and Open-Meteo,
+               pinned on the clock), storms (what a gale breaks and
                knocks off the trees and bushes around the player),
                character (the bag, the body's state, action costs, eating, what a life did, death and
                coming back),
