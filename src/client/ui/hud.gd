@@ -551,8 +551,9 @@ func refresh_counts() -> void:
 ## The top of the interface: the statistics over it when shown, under them the state
 ## on the left, the buttons on the right, the minimap under the buttons with the level
 ## buttons on its left and the camera cross under it. The statistics take the room
-## left of the buttons when their lines fit there (a wide screen); else they go across
-## the whole top and everything moves down under them (a phone held upright).
+## left of the buttons when PerfPanel.WIDTH fits there (a wide screen); else they go
+## across the whole top and everything moves down under them (a phone held upright).
+## Their width stays as it is while their numbers change.
 func _place_top() -> void:
 	var w := size.x
 	_top.reset_size()
@@ -563,7 +564,7 @@ func _place_top() -> void:
 	var left := MARGIN
 	if perf.visible:
 		var beside := w - 3 * MARGIN - column
-		perf.width = beside if perf.natural_width() <= beside else w - 2 * MARGIN
+		perf.width = perf.WIDTH if perf.WIDTH <= beside else w - 2 * MARGIN
 		perf.position = Vector2(MARGIN, MARGIN)
 		perf.size = Vector2(perf.width, 0)
 		left += perf.size.y + 6
