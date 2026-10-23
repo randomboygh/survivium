@@ -1599,6 +1599,10 @@ func _test_vitals() -> void:
 	v.satiety = 30.0
 	v.step(0.0, 20.0 / Vitals.HUNGER_PER_DAY, false)
 	_check(is_equal_approx(v.satiety, 10.0) and v.health == Vitals.MAX, "hunger empties satiety over game days")
+	v.hunger = false
+	v.step(0.0, 5.0, false)
+	_check(is_equal_approx(v.satiety, 10.0), "with hunger off satiety stays")
+	v.hunger = true
 	v.step(0.0, 0.5, false)
 	_check(v.health < Vitals.MAX and v.hurt_by == "hunger", "only starving hurts")
 	_check(v.stamina_cap() < Vitals.MAX, "hunger lowers stamina")
@@ -1797,6 +1801,13 @@ func _test_placed() -> void:
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
 	_check(who.inventory.count("core:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
+	for id in ["core:flint", "core:cord"]:
+		who.inventory.add(id, 1)
+	who.inventory.add("core:branch", 2)
+	var quick := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
+	_check(quick.start(axe) == 1, "another axe is started")
+	quick.update(0.01)
+	_check(who.inventory.count("core:stone_axe") == 2, "with instant crafting it is made in a frame")
 	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
 	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "a campfire that burns is a station")
 	var cook := Survivor.new()
@@ -1970,7 +1981,7 @@ func _test_death() -> void:
 	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
 		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
 	_check(ch.sacks.size() == 1 and ch.sacks[0].is_equal_approx(sack[1]), "the character knows where the sack lies (the maps mark it)")
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
 		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
@@ -1990,19 +2001,41 @@ func _test_death() -> void:
 	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
 	_check(ch.fell_at.is_finite(), "and the place of the last death is not forgotten")
 	ch.at = sack[1]
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	_check(ch.inventory.count("core:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
 	# What lies at the feet flies into the bag only as far as the weight limit goes, so
 	# digging with the button held does not leave the body too heavy to jump.
 	ch.at = ch.back_at
 	var heap := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
 	w.heap_drop("core:stone", heap, 30, 0.0)
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	var left := 0
 	for d: Array in w.drops.get(WorldData.chunk_key(floori(heap.x / WorldData.CELL), floori(heap.z / WorldData.CELL)), []):
 		left += WorldActions.count(d) if d[0] == "core:stone" else 0
 	_check(ch.inventory.count("core:stone") > 0 and not ch.inventory.overloaded() and left > 0
 		and ch.inventory.count("core:stone") + left == 30, "things are taken up by themselves only up to the weight limit")
+	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, WorldActions.PICKUP_ALL, true)
+	_check(ch.inventory.count("core:stone") == 30 and ch.inventory.overloaded(), "or past it when the setting says so")
+	ch.inventory.take_all()
+	var spot := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
+	var food := ""
+	for id: String in Items.IDS:
+		if Items.food(id) > 0.0 and food == "":
+			food = id
+	w.heap_drop("core:stick", spot, 2, 0.0)
+	w.heap_drop("core:branch", spot, 2, 0.0)
+	w.heap_drop(food, spot, 1, 0.0)
+	ch.inventory.add("core:branch", 1)
+	var acts := WorldActions.new(w, ch.clock, {"free_build": false})
+	acts.pick_up_near(ch, WorldActions.PICKUP_NONE)
+	_check(ch.inventory.count("core:branch") == 1 and ch.inventory.count(food) == 0, "pickup «ничего» takes nothing")
+	acts.pick_up_near(ch, WorldActions.PICKUP_FOOD)
+	_check(ch.inventory.count(food) == 1 and ch.inventory.count("core:branch") == 1, "pickup «еду» takes only food")
+	acts.pick_up_near(ch, WorldActions.PICKUP_KNOWN)
+	_check(ch.inventory.count("core:branch") == 3 and ch.inventory.count("core:stick") == 0,
+		"pickup «что есть» takes only what the bag already has")
+	acts.pick_up_near(ch, WorldActions.PICKUP_ALL)
+	_check(ch.inventory.count("core:stick") == 2, "pickup «всё» takes the rest")
 
 
 func _bits(v: int) -> int:

@@ -633,7 +633,7 @@ func _run() -> void:
 		if shot.get("death", false):
 			main.death_screen._revive(main.character.home)
 		if shot.get("work", false):
-			main.settings.set_value("auto_pickup", true)
+			main.settings.set_value("pickup", 0)
 			main.controls.hold("")
 			main.controls._cursor_clock = 0.0
 	quit()
@@ -695,7 +695,7 @@ func _hands(h: Dictionary) -> void:
 func _work() -> void:
 	var c = main.controls
 	var w = main.world
-	main.settings.set_value("auto_pickup", false)
+	main.settings.set_value("pickup", 3)
 	main.settings.give_tools()
 	main.character.inventory.add("core:stone", 20)
 	var f: Vector3i = c.feet()

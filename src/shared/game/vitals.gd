@@ -33,6 +33,8 @@ var health := MAX
 var satiety := 80.0
 var stamina := MAX
 ## Why health went down last ("hunger", "water", "fire"), for the message on death.
+## Whether satiety falls with time; a playtest switch turns it off.
+var hunger := true
 var hurt_by := ""
 
 
@@ -40,7 +42,8 @@ var hurt_by := ""
 ## `swimming`: in deep water; `load_factor`: Inventory.load_share() (recovery halves
 ## past the limit).
 func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void:
-	satiety = maxf(0.0, satiety - HUNGER_PER_DAY * days)
+	if hunger:
+		satiety = maxf(0.0, satiety - HUNGER_PER_DAY * days)
 	if satiety <= 0.0:
 		_hurt(STARVE_PER_DAY * days, "hunger")
 	elif satiety > WELL_FED:
