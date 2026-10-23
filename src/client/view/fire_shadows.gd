@@ -1,8 +1,8 @@
 extends MultiMeshInstance3D
 ## Drawn shadows from every fire on the screen and the torch, as dark as the fire's ring
 ## they lie in (fire_shadow.gdshader multiplies them into the ground):
-## - a flat wedge on the ground behind the player, each animal and each tree trunk in a
-##   light, pointing away from it;
+## - a flat wedge on the ground behind the player, each animal, each campfire and each
+##   tree trunk in a light, pointing away from it;
 ## - the shadows of the blocks and of the things placed (chests, stations): each light
 ##   keeps a map of how high what stands on its ground around it is (see _maps), and
 ##   the shader looks along the way from each point of the ground to the light for
@@ -16,6 +16,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 const FireShadowShader := preload("res://shaders/fire_shadow.gdshader")
 
 const CELL := WorldData.CELL
@@ -34,6 +35,9 @@ const TORCH_AHEAD := 0.3
 const PLAYER_WIDTH := 0.4
 ## A trunk's, for one 6 texels across; a thicker one throws a wider shadow.
 const TRUNK_WIDTH := 0.5
+## How wide and how tall a campfire throws its shadow, in world units: its ring of
+## stones and the logs on it (Effects._campfire_model, 11 and 3 of its 16 voxels a unit).
+const CAMPFIRE_SIZE := Vector2(0.7, 0.2)
 ## Casters stand on the light's ground within this many world units up or down.
 const SAME_GROUND := 0.6
 ## The far end of a wedge is at most this many times as wide as its foot.
@@ -101,6 +105,11 @@ var _shaded := {}
 ## Frames left until the sprites' shades are worked out again, and the last ones.
 var _shade_wait := 0
 var _last_shades := {}
+## The campfires placed, by their north-west cell: the middle of the ground they stand
+## on, a Vector3. They throw a wedge like a body does, not the square column of a map
+## (which looked like a cube); found again when a thing is placed or taken.
+var _campfires := {}
+var _campfires_known := false
 
 func _ready() -> void:
 	var mm := MultiMesh.new()
@@ -280,6 +289,7 @@ func _cast_all(l: Dictionary, n: int) -> int:
 			continue
 		var aabb: AABB = game.creatures.looks[c.kind][0].get_aabb()
 		n = _cast(l, c.pos, aabb.size.y, aabb.size.x * 0.4, n, c)
+	n = _cast_campfires(l, n)
 	if l.torch:
 		n = _cast_trunks(l, n)
 	return n
@@ -465,7 +475,7 @@ func _chunks_kept(w, origin: Vector2i) -> int:
 
 ## Fills row `row` of map `m`: over each column, how high the blocks standing on the
 ## light's ground go (up to MAP_LEVELS; trunks have shadows of their own), or the thing
-## placed there.
+## placed there (campfires have wedges of their own too).
 func _map_row(w, m: Dictionary, row: int) -> void:
 	var z: int = m.origin.y + row
 	var level: int = m.level
@@ -491,7 +501,7 @@ func _map_row(w, m: Dictionary, row: int) -> void:
 			if h == 0 and not blockers.is_empty() \
 					and (absf(x + 0.5 - light.x) >= 1.0 or absf(z + 0.5 - light.y) >= 1.0):
 				var box: AABB = blockers.get(Vector3i(x, level, z), AABB())
-				if box.has_volume():
+				if box.has_volume() and not _under_campfire(Vector3i(x, level, z)):
 					h = mini(roundi(box.end.y * CELL * MAP_SCALE), 255)
 			data[i] = h
 			i += 1
@@ -508,7 +518,44 @@ func _on_cell_changed(cell: Vector3i) -> void:
 
 
 func _on_placed(e: Dictionary) -> void:
+	_campfires_known = false
 	_on_cell_changed(e.cell)
+
+
+## The campfires placed (see _campfires).
+func _fires() -> Dictionary:
+	if not _campfires_known:
+		_campfires_known = true
+		_campfires = {}
+		for e: Dictionary in game.placed.things:
+			if Placed.is_fire(e):
+				_campfires[e.cell] = (Vector3(e.cell) + Vector3(1.0, 0.0, 1.0)) * CELL
+	return _campfires
+
+
+## True when cell `c` is one of the four a campfire stands on.
+func _under_campfire(c: Vector3i) -> bool:
+	var fires := _fires()
+	return fires.has(c) or fires.has(c - Vector3i(1, 0, 0)) or fires.has(c - Vector3i(0, 0, 1)) \
+		or fires.has(c - Vector3i(1, 0, 1))
+
+
+## Adds the shadows thrown by light `l` from the campfires around it but the one it
+## burns on, round and low like a body's, from instance `n` on; returns the next free one.
+func _cast_campfires(l: Dictionary, n: int) -> int:
+	var fires := _fires()
+	if fires.is_empty():
+		return n
+	var at: Vector3 = l.at
+	var r2: float = l.range * l.range
+	for foot: Vector3 in fires.values():
+		var away := Vector2(foot.x - at.x, foot.z - at.z)
+		if away.length_squared() < 1.0 or away.length_squared() >= r2:
+			continue
+		# From the far side of the ring of stones, which the shadow starts behind.
+		away = away.normalized() * CAMPFIRE_SIZE.x * 0.5
+		n = _cast(l, foot + Vector3(away.x, 0.0, away.y), CAMPFIRE_SIZE.y, CAMPFIRE_SIZE.x, n, null)
+	return n
 
 
 ## True when something on light `l`'s map stands between the ground at `p` and the

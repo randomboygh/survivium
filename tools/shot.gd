@@ -81,6 +81,9 @@ const SHOTS := {
 	# The torch by the same blocks, the fire put out.
 	"torch-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-3.0, 0.0, 3.4), "fire_blocks": true,
 		"fire_out": true, "fire_shadows": 1},
+	# The torch by the campfire put out: its shadow round and low like the fire, not a cube.
+	"torch-campfire": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-1.2, 0.0, 1.4), "fire_out": true,
+		"fire_shadows": 1},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
