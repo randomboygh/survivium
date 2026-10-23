@@ -150,6 +150,9 @@ const SHOTS := {
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# A chest chosen in the bag: its wide button sets it down.
+	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"give": "core:chest"},
 	# The same bag with only the food lit and the chosen stack about to be destroyed.
 	"bag-destroy": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"kind": "food", "slot": 0, "destroy": true},
@@ -486,7 +489,14 @@ func _run() -> void:
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._let_go()
-			main.hud.bag._tap(shot.get("slot", 1), true)
+			var slot: int = shot.get("slot", 1)
+			if shot.has("give"):
+				main.character.give(shot.give, 1)
+				for i in main.character.inventory.slots.size():
+					var st = main.character.inventory.slots[i]
+					if st != null and st[0] == shot.give:
+						slot = i
+			main.hud.bag._tap(slot, true)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):

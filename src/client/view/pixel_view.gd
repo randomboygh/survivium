@@ -27,9 +27,12 @@ const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
 
 ## Upscale factor and low-res image size for a screen. Both sides are even, so the
 ## camera centre falls on a pixel corner; the image covers the whole screen and is
-## cropped by less than 2 * scale screen pixels at the right and bottom.
-static func layout(screen: Vector2, target_height := TARGET_HEIGHT) -> Array:
-	var scale := maxi(1, roundi(screen.y / target_height))
+## cropped by less than 2 * scale screen pixels at the right and bottom. `turning`
+## (a phone or a tablet) picks the scale from the long side, so the world is as large
+## held either way.
+static func layout(screen: Vector2, target_height := TARGET_HEIGHT, turning := false) -> Array:
+	var side := maxf(screen.x, screen.y) if turning else screen.y
+	var scale := maxi(1, roundi(side / target_height))
 	var w := maxi(2, ceili(screen.x / scale / 2.0) * 2)
 	var h := maxi(2, ceili(screen.y / scale / 2.0) * 2)
 	return [scale, Vector2i(w, h)]

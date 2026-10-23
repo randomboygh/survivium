@@ -997,6 +997,9 @@ func _test_pixel_view() -> void:
 			and covered.x - screen.x < 2 * scale and covered.y - screen.y < 2 * scale \
 			and absf(image.y - PixelView.TARGET_HEIGHT) <= PixelView.TARGET_HEIGHT * 0.25
 	_check(whole, "low-res image is scaled by a whole number and covers the screen")
+	_check(PixelView.layout(Vector2(1200, 2608), PixelView.TARGET_HEIGHT, true)[0]
+		== PixelView.layout(Vector2(2608, 1200), PixelView.TARGET_HEIGHT, true)[0],
+		"a phone shows the world as large held either way")
 	_check(is_equal_approx(PixelView.camera_size(360), 22.5), "16 pixels per world unit")
 	# A cell's top and its south wall both cover 16 x 16 pixels on screen.
 	var top := PixelView.screen_plane(Vector3(3, 2, 5)) - PixelView.screen_plane(Vector3(3, 2, 4))

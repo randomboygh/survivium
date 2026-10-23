@@ -31,6 +31,9 @@ var _mouse_drag := false
 var _last_touch := -100000
 var _last_player := Vector2i(1 << 30, 0)
 var _buttons: VBoxContainer
+## The zoom buttons, dimmed at the largest and the smallest zoom.
+var _plus: Button
+var _minus: Button
 var _title: Label
 var _hint: Label
 
@@ -42,8 +45,9 @@ func _ready() -> void:
 	_buttons.add_theme_constant_override("separation", 6)
 	add_child(_buttons)
 	_button("close", "Закрыть (M)", close)
-	_button("plus", "Крупнее", func() -> void: zoom_by(1))
-	_button("minus", "Мельче", func() -> void: zoom_by(-1))
+	_plus = _button("plus", "Крупнее", func() -> void: zoom_by(1))
+	_minus = _button("minus", "Мельче", func() -> void: zoom_by(-1))
+	zoom_by(0)
 	_button("target", "К игроку", func() -> void:
 		centre = Vector2(minimap.player_cell)
 		queue_redraw())
@@ -54,7 +58,7 @@ func _ready() -> void:
 	add_child(_hint)
 
 
-func _button(icon: String, tip: String, action: Callable) -> void:
+func _button(icon: String, tip: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.icon = UiStyle.icon(icon)
 	b.tooltip_text = tip
@@ -63,8 +67,11 @@ func _button(icon: String, tip: String, action: Callable) -> void:
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.add_theme_stylebox_override("normal", UiStyle.panel())
 	b.add_theme_stylebox_override("hover", UiStyle.panel())
+	b.add_theme_stylebox_override("disabled", UiStyle.panel())
+	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 	b.pressed.connect(action)
 	_buttons.add_child(b)
+	return b
 
 
 ## Covers a screen `screen` UI pixels large; `touch` picks the hint.
@@ -96,6 +103,8 @@ func close() -> void:
 
 func zoom_by(d: int) -> void:
 	zoom_index = clampi(zoom_index + d, 0, ZOOMS.size() - 1)
+	_plus.disabled = zoom_index == ZOOMS.size() - 1
+	_minus.disabled = zoom_index == 0
 	queue_redraw()
 
 
