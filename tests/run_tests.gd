@@ -1534,6 +1534,8 @@ func _test_inventory() -> void:
 	_check(heavy.overloaded() and f < 1.0 and f > Inventory.OVERLOAD_PACE, "overload slows the pace")
 	heavy.add("core:stone", 200)
 	_check(heavy.speed_factor() == Inventory.OVERLOAD_PACE, "heavy overload almost stops")
+	heavy.heavy = false
+	_check(heavy.speed_factor() == 1.0 and not heavy.overloaded(), "with overload off a full bag does not slow")
 	var copy := Inventory.new(3)
 	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
 	_check(copy.count("core:branch") == 8 and copy.count("core:log") == inv.count("core:log"), "the bag survives a save as JSON")
@@ -1946,6 +1948,8 @@ func _test_death() -> void:
 		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
+	_check(ch.fell_at.is_equal_approx(Vector3(5.5, 1.0, 5.5) * WorldData.CELL) and again.fell_at.is_equal_approx(ch.fell_at),
+		"the place of the last death is kept, in the save too")
 	_check(again.is_dead() and again.death.lost == [["core:branch", 3]] and again.sacks.size() == 1
 		and again.sacks[0].is_equal_approx(sack[1]), "the death and the sack's place are kept in the save")
 	var lived: Dictionary = ch.death.life
@@ -1957,6 +1961,7 @@ func _test_death() -> void:
 	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
 		"and they come back with half their health at the respawn point")
 	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
+	_check(ch.fell_at.is_finite(), "and the place of the last death is not forgotten")
 	ch.at = sack[1]
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
 	_check(ch.inventory.count("core:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
