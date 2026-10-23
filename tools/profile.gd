@@ -10,6 +10,10 @@ extends "res://tools/shot.gd"
 ## this script piece by piece with a clock around each piece. With `spikes` it times
 ## the things that happen once instead (a window opening, a crafted thing arriving):
 ## godot --headless --path . --script res://tools/profile.gd -- spikes
+## With `hitches` it plays a few minutes of walking about with the clock fast (streaming,
+## dusk and dawn, weather, autosaves, animals) and prints every frame whose game code
+## took long, piece by piece:
+## godot --headless --path . --script res://tools/profile.gd -- hitches
 ## A phone runs the game's code about ten times slower than these numbers.
 
 ## Frames measured in a scene: fewer with a screen, where a software renderer takes a
@@ -46,13 +50,20 @@ var t_last := 0
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var spikes := args.has("spikes")
+	var hitches := args.has("hitches")
 	args.erase("spikes")
+	args.erase("hitches")
 	names = args if not args.is_empty() else SCENES.keys()
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
+	if hitches:
+		# Autosaves are part of the play: into a folder of their own, gone at the end.
+		main.save_root = "user://profile_saves"
 	root.add_child(main)
 	if spikes:
 		_spikes()
+	elif hitches:
+		_hitches()
 	else:
 		_profile()
 
@@ -74,12 +85,14 @@ func _frame(delta: float) -> void:
 	t_last = Time.get_ticks_usec()
 	var pl = g.player
 	g.clock.step(delta, pl.position)
+	_lap("clock")
 	g.sky._update_light(1.0 / 60.0)
+	_lap("sky light")
 	# The weather without Effects, which it calls: Effects is timed on its own.
 	g.player = null
 	g.sky._update_weather(delta)
 	g.player = pl
-	_lap("clock + sky")
+	_lap("sky weather")
 	g.effects.update(delta, g.view.cam_target, pl.position.y, g.sky, g.clock, g.chunks.indoor)
 	_lap("effects")
 	pl.body.move_input = g.controls.read_move()
@@ -96,18 +109,26 @@ func _frame(delta: float) -> void:
 	_lap("gathering")
 	g.hands.update()
 	_lap("hands")
+	g.storms.step(delta, pl.position)
+	_lap("storms")
 	g._leave_footprints()
+	_lap("footprints")
 	g.save.update(delta)
-	_lap("footprints + save")
+	_lap("save")
 	g.chunks.update_cut(delta)
+	_lap("chunks cut")
 	g.chunks.run_jobs()
+	_lap("chunks jobs")
 	g.chunks.update_caps()
+	_lap("chunks caps")
 	g.roof.flush()
+	_lap("roof flush")
 	g.hud.minimap.flush()
-	_lap("chunks (cut, jobs, caps, flush)")
+	_lap("minimap flush")
 	g.view.update(delta)
-	g.view.poll_safe_rect(delta)
 	_lap("camera")
+	g.view.poll_safe_rect(delta)
+	_lap("safe rect")
 	g.hud.update_state()
 	_lap("hud.update_state")
 	g.controls.update_tip(delta)
@@ -118,8 +139,8 @@ func _frame(delta: float) -> void:
 	_lap("fire_shadows")
 	g.tracks._process(delta)
 	_lap("tracks")
-	g.hud._process(delta)
-	_lap("hud._process (perf panel)")
+	g.hud.perf.add_frame(delta)
+	_lap("perf panel")
 
 
 func _profile() -> void:
@@ -225,6 +246,99 @@ func _profile() -> void:
 	quit()
 
 
+## Frames of the hitch hunt, and the game code over which a frame is printed: what is
+## left of it when the streamer's budgeted loops (ChunkStreamer.budget_us) are taken out,
+## up to ALLOWED_US of them, so what those loops ran over that counts. A phone takes
+## about ten times as long.
+const HITCH_FRAMES := 18000
+const HITCH_MS := 2.0
+const ALLOWED_US := 6000
+
+
+## A long walk with the frame's pieces timed one by one, and every frame whose game
+## code outside the budgets is over HITCH_MS printed with its biggest pieces; at the
+## end, how often each piece was the biggest one of such a frame.
+func _hitches() -> void:
+	while not main.ready_to_play:
+		await process_frame
+	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null):
+		await process_frame
+	OS.low_processor_usage_mode_sleep_usec = 0
+	# The phone's cadence: a frame every 11 ms, the game's code a share of it.
+	Engine.max_fps = 90
+	main.save.begin()
+	main.clock.time_speed = 12.0
+	main.player.position = _flat_near(main.world, main.player.position)
+	var nodes: Array = [main, main.creatures, main.fire_shadows, main.tracks, main.hud]
+	for n in nodes:
+		n.set_process(false)
+	var dirs := [[KEY_D], [KEY_S], [KEY_A], [KEY_W], [KEY_D, KEY_W], [KEY_A, KEY_S]]
+	var dir := 0
+	var held: Array = dirs[0]
+	_hold(held, true)
+	var last_pos: Vector3 = main.player.position
+	var still := 0.0
+	var leg := 0.0
+	var blame := {}
+	var total_us := 0
+	var outside_us := 0
+	var hitches := 0
+	print("frame | game code ms | outside the budgets ms | pieces over 0.3 ms")
+	for i in HITCH_FRAMES:
+		acc.clear()
+		order.clear()
+		var delta := main.get_process_delta_time()
+		var budget0: int = main.chunks.budget_us
+		_frame(delta)
+		var budget: int = main.chunks.budget_us - budget0
+		await process_frame
+		var game_us := 0
+		for k in acc:
+			game_us += acc[k]
+		var outside := game_us - mini(budget, ALLOWED_US)
+		total_us += game_us
+		outside_us += outside
+		if outside > HITCH_MS * 1000.0:
+			hitches += 1
+			var top := order.duplicate()
+			top.sort_custom(func(a: String, b: String) -> bool: return acc[a] > acc[b])
+			var parts := []
+			for k in top:
+				if acc[k] > 300:
+					parts.append("%s %.2f" % [k, acc[k] / 1000.0])
+			blame[top[0]] = blame.get(top[0], 0) + 1
+			print("%d | %.2f | %.2f | %s (budgeted %.2f)" % [i, game_us / 1000.0, outside / 1000.0,
+				", ".join(parts), budget / 1000.0])
+		# Turn when stuck or after a while, to see new land.
+		leg += delta
+		still = still + delta if main.player.position.distance_to(last_pos) < 0.02 else 0.0
+		last_pos = main.player.position
+		if still > 1.0 or leg > 25.0:
+			_hold(held, false)
+			dir = (dir + 1) % dirs.size()
+			held = dirs[dir]
+			_hold(held, true)
+			still = 0.0
+			leg = 0.0
+	_hold(held, false)
+	for n in nodes:
+		n.set_process(true)
+	print("%d frames of %d over %.1f ms outside the budgets, by their biggest piece: %s" % [hitches,
+		HITCH_FRAMES, HITCH_MS, blame])
+	print("game code a frame: %.3f ms, outside the budgets %.3f ms" % [total_us / 1000.0 / HITCH_FRAMES,
+		outside_us / 1000.0 / HITCH_FRAMES])
+	_remove_dir(ProjectSettings.globalize_path(main.save_root))
+	quit()
+
+
+func _remove_dir(path: String) -> void:
+	for d in DirAccess.get_directories_at(path):
+		_remove_dir(path.path_join(d))
+	for f in DirAccess.get_files_at(path):
+		DirAccess.remove_absolute(path.path_join(f))
+	DirAccess.remove_absolute(path)
+
+
 ## Lights on and how many of them cast shadows: Vector2i(on, shadowed).
 func _lights() -> Vector2i:
 	var on := 0
@@ -287,6 +401,22 @@ func _spikes() -> void:
 	await _spike("a campfire put down", func() -> void: main.props.put_from_bag("core:campfire"))
 	main.clock.time_of_day = 0.95
 	await _spike("night falls (torch on)", func() -> void: pass)
+	await _frames(30)
+	var fire: Vector3 = main.player.position
+	for e: Dictionary in main.placed.things:
+		if main.placed.is_fire(e):
+			fire = main.placed.center(e)
+	await _spike("by a fire at night (its shadow)", func() -> void:
+		main.player.position = fire + Vector3(0.6, 0.0, -1.4))
+	await _frames(30)
+	await _spike("rain starts", func() -> void:
+		main.clock.set_weather(_weather_index("downpour"))
+		main.clock.settle_weather())
+	await _frames(30)
+	main.clock.season = 3
+	await _spike("snow starts", func() -> void:
+		main.clock.set_weather(_weather_index("snow"))
+		main.clock.settle_weather())
 	quit()
 
 

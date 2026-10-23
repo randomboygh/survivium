@@ -1,7 +1,8 @@
 extends PanelContainer
 ## Performance statistics for playtests, shown by the chart button or F3: frame rate
-## (now, average, 1% low), frame time, freezes, drops below 30 FPS, a graph of the last
-## frames and what the renderer draws. Counters run from the start or the last reset.
+## (now, average, 1% low), frame time, freezes and what took their time, drops below
+## 30 FPS, a graph of the last frames and what the renderer draws. Counters run from
+## the start or the last reset.
 ## The numbers are coloured like the graph's bars: green is fine, amber is below 60 FPS
 ## or a slow frame, red is below 30 FPS or a freeze.
 
@@ -17,6 +18,14 @@ const FREEZE_MS := 50.0
 const BIG_FREEZE_MS := 100.0
 const DROP_FPS := 30.0
 const REFRESH := 0.5
+## What the time of the frame not spent in the parts of the game's code noted is
+## called: mostly drawing, and the browser's and the engine's own work.
+const REST := "отрисовка"
+## Parts of a freeze shown and written to the log, the biggest first.
+const FREEZE_PARTS := 3
+## Freezes are written to the log at most this often (milliseconds), so a device that
+## cannot keep up does not fill the log every frame.
+const FREEZE_LOG_EVERY := 1000
 
 var world_ms := 0
 var chunks := 0
@@ -29,6 +38,13 @@ var _freezes := 0
 var _big_freezes := 0
 var _drops := 0
 var _in_drop := false
+## Microseconds each part of the game's code took in the frame under way, by name
+## (see note).
+var _work := {}
+## The last freeze and the longest one: [ms, [[part, ms], ...] biggest first], or [].
+var last_freeze := []
+var worst_freeze := []
+var _freeze_logged := -FREEZE_LOG_EVERY
 var _second_time := 0.0
 var _second_frames := 0
 var _refresh := 0.0
@@ -69,9 +85,20 @@ func reset() -> void:
 	_big_freezes = 0
 	_drops = 0
 	_in_drop = false
+	last_freeze = []
+	worst_freeze = []
 
 
-## Records one frame; called every frame, also while the panel is hidden.
+## Adds the time from `since` (Time.get_ticks_usec) until now to part `what` of the
+## game's code in this frame; returns now, where the next part starts.
+func note(what: String, since: int) -> int:
+	var now := Time.get_ticks_usec()
+	_work[what] = _work.get(what, 0) + now - since
+	return now
+
+
+## Records one frame; called every frame first thing (Main._process), also while the
+## panel is hidden. `delta` is the time of the frame before, whose work was noted.
 func add_frame(delta: float) -> void:
 	var ms := delta * 1000.0
 	_frames[_next] = ms
@@ -80,6 +107,8 @@ func add_frame(delta: float) -> void:
 	_total_frames += 1
 	if ms > FREEZE_MS:
 		_freezes += 1
+		_record_freeze(ms)
+	_work.clear()
 	if ms > BIG_FREEZE_MS:
 		_big_freezes += 1
 	_second_time += delta
@@ -94,6 +123,32 @@ func add_frame(delta: float) -> void:
 	_refresh += delta
 	if visible and _refresh >= REFRESH:
 		refresh()
+
+
+## Keeps what took the time of a freeze of `ms`, the parts of the game's code noted
+## and the rest, and writes it to the log.
+func _record_freeze(ms: float) -> void:
+	var parts := []
+	var game_ms := 0.0
+	for what: String in _work:
+		parts.append([what, _work[what] / 1000.0])
+		game_ms += _work[what] / 1000.0
+	parts.append([REST, maxf(ms - game_ms, 0.0)])
+	parts.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
+	last_freeze = [ms, parts.slice(0, FREEZE_PARTS)]
+	if worst_freeze.is_empty() or ms > worst_freeze[0]:
+		worst_freeze = last_freeze
+	if Time.get_ticks_msec() - _freeze_logged >= FREEZE_LOG_EVERY:
+		_freeze_logged = Time.get_ticks_msec()
+		print("freeze %s" % freeze_text(last_freeze))
+
+
+## A freeze as "84 мс: отрисовка 52, чанки 30".
+static func freeze_text(f: Array) -> String:
+	var parts := []
+	for p: Array in f[1]:
+		parts.append("%s %d" % [p[0], roundi(p[1])])
+	return "%d мс: %s" % [roundi(f[0]), ", ".join(parts)]
 
 
 func refresh() -> void:
@@ -126,6 +181,10 @@ func summary(full := false, colored := false) -> String:
 			c.call(str(_big_freezes), UiStyle.GOOD if _big_freezes == 0 else UiStyle.DANGER)],
 		"Просадки ниже 30 FPS: %s" % c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER),
 	]
+	if not last_freeze.is_empty():
+		lines.append("Фриз %s" % freeze_text(last_freeze))
+		if worst_freeze != last_freeze:
+			lines.append("Худший %s" % freeze_text(worst_freeze))
 	if full:
 		var p := Performance
 		lines.append("Вызовы %d · объекты %d · треуг. %dк" % [
