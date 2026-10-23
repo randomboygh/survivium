@@ -1,8 +1,10 @@
 // Upright pixel-art sprites (people, animals). Lit like the ground under them, so
 // they sit in shadows and torch light, and cast shadows themselves.
 shader_type spatial;
-// Sprites cast shadows but do not receive them: an upright quad would shade itself.
-render_mode world_vertex_coords, cull_disabled, shadows_disabled;
+// Sprites receive real shadows too (the player's from a fire on an animal, a crown's
+// on the player); the normal offset of the shadow lookup keeps an upright quad from
+// shading itself.
+render_mode world_vertex_coords, cull_disabled;
 
 #include "res://shaders/common.gdshaderinc"
 
@@ -13,6 +15,9 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // Height of the water surface around a wading or swimming sprite, in world units:
 // below it the body is hidden, along it a line of ripples.
 uniform float water_line = -1000.0;
+// What a drawn shadow of a fire or the torch leaves of the light where the sprite
+// stands (FireShadows): 1 out of them.
+instance uniform float shade = 1.0;
 
 varying vec3 world_pos;
 varying float clouds;
@@ -44,7 +49,8 @@ void fragment() {
 		discard;
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
-	ALBEDO = c.rgb * (1.0 - veiled.a);
+	// The cool light of the night is what a drawn shadow leaves (fire_shadow.gdshader).
+	ALBEDO = c.rgb * vec3(shade, mix(shade, 1.0, 0.06), mix(shade, 1.0, 0.2)) * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
 	// Lit as if facing up and toward the viewer, on both sides (mirrored sprites
 	// show their back face).

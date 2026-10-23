@@ -254,10 +254,6 @@ func _ready() -> void:
 	_update_hands()
 
 
-func _process(delta: float) -> void:
-	perf.add_frame(delta)
-
-
 func _unhandled_input(event: InputEvent) -> void:
 	if game == null or game.world == null:
 		return

@@ -54,6 +54,22 @@ const SHOTS := {
 		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8),
 		"fire_shadows": 1},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
+	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
+	# the campfire by the spawn, and an animal in the player's shadow: their shadows
+	# drawn ("drawn", and "mixed" with the player's real), and the real ones to compare.
+	"fire-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 1},
+	"fire-blocks-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 3},
+	"fire-blocks-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 2},
+	# An animal in the player's shadow by day, in the morning and at sunrise.
+	"animal-shadow": {"time": 0.36, "season": 1, "animal": Vector3(-0.55, 0.0, -0.45)},
+	"animal-shadow-sunrise": {"time": 0.27, "season": 1, "animal": Vector3(-0.9, 0.0, 0.3)},
+	"animal-shadow-trees": {"time": 0.45, "season": 1, "trees": true, "animal": Vector3(-1.0, 0.0, -0.6)},
+	# The torch by the same blocks, the fire put out.
+	"torch-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-3.0, 0.0, 3.4), "fire_blocks": true,
+		"fire_out": true, "fire_shadows": 1},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
@@ -336,6 +352,15 @@ func _run() -> void:
 						var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + off)
 						if spot.y >= 0:
 							added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
+					if shot.get("fire_blocks", false):
+						_fire_blocks(main.world, e.cell)
+						for put: Array in [["core:chest", Vector3(2.6, 0.0, 2.2)], ["core:workbench", Vector3(-3.2, 0.0, 1.0)]]:
+							var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + put[1])
+							if spot.y >= 0:
+								added_fires.append(main.placed.put(put[0], spot, null))
+					if shot.get("fire_out", false):
+						out_fire = e
+						main.placed.put_out(e)
 					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
@@ -556,6 +581,12 @@ func _run() -> void:
 		for e in added_fires:
 			main.placed._remove(e)
 		added_fires.clear()
+		if not out_fire.is_empty():
+			out_fire.lit = true
+			main.placed.lit_changed.emit(out_fire)
+			out_fire = {}
+		if shot.get("fire_blocks", false):
+			_unwall_cells(main.world)
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
@@ -1037,6 +1068,38 @@ func _hut(w, at: Vector3) -> Vector3:
 ## The cells a wall replaced, to put back after its shot: the world is shared by all
 ## the shots of one run.
 var wall_cells: Array = []
+## The campfire a shot put out, to be lit again after it.
+var out_fire := {}
+
+
+## Blocks of stone round the campfire whose north-west cell is `fire`, kept in
+## wall_cells to be taken away again: a wall two high to the south-west, a low wall to
+## the south-east, a pillar three high to the north-east and a lone block to the
+## north-west.
+func _fire_blocks(w, fire: Vector3i) -> void:
+	var cells := []
+	for x in range(fire.x - 7, fire.x - 3):
+		for y in 2:
+			cells.append(Vector3i(x, fire.y + y, fire.z + 4))
+	for x in range(fire.x + 3, fire.x + 6):
+		cells.append(Vector3i(x, fire.y, fire.z + 6))
+	for y in 3:
+		cells.append(Vector3i(fire.x + 6, fire.y + y, fire.z - 3))
+	cells.append(Vector3i(fire.x - 3, fire.y, fire.z - 4))
+	for c: Vector3i in cells:
+		wall_cells.append([c, w.get_cell(c.x, c.y, c.z), w.is_natural(c.x, c.y, c.z)])
+		w.set_cell(c.x, c.y, c.z, Mat.STONE)
+		w.set_natural(c.x, c.y, c.z, false)
+		main.actions.cell_changed.emit(c)
+
+
+## Puts back the cells in wall_cells one by one.
+func _unwall_cells(w) -> void:
+	for c in wall_cells:
+		w.set_cell(c[0].x, c[0].y, c[0].z, c[1])
+		w.set_natural(c[0].x, c[0].y, c[0].z, c[2])
+		main.actions.cell_changed.emit(c[0])
+	wall_cells.clear()
 
 
 func _wall(w, at: Vector3i) -> void:

@@ -17,6 +17,8 @@ const FAR_MARGIN := 4.0
 var wildlife
 ## Footprints (see tracks.gd); animals leave paw prints sized by their mass.
 var tracks
+## The performance statistics (PerfPanel), told how long the animals take a frame.
+var perf
 ## kind -> [mesh, material]
 var looks := {}
 var _sprites := {}
@@ -41,6 +43,7 @@ func watch(w) -> void:
 func _process(delta: float) -> void:
 	if wildlife == null:
 		return
+	var t := Time.get_ticks_usec()
 	var seen := _seen()
 	for a in wildlife.animals:
 		a.near = seen.has_point(PixelView.screen_plane(a.pos))
@@ -50,6 +53,8 @@ func _process(delta: float) -> void:
 			var sprite: MeshInstance3D = _sprites[a]
 			sprite.position = PixelView.snap(a.pos)
 			sprite.scale.x = a.facing
+	if perf != null:
+		perf.note("животные", t)
 
 
 ## The screen-plane rectangle the camera shows, FAR_MARGIN larger all round (all of
@@ -61,6 +66,11 @@ func _seen() -> Rect2:
 	var half := get_viewport().get_visible_rect().size / PixelView.PIXELS_PER_UNIT * 0.5 + Vector2.ONE * FAR_MARGIN
 	var centre := Vector2(cam.global_position.x, cam.global_position.z)
 	return Rect2(centre - half, half * 2.0)
+
+
+## The sprite drawn for animal `a`, or null.
+func sprite_of(a) -> MeshInstance3D:
+	return _sprites.get(a)
 
 
 func _on_born(a) -> void:

@@ -161,6 +161,8 @@ class Job extends RefCounted:
 	var plain_j := 0
 	var water_j := 0
 	var cands: PackedInt64Array
+	## Steps of copying the cells before the columns (see PREP_STEPS); 0 once done.
+	var prep := PREP_STEPS
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once.
@@ -171,9 +173,15 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 	return finish(job)
 
 
-## Begins building the meshes of a chunk; `step` then builds a few columns at a time.
+## Steps a job takes to copy the cells of the chunk and a border around it before
+## the columns: the cells, their shapes, the cells that may show a face. Each is about
+## as long as the streamer's budget on a phone, so they go one a step.
+const PREP_STEPS := 3
+
+
+## Begins building the meshes of a chunk; `step` then copies its cells and builds a
+## few columns at a time.
 static func start(w, x0: int, z0: int, size: int) -> Job:
-	w.refresh_shapes()
 	var job := Job.new()
 	job.w = w
 	job.x0 = x0
@@ -187,8 +195,6 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	var z1 := z0 + size
 	job.x1 = x1
 	job.z1 = z1
-	job.c = w.padded(false, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
-	job.sh = w.padded(true, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
 	job.cov = covers_table()
 	# Strides of the padded grid: +x, +z, +y.
 	job.dz = x1 - x0 + 2 * PAD
@@ -200,13 +206,35 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	# merged into rows.
 	job.plain = PackedInt32Array()
 	job.water_plain = PackedInt32Array()
-	job.cands = _candidates(w, x0, z0, x1, z1)
 	return job
 
 
+## Copies the cells of the chunk and its border into the job, part `i` of PREP_STEPS
+## (counting down): the cells, their shapes, the cells that may show a face.
+static func _prepare(job: Job, i: int) -> void:
+	var w = job.w
+	var x0 := job.x0 - PAD
+	var z0 := job.z0 - PAD
+	var x1 := job.x1 + PAD
+	var z1 := job.z1 + PAD
+	match i:
+		3:
+			job.c = w.padded(false, Mat.STONE, x0, z0, x1, z1)
+		2:
+			w.refresh_shapes()
+			job.sh = w.padded(true, 0, x0, z0, x1, z1)
+		1:
+			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
+
+
 ## Builds the next `columns` columns of cells of the chunk (a column is all levels of
-## one x, z). Returns true once every column is built.
+## one x, z), after copying its cells over the first steps. Returns true once every
+## column is built.
 static func step(job: Job, columns: int) -> bool:
+	while columns > 0 and job.prep > 0:
+		_prepare(job, job.prep)
+		job.prep -= 1
+		columns -= 1
 	while columns > 0 and job.z < job.z1:
 		_column(job, job.x, job.z)
 		columns -= 1
