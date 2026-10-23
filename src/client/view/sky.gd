@@ -20,6 +20,9 @@ const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 ## a quarter of a degree, about a texel at the tip of a tree's shadow.
 const SUN_STEPS := 1440
 const RAYS_BRIGHTNESS := 0.45
+## How far, in degrees, the sun or the moon goes past the border of its eighth of the
+## sky before the lit edges of the cells turn to the next one (see _light_side).
+const LIGHT_SIDE_MARGIN := 7.5
 ## How long the air after rain shows the rays through the breaking clouds, in days.
 const AFTER_RAIN_DAYS := 0.08
 
@@ -57,6 +60,9 @@ var fog_drift := Vector2.ZERO
 var after_rain := 0.0
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
 var to_sun := Vector3.UP
+## The side of the sky the light is on, in eighths of a turn from south toward west
+## (see _light_side): the edges of the cells toward it are lit.
+var light_side := 0
 
 
 func _init(g) -> void:
@@ -154,6 +160,19 @@ func _aim_sun(azimuth: float, elevation: float) -> void:
 	sun.global_transform.basis = Basis.looking_at(-PixelView.light_dir(to_sun), Vector3.UP)
 	var view := PixelView.camera_transform(Vector2.ZERO).basis
 	RenderingServer.global_shader_parameter_set("sun_view", view.transposed() * to_sun)
+	_light_side(azimuth)
+
+
+## Keeps light_side, the eighth of the sky the light is in, until it is well into the
+## next one, so the lit edges of the cells change all at once a few times a day and
+## never flicker on a side's border.
+func _light_side(azimuth: float) -> void:
+	var off := wrapf(azimuth - light_side * 45.0, -180.0, 180.0)
+	if absf(off) < 22.5 + LIGHT_SIDE_MARGIN:
+		return
+	light_side = posmod(roundi(azimuth / 45.0), 8)
+	var a := deg_to_rad(light_side * 45.0)
+	RenderingServer.global_shader_parameter_set("light_side", Vector2(-sin(a), cos(a)))
 
 
 ## Sun rays in the air: by day in clear weather, and brighter in the wet air after
