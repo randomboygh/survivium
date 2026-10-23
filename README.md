@@ -150,9 +150,11 @@
   тест фризов (игра без экрана, предел времени кадра): `timeout 600 godot --headless --path . --script res://tests/frame_test.gd`;
   тест сохранения (играет, сохраняет и запускает заново): `timeout 300 godot --headless --path . --script res://tests/save_test.gd`;
   тест первых инструментов (с пустой сумкой собирает материалы, ставит станки и делает все рецепты): `timeout 600 godot --headless --path . --script res://tests/progress_test.gd`.
-- GitHub Actions (`.github/workflows/build.yml`) на каждый пуш и PR проверяет данные, запускает тесты, собирает web-версию,
-  проверяет её в Chrome (`tests/browser_smoke.mjs`, в том числе как телефон с сенсором) и из `main`
-  публикует на GitHub Pages.
+- Все проверки разом: `tests/run_all.sh` (четыре теста параллельно, затем тест фризов отдельно).
+- GitHub Actions (`.github/workflows/build.yml`) на каждый пуш и PR параллельно проверяет данные, запускает тесты и собирает
+  web-версию, затем проверяет её в Chrome (`tests/browser_smoke.mjs`, как ПК и как телефон с сенсором, на двух машинах сразу)
+  и из `main` публикует на GitHub Pages. В PR проверка в Chrome идёт, только если PR меняет клиент, шейдеры, картинки,
+  настройки экспорта или CI, либо на PR стоит метка `smoke`; в `main` она идёт всегда.
 - Правила для разработки и известные подводные камни: [CLAUDE.md](CLAUDE.md).
 - План и геймдизайн: папка `plan/` в файлах проекта Claude (оглавление и журнал решений в `plan/README.md`).
 

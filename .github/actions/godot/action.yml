@@ -1,0 +1,32 @@
+name: Godot
+description: Puts Godot and its web export templates in place (cached) and imports the project.
+runs:
+  using: composite
+  steps:
+    - name: Cache Godot
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ~/godot
+        key: godot-${{ env.GODOT_VERSION }}-web
+
+    - name: Download Godot and web export templates
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/godot && cd ~/godot
+        base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+        curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+        unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm godot.zip
+        curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+        unzip -q templates.tpz 'templates/web_*' 'templates/version.txt' && rm templates.tpz
+
+    - name: Install export templates
+      shell: bash
+      run: |
+        dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+        mkdir -p "$dest" && cp ~/godot/templates/* "$dest/"
+
+    - name: Import project
+      shell: bash
+      run: ~/godot/godot --headless --path . --import
