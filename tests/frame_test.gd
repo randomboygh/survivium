@@ -441,6 +441,13 @@ func _run() -> void:
 	var across: bool = stats.end.x <= hud.size.x and hud._top.position.y >= stats.end.y \
 		and hud.perf.size.x >= hud.size.x - 2 * hud.MARGIN - 1
 	hud.toggle_stats()
+	# The interface size leaves the touch controls as they are.
+	var stick_at: Vector2 = hud.stick.get_global_transform().get_scale()
+	hud.ui_size = 4
+	hud.fit(Rect2(Vector2.ZERO, Vector2(1200, 2608)), true)
+	var stick_big: Vector2 = hud.stick.get_global_transform().get_scale()
+	hud.ui_size = main.settings.values.ui_size
+	_check(stick_at.is_equal_approx(stick_big), "the interface size does not change the controls': %s %s" % [stick_at, stick_big])
 	_check(square and level_tall and cross and clock_under and vitals_tall and across,
 		"HUD top: minimap %s, level %s, cross %s, clock %s, state %s, statistics %s" % [square, level_tall, cross,
 			clock_under, vitals_tall, across])

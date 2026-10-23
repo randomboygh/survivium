@@ -61,6 +61,8 @@ var portrait := false
 ## CONTROL_SIZES.
 var ui_size := 2
 var control_size := 2
+## The scale picked from the screen before the interface size setting (see fit).
+var _screen_scale := 1.0
 
 var _left: VBoxContainer
 var _clock_icon: TextureRect
@@ -363,9 +365,11 @@ func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
 	var s: float
 	if turning:
 		var side := minf(screen.x, screen.y) if screen != Vector2.ZERO else minf(rect.size.x, rect.size.y)
-		s = maxf(1.0, side / TARGET_SIDE * UI_SIZES[ui_size])
+		_screen_scale = side / TARGET_SIDE
+		s = maxf(1.0, _screen_scale * UI_SIZES[ui_size])
 	else:
-		s = maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE) + UI_STEPS[ui_size])
+		_screen_scale = maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE))
+		s = maxi(1, _screen_scale + UI_STEPS[ui_size])
 	scale = Vector2(s, s)
 	position = rect.position
 	size = (rect.size / s).floor()
@@ -390,7 +394,8 @@ func _place() -> void:
 	_jump.visible = touch
 	_keys.visible = not touch and game != null and game.controls.show_help and not bag.visible
 	var bottom := h - MARGIN
-	var k: float = CONTROL_SIZES[control_size]
+	# The controls' own size setting, whatever the interface's: undo the latter.
+	var k: float = CONTROL_SIZES[control_size] * _screen_scale / scale.x
 	for c: Control in [stick, _action, _jump]:
 		c.scale = Vector2(k, k)
 	var stick_size: Vector2 = stick.size * k
