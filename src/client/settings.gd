@@ -114,6 +114,9 @@ var revive_at_death := false
 const SHADOW_MAPS := [1024, 2048, 4096]
 ## Playtest switch: the side of the sun's shadow map, an index into SHADOW_MAPS. Not saved.
 var shadow_map := 1
+## The full screen last asked for in the browser, and when (see fullscreen).
+var _fullscreen_wanted := false
+var _fullscreen_asked := -100000
 
 
 func _init(g) -> void:
@@ -238,17 +241,41 @@ func reset() -> void:
 ## that lets a page hide its own bars (not Safari on an iPhone).
 func can_fullscreen() -> bool:
 	if OS.has_feature("web"):
-		return JavaScriptBridge.eval("!!document.fullscreenEnabled", true) == true
+		# Some phone browsers have only the older webkit names.
+		return JavaScriptBridge.eval("""(function () {
+			var e = document.documentElement;
+			return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled
+				|| e.requestFullscreen || e.webkitRequestFullscreen);
+		})()""", true) == true
 	return not OS.has_feature("mobile")
 
 
 func fullscreen() -> bool:
+	if OS.has_feature("web"):
+		# The browser goes full screen a moment after it is asked.
+		if Time.get_ticks_msec() - _fullscreen_asked < 1500:
+			return _fullscreen_wanted
+		return JavaScriptBridge.eval("!!(document.fullscreenElement || document.webkitFullscreenElement)", true) == true
 	return DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN,
 		DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
 
 
 ## Not saved: a browser lets a page take the whole screen only right after a tap.
 func set_fullscreen(on: bool) -> void:
+	if OS.has_feature("web"):
+		_fullscreen_wanted = on
+		_fullscreen_asked = Time.get_ticks_msec()
+		JavaScriptBridge.eval("""(function (on) {
+			var e = document.documentElement;
+			if (on) {
+				var go = e.requestFullscreen || e.webkitRequestFullscreen;
+				if (go) { var p = go.call(e); if (p && p.catch) p.catch(function () {}); }
+			} else {
+				var back = document.exitFullscreen || document.webkitExitFullscreen;
+				if (back && (document.fullscreenElement || document.webkitFullscreenElement)) back.call(document);
+			}
+		})(%s)""" % ("true" if on else "false"), true)
+		return
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 
 
