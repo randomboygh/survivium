@@ -102,8 +102,9 @@ const BIOME_SCALE := [0.5, 1.0, 2.0]
 ## (see _entrances), with bigger caves under it.
 const SHEER_TOP := 1
 const ENTRANCE := 2
-## The water of the column is the mud of a bog (WorldData.BOG).
+## The water of the column is a bog's (WorldData.BOG), or a swamp's (WorldData.SWAMP).
 const MIRE := 4
+const MARSH := 8
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
@@ -894,17 +895,14 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			b = SWAMP
 			height = sea + 1 + int(soil[j] > _byte(0.4))
 			var p := pools[j]
-			if p > pool_t:
-				wt = height
-				height -= 1 if p < pool_t + 20 else 2
+			if p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t):
+				# Pools, and mires along part of their shores and in hollows of their
+				# own, all at one level, so the murky water of a pool runs into the
+				# murkier, shallow water of a mire with no step.
+				wt = sea + 1
+				height = wt - (2 if p > pool_t + 20 else 1)
 				top = Mat.CLAY
-			elif p > pool_t - mire_reach and soil[j] > mire_t:
-				# A mire along part of the pools' shores and in hollows of its own: mud
-				# two cells deep a body sinks into to the waist.
-				wt = height
-				height -= 2
-				top = Mat.CLAY
-				f |= MIRE
+				f |= MARSH if p > pool_t else MIRE
 			else:
 				top = Mat.CLAY if p > mud_t else Mat.GRASS
 			sheer = false
@@ -1153,7 +1151,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		cells[i] = Mat.COPPER_ORE if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
 		natural[i] = WorldData.WILD | WorldData.SHEER if flags[j] & SHEER_TOP else WorldData.WILD
 		var y := height + 1
-		var wet := WorldData.WILD | (WorldData.BOG if flags[j] & MIRE else 0)
+		var wet := WorldData.WILD | (WorldData.BOG if flags[j] & MIRE else (WorldData.SWAMP if flags[j] & MARSH else 0))
 		while y <= wt:
 			i += layer
 			cells[i] = Mat.WATER

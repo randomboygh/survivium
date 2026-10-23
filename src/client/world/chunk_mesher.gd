@@ -313,24 +313,24 @@ static func _column(job: Job, x: int, z: int) -> void:
 			for k in 4:
 				if fills & (1 << k):
 					foam |= _fill_shape(c, cov, i, dy, k) << (16 + 2 * k)
-			var bog: bool = nb[2] == AIR and w.is_bog(x, y, z)
-			# Open water has no land beside it, so no foam; mud has none.
-			if not bog and (cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]):
+			var murk: int = w.murk(x, y, z) if nb[2] == AIR else 0
+			# Open water has no land beside it, so no foam.
+			if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
 				foam |= _foam(c, sh, cov, i, dy, dz)
 			var depth := 1
 			while depth < 8 and c[i - depth * dy] == WATER:
 				depth += 1
 			var level := nb[2] == AIR and _level_bed(c, sh, cov, i, dy, dz, depth)
-			if foam == 0 and level and not bog and nb[0] != AIR and nb[1] != AIR and nb[4] != AIR and nb[5] != AIR:
+			if foam == 0 and level and murk == 0 and nb[0] != AIR and nb[1] != AIR and nb[4] != AIR and nb[5] != AIR:
 				water_plain.append(((y * 64 + depth) * 64 + z - z0) * 64 + x - x0)
 			else:
 				var corners := PackedColorArray()
-				var kind := BOG_WATER if bog else 0.0
+				var murks := _murk_corners(w, c, i, dz, base) if murk > 0 else PackedFloat32Array([0, 0, 0, 0])
 				if level or nb[2] != AIR:
-					var col := _water_color(depth - WATER_TOP, 1.0, kind)
-					corners = PackedColorArray([col, col, col, col])
+					for k in 4:
+						corners.append(_water_color(depth - WATER_TOP, 1.0, _kind(false, murks[k])))
 				else:
-					corners = _water_corners(c, sh, cov, i, dy, dz, depth, kind)
+					corners = _water_corners(c, sh, cov, i, dy, dz, depth, murks)
 				_water_faces(water, faces, nb, base, depth, foam, corners)
 				_falls(water, faces, c, nb, side_offsets, i, dy, base)
 			if fills != 0:
@@ -636,10 +636,8 @@ static func _cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vect
 			while depth < 8 and w.get_cell(int(base.x) + o.x, int(base.y) - depth, int(base.z)) == WATER:
 				depth += 1
 			var foam := 1 << (12 + k) | shape << (16 + 2 * k)
-			var bog: bool = w.is_bog(int(base.x) + o.x, int(base.y), int(base.z))
-			if bog:
-				foam = shape << (16 + 2 * k)
-			var col := _water_color(depth - WATER_TOP, 1.0, BOG_WATER if bog else 0.0)
+			var murk: int = w.murk(int(base.x) + o.x, int(base.y), int(base.z))
+			var col := _water_color(depth - WATER_TOP, 1.0, _kind(false, murk / 2.0))
 			_piece(water, base, WATER_TOP, k, CORNER, Vector3.UP, col, Vector2(float(foam), float(depth)), shape)
 
 
@@ -1537,15 +1535,20 @@ static func _water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, 
 			_add(buf, faces[d], d, base, Vector3(1.0, h, 1.0), Vector3.ZERO, mid, data)
 
 
-## Kinds of water for the shader (COLOR.b, see _water_color): the mud of a bog, and
-## water lying over the slope of a shore, which ice does not lift (bits of b * 4).
-const BOG_WATER := 0.25
+## The kind of water for the shader (COLOR.b, see _water_color): SHORE_WATER for water
+## lying over the slope of a shore, which ice does not lift, plus how murky it is, from
+## 0 clear through 0.5 a swamp's to 1 a bog's (WorldData.murk / 2), times MURK.
 const SHORE_WATER := 0.5
+const MURK := 0.45
+
+
+static func _kind(shore: bool, murk: float) -> float:
+	return (SHORE_WATER if shore else 0.0) + murk * MURK
 
 
 ## Vertex colour of water for water.gdshader: r the depth of the water over the ground
 ## in cells (/ 8), g how far the ground of a shore lies under the surface (1 where the
-## water goes all the way down), b its kind (see BOG_WATER).
+## water goes all the way down), b its kind (see _kind).
 static func _water_color(depth: float, shore: float, kind: float) -> Color:
 	return Color(clampf(depth / 8.0, 0.0, 1.0), clampf(shore, 0.0, 1.0), kind)
 
@@ -1593,7 +1596,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 ## the ground at each corner, from the ground of the four columns that meet there, so
 ## the water darkens smoothly over a sloping bed instead of cell by cell.
 static func _water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
-		depth: int, kind: float) -> PackedColorArray:
+		depth: int, murks: PackedFloat32Array) -> PackedColorArray:
 	var out := PackedColorArray()
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
@@ -1606,7 +1609,38 @@ static func _water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedB
 			if not is_nan(g):
 				sum += g
 				count += 1
-		out.append(_water_color(maxf(0.0, WATER_TOP - sum / count), 1.0, kind))
+		out.append(_water_color(maxf(0.0, WATER_TOP - sum / count), 1.0, _kind(false, murks[k])))
+	return out
+
+
+## How murky the water is at the corners NW, NE, SE, SW of padded cell `i` (0 to 1, see
+## _kind): the mean of the water cells on its level that meet there, so the murk of a
+## swamp fades into a bog's, or into clear water, across the cells instead of at their
+## edges. A corner no water meets takes the mean of all the water around.
+static func _murk_corners(w, c: PackedByteArray, i: int, dz: int, base: Vector3) -> PackedFloat32Array:
+	var around := PackedFloat32Array()
+	var all := 0.0
+	var wet := 0
+	for oz in range(-1, 2):
+		for ox in range(-1, 2):
+			if c[i + ox + oz * dz] == WATER:
+				var m: float = w.murk(int(base.x) + ox, int(base.y), int(base.z) + oz) / 2.0
+				around.append(m)
+				all += m
+				wet += 1
+			else:
+				around.append(-1.0)
+	var out := PackedFloat32Array()
+	for k in 4:
+		var o: Vector2i = CORNER_DIRS[k]
+		var sum := 0.0
+		var count := 0
+		for n in 4:
+			var m := around[4 + (o.x if n & 1 else 0) + (o.y * 3 if n & 2 else 0)]
+			if m >= 0.0:
+				sum += m
+				count += 1
+		out.append(sum / count if count > 0 else (all / wet if wet > 0 else 0.0))
 	return out
 
 
@@ -1627,15 +1661,10 @@ static func _shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz
 ## The water over the sloping top of shore cell `i` (see _shore): a level surface over
 ## the whole cell, which the ground hides where it rises out of it, its points telling
 ## the shader how far under the surface the ground lies there (foam where it comes up).
-## Beside the mud of a bog it is mud.
+## Its murk is that of the water beside, blended across the cell (see _murk_corners).
 static func _shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int,
 		base: Vector3) -> void:
-	var kind := SHORE_WATER
-	for o: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1),
-			Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
-		if c[i + o.x + o.y * dz] == WATER and w.is_bog(int(base.x) + o.x, int(base.y), int(base.z) + o.y):
-			kind += BOG_WATER
-			break
+	var murks := _murk_corners(w, c, i, dz, base)
 	var steps := Vector2i(PATCH_STEPS, PATCH_STEPS)
 	var hs: PackedFloat32Array = _patch_grid(patch(c, sh, i, dy, dz), 0.0, steps)[0]
 	var start: int = buf.verts.size()
@@ -1650,7 +1679,8 @@ static func _shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int
 			buf.normals.append(Vector3.UP)
 			buf.uvs.append(Vector2(x, z))
 			buf.uv2s.append(data)
-			buf.colors.append(_water_color(maxf(under, 0.0), under, kind))
+			var murk := lerpf(lerpf(murks[0], murks[1], x), lerpf(murks[3], murks[2], x), z)
+			buf.colors.append(_water_color(maxf(under, 0.0), under, _kind(true, murk)))
 	for b in steps.y:
 		for a in steps.x:
 			var j := start + b * nu + a
