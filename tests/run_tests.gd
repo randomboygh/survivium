@@ -50,6 +50,7 @@ func _init() -> void:
 	_test_raycast()
 	_test_walking_rules()
 	_test_water()
+	_test_bog()
 	_test_slopes()
 	_test_steps()
 	_test_ground()
@@ -427,6 +428,34 @@ func _test_water() -> void:
 	player.free()
 
 
+## The pool of _pool_world as a bog: the body sinks to the waist in the mud, wades it
+## slowly and pulls itself out onto the bank.
+func _test_bog() -> void:
+	var w := _pool_world()
+	for z in 16:
+		for x in range(3, 9):
+			for y in range(3, 5):
+				var c: WorldData.Chunk = w.chunk_at(x, z)
+				var i := (y << 8) | ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
+				if c.cells[i] == Mat.WATER:
+					c.natural[i] |= WorldData.BOG
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(6.5, 4.5, 2.5) * WorldData.CELL
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+	var p: Vector3 = player.position / WorldData.CELL
+	_check(player.body.in_bog and player.body.on_ground and not player.body.swimming
+		and is_equal_approx(p.y, 4.5 - Body.BOG_SINK), "a body sinks to the waist in a bog and stands there")
+	_check(player.body.speed_at(player.position) < Body.SPEED * Body.WADE, "a bog is waded slower than water")
+	player.body.move_input = Vector2(1, 0)
+	for i in 300:
+		player.step(1.0 / 60.0, false)
+	var out: Vector3 = player.position / WorldData.CELL
+	_check(out.x > 9.0 and is_equal_approx(out.y, 6.0) and not player.body.in_bog, "a body climbs out of a bog onto the bank")
+	player.free()
+
+
 ## Natural dirt one level higher for x >= 4 (a step facing west) and two levels higher
 ## for x >= 6 (a cliff), on a dirt floor.
 func _slope_world() -> WorldData:
@@ -589,6 +618,8 @@ func _test_ground() -> void:
 		"the hill of the test world has a tunnel into a hall")
 	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.SAND
 		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
+	_check(w.is_bog(16, g, 28) and w.is_bog(16, g - 1, 28) and w.get_cell(16, g - 2, 28) == Mat.CLAY
+		and w.get_cell(16, g, 16) == Mat.WATER and not w.is_bog(16, g, 16), "the swamp strip has pools and bogs")
 	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.COPPER_ORE,
 		"the material strips are 4 cells deep")
 	_check(w.get_cell(50, g + 2, 0) == Mat.PLANKS and w.get_cell(53, g + 1, 3) == Mat.AIR

@@ -132,6 +132,8 @@ const SHOTS := {
 	"walk-w": {"time": 0.42, "season": 1, "keys": [KEY_A]},
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
+	# Off a beach, where the sea floor goes down: the water darkens with the depth.
+	"deep-water": {"time": 0.42, "season": 1, "place": "beach", "water": 4},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
@@ -242,6 +244,9 @@ const SHOTS := {
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
+	# The swamp strip: pools in the north, bogs in the south, and the player sunk in a bog.
+	"ground-swamp": {"time": 0.42, "season": 1, "at": [18, 26]},
+	"ground-bog": {"time": 0.42, "season": 1, "at": [16, 32], "y": 23},
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
