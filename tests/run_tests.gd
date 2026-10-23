@@ -1149,7 +1149,7 @@ func _test_pixel_view() -> void:
 	# the camera shows the point it is put over in the middle.
 	var turned := true
 	var box := AABB(Vector3(-3, 1, 7), Vector3(4, 6, 2))
-	for view: Vector2 in [Vector2(PI / 12.0, 0.0), Vector2(PI * 0.75, PI / 12.0), Vector2(-PI / 3.0, -PI / 12.0)]:
+	for view: Vector2 in [Vector2(PI / 12.0, 0.0), Vector2(PI * 0.75, 0.25), Vector2(-PI / 3.0, -0.5)]:
 		PixelView.set_view(view.x, view.y)
 		PixelView.box_views = [PixelView.view_of(view.x, view.y)]
 		ray = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)

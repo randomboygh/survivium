@@ -551,7 +551,7 @@ func update_state() -> void:
 	# The turn in degrees, and the tilt when there is one: "90°", "90°+10".
 	var text := "%d°" % view.turn_degrees()
 	if view.tilt_steps != 0:
-		text += "%+d" % (view.tilt_steps * 5)
+		text += "%+d" % view.tilt_steps
 	if text != _camera_text:
 		_camera_text = text
 		_camera_reset.text = text

@@ -10,12 +10,16 @@ const GradeShader := preload("res://shaders/grade.gdshader")
 
 const CELL := WorldData.CELL
 const CAMERA_HEIGHT := PixelView.CAMERA_HEIGHT
-## The camera turns round in steps of 15 degrees and tilts by 5 degrees, three steps
-## each way from the default view (PixelView.MAX_TILT).
-const TURN_STEP := PI / 12.0
-const TURNS := 24
-const TILT_STEP := PI / 36.0
-const TILTS := 3
+## The camera turns round in steps of 45 degrees (the four sides and the diagonals)
+## and tilts two steps each way from the default view (PixelView.MAX_TILT), a step
+## making a wall 2 px shorter: 4, 6, 8, 10 or 12 px a cell.
+const TURN_STEP := PI / 4.0
+const TURNS := 8
+const TILT_STEP := 0.25
+const TILTS := 2
+## The views on the way that the culling boxes hold, this far apart: a turn sweeps
+## the drawn heights round an arc, which the boxes of its ends alone would cut.
+const BOX_STEP := PI / 12.0
 ## How fast the view glides to the one set: the share of the way left gone a second.
 const TURN_RATE := 9.0
 ## Seconds a shake lasts.
@@ -89,6 +93,8 @@ func look_at_player() -> void:
 	turn = turn_steps * TURN_STEP
 	tilt = tilt_steps * TILT_STEP
 	PixelView.set_view(turn, tilt)
+	if game.effects != null:
+		game.effects.reanchor()
 	_aim()
 	cam_target = PixelView.screen_plane(game.player.position + Vector3(0.0, 0.5, 0.0))
 
@@ -116,9 +122,9 @@ func is_default() -> bool:
 	return posmod(turn_steps, TURNS) == 0 and tilt_steps == 0
 
 
-## The turn set, in whole degrees to the left of north, 0..345.
+## The turn set, in whole degrees to the left of north, 0..315.
 func turn_degrees() -> int:
-	return posmod(turn_steps, TURNS) * 15
+	return posmod(turn_steps, TURNS) * 45
 
 
 ## A new view is set: the chunks get culling boxes that hold what they draw all the
@@ -127,7 +133,7 @@ func _aim() -> void:
 	var to := turn_steps * TURN_STEP
 	var to_tilt := tilt_steps * TILT_STEP
 	var views := [PixelView.view_of(turn, tilt)]
-	var n := maxi(1, ceili(absf(to - turn) / TURN_STEP))
+	var n := maxi(1, ceili(absf(to - turn) / BOX_STEP))
 	for i in range(1, n + 1):
 		views.append(PixelView.view_of(lerpf(turn, to, i / float(n)), lerpf(tilt, to_tilt, i / float(n))))
 	PixelView.box_views = views
@@ -162,6 +168,8 @@ func _glide(delta: float) -> void:
 			game.chunks.refit_boxes()
 	var before := PixelView.screen_plane(game.player.position + Vector3(0.0, 0.5, 0.0))
 	PixelView.set_view(turn, tilt)
+	if game.effects != null:
+		game.effects.reanchor()
 	# The camera keeps the lag it had behind the player, in the new view.
 	cam_target += PixelView.screen_plane(game.player.position + Vector3(0.0, 0.5, 0.0)) - before
 

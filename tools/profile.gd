@@ -38,12 +38,12 @@ const SCENES := {
 	"cave": {"time": 0.45, "season": 1, "underground": true},
 	"bag": {"time": 0.45, "season": 1, "bag": true},
 	"stats": {"time": 0.45, "season": 1, "stats": true},
-	# The camera turned (steps of 15 degrees) or tilted (steps of 5 degrees), and
+	# The camera turned (steps of 45 degrees) or tilted (steps of 2 px a wall), and
 	# turning a step every 20 frames (`spin`).
-	"day-turn-45": {"time": 0.45, "season": 1, "turn": 3},
-	"day-turn-180": {"time": 0.45, "season": 1, "turn": 12},
-	"day-tilt-low": {"time": 0.45, "season": 1, "tilt": -3},
-	"day-tilt-steep": {"time": 0.45, "season": 1, "tilt": 3},
+	"day-turn-45": {"time": 0.45, "season": 1, "turn": 1},
+	"day-turn-180": {"time": 0.45, "season": 1, "turn": 4},
+	"day-tilt-low": {"time": 0.45, "season": 1, "tilt": -2},
+	"day-tilt-steep": {"time": 0.45, "season": 1, "tilt": 2},
 	"day-turning": {"time": 0.45, "season": 1, "spin": true},
 }
 

@@ -554,6 +554,8 @@ func refit_boxes() -> void:
 	for parts: Array in chunk_nodes.values():
 		for n: GeometryInstance3D in parts:
 			_fit_box(n)
+	for n: GeometryInstance3D in cap_nodes.values():
+		_fit_box(n)
 
 
 ## Culls a part of a chunk by what it draws, moved north as the shaders draw it, instead

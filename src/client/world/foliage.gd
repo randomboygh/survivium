@@ -41,7 +41,8 @@ const KEEPS_LEAVES := 1.0
 const GOES_BARE := 0.8
 const EVERGREEN := 0.6
 ## Rows of the deep cards are offset by this, so the shader can swap them for bare
-## branches in winter.
+## branches in winter, and draw a tree's ones a little behind the rest from whichever
+## side the camera looks (leaves.gdshader).
 const DEEP_ROW := 8
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := Trees.TREE_REACH
@@ -258,15 +259,16 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
 	if needles and tree[0] == Vector2i(x, z):
 		# Small sprigs in front of a spruce's trunk where the tiers are around
-		# it: the trunk shows only under the lowest tier.
+		# it: the trunk shows only under the lowest tier. Put in the trunk, they
+		# are drawn on the side of it the camera looks from (leaves.gdshader).
 		var core: int = (ch.logs[col] & w.leaf_col(x + 1, z) | leaves) & EVEN_LEVELS
 		while core != 0:
 			var bit := core & -core
 			core ^= bit
 			rng.seed = hash(Vector3i(x, WorldData.level_of(bit), z))
 			for up in [0.0, 0.5]:
-				var at := (Vector3(x, WorldData.level_of(bit), z) + Vector3(0.5, 0.5, 0.5)) * CELL + Vector3(0.0, up, 0.45)
-				_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + 1 + DEEP_ROW, rng)
+				var at := (Vector3(x, WorldData.level_of(bit), z) + Vector3(0.5, 0.5, 0.5)) * CELL + Vector3(0.0, up, 0.0)
+				_card(clumps, PixelView.snap(at), Vector3(0.0, 0.1, 1.0).normalized(), base, first_row + 1 + DEEP_ROW, rng, true)
 				job.nc += 1
 	while leaves != 0:
 		var bit := leaves & -leaves
@@ -307,9 +309,10 @@ static func _column(job: Job, x: int, z: int) -> void:
 				var n := _tier_normal(c, middle, lean) if needles else _card_normal(c, middle)
 				_card(clumps, c, n, base, first_row + rows[rng.randi_range(0, 1)], rng)
 				job.nc += 1
-		# A deeper, darker layer behind the outer cards (a little inward and
-		# north, so it is drawn behind them) fills the gaps between them.
-		var deep := PixelView.snap(mid + Vector3(0.0, 0.0, -0.25) - (mid - middle).limit_length(0.3))
+		# A deeper, darker layer behind the outer cards (a little inward, and
+		# drawn a little farther from the camera, see leaves.gdshader) fills the
+		# gaps between them.
+		var deep := PixelView.snap(mid - (mid - middle).limit_length(0.3))
 		var dn := _tier_normal(deep, middle, lean) if needles else _card_normal(deep, middle)
 		var dark := base * DEEP
 		dark.a = base.a
@@ -393,11 +396,11 @@ static func bush_kind(type: int) -> float:
 	return 0.1 * (type + 1)
 
 
-## Faces of a crown point the camera can see (top, south, east, west) whose
-## neighbouring point (two cells on) is neither leaves nor a trunk.
+## Faces of a crown point the camera can see from one side or another (top and the
+## four sides) whose neighbouring point (two cells on) is neither leaves nor a trunk.
 static func _open_faces(w, x: int, y: int, z: int) -> Array[Vector3i]:
 	var open: Array[Vector3i] = []
-	for d in [Vector3i(0, 1, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 0), Vector3i(-1, 0, 0)]:
+	for d in [Vector3i(0, 1, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 0, -1)]:
 		var n: int = w.get_cell(x + 2 * d.x, y + 2 * d.y, z + 2 * d.z)
 		if n != Mat.LEAVES and n != Mat.LOG:
 			open.append(d)
@@ -406,11 +409,13 @@ static func _open_faces(w, x: int, y: int, z: int) -> Array[Vector3i]:
 
 ## Appends a leaf cluster card at `c`: transform, tint (its alpha what the tree does
 ## in winter), and the normal `n` with the card's row of the clump texture plus a sway
-## phase in the last value.
-static func _card(buf: PackedFloat32Array, c: Vector3, n: Vector3, tint: Color, row: int, rng: RandomNumberGenerator) -> void:
+## phase in the last value, negative for a card drawn in front of `c` (`ahead`).
+static func _card(buf: PackedFloat32Array, c: Vector3, n: Vector3, tint: Color, row: int, rng: RandomNumberGenerator,
+		ahead := false) -> void:
 	put(buf, c)
 	buf.append_array([tint.r, tint.g, tint.b, tint.a])
-	buf.append_array([n.x, n.y, n.z, row + rng.randf() * 0.99])
+	var w := row + rng.randf() * 0.99
+	buf.append_array([n.x, n.y, n.z, -w if ahead else w])
 
 
 ## Trees whose trunks stand within TREE_REACH cells of the cells x0..x1, z0..z1:

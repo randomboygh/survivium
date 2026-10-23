@@ -256,7 +256,7 @@ func _lights() -> Array:
 				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01:
-		out.append({"id": TORCH_ID, "at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT,
+		out.append({"id": TORCH_ID, "at": p + Vector3(-PixelView.up.x, 0.0, -PixelView.up.y) * TORCH_AHEAD, "height": TORCH_HEIGHT,
 			"range": torch.omni_range, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
 			"torch": true, "real": false})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
