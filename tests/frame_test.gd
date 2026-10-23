@@ -408,9 +408,32 @@ func _run() -> void:
 		await process_frame
 		room.append(main.hud.size.x)
 		room.append(menu.size.x <= main.hud.size.x)
+	# On a tall phone no page scrolls: the bar shows only when the rows do not fit.
+	var bars := []
+	for which in ["settings", "test", "changes"]:
+		menu.open(which)
+		for sec in menu.PAGES.get(which, [[""]]):
+			if sec[0] != "":
+				menu.show_section(sec[0])
+			await process_frame
+			await process_frame
+			if menu._scroll.get_v_scroll_bar().visible:
+				bars.append("%s/%s" % [which, sec[0]])
+	_check(bars.is_empty(), "no scroll bar while the rows fit the screen: %s" % [bars])
+	menu.open("settings")
+	menu.show_section("game")
 	main.view.layout_ui(main.view.safe_rect)
 	_check(room[0] == room[2] and room[0] == room[4] and room[1] and room[3] and room[5],
 		"every phone's interface is as wide as the reference phone's, the windows fit: %s" % [room])
+	# «По умолчанию» asks first, then puts the settings back.
+	menu.open("settings")
+	menu.show_section("game")
+	main.settings.set_value("shake", false)
+	menu._defaults.pressed.emit()
+	var asked: bool = main.settings.values.shake == false and menu._defaults.text != "По умолчанию"
+	menu._defaults.pressed.emit()
+	_check(asked and main.settings.values.shake == true and menu._defaults.text == "По умолчанию",
+		"«По умолчанию» asks, then resets the settings")
 	# Stepping through a row's values never moves the rows (a long value is cut).
 	menu.open("test")
 	menu.show_section("world")

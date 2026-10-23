@@ -31,8 +31,10 @@ const CHANGE_KINDS := {
 ## A row across, and the room between two columns of rows (see fit).
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
 const COLUMN_GAP := 16
-## Room kept for the scroll bar on every page, so all of them are as wide.
-const BAR_ROOM := UiStyle.SCROLL_BAR + 4
+## Room kept for the scroll bar on every page, so all of them are as wide: the bar and
+## a gap on each side of the rows, so the bar never touches the arrows.
+const BAR_GAP := 6
+const BAR_ROOM := UiStyle.SCROLL_BAR + 2 * BAR_GAP
 const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
@@ -78,6 +80,10 @@ var _legend_grid: GridContainer
 var _rows := []
 var _focus := -1
 var _back: Button
+## «По умолчанию» on the settings page: the first tap asks, the second puts every
+## setting back as it comes (Settings.reset).
+var _defaults: Button
+var _asking_reset := false
 var _screen := Vector2.ZERO
 ## Rows side by side: 2 on a wide screen too low for them in one column (see fit).
 var _columns := 1
@@ -115,7 +121,7 @@ func _ready() -> void:
 	# The rows keep their place whether the bar shows or not: a little room on the left,
 	# the bar's on the right.
 	var inset := MarginContainer.new()
-	inset.add_theme_constant_override("margin_left", BAR_ROOM - UiStyle.SCROLL_BAR)
+	inset.add_theme_constant_override("margin_left", BAR_GAP)
 	inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(inset)
 	inset.add_child(_list)
@@ -129,6 +135,11 @@ func _ready() -> void:
 	_legend.add_child(_legend_grid)
 	for k in CHANGE_KINDS:
 		_legend_grid.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
+	_defaults = Button.new()
+	_defaults.focus_mode = Control.FOCUS_NONE
+	_defaults.custom_minimum_size = Vector2(0, 32)
+	_defaults.pressed.connect(_reset_pressed)
+	box.add_child(_defaults)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 6)
 	box.add_child(buttons)
@@ -190,6 +201,8 @@ func _fill() -> void:
 	_version.text = "Версия %s · %s · %s" % [info.version, info.commit, info.date]
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
+	_defaults.visible = which == "settings"
+	_ask_reset(false)
 	_tabs.visible = PAGES.has(which)
 	_legend.visible = which == "changes" and not info.changes.is_empty()
 	_make_tabs(which)
@@ -418,6 +431,22 @@ static func build_info() -> Dictionary:
 
 
 ## "Назад": the changes go back to the playtest page, the other pages close.
+## The first tap on «По умолчанию» asks, the second resets.
+func _reset_pressed() -> void:
+	if not _asking_reset:
+		_ask_reset(true)
+		return
+	game.settings.reset()
+	_fill()
+
+
+func _ask_reset(on: bool) -> void:
+	_asking_reset = on
+	_defaults.text = "Сбросить все настройки?" if on else "По умолчанию"
+	_defaults.add_theme_color_override("font_color", UiStyle.DANGER if on else UiStyle.INK)
+	_defaults.add_theme_color_override("font_hover_color", UiStyle.DANGER if on else UiStyle.INK)
+
+
 func _go_back() -> void:
 	if page == "changes":
 		open("test")
@@ -446,6 +475,8 @@ func refresh() -> void:
 func fit(screen: Vector2) -> void:
 	_screen = screen
 	var rest := _title.size.y + _back.size.y + 2 * 6 + 2 * 6
+	if _defaults.visible:
+		rest += _defaults.size.y + 6
 	# As on the settings page, whose tabs the changes page has not.
 	var room := screen.y - 2 * 8 - rest - TAB_HEIGHT - 6
 	# Every page takes the columns the settings need, so all are as wide.
@@ -463,8 +494,6 @@ func fit(screen: Vector2) -> void:
 		room -= _legend.get_combined_minimum_size().y + 6
 	if not _tabs.visible:
 		room += TAB_HEIGHT + 6
-	if page != "settings":
-		room = minf(room, _page_height("settings", n))
 	_list.reset_size()
 	_scroll.custom_minimum_size = Vector2(content_width() + BAR_ROOM, minf(_list.size.y, room))
 	reset_size()

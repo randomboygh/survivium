@@ -221,6 +221,15 @@ func apply() -> void:
 		hud.show_keys(values.show_help)
 
 
+## Puts every setting back as it comes, all but the world the setup screen makes.
+func reset() -> void:
+	for k in DEFAULTS:
+		if not k.begins_with("world_"):
+			values[k] = DEFAULTS[k]
+	apply()
+	save()
+
+
 ## Whether the game can fill the whole screen here: a computer's window, or a browser
 ## that lets a page hide its own bars (not Safari on an iPhone).
 func can_fullscreen() -> bool:
