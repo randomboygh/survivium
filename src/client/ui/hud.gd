@@ -13,6 +13,7 @@ extends Control
 ## and its load; the minimap sits under the buttons in the corner with the level
 ## buttons on its left.
 
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const PerfPanel := preload("res://src/client/ui/perf_panel.gd")
@@ -32,21 +33,30 @@ const MARGIN := 8.0
 const CELL := 0.5
 const GAP := 4.0
 const SLOT := 40
-## UI height the scale aims for on the shorter side of the screen.
+## UI height the scale aims for on the shorter side of the screen: on a phone exactly,
+## so its windows fit any phone as they do the reference one (1200 px wide at ×3).
 const TARGET_SIDE := 400.0
+## The interface size setting, «очень мелкий» to «крупный»: on a phone the share of the
+## scale picked from the screen, on a computer whole steps around it (UI_STEPS).
+const UI_SIZES := [0.67, 0.83, 1.0, 1.33, 1.67]
+const UI_STEPS := [-2, -1, 0, 1, 2]
+## The size of the joystick and the touch buttons, the same five steps.
+const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
 ## The width of the level buttons beside the minimap.
 const LEVEL_WIDTH := 68
 ## The tab on the hotbar with the bag's slots and load, in UI pixels.
 const METER_WIDTH := 108
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
 var portrait := false
-## The interface scale setting: whole steps above the scale picked from the screen.
-var scale_bonus := 0
+## The interface and the touch controls size settings, indices into UI_SIZES and
+## CONTROL_SIZES.
+var ui_size := 2
+var control_size := 2
 
 var _left: VBoxContainer
 var _clock_icon: TextureRect
@@ -77,6 +87,11 @@ var _level_label: Button
 ## ChunkStreamer.view_range).
 var _level_up: Button
 var _level_down: Button
+## The camera buttons under the minimap: turn, tilt, and back to the default view
+## (it shows the turn and the tilt).
+var _camera: HBoxContainer
+var _camera_reset: Button
+var _camera_text := ""
 ## The colour last given to the level label's text (none yet: transparent).
 var _level_ink := Color(0, 0, 0, 0)
 var _bar: PanelContainer
@@ -187,6 +202,23 @@ func _ready() -> void:
 		b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 	minimap = Minimap.new()
 	add_child(minimap)
+	_camera = HBoxContainer.new()
+	_camera.add_theme_constant_override("separation", 4)
+	add_child(_camera)
+	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево", func() -> void: game.view.turn_by(1))
+	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
+	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
+	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
+	for b in [turn_left, turn_right, tilt_down, tilt_up]:
+		b.custom_minimum_size = Vector2(26, 26)
+	_camera_reset = Button.new()
+	_camera_reset.focus_mode = Control.FOCUS_NONE
+	_camera_reset.custom_minimum_size = Vector2(LEVEL_WIDTH, 26)
+	_camera_reset.tooltip_text = "Вернуть камеру как была"
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		_camera_reset.add_theme_stylebox_override(state, UiStyle.panel())
+	_camera_reset.pressed.connect(func() -> void: game.view.reset_turn())
+	_camera.add_child(_camera_reset)
 	map_view = MapView.new()
 	map_view.minimap = minimap
 	map_view.game = game
@@ -299,10 +331,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- Layout --------------------------------------------------------------------
 
-## Fits the UI into `rect` (screen pixels): picks a whole-number scale from the shorter
-## side and places everything for the screen's shape and the input in use.
-func fit(rect: Rect2) -> void:
-	var s := maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE)) + scale_bonus
+## Fits the UI into `rect` (screen pixels) and places everything for the screen's
+## shape and the input in use. On a computer the scale is a whole number picked from
+## the shorter side; on a phone or a tablet (`turning`) it is a fraction of the whole
+## `screen`'s shorter side (the whole screen, `rect` by default), so browser toolbars
+## coming and going do not change it.
+func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
+	var s: float
+	if turning:
+		var side := minf(screen.x, screen.y) if screen != Vector2.ZERO else minf(rect.size.x, rect.size.y)
+		s = maxf(1.0, side / TARGET_SIDE * UI_SIZES[ui_size])
+	else:
+		s = maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE) + UI_STEPS[ui_size])
 	scale = Vector2(s, s)
 	position = rect.position
 	size = (rect.size / s).floor()
@@ -327,17 +367,24 @@ func _place() -> void:
 	minimap.position = Vector2(w - MARGIN - minimap.size.x, _top.position.y + _top.size.y + 6)
 	_level.reset_size()
 	_level.position = Vector2(minimap.position.x - 6 - _level.size.x, minimap.position.y)
+	# The camera buttons in a row under them, at the right edge.
+	_camera.reset_size()
+	_camera.position = Vector2(w - MARGIN - _camera.size.x, minimap.position.y + minimap.size.y + 6)
 
 	stick.visible = touch
 	_action.visible = touch
 	_jump.visible = touch
 	_keys.visible = not touch and game != null and game.controls.show_help and not bag.visible
 	var bottom := h - MARGIN
-	stick.position = Vector2(MARGIN + 4, bottom - stick.size.y)
+	var k: float = CONTROL_SIZES[control_size]
+	for c: Control in [stick, _action, _jump]:
+		c.scale = Vector2(k, k)
+	var stick_size: Vector2 = stick.size * k
+	stick.position = Vector2(MARGIN + 4, bottom - stick_size.y)
 	_action.size = _action.custom_minimum_size
-	_action.position = Vector2(w - MARGIN - _action.size.x, bottom - _action.size.y)
+	_action.position = Vector2(w - MARGIN - _action.size.x * k, bottom - _action.size.y * k)
 	_jump.size = _jump.custom_minimum_size
-	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x, bottom - _jump.size.y)
+	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x * k, bottom - _jump.size.y * k)
 
 	# All the slots when they fit across the screen beside the hands and the separator,
 	# else as many as fit between the two arrows, four at most in portrait.
@@ -355,7 +402,7 @@ func _place() -> void:
 	var x := floorf((w - bw) * 0.5)
 	var y := bottom - bh
 	if touch:
-		var free_left: float = stick.position.x + stick.size.x + 8
+		var free_left: float = stick.position.x + stick_size.x + 8
 		var free_right := _jump.position.x - 8
 		if free_right - free_left >= bw:
 			x = clampf(x, free_left, free_right - bw)
@@ -490,13 +537,27 @@ func update_state() -> void:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
 	minimap.set_marks(game.placed.things, game.character.sacks)
+	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
 	# Eight ways, so the arrow stays on the pixel grid.
-	var step := posmod(roundi(game.clock.wind_angle / (PI / 4.0)), 8)
+	# The way it blows on the screen, as the camera is turned.
+	var blow := PixelView.screen_dir(Vector2.from_angle(game.clock.wind_angle)).angle()
+	var step := posmod(roundi(blow / (PI / 4.0)), 8)
 	if step != _wind_step:
 		_wind_step = step
 		_wind.queue_redraw()
+	var view = game.view
+	# The turn in degrees, and the tilt when there is one: "90°", "90°+10".
+	var text := "%d°" % view.turn_degrees()
+	if view.tilt_steps != 0:
+		text += "%+d" % (view.tilt_steps * 5)
+	if text != _camera_text:
+		_camera_text = text
+		_camera_reset.text = text
+		var ink := UiStyle.INK if view.is_default() else UiStyle.ACCENT
+		_camera_reset.add_theme_color_override("font_color", ink)
+		_camera_reset.add_theme_color_override("font_hover_color", ink)
 	var cut: bool = game.chunks.manual_level >= 0
 	var reach: Vector2i = game.chunks.view_range()
 	_level_up.disabled = not cut and game.chunks.cut_base() + 1 > reach.y

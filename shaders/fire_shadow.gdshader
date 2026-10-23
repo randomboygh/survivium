@@ -101,7 +101,7 @@ void fragment() {
 		discard;
 	}
 	// The rings are dithered on the same texels as the light they take back (toon_light).
-	vec2 texel = floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS);
+	vec2 texel = floor(screen_plane(world_pos) * TEXELS);
 	float d;
 	if (square > 0.5) {
 		d = distance(world_pos, lights[light].xyz) / lights[light].w;

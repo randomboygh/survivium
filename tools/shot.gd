@@ -2,7 +2,8 @@ extends SceneTree
 ## Renders the game and saves screenshots, for looking at visual changes without a
 ## browser. Needs a display (not --headless), for example:
 ## xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
-##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [name ...]
+##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [name ...]
+## `--phone` lays the window out as a phone's screen (fractional scales, CameraRig.turning).
 ## Each shot sets the time of day, season, weather and an offset of the player from
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
@@ -15,6 +16,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 const CELL := 0.5
 ## How far around the player (in cells) the shore, water and lone tree searches look:
 ## the world has no edge, only the chunks generated around.
@@ -255,6 +257,16 @@ const SHOTS := {
 	"sack-night": {"time": 0.95, "season": 1, "death": true, "revive": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
+	# The camera turned (steps of 15 degrees to the left) and tilted (steps of 5
+	# degrees steeper): by day among trees, and the camera buttons under the minimap.
+	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 3},
+	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 6},
+	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 12},
+	"turn-trees": {"time": 0.45, "season": 1, "trees": true},
+	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -3},
+	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 3},
+	"turn-hut": {"time": 0.45, "season": 1, "hut": true, "turn": 9, "tilt": -2},
+	"turn-ui": {"time": 0.45, "season": 1, "turn": 2, "tilt": 1, "touch": true},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
 	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
@@ -271,7 +283,9 @@ const SHOTS := {
 	"ui-hurt": {"time": 0.45, "season": 1, "touch": true, "body": "hurt"},
 	"ui-fed": {"time": 0.45, "season": 1, "touch": true, "body": "fed"},
 	"ui-changes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "changes"},
-	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_scale": 2},
+	# The interface a step smaller and the joystick and buttons the smallest.
+	"ui-small": {"time": 0.45, "season": 1, "touch": true, "ui_size": 1, "control_size": 0},
+	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_size": 4},
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
@@ -317,9 +331,10 @@ const SHOTS := {
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
-	# The swamp strip: pools in the north, bogs in the south, and the player sunk in a bog.
+	# The swamp strip: pools in the north, a pond running into a bog in the south, and
+	# the player wading the bog.
 	"ground-swamp": {"time": 0.42, "season": 1, "at": [18, 26]},
-	"ground-bog": {"time": 0.42, "season": 1, "at": [16, 32], "y": 23},
+	"ground-bog": {"time": 0.42, "season": 1, "at": [19, 33], "y": 23},
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
@@ -332,10 +347,13 @@ const TEST_SAVES := "user://shot_ground"
 var main: Node
 var out_dir := "user://shots"
 var names: Array = []
+var phone := false
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
+	phone = "--phone" in args
+	args.erase("--phone")
 	if args.size() > 0:
 		out_dir = args[0]
 	names = args.slice(1) if args.size() > 1 else SHOTS.keys()
@@ -376,6 +394,9 @@ func _fake_saves() -> void:
 func _run() -> void:
 	while not main.ready_to_play:
 		await process_frame
+	if phone:
+		main.view.turning = true
+		main.view.on_screen_resized()
 	var spawn: Vector3 = main.player.position
 	var added_fires := []
 	for shot_name in names:
@@ -457,6 +478,9 @@ func _run() -> void:
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
+		main.settings.values.camera_turn = shot.get("turn", 0)
+		main.settings.values.camera_tilt = shot.get("tilt", 0)
+		main.view.look_at_player()
 		if shot.get("work", false):
 			_work()
 		main.hud.perf.visible = shot.get("stats", false)
@@ -499,7 +523,7 @@ func _run() -> void:
 			c.think = 100.0
 		if shot.get("birds", false):
 			_place_birds()
-		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
+		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
 					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
@@ -539,7 +563,10 @@ func _run() -> void:
 			main.hud.toast("Наступило лето")
 			await process_frame
 			await process_frame
-		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
+		main.settings.set_value("ui_size", shot.get("ui_size", 2))
+		main.settings.set_value("control_size", shot.get("control_size", 2))
+		await process_frame
+		await process_frame
 		if shot.has("body"):
 			# What the screen shows when the body is hurt, or healed and fed.
 			var v = main.character.vitals
@@ -723,7 +750,8 @@ func _run() -> void:
 			_unwall_cells(main.world)
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
-		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
+		main.settings.set_value("ui_size", shot.get("ui_size", 2))
+		main.settings.set_value("control_size", shot.get("control_size", 2))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 		if shot.get("test", false):

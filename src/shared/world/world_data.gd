@@ -40,9 +40,10 @@ var chunks := {}
 ## always stay whole cubes and dug spaces keep square corners.
 const WILD := 1
 const SHEER := 2
-## On a water cell: a bog, mud a body sinks into to the waist instead of water (see
-## Body); it lies like water in every other way.
+## On a water cell: the murky water of a swamp, and the murkier water of a bog, which
+## is waded slower (see Body); both lie like water in every other way.
 const BOG := 4
+const SWAMP := 8
 ## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z),
 ## and the trunks by chunk, so a dropped chunk forgets its trees without a search.
 var trees := {}
@@ -297,12 +298,20 @@ func is_natural(x: int, y: int, z: int) -> bool:
 	return c != null and c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] & WILD != 0
 
 
-## True when cell x, y, z is the mud of a bog (see BOG).
+## True when cell x, y, z is the water of a bog (see BOG).
 func is_bog(x: int, y: int, z: int) -> bool:
+	return murk(x, y, z) == 2
+
+
+## How murky the water of cell x, y, z is: 0 clear, 1 a swamp's, 2 a bog's (see BOG).
+func murk(x: int, y: int, z: int) -> int:
 	if y < 0 or y >= size_y:
-		return false
+		return 0
 	var c := chunk_at(x, z)
-	return c != null and c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] & BOG != 0
+	if c == null:
+		return 0
+	var n := c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)]
+	return 2 if n & BOG else (1 if n & SWAMP else 0)
 
 
 ## The masks of column (x, z): air (all levels where no chunk is kept), water, leaves

@@ -26,6 +26,8 @@ const FREEZE_PARTS := 3
 ## Freezes are written to the log at most this often (milliseconds), so a device that
 ## cannot keep up does not fill the log every frame.
 const FREEZE_LOG_EVERY := 1000
+## Room kept between the panel and the right edge of the screen, in UI pixels.
+const EDGE := 8.0
 
 var world_ms := 0
 var chunks := 0
@@ -71,6 +73,7 @@ func _ready() -> void:
 	_graph.custom_minimum_size = Vector2(GRAPH_MIN, 34)
 	_graph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_graph.draw.connect(_draw_graph)
+	_graph.resized.connect(_graph.queue_redraw)
 	box.add_child(_graph)
 	reset()
 
@@ -154,7 +157,25 @@ static func freeze_text(f: Array) -> String:
 func refresh() -> void:
 	_refresh = 0.0
 	_text.text = summary(true, true)
+	_fit(summary(true))
 	_graph.queue_redraw()
+
+
+## Keeps the panel within the screen: as wide as its longest line where that fits,
+## the lines wrapped to the screen's edge where it does not (a phone held upright).
+func _fit(plain: String) -> void:
+	var font := _text.get_theme_font("normal_font")
+	var font_size := _text.get_theme_font_size("normal_font_size")
+	var widest := 0.0
+	for line in plain.split("\n"):
+		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	var frame := get_theme_stylebox("panel").get_minimum_size().x if has_theme_stylebox("panel") else 0.0
+	# On the screen, where the HUD may be drawn scaled.
+	var on_screen := get_global_transform_with_canvas()
+	var room := (get_viewport_rect().size.x - on_screen.origin.x) / on_screen.get_scale().x - EDGE - frame
+	var wrap := widest + 1.0 > room
+	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
+	_text.custom_minimum_size.x = floorf(room) if wrap else 0.0
 
 
 ## The statistics as text; `full` adds the renderer lines, `colored` marks the numbers
@@ -225,19 +246,23 @@ func _recent() -> PackedFloat32Array:
 
 
 ## One bar per frame across the whole width, newest on the right; lines at 60 and
-## 30 FPS. Bars over 50 ms (freezes) are red, over 33 ms amber.
+## 30 FPS. Bars over 50 ms (freezes) are red, over 33 ms amber. A graph wider than
+## HISTORY pixels draws the bars wider, so they still reach the left edge.
 func _draw_graph() -> void:
 	var h := _graph.size.y
 	var scale := h / 66.0
 	var n := mini(floori(_graph.size.x), HISTORY)
-	var x0 := floorf(_graph.size.x) - n
+	if n <= 0:
+		return
+	var step := _graph.size.x / n
 	_graph.draw_rect(Rect2(Vector2.ZERO, _graph.size), Color(0, 0, 0, 0.35))
 	for i in n:
 		var ms: float = _frames[(_next - n + i + HISTORY) % HISTORY]
 		if ms <= 0.0:
 			continue
 		var bar := minf(h, ceilf(ms * scale))
-		_graph.draw_rect(Rect2(x0 + i, h - bar, 1, bar), frame_color(ms))
+		var x := floorf(i * step)
+		_graph.draw_rect(Rect2(x, h - bar, floorf((i + 1) * step) - x, bar), frame_color(ms))
 	for fps in [60.0, 30.0]:
 		var y := floorf(h - 1000.0 / fps * scale)
 		_graph.draw_rect(Rect2(0, y, _graph.size.x, 1), Color(UiStyle.INK, 0.45))

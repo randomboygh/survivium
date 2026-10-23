@@ -58,6 +58,10 @@ const DROPS_PER_FRAME := 4
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
+## How long the view waits before it closes again over the player walking out from
+## behind earth that hid them: along a bumpy hill or wall the cover comes and goes
+## column by column, and the trees and bushes cut with it flickered.
+const UNHIDE_DELAY := 0.8
 ## How many levels above and below the player's the level buttons may look; from deep
 ## in a pit, up to the surface over it (see view_range).
 const VIEW_REACH := 4
@@ -152,6 +156,8 @@ var sunk_at := Vector3i(0, -1000, 0)
 ## The lowest level of earth between the camera and the player's body, -1 for none
 ## (see _hiding_level); worked out with sunk.
 var hidden_by := -1
+## True while the cut in force is the one earth hiding the player asked for.
+var cut_hides := false
 
 
 func _init(g) -> void:
@@ -542,6 +548,14 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		_fit_box(n)
 
 
+## Fits the culling boxes of every chunk shown to the views the camera may show next
+## (PixelView.box_views), when it turns or tilts.
+func refit_boxes() -> void:
+	for parts: Array in chunk_nodes.values():
+		for n: GeometryInstance3D in parts:
+			_fit_box(n)
+
+
 ## Culls a part of a chunk by what it draws, moved north as the shaders draw it, instead
 ## of a margin of a level's height all round, which kept nearly every chunk loaded drawn
 ## (636 draw calls against 301 at the spawn by day, 2026-10-21).
@@ -657,10 +671,13 @@ func update_cut(delta: float) -> void:
 		cut_clock = 0.0
 	if target == cut_level:
 		return
-	# A chosen level applies at once; the automatic one once it has held for a moment.
+	# A chosen level applies at once; the automatic one once it has held for a moment,
+	# longer when the view closes over a player who was hidden.
 	cut_clock += delta
-	if cut_level < 0 or manual_level >= 0 or cut_clock >= CUT_DELAY:
+	var wait := UNHIDE_DELAY if cut_hides and target > cut_level else CUT_DELAY
+	if cut_level < 0 or manual_level >= 0 or cut_clock >= wait:
 		cut_level = target
+		cut_hides = manual_level < 0 and not indoor and hidden_by >= 0 and target == hidden_by - 1
 		_apply_cut()
 
 

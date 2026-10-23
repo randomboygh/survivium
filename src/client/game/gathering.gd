@@ -40,7 +40,7 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 	if not game.ready_to_play:
 		return {}
 	var view = game.view
-	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / float(view.container.stretch_shrink)
+	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / view.view_scale
 	var radius: float = FINGER if game.controls.touch else POINTER
 	var best := {}
 	var best_d := radius
@@ -79,7 +79,7 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 ## Distance on the world image between world point `p` and image point `vp_pos`.
 func _screen_distance(p: Vector3, vp_pos: Vector2) -> float:
 	var view = game.view
-	var center := Vector2(view.camera.global_position.x, view.camera.global_position.z)
+	var center := PixelView.plane_of(Vector2(view.camera.global_position.x, view.camera.global_position.z))
 	var on_image := (PixelView.screen_plane(p) - center) * PixelView.PIXELS_PER_UNIT + Vector2(view.image_size) * 0.5
 	return on_image.distance_to(vp_pos)
 

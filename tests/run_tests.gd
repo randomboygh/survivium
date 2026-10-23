@@ -509,26 +509,27 @@ func _test_water() -> void:
 	player.free()
 
 
-## The pool of _pool_world as a bog: the body sinks to the waist in the mud, wades it
-## slowly and pulls itself out onto the bank.
+## The pool of _pool_world made a cell deep and a bog: the body walks in and wades it
+## like shallow water, only slower, and steps out onto the bank.
 func _test_bog() -> void:
 	var w := _pool_world()
 	for z in 16:
 		for x in range(3, 9):
-			for y in range(3, 5):
-				var c: WorldData.Chunk = w.chunk_at(x, z)
-				var i := (y << 8) | ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
-				if c.cells[i] == Mat.WATER:
-					c.natural[i] |= WorldData.BOG
+			w.set_cell(x, 3, z, Mat.STONE)
+			var c: WorldData.Chunk = w.chunk_at(x, z)
+			c.natural[(4 << 8) | ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)] |= WorldData.BOG
+	_check(w.murk(5, 4, 5) == 2 and w.is_bog(5, 4, 5) and w.murk(5, 5, 5) == 0, "bog water is the murkiest")
 	var player = PlayerScript.new()
 	player.body.world = w
-	player.position = Vector3(6.5, 4.5, 2.5) * WorldData.CELL
+	player.position = Vector3(6.5, 5.0, 2.5) * WorldData.CELL
 	for i in 60:
 		player.step(1.0 / 60.0, false)
 	var p: Vector3 = player.position / WorldData.CELL
 	_check(player.body.in_bog and player.body.on_ground and not player.body.swimming
-		and is_equal_approx(p.y, 4.5 - Body.BOG_SINK), "a body sinks to the waist in a bog and stands there")
-	_check(player.body.speed_at(player.position) < Body.SPEED * Body.WADE, "a bog is waded slower than water")
+		and is_equal_approx(p.y, 4.0), "a body wades a bog on its bottom, as shallow water")
+	var bog_pace: float = player.body.speed_at(player.position)
+	_check(bog_pace < Body.SPEED * Body.WADE and bog_pace > Body.SPEED * Body.SWIM * 0.9,
+		"a bog is waded a little slower than water")
 	player.body.move_input = Vector2(1, 0)
 	for i in 300:
 		player.step(1.0 / 60.0, false)
@@ -699,8 +700,9 @@ func _test_ground() -> void:
 		"the hill of the test world has a tunnel into a hall")
 	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.SAND
 		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
-	_check(w.is_bog(16, g, 28) and w.is_bog(16, g - 1, 28) and w.get_cell(16, g - 2, 28) == Mat.CLAY
-		and w.get_cell(16, g, 16) == Mat.WATER and not w.is_bog(16, g, 16), "the swamp strip has pools and bogs")
+	_check(w.is_bog(18, g, 33) and w.get_cell(18, g - 1, 33) == Mat.CLAY and w.murk(18, g, 28) == 1
+		and w.get_cell(16, g, 16) == Mat.WATER and w.murk(16, g, 16) == 1,
+		"the swamp strip has pools and a pond running into a bog, all at one level")
 	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.COPPER_ORE,
 		"the material strips are 4 cells deep")
 	_check(w.get_cell(50, g + 2, 0) == Mat.PLANKS and w.get_cell(53, g + 1, 3) == Mat.AIR
@@ -1101,7 +1103,7 @@ func _test_pixel_view() -> void:
 	var whole := true
 	for screen in screens:
 		var view: Array = PixelView.layout(screen)
-		var scale: int = view[0]
+		var scale: float = view[0]
 		var image: Vector2i = view[1]
 		var covered := Vector2(image * scale)
 		whole = whole and image.x % 2 == 0 and image.y % 2 == 0 \
@@ -1112,6 +1114,15 @@ func _test_pixel_view() -> void:
 	_check(PixelView.layout(Vector2(1200, 2608), PixelView.TARGET_HEIGHT, true)[0]
 		== PixelView.layout(Vector2(2608, 1200), PixelView.TARGET_HEIGHT, true)[0],
 		"a phone shows the world as large held either way")
+	# Any phone shows as many cells across as the reference one, by a fraction of a scale.
+	var phones := [Vector2(1200, 2608), Vector2(1080, 2400), Vector2(720, 1600), Vector2(1440, 3200)]
+	var across := true
+	for screen in phones:
+		var view: Array = PixelView.layout(screen, PixelView.TARGET_HEIGHT, true)
+		var image: Vector2i = view[1]
+		var covered: Vector2 = Vector2(image) * float(view[0])
+		across = across and absi(image.x - 172) <= 2 and covered.x >= screen.x and covered.y >= screen.y
+	_check(across, "every phone shows as many cells across as the reference one")
 	_check(is_equal_approx(PixelView.camera_size(360), 22.5), "16 pixels per world unit")
 	# A cell's top and its south wall both cover 16 x 16 pixels on screen.
 	var top := PixelView.screen_plane(Vector3(3, 2, 5)) - PixelView.screen_plane(Vector3(3, 2, 4))
@@ -1131,6 +1142,35 @@ func _test_pixel_view() -> void:
 	var ray: Array = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
 	var t: float = (ray[0].y - cell.y) / -ray[1].y
 	_check((ray[0] + ray[1] * t).distance_to(cell) < 0.001, "view ray hits the point under the pixel")
+	var sun := Vector3(-0.3, 0.7, 0.5).normalized()
+	_check(PixelView.light_dir(sun).is_equal_approx(sun), "the default view keeps the sun where it is")
+	# A turned and tilted camera: rays still hit what is drawn under them, boxes hold
+	# what their meshes draw, shadows fall where they fall in the default view, and
+	# the camera shows the point it is put over in the middle.
+	var turned := true
+	var box := AABB(Vector3(-3, 1, 7), Vector3(4, 6, 2))
+	for view: Vector2 in [Vector2(PI / 12.0, 0.0), Vector2(PI * 0.75, PI / 12.0), Vector2(-PI / 3.0, -PI / 12.0)]:
+		PixelView.set_view(view.x, view.y)
+		PixelView.box_views = [PixelView.view_of(view.x, view.y)]
+		ray = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
+		t = (ray[0].y - cell.y) / -ray[1].y
+		turned = turned and (ray[0] + ray[1] * t).distance_to(cell) < 0.001
+		var drawn := PixelView.sheared_box(box, 0.0).grow(0.001)
+		for i in 8:
+			turned = turned and drawn.has_point(PixelView.shear(box.get_endpoint(i)))
+		var foot := Vector3(4, 2, 9)
+		var tip := foot + Vector3(0, 3, 0)
+		var lit := PixelView.light_dir(sun)
+		var hit := PixelView.shear(tip) - lit * (3.0 / lit.y)
+		# In the default view the shadow of the tip lands 3 units of height north too.
+		var fall := Vector3(tip.x - sun.x * 3.0 / sun.y, foot.y, tip.z - sun.z * 3.0 / sun.y - 3.0)
+		turned = turned and hit.is_equal_approx(PixelView.shear(fall))
+		var middle := PixelView.camera_transform(Vector2(5, -2)).origin
+		turned = turned and PixelView.plane_of(Vector2(middle.x, middle.z)).is_equal_approx(Vector2(5, -2))
+		turned = turned and PixelView.screen_dir(PixelView.world_dir(Vector2(0.3, -1))).is_equal_approx(Vector2(0.3, -1))
+	PixelView.set_view(0.0, 0.0)
+	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]
+	_check(turned, "a turned and tilted view draws, picks, culls and shades consistently")
 
 
 func _test_trees() -> void:

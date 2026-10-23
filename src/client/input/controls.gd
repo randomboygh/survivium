@@ -118,6 +118,16 @@ func unhandled_input(event: InputEvent) -> void:
 				game.chunks.shift_cut(1)
 			KEY_R:
 				game.chunks.reset_view_level()
+			KEY_BRACKETLEFT:
+				game.view.turn_by(1)
+			KEY_BRACKETRIGHT:
+				game.view.turn_by(-1)
+			KEY_MINUS:
+				game.view.tilt_by(-1)
+			KEY_EQUAL:
+				game.view.tilt_by(1)
+			KEY_BACKSLASH:
+				game.view.reset_turn()
 			KEY_I, KEY_TAB:
 				game.hud.toggle_bag()
 			KEY_V:
@@ -373,7 +383,9 @@ func read_move() -> Vector2:
 		v.y += 1.0
 	if touch:
 		v += game.hud.stick.value
-	return v
+	# The keys and the stick push the way they point on the screen, however the
+	# camera is turned.
+	return PixelView.world_dir(v)
 
 
 ## The cell the player's feet are in.
@@ -391,8 +403,8 @@ func step() -> Vector2i:
 ## The view ray through a screen point, in cells: [origin, direction].
 func _ray(screen_pos: Vector2) -> Array:
 	var view = game.view
-	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / float(view.container.stretch_shrink)
-	var center: Vector2 = Vector2(view.camera.global_position.x, view.camera.global_position.z)
+	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / view.view_scale
+	var center: Vector2 = PixelView.plane_of(Vector2(view.camera.global_position.x, view.camera.global_position.z))
 	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(view.image_size) * 0.5, game.world.size_y * CELL + 1.0)
 	return [ray[0] / CELL, ray[1]]
 

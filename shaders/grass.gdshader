@@ -102,7 +102,7 @@ void vertex() {
 		float t = TIME * 0.7 + custom.z * 40.0;
 		VERTEX += vec3(round(sin(t) * 2.0 * life) / TEXELS, life * SPORE_RISE, round(cos(t * 0.8) * 1.5 * life) / TEXELS);
 	}
-	VERTEX = shear(VERTEX);
+	VERTEX = shear(face_view(VERTEX, root));
 	light_xz = VERTEX.xz;
 	NORMAL = vec3(0.0, 1.0, 0.0);
 }

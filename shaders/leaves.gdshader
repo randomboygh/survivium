@@ -26,6 +26,9 @@ uniform float clump_size = 1.5;
 // beyond it, in world units.
 const float SEE_THROUGH = 1.8;
 const float SEE_RIM = 0.5;
+// How far in front of the player a clump starts to clear, and as far again until it
+// clears in full.
+const float SEE_FRONT = 0.5;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
@@ -49,7 +52,7 @@ void vertex() {
 	tint = COLOR;
 	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
-	VERTEX = shear(VERTEX);
+	VERTEX = shear(face_view(VERTEX, center));
 	light_xz = VERTEX.xz;
 }
 
@@ -67,7 +70,7 @@ void fragment() {
 		row = float(branch_row);
 	}
 	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (row + UV.y) / float(clump_rows)));
-	vec2 texel = floor(vec2(center.x, center.z - center.y) * TEXELS + UV * clump_size * TEXELS);
+	vec2 texel = floor(screen_plane(center) * TEXELS + UV * clump_size * TEXELS);
 	if (m.a < 0.5 || cut_dither(center.y, texel)) {
 		discard;
 	}
@@ -80,15 +83,20 @@ void fragment() {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them:
-	// every other texel within SEE_THROUGH, one in four over a rim beyond it. Counted
-	// in the world's texels, so the pattern does not crawl as the view moves.
-	vec2 frag = vec2(center.x + (UV.x - 0.5) * clump_size, center.z - center.y - (0.5 - UV.y) * clump_size);
-	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
+	// every other texel within SEE_THROUGH, fewer and fewer over a rim beyond it, and
+	// fewer for a clump hardly in front of the player. Counted in the world's texels,
+	// so the pattern does not crawl as the view moves; and graded both ways, so a step
+	// of the player takes or gives back single texels, not whole clumps at once, which
+	// flickered.
+	vec2 frag = screen_plane(center) + vec2((UV.x - 0.5) * clump_size, -(0.5 - UV.y) * clump_size * view_slope);
+	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
 	float near = length(frag - body);
-	if (center.y + center.z > player_pos.y + player_pos.z + 1.0 && near < SEE_THROUGH + SEE_RIM) {
-		if (bayer4(texel) < (near < SEE_THROUGH ? 0.5 : 0.25)) {
-			discard;
-		}
+	float toward = view_slope / view_squash;
+	float before = center.y - dot(center.xz, view_up) * toward - (player_pos.y - dot(player_pos.xz, view_up) * toward);
+	float clear = 0.5 * clamp((SEE_THROUGH + SEE_RIM - near) / SEE_RIM, 0.0, 1.0)
+		* clamp((before - SEE_FRONT) / SEE_FRONT, 0.0, 1.0);
+	if (bayer4(texel) < clear) {
+		discard;
 	}
 	// The crown's normal, tilted by the leaf this texel belongs to; leaves flutter
 	// on their own in the wind.
@@ -140,7 +148,7 @@ void light() {
 		// ambient light adds the blue). A sun shadow (often of the crown's own upper
 		// leaves, which a convex crown would not cast on its sunny side) or a cloud
 		// takes one step off.
-		float ndl = dot(NORMAL, LIGHT);
+		float ndl = dot(NORMAL, sun_view);
 		float shadow = min(step(0.5, ATTENUATION), step(0.99, clouds));
 		float step_n = (ndl > 0.6 ? 3.0 : (ndl > 0.38 ? 2.0 : (ndl > 0.08 ? 1.0 : 0.0))) - (1.0 - shadow);
 		vec3 band = step_n > 2.5 ? vec3(1.55, 1.45, 0.7) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? vec3(0.7) : vec3(0.32)));
