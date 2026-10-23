@@ -70,8 +70,9 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   steps and tilts two steps each way, a wall 4..12 px under an 8 px top (`camera_rig.gd`,
   `PixelView.set_view`): the shear then runs up the image (`view_up`, `view_slope`, `view_squash`
   globals), upright quads face the camera through `face_view` (sprites and plants also through
-  `stand_tall`, which keeps them their pixel height at any tilt), the tops' open edges are a rim or an
-  outline by which way they face the camera (`world.gdshader`), texels counted on the screen use `screen_plane`, screen directions go through
+  `stand_tall`, which keeps them their pixel height at any tilt), the open edges of cells are a light rim
+  toward the sun or the moon and an outline away from it (`light_side`, one of eight sides kept with a
+  margin by `sky.gd` so they never flicker), texels counted on the screen use `screen_plane`, screen directions go through
   `PixelView.world_dir` / `screen_dir`, and chunk culling boxes are refitted for every view on
   the way (`ChunkStreamer.refit_boxes`). Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
