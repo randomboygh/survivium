@@ -4,8 +4,8 @@ extends PanelContainer
 ## which suits a thumb as well as a mouse; the keyboard moves between rows with the
 ## arrows and changes a value with Left / Right or Enter. Values come from and go to
 ## Settings (plan/design/ui.md, section 6). Both pages are split into sections by tabs
-## under the title (see PAGES): the settings into Игра, Графика, and Музыка, Звук dimmed
-## until the game has sound (Графика starts with the quality preset, any change by hand
+## under the title (see PAGES): the settings into Игра, Графика, Музыка and Звук (their
+## volumes, see Sound; Графика starts with the quality preset, any change by hand
 ## makes it «своё»); the playtest page into Мир, Игрок, Маркеры, Отладка, with buttons
 ## for what is done once (into the test world, the tools into the bag, to a marker set
 ## on the map: Маркеры lists them with their colour and column). The playtest page also
@@ -17,6 +17,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
 const Markers := preload("res://src/client/game/markers.gd")
+const Sound := preload("res://src/client/audio/sound.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -45,7 +46,7 @@ const PAGES := {
 	"test": [["world", "Мир"], ["player", "Игрок"], ["marks", "Маркеры"], ["debug", "Отладка"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
-const SOON := ["music", "sound"]
+const SOON := []
 ## Sections as long as there is something in them: no taller page for them, they scroll.
 const LISTS := ["marks"]
 ## The room between the quality preset and the settings by hand, or the rows and a
@@ -385,6 +386,15 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return int(s.values.show_help),
 					func(i: int) -> void: s.set_value("show_help", i == 1)])
 			return rows
+		"music":
+			return [_volume_row("Громкость", "music_volume")]
+		"sound":
+			return [
+				_volume_row("Громкость", "sound_volume"),
+				null,
+				_volume_row("Природа", "nature_volume"),
+				_volume_row("Интерфейс", "ui_volume"),
+			]
 		"graphics":
 			# From the lightest to draw to the heaviest; mixed (3) came after real (2).
 			var fire_order := [0, 1, 3, 2]
@@ -416,6 +426,17 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void: s.set_value("fps_limit", i)],
 			]
 	return []
+
+
+## A row of the volume setting `key`, «выкл» to «100%» in Sound.STEPS steps.
+func _volume_row(name: String, key: String) -> Array:
+	var s = game.settings
+	var steps := ["выкл"]
+	for i in range(1, Sound.STEPS + 1):
+		steps.append("%d%%" % (100 * i / Sound.STEPS))
+	return [name, steps,
+		func() -> int: return s.values[key],
+		func(i: int) -> void: s.set_value(key, i)]
 
 
 ## How tall `rows` (see _section_rows) stand in the list in `columns` columns: the rows

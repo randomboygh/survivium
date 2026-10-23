@@ -9,7 +9,8 @@ extends Node
 ## workbenches, kilns and campfires drawn, the things on the ground), Character (the
 ## player's character on this device; DeathScreen shows a death), Gathering (what a tap
 ## gathers, things taken up by themselves), Hands (what the player is drawn holding),
-## Settings (the saved settings and the playtest switches) and SaveGame (the saved world
+## Sound (the buses, the ear and the sounds), Settings (the saved settings and the
+## playtest switches) and SaveGame (the saved world
 ## and player). The rules live in src/shared: Clock (time of day, seasons and weather),
 ## Character (the bag, health, satiety, stamina, death), WorldActions (what the hands do
 ## to the world), Placed (the things placed on two by two cells) and Workshop (recipes
@@ -55,6 +56,7 @@ const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
+const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
@@ -97,6 +99,8 @@ var wildlife: Wildlife
 var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
+## The buses, the ear, one-off sounds and the loops of nature.
+var sound: SoundScript
 var save: SaveGame
 var menu: MainMenu
 var death_screen: DeathScreen
@@ -142,6 +146,8 @@ func _ready() -> void:
 	controls = Controls.new(self)
 	settings = SettingsScript.new(self)
 	settings.load()
+	sound = SoundScript.new(self)
+	add_child(sound)
 	save = SaveGame.new(self)
 	save.enabled = not skip_setup or save_root != ""
 	if save_root != "":
@@ -316,6 +322,7 @@ func _notification(what: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	sound.input(event)
 	controls.input(event)
 
 
@@ -447,6 +454,7 @@ func _material(shader: Shader) -> ShaderMaterial:
 func _build_scene() -> void:
 	sky.build(world_root)
 	view.build_camera()
+	sound.build(world_root)
 
 	drifts_root = Node3D.new()
 	drifts_root.visible = false

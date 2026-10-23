@@ -11,6 +11,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Sound := preload("res://src/client/audio/sound.gd")
 
 const PATH := "user://settings.cfg"
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
@@ -60,6 +61,12 @@ const DEFAULTS := {
 	"pickup_heavy": false,
 	# The camera shakes when the body is hurt (see BodyFeedback).
 	"shake": true,
+	# Volumes in steps of Sound.STEPS (0 is off): the music, all the sounds, nature
+	# (wind, rain, water, birds) and the interface among them.
+	"music_volume": 3,
+	"sound_volume": 4,
+	"nature_volume": 5,
+	"ui_volume": 3,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
 	"world_seed": 20261018,
 	"world_size": 1,
@@ -228,6 +235,10 @@ func apply() -> void:
 	if game.character != null:
 		game.character.inventory.heavy = not no_overload
 		game.character.vitals.hunger = not no_hunger
+	Sound.set_volume("Music", values.music_volume)
+	Sound.set_volume("Sounds", values.sound_volume)
+	Sound.set_volume("Nature", values.nature_volume)
+	Sound.set_volume("UI", values.ui_volume)
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
 	# Sixteen-bit depth, as the engine's own default map.
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
