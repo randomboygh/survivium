@@ -275,8 +275,8 @@ func _cast_all(l: Dictionary, n: int) -> int:
 	var at: Vector3 = l.at
 	var r2: float = l.range * l.range
 	for c in game.wildlife.animals:
-		# Most animals are far from every light.
-		if Vector2(c.pos.x - at.x, c.pos.z - at.z).length_squared() >= r2:
+		# Most animals are far from every light; birds in the air throw none on the ground.
+		if c.aloft() or Vector2(c.pos.x - at.x, c.pos.z - at.z).length_squared() >= r2:
 			continue
 		var aabb: AABB = game.creatures.looks[c.kind][0].get_aabb()
 		n = _cast(l, c.pos, aabb.size.y, aabb.size.x * 0.4, n, c)
@@ -570,7 +570,8 @@ func _shades(lights: Array, night: float) -> Dictionary:
 	var who := [[game.player, game.player.position, game.player.sprite]]
 	for a in game.wildlife.animals:
 		var sprite = game.creatures.sprite_of(a)
-		if a.near and sprite != null:
+		# Birds up in the air or in a crown are above the shadows on the ground.
+		if a.near and sprite != null and not a.aloft():
 			who.append([a, a.pos, sprite])
 	for w: Array in who:
 		var p: Vector3 = w[1]
