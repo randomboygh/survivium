@@ -381,15 +381,19 @@ static func _column(job: Job, x: int, z: int) -> void:
 					around = float(a)
 					if bare:
 						flag = MOSS_TAKEN
-				elif d == FACE_SOUTH:
+				elif d != FACE_BOTTOM:
+					# Every side shows from some turn of the camera. Outlines where nothing
+					# nearer or level is beside or below; W and E are the ends of the face's
+					# texture row (see face_uv).
+					var f := side_offsets[d]
+					var s := dz if d < 2 else dx
 					if not cov[c[i + dy]]:
 						flag = OPEN_TOP
-					# Outlines where nothing nearer or level is beside or below.
-					if not cov[c[i - dy + dz]] and not cov[c[i - dy]]:
+					if not cov[c[i - dy + f]] and not cov[c[i - dy]]:
 						edges |= DARK << EDGE_S
-					if not cov[c[i - dx]] and not cov[c[i - dx + dz]] and not cov[c[i - dx + dz + dy]]:
+					if not cov[c[i - s]] and not cov[c[i - s + f]] and not cov[c[i - s + f + dy]]:
 						edges |= DARK << EDGE_W
-					if not cov[c[i + dx]] and not cov[c[i + dx + dz]] and not cov[c[i + dx + dz + dy]]:
+					if not cov[c[i + s]] and not cov[c[i + s + f]] and not cov[c[i + s + f + dy]]:
 						edges |= DARK << EDGE_E
 				if cuts != 0:
 					_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around),
@@ -523,24 +527,26 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 	return j
 
 
-## Edge codes of the top of padded cell `i`: what the oblique view shows next to each
-## edge: a wall below the south edge (light rim), something lower and farther behind an
-## edge (dark outline), or a wall rising from it (contact shadow).
+## Edge codes of the top of padded cell `i`: a wall rising from an edge (contact
+## shadow) or open ground lower beside it (DARK: the shader draws a light rim where the
+## wall below faces the camera and an outline where it faces away, see world.gdshader).
 static func _top_edges(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> int:
 	var edges := 0
 	if cov[c[i + dy - dz]]:
 		edges |= CONTACT << EDGE_N
 	elif not cov[c[i - dz]]:
 		edges |= DARK << EDGE_N
-	if not cov[c[i + dz]]:
-		edges |= LIGHT << EDGE_S
+	if cov[c[i + dy + dz]]:
+		edges |= CONTACT << EDGE_S
+	elif not cov[c[i + dz]]:
+		edges |= DARK << EDGE_S
 	if cov[c[i + dy - 1]]:
 		edges |= CONTACT << EDGE_W
-	elif not cov[c[i - 1]] and not cov[c[i + dy - 1 + dz]]:
+	elif not cov[c[i - 1]]:
 		edges |= DARK << EDGE_W
 	if cov[c[i + dy + 1]]:
 		edges |= CONTACT << EDGE_E
-	elif not cov[c[i + 1]] and not cov[c[i + dy + 1 + dz]]:
+	elif not cov[c[i + 1]]:
 		edges |= DARK << EDGE_E
 	return edges
 
@@ -551,7 +557,8 @@ static func _top_edges(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int
 static func _covered_halves(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
 		edges: int) -> int:
 	# Mostly there are no corners around at all.
-	if sh[i - dz] | sh[i + dz] | sh[i - 1] | sh[i + 1] | sh[i + dy - dz] | sh[i + dy - 1] | sh[i + dy + 1] < 16:
+	if sh[i - dz] | sh[i + dz] | sh[i - 1] | sh[i + 1] | sh[i + dy - dz] | sh[i + dy + dz] | sh[i + dy - 1] \
+			| sh[i + dy + 1] < 16:
 		return 0
 	var halves := 0
 	for h in 8:
@@ -587,8 +594,8 @@ static func _top_pieces(buf, base: Vector3, m: int, cuts: int, edges: int, halve
 	for q in 4:
 		var e := _quarter_edges(q, edges, halves)
 		if cuts & (1 << q):
-			# Beyond a north diagonal lies lower ground (outline), below a south one the wall.
-			var flag := _diag(q, false, DARK if q < 2 else LIGHT)
+			# Lower ground beyond the diagonal: a rim or an outline by the view.
+			var flag := _diag(q, false, DARK)
 			_piece(buf, base, 1.0, q, CUT, Vector3.UP, white, Vector2(pack(m * 3, e, flag), around), Mat.corner_shape[m])
 		else:
 			_piece(buf, base, 1.0, q, QUARTER, Vector3.UP, white, Vector2(pack(m * 3, e, 0), around))
@@ -667,9 +674,10 @@ static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: Packe
 				edges |= CONTACT << (EDGE_W if o.x < 0 else EDGE_E)
 			if o.y < 0 and cov[c[i + dy - dz]]:
 				edges |= CONTACT << EDGE_N
-			# A fill at a north corner faces the view across its diagonal (rim), one at a
-			# south corner faces away (outline).
-			var flag := _diag(k, true, LIGHT if k < 2 else DARK)
+			if o.y > 0 and cov[c[i + dy + dz]]:
+				edges |= CONTACT << EDGE_S
+			# Open across its diagonal: a rim or an outline by the view.
+			var flag := _diag(k, true, DARK)
 			_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white, Vector2(pack(mf * 3, edges, flag), no_tiles), shape)
 
 
@@ -1309,8 +1317,8 @@ static func _trunk_at(w, x: int, y: int, z: int) -> bool:
 
 
 ## The trunk of a tree in its log cell at x, y, z: a column of bark of the tree's own
-## girth and crook (see Trees.trunk_box) with its front corners cut, so the light gives
-## it a lit and a shaded side, with a dark outline on the sides seen from the front. Its sides slant
+## girth and crook (see Trees.trunk_box) with its corners cut, so the light gives it a
+## lit and a shaded side from every side, with a dark outline where it turns away. Its sides slant
 ## from cell to cell as it thins and bends; at the foot it flares out and sends out a
 ## few roots.
 static func _trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, base: Vector3, m: int) -> void:
@@ -1340,11 +1348,10 @@ static func _trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, ba
 	var foot := box.grow(2)
 	var s: Dictionary = Trees.SPECIES[species]
 	var roots: int = s.roots[0] + posmod(hash(col * 3 + Vector2i(1, 2)), s.roots[1] - s.roots[0] + 1)
-	# On the sides that show: east, west and south.
-	var first := posmod(hash(col * 5 + Vector2i(7, 3)), 3)
+	var first := posmod(hash(col * 5 + Vector2i(7, 3)), 4)
 	for i in roots:
 		var h := hash(Vector3i(col.x, i + 11, col.y))
-		var side := (first + i) % 3
+		var side := (first + i) % 4
 		var across := foot.size.y if side < 2 else foot.size.x
 		var wide := 2 + (h & 1)
 		var at := 2 + posmod(h >> 1, maxi(1, across - 4 - wide))
@@ -1375,7 +1382,7 @@ static func _bark_tone(col: Vector2i) -> Color:
 
 
 ## A column of bark from `r0` at `y0` texels up to `r1` at `y1` (texels of the cell at
-## `base` seen from above, x west to east, y north to south), its front corners cut by a
+## `base` seen from above, x west to east, y north to south), its corners cut by a
 ## quarter of its width (see _ring); with its bottom when asked and its top as `top`
 ## says: CAP_NONE, CAP_CUT (the end grain of a stump) or CAP_BARK (a root).
 static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, top: int, bottom: bool, m: int, color: Color) -> void:
@@ -1394,23 +1401,27 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 		var out := Vector2(e.y, -e.x).normalized()
 		if out.dot((a + b) * 0.5 - mid) < 0.0:
 			out = -out
-		# The cut corners seen from the front carry the outline at their outer edge.
-		var edges := 0
-		var ua := 0.5
-		var ub := 0.5
-		if i == 3 and c > 0:
-			edges = DARK << EDGE_E
-			ua = 1.0
-			ub = 1.0 - c / 8.0
-		elif i == 5 and c > 0:
-			edges = DARK << EDGE_W
-			ua = c / 8.0
-			ub = 0.0
-		var pts := [_texel(base, high[i], y1), _texel(base, high[(i + 1) % 8], y1), _texel(base, b, y0),
-			_texel(base, a, y0)]
-		var uvs := [Vector2(ua, 1.0 - y1 / 8.0), Vector2(ub, 1.0 - y1 / 8.0), Vector2(ub, 1.0 - y0 / 8.0),
-			Vector2(ua, 1.0 - y0 / 8.0)]
-		_facing(buf, pts, Vector3(out.x, 0.0, out.y), uvs, color, Vector2(pack(side, edges, 0), around))
+		var n := Vector3(out.x, 0.0, out.y)
+		if i % 2 == 0:
+			var pts := [_texel(base, high[i], y1), _texel(base, high[(i + 1) % 8], y1), _texel(base, b, y0),
+				_texel(base, a, y0)]
+			var uvs := [Vector2(0.5, 1.0 - y1 / 8.0), Vector2(0.5, 1.0 - y1 / 8.0), Vector2(0.5, 1.0 - y0 / 8.0),
+				Vector2(0.5, 1.0 - y0 / 8.0)]
+			_facing(buf, pts, n, uvs, color, Vector2(pack(side, 0, 0), around))
+			continue
+		# A cut corner in two halves, each with an outline at its outer edge, which the
+		# shader draws where the side beyond that edge turns away from the camera.
+		# Texture x runs to the right seen from outside, a at 1 and b at 0.
+		var ha: Vector2 = high[i]
+		var hb: Vector2 = high[(i + 1) % 8]
+		var halves := [[ha, (ha + hb) * 0.5, a, (a + b) * 0.5, 1.0, 1.0 - c / 16.0, DARK << EDGE_E],
+			[(ha + hb) * 0.5, hb, (a + b) * 0.5, b, c / 16.0, 0.0, DARK << EDGE_W]]
+		for hf: Array in halves:
+			var pts := [_texel(base, hf[0], y1), _texel(base, hf[1], y1), _texel(base, hf[3], y0),
+				_texel(base, hf[2], y0)]
+			var uvs := [Vector2(hf[4], 1.0 - y1 / 8.0), Vector2(hf[5], 1.0 - y1 / 8.0), Vector2(hf[5], 1.0 - y0 / 8.0),
+				Vector2(hf[4], 1.0 - y0 / 8.0)]
+			_facing(buf, pts, n, uvs, color, Vector2(pack(side, hf[6], 0), around))
 	var caps: Array = []
 	if top != CAP_NONE:
 		caps.append([high, y1, Vector3.UP, m * 3 + (0 if top == CAP_CUT else 1)])
@@ -1419,8 +1430,9 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 	for cap: Array in caps:
 		var ring: Array = cap[0]
 		var packed := Vector2(pack(cap[3], 0, 0), around)
-		var rows := [[ring[0], ring[1], ring[3], ring[6]]]
+		var rows := [[ring[7], ring[2], ring[3], ring[6]]]
 		if c > 0:
+			rows.append([ring[7], ring[0], ring[1], ring[2]])
 			rows.append([ring[6], ring[3], ring[4], ring[5]])
 		for q: Array in rows:
 			var pts := []
@@ -1431,15 +1443,16 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 			_facing(buf, pts, cap[2], uvs, color, packed)
 
 
-## The eight corners round `r`, clockwise from the north-west one, with its south corners
-## cut by `c` texels; the north ones, hidden behind it, stay square (and come twice).
+## The eight corners round `r`, clockwise from the north end of its north-west cut
+## corner, its corners cut by `c` texels: a side between corners 0-1, 2-3, 4-5, 6-7 and a
+## cut corner between the others.
 static func _ring(r: Rect2i, c: int) -> Array:
 	var l := r.position.x
 	var e := r.end.x
 	var n := r.position.y
 	var s := r.end.y
-	return [Vector2(l, n), Vector2(e, n), Vector2(e, n), Vector2(e, s - c),
-		Vector2(e - c, s), Vector2(l + c, s), Vector2(l, s - c), Vector2(l, n)]
+	return [Vector2(l + c, n), Vector2(e - c, n), Vector2(e, n + c), Vector2(e, s - c),
+		Vector2(e - c, s), Vector2(l + c, s), Vector2(l, s - c), Vector2(l, n + c)]
 
 
 ## The point `p` (texels across the cell at `base` from above) `up` texels up.

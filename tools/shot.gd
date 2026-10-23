@@ -257,16 +257,19 @@ const SHOTS := {
 	"sack-night": {"time": 0.95, "season": 1, "death": true, "revive": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
-	# The camera turned (steps of 15 degrees to the left) and tilted (steps of 5
-	# degrees steeper): by day among trees, and the camera buttons under the minimap.
-	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 3},
-	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 6},
-	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 12},
+	"ui-touch-stats": {"time": 0.45, "season": 1, "touch": true, "stats": true},
+	# The camera turned (steps of 45 degrees to the left) and tilted (steps of a wall
+	# 2 px shorter): by day among trees, and the camera buttons under the minimap.
+	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 1},
+	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 2},
+	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 4},
 	"turn-trees": {"time": 0.45, "season": 1, "trees": true},
-	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -3},
-	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 3},
-	"turn-hut": {"time": 0.45, "season": 1, "hut": true, "turn": 9, "tilt": -2},
-	"turn-ui": {"time": 0.45, "season": 1, "turn": 2, "tilt": 1, "touch": true},
+	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -2},
+	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 2},
+	"turn-hut": {"time": 0.45, "season": 1, "hut": true, "turn": 3, "tilt": -1},
+	"turn-ui": {"time": 0.45, "season": 1, "turn": 7, "tilt": 1, "touch": true},
+	"turn-fire": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1, "turn": 2},
+	"turn-forest": {"time": 0.45, "season": 1, "forest": true, "turn": 4},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
 	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},

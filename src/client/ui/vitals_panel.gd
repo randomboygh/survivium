@@ -1,6 +1,6 @@
 extends PanelContainer
-## The character's state under the clock: health, satiety and stamina as short bars
-## (the load is on the bag button). Shown only while something changes noticeably or
+## The character's state in the top left corner, as tall as a button: health, satiety
+## and stamina as short bars (the load is on the bag button). Shown only while something changes noticeably or
 ## is low (plan/design/ui.md: "indicator appears only on significant change or in a
 ## critical state"), or while pinned.
 
@@ -9,7 +9,7 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 
 const BAR := Vector2(50, 5)
-const ROW := 11
+const ROW := 10
 ## How long the panel stays after a noticeable change, seconds; and what counts as one.
 const LINGER := 3.0
 const NOTICE := 4.0
@@ -32,6 +32,7 @@ var _canvas: Control
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
 	_canvas = Control.new()
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_canvas.custom_minimum_size = Vector2(12 + BAR.x, ROW * ROWS.size() - 2)

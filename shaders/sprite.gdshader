@@ -49,7 +49,7 @@ void vertex() {
 	}
 	shade = length(MODEL_MATRIX[2].xyz);
 	world_pos = VERTEX;
-	VERTEX = shear(VERTEX);
+	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
 	light_xz = VERTEX.xz;
 }
 

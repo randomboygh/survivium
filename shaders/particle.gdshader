@@ -20,7 +20,7 @@ void vertex() {
 	// Upright: turned to the camera about its origin.
 	VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	world_pos = VERTEX;
-	VERTEX = shear(VERTEX);
+	VERTEX = shear(stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
 }
 
 void fragment() {
