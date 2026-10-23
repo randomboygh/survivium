@@ -67,6 +67,8 @@ const DEFAULTS := {
 	"sound_volume": 4,
 	"nature_volume": 5,
 	"ui_volume": 3,
+	# How often the music comes (Music.GAPS): rarely, sometimes, often.
+	"music_often": 1,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
 	"world_seed": 20261018,
 	"world_size": 1,

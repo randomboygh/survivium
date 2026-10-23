@@ -387,7 +387,12 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void: s.set_value("show_help", i == 1)])
 			return rows
 		"music":
-			return [_volume_row("Громкость", "music_volume")]
+			return [
+				_volume_row("Громкость", "music_volume"),
+				["Как часто", ["редко", "иногда", "часто"],
+					func() -> int: return s.values.music_often,
+					func(i: int) -> void: s.set_value("music_often", i)],
+			]
 		"sound":
 			return [
 				_volume_row("Громкость", "sound_volume"),

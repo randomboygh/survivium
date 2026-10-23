@@ -20,6 +20,8 @@ const REACH := 4.0
 const REPAIR_AT := "core:workbench"
 
 signal changed
+## Recipe `recipe` was made and what it makes put into the bag (or on the ground).
+signal made(recipe: Dictionary)
 
 var who
 ## The placed things (Placed), for the stations near.
@@ -116,6 +118,7 @@ func update(delta: float) -> void:
 		_receive(r.makes, r.count)
 		who.note("crafted", r.count)
 		who.say("Готово: %s" % r.title)
+		made.emit(r)
 
 
 ## Whether the first job can be worked on: its station is near and its tool in the bag.

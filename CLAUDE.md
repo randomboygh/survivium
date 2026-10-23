@@ -33,10 +33,12 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   view/        the picture: pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures,
                voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art
   input/       controls, cursor, touch_stick, touch_button
+  audio/       sound: sound (buses, volumes, the ear, voices, loops), nature, steps, voices
+               (the animals'), music (pieces made of notes)
   game/        game systems on this device: character (extends the shared one with the
                player's place, hands and screen), gathering, props (the placed things and the
                drops drawn), creatures (the animals drawn), markers (the player's map markers)
-  ui/          hud, menus, windows, maps, panels and their widgets, ui_style
+  ui/          hud, menus, windows, maps, panels and their widgets, sound_marks, ui_style
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server
@@ -78,7 +80,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `PixelView.world_dir` / `screen_dir`, and chunk culling boxes are refitted for every view on
   the way (`ChunkStreamer.refit_boxes`). Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
-  creatures, trees, bushes, recipes, plants), lists of records with namespaced ids (`core:grass`). `src/shared/content/content.gd`
+  creatures, trees, bushes, recipes, plants, sounds), lists of records with namespaced ids (`core:grass`). `src/shared/content/content.gd`
   reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI, and that
   every recipe can be made from what the world gives); the
   registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd`, `plants.gd` fill their static vars from
@@ -88,6 +90,16 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of its mod, a
   row of `frames` frames (`creatures.gd`), and how it behaves comes from its properties
   (`flies`, `flock`, `roost`, `likes` besides mass, diet and the rest).
+- Sound (`src/client/audio/`, `game.sound`): a sound is a record of the `sounds` kind with its files
+  in `content/<mod>/sounds/` (`<name>.wav`, or `<name>_N.wav` per variant, `Content.sound_files`),
+  made by `tools/make_sounds.gd` from noise and tones (`tools/sound/synth.gd`; WAVs import as QOA).
+  Who sounds is data: a material's `step` and `hit`, a creature's `calls` and `alarm`. Buses Music,
+  Sounds > Nature, UI take the settings' volumes. Nothing sounds before the first tap or key
+  (`Sound.unlocked`, the browser's autoplay rule); the files load a few a frame after it. One-off
+  sounds go through `play(id, pos)` (`pos` INF: from no place) or `play_later`, loops through
+  `loop` (everywhere) and `spot` (from a place); the world round the player is looked at every
+  `Sound.TICK`, not every frame. The ear stands at the player and turns with the camera. Web
+  export plays samples (no AudioStreamGenerator), so music is notes scheduled by `music.gd`.
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
