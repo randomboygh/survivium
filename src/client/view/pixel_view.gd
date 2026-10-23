@@ -1,6 +1,6 @@
 extends RefCounted
 ## Pixel-perfect oblique 3/4 view. The 3D scene renders into a low-resolution image
-## that is scaled up by a whole number. The orthographic camera looks straight down,
+## that is scaled up, by a whole number on a computer. The orthographic camera looks straight down,
 ## and the shaders move every vertex north by its height (`shear`), so on screen a
 ## cell's top and its south wall are both exactly PIXELS_PER_UNIT pixels square and
 ## one texel of a 16 px texture is always one pixel. Things that move are snapped to
@@ -10,6 +10,9 @@ extends RefCounted
 const PIXELS_PER_UNIT := 16.0
 ## Wanted height of the low-res image; the real one is within about 20% of it.
 const TARGET_HEIGHT := 360.0
+## Low-res pixels across the short side of a phone: the reference phone, 1200 px wide
+## at ×7, about 11 cells.
+const PHONE_SIDE := 1200.0 / 7.0
 ## Extra low-res pixels rendered on each side, room for the sub-pixel camera shift.
 const MARGIN := 1
 ## Height of the camera above the world; it must be above the highest level.
@@ -42,12 +45,16 @@ static var box_views: Array = [[Vector2(0.0, -1.0), 1.0, 1.0]]
 
 ## Upscale factor and low-res image size for a screen. Both sides are even, so the
 ## camera centre falls on a pixel corner; the image covers the whole screen and is
-## cropped by less than 2 * scale screen pixels at the right and bottom. `turning`
-## (a phone or a tablet) picks the scale from the long side, so the world is as large
-## held either way.
+## cropped by less than 2 * scale screen pixels at the right and bottom. On a computer
+## the scale is a whole number picked from the height. `turning` (a phone or a tablet)
+## scales by a fraction instead, so the short side shows as much of the world as on the
+## reference phone (PHONE_SIDE) whatever the screen and held either way.
 static func layout(screen: Vector2, target_height := TARGET_HEIGHT, turning := false) -> Array:
-	var side := maxf(screen.x, screen.y) if turning else screen.y
-	var scale := maxi(1, roundi(side / target_height))
+	var scale: float
+	if turning:
+		scale = maxf(1.0, minf(screen.x, screen.y) / (PHONE_SIDE * target_height / TARGET_HEIGHT))
+	else:
+		scale = maxi(1, roundi(screen.y / target_height))
 	var w := maxi(2, ceili(screen.x / scale / 2.0) * 2)
 	var h := maxi(2, ceili(screen.y / scale / 2.0) * 2)
 	return [scale, Vector2i(w, h)]

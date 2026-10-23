@@ -1103,7 +1103,7 @@ func _test_pixel_view() -> void:
 	var whole := true
 	for screen in screens:
 		var view: Array = PixelView.layout(screen)
-		var scale: int = view[0]
+		var scale: float = view[0]
 		var image: Vector2i = view[1]
 		var covered := Vector2(image * scale)
 		whole = whole and image.x % 2 == 0 and image.y % 2 == 0 \
@@ -1114,6 +1114,15 @@ func _test_pixel_view() -> void:
 	_check(PixelView.layout(Vector2(1200, 2608), PixelView.TARGET_HEIGHT, true)[0]
 		== PixelView.layout(Vector2(2608, 1200), PixelView.TARGET_HEIGHT, true)[0],
 		"a phone shows the world as large held either way")
+	# Any phone shows as many cells across as the reference one, by a fraction of a scale.
+	var phones := [Vector2(1200, 2608), Vector2(1080, 2400), Vector2(720, 1600), Vector2(1440, 3200)]
+	var across := true
+	for screen in phones:
+		var view: Array = PixelView.layout(screen, PixelView.TARGET_HEIGHT, true)
+		var image: Vector2i = view[1]
+		var covered: Vector2 = Vector2(image) * float(view[0])
+		across = across and absi(image.x - 172) <= 2 and covered.x >= screen.x and covered.y >= screen.y
+	_check(across, "every phone shows as many cells across as the reference one")
 	_check(is_equal_approx(PixelView.camera_size(360), 22.5), "16 pixels per world unit")
 	# A cell's top and its south wall both cover 16 x 16 pixels on screen.
 	var top := PixelView.screen_plane(Vector3(3, 2, 5)) - PixelView.screen_plane(Vector3(3, 2, 4))
