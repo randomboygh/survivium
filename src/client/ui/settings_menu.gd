@@ -6,8 +6,9 @@ extends PanelContainer
 ## Settings (plan/design/ui.md, section 6). Both pages are split into sections by tabs
 ## under the title (see PAGES): the settings into Игра, Графика, and Музыка, Звук dimmed
 ## until the game has sound (Графика starts with the quality preset, any change by hand
-## makes it «своё»); the playtest page into Мир, Игрок, Отладка, with buttons for what
-## is done once (into the test world, the tools into the bag). The playtest page also
+## makes it «своё»); the playtest page into Мир, Игрок, Маркеры, Отладка, with buttons
+## for what is done once (into the test world, the tools into the bag, to a marker set
+## on the map: Маркеры lists them with their colour and column). The playtest page also
 ## shows the version of the build and opens the list of recent changes ("changes" page,
 ## its legend of kinds above the buttons), no taller than the settings and scrolling.
 ## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
@@ -15,6 +16,7 @@ extends PanelContainer
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
+const Markers := preload("res://src/client/game/markers.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -36,10 +38,12 @@ const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолу
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
 	"settings": [["game", "Игра"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
-	"test": [["world", "Мир"], ["player", "Игрок"], ["debug", "Отладка"]],
+	"test": [["world", "Мир"], ["player", "Игрок"], ["marks", "Маркеры"], ["debug", "Отладка"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := ["music", "sound"]
+## Sections as long as there is something in them: no taller page for them, they scroll.
+const LISTS := ["marks"]
 ## The room between the quality preset and the settings by hand, or the rows and a
 ## button.
 const GAP := 8
@@ -191,6 +195,10 @@ func _fill() -> void:
 				var gap := Control.new()
 				gap.custom_minimum_size.y = GAP
 				_list.add_child(gap)
+			elif r is Dictionary and r.has("marker"):
+				_add_marker(r.marker)
+			elif r is Dictionary and r.has("note"):
+				_grid().add_child(_note(r.note))
 			elif r is Dictionary:
 				_add_action(r.action, r.do)
 			else:
@@ -205,7 +213,9 @@ func _fill() -> void:
 
 ## The rows of section `key` (see PAGES): [name, values, getter, setter] each, and
 ## [..., the value shown when the getter gives -1] for the quality preset; null is a
-## gap; {"action": text, "do": Callable} a button that does something once.
+## gap; {"action": text, "do": Callable} a button that does something once;
+## {"marker": index} a marker with its button that takes the player there; {"note":
+## text} a line of text.
 func _section_rows(key: String) -> Array:
 	var s = game.settings
 	var sky = game.sky
@@ -262,6 +272,14 @@ func _section_rows(key: String) -> Array:
 				null,
 				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
 			]
+		"marks":
+			var marks := []
+			if game.markers != null:
+				for i in game.markers.list.size():
+					marks.append({"marker": i})
+			if marks.is_empty():
+				marks.append({"note": "Маркеров нет: поставьте их на карте (M)."})
+			return marks
 		"debug":
 			return [
 				["Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
@@ -432,7 +450,8 @@ func _set_columns(n: int) -> void:
 func _page_height(which: String, n: int) -> int:
 	var tallest := 0
 	for sec in PAGES.get(which, []):
-		tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
+		if not sec[0] in LISTS:
+			tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
 	return tallest
 
 
@@ -505,6 +524,54 @@ func _add_action(text: String, action: Callable) -> void:
 	b.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
 	b.pressed.connect(action)
 	_grid().add_child(b)
+
+
+## A marker (game.markers, `i`) as a row: its colour, its name and column, and a
+## button that takes the player there and back into the game.
+func _add_marker(i: int) -> void:
+	var m: Dictionary = game.markers.list[i]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	_grid().add_child(row)
+	var swatch := ColorRect.new()
+	swatch.color = UiStyle.DARK_INK
+	swatch.custom_minimum_size = Vector2(14, 14)
+	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := ColorRect.new()
+	fill.color = Markers.color_of(m)
+	fill.position = Vector2(2, 2)
+	fill.size = Vector2(10, 10)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swatch.add_child(fill)
+	row.add_child(swatch)
+	var label := UiStyle.label("%s · X %d, Z %d" % [(Markers.COLORS[m.color][0] as String).capitalize(), m.cell.x, m.cell.y])
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.clip_text = true
+	row.add_child(label)
+	var b := Button.new()
+	b.text = "Туда"
+	b.tooltip_text = "Телепорт к маркеру"
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(0, ARROW)
+	var cell: Vector2i = m.cell
+	b.pressed.connect(func() -> void:
+		game.character.teleport(cell)
+		close()
+		if get_tree().paused:
+			game.hud.toggle_menu())
+	row.add_child(b)
+
+
+## A line of muted text as wide as a row.
+func _note(text: String) -> Label:
+	var l := UiStyle.label(text, UiStyle.MUTED)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	return l
 
 
 ## The grid the next row goes into (see fit): the last one, or a new one after a gap.

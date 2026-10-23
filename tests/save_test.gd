@@ -1,6 +1,7 @@
 extends SceneTree
 ## Plays, saves and starts the game again without a screen: what the player dug, where
-## they stood, the clock, the props and a module's part of the player come back. The
+## they stood, the clock, the props, the explored map, the markers and a module's part
+## of the player come back; the playtest page's teleport puts the player down. The
 ## saves go to a test folder of their own. Run:
 ## godot --headless --path . --script res://tests/save_test.gd
 
@@ -63,6 +64,13 @@ func _run() -> void:
 	main.character.inventory.add("core:workbench", 1)
 	_check(main.props.put_from_bag("core:workbench"), "a workbench is placed in front of the player")
 	main.placed.chest_items.add("core:log", 2)
+	# A marker, and a far region of the map as if explored, one pixel painted red.
+	main.markers.add(Vector2i(120, -40), 4)
+	var mm = main.hud.minimap
+	var far := Vector2i(40, -40)
+	mm._region(far).image.set_pixel(3, 5, Color.RED)
+	mm.unsaved[far] = true
+	var explored: Array = mm.regions.keys()
 	main.save.begin()
 	# A pit dug three cells deep beside the player, who then steps aside.
 	var w = main.world
@@ -115,6 +123,12 @@ func _run() -> void:
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
 	_check(main.character.inventory.count("core:branch") == 7, "the character's bag comes back")
 	_check(absf(main.character.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
+	_check(main.markers.list.size() == 1 and main.markers.list[0].cell == Vector2i(120, -40) and main.markers.list[0].color == 4,
+		"the markers come back")
+	mm = main.hud.minimap
+	_check(explored.all(func(k: Vector2i) -> bool: return mm.regions.has(k)), "the explored map comes back")
+	_check(mm.regions.has(far) and mm.regions[far].image.get_pixel(3, 5).is_equal_approx(Color.RED),
+		"a region explored far away comes back as it was painted")
 
 	# Death: the bag goes into a sack, the character lies dead until brought back, and a
 	# world left dead is entered dead.
@@ -143,6 +157,21 @@ func _run() -> void:
 	_check(not ch.is_dead() and not main.death_screen.visible and main.hud.visible and main.player.visible,
 		"the character comes back at the campfire")
 	_check(ch.vitals.health > 0.0 and main.player.position.distance_to(ch.home) < 0.01, "brought back with health, at home")
+	# The playtest page's teleport: held over the column until its chunk is made, then
+	# put down on the ground near it.
+	var to := Vector2i((ch.home / main.CELL).floor().x, (ch.home / main.CELL).floor().z) + Vector2i(150, -90)
+	ch.teleport(to)
+	frames = 0
+	while ch.arriving != null and frames < 1200:
+		await process_frame
+		frames += 1
+	for i in 30:
+		await process_frame
+	var at: Vector3 = main.player.position / main.CELL
+	_check(ch.arriving == null and Vector2(at.x, at.z).distance_to(Vector2(to) + Vector2(0.5, 0.5)) < 25.0,
+		"the teleport puts the player near the column (%d frames, at %s)" % [frames, at])
+	_check(absf(at.y - main.world.surface_y(floori(at.x), floori(at.z))) < 1.5 or main.player.body.swimming,
+		"the teleport puts the player on the ground (y %.1f, ground %d)" % [at.y, main.world.surface_y(floori(at.x), floori(at.z))])
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

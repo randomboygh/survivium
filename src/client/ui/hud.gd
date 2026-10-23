@@ -176,9 +176,15 @@ func _ready() -> void:
 	add_child(minimap)
 	map_view = MapView.new()
 	map_view.minimap = minimap
+	map_view.game = game
 	add_child(map_view)
 	minimap.open_map.connect(map_view.open)
-	minimap.painted.connect(map_view.queue_redraw)
+	minimap.painted.connect(map_view.redraw)
+	if game != null and game.markers != null:
+		minimap.markers = game.markers
+		map_view.markers = game.markers
+		game.markers.changed.connect(minimap.redraw)
+		game.markers.changed.connect(map_view.redraw)
 
 	_bar = _panel(self)
 	_bar.add_theme_stylebox_override("panel", _bar_box())
@@ -458,11 +464,16 @@ func refresh_counts() -> void:
 	_bag_meter.queue_redraw()
 
 
-func update_state() -> void:
+## The season, the day and the time, as the clock in the corner shows them.
+func clock_text() -> String:
 	var hours := int(game.clock.time_of_day * 24.0)
 	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
+	return "%s · день %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
+
+
+func update_state() -> void:
 	var winter: bool = game.clock.season == game.clock.WINTER
-	_clock.text = "%s · день %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
+	_clock.text = clock_text()
 	vitals.update(game.character.vitals, get_process_delta_time())
 	if bag.visible:
 		bag.refresh_state()

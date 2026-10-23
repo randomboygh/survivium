@@ -54,6 +54,7 @@ const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
+const Markers := preload("res://src/client/game/markers.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
@@ -80,6 +81,8 @@ var view: CameraRig
 var props: Props
 var character: CharacterScript
 var gathering: Gathering
+## The markers the player set on the map.
+var markers: Markers
 ## The rules of what the hands do to the world (dig, build, chop, gather), once the
 ## world is made.
 var actions: WorldActions
@@ -162,6 +165,8 @@ func _ready() -> void:
 	save.track("knowledge", workshop.knowledge)
 	save.track("crafting", workshop.queue)
 	save.track("hands", controls)
+	markers = Markers.new()
+	save.track("markers", markers)
 	workshop.settle()
 	view.build(self)
 	world_root = view.world_root
@@ -212,6 +217,8 @@ func start_world() -> void:
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
+	if save.has_save:
+		hud.minimap.load_regions(save.store.read_maps())
 	_build_materials()
 	_build_scene()
 	save.restore_player()
