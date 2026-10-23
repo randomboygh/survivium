@@ -2513,6 +2513,18 @@ func _test_hidden() -> void:
 			for y in (1 if x == z else 3):
 				cs.world.set_cell(x, y, z, Mat.STONE)
 	_check(cs._hiding_level(16, 1, 16) == -1, "a wall the head looks over does not cut the view")
+	# A trench running north to south: open toward the camera in the default view, its
+	# side wall in front of the player once the camera is turned a quarter.
+	cs.world = WorldData.new(12, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			for y in (1 if x == 16 else 7):
+				cs.world.set_cell(x, y, z, Mat.STONE)
+	var along := cs._hiding_level(16, 1, 16)
+	PixelView.set_view(PI / 2.0, 0.0)
+	var across := cs._hiding_level(16, 1, 16)
+	PixelView.set_view(0.0, 0.0)
+	_check(along == -1 and across == 3, "the cut finds what hides the player in a turned view")
 
 
 ## The one acting, for the rules in src/shared/game/ without the client (see WorldActions).
