@@ -257,6 +257,7 @@ const SHOTS := {
 	"sack-night": {"time": 0.95, "season": 1, "death": true, "revive": true},
 	# The interface: with a mouse, on a touch screen, with the statistics and the menu.
 	"ui": {"time": 0.45, "season": 1, "stats": true},
+	"ui-touch-stats": {"time": 0.45, "season": 1, "touch": true, "stats": true},
 	# The camera turned (steps of 15 degrees to the left) and tilted (steps of 5
 	# degrees steeper): by day among trees, and the camera buttons under the minimap.
 	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 3},
