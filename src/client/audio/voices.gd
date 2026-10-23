@@ -23,6 +23,8 @@ const DANGER := 20.0
 const FAR_REACH := 60.0
 ## At most one voice starts in this many seconds.
 const GAP := 0.3
+## The animals are listened to over this many frames, a share each frame.
+const SLICES := 8
 
 var game
 var rng := RandomNumberGenerator.new()
@@ -31,6 +33,7 @@ var _state := {}
 var _quiet := {}
 var _gap := 0.0
 var _time := 0.0
+var _cursor := 0
 
 
 func _init(g) -> void:
@@ -44,32 +47,45 @@ func update(delta: float) -> void:
 		return
 	_time += delta
 	_gap -= delta
+	var animals: Array = wildlife.animals
+	if animals.is_empty():
+		return
 	var daylight: float = game.clock.daylight()
 	var ear: Vector3 = game.player.position
-	for a in wildlife.animals:
-		var spec: Dictionary = AiRules.SPECIES.get(a.kind, {})
-		if spec.is_empty() or a.gone:
-			continue
-		var was: String = _state.get(a, "")
-		_state[a] = a.state
-		var reach: float = FAR_REACH if _danger(spec) else game.sound.HEAR_RANGE
-		if a.pos.distance_to(ear) > reach:
-			continue
-		if a.state != was and a.state in ["flee", "hunt"] and spec.alarm != "" and _time >= float(_quiet.get(a, 0.0)):
-			_quiet[a] = _time + ALARM_AGAIN
-			_say(spec.alarm, a.pos, spec)
-			continue
-		if spec.calls == "" or a.state == "rest" or not _awake(spec, daylight):
-			continue
-		var share: float = FLOCK_SHARE if spec.flock[1] > 1 else 1.0
-		if rng.randf() < delta / (CALL_EVERY * share):
-			_say(spec.calls, a.pos, spec)
+	# A share of the animals a frame, each listened to for the frames since its last turn.
+	var n := ceili(float(animals.size()) / SLICES)
+	var dt := delta * SLICES
+	for k in n:
+		_cursor = (_cursor + 1) % animals.size()
+		_listen(animals[_cursor], dt, daylight, ear)
 	# Animals gone are let go of.
-	if _state.size() > wildlife.animals.size() * 2:
+	if _cursor < n and _state.size() > animals.size() * 2:
 		for a in _state.keys():
 			if a.gone:
 				_state.erase(a)
 				_quiet.erase(a)
+
+
+## Animal `a`, `delta` seconds since it was last listened to: an alarm when it starts
+## to flee or hunt, now and then its call.
+func _listen(a, delta: float, daylight: float, ear: Vector3) -> void:
+	var spec: Dictionary = AiRules.SPECIES.get(a.kind, {})
+	if spec.is_empty() or a.gone:
+		return
+	var was: String = _state.get(a, "")
+	_state[a] = a.state
+	var reach: float = FAR_REACH if _danger(spec) else game.sound.HEAR_RANGE
+	if a.pos.distance_squared_to(ear) > reach * reach:
+		return
+	if a.state != was and a.state in ["flee", "hunt"] and spec.alarm != "" and _time >= float(_quiet.get(a, 0.0)):
+		_quiet[a] = _time + ALARM_AGAIN
+		_say(spec.alarm, a.pos, spec)
+		return
+	if spec.calls == "" or a.state == "rest" or not _awake(spec, daylight):
+		return
+	var share: float = FLOCK_SHARE if spec.flock[1] > 1 else 1.0
+	if rng.randf() < delta / (CALL_EVERY * share):
+		_say(spec.calls, a.pos, spec)
 
 
 ## Whether a species is up and about at `daylight`.

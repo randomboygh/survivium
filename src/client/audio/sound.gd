@@ -46,7 +46,7 @@ const SILENT := 0.001
 ## Files loaded a frame once the game can sound.
 const LOADS_PER_FRAME := 3
 ## Seconds between two looks at the world round the player (the weather, the water,
-## the animals, whether music is due): a frame only times the steps and the notes.
+## whether music is due); the animals are listened to a few a frame (Voices.SLICES).
 const TICK := 0.25
 
 var game
@@ -59,6 +59,9 @@ var music: Music
 var marks: SoundMarks
 ## Whether the browser lets the page sound yet (always on elsewhere).
 var unlocked := not OS.has_feature("web")
+## No sound can be heard (headless tests and tools): everything runs but nothing is
+## started, so no playback is left in the AudioServer when they quit at once.
+var mute := AudioServer.get_driver_name() == "Dummy"
 ## The sound records by id (Content `sounds`), and the streams of those loaded.
 var records := {}
 var _streams := {}
@@ -213,7 +216,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 		u.stream = stream
 		u.volume_db = db
 		u.pitch_scale = p_scale
-		u.play()
+		if not mute:
+			u.play()
 		return
 	var v: AudioStreamPlayer3D = free_voice(_voices)
 	v.stream = stream
@@ -221,7 +225,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 	v.pitch_scale = p_scale
 	v.bus = bus
 	v.global_position = pos
-	v.play()
+	if not mute:
+		v.play()
 
 
 ## Plays sound `id` (see play) `delay` seconds from now.
@@ -357,12 +362,11 @@ func _process(delta: float) -> void:
 		music.update(delta)
 		if game.ready_to_play:
 			steps.update(delta)
+			voices.update(delta)
 		_tick += delta
 		if _tick >= TICK:
 			nature.update(_tick)
 			music.think(_tick)
-			if game.ready_to_play:
-				voices.update(_tick)
 			_tick = 0.0
 	var i := 0
 	while i < _later.size():
@@ -382,7 +386,7 @@ func _process(delta: float) -> void:
 func _fade(l: Dictionary, k: float) -> void:
 	var p: Node = l.player
 	var want: float = l.want if unlocked else 0.0
-	if l.level == want and (p.playing if want > SILENT else not p.playing):
+	if l.level == want and (p.playing or mute if want > SILENT else not p.playing):
 		return
 	l.level = lerpf(l.level, want, k)
 	if absf(l.level - want) < SILENT:
@@ -392,6 +396,6 @@ func _fade(l: Dictionary, k: float) -> void:
 			p.stop()
 		return
 	p.volume_db = linear_to_db(l.level * l.gain)
-	if not p.playing:
+	if not p.playing and not mute:
 		# A loop starts somewhere in the middle, so two of the same do not beat together.
 		p.play(randf() * maxf(p.stream.get_length() - 0.1, 0.0))

@@ -174,7 +174,8 @@ func _play_due() -> void:
 		p.stream = list[0]
 		p.pitch_scale = pitch
 		p.volume_db = linear_to_db(n[3])
-		p.play()
+		if not game.sound.mute:
+			p.play()
 
 
 ## Holds the pad at `pitch`; a new chord glides in under a short dip.
@@ -182,7 +183,7 @@ func _set_pad(pitch: float) -> void:
 	var list: Array = game.sound.streams("core:pad")
 	if list.is_empty():
 		return
-	if not _pad.playing:
+	if not _pad.playing and not game.sound.mute:
 		_pad.stream = list[0]
 		_pad.volume_db = linear_to_db(0.001)
 		_pad.play()
