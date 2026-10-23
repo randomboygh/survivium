@@ -62,6 +62,9 @@ int kind_of(int plant) {
 	return plant < 4 ? GRASS : (plant < 8 ? FLOWER : (plant < 10 ? EAR : (plant < 12 ? REED : (plant < 14 ? HERB : (plant < 18 ? LOW : TALL)))));
 }
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	custom = INSTANCE_CUSTOM.xyz;
 	kind = kind_of(int(custom.x + 0.5));
@@ -100,6 +103,7 @@ void vertex() {
 		VERTEX += vec3(round(sin(t) * 2.0 * life) / TEXELS, life * SPORE_RISE, round(cos(t * 0.8) * 1.5 * life) / TEXELS);
 	}
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 	NORMAL = vec3(0.0, 1.0, 0.0);
 }
 
@@ -164,11 +168,13 @@ void fragment() {
 		col = vec3(0.0);
 	} else if (kind == HALO) {
 		// A soft round glow about the glowing mushrooms at night, dithered thinner
-		// toward its edge.
-		vec2 p = vec2((UV.x - 0.5) * 8.0, (1.0 - UV.y) * 24.0) * HALO_SCALE - vec2(0.0, 3.0);
-		float k = max(1.0 - length(p) / 9.0, 0.0);
+		// toward its edge. The dither goes by the texels of the card, not of the
+		// screen, so it moves with the glow instead of crawling over it as the camera
+		// moves.
+		vec2 p = floor(vec2((UV.x - 0.5) * 8.0, (1.0 - UV.y) * 24.0) * HALO_SCALE);
+		float k = max(1.0 - length(p + vec2(0.5, -2.5)) / 9.0, 0.0);
 		k = k * k * night_glow;
-		if (k <= 0.0 || snow_here > 0.4 || bayer4(floor(FRAGCOORD.xy)) > k * 1.2) {
+		if (k <= 0.0 || snow_here > 0.4 || bayer4(p + 64.0) > k * 1.2) {
 			discard;
 		}
 		col = vec3(0.0);
@@ -200,5 +206,5 @@ void light() {
 	// A plant is a flat card standing in the light with a normal pointing up: a fire
 	// lights all of it, tip too, even where the tip stands higher than the flame.
 	vec3 normal = LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT;
-	DIFFUSE_LIGHT += toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

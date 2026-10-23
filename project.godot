@@ -79,17 +79,29 @@ view_height={
 "type": "float",
 "value": 0.0
 }
-mist={
+fog={
 "type": "float",
 "value": 0.0
 }
-mist_color={
+fog_depth={
+"type": "float",
+"value": 0.0
+}
+fog_color={
 "type": "vec3",
 "value": Vector3(0.8, 0.82, 0.85)
 }
-mist_level={
+fog_drift={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
+fog_sea={
 "type": "float",
 "value": 0.0
+}
+puddles={
+"type": "vec2",
+"value": Vector2(0, 0)
 }
 depth_haze={
 "type": "vec3",

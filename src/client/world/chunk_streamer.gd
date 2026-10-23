@@ -45,6 +45,12 @@ const CAP_RANGE := 5
 ## so what does not fit waits for the next frame.
 const CAP_BUDGET_US := 3000
 const EDIT_BUDGET_US := 9000
+## Microseconds a frame for building the near chunks behind the main menu (load_steps):
+## the menu keeps moving while the world is made, a little slower than at once. Where
+## the menu alone takes longer a frame (a slow screen), loading gets as long as it took,
+## up to LOAD_MAX_US, so the world is still built in about twice the time at most.
+const LOAD_BUDGET_US := 14000
+const LOAD_MAX_US := 100000
 const STREAM_BUDGET_US := 3000
 ## Chunks whose meshes are freed, and chunks forgotten, in one frame at most.
 const UNLOADS_PER_FRAME := 2
@@ -52,6 +58,9 @@ const DROPS_PER_FRAME := 4
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
+## How many levels above and below the player's the level buttons may look; from deep
+## in a pit, up to the surface over it (see view_range).
+const VIEW_REACH := 4
 ## The player is down in a ravine, a pit or a cave mouth when earth (not trunks or
 ## leaves) stands SUNK_RISE levels above the feet within SUNK_REACH cells on at
 ## least SUNK_SIDES of the eight compass directions: then the view is cut at the
@@ -77,7 +86,13 @@ var pending_chunks: Array[Vector2i] = []
 var load_home := Vector2i(-1000000, 0)
 var unload_queue: Array[Vector2i] = []
 var drop_queue: Array[Vector2i] = []
+## The near chunks are built by run_jobs a step at a time within LOAD_BUDGET_US
+## (behind the main menu) instead of whole by build_near (the loading screen, tools).
+var load_steps := false
 var near_pending := 0
+## When run_jobs ended last frame, and the budget for loading this frame (see LOAD_MAX_US).
+var _jobs_end := 0
+var _load_budget := LOAD_BUDGET_US
 var near_total := 0
 ## While the character lies dead, the respawn point the death screen offers first
 ## (world units), else Vector3.INF: the chunks are built around it instead of around
@@ -120,6 +135,9 @@ var gen_us := 0
 
 var cut_level := -1
 var manual_level := -1
+## The column whose surface was found last, and that surface (see view_range).
+var _surface_at := Vector3i(1 << 30, 0, 0)
+var _surface := 0
 ## The cut the player's position asks for, and how long it has asked for it.
 var cut_target := -1
 var cut_clock := 0.0
@@ -368,6 +386,10 @@ func _drop_job() -> void:
 ## else in it; an edit may do several while its budget lasts.
 func run_jobs() -> void:
 	var t0 := Time.get_ticks_usec()
+	if not game.ready_to_play:
+		_load_budget = clampi(t0 - _jobs_end, LOAD_BUDGET_US, LOAD_MAX_US) if _jobs_end > 0 else LOAD_BUDGET_US
+		if not job_edit and (job_mesh != null or job_gen != null or has_target):
+			job_budget = _load_budget
 	_list_pending()
 	var worked := false
 	if not paint_queue.is_empty():
@@ -385,7 +407,7 @@ func run_jobs() -> void:
 				job_edit = true
 				job_budget = EDIT_BUDGET_US
 				has_target = false
-			elif game.ready_to_play and (has_target or not pending_chunks.is_empty()):
+			elif (game.ready_to_play or load_steps) and (has_target or not pending_chunks.is_empty()):
 				if not has_target:
 					job_key = next_chunk()
 					has_target = true
@@ -393,6 +415,8 @@ func run_jobs() -> void:
 				var at := _load_chunk()
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
+				if not game.ready_to_play:
+					job_budget = _load_budget
 			else:
 				break
 			var need := _prerequisite(job_key)
@@ -423,13 +447,16 @@ func run_jobs() -> void:
 				break
 			job_part = 0
 			continue
-		if worked and not job_edit:
+		# Loading behind the menu, the parts go on while the budget lasts.
+		if worked and not job_edit and game.ready_to_play:
 			break
 		var finished := _finish_part()
 		worked = true
 		budget_us += Time.get_ticks_usec() - t1
 		if finished:
 			has_target = false
+			if not game.ready_to_play and not job_edit and _is_near(job_key, _player_chunk()):
+				near_pending = maxi(0, near_pending - 1)
 			if not job_edit:
 				game.hud.perf.chunks = chunk_nodes.size()
 			if not job_edit and pending_chunks.is_empty() and not map_done:
@@ -438,6 +465,7 @@ func run_jobs() -> void:
 	mesh_us += Time.get_ticks_usec() - t0
 	_unload_some()
 	_drop_some()
+	_jobs_end = Time.get_ticks_usec()
 
 
 ## Forgets a few chunks far from the player a frame (see WorldGen.forget).
@@ -607,6 +635,13 @@ func update_cut(delta: float) -> void:
 		hidden_by = _hiding_level(px, level, pz)
 	var target: int = world.size_y
 	if manual_level >= 0:
+		# Walking away from the levels looked at brings the view back within reach.
+		var reach := view_range()
+		if manual_level > reach.y:
+			manual_level = -1
+		else:
+			manual_level = maxi(manual_level, reach.x)
+	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
 		target = level + 1
@@ -671,10 +706,38 @@ func _hiding_level(x: int, level: int, z: int) -> int:
 func shift_cut(d: int) -> void:
 	if world == null:
 		return
-	var base: int = cut_level if cut_level < world.size_y else game.player.level() + 1
-	manual_level = clampi(base + d, 1, world.size_y)
-	if manual_level >= world.size_y - 1:
+	var reach := view_range()
+	manual_level = maxi(cut_base() + d, reach.x)
+	# Past the top of the reach the view goes back to the automatic cut.
+	if manual_level > reach.y or manual_level >= world.size_y - 1:
 		manual_level = -1
+
+
+## The level the buttons step from: the level chosen, the cut, or above the player
+## with none.
+func cut_base() -> int:
+	if manual_level >= 0:
+		return manual_level
+	return cut_level if cut_level < world.size_y else game.player.level() + 1
+
+
+## The lowest and highest levels the level buttons may cut the view at: VIEW_REACH
+## around the player's, and from below the surface of the column up to it, so a
+## player fallen into a pit can look up out of it. The playtest switch lifts it.
+func view_range() -> Vector2i:
+	if game.settings.free_view:
+		return Vector2i(1, world.size_y)
+	var level: int = game.player.level()
+	# Looked up again on a step to another column or level (a dug pit changes it).
+	var at := Vector3i(floori(game.player.position.x / CELL), level, floori(game.player.position.z / CELL))
+	if at != _surface_at:
+		_surface_at = at
+		_surface = 0
+		for y in range(world.size_y - 1, 0, -1):
+			if Mat.is_roof(world.get_cell(at.x, y, at.z)):
+				_surface = y
+				break
+	return Vector2i(maxi(1, level - VIEW_REACH), maxi(level + VIEW_REACH, _surface + 1))
 
 
 ## Back to the automatic cut that follows the player.

@@ -10,6 +10,8 @@ const GradeShader := preload("res://shaders/grade.gdshader")
 
 const CELL := WorldData.CELL
 const CAMERA_HEIGHT := PixelView.CAMERA_HEIGHT
+## Seconds a shake lasts.
+const SHAKE_TIME := 0.3
 
 var game
 var container: SubViewportContainer
@@ -25,6 +27,9 @@ var safe_rect := Rect2()
 var safe_clock := 0.0
 ## Screen-plane point the camera follows smoothly (see PixelView.screen_plane).
 var cam_target := Vector2.ZERO
+## A shake of the picture (see shake): how far, in low-res pixels, and its seconds left.
+var _shake := 0.0
+var _shake_left := 0.0
 
 
 func _init(g) -> void:
@@ -66,7 +71,7 @@ func look_at_player() -> void:
 
 func on_screen_resized() -> void:
 	var screen: Vector2 = game.get_viewport().get_visible_rect().size
-	var view: Array = PixelView.layout(screen, target_height)
+	var view: Array = PixelView.layout(screen, target_height, turns())
 	var scale: int = view[0]
 	# A margin of pixels around the screen leaves room for the sub-pixel camera shift.
 	image_size = view[1] + Vector2i(2, 2) * PixelView.MARGIN
@@ -77,6 +82,11 @@ func on_screen_resized() -> void:
 	if camera != null:
 		camera.size = PixelView.camera_size(image_size.y)
 	layout_ui(_safe_rect())
+
+
+## A screen held either way (a phone or a tablet): the world is as large in both.
+static func turns() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 
 
 func layout_ui(rect: Rect2) -> void:
@@ -139,9 +149,15 @@ func update(delta: float) -> void:
 	var target: Vector2 = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 	cam_target = cam_target.lerp(target, minf(1.0, delta * 6.0))
 	var snapped := PixelView.snap_plane(cam_target)
+	var frac := (cam_target - snapped) * PixelView.PIXELS_PER_UNIT
+	if _shake_left > 0.0:
+		# Whole pixels of the camera, so the picture shakes on its grid and nothing past
+		# the rendered image shows.
+		_shake_left = maxf(0.0, _shake_left - delta)
+		var k := _shake * _shake_left / SHAKE_TIME
+		snapped += Vector2(randf_range(-k, k), randf_range(-k, k)).round() / PixelView.PIXELS_PER_UNIT
 	camera.global_transform = PixelView.camera_transform(snapped)
 	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
-	var frac := (cam_target - snapped) * PixelView.PIXELS_PER_UNIT
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
 	player.place_sprite()
@@ -152,3 +168,9 @@ func update(delta: float) -> void:
 		RenderingServer.global_shader_parameter_set("view_height", (manual_level + 1) * CELL)
 	elif player.body.on_ground or player.body.swimming:
 		RenderingServer.global_shader_parameter_set("view_height", player.level() * CELL)
+
+
+## Shakes the picture by up to `pixels` low-res pixels for a moment, fading.
+func shake(pixels: float) -> void:
+	_shake = maxf(pixels, _shake if _shake_left > 0.0 else 0.0)
+	_shake_left = SHAKE_TIME

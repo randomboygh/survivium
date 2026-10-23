@@ -18,8 +18,9 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   biomes     x -8..48,   z 14..38    strips: meadow, forest, taiga, swamp, desert,
-##                                      tundra, beach; bushes under the trees
+##   biomes     x -8..48,   z 14..38    strips: meadow, forest, taiga, swamp (pools, bogs
+##                                      in its south), desert, tundra, beach; bushes
+##                                      under the trees
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
 
@@ -92,9 +93,9 @@ func column(x: int, z: int) -> Array:
 		var b: int = STRIP_BIOMES[(x + 8) / 8]
 		match b:
 			SWAMP:
-				# Pools of 2 by 2 cells in clay.
+				# Pools of 2 by 2 cells in clay, the southern ones bogs (see extras).
 				if posmod(x, 4) < 2 and posmod(z, 4) < 2:
-					return [g - 1, g, Mat.CLAY, b, false]
+					return [g - (2 if _bog(x, z) else 1), g, Mat.CLAY, b, false]
 				return [g, -1, Mat.GRASS, b, false]
 			DESERT, BEACH:
 				return [g, -1, Mat.SAND, b, false]
@@ -152,6 +153,11 @@ func relief_rise(shape: String, px: int, pz: int) -> int:
 	return 0
 
 
+## True in the southern half of the swamp strip, where its pools are bogs.
+static func _bog(x: int, z: int) -> bool:
+	return x >= 16 and x < 24 and z >= 26 and z < 38
+
+
 ## What column x, z has over its plain fill: [from y, to y (inclusive), material,
 ## natural flags] each, written in order.
 func extras(x: int, z: int) -> Array:
@@ -163,6 +169,9 @@ func extras(x: int, z: int) -> Array:
 	if tunnel or hall:
 		out.append([g, g, Mat.DIRT, WorldData.WILD])
 		out.append([g + 1, g + (4 if hall else 2), Mat.AIR, WorldData.WILD])
+	# The bogs of the swamp strip: mud two cells deep.
+	if _bog(x, z) and posmod(x, 4) < 2 and posmod(z, 4) < 2:
+		out.append([g - 1, g, Mat.WATER, WorldData.WILD | WorldData.BOG])
 	# Material strips are 4 cells deep.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		out.append([g - 3, g, strip_tops[(x - 16) / 4], WorldData.WILD])

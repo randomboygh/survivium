@@ -58,6 +58,8 @@ const PX := 1.0 / 16.0
 const CELL := WorldData.CELL
 ## Levels 0, 2, 4.. of a column mask.
 const EVEN_LEVELS := 0x5555555555555555
+## Cells of a conifer's trunk under the lowest disc of its shadow (see _tree_shadows).
+const CONIFER_BARE := 2
 
 
 ## Upright quad of `size`, bottom edge (or centre when `centered`) at the origin.
@@ -453,10 +455,21 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 					levels[y] = [mini(b[0], x), maxi(b[1], x), mini(b[2], z), maxi(b[3], z)]
 				else:
 					levels[y] = [x, x, z, z]
+	# A conifer's lowest tier hangs on screen over the trunk below it (see
+	# Trees._hidden_trunk), so the tree looks green down to near its foot; its shadow
+	# falls from the crown where it shows, the discs lowered to start CONIFER_BARE cells
+	# above the foot.
+	var lower := 0
+	if kind == EVERGREEN and not levels.is_empty():
+		var low: int = levels.keys().min()
+		var foot := low
+		while foot > 0 and w.get_cell(at.x, foot - 1, at.y) == Mat.LOG:
+			foot -= 1
+		lower = maxi(0, low - foot - CONIFER_BARE)
 	for y in levels:
 		var b: Array = levels[y]
 		# Each point fills the cells around it, one on either side.
-		var c := Vector3((b[0] + b[1]) * 0.5 + 0.5, y + 0.5, (b[2] + b[3]) * 0.5 + 0.5) * CELL
+		var c := Vector3((b[0] + b[1]) * 0.5 + 0.5, y - lower + 0.5, (b[2] + b[3]) * 0.5 + 0.5) * CELL
 		var wx: float = (b[1] - b[0] + 3) * CELL * 1.05 / SHADOW_DISC
 		var wz: float = (b[3] - b[2] + 3) * CELL * 1.05 / SHADOW_DISC
 		buf.append_array([wx, 0.0, 0.0, c.x, 0.0, 1.0, 0.0, c.y, 0.0, 0.0, wz, c.z])

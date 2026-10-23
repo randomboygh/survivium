@@ -34,6 +34,16 @@ const CLOUDS := [[0.18, 46, 3.0, 0.1], [0.30, 30, 5.0, 0.55], [0.42, 60, 2.0, 0.
 	[0.12, 20, 4.0, 0.7]]
 const CLOUD := Color("#93977f", 0.55)
 const CLOUD_LIT := Color("#d6c4a2", 0.5)
+## The sparrow on the name, facing right: rows of pixels, a letter a colour (SPARROW_INK).
+const SPARROW := ["....kk.", "...kekB", "TTbbbb.", "..bccb.", "...l.l."]
+const SPARROW_INK := {"k": Color("#6b4426"), "e": Color("#1c140d"), "B": Color("#e9b44c"),
+	"T": Color("#5a3a22"), "b": Color("#9a6a3c"), "c": Color("#d8c3a0"), "l": Color("#3a2c20")}
+## Seconds a hop takes and how high it goes (UI px), and how far one carries it.
+const HOP_TIME := 0.22
+const HOP_HIGH := 12.0
+const HOP_STEP := 16.0
+## One pixel of the sparrow in UI px: the size of a pixel of the name's letters.
+const BIRD_PX := 4
 ## Seconds between two glints over the name.
 const GLINT_EVERY := 4.0
 const GLINT_SHADER := """
@@ -62,6 +72,16 @@ var _backdrop: Control
 var _motion: Control
 var _time := 0.0
 var _title: Label
+## The sparrow hopping along the top of the name: where it stands (UI px from the
+## name's left), which way it faces, what it does ("sit", "peck", "hop") and for how
+## much longer, and where a hop takes it.
+var _sparrow: Control
+var _bird_x := 40.0
+var _bird_dir := 1.0
+var _bird_do := "sit"
+var _bird_left := 1.0
+var _bird_from := 40.0
+var _bird_to := 40.0
 var _column: VBoxContainer
 var _seed_label: Label
 var _status: Label
@@ -116,6 +136,10 @@ func _ready() -> void:
 	title.material = glint
 	_column.add_child(title)
 	_title = title
+	_sparrow = Control.new()
+	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sparrow.draw.connect(_draw_sparrow)
+	title.add_child(_sparrow)
 	_seed_label = UiStyle.label("", UiStyle.INK)
 	_seed_label.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	_seed_label.add_theme_constant_override("outline_size", 4)
@@ -295,6 +319,7 @@ func _process(delta: float) -> void:
 			visible = is_open)
 	if not is_open:
 		return
+	_move_sparrow(delta)
 	if game.ready_to_play:
 		_status.visible = false
 		if _want_play:
@@ -379,6 +404,60 @@ func _draw_sky() -> void:
 			var y := floorf(base - (sin(t) * 0.6 + sin(t * 2.3 + 1.0) * 0.3 + 1.0) * full.size.y * (0.06 - h * 0.015))
 			_backdrop.draw_rect(Rect2(x, y, 2, full.end.y - y), HILLS[h])
 			x += 2
+
+
+## The sparrow sits a while, pecks now and then, and hops along the name, turning
+## back at its ends.
+func _move_sparrow(delta: float) -> void:
+	_bird_left -= delta
+	if _bird_do == "hop":
+		var t := clampf(1.0 - _bird_left / HOP_TIME, 0.0, 1.0)
+		_bird_x = lerpf(_bird_from, _bird_to, t)
+	if _bird_left <= 0.0:
+		_bird_x = _bird_to if _bird_do == "hop" else _bird_x
+		var roll := randf()
+		if _bird_do != "hop" and roll < 0.45:
+			var room := _title.size.x - SPARROW[0].length() * BIRD_PX - 6.0
+			if _bird_x + _bird_dir * HOP_STEP < 6.0 or _bird_x + _bird_dir * HOP_STEP > room or randf() < 0.15:
+				_bird_dir = -_bird_dir
+			_bird_do = "hop"
+			_bird_from = _bird_x
+			_bird_to = clampf(_bird_x + _bird_dir * HOP_STEP, 6.0, room)
+			_bird_left = HOP_TIME
+		elif roll < 0.7:
+			_bird_do = "peck"
+			_bird_left = 0.35
+		else:
+			_bird_do = "sit"
+			_bird_left = randf_range(0.5, 2.0)
+	_sparrow.queue_redraw()
+
+
+## The sparrow on the top of the letters: raised in a hop with its feet tucked, its
+## head down when it pecks.
+func _draw_sparrow() -> void:
+	# The top of the capitals of the 32 px font, under the label's own room above them.
+	var top := floorf(_title.size.y * 0.5 - TITLE_SIZE * 0.34) - 3.0
+	var lift := 0.0
+	if _bird_do == "hop":
+		var t := clampf(1.0 - _bird_left / HOP_TIME, 0.0, 1.0)
+		lift = floorf(HOP_HIGH * 4.0 * t * (1.0 - t))
+	var w: int = SPARROW[0].length()
+	for y in SPARROW.size():
+		var row: String = SPARROW[y]
+		if y == SPARROW.size() - 1 and lift > 0.0:
+			continue
+		for x in w:
+			var c := row[x]
+			if not SPARROW_INK.has(c):
+				continue
+			var px := x if _bird_dir > 0.0 else w - 1 - x
+			var py := y
+			if _bird_do == "peck" and y < 2:
+				py += 1
+				px += 1 if _bird_dir > 0.0 else -1
+			_sparrow.draw_rect(Rect2(floorf(_bird_x) + px * BIRD_PX, top - (SPARROW.size() - py) * BIRD_PX - lift,
+				BIRD_PX, BIRD_PX), SPARROW_INK[c])
 
 
 ## The sky's moving parts, over the painted sky: pixel clouds drifting right at their

@@ -22,6 +22,10 @@ stencil_mode write, compare_always, 2;
 
 uniform sampler2D clump_texture : filter_nearest;
 uniform float clump_size = 1.5;
+// The window round the player in a crown nearer the viewer, and the thinner rim
+// beyond it, in world units.
+const float SEE_THROUGH = 1.8;
+const float SEE_RIM = 0.5;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
@@ -36,6 +40,9 @@ varying flat vec4 custom;
 varying vec4 tint;
 varying float clouds;
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
@@ -43,6 +50,7 @@ void vertex() {
 	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 void fragment() {
@@ -71,12 +79,14 @@ void fragment() {
 	if (!branches && (hash13(floor(center)) > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
 		discard;
 	}
-	// See-through around the player when the clump is nearer the viewer than them.
+	// See-through around the player when the clump is nearer the viewer than them:
+	// every other texel within SEE_THROUGH, one in four over a rim beyond it. Counted
+	// in the world's texels, so the pattern does not crawl as the view moves.
 	vec2 frag = vec2(center.x + (UV.x - 0.5) * clump_size, center.z - center.y - (0.5 - UV.y) * clump_size);
 	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
-	if (center.y + center.z > player_pos.y + player_pos.z + 1.0 && length(frag - body) < 1.1) {
-		ivec2 f = ivec2(FRAGCOORD.xy);
-		if ((f.x + f.y) % 2 == 0) {
+	float near = length(frag - body);
+	if (center.y + center.z > player_pos.y + player_pos.z + 1.0 && near < SEE_THROUGH + SEE_RIM) {
+		if (bayer4(texel) < (near < SEE_THROUGH ? 0.5 : 0.25)) {
 			discard;
 		}
 	}
@@ -136,6 +146,6 @@ void light() {
 		vec3 band = step_n > 2.5 ? vec3(1.55, 1.45, 0.7) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? vec3(0.7) : vec3(0.32)));
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
-		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds);
+		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz));
 	}
 }
