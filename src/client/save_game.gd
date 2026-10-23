@@ -5,7 +5,8 @@ extends RefCounted
 ## reaches them, and the player, the clock and the props are put back. Once the
 ## player has entered the world, the changed chunks and the player are saved every
 ## INTERVAL seconds, a few chunks a frame, and all at once when the menu opens, the
-## game loses focus or quits. What goes in, the systems of src/shared tell themselves
+## game loses focus or quits; so are the regions of the map the player explored
+## (Minimap), one a frame among the chunks. What goes in, the systems of src/shared tell themselves
 ## (Clock, Placed, Character, the bag: to_dict or to_list); other modules keep their
 ## part of the player with track(). Off for tests and tools (`enabled`). `game` is the
 ## Main node.
@@ -37,8 +38,9 @@ var active := false
 var played := 0.0
 ## Objects that keep a part of the player (to_dict, from_dict), by section name.
 var sections := {}
-## The chunks of the save under way, written a few a frame.
+## The chunks of the save under way, written a few a frame, and the regions of the map.
 var _queue: Array[Vector2i] = []
+var _maps: Array[Vector2i] = []
 var _writing := false
 var _clock := 0.0
 
@@ -134,7 +136,9 @@ func update(delta: float) -> void:
 	while not _queue.is_empty() and n < CHUNKS_PER_FRAME:
 		_write_chunk(_queue.pop_back())
 		n += 1
-	if _queue.is_empty():
+	if n == 0 and not _maps.is_empty():
+		_write_map(_maps.pop_back())
+	if _queue.is_empty() and _maps.is_empty():
 		_write_world()
 		_writing = false
 
@@ -146,6 +150,8 @@ func flush() -> void:
 	_take_unsaved()
 	while not _queue.is_empty():
 		_write_chunk(_queue.pop_back())
+	while not _maps.is_empty():
+		_write_map(_maps.pop_back())
 	_write_world()
 	_writing = false
 	_clock = 0.0
@@ -157,6 +163,18 @@ func _take_unsaved() -> void:
 		if not _queue.has(key):
 			_queue.append(key)
 	world.unsaved.clear()
+	var minimap = game.hud.minimap if game.hud != null else null
+	if minimap != null:
+		for key: Vector2i in minimap.unsaved:
+			if not _maps.has(key):
+				_maps.append(key)
+
+
+## Writes region `key` of the explored map; it is kept unsaved when that fails.
+func _write_map(key: Vector2i) -> void:
+	var data: PackedByteArray = game.hud.minimap.save_region(key)
+	if not data.is_empty() and not store.write_map(key, data):
+		game.hud.minimap.unsaved[key] = true
 
 
 func _write_chunk(key: Vector2i) -> void:

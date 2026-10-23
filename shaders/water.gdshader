@@ -74,6 +74,9 @@ vec3 mud_color(vec2 tex) {
 	return c;
 }
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	// Ice fills its cell to the top, level with the ground beside it, where it is
 	// walked on (see WorldData.water_frozen).
@@ -87,6 +90,7 @@ void vertex() {
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 void fragment() {
@@ -198,5 +202,5 @@ void light() {
 	// it falls on the bed and shows through the water. Water under a roof or in a
 	// cave stays in the dark of what covers it; clouds shade it anyway.
 	float shade = LIGHT_IS_DIRECTIONAL && open_sky > 0.5 ? 1.0 : ATTENUATION;
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

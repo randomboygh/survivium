@@ -54,6 +54,7 @@ const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
+const Markers := preload("res://src/client/game/markers.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
@@ -80,6 +81,8 @@ var view: CameraRig
 var props: Props
 var character: CharacterScript
 var gathering: Gathering
+## The markers the player set on the map.
+var markers: Markers
 ## The rules of what the hands do to the world (dig, build, chop, gather), once the
 ## world is made.
 var actions: WorldActions
@@ -162,6 +165,8 @@ func _ready() -> void:
 	save.track("knowledge", workshop.knowledge)
 	save.track("crafting", workshop.queue)
 	save.track("hands", controls)
+	markers = Markers.new()
+	save.track("markers", markers)
 	workshop.settle()
 	view.build(self)
 	world_root = view.world_root
@@ -212,6 +217,8 @@ func start_world() -> void:
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
+	if save.has_save:
+		hud.minimap.load_regions(save.store.read_maps())
 	_build_materials()
 	_build_scene()
 	save.restore_player()
@@ -220,10 +227,17 @@ func start_world() -> void:
 
 
 func _process(delta: float) -> void:
+	# The frame before is over: the statistics take its time and what its parts took.
+	var perf = hud.perf
+	perf.add_frame(delta)
 	if world == null:
 		return
+	var t := Time.get_ticks_usec()
 	if not ready_to_play:
-		if chunks.build_near(40):
+		# Behind the main menu the chunks are built a step at a time (run_jobs below),
+		# so the menu does not stutter; else whole, as fast as it goes.
+		chunks.load_steps = menu != null and menu.is_open
+		if chunks.near_pending == 0 if chunks.load_steps else chunks.build_near(40):
 			hud.set_loading("")
 			hud.perf.world_ms = Time.get_ticks_msec() - start_ms
 			# Freezes while the world was being built are not the game's.
@@ -245,8 +259,10 @@ func _process(delta: float) -> void:
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
 			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
+		t = perf.note("чанки", t)
 	clock.step(delta, player.position if player != null else Vector3.INF)
 	sky.update(delta)
+	t = perf.note("небо", t)
 	if ready_to_play:
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
@@ -259,23 +275,30 @@ func _process(delta: float) -> void:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)
 		hands.update()
+		t = perf.note("игрок", t)
 		storms.step(delta, player.position)
 		_leave_footprints()
+		t = perf.note("ветер и следы", t)
 		save.update(delta)
+		t = perf.note("сохранение", t)
 	chunks.update_cut(delta)
 	# Behind the death screen the world is made ready where the character comes back.
 	chunks.set_focus(character.respawn_points()[0][1] if ready_to_play and character.is_dead() else Vector3.INF)
 	chunks.run_jobs()
 	chunks.update_caps()
+	t = perf.note("чанки", t)
 	roof.flush()
 	hud.minimap.flush()
+	t = perf.note("карты", t)
 	view.update(delta)
+	t = perf.note("камера", t)
 	if ready_to_play:
 		hud.update_state()
 		death_screen.update()
 		controls.update_tip(delta)
 		_report_fps(delta)
 	view.poll_safe_rect(delta)
+	perf.note("интерфейс", t)
 
 
 ## The game is saved when the window closes or loses focus (a phone app sent to the
@@ -437,6 +460,7 @@ func _build_scene() -> void:
 
 	creatures = CreaturesScript.new()
 	creatures.tracks = tracks
+	creatures.perf = hud.perf
 	world_root.add_child(creatures)
 
 	effects = EffectsScript.new()

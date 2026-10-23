@@ -5,6 +5,7 @@ extends RefCounted
 ##   world.json            seed, settings, levels, the clock, the props (JSON)
 ##   players/<name>.json   a player: position and the sections other modules keep
 ##   chunks/<cx>_<cz>.bin  a changed chunk: WorldGen.pack, store_var, zstd
+##   map/<rx>_<rz>.bin     a region of the map the player explored: its pixels, zstd
 ## Files are written beside their place and then moved over it, so a save cut off
 ## halfway leaves the old file whole. On the web user:// is kept in IndexedDB, on
 ## Android and the desktop it is a folder; the server will keep its worlds the same
@@ -119,6 +120,37 @@ func write_chunk(key: Vector2i, d: Dictionary) -> bool:
 		return false
 	_chunks[key] = true
 	return true
+
+
+## The regions of the explored map on disk: their pixels (as write_map took them) by
+## region key.
+func read_maps() -> Dictionary:
+	var out := {}
+	if not DirAccess.dir_exists_absolute(dir + "/map"):
+		return out
+	for f in DirAccess.get_files_at(dir + "/map"):
+		var parts := f.get_basename().split("_")
+		if not f.ends_with(".bin") or parts.size() != 2 or not parts[0].is_valid_int() or not parts[1].is_valid_int():
+			continue
+		var file := FileAccess.open_compressed(dir + "/map/" + f, FileAccess.READ, FileAccess.COMPRESSION_ZSTD)
+		if file == null:
+			continue
+		var data: Variant = file.get_var()
+		if data is PackedByteArray:
+			out[Vector2i(int(parts[0]), int(parts[1]))] = data
+	return out
+
+
+func write_map(key: Vector2i, data: PackedByteArray) -> bool:
+	var path := "%s/map/%d_%d.bin" % [dir, key.x, key.y]
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var f := FileAccess.open_compressed(path + ".tmp", FileAccess.WRITE, FileAccess.COMPRESSION_ZSTD)
+	if f == null:
+		push_error("cannot write %s: %s" % [path, error_string(FileAccess.get_open_error())])
+		return false
+	f.store_var(data)
+	f.close()
+	return _replace(path)
 
 
 ## How many chunks are on disk.
