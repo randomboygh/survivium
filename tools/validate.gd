@@ -12,6 +12,8 @@ const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
+const Creatures := preload("res://src/client/game/creatures.gd")
+const SpriteArt := preload("res://src/client/view/sprite_art.gd")
 
 
 func _init() -> void:
@@ -24,6 +26,7 @@ func _init() -> void:
 	problems.append_array(Crafting.check())
 	problems.append_array(Plants.check())
 	problems.append_array(_check_held())
+	problems.append_array(_check_creature_pictures())
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():
@@ -59,4 +62,19 @@ func _check_held() -> PackedStringArray:
 		var want := Vector2i(fig.held.cell[0] * (1 + work.columns.size()), fig.held.cell[1] * fig.directions.size())
 		if size != want:
 			out.append("items: `%s`: %s is %dx%d, a sheet carried and worked by `%s` is %dx%d" % [id, path.get_file(), size.x, size.y, item.anim, want.x, want.y])
+	return out
+
+
+## Each species' picture is there, a row of as many frames as it says.
+func _check_creature_pictures() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for id in AiRules.SPECIES:
+		var spec: Dictionary = AiRules.SPECIES[id]
+		if id == AiRules.HUMAN or SpriteArt.ART.has(spec.sprite):
+			continue
+		var path := Creatures.picture_path(spec)
+		if not ResourceLoader.exists(path):
+			out.append("creatures: `%s`: no picture %s" % [id, path])
+		elif load(path).get_width() % spec.frames != 0:
+			out.append("creatures: `%s`: %s is not %d frames wide" % [id, path.get_file(), spec.frames])
 	return out
