@@ -432,7 +432,9 @@ func _run() -> void:
 	var square := is_equal_approx(hud.minimap.size.x, 2 * button + 6) and is_equal_approx(hud.minimap.size.y, 2 * button + 6)
 	var level_tall := is_equal_approx(hud._level.size.y, hud.minimap.size.y)
 	var cross: bool = hud._camera.get_child_count() == 9 and hud._camera.position.y >= hud.minimap.position.y + hud.minimap.size.y
-	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2
+	hud.update_state()
+	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2 \
+		and is_equal_approx(hud._clock_panel.position.x + hud._clock_panel.size.x, hud._bar.position.x + hud._bar.size.x)
 	var vitals_tall: bool = is_equal_approx(hud.vitals.get_combined_minimum_size().y, button)
 	hud.toggle_stats()
 	await process_frame
