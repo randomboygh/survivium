@@ -20,6 +20,7 @@ const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
+const Minimap := preload("res://src/client/ui/minimap.gd")
 
 const WIDTH := 200
 const BUTTON_H := 30
@@ -47,6 +48,26 @@ const HOP_HIGH := 12.0
 const HOP_STEP := 16.0
 ## One pixel of the sparrow in UI px, so it stands a little lower than the capitals.
 const BIRD_PX := 3
+## While the world is built: the map around the start painted in as its chunks are
+## made (the minimap's regions), its side in UI px and UI px a map pixel, and tips
+## under it, a new one every TIP_TIME seconds.
+const MAP_SIZE := 128
+const MAP_ZOOM := 2.0
+const TIP_TIME := 6.0
+const TIP_WIDTH := 240
+const TIPS := [
+	"Волокно дают высокая трава, травы и тростник; из трёх волокон скручивают верёвку.",
+	"Кремень попадается, когда копаешь землю, песок и осыпь.",
+	"Костёр складывают из пяти веток и пяти волокон, на нём жарят грибы.",
+	"Рецепт становится известен, когда в сумке побывали все его материалы.",
+	"Верстак из восьми веток и двух верёвок: у него делают каменные инструменты.",
+	"Печь для обжига складывают из камня и глины, в ней обжигают кирпичи и пекут лепёшки.",
+	"Колоски дают зерно, а из зерна мелют муку.",
+	"Из мха и волокна делают бинты.",
+	"Карта помнит всё, что вы видели, и на ней можно ставить метки.",
+	"Кнопки уровня у миникарты срезают вид: так видно, что в пещере и под кронами.",
+	"Против ветра идти тяжелее, а в прыжке он сносит в сторону.",
+]
 ## Seconds between two glints over the name.
 const GLINT_EVERY := 4.0
 const GLINT_SHADER := """
@@ -104,6 +125,16 @@ var _entered := false
 var _fading := false
 var _shown := false
 var _fit_for := Rect2()
+## The map and the tips while the world is built (see MAP_SIZE), and the tip shown.
+var _loading: PanelContainer
+var _map_ground: Minimap.Layer
+var _map_top: Minimap.Layer
+var _tip: Label
+var _tip_index := -1
+var _tip_clock := 0.0
+var _map_room := false
+## Shows the map and the tips with the world built too (the screenshots).
+var show_loading := false
 
 
 func _init(g) -> void:
@@ -183,6 +214,7 @@ func _ready() -> void:
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		_buttons.play.add_theme_color_override(c, UiStyle.DARK_INK)
 
+	_build_loading()
 	_settings = SettingsMenu.new(game)
 	_settings.closed.connect(func() -> void:
 		_column.visible = true
@@ -190,6 +222,78 @@ func _ready() -> void:
 	_screen.add_child(_settings)
 	visible = false
 	_screen.visible = false
+
+
+## The map around the start in a frame like the minimap's, the tips under it.
+func _build_loading() -> void:
+	_loading = PanelContainer.new()
+	_loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_screen.add_child(_loading)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	_loading.add_child(box)
+	var well := Control.new()
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	well.custom_minimum_size = Vector2.ONE * (MAP_SIZE + 2 * Minimap.FRAME)
+	well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	well.draw.connect(func() -> void:
+		var inner := Rect2(Minimap.FRAME, Minimap.FRAME, MAP_SIZE, MAP_SIZE)
+		Minimap.round_rect(well, inner.grow(1), UiStyle.EDGE, Minimap.CORNER + 1)
+		Minimap.round_rect(well, inner, Minimap.UNSEEN, Minimap.CORNER))
+	box.add_child(well)
+	_map_ground = Minimap.ground_layer(_draw_map, Minimap.CORNER)
+	well.add_child(_map_ground)
+	Minimap.place_ground(_map_ground, Rect2(Minimap.FRAME, Minimap.FRAME, MAP_SIZE, MAP_SIZE))
+	_map_top = Minimap.Layer.new(_draw_map_top)
+	well.add_child(_map_top)
+	_map_top.position = Vector2(Minimap.FRAME, Minimap.FRAME)
+	_map_top.size = Vector2(MAP_SIZE, MAP_SIZE)
+	_tip = UiStyle.label("", UiStyle.MUTED)
+	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Room for three lines, the longest tip, so the card keeps its size as they change.
+	var line := UiStyle.font().get_height(UiStyle.FONT_SIZE) + 4.0
+	_tip.custom_minimum_size = Vector2(TIP_WIDTH, 3.0 * line - 4.0)
+	box.add_child(_tip)
+	_loading.visible = false
+
+
+## The column at the middle of the map: where the player starts.
+func _map_centre() -> Vector2:
+	return Vector2(game.player.position.x, game.player.position.z) / 0.5
+
+
+func _draw_map(l: Control) -> void:
+	game.hud.minimap.draw_ground(l, Rect2(Vector2.ZERO, l.size), _map_centre(), MAP_ZOOM)
+
+
+## The player an amber dot outlined dark in the middle, the slot's shade along the top
+## and left as on the minimap.
+func _draw_map_top(l: Control) -> void:
+	var p := (l.size * 0.5).floor()
+	l.draw_rect(Rect2(p - Vector2(3, 3), Vector2(7, 7)), UiStyle.DARK_INK)
+	l.draw_rect(Rect2(p - Vector2(2, 2), Vector2(5, 5)), UiStyle.ACCENT)
+	l.draw_rect(Rect2(Minimap.CORNER, 0, l.size.x - 2 * Minimap.CORNER, 1), UiStyle.WELL_SHADE)
+	l.draw_rect(Rect2(0, Minimap.CORNER, 1, l.size.y - 2 * Minimap.CORNER), UiStyle.WELL_SHADE)
+
+
+## Shows the map and a tip while the world is built and the menu's column is there;
+## the map is drawn again as the minimap paints chunks in.
+func _update_loading(delta: float) -> void:
+	var show: bool = _map_room and (not game.ready_to_play or show_loading) and _column.visible and game.player != null
+	if _loading.visible != show:
+		_loading.visible = show
+		if show and not game.hud.minimap.painted.is_connected(_map_ground.queue_redraw):
+			game.hud.minimap.painted.connect(_map_ground.queue_redraw)
+	if not show:
+		return
+	_tip_clock -= delta
+	if _tip_clock <= 0.0:
+		_tip_clock = TIP_TIME
+		_tip_index = (_tip_index + 1 + randi() % (TIPS.size() - 1)) % TIPS.size() if _tip_index >= 0 \
+			else randi() % TIPS.size()
+		_tip.text = TIPS[_tip_index]
+	_map_ground.queue_redraw()
 
 
 func _add_button(parent: Node, key: String, text: String, action: Callable, tag := "") -> void:
@@ -326,7 +430,9 @@ func _process(delta: float) -> void:
 			_backdrop.visible = false
 			visible = is_open)
 	if not is_open:
+		_loading.visible = false
 		return
+	_update_loading(delta)
 	_move_sparrow(delta)
 	if game.ready_to_play:
 		_status.visible = false
@@ -346,6 +452,29 @@ func _process(delta: float) -> void:
 	_screen.queue_redraw()
 
 
+## The map while the world is built: in the middle of the room right of the column on
+## a wide screen, under the column (or over it) on a tall one; left out where it does
+## not fit.
+func _place_loading() -> void:
+	_loading.reset_size()
+	var card := _loading.get_combined_minimum_size()
+	var col := Rect2(_column.position, _column.size)
+	var at := Vector2(-1, -1)
+	if size.x >= size.y * 1.2:
+		var room := size.x - col.end.x
+		if room >= card.x + 2 * MARGIN:
+			at = Vector2(col.end.x + (room - card.x) * 0.5, (size.y - card.y) * 0.5)
+	elif col.end.y + 8 + card.y <= size.y - MARGIN:
+		at = Vector2((size.x - card.x) * 0.5, col.end.y + 8)
+	elif card.y + 8 <= col.position.y - MARGIN:
+		at = Vector2((size.x - card.x) * 0.5, col.position.y - 8 - card.y)
+	_map_room = at.x >= 0.0
+	_loading.position = at.floor()
+	_loading.size = card
+	if not _map_room:
+		_loading.visible = false
+
+
 ## The interface's scale and rect: the column on the left of a wide screen, in the
 ## middle of a tall one, below the centre.
 func _fit() -> void:
@@ -363,6 +492,7 @@ func _fit() -> void:
 		_column.position = Vector2(MARGIN, (size.y - c.y) * 0.5).floor()
 	else:
 		_column.position = Vector2((size.x - c.x) * 0.5, maxf(MARGIN, (size.y - c.y) * 0.55)).floor()
+	_place_loading()
 	if _settings.visible:
 		_settings.fit(size)
 	_screen.queue_redraw()

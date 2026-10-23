@@ -320,6 +320,8 @@ const SHOTS := {
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
 	"ui-main-menu-pc": {"time": 0.42, "season": 1, "main_menu": "live"},
 	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky"},
+	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading"},
+	"ui-main-menu-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading"},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
@@ -706,8 +708,9 @@ func _run() -> void:
 		if shot.has("main_menu"):
 			main._build_menu()
 			# Painted sky only for "sky": the world is built already, so it would fade.
-			main.menu._fading = shot.main_menu == "sky"
-			main.menu._backdrop.visible = shot.main_menu == "sky"
+			main.menu._fading = shot.main_menu in ["sky", "loading"]
+			main.menu._backdrop.visible = shot.main_menu in ["sky", "loading"]
+			main.menu.show_loading = shot.main_menu == "loading"
 			await process_frame
 			if shot.main_menu == "setup":
 				main.menu._new_world()

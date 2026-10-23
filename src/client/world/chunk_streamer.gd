@@ -726,9 +726,10 @@ func shift_cut(d: int) -> void:
 	if world == null:
 		return
 	var reach := view_range()
-	manual_level = maxi(cut_base() + d, reach.x)
-	# Past the top of the reach the view goes back to the automatic cut.
-	if manual_level > reach.y or manual_level >= world.size_y - 1:
+	# The view stays at the ends of the reach (the level button goes back to the
+	# automatic cut); a cut over the whole world is none.
+	manual_level = clampi(cut_base() + d, reach.x, reach.y)
+	if manual_level >= world.size_y - 1:
 		manual_level = -1
 
 
