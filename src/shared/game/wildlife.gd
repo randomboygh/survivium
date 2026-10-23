@@ -75,6 +75,14 @@ class Animal:
 	var spot := Vector3.ZERO
 	## Where the threat it flees from was, for its flock to take fright too.
 	var fear := Vector3.ZERO
+	## Eaten, out of the world.
+	var gone := false
+	## The frame of its picture drawn (on the client, see Creatures).
+	var frame := 0
+	## A flyer's last cell under it and the top of the ground or crown there (see
+	## _canopy), looked up again only in a new cell.
+	var over := Vector2i(1 << 30, 0)
+	var below := 0.0
 
 	## Off the ground, out of reach of those that walk.
 	func aloft() -> bool:
@@ -91,6 +99,8 @@ var animals: Array[Animal] = []
 var rng := RandomNumberGenerator.new()
 var respawn_timer := 0.0
 var _daylight := 1.0
+## What each kind is to each (see _sees), worked out from AiRules once.
+var _seen := {}
 
 
 ## Lets the animals of every species come into the world around the people.
@@ -126,7 +136,7 @@ func update(delta: float) -> void:
 				_spawn_group(kind, AiRules.SPECIES[kind].count - count(kind), true)
 	_daylight = clock.daylight()
 	for a in animals.duplicate():
-		if not animals.has(a):
+		if a.gone:
 			continue
 		var dt := delta
 		if not a.near:
@@ -165,16 +175,21 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	var prey_d := INF
 	var lead := _lead(a)
 	var alarm: Variant = null
+	# Most others are nobody to it: those are passed by first, as there are many.
+	var sees := _sees(a.kind)
+	var sight2 := sight * sight
 	for o in animals:
-		if o == a:
+		var what: int = sees[o.kind]
+		if (what == NOBODY and (lead == null or o.state != "flee")) or o == a:
 			continue
-		var d := a.pos.distance_to(o.pos)
-		if d > sight:
+		var d2 := a.pos.distance_squared_to(o.pos)
+		if d2 > sight2:
 			continue
-		if d < threat_d and AiRules.is_threat(a.kind, o.kind):
+		var d := sqrt(d2)
+		if d < threat_d and what == THREAT:
 			threat_pos = o.pos
 			threat_d = d
-		elif d < prey_d and AiRules.is_food(a.kind, o.kind) and (spec.flies or not o.aloft()):
+		elif d < prey_d and what == FOOD and (spec.flies or not o.aloft()):
 			prey = o
 			prey_d = d
 		elif o.state == "flee" and lead != null and _lead(o) == lead and a.pos.distance_to(o.fear) < sight:
@@ -196,9 +211,11 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		a.target = a.pos + away.normalized() * 6.0
 		return
 	if not AiRules.is_active(a.kind, _daylight):
+		# Flyers sleep in the crowns, near their lead; one that found none sleeps where
+		# it is.
+		var was_resting := a.state == "rest"
 		a.state = "rest"
-		# Flyers sleep in the crowns, near their lead.
-		if spec.flies and spec.roost == "trees" and not a.aloft():
+		if spec.flies and spec.roost == "trees" and not a.aloft() and not was_resting:
 			var around: Vector3 = a.pos if lead == null or lead == a else lead.target
 			var tree: Variant = _tree_spot(around, FLIGHT)
 			if tree != null:
@@ -228,13 +245,30 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	if spec.flies:
 		if rng.randf() < FLY_CHANCE:
 			_take_off(a, spec, a.pos, FLIGHT)
-		elif not a.perched and (a.pos.distance_to(a.target) < 0.1 or rng.randf() < 0.2):
+		elif not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
 			# Hops about and pecks.
 			a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 		return
 	if was != "wander" or a.pos.distance_to(a.target) < 0.3 or rng.randf() < 0.05:
 		var to: Variant = null if spec.likes.is_empty() else _place(spec, a.pos, 6.0, false)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
+
+
+const NOBODY := 0
+const THREAT := 1
+const FOOD := 2
+
+
+## What every kind is to kind `kind`: kind -> THREAT, FOOD or NOBODY (see AiRules),
+## worked out once.
+func _sees(kind: String) -> Dictionary:
+	var out: Variant = _seen.get(kind)
+	if out == null:
+		out = {}
+		for other in AiRules.SPECIES:
+			out[other] = THREAT if AiRules.is_threat(kind, other) else (FOOD if AiRules.is_food(kind, other) else NOBODY)
+		_seen[kind] = out
+	return out
 
 
 ## The lead of `a`'s flock: itself when it leads, null for one that keeps alone.
@@ -253,7 +287,7 @@ func _follow(a: Animal, spec: Dictionary, lead: Animal) -> void:
 			a.target = _settle(at, lead.target.y > ground(lead.target.x, lead.target.z) + 0.3)
 			a.flying = true
 			a.perched = false
-		elif not a.perched and (a.pos.distance_to(a.target) < 0.1 or rng.randf() < 0.2):
+		elif not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
 			a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 		return
 	if a.pos.distance_to(lead.pos) > FLOCK_GAP or a.pos.distance_to(a.target) < 0.3:
@@ -318,22 +352,28 @@ func _settle(at: Vector3, tree: bool) -> Vector3:
 	return Vector3(at.x, y if y > 0.0 else at.y, at.z)
 
 
-## A spot on the top of a tree crown within `reach` of `around`, or null.
+## A spot on the top of a tree crown within `reach` of `around`, or null: a few trees
+## tried at random from the chunks there that have any (a forest chunk has dozens, too
+## many to look through on a phone each time).
 func _tree_spot(around: Vector3, reach: float) -> Variant:
-	var found: Array[Vector2i] = []
 	var r := ceili(reach / CELL)
 	var cx := floori(around.x / CELL)
 	var cz := floori(around.z / CELL)
+	var wooded := []
 	for kz in range((cz - r) >> WorldData.SHIFT, ((cz + r) >> WorldData.SHIFT) + 1):
 		for kx in range((cx - r) >> WorldData.SHIFT, ((cx + r) >> WorldData.SHIFT) + 1):
-			for t: Vector2i in world.tree_chunks.get(Vector2i(kx, kz), {}):
-				if absi(t.x - cx) <= r and absi(t.y - cz) <= r and world.leaf_col(t.x, t.y) != 0:
-					found.append(t)
-	if found.is_empty():
+			var trees: Dictionary = world.tree_chunks.get(Vector2i(kx, kz), {})
+			if not trees.is_empty():
+				wooded.append(trees)
+	if wooded.is_empty():
 		return null
-	var t := found[rng.randi() % found.size()]
-	var at := (Vector3(t.x, 0.0, t.y) + Vector3(rng.randf_range(0.0, 1.0), 0.0, rng.randf_range(0.0, 1.0))) * CELL
-	return _settle(at, true)
+	for attempt in 8:
+		var trees: Dictionary = wooded[rng.randi() % wooded.size()]
+		var t: Vector2i = trees.keys()[rng.randi() % trees.size()]
+		if absi(t.x - cx) <= r and absi(t.y - cz) <= r and world.leaf_col(t.x, t.y) != 0:
+			var at := (Vector3(t.x, 0.0, t.y) + Vector3(rng.randf_range(0.0, 1.0), 0.0, rng.randf_range(0.0, 1.0))) * CELL
+			return _settle(at, true)
+	return null
 
 
 func _move(a: Animal, spec: Dictionary, delta: float) -> void:
@@ -386,13 +426,18 @@ func _fly(a: Animal, spec: Dictionary, delta: float) -> void:
 		if absf(step.x) > 0.001:
 			a.facing = -1.0 if step.x < 0.0 else 1.0
 		d -= step.length()
-	var below := _canopy(a.pos.x, a.pos.z)
+	var cell := Vector2i(floori(a.pos.x / CELL), floori(a.pos.z / CELL))
+	if cell != a.over:
+		a.over = cell
+		a.below = _canopy(a.pos.x, a.pos.z)
+	var below := a.below
 	var high := maxf(below, a.target.y) + CRUISE
 	var want := lerpf(a.target.y, high, clampf(d / DESCENT, 0.0, 1.0))
 	if d > 0.5:
 		want = maxf(want, below + 0.3)
 	a.pos.y = move_toward(a.pos.y, want, speed * delta)
 	if d < 0.01 and absf(a.pos.y - a.target.y) < 0.01:
+		a.pos = a.target
 		a.flying = false
 		a.perched = a.target.y > ground(a.pos.x, a.pos.z) + 0.3
 	_catch(a, spec)
@@ -412,7 +457,7 @@ func _canopy(x: float, z: float) -> float:
 func _catch(a: Animal, spec: Dictionary) -> void:
 	if a.state != "hunt" or a.prey == null:
 		return
-	if not animals.has(a.prey) or (a.prey.aloft() and not spec.flies):
+	if a.prey.gone or (a.prey.aloft() and not spec.flies):
 		a.prey = null
 		a.state = "wander"
 	elif a.pos.distance_to(a.prey.pos) < 0.7:
@@ -429,6 +474,7 @@ func ground(x: float, z: float) -> float:
 
 func _remove(a: Animal) -> void:
 	animals.erase(a)
+	a.gone = true
 	# The first of its flock leads the rest from now on.
 	var next: Animal = null
 	for o in animals:

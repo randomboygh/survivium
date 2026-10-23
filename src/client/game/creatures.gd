@@ -61,11 +61,14 @@ func _process(delta: float) -> void:
 			var sprite: MeshInstance3D = _sprites[a]
 			sprite.position = PixelView.snap(a.pos)
 			sprite.scale.x = a.facing
-			var mats: Array = looks[a.kind][1]
-			var frame := 0
-			if a.flying and mats.size() > 1:
-				frame = 1 + (int(beat) + a.get_instance_id()) % (mats.size() - 1)
-			sprite.material_override = mats[frame]
+			if a.flying or a.frame != 0:
+				var mats: Array = looks[a.kind][1]
+				var frame := 0
+				if a.flying and mats.size() > 1:
+					frame = 1 + (int(beat) + a.get_instance_id()) % (mats.size() - 1)
+				if frame != a.frame:
+					a.frame = frame
+					sprite.material_override = mats[frame]
 
 
 ## The picture of species `spec` (a record of AiRules.SPECIES).
