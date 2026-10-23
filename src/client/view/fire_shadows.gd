@@ -38,6 +38,10 @@ const TRUNK_WIDTH := 0.5
 const SAME_GROUND := 0.6
 ## The far end of a wedge is at most this many times as wide as its foot.
 const MAX_SPREAD := 5.0
+## Frames between working out how dark the sprites in the shadows are.
+const SHADE_EVERY := 4
+## The torch's id among the lights, a unit no fire stands on (fires go by their unit).
+const TORCH_ID := Vector3i(0, -1048576, 0)
 ## The light of a dark night and of the full moon as a share of a fire's brightest ring
 ## (fire_shadow.gdshader).
 const NIGHT_LIGHT := Vector2(0.14, 0.6)
@@ -94,6 +98,10 @@ var _atlas_for := []
 var _shaded := {}
 
 
+## Frames left until the sprites' shades are worked out again, and the last ones.
+var _shade_wait := 0
+var _last_shades := {}
+
 func _ready() -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -148,8 +156,14 @@ func _process(_delta: float) -> void:
 		for l: Dictionary in lights:
 			n = _cast_all(l, n)
 		_show_lights(lights)
-		shades = _shades(lights, night)
+		# The sprites move slowly: their shades are worked out every few frames.
+		_shade_wait -= 1
+		if _shade_wait <= 0:
+			_shade_wait = SHADE_EVERY
+			_last_shades = _shades(lights, night)
+		shades = _last_shades
 	else:
+		_last_shades = {}
 		_trunks_for = ""
 	_shade(shades)
 	mm.visible_instance_count = n
@@ -228,7 +242,7 @@ func _show_lights(lights: Array) -> void:
 
 
 ## The lights that throw shadows, the nearest to the player first: {"id": the fire's
-## unit or "torch", "at": ground under the light, "height", "range", "strength" 0..1,
+## unit or TORCH_ID, "at": ground under the light, "height", "range", "strength" 0..1,
 ## "torch": bool, "real": it throws a real shadow, "index": its place among the
 ## lights the shader knows (MAX_LIGHTS for none)}.
 func _lights() -> Array:
@@ -242,7 +256,7 @@ func _lights() -> Array:
 				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01:
-		out.append({"id": "torch", "at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT,
+		out.append({"id": TORCH_ID, "at": p + Vector3(0.0, 0.0, TORCH_AHEAD), "height": TORCH_HEIGHT,
 			"range": torch.omni_range, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
 			"torch": true, "real": false})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
@@ -405,15 +419,16 @@ func _update_maps(lights: Array) -> void:
 		var fresh: bool = m.has("data") and not m.get("stale", false) and m.level == level \
 			and m.chunks == _chunks_kept(w, m.origin)
 		if fresh:
-			# The window must hold all the light reaches.
+			# The window must hold all the light reaches (but for its last column, at the
+			# very edge of its light, on the side the window is a column short).
 			var off: Vector2i = col - m.origin
-			fresh = off.x >= reach and off.y >= reach and off.x < MAP - reach and off.y < MAP - reach
+			fresh = off.x >= reach - 1 and off.y >= reach - 1 and off.x <= MAP - reach and off.y <= MAP - reach
 		if not fresh:
 			var origin := col - Vector2i(MAP / 2, MAP / 2)
 			var data := PackedByteArray()
 			data.resize(MAP * MAP)
 			m.next = {"origin": origin, "level": level, "data": data, "row": 0,
-				"chunks": _chunks_kept(w, origin)}
+				"chunks": _chunks_kept(w, origin), "light": Vector2(l.at.x, l.at.z) / CELL}
 	for id in _maps.keys():
 		if not known.has(id):
 			_maps.erase(id)
@@ -457,6 +472,7 @@ func _map_row(w, m: Dictionary, row: int) -> void:
 	var data: PackedByteArray = m.data
 	var all: int = w.all_bits
 	var blockers: Dictionary = w.blockers
+	var light: Vector2 = m.light
 	var block := roundi(CELL * MAP_SCALE)
 	var i := row * MAP
 	var x: int = m.origin.x
@@ -471,7 +487,9 @@ func _map_row(w, m: Dictionary, row: int) -> void:
 				var solid: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col]) & all
 				var run := (solid >> level) & 7
 				h = 0 if run & 1 == 0 else (block if run & 2 == 0 else (2 * block if run & 4 == 0 else 3 * block))
-			if h == 0 and not blockers.is_empty():
+			# The thing the light stands on (a campfire) throws no shadow from it.
+			if h == 0 and not blockers.is_empty() \
+					and (absf(x + 0.5 - light.x) >= 1.0 or absf(z + 0.5 - light.y) >= 1.0):
 				var box: AABB = blockers.get(Vector3i(x, level, z), AABB())
 				if box.has_volume():
 					h = mini(roundi(box.end.y * CELL * MAP_SCALE), 255)
@@ -605,6 +623,9 @@ func _shade(shades: Dictionary) -> void:
 				sprite.set_instance_shader_parameter("shade", 1.0)
 			_shaded.erase(sprite)
 	for sprite in shades:
+		# Shades are kept a few frames, and an animal may be gone meanwhile.
+		if not is_instance_valid(sprite):
+			continue
 		if absf(_shaded.get(sprite, 1.0) - shades[sprite]) > 0.01:
 			sprite.set_instance_shader_parameter("shade", shades[sprite])
 			_shaded[sprite] = shades[sprite]

@@ -36,6 +36,9 @@ varying flat vec4 custom;
 varying vec4 tint;
 varying float clouds;
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
@@ -43,6 +46,7 @@ void vertex() {
 	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 void fragment() {
@@ -136,6 +140,6 @@ void light() {
 		vec3 band = step_n > 2.5 ? vec3(1.55, 1.45, 0.7) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? vec3(0.7) : vec3(0.32)));
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
-		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds);
+		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz));
 	}
 }

@@ -39,6 +39,8 @@ const SHOTS := {
 	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
 	# The same on "mixed", the default: the player's shadow real, the rest drawn.
 	"fire-shadows-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	# The player east of the fire, in line with it: the real shadow still as wide as the body.
+	"fire-inline": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(1.4, 0.0, 0.0), "fire_shadows": 3},
 	# The same with real shadows: of the player, the grass, bushes and trees.
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
@@ -63,6 +65,13 @@ const SHOTS := {
 		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 3},
 	"fire-blocks-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
 		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 2},
+	# The sun moving over lone trees in the morning, frame by frame (see "sweep").
+	"sun-sweep": {"time": 0.36, "season": 1, "trees": true, "sweep": 30},
+	"sun-still": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sweep_step": 0.0},
+	"sun-smooth": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0},
+	"sun-pcf13": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0, "shadow_filter": 4},
+	"sun-hard": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0, "shadow_filter": 0},
+	"moon-sweep": {"time": 0.9, "season": 1, "moon": 1.0, "trees": true, "sweep": 30, "fire_shadows": 0},
 	# An animal in the player's shadow by day, in the morning and at sunrise.
 	"animal-shadow": {"time": 0.36, "season": 1, "animal": Vector3(-0.55, 0.0, -0.45)},
 	"animal-shadow-sunrise": {"time": 0.27, "season": 1, "animal": Vector3(-0.9, 0.0, 0.3)},
@@ -107,6 +116,9 @@ const SHOTS := {
 	"shore": {"time": 0.4, "season": 1, "shore": true},
 	"slopes": {"time": 0.42, "season": 1, "slopes": true},
 	"corners": {"time": 0.42, "season": 1, "corners": true},
+	# The shore and the rounded corners by the full moon, the moon moving (see "sweep").
+	"shore-moon": {"time": 0.9, "season": 1, "moon": 1.0, "shore": true, "sweep": 20, "fire_shadows": 0},
+	"corners-moon": {"time": 0.9, "season": 1, "moon": 1.0, "corners": true, "sweep": 20, "fire_shadows": 0},
 	"corners-winter": {"time": 0.45, "season": 3, "corners": true},
 	"lab": {"time": 0.42, "season": 1, "lab": true},
 	"trees": {"time": 0.42, "season": 1, "trees": true},
@@ -154,9 +166,16 @@ const SHOTS := {
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
 	"grove-spring": {"time": 0.42, "season": 0, "grove": true},
 	"grove-autumn-morning": {"time": 0.31, "season": 2, "grove": true},
+
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
+	# The oak and the spruce of the clearing by the full moon and by a low sun: the shape
+	# of their shadows.
+	"clearing-moon": {"time": 0.95, "season": 1, "moon": 1.0, "clearing": true},
+	"clearing-low-sun": {"time": 0.3, "season": 1, "clearing": true},
+	# North of the spruce by the full moon, its shadow falling toward the player.
+	"spruce-moon": {"time": 0.85, "season": 1, "moon": 1.0, "clearing": true, "offset": Vector3(0.5, 0.0, -5.0)},
 	# Gathering on the felled clearing with berry bushes: some things picked up and
 	# berries picked; then the bag open on a touch screen and with a mouse.
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
@@ -327,6 +346,10 @@ func _run() -> void:
 		main.clock.wind_to = shot.get("wind", 0.0)
 		main.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
+		if "sun_steps" in main.sky:
+			main.sky.sun_steps = shot.get("sun_steps", main.sky.SUN_STEPS)
+		RenderingServer.directional_soft_shadow_filter_set_quality(shot.get("shadow_filter",
+			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality")))
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.values.sun_rays = shot.get("rays", true)
 		main.settings.values.mist = shot.get("mist", true)
@@ -385,6 +408,7 @@ func _run() -> void:
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
 		if shot.get("clearing", false):
 			_clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
+			main.player.position += shot.get("offset", Vector3.ZERO)
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
@@ -595,6 +619,13 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		# Frames of the sun moving at the game's speed, 60 a second, to see how the
+		# shadows move: <name>-01.png and on.
+		for i in shot.get("sweep", 0):
+			main.clock.time_of_day += shot.get("sweep_step", 1.0) / (main.clock.DAY_LENGTH * 60.0)
+			await process_frame
+			await process_frame
+			root.get_texture().get_image().save_png(out_dir.path_join("%s-%02d.png" % [shot_name, i + 1]))
 		if shot.has("keys"):
 			_hold(shot.keys, false)
 		if setup != null:

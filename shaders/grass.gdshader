@@ -62,6 +62,9 @@ int kind_of(int plant) {
 	return plant < 4 ? GRASS : (plant < 8 ? FLOWER : (plant < 10 ? EAR : (plant < 12 ? REED : (plant < 14 ? HERB : (plant < 18 ? LOW : TALL)))));
 }
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	custom = INSTANCE_CUSTOM.xyz;
 	kind = kind_of(int(custom.x + 0.5));
@@ -100,6 +103,7 @@ void vertex() {
 		VERTEX += vec3(round(sin(t) * 2.0 * life) / TEXELS, life * SPORE_RISE, round(cos(t * 0.8) * 1.5 * life) / TEXELS);
 	}
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 	NORMAL = vec3(0.0, 1.0, 0.0);
 }
 
@@ -200,5 +204,5 @@ void light() {
 	// A plant is a flat card standing in the light with a normal pointing up: a fire
 	// lights all of it, tip too, even where the tip stands higher than the flame.
 	vec3 normal = LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT;
-	DIFFUSE_LIGHT += toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

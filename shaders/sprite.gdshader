@@ -22,9 +22,25 @@ instance uniform float shade = 1.0;
 varying vec3 world_pos;
 varying float clouds;
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
+	if (IN_SHADOW_PASS) {
+		// A flat sprite seen from the side throws a strip of a shadow: for the shadow
+		// it turns about its middle to face the light (the light's camera), as if the
+		// body were as wide every way. In the sheared space the shadow is cast in.
+		vec3 foot = MODEL_MATRIX[3].xyz;
+		vec2 to = PROJECTION_MATRIX[3][3] > 0.5 ? INV_VIEW_MATRIX[2].xz
+			: INV_VIEW_MATRIX[3].xz - vec2(foot.x, foot.z - foot.y - 0.5);
+		if (dot(to, to) > 1e-6) {
+			vec2 side = normalize(vec2(to.y, -to.x));
+			VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
+		}
+	}
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 void fragment() {
@@ -61,5 +77,5 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

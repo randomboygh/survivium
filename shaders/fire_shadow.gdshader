@@ -42,13 +42,6 @@ varying flat float strength;
 varying flat int light;
 varying flat float square;
 
-float ring(float d) {
-	return d < LIGHT_RING_EDGES.x ? LIGHT_RING_LEVELS.x
-		: (d < LIGHT_RING_EDGES.y ? LIGHT_RING_LEVELS.y
-		: (d < LIGHT_RING_EDGES.z ? LIGHT_RING_LEVELS.z
-		: (d < LIGHT_RING_EDGES.w ? LIGHT_RING_LEVELS.w : 0.0)));
-}
-
 // True when the way from the ground at `p` to light `i` passes over a column of its
 // map higher than the way is there: column by column from `p` to the light (not the
 // columns of either end), the way rising from the ground to the light's height.
@@ -107,6 +100,8 @@ void fragment() {
 	if (above_cut(world_pos)) {
 		discard;
 	}
+	// The rings are dithered on the same texels as the light they take back (toon_light).
+	vec2 texel = floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS);
 	float d;
 	if (square > 0.5) {
 		d = distance(world_pos, lights[light].xyz) / lights[light].w;
@@ -123,7 +118,7 @@ void fragment() {
 		// Over its far part the wedge thins out to nothing by an ordered dither, in whole
 		// texels of the ground.
 		float fade = clamp((1.0 - UV.y) / FADE, 0.0, 1.0);
-		if (bayer4(floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS)) > fade) {
+		if (bayer4(texel) > fade) {
 			discard;
 		}
 		// Where a block already hides the light, the square over it is dark there.
@@ -133,10 +128,10 @@ void fragment() {
 		float along = shape.x + UV.y * shape.y;
 		d = sqrt(along * along + shape.z * shape.z);
 	}
-	float own = ring(d) * strength;
+	float own = light_ring(d, texel) * strength;
 	float all = 0.0;
 	for (int i = 0; i < light_count; i++) {
-		all += ring(distance(world_pos, lights[i].xyz) / lights[i].w) * strengths[i];
+		all += light_ring(distance(world_pos, lights[i].xyz) / lights[i].w, texel) * strengths[i];
 	}
 	all = max(all, own);
 	float left = (night + all - own) / (night + all);
