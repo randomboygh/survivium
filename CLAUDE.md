@@ -33,7 +33,7 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   input/       controls, cursor, touch_stick, touch_button
   game/        game systems on this device: character (extends the shared one with the
                player's place, hands and screen), gathering, props (the placed things and the
-               drops drawn), creatures (the animals drawn)
+               drops drawn), creatures (the animals drawn), markers (the player's map markers)
   ui/          hud, menus, windows, maps, panels and their widgets, ui_style
 ```
 
@@ -83,8 +83,10 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   (the light, colour grade, sun rays, morning mist, tints and weather drawn for `game.clock`, `src/shared/game/clock.gd`), `controls.gd` (keys, mouse, touch, edits: `hands` holds any item in each hand, `active`
   is the hand in use, the hotbar is the bag's first `Inventory.HOTBAR` slots, the brush, strokes, the action button in front; what the hands do to the world is `src/shared/game/world_actions.gd`, each tool's rules `src/shared/content/tools.gd`),
   `camera_rig.gd` (pixel view, camera, safe rect), `cursor.gd` (the frame round the cells an action works on), `fire_shadows.gd` (shadows of fires and the torch drawn on the ground), `props.gd` (draws the things placed on 2×2 cells, whose rules are `src/shared/game/placed.gd`: chests and what they hold, workbenches, kilns, campfires, solid through `WorldData.blockers`; and the items lying on the ground, `WorldData.drops`), crafting is `src/shared/game/workshop.gd` (recipes known, the crafting queue worked near its station, tool wear and repair; `game.workshop`; recipes in `src/shared/content/crafting.gd`; the window is `craft_panel.gd`, a tab of `inventory_window.gd`), `minimap.gd`
-  (painted per chunk from the cells into regions of 32 chunks), `map_view.gd` (the explored map
-  full screen), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
+  (painted per chunk from the cells into regions of 32 chunks, kept in the save; the ground drawn
+  through `shaders/map_ground.gdshader`, which rounds the explored land's corners), `map_view.gd` (the
+  explored map full screen in a panel; a tap sets a marker, `src/client/game/markers.gd`, kept in the
+  save and listed on the playtest page, which can teleport the player to one), `main_menu.gd` (the first screen, over the live world of the saved seed built behind it;
   "Новый мир" opens `world_setup.gd` over it and `main.restart()` reloads the scene for another
   world; tests and tools set `main.skip_setup` to start without it),
   `settings.gd` (saved settings, playtest switches; every module reads its values from there),

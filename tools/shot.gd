@@ -267,6 +267,16 @@ const SHOTS := {
 	"ui-minimap-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]]},
 	# A campfire set down by the camp by the spawn: its dot is drawn beside theirs.
 	"ui-minimap-placed": {"time": 0.45, "season": 1, "touch": true, "put_fire": [-2.0, -8.0]},
+	# Markers of every colour (dx, dz in cells, colour): flags on the map, the window of a
+	# new one open; dots on the minimap, the far ones at its edge; listed on the playtest page.
+	"ui-map-markers": {"time": 0.45, "season": 1, "touch": true, "map": true, "map_zoom": 4,
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]], "map_tap": [-20, 20]},
+	"ui-map-markers-pc": {"time": 0.45, "season": 1, "map": true, "map_zoom": 2,
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]], "map_tap": [30, -20]},
+	"ui-minimap-markers": {"time": 0.45, "season": 1, "touch": true,
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]]},
+	"ui-test-marks": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "marks",
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]]},
 	# The main menu over the live world, over the painted sky it shows while the world is
 	# built, and with the setup screen of a new world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
@@ -523,6 +533,11 @@ func _run() -> void:
 				v.health -= 12.0
 			for i in 4:
 				await process_frame
+		for m: Array in shot.get("markers", []):
+			main.markers.add(Vector2i((main.player.position / CELL).floor().x, (main.player.position / CELL).floor().z) \
+					+ Vector2i(m[0], m[1]), m[2])
+		if shot.has("markers"):
+			await process_frame
 		if shot.get("test", false):
 			main.hud.toggle_test()
 			main.hud._settings.show_section(shot.get("section", "world"))
@@ -642,6 +657,10 @@ func _run() -> void:
 		if shot.get("map", false):
 			main.hud.map_view.open()
 			main.hud.map_view.zoom_index = shot.get("map_zoom", main.hud.map_view.FIRST_ZOOM)
+			main.hud.map_view.redraw()
+			if shot.has("map_tap"):
+				var mv: Control = main.hud.map_view
+				mv.tap(mv.point_of(Vector2(main.hud.minimap.player_cell + Vector2i(shot.map_tap[0], shot.map_tap[1]))))
 			await process_frame
 			await process_frame
 		if shot.get("revive", false):
@@ -670,6 +689,7 @@ func _run() -> void:
 		if shot.get("map", false):
 			main.hud.map_view.close()
 		main.character.sacks.clear()
+		main.markers.from_dict({})
 		print("saved ", shot_name)
 		for e in added_fires:
 			main.placed._remove(e)
