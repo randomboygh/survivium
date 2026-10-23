@@ -432,7 +432,7 @@ func pick_shadow_fires(view: Vector2) -> void:
 	if shadows and dark:
 		var best_d := SHADOW_FIRE_REACH * SHADOW_FIRE_REACH
 		for f in fires:
-			var d := Vector2(f.unit.x, f.unit.z - f.unit.y).distance_squared_to(view)
+			var d := PixelView.screen_plane(f.unit).distance_squared_to(view)
 			if d < best_d:
 				best_d = d
 				best = f

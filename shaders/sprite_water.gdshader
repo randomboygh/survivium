@@ -22,6 +22,8 @@ varying float clouds;
 varying vec2 light_xz;
 
 void vertex() {
+	// Upright: turned to the camera about its origin.
+	VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
