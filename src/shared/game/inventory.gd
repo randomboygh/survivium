@@ -26,6 +26,9 @@ var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
 ## Whether a chest with things in it may go in (not into another chest).
 var nests := true
+## Whether weight past the limit weighs on the carrier (slower pace, no jumps, slower
+## recovery); a playtest switch turns it off.
+var heavy := true
 
 
 func _init(n := SLOTS) -> void:
@@ -309,12 +312,14 @@ func load_share() -> float:
 ## The pace the load allows: 1 up to the limit, down to OVERLOAD_PACE at OVERLOAD
 ## times the limit and beyond.
 func speed_factor() -> float:
+	if not heavy:
+		return 1.0
 	var over := (load_share() - 1.0) / (OVERLOAD - 1.0)
 	return clampf(1.0 - over * (1.0 - OVERLOAD_PACE), OVERLOAD_PACE, 1.0)
 
 
 func overloaded() -> bool:
-	return load_share() > 1.0
+	return heavy and load_share() > 1.0
 
 
 ## The bag as plain data for a save or the network: {"slots": [[id, count] or null...]}.
