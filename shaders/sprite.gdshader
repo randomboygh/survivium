@@ -16,8 +16,10 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // below it the body is hidden, along it a line of ripples.
 uniform float water_line = -1000.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
-// stands (FireShadows): 1 out of them.
-instance uniform float shade = 1.0;
+// stands (FireShadows): 1 out of them. It comes as the sprite's scale along z, which
+// the flat quad does not use: an instance uniform read as 0 in the web build, and the
+// animals were drawn black.
+varying float shade;
 
 varying vec3 world_pos;
 varying float clouds;
@@ -38,6 +40,7 @@ void vertex() {
 			VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
 		}
 	}
+	shade = length(MODEL_MATRIX[2].xyz);
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
