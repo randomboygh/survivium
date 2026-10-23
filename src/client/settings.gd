@@ -277,8 +277,10 @@ func fullscreen() -> bool:
 
 ## Not saved: a browser lets a page take the whole screen only right after a tap. The
 ## game reads the tap a frame after the browser has passed it on, which a strict
-## browser does not count, so the page also asks again when the finger is lifted.
-## When the screen is still not full a moment later, a toast says the browser refused.
+## browser does not count, so the page also asks again when the finger is lifted (or
+## at the next tap, when it was lifted already). Some phone browsers turn the screen to
+## landscape for a page that fills it, so the screen is kept the way it was held.
+## A toast tells when the browser has no full screen or refused it inside a tap.
 func set_fullscreen(on: bool) -> void:
 	if OS.has_feature("web"):
 		_fullscreen_wanted = on
@@ -286,16 +288,37 @@ func set_fullscreen(on: bool) -> void:
 		JavaScriptBridge.eval("""(function (on) {
 			var e = document.documentElement;
 			var full = function () { return document.fullscreenElement || document.webkitFullscreenElement; };
-			if (on) {
-				var go = function () {
-					var ask = e.requestFullscreen || e.webkitRequestFullscreen;
-					if (ask && !full()) { try { var p = ask.call(e); if (p && p.catch) p.catch(function () {}); } catch (x) {} }
+			var o = screen.orientation;
+			if (!window.svFullscreen) {
+				window.svFullscreen = {state: '', held: ''};
+				var changed = function () {
+					var f = window.svFullscreen;
+					if (full() && o && o.lock && f.held) {
+						try { var p = o.lock(f.held); if (p && p.catch) p.catch(function () {}); } catch (x) {}
+					}
 				};
-				go();
+				document.addEventListener('fullscreenchange', changed);
+				document.addEventListener('webkitfullscreenchange', changed);
+			}
+			var f = window.svFullscreen;
+			if (on) {
+				var ask = e.requestFullscreen || e.webkitRequestFullscreen;
+				f.state = ask ? 'asked' : 'none';
+				f.held = o && o.type ? (o.type.indexOf('portrait') == 0 ? 'portrait' : 'landscape') : '';
+				var go = function (tap) {
+					if (!ask || full()) return;
+					try {
+						var p = ask.call(e);
+						if (p && p.catch) p.catch(function () { if (tap && !full()) f.state = 'refused'; });
+					} catch (x) { if (tap) f.state = 'refused'; }
+				};
+				go(false);
 				['pointerup', 'touchend', 'mouseup'].forEach(function (k) {
-					document.addEventListener(k, go, {once: true, capture: true});
+					document.addEventListener(k, function () { go(true); }, {once: true, capture: true});
 				});
 			} else {
+				f.state = '';
+				if (o && o.unlock) { try { o.unlock(); } catch (x) {} }
 				var back = document.exitFullscreen || document.webkitExitFullscreen;
 				if (back && full()) back.call(document);
 			}
@@ -306,11 +329,13 @@ func set_fullscreen(on: bool) -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
 
 
-## Tells the player when the browser did not let the game fill the screen.
+## Tells the player when the browser has no full screen or refused it after a tap;
+## a request still waiting for the next tap is not a refusal.
 func _check_fullscreen() -> void:
-	if not _fullscreen_wanted or fullscreen():
+	if not _fullscreen_wanted or fullscreen() or game.hud == null:
 		return
-	if game.hud != null:
+	var state = JavaScriptBridge.eval("window.svFullscreen ? window.svFullscreen.state : ''", true)
+	if state in ["none", "refused"]:
 		game.hud.toast("Браузер не дал игре весь экран: откройте её в Chrome")
 
 
