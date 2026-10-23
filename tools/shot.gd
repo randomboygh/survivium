@@ -168,6 +168,11 @@ const SHOTS := {
 	"hands-front": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "s", "right": true}},
 	"hands-dig": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_shovel", "facing": "se", "work": "dig"}},
 	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
+	# A sword carried facing south-east and north-west: up against the shoulder.
+	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "se", "right": false}},
+	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "nw"}},
+	# Bits of a trunk chopped flying off it.
+	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "core:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# A second chest set down beside the player: the bag button opens the bag with both
@@ -225,6 +230,8 @@ const SHOTS := {
 	# beyond the minimap's edge, kept at its edge.
 	"ui-map-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]], "map": true, "map_zoom": 8},
 	"ui-minimap-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]]},
+	# A campfire set down by the camp by the spawn: its dot is drawn beside theirs.
+	"ui-minimap-placed": {"time": 0.45, "season": 1, "touch": true, "put_fire": [-2.0, -8.0]},
 	# The main menu over the live world, over the painted sky it shows while the world is
 	# built, and with the setup screen of a new world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
@@ -416,6 +423,10 @@ func _run() -> void:
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
 					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
+		if shot.has("put_fire"):
+			var spot: Vector3i = main.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
+			if spot.y >= 0:
+				added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
 		for at: Array in shot.get("sacks", []):
 			main.character.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
@@ -440,6 +451,10 @@ func _run() -> void:
 			for i in 12:
 				await process_frame
 		# Messages fade after a few seconds, longer than the settling above takes here.
+		if shot.has("burst"):
+			main.effects.burst(main.player.position + Vector3(0.6, 0.4, 0.0), main.Mat.index(shot.burst))
+			for i in 3:
+				await process_frame
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
 			await process_frame
@@ -628,7 +643,7 @@ func _run() -> void:
 		if shot.get("death", false):
 			main.death_screen._revive(main.character.home)
 		if shot.get("work", false):
-			main.settings.set_value("auto_pickup", true)
+			main.settings.set_value("pickup", 0)
 			main.controls.hold("")
 			main.controls._cursor_clock = 0.0
 	quit()
@@ -690,7 +705,7 @@ func _hands(h: Dictionary) -> void:
 func _work() -> void:
 	var c = main.controls
 	var w = main.world
-	main.settings.set_value("auto_pickup", false)
+	main.settings.set_value("pickup", 3)
 	main.settings.give_tools()
 	main.character.inventory.add("core:stone", 20)
 	var f: Vector3i = c.feet()

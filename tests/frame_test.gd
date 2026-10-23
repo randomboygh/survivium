@@ -209,6 +209,11 @@ func _run() -> void:
 			c._cooldown = 0.0
 			c.dig_at(laid[i / 10], Vector3i.UP)
 		return false)
+	# What lies at the feet is taken up a few times a second (Gathering.PICKUP_INTERVAL),
+	# by time, not frames: wait for it however fast the frames go here.
+	var waited := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - waited < 600:
+		await process_frame
 	var all_dug := true
 	for cell in laid:
 		all_dug = all_dug and w.get_cell(cell.x, cell.y, cell.z) == Mat.AIR

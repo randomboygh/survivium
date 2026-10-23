@@ -39,8 +39,11 @@ const DEFAULTS := {
 	"fps_limit": 0,
 	"ui_scale": 0,
 	"show_help": true,
-	# Things lying near the player fly into the bag by themselves (see Gathering).
-	"auto_pickup": true,
+	# Which things lying near the player fly into the bag by themselves (see Gathering):
+	# WorldActions.PICKUP_ALL, _KNOWN (what the bag has), _FOOD or _NONE.
+	"pickup": 0,
+	# They do so past the bag's weight limit too.
+	"pickup_heavy": false,
 	# The camera shakes when the body is hurt (see BodyFeedback).
 	"shake": true,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
@@ -92,6 +95,10 @@ var free_view := false
 ## Playtest switch: weight past the bag's limit does not slow the character, stop
 ## their jumps or their recovery (Inventory.heavy off). Not saved.
 var no_overload := false
+## Playtest switch: crafting takes no time (Workshop: a job a frame). Not saved.
+var instant_craft := false
+## Playtest switch: satiety does not fall (Vitals.hunger off). Not saved.
+var no_hunger := false
 ## Playtest switch: the death screen also offers to come back where the character
 ## fell. Not saved.
 var revive_at_death := false
@@ -116,6 +123,9 @@ func load() -> void:
 		var v: Variant = cfg.get_value("game", k, DEFAULTS[k])
 		if typeof(v) == typeof(DEFAULTS[k]):
 			values[k] = v
+	# Before the kinds of pickup it was on or off.
+	if not cfg.has_section_key("game", "pickup") and cfg.get_value("game", "auto_pickup", true) == false:
+		values.pickup = 3
 
 
 func save() -> void:
@@ -187,6 +197,7 @@ func apply() -> void:
 		game.player.body.air_jumps = air_jumps
 	if game.character != null:
 		game.character.inventory.heavy = not no_overload
+		game.character.vitals.hunger = not no_hunger
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
 	# Sixteen-bit depth, as the engine's own default map.
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
@@ -270,6 +281,11 @@ func set_tool_wear(on: bool) -> void:
 
 func set_no_overload(on: bool) -> void:
 	no_overload = on
+	apply()
+
+
+func set_no_hunger(on: bool) -> void:
+	no_hunger = on
 	apply()
 
 

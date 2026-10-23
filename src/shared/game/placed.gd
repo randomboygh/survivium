@@ -142,10 +142,16 @@ func stations_near(p: Vector3, reach: float) -> Dictionary:
 	return out
 
 
-## True when a body with its feet at `p` (world units) touches a burning campfire:
+## True when a body with its feet at `p` (world units) touches a burning campfire (see
+## burning).
+func burns(p: Vector3) -> bool:
+	return not burning(p).is_empty()
+
+
+## The burning campfire a body with its feet at `p` (world units) touches, {} for none:
 ## beside it within SINGE or on top of it. Asked also for where a body pushed
 ## (Body.bumped), which a step stops short of the fire.
-func burns(p: Vector3) -> bool:
+func burning(p: Vector3) -> Dictionary:
 	var c := p / CELL
 	for e in things:
 		if not e.lit or not is_fire(e):
@@ -155,8 +161,8 @@ func burns(p: Vector3) -> bool:
 			continue
 		if c.x + Body.HALF_WIDTH + SINGE > at.x and c.x - Body.HALF_WIDTH - SINGE < at.x + 2 \
 				and c.z + Body.HALF_DEPTH + SINGE > at.z and c.z - Body.HALF_DEPTH - SINGE < at.z + 2:
-			return true
-	return false
+			return e
+	return {}
 
 
 ## The middle of the chest by the spawn in world units, or null when there is none.

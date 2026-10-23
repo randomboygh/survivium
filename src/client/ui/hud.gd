@@ -681,7 +681,6 @@ func _build_menu() -> void:
 	box.add_child(title)
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
-	_menu_buttons["stats"] = _add_menu_button(box, "", toggle_stats)
 	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 	_settings = SettingsMenu.new(game)
@@ -695,7 +694,6 @@ func _build_menu() -> void:
 func _update_menu() -> void:
 	if game == null or not _menu.visible:
 		return
-	_menu_buttons["stats"].text = "Статистика: %s" % ("вкл" if perf.visible else "выкл")
 	# Tests and tools play without the main menu.
 	_menu_buttons["main"].visible = game.menu != null
 	_menu.reset_size()

@@ -162,11 +162,11 @@ func flush() -> void:
 ## by two cells) and the sacks at `sacks` (world units) when they changed.
 func set_marks(placed: Array, sacks: Array[Vector3] = []) -> void:
 	var now := []
-	for p in sacks:
-		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK])
 	for e: Dictionary in placed:
 		var c: Vector3i = e.cell
 		now.append([Vector2i(c.x + 1, c.z + 1), e.item])
+	for p in sacks:
+		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK])
 	if now != marks:
 		marks = now
 		queue_redraw()
@@ -221,10 +221,11 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pic
 			if shown.size.x <= 0.0 or shown.size.y <= 0.0:
 				continue
 			canvas.draw_texture_rect_region(r.texture, shown, Rect2((shown.position - at) / zoom, shown.size / zoom))
-	# Dots of things placed side by side would cover each other: the first placed is
-	# drawn (the sacks come first). Pictures overlap, the later on top, and part when
-	# the map is zoomed in. A sack beyond the edge is drawn at the edge, towards it.
-	var drawn: Array[Rect2] = []
+	# Pictures overlap, the later on top, and part when the map is zoomed in. Dots of
+	# things side by side share their dark outline: the outlines go first, then the
+	# dots, so none hides another whole (the sacks, last, on top). A sack beyond the
+	# edge is drawn at the edge, towards it.
+	var dots: Array = []
 	for m: Array in marks:
 		var p := (mid + (Vector2(m[0]) - centre) / STEP * zoom).floor()
 		var sack: bool = m[1] == Items.SACK
@@ -238,14 +239,15 @@ func draw_map(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pic
 			box = Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
 		if sack and not rect.encloses(box):
 			box.position = box.position.clamp(rect.position, rect.end - box.size)
-		if not rect.encloses(box) or (not pictures and drawn.any(func(b: Rect2) -> bool: return b.intersects(box))):
+		if not rect.encloses(box):
 			continue
-		drawn.append(box)
 		canvas.draw_rect(box, UiStyle.DARK_INK)
 		if pictures:
 			canvas.draw_texture(tex, box.position + Vector2(1, 1))
 		else:
-			canvas.draw_rect(box.grow(-1), _mark_color(m[1]))
+			dots.append([box.grow(-1), _mark_color(m[1])])
+	for d: Array in dots:
+		canvas.draw_rect(d[0], d[1])
 
 
 func _gui_input(event: InputEvent) -> void:

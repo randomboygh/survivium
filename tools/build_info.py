@@ -25,6 +25,9 @@ KINDS = {
     "новое": "new",
     "улучшено": "better",
     "исправлено": "fix",
+    "оптимизировано": "fast",
+    "ядро": "inside",
+    # Their first names, still read in older PRs.
     "быстрее": "fast",
     "внутри": "inside",
 }

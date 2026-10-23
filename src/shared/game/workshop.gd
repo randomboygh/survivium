@@ -24,7 +24,8 @@ signal changed
 var who
 ## The placed things (Placed), for the stations near.
 var placed
-## Whose `tool_wear` turns tool wear on (the playtest settings on the client).
+## Whose `tool_wear` turns tool wear on and `instant_craft` makes a job take no time
+## (the playtest settings on the client).
 var settings
 var queue := CraftQueue.new()
 var knowledge := Knowledge.new()
@@ -109,7 +110,9 @@ func cancel_all() -> void:
 func update(delta: float) -> void:
 	if paused:
 		return
-	for r in queue.step(delta, _can_work):
+	# A job a frame when crafting is instant.
+	var work := 1e9 if settings.get("instant_craft") == true else delta
+	for r in queue.step(work, _can_work):
 		_receive(r.makes, r.count)
 		who.note("crafted", r.count)
 		who.say("Готово: %s" % r.title)
