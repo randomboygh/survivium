@@ -40,6 +40,9 @@ const IDLE_SWING := 0.3
 const PILE := 0.8
 ## Things lying this close to the feet (world units) are taken by themselves.
 const PICKUP := 1.6
+## What is taken by themselves (the setting «Автоподбор»): everything, only things the
+## bag already has, only food, nothing. The sack of a death is taken in all but the last.
+enum { PICKUP_ALL, PICKUP_KNOWN, PICKUP_FOOD, PICKUP_NONE }
 ## Berries and branches knocked off a bush land this far from it at most (world units).
 const SCATTER := 0.45
 const SPRING := 0
@@ -597,12 +600,12 @@ func useful(who, target: Dictionary) -> bool:
 	return false
 
 
-## Takes by themselves the things lying near the feet of `who` when `on` (the setting);
-## what it threw away waits until it has walked off. They are taken only as far as the
-## bag's weight limit goes, so digging with the button held does not overload the body
+## Takes by themselves the things lying near the feet of `who` that pickup `mode` wants
+## (the setting); what it threw away waits until it has walked off. They are taken only
+## as far as the bag's weight limit goes unless `past_limit` (a setting), so digging with the button held does not overload the body
 ## (which then cannot jump out of the pit it dug); the sack of a death is taken whole. The dead take nothing: their sack
 ## lies at their feet.
-func pick_up_near(who, on: bool) -> void:
+func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 	if who.is_dead():
 		return
 	var feet: Vector3 = who.position
@@ -610,7 +613,7 @@ func pick_up_near(who, on: bool) -> void:
 	for i in range(held_back.size() - 1, -1, -1):
 		if held_back[i].distance_to(feet) > PICKUP:
 			held_back.remove_at(i)
-	if not on:
+	if mode == PICKUP_NONE:
 		return
 	var home := WorldData.chunk_key(floori(feet.x / CELL), floori(feet.z / CELL))
 	for dz in range(-1, 2):
@@ -625,9 +628,9 @@ func pick_up_near(who, on: bool) -> void:
 				var most := -1
 				if d[0] != Items.SACK:
 					var id: String = Items.get_item(d[0]).get("id", d[0])
-					if who.inventory.room_for(id) == 0:
+					if who.inventory.room_for(id) == 0 or not _wanted(who.inventory, id, mode):
 						continue
-					most = _light_enough(who.inventory, id)
+					most = -1 if past_limit else _light_enough(who.inventory, id)
 					if most == 0:
 						who.nag("heavy", "Сумка тяжёлая: вещи больше не поднимаются сами")
 						continue
@@ -641,6 +644,16 @@ func pick_up_near(who, on: bool) -> void:
 				list = world.drops.get(key, [])
 			if took:
 				drops_changed.emit(key)
+
+
+## Whether things of `id` are taken by themselves in pickup `mode`.
+static func _wanted(inv, id: String, mode: int) -> bool:
+	match mode:
+		PICKUP_KNOWN:
+			return inv.count(id) > 0
+		PICKUP_FOOD:
+			return Items.food(id) > 0.0
+	return mode == PICKUP_ALL
 
 
 ## The sack at `at` was taken whole by `who`: if it was theirs, their maps no longer

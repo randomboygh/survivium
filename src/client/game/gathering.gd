@@ -128,4 +128,5 @@ func update(delta: float) -> void:
 	if _pickup_clock < PICKUP_INTERVAL:
 		return
 	_pickup_clock = 0.0
-	game.actions.pick_up_near(game.character, game.settings.values.auto_pickup)
+	var v: Dictionary = game.settings.values
+	game.actions.pick_up_near(game.character, v.pickup, v.pickup_heavy)

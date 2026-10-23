@@ -79,7 +79,7 @@ func _run() -> void:
 	var t0 := Time.get_ticks_msec()
 	print("world %d, spawn %s" % [main.world_seed, main.controls.feet()])
 	# Only what is wanted is taken off the ground (see _pick_up), so the bag keeps room.
-	main.settings.values.auto_pickup = false
+	main.settings.values.pickup = 3
 	main.settings.tool_wear = false
 	var inv = main.character.inventory
 	inv.slots.fill(null)
