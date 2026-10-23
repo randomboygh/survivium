@@ -9,7 +9,8 @@ const Content := preload("res://src/shared/content/content.gd")
 const HUMAN := "core:human"
 
 ## id -> record from `content/*/data/creatures.yaml` (see Content): title, mass,
-## diet, speed, sight, human_wariness, active, count, sprite.
+## diet, speed, sight, human_wariness, active, count, sprite, frames, flies, flock,
+## roost, likes.
 static var SPECIES := {}
 
 
@@ -31,6 +32,8 @@ static func check() -> PackedStringArray:
 	for id in SPECIES:
 		if id != HUMAN and SPECIES[id].sprite == "":
 			out.append("creatures: `%s` has no sprite" % id)
+		if SPECIES[id].flock[0] > SPECIES[id].flock[1]:
+			out.append("creatures: `%s`: flock [from, to] has from above to" % id)
 	return out
 
 

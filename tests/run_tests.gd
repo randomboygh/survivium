@@ -1745,6 +1745,28 @@ func _test_world_actions() -> void:
 		actions.chop(who, actions.trunk_cell(who, Vector2i(15, 23)))
 		hits += 1
 	_check(hits > 1 and hits <= Trees.SPECIES[Trees.OAK].hits and not w.drops.is_empty(), "an oak falls after its hits")
+	# Moss grows on bare stone in damp patches, where world.gdshader draws it: bare
+	# hands pick it, and the stone stays.
+	var rock := WorldData.new(8, Vector2i(96, 96))
+	var mossy := Vector3i(-1, -1, -1)
+	var dry := 0
+	for z in 96:
+		for x in 96:
+			rock.set_cell(x, 1, z, Mat.STONE)
+	for z in 96:
+		for x in 96:
+			if Grass.stone_moss(rock, x, 1, z):
+				if mossy.x < 0:
+					mossy = Vector3i(x, 1, z)
+			else:
+				dry += 1
+	_check(mossy.x >= 0 and dry > 0, "some stone is mossy, some is not")
+	var picker := WorldActions.new(rock, {"season": 1, "day": 0}, {"free_build": false})
+	_check(picker.can_mow(mossy, Tools.of("")) and picker.picking(mossy) != "", "bare hands can pick moss off stone")
+	_check(picker.mow(who, [mossy] as Array[Vector3i]) and rock.get_cell(mossy.x, mossy.y, mossy.z) == Mat.STONE
+		and not Grass.stone_moss(rock, mossy.x, mossy.y, mossy.z) and not rock.drops.is_empty()
+		and (rock.drops.values()[0][0][0] as String).ends_with("moss"), "picking it gives moss and leaves the stone bare")
+	_check(not picker.can_mow(mossy, Tools.of("")), "and there is no more to pick there")
 
 
 ## The rules of placed things and crafting run without the client: a workbench put
@@ -1798,12 +1820,17 @@ func _test_placed() -> void:
 	cook.update(0.5)
 	_check(cook.vitals.health == Vitals.MAX, "standing away from a campfire does not burn")
 	cook.body.move_input = Vector2(1.0, 0.0)
+	var nearest := 0.0
+	var thrown := false
 	for i in 30:
 		cook.at = cook.body.step(cook.at, 1.0 / 30.0, false)
 		cook.update(1.0 / 30.0)
-	_check(cook.at.x / WorldData.CELL + Body.HALF_WIDTH <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
-	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health > Vitals.MAX - Vitals.BURN * 1.5
+		nearest = maxf(nearest, cook.at.x / WorldData.CELL + Body.HALF_WIDTH)
+		thrown = thrown or cook.body.shove.x < 0.0
+	_check(nearest <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
+	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health >= Vitals.MAX - Vitals.BURN * 3.0
 		and cook.vitals.hurt_by == "fire", "and pushing against it burns a little")
+	_check(thrown, "and throws the body back")
 	cook.body.move_input = Vector2.ZERO
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
 	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
@@ -2089,6 +2116,73 @@ func _test_wildlife() -> void:
 	_check(wolf.pos == from and is_equal_approx(wolf.away, 0.05), "an animal no one looks at waits for its step")
 	life.update(0.06)
 	_check(wolf.pos != from and wolf.away == 0.0, "and then takes it at once")
+	_test_birds(w, person)
+
+
+## Birds (the birds mod) come in flocks around a lead, fly off from a person together
+## and come down again away from them, out of a cat's reach while in the air, and
+## sleep in the crowns at night.
+func _test_birds(w: WorldData, person: Who) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [person]
+	life.start(3)
+	var flocked: bool = life.count("birds:sparrow") == AiRules.SPECIES["birds:sparrow"].count
+	var leads := 0
+	for a in life.animals:
+		if a.kind != "birds:sparrow":
+			continue
+		if a.lead == null:
+			leads += 1
+		elif a.lead.kind != a.kind or a.pos.distance_to(a.lead.pos) > Wildlife.FLOCK_REACH * 2.0:
+			flocked = false
+	_check(flocked and leads >= 2 and leads <= 5, "sparrows come in flocks (%d)" % leads)
+
+	life.animals.clear()
+	var at := person.position + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var lead := _animal(life, "birds:sparrow", at + Vector3(1.0, 0.0, 0.0))
+	var mate := _animal(life, "birds:sparrow", at + Vector3(6.0, 0.0, 0.0))
+	mate.lead = lead
+	life.update(0.05)
+	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
+	var cat := _animal(life, "core:cat", lead.pos)
+	cat.hunger = 1.0
+	var high := 0.0
+	for i in 10:
+		life.update(0.05)
+		high = maxf(high, lead.pos.y - at.y)
+	_check(mate.flying and mate.state == "flee", "its flock takes fright with it")
+	_check(cat.state != "hunt" and life.animals.has(lead), "a cat does not hunt a bird in the air")
+	for i in 200:
+		life.update(0.05)
+	_check(high > 1.0 and not lead.flying and lead.pos.distance_to(person.position) > 8.0
+		and absf(lead.pos.y - life.ground(lead.pos.x, lead.pos.z)) < 0.01,
+		"it flies up and comes down away from the person (%.1f high, %.1f away)" % [high, lead.pos.distance_to(person.position)])
+
+	# A tree away from everyone, and night.
+	life.people = [Who.new()]
+	life.animals.clear()
+	var tx := floori(at.x / WorldData.CELL) + 6
+	var tz := floori(at.z / WorldData.CELL)
+	w.set_cell(tx, 6, tz, Mat.LOG)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.LEAVES)
+	w.add_tree(tx, tz, 0)
+	life.clock.time_of_day = 0.0
+	var bird := _animal(life, "birds:sparrow", at)
+	for i in 100:
+		life.update(0.05)
+	_check(bird.perched and bird.state == "rest" and is_equal_approx(bird.pos.y, 8 * WorldData.CELL),
+		"a sparrow sleeps in a tree crown at night")
+	w.remove_tree(tx, tz)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.AIR)
+	w.set_cell(tx, 6, tz, Mat.AIR)
 
 
 ## Puts an animal of `kind` at `at` into `life`, about to think.

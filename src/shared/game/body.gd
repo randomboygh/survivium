@@ -63,6 +63,8 @@ const WEATHER_FLOOR := 0.5
 ## A full wind carries a body in the air this many cells a second along it (a jump in
 ## a blizzard lands about a cell downwind).
 const AIR_DRIFT := 2.5
+## A shove (see knock) dies away this fast, in cells a second per second.
+const SHOVE_DRAG := 30.0
 
 var world
 ## The weather the body walks in (Clock), null for none.
@@ -92,6 +94,9 @@ var water_level := -INF
 ## The velocity on the ground plane in cells a second (x east, y south); on ice it
 ## lags behind the wish.
 var glide := Vector2.ZERO
+## A shove the body got (see knock), in cells a second (x east, y south): it carries
+## the body whatever the stick says and dies away by SHOVE_DRAG.
+var shove := Vector2.ZERO
 ## Where (world units) the last step tried to move the body and something was in
 ## the way, Vector3.INF if nothing was: what it pushed against (a fire burns).
 var bumped := Vector3.INF
@@ -138,6 +143,13 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	if drift != Vector2.ZERO:
 		p = _try_move(p, Vector3(drift.x * delta, 0.0, 0.0), reach)
 		p = _try_move(p, Vector3(0.0, 0.0, drift.y * delta), reach)
+	if shove != Vector2.ZERO:
+		var bump := bumped
+		p = _try_move(p, Vector3(shove.x * delta, 0.0, 0.0), reach)
+		p = _try_move(p, Vector3(0.0, 0.0, shove.y * delta), reach)
+		# What the shove pushed the body against is not what it pushed against itself.
+		bumped = bump
+		shove = shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
 	# A wall stops the glide along it.
 	if absf(p.x - before.x) < absf(glide.x * delta) * 0.5:
 		glide.x = 0.0
@@ -176,6 +188,14 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		p.y = ny
 		on_ground = false
 	return p * CELL
+
+
+## Shoves the body along `dir` (x east, y south) at `speed` cells a second, with a
+## little hop off the ground (a burn throws it back).
+func knock(dir: Vector2, speed: float, hop: float) -> void:
+	shove = dir.normalized() * speed
+	if on_ground and velocity_y <= 0.0:
+		velocity_y = hop
 
 
 ## True when the body at `p` (in cells) stands on frozen water.

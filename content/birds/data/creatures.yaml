@@ -1,0 +1,19 @@
+# Поля те же, что у видов основы (content/core/data/creatures.yaml). Поведение выводится
+# из них: лёгкого воробья едят кошки и волки, и он от них улетает; человека он боится;
+# днём кормится стаей на полях колосков, перелетает и садится на землю и на деревья,
+# ночью спит на деревьях.
+- id: sparrow
+  title: Воробей
+  mass: 0.03
+  diet: [plants]
+  speed: 7.0
+  sight: 8
+  human_wariness: 0.8
+  active: day
+  count: 18
+  sprite: sparrow
+  frames: 3
+  flies: true
+  flock: [4, 8]
+  roost: trees
+  likes: [core:ears]

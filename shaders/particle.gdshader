@@ -1,5 +1,6 @@
 // Pixel particles (fire, sparks, smoke, rain, snow, fireflies, falling leaves):
-// tiny upright squares, coloured by the particle's colour ramp.
+// tiny upright squares, coloured by the particle's colour ramp; with a `shape` its
+// opaque pixels only (the star sparkles over a death sack).
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, cull_disabled, blend_mix, shadows_disabled;
 
@@ -11,6 +12,7 @@ uniform float brightness = 1.0;
 uniform float sky_only = 0.0;
 // How lit the open sky is: weather is unshaded, so it dims with the night.
 uniform float light = 1.0;
+uniform sampler2D shape : filter_nearest, source_color, hint_default_white;
 
 varying vec3 world_pos;
 
@@ -26,6 +28,10 @@ void fragment() {
 	if (sky_only > 0.5 && roofed(world_pos.xz, world_pos.y)) {
 		discard;
 	}
-	ALBEDO = COLOR.rgb * brightness * light;
+	vec4 s = texture(shape, UV);
+	if (s.a < 0.5) {
+		discard;
+	}
+	ALBEDO = COLOR.rgb * s.rgb * brightness * light;
 	ALPHA = COLOR.a;
 }

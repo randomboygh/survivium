@@ -114,6 +114,10 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
+	# A flock of sparrows (the birds mod) about the player: on the ground, in the air
+	# and in the crowns near.
+	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
+	"birds-forest": {"time": 0.42, "season": 1, "forest": true, "birds": true},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "core:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "core:glow_mushrooms"},
@@ -161,6 +165,11 @@ const SHOTS := {
 	"hands-front": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "s", "right": true}},
 	"hands-dig": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_shovel", "facing": "se", "work": "dig"}},
 	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
+	# A sword carried facing south-east and north-west: up against the shoulder.
+	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "se", "right": false}},
+	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "nw"}},
+	# Bits of a trunk chopped flying off it.
+	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "core:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# A second chest set down beside the player: the bag button opens the bag with both
@@ -218,6 +227,8 @@ const SHOTS := {
 	# beyond the minimap's edge, kept at its edge.
 	"ui-map-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]], "map": true, "map_zoom": 8},
 	"ui-minimap-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]]},
+	# A campfire set down by the camp by the spawn: its dot is drawn beside theirs.
+	"ui-minimap-placed": {"time": 0.45, "season": 1, "touch": true, "put_fire": [-2.0, -8.0]},
 	# The main menu over the live world, over the painted sky it shows while the world is
 	# built, and with the setup screen of a new world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
@@ -403,10 +414,16 @@ func _run() -> void:
 			c.pos.y = main.wildlife.ground(c.pos.x, c.pos.z)
 			c.target = c.pos
 			c.think = 100.0
+		if shot.get("birds", false):
+			_place_birds()
 		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
 					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
+		if shot.has("put_fire"):
+			var spot: Vector3i = main.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
+			if spot.y >= 0:
+				added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
 		for at: Array in shot.get("sacks", []):
 			main.character.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
@@ -431,6 +448,10 @@ func _run() -> void:
 			for i in 12:
 				await process_frame
 		# Messages fade after a few seconds, longer than the settling above takes here.
+		if shot.has("burst"):
+			main.effects.burst(main.player.position + Vector3(0.6, 0.4, 0.0), main.Mat.index(shot.burst))
+			for i in 3:
+				await process_frame
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
 			await process_frame
@@ -571,6 +592,7 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		main.creatures.set_process(true)
 		if shot.has("keys"):
 			_hold(shot.keys, false)
 		if setup != null:
@@ -1304,3 +1326,33 @@ func _lone_trees(w, at: Vector3) -> Vector3:
 				best_n = n
 				best = Vector3(x + 0.5, y, z + 0.5)
 	return best * CELL
+
+
+## Puts the sparrows round the player, every third in the air and every third in a
+## crown when there is a tree near, and holds them there until the shot is taken.
+func _place_birds() -> void:
+	var life = main.wildlife
+	var p: Vector3 = main.player.position
+	var i := 0
+	for c in life.animals:
+		if c.kind != "birds:sparrow":
+			continue
+		c.pos = p + Vector3(-3.0 + (i % 5) * 1.4, 0.0, -2.5 + (i / 5) * 1.2)
+		c.pos.y = life.ground(c.pos.x, c.pos.z)
+		c.flying = false
+		c.perched = false
+		c.target = c.pos
+		var tree: Variant = life._tree_spot(p, 7.0) if i % 3 == 2 else null
+		if i % 3 == 1:
+			c.pos.y = life._canopy(c.pos.x, c.pos.z) + 1.0 + (i % 4) * 0.5
+			c.flying = true
+			c.target = c.pos + Vector3(5.0, 0.0, 0.0)
+		elif tree != null:
+			c.pos = tree
+			c.perched = true
+			c.target = c.pos
+		c.facing = 1.0 if i % 2 == 0 else -1.0
+		c.think = 100.0
+		i += 1
+	main.creatures._process(0.0)
+	main.creatures.set_process(false)
