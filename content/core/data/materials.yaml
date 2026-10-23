@@ -85,3 +85,12 @@
   hotbar: 4
   item: brick
   hardness: 2
+# Осыпь: каменная крошка на склонах высоких гор, ложится скатами, копается лопатой.
+- id: scree
+  title: Осыпь
+  corners: sharp
+  slope: true
+  item: stone
+  dig: shovel
+  bonus: flint
+  bonus_chance: 0.2

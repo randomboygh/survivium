@@ -17,6 +17,8 @@ uniform sampler2D shape : filter_nearest, source_color, hint_default_white;
 varying vec3 world_pos;
 
 void vertex() {
+	// Upright: turned to the camera about its origin.
+	VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
 }

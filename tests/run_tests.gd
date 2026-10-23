@@ -50,6 +50,7 @@ func _init() -> void:
 	_test_raycast()
 	_test_walking_rules()
 	_test_water()
+	_test_bog()
 	_test_slopes()
 	_test_steps()
 	_test_ground()
@@ -57,6 +58,7 @@ func _init() -> void:
 	_test_shapes()
 	_test_ai_relations()
 	_test_pixel_view()
+	_test_mountains()
 	_test_trees()
 	_test_bushes()
 	_test_felling()
@@ -152,24 +154,7 @@ func _test_generation() -> void:
 		"chunks dropped and made again are the same")
 	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and so are their trees and bushes")
 	# Water above the sea never leaks: nothing open under it, and no air beside it.
-	var leaks := 0
-	for key: Vector2i in keys:
-		var ch: WorldData.Chunk = w.chunks[key]
-		for col in WorldData.LAYER:
-			var water: int = ch.water[col]
-			var x: int = key.x * 16 + (col & 15)
-			var z: int = key.y * 16 + (col >> 4)
-			while water != 0:
-				var bit := water & -water
-				water ^= bit
-				var y := WorldData.level_of(bit)
-				if y <= w.sea_level:
-					continue
-				if w.get_cell(x, y - 1, z) == Mat.AIR:
-					leaks += 1
-				for d: Vector2i in WorldData.SIDES:
-					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
-						leaks += 1
+	var leaks := _leaks(w, keys)
 	_check(leaks == 0, "water above the sea does not leak (%d leaks)" % leaks)
 	# Settings change the world: more water, a different world.
 	var wet := WorldGen.new(42, 40, {"water": 2})
@@ -188,6 +173,103 @@ func _test_generation() -> void:
 				if mouth.heights[j + dj] > mouth.heights[j]:
 					steps += 1
 	_check(meets > 0 and steps * 4 < meets, "rivers flow into lakes without a step (%d of %d higher)" % [steps, meets])
+
+
+## Cells of water above the sea in the chunks `keys` with air under them, or air beside
+## them that is not over lower water (a waterfall).
+func _leaks(w: WorldData, keys: Array) -> int:
+	var leaks := 0
+	for key: Vector2i in keys:
+		var ch: WorldData.Chunk = w.chunks[key]
+		for col in WorldData.LAYER:
+			var water: int = ch.water[col]
+			var x: int = key.x * 16 + (col & 15)
+			var z: int = key.y * 16 + (col >> 4)
+			while water != 0:
+				var bit := water & -water
+				water ^= bit
+				var y := WorldData.level_of(bit)
+				if y <= w.sea_level:
+					continue
+				if w.get_cell(x, y - 1, z) == Mat.AIR:
+					leaks += 1
+				for d: Vector2i in WorldData.SIDES:
+					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
+						leaks += 1
+	return leaks
+
+
+## Mountains rise to snowy rock near the top of the world; rivers come down them over
+## waterfalls and rapids and part into deltas at the sea; caves open in their sides.
+func _test_mountains() -> void:
+	var gen := WorldGen.new(20261018)
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var peak := gen.find_place("peak", near)
+	var top := gen.lay_out(peak.x - 32, peak.y - 32, 64, 64)
+	var highest := 0
+	var bare := 0
+	for j in top.heights.size():
+		highest = maxi(highest, top.heights[j])
+		if top.heights[j] >= gen.sea + WorldGen.ROCK_LINE + 3 and top.water[j] < 0:
+			bare += 1 if top.tops[j] in [Mat.SCREE, Mat.STONE] else 0
+	_check(peak != near and highest >= gen.size_y - 8, "high mountains reach near the top of the world (%d)" % highest)
+	_check(bare > 0, "their high slopes are bare scree and stone")
+	var w: WorldData = gen.world
+	_check(w.peak_snow(w.sea_level + WorldData.SNOW_LINE + 2) == 1.0 and w.peak_snow(w.sea_level + 10) == 0.0,
+		"snow lies all year above the snow line only")
+	# A waterfall: river water beside air over water two levels or more below, the
+	# same whichever order its chunks are made in, and nothing leaks.
+	var fall := gen.find_place("waterfall", near)
+	var from := WorldData.chunk_key(fall.x, fall.y) - Vector2i(1, 1)
+	gen.generate_area(from, from + Vector2i(3, 3))
+	var keys := []
+	for cz in range(from.y, from.y + 3):
+		for cx in range(from.x, from.x + 3):
+			keys.append(Vector2i(cx, cz))
+	var drops := 0
+	for dz in range(-16, 17):
+		for dx in range(-16, 17):
+			var x := fall.x + dx
+			var z := fall.y + dz
+			var y := WorldData.top_level(w.water_col(x, z))
+			if y <= w.sea_level or w.get_cell(x, y + 1, z) != Mat.AIR:
+				continue
+			for d: Vector2i in WorldData.SIDES:
+				if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.get_cell(x + d.x, y - 1, z + d.y) == Mat.AIR:
+					drops += 1
+	_check(drops > 0, "rivers in the mountains fall over steps")
+	_check(_leaks(w, keys) == 0, "and their water does not leak")
+	var other := WorldGen.new(20261018)
+	for i in range(keys.size() - 1, -1, -1):
+		_ensure_stage(other, keys[i], WorldGen.SHAPED)
+	_check(_same(other.world, w, keys), "made in another order the falls are the same")
+	_check(gen.find_place("rapids", near) != near and gen.find_place("delta", near) != near,
+		"rivers have rapids, and deltas at the sea")
+	# A cave cut into a mountain's side: open to the air at its mouth, under a roof
+	# further in.
+	var mountain := gen.find_place("mountain", near)
+	var cave := []
+	for gz in range(-6, 7):
+		for gx in range(-6, 7):
+			if cave.is_empty():
+				cave = gen._tunnel(floori(mountain.x / float(WorldGen.TUNNEL_GRID)) + gx,
+					floori(mountain.y / float(WorldGen.TUNNEL_GRID)) + gz)
+	_check(not cave.is_empty(), "mountains have caves in their sides")
+	if not cave.is_empty():
+		var mouth := Vector2(cave[0], cave[1])
+		var floor_y: int = cave[3]
+		var key := WorldData.chunk_key(int(mouth.x), int(mouth.y))
+		gen.generate_area(key - Vector2i(2, 2), key + Vector2i(3, 3))
+		var roofed := 0
+		for along in range(4, WorldGen.TUNNEL_LEN):
+			var p: Vector2 = mouth + cave[2] * along
+			for dz in range(-2, 3):
+				for dx in range(-2, 3):
+					var x := int(p.x) + dx
+					var z := int(p.y) + dz
+					if w.get_cell(x, floor_y + 1, z) == Mat.AIR and w.surface_y(x, z) > floor_y + 4:
+						roofed += 1
+		_check(roofed > 0, "a gallery runs into the mountain under its roof (%d cells)" % roofed)
 
 
 ## A world of `seed` made at once over four by four chunks at its spawn: {"gen", "world",
@@ -427,6 +509,34 @@ func _test_water() -> void:
 	player.free()
 
 
+## The pool of _pool_world as a bog: the body sinks to the waist in the mud, wades it
+## slowly and pulls itself out onto the bank.
+func _test_bog() -> void:
+	var w := _pool_world()
+	for z in 16:
+		for x in range(3, 9):
+			for y in range(3, 5):
+				var c: WorldData.Chunk = w.chunk_at(x, z)
+				var i := (y << 8) | ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
+				if c.cells[i] == Mat.WATER:
+					c.natural[i] |= WorldData.BOG
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(6.5, 4.5, 2.5) * WorldData.CELL
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+	var p: Vector3 = player.position / WorldData.CELL
+	_check(player.body.in_bog and player.body.on_ground and not player.body.swimming
+		and is_equal_approx(p.y, 4.5 - Body.BOG_SINK), "a body sinks to the waist in a bog and stands there")
+	_check(player.body.speed_at(player.position) < Body.SPEED * Body.WADE, "a bog is waded slower than water")
+	player.body.move_input = Vector2(1, 0)
+	for i in 300:
+		player.step(1.0 / 60.0, false)
+	var out: Vector3 = player.position / WorldData.CELL
+	_check(out.x > 9.0 and is_equal_approx(out.y, 6.0) and not player.body.in_bog, "a body climbs out of a bog onto the bank")
+	player.free()
+
+
 ## Natural dirt one level higher for x >= 4 (a step facing west) and two levels higher
 ## for x >= 6 (a cliff), on a dirt floor.
 func _slope_world() -> WorldData:
@@ -589,6 +699,8 @@ func _test_ground() -> void:
 		"the hill of the test world has a tunnel into a hall")
 	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.SAND
 		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
+	_check(w.is_bog(16, g, 28) and w.is_bog(16, g - 1, 28) and w.get_cell(16, g - 2, 28) == Mat.CLAY
+		and w.get_cell(16, g, 16) == Mat.WATER and not w.is_bog(16, g, 16), "the swamp strip has pools and bogs")
 	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.COPPER_ORE,
 		"the material strips are 4 cells deep")
 	_check(w.get_cell(50, g + 2, 0) == Mat.PLANKS and w.get_cell(53, g + 1, 3) == Mat.AIR
@@ -1028,6 +1140,35 @@ func _test_pixel_view() -> void:
 	var ray: Array = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
 	var t: float = (ray[0].y - cell.y) / -ray[1].y
 	_check((ray[0] + ray[1] * t).distance_to(cell) < 0.001, "view ray hits the point under the pixel")
+	var sun := Vector3(-0.3, 0.7, 0.5).normalized()
+	_check(PixelView.light_dir(sun).is_equal_approx(sun), "the default view keeps the sun where it is")
+	# A turned and tilted camera: rays still hit what is drawn under them, boxes hold
+	# what their meshes draw, shadows fall where they fall in the default view, and
+	# the camera shows the point it is put over in the middle.
+	var turned := true
+	var box := AABB(Vector3(-3, 1, 7), Vector3(4, 6, 2))
+	for view: Vector2 in [Vector2(PI / 12.0, 0.0), Vector2(PI * 0.75, PI / 12.0), Vector2(-PI / 3.0, -PI / 12.0)]:
+		PixelView.set_view(view.x, view.y)
+		PixelView.box_views = [PixelView.view_of(view.x, view.y)]
+		ray = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
+		t = (ray[0].y - cell.y) / -ray[1].y
+		turned = turned and (ray[0] + ray[1] * t).distance_to(cell) < 0.001
+		var drawn := PixelView.sheared_box(box, 0.0).grow(0.001)
+		for i in 8:
+			turned = turned and drawn.has_point(PixelView.shear(box.get_endpoint(i)))
+		var foot := Vector3(4, 2, 9)
+		var tip := foot + Vector3(0, 3, 0)
+		var lit := PixelView.light_dir(sun)
+		var hit := PixelView.shear(tip) - lit * (3.0 / lit.y)
+		# In the default view the shadow of the tip lands 3 units of height north too.
+		var fall := Vector3(tip.x - sun.x * 3.0 / sun.y, foot.y, tip.z - sun.z * 3.0 / sun.y - 3.0)
+		turned = turned and hit.is_equal_approx(PixelView.shear(fall))
+		var middle := PixelView.camera_transform(Vector2(5, -2)).origin
+		turned = turned and PixelView.plane_of(Vector2(middle.x, middle.z)).is_equal_approx(Vector2(5, -2))
+		turned = turned and PixelView.screen_dir(PixelView.world_dir(Vector2(0.3, -1))).is_equal_approx(Vector2(0.3, -1))
+	PixelView.set_view(0.0, 0.0)
+	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]
+	_check(turned, "a turned and tilted view draws, picks, culls and shades consistently")
 
 
 func _test_trees() -> void:

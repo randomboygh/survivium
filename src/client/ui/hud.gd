@@ -13,6 +13,7 @@ extends Control
 ## and its load; the minimap sits under the buttons in the corner with the level
 ## buttons on its left.
 
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const PerfPanel := preload("res://src/client/ui/perf_panel.gd")
@@ -47,7 +48,7 @@ const LEVEL_WIDTH := 68
 const METER_WIDTH := 108
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
 var touch := false
@@ -86,6 +87,11 @@ var _level_label: Button
 ## ChunkStreamer.view_range).
 var _level_up: Button
 var _level_down: Button
+## The camera buttons under the minimap: turn, tilt, and back to the default view
+## (it shows the turn and the tilt).
+var _camera: HBoxContainer
+var _camera_reset: Button
+var _camera_text := ""
 ## The colour last given to the level label's text (none yet: transparent).
 var _level_ink := Color(0, 0, 0, 0)
 var _bar: PanelContainer
@@ -196,6 +202,23 @@ func _ready() -> void:
 		b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 	minimap = Minimap.new()
 	add_child(minimap)
+	_camera = HBoxContainer.new()
+	_camera.add_theme_constant_override("separation", 4)
+	add_child(_camera)
+	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево", func() -> void: game.view.turn_by(1))
+	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
+	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
+	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
+	for b in [turn_left, turn_right, tilt_down, tilt_up]:
+		b.custom_minimum_size = Vector2(26, 26)
+	_camera_reset = Button.new()
+	_camera_reset.focus_mode = Control.FOCUS_NONE
+	_camera_reset.custom_minimum_size = Vector2(LEVEL_WIDTH, 26)
+	_camera_reset.tooltip_text = "Вернуть камеру как была"
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		_camera_reset.add_theme_stylebox_override(state, UiStyle.panel())
+	_camera_reset.pressed.connect(func() -> void: game.view.reset_turn())
+	_camera.add_child(_camera_reset)
 	map_view = MapView.new()
 	map_view.minimap = minimap
 	map_view.game = game
@@ -344,6 +367,9 @@ func _place() -> void:
 	minimap.position = Vector2(w - MARGIN - minimap.size.x, _top.position.y + _top.size.y + 6)
 	_level.reset_size()
 	_level.position = Vector2(minimap.position.x - 6 - _level.size.x, minimap.position.y)
+	# The camera buttons in a row under them, at the right edge.
+	_camera.reset_size()
+	_camera.position = Vector2(w - MARGIN - _camera.size.x, minimap.position.y + minimap.size.y + 6)
 
 	stick.visible = touch
 	_action.visible = touch
@@ -511,13 +537,27 @@ func update_state() -> void:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
 	minimap.set_marks(game.placed.things, game.character.sacks)
+	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
 	# Eight ways, so the arrow stays on the pixel grid.
-	var step := posmod(roundi(game.clock.wind_angle / (PI / 4.0)), 8)
+	# The way it blows on the screen, as the camera is turned.
+	var blow := PixelView.screen_dir(Vector2.from_angle(game.clock.wind_angle)).angle()
+	var step := posmod(roundi(blow / (PI / 4.0)), 8)
 	if step != _wind_step:
 		_wind_step = step
 		_wind.queue_redraw()
+	var view = game.view
+	# The turn in degrees, and the tilt when there is one: "90°", "90°+10".
+	var text := "%d°" % view.turn_degrees()
+	if view.tilt_steps != 0:
+		text += "%+d" % (view.tilt_steps * 5)
+	if text != _camera_text:
+		_camera_text = text
+		_camera_reset.text = text
+		var ink := UiStyle.INK if view.is_default() else UiStyle.ACCENT
+		_camera_reset.add_theme_color_override("font_color", ink)
+		_camera_reset.add_theme_color_override("font_hover_color", ink)
 	var cut: bool = game.chunks.manual_level >= 0
 	var reach: Vector2i = game.chunks.view_range()
 	_level_up.disabled = not cut and game.chunks.cut_base() + 1 > reach.y

@@ -41,6 +41,10 @@ const DEFAULTS := {
 	"ui_size": 2,
 	"control_size": 2,
 	"show_help": true,
+	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
+	# each (0..23), tilted steeper by CameraRig.TILT_STEP each (-3..3).
+	"camera_turn": 0,
+	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
 	# WorldActions.PICKUP_ALL, _KNOWN (what the bag has), _FOOD or _NONE.
 	"pickup": 0,

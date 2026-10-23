@@ -3,7 +3,8 @@
 // Oblique 3/4 view: the camera looks straight down, and each vertex is moved north by
 // its height (z -= y). On screen a cell's top and its south wall are then both exactly
 // 8x8 pixels, like a classic 2D 3/4 tile, while depth, shadows and lights still work
-// on real 3D geometry. Shaders keep the unsheared position in `world_pos` for the
+// on real 3D geometry. A turned or tilted camera moves it up the image instead, by
+// view_slope, and stretches the tops along it (shear, PixelView.set_view). Shaders keep the unsheared position in `world_pos` for the
 // cutaway, snow and texel maths. Godot renders shadow maps with the same vertex
 // function, so casters and receivers are sheared alike.
 
@@ -12,6 +13,9 @@ global uniform float cut_height;
 // 0 when the player moved the cut by hand to look at the levels below.
 global uniform float cut_ghost;
 global uniform float snow_amount;
+// Height (world units) above which snow lies all year: the tops of high mountains (see
+// WorldData.SNOW_LINE and peak_snow).
+global uniform float snow_line;
 global uniform float wetness;
 global uniform vec3 foliage_tint;
 global uniform vec3 grass_tint;
@@ -63,8 +67,34 @@ const float LIGHT_RING_DITHER = 0.05;
 // The least a face gets of the sun or the moon: what level ground gets in a shadow.
 const float SHADOW_FLOOR = 0.14;
 
+// The view (see PixelView.set_view): the way of the world (x, z) that is up on the
+// image, how much the tops stretch along it and how long a wall of one unit is drawn.
+// The default view looks north 45 degrees down: (0, -1), 1 and 1.
+global uniform vec2 view_up;
+global uniform float view_squash;
+global uniform float view_slope;
+// The direction to the sun or the moon in view space as the default view lights it;
+// the light itself is aimed so the shadows fall in place (PixelView.light_dir).
+global uniform vec3 sun_view;
+
 vec3 shear(vec3 p) {
-	return vec3(p.x, p.y, p.z - p.y);
+	vec2 s = p.xz + view_up * (dot(p.xz, view_up) * (view_squash - 1.0) + view_slope * p.y);
+	return vec3(s.x, p.y, s.y);
+}
+
+// Where world point p is on the image plane, in world units (x right, y down), so
+// texels counted on it are pixels on the screen.
+vec2 screen_plane(vec3 p) {
+	vec2 s = shear(p).xz;
+	return vec2(dot(s, vec2(-view_up.y, view_up.x)), -dot(s, view_up));
+}
+
+// An upright quad drawn at origin o turned to face the camera, which looks along -z
+// in the default view.
+vec3 face_view(vec3 p, vec3 o) {
+	vec3 d = p - o;
+	vec2 r = vec2(-view_up.y, view_up.x);
+	return o + vec3(r.x * d.x - view_up.x * d.z, d.y, r.y * d.x - view_up.y * d.z);
 }
 
 float hash12(vec2 p) {
@@ -113,9 +143,10 @@ float light_ring(float d, vec2 texel) {
 }
 
 // The texel of the picture a point is on, from its sheared x and z (VERTEX.xz after
-// shear(), kept for light() in a varying): x and z - y of the world in texels.
+// shear(), kept for light() in a varying): x and z - y of the world in texels in the
+// default view, turned with the camera (see screen_plane).
 vec2 light_texel(vec2 sheared_xz) {
-	return floor(sheared_xz * TEXELS);
+	return floor(vec2(dot(sheared_xz, vec2(-view_up.y, view_up.x)), -dot(sheared_xz, view_up)) * TEXELS);
 }
 
 // How wide the soft rim of a cloud shadow is, in noise values on each side of its edge.
@@ -232,7 +263,7 @@ bool cut_dither(float y, vec2 texel) {
 		return false;
 	}
 	// The ghost leaves a clear window around the player.
-	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
+	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
 	if (length((texel + 0.5) / TEXELS - body) < 1.75) {
 		return true;
 	}
@@ -242,7 +273,7 @@ bool cut_dither(float y, vec2 texel) {
 }
 
 bool above_cut(vec3 p) {
-	return cut_dither(p.y, floor(vec2(p.x, p.z - p.y) * TEXELS));
+	return cut_dither(p.y, floor(screen_plane(p) * TEXELS));
 }
 
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
@@ -326,7 +357,7 @@ vec4 veil(vec3 p, float fade) {
 // shadow of the rock above) never see clouds.
 vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bool directional, float clouds,
 		vec2 texel) {
-	float ndl = clamp(dot(normal, light), 0.0, 1.0);
+	float ndl = clamp(dot(normal, directional ? sun_view : light), 0.0, 1.0);
 	if (directional) {
 		float shadow = min(mix(0.2, 1.0, step(0.5, attenuation)), clouds);
 		// The top band is only reached by slopes facing the sun, never by flat ground.

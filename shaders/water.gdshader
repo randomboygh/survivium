@@ -5,7 +5,15 @@
 // west or north half, then the other), then for the diagonals of corners NW, NE, SE,
 // SW filled with land, then for those of cut-off corners of the land beside, then
 // the shape of each of those four corners' curves (2 bits each, see corner_distance);
-// UV2.y: depth in cells (half a world unit each).
+// UV2.y: depth of the water column in cells (half a world unit each).
+// COLOR.r: depth of the water over the ground at the vertex, in cells / 8, blended
+// across a top so the water darkens smoothly over a sloping bed; COLOR.g: on water
+// lying over the slope of a shore, how far under the surface the ground is there in
+// cells (foam where it comes up to it), 1 elsewhere; COLOR.b * 4: bit 1 the mud of a
+// bog, bit 2 water over a shore (ice does not lift it).
+// Waterfalls (ChunkMesher._falls): vertex alpha FALL_SHEET marks the sheet of water
+// falling over a step of a river, whose UV2.y is then the level of its foot, and
+// FALL_FOAM the churning foam on the water where it lands.
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -15,13 +23,25 @@ uniform float ice_amount : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 shallow : source_color = vec3(0.36, 0.62, 0.6);
 uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
 uniform vec3 foam_color : source_color = vec3(0.85, 0.93, 0.92);
+uniform vec3 mud : source_color = vec3(0.2, 0.17, 0.1);
+uniform vec3 mud_wet : source_color = vec3(0.26, 0.26, 0.15);
+
+// Steps of the depth's shading, and the 4x4 ordered dither between them.
+const float DEPTH_STEPS = 6.0;
+const int BAYER[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
 
 varying vec3 world_pos;
 varying vec3 world_normal;
 varying flat vec2 data;
+// Depth over the ground and of the ground of a shore, in cells (see COLOR above).
+varying float depth_here;
+varying float shore_under;
+varying flat int kind;
 varying float clouds;
 // 1 under the open sky, where nothing casts a shadow on the surface (see light()).
 varying float open_sky;
+// 2 on a waterfall's sheet, 1 on the foam where it lands, 0 elsewhere.
+varying flat float falls;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -49,18 +69,32 @@ vec3 ice_color(vec2 tex, float depth, bool side) {
 	return c;
 }
 
+// The mud of a bog: dark, a wet sheen in patches and a few bubbles.
+vec3 mud_color(vec2 tex) {
+	float p = ground_patch(tex / TEXELS, 23.0);
+	vec3 c = p > 0.62 ? mud_wet : (p < 0.3 ? mud * 0.85 : mud);
+	if (hash12(tex + 13.0) > 0.985) {
+		c = mix(c, mud_wet * 1.4, 0.7);
+	}
+	return c;
+}
+
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
 
 void vertex() {
 	// Ice fills its cell to the top, level with the ground beside it, where it is
 	// walked on (see WorldData.water_frozen).
-	if (ice_amount > 0.8 && abs(fract(VERTEX.y / CELL) - 0.5) < 0.01) {
+	kind = int(COLOR.b * 4.0 + 0.5);
+	if (ice_amount > 0.8 && (kind & 2) == 0 && abs(fract(VERTEX.y / CELL) - 0.5) < 0.01) {
 		VERTEX.y += 0.5 * CELL;
 	}
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	data = UV2;
+	falls = COLOR.a < 0.25 ? 2.0 : (COLOR.a < 0.75 ? 1.0 : 0.0);
+	depth_here = COLOR.r * 8.0;
+	shore_under = COLOR.g;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
 }
@@ -73,10 +107,42 @@ void fragment() {
 	int last = int(CELL_TEXELS) - 1;
 	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
 	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
-	float depth = clamp((data.y * CELL - 1.0) / 3.0, 0.0, 1.0);
+	// The depth in steps, dithered between them on the texel grid so the shading
+	// follows the bed smoothly and stays pixel art.
+	float depth = clamp(((depth_here + 0.5) * CELL - 1.0) / 3.0, 0.0, 1.0);
+	ivec2 bt = ivec2(mod(tex, 4.0));
+	float bayer = float(BAYER[bt.y * 4 + bt.x]) / 16.0;
+	depth = clamp(floor(depth * DEPTH_STEPS + bayer) / DEPTH_STEPS, 0.0, 1.0);
 	vec3 col = mix(shallow, deep, depth);
 	float alpha = mix(0.45, 1.0, depth);
-	if (world_normal.y < 0.5) {
+	bool bog = (kind & 1) != 0;
+	if (falls > 1.5) {
+		// The falling sheet: streaks a texel wide running down at their own speeds,
+		// white water at the lip and in a band of spray at the foot.
+		vec3 across = abs(world_normal.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+		float tx = floor(dot(world_pos, across) * TEXELS);
+		float ty = floor(world_pos.y * TEXELS);
+		float speed = 10.0 + 6.0 * hash12(vec2(tx, 3.0));
+		float run = hash12(vec2(tx, floor((ty + TIME * speed) / 3.0)));
+		float above_foot = world_pos.y / CELL - data.y;
+		col = mix(shallow * 1.15, deep * 1.2, 0.35);
+		col = mix(col, foam_color, step(0.62, run) * 0.85);
+		if (above_foot < 0.35 + 0.15 * hash12(vec2(tx, floor(TIME * 6.0)))) {
+			col = foam_color;
+		}
+		alpha = 0.93;
+	} else if (falls > 0.5) {
+		// Foam where the fall lands, boiling up in texels that come and go.
+		float b = hash12(tex + floor(TIME * 5.0) * 13.0);
+		col = mix(col, foam_color, b < 0.55 ? 0.9 : 0.4);
+		alpha = 0.9;
+	} else if (bog) {
+		col = mud_color(tex);
+		if (shore_under < 0.12 && world_normal.y > 0.5) {
+			col *= 0.8;
+		}
+		alpha = 1.0;
+	} else if (world_normal.y < 0.5) {
 		col *= 0.8;
 		alpha = 0.9;
 	} else {
@@ -102,6 +168,19 @@ void fragment() {
 				col = foam_color;
 				alpha = 0.95;
 			} else if (float(dist[e]) < wash + 2.0) {
+				col = mix(col, foam_color, 0.25);
+			}
+		}
+		// Over the slope of a shore: foam where the ground comes up to the surface, a
+		// texel of shore for each eighth of a cell it lies under it.
+		if (shore_under < 1.0) {
+			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
+				+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
+			float d = shore_under * CELL_TEXELS;
+			if (d < wash) {
+				col = foam_color;
+				alpha = 0.95;
+			} else if (d < wash + 2.0) {
 				col = mix(col, foam_color, 0.25);
 			}
 		}
@@ -133,7 +212,7 @@ void fragment() {
 			col = mix(col, col * 1.4 + 0.08, ring);
 		}
 	}
-	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5), ice_amount);
+	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * (bog ? vec3(0.8, 0.78, 0.7) : vec3(1.0)), ice_amount);
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
