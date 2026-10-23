@@ -18,6 +18,8 @@ const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Creatures := preload("res://src/client/game/creatures.gd")
 
 const WIDTH := 200
 const BUTTON_H := 30
@@ -34,16 +36,17 @@ const CLOUDS := [[0.18, 46, 3.0, 0.1], [0.30, 30, 5.0, 0.55], [0.42, 60, 2.0, 0.
 	[0.12, 20, 4.0, 0.7]]
 const CLOUD := Color("#93977f", 0.55)
 const CLOUD_LIT := Color("#d6c4a2", 0.5)
-## The sparrow on the name, facing right: rows of pixels, a letter a colour (SPARROW_INK).
-const SPARROW := ["....kk.", "...kekB", "TTbbbb.", "..bccb.", "...l.l."]
-const SPARROW_INK := {"k": Color("#6b4426"), "e": Color("#1c140d"), "B": Color("#e9b44c"),
-	"T": Color("#5a3a22"), "b": Color("#9a6a3c"), "c": Color("#d8c3a0"), "l": Color("#3a2c20")}
+## The sparrow on the name is the game's own (the birds mod's picture, facing right):
+## sitting it is the first frame, in a hop it beats its wings with the others.
+const SPARROW := "birds:sparrow"
+## Columns of the picture from which its head dips when it pecks.
+const SPARROW_HEAD := 5
 ## Seconds a hop takes and how high it goes (UI px), and how far one carries it.
 const HOP_TIME := 0.22
 const HOP_HIGH := 12.0
 const HOP_STEP := 16.0
-## One pixel of the sparrow in UI px: the size of a pixel of the name's letters.
-const BIRD_PX := 4
+## One pixel of the sparrow in UI px, so it stands a little lower than the capitals.
+const BIRD_PX := 3
 ## Seconds between two glints over the name.
 const GLINT_EVERY := 4.0
 const GLINT_SHADER := """
@@ -76,6 +79,8 @@ var _title: Label
 ## name's left), which way it faces, what it does ("sit", "peck", "hop") and for how
 ## much longer, and where a hop takes it.
 var _sparrow: Control
+var _sparrow_picture: Texture2D
+var _sparrow_frames := 1
 var _bird_x := 40.0
 var _bird_dir := 1.0
 var _bird_do := "sit"
@@ -139,6 +144,9 @@ func _ready() -> void:
 	_sparrow = Control.new()
 	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sparrow.draw.connect(_draw_sparrow)
+	if AiRules.SPECIES.has(SPARROW):
+		_sparrow_picture = Creatures.picture(AiRules.SPECIES[SPARROW])
+		_sparrow_frames = AiRules.SPECIES[SPARROW].frames
 	title.add_child(_sparrow)
 	_seed_label = UiStyle.label("", UiStyle.INK)
 	_seed_label.add_theme_color_override("font_outline_color", UiStyle.EDGE)
@@ -417,7 +425,7 @@ func _move_sparrow(delta: float) -> void:
 		_bird_x = _bird_to if _bird_do == "hop" else _bird_x
 		var roll := randf()
 		if _bird_do != "hop" and roll < 0.45:
-			var room := _title.size.x - SPARROW[0].length() * BIRD_PX - 6.0
+			var room := _title.size.x - _sparrow_size().x - 6.0
 			if _bird_x + _bird_dir * HOP_STEP < 6.0 or _bird_x + _bird_dir * HOP_STEP > room or randf() < 0.15:
 				_bird_dir = -_bird_dir
 			_bird_do = "hop"
@@ -433,31 +441,44 @@ func _move_sparrow(delta: float) -> void:
 	_sparrow.queue_redraw()
 
 
-## The sparrow on the top of the letters: raised in a hop with its feet tucked, its
-## head down when it pecks.
+## The sparrow's picture size in UI px, one frame.
+func _sparrow_size() -> Vector2:
+	if _sparrow_picture == null:
+		return Vector2.ZERO
+	return Vector2(_sparrow_picture.get_width() / _sparrow_frames, _sparrow_picture.get_height()) * BIRD_PX
+
+
+## The sparrow on the top of the letters: raised in a hop beating its wings, its head
+## down when it pecks.
 func _draw_sparrow() -> void:
+	if _sparrow_picture == null:
+		return
 	# The top of the capitals of the 32 px font, under the label's own room above them.
 	var top := floorf(_title.size.y * 0.5 - TITLE_SIZE * 0.34) - 3.0
 	var lift := 0.0
+	var frame := 0
 	if _bird_do == "hop":
 		var t := clampf(1.0 - _bird_left / HOP_TIME, 0.0, 1.0)
 		lift = floorf(HOP_HIGH * 4.0 * t * (1.0 - t))
-	var w: int = SPARROW[0].length()
-	for y in SPARROW.size():
-		var row: String = SPARROW[y]
-		if y == SPARROW.size() - 1 and lift > 0.0:
-			continue
-		for x in w:
-			var c := row[x]
-			if not SPARROW_INK.has(c):
-				continue
-			var px := x if _bird_dir > 0.0 else w - 1 - x
-			var py := y
-			if _bird_do == "peck" and y < 2:
-				py += 1
-				px += 1 if _bird_dir > 0.0 else -1
-			_sparrow.draw_rect(Rect2(floorf(_bird_x) + px * BIRD_PX, top - (SPARROW.size() - py) * BIRD_PX - lift,
-				BIRD_PX, BIRD_PX), SPARROW_INK[c])
+		if _sparrow_frames > 1:
+			frame = 1 + int(t * 3.0) % (_sparrow_frames - 1)
+	var cell := _sparrow_size() / BIRD_PX
+	var at := Vector2(floorf(_bird_x), top - cell.y * BIRD_PX - lift)
+	# Facing left is the picture mirrored about its middle.
+	if _bird_dir > 0.0:
+		_sparrow.draw_set_transform(at, 0.0, Vector2(BIRD_PX, BIRD_PX))
+	else:
+		_sparrow.draw_set_transform(at + Vector2(cell.x * BIRD_PX, 0.0), 0.0, Vector2(-BIRD_PX, BIRD_PX))
+	var x0 := frame * cell.x
+	if _bird_do == "peck":
+		# The tail and the body stay, the head goes a pixel down.
+		_sparrow.draw_texture_rect_region(_sparrow_picture, Rect2(0, 0, SPARROW_HEAD, cell.y),
+			Rect2(x0, 0, SPARROW_HEAD, cell.y))
+		_sparrow.draw_texture_rect_region(_sparrow_picture, Rect2(SPARROW_HEAD, 1, cell.x - SPARROW_HEAD, cell.y - 1),
+			Rect2(x0 + SPARROW_HEAD, 0, cell.x - SPARROW_HEAD, cell.y - 1))
+	else:
+		_sparrow.draw_texture_rect_region(_sparrow_picture, Rect2(0, 0, cell.x, cell.y), Rect2(x0, 0, cell.x, cell.y))
+	_sparrow.draw_set_transform(Vector2.ZERO)
 
 
 ## The sky's moving parts, over the painted sky: pixel clouds drifting right at their

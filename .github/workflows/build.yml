@@ -1,9 +1,16 @@
 name: Test and build
 
+# Jobs run side by side: the headless tests, the frame test (alone, it measures frame times),
+# the web export, then the browser smoke test as a desktop and as a phone, each on a machine of
+# its own. On a pull request the smoke test runs only when the PR touches what the browser
+# shows differently (see `changes`) or carries the label `smoke`; on main it always runs, and
+# the build is published only when everything passed.
+
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -20,50 +27,52 @@ env:
   GODOT_VERSION: 4.5.1
 
 jobs:
-  build:
+  # Whether the browser smoke test is needed.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      smoke: ${{ steps.check.outputs.smoke }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          LABELED: ${{ contains(github.event.pull_request.labels.*.name, 'smoke') }}
+        run: |
+          # The client, its shaders, scenes and pictures, the web save store, the export, the
+          # smoke test and CI itself. Rules, data and tests are covered by the headless tests.
+          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/sprites/|project\.godot|export_presets\.cfg|icon\.svg|tests/browser_smoke\.mjs|\.github/)'
+          if [ -z "$PR" ] || [ "$LABELED" = true ]; then
+            smoke=true
+          else
+            files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
+            echo "$files"
+            if grep -Eq "$web" <<<"$files"; then smoke=true; else smoke=false; fi
+          fi
+          echo "smoke test: $smoke"
+          echo "smoke=$smoke" >> "$GITHUB_OUTPUT"
+
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/godot
+      - name: Content, unit tests, save and the way to every recipe
+        run: GODOT=~/godot/godot tests/run_all.sh validate run_tests save_test progress_test
 
-      - name: Cache Godot
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: ~/godot
-          key: godot-${{ env.GODOT_VERSION }}-web
-
-      - name: Download Godot and web export templates
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ~/godot && cd ~/godot
-          base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
-          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm godot.zip
-          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          unzip -q templates.tpz 'templates/web_*' 'templates/version.txt' && rm templates.tpz
-
-      - name: Install export templates
-        run: |
-          dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-          mkdir -p "$dest" && cp ~/godot/templates/* "$dest/"
-
-      - name: Import project
-        run: ~/godot/godot --headless --path . --import
-
-      - name: Validate content
-        run: ~/godot/godot --headless --path . --script res://tools/validate.gd
-
-      - name: Run tests
-        run: ~/godot/godot --headless --path . --script res://tests/run_tests.gd
-
-      - name: Save the game and start it again
-        run: timeout 300 ~/godot/godot --headless --path . --script res://tests/save_test.gd
-
-      - name: Get the first tools from bare hands
-        run: timeout 600 ~/godot/godot --headless --path . --script res://tests/progress_test.gd
-
+  frames:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/godot
       - name: Play without a screen and check frame times
-        run: timeout 600 ~/godot/godot --headless --path . --script res://tests/frame_test.gd
+        run: GODOT=~/godot/godot tests/run_all.sh frame_test
+
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/godot
 
       - name: Version and recent changes
         env:
@@ -77,12 +86,6 @@ jobs:
           ~/godot/godot --headless --path . --export-release "Web" build/web/index.html
           ls -la build/web
 
-      - name: Smoke test in a browser
-        run: |
-          python3 -m http.server 8060 --directory build/web >/dev/null 2>&1 &
-          npm install --no-save --no-package-lock --silent playwright-core@1.48.2
-          node tests/browser_smoke.mjs
-
       - name: Upload web build (download from the run page)
         uses: actions/upload-artifact@v4
         with:
@@ -90,13 +93,35 @@ jobs:
           path: build/web
 
       - name: Upload web build for GitHub Pages
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
 
+  smoke:
+    needs: [changes, export]
+    if: needs.changes.outputs.smoke == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [desktop, phone]
+    name: smoke (${{ matrix.device }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: survivium-web
+          path: build/web
+      - name: Smoke test in a browser
+        run: |
+          python3 -m http.server 8060 --directory build/web >/dev/null 2>&1 &
+          npm install --no-save --no-package-lock --silent playwright-core@1.48.2
+          node tests/browser_smoke.mjs ${{ matrix.device }}
+
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: build
+    needs: [tests, frames, export, smoke]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

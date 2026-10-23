@@ -11,8 +11,13 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 ## Frames kept for the graph and the 1% low; the graph shows as many of the newest as
 ## it is pixels wide.
 const HISTORY := 300
-## Narrowest the graph gets, in UI pixels (one pixel per frame).
+## Narrowest the graph gets, in UI pixels (one pixel per frame), and how tall it is.
 const GRAPH_MIN := 150
+const GRAPH_HEIGHT := 20
+## The panel's width beside the buttons on a wide screen, in UI pixels: always the
+## same, so it does not jump as the numbers change. Its longest lines fit in it (and
+## across a phone held upright, where the panel takes the whole top).
+const WIDTH := 372
 ## A frame longer than this is a freeze (three frames lost at 60 FPS).
 const FREEZE_MS := 50.0
 const BIG_FREEZE_MS := 100.0
@@ -21,15 +26,16 @@ const REFRESH := 0.5
 ## What the time of the frame not spent in the parts of the game's code noted is
 ## called: mostly drawing, and the browser's and the engine's own work.
 const REST := "отрисовка"
-## Parts of a freeze shown and written to the log, the biggest first.
+## Parts of a freeze written to the log and shown in the panel, the biggest first.
 const FREEZE_PARTS := 3
+const PANEL_FREEZE_PARTS := 2
 ## Freezes are written to the log at most this often (milliseconds), so a device that
 ## cannot keep up does not fill the log every frame.
 const FREEZE_LOG_EVERY := 1000
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
 const EDGE := 8.0
 
-## The panel's width when the HUD sets it (across the top of the screen), else 0: as
+## The panel's width the HUD sets (WIDTH, or across the top of the screen), else 0: as
 ## wide as the longest line, up to the screen's edge.
 var width := 0.0
 
@@ -61,7 +67,7 @@ var _graph: Control
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 3)
 	add_child(box)
 	_text = RichTextLabel.new()
 	_text.bbcode_enabled = true
@@ -70,11 +76,11 @@ func _ready() -> void:
 	_text.scroll_active = false
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text.add_theme_color_override("default_color", UiStyle.INK)
-	# Lines 4 px apart like a Label's (each line is a paragraph here).
-	_text.add_theme_constant_override("paragraph_separation", 4)
+	# Lines close together (each line is a paragraph here), to keep the panel low.
+	_text.add_theme_constant_override("paragraph_separation", 1)
 	box.add_child(_text)
 	_graph = Control.new()
-	_graph.custom_minimum_size = Vector2(GRAPH_MIN, 34)
+	_graph.custom_minimum_size = Vector2(GRAPH_MIN, GRAPH_HEIGHT)
 	_graph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_graph.draw.connect(_draw_graph)
 	_graph.resized.connect(_graph.queue_redraw)
@@ -150,10 +156,10 @@ func _record_freeze(ms: float) -> void:
 		print("freeze %s" % freeze_text(last_freeze))
 
 
-## A freeze as "84 мс: отрисовка 52, чанки 30".
-static func freeze_text(f: Array) -> String:
+## A freeze as "84 мс: отрисовка 52, чанки 30", with its `parts` biggest parts.
+static func freeze_text(f: Array, parts_shown := FREEZE_PARTS) -> String:
 	var parts := []
-	for p: Array in f[1]:
+	for p: Array in f[1].slice(0, parts_shown):
 		parts.append("%s %d" % [p[0], roundi(p[1])])
 	return "%d мс: %s" % [roundi(f[0]), ", ".join(parts)]
 
@@ -163,17 +169,6 @@ func refresh() -> void:
 	_text.text = summary(true, true)
 	_fit(summary(true))
 	_graph.queue_redraw()
-
-
-## How wide the panel is with its longest line unwrapped, in UI pixels.
-func natural_width() -> float:
-	var font := _text.get_theme_font("normal_font")
-	var font_size := _text.get_theme_font_size("normal_font_size")
-	var widest := float(GRAPH_MIN)
-	for line in summary(true).split("\n"):
-		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
-	var frame := get_theme_stylebox("panel").get_minimum_size().x if has_theme_stylebox("panel") else 0.0
-	return ceilf(widest + 1.0 + frame)
 
 
 ## Keeps the panel within the screen: as wide as its longest line where that fits,
@@ -211,7 +206,8 @@ func summary(full := false, colored := false) -> String:
 	var low := roundi(1000.0 / low_ms) if low_ms > 0.0 else 0
 	var c := func(text: String, color: Color) -> String:
 		return "[color=#%s]%s[/color]" % [color.to_html(false), text] if colored else text
-	# Short lines, so the panel fits across a phone held upright.
+	# Few short lines, so the panel is low and fits across a phone held upright
+	# (WIDTH): 45 letters of the pixel font at most.
 	var lines := [
 		"FPS %s · ср. %s · 1%% %s · кадр %s мс" % [c.call(str(now), fps_color(now)),
 			c.call(str(roundi(avg)), fps_color(avg)), c.call(str(low), fps_color(low)),
@@ -221,10 +217,11 @@ func summary(full := false, colored := false) -> String:
 			c.call(str(_big_freezes), UiStyle.GOOD if _big_freezes == 0 else UiStyle.DANGER),
 			c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER)],
 	]
+	var parts := PANEL_FREEZE_PARTS if colored else FREEZE_PARTS
 	if not last_freeze.is_empty():
-		lines.append("Фриз %s" % freeze_text(last_freeze))
+		lines.append("Фриз %s" % freeze_text(last_freeze, parts))
 		if worst_freeze != last_freeze:
-			lines.append("Худший %s" % freeze_text(worst_freeze))
+			lines.append("Худший %s" % freeze_text(worst_freeze, parts))
 	if full:
 		var p := Performance
 		lines.append("Вызовы %d · объекты %d · треуг. %dк" % [
@@ -232,12 +229,14 @@ func summary(full := false, colored := false) -> String:
 			p.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
 			roundi(p.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000.0)])
 		var video := p.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
+		var world := "Мир за %.1f с · чанков %d" % [world_ms / 1000.0, chunks]
+		# The memory is counted in debug builds alone (not in the browser's).
 		var memory := p.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
-		var mem := "Видео %d МБ" % roundi(video)
 		if memory > 0.0:
-			mem += " · память %d МБ" % roundi(memory)
-		lines.append(mem)
-		lines.append("Мир за %.1f с · чанков %d" % [world_ms / 1000.0, chunks])
+			lines.append(world)
+			lines.append("Видео %d МБ · память %d МБ" % [roundi(video), roundi(memory)])
+		else:
+			lines.append(world + " · видео %d МБ" % roundi(video))
 	return "\n".join(lines)
 
 

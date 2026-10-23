@@ -432,15 +432,27 @@ func _run() -> void:
 	var square := is_equal_approx(hud.minimap.size.x, 2 * button + 6) and is_equal_approx(hud.minimap.size.y, 2 * button + 6)
 	var level_tall := is_equal_approx(hud._level.size.y, hud.minimap.size.y)
 	var cross: bool = hud._camera.get_child_count() == 9 and hud._camera.position.y >= hud.minimap.position.y + hud.minimap.size.y
-	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2
+	hud.update_state()
+	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2 \
+		and is_equal_approx(hud._clock_panel.position.x + hud._clock_panel.size.x, hud._bar.position.x + hud._bar.size.x)
 	var vitals_tall: bool = is_equal_approx(hud.vitals.get_combined_minimum_size().y, button)
+	# The statistics with their longest lines, two freezes told, do not wrap and stay low.
+	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]]]
+	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
 	hud.toggle_stats()
 	await process_frame
+	await process_frame
+	hud.perf.refresh()
 	await process_frame
 	var stats := Rect2(hud.perf.position, hud.perf.size)
 	var across: bool = stats.end.x <= hud.size.x and hud._top.position.y >= stats.end.y \
 		and hud.perf.size.x >= hud.size.x - 2 * hud.MARGIN - 1
+	var stats_lines: int = hud.perf.summary(true).split("\n").size()
+	_check(hud.perf._text.get_line_count() == stats_lines and stats.size.y <= 110.0,
+		"the statistics fit an upright phone unwrapped and low: %d lines of %d, %d px tall" % [
+			hud.perf._text.get_line_count(), stats_lines, stats.size.y])
 	hud.toggle_stats()
+	hud.perf.reset()
 	# The interface size leaves the touch controls as they are.
 	var stick_at: Vector2 = hud.stick.get_global_transform().get_scale()
 	hud.ui_size = 4

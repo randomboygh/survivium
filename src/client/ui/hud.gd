@@ -432,7 +432,8 @@ func _place() -> void:
 	var clock_room := _clock_panel.size.y - 2
 	y -= clock_room
 	_bar.position = Vector2(x, y)
-	_clock_panel.position = Vector2(x + bw - _clock_panel.size.x, y + bh - 2)
+	_clock_panel.position.y = y + bh - 2
+	_align_clock()
 	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
 	_bag_meter.position = Vector2(x + bw - METER_WIDTH, y - _bag_meter.size.y + 2)
 
@@ -550,8 +551,9 @@ func refresh_counts() -> void:
 ## The top of the interface: the statistics over it when shown, under them the state
 ## on the left, the buttons on the right, the minimap under the buttons with the level
 ## buttons on its left and the camera cross under it. The statistics take the room
-## left of the buttons when their lines fit there (a wide screen); else they go across
-## the whole top and everything moves down under them (a phone held upright).
+## left of the buttons when PerfPanel.WIDTH fits there (a wide screen); else they go
+## across the whole top and everything moves down under them (a phone held upright).
+## Their width stays as it is while their numbers change.
 func _place_top() -> void:
 	var w := size.x
 	_top.reset_size()
@@ -562,7 +564,7 @@ func _place_top() -> void:
 	var left := MARGIN
 	if perf.visible:
 		var beside := w - 3 * MARGIN - column
-		perf.width = beside if perf.natural_width() <= beside else w - 2 * MARGIN
+		perf.width = perf.WIDTH if perf.WIDTH <= beside else w - 2 * MARGIN
 		perf.position = Vector2(MARGIN, MARGIN)
 		perf.size = Vector2(perf.width, 0)
 		left += perf.size.y + 6
@@ -575,6 +577,14 @@ func _place_top() -> void:
 	_camera.reset_size()
 	_camera.position = Vector2(minimap.position.x + floorf((minimap.size.x - _camera.size.x) * 0.5),
 		minimap.position.y + minimap.size.y + 6)
+
+
+## Keeps the clock's right edge on the hotbar's as its text and icons change width.
+func _align_clock() -> void:
+	var wide := _clock_panel.get_combined_minimum_size().x
+	if not is_equal_approx(_clock_panel.size.x, wide):
+		_clock_panel.size.x = wide
+	_clock_panel.position.x = _bar.position.x + _bar.size.x - wide
 
 
 ## The season, the day and the time, as the clock under the hotbar shows them.
@@ -597,6 +607,7 @@ func update_state() -> void:
 	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
+	_align_clock()
 	# Eight ways, so the arrow stays on the pixel grid.
 	# The way it blows on the screen, as the camera is turned.
 	var blow := PixelView.screen_dir(Vector2.from_angle(game.clock.wind_angle)).angle()
