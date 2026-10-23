@@ -1,7 +1,7 @@
 extends PanelContainer
 ## Performance statistics for playtests, shown by the chart button or F3: frame rate
-## (now, average, 1% low), frame time, freezes and what took their time, drops below
-## 30 FPS, a graph of the last frames and what the renderer draws. Counters run from
+## (now, average, 1% low), frame time, freezes (over 50 / over 100 ms) and what took
+## their time, drops below 30 FPS, a graph of the last frames and what the renderer draws. Counters run from
 ## the start or the last reset.
 ## The numbers are coloured like the graph's bars: green is fine, amber is below 60 FPS
 ## or a slow frame, red is below 30 FPS or a freeze.
@@ -28,6 +28,10 @@ const FREEZE_PARTS := 3
 const FREEZE_LOG_EVERY := 1000
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
 const EDGE := 8.0
+
+## The panel's width when the HUD sets it (across the top of the screen), else 0: as
+## wide as the longest line, up to the screen's edge.
+var width := 0.0
 
 var world_ms := 0
 var chunks := 0
@@ -161,6 +165,17 @@ func refresh() -> void:
 	_graph.queue_redraw()
 
 
+## How wide the panel is with its longest line unwrapped, in UI pixels.
+func natural_width() -> float:
+	var font := _text.get_theme_font("normal_font")
+	var font_size := _text.get_theme_font_size("normal_font_size")
+	var widest := float(GRAPH_MIN)
+	for line in summary(true).split("\n"):
+		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	var frame := get_theme_stylebox("panel").get_minimum_size().x if has_theme_stylebox("panel") else 0.0
+	return ceilf(widest + 1.0 + frame)
+
+
 ## Keeps the panel within the screen: as wide as its longest line where that fits,
 ## the lines wrapped to the screen's edge where it does not (a phone held upright).
 func _fit(plain: String) -> void:
@@ -173,9 +188,11 @@ func _fit(plain: String) -> void:
 	# On the screen, where the HUD may be drawn scaled.
 	var on_screen := get_global_transform_with_canvas()
 	var room := (get_viewport_rect().size.x - on_screen.origin.x) / on_screen.get_scale().x - EDGE - frame
+	if width > 0.0:
+		room = width - frame
 	var wrap := widest + 1.0 > room
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
-	_text.custom_minimum_size.x = floorf(room) if wrap else 0.0
+	_text.custom_minimum_size.x = floorf(room) if wrap or width > 0.0 else 0.0
 
 
 ## The statistics as text; `full` adds the renderer lines, `colored` marks the numbers
@@ -194,13 +211,15 @@ func summary(full := false, colored := false) -> String:
 	var low := roundi(1000.0 / low_ms) if low_ms > 0.0 else 0
 	var c := func(text: String, color: Color) -> String:
 		return "[color=#%s]%s[/color]" % [color.to_html(false), text] if colored else text
+	# Short lines, so the panel fits across a phone held upright.
 	var lines := [
-		"FPS %s · ср. %s · 1%% %s" % [c.call(str(now), fps_color(now)), c.call(str(roundi(avg)), fps_color(avg)),
-			c.call(str(low), fps_color(low))],
-		"Кадр %s мс · макс %s мс" % [c.call("%.1f" % last, frame_color(last)), c.call("%.0f" % worst, frame_color(worst))],
-		"Фризы >50 мс: %s · >100 мс: %s" % [c.call(str(_freezes), UiStyle.GOOD if _freezes == 0 else UiStyle.ACCENT),
-			c.call(str(_big_freezes), UiStyle.GOOD if _big_freezes == 0 else UiStyle.DANGER)],
-		"Просадки ниже 30 FPS: %s" % c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER),
+		"FPS %s · ср. %s · 1%% %s · кадр %s мс" % [c.call(str(now), fps_color(now)),
+			c.call(str(roundi(avg)), fps_color(avg)), c.call(str(low), fps_color(low)),
+			c.call("%.1f" % last, frame_color(last))],
+		"Макс %s мс · фризы %s / %s · <30 FPS %s" % [c.call("%.0f" % worst, frame_color(worst)),
+			c.call(str(_freezes), UiStyle.GOOD if _freezes == 0 else UiStyle.ACCENT),
+			c.call(str(_big_freezes), UiStyle.GOOD if _big_freezes == 0 else UiStyle.DANGER),
+			c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER)],
 	]
 	if not last_freeze.is_empty():
 		lines.append("Фриз %s" % freeze_text(last_freeze))
@@ -218,7 +237,7 @@ func summary(full := false, colored := false) -> String:
 		if memory > 0.0:
 			mem += " · память %d МБ" % roundi(memory)
 		lines.append(mem)
-		lines.append("Мир построен за %.1f с · чанков %d" % [world_ms / 1000.0, chunks])
+		lines.append("Мир за %.1f с · чанков %d" % [world_ms / 1000.0, chunks])
 	return "\n".join(lines)
 
 

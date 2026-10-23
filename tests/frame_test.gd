@@ -422,6 +422,28 @@ func _run() -> void:
 	_check(bars.is_empty(), "no scroll bar while the rows fit the screen: %s" % [bars])
 	menu.open("settings")
 	menu.show_section("game")
+	# The top of a phone held upright: the minimap two buttons square, the level
+	# buttons as tall, the camera cross under it, the clock under the hotbar, and the
+	# statistics across the top with the rest moved down under them.
+	var hud = main.hud
+	hud.fit(Rect2(Vector2.ZERO, Vector2(1200, 2608)), true)
+	await process_frame
+	var button: float = hud._stats_button.size.x
+	var square := is_equal_approx(hud.minimap.size.x, 2 * button + 6) and is_equal_approx(hud.minimap.size.y, 2 * button + 6)
+	var level_tall := is_equal_approx(hud._level.size.y, hud.minimap.size.y)
+	var cross: bool = hud._camera.get_child_count() == 9 and hud._camera.position.y >= hud.minimap.position.y + hud.minimap.size.y
+	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2
+	var vitals_tall: bool = is_equal_approx(hud.vitals.get_combined_minimum_size().y, button)
+	hud.toggle_stats()
+	await process_frame
+	await process_frame
+	var stats := Rect2(hud.perf.position, hud.perf.size)
+	var across: bool = stats.end.x <= hud.size.x and hud._top.position.y >= stats.end.y \
+		and hud.perf.size.x >= hud.size.x - 2 * hud.MARGIN - 1
+	hud.toggle_stats()
+	_check(square and level_tall and cross and clock_under and vitals_tall and across,
+		"HUD top: minimap %s, level %s, cross %s, clock %s, state %s, statistics %s" % [square, level_tall, cross,
+			clock_under, vitals_tall, across])
 	main.view.layout_ui(main.view.safe_rect)
 	_check(room[0] == room[2] and room[0] == room[4] and room[1] and room[3] and room[5],
 		"every phone's interface is as wide as the reference phone's, the windows fit: %s" % [room])

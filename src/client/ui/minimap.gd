@@ -23,8 +23,9 @@ const Items := preload("res://src/shared/content/items.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const GROUND_SHADER := preload("res://shaders/map_ground.gdshader")
 
-## The map on screen, in UI pixels, and the cells per pixel.
-const SIZE := 72
+## The map on screen, in UI pixels (with the frame as wide and tall as two buttons), and
+## the cells per pixel.
+const SIZE := 78
 const STEP := 2
 ## The panel's frame round the map: its outline and highlight, then a sunken edge.
 const FRAME := 4

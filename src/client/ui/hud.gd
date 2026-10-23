@@ -44,6 +44,10 @@ const UI_STEPS := [-2, -1, 0, 1, 2]
 const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
 ## The width of the level buttons beside the minimap.
 const LEVEL_WIDTH := 68
+## The camera cross: the width of its arms at the sides and the height of those above
+## and below, and the middle (the view as text).
+const DPAD_SIDE := 22
+const DPAD_MIDDLE := Vector2(38, 30)
 ## The tab on the hotbar with the bag's slots and load, in UI pixels.
 const METER_WIDTH := 108
 const TOAST_TIME := 4.0
@@ -65,6 +69,8 @@ var _clock_icon: TextureRect
 var _wind: Control
 var _wind_step := -1
 var _clock: Label
+## The season and the time, under the right end of the hotbar.
+var _clock_panel: PanelContainer
 var _toasts: VBoxContainer
 var perf: PanelContainer
 var vitals: VitalsPanel
@@ -89,7 +95,7 @@ var _level_up: Button
 var _level_down: Button
 ## The camera buttons under the minimap: turn, tilt, and back to the default view
 ## (it shows the turn and the tilt).
-var _camera: HBoxContainer
+var _camera: GridContainer
 var _camera_reset: Button
 var _camera_text := ""
 ## The colour last given to the level label's text (none yet: transparent).
@@ -136,9 +142,10 @@ func _ready() -> void:
 	_left.add_theme_constant_override("separation", 6)
 	_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_left)
-	var clock := _panel(_left)
-	# The clock shares the top line with the buttons: kept thin.
-	clock.add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
+	var clock := _panel(self)
+	_clock_panel = clock
+	# Under the hotbar: kept thin.
+	clock.add_theme_stylebox_override("panel", UiStyle.panel(Vector4(5, 4, 5, 4)))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	clock.add_child(row)
@@ -153,13 +160,13 @@ func _ready() -> void:
 	row.add_child(_wind)
 	_clock = UiStyle.label()
 	row.add_child(_clock)
-	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	vitals = VitalsPanel.new()
 	_left.add_child(vitals)
+	# Over the whole top of the interface, which moves down under it.
 	perf = PerfPanel.new()
 	perf.visible = false
-	perf.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_left.add_child(perf)
+	add_child(perf)
+	perf.resized.connect(_place_top)
 	_toasts = VBoxContainer.new()
 	_toasts.add_theme_constant_override("separation", 4)
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -182,7 +189,7 @@ func _ready() -> void:
 	# The level itself is a button: a tap on a chosen cut returns to the player's level.
 	_level_label = Button.new()
 	_level_label.focus_mode = Control.FOCUS_NONE
-	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, 32)
+	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, 34)
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
 	_level_label.pressed.connect(func() -> void: game.chunks.reset_view_level())
 	_level.add_child(_level_label)
@@ -191,34 +198,50 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(LEVEL_WIDTH, 24)
 	_level_up = up
 	_level_down = down
-	# A helper: see-through, outlined, so it hides little of the world.
+	# A helper: framed like the other buttons but see-through inside, so it hides
+	# little of the world. Up, the level and down are as tall as the minimap.
 	for b: Button in [up, _level_label, down]:
 		for state in ["normal", "hover", "disabled", "focus"]:
-			b.add_theme_stylebox_override(state, UiStyle.outline())
+			b.add_theme_stylebox_override(state, UiStyle.frame())
 		for state in ["pressed", "hover_pressed"]:
-			b.add_theme_stylebox_override(state, UiStyle.outline(true))
+			b.add_theme_stylebox_override(state, UiStyle.frame(true))
 		b.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 		b.add_theme_constant_override("outline_size", 4)
 		b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 	minimap = Minimap.new()
 	add_child(minimap)
-	_camera = HBoxContainer.new()
-	_camera.add_theme_constant_override("separation", 4)
+	# The camera buttons as a cross under the minimap: turn at the sides, tilt above
+	# and below, the view in the middle (a tap puts it back).
+	_camera = GridContainer.new()
+	_camera.columns = 3
+	_camera.add_theme_constant_override("h_separation", 2)
+	_camera.add_theme_constant_override("v_separation", 2)
 	add_child(_camera)
-	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево", func() -> void: game.view.turn_by(1))
-	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
-	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
+	var pad := func() -> void:
+		var c := Control.new()
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_camera.add_child(c)
+	pad.call()
 	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
-	for b in [turn_left, turn_right, tilt_down, tilt_up]:
-		b.custom_minimum_size = Vector2(26, 26)
+	pad.call()
+	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево", func() -> void: game.view.turn_by(1))
 	_camera_reset = Button.new()
 	_camera_reset.focus_mode = Control.FOCUS_NONE
-	_camera_reset.custom_minimum_size = Vector2(LEVEL_WIDTH, 26)
+	_camera_reset.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_MIDDLE.y)
 	_camera_reset.tooltip_text = "Вернуть камеру как была"
-	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_camera_reset.add_theme_stylebox_override(state, UiStyle.panel())
 	_camera_reset.pressed.connect(func() -> void: game.view.reset_turn())
 	_camera.add_child(_camera_reset)
+	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
+	pad.call()
+	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
+	pad.call()
+	for b: Button in [tilt_up, tilt_down]:
+		b.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_SIDE)
+	for b: Button in [turn_left, turn_right]:
+		b.custom_minimum_size = Vector2(DPAD_SIDE, DPAD_MIDDLE.y)
+	for b: Button in [tilt_up, turn_left, turn_right, tilt_down, _camera_reset]:
+		for state in ["normal", "hover", "pressed", "hover_pressed"]:
+			b.add_theme_stylebox_override(state, UiStyle.panel(Vector4(2, 2, 2, 2)))
 	map_view = MapView.new()
 	map_view.minimap = minimap
 	map_view.game = game
@@ -360,16 +383,7 @@ func set_touch(on: bool) -> void:
 func _place() -> void:
 	var w := size.x
 	var h := size.y
-	_left.position = Vector2(MARGIN, MARGIN)
-	_top.reset_size()
-	_top.position = Vector2(w - MARGIN - _top.size.x, MARGIN)
-	# The minimap under the buttons in the corner, the level buttons on its left.
-	minimap.position = Vector2(w - MARGIN - minimap.size.x, _top.position.y + _top.size.y + 6)
-	_level.reset_size()
-	_level.position = Vector2(minimap.position.x - 6 - _level.size.x, minimap.position.y)
-	# The camera buttons in a row under them, at the right edge.
-	_camera.reset_size()
-	_camera.position = Vector2(w - MARGIN - _camera.size.x, minimap.position.y + minimap.size.y + 6)
+	_place_top()
 
 	stick.visible = touch
 	_action.visible = touch
@@ -408,7 +422,12 @@ func _place() -> void:
 			x = clampf(x, free_left, free_right - bw)
 		else:
 			y = minf(stick.position.y, _jump.position.y) - 8 - bh
+	# The clock under the hotbar's right end, overlapping its outline.
+	_clock_panel.reset_size()
+	var clock_room := _clock_panel.size.y - 2
+	y -= clock_room
 	_bar.position = Vector2(x, y)
+	_clock_panel.position = Vector2(x + bw - _clock_panel.size.x, y + bh - 2)
 	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
 	_bag_meter.position = Vector2(x + bw - METER_WIDTH, y - _bag_meter.size.y + 2)
 
@@ -416,6 +435,9 @@ func _place() -> void:
 	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
 	if _keys.position.x < x + bw + 8:
 		_keys.position.y = y - 8 - _keys.size.y
+	# Off the camera cross under the minimap, on the left of a short window.
+	if Rect2(_keys.position, _keys.size).intersects(Rect2(_camera.position, _camera.size).grow(4)):
+		_keys.position.x = MARGIN
 	_loading.reset_size()
 	_loading.position = ((size - _loading.size) * 0.5).floor()
 	_menu.reset_size()
@@ -520,11 +542,41 @@ func refresh_counts() -> void:
 	_bag_meter.queue_redraw()
 
 
-## The season, the day and the time, as the clock in the corner shows them.
+## The top of the interface: the statistics over it when shown, under them the state
+## on the left, the buttons on the right, the minimap under the buttons with the level
+## buttons on its left and the camera cross under it. The statistics take the room
+## left of the buttons when their lines fit there (a wide screen); else they go across
+## the whole top and everything moves down under them (a phone held upright).
+func _place_top() -> void:
+	var w := size.x
+	_top.reset_size()
+	var column := _top.size.x
+	_level.reset_size()
+	column = maxf(column, minimap.size.x + 6 + _level.size.x)
+	var top := MARGIN
+	var left := MARGIN
+	if perf.visible:
+		var beside := w - 3 * MARGIN - column
+		perf.width = beside if perf.natural_width() <= beside else w - 2 * MARGIN
+		perf.position = Vector2(MARGIN, MARGIN)
+		perf.size = Vector2(perf.width, 0)
+		left += perf.size.y + 6
+		if perf.width > beside:
+			top = left
+	_left.position = Vector2(MARGIN, left)
+	_top.position = Vector2(w - MARGIN - _top.size.x, top)
+	minimap.position = Vector2(w - MARGIN - minimap.size.x, _top.position.y + _top.size.y + 6)
+	_level.position = Vector2(minimap.position.x - 6 - _level.size.x, minimap.position.y)
+	_camera.reset_size()
+	_camera.position = Vector2(minimap.position.x + floorf((minimap.size.x - _camera.size.x) * 0.5),
+		minimap.position.y + minimap.size.y + 6)
+
+
+## The season, the day and the time, as the clock under the hotbar shows them.
 func clock_text() -> String:
 	var hours := int(game.clock.time_of_day * 24.0)
 	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
-	return "%s · день %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
+	return "%s · д. %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
 
 
 func update_state() -> void:
@@ -548,10 +600,10 @@ func update_state() -> void:
 		_wind_step = step
 		_wind.queue_redraw()
 	var view = game.view
-	# The turn in degrees, and the tilt when there is one: "90°", "90°+10".
+	# The turn in degrees, and the tilt under it when there is one: "90°", "90°\n+10".
 	var text := "%d°" % view.turn_degrees()
 	if view.tilt_steps != 0:
-		text += "%+d" % (view.tilt_steps * 5)
+		text += "\n%+d" % (view.tilt_steps * 5)
 	if text != _camera_text:
 		_camera_text = text
 		_camera_reset.text = text
@@ -690,6 +742,7 @@ func toggle_stats() -> void:
 	_stats_button.modulate = UiStyle.ACCENT if perf.visible else Color.WHITE
 	if perf.visible:
 		perf.refresh()
+	_place_top()
 	_update_menu()
 
 
