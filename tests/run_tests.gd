@@ -2036,6 +2036,20 @@ func _test_clock() -> void:
 	for i in 60:
 		clock.step(1.0)
 	_check(clock.snow == 0.0 and not w.water_frozen, "and melts in summer")
+	clock.real_time = true
+	clock.time_of_day = fposmod(Clock.local_time_of_day() + 0.5, 1.0)
+	var day_was := clock.day
+	clock.step(1.0)
+	var off := absf(clock.time_of_day - Clock.local_time_of_day())
+	_check(minf(off, 1.0 - off) < 0.001 and clock.day - day_was <= 1, "the real-time clock catches up with the device's time")
+	day_was = clock.day
+	var t0 := clock.time_of_day
+	clock.time_of_day = fposmod(t0 + 0.001, 1.0)
+	clock.step(1.0)
+	_check(clock.day == day_was and is_equal_approx(clock.time_of_day, fposmod(t0 + 0.001, 1.0)),
+		"and waits when it is a little ahead, without skipping a day")
+	_check(is_equal_approx(clock.days(Clock.REAL_DAY), 1.0), "a real-time day is a real day long")
+	clock.real_time = false
 
 
 ## The weather works on the world without the client: deep snow, a head wind and a

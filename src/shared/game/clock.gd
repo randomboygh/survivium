@@ -11,6 +11,8 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const DAY_LENGTH := 240.0
+## Seconds in a day of the real world, the day's length when the clock follows it.
+const REAL_DAY := 86400.0
 const DAYS_PER_SEASON := 2.0
 const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
 const SPRING := 0
@@ -77,6 +79,10 @@ var gen
 var time_of_day := 0.3
 var day := 1
 var time_speed := 1.0
+## The time of day follows the local time of the device (a setting): a day lasts a real
+## day, and days, seasons, the moon and the weather pass at that pace, a new day at
+## midnight.
+var real_time := false
 var season := 1
 var season_clock := 0.0
 ## Index in WEATHERS of the weather now.
@@ -134,11 +140,26 @@ func step(delta: float, at := Vector3.INF) -> void:
 
 ## The days of the game `delta` seconds of play make.
 func days(delta: float) -> float:
+	if real_time:
+		return delta / REAL_DAY
 	return delta * time_speed / DAY_LENGTH
+
+
+## The local time of the device as a share of its day (0 midnight, 0.5 noon).
+static func local_time_of_day() -> float:
+	var t := Time.get_time_dict_from_system()
+	var frac := fposmod(Time.get_unix_time_from_system(), 1.0)
+	return (t.hour * 3600.0 + t.minute * 60.0 + t.second + frac) / REAL_DAY
 
 
 func _pass_time(delta: float) -> void:
 	var d := days(delta)
+	if real_time:
+		# Forward to the real time: the first step after the switch catches up (past
+		# midnight it is a new day), a clock moved back a little waits for it.
+		d = fposmod(local_time_of_day() - time_of_day, 1.0)
+		if d > 0.99:
+			d = 0.0
 	time_of_day += d
 	if time_of_day >= 1.0:
 		time_of_day -= 1.0
