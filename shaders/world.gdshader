@@ -14,11 +14,13 @@
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
 //          lying on the corner's side of it if bit 64, with the edge code in bits
-//          128..256; 512 = a stone top whose moss was picked
+//          128..256
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
-//          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1)
+//          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1); below
+//          1 on a stone top whose moss was picked, 16ths naming which tops beside,
+//          bits N, S, W, E, were picked too
 //   A snowdrift has tile 63 and UV = 4 + the vertex's place on the mound's round
 //          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
@@ -275,8 +277,21 @@ void fragment() {
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire nor where it was
-	// picked (flag 512, see Grass.stone_moss).
-	if (top && tile == 3 * 3 && !cap && (flag & 512) == 0 && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	// picked (see Grass.stone_moss); a picked top keeps a ragged edge of it, 0..2
+	// texels, along the tops beside that were not picked, so a picked patch is not cut
+	// out in squares.
+	bool moss = COLOR.a > 0.97;
+	if (!moss && top && tile == 3 * 3) {
+		int around = int(COLOR.a * 16.0 + 0.5);
+		ivec2 lt = ivec2(mod(wt, CELL_TEXELS));
+		int in_cell[4] = int[](lt.y, last - lt.y, lt.x, last - lt.x);
+		for (int e = 0; e < 4; e++) {
+			float along = e < 2 ? wt.x : wt.y;
+			float reach = floor(hash12(vec2(along, float(e) + 23.0)) * 1.6) + floor(hash12(vec2(floor(along / 2.0), float(e) + 29.0)) * 2.4);
+			moss = moss || ((around >> e) & 1) == 0 && float(in_cell[e]) < reach;
+		}
+	}
+	if (top && tile == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,

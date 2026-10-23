@@ -61,8 +61,6 @@ const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
 const DIAG_CORNER := 64
-## A stone top whose moss was picked (see Grass.stone_moss): drawn bare.
-const MOSS_TAKEN := 512
 const FULL := WorldData.FULL
 const CORNER_DIRS := WorldData.CORNER_DIRS
 ## Pieces of a top (see _piece): a whole quarter of the cell, the part of a quarter away
@@ -368,6 +366,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 				var edges := 0
 				var flag := 0
 				var around := no_tiles
+				var color := white
 				if d == FACE_TOP:
 					edges = _top_edges(c, cov, i, dy, dz)
 					var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
@@ -380,7 +379,9 @@ static func _column(job: Job, x: int, z: int) -> void:
 						continue
 					around = float(a)
 					if bare:
-						flag = MOSS_TAKEN
+						# A stone top whose moss was picked (see Grass.stone_moss): drawn bare
+						# but for a ragged edge of moss along the tops beside not picked.
+						color = Color(1, 1, 1, _picked_around(w, x, y, z) / 16.0)
 				elif d != FACE_BOTTOM:
 					# Every side shows from some turn of the camera. Outlines where nothing
 					# nearer or level is beside or below; W and E are the ends of the face's
@@ -399,7 +400,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 					_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around),
 						Mat.corner_shape[m])
 				else:
-					_add_cell_face(solid, d, base, white, Vector2(pack(tile, edges, flag), around))
+					_add_cell_face(solid, d, base, color, Vector2(pack(tile, edges, flag), around))
 			if cuts != 0:
 				_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts)
 			# The ground under a cut corner of the cell above shows there.
@@ -1272,6 +1273,20 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 						_piece(buf, base, 1.0, k, CORNER, Vector3.UP, dark, Vector2(pack(mf * 3, 0, 0), no_tiles),
 							Mat.corner_shape[mf])
 	return null if buf.is_empty() else buf.to_mesh(CELL)
+
+
+## Which of the stone tops beside (x, y, z) had their moss picked too: bits N, S, W, E
+## (1, 2, 4, 8), for the ragged edge of the moss left along the others (world.gdshader).
+static func _picked_around(w, x: int, y: int, z: int) -> int:
+	var out := 0
+	var k := 0
+	for o: Vector2i in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+		var nx := x + o.x
+		var nz := z + o.y
+		if w.turf.get(WorldData.chunk_key(nx, nz), {}).get(Vector3i(nx, y, nz), null) == "":
+			out |= 1 << k
+		k += 1
+	return out
 
 
 ## Adds the whole face `d` of the cell at `base`.

@@ -172,6 +172,8 @@ const SHOTS := {
 	"glow-day": {"time": 0.42, "season": 1, "find": "core:glow_mushrooms"},
 	"glow-night": {"time": 0.95, "season": 1, "moon": 0.0, "find": "core:glow_mushrooms"},
 	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "core:glow_mushrooms"},
+	# Moss on stone, a few tops of it picked: the moss left has a ragged edge.
+	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true},
 	"hidden": {"time": 0.42, "season": 1, "wall": true},
 	# A trench four levels deep in a forest: the view is cut at the player's level.
 	"ravine": {"time": 0.42, "season": 1, "forest": true, "trench": true},
@@ -480,6 +482,11 @@ func _run() -> void:
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
 		if shot.has("find"):
 			main.player.position = _find(main.world, main.player.position, shot.find)
+		if shot.get("pick_moss", false):
+			var mossy := _stone_moss_near(main.world, Vector3i((main.player.position / CELL).floor()))
+			if mossy != Vector3i.MIN:
+				main.player.position = (Vector3(mossy + Vector3i(0, 1, 3)) + Vector3(0.5, 0.0, 0.5)) * CELL
+				_pick_moss(main.world, mossy)
 		if shot.get("grove", false):
 			# Away from the campfire by the spawn, which melts the snow around it.
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
@@ -1013,6 +1020,37 @@ func _find_plant(w, cx: int, cz: int, id: String) -> Vector3:
 						and not w.trees.has(Vector2i(x, z + 2)):
 					return (Vector3(x, y, z + 2) + Vector3(0.5, 0.0, 0.5)) * CELL
 	return Vector3(cx + 0.5, w.surface_y(cx, cz), cz + 0.5) * CELL
+
+
+## The nearest stone top with moss all round it (see Grass.stone_moss) and open
+## ground to the south of it to stand on, or Vector3i.MIN.
+func _stone_moss_near(w, at: Vector3i) -> Vector3i:
+	for r in range(0, 120):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := at.x + dx
+				var z := at.z + dz
+				var y: int = w.surface_y(x, z) - 1
+				var ok: bool = w.surface_y(x, z + 3) - 1 == y
+				for oz in range(-3, 2):
+					for ox in range(-2, 4):
+						ok = ok and Grass.stone_moss(w, x + ox, y, z + oz)
+				if ok:
+					return Vector3i(x, y, z)
+	return Vector3i.MIN
+
+
+## Picks the moss off the stone tops in an L of cells from `at` (see Grass.stone_moss),
+## as hands would.
+func _pick_moss(w, at: Vector3i) -> void:
+	var cells: Array[Vector3i] = []
+	for o: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(-1, 0)]:
+		var c := at + Vector3i(o.x, 0, o.y)
+		if Grass.stone_moss(w, c.x, c.y, c.z):
+			cells.append(c)
+	main.actions.mow(main.character, cells)
 
 
 func _weather_index(id: String) -> int:
