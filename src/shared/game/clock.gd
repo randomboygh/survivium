@@ -23,22 +23,35 @@ const MOON_START := 0.75
 ## Kinds of weather, what each brings and how often it comes in each season (spring,
 ## summer, autumn, winter). Strengths are 0..1: clouds is the share of the sky under
 ## clouds, rain and snow how hard it falls (in winter rain and hail fall as snow),
-## sand blows in deserts only, fog is the haze over everything, wind adds to the gusts
-## and lightning strikes now and then.
+## sand blows in deserts only, fog lies on the ground (fog_depth deep, in world units:
+## up to the grass, or over the bushes and the lower trunks in a thick one), haze veils
+## everything in heavy rain and storms, wind adds to the gusts and lightning strikes now
+## and then.
 const WEATHERS := [
 	{"id": "clear", "name": "Ясно", "icon": "sun", "clouds": 0.28, "chance": [4, 6, 3, 3]},
 	{"id": "cloudy", "name": "Пасмурно", "icon": "cloud", "clouds": 0.75, "wind": 0.3, "chance": [3, 2, 3, 3]},
-	{"id": "fog", "name": "Туман", "icon": "fog", "clouds": 0.5, "fog": 0.75, "chance": [2, 0.5, 3, 1]},
+	{"id": "fog", "name": "Туман", "icon": "fog", "clouds": 0.5, "fog": 0.7, "fog_depth": 1.2, "chance": [2, 0.5, 3, 1]},
+	{"id": "dense_fog", "name": "Густой туман", "icon": "fog", "clouds": 0.6, "fog": 0.95, "fog_depth": 3.2, "chance": [0.5, 0.1, 1, 0.3]},
 	{"id": "rain", "name": "Дождь", "icon": "rain", "clouds": 0.8, "rain": 0.5, "wind": 0.8, "chance": [3, 2, 3, 0]},
-	{"id": "downpour", "name": "Ливень", "icon": "rain", "clouds": 0.95, "rain": 1.0, "wind": 1.2, "fog": 0.3, "chance": [1, 1, 1.5, 0]},
-	{"id": "storm", "name": "Гроза", "icon": "storm", "clouds": 0.95, "rain": 0.9, "wind": 1.8, "fog": 0.2, "lightning": 1.0, "chance": [1, 1.5, 0.5, 0]},
+	{"id": "downpour", "name": "Ливень", "icon": "rain", "clouds": 0.95, "rain": 1.0, "wind": 1.2, "haze": 0.3, "chance": [1, 1, 1.5, 0]},
+	{"id": "storm", "name": "Гроза", "icon": "storm", "clouds": 0.95, "rain": 0.9, "wind": 1.8, "haze": 0.2, "lightning": 1.0, "chance": [1, 1.5, 0.5, 0]},
 	{"id": "hail", "name": "Град", "icon": "hail", "clouds": 0.85, "rain": 0.3, "hail": 1.0, "wind": 1.0, "chance": [0.5, 0.5, 0.3, 0]},
 	{"id": "snow", "name": "Снегопад", "icon": "snow", "clouds": 0.8, "snow": 0.6, "wind": 0.4, "chance": [0, 0, 0, 4]},
-	{"id": "blizzard", "name": "Метель", "icon": "snow", "clouds": 0.95, "snow": 1.0, "wind": 2.5, "fog": 0.55, "chance": [0, 0, 0, 1.5]},
-	{"id": "sandstorm", "name": "Песчаная буря", "icon": "sand", "clouds": 0.4, "sand": 1.0, "wind": 2.5, "fog": 0.5, "chance": [0, 0, 0, 0]},
+	{"id": "blizzard", "name": "Метель", "icon": "snow", "clouds": 0.95, "snow": 1.0, "wind": 2.5, "haze": 0.55, "chance": [0, 0, 0, 1.5]},
+	{"id": "sandstorm", "name": "Песчаная буря", "icon": "sand", "clouds": 0.4, "sand": 1.0, "wind": 2.5, "haze": 0.5, "chance": [0, 0, 0, 0]},
 ]
 const CLEAR := 0
-const RAIN := 3
+const RAIN := 4
+## Mornings of each kind of fog, by the season (spring, summer, autumn, winter): shares
+## of none, a light one in the low places and over water, a thick one. Still air and a
+## wet ground make it likelier (see morning_fog).
+const MORNING_FOG := [[0.35, 0.5, 0.15], [0.5, 0.42, 0.08], [0.2, 0.55, 0.25], [0.6, 0.32, 0.08]]
+## How thick and how deep (world units) each kind of morning fog is.
+const MORNING_FOG_LOOK := [Vector2.ZERO, Vector2(0.55, 0.7), Vector2(0.9, 3.0)]
+## Puddles fill this share a second in a downpour (less in a light rain), and dry out
+## over this many days of the game, sooner in the summer sun, slower in the cold.
+const PUDDLE_FILL := 0.04
+const PUDDLE_DAYS := 0.3
 ## In a desert the precipitation turns into sand storms that often.
 const DESERT_SAND_CHANCE := 2.0
 ## How long one weather lasts, in days of the game.
@@ -78,6 +91,8 @@ var snowing := 0.0
 var hail := 0.0
 var sand := 0.0
 var fog := 0.0
+var fog_depth := 0.0
+var haze := 0.0
 var storm_wind := 0.0
 ## Where the wind blows to (radians, 0 east, PI / 2 south), and where it turns to.
 var wind_angle := 0.0
@@ -90,6 +105,12 @@ var clouds := 0.3
 ## Snow lying on the ground and how wet it is, 0..1.
 var snow := 0.0
 var wet := 0.0
+## How much water stands in puddles after rain, 0..1: they fill in rain and dry out
+## slowly after it (PUDDLE_DAYS).
+var puddles := 0.0
+## The kind of the morning fog of each day (index in MORNING_FOG_LOOK) is a roll of
+## the day; the playtest page and screenshots can pin one (-1: by the day).
+var morning_fog_pin := -1
 ## Biome under the place the weather is felt, checked now and then (deserts).
 var biome := -1
 var biome_clock := 0.0
@@ -182,6 +203,8 @@ func settle_weather() -> void:
 	snowing = maxf(w.get("snow", 0.0), maxf(w.get("rain", 0.0), w.get("hail", 0.0)) if winter else 0.0)
 	sand = w.get("sand", 0.0)
 	fog = w.get("fog", 0.0)
+	fog_depth = w.get("fog_depth", 0.0)
+	haze = w.get("haze", 0.0)
 	storm_wind = w.get("wind", 0.0)
 	wind_angle = wind_to
 	clouds = w.clouds
@@ -196,7 +219,7 @@ func _next_weather() -> void:
 		var c: float = w.chance[season]
 		if desert:
 			# Deserts are dry: no rain or snow, sand storms instead.
-			if w.has("rain") or w.has("snow") or w.has("hail") or w.id == "fog":
+			if w.has("rain") or w.has("snow") or w.has("hail") or w.has("fog"):
 				c = 0.0
 			elif w.id == "sandstorm":
 				c = DESERT_SAND_CHANCE
@@ -238,6 +261,8 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	hail = lerpf(hail, stones, k)
 	sand = lerpf(sand, w.get("sand", 0.0), k)
 	fog = lerpf(fog, w.get("fog", 0.0), k)
+	fog_depth = lerpf(fog_depth, w.get("fog_depth", fog_depth), k)
+	haze = lerpf(haze, w.get("haze", 0.0), k)
 	storm_wind = lerpf(storm_wind, w.get("wind", 0.0), k)
 	clouds = lerpf(clouds, w.clouds, minf(1.0, delta * 0.3))
 	wind_angle = move_toward(wind_angle, wind_to, WIND_TURN * delta)
@@ -248,6 +273,11 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	else:
 		snow = move_toward(snow, 0.0, delta * 0.03)
 	wet = move_toward(wet, 1.0 if rain > 0.2 else 0.0, delta * (0.15 * rain if rain > 0.2 else 0.03))
+	if rain > 0.2:
+		puddles = minf(1.0, puddles + delta * PUDDLE_FILL * rain)
+	else:
+		var sun: float = [1.0, 1.6, 0.7, 0.4][season] * (0.5 + daylight())
+		puddles = maxf(0.0, puddles - days(delta) / PUDDLE_DAYS * sun)
 	world.water_frozen = ice() > 0.8
 
 
@@ -263,6 +293,40 @@ func from_dict(d: Dictionary) -> void:
 	season = posmod(int(d.get("season", season)), 4)
 	season_clock = d.get("season_clock", season_clock)
 	leaf_fall = clampf(d.get("leaf_fall", 0.0), 0.0, 1.0)
+
+
+## The fog lying on the ground now: x how thick (0..1), y how deep it is above the
+## ground, in world units. The weather's fog, or the morning fog of the day around
+## sunrise, thinning out by mid-morning (a thick one later), in still air when nothing
+## falls.
+func ground_fog() -> Vector2:
+	var kind := morning_fog()
+	var look: Vector2 = MORNING_FOG_LOOK[kind]
+	var t := time_of_day
+	var morning := smoothstep(0.17, 0.23, t) * (1.0 - smoothstep(0.3 + 0.05 * kind, 0.4 + 0.07 * kind, t))
+	var falling := rain + snowing + hail + sand
+	var calm := clampf(1.0 - falling * 3.0, 0.0, 1.0) * clampf(1.0 - storm_wind * 1.2, 0.0, 1.0)
+	var amount := maxf(fog, look.x * morning * calm)
+	var depth := fog_depth if fog >= look.x * morning * calm else look.y
+	return Vector2(amount, depth if amount > 0.0 else 0.0)
+
+
+## The kind of fog this day's morning brings (an index in MORNING_FOG_LOOK): a roll of
+## the day and the world by the season, likelier on a wet ground.
+func morning_fog() -> int:
+	if morning_fog_pin >= 0:
+		return morning_fog_pin
+	var shares: Array = MORNING_FOG[season]
+	var seed_value: int = gen.world_seed if gen != null else 0
+	var r := float(posmod(hash(Vector2i(day, seed_value)), 1000)) / 1000.0
+	# A wet ground gives fog more often: the share of none shrinks.
+	r = minf(0.999, r + 0.25 * maxf(wet, puddles))
+	var acc := 0.0
+	for i in shares.size():
+		acc += shares[i]
+		if r < acc:
+			return i
+	return shares.size() - 1
 
 
 ## How much of the water is ice, 0..1, by the snow lying.

@@ -33,8 +33,8 @@ const DEFAULTS := {
 	"effects": true,
 	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
 	"sun_rays": true,
-	# Mist over the ground in the morning (Sky._update_mist).
-	"mist": true,
+	# Fog drawn on the ground, deep in the low places (Sky._update_fog); off, a plain haze.
+	"fog": true,
 	"pixel_size": 0,
 	"fps_limit": 0,
 	"ui_scale": 0,
@@ -52,9 +52,9 @@ const DEFAULTS := {
 ## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
 ## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
 const QUALITIES := [
-	{"pixel_size": 1, "shadows": false, "fire_shadows": 0, "effects": false, "sun_rays": false, "mist": false},
-	{"pixel_size": 0, "shadows": true, "fire_shadows": 1, "effects": true, "sun_rays": false, "mist": true},
-	{"pixel_size": 0, "shadows": true, "fire_shadows": 3, "effects": true, "sun_rays": true, "mist": true},
+	{"pixel_size": 1, "shadows": false, "fire_shadows": 0, "effects": false, "sun_rays": false, "fog": false},
+	{"pixel_size": 0, "shadows": true, "fire_shadows": 1, "effects": true, "sun_rays": false, "fog": true},
+	{"pixel_size": 0, "shadows": true, "fire_shadows": 3, "effects": true, "sun_rays": true, "fog": true},
 ]
 ## Playtest clock: stopped, normal, or faster on top of the time speed setting.
 const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
@@ -164,7 +164,7 @@ func apply() -> void:
 		sky.sun.shadow_enabled = values.shadows
 	if sky != null:
 		sky.rays_on = values.sun_rays
-		sky.mist_on = values.mist
+		sky.fog_on = values.fog
 	if game.effects != null:
 		game.effects.enabled = values.effects
 		game.effects.shadows = values.shadows and values.fire_shadows >= 2

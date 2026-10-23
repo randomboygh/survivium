@@ -36,11 +36,17 @@ global uniform vec2 wrap_size;
 // fade into (the background outdoors, darkness in a cave or a room), see depth_fade.
 global uniform float view_height;
 global uniform vec3 depth_haze;
-// Mist lying on the ground on a morning (see Sky._update_mist): how thick it is
-// (0 none), its colour, and the height its top lies at.
-global uniform float mist;
-global uniform vec3 mist_color;
-global uniform float mist_level;
+// Fog lying on the ground (see Sky._update_fog): how thick it is (0 none), how deep
+// above the ground in the low places, its colour, how far its banks have drifted with
+// the wind, and the height of the sea's surface (the lowest land).
+global uniform float fog;
+global uniform float fog_depth;
+global uniform vec3 fog_color;
+global uniform vec2 fog_drift;
+global uniform float fog_sea;
+// Puddles after rain: x how much water stands (0 dry .. 1 after a long rain), y how
+// hard it rains on them now.
+global uniform vec2 puddles;
 
 // Texels per world unit, and per cell (a cell is half a unit, see WorldData.CELL).
 // Texture tiles are 16x16 and span two cells.
@@ -232,19 +238,67 @@ float depth_fade(float y) {
 	return cut_ghost < 0.5 ? clamp(below * 0.08, 0.0, 0.6) : clamp(below * 0.04, 0.0, 0.5);
 }
 
-// How deep below `mist_level` the mist grows to its full thickness, in world units.
-const float MIST_DEPTH = 1.25;
+// The column `col` (whole cells x, z): r the roof (see roof_level), g the crown, b the
+// top of the ground or water plus one, a 1 over water (see roof_map.gd).
+vec4 column(vec2 col) {
+	return texelFetch(roof_map, ivec2(mod(col, wrap_size / CELL)), 0);
+}
+
+// The height of the ground (or water) top of the column at `xz` plus `off` columns.
+float ground_top(vec2 xz, vec2 off) {
+	return floor(column(floor(xz / CELL) + off).b * 255.0 + 0.5) * CELL;
+}
+
+// How thick the fog is at `p`, 0..1. It lies on the ground and follows it, deep in the
+// low places and over water, a thin layer over the rest, its top rolling in banks that
+// drift with the wind. The ground under it is blended between the column centres round
+// `p`, a trunk or a wall standing no higher in it than a cell over the lowest of them,
+// so the fog goes up their sides; nothing under a roof or in a cave gets any. A little
+// thinner round the player, so they can see where they go.
+float fog_at(vec3 p) {
+	vec2 c = p.xz / CELL - 0.5;
+	vec2 f = fract(c);
+	vec2 b = floor(c);
+	vec4 c00 = column(b);
+	vec4 c10 = column(b + vec2(1.0, 0.0));
+	vec4 c01 = column(b + vec2(0.0, 1.0));
+	vec4 c11 = column(b + vec2(1.0, 1.0));
+	vec4 tops = floor(vec4(c00.b, c10.b, c01.b, c11.b) * 255.0 + 0.5) * CELL;
+	float lowest = min(min(tops.x, tops.y), min(tops.z, tops.w));
+	if (p.y < lowest - CELL * 1.2) {
+		return 0.0;
+	}
+	tops = min(tops, vec4(lowest + CELL));
+	vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
+	float ground = dot(tops, w);
+	float water = dot(vec4(c00.a, c10.a, c01.a, c11.a), w);
+	// Low places: below the ground about them, or near the sea's level.
+	float around = (ground_top(p.xz, vec2(7.0, 7.0)) + ground_top(p.xz, vec2(-7.0, 7.0))
+		+ ground_top(p.xz, vec2(7.0, -7.0)) + ground_top(p.xz, vec2(-7.0, -7.0))) * 0.25;
+	float low = clamp((around - ground) / 1.5, 0.0, 1.0);
+	low = max(max(low, clamp(1.0 - (ground - fog_sea) / 4.0, 0.0, 1.0) * 0.8), water);
+	// Banks: two layers of drifting noise lift and lower the top and thin the fog.
+	vec2 q = p.xz + fog_drift;
+	float bank = texture(cloud_noise, q / 40.0).r * 0.65 + texture(cloud_noise, q / 13.0 + 0.37).r * 0.35;
+	bank = clamp((bank - 0.3) * 2.2, 0.0, 1.0);
+	float depth = fog_depth * mix(0.3, 1.0, low) * (0.45 + 0.9 * bank) + 0.15;
+	float h = max(p.y - ground, 0.0);
+	float m = clamp(1.0 - h / depth, 0.0, 1.0);
+	m = m * (2.0 - m) * mix(0.45, 1.0, low) * (0.55 + 0.45 * bank) * fog;
+	float near = length(p.xz - player_pos.xz);
+	return m * mix(0.6, 1.0, smoothstep(1.0, 4.0, near));
+}
 
 // What veils the colour at `p`: the levels below fading away (`fade`, from
-// depth_fade) and the morning mist, an even layer over the ground that thins out
-// upwards, so trunks, walls and the player stand out of it and the crowns are clear.
+// depth_fade) and the fog on the ground, so trunks, walls and the player stand out of
+// it and the crowns stay clear.
 // rgb is the colour given off in place, a how much of the thing's own colour gives way.
 vec4 veil(vec3 p, float fade) {
-	if (mist <= 0.0) {
+	if (fog <= 0.0) {
 		return vec4(depth_haze * fade, fade);
 	}
-	float m = clamp((mist_level - p.y) / MIST_DEPTH, 0.0, 1.0) * mist;
-	return vec4(depth_haze * fade * (1.0 - m) + mist_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
+	float m = min(fog_at(p), 0.85);
+	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,
