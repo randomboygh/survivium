@@ -9,8 +9,9 @@
 // COLOR.r: depth of the water over the ground at the vertex, in cells / 8, blended
 // across a top so the water darkens smoothly over a sloping bed; COLOR.g: on water
 // lying over the slope of a shore, how far under the surface the ground is there in
-// cells (foam where it comes up to it), 1 elsewhere; COLOR.b * 4: bit 1 the mud of a
-// bog, bit 2 water over a shore (ice does not lift it).
+// cells (foam where it comes up to it), 1 elsewhere; COLOR.b: 0.5 and over for water
+// over a shore (ice does not lift it), plus how murky the water is times 0.45 (0 clear,
+// 0.5 a swamp's, 1 a bog's), blended across the cells (ChunkMesher._kind).
 // Waterfalls (ChunkMesher._falls): vertex alpha FALL_SHEET marks the sheet of water
 // falling over a step of a river, whose UV2.y is then the level of its foot, and
 // FALL_FOAM the churning foam on the water where it lands.
@@ -23,8 +24,11 @@ uniform float ice_amount : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 shallow : source_color = vec3(0.36, 0.62, 0.6);
 uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
 uniform vec3 foam_color : source_color = vec3(0.85, 0.93, 0.92);
-uniform vec3 mud : source_color = vec3(0.2, 0.17, 0.1);
-uniform vec3 mud_wet : source_color = vec3(0.26, 0.26, 0.15);
+// The murky water of a swamp, shallow and deep, and the murkier water of a bog.
+uniform vec3 swamp_shallow : source_color = vec3(0.37, 0.43, 0.25);
+uniform vec3 swamp_deep : source_color = vec3(0.2, 0.26, 0.16);
+uniform vec3 bog_color : source_color = vec3(0.33, 0.31, 0.19);
+uniform vec3 swamp_foam : source_color = vec3(0.62, 0.65, 0.5);
 
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
@@ -37,6 +41,7 @@ varying flat vec2 data;
 varying float depth_here;
 varying float shore_under;
 varying flat int kind;
+varying float murk_here;
 varying float clouds;
 // 1 under the open sky, where nothing casts a shadow on the surface (see light()).
 varying float open_sky;
@@ -69,12 +74,18 @@ vec3 ice_color(vec2 tex, float depth, bool side) {
 	return c;
 }
 
-// The mud of a bog: dark, a wet sheen in patches and a few bubbles.
-vec3 mud_color(vec2 tex) {
-	float p = ground_patch(tex / TEXELS, 23.0);
-	vec3 c = p > 0.62 ? mud_wet : (p < 0.3 ? mud * 0.85 : mud);
-	if (hash12(tex + 13.0) > 0.985) {
-		c = mix(c, mud_wet * 1.4, 0.7);
+// Murky water, `murk` from 0.5 (a swamp's) to 1 (a bog's): green-brown, darker in
+// the deep; a bog's in patches of scum and darker mud and a few bubbles.
+vec3 murky_color(vec2 tex, float depth, float murk) {
+	vec3 c = mix(swamp_shallow, swamp_deep, depth);
+	float b = clamp(murk * 2.0 - 1.0, 0.0, 1.0);
+	if (b > 0.0) {
+		float p = ground_patch(tex / TEXELS, 23.0);
+		vec3 m = p > 0.62 ? mix(bog_color, swamp_shallow, 0.5) : (p < 0.3 ? bog_color * 0.85 : bog_color);
+		if (hash12(tex + 13.0) > 0.988) {
+			m = swamp_foam;
+		}
+		c = mix(c, m, b);
 	}
 	return c;
 }
@@ -85,7 +96,8 @@ varying vec2 light_xz;
 void vertex() {
 	// Ice fills its cell to the top, level with the ground beside it, where it is
 	// walked on (see WorldData.water_frozen).
-	kind = int(COLOR.b * 4.0 + 0.5);
+	kind = COLOR.b > 0.48 ? 2 : 0;
+	murk_here = (COLOR.b - (kind == 2 ? 0.5 : 0.0)) / 0.45;
 	if (ice_amount > 0.8 && (kind & 2) == 0 && abs(fract(VERTEX.y / CELL) - 0.5) < 0.01) {
 		VERTEX.y += 0.5 * CELL;
 	}
@@ -115,7 +127,18 @@ void fragment() {
 	depth = clamp(floor(depth * DEPTH_STEPS + bayer) / DEPTH_STEPS, 0.0, 1.0);
 	vec3 col = mix(shallow, deep, depth);
 	float alpha = mix(0.45, 1.0, depth);
-	bool bog = (kind & 1) != 0;
+	// Murky water: the murk blended over the cells, broken up by a still patch noise
+	// between its levels (clear, swamp, bog) and dithered in steps, so a swamp runs
+	// into a bog (or clear water) unevenly.
+	float between = abs(murk_here * 2.0 - round(murk_here * 2.0)) * 2.0;
+	float murk = murk_here + (ground_patch(tex / TEXELS, 31.0) - 0.5) * between;
+	murk = clamp(floor(murk * 4.0 + bayer) / 4.0, 0.0, 1.0);
+	if (murk > 0.0) {
+		vec3 m = murky_color(tex, depth, max(murk, 0.5));
+		col = mix(col, m, min(murk * 2.0, 1.0));
+		alpha = mix(alpha, mix(0.75, 1.0, depth) + 0.2 * clamp(murk * 2.0 - 1.0, 0.0, 1.0), min(murk * 2.0, 1.0));
+	}
+	vec3 foam_c = mix(foam_color, swamp_foam, min(murk * 2.0, 1.0));
 	if (falls > 1.5) {
 		// The falling sheet: streaks a texel wide running down at their own speeds,
 		// white water at the lip and in a band of spray at the foot.
@@ -136,12 +159,6 @@ void fragment() {
 		float b = hash12(tex + floor(TIME * 5.0) * 13.0);
 		col = mix(col, foam_color, b < 0.55 ? 0.9 : 0.4);
 		alpha = 0.9;
-	} else if (bog) {
-		col = mud_color(tex);
-		if (shore_under < 0.12 && world_normal.y > 0.5) {
-			col *= 0.8;
-		}
-		alpha = 1.0;
 	} else if (world_normal.y < 0.5) {
 		col *= 0.8;
 		alpha = 0.9;
@@ -150,9 +167,9 @@ void fragment() {
 		float n = texture(cloud_noise, (tex / TEXELS + vec2(TIME * 0.05, TIME * 0.02)) / 6.0).r;
 		float n2 = texture(cloud_noise, (tex / TEXELS - vec2(TIME * 0.03, -TIME * 0.04)) / 9.0 + 0.5).r;
 		float line = step(abs(n - 0.55), 0.012) + step(abs(n2 - 0.45), 0.01);
-		col = mix(col, col * 1.35 + 0.05, clamp(line, 0.0, 1.0) * 0.8);
-		// Sparkles.
-		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0));
+		col = mix(col, col * 1.35 + 0.05, clamp(line, 0.0, 1.0) * 0.8 * (1.0 - 0.6 * murk));
+		// Sparkles, none on a bog.
+		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75);
 		col += vec3(0.35) * s * (1.0 - ice_amount);
 		// Foam along the shore, washing in and out by a texel or two.
 		int foam = int(data.x + 0.5);
@@ -165,10 +182,10 @@ void fragment() {
 			float along = e < 2 ? tex.x : tex.y;
 			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + along * 0.6)) + step(0.75, hash12(vec2(along, floor(TIME * 1.5))));
 			if (float(dist[e]) < wash) {
-				col = foam_color;
+				col = foam_c;
 				alpha = 0.95;
 			} else if (float(dist[e]) < wash + 2.0) {
-				col = mix(col, foam_color, 0.25);
+				col = mix(col, foam_c, 0.25);
 			}
 		}
 		// Over the slope of a shore: foam where the ground comes up to the surface, a
@@ -178,10 +195,10 @@ void fragment() {
 				+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
 			float d = shore_under * CELL_TEXELS;
 			if (d < wash) {
-				col = foam_color;
+				col = foam_c;
 				alpha = 0.95;
 			} else if (d < wash + 2.0) {
-				col = mix(col, foam_color, 0.25);
+				col = mix(col, foam_c, 0.25);
 			}
 		}
 		// Along diagonals: the water lies away from a filled corner and on the corner's
@@ -195,10 +212,10 @@ void fragment() {
 			float d = float(filled ? sd : -sd);
 			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
 			if (d < wash) {
-				col = foam_color;
+				col = foam_c;
 				alpha = 0.95;
 			} else if (d < wash + 2.0) {
-				col = mix(col, foam_color, 0.25);
+				col = mix(col, foam_c, 0.25);
 			}
 		}
 		// Rain rings: each square of two by two cells gets a ring now and then while it
@@ -212,7 +229,7 @@ void fragment() {
 			col = mix(col, col * 1.4 + 0.08, ring);
 		}
 	}
-	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * (bog ? vec3(0.8, 0.78, 0.7) : vec3(1.0)), ice_amount);
+	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;

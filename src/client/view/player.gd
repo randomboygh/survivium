@@ -16,9 +16,13 @@ const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 const CELL := WorldData.CELL
 ## The body's height in cells (see Body).
 const HEIGHT := Body.HEIGHT
-## Colour of the line of ripples round the body where it goes into water, and into mud.
+## Colour of the line of ripples round the body where it goes into water, and into the
+## murky water of a swamp; the tint of the body under it in clear water and in a
+## swamp's, shallow and deep (water.gdshader's).
 const FOAM_RIPPLE := Color(0.85, 0.93, 0.92)
-const MUD_RIPPLE := Color(0.3, 0.26, 0.18)
+const MURKY_RIPPLE := Color(0.62, 0.65, 0.5)
+const CLEAR_TINT := [Color(0.36, 0.62, 0.6), Color(0.13, 0.29, 0.42)]
+const SWAMP_TINT := [Color(0.37, 0.43, 0.25), Color(0.2, 0.26, 0.16)]
 ## The shortest a work plays, in seconds, so quick placing still shows.
 const MIN_WORK := 0.2
 ## How many sheets of looks and things held are kept, so changing hands back and forth
@@ -220,8 +224,11 @@ func place_sprite() -> void:
 		layer.global_position = sprite.global_position
 		layer.material_override.set_shader_parameter("water_line", line)
 		layer.material_override.set_shader_parameter("frame_uv", frame)
-	# Mud hides the body under it; water shows it tinted.
-	sprite.material_override.set_shader_parameter("ripple", MUD_RIPPLE if body.in_bog else FOAM_RIPPLE)
+	# Water shows the body under it tinted; a bog's is too murky to see through.
+	sprite.material_override.set_shader_parameter("ripple", MURKY_RIPPLE if body.murk > 0 else FOAM_RIPPLE)
+	var tint: Array = SWAMP_TINT if body.murk > 0 else CLEAR_TINT
+	underwater.material_override.set_shader_parameter("shallow", tint[0])
+	underwater.material_override.set_shader_parameter("deep", tint[1])
 	underwater.visible = line > -1000.0 and not body.in_bog
 	# The torch is held a little towards the viewer.
 	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, 1.2, -PixelView.up.y * 0.3))
