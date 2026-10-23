@@ -235,11 +235,13 @@ void fragment() {
 			ao = min(ao, dd == 0 ? 0.6 : 0.8);
 		}
 	}
-	// Snow covers whole texels on upward faces and a fringe on top of walls. The
-	// wind leaves a few spots bare, it melts away around fires, and none falls on
-	// the faces of a cell under a roof, an overhang or a cave ceiling.
+	// Snow covers whole texels on upward faces and a fringe on top of walls, all year
+	// on the high mountains (two levels to thicken above the snow line). The wind
+	// leaves a few spots bare, it melts away around fires, and none falls on the faces
+	// of a cell under a roof, an overhang or a cave ceiling.
 	bool roof = roofed(world_pos.xz, world_pos.y);
-	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
+	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
+	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire.

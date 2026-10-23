@@ -27,6 +27,9 @@ const WATER_TOP := 0.5
 var size_y: int
 ## The top cell of the sea, about five twelfths of the way up (12 of 40, 20 of 48).
 var sea_level := 12
+## Levels above the sea from which snow lies all year, on the high mountains (see
+## peak_snow); the world shader draws it from the same line (`snow_line`).
+const SNOW_LINE := 18
 ## In winter water freezes and is walked on like ground; otherwise it is waded and
 ## swum through.
 var water_frozen := false
@@ -1334,6 +1337,12 @@ static func top_level(bits: int) -> int:
 	if bits >> 1 != 0:
 		level += 1
 	return level
+
+
+## How much snow lies all year at height `y` (in cells, a top or the feet on it), 0..1:
+## none below the snow line, full two levels above it.
+func peak_snow(y: float) -> float:
+	return clampf((y - sea_level - SNOW_LINE) / 2.0, 0.0, 1.0)
 
 
 ## The level just above the highest cell of column (x, z) that is not air or leaves, 0

@@ -12,6 +12,9 @@ global uniform float cut_height;
 // 0 when the player moved the cut by hand to look at the levels below.
 global uniform float cut_ghost;
 global uniform float snow_amount;
+// Height (world units) above which snow lies all year: the tops of high mountains (see
+// WorldData.SNOW_LINE and peak_snow).
+global uniform float snow_line;
 global uniform float wetness;
 global uniform vec3 foliage_tint;
 global uniform vec3 grass_tint;

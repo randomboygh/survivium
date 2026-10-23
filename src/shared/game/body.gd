@@ -204,8 +204,9 @@ func _pace(depth: float) -> float:
 
 
 ## What the weather leaves of the pace of the body at `p` (in cells) walking `dir`
-## (x east, y south): 1 under a roof or with no clock. In the open deep snow slows
-## it unless the column is a fresh trail, the wind against it slows it and the wind
+## (x east, y south): 1 under a roof or with no clock. In the open deep snow (in
+## winter, or all year on the high mountains, see WorldData.peak_snow) slows it
+## unless the column is a fresh trail, the wind against it slows it and the wind
 ## behind it helps, and a blizzard or a sand storm slows it more.
 func weather_pace(p: Vector3, dir: Vector2) -> float:
 	if clock == null:
@@ -216,7 +217,7 @@ func weather_pace(p: Vector3, dir: Vector2) -> float:
 		return 1.0
 	var k := 1.0
 	if on_ground and water_depth <= 0.0:
-		var deep: float = smoothstep(SNOW_DEEP.x, SNOW_DEEP.y, clock.snow)
+		var deep: float = smoothstep(SNOW_DEEP.x, SNOW_DEEP.y, maxf(clock.snow, world.peak_snow(p.y)))
 		if deep > 0.0:
 			var life: float = TRAIL_DAYS * (1.0 - 0.75 * clock.snowing)
 			k -= SNOW_SLOW * deep * (1.0 - TRAIL_EASE * world.trail(x, z, clock.now(), life))
@@ -246,7 +247,7 @@ func _leave_trail(p: Vector3) -> void:
 	var col := Vector2i(floori(p.x), floori(p.z))
 	if col == _col:
 		return
-	if clock != null and on_ground and clock.snow > SNOW_DEEP.x and _col.x != 1 << 30:
+	if clock != null and on_ground and maxf(clock.snow, world.peak_snow(p.y)) > SNOW_DEEP.x and _col.x != 1 << 30:
 		world.tread(_col.x, _col.y, clock.now())
 	_col = col
 

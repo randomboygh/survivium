@@ -57,6 +57,7 @@ func _init() -> void:
 	_test_shapes()
 	_test_ai_relations()
 	_test_pixel_view()
+	_test_mountains()
 	_test_trees()
 	_test_bushes()
 	_test_felling()
@@ -152,24 +153,7 @@ func _test_generation() -> void:
 		"chunks dropped and made again are the same")
 	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and so are their trees and bushes")
 	# Water above the sea never leaks: nothing open under it, and no air beside it.
-	var leaks := 0
-	for key: Vector2i in keys:
-		var ch: WorldData.Chunk = w.chunks[key]
-		for col in WorldData.LAYER:
-			var water: int = ch.water[col]
-			var x: int = key.x * 16 + (col & 15)
-			var z: int = key.y * 16 + (col >> 4)
-			while water != 0:
-				var bit := water & -water
-				water ^= bit
-				var y := WorldData.level_of(bit)
-				if y <= w.sea_level:
-					continue
-				if w.get_cell(x, y - 1, z) == Mat.AIR:
-					leaks += 1
-				for d: Vector2i in WorldData.SIDES:
-					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
-						leaks += 1
+	var leaks := _leaks(w, keys)
 	_check(leaks == 0, "water above the sea does not leak (%d leaks)" % leaks)
 	# Settings change the world: more water, a different world.
 	var wet := WorldGen.new(42, 40, {"water": 2})
@@ -188,6 +172,103 @@ func _test_generation() -> void:
 				if mouth.heights[j + dj] > mouth.heights[j]:
 					steps += 1
 	_check(meets > 0 and steps * 4 < meets, "rivers flow into lakes without a step (%d of %d higher)" % [steps, meets])
+
+
+## Cells of water above the sea in the chunks `keys` with air under them, or air beside
+## them that is not over lower water (a waterfall).
+func _leaks(w: WorldData, keys: Array) -> int:
+	var leaks := 0
+	for key: Vector2i in keys:
+		var ch: WorldData.Chunk = w.chunks[key]
+		for col in WorldData.LAYER:
+			var water: int = ch.water[col]
+			var x: int = key.x * 16 + (col & 15)
+			var z: int = key.y * 16 + (col >> 4)
+			while water != 0:
+				var bit := water & -water
+				water ^= bit
+				var y := WorldData.level_of(bit)
+				if y <= w.sea_level:
+					continue
+				if w.get_cell(x, y - 1, z) == Mat.AIR:
+					leaks += 1
+				for d: Vector2i in WorldData.SIDES:
+					if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.water_col(x + d.x, z + d.y) & (bit - 1) == 0:
+						leaks += 1
+	return leaks
+
+
+## Mountains rise to snowy rock near the top of the world; rivers come down them over
+## waterfalls and rapids and part into deltas at the sea; caves open in their sides.
+func _test_mountains() -> void:
+	var gen := WorldGen.new(20261018)
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var peak := gen.find_place("peak", near)
+	var top := gen.lay_out(peak.x - 32, peak.y - 32, 64, 64)
+	var highest := 0
+	var bare := 0
+	for j in top.heights.size():
+		highest = maxi(highest, top.heights[j])
+		if top.heights[j] >= gen.sea + WorldGen.ROCK_LINE + 3 and top.water[j] < 0:
+			bare += 1 if top.tops[j] in [Mat.SCREE, Mat.STONE] else 0
+	_check(peak != near and highest >= gen.size_y - 8, "high mountains reach near the top of the world (%d)" % highest)
+	_check(bare > 0, "their high slopes are bare scree and stone")
+	var w: WorldData = gen.world
+	_check(w.peak_snow(w.sea_level + WorldData.SNOW_LINE + 2) == 1.0 and w.peak_snow(w.sea_level + 10) == 0.0,
+		"snow lies all year above the snow line only")
+	# A waterfall: river water beside air over water two levels or more below, the
+	# same whichever order its chunks are made in, and nothing leaks.
+	var fall := gen.find_place("waterfall", near)
+	var from := WorldData.chunk_key(fall.x, fall.y) - Vector2i(1, 1)
+	gen.generate_area(from, from + Vector2i(3, 3))
+	var keys := []
+	for cz in range(from.y, from.y + 3):
+		for cx in range(from.x, from.x + 3):
+			keys.append(Vector2i(cx, cz))
+	var drops := 0
+	for dz in range(-16, 17):
+		for dx in range(-16, 17):
+			var x := fall.x + dx
+			var z := fall.y + dz
+			var y := WorldData.top_level(w.water_col(x, z))
+			if y <= w.sea_level or w.get_cell(x, y + 1, z) != Mat.AIR:
+				continue
+			for d: Vector2i in WorldData.SIDES:
+				if w.get_cell(x + d.x, y, z + d.y) == Mat.AIR and w.get_cell(x + d.x, y - 1, z + d.y) == Mat.AIR:
+					drops += 1
+	_check(drops > 0, "rivers in the mountains fall over steps")
+	_check(_leaks(w, keys) == 0, "and their water does not leak")
+	var other := WorldGen.new(20261018)
+	for i in range(keys.size() - 1, -1, -1):
+		_ensure_stage(other, keys[i], WorldGen.SHAPED)
+	_check(_same(other.world, w, keys), "made in another order the falls are the same")
+	_check(gen.find_place("rapids", near) != near and gen.find_place("delta", near) != near,
+		"rivers have rapids, and deltas at the sea")
+	# A cave cut into a mountain's side: open to the air at its mouth, under a roof
+	# further in.
+	var mountain := gen.find_place("mountain", near)
+	var cave := []
+	for gz in range(-6, 7):
+		for gx in range(-6, 7):
+			if cave.is_empty():
+				cave = gen._tunnel(floori(mountain.x / float(WorldGen.TUNNEL_GRID)) + gx,
+					floori(mountain.y / float(WorldGen.TUNNEL_GRID)) + gz)
+	_check(not cave.is_empty(), "mountains have caves in their sides")
+	if not cave.is_empty():
+		var mouth := Vector2(cave[0], cave[1])
+		var floor_y: int = cave[3]
+		var key := WorldData.chunk_key(int(mouth.x), int(mouth.y))
+		gen.generate_area(key - Vector2i(2, 2), key + Vector2i(3, 3))
+		var roofed := 0
+		for along in range(4, WorldGen.TUNNEL_LEN):
+			var p: Vector2 = mouth + cave[2] * along
+			for dz in range(-2, 3):
+				for dx in range(-2, 3):
+					var x := int(p.x) + dx
+					var z := int(p.y) + dz
+					if w.get_cell(x, floor_y + 1, z) == Mat.AIR and w.surface_y(x, z) > floor_y + 4:
+						roofed += 1
+		_check(roofed > 0, "a gallery runs into the mountain under its roof (%d cells)" % roofed)
 
 
 ## A world of `seed` made at once over four by four chunks at its spawn: {"gen", "world",

@@ -39,6 +39,10 @@ snow_amount={
 "type": "float",
 "value": 0.0
 }
+snow_line={
+"type": "float",
+"value": 1000.0
+}
 wetness={
 "type": "float",
 "value": 0.0

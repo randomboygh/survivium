@@ -110,6 +110,13 @@ const SHOTS := {
 	"plateau": {"time": 0.42, "season": 1, "place": "plateau"},
 	"pit-mouth": {"time": 0.42, "season": 1, "place": "pit"},
 	"adit": {"time": 0.42, "season": 1, "place": "adit"},
+	"mountain": {"time": 0.42, "season": 1, "place": "mountain"},
+	"mountain-winter": {"time": 0.45, "season": 3, "place": "mountain"},
+	"peak": {"time": 0.42, "season": 1, "place": "peak"},
+	"waterfall": {"time": 0.42, "season": 1, "place": "waterfall"},
+	"rapids": {"time": 0.42, "season": 1, "place": "rapids"},
+	"delta": {"time": 0.42, "season": 1, "place": "delta"},
+	"mountain-cave": {"time": 0.42, "season": 1, "place": "mountain-cave"},
 	"tracks": {"time": 0.42, "season": 1, "walk": true},
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
@@ -851,11 +858,17 @@ func _weather_index(id: String) -> int:
 func _place(w, what: String) -> Vector3:
 	var at: Vector3 = main.player.position
 	var near := Vector2i(int(at.x / CELL), int(at.z / CELL))
-	var p := Vector2(main.gen.find_place(what, near))
+	var p := Vector2(main.gen.find_place("mountain" if what == "mountain-cave" else what, near))
+	if what == "mountain-cave":
+		p = _mountain_cave(p)
 	main.player.position = Vector3(p.x + 0.5, w.size_y - 1, p.y + 0.5) * CELL
 	main.chunks.build_around()
 	match what:
-		"lake", "river", "canyon", "swamp":
+		"waterfall":
+			return _falls_view(w, p, 2)
+		"rapids":
+			return _falls_view(w, p, 1)
+		"lake", "river", "canyon", "swamp", "delta":
 			return _dry_near(w, p, 24)
 		"cliffs":
 			return _coast(w, p, _seaward(w, p), 3.0)
@@ -880,6 +893,69 @@ func _dry_near(w, p: Vector2, radius: int) -> Vector3:
 				best_d = d
 				best = Vector3(x + 0.5, y, z + 0.5)
 	return best * CELL if best_d < INF else main.player.position
+
+
+## A spot before the mouth of the nearest cave cut into a mountain's side (see
+## WorldGen._tunnels) to the cell point `p`, looking in.
+func _mountain_cave(p: Vector2) -> Vector2:
+	var g := Vector2i(floori(p.x / WorldGen.TUNNEL_GRID), floori(p.y / WorldGen.TUNNEL_GRID))
+	for r in 8:
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var t: Array = main.gen._tunnel(g.x + dx, g.y + dz)
+				if not t.is_empty():
+					return Vector2(t[0], t[1]) - t[2] * 3.0
+	return p
+
+
+## A dry spot beside a step of a river near the cell point `p` that drops `drop`
+## levels or more to the south (seen from the front), with no crowns over it, level
+## with its top or above, so the fall is not cut away.
+func _falls_view(w, p: Vector2, drop: int) -> Vector3:
+	var best := Vector3i(-1, -1, -1)
+	var best_d := INF
+	for dz in range(-60, 61):
+		for dx in range(-60, 61):
+			var x := int(p.x) + dx
+			var z := int(p.y) + dz
+			var y: int = w.surface_y(x, z)
+			if y >= 0:
+				continue
+			var top: int = w.size_y - 1
+			while top > 0 and w.get_cell(x, top, z) == Mat.AIR:
+				top -= 1
+			if w.get_cell(x, top, z) != Mat.WATER:
+				continue
+			# Falls to the south first, then to the east or west.
+			var k := 0
+			var turn := 0.0
+			for o: Vector2i in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(-1, 0)]:
+				if k == 0 and w.get_cell(x + o.x, top, z + o.y) == Mat.AIR:
+					k = 1
+					while w.get_cell(x + o.x, top - k, z + o.y) == Mat.AIR:
+						k += 1
+					turn = 0.0 if o.y > 0 else 20.0
+			if k < drop or Vector2(dx, dz).length() + turn >= best_d:
+				continue
+			var leafy := false
+			for oz in range(-2, 7):
+				for ox in range(-4, 5):
+					leafy = leafy or w.leaf_col(x + ox, z + oz) != 0
+			if leafy:
+				continue
+			best_d = Vector2(dx, dz).length() + turn
+			best = Vector3i(x, top, z)
+	if best.y < 0:
+		return _dry_near(w, p, 24)
+	for r in range(2, 16):
+		for dz in range(-r, r + 1):
+			for dx in [-r, r]:
+				var y: int = w.surface_y(best.x + dx, best.z + dz)
+				if y > best.y and y < best.y + 4 and w.get_cell(best.x + dx, y, best.z + dz) == Mat.AIR:
+					return Vector3(best.x + dx + 0.5, y, best.z + dz + 0.5) * CELL
+	return Vector3(best.x + 0.5, best.y + 1, best.z - 1.5) * CELL
 
 
 ## The one of eight directions from the cell point `p` in which the sea is nearest.

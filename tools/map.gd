@@ -1,6 +1,7 @@
 extends SceneTree
 ## Draws the land around the spawn from above to check the generator:
-## godot --headless --path . --script res://tools/map.gd -- <file.png> [cells] [step] [seed]
+## godot --headless --path . --script res://tools/map.gd -- <file.png> [cells] [step] [seed] [place]
+## (`place`: centre on the nearest place of a kind instead, see WorldGen.find_place).
 ## With step 1 (the default for up to 512 cells) the chunks are generated and drawn a
 ## pixel per column: ground coloured by its top and shaded by height, a light rim where
 ## it drops (cliffs), a red tint over caves, tree crowns dark green, water darker with
@@ -15,7 +16,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 var colors: Dictionary = {
 	Mat.GRASS: Color(0.36, 0.56, 0.24), Mat.DIRT: Color(0.5, 0.36, 0.22), Mat.STONE: Color(0.55, 0.55, 0.55),
 	Mat.SAND: Color(0.86, 0.78, 0.52), Mat.CLAY: Color(0.6, 0.45, 0.38), Mat.COPPER_ORE: Color(0.6, 0.5, 0.4),
-	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.LEAVES: Color(0.16, 0.36, 0.14),
+	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.LEAVES: Color(0.16, 0.36, 0.14), Mat.SCREE: Color(0.62, 0.6, 0.57),
 }
 
 
@@ -28,6 +29,9 @@ func _initialize() -> void:
 	var t0 := Time.get_ticks_msec()
 	var gen := WorldGen.new(seed_value)
 	var at: Vector3i = gen.spawn_guess
+	if args.size() > 4:
+		var p := gen.find_place(args[4], Vector2i(at.x, at.z))
+		at = Vector3i(p.x, 0, p.y)
 	var x0 := at.x - cells / 2
 	var z0 := at.z - cells / 2
 	var px := cells / step
@@ -88,6 +92,8 @@ func _draw_cells(gen: WorldGen, img: Image, x0: int, z0: int, n: int) -> void:
 					c = c.darkened(0.35)
 				if w.leaf_col(wx, wz) != 0:
 					c = c.lerp(colors[Mat.LEAVES], 0.7)
+				elif w.peak_snow(y + 1) > 0.5:
+					c = c.lerp(Color(0.95, 0.96, 1.0), 0.75)
 				if w.air_col(wx, wz) & ((1 << y) - 1) != 0:
 					c = c.lerp(Color(0.8, 0.2, 0.2), 0.3)
 			img.set_pixel(x, z, Color(c.r, c.g, c.b))

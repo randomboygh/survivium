@@ -5,9 +5,12 @@ extends RefCounted
 ## player comes near (see ChunkStreamer), and made again the same after it was dropped.
 ## Continents and oceans come from a very slow noise, mountains, plateaus and cliff
 ## coasts from slower and faster ones over the land (and flat beaches where the cliff
-## noise is low), rivers run along the zero lines of a noise, widening towards the sea,
-## and lakes fill its high spots, both at the level of the sea, and the climate
-## (warmth and moisture) is noise too, so biomes spread over hundreds of cells. A chunk
+## noise is low), rivers run along the zero lines of a noise, widening towards the sea
+## and parting into deltas at it, and lakes fill its high spots, both at the level of
+## the sea. A mountain rises from a gentle foot through woods to bare scree and stone,
+## snowy at the top (WorldData.SNOW_LINE); the rivers that rise on it come down in
+## steps, over rapids and waterfalls, and now and then a cave is cut into its side. The
+## climate (warmth and moisture) is noise too, so biomes spread over hundreds of cells. A chunk
 ## is made in three stages that each read only what the stages before left in place:
 ## 1. TERRAIN: the columns of the chunk and a margin around it are laid out (height,
 ##    water, top, biome), then the cells are written: stone with ore, dirt, the top,
@@ -110,6 +113,35 @@ const FLAT_BEACH := 28.0
 ## Rivers widen towards the sea or a lake over this many cells, so they are brooks
 ## at their sources and broad at their mouths.
 const MOUTH_REACH := 400.0
+## Mountains: the smooth rise of the highest of them over the land around, and their
+## ridges on top of it (see _relief); above ROCK_LINE levels over the sea their slopes
+## are bare scree with sheer stone outcrops, and above WorldData.SNOW_LINE snow lies on
+## them all year. Between the foot and the rock a mountain is wooded here and there.
+const MOUNT_RISE := 15.0
+const RIDGE_RISE := 5.0
+const ROCK_LINE := 15
+const MOUNT_WOODS := 7
+## Rivers in the mountains run higher, climbing a fraction RIVER_CLIMB of the
+## mountain's rise in steps (see _river_level): FALL_STEP levels apart, each a rapid of
+## one level and then a waterfall of the rest. Boulders stand in the channel where it
+## drops a level, a share BOULDERS of its cells.
+const RIVER_CLIMB := 0.85
+const FALL_STEP := 4
+const RAPID_AT := 0.65
+const BOULDERS := 0.12
+## Within DELTA_REACH cells of the coast a river splits into a delta: two arms that part
+## from the main channel up to DELTA_SPREAD cells to each side at the coast, and two
+## more that part from those nearer the sea, with low sandy islands between.
+const DELTA_REACH := 160.0
+const DELTA_SPREAD := 16.0
+## How steep the river noise must be per cell for the arms of a delta.
+const DELTA_SLOPE := 0.001
+## Rare caves in the side of a mountain: in a square of TUNNEL_GRID cells, now and then
+## (TUNNEL_CHANCE), a gallery TUNNEL_LEN cells long is cut uphill into a slope, ending
+## in a chamber over bigger caves (see _tunnels).
+const TUNNEL_GRID := 48
+const TUNNEL_CHANCE := 0.45
+const TUNNEL_LEN := 26
 
 var world: WorldData
 var world_seed: int
@@ -125,6 +157,9 @@ var layouts := {}
 ## The candidate trees of each planted chunk (see _tree_candidates), so they can grow
 ## again into a neighbour made again.
 var planted := {}
+## The caves cut into mountains' sides by grid square (see _tunnel), as they are
+## worked out.
+var tunnels := {}
 ## Where the player is first put: a meadow near the origin, refined by find_spawn once
 ## its chunk is made.
 var spawn_guess: Vector3i
@@ -150,6 +185,7 @@ var n_swamp: FastNoiseLite
 var n_flow: FastNoiseLite
 var n_dunes: FastNoiseLite
 var n_roll: FastNoiseLite
+var n_peak: FastNoiseLite
 var n_caves: FastNoiseLite
 var n_ores: FastNoiseLite
 ## The slow noises sampled on the lattice: continents, rivers (along its zero lines)
@@ -290,7 +326,7 @@ func start(key: Vector2i, stage: int) -> Job:
 		TERRAIN:
 			job.lay = _window(key.x * CHUNK - MARGIN, key.y * CHUNK - MARGIN, WINDOW, WINDOW)
 			job.trees = _regrown(key)
-			job.rows = window_noises.size() + 1 + WINDOW + CHUNK + job.trees.size()
+			job.rows = window_noises.size() + 1 + WINDOW + 1 + CHUNK + job.trees.size()
 		PLANTED:
 			job.trees = _tree_candidates(key, layouts[key])
 			job.rows = job.trees.size()
@@ -343,8 +379,9 @@ func step(job: Job, n: int) -> bool:
 
 
 ## The steps of the terrain stage: sample the noises one by one, the slow ones on the
-## lattice, lay out the rows of the window, raise the banks, write the rows of cells,
-## then grow the neighbours' trees that reach in.
+## lattice, lay out the rows of the window, raise the banks, cut the caves into the
+## mountains' sides, write the rows of cells, then grow the neighbours' trees that
+## reach in.
 func _terrain_step(job: Job, row: int) -> void:
 	var noises := window_noises.size()
 	if row < noises:
@@ -362,6 +399,10 @@ func _terrain_step(job: Job, row: int) -> void:
 			_banks(job.lay)
 		return
 	row -= WINDOW
+	if row == 0:
+		_tunnels(job.lay)
+		return
+	row -= 1
 	if row < CHUNK:
 		if row == 0:
 			world.add_chunk(job.key)
@@ -394,13 +435,14 @@ func _noises() -> void:
 	n_flow = _noise(18, 0.0009, 2)
 	n_dunes = _noise(19, 0.035, 2)
 	n_roll = _noise(23, 0.003, 2)
+	n_peak = _noise(24, 0.0016, 1)
 	n_caves = _noise(14, 0.03, 2)
 	n_ores = _noise(15, 0.075, 1)
 	n_land = _noise(20, 0.00028 / size, 4)
 	n_river = _noise(21, 0.0018, 2)
 	n_lake = _noise(22, 0.004, 2)
 	window_noises = [n_hills, n_ridges, n_mount, n_shape, n_cliff, n_plateau, n_steep, n_soil,
-		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes, n_roll]
+		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes, n_roll, n_peak]
 
 
 func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
@@ -446,8 +488,9 @@ func _chance(x: int, z: int, salt: int) -> float:
 ## A window of columns to lay out: `w` by `h` columns `step` cells apart from column
 ## x0, z0. Its noises are sampled by _sample and _lattice, its rows laid out by
 ## _layout_row into one entry per column (j = lz * w + lx): height, water (the top
-## water cell, -1 for none), top, flags, biome, relief kind and what water it is, and
-## by _entrances the floor of a cave mouth's gallery and the depth of its pit.
+## water cell, -1 for none), top, flags, biome, relief kind, what water it is and
+## whether a river drops there (1 rapids, 2 a waterfall), and by _entrances and
+## _tunnels the floor of a cave mouth's gallery and the depth of its pit.
 func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	var count := w * h
 	var lay := {"x0": x0, "z0": z0, "w": w, "h": h, "step": step, "grids": []}
@@ -456,11 +499,11 @@ func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 		a.resize(count)
 		lay[k] = a
 	lay.water.fill(-1)
-	for k: String in ["tops", "flags", "biome", "kind", "feature", "adit", "pit"]:
+	for k: String in ["tops", "flags", "biome", "kind", "feature", "falls", "adit", "pit"]:
 		var a := PackedByteArray()
 		a.resize(count)
 		lay[k] = a
-	for k: String in ["land", "coast", "river", "lake"]:
+	for k: String in ["land", "coast", "river", "side", "seaward", "lake"]:
 		var a := PackedFloat32Array()
 		a.resize(count)
 		lay[k] = a
@@ -483,8 +526,9 @@ func _sample(lay: Dictionary, k: int) -> void:
 ## The slow noises of the window on a lattice of points LATTICE cells apart (all over
 ## the world, so windows agree), which _lattice_row interpolates with their slopes row
 ## by row: the continent noise and how far a column is from the coast (cells, less than
-## zero at sea), how far it is from the middle of a river, and how far inside a lake
-## (less than zero outside).
+## zero at sea), how far it is from the middle of a river (and on which side: `side`
+## is the same distance with a sign), and how far inside a lake (less than zero
+## outside).
 func _lattice(lay: Dictionary) -> void:
 	var step: int = lay.step
 	var x0: int = lay.x0
@@ -515,6 +559,8 @@ func _lattice_row(lay: Dictionary, lz: int) -> void:
 	var out_land: PackedFloat32Array = lay.land
 	var out_coast: PackedFloat32Array = lay.coast
 	var out_river: PackedFloat32Array = lay.river
+	var out_side: PackedFloat32Array = lay.side
+	var out_seaward: PackedFloat32Array = lay.seaward
 	var out_lake: PackedFloat32Array = lay.lake
 	var lake_from: float = LAKE_FROM[settings.rivers]
 	var z: int = lay.z0 + lz * step
@@ -528,11 +574,20 @@ func _lattice_row(lay: Dictionary, lz: int) -> void:
 		var ix := clampi(floori(fx), 1, gw - 3)
 		var tx := fx - ix
 		var j := lz * w + lx
-		var c := _smooth(land, gw, ix, iz, tx, tz, span)
+		var cs := _slope(land, gw, ix, iz, tx, tz, span)
+		var c := Vector2(cs.z, Vector2(cs.x, cs.y).length())
 		out_land[j] = c.x
 		out_coast[j] = (c.x - coast_level) / maxf(c.y, 1e-6)
-		var r := _smooth(river, gw, ix, iz, tx, tz, span)
+		var rs := _slope(river, gw, ix, iz, tx, tz, span)
+		var r := Vector2(rs.z, Vector2(rs.x, rs.y).length())
+		# How straight a river here runs towards the coast: its noise slopes across
+		# the land noise's (only wanted near the coast, see DELTA_REACH).
+		if out_coast[j] > 0.0 and out_coast[j] < DELTA_REACH:
+			out_seaward[j] = absf(cs.x * rs.y - cs.y * rs.x) / maxf(c.y * r.y, 1e-12)
 		out_river[j] = absf(r.x) / maxf(r.y, 1e-6)
+		# Where the noise is nearly flat its distances mean little: a delta's arms
+		# would ring round the spot (see _layout_row).
+		out_side[j] = r.x / r.y if r.y > DELTA_SLOPE else 1e6
 		var l := _smooth(lake, gw, ix, iz, tx, tz, span)
 		out_lake[j] = (l.x - lake_from) / maxf(l.y, 1e-6)
 
@@ -551,6 +606,13 @@ static func _grid(n: FastNoiseLite, gx0: int, gz0: int, gw: int, gh: int, span: 
 ## The value of a lattice grid at (ix + tx, iz + tz) and the length of its slope per
 ## cell, both interpolated between the four points around.
 static func _smooth(g: PackedFloat32Array, gw: int, ix: int, iz: int, tx: float, tz: float, span: int) -> Vector2:
+	var s := _slope(g, gw, ix, iz, tx, tz, span)
+	return Vector2(s.z, Vector2(s.x, s.y).length())
+
+
+## The slope per cell of a lattice grid at (ix + tx, iz + tz) (x, y) and its value (z),
+## all interpolated between the four points around.
+static func _slope(g: PackedFloat32Array, gw: int, ix: int, iz: int, tx: float, tz: float, span: int) -> Vector3:
 	var j := iz * gw + ix
 	var v00 := g[j]
 	var v10 := g[j + 1]
@@ -562,14 +624,20 @@ static func _smooth(g: PackedFloat32Array, gw: int, ix: int, iz: int, tx: float,
 		lerpf(g[j + gw + 1] - g[j + gw - 1], g[j + gw + 2] - g[j + gw], tx), tz)
 	var sz := lerpf(lerpf(g[j + gw] - g[j - gw], g[j + gw + 1] - g[j - gw + 1], tx),
 		lerpf(g[j + 2 * gw] - g[j], g[j + 2 * gw + 1] - g[j + 1], tx), tz)
-	return Vector2(v, Vector2(sx, sz).length() / (2.0 * span))
+	return Vector3(sx / (2.0 * span), sz / (2.0 * span), v)
 
 
 ## Base height of the land at a column: the ocean floor deepening away from the coast,
-## low coasts rising inland into plains of low hills, mountains with sharp ridges along
-## the noise's zero lines, the terraces of a plateau and the raised rim of a cliff
-## coast. Returns [height, kind]; `coast` is the distance from the coast in cells.
-func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int, roll: int) -> Array:
+## low coasts rising inland into plains of low hills, mountains, the terraces of a
+## plateau and the raised rim of a cliff coast. A mountain rises from a gentle foot,
+## steeper towards the top, with ridges along the zero lines of a noise; how high it
+## gets is a slow noise of its own, so some reach nearly the top of the world and
+## others stay low hills. Returns [height, kind, rise, mountain]: `rise` is the smooth
+## part of a mountain's height, which the rivers climb (see _river_level), `mountain`
+## how far up the mountain the column is (0 at its foot, 1 at the top); `coast` is the
+## distance from the coast in cells.
+func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int, roll: int,
+		peak: int) -> Array:
 	# A ragged coast: the distance wobbles with a faster noise.
 	coast += (shape - 128) / 128.0 * 6.0
 	var h := hills / 255.0
@@ -594,21 +662,34 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 		kind = CLIFFS
 	# Mountains inland where the mountain noise is high.
 	var from: float = MOUNTAIN_FROM[settings.mountains]
-	var mountain := smoothstep(from, from + 0.4, mount / 127.5 - 1.0) * smoothstep(24.0, 120.0, coast)
+	var mountain := smoothstep(from, from + 0.55, mount / 127.5 - 1.0) * smoothstep(24.0, 140.0, coast)
+	var rise := 0.0
 	if mountain > 0.0:
 		var ridge := 1.0 - absf(ridges / 127.5 - 1.0)
-		land += mountain * (3.0 + h * 4.0 + ridge * ridge * 18.0)
-		if mountain > 0.3:
+		var tall := 0.4 + 0.6 * smoothstep(-0.3, 0.3, peak / 127.5 - 1.0)
+		# About the mountain to the power 1.8: a gentle foot, steeper higher up.
+		rise = MOUNT_RISE * tall * mountain * mountain * (1.2 - 0.2 * mountain)
+		land += rise + mountain * tall * (RIDGE_RISE * ridge * ridge + h * 3.0)
+		if mountain > 0.15:
 			kind = MOUNTAIN
 	# Plateaus rise in terraces four cells apart, with sheer edges.
 	var plat := plateau / 127.5 - 1.0
 	if plat > 0.42 and coast > 64.0 and mountain < 0.3:
 		land = sea + 6.0 + 4.0 * floorf(h * 3.0 + smoothstep(0.42, 0.7, plat) * 2.0)
 		kind = HIGHLAND
-	var height := clampi(int(round(lerpf(floor_h, land, mask))), 2, size_y - 6)
+	var height := clampi(int(round(lerpf(floor_h, land, mask))), 2, size_y - 4)
 	if height < sea:
 		kind = SEA_FLOOR
-	return [height, kind]
+	return [height, kind, rise, mountain]
+
+
+## How many levels above the sea a river runs where it has climbed `climb` levels up a
+## mountain: in steps of FALL_STEP, each first a rapid of one level and then a
+## waterfall of the rest.
+static func _river_level(climb: float) -> int:
+	var steps := climb / FALL_STEP
+	var at := steps - floorf(steps)
+	return FALL_STEP * int(steps) + (1 if at > RAPID_AT else 0)
 
 
 ## Lays out one row of the window: height, top, flags and biome of each column, with
@@ -652,9 +733,16 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var mud_t := _byte(0.0)
 	var swamp_t := _byte(0.35)
 	var river_from: float = RIVER_FROM[settings.rivers]
+	var side: PackedFloat32Array = lay.side
+	var seaward: PackedFloat32Array = lay.seaward
+	var forest: PackedByteArray = grids[8]
+	var peak: PackedByteArray = grids[18]
+	var falls: PackedByteArray = lay.falls
+	var x0: int = lay.x0
+	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
 		var j := lz * w + lx
-		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j])
+		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j], peak[j])
 		var height: int = r[0]
 		var kind: int = r[1]
 		var f := 0
@@ -662,18 +750,43 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		var top := Mat.GRASS
 		var b := MEADOW
 		var sheer := steep[j] >= steep_t or kind == CLIFFS or kind == HIGHLAND
-		var rocky := height > sea + 12 or (kind == CLIFFS and height >= sea)
+		if kind == MOUNTAIN:
+			# The foot and the woods of a mountain lie in slopes; only its rock has
+			# sheer outcrops (see below).
+			sheer = false
 		var wt := -1
 		# Rivers along the zero lines of the river noise, where the flow noise lets
-		# them run, narrow at the source and wider towards the sea or a lake.
-		var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0)
+		# them run, narrow at the source and wider towards the sea or a lake, higher
+		# up in the mountains, where they rise: none comes over the top.
+		var up: float = r[3]
+		var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0) * (1.0 - smoothstep(0.45, 0.9, up))
 		var d := river[j]
 		var mouth := 1.0 - smoothstep(0.0, MOUTH_REACH, minf(coast[j], -lake[j]))
 		var rw := 0.6 + (1.6 + 4.4 * mouth) * flowing
 		var wet_bed := flowing > 0.2
+		var climb: float = r[2] * RIVER_CLIMB
+		var level := sea + _river_level(climb) if climb > 0.0 and flowing > 0.0 else sea
+		# Near the coast the river parts into the arms of a delta (see DELTA_REACH):
+		# lines beside the river's middle at the same distance from it, so they leave
+		# the main channel and spread towards the sea; `fan` is how far the outer arms
+		# are, and `d` the distance to the nearest channel.
+		var delta := (1.0 - smoothstep(0.0, DELTA_REACH, coast[j])) * flowing * smoothstep(0.5, 0.8, seaward[j]) \
+			if flowing > 0.0 and height >= sea and coast[j] < DELTA_REACH else 0.0
+		var fan := 0.0
+		if delta > 0.0:
+			var spread := DELTA_SPREAD * pow(delta, 1.5)
+			var outer := spread + DELTA_SPREAD * pow(smoothstep(0.45, 1.0, delta), 1.5)
+			var across := absf(side[j] + (shape[j] - 128) / 128.0 * 3.0 * delta)
+			var arm := 0.6 + 2.8 * delta
+			fan = outer + arm
+			rw += 3.0 * delta
+			if absf(across - spread) <= arm or absf(across - outer) <= arm:
+				d = 0.0
+			elif across < fan:
+				d = minf(d, rw + 0.5)
 		# The river's bed, also cut into the floor of the lake or the sea it flows
 		# into, so the channel runs on without a step until the floor is deeper.
-		var channel := sea - (2 if d < rw - 1.0 else 1) if wet_bed and d <= rw else size_y
+		var channel := level - (2 if d < rw - 1.0 else 1) if wet_bed and d <= rw else size_y
 		if height < sea:
 			wt = sea
 			b = SEA
@@ -693,16 +806,26 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 					height = mini(height, sea + 1 + int(-in_lake))
 			# Where the flow fades the valley rises and the river ends.
 			if wt < 0 and flowing > 0.0:
-				var canyon := kind == MOUNTAIN or kind == HIGHLAND or height > sea + 10
+				var bed := level if wet_bed else int(lerpf(height, level, flowing / 0.2))
+				var canyon := kind == HIGHLAND or height > bed + 10
 				var rf := rw + (3.5 if canyon else 1.5)
-				var bed := sea if wet_bed else int(lerpf(height, sea, flowing / 0.2))
 				if d <= rw and wet_bed:
 					height = mini(height, channel)
-					wt = sea
+					wt = level
 					b = SEA
 					top = Mat.SAND
 					sheer = false
 					feature = RIVER
+					# Rapids: where the river drops a level, boulders in the channel
+					# break the water.
+					var at := fposmod(climb / FALL_STEP, 1.0)
+					if climb > 0.0 and absf(at - RAPID_AT) < 0.06:
+						falls[j] = 1
+						if d < rw - 0.5 and _chance(x0 + lx * lay.step, z0, 9) < BOULDERS:
+							height = level
+							top = Mat.STONE
+					elif climb > FALL_STEP * 0.5 and minf(at, 1.0 - at) < 0.06:
+						falls[j] = 2
 				elif d <= rf:
 					if canyon:
 						height = mini(height, bed)
@@ -719,6 +842,9 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				else:
 					# A valley: the ground beyond the bank rises a cell per cell at most.
 					height = mini(height, bed + 1 + int(d - rf))
+			# The islands of a delta lie low between its arms.
+			if wt < 0 and fan > 0.0:
+				height = mini(height, sea + 1 + int(maxf(0.0, absf(side[j]) - fan) / 2.0))
 		# How near water is, in steps of 16 cells: the coast, a lake or a river.
 		var near := minf(coast[j], -lake[j])
 		if flow[j] / 127.5 - 1.0 > river_from + 0.07:
@@ -733,9 +859,19 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		var rough := (t > 0.6 and m < 0.6) or roll[j] > rough_t
 		if kind == PLAIN and rough and not sheer and wt < 0 and height > sea + 1 and wet >= 2 and g < 5 and feature == DRY:
 			height -= 6 if g < 4 else 4
+		# Bare rock: mountains above their rock line, which wavers a little, high
+		# plateaus and cliff coasts.
+		var rocky := height > sea + 12 or (kind == CLIFFS and height >= sea)
+		if kind == MOUNTAIN:
+			rocky = height >= sea + ROCK_LINE + (shape[j] - 128) / 48
 		if rocky and wt < 0:
 			top = Mat.STONE
 			b = ROCK
+			if kind == MOUNTAIN:
+				# Loose scree lies in slopes, stone juts out of it in sheer outcrops.
+				sheer = steep[j] >= steep_t
+				if not sheer:
+					top = Mat.SCREE
 		elif b == SEA:
 			if feature != RIVER:
 				top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
@@ -776,6 +912,11 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				height += int(dunes[j] / 255.0 * 2.6)
 		elif m > 0.7:
 			b = FOREST
+		# Some mountains are wooded between the foot and the rock.
+		if kind == MOUNTAIN and wt < 0 and (b == MEADOW or b == TUNDRA) and height >= sea + MOUNT_WOODS \
+				and forest[j] > _byte(-0.15):
+			b = TAIGA if t < 0.45 else FOREST
+			top = Mat.GRASS
 		if sheer:
 			f |= SHEER_TOP
 		# Cave mouths here and there in the hills, more often in the mountains.
@@ -853,6 +994,76 @@ func _banks(lay: Dictionary) -> void:
 		heights[j] += raised[j]
 
 
+## Caves in the sides of mountains (see TUNNEL_GRID): a gallery ADIT cells high and
+## three wide winds uphill from a spot on a slope, open to the sky where the slope is
+## still low over it, and ends in a chamber over bigger caves. Each square of the grid
+## decides on its own whether it has one and where, so every window cuts the same.
+func _tunnels(lay: Dictionary) -> void:
+	var x0: int = lay.x0
+	var z0: int = lay.z0
+	var w: int = lay.w
+	var h: int = lay.h
+	var heights: PackedInt32Array = lay.heights
+	var flags: PackedByteArray = lay.flags
+	var adit: PackedByteArray = lay.adit
+	var reach := TUNNEL_LEN + 4
+	for gz in range(floori((z0 - reach) / float(TUNNEL_GRID)), floori((z0 + h + reach) / float(TUNNEL_GRID)) + 1):
+		for gx in range(floori((x0 - reach) / float(TUNNEL_GRID)), floori((x0 + w + reach) / float(TUNNEL_GRID)) + 1):
+			var t := _tunnel(gx, gz)
+			if t.is_empty():
+				continue
+			var mouth := Vector2(t[0], t[1])
+			var dir: Vector2 = t[2]
+			var floor_y: int = t[3]
+			var bend := _chance(gx, gz, 10) * TAU
+			for lz in h:
+				for lx in w:
+					var v := Vector2(x0 + lx, z0 + lz) + Vector2(0.5, 0.5) - mouth
+					var along := v.dot(dir)
+					if along < -0.5 or along > TUNNEL_LEN:
+						continue
+					var across := absf(v.cross(dir) - sin(along * 0.22 + bend) * 2.0)
+					var room := along > TUNNEL_LEN - 7
+					if across > (3.2 if room else 1.4):
+						continue
+					var j := lz * w + lx
+					if heights[j] < floor_y:
+						continue
+					adit[j] = floor_y if adit[j] == 0 else mini(adit[j], floor_y)
+					if room:
+						flags[j] |= ENTRANCE
+
+
+## The cave cut into a mountain's side from grid square gx, gz, if it has one:
+## [x, z, the way in, the level of its floor], else empty.
+func _tunnel(gx: int, gz: int) -> Array:
+	var key := Vector2i(gx, gz)
+	if not tunnels.has(key):
+		tunnels[key] = _find_tunnel(gx, gz)
+	return tunnels[key]
+
+
+func _find_tunnel(gx: int, gz: int) -> Array:
+	if _chance(gx, gz, 6) >= TUNNEL_CHANCE:
+		return []
+	var x := gx * TUNNEL_GRID + 8 + _hash(gx, gz, 7) % (TUNNEL_GRID - 16)
+	var z := gz * TUNNEL_GRID + 8 + _hash(gx, gz, 8) % (TUNNEL_GRID - 16)
+	if n_mount.get_noise_2d(x, z) < MOUNTAIN_FROM[settings.mountains] + 0.1:
+		return []
+	# The slope around the spot, from the columns four cells to each side.
+	var lay := lay_out(x - 4, z - 4, 3, 3, 4)
+	var hh: PackedInt32Array = lay.heights
+	if lay.kind[4] != MOUNTAIN or hh[4] <= sea + 4 or hh[4] >= size_y - 10:
+		return []
+	for k in 9:
+		if lay.water[k] >= 0:
+			return []
+	var up := Vector2(hh[5] - hh[3], hh[7] - hh[1])
+	if up.length() < 3.0:
+		return []
+	return [x + 0.5, z + 0.5, up.normalized(), hh[4]]
+
+
 ## The columns of a window laid out at once (tools, the spawn, the map).
 func lay_out(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	var lay := _window(x0, z0, w, h, step)
@@ -864,6 +1075,7 @@ func lay_out(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	if step == 1 and w > 2 and h > 2:
 		_entrances(lay)
 		_banks(lay)
+		_tunnels(lay)
 	return lay
 
 
@@ -1187,7 +1399,9 @@ static func find_spawn(w: WorldData, around: Vector3i) -> Vector3i:
 
 ## A column near `near` (in cells) that holds `what`: "lake", "river", "canyon" (a
 ## river between sheer walls), "swamp", "plateau", "cliffs" (a cliff coast), "beach",
-## "mountain", "pit" (a cave mouth in the plains), "adit" (one in the mountains),
+## "mountain", "peak" (a snowy one), "waterfall", "rapids", "delta" (the arms of a
+## river at its mouth), "pit" (a cave mouth in the plains), "adit" (one in the
+## mountains),
 ## "forest", "taiga", "desert" or "tundra"; `near` itself when there is
 ## none within `reach` cells. Columns are laid out on a spiral `stride` cells apart.
 ## For tools and tests.
@@ -1230,6 +1444,14 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 			return b == BEACH and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
 		"mountain":
 			return b == ROCK and kind == MOUNTAIN
+		"peak":
+			return kind == MOUNTAIN and lay.heights[j] >= sea + WorldData.SNOW_LINE + 3
+		"waterfall":
+			return lay.falls[j] == 2
+		"rapids":
+			return lay.falls[j] == 1
+		"delta":
+			return feature == RIVER and lay.coast[j] < 30.0 and lay.coast[j] > 10.0 and lay.river[j] > 8.0
 		"pit":
 			var mouths: PackedByteArray = lay.grids[10]
 			return lay.flags[j] & ENTRANCE and kind == PLAIN and mouths[j] > _byte(0.7) and lay.heights[j] > sea + 7
