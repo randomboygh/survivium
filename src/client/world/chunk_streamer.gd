@@ -45,6 +45,9 @@ const CAP_RANGE := 5
 ## so what does not fit waits for the next frame.
 const CAP_BUDGET_US := 3000
 const EDIT_BUDGET_US := 9000
+## Microseconds a frame for building the near chunks behind the main menu (load_steps):
+## the menu keeps moving while the world is made, a little slower than at once.
+const LOAD_BUDGET_US := 14000
 const STREAM_BUDGET_US := 3000
 ## Chunks whose meshes are freed, and chunks forgotten, in one frame at most.
 const UNLOADS_PER_FRAME := 2
@@ -77,6 +80,9 @@ var pending_chunks: Array[Vector2i] = []
 var load_home := Vector2i(-1000000, 0)
 var unload_queue: Array[Vector2i] = []
 var drop_queue: Array[Vector2i] = []
+## The near chunks are built by run_jobs a step at a time within LOAD_BUDGET_US
+## (behind the main menu) instead of whole by build_near (the loading screen, tools).
+var load_steps := false
 var near_pending := 0
 var near_total := 0
 ## While the character lies dead, the respawn point the death screen offers first
@@ -385,7 +391,7 @@ func run_jobs() -> void:
 				job_edit = true
 				job_budget = EDIT_BUDGET_US
 				has_target = false
-			elif game.ready_to_play and (has_target or not pending_chunks.is_empty()):
+			elif (game.ready_to_play or load_steps) and (has_target or not pending_chunks.is_empty()):
 				if not has_target:
 					job_key = next_chunk()
 					has_target = true
@@ -393,6 +399,8 @@ func run_jobs() -> void:
 				var at := _load_chunk()
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
+				if not game.ready_to_play:
+					job_budget = LOAD_BUDGET_US
 			else:
 				break
 			var need := _prerequisite(job_key)
@@ -423,13 +431,16 @@ func run_jobs() -> void:
 				break
 			job_part = 0
 			continue
-		if worked and not job_edit:
+		# Loading behind the menu, the parts go on while the budget lasts.
+		if worked and not job_edit and game.ready_to_play:
 			break
 		var finished := _finish_part()
 		worked = true
 		budget_us += Time.get_ticks_usec() - t1
 		if finished:
 			has_target = false
+			if not game.ready_to_play and not job_edit and _is_near(job_key, _player_chunk()):
+				near_pending = maxi(0, near_pending - 1)
 			if not job_edit:
 				game.hud.perf.chunks = chunk_nodes.size()
 			if not job_edit and pending_chunks.is_empty() and not map_done:

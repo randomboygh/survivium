@@ -227,7 +227,10 @@ func _process(delta: float) -> void:
 		return
 	var t := Time.get_ticks_usec()
 	if not ready_to_play:
-		if chunks.build_near(40):
+		# Behind the main menu the chunks are built a step at a time (run_jobs below),
+		# so the menu does not stutter; else whole, as fast as it goes.
+		chunks.load_steps = menu != null and menu.is_open
+		if chunks.near_pending == 0 if chunks.load_steps else chunks.build_near(40):
 			hud.set_loading("")
 			hud.perf.world_ms = Time.get_ticks_msec() - start_ms
 			# Freezes while the world was being built are not the game's.
