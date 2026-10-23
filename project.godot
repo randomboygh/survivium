@@ -143,3 +143,19 @@ wrap_size={
 "type": "vec2",
 "value": Vector2(256, 256)
 }
+view_up={
+"type": "vec2",
+"value": Vector2(0, -1)
+}
+view_squash={
+"type": "float",
+"value": 1.0
+}
+view_slope={
+"type": "float",
+"value": 1.0
+}
+sun_view={
+"type": "vec3",
+"value": Vector3(0, 0, 1)
+}

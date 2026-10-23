@@ -189,7 +189,7 @@ void fragment() {
 		if (flag == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
 			// where they show on screen, one texel per pixel.
-			tm = ivec2(mod(floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS), TEXELS));
+			tm = ivec2(mod(floor(screen_plane(world_pos) * TEXELS), TEXELS));
 		}
 		// A cap of the cut shows the inside of the cells it cuts: soil, not turf.
 		if (top && pick == GRASS * 3 && (cap || bare_ground(world_pos.xz) > 0.5)) {

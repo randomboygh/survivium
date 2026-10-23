@@ -1131,6 +1131,35 @@ func _test_pixel_view() -> void:
 	var ray: Array = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
 	var t: float = (ray[0].y - cell.y) / -ray[1].y
 	_check((ray[0] + ray[1] * t).distance_to(cell) < 0.001, "view ray hits the point under the pixel")
+	var sun := Vector3(-0.3, 0.7, 0.5).normalized()
+	_check(PixelView.light_dir(sun).is_equal_approx(sun), "the default view keeps the sun where it is")
+	# A turned and tilted camera: rays still hit what is drawn under them, boxes hold
+	# what their meshes draw, shadows fall where they fall in the default view, and
+	# the camera shows the point it is put over in the middle.
+	var turned := true
+	var box := AABB(Vector3(-3, 1, 7), Vector3(4, 6, 2))
+	for view: Vector2 in [Vector2(PI / 12.0, 0.0), Vector2(PI * 0.75, PI / 12.0), Vector2(-PI / 3.0, -PI / 12.0)]:
+		PixelView.set_view(view.x, view.y)
+		PixelView.box_views = [PixelView.view_of(view.x, view.y)]
+		ray = PixelView.view_ray(PixelView.screen_plane(cell), Vector2.ZERO, 30.0)
+		t = (ray[0].y - cell.y) / -ray[1].y
+		turned = turned and (ray[0] + ray[1] * t).distance_to(cell) < 0.001
+		var drawn := PixelView.sheared_box(box, 0.0).grow(0.001)
+		for i in 8:
+			turned = turned and drawn.has_point(PixelView.shear(box.get_endpoint(i)))
+		var foot := Vector3(4, 2, 9)
+		var tip := foot + Vector3(0, 3, 0)
+		var lit := PixelView.light_dir(sun)
+		var hit := PixelView.shear(tip) - lit * (3.0 / lit.y)
+		# In the default view the shadow of the tip lands 3 units of height north too.
+		var fall := Vector3(tip.x - sun.x * 3.0 / sun.y, foot.y, tip.z - sun.z * 3.0 / sun.y - 3.0)
+		turned = turned and hit.is_equal_approx(PixelView.shear(fall))
+		var middle := PixelView.camera_transform(Vector2(5, -2)).origin
+		turned = turned and PixelView.plane_of(Vector2(middle.x, middle.z)).is_equal_approx(Vector2(5, -2))
+		turned = turned and PixelView.screen_dir(PixelView.world_dir(Vector2(0.3, -1))).is_equal_approx(Vector2(0.3, -1))
+	PixelView.set_view(0.0, 0.0)
+	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]
+	_check(turned, "a turned and tilted view draws, picks, culls and shades consistently")
 
 
 func _test_trees() -> void:

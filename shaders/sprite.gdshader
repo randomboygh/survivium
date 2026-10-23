@@ -34,11 +34,14 @@ void vertex() {
 		// body were as wide every way. In the sheared space the shadow is cast in.
 		vec3 foot = MODEL_MATRIX[3].xyz;
 		vec2 to = PROJECTION_MATRIX[3][3] > 0.5 ? INV_VIEW_MATRIX[2].xz
-			: INV_VIEW_MATRIX[3].xz - vec2(foot.x, foot.z - foot.y - 0.5);
+			: INV_VIEW_MATRIX[3].xz - shear(foot + vec3(0.0, 0.5, 0.0)).xz;
 		if (dot(to, to) > 1e-6) {
 			vec2 side = normalize(vec2(to.y, -to.x));
 			VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
 		}
+	} else {
+		// Upright: turned to the camera about its origin.
+		VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	}
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);

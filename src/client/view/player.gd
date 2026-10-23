@@ -215,7 +215,7 @@ func place_sprite() -> void:
 		# A swimmer bobs on the water by a pixel.
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT
 	var line: float = body.water_level * CELL if body.water_level > -INF else -1000.0
-	var frame := sheet.frame_uv(facing, anim, anim_time)
+	var frame := sheet.frame_uv(drawn_facing(), anim, anim_time)
 	for layer in [sprite, xray, underwater]:
 		layer.global_position = sprite.global_position
 		layer.material_override.set_shader_parameter("water_line", line)
@@ -223,7 +223,17 @@ func place_sprite() -> void:
 	# Mud hides the body under it; water shows it tinted.
 	sprite.material_override.set_shader_parameter("ripple", MUD_RIPPLE if body.in_bog else FOAM_RIPPLE)
 	underwater.visible = line > -1000.0 and not body.in_bog
-	torch.global_position = PixelView.shear(position + Vector3(0.0, 1.2, 0.3))
+	# The torch is held a little towards the viewer.
+	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, 1.2, -PixelView.up.y * 0.3))
+
+
+## The way the body faces on the screen: `facing` is a way of the world, the camera
+## may be turned.
+func drawn_facing() -> String:
+	if PixelView.up == Vector2(0.0, -1.0):
+		return facing
+	var turn := SpriteSheet.COMPASS.find(facing) / 8.0 * TAU
+	return SpriteSheet.direction_of(PixelView.screen_dir(Vector2(-sin(turn), cos(turn))))
 
 
 ## The level of the cell the feet are in.
