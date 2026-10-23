@@ -1537,6 +1537,8 @@ func _test_inventory() -> void:
 	_check(heavy.overloaded() and f < 1.0 and f > Inventory.OVERLOAD_PACE, "overload slows the pace")
 	heavy.add("core:stone", 200)
 	_check(heavy.speed_factor() == Inventory.OVERLOAD_PACE, "heavy overload almost stops")
+	heavy.heavy = false
+	_check(heavy.speed_factor() == 1.0 and not heavy.overloaded(), "with overload off a full bag does not slow")
 	var copy := Inventory.new(3)
 	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
 	_check(copy.count("core:branch") == 8 and copy.count("core:log") == inv.count("core:log"), "the bag survives a save as JSON")
@@ -1949,6 +1951,8 @@ func _test_death() -> void:
 		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
+	_check(ch.fell_at.is_equal_approx(Vector3(5.5, 1.0, 5.5) * WorldData.CELL) and again.fell_at.is_equal_approx(ch.fell_at),
+		"the place of the last death is kept, in the save too")
 	_check(again.is_dead() and again.death.lost == [["core:branch", 3]] and again.sacks.size() == 1
 		and again.sacks[0].is_equal_approx(sack[1]), "the death and the sack's place are kept in the save")
 	var lived: Dictionary = ch.death.life
@@ -1960,6 +1964,7 @@ func _test_death() -> void:
 	_check(not ch.is_dead() and is_equal_approx(ch.vitals.health, Vitals.MAX * Survivor.REVIVE_HEALTH) and ch.back_at.x > 0.0,
 		"and they come back with half their health at the respawn point")
 	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
+	_check(ch.fell_at.is_finite(), "and the place of the last death is not forgotten")
 	ch.at = sack[1]
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, true)
 	_check(ch.inventory.count("core:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
@@ -2054,6 +2059,73 @@ func _test_wildlife() -> void:
 	_check(wolf.pos == from and is_equal_approx(wolf.away, 0.05), "an animal no one looks at waits for its step")
 	life.update(0.06)
 	_check(wolf.pos != from and wolf.away == 0.0, "and then takes it at once")
+	_test_birds(w, person)
+
+
+## Birds (the birds mod) come in flocks around a lead, fly off from a person together
+## and come down again away from them, out of a cat's reach while in the air, and
+## sleep in the crowns at night.
+func _test_birds(w: WorldData, person: Who) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [person]
+	life.start(3)
+	var flocked: bool = life.count("birds:sparrow") == AiRules.SPECIES["birds:sparrow"].count
+	var leads := 0
+	for a in life.animals:
+		if a.kind != "birds:sparrow":
+			continue
+		if a.lead == null:
+			leads += 1
+		elif a.lead.kind != a.kind or a.pos.distance_to(a.lead.pos) > Wildlife.FLOCK_REACH * 2.0:
+			flocked = false
+	_check(flocked and leads >= 2 and leads <= 5, "sparrows come in flocks (%d)" % leads)
+
+	life.animals.clear()
+	var at := person.position + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var lead := _animal(life, "birds:sparrow", at + Vector3(1.0, 0.0, 0.0))
+	var mate := _animal(life, "birds:sparrow", at + Vector3(6.0, 0.0, 0.0))
+	mate.lead = lead
+	life.update(0.05)
+	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
+	var cat := _animal(life, "core:cat", lead.pos)
+	cat.hunger = 1.0
+	var high := 0.0
+	for i in 10:
+		life.update(0.05)
+		high = maxf(high, lead.pos.y - at.y)
+	_check(mate.flying and mate.state == "flee", "its flock takes fright with it")
+	_check(cat.state != "hunt" and life.animals.has(lead), "a cat does not hunt a bird in the air")
+	for i in 200:
+		life.update(0.05)
+	_check(high > 1.0 and not lead.flying and lead.pos.distance_to(person.position) > 8.0
+		and absf(lead.pos.y - life.ground(lead.pos.x, lead.pos.z)) < 0.01,
+		"it flies up and comes down away from the person (%.1f high, %.1f away)" % [high, lead.pos.distance_to(person.position)])
+
+	# A tree away from everyone, and night.
+	life.people = [Who.new()]
+	life.animals.clear()
+	var tx := floori(at.x / WorldData.CELL) + 6
+	var tz := floori(at.z / WorldData.CELL)
+	w.set_cell(tx, 6, tz, Mat.LOG)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.LEAVES)
+	w.add_tree(tx, tz, 0)
+	life.clock.time_of_day = 0.0
+	var bird := _animal(life, "birds:sparrow", at)
+	for i in 100:
+		life.update(0.05)
+	_check(bird.perched and bird.state == "rest" and is_equal_approx(bird.pos.y, 8 * WorldData.CELL),
+		"a sparrow sleeps in a tree crown at night")
+	w.remove_tree(tx, tz)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.AIR)
+	w.set_cell(tx, 6, tz, Mat.AIR)
 
 
 ## Puts an animal of `kind` at `at` into `life`, about to think.

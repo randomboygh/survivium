@@ -89,6 +89,12 @@ var debug_tips := false
 ## Playtest switch: the level buttons look at any level, not only a few around the
 ## player (see ChunkStreamer.view_range). Not saved.
 var free_view := false
+## Playtest switch: weight past the bag's limit does not slow the character, stop
+## their jumps or their recovery (Inventory.heavy off). Not saved.
+var no_overload := false
+## Playtest switch: the death screen also offers to come back where the character
+## fell. Not saved.
+var revive_at_death := false
 ## Sides of the sun's shadow map to compare on a phone (the map is drawn again every
 ## frame the sun casts shadows). The engine's default is 4096; at 16 pixels a world unit
 ## 2048 shows the same shadows with a quarter of its texels.
@@ -179,6 +185,8 @@ func apply() -> void:
 	if game.player != null:
 		game.player.body.speed_scale = player_speed
 		game.player.body.air_jumps = air_jumps
+	if game.character != null:
+		game.character.inventory.heavy = not no_overload
 	Engine.max_fps = FPS_LIMITS[values.fps_limit]
 	# Sixteen-bit depth, as the engine's own default map.
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
@@ -260,6 +268,23 @@ func set_tool_wear(on: bool) -> void:
 	tool_wear = on
 
 
+func set_no_overload(on: bool) -> void:
+	no_overload = on
+	apply()
+
+
+## Puts the living character where they last fell; says so when they have not died
+## in this world yet.
+func go_to_death() -> void:
+	var c = game.character
+	if c.is_dead():
+		return
+	if not c.fell_at.is_finite():
+		c.say("В этом мире вы ещё не умирали")
+		return
+	c.teleport(c.fell_at)
+
+
 func set_shadow_map(i: int) -> void:
 	shadow_map = i
 	apply()
@@ -291,3 +316,15 @@ func switch_test_world() -> void:
 				break
 	game.save.switch_world(seed_value, options)
 	game.restart()
+
+
+## Forgets the test world's save, so it is laid out anew from TestGround; when it is
+## the world being played, goes into it again at once without saving it first.
+func reset_test_world() -> void:
+	if in_test_world() and game.save.store != null:
+		game.save.active = false
+		game.save.store.erase()
+		WorldStore.write_current(TestGround.SEED, game.world_options)
+		game.restart()
+	else:
+		WorldStore.new(WorldStore.world_dir(TestGround.SEED, {})).erase()

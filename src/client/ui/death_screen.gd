@@ -220,7 +220,11 @@ func _fill() -> void:
 	for c in _respawn.get_children():
 		c.queue_free()
 		_respawn.remove_child(c)
-	for p: Array in points:
+	var choices := points.duplicate()
+	if game.settings.revive_at_death:
+		var fell: Array = death.get("at", [])
+		choices.append(["На месте смерти", Vector3(fell[0], fell[1], fell[2]) if fell.size() == 3 else points[0][1]])
+	for p: Array in choices:
 		var at: Vector3 = p[1]
 		var b := _button(_respawn, "Возродиться " + (p[0] as String).to_lower(), func() -> void: _revive(at))
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
