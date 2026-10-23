@@ -46,8 +46,11 @@ const CAP_RANGE := 5
 const CAP_BUDGET_US := 3000
 const EDIT_BUDGET_US := 9000
 ## Microseconds a frame for building the near chunks behind the main menu (load_steps):
-## the menu keeps moving while the world is made, a little slower than at once.
+## the menu keeps moving while the world is made, a little slower than at once. Where
+## the menu alone takes longer a frame (a slow screen), loading gets as long as it took,
+## up to LOAD_MAX_US, so the world is still built in about twice the time at most.
 const LOAD_BUDGET_US := 14000
+const LOAD_MAX_US := 100000
 const STREAM_BUDGET_US := 3000
 ## Chunks whose meshes are freed, and chunks forgotten, in one frame at most.
 const UNLOADS_PER_FRAME := 2
@@ -87,6 +90,9 @@ var drop_queue: Array[Vector2i] = []
 ## (behind the main menu) instead of whole by build_near (the loading screen, tools).
 var load_steps := false
 var near_pending := 0
+## When run_jobs ended last frame, and the budget for loading this frame (see LOAD_MAX_US).
+var _jobs_end := 0
+var _load_budget := LOAD_BUDGET_US
 var near_total := 0
 ## While the character lies dead, the respawn point the death screen offers first
 ## (world units), else Vector3.INF: the chunks are built around it instead of around
@@ -380,6 +386,10 @@ func _drop_job() -> void:
 ## else in it; an edit may do several while its budget lasts.
 func run_jobs() -> void:
 	var t0 := Time.get_ticks_usec()
+	if not game.ready_to_play:
+		_load_budget = clampi(t0 - _jobs_end, LOAD_BUDGET_US, LOAD_MAX_US) if _jobs_end > 0 else LOAD_BUDGET_US
+		if not job_edit and (job_mesh != null or job_gen != null or has_target):
+			job_budget = _load_budget
 	_list_pending()
 	var worked := false
 	if not paint_queue.is_empty():
@@ -406,7 +416,7 @@ func run_jobs() -> void:
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
 				if not game.ready_to_play:
-					job_budget = LOAD_BUDGET_US
+					job_budget = _load_budget
 			else:
 				break
 			var need := _prerequisite(job_key)
@@ -455,6 +465,7 @@ func run_jobs() -> void:
 	mesh_us += Time.get_ticks_usec() - t0
 	_unload_some()
 	_drop_some()
+	_jobs_end = Time.get_ticks_usec()
 
 
 ## Forgets a few chunks far from the player a frame (see WorldGen.forget).
