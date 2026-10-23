@@ -24,6 +24,11 @@ const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
 ## a walk.
 const STRIDE_MAX := 3.0
+## A burning campfire touched throws the body back at this speed (cells a second) with
+## this hop, and burns again no sooner than BURN_PAUSE seconds after.
+const BURN_KNOCK := 11.0
+const BURN_HOP := 7.0
+const BURN_PAUSE := 0.4
 
 signal state_changed
 
@@ -64,6 +69,8 @@ var position: Vector3:
 	get:
 		return _where()
 var _nagged := {}
+## Seconds until a fire burns the body again (see BURN_PAUSE).
+var _burn_wait := 0.0
 
 
 func _init() -> void:
@@ -122,11 +129,29 @@ func update(delta: float) -> void:
 		note("jumps")
 		if not body.air_jumps:
 			vitals.spend("jump")
-	if placed != null and (placed.burns(p) or body.bumped.is_finite() and placed.burns(body.bumped)):
-		vitals.burn(delta)
-		nag("fire", "Горячо!")
+	_burn_wait = maxf(0.0, _burn_wait - delta)
+	if placed != null and _burn_wait <= 0.0:
+		_touch_fire(p)
 	if vitals.is_dead():
 		die()
+
+
+## A burning campfire the body at `p` stands by or pushed against burns it and throws
+## it back, away from the fire's middle.
+func _touch_fire(p: Vector3) -> void:
+	var fire: Dictionary = placed.burning(p)
+	if fire.is_empty() and body.bumped.is_finite():
+		fire = placed.burning(body.bumped)
+	if fire.is_empty():
+		return
+	vitals.burn()
+	_burn_wait = BURN_PAUSE
+	var mid: Vector3 = placed.center(fire)
+	var away := Vector2(p.x - mid.x, p.z - mid.z)
+	if away.length() < 0.01:
+		away = Vector2(0.0, 1.0)
+	body.knock(away, BURN_KNOCK, BURN_HOP)
+	nag("fire", "Горячо!")
 
 
 ## Whether the character may jump now: not when overloaded or out of breath.

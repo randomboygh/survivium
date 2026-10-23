@@ -56,6 +56,8 @@ const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
 const DIAG_CORNER := 64
+## A stone top whose moss was picked (see Grass.stone_moss): drawn bare.
+const MOSS_TAKEN := 512
 const FULL := WorldData.FULL
 const CORNER_DIRS := WorldData.CORNER_DIRS
 ## Pieces of a top (see _piece): a whole quarter of the cell, the part of a quarter away
@@ -249,6 +251,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var plain := job.plain
 	var water_plain := job.water_plain
 	var cands := job.cands
+	# The stone tops whose moss was picked (WorldData.turf "").
+	var picked: Dictionary = w.turf.get(WorldData.chunk_key(x, z), {})
 	var j := (z - z0) * (x1 - x0) + (x - x0)
 	var cand := cands[j]
 	var column := (z - z0 + PAD) * dz + PAD + x - x0
@@ -299,9 +303,10 @@ static func _column(job: Job, x: int, z: int) -> void:
 			_deep_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m)
 		else:
 			var cuts := sh[i] >> 4
+			var bare: bool = m == Mat.STONE and not picked.is_empty() and picked.get(Vector3i(x, y, z), null) == ""
 			# Most tops lie under open sky amid the same flat ground: no sides, no
 			# edges, no transitions.
-			if cuts == 0 and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
+			if cuts == 0 and not bare and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
 					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
 					and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
 					and not cov[c[i + dy - dz]]:
@@ -324,10 +329,12 @@ static func _column(job: Job, x: int, z: int) -> void:
 					if cuts != 0 or halves != 0:
 						_top_pieces(solid, base, m, cuts, edges, halves, float(a))
 						continue
-					if edges == 0 and _plain_around(a, tile):
+					if edges == 0 and not bare and _plain_around(a, tile):
 						plain.append(((y * 64 + tile) * 64 + z - z0) * 64 + x - x0)
 						continue
 					around = float(a)
+					if bare:
+						flag = MOSS_TAKEN
 				elif d == FACE_SOUTH:
 					if not cov[c[i + dy]]:
 						flag = OPEN_TOP

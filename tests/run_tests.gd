@@ -1739,6 +1739,28 @@ func _test_world_actions() -> void:
 		actions.chop(who, actions.trunk_cell(who, Vector2i(15, 23)))
 		hits += 1
 	_check(hits > 1 and hits <= Trees.SPECIES[Trees.OAK].hits and not w.drops.is_empty(), "an oak falls after its hits")
+	# Moss grows on bare stone in damp patches, where world.gdshader draws it: bare
+	# hands pick it, and the stone stays.
+	var rock := WorldData.new(8, Vector2i(96, 96))
+	var mossy := Vector3i(-1, -1, -1)
+	var dry := 0
+	for z in 96:
+		for x in 96:
+			rock.set_cell(x, 1, z, Mat.STONE)
+	for z in 96:
+		for x in 96:
+			if Grass.stone_moss(rock, x, 1, z):
+				if mossy.x < 0:
+					mossy = Vector3i(x, 1, z)
+			else:
+				dry += 1
+	_check(mossy.x >= 0 and dry > 0, "some stone is mossy, some is not")
+	var picker := WorldActions.new(rock, {"season": 1, "day": 0}, {"free_build": false})
+	_check(picker.can_mow(mossy, Tools.of("")) and picker.picking(mossy) != "", "bare hands can pick moss off stone")
+	_check(picker.mow(who, [mossy] as Array[Vector3i]) and rock.get_cell(mossy.x, mossy.y, mossy.z) == Mat.STONE
+		and not Grass.stone_moss(rock, mossy.x, mossy.y, mossy.z) and not rock.drops.is_empty()
+		and (rock.drops.values()[0][0][0] as String).ends_with("moss"), "picking it gives moss and leaves the stone bare")
+	_check(not picker.can_mow(mossy, Tools.of("")), "and there is no more to pick there")
 
 
 ## The rules of placed things and crafting run without the client: a workbench put
@@ -1785,12 +1807,17 @@ func _test_placed() -> void:
 	cook.update(0.5)
 	_check(cook.vitals.health == Vitals.MAX, "standing away from a campfire does not burn")
 	cook.body.move_input = Vector2(1.0, 0.0)
+	var nearest := 0.0
+	var thrown := false
 	for i in 30:
 		cook.at = cook.body.step(cook.at, 1.0 / 30.0, false)
 		cook.update(1.0 / 30.0)
-	_check(cook.at.x / WorldData.CELL + Body.HALF_WIDTH <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
-	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health > Vitals.MAX - Vitals.BURN * 1.5
+		nearest = maxf(nearest, cook.at.x / WorldData.CELL + Body.HALF_WIDTH)
+		thrown = thrown or cook.body.shove.x < 0.0
+	_check(nearest <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
+	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health >= Vitals.MAX - Vitals.BURN * 3.0
 		and cook.vitals.hurt_by == "fire", "and pushing against it burns a little")
+	_check(thrown, "and throws the body back")
 	cook.body.move_input = Vector2.ZERO
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
 	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
