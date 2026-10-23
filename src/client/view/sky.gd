@@ -16,12 +16,17 @@ const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
 const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 ## How bright the sun rays (god rays) are at most, added in the air over the picture.
+## Steps a day the sun and the moon move in: a step every 1/6 s of a 4-minute day,
+## a quarter of a degree, about a texel at the tip of a tree's shadow.
+const SUN_STEPS := 1440
 const RAYS_BRIGHTNESS := 0.45
 ## How long the air after rain shows the rays through the breaking clouds, in days.
 const AFTER_RAIN_DAYS := 0.08
 
 var game
 var sun: DirectionalLight3D
+## Steps a day the sun and the moon move in (see _update_light); 0 smoothly.
+var sun_steps := SUN_STEPS
 var env: Environment
 
 ## Brightness of a lightning flash, 0 most of the time.
@@ -98,16 +103,20 @@ func _update_light(delta: float) -> void:
 	# to the other while neither shines and the shadows never jump; the long shadows
 	# of a low sun come in faint and grow with the light.
 	var rise := smoothstep(0.0, 0.3, absf(h))
+	# The sun and the moon move in steps: a shadow map drawn anew from a light turned a
+	# little every frame puts the texels of each shadow's edge in other places each time,
+	# and the edges shimmer as they creep.
+	var sun_time := floorf(time_of_day * sun_steps) / sun_steps if sun_steps > 0 else time_of_day
 	if h > 0.0:
 		# The sun crosses the southern sky from east to west, a little off south at
 		# noon so shadows fall to the side and stay visible.
-		_aim_sun((time_of_day - 0.5) * 180.0 - 25.0, lerpf(14.0, 55.0, h))
+		_aim_sun((sun_time - 0.5) * 180.0 - 25.0, lerpf(14.0, 55.0, -cos(sun_time * TAU)))
 		sun.light_color = Color(1.0, 0.95, 0.85).lerp(Color(1.0, 0.6, 0.38), golden)
 		sun.light_energy = 0.85 * rise
 		_update_rays(rise, golden)
 	else:
 		_update_rays(0.0, 0.0)
-		_aim_sun((fmod(time_of_day + 0.5, 1.0) - 0.5) * 180.0 - 25.0, lerpf(14.0, 50.0, -h))
+		_aim_sun((fmod(sun_time + 0.5, 1.0) - 0.5) * 180.0 - 25.0, lerpf(14.0, 50.0, cos(sun_time * TAU)))
 		sun.light_color = Color(0.6, 0.7, 1.0)
 		sun.light_energy = 0.35 * rise * minf(moonlight, 1.0)
 	var night := 1.0 - daylight

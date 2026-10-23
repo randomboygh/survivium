@@ -6,8 +6,9 @@ extends PanelContainer
 ## Settings (plan/design/ui.md, section 6). Both pages are split into sections by tabs
 ## under the title (see PAGES): the settings into Игра, Графика, and Музыка, Звук dimmed
 ## until the game has sound (Графика starts with the quality preset, any change by hand
-## makes it «своё»); the playtest page into Мир, Игрок, Отладка, with buttons for what
-## is done once (into the test world, the tools into the bag). The playtest page also
+## makes it «своё»); the playtest page into Мир, Игрок, Маркеры, Отладка, with buttons
+## for what is done once (into the test world, the tools into the bag, to a marker set
+## on the map: Маркеры lists them with their colour and column). The playtest page also
 ## shows the version of the build and opens the list of recent changes ("changes" page,
 ## its legend of kinds above the buttons), no taller than the settings and scrolling.
 ## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
@@ -15,14 +16,17 @@ extends PanelContainer
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
+const Markers := preload("res://src/client/game/markers.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
-const VALUE_WIDTH := 100
+## Room for the longest value («песчаная буря»); anything longer is cut, so a value
+## never widens its row and moves the window.
+const VALUE_WIDTH := 112
 const ARROW := 32
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
-	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "быстрее", "inside": "внутри",
+	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "оптимизировано", "inside": "ядро",
 }
 ## A row across, and the room between two columns of rows (see fit).
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
@@ -36,10 +40,12 @@ const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолу
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
 	"settings": [["game", "Игра"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
-	"test": [["world", "Мир"], ["player", "Игрок"], ["debug", "Отладка"]],
+	"test": [["world", "Мир"], ["player", "Игрок"], ["marks", "Маркеры"], ["debug", "Отладка"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := ["music", "sound"]
+## Sections as long as there is something in them: no taller page for them, they scroll.
+const LISTS := ["marks"]
 ## The room between the quality preset and the settings by hand, or the rows and a
 ## button.
 const GAP := 8
@@ -104,7 +110,13 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 4)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_list)
+	# The rows keep their place whether the bar shows or not: a little room on the left,
+	# the bar's on the right.
+	var inset := MarginContainer.new()
+	inset.add_theme_constant_override("margin_left", BAR_ROOM - UiStyle.SCROLL_BAR)
+	inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(inset)
+	inset.add_child(_list)
 	_legend = PanelContainer.new()
 	_legend.add_theme_stylebox_override("panel", UiStyle.field())
 	box.add_child(_legend)
@@ -191,6 +203,10 @@ func _fill() -> void:
 				var gap := Control.new()
 				gap.custom_minimum_size.y = GAP
 				_list.add_child(gap)
+			elif r is Dictionary and r.has("marker"):
+				_add_marker(r.marker)
+			elif r is Dictionary and r.has("note"):
+				_grid().add_child(_note(r.note))
 			elif r is Dictionary:
 				_add_action(r.action, r.do)
 			else:
@@ -205,7 +221,9 @@ func _fill() -> void:
 
 ## The rows of section `key` (see PAGES): [name, values, getter, setter] each, and
 ## [..., the value shown when the getter gives -1] for the quality preset; null is a
-## gap; {"action": text, "do": Callable} a button that does something once.
+## gap; {"action": text, "do": Callable} a button that does something once;
+## {"marker": index} a marker with its button that takes the player there; {"note":
+## text} a line of text.
 func _section_rows(key: String) -> Array:
 	var s = game.settings
 	var sky = game.sky
@@ -259,9 +277,30 @@ func _section_rows(key: String) -> Array:
 				["Износ инструментов", ["выкл", "вкл"],
 					func() -> int: return int(s.tool_wear),
 					func(i: int) -> void: s.set_tool_wear(i == 1)],
+				["Перегруз", ["вкл", "выкл"],
+					func() -> int: return int(s.no_overload),
+					func(i: int) -> void: s.set_no_overload(i == 1)],
+				["Изготовление", ["по времени", "сразу"],
+					func() -> int: return int(s.instant_craft),
+					func(i: int) -> void: s.instant_craft = i == 1],
+				["Голод", ["вкл", "выкл"],
+					func() -> int: return int(s.no_hunger),
+					func(i: int) -> void: s.set_no_hunger(i == 1)],
+				["Возрождение", ["у костра", "и где упали"],
+					func() -> int: return int(s.revive_at_death),
+					func(i: int) -> void: s.revive_at_death = i == 1],
 				null,
 				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
+				{"action": "К месту последней смерти", "do": func() -> void: s.go_to_death()},
 			]
+		"marks":
+			var marks := []
+			if game.markers != null:
+				for i in game.markers.list.size():
+					marks.append({"marker": i})
+			if marks.is_empty():
+				marks.append({"note": "Маркеров нет: поставьте их на карте (M)."})
+			return marks
 		"debug":
 			return [
 				["Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
@@ -275,15 +314,24 @@ func _section_rows(key: String) -> Array:
 				["Отладочные подсказки", ["выкл", "вкл"],
 					func() -> int: return int(s.debug_tips),
 					func(i: int) -> void: s.debug_tips = i == 1],
+				["Обзор уровней", ["±%d" % game.chunks.VIEW_REACH, "все"],
+					func() -> int: return int(s.free_view),
+					func(i: int) -> void: s.free_view = i == 1],
 			]
 		"game":
 			var rows := [
 				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
 					func() -> int: return s.values.time_speed,
 					func(i: int) -> void: s.set_value("time_speed", i)],
-				["Автоподбор", ["выкл", "вкл"],
-					func() -> int: return int(s.values.auto_pickup),
-					func(i: int) -> void: s.set_value("auto_pickup", i == 1)],
+				["Автоподбор", ["всё", "что есть", "еду", "ничего"],
+					func() -> int: return s.values.pickup,
+					func(i: int) -> void: s.set_value("pickup", i)],
+				["Сверх груза", ["не брать", "брать"],
+					func() -> int: return int(s.values.pickup_heavy),
+					func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
+				["Тряска экрана", ["выкл", "вкл"],
+					func() -> int: return int(s.values.shake),
+					func(i: int) -> void: s.set_value("shake", i == 1)],
 				["Интерфейс", ["обычный", "крупнее", "крупный"],
 					func() -> int: return s.values.ui_scale,
 					func(i: int) -> void: s.set_value("ui_scale", i)],
@@ -398,7 +446,7 @@ func fit(screen: Vector2) -> void:
 		_fill()
 		return
 	_set_columns(n)
-	_legend_grid.columns = CHANGE_KINDS.size() if n > 1 else 3
+	_legend_grid.columns = CHANGE_KINDS.size() if n > 1 else 2
 	if _version.visible:
 		room -= _version.size.y + 6
 	if _legend.visible:
@@ -432,7 +480,8 @@ func _set_columns(n: int) -> void:
 func _page_height(which: String, n: int) -> int:
 	var tallest := 0
 	for sec in PAGES.get(which, []):
-		tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
+		if not sec[0] in LISTS:
+			tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
 	return tallest
 
 
@@ -489,6 +538,7 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 	var left := _arrow(row, "prev", index, -1)
 	var value := UiStyle.label()
 	value.custom_minimum_size = Vector2(VALUE_WIDTH, 0)
+	value.clip_text = true
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(value)
@@ -507,6 +557,54 @@ func _add_action(text: String, action: Callable) -> void:
 	_grid().add_child(b)
 
 
+## A marker (game.markers, `i`) as a row: its colour, its name and column, and a
+## button that takes the player there and back into the game.
+func _add_marker(i: int) -> void:
+	var m: Dictionary = game.markers.list[i]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	_grid().add_child(row)
+	var swatch := ColorRect.new()
+	swatch.color = UiStyle.DARK_INK
+	swatch.custom_minimum_size = Vector2(14, 14)
+	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := ColorRect.new()
+	fill.color = Markers.color_of(m)
+	fill.position = Vector2(2, 2)
+	fill.size = Vector2(10, 10)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swatch.add_child(fill)
+	row.add_child(swatch)
+	var label := UiStyle.label("%s · X %d, Z %d" % [(Markers.COLORS[m.color][0] as String).capitalize(), m.cell.x, m.cell.y])
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.clip_text = true
+	row.add_child(label)
+	var b := Button.new()
+	b.text = "Туда"
+	b.tooltip_text = "Телепорт к маркеру"
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(0, ARROW)
+	var cell: Vector2i = m.cell
+	b.pressed.connect(func() -> void:
+		game.character.go_to_column(cell)
+		close()
+		if get_tree().paused:
+			game.hud.toggle_menu())
+	row.add_child(b)
+
+
+## A line of muted text as wide as a row.
+func _note(text: String) -> Label:
+	var l := UiStyle.label(text, UiStyle.MUTED)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	return l
+
+
 ## The grid the next row goes into (see fit): the last one, or a new one after a gap.
 func _grid() -> GridContainer:
 	var last: Node = _list.get_child(_list.get_child_count() - 1) if _list.get_child_count() > 0 else null
@@ -514,8 +612,7 @@ func _grid() -> GridContainer:
 		return last
 	var grid := GridContainer.new()
 	grid.columns = _columns
-	# In the middle of the room kept for the scroll bar while it is hidden.
-	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	grid.add_theme_constant_override("h_separation", COLUMN_GAP)
 	grid.add_theme_constant_override("v_separation", 4)
 	_list.add_child(grid)

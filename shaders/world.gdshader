@@ -13,7 +13,7 @@
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
 //          lying on the corner's side of it if bit 64, with the edge code in bits
-//          128..256
+//          128..256; 512 = a stone top whose moss was picked
 //   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
@@ -56,6 +56,9 @@ bool is_drift(float packed_tile, vec2 uv) {
 	return int(packed_tile + 0.5) % 64 == NONE && uv.x > 2.5;
 }
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	if (is_drift(UV2.x, UV)) {
 		// The mound stands on the top of its cell and is lower than a cell.
@@ -66,6 +69,7 @@ void vertex() {
 	world_normal = NORMAL;
 	packed = UV2;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
@@ -242,8 +246,9 @@ void fragment() {
 	float snow_here = roof ? 0.0 : snow_amount * (1.0 - warm);
 	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
-	// Moss on the tops of stone in damp patches, not by a fire.
-	if (top && tile == 3 * 3 && !cap && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	// Moss on the tops of stone in damp patches, not by a fire nor where it was
+	// picked (flag 512, see Grass.stone_moss).
+	if (top && tile == 3 * 3 && !cap && (flag & 512) == 0 && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
@@ -315,5 +320,5 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

@@ -1,8 +1,10 @@
 // Upright pixel-art sprites (people, animals). Lit like the ground under them, so
 // they sit in shadows and torch light, and cast shadows themselves.
 shader_type spatial;
-// Sprites cast shadows but do not receive them: an upright quad would shade itself.
-render_mode world_vertex_coords, cull_disabled, shadows_disabled;
+// Sprites receive real shadows too (the player's from a fire on an animal, a crown's
+// on the player); the normal offset of the shadow lookup keeps an upright quad from
+// shading itself.
+render_mode world_vertex_coords, cull_disabled;
 
 #include "res://shaders/common.gdshaderinc"
 
@@ -13,13 +15,32 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // Height of the water surface around a wading or swimming sprite, in world units:
 // below it the body is hidden, along it a line of ripples.
 uniform float water_line = -1000.0;
+// What a drawn shadow of a fire or the torch leaves of the light where the sprite
+// stands (FireShadows): 1 out of them.
+instance uniform float shade = 1.0;
 
 varying vec3 world_pos;
 varying float clouds;
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
+	if (IN_SHADOW_PASS) {
+		// A flat sprite seen from the side throws a strip of a shadow: for the shadow
+		// it turns about its middle to face the light (the light's camera), as if the
+		// body were as wide every way. In the sheared space the shadow is cast in.
+		vec3 foot = MODEL_MATRIX[3].xyz;
+		vec2 to = PROJECTION_MATRIX[3][3] > 0.5 ? INV_VIEW_MATRIX[2].xz
+			: INV_VIEW_MATRIX[3].xz - vec2(foot.x, foot.z - foot.y - 0.5);
+		if (dot(to, to) > 1e-6) {
+			vec2 side = normalize(vec2(to.y, -to.x));
+			VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
+		}
+	}
 	world_pos = VERTEX;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 void fragment() {
@@ -44,7 +65,8 @@ void fragment() {
 		discard;
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
-	ALBEDO = c.rgb * (1.0 - veiled.a);
+	// The cool light of the night is what a drawn shadow leaves (fire_shadow.gdshader).
+	ALBEDO = c.rgb * vec3(shade, mix(shade, 1.0, 0.06), mix(shade, 1.0, 0.2)) * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
 	// Lit as if facing up and toward the viewer, on both sides (mirrored sprites
 	// show their back face).
@@ -55,5 +77,5 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

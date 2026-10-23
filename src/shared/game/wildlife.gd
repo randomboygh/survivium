@@ -4,11 +4,17 @@ extends RefCounted
 ## hours (by the daylight of the Clock), flee from threats (the people among them) and
 ## hunt when hungry; the eaten are gone and new ones come in their place around the
 ## people. The client draws them (Creatures) as they come, go and walk.
+## The other properties shape the rest the same way for every species: those that come
+## in a `flock` follow its first (the lead) and take fright together; those that like
+## some plants seek them out; those that fly hop about on the ground, now and then fly
+## over to another place, take off from a threat and, roosting in trees, sleep in the
+## crowns, where no walker reaches them.
 
 const Body := preload("res://src/shared/game/body.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 
 const RESPAWN_EVERY := 15.0
 const CELL := WorldData.CELL
@@ -20,6 +26,18 @@ const SPAWN_REACH := 80
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
 const FAR_STEP := 0.1
+## Flyers: how far they fly to another place, in world units, and how far from a
+## threat; how high they fly above the ground and crowns, and over how much of the
+## way's end they come down.
+const FLIGHT := 14.0
+const FLIGHT_AWAY := 12.0
+const CRUISE := 2.5
+const DESCENT := 4.0
+## Chance a resting flyer flies over to another place each time it thinks.
+const FLY_CHANCE := 0.05
+## A flock keeps within this many world units of its lead.
+const FLOCK_REACH := 1.5
+const FLOCK_GAP := 4.0
 
 ## An animal came into the world, or was eaten and is gone.
 signal born(a: Animal)
@@ -48,6 +66,30 @@ class Animal:
 	## Time gathered since the last step while not near (see FAR_STEP); 0 right after
 	## a step.
 	var away := 0.0
+	## Time from the last step to the next one while not near: FAR_STEP, less what the
+	## last one came late, so each animal keeps its own beat.
+	var wait := FAR_STEP
+	## A flyer is in the air, or sits in a tree crown.
+	var flying := false
+	var perched := false
+	## The one it follows in its flock, null for a lead or one alone, and its own
+	## place in the flock around the lead.
+	var lead: Animal = null
+	var spot := Vector3.ZERO
+	## Where the threat it flees from was, for its flock to take fright too.
+	var fear := Vector3.ZERO
+	## Eaten, out of the world.
+	var gone := false
+	## The frame of its picture drawn (on the client, see Creatures).
+	var frame := 0
+	## A flyer's last cell under it and the top of the ground or crown there (see
+	## _canopy), looked up again only in a new cell.
+	var over := Vector2i(1 << 30, 0)
+	var below := 0.0
+
+	## Off the ground, out of reach of those that walk.
+	func aloft() -> bool:
+		return flying or perched
 
 
 var world
@@ -60,6 +102,8 @@ var animals: Array[Animal] = []
 var rng := RandomNumberGenerator.new()
 var respawn_timer := 0.0
 var _daylight := 1.0
+## What each kind is to each (see _sees), worked out from AiRules once.
+var _seen := {}
 
 
 ## Lets the animals of every species come into the world around the people.
@@ -68,8 +112,11 @@ func start(seed_value: int) -> void:
 	for kind in AiRules.SPECIES:
 		if kind == AiRules.HUMAN:
 			continue
-		for i in AiRules.SPECIES[kind].count:
-			_spawn(kind, false)
+		var want: int = AiRules.SPECIES[kind].count
+		for i in want:
+			if count(kind) >= want:
+				break
+			_spawn_group(kind, want - count(kind), false)
 
 
 func count(kind: String) -> int:
@@ -89,17 +136,20 @@ func update(delta: float) -> void:
 		respawn_timer = 0.0
 		for kind in AiRules.SPECIES:
 			if kind != AiRules.HUMAN and count(kind) < AiRules.SPECIES[kind].count:
-				_spawn(kind, true)
+				_spawn_group(kind, AiRules.SPECIES[kind].count - count(kind), true)
 	_daylight = clock.daylight()
 	for a in animals.duplicate():
-		if not animals.has(a):
+		if a.gone:
 			continue
 		var dt := delta
 		if not a.near:
 			a.away += delta
-			if a.away < FAR_STEP:
+			if a.away < a.wait:
 				continue
 			dt = a.away
+			# A long frame lets many animals step at once; their next steps fall on
+			# their own beats again, or they would all come to step in one frame.
+			a.wait = FAR_STEP - fmod(a.away - a.wait, FAR_STEP)
 		a.away = 0.0
 		var spec: Dictionary = AiRules.SPECIES[a.kind]
 		a.hunger = minf(1.0, a.hunger + dt * 0.012)
@@ -107,7 +157,10 @@ func update(delta: float) -> void:
 		if a.think <= 0.0:
 			a.think = 0.4 + rng.randf() * 0.3
 			_decide(a, spec)
-		_move(a, spec, dt)
+		if a.flying:
+			_fly(a, spec, dt)
+		else:
+			_move(a, spec, dt)
 
 
 func _decide(a: Animal, spec: Dictionary) -> void:
@@ -126,49 +179,219 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 				threat_d = d
 	var prey: Animal = null
 	var prey_d := INF
+	var lead := _lead(a)
+	var alarm: Variant = null
+	# Most others are nobody to it: those are passed by first, as there are many.
+	var sees := _sees(a.kind)
+	var sight2 := sight * sight
 	for o in animals:
-		if o == a:
+		var what: int = sees[o.kind]
+		if (what == NOBODY and (lead == null or o.state != "flee")) or o == a:
 			continue
-		var d := a.pos.distance_to(o.pos)
-		if d > sight:
+		var d2 := a.pos.distance_squared_to(o.pos)
+		if d2 > sight2:
 			continue
-		if d < threat_d and AiRules.is_threat(a.kind, o.kind):
+		var d := sqrt(d2)
+		if d < threat_d and what == THREAT:
 			threat_pos = o.pos
 			threat_d = d
-		elif d < prey_d and AiRules.is_food(a.kind, o.kind):
+		elif d < prey_d and what == FOOD and (spec.flies or not o.aloft()):
 			prey = o
 			prey_d = d
+		elif o.state == "flee" and lead != null and _lead(o) == lead and a.pos.distance_to(o.fear) < sight:
+			alarm = o.fear
+	# One of the flock fleeing frightens the rest.
+	if threat_pos == null and alarm != null:
+		threat_pos = alarm
 	if threat_pos != null:
 		a.state = "flee"
+		a.fear = threat_pos
 		var away: Vector3 = a.pos - threat_pos
 		away.y = 0.0
 		if away.length() < 0.01:
 			away = Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
+		if spec.flies:
+			if not a.flying:
+				_take_off(a, spec, a.pos + away.normalized() * FLIGHT_AWAY, FLIGHT_AWAY * 0.3)
+			return
 		a.target = a.pos + away.normalized() * 6.0
 		return
 	if not AiRules.is_active(a.kind, _daylight):
+		# Flyers sleep in the crowns, near their lead; one that found none sleeps where
+		# it is.
+		var was_resting := a.state == "rest"
 		a.state = "rest"
-		a.target = a.pos
+		if spec.flies and spec.roost == "trees" and not a.aloft() and not was_resting:
+			var around: Vector3 = a.pos if lead == null or lead == a else lead.target
+			var tree: Variant = _tree_spot(around, FLIGHT)
+			if tree != null:
+				a.target = tree
+				a.flying = true
+				return
+		if not a.flying:
+			a.target = a.pos
 		return
 	if prey != null and a.hunger > 0.5:
 		a.state = "hunt"
 		a.prey = prey
 		a.target = prey.pos
+		if spec.flies and not a.flying:
+			a.flying = true
+			a.perched = false
 		return
 	if "plants" in spec.diet:
 		a.hunger = maxf(0.0, a.hunger - 0.04)
-	if a.state != "wander" or a.pos.distance_to(a.target) < 0.3 or rng.randf() < 0.05:
-		a.state = "wander"
-		a.target = a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
+	var was := a.state
+	a.state = "wander"
+	if a.flying:
+		return
+	if lead != null and lead != a:
+		_follow(a, spec, lead)
+		return
+	if spec.flies:
+		if rng.randf() < FLY_CHANCE:
+			_take_off(a, spec, a.pos, FLIGHT)
+		elif not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
+			# Hops about and pecks.
+			a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
+		return
+	if was != "wander" or a.pos.distance_to(a.target) < 0.3 or rng.randf() < 0.05:
+		var to: Variant = null if spec.likes.is_empty() else _place(spec, a.pos, 6.0, false)
+		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
+
+
+const NOBODY := 0
+const THREAT := 1
+const FOOD := 2
+
+
+## What every kind is to kind `kind`: kind -> THREAT, FOOD or NOBODY (see AiRules),
+## worked out once.
+func _sees(kind: String) -> Dictionary:
+	var out: Variant = _seen.get(kind)
+	if out == null:
+		out = {}
+		for other in AiRules.SPECIES:
+			out[other] = THREAT if AiRules.is_threat(kind, other) else (FOOD if AiRules.is_food(kind, other) else NOBODY)
+		_seen[kind] = out
+	return out
+
+
+## The lead of `a`'s flock: itself when it leads, null for one that keeps alone.
+func _lead(a: Animal) -> Animal:
+	if a.lead != null:
+		return a.lead
+	return a if AiRules.SPECIES[a.kind].flock[1] > 1 else null
+
+
+## A follower keeps to its place around the lead: flies after it, settles where it
+## settles (in a tree when it sits in one) and hops about there.
+func _follow(a: Animal, spec: Dictionary, lead: Animal) -> void:
+	var at := lead.target + a.spot
+	if spec.flies:
+		if lead.flying or a.pos.distance_to(lead.pos) > FLOCK_GAP:
+			a.target = _settle(at, lead.target.y > ground(lead.target.x, lead.target.z) + 0.3)
+			a.flying = true
+			a.perched = false
+		elif not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
+			a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
+		return
+	if a.pos.distance_to(lead.pos) > FLOCK_GAP or a.pos.distance_to(a.target) < 0.3:
+		a.target = at + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
+
+
+## Sends flyer `a` into the air to a place within `reach` of `around` (see _place),
+## or nearer itself when there is none there; it stays when there is none at all.
+func _take_off(a: Animal, spec: Dictionary, around: Vector3, reach: float) -> void:
+	var to: Variant = _place(spec, around, reach, spec.roost == "trees" and rng.randf() < 0.3)
+	if to == null:
+		to = _place(spec, a.pos, reach * 0.5, false)
+	if to == null:
+		return
+	a.target = to
+	a.flying = true
+	a.perched = false
+
+
+## A place to go within `reach` of `around`: of a few tried, one where something the
+## species likes grows, else any open ground; a spot in a crown when `tree` and there
+## is a tree near. Null when all of those tried are water or under crowns.
+func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool) -> Variant:
+	if tree:
+		var spot: Variant = _tree_spot(around, reach)
+		if spot != null:
+			return spot
+	var best := around
+	var best_score := -1
+	for i in 8:
+		var p := around + Vector3(rng.randf_range(-reach, reach), 0.0, rng.randf_range(-reach, reach))
+		var x := floori(p.x / CELL)
+		var z := floori(p.z / CELL)
+		var y: int = world.surface_y(x, z)
+		# Not over water or under a crown.
+		if y <= 0 or world.leaf_col(x, z) >> y != 0:
+			continue
+		var score := 0
+		if not spec.likes.is_empty():
+			for plant in Grass.plants_on(world, x, y - 1, z):
+				if plant in spec.likes:
+					score = 1
+		if score > best_score:
+			best_score = score
+			best = p
+			if score > 0:
+				break
+	if best_score < 0:
+		return null
+	best.y = ground(best.x, best.z)
+	return best
+
+
+## Where to sit at x, z of `at`: on the crown there when `tree` and there is one,
+## else on the ground (at the height of `at` over water).
+func _settle(at: Vector3, tree: bool) -> Vector3:
+	if tree:
+		var leaves: int = world.leaf_col(floori(at.x / CELL), floori(at.z / CELL))
+		if leaves != 0:
+			return Vector3(at.x, (WorldData.top_level(leaves) + 1) * CELL, at.z)
+	var y := ground(at.x, at.z)
+	return Vector3(at.x, y if y > 0.0 else at.y, at.z)
+
+
+## A spot on the top of a tree crown within `reach` of `around`, or null: a few trees
+## tried at random from the chunks there that have any (a forest chunk has dozens, too
+## many to look through on a phone each time).
+func _tree_spot(around: Vector3, reach: float) -> Variant:
+	var r := ceili(reach / CELL)
+	var cx := floori(around.x / CELL)
+	var cz := floori(around.z / CELL)
+	var wooded := []
+	for kz in range((cz - r) >> WorldData.SHIFT, ((cz + r) >> WorldData.SHIFT) + 1):
+		for kx in range((cx - r) >> WorldData.SHIFT, ((cx + r) >> WorldData.SHIFT) + 1):
+			var trees: Dictionary = world.tree_chunks.get(Vector2i(kx, kz), {})
+			if not trees.is_empty():
+				wooded.append(trees)
+	if wooded.is_empty():
+		return null
+	for attempt in 8:
+		var trees: Dictionary = wooded[rng.randi() % wooded.size()]
+		var t: Vector2i = trees.keys()[rng.randi() % trees.size()]
+		if absi(t.x - cx) <= r and absi(t.y - cz) <= r and world.leaf_col(t.x, t.y) != 0:
+			var at := (Vector3(t.x, 0.0, t.y) + Vector3(rng.randf_range(0.0, 1.0), 0.0, rng.randf_range(0.0, 1.0))) * CELL
+			return _settle(at, true)
+	return null
 
 
 func _move(a: Animal, spec: Dictionary, delta: float) -> void:
+	if a.perched:
+		return
 	var speed: float = spec.speed
 	match a.state:
 		"rest":
 			speed = 0.0
 		"wander":
-			speed *= 0.3
+			# Flyers only hop about on the ground.
+			speed *= 0.1 if spec.flies else 0.3
 	var to := a.target - a.pos
 	to.y = 0.0
 	if speed > 0.0 and to.length() > 0.1:
@@ -190,15 +413,64 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 					world.tread(floori(a.pos.x / CELL), floori(a.pos.z / CELL), clock.now())
 		else:
 			a.target = a.pos
+	_catch(a, spec)
+
+
+## Flyer `a` flies toward its target: up over the ground and crowns on the way, down
+## onto the target over the last DESCENT units; it sits there once it gets there, in a
+## crown or on the ground.
+func _fly(a: Animal, spec: Dictionary, delta: float) -> void:
+	var speed: float = spec.speed * (1.0 if a.state == "flee" or a.state == "hunt" else 0.7)
 	if a.state == "hunt" and a.prey != null:
-		if not animals.has(a.prey):
-			a.prey = null
-			a.state = "wander"
-		elif a.pos.distance_to(a.prey.pos) < 0.7:
-			_remove(a.prey)
-			a.prey = null
-			a.hunger = 0.0
-			a.state = "wander"
+		a.target = a.prey.pos
+	var to := Vector2(a.target.x - a.pos.x, a.target.z - a.pos.z)
+	var d := to.length()
+	if d > 0.001:
+		var step := to / d * minf(speed * delta, d)
+		a.pos.x += step.x
+		a.pos.z += step.y
+		if absf(step.x) > 0.001:
+			a.facing = -1.0 if step.x < 0.0 else 1.0
+		d -= step.length()
+	var cell := Vector2i(floori(a.pos.x / CELL), floori(a.pos.z / CELL))
+	if cell != a.over:
+		a.over = cell
+		a.below = _canopy(a.pos.x, a.pos.z)
+	var below := a.below
+	var high := maxf(below, a.target.y) + CRUISE
+	var want := lerpf(a.target.y, high, clampf(d / DESCENT, 0.0, 1.0))
+	if d > 0.5:
+		want = maxf(want, below + 0.3)
+	a.pos.y = move_toward(a.pos.y, want, speed * delta)
+	if d < 0.01 and absf(a.pos.y - a.target.y) < 0.01:
+		a.pos = a.target
+		a.flying = false
+		a.perched = a.target.y > ground(a.pos.x, a.pos.z) + 0.3
+	_catch(a, spec)
+
+
+## The top of what is under x, z: the ground or a tree crown, in world units.
+func _canopy(x: float, z: float) -> float:
+	var top := ground(x, z)
+	var leaves: int = world.leaf_col(floori(x / CELL), floori(z / CELL))
+	if leaves != 0:
+		top = maxf(top, (WorldData.top_level(leaves) + 1) * CELL)
+	return top
+
+
+## A hunter catches its prey when it gets to it, and gives up on one gone or out of
+## its reach.
+func _catch(a: Animal, spec: Dictionary) -> void:
+	if a.state != "hunt" or a.prey == null:
+		return
+	if a.prey.gone or (a.prey.aloft() and not spec.flies):
+		a.prey = null
+		a.state = "wander"
+	elif a.pos.distance_to(a.prey.pos) < 0.7:
+		_remove(a.prey)
+		a.prey = null
+		a.hunger = 0.0
+		a.state = "wander"
 
 
 ## Height of the ground at a world point, in world units; below 0 over open water.
@@ -208,10 +480,41 @@ func ground(x: float, z: float) -> float:
 
 func _remove(a: Animal) -> void:
 	animals.erase(a)
+	a.gone = true
+	# The first of its flock leads the rest from now on.
+	var next: Animal = null
+	for o in animals:
+		if o.lead == a:
+			if next == null:
+				next = o
+				o.lead = null
+			else:
+				o.lead = next
 	gone.emit(a)
 
 
-func _spawn(kind: String, away_from_people: bool) -> void:
+## Brings a group of `kind` into the world: one alone, or a flock of the species'
+## size (at most `most`) around its lead.
+func _spawn_group(kind: String, most: int, away_from_people: bool) -> void:
+	var lead := _spawn(kind, away_from_people)
+	if lead == null:
+		return
+	var flock: Array = AiRules.SPECIES[kind].flock
+	if flock[1] <= 1:
+		return
+	var n := mini(rng.randi_range(flock[0], flock[1]), most)
+	for i in n - 1:
+		var spot := Vector3(rng.randf_range(-FLOCK_REACH, FLOCK_REACH), 0.0, rng.randf_range(-FLOCK_REACH, FLOCK_REACH))
+		var pos := lead.pos + spot
+		pos.y = ground(pos.x, pos.z)
+		if pos.y <= 0.0:
+			pos = lead.pos
+		var a := _add(kind, pos)
+		a.lead = lead
+		a.spot = spot
+
+
+func _spawn(kind: String, away_from_people: bool) -> Animal:
 	# Within the ground made around the first of the people (on the client the
 	# player, see ChunkStreamer.LOAD_RANGE).
 	var around: Vector3 = people[0].position
@@ -227,14 +530,19 @@ func _spawn(kind: String, away_from_people: bool) -> void:
 		pos.y = ground(pos.x, pos.z)
 		if away_from_people and pos.distance_to(around) < 20.0:
 			continue
-		var a := Animal.new()
-		a.kind = kind
-		a.pos = pos
-		a.target = pos
-		a.hunger = rng.randf() * 0.5
-		a.think = rng.randf() * 0.5
-		# Those far away take their steps in different frames.
-		a.away = rng.randf() * FAR_STEP
-		animals.append(a)
-		born.emit(a)
-		return
+		return _add(kind, pos)
+	return null
+
+
+func _add(kind: String, pos: Vector3) -> Animal:
+	var a := Animal.new()
+	a.kind = kind
+	a.pos = pos
+	a.target = pos
+	a.hunger = rng.randf() * 0.5
+	a.think = rng.randf() * 0.5
+	# Those far away take their steps in different frames.
+	a.away = rng.randf() * FAR_STEP
+	animals.append(a)
+	born.emit(a)
+	return a

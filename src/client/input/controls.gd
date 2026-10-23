@@ -31,6 +31,8 @@ const TIP_INTERVAL := 0.1
 const CURSOR_TIME := 0.6
 ## How long the debug hint stays after a tap on a touch screen, in seconds.
 const TOUCH_TIP_TIME := 4.0
+## The share of a swing at which the tool strikes: the bits fly then (Effects.burst).
+const STRIKE := 0.5
 
 var game
 var touch := false
@@ -166,6 +168,8 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		if _cooldown <= 0.0 and game.gathering.gather(target):
 			_cooldown = tool_record().swing
 			game.player.work("", _cooldown, target.at)
+			if target.has("bush") or target.has("tree"):
+				game.effects.burst(target.at, Mat.LEAVES, _cooldown * STRIKE)
 		return
 	match use:
 		"place":
@@ -479,6 +483,8 @@ func _did(done: Dictionary) -> bool:
 	_cooldown = done.swing
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
+		if done.stuff >= 0 and done.at.is_finite():
+			game.effects.burst(done.at, done.stuff, done.time * STRIKE)
 	return true
 
 

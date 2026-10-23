@@ -56,6 +56,8 @@ const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
 const DIAG_CORNER := 64
+## A stone top whose moss was picked (see Grass.stone_moss): drawn bare.
+const MOSS_TAKEN := 512
 const FULL := WorldData.FULL
 const CORNER_DIRS := WorldData.CORNER_DIRS
 ## Pieces of a top (see _piece): a whole quarter of the cell, the part of a quarter away
@@ -161,6 +163,8 @@ class Job extends RefCounted:
 	var plain_j := 0
 	var water_j := 0
 	var cands: PackedInt64Array
+	## Steps of copying the cells before the columns (see PREP_STEPS); 0 once done.
+	var prep := PREP_STEPS
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once.
@@ -171,9 +175,15 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 	return finish(job)
 
 
-## Begins building the meshes of a chunk; `step` then builds a few columns at a time.
+## Steps a job takes to copy the cells of the chunk and a border around it before
+## the columns: the cells, their shapes, the cells that may show a face. Each is about
+## as long as the streamer's budget on a phone, so they go one a step.
+const PREP_STEPS := 3
+
+
+## Begins building the meshes of a chunk; `step` then copies its cells and builds a
+## few columns at a time.
 static func start(w, x0: int, z0: int, size: int) -> Job:
-	w.refresh_shapes()
 	var job := Job.new()
 	job.w = w
 	job.x0 = x0
@@ -187,8 +197,6 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	var z1 := z0 + size
 	job.x1 = x1
 	job.z1 = z1
-	job.c = w.padded(false, Mat.STONE, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
-	job.sh = w.padded(true, 0, x0 - PAD, z0 - PAD, x1 + PAD, z1 + PAD)
 	job.cov = covers_table()
 	# Strides of the padded grid: +x, +z, +y.
 	job.dz = x1 - x0 + 2 * PAD
@@ -200,13 +208,35 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	# merged into rows.
 	job.plain = PackedInt32Array()
 	job.water_plain = PackedInt32Array()
-	job.cands = _candidates(w, x0, z0, x1, z1)
 	return job
 
 
+## Copies the cells of the chunk and its border into the job, part `i` of PREP_STEPS
+## (counting down): the cells, their shapes, the cells that may show a face.
+static func _prepare(job: Job, i: int) -> void:
+	var w = job.w
+	var x0 := job.x0 - PAD
+	var z0 := job.z0 - PAD
+	var x1 := job.x1 + PAD
+	var z1 := job.z1 + PAD
+	match i:
+		3:
+			job.c = w.padded(false, Mat.STONE, x0, z0, x1, z1)
+		2:
+			w.refresh_shapes()
+			job.sh = w.padded(true, 0, x0, z0, x1, z1)
+		1:
+			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
+
+
 ## Builds the next `columns` columns of cells of the chunk (a column is all levels of
-## one x, z). Returns true once every column is built.
+## one x, z), after copying its cells over the first steps. Returns true once every
+## column is built.
 static func step(job: Job, columns: int) -> bool:
+	while columns > 0 and job.prep > 0:
+		_prepare(job, job.prep)
+		job.prep -= 1
+		columns -= 1
 	while columns > 0 and job.z < job.z1:
 		_column(job, job.x, job.z)
 		columns -= 1
@@ -249,6 +279,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var plain := job.plain
 	var water_plain := job.water_plain
 	var cands := job.cands
+	# The stone tops whose moss was picked (WorldData.turf "").
+	var picked: Dictionary = w.turf.get(WorldData.chunk_key(x, z), {})
 	var j := (z - z0) * (x1 - x0) + (x - x0)
 	var cand := cands[j]
 	var column := (z - z0 + PAD) * dz + PAD + x - x0
@@ -299,9 +331,10 @@ static func _column(job: Job, x: int, z: int) -> void:
 			_deep_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m)
 		else:
 			var cuts := sh[i] >> 4
+			var bare: bool = m == Mat.STONE and not picked.is_empty() and picked.get(Vector3i(x, y, z), null) == ""
 			# Most tops lie under open sky amid the same flat ground: no sides, no
 			# edges, no transitions.
-			if cuts == 0 and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
+			if cuts == 0 and not bare and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
 					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
 					and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
 					and not cov[c[i + dy - dz]]:
@@ -324,10 +357,12 @@ static func _column(job: Job, x: int, z: int) -> void:
 					if cuts != 0 or halves != 0:
 						_top_pieces(solid, base, m, cuts, edges, halves, float(a))
 						continue
-					if edges == 0 and _plain_around(a, tile):
+					if edges == 0 and not bare and _plain_around(a, tile):
 						plain.append(((y * 64 + tile) * 64 + z - z0) * 64 + x - x0)
 						continue
 					around = float(a)
+					if bare:
+						flag = MOSS_TAKEN
 				elif d == FACE_SOUTH:
 					if not cov[c[i + dy]]:
 						flag = OPEN_TOP

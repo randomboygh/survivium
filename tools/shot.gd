@@ -39,6 +39,8 @@ const SHOTS := {
 	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
 	# The same on "mixed", the default: the player's shadow real, the rest drawn.
 	"fire-shadows-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	# The player east of the fire, in line with it: the real shadow still as wide as the body.
+	"fire-inline": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(1.4, 0.0, 0.0), "fire_shadows": 3},
 	# The same with real shadows: of the player, the grass, bushes and trees.
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
@@ -54,6 +56,29 @@ const SHOTS := {
 		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8),
 		"fire_shadows": 1},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
+	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
+	# the campfire by the spawn, and an animal in the player's shadow: their shadows
+	# drawn ("drawn", and "mixed" with the player's real), and the real ones to compare.
+	"fire-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 1},
+	"fire-blocks-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 3},
+	"fire-blocks-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 2},
+	# The sun moving over lone trees in the morning, frame by frame (see "sweep").
+	"sun-sweep": {"time": 0.36, "season": 1, "trees": true, "sweep": 30},
+	"sun-still": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sweep_step": 0.0},
+	"sun-smooth": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0},
+	"sun-pcf13": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0, "shadow_filter": 4},
+	"sun-hard": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0, "shadow_filter": 0},
+	"moon-sweep": {"time": 0.9, "season": 1, "moon": 1.0, "trees": true, "sweep": 30, "fire_shadows": 0},
+	# An animal in the player's shadow by day, in the morning and at sunrise.
+	"animal-shadow": {"time": 0.36, "season": 1, "animal": Vector3(-0.55, 0.0, -0.45)},
+	"animal-shadow-sunrise": {"time": 0.27, "season": 1, "animal": Vector3(-0.9, 0.0, 0.3)},
+	"animal-shadow-trees": {"time": 0.45, "season": 1, "trees": true, "animal": Vector3(-1.0, 0.0, -0.6)},
+	# The torch by the same blocks, the fire put out.
+	"torch-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-3.0, 0.0, 3.4), "fire_blocks": true,
+		"fire_out": true, "fire_shadows": 1},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
@@ -100,6 +125,9 @@ const SHOTS := {
 	"shore": {"time": 0.4, "season": 1, "shore": true},
 	"slopes": {"time": 0.42, "season": 1, "slopes": true},
 	"corners": {"time": 0.42, "season": 1, "corners": true},
+	# The shore and the rounded corners by the full moon, the moon moving (see "sweep").
+	"shore-moon": {"time": 0.9, "season": 1, "moon": 1.0, "shore": true, "sweep": 20, "fire_shadows": 0},
+	"corners-moon": {"time": 0.9, "season": 1, "moon": 1.0, "corners": true, "sweep": 20, "fire_shadows": 0},
 	"corners-winter": {"time": 0.45, "season": 3, "corners": true},
 	"lab": {"time": 0.42, "season": 1, "lab": true},
 	"trees": {"time": 0.42, "season": 1, "trees": true},
@@ -123,6 +151,10 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
+	# A flock of sparrows (the birds mod) about the player: on the ground, in the air
+	# and in the crowns near.
+	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
+	"birds-forest": {"time": 0.42, "season": 1, "forest": true, "birds": true},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "core:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "core:glow_mushrooms"},
@@ -147,14 +179,24 @@ const SHOTS := {
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
 	"grove-spring": {"time": 0.42, "season": 0, "grove": true},
 	"grove-autumn-morning": {"time": 0.31, "season": 2, "grove": true},
+
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
+	# The oak and the spruce of the clearing by the full moon and by a low sun: the shape
+	# of their shadows.
+	"clearing-moon": {"time": 0.95, "season": 1, "moon": 1.0, "clearing": true},
+	"clearing-low-sun": {"time": 0.3, "season": 1, "clearing": true},
+	# North of the spruce by the full moon, its shadow falling toward the player.
+	"spruce-moon": {"time": 0.85, "season": 1, "moon": 1.0, "clearing": true, "offset": Vector3(0.5, 0.0, -5.0)},
 	# Gathering on the felled clearing with berry bushes: some things picked up and
 	# berries picked; then the bag open on a touch screen and with a mouse.
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# A chest chosen in the bag: its wide button sets it down.
+	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"give": "core:chest"},
 	# The same bag with only the food lit and the chosen stack about to be destroyed.
 	"bag-destroy": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"kind": "food", "slot": 0, "destroy": true},
@@ -170,6 +212,11 @@ const SHOTS := {
 	"hands-front": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "s", "right": true}},
 	"hands-dig": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_shovel", "facing": "se", "work": "dig"}},
 	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
+	# A sword carried facing south-east and north-west: up against the shoulder.
+	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "se", "right": false}},
+	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "nw"}},
+	# Bits of a trunk chopped flying off it.
+	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "core:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# A second chest set down beside the player: the bag button opens the bag with both
@@ -227,6 +274,18 @@ const SHOTS := {
 	# beyond the minimap's edge, kept at its edge.
 	"ui-map-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]], "map": true, "map_zoom": 8},
 	"ui-minimap-sack": {"time": 0.45, "season": 1, "touch": true, "sacks": [[6.0, -3.0], [-120.0, 40.0]]},
+	# A campfire set down by the camp by the spawn: its dot is drawn beside theirs.
+	"ui-minimap-placed": {"time": 0.45, "season": 1, "touch": true, "put_fire": [-2.0, -8.0]},
+	# Markers of every colour (dx, dz in cells, colour): flags on the map, the window of a
+	# new one open; dots on the minimap, the far ones at its edge; listed on the playtest page.
+	"ui-map-markers": {"time": 0.45, "season": 1, "touch": true, "map": true, "map_zoom": 4,
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]], "map_tap": [-20, 20]},
+	"ui-map-markers-pc": {"time": 0.45, "season": 1, "map": true, "map_zoom": 2,
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]], "map_tap": [30, -20]},
+	"ui-minimap-markers": {"time": 0.45, "season": 1, "touch": true,
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]]},
+	"ui-test-marks": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "marks",
+		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]]},
 	# The main menu over the live world, over the painted sky it shows while the world is
 	# built, and with the setup screen of a new world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
@@ -296,7 +355,8 @@ func _fake_saves() -> void:
 	main.WorldStore.root = "user://shot_saves"
 	var worlds := [[main.world_seed, main.world_options, 12, "2026-10-20T18:40:00"],
 		[48151623, {"size": 0, "water": 2, "mountains": 1, "rivers": 0, "biomes": 1}, 3, "2026-10-19T21:05:00"],
-		[777, {"size": 1, "water": 1, "mountains": 2, "rivers": 1, "biomes": 1}, 41, "2026-10-18T12:30:00"]]
+		[777, {"size": 1, "water": 1, "mountains": 2, "rivers": 1, "biomes": 1}, 41, "2026-10-18T12:30:00"],
+		[-1, main.world_options, 2, "2026-10-17T10:00:00"]]
 	for w: Array in worlds:
 		var store = main.WorldStore.new(main.WorldStore.world_dir(w[0], w[1]))
 		store.write_json(main.WorldStore.WORLD, {"format": main.WorldStore.FORMAT, "seed": w[0], "settings": w[1],
@@ -320,6 +380,10 @@ func _run() -> void:
 		main.clock.wind_to = shot.get("wind", 0.0)
 		main.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
+		if "sun_steps" in main.sky:
+			main.sky.sun_steps = shot.get("sun_steps", main.sky.SUN_STEPS)
+		RenderingServer.directional_soft_shadow_filter_set_quality(shot.get("shadow_filter",
+			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality")))
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.values.sun_rays = shot.get("rays", true)
 		main.settings.values.fog = shot.get("fog", true)
@@ -358,6 +422,15 @@ func _run() -> void:
 						var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + off)
 						if spot.y >= 0:
 							added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
+					if shot.get("fire_blocks", false):
+						_fire_blocks(main.world, e.cell)
+						for put: Array in [["core:chest", Vector3(2.6, 0.0, 2.2)], ["core:workbench", Vector3(-3.2, 0.0, 1.0)]]:
+							var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + put[1])
+							if spot.y >= 0:
+								added_fires.append(main.placed.put(put[0], spot, null))
+					if shot.get("fire_out", false):
+						out_fire = e
+						main.placed.put_out(e)
 					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
@@ -370,6 +443,7 @@ func _run() -> void:
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
 		if shot.get("clearing", false):
 			_clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
+			main.player.position += shot.get("offset", Vector3.ZERO)
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
@@ -413,10 +487,16 @@ func _run() -> void:
 			c.pos.y = main.wildlife.ground(c.pos.x, c.pos.z)
 			c.target = c.pos
 			c.think = 100.0
+		if shot.get("birds", false):
+			_place_birds()
 		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
 					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
+		if shot.has("put_fire"):
+			var spot: Vector3i = main.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
+			if spot.y >= 0:
+				added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
 		for at: Array in shot.get("sacks", []):
 			main.character.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
@@ -441,6 +521,10 @@ func _run() -> void:
 			for i in 12:
 				await process_frame
 		# Messages fade after a few seconds, longer than the settling above takes here.
+		if shot.has("burst"):
+			main.effects.burst(main.player.position + Vector3(0.6, 0.4, 0.0), main.Mat.index(shot.burst))
+			for i in 3:
+				await process_frame
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
 			await process_frame
@@ -460,6 +544,11 @@ func _run() -> void:
 				v.health -= 12.0
 			for i in 4:
 				await process_frame
+		for m: Array in shot.get("markers", []):
+			main.markers.add(Vector2i((main.player.position / CELL).floor().x, (main.player.position / CELL).floor().z) \
+					+ Vector2i(m[0], m[1]), m[2])
+		if shot.has("markers"):
+			await process_frame
 		if shot.get("test", false):
 			main.hud.toggle_test()
 			main.hud._settings.show_section(shot.get("section", "world"))
@@ -475,7 +564,14 @@ func _run() -> void:
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._let_go()
-			main.hud.bag._tap(shot.get("slot", 1), true)
+			var slot: int = shot.get("slot", 1)
+			if shot.has("give"):
+				main.character.give(shot.give, 1)
+				for i in main.character.inventory.slots.size():
+					var st = main.character.inventory.slots[i]
+					if st != null and st[0] == shot.give:
+						slot = i
+			main.hud.bag._tap(slot, true)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
@@ -572,6 +668,10 @@ func _run() -> void:
 		if shot.get("map", false):
 			main.hud.map_view.open()
 			main.hud.map_view.zoom_index = shot.get("map_zoom", main.hud.map_view.FIRST_ZOOM)
+			main.hud.map_view.redraw()
+			if shot.has("map_tap"):
+				var mv: Control = main.hud.map_view
+				mv.tap(mv.point_of(Vector2(main.hud.minimap.player_cell + Vector2i(shot.map_tap[0], shot.map_tap[1]))))
 			await process_frame
 			await process_frame
 		if shot.get("revive", false):
@@ -581,6 +681,14 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		# Frames of the sun moving at the game's speed, 60 a second, to see how the
+		# shadows move: <name>-01.png and on.
+		for i in shot.get("sweep", 0):
+			main.clock.time_of_day += shot.get("sweep_step", 1.0) / (main.clock.DAY_LENGTH * 60.0)
+			await process_frame
+			await process_frame
+			root.get_texture().get_image().save_png(out_dir.path_join("%s-%02d.png" % [shot_name, i + 1]))
+		main.creatures.set_process(true)
 		if shot.has("keys"):
 			_hold(shot.keys, false)
 		if setup != null:
@@ -592,10 +700,17 @@ func _run() -> void:
 		if shot.get("map", false):
 			main.hud.map_view.close()
 		main.character.sacks.clear()
+		main.markers.from_dict({})
 		print("saved ", shot_name)
 		for e in added_fires:
 			main.placed._remove(e)
 		added_fires.clear()
+		if not out_fire.is_empty():
+			out_fire.lit = true
+			main.placed.lit_changed.emit(out_fire)
+			out_fire = {}
+		if shot.get("fire_blocks", false):
+			_unwall_cells(main.world)
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
@@ -621,7 +736,7 @@ func _run() -> void:
 		if shot.get("death", false):
 			main.death_screen._revive(main.character.home)
 		if shot.get("work", false):
-			main.settings.set_value("auto_pickup", true)
+			main.settings.set_value("pickup", 0)
 			main.controls.hold("")
 			main.controls._cursor_clock = 0.0
 	quit()
@@ -683,7 +798,7 @@ func _hands(h: Dictionary) -> void:
 func _work() -> void:
 	var c = main.controls
 	var w = main.world
-	main.settings.set_value("auto_pickup", false)
+	main.settings.set_value("pickup", 3)
 	main.settings.give_tools()
 	main.character.inventory.add("core:stone", 20)
 	var f: Vector3i = c.feet()
@@ -1100,6 +1215,38 @@ func _hut(w, at: Vector3) -> Vector3:
 ## The cells a wall replaced, to put back after its shot: the world is shared by all
 ## the shots of one run.
 var wall_cells: Array = []
+## The campfire a shot put out, to be lit again after it.
+var out_fire := {}
+
+
+## Blocks of stone round the campfire whose north-west cell is `fire`, kept in
+## wall_cells to be taken away again: a wall two high to the south-west, a low wall to
+## the south-east, a pillar three high to the north-east and a lone block to the
+## north-west.
+func _fire_blocks(w, fire: Vector3i) -> void:
+	var cells := []
+	for x in range(fire.x - 7, fire.x - 3):
+		for y in 2:
+			cells.append(Vector3i(x, fire.y + y, fire.z + 4))
+	for x in range(fire.x + 3, fire.x + 6):
+		cells.append(Vector3i(x, fire.y, fire.z + 6))
+	for y in 3:
+		cells.append(Vector3i(fire.x + 6, fire.y + y, fire.z - 3))
+	cells.append(Vector3i(fire.x - 3, fire.y, fire.z - 4))
+	for c: Vector3i in cells:
+		wall_cells.append([c, w.get_cell(c.x, c.y, c.z), w.is_natural(c.x, c.y, c.z)])
+		w.set_cell(c.x, c.y, c.z, Mat.STONE)
+		w.set_natural(c.x, c.y, c.z, false)
+		main.actions.cell_changed.emit(c)
+
+
+## Puts back the cells in wall_cells one by one.
+func _unwall_cells(w) -> void:
+	for c in wall_cells:
+		w.set_cell(c[0].x, c[0].y, c[0].z, c[1])
+		w.set_natural(c[0].x, c[0].y, c[0].z, c[2])
+		main.actions.cell_changed.emit(c[0])
+	wall_cells.clear()
 
 
 func _wall(w, at: Vector3i) -> void:
@@ -1314,3 +1461,33 @@ func _lone_trees(w, at: Vector3) -> Vector3:
 				best_n = n
 				best = Vector3(x + 0.5, y, z + 0.5)
 	return best * CELL
+
+
+## Puts the sparrows round the player, every third in the air and every third in a
+## crown when there is a tree near, and holds them there until the shot is taken.
+func _place_birds() -> void:
+	var life = main.wildlife
+	var p: Vector3 = main.player.position
+	var i := 0
+	for c in life.animals:
+		if c.kind != "birds:sparrow":
+			continue
+		c.pos = p + Vector3(-3.0 + (i % 5) * 1.4, 0.0, -2.5 + (i / 5) * 1.2)
+		c.pos.y = life.ground(c.pos.x, c.pos.z)
+		c.flying = false
+		c.perched = false
+		c.target = c.pos
+		var tree: Variant = life._tree_spot(p, 7.0) if i % 3 == 2 else null
+		if i % 3 == 1:
+			c.pos.y = life._canopy(c.pos.x, c.pos.z) + 1.0 + (i % 4) * 0.5
+			c.flying = true
+			c.target = c.pos + Vector3(5.0, 0.0, 0.0)
+		elif tree != null:
+			c.pos = tree
+			c.perched = true
+			c.target = c.pos
+		c.facing = 1.0 if i % 2 == 0 else -1.0
+		c.think = 100.0
+		i += 1
+	main.creatures._process(0.0)
+	main.creatures.set_process(false)

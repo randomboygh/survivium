@@ -57,6 +57,9 @@ const float CELL_TEXELS = 8.0;
 // 1, 2, 3 and 5 parts of 5 (Fibonacci), and how bright each ring is.
 const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 1.0);
 const vec4 LIGHT_RING_LEVELS = vec4(1.0, 0.55, 0.3, 0.14);
+// The edges between the rings are dithered over this share of the range on either
+// side, so the light falls off smoothly in whole texels.
+const float LIGHT_RING_DITHER = 0.05;
 // The least a face gets of the sun or the moon: what level ground gets in a shadow.
 const float SHADOW_FLOOR = 0.14;
 
@@ -97,6 +100,22 @@ float bayer4(vec2 t) {
 	ivec2 i = ivec2(mod(t, 4.0));
 	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
 	return (float(m[i.y * 4 + i.x]) + 0.5) / 16.0;
+}
+
+// How bright the rings of a torch or a fire are at `d`, the distance as a share of its
+// range, on `texel` of the picture (see light_texel): flat rings with dithered edges.
+float light_ring(float d, vec2 texel) {
+	d += (bayer4(texel) - 0.5) * 2.0 * LIGHT_RING_DITHER;
+	return d < LIGHT_RING_EDGES.x ? LIGHT_RING_LEVELS.x
+		: (d < LIGHT_RING_EDGES.y ? LIGHT_RING_LEVELS.y
+		: (d < LIGHT_RING_EDGES.z ? LIGHT_RING_LEVELS.z
+		: (d < LIGHT_RING_EDGES.w ? LIGHT_RING_LEVELS.w : 0.0)));
+}
+
+// The texel of the picture a point is on, from its sheared x and z (VERTEX.xz after
+// shear(), kept for light() in a varying): x and z - y of the world in texels.
+vec2 light_texel(vec2 sheared_xz) {
+	return floor(sheared_xz * TEXELS);
 }
 
 // How wide the soft rim of a cloud shadow is, in noise values on each side of its edge.
@@ -302,10 +321,11 @@ vec4 veil(vec3 p, float fade) {
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,
-// stepped rings around torches and fires. A cloud does not darken what is already
+// stepped rings around torches and fires, dithered from one to the next. A cloud does not darken what is already
 // in shadow, so cloud and tree shadows merge instead of stacking, and caves (in the
 // shadow of the rock above) never see clouds.
-vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bool directional, float clouds) {
+vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bool directional, float clouds,
+		vec2 texel) {
 	float ndl = clamp(dot(normal, light), 0.0, 1.0);
 	if (directional) {
 		float shadow = min(mix(0.2, 1.0, step(0.5, attenuation)), clouds);
@@ -321,10 +341,7 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 	// range r. The light is cut into flat rings by that distance, each paler and wider
 	// than the one inside it.
 	float d = sqrt(sqrt(max(1.0 - sqrt(attenuation), 0.0)));
-	float lit = d < LIGHT_RING_EDGES.x ? LIGHT_RING_LEVELS.x
-		: (d < LIGHT_RING_EDGES.y ? LIGHT_RING_LEVELS.y
-		: (d < LIGHT_RING_EDGES.z ? LIGHT_RING_LEVELS.z
-		: (d < LIGHT_RING_EDGES.w ? LIGHT_RING_LEVELS.w : 0.0)));
+	float lit = light_ring(d, texel);
 	// Faces turned away from the light get none, grazing ones a little less.
 	float face = ndl > 0.2 ? 1.0 : (ndl > 0.02 ? 0.7 : 0.0);
 	return light_color * lit * face / PI;
