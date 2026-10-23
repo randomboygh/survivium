@@ -39,6 +39,10 @@ snow_amount={
 "type": "float",
 "value": 0.0
 }
+snow_line={
+"type": "float",
+"value": 1000.0
+}
 wetness={
 "type": "float",
 "value": 0.0
@@ -138,4 +142,20 @@ roof_map={
 wrap_size={
 "type": "vec2",
 "value": Vector2(256, 256)
+}
+view_up={
+"type": "vec2",
+"value": Vector2(0, -1)
+}
+view_squash={
+"type": "float",
+"value": 1.0
+}
+view_slope={
+"type": "float",
+"value": 1.0
+}
+sun_view={
+"type": "vec3",
+"value": Vector3(0, 0, 1)
 }

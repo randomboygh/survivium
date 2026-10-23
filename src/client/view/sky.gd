@@ -149,7 +149,11 @@ func _aim_sun(azimuth: float, elevation: float) -> void:
 	var az := deg_to_rad(azimuth)
 	var el := deg_to_rad(elevation)
 	to_sun = Vector3(-sin(az) * cos(el), sin(el), cos(az) * cos(el))
-	sun.global_transform.basis = Basis.looking_at(-to_sun, Vector3.UP)
+	# The light shines in the drawn world: turned with the view, so the shadows stay
+	# where they fall in the default view, while faces are lit as in it (sun_view).
+	sun.global_transform.basis = Basis.looking_at(-PixelView.light_dir(to_sun), Vector3.UP)
+	var view := PixelView.camera_transform(Vector2.ZERO).basis
+	RenderingServer.global_shader_parameter_set("sun_view", view.transposed() * to_sun)
 
 
 ## Sun rays in the air: by day in clear weather, and brighter in the wet air after
@@ -298,6 +302,7 @@ func _update_weather(delta: float) -> void:
 	cloud_pos -= (dir * 0.6 + Vector2(0.0, 0.25)) * delta * (1.0 + strength)
 	var g := RenderingServer
 	g.global_shader_parameter_set("snow_amount", clock.snow)
+	g.global_shader_parameter_set("snow_line", (game.world.sea_level + WorldData.SNOW_LINE) * WorldData.CELL)
 	g.global_shader_parameter_set("wetness", clock.wet)
 	g.global_shader_parameter_set("puddles", Vector2(0.0 if clock.season == Clock.WINTER else clock.puddles, clock.rain))
 	g.global_shader_parameter_set("foliage_tint", foliage)

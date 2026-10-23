@@ -29,7 +29,7 @@ void fragment() {
 	if (age < 0.0) {
 		age += 2048.0;
 	}
-	vec2 texel = floor(vec2(world_pos.x, world_pos.z - world_pos.y) * TEXELS);
+	vec2 texel = floor(screen_plane(world_pos) * TEXELS);
 	float left = clamp((custom.y - age) / (custom.y * 0.4), 0.0, 1.0);
 	if (left <= 0.0 || bayer4(texel) > left || above_cut(world_pos)) {
 		discard;

@@ -35,12 +35,15 @@ const REGION := 32
 const REGION_SHIFT := 5
 const REGION_PX := REGION * WorldData.CHUNK / STEP
 const CHUNK_PX := WorldData.CHUNK / STEP
+## The way the camera looks, up on the screen (see set_view_up).
+var view_up := Vector2(0.0, -1.0)
 ## Colours of the ground by its top, shaded by height (a var: the materials are data
 ## of the core mod, not constants).
 var colors: Dictionary = {
 	Mat.GRASS: Color(0.38, 0.56, 0.26), Mat.DIRT: Color(0.5, 0.38, 0.24), Mat.STONE: Color(0.56, 0.56, 0.56),
 	Mat.SAND: Color(0.84, 0.76, 0.5), Mat.CLAY: Color(0.6, 0.47, 0.38), Mat.COPPER_ORE: Color(0.62, 0.5, 0.4),
 	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.PLANKS: Color(0.6, 0.45, 0.25), Mat.BRICK: Color(0.6, 0.3, 0.25),
+	Mat.SCREE: Color(0.6, 0.58, 0.55),
 }
 const LEAVES := Color(0.18, 0.38, 0.16)
 const SHALLOW := Color(0.36, 0.6, 0.68)
@@ -290,6 +293,14 @@ func _mark_color(id: String) -> Color:
 	return _mark_colors[id]
 
 
+## The way the camera looks (up on the screen) when it is turned: a short line from
+## the player's dot shows it.
+func set_view_up(up: Vector2) -> void:
+	if not up.is_equal_approx(view_up):
+		view_up = up
+		redraw()
+
+
 func set_player(cell: Vector2i) -> void:
 	if cell != player_cell:
 		player_cell = cell
@@ -419,6 +430,12 @@ func _draw_top(l: Control) -> void:
 	l.draw_rect(Rect2(CORNER, 0, SIZE - 2 * CORNER, 1), UiStyle.WELL_SHADE)
 	l.draw_rect(Rect2(0, CORNER, 1, SIZE - 2 * CORNER), UiStyle.WELL_SHADE)
 	var mid := (inner.size * 0.5).floor()
+	if not view_up.is_equal_approx(Vector2(0.0, -1.0)):
+		for i in range(3, 9):
+			var p := (mid + Vector2(0.5, 0.5) + view_up * i).floor()
+			l.draw_rect(Rect2(p - Vector2.ONE, Vector2(3, 3)), UiStyle.EDGE)
+		for i in range(3, 9):
+			l.draw_rect(Rect2((mid + Vector2(0.5, 0.5) + view_up * i).floor(), Vector2.ONE), UiStyle.ACCENT)
 	l.draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.EDGE)
 	l.draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
 	l.draw_rect(Rect2(mid, Vector2(1, 1)), UiStyle.INK)

@@ -443,6 +443,12 @@ static func _texel(m: int, kind: int, px: int, py: int, rng: RandomNumberGenerat
 			if rng.randf() < 0.12:
 				return _vary(Color(0.78, 0.5, 0.3), rng)
 			return _vary(stone, rng, 0.03)
+		Mat.SCREE:
+			# Pebbles of a few greys, a shade darker in the gaps between them.
+			var r := rng.randf()
+			var gap := (px + (py / 3) * 2) % 4 == 0 and py % 3 == 2
+			var tone := 0.78 if gap else (0.9 if r < 0.3 else (1.08 if r > 0.8 else 1.0))
+			return _vary(Color(0.52, 0.5, 0.48) * tone, rng, 0.035)
 		Mat.BRICK:
 			var row := py / 4
 			var mortar := py % 4 == 3 or (px + (row % 2) * 4) % 8 == 7

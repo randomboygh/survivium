@@ -27,6 +27,9 @@ const WATER_TOP := 0.5
 var size_y: int
 ## The top cell of the sea, about five twelfths of the way up (12 of 40, 20 of 48).
 var sea_level := 12
+## Levels above the sea from which snow lies all year, on the high mountains (see
+## peak_snow); the world shader draws it from the same line (`snow_line`).
+const SNOW_LINE := 18
 ## In winter water freezes and is walked on like ground; otherwise it is waded and
 ## swum through.
 var water_frozen := false
@@ -37,6 +40,9 @@ var chunks := {}
 ## always stay whole cubes and dug spaces keep square corners.
 const WILD := 1
 const SHEER := 2
+## On a water cell: a bog, mud a body sinks into to the waist instead of water (see
+## Body); it lies like water in every other way.
+const BOG := 4
 ## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z),
 ## and the trunks by chunk, so a dropped chunk forgets its trees without a search.
 var trees := {}
@@ -289,6 +295,14 @@ func is_natural(x: int, y: int, z: int) -> bool:
 		return false
 	var c := chunk_at(x, z)
 	return c != null and c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] & WILD != 0
+
+
+## True when cell x, y, z is the mud of a bog (see BOG).
+func is_bog(x: int, y: int, z: int) -> bool:
+	if y < 0 or y >= size_y:
+		return false
+	var c := chunk_at(x, z)
+	return c != null and c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] & BOG != 0
 
 
 ## The masks of column (x, z): air (all levels where no chunk is kept), water, leaves
@@ -1334,6 +1348,12 @@ static func top_level(bits: int) -> int:
 	if bits >> 1 != 0:
 		level += 1
 	return level
+
+
+## How much snow lies all year at height `y` (in cells, a top or the feet on it), 0..1:
+## none below the snow line, full two levels above it.
+func peak_snow(y: float) -> float:
+	return clampf((y - sea_level - SNOW_LINE) / 2.0, 0.0, 1.0)
 
 
 ## The level just above the highest cell of column (x, z) that is not air or leaves, 0

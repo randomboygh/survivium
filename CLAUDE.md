@@ -48,7 +48,9 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
   rivers, lakes) on a world-wide lattice every `LATTICE` cells, distances to coast and river as
-  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`). It makes each chunk in
+  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`); mountains with scree and
+  snow above `WorldData.SNOW_LINE`, rivers climbing them in steps (rapids, waterfalls drawn by
+  `ChunkMesher._falls`), deltas at the sea, caves in mountains' sides (`_tunnels`). It makes each chunk in
   three stages, `TERRAIN` (cells of the chunk from a window with a 3-cell margin) → `PLANTED` (trees, needs TERRAIN on the 3×3 around)
   → `SHAPED` (slopes, corners, bushes; needs PLANTED on the 3×3 around); a mesh needs SHAPED. Stages
   are stepped a row or a tree at a time through `start`/`step` jobs, and the result does not depend
@@ -63,8 +65,13 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `find_place`). Texture maps over the world (roof, heat) wrap every `RoofMap.WRAP` cells
   (`wrap_size` shader global).
 - `src/client/` draws and reads input. New 3D shaders include `shaders/common.gdshaderinc` and shear
-  VERTEX like the others (oblique 3/4 view: `z -= y`, camera looks straight down); lights go at
-  `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. Details: `plan/architecture/rendering.md`.
+  VERTEX like the others (oblique 3/4 view: `z -= y` in the default view, camera looks straight down);
+  lights go at `PixelView.shear(pos)`, picking uses `PixelView.view_ray`. The camera turns in 15°
+  steps and tilts ±15° (`camera_rig.gd`, `PixelView.set_view`): the shear then runs up the image
+  (`view_up`, `view_slope`, `view_squash` globals), upright quads face the camera through
+  `face_view`, texels counted on the screen use `screen_plane`, screen directions go through
+  `PixelView.world_dir` / `screen_dir`, and chunk culling boxes are refitted for every view on
+  the way (`ChunkStreamer.refit_boxes`). Details: `plan/architecture/rendering.md`.
 - `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items,
   creatures, trees, bushes, recipes, plants), lists of records with namespaced ids (`core:grass`). `src/shared/content/content.gd`
   reads and checks them against its schemas (`tools/validate.gd` runs the same checks in CI, and that

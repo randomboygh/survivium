@@ -10,27 +10,28 @@ var indices := PackedInt32Array()
 
 
 ## `p` and `uv` hold 4 corners in clockwise order (Godot front faces). `packed` goes to
-## UV2 and is decoded by the shader (see world.gdshader).
-func quad(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2) -> void:
+## UV2 and is decoded by the shader (see world.gdshader). `cols`, when given, is a
+## colour per corner in place of `color`.
+func quad(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2, cols := []) -> void:
 	var start := verts.size()
 	for i in 4:
 		verts.append(p[i])
 		normals.append(n)
 		uvs.append(uv[i])
 		uv2s.append(packed)
-		colors.append(color)
+		colors.append(cols[i] if cols else color)
 	indices.append_array(PackedInt32Array([start, start + 1, start + 2, start, start + 2, start + 3]))
 
 
 ## One triangle, corners clockwise like `quad`.
-func tri(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2) -> void:
+func tri(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2, cols := []) -> void:
 	var start := verts.size()
 	for i in 3:
 		verts.append(p[i])
 		normals.append(n)
 		uvs.append(uv[i])
 		uv2s.append(packed)
-		colors.append(color)
+		colors.append(cols[i] if cols else color)
 	indices.append_array(PackedInt32Array([start, start + 1, start + 2]))
 
 

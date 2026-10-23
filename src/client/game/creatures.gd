@@ -63,7 +63,8 @@ func _process(delta: float) -> void:
 		if a.away == 0.0:
 			var sprite: MeshInstance3D = _sprites[a]
 			sprite.position = PixelView.snap(a.pos)
-			sprite.scale.x = a.facing
+			# Facing east or west in the world, which way on the screen.
+			sprite.scale.x = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
 			if a.flying or a.frame != 0:
 				var mats: Array = looks[a.kind][1]
 				var frame := 0
@@ -94,7 +95,7 @@ func _seen() -> Rect2:
 	if cam == null:
 		return Rect2(-1e9, -1e9, 2e9, 2e9)
 	var half := get_viewport().get_visible_rect().size / PixelView.PIXELS_PER_UNIT * 0.5 + Vector2.ONE * FAR_MARGIN
-	var centre := Vector2(cam.global_position.x, cam.global_position.z)
+	var centre := PixelView.plane_of(Vector2(cam.global_position.x, cam.global_position.z))
 	return Rect2(centre - half, half * 2.0)
 
 

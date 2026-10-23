@@ -1,8 +1,9 @@
 extends RefCounted
 ## A body on the cell grid: walks up and down slopes, jumps up onto a sheer step of one
 ## cell (8 px) but not of two, goes around cut corners of cliffs. It wades through
-## shallow water, swims in deep water with its head above the surface, pulls itself
-## out onto ground up to one level above the water, and walks on ice in winter. Out in
+## shallow water, swims in deep water with its head above the surface, sinks to the
+## waist in the mud of a bog and wades slowly through it, pulls itself out onto ground
+## up to one level above the water, and walks on ice in winter. Out in
 ## the open the weather slows it (see weather_pace): deep snow, except on a trail, a
 ## strong head wind, and a blizzard or a sand storm that hide the way; a strong wind
 ## carries it sideways in a jump (air_drift). A
@@ -32,9 +33,13 @@ const STEP_DOWN := 0.6
 ## A swimmer floats with the feet this deep under the surface, so water up to one
 ## cell deep is waded and deeper water is swum.
 const SWIM_DEPTH := 0.95
-## Speed in water up to the knees and deeper, and while swimming, against walking.
+## Speed in water up to the knees and deeper, while swimming and in the mud of a
+## bog, against walking.
 const WADE := 0.65
 const SWIM := 0.45
+const MIRE := 0.4
+## In a bog the feet sink this deep under the surface of the mud (to the waist).
+const BOG_SINK := 1.0
 ## Water slows a fall to this many cells a second and lifts a sunk swimmer this fast.
 const SINK_SPEED := 5.0
 const FLOAT_SPEED := 4.0
@@ -87,6 +92,8 @@ var _jump_was := false
 var velocity_y := 0.0
 var on_ground := false
 var swimming := false
+## Whether the body is sunk in the mud of a bog (see BOG_SINK).
+var in_bog := false
 ## How deep the feet are under the water surface, 0 out of water.
 var water_depth := 0.0
 ## Height of that surface in cells, -INF out of water.
@@ -111,6 +118,8 @@ var _col := Vector2i(1 << 30, 0)
 func speed_at(at: Vector3) -> float:
 	var p := at / CELL
 	var surface := _water_surface(p)
+	if surface > -INF and not world.water_frozen and _bog(p):
+		return _pace(BOG_SINK, true)
 	return _pace(0.0 if surface == -INF or world.water_frozen else maxf(0.0, surface - p.y))
 
 
@@ -125,9 +134,10 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		surface = -INF
 	water_depth = maxf(0.0, surface - p.y)
 	water_level = surface if water_depth > 0.0 else -INF
+	in_bog = water_depth > 0.0 and _bog(p)
 	var dir := move_input.limit_length(1.0)
 	weather_scale = weather_pace(p, dir)
-	var speed := _pace(water_depth)
+	var speed := _pace(water_depth, in_bog)
 	# In water the body gets out onto ground up to one level above the water's cell.
 	var reach := ceilf(surface) + 1.0 if surface > -INF else -INF
 	_pull_up = 0.0
@@ -155,7 +165,7 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		glide.x = 0.0
 	if absf(p.z - before.z) < absf(glide.y * delta) * 0.5:
 		glide.y = 0.0
-	if on_ground and not jump:
+	if on_ground and not jump and not in_bog:
 		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
 		if below > -INF:
 			p.y = below
@@ -166,8 +176,17 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		velocity_y = JUMP_SPEED
 	elif _pull_up > 0.0 and velocity_y <= 0.0:
 		velocity_y = sqrt(2.0 * GRAVITY * (_pull_up + 0.2))
+	if in_bog and velocity_y <= 0.0 and p.y <= surface - BOG_SINK + 0.01:
+		# The mud holds the body up to the waist; it walks (and jumps) as on ground.
+		velocity_y = 0.0
+		on_ground = true
+		swimming = false
+		var by := move_toward(p.y, surface - BOG_SINK, FLOAT_SPEED * delta)
+		if not _collides(Vector3(p.x, by, p.z)) or _collides(p):
+			p.y = by
+		return p * CELL
 	var float_y := surface - SWIM_DEPTH
-	swimming = velocity_y <= 0.0 and p.y <= float_y + 0.01
+	swimming = velocity_y <= 0.0 and p.y <= float_y + 0.01 and not in_bog
 	if swimming:
 		# Deep water holds the body up with its head above the surface.
 		velocity_y = 0.0
@@ -218,14 +237,21 @@ static func overlaps(at: Vector3, cell: Vector3i) -> bool:
 		and cell.y == clampi(cell.y, floori(p.y + 0.001), floori(p.y + HEIGHT))
 
 
-## The pace with the feet `depth` cells under the water surface.
-func _pace(depth: float) -> float:
-	return SPEED * speed_scale * load_scale * weather_scale * (SWIM if swimming else (WADE if depth > 0.3 else 1.0))
+## The pace with the feet `depth` cells under the water surface, or in the mud of a bog.
+func _pace(depth: float, mire := false) -> float:
+	var k := MIRE if mire else (SWIM if swimming else (WADE if depth > 0.3 else 1.0))
+	return SPEED * speed_scale * load_scale * weather_scale * k
+
+
+## True when the water the body at `p` (in cells) stands in is the mud of a bog.
+func _bog(p: Vector3) -> bool:
+	return world.is_bog(floori(p.x), floori(p.y + 0.001), floori(p.z))
 
 
 ## What the weather leaves of the pace of the body at `p` (in cells) walking `dir`
-## (x east, y south): 1 under a roof or with no clock. In the open deep snow slows
-## it unless the column is a fresh trail, the wind against it slows it and the wind
+## (x east, y south): 1 under a roof or with no clock. In the open deep snow (in
+## winter, or all year on the high mountains, see WorldData.peak_snow) slows it
+## unless the column is a fresh trail, the wind against it slows it and the wind
 ## behind it helps, and a blizzard or a sand storm slows it more.
 func weather_pace(p: Vector3, dir: Vector2) -> float:
 	if clock == null:
@@ -236,7 +262,7 @@ func weather_pace(p: Vector3, dir: Vector2) -> float:
 		return 1.0
 	var k := 1.0
 	if on_ground and water_depth <= 0.0:
-		var deep: float = smoothstep(SNOW_DEEP.x, SNOW_DEEP.y, clock.snow)
+		var deep: float = smoothstep(SNOW_DEEP.x, SNOW_DEEP.y, maxf(clock.snow, world.peak_snow(p.y)))
 		if deep > 0.0:
 			var life: float = TRAIL_DAYS * (1.0 - 0.75 * clock.snowing)
 			k -= SNOW_SLOW * deep * (1.0 - TRAIL_EASE * world.trail(x, z, clock.now(), life))
@@ -266,7 +292,7 @@ func _leave_trail(p: Vector3) -> void:
 	var col := Vector2i(floori(p.x), floori(p.z))
 	if col == _col:
 		return
-	if clock != null and on_ground and clock.snow > SNOW_DEEP.x and _col.x != 1 << 30:
+	if clock != null and on_ground and maxf(clock.snow, world.peak_snow(p.y)) > SNOW_DEEP.x and _col.x != 1 << 30:
 		world.tread(_col.x, _col.y, clock.now())
 	_col = col
 
