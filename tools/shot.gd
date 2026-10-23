@@ -39,6 +39,8 @@ const SHOTS := {
 	"fire-shadows-moon": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
 	# The same on "mixed", the default: the player's shadow real, the rest drawn.
 	"fire-shadows-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	# The player east of the fire, in line with it: the real shadow still as wide as the body.
+	"fire-inline": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(1.4, 0.0, 0.0), "fire_shadows": 3},
 	# The same with real shadows: of the player, the grass, bushes and trees.
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
@@ -54,6 +56,29 @@ const SHOTS := {
 		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8),
 		"fire_shadows": 1},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
+	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
+	# the campfire by the spawn, and an animal in the player's shadow: their shadows
+	# drawn ("drawn", and "mixed" with the player's real), and the real ones to compare.
+	"fire-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 1},
+	"fire-blocks-mixed": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 3},
+	"fire-blocks-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_blocks": true,
+		"animal": Vector3(0.4, 0.0, -1.0), "fire_shadows": 2},
+	# The sun moving over lone trees in the morning, frame by frame (see "sweep").
+	"sun-sweep": {"time": 0.36, "season": 1, "trees": true, "sweep": 30},
+	"sun-still": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sweep_step": 0.0},
+	"sun-smooth": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0},
+	"sun-pcf13": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0, "shadow_filter": 4},
+	"sun-hard": {"time": 0.36, "season": 1, "trees": true, "sweep": 30, "sun_steps": 0, "shadow_filter": 0},
+	"moon-sweep": {"time": 0.9, "season": 1, "moon": 1.0, "trees": true, "sweep": 30, "fire_shadows": 0},
+	# An animal in the player's shadow by day, in the morning and at sunrise.
+	"animal-shadow": {"time": 0.36, "season": 1, "animal": Vector3(-0.55, 0.0, -0.45)},
+	"animal-shadow-sunrise": {"time": 0.27, "season": 1, "animal": Vector3(-0.9, 0.0, 0.3)},
+	"animal-shadow-trees": {"time": 0.45, "season": 1, "trees": true, "animal": Vector3(-1.0, 0.0, -0.6)},
+	# The torch by the same blocks, the fire put out.
+	"torch-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-3.0, 0.0, 3.4), "fire_blocks": true,
+		"fire_out": true, "fire_shadows": 1},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
@@ -91,6 +116,9 @@ const SHOTS := {
 	"shore": {"time": 0.4, "season": 1, "shore": true},
 	"slopes": {"time": 0.42, "season": 1, "slopes": true},
 	"corners": {"time": 0.42, "season": 1, "corners": true},
+	# The shore and the rounded corners by the full moon, the moon moving (see "sweep").
+	"shore-moon": {"time": 0.9, "season": 1, "moon": 1.0, "shore": true, "sweep": 20, "fire_shadows": 0},
+	"corners-moon": {"time": 0.9, "season": 1, "moon": 1.0, "corners": true, "sweep": 20, "fire_shadows": 0},
 	"corners-winter": {"time": 0.45, "season": 3, "corners": true},
 	"lab": {"time": 0.42, "season": 1, "lab": true},
 	"trees": {"time": 0.42, "season": 1, "trees": true},
@@ -142,14 +170,24 @@ const SHOTS := {
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
 	"grove-spring": {"time": 0.42, "season": 0, "grove": true},
 	"grove-autumn-morning": {"time": 0.31, "season": 2, "grove": true},
+
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
+	# The oak and the spruce of the clearing by the full moon and by a low sun: the shape
+	# of their shadows.
+	"clearing-moon": {"time": 0.95, "season": 1, "moon": 1.0, "clearing": true},
+	"clearing-low-sun": {"time": 0.3, "season": 1, "clearing": true},
+	# North of the spruce by the full moon, its shadow falling toward the player.
+	"spruce-moon": {"time": 0.85, "season": 1, "moon": 1.0, "clearing": true, "offset": Vector3(0.5, 0.0, -5.0)},
 	# Gathering on the felled clearing with berry bushes: some things picked up and
 	# berries picked; then the bag open on a touch screen and with a mouse.
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# A chest chosen in the bag: its wide button sets it down.
+	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"give": "core:chest"},
 	# The same bag with only the food lit and the chosen stack about to be destroyed.
 	"bag-destroy": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"kind": "food", "slot": 0, "destroy": true},
@@ -333,6 +371,10 @@ func _run() -> void:
 		main.clock.wind_to = shot.get("wind", 0.0)
 		main.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
+		if "sun_steps" in main.sky:
+			main.sky.sun_steps = shot.get("sun_steps", main.sky.SUN_STEPS)
+		RenderingServer.directional_soft_shadow_filter_set_quality(shot.get("shadow_filter",
+			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality")))
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.values.sun_rays = shot.get("rays", true)
 		main.settings.values.mist = shot.get("mist", true)
@@ -370,6 +412,15 @@ func _run() -> void:
 						var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + off)
 						if spot.y >= 0:
 							added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
+					if shot.get("fire_blocks", false):
+						_fire_blocks(main.world, e.cell)
+						for put: Array in [["core:chest", Vector3(2.6, 0.0, 2.2)], ["core:workbench", Vector3(-3.2, 0.0, 1.0)]]:
+							var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + put[1])
+							if spot.y >= 0:
+								added_fires.append(main.placed.put(put[0], spot, null))
+					if shot.get("fire_out", false):
+						out_fire = e
+						main.placed.put_out(e)
 					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
@@ -382,6 +433,7 @@ func _run() -> void:
 			_grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
 		if shot.get("clearing", false):
 			_clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
+			main.player.position += shot.get("offset", Vector3.ZERO)
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
@@ -501,7 +553,14 @@ func _run() -> void:
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._let_go()
-			main.hud.bag._tap(shot.get("slot", 1), true)
+			var slot: int = shot.get("slot", 1)
+			if shot.has("give"):
+				main.character.give(shot.give, 1)
+				for i in main.character.inventory.slots.size():
+					var st = main.character.inventory.slots[i]
+					if st != null and st[0] == shot.give:
+						slot = i
+			main.hud.bag._tap(slot, true)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
@@ -611,6 +670,13 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		# Frames of the sun moving at the game's speed, 60 a second, to see how the
+		# shadows move: <name>-01.png and on.
+		for i in shot.get("sweep", 0):
+			main.clock.time_of_day += shot.get("sweep_step", 1.0) / (main.clock.DAY_LENGTH * 60.0)
+			await process_frame
+			await process_frame
+			root.get_texture().get_image().save_png(out_dir.path_join("%s-%02d.png" % [shot_name, i + 1]))
 		main.creatures.set_process(true)
 		if shot.has("keys"):
 			_hold(shot.keys, false)
@@ -628,6 +694,12 @@ func _run() -> void:
 		for e in added_fires:
 			main.placed._remove(e)
 		added_fires.clear()
+		if not out_fire.is_empty():
+			out_fire.lit = true
+			main.placed.lit_changed.emit(out_fire)
+			out_fire = {}
+		if shot.get("fire_blocks", false):
+			_unwall_cells(main.world)
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_scale", shot.get("ui_scale", 0))
@@ -1132,6 +1204,38 @@ func _hut(w, at: Vector3) -> Vector3:
 ## The cells a wall replaced, to put back after its shot: the world is shared by all
 ## the shots of one run.
 var wall_cells: Array = []
+## The campfire a shot put out, to be lit again after it.
+var out_fire := {}
+
+
+## Blocks of stone round the campfire whose north-west cell is `fire`, kept in
+## wall_cells to be taken away again: a wall two high to the south-west, a low wall to
+## the south-east, a pillar three high to the north-east and a lone block to the
+## north-west.
+func _fire_blocks(w, fire: Vector3i) -> void:
+	var cells := []
+	for x in range(fire.x - 7, fire.x - 3):
+		for y in 2:
+			cells.append(Vector3i(x, fire.y + y, fire.z + 4))
+	for x in range(fire.x + 3, fire.x + 6):
+		cells.append(Vector3i(x, fire.y, fire.z + 6))
+	for y in 3:
+		cells.append(Vector3i(fire.x + 6, fire.y + y, fire.z - 3))
+	cells.append(Vector3i(fire.x - 3, fire.y, fire.z - 4))
+	for c: Vector3i in cells:
+		wall_cells.append([c, w.get_cell(c.x, c.y, c.z), w.is_natural(c.x, c.y, c.z)])
+		w.set_cell(c.x, c.y, c.z, Mat.STONE)
+		w.set_natural(c.x, c.y, c.z, false)
+		main.actions.cell_changed.emit(c)
+
+
+## Puts back the cells in wall_cells one by one.
+func _unwall_cells(w) -> void:
+	for c in wall_cells:
+		w.set_cell(c[0].x, c[0].y, c[0].z, c[1])
+		w.set_natural(c[0].x, c[0].y, c[0].z, c[2])
+		main.actions.cell_changed.emit(c[0])
+	wall_cells.clear()
 
 
 func _wall(w, at: Vector3i) -> void:

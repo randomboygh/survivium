@@ -66,6 +66,9 @@ class Animal:
 	## Time gathered since the last step while not near (see FAR_STEP); 0 right after
 	## a step.
 	var away := 0.0
+	## Time from the last step to the next one while not near: FAR_STEP, less what the
+	## last one came late, so each animal keeps its own beat.
+	var wait := FAR_STEP
 	## A flyer is in the air, or sits in a tree crown.
 	var flying := false
 	var perched := false
@@ -141,9 +144,12 @@ func update(delta: float) -> void:
 		var dt := delta
 		if not a.near:
 			a.away += delta
-			if a.away < FAR_STEP:
+			if a.away < a.wait:
 				continue
 			dt = a.away
+			# A long frame lets many animals step at once; their next steps fall on
+			# their own beats again, or they would all come to step in one frame.
+			a.wait = FAR_STEP - fmod(a.away - a.wait, FAR_STEP)
 		a.away = 0.0
 		var spec: Dictionary = AiRules.SPECIES[a.kind]
 		a.hunger = minf(1.0, a.hunger + dt * 0.012)

@@ -44,6 +44,8 @@ const DEFAULTS := {
 	"pickup": 0,
 	# They do so past the bag's weight limit too.
 	"pickup_heavy": false,
+	# The camera shakes when the body is hurt (see BodyFeedback).
+	"shake": true,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
 	"world_seed": 20261018,
 	"world_size": 1,
@@ -87,6 +89,9 @@ var tool_wear := false
 ## seconds) tells what the cell is and why the hand in use does or does not work it. Not
 ## saved.
 var debug_tips := false
+## Playtest switch: the level buttons look at any level, not only a few around the
+## player (see ChunkStreamer.view_range). Not saved.
+var free_view := false
 ## Playtest switch: weight past the bag's limit does not slow the character, stop
 ## their jumps or their recovery (Inventory.heavy off). Not saved.
 var no_overload := false

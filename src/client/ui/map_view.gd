@@ -64,6 +64,9 @@ var _moved := false
 var _new_cell := Vector2i.ZERO
 var _panel := UiStyle.panel()
 var _buttons: VBoxContainer
+## The zoom buttons, dimmed at the largest and the smallest zoom.
+var _plus: Button
+var _minus: Button
 var _title: Label
 var _where: Label
 var _clock: Label
@@ -89,8 +92,9 @@ func _ready() -> void:
 	_buttons.add_theme_constant_override("separation", GAP)
 	add_child(_buttons)
 	_button("close", "Закрыть (M)", close)
-	_button("plus", "Крупнее", func() -> void: zoom_by(1))
-	_button("minus", "Мельче", func() -> void: zoom_by(-1))
+	_plus = _button("plus", "Крупнее", func() -> void: zoom_by(1))
+	_minus = _button("minus", "Мельче", func() -> void: zoom_by(-1))
+	zoom_by(0)
 	_button("target", "К игроку", func() -> void:
 		centre = Vector2(minimap.player_cell)
 		_hide_popup()
@@ -107,15 +111,17 @@ func _ready() -> void:
 	_build_popup()
 
 
-func _button(icon: String, tip: String, action: Callable) -> void:
+func _button(icon: String, tip: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.icon = UiStyle.icon(icon)
 	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 	b.pressed.connect(action)
 	_buttons.add_child(b)
+	return b
 
 
 ## The window of a marker: where it is and how far, the colours, and a bin to take it off.
@@ -251,6 +257,8 @@ func close() -> void:
 
 func zoom_by(d: int) -> void:
 	zoom_index = clampi(zoom_index + d, 0, ZOOMS.size() - 1)
+	_plus.disabled = zoom_index == ZOOMS.size() - 1
+	_minus.disabled = zoom_index == 0
 	_hide_popup()
 	redraw()
 

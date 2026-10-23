@@ -1,6 +1,7 @@
 extends Control
 ## How the screen answers what happens to the body (plan/design/ui.md, section 4): a
-## hurt reddens the edges of the screen and puts "-N" over the player's head, a heal
+## hurt reddens the edges of the screen, shakes the camera the more the bigger it is
+## (unless the setting «Тряска экрана» is off) and puts "-N" over the player's head, a heal
 ## does the same in green, and food in amber with "+N" by the food icon. It watches the
 ## character's Vitals each frame, so it shows whatever changed them (hunger, water,
 ## animals, fire, food, bandages). A slow loss (hunger, drowning) is gathered and shown
@@ -24,12 +25,18 @@ const SUDDEN := 0.5
 ## Seconds between two numbers of one kind, so a slow loss shows a number now and then.
 const EVERY := 0.4
 ## Seconds the frame takes to fade, and how far (UI px) and how long a number rises.
-const FADE := 0.7
+const FADE := 1.0
 const RISE := 14.0
 const FLOAT_TIME := 1.1
-## The frame: bands of UI pixels along the edges, each fainter inwards.
-const BANDS := [0.55, 0.32, 0.16]
-const BAND := 4.0
+## The frame: bands of UI pixels along the edges, each fainter inwards, over a faint
+## wash of the whole screen.
+const BANDS := [0.9, 0.65, 0.45, 0.28, 0.14]
+const BAND := 5.0
+const WASH := 0.12
+## The camera shakes by a low-res pixel for each this many points of a hurt, up to
+## SHAKE_MOST pixels.
+const SHAKE_PER := 4.0
+const SHAKE_MOST := 6.0
 
 var game
 ## Health and satiety last frame (none yet: -1).
@@ -92,7 +99,9 @@ func _take(kind: String, amount: float, least: float) -> void:
 func _show(kind: String, n: int) -> void:
 	if n <= 0:
 		return
-	var strength := 0.45 + 0.55 * minf(n / 20.0, 1.0)
+	var strength := 0.6 + 0.4 * minf(n / 15.0, 1.0)
+	if kind == "hurt" and n >= 2 and game.settings.values.shake:
+		game.view.shake(clampf(n / SHAKE_PER, 1.0, SHAKE_MOST))
 	# A hurt is not hidden by a heal shown at the same time.
 	if kind == "hurt" or _frame_color != UiStyle.DANGER or _frame < 0.15:
 		_frame_color = KINDS[kind][0]
@@ -141,6 +150,7 @@ func _draw() -> void:
 		return
 	var s := get_global_transform().get_scale()
 	var full := Rect2(-get_global_transform().origin / s, get_viewport_rect().size / s).grow(1)
+	draw_rect(full, Color(_frame_color, WASH * _frame))
 	for i in BANDS.size():
 		var r := full.grow(-i * BAND)
 		var col := Color(_frame_color, BANDS[i] * _frame)

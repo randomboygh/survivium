@@ -56,6 +56,9 @@ bool is_drift(float packed_tile, vec2 uv) {
 	return int(packed_tile + 0.5) % 64 == NONE && uv.x > 2.5;
 }
 
+// Where the point is in the picture, for the dither of the light rings (light_texel).
+varying vec2 light_xz;
+
 void vertex() {
 	if (is_drift(UV2.x, UV)) {
 		// The mound stands on the top of its cell and is lower than a cell.
@@ -66,6 +69,7 @@ void vertex() {
 	world_normal = NORMAL;
 	packed = UV2;
 	VERTEX = shear(VERTEX);
+	light_xz = VERTEX.xz;
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
@@ -288,5 +292,5 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds);
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
 }

@@ -20,7 +20,9 @@ const Markers := preload("res://src/client/game/markers.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
-const VALUE_WIDTH := 100
+## Room for the longest value («песчаная буря»); anything longer is cut, so a value
+## never widens its row and moves the window.
+const VALUE_WIDTH := 112
 const ARROW := 32
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
@@ -108,7 +110,13 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 4)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_list)
+	# The rows keep their place whether the bar shows or not: a little room on the left,
+	# the bar's on the right.
+	var inset := MarginContainer.new()
+	inset.add_theme_constant_override("margin_left", BAR_ROOM - UiStyle.SCROLL_BAR)
+	inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(inset)
+	inset.add_child(_list)
 	_legend = PanelContainer.new()
 	_legend.add_theme_stylebox_override("panel", UiStyle.field())
 	box.add_child(_legend)
@@ -306,6 +314,9 @@ func _section_rows(key: String) -> Array:
 				["Отладочные подсказки", ["выкл", "вкл"],
 					func() -> int: return int(s.debug_tips),
 					func(i: int) -> void: s.debug_tips = i == 1],
+				["Обзор уровней", ["±%d" % game.chunks.VIEW_REACH, "все"],
+					func() -> int: return int(s.free_view),
+					func(i: int) -> void: s.free_view = i == 1],
 			]
 		"game":
 			var rows := [
@@ -318,6 +329,9 @@ func _section_rows(key: String) -> Array:
 				["Сверх груза", ["не брать", "брать"],
 					func() -> int: return int(s.values.pickup_heavy),
 					func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
+				["Тряска экрана", ["выкл", "вкл"],
+					func() -> int: return int(s.values.shake),
+					func(i: int) -> void: s.set_value("shake", i == 1)],
 				["Интерфейс", ["обычный", "крупнее", "крупный"],
 					func() -> int: return s.values.ui_scale,
 					func(i: int) -> void: s.set_value("ui_scale", i)],
@@ -524,6 +538,7 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 	var left := _arrow(row, "prev", index, -1)
 	var value := UiStyle.label()
 	value.custom_minimum_size = Vector2(VALUE_WIDTH, 0)
+	value.clip_text = true
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(value)
@@ -597,8 +612,7 @@ func _grid() -> GridContainer:
 		return last
 	var grid := GridContainer.new()
 	grid.columns = _columns
-	# In the middle of the room kept for the scroll bar while it is hidden.
-	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	grid.add_theme_constant_override("h_separation", COLUMN_GAP)
 	grid.add_theme_constant_override("v_separation", 4)
 	_list.add_child(grid)
