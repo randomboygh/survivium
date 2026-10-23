@@ -395,7 +395,38 @@ func _run() -> void:
 	await process_frame
 	_check(is_equal_approx(test_wide, wide) and is_equal_approx(menu.size.x, wide),
 		"the settings, playtest and changes windows are as wide")
+	# Stepping through a row's values never moves the rows (a long value is cut).
+	menu.open("test")
+	menu.show_section("world")
+	await process_frame
+	var row_at: Vector2 = menu._rows[0].name.global_position
+	var still := true
+	for k in menu._rows[1].values.size():
+		menu._step(1, 1)
+		await process_frame
+		still = still and menu._rows[0].name.global_position == row_at
+	_check(still, "the rows stay put while values change")
 	menu.close()
+	# The level buttons look a few levels down from the player's, no further.
+	var streamer = main.chunks
+	for i in 10:
+		streamer.shift_cut(-1)
+	_check(streamer.manual_level == maxi(1, main.player.level() - streamer.VIEW_REACH),
+		"the view is cut no deeper than a few levels below the player")
+	main.settings.free_view = true
+	streamer.shift_cut(-1)
+	_check(streamer.manual_level == maxi(1, main.player.level() - streamer.VIEW_REACH - 1),
+		"the playtest switch lets the view go deeper")
+	main.settings.free_view = false
+	streamer.reset_view_level()
+	# The map's zoom buttons are dimmed at the ends of the zoom.
+	var map = main.hud.map_view
+	var zoom_was: int = map.zoom_index
+	map.zoom_by(100)
+	var top_dim: bool = map._plus.disabled and not map._minus.disabled
+	map.zoom_by(-100)
+	_check(top_dim and map._minus.disabled and not map._plus.disabled, "the zoom buttons are dimmed at the ends")
+	map.zoom_by(zoom_was)
 	# A hurt reddens the screen's edges and puts its number over the player's head.
 	var feedback = main.hud.feedback
 	var health: float = main.character.vitals.health

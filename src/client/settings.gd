@@ -41,6 +41,8 @@ const DEFAULTS := {
 	"show_help": true,
 	# Things lying near the player fly into the bag by themselves (see Gathering).
 	"auto_pickup": true,
+	# The camera shakes when the body is hurt (see BodyFeedback).
+	"shake": true,
 	# The world made at the start (see WorldSetup and WorldGen.DEFAULT_SETTINGS).
 	"world_seed": 20261018,
 	"world_size": 1,
@@ -84,6 +86,9 @@ var tool_wear := false
 ## seconds) tells what the cell is and why the hand in use does or does not work it. Not
 ## saved.
 var debug_tips := false
+## Playtest switch: the level buttons look at any level, not only a few around the
+## player (see ChunkStreamer.view_range). Not saved.
+var free_view := false
 ## Sides of the sun's shadow map to compare on a phone (the map is drawn again every
 ## frame the sun casts shadows). The engine's default is 4096; at 16 pixels a world unit
 ## 2048 shows the same shadows with a quarter of its texels.

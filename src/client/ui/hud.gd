@@ -73,6 +73,10 @@ var _level: BoxContainer
 var minimap: Minimap
 var map_view: MapView
 var _level_label: Button
+## The arrows beside it, dimmed past the levels that may be looked at (see
+## ChunkStreamer.view_range).
+var _level_up: Button
+var _level_down: Button
 ## The colour last given to the level label's text (none yet: transparent).
 var _level_ink := Color(0, 0, 0, 0)
 var _bar: PanelContainer
@@ -157,7 +161,7 @@ func _ready() -> void:
 	# The level buttons in a column beside the minimap, as tall as it.
 	_level = BoxContainer.new()
 	_level.vertical = true
-	_level.add_theme_constant_override("separation", 0)
+	_level.add_theme_constant_override("separation", 2)
 	add_child(_level)
 	var up := _icon_button(_level, "up", "Уровень выше", func() -> void: game.chunks.shift_cut(1))
 	# The level itself is a button: a tap on a chosen cut returns to the player's level.
@@ -165,13 +169,22 @@ func _ready() -> void:
 	_level_label.focus_mode = Control.FOCUS_NONE
 	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, 32)
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
-	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_level_label.add_theme_stylebox_override(state, UiStyle.panel())
 	_level_label.pressed.connect(func() -> void: game.chunks.reset_view_level())
 	_level.add_child(_level_label)
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
 		b.custom_minimum_size = Vector2(LEVEL_WIDTH, 24)
+	_level_up = up
+	_level_down = down
+	# A helper: see-through, outlined, so it hides little of the world.
+	for b: Button in [up, _level_label, down]:
+		for state in ["normal", "hover", "disabled", "focus"]:
+			b.add_theme_stylebox_override(state, UiStyle.outline())
+		for state in ["pressed", "hover_pressed"]:
+			b.add_theme_stylebox_override(state, UiStyle.outline(true))
+		b.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+		b.add_theme_constant_override("outline_size", 4)
+		b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 	minimap = Minimap.new()
 	add_child(minimap)
 	map_view = MapView.new()
@@ -463,6 +476,8 @@ func update_state() -> void:
 	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
 	var winter: bool = game.clock.season == game.clock.WINTER
 	_clock.text = "%s · день %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
+	# The state stays in sight while the bag is open, by the food it may be eaten from.
+	vitals.pinned = bag.visible
 	vitals.update(game.character.vitals, get_process_delta_time())
 	if bag.visible:
 		bag.refresh_state()
@@ -476,6 +491,9 @@ func update_state() -> void:
 		_wind_step = step
 		_wind.queue_redraw()
 	var cut: bool = game.chunks.manual_level >= 0
+	var reach: Vector2i = game.chunks.view_range()
+	_level_up.disabled = not cut and game.chunks.cut_base() + 1 > reach.y
+	_level_down.disabled = game.chunks.cut_base() - 1 < reach.x
 	_level_label.text = "Срез %d" % game.chunks.cut_level if cut else "Ур. %d" % game.player.level()
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
 	# A colour set anew tells the button its theme changed, which lays it out again.
