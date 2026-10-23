@@ -11,6 +11,9 @@
 // lying over the slope of a shore, how far under the surface the ground is there in
 // cells (foam where it comes up to it), 1 elsewhere; COLOR.b * 4: bit 1 the mud of a
 // bog, bit 2 water over a shore (ice does not lift it).
+// Waterfalls (ChunkMesher._falls): vertex alpha FALL_SHEET marks the sheet of water
+// falling over a step of a river, whose UV2.y is then the level of its foot, and
+// FALL_FOAM the churning foam on the water where it lands.
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -37,6 +40,8 @@ varying flat int kind;
 varying float clouds;
 // 1 under the open sky, where nothing casts a shadow on the surface (see light()).
 varying float open_sky;
+// 2 on a waterfall's sheet, 1 on the foam where it lands, 0 elsewhere.
+varying flat float falls;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -87,6 +92,7 @@ void vertex() {
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	data = UV2;
+	falls = COLOR.a < 0.25 ? 2.0 : (COLOR.a < 0.75 ? 1.0 : 0.0);
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
 	VERTEX = shear(VERTEX);
@@ -110,7 +116,27 @@ void fragment() {
 	vec3 col = mix(shallow, deep, depth);
 	float alpha = mix(0.45, 1.0, depth);
 	bool bog = (kind & 1) != 0;
-	if (bog) {
+	if (falls > 1.5) {
+		// The falling sheet: streaks a texel wide running down at their own speeds,
+		// white water at the lip and in a band of spray at the foot.
+		vec3 across = abs(world_normal.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+		float tx = floor(dot(world_pos, across) * TEXELS);
+		float ty = floor(world_pos.y * TEXELS);
+		float speed = 10.0 + 6.0 * hash12(vec2(tx, 3.0));
+		float run = hash12(vec2(tx, floor((ty + TIME * speed) / 3.0)));
+		float above_foot = world_pos.y / CELL - data.y;
+		col = mix(shallow * 1.15, deep * 1.2, 0.35);
+		col = mix(col, foam_color, step(0.62, run) * 0.85);
+		if (above_foot < 0.35 + 0.15 * hash12(vec2(tx, floor(TIME * 6.0)))) {
+			col = foam_color;
+		}
+		alpha = 0.93;
+	} else if (falls > 0.5) {
+		// Foam where the fall lands, boiling up in texels that come and go.
+		float b = hash12(tex + floor(TIME * 5.0) * 13.0);
+		col = mix(col, foam_color, b < 0.55 ? 0.9 : 0.4);
+		alpha = 0.9;
+	} else if (bog) {
 		col = mud_color(tex);
 		if (shore_under < 0.12 && world_normal.y > 0.5) {
 			col *= 0.8;

@@ -48,7 +48,9 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   `chunk_key`; use `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below
   0) and blocks bodies. `world_gen.gd` makes everything from noise: slow noises (continents,
   rivers, lakes) on a world-wide lattice every `LATTICE` cells, distances to coast and river as
-  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`). It makes each chunk in
+  value / gradient, settings from the setup screen (`DEFAULT_SETTINGS`); mountains with scree and
+  snow above `WorldData.SNOW_LINE`, rivers climbing them in steps (rapids, waterfalls drawn by
+  `ChunkMesher._falls`), deltas at the sea, caves in mountains' sides (`_tunnels`). It makes each chunk in
   three stages, `TERRAIN` (cells of the chunk from a window with a 3-cell margin) → `PLANTED` (trees, needs TERRAIN on the 3×3 around)
   → `SHAPED` (slopes, corners, bushes; needs PLANTED on the 3×3 around); a mesh needs SHAPED. Stages
   are stepped a row or a tree at a time through `start`/`step` jobs, and the result does not depend

@@ -16,7 +16,7 @@ const KNOWN := {
 	"AIR": "core:air", "GRASS": "core:grass", "DIRT": "core:dirt", "STONE": "core:stone",
 	"SAND": "core:sand", "WATER": "core:water", "LOG": "core:log", "LEAVES": "core:leaves",
 	"PLANKS": "core:planks", "CLAY": "core:clay", "COPPER_ORE": "core:copper_ore",
-	"BRICK": "core:brick",
+	"BRICK": "core:brick", "SCREE": "core:scree",
 }
 
 static var AIR := 0
@@ -31,6 +31,7 @@ static var PLANKS := 0
 static var CLAY := 0
 static var COPPER_ORE := 0
 static var BRICK := 0
+static var SCREE := 0
 static var COUNT := 0
 
 ## Index -> id (`core:grass`), title shown to players, record from the data file.
@@ -81,6 +82,7 @@ static func refresh() -> void:
 	CLAY = index(KNOWN.CLAY)
 	COPPER_ORE = index(KNOWN.COPPER_ORE)
 	BRICK = index(KNOWN.BRICK)
+	SCREE = index(KNOWN.SCREE)
 
 
 ## Index of the material with `id`, or -1.

@@ -32,6 +32,11 @@ const CORNERS := [
 ]
 ## Water stands half a cell (4 px) below the shore, so the bank shows above it.
 const WATER_TOP := WorldData.WATER_TOP
+## Vertex alpha of a waterfall's sheet and of the foam where it lands (see _falls).
+const FALL_SHEET := 0.0
+const FALL_FOAM := 0.5
+## How far out from the step a waterfall's sheet reaches at its foot, in cells.
+const FALL_SPREAD := 0.75
 static var AIR: int = Mat.AIR
 static var WATER: int = Mat.WATER
 static var LEAVES: int = Mat.LEAVES
@@ -327,6 +332,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 				else:
 					corners = _water_corners(c, sh, cov, i, dy, dz, depth, kind)
 				_water_faces(water, faces, nb, base, depth, foam, corners)
+				_falls(water, faces, c, nb, side_offsets, i, dy, base)
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and _is_trunk(nb):
@@ -1467,6 +1473,44 @@ static func _foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray,
 		if cov[c[n]] and sh[n] >> 4 & (1 << HALF_CORNER[h]) == 0 and shores & (1 << e) == 0:
 			foam |= 1 << h
 	return foam
+
+
+## Water falling over a step of a river from padded cell `i` (see WorldGen.FALL_STEP):
+## on each side open to the air over lower water or ground, a sheet slants out from the
+## lip down to the water or ground below (so a fall to the east or west shows from
+## above too), with churning foam on the water where it lands. Both are marked by vertex alpha (FALL_SHEET, FALL_FOAM, see
+## water.gdshader); UV2.y of the sheet is the level of its foot.
+static func _falls(buf, faces: Array, c: PackedByteArray, nb: PackedByteArray, side_offsets: PackedInt32Array, i: int,
+		dy: int, base: Vector3) -> void:
+	if nb[2] != AIR:
+		return
+	for d: int in [0, 1, 4, 5]:
+		if nb[d] != AIR:
+			continue
+		var n := i + side_offsets[d]
+		var k := 1
+		while k < 12 and c[n - k * dy] == AIR:
+			k += 1
+		var landing: int = c[n - k * dy]
+		var foot := base.y - k + (WATER_TOP if landing == WATER else 1.0)
+		if foot >= base.y:
+			continue
+		var out := Vector3(DIRS[d])
+		var size := Vector3(1.0, WATER_TOP - (foot - base.y), 1.0)
+		var lift := Vector3(0.0, foot - base.y, 0.0)
+		var face: Dictionary = faces[d]
+		var pts := []
+		var uvs := []
+		for corner: Vector3 in face.corners:
+			var v: Vector3 = lift + corner * size
+			pts.append(base + v + out * (0.04 if corner.y > 0.5 else FALL_SPREAD))
+			uvs.append(face_uv(d, v))
+		buf.quad(pts, (face.normal + Vector3.UP * FALL_SPREAD / size.y).normalized(), uvs, Color(1, 1, 1, FALL_SHEET),
+			Vector2(0.0, foot))
+		if landing == WATER:
+			var under := base + Vector3(DIRS[d]) + Vector3(0.0, -k, 0.0)
+			_add(buf, faces[FACE_TOP], FACE_TOP, under, Vector3(1.0, WATER_TOP + 0.02, 1.0), Vector3.ZERO,
+				Color(1, 1, 1, FALL_FOAM), Vector2(0.0, 1.0))
 
 
 ## Water: the top face carries foam bits (UV2.x: the half edges that touch land, then

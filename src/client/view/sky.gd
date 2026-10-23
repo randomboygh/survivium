@@ -298,6 +298,7 @@ func _update_weather(delta: float) -> void:
 	cloud_pos -= (dir * 0.6 + Vector2(0.0, 0.25)) * delta * (1.0 + strength)
 	var g := RenderingServer
 	g.global_shader_parameter_set("snow_amount", clock.snow)
+	g.global_shader_parameter_set("snow_line", (game.world.sea_level + WorldData.SNOW_LINE) * WorldData.CELL)
 	g.global_shader_parameter_set("wetness", clock.wet)
 	g.global_shader_parameter_set("puddles", Vector2(0.0 if clock.season == Clock.WINTER else clock.puddles, clock.rain))
 	g.global_shader_parameter_set("foliage_tint", foliage)

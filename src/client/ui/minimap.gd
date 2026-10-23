@@ -41,6 +41,7 @@ var colors: Dictionary = {
 	Mat.GRASS: Color(0.38, 0.56, 0.26), Mat.DIRT: Color(0.5, 0.38, 0.24), Mat.STONE: Color(0.56, 0.56, 0.56),
 	Mat.SAND: Color(0.84, 0.76, 0.5), Mat.CLAY: Color(0.6, 0.47, 0.38), Mat.COPPER_ORE: Color(0.62, 0.5, 0.4),
 	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.PLANKS: Color(0.6, 0.45, 0.25), Mat.BRICK: Color(0.6, 0.3, 0.25),
+	Mat.SCREE: Color(0.6, 0.58, 0.55),
 }
 const LEAVES := Color(0.18, 0.38, 0.16)
 const SHALLOW := Color(0.36, 0.6, 0.68)
