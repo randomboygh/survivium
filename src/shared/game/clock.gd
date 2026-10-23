@@ -68,6 +68,17 @@ const WIND_TURN := 0.05
 const LEAF_WIND := 0.6
 const LEAF_FALL_RATE := 1.4
 
+## The real weather's codes (WMO, as Open-Meteo gives them) and the kind of
+## weather each is here; a code left out is the nearest one below it.
+const WMO_WEATHER := {
+	0: "clear", 2: "cloudy", 45: "fog", 48: "dense_fog", 51: "rain", 65: "downpour",
+	66: "rain", 71: "snow", 80: "rain", 82: "downpour", 85: "snow", 95: "storm", 96: "hail",
+}
+## Snow falls as a blizzard in a real wind this strong (m/s); a real wind of
+## REAL_WIND m/s blows as hard as a wind of 1 here (a blizzard is 2.5).
+const REAL_BLIZZARD := 10.0
+const REAL_WIND := 8.0
+
 ## A new season began (see next_season).
 signal season_changed(season: int)
 
@@ -92,6 +103,9 @@ var season_clock := 0.0
 var weather := CLEAR
 ## The weather changes by itself; the playtest page can pin one.
 var weather_auto := true
+## The wind's strength of the real weather (see set_real_weather), or -1: the
+## weather's own.
+var real_wind := -1.0
 ## Days of the game until the weather changes.
 var weather_left := 0.3
 ## Strengths of the weather now, moving smoothly towards what `weather` brings.
@@ -233,6 +247,36 @@ func set_weather(index: int, auto := false) -> void:
 	weather_left = rng.randf_range(WEATHER_DAYS.x, WEATHER_DAYS.y)
 
 
+## The weather (index in WEATHERS) of a real weather `code` (WMO) in a wind of
+## `wind` m/s.
+static func weather_of_code(code: int, wind: float) -> int:
+	var id := "clear"
+	var best := -1
+	for c: int in WMO_WEATHER:
+		if c <= code and c > best:
+			best = c
+			id = WMO_WEATHER[c]
+	if id == "snow" and wind >= REAL_BLIZZARD:
+		id = "blizzard"
+	return WEATHERS.map(func(w: Dictionary) -> String: return w.id).find(id)
+
+
+## Pins the weather to the real one: WMO `code`, the wind `wind` m/s blowing from
+## `from_deg` (degrees from north, clockwise). clear_real_weather lets it change by
+## itself again.
+func set_real_weather(code: int, wind: float, from_deg: float) -> void:
+	set_weather(weather_of_code(code, wind))
+	real_wind = wind / REAL_WIND
+	# Blowing to the opposite side: north is -y, east +x.
+	var to := deg_to_rad(from_deg + 180.0)
+	wind_to = atan2(-cos(to), sin(to))
+
+
+func clear_real_weather() -> void:
+	real_wind = -1.0
+	weather_auto = true
+
+
 ## Jumps the weather strengths to what the weather brings (tools, screenshots).
 func settle_weather() -> void:
 	var w: Dictionary = WEATHERS[weather]
@@ -302,7 +346,7 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	fog = lerpf(fog, w.get("fog", 0.0), k)
 	fog_depth = lerpf(fog_depth, w.get("fog_depth", fog_depth), k)
 	haze = lerpf(haze, w.get("haze", 0.0), k)
-	storm_wind = lerpf(storm_wind, w.get("wind", 0.0), k)
+	storm_wind = lerpf(storm_wind, real_wind if real_wind >= 0.0 else w.get("wind", 0.0), k)
 	clouds = lerpf(clouds, w.clouds, minf(1.0, delta * 0.3))
 	wind_angle = move_toward(wind_angle, wind_to, WIND_TURN * delta)
 	if season == AUTUMN and storm_wind > LEAF_WIND:

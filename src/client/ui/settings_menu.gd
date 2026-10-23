@@ -250,6 +250,7 @@ func _section_rows(key: String) -> Array:
 	# What the clock decides by itself while it follows the device's time or calendar.
 	var game_time := func() -> bool: return not s.values.real_time
 	var game_season := func() -> bool: return not s.values.real_season
+	var game_weather := func() -> bool: return not s.values.real_weather
 	match key:
 		"world":
 			return [
@@ -258,7 +259,7 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void: s.set_season(i), "", game_season],
 				["Погода", ["сама"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
 					func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
-					func(i: int) -> void: s.set_weather(i - 1)],
+					func(i: int) -> void: s.set_weather(i - 1), "", game_weather],
 				["Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
 					func() -> int:
 						for i in MOONS.size():
@@ -355,6 +356,9 @@ func _section_rows(key: String) -> Array:
 				["Сезон", ["игровой", "как в жизни"],
 					func() -> int: return int(s.values.real_season),
 					func(i: int) -> void: s.set_value("real_season", i == 1)],
+				["Погода", ["игровая", "как в жизни"],
+					func() -> int: return int(s.values.real_weather),
+					func(i: int) -> void: s.set_value("real_weather", i == 1)],
 				["Автоподбор", ["всё", "что есть", "еду", "ничего"],
 					func() -> int: return s.values.pickup,
 					func(i: int) -> void: s.set_value("pickup", i)],

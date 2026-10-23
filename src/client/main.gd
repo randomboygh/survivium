@@ -26,6 +26,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
+const RealWeather := preload("res://src/shared/game/real_weather.gd")
 const Controls := preload("res://src/client/input/controls.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const Props := preload("res://src/client/game/props.gd")
@@ -76,6 +77,8 @@ var hud
 var chunks: ChunkStreamer
 var sky: SkyScript
 var clock: Clock
+## The real world's weather pinned on the clock, when the setting asks (settings.gd).
+var real_weather: RealWeather
 var controls: Controls
 var view: CameraRig
 var props: Props
@@ -149,6 +152,9 @@ func _ready() -> void:
 	sky = SkyScript.new(self)
 	clock = Clock.new()
 	clock.season_changed.connect(sky.on_season)
+	real_weather = RealWeather.new()
+	real_weather.clock = clock
+	add_child(real_weather)
 	save.restore_clock()
 	props = Props.new(self)
 	placed = Placed.new()
