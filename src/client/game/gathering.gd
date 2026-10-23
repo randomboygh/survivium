@@ -40,7 +40,7 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 	if not game.ready_to_play:
 		return {}
 	var view = game.view
-	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / float(view.container.stretch_shrink)
+	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / view.view_scale
 	var radius: float = FINGER if game.controls.touch else POINTER
 	var best := {}
 	var best_d := radius
