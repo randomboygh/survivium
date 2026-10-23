@@ -11,6 +11,8 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const DAY_LENGTH := 240.0
+## Seconds in a day of the real world, the day's length when the clock follows it.
+const REAL_DAY := 86400.0
 const DAYS_PER_SEASON := 2.0
 const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
 const SPRING := 0
@@ -66,6 +68,17 @@ const WIND_TURN := 0.05
 const LEAF_WIND := 0.6
 const LEAF_FALL_RATE := 1.4
 
+## The real weather's codes (WMO, as Open-Meteo gives them) and the kind of
+## weather each is here; a code left out is the nearest one below it.
+const WMO_WEATHER := {
+	0: "clear", 2: "cloudy", 45: "fog", 48: "dense_fog", 51: "rain", 65: "downpour",
+	66: "rain", 71: "snow", 80: "rain", 82: "downpour", 85: "snow", 95: "storm", 96: "hail",
+}
+## Snow falls as a blizzard in a real wind this strong (m/s); a real wind of
+## REAL_WIND m/s blows as hard as a wind of 1 here (a blizzard is 2.5).
+const REAL_BLIZZARD := 10.0
+const REAL_WIND := 8.0
+
 ## A new season began (see next_season).
 signal season_changed(season: int)
 
@@ -77,12 +90,22 @@ var gen
 var time_of_day := 0.3
 var day := 1
 var time_speed := 1.0
+## The time of day follows the local time of the device (a setting): a day lasts a real
+## day, and days, seasons, the moon and the weather pass at that pace, a new day at
+## midnight.
+var real_time := false
+## The season follows the calendar of the device (a setting): spring from March, summer
+## from June, autumn from September, winter from December.
+var real_season := false
 var season := 1
 var season_clock := 0.0
 ## Index in WEATHERS of the weather now.
 var weather := CLEAR
 ## The weather changes by itself; the playtest page can pin one.
 var weather_auto := true
+## The wind's strength of the real weather (see set_real_weather), or -1: the
+## weather's own.
+var real_wind := -1.0
 ## Days of the game until the weather changes.
 var weather_left := 0.3
 ## Strengths of the weather now, moving smoothly towards what `weather` brings.
@@ -134,18 +157,44 @@ func step(delta: float, at := Vector3.INF) -> void:
 
 ## The days of the game `delta` seconds of play make.
 func days(delta: float) -> float:
+	if real_time:
+		return delta / REAL_DAY
 	return delta * time_speed / DAY_LENGTH
+
+
+## The local time of the device as a share of its day (0 midnight, 0.5 noon).
+static func local_time_of_day() -> float:
+	var t := Time.get_time_dict_from_system()
+	var frac := fposmod(Time.get_unix_time_from_system(), 1.0)
+	return (t.hour * 3600.0 + t.minute * 60.0 + t.second + frac) / REAL_DAY
 
 
 func _pass_time(delta: float) -> void:
 	var d := days(delta)
+	if real_time:
+		# Forward to the real time: the first step after the switch catches up (past
+		# midnight it is a new day), a clock moved back a little waits for it.
+		d = fposmod(local_time_of_day() - time_of_day, 1.0)
+		if d > 0.99:
+			d = 0.0
 	time_of_day += d
 	if time_of_day >= 1.0:
 		time_of_day -= 1.0
 		day += 1
+	if real_season:
+		var s := calendar_season()
+		if s != season:
+			_begin_season(s)
+		return
 	season_clock += d
 	if season_clock >= DAYS_PER_SEASON:
 		next_season()
+
+
+## The season of the device's date (the north's: winter is December to February).
+static func calendar_season() -> int:
+	var month: int = Time.get_date_dict_from_system().month
+	return (month / 3 + 3) % 4
 
 
 ## How much of the day's light there is now, 0 at night and 1 by day (dawn and dusk
@@ -172,7 +221,11 @@ func wind_dir() -> Vector2:
 
 
 func next_season() -> void:
-	season = (season + 1) % 4
+	_begin_season((season + 1) % 4)
+
+
+func _begin_season(s: int) -> void:
+	season = s
 	season_clock = 0.0
 	if season == SPRING:
 		leaf_fall = 0.0
@@ -192,6 +245,36 @@ func set_weather(index: int, auto := false) -> void:
 	weather = clampi(index, 0, WEATHERS.size() - 1)
 	weather_auto = auto
 	weather_left = rng.randf_range(WEATHER_DAYS.x, WEATHER_DAYS.y)
+
+
+## The weather (index in WEATHERS) of a real weather `code` (WMO) in a wind of
+## `wind` m/s.
+static func weather_of_code(code: int, wind: float) -> int:
+	var id := "clear"
+	var best := -1
+	for c: int in WMO_WEATHER:
+		if c <= code and c > best:
+			best = c
+			id = WMO_WEATHER[c]
+	if id == "snow" and wind >= REAL_BLIZZARD:
+		id = "blizzard"
+	return WEATHERS.map(func(w: Dictionary) -> String: return w.id).find(id)
+
+
+## Pins the weather to the real one: WMO `code`, the wind `wind` m/s blowing from
+## `from_deg` (degrees from north, clockwise). clear_real_weather lets it change by
+## itself again.
+func set_real_weather(code: int, wind: float, from_deg: float) -> void:
+	set_weather(weather_of_code(code, wind))
+	real_wind = wind / REAL_WIND
+	# Blowing to the opposite side: north is -y, east +x.
+	var to := deg_to_rad(from_deg + 180.0)
+	wind_to = atan2(-cos(to), sin(to))
+
+
+func clear_real_weather() -> void:
+	real_wind = -1.0
+	weather_auto = true
 
 
 ## Jumps the weather strengths to what the weather brings (tools, screenshots).
@@ -263,7 +346,7 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	fog = lerpf(fog, w.get("fog", 0.0), k)
 	fog_depth = lerpf(fog_depth, w.get("fog_depth", fog_depth), k)
 	haze = lerpf(haze, w.get("haze", 0.0), k)
-	storm_wind = lerpf(storm_wind, w.get("wind", 0.0), k)
+	storm_wind = lerpf(storm_wind, real_wind if real_wind >= 0.0 else w.get("wind", 0.0), k)
 	clouds = lerpf(clouds, w.clouds, minf(1.0, delta * 0.3))
 	wind_angle = move_toward(wind_angle, wind_to, WIND_TURN * delta)
 	if season == AUTUMN and storm_wind > LEAF_WIND:

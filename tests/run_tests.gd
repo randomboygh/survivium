@@ -29,6 +29,7 @@ const Storms := preload("res://src/shared/game/storms.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
+const RealWeather := preload("res://src/shared/game/real_weather.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
@@ -2036,6 +2037,41 @@ func _test_clock() -> void:
 	for i in 60:
 		clock.step(1.0)
 	_check(clock.snow == 0.0 and not w.water_frozen, "and melts in summer")
+	clock.real_time = true
+	clock.time_of_day = fposmod(Clock.local_time_of_day() + 0.5, 1.0)
+	var day_was := clock.day
+	clock.step(1.0)
+	var off := absf(clock.time_of_day - Clock.local_time_of_day())
+	_check(minf(off, 1.0 - off) < 0.001 and clock.day - day_was <= 1, "the real-time clock catches up with the device's time")
+	day_was = clock.day
+	var t0 := clock.time_of_day
+	clock.time_of_day = fposmod(t0 + 0.001, 1.0)
+	clock.step(1.0)
+	_check(clock.day == day_was and is_equal_approx(clock.time_of_day, fposmod(t0 + 0.001, 1.0)),
+		"and waits when it is a little ahead, without skipping a day")
+	_check(is_equal_approx(clock.days(Clock.REAL_DAY), 1.0), "a real-time day is a real day long")
+	clock.real_time = false
+	seasons.clear()
+	clock.real_season = true
+	clock.season = (Clock.calendar_season() + 1) % 4
+	clock.step(1.0)
+	clock.step(1.0)
+	_check(clock.season == Clock.calendar_season() and seasons == [clock.season],
+		"the calendar season comes once and stays")
+	clock.real_season = false
+	var ids := Clock.WEATHERS.map(func(d: Dictionary) -> String: return d.id)
+	_check([0, 3, 45, 61, 65, 75, 95, 99].map(func(c: int) -> String: return ids[Clock.weather_of_code(c, 2.0)])
+			== ["clear", "cloudy", "fog", "rain", "downpour", "snow", "storm", "hail"]
+		and ids[Clock.weather_of_code(73, 15.0)] == "blizzard", "real weather codes become the game's weathers")
+	var real := RealWeather.new()
+	real.clock = clock
+	_check(real.apply({"current": {"weather_code": 63, "wind_speed_10m": 8.0, "wind_direction_10m": 0.0}})
+			and ids[clock.weather] == "rain" and not clock.weather_auto
+			and is_equal_approx(clock.real_wind, 1.0) and is_equal_approx(clock.wind_to, PI / 2.0)
+			and not real.apply({"error": true}),
+		"the real weather pins the clock's, a wind from the north blows south")
+	real.free()
+	clock.clear_real_weather()
 
 
 ## The weather works on the world without the client: deep snow, a head wind and a
