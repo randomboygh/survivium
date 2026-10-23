@@ -666,7 +666,7 @@ static func _forget_sack(who, at: Vector3) -> void:
 ## How many of `id` the bag `inv` can take before its weight passes its limit.
 static func _light_enough(inv, id: String) -> int:
 	var each := Items.weight(id)
-	if each <= 0.0:
+	if each <= 0.0 or not inv.heavy:
 		return 1 << 30
 	return maxi(0, floori((inv.weight_limit - inv.weight()) / each + 0.0001))
 

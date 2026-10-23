@@ -114,6 +114,10 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
+	# A flock of sparrows (the birds mod) about the player: on the ground, in the air
+	# and in the crowns near.
+	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
+	"birds-forest": {"time": 0.42, "season": 1, "forest": true, "birds": true},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "core:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "core:glow_mushrooms"},
@@ -294,7 +298,8 @@ func _fake_saves() -> void:
 	main.WorldStore.root = "user://shot_saves"
 	var worlds := [[main.world_seed, main.world_options, 12, "2026-10-20T18:40:00"],
 		[48151623, {"size": 0, "water": 2, "mountains": 1, "rivers": 0, "biomes": 1}, 3, "2026-10-19T21:05:00"],
-		[777, {"size": 1, "water": 1, "mountains": 2, "rivers": 1, "biomes": 1}, 41, "2026-10-18T12:30:00"]]
+		[777, {"size": 1, "water": 1, "mountains": 2, "rivers": 1, "biomes": 1}, 41, "2026-10-18T12:30:00"],
+		[-1, main.world_options, 2, "2026-10-17T10:00:00"]]
 	for w: Array in worlds:
 		var store = main.WorldStore.new(main.WorldStore.world_dir(w[0], w[1]))
 		store.write_json(main.WorldStore.WORLD, {"format": main.WorldStore.FORMAT, "seed": w[0], "settings": w[1],
@@ -409,6 +414,8 @@ func _run() -> void:
 			c.pos.y = main.wildlife.ground(c.pos.x, c.pos.z)
 			c.target = c.pos
 			c.think = 100.0
+		if shot.get("birds", false):
+			_place_birds()
 		main.effects.pick_shadow_fires(Vector2(main.player.position.x, main.player.position.z - main.player.position.y))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
@@ -585,6 +592,7 @@ func _run() -> void:
 		var img := root.get_texture().get_image()
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
+		main.creatures.set_process(true)
 		if shot.has("keys"):
 			_hold(shot.keys, false)
 		if setup != null:
@@ -1318,3 +1326,33 @@ func _lone_trees(w, at: Vector3) -> Vector3:
 				best_n = n
 				best = Vector3(x + 0.5, y, z + 0.5)
 	return best * CELL
+
+
+## Puts the sparrows round the player, every third in the air and every third in a
+## crown when there is a tree near, and holds them there until the shot is taken.
+func _place_birds() -> void:
+	var life = main.wildlife
+	var p: Vector3 = main.player.position
+	var i := 0
+	for c in life.animals:
+		if c.kind != "birds:sparrow":
+			continue
+		c.pos = p + Vector3(-3.0 + (i % 5) * 1.4, 0.0, -2.5 + (i / 5) * 1.2)
+		c.pos.y = life.ground(c.pos.x, c.pos.z)
+		c.flying = false
+		c.perched = false
+		c.target = c.pos
+		var tree: Variant = life._tree_spot(p, 7.0) if i % 3 == 2 else null
+		if i % 3 == 1:
+			c.pos.y = life._canopy(c.pos.x, c.pos.z) + 1.0 + (i % 4) * 0.5
+			c.flying = true
+			c.target = c.pos + Vector3(5.0, 0.0, 0.0)
+		elif tree != null:
+			c.pos = tree
+			c.perched = true
+			c.target = c.pos
+		c.facing = 1.0 if i % 2 == 0 else -1.0
+		c.think = 100.0
+		i += 1
+	main.creatures._process(0.0)
+	main.creatures.set_process(false)
