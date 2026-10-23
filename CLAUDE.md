@@ -23,7 +23,8 @@ src/shared/    the world model and the rules the server will run; loads nothing 
                knocks off the trees and bushes around the player),
                character (the bag, the body's state, action costs, eating, what a life did, death and
                coming back),
-               wildlife (the animals: they come, wander, rest, flee, hunt)
+               wildlife (the animals: they come, wander, rest, flee, hunt; flocks follow
+               their lead, flyers fly between places and roost in the crowns)
 src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
@@ -70,7 +71,11 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   every recipe can be made from what the world gives); the
   registries `materials.gd`, `items.gd`, `ai_rules.gd`, `trees.gd`, `bushes.gd`, `crafting.gd`, `plants.gd` fill their static vars from
   them when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`.
-  New numbers that describe content go into the YAML and the schema, not into constants.
+  New numbers that describe content go into the YAML and the schema, not into constants. Mods load
+  in the order of `Content.MODS`; `content/birds/` (sparrows, see its README) is a creature added by
+  data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of its mod, a
+  row of `frames` frames (`creatures.gd`), and how it behaves comes from its properties
+  (`flies`, `flock`, `roost`, `likes` besides mass, diet and the rest).
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the
@@ -114,7 +119,7 @@ main, so `0.1.67` is the build with PR #67 in it. CI writes it with `tools/build
 the version and opens them («Что нового»), each with the icon of its kind. So every PR description
 has at least one such line in Russian, for a player, not a programmer (a PR without one is left out
 of the list). The kinds: `новое` (the default when the tag is left out), `улучшено`, `исправлено`,
-`быстрее`, `внутри` (code moved, tools, tests); a PR that does several things has a line for each,
+`оптимизировано`, `ядро` (code moved, tools, tests); a PR that does several things has a line for each,
 e.g. `Что нового [исправлено]: Костёр больше не гаснет под крышей.`
 
 ## Checks before every push

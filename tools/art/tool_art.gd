@@ -152,7 +152,9 @@ const SHAPES := {
 			".P.",
 			".p.",
 		],
-		"carry": {"front": 5, "side": 3, "back": 3},
+		# Up against the shoulder: pointing down, the blade reached past the feet into
+		# the ground.
+		"carry": {"front": 7, "side": 1, "back": 1},
 	},
 	"scythe": {
 		"up": [

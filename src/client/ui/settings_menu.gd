@@ -24,7 +24,7 @@ const VALUE_WIDTH := 100
 const ARROW := 32
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
-	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "быстрее", "inside": "внутри",
+	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "оптимизировано", "inside": "ядро",
 }
 ## A row across, and the room between two columns of rows (see fit).
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
@@ -269,8 +269,21 @@ func _section_rows(key: String) -> Array:
 				["Износ инструментов", ["выкл", "вкл"],
 					func() -> int: return int(s.tool_wear),
 					func(i: int) -> void: s.set_tool_wear(i == 1)],
+				["Перегруз", ["вкл", "выкл"],
+					func() -> int: return int(s.no_overload),
+					func(i: int) -> void: s.set_no_overload(i == 1)],
+				["Изготовление", ["по времени", "сразу"],
+					func() -> int: return int(s.instant_craft),
+					func(i: int) -> void: s.instant_craft = i == 1],
+				["Голод", ["вкл", "выкл"],
+					func() -> int: return int(s.no_hunger),
+					func(i: int) -> void: s.set_no_hunger(i == 1)],
+				["Возрождение", ["у костра", "и где упали"],
+					func() -> int: return int(s.revive_at_death),
+					func(i: int) -> void: s.revive_at_death = i == 1],
 				null,
 				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
+				{"action": "К месту последней смерти", "do": func() -> void: s.go_to_death()},
 			]
 		"marks":
 			var marks := []
@@ -299,9 +312,12 @@ func _section_rows(key: String) -> Array:
 				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
 					func() -> int: return s.values.time_speed,
 					func(i: int) -> void: s.set_value("time_speed", i)],
-				["Автоподбор", ["выкл", "вкл"],
-					func() -> int: return int(s.values.auto_pickup),
-					func(i: int) -> void: s.set_value("auto_pickup", i == 1)],
+				["Автоподбор", ["всё", "что есть", "еду", "ничего"],
+					func() -> int: return s.values.pickup,
+					func(i: int) -> void: s.set_value("pickup", i)],
+				["Сверх груза", ["не брать", "брать"],
+					func() -> int: return int(s.values.pickup_heavy),
+					func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
 				["Интерфейс", ["обычный", "крупнее", "крупный"],
 					func() -> int: return s.values.ui_scale,
 					func(i: int) -> void: s.set_value("ui_scale", i)],
@@ -416,7 +432,7 @@ func fit(screen: Vector2) -> void:
 		_fill()
 		return
 	_set_columns(n)
-	_legend_grid.columns = CHANGE_KINDS.size() if n > 1 else 3
+	_legend_grid.columns = CHANGE_KINDS.size() if n > 1 else 2
 	if _version.visible:
 		room -= _version.size.y + 6
 	if _legend.visible:
@@ -558,7 +574,7 @@ func _add_marker(i: int) -> void:
 	b.custom_minimum_size = Vector2(0, ARROW)
 	var cell: Vector2i = m.cell
 	b.pressed.connect(func() -> void:
-		game.character.teleport(cell)
+		game.character.go_to_column(cell)
 		close()
 		if get_tree().paused:
 			game.hud.toggle_menu())

@@ -447,6 +447,7 @@ func _build_scene() -> void:
 	world_root.add_child(creatures)
 
 	effects = EffectsScript.new()
+	effects.world = world
 	world_root.add_child(effects)
 	fire_shadows = FireShadowsScript.new()
 	fire_shadows.game = self

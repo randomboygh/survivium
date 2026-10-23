@@ -45,6 +45,9 @@ static var meadow_noise: FastNoiseLite
 static var flower_noise: FastNoiseLite
 static var herb_noise: FastNoiseLite
 static var ear_noise: FastNoiseLite
+## Above this ground patch (salt 21, see ground_patch) the tops of stone are mossy,
+## as world.gdshader draws them.
+const STONE_MOSS := 0.66
 ## Patches of moss and the places where mushrooms and glowing mushrooms come up in groups.
 static var moss_noise: FastNoiseLite
 static var mushroom_noise: FastNoiseLite
@@ -188,10 +191,29 @@ static func _forest_floor(x: int, z: int, out: Array[int], rng: RandomNumberGene
 		out.append(MUSHROOM + rng.randi_range(0, 1))
 
 
+## True where moss grows on the flat top of stone cell x, y, z under open air: in the
+## damp patches world.gdshader draws it in (at least a quarter of the cell mossy),
+## until it is picked (WorldData.turf "", back in spring).
+static func stone_moss(w, x: int, y: int, z: int) -> bool:
+	if w.get_cell(x, y, z) != Mat.STONE or w.get_cell(x, y + 1, z) != Mat.AIR or w.turf_at(Vector3i(x, y, z)) == "":
+		return false
+	var ch: WorldData.Chunk = w.chunk_at(x, z)
+	if ch == null or ch.shapes[y * WorldData.LAYER + WorldData.col_of(x, z)] != 0:
+		return false
+	for k in 4:
+		var p := (Vector2(x + 0.25 + 0.5 * (k & 1), z + 0.25 + 0.5 * (k >> 1))) * CELL
+		if ground_patch(p + Vector2(7.0, 7.0), 21.0) > STONE_MOSS:
+			return true
+	return false
+
+
 ## The plants on the top of ground cell x, y, z (ids of Plants), the ones drawn there:
-## what cutting that grass gives besides its material's own (see WorldActions.mow).
+## what cutting that grass gives besides its material's own (see WorldActions.mow), and
+## the moss on stone (see stone_moss).
 static func plants_on(w, x: int, y: int, z: int) -> Array:
 	var m: int = w.get_cell(x, y, z)
+	if m == Mat.STONE and stone_moss(w, x, y, z):
+		return [Plants.MOSS]
 	if not Mat.can_slope(m) or w.get_cell(x, y + 1, z) != Mat.AIR:
 		return []
 	var ch: WorldData.Chunk = w.chunk_at(x, z)

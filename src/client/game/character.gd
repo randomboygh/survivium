@@ -3,7 +3,7 @@ extends "res://src/shared/game/character.gd"
 ## actions cost, death) on this device: the body is the player's node, the hands are
 ## the controls', it speaks in lines under the clock, and a death hides the player
 ## behind the death screen (DeathScreen) and is saved at once. The playtest page can
-## take them to any column (teleport). `game` is the Main node.
+## take them to any column (go_to_column). `game` is the Main node.
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -46,7 +46,7 @@ func _fell() -> void:
 ## Takes the player to column `cell` (the playtest page): over the ground as the
 ## generator lays it out, held there until the chunk is made, then onto level grass
 ## near it (see WorldGen.find_spawn), or onto the water where there is none.
-func teleport(cell: Vector2i) -> void:
+func go_to_column(cell: Vector2i) -> void:
 	var lay: Dictionary = game.gen.lay_out(cell.x, cell.y, 1, 1)
 	var y := maxi(int(lay.heights[0]), int(lay.water[0])) + 2
 	game.player.position = Vector3(cell.x + 0.5, y, cell.y + 0.5) * CELL
@@ -61,7 +61,7 @@ func update(delta: float) -> void:
 	super.update(delta)
 
 
-## Holds the player over the column teleport took them to until its chunk is made,
+## Holds the player over the column go_to_column took them to until its chunk is made,
 ## then puts them down.
 func _arrive() -> void:
 	var cell: Vector2i = arriving
@@ -79,8 +79,14 @@ func _arrive() -> void:
 
 
 func _came_back(at: Vector3) -> void:
-	game.player.position = at
+	teleport(at)
 	game.player.visible = true
+
+
+## Puts the body at `at` (world units) at once, the view with it.
+func teleport(at: Vector3) -> void:
+	game.player.position = at
+	body.velocity_y = 0.0
 	game.view.look_at_player()
 
 
