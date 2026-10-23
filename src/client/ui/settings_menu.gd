@@ -220,6 +220,8 @@ func _fill() -> void:
 				_list.add_child(gap)
 			elif r is Dictionary and r.has("marker"):
 				_add_marker(r.marker)
+			elif r is Dictionary and r.has("place"):
+				_add_place(r.color, r.place, r.cell, r.tip)
 			elif r is Dictionary and r.has("note"):
 				_grid().add_child(_note(r.note))
 			elif r is Dictionary:
@@ -237,8 +239,8 @@ func _fill() -> void:
 ## The rows of section `key` (see PAGES): [name, values, getter, setter] each, and
 ## [..., the value shown when the getter gives -1] for the quality preset; null is a
 ## gap; {"action": text, "do": Callable} a button that does something once;
-## {"marker": index} a marker with its button that takes the player there; {"note":
-## text} a line of text.
+## {"marker": index} a marker with its button that takes the player there; {"place":
+## name, "cell", "color", "tip"} the same for another place; {"note": text} a line of text.
 func _section_rows(key: String) -> Array:
 	var s = game.settings
 	var sky = game.sky
@@ -310,10 +312,14 @@ func _section_rows(key: String) -> Array:
 			]
 		"marks":
 			var marks := []
+			for p: Array in game.character.respawn_points():
+				var at: Vector3 = p[1] / game.character.CELL
+				marks.append({"place": p[0], "cell": Vector2i(floori(at.x), floori(at.z)),
+					"color": UiStyle.INK, "tip": "Телепорт к точке возрождения"})
 			if game.markers != null:
 				for i in game.markers.list.size():
 					marks.append({"marker": i})
-			if marks.is_empty():
+			if game.markers == null or game.markers.list.is_empty():
 				marks.append({"note": "Маркеров нет: поставьте их на карте (M)."})
 			return marks
 		"debug":
@@ -600,6 +606,12 @@ func _add_action(text: String, action: Callable) -> void:
 ## button that takes the player there and back into the game.
 func _add_marker(i: int) -> void:
 	var m: Dictionary = game.markers.list[i]
+	_add_place(Markers.color_of(m), (Markers.COLORS[m.color][0] as String).capitalize(), m.cell, "Телепорт к маркеру")
+
+
+## A place as a row: a swatch of `color`, `name` and the column `cell`, and a button
+## that takes the player there (its tooltip `tip`) and back into the game.
+func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
@@ -610,23 +622,22 @@ func _add_marker(i: int) -> void:
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var fill := ColorRect.new()
-	fill.color = Markers.color_of(m)
+	fill.color = color
 	fill.position = Vector2(2, 2)
 	fill.size = Vector2(10, 10)
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	swatch.add_child(fill)
 	row.add_child(swatch)
-	var label := UiStyle.label("%s · X %d, Z %d" % [(Markers.COLORS[m.color][0] as String).capitalize(), m.cell.x, m.cell.y])
+	var label := UiStyle.label("%s · X %d, Z %d" % [name, cell.x, cell.y])
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
 	row.add_child(label)
 	var b := Button.new()
 	b.text = "Туда"
-	b.tooltip_text = "Телепорт к маркеру"
+	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(0, ARROW)
-	var cell: Vector2i = m.cell
 	b.pressed.connect(func() -> void:
 		game.character.go_to_column(cell)
 		close()
