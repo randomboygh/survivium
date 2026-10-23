@@ -32,7 +32,7 @@ const STEP_UP := 0.5
 const STEP_DOWN := 0.6
 ## A swimmer floats with the feet this deep under the surface, so water up to one
 ## cell deep is waded and deeper water is swum.
-const SWIM_DEPTH := 0.95
+const SWIM_DEPTH := 0.75
 ## Speed in water up to the knees and deeper, while swimming and wading a bog,
 ## against walking.
 const WADE := 0.65

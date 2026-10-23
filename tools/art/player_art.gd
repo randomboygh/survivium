@@ -193,7 +193,8 @@ const SHOULDER := {
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
-## the body bobs down.
+## the body bobs down. A swimmer's strokes go over the water, which comes up to its
+## shoulders (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn.
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[1, 10], [8, 10]]}],
@@ -208,10 +209,10 @@ const MOVES := {
 			{"hands": [[0, 8], [9, 8]]},
 		],
 		"swim": [
-			{"hands": [[2, 8], [7, 8]], "legs": "left"},
-			{"hands": [[0, 8], [9, 8]]},
-			{"hands": [[0, 10], [9, 10]], "legs": "right"},
-			{"hands": [[1, 9], [8, 9]]},
+			{"hands": [[0, 3], [9, 7]], "legs": "left"},
+			{"hands": [[0, 6], [9, 5]]},
+			{"hands": [[0, 7], [9, 3]], "legs": "right"},
+			{"hands": [[0, 5], [9, 6]]},
 		],
 	},
 	"side": {
@@ -227,10 +228,10 @@ const MOVES := {
 			{"hands": [[6, 8], [2, 8]]},
 		],
 		"swim": [
-			{"hands": [[7, 8], [6, 8]], "legs": "near"},
-			{"hands": [[6, 10], [5, 10]]},
-			{"hands": [[2, 9], [2, 10]], "legs": "far"},
-			{"hands": [[5, 8], [4, 8]]},
+			{"hands": [[9, 4], [2, 6]], "legs": "near"},
+			{"hands": [[7, 7], [5, 3]]},
+			{"hands": [[2, 6], [9, 4]], "legs": "far"},
+			{"hands": [[5, 3], [7, 7]]},
 		],
 	},
 	"back": {
@@ -246,10 +247,10 @@ const MOVES := {
 			{"hands": [[9, 8], [0, 8]]},
 		],
 		"swim": [
-			{"hands": [[7, 8], [2, 8]], "legs": "left"},
-			{"hands": [[9, 8], [0, 8]]},
-			{"hands": [[9, 10], [0, 10]], "legs": "right"},
-			{"hands": [[8, 9], [1, 9]]},
+			{"hands": [[9, 3], [0, 7]], "legs": "left"},
+			{"hands": [[9, 6], [0, 5]]},
+			{"hands": [[9, 7], [0, 3]], "legs": "right"},
+			{"hands": [[9, 5], [0, 6]]},
 		],
 	},
 }

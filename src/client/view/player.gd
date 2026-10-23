@@ -226,6 +226,7 @@ func place_sprite() -> void:
 		layer.material_override.set_shader_parameter("frame_uv", frame)
 	# Water shows the body under it tinted; a bog's is too murky to see through.
 	sprite.material_override.set_shader_parameter("ripple", MURKY_RIPPLE if body.murk > 0 else FOAM_RIPPLE)
+	sprite.material_override.set_shader_parameter("splash", 1.0 if body.swimming else 0.0)
 	var tint: Array = SWAMP_TINT if body.murk > 0 else CLEAR_TINT
 	underwater.material_override.set_shader_parameter("shallow", tint[0])
 	underwater.material_override.set_shader_parameter("deep", tint[1])
