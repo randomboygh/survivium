@@ -194,7 +194,7 @@ const SHOULDER := {
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
 ## the body bobs down. A swimmer's strokes go over the water, which comes up to its
-## shoulders (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn.
+## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn.
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[1, 10], [8, 10]]}],
