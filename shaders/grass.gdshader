@@ -168,11 +168,13 @@ void fragment() {
 		col = vec3(0.0);
 	} else if (kind == HALO) {
 		// A soft round glow about the glowing mushrooms at night, dithered thinner
-		// toward its edge.
-		vec2 p = vec2((UV.x - 0.5) * 8.0, (1.0 - UV.y) * 24.0) * HALO_SCALE - vec2(0.0, 3.0);
-		float k = max(1.0 - length(p) / 9.0, 0.0);
+		// toward its edge. The dither goes by the texels of the card, not of the
+		// screen, so it moves with the glow instead of crawling over it as the camera
+		// moves.
+		vec2 p = floor(vec2((UV.x - 0.5) * 8.0, (1.0 - UV.y) * 24.0) * HALO_SCALE);
+		float k = max(1.0 - length(p + vec2(0.5, -2.5)) / 9.0, 0.0);
 		k = k * k * night_glow;
-		if (k <= 0.0 || snow_here > 0.4 || bayer4(floor(FRAGCOORD.xy)) > k * 1.2) {
+		if (k <= 0.0 || snow_here > 0.4 || bayer4(p + 64.0) > k * 1.2) {
 			discard;
 		}
 		col = vec3(0.0);

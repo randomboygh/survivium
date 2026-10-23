@@ -55,6 +55,9 @@ const DROPS_PER_FRAME := 4
 ## How long the automatic cut must agree before the view follows it, so stepping
 ## under the rim of a roof does not flip the view back and forth.
 const CUT_DELAY := 0.2
+## How many levels above and below the player's the level buttons may look; from deep
+## in a pit, up to the surface over it (see view_range).
+const VIEW_REACH := 4
 ## The player is down in a ravine, a pit or a cave mouth when earth (not trunks or
 ## leaves) stands SUNK_RISE levels above the feet within SUNK_REACH cells on at
 ## least SUNK_SIDES of the eight compass directions: then the view is cut at the
@@ -126,6 +129,9 @@ var gen_us := 0
 
 var cut_level := -1
 var manual_level := -1
+## The column whose surface was found last, and that surface (see view_range).
+var _surface_at := Vector3i(1 << 30, 0, 0)
+var _surface := 0
 ## The cut the player's position asks for, and how long it has asked for it.
 var cut_target := -1
 var cut_clock := 0.0
@@ -618,6 +624,13 @@ func update_cut(delta: float) -> void:
 		hidden_by = _hiding_level(px, level, pz)
 	var target: int = world.size_y
 	if manual_level >= 0:
+		# Walking away from the levels looked at brings the view back within reach.
+		var reach := view_range()
+		if manual_level > reach.y:
+			manual_level = -1
+		else:
+			manual_level = maxi(manual_level, reach.x)
+	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
 		target = level + 1
@@ -682,10 +695,38 @@ func _hiding_level(x: int, level: int, z: int) -> int:
 func shift_cut(d: int) -> void:
 	if world == null:
 		return
-	var base: int = cut_level if cut_level < world.size_y else game.player.level() + 1
-	manual_level = clampi(base + d, 1, world.size_y)
-	if manual_level >= world.size_y - 1:
+	var reach := view_range()
+	manual_level = maxi(cut_base() + d, reach.x)
+	# Past the top of the reach the view goes back to the automatic cut.
+	if manual_level > reach.y or manual_level >= world.size_y - 1:
 		manual_level = -1
+
+
+## The level the buttons step from: the level chosen, the cut, or above the player
+## with none.
+func cut_base() -> int:
+	if manual_level >= 0:
+		return manual_level
+	return cut_level if cut_level < world.size_y else game.player.level() + 1
+
+
+## The lowest and highest levels the level buttons may cut the view at: VIEW_REACH
+## around the player's, and from below the surface of the column up to it, so a
+## player fallen into a pit can look up out of it. The playtest switch lifts it.
+func view_range() -> Vector2i:
+	if game.settings.free_view:
+		return Vector2i(1, world.size_y)
+	var level: int = game.player.level()
+	# Looked up again on a step to another column or level (a dug pit changes it).
+	var at := Vector3i(floori(game.player.position.x / CELL), level, floori(game.player.position.z / CELL))
+	if at != _surface_at:
+		_surface_at = at
+		_surface = 0
+		for y in range(world.size_y - 1, 0, -1):
+			if Mat.is_roof(world.get_cell(at.x, y, at.z)):
+				_surface = y
+				break
+	return Vector2i(maxi(1, level - VIEW_REACH), maxi(level + VIEW_REACH, _surface + 1))
 
 
 ## Back to the automatic cut that follows the player.

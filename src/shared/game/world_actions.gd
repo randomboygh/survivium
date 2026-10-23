@@ -40,6 +40,9 @@ const IDLE_SWING := 0.3
 const PILE := 0.8
 ## Things lying this close to the feet (world units) are taken by themselves.
 const PICKUP := 1.6
+## What is taken by themselves (the setting «Автоподбор»): everything, only things the
+## bag already has, only food, nothing. The sack of a death is taken in all but the last.
+enum { PICKUP_ALL, PICKUP_KNOWN, PICKUP_FOOD, PICKUP_NONE }
 ## Berries and branches knocked off a bush land this far from it at most (world units).
 const SCATTER := 0.45
 const SPRING := 0
@@ -73,8 +76,11 @@ func _init(w, c, s) -> void:
 	settings = s
 
 
-static func _work(seconds: float, kind: String, at: Vector3) -> Dictionary:
-	return {"swing": seconds, "work": kind, "time": seconds, "at": at}
+## What the hands did: they swing again in `seconds`, the body plays work `kind` ("" for
+## the tool's own) toward `at` (world units), and bits of material `stuff` fly off there
+## (-1 for none; see Effects.burst).
+static func _work(seconds: float, kind: String, at: Vector3, stuff := -1) -> Dictionary:
+	return {"swing": seconds, "work": kind, "time": seconds, "at": at, "stuff": stuff}
 
 
 ## Whether `cell` is farther than `reach` cells from `who`.
@@ -157,7 +163,7 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	var col := Vector2i(cell.x, cell.z)
 	var s: Dictionary = Trees.SPECIES[world.trees[col]]
 	chops[col] = chops.get(col, 0) + maxi(1, t.power)
-	var done := _work(Tools.swing_time(t, Mat.LOG), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL)
+	var done := _work(Tools.swing_time(t, Mat.LOG), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
 	if chops[col] < s.hits:
 		who.say("%s: осталось ударов %d" % [s.title, ceili((s.hits - chops[col]) / float(maxi(1, t.power)))])
 		return done
@@ -213,7 +219,7 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 			return chop(who, trunk_cell(who, tree))
 		if t.tool == "hand":
 			if gather(who, {"tree": tree}):
-				return _work(t.swing, "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL)
+				return _work(t.swing, "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LEAVES)
 			return {}
 		if m == Mat.LOG:
 			who.nag("tool", "Дерево рубят топором")
@@ -249,6 +255,7 @@ func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
 	if cells.is_empty() or not who.act("dig"):
 		return {}
 	var keys := {}
+	var first: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
 	for c in cells:
 		var was: int = world.get_cell(c.x, c.y, c.z)
 		world.set_cell(c.x, c.y, c.z, Mat.AIR)
@@ -263,17 +270,19 @@ func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		drops_changed.emit(key)
-	var done := _work(swing, "", (Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL)
+	var done := _work(swing, "", (Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL, first)
 	who.use_tool()
 	return done
 
 
 ## Whether the grass on top of `cell` can be cut: a material with a top to cut (see
-## Tools.mown), open to the air above, with no bush on it; by tool `t` when given, which
-## may cut only what grows tall on it (see Tools.mows_low).
+## Tools.mown) or stone with moss on it (Grass.stone_moss), open to the air above, with
+## no bush on it; by tool `t` when given, which may cut only what grows tall on it (see
+## Tools.mows_low).
 func can_mow(cell: Vector3i, t := {}) -> bool:
 	var up := cell + Vector3i.UP
-	if Tools.mown(world.get_cell(cell.x, cell.y, cell.z)) < 0 or world.get_cell(up.x, up.y, up.z) != Mat.AIR \
+	var m: int = world.get_cell(cell.x, cell.y, cell.z)
+	if Tools.mown(m) < 0 and not Grass.stone_moss(world, cell.x, cell.y, cell.z) or world.get_cell(up.x, up.y, up.z) != Mat.AIR \
 			or world.bushes.has(up) or world.blocker_top(up.x, up.y, up.z) > 0.0:
 		return false
 	return t.is_empty() or Tools.mows_low(t) or Grass.has_tall(world, cell)
@@ -318,9 +327,12 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	var arc: Array[Vector3i] = []
 	if not cells.is_empty() and t.area > 1:
 		arc = Tools.sweep(cells[0], who.facing_step())
-	if cells.is_empty() or not mow(who, cells, arc):
+	if cells.is_empty():
 		return {}
-	var done := _work(t.swing, "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL)
+	var was: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
+	if not mow(who, cells, arc):
+		return {}
+	var done := _work(t.swing, "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
 	who.use_tool()
 	return done
 
@@ -338,10 +350,12 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 	for c in cells:
 		var m: int = world.get_cell(c.x, c.y, c.z)
 		var to := Tools.mown(m)
-		if to < 0:
+		if to < 0 and not Grass.stone_moss(world, c.x, c.y, c.z):
 			continue
 		var plants := in_season(Grass.plants_on(world, c.x, c.y, c.z))
 		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
+		if tall.is_empty() and to < 0:
+			continue
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([c, clock.day])
 		var gives := {}
@@ -412,7 +426,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 		_changed(cell)
 		placed += 1
 	if placed > 0:
-		var done := _work(PLACE_SWING, "reach", (Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL)
+		var done := _work(PLACE_SWING, "reach", (Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
 		done.placed = placed
 		return done
 	if far:
@@ -461,7 +475,7 @@ func act_in_front(who, top: int) -> Dictionary:
 		if gather(who, target):
 			var at: Vector3 = Vector3(target.bush) + Vector3(0.5, 0.4, 0.5) if target.has("bush") \
 				else Vector3(trunk_cell(who, target.tree)) + Vector3(0.5, 0.5, 0.5)
-			return _work(t.swing, "", at * CELL)
+			return _work(t.swing, "", at * CELL, Mat.LEAVES)
 		return {"swing": IDLE_SWING}
 	var work := front_work(who, t)
 	if work.has("mow"):
@@ -597,12 +611,12 @@ func useful(who, target: Dictionary) -> bool:
 	return false
 
 
-## Takes by themselves the things lying near the feet of `who` when `on` (the setting);
-## what it threw away waits until it has walked off. They are taken only as far as the
-## bag's weight limit goes, so digging with the button held does not overload the body
+## Takes by themselves the things lying near the feet of `who` that pickup `mode` wants
+## (the setting); what it threw away waits until it has walked off. They are taken only
+## as far as the bag's weight limit goes unless `past_limit` (a setting), so digging with the button held does not overload the body
 ## (which then cannot jump out of the pit it dug); the sack of a death is taken whole. The dead take nothing: their sack
 ## lies at their feet.
-func pick_up_near(who, on: bool) -> void:
+func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 	if who.is_dead():
 		return
 	var feet: Vector3 = who.position
@@ -610,7 +624,7 @@ func pick_up_near(who, on: bool) -> void:
 	for i in range(held_back.size() - 1, -1, -1):
 		if held_back[i].distance_to(feet) > PICKUP:
 			held_back.remove_at(i)
-	if not on:
+	if mode == PICKUP_NONE:
 		return
 	var home := WorldData.chunk_key(floori(feet.x / CELL), floori(feet.z / CELL))
 	for dz in range(-1, 2):
@@ -625,9 +639,9 @@ func pick_up_near(who, on: bool) -> void:
 				var most := -1
 				if d[0] != Items.SACK:
 					var id: String = Items.get_item(d[0]).get("id", d[0])
-					if who.inventory.room_for(id) == 0:
+					if who.inventory.room_for(id) == 0 or not _wanted(who.inventory, id, mode):
 						continue
-					most = _light_enough(who.inventory, id)
+					most = -1 if past_limit else _light_enough(who.inventory, id)
 					if most == 0:
 						who.nag("heavy", "Сумка тяжёлая: вещи больше не поднимаются сами")
 						continue
@@ -641,6 +655,16 @@ func pick_up_near(who, on: bool) -> void:
 				list = world.drops.get(key, [])
 			if took:
 				drops_changed.emit(key)
+
+
+## Whether things of `id` are taken by themselves in pickup `mode`.
+static func _wanted(inv, id: String, mode: int) -> bool:
+	match mode:
+		PICKUP_KNOWN:
+			return inv.count(id) > 0
+		PICKUP_FOOD:
+			return Items.food(id) > 0.0
+	return mode == PICKUP_ALL
 
 
 ## The sack at `at` was taken whole by `who`: if it was theirs, their maps no longer

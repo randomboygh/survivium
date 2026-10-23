@@ -22,6 +22,10 @@ stencil_mode write, compare_always, 2;
 
 uniform sampler2D clump_texture : filter_nearest;
 uniform float clump_size = 1.5;
+// The window round the player in a crown nearer the viewer, and the thinner rim
+// beyond it, in world units.
+const float SEE_THROUGH = 1.8;
+const float SEE_RIM = 0.5;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
@@ -75,12 +79,14 @@ void fragment() {
 	if (!branches && (hash13(floor(center)) > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
 		discard;
 	}
-	// See-through around the player when the clump is nearer the viewer than them.
+	// See-through around the player when the clump is nearer the viewer than them:
+	// every other texel within SEE_THROUGH, one in four over a rim beyond it. Counted
+	// in the world's texels, so the pattern does not crawl as the view moves.
 	vec2 frag = vec2(center.x + (UV.x - 0.5) * clump_size, center.z - center.y - (0.5 - UV.y) * clump_size);
 	vec2 body = vec2(player_pos.x, player_pos.z - player_pos.y - 0.5);
-	if (center.y + center.z > player_pos.y + player_pos.z + 1.0 && length(frag - body) < 1.1) {
-		ivec2 f = ivec2(FRAGCOORD.xy);
-		if ((f.x + f.y) % 2 == 0) {
+	float near = length(frag - body);
+	if (center.y + center.z > player_pos.y + player_pos.z + 1.0 && near < SEE_THROUGH + SEE_RIM) {
+		if (bayer4(texel) < (near < SEE_THROUGH ? 0.5 : 0.25)) {
 			discard;
 		}
 	}
