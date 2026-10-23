@@ -430,12 +430,24 @@ func _run() -> void:
 	await process_frame
 	var button: float = hud._stats_button.size.x
 	var square := is_equal_approx(hud.minimap.size.x, 2 * button + 6) and is_equal_approx(hud.minimap.size.y, 2 * button + 6)
-	var level_tall := is_equal_approx(hud._level.size.y, hud.minimap.size.y)
+	var level_tall := is_equal_approx(hud._level.size.y, hud.minimap.size.y) and is_equal_approx(hud._level.size.x, button)
 	var cross: bool = hud._camera.get_child_count() == 9 and hud._camera.position.y >= hud.minimap.position.y + hud.minimap.size.y
 	hud.update_state()
 	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2 \
 		and is_equal_approx(hud._clock_panel.position.x + hud._clock_panel.size.x, hud._bar.position.x + hud._bar.size.x)
 	var vitals_tall: bool = is_equal_approx(hud.vitals.get_combined_minimum_size().y, button)
+	# A long toast wraps before the buttons on the right.
+	hud.toast("Длинная подсказка, которая никак не помещается в одну строку до кнопок справа")
+	await process_frame
+	await process_frame
+	var toast: Control = hud._toasts.get_child(hud._toasts.get_child_count() - 1)
+	var toast_end: float = toast.get_global_rect().end.x
+	_check(toast_end <= hud.get_global_transform().origin.x + (hud._level.position.x - 6) * hud.scale.x + 0.5,
+		"a long toast wraps before the buttons: ends at %d, the level buttons at %d" % [toast_end,
+			hud.get_global_transform().origin.x + hud._level.position.x * hud.scale.x])
+	toast.queue_free()
+	_check(hud.vitals.mouse_filter == Control.MOUSE_FILTER_STOP and hud._clock_panel.mouse_filter == Control.MOUSE_FILTER_STOP,
+		"a tap on the state or the clock does not reach the world")
 	# The statistics with their longest lines, two freezes told, do not wrap and stay low.
 	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]]]
 	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
@@ -498,6 +510,13 @@ func _run() -> void:
 	_check(streamer.manual_level == maxi(1, main.player.level() - streamer.VIEW_REACH - 1),
 		"the playtest switch lets the view go deeper")
 	main.settings.free_view = false
+	streamer.reset_view_level()
+	# Up to the top of the reach the view stays there, not back at the player's level.
+	for i in 2 * streamer.VIEW_REACH + 4:
+		streamer.shift_cut(1)
+	var top: int = streamer.view_range().y
+	_check(streamer.manual_level == (top if top < main.world.size_y - 1 else -1),
+		"the level button up stops at the top of the reach: %d of %d" % [streamer.manual_level, top])
 	streamer.reset_view_level()
 	# The map's zoom buttons are dimmed at the ends of the zoom.
 	var map = main.hud.map_view

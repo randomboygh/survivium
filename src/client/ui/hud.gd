@@ -42,8 +42,8 @@ const UI_SIZES := [0.67, 0.83, 1.0, 1.33, 1.67]
 const UI_STEPS := [-2, -1, 0, 1, 2]
 ## The size of the joystick and the touch buttons, the same five steps.
 const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
-## The width of the level buttons beside the minimap.
-const LEVEL_WIDTH := 68
+## The width of the level buttons beside the minimap: one button's.
+const LEVEL_WIDTH := 40
 ## The camera cross: the width of its arms at the sides and the height of those above
 ## and below, and the middle (the view as text).
 const DPAD_SIDE := 22
@@ -74,6 +74,9 @@ var _clock: Label
 ## The season and the time, under the right end of the hotbar.
 var _clock_panel: PanelContainer
 var _toasts: VBoxContainer
+## How wide a toast may be, in UI px: up to the buttons and the minimap on the right
+## (see _place_top); a longer one wraps.
+var _toast_room := 200.0
 var perf: PanelContainer
 var vitals: VitalsPanel
 ## The red frame and the numbers over the player when the body is hurt, healed or fed.
@@ -146,6 +149,8 @@ func _ready() -> void:
 	add_child(_left)
 	var clock := _panel(self)
 	_clock_panel = clock
+	# A tap on the clock or the state does not reach the world under them.
+	clock.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Under the hotbar: kept thin.
 	clock.add_theme_stylebox_override("panel", UiStyle.panel(Vector4(5, 4, 5, 4)))
 	var row := HBoxContainer.new()
@@ -164,6 +169,7 @@ func _ready() -> void:
 	row.add_child(_clock)
 	vitals = VitalsPanel.new()
 	_left.add_child(vitals)
+	vitals.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Over the whole top of the interface, which moves down under it.
 	perf = PerfPanel.new()
 	perf.visible = false
@@ -193,6 +199,8 @@ func _ready() -> void:
 	_level_label.focus_mode = Control.FOCUS_NONE
 	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, 34)
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
+	# Its two lines apart, the font's own lines touch.
+	_level_label.add_theme_constant_override("line_spacing", 4)
 	_level_label.pressed.connect(func() -> void: game.chunks.reset_view_level())
 	_level.add_child(_level_label)
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
@@ -200,16 +208,9 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(LEVEL_WIDTH, 24)
 	_level_up = up
 	_level_down = down
-	# A helper: framed like the other buttons but see-through inside, so it hides
-	# little of the world. Up, the level and down are as tall as the minimap.
+	# Up, the level and down are as tall as the minimap.
 	for b: Button in [up, _level_label, down]:
-		for state in ["normal", "hover", "disabled", "focus"]:
-			b.add_theme_stylebox_override(state, UiStyle.frame())
-		for state in ["pressed", "hover_pressed"]:
-			b.add_theme_stylebox_override(state, UiStyle.frame(true))
-		b.add_theme_color_override("font_outline_color", UiStyle.EDGE)
-		b.add_theme_constant_override("outline_size", 4)
-		b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
+		_see_through(b)
 	minimap = Minimap.new()
 	add_child(minimap)
 	# The camera buttons as a cross under the minimap: turn at the sides, tilt above
@@ -242,8 +243,7 @@ func _ready() -> void:
 	for b: Button in [turn_left, turn_right]:
 		b.custom_minimum_size = Vector2(DPAD_SIDE, DPAD_MIDDLE.y)
 	for b: Button in [tilt_up, turn_left, turn_right, tilt_down, _camera_reset]:
-		for state in ["normal", "hover", "pressed", "hover_pressed"]:
-			b.add_theme_stylebox_override(state, UiStyle.panel(Vector4(2, 2, 2, 2)))
+		_see_through(b)
 	map_view = MapView.new()
 	map_view.minimap = minimap
 	map_view.game = game
@@ -577,6 +577,11 @@ func _place_top() -> void:
 	_camera.reset_size()
 	_camera.position = Vector2(minimap.position.x + floorf((minimap.size.x - _camera.size.x) * 0.5),
 		minimap.position.y + minimap.size.y + 6)
+	var room := minf(_top.position.x, _level.position.x) - 6 - MARGIN
+	if room != _toast_room:
+		_toast_room = room
+		for p: PanelContainer in _toasts.get_children():
+			_fit_toast(p)
 
 
 ## Keeps the clock's right edge on the hotbar's as its text and icons change width.
@@ -628,9 +633,10 @@ func update_state() -> void:
 		_camera_reset.add_theme_color_override("font_hover_color", ink)
 	var cut: bool = game.chunks.manual_level >= 0
 	var reach: Vector2i = game.chunks.view_range()
-	_level_up.disabled = not cut and game.chunks.cut_base() + 1 > reach.y
+	_level_up.disabled = game.chunks.cut_base() + 1 > reach.y
 	_level_down.disabled = game.chunks.cut_base() - 1 < reach.x
-	_level_label.text = "Срез %d" % game.chunks.cut_level if cut else "Ур. %d" % game.player.level()
+	# On two lines, so the column is one button wide.
+	_level_label.text = "Срез\n%d" % game.chunks.cut_level if cut else "Ур.\n%d" % game.player.level()
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
 	# A colour set anew tells the button its theme changed, which lays it out again.
 	if _level_ink != ink:
@@ -698,6 +704,7 @@ func toast(text: String) -> void:
 	var p := _panel(_toasts)
 	p.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	p.add_child(UiStyle.label(text))
+	_fit_toast(p)
 	while _toasts.get_child_count() > MAX_TOASTS:
 		var old := _toasts.get_child(0)
 		_toasts.remove_child(old)
@@ -706,6 +713,18 @@ func toast(text: String) -> void:
 	tw.tween_interval(TOAST_TIME)
 	tw.tween_property(p, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(p.queue_free)
+
+
+## Wraps toast `p`'s text when it is wider than the room left of the buttons.
+func _fit_toast(p: PanelContainer) -> void:
+	var l: Label = p.get_child(0)
+	var frame := p.get_theme_stylebox("panel").get_minimum_size().x
+	var room := floorf(_toast_room - frame)
+	var font := l.get_theme_font("font")
+	var wide := font.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, l.get_theme_font_size("font_size")).x
+	var wrap := wide + 1.0 > room
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
+	l.custom_minimum_size.x = room if wrap else 0.0
 
 
 ## Hint next to the mouse pointer (`screen_pos` in screen pixels); empty text hides it.
@@ -885,6 +904,18 @@ func _octagon_look(b: Button, fill: Color, shade: Color, ink: Color) -> void:
 		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade, true))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(c, ink)
+
+
+## Frames a helper button like the others but see-through inside, so it hides little
+## of the world: the level and camera buttons.
+func _see_through(b: Button) -> void:
+	for state in ["normal", "hover", "disabled", "focus"]:
+		b.add_theme_stylebox_override(state, UiStyle.frame())
+	for state in ["pressed", "hover_pressed"]:
+		b.add_theme_stylebox_override(state, UiStyle.frame(true))
+	b.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+	b.add_theme_constant_override("outline_size", 4)
+	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
 
 
 func _icon_button(parent: Node, icon: String, tip: String, action: Callable) -> Button:
