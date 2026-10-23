@@ -159,3 +159,7 @@ sun_view={
 "type": "vec3",
 "value": Vector3(0, 0, 1)
 }
+light_side={
+"type": "vec2",
+"value": Vector2(0, 1)
+}

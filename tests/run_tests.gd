@@ -9,6 +9,7 @@ const VoxelRaycast := preload("res://src/shared/world/voxel_raycast.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const SkyScript := preload("res://src/client/view/sky.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
@@ -1171,6 +1172,13 @@ func _test_pixel_view() -> void:
 	PixelView.set_view(0.0, 0.0)
 	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]
 	_check(turned, "a turned and tilted view draws, picks, culls and shades consistently")
+	# The lit edges keep their side of the sky until the light is well past its border.
+	var sky = SkyScript.new(null)
+	var sides := []
+	for azimuth: float in [-20.0, -29.0, -31.0, -20.0, -15.0, 60.0, -115.0]:
+		sky._light_side(azimuth)
+		sides.append(sky.light_side)
+	_check(sides == [0, 0, 7, 7, 0, 1, 5], "the lit edges of the cells turn with the light without flicker")
 
 
 func _test_trees() -> void:
