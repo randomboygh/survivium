@@ -177,7 +177,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 				game.player.work("reach", WorldActions.FRONT_PLACE_SWING, (Vector3(hit.cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 		"prop":
 			game.props.put_from_bag(held())
-		"eat":
+		"eat", "heal":
 			_eat_held()
 		_:
 			_start_stroke(button, pos, true)
@@ -324,6 +324,8 @@ func action_name() -> String:
 			return "Поставить"
 		"eat":
 			return "Съесть"
+		"heal":
+			return "Перевязать"
 		"hand":
 			return "Собрать"
 	match tool_record().tool:
@@ -336,7 +338,7 @@ func action_name() -> String:
 	return "Копать"
 
 
-## Eats one of the food in the hand in use from the bag.
+## Eats one of the food in the hand in use from the bag, or puts on a bandage.
 func _eat_held() -> void:
 	if _cooldown > 0.0:
 		return
@@ -506,7 +508,7 @@ func act_in_front() -> void:
 			game.props.put_from_bag(held())
 			_cooldown = 0.5
 			return
-		"eat":
+		"eat", "heal":
 			_eat_held()
 			return
 	_did(game.actions.act_in_front(game.character, game.chunks.cut_level))
@@ -528,7 +530,7 @@ func _front_preview() -> Array[Vector3i]:
 			if spot != null:
 				cells.append(spot)
 			return cells
-		"prop", "eat":
+		"prop", "eat", "heal":
 			return []
 	var target: Dictionary = actions.front_target(who)
 	if target.has("trunk"):
@@ -667,6 +669,8 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 			return "поставить перед собой"
 		"eat":
 			return "съесть"
+		"heal":
+			return "перевязать"
 	var t := tool_record(hand)
 	if game.actions.too_far(game.character, cell, t.reach):
 		return "далеко"
@@ -678,6 +682,9 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 	if m == Mat.LOG and tree != null:
 		return "рубят топором"
 	if Tools.mows(t) and game.actions.can_mow(cell, t):
+		var picked: String = game.actions.picking(cell)
+		if t.tool == "hand" and picked != "":
+			return "собрать: %s" % picked.to_lower()
 		return "косить" if t.tool == "scythe" else ("срезать траву" if t.tool == "sword" else "сорвать траву")
 	if Tools.can_dig(t, m):
 		var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"

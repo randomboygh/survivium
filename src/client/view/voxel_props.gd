@@ -161,7 +161,7 @@ static func footprint(m: VoxelModel) -> Array[AABB]:
 
 ## Things lying on the ground (see WorldData.drops), centred on the origin and lying
 ## on it, by model name (an item's `model`): a log, a branch, an acorn, a cone, the
-## tools, a dug-out bush, grain, flour, a flatbread, seeds, a sack left by a death and a bundle for any item without a
+## tools, a dug-out bush, grain, flour, a flatbread, mushrooms, moss, a bandage, seeds, a sack left by a death and a bundle for any item without a
 ## model of its own (a block has one of its colour, see block()).
 static func drop(model: String) -> VoxelModel:
 	match model:
@@ -199,6 +199,16 @@ static func drop(model: String) -> VoxelModel:
 			return _flint()
 		"cord":
 			return _cord()
+		"mushroom":
+			return _mushroom(Color(0.48, 0.28, 0.15))
+		"glow_mushroom":
+			return _mushroom(Color(0.42, 0.95, 0.82))
+		"fried_mushrooms":
+			return _heap(Color(0.45, 0.3, 0.16))
+		"moss":
+			return _moss()
+		"bandage":
+			return _bandage()
 		"raspberry":
 			return _berries(Color(0.78, 0.13, 0.2))
 		"blueberry":
@@ -372,6 +382,47 @@ static func _berries(c: Color) -> VoxelModel:
 	for p in [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 1), Vector3i(1, 0, -1), Vector3i(0, 1, 0), Vector3i(-1, 0, -1)]:
 		m.set_voxel(p, c * (1.2 if p.y > 0 else 1.0))
 	m.set_voxel(Vector3i(2, 0, 1), Color(0.3, 0.46, 0.22), true)
+	return m
+
+
+## A mushroom with a cap of colour `c`, lying on its side.
+static func _mushroom(c: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	var stem := Color(0.86, 0.82, 0.7)
+	for x in range(-2, 1):
+		m.set_voxel(Vector3i(x, 0, 0), stem)
+	for z in range(-1, 2):
+		for y in range(0, 2):
+			m.set_voxel(Vector3i(1, y, z), c * (1.15 if y == 1 else 1.0))
+	m.set_voxel(Vector3i(2, 0, 0), c * 0.85)
+	return m
+
+
+## A clump of moss: a low green cushion.
+static func _moss() -> VoxelModel:
+	var m := VoxelModel.new()
+	var moss := Color(0.26, 0.42, 0.16)
+	for z in range(-2, 2):
+		for x in range(-2, 2):
+			if absi(x * 2 + 1) + absi(z * 2 + 1) < 7:
+				m.set_voxel(Vector3i(x, 0, z), moss * (1.2 if (x * 3 + z) % 3 == 0 else 1.0), true)
+	m.set_voxel(Vector3i(0, 1, -1), moss * 1.3, true)
+	m.set_voxel(Vector3i(-1, 1, 0), moss * 1.3, true)
+	return m
+
+
+## A rolled bandage.
+static func _bandage() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cloth := Color(0.9, 0.87, 0.78)
+	for x in range(-2, 2):
+		for y in range(0, 3):
+			for z in range(-1, 2):
+				if (y == 0 or y == 2) and z != 0:
+					continue
+				m.set_voxel(Vector3i(x, y, z), cloth * (0.85 if x == -2 or x == 1 else 1.0))
+	m.set_voxel(Vector3i(2, 0, 0), cloth * 0.9)
+	m.set_voxel(Vector3i(3, 0, 0), cloth * 0.9)
 	return m
 
 

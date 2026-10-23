@@ -44,6 +44,7 @@ const PICKUP := 1.6
 const SCATTER := 0.45
 const SPRING := 0
 const AUTUMN := 2
+const WINTER := 3
 
 ## Cell `cell` changed (dug, filled, cut down to another material, a tree fell through it,
 ## a bush on it went): what is drawn around it is built again.
@@ -278,6 +279,24 @@ func can_mow(cell: Vector3i, t := {}) -> bool:
 	return t.is_empty() or Tools.mows_low(t) or Grass.has_tall(world, cell)
 
 
+## Plants `ids` without those that are gone in winter (mushrooms; a plant with
+## `winter` off) when it is winter.
+func in_season(ids: Array) -> Array:
+	if clock.season != WINTER:
+		return ids
+	return ids.filter(func(id: String) -> bool: return Plants.BY_ID.get(id, {}).get("winter", true))
+
+
+## The name of what is picked by hand on grass cell `cell` (moss, mushrooms; a plant with
+## `pick`), "" when nothing there is: cutting the cell picks it first.
+func picking(cell: Vector3i) -> String:
+	for id in in_season(Grass.plants_on(world, cell.x, cell.y, cell.z)):
+		var p: Dictionary = Plants.BY_ID.get(id, {})
+		if p.get("pick", false):
+			return p.title
+	return ""
+
+
 ## The cells tool `t` of `who` cuts the grass of when it swings at the first of `order`
 ## it can cut: that one, and for a scythe the ones beside it in an arc in front of the body.
 func mow_targets(who, order: Array[Vector3i], t: Dictionary) -> Array[Vector3i]:
@@ -321,7 +340,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var to := Tools.mown(m)
 		if to < 0:
 			continue
-		var plants := Grass.plants_on(world, c.x, c.y, c.z)
+		var plants := in_season(Grass.plants_on(world, c.x, c.y, c.z))
 		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([c, clock.day])
@@ -579,7 +598,9 @@ func useful(who, target: Dictionary) -> bool:
 
 
 ## Takes by themselves the things lying near the feet of `who` when `on` (the setting);
-## what it threw away waits until it has walked off. The dead take nothing: their sack
+## what it threw away waits until it has walked off. They are taken only as far as the
+## bag's weight limit goes, so digging with the button held does not overload the body
+## (which then cannot jump out of the pit it dug); the sack of a death is taken whole. The dead take nothing: their sack
 ## lies at their feet.
 func pick_up_near(who, on: bool) -> void:
 	if who.is_dead():
@@ -601,10 +622,17 @@ func pick_up_near(who, on: bool) -> void:
 				var d: Array = list[i]
 				if d[1].distance_to(feet) > PICKUP or _is_held_back(held_back, d[1]):
 					continue
-				if d[0] != Items.SACK and who.inventory.room_for(Items.get_item(d[0]).get("id", d[0])) == 0:
-					continue
+				var most := -1
+				if d[0] != Items.SACK:
+					var id: String = Items.get_item(d[0]).get("id", d[0])
+					if who.inventory.room_for(id) == 0:
+						continue
+					most = _light_enough(who.inventory, id)
+					if most == 0:
+						who.nag("heavy", "Сумка тяжёлая: вещи больше не поднимаются сами")
+						continue
 				world.take_drop(key, i)
-				var rest := _take(who, d)
+				var rest := _take(who, d, most)
 				if not rest.is_empty():
 					world.add_drop(rest[0], rest[1], rest[2], rest[3])
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
@@ -613,6 +641,23 @@ func pick_up_near(who, on: bool) -> void:
 				list = world.drops.get(key, [])
 			if took:
 				drops_changed.emit(key)
+
+
+## The sack at `at` was taken whole by `who`: if it was theirs, their maps no longer
+## mark it.
+static func _forget_sack(who, at: Vector3) -> void:
+	var sacks: Array[Vector3] = who.sacks
+	for i in range(sacks.size() - 1, -1, -1):
+		if sacks[i].distance_to(at) < 0.01:
+			sacks.remove_at(i)
+
+
+## How many of `id` the bag `inv` can take before its weight passes its limit.
+static func _light_enough(inv, id: String) -> int:
+	var each := Items.weight(id)
+	if each <= 0.0:
+		return 1 << 30
+	return maxi(0, floori((inv.weight_limit - inv.weight()) / each + 0.0001))
 
 
 static func _is_held_back(held_back: Array[Vector3], at: Vector3) -> bool:
@@ -649,9 +694,9 @@ func pick_up(who, key: Vector2i, i: int) -> bool:
 	return took
 
 
-## Puts what drop `d` holds into the bag of `who`; returns what is left of it ([] for
-## nothing).
-func _take(who, d: Array) -> Array:
+## Puts what drop `d` holds into the bag of `who`, no more than `most` of it when given;
+## returns what is left of it ([] for nothing).
+func _take(who, d: Array, most := -1) -> Array:
 	if d[0] == Items.SACK:
 		var rest := []
 		for s: Array in d[3]:
@@ -659,10 +704,12 @@ func _take(who, d: Array) -> Array:
 			if got < s[1]:
 				rest.append([s[0], s[1] - got] + s.slice(2))
 		who.say("Вещи из мешка забраны" if rest.is_empty() else "Забрано не всё: сумка полна")
+		if rest.is_empty():
+			_forget_sack(who, d[1])
 		return [] if rest.is_empty() else [d[0], d[1], d[2], rest]
 	var n := count(d)
 	var worn: int = d[3].get("worn", 0) if d.size() > 3 and d[3] is Dictionary else 0
-	var got: int = who.give(Items.get_item(d[0]).get("id", d[0]), n, worn)
+	var got: int = who.give(Items.get_item(d[0]).get("id", d[0]), n if most < 0 else mini(n, most), worn)
 	if got >= n:
 		return []
 	return [d[0], d[1], d[2], {"n": n - got, "worn": worn} if worn > 0 else n - got]

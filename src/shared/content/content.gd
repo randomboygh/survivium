@@ -44,6 +44,7 @@ const SCHEMAS := {
 		"weight": {"type": "float", "min": 0.0},
 		"stack": {"type": "int", "min": 1},
 		"food": {"type": "float", "min": 0.0, "default": 0.0},
+		"heal": {"type": "float", "min": 0.0, "default": 0.0},
 		"place": {"type": "ref:materials", "default": ""},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
@@ -112,6 +113,8 @@ const SCHEMAS := {
 	"plants": {
 		"gives": {"type": "amounts", "of": "ref:items"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
+		"pick": {"type": "bool", "default": false},
+		"winter": {"type": "bool", "default": true},
 	},
 }
 const MOD_SCHEMA := {

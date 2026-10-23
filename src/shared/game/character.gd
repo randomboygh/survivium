@@ -27,11 +27,12 @@ const STRIDE_MAX := 3.0
 
 signal state_changed
 
-## The world the character lives in, its clock (Clock) and its body (Body), set by the
-## owner as they come.
+## The world the character lives in, its clock (Clock), its body (Body) and the
+## things placed in it (Placed: its fires burn), set by the owner as they come.
 var world
 var clock
 var body
+var placed
 var inventory := Inventory.new()
 var vitals := Vitals.new()
 ## Where the character comes back after death, in world units: beside the campfire
@@ -55,6 +56,9 @@ var _last_at := Vector3.INF
 ## Where things were thrown away: those are not taken by themselves until the
 ## character has walked off (see WorldActions.pick_up_near).
 var held_back: Array[Vector3] = []
+## Where the sacks of this character's deaths lie, in world units, until they are
+## taken back whole: the maps mark them.
+var sacks: Array[Vector3] = []
 ## Where the body is, in world units (see _where).
 var position: Vector3:
 	get:
@@ -91,10 +95,10 @@ func nag(reason: String, text: String) -> void:
 	say(text)
 
 
-## Picks the place to come back to after death, once the things of `placed` (Placed)
+## Picks the place to come back to after death, once the things of `camp` (Placed)
 ## are put down.
-func find_home(placed) -> void:
-	var fire: Variant = placed.cell_of(placed.CAMPFIRE)
+func find_home(camp) -> void:
+	var fire: Variant = camp.cell_of(camp.CAMPFIRE)
 	if fire is Vector3i:
 		home = (Vector3(fire) + Vector3(2.5, 0.0, 0.5)) * CELL
 	else:
@@ -118,6 +122,9 @@ func update(delta: float) -> void:
 		note("jumps")
 		if not body.air_jumps:
 			vitals.spend("jump")
+	if placed != null and (placed.burns(p) or body.bumped.is_finite() and placed.burns(body.bumped)):
+		vitals.burn(delta)
+		nag("fire", "Горячо!")
 	if vitals.is_dead():
 		die()
 
@@ -152,10 +159,21 @@ func give(id: String, n: int, worn := 0) -> int:
 	return got
 
 
-## Eats one item from bag slot `i`; false if it is not food or the character is full.
+## Eats one item from bag slot `i`, or puts it on the wounds when it heals (a bandage);
+## false if it is neither, the character is full or not hurt.
 func eat(i: int) -> bool:
 	var s = inventory.slots[i]
-	if s == null or Items.food(s[0]) <= 0.0:
+	if s == null:
+		return false
+	if Items.heal(s[0]) > 0.0:
+		if not vitals.heal(Items.heal(s[0])):
+			nag("not_hurt", "Здоровье и так полное")
+			return false
+		inventory.take_slot(i, 1)
+		note("healed")
+		say("+%d здоровья" % roundi(Items.heal(s[0])))
+		return true
+	if Items.food(s[0]) <= 0.0:
 		return false
 	if not vitals.eat(Items.food(s[0])):
 		nag("full_belly", "Больше не хочется")
@@ -207,6 +225,7 @@ func die() -> void:
 	var sack: Variant = null
 	if not stacks.is_empty():
 		sack = lay(Items.SACK, stacks)
+		sacks.append(sack)
 	var lived := maxf(0.0, _now() - born) if born >= 0.0 else 0.0
 	deaths += 1
 	var summary := life.duplicate()
@@ -267,13 +286,15 @@ static func cause_text(cause: String) -> Array:
 			return ["Вы умерли", "от голода"]
 		"water":
 			return ["Вы утонули", "в воде кончились силы"]
+		"fire":
+			return ["Вы сгорели", "в огне костра"]
 	return ["Вы погибли", ""]
 
 
 ## The death and this life's statistics, kept in the player's save (see SaveGame.track).
 func to_dict() -> Dictionary:
 	return {"death": death.duplicate(true), "life": life.duplicate(), "born": born, "deaths": deaths,
-		"best_days": best_days}
+		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z])}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -285,6 +306,10 @@ func from_dict(d: Dictionary) -> void:
 	born = float(d.get("born", -1.0))
 	deaths = int(d.get("deaths", 0))
 	best_days = float(d.get("best_days", 0.0))
+	sacks.clear()
+	for p: Variant in d.get("sacks", []):
+		if p is Array and p.size() == 3:
+			sacks.append(Vector3(float(p[0]), float(p[1]), float(p[2])))
 	var saved: Variant = d.get("death")
 	death = {}
 	if saved is Dictionary and not saved.is_empty():

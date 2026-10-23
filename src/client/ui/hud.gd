@@ -2,7 +2,8 @@ extends Control
 ## The game screen interface (plan/design/ui.md): clock, level cutaway, statistics and
 ## menu buttons, hotbar with both hands, joystick and action buttons on touch screens,
 ## key hints with a mouse, short messages, the hover hint, the pause menu, the
-## character's state (VitalsPanel) and the bag (InventoryWindow).
+## character's state (VitalsPanel), what the body goes through (BodyFeedback) and the
+## bag (InventoryWindow).
 ##
 ## The root is scaled by a whole number so one UI pixel is one pixel of the world, and
 ## the layout follows the shape of the screen: wide, tablet-like and portrait screens
@@ -22,6 +23,7 @@ const Minimap := preload("res://src/client/ui/minimap.gd")
 const MapView := preload("res://src/client/ui/map_view.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
+const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
@@ -56,6 +58,8 @@ var _clock: Label
 var _toasts: VBoxContainer
 var perf: PanelContainer
 var vitals: VitalsPanel
+## The red frame and the numbers over the player when the body is hurt, healed or fed.
+var feedback: BodyFeedback
 var bag: InventoryWindow
 var _bag_button: Button
 ## The tab on the hotbar with how many slots are taken and the load (a tap opens the
@@ -105,6 +109,9 @@ func _ready() -> void:
 	theme = UiStyle.theme()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Under the rest of the interface.
+	feedback = BodyFeedback.new(game)
+	add_child(feedback)
 
 	_left = VBoxContainer.new()
 	_left.add_theme_constant_override("separation", 6)
@@ -456,7 +463,7 @@ func update_state() -> void:
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
-	minimap.set_marks(game.placed.things)
+	minimap.set_marks(game.placed.things, game.character.sacks)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
 	# Eight ways, so the arrow stays on the pixel grid.

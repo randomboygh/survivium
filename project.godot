@@ -99,6 +99,10 @@ leaf_litter={
 "type": "float",
 "value": 0.0
 }
+night_glow={
+"type": "float",
+"value": 0.0
+}
 berry_amount={
 "type": "float",
 "value": 1.0

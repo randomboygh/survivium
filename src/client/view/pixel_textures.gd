@@ -12,7 +12,7 @@ const TUFT := 8
 ## Ground plants: PLANTS variants, each PLANT_W x PLANT_H px (see build_plants).
 const PLANT_W := 8
 const PLANT_H := 24
-const PLANTS := 22
+const PLANTS := 29
 ## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
 ## one of CLUMP_SIZES across. The texture has a row per size of broad-leaf bunch, then a
 ## row per size of needle sprig (from NEEDLE_ROW), then bare branches (BRANCH_ROW).
@@ -59,7 +59,9 @@ static func build_atlas() -> ImageTexture:
 ## (see grass.gdshader for the kinds): grass tufts 0..3, whose alpha is the blade mask
 ## and red the height along the blade (0 at the root, 1 at the tip), coloured from the
 ## ground; then plants in their own colours: flowers 4..7 (white, yellow, violet,
-## pink), ears of dry grass 8..9, reeds with cattails 10..11, low herbs 12..13.
+## pink), ears of dry grass 8..9, reeds with cattails 10..11, low herbs 12..13, low grass
+## 14..17 and tall grass 18..21 (both masks like the tufts), cushions of moss 22..23,
+## groups of mushrooms 24..25 and of glowing mushrooms 26..27, a spore 28 (see Grass).
 static func build_plants() -> ImageTexture:
 	var img := Image.create_empty(PLANT_W * PLANTS, PLANT_H, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
@@ -154,6 +156,54 @@ static func build_plants() -> ImageTexture:
 				px = clampi(px, 0, PLANT_W - 1)
 				var k := float(i + 1) / h
 				_plant_px(img, 18 + v, px, i, Color(k, 0, 0, 1))
+	# Moss: low lumpy cushions, yellow-green and lit on their tops, darker in the
+	# hollows between them, with a few stalks of spore boxes on one.
+	var moss := Color(0.26, 0.42, 0.14)
+	var moss_light := Color(0.5, 0.68, 0.2)
+	for v in 2:
+		var tops: Array = [[0, 2, 3, 2, 1, 2, 3, 1], [1, 3, 2, 0, 2, 3, 3, 1]][v]
+		for x in PLANT_W:
+			var h: int = tops[x]
+			for i in h:
+				var c := moss.lightened(0.12 * i)
+				if i == h - 1:
+					c = moss_light if rng.randf() < 0.7 else moss_light.darkened(0.15)
+				_plant_px(img, 22 + v, x, i, c)
+		if v == 1:
+			for x in [1, 5]:
+				_plant_px(img, 23, x, tops[x], Color(0.45, 0.32, 0.18))
+				_plant_px(img, 23, x, tops[x] + 1, Color(0.72, 0.5, 0.24))
+	# Mushrooms: two or three on a card, white stems and wide caps lit on top: brown
+	# boletes, orange chanterelles.
+	var stem_pale := Color(0.92, 0.88, 0.76)
+	var caps := [Color(0.62, 0.32, 0.14), Color(0.92, 0.6, 0.16)]
+	for v in 2:
+		var cap: Color = caps[v]
+		for f in 2 + v:
+			var x: int = [2, 5, 4][f]
+			var h: int = [3, 4, 2][f]
+			for i in h:
+				_plant_px(img, 24 + v, x, i, stem_pale if i > 0 else stem_pale.darkened(0.2))
+			for dx in [-1, 0, 1, 2]:
+				_plant_px(img, 24 + v, x + dx, h, cap.darkened(0.25))
+				if dx == 0 or dx == 1:
+					_plant_px(img, 24 + v, x + dx, h + 1, cap.lightened(0.2 if dx == 0 else 0.0))
+	# Glowing mushrooms: thin pale stems and small caps the shader makes glow at night
+	# (where green stands well above red).
+	var glows := [Color(0.42, 0.95, 0.82), Color(0.5, 0.85, 1.0)]
+	for v in 2:
+		var cap: Color = glows[v]
+		for f in 3:
+			var x: int = [1, 4, 6][f] + (v if f == 1 else 0)
+			var h: int = [3, 4, 2][f] + v
+			for i in h:
+				_plant_px(img, 26 + v, x, i, Color(0.78, 0.8, 0.74))
+			_plant_px(img, 26 + v, x - 1, h, cap.darkened(0.25))
+			_plant_px(img, 26 + v, x, h, cap)
+			_plant_px(img, 26 + v, x + 1, h, cap.darkened(0.25))
+			_plant_px(img, 26 + v, x, h + 1, cap.lightened(0.3))
+	# A spore: one bright texel, carried up by the shader.
+	_plant_px(img, 28, 3, 0, Color(0.6, 1.0, 0.85))
 	return ImageTexture.create_from_image(img)
 
 

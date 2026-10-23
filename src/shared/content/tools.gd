@@ -46,7 +46,7 @@ static func is_tool_item(id: String) -> bool:
 
 ## What item `id` in a hand is used for: "tool" (dig, chop, mow with it), "place" (a
 ## block), "plant" (a bush), "sow" (seeds), "prop" (a thing set on the ground), "eat"
-## (food), else "hand" (the hand works as bare hands).
+## (food), "heal" (a bandage), else "hand" (the hand works as bare hands).
 static func use_of(id: String) -> String:
 	if id == "":
 		return "hand"
@@ -65,6 +65,8 @@ static func use_of(id: String) -> String:
 		return "prop"
 	if item.food > 0.0:
 		return "eat"
+	if item.heal > 0.0:
+		return "heal"
 	return "hand"
 
 
