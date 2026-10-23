@@ -132,8 +132,6 @@ const SHOTS := {
 	"walk-w": {"time": 0.42, "season": 1, "keys": [KEY_A]},
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
-	# Off a beach, where the sea floor goes down: the water darkens with the depth.
-	"deep-water": {"time": 0.42, "season": 1, "place": "beach", "water": 4},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},

@@ -695,7 +695,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 					b = SEA
 					feature = LAKE
 				else:
-					height = mini(height, sea + 1 + int(-in_lake))
+					# The shore at the water's level, so it slopes into the water.
+					height = mini(height, sea + int(-in_lake))
 			# Where the flow fades the valley rises and the river ends.
 			if wt < 0 and flowing > 0.0:
 				var canyon := kind == MOUNTAIN or kind == HIGHLAND or height > sea + 10
