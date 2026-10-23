@@ -178,6 +178,12 @@ func _run() -> void:
 		"the teleport puts the player near the column (%d frames, at %s)" % [frames, at])
 	_check(absf(at.y - main.world.surface_y(floori(at.x), floori(at.z))) < 1.5 or main.player.body.swimming,
 		"the teleport puts the player on the ground (y %.1f, ground %d)" % [at.y, main.world.surface_y(floori(at.x), floori(at.z))])
+	var place: Dictionary = main.hud._settings._section_rows("marks")[0]
+	main.player.position += Vector3(40.0, 0.0, 40.0)
+	main.character.go_to_column(place.cell)
+	_check(place.get("place") == ch.respawn_points()[0][0]
+		and Vector2(main.player.position.x, main.player.position.z).distance_to(Vector2(ch.home.x, ch.home.z)) < 1.0,
+		"the playtest page takes the player back to the respawn point")
 	main.settings.go_to_death()
 	_check(main.player.position.distance_to(fell) < 0.01 and not ch.is_dead(), "the playtest button goes back where they fell")
 	main.settings.set_no_overload(true)
