@@ -9,7 +9,8 @@
 # деревья); flock — [от, до] сколько держится вместе (стая, стадо); roost — где спит и
 # отдыхает: ground или trees; likes — растения (core/data/plants.yaml), к которым
 # тянется; calls — голос, который слышно время от времени, alarm — крик испуга или угрозы
-# (sounds.yaml). human — игроки. Пример вида в своём моде: content/birds.
+# (sounds.yaml). human — игроки. Звери живут в моде content/animals, птицы в content/birds;
+# в основе остаётся только человек.
 - id: human
   title: Человек
   mass: 70
@@ -18,62 +19,3 @@
   sight: 0.0
   human_wariness: 0.0
   active: day
-- id: rabbit
-  title: Заяц
-  mass: 2
-  diet: [plants]
-  speed: 5.5
-  sight: 9
-  human_wariness: 0.9
-  active: day
-  count: 14
-  sprite: rabbit
-  alarm: rabbit
-- id: squirrel
-  title: Белка
-  mass: 0.5
-  diet: [plants]
-  speed: 5.0
-  sight: 7
-  human_wariness: 0.7
-  active: day
-  count: 10
-  sprite: squirrel
-  calls: squirrel
-  alarm: squirrel
-- id: cat
-  title: Дикая кошка
-  mass: 4
-  diet: [meat]
-  speed: 5.5
-  sight: 10
-  human_wariness: 0.6
-  active: any
-  count: 4
-  sprite: cat
-  calls: cat
-  alarm: cat
-- id: deer
-  title: Олень
-  mass: 60
-  diet: [plants]
-  speed: 6.5
-  sight: 13
-  human_wariness: 0.8
-  active: day
-  count: 8
-  sprite: deer
-  calls: deer
-  alarm: deer
-- id: wolf
-  title: Волк
-  mass: 40
-  diet: [meat]
-  speed: 6.0
-  sight: 14
-  human_wariness: 0.6
-  active: night
-  count: 4
-  sprite: wolf
-  calls: wolf_howl
-  alarm: wolf_growl

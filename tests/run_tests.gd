@@ -1180,17 +1180,17 @@ func _ref_fill(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 func _test_ai_relations() -> void:
 	# The example from the design: a cat is food for a wolf, the wolf is a threat
 	# to the cat, and the cat hunts squirrels, with no rule written for the cat.
-	_check(AiRules.is_food("core:wolf", "core:cat"), "wolf sees a cat as food")
-	_check(AiRules.is_threat("core:cat", "core:wolf"), "cat sees a wolf as a threat")
-	_check(not AiRules.is_food("core:cat", "core:wolf"), "cat does not hunt wolves")
-	_check(AiRules.is_food("core:cat", "core:squirrel"), "cat hunts squirrels")
-	_check(AiRules.is_food("core:cat", "core:rabbit"), "cat hunts rabbits")
-	_check(AiRules.is_threat("core:squirrel", "core:cat"), "squirrel fears a cat")
-	_check(not AiRules.is_threat("core:cat", "core:deer"), "cat ignores deer")
-	_check(not AiRules.is_food("core:deer", "core:rabbit"), "herbivores hunt nobody")
-	_check(not AiRules.is_food("core:wolf", "core:human"), "a lone wolf does not see a human as food")
-	_check(AiRules.is_threat("core:rabbit", "core:human"), "rabbit fears people")
-	_check(AiRules.is_active("core:wolf", 0.0) and not AiRules.is_active("core:wolf", 1.0), "wolves are active at night")
+	_check(AiRules.is_food("animals:wolf", "animals:cat"), "wolf sees a cat as food")
+	_check(AiRules.is_threat("animals:cat", "animals:wolf"), "cat sees a wolf as a threat")
+	_check(not AiRules.is_food("animals:cat", "animals:wolf"), "cat does not hunt wolves")
+	_check(AiRules.is_food("animals:cat", "animals:squirrel"), "cat hunts squirrels")
+	_check(AiRules.is_food("animals:cat", "animals:rabbit"), "cat hunts rabbits")
+	_check(AiRules.is_threat("animals:squirrel", "animals:cat"), "squirrel fears a cat")
+	_check(not AiRules.is_threat("animals:cat", "animals:deer"), "cat ignores deer")
+	_check(not AiRules.is_food("animals:deer", "animals:rabbit"), "herbivores hunt nobody")
+	_check(not AiRules.is_food("animals:wolf", "core:human"), "a lone wolf does not see a human as food")
+	_check(AiRules.is_threat("animals:rabbit", "core:human"), "rabbit fears people")
+	_check(AiRules.is_active("animals:wolf", 0.0) and not AiRules.is_active("animals:wolf", 1.0), "wolves are active at night")
 
 
 func _test_pixel_view() -> void:
@@ -1586,7 +1586,7 @@ func _test_content() -> void:
 		"material flags come from the data")
 	_check(Trees.SPECIES[Trees.SPRUCE].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.OAK].tints[0] is Color, "trees get their looks")
 	_check(Bushes.TYPES[Bushes.SHRUB].berries == Color.BLACK and Bushes.TYPES[Bushes.BLUEBERRY].spread is Vector3, "bushes get their looks")
-	_check(AiRules.SPECIES["core:wolf"].diet == ["meat"] and AiRules.SPECIES["core:wolf"].sprite == "wolf", "creatures get their properties")
+	_check(AiRules.SPECIES["animals:wolf"].diet == ["meat"] and AiRules.SPECIES["animals:wolf"].sprite == "wolf", "creatures get their properties")
 	# The checks catch what a mod author gets wrong.
 	var before := Content.MODS.duplicate()
 	var mod := "res://content/_test"
@@ -1619,7 +1619,7 @@ func _test_content() -> void:
 ## mods can leave some out (see mods.gd).
 func _test_mods() -> void:
 	var all := Content.available()
-	_check(all.size() >= 2 and all[0] == "core" and "birds" in all, "the mods under content/ are found, core first: %s" % [all])
+	_check(all.size() >= 3 and all[0] == "core" and "animals" in all and "birds" in all, "the mods under content/ are found, core first: %s" % [all])
 	_check(Content.loaded == all, "every mod loads in order: %s" % [Content.loaded])
 	var before := Content.MODS.duplicate()
 	for m in ["_a", "_b", "_c"]:
@@ -1628,13 +1628,13 @@ func _test_mods() -> void:
 	_write("res://content/_b/mod.yaml", "id: _b\ntitle: B\nversion: \"1\"\napi: 1\nrequires: [core]\n")
 	_write("res://content/_c/mod.yaml", "id: _c\ntitle: C\nversion: \"1\"\napi: 1\nrequires: [_missing]\n")
 	_write("res://content/_b/data/creatures.yaml",
-		"- id: core:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: core:rabbit\n  patch: true\n  diet+: 3\n")
-	_write("res://content/_a/data/creatures.yaml", "- id: core:wolf\n  patch: true\n  sight: 99\n")
+		"- id: animals:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: animals:rabbit\n  patch: true\n  diet+: 3\n")
+	_write("res://content/_a/data/creatures.yaml", "- id: animals:wolf\n  patch: true\n  sight: 99\n")
 	_write("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
-	Mods.activate(["core", "_a", "_c", "_b"])
-	_check(Content.loaded == ["core", "_b", "_a"], "a mod loads after what it requires, a mod missing its requirement is left out: %s" % [Content.loaded])
-	var wolf: Dictionary = AiRules.SPECIES["core:wolf"]
-	_check(wolf.speed == 1.5 and wolf.diet == ["meat", "plants"] and wolf.sight == 99 and wolf.mod == "core",
+	Mods.activate(["core", "animals", "_a", "_c", "_b"])
+	_check(Content.loaded == ["core", "animals", "_b", "_a"], "a mod loads after what it requires, a mod missing its requirement is left out: %s" % [Content.loaded])
+	var wolf: Dictionary = AiRules.SPECIES["animals:wolf"]
+	_check(wolf.speed == 1.5 and wolf.diet == ["meat", "plants"] and wolf.sight == 99 and wolf.mod == "animals",
 		"patches change only the fields they give, `+` adds to a list, and stack: %s" % [wolf])
 	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("birds:sparrow"), "records of mods left out are not loaded")
 	var found := {}
@@ -1651,7 +1651,7 @@ func _test_mods() -> void:
 		DirAccess.remove_absolute("res://content/%s/mod.yaml" % m)
 		DirAccess.remove_absolute("res://content/%s" % m)
 	Mods.activate(before)
-	_check(Content.problems.is_empty() and AiRules.SPECIES.has("birds:sparrow") and AiRules.SPECIES["core:wolf"].speed != 1.5,
+	_check(Content.problems.is_empty() and AiRules.SPECIES.has("birds:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
 		"the full set loads clean again")
 
 
@@ -2468,7 +2468,7 @@ func _test_wildlife() -> void:
 	life.people = [person]
 	var at := person.position + Vector3(3.0, 0.0, 0.0)
 	at.y = life.ground(at.x, at.z)
-	var rabbit := _animal(life, "core:rabbit", at)
+	var rabbit := _animal(life, "animals:rabbit", at)
 	var prints := [0]
 	life.stepped.connect(func(_a: Wildlife.Animal, _at: Vector3, _dir: Vector2, _left: bool, _size: float) -> void: prints[0] += 1)
 	for i in 20:
@@ -2480,13 +2480,13 @@ func _test_wildlife() -> void:
 	life.people = [Who.new()]
 	life.animals.clear()
 	life.clock.time_of_day = 0.5
-	var wolf := _animal(life, "core:wolf", at)
+	var wolf := _animal(life, "animals:wolf", at)
 	life.update(0.05)
 	_check(wolf.state == "rest" and wolf.pos == at, "a wolf rests by day")
 	life.clock.time_of_day = 0.0
 	wolf.hunger = 1.0
 	wolf.think = 0.0
-	rabbit = _animal(life, "core:rabbit", at + Vector3(0.5, 0.0, 0.0))
+	rabbit = _animal(life, "animals:rabbit", at + Vector3(0.5, 0.0, 0.0))
 	var eaten := []
 	life.gone.connect(func(a: Wildlife.Animal) -> void: eaten.append(a))
 	life.update(0.05)
@@ -2533,7 +2533,7 @@ func _test_birds(w: WorldData, person: Who) -> void:
 	mate.lead = lead
 	life.update(0.05)
 	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
-	var cat := _animal(life, "core:cat", lead.pos)
+	var cat := _animal(life, "animals:cat", lead.pos)
 	cat.hunger = 1.0
 	var high := 0.0
 	for i in 10:

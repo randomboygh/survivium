@@ -2,12 +2,11 @@ extends Node3D
 ## The animals drawn (the rules are Wildlife, src/shared): a sprite for each, put where
 ## it walks and turned the way it faces, and the paw prints it leaves (see tracks.gd).
 ## Animals off the screen move in steps (Wildlife.FAR_STEP), and their sprites are
-## put again only then. A species' picture is its mod's sprites/creatures/<sprite>.png
-## (the older ones are drawn in SpriteArt), a row of `frames` frames: the first is the
+## put again only then. A species' picture is its mod's sprites/creatures/<sprite>.png,
+## a row of `frames` frames: the first is the
 ## animal at rest, the others a flyer's wing beat in the air.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
-const SpriteArt := preload("res://src/client/view/sprite_art.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
@@ -94,8 +93,6 @@ func _process(delta: float) -> void:
 
 ## The picture of species `spec` (a record of AiRules.SPECIES).
 static func picture(spec: Dictionary) -> Texture2D:
-	if SpriteArt.ART.has(spec.sprite):
-		return SpriteArt.texture(spec.sprite)
 	return load(picture_path(spec))
 
 
