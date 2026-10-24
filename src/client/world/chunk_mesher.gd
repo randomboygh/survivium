@@ -1018,6 +1018,12 @@ static func _surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVecto
 			buf.indices.append_array(PackedInt32Array([j, j + 1, j + nu + 1, j, j + nu + 1, j + nu]))
 
 
+## Cut walls lower than this, in cells, would be thinner than a pixel: drawn, they show
+## as a dotted line that comes and goes as the view moves. The surface comes down onto
+## the cut there instead (see _onto_cut).
+const LOW_CUT := 0.125
+
+
 ## The surface of a sloping top with cut corners: each triangle of the grid clipped to
 ## the cuts, with a wall at each cut as high as the slope there.
 static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVector3Array,
@@ -1028,10 +1034,10 @@ static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedV
 	for b in PATCH_STEPS:
 		for a in PATCH_STEPS:
 			var j00 := b * n + a
-			var q00 := Vector3(a * step, hs[j00], b * step)
-			var q10 := Vector3((a + 1) * step, hs[j00 + 1], b * step)
-			var q11 := Vector3((a + 1) * step, hs[j00 + n + 1], (b + 1) * step)
-			var q01 := Vector3(a * step, hs[j00 + n], (b + 1) * step)
+			var q00 := _onto_cut(Vector3(a * step, hs[j00], b * step), cuts)
+			var q10 := _onto_cut(Vector3((a + 1) * step, hs[j00 + 1], b * step), cuts)
+			var q11 := _onto_cut(Vector3((a + 1) * step, hs[j00 + n + 1], (b + 1) * step), cuts)
+			var q01 := _onto_cut(Vector3(a * step, hs[j00 + n], (b + 1) * step), cuts)
 			# Most squares lie wholly beside the cuts, or wholly in one.
 			var whole := true
 			var gone := false
@@ -1056,8 +1062,8 @@ static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedV
 				for k in 4:
 					if cuts & (1 << k) and not poly.is_empty():
 						var clipped := _clip(poly, k)
-						poly = clipped[0]
-						var ends: Array = clipped[1]
+						poly = clipped[0].map(_onto_cut.bind(cuts))
+						var ends: Array = clipped[1].map(_onto_cut.bind(cuts))
 						if ends.size() == 2 and (ends[0].y > 0.01 or ends[1].y > 0.01):
 							var e0: Vector3 = ends[0]
 							var e1: Vector3 = ends[1]
@@ -1174,6 +1180,16 @@ static func _clip(poly: Array, k: int) -> Array:
 			out.append(x)
 			ends.append(x)
 	return [out, ends]
+
+
+## Point q of a cut surface, brought down onto a cut of `cuts` it lies on where the
+## wall there would be lower than LOW_CUT.
+static func _onto_cut(q: Vector3, cuts: int) -> Vector3:
+	if q.y < LOW_CUT:
+		for k in 4:
+			if cuts & (1 << k) and absf(_keep(k, q)) < 0.0001:
+				q.y = 0.0
+	return q
 
 
 ## Positive on the side of the diagonal of corner k away from the corner.
