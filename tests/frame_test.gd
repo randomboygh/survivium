@@ -533,7 +533,9 @@ func _run() -> void:
 	var middle: Vector2 = hud._camera_reset.size
 	hud._camera_label.text = "315°\n+2"
 	await process_frame
-	var steady: bool = hud._camera_reset.size == middle and hud._camera_reset.get_combined_minimum_size() == middle
+	var steady: bool = hud._camera_reset.size == middle and hud._camera_reset.get_combined_minimum_size() == middle \
+		and hud._camera_label.get_combined_minimum_size().x + 8 <= middle.x \
+		and is_equal_approx(hud._camera.size.x, hud.minimap.size.x)
 	var menu_box: Rect2 = hud._menu_button.get_global_rect()
 	var near: Vector2 = menu_box.position + Vector2(-4, menu_box.size.y * 0.5) * hud.scale.x
 	var level_box: Rect2 = hud._level.get_global_rect()
