@@ -344,6 +344,7 @@ func _process(delta: float) -> void:
 	view.update(delta)
 	if warmup != null and warmup.step():
 		warmup = null
+		hud.perf.warmed_up()
 	freeze_log.update()
 	t = perf.note("камера", t)
 	if ready_to_play:

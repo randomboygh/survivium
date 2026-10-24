@@ -497,6 +497,13 @@ func _run() -> void:
 	hud.perf.add_frame(0.01)
 	_check(hud.perf.usual[0] >= 10.0 and hud.perf.freeze_log.size() == 1,
 		"an ordinary frame is averaged, not logged: %s" % [hud.perf.usual])
+	# A long frame the page saw is told beside the freeze it overlaps; a newer one waits.
+	var page_now := Time.get_ticks_msec()
+	hud.perf._long_frames = [[page_now - 600.0, 1200.0, "кадр 1100,touchmove 40"], [page_now + 500.0, 80.0, "звук 70"]]
+	hud.perf._attach_long_frames()
+	_check(hud.perf.freeze_log[0][3].back() == "страница: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
+		"a long frame of the page is told beside its freeze: %s, left %s" % [hud.perf.freeze_log[0][3], hud.perf._long_frames])
+	hud.perf._long_frames.clear()
 	main.freeze_log.show_log()
 	_check(main.freeze_log._panel != null and main.freeze_log._panel.get_child(0).text.begins_with("Обычный кадр"),
 		"the freezes' log opens with the ordinary frame")

@@ -89,8 +89,15 @@ var _last_frame_at := 0
 var _draw_at := 0
 var _drawn_at := 0
 var _gl := GlWatch.new()
-## The page's full garbage collections since the reset (GlWatch; none off the web).
+## The page's garbage collections since the reset, and the full ones among them
+## (GlWatch; none off the web).
 var collections := 0
+var full_collections := 0
+## The page's clock (ms) subtracted from the engine's ticks (ms), as of the last look.
+var _page_offset := 0.0
+## The page's long frames not yet told beside a freeze: [start on the engine's clock
+## (ms), ms, what ran] (see _attach_long_frames).
+var _long_frames := []
 ## An ordinary frame (not a freeze), averaged over the last few seconds, ms: the frame,
 ## the game's code, the engine's work, the drawing, the rest (see ENGINE).
 var usual := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0])
@@ -163,6 +170,8 @@ func reset() -> void:
 	freeze_log.clear()
 	_marks.clear()
 	collections = 0
+	full_collections = 0
+	_long_frames.clear()
 	usual.fill(0.0)
 
 
@@ -173,19 +182,56 @@ func mark(what: String, detail := "") -> void:
 	_marks[what] = detail
 
 
+## The warm-up is over: the shaders built from now on are told in the log.
+func warmed_up() -> void:
+	_gl.started()
+
+
 ## Marks what the renderer's counters show of the frame before: much sent to the
 ## video memory, many things drawn more or fewer; in the browser, shaders built and
-## data sent to the GPU (GlWatch).
+## data sent to the GPU, garbage collected, and what ran in the page's long frames
+## (GlWatch).
 func _engine_marks() -> void:
 	var gl := _gl.take()
 	if not gl.is_empty():
-		if gl[0] > 0.0 or gl[1] >= 1.0:
-			mark("шейдеры", "%d за %d мс" % [roundi(gl[0]), roundi(gl[1])])
-		if gl[3] >= SEND_MS:
-			mark("загрузка", "%d КБ за %d мс" % [roundi(gl[2]), roundi(gl[3])])
-		if gl[4] > 0:
-			mark("мусор")
-			collections += gl[4]
+		if gl.programs > 0.0 or gl.build_ms >= 1.0:
+			var what: String = "" if gl.late.is_empty() else ": " + "; ".join(gl.late)
+			mark("шейдеры", "%d за %d мс%s" % [roundi(gl.programs), roundi(gl.build_ms), what])
+		if gl.send_ms >= SEND_MS:
+			mark("загрузка", "%d КБ за %d мс" % [roundi(gl.sent), roundi(gl.send_ms)])
+		if gl.collections > 0 or gl.full > 0:
+			mark("мусор", "полная" if gl.full > 0 else "")
+			collections += gl.collections
+			full_collections += gl.full
+		_page_offset = Time.get_ticks_msec() - gl.now
+		for f: Array in gl.frames:
+			_long_frames.append([f[0] + _page_offset, f[1], f[2]])
+		_attach_long_frames()
+
+
+## Tells what ran in the page's long frames (GlWatch) beside the freezes they were:
+## the one the frame overlaps most. A long frame newer than the last freeze kept
+## waits for its freeze to be recorded; one older than any freeze is dropped.
+func _attach_long_frames() -> void:
+	var left := []
+	for f: Array in _long_frames:
+		var start: float = f[0]
+		var end: float = start + f[1]
+		var best := -1
+		var best_overlap := 0.0
+		for i in range(freeze_log.size() - 1, maxi(-1, freeze_log.size() - 6), -1):
+			var e: Array = freeze_log[i]
+			var e_end: float = e[0] * 1000.0
+			var overlap := minf(end, e_end) - maxf(start, e_end - e[1])
+			if overlap > best_overlap:
+				best_overlap = overlap
+				best = i
+		if best >= 0:
+			freeze_log[best][3].append("страница: " + f[2])
+		elif freeze_log.is_empty() or end > freeze_log.back()[0] * 1000.0:
+			if Time.get_ticks_msec() - end < 2000.0:
+				left.append(f)
+	_long_frames = left
 	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
 	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
@@ -280,6 +326,8 @@ func _record_freeze(ms: float) -> void:
 		roundi(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))])
 	if freeze_log.size() > LOG_SIZE:
 		freeze_log.pop_front()
+	if not _long_frames.is_empty():
+		_attach_long_frames()
 	if worst_freeze.is_empty() or ms > worst_freeze[0]:
 		worst_freeze = last_freeze
 	if Time.get_ticks_msec() - _freeze_logged >= FREEZE_LOG_EVERY:
