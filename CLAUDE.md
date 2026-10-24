@@ -237,7 +237,8 @@ GDScript. Notes: `plan/architecture/performance.md`.
   the game's parts, the engine's own work before drawing («движок»), the drawing («отрисовка»)
   and the time outside the engine («браузер»: the page, its garbage collection), the draw calls,
   and in the browser the shader programs built and the data sent to the GPU, timed by wrapping
-  WebGL2's calls in the page (`gl_watch.gd`).
+  WebGL2's calls in the page, and the page's full garbage collections («мусор», seen by a
+  finalizer on an object no one holds; `gl_watch.gd`); an ordinary frame's parts head the list.
 - Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
   through a copy of the buses made at start, so a bus added by `AudioServer.add_bus` later is silent
   in the browser (fine on desktop, so only the browser shows it).

@@ -93,7 +93,12 @@ func show_log() -> void:
 	if _panel != null:
 		_panel.queue_free()
 	var perf = game.hud.perf
-	var lines := ["Фризы, последние сверху:"]
+	var u: PackedFloat32Array = perf.usual
+	var lines := ["Обычный кадр %.1f мс: игра %.1f, движок %.1f, отрисовка %.1f, браузер %.1f" % [
+		u[0], u[1], u[2], u[3], u[4]]]
+	if OS.has_feature("web"):
+		lines[0] += " · полных сборок мусора %d" % perf.collections
+	lines.append("Фризы, последние сверху:")
 	var kept: Array = perf.freeze_log
 	if kept.is_empty():
 		lines.append("пока не было")
