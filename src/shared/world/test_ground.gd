@@ -30,6 +30,9 @@ extends "res://src/shared/world/world_gen.gd"
 ##   grove      x 100..131, z 14..37    oaks and spruces over moss, then mushrooms, then
 ##                                      glowing mushrooms, west to east (GROVE_FLOOR)
 ##   mountain   x 98..142,  z 42..86    a peak of scree and stone up into the snow
+##   camp       x 60..91,   z -30..-13  for FPS and freezes: things lying on every cell
+##                                      (CAMP_DROPS), death's sacks, a row of chests,
+##                                      workbenches and kilns, a row of lit campfires
 ##
 ## What grows on the field and in the grove is set by `growth` (WorldData.grows), not
 ## by the noises.
@@ -37,10 +40,11 @@ extends "res://src/shared/world/world_gen.gd"
 ## The seed of the test world; a rolled seed is never negative.
 const SEED := -1
 const Grass := preload("res://src/shared/world/grass.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
 const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Биомы", "Рельеф",
-	"Ручей", "Поле колосьев", "Роща", "Гора"]
+	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 const POND_DEPTHS := [1, 2, 3, 5]
@@ -71,6 +75,13 @@ const GROVE_FLOOR := [Grass.GROW_MOSS, Grass.GROW_MUSHROOMS, Grass.GROW_GLOW]
 const PEAK := Vector2i(120, 64)
 const PEAK_REACH := 22.0
 const PEAK_RISE := 20
+## The camp: its north-west corner and size in cells. Things lie on every cell of its
+## north part (CAMP_DROPS in turn, some heaped), sacks on a row, then the placed things
+## (CAMP_THINGS), then lit campfires.
+const CAMP := Rect2i(60, -30, 32, 18)
+const CAMP_DROPS := ["log", "branch", "stone", "acorn", "cone", "raspberry", "dirt", "planks", "flint",
+	"stone_axe", "mushroom", "clay", "fiber", "brick", "wooden_shovel", "blueberry"]
+const CAMP_THINGS := ["core:chest", "core:workbench", "core:kiln"]
 
 ## Top of the meadow (filled in _init: two cells above the sea).
 var ground := 22
@@ -292,6 +303,38 @@ func plan_trees() -> Array:
 	return out
 
 
+## What lies on the ground of the camp: [kind, x, z, data] (see WorldData.drops), a
+## thing on each cell of its first 8 rows, every fifth a heap of 5, then a row of
+## sacks, each holding a few stacks.
+func plan_drops() -> Array:
+	var out := []
+	for z in range(CAMP.position.y, CAMP.position.y + 8):
+		for x in range(CAMP.position.x, CAMP.end.x):
+			var k := posmod(x * 3 + z * 5, CAMP_DROPS.size())
+			var kind: String = CAMP_DROPS[k]
+			var tool: bool = Items.get_item(kind).get("tool", "none") != "none"
+			out.append([kind, x, z, 1 if tool or posmod(x + z, 5) != 0 else 5])
+	for x in range(CAMP.position.x + 1, CAMP.end.x, 3):
+		var stacks := []
+		for i in 4:
+			stacks.append([Items.get_item(CAMP_DROPS[(x + i * 3) % CAMP_DROPS.size()]).id, 1 + i * 2])
+		out.append([Items.SACK, x, CAMP.position.y + 9, stacks])
+	return out
+
+
+## The things placed in the camp: [item, north-west cell], chests, workbenches and
+## kilns on a row, then a row of campfires, lit.
+func plan_things() -> Array:
+	var out := []
+	var i := 0
+	for x in range(CAMP.position.x, CAMP.end.x - 1, 3):
+		out.append([CAMP_THINGS[i % CAMP_THINGS.size()], Vector3i(x, ground + 1, CAMP.position.y + 11)])
+		i += 1
+	for x in range(CAMP.position.x, CAMP.end.x - 1, 4):
+		out.append(["core:campfire", Vector3i(x, ground + 1, CAMP.position.y + 15)])
+	return out
+
+
 ## The bushes of the plan: [x, z, type].
 func plan_bushes() -> Array:
 	var out := []
@@ -403,6 +446,11 @@ func _tree_candidates(key: Vector2i, _lay: Dictionary) -> Array:
 
 
 func _bushes(key: Vector2i, _lay: Dictionary) -> void:
+	# The things lying in the camp come with its chunk, the way trees do.
+	for d: Array in plan_drops():
+		if d[1] >> WorldData.SHIFT == key.x and d[2] >> WorldData.SHIFT == key.y:
+			var at := Vector3(d[1] + 0.5, world.surface_y(d[1], d[2]), d[2] + 0.5) * WorldData.CELL
+			world.add_drop(d[0], at, posmod(d[1] * 7 + d[2] * 3, 8) * PI / 4.0, d[3])
 	for b: Array in plan_bushes():
 		if b[0] >> WorldData.SHIFT != key.x or b[1] >> WorldData.SHIFT != key.y:
 			continue
