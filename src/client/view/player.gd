@@ -31,6 +31,8 @@ const SHEETS_KEPT := 6
 
 ## How the body moves (its `world` is set when the world is made).
 var body := Body.new()
+## The performance statistics (PerfPanel), told when a new sheet is sent to the renderer.
+var perf
 ## Which way the body faces, one of SpriteSheet.COMPASS; set by the last movement.
 var facing := "s"
 ## The animation playing and how long it has, in seconds of animation time.
@@ -209,6 +211,8 @@ func step(delta: float, jump: bool) -> void:
 ## a new sheet if one is being built.
 func place_sprite() -> void:
 	if _build != null and _build.step():
+		if perf != null:
+			perf.mark("фигура")
 		if _sheets.size() >= SHEETS_KEPT:
 			_sheets.erase(_sheets.keys()[0])
 		_sheets[_build_key] = _build.target

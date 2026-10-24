@@ -70,6 +70,8 @@ var blizzard: CPUParticles3D
 var sand: CPUParticles3D
 ## Weather emitters, dimmed with the light of the sky (particles are unshaded).
 var weather_emitters: Array[CPUParticles3D] = []
+## The performance statistics (PerfPanel), told when a fire's shadow moves to another.
+var perf
 ## The lightning bolt: a jagged line from the clouds, shown for a moment.
 var bolt: MeshInstance3D
 var bolt_mesh: ImmediateMesh
@@ -440,6 +442,8 @@ func pick_shadow_fires(view: Vector2) -> void:
 			if d < best_d:
 				best_d = d
 				best = f
+	if best != null and not best.light.shadow_enabled and perf != null:
+		perf.mark("тень огня")
 	for f in fires:
 		f.light.shadow_enabled = f == best
 	if best != null:

@@ -242,8 +242,8 @@ func _color(w: WorldData, x: int, z: int) -> Color:
 	return c
 
 
-## Sends the changed regions to the renderer.
-func flush() -> void:
+## Sends the changed regions to the renderer; true when it did.
+func flush() -> bool:
 	var changed := false
 	for r: Dictionary in regions.values():
 		if r.dirty:
@@ -256,6 +256,7 @@ func flush() -> void:
 	if changed:
 		redraw()
 		painted.emit()
+	return changed
 
 
 ## Marks the things placed (Props.placed: "item", "cell" the north-west of its two

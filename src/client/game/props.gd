@@ -176,6 +176,7 @@ func show_drops(key: Vector2i) -> void:
 		surface[Mesh.ARRAY_COLOR] = parts[4]
 		var mesh := ArrayMesh.new()
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface)
+		game.hud.perf.mark("вещи")
 		var node := MeshInstance3D.new()
 		node.mesh = mesh
 		node.material_override = game.low_mat

@@ -1,7 +1,7 @@
 extends PanelContainer
 ## Performance statistics for playtests, shown by the chart button or F3: frame rate
 ## (now, average, 1% low), frame time, freezes (over 50 / over 100 ms) and what took
-## their time, drops below 30 FPS, a graph of the last frames and what the renderer draws. Counters run from
+## their time or came just before them (mark), drops below 30 FPS, a graph of the last frames and what the renderer draws. Counters run from
 ## the start or the last reset.
 ## The numbers are coloured like the graph's bars: green is fine, amber is below 60 FPS
 ## or a slow frame, red is below 30 FPS or a freeze.
@@ -32,6 +32,10 @@ const PANEL_FREEZE_PARTS := 2
 ## Freezes are written to the log at most this often (milliseconds), so a device that
 ## cannot keep up does not fill the log every frame.
 const FREEZE_LOG_EVERY := 1000
+## Longest line of the panel, in letters of the pixel font: an upright phone's width.
+const LINE := 45
+## What a freeze with no mark before it is counted as.
+const NO_MARK := "ничего"
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
 const EDGE := 8.0
 
@@ -53,6 +57,12 @@ var _in_drop := false
 ## Microseconds each part of the game's code took in the frame under way, by name
 ## (see note).
 var _work := {}
+## What the frame under way sent the engine or the browser to do beyond the game's
+## code (a mesh or a texture to the renderer, a file to write, a fire's shadow
+## switched), which lands in REST: told beside a freeze, which it may have caused.
+var _marks := {}
+## How many freezes each mark came before since the reset (NO_MARK: none).
+var freeze_marks := {}
 ## The last freeze and the longest one: [ms, [[part, ms], ...] biggest first], or [].
 var last_freeze := []
 var worst_freeze := []
@@ -100,6 +110,13 @@ func reset() -> void:
 	_in_drop = false
 	last_freeze = []
 	worst_freeze = []
+	freeze_marks.clear()
+
+
+## Marks that the frame under way made the engine or the browser do `what` outside
+## the game's code (see _marks).
+func mark(what: String) -> void:
+	_marks[what] = true
 
 
 ## Adds the time from `since` (Time.get_ticks_usec) until now to part `what` of the
@@ -122,6 +139,7 @@ func add_frame(delta: float) -> void:
 		_freezes += 1
 		_record_freeze(ms)
 	_work.clear()
+	_marks.clear()
 	if ms > BIG_FREEZE_MS:
 		_big_freezes += 1
 	_second_time += delta
@@ -148,7 +166,11 @@ func _record_freeze(ms: float) -> void:
 		game_ms += _work[what] / 1000.0
 	parts.append([REST, maxf(ms - game_ms, 0.0)])
 	parts.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
-	last_freeze = [ms, parts.slice(0, FREEZE_PARTS)]
+	var marks: Array = _marks.keys()
+	marks.sort()
+	for m: String in marks if not marks.is_empty() else [NO_MARK]:
+		freeze_marks[m] = freeze_marks.get(m, 0) + 1
+	last_freeze = [ms, parts.slice(0, FREEZE_PARTS), marks]
 	if worst_freeze.is_empty() or ms > worst_freeze[0]:
 		worst_freeze = last_freeze
 	if Time.get_ticks_msec() - _freeze_logged >= FREEZE_LOG_EVERY:
@@ -156,12 +178,35 @@ func _record_freeze(ms: float) -> void:
 		print("freeze %s" % freeze_text(last_freeze))
 
 
-## A freeze as "84 мс: отрисовка 52, чанки 30", with its `parts` biggest parts.
+## A freeze as "84 мс: отрисовка 52, чанки 30 · сетка", with its `parts` biggest
+## parts and what was marked before it.
 static func freeze_text(f: Array, parts_shown := FREEZE_PARTS) -> String:
 	var parts := []
 	for p: Array in f[1].slice(0, parts_shown):
 		parts.append("%s %d" % [p[0], roundi(p[1])])
-	return "%d мс: %s" % [roundi(f[0]), ", ".join(parts)]
+	var text := "%d мс: %s" % [roundi(f[0]), ", ".join(parts)]
+	if f.size() > 2:
+		# As many marks as fit the panel's line after "Фриз ".
+		for i in f[2].size():
+			var item: String = (" · " if i == 0 else ", ") + f[2][i]
+			if text.length() + item.length() > LINE - 5:
+				break
+			text += item
+	return text
+
+
+## What came before the freezes, the most frequent first, as many as fit a line:
+## "Фризы после: сетка 30, запись 12, ничего 8".
+func marks_text() -> String:
+	var marks: Array = freeze_marks.keys()
+	marks.sort_custom(func(a: String, b: String) -> bool: return freeze_marks[a] > freeze_marks[b])
+	var text := "Фризы после:"
+	for i in marks.size():
+		var item := "%s %s %d" % ["" if i == 0 else ",", marks[i], freeze_marks[marks[i]]]
+		if text.length() + item.length() > LINE:
+			break
+		text += item
+	return text
 
 
 func refresh() -> void:
@@ -219,9 +264,10 @@ func summary(full := false, colored := false) -> String:
 	]
 	var parts := PANEL_FREEZE_PARTS if colored else FREEZE_PARTS
 	if not last_freeze.is_empty():
-		lines.append("Фриз %s" % freeze_text(last_freeze, parts))
-		if worst_freeze != last_freeze:
-			lines.append("Худший %s" % freeze_text(worst_freeze, parts))
+		# With marks the panel shows the biggest part alone, so the line fits.
+		var marked: bool = last_freeze.size() > 2 and not last_freeze[2].is_empty()
+		lines.append("Фриз %s" % freeze_text(last_freeze, 1 if full and marked else parts))
+		lines.append(marks_text() if full else "Худший %s" % freeze_text(worst_freeze, parts))
 	if full:
 		var p := Performance
 		lines.append("Вызовы %d · объекты %d · треуг. %dк" % [

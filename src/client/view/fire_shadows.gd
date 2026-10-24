@@ -243,6 +243,7 @@ func _show_lights(lights: Array) -> void:
 				_atlas.blit_rect(Image.create_from_data(MAP, MAP, false, Image.FORMAT_R8, now[i]),
 					Rect2i(0, 0, MAP, MAP), Vector2i(i * MAP, 0))
 		_atlas_texture.update(_atlas)
+		game.hud.perf.mark("тени")
 	var mat: ShaderMaterial = material_override
 	mat.set_shader_parameter("lights", at)
 	mat.set_shader_parameter("strengths", strengths)

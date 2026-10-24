@@ -548,6 +548,7 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		if world.drops.has(key) and not game.props.drop_nodes.has(key):
 			game.props.show_drops(key)
 	var nodes: Array = chunk_nodes[key]
+	game.hud.perf.mark("сетка")
 	nodes[0].mesh = meshes[0]
 	nodes[1].mesh = meshes[1]
 	for i in range(2, PARTS.size()):
@@ -828,6 +829,7 @@ func update_caps() -> void:
 			node.material_override = game.world_mat
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
+		game.hud.perf.mark("срез")
 		cap_nodes[key].mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
 		_fit_box(cap_nodes[key])
 		cap_levels[key] = want
