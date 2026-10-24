@@ -370,10 +370,11 @@ func _section_rows(key: String) -> Array:
 				["Тряска экрана", ["выкл", "вкл"],
 					func() -> int: return int(s.values.shake),
 					func(i: int) -> void: s.set_value("shake", i == 1)],
-				# Faded where the device cannot buzz (a computer, an iPhone's Safari).
+				# Faded and «нет» where the browser or device cannot buzz (a computer,
+				# Safari, some phones' own browsers).
 				["Вибрация", ["выкл", "вкл"],
-					func() -> int: return int(s.values.vibrate),
-					func(i: int) -> void: s.set_value("vibrate", i == 1), "", Vibration.supported],
+					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
+					func(i: int) -> void: s.set_value("vibrate", i == 1), "нет", Vibration.supported],
 				["Интерфейс", SIZES,
 					func() -> int: return s.values.ui_size,
 					func(i: int) -> void: s.set_value("ui_size", i)],

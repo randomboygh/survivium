@@ -1,8 +1,10 @@
 """Draws assets/menu_clouds.png, the cumulus clouds drifting over the main menu's
 painted sky (MainMenu.CLOUDS): a row of CLOUDS cells CELL_W x CELL_H, a cloud in each,
 sitting on the bottom of its cell. Each is a heap of round puffs on a flat base, lit
-from the upper left and shaded in a few hard tones with a checker between them, so
-it reads as a pixel picture with volume. Needs Pillow; run from the project folder:
+from the upper left in three hard tones and drawn as the world is: a light rim on the
+edges toward the light and a dark outline on the shaded ones. The menu draws a pixel
+of it as MainMenu.CLOUD_PX UI px, as big as a pixel of the birds over the sky. Needs
+Pillow; run from the project folder:
 
     python3 tools/make_clouds.py
 
@@ -15,22 +17,20 @@ import random
 from PIL import Image
 
 OUT = "assets/menu_clouds.png"
-CELL_W = 160
-CELL_H = 80
+CELL_W = 80
+CELL_H = 40
 # Width of each cloud in its cell, and the seed of its puffs.
-CLOUDS = [(150, 3), (120, 11), (96, 7), (70, 5), (132, 21), (54, 2)]
+CLOUDS = [(76, 3), (60, 11), (48, 7), (36, 5), (66, 21), (28, 2), (54, 13), (42, 17), (70, 29), (32, 8)]
 # Light from the upper left and a little in front.
 LIGHT = (-0.4, -0.8, 0.45)
-# Tones from the lit top to the underside: warm light, the body, the grey shade
-# and the deep shade along the base.
-TONES = [(0xFF, 0xF7, 0xE6), (0xF0, 0xE2, 0xC6), (0xC8, 0xC0, 0xB0), (0x96, 0x98, 0x98),
-	(0x6C, 0x76, 0x7E)]
+# Tones: the rim toward the light, the lit top, the body, the shade and the outline.
+RIM = (0xFF, 0xFB, 0xF0)
+TONES = [(0xF6, 0xEA, 0xCF), (0xD9, 0xD0, 0xBA), (0xA3, 0xA4, 0xA0)]
+OUTLINE = (0x5E, 0x67, 0x70)
 # How much of the light comes from each puff's own roundness, the rest from the heap's.
 PUFF = 0.55
 # Where the light (from 1 down to -1) turns from one tone to the next.
-STEPS = [0.62, 0.32, -0.02, -0.4]
-# The checker either side of each step.
-DITHER = 0.04
+STEPS = [0.42, -0.08]
 
 
 def puffs(w: int, seed: int) -> list:
@@ -38,25 +38,25 @@ def puffs(w: int, seed: int) -> list:
 	bottom, bigger ones over the middle and one or two on top, the heap as high as
 	about half its width."""
 	rng = random.Random(seed)
-	base = CELL_H - 4
-	high = min(0.5 * w, CELL_H - 8)
+	base = CELL_H - 2
+	high = min(0.5 * w, CELL_H - 4)
 	out = []
-	n = max(3, round(w / 22))
+	n = max(3, round(w / 12))
 	for i in range(n):
 		u = (i + 0.5) / n
-		x = 6 + (w - 12) * u + rng.uniform(-4, 4)
+		x = 3 + (w - 6) * u + rng.uniform(-2, 2)
 		r = high * rng.uniform(0.2, 0.34) * (0.7 + 0.3 * math.sin(math.pi * u))
 		out.append((x, base - r * rng.uniform(0.3, 0.55), r))
-	m = max(2, round(w / 34))
+	m = max(2, round(w / 18))
 	for i in range(m):
 		u = (i + 0.5) / m
-		x = w * (0.2 + 0.6 * u) + rng.uniform(-4, 4)
+		x = w * (0.2 + 0.6 * u) + rng.uniform(-2, 2)
 		r = high * rng.uniform(0.3, 0.38) * (0.8 + 0.2 * math.sin(math.pi * u))
 		out.append((x, base - high * 0.42, r))
-	for i in range(1 if w < 90 else 2):
+	for i in range(1 if w < 45 else 2):
 		x = w * (0.42 + 0.2 * i + rng.uniform(-0.06, 0.06))
 		r = high * rng.uniform(0.26, 0.32) * (1.0 - 0.25 * i)
-		out.append((x, base - high + r + rng.uniform(0, 2) + 2 * i * r * 0.3, r))
+		out.append((x, base - high + r + rng.uniform(0, 1) + 2 * i * r * 0.3, r))
 	return out
 
 
@@ -65,7 +65,7 @@ def draw(w: int, seed: int) -> Image.Image:
 	px = img.load()
 	ox = (CELL_W - w) // 2
 	ps = puffs(w, seed)
-	base = CELL_H - 4
+	base = CELL_H - 2
 	top = min(y - r for x, y, r in ps)
 	lx, ly, lz = LIGHT
 	ll = math.sqrt(lx * lx + ly * ly + lz * lz)
@@ -97,24 +97,26 @@ def draw(w: int, seed: int) -> Image.Image:
 			s -= 0.7 * max(0.0, (y - top) / max(1.0, base - top) - 0.45)
 			t = 0
 			for i, step in enumerate(STEPS):
-				if s < step - DITHER or (s < step + DITHER and (x + y) % 2 == 0):
+				if s < step:
 					t = i + 1
 			tone[x, y] = t
 			which[x, y] = k
 	for (x, y), t in tone.items():
 		k = which[x, y]
 		# A crevice a tone darker along the rim of the puff in front, on the one behind.
-		for a, b in ((0, 1), (0, 2), (1, 1)):
+		for a, b in ((0, 1), (1, 1)):
 			o = which.get((x + a, y + b))
 			if o is not None and o != k and ps[o][1] > ps[k][1]:
 				t = min(len(TONES) - 1, t + 1)
 				break
-		# The shaded edge against the sky below the middle, and the flat base.
-		if y > (top + base) * 0.5 and any((x + a, y + b) not in tone for a, b in ((1, 0), (-1, 0), (0, 1))):
-			t = min(len(TONES) - 1, t + 1)
-		if y == base:
-			t = len(TONES) - 1
-		px[ox + x, y] = TONES[t] + (255,)
+		color = TONES[t]
+		# The open edges: a light rim toward the light (up and left), the outline away
+		# from it (down and right, and the base).
+		if (x + 1, y) not in tone or (x, y + 1) not in tone or y == base:
+			color = OUTLINE
+		elif ((x - 1, y) not in tone or (x, y - 1) not in tone) and t == 0:
+			color = RIM
+		px[ox + x, y] = color + (255,)
 	return img
 
 
