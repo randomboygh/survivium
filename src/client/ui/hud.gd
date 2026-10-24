@@ -51,7 +51,10 @@ const LEVEL_MIDDLE := 34
 ## The camera cross: the width of its arms at the sides and the height of those above
 ## and below, and the middle (the view as text).
 const DPAD_SIDE := 22
-const DPAD_MIDDLE := Vector2(38, 30)
+const DPAD_MIDDLE := Vector2(42, 30)
+## The room round the buttons and panels on the screen, in UI pixels, where a tap
+## that just misses one does not reach the world (see covers).
+const SAFE_ZONE := 8
 ## The tab on the hotbar with the bag's slots and load, in UI pixels.
 const METER_WIDTH := 108
 const TOAST_TIME := 4.0
@@ -111,6 +114,10 @@ var _level_down: Button
 ## (it shows the turn and the tilt).
 var _camera: GridContainer
 var _camera_reset: Button
+## The text of the middle (and of the level), a label over the button so the text
+## never makes it wider (see _fixed_label).
+var _camera_label: Label
+var _level_text: Label
 var _camera_text := ""
 ## The colour last given to the level label's text (none yet: transparent).
 var _level_ink := Color(0, 0, 0, 0)
@@ -208,10 +215,9 @@ func _ready() -> void:
 	_level_label.focus_mode = Control.FOCUS_NONE
 	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, LEVEL_MIDDLE)
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
-	# Its two lines apart, the font's own lines touch.
-	_level_label.add_theme_constant_override("line_spacing", 4)
 	_level_label.pressed.connect(func() -> void: game.chunks.reset_view_level())
 	_level.add_child(_level_label)
+	_level_text = _fixed_label(_level_label)
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
 		b.custom_minimum_size = Vector2(LEVEL_WIDTH, LEVEL_ARROW)
@@ -242,6 +248,7 @@ func _ready() -> void:
 	_camera_reset.tooltip_text = "Вернуть камеру как была"
 	_camera_reset.pressed.connect(func() -> void: game.view.reset_turn())
 	_camera.add_child(_camera_reset)
+	_camera_label = _fixed_label(_camera_reset)
 	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
 	pad.call()
 	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
@@ -660,22 +667,19 @@ func update_state() -> void:
 		text += "\n%+d" % view.tilt_steps
 	if text != _camera_text:
 		_camera_text = text
-		_camera_reset.text = text
-		var ink := UiStyle.INK if view.is_default() else UiStyle.ACCENT
-		_camera_reset.add_theme_color_override("font_color", ink)
-		_camera_reset.add_theme_color_override("font_hover_color", ink)
+		_camera_label.text = text
+		_camera_label.add_theme_color_override("font_color", UiStyle.INK if view.is_default() else UiStyle.ACCENT)
 	var cut: bool = game.chunks.manual_level >= 0
 	var reach: Vector2i = game.chunks.view_range()
 	_level_up.disabled = game.chunks.cut_base() + 1 > reach.y
 	_level_down.disabled = game.chunks.cut_base() - 1 < reach.x
 	# On two lines, so the column is one button wide.
-	_level_label.text = "Срез\n%d" % game.chunks.cut_level if cut else "Ур.\n%d" % game.player.level()
+	_level_text.text = "Срез\n%d" % game.chunks.cut_level if cut else "Ур.\n%d" % game.player.level()
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
-	# A colour set anew tells the button its theme changed, which lays it out again.
+	# A colour set anew tells the label its theme changed, which lays it out again.
 	if _level_ink != ink:
 		_level_ink = ink
-		_level_label.add_theme_color_override("font_color", ink)
-		_level_label.add_theme_color_override("font_hover_color", ink)
+		_level_text.add_theme_color_override("font_color", ink)
 
 
 ## Shows what each hand holds and marks the hand in use and the blocks in the hands;
@@ -889,6 +893,17 @@ func _update_menu() -> void:
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 
 
+## Whether a tap at `screen_pos` (screen pixels) is on or within SAFE_ZONE of the
+## buttons and panels on the screen: such a tap that just misses one is not a tap on
+## the world (no digging, no «Слишком далеко»).
+func covers(screen_pos: Vector2) -> bool:
+	var room := SAFE_ZONE * scale.x
+	for c: Control in [_top, _level, minimap, _camera, _bar, _bag_meter, _clock_panel, vitals, stick, _action, _jump]:
+		if c != null and c.is_visible_in_tree() and c.get_global_rect().grow(room).has_point(screen_pos):
+			return true
+	return false
+
+
 ## Screen rectangles of the controls, for the F3 debug line and the browser smoke test.
 func debug_rects() -> Dictionary:
 	var out := {}
@@ -949,6 +964,23 @@ func _see_through(b: Button) -> void:
 	b.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	b.add_theme_constant_override("outline_size", 4)
 	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
+
+
+## A label over button `b`, filling it, its text centred and outlined like the
+## see-through buttons': a long text spills over the frame instead of widening the
+## button, so the buttons of the corner keep their size.
+func _fixed_label(b: Button) -> Label:
+	var l := UiStyle.label()
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Its two lines apart, the font's own lines touch.
+	l.add_theme_constant_override("line_spacing", 4)
+	l.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+	l.add_theme_constant_override("outline_size", 4)
+	b.add_child(l)
+	return l
 
 
 func _icon_button(parent: Node, icon: String, tip: String, action: Callable) -> Button:

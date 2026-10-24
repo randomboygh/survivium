@@ -151,6 +151,9 @@ func unhandled_input(event: InputEvent) -> void:
 			_stroke.pos = event.position
 	elif event is InputEventMouseButton and event.pressed:
 		var n := Inventory.HOTBAR
+		# A tap that just misses a button or a panel on the screen is not meant for the world.
+		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT] and game.hud.covers(event.position):
+			return
 		# With a mouse each button is a hand; a tap on a touch screen uses the hand in use.
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
