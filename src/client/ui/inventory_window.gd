@@ -39,6 +39,9 @@ const GAP := 4
 const COLUMNS := 8
 const SLOT := 40
 const SLOT_SMALL := 36
+## The width of the craft tab's column of the recipe and the queue beside the cells on
+## a wide screen, in UI pixels.
+const CRAFT_SIDE := 300
 
 var game
 ## The side of a slot now (see fit).
@@ -339,12 +342,15 @@ func fit(screen: Vector2) -> void:
 	# (less the buttons by it, see _show_info).
 	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD
 	craft.slot = slot
-	craft.custom_minimum_size.x = _width(slot)
-	craft.fit_width(_width(slot))
-	# The rest of the craft tab (tabs, the station's line, the panels at the bottom)
-	# takes about 250 UI pixels; _place takes more off the cells if the window still
-	# does not fit.
-	craft.list_height = clampi(int(screen.y) - HOTBAR - 266, slot, 300)
+	# On a wide screen the craft tab's recipe and queue go right of the cells, so the
+	# window is not too tall for it; the window is that much wider on the craft tab.
+	var side := screen.x > screen.y and room >= _width(slot) + 6 + CRAFT_SIDE
+	craft.custom_minimum_size.x = _width(slot) + (6 + CRAFT_SIDE if side else 0)
+	craft.set_side(side, CRAFT_SIDE if side else _width(slot))
+	# The rest of the craft tab (tabs, the station's line, the panels at the bottom or
+	# only the head beside them) takes about 250 or 90 UI pixels; _place takes more off
+	# the cells if the window still does not fit.
+	craft.list_height = clampi(int(screen.y) - HOTBAR - (90 if side else 266), slot, 300)
 	craft.refresh()
 	_place()
 
