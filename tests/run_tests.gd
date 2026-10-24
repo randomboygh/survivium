@@ -67,6 +67,7 @@ func _init() -> void:
 	_test_bushes()
 	_test_felling()
 	_test_world_actions()
+	_test_front_choice()
 	_test_placed()
 	_test_clock()
 	_test_weather()
@@ -1643,11 +1644,11 @@ func _test_tools() -> void:
 		"facing snaps to 8 steps")
 	var f := Vector3i(5, 3, 5)
 	var order := Tools.front_cells(f, Vector2i(1, 0))
-	_check(order.slice(0, 6) == [Vector3i(6, 3, 5), Vector3i(7, 3, 5), Vector3i(6, 3, 6), Vector3i(6, 3, 4), Vector3i(7, 3, 6), Vector3i(7, 3, 4)],
-		"the action button digs in front, beyond it, left and right of it, beyond those")
-	_check(order[6] == Vector3i(6, 2, 5) and order[12] == Vector3i(6, 4, 5) and order.size() == 20,
-		"then a level lower, then a level higher")
-	_check(order[18] == f + Vector3i(0, 2, 0) and order[19] == f + Vector3i.DOWN, "and last over the head and under the feet")
+	_check(order.slice(0, 6) == [Vector3i(6, 4, 5), Vector3i(7, 4, 5), Vector3i(6, 4, 6), Vector3i(6, 4, 4), Vector3i(7, 4, 6), Vector3i(7, 4, 4)],
+		"the action button digs at the head's level first: in front, beyond it, left and right of it, beyond those")
+	_check(order[6] == Vector3i(6, 3, 5) and order[12] == Vector3i(6, 2, 5) and order.size() == 19,
+		"then at the waist, then the ground in front of the feet")
+	_check(order[18] == f + Vector3i(0, 2, 0) and not f + Vector3i.DOWN in order, "last over the head, not under the feet")
 	var diagonal := Tools.front_ring(Vector2i(1, 1))
 	_check(diagonal[0] == Vector3i(1, 0, 1) and diagonal[1] == Vector3i(2, 0, 2) and Vector3i(1, 0, 0) in diagonal \
 		and Vector3i(0, 0, 1) in diagonal, "facing a diagonal, the sides are the columns touching both")
@@ -1955,6 +1956,47 @@ func _test_felling() -> void:
 			_check(d[1].z > 23 * WorldData.CELL, "the tree falls away from the axe")
 	_check(kinds.has("core:log") and kinds.has("core:branch") and kinds.has("core:acorn"), "a felled oak leaves logs, branches and acorns")
 	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
+
+
+## What the action button picks in front: the most worth gathering first, then digging
+## from the head down, never under the feet.
+func _test_front_choice() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
+	var who := Who.new()
+	who.position = Vector3(30.5, 2.0, 30.5) * WorldData.CELL
+	w.add_bush(Vector3i(30, 2, 29), Bushes.SHRUB)
+	w.add_bush(Vector3i(30, 2, 28), Bushes.RASPBERRY)
+	var berries := Vector3i(30, 2, 28)
+	_check(actions.ripe(berries, Bushes.TYPES[Bushes.RASPBERRY]) and actions.front_choice(who) == {"bush": berries},
+		"bare hands go for the berries before the branches of a nearer bush")
+	_check(WorldActions._rank(["core:mushroom"]) < WorldActions._rank(["core:acorn"])
+		and WorldActions._rank(["core:acorn"]) < WorldActions._rank(["core:fiber"])
+		and WorldActions._rank(["core:branch"]) < WorldActions._rank([]), "food, then seeds, then the rest, then digging")
+	w.remove_bush(Vector3i(30, 2, 29))
+	w.remove_bush(berries)
+	w.set_cell(30, 3, 29, Mat.DIRT)
+	w.set_cell(30, 2, 29, Mat.DIRT)
+	_check(actions.front_choice(who) == {"dig": [Vector3i(30, 3, 29)]}, "the action button digs at the head's level first")
+	w.set_cell(30, 3, 29, Mat.AIR)
+	_check(actions.front_choice(who) == {"dig": [Vector3i(30, 2, 29)]}, "then at the waist")
+	w.set_cell(30, 2, 29, Mat.AIR)
+	_check(actions.front_choice(who).get("dig", [])[0].y == 1 and not Vector3i(30, 1, 30) in actions.front_order(who),
+		"then the ground in front, not the cell under the feet while ground is left around")
+	for z in range(28, 33):
+		for x in range(28, 33):
+			if x != 30 or z != 30:
+				w.set_cell(x, 1, z, Mat.AIR)
+	_check(actions.front_choice(who) == {"dig": [Vector3i(30, 1, 30)]}, "the cell under the feet once all around is dug")
+	var body := Body.new()
+	body.world = w
+	body.on_ground = true
+	var sunk := body.step(Vector3(20.5, 1.6, 20.5) * WorldData.CELL, 1.0 / 60.0, false) / WorldData.CELL
+	_check(is_equal_approx(sunk.y, 2.0), "a body found in the ground stands up onto it (%.2f)" % sunk.y)
 
 
 ## The rules of the hands run on the world model alone, with a stand-in for the one who

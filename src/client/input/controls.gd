@@ -567,14 +567,13 @@ func _front_preview() -> Array[Vector3i]:
 			return cells
 		"prop", "eat", "heal":
 			return []
-	var target: Dictionary = actions.front_target(who)
-	if target.has("trunk"):
-		return [target.trunk]
-	if target.has("bush"):
-		return [target.bush]
-	if target.has("tree"):
-		return [actions.trunk_cell(who, target.tree)]
-	var work: Dictionary = actions.front_work(who, tool_record())
+	var work: Dictionary = actions.front_choice(who)
+	if work.has("trunk"):
+		return [work.trunk]
+	if work.has("bush"):
+		return [work.bush]
+	if work.has("tree"):
+		return [actions.trunk_cell(who, work.tree)]
 	var out: Array[Vector3i] = []
 	out.assign(work.get("mow", work.get("dig", [])))
 	return out

@@ -57,6 +57,10 @@ const SHOTS := {
 	"three-fires-close": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.6),
 		"more_fires": [Vector3(1.4, 0.0, -4.6), Vector3(-1.8, 0.0, -2.8)], "animal": Vector3(1.0, 0.0, -0.8),
 		"fire_shadows": 1},
+	# A dozen campfires round the player: more lights than one chunk takes by default, so
+	# chunks each lit by a different few showed square edges (bug 2026-10-24).
+	"many-fires": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4),
+		"more_fires": [Vector3(-7.5, 0.0, -4.0), Vector3(-7.5, 0.0, -9.0), Vector3(-4.5, 0.0, -4.0), Vector3(-4.5, 0.0, -9.0), Vector3(-1.5, 0.0, -4.0), Vector3(-1.5, 0.0, -9.0), Vector3(1.5, 0.0, -4.0), Vector3(1.5, 0.0, -9.0), Vector3(4.5, 0.0, -4.0), Vector3(4.5, 0.0, -9.0), Vector3(7.5, 0.0, -4.0), Vector3(7.5, 0.0, -9.0)], "fire_shadows": 3},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
 	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
 	# the campfire by the spawn, and an animal in the player's shadow: their shadows
