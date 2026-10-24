@@ -160,7 +160,7 @@ func chunk_count() -> int:
 
 ## Deletes the whole world from disk.
 func erase() -> void:
-	_erase_dir(dir)
+	erase_dir(dir)
 	_chunks.clear()
 
 
@@ -195,11 +195,12 @@ static func _replace(path: String) -> bool:
 	return true
 
 
-static func _erase_dir(path: String) -> void:
+## Removes directory `path` with all it holds.
+static func erase_dir(path: String) -> void:
 	if not DirAccess.dir_exists_absolute(path):
 		return
 	for d in DirAccess.get_directories_at(path):
-		_erase_dir(path + "/" + d)
+		erase_dir(path + "/" + d)
 	for f in DirAccess.get_files_at(path):
 		DirAccess.remove_absolute(path + "/" + f)
 	DirAccess.remove_absolute(path)

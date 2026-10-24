@@ -27,6 +27,8 @@ const NAME_WIDTH := 150
 ## never widens its row and moves the window.
 const VALUE_WIDTH := 112
 const ARROW := 32
+## How long a button that asks first (see _confirm) waits for the second tap, in seconds.
+const CONFIRM_WAIT := 4.0
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
 	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "оптимизировано", "inside": "ядро",
@@ -230,7 +232,7 @@ func _fill() -> void:
 			elif r is Dictionary and r.has("note"):
 				_grid().add_child(_note(r.note))
 			elif r is Dictionary:
-				_add_action(r.action, r.do)
+				_add_action(r.action, r.do, r.get("confirm", false))
 			else:
 				_add_row(r[0], r[1], r[2], r[3], r[4] if r.size() > 4 else "", r[5] if r.size() > 5 else Callable())
 	visible = true
@@ -245,7 +247,8 @@ func _fill() -> void:
 ## [..., the value shown when the getter gives -1] for the quality preset, [..., "",
 ## a Callable telling whether the row works now] for a row that is dimmed and does
 ## nothing while another setting overrides it; null is a
-## gap; {"action": text, "do": Callable} a button that does something once;
+## gap; {"action": text, "do": Callable} a button that does something once (with
+## "confirm": true only on a second tap, see _add_action);
 ## {"marker": index} a marker with its button that takes the player there; {"place":
 ## name, "cell", "color", "tip"} the same for another place; {"note": text} a line of text.
 func _section_rows(key: String) -> Array:
@@ -360,6 +363,8 @@ func _section_rows(key: String) -> Array:
 					if get_tree().paused:
 						game.hud.toggle_menu()
 					game.freeze_log.show_log()},
+				null,
+				{"action": "Очистить все данные", "do": func() -> void: s.wipe_all(), "confirm": true},
 			]
 		"game":
 			return [
@@ -690,14 +695,35 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 		"left": left, "right": right, "other": other, "works": works, "row": row})
 
 
-## A button as wide as a row that does `action` once (a way into the test world).
-func _add_action(text: String, action: Callable) -> void:
+## A button as wide as a row that does `action` once (a way into the test world); with
+## `confirm` only when tapped twice.
+func _add_action(text: String, action: Callable, confirm := false) -> void:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
-	b.pressed.connect(action)
+	if confirm:
+		b.pressed.connect(_confirm.bind(b, text, action))
+	else:
+		b.pressed.connect(action)
 	_grid().add_child(b)
+
+
+## A button that asks first: the first tap turns it into «Точно? Ещё раз» (for a few
+## seconds), the second does `action`.
+func _confirm(b: Button, text: String, action: Callable) -> void:
+	if b.text == text:
+		b.text = "Точно? Ещё раз"
+		b.add_theme_color_override("font_color", UiStyle.DANGER)
+		get_tree().create_timer(CONFIRM_WAIT, true).timeout.connect(_unarm.bind(b, text))
+		return
+	action.call()
+
+
+func _unarm(b: Button, text: String) -> void:
+	if is_instance_valid(b):
+		b.text = text
+		b.remove_theme_color_override("font_color")
 
 
 ## A marker (game.markers, `i`) as a row: its colour, its name and column, and a

@@ -499,3 +499,30 @@ func reset_test_world() -> void:
 		game.restart()
 	else:
 		WorldStore.new(WorldStore.world_dir(TestGround.SEED, {})).erase()
+
+
+## Forgets everything the game keeps on this device (the worlds with their maps and
+## markers, the settings) and starts again as on the first start, from the main menu,
+## without saving the world being played first.
+func wipe_all() -> void:
+	game.save.active = false
+	wipe_data()
+	game.get_tree().paused = false
+	game.get_tree().reload_current_scene()
+
+
+## Removes what lies under `root` (user:// itself unless a test gives another), but the
+## engine's own logs and caches on the desktop. On the web user:// lives in IndexedDB
+## and is written back when a file is closed, so a file is written and closed after
+## the removals to carry them there.
+static func wipe_data(root := "user://") -> void:
+	for f in DirAccess.get_files_at(root):
+		DirAccess.remove_absolute(root.path_join(f))
+	for d in DirAccess.get_directories_at(root):
+		if d != "logs" and not d.contains("cache") and d != "vulkan":
+			WorldStore.erase_dir(root.path_join(d))
+	var mark := root.path_join(".wiped")
+	var f := FileAccess.open(mark, FileAccess.WRITE)
+	if f != null:
+		f.close()
+		DirAccess.remove_absolute(mark)
