@@ -19,6 +19,7 @@ const VoxelRaycast := preload("res://src/shared/world/voxel_raycast.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
@@ -508,6 +509,8 @@ func _did(done: Dictionary) -> bool:
 		game.sound.work(done, game.player.work_kind, STRIKE)
 		if done.stuff >= 0 and done.at.is_finite():
 			game.effects.burst(done.at, done.stuff, done.time * STRIKE)
+			if not done.has("placed"):
+				Vibration.hit(game, done.time * STRIKE)
 	return true
 
 
