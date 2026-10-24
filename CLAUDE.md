@@ -31,7 +31,8 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   world/       the chunks on screen: chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts,
                tracks, roof_map
   view/        the picture: pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures,
-               voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art
+               voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art,
+               draw_census (the draw calls counted by what is drawn, from «Отладка»)
   input/       controls, cursor, touch_stick, touch_button
   audio/       sound: sound (buses, volumes, the ear, voices, loops), nature, steps, voices
                (the animals'), music (pieces made of notes)

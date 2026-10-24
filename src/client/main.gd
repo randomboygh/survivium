@@ -58,6 +58,7 @@ const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
+const DrawCensus := preload("res://src/client/view/draw_census.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
@@ -104,6 +105,8 @@ var sound: SoundScript
 var save: SaveGame
 var menu: MainMenu
 var death_screen: DeathScreen
+## Counts the frame's draw calls by what is drawn (the playtest page, «Отладка»).
+var draw_census: DrawCensus
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
 ## shown with the snow cover.
 var world_root: Node3D
@@ -391,6 +394,8 @@ func _build_ui() -> void:
 	add_child(over)
 	death_screen = DeathScreen.new(self)
 	over.add_child(death_screen)
+	draw_census = DrawCensus.new(self)
+	add_child(draw_census)
 
 
 ## The main menu in a layer over the interface, open from the start.
