@@ -510,6 +510,24 @@ func _run() -> void:
 	_check(square and level_tall and cross and clock_under and vitals_tall and across,
 		"HUD top: minimap %s, level %s, cross %s, clock %s, state %s, statistics %s" % [square, level_tall, cross,
 			clock_under, vitals_tall, across])
+	# The minimap one or three buttons square; the level buttons as tall as a large one,
+	# the camera cross under them and on the screen beside a small one; hidden, the
+	# minimap and the toasts take their room.
+	var corner := []
+	for k in [0, 2]:
+		main.settings.set_value("minimap_size", k)
+		var side: float = (k + 1) * button + k * 6
+		var cross_box := Rect2(hud._camera.position, hud._camera.size)
+		corner.append(is_equal_approx(hud.minimap.size.x, side) and cross_box.end.x <= hud.size.x
+			and cross_box.position.y >= maxf(hud.minimap.position.y + hud.minimap.size.y, hud._level.position.y + hud._level.size.y if k == 0 else 0.0)
+			and (k == 0 or is_equal_approx(hud._level.size.y, side)))
+	main.settings.set_value("level_buttons", false)
+	main.settings.set_value("camera_buttons", false)
+	corner.append(not hud._level.visible and not hud._camera.visible
+		and is_equal_approx(hud._toast_room, minf(hud._top.position.x, hud.minimap.position.x) - 6 - hud.MARGIN))
+	main.settings.reset()
+	corner.append(hud._level.visible and hud._camera.visible and is_equal_approx(hud.minimap.size.x, 2 * button + 6))
+	_check(not false in corner, "minimap sizes and hidden level and camera buttons: %s" % [corner])
 	main.view.layout_ui(main.view.safe_rect)
 	_check(room[0] == room[2] and room[0] == room[4] and room[1] and room[3] and room[5],
 		"every phone's interface is as wide as the reference phone's, the windows fit: %s" % [room])

@@ -23,9 +23,10 @@ const Items := preload("res://src/shared/content/items.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const GROUND_SHADER := preload("res://shaders/map_ground.gdshader")
 
-## The map on screen, in UI pixels (with the frame as wide and tall as two buttons), and
+## The sides of the map on screen by the minimap size setting, in UI pixels: with the
+## frame as wide and tall as one, two or three buttons of the HUD side by side. Then
 ## the cells per pixel.
-const SIZE := 78
+const SIDES := [32, 78, 124]
 const STEP := 2
 ## The panel's frame round the map: its outline and highlight, then a sunken edge.
 const FRAME := 4
@@ -66,6 +67,8 @@ var marks: Array = []
 var _mark_colors := {}
 var sea := 0
 var top := 0
+## The side of the map on screen (one of SIDES, see set_side).
+var side: int = SIDES[1]
 var _frame := UiStyle.panel()
 ## The ground in the sunken map, through the shader, and the marks and the player over it.
 var _ground: Layer
@@ -123,18 +126,26 @@ static func round_rect(canvas: CanvasItem, rect: Rect2, color: Color, radius: in
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(SIZE + 2 * FRAME, SIZE + 2 * FRAME)
-	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	tooltip_text = "Карта (M)"
 	_ground = ground_layer(func(l: Control) -> void:
 		draw_ground(l, Rect2(Vector2.ZERO, l.size), Vector2(player_cell), 1.0), CORNER)
 	add_child(_ground)
-	place_ground(_ground, Rect2(FRAME, FRAME, SIZE, SIZE))
 	_top = Layer.new(_draw_top)
 	_top.position = Vector2(FRAME, FRAME)
-	_top.size = Vector2(SIZE, SIZE)
 	add_child(_top)
+	set_side(side)
+
+
+## Makes the map `px` UI pixels on a side, without its frame.
+func set_side(px: int) -> void:
+	side = px
+	custom_minimum_size = Vector2(side + 2 * FRAME, side + 2 * FRAME)
+	size = custom_minimum_size
+	place_ground(_ground, Rect2(FRAME, FRAME, side, side))
+	_top.size = Vector2(side, side)
+	_top.queue_redraw()
+	queue_redraw()
 
 
 ## Redraws the ground and everything over it.
@@ -418,7 +429,7 @@ func _gui_input(event: InputEvent) -> void:
 ## left.
 func _draw() -> void:
 	draw_style_box(_frame, Rect2(Vector2.ZERO, size))
-	var inner := Rect2(FRAME, FRAME, SIZE, SIZE)
+	var inner := Rect2(FRAME, FRAME, side, side)
 	round_rect(self, inner.grow(1), UiStyle.EDGE, CORNER + 1)
 	round_rect(self, inner, UNSEEN, CORNER)
 
@@ -429,8 +440,8 @@ func _draw_top(l: Control) -> void:
 	var inner := Rect2(Vector2.ZERO, l.size)
 	draw_marks(l, inner, Vector2(player_cell), 1.0)
 	draw_markers(l, inner, Vector2(player_cell), 1.0)
-	l.draw_rect(Rect2(CORNER, 0, SIZE - 2 * CORNER, 1), UiStyle.WELL_SHADE)
-	l.draw_rect(Rect2(0, CORNER, 1, SIZE - 2 * CORNER), UiStyle.WELL_SHADE)
+	l.draw_rect(Rect2(CORNER, 0, side - 2 * CORNER, 1), UiStyle.WELL_SHADE)
+	l.draw_rect(Rect2(0, CORNER, 1, side - 2 * CORNER), UiStyle.WELL_SHADE)
 	var mid := (inner.size * 0.5).floor()
 	if not view_up.is_equal_approx(Vector2(0.0, -1.0)):
 		for i in range(3, 9):

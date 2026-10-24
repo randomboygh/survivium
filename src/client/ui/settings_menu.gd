@@ -4,9 +4,10 @@ extends PanelContainer
 ## which suits a thumb as well as a mouse; the keyboard moves between rows with the
 ## arrows and changes a value with Left / Right or Enter. Values come from and go to
 ## Settings (plan/design/ui.md, section 6). Both pages are split into sections by tabs
-## under the title (see PAGES): the settings into Игра, Графика, Музыка and Звук (their
-## volumes, see Sound; Графика starts with the quality preset, any change by hand
-## makes it «своё»); the playtest page into Мир, Игрок, Маркеры, Отладка, with buttons
+## under the title (see PAGES): the settings into Игра, Интерфейс (sizes, the minimap,
+## which HUD buttons show, the full screen, the key hints), Графика, Музыка and Звук
+## (their volumes, see Sound; Графика starts with the quality preset, any change by
+## hand makes it «своё»); the playtest page into Мир, Игрок, Маркеры, Отладка, with buttons
 ## for what is done once (into the test world, the tools into the bag, to a marker set
 ## on the map: Маркеры lists them with their colour and column). The playtest page also
 ## shows the version of the build and opens the list of recent changes ("changes" page,
@@ -43,7 +44,7 @@ const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолуние", 1.0]]
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
-	"settings": [["game", "Игра"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
+	"settings": [["game", "Игра"], ["interface", "Интерфейс"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
 	"test": [["world", "Мир"], ["player", "Игрок"], ["marks", "Маркеры"], ["debug", "Отладка"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
@@ -56,6 +57,8 @@ const GAP := 8
 const TAB_HEIGHT := 28
 ## The steps of the interface and the touch controls size.
 const SIZES := ["очень мелкий", "мелкий", "обычный", "крупнее", "крупный"]
+## The minimap sizes (Minimap.SIDES).
+const MAP_SIZES := ["маленькая", "обычная", "большая"]
 ## Written by tools/build_info.py in CI; a local run has none and shows "dev".
 const BUILD_INFO := "res://build_info.json"
 
@@ -354,7 +357,7 @@ func _section_rows(key: String) -> Array:
 					game.draw_census.start()},
 			]
 		"game":
-			var rows := [
+			return [
 				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
 					func() -> int: return s.values.time_speed,
 					func(i: int) -> void: s.set_value("time_speed", i), "", game_time],
@@ -381,14 +384,28 @@ func _section_rows(key: String) -> Array:
 				["Вибрация", ["выкл", "вкл"],
 					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
 					func(i: int) -> void: s.set_value("vibrate", i == 1), "нет", Vibration.supported],
-				["Интерфейс", SIZES,
+			]
+		"interface":
+			var rows := [
+				["Размер интерфейса", SIZES,
 					func() -> int: return s.values.ui_size,
 					func(i: int) -> void: s.set_value("ui_size", i)],
 			]
 			if game.controls.touch:
-				rows.append(["Управление", SIZES,
+				rows.append(["Размер управления", SIZES,
 					func() -> int: return s.values.control_size,
 					func(i: int) -> void: s.set_value("control_size", i)])
+			rows.append_array([
+				["Миникарта", MAP_SIZES,
+					func() -> int: return s.values.minimap_size,
+					func(i: int) -> void: s.set_value("minimap_size", i)],
+				["Уровень и срез", ["выкл", "вкл"],
+					func() -> int: return int(s.values.level_buttons),
+					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
+				["Кнопки камеры", ["выкл", "вкл"],
+					func() -> int: return int(s.values.camera_buttons),
+					func(i: int) -> void: s.set_value("camera_buttons", i == 1)],
+			])
 			if s.can_fullscreen():
 				rows.append(["Полный экран", ["выкл", "вкл"],
 					func() -> int: return int(s.fullscreen()),
