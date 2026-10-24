@@ -4,9 +4,10 @@ extends RefCounted
 ## under lights it was not drawn under before, or of a new kind of thing; which, by
 ## the shader's own uniforms and the defines of the variant, once the warm-up is
 ## over), the data sent to the GPU (meshes, instances, textures) and the time that
-## took, the page's full garbage collections, when the engine's frame callback began
-## and when the last one ended (so the time outside the engine's own work splits into
-## before the frame, between the callbacks and after the drawing), and the long frames
+## took, the page's full garbage collections (with the heap before and after, where the
+## page tells it), when the engine's frame callback began and when the last one ended (so
+## the time outside the engine's own work splits into before the frame, between the
+## callbacks and after the drawing), and the long frames
 ## the page saw with what ran in them (the game's frame, touch events, the sound's
 ## messages, the rendering), from the browser's long-animation-frame entries. It wraps
 ## those calls of WebGL2 and requestAnimationFrame in the page with a clock and watches
@@ -22,7 +23,7 @@ const SCRIPT := """
 	var collections = 0;
 	var frames = [];
 	var cb_start = 0, cb_end = 0;
-	var ignore = {};
+	var gc_at = 0, heap_peak = 0, heap_after = 0, reported = 0, takes = 0;
 	var p = WebGL2RenderingContext.prototype;
 	// Bytes a call sends, as the engine calls them (data from the WASM heap with an
 	// offset and a length); textures as four bytes a texel.
@@ -58,10 +59,10 @@ const SCRIPT := """
 	}
 	// What a program linked after the warm-up is: the kind of shader (by the data
 	// block it reads), the names the game's own shader declared (the engine prefixes
-	// them with m_: its uniforms, varyings and functions; not the globals every shader
-	// shares, see ignore), and the defines of the variant that tell what it is drawn
-	// for (the shadow pass, many instances, which lights are off, the mesh's
-	// attributes), without the ones every program has.
+	// them with m_: its uniforms, varyings and functions; not the global uniforms every
+	// shader shares, which it reads as global_shader_uniforms[m_name]), and the defines
+	// of the variant that tell what it is drawn for (the shadow pass, many instances,
+	// which lights are off, the mesh's attributes), without the ones every program has.
 	var DROP = /^(APPLY_TONEMAPPING|MATERIAL_UNIFORMS_USED|VERTEX_CODE_USED|FRAGMENT_CODE_USED|LIGHT_CODE_USED|VERTEX_WORLD_COORDS_USED|DISABLE_REFLECTION_PROBE|DISABLE_LIGHTMAP|BASE_PASS|SPECULAR_SCHLICK_GGX|SHADOW_MODE_PCF_5|NORMAL_USED|UV_USED)$/;
 	function describe(gl, prog) {
 		var shaders = gl.getAttachedShaders(prog) || [];
@@ -76,9 +77,12 @@ const SCRIPT := """
 			var re = /^#define ([A-Z][A-Z0-9_]*)\\s*$/gm, m;
 			var head = src.slice(0, 4000);
 			while ((m = re.exec(head)) !== null) if (!DROP.test(m[1]) && defs.indexOf(m[1]) < 0) defs.push(m[1]);
+			var globals = {};
+			var rg = /global_shader_uniforms\\[m_([A-Za-z0-9_]+)\\]/g;
+			while ((m = rg.exec(src)) !== null) globals[m[1]] = true;
 			var rn = /\\bm_([A-Za-z0-9_]+)/g;
 			while ((m = rn.exec(src)) !== null && names.length < 6) {
-				if (!(m[1] in ignore) && names.indexOf(m[1]) < 0) names.push(m[1]);
+				if (!(m[1] in globals) && names.indexOf(m[1]) < 0) names.push(m[1]);
 			}
 		}
 		return kind + (names.length ? ' ' + names.join(',') : '') + (defs.length ? ' ' + defs.join(' ') : '');
@@ -121,13 +125,22 @@ const SCRIPT := """
 			});
 		};
 	}
+	// The page's heap in use (Chrome tells it; 0 elsewhere). Asking makes a small
+	// object, so it is asked seldom.
+	function heap() {
+		var m = performance.memory;
+		return m ? m.usedJSHeapSize : 0;
+	}
 	// Garbage collections, counted by an object no one holds that one takes away, put
 	// back at once. A finalizer tells, unlike WeakRef.deref, which would keep the object
 	// alive through the frame it is asked in; it runs after the full collections alone
-	// (the young ones keep what a finalizer watches).
+	// (the young ones keep what a finalizer watches), in a task of its own, which can
+	// come frames after the pause the collection made.
 	if (typeof FinalizationRegistry !== 'undefined') {
 		var gone = new FinalizationRegistry(function () {
 			collections++;
+			gc_at = performance.now();
+			heap_after = heap();
 			gone.register({}, 0);
 		});
 		gone.register({}, 0);
@@ -170,17 +183,22 @@ const SCRIPT := """
 		} catch (err) {}
 	}
 	s.started = function () { started = true; };
-	// The names of the global shader uniforms, which every shader has: not told.
-	s.ignore = function (list) { list.split(',').forEach(function (n) { if (n) ignore[n] = true; }); };
 	// Everything since the last call, as one string (one call a frame, little garbage):
 	// "programs,build ms,bytes sent,send ms,collections,now,callback began,last
-	// callback ended|long frames;...|late programs;...". The counts are totals; the
-	// frames and programs are handed over once.
+	// callback ended,last collection told at,heap peak before it,heap after it|long
+	// frames;...|late programs;...". The counts are totals; the frames and programs are
+	// handed over once; the heap's peak is of the time since the collection before.
 	s.take = function () {
+		if ((++takes & 15) === 0) heap_peak = Math.max(heap_peak, heap());
 		var out = programs + ',' + build_ms.toFixed(1) + ',' + sent + ',' + send_ms.toFixed(1) + ',' + collections + ','
-			+ performance.now().toFixed(1) + ',' + cb_start.toFixed(1) + ',' + cb_end.toFixed(1) + '|' + frames.join(';') + '|' + late.join(';');
+			+ performance.now().toFixed(1) + ',' + cb_start.toFixed(1) + ',' + cb_end.toFixed(1) + ','
+			+ gc_at.toFixed(1) + ',' + heap_peak + ',' + heap_after + '|' + frames.join(';') + '|' + late.join(';');
 		frames.length = 0;
 		late.length = 0;
+		if (collections !== reported) {
+			reported = collections;
+			heap_peak = heap_after;
+		}
 		return out;
 	};
 })();
@@ -198,10 +216,6 @@ func _init() -> void:
 		return
 	JavaScriptBridge.eval(SCRIPT, true)
 	_js = JavaScriptBridge.get_interface("survivium_gl")
-	var globals := PackedStringArray()
-	for name in RenderingServer.global_shader_parameter_get_list():
-		globals.append(str(name))
-	_js.ignore(",".join(globals))
 
 
 ## The warm-up is over: programs linked from now on are described (see take).
@@ -213,21 +227,24 @@ func started() -> void:
 ## What happened since the last call, or {} off the web: "programs" built and
 ## "build_ms", "sent" KB and "send_ms", "collections" of garbage, "now" (the page's
 ## clock, ms), "callback" (when the frame callback under way began on it) and
-## "callback_end" (when the last one ended), "frames": the page's long frames since,
-## each [start on the page's clock, ms, what ran], and "late": the programs built after
-## the warm-up, described.
+## "callback_end" (when the last one ended), "gc_at" (when the last collection was told,
+## on it), "heap_peak" and "heap_after" (MB the page's heap held at most before that
+## collection and right after it; 0 where the page does not tell), "frames": the page's
+## long frames since, each [start on the page's clock, ms, what ran], and "late": the
+## programs built after the warm-up, described.
 func take() -> Dictionary:
 	if _js == null:
 		return {}
 	var text: String = str(_js.take())
 	var sections := text.split("|")
 	var nums := sections[0].split_floats(",")
-	if nums.size() < 8:
+	if nums.size() < 11:
 		return {}
 	var out := {
 		"programs": nums[0] - _last[0], "build_ms": nums[1] - _last[1], "sent": (nums[2] - _last[2]) / 1024.0,
 		"send_ms": nums[3] - _last[3], "collections": int(nums[4] - _last[4]),
-		"now": nums[5], "callback": nums[6], "callback_end": nums[7], "frames": [], "late": [],
+		"now": nums[5], "callback": nums[6], "callback_end": nums[7], "gc_at": nums[8],
+		"heap_peak": nums[9] / 1048576.0, "heap_after": nums[10] / 1048576.0, "frames": [], "late": [],
 	}
 	for i in 5:
 		_last[i] = nums[i]

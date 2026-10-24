@@ -29,7 +29,7 @@ var sun: DirectionalLight3D
 var lamp: OmniLight3D
 var fire: OmniLight3D
 var frames := 0
-## The interface's line and polygon, drawn under the HUD with no colour.
+## The interface's line and polygon, drawn on the world's canvas with no colour.
 var canvas: RID
 
 
@@ -57,10 +57,13 @@ func start() -> void:
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
-	if game.hud != null:
+	# On the world's own canvas: the interface is hidden behind the menu while the
+	# warm-up runs, and nothing under it is drawn.
+	var world_2d: World2D = game.get_viewport().find_world_2d()
+	if world_2d != null:
 		var clear := Color(0, 0, 0, 0)
 		canvas = RenderingServer.canvas_item_create()
-		RenderingServer.canvas_item_set_parent(canvas, game.hud.get_canvas_item())
+		RenderingServer.canvas_item_set_parent(canvas, world_2d.canvas)
 		RenderingServer.canvas_item_add_line(canvas, Vector2.ZERO, Vector2(2.0, 0.0), clear, 1.0)
 		RenderingServer.canvas_item_add_polygon(canvas, PackedVector2Array([Vector2(0, 0), Vector2(2, 0), Vector2(0, 2)]),
 			PackedColorArray([clear, clear, clear]))
