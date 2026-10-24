@@ -217,6 +217,9 @@ const SHOTS := {
 	# A chest chosen in the bag: its wide button sets it down.
 	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"give": "core:chest"},
+	# A bush dug up chosen in the bag: its wide button plants it.
+	"bag-plant": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"give": "core:raspberry_bush"},
 	# The same bag with only the food lit and the chosen stack about to be destroyed.
 	"bag-destroy": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"kind": "food", "slot": 0, "destroy": true},
