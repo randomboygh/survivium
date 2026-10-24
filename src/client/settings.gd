@@ -11,6 +11,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 
 const PATH := "user://settings.cfg"
@@ -83,6 +84,8 @@ const DEFAULTS := {
 	"world_mountains": 1,
 	"world_rivers": 1,
 	"world_biomes": 1,
+	## The mods a new world is made without, comma-separated ids (every mod found is on).
+	"world_mods_off": "",
 }
 ## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
 ## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
@@ -207,6 +210,30 @@ func world_options() -> Dictionary:
 	for k in ["size", "water", "mountains", "rivers", "biomes"]:
 		out[k] = values["world_" + k]
 	return out
+
+
+## The mods a new world is made with: every mod found, less the ones switched off on
+## «Новый мир», in load order.
+func world_mods() -> Array:
+	var off: PackedStringArray = str(values.world_mods_off).split(",", false)
+	return Mods.available().filter(func(m: String) -> bool: return m == "core" or not m in off)
+
+
+## Switches mod `mod` on or off for new worlds.
+func set_world_mod(mod: String, on: bool) -> void:
+	var off: Array = Array(str(values.world_mods_off).split(",", false))
+	off.erase(mod)
+	if not on:
+		off.append(mod)
+	values.world_mods_off = ",".join(off)
+	save()
+
+
+## Reads the data of the world's mods again (Mods.reload) and tells how it went.
+func reload_mods() -> void:
+	var problems := Mods.reload()
+	if game.hud != null:
+		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else "Ошибок в данных: %d (см. консоль)" % problems.size())
 
 
 func time_speed() -> float:

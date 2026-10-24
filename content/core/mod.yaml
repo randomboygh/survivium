@@ -1,4 +1,5 @@
-# Базовая игра. Остальные моды лежат рядом в том же формате (plan/architecture/modding.md).
+# Базовая игра. Остальные моды лежат рядом в том же формате (plan/architecture/modding.md) и
+# пишут `requires: [core]`, если ссылаются на её записи.
 id: core
 title: Основа
 version: "0.1"

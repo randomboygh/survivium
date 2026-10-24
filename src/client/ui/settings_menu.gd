@@ -363,6 +363,7 @@ func _section_rows(key: String) -> Array:
 					if get_tree().paused:
 						game.hud.toggle_menu()
 					game.freeze_log.show_log()},
+				{"action": "Перечитать данные модов", "do": func() -> void: s.reload_mods()},
 				null,
 				{"action": "Очистить все данные", "do": func() -> void: s.wipe_all(), "confirm": true},
 			]

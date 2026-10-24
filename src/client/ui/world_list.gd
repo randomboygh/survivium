@@ -9,6 +9,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 
@@ -86,6 +87,9 @@ func _fill() -> void:
 		if w.seed == TestGround.SEED:
 			pick.text = "Тестовый мир\nплощадки · день %d" % w.day
 		pick.tooltip_text = "Сохранён %s, в игре %d мин" % [w.saved.replace("T", " "), int(w.played / 60.0)]
+		var extra: Array = w.mods.filter(func(m: String) -> bool: return m != "core")
+		if not w.mods.is_empty():
+			pick.tooltip_text += "\nМоды: %s" % (", ".join(Mods.titles(extra)) if not extra.is_empty() else "только основа")
 		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		pick.custom_minimum_size = Vector2(ROW_WIDTH, ROW_H)

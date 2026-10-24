@@ -14,6 +14,7 @@ extends RefCounted
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 
 const PLAYER := "players/local.json"
 ## Seconds between saves while playing.
@@ -49,10 +50,12 @@ func _init(g) -> void:
 	game = g
 
 
-## Sets the seed and settings of the world to start (game.world_seed, world_options)
-## and reads its save if it has one.
+## Sets the seed, settings and mods of the world to start (game.world_seed,
+## world_options, world_mods) and reads its save if it has one. A saved world keeps the
+## mods it was made with; a new one takes the set chosen on «Новый мир».
 func choose_world() -> void:
 	var current := WorldStore.read_current() if enabled else {}
+	game.world_mods = game.settings.world_mods()
 	if current.is_empty():
 		game.world_seed = game.settings.values.world_seed
 		game.world_options = game.settings.world_options()
@@ -72,6 +75,8 @@ func choose_world() -> void:
 		meta = {}
 		return
 	has_save = true
+	# A save from before mods were kept was made with every mod there was.
+	game.world_mods = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
 	player_record = store.read_json(PLAYER)
 	played = meta.get("played", 0.0)
 	print("save %s: %d chunks, %.0f s played" % [store.dir, store.chunk_count(), played])
@@ -193,6 +198,7 @@ func _write_world() -> void:
 		"format": WorldStore.FORMAT,
 		"seed": game.world_seed,
 		"settings": game.world_options,
+		"mods": game.world_mods,
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),

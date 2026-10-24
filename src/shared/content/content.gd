@@ -4,7 +4,16 @@ extends RefCounted
 ## trees, bushes, recipes, plants, sounds; a sound's files are the mod's
 ## `sounds/<name>.wav`, or `<name>_1.wav` ... for its variants), each a list of records with an `id`. Ids carry the mod's namespace:
 ## `grass` in the core mod is `core:grass`, and a reference without a namespace
-## means the same mod. A later mod may redefine a record of an earlier one by id.
+## means the same mod. A later mod may redefine a record of an earlier one by id, or
+## patch it: a record with `patch: true` changes only the fields it gives, and a key
+## with a `+` at the end (`diet+: [plants]`, `needs+: {core:cord: 1}`) adds to a list
+## or an amounts field instead of replacing it.
+##
+## `mod.yaml` names what a mod `requires`: those mods load first, whatever the order
+## asked for, and a mod whose requirement is not among the mods loaded is skipped
+## with a problem. MODS is the set a world plays with (the world remembers it, see
+## WorldStore); `available()` finds every mod under `content/`. Switch sets through
+## mods.gd, which also refreshes the registries.
 ##
 ## Records are checked against SCHEMAS on load: wrong types, values out of range,
 ## unknown fields, missing fields without a default and broken references are
@@ -17,8 +26,10 @@ extends RefCounted
 const Yaml := preload("res://src/shared/content/yaml.gd")
 
 const ROOT := "res://content"
-## Mods in load order, until mod.yaml dependencies order them.
-static var MODS: Array = ["core", "birds"]
+## The mods to load, as asked for; `loaded` has the order they were loaded in after
+## their requirements, without the ones that could not be.
+static var MODS: Array = available()
+static var loaded: Array = []
 
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
@@ -136,13 +147,75 @@ const MOD_SCHEMA := {
 	"title": {"type": "string"},
 	"version": {"type": "string"},
 	"api": {"type": "int", "min": 1, "max": 1},
+	"requires": {"type": "list", "of": "string", "default": []},
 }
 
 ## Problems found by the last load, "file: id.field: what".
 static var problems: PackedStringArray = []
 ## kind -> Array of records in load order; a record's `mod` names its mod.
 static var _kinds := {}
+## kind -> id -> the record as written (before conversion), for patches to build on.
+static var _raw := {}
+## mod -> its mod.yaml as read (checked), for the load being done.
+static var _infos := {}
 static var _loaded := false
+
+
+## Every mod under `content/`: the folders with a mod.yaml, core first, then by name.
+static func available() -> Array:
+	var out := []
+	for name in DirAccess.get_directories_at(ROOT):
+		if name.begins_with("_") or not FileAccess.file_exists("%s/%s/mod.yaml" % [ROOT, name]):
+			continue
+		out.append(name)
+	out.sort()
+	if "core" in out:
+		out.erase("core")
+		out.push_front("core")
+	return out
+
+
+## The mod.yaml of `mod` as a Dictionary with its fields checked, empty when it cannot
+## be read.
+static func info(mod: String) -> Dictionary:
+	var path := "%s/%s/mod.yaml" % [ROOT, mod]
+	var d: Variant = _read(path)
+	if not d is Dictionary:
+		if d != null:
+			problems.append("%s/mod.yaml: expected a mapping" % mod)
+		return {}
+	if d.get("id") != mod:
+		problems.append("%s/mod.yaml: id must be `%s`" % [mod, mod])
+	var out: Dictionary = d.duplicate()
+	_check_fields(out, MOD_SCHEMA, mod, "%s/mod.yaml" % mod, "mod")
+	out.erase("id")
+	return out
+
+
+## The mods of `infos` (mod -> its mod.yaml, see `info`) in load order: each after what
+## it requires, otherwise as given; a mod that requires one not among them (or in a
+## cycle) is left out with a problem.
+static func order(infos: Dictionary) -> Array:
+	var mods := infos.keys()
+	var out := []
+	var waiting := mods.duplicate()
+	while not waiting.is_empty():
+		var progress := false
+		for mod in waiting.duplicate():
+			var needs: Array = infos[mod].get("requires", [])
+			var missing := needs.filter(func(m: String) -> bool: return not m in mods)
+			if not missing.is_empty():
+				problems.append("%s/mod.yaml: requires `%s`, which is not loaded" % [mod, "`, `".join(missing)])
+				waiting.erase(mod)
+				continue
+			if needs.all(func(m: String) -> bool: return m in out):
+				out.append(mod)
+				waiting.erase(mod)
+				progress = true
+		if not progress:
+			problems.append("%s: mods require each other in a circle" % ", ".join(waiting))
+			break
+	return out
 
 
 ## Records of `kind` from every mod, checked and with defaults filled in.
@@ -182,9 +255,19 @@ static func load_all() -> void:
 	_loaded = true
 	problems = []
 	_kinds = {}
+	_raw = {}
+	_infos = {}
 	for kind in SCHEMAS:
 		_kinds[kind] = []
+		_raw[kind] = {}
 	for mod in MODS:
+		var i := info(mod)
+		if i.is_empty():
+			problems.append("%s/mod.yaml: cannot read the mod" % mod)
+		else:
+			_infos[mod] = i
+	loaded = order(_infos)
+	for mod in loaded:
 		_load_mod(mod)
 	_check_refs()
 	for p in problems:
@@ -193,14 +276,6 @@ static func load_all() -> void:
 
 static func _load_mod(mod: String) -> void:
 	var dir := "%s/%s" % [ROOT, mod]
-	var info: Variant = _read("%s/mod.yaml" % dir)
-	if not info is Dictionary:
-		if info != null or problems.is_empty():
-			problems.append("%s/mod.yaml: expected a mapping" % mod)
-		return
-	if info.get("id") != mod:
-		problems.append("%s/mod.yaml: id must be `%s`" % [mod, mod])
-	_check_fields(info, MOD_SCHEMA, mod, "%s/mod.yaml" % mod, "mod")
 	for kind in SCHEMAS:
 		var path := "%s/data/%s.yaml" % [dir, kind]
 		if not FileAccess.file_exists(path):
@@ -228,11 +303,20 @@ static func _load_mod(mod: String) -> void:
 			seen[id] = true
 			var rec: Dictionary = r.duplicate()
 			rec.id = id
-			rec.mod = mod
+			var raw: Dictionary = _raw[kind]
+			if rec.get("patch") == true:
+				rec.erase("patch")
+				if not raw.has(id):
+					problems.append("%s: %s: patches a record no loaded mod has" % [file, id])
+					continue
+				rec = _patched(raw[id], rec, file, id)
+			else:
+				rec.mod = mod
+			raw[id] = rec.duplicate()
 			if not rec.get("title") is String or rec.title == "":
 				problems.append("%s: %s.title: expected a string" % [file, id])
 				rec.title = id
-			_check_fields(rec, SCHEMAS[kind], mod, file, id)
+			_check_fields(rec, SCHEMAS[kind], rec.mod, file, id)
 			var list_of_kind: Array = _kinds[kind]
 			var at := -1
 			for j in list_of_kind.size():
@@ -242,6 +326,31 @@ static func _load_mod(mod: String) -> void:
 				list_of_kind[at] = rec
 			else:
 				list_of_kind.append(rec)
+
+
+## `base` with the fields of `patch` over it; a key ending in `+` adds its list or
+## mapping to the field's. The record stays its first mod's (its pictures and sounds
+## are looked for there).
+static func _patched(base: Dictionary, patch: Dictionary, file: String, id: String) -> Dictionary:
+	var out := base.duplicate(true)
+	for key in patch:
+		if key == "id":
+			continue
+		var v: Variant = patch[key]
+		if key.ends_with("+"):
+			var field: String = key.trim_suffix("+")
+			var had: Variant = out.get(field)
+			if had is Array and v is Array:
+				out[field] = had + v
+			elif had is Dictionary and v is Dictionary:
+				var merged: Dictionary = had.duplicate()
+				merged.merge(v, true)
+				out[field] = merged
+			else:
+				problems.append("%s: %s.%s: `+` adds to a list or a mapping the record has" % [file, id, field])
+		else:
+			out[key] = v
+	return out
 
 
 ## `name` -> `mod:name`; an id that already has a namespace stays as it is.
