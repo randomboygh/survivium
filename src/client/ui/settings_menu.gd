@@ -18,6 +18,7 @@ const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -369,6 +370,10 @@ func _section_rows(key: String) -> Array:
 				["Тряска экрана", ["выкл", "вкл"],
 					func() -> int: return int(s.values.shake),
 					func(i: int) -> void: s.set_value("shake", i == 1)],
+				# Faded where the device cannot buzz (a computer, an iPhone's Safari).
+				["Вибрация", ["выкл", "вкл"],
+					func() -> int: return int(s.values.vibrate),
+					func(i: int) -> void: s.set_value("vibrate", i == 1), "", Vibration.supported],
 				["Интерфейс", SIZES,
 					func() -> int: return s.values.ui_size,
 					func(i: int) -> void: s.set_value("ui_size", i)],

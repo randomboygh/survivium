@@ -1,7 +1,7 @@
 extends Control
 ## How the screen answers what happens to the body (plan/design/ui.md, section 4): a
 ## hurt reddens the edges of the screen, shakes the camera the more the bigger it is
-## (unless the setting «Тряска экрана» is off) and puts "-N" over the player's head, a heal
+## (unless the setting «Тряска экрана» is off), buzzes the phone (Vibration) and puts "-N" over the player's head, a heal
 ## does the same in green, and food in amber with "+N" by the food icon. It watches the
 ## character's Vitals each frame, so it shows whatever changed them (hunger, water,
 ## animals, fire, food, bandages). A slow loss (hunger, drowning) is gathered and shown
@@ -10,6 +10,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -102,6 +103,8 @@ func _show(kind: String, n: int) -> void:
 	var strength := 0.6 + 0.4 * minf(n / 15.0, 1.0)
 	if kind == "hurt" and n >= 2 and game.settings.values.shake:
 		game.view.shake(clampf(n / SHAKE_PER, 1.0, SHAKE_MOST))
+	if kind == "hurt" and n >= 2:
+		Vibration.hurt(game, n)
 	# A hurt is not hidden by a heal shown at the same time.
 	if kind == "hurt" or _frame_color != UiStyle.DANGER or _frame < 0.15:
 		_frame_color = KINDS[kind][0]

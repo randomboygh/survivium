@@ -61,6 +61,8 @@ const DEFAULTS := {
 	"pickup_heavy": false,
 	# The camera shakes when the body is hurt (see BodyFeedback).
 	"shake": true,
+	# The phone buzzes on a hurt and when a swing strikes (see Vibration).
+	"vibrate": true,
 	# Volumes in steps of Sound.STEPS (0 is off): the music, all the sounds, nature
 	# (wind, rain, water, birds) and the interface among them.
 	"music_volume": 3,
