@@ -77,9 +77,12 @@ const CORNER := 2
 ## rounds them.
 const CORNER_P := [1.0, 1.5, 2.0]
 const CURVE_STEPS := 4
-## Diagonals reach a hair past their line, so the texels it runs through belong to the
-## ground side and the shader's edge texels match what is drawn.
-const EPS := 0.002
+## Diagonals reach past their line, so the texels it runs through belong to the ground
+## side and the shader's edge texels match what is drawn. A straight diagonal runs
+## right through the middles of its pixels: an eighth of a pixel each way, well over
+## the rounding of a phone's GPU, which would otherwise give those pixels to one side
+## or the other from frame to frame (the light rims flickered).
+const EPS := 1.0 / 64.0
 ## Cells around the chunk copied for neighbour lookups: corners look two cells away.
 const PAD := 2
 ## The two corners on the sides E, W, S, N (in DIRS order), the one nearer the origin first.
@@ -773,13 +776,16 @@ static func _blend(corners: PackedColorArray, pts: Array) -> Array:
 ## The wall along the curve of corner k (see corner_curve), facing the corner (a cut)
 ## or away from it (a fill): a straight piece of wall per piece of the curve. A
 ## straight corner is flat; a round one has the curve's own normals at its points, so
-## the light runs smoothly around it.
+## the light runs smoothly around it. It stands EPS inside the solid side, so where it
+## meets the ground below on the line the ground is in front and the pixels on the line
+## are the ground's.
 static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2, shape := 0) -> void:
 	var o := Vector2(CORNER_DIRS[k])
 	var curve := corner_curve(k, shape)
+	var inside := o * (-EPS if outward else EPS)
 	for j in curve.size() - 1:
-		var p1 := curve[j]
-		var p2 := curve[j + 1]
+		var p1 := curve[j] + inside
+		var p2 := curve[j + 1] + inside
 		var d := p2 - p1
 		var side := Vector2(d.y, -d.x).normalized()
 		if side.dot(o) < 0.0:
