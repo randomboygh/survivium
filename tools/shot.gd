@@ -174,6 +174,8 @@ const SHOTS := {
 	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "core:glow_mushrooms"},
 	# Moss on stone, a few tops of it picked: the moss left has a ragged edge.
 	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true},
+	# A patch of copper ore amid stone moss: the copper has a ragged edge, no moss on it.
+	"copper-moss": {"time": 0.42, "season": 1, "place": "mountain", "copper_moss": true},
 	"hidden": {"time": 0.42, "season": 1, "wall": true},
 	# A trench four levels deep in a forest: the view is cut at the player's level.
 	"ravine": {"time": 0.42, "season": 1, "forest": true, "trench": true},
@@ -492,6 +494,11 @@ func _run() -> void:
 			main.player.position = _in_water(main.world, main.player.position, shot.water)
 		if shot.has("find"):
 			main.player.position = _find(main.world, main.player.position, shot.find)
+		if shot.get("copper_moss", false):
+			var mossy := _stone_moss_near(main.world, Vector3i((main.player.position / CELL).floor()))
+			if mossy != Vector3i.MIN:
+				main.player.position = (Vector3(mossy + Vector3i(0, 1, 3)) + Vector3(0.5, 0.0, 0.5)) * CELL
+				_copper_patch(main.world, mossy)
 		if shot.get("pick_moss", false):
 			var mossy := _stone_moss_near(main.world, Vector3i((main.player.position / CELL).floor()))
 			if mossy != Vector3i.MIN:
@@ -782,7 +789,7 @@ func _run() -> void:
 			out_fire.lit = true
 			main.placed.lit_changed.emit(out_fire)
 			out_fire = {}
-		if shot.get("fire_blocks", false):
+		if shot.get("fire_blocks", false) or shot.get("copper_moss", false):
 			_unwall_cells(main.world)
 		if shot.get("wall", false) or shot.get("trench", false):
 			_unwall(main.world, Vector3i((main.player.position / CELL).floor()))
@@ -1057,6 +1064,17 @@ func _stone_moss_near(w, at: Vector3i) -> Vector3i:
 				if ok:
 					return Vector3i(x, y, z)
 	return Vector3i.MIN
+
+
+## Turns a patch of the stone tops round `at` into copper ore, as the mountains have
+## it, kept in wall_cells to be put back.
+func _copper_patch(w, at: Vector3i) -> void:
+	for o: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(1, -1), Vector2i(2, -1),
+			Vector2i(-1, -1), Vector2i(0, -2), Vector2i(-1, 0)]:
+		var c := at + Vector3i(o.x, 0, o.y)
+		wall_cells.append([c, w.get_cell(c.x, c.y, c.z), w.is_natural(c.x, c.y, c.z)])
+		w.set_cell(c.x, c.y, c.z, Mat.COPPER_ORE)
+		main.actions.cell_changed.emit(c)
 
 
 ## Picks the moss off the stone tops in an L of cells from `at` (see Grass.stone_moss),
