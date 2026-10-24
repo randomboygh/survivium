@@ -149,7 +149,7 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		var grow: int = w.grows.call(x, z)
 		if grow != 0:
 			_grown(grow, out, rng)
-			return out
+			return loaded(out)
 	if m == Mat.GRASS:
 		_fields()
 		var tier := tier_at(x, z)
@@ -186,7 +186,7 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 	if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
-	return out
+	return loaded(out)
 
 
 ## The plants of a column whose growth the world sets (`grow`, one of GROW_*), added to
@@ -239,7 +239,7 @@ static func stone_moss(w, x: int, y: int, z: int) -> bool:
 static func plants_on(w, x: int, y: int, z: int) -> Array:
 	var m: int = w.get_cell(x, y, z)
 	if m == Mat.STONE and stone_moss(w, x, y, z):
-		return [Plants.MOSS]
+		return [] if Plants.MOSS == "" else [Plants.MOSS]
 	if not Mat.can_slope(m) or w.get_cell(x, y + 1, z) != Mat.AIR:
 		return []
 	var ch: WorldData.Chunk = w.chunk_at(x, z)
@@ -253,6 +253,16 @@ static func plants_on(w, x: int, y: int, z: int) -> Array:
 	var out := []
 	for kind in grown_kinds:
 		out.append(plant_of(kind))
+	return out
+
+
+## `kinds` without the ones no loaded plant is of (see Plants.of_kind): what is not in
+## the world's mods neither grows nor is drawn.
+static func loaded(kinds: Array[int]) -> Array[int]:
+	var out: Array[int] = []
+	for kind in kinds:
+		if plant_of(kind) != "":
+			out.append(kind)
 	return out
 
 
@@ -276,15 +286,16 @@ static func turf_kinds(grown_kinds: Array[int], grown: String, rng: RandomNumber
 			out.append(LOW + kind - TALL)
 		elif kind < FLOWER or kind >= LOW:
 			out.append(kind)
-	if grown == Plants.EARS:
-		for k in 2:
-			out.append(EAR + rng.randi_range(0, 1))
-	elif grown == Plants.FLOWERS:
-		out.append(FLOWER + rng.randi_range(0, 3))
+	match Plants.kind_of(grown):
+		Plants.KINDS.EARS:
+			for k in 2:
+				out.append(EAR + rng.randi_range(0, 1))
+		Plants.KINDS.FLOWERS:
+			out.append(FLOWER + rng.randi_range(0, 3))
 	return out
 
 
-## The id (see Plants) of plant kind `kind`.
+## The id (see Plants) of plant kind `kind`, "" when no loaded plant is of that kind.
 static func plant_of(kind: int) -> String:
 	if kind >= GLOW:
 		return Plants.GLOW

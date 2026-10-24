@@ -172,10 +172,10 @@ const SHOTS := {
 	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
 	"birds-forest": {"time": 0.42, "season": 1, "forest": true, "birds": true},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
-	"mushrooms": {"time": 0.42, "season": 1, "find": "core:mushrooms"},
-	"glow-day": {"time": 0.42, "season": 1, "find": "core:glow_mushrooms"},
-	"glow-night": {"time": 0.95, "season": 1, "moon": 0.0, "find": "core:glow_mushrooms"},
-	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "core:glow_mushrooms"},
+	"mushrooms": {"time": 0.42, "season": 1, "find": "plants:mushrooms"},
+	"glow-day": {"time": 0.42, "season": 1, "find": "plants:glow_mushrooms"},
+	"glow-night": {"time": 0.95, "season": 1, "moon": 0.0, "find": "plants:glow_mushrooms"},
+	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "plants:glow_mushrooms"},
 	# Moss on stone, a few tops of it picked: the moss left has a ragged edge.
 	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true},
 	# A patch of copper ore amid stone moss: the copper has a ragged edge, no moss on it.
@@ -219,7 +219,7 @@ const SHOTS := {
 		"give": "core:chest"},
 	# A bush dug up chosen in the bag: its wide button plants it.
 	"bag-plant": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
-		"give": "core:raspberry_bush"},
+		"give": "plants:raspberry_bush"},
 	# The same bag with only the food lit and the chosen stack about to be destroyed.
 	"bag-destroy": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"kind": "food", "slot": 0, "destroy": true},
@@ -670,7 +670,7 @@ func _run() -> void:
 				main.hud.bag._destroy.pressed.emit()
 		if shot.get("chest", false):
 			main.placed.chest_items.add("core:log", 3)
-			main.placed.chest_items.add("core:raspberry", 12)
+			main.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, false)
@@ -678,7 +678,7 @@ func _run() -> void:
 			main.character.inventory.add("core:chest", 1)
 			main.player.facing = "e"
 			main.props.put_from_bag("core:chest")
-			main.placed.chest_items.add("core:raspberry", 12)
+			main.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
@@ -715,7 +715,7 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 		if shot.get("death", false):
-			for st in [["core:branch", 12], ["core:fiber", 9], ["core:raspberry", 23], ["core:stone_axe", 1], ["core:flint", 3]]:
+			for st in [["core:branch", 12], ["core:fiber", 9], ["plants:raspberry", 23], ["core:stone_axe", 1], ["core:flint", 3]]:
 				main.character.inventory.add(st[0], st[1])
 			main.player.position += Vector3(14.0, 0.0, 9.0)
 			main.player.position = _flat_near(main.world, main.player.position)
@@ -919,7 +919,7 @@ func _work() -> void:
 	var bush := f + Vector3i(0, 0, -7)
 	bush.y = w.surface_y(bush.x, bush.z)
 	if not w.bushes.has(bush):
-		w.add_bush(bush, Bushes.RASPBERRY)
+		w.add_bush(bush, Bushes.sample(Trees.LOWLAND))
 		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
 	c.hold("core:wooden_sword")
 	main.gathering.gather({"bush": bush})
@@ -927,7 +927,7 @@ func _work() -> void:
 	# grass), the next cut twice (dirt with fibre on it), the far row cut twice and sown
 	# with grain (ears).
 	c.put_in_hand("core:stone_scythe", 1, false)
-	main.character.inventory.add("core:grain", 5)
+	main.character.inventory.add("plants:grain", 5)
 	var mown := 0
 	for i in 15:
 		var cell := f + Vector3i(-7 + i % 5, 0, 1 + i / 5)
@@ -937,7 +937,7 @@ func _work() -> void:
 			if main.actions.can_mow(cell) and main.actions.mow(main.character, one):
 				mown += 1
 		if i >= 10:
-			main.actions.plant_at(main.character, "core:grain", cell)
+			main.actions.plant_at(main.character, "plants:grain", cell)
 	print("grass cut %d times" % mown)
 	c.put_in_hand("core:wooden_shovel", 0, false)
 	c.set_active(1)
@@ -953,7 +953,7 @@ func _gather() -> void:
 	var at := Vector3i((main.player.position / CELL).floor())
 	for i in 3:
 		var cell := at + Vector3i(-6 + i * 3, 0, 5)
-		w.add_bush(cell, [Bushes.RASPBERRY, Bushes.BLUEBERRY, Bushes.SHRUB][i])
+		w.add_bush(cell, [Bushes.sample(Trees.LOWLAND), Bushes.sample(Trees.HIGHLAND), Bushes.sample(Bushes.ANY)][i])
 		main.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
 	var a = main.actions
 	var who = main.character
@@ -1564,18 +1564,18 @@ func _grove(w, at: Vector3i) -> void:
 			Bushes.place(w, at.x + dx, h, at.z + 10 + (k % 2), k % Bushes.TYPES.size())
 			k += 1
 		for dx in [-9, -7, 7, 9]:
-			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.BLUEBERRY)
+			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.sample(Trees.HIGHLAND))
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 3
 		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
 		for i in oaks.size():
 			var x: int = (at.x + oaks[i]) | 1
-			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.OAK) != (i % 2 == 0):
+			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.sample(Trees.LOWLAND)) != (i % 2 == 0):
 				x += 2
-			Trees.place(w, x, h, (at.z - 8) | 1, Trees.OAK, rng)
+			Trees.place(w, x, h, (at.z - 8) | 1, Trees.sample(Trees.LOWLAND), rng)
 		var sizes := [0.75, 1.0, 1.2]
 		for i in spruces.size():
-			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.SPRUCE, rng, sizes[i])
+			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.sample(Trees.HIGHLAND), rng, sizes[i])
 		for z in range(at.z - 38, at.z + 34, 8):
 			for x in range(at.x - 48, at.x + 50, 8):
 				main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -1604,8 +1604,8 @@ func _clearing(w, at: Vector3i, fell: bool) -> void:
 	rng.seed = 5
 	var oak := Vector2i((at.x - 7) | 1, (at.z - 3) | 1)
 	var spruce := Vector2i((at.x + 7) | 1, (at.z - 3) | 1)
-	Trees.place(w, oak.x, h, oak.y, Trees.OAK, rng)
-	Trees.place(w, spruce.x, h, spruce.y, Trees.SPRUCE, rng, 0.8)
+	Trees.place(w, oak.x, h, oak.y, Trees.sample(Trees.LOWLAND), rng)
+	Trees.place(w, spruce.x, h, spruce.y, Trees.sample(Trees.HIGHLAND), rng, 0.8)
 	for z in range(at.z - 28, at.z + 28, 8):
 		for x in range(at.x - 34, at.x + 34, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))

@@ -247,6 +247,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 	if leaves == 0:
 		return
 	var tree := _tree_at(trunks, x, z)
+	if tree.is_empty():
+		return
 	# Crowns of noted trees cast their shadow as a whole (see _tree_shadows),
 	# others one disc per point.
 	var grown: bool = w.trees.has(tree[0])
@@ -348,7 +350,7 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 	for cell in cells:
 		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0)
 		job.shadows.append_array([s, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, s, p.z])
-		job.shadows.append_array([bush_kind(w.bushes.get(cell, Bushes.SHRUB)), 0.0, 0.0, 0.0])
+		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 0.0, 0.0, 0.0])
 		job.ns += 1
 	out.grass = [job.ng, job.grass]
 	out.clumps = [job.nc, job.clumps]
@@ -364,7 +366,9 @@ static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}) -> A
 	var rng := RandomNumberGenerator.new()
 	var count := 0
 	for cell in cells:
-		var type: int = types.get(cell, Bushes.SHRUB)
+		var type: int = types.get(cell, 0)
+		if type >= Bushes.TYPES.size():
+			continue
 		var b: Dictionary = Bushes.TYPES[type]
 		var spread: Vector3 = b.spread
 		var cards: int = b.cards
@@ -492,10 +496,12 @@ static func _goes_bare(h: int, species: int) -> bool:
 	return (h >> 8) % 100 < Trees.SPECIES[species].bare * 100.0
 
 
-## The tree a crown point in column x, z belongs to: the nearest trunk, or an oak where
-## no tree is noted (crowns made by hand).
+## The tree a crown point in column x, z belongs to: the nearest trunk, or the first
+## species where no tree is noted (crowns made by hand); [] with no species loaded.
 static func _tree_at(trunks: Array, x: int, z: int) -> Array:
-	var best := [Vector2i(x, z), Trees.OAK, hash(Vector2i(x / 6, z / 6))]
+	if Trees.SPECIES.is_empty():
+		return []
+	var best := [Vector2i(x, z), 0, hash(Vector2i(x / 6, z / 6))]
 	var best_d := TREE_REACH * TREE_REACH + 1
 	for t in trunks:
 		var d: int = (t[0] - Vector2i(x, z)).length_squared()

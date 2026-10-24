@@ -1399,7 +1399,7 @@ func _test_bushes() -> void:
 						if picked.y < 0:
 							picked = c
 	_check(shade.has(Plants.MOSS) and (shade.has(Plants.MUSHROOMS) or shade.has(Plants.GLOW)) and not open_moss,
-		"moss and mushrooms grow under the crowns, not in the open: %s" % shade.keys())
+		"moss and mushrooms grow under the crowns, not in the open: %s" % [shade.keys()])
 	if picked.y >= 0:
 		w.set_turf(picked, "")
 		_check(not Grass.plants_on(w, picked.x, picked.y, picked.z).any(func(id) -> bool: return Plants.BY_ID[id].pick),
@@ -1584,8 +1584,8 @@ func _test_content() -> void:
 	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, Mat.PLANKS, Mat.BRICK, Mat.SAND, Mat.CLAY, Mat.LOG], "hotbar order comes from the data")
 	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.SAND),
 		"material flags come from the data")
-	_check(Trees.SPECIES[Trees.SPRUCE].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.OAK].tints[0] is Color, "trees get their looks")
-	_check(Bushes.TYPES[Bushes.SHRUB].berries == Color.BLACK and Bushes.TYPES[Bushes.BLUEBERRY].spread is Vector3, "bushes get their looks")
+	_check(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].tints[0] is Color, "trees get their looks")
+	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].berries == Color.BLACK and Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].spread is Vector3, "bushes get their looks")
 	_check(AiRules.SPECIES["animals:wolf"].diet == ["meat"] and AiRules.SPECIES["animals:wolf"].sprite == "wolf", "creatures get their properties")
 	# The checks catch what a mod author gets wrong.
 	var before := Content.MODS.duplicate()
@@ -1620,7 +1620,12 @@ func _test_content() -> void:
 func _test_mods() -> void:
 	var all := Content.available()
 	_check(all.size() >= 3 and all[0] == "core" and "animals" in all and "birds" in all, "the mods under content/ are found, core first: %s" % [all])
-	_check(Content.loaded == all, "every mod loads in order: %s" % [Content.loaded])
+	var after_needs := Content.loaded.size() == all.size()
+	for i in Content.loaded.size():
+		for need in Mods.requires(Content.loaded[i]):
+			after_needs = after_needs and Content.loaded.find(need) < i
+	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants") < Content.loaded.find("birds"),
+		"every mod loads after what it requires: %s" % [Content.loaded])
 	var before := Content.MODS.duplicate()
 	for m in ["_a", "_b", "_c"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -1650,7 +1655,21 @@ func _test_mods() -> void:
 		DirAccess.remove_absolute("res://content/%s/data" % m)
 		DirAccess.remove_absolute("res://content/%s/mod.yaml" % m)
 		DirAccess.remove_absolute("res://content/%s" % m)
+	# Without the plants mod the world knows no tree, bush or plant and grows nothing.
+	Mods.activate(["core"])
+	var bare := WorldData.new(8, Vector2i(8, 8))
+	for x in 8:
+		for z in 8:
+			bare.set_cell(x, 0, z, Mat.GRASS)
+	var bare_rng := RandomNumberGenerator.new()
+	_check(Trees.pick(Trees.HIGHLAND, 0.5) == -1 and Bushes.pick(Trees.LOWLAND, 0.1) == -1 and Plants.TUFT == ""
+		and Grass.kinds(bare, 3, 0, 3, Mat.GRASS, true, bare_rng).is_empty() and Grass.plants_on(bare, 3, 0, 3).is_empty(),
+		"with core alone no tree, bush or plant is picked and grass grows nothing")
 	Mods.activate(before)
+	_check(Trees.pick(Trees.HIGHLAND, 0.5) == Trees.sample(Trees.HIGHLAND) and Trees.pick("nowhere", 0.0) >= 0
+		and Bushes.pick(Trees.HIGHLAND, 0.5) == Bushes.sample(Trees.HIGHLAND) and Bushes.pick(Trees.HIGHLAND, 0.9) == Bushes.sample(Bushes.ANY)
+		and Bushes.pick(Bushes.OPEN, 0.3) == Bushes.sample(Trees.LOWLAND) and Plants.kind_of(Plants.EARS) == Plants.KINDS.EARS,
+		"trees, bushes and plants are picked by their roles, with the plain bush where the roll misses")
 	_check(Content.problems.is_empty() and AiRules.SPECIES.has("birds:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
 		"the full set loads clean again")
 
@@ -1662,10 +1681,10 @@ func _test_items() -> void:
 	for m in Mat.PLACEABLE:
 		_check(Items.get_item(Items.placed_by[m]).place == Mat.IDS[m], "an item places hotbar block %s" % Mat.IDS[m])
 	_check(Items.get_item("log").id == "core:log" and Items.title("core:branch") == "Ветка", "bare drop names are core items")
-	_check(Trees.SPECIES[Trees.OAK].seed == "core:acorn" and Items.has(Trees.SPECIES[Trees.SPRUCE].seed), "tree seeds are items")
-	_check(Bushes.TYPES[Bushes.RASPBERRY].fruit == "core:raspberry" and Items.food(Bushes.TYPES[Bushes.BLUEBERRY].fruit) > 0.0,
+	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seed == "plants:acorn" and Items.has(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].seed), "tree seeds are items")
+	_check(Bushes.TYPES[Bushes.sample(Trees.LOWLAND)].fruit == "plants:raspberry" and Items.food(Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].fruit) > 0.0,
 		"berries are food")
-	_check(Bushes.TYPES[Bushes.SHRUB].fruit == "" and Bushes.TYPES[Bushes.SHRUB].twigs > 0, "a plain bush gives branches only")
+	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].fruit == "" and Bushes.TYPES[Bushes.sample(Bushes.ANY)].twigs > 0, "a plain bush gives branches only")
 
 
 func _test_tools() -> void:
@@ -1700,8 +1719,8 @@ func _test_tools() -> void:
 	_check(sector[0] == Vector2i(0, 1) and Vector2i(1, 0) in sector and Vector2i(2, 1) in sector and not Vector2i(0, -1) in sector \
 		and not Vector2i(1, -1) in sector, "trees and bushes are found ahead and beside, not behind")
 	_check(Tools.use_of("") == "hand" and Tools.use_of("core:stone_axe") == "tool" and Tools.use_of("core:stone") == "place" \
-		and Tools.use_of("core:raspberry_bush") == "plant" and Tools.use_of("core:grass_seeds") == "sow" \
-		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("core:raspberry") == "eat" and Tools.use_of("core:branch") == "hand",
+		and Tools.use_of("plants:raspberry_bush") == "plant" and Tools.use_of("plants:grass_seeds") == "sow" \
+		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("plants:raspberry") == "eat" and Tools.use_of("core:branch") == "hand",
 		"what a held item is used for")
 	var scythe := Tools.of("core:stone_scythe")
 	_check(Tools.mown(Mat.GRASS) == Mat.DIRT and Tools.mown(Mat.DIRT) == -1, "cutting grass leaves dirt")
@@ -1713,11 +1732,11 @@ func _test_tools() -> void:
 	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].mow_gives.keys()[0]), "cut grass gives fibre")
 	var rng := RandomNumberGenerator.new()
-	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("core:grain", 0) == 4,
+	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("plants:grain", 0) == 4,
 		"ears give grain")
-	_check(Tools.use_of("core:grain") == "sow" and Items.get_item("core:grain").crop == Plants.EARS, "grain is sown into ears")
+	_check(Tools.use_of("plants:grain") == "sow" and Items.get_item("plants:grain").crop == Plants.EARS, "grain is sown into ears")
 	_check(Plants.harvest(["core:nothing"], rng).is_empty(), "an unknown plant gives nothing")
-	_check(Trees.SPECIES[Trees.OAK].twigs > 0 and Trees.SPECIES[Trees.OAK].seeds > 0, "a standing oak gives branches and acorns by hand")
+	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].twigs > 0 and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seeds > 0, "a standing oak gives branches and acorns by hand")
 	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
 	_check(wall[0] == f and wall[1] == f + Vector3i.UP and wall.size() == 9, "a swing at a wall takes the cell above next (a passage)")
 	for c in wall:
@@ -1733,8 +1752,8 @@ func _test_tools() -> void:
 		"tools reach farther than hands and a sword")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].bonus) and Mat.RECORDS[Mat.GRASS].bonus_chance > 0.0 and Mat.RECORDS[Mat.STONE].bonus == "",
 		"grass sometimes gives fibre")
-	_check(Trees.SPECIES[Trees.OAK].hits > axe.power, "an oak takes more than one swing")
-	var b: Dictionary = Bushes.TYPES[Bushes.RASPBERRY]
+	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].hits > axe.power, "an oak takes more than one swing")
+	var b: Dictionary = Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]
 	_check(Items.get_item(b.item).plant == b.id, "a dug-out bush is an item that plants it again")
 	var w := WorldData.new(2, Vector2i(2, 2))
 	w.heap_drop("core:dirt", Vector3(1.0, 1.0, 1.0), 1)
@@ -1750,7 +1769,7 @@ func _test_crafting() -> void:
 	var have := Crafting.reachable()
 	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe", "core:stone_sword", "core:wooden_pickaxe", "core:wooden_scythe",
 			"core:workbench",
-			"core:kiln", "core:brick", "core:grain", "core:grass_seeds", "core:flatbread"]:
+			"core:kiln", "core:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
 	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
 	var cord := Crafting.get_recipe("core:cord")
@@ -1842,16 +1861,16 @@ func _test_inventory() -> void:
 	var all := inv.take_all()
 	_check(inv.is_empty() and all.size() == 3, "a death empties the bag into a sack")
 	_check(Items.category("core:stone_axe") == "tools" and Items.category("core:workbench") == "stations"
-		and Items.category("core:raspberry") == "food" and Items.category("core:grain") == "plants"
+		and Items.category("plants:raspberry") == "food" and Items.category("plants:grain") == "plants"
 		and Items.category("core:stone") == "blocks" and Items.category("core:fiber") == "materials",
 		"an item's kind follows from what it does")
 	var mess := Inventory.new(8)
 	mess.slots = [["core:fiber", 1], null, ["core:stone", 3], ["core:fiber", 2], null, ["core:stone_axe", 1, 5],
-		["core:raspberry", 4], ["core:fiber", 4]]
+		["plants:raspberry", 4], ["core:fiber", 4]]
 	mess.sort("kind", 1)
 	_check(mess.slots[0] == ["core:fiber", 1] and mess.slots[1] == ["core:stone_axe", 1, 5]
 		and mess.slots[2] == ["core:fiber", 6] and mess.slots[3] == ["core:stone", 3]
-		and mess.slots[4] == ["core:raspberry", 4] and mess.slots[5] == null and mess.slots[7] == null,
+		and mess.slots[4] == ["plants:raspberry", 4] and mess.slots[5] == null and mess.slots[7] == null,
 		"sorting by kind tops up stacks, keeps a worn tool apart and leaves the first slots alone")
 	mess.sort("weight")
 	_check(mess.slots[0] == ["core:stone", 3] and mess.slots[1] == ["core:stone_axe", 1, 5] and mess.count("core:fiber") == 7,
@@ -1919,7 +1938,7 @@ func _test_vitals() -> void:
 	v.satiety = Vitals.MAX
 	_check(not v.eat(5.0), "a full character does not eat")
 	v.health = 50.0
-	_check(v.heal(Items.heal("core:bandage")) and v.health > 50.0 and Tools.use_of("core:bandage") == "heal", "a bandage heals")
+	_check(v.heal(Items.heal("plants:bandage")) and v.health > 50.0 and Tools.use_of("plants:bandage") == "heal", "a bandage heals")
 	v.health = Vitals.MAX
 	_check(not v.heal(10.0), "a bandage is not used up on a healthy body")
 	v.health = 60.0
@@ -1957,8 +1976,8 @@ func _test_felling() -> void:
 			w.set_cell(x, 0, z, Mat.STONE)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	Trees.place(w, 15, 1, 23, Trees.OAK, rng)
-	Trees.place(w, 31, 1, 23, Trees.OAK, rng)
+	Trees.place(w, 15, 1, 23, Trees.sample(Trees.LOWLAND), rng)
+	Trees.place(w, 31, 1, 23, Trees.sample(Trees.LOWLAND), rng)
 	var leaves_of_second := 0
 	for z in range(14, 33):
 		for x in range(24, 41):
@@ -1967,14 +1986,14 @@ func _test_felling() -> void:
 	# bark of one wider than its cell stops a body beside it.
 	var girths := {}
 	for i in 40:
-		var box := Trees.trunk_box(Trees.OAK, Vector2i(2 * i + 1, 7), 0)
+		var box := Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(2 * i + 1, 7), 0)
 		girths[box.size.x] = true
-		var g: Array = Trees.SPECIES[Trees.OAK].girth
+		var g: Array = Trees.SPECIES[Trees.sample(Trees.LOWLAND)].girth
 		_check(box.size.x >= g[0] and box.size.x <= g[1], "a trunk's girth is in its species' range")
 	_check(girths.size() > 2, "trunks differ in girth")
-	_check(Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 0).size.x,
+	_check(Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(15, 23), 0).size.x,
 		"a trunk thins going up")
-	var box := Trees.trunk_box(Trees.OAK, Vector2i(15, 23), 1)
+	var box := Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(15, 23), 1)
 	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8), "thick bark east of a trunk is solid")
 	_check(not w.blocks_part(16, 2, 23, 0.7, 0.9, 0.4, 0.6), "a body further from the trunk is not stopped")
 	var gone := Trees.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
@@ -1996,7 +2015,7 @@ func _test_felling() -> void:
 		for d: Array in w.drops[key]:
 			kinds[d[0]] = true
 			_check(d[1].z > 23 * WorldData.CELL, "the tree falls away from the axe")
-	_check(kinds.has("core:log") and kinds.has("core:branch") and kinds.has("core:acorn"), "a felled oak leaves logs, branches and acorns")
+	_check(kinds.has("core:log") and kinds.has("core:branch") and kinds.has("plants:acorn"), "a felled oak leaves logs, branches and acorns")
 	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
 
 
@@ -2011,13 +2030,13 @@ func _test_front_choice() -> void:
 	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
 	var who := Who.new()
 	who.position = Vector3(30.5, 2.0, 30.5) * WorldData.CELL
-	w.add_bush(Vector3i(30, 2, 29), Bushes.SHRUB)
-	w.add_bush(Vector3i(30, 2, 28), Bushes.RASPBERRY)
+	w.add_bush(Vector3i(30, 2, 29), Bushes.sample(Bushes.ANY))
+	w.add_bush(Vector3i(30, 2, 28), Bushes.sample(Trees.LOWLAND))
 	var berries := Vector3i(30, 2, 28)
-	_check(actions.ripe(berries, Bushes.TYPES[Bushes.RASPBERRY]) and actions.front_choice(who) == {"bush": berries},
+	_check(actions.ripe(berries, Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]) and actions.front_choice(who) == {"bush": berries},
 		"bare hands go for the berries before the branches of a nearer bush")
-	_check(WorldActions._rank(["core:mushroom"]) < WorldActions._rank(["core:acorn"])
-		and WorldActions._rank(["core:acorn"]) < WorldActions._rank(["core:fiber"])
+	_check(WorldActions._rank(["plants:mushroom"]) < WorldActions._rank(["plants:acorn"])
+		and WorldActions._rank(["plants:acorn"]) < WorldActions._rank(["core:fiber"])
 		and WorldActions._rank(["core:branch"]) < WorldActions._rank([]), "food, then seeds, then the rest, then digging")
 	w.remove_bush(Vector3i(30, 2, 29))
 	w.remove_bush(berries)
@@ -2086,7 +2105,7 @@ func _test_world_actions() -> void:
 		"a block is placed from the bag")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	Trees.place(w, 15, 2, 23, Trees.OAK, rng)
+	Trees.place(w, 15, 2, 23, Trees.sample(Trees.LOWLAND), rng)
 	who.position = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
 	who.item = "core:stone_axe"
 	var logs := w.log_col(15, 23)
@@ -2094,7 +2113,7 @@ func _test_world_actions() -> void:
 	while w.log_col(15, 23) == logs and hits < 50:
 		actions.chop(who, actions.trunk_cell(who, Vector2i(15, 23)))
 		hits += 1
-	_check(hits > 1 and hits <= Trees.SPECIES[Trees.OAK].hits and not w.drops.is_empty(), "an oak falls after its hits")
+	_check(hits > 1 and hits <= Trees.SPECIES[Trees.sample(Trees.LOWLAND)].hits and not w.drops.is_empty(), "an oak falls after its hits")
 	# Moss grows on bare stone in damp patches, where world.gdshader draws it: bare
 	# hands pick it, and the stone stays.
 	var rock := WorldData.new(8, Vector2i(96, 96))
@@ -2318,7 +2337,7 @@ func _test_weather() -> void:
 	clock.season = Clock.AUTUMN
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3
-	Trees.place(w, 24, 2, 24, Trees.OAK, rng)
+	Trees.place(w, 24, 2, 24, Trees.sample(Trees.LOWLAND), rng)
 	for key: Vector2i in w.chunks:
 		w.chunks[key].final = true
 	var actions := WorldActions.new(w, clock, {"free_build": false})
@@ -2331,7 +2350,7 @@ func _test_weather() -> void:
 		for d: Array in w.drops[key]:
 			if d[0] == Items.BRANCH:
 				branches += WorldActions.count(d)
-	var s: Dictionary = Trees.SPECIES[Trees.OAK]
+	var s: Dictionary = Trees.SPECIES[Trees.sample(Trees.LOWLAND)]
 	_check(branches > 0 and branches == w.tree_twigs.get(Vector2i(24, 24), 0) and branches <= s.twigs,
 		"a storm breaks branches off a tree, no more than it has (%d of %d)" % [branches, s.twigs])
 	w.tree_twigs[Vector2i(24, 24)] = s.twigs

@@ -215,7 +215,8 @@ func _flow_scalar(text: String, pos: Array, number: int, key: bool) -> Variant:
 	var start: int = pos[0]
 	while pos[0] < text.length():
 		var d := text[pos[0]]
-		if d == "," or d == "]" or d == "}" or (key and d == ":"):
+		# A key ends at a `:` before a space or the end, so `core:fiber: 1` keeps its namespace.
+		if d == "," or d == "]" or d == "}" or (key and d == ":" and (pos[0] + 1 >= text.length() or text[pos[0] + 1] in " ,}")):
 			break
 		pos[0] += 1
 	var word := text.substr(start, pos[0] - start).strip_edges()

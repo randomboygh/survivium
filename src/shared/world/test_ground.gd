@@ -79,8 +79,8 @@ const PEAK_RISE := 20
 ## north part (CAMP_DROPS in turn, some heaped), sacks on a row, then the placed things
 ## (CAMP_THINGS), then lit campfires.
 const CAMP := Rect2i(60, -30, 32, 18)
-const CAMP_DROPS := ["log", "branch", "stone", "acorn", "cone", "raspberry", "dirt", "planks", "flint",
-	"stone_axe", "mushroom", "clay", "fiber", "brick", "wooden_shovel", "blueberry"]
+const CAMP_DROPS := ["log", "branch", "stone", "plants:acorn", "plants:cone", "plants:raspberry", "dirt", "planks", "flint",
+	"stone_axe", "plants:mushroom", "clay", "fiber", "brick", "wooden_shovel", "plants:blueberry"]
 const CAMP_THINGS := ["core:chest", "core:workbench", "core:kiln"]
 
 ## Top of the meadow (filled in _init: two cells above the sea).
@@ -282,24 +282,29 @@ func extras(x: int, z: int) -> Array:
 	return out
 
 
-## The trees of the plan: [x, z, species] on odd columns.
+## The trees of the plan: [x, z, species] on odd columns; a lowland species where the
+## plan says oak, a highland one where spruce (none loaded: no trees).
 func plan_trees() -> Array:
 	var out := []
+	var oak := Trees.sample(Trees.LOWLAND)
+	var spruce := Trees.sample(Trees.HIGHLAND)
+	if oak < 0:
+		return out
 	for x in range(-45, -30, 4):
-		out.append([x, -7, Trees.OAK])
-		out.append([x, 7, Trees.OAK])
+		out.append([x, -7, oak])
+		out.append([x, 7, oak])
 	for x in range(-27, -14, 4):
-		out.append([x, -7, Trees.SPRUCE])
-		out.append([x, 7, Trees.SPRUCE])
+		out.append([x, -7, spruce])
+		out.append([x, 7, spruce])
 	# A few in the forest and taiga strips.
 	for z in range(17, 38, 6):
-		out.append([3, z, Trees.OAK])
-		out.append([11, z, Trees.SPRUCE])
+		out.append([3, z, oak])
+		out.append([11, z, spruce])
 	# Oaks along the north edge of the field of ears, the grove in rows.
 	for x in range(101, 132, 6):
-		out.append([x, -11, Trees.OAK])
+		out.append([x, -11, oak])
 		for z in range(17, 38, 6):
-			out.append([x, z, Trees.SPRUCE if x >= 122 else Trees.OAK])
+			out.append([x, z, spruce if x >= 122 else oak])
 	return out
 
 
@@ -308,16 +313,18 @@ func plan_trees() -> Array:
 ## sacks, each holding a few stacks.
 func plan_drops() -> Array:
 	var out := []
+	# Drops of mods the world is without are left out.
+	var drops: Array = CAMP_DROPS.filter(func(id: String) -> bool: return Items.has(id))
 	for z in range(CAMP.position.y, CAMP.position.y + 8):
 		for x in range(CAMP.position.x, CAMP.end.x):
-			var k := posmod(x * 3 + z * 5, CAMP_DROPS.size())
-			var kind: String = CAMP_DROPS[k]
+			var k := posmod(x * 3 + z * 5, drops.size())
+			var kind: String = drops[k]
 			var tool: bool = Items.get_item(kind).get("tool", "none") != "none"
 			out.append([kind, x, z, 1 if tool or posmod(x + z, 5) != 0 else 5])
 	for x in range(CAMP.position.x + 1, CAMP.end.x, 3):
 		var stacks := []
 		for i in 4:
-			stacks.append([Items.get_item(CAMP_DROPS[(x + i * 3) % CAMP_DROPS.size()]).id, 1 + i * 2])
+			stacks.append([Items.get_item(drops[(x + i * 3) % drops.size()]).id, 1 + i * 2])
 		out.append([Items.SACK, x, CAMP.position.y + 9, stacks])
 	return out
 
@@ -339,23 +346,28 @@ func plan_things() -> Array:
 func plan_bushes() -> Array:
 	var out := []
 	# The bush garden: a row of each kind and a mixed one.
-	var kinds := [Bushes.RASPBERRY, Bushes.BLUEBERRY, Bushes.SHRUB]
+	var raspberry := Bushes.sample(Trees.LOWLAND)
+	var blueberry := Bushes.sample(Trees.HIGHLAND)
+	var shrub := Bushes.sample(Bushes.ANY)
+	var kinds := [raspberry, blueberry, shrub]
+	if raspberry < 0 or blueberry < 0 or shrub < 0:
+		return out
 	for row in 4:
 		for x in range(63, 95, 2):
 			var kind: int = kinds[row] if row < 3 else kinds[posmod(x, 3)]
 			out.append([x, -8 + row * 3, kind])
 	# Under the trees of the forest and taiga strips.
 	for z in range(15, 38, 3):
-		out.append([0, z, Bushes.RASPBERRY])
-		out.append([6, z, Bushes.SHRUB])
-		out.append([9, z, Bushes.BLUEBERRY])
-		out.append([14, z, Bushes.BLUEBERRY])
+		out.append([0, z, raspberry])
+		out.append([6, z, shrub])
+		out.append([9, z, blueberry])
+		out.append([14, z, blueberry])
 	for x in range(-45, -32, 3):
-		out.append([x, 0, Bushes.RASPBERRY])
+		out.append([x, 0, raspberry])
 	for x in range(-30, -20, 3):
-		out.append([x, 0, Bushes.BLUEBERRY])
+		out.append([x, 0, blueberry])
 	for x in range(-18, -14, 3):
-		out.append([x, 0, Bushes.SHRUB])
+		out.append([x, 0, shrub])
 	return out
 
 

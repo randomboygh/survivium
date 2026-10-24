@@ -15,11 +15,13 @@ const Items := preload("res://src/shared/content/items.gd")
 const BROAD := 0
 const NEEDLES := 1
 
-## Species the engine and the generator refer to; the validator demands them.
-const KNOWN := {"OAK": "core:oak", "SPRUCE": "core:spruce"}
+## The lands a species grows on (its `land`): the generator asks for a tree of the land
+## a column is, not for a species by name, so a mod decides what grows there.
+const LOWLAND := "lowland"
+const HIGHLAND := "highland"
 
-static var OAK := 0
-static var SPRUCE := 0
+## Index -> the species of each land, in record order (see `pick`).
+static var BY_LAND := {}
 
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := 8
@@ -41,8 +43,9 @@ static func refresh() -> void:
 		var s: Dictionary = r.duplicate()
 		s.leaves = NEEDLES if r.leaves == "needles" else BROAD
 		SPECIES.append(s)
-	OAK = index(KNOWN.OAK)
-	SPRUCE = index(KNOWN.SPRUCE)
+	BY_LAND = {LOWLAND: [], HIGHLAND: []}
+	for i in SPECIES.size():
+		BY_LAND[SPECIES[i].land].append(i)
 
 
 ## Index of the species with `id`, or -1.
@@ -53,12 +56,30 @@ static func index(id: String) -> int:
 	return -1
 
 
+## The species to plant on `land` for the roll `roll` (0..1): one of the land's species in
+## turn, or one of the other land's when the land has none, or -1 when no tree is loaded.
+static func pick(land: String, roll: float) -> int:
+	var of: Array = BY_LAND.get(land, [])
+	if of.is_empty():
+		of = BY_LAND.get(HIGHLAND if land == LOWLAND else LOWLAND, [])
+	if of.is_empty():
+		return -1
+	return of[mini(int(roll * of.size()), of.size() - 1)]
+
+
+## A species of `land`, the first one, or -1 (see `pick`).
+static func sample(land: String) -> int:
+	return pick(land, 0.0)
+
+
+## The land species `species` grows on, "" for none (-1).
+static func land_of(species: int) -> String:
+	return "" if species < 0 or species >= SPECIES.size() else SPECIES[species].land
+
+
 ## What is wrong with the loaded trees for the engine, if anything.
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
-	for name in KNOWN:
-		if index(KNOWN[name]) < 0:
-			out.append("trees: the engine needs `%s`" % KNOWN[name])
 	for s in SPECIES:
 		if s.trunk[0] > s.trunk[1]:
 			out.append("trees: `%s`: trunk [min, max] has min above max" % s.id)

@@ -12,12 +12,10 @@ const Content := preload("res://src/shared/content/content.gd")
 ## gives and what the client draws.
 const BERRY_AMOUNT := [0.0, 1.0, 0.55, 0.0]
 
-## Types the engine refers to; the validator demands them.
-const KNOWN := {"SHRUB": "core:shrub", "RASPBERRY": "core:raspberry", "BLUEBERRY": "core:blueberry"}
-
-static var SHRUB := 0
-static var RASPBERRY := 0
-static var BLUEBERRY := 0
+## Where a bush grows (the keys of its `under`): under the trees of a land (see Trees),
+## in the open (no tree near), or anywhere no other bush took the spot.
+const OPEN := "open"
+const ANY := "any"
 
 ## Index -> record from `content/*/data/bushes.yaml` (see Content): id, title, tint
 ## (Color), berries (Color, black for none), berry_cards, cards, rise, spread
@@ -37,9 +35,6 @@ static func refresh() -> void:
 		if b.berries == null:
 			b.berries = Color.BLACK
 		TYPES.append(b)
-	SHRUB = index(KNOWN.SHRUB)
-	RASPBERRY = index(KNOWN.RASPBERRY)
-	BLUEBERRY = index(KNOWN.BLUEBERRY)
 
 
 ## Index of the type with `id`, or -1.
@@ -50,13 +45,34 @@ static func index(id: String) -> int:
 	return -1
 
 
+## The bush for a spot `where` (a land of Trees when a tree is near, else OPEN) and the
+## roll `roll` (0..1): the types that grow there are tried in record order, each taking
+## its share of the roll; what is left goes to the ANY types in turn by `salt`; -1 when
+## no bush fits.
+static func pick(where: String, roll: float, salt: int = 0) -> int:
+	var any := []
+	for i in TYPES.size():
+		var under: Dictionary = TYPES[i].under
+		if under.has(ANY):
+			any.append(i)
+		var share: float = under.get(where, 0.0)
+		if roll < share:
+			return i
+		roll -= share
+	return -1 if any.is_empty() else any[posmod(salt, any.size())]
+
+
+## A type that grows at `where`, the first one, or -1 (see `pick`).
+static func sample(where: String) -> int:
+	for i in TYPES.size():
+		if TYPES[i].under.get(where, 0.0) > 0.0:
+			return i
+	return pick(where, 1.0)
+
+
 ## What is wrong with the loaded bushes for the engine, if anything.
 static func check() -> PackedStringArray:
-	var out: PackedStringArray = []
-	for name in KNOWN:
-		if index(KNOWN[name]) < 0:
-			out.append("bushes: the engine needs `%s`" % KNOWN[name])
-	return out
+	return []
 
 
 ## True when a bush can stand in cell x, y, z: air on level grass.

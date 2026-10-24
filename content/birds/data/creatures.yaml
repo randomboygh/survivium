@@ -16,6 +16,6 @@
   flies: true
   flock: [4, 8]
   roost: trees
-  likes: [core:ears]
+  likes: [plants:ears]
   calls: sparrow
   alarm: sparrow

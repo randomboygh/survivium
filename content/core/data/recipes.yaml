@@ -16,16 +16,6 @@
   makes: campfire
   needs: {branch: 5, fiber: 5}
   time: 4
-- id: flour
-  title: Мука
-  makes: flour
-  needs: {grain: 4}
-  time: 4
-- id: bandage
-  title: Бинт
-  makes: bandage
-  needs: {moss: 2, fiber: 2}
-  time: 3
 - id: workbench
   title: Верстак
   makes: workbench
@@ -108,18 +98,4 @@
   makes: brick
   needs: {clay: 1}
   at: kiln
-  time: 4
-- id: flatbread
-  title: Лепёшка
-  makes: flatbread
-  needs: {flour: 2}
-  at: kiln
-  time: 5
-
-# У костра
-- id: fried_mushrooms
-  title: Жареные грибы
-  makes: fried_mushrooms
-  needs: {mushroom: 4}
-  at: campfire
   time: 4

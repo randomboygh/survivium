@@ -1241,8 +1241,9 @@ func _tree_candidates(_key: Vector2i, lay: Dictionary) -> Array:
 	return out
 
 
-## Species of the tree a lattice column wants, -1 for none. Spruces on the high and
-## cold ground, oaks in the lowland forest and the swamp, mixed where they meet.
+## Species of the tree a lattice column wants, -1 for none: a highland tree on the high
+## and cold ground, a lowland one in the lowland forest and the swamp, mixed where they
+## meet; which species that is, the loaded mods say (Trees.pick).
 func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var j := lz * WINDOW + lx
 	var x: int = lay.x0 + lx
@@ -1261,9 +1262,9 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	if _chance(x, z, 1) >= chance:
 		return -1
 	var spruce: float = SPRUCE_SHARE[b]
-	# Higher up the share of spruces grows.
+	# Higher up the share of highland trees grows.
 	spruce += clampf((lay.heights[j] - sea - 6) * 0.15, 0.0, 1.0) * 0.5
-	return Trees.SPRUCE if _chance(x, z, 2) < spruce else Trees.OAK
+	return Trees.pick(Trees.HIGHLAND if _chance(x, z, 2) < spruce else Trees.LOWLAND, _chance(x, z, 6))
 
 
 ## Grows one candidate tree of the job: [x, z, species, ground height]; its crown is
@@ -1344,8 +1345,9 @@ func _reshape_edges(key: Vector2i) -> void:
 
 
 ## Bushes of the chunk by biome: a hash of each cell against the biome's sparsity, on
-## level grass in the open; blueberries under spruces, raspberries near oaks and at
-## the edges of woods, plain shrubs elsewhere.
+## level grass in the open; which bush, the loaded types say by the tree near the spot
+## (Bushes.pick: blueberries under spruces, raspberries near oaks and in the open,
+## plain shrubs elsewhere).
 func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 	var biome: PackedByteArray = lay.biome
 	var x0: int = lay.x0
@@ -1363,14 +1365,10 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 			var y: int = world.surface_y(x, z)
 			if not Bushes.fits(world, x, y, z):
 				continue
-			var near := Bushes.tree_near(world, x, z, 10)
-			var roll := _chance(x, z, 5)
-			var type := Bushes.SHRUB
-			if near == Trees.SPRUCE:
-				type = Bushes.BLUEBERRY if roll < 0.7 else Bushes.SHRUB
-			elif roll < (0.5 if near == Trees.OAK else 0.35):
-				type = Bushes.RASPBERRY
-			Bushes.place(world, x, y, z, type)
+			var near := Trees.land_of(Bushes.tree_near(world, x, z, 10))
+			var type := Bushes.pick(Bushes.OPEN if near == "" else near, _chance(x, z, 5), _hash(x, z, 7))
+			if type >= 0:
+				Bushes.place(world, x, y, z, type)
 
 
 # --- Spawn, places and the map ---------------------------------------------------------

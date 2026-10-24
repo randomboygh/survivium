@@ -75,8 +75,11 @@ func choose_world() -> void:
 		meta = {}
 		return
 	has_save = true
-	# A save from before mods were kept was made with every mod there was.
+	# A save from before mods were kept was made with every mod there was; one from before
+	# the plants were a mod of their own (no `content` mark) had them in the base game.
 	game.world_mods = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
+	if not meta.has("content") and not "plants" in game.world_mods and "plants" in Mods.available():
+		game.world_mods.insert(1, "plants")
 	player_record = store.read_json(PLAYER)
 	played = meta.get("played", 0.0)
 	print("save %s: %d chunks, %.0f s played" % [store.dir, store.chunk_count(), played])
@@ -199,6 +202,7 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
+		"content": 2,
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),

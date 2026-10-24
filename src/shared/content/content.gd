@@ -97,6 +97,7 @@ const SCHEMAS := {
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
+		"land": {"type": "enum", "values": ["lowland", "highland"]},
 		"trunk": {"type": "list", "of": "int", "len": 2, "min": 0},
 		"girth": {"type": "list", "of": "int", "len": 2, "min": 2, "default": [6, 6]},
 		"taper": {"type": "float", "min": 0.0, "default": 0.0},
@@ -112,6 +113,7 @@ const SCHEMAS := {
 	},
 	"bushes": {
 		"tint": {"type": "color"},
+		"under": {"type": "shares", "keys": ["lowland", "highland", "open", "any"]},
 		"berries": {"type": "color", "default": null},
 		"berry_cards": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"cards": {"type": "int", "min": 1},
@@ -137,6 +139,8 @@ const SCHEMAS := {
 		"loop": {"type": "bool", "default": false},
 	},
 	"plants": {
+		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
+			"mushrooms", "glow_mushrooms"]},
 		"gives": {"type": "amounts", "of": "ref:items"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		"pick": {"type": "bool", "default": false},
@@ -459,6 +463,17 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 					return "`%s`: expected a whole number of at least 1" % k
 				amounts[qualify(k, mod)] = v[k]
 			out[0] = amounts
+		"shares":
+			if not v is Dictionary or v.is_empty():
+				return "expected a mapping of %s to shares 0..1, like {%s: 0.5}" % [", ".join(spec.keys), spec.keys[0]]
+			var shares := {}
+			for k in v:
+				if not k is String or not k in spec.keys:
+					return "`%s`: expected one of %s" % [k, ", ".join(spec.keys)]
+				if not (v[k] is float or v[k] is int) or v[k] < 0.0 or v[k] > 1.0:
+					return "`%s`: expected a share from 0 to 1" % k
+				shares[k] = float(v[k])
+			out[0] = shares
 		_:
 			if type.begins_with("ref:"):
 				if not v is String or v == "":
@@ -492,7 +507,7 @@ static func _zero(spec: Dictionary) -> Variant:
 			return Color.MAGENTA
 		"vec3":
 			return Vector3.ZERO
-		"amounts":
+		"amounts", "shares":
 			return {}
 		"list":
 			var items := []
