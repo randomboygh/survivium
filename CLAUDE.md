@@ -243,6 +243,9 @@ GDScript. Notes: `plan/architecture/performance.md`.
   `gl_watch.gd`); an ordinary frame's parts head the list. A JS snippet run from GDScript
   must be strict and must not touch `arguments` in a wrapper with named params: that makes an
   object per call (7.5 KB a frame from the WebGL wrapper alone).
+- Compatibility lights each mesh with at most `rendering/limits/opengl/max_lights_per_object`
+  omni lights (32 here; Godot's 8 made square chunk-sized edges in the light by a camp of fires):
+  a chunk mesh is one object, so past the cap neighbouring chunks are lit by different lights.
 - Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
   through a copy of the buses made at start, so a bus added by `AudioServer.add_bus` later is silent
   in the browser (fine on desktop, so only the browser shows it).

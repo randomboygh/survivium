@@ -127,6 +127,12 @@ func speed_at(at: Vector3) -> float:
 ## jumping when `jump` is held; returns where it is then.
 func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var p := at / CELL
+	# The ground under the body changed (a cell dug beside it reshaped the slopes) and
+	# it is in the ground now: up onto it, so it is not stuck there.
+	if _collides(p):
+		var top := _ground_top(p, p.y, p.y + 1.0)
+		if top > -INF and not _collides(Vector3(p.x, top, p.z)):
+			p.y = top
 	var surface := _water_surface(p)
 	if surface > -INF and world.water_frozen:
 		# The water froze around the body: stand on the ice.

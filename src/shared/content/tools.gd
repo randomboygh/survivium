@@ -130,17 +130,17 @@ static func step_of(dir: Vector2) -> Vector2i:
 
 
 ## Cells the action button works on, in order, for a body with its feet in `feet`
-## facing `step`, outward from the body like a pit dug around it: at the feet's level
-## the cell in front, the one beyond it, the ones left and right of the first, the ones
-## beyond those (see front_ring); then the same a level lower and a level higher; then
-## the cell over the head (the body is two cells tall) and last the one under the feet.
+## facing `step`, from the top down like a wall cut back in front of it: at the head's
+## level (the body is two cells tall) the cell in front, the one beyond it, the ones left
+## and right of the first, the ones beyond those (see front_ring); then the same at the
+## waist, then the ground in front of the feet; last the cell over the head. The one
+## under the feet is not here: WorldActions.front_order adds it once all around is dug.
 static func front_cells(feet: Vector3i, step: Vector2i) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
-	for dy in [0, -1, 1]:
+	for dy in [1, 0, -1]:
 		for o in front_ring(step):
 			out.append(feet + o + Vector3i(0, dy, 0))
 	out.append(feet + Vector3i(0, 2, 0))
-	out.append(feet + Vector3i.DOWN)
 	return out
 
 
