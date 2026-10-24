@@ -155,6 +155,7 @@ func _ready() -> void:
 	save.choose_world()
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
+	get_tree().process_frame.connect(_build_while_paused)
 	sky = SkyScript.new(self)
 	clock = Clock.new()
 	clock.season_changed.connect(sky.on_season)
@@ -238,6 +239,16 @@ func start_world() -> void:
 	chunks.prepare(gen)
 
 
+## While the game is paused (its menu open) the world goes on being built around the
+## player, so less is left to build when the game goes on (see ChunkStreamer.paused).
+func _build_while_paused() -> void:
+	if not get_tree().paused or not ready_to_play or world == null:
+		return
+	chunks.paused = true
+	chunks.run_jobs()
+	chunks.update_caps()
+
+
 func _process(delta: float) -> void:
 	# The frame before is over: the statistics take its time and what its parts took.
 	var perf = hud.perf
@@ -245,6 +256,7 @@ func _process(delta: float) -> void:
 	if world == null:
 		return
 	var t := Time.get_ticks_usec()
+	chunks.paused = false
 	if not ready_to_play:
 		# Behind the main menu the chunks are built a step at a time (run_jobs below),
 		# so the menu does not stutter; else whole, as fast as it goes.

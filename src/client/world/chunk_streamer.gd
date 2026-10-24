@@ -33,6 +33,10 @@ const URGENT_CHUNKS := NEAR_CHUNKS + 1
 ## mountains a few more to the south); beyond UNLOAD_RANGE their meshes are freed.
 const LOAD_RANGE := 5
 const UNLOAD_RANGE := 8
+## While the game is paused (its menu open) the chunks are built this far, still
+## within UNLOAD_RANGE and with their terrain within DROP_RANGE, so less is left to
+## build when the player walks on.
+const PAUSE_RANGE := LOAD_RANGE + 2
 ## Beyond this many chunks the generator forgets chunks the player has not changed. A
 ## chunk LOAD_RANGE away needs the terrain of chunks two farther, which must stay.
 const DROP_RANGE := LOAD_RANGE + 4
@@ -97,6 +101,9 @@ var near_pending := 0
 ## When run_jobs ended last frame, and the budget for loading this frame (see LOAD_MAX_US).
 var _jobs_end := 0
 var _load_budget := LOAD_BUDGET_US
+## The game is paused: run_jobs builds within PAUSE_RANGE on the loading budget.
+var paused := false
+var load_reach := LOAD_RANGE
 var near_total := 0
 ## While the character lies dead, the respawn point the death screen offers first
 ## (world units), else Vector3.INF: the chunks are built around it instead of around
@@ -234,12 +241,14 @@ func _is_near(key: Vector2i, home: Vector2i) -> bool:
 ## meshes yet, and queues the ones beyond UNLOAD_RANGE to lose theirs.
 func _list_pending() -> void:
 	var home := _load_chunk()
-	if home == load_home:
+	var reach := PAUSE_RANGE if paused else LOAD_RANGE
+	if home == load_home and reach == load_reach:
 		return
 	load_home = home
+	load_reach = reach
 	pending_chunks.clear()
-	for cz in range(home.y - LOAD_RANGE, home.y + LOAD_RANGE + 1):
-		for cx in range(home.x - LOAD_RANGE, home.x + LOAD_RANGE + 1):
+	for cz in range(home.y - reach, home.y + reach + 1):
+		for cx in range(home.x - reach, home.x + reach + 1):
 			var key := Vector2i(cx, cz)
 			if not chunk_nodes.has(key) and not (has_target and key == job_key):
 				pending_chunks.append(key)
@@ -394,7 +403,7 @@ func _drop_job() -> void:
 ## else in it; an edit may do several while its budget lasts.
 func run_jobs() -> void:
 	var t0 := Time.get_ticks_usec()
-	if not game.ready_to_play:
+	if not game.ready_to_play or paused:
 		_load_budget = clampi(t0 - _jobs_end, LOAD_BUDGET_US, LOAD_MAX_US) if _jobs_end > 0 else LOAD_BUDGET_US
 		if not job_edit and (job_mesh != null or job_gen != null or has_target):
 			job_budget = _load_budget
@@ -423,7 +432,7 @@ func run_jobs() -> void:
 				var at := _load_chunk()
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
-				if not game.ready_to_play:
+				if not game.ready_to_play or paused:
 					job_budget = _load_budget
 			else:
 				break
@@ -455,8 +464,8 @@ func run_jobs() -> void:
 				break
 			job_part = 0
 			continue
-		# Loading behind the menu, the parts go on while the budget lasts.
-		if worked and not job_edit and game.ready_to_play:
+		# Loading behind the menu or the pause, the parts go on while the budget lasts.
+		if worked and not job_edit and game.ready_to_play and not paused:
 			break
 		var finished := _finish_part()
 		worked = true

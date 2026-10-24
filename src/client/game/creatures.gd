@@ -17,6 +17,10 @@ const SpriteShader := preload("res://shaders/sprite.gdshader")
 const FAR_MARGIN := 4.0
 ## Frames of a wing beat a second.
 const FLAP_RATE := 12.0
+## World units round a sprite's culling box for what the shaders move a little (the
+## half pixel snap); the box is also widened by half the sprite's width, where the
+## shadow pass turns the quad to face the light.
+const CULL_MARGIN := 0.5
 
 var wildlife
 ## Footprints (see tracks.gd); animals leave paw prints sized by their mass.
@@ -26,6 +30,9 @@ var perf
 ## kind -> [mesh, materials, one a frame]
 var looks := {}
 var _sprites := {}
+## sprite -> where its culling box was fitted, and the views it was fitted for.
+var _fitted := {}
+var _views: Array = []
 
 
 ## Draws the animals of `w` (Wildlife) from now on, those there already and those to come.
@@ -59,10 +66,18 @@ func _process(delta: float) -> void:
 		a.near = seen.has_point(PixelView.screen_plane(a.pos))
 	wildlife.update(delta)
 	var beat := Time.get_ticks_msec() * 0.001 * FLAP_RATE
+	if _views != PixelView.box_views:
+		# The camera turns: every box again, for the views it may show.
+		_views = PixelView.box_views
+		_fitted.clear()
+		for a in wildlife.animals:
+			_fit(a, _sprites[a])
 	for a in wildlife.animals:
 		if a.away == 0.0:
 			var sprite: MeshInstance3D = _sprites[a]
 			sprite.position = PixelView.snap(a.pos)
+			if _fitted.get(sprite) != sprite.position:
+				_fit(a, sprite)
 			# Facing east or west in the world, which way on the screen.
 			sprite.scale.x = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
 			if a.flying or a.frame != 0:
@@ -108,15 +123,29 @@ func _on_born(a) -> void:
 	var sprite := MeshInstance3D.new()
 	sprite.mesh = looks[a.kind][0]
 	sprite.material_override = looks[a.kind][1][0]
-	sprite.extra_cull_margin = 24.0
 	sprite.position = PixelView.snap(a.pos)
 	add_child(sprite)
 	_sprites[a] = sprite
+	_fit(a, sprite)
 
 
 func _on_gone(a) -> void:
+	_fitted.erase(_sprites[a])
 	_sprites[a].queue_free()
 	_sprites.erase(a)
+
+
+## Fits the culling box of animal `a`'s sprite to where the shaders draw it (sheared by
+## its height), so a sprite off the screen is not drawn; even about x, as the sprite
+## is mirrored to face the other way.
+func _fit(a, sprite: MeshInstance3D) -> void:
+	var at := sprite.position
+	var mesh_box: AABB = looks[a.kind][0].get_aabb()
+	var box := PixelView.sheared_box(AABB(at + mesh_box.position, mesh_box.size), CULL_MARGIN + mesh_box.size.x * 0.5)
+	box.position -= at
+	var half := maxf(-box.position.x, box.end.x)
+	sprite.custom_aabb = AABB(Vector3(-half, box.position.y, box.position.z), Vector3(2.0 * half, box.size.y, box.size.z))
+	_fitted[sprite] = at
 
 
 func _on_stepped(_a, at: Vector3, dir: Vector2, left: bool, size: float) -> void:
