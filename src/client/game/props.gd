@@ -63,8 +63,8 @@ func watch(placed) -> void:
 
 
 ## Puts the placed things into the world as the save had them, or a chest and a
-## campfire next to the player in a new world; the near chunks are built by then, so
-## the ground under them is known.
+## campfire next to the player in a new world (and the test world's camp); the near
+## chunks are built by then, so the ground under them is known.
 func place() -> void:
 	var meta: Dictionary = game.save.meta
 	if meta.get("placed") is Array:
@@ -78,6 +78,10 @@ func place() -> void:
 					meta.get("chest") if name == "chest" else null)
 	else:
 		game.placed.start_camp(game.player.position)
+		# The camp of the test world (TestGround.plan_things), for FPS and freezes.
+		if game.gen.has_method("plan_things"):
+			for t: Array in game.gen.plan_things():
+				game.placed.put(t[0], t[1])
 	_heat_later()
 
 

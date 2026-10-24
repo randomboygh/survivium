@@ -370,6 +370,9 @@ const SHOTS := {
 	# The grove's floor: moss, mushrooms, and the mushrooms that glow at night.
 	"ground-grove": {"time": 0.42, "season": 1, "at": [112, 26]},
 	"ground-grove-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [124, 26]},
+	# The camp for FPS and freezes: things on the ground, sacks, stations, campfires.
+	"ground-camp": {"time": 0.42, "season": 1, "at": [76, -12]},
+	"ground-camp-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [76, -12]},
 	"ground-mountain-top": {"time": 0.42, "season": 1, "at": [121, 64]},
 }
 

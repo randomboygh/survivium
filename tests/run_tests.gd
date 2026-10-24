@@ -789,6 +789,17 @@ func _test_ground() -> void:
 	_check(grove.has(Plants.MUSHROOMS) and grove.has(Plants.GLOW), "the grove has mushrooms and glowing ones")
 	gen.generate_area(Vector2i(-5, 3), Vector2i(1, 6))
 	gen.generate_area(Vector2i(6, 2), Vector2i(8, 5))
+	# The camp: everything of the plan lies on the ground with its chunks, sacks too.
+	gen.generate_area(Vector2i(3, -2), Vector2i(6, -1))
+	var lying := 0
+	var sacks := 0
+	for key: Vector2i in w.drops:
+		for d: Array in w.drops[key]:
+			if gen.CAMP.has_point(Vector2i(floori(d[1].x / WorldData.CELL), floori(d[1].z / WorldData.CELL))):
+				lying += 1
+				sacks += 1 if d[0] == Items.SACK else 0
+	_check(lying == gen.plan_drops().size() and sacks >= 10 and gen.plan_things().size() >= 15,
+		"the camp of the test world has its things on the ground (%d), sacks (%d) and placed things" % [lying, sacks])
 	_check(w.surface_y(TestGround.PEAK.x, TestGround.PEAK.y) == g + TestGround.PEAK_RISE + 1
 		and w.peak_snow(g + TestGround.PEAK_RISE + 1) == 1.0, "the mountain of the test world rises into the snow")
 	# The relief ground: the lone cell of grass rises a cell, the ring's hollow does not,
