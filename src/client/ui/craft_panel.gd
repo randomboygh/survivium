@@ -388,7 +388,7 @@ func _show_details(near: Dictionary) -> void:
 	if r.tool != "none":
 		var has := Crafting.has_tool(r, inv)
 		var name: String = Crafting.TOOL_NAMES.get(r.tool, r.tool)
-		where.append([ItemIcons.picture(r.tool), "" if has else "нет", not has, name.capitalize()])
+		where.append([ItemIcons.of_tool(r.tool), "" if has else "нет", not has, name.capitalize()])
 	if where.is_empty():
 		where.append([ItemIcons.picture("hand"), "", false, "Руками"])
 	# The time of the recipe; with skills it will be the time at the character's skill.

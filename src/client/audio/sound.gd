@@ -62,8 +62,10 @@ var unlocked := not OS.has_feature("web")
 ## No sound can be heard (headless tests and tools): everything runs but nothing is
 ## started, so no playback is left in the AudioServer when they quit at once.
 var mute := AudioServer.get_driver_name() == "Dummy"
-## The sound records by id (Content `sounds`), and the streams of those loaded.
+## The sound records by id (Content `sounds`), the id of each bare name (see resolve), and
+## the streams of those loaded.
 var records := {}
+var _by_name := {}
 var _streams := {}
 var _to_load: Array = []
 var _voices: Array[AudioStreamPlayer3D] = []
@@ -89,6 +91,7 @@ func _init(g) -> void:
 	make_buses()
 	for rec: Dictionary in Content.records("sounds"):
 		records[rec.id] = rec
+		_by_name[rec.id.get_slice(":", 1)] = rec.id
 		_to_load.append(rec.id)
 
 
@@ -172,8 +175,18 @@ func input(event: InputEvent) -> void:
 		print("sound: on after the first tap")
 
 
+## The record id of sound `name`: a full id (`sounds:chop`) as it is, a bare name (`chop`,
+## what the code asks for) the sound of that name in the last mod that gives one, "" when
+## no loaded mod has it (then nothing sounds).
+func resolve(name: String) -> String:
+	if records.has(name):
+		return name
+	return _by_name.get(name, "")
+
+
 ## The streams of sound `id` (loaded now if they were not yet), [] for an unknown one.
 func streams(id: String) -> Array:
+	id = resolve(id)
 	if _streams.has(id):
 		return _streams[id]
 	if not records.has(id):
@@ -206,7 +219,8 @@ func in_range(pos: Vector3) -> bool:
 ## the same), `bus` where it goes (Sounds, the interface's UI for a sound from no
 ## place; or Nature for the birds and the weather).
 func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> void:
-	if not unlocked or volume <= SILENT or _time - float(_started.get(id, -1.0)) < MIN_GAP:
+	id = resolve(id)
+	if id == "" or not unlocked or volume <= SILENT or _time - float(_started.get(id, -1.0)) < MIN_GAP:
 		return
 	if pos != Vector3.INF and not in_range(pos):
 		return
@@ -238,7 +252,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 
 ## Plays sound `id` (see play) `delay` seconds from now.
 func play_later(delay: float, id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> void:
-	if not unlocked:
+	id = resolve(id)
+	if id == "" or not unlocked:
 		return
 	if delay <= 0.0:
 		play(id, pos, volume, pitch, bus)
@@ -263,6 +278,9 @@ static func free_voice(pool: Array) -> Variant:
 ## Asks loop `id` (a sound with `loop`) to go to `level` (linear, 0 silent) on bus
 ## `bus`, heard the same everywhere; it fades there (see FADE_RATE).
 func loop(id: String, level: float, bus := "Nature") -> void:
+	id = resolve(id)
+	if id == "":
+		return
 	if not _loops.has(id):
 		if level <= SILENT or streams(id).is_empty():
 			return
@@ -277,6 +295,9 @@ func loop(id: String, level: float, bus := "Nature") -> void:
 ## Asks loop `id` to sound from world point `pos` at `level` (see loop); the place may
 ## move each time it is asked.
 func spot(id: String, pos: Vector3, level: float, bus := "Nature") -> void:
+	id = resolve(id)
+	if id == "":
+		return
 	if not _spots.has(id):
 		if level <= SILENT or streams(id).is_empty() or _listener == null:
 			return
@@ -291,6 +312,7 @@ func spot(id: String, pos: Vector3, level: float, bus := "Nature") -> void:
 
 ## The level loop `id` is at now (0 when it is not playing).
 func loop_level(id: String) -> float:
+	id = resolve(id)
 	return _loops[id].level if _loops.has(id) else 0.0
 
 
@@ -304,15 +326,15 @@ func work(done: Dictionary, kind: String, strike: float) -> void:
 	var stuff: int = done.get("stuff", -1)
 	var id := ""
 	if done.has("placed"):
-		id = "core:place"
+		id = "place"
 	elif kind == "reach" and stuff < 0:
 		return
 	elif kind in ["mow", "slash"] and stuff in [Mat.GRASS, Mat.LEAVES]:
-		id = "core:mow"
+		id = "mow"
 	elif stuff >= 0 and stuff < Mat.COUNT:
 		id = Mat.RECORDS[stuff].hit
 	if id == "":
-		id = "core:swish"
+		id = "swish"
 	play_later(done.time * strike, id, at)
 
 
@@ -326,25 +348,25 @@ func _exit_tree() -> void:
 
 
 func _on_taken(_id: String, from: Vector3) -> void:
-	play("core:pickup", from)
+	play("pickup", from)
 
 
 func _on_made(_recipe: Dictionary) -> void:
-	play("core:craft")
+	play("craft")
 
 
 func _on_placed(e: Dictionary) -> void:
 	if game.ready_to_play:
-		play("core:place", Placed.center(e))
+		play("place", Placed.center(e))
 
 
 func _on_lit(e: Dictionary) -> void:
 	if e.lit:
-		play("core:ignite", Placed.center(e))
+		play("ignite", Placed.center(e))
 
 
 func _on_window(w: Control) -> void:
-	play("core:open" if w.visible else "core:close")
+	play("open" if w.visible else "close")
 
 
 func _on_node_added(node: Node) -> void:
@@ -353,7 +375,7 @@ func _on_node_added(node: Node) -> void:
 
 
 func _on_button(b: BaseButton) -> void:
-	play("core:tab" if b.toggle_mode else "core:click")
+	play("tab" if b.toggle_mode else "click")
 
 
 func _process(delta: float) -> void:

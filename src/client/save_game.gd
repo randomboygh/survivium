@@ -76,10 +76,10 @@ func choose_world() -> void:
 		return
 	has_save = true
 	# A save from before mods were kept was made with every mod there was; one from before
-	# the plants (no `content` mark) or the tools (`content` below 3) were mods of their own
-	# had them in the base game.
+	# the plants (no `content` mark), the tools (`content` below 3) or the sounds (below 4)
+	# were mods of their own had them in the base game.
 	game.world_mods = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
-	for split in [[2, "plants"], [3, "tools"]]:
+	for split in [[2, "plants"], [3, "tools"], [4, "sounds"]]:
 		if int(meta.get("content", 1)) < split[0] and not split[1] in game.world_mods and split[1] in Mods.available():
 			game.world_mods.insert(1, split[1])
 	player_record = store.read_json(PLAYER)
@@ -204,7 +204,7 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
-		"content": 3,
+		"content": 4,
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),

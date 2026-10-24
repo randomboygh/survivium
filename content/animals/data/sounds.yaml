@@ -1,0 +1,25 @@
+# Голоса зверей: sounds/<id>_1.wav ... (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
+- id: rabbit
+  title: Писк кролика
+  variants: 2
+  volume: 0.5
+- id: squirrel
+  title: Цоканье белки
+  variants: 2
+  volume: 0.5
+- id: cat
+  title: Мяуканье
+  variants: 2
+  volume: 0.6
+- id: deer
+  title: Крик оленя
+  variants: 2
+  volume: 0.7
+- id: wolf_howl
+  title: Вой волка
+  variants: 2
+  volume: 0.8
+- id: wolf_growl
+  title: Рык волка
+  variants: 2
+  volume: 0.9
