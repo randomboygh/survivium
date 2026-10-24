@@ -346,6 +346,12 @@ func _section_rows(key: String) -> Array:
 				["Обзор уровней", ["±%d" % game.chunks.VIEW_REACH, "все"],
 					func() -> int: return int(s.free_view),
 					func(i: int) -> void: s.free_view = i == 1],
+				null,
+				{"action": "Разобрать вызовы отрисовки", "do": func() -> void:
+					close()
+					if get_tree().paused:
+						game.hud.toggle_menu()
+					game.draw_census.start()},
 			]
 		"game":
 			var rows := [
