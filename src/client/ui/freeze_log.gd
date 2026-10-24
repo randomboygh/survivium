@@ -9,6 +9,8 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 ## Lines in the list at most.
 const LINES := 20
+## The parts of an ordinary frame, in the order of PerfPanel.usual after the frame itself.
+const PARTS := ["игра", "движок", "отрисовка", "ввод", "браузер", "конец кадра"]
 
 var game
 var _panel: PanelContainer
@@ -94,10 +96,14 @@ func show_log() -> void:
 		_panel.queue_free()
 	var perf = game.hud.perf
 	var u: PackedFloat32Array = perf.usual
-	var lines := ["Обычный кадр %.1f мс: игра %.1f, движок %.1f, отрисовка %.1f, браузер %.1f" % [
-		u[0], u[1], u[2], u[3], u[4]]]
+	var told := []
+	for i in 6:
+		# The three parts of the rest are told where the browser gives them (see PerfPanel._parts).
+		if i < 3 or u[i + 1] >= 0.05:
+			told.append("%s %.1f" % [PARTS[i], u[i + 1]])
+	var lines := ["Обычный кадр %.1f мс: %s" % [u[0], ", ".join(told)]]
 	if OS.has_feature("web"):
-		lines[0] += " · сборок мусора %d, полных %d" % [perf.collections, perf.full_collections]
+		lines[0] += " · полных сборок мусора %d" % perf.collections
 	lines.append("Фризы, последние сверху:")
 	var kept: Array = perf.freeze_log
 	if kept.is_empty():

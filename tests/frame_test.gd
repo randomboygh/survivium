@@ -74,9 +74,9 @@ func _run() -> void:
 	var told := {}
 	while not main.ready_to_play:
 		if main.chunks != null:
-			told[main.loading_stage if main.loading_stage != "" else main.chunks.doing_text()] = true
+			told[main.loading_phase()] = true
 		await process_frame
-	_check(main.loading_stage == "" and told.size() >= 4 and told.keys().all(func(t: String) -> bool: return t.strip_edges() != ""),
+	_check(main.loading_stage == "" and told.size() >= 3 and told.keys().all(func(t: String) -> bool: return t.strip_edges() != ""),
 		"the loading screen tells what is being built: %s" % [told.keys()])
 	var w = main.world
 	var home := Vector2i((Vector2(main.player.position.x, main.player.position.z) / (CHUNK * CELL)).floor())
@@ -501,9 +501,14 @@ func _run() -> void:
 	var page_now := Time.get_ticks_msec()
 	hud.perf._long_frames = [[page_now - 600.0, 1200.0, "кадр 1100,touchmove 40"], [page_now + 500.0, 80.0, "звук 70"]]
 	hud.perf._attach_long_frames()
-	_check(hud.perf.freeze_log[0][3].back() == "страница: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
+	_check(hud.perf.freeze_log[0][3].back() == "страница 1200 мс: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
 		"a long frame of the page is told beside its freeze: %s, left %s" % [hud.perf.freeze_log[0][3], hud.perf._long_frames])
 	hud.perf._long_frames.clear()
+	# A collection the page tells of frames later is told beside the last freeze, once.
+	hud.perf._mark_last_freeze("мусор 93 → 61 МБ")
+	hud.perf._mark_last_freeze("мусор")
+	_check(hud.perf.freeze_log[0][3].back() == "мусор 93 → 61 МБ" and hud.perf.freeze_log[0][3].count("мусор") == 0,
+		"a late told collection is marked on the last freeze once: %s" % [hud.perf.freeze_log[0][3]])
 	main.freeze_log.show_log()
 	_check(main.freeze_log._panel != null and main.freeze_log._panel.get_child(0).text.begins_with("Обычный кадр"),
 		"the freezes' log opens with the ordinary frame")

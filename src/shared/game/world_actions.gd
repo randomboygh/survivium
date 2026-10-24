@@ -45,6 +45,12 @@ const PICKUP := 1.6
 enum { PICKUP_ALL, PICKUP_KNOWN, PICKUP_FOOD, PICKUP_NONE }
 ## Berries and branches knocked off a bush land this far from it at most (world units).
 const SCATTER := 0.45
+## What the action button gathers first (see front_choice): food, then seeds, then the
+## rest, and only then it digs.
+const FOOD_RANK := 0
+const SEED_RANK := 1
+const OTHER_RANK := 2
+const DIG_RANK := 3
 const SPRING := 0
 const AUTUMN := 2
 const WINTER := 3
@@ -468,16 +474,15 @@ func act_in_front(who, top: int) -> Dictionary:
 				return _work(FRONT_PLACE_SWING, "reach", Vector3.INF)
 			return {"swing": IDLE_SWING}
 	var t: Dictionary = who.tool()
-	var target := front_target(who)
-	if not target.is_empty():
-		if target.has("trunk"):
-			return chop(who, target.trunk)
-		if gather(who, target):
-			var at: Vector3 = Vector3(target.bush) + Vector3(0.5, 0.4, 0.5) if target.has("bush") \
-				else Vector3(trunk_cell(who, target.tree)) + Vector3(0.5, 0.5, 0.5)
+	var work := front_choice(who)
+	if work.has("trunk"):
+		return chop(who, work.trunk)
+	if work.has("tree") or work.has("bush"):
+		if gather(who, work):
+			var at: Vector3 = Vector3(work.bush) + Vector3(0.5, 0.4, 0.5) if work.has("bush") \
+				else Vector3(trunk_cell(who, work.tree)) + Vector3(0.5, 0.5, 0.5)
 			return _work(t.swing, "", at * CELL, Mat.LEAVES)
 		return {"swing": IDLE_SWING}
-	var work := front_work(who, t)
 	if work.has("mow"):
 		return mow_swing(who, work.mow)
 	if work.has("dig"):
@@ -526,12 +531,26 @@ func front_work(who, t: Dictionary) -> Dictionary:
 	return {"dig": cells} if not cells.is_empty() else {}
 
 
-## The cells the action button digs, in order (Tools.front_cells); the one under the
-## feet only while `who` stands still, so walking does not drop them into a pit.
+## The cells the action button digs, in order (Tools.front_cells), counted from the
+## cell over the ground the feet stand on; last the one under the feet, only while `who` stands still and nothing the hand in use digs is left around
+## the body at the head, the waist and the ground, so the pit it drops into is open on
+## every side and it walks out.
 func front_order(who) -> Array[Vector3i]:
-	var cells := Tools.front_cells(who.feet(), who.facing_step())
+	var f: Vector3i = who.feet()
+	# On a slope the feet are down in the sloping cell: count from the cell over it.
+	if world.get_cell(f.x, f.y, f.z) != Mat.AIR and world.get_cell(f.x, f.y + 1, f.z) == Mat.AIR:
+		f += Vector3i.UP
+	var cells := Tools.front_cells(f, who.facing_step())
 	if who.moving():
-		cells.pop_back()
+		return cells
+	var around: Array[Vector3i] = []
+	for dy in [1, 0, -1]:
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				if dx != 0 or dz != 0:
+					around.append(f + Vector3i(dx, dy, dz))
+	if dig_targets(who, around, who.tool(), 1).is_empty():
+		cells.append(f + Vector3i.DOWN)
 	return cells
 
 
@@ -539,6 +558,14 @@ func front_order(who) -> Array[Vector3i]:
 ## something to: {"trunk": cell} for an axe at a tree, {"tree": column} for bare hands,
 ## {"bush": cell}; {} for none.
 func front_target(who) -> Dictionary:
+	var all := front_targets(who)
+	return all[0] if not all.is_empty() else {}
+
+
+## All the trees and bushes in front of `who` that the hand in use can do something to
+## (see front_target), the nearest first.
+func front_targets(who) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	var f: Vector3i = who.feet()
 	var t: Dictionary = who.tool()
 	for o in Tools.sector(who.facing_step()):
@@ -547,14 +574,100 @@ func front_target(who) -> Dictionary:
 			var trunk := trunk_cell(who, col)
 			if world.log_col(col.x, col.y) != 0 and absi(trunk.y - f.y) <= 2:
 				if t.tool == "axe":
-					return {"trunk": trunk}
-				if useful(who, {"tree": col}):
-					return {"tree": col}
+					out.append({"trunk": trunk})
+				elif useful(who, {"tree": col}):
+					out.append({"tree": col})
 		for dy in [0, -1, 1]:
 			var cell := Vector3i(col.x, f.y + dy, col.y)
 			if world.bushes.has(cell) and useful(who, {"bush": cell}):
-				return {"bush": cell}
-	return {}
+				out.append({"bush": cell})
+	return out
+
+
+## What the action button does in front of `who` with a tool or bare hands: {"trunk":
+## cell}, {"tree": column}, {"bush": cell} (see front_target), {"mow": cells} or {"dig":
+## cells} (see front_work); {} for nothing. An axe chops the nearest tree; hands and a
+## sword take what is worth most first, the nearest of it: food (berries, mushrooms),
+## then seeds (acorns, ears, grass seeds), then the rest (branches, fibre, moss), and
+## only then dig.
+func front_choice(who) -> Dictionary:
+	var t: Dictionary = who.tool()
+	var targets := front_targets(who)
+	if not t.tool in ["hand", "sword"]:
+		return targets[0] if not targets.is_empty() else front_work(who, t)
+	var best := {}
+	var best_rank := DIG_RANK
+	for target in targets:
+		var r := _rank(_gives(who, target))
+		if r < best_rank:
+			best = target
+			best_rank = r
+	if Tools.mows(t):
+		var order := front_order(who)
+		for c in order:
+			if can_mow(c, t) and not too_far(who, c, t.reach):
+				var r := _rank(_mow_gives(c))
+				if r < best_rank:
+					best = {"mow": mow_targets(who, [c], t)}
+					best_rank = r
+	if not best.is_empty():
+		return best
+	var cells := dig_targets(who, front_order(who), t, 1)
+	return {"dig": cells} if not cells.is_empty() else {}
+
+
+## The items gathering from tree or bush `target` (see front_targets) would give now.
+func _gives(who, target: Dictionary) -> Array:
+	if target.has("tree"):
+		var s: Dictionary = Trees.SPECIES[world.trees[target.tree]]
+		return [s.seed] if _tree_seeds_left(target.tree, s) > 0 else [Items.BRANCH]
+	if not target.has("bush"):
+		return []
+	var b: Dictionary = Bushes.TYPES[world.bushes[target.bush]]
+	if ripe(target.bush, b):
+		return [b.fruit]
+	return [Items.BRANCH] if who.tool().tool == "hand" else []
+
+
+## The items cutting the grass on `cell` would likely give (see mow): what grows tall on
+## it first, else the low grass and the material's own; a plant's only when it gives
+## them at least every other time.
+func _mow_gives(cell: Vector3i) -> Array:
+	var plants := in_season(Grass.plants_on(world, cell.x, cell.y, cell.z))
+	var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
+	var out := []
+	for id in (tall if not tall.is_empty() else plants):
+		var p: Dictionary = Plants.BY_ID.get(id, {})
+		if p.get("chance", 1.0) >= 0.5:
+			out.append_array(p.get("gives", {}).keys())
+	if tall.is_empty():
+		var m: int = world.get_cell(cell.x, cell.y, cell.z)
+		out.append_array(Mat.RECORDS[m].mow_gives.keys())
+	return out
+
+
+## How much what gathering gives is worth, the least first: FOOD_RANK for anything to
+## eat, SEED_RANK for something to plant or sow, OTHER_RANK for the rest; DIG_RANK for
+## nothing.
+static func _rank(ids: Array) -> int:
+	var r := DIG_RANK
+	for id: String in ids:
+		if Items.food(id) > 0.0:
+			r = mini(r, FOOD_RANK)
+		elif Tools.use_of(Items.get_item(id).get("id", id)) in ["plant", "sow"] or _tree_seed(id):
+			r = mini(r, SEED_RANK)
+		elif Items.has(id):
+			r = mini(r, OTHER_RANK)
+	return r
+
+
+## Whether item `id` is the seed of a tree (an acorn, a cone).
+static func _tree_seed(id: String) -> bool:
+	var item: String = Items.get_item(id).get("id", id)
+	for s: Dictionary in Trees.SPECIES:
+		if Items.get_item(s.seed).get("id", s.seed) == item:
+			return true
+	return false
 
 
 # --- Gathering ----------------------------------------------------------------------------

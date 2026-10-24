@@ -5,7 +5,10 @@ extends RefCounted
 ## or more (2026-10-24; under software GL the first night took 10 s). So when the world
 ## is ready, a small view no one sees draws one of each kind of thing in the world under
 ## every mix of those lights, a frame each, and the shaders are built while the game
-## starts rather than at the first dusk.
+## starts rather than at the first dusk. Things that are not there yet at the start are
+## drawn too: the particles (dust, rain, sparks) as one particle each, the lightning's
+## material on a face, and a line and a polygon of the interface (the wind's arrow, the
+## sound marks, the joystick), which the canvas builds its own shaders for.
 
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 
@@ -26,6 +29,8 @@ var sun: DirectionalLight3D
 var lamp: OmniLight3D
 var fire: OmniLight3D
 var frames := 0
+## The interface's line and polygon, drawn on the world's canvas with no colour.
+var canvas: RID
 
 
 func _init(g) -> void:
@@ -46,15 +51,22 @@ func start() -> void:
 	# What may not be around yet: the ground's, water's and the low things' material on a
 	# face like the chunks have.
 	for mat: Material in [game.world_mat, game.low_mat, game.water_mat]:
-		var b := MeshBuffers.new()
-		b.quad([Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1)], Vector3.UP,
-			[Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)], Color.WHITE, Vector2.ZERO)
 		var face := MeshInstance3D.new()
-		face.mesh = b.to_mesh()
+		face.mesh = _face()
 		face.material_override = mat
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
+	# On the world's own canvas: the interface is hidden behind the menu while the
+	# warm-up runs, and nothing under it is drawn.
+	var world_2d: World2D = game.get_viewport().find_world_2d()
+	if world_2d != null:
+		var clear := Color(0, 0, 0, 0)
+		canvas = RenderingServer.canvas_item_create()
+		RenderingServer.canvas_item_set_parent(canvas, world_2d.canvas)
+		RenderingServer.canvas_item_add_line(canvas, Vector2.ZERO, Vector2(2.0, 0.0), clear, 1.0)
+		RenderingServer.canvas_item_add_polygon(canvas, PackedVector2Array([Vector2(0, 0), Vector2(2, 0), Vector2(0, 2)]),
+			PackedColorArray([clear, clear, clear]))
 	var side := ceili(sqrt(kinds.size()))
 	var i := 0
 	for copy: GeometryInstance3D in kinds.values():
@@ -80,6 +92,14 @@ func start() -> void:
 	lamp = _light(middle + Vector3(-2.0, 3.0, 0.0), false)
 	fire = _light(middle + Vector3(2.0, 3.0, 0.0), true)
 	_mix(0)
+
+
+## A unit face on the ground, like the chunks' cells have.
+static func _face() -> ArrayMesh:
+	var b := MeshBuffers.new()
+	b.quad([Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(0, 0, 1)], Vector3.UP,
+		[Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)], Color.WHITE, Vector2.ZERO)
+	return b.to_mesh()
 
 
 func _light(at: Vector3, shadow: bool) -> OmniLight3D:
@@ -111,7 +131,8 @@ func _collect(node: Node, kinds: Dictionary) -> void:
 			var key := _key(mi)
 			if not kinds.has(key):
 				var copy := MeshInstance3D.new()
-				copy.mesh = mi.mesh
+				# A mesh drawn later (the lightning's) has no surfaces yet: its material on a face.
+				copy.mesh = mi.mesh if mi.mesh.get_surface_count() > 0 or mi.material_override == null else _face()
 				copy.material_override = mi.material_override
 				for s in mi.get_surface_override_material_count():
 					copy.set_surface_override_material(s, mi.get_surface_override_material(s))
@@ -135,6 +156,22 @@ func _collect(node: Node, kinds: Dictionary) -> void:
 				copy.material_override = mmi.material_override
 				copy.cast_shadow = mmi.cast_shadow
 				kinds[key] = copy
+		elif child is CPUParticles3D and child.mesh != null:
+			# Drawn as instances of its mesh once it emits: one particle, there from the start.
+			var cp: CPUParticles3D = child
+			var key := ["particles", cp.mesh, cp.mesh.surface_get_material(0) if cp.mesh.get_surface_count() > 0 else null,
+				cp.cast_shadow]
+			if not kinds.has(key):
+				var copy := CPUParticles3D.new()
+				copy.mesh = cp.mesh
+				copy.amount = 1
+				copy.lifetime = 60.0
+				copy.explosiveness = 1.0
+				copy.preprocess = 1.0
+				copy.local_coords = cp.local_coords
+				copy.cast_shadow = cp.cast_shadow
+				copy.emitting = true
+				kinds[key] = copy
 		_collect(child, kinds)
 
 
@@ -153,4 +190,6 @@ func step() -> bool:
 		_mix(frames)
 		return false
 	viewport.queue_free()
+	if canvas.is_valid():
+		RenderingServer.free_rid(canvas)
 	return true
