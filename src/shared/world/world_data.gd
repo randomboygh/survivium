@@ -66,6 +66,9 @@ var tree_seeds := {}
 ## "" for grass cut short (its tall plants gone until spring, see Gathering.mow), or the
 ## id of the crop sown there (see Plants; Foliage draws it). Saved with the chunk.
 var turf := {}
+## A world laid out by hand can set what grows on its grass in place of the noises: a
+## static func (x, z) -> one of Grass.GROW_* or 0 (the noises decide), see TestGround.
+var grows := Callable()
 ## Things standing on cells that bodies do not pass (placed chests and stations, see
 ## Props): cell -> the box (AABB) the thing takes in it, in cell units from the cell's
 ## corner; a box higher than 1 fills the same part of the cell over it too.

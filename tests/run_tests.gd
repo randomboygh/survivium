@@ -40,6 +40,8 @@ const Knowledge := preload("res://src/shared/game/knowledge.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Tracks := preload("res://src/client/world/tracks.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
+const SoundScript := preload("res://src/client/audio/sound.gd")
+const Music := preload("res://src/client/audio/music.gd")
 
 var checks := 0
 var failures := 0
@@ -80,9 +82,11 @@ func _init() -> void:
 	_test_crafting()
 	_test_wear()
 	_test_vitals()
+	_test_changes()
 	_test_tracks()
 	_test_hidden()
 	_test_layers()
+	_test_sound()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -93,6 +97,62 @@ func _check(cond: bool, what: String) -> void:
 		failures += 1
 		printerr("FAIL: " + what)
 
+
+
+## The sounds load (loops looping), nothing sounds before the browser lets it, the
+## hands' work sounds by what it strikes, and a piece of music stays in its range.
+func _test_sound() -> void:
+	for b: Array in SoundScript.BUSES:
+		var i := AudioServer.get_bus_index(b[0])
+		_check(i >= 0 and AudioServer.get_bus_send(i) == b[1],
+			"bus %s is in default_bus_layout.tres, sending to %s (buses added later are silent in the browser)" % b)
+	var s := SoundScript.new(null)
+	var missing := []
+	for id in s.records:
+		var list := s.streams(id)
+		if list.is_empty() or s.records[id].loop and list[0].loop_mode != AudioStreamWAV.LOOP_FORWARD:
+			missing.append(id)
+	_check(missing.is_empty(), "every sound loads, the loops looping: %s" % [missing])
+	for id in ["core:wind", "core:step_grass", "core:click", "birds:sparrow", "core:note_pluck"]:
+		_check(s.records.has(id), "sound %s is there" % id)
+	for m in Mat.COUNT:
+		var r: Dictionary = Mat.RECORDS[m]
+		_check(m == Mat.AIR or r.step != "", "%s has a step sound" % r.id)
+	s.unlocked = false
+	s.play_later(0.5, "core:chop", Vector3.ZERO)
+	_check(s._later.is_empty(), "nothing waits to sound before the first tap")
+	s.unlocked = true
+	var at := Vector3(1.0, 0.0, 1.0)
+	var cases := [
+		[{"at": at, "time": 0.4, "stuff": Mat.LOG}, "chop", "core:chop"],
+		[{"at": at, "time": 0.4, "stuff": Mat.STONE}, "chop", "core:hit_stone"],
+		[{"at": at, "time": 0.4, "stuff": Mat.GRASS}, "mow", "core:mow"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT}, "dig", "core:dig"],
+		[{"at": at, "time": 0.4, "stuff": -1}, "slash", "core:swish"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT, "placed": 1}, "reach", "core:place"],
+	]
+	for c: Array in cases:
+		s._later.clear()
+		s.work(c[0], c[1], 0.5)
+		_check(s._later.size() == 1 and s._later[0][1] == c[2] and is_equal_approx(s._later[0][0], 0.2),
+			"%s on %d sounds %s at the strike" % [c[1], c[0].stuff, c[2]])
+	s._later.clear()
+	s.work({"at": at, "time": 0.4, "stuff": -1}, "reach", 0.5)
+	_check(s._later.is_empty(), "reaching for nothing is silent")
+	var music := Music.new({"sound": s})
+	for mood in Music.MOODS:
+		music.start(mood)
+		var lo := INF
+		var hi := -INF
+		var ordered := true
+		for i in music._notes.size():
+			var n: Array = music._notes[i]
+			lo = minf(lo, n[2])
+			hi = maxf(hi, n[2])
+			ordered = ordered and (i == 0 or music._notes[i - 1][0] <= n[0])
+		_check(music._notes.size() >= 16 and ordered, "a %s piece has its notes in order" % mood)
+		_check(lo >= -18 and hi <= 15, "a %s piece stays within the notes' range (%d..%d)" % [mood, lo, hi])
+	s.free()
 
 
 ## The world model and the rules under src/shared are what the server will run, so
@@ -712,9 +772,25 @@ func _test_ground() -> void:
 	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
 		"every tree of the plan grows")
 	# The bush garden lies east, beyond the area above.
-	gen.generate_area(Vector2i(4, -1), Vector2i(6, 1))
+	gen.generate_area(Vector2i(3, -1), Vector2i(8, 2))
 	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
+	# The stream falls from terrace to terrace into its pool; the field and the grove
+	# grow what the plan sets, whatever the noises say.
+	_check(w.get_cell(61, g + 10, 24) == Mat.WATER and w.get_cell(62, g + 10, 24) == Mat.AIR
+		and w.get_cell(62, g + 6, 24) == Mat.WATER and w.get_cell(53, g + 10, 24) == Mat.STONE
+		and w.get_cell(90, g, 24) == Mat.WATER, "the stream of the test world comes down in falls")
+	_check(Grass.plants_on(w, 110, g, 0).has(Plants.EARS) and Grass.plants_on(w, 105, g, 25).has(Plants.MOSS),
+		"the test world has its field of ears and the moss of its grove")
+	var grove := {}
+	for z in range(14, 38):
+		for x in range(100, 132):
+			for id in Grass.plants_on(w, x, g, z):
+				grove[id] = true
+	_check(grove.has(Plants.MUSHROOMS) and grove.has(Plants.GLOW), "the grove has mushrooms and glowing ones")
 	gen.generate_area(Vector2i(-5, 3), Vector2i(1, 6))
+	gen.generate_area(Vector2i(6, 2), Vector2i(8, 5))
+	_check(w.surface_y(TestGround.PEAK.x, TestGround.PEAK.y) == g + TestGround.PEAK_RISE + 1
+		and w.peak_snow(g + TestGround.PEAK_RISE + 1) == 1.0, "the mountain of the test world rises into the snow")
 	# The relief ground: the lone cell of grass rises a cell, the ring's hollow does not,
 	# the cliff steps one cell then two; the row of stone is stone.
 	var rx: int = TestGround.RELIEF_X
@@ -732,7 +808,11 @@ func _test_ground() -> void:
 			keys.append(Vector2i(cx, cz))
 	for i in range(keys.size() - 1, -1, -1):
 		_ensure_stage(other, keys[i], WorldGen.SHAPED)
-	_check(_same(other.world, w, keys) and other.world.trees == w.trees,
+	var near := {}
+	for t: Vector2i in w.trees:
+		if t.x < 64 and t.y < 48:
+			near[t] = w.trees[t]
+	_check(_same(other.world, w, keys) and other.world.trees == near,
 		"the test world is the same made in another order")
 	_check(WorldStore.world_dir(TestGround.SEED, {}).ends_with("/test"), "the test world is saved apart")
 
@@ -1758,6 +1838,17 @@ func _test_inventory() -> void:
 		and into.count("core:fiber") == 4 and into.count("core:stone") == 2, "«all into the chest» leaves the first slots be")
 
 
+## «Что нового» shows when each change was merged, in the device's time zone.
+func _test_changes() -> void:
+	var menu: GDScript = load("res://src/client/ui/settings_menu.gd")
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	var shown: String = menu.merged_at({"merged": "2026-10-23T18:32:05Z", "date": "2026-10-23"})
+	var want := Time.get_datetime_string_from_unix_time(
+		Time.get_unix_time_from_datetime_string("2026-10-23T18:32:05") + bias * 60, true).left(16)
+	_check(shown == want and shown.length() == 16, "a change shows the date and time it was merged")
+	_check(menu.merged_at({"date": "2026-10-22"}) == "2026-10-22", "an older build shows the date alone")
+
+
 func _test_vitals() -> void:
 	var v := Vitals.new()
 	v.satiety = 30.0
@@ -2513,6 +2604,18 @@ func _test_hidden() -> void:
 			for y in (1 if x == z else 3):
 				cs.world.set_cell(x, y, z, Mat.STONE)
 	_check(cs._hiding_level(16, 1, 16) == -1, "a wall the head looks over does not cut the view")
+	# A trench running north to south: open toward the camera in the default view, its
+	# side wall in front of the player once the camera is turned a quarter.
+	cs.world = WorldData.new(12, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			for y in (1 if x == 16 else 7):
+				cs.world.set_cell(x, y, z, Mat.STONE)
+	var along := cs._hiding_level(16, 1, 16)
+	PixelView.set_view(PI / 2.0, 0.0)
+	var across := cs._hiding_level(16, 1, 16)
+	PixelView.set_view(0.0, 0.0)
+	_check(along == -1 and across == 3, "the cut finds what hides the player in a turned view")
 
 
 ## The one acting, for the rules in src/shared/game/ without the client (see WorldActions).

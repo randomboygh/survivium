@@ -76,7 +76,8 @@ def main() -> None:
         for p in prs:
             lines = LINE.findall(p.get("body") or "")
             for tag, text in lines:
-                info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "kind": kind(tag), "text": text})
+                info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "merged": p["merged_at"],
+                                        "kind": kind(tag), "text": text})
             shown += 1 if lines else 0
             if shown == ENTRIES:
                 break

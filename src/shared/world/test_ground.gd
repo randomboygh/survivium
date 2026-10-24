@@ -23,11 +23,24 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      under the trees
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
+##   stream     x 52..95,   z 16..34    a stream coming down terraces (STREAM): falls of
+##                                      4, 3 and 2 cells, a rapid of 1, a pool at the foot
+##   ears       x 100..131, z -12..11   a field of ears (sparrows come to it), a row of
+##                                      oaks along its north edge for them to sit in
+##   grove      x 100..131, z 14..37    oaks and spruces over moss, then mushrooms, then
+##                                      glowing mushrooms, west to east (GROVE_FLOOR)
+##   mountain   x 98..142,  z 42..86    a peak of scree and stone up into the snow
+##
+## What grows on the field and in the grove is set by `growth` (WorldData.grows), not
+## by the noises.
 
 ## The seed of the test world; a rolled seed is never negative.
 const SEED := -1
+const Grass := preload("res://src/shared/world/grass.gd")
+
 ## Order of the grounds on the map (and in plan/design/ui.md).
-const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Биомы", "Рельеф"]
+const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Биомы", "Рельеф",
+	"Ручей", "Поле колосьев", "Роща", "Гора"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 const POND_DEPTHS := [1, 2, 3, 5]
@@ -43,6 +56,21 @@ const RELIEF_PLOT := 10
 const RELIEF_STRIDE := 12
 const RELIEF_X := -70
 const RELIEF_Z := 44
+## The stream's terraces, west to east: [first column, rise of the terrace]; the water
+## stands at the terrace's top in a channel (STREAM_Z) between banks of stone, and
+## falls to the next one, then into the pool from STREAM_POOL on.
+const STREAM := [[52, 10], [62, 6], [70, 3], [78, 2]]
+const STREAM_POOL := 86
+const STREAM_END := 96
+## Channel z from, to (inclusive); a bank of stone 2 cells wide on each side.
+const STREAM_Z := Vector2i(23, 26)
+## The grove's strips, each 10 or 11 cells wide from x 100: moss, mushrooms, glowing
+## mushrooms (Grass.GROW_*).
+const GROVE_FLOOR := [Grass.GROW_MOSS, Grass.GROW_MUSHROOMS, Grass.GROW_GLOW]
+## The mountain: its middle, its reach (cells) and the height of its top over the meadow.
+const PEAK := Vector2i(120, 64)
+const PEAK_REACH := 22.0
+const PEAK_RISE := 20
 
 ## Top of the meadow (filled in _init: two cells above the sea).
 var ground := 22
@@ -55,6 +83,8 @@ var relief_tops: Array = []
 func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	super(SEED, sy, {})
 	ground = sea + 2
+	# A static func, so the world holds no reference back to its maker.
+	world.grows = Callable(get_script(), "growth")
 	strip_tops = [Mat.GRASS, Mat.DIRT, Mat.SAND, Mat.CLAY, Mat.STONE, Mat.COPPER_ORE, Mat.BRICK, Mat.PLANKS]
 	relief_tops = [Mat.GRASS, Mat.SAND, Mat.CLAY, Mat.STONE]
 
@@ -113,6 +143,18 @@ func column(x: int, z: int) -> Array:
 			var top: int = relief_tops[rz / RELIEF_STRIDE]
 			return [g + relief_rise(RELIEF[rx / RELIEF_STRIDE], px, pz), -1, top,
 				ROCK if top == Mat.STONE else MEADOW, false]
+	# The stream, the grove's ground is the meadow's.
+	if x >= STREAM[0][0] and x < STREAM_END and z >= 16 and z < 35:
+		return _stream(x, z)
+	# The mountain: scree, stone jutting out of it, grass at its foot.
+	var d := Vector2(x - PEAK.x, z - PEAK.y).length()
+	if d < PEAK_REACH:
+		var rise := clampi(int(PEAK_RISE * (1.0 - d / PEAK_REACH) + 0.5), 0, PEAK_RISE)
+		if rise < 6:
+			return [g + rise, -1, Mat.GRASS, MEADOW, false]
+		if posmod(x * 7 + z * 13, 9) == 0:
+			return [g + rise, -1, Mat.STONE, ROCK, true]
+		return [g + rise, -1, Mat.SCREE, ROCK, false]
 	# Material strips: 3 cells of each top, a cell of grass between.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		return [g, -1, strip_tops[(x - 16) / 4], MEADOW, false]
@@ -151,6 +193,39 @@ func relief_rise(shape: String, px: int, pz: int) -> int:
 			return clampi(int(3.5 - d * 0.8), 0, 3)
 		"cross":
 			return 1 if (px >= 4 and px < 6 and pz >= 1 and pz < 9) or (pz >= 4 and pz < 6 and px >= 1 and px < 9) else 0
+	return 0
+
+
+## The stream ground's column x, z (see STREAM): terraces of grass with sheer sides,
+## the channel with its banks across them, the pool at the foot.
+func _stream(x: int, z: int) -> Array:
+	var g := ground
+	if x >= STREAM_POOL:
+		if z >= STREAM_Z.x - 3 and z <= STREAM_Z.y + 3:
+			return [g - 3, g, Mat.SAND, SEA, false]
+		return [g, -1, Mat.GRASS, MEADOW, false]
+	var rise := 0
+	for t: Array in STREAM:
+		if x >= t[0]:
+			rise = t[1]
+	var channel := z >= STREAM_Z.x and z <= STREAM_Z.y
+	# The channel starts two cells in, behind a head of stone.
+	if channel and x >= STREAM[0][0] + 2:
+		return [g + rise - 2, g + rise, Mat.SAND, SEA, false]
+	if channel or (z >= STREAM_Z.x - 2 and z <= STREAM_Z.y + 2):
+		return [g + rise, -1, Mat.STONE, ROCK, true]
+	return [g + rise, -1, Mat.GRASS, MEADOW, true]
+
+
+## What grows on grass column x, z of the test world in place of what the noises give
+## (Grass.GROW_*), 0 where they decide: the field of ears and the grove's floor.
+static func growth(x: int, z: int) -> int:
+	if x < 100 or x >= 132:
+		return 0
+	if z >= -8 and z < 12:
+		return Grass.GROW_EARS
+	if z >= 14 and z < 38:
+		return GROVE_FLOOR[mini((x - 100) / 11, GROVE_FLOOR.size() - 1)]
 	return 0
 
 
@@ -209,6 +284,11 @@ func plan_trees() -> Array:
 	for z in range(17, 38, 6):
 		out.append([3, z, Trees.OAK])
 		out.append([11, z, Trees.SPRUCE])
+	# Oaks along the north edge of the field of ears, the grove in rows.
+	for x in range(101, 132, 6):
+		out.append([x, -11, Trees.OAK])
+		for z in range(17, 38, 6):
+			out.append([x, z, Trees.SPRUCE if x >= 122 else Trees.OAK])
 	return out
 
 
@@ -280,7 +360,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var height: int = lay.heights[j]
 		var wt: int = lay.water[j]
 		var top: int = lay.tops[j]
-		var dirt := height if top == Mat.STONE else maxi(0, height - 4)
+		var dirt := height if top == Mat.STONE or top == Mat.SCREE else maxi(0, height - 4)
 		var air_bits := 0
 		var water_bits := 0
 		var wild_bits := 0

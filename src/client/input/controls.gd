@@ -180,6 +180,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 			game.player.work("", _cooldown, target.at)
 			if target.has("bush") or target.has("tree"):
 				game.effects.burst(target.at, Mat.LEAVES, _cooldown * STRIKE)
+			game.sound.play_later(0.0 if target.has("drop") else _cooldown * STRIKE, _gather_sound(target), target.at)
 		return
 	match use:
 		"place":
@@ -195,6 +196,14 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 			_eat_held()
 		_:
 			_start_stroke(button, pos, true)
+
+
+## What gathering `target` sounds like: a thing taken off the ground, an axe into a
+## bush, hands or a blade through leaves.
+func _gather_sound(target: Dictionary) -> String:
+	if target.has("drop"):
+		return "core:pickup"
+	return "core:chop" if tool_record().tool == "axe" and target.has("bush") else "core:rustle"
 
 
 ## Runs the held strokes and the action button for a frame; called while playing.
@@ -359,7 +368,8 @@ func _eat_held() -> void:
 	var slots: Array = game.character.inventory.slots
 	for i in slots.size():
 		if slots[i] != null and slots[i][0] == held():
-			game.character.eat(i)
+			if game.character.eat(i):
+				game.sound.play("core:eat", game.player.position)
 			_cooldown = 0.5
 			game.player.work("", _cooldown)
 			return
@@ -495,6 +505,7 @@ func _did(done: Dictionary) -> bool:
 	_cooldown = done.swing
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
+		game.sound.work(done, game.player.work_kind, STRIKE)
 		if done.stuff >= 0 and done.at.is_finite():
 			game.effects.burst(done.at, done.stuff, done.time * STRIKE)
 	return true

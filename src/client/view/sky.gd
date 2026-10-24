@@ -361,5 +361,8 @@ func _update_lightning(delta: float, on: bool) -> void:
 	if rng.randf() < 0.4:
 		flash_clock = rng.randf_range(0.12, 0.25)
 	flash = rng.randf_range(0.6, 1.0)
+	if flash_clock > 1.0 and game.sound.nature != null:
+		# One thunder a lightning: for its last flicker.
+		game.sound.nature.thunder(flash)
 	if game.player != null and not game.chunks.indoor and rng.randf() < 0.7:
 		game.effects.strike(game.view.cam_target, game.player.position.y, flash)

@@ -8,7 +8,8 @@
 # Необязательные: flies — летает (перелетает с места на место, садится на землю и на
 # деревья); flock — [от, до] сколько держится вместе (стая, стадо); roost — где спит и
 # отдыхает: ground или trees; likes — растения (core/data/plants.yaml), к которым
-# тянется. human — игроки. Пример вида в своём моде: content/birds.
+# тянется; calls — голос, который слышно время от времени, alarm — крик испуга или угрозы
+# (sounds.yaml). human — игроки. Пример вида в своём моде: content/birds.
 - id: human
   title: Человек
   mass: 70
@@ -27,6 +28,7 @@
   active: day
   count: 14
   sprite: rabbit
+  alarm: rabbit
 - id: squirrel
   title: Белка
   mass: 0.5
@@ -37,6 +39,8 @@
   active: day
   count: 10
   sprite: squirrel
+  calls: squirrel
+  alarm: squirrel
 - id: cat
   title: Дикая кошка
   mass: 4
@@ -47,6 +51,8 @@
   active: any
   count: 4
   sprite: cat
+  calls: cat
+  alarm: cat
 - id: deer
   title: Олень
   mass: 60
@@ -57,6 +63,8 @@
   active: day
   count: 8
   sprite: deer
+  calls: deer
+  alarm: deer
 - id: wolf
   title: Волк
   mass: 40
@@ -67,3 +75,5 @@
   active: night
   count: 4
   sprite: wolf
+  calls: wolf_howl
+  alarm: wolf_growl

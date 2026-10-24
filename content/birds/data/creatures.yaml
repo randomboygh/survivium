@@ -17,3 +17,5 @@
   flock: [4, 8]
   roost: trees
   likes: [core:ears]
+  calls: sparrow
+  alarm: sparrow

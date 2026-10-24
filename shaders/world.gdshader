@@ -42,7 +42,9 @@ const int DIRT = 2;
 const int STONE = 3;
 const int SAND = 4;
 // Which material grows over which at a boundary; 0 never blends.
-const int PRIORITY[12] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 1, 0);
+// One for every material (Mat ids, see materials.yaml): reading past the end draws
+// garbage on some GPUs.
+const int PRIORITY[13] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 1, 0, 2);
 // Outward directions of the N, S, W, E edges of a face, and of the diagonals of
 // corners NW, NE, SE, SW (seen from the rest of the cell).
 const vec2 EDGE_OUT[4] = vec2[](vec2(0.0, -1.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(1.0, 0.0));
