@@ -7,6 +7,7 @@ extends PanelContainer
 ## or a slow frame, red is below 30 FPS or a freeze.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 
 ## Frames kept for the graph and the 1% low; the graph shows as many of the newest as
 ## it is pixels wide.
@@ -23,9 +24,13 @@ const FREEZE_MS := 50.0
 const BIG_FREEZE_MS := 100.0
 const DROP_FPS := 30.0
 const REFRESH := 0.5
-## What the time of the frame not spent in the parts of the game's code noted is
-## called: mostly drawing, and the browser's and the engine's own work.
-const REST := "отрисовка"
+## The parts of a frame beside the game's code noted, timed from the engine's
+## signals: its own work before drawing (the other nodes, the interface's layout, the
+## things freed), the drawing, and the rest of the frame, outside the engine: the
+## page, its garbage collection, waiting for the screen.
+const ENGINE := "движок"
+const DRAW := "отрисовка"
+const REST := "браузер"
 ## Parts of a freeze written to the log and shown in the panel, the biggest first.
 const FREEZE_PARTS := 3
 const PANEL_FREEZE_PARTS := 2
@@ -42,6 +47,8 @@ const LOG_SIZE := 40
 ## drawn from one frame to the next that is marked.
 const VIDEO_JUMP := 256 * 1024
 const OBJECTS_JUMP := 40
+## Time the browser spent sending data to the GPU in a frame that is marked, ms.
+const SEND_MS := 4.0
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
 const EDGE := 8.0
 
@@ -73,6 +80,13 @@ var freeze_log := []
 ## Video memory and objects drawn in the frame before, to mark a jump (see _engine_marks).
 var _video := 0.0
 var _objects := 0.0
+## The engine's clock in the frame under way and the one before (Time.get_ticks_usec):
+## its process began, its drawing began and ended.
+var _frame_at := 0
+var _last_frame_at := 0
+var _draw_at := 0
+var _drawn_at := 0
+var _gl := GlWatch.new()
 ## How many freezes each mark came before since the reset (NO_MARK: none).
 var freeze_marks := {}
 ## The last freeze and the longest one: [ms, [[part, ms], ...] biggest first], or [].
@@ -107,7 +121,23 @@ func _ready() -> void:
 	_graph.draw.connect(_draw_graph)
 	_graph.resized.connect(_graph.queue_redraw)
 	box.add_child(_graph)
+	get_tree().process_frame.connect(_on_process_frame)
+	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
+	RenderingServer.frame_post_draw.connect(_on_post_draw)
 	reset()
+
+
+func _on_process_frame() -> void:
+	_last_frame_at = _frame_at
+	_frame_at = Time.get_ticks_usec()
+
+
+func _on_pre_draw() -> void:
+	_draw_at = Time.get_ticks_usec()
+
+
+func _on_post_draw() -> void:
+	_drawn_at = Time.get_ticks_usec()
 
 
 func reset() -> void:
@@ -135,8 +165,15 @@ func mark(what: String, detail := "") -> void:
 
 
 ## Marks what the renderer's counters show of the frame before: much sent to the
-## video memory, many things drawn more or fewer.
+## video memory, many things drawn more or fewer; in the browser, shaders built and
+## data sent to the GPU (GlWatch).
 func _engine_marks() -> void:
+	var gl := _gl.take()
+	if not gl.is_empty():
+		if gl[0] > 0.0 or gl[1] >= 1.0:
+			mark("шейдеры", "%d за %d мс" % [roundi(gl[0]), roundi(gl[1])])
+		if gl[3] >= SEND_MS:
+			mark("загрузка", "%d КБ за %d мс" % [roundi(gl[2]), roundi(gl[3])])
 	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
 	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
@@ -158,11 +195,13 @@ func note(what: String, since: int) -> int:
 ## Records one frame; called every frame first thing (Main._process), also while the
 ## panel is hidden. `delta` is the time of the frame before, whose work was noted.
 func add_frame(delta: float) -> void:
-	var ms := delta * 1000.0
+	# The frame's time on the clock where it is known: the engine's delta is smoothed
+	# toward whole frames of the screen and comes out shorter after a long frame.
+	var ms := maxf(delta * 1000.0, (_frame_at - _last_frame_at) / 1000.0 if _last_frame_at > 0 else 0.0)
 	_engine_marks()
 	_frames[_next] = ms
 	_next = (_next + 1) % HISTORY
-	_total_time += delta
+	_total_time += ms / 1000.0
 	_total_frames += 1
 	if ms > FREEZE_MS:
 		_freezes += 1
@@ -171,7 +210,7 @@ func add_frame(delta: float) -> void:
 	_marks.clear()
 	if ms > BIG_FREEZE_MS:
 		_big_freezes += 1
-	_second_time += delta
+	_second_time += ms / 1000.0
 	_second_frames += 1
 	if _second_time >= 1.0:
 		var fps := _second_frames / _second_time
@@ -193,6 +232,13 @@ func _record_freeze(ms: float) -> void:
 	for what: String in _work:
 		parts.append([what, _work[what] / 1000.0])
 		game_ms += _work[what] / 1000.0
+	# The frame's drawing, when the engine's signals came in it.
+	if _draw_at >= _last_frame_at and _drawn_at >= _draw_at and _last_frame_at > 0:
+		var engine := maxf((_draw_at - _last_frame_at) / 1000.0 - game_ms, 0.0)
+		var draw := (_drawn_at - _draw_at) / 1000.0
+		parts.append([ENGINE, engine])
+		parts.append([DRAW, draw])
+		game_ms += engine + draw
 	parts.append([REST, maxf(ms - game_ms, 0.0)])
 	parts.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
 	var marks: Array = _marks.keys()
@@ -203,7 +249,8 @@ func _record_freeze(ms: float) -> void:
 	var told := []
 	for m: String in marks:
 		told.append(m + (" " + _marks[m] if _marks[m] != "" else ""))
-	freeze_log.append([Time.get_ticks_msec() / 1000.0, ms, parts.slice(0, FREEZE_PARTS), told])
+	freeze_log.append([Time.get_ticks_msec() / 1000.0, ms, parts.slice(0, FREEZE_PARTS), told,
+		roundi(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))])
 	if freeze_log.size() > LOG_SIZE:
 		freeze_log.pop_front()
 	if worst_freeze.is_empty() or ms > worst_freeze[0]:

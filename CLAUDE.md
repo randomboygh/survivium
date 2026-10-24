@@ -233,7 +233,11 @@ GDScript. Notes: `plan/architecture/performance.md`.
   once the world is ready; a new kind of light or a material that shows up only later goes
   there. `MESA_SHADER_DUMP_PATH=dir` (with `MESA_SHADER_CACHE_DISABLE=true`) under xvfb writes
   every shader compiled, so the file times tell what an action compiled. Freezes on the device
-  are listed with what happened in their frame in «Отладка» → «Журнал фризов» (`freeze_log.gd`).
+  are listed with what happened in their frame in «Отладка» → «Журнал фризов» (`freeze_log.gd`):
+  the game's parts, the engine's own work before drawing («движок»), the drawing («отрисовка»)
+  and the time outside the engine («браузер»: the page, its garbage collection), the draw calls,
+  and in the browser the shader programs built and the data sent to the GPU, timed by wrapping
+  WebGL2's calls in the page (`gl_watch.gd`).
 - Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
   through a copy of the buses made at start, so a bus added by `AudioServer.add_bus` later is silent
   in the browser (fine on desktop, so only the browser shows it).

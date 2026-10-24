@@ -492,6 +492,8 @@ func _run() -> void:
 		"a freeze tells what was marked in the frame before it: %s" % [hud.perf.last_freeze])
 	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["видео +512 КБ", "сетка", "тень огня"],
 		"the freezes' log keeps the marks with what they say: %s" % [hud.perf.freeze_log])
+	_check(hud.perf.freeze_log[0][2][0][0] == hud.perf.REST and hud.perf.freeze_log[0].size() == 5,
+		"time outside the game's code and the drawing is the browser's, with the draw calls: %s" % [hud.perf.freeze_log])
 	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]], ["тень огня", "сетка"]]
 	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
 	hud.perf.freeze_marks = {"тень огня": 123, "фигура": 45, "запись": 12, "ничего": 8}

@@ -101,11 +101,14 @@ func show_log() -> void:
 		var f: Array = kept[i]
 		var at := int(f[0])
 		var parts := []
-		for p: Array in f[2].slice(0, 2):
-			parts.append("%s %d" % [p[0], roundi(p[1])])
+		for p: Array in f[2]:
+			if roundi(p[1]) > 0:
+				parts.append("%s %d" % [p[0], roundi(p[1])])
 		var line := "%d:%02d  %d мс: %s" % [at / 60, at % 60, roundi(f[1]), ", ".join(parts)]
 		if not f[3].is_empty():
 			line += " · " + ", ".join(f[3])
+		if f.size() > 4:
+			line += " · вызовов %d" % f[4]
 		lines.append(line)
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", UiStyle.panel())
@@ -114,7 +117,7 @@ func show_log() -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.custom_minimum_size.x = game.hud.size.x - 16.0
 	_panel.add_child(label)
-	_panel.position = Vector2(8, game.hud.size.y * 0.3)
+	_panel.position = Vector2(8, 8)
 	_panel.gui_input.connect(_on_panel_input)
 	game.hud.add_child(_panel)
 
