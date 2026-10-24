@@ -180,6 +180,8 @@ func streams(id: String) -> Array:
 		return []
 	var rec: Dictionary = records[id]
 	var out := []
+	if game != null and game.hud != null:
+		game.hud.perf.mark("звук")
 	for path in Content.sound_files(rec):
 		var s: AudioStream = load(path)
 		if s == null:

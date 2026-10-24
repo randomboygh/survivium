@@ -477,8 +477,15 @@ func _run() -> void:
 	_check(hud.vitals.mouse_filter == Control.MOUSE_FILTER_STOP and hud._clock_panel.mouse_filter == Control.MOUSE_FILTER_STOP,
 		"a tap on the state or the clock does not reach the world")
 	# The statistics with their longest lines, two freezes told, do not wrap and stay low.
-	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]]]
+	hud.perf.reset()
+	hud.perf.mark("тень огня")
+	hud.perf.mark("сетка")
+	hud.perf.add_frame(1.234)
+	_check(hud.perf.last_freeze[2] == ["сетка", "тень огня"] and hud.perf.freeze_marks.get("сетка") == 1,
+		"a freeze tells what was marked in the frame before it: %s" % [hud.perf.last_freeze])
+	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]], ["тень огня", "сетка"]]
 	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
+	hud.perf.freeze_marks = {"тень огня": 123, "фигура": 45, "запись": 12, "ничего": 8}
 	hud.toggle_stats()
 	await process_frame
 	await process_frame

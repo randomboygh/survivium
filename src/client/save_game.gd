@@ -132,6 +132,8 @@ func update(delta: float) -> void:
 		_take_unsaved()
 	if not _writing:
 		return
+	# The browser keeps the files in its own store, written after the frame.
+	game.hud.perf.mark("запись")
 	var n := 0
 	while not _queue.is_empty() and n < CHUNKS_PER_FRAME:
 		_write_chunk(_queue.pop_back())

@@ -314,8 +314,10 @@ func _process(delta: float) -> void:
 	chunks.run_jobs()
 	chunks.update_caps()
 	t = perf.note("чанки", t)
-	roof.flush()
-	hud.minimap.flush()
+	if roof.flush():
+		perf.mark("крыши")
+	if hud.minimap.flush():
+		perf.mark("карта")
 	t = perf.note("карты", t)
 	view.update(delta)
 	t = perf.note("камера", t)
@@ -493,9 +495,11 @@ func _build_scene() -> void:
 	creatures.tracks = tracks
 	creatures.perf = hud.perf
 	world_root.add_child(creatures)
+	player.perf = hud.perf
 
 	effects = EffectsScript.new()
 	effects.world = world
+	effects.perf = hud.perf
 	world_root.add_child(effects)
 	fire_shadows = FireShadowsScript.new()
 	fire_shadows.game = self

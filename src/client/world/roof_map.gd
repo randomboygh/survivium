@@ -69,8 +69,10 @@ func touch(w, cell: Vector3i) -> void:
 	dirty = true
 
 
-## Sends the changed map to the renderer.
-func flush() -> void:
-	if dirty:
-		dirty = false
-		texture.update(image)
+## Sends the changed map to the renderer; true when it did.
+func flush() -> bool:
+	if not dirty:
+		return false
+	dirty = false
+	texture.update(image)
+	return true
