@@ -33,10 +33,19 @@ const SKY := [Color("#22384a"), Color("#2c4a5a"), Color("#3a5d68"), Color("#4f72
 	Color("#93977f"), Color("#b8a383")]
 const HILLS := [Color("#35503f"), Color("#263b2f")]
 ## Clouds over the painted sky: height (share of the sky), width, UI px a second, start.
-const CLOUDS := [[0.18, 46, 3.0, 0.1], [0.30, 30, 5.0, 0.55], [0.42, 60, 2.0, 0.8], [0.55, 24, 7.0, 0.3],
-	[0.12, 20, 4.0, 0.7]]
-const CLOUD := Color("#93977f", 0.55)
-const CLOUD_LIT := Color("#d6c4a2", 0.5)
+const CLOUDS := [[0.18, 70, 3.0, 0.1], [0.30, 46, 5.0, 0.55], [0.42, 90, 2.0, 0.8], [0.55, 36, 7.0, 0.3],
+	[0.10, 30, 4.0, 0.7]]
+## A cloud's lit top, its body and its shaded underside, and the height of a row in UI px.
+const CLOUD_LIT := Color("#f1e2c0", 0.95)
+const CLOUD := Color("#cfc3a4", 0.85)
+const CLOUD_SHADE := Color("#8f8f7c", 0.8)
+const CLOUD_ROW := 4
+## Stars over the top of the sky (some of them two pixels across), the birds' colour,
+## the size of a pixel of them and the seconds between their flights.
+const STARS := 24
+const BIRD := Color("#14211b")
+const FLOCK_PX := 2.0
+const FLOCK_EVERY := 14.0
 ## The sparrow on the name is the game's own (the birds mod's picture, facing right):
 ## sitting it is the first frame, in a hop it beats its wings with the others.
 const SPARROW := "birds:sparrow"
@@ -50,10 +59,13 @@ const HOP_STEP := 16.0
 const BIRD_PX := 3
 ## While the world is built: the map around the start painted in as its chunks are
 ## made (the minimap's regions), its side in UI px and UI px a map pixel, and tips
-## under it, a new one every TIP_TIME seconds.
-const MAP_SIZE := 128
+## under it, a new one every TIP_TIME seconds. On a short screen the map is made
+## smaller, down the MAP_SIZES, and at 0 the tips are shown alone.
+const MAP_SIZES := [128, 96, 64, 0]
 const MAP_ZOOM := 2.0
 const TIP_TIME := 6.0
+## UI px between the column and the map under it on a tall screen.
+const GAP := 12
 const TIP_WIDTH := 240
 const TIPS := [
 	"Волокно дают высокая трава, травы и тростник; из трёх волокон скручивают верёвку.",
@@ -125,7 +137,7 @@ var _entered := false
 var _fading := false
 var _shown := false
 var _fit_for := Rect2()
-## The map and the tips while the world is built (see MAP_SIZE), and the tip shown.
+## The map and the tips while the world is built (see MAP_SIZES), and the tip shown.
 var _loading: PanelContainer
 var _map_ground: Minimap.Layer
 var _map_top: Minimap.Layer
@@ -133,6 +145,8 @@ var _tip: Label
 var _tip_index := -1
 var _tip_clock := 0.0
 var _map_room := false
+var _map_well: Control
+var _map_side: int = MAP_SIZES[0]
 ## Shows the map and the tips with the world built too (the screenshots).
 var show_loading := false
 
@@ -232,22 +246,20 @@ func _build_loading() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_loading.add_child(box)
-	var well := Control.new()
-	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	well.custom_minimum_size = Vector2.ONE * (MAP_SIZE + 2 * Minimap.FRAME)
-	well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	well.draw.connect(func() -> void:
-		var inner := Rect2(Minimap.FRAME, Minimap.FRAME, MAP_SIZE, MAP_SIZE)
-		Minimap.round_rect(well, inner.grow(1), UiStyle.EDGE, Minimap.CORNER + 1)
-		Minimap.round_rect(well, inner, Minimap.UNSEEN, Minimap.CORNER))
-	box.add_child(well)
+	_map_well = Control.new()
+	_map_well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_map_well.draw.connect(func() -> void:
+		var inner := Rect2(Minimap.FRAME, Minimap.FRAME, _map_side, _map_side)
+		Minimap.round_rect(_map_well, inner.grow(1), UiStyle.EDGE, Minimap.CORNER + 1)
+		Minimap.round_rect(_map_well, inner, Minimap.UNSEEN, Minimap.CORNER))
+	box.add_child(_map_well)
 	_map_ground = Minimap.ground_layer(_draw_map, Minimap.CORNER)
-	well.add_child(_map_ground)
-	Minimap.place_ground(_map_ground, Rect2(Minimap.FRAME, Minimap.FRAME, MAP_SIZE, MAP_SIZE))
+	_map_well.add_child(_map_ground)
 	_map_top = Minimap.Layer.new(_draw_map_top)
-	well.add_child(_map_top)
+	_map_well.add_child(_map_top)
 	_map_top.position = Vector2(Minimap.FRAME, Minimap.FRAME)
-	_map_top.size = Vector2(MAP_SIZE, MAP_SIZE)
+	_set_map_side(MAP_SIZES[0])
 	_tip = UiStyle.label("", UiStyle.MUTED)
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -256,6 +268,16 @@ func _build_loading() -> void:
 	_tip.custom_minimum_size = Vector2(TIP_WIDTH, 3.0 * line - 4.0)
 	box.add_child(_tip)
 	_loading.visible = false
+
+
+## The map's side in UI px: its well, the ground and what is drawn over it.
+func _set_map_side(side: int) -> void:
+	_map_side = side
+	_map_well.visible = side > 0
+	_map_well.custom_minimum_size = Vector2.ONE * (side + 2 * Minimap.FRAME)
+	Minimap.place_ground(_map_ground, Rect2(Minimap.FRAME, Minimap.FRAME, side, side))
+	_map_top.size = Vector2(side, side)
+	_map_well.queue_redraw()
 
 
 ## The column at the middle of the map: where the player starts.
@@ -453,21 +475,28 @@ func _process(delta: float) -> void:
 
 
 ## The map while the world is built: in the middle of the room right of the column on
-## a wide screen, under the column (or over it) on a tall one; left out where it does
-## not fit.
+## a wide screen; on a tall one under the column, the two together in the middle, the
+## map made smaller where it does not fit, then the tips alone, and left out where even
+## they do not fit.
 func _place_loading() -> void:
-	_loading.reset_size()
-	var card := _loading.get_combined_minimum_size()
 	var col := Rect2(_column.position, _column.size)
 	var at := Vector2(-1, -1)
-	if size.x >= size.y * 1.2:
-		var room := size.x - col.end.x
-		if room >= card.x + 2 * MARGIN:
-			at = Vector2(col.end.x + (room - card.x) * 0.5, (size.y - card.y) * 0.5)
-	elif col.end.y + 8 + card.y <= size.y - MARGIN:
-		at = Vector2((size.x - card.x) * 0.5, col.end.y + 8)
-	elif card.y + 8 <= col.position.y - MARGIN:
-		at = Vector2((size.x - card.x) * 0.5, col.position.y - 8 - card.y)
+	var card := Vector2.ZERO
+	for side in MAP_SIZES:
+		_set_map_side(side)
+		_loading.reset_size()
+		card = _loading.get_combined_minimum_size()
+		if size.x >= size.y * 1.2:
+			var room := size.x - col.end.x
+			if room >= card.x + 2 * MARGIN and card.y <= size.y - 2 * MARGIN:
+				at = Vector2(col.end.x + (room - card.x) * 0.5, (size.y - card.y) * 0.5)
+		else:
+			var total := col.size.y + GAP + card.y
+			if total <= size.y - 2 * MARGIN:
+				_column.position.y = floorf((size.y - total) * 0.5)
+				at = Vector2((size.x - card.x) * 0.5, _column.position.y + col.size.y + GAP)
+		if at.x >= 0.0:
+			break
 	_map_room = at.x >= 0.0
 	_loading.position = at.floor()
 	_loading.size = card
@@ -618,34 +647,36 @@ func _draw_motion() -> void:
 	var full := Rect2(-position / s, get_viewport_rect().size / s).grow(2)
 	var top := full.position.y
 	var sky_h := full.size.y * 0.62
-	var span := full.size.x + 80.0
+	var span := full.size.x + 120.0
 	for c in CLOUDS:
 		var w: float = c[1]
-		var x := floorf(full.position.x + fposmod(c[3] * span + _time * c[2], span) - 60.0)
+		var x := floorf(full.position.x + fposmod(c[3] * span + _time * c[2], span) - 100.0)
 		var y := floorf(top + sky_h * c[0])
 		# Rows of the cloud from the top: inset from both sides, the top one lit.
-		var rows := [[0.3, 0.35], [0.15, 0.2], [0.0, 0.0], [0.1, 0.05]]
+		var rows := [[0.3, 0.35], [0.15, 0.2], [0.0, 0.0], [0.1, 0.05], [0.2, 0.25]]
 		for i in rows.size():
 			var a := floorf(w * rows[i][0])
 			var b := floorf(w * rows[i][1])
-			_motion.draw_rect(Rect2(x + a, y + i * 3, w - a - b, 3), CLOUD_LIT if i == 0 else CLOUD)
-	for i in 14:
+			var tint := CLOUD_LIT if i == 0 else CLOUD_SHADE if i == rows.size() - 1 else CLOUD
+			_motion.draw_rect(Rect2(x + a, y + i * CLOUD_ROW, w - a - b, CLOUD_ROW), tint)
+	for i in STARS:
 		var h := absi(hash(i * 7919))
 		var sx := full.position.x + float(h % 1000) / 1000.0 * full.size.x
 		var sy := top + float((h >> 10) % 1000) / 1000.0 * sky_h * 0.3
 		var blink := 0.5 + 0.5 * sin(_time * (1.0 + (h % 5) * 0.4) + i)
-		_motion.draw_rect(Rect2(floorf(sx), floorf(sy), 1, 1), Color(1.0, 0.95, 0.8, 0.25 + 0.6 * blink))
-	# The birds cross every 20 s, in a loose V.
-	var lap := fmod(_time, 20.0) / 12.0
+		var px := 2.0 if h % 3 == 0 else 1.0
+		_motion.draw_rect(Rect2(floorf(sx), floorf(sy), px, px), Color(1.0, 0.96, 0.82, 0.45 + 0.55 * blink))
+	# The birds cross every FLOCK_EVERY s, in a loose V.
+	var lap := fmod(_time, FLOCK_EVERY) / 12.0
 	if lap < 1.0:
 		var bx := full.position.x - 20.0 + lap * (full.size.x + 40.0)
 		var by := top + sky_h * 0.35 - lap * sky_h * 0.1
 		for k in 3:
-			var p := Vector2(floorf(bx - k * 9.0), floorf(by + (k % 2) * 6.0 + k * 2.0))
+			var p := Vector2(floorf(bx - k * 16.0), floorf(by + (k % 2) * 10.0 + k * 3.0))
 			var up := int(_time * 6.0 + k) % 2 == 0
 			var dy := -1.0 if up else 1.0
 			for q in [Vector2(-2, dy), Vector2(-1, 0), Vector2(0, 0), Vector2(1, 0), Vector2(2, dy)]:
-				_motion.draw_rect(Rect2(p + q, Vector2.ONE), HILLS[1])
+				_motion.draw_rect(Rect2(p + q * FLOCK_PX, Vector2.ONE * FLOCK_PX), BIRD)
 
 
 ## Up and down pick a button, Enter presses it, Escape goes back into the world. Every
