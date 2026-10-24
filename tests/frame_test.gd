@@ -528,6 +528,20 @@ func _run() -> void:
 	main.settings.reset()
 	corner.append(hud._level.visible and hud._camera.visible and is_equal_approx(hud.minimap.size.x, 2 * button + 6))
 	_check(not false in corner, "minimap sizes and hidden level and camera buttons: %s" % [corner])
+	# The camera's middle keeps its size whatever its text; a tap just off a button is
+	# not one on the world, one further off is.
+	var middle: Vector2 = hud._camera_reset.size
+	hud._camera_label.text = "315°\n+2"
+	await process_frame
+	var steady: bool = hud._camera_reset.size == middle and hud._camera_reset.get_combined_minimum_size() == middle
+	var menu_box: Rect2 = hud._menu_button.get_global_rect()
+	var near: Vector2 = menu_box.position + Vector2(-4, menu_box.size.y * 0.5) * hud.scale.x
+	var level_box: Rect2 = hud._level.get_global_rect()
+	var far: Vector2 = Vector2(level_box.position.x - 20 * hud.scale.x, level_box.get_center().y)
+	_check(steady and hud.covers(near) and not hud.covers(far) and not hud.covers(hud.get_global_rect().get_center()),
+		"the camera's middle keeps its size %s; safe zone round the buttons: near %s, far %s" % [steady,
+			hud.covers(near), hud.covers(far)])
+	hud._camera_text = ""
 	main.view.layout_ui(main.view.safe_rect)
 	_check(room[0] == room[2] and room[0] == room[4] and room[1] and room[3] and room[5],
 		"every phone's interface is as wide as the reference phone's, the windows fit: %s" % [room])
