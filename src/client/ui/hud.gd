@@ -51,7 +51,7 @@ const LEVEL_MIDDLE := 34
 ## The camera cross: the width of its arms at the sides and the height of those above
 ## and below, and the middle (the view as text).
 const DPAD_SIDE := 22
-const DPAD_MIDDLE := Vector2(42, 30)
+const DPAD_MIDDLE := Vector2(38, 30)
 ## The room round the buttons and panels on the screen, in UI pixels, where a tap
 ## that just misses one does not reach the world (see covers).
 const SAFE_ZONE := 8
@@ -249,6 +249,12 @@ func _ready() -> void:
 	_camera_reset.pressed.connect(func() -> void: game.view.reset_turn())
 	_camera.add_child(_camera_reset)
 	_camera_label = _fixed_label(_camera_reset)
+	# The letters a pixel closer, so «315°» fits inside the frame of the middle and the
+	# cross stays as wide as the minimap.
+	var tight := FontVariation.new()
+	tight.base_font = UiStyle.font()
+	tight.spacing_glyph = -1
+	_camera_label.add_theme_font_override("font", tight)
 	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
 	pad.call()
 	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
