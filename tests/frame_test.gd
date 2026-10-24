@@ -501,7 +501,7 @@ func _run() -> void:
 	var page_now := Time.get_ticks_msec()
 	hud.perf._long_frames = [[page_now - 600.0, 1200.0, "кадр 1100,touchmove 40"], [page_now + 500.0, 80.0, "звук 70"]]
 	hud.perf._attach_long_frames()
-	_check(hud.perf.freeze_log[0][3].back() == "страница: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
+	_check(hud.perf.freeze_log[0][3].back() == "страница 1200 мс: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
 		"a long frame of the page is told beside its freeze: %s, left %s" % [hud.perf.freeze_log[0][3], hud.perf._long_frames])
 	hud.perf._long_frames.clear()
 	main.freeze_log.show_log()
