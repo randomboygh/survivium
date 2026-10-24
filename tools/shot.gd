@@ -413,7 +413,7 @@ func _initialize() -> void:
 ## Starts the run in the test world, in a folder of saves of its own made anew.
 func _test_world() -> void:
 	var store := load("res://src/shared/world/world_store.gd")
-	store._erase_dir(TEST_SAVES)
+	store.erase_dir(TEST_SAVES)
 	store.root = TEST_SAVES
 	DirAccess.make_dir_recursive_absolute(TEST_SAVES)
 	store.write_current(-1, {})

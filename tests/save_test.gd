@@ -193,6 +193,16 @@ func _run() -> void:
 	test_save.write_json(WorldStore.WORLD, {"format": WorldStore.FORMAT, "seed": TestGround.SEED})
 	main.settings.reset_test_world()
 	_check(not test_save.exists() and main.world_seed != TestGround.SEED, "the test world's save is reset from another world")
+	# «Очистить все данные» removes everything under its root but the engine's logs.
+	var wipe := "user://test_saves/wipe"
+	DirAccess.make_dir_recursive_absolute(wipe + "/saves/a/chunks")
+	DirAccess.make_dir_recursive_absolute(wipe + "/logs")
+	for path in [wipe + "/settings.cfg", wipe + "/saves/current.json", wipe + "/saves/a/chunks/0_0.bin", wipe + "/logs/godot.log"]:
+		FileAccess.open(path, FileAccess.WRITE).close()
+	main.settings.wipe_data(wipe)
+	_check(DirAccess.get_files_at(wipe).is_empty() and Array(DirAccess.get_directories_at(wipe)) == ["logs"],
+		"wiping all data leaves nothing but the logs")
+	WorldStore.erase_dir(wipe)
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()
