@@ -15,22 +15,28 @@ const Items := preload("res://src/shared/content/items.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 
 const CELL := WorldData.CELL
-## World units the bounding boxes grow by, so the shear of the 3/4 view (which draws a
-## thing `y` units north of its place) does not cull it. The models are scaled down to
-## 1/16 and the margin grows the box before that, so they get it 16 times over.
+## World units the bounding box of a thing flying to the player grows by, so the shear
+## of the 3/4 view (which draws a thing `y` units north of its place) does not cull it.
+## The models are scaled down to 1/16 and the margin grows the box before that, so they
+## get it 16 times over. What stays put is culled by its sheared box (fit) instead.
 const CULL_MARGIN := 24.0
+## World units round a sheared box, for the half pixel snap of the shaders.
+const FIT_MARGIN := 0.25
 ## Things lower than this (world units; the player is 1 tall) are low: the player's
 ## silhouette does not show behind them (see sprite_xray.gdshader).
 const LOW_HEIGHT := 0.75
 ## Seconds a thing taken from the ground takes to fly to the player.
 const FLY_TIME := 0.2
-const MODEL_CULL_MARGIN := CULL_MARGIN * 16.0
 
 var game
-## Meshes of the things on the ground by model, and their nodes by chunk.
+## Meshes of the things on the ground by model, their vertices one triangle after
+## another ([verts, normals, uvs, uv2s, colours]) by model, and the nodes of the chunks
+## shown (their things in one mesh, and a death sack's glow) by chunk.
 var drop_meshes := {}
+var _drop_arrays := {}
 var drop_nodes := {}
 ## The models of the placed things by prop kind, their nodes and the campfires' records
 ## in Effects (see Effects.add_campfire) by the thing's cell (see Placed.things).
@@ -99,7 +105,7 @@ func _on_added(e: Dictionary) -> void:
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	node.scale = Vector3.ONE / 16.0
 	node.position = Vector3(e.cell) * CELL
-	node.extra_cull_margin = MODEL_CULL_MARGIN
+	_fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
 
@@ -137,28 +143,93 @@ func _update_heat() -> void:
 	RenderingServer.global_shader_parameter_set("heat_map", game.effects.heat_map(RoofMap.WRAP / 2))
 
 
-## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh; a death's
-## sack glows (Effects.sack_glow).
+## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh, all of
+## it one mesh: a thing apiece cost a draw call in every light's pass and the sun's
+## shadow, some 600 calls round a busy camp on the phone (2026-10-24). A death's sack
+## glows (Effects.sack_glow).
 func show_drops(key: Vector2i) -> void:
-	for node: Node in drop_nodes.get(key, []):
-		node.queue_free()
+	hide_drops(key)
+	if not game.chunks.chunk_nodes.has(key):
+		return
 	var nodes := []
+	var parts := [PackedVector3Array(), PackedVector3Array(), PackedVector2Array(),
+		PackedVector2Array(), PackedColorArray()]
 	for d: Array in game.world.drops.get(key, []):
-		var mesh := _drop_mesh(d[0])
-		if mesh == null:
+		var arrays := _arrays_of(d[0])
+		if arrays.is_empty():
 			continue
+		# Turned in steps of 45 degrees, which keep the pixels tidy.
+		var turn := Basis(Vector3.UP, -snappedf(d[2], PI / 4.0))
+		parts[0].append_array(Transform3D(turn.scaled(Vector3.ONE / 16.0), d[1]) * (arrays[0] as PackedVector3Array))
+		parts[1].append_array(Transform3D(turn, Vector3.ZERO) * (arrays[1] as PackedVector3Array))
+		for i in range(2, 5):
+			parts[i].append_array(arrays[i])
+		if d[0] == Items.SACK:
+			nodes.append(game.effects.sack_glow(d[1]))
+	if not parts[0].is_empty():
+		var surface := []
+		surface.resize(Mesh.ARRAY_MAX)
+		surface[Mesh.ARRAY_VERTEX] = parts[0]
+		surface[Mesh.ARRAY_NORMAL] = parts[1]
+		surface[Mesh.ARRAY_TEX_UV] = parts[2]
+		surface[Mesh.ARRAY_TEX_UV2] = parts[3]
+		surface[Mesh.ARRAY_COLOR] = parts[4]
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface)
 		var node := MeshInstance3D.new()
 		node.mesh = mesh
 		node.material_override = game.low_mat
-		# Turned in steps of 45 degrees, which keep the pixels tidy.
-		node.basis = Basis(Vector3.UP, -snappedf(d[2], PI / 4.0)).scaled(Vector3.ONE / 16.0)
-		node.position = d[1]
-		node.extra_cull_margin = MODEL_CULL_MARGIN
+		_fit(node)
 		game.world_root.add_child(node)
 		nodes.append(node)
-		if d[0] == Items.SACK:
-			nodes.append(game.effects.sack_glow(d[1]))
 	drop_nodes[key] = nodes
+
+
+## Frees what was drawn lying in chunk `key`, as its chunk goes from the screen.
+func hide_drops(key: Vector2i) -> void:
+	for node: Node in drop_nodes.get(key, []):
+		node.queue_free()
+	drop_nodes.erase(key)
+
+
+## The vertices of the model of a thing of `kind` on the ground, one triangle after
+## another, or none for a thing with no model.
+func _arrays_of(kind: String) -> Array:
+	if _drop_arrays.has(kind):
+		return _drop_arrays[kind]
+	var arrays := []
+	var mesh := _drop_mesh(kind)
+	if mesh != null:
+		var a := mesh.surface_get_arrays(0)
+		var index: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+		for k in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_TEX_UV2, Mesh.ARRAY_COLOR]:
+			var from = a[k]
+			var to = from.duplicate()
+			to.resize(index.size())
+			for i in index.size():
+				to[i] = from[index[i]]
+			arrays.append(to)
+	_drop_arrays[kind] = arrays
+	return arrays
+
+
+## Culls `node` (a model of the things placed or lying) by the box of what it draws in
+## the views the camera shows or turns to (PixelView.sheared_box).
+func _fit(node: MeshInstance3D) -> void:
+	var to_world := node.transform
+	var box := PixelView.sheared_box(to_world * node.mesh.get_aabb(), FIT_MARGIN)
+	node.custom_aabb = to_world.affine_inverse() * box
+
+
+## Fits the boxes of every model again for the views the camera shows now (see
+## ChunkStreamer.refit_boxes).
+func refit_boxes() -> void:
+	for node: MeshInstance3D in _nodes.values():
+		_fit(node)
+	for nodes: Array in drop_nodes.values():
+		for node: Node in nodes:
+			if node is MeshInstance3D:
+				_fit(node)
 
 
 ## The mesh of a thing of `kind` lying on the ground (see WorldData.drops): its item's
