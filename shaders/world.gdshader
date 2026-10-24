@@ -44,7 +44,7 @@ const int SAND = 4;
 // Which material grows over which at a boundary; 0 never blends.
 // One for every material (Mat ids, see materials.yaml): reading past the end draws
 // garbage on some GPUs.
-const int PRIORITY[13] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 1, 0, 2);
+const int PRIORITY[13] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 2, 0, 2);
 // Outward directions of the N, S, W, E edges of a face, and of the diagonals of
 // corners NW, NE, SE, SW (seen from the rest of the cell).
 const vec2 EDGE_OUT[4] = vec2[](vec2(0.0, -1.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(1.0, 0.0));
@@ -168,8 +168,9 @@ void fragment() {
 	vec3 tp = world_pos + vec3(1.0 / (32.0 * TEXELS));
 	vec2 wt = floor(tp.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
+	// The tile drawn here: this face's, or a neighbour's spilling over the edge.
+	int pick = tile;
 	if (tile != NONE) {
-		int pick = tile;
 		if (top) {
 			// The neighbour with the higher priority spills 1..3 texels over the edge.
 			int n = int(packed.y + 0.5);
@@ -297,7 +298,7 @@ void fragment() {
 			moss = moss || ((around >> e) & 1) == 0 && float(in_cell[e]) < reach;
 		}
 	}
-	if (top && tile == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	if (top && pick == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
