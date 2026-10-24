@@ -336,9 +336,9 @@ func fit(screen: Vector2) -> void:
 	craft.custom_minimum_size.x = _width(slot)
 	craft.fit_width(_width(slot))
 	# The rest of the craft tab (tabs, the station's line, the panels at the bottom)
-	# takes about 200 UI pixels; _place takes more off the cells if the window still
+	# takes about 250 UI pixels; _place takes more off the cells if the window still
 	# does not fit.
-	craft.list_height = clampi(int(screen.y) - HOTBAR - 220, slot, 300)
+	craft.list_height = clampi(int(screen.y) - HOTBAR - 266, slot, 300)
 	craft.refresh()
 	_place()
 

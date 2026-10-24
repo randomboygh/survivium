@@ -7,9 +7,9 @@ extends VBoxContainer
 ## columns (see FactChips): what it needs (have / need, short in red), its station and
 ## tool («нет» in red when missing), its time (the recipe's: no skills yet), then what
 ## it makes weighs, does and lasts, with a wide «сделать» under «×5 | MAX» on the
-## right; and the queue, narrow: small cells for the jobs, the time left of the one
-## chosen, the count, and at the bottom the pause and «отменить |
-## отменить все». Opened at a station, buttons in the window's head (by
+## right; and under it the queue, a row as wide: small cells for the jobs, the time
+## left of the one chosen and the count over the first job's progress, the pause and
+## «отменить | отменить все». Opened at a station, buttons in the window's head (by
 ## the cross, see station_buttons) take it back into the bag; at a campfire, put it
 ## out, light it again for a branch and destroy it once it is out. Works through
 ## Workshop.
@@ -26,8 +26,10 @@ const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 
 const COLUMNS := 8
 const JOB_SLOT := 24
-## The width of the queue's panel, in UI pixels.
-const QUEUE_WIDTH := 96
+## What the queue's row keeps beside its cells, in UI pixels: the time and count over
+## the progress, the pause and the two buttons to cancel.
+const QUEUE_INFO := 56
+const QUEUE_BUTTONS := 94
 ## What «MAX» asks for: the whole queue, as far as the materials go.
 const MOST := CraftQueue.MAX_JOBS
 
@@ -61,6 +63,10 @@ var _make: VBoxContainer
 ## The panel of the queue.
 var _queue_panel: Control
 var _queue_empty: Label
+## The cells of jobs that fit the queue's row (see fit_width).
+var _job_fit := 1
+## The time and count of the job chosen over the first job's progress.
+var _job_info: VBoxContainer
 var _queue_count: Label
 var _controls: HBoxContainer
 var _pause: Button
@@ -135,10 +141,8 @@ func _ready() -> void:
 	_stations.custom_minimum_size.x = IconTabs.SIDE
 	middle.add_child(_stations)
 
-	var bottom := HBoxContainer.new()
+	var bottom := VBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 6)
-	# The queue stays on the right while no recipe is chosen.
-	bottom.alignment = BoxContainer.ALIGNMENT_END
 	add_child(bottom)
 	_details = _panel(bottom)
 	_details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -173,29 +177,37 @@ func _ready() -> void:
 	body.add_child(_make)
 
 	var queue := _panel(bottom)
-	queue.custom_minimum_size.x = QUEUE_WIDTH
 	_queue_panel = queue
-	box = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
-	queue.add_child(box)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	queue.add_child(row)
 	_queue_empty = UiStyle.label("Очередь пуста", UiStyle.MUTED)
-	_queue_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_queue_empty.custom_minimum_size.x = QUEUE_WIDTH - 2 * UiStyle.WELL_PAD
-	box.add_child(_queue_empty)
+	_queue_empty.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_queue_empty.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# As tall as a row of cells, so the panel keeps its height.
+	_queue_empty.custom_minimum_size.y = JOB_SLOT
+	_queue_empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(_queue_empty)
 	_job_row = HBoxContainer.new()
 	_job_row.add_theme_constant_override("separation", 4)
-	box.add_child(_job_row)
+	row.add_child(_job_row)
 	_job_more = UiStyle.label("", UiStyle.MUTED)
 	_job_more.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_job_row.add_child(_job_more)
+	_job_info = VBoxContainer.new()
+	_job_info.add_theme_constant_override("separation", 4)
+	_job_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_job_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_job_info.custom_minimum_size.x = QUEUE_INFO
+	row.add_child(_job_info)
 	var line := HBoxContainer.new()
-	box.add_child(line)
+	_job_info.add_child(line)
 	_job_label = UiStyle.label()
-	# A long word is cut, the panel keeps its width.
+	# A long word is cut, the row keeps its width.
 	_job_label.clip_text = true
 	_job_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_job_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_job_label.custom_minimum_size.x = 30
+	_job_label.custom_minimum_size.x = 24
 	line.add_child(_job_label)
 	_queue_count = UiStyle.label("", UiStyle.MUTED)
 	_queue_count.tooltip_text = "Работ в очереди"
@@ -205,20 +217,15 @@ func _ready() -> void:
 	_progress.show_percentage = false
 	_progress.custom_minimum_size = Vector2(0, 6)
 	_progress.max_value = 1.0
-	box.add_child(_progress)
-	var push := Control.new()
-	push.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(push)
+	_job_info.add_child(_progress)
 	_controls = HBoxContainer.new()
 	_controls.add_theme_constant_override("separation", 4)
-	box.add_child(_controls)
+	_controls.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_controls)
 	_pause = TabRow.icon_button(UiStyle.icon("pause"), "Пауза", func() -> void:
 		game.workshop.paused = not game.workshop.paused
 		refresh_now())
 	_controls.add_child(_pause)
-	var gap := Control.new()
-	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_controls.add_child(gap)
 	_controls.add_child(TabRow.split([
 		[UiStyle.icon("close"), "Отменить выбранную", func() -> void: game.workshop.cancel(_job)],
 		[UiStyle.icon("cancel_all"), "Отменить все", func() -> void: game.workshop.cancel_all()],
@@ -229,7 +236,9 @@ func _ready() -> void:
 ## The tab is `w` UI pixels wide: the recipe's name is measured at its panel's width
 ## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
-	_title.custom_minimum_size.x = w - QUEUE_WIDTH - 6 - 2 * UiStyle.WELL_PAD - 30
+	_title.custom_minimum_size.x = w - 2 * UiStyle.WELL_PAD - 30
+	var room := w - 2 * UiStyle.WELL_PAD - QUEUE_INFO - QUEUE_BUTTONS - 3 * 6 - 16
+	_job_fit = maxi(1, room / (JOB_SLOT + 4))
 
 
 
@@ -387,7 +396,7 @@ func _show_queue() -> void:
 	var jobs: Array = shop.queue.jobs
 	_queue_empty.visible = jobs.is_empty()
 	_queue_count.text = "%d/%d" % [jobs.size(), CraftQueue.MAX_JOBS]
-	for c in [_controls, _job_row, _job_label.get_parent(), _progress]:
+	for c in [_controls, _job_row, _job_info]:
 		c.visible = not jobs.is_empty()
 	_pause.icon = UiStyle.icon("play" if shop.paused else "pause")
 	_pause.tooltip_text = "Продолжить" if shop.paused else "Пауза"
@@ -396,8 +405,7 @@ func _show_queue() -> void:
 		_job = 0
 		return
 	_job = clampi(_job, 0, jobs.size() - 1)
-	var fit := maxi(1, (QUEUE_WIDTH - 2 * UiStyle.WELL_PAD - 16) / (JOB_SLOT + 4))
-	var n := mini(jobs.size(), fit)
+	var n := mini(jobs.size(), _job_fit)
 	while _job_slots.size() < n:
 		var cell = HotbarSlot.new(JOB_SLOT)
 		cell.pressed.connect(_choose_job.bind(_job_slots.size()))
