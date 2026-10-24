@@ -10,6 +10,8 @@ extends "res://tools/shot.gd"
 ## this script piece by piece with a clock around each piece. With `spikes` it times
 ## the things that happen once instead (a window opening, a crafted thing arriving):
 ## godot --headless --path . --script res://tools/profile.gd -- spikes
+## `--phone` lays the screen out as a phone's (see shot.gd), e.g. held upright under
+## xvfb with --resolution 1200x2608.
 ## With `hitches` it plays a few minutes of walking about with the clock fast (streaming,
 ## dusk and dawn, weather, autosaves, animals) and prints every frame whose game code
 ## took long, piece by piece:
@@ -34,6 +36,7 @@ const SCENES := {
 	"torch-forest-real": {"time": 0.95, "season": 1, "moon": 0.0, "forest": true, "fire_shadows": 2},
 	"no-sun-shadows": {"time": 0.45, "season": 1, "shadows": false},
 	"rain": {"time": 0.5, "season": 1, "weather": "downpour"},
+	"fire-rain": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "weather": "downpour", "rain": true},
 	"winter": {"time": 0.45, "season": 3, "rain": true},
 	"cave": {"time": 0.45, "season": 1, "underground": true},
 	"bag": {"time": 0.45, "season": 1, "bag": true},
@@ -58,6 +61,9 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var spikes := args.has("spikes")
 	var hitches := args.has("hitches")
+	# Laid out as on a phone, as shot.gd does.
+	phone = args.has("--phone")
+	args.erase("--phone")
 	args.erase("spikes")
 	args.erase("hitches")
 	names = args if not args.is_empty() else SCENES.keys()
@@ -153,6 +159,9 @@ func _frame(delta: float) -> void:
 func _profile() -> void:
 	while not main.ready_to_play:
 		await process_frame
+	if phone:
+		main.view.turning = true
+		main.view.on_screen_resized()
 	# The whole map first: streaming is not what is measured here.
 	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null):
 		await process_frame

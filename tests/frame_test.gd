@@ -42,6 +42,8 @@ var chunk_ms := 0.0
 ## the game time the running scenario has played: the game paces the cut and the
 ## jumps by it, and a frame here can be a millisecond or ten.
 var moved := 0.0
+## The longest frame of building while the game is paused, microseconds.
+var paused_worst := 0
 var flips := 0
 var clock := 0.0
 ## Each scenario's name, frame times and the budgeted part of each, judged once the
@@ -116,6 +118,32 @@ func _run() -> void:
 	_key(KEY_A, false)
 	_check(main.chunks.map_done, "the chunks around stream in")
 	_check(moved > 4.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
+
+	# While the game is paused (its menu open) the world is built farther round the
+	# player, a budgeted step a frame; on going on, the farther chunks stay.
+	var streamer = main.chunks
+	var paused_home: Vector2i = streamer._player_chunk()
+	var far_built := func() -> bool:
+		for cz in range(paused_home.y - streamer.PAUSE_RANGE, paused_home.y + streamer.PAUSE_RANGE + 1):
+			for cx in range(paused_home.x - streamer.PAUSE_RANGE, paused_home.x + streamer.PAUSE_RANGE + 1):
+				if not streamer.chunk_nodes.has(Vector2i(cx, cz)):
+					return false
+		return true
+	var far_before: bool = far_built.call()
+	paused_worst = 0
+	paused = true
+	for i in 3000:
+		var b0: int = streamer.budget_us
+		await process_frame
+		paused_worst = maxi(paused_worst, streamer.budget_us - b0)
+		if far_built.call():
+			break
+	paused = false
+	await process_frame
+	await process_frame
+	print("built within %d chunks while paused, worst frame of building %.1f ms" % [streamer.PAUSE_RANGE, paused_worst / 1000.0])
+	_check(not far_before and far_built.call(), "the chunks farther round are built while the game is paused, and stay")
+	_check(paused_worst / 1000.0 < streamer.LOAD_MAX_US / 1000.0 + chunk_ms / 4.0, "building while paused keeps to its budget")
 
 	# Standing still on the finished map.
 	await _scenario("idle", 120, func(_i: int) -> bool: return false)
@@ -500,7 +528,6 @@ func _run() -> void:
 	_check(still, "the rows stay put while values change")
 	menu.close()
 	# The level buttons look a few levels down from the player's, no further.
-	var streamer = main.chunks
 	for i in 10:
 		streamer.shift_cut(-1)
 	_check(streamer.manual_level == maxi(1, main.player.level() - streamer.VIEW_REACH),
