@@ -740,11 +740,6 @@ func _run() -> void:
 			main.menu._backdrop.visible = shot.main_menu in ["sky", "loading", "part"]
 			main.menu._clouds.visible = shot.main_menu in ["sky", "loading", "part"]
 			main.menu.show_loading = shot.main_menu == "loading"
-			if shot.main_menu == "loading":
-				# A chunk halfway through the near ones, its trees being planted.
-				main.chunks.near_total = 30
-				main.chunks.near_pending = 18
-				main.chunks.doing = "деревья"
 			await process_frame
 			if shot.main_menu == "part":
 				# Halfway through the clouds parting, held there for the shot.
