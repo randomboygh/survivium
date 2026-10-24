@@ -504,6 +504,11 @@ func _run() -> void:
 	_check(hud.perf.freeze_log[0][3].back() == "страница 1200 мс: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
 		"a long frame of the page is told beside its freeze: %s, left %s" % [hud.perf.freeze_log[0][3], hud.perf._long_frames])
 	hud.perf._long_frames.clear()
+	# A collection the page tells of frames later is told beside the last freeze, once.
+	hud.perf._mark_last_freeze("мусор 93 → 61 МБ")
+	hud.perf._mark_last_freeze("мусор")
+	_check(hud.perf.freeze_log[0][3].back() == "мусор 93 → 61 МБ" and hud.perf.freeze_log[0][3].count("мусор") == 0,
+		"a late told collection is marked on the last freeze once: %s" % [hud.perf.freeze_log[0][3]])
 	main.freeze_log.show_log()
 	_check(main.freeze_log._panel != null and main.freeze_log._panel.get_child(0).text.begins_with("Обычный кадр"),
 		"the freezes' log opens with the ordinary frame")

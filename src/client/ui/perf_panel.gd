@@ -55,6 +55,10 @@ const VIDEO_JUMP := 256 * 1024
 const OBJECTS_JUMP := 40
 ## Time the browser spent sending data to the GPU in a frame that is marked, ms.
 const SEND_MS := 4.0
+## The mark of a full garbage collection of the page, and how late after a freeze (ms)
+## the page may tell of the one that made it (see _mark_last_freeze).
+const GARBAGE := "мусор"
+const GC_LATE := 3000.0
 ## How far an ordinary frame pulls the average of ordinary frames (see usual).
 const USUAL_PULL := 0.02
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
@@ -195,11 +199,11 @@ func warmed_up() -> void:
 	_gl.started()
 
 
-## Marks what the renderer's counters show of the frame before: much sent to the
-## video memory, many things drawn more or fewer; in the browser, shaders built and
-## data sent to the GPU, garbage collected, and what ran in the page's long frames
+## Marks what the renderer's counters show of the frame before (`ms` long): much sent
+## to the video memory, many things drawn more or fewer; in the browser, shaders built
+## and data sent to the GPU, garbage collected, and what ran in the page's long frames
 ## (GlWatch).
-func _engine_marks() -> void:
+func _engine_marks(ms := 0.0) -> void:
 	var gl := _gl.take()
 	if not gl.is_empty():
 		if gl.programs > 0.0 or gl.build_ms >= 1.0:
@@ -208,8 +212,11 @@ func _engine_marks() -> void:
 		if gl.send_ms >= SEND_MS:
 			mark("загрузка", "%d КБ за %d мс" % [roundi(gl.sent), roundi(gl.send_ms)])
 		if gl.collections > 0:
-			mark("мусор")
+			var heap := "" if gl.heap_after <= 0.0 else "%d → %d МБ" % [roundi(gl.heap_peak), roundi(gl.heap_after)]
+			mark(GARBAGE, heap)
 			collections += gl.collections
+			if ms <= FREEZE_MS:
+				_mark_last_freeze(GARBAGE + (" " + heap if heap != "" else ""))
 		_page_offset = Time.get_ticks_msec() - gl.now
 		if gl.callback > 0.0:
 			_callback_at = roundi((gl.callback + _page_offset) * 1000.0)
@@ -217,6 +224,21 @@ func _engine_marks() -> void:
 		for f: Array in gl.frames:
 			_long_frames.append([f[0] + _page_offset, f[1], f[2]])
 		_attach_long_frames()
+
+
+## Tells `what` beside the last freeze kept, when that ended within GC_LATE ms and
+## nothing of the kind is told there yet: the page tells of a collection in a task of
+## its own, frames after the pause it made, which was a freeze with nothing to say.
+func _mark_last_freeze(what: String) -> void:
+	if freeze_log.is_empty():
+		return
+	var e: Array = freeze_log.back()
+	if Time.get_ticks_msec() - e[0] * 1000.0 > GC_LATE:
+		return
+	for told: String in e[3]:
+		if told.begins_with(GARBAGE):
+			return
+	e[3].append(what)
 
 
 ## Tells what ran in the page's long frames (GlWatch) beside the freezes they were:
@@ -266,7 +288,7 @@ func add_frame(delta: float) -> void:
 	# The frame's time on the clock where it is known: the engine's delta is smoothed
 	# toward whole frames of the screen and comes out shorter after a long frame.
 	var ms := maxf(delta * 1000.0, (_frame_at - _last_frame_at) / 1000.0 if _last_frame_at > 0 else 0.0)
-	_engine_marks()
+	_engine_marks(ms)
 	_frames[_next] = ms
 	_next = (_next + 1) % HISTORY
 	_total_time += ms / 1000.0

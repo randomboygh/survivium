@@ -241,10 +241,12 @@ GDScript. Notes: `plan/architecture/performance.md`.
   calls, and in the browser the shader programs built (after the warm-up, named by the shader's
   own uniforms and the variant's defines) and the data sent to the GPU, timed by wrapping WebGL2's
   calls in the page, the page's full garbage collections («мусор», a finalizer on an object no one
-  holds; the young ones are invisible to it), and what ran in a long page frame («страница N мс:
-  кадр, touchmove, звук, рендер», from the long-animation-frame entries; `gl_watch.gd`); an
-  ordinary frame's parts head the list. Things that show up only later (particles, the lightning,
-  lines of the interface) are drawn by `shader_warmup.gd` too, or their first draw is a freeze. A JS snippet run from GDScript
+  holds, told frames after the pause, so it is put beside the last freeze, with the heap before and
+  after where Chrome tells it; the young ones are invisible to it), and what ran in a long page
+  frame («страница N мс: до, кадр, touchmove, звук, после», from the long-animation-frame entries;
+  `gl_watch.gd`); an ordinary frame's parts head the list. Things that show up only later (particles, the lightning,
+  lines of the interface) are drawn by `shader_warmup.gd` too, or their first draw is a freeze; the
+  HUD is hidden behind the menu meanwhile, so the interface's go on the world's canvas. A JS snippet run from GDScript
   must be strict and must not touch `arguments` in a wrapper with named params: that makes an
   object per call (7.5 KB a frame from the WebGL wrapper alone).
 - Compatibility lights each mesh with at most `rendering/limits/opengl/max_lights_per_object`
