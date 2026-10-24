@@ -426,6 +426,9 @@ func open() -> void:
 
 
 func close() -> void:
+	if is_open:
+		# The browser test waits for this line before it looks at the game's screen.
+		print("main menu closed")
 	is_open = false
 	_want_play = false
 	_entered = true
