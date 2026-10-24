@@ -84,7 +84,10 @@ void fragment() {
 		row = float(branch_row);
 	}
 	vec4 m = texture(clump_texture, vec2((variant + UV.x) / 4.0, (row + UV.y) / float(clump_rows)));
-	vec2 texel = floor(screen_plane(center) * TEXELS + UV * clump_size * TEXELS);
+	// The pixel of the picture this is, the same for every card over it whatever its
+	// sway or offset, so the dithers of the cards lying one over another leave out the
+	// same pixels instead of filling each other's gaps.
+	vec2 texel = light_texel(light_xz);
 	if (m.a < 0.5 || cut_dither(center.y, texel)) {
 		discard;
 	}
@@ -98,11 +101,12 @@ void fragment() {
 	}
 	// See-through around the player when the clump is nearer the viewer than them:
 	// every other texel within SEE_THROUGH, fewer and fewer over a rim beyond it, and
-	// fewer for a clump hardly in front of the player. Counted in the world's texels,
-	// so the pattern does not crawl as the view moves; and graded both ways, so a step
-	// of the player takes or gives back single texels, not whole clumps at once, which
-	// flickered.
-	vec2 frag = screen_plane(center) + vec2((UV.x - 0.5) * clump_size, -(0.5 - UV.y) * clump_size * view_slope);
+	// fewer for a clump hardly in front of the player. Counted in the picture's pixels
+	// on the world, so the pattern does not crawl as the view moves, and the cards
+	// over one another, swaying each its own way, keep the window open together; and
+	// graded both ways, so a step of the player takes or gives back single texels,
+	// not whole clumps at once, which flickered.
+	vec2 frag = (texel + 0.5) / TEXELS;
 	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
 	float near = length(frag - body);
 	float toward = view_slope / view_squash;
