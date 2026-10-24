@@ -235,12 +235,16 @@ GDScript. Notes: `plan/architecture/performance.md`.
   every shader compiled, so the file times tell what an action compiled. Freezes on the device
   are listed with what happened in their frame in «Отладка» → «Журнал фризов» (`freeze_log.gd`):
   the game's parts, the engine's own work before drawing («движок»), the drawing («отрисовка»)
-  and the time outside the engine («браузер»: the page, its garbage collection), the draw calls,
-  and in the browser the shader programs built (after the warm-up, with their defines) and the data
-  sent to the GPU, timed by wrapping WebGL2's calls in the page, the page's garbage collections
-  («мусор», young and full apart, seen by finalizers on objects no one holds), and what ran in a
-  long page frame («страница: кадр, touchmove, звук», from the long-animation-frame entries;
-  `gl_watch.gd`); an ordinary frame's parts head the list. A JS snippet run from GDScript
+  and the rest, in the browser split by the page's frame callback («ввод»: before the frame in
+  it, the input events dispatched; «браузер»: between the callbacks, the page, its garbage
+  collection, the compositor waiting for the GPU; «конец кадра»: after the drawing), the draw
+  calls, and in the browser the shader programs built (after the warm-up, named by the shader's
+  own uniforms and the variant's defines) and the data sent to the GPU, timed by wrapping WebGL2's
+  calls in the page, the page's full garbage collections («мусор», a finalizer on an object no one
+  holds; the young ones are invisible to it), and what ran in a long page frame («страница N мс:
+  кадр, touchmove, звук, рендер», from the long-animation-frame entries; `gl_watch.gd`); an
+  ordinary frame's parts head the list. Things that show up only later (particles, the lightning,
+  lines of the interface) are drawn by `shader_warmup.gd` too, or their first draw is a freeze. A JS snippet run from GDScript
   must be strict and must not touch `arguments` in a wrapper with named params: that makes an
   object per call (7.5 KB a frame from the WebGL wrapper alone).
 - Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
