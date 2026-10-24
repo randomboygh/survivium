@@ -200,8 +200,8 @@ CI; the `og:` tags are in `html/head_include`).
 ## Performance rule
 
 Nothing map-sized or chunk-sized runs in one frame. Chunk meshes and plants are built a column of
-cells at a time through `ChunkMesher` / `Foliage` jobs, and chunks are generated a row at a time
-through `WorldGen` jobs, all run by `chunk_streamer.gd` within per-frame budgets (edits first, then
+cells at a time through `ChunkMesher` / `Foliage` jobs (a tall column a few cells a step), and
+chunks are generated a row at a time through `WorldGen` jobs (a tree's crown a few points a step), all run by `chunk_streamer.gd` within per-frame budgets (edits first, then
 far chunks, then caps). `tests/frame_test.gd` enforces this. The phone browser is about 10x slower than a desktop in
 GDScript. Notes: `plan/architecture/performance.md`.
 

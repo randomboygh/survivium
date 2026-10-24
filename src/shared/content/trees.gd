@@ -110,18 +110,24 @@ static func fit(species: int, room: int) -> float:
 ## cell above the ground). `scale` makes it smaller or larger than usual, about 0.6..1.3,
 ## for stunted or old trees.
 static func place(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> void:
+	var crown := grow(w, x, y, z, species, rng, scale)
+	fill(w, crown, 0, crown.size())
+
+
+## Notes the tree and grows its trunk, as `place` does, and gives the points of its
+## crown for `fill`: the world generator fills a big crown over several steps.
+static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> Array[Vector3i]:
 	var s: Dictionary = SPECIES[species]
 	w.add_tree(x, z, species)
 	if s.leaves == NEEDLES:
-		_conifer(w, x, y, z, s, rng, scale)
-	else:
-		_broadleaf(w, x, y, z, s, rng, scale)
+		return _conifer(w, x, y, z, s, rng, scale)
+	return _broadleaf(w, x, y, z, s, rng, scale)
 
 
 ## A trunk and a crown of points in a low, wide ellipsoid: in the oblique view the top
 ## and the front of a crown both show, so a ball would look tall and narrow, while this
 ## one reads as round on screen (width about equal to height plus depth).
-static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> void:
+static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
 	var trunk := maxi(2, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
 	for i in trunk:
 		w.set_cell(x, y + i, z, Mat.LOG)
@@ -138,13 +144,13 @@ static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumb
 				var d := Vector3(dx / rx, dy / ry, dz / rz)
 				if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1):
 					points.append(Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz))
-	_fill(w, points)
+	return points
 
 
 ## A tall trunk in a cone of tiers: every other level of points spreads wide and the one
 ## above it stays narrow, so the tiers show as layers of drooping branches, widest at
 ## the bottom.
-static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> void:
+static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
 	var tiers := maxi(3, roundi(rng.randi_range(s.crown[1], s.crown[2]) * scale))
 	var radius: float = (s.crown[0] + rng.randf_range(-0.2, 0.2)) * scale
 	var reach := ceili(radius)
@@ -174,7 +180,7 @@ static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumber
 	for o in offsets:
 		points.append(Vector3i(x + 2 * o.x, low + 2 * o.y, z + 2 * o.z))
 	points.append(Vector3i(x, top + 2, z))
-	_fill(w, points)
+	return points
 
 
 ## Radius in points of tier `k` of `tiers` (before the narrow tiers are narrowed).
@@ -188,14 +194,18 @@ static func _hidden_trunk(front: int) -> int:
 	return maxi(1, 3 * front - 1)
 
 
-## Each crown point fills the air cells of the 3x3x3 block around it with leaves.
-static func _fill(w, points: Array[Vector3i]) -> void:
-	for p in points:
+## Each crown point fills the air cells of the 3x3x3 block around it with leaves: the
+## `count` points from `from` on. Gives the index of the next point.
+static func fill(w, points: Array[Vector3i], from: int, count: int) -> int:
+	var to := mini(from + count, points.size())
+	for i in range(from, to):
+		var p := points[i]
 		for oy in range(-1, 2):
 			for oz in range(-1, 2):
 				for ox in range(-1, 2):
 					if w.get_cell(p.x + ox, p.y + oy, p.z + oz) == Mat.AIR:
 						w.set_cell(p.x + ox, p.y + oy, p.z + oz, Mat.LEAVES)
+	return to
 
 
 ## Fells the tree whose trunk holds the log cell `cut`: that log and the trunk above it

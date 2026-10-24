@@ -182,9 +182,10 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 
 
 ## Steps a job takes to copy the cells of the chunk and a border around it before
-## the columns: the cells, their shapes, the cells that may show a face. Each is about
-## as long as the streamer's budget on a phone, so they go one a step.
-const PREP_STEPS := 3
+## the columns: the cells and their shapes, each in two halves of the levels, then the
+## cells that may show a face. A whole copy takes about 0.9 ms on a desktop, some ten
+## times that on a phone, three times the streamer's budget, so it goes half a step.
+const PREP_STEPS := 5
 
 
 ## Begins building the meshes of a chunk; `step` then copies its cells and builds a
@@ -218,19 +219,26 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 
 
 ## Copies the cells of the chunk and its border into the job, part `i` of PREP_STEPS
-## (counting down): the cells, their shapes, the cells that may show a face.
+## (counting down): the cells and their shapes, the lower levels and then the upper
+## ones, then the cells that may show a face.
 static func _prepare(job: Job, i: int) -> void:
 	var w = job.w
 	var x0 := job.x0 - PAD
 	var z0 := job.z0 - PAD
 	var x1 := job.x1 + PAD
 	var z1 := job.z1 + PAD
+	var half: int = w.size_y / 2
 	match i:
+		5:
+			job.c = w.padded(false, Mat.STONE, x0, z0, x1, z1, -1, half)
+		4:
+			job.c.append_array(w.padded(false, Mat.STONE, x0, z0, x1, z1, half))
 		3:
-			job.c = w.padded(false, Mat.STONE, x0, z0, x1, z1)
+			w.refresh_shapes()
+			job.sh = w.padded(true, 0, x0, z0, x1, z1, -1, half)
 		2:
 			w.refresh_shapes()
-			job.sh = w.padded(true, 0, x0, z0, x1, z1)
+			job.sh.append_array(w.padded(true, 0, x0, z0, x1, z1, half))
 		1:
 			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
 
@@ -244,8 +252,9 @@ static func step(job: Job, columns: int) -> bool:
 		job.prep -= 1
 		columns -= 1
 	while columns > 0 and job.z < job.z1:
-		_column(job, job.x, job.z)
 		columns -= 1
+		if not _column(job, job.x, job.z):
+			continue
 		job.x += 1
 		if job.x >= job.x1:
 			job.x = job.x0
@@ -264,7 +273,14 @@ static func step(job: Job, columns: int) -> bool:
 	return job.z >= job.z1 and job.plain_j >= job.plain.size() and job.water_j >= job.water_plain.size()
 
 
-static func _column(job: Job, x: int, z: int) -> void:
+## Cells of a column built in one step: most columns show a few, but the ten cells of
+## a tree's trunk took some 1.2 ms on a desktop (2026-10-24), ten times that on a phone.
+const COLUMN_CELLS := 4
+
+
+## Builds up to COLUMN_CELLS cells of column x, z that may show a face, and keeps the
+## rest for the next call; true once the column is done.
+static func _column(job: Job, x: int, z: int) -> bool:
 	var w = job.w
 	var x0 := job.x0
 	var z0 := job.z0
@@ -290,7 +306,12 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var j := (z - z0) * (x1 - x0) + (x - x0)
 	var cand := cands[j]
 	var column := (z - z0 + PAD) * dz + PAD + x - x0
+	var left := COLUMN_CELLS
 	while cand != 0:
+		if left == 0:
+			cands[j] = cand
+			return false
+		left -= 1
 		var bit := cand & -cand
 		cand ^= bit
 		var y := WorldData.level_of(bit)
@@ -412,6 +433,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 				var edges := _top_edges(c, cov, i, dy, dz)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
 					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0)
+	return true
 
 
 ## The meshes once every column is built: [solid, water], null where empty.
