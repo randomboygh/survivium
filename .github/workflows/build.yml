@@ -41,7 +41,7 @@ jobs:
         run: |
           # The client, its shaders, scenes and pictures, the web save store, the export, the
           # smoke test and CI itself. Rules, data and tests are covered by the headless tests.
-          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/sprites/|project\.godot|export_presets\.cfg|icon\.svg|tests/browser_smoke\.mjs|\.github/)'
+          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/sprites/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|\.github/)'
           if [ -z "$PR" ] || [ "$LABELED" = true ]; then
             smoke=true
           else
@@ -84,6 +84,10 @@ jobs:
         run: |
           mkdir -p build/web
           ~/godot/godot --headless --path . --export-release "Web" build/web/index.html
+          # The link preview, and the home screen icon drawn at its size rather than the
+          # export's smoothed one (tools/make_icon.py).
+          cp assets/web/og.png build/web/
+          cp assets/web/apple-touch-icon.png build/web/index.apple-touch-icon.png
           ls -la build/web
 
       - name: Upload web build (download from the run page)

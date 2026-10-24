@@ -190,6 +190,9 @@ background). Shots share one world per run, so a shot that edits cells restores 
 draws the land around the spawn from above; `tools/bench_*.gd` time generation, meshing and edits;
 `tools/profile.gd` times each module of a frame headless and counts draw calls under xvfb (`-- spikes`
 times one-off actions).
+`tools/make_icon.py` draws the icon (`icon.png`, the browser tab's and the apps') and
+`assets/web/` (the home screen icon and the link preview `og.png`, copied next to `index.html` by
+CI; the `og:` tags are in `html/head_include`).
 
 ## Performance rule
 
