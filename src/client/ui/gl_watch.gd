@@ -1,9 +1,11 @@
 extends RefCounted
-## What the browser's WebGL did since the last look, for the freezes' log (PerfPanel):
-## the shader programs it built and the time that took (the first draw of a thing under
-## lights it was not drawn under before, or of a new kind of thing), and the data sent
-## to the GPU (meshes, instances, textures) and the time that took. It wraps those
-## calls of WebGL2 in the page with a clock; off the web it sees nothing.
+## What the browser did since the last look, for the freezes' log (PerfPanel): the
+## shader programs its WebGL built and the time that took (the first draw of a thing
+## under lights it was not drawn under before, or of a new kind of thing), the data
+## sent to the GPU (meshes, instances, textures) and the time that took, and whether
+## the page collected its garbage in full. It wraps those calls of WebGL2 in the page
+## with a clock, and watches an object no one holds that a collection takes away; off
+## the web it sees nothing.
 
 const SCRIPT := """
 (function () {
@@ -45,6 +47,17 @@ const SCRIPT := """
 	// Building waits on the GPU's process at the status asked after compiling and linking.
 	['compileShader', 'linkProgram', 'getShaderParameter', 'getProgramParameter'].forEach(function (n) { wrap(n, true); });
 	['bufferData', 'bufferSubData', 'texImage2D', 'texSubImage2D', 'texImage3D', 'texSubImage3D'].forEach(function (n) { wrap(n, false); });
+	// Full garbage collections (V8's small ones, of the young objects, leave the
+	// objects only weakly held where they are), counted by an object no one holds that
+	// they take away. A finalizer tells, unlike WeakRef.deref, which would keep the object
+	// alive through the frame it is asked in.
+	if (typeof FinalizationRegistry === 'undefined') return;
+	s.collections = 0;
+	var gone = new FinalizationRegistry(function () {
+		s.collections++;
+		gone.register({}, 0);
+	});
+	gone.register({}, 0);
 })();
 """
 
@@ -52,6 +65,8 @@ const SCRIPT := """
 var _js = null
 ## The counters at the last look: programs, ms building, bytes sent, ms sending.
 var _last := PackedFloat64Array([0.0, 0.0, 0.0, 0.0])
+## The page's full garbage collections counted at the last look.
+var _collections := 0
 
 
 func _init() -> void:
@@ -61,11 +76,16 @@ func _init() -> void:
 	_js = JavaScriptBridge.get_interface("survivium_gl")
 
 
-## [programs built, ms building, KB sent, ms sending] since the last call; [] off the web.
+## [programs built, ms building, KB sent, ms sending, full garbage collections] since
+## the last call; [] off the web.
 func take() -> Array:
 	if _js == null:
 		return []
 	var now := PackedFloat64Array([float(_js.programs), float(_js.build_ms), float(_js.sent), float(_js.send_ms)])
-	var out := [now[0] - _last[0], now[1] - _last[1], (now[2] - _last[2]) / 1024.0, now[3] - _last[3]]
+	var gc = _js.collections
+	var collections := int(gc) if gc != null else 0
+	var out := [now[0] - _last[0], now[1] - _last[1], (now[2] - _last[2]) / 1024.0, now[3] - _last[3],
+		collections - _collections]
+	_collections = collections
 	_last = now
 	return out

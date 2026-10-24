@@ -49,6 +49,8 @@ const VIDEO_JUMP := 256 * 1024
 const OBJECTS_JUMP := 40
 ## Time the browser spent sending data to the GPU in a frame that is marked, ms.
 const SEND_MS := 4.0
+## How far an ordinary frame pulls the average of ordinary frames (see usual).
+const USUAL_PULL := 0.02
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
 const EDGE := 8.0
 
@@ -87,6 +89,11 @@ var _last_frame_at := 0
 var _draw_at := 0
 var _drawn_at := 0
 var _gl := GlWatch.new()
+## The page's full garbage collections since the reset (GlWatch; none off the web).
+var collections := 0
+## An ordinary frame (not a freeze), averaged over the last few seconds, ms: the frame,
+## the game's code, the engine's work, the drawing, the rest (see ENGINE).
+var usual := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0])
 ## How many freezes each mark came before since the reset (NO_MARK: none).
 var freeze_marks := {}
 ## The last freeze and the longest one: [ms, [[part, ms], ...] biggest first], or [].
@@ -155,6 +162,8 @@ func reset() -> void:
 	freeze_marks.clear()
 	freeze_log.clear()
 	_marks.clear()
+	collections = 0
+	usual.fill(0.0)
 
 
 ## Marks that the frame under way made the engine or the browser do `what` outside
@@ -174,6 +183,9 @@ func _engine_marks() -> void:
 			mark("шейдеры", "%d за %d мс" % [roundi(gl[0]), roundi(gl[1])])
 		if gl[3] >= SEND_MS:
 			mark("загрузка", "%d КБ за %d мс" % [roundi(gl[2]), roundi(gl[3])])
+		if gl[4] > 0:
+			mark("мусор")
+			collections += gl[4]
 	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
 	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
@@ -206,6 +218,12 @@ func add_frame(delta: float) -> void:
 	if ms > FREEZE_MS:
 		_freezes += 1
 		_record_freeze(ms)
+	else:
+		var parts := _parts(ms)
+		var now := PackedFloat32Array([ms, parts[0], parts[1], parts[2], parts[3]])
+		var first := usual[0] == 0.0
+		for i in now.size():
+			usual[i] = now[i] if first else lerpf(usual[i], now[i], USUAL_PULL)
 	_work.clear()
 	_marks.clear()
 	if ms > BIG_FREEZE_MS:
@@ -224,22 +242,31 @@ func add_frame(delta: float) -> void:
 		refresh()
 
 
+## The frame of `ms` before in four parts, ms: the game's code, the engine's work, the
+## drawing (0 for both when the engine's signals did not come in it) and the rest.
+func _parts(ms: float) -> PackedFloat32Array:
+	var game_ms := 0.0
+	for what: String in _work:
+		game_ms += _work[what] / 1000.0
+	var engine := 0.0
+	var draw := 0.0
+	if _draw_at >= _last_frame_at and _drawn_at >= _draw_at and _last_frame_at > 0:
+		engine = maxf((_draw_at - _last_frame_at) / 1000.0 - game_ms, 0.0)
+		draw = (_drawn_at - _draw_at) / 1000.0
+	return PackedFloat32Array([game_ms, engine, draw, maxf(ms - game_ms - engine - draw, 0.0)])
+
+
 ## Keeps what took the time of a freeze of `ms`, the parts of the game's code noted
 ## and the rest, and writes it to the log.
 func _record_freeze(ms: float) -> void:
 	var parts := []
-	var game_ms := 0.0
 	for what: String in _work:
 		parts.append([what, _work[what] / 1000.0])
-		game_ms += _work[what] / 1000.0
-	# The frame's drawing, when the engine's signals came in it.
-	if _draw_at >= _last_frame_at and _drawn_at >= _draw_at and _last_frame_at > 0:
-		var engine := maxf((_draw_at - _last_frame_at) / 1000.0 - game_ms, 0.0)
-		var draw := (_drawn_at - _draw_at) / 1000.0
-		parts.append([ENGINE, engine])
-		parts.append([DRAW, draw])
-		game_ms += engine + draw
-	parts.append([REST, maxf(ms - game_ms, 0.0)])
+	var four := _parts(ms)
+	if four[1] > 0.0 or four[2] > 0.0:
+		parts.append([ENGINE, four[1]])
+		parts.append([DRAW, four[2]])
+	parts.append([REST, four[3]])
 	parts.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
 	var marks: Array = _marks.keys()
 	marks.sort()
