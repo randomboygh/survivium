@@ -32,14 +32,14 @@ const FADE := 1.2
 const SKY := [Color("#22384a"), Color("#2c4a5a"), Color("#3a5d68"), Color("#4f7273"), Color("#6c857a"),
 	Color("#93977f"), Color("#b8a383")]
 const HILLS := [Color("#35503f"), Color("#263b2f")]
-## Clouds over the painted sky: height (share of the sky), width, UI px a second, start.
-const CLOUDS := [[0.18, 70, 3.0, 0.1], [0.30, 46, 5.0, 0.55], [0.42, 90, 2.0, 0.8], [0.55, 36, 7.0, 0.3],
-	[0.10, 30, 4.0, 0.7]]
-## A cloud's lit top, its body and its shaded underside, and the height of a row in UI px.
-const CLOUD_LIT := Color("#f1e2c0", 0.95)
-const CLOUD := Color("#cfc3a4", 0.85)
-const CLOUD_SHADE := Color("#8f8f7c", 0.8)
-const CLOUD_ROW := 4
+## Cumulus clouds over the painted sky, drawn by tools/make_clouds.py: a row of
+## cells CLOUD_CELL in UI px, each a cloud on the bottom of its cell. Each one drifting
+## right: the height of its base (share of the sky), its cell, UI px a second, where
+## it starts. The far ones high and small, the near ones lower, bigger and faster.
+const CLOUD_SHEET := preload("res://assets/menu_clouds.png")
+const CLOUD_CELL := Vector2(160, 80)
+const CLOUDS := [[0.16, 5, 1.5, 0.1], [0.22, 3, 2.0, 0.6], [0.36, 2, 3.0, 0.85], [0.50, 1, 4.0, 0.35],
+	[0.66, 0, 5.5, 0.05], [0.80, 4, 7.0, 0.55]]
 ## Stars over the top of the sky (some of them two pixels across), the birds' colour,
 ## the size of a pixel of them and the seconds between their flights.
 const STARS := 24
@@ -165,6 +165,7 @@ func _ready() -> void:
 	add_child(_backdrop)
 	_motion = Control.new()
 	_motion.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_motion.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_motion.draw.connect(_draw_motion)
 	_backdrop.add_child(_motion)
 	_screen = Control.new()
@@ -640,25 +641,19 @@ func _draw_sparrow() -> void:
 	_sparrow.draw_set_transform(Vector2.ZERO)
 
 
-## The sky's moving parts, over the painted sky: pixel clouds drifting right at their
+## The sky's moving parts, over the painted sky: cumulus clouds drifting right at their
 ## own pace, stars blinking at the top, and three birds flapping across now and then.
 func _draw_motion() -> void:
 	var s: float = scale.x
 	var full := Rect2(-position / s, get_viewport_rect().size / s).grow(2)
 	var top := full.position.y
 	var sky_h := full.size.y * 0.62
-	var span := full.size.x + 120.0
+	var span := full.size.x + CLOUD_CELL.x
 	for c in CLOUDS:
-		var w: float = c[1]
-		var x := floorf(full.position.x + fposmod(c[3] * span + _time * c[2], span) - 100.0)
-		var y := floorf(top + sky_h * c[0])
-		# Rows of the cloud from the top: inset from both sides, the top one lit.
-		var rows := [[0.3, 0.35], [0.15, 0.2], [0.0, 0.0], [0.1, 0.05], [0.2, 0.25]]
-		for i in rows.size():
-			var a := floorf(w * rows[i][0])
-			var b := floorf(w * rows[i][1])
-			var tint := CLOUD_LIT if i == 0 else CLOUD_SHADE if i == rows.size() - 1 else CLOUD
-			_motion.draw_rect(Rect2(x + a, y + i * CLOUD_ROW, w - a - b, CLOUD_ROW), tint)
+		var x := floorf(full.position.x + fposmod(c[3] * span + _time * c[2], span) - CLOUD_CELL.x)
+		var y := floorf(top + sky_h * c[0] - CLOUD_CELL.y)
+		var cell := Rect2(Vector2(c[1] * CLOUD_CELL.x, 0.0), CLOUD_CELL)
+		_motion.draw_texture_rect_region(CLOUD_SHEET, Rect2(Vector2(x, y), CLOUD_CELL), cell)
 	for i in STARS:
 		var h := absi(hash(i * 7919))
 		var sx := full.position.x + float(h % 1000) / 1000.0 * full.size.x
