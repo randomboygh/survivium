@@ -44,7 +44,7 @@ const int SAND = 4;
 // Which material grows over which at a boundary; 0 never blends.
 // One for every material (Mat ids, see materials.yaml): reading past the end draws
 // garbage on some GPUs.
-const int PRIORITY[13] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 1, 0, 2);
+const int PRIORITY[13] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 2, 0, 2);
 // Outward directions of the N, S, W, E edges of a face, and of the diagonals of
 // corners NW, NE, SE, SW (seen from the rest of the cell).
 const vec2 EDGE_OUT[4] = vec2[](vec2(0.0, -1.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(1.0, 0.0));
@@ -162,10 +162,15 @@ void fragment() {
 	// The dark caps of the cut (see ChunkMesher.build_cap) are cross-sections, not
 	// ground: nothing grows on them.
 	bool cap = tile != NONE && COLOR.r < 0.5;
-	vec2 wt = floor(world_pos.xz * TEXELS);
+	// Texels are looked up a 32nd of a texel off the world position: on a diagonal wall
+	// the middles of the pixels fall right on the texels' edges, and the least rounding
+	// error (a phone's GPU) flips them from one texel to the next as the view moves.
+	vec3 tp = world_pos + vec3(1.0 / (32.0 * TEXELS));
+	vec2 wt = floor(tp.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
+	// The tile drawn here: this face's, or a neighbour's spilling over the edge.
+	int pick = tile;
 	if (tile != NONE) {
-		int pick = tile;
 		if (top) {
 			// The neighbour with the higher priority spills 1..3 texels over the edge.
 			int n = int(packed.y + 0.5);
@@ -189,8 +194,8 @@ void fragment() {
 		}
 		// The tile's texel at this spot of the world: x and z on tops, across and down
 		// on walls.
-		vec2 across = abs(world_normal.y) > 0.5 ? world_pos.xz
-			: vec2(abs(world_normal.x) > 0.5 ? world_pos.z : world_pos.x, -world_pos.y);
+		vec2 across = abs(world_normal.y) > 0.5 ? tp.xz
+			: vec2(abs(world_normal.x) > 0.5 ? tp.z : tp.x, -tp.y);
 		ivec2 tm = ivec2(mod(floor(across * TEXELS), TEXELS));
 		if (top) {
 			tm = tile_mirror(tm, floor(world_pos.xz));
@@ -276,7 +281,7 @@ void fragment() {
 	bool roof = roofed(world_pos.xz, world_pos.y);
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
-	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
+	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire nor where it was
 	// picked (see Grass.stone_moss); a picked top keeps a ragged edge of it, 0..2
@@ -293,7 +298,7 @@ void fragment() {
 			moss = moss || ((around >> e) & 1) == 0 && float(in_cell[e]) < reach;
 		}
 	}
-	if (top && tile == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	if (top && pick == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
