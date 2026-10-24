@@ -355,6 +355,11 @@ func _section_rows(key: String) -> Array:
 					if get_tree().paused:
 						game.hud.toggle_menu()
 					game.draw_census.start()},
+				{"action": "Журнал фризов", "do": func() -> void:
+					close()
+					if get_tree().paused:
+						game.hud.toggle_menu()
+					game.freeze_log.show_log()},
 			]
 		"game":
 			return [

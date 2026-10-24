@@ -59,6 +59,8 @@ const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
+const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
+const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
@@ -77,6 +79,8 @@ var fire_shadows
 var tracks
 var roof: RoofMap
 var hud
+## The hidden view that builds the night's shaders as the game starts (see shader_warmup.gd).
+var warmup: ShaderWarmup
 var chunks: ChunkStreamer
 var sky: SkyScript
 var clock: Clock
@@ -107,6 +111,8 @@ var menu: MainMenu
 var death_screen: DeathScreen
 ## Counts the frame's draw calls by what is drawn (the playtest page, «Отладка»).
 var draw_census: DrawCensus
+## Marks what the game did for the freezes' log, and shows the log («Отладка»).
+var freeze_log: FreezeLog
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
 ## shown with the snow cover.
 var world_root: Node3D
@@ -239,6 +245,7 @@ func start_world() -> void:
 	actions.drops_changed.connect(props.show_drops)
 	actions.taken.connect(props.fly)
 	storms = Storms.new(world, clock, actions)
+	freeze_log.watch()
 	_build_scene()
 	save.restore_player()
 	settings.apply()
@@ -294,6 +301,8 @@ func _process(delta: float) -> void:
 			wildlife.start(world_seed)
 			creatures.watch(wildlife)
 			ready_to_play = true
+			warmup = ShaderWarmup.new(self)
+			warmup.start()
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
@@ -333,6 +342,9 @@ func _process(delta: float) -> void:
 		perf.mark("карта")
 	t = perf.note("карты", t)
 	view.update(delta)
+	if warmup != null and warmup.step():
+		warmup = null
+	freeze_log.update()
 	t = perf.note("камера", t)
 	if ready_to_play:
 		hud.update_state()
@@ -411,6 +423,8 @@ func _build_ui() -> void:
 	over.add_child(death_screen)
 	draw_census = DrawCensus.new(self)
 	add_child(draw_census)
+	freeze_log = FreezeLog.new(self)
+	add_child(freeze_log)
 
 
 ## The main menu in a layer over the interface, open from the start.
