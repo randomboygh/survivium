@@ -84,6 +84,9 @@ jobs:
         run: |
           mkdir -p build/web
           ~/godot/godot --headless --path . --export-release "Web" build/web/index.html
+          # The engine's audio position worklet posted a message per 128 sound frames of
+          # every sound playing, the phone's garbage collector stalled on them.
+          python3 tools/web_patch.py build/web
           # The link preview, and the home screen icon drawn at its size rather than the
           # export's smoothed one (tools/make_icon.py).
           cp assets/web/og.png build/web/
