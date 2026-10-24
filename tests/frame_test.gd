@@ -486,9 +486,12 @@ func _run() -> void:
 	hud.perf.reset()
 	hud.perf.mark("тень огня")
 	hud.perf.mark("сетка")
+	hud.perf.mark("видео", "+512 КБ")
 	hud.perf.add_frame(1.234)
-	_check(hud.perf.last_freeze[2] == ["сетка", "тень огня"] and hud.perf.freeze_marks.get("сетка") == 1,
+	_check(hud.perf.last_freeze[2] == ["видео", "сетка", "тень огня"] and hud.perf.freeze_marks.get("сетка") == 1,
 		"a freeze tells what was marked in the frame before it: %s" % [hud.perf.last_freeze])
+	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["видео +512 КБ", "сетка", "тень огня"],
+		"the freezes' log keeps the marks with what they say: %s" % [hud.perf.freeze_log])
 	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]], ["тень огня", "сетка"]]
 	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
 	hud.perf.freeze_marks = {"тень огня": 123, "фигура": 45, "запись": 12, "ничего": 8}

@@ -32,7 +32,8 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
                tracks, roof_map
   view/        the picture: pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures,
                voxel_model, voxel_props, player, figure, hands, sprite_sheet, sprite_art,
-               draw_census (the draw calls counted by what is drawn, from «Отладка»)
+               draw_census (the draw calls counted by what is drawn, from «Отладка»),
+               shader_warmup (the shaders of every mix of lights built as the game starts)
   input/       controls, cursor, touch_stick, touch_button
   audio/       sound: sound (buses, volumes, the ear, voices, loops), nature, steps, voices
                (the animals'), music (pieces made of notes)
@@ -226,6 +227,13 @@ GDScript. Notes: `plan/architecture/performance.md`.
   Compatibility; a cube shadow plus its pass cost ~+400 draw calls, so by default ("mixed") the nearest
   fire casts a real shadow from the player alone (`shadow_caster_mask`) and the rest are drawn on the
   ground (`fire_shadows.gd`); all real is a setting.
+- The first draw of a material under a mix of lights it was not drawn under before (no sun at
+  dusk, the torch, a fire's shadow) compiles shaders: 100 ms and more on a phone, 10 s under
+  software GL. `shader_warmup.gd` draws one of each kind of thing in the world under every mix
+  once the world is ready; a new kind of light or a material that shows up only later goes
+  there. `MESA_SHADER_DUMP_PATH=dir` (with `MESA_SHADER_CACHE_DISABLE=true`) under xvfb writes
+  every shader compiled, so the file times tell what an action compiled. Freezes on the device
+  are listed with what happened in their frame in «Отладка» → «Журнал фризов» (`freeze_log.gd`).
 - Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
   through a copy of the buses made at start, so a bus added by `AudioServer.add_bus` later is silent
   in the browser (fine on desktop, so only the browser shows it).

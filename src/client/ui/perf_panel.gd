@@ -36,6 +36,12 @@ const FREEZE_LOG_EVERY := 1000
 const LINE := 45
 ## What a freeze with no mark before it is counted as.
 const NO_MARK := "ничего"
+## Freezes the log keeps.
+const LOG_SIZE := 40
+## A change of video memory (textures and meshes sent to the GPU) or of the objects
+## drawn from one frame to the next that is marked.
+const VIDEO_JUMP := 256 * 1024
+const OBJECTS_JUMP := 40
 ## Room kept between the panel and the right edge of the screen, in UI pixels.
 const EDGE := 8.0
 
@@ -61,6 +67,12 @@ var _work := {}
 ## code (a mesh or a texture to the renderer, a file to write, a fire's shadow
 ## switched), which lands in REST: told beside a freeze, which it may have caused.
 var _marks := {}
+## The freezes kept for the log in «Отладка» (see freeze_log.gd), the newest last:
+## [seconds since the start, ms, parts, marks with what they say].
+var freeze_log := []
+## Video memory and objects drawn in the frame before, to mark a jump (see _engine_marks).
+var _video := 0.0
+var _objects := 0.0
 ## How many freezes each mark came before since the reset (NO_MARK: none).
 var freeze_marks := {}
 ## The last freeze and the longest one: [ms, [[part, ms], ...] biggest first], or [].
@@ -111,12 +123,28 @@ func reset() -> void:
 	last_freeze = []
 	worst_freeze = []
 	freeze_marks.clear()
+	freeze_log.clear()
+	_marks.clear()
 
 
 ## Marks that the frame under way made the engine or the browser do `what` outside
-## the game's code (see _marks).
-func mark(what: String) -> void:
-	_marks[what] = true
+## the game's code (see _marks), or that the game did it (a jump, dusk); `detail` is
+## shown with it in the log.
+func mark(what: String, detail := "") -> void:
+	_marks[what] = detail
+
+
+## Marks what the renderer's counters show of the frame before: much sent to the
+## video memory, many things drawn more or fewer.
+func _engine_marks() -> void:
+	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
+	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
+		mark("видео", "%+d КБ" % roundi((video - _video) / 1024.0))
+	if _objects > 0.0 and absf(objects - _objects) >= OBJECTS_JUMP:
+		mark("объекты", "%+d" % roundi(objects - _objects))
+	_video = video
+	_objects = objects
 
 
 ## Adds the time from `since` (Time.get_ticks_usec) until now to part `what` of the
@@ -131,6 +159,7 @@ func note(what: String, since: int) -> int:
 ## panel is hidden. `delta` is the time of the frame before, whose work was noted.
 func add_frame(delta: float) -> void:
 	var ms := delta * 1000.0
+	_engine_marks()
 	_frames[_next] = ms
 	_next = (_next + 1) % HISTORY
 	_total_time += delta
@@ -171,6 +200,12 @@ func _record_freeze(ms: float) -> void:
 	for m: String in marks if not marks.is_empty() else [NO_MARK]:
 		freeze_marks[m] = freeze_marks.get(m, 0) + 1
 	last_freeze = [ms, parts.slice(0, FREEZE_PARTS), marks]
+	var told := []
+	for m: String in marks:
+		told.append(m + (" " + _marks[m] if _marks[m] != "" else ""))
+	freeze_log.append([Time.get_ticks_msec() / 1000.0, ms, parts.slice(0, FREEZE_PARTS), told])
+	if freeze_log.size() > LOG_SIZE:
+		freeze_log.pop_front()
 	if worst_freeze.is_empty() or ms > worst_freeze[0]:
 		worst_freeze = last_freeze
 	if Time.get_ticks_msec() - _freeze_logged >= FREEZE_LOG_EVERY:
