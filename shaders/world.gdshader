@@ -162,7 +162,11 @@ void fragment() {
 	// The dark caps of the cut (see ChunkMesher.build_cap) are cross-sections, not
 	// ground: nothing grows on them.
 	bool cap = tile != NONE && COLOR.r < 0.5;
-	vec2 wt = floor(world_pos.xz * TEXELS);
+	// Texels are looked up a 32nd of a texel off the world position: on a diagonal wall
+	// the middles of the pixels fall right on the texels' edges, and the least rounding
+	// error (a phone's GPU) flips them from one texel to the next as the view moves.
+	vec3 tp = world_pos + vec3(1.0 / (32.0 * TEXELS));
+	vec2 wt = floor(tp.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
 	if (tile != NONE) {
 		int pick = tile;
@@ -189,8 +193,8 @@ void fragment() {
 		}
 		// The tile's texel at this spot of the world: x and z on tops, across and down
 		// on walls.
-		vec2 across = abs(world_normal.y) > 0.5 ? world_pos.xz
-			: vec2(abs(world_normal.x) > 0.5 ? world_pos.z : world_pos.x, -world_pos.y);
+		vec2 across = abs(world_normal.y) > 0.5 ? tp.xz
+			: vec2(abs(world_normal.x) > 0.5 ? tp.z : tp.x, -tp.y);
 		ivec2 tm = ivec2(mod(floor(across * TEXELS), TEXELS));
 		if (top) {
 			tm = tile_mirror(tm, floor(world_pos.xz));
@@ -276,7 +280,7 @@ void fragment() {
 	bool roof = roofed(world_pos.xz, world_pos.y);
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
-	vec3 texel = floor(world_pos * TEXELS - world_normal * 0.5);
+	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire nor where it was
 	// picked (see Grass.stone_moss); a picked top keeps a ragged edge of it, 0..2
