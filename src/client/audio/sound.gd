@@ -95,9 +95,13 @@ func _init(g) -> void:
 func _ready() -> void:
 	# Every button of the interface clicks (the touch controls do not).
 	get_tree().node_added.connect(_on_node_added)
+	print("sound: driver %s, %d Hz, %d sounds%s" % [AudioServer.get_driver_name(), AudioServer.get_mix_rate(),
+		records.size(), ", muted" if mute else ""])
 
 
-## Adds the buses of BUSES that are not there yet.
+## Adds the buses of BUSES that are not there yet. They are all in default_bus_layout.tres,
+## which the engine loads at start: in the browser the sounds play as Web Audio samples
+## through a copy of the buses made then, and a bus added later is silent there.
 static func make_buses() -> void:
 	for b: Array in BUSES:
 		if AudioServer.get_bus_index(b[0]) >= 0:
@@ -165,6 +169,7 @@ func input(event: InputEvent) -> void:
 	if (event is InputEventScreenTouch or event is InputEventMouseButton or event is InputEventKey) \
 			and event.is_pressed():
 		unlocked = true
+		print("sound: on after the first tap")
 
 
 ## The streams of sound `id` (loaded now if they were not yet), [] for an unknown one.
