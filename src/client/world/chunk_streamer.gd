@@ -105,8 +105,6 @@ var _load_budget := LOAD_BUDGET_US
 var paused := false
 var load_reach := LOAD_RANGE
 var near_total := 0
-## What is being done to a chunk now, for the loading screens (see doing_text).
-var doing := ""
 ## While the character lies dead, the respawn point the death screen offers first
 ## (world units), else Vector3.INF: the chunks are built around it instead of around
 ## the body, so coming back there lands in a world already made, and none are freed
@@ -187,20 +185,6 @@ func prepare(g: WorldGen) -> void:
 		if _is_near(key, home):
 			near_total += 1
 	near_pending = near_total
-
-
-## What making chunk `key` up to `stage` (WorldGen.TERRAIN..SHAPED) does, in a word or
-## two for the player.
-func _stage_text(key: Vector2i, stage: int) -> String:
-	if stage == WorldGen.TERRAIN:
-		return "из сохранения" if gen.saved != null and gen.saved.has_chunk(key) else "рельеф, вода и пещеры"
-	return "деревья" if stage == WorldGen.PLANTED else "склоны и кусты"
-
-
-## The near chunk being built and what is done to it, on two lines:
-## "Участок 12 из 30\nдеревья".
-func doing_text() -> String:
-	return "Участок %d из %d\n%s" % [mini(near_total - near_pending + 1, near_total), near_total, doing]
 
 
 ## Builds the near chunks for up to `ms` milliseconds (the loading screen); true once
@@ -308,14 +292,12 @@ func build_chunk(key: Vector2i) -> void:
 	var t0 := Time.get_ticks_usec()
 	var need := _prerequisite(key)
 	while not need.is_empty():
-		doing = _stage_text(need[0], need[1])
 		gen.run(need[0], need[1])
 		# A chunk from the save comes back SHAPED in place of its terrain.
 		_on_generated(need[0], gen.stage_of(need[0]), true)
 		need = _prerequisite(key)
 	gen_us += Time.get_ticks_usec() - t0
 	t0 = Time.get_ticks_usec()
-	doing = "земля и трава"
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	var plants: Dictionary = Foliage.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	mesh_us += Time.get_ticks_usec() - t0
@@ -458,9 +440,7 @@ func run_jobs() -> void:
 			if need.is_empty():
 				job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
 				job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
-				doing = "земля и трава"
 			else:
-				doing = _stage_text(need[0], need[1])
 				job_gen = gen.start(need[0], need[1])
 		var done := false
 		if job_gen != null:
@@ -483,7 +463,6 @@ func run_jobs() -> void:
 			if not done:
 				break
 			job_part = 0
-			doing = "сборка для экрана"
 			continue
 		# Loading behind the menu or the pause, the parts go on while the budget lasts.
 		if worked and not job_edit and game.ready_to_play and not paused:

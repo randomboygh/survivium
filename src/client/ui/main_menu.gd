@@ -73,6 +73,17 @@ const TIP_TIME := 6.0
 ## UI px between the column and the map under it on a tall screen.
 const GAP := 12
 const TIP_WIDTH := 240
+## The line over the bar keeps a part of the loading this long at least, so a short
+## part does not flash by unread (seconds).
+const PHASE_HOLD := 1.2
+## The progress bar under the map: its height in UI px.
+const BAR_H := 8
+## After the world is ready the menu waits for the frames to settle before the clouds
+## part and the world shows: no shaders being built ahead (see ShaderWarmup) and
+## CALM_FRAMES frames in a row under CALM_FRAME seconds, SETTLE_MAX seconds at most.
+const CALM_FRAME := 0.05
+const CALM_FRAMES := 12
+const SETTLE_MAX := 5.0
 const TIPS := [
 	"Волокно дают высокая трава, травы и тростник; из трёх волокон скручивают верёвку.",
 	"Кремень попадается, когда копаешь землю, песок и осыпь.",
@@ -151,8 +162,17 @@ var _loading: PanelContainer
 var _map_ground: Minimap.Layer
 var _map_top: Minimap.Layer
 var _tip: Label
-## What is being built or loaded now, on two lines over the tip.
-var _doing: Label
+## The part of the loading going on (Main.loading_phase) and a bar of how far it has
+## gone, over the tip; the phase shown and for how long.
+var _phase: Label
+var _bar: Control
+var _phase_shown := ""
+var _phase_clock := 0.0
+## The world is ready and its first frames are over (see CALM_FRAMES): the clouds may
+## part, «Играть» goes in.
+var settled := false
+var _calm := 0
+var _ready_clock := 0.0
 var _tip_index := -1
 var _tip_clock := 0.0
 var _map_room := false
@@ -278,12 +298,16 @@ func _build_loading() -> void:
 	_map_top.position = Vector2(Minimap.FRAME, Minimap.FRAME)
 	_set_map_side(MAP_SIZES[0])
 	var line := UiStyle.font().get_height(UiStyle.FONT_SIZE) + 4.0
-	_doing = UiStyle.label("")
-	_doing.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_doing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	# Two lines always, so the card keeps its size as the text changes.
-	_doing.custom_minimum_size = Vector2(TIP_WIDTH, 2.0 * line - 4.0)
-	box.add_child(_doing)
+	_phase = UiStyle.label("")
+	_phase.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_phase.clip_text = true
+	_phase.custom_minimum_size = Vector2(TIP_WIDTH, 0)
+	box.add_child(_phase)
+	_bar = Control.new()
+	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar.custom_minimum_size = Vector2(TIP_WIDTH, BAR_H)
+	_bar.draw.connect(_draw_bar)
+	box.add_child(_bar)
 	_tip = UiStyle.label("", UiStyle.MUTED)
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -312,6 +336,17 @@ func _draw_map(l: Control) -> void:
 	game.hud.minimap.draw_ground(l, Rect2(Vector2.ZERO, l.size), _map_centre(), MAP_ZOOM)
 
 
+## How far the loading has gone (Main.loading_progress): an amber fill in a sunken
+## slot, whole pixels.
+func _draw_bar() -> void:
+	var r := Rect2(Vector2.ZERO, _bar.size)
+	_bar.draw_rect(r, UiStyle.EDGE)
+	var inner := r.grow(-1)
+	_bar.draw_rect(inner, Minimap.UNSEEN)
+	var done := 1.0 if settled else float(game.loading_progress())
+	_bar.draw_rect(Rect2(inner.position, Vector2(floorf(inner.size.x * done), inner.size.y)), UiStyle.ACCENT)
+
+
 ## The player an amber dot outlined dark in the middle, the slot's shade along the top
 ## and left as on the minimap.
 func _draw_map_top(l: Control) -> void:
@@ -325,14 +360,20 @@ func _draw_map_top(l: Control) -> void:
 ## Shows the map and a tip while the world is built and the menu's column is there;
 ## the map is drawn again as the minimap paints chunks in.
 func _update_loading(delta: float) -> void:
-	var show: bool = _map_room and (not game.ready_to_play or show_loading) and _column.visible and game.player != null
+	var show: bool = _map_room and (not settled or show_loading) and _column.visible and game.player != null
 	if _loading.visible != show:
 		_loading.visible = show
 		if show and not game.hud.minimap.painted.is_connected(_map_ground.queue_redraw):
 			game.hud.minimap.painted.connect(_map_ground.queue_redraw)
 	if not show:
 		return
-	_doing.text = game.loading_stage if game.loading_stage != "" else game.chunks.doing_text()
+	_phase_clock += delta
+	var phase: String = game.loading_phase()
+	if phase != _phase_shown and (_phase_clock >= PHASE_HOLD or _phase_shown == ""):
+		_phase_shown = phase
+		_phase_clock = 0.0
+		_phase.text = phase
+	_bar.queue_redraw()
 	_tip_clock -= delta
 	if _tip_clock <= 0.0:
 		_tip_clock = TIP_TIME
@@ -400,7 +441,7 @@ func close() -> void:
 
 ## "Играть": into the world now, or as soon as it is built.
 func play() -> void:
-	if game.ready_to_play:
+	if settled:
 		close()
 	else:
 		_want_play = true
@@ -458,6 +499,7 @@ func _open_settings() -> void:
 
 
 func _process(delta: float) -> void:
+	_settle(delta)
 	var hud: Control = game.hud
 	var rect := Rect2(hud.position, hud.size * hud.scale)
 	if rect != _fit_for or scale != hud.scale:
@@ -472,8 +514,8 @@ func _process(delta: float) -> void:
 			_clouds.visible = false
 		# The glint runs while the world is being built.
 		var at := fmod(_time, GLINT_EVERY) * 120.0 - 20.0
-		_title.material.set_shader_parameter("glint", at if not game.ready_to_play else -1000.0)
-	if game.ready_to_play and _backdrop.visible and not _fading:
+		_title.material.set_shader_parameter("glint", at if not settled else -1000.0)
+	if settled and _backdrop.visible and not _fading:
 		_fading = true
 		_part = 0.0
 		var tw := _backdrop.create_tween()
@@ -486,15 +528,13 @@ func _process(delta: float) -> void:
 		return
 	_update_loading(delta)
 	_move_sparrow(delta)
-	if game.ready_to_play:
+	if settled:
 		_status.visible = false
 		if _want_play:
 			close()
 			return
 	else:
-		var total: int = game.chunks.near_total
-		var done: int = total - game.chunks.near_pending
-		var pct := int(100.0 * done / total) if total > 0 else 0
+		var pct := roundi(100.0 * game.loading_progress())
 		_status.text = ("Вход в мир… %d%%" if _want_play else "Мир строится… %d%%") % pct
 		_status.visible = true
 	if not _shown and _column.is_visible_in_tree():
@@ -502,6 +542,15 @@ func _process(delta: float) -> void:
 		_shown = true
 		print("main menu shown: play %s, new %s" % [_buttons.play.get_global_rect(), _buttons.new.get_global_rect()])
 	_screen.queue_redraw()
+
+
+## Counts the calm frames once the world is ready (see CALM_FRAMES).
+func _settle(delta: float) -> void:
+	if settled or not game.ready_to_play:
+		return
+	_ready_clock += delta
+	_calm = _calm + 1 if game.warmup == null and delta < CALM_FRAME else 0
+	settled = _calm >= CALM_FRAMES or _ready_clock >= SETTLE_MAX
 
 
 ## The map while the world is built: in the middle of the room right of the column on

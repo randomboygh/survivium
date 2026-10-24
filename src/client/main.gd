@@ -253,6 +253,27 @@ func start_world() -> void:
 	loading_stage = ""
 
 
+## The part of the loading going on, in a few words for the loading screens: what
+## start_world does, then the land around being built, then the last preparations (the
+## shaders built ahead, see ShaderWarmup).
+func loading_phase() -> String:
+	if ready_to_play:
+		return "Последние приготовления"
+	if loading_stage != "":
+		return loading_stage.trim_suffix("…")
+	return "Строим окрестности"
+
+
+## How far the loading has gone, 0 to 1: a little for start_world's parts, most for the
+## near chunks, the rest for the last preparations.
+func loading_progress() -> float:
+	if ready_to_play:
+		return 0.95 if warmup != null else 1.0
+	if loading_stage != "" or chunks.near_total == 0:
+		return 0.05
+	return 0.1 + 0.85 * (chunks.near_total - chunks.near_pending) / chunks.near_total
+
+
 ## Says what start_world does next (`text`) and lets it show for two frames.
 func _loading_stage(text: String) -> void:
 	loading_stage = text
@@ -306,8 +327,7 @@ func _process(delta: float) -> void:
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
-			hud.set_loading("Построение мира… %d%%\n%s" % [int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total),
-				chunks.doing_text()])
+			hud.set_loading("%s… %d%%" % [loading_phase(), roundi(100.0 * loading_progress())])
 		t = perf.note("чанки", t)
 	clock.step(delta, player.position if player != null else Vector3.INF)
 	sky.update(delta)
@@ -345,6 +365,9 @@ func _process(delta: float) -> void:
 	if warmup != null and warmup.step():
 		warmup = null
 		hud.perf.warmed_up()
+		hud.set_loading("")
+	elif warmup != null and (menu == null or not menu.is_open):
+		hud.set_loading("%s…" % loading_phase())
 	freeze_log.update()
 	t = perf.note("камера", t)
 	if ready_to_play:

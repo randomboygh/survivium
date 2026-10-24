@@ -74,9 +74,9 @@ func _run() -> void:
 	var told := {}
 	while not main.ready_to_play:
 		if main.chunks != null:
-			told[main.loading_stage if main.loading_stage != "" else main.chunks.doing_text()] = true
+			told[main.loading_phase()] = true
 		await process_frame
-	_check(main.loading_stage == "" and told.size() >= 4 and told.keys().all(func(t: String) -> bool: return t.strip_edges() != ""),
+	_check(main.loading_stage == "" and told.size() >= 3 and told.keys().all(func(t: String) -> bool: return t.strip_edges() != ""),
 		"the loading screen tells what is being built: %s" % [told.keys()])
 	var w = main.world
 	var home := Vector2i((Vector2(main.player.position.x, main.player.position.z) / (CHUNK * CELL)).floor())
