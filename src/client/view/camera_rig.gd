@@ -41,6 +41,8 @@ var safe_rect := Rect2()
 ## tools and tests set it to lay a computer's window out as a phone.
 var turning := turns()
 var safe_clock := 0.0
+## Asked once: every frame asks the page otherwise.
+var _web := OS.has_feature("web")
 ## Screen-plane point the camera follows smoothly (see PixelView.screen_plane).
 var cam_target := Vector2.ZERO
 ## The view set, in steps (the turn counts on past a whole turn, so it always glides
@@ -205,7 +207,7 @@ func layout_ui(rect: Rect2) -> void:
 ## visual viewport; elsewhere it is the whole window.
 func _safe_rect() -> Rect2:
 	var full: Rect2 = Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size)
-	if not OS.has_feature("web"):
+	if not _web:
 		return full
 	var js: Variant = JavaScriptBridge.eval("""(function () {
 		var c = document.querySelector('canvas'), v = window.visualViewport;
@@ -229,7 +231,7 @@ func _safe_rect() -> Rect2:
 ## Browsers do not always report toolbars appearing or hiding, so the visible part
 ## of the screen is re-checked twice a second.
 func poll_safe_rect(delta: float) -> void:
-	if not OS.has_feature("web"):
+	if not _web:
 		return
 	safe_clock += delta
 	if safe_clock < 0.5:

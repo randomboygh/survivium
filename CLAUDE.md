@@ -236,9 +236,13 @@ GDScript. Notes: `plan/architecture/performance.md`.
   are listed with what happened in their frame in «Отладка» → «Журнал фризов» (`freeze_log.gd`):
   the game's parts, the engine's own work before drawing («движок»), the drawing («отрисовка»)
   and the time outside the engine («браузер»: the page, its garbage collection), the draw calls,
-  and in the browser the shader programs built and the data sent to the GPU, timed by wrapping
-  WebGL2's calls in the page, and the page's full garbage collections («мусор», seen by a
-  finalizer on an object no one holds; `gl_watch.gd`); an ordinary frame's parts head the list.
+  and in the browser the shader programs built (after the warm-up, with their defines) and the data
+  sent to the GPU, timed by wrapping WebGL2's calls in the page, the page's garbage collections
+  («мусор», young and full apart, seen by finalizers on objects no one holds), and what ran in a
+  long page frame («страница: кадр, touchmove, звук», from the long-animation-frame entries;
+  `gl_watch.gd`); an ordinary frame's parts head the list. A JS snippet run from GDScript
+  must be strict and must not touch `arguments` in a wrapper with named params: that makes an
+  object per call (7.5 KB a frame from the WebGL wrapper alone).
 - Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
   through a copy of the buses made at start, so a bus added by `AudioServer.add_bus` later is silent
   in the browser (fine on desktop, so only the browser shows it).
