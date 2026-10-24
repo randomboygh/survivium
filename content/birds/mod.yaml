@@ -4,3 +4,5 @@ id: birds
 title: Птицы
 version: "0.1"
 api: 1
+# Грузится после основы: ссылается на её записи (core:ears).
+requires: [core]

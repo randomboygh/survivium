@@ -73,7 +73,11 @@ trees, bushes, recipes, plants, sounds), lists of records with namespaced ids (`
 the same checks in CI, and that every recipe can be made from what the world gives. The registries fill
 their static vars when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`,
 `AiRules.SPECIES`. New numbers that describe content go into the YAML and the schema, not into
-constants. Mods load in the order of `Content.MODS`; `content/birds/` (sparrows, see its README) is a
+constants. Every folder under `content/` with a `mod.yaml` is a mod; `requires` in it orders the
+load, a later record with the same id replaces an earlier one, and `patch: true` changes only the
+fields given (`field+` adds to a list). A world remembers its mods (`mods` in `world.json`), a new one
+takes the set switched on at «Новый мир»; `mods.gd` activates a set and refreshes every registry
+(material numbers follow the load order, so a world's set must not change). `content/birds/` (sparrows, see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
 its mod, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in

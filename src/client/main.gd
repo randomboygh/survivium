@@ -21,6 +21,7 @@ extends Node
 ## too.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -144,6 +145,8 @@ var save_root := ""
 ## The seed and WorldGen settings of the world being played.
 var world_seed := 0
 var world_options := {}
+## The mods the world is played with (see Mods).
+var world_mods: Array = []
 ## When the scene started, for the load time.
 var start_ms := 0
 ## What start_world is doing before the chunks are built, for the loading screens.
@@ -164,6 +167,7 @@ func _ready() -> void:
 	if save_root != "":
 		WorldStore.root = save_root
 	save.choose_world()
+	Mods.activate(world_mods)
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
 	get_tree().process_frame.connect(_build_while_paused)

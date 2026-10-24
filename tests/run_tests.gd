@@ -22,6 +22,7 @@ const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
@@ -77,6 +78,7 @@ func _init() -> void:
 	_test_sprite_sheet()
 	_test_yaml()
 	_test_content()
+	_test_mods()
 	_test_items()
 	_test_inventory()
 	_test_tools()
@@ -1611,6 +1613,46 @@ func _test_content() -> void:
 	DirAccess.remove_absolute(mod)
 	Content.refresh()
 	_check(Content.problems.is_empty(), "core content loads clean again")
+
+
+## Mods load after what they require, patch each other's records, and a world's set of
+## mods can leave some out (see mods.gd).
+func _test_mods() -> void:
+	var all := Content.available()
+	_check(all.size() >= 2 and all[0] == "core" and "birds" in all, "the mods under content/ are found, core first: %s" % [all])
+	_check(Content.loaded == all, "every mod loads in order: %s" % [Content.loaded])
+	var before := Content.MODS.duplicate()
+	for m in ["_a", "_b", "_c"]:
+		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
+	_write("res://content/_a/mod.yaml", "id: _a\ntitle: A\nversion: \"1\"\napi: 1\nrequires: [_b]\n")
+	_write("res://content/_b/mod.yaml", "id: _b\ntitle: B\nversion: \"1\"\napi: 1\nrequires: [core]\n")
+	_write("res://content/_c/mod.yaml", "id: _c\ntitle: C\nversion: \"1\"\napi: 1\nrequires: [_missing]\n")
+	_write("res://content/_b/data/creatures.yaml",
+		"- id: core:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: core:rabbit\n  patch: true\n  diet+: 3\n")
+	_write("res://content/_a/data/creatures.yaml", "- id: core:wolf\n  patch: true\n  sight: 99\n")
+	_write("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
+	Mods.activate(["core", "_a", "_c", "_b"])
+	_check(Content.loaded == ["core", "_b", "_a"], "a mod loads after what it requires, a mod missing its requirement is left out: %s" % [Content.loaded])
+	var wolf: Dictionary = AiRules.SPECIES["core:wolf"]
+	_check(wolf.speed == 1.5 and wolf.diet == ["meat", "plants"] and wolf.sight == 99 and wolf.mod == "core",
+		"patches change only the fields they give, `+` adds to a list, and stack: %s" % [wolf])
+	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("birds:sparrow"), "records of mods left out are not loaded")
+	var found := {}
+	for p in Content.problems:
+		for what in ["requires `_missing`", "core:nobody: patches", "rabbit.diet: `+`"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 3, "the loader reports a missing requirement, a patch of nothing and a bad `+` (%d of 3): %s" % [found.size(), Content.problems])
+	_check(Mods.closure("_a", ["core", "_a", "_b"]) == ["core", "_b", "_a"], "a mod's closure is it with what it requires, in load order")
+	for m in ["_a", "_b", "_c"]:
+		for f in DirAccess.get_files_at("res://content/%s/data" % m):
+			DirAccess.remove_absolute("res://content/%s/data/%s" % [m, f])
+		DirAccess.remove_absolute("res://content/%s/data" % m)
+		DirAccess.remove_absolute("res://content/%s/mod.yaml" % m)
+		DirAccess.remove_absolute("res://content/%s" % m)
+	Mods.activate(before)
+	_check(Content.problems.is_empty() and AiRules.SPECIES.has("birds:sparrow") and AiRules.SPECIES["core:wolf"].speed != 1.5,
+		"the full set loads clean again")
 
 
 func _test_items() -> void:

@@ -9,6 +9,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 
 const NAME_WIDTH := 112
 const VALUE_WIDTH := 84
@@ -105,6 +106,15 @@ func _ready() -> void:
 	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
 	_add_row("Реки и озёра", LEVELS, _getter("rivers"), _setter("rivers"))
 	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
+	# One row per mod besides the base game: a world is made with the mods switched on
+	# and keeps them (a saved world's set cannot change here).
+	for mod: String in Mods.available():
+		if mod == "core":
+			continue
+		var m := mod
+		_add_row("Мод «%s»" % Mods.titles([mod])[0], ["выкл", "вкл"],
+			func() -> int: return 1 if m in s.world_mods() else 0,
+			func(i: int) -> void: s.set_world_mod(m, i == 1))
 	var start := Button.new()
 	start.text = "Создать мир"
 	start.focus_mode = Control.FOCUS_NONE

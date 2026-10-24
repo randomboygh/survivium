@@ -14,6 +14,7 @@ const Figure := preload("res://src/client/view/figure.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const SpriteArt := preload("res://src/client/view/sprite_art.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 
 
 func _init() -> void:
@@ -28,6 +29,7 @@ func _init() -> void:
 	problems.append_array(_check_held())
 	problems.append_array(_check_creature_pictures())
 	problems.append_array(_check_sound_files())
+	problems.append_array(_check_each_mod())
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():
@@ -37,6 +39,27 @@ func _init() -> void:
 	else:
 		printerr("%d content problems" % problems.size())
 	quit(1 if problems.size() > 0 else 0)
+
+
+## Every mod loads clean with only the mods it requires, so a world made without the
+## others still works (and the engine finds what it needs).
+func _check_each_mod() -> PackedStringArray:
+	var out: PackedStringArray = []
+	var all := Mods.available()
+	for mod in all:
+		var set := Mods.closure(mod, all)
+		var problems := Mods.activate(set)
+		problems.append_array(Mat.check())
+		problems.append_array(AiRules.check())
+		problems.append_array(Trees.check())
+		problems.append_array(Bushes.check())
+		problems.append_array(Items.check())
+		problems.append_array(Crafting.check())
+		problems.append_array(Plants.check())
+		for p in problems:
+			out.append("with mods %s only: %s" % [", ".join(set), p])
+	Mods.activate(all)
+	return out
 
 
 ## Every sound has its files, as many as its variants (see Content.sound_files).

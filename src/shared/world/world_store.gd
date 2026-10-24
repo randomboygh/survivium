@@ -2,7 +2,7 @@ extends RefCounted
 ## A world saved on disk (plan/architecture/simulation.md). The generator makes the
 ## same world again from its seed and settings, so a save keeps only what the player
 ## changed. One directory per world, under `root`, named by world_dir:
-##   world.json            seed, settings, levels, the clock, the props (JSON)
+##   world.json            seed, settings, mods, levels, the clock, the props (JSON)
 ##   players/<name>.json   a player: position and the sections other modules keep
 ##   chunks/<cx>_<cz>.bin  a changed chunk: WorldGen.pack, store_var, zstd
 ##   map/<rx>_<rz>.bin     a region of the map the player explored: its pixels, zstd
@@ -60,8 +60,9 @@ static func write_current(seed_value: int, options: Dictionary) -> void:
 	write_json_at(root + "/current.json", {"seed": seed_value, "settings": options})
 
 
-## The saved worlds, the one saved last first: {"dir", "seed", "settings", "day",
-## "saved", "played"} each, from their world.json.
+## The saved worlds, the one saved last first: {"dir", "seed", "settings", "mods", "day",
+## "saved", "played"} each, from their world.json (`mods` empty before they were kept:
+## every mod there was).
 static func list_worlds() -> Array:
 	var out := []
 	if not DirAccess.dir_exists_absolute(root):
@@ -74,7 +75,8 @@ static func list_worlds() -> Array:
 		var saved_settings: Dictionary = meta.get("settings", {})
 		for k in ["size", "water", "mountains", "rivers", "biomes"]:
 			settings[k] = int(saved_settings.get(k, 1))
-		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings,
+		var mods: Array = Array(meta.get("mods", [])).filter(func(m) -> bool: return m is String)
+		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings, "mods": mods,
 			"day": int(meta.get("sky", {}).get("day", 1)), "saved": str(meta.get("saved", "")),
 			"played": float(meta.get("played", 0.0))})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.saved > b.saved)
