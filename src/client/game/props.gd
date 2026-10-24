@@ -74,7 +74,7 @@ func place() -> void:
 		for name in ["chest", "campfire"]:
 			var c: Variant = game.save.prop_cell(name)
 			if c != null:
-				game.placed.put(Placed.CHEST if name == "chest" else Placed.CAMPFIRE, c,
+				game.placed.put(Items.with_prop("chest") if name == "chest" else Placed.CAMPFIRE, c,
 					meta.get("chest") if name == "chest" else null)
 	else:
 		game.placed.start_camp(game.player.position)
@@ -247,9 +247,13 @@ func _drop_mesh(kind: String) -> Mesh:
 		name = "block:%d" % m
 	elif name == "":
 		name = "bundle"
+	elif kind != Items.SACK:
+		name = VoxelProps.model_path(item.mod, name)
 	if not drop_meshes.has(name):
-		var model = VoxelProps.block(_tile_colour(m)) if m >= 0 else VoxelProps.drop(name)
-		drop_meshes[name] = model.build_mesh() if model != null else null
+		var model = VoxelProps.block(_tile_colour(m)) if m >= 0 else (VoxelProps.sack() if name == "sack" else (VoxelProps.bundle() if name == "bundle" else VoxelProps.drop(item)))
+		if model == null:
+			model = VoxelProps.bundle()
+		drop_meshes[name] = model.build_mesh()
 	return drop_meshes[name]
 
 

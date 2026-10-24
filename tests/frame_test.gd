@@ -237,7 +237,7 @@ func _run() -> void:
 	for cell in Tools.brush_cells(spot, Vector3i.UP, 3):
 		if w.get_cell(cell.x, cell.y, cell.z) == Mat.STONE:
 			laid.append(cell)
-	c.hold("core:stone_pickaxe")
+	c.hold("tools:stone_pickaxe")
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < laid.size():
 			c._cooldown = 0.0
@@ -258,7 +258,7 @@ func _run() -> void:
 	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.body.on_ground and clock >= 0.5)
 	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
 	# into the bag, dirt shows where the grass was.
-	c.put_in_hand("core:stone_scythe", 1)
+	c.put_in_hand("tools:stone_scythe", 1)
 	var mown: Dictionary = main.actions.front_work(main.character, c.tool_record())
 	if mown.has("mow"):
 		var fibre: int = inv.count("core:fiber")
@@ -269,8 +269,8 @@ func _run() -> void:
 		_check(w.get_cell(first.x, first.y, first.z) == Mat.DIRT and inv.count("core:fiber") > fibre,
 			"the scythe cuts the grass in front into fibre and leaves dirt")
 	var dug_before: int = inv.count("core:stone") + inv.count("core:dirt")
-	c.put_in_hand("core:wooden_shovel", 0)
-	_check(c.active == 0 and c.held() == "core:wooden_shovel" and c.hands[1] == "core:stone_scythe", "each hand holds its own tool")
+	c.put_in_hand("tools:wooden_shovel", 0)
+	_check(c.active == 0 and c.held() == "tools:wooden_shovel" and c.hands[1] == "tools:stone_scythe", "each hand holds its own tool")
 	c.action_held = true
 	await _scenario("action button", 100000, func(_i: int) -> bool: return clock >= 2.0)
 	c.action_held = false
@@ -278,14 +278,14 @@ func _run() -> void:
 	var hands_saved: Dictionary = c.to_dict()
 	c.put_in_hand("", 0)
 	c.from_dict(hands_saved)
-	_check(c.held() == "core:wooden_shovel", "the hands are saved with the player")
+	_check(c.held() == "tools:wooden_shovel", "the hands are saved with the player")
 	# The last of what the hand in use holds leaves the bag: the hand is bare.
 	inv.add("core:sand", 1)
 	c.put_in_hand("core:sand", 1, false)
 	inv.remove("core:sand", inv.count("core:sand"))
 	await process_frame
-	_check(c.held() == "" and c.hands[0] == "core:wooden_shovel", "a hand whose last item is gone is bare")
-	c.put_in_hand("core:wooden_shovel", 0, false)
+	_check(c.held() == "" and c.hands[0] == "tools:wooden_shovel", "a hand whose last item is gone is bare")
+	c.put_in_hand("tools:wooden_shovel", 0, false)
 	# A stack into the chest by the spawn and back, sorting by hand: a tap on it, a tap
 	# on a free slot.
 	var bag = main.hud.bag
@@ -324,31 +324,31 @@ func _run() -> void:
 	inv.add("core:flint", 1)
 	main.hud.toggle_bag()
 	bag.show_tab("craft")
-	for id in ["core:cord", "core:workbench"]:
+	for id in ["core:cord", "tools:workbench"]:
 		var r := Crafting.get_recipe(id)
 		var n: int = shop.start(r, 3 if id == "core:cord" else 1)
 		_check(n > 0, "%s is known and queued" % r.title)
 		for j in shop.queue.jobs:
 			j.left = 0.05
 		await _scenario("crafting " + id, 100000, func(_i: int) -> bool: return shop.queue.jobs.is_empty() or clock >= 2.0)
-	_check(inv.count("core:workbench") == 1, "a workbench is made by hand")
+	_check(inv.count("tools:workbench") == 1, "a workbench is made by hand")
 	# Out of the pit the action button dug, the player turns until there is room.
 	main.player.position = start + Vector3(1.5, 0.0, 1.5)
 	await _scenario("stepping out of the pit", 100000, func(_i: int) -> bool: return main.player.body.on_ground and clock >= 0.5)
 	var put := false
 	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
 		main.player.facing = facing
-		put = put or main.props.put_from_bag("core:workbench")
-	_check(put and shop.stations().has("core:workbench"), "a workbench placed works as a station")
-	var axe := Crafting.get_recipe("core:stone_axe")
-	var axes: int = inv.count("core:stone_axe")
+		put = put or main.props.put_from_bag("tools:workbench")
+	_check(put and shop.stations().has("tools:workbench"), "a workbench placed works as a station")
+	var axe := Crafting.get_recipe("tools:stone_axe")
+	var axes: int = inv.count("tools:stone_axe")
 	_check(shop.start(axe) == 1, "an axe is queued at the workbench")
 	for j in shop.queue.jobs:
 		j.left = 0.05
 	await _scenario("crafting at a workbench", 100000, func(_i: int) -> bool: return shop.queue.jobs.is_empty() or clock >= 2.0)
-	_check(inv.count("core:stone_axe") == axes + 1, "a stone axe is made at the workbench")
+	_check(inv.count("tools:stone_axe") == axes + 1, "a stone axe is made at the workbench")
 	main.hud.toggle_bag()
-	var bench: Vector3i = main.placed.cell_of("core:workbench")
+	var bench: Vector3i = main.placed.cell_of("tools:workbench")
 	_check(main.world.blocks_body(bench.x, bench.y, bench.z), "a workbench is solid")
 
 	# The chest by the spawn taken up with a stone in it, and set down again with it.
@@ -363,7 +363,7 @@ func _run() -> void:
 	var chest_back := false
 	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
 		main.player.facing = facing
-		chest_back = chest_back or main.props.put_from_bag("core:chest")
+		chest_back = chest_back or main.props.put_from_bag("tools:chest")
 	_check(chest_back and main.placed.chest_items != null and main.placed.chest_items.count("core:stone") == 1,
 		"and set down again with it")
 	# The campfire by the spawn put out (no station then), lit again for a branch, put

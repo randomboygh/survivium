@@ -13,10 +13,61 @@ var voxels := {}
 var foliage := {}
 
 
+## In a model's PNG a voxel tinted by the season has this alpha (opaque voxels 255).
+const FOLIAGE_ALPHA := 128
+
+
 func set_voxel(p: Vector3i, c: Color, is_foliage := false) -> void:
 	voxels[p] = c
 	if is_foliage:
 		foliage[p] = true
+
+
+## The model in `img`, a row of square slices (the image's height wide), one per level
+## from the ground up: a pixel is the voxel at its x and z (z down the slice), its
+## colour the voxel's, transparent for none, FOLIAGE_ALPHA for a leaf. `centred` puts the
+## slice's middle at the origin (things lying on the ground); otherwise the slice's
+## corner is (things placed on cells).
+static func from_image(img: Image, centred: bool):
+	var m = new()
+	var size := img.get_height()
+	if size == 0 or img.get_width() % size != 0:
+		return m
+	var shift := Vector3i(size / 2, 0, size / 2) if centred else Vector3i.ZERO
+	for y in img.get_width() / size:
+		for z in size:
+			for x in size:
+				var c := img.get_pixel(y * size + x, z)
+				if c.a == 0.0:
+					continue
+				var leaf := c.a8 <= FOLIAGE_ALPHA
+				c.a = 1.0
+				m.set_voxel(Vector3i(x, y, z) - shift, c, leaf)
+	return m
+
+
+## The model as the image `from_image` reads (see there): slices of the smallest even
+## size that holds every voxel (16 at least).
+func to_image(centred: bool) -> Image:
+	var size := 16
+	var top := 0
+	for p: Vector3i in voxels:
+		top = maxi(top, p.y + 1)
+		if centred:
+			size = maxi(size, 2 * maxi(maxi(-p.x, p.x + 1), maxi(-p.z, p.z + 1)))
+		else:
+			size = maxi(size, maxi(p.x, p.z) + 1)
+	size += size & 1
+	var img := Image.create(size * maxi(top, 1), size, false, Image.FORMAT_RGBA8)
+	var shift := Vector3i(size / 2, 0, size / 2) if centred else Vector3i.ZERO
+	for p: Vector3i in voxels:
+		var q: Vector3i = p + shift
+		var c: Color = voxels[p]
+		c = Color(clampf(c.r, 0.0, 1.0), clampf(c.g, 0.0, 1.0), clampf(c.b, 0.0, 1.0), 1.0)
+		if foliage.has(p):
+			c.a8 = FOLIAGE_ALPHA
+		img.set_pixel(q.y * size + q.x, q.z, c)
+	return img
 
 
 ## Mesh in voxel units (0..16); scale the instance by 1/16 to fit a cell.

@@ -13,6 +13,7 @@ const SkyScript := preload("res://src/client/view/sky.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
+const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
@@ -684,6 +685,12 @@ func _test_steps() -> void:
 	_check(_walk_to_step(2, true).x < 4.6, "a step of two cells cannot be jumped up")
 	_check(_climb_pit(false) < 3.0, "jumping cannot get out of a pit four cells deep")
 	_check(_climb_pit(true) > 4.9, "air jumps get out of a pit four cells deep")
+	# Models are PNG slices in the item's mod and come back the same from their image.
+	var drawn := VoxelProps.drop(Items.get_item("core:branch"))
+	var again = VoxelModel.from_image(drawn.to_image(true), true)
+	_check(drawn != null and drawn.voxels.size() > 20 and again.voxels.keys() == drawn.voxels.keys() and again.foliage == drawn.foliage
+		and not drawn.foliage.is_empty() and VoxelProps.drop({"model": "nothing", "mod": "core"}) == null,
+		"a model read from its mod's PNG survives a round trip through the image, leaves and all")
 	var chest := VoxelProps.footprint(VoxelProps.prop("chest"))
 	_check(is_equal_approx(chest[0].position.x, 0.125) and is_equal_approx(chest[3].end.x, 0.875)
 		and is_equal_approx(chest[0].position.z, 0.375) and is_equal_approx(chest[3].end.z, 0.75)
@@ -1447,8 +1454,7 @@ func _test_sprite_sheet() -> void:
 	_check(anchors[0][works.mow.columns[1]].left.is_empty(), "in a two-handed work the left hand holds the same thing")
 	_check(Figure.opposite("se") == "sw" and Figure.opposite("w") == "e" and Figure.opposite("n") == "n", "opposite directions")
 	# Things held have sheets of their own, put at the hands.
-	var held_dir := Figure.SPRITES + "/held/"
-	var axe := {"sprite": held_dir + "axe.png", "anim": "chop"}
+	var axe := {"sprite": "res://content/tools/sprites/held/axe.png", "anim": "chop"}
 	var cell := Vector2i(Figure.data().held.cell[0], Figure.data().held.cell[1])
 	_check(Figure.held_sheet(axe.sprite).get_size() == Vector2i(5, 8) * cell, "a tool's sheet: carried and its four frames, in eight directions")
 	var armed := Figure.sheet(look, {"right": axe, "active": "right"})
@@ -1507,7 +1513,7 @@ func _test_sprite_sheet() -> void:
 	var p = PlayerScript.new()
 	p.sheet = s
 	p.body.on_ground = true
-	p.held = {"left": {"sprite": held_dir + "shovel.png", "anim": "dig"}, "right": axe, "active": "left"}
+	p.held = {"left": {"sprite": "res://content/tools/sprites/held/shovel.png", "anim": "dig"}, "right": axe, "active": "left"}
 	p.work("", 0.4, Vector3(-5.0, 0.0, 0.0))
 	_check(p.work_kind == "dig" and p.facing == "w", "a shovel digs, turned towards the cell")
 	p._animate(Vector2.ZERO, 0.0, 0.1)
@@ -1689,9 +1695,9 @@ func _test_items() -> void:
 
 func _test_tools() -> void:
 	var hand := Tools.of("")
-	var axe := Tools.of("core:stone_axe")
-	var pick := Tools.of("core:stone_pickaxe")
-	var shovel := Tools.of("core:wooden_shovel")
+	var axe := Tools.of("tools:stone_axe")
+	var pick := Tools.of("tools:stone_pickaxe")
+	var shovel := Tools.of("tools:wooden_shovel")
 	_check(hand == Tools.HAND and Tools.of("core:branch") == Tools.HAND and axe.tool == "axe", "items that are no tools are bare hands")
 	_check(Tools.can_dig(hand, Mat.DIRT) and Tools.can_dig(hand, Mat.LEAVES) and not Tools.can_dig(hand, Mat.STONE),
 		"hands dig soft ground and leaves, not stone")
@@ -1718,15 +1724,15 @@ func _test_tools() -> void:
 	var sector := Tools.sector(Vector2i(0, 1))
 	_check(sector[0] == Vector2i(0, 1) and Vector2i(1, 0) in sector and Vector2i(2, 1) in sector and not Vector2i(0, -1) in sector \
 		and not Vector2i(1, -1) in sector, "trees and bushes are found ahead and beside, not behind")
-	_check(Tools.use_of("") == "hand" and Tools.use_of("core:stone_axe") == "tool" and Tools.use_of("core:stone") == "place" \
+	_check(Tools.use_of("") == "hand" and Tools.use_of("tools:stone_axe") == "tool" and Tools.use_of("core:stone") == "place" \
 		and Tools.use_of("plants:raspberry_bush") == "plant" and Tools.use_of("plants:grass_seeds") == "sow" \
 		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("plants:raspberry") == "eat" and Tools.use_of("core:branch") == "hand",
 		"what a held item is used for")
-	var scythe := Tools.of("core:stone_scythe")
+	var scythe := Tools.of("tools:stone_scythe")
 	_check(Tools.mown(Mat.GRASS) == Mat.DIRT and Tools.mown(Mat.DIRT) == -1, "cutting grass leaves dirt")
-	_check(Tools.mows(hand) and Tools.mows(scythe) and Tools.mows(Tools.of("core:wooden_sword")) and not Tools.mows(shovel),
+	_check(Tools.mows(hand) and Tools.mows(scythe) and Tools.mows(Tools.of("tools:wooden_sword")) and not Tools.mows(shovel),
 		"hands, a sword and a scythe cut grass")
-	_check(Tools.mows_low(hand) and Tools.mows_low(scythe) and not Tools.mows_low(Tools.of("core:wooden_sword")),
+	_check(Tools.mows_low(hand) and Tools.mows_low(scythe) and not Tools.mows_low(Tools.of("tools:wooden_sword")),
 		"a sword cuts only what grows tall on grass, hands and a scythe the grass too")
 	_check(shovel.area == 1 and pick.area == 1, "a tool digs one cell a swing")
 	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
@@ -1748,7 +1754,7 @@ func _test_tools() -> void:
 	_check(Tools.brush_cells(f, Vector3i.BACK, 2).size() == 4 and Tools.brush_cells(f, Vector3i.BACK, 1) == [f], "brush sizes")
 	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[3]) == [f, f + Vector3i.UP], "the tall brush is two cells one on another")
 	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[4]) == [f], "the line brush places one cell at a time")
-	_check(hand.reach < pick.reach and Tools.of("core:wooden_sword").reach < pick.reach and Tools.PLACE_REACH >= pick.reach,
+	_check(hand.reach < pick.reach and Tools.of("tools:wooden_sword").reach < pick.reach and Tools.PLACE_REACH >= pick.reach,
 		"tools reach farther than hands and a sword")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].bonus) and Mat.RECORDS[Mat.GRASS].bonus_chance > 0.0 and Mat.RECORDS[Mat.STONE].bonus == "",
 		"grass sometimes gives fibre")
@@ -1767,15 +1773,15 @@ func _test_tools() -> void:
 func _test_crafting() -> void:
 	_check(Crafting.check().is_empty(), "every recipe can be made, at a real station: %s" % Crafting.check())
 	var have := Crafting.reachable()
-	for id in ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe", "core:stone_sword", "core:wooden_pickaxe", "core:wooden_scythe",
-			"core:workbench",
-			"core:kiln", "core:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
+	for id in ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:stone_sword", "tools:wooden_pickaxe", "tools:wooden_scythe",
+			"tools:workbench",
+			"tools:kiln", "core:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
 	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
 	var cord := Crafting.get_recipe("core:cord")
-	var axe := Crafting.get_recipe("core:stone_axe")
-	var planks := Crafting.get_recipe("core:planks")
-	_check(cord.at == "" and cord.needs == {"core:fiber": 3} and axe.at == "core:workbench", "recipes come from the data")
+	var axe := Crafting.get_recipe("tools:stone_axe")
+	var planks := Crafting.get_recipe("tools:planks")
+	_check(cord.at == "" and cord.needs == {"core:fiber": 3} and axe.at == "tools:workbench", "recipes come from the data")
 	var inv := Inventory.new()
 	var knows := Knowledge.new()
 	knows.look_at(inv)
@@ -1790,7 +1796,7 @@ func _test_crafting() -> void:
 	_check(copy.knows(cord) and copy.seen.has("core:fiber"), "knowledge survives a save")
 	_check(Crafting.why_not(cord, inv, {}) == "" and Crafting.why_not(axe, inv, {}).begins_with("Нужен станок"),
 		"by hand anywhere, at a station only near it")
-	_check(Crafting.why_not(planks, inv, {"core:workbench": true}).begins_with("Нужен инструмент"), "planks need an axe in the bag")
+	_check(Crafting.why_not(planks, inv, {"tools:workbench": true}).begins_with("Нужен инструмент"), "planks need an axe in the bag")
 	var q := CraftQueue.new()
 	_check(q.add(cord, inv) and q.add(cord, inv) and not q.add(cord, inv), "the queue takes the materials of each job")
 	_check(inv.count("core:fiber") == 1, "materials are gone while queued")
@@ -1814,21 +1820,21 @@ func _test_crafting() -> void:
 
 func _test_wear() -> void:
 	var inv := Inventory.new(4)
-	var d: int = Items.get_item("core:stone_axe").durability
-	_check(d > 0 and Items.get_item("core:stone_axe").repair.has("core:flint"), "tools wear and are repaired with materials")
-	inv.add("core:stone_axe", 1)
+	var d: int = Items.get_item("tools:stone_axe").durability
+	_check(d > 0 and Items.get_item("tools:stone_axe").repair.has("core:flint"), "tools wear and are repaired with materials")
+	inv.add("tools:stone_axe", 1)
 	for i in d - 1:
-		inv.wear_tool("core:stone_axe", d)
-	_check(inv.worn(0) == d - 1 and inv.count("core:stone_axe") == 1, "a tool wears with each swing")
+		inv.wear_tool("tools:stone_axe", d)
+	_check(inv.worn(0) == d - 1 and inv.count("tools:stone_axe") == 1, "a tool wears with each swing")
 	var copy := Inventory.new(4)
 	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
 	_check(copy.worn(0) == d - 1, "wear survives a save")
 	var chest := Inventory.new(4)
 	_check(copy.move_slot(0, chest) == 1 and chest.worn(0) == d - 1, "a worn tool keeps its wear in the chest")
-	inv.add("core:stone_axe", 1)
+	inv.add("tools:stone_axe", 1)
 	_check(inv.slots[1] != null and inv.worn(1) == 0, "a new tool does not join a worn one")
-	_check(inv.wear_tool("core:stone_axe", d) and inv.count("core:stone_axe") == 1, "a worn-out tool breaks")
-	inv.wear_tool("core:stone_axe", d)
+	_check(inv.wear_tool("tools:stone_axe", d) and inv.count("tools:stone_axe") == 1, "a worn-out tool breaks")
+	inv.wear_tool("tools:stone_axe", d)
 	var at := inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null)[0])
 	inv.mend(at)
 	_check(inv.worn(at) == 0, "a repaired tool is as good as new")
@@ -1860,20 +1866,20 @@ func _test_inventory() -> void:
 	_check(copy.slots[0] == null and copy.count("core:branch") == 2, "unknown items are left out on load")
 	var all := inv.take_all()
 	_check(inv.is_empty() and all.size() == 3, "a death empties the bag into a sack")
-	_check(Items.category("core:stone_axe") == "tools" and Items.category("core:workbench") == "stations"
+	_check(Items.category("tools:stone_axe") == "tools" and Items.category("tools:workbench") == "stations"
 		and Items.category("plants:raspberry") == "food" and Items.category("plants:grain") == "plants"
 		and Items.category("core:stone") == "blocks" and Items.category("core:fiber") == "materials",
 		"an item's kind follows from what it does")
 	var mess := Inventory.new(8)
-	mess.slots = [["core:fiber", 1], null, ["core:stone", 3], ["core:fiber", 2], null, ["core:stone_axe", 1, 5],
+	mess.slots = [["core:fiber", 1], null, ["core:stone", 3], ["core:fiber", 2], null, ["tools:stone_axe", 1, 5],
 		["plants:raspberry", 4], ["core:fiber", 4]]
 	mess.sort("kind", 1)
-	_check(mess.slots[0] == ["core:fiber", 1] and mess.slots[1] == ["core:stone_axe", 1, 5]
+	_check(mess.slots[0] == ["core:fiber", 1] and mess.slots[1] == ["tools:stone_axe", 1, 5]
 		and mess.slots[2] == ["core:fiber", 6] and mess.slots[3] == ["core:stone", 3]
 		and mess.slots[4] == ["plants:raspberry", 4] and mess.slots[5] == null and mess.slots[7] == null,
 		"sorting by kind tops up stacks, keeps a worn tool apart and leaves the first slots alone")
 	mess.sort("weight")
-	_check(mess.slots[0] == ["core:stone", 3] and mess.slots[1] == ["core:stone_axe", 1, 5] and mess.count("core:fiber") == 7,
+	_check(mess.slots[0] == ["core:stone", 3] and mess.slots[1] == ["tools:stone_axe", 1, 5] and mess.count("core:fiber") == 7,
 		"sorting by weight puts the heaviest stacks first")
 	var box := Inventory.new(2)
 	mess.slots = [["core:fiber", 7], ["core:stone", 3], null]
@@ -1890,10 +1896,10 @@ func _test_inventory() -> void:
 	chest.nests = false
 	chest.add("core:stone", 5)
 	var bag := Inventory.new(4)
-	_check(bag.add("core:chest", 1, 0, chest.to_dict()) == 1 and bag.contents(0) != null, "a chest goes into the bag with what it holds")
-	_check(is_equal_approx(bag.weight(), Items.weight("core:chest") + 5 * Items.weight("core:stone")), "and weighs it too")
-	_check(bag.add("core:chest", 1) == 1 and bag.slots[1] != null and bag.slots[1].size() == 2, "an empty chest takes a slot of its own")
-	_check(bag.remove("core:chest", 2) == 1 and bag.contents(0) != null, "a chest with things in it is not used up")
+	_check(bag.add("tools:chest", 1, 0, chest.to_dict()) == 1 and bag.contents(0) != null, "a chest goes into the bag with what it holds")
+	_check(is_equal_approx(bag.weight(), Items.weight("tools:chest") + 5 * Items.weight("core:stone")), "and weighs it too")
+	_check(bag.add("tools:chest", 1) == 1 and bag.slots[1] != null and bag.slots[1].size() == 2, "an empty chest takes a slot of its own")
+	_check(bag.remove("tools:chest", 2) == 1 and bag.contents(0) != null, "a chest with things in it is not used up")
 	_check(bag.move_slot(0, chest) == 0, "a chest with things in it does not go into a chest")
 	var kept := Inventory.new(4)
 	kept.from_dict(JSON.parse_string(JSON.stringify(bag.to_dict())))
@@ -2073,7 +2079,7 @@ func _test_world_actions() -> void:
 	actions.cell_changed.connect(func(c: Vector3i) -> void: changed.append(c))
 	var who := Who.new()
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
-	who.item = "core:wooden_shovel"
+	who.item = "tools:wooden_shovel"
 	var swing := actions.dig_at(who, Vector3i(10, 1, 10), Vector3i.UP)
 	var dirt := 0
 	for key in w.drops:
@@ -2082,7 +2088,7 @@ func _test_world_actions() -> void:
 	_check(not swing.is_empty() and w.get_cell(10, 1, 10) == Mat.AIR and dirt >= 1 and changed.has(Vector3i(10, 1, 10)),
 		"a shovel digs dirt, which falls on the ground")
 	_check(actions.dig_at(who, Vector3i(10, 0, 10), Vector3i.UP).is_empty(), "the bottom level is not dug")
-	who.item = "core:wooden_sword"
+	who.item = "tools:wooden_sword"
 	_check(not actions.dig_at(who, Vector3i(11, 1, 10), Vector3i.UP).is_empty() and w.get_cell(11, 1, 10) == Mat.DIRT,
 		"a sword swings at the ground it cannot dig")
 	# Grass with something tall on it, within reach: a sword cuts what is tall and
@@ -2107,7 +2113,7 @@ func _test_world_actions() -> void:
 	rng.seed = 1
 	Trees.place(w, 15, 2, 23, Trees.sample(Trees.LOWLAND), rng)
 	who.position = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
-	who.item = "core:stone_axe"
+	who.item = "tools:stone_axe"
 	var logs := w.log_col(15, 23)
 	var hits := 0
 	while w.log_col(15, 23) == logs and hits < 50:
@@ -2152,31 +2158,31 @@ func _test_placed() -> void:
 	placed.world = w
 	var who := Who.new()
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
-	who.inventory.add("core:workbench", 1)
-	_check(not placed.put_from_bag(who, "core:workbench", -1, 1), "nothing is placed above the level cut")
-	_check(placed.put_from_bag(who, "core:workbench", -1, 40) and placed.things.size() == 1
-		and who.inventory.count("core:workbench") == 0, "a workbench is placed from the bag")
+	who.inventory.add("tools:workbench", 1)
+	_check(not placed.put_from_bag(who, "tools:workbench", -1, 1), "nothing is placed above the level cut")
+	_check(placed.put_from_bag(who, "tools:workbench", -1, 40) and placed.things.size() == 1
+		and who.inventory.count("tools:workbench") == 0, "a workbench is placed from the bag")
 	var bench: Vector3i = placed.things[0].cell
 	_check(bench.y == 2 and bench.z < 12 and w.blockers.has(bench), "in front of the one who placed it, and solid")
 	var shop := Workshop.new(who, placed, {"tool_wear": false})
-	var axe := Crafting.get_recipe("core:stone_axe")
+	var axe := Crafting.get_recipe("tools:stone_axe")
 	for id in ["core:flint", "core:cord"]:
 		who.inventory.add(id, 1)
 	who.inventory.add("core:branch", 2)
 	_check(shop.start(axe) == 1, "a stone axe is started by the workbench")
 	who.position = Vector3(40.5, 2.0, 40.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
-	_check(who.inventory.count("core:stone_axe") == 0 and shop.waiting(), "away from the workbench the work waits")
+	_check(who.inventory.count("tools:stone_axe") == 0 and shop.waiting(), "away from the workbench the work waits")
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
-	_check(who.inventory.count("core:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
+	_check(who.inventory.count("tools:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
 	for id in ["core:flint", "core:cord"]:
 		who.inventory.add(id, 1)
 	who.inventory.add("core:branch", 2)
 	var quick := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
 	_check(quick.start(axe) == 1, "another axe is started")
 	quick.update(0.01)
-	_check(who.inventory.count("core:stone_axe") == 2, "with instant crafting it is made in a frame")
+	_check(who.inventory.count("tools:stone_axe") == 2, "with instant crafting it is made in a frame")
 	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
 	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "a campfire that burns is a station")
 	var cook := Survivor.new()

@@ -17,7 +17,8 @@ const Items := preload("res://src/shared/content/items.gd")
 ## thing is used, see Gathering.REACH).
 const REACH := 4.0
 ## The station a tool is repaired at.
-const REPAIR_AT := "core:workbench"
+## Tools are repaired at a workbench: the station placed as a `prop` of this kind.
+const REPAIR_AT := "workbench"
 
 signal changed
 ## Recipe `recipe` was made and what it makes put into the bag (or on the ground).
@@ -161,8 +162,11 @@ func why_not_repair(i: int) -> String:
 	var s = inv.slots[i]
 	if s == null or inv.worn(i) == 0:
 		return "Чинить нечего"
-	if not stations().has(REPAIR_AT):
-		return "Чинят у станка: %s" % Items.title(REPAIR_AT)
+	var bench := Items.with_prop(REPAIR_AT)
+	if bench == "":
+		return "Чинить негде: нет верстака"
+	if not stations().has(bench):
+		return "Чинят у станка: %s" % Items.title(bench)
 	var item := Items.get_item(s[0])
 	var short := {}
 	for id in item.repair:

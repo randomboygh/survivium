@@ -15,7 +15,7 @@
   title: Лепёшка
   makes: flatbread
   needs: {flour: 2}
-  at: core:kiln
+  at: tools:kiln
   time: 5
 
 - id: fried_mushrooms

@@ -18,8 +18,8 @@ const Body := preload("res://src/shared/game/body.gd")
 const CELL := WorldData.CELL
 ## Slots of a chest.
 const CHEST_SLOTS := 16
-## The items of the chest and the campfire by the spawn of a new world.
-const CHEST := "core:chest"
+## The campfire by the spawn of a new world (with a chest, the first item placed as one,
+## when a loaded mod has it).
 const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body standing by a burning campfire comes to be burnt.
 const SINGE := 0.05
@@ -101,7 +101,9 @@ func to_list() -> Array:
 ## Puts the chest and the campfire of a new world next to world point `at`; the
 ## chunks there are made by then, so the ground under them is known.
 func start_camp(at: Vector3) -> void:
-	for e in [[CHEST, Vector3(2.0, 0.0, 1.0)], [CAMPFIRE, Vector3(-2.0, 0.0, 2.0)]]:
+	for e in [[Items.with_prop("chest"), Vector3(2.0, 0.0, 1.0)], [CAMPFIRE, Vector3(-2.0, 0.0, 2.0)]]:
+		if e[0] == "":
+			continue
 		var spot := spot_near(at + e[1])
 		if spot.y >= 0:
 			put(e[0], spot)

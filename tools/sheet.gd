@@ -2,7 +2,7 @@ extends SceneTree
 ## Saves the player's sprite sheet as a PNG, scaled up, to look at the frames:
 ## godot --headless --path . --script res://tools/sheet.gd -- /tmp/sheet.png [scale] [left] [right] [active]
 ## left, right: what each hand holds as "picture:work" (a picture in
-## content/core/sprites/held/, a work of player.yaml, e.g. "axe:chop", "scythe:mow") or
+## content/<mod>/sprites/held/, a work of player.yaml, e.g. "axe:chop", "scythe:mow") or
 ## "-" for nothing; active: "left" or "right".
 
 const Figure := preload("res://src/client/view/figure.gd")
