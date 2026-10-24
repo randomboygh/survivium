@@ -11,6 +11,7 @@
 # mow — во что превращается ячейка, когда с неё срезают верхний слой руками, мечом или косой
 # (трава — в землю), mow_gives — что срезанный слой даёт всегда; растения на нём (plants.yaml)
 # дают своё сверх этого.
+# step — звук шага по ячейке, hit — звук удара по ней инструментом (sounds.yaml).
 - id: air
   title: Воздух
   solid: false
@@ -18,6 +19,8 @@
   dig: none
 - id: grass
   title: Трава
+  step: step_grass
+  hit: dig
   corners: soft
   slope: true
   item: dirt
@@ -28,6 +31,8 @@
   mow_gives: {fiber: 1}
 - id: dirt
   title: Земля
+  step: step_dirt
+  hit: dig
   corners: soft
   slope: true
   hotbar: 2
@@ -37,11 +42,15 @@
   bonus_chance: 0.15
 - id: stone
   title: Камень
+  step: step_stone
+  hit: hit_stone
   hotbar: 1
   item: stone
   hardness: 2
 - id: sand
   title: Песок
+  step: step_sand
+  hit: dig
   corners: round
   slope: true
   hotbar: 5
@@ -51,26 +60,35 @@
   bonus_chance: 0.12
 - id: water
   title: Вода
+  step: step_water
   solid: false
   roof: false
   dig: none
 - id: log
   title: Бревно
+  step: step_wood
+  hit: chop
   roof: false
   hotbar: 7
   item: log
   dig: axe
 - id: leaves
   title: Листва
+  step: step_grass
+  hit: rustle
   roof: false
   dig: hand
 - id: planks
   title: Доски
+  step: step_wood
+  hit: knock
   hotbar: 3
   item: planks
   dig: axe
 - id: clay
   title: Глина
+  step: step_dirt
+  hit: dig
   corners: soft
   slope: true
   hotbar: 6
@@ -78,16 +96,22 @@
   dig: shovel
 - id: copper_ore
   title: Медная руда
+  step: step_stone
+  hit: hit_stone
   item: copper_ore
   hardness: 2
 - id: brick
   title: Кирпич
+  step: step_stone
+  hit: hit_stone
   hotbar: 4
   item: brick
   hardness: 2
 # Осыпь: каменная крошка на склонах высоких гор, ложится скатами, копается лопатой.
 - id: scree
   title: Осыпь
+  step: step_stone
+  hit: dig
   corners: sharp
   slope: true
   item: stone

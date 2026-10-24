@@ -1,7 +1,8 @@
 extends RefCounted
 ## Mods and their data files. A mod is a folder under `content/` with `mod.yaml` and
 ## `data/<kind>.yaml`, one file per kind of record (materials, items, creatures,
-## trees, bushes, recipes, plants), each a list of records with an `id`. Ids carry the mod's namespace:
+## trees, bushes, recipes, plants, sounds; a sound's files are the mod's
+## `sounds/<name>.wav`, or `<name>_1.wav` ... for its variants), each a list of records with an `id`. Ids carry the mod's namespace:
 ## `grass` in the core mod is `core:grass`, and a reference without a namespace
 ## means the same mod. A later mod may redefine a record of an earlier one by id.
 ##
@@ -39,6 +40,8 @@ const SCHEMAS := {
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"mow": {"type": "ref:materials", "default": ""},
 		"mow_gives": {"type": "amounts", "of": "ref:items", "default": {}},
+		"step": {"type": "ref:sounds", "default": ""},
+		"hit": {"type": "ref:sounds", "default": ""},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
@@ -78,6 +81,8 @@ const SCHEMAS := {
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
 		"likes": {"type": "list", "of": "ref:plants", "default": []},
+		"calls": {"type": "ref:sounds", "default": ""},
+		"alarm": {"type": "ref:sounds", "default": ""},
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
@@ -115,6 +120,11 @@ const SCHEMAS := {
 		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
 		"time": {"type": "float", "min": 0.0, "default": 2.0},
 	},
+	"sounds": {
+		"variants": {"type": "int", "min": 1, "default": 1},
+		"volume": {"type": "float", "min": 0.0, "max": 4.0, "default": 1.0},
+		"loop": {"type": "bool", "default": false},
+	},
 	"plants": {
 		"gives": {"type": "amounts", "of": "ref:items"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
@@ -148,6 +158,18 @@ static func find(kind: String, id: String) -> Dictionary:
 		if r.id == id:
 			return r
 	return {}
+
+
+## The files of sound record `rec` (see the `sounds` kind): one, or one per variant.
+static func sound_files(rec: Dictionary) -> PackedStringArray:
+	var name: String = rec.id.get_slice(":", 1)
+	var dir := "%s/%s/sounds/" % [ROOT, rec.mod]
+	if rec.variants == 1:
+		return [dir + name + ".wav"]
+	var out: PackedStringArray = []
+	for i in rec.variants:
+		out.append("%s%s_%d.wav" % [dir, name, i + 1])
+	return out
 
 
 ## Reads every mod again; the registries call their own `reload` after this.

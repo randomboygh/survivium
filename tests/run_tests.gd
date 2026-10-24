@@ -40,6 +40,8 @@ const Knowledge := preload("res://src/shared/game/knowledge.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Tracks := preload("res://src/client/world/tracks.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
+const SoundScript := preload("res://src/client/audio/sound.gd")
+const Music := preload("res://src/client/audio/music.gd")
 
 var checks := 0
 var failures := 0
@@ -83,6 +85,7 @@ func _init() -> void:
 	_test_tracks()
 	_test_hidden()
 	_test_layers()
+	_test_sound()
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -93,6 +96,58 @@ func _check(cond: bool, what: String) -> void:
 		failures += 1
 		printerr("FAIL: " + what)
 
+
+
+## The sounds load (loops looping), nothing sounds before the browser lets it, the
+## hands' work sounds by what it strikes, and a piece of music stays in its range.
+func _test_sound() -> void:
+	var s := SoundScript.new(null)
+	var missing := []
+	for id in s.records:
+		var list := s.streams(id)
+		if list.is_empty() or s.records[id].loop and list[0].loop_mode != AudioStreamWAV.LOOP_FORWARD:
+			missing.append(id)
+	_check(missing.is_empty(), "every sound loads, the loops looping: %s" % [missing])
+	for id in ["core:wind", "core:step_grass", "core:click", "birds:sparrow", "core:note_pluck"]:
+		_check(s.records.has(id), "sound %s is there" % id)
+	for m in Mat.COUNT:
+		var r: Dictionary = Mat.RECORDS[m]
+		_check(m == Mat.AIR or r.step != "", "%s has a step sound" % r.id)
+	s.unlocked = false
+	s.play_later(0.5, "core:chop", Vector3.ZERO)
+	_check(s._later.is_empty(), "nothing waits to sound before the first tap")
+	s.unlocked = true
+	var at := Vector3(1.0, 0.0, 1.0)
+	var cases := [
+		[{"at": at, "time": 0.4, "stuff": Mat.LOG}, "chop", "core:chop"],
+		[{"at": at, "time": 0.4, "stuff": Mat.STONE}, "chop", "core:hit_stone"],
+		[{"at": at, "time": 0.4, "stuff": Mat.GRASS}, "mow", "core:mow"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT}, "dig", "core:dig"],
+		[{"at": at, "time": 0.4, "stuff": -1}, "slash", "core:swish"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT, "placed": 1}, "reach", "core:place"],
+	]
+	for c: Array in cases:
+		s._later.clear()
+		s.work(c[0], c[1], 0.5)
+		_check(s._later.size() == 1 and s._later[0][1] == c[2] and is_equal_approx(s._later[0][0], 0.2),
+			"%s on %d sounds %s at the strike" % [c[1], c[0].stuff, c[2]])
+	s._later.clear()
+	s.work({"at": at, "time": 0.4, "stuff": -1}, "reach", 0.5)
+	_check(s._later.is_empty(), "reaching for nothing is silent")
+	var music := Music.new({"sound": s})
+	for mood in Music.MOODS:
+		music.start(mood)
+		var lo := INF
+		var hi := -INF
+		var ordered := true
+		for i in music._notes.size():
+			var n: Array = music._notes[i]
+			lo = minf(lo, n[2])
+			hi = maxf(hi, n[2])
+			ordered = ordered and (i == 0 or music._notes[i - 1][0] <= n[0])
+		_check(music._notes.size() >= 16 and ordered, "a %s piece has its notes in order" % mood)
+		_check(lo >= -18 and hi <= 15, "a %s piece stays within the notes' range (%d..%d)" % [mood, lo, hi])
+	s.free()
 
 
 ## The world model and the rules under src/shared are what the server will run, so

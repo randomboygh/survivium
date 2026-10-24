@@ -27,6 +27,7 @@ func _init() -> void:
 	problems.append_array(Plants.check())
 	problems.append_array(_check_held())
 	problems.append_array(_check_creature_pictures())
+	problems.append_array(_check_sound_files())
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():
@@ -36,6 +37,16 @@ func _init() -> void:
 	else:
 		printerr("%d content problems" % problems.size())
 	quit(1 if problems.size() > 0 else 0)
+
+
+## Every sound has its files, as many as its variants (see Content.sound_files).
+func _check_sound_files() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for rec: Dictionary in Content.records("sounds"):
+		for path in Content.sound_files(rec):
+			if not ResourceLoader.exists(path):
+				out.append("sounds: `%s`: no file %s" % [rec.id, path])
+	return out
 
 
 ## Things held: the work each item names is one of the figure's (player.yaml `works`)
