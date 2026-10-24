@@ -36,6 +36,12 @@ const BARE_TIER := 0
 const LOW_TIER := 1
 const MID_TIER := 2
 const TALL_TIER := 3
+## What a world laid out by hand (WorldData.grows) makes grow on a column whatever the
+## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms.
+const GROW_EARS := 1
+const GROW_MOSS := 2
+const GROW_MUSHROOMS := 3
+const GROW_GLOW := 4
 ## Lowland for ears: this many levels above the sea at most.
 const FERTILE_LEVELS := 10
 
@@ -139,6 +145,11 @@ static func ear_field_at(w, x: int, y: int, z: int) -> bool:
 ## drawn from `rng` seeded by the cell; `flat` when the cell is a whole level top.
 static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumberGenerator) -> Array[int]:
 	var out: Array[int] = []
+	if m == Mat.GRASS and w.grows.is_valid():
+		var grow: int = w.grows.call(x, z)
+		if grow != 0:
+			_grown(grow, out, rng)
+			return out
 	if m == Mat.GRASS:
 		_fields()
 		var tier := tier_at(x, z)
@@ -176,6 +187,21 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
 	return out
+
+
+## The plants of a column whose growth the world sets (`grow`, one of GROW_*), added to
+## `out`: low grass under a field of ears or the moss of a forest floor.
+static func _grown(grow: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+	if grow == GROW_EARS:
+		out.append(rng.randi_range(0, 3))
+		for k in rng.randi_range(1, 2):
+			out.append(EAR + rng.randi_range(0, 1))
+		return
+	out.append(MOSS + rng.randi_range(0, 1))
+	if grow == GROW_MUSHROOMS and rng.randf() < 0.6:
+		out.append(MUSHROOM + rng.randi_range(0, 1))
+	elif grow == GROW_GLOW and rng.randf() < 0.6:
+		out.append(GLOW + rng.randi_range(0, 1))
 
 
 ## What grows in the shade of a crown on grass column x, z, added to `out`: moss in

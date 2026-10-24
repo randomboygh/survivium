@@ -353,6 +353,14 @@ const SHOTS := {
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
 	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
+	# The stream down its terraces, from the meadow south of it and from its top.
+	"ground-stream": {"time": 0.42, "season": 1, "at": [72, 37]},
+	"ground-stream-top": {"time": 0.42, "season": 1, "at": [58, 20]},
+	"ground-ears": {"time": 0.42, "season": 1, "at": [116, 13]},
+	# The grove's floor: moss, mushrooms, and the mushrooms that glow at night.
+	"ground-grove": {"time": 0.42, "season": 1, "at": [112, 26]},
+	"ground-grove-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [124, 26]},
+	"ground-mountain-top": {"time": 0.42, "season": 1, "at": [121, 64]},
 }
 
 const TEST_SAVES := "user://shot_ground"
