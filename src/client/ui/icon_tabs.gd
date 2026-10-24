@@ -81,9 +81,11 @@ static func kinds(have: Dictionary) -> Array:
 	for k in Items.CATEGORIES:
 		if have.has(k):
 			keys.append(k)
-	var icons := {"": UiStyle.icon("all"), "tools": ItemIcons.picture("pickaxe"), "stations": ItemIcons.picture("workbench"),
-		"materials": ItemIcons.picture("cord"), "blocks": ItemIcons.of_item("core:brick"),
-		"food": ItemIcons.picture("raspberry"), "heal": ItemIcons.picture("bandage"), "plants": ItemIcons.picture("seeds")}
+	# Each category shows the picture of its first loaded item.
+	var icons := {"": UiStyle.icon("all")}
+	for k in Items.CATEGORIES:
+		var first := Items.of_category(k)
+		icons[k] = ItemIcons.of_item(first) if first != "" else UiStyle.icon("all")
 	var names := {"": "Все"}
 	names.merge(Items.CATEGORIES)
 	return [keys, icons, names]

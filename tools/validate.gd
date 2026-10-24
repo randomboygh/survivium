@@ -15,6 +15,7 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
+const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
 
 func _init() -> void:
@@ -29,6 +30,7 @@ func _init() -> void:
 	problems.append_array(_check_held())
 	problems.append_array(_check_creature_pictures())
 	problems.append_array(_check_models())
+	problems.append_array(_check_icons())
 	problems.append_array(_check_sound_files())
 	problems.append_array(_check_each_mod())
 	for p in problems:
@@ -97,6 +99,24 @@ func _check_held() -> PackedStringArray:
 		var want := Vector2i(fig.held.cell[0] * (1 + work.columns.size()), fig.held.cell[1] * fig.directions.size())
 		if size != want:
 			out.append("items: `%s`: %s is %dx%d, a sheet carried and worked by `%s` is %dx%d" % [id, path.get_file(), size.x, size.y, item.anim, want.x, want.y])
+	return out
+
+
+## Each item's picture is there, in its mod, square; the interface's pictures are in assets/ui.
+func _check_icons() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for id in Items.IDS:
+		var item := Items.get_item(id)
+		if item.icon == "":
+			continue
+		var path := ItemIcons.icon_path(item.mod, item.icon)
+		if not ResourceLoader.exists(path):
+			out.append("items: `%s`: no picture %s" % [id, path])
+		elif Vector2i(load(path).get_size()) != Vector2i(12, 12):
+			out.append("items: `%s`: %s is not 12x12" % [id, path.get_file()])
+	for name in ItemIcons.UI:
+		if not ResourceLoader.exists(ItemIcons.ui_path(name)):
+			out.append("ui: no picture %s" % ItemIcons.ui_path(name))
 	return out
 
 

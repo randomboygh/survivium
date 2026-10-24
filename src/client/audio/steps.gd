@@ -44,13 +44,13 @@ func update(delta: float) -> void:
 	_last = p
 	var sound = game.sound
 	if body.jumped:
-		sound.play("core:jump", p)
+		sound.play("jump", p)
 	var in_water: bool = body.water_depth > 0.0
 	if body.on_ground and not _was_on_ground and _fall > LAND_SPEED:
 		var hard := clampf((_fall - LAND_SPEED) / (Body.MAX_FALL - LAND_SPEED), 0.0, 1.0)
-		sound.play("core:splash" if in_water else "core:land", p, 0.5 + 0.5 * hard)
+		sound.play("splash" if in_water else "land", p, 0.5 + 0.5 * hard)
 	elif in_water and not _was_in_water and _fall > LAND_SPEED:
-		sound.play("core:splash", p)
+		sound.play("splash", p)
 	_fall = -body.velocity_y if not body.on_ground else 0.0
 	_was_on_ground = body.on_ground
 	_was_in_water = in_water
@@ -58,7 +58,7 @@ func update(delta: float) -> void:
 		_stroke -= delta
 		if moved > 0.0 and _stroke <= 0.0:
 			_stroke = STROKE
-			sound.play("core:swim", p)
+			sound.play("swim", p)
 		return
 	if not body.on_ground:
 		return
@@ -74,12 +74,12 @@ func update(delta: float) -> void:
 ## The step sound of what the feet at `p` stand on.
 func _underfoot(p: Vector3, in_water: bool) -> String:
 	if in_water:
-		return "core:step_water"
+		return "step_water"
 	var c := Vector3i((p / CELL + Vector3(0.0, -0.1, 0.0)).floor())
 	var m: int = game.world.get_cell(c.x, c.y, c.z)
 	if m <= 0 or m >= Mat.COUNT:
 		return ""
 	var rec: Dictionary = Mat.RECORDS[m]
 	if game.clock.snow > SNOW_UNDERFOOT and not game.chunks.indoor and rec.id in SNOWY:
-		return "core:step_snow"
+		return "step_snow"
 	return rec.step

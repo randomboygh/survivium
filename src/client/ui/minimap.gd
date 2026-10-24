@@ -291,18 +291,7 @@ func _mark_color(id: String) -> Color:
 	if id == Items.SACK:
 		return UiStyle.DANGER
 	if not _mark_colors.has(id):
-		var c := UiStyle.INK
-		var item := ItemIcons.Items.get_item(id)
-		var rows: Array = ItemIcons.PICTURES.get(item.get("icon", ""), [])
-		var sum := Color(0, 0, 0, 0)
-		for row: String in rows:
-			for ch in row:
-				if ItemIcons.PALETTE.has(ch):
-					var p: Color = ItemIcons.PALETTE[ch]
-					sum += Color(p.r, p.g, p.b, 1.0) * p.a
-		if sum.a > 0.0:
-			c = Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a)
-		_mark_colors[id] = c
+		_mark_colors[id] = ItemIcons.colour_of(id, UiStyle.INK)
 	return _mark_colors[id]
 
 

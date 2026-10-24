@@ -59,17 +59,17 @@ func update(delta: float) -> void:
 	var winter: bool = clock.season == Clock.WINTER
 	var wind: float = clock.storm_wind
 	# The wind is always a little there, and roars in a storm.
-	sound.loop("core:wind", open * clampf(0.12 + 0.3 * wind, 0.0, 1.0))
-	sound.loop("core:rain", open * (0.0 if winter else clampf(clock.rain, 0.0, 1.0)))
-	sound.loop("core:hail", open * clampf(clock.hail, 0.0, 1.0))
-	sound.loop("core:blizzard", open * clampf(maxf(clock.snowing, clock.sand * 0.6) * (wind - 0.8) / 1.7, 0.0, 1.0))
+	sound.loop("wind", open * clampf(0.12 + 0.3 * wind, 0.0, 1.0))
+	sound.loop("rain", open * (0.0 if winter else clampf(clock.rain, 0.0, 1.0)))
+	sound.loop("hail", open * clampf(clock.hail, 0.0, 1.0))
+	sound.loop("blizzard", open * clampf(maxf(clock.snowing, clock.sand * 0.6) * (wind - 0.8) / 1.7, 0.0, 1.0))
 	# Water heard from where most of it is; ice and snow on it keep it quiet.
 	var w := clampf(water / WATER_FULL, 0.0, 1.0)
 	if w > 0.0:
 		w = maxf(w, 0.3) * (1.0 - clock.ice())
 	if game.player.body.water_depth > 0.0:
 		w = maxf(w, 0.6)
-	sound.spot("core:water", water_at, w)
+	sound.spot("water", water_at, w)
 	_fire(sound)
 	var daylight: float = clock.daylight()
 	# Spring and summer.
@@ -78,7 +78,7 @@ func update(delta: float) -> void:
 	var crickets := 0.0
 	if warm and calm and not indoor and daylight < 0.3:
 		crickets = (1.0 - woods * 0.5) * smoothstep(0.3, 0.05, daylight)
-	sound.loop("core:crickets", crickets)
+	sound.loop("crickets", crickets)
 	if indoor or not calm:
 		return
 	# Birds by day, most at dawn and fewest in winter; an owl in the woods at night.
@@ -88,9 +88,9 @@ func update(delta: float) -> void:
 		if dawn < 0.06:
 			rate *= DAWN_CHORUS
 		if rng.randf() < rate * delta:
-			sound.play("core:bird", _around(6.0, 16.0, 2.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.9, 1.15), "Nature")
+			sound.play("bird", _around(6.0, 16.0, 2.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.9, 1.15), "Nature")
 	elif daylight < 0.15 and woods > 0.15 and rng.randf() < OWL_RATE * delta:
-		sound.play("core:owl", _around(10.0, 18.0, 3.0), rng.randf_range(0.6, 1.0), 1.0, "Nature")
+		sound.play("owl", _around(10.0, 18.0, 3.0), rng.randf_range(0.6, 1.0), 1.0, "Nature")
 
 
 ## Thunder for a lightning flash of `strength` (0..1), late as it is far.
@@ -98,7 +98,7 @@ func thunder(strength: float) -> void:
 	var delay := rng.randf_range(THUNDER_DELAY.x, THUNDER_DELAY.y)
 	var near := 1.0 - (delay - THUNDER_DELAY.x) / (THUNDER_DELAY.y - THUNDER_DELAY.x)
 	var muffle := MUFFLED if game.chunks.indoor else 1.0
-	game.sound.play_later(delay, "core:thunder", Vector3.INF, muffle * strength * lerpf(0.5, 1.0, near),
+	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(0.5, 1.0, near),
 		lerpf(0.85, 1.0, near), "Nature")
 
 
@@ -115,7 +115,7 @@ func _fire(sound) -> void:
 		if d < best_d:
 			best_d = d
 			best = at
-	sound.spot("core:fire", best, 1.0 if best_d <= sound.HEAR_RANGE * sound.HEAR_RANGE else 0.0)
+	sound.spot("fire", best, 1.0 if best_d <= sound.HEAR_RANGE * sound.HEAR_RANGE else 0.0)
 
 
 ## A point round the player `near`..`far` world units away, `up` above.

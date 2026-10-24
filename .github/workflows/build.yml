@@ -41,7 +41,7 @@ jobs:
         run: |
           # The client, its shaders, scenes and pictures, the web save store, the export, the
           # smoke test and CI itself. Rules, data and tests are covered by the headless tests.
-          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/(sprites|models)/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|tools/web_patch\.py|\.github/)'
+          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/(sprites|models|icons)/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|tools/web_patch\.py|\.github/)'
           if [ -z "$PR" ] || [ "$LABELED" = true ]; then
             smoke=true
           else

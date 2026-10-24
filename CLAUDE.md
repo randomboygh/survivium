@@ -24,10 +24,11 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game), tools, plants, animals, birds; mod.yaml, data/<kind>.yaml, sprites/, models/, sounds/
+content/      the mods: core (the base game), sounds, tools, plants, animals, birds; mod.yaml, data/<kind>.yaml,
+              sprites/, icons/, models/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
-tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, art/, sound/
+tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons, art/, sound/
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
@@ -82,14 +83,16 @@ id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushe
 (`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
 (`Items.with_prop`), a tool by its `tool`; the only ids code names are core's (`Mat.GRASS`, `Items.LOG`,
 `Placed.CAMPFIRE`). A thing's voxel model is `models/<model>.png` of its mod, a row of square slices one
-per level (alpha 128 marks a leaf), read by `VoxelModel.from_image`. `content/birds/` (sparrows, see its README) is a
+per level (alpha 128 marks a leaf), read by `VoxelModel.from_image`; its picture in the bag is `icons/<icon>.png`
+(12×12, `ItemIcons`), the interface's own pictures are `assets/ui/`. `content/birds/` (sparrows, see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
 its mod, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in
 `content/<mod>/sounds/` (`<name>.wav` or `<name>_N.wav` per variant), made by `tools/make_sounds.gd`
-from `tools/sound/synth.gd`; a material's `step` and `hit`, a creature's `calls` and `alarm` say who
-sounds. The player's pictures and the models were drawn by `tools/art/` and saved by `tools/make_sprites.gd`
-and `tools/make_models.gd`; they can be painted over by hand. Design: `plan/architecture/modding.md`.
+from `tools/sound/synth.gd`; code asks for a sound by its bare name (`play("chop")`, `Sound.resolve`: the
+last loaded mod's record of that name, silence when none), a material's `step` and `hit` (patched onto
+core's materials by the sounds mod), a creature's `calls` and `alarm` (its own mod's records) say who sounds. The player's pictures, the models and the icons were drawn by `tools/art/` and saved by
+`tools/make_sprites.gd`, `tools/make_models.gd` and `tools/make_icons.gd`; they can be painted over by hand. Design: `plan/architecture/modding.md`.
 
 ## Rendering rules
 

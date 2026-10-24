@@ -206,8 +206,8 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 ## bush, hands or a blade through leaves.
 func _gather_sound(target: Dictionary) -> String:
 	if target.has("drop"):
-		return "core:pickup"
-	return "core:chop" if tool_record().tool == "axe" and target.has("bush") else "core:rustle"
+		return "pickup"
+	return "chop" if tool_record().tool == "axe" and target.has("bush") else "rustle"
 
 
 ## Runs the held strokes and the action button for a frame; called while playing.
@@ -373,7 +373,7 @@ func _eat_held() -> void:
 	for i in slots.size():
 		if slots[i] != null and slots[i][0] == held():
 			if game.character.eat(i):
-				game.sound.play("core:eat", game.player.position)
+				game.sound.play("eat", game.player.position)
 			_cooldown = 0.5
 			game.player.work("", _cooldown)
 			return

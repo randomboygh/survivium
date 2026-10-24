@@ -117,23 +117,25 @@ func _test_sound() -> void:
 		if list.is_empty() or s.records[id].loop and list[0].loop_mode != AudioStreamWAV.LOOP_FORWARD:
 			missing.append(id)
 	_check(missing.is_empty(), "every sound loads, the loops looping: %s" % [missing])
-	for id in ["core:wind", "core:step_grass", "core:click", "birds:sparrow", "core:note_pluck"]:
+	for id in ["sounds:wind", "sounds:step_grass", "sounds:click", "birds:sparrow", "sounds:note_pluck", "animals:wolf_howl"]:
 		_check(s.records.has(id), "sound %s is there" % id)
+	_check(s.resolve("click") == "sounds:click" and s.resolve("sounds:click") == "sounds:click" and s.resolve("sparrow") == "birds:sparrow"
+		and s.resolve("nothing") == "" and s.streams("nothing").is_empty(), "a sound is asked for by its bare name, from whichever mod gives it")
 	for m in Mat.COUNT:
 		var r: Dictionary = Mat.RECORDS[m]
 		_check(m == Mat.AIR or r.step != "", "%s has a step sound" % r.id)
 	s.unlocked = false
-	s.play_later(0.5, "core:chop", Vector3.ZERO)
+	s.play_later(0.5, "sounds:chop", Vector3.ZERO)
 	_check(s._later.is_empty(), "nothing waits to sound before the first tap")
 	s.unlocked = true
 	var at := Vector3(1.0, 0.0, 1.0)
 	var cases := [
-		[{"at": at, "time": 0.4, "stuff": Mat.LOG}, "chop", "core:chop"],
-		[{"at": at, "time": 0.4, "stuff": Mat.STONE}, "chop", "core:hit_stone"],
-		[{"at": at, "time": 0.4, "stuff": Mat.GRASS}, "mow", "core:mow"],
-		[{"at": at, "time": 0.4, "stuff": Mat.DIRT}, "dig", "core:dig"],
-		[{"at": at, "time": 0.4, "stuff": -1}, "slash", "core:swish"],
-		[{"at": at, "time": 0.4, "stuff": Mat.DIRT, "placed": 1}, "reach", "core:place"],
+		[{"at": at, "time": 0.4, "stuff": Mat.LOG}, "chop", "sounds:chop"],
+		[{"at": at, "time": 0.4, "stuff": Mat.STONE}, "chop", "sounds:hit_stone"],
+		[{"at": at, "time": 0.4, "stuff": Mat.GRASS}, "mow", "sounds:mow"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT}, "dig", "sounds:dig"],
+		[{"at": at, "time": 0.4, "stuff": -1}, "slash", "sounds:swish"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT, "placed": 1}, "reach", "sounds:place"],
 	]
 	for c: Array in cases:
 		s._later.clear()

@@ -1,544 +1,21 @@
 extends RefCounted
-## Pictures of items for the bag and the hotbar, and the small state icons of the
-## vitals panel. An item's `icon` names a picture here, one character per pixel
-## (see PALETTE); an item without one shows the terrain tile of the material it
-## places, cut from the atlas the HUD is given (see use_atlas). Placeholder art until
-## items get PNG pictures in the mod.
+## Pictures of items for the bag and the hotbar, and the small pictures of the interface
+## (the hand, the sack, the vitals' heart, food and bolt, the weight). An item's `icon`
+## names `content/<mod>/icons/<icon>.png` of its mod (12×12, drawn once by
+## `tools/art/icon_art.gd` and written by `tools/make_icons.gd`, so a mod paints its own);
+## an item without one shows the terrain tile of the material it places, cut from the
+## atlas the HUD is given (see use_atlas). The interface's pictures are `assets/ui/<name>.png`.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
-const PALETTE := {
-	"b": Color("#4a3322"), "B": Color("#6b4a2f"), "t": Color("#9a7448"), "l": Color("#557a38"),
-	"L": Color("#78a048"), "r": Color("#b8243a"), "R": Color("#e0546a"), "u": Color("#3b4590"),
-	"U": Color("#6d7ad0"), "k": Color("#1c140d"), "s": Color("#8a8f94"), "S": Color("#b6bcc1"),
-	"o": Color("#c0703a"), "O": Color("#3f9a6a"), "c": Color("#d8c9a8"), "w": UiStyle.INK,
-	"h": UiStyle.DANGER, "a": UiStyle.ACCENT, "g": UiStyle.GOOD, "m": UiStyle.MUTED,
-	"y": Color("#4fd8b8"), "Y": Color("#b8fff0"), "e": Color("#a8a290"),
-}
-
-const PICTURES := {
-	"mushroom": [
-		"............",
-		"............",
-		"....BBBB....",
-		"...BtttBB...",
-		"..BtttttBB..",
-		"..bBBBBBBb..",
-		".....cc.....",
-		".....cc.....",
-		".....ce.....",
-		"....ccce....",
-		"....eeee....",
-		"............",
-	],
-	"glow_mushroom": [
-		"............",
-		"...Y........",
-		"..yYy...Y...",
-		".yyyyy.yYy..",
-		"...c..yyyyy.",
-		"...c....c...",
-		"...c....c...",
-		"...ce...c...",
-		"..ccc...ce..",
-		"..eee..ccc..",
-		".......eee..",
-		"............",
-	],
-	"fried_mushrooms": [
-		"............",
-		"............",
-		"............",
-		"...BtB.bB...",
-		"..BtttbBtB..",
-		"..bBBbbbBb..",
-		"..mbcbmmcb..",
-		".mmmmmmmmmm.",
-		".mSSSSSSSSm.",
-		"..mmmmmmmm..",
-		"............",
-		"............",
-	],
-	"moss": [
-		"............",
-		"............",
-		"............",
-		"....L.......",
-		"...LlL..L...",
-		"..LlllLLlL..",
-		".LllOllllLL.",
-		".lllllOllll.",
-		".llOlllllOl.",
-		"..llllllll..",
-		"............",
-		"............",
-	],
-	"bandage": [
-		"............",
-		"............",
-		"....cccc....",
-		"...cSSSSc...",
-		"..cSccccSc..",
-		"..cScrrcSc..",
-		"..cScrrcSc..",
-		"..cSccccSc..",
-		"...cSSSSccc.",
-		"....cccc.cc.",
-		"............",
-		"............",
-	],
-	"fiber": [
-		"............",
-		"........L...",
-		"...l...L....",
-		"....l.Ll..L.",
-		"..L.lLl..L..",
-		"...LlLl.L...",
-		"....lLlL....",
-		".....tlt....",
-		"....tttt....",
-		".....tt.....",
-		"....t..t....",
-		"............",
-	],
-	"hand": [
-		"............",
-		"....c.c.....",
-		"...cc.cc.c..",
-		"...cc.cc.cc.",
-		"...cc.cc.cc.",
-		".c.cccccccc.",
-		".cccccccccc.",
-		"..ccccccccc.",
-		"..cccccccc..",
-		"...cccccc...",
-		"....cccc....",
-		"............",
-	],
-	"axe": [
-		"............",
-		"......sSs...",
-		".....sSSSs..",
-		"....bsSSSSs.",
-		"...b.sSSSs..",
-		"..b...sss...",
-		".tb.........",
-		".bt.........",
-		"tb..........",
-		"bt..........",
-		"t...........",
-		"............",
-	],
-	"pickaxe": [
-		"............",
-		"...sSSSs....",
-		"..s....Ss...",
-		"......t.Ss..",
-		".....t...s..",
-		"....t....s..",
-		"...t........",
-		"..t.........",
-		".t..........",
-		"t...........",
-		"............",
-		"............",
-	],
-	"shovel": [
-		"............",
-		".........tt.",
-		"........tb..",
-		".......tb...",
-		"......tb....",
-		"..BBtt......",
-		".BtBB.......",
-		"BtBBB.......",
-		"BBBB........",
-		".BB.........",
-		"............",
-		"............",
-	],
-	"scythe": [
-		"............",
-		"..sSSSSs....",
-		".s.....SSs..",
-		"s.......tSs.",
-		".......t..s.",
-		"......t.....",
-		".....t......",
-		"....tb......",
-		"...t........",
-		"..t.........",
-		".t..........",
-		"............",
-	],
-	"grain": [
-		"............",
-		"............",
-		"............",
-		"............",
-		".....o......",
-		"...o.co.o...",
-		"..ocoococo..",
-		".ococooocoo.",
-		".oocoocooco.",
-		"ooococoocooo",
-		"............",
-		"............",
-	],
-	"flour": [
-		"............",
-		"............",
-		"............",
-		".....cc.....",
-		"....cwwc....",
-		"...cwwwwc...",
-		"..cwwwwwwc..",
-		".cwwcwwwcwc.",
-		".ccwwwcwwcc.",
-		"cccccccccccc",
-		"............",
-		"............",
-	],
-	"flatbread": [
-		"............",
-		"............",
-		"............",
-		"....tttt....",
-		"..ttcttcto..",
-		".tctoctttct.",
-		".ttcttotcto.",
-		".otttcttctt.",
-		"..ootttoot..",
-		"....oooo....",
-		"............",
-		"............",
-	],
-	"seeds": [
-		"............",
-		"............",
-		"............",
-		"....t.......",
-		".......t....",
-		"..t..o......",
-		"......t..o..",
-		"...o.t...t..",
-		".t...ot.o...",
-		"..ottotto...",
-		".tottoototo.",
-		"............",
-	],
-	"sword": [
-		"............",
-		"..........t.",
-		".........tB.",
-		"........tB..",
-		".......tB...",
-		"......tB....",
-		"..b..tB.....",
-		"...btB......",
-		"...bb.......",
-		"..b..b......",
-		".b..........",
-		"............",
-	],
-	"bush": [
-		"............",
-		"............",
-		"....lL......",
-		"...lLLl.L...",
-		"..lLlLLlLl..",
-		".lLLlLlLLLl.",
-		".llLLlLLlLl.",
-		"..llLlllLl..",
-		"...lbllbl...",
-		"....b..b....",
-		"...BBBBBB...",
-		"............",
-	],
-	"bush_raspberry": [
-		"............",
-		"............",
-		"....lL......",
-		"...lLrl.L...",
-		"..lLlLLlrl..",
-		".lrLlLlLLLl.",
-		".llLLrLLlLl.",
-		"..llLlllrl..",
-		"...lbllbl...",
-		"....b..b....",
-		"...BBBBBB...",
-		"............",
-	],
-	"bush_blueberry": [
-		"............",
-		"............",
-		"............",
-		"............",
-		"....lL.lL...",
-		"..lLuLlLul..",
-		".lLLlLuLLLl.",
-		".luLLlLLuLl.",
-		"..llbllbl...",
-		"............",
-		"...BBBBBB...",
-		"............",
-	],
-	"branch": [
-		"..........L.",
-		".........lL.",
-		"........b...",
-		"...L...b....",
-		"...lb.b.....",
-		".....b......",
-		"....b.bL....",
-		"...b...l....",
-		"..b.........",
-		".b..........",
-		"b...........",
-		"............",
-	],
-	"log": [
-		"............",
-		"............",
-		"...bbbbbbbb.",
-		"..bBBBBBBBct",
-		".bBbBBBbBctc",
-		".bBBBbBBBtct",
-		".bBBBBBBBctc",
-		".bbBBBBbBBt.",
-		"..bbbbbbbb..",
-		"............",
-		"............",
-		"............",
-	],
-	"acorn": [
-		"............",
-		"............",
-		".....b......",
-		"...BBBBB....",
-		"..BBtBtBB...",
-		"..bbbbbbb...",
-		"...ooooo....",
-		"...ooooo....",
-		"...ooooo....",
-		"....ooo.....",
-		".....o......",
-		"............",
-	],
-	"cone": [
-		"............",
-		".....b......",
-		"....BtB.....",
-		"...BtBtB....",
-		"...tBtBt....",
-		"..BtBtBtB...",
-		"..tBtBtBt...",
-		"..BtBtBtB...",
-		"...tBtBt....",
-		"...BtBtB....",
-		"....BtB.....",
-		"............",
-	],
-	"raspberry": [
-		"............",
-		".....l......",
-		"....lLl.....",
-		"..........L.",
-		"...rRr...lL.",
-		"..rRrRr.....",
-		"..rrRrr.rRr.",
-		"..RrrrR.RrR.",
-		"...rRr..rrr.",
-		".........r..",
-		"............",
-		"............",
-	],
-	"blueberry": [
-		"............",
-		"............",
-		".........l..",
-		"...uu...lL..",
-		"..uUuu......",
-		"..uuuu.uu...",
-		"...uu.uUuu..",
-		"......uuuu..",
-		"..uu...uu...",
-		".uUuu.......",
-		".uuuu.......",
-		"..uu........",
-	],
-	"copper_ore": [
-		"............",
-		"....ssss....",
-		"..sSssOss...",
-		".sSoossSss..",
-		".ssooOsssS..",
-		".sSsssooss..",
-		".sssOsoosS..",
-		"..ssssssss..",
-		"...sssss....",
-		"............",
-		"............",
-		"............",
-	],
-	# State icons of the vitals panel, 9 pixels.
-	"flint": [
-		"............",
-		"............",
-		"......ss....",
-		"....sskss...",
-		"...skkkkSs..",
-		"..skkkkkkS..",
-		"..skkkkksS..",
-		"...sskkkS...",
-		".....ssS....",
-		"............",
-		"............",
-		"............",
-	],
-	"cord": [
-		"............",
-		"....tttt....",
-		"..tt....tt..",
-		".t..tttt..t.",
-		".t.t....t.t.",
-		".t.t.tt.t.t.",
-		".t.t.t..t.t.",
-		".t..t..t..t.",
-		"..t..tt..t..",
-		"...tt..tt.t.",
-		".......tt..t",
-		"............",
-	],
-	"workbench": [
-		"............",
-		"............",
-		"....ss......",
-		".tttttttttt.",
-		".BBBBBBBBBB.",
-		".b........b.",
-		".b........b.",
-		".b........b.",
-		".bbbbbbbbbb.",
-		".b........b.",
-		".b........b.",
-		"............",
-	],
-	"kiln": [
-		"............",
-		".....kk.....",
-		"....oooo....",
-		"...oossoo...",
-		"..oosoooso..",
-		"..osoooooo..",
-		".oooookkooo.",
-		".osookkkoso.",
-		".ooookookoo.",
-		".ssssoossss.",
-		"............",
-		"............",
-	],
-	"campfire": [
-		"............",
-		".....R......",
-		"....RoR.....",
-		"....ooR.....",
-		"...oRooR....",
-		"...ooRoo....",
-		"..b.oooo.b..",
-		"...bBttBb...",
-		"..BbtBBtbB..",
-		".bB.b..b.Bb.",
-		"............",
-		"............",
-	],
-	"chest": [
-		"............",
-		"............",
-		"..bbbbbbbb..",
-		".bBBBBBBBBb.",
-		".bBBBBBBBBb.",
-		".bbbbaabbbb.",
-		".bBBBaaBBBb.",
-		".bBBBBBBBBb.",
-		".bBBBBBBBBb.",
-		".bbbbbbbbbb.",
-		"............",
-		"............",
-	],
-	"sack": [
-		"............",
-		"....t..t....",
-		".....tt.....",
-		".....rr.....",
-		"....tttt....",
-		"...tttttt...",
-		"..tttttttt..",
-		"..tttttttt..",
-		"..ttttttBt..",
-		"..tttttBBt..",
-		"...BBBBBB...",
-		"............",
-	],
-	"heart": [
-		".hh...hh.",
-		"hhhh.hhhh",
-		"hhhhhhhhh",
-		"hhhhhhhhh",
-		".hhhhhhh.",
-		"..hhhhh..",
-		"...hhh...",
-		"....h....",
-		".........",
-	],
-	"food": [
-		"....l....",
-		"...lL....",
-		"..aaaa...",
-		".aaaaaa..",
-		".aawaaa..",
-		".aaaaaa..",
-		".aaaaaa..",
-		"..aaaa...",
-		".........",
-	],
-	"bolt": [
-		".....gg..",
-		"....gg...",
-		"...gg....",
-		"..gggggg.",
-		".....gg..",
-		"....gg...",
-		"...gg....",
-		"..g......",
-		".........",
-	],
-	"weight": [
-		"...mmm...",
-		"..m...m..",
-		"..m...m..",
-		".mmmmmmm.",
-		"mmmmmmmmm",
-		"mmmmmmmmm",
-		"mmmmmmmmm",
-		".mmmmmmm.",
-		".........",
-	],
-}
-
-## Pictures drawn as another one with some colours swapped: name -> [the picture,
-## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe).
-const RECOLOURED := {
-	"stone_sword": ["sword", {"t": "S", "B": "s"}],
-	"wooden_pickaxe": ["pickaxe", {"s": "B", "S": "t"}],
-	"wooden_scythe": ["scythe", {"s": "B", "S": "t"}],
-}
+## The interface's own pictures (see picture).
+const UI := ["hand", "sack", "heart", "food", "bolt", "weight"]
 
 static var _cache := {}
-## The images the pictures were made from, by name (see image_of).
+## The images the pictures were made from, by their file (see image_of).
 static var _images := {}
 static var _atlas: Texture2D
 static var _tile := 16
@@ -553,41 +30,51 @@ static func use_atlas(atlas: Texture2D, tile: int, tiles: int) -> void:
 	_cache.clear()
 
 
-## The picture of a named icon (see PICTURES).
+## Where mod `mod` keeps the picture `icon` of its items.
+static func icon_path(mod: String, icon: String) -> String:
+	return "res://content/%s/icons/%s.png" % [mod, icon]
+
+
+## Where the interface's picture `name` is.
+static func ui_path(name: String) -> String:
+	return "res://assets/ui/%s.png" % name
+
+
+## The interface's picture `name` (see UI), null for none.
 static func picture(name: String) -> Texture2D:
-	if _cache.has(name):
-		return _cache[name]
-	var rows: Array = PICTURES.get(name, [])
-	var swap: Dictionary = {}
-	if RECOLOURED.has(name):
-		rows = PICTURES[RECOLOURED[name][0]]
-		swap = RECOLOURED[name][1]
-	if rows.is_empty():
-		return null
-	var img := Image.create_empty(rows[0].length(), rows.size(), false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	for y in rows.size():
-		var row: String = rows[y]
-		for x in row.length():
-			var letter: String = swap.get(row[x], row[x])
-			if PALETTE.has(letter):
-				img.set_pixel(x, y, PALETTE[letter])
-	var tex := ImageTexture.create_from_image(img)
-	_cache[name] = tex
-	_images[name] = img
-	UiStyle.remember(tex, img)
+	return _read(ui_path(name))
+
+
+## The picture of the first loaded item used as a tool of `kind` (an axe, a pickaxe),
+## null when no mod has one.
+static func of_tool(kind: String) -> Texture2D:
+	return of_item(Items.with_tool(kind))
+
+
+## The picture at `path`, read once, null when there is none.
+static func _read(path: String) -> Texture2D:
+	if _cache.has(path):
+		return _cache[path]
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		var img: Image = load(path).get_image()
+		tex = ImageTexture.create_from_image(img)
+		_images[path] = img
+		UiStyle.remember(tex, img)
+	_cache[path] = tex
 	return tex
 
 
-## The image of item `id`'s picture (see of_item), null for none: made here, not read
-## back from the texture, which in the browser waits for the graphics card.
+## The image of item `id`'s picture (see of_item), null for none: kept from the file,
+## not read back from the texture, which in the browser waits for the graphics card.
 static func image_of(id: String) -> Image:
 	var item := Items.get_item(id)
 	if item.is_empty():
 		return null
 	if item.icon != "":
-		picture(item.icon)
-		return _images.get(item.icon)
+		var path := icon_path(item.mod, item.icon)
+		_read(path)
+		return _images.get(path)
 	var m := Mat.index(item.place)
 	if m < 0 or _atlas == null:
 		return null
@@ -602,9 +89,22 @@ static func of_item(id: String) -> Texture2D:
 	if item.is_empty():
 		return null
 	if item.icon != "":
-		return picture(item.icon)
+		return _read(icon_path(item.mod, item.icon))
 	var m := Mat.index(item.place)
 	return tile(m) if m >= 0 else null
+
+
+## The average colour of item `id`'s picture, `fallback` without one.
+static func colour_of(id: String, fallback: Color) -> Color:
+	var img := image_of(id)
+	if img == null:
+		return fallback
+	var sum := Color(0, 0, 0, 0)
+	for y in img.get_height():
+		for x in img.get_width():
+			var p := img.get_pixel(x, y)
+			sum += Color(p.r, p.g, p.b, 1.0) * p.a
+	return Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a) if sum.a > 0.0 else fallback
 
 
 ## The middle 12x12 of the terrain tile of material `m`.

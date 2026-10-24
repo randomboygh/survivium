@@ -70,8 +70,25 @@ static func has(id: String) -> bool:
 ## The id of the first item placed as a `prop` of `kind` (a chest, a workbench), "" when
 ## no loaded mod has one.
 static func with_prop(kind: String) -> String:
+	return _first("prop", kind)
+
+
+## The id of the first item used as a `tool` of `kind` (an axe, a pickaxe), "" for none.
+static func with_tool(kind: String) -> String:
+	return _first("tool", kind)
+
+
+## The id of the first item of `category` (see category), "" for none.
+static func of_category(category: String) -> String:
 	for id in IDS:
-		if BY_ID[id].get("prop", "none") == kind:
+		if category(id) == category:
+			return id
+	return ""
+
+
+static func _first(field: String, value: String) -> String:
+	for id in IDS:
+		if BY_ID[id].get(field, "none") == value:
 			return id
 	return ""
 

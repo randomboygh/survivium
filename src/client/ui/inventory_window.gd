@@ -561,7 +561,7 @@ func refresh_state() -> void:
 		var tips := {}
 		for i in _chests.size():
 			keys.append(str(i))
-			icons[str(i)] = ItemIcons.picture("chest")
+			icons[str(i)] = ItemIcons.of_item(_chests[i].item) if _chests[i].has("item") else UiStyle.icon("to_chest")
 			tips[str(i)] = "Сундук %d" % (i + 1)
 		_chest_tabs.set_tabs(keys, icons, tips)
 		_chest_tabs.visible = not _chests.is_empty()

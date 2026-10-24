@@ -18,11 +18,11 @@ const BY_ITSELF := 0.08
 ## The moods: scale (semitones over the key), the note of the melody, beat seconds,
 ## the chords' roots (semitones over the key, a bar each).
 const MOODS := {
-	"dawn": {"scale": [0, 2, 4, 7, 9], "voice": "core:note_bell", "beat": [0.55, 0.7], "chords": [0, 9, 5, 7]},
-	"place": {"scale": [0, 2, 4, 7, 9], "voice": "core:note_pluck", "beat": [0.5, 0.65], "chords": [0, 5, 9, 7]},
-	"fire": {"scale": [0, 3, 5, 7, 10], "voice": "core:note_pluck", "beat": [0.7, 0.9], "chords": [0, 8, 3, 10]},
-	"night": {"scale": [0, 3, 5, 7, 10], "voice": "core:note_bell", "beat": [0.8, 1.0], "chords": [0, 5, 8, 7]},
-	"day": {"scale": [0, 2, 4, 7, 9], "voice": "core:note_pluck", "beat": [0.55, 0.75], "chords": [0, 7, 9, 5]},
+	"dawn": {"scale": [0, 2, 4, 7, 9], "voice": "note_bell", "beat": [0.55, 0.7], "chords": [0, 9, 5, 7]},
+	"place": {"scale": [0, 2, 4, 7, 9], "voice": "note_pluck", "beat": [0.5, 0.65], "chords": [0, 5, 9, 7]},
+	"fire": {"scale": [0, 3, 5, 7, 10], "voice": "note_pluck", "beat": [0.7, 0.9], "chords": [0, 8, 3, 10]},
+	"night": {"scale": [0, 3, 5, 7, 10], "voice": "note_bell", "beat": [0.8, 1.0], "chords": [0, 5, 8, 7]},
+	"day": {"scale": [0, 2, 4, 7, 9], "voice": "note_pluck", "beat": [0.55, 0.75], "chords": [0, 7, 9, 5]},
 }
 ## Keys (semitones over C) a piece may be in: the notes stay within an octave and a
 ## half of the files' pitch.
@@ -125,7 +125,7 @@ func start(mood: String) -> void:
 		# A bass note on each bar, an octave below, and the chord held under it.
 		for bar in BARS:
 			var root: int = chords[(ph * BARS + bar) % chords.size()]
-			_notes.append([t + bar * BEATS * beat, "core:note_pluck", key + root - 12, 0.45])
+			_notes.append([t + bar * BEATS * beat, "note_pluck", key + root - 12, 0.45])
 			_notes.append([t + bar * BEATS * beat, "pad", key + root, 0.0])
 		t += BARS * BEATS * beat
 	_notes.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
@@ -180,7 +180,7 @@ func _play_due() -> void:
 
 ## Holds the pad at `pitch`; a new chord glides in under a short dip.
 func _set_pad(pitch: float) -> void:
-	var list: Array = game.sound.streams("core:pad")
+	var list: Array = game.sound.streams("pad")
 	if list.is_empty():
 		return
 	if not _pad.playing and not game.sound.mute:
