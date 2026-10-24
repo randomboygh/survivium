@@ -215,21 +215,21 @@ func restart() -> void:
 func start_world() -> void:
 	# Each heavy part says what it does and lets it show first; `world` is set only once
 	# they are done, so nothing runs on a world half made.
-	await _loading_stage("Материки, реки и место старта…")
+	await _loading_stage("Материки и реки…")
 	var t0 := Time.get_ticks_msec()
 	# The test world is laid out by hand (see TestGround), every other one from noise.
 	var maker: GDScript = TestGround if world_seed == TestGround.SEED else WorldGen
 	gen = maker.new(world_seed, 48, world_options)
 	gen.saved = save.store
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
-	await _loading_stage("Карта из сохранения и материалы…" if save.has_save else "Карта и материалы…")
+	await _loading_stage("Карта и материалы…")
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
 	if save.has_save:
 		hud.minimap.load_regions(save.store.read_maps())
 	_build_materials()
-	await _loading_stage("Игрок и вещи из сохранения…" if save.has_save else "Игрок и небо…")
+	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
 	world = gen.world
 	placed.world = world
 	character.world = world
@@ -258,7 +258,7 @@ func start_world() -> void:
 ## shaders built ahead, see ShaderWarmup).
 func loading_phase() -> String:
 	if ready_to_play:
-		return "Последние приготовления"
+		return "Последний штрих"
 	if loading_stage != "":
 		return loading_stage.trim_suffix("…")
 	return "Строим окрестности"

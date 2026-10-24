@@ -67,17 +67,20 @@ const BIRD_PX := 3
 ## made (the minimap's regions), its side in UI px and UI px a map pixel, and tips
 ## under it, a new one every TIP_TIME seconds. On a short screen the map is made
 ## smaller, down the MAP_SIZES, and at 0 the tips are shown alone.
-const MAP_SIZES := [128, 96, 64, 0]
+## The sides of the map tried in turn until the card fits: as wide as the menu, then
+## smaller, then none (the tips alone).
+const MAP_SIZES := [WIDTH - 2 * Minimap.FRAME, 128, 96, 64, 0]
 const MAP_ZOOM := 2.0
 const TIP_TIME := 6.0
-## UI px between the column and the map under it on a tall screen.
-const GAP := 12
-const TIP_WIDTH := 240
-## The line over the tips keeps a part of the loading this long at least, so a short
-## part does not flash by unread (seconds).
+## UI px between the card and the name over it and the menu under it on a tall screen.
+const GAP := 16
+## The strip keeps a part of the loading this long at least, so a short part does not
+## flash by unread (seconds).
 const PHASE_HOLD := 1.2
-## The progress strip under «Играть»: its height in UI px, the words written on it.
+## The progress strip under the map: its height in UI px.
 const STRIP_H := 16
+## UI px between the strip's edges and its words.
+const STRIP_PAD := 5
 ## After the world is ready the menu waits for the frames to settle before the clouds
 ## part and the world shows: no shaders being built ahead (see ShaderWarmup) and
 ## CALM_FRAMES frames in a row under CALM_FRAME seconds, SETTLE_MAX seconds at most.
@@ -142,9 +145,15 @@ var _bird_from := 40.0
 var _bird_to := 40.0
 var _column: VBoxContainer
 var _seed_label: Label
+## Room left in the column between the name and the menu for the card on a tall screen.
+var _card_room: Control
+## The seed written over the map.
+var _map_seed: Label
 var _strip: Control
 var _strip_fill: Control
-var _strip_text := ""
+## The words on the strip: the part of the loading at the left, how far at the right.
+var _strip_left := ""
+var _strip_right := ""
 ## Buttons by name, and the names in order of the keyboard focus.
 var _buttons := {}
 var _order := []
@@ -164,9 +173,7 @@ var _loading: PanelContainer
 var _map_ground: Minimap.Layer
 var _map_top: Minimap.Layer
 var _tip: Label
-## The part of the loading going on (Main.loading_phase) and a bar of how far it has
-## gone, over the tip; the phase shown and for how long.
-var _phase: Label
+## The part of the loading shown on the strip (Main.loading_phase) and for how long.
 var _phase_shown := ""
 var _phase_clock := 0.0
 ## The world is ready and its first frames are over (see CALM_FRAMES): the clouds may
@@ -179,8 +186,6 @@ var _tip_clock := 0.0
 var _map_room := false
 var _map_well: Control
 var _map_side: int = MAP_SIZES[0]
-## Shows the map and the tips with the world built too (the screenshots).
-var show_loading := false
 
 
 func _init(g) -> void:
@@ -239,6 +244,9 @@ func _ready() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 4)
 	_column.add_child(gap)
+	_card_room = Control.new()
+	_card_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_column.add_child(_card_room)
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_column.add_child(panel)
@@ -246,7 +254,6 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 6)
 	panel.add_child(box)
 	_add_button(box, "play", "Играть", play)
-	_build_strip(box)
 	_add_button(box, "new", "Новый мир", _new_world)
 	_add_button(box, "worlds", "Миры", _open_worlds)
 	_add_button(box, "net", "Сетевая игра", Callable(), "скоро")
@@ -274,7 +281,8 @@ func _ready() -> void:
 	_screen.visible = false
 
 
-## The map around the start in a frame like the minimap's, the tips under it.
+## The map around the start in a frame like the minimap's with the seed over it, how
+## far the loading has gone under it, a tip in a well at the bottom; as wide as the menu.
 func _build_loading() -> void:
 	_loading = PanelContainer.new()
 	_loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -295,19 +303,34 @@ func _build_loading() -> void:
 	_map_top = Minimap.Layer.new(_draw_map_top)
 	_map_well.add_child(_map_top)
 	_map_top.position = Vector2(Minimap.FRAME, Minimap.FRAME)
+	_map_seed = UiStyle.label("", UiStyle.INK)
+	_map_seed.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+	_map_seed.add_theme_constant_override("outline_size", 4)
+	_map_seed.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_map_seed.position = Vector2(0, Minimap.FRAME + 5)
+	_map_well.add_child(_map_seed)
 	_set_map_side(MAP_SIZES[0])
-	var line := UiStyle.font().get_height(UiStyle.FONT_SIZE) + 4.0
-	_phase = UiStyle.label("")
-	_phase.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_phase.clip_text = true
-	_phase.custom_minimum_size = Vector2(TIP_WIDTH, 0)
-	box.add_child(_phase)
+	_build_strip(box)
+	var well := PanelContainer.new()
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := UiStyle.slot()
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		style.set_content_margin(side, UiStyle.WELL_PAD)
+	well.add_theme_stylebox_override("panel", style)
+	box.add_child(well)
 	_tip = UiStyle.label("", UiStyle.MUTED)
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	# Room for three lines, the longest tip, so the card keeps its size as they change.
-	_tip.custom_minimum_size = Vector2(TIP_WIDTH, 3.0 * line - 4.0)
-	box.add_child(_tip)
+	_tip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	# As tall as the longest tip, so the card keeps its size as they change.
+	var width := WIDTH - 2 * UiStyle.WELL_PAD
+	var tall := 0.0
+	for tip in TIPS:
+		var lines := UiStyle.font().get_multiline_string_size(tip, HORIZONTAL_ALIGNMENT_CENTER, width,
+			UiStyle.FONT_SIZE, -1, TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND)
+		tall = maxf(tall, lines.y)
+	_tip.custom_minimum_size = Vector2(width, tall)
+	well.add_child(_tip)
 	_loading.visible = false
 
 
@@ -318,6 +341,7 @@ func _set_map_side(side: int) -> void:
 	_map_well.custom_minimum_size = Vector2.ONE * (side + 2 * Minimap.FRAME)
 	Minimap.place_ground(_map_ground, Rect2(Minimap.FRAME, Minimap.FRAME, side, side))
 	_map_top.size = Vector2(side, side)
+	_map_seed.size = Vector2(side + 2 * Minimap.FRAME, 0)
 	_map_well.queue_redraw()
 
 
@@ -337,7 +361,6 @@ func _build_strip(box: Control) -> void:
 	_strip = Control.new()
 	_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_strip.custom_minimum_size = Vector2(WIDTH, STRIP_H)
-	_strip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_strip.draw.connect(func() -> void:
 		var r := Rect2(Vector2.ZERO, _strip.size)
 		_strip.draw_rect(r, UiStyle.EDGE)
@@ -357,22 +380,33 @@ func _build_strip(box: Control) -> void:
 	_strip.add_child(_strip_fill)
 
 
-## The strip's words centred on it; `shift` puts them where they are on the strip when
-## drawn by the fill.
+## The strip's words, the part at the left and how far at the right; `shift` puts them
+## where they are on the strip when drawn by the fill.
 func _strip_words(on: Control, color: Color, shift := Vector2.ZERO) -> void:
 	var f := UiStyle.font()
 	var y := floorf((STRIP_H - f.get_height(UiStyle.FONT_SIZE)) * 0.5) + f.get_ascent(UiStyle.FONT_SIZE)
-	on.draw_string(f, Vector2(0, y) + shift, _strip_text, HORIZONTAL_ALIGNMENT_CENTER, _strip.size.x,
+	var inside := _strip.size.x - 2 * STRIP_PAD
+	on.draw_string(f, Vector2(STRIP_PAD, y) + shift, _strip_left, HORIZONTAL_ALIGNMENT_LEFT, inside,
+		UiStyle.FONT_SIZE, color)
+	on.draw_string(f, Vector2(STRIP_PAD, y) + shift, _strip_right, HORIZONTAL_ALIGNMENT_RIGHT, inside,
 		UiStyle.FONT_SIZE, color)
 
 
-func _update_strip() -> void:
-	var done: float = game.loading_progress()
-	var text := ("Вход в мир · %d%%" if _want_play else "Мир строится · %d%%") % roundi(100.0 * done)
+## The part of the loading going on, each kept PHASE_HOLD at least, and how far it has
+## gone; the world ready once it has settled.
+func _update_strip(delta: float) -> void:
+	_phase_clock += delta
+	var phase: String = "Мир готов" if settled else game.loading_phase()
+	if phase != _phase_shown and (_phase_clock >= PHASE_HOLD or _phase_shown == "" or settled):
+		_phase_shown = phase
+		_phase_clock = 0.0
+	var done := 1.0 if settled else float(game.loading_progress())
+	var right := "%d%%" % roundi(100.0 * done)
 	var fill := Vector2(floorf((_strip.size.x - 2) * done), _strip.size.y - 2)
-	if text == _strip_text and fill == _strip_fill.size:
+	if _phase_shown == _strip_left and right == _strip_right and fill == _strip_fill.size:
 		return
-	_strip_text = text
+	_strip_left = _phase_shown
+	_strip_right = right
 	_strip_fill.size = fill
 	_strip.queue_redraw()
 	_strip_fill.queue_redraw()
@@ -388,29 +422,31 @@ func _draw_map_top(l: Control) -> void:
 	l.draw_rect(Rect2(0, Minimap.CORNER, 1, l.size.y - 2 * Minimap.CORNER), UiStyle.WELL_SHADE)
 
 
-## Shows the map and a tip while the world is built and the menu's column is there;
-## the map is drawn again as the minimap paints chunks in.
+## Shows the card while the menu's column is there (the strip only before the player
+## has been in the world), on a tall screen in the room left for it in the column; the
+## map is drawn again as the minimap paints chunks in.
 func _update_loading(delta: float) -> void:
-	var show: bool = _map_room and (not settled or show_loading) and _column.visible and game.player != null
+	var show: bool = _map_room and _column.visible and game.player != null
 	if _loading.visible != show:
 		_loading.visible = show
-		if show and not game.hud.minimap.painted.is_connected(_map_ground.queue_redraw):
-			game.hud.minimap.painted.connect(_map_ground.queue_redraw)
+		if show:
+			_map_ground.queue_redraw()
+			if not game.hud.minimap.painted.is_connected(_map_ground.queue_redraw):
+				game.hud.minimap.painted.connect(_map_ground.queue_redraw)
 	if not show:
 		return
-	_phase_clock += delta
-	var phase: String = game.loading_phase()
-	if phase != _phase_shown and (_phase_clock >= PHASE_HOLD or _phase_shown == ""):
-		_phase_shown = phase
-		_phase_clock = 0.0
-		_phase.text = phase
+	if _card_room.custom_minimum_size.y > 0.0:
+		_loading.position = (_column.position + _card_room.position
+			+ Vector2((_card_room.size.x - _loading.size.x) * 0.5, 0)).floor()
+	_strip.visible = not _entered
+	if _strip.visible:
+		_update_strip(delta)
 	_tip_clock -= delta
 	if _tip_clock <= 0.0:
 		_tip_clock = TIP_TIME
 		_tip_index = (_tip_index + 1 + randi() % (TIPS.size() - 1)) % TIPS.size() if _tip_index >= 0 \
 			else randi() % TIPS.size()
 		_tip.text = TIPS[_tip_index]
-	_map_ground.queue_redraw()
 
 
 func _add_button(parent: Node, key: String, text: String, action: Callable, tag := "") -> void:
@@ -448,6 +484,8 @@ func open() -> void:
 	_seed_label.text = "тестовый мир" if game.world_seed == TestGround.SEED else "мир · зерно %d" % game.world_seed
 	if game.save.has_save:
 		_seed_label.text += " · день %d" % game.clock.day
+	_map_seed.text = "тестовый мир" if game.world_seed == TestGround.SEED else "зерно %d" % game.world_seed
+	_strip.visible = not _entered
 	_buttons.play.text = "Продолжить" if game.save.has_save else "Играть"
 	game.hud.visible = false
 	_set_focus(0)
@@ -561,14 +599,9 @@ func _process(delta: float) -> void:
 		return
 	_update_loading(delta)
 	_move_sparrow(delta)
-	if settled:
-		_strip.visible = false
-		if _want_play:
-			close()
-			return
-	else:
-		_strip.visible = true
-		_update_strip()
+	if settled and _want_play:
+		close()
+		return
 	if not _shown and _column.is_visible_in_tree():
 		# Laid out by now; the browser test taps the buttons from this line.
 		_shown = true
@@ -585,34 +618,32 @@ func _settle(delta: float) -> void:
 	settled = _calm >= CALM_FRAMES or _ready_clock >= SETTLE_MAX
 
 
-## The map while the world is built: in the middle of the room right of the column on
-## a wide screen; on a tall one under the column, the two together in the middle, the
-## map made smaller where it does not fit, then the tips alone, and left out where even
-## they do not fit.
+## The card's map as large as fits: on a wide screen in the room right of the column,
+## on a tall one in the column between the name and the menu (the seed then goes from
+## under the name onto the map); smaller where it does not fit, then the tips alone,
+## and left out where even they do not fit.
 func _place_loading() -> void:
-	var col := Rect2(_column.position, _column.size)
-	var at := Vector2(-1, -1)
-	var card := Vector2.ZERO
+	var wide := size.x >= size.y * 1.2
+	_map_room = false
 	for side in MAP_SIZES:
 		_set_map_side(side)
+		_seed_label.visible = side == 0
+		_card_room.custom_minimum_size.y = 0.0
 		_loading.reset_size()
-		card = _loading.get_combined_minimum_size()
-		if size.x >= size.y * 1.2:
-			var room := size.x - col.end.x
-			if room >= card.x + 2 * MARGIN and card.y <= size.y - 2 * MARGIN:
-				at = Vector2(col.end.x + (room - card.x) * 0.5, (size.y - card.y) * 0.5)
-		else:
-			var total := col.size.y + GAP + card.y
-			if total <= size.y - 2 * MARGIN:
-				_column.position.y = floorf((size.y - total) * 0.5)
-				at = Vector2((size.x - card.x) * 0.5, _column.position.y + col.size.y + GAP)
-		if at.x >= 0.0:
+		var card := _loading.get_combined_minimum_size()
+		var col := _column.get_combined_minimum_size()
+		if wide:
+			_map_room = size.x - MARGIN - col.x >= card.x + 2 * MARGIN and card.y <= size.y - 2 * MARGIN
+		elif col.y + card.y + 2 * GAP - 12 <= size.y - 2 * MARGIN:
+			# The column's separations (6 each side) make up a part of the gaps.
+			_map_room = true
+			_card_room.custom_minimum_size.y = card.y + GAP - 6
+		if _map_room:
 			break
-	_map_room = at.x >= 0.0
-	_loading.position = at.floor()
-	_loading.size = card
 	if not _map_room:
+		_seed_label.visible = true
 		_loading.visible = false
+	_loading.reset_size()
 
 
 ## The interface's scale and rect: the column on the left of a wide screen, in the
@@ -626,13 +657,17 @@ func _fit() -> void:
 	_screen.size = size
 	_backdrop.size = size
 	_backdrop.queue_redraw()
+	_place_loading()
 	_column.reset_size()
 	var c := _column.size
 	if size.x >= size.y * 1.2:
 		_column.position = Vector2(MARGIN, (size.y - c.y) * 0.5).floor()
+		var room := size.x - _column.position.x - c.x
+		_loading.position = Vector2(_column.position.x + c.x + (room - _loading.size.x) * 0.5,
+			(size.y - _loading.size.y) * 0.5).floor()
 	else:
-		_column.position = Vector2((size.x - c.x) * 0.5, maxf(MARGIN, (size.y - c.y) * 0.55)).floor()
-	_place_loading()
+		var low := 0.5 if _map_room else 0.55
+		_column.position = Vector2((size.x - c.x) * 0.5, maxf(MARGIN, (size.y - c.y) * low)).floor()
 	if _settings.visible:
 		_settings.fit(size)
 	_screen.queue_redraw()
