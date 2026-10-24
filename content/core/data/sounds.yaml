@@ -21,13 +21,14 @@
 - id: water
   title: Вода
   loop: true
+  volume: 0.8
 - id: fire
   title: Костёр
   loop: true
 - id: crickets
   title: Сверчки
   loop: true
-  volume: 0.6
+  volume: 0.4
 - id: thunder
   title: Гром
   variants: 2
@@ -44,11 +45,11 @@
 - id: step_grass
   title: Шаг по траве
   variants: 4
-  volume: 0.5
+  volume: 0.4
 - id: step_dirt
   title: Шаг по земле
   variants: 4
-  volume: 0.5
+  volume: 0.4
 - id: step_stone
   title: Шаг по камню
   variants: 4
@@ -72,7 +73,7 @@
 - id: swim
   title: Гребок
   variants: 3
-  volume: 0.6
+  volume: 0.45
 - id: jump
   title: Прыжок
   variants: 2
