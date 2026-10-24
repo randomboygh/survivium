@@ -54,6 +54,9 @@ var _stations: VBoxContainer
 var _scroll: ScrollContainer
 var _grid: GridContainer
 var _empty: Label
+## The cells over the recipe and the queue, or beside them on a wide screen (set_side).
+var _split: BoxContainer
+var _bottom: VBoxContainer
 ## The panel of the recipe chosen.
 var _details: PanelContainer
 var _icon: TextureRect
@@ -115,9 +118,14 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(30, 30)
 		station_buttons.add_child(b)
 
+	_split = BoxContainer.new()
+	_split.vertical = true
+	_split.add_theme_constant_override("separation", 6)
+	add_child(_split)
 	var middle := HBoxContainer.new()
 	middle.add_theme_constant_override("separation", 4)
-	add_child(middle)
+	middle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_split.add_child(middle)
 	_tabs = IconTabs.new()
 	_tabs.picked.connect(func(_k: String) -> void: refresh_now())
 	middle.add_child(_tabs)
@@ -126,6 +134,9 @@ func _ready() -> void:
 	middle.add_child(cells)
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# As tall as the row (the tabs beside may be taller), so the cells scroll only when
+	# they do not fit.
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	cells.add_child(_scroll)
 	_grid = GridContainer.new()
 	_grid.columns = COLUMNS
@@ -143,7 +154,8 @@ func _ready() -> void:
 
 	var bottom := VBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 6)
-	add_child(bottom)
+	_bottom = bottom
+	_split.add_child(bottom)
 	_details = _panel(bottom)
 	_details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var box := VBoxContainer.new()
@@ -235,6 +247,14 @@ func _ready() -> void:
 
 ## The tab is `w` UI pixels wide: the recipe's name is measured at its panel's width
 ## (a wrapping label is laid out at its least width).
+## The recipe and the queue in a column `w` UI pixels wide right of the cells (a wide
+## screen low for them under the cells), or under the cells as wide as the tab.
+func set_side(on: bool, w: int) -> void:
+	_split.vertical = not on
+	_bottom.custom_minimum_size.x = w if on else 0
+	fit_width(w)
+
+
 func fit_width(w: int) -> void:
 	_title.custom_minimum_size.x = w - 2 * UiStyle.WELL_PAD - 30
 	var room := w - 2 * UiStyle.WELL_PAD - QUEUE_INFO - QUEUE_BUTTONS - 3 * 6 - 16
@@ -394,6 +414,8 @@ func _show_details(near: Dictionary) -> void:
 func _show_queue() -> void:
 	var shop = game.workshop
 	var jobs: Array = shop.queue.jobs
+	# An empty queue is not shown.
+	_queue_panel.visible = not jobs.is_empty()
 	_queue_empty.visible = jobs.is_empty()
 	_queue_count.text = "%d/%d" % [jobs.size(), CraftQueue.MAX_JOBS]
 	for c in [_controls, _job_row, _job_info]:
