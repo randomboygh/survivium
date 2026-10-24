@@ -320,6 +320,8 @@ const SHOTS := {
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
 	"ui-main-menu-pc": {"time": 0.42, "season": 1, "main_menu": "live"},
 	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky"},
+	# The clouds parting once the world is built, caught halfway.
+	"ui-main-menu-part": {"time": 0.42, "season": 1, "touch": true, "main_menu": "part"},
 	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading"},
 	"ui-main-menu-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading"},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
@@ -716,10 +718,17 @@ func _run() -> void:
 		if shot.has("main_menu"):
 			main._build_menu()
 			# Painted sky only for "sky": the world is built already, so it would fade.
-			main.menu._fading = shot.main_menu in ["sky", "loading"]
-			main.menu._backdrop.visible = shot.main_menu in ["sky", "loading"]
+			main.menu._fading = shot.main_menu in ["sky", "loading", "part"]
+			main.menu._backdrop.visible = shot.main_menu in ["sky", "loading", "part"]
+			main.menu._clouds.visible = shot.main_menu in ["sky", "loading", "part"]
 			main.menu.show_loading = shot.main_menu == "loading"
 			await process_frame
+			if shot.main_menu == "part":
+				# Halfway through the clouds parting, held there for the shot.
+				main.menu._part = 0.6
+				main.menu._backdrop.modulate.a = 0.5
+				main.menu.set_process(false)
+				main.menu._clouds.queue_redraw()
 			if shot.main_menu == "setup":
 				main.menu._new_world()
 				for i in 120:
