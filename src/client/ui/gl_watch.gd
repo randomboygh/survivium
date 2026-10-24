@@ -22,6 +22,7 @@ const SCRIPT := """
 	var collections = 0;
 	var frames = [];
 	var cb_start = 0, cb_end = 0;
+	var ignore = {};
 	var p = WebGL2RenderingContext.prototype;
 	// Bytes a call sends, as the engine calls them (data from the WASM heap with an
 	// offset and a length); textures as four bytes a texel.
@@ -57,10 +58,11 @@ const SCRIPT := """
 	}
 	// What a program linked after the warm-up is: the kind of shader (by the data
 	// block it reads), the names the game's own shader declared (the engine prefixes
-	// them with m_: its uniforms, varyings and functions), and the defines of the
-	// variant that tell what it is drawn for (the shadow pass, many instances, which
-	// lights are off).
-	var KEEP = /^(MODE_|USE_INSTANCING|DISABLE_LIGHT|SHADOWS_DISABLED|USE_PRIMITIVE|USE_ATTRIBUTES|USE_LIGHTING|DISABLE_LIGHTING)/;
+	// them with m_: its uniforms, varyings and functions; not the globals every shader
+	// shares, see ignore), and the defines of the variant that tell what it is drawn
+	// for (the shadow pass, many instances, which lights are off, the mesh's
+	// attributes), without the ones every program has.
+	var DROP = /^(APPLY_TONEMAPPING|MATERIAL_UNIFORMS_USED|VERTEX_CODE_USED|FRAGMENT_CODE_USED|LIGHT_CODE_USED|VERTEX_WORLD_COORDS_USED|DISABLE_REFLECTION_PROBE|DISABLE_LIGHTMAP|BASE_PASS|SPECULAR_SCHLICK_GGX|SHADOW_MODE_PCF_5|NORMAL_USED|UV_USED)$/;
 	function describe(gl, prog) {
 		var shaders = gl.getAttachedShaders(prog) || [];
 		var defs = [], names = [];
@@ -73,9 +75,11 @@ const SCRIPT := """
 			}
 			var re = /^#define ([A-Z][A-Z0-9_]*)\\s*$/gm, m;
 			var head = src.slice(0, 4000);
-			while ((m = re.exec(head)) !== null) if (KEEP.test(m[1]) && defs.indexOf(m[1]) < 0) defs.push(m[1]);
+			while ((m = re.exec(head)) !== null) if (!DROP.test(m[1]) && defs.indexOf(m[1]) < 0) defs.push(m[1]);
 			var rn = /\\bm_([A-Za-z0-9_]+)/g;
-			while ((m = rn.exec(src)) !== null && names.length < 6) if (names.indexOf(m[1]) < 0) names.push(m[1]);
+			while ((m = rn.exec(src)) !== null && names.length < 6) {
+				if (!(m[1] in ignore) && names.indexOf(m[1]) < 0) names.push(m[1]);
+			}
 		}
 		return kind + (names.length ? ' ' + names.join(',') : '') + (defs.length ? ' ' + defs.join(' ') : '');
 	}
@@ -129,8 +133,10 @@ const SCRIPT := """
 		gone.register({}, 0);
 	}
 	// The page's long frames (over 50 ms), each with when it began, how long it was and
-	// what ran in it for 5 ms or more: the scripts by what called them, and the
-	// rendering after them, as "start:ms:name ms,name ms".
+	// what ran in it for 5 ms or more: the scripts by what called them, and the time
+	// before the first script and after the last one that no script took (the page's
+	// own tasks, a garbage collection of its own, waiting for the GPU), as
+	// "start:ms:name ms,name ms".
 	if (typeof PerformanceObserver !== 'undefined') {
 		try {
 			new PerformanceObserver(function (list) {
@@ -138,7 +144,10 @@ const SCRIPT := """
 				for (var q = 0; q < es.length; q++) {
 					var e = es[q];
 					var by = {}, order = [], sc = e.scripts || [];
+					var first = e.startTime + e.duration, last = e.startTime;
 					for (var r = 0; r < sc.length; r++) {
+						first = Math.min(first, sc[r].startTime);
+						last = Math.max(last, sc[r].startTime + sc[r].duration);
 						var inv = String(sc[r].invoker || sc[r].invokerType || '');
 						if (inv.indexOf('requestAnimationFrame') >= 0 || inv.indexOf('FrameRequestCallback') >= 0) inv = 'кадр';
 						else {
@@ -151,15 +160,18 @@ const SCRIPT := """
 						by[inv] += sc[r].duration;
 					}
 					var parts = [];
+					var pre = first - e.startTime, post = e.startTime + e.duration - last;
+					if (pre >= 5) parts.push('до ' + Math.round(pre));
 					for (r = 0; r < order.length; r++) if (by[order[r]] >= 5) parts.push(order[r] + ' ' + Math.round(by[order[r]]));
-					var render = e.renderStart > 0 ? e.startTime + e.duration - e.renderStart : 0;
-					if (render >= 5) parts.push('рендер ' + Math.round(render));
+					if (post >= 5) parts.push('после ' + Math.round(post));
 					if (frames.length < 16) frames.push(Math.round(e.startTime) + ':' + Math.round(e.duration) + ':' + parts.join(','));
 				}
 			}).observe({type: 'long-animation-frame', buffered: false});
 		} catch (err) {}
 	}
 	s.started = function () { started = true; };
+	// The names of the global shader uniforms, which every shader has: not told.
+	s.ignore = function (list) { list.split(',').forEach(function (n) { if (n) ignore[n] = true; }); };
 	// Everything since the last call, as one string (one call a frame, little garbage):
 	// "programs,build ms,bytes sent,send ms,collections,now,callback began,last
 	// callback ended|long frames;...|late programs;...". The counts are totals; the
@@ -186,6 +198,10 @@ func _init() -> void:
 		return
 	JavaScriptBridge.eval(SCRIPT, true)
 	_js = JavaScriptBridge.get_interface("survivium_gl")
+	var globals := PackedStringArray()
+	for name in RenderingServer.global_shader_parameter_get_list():
+		globals.append(str(name))
+	_js.ignore(",".join(globals))
 
 
 ## The warm-up is over: programs linked from now on are described (see take).
