@@ -104,7 +104,9 @@ src/client/    draws and reads input; main.gd, settings.gd, save_game.gd at the 
   export plays samples (no AudioStreamGenerator), so music is notes scheduled by `music.gd`;
   each sample playing makes garbage for the page (the engine's position worklet and its copy of
   the whole sample at every play, both patched by `tools/web_patch.py` after the export, and its
-  volume and pitch calls every frame), so keep the loops few.
+  volume and pitch calls every frame), so keep the loops few. The engine's web player loops a
+  sound only by starting it again when it ends, late and from where it first started;
+  `tools/web_patch.py` makes its source node loop by itself.
 - Scripts are loaded with `preload` consts, no `class_name`.
 - `main.gd` only builds the scene and runs the frame; the work lives in modules that get the Main
   node as `game`: `chunk_streamer.gd` (generates and meshes the chunks within `LOAD_RANGE` of the

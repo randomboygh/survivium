@@ -135,18 +135,22 @@ func _blizzard(_v: int) -> PackedFloat32Array:
 	return Synth.normalize(b, 0.8)
 
 
+## Water flowing: a low murmur that swells and ebbs, the hiss of the current over it and
+## now and then a soft low gurgle, not a pot boiling.
 func _water(_v: int) -> PackedFloat32Array:
 	var span := LOOP + OVERLAP
-	var b := Synth.bandpass(Synth.white(span, rng), func(t: float) -> float: return 700.0 + 300.0 * _wave(t, 6), 1.2)
-	b = Synth.normalize(b, 0.35)
-	# Bubbles: short rising tones.
-	for i in int(span * 45.0):
-		var f := rng.randf_range(350.0, 1400.0)
-		var d := rng.randf_range(0.015, 0.05)
-		var bub := Synth.tone(d * 4.0, func(t: float) -> float: return f * (1.0 + t / d * 0.6))
-		bub = Synth.env(bub, 0.002, d)
-		b = _add(b, bub, rng.randf_range(0.05, 0.3), rng.randf() * (span - d * 4.0))
-	return Synth.normalize(Synth.lowpass(b, 5000.0), 0.7)
+	var murmur := Synth.bandpass(Synth.brown(span, rng), func(t: float) -> float: return 520.0 + 200.0 * _wave(t, 5) + 100.0 * _wave(t, 11, 2.0), 0.8)
+	murmur = Synth.shape(Synth.normalize(murmur, 1.0), func(t: float, _l: float) -> float: return 0.7 + 0.3 * _wave(t, 3, 0.7))
+	var hiss := Synth.lowpass(Synth.lowpass(Synth.highpass(Synth.white(span, rng), 700.0), 1800.0), 1800.0)
+	hiss = Synth.shape(Synth.normalize(hiss, 1.0), func(t: float, _l: float) -> float: return 0.6 + 0.4 * _wave(t, 4, 1.9))
+	var b := Synth.mix(murmur, hiss, 0.22)
+	for i in int(span * 3.0):
+		var f := rng.randf_range(260.0, 620.0)
+		var d := rng.randf_range(0.04, 0.09)
+		var bub := Synth.tone(d * 3.0, func(t: float) -> float: return f * (1.0 + t / d * 0.15))
+		bub = Synth.shape(bub, func(t: float, _l: float) -> float: return minf(t / 0.012, 1.0) * exp(-t / d))
+		b = _add(b, bub, rng.randf_range(0.04, 0.12), rng.randf() * (span - d * 3.0))
+	return Synth.normalize(Synth.lowpass(Synth.lowpass(b, 2400.0), 2400.0), 0.6)
 
 
 func _fire(_v: int) -> PackedFloat32Array:
@@ -163,19 +167,23 @@ func _fire(_v: int) -> PackedFloat32Array:
 func _crickets(_v: int) -> PackedFloat32Array:
 	var span := LOOP + OVERLAP
 	var b := Synth.silence(span)
-	# A few crickets, each at its own pitch and pace, nearer ones louder.
-	for c in 4:
-		var hz := rng.randf_range(3800.0, 4800.0)
-		var period := rng.randf_range(0.55, 0.9)
-		var level := rng.randf_range(0.25, 1.0)
-		var pulses := rng.randi_range(3, 4)
-		var t := rng.randf() * period
+	# A few crickets, each at its own pitch and pace, nearer ones louder; each sings a
+	# while and then rests, so most of the time one or two are heard, not a choir.
+	for c in 3:
+		var hz := rng.randf_range(3800.0, 4600.0)
+		var period := rng.randf_range(0.9, 1.4)
+		var level := rng.randf_range(0.3, 1.0) if c > 0 else 1.0
+		var pulses := rng.randi_range(2, 3)
+		var t := rng.randf() * 3.0
 		while t < span - 0.2:
-			for p in pulses:
-				var chirp := Synth.env(Synth.tone(0.03, hz), 0.004, 0.01)
-				b = _add(b, chirp, level, t + p * 0.035)
-			t += period * rng.randf_range(0.9, 1.1)
-	return Synth.normalize(b, 0.5)
+			var bout := t + rng.randf_range(1.5, 3.5)
+			while t < minf(bout, span - 0.2):
+				for p in pulses:
+					var chirp := Synth.env(Synth.tone(0.03, hz), 0.006, 0.012)
+					b = _add(b, chirp, level, t + p * 0.04)
+				t += period * rng.randf_range(0.9, 1.1)
+			t += rng.randf_range(2.0, 4.5)
+	return Synth.normalize(Synth.lowpass(b, 6000.0), 0.45)
 
 
 func _thunder(_v: int) -> PackedFloat32Array:
@@ -234,12 +242,26 @@ func _step(thud_hz: float, crunch_hz: float, crunch: float, length: float, grain
 	return Synth.normalize(Synth.mix(Synth.normalize(thud, 1.0), Synth.normalize(grit, 1.0), crunch), 0.6)
 
 
+## A soft step on earth: a muffled thump of the foot that rises gently rather than
+## knocks, and a hush of what is pressed under it (`lo`..`hi` Hz) a little behind it,
+## with a few quiet grains (`grit`) of soil or grass blades.
+func _soft_step(length: float, thump_hz: float, lo: float, hi: float, hush: float, grit_hz: float, grit: float) -> PackedFloat32Array:
+	var thump := Synth.lowpass(Synth.lowpass(Synth.white(length, rng), thump_hz), thump_hz)
+	thump = Synth.shape(Synth.normalize(thump, 1.0), func(t: float, l: float) -> float: return smoothstep(0.0, 0.02, t) * exp(-t / (l * 0.2)))
+	var press := Synth.lowpass(Synth.lowpass(Synth.highpass(Synth.white(length, rng), lo), hi), hi)
+	press = Synth.shape(Synth.normalize(press, 1.0), func(t: float, l: float) -> float: return smoothstep(0.0, l * 0.25, t) * smoothstep(l, l * 0.3, t))
+	var grains := Synth.grains(length, 90.0, 0.008, grit_hz, 0.9, rng, 2.5)
+	grains = Synth.shape(Synth.normalize(grains, 1.0), func(t: float, l: float) -> float: return smoothstep(0.0, l * 0.2, t) * smoothstep(l, l * 0.4, t))
+	var b := Synth.mix(thump, press, hush)
+	return Synth.normalize(Synth.lowpass(Synth.mix(b, grains, grit), hi), 0.35)
+
+
 func _step_grass(_v: int) -> PackedFloat32Array:
-	return _step(300.0, rng.randf_range(2800.0, 4000.0), 0.8, 0.16, 220.0)
+	return _soft_step(0.24, 140.0, rng.randf_range(600.0, 800.0), 2200.0, 0.55, 1800.0, 0.12)
 
 
 func _step_dirt(_v: int) -> PackedFloat32Array:
-	return _step(420.0, rng.randf_range(1200.0, 1800.0), 0.35, 0.13, 120.0)
+	return _soft_step(0.18, 170.0, 300.0, rng.randf_range(1100.0, 1500.0), 0.35, 900.0, 0.2)
 
 
 func _step_stone(_v: int) -> PackedFloat32Array:
@@ -281,8 +303,21 @@ func _step_water(_v: int) -> PackedFloat32Array:
 	return _spray(0.22, rng.randf_range(900.0, 1300.0))
 
 
+## A stroke: water pushed by the arms, a soft whoosh that swells and falls back, with a
+## gurgle or two low under it; no slap at its start.
 func _swim(_v: int) -> PackedFloat32Array:
-	return Synth.gain(_spray(0.45, rng.randf_range(600.0, 900.0)), 0.8)
+	var length := 0.6
+	var hz := rng.randf_range(650.0, 850.0)
+	var push := Synth.bandpass(Synth.white(length, rng), func(t: float) -> float: return hz * (1.0 - 0.45 * t / length), 0.7)
+	push = Synth.lowpass(push, 1600.0)
+	push = Synth.shape(Synth.normalize(push, 1.0), func(t: float, l: float) -> float: return smoothstep(0.0, 0.16, t) * smoothstep(l, 0.2, t))
+	var b := push
+	for i in rng.randi_range(1, 2):
+		var f := rng.randf_range(280.0, 480.0)
+		var bub := Synth.tone(0.12, func(t: float) -> float: return f * (1.0 + t * 1.5))
+		bub = Synth.shape(bub, func(t: float, _l: float) -> float: return minf(t / 0.015, 1.0) * exp(-t / 0.035))
+		b = _add(b, bub, rng.randf_range(0.08, 0.15), rng.randf_range(0.2, 0.4))
+	return Synth.normalize(b, 0.5)
 
 
 func _jump(_v: int) -> PackedFloat32Array:
