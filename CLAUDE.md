@@ -24,10 +24,10 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game), plants, animals, birds; mod.yaml, data/<kind>.yaml, sprites/, sounds/
+content/      the mods: core (the base game), tools, plants, animals, birds; mod.yaml, data/<kind>.yaml, sprites/, models/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
-tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, art/, sound/
+tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, art/, sound/
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
@@ -55,7 +55,7 @@ tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, ma
 | `world_actions.gd`, `tools.gd` | what the hands do to the world: dig, build, chop, gather, plant, mow; each tool's rules |
 | `body.gd`, `player.gd`, `figure.gd`, `hands.gd` | walking, jumping, swimming, snow, wind, trails; the player's sprite assembled from `content/core/sprites/` by `player.yaml` (layers, `hands.png` anchors, a sheet per held tool or the item's icon), built a part of a row a frame; `player.work` starts a swing |
 | `character.gd` (shared + client) | the bag (`Inventory`) and the body's state (`Vitals`), action costs, eating, what a life did, death (the bag in a sack, the character lies dead until `death_screen.gd` respawns them) and the player's place, hands and screen on the client |
-| `placed.gd`, `props.gd`, `voxel_props.gd` | things on 2×2 cells: chests and their contents, workbenches, kilns, campfires (solid through `WorldData.blockers`), the drops on the ground, their voxel models |
+| `placed.gd`, `props.gd`, `voxel_props.gd` | things on 2×2 cells by their item's `prop` role: chests and their contents, workbenches, kilns, campfires (solid through `WorldData.blockers`), the drops on the ground; their voxel models read from `content/<mod>/models/<model>.png` (`VoxelModel.from_image`), only the block clod, the sack and the bundle made in code |
 | `workshop.gd`, `crafting.gd`, `knowledge.gd`, `craft_queue.gd` | recipes known, the queue worked near its station, tool wear and repair (`game.workshop`); the window is `craft_panel.gd` |
 | `wildlife.gd`, `creatures.gd`, `ai_rules.gd` | animals from their properties: come, wander, rest, flee, hunt; flocks follow their lead, flyers roost in crowns; drawn by `creatures.gd` |
 | `minimap.gd`, `map_view.gd`, `markers.gd` | the map painted per chunk into regions of 32 chunks kept in the save (`map_ground.gdshader`); the full-screen map; the player's markers (teleport from the playtest page) |
@@ -79,15 +79,17 @@ fields given (`field+` adds to a list). A world remembers its mods (`mods` in `w
 takes the set switched on at «Новый мир»; `mods.gd` activates a set and refreshes every registry
 (material numbers follow the load order, so a world's set must not change). The engine asks for content by role, never by
 id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushes.pick`), a plant by its `kind`
-(`Plants.of_kind`, "" when no mod gives one, and that kind does not grow); the only ids code names are core's
-(`Mat.GRASS`, `Items.LOG`). `content/birds/` (sparrows, see its README) is a
+(`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
+(`Items.with_prop`), a tool by its `tool`; the only ids code names are core's (`Mat.GRASS`, `Items.LOG`,
+`Placed.CAMPFIRE`). A thing's voxel model is `models/<model>.png` of its mod, a row of square slices one
+per level (alpha 128 marks a leaf), read by `VoxelModel.from_image`. `content/birds/` (sparrows, see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
 its mod, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in
 `content/<mod>/sounds/` (`<name>.wav` or `<name>_N.wav` per variant), made by `tools/make_sounds.gd`
 from `tools/sound/synth.gd`; a material's `step` and `hit`, a creature's `calls` and `alarm` say who
-sounds. The player's pictures were drawn by `tools/art/` and saved by `tools/make_sprites.gd`; they
-can be painted over by hand. Design: `plan/architecture/modding.md`.
+sounds. The player's pictures and the models were drawn by `tools/art/` and saved by `tools/make_sprites.gd`
+and `tools/make_models.gd`; they can be painted over by hand. Design: `plan/architecture/modding.md`.
 
 ## Rendering rules
 

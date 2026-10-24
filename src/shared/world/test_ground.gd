@@ -80,8 +80,8 @@ const PEAK_RISE := 20
 ## (CAMP_THINGS), then lit campfires.
 const CAMP := Rect2i(60, -30, 32, 18)
 const CAMP_DROPS := ["log", "branch", "stone", "plants:acorn", "plants:cone", "plants:raspberry", "dirt", "planks", "flint",
-	"stone_axe", "plants:mushroom", "clay", "fiber", "brick", "wooden_shovel", "plants:blueberry"]
-const CAMP_THINGS := ["core:chest", "core:workbench", "core:kiln"]
+	"tools:stone_axe", "plants:mushroom", "clay", "fiber", "brick", "tools:wooden_shovel", "plants:blueberry"]
+const CAMP_THINGS := ["tools:chest", "tools:workbench", "tools:kiln"]
 
 ## Top of the meadow (filled in _init: two cells above the sea).
 var ground := 22

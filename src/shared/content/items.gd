@@ -67,6 +67,15 @@ static func has(id: String) -> bool:
 	return BY_ID.has(Content.qualify(id, "core"))
 
 
+## The id of the first item placed as a `prop` of `kind` (a chest, a workbench), "" when
+## no loaded mod has one.
+static func with_prop(kind: String) -> String:
+	for id in IDS:
+		if BY_ID[id].get("prop", "none") == kind:
+			return id
+	return ""
+
+
 static func title(id: String) -> String:
 	return get_item(id).get("title", id)
 

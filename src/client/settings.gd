@@ -13,6 +13,7 @@ const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
+const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 
 const PATH := "user://settings.cfg"
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
@@ -112,7 +113,7 @@ var player_speed := 1.0
 ## gives none. Not saved.
 var free_build := false
 ## Playtest: the stone and wooden tools the game has before crafting, into the bag.
-const TOOL_SET := ["core:stone_axe", "core:stone_pickaxe", "core:wooden_shovel", "core:wooden_sword", "core:stone_scythe"]
+const TOOL_SET := ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe"]
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
 var air_jumps := false
 ## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
@@ -244,6 +245,7 @@ func set_world_mod(mod: String, on: bool) -> void:
 ## Reads the data of the world's mods again (Mods.reload) and tells how it went.
 func reload_mods() -> void:
 	var problems := Mods.reload()
+	VoxelProps.forget()
 	if game.hud != null:
 		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else "Ошибок в данных: %d (см. консоль)" % problems.size())
 

@@ -14,6 +14,7 @@ const Figure := preload("res://src/client/view/figure.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 
 
 func _init() -> void:
@@ -27,6 +28,7 @@ func _init() -> void:
 	problems.append_array(Plants.check())
 	problems.append_array(_check_held())
 	problems.append_array(_check_creature_pictures())
+	problems.append_array(_check_models())
 	problems.append_array(_check_sound_files())
 	problems.append_array(_check_each_mod())
 	for p in problems:
@@ -95,6 +97,27 @@ func _check_held() -> PackedStringArray:
 		var want := Vector2i(fig.held.cell[0] * (1 + work.columns.size()), fig.held.cell[1] * fig.directions.size())
 		if size != want:
 			out.append("items: `%s`: %s is %dx%d, a sheet carried and worked by `%s` is %dx%d" % [id, path.get_file(), size.x, size.y, item.anim, want.x, want.y])
+	return out
+
+
+## Each item's model is there, in its mod, a row of square slices (see VoxelModel.from_image);
+## a thing placed on cells has one.
+func _check_models() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for id in Items.IDS:
+		var item := Items.get_item(id)
+		var name: String = item.get("model", "")
+		if name == "":
+			if item.get("prop", "none") in ["chest", "workbench", "kiln"]:
+				out.append("items: `%s`: a thing placed on cells needs a `model`" % id)
+			continue
+		var path := VoxelProps.model_path(item.mod, name)
+		if not ResourceLoader.exists(path):
+			out.append("items: `%s`: no model %s" % [id, path])
+			continue
+		var size: Vector2i = load(path).get_size()
+		if size.y == 0 or size.x % size.y != 0:
+			out.append("items: `%s`: %s is %dx%d, not a row of square slices" % [id, path.get_file(), size.x, size.y])
 	return out
 
 

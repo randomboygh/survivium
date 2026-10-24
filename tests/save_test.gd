@@ -61,9 +61,9 @@ func _run() -> void:
 	var shop = main.workshop
 	_check(shop.start(shop.knowledge.recipes().filter(func(r: Dictionary) -> bool: return r.id == "core:cord")[0], 2) == 2,
 		"cord is known from fibre and queued")
-	main.character.inventory.add("core:stone_axe", 1, 17)
-	main.character.inventory.add("core:workbench", 1)
-	_check(main.props.put_from_bag("core:workbench"), "a workbench is placed in front of the player")
+	main.character.inventory.add("tools:stone_axe", 1, 17)
+	main.character.inventory.add("tools:workbench", 1)
+	_check(main.props.put_from_bag("tools:workbench"), "a workbench is placed in front of the player")
 	main.placed.chest_items.add("core:log", 2)
 	# A marker, and a far region of the map as if explored, one pixel painted red.
 	main.markers.add(Vector2i(120, -40), 4)
@@ -112,12 +112,12 @@ func _run() -> void:
 	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
 	_check(main.clock.day == 5 and absf(main.clock.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
 	_check(str(main.placed.to_list()) == str(props), "the props stand where they stood")
-	_check(main.placed.cell_of("core:workbench") != null and main.placed.chest_items.count("core:log") == 2,
+	_check(main.placed.cell_of("tools:workbench") != null and main.placed.chest_items.count("core:log") == 2,
 		"the workbench placed and what the chest holds come back")
 	_check(main.workshop.queue.jobs.size() >= 1 and main.workshop.knowledge.seen.has("core:fiber"),
 		"the crafting queue and what the character knows come back")
 	var axe_slot: int = main.character.inventory.slots.find(main.character.inventory.slots.filter(
-		func(x) -> bool: return x != null and x[0] == "core:stone_axe")[0])
+		func(x) -> bool: return x != null and x[0] == "tools:stone_axe")[0])
 	_check(main.character.inventory.worn(axe_slot) == 17, "a tool's wear comes back")
 	var bag2 := Bag.new()
 	main.save.track("bag", bag2)

@@ -216,7 +216,7 @@ const SHOTS := {
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
 	# A chest chosen in the bag: its wide button sets it down.
 	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
-		"give": "core:chest"},
+		"give": "tools:chest"},
 	# A bush dug up chosen in the bag: its wide button plants it.
 	"bag-plant": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"give": "plants:raspberry_bush"},
@@ -231,15 +231,15 @@ const SHOTS := {
 	# What the hands hold, by the spawn: an axe in the left hand chopping facing east, the
 	# same standing facing us with a stone block in the right hand, a shovel winding up
 	# to dig facing south-east, a sword striking facing west.
-	"hands-chop": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "e", "work": "chop", "strike": true}},
-	"hands-front": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "s", "right": true}},
-	"hands-dig": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_shovel", "facing": "se", "work": "dig"}},
-	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
+	"hands-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}},
+	"hands-front": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "s", "right": true}},
+	"hands-dig": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_shovel", "facing": "se", "work": "dig"}},
+	"hands-slash": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "w", "work": "slash", "strike": true}},
 	# A sword carried facing south-east and north-west: up against the shoulder.
-	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "se", "right": false}},
-	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "core:wooden_sword", "facing": "nw"}},
+	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "se", "right": false}},
+	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "nw"}},
 	# Bits of a trunk chopped flying off it.
-	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "core:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "core:log"},
+	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "core:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# A second chest set down beside the player: the bag button opens the bag with both
@@ -251,7 +251,7 @@ const SHOTS := {
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
 	# A recipe with many facts (a stone scythe) on a narrow phone screen, and the craft tab
 	# before any recipe is known: no queue then.
-	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "core:stone_scythe"},
+	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:stone_scythe"},
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
 	# The craft tab with nothing queued: no queue panel under the recipe.
 	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
@@ -262,9 +262,9 @@ const SHOTS := {
 	# The same with the player standing on the chest, by the front edge of its lid, and on
 	# the workbench as far back as its planks hold.
 	"stations-top": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true,
-		"on": ["core:chest", Vector3(1.0, 1.5, 1.6)]},
+		"on": ["tools:chest", Vector3(1.0, 1.5, 1.6)]},
 	"bench-top": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true,
-		"on": ["core:workbench", Vector3(1.0, 1.5, 0.2)]},
+		"on": ["tools:workbench", Vector3(1.0, 1.5, 0.2)]},
 	# The death screen: dead of hunger by the spawn with a few things in the bag.
 	"death": {"time": 0.42, "season": 1, "touch": true, "death": true},
 	"death-pc": {"time": 0.42, "season": 1, "death": true},
@@ -498,7 +498,7 @@ func _run() -> void:
 							added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
 					if shot.get("fire_blocks", false):
 						_fire_blocks(main.world, e.cell)
-						for put: Array in [["core:chest", Vector3(2.6, 0.0, 2.2)], ["core:workbench", Vector3(-3.2, 0.0, 1.0)]]:
+						for put: Array in [["tools:chest", Vector3(2.6, 0.0, 2.2)], ["tools:workbench", Vector3(-3.2, 0.0, 1.0)]]:
 							var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + put[1])
 							if spot.y >= 0:
 								added_fires.append(main.placed.put(put[0], spot, null))
@@ -675,9 +675,9 @@ func _run() -> void:
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, false)
 		if shot.get("chests", false):
-			main.character.inventory.add("core:chest", 1)
+			main.character.inventory.add("tools:chest", 1)
 			main.player.facing = "e"
-			main.props.put_from_bag("core:chest")
+			main.props.put_from_bag("tools:chest")
 			main.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")
@@ -715,7 +715,7 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 		if shot.get("death", false):
-			for st in [["core:branch", 12], ["core:fiber", 9], ["plants:raspberry", 23], ["core:stone_axe", 1], ["core:flint", 3]]:
+			for st in [["core:branch", 12], ["core:fiber", 9], ["plants:raspberry", 23], ["tools:stone_axe", 1], ["core:flint", 3]]:
 				main.character.inventory.add(st[0], st[1])
 			main.player.position += Vector3(14.0, 0.0, 9.0)
 			main.player.position = _flat_near(main.world, main.player.position)
@@ -827,7 +827,7 @@ func _run() -> void:
 			while not main.workshop.queue.jobs.is_empty():
 				main.workshop.queue.cancel(0)
 			for e in main.placed.things.duplicate():
-				if e.item in ["core:workbench", "core:kiln"]:
+				if e.item in ["tools:workbench", "tools:kiln"]:
 					main.placed.take_up(main.character, e)
 			main.character.inventory.take_all()
 		if shot.get("chest", false):
@@ -850,21 +850,21 @@ func _run() -> void:
 func _craft() -> void:
 	var inv = main.character.inventory
 	for st in [["core:fiber", 14], ["core:branch", 16], ["core:flint", 3], ["core:log", 2], ["core:clay", 6],
-			["core:workbench", 1], ["core:kiln", 1], ["core:chest", 1]]:
+			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
 		inv.add(st[0], st[1])
 	main.player.facing = "s"
-	main.props.put_from_bag("core:workbench")
+	main.props.put_from_bag("tools:workbench")
 	main.player.facing = "e"
-	main.props.put_from_bag("core:kiln")
+	main.props.put_from_bag("tools:kiln")
 	main.player.facing = "w"
-	main.props.put_from_bag("core:chest")
+	main.props.put_from_bag("tools:chest")
 	main.player.facing = "s"
 	var shop = main.workshop
 	shop.start(Crafting.get_recipe("core:cord"), 2)
 	shop.queue.jobs[0].left = 0.5
 	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
 	for e in main.placed.things:
-		if e.item == "core:workbench":
+		if e.item == "tools:workbench":
 			main.hud.open_prop(e)
 
 
@@ -910,7 +910,7 @@ func _work() -> void:
 	spot.y = w.surface_y(spot.x, spot.z)
 	c.place_at(spot, Vector3i.UP)
 	c.brush = 0
-	c.hold("core:wooden_shovel")
+	c.hold("tools:wooden_shovel")
 	for i in 3:
 		var cell := f + Vector3i(2 + i, 0, -5)
 		cell.y = w.surface_y(cell.x, cell.z) - 1
@@ -921,12 +921,12 @@ func _work() -> void:
 	if not w.bushes.has(bush):
 		w.add_bush(bush, Bushes.sample(Trees.LOWLAND))
 		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
-	c.hold("core:wooden_sword")
+	c.hold("tools:wooden_sword")
 	main.gathering.gather({"bush": bush})
 	# A patch of grass cut by the scythe west of the player: the near row cut once (short
 	# grass), the next cut twice (dirt with fibre on it), the far row cut twice and sown
 	# with grain (ears).
-	c.put_in_hand("core:stone_scythe", 1, false)
+	c.put_in_hand("tools:stone_scythe", 1, false)
 	main.character.inventory.add("plants:grain", 5)
 	var mown := 0
 	for i in 15:
@@ -939,7 +939,7 @@ func _work() -> void:
 		if i >= 10:
 			main.actions.plant_at(main.character, "plants:grain", cell)
 	print("grass cut %d times" % mown)
-	c.put_in_hand("core:wooden_shovel", 0, false)
+	c.put_in_hand("tools:wooden_shovel", 0, false)
 	c.set_active(1)
 	main.player.facing = "s"
 	main.cursor.show_cells(c._front_preview(), true)

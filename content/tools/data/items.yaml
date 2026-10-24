@@ -1,0 +1,146 @@
+# Предметы мода «Инструменты и крафт»: инструменты и станки. Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят (записи основы: кремень, верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: stone_axe
+  title: Каменный топор
+  weight: 1.5
+  stack: 1
+  model: axe
+  icon: axe
+  tool: axe
+  sprite: axe
+  anim: chop
+  power: 2
+  swing: 0.6
+  reach: 9
+  durability: 120
+  repair: {core:flint: 1, core:cord: 1}
+- id: stone_pickaxe
+  title: Каменная кирка
+  weight: 2.0
+  stack: 1
+  model: pickaxe
+  icon: pickaxe
+  tool: pickaxe
+  sprite: pickaxe
+  anim: chop
+  power: 2
+  swing: 0.55
+  reach: 10
+  durability: 150
+  repair: {core:flint: 1, core:cord: 1}
+- id: wooden_shovel
+  title: Деревянная лопата
+  weight: 1.2
+  stack: 1
+  model: shovel
+  icon: shovel
+  tool: shovel
+  sprite: shovel
+  anim: dig
+  power: 1
+  swing: 0.25
+  reach: 10
+  durability: 100
+  repair: {core:planks: 1}
+- id: wooden_sword
+  title: Деревянный меч
+  weight: 1.0
+  stack: 1
+  model: sword
+  icon: sword
+  tool: sword
+  sprite: sword
+  anim: slash
+  mows: tall
+  power: 1
+  swing: 0.4
+  reach: 8
+  durability: 80
+  repair: {core:planks: 1}
+- id: stone_sword
+  title: Каменный меч
+  weight: 1.4
+  stack: 1
+  model: stone_sword
+  icon: stone_sword
+  tool: sword
+  sprite: stone_sword
+  anim: slash
+  mows: tall
+  power: 2
+  swing: 0.4
+  reach: 8
+  durability: 120
+  repair: {core:flint: 1, core:cord: 1}
+- id: wooden_pickaxe
+  title: Деревянная кирка
+  weight: 1.2
+  stack: 1
+  model: wooden_pickaxe
+  icon: wooden_pickaxe
+  tool: pickaxe
+  sprite: wooden_pickaxe
+  anim: chop
+  power: 2
+  swing: 0.8
+  reach: 10
+  durability: 30
+  repair: {core:planks: 1}
+- id: stone_scythe
+  title: Каменная коса
+  weight: 1.5
+  stack: 1
+  model: scythe
+  icon: scythe
+  tool: scythe
+  sprite: scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 1
+  area: 3
+  swing: 0.5
+  reach: 8
+  durability: 150
+  repair: {core:flint: 1, core:cord: 1}
+- id: wooden_scythe
+  title: Деревянная коса
+  weight: 1.0
+  stack: 1
+  model: wooden_scythe
+  icon: wooden_scythe
+  tool: scythe
+  sprite: wooden_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 1
+  area: 2
+  swing: 0.6
+  reach: 8
+  durability: 40
+  repair: {core:planks: 1}
+- id: workbench
+  title: Верстак
+  weight: 8.0
+  stack: 1
+  icon: workbench
+  model: workbench
+  prop: workbench
+- id: kiln
+  title: Печь для обжига
+  weight: 20.0
+  stack: 1
+  icon: kiln
+  model: kiln
+  prop: kiln
+- id: chest
+  title: Сундук
+  weight: 6.0
+  stack: 1
+  icon: chest
+  model: chest
+  prop: chest

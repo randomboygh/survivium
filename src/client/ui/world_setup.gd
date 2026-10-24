@@ -14,6 +14,8 @@ const Mods := preload("res://src/shared/content/mods.gd")
 const NAME_WIDTH := 112
 const VALUE_WIDTH := 84
 const ARROW := 32
+## Room for the scroll bar beside the rows.
+const BAR_ROOM := UiStyle.SCROLL_BAR + 4
 ## The map: pixels each way and cells per pixel.
 const MAP := 128
 const MAP_STEP := 32
@@ -40,6 +42,8 @@ var _focus := 0
 var _panel: PanelContainer
 var _box: BoxContainer
 var _list: VBoxContainer
+## The rows scroll when the panel is taller than the screen (a phone in landscape).
+var _scroll: ScrollContainer
 var _seed: LineEdit
 var _map: TextureRect
 var _image: Image
@@ -90,9 +94,13 @@ func _ready() -> void:
 		marker.draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.DARK_INK)
 		marker.draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT))
 	_map.add_child(marker)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_box.add_child(_scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 4)
-	_box.add_child(_list)
+	_scroll.add_child(_list)
 	_seed_row()
 	var s = game.settings
 	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
@@ -262,15 +270,25 @@ func _set_focus(i: int) -> void:
 	_focus = posmod(i, _rows.size())
 	for j in _rows.size():
 		_rows[j].name.add_theme_color_override("font_color", UiStyle.ACCENT if j == _focus else UiStyle.INK)
+	if _scroll != null and _scroll.is_inside_tree():
+		_scroll.ensure_control_visible(_rows[_focus].name)
 
 
-## Side by side on a wide screen, the map over the rows on a tall one; centred.
+## Side by side on a wide screen, the map over the rows on a tall one; centred. When the
+## panel is taller than the screen the rows scroll, so the buttons stay in sight (every
+## mod adds a row).
 func _fit() -> void:
 	var screen: Vector2 = get_parent().size
 	position = Vector2.ZERO
 	size = screen
 	_box.vertical = screen.x < screen.y
+	_list.reset_size()
+	_scroll.custom_minimum_size = Vector2(_list.size.x + BAR_ROOM, _list.size.y)
 	_panel.reset_size()
+	var over := _panel.size.y - screen.y
+	if over > 0.0:
+		_scroll.custom_minimum_size.y = maxf(_list.size.y - over, ARROW * 2)
+		_panel.reset_size()
 	_panel.position = ((screen - _panel.size) * 0.5).floor()
 	move_to_front()
 	queue_redraw()

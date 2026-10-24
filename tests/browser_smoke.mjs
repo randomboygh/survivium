@@ -49,7 +49,12 @@ async function open(name, options, init, tapDpr) {
   };
   const tap = async (rect) => {
     const r = (rect.match(/-?[\d.]+/g) || []).map(Number);
-    await page.touchscreen.tap((r[0] + r[2] / 2) / tapDpr, (r[1] + r[3] / 2) / tapDpr);
+    const x = (r[0] + r[2] / 2) / tapDpr;
+    const y = (r[1] + r[3] / 2) / tapDpr;
+    // A tap outside the viewport lands nowhere: say so instead of waiting in vain later.
+    const view = page.viewportSize();
+    if (x < 0 || y < 0 || x >= view.width || y >= view.height) errors.push(`${name}: the button at ${rect} is outside the visible screen (${view.width}x${view.height} CSS px)`);
+    await page.touchscreen.tap(x, y);
   };
   const menu = await waitFor('main menu shown', 'the main menu');
   if (menu && tapDpr) {
