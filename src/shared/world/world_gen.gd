@@ -215,6 +215,10 @@ class Job extends RefCounted:
 	var trees: Array = []
 	## The saved record of a chunk brought back instead of made (see pack).
 	var restore: Dictionary
+	## The crown of the tree grown last and the next of its points to fill, a few
+	## points a step (see CROWN_STEP).
+	var crown: Array[Vector3i] = []
+	var crown_at := 0
 	var done := false
 
 
@@ -338,28 +342,35 @@ func start(key: Vector2i, stage: int) -> Job:
 	return job
 
 
+## Points of a crown filled in one step: a big oak has some 150, and a whole tree was
+## the longest step of the generator (2026-10-24).
+const CROWN_STEP := 8
+
+
 ## Does the next `n` steps of the job; true when the stage is done.
 func step(job: Job, n: int) -> bool:
 	world.track_edits = false
-	while n > 0 and job.row < job.rows and not job.restore.is_empty():
-		if job.row == 0:
-			world.unpack_chunk(job.restore)
+	while n > 0 and (job.row < job.rows or job.crown_at < job.crown.size()):
+		if job.crown_at < job.crown.size():
+			job.crown_at = Trees.fill(world, job.crown, job.crown_at, CROWN_STEP)
+		elif not job.restore.is_empty():
+			if job.row == 0:
+				world.unpack_chunk(job.restore)
+			else:
+				_plant(job, job.trees[job.row - 1], true)
+			job.row += 1
 		else:
-			_plant(job.trees[job.row - 1], true)
-		job.row += 1
-		n -= 1
-	while n > 0 and job.row < job.rows:
-		match job.stage:
-			TERRAIN:
-				_terrain_step(job, job.row)
-			PLANTED:
-				_plant(job.trees[job.row])
-			SHAPED:
-				_shape_step(job.key, job.row)
-		job.row += 1
+			match job.stage:
+				TERRAIN:
+					_terrain_step(job, job.row)
+				PLANTED:
+					_plant(job, job.trees[job.row])
+				SHAPED:
+					_shape_step(job.key, job.row)
+			job.row += 1
 		n -= 1
 	world.track_edits = true
-	if job.row >= job.rows and not job.done:
+	if job.row >= job.rows and job.crown_at >= job.crown.size() and not job.done:
 		job.done = true
 		if not job.restore.is_empty():
 			job.stage = SHAPED
@@ -412,7 +423,7 @@ func _terrain_step(job: Job, row: int) -> void:
 		_fill_row(job.key, job.lay, row)
 		return
 	row -= CHUNK
-	_plant(job.trees[row], true)
+	_plant(job, job.trees[row], true)
 
 
 # --- Noises -------------------------------------------------------------------
@@ -1255,10 +1266,11 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	return Trees.SPRUCE if _chance(x, z, 2) < spruce else Trees.OAK
 
 
-## Grows one candidate tree: [x, z, species, ground height]. Chunks already SHAPED
-## take nothing (see WorldData.Chunk.final). `again` grows a tree that was grown
-## before, into a neighbour made again, unless the player cut its trunk.
-func _plant(t: Array, again := false) -> void:
+## Grows one candidate tree of the job: [x, z, species, ground height]; its crown is
+## filled by the next steps. Chunks already SHAPED take nothing (see
+## WorldData.Chunk.final). `again` grows a tree that was grown before, into a
+## neighbour made again, unless the player cut its trunk.
+func _plant(job: Job, t: Array, again := false) -> void:
 	var x: int = t[0]
 	var z: int = t[1]
 	var species: int = t[2]
@@ -1273,7 +1285,8 @@ func _plant(t: Array, again := false) -> void:
 	rng.seed = _hash(x, z, 3)
 	var scale := Trees.fit(species, size_y - 1 - hh)
 	if scale > 0.0:
-		Trees.place(world, x, hh + 1, z, species, rng, scale)
+		job.crown = Trees.grow(world, x, hh + 1, z, species, rng, scale)
+		job.crown_at = 0
 
 
 ## The trees of the planted neighbours of a chunk made again that reach into it.
@@ -1295,7 +1308,7 @@ func _regrown(key: Vector2i) -> Array:
 
 ## The shape stage works on bands of rows: the slopes of every band first, then the
 ## corners, which look at the slopes beside them.
-const SHAPE_BANDS := 4
+const SHAPE_BANDS := 10
 
 
 ## Slopes or corners of one band of rows of the chunk and two columns around it, so

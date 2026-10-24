@@ -378,15 +378,19 @@ func column_masks(x0: int, z0: int, x1: int, z1: int) -> Dictionary:
 
 ## Copy of the cells (`shapes` false) or shapes of x0..x1, z0..z1 (exclusive ends) and
 ## levels -1..size_y, in that order (x fastest). Where no chunk is kept and above the
-## world the value is 0 (air, no shape), below it `below`.
-func padded(shapes: bool, below: int, x0: int, z0: int, x1: int, z1: int) -> PackedByteArray:
+## world the value is 0 (air, no shape), below it `below`. `y0`..`y1` (exclusive) gives
+## a part of the levels, so a copy can be made in parts and put together.
+func padded(shapes: bool, below: int, x0: int, z0: int, x1: int, z1: int, y0 := -1, y1 := -2) -> PackedByteArray:
+	if y1 == -2:
+		y1 = size_y + 1
 	var width := x1 - x0
 	var out := PackedByteArray()
 	var rows := z1 - z0
 	var below_rows := PackedByteArray()
 	below_rows.resize(width * rows)
 	below_rows.fill(below)
-	out.append_array(below_rows)
+	if y0 < 0:
+		out.append_array(below_rows)
 	var air := PackedByteArray()
 	air.resize(CHUNK)
 	# Each piece of a row that lies in one chunk: the chunk's array, its start and
@@ -400,7 +404,7 @@ func padded(shapes: bool, below: int, x0: int, z0: int, x1: int, z1: int) -> Pac
 			parts.append([null if c == null else (c.shapes if shapes else c.cells),
 				((z & MASK) << SHIFT) | (x & MASK), b - x])
 			x = b
-	for y in size_y:
+	for y in range(maxi(y0, 0), mini(y1, size_y)):
 		var base := y << 8
 		for p: Array in parts:
 			var n: int = p[2]
@@ -410,8 +414,9 @@ func padded(shapes: bool, below: int, x0: int, z0: int, x1: int, z1: int) -> Pac
 				var src: PackedByteArray = p[0]
 				var a: int = base + p[1]
 				out.append_array(src.slice(a, a + n))
-	below_rows.fill(0)
-	out.append_array(below_rows)
+	if y1 > size_y:
+		below_rows.fill(0)
+		out.append_array(below_rows)
 	return out
 
 
