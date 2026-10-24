@@ -361,7 +361,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			_trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
-			_slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, _around(c, cov, i, dy, dz), cuts)
+			_slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts)
 			# The water beside goes on up the slope of a shore to where it rises out of it.
 			if _shore(c, cov, i, dy, dz):
 				_shore_water(water, w, c, sh, i, dy, dz, base)
@@ -394,7 +394,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				if d == FACE_TOP:
 					edges = _top_edges(c, cov, i, dy, dz)
 					var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
-					var a := _around_tiles(c, cov, i, dy, dz)
+					var a := _around_tiles(c, cov, i, dy, dz, sh)
 					if cuts != 0 or halves != 0:
 						_top_pieces(solid, base, m, cuts, edges, halves, float(a))
 						continue
@@ -495,18 +495,36 @@ static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Arr
 	return out
 
 
-## Top tiles of the level neighbours N, S, W, E of padded cell `i`, packed for UV2.y
-## (material transitions, see world.gdshader).
-static func _around_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> int:
-	var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
-	var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
-	var tw := c[i - 1] * 3 if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_TILE
-	var te := c[i + 1] * 3 if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_TILE
-	return tn | ts << 6 | tw << 12 | te << 18
+## Top tiles of the neighbours N, S, W, E of padded cell `i`, packed for UV2.y
+## (material transitions, see world.gdshader): the top at this level, or where a
+## slope goes on from it a level up or down (`sh` given), the slope's or the one it goes
+## down to, so two materials meeting on a slope spill over each other's edges in a
+## ragged line as on flat ground, not straight along the cells.
+static func _around_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
+		sh := PackedByteArray()) -> int:
+	if sh.is_empty():
+		var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
+		var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
+		var tw := c[i - 1] * 3 if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_TILE
+		var te := c[i + 1] * 3 if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_TILE
+		return tn | ts << 6 | tw << 12 | te << 18
+	var sloped := sh[i] & 15 != 0
+	return _tile_beside(c, cov, sh, i - dz, dy, sloped) | _tile_beside(c, cov, sh, i + dz, dy, sloped) << 6 \
+		| _tile_beside(c, cov, sh, i - 1, dy, sloped) << 12 | _tile_beside(c, cov, sh, i + 1, dy, sloped) << 18
 
 
-static func _around(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> float:
-	return float(_around_tiles(c, cov, i, dy, dz))
+## The top tile beside a top at padded cell `j` (see _around_tiles): its own when open
+## above, the slope's over it, or for a `sloped` top the one under it it goes down to.
+static func _tile_beside(c: PackedByteArray, cov: PackedByteArray, sh: PackedByteArray, j: int, dy: int,
+		sloped: bool) -> int:
+	if cov[c[j]]:
+		if not cov[c[j + dy]]:
+			return c[j] * 3
+		if j + 2 * dy < c.size() and sh[j + dy] & 15 != 0 and not cov[c[j + 2 * dy]]:
+			return c[j + dy] * 3
+	elif sloped and j - dy >= 0 and cov[c[j - dy]]:
+		return c[j - dy] * 3
+	return NO_TILE
 
 
 ## True when no neighbour tile differs from `tile`, so the top has no transitions.

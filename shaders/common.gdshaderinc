@@ -34,6 +34,9 @@ global uniform sampler2D heat_map : filter_linear, repeat_enable;
 // One texel per column: r = the level of the highest cell that keeps the weather off,
 // plus one, over 255; g = 1 under a tree's crown (see roof_map.gd).
 global uniform sampler2D roof_map : filter_nearest, repeat_enable;
+// The same map filtered between the columns' centres, for what changes smoothly over
+// the land (the fog's low places).
+global uniform sampler2D roof_map_soft : filter_linear, repeat_enable;
 // The world has no edge: the heat and roof maps repeat every wrap_size world units.
 global uniform vec2 wrap_size;
 // Height of the ground the player last stood on, and what the levels far below it
@@ -333,9 +336,14 @@ float fog_at(vec3 p) {
 	vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
 	float ground = dot(tops, w);
 	float water = dot(vec4(c00.a, c10.a, c01.a, c11.a), w);
-	// Low places: below the ground about them, or near the sea's level.
-	float around = (ground_top(p.xz, vec2(7.0, 7.0)) + ground_top(p.xz, vec2(-7.0, 7.0))
-		+ ground_top(p.xz, vec2(7.0, -7.0)) + ground_top(p.xz, vec2(-7.0, -7.0))) * 0.25;
+	// Low places: below the ground about them, or near the sea's level. The ground about
+	// is blended between columns, or the fog would change from one cell to the next in
+	// squares.
+	vec2 uv = p.xz / wrap_size;
+	vec2 far = vec2(7.0) * CELL / wrap_size;
+	float around = (texture(roof_map_soft, uv + far).b + texture(roof_map_soft, uv - far).b
+		+ texture(roof_map_soft, uv + vec2(far.x, -far.y)).b + texture(roof_map_soft, uv + vec2(-far.x, far.y)).b)
+		* 0.25 * 255.0 * CELL;
 	float low = clamp((around - ground) / 1.5, 0.0, 1.0);
 	low = max(max(low, clamp(1.0 - (ground - fog_sea) / 4.0, 0.0, 1.0) * 0.8), water);
 	// Banks: two layers of drifting noise lift and lower the top and thin the fog.

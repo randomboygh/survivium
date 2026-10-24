@@ -143,6 +143,10 @@ roof_map={
 "type": "sampler2D",
 "value": ""
 }
+roof_map_soft={
+"type": "sampler2D",
+"value": ""
+}
 wrap_size={
 "type": "vec2",
 "value": Vector2(256, 256)
