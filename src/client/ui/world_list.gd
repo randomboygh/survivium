@@ -14,7 +14,8 @@ const TestGround := preload("res://src/shared/world/test_ground.gd")
 
 const ROW_WIDTH := 170
 const ROW_H := 36
-const DELETE_WIDTH := 76
+## As wide as the widest of «Удалить», «Сбросить», «сейчас».
+const DELETE_WIDTH := 96
 ## Rows shown before the list scrolls.
 const VISIBLE_ROWS := 5
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
@@ -50,12 +51,13 @@ func _ready() -> void:
 	outer.add_child(_scroll)
 	_rows = VBoxContainer.new()
 	_rows.add_theme_constant_override("separation", 4)
+	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_rows)
 	var back := Button.new()
 	back.text = "Назад"
 	back.focus_mode = Control.FOCUS_NONE
-	back.custom_minimum_size = Vector2(96, 36)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# Across the panel, as wide as the rows over it.
+	back.custom_minimum_size = Vector2(0, 36)
 	back.pressed.connect(cancelled.emit)
 	outer.add_child(back)
 	_fill()
@@ -87,6 +89,8 @@ func _fill() -> void:
 		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		pick.custom_minimum_size = Vector2(ROW_WIDTH, ROW_H)
+		# Every row as wide as the widest, its delete button at the same place.
+		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if current:
 			for state in ["normal", "hover", "pressed", "hover_pressed"]:
 				pick.add_theme_stylebox_override(state, UiStyle.button(state, true))
