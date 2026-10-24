@@ -158,6 +158,8 @@ var sunk_at := Vector3i(0, -1000, 0)
 var hidden_by := -1
 ## True while the cut in force is the one earth hiding the player asked for.
 var cut_hides := false
+## The view hidden_by was worked out for (up and slope, see _hiding_level).
+var _hidden_view := Vector3.ZERO
 
 
 func _init(g) -> void:
@@ -649,6 +651,8 @@ func update_cut(delta: float) -> void:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
 		hidden_by = _hiding_level(px, level, pz)
+	elif _hidden_view != Vector3(PixelView.up.x, PixelView.up.y, PixelView.slope):
+		hidden_by = _hiding_level(px, level, pz)
 	var target: int = world.size_y
 	if manual_level >= 0:
 		# Walking away from the levels looked at brings the view back within reach.
@@ -709,15 +713,20 @@ func _walled_sides(x: int, level: int, z: int) -> int:
 
 ## The lowest level of earth (not trunks or leaves) that covers most of the body of a
 ## player standing on `level` in column (x, z), as the camera sees it, or -1. In the
-## 3/4 view a cell (x, y, z) covers the screen rows z - y - 1 .. z - y + 1 (its top
-## and its south face) and the body, two cells tall, the rows pz - level - 1.5 ..
+## default 3/4 view a cell (x, y, z) covers the screen rows z - y - 1 .. z - y + 1 (its
+## top and its south face) and the body, two cells tall, the rows pz - level - 1.5 ..
 ## pz - level + 0.5; earth above the head counts where it covers more than half of
-## them. A wall the head looks over hides only the legs and is left alone.
+## them. A wall the head looks over hides only the legs and is left alone. A turned or
+## tilted view looks along its own way: a cell y - level up is drawn over the body
+## from (y - level) * slope cells toward the camera.
 func _hiding_level(x: int, level: int, z: int) -> int:
+	var up := PixelView.up
+	_hidden_view = Vector3(up.x, up.y, PixelView.slope)
+	var body := Vector2(x + 0.5, z + 0.5)
 	for y in range(level + 2, mini(level + 2 + HIDE_REACH, world.size_y)):
-		var ahead := z + y - level
-		for cz in [ahead - 1, ahead]:
-			if Mat.is_roof(world.get_cell(x, y, cz)):
+		var ahead := body - up * PixelView.slope * (y - level)
+		for c: Vector2 in [ahead + up, ahead]:
+			if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
 				return y
 	return -1
 
