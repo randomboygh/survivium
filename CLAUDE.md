@@ -219,6 +219,9 @@ GDScript. Notes: `plan/architecture/performance.md`.
   Compatibility; a cube shadow plus its pass cost ~+400 draw calls, so by default ("mixed") the nearest
   fire casts a real shadow from the player alone (`shadow_caster_mask`) and the rest are drawn on the
   ground (`fire_shadows.gd`); all real is a setting.
+- Audio buses live in `default_bus_layout.tres`: the web export plays sounds as Web Audio samples
+  through a copy of the buses made at start, so a bus added by `AudioServer.add_bus` later is silent
+  in the browser (fine on desktop, so only the browser shows it).
 - Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `controls.input` treats
   mouse motion as a mouse only with no finger down and more than 1 s after the last touch. The
   joystick and `TouchButton` follow their own touch index so two thumbs work at once.
