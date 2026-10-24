@@ -50,6 +50,11 @@ const DEFAULTS := {
 	"ui_size": 2,
 	"control_size": 2,
 	"show_help": true,
+	# The corner of the screen (see Hud._place_top): the minimap small, as it comes or
+	# large (Minimap.SIDES), the level buttons beside it and the camera cross under it.
+	"minimap_size": 1,
+	"level_buttons": true,
+	"camera_buttons": true,
 	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
 	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-2..2).
 	"camera_turn": 0,
@@ -258,6 +263,7 @@ func apply() -> void:
 			hud.control_size = values.control_size
 			if view != null:
 				view.layout_ui(view.safe_rect)
+		hud.set_corner(values.minimap_size, values.level_buttons, values.camera_buttons)
 		hud.show_keys(values.show_help)
 
 

@@ -11,7 +11,8 @@ extends Control
 ## (portrait shows four), arrows on both sides and a finger dragged along them scroll
 ## a slot at a time. A tab on the hotbar shows how many of the bag's slots are taken
 ## and its load; the minimap sits under the buttons in the corner with the level
-## buttons on its left.
+## buttons on its left and the camera cross under it, each of them hidden and the map
+## sized by the settings (set_corner).
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -42,8 +43,11 @@ const UI_SIZES := [0.67, 0.83, 1.0, 1.33, 1.67]
 const UI_STEPS := [-2, -1, 0, 1, 2]
 ## The size of the joystick and the touch buttons, the same five steps.
 const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
-## The width of the level buttons beside the minimap: one button's.
+## The width of the level buttons beside the minimap: one button's; the arrows'
+## height and the least of the level's between them.
 const LEVEL_WIDTH := 40
+const LEVEL_ARROW := 24
+const LEVEL_MIDDLE := 34
 ## The camera cross: the width of its arms at the sides and the height of those above
 ## and below, and the middle (the view as text).
 const DPAD_SIDE := 22
@@ -61,6 +65,11 @@ var portrait := false
 ## CONTROL_SIZES.
 var ui_size := 2
 var control_size := 2
+## The minimap size setting (an index into Minimap.SIDES) and whether the level buttons
+## and the camera cross are shown (see set_corner).
+var minimap_size := 1
+var level_buttons := true
+var camera_buttons := true
 ## The scale picked from the screen before the interface size setting (see fit).
 var _screen_scale := 1.0
 
@@ -197,7 +206,7 @@ func _ready() -> void:
 	# The level itself is a button: a tap on a chosen cut returns to the player's level.
 	_level_label = Button.new()
 	_level_label.focus_mode = Control.FOCUS_NONE
-	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, 34)
+	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, LEVEL_MIDDLE)
 	_level_label.tooltip_text = "Вернуться к уровню игрока"
 	# Its two lines apart, the font's own lines touch.
 	_level_label.add_theme_constant_override("line_spacing", 4)
@@ -205,10 +214,9 @@ func _ready() -> void:
 	_level.add_child(_level_label)
 	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
-		b.custom_minimum_size = Vector2(LEVEL_WIDTH, 24)
+		b.custom_minimum_size = Vector2(LEVEL_WIDTH, LEVEL_ARROW)
 	_level_up = up
 	_level_down = down
-	# Up, the level and down are as tall as the minimap.
 	for b: Button in [up, _level_label, down]:
 		_see_through(b)
 	minimap = Minimap.new()
@@ -377,6 +385,26 @@ func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
 	_place()
 
 
+## Sizes the minimap (an index into Minimap.SIDES) and shows or hides the level buttons
+## and the camera cross, as the interface settings say; lays the HUD out again when
+## something changed.
+func set_corner(map_size: int, level: bool, camera: bool) -> void:
+	if map_size == minimap_size and level == level_buttons and camera == camera_buttons \
+			and minimap.side == Minimap.SIDES[map_size]:
+		return
+	minimap_size = map_size
+	level_buttons = level
+	camera_buttons = camera
+	minimap.set_side(Minimap.SIDES[map_size])
+	# Up, the level and down are as tall as the minimap, or as tall as they can be
+	# beside a small one.
+	_level_label.custom_minimum_size.y = maxf(LEVEL_MIDDLE, minimap.size.y - 2 * LEVEL_ARROW - 4)
+	_level.visible = level
+	_camera.visible = camera
+	if size != Vector2.ZERO:
+		_place()
+
+
 func set_touch(on: bool) -> void:
 	if on == touch:
 		return
@@ -442,7 +470,7 @@ func _place() -> void:
 	if _keys.position.x < x + bw + 8:
 		_keys.position.y = y - 8 - _keys.size.y
 	# Off the camera cross under the minimap, on the left of a short window.
-	if Rect2(_keys.position, _keys.size).intersects(Rect2(_camera.position, _camera.size).grow(4)):
+	if _camera.visible and Rect2(_keys.position, _keys.size).intersects(Rect2(_camera.position, _camera.size).grow(4)):
 		_keys.position.x = MARGIN
 	_loading.reset_size()
 	_loading.position = ((size - _loading.size) * 0.5).floor()
@@ -550,7 +578,8 @@ func refresh_counts() -> void:
 
 ## The top of the interface: the statistics over it when shown, under them the state
 ## on the left, the buttons on the right, the minimap under the buttons with the level
-## buttons on its left and the camera cross under it. The statistics take the room
+## buttons on its left and the camera cross under it (under both when the map is small,
+## kept on the screen). The statistics take the room
 ## left of the buttons when PerfPanel.WIDTH fits there (a wide screen); else they go
 ## across the whole top and everything moves down under them (a phone held upright).
 ## Their width stays as it is while their numbers change.
@@ -559,7 +588,8 @@ func _place_top() -> void:
 	_top.reset_size()
 	var column := _top.size.x
 	_level.reset_size()
-	column = maxf(column, minimap.size.x + 6 + _level.size.x)
+	var level := _level.size.x + 6 if _level.visible else 0.0
+	column = maxf(column, minimap.size.x + level)
 	var top := MARGIN
 	var left := MARGIN
 	if perf.visible:
@@ -575,9 +605,12 @@ func _place_top() -> void:
 	minimap.position = Vector2(w - MARGIN - minimap.size.x, _top.position.y + _top.size.y + 6)
 	_level.position = Vector2(minimap.position.x - 6 - _level.size.x, minimap.position.y)
 	_camera.reset_size()
-	_camera.position = Vector2(minimap.position.x + floorf((minimap.size.x - _camera.size.x) * 0.5),
-		minimap.position.y + minimap.size.y + 6)
-	var room := minf(_top.position.x, _level.position.x) - 6 - MARGIN
+	var cx := minf(minimap.position.x + floorf((minimap.size.x - _camera.size.x) * 0.5), w - MARGIN - _camera.size.x)
+	var below := minimap.position.y + minimap.size.y
+	if _level.visible and cx < _level.position.x + _level.size.x:
+		below = maxf(below, _level.position.y + _level.size.y)
+	_camera.position = Vector2(cx, below + 6)
+	var room := minf(_top.position.x, minimap.position.x - level) - 6 - MARGIN
 	if room != _toast_room:
 		_toast_room = room
 		for p: PanelContainer in _toasts.get_children():

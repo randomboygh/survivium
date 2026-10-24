@@ -296,6 +296,12 @@ const SHOTS := {
 	# The interface a step smaller and the joystick and buttons the smallest.
 	"ui-small": {"time": 0.45, "season": 1, "touch": true, "ui_size": 1, "control_size": 0},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_size": 4},
+	# The interface section of the settings, and the corner of the HUD by its settings:
+	# the minimap small or large, the level and camera buttons hidden.
+	"ui-settings-interface": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "interface"},
+	"ui-minimap-small": {"time": 0.45, "season": 1, "touch": true, "settings": {"minimap_size": 0}},
+	"ui-minimap-large": {"time": 0.45, "season": 1, "touch": true, "settings": {"minimap_size": 2}},
+	"ui-corner-hidden": {"time": 0.45, "season": 1, "touch": true, "settings": {"level_buttons": false, "camera_buttons": false}},
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
@@ -600,6 +606,8 @@ func _run() -> void:
 			await process_frame
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
+		for k in ["minimap_size", "level_buttons", "camera_buttons"]:
+			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame
 		if shot.has("body"):
