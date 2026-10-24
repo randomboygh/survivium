@@ -23,6 +23,7 @@ func prepare(_w = null) -> void:
 	image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_RGBA8)
 	texture = ImageTexture.create_from_image(image)
 	RenderingServer.global_shader_parameter_set("roof_map", texture)
+	RenderingServer.global_shader_parameter_set("roof_map_soft", texture)
 	RenderingServer.global_shader_parameter_set("wrap_size", Vector2(WRAP, WRAP) * 0.5)
 
 
