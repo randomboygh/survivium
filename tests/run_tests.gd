@@ -82,6 +82,7 @@ func _init() -> void:
 	_test_crafting()
 	_test_wear()
 	_test_vitals()
+	_test_changes()
 	_test_tracks()
 	_test_hidden()
 	_test_layers()
@@ -1811,6 +1812,17 @@ func _test_inventory() -> void:
 	var into := Inventory.new(4)
 	_check(spread.move_all(into, 1) == 6 and spread.slots[0] == ["core:fiber", 3] and spread.slots[1] == null
 		and into.count("core:fiber") == 4 and into.count("core:stone") == 2, "«all into the chest» leaves the first slots be")
+
+
+## «Что нового» shows when each change was merged, in the device's time zone.
+func _test_changes() -> void:
+	var menu: GDScript = load("res://src/client/ui/settings_menu.gd")
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	var shown: String = menu.merged_at({"merged": "2026-10-23T18:32:05Z", "date": "2026-10-23"})
+	var want := Time.get_datetime_string_from_unix_time(
+		Time.get_unix_time_from_datetime_string("2026-10-23T18:32:05") + bias * 60, true).left(16)
+	_check(shown == want and shown.length() == 16, "a change shows the date and time it was merged")
+	_check(menu.merged_at({"date": "2026-10-22"}) == "2026-10-22", "an older build shows the date alone")
 
 
 func _test_vitals() -> void:

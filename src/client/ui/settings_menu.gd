@@ -588,8 +588,22 @@ func _add_changes(changes: Array) -> void:
 	for c in changes:
 		if int(c.pr) != pr:
 			pr = int(c.pr)
-			_list.add_child(_paragraph("#%d · %s" % [pr, c.date], UiStyle.ACCENT))
+			_list.add_child(_paragraph("#%d · %s" % [pr, merged_at(c)], UiStyle.ACCENT))
 		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, content_width()))
+
+
+## When change `c` was merged, in this device's time: "2026-10-23 18:32"; only the date
+## for a build from before the time was kept.
+static func merged_at(c: Dictionary) -> String:
+	var utc := str(c.get("merged", ""))
+	if utc == "":
+		return str(c.get("date", ""))
+	var bias: int = Time.get_time_zone_from_system().get("bias", 0)
+	if OS.has_feature("web"):
+		# The browser knows the player's time zone surely.
+		bias = int(JavaScriptBridge.eval("-new Date().getTimezoneOffset()", true))
+	var t := Time.get_unix_time_from_datetime_string(utc.trim_suffix("Z")) + bias * 60
+	return Time.get_datetime_string_from_unix_time(t, true).left(16)
 
 
 ## A line of «Что нового» with the icon of its kind (CHANGE_KINDS) in front; `width` 0
