@@ -743,7 +743,6 @@ func _run() -> void:
 			main.menu._fading = shot.main_menu in ["sky", "loading", "part"]
 			main.menu._backdrop.visible = shot.main_menu in ["sky", "loading", "part"]
 			main.menu._clouds.visible = shot.main_menu in ["sky", "loading", "part"]
-			main.menu.show_loading = shot.main_menu == "loading"
 			await process_frame
 			if shot.main_menu == "part":
 				# Halfway through the clouds parting, held there for the shot.
