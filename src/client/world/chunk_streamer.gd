@@ -508,6 +508,7 @@ func _unload_some() -> void:
 		for node: Node in chunk_nodes[key]:
 			node.queue_free()
 		chunk_nodes.erase(key)
+		game.props.hide_drops(key)
 		dirty_chunks.erase(key)
 		if cap_nodes.has(key):
 			cap_nodes[key].queue_free()
@@ -567,6 +568,7 @@ func refit_boxes() -> void:
 			_fit_box(n)
 	for n: GeometryInstance3D in cap_nodes.values():
 		_fit_box(n)
+	game.props.refit_boxes()
 
 
 ## Culls a part of a chunk by what it draws, moved north as the shaders draw it, instead
