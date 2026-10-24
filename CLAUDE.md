@@ -24,7 +24,7 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game), animals, birds; mod.yaml, data/<kind>.yaml, sprites/, sounds/
+content/      the mods: core (the base game), plants, animals, birds; mod.yaml, data/<kind>.yaml, sprites/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
 tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, art/, sound/
@@ -77,7 +77,10 @@ constants. Every folder under `content/` with a `mod.yaml` is a mod; `requires` 
 load, a later record with the same id replaces an earlier one, and `patch: true` changes only the
 fields given (`field+` adds to a list). A world remembers its mods (`mods` in `world.json`), a new one
 takes the set switched on at «Новый мир»; `mods.gd` activates a set and refreshes every registry
-(material numbers follow the load order, so a world's set must not change). `content/birds/` (sparrows, see its README) is a
+(material numbers follow the load order, so a world's set must not change). The engine asks for content by role, never by
+id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushes.pick`), a plant by its `kind`
+(`Plants.of_kind`, "" when no mod gives one, and that kind does not grow); the only ids code names are core's
+(`Mat.GRASS`, `Items.LOG`). `content/birds/` (sparrows, see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
 its mod, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in

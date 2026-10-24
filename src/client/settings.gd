@@ -216,14 +216,26 @@ func world_options() -> Dictionary:
 ## «Новый мир», in load order.
 func world_mods() -> Array:
 	var off: PackedStringArray = str(values.world_mods_off).split(",", false)
-	return Mods.available().filter(func(m: String) -> bool: return m == "core" or not m in off)
+	var on: Array = Mods.available().filter(func(m: String) -> bool: return m == "core" or not m in off)
+	# A mod is off with anything it requires.
+	var dropped := true
+	while dropped:
+		dropped = false
+		for m in on.duplicate():
+			if Mods.requires(m).any(func(need: String) -> bool: return not need in on):
+				on.erase(m)
+				dropped = true
+	return on
 
 
-## Switches mod `mod` on or off for new worlds.
+## Switches mod `mod` on or off for new worlds; on, with what it requires.
 func set_world_mod(mod: String, on: bool) -> void:
 	var off: Array = Array(str(values.world_mods_off).split(",", false))
 	off.erase(mod)
-	if not on:
+	if on:
+		for need in Mods.closure(mod):
+			off.erase(need)
+	else:
 		off.append(mod)
 	values.world_mods_off = ",".join(off)
 	save()

@@ -62,6 +62,11 @@ static func closure(mod: String, all: Array = []) -> Array:
 	return Content.order(infos)
 
 
+## What mod `mod` requires, by its mod.yaml.
+static func requires(mod: String) -> Array:
+	return Content.info(mod).get("requires", [])
+
+
 ## The titles of `mods` from their mod.yaml, for the player.
 static func titles(mods: Array) -> PackedStringArray:
 	var out: PackedStringArray = []
