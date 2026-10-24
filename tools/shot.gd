@@ -253,6 +253,8 @@ const SHOTS := {
 	# before any recipe is known: no queue then.
 	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "core:stone_scythe"},
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
+	# The craft tab with nothing queued: no queue panel under the recipe.
+	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
 	# The spawn campfire opened: the craft tab with its buttons by the cross.
 	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
 	# The same workbench, kiln and chest with the window closed.
@@ -691,9 +693,11 @@ func _run() -> void:
 			if shot.has("recipe"):
 				main.character.inventory.add("core:cord", 2)
 				main.hud.bag.craft._choose(shot.recipe)
-			if shot.get("unknown", false):
+			if shot.get("unknown", false) or shot.get("idle", false):
 				while not main.workshop.queue.jobs.is_empty():
 					main.workshop.queue.cancel(0)
+				main.hud.bag.craft.refresh_now()
+			if shot.get("unknown", false):
 				main.workshop.knowledge.seen.clear()
 				main.workshop.knowledge._known.clear()
 				main.hud.bag.craft.refresh_now()

@@ -7,9 +7,9 @@ extends VBoxContainer
 ## columns (see FactChips): what it needs (have / need, short in red), its station and
 ## tool («нет» in red when missing), its time (the recipe's: no skills yet), then what
 ## it makes weighs, does and lasts, with a wide «сделать» under «×5 | MAX» on the
-## right; and under it the queue, a row as wide: small cells for the jobs, the time
-## left of the one chosen and the count over the first job's progress, the pause and
-## «отменить | отменить все». Opened at a station, buttons in the window's head (by
+## right; and under it, while it holds jobs, the queue, a row as wide: small cells
+## for the jobs, the time left of the one chosen and the count over the first job's
+## progress, the pause and «отменить | отменить все». Opened at a station, buttons in the window's head (by
 ## the cross, see station_buttons) take it back into the bag; at a campfire, put it
 ## out, light it again for a branch and destroy it once it is out. Works through
 ## Workshop.
@@ -65,7 +65,6 @@ var _facts: FactChips
 var _make: VBoxContainer
 ## The panel of the queue.
 var _queue_panel: Control
-var _queue_empty: Label
 ## The cells of jobs that fit the queue's row (see fit_width).
 var _job_fit := 1
 ## The time and count of the job chosen over the first job's progress.
@@ -193,13 +192,6 @@ func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	queue.add_child(row)
-	_queue_empty = UiStyle.label("Очередь пуста", UiStyle.MUTED)
-	_queue_empty.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_queue_empty.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	# As tall as a row of cells, so the panel keeps its height.
-	_queue_empty.custom_minimum_size.y = JOB_SLOT
-	_queue_empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(_queue_empty)
 	_job_row = HBoxContainer.new()
 	_job_row.add_theme_constant_override("separation", 4)
 	row.add_child(_job_row)
@@ -320,8 +312,6 @@ func refresh_now() -> void:
 		_cells[id].selected = id == _chosen
 	_show_details(stations)
 	_show_queue()
-	# Nothing can be queued before a recipe is known.
-	_queue_panel.visible = not known.is_empty() or not shop.queue.jobs.is_empty()
 	_cap = list_height
 	_fit_list()
 	if on_layout.is_valid():
@@ -416,7 +406,6 @@ func _show_queue() -> void:
 	var jobs: Array = shop.queue.jobs
 	# An empty queue is not shown.
 	_queue_panel.visible = not jobs.is_empty()
-	_queue_empty.visible = jobs.is_empty()
 	_queue_count.text = "%d/%d" % [jobs.size(), CraftQueue.MAX_JOBS]
 	for c in [_controls, _job_row, _job_info]:
 		c.visible = not jobs.is_empty()
