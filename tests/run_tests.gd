@@ -101,6 +101,10 @@ func _check(cond: bool, what: String) -> void:
 ## The sounds load (loops looping), nothing sounds before the browser lets it, the
 ## hands' work sounds by what it strikes, and a piece of music stays in its range.
 func _test_sound() -> void:
+	for b: Array in SoundScript.BUSES:
+		var i := AudioServer.get_bus_index(b[0])
+		_check(i >= 0 and AudioServer.get_bus_send(i) == b[1],
+			"bus %s is in default_bus_layout.tres, sending to %s (buses added later are silent in the browser)" % b)
 	var s := SoundScript.new(null)
 	var missing := []
 	for id in s.records:
