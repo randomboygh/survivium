@@ -78,7 +78,7 @@ func frame_uv(dir: String, anim: String, t: float) -> Vector4:
 
 
 ## Draws OUTLINE on every clear pixel of `r` next to a drawn one (4 neighbours), the
-## way the text sprites in sprite_art.gd outline themselves: the figure is stamped dark
+## way the first animal sprites outlined themselves: the figure is stamped dark
 ## one pixel each way under itself. The outermost pixels of a frame have to stay clear,
 ## or the outline would spill into the next frame.
 static func outline_rect(img: Image, r: Rect2i) -> void:

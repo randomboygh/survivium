@@ -13,7 +13,6 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
-const SpriteArt := preload("res://src/client/view/sprite_art.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 
 
@@ -104,7 +103,7 @@ func _check_creature_pictures() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for id in AiRules.SPECIES:
 		var spec: Dictionary = AiRules.SPECIES[id]
-		if id == AiRules.HUMAN or SpriteArt.ART.has(spec.sprite):
+		if id == AiRules.HUMAN:
 			continue
 		var path := Creatures.picture_path(spec)
 		if not ResourceLoader.exists(path):

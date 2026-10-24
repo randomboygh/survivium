@@ -19,12 +19,12 @@ src/shared/   the world model and the rules of play the server will run; loads n
 src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/      chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts, tracks, roof_map
   view/       pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures, voxel_model,
-              voxel_props, player, figure, hands, sprite_sheet, sprite_art, draw_census, shader_warmup
+              voxel_props, player, figure, hands, sprite_sheet, draw_census, shader_warmup
   input/      controls, cursor, touch_stick, touch_button
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game) and birds; mod.yaml, data/<kind>.yaml, sprites/, sounds/
+content/      the mods: core (the base game), animals, birds; mod.yaml, data/<kind>.yaml, sprites/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
 tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, art/, sound/
