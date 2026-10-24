@@ -151,6 +151,8 @@ var _loading: PanelContainer
 var _map_ground: Minimap.Layer
 var _map_top: Minimap.Layer
 var _tip: Label
+## What is being built or loaded now, on two lines over the tip.
+var _doing: Label
 var _tip_index := -1
 var _tip_clock := 0.0
 var _map_room := false
@@ -275,11 +277,17 @@ func _build_loading() -> void:
 	_map_well.add_child(_map_top)
 	_map_top.position = Vector2(Minimap.FRAME, Minimap.FRAME)
 	_set_map_side(MAP_SIZES[0])
+	var line := UiStyle.font().get_height(UiStyle.FONT_SIZE) + 4.0
+	_doing = UiStyle.label("")
+	_doing.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_doing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Two lines always, so the card keeps its size as the text changes.
+	_doing.custom_minimum_size = Vector2(TIP_WIDTH, 2.0 * line - 4.0)
+	box.add_child(_doing)
 	_tip = UiStyle.label("", UiStyle.MUTED)
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# Room for three lines, the longest tip, so the card keeps its size as they change.
-	var line := UiStyle.font().get_height(UiStyle.FONT_SIZE) + 4.0
 	_tip.custom_minimum_size = Vector2(TIP_WIDTH, 3.0 * line - 4.0)
 	box.add_child(_tip)
 	_loading.visible = false
@@ -324,6 +332,7 @@ func _update_loading(delta: float) -> void:
 			game.hud.minimap.painted.connect(_map_ground.queue_redraw)
 	if not show:
 		return
+	_doing.text = game.loading_stage if game.loading_stage != "" else game.chunks.doing_text()
 	_tip_clock -= delta
 	if _tip_clock <= 0.0:
 		_tip_clock = TIP_TIME

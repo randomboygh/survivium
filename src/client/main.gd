@@ -140,6 +140,8 @@ var world_seed := 0
 var world_options := {}
 ## When the scene started, for the load time.
 var start_ms := 0
+## What start_world is doing before the chunks are built, for the loading screens.
+var loading_stage := ""
 ## Set before a restart for another world: the scene that comes up goes straight in.
 static var play_at_once := false
 
@@ -205,15 +207,23 @@ func restart() -> void:
 ## Generates the world chosen (see SaveGame.choose_world) and builds the scene around
 ## the spawn, or where the player was when it was saved.
 func start_world() -> void:
-	hud.set_loading("Генерация мира…")
-	# Let the loading text show before the heavy generation.
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# Each heavy part says what it does and lets it show first; `world` is set only once
+	# they are done, so nothing runs on a world half made.
+	await _loading_stage("Материки, реки и место старта…")
 	var t0 := Time.get_ticks_msec()
 	# The test world is laid out by hand (see TestGround), every other one from noise.
 	var maker: GDScript = TestGround if world_seed == TestGround.SEED else WorldGen
 	gen = maker.new(world_seed, 48, world_options)
 	gen.saved = save.store
+	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
+	await _loading_stage("Карта из сохранения и материалы…" if save.has_save else "Карта и материалы…")
+	roof = RoofMap.new()
+	roof.prepare()
+	hud.minimap.setup(gen)
+	if save.has_save:
+		hud.minimap.load_regions(save.store.read_maps())
+	_build_materials()
+	await _loading_stage("Игрок и вещи из сохранения…" if save.has_save else "Игрок и небо…")
 	world = gen.world
 	placed.world = world
 	character.world = world
@@ -229,17 +239,19 @@ func start_world() -> void:
 	actions.drops_changed.connect(props.show_drops)
 	actions.taken.connect(props.fly)
 	storms = Storms.new(world, clock, actions)
-	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
-	roof = RoofMap.new()
-	roof.prepare()
-	hud.minimap.setup(gen)
-	if save.has_save:
-		hud.minimap.load_regions(save.store.read_maps())
-	_build_materials()
 	_build_scene()
 	save.restore_player()
 	settings.apply()
 	chunks.prepare(gen)
+	loading_stage = ""
+
+
+## Says what start_world does next (`text`) and lets it show for two frames.
+func _loading_stage(text: String) -> void:
+	loading_stage = text
+	hud.set_loading(text)
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 
 ## While the game is paused (its menu open) the world goes on being built around the
@@ -285,7 +297,8 @@ func _process(delta: float) -> void:
 			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
-			hud.set_loading("Построение мира… %d%%" % int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total))
+			hud.set_loading("Построение мира… %d%%\n%s" % [int(100.0 * (chunks.near_total - chunks.near_pending) / chunks.near_total),
+				chunks.doing_text()])
 		t = perf.note("чанки", t)
 	clock.step(delta, player.position if player != null else Vector3.INF)
 	sky.update(delta)

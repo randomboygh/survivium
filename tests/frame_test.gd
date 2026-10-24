@@ -69,9 +69,15 @@ func _check(cond: bool, what: String) -> void:
 
 
 func _run() -> void:
-	# Loading as in the game: the near chunks, 40 ms a frame.
+	# Loading as in the game: the near chunks, 40 ms a frame; the loading screen says
+	# what is being done all the way.
+	var told := {}
 	while not main.ready_to_play:
+		if main.chunks != null:
+			told[main.loading_stage if main.loading_stage != "" else main.chunks.doing_text()] = true
 		await process_frame
+	_check(main.loading_stage == "" and told.size() >= 4 and told.keys().all(func(t: String) -> bool: return t.strip_edges() != ""),
+		"the loading screen tells what is being built: %s" % [told.keys()])
 	var w = main.world
 	var home := Vector2i((Vector2(main.player.position.x, main.player.position.z) / (CHUNK * CELL)).floor())
 	# What a whole chunk costs on this machine, the mean over the chunks around the
