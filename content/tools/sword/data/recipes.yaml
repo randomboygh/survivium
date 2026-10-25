@@ -1,0 +1,15 @@
+# Рецепты бандла «Меч»: at — станок, на котором делают (ссылка на предмет: бандл верстака
+# нужен тому, чьи рецепты делают на нём), tool — чем; ветка, бревно, кремень, камень и глина —
+# «Ресурсы», верёвка, доски и кирпич — «Материалы».
+- id: wooden_sword
+  title: Деревянный меч
+  makes: wooden_sword
+  needs: {materials:planks: 2, materials:cord: 1}
+  at: workbench
+  time: 5
+- id: stone_sword
+  title: Каменный меч
+  makes: stone_sword
+  needs: {resources:flint: 2, resources:branch: 1, materials:cord: 1}
+  at: workbench
+  time: 5

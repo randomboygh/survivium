@@ -1,0 +1,15 @@
+# Рецепты бандла «Печь для обжига»: at — станок, на котором делают (ссылка на предмет: бандл верстака
+# нужен тому, чьи рецепты делают на нём), tool — чем; ветка, бревно, кремень, камень и глина —
+# «Ресурсы», верёвка, доски и кирпич — «Материалы».
+- id: kiln
+  title: Печь для обжига
+  makes: kiln
+  needs: {resources:stone: 8, resources:clay: 4}
+  at: workbench
+  time: 10
+- id: brick
+  title: Кирпич
+  makes: materials:brick
+  needs: {resources:clay: 1}
+  at: kiln
+  time: 4

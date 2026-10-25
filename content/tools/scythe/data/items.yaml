@@ -1,0 +1,39 @@
+# Предметы бандла «Коса» мода «Инструменты и крафт». Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: stone_scythe
+  title: Каменная коса
+  weight: 1.5
+  stack: 1
+  model: scythe
+  icon: scythe
+  tool: scythe
+  sprite: scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 1
+  area: 3
+  swing: 0.5
+  reach: 8
+  durability: 150
+  repair: {resources:flint: 1, materials:cord: 1}
+- id: wooden_scythe
+  title: Деревянная коса
+  weight: 1.0
+  stack: 1
+  model: wooden_scythe
+  icon: wooden_scythe
+  tool: scythe
+  sprite: wooden_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 1
+  area: 2
+  swing: 0.6
+  reach: 8
+  durability: 40
+  repair: {materials:planks: 1}

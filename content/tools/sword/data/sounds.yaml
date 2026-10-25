@@ -1,0 +1,5 @@
+# Взмах меча в воздухе (sounds/swish_N.wav, tools/make_sounds.gd); код просит его по имени swish.
+- id: swish
+  title: Взмах
+  variants: 3
+  volume: 0.5

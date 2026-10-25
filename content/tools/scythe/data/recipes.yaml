@@ -1,0 +1,15 @@
+# Рецепты бандла «Коса»: at — станок, на котором делают (ссылка на предмет: бандл верстака
+# нужен тому, чьи рецепты делают на нём), tool — чем; ветка, бревно, кремень, камень и глина —
+# «Ресурсы», верёвка, доски и кирпич — «Материалы».
+- id: stone_scythe
+  title: Каменная коса
+  makes: stone_scythe
+  needs: {resources:flint: 2, resources:branch: 2, materials:cord: 2}
+  at: workbench
+  time: 6
+- id: wooden_scythe
+  title: Деревянная коса
+  makes: wooden_scythe
+  needs: {materials:planks: 1, resources:branch: 2, materials:cord: 1}
+  at: workbench
+  time: 4

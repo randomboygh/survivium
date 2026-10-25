@@ -1,0 +1,65 @@
+# Звуки игрока: шаги по траве, земле, камню, снегу и воде (материалы основы называют их в step и
+# hit), гребок, прыжок, приземление, всплеск, копание, удар по камню, блок поставлен, подбор,
+# сделано, еда, огонь зажжён. Файлы sounds/<id>_N.wav (tools/make_sounds.gd).
+- id: step_grass
+  title: Шаг по траве
+  variants: 4
+  volume: 0.4
+- id: step_dirt
+  title: Шаг по земле
+  variants: 4
+  volume: 0.4
+- id: step_stone
+  title: Шаг по камню
+  variants: 4
+  volume: 0.5
+- id: step_snow
+  title: Шаг по снегу
+  variants: 4
+  volume: 0.5
+- id: step_water
+  title: Шаг по воде
+  variants: 3
+  volume: 0.5
+- id: swim
+  title: Гребок
+  variants: 3
+  volume: 0.45
+- id: jump
+  title: Прыжок
+  variants: 2
+  volume: 0.5
+- id: land
+  title: Приземление
+  variants: 2
+  volume: 0.6
+- id: splash
+  title: Всплеск
+  variants: 2
+  volume: 0.8
+- id: dig
+  title: Копание
+  variants: 3
+  volume: 0.8
+- id: hit_stone
+  title: Удар по камню
+  variants: 3
+  volume: 0.8
+- id: place
+  title: Блок поставлен
+  variants: 3
+  volume: 0.6
+- id: pickup
+  title: Подбор
+  variants: 2
+  volume: 0.5
+- id: craft
+  title: Сделано
+  volume: 0.6
+- id: eat
+  title: Еда
+  variants: 2
+  volume: 0.9
+- id: ignite
+  title: Огонь зажжён
+  volume: 0.8

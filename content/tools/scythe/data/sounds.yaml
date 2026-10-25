@@ -1,0 +1,5 @@
+# Покос (sounds/mow_N.wav, tools/make_sounds.gd); код просит его по имени mow.
+- id: mow
+  title: Покос
+  variants: 3
+  volume: 0.7

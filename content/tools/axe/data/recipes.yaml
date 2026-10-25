@@ -1,0 +1,17 @@
+# Рецепты бандла «Топор»: at — станок, на котором делают (ссылка на предмет: бандл верстака
+# нужен тому, чьи рецепты делают на нём), tool — чем; ветка, бревно, кремень, камень и глина —
+# «Ресурсы», верёвка, доски и кирпич — «Материалы».
+- id: stone_axe
+  title: Каменный топор
+  makes: stone_axe
+  needs: {resources:flint: 1, resources:branch: 2, materials:cord: 1}
+  at: workbench
+  time: 5
+- id: planks
+  title: Доски
+  makes: materials:planks
+  count: 2
+  needs: {resources:log: 1}
+  at: workbench
+  tool: axe
+  time: 3

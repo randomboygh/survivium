@@ -1,0 +1,33 @@
+# Предметы бандла «Кирка» мода «Инструменты и крафт». Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: stone_pickaxe
+  title: Каменная кирка
+  weight: 2.0
+  stack: 1
+  model: pickaxe
+  icon: pickaxe
+  tool: pickaxe
+  sprite: pickaxe
+  anim: chop
+  power: 2
+  swing: 0.55
+  reach: 10
+  durability: 150
+  repair: {resources:flint: 1, materials:cord: 1}
+- id: wooden_pickaxe
+  title: Деревянная кирка
+  weight: 1.2
+  stack: 1
+  model: wooden_pickaxe
+  icon: wooden_pickaxe
+  tool: pickaxe
+  sprite: wooden_pickaxe
+  anim: chop
+  power: 2
+  swing: 0.8
+  reach: 10
+  durability: 30
+  repair: {materials:planks: 1}

@@ -1,0 +1,15 @@
+# Рецепты бандла «Кирка»: at — станок, на котором делают (ссылка на предмет: бандл верстака
+# нужен тому, чьи рецепты делают на нём), tool — чем; ветка, бревно, кремень, камень и глина —
+# «Ресурсы», верёвка, доски и кирпич — «Материалы».
+- id: stone_pickaxe
+  title: Каменная кирка
+  makes: stone_pickaxe
+  needs: {resources:flint: 2, resources:branch: 2, materials:cord: 1}
+  at: workbench
+  time: 6
+- id: wooden_pickaxe
+  title: Деревянная кирка
+  makes: wooden_pickaxe
+  needs: {materials:planks: 2, resources:branch: 2}
+  at: workbench
+  time: 4
