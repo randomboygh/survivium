@@ -251,44 +251,45 @@ def duck(f):
 
 
 def butterfly(f):
-    o = (230, 150, 50, 255)
-    d = (160, 70, 40, 255)
+    # Light wings: each butterfly is drawn in one of its species' tints (creatures.yaml),
+    # which multiply the picture.
+    o = (250, 248, 240, 255)
+    d = (190, 186, 178, 255)
     k = (40, 30, 30, 255)
-    c = Canvas(9, 7)
-    c.rect(4, 1, 4, 5, k)  # body
-    c.dot(3, 0, k)
-    c.dot(5, 0, k)
+    c = Canvas(7, 6)
+    c.rect(3, 1, 3, 4, k)  # body
+    c.dot(2, 0, k)
+    c.dot(4, 0, k)
     if f == 0:  # wings open flat
-        c.ellipse(0, 1, 3, 3, o)
-        c.ellipse(5, 1, 8, 3, o)
-        c.ellipse(1, 4, 3, 5, d)
-        c.ellipse(5, 4, 7, 5, d)
+        c.rect(0, 1, 2, 2, o)
+        c.rect(4, 1, 6, 2, o)
+        c.rect(1, 3, 2, 4, d)
+        c.rect(4, 3, 5, 4, d)
     elif f == 1:  # wings up, seen edge on
-        c.rect(3, 1, 3, 3, o)
-        c.rect(5, 1, 5, 3, o)
+        c.rect(2, 1, 2, 2, o)
+        c.rect(4, 1, 4, 2, o)
     else:
-        c.ellipse(1, 2, 3, 4, o)
-        c.ellipse(5, 2, 7, 4, o)
+        c.rect(1, 2, 2, 3, o)
+        c.rect(4, 2, 5, 3, o)
         c.dot(2, 4, d)
-        c.dot(6, 4, d)
+        c.dot(4, 4, d)
     return c
 
 
 def perch(f):
-    g = (104, 134, 76, 255)
-    d = (66, 90, 50, 255)
-    r = (200, 90, 50, 255)
-    c = Canvas(14, 8)
-    c.ellipse(3, 1, 12, 6, g)
-    for x in (5, 7, 9):  # the perch's dark bars
-        c.line(x, 2, x, 5, d)
-    c.dot(11, 3, DARK_EYE)
-    c.line(5, 0, 8, 0, d)  # dorsal fin
-    c.dot(8, 7, r)  # belly fin
-    tail = {0: [(0, 2, 2, 4)], 1: [(0, 1, 2, 4)], 2: [(0, 3, 2, 5)]}[f]
-    for t in tail:
-        c.rect(t[0], t[1], t[2], t[3], r)
-    c.dot(2, 3, g)
+    # Drawn a little pale: each fish takes one of its species' tints.
+    g = (128, 156, 96, 255)
+    d = (80, 104, 62, 255)
+    r = (214, 108, 64, 255)
+    c = Canvas(11, 6)
+    c.ellipse(2, 1, 9, 4, g)
+    for x in (4, 6):  # the perch's dark bars
+        c.line(x, 1, x, 4, d)
+    c.dot(8, 2, DARK_EYE)
+    c.line(4, 0, 6, 0, d)  # dorsal fin
+    c.dot(6, 5, r)  # belly fin
+    tail = {0: (0, 1, 1, 4), 1: (0, 0, 1, 3), 2: (0, 2, 1, 5)}[f]
+    c.rect(tail[0], tail[1], tail[2], tail[3], r)
     return c
 
 

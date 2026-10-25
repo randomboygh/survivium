@@ -15,4 +15,5 @@
   sprite: perch
   frames: 3
   swims: true
+  tints: ["#ffffff", "#e6eab4", "#c4d6cc", "#f0d4a8"]
   flock: [2, 5]

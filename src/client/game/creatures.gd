@@ -4,7 +4,9 @@ extends Node3D
 ## Animals off the screen move in steps (Wildlife.FAR_STEP), and their sprites are
 ## put again only then. A species' picture is its mod's sprites/creatures/<sprite>.png,
 ## a row of `frames` frames: the first is the animal at rest, the others its walk (or
-## its swim), one per step, or a flyer's wing beat in the air.
+## its swim), one per step, or a flyer's wing beat in the air; one that hops shows
+## the second while in a leap (legs stretched) and the third as it takes off and lands.
+## A species with `tints` has its picture multiplied by one of them for each animal.
 
 const Content := preload("res://src/shared/content/content.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -27,7 +29,7 @@ var wildlife
 var tracks
 ## The performance statistics (PerfPanel), told how long the animals take a frame.
 var perf
-## kind -> [mesh, materials, one a frame]
+## kind -> [mesh, materials: for each of its tints (one, white, for none) one a frame]
 var looks := {}
 var _sprites := {}
 ## sprite -> where its culling box was fitted, and the views it was fitted for.
@@ -43,12 +45,17 @@ func watch(w) -> void:
 		var spec: Dictionary = AiRules.SPECIES[kind]
 		var tex: Texture2D = picture(spec)
 		var frames: int = spec.frames
-		var mats := []
-		for f in frames:
-			var m := PlayerScript.sprite_material(SpriteShader, tex)
-			m.set_shader_parameter("frame_uv", Vector4(float(f) / frames, 0.0, 1.0 / frames, 1.0))
-			mats.append(m)
-		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height()), mats]
+		var tints: Array = spec.tints if not spec.tints.is_empty() else [Color.WHITE]
+		var variants := []
+		for tint: Color in tints:
+			var mats := []
+			for f in frames:
+				var m := PlayerScript.sprite_material(SpriteShader, tex)
+				m.set_shader_parameter("frame_uv", Vector4(float(f) / frames, 0.0, 1.0 / frames, 1.0))
+				m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
+				mats.append(m)
+			variants.append(mats)
+		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height()), variants]
 	wildlife = w
 	for a in w.animals:
 		_on_born(a)
@@ -75,16 +82,18 @@ func _process(delta: float) -> void:
 	for a in wildlife.animals:
 		if a.away == 0.0:
 			var sprite: MeshInstance3D = _sprites[a]
-			sprite.position = PixelView.snap(a.pos)
+			sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
 			if _fitted.get(sprite) != sprite.position:
 				_fit(a, sprite)
 			# Facing east or west in the world, which way on the screen.
 			sprite.scale.x = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
 			if a.flying or a.moving or a.frame != 0:
-				var mats: Array = looks[a.kind][1]
+				var mats: Array = _mats(a)
 				var frame := 0
 				if a.flying and mats.size() > 1:
 					frame = 1 + (int(beat) + a.get_instance_id()) % (mats.size() - 1)
+				elif a.hop > 0.0 and mats.size() > 2:
+					frame = 1 if a.hop > 0.2 and a.hop < 0.8 else 2
 				elif a.moving and mats.size() > 1 and not AiRules.SPECIES[a.kind].flies:
 					# A walk of two frames, one a step; a flyer only hops on the ground.
 					frame = 1 + (1 if a.left else 0) % (mats.size() - 1)
@@ -93,6 +102,12 @@ func _process(delta: float) -> void:
 					sprite.material_override = mats[frame]
 	if perf != null:
 		perf.note("животные", t)
+
+
+## The frames' materials animal `a` is drawn with, in its tint.
+func _mats(a) -> Array:
+	var variants: Array = looks[a.kind][1]
+	return variants[a.tint % variants.size()]
 
 
 ## The picture of species `spec` (a record of AiRules.SPECIES).
@@ -123,8 +138,8 @@ func sprite_of(a) -> MeshInstance3D:
 func _on_born(a) -> void:
 	var sprite := MeshInstance3D.new()
 	sprite.mesh = looks[a.kind][0]
-	sprite.material_override = looks[a.kind][1][0]
-	sprite.position = PixelView.snap(a.pos)
+	sprite.material_override = _mats(a)[0]
+	sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
 	add_child(sprite)
 	_sprites[a] = sprite
 	_fit(a, sprite)

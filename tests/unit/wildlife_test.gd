@@ -106,6 +106,8 @@ func _test_wildlife() -> void:
 	_test_swimmers(w)
 	_test_climbers(w, person)
 	_test_biomes(w)
+	_test_shore(w)
+	_test_jostle(w)
 
 
 ## A walker that roosts in trees (the squirrel bundle) runs up a tree near it from a
@@ -266,10 +268,15 @@ func _test_birds(w: WorldData, person: Who) -> void:
 			break
 	_check(mate.flying and mate.state == "flee", "its flock takes fright with it")
 	_check(cat.state != "hunt" and life.animals.has(lead), "a cat does not hunt a bird in the air")
+	# It lands (it may fly over again later, on its own).
+	var landed := false
 	for i in 200:
 		life.update(0.05)
-	_check(high > 1.0 and not lead.flying and lead.pos.distance_to(person.position) > 8.0
-		and absf(lead.pos.y - life.ground(lead.pos.x, lead.pos.z)) < 0.01,
+		if not lead.flying and lead.pos.distance_to(person.position) > 8.0 \
+				and absf(lead.pos.y - life.ground(lead.pos.x, lead.pos.z)) < 0.01:
+			landed = true
+			break
+	_check(high > 1.0 and landed,
 		"it flies up and comes down away from the person (%.1f high, %.1f away)" % [high, lead.pos.distance_to(person.position)])
 
 	# A tree away from everyone, and night.
@@ -296,6 +303,93 @@ func _test_birds(w: WorldData, person: Who) -> void:
 
 
 ## Puts an animal of `kind` at `at` into `life`, about to think.
+## Ducks and frogs (swimmers that come ashore) keep to their pond and its shore: a duck
+## paddles about and walks the bank, flies seldom and lands on the water again; a frog
+## comes out only after rain and goes on land in leaps.
+func _test_shore(w: WorldData) -> void:
+	var px := 20
+	var pz := 20
+	var side := 12
+	for z in range(pz, pz + side):
+		for x in range(px, px + side):
+			w.set_cell(x, 3, z, Mat.DIRT)
+			w.set_cell(x, 4, z, Mat.WATER)
+			w.set_cell(x, 5, z, Mat.WATER)
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [Who.new()]
+	life.people[0].position = Vector3(150.0, 6.0, 150.0) * WorldData.CELL
+	var pond := Rect2(px, pz, side, side)
+	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
+	var duck := _animal(life, "animals:duck", at)
+	duck.pos.y = life.water_top(at.x, at.z) - Wildlife.DIP * WorldData.CELL
+	duck.home = duck.pos
+	duck.floor_wet = true
+	var aloft := 0
+	var ashore := 0
+	var far := 0.0
+	var steps := 2400
+	for i in steps:
+		life.update(0.05)
+		if duck.flying:
+			aloft += 1
+		var cell := Vector2(duck.pos.x, duck.pos.z) / WorldData.CELL
+		if not pond.has_point(cell):
+			ashore += 1
+			far = maxf(far, maxf(maxf(pond.position.x - cell.x, cell.x - pond.end.x), maxf(pond.position.y - cell.y, cell.y - pond.end.y)))
+	_check(aloft < steps / 5 and ashore > 0 and far < Wildlife.SHORE / WorldData.CELL + 1.0,
+		"a duck paddles, walks the bank near its pond and flies seldom (%d of %d aloft, %d ashore, %.1f cells out)" % [aloft, steps, ashore, far])
+	_check(life.wanted("animals:frog") == 0, "no frogs while it is dry")
+	life.clock.puddles = 1.0
+	_check(life.wanted("animals:frog") == AiRules.SPECIES["animals:frog"].count, "frogs come out after rain")
+	life.animals.clear()
+	var bank := Vector3(px - 2.0, 0.0, pz + 2.0) * WorldData.CELL
+	bank.y = life.ground(bank.x, bank.z)
+	var frog := _animal(life, "animals:frog", bank)
+	frog.home = Vector3(px + 0.5, 0.0, pz + 2.0) * WorldData.CELL
+	frog.think = 100.0
+	frog.target = bank + Vector3(0.0, 0.0, 1.5)
+	var leapt := 0.0
+	for i in 100:
+		life.update(0.05)
+		leapt = maxf(leapt, frog.lift)
+	_check(leapt > 0.1 and frog.pos.distance_to(frog.target) < 0.05, "a frog hops along on land (%.2f high, %.2f to go)" % [leapt, frog.pos.distance_to(frog.target)])
+	for z in range(pz, pz + side):
+		for x in range(px, px + side):
+			w.set_cell(x, 3, z, Mat.AIR)
+			w.set_cell(x, 4, z, Mat.AIR)
+			w.set_cell(x, 5, z, Mat.GRASS)
+
+
+## Bodies on the ground push each other apart, and a heavy one pushes a person back.
+func _test_jostle(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var person := Who.new()
+	person.position = Vector3(100.0, 6.0, 100.0) * WorldData.CELL
+	life.people = [person]
+	var at := Vector3(40.0, 0.0, 120.0) * WorldData.CELL
+	at.y = life.ground(at.x, at.z)
+	var one := _animal(life, "animals:deer", at)
+	var two := _animal(life, "animals:deer", at + Vector3(0.05, 0.0, 0.0))
+	one.think = 100.0
+	two.think = 100.0
+	for i in 5:
+		life.update(0.05)
+	var apart := Wildlife.radius(AiRules.SPECIES["animals:deer"]) * 2.0
+	_check(one.pos.distance_to(two.pos) > apart * 0.95, "two deer do not stand in one another (%.2f)" % one.pos.distance_to(two.pos))
+	life.animals.clear()
+	var bear := _animal(life, "animals:bear", person.position + Vector3(0.1, 0.0, 0.0))
+	bear.pos.y = life.ground(bear.pos.x, bear.pos.z)
+	bear.think = 100.0
+	life.update(0.05)
+	_check(life.pushes[0].x < -0.1, "a bear pushes a person back (%v)" % life.pushes[0])
+
+
 func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:
 	var a := Wildlife.Animal.new()
 	a.kind = kind
