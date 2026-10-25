@@ -15,3 +15,9 @@
   at: workbench
   tool: axe
   time: 3
+- id: copper_axe
+  title: Медный топор
+  makes: copper_axe
+  needs: {materials:copper_bar: 2, materials:planks: 1}
+  at: workbench
+  time: 6

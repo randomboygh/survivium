@@ -154,7 +154,7 @@ func _check_models() -> PackedStringArray:
 		var item := Items.get_item(id)
 		var name: String = item.get("model", "")
 		if name == "":
-			if item.get("prop", "none") in ["chest", "workbench", "kiln"]:
+			if item.get("prop", "none") in ["chest", "workbench", "kiln", "forge"]:
 				out.append("items: `%s`: a thing placed on cells needs a `model`" % id)
 			continue
 		var path := VoxelProps.model_path(item, name)

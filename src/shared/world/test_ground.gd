@@ -81,7 +81,7 @@ const CAMP := Rect2i(60, -30, 32, 18)
 const CAMP_DROPS := ["resources:log", "resources:branch", "resources:stone", "plants:acorn", "plants:cone", "plants:raspberry",
 	"resources:dirt", "materials:planks", "resources:flint", "tools:stone_axe", "plants:mushroom", "resources:clay", "resources:fiber",
 	"materials:brick", "tools:wooden_shovel", "plants:blueberry"]
-const CAMP_THINGS := ["tools:chest", "tools:workbench", "tools:kiln"]
+const CAMP_THINGS := ["tools:chest", "tools:workbench", "tools:kiln", "tools:forge"]
 
 ## Top of the meadow (filled in _init: two cells above the sea).
 var ground := 22

@@ -237,6 +237,15 @@ func _run() -> void:
 				await process_frame
 		if shot.has("hands"):
 			await _hands(shot.hands)
+		if shot.has("drops"):
+			# Things lying in a row in front of the player.
+			var w = main.world
+			var p: Vector3 = main.player.position
+			for i in shot.drops.size():
+				var at := p + Vector3(-1.5 + i * 0.6, 0.0, 1.0)
+				var h: float = w.ground_height(at.x / CELL, at.z / CELL)
+				w.add_drop(shot.drops[i], Vector3(at.x, h * CELL if h >= 0.0 else at.y, at.z), i * 0.7)
+				main.props.show_drops(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
 		if shot.has("keys"):
 			# Holds the keys while the shot is taken, so the walk animation shows.
 			main.player.position = places.flat_near(main.world, main.player.position)
@@ -325,7 +334,7 @@ func _run() -> void:
 					main.hud.open_prop(e)
 					break
 		if shot.get("craft", false):
-			_craft()
+			_craft(shot.get("forge", false))
 			if shot.has("recipe"):
 				main.character.inventory.add("materials:cord", 2)
 				main.hud.bag.craft._choose(shot.recipe)
@@ -466,7 +475,7 @@ func _run() -> void:
 			while not main.workshop.queue.jobs.is_empty():
 				main.workshop.queue.cancel(0)
 			for e in main.placed.things.duplicate():
-				if e.item in ["tools:workbench", "tools:kiln"]:
+				if e.item in ["tools:workbench", "tools:kiln", "tools:forge"]:
 					main.placed.take_up(main.character, e)
 			main.character.inventory.take_all()
 		if shot.get("chest", false):
@@ -486,7 +495,9 @@ func _run() -> void:
 ## By the spawn: a workbench and a kiln set down in front of the player, what the first
 ## tools are made of in the bag, an axe being made and a pickaxe queued, the craft tab
 ## open at the workbench.
-func _craft() -> void:
+## With `forge`, a forge too, to the north, with ore, charcoal and bars in the bag, a copper
+## bar being smelted, the craft tab open at the forge.
+func _craft(forge := false) -> void:
 	var inv = main.character.inventory
 	for st in [["resources:fiber", 14], ["resources:branch", 16], ["resources:flint", 3], ["resources:log", 2], ["resources:clay", 6],
 			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
@@ -497,13 +508,22 @@ func _craft() -> void:
 	main.props.put_from_bag("tools:kiln")
 	main.player.facing = "w"
 	main.props.put_from_bag("tools:chest")
+	var station := "tools:workbench"
+	var recipe := "materials:cord"
+	if forge:
+		for st in [["tools:forge", 1], ["materials:copper_ore", 6], ["materials:charcoal", 3], ["materials:copper_bar", 6], ["materials:planks", 2]]:
+			inv.add(st[0], st[1])
+		main.player.facing = "n"
+		main.props.put_from_bag("tools:forge")
+		station = "tools:forge"
+		recipe = "materials:copper_bar"
 	main.player.facing = "s"
 	var shop = main.workshop
-	shop.start(Crafting.get_recipe("materials:cord"), 2)
+	shop.start(Crafting.get_recipe(recipe), 2)
 	shop.queue.jobs[0].left = 0.5
 	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
 	for e in main.placed.things:
-		if e.item == "tools:workbench":
+		if e.item == station:
 			main.hud.open_prop(e)
 
 

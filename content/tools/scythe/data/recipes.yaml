@@ -13,3 +13,9 @@
   needs: {materials:planks: 1, resources:branch: 2, materials:cord: 1}
   at: workbench
   time: 4
+- id: copper_scythe
+  title: Медная коса
+  makes: copper_scythe
+  needs: {materials:copper_bar: 2, materials:planks: 2}
+  at: workbench
+  time: 7

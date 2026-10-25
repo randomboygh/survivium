@@ -97,7 +97,7 @@ const SCHEMAS := {
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
 		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}},
-		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "campfire"], "default": "none"},
+		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "forge", "campfire"], "default": "none"},
 		"fuel": {"type": "bool", "default": false},
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},

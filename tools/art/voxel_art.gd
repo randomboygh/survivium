@@ -5,6 +5,9 @@ extends RefCounted
 
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 
+## The colour of copper heads, blades and bars.
+const COPPER := Color(0.78, 0.46, 0.25)
+
 
 ## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
 ## world unit, the front to the south), null for none.
@@ -16,6 +19,8 @@ static func prop(kind: String) -> VoxelModel:
 			return kiln()
 		"chest":
 			return chest()
+		"forge":
+			return forge()
 	return null
 
 
@@ -33,14 +38,20 @@ static func drop(model: String) -> VoxelModel:
 			return _cone()
 		"axe":
 			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
-		"pickaxe", "wooden_pickaxe":
-			return _tool(Color(0.42, 0.44, 0.46) if model == "pickaxe" else Color(0.55, 0.4, 0.24), [Vector3i(4, 0, -3), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(4, 0, 1), Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(5, 0, -3), Vector3i(5, 0, 3), Vector3i(4, 1, 0)])
-		"shovel":
-			return _tool(Color(0.42, 0.29, 0.18), [Vector3i(5, 0, -1), Vector3i(5, 0, 1), Vector3i(6, 0, -1), Vector3i(6, 0, 0), Vector3i(6, 0, 1), Vector3i(7, 0, -1), Vector3i(7, 0, 0), Vector3i(7, 0, 1), Vector3i(8, 0, 0)])
-		"sword", "stone_sword":
-			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else Color(0.55, 0.57, 0.6))
-		"scythe", "wooden_scythe":
-			return _tool(Color(0.42, 0.44, 0.46) if model == "scythe" else Color(0.55, 0.4, 0.24), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
+		"copper_axe":
+			return _tool(COPPER, [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
+		"pickaxe", "wooden_pickaxe", "copper_pickaxe":
+			return _tool(_head(model), [Vector3i(4, 0, -3), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(4, 0, 1), Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(5, 0, -3), Vector3i(5, 0, 3), Vector3i(4, 1, 0)])
+		"shovel", "copper_shovel":
+			return _tool(Color(0.42, 0.29, 0.18) if model == "shovel" else COPPER, [Vector3i(5, 0, -1), Vector3i(5, 0, 1), Vector3i(6, 0, -1), Vector3i(6, 0, 0), Vector3i(6, 0, 1), Vector3i(7, 0, -1), Vector3i(7, 0, 0), Vector3i(7, 0, 1), Vector3i(8, 0, 0)])
+		"sword", "stone_sword", "copper_sword":
+			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else (Color(0.55, 0.57, 0.6) if model == "stone_sword" else COPPER))
+		"scythe", "wooden_scythe", "copper_scythe":
+			return _tool(_head(model), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
+		"copper_bar":
+			return _bar()
+		"charcoal":
+			return _charcoal()
 		"grain":
 			return _heap(Color(0.82, 0.66, 0.32))
 		"flour":
@@ -123,6 +134,54 @@ static func kiln() -> VoxelModel:
 		for x in range(7, 9):
 			for z in range(7, 9):
 				m.set_voxel(Vector3i(x, y, z), soot)
+	return m
+
+
+## A forge: a waist-high brick hearth on a stone base, a bed of glowing coals in it, a
+## short chimney at the back and a bellows' nozzle at the side.
+static func forge() -> VoxelModel:
+	var m := VoxelModel.new()
+	var stone := Color(0.5, 0.49, 0.47)
+	var brick := Color(0.72, 0.4, 0.3)
+	var mortar := Color(0.82, 0.74, 0.62)
+	var soot := Color(0.12, 0.1, 0.09)
+	var glow := Color(0.98, 0.55, 0.16)
+	var ember := Color(0.8, 0.22, 0.08)
+	var wood := Color(0.45, 0.3, 0.17)
+	# The stone base, a cell high.
+	for y in range(0, 3):
+		for z in range(1, 15):
+			for x in range(1, 15):
+				m.set_voxel(Vector3i(x, y, z), stone * (0.9 if (x + z + y) % 5 == 0 else 1.0))
+	# The brick walls of the hearth, courses offset by a half brick, mortar between.
+	for y in range(3, 8):
+		for z in range(1, 15):
+			for x in range(1, 15):
+				var inside := x > 3 and x < 12 and z > 3 and z < 12
+				if inside and y > 4:
+					continue
+				var seam := (y % 2 == 0) or ((x + (2 if y % 4 == 1 else 0)) % 4 == 0)
+				m.set_voxel(Vector3i(x, y, z), mortar if seam else brick * (0.92 if (x * 3 + z) % 7 == 0 else 1.0))
+	# The bed of coals: dark at the edge, glowing in the middle.
+	for z in range(4, 12):
+		for x in range(4, 12):
+			var d := Vector2(x - 7.5, z - 7.5).length()
+			m.set_voxel(Vector3i(x, 5, z), glow if d < 2.0 else (ember if d < 3.2 else soot))
+	# The chimney at the north, brick with a sooty mouth.
+	for y in range(8, 15):
+		for z in range(1, 5):
+			for x in range(5, 11):
+				if x > 6 and x < 9 and z > 1 and z < 4 and y > 8:
+					m.set_voxel(Vector3i(x, y, z), soot if y > 12 else glow * 0.6)
+				else:
+					m.set_voxel(Vector3i(x, y, z), mortar if y % 2 == 0 and (x + z) % 4 == 0 else brick)
+	# The bellows' nozzle and its wooden boards at the east side.
+	for x in range(14, 16):
+		m.set_voxel(Vector3i(x, 5, 7), soot)
+		m.set_voxel(Vector3i(x, 5, 8), soot)
+	for y in range(3, 7):
+		for z in range(5, 11):
+			m.set_voxel(Vector3i(15, y, z), wood * (0.85 if z % 2 == 0 else 1.0))
 	return m
 
 
@@ -246,6 +305,37 @@ static func _cone() -> VoxelModel:
 
 ## A tool lying flat: a wooden handle along x and a head of `head` colour in `cells`
 ## (voxels about its far end).
+## The colour of the head of a tool by its model name: stone, wooden or copper.
+static func _head(model: String) -> Color:
+	if model.begins_with("wooden_"):
+		return Color(0.55, 0.4, 0.24)
+	return COPPER if model.begins_with("copper_") else Color(0.42, 0.44, 0.46)
+
+
+## A copper bar: a flat ingot with sloped sides, a bright top edge.
+static func _bar() -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-3, 4):
+		for z in range(-1, 2):
+			m.set_voxel(Vector3i(x, 0, z), COPPER * (0.85 if abs(x) == 3 or abs(z) == 1 else 1.0))
+	for x in range(-2, 3):
+		m.set_voxel(Vector3i(x, 1, 0), COPPER * (1.2 if x % 2 == 0 else 1.1))
+	return m
+
+
+## Charcoal: a few black lumps with an ashen edge.
+static func _charcoal() -> VoxelModel:
+	var m := VoxelModel.new()
+	var coal := Color(0.13, 0.12, 0.12)
+	var ash := Color(0.3, 0.29, 0.28)
+	for p in [Vector3i(-2, 0, -1), Vector3i(-1, 0, -1), Vector3i(-2, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1), Vector3i(1, 0, 0),
+			Vector3i(2, 0, -1), Vector3i(-1, 0, 1), Vector3i(0, 0, -1)]:
+		m.set_voxel(p, coal if (p.x + p.z) % 2 == 0 else ash)
+	m.set_voxel(Vector3i(-1, 1, 0), coal)
+	m.set_voxel(Vector3i(1, 1, 0), coal)
+	return m
+
+
 static func _tool(head: Color, cells: Array) -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.4, 0.28, 0.16)

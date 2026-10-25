@@ -33,3 +33,18 @@
   reach: 8
   durability: 120
   repair: {resources:flint: 1, materials:cord: 1}
+- id: copper_sword
+  title: Медный меч
+  weight: 1.6
+  stack: 1
+  model: copper_sword
+  icon: copper_sword
+  tool: sword
+  sprite: copper_sword
+  anim: slash
+  mows: tall
+  power: 3
+  swing: 0.3
+  reach: 8
+  durability: 300
+  repair: {materials:copper_bar: 1}

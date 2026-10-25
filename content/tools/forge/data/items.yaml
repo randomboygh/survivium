@@ -1,0 +1,11 @@
+# Горн: станок, в котором плавят руду (prop: forge; у него делают то, что в recipes.yaml
+# указывает на него в `at`). Складывают из кирпича, камня и глины на верстаке. Поля — как у
+# предметов основы (content/core/data/items.yaml); model — его воксельная модель
+# (models/<model>.png).
+- id: forge
+  title: Горн
+  weight: 24.0
+  stack: 1
+  icon: forge
+  model: forge
+  prop: forge
