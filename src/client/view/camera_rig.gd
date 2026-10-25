@@ -11,12 +11,14 @@ const GradeShader := preload("res://shaders/grade.gdshader")
 const CELL := WorldData.CELL
 const CAMERA_HEIGHT := PixelView.CAMERA_HEIGHT
 ## The camera turns round in steps of 45 degrees (the four sides and the diagonals)
-## and tilts two steps each way from the default view (PixelView.MAX_TILT), a step
-## making a wall 2 px shorter: 4, 6, 8, 10 or 12 px a cell.
+## and tilts in steps from the default view, a step making a wall 2 px shorter: STEEPER
+## steps up and LOWER down, 2 to 16 px a cell under an 8 px top (a wall never drops to
+## 0 px: the camera looking straight down would draw upright things as lines).
 const TURN_STEP := PI / 4.0
 const TURNS := 8
 const TILT_STEP := 0.25
-const TILTS := 2
+const STEEPER := 3
+const LOWER := 4
 ## The views on the way that the culling boxes hold, this far apart: a turn sweeps
 ## the drawn heights round an arc, which the boxes of its ends alone would cut.
 const BOX_STEP := PI / 12.0
@@ -91,7 +93,7 @@ func build_camera() -> void:
 ## Starts the camera over the player, turned and tilted as last set.
 func look_at_player() -> void:
 	turn_steps = posmod(int(game.settings.values.camera_turn), TURNS)
-	tilt_steps = clampi(int(game.settings.values.camera_tilt), -TILTS, TILTS)
+	tilt_steps = clampi(int(game.settings.values.camera_tilt), -LOWER, STEEPER)
 	turn = turn_steps * TURN_STEP
 	tilt = tilt_steps * TILT_STEP
 	PixelView.set_view(turn, tilt)
@@ -107,9 +109,10 @@ func turn_by(steps: int) -> void:
 	_aim()
 
 
-## Tilts the camera `steps` steps of TILT_STEP steeper (negative: lower), within TILTS.
+## Tilts the camera `steps` steps of TILT_STEP steeper (negative: lower), within
+## STEEPER and LOWER.
 func tilt_by(steps: int) -> void:
-	tilt_steps = clampi(tilt_steps + steps, -TILTS, TILTS)
+	tilt_steps = clampi(tilt_steps + steps, -LOWER, STEEPER)
 	_aim()
 
 

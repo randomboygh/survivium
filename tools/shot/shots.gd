@@ -313,6 +313,8 @@ const SHOTS := {
 	"turn-trees": {"time": 0.45, "season": 1, "trees": true},
 	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -2},
 	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 2},
+	"tilt-lowest": {"time": 0.45, "season": 1, "trees": true, "tilt": -4},
+	"tilt-steepest": {"time": 0.45, "season": 1, "trees": true, "tilt": 3},
 	"turn-hut": {"time": 0.45, "season": 1, "hut": true, "turn": 3, "tilt": -1},
 	"turn-ui": {"time": 0.45, "season": 1, "turn": 7, "tilt": 1, "touch": true},
 	"turn-fire": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1, "turn": 2},

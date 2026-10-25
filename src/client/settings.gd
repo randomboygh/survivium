@@ -58,7 +58,7 @@ const DEFAULTS := {
 	"level_buttons": true,
 	"camera_buttons": true,
 	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
-	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-2..2).
+	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-LOWER..STEEPER).
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
