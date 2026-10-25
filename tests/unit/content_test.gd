@@ -110,22 +110,27 @@ func _test_mods() -> void:
 	var mods := Content.available()
 	var all := Content.all_bundles()
 	_check(mods.size() >= 3 and mods[0] == "core" and "animals" in mods and not "birds" in mods, "the mods under content/ are found, core first: %s" % [mods])
-	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants" in all and Content.mod_of("animals/wolf") == "animals",
+	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants/oak" in all and "materials" in all
+		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("materials") == "materials",
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
-	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants") == "Растения" and Mods.bundles("animals").size() == 6, "bundles have titles")
+	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("materials") == "Материалы"
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 6 and Mods.bundles("plants").size() == 11, "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
 			after_needs = after_needs and Content.loaded.find(need) < i
-	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants") < Content.loaded.find("animals/sparrow")
-		and Content.loaded.find("materials") < Content.loaded.find("tools") and Content.loaded.find("tools") < Content.loaded.find("plants"),
+	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants/ears") < Content.loaded.find("animals/sparrow")
+		and Content.loaded.find("materials") < Content.loaded.find("tools") and Content.loaded.find("tools") < Content.loaded.find("plants/ears")
+		and Content.loaded.find("plants/wood") < Content.loaded.find("plants/oak"),
 		"every bundle loads after what its records refer to: %s" % [Content.loaded])
 	_check(Content.dropped.is_empty() and Content.problems.is_empty(), "the full set loads whole")
-	_check(Mods.closure("animals/sparrow") == ["core", "animals/sparrow"] and Mods.closure("plants") == ["core", "materials", "tools", "plants"],
-		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing): %s" % [Mods.closure("plants")])
-	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf", "plants"],
+	_check(Mods.closure("animals/sparrow") == ["core", "animals/sparrow"] and Mods.closure("plants/ears") == ["core", "materials", "tools", "plants/ears"]
+		and Mods.closure("plants/oak") == ["core", "plants/wood", "plants/oak"],
+		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s %s" % [Mods.closure("plants/ears"), Mods.closure("plants/oak")])
+	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
-	_check(Mods.summary(["core", "animals/wolf", "plants"]) == "Животные (1 из 6), Растения" and Mods.summary(["core"]) == "только основа", "a set is summed up by mods")
+	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 6), Растения" and Mods.summary(["core"]) == "только основа"
+		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 11)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -153,7 +158,7 @@ func _test_mods() -> void:
 		"patches change only the fields they give, `+` adds to a list, and stack: %s" % [wolf])
 	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("animals:cat") and Content.dropped.get("_c") == "_missing",
 		"records of bundles left out are not loaded: %s" % [Content.dropped])
-	_check(Content.dropped.get("_d") == "plants" and Crafting.get_recipe("_d:porridge").is_empty() and Trees.index("_d:fir") < 0,
+	_check(Content.dropped.get("_d") == "plants/ears" and Crafting.get_recipe("_d:porridge").is_empty() and Trees.index("_d:fir") < 0,
 		"a bundle whose hard reference names a record of a bundle not in the set is left out with that bundle as the reason: %s" % [Content.dropped])
 	var sparrow: Dictionary = AiRules.SPECIES["animals:sparrow"]
 	_check(sparrow.likes.is_empty() and Trees.pick(Trees.HIGHLAND, 0.5) == -1, "a soft reference to a record not loaded is dropped: the sparrow lives without ears or trees")
@@ -165,14 +170,14 @@ func _test_mods() -> void:
 	_check(found.size() == 3, "the loader reports a missing requirement, a patch of nothing and a bad `+` (%d of 3): %s" % [found.size(), Content.problems])
 	_check(not Array(Content.problems).any(func(p: String) -> bool: return "deer" in p or "likes" in p or "cone" in p),
 		"a patch of a record not loaded and a soft reference dropped are no problems: %s" % [Content.problems])
-	Mods.activate(["core", "_d", "plants", "tools", "materials"])
+	Mods.activate(["core", "_d", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials"])
 	_check(Content.dropped.is_empty() and Content.problems.is_empty() and Crafting.get_recipe("_d:porridge").needs == {"plants:grain": 2}
 		and Trees.SPECIES[Trees.index("_d:fir")].seed == "plants:cone" and Bushes.TYPES[Bushes.index("_d:thorn")].fruit == "",
 		"with the bundle it needs in the set, the bundle loads whole, a soft reference to nothing dropped in silence: %s %s" % [Content.dropped, Content.problems])
-	_check(Mods.closure("_d", ["core", "_d", "plants", "tools", "materials"]) == ["core", "materials", "tools", "plants", "_d"],
+	_check(Mods.closure("_d", ["core", "_d", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials"]) == ["core", "materials", "tools", "plants/ears", "_d"],
 		"a bundle's closure follows hard references through the bundles they lead to")
 	Content.strict = true
-	Mods.activate(["core", "_d", "plants", "tools", "materials", "sounds"])
+	Mods.activate(["core", "_d", "plants/ears", "tools", "materials", "sounds"])
 	_check(Array(Content.problems).any(func(p: String) -> bool: return "thorn.fruit" in p and "plants:nothing" in p), "strict, a soft reference to nothing is a problem too: %s" % [Content.problems])
 	Content.strict = false
 	for m in ["_a", "_b", "_c", "_d"]:

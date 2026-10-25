@@ -17,30 +17,3 @@
   spread: [0.22, 0.15, 0.15]
   twigs: 3
   item: shrub_bush
-- id: raspberry
-  title: Малина
-  tint: "#3b5c26"
-  under: {lowland: 0.5, open: 0.35}
-  berries: "#c72133"
-  berry_cards: 0.5
-  cards: 9
-  rise: 0.38
-  spread: [0.26, 0.4, 0.16]
-  fruit: raspberry
-  fruit_count: [2, 4]
-  twigs: 2
-  item: raspberry_bush
-- id: blueberry
-  title: Черника
-  tint: "#305436"
-  under: {highland: 0.7}
-  berries: "#333d85"
-  berry_cards: 0.6
-  cards: 8
-  rise: 0.16
-  spread: [0.28, 0.08, 0.2]
-  small: true
-  fruit: blueberry
-  fruit_count: [2, 3]
-  twigs: 1
-  item: blueberry_bush

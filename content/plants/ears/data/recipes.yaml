@@ -1,26 +1,13 @@
 # Рецепты мода «Растения»: что делают из зерна, мха и грибов. Поля — как у рецептов основы
 # (content/core/data/recipes.yaml); волокно и станки — записи основы.
-
 - id: flour
   title: Мука
   makes: flour
   needs: {grain: 4}
   time: 4
-- id: bandage
-  title: Бинт
-  makes: bandage
-  needs: {moss: 2, core:fiber: 2}
-  time: 3
 - id: flatbread
   title: Лепёшка
   makes: flatbread
   needs: {flour: 2}
   at: tools:kiln
   time: 5
-
-- id: fried_mushrooms
-  title: Жареные грибы
-  makes: fried_mushrooms
-  needs: {mushroom: 4}
-  at: core:campfire
-  time: 4
