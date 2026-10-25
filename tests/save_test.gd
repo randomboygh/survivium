@@ -100,11 +100,20 @@ func _run() -> void:
 	var stood: Vector3 = main.player.position
 	var props: Array = main.placed.to_list()
 	var seed_value: int = main.world_seed
+	_check(main.workshop.knowledge.recipes().any(func(r: Dictionary) -> bool: return r.id == "tools:torch"),
+		"the torch is known with branches and fibre in the bag")
+	# Saved as a world from before the torch: it gets the torch's bundle when it loads.
+	var store = main.save.store
 	main.queue_free()
 	await process_frame
 	await process_frame
+	var old_meta: Dictionary = store.read_json(WorldStore.WORLD)
+	old_meta.content = 8
+	old_meta.mods = Array(old_meta.mods).filter(func(b: String) -> bool: return b != "tools/torch")
+	store.write_json(WorldStore.WORLD, old_meta)
 
 	main = await _start()
+	_check("tools/torch" in main.world_mods, "a world saved before the torch gets it with the other tools")
 	w = main.world
 	_check(main.save.has_save and main.world_seed == seed_value, "the same world starts again from its save")
 	_check(w.get_cell(pit.x, top - 1, pit.z) == Mat.AIR and w.get_cell(pit.x, top - 3, pit.z) == Mat.AIR,
