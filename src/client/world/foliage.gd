@@ -446,8 +446,8 @@ static func _trunks_near(w, x0: int, z0: int, x1: int, z1: int) -> Array:
 
 
 ## Appends flat shadow discs for the crown of tree `t` ([column, species, hash], see
-## _trunks_near), one per level of its points, each an ellipse around the points of
-## that level, so the crown casts one round shadow instead of a cluster of circles.
+## _trunks_near), one per level of its crown, each an ellipse around the points of
+## that level, so the crown casts one shadow instead of a cluster of circles.
 ## `trunks` are the trees around, to tell which points belong to `t`. Returns the
 ## number of discs.
 static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -> int:
@@ -472,55 +472,48 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 				if not levels.has(y):
 					levels[y] = {}
 				levels[y][Vector2i(x, z)] = true
+	if levels.is_empty():
+		return 0
 	# A conifer's lowest tier hangs on screen over the trunk below it (see
 	# Trees.hidden_trunk), so the tree looks green further down than its tiers are; its
 	# shadow falls from the crown where it shows, the discs lowered by the trunk the
 	# tier hides (bar CONIFER_BARE - 1 cells). The trunk that shows below the tier, short
 	# on a spruce and long on a larch, stays lit, its shadow from the trunk itself.
 	var lower := 0
-	if looks.tiers and not levels.is_empty():
+	if looks.tiers:
 		var low: int = levels.keys().min()
 		var front := 0
 		for p: Vector2i in levels[low]:
 			if p.x == at.x:
 				front = maxi(front, (p.y - at.y) / 2)
 		lower = maxi(0, Trees.hidden_trunk(front) - (CONIFER_BARE - 1))
+	# A disc round all the points of each level, and one on every level between them
+	# (odd ones too, and those a gap between lobes leaves empty) grown from the levels
+	# above and below: discs a level apart overlap into one shadow of the crown, two or
+	# more apart a narrow crown (a column, the tip of a cone, a lobe on its own) casts a
+	# string of balls.
+	var ys: Array = levels.keys()
+	ys.sort()
+	var boxes := {}
+	for y: int in ys:
+		var box := Vector4(INF, -INF, INF, -INF)
+		for p: Vector2i in levels[y]:
+			box = Vector4(minf(box.x, p.x), maxf(box.y, p.x), minf(box.z, p.y), maxf(box.w, p.y))
+		boxes[y] = box
 	var discs := 0
-	for y in levels:
-		# A disc round each patch of touching points of the level: a round crown casts
-		# one, the lobes of a lobed crown each their own, with light between them.
-		for b in _patches(levels[y]):
+	for i in ys.size():
+		var y0: int = ys[i]
+		var y1: int = ys[i + 1] if i + 1 < ys.size() else y0 + 1
+		for y in range(y0, y1):
+			var b: Vector4 = boxes[y0].lerp(boxes[y1], float(y - y0) / (y1 - y0)) if y > y0 else boxes[y0]
 			# Each point fills the cells around it, one on either side.
-			var c := Vector3((b[0] + b[1]) * 0.5 + 0.5, y - lower + 0.5, (b[2] + b[3]) * 0.5 + 0.5) * CELL
-			var wx: float = (b[1] - b[0] + 3) * CELL * 1.05 / SHADOW_DISC
-			var wz: float = (b[3] - b[2] + 3) * CELL * 1.05 / SHADOW_DISC
+			var c := Vector3((b.x + b.y) * 0.5 + 0.5, y - lower + 0.5, (b.z + b.w) * 0.5 + 0.5) * CELL
+			var wx: float = (b.y - b.x + 3) * CELL * 1.05 / SHADOW_DISC
+			var wz: float = (b.w - b.z + 3) * CELL * 1.05 / SHADOW_DISC
 			buf.append_array([wx, 0.0, 0.0, c.x, 0.0, 1.0, 0.0, c.y, 0.0, 0.0, wz, c.z])
 			buf.append_array([kind, 0.0, 0.0, 0.0])
 			discs += 1
 	return discs
-
-
-## The patches of touching points (two cells apart, sides or corners) among the columns
-## `points` (a set), each as [min x, max x, min z, max z].
-static func _patches(points: Dictionary) -> Array:
-	var out := []
-	var seen := {}
-	for p: Vector2i in points:
-		if seen.has(p):
-			continue
-		seen[p] = true
-		var box := [p.x, p.x, p.y, p.y]
-		var todo: Array[Vector2i] = [p]
-		while not todo.is_empty():
-			var q: Vector2i = todo.pop_back()
-			box = [mini(box[0], q.x), maxi(box[1], q.x), mini(box[2], q.y), maxi(box[3], q.y)]
-			for d in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2), Vector2i(2, 2), Vector2i(-2, 2), Vector2i(2, -2), Vector2i(-2, -2)]:
-				var n: Vector2i = q + d
-				if points.has(n) and not seen.has(n):
-					seen[n] = true
-					todo.append(n)
-		out.append(box)
-	return out
 
 
 ## What a tree of species `looks` (index `species`, its column's hash `h`) does over the
