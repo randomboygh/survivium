@@ -41,6 +41,9 @@ var moon_override := -1.0
 ## How bright the open sky is, 0 on a moonless night .. 1 by day; the torch and the
 ## weather particles follow it.
 var sky_light := 1.0
+## How much of the sun's light there is, the moon left out: 0 after dusk .. 1 by day,
+## less under clouds; fires cast their shadows below Effects.SHADOW_SKY of it.
+var sun_light := 1.0
 var rng := RandomNumberGenerator.new()
 var foliage := Vector3.ONE
 var grass := Vector3.ONE
@@ -98,11 +101,12 @@ func update(delta: float) -> void:
 
 func _update_light(delta: float) -> void:
 	var clock = game.clock
-	var time_of_day: float = clock.time_of_day
+	# The sun goes by the hours of the season's day (see Clock.sun_time).
+	var time_of_day: float = clock.sun_time()
 	var snow: float = clock.snow
 	var h := -cos(time_of_day * TAU)
 	daylight = clock.daylight()
-	moon = moon_override if moon_override >= 0.0 else Clock.moon_phase_light(clock.day + time_of_day)
+	moon = moon_override if moon_override >= 0.0 else Clock.moon_phase_light(clock.day + clock.time_of_day)
 	# Clouds hide the moon; snow on the ground gives its light back.
 	var overcast := clampf((clock.clouds - 0.3) / 0.6, 0.0, 1.0)
 	var moonlight := moon * (1.0 - 0.75 * overcast) * (1.0 + 0.5 * snow)
@@ -135,6 +139,7 @@ func _update_light(delta: float) -> void:
 	env.ambient_light_color = Color(0.55, 0.62, 0.78).lerp(Color(0.6, 0.5, 0.6), golden).lerp(night_ambient, night)
 	env.ambient_light_energy = lerpf(0.45, night_energy, night) + flash * 1.5
 	env.background_color = Color(0.2, 0.32, 0.38).lerp(Color(0.04, 0.06, 0.12).lerp(Color(0.01, 0.012, 0.02), 1.0 - minf(moonlight, 1.0)), night)
+	sun_light = daylight * (1.0 - 0.35 * overcast)
 	sky_light = clampf(daylight + 0.45 * moonlight * night, 0.0, 1.0) * (1.0 - 0.35 * overcast)
 	# Levels far below the player fade into the background outdoors and into darkness
 	# under a roof (see depth_fade in common.gdshaderinc).

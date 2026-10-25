@@ -1,5 +1,6 @@
 extends RefCounted
-## The shots tools/shot.gd takes, by name: the time of day, season, weather and moon,
+## The shots tools/shot.gd takes, by name: the time of day (the sun's, Clock.sun_time, so
+## the light is the same in any season; or `clock`, the time on the clock), season, weather and moon,
 ## where the player stands (an offset from the spawn, a place found in the world or a
 ## scene built for the shot, see tools/shot/places.gd), what they hold and do, and the
 ## settings of the picture. A new shot is a new entry here.
@@ -27,6 +28,11 @@ const SHOTS := {
 	# The player east of the fire, in line with it: the real shadow still as wide as the body.
 	"fire-inline": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(1.4, 0.0, 0.0), "fire_shadows": 3},
 	# The same with real shadows: of the player, the grass, bushes and trees.
+	# The campfire at 18:00 on the clock under a full moon in each season: the sun has
+	# set at the equinox and in winter and the fire casts its shadows, in summer it is day.
+	"fire-18-spring": {"time": 0.75, "clock": 0.75, "season": 0, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	"fire-18-summer": {"time": 0.75, "clock": 0.75, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	"fire-18-winter": {"time": 0.75, "clock": 0.75, "season": 3, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
 	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1},

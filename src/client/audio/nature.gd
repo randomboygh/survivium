@@ -84,7 +84,7 @@ func update(delta: float) -> void:
 	# Birds by day, most at dawn and fewest in winter; an owl in the woods at night.
 	if daylight > 0.4:
 		var rate := lerpf(BIRDS_OPEN, BIRDS_WOODS, woods) * (0.3 if winter else 1.0)
-		var dawn: float = absf(clock.time_of_day - 0.27)
+		var dawn: float = absf(clock.sun_time() - 0.27)
 		if dawn < 0.06:
 			rate *= DAWN_CHORUS
 		if rng.randf() < rate * delta:

@@ -33,6 +33,33 @@ func _test_clock() -> void:
 	for i in 60:
 		clock.step(1.0)
 	_check(clock.snow == 0.0 and not w.water_frozen, "and melts in summer")
+	clock.season = 1
+	clock.season_clock = Clock.DAYS_PER_SEASON * 0.5
+	var summer := [clock.sunrise(), clock.sunset()]
+	clock.time_of_day = 0.71
+	var summer_evening := clock.daylight()
+	clock.season = Clock.WINTER
+	var winter := [clock.sunrise(), clock.sunset()]
+	var winter_evening := clock.daylight()
+	_check(is_equal_approx(summer[0], 4.0) and is_equal_approx(summer[1], 20.0)
+			and is_equal_approx(winter[0], 8.0) and is_equal_approx(winter[1], 16.0)
+			and summer_evening > 0.99 and winter_evening < 0.05, "summer days are long, winter days short")
+	clock.season = 0
+	clock.season_clock = Clock.DAYS_PER_SEASON * 0.5
+	_check(is_equal_approx(clock.sunrise(), 6.0) and is_equal_approx(clock.sunset(), 18.0), "and half a day at mid-spring")
+	clock.season = Clock.WINTER
+	clock.season_clock = Clock.DAYS_PER_SEASON - 0.0001
+	var late_winter := clock.day_share()
+	clock.season = 0
+	clock.season_clock = 0.0
+	var round_trip := true
+	for t in [0.0, 0.1, 0.3, 0.5, 0.6, 0.8, 0.95]:
+		clock.time_of_day = t
+		round_trip = round_trip and absf(clock.time_at_sun(clock.sun_time()) - t) < 0.0001
+	_check(absf(late_winter - clock.day_share()) < 0.001 and round_trip,
+		"the day grows without a jump into spring, and time_at_sun undoes sun_time")
+	clock.season = 1
+	clock.time_of_day = 0.9
 	clock.real_time = true
 	clock.time_of_day = fposmod(Clock.local_time_of_day() + 0.5, 1.0)
 	var day_was := clock.day

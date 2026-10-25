@@ -82,9 +82,11 @@ func _run() -> void:
 	for shot_name in names:
 		main.player.position = spawn
 		var shot: Dictionary = Shots.SHOTS[shot_name]
-		main.clock.time_of_day = shot.time
 		main.clock.time_speed = 0.0
 		main.clock.season = shot.season
+		# A shot's time is the sun's: the same light whatever the season's day length.
+		main.clock.season_clock = main.clock.DAYS_PER_SEASON * 0.5
+		main.clock.time_of_day = shot.clock if shot.has("clock") else main.clock.time_at_sun(shot.time)
 		main.clock.raining = shot.get("rain", false)
 		if shot.has("weather"):
 			main.clock.set_weather(_weather_index(shot.weather))
