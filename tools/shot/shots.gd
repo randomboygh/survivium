@@ -365,6 +365,9 @@ const SHOTS := {
 	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
+	# The plant garden south-east of the spawn: trees, bushes and ground plants in pens.
+	"ground-plants-west": {"time": 0.42, "season": 1, "at": [12, 26]},
+	"ground-plants-east": {"time": 0.42, "season": 1, "at": [44, 26]},
 	# The biome plots south of the relief ground, five in a row from x -70 (TestGround.BIOME_*):
 	# the first row's birch grove and desert, forest and meadow, pine wood; the second
 	# row's steppe and taiga, tundra, swamp and beach.

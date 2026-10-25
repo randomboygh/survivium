@@ -40,11 +40,15 @@ const LOW_TIER := 1
 const MID_TIER := 2
 const TALL_TIER := 3
 ## What a world laid out by hand (WorldData.grows) makes grow on a column whatever the
-## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms.
+## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms,
+## nothing; from GROW_PLANT on one plant alone, the plant of that place in the load
+## order (Plants.BY_ID) at GROW_PLANT + its index.
 const GROW_EARS := 1
 const GROW_MOSS := 2
 const GROW_MUSHROOMS := 3
 const GROW_GLOW := 4
+const GROW_NONE := 5
+const GROW_PLANT := 16
 ## Lowland for ears: this many levels above the sea at most.
 const FERTILE_LEVELS := 10
 
@@ -226,6 +230,11 @@ static func _custom(w, x: int, y: int, z: int, m: int, out: Array[int], rng: Ran
 ## The plants of a column whose growth the world sets (`grow`, one of GROW_*), added to
 ## `out`: low grass under a field of ears or the moss of a forest floor.
 static func _grown(grow: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+	if grow == GROW_NONE:
+		return
+	if grow >= GROW_PLANT:
+		_one_plant(grow - GROW_PLANT, out, rng)
+		return
 	if grow == GROW_EARS:
 		out.append(rng.randi_range(0, 3))
 		for k in rng.randi_range(1, 2):
@@ -236,6 +245,53 @@ static func _grown(grow: int, out: Array[int], rng: RandomNumberGenerator) -> vo
 		out.append(MUSHROOM + rng.randi_range(0, 1))
 	elif grow == GROW_GLOW and rng.randf() < 0.6:
 		out.append(GLOW + rng.randi_range(0, 1))
+
+
+## The kinds of the plant at index `i` of the load order (Plants.BY_ID), growing alone
+## on a cell, added to `out`: one or two of its frames (three tufts of tall grass).
+static func _one_plant(i: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+	if i < 0 or i >= Plants.BY_ID.size():
+		return
+	var r: Dictionary = Plants.BY_ID.values()[i]
+	var first := -1
+	var frames := 2
+	var count := rng.randi_range(1, 2)
+	match r.kind:
+		"tuft":
+			first = 0
+			frames = 4
+		"tall_grass":
+			first = TALL
+			frames = 4
+			count = 3
+		"flowers":
+			first = FLOWER
+			frames = 4
+		"herbs":
+			first = HERB
+		"ears":
+			first = EAR
+		"reeds":
+			first = REED
+		"moss":
+			first = MOSS
+			count = 1
+		"mushrooms":
+			first = MUSHROOM
+			count = 1
+		"glow_mushrooms":
+			first = GLOW
+			count = 1
+		"custom":
+			for c in Plants.CUSTOM:
+				if c.id == r.id:
+					first = CUSTOM + c.first
+					frames = c.frames
+					count = 1
+	if first < 0:
+		return
+	for k in count:
+		out.append(first + rng.randi_range(0, frames - 1))
 
 
 ## What grows in the shade of a crown on grass column x, z, added to `out`: moss in
