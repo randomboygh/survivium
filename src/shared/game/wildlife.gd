@@ -41,6 +41,8 @@ const CRUISE := 2.5
 const DESCENT := 4.0
 ## Chance a resting flyer flies over to another place each time it thinks.
 const FLY_CHANCE := 0.05
+## Chance a walker that likes some plants looks for them when it picks where to go.
+const GRAZE_CHANCE := 0.3
 ## How far a climber looks for a tree to run up from a threat, in world units.
 const CLIMB_REACH := 6.0
 ## A swimmer keeps this far under the water surface, in cells.
@@ -297,7 +299,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 		return
 	if was != "wander" or a.pos.distance_to(a.target) < 0.3 or rng.randf() < 0.05:
-		var to: Variant = null if spec.likes.is_empty() else _place(spec, a.pos, 6.0, false)
+		# A grazer looks for what it likes now and then (looking is the dear part of a
+		# walker's thinking), else it wanders.
+		var to: Variant = null if spec.likes.is_empty() or rng.randf() > GRAZE_CHANCE else _place(spec, a.pos, 6.0, false, 4)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
 
 
@@ -354,18 +358,18 @@ func _take_off(a: Animal, spec: Dictionary, around: Vector3, reach: float) -> vo
 	a.perched = false
 
 
-## A place to go within `reach` of `around`: of a few tried, one where something the
+## A place to go within `reach` of `around`: of `tries` tried, one where something the
 ## species likes grows, else any open ground (open water for a swimmer); a spot in a
 ## crown when `tree` and there is a tree near. Null when all of those tried are water
 ## or under crowns (land, for a swimmer).
-func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool) -> Variant:
+func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool, tries := 8) -> Variant:
 	if tree:
 		var spot: Variant = _tree_spot(spec, around, reach)
 		if spot != null:
 			return spot
 	var best := around
 	var best_score := -1
-	for i in 8:
+	for i in tries:
 		var p := around + Vector3(rng.randf_range(-reach, reach), 0.0, rng.randf_range(-reach, reach))
 		var x := floori(p.x / CELL)
 		var z := floori(p.z / CELL)
