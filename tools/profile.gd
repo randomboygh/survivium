@@ -197,16 +197,16 @@ func _profile() -> void:
 		if main.hud.bag.visible:
 			main.hud.toggle_bag()
 		if s.get("forest", false):
-			main.player.position = _forest(main.world, main.player.position)
+			main.player.position = places.forest(main.world, main.player.position)
 		if s.get("underground", false):
-			main.player.position = _cave(main.world, main.player.position)
+			main.player.position = Places.cave(main.world, main.player.position)
 		if s.has("by_fire"):
 			for e: Dictionary in main.placed.things:
 				if main.placed.is_fire(e):
 					main.player.position = main.placed.center(e) + s.by_fire
 					break
 		if s.has("keys"):
-			main.player.position = _flat_near(main.world, main.player.position)
+			main.player.position = places.flat_near(main.world, main.player.position)
 		main.chunks.build_around()
 		if s.get("bag", false):
 			main.hud.toggle_bag()
@@ -289,7 +289,7 @@ func _hitches() -> void:
 	Engine.max_fps = 90
 	main.save.begin()
 	main.clock.time_speed = 12.0
-	main.player.position = _flat_near(main.world, main.player.position)
+	main.player.position = places.flat_near(main.world, main.player.position)
 	var nodes: Array = [main, main.creatures, main.fire_shadows, main.tracks, main.hud]
 	for n in nodes:
 		n.set_process(false)
