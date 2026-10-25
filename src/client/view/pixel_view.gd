@@ -27,10 +27,6 @@ const LAYER_PLAYER := 8
 ## Direction of view rays in the unsheared world in the default view: down and north
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
-## How far the camera may tilt from the default view: a tilt of t draws a wall of one
-## cell (1 - t) as tall, while the tops stay 8 px, so at every step a wall is a whole
-## number of pixels (see set_view).
-const MAX_TILT := 0.5
 
 ## The view the shaders draw (see set_view): which way of the world is up on the image
 ## (x, z), how much the tops are stretched along it and how long a wall of one unit is,
@@ -67,11 +63,12 @@ static func camera_size(image_height: int) -> float:
 
 
 ## Sets the view: the camera turned `turn` radians to the left from looking north
-## (a quarter turn looks west) and tilted `tilt` steeper (see MAX_TILT). The camera
-## still looks straight down; the shaders move each point up the image by its height
-## (`slope`), so walls get shorter as a steeper camera would draw them, while the tops
-## keep their 8 px a cell (`squash` 1) and the pixel grid holds. Sets the shader
-## globals too.
+## (a quarter turn looks west) and tilted `tilt` steeper: a wall of one cell drawn
+## (1 - tilt) as tall, so at the steps CameraRig takes it is a whole number of pixels.
+## The camera still looks straight down; the shaders move each point up the image by
+## its height (`slope`), so walls get shorter as a steeper camera would draw them,
+## while the tops keep their 8 px a cell (`squash` 1) and the pixel grid holds. Sets
+## the shader globals too.
 static func set_view(turn: float, tilt: float) -> void:
 	var v := view_of(turn, tilt)
 	up = v[0]
