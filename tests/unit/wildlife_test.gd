@@ -96,7 +96,7 @@ func _test_wildlife() -> void:
 	_test_birds(w, person)
 
 
-## Birds (the birds mod) come in flocks around a lead, fly off from a person together
+## Birds (the sparrow bundle of the animals mod) come in flocks around a lead, fly off from a person together
 ## and come down again away from them, out of a cat's reach while in the air, and
 ## sleep in the crowns at night.
 func _test_birds(w: WorldData, person: Who) -> void:
@@ -106,10 +106,10 @@ func _test_birds(w: WorldData, person: Who) -> void:
 	life.clock.time_of_day = 0.5
 	life.people = [person]
 	life.start(3)
-	var flocked: bool = life.count("birds:sparrow") == AiRules.SPECIES["birds:sparrow"].count
+	var flocked: bool = life.count("animals:sparrow") == AiRules.SPECIES["animals:sparrow"].count
 	var leads := 0
 	for a in life.animals:
-		if a.kind != "birds:sparrow":
+		if a.kind != "animals:sparrow":
 			continue
 		if a.lead == null:
 			leads += 1
@@ -120,8 +120,8 @@ func _test_birds(w: WorldData, person: Who) -> void:
 	life.animals.clear()
 	var at := person.position + Vector3(2.0, 0.0, 0.0)
 	at.y = life.ground(at.x, at.z)
-	var lead := _animal(life, "birds:sparrow", at + Vector3(1.0, 0.0, 0.0))
-	var mate := _animal(life, "birds:sparrow", at + Vector3(6.0, 0.0, 0.0))
+	var lead := _animal(life, "animals:sparrow", at + Vector3(1.0, 0.0, 0.0))
+	var mate := _animal(life, "animals:sparrow", at + Vector3(6.0, 0.0, 0.0))
 	mate.lead = lead
 	life.update(0.05)
 	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
@@ -150,7 +150,7 @@ func _test_birds(w: WorldData, person: Who) -> void:
 			w.set_cell(tx + dx, 7, tz + dz, Mat.LEAVES)
 	w.add_tree(tx, tz, 0)
 	life.clock.time_of_day = 0.0
-	var bird := _animal(life, "birds:sparrow", at)
+	var bird := _animal(life, "animals:sparrow", at)
 	for i in 100:
 		life.update(0.05)
 	_check(bird.perched and bird.state == "rest" and is_equal_approx(bird.pos.y, 8 * WorldData.CELL),

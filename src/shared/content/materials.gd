@@ -123,12 +123,12 @@ static func of_role(role: String, fallback: int) -> int:
 	return m if m >= 0 else fallback
 
 
-## The texture of material `m`: content/<mod>/textures/<texture>.png of its mod, three
-## tiles of PixelTextures.TILE px side by side (the top, the sides and the underside).
+## The texture of material `m`: textures/<texture>.png of its bundle (see Content.asset),
+## three tiles of PixelTextures.TILE px side by side (the top, the sides and the underside).
 static func texture_path(m: int) -> String:
 	var r: Dictionary = RECORDS[m]
 	var name: String = r.texture if r.texture != "" else r.id.get_slice(":", 1)
-	return "%s/%s/textures/%s.png" % [Content.ROOT, r.mod, name]
+	return Content.asset(r, "textures/%s.png" % name)
 
 
 ## Remaps cell values from a world saved with materials in the order `saved` (ids)

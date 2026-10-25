@@ -60,9 +60,9 @@ func _init(g) -> void:
 	game = g
 
 
-## Sets the seed, settings and mods of the world to start (game.world_seed,
+## Sets the seed, settings and bundles of the world to start (game.world_seed,
 ## world_options, world_mods) and reads its save if it has one. A saved world keeps the
-## mods it was made with; a new one takes the set chosen on «Новый мир».
+## bundles it was made with; a new one takes the set chosen on «Новый мир».
 func choose_world() -> void:
 	var current := WorldStore.read_current() if enabled else {}
 	game.world_mods = game.settings.world_mods()
@@ -88,11 +88,13 @@ func choose_world() -> void:
 	# A save from before mods were kept was made with every mod there was; one from before
 	# the plants (no `content` mark), the tools (`content` below 3), the sounds (below 4)
 	# or the materials of the landscape (below 5) were mods of their own had them in the
-	# base game.
-	game.world_mods = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
+	# base game; one from before bundles (below 6) lists mods, which stand for all their
+	# bundles (Mods.expand, which also follows the mods renamed since).
+	var mods: Array = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
 	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [5, "materials"]]:
-		if int(meta.get("content", 1)) < split[0] and not split[1] in game.world_mods and split[1] in Mods.available():
-			game.world_mods.insert(1, split[1])
+		if int(meta.get("content", 1)) < split[0] and not split[1] in mods and split[1] in Mods.available():
+			mods.insert(1, split[1])
+	game.world_mods = Mods.expand(mods)
 	# The order the materials were numbered in when the world was saved (its cells hold
 	# the numbers): a save from before the split (below 5) had the core's thirteen.
 	saved_materials = PackedStringArray(meta.get("materials", OLD_MATERIALS if int(meta.get("content", 1)) < 5 else []))
@@ -218,7 +220,7 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
-		"content": 5,
+		"content": 6,
 		"materials": Array(Mat.IDS),
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),

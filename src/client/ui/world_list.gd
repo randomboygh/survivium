@@ -87,9 +87,8 @@ func _fill() -> void:
 		if w.seed == TestGround.SEED:
 			pick.text = "Тестовый мир\nплощадки · день %d" % w.day
 		pick.tooltip_text = "Сохранён %s, в игре %d мин" % [w.saved.replace("T", " "), int(w.played / 60.0)]
-		var extra: Array = w.mods.filter(func(m: String) -> bool: return m != "core")
 		if not w.mods.is_empty():
-			pick.tooltip_text += "\nМоды: %s" % (", ".join(Mods.titles(extra)) if not extra.is_empty() else "только основа")
+			pick.tooltip_text += "\nМоды: %s" % Mods.summary(Mods.expand(w.mods))
 		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		pick.custom_minimum_size = Vector2(ROW_WIDTH, ROW_H)

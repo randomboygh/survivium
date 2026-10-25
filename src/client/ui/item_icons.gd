@@ -8,6 +8,7 @@ extends RefCounted
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Content := preload("res://src/shared/content/content.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
@@ -30,9 +31,9 @@ static func use_atlas(atlas: Texture2D, tile: int, tiles: int) -> void:
 	_cache.clear()
 
 
-## Where mod `mod` keeps the picture `icon` of its items.
-static func icon_path(mod: String, icon: String) -> String:
-	return "res://content/%s/icons/%s.png" % [mod, icon]
+## Where item `item` keeps its picture `icon`: in its bundle (see Content.asset).
+static func icon_path(item: Dictionary) -> String:
+	return Content.asset(item, "icons/%s.png" % item.icon)
 
 
 ## Where the interface's picture `name` is.
@@ -72,7 +73,7 @@ static func image_of(id: String) -> Image:
 	if item.is_empty():
 		return null
 	if item.icon != "":
-		var path := icon_path(item.mod, item.icon)
+		var path := icon_path(item)
 		_read(path)
 		return _images.get(path)
 	var m := Mat.index(item.place)
@@ -89,7 +90,7 @@ static func of_item(id: String) -> Texture2D:
 	if item.is_empty():
 		return null
 	if item.icon != "":
-		return _read(icon_path(item.mod, item.icon))
+		return _read(icon_path(item))
 	var m := Mat.index(item.place)
 	return tile(m) if m >= 0 else null
 

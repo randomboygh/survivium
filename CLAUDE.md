@@ -26,8 +26,9 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game), materials, sounds, tools, plants, animals, birds; mod.yaml,
-              data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/
+content/      the mods: core (the base game), materials, sounds, tools, plants, animals; mod.yaml, then
+              either data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/ or a folder per bundle
+              (bundle.yaml and the same inside; common/ for assets the bundles share)
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
 tools/        validate, shot (+ shot/shots the table, shot/places the spots), map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons,
@@ -72,16 +73,28 @@ tools/        validate, shot (+ shot/shots the table, shot/places the spots), ma
 ## Content
 
 `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items, creatures,
-trees, bushes, recipes, plants, sounds), lists of records with namespaced ids (`core:grass`).
-`src/shared/content/content.gd` reads and checks them against its schemas; `tools/validate.gd` runs
-the same checks in CI, and that every recipe can be made from what the world gives. The registries fill
-their static vars when their class loads, so code keeps using `Mat.GRASS`, `Trees.OAK`,
-`AiRules.SPECIES`. New numbers that describe content go into the YAML and the schema, not into
-constants. Every folder under `content/` with a `mod.yaml` is a mod; `requires` in it orders the
-load, a later record with the same id replaces an earlier one, and `patch: true` changes only the
-fields given (`field+` adds to a list). A world remembers its mods (`mods` in `world.json`), a new one
-takes the set switched on at «Новый мир»; `mods.gd` activates a set and refreshes every registry
-(material numbers follow the load order, so a world's set must not change). The engine asks for content by role, never by
+trees, bushes, recipes, plants, sounds), lists of records with namespaced ids (`core:grass`), or, when the
+mod is split, a folder per bundle (`content/animals/wolf/`: `bundle.yaml` with its title, then the same
+`data/`, `sprites/`, `sounds/`... inside; `content/<mod>/common/` holds assets the bundles share,
+`Content.asset` looks in the bundle, then there). A bundle is what the player switches on and off (ids
+`animals/wolf`; a mod without bundle folders is one bundle named by the mod); the records keep the mod's
+namespace (`animals:wolf`) and get `mod` and `bundle` fields. `src/shared/content/content.gd` reads and
+checks them against its schemas; `tools/validate.gd` runs the same checks in CI, and that every recipe can
+be made from what the world gives. The registries fill their static vars when their class loads, so code
+keeps using `Mat.GRASS`, `Trees.OAK`, `AiRules.SPECIES`. New numbers that describe content go into the YAML
+and the schema, not into constants. A bundle's dependencies follow from its references: a record that
+names one owned by another bundle needs that bundle (`Content.deps`, `closure`), unless the schema marks
+the field `soft` (a tree's `seed`, a bush's `fruit`, a creature's `likes`, a plant's `gives`, an item's
+`repair`, a material's `bonus` and `mow_gives`): then the reference is dropped when its owner is off and
+the game does without (`Content.strict` in the validator still reports it for the full set). `requires`
+and `wants` in `mod.yaml` or `bundle.yaml` add to that; `resolve` orders a set (core first) and drops a
+bundle whose hard dependency is missing (`Content.dropped[b]` names it; the setup screen shows «нужен X»).
+A later record with the same id replaces an earlier one, `patch: true` changes only the fields given
+(`field+` adds to a list); a patch of a record whose bundle is off is skipped. A world remembers its
+bundles (`mods` in `world.json`, older lists expanded by `Mods.expand`), a new one takes the set switched
+on at «Новый мир» (page «Моды», a row per mod, its own page per bundle); `mods.gd` activates a set and
+refreshes every registry (material numbers follow the load order, so a world's set must not change; the
+button to reread the data calls `Mods.rescan`, not `reload`, which `Script.reload` shadows). The engine asks for content by role, never by
 id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushes.pick`), a plant by its `kind`
 (`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
 (`Items.with_prop`), a tool by its `tool`, a cell material by its `role` (`Mat.BEACH`, `Mat.BANK`, `Mat.SCREE`,
@@ -95,11 +108,11 @@ leaves). How a material is drawn is data too: `priority`, `ground`, `drains` mak
 `tools/art/texture_art.gd` and written by `tools/make_textures.gd`. A world saves its material list (`materials` in
 `world.json`) and `Mat.remap` translates the cells of an older one. A thing's voxel model is `models/<model>.png` of its mod, a row of square slices one
 per level (alpha 128 marks a leaf), read by `VoxelModel.from_image`; its picture in the bag is `icons/<icon>.png`
-(12×12, `ItemIcons`), the interface's own pictures are `assets/ui/`. `content/birds/` (sparrows, see its README) is a
+(12×12, `ItemIcons`), the interface's own pictures are `assets/ui/`. `content/animals/sparrow/` (see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
-its mod, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
+its bundle, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in
-`content/<mod>/sounds/` (`<name>.wav` or `<name>_N.wav` per variant), made by `tools/make_sounds.gd`
+the `sounds/` of their bundle (`<name>.wav` or `<name>_N.wav` per variant), made by `tools/make_sounds.gd`
 from `tools/sound/synth.gd`; code asks for a sound by its bare name (`play("chop")`, `Sound.resolve`: the
 last loaded mod's record of that name, silence when none), a material's `step` and `hit` (patched onto
 core's materials by the sounds mod), a creature's `calls` and `alarm` (its own mod's records) say who sounds. The player's pictures, the models and the icons were drawn by `tools/art/` and saved by

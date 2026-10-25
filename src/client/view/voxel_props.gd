@@ -5,6 +5,7 @@ extends RefCounted
 ## makes itself: a clod of a block's colour, the sack a death leaves, the bundle of a thing
 ## without a model, and the boxes a placed thing takes.
 
+const Content := preload("res://src/shared/content/content.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const RES := VoxelModel.RES
@@ -32,15 +33,15 @@ static func of_item(item: Dictionary, centred: bool) -> VoxelModel:
 	var name: String = item.get("model", "")
 	if name == "":
 		return null
-	var path := model_path(item.get("mod", "core"), name)
+	var path := model_path(item, name)
 	if not _read.has(path):
 		_read[path] = VoxelModel.from_image(load(path).get_image(), centred) if ResourceLoader.exists(path) else null
 	return _read[path]
 
 
-## Where mod `mod` keeps model `name`.
-static func model_path(mod: String, name: String) -> String:
-	return "res://content/%s/models/%s.png" % [mod, name]
+## Where item `item` keeps model `name`: in its bundle (see Content.asset).
+static func model_path(item: Dictionary, name: String) -> String:
+	return Content.asset(item, "models/%s.png" % name)
 
 
 ## Forgets the models read, for a reload of the mods.

@@ -3,8 +3,8 @@ extends Control
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
 ## as rows "name ‹ value ›" like the settings window, with a map of the land around
 ## the spawn drawn a few rows a frame as the choice changes. The mods of the new world
-## are a page of their own, opened from the row «Моды» and left with "Назад" (or
-## Escape). "Создать мир" (or Enter) keeps the choice in Settings and starts the world,
+## are a page of their own, opened from the row «Моды», with a page per mod of several
+## bundles, each left with "Назад" (or Escape). "Создать мир" (or Enter) keeps the choice in Settings and starts the world,
 ## "Назад" (or Escape) leaves it.
 ## It covers the whole screen over a shade of the world behind, the panel in the
 ## middle. `game` is the Main node.
@@ -43,7 +43,7 @@ signal cancelled
 var game
 var _rows := []
 var _focus := 0
-## The page of rows shown: "world" (the seed and the land) or "mods".
+## The page of rows shown: "world" (the seed and the land), "mods" or "mod:<id>" (its bundles).
 var _page := "world"
 var _panel: PanelContainer
 var _box: BoxContainer
@@ -108,6 +108,7 @@ func _ready() -> void:
 	_list.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_list)
 	_build_rows()
+	_set_focus(1)
 	var start := Button.new()
 	start.text = "Создать мир"
 	start.focus_mode = Control.FOCUS_NONE
@@ -134,25 +135,16 @@ func _ready() -> void:
 
 
 ## Fills the list with the rows of `_page`: the seed, the kind of world and the land's
-## settings with the row «Моды» last, or one row per mod besides the base game.
+## settings with the row «Моды» last, or the mods, or the bundles of one mod.
 func _build_rows() -> void:
 	for row in _list.get_children():
 		_list.remove_child(row)
 		row.queue_free()
 	_rows.clear()
 	var s = game.settings
-	if _page == "mods":
-		# A world is made with the mods switched on and keeps them (a saved world's set
-		# cannot change here).
-		for mod: String in Mods.available():
-			if mod == "core":
-				continue
-			var m := mod
-			_add_row(Mods.titles([mod])[0], ["выкл", "вкл"],
-				func() -> int: return 1 if m in s.world_mods() else 0,
-				func(i: int) -> void: s.set_world_mod(m, i == 1), MOD_NAME_WIDTH)
+	if _page != "world":
+		_mod_rows(s)
 		_refresh()
-		_set_focus(0)
 		return
 	_seed_row()
 	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
@@ -168,20 +160,62 @@ func _build_rows() -> void:
 	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
 	_mods_row()
 	_refresh()
-	_set_focus(1)
+
+
+## The rows of the mods page, one per mod besides the base game («выкл», «вкл» or how
+## many of its bundles are on, with a button to its page when it has several), or of a
+## mod's page, one per bundle (one left out for want of another says which). A world is
+## made with what is switched on and keeps it (a saved world's set cannot change here).
+func _mod_rows(s) -> void:
+	var state: Dictionary = Mods.resolve(s.world_mods_on())
+	var on: Array = state.order
+	if _page == "mods":
+		for mod: String in Mods.available():
+			if mod == "core":
+				continue
+			var m := mod
+			var mine: Array = Mods.bundles(mod)
+			var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
+			_add_row(Mods.mod_title(mod), ["выкл", "вкл"],
+				func() -> int: return 1 if lit == mine.size() else 0,
+				func(i: int) -> void: s.set_world_mod(m, i == 1), MOD_NAME_WIDTH,
+				"%d из %d" % [lit, mine.size()] if lit > 0 and lit < mine.size() else "",
+				_show_page.bind("mod:" + mod) if mine.size() > 1 else Callable())
+		return
+	var mod := _page.trim_prefix("mod:")
+	_header(Mods.mod_title(mod))
+	for bundle: String in Mods.bundles(mod):
+		var b := bundle
+		var need: String = state.dropped.get(bundle, "")
+		_add_row(Mods.title(bundle), ["выкл", "вкл"],
+			func() -> int: return 1 if b in on else 0,
+			func(i: int) -> void: s.set_world_mod(b, i == 1), MOD_NAME_WIDTH,
+			"нужен «%s»" % Mods.title(need) if need != "" else "")
+
+
+## A line over the rows of a page: the name of what they belong to.
+func _header(text: String) -> void:
+	var label := UiStyle.label(text, UiStyle.ACCENT)
+	label.custom_minimum_size = Vector2(0, ARROW)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_list.add_child(label)
 
 
 ## Shows page `page` (see _page) and fits the panel to its rows.
 func _show_page(page: String) -> void:
 	_page = page
 	_build_rows()
+	_set_focus(1 if _page == "world" else 0)
 	if is_inside_tree():
 		_fit()
 
 
-## "Назад": the mods page goes back to the world's rows, the world's rows leave the screen.
+## "Назад": a mod's page goes back to the mods, the mods page to the world's rows, the
+## world's rows leave the screen.
 func _back() -> void:
-	if _page == "mods":
+	if _page.begins_with("mod:"):
+		_show_page("mods")
+	elif _page == "mods":
 		_show_page("world")
 	else:
 		cancelled.emit()
@@ -264,8 +298,8 @@ func _mods_row() -> void:
 	value.custom_minimum_size = Vector2(VALUE_WIDTH + ARROW + 2, 0)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var all: int = Mods.available().size() - 1
-	var on: int = game.settings.world_mods().size() - 1
+	var all: int = Mods.all().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
+	var on: int = game.settings.world_mods().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
 	value.text = "%d из %d" % [on, all] if on < all else "все"
 	row.add_child(value)
 	var b := Button.new()
@@ -282,7 +316,12 @@ func _mods_row() -> void:
 		"open": _show_page.bind("mods")})
 
 
-func _add_row(name: String, values: Array, getter: Callable, setter: Callable, name_width := NAME_WIDTH) -> void:
+## A row "name ‹ value ›" of `values` read by `getter` and set by `setter`. A mod's row:
+## `show` stands in for the value's text ("2 из 6", "нужен «Дуб»"), `open` is what its
+## extra button does (its bundles' page), and its arrows go straight to the first or the
+## last value (off, on) instead of round.
+func _add_row(name: String, values: Array, getter: Callable, setter: Callable, name_width := NAME_WIDTH,
+		show := "", open := Callable()) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	_list.add_child(row)
@@ -298,9 +337,21 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, n
 	value.custom_minimum_size = Vector2(VALUE_WIDTH, 0)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value.clip_text = true
+	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(value)
 	_arrow(row, "next", index, 1)
-	_rows.append({"name": label, "values": values, "get": getter, "set": setter, "label": value})
+	if open.is_valid():
+		var b := Button.new()
+		b.icon = UiStyle.icon("menu")
+		b.tooltip_text = "Что входит"
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(ARROW, ARROW)
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.pressed.connect(open)
+		row.add_child(b)
+	_rows.append({"name": label, "values": values, "get": getter, "set": setter, "label": value, "show": show,
+		"direct": _page != "world"})
 
 
 func _arrow(parent: Node, icon: String, row: int, dir: int) -> void:
@@ -326,20 +377,27 @@ func _step(i: int, dir: int) -> void:
 		return
 	var cur: int = clampi(r.get.call(), 0, n - 1)
 	var next := posmod(cur + dir, n)
+	if r.get("direct", false):
+		next = 0 if dir < 0 else n - 1
 	# "Свой" is what the rows below make, not a choice of its own.
 	if _page == "world" and i == 1 and next == KINDS.size():
 		next = posmod(next + dir, n)
 	r.set.call(next)
-	_refresh()
 	if _page == "world":
+		_refresh()
 		_restart_map()
+	else:
+		# What a mod's switch did to the others shows only on rows made anew.
+		_build_rows()
+		_set_focus(i)
+		_fit()
 
 
 func _refresh() -> void:
 	for r in _rows:
 		if r.label != null:
 			var i: int = r.get.call()
-			r.label.text = r.values[clampi(i, 0, r.values.size() - 1)]
+			r.label.text = r.values[clampi(i, 0, r.values.size() - 1)] if r.get("show", "") == "" else r.show
 
 
 func _set_focus(i: int) -> void:

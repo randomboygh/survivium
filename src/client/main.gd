@@ -145,7 +145,7 @@ var save_root := ""
 ## The seed and WorldGen settings of the world being played.
 var world_seed := 0
 var world_options := {}
-## The mods the world is played with (see Mods).
+## The bundles of the mods the world is played with (see Mods).
 var world_mods: Array = []
 ## When the scene started, for the load time.
 var start_ms := 0

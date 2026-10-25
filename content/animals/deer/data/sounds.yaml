@@ -1,0 +1,5 @@
+# Голоса: sounds/<id>_1.wav ... этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
+- id: deer
+  title: Крик оленя
+  variants: 2
+  volume: 0.7

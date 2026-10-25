@@ -5,6 +5,7 @@ extends RefCounted
 ## anything else by its icon, which the figure turns with the hand. `game` is the Main
 ## node that owns the scene.
 
+const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
@@ -39,7 +40,7 @@ func look(id: String) -> Dictionary:
 	if item.is_empty():
 		return {}
 	if item.sprite != "":
-		return {"sprite": "res://content/%s/sprites/held/%s.png" % [item.mod, item.sprite], "anim": item.anim}
+		return {"sprite": Content.asset(item, "sprites/held/%s.png" % item.sprite), "anim": item.anim}
 	if not _pictures.has(id):
 		_pictures[id] = ItemIcons.image_of(id)
 	return {"icon": id, "picture": _pictures[id], "anim": item.anim}

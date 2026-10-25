@@ -150,7 +150,7 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
-	# A flock of sparrows (the birds mod) about the player: on the ground, in the air
+	# A flock of sparrows (the animals mod) about the player: on the ground, in the air
 	# and in the crowns near.
 	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
 	"birds-forest": {"time": 0.42, "season": 1, "forest": true, "birds": true},
@@ -297,6 +297,8 @@ const SHOTS := {
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-setup-mods": {"time": 0.45, "season": 1, "touch": true, "setup": "mods"},
+	# The page of one mod: a row per bundle (its animals), each switched on its own.
+	"ui-setup-mod": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:animals"},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
 	# The workbench, kiln, chest and campfire by the spawn marked on the map, close up.
 	"ui-map-marks": {"time": 0.45, "season": 1, "touch": true, "craft": true, "closed": true, "map": true, "map_zoom": 8},

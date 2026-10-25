@@ -76,7 +76,7 @@ func _test_content() -> void:
 	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].berries == Color.BLACK and Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].spread is Vector3, "bushes get their looks")
 	_check(AiRules.SPECIES["animals:wolf"].diet == ["meat"] and AiRules.SPECIES["animals:wolf"].sprite == "wolf", "creatures get their properties")
 	# The checks catch what a mod author gets wrong.
-	var before := Content.MODS.duplicate()
+	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_test"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
 	_write(mod + "/mod.yaml", "id: _test\ntitle: Test\nversion: \"1\"\napi: 1\n")
@@ -84,7 +84,7 @@ func _test_content() -> void:
 	_write(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
 	_write(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
 	_write(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: core:cord\n  needs: {core:fiber: 0}\n- id: dust\n  title: y\n  makes: core:cord\n  needs: {stone_dust: 1}\n")
-	Content.MODS.append("_test")
+	Content.BUNDLES.append("_test")
 	Content.refresh()
 	var found := {}
 	for p in Content.problems:
@@ -94,7 +94,7 @@ func _test_content() -> void:
 				found[what] = true
 	_check(found.size() == 12, "the loader reports every kind of mistake (%d of 12): %s" % [found.size(), Content.problems])
 	_check(Content.find("materials", "_test:glass").title == "Стекло", "a duplicate id within a mod is skipped")
-	Content.MODS.assign(before)
+	Content.BUNDLES.assign(before)
 	for f in ["data/materials.yaml", "data/creatures.yaml", "data/trees.yaml", "data/recipes.yaml", "mod.yaml"]:
 		DirAccess.remove_absolute(mod + "/" + f)
 	DirAccess.remove_absolute(mod + "/data")
@@ -103,46 +103,85 @@ func _test_content() -> void:
 	_check(Content.problems.is_empty(), "core content loads clean again")
 
 
-## Mods load after what they require, patch each other's records, and a world's set of
-## mods can leave some out (see mods.gd).
+## Mods are folders of bundles; a bundle loads after what its records refer to, a hard
+## reference to a bundle left out leaves it out too, a soft one is dropped, patches wait
+## for their records, and a world's set can leave bundles out (see content.gd, mods.gd).
 func _test_mods() -> void:
-	var all := Content.available()
-	_check(all.size() >= 3 and all[0] == "core" and "animals" in all and "birds" in all, "the mods under content/ are found, core first: %s" % [all])
+	var mods := Content.available()
+	var all := Content.all_bundles()
+	_check(mods.size() >= 3 and mods[0] == "core" and "animals" in mods and not "birds" in mods, "the mods under content/ are found, core first: %s" % [mods])
+	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants" in all and Content.mod_of("animals/wolf") == "animals",
+		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
+	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants") == "Растения" and Mods.bundles("animals").size() == 6, "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
-		for need in Mods.requires(Content.loaded[i]):
+		for need in Content.deps(Content.loaded[i]):
 			after_needs = after_needs and Content.loaded.find(need) < i
-	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants") < Content.loaded.find("birds"),
-		"every mod loads after what it requires: %s" % [Content.loaded])
-	var before := Content.MODS.duplicate()
-	for m in ["_a", "_b", "_c"]:
+	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants") < Content.loaded.find("animals/sparrow")
+		and Content.loaded.find("materials") < Content.loaded.find("tools") and Content.loaded.find("tools") < Content.loaded.find("plants"),
+		"every bundle loads after what its records refer to: %s" % [Content.loaded])
+	_check(Content.dropped.is_empty() and Content.problems.is_empty(), "the full set loads whole")
+	_check(Mods.closure("animals/sparrow") == ["core", "animals/sparrow"] and Mods.closure("plants") == ["core", "materials", "tools", "plants"],
+		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing): %s" % [Mods.closure("plants")])
+	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf", "plants"],
+		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
+	_check(Mods.summary(["core", "animals/wolf", "plants"]) == "Животные (1 из 6), Растения" and Mods.summary(["core"]) == "только основа", "a set is summed up by mods")
+	var before := Content.BUNDLES.duplicate()
+	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
 	_write("res://content/_a/mod.yaml", "id: _a\ntitle: A\nversion: \"1\"\napi: 1\nrequires: [_b]\n")
 	_write("res://content/_b/mod.yaml", "id: _b\ntitle: B\nversion: \"1\"\napi: 1\nrequires: [core]\n")
 	_write("res://content/_c/mod.yaml", "id: _c\ntitle: C\nversion: \"1\"\napi: 1\nrequires: [_missing]\n")
+	_write("res://content/_d/mod.yaml", "id: _d\ntitle: D\nversion: \"1\"\napi: 1\n")
 	_write("res://content/_b/data/creatures.yaml",
-		"- id: animals:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: animals:rabbit\n  patch: true\n  diet+: 3\n")
+		"- id: animals:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: animals:rabbit\n  patch: true\n  diet+: 3\n- id: animals:deer\n  patch: true\n  speed: 9\n")
 	_write("res://content/_a/data/creatures.yaml", "- id: animals:wolf\n  patch: true\n  sight: 99\n")
 	_write("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
-	Mods.activate(["core", "animals", "_a", "_c", "_b"])
-	_check(Content.loaded == ["core", "animals", "_b", "_a"], "a mod loads after what it requires, a mod missing its requirement is left out: %s" % [Content.loaded])
+	# A recipe out of grain (a hard reference to the plants bundle) and a tree that gives
+	# a cone (soft).
+	_write("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: core:fiber\n  needs: {plants:grain: 2}\n")
+	_write("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  land: highland\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
+	# And a bush whose fruit (soft) is a record nobody has.
+	_write("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  under: {any: 1}\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
+	Content.refresh()
+	Mods.activate(["core", "animals/wolf", "animals/rabbit", "animals/sparrow", "_a", "_c", "_d", "_b"])
+	_check(Content.loaded == ["core", "_b", "_a", "animals/rabbit", "animals/sparrow", "animals/wolf"] or Content.loaded == ["core", "animals/rabbit", "animals/sparrow", "animals/wolf", "_b", "_a"],
+		"a bundle loads after what it requires and patches, one missing its requirement is left out: %s" % [Content.loaded])
+	_check(Content.loaded.find("_b") > Content.loaded.find("animals/wolf") and Content.loaded.find("_a") > Content.loaded.find("_b"), "patches load after their records")
 	var wolf: Dictionary = AiRules.SPECIES["animals:wolf"]
-	_check(wolf.speed == 1.5 and wolf.diet == ["meat", "plants"] and wolf.sight == 99 and wolf.mod == "animals",
+	_check(wolf.speed == 1.5 and wolf.diet == ["meat", "plants"] and wolf.sight == 99 and wolf.mod == "animals" and wolf.bundle == "animals/wolf",
 		"patches change only the fields they give, `+` adds to a list, and stack: %s" % [wolf])
-	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("birds:sparrow"), "records of mods left out are not loaded")
+	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("animals:cat") and Content.dropped.get("_c") == "_missing",
+		"records of bundles left out are not loaded: %s" % [Content.dropped])
+	_check(Content.dropped.get("_d") == "plants" and Crafting.get_recipe("_d:porridge").is_empty() and Trees.index("_d:fir") < 0,
+		"a bundle whose hard reference names a record of a bundle not in the set is left out with that bundle as the reason: %s" % [Content.dropped])
+	var sparrow: Dictionary = AiRules.SPECIES["animals:sparrow"]
+	_check(sparrow.likes.is_empty() and Trees.pick(Trees.HIGHLAND, 0.5) == -1, "a soft reference to a record not loaded is dropped: the sparrow lives without ears or trees")
 	var found := {}
 	for p in Content.problems:
 		for what in ["requires `_missing`", "core:nobody: patches", "rabbit.diet: `+`"]:
 			if what in p:
 				found[what] = true
 	_check(found.size() == 3, "the loader reports a missing requirement, a patch of nothing and a bad `+` (%d of 3): %s" % [found.size(), Content.problems])
-	_check(Mods.closure("_a", ["core", "_a", "_b"]) == ["core", "_b", "_a"], "a mod's closure is it with what it requires, in load order")
-	for m in ["_a", "_b", "_c"]:
+	_check(not Array(Content.problems).any(func(p: String) -> bool: return "deer" in p or "likes" in p or "cone" in p),
+		"a patch of a record not loaded and a soft reference dropped are no problems: %s" % [Content.problems])
+	Mods.activate(["core", "_d", "plants", "tools", "materials"])
+	_check(Content.dropped.is_empty() and Content.problems.is_empty() and Crafting.get_recipe("_d:porridge").needs == {"plants:grain": 2}
+		and Trees.SPECIES[Trees.index("_d:fir")].seed == "plants:cone" and Bushes.TYPES[Bushes.index("_d:thorn")].fruit == "",
+		"with the bundle it needs in the set, the bundle loads whole, a soft reference to nothing dropped in silence: %s %s" % [Content.dropped, Content.problems])
+	_check(Mods.closure("_d", ["core", "_d", "plants", "tools", "materials"]) == ["core", "materials", "tools", "plants", "_d"],
+		"a bundle's closure follows hard references through the bundles they lead to")
+	Content.strict = true
+	Mods.activate(["core", "_d", "plants", "tools", "materials", "sounds"])
+	_check(Array(Content.problems).any(func(p: String) -> bool: return "thorn.fruit" in p and "plants:nothing" in p), "strict, a soft reference to nothing is a problem too: %s" % [Content.problems])
+	Content.strict = false
+	for m in ["_a", "_b", "_c", "_d"]:
 		for f in DirAccess.get_files_at("res://content/%s/data" % m):
 			DirAccess.remove_absolute("res://content/%s/data/%s" % [m, f])
 		DirAccess.remove_absolute("res://content/%s/data" % m)
 		DirAccess.remove_absolute("res://content/%s/mod.yaml" % m)
 		DirAccess.remove_absolute("res://content/%s" % m)
+	Content.refresh()
 	# Without the plants mod the world knows no tree, bush or plant and grows nothing.
 	Mods.activate(["core"])
 	var bare := WorldData.new(8, Vector2i(8, 8))
@@ -162,7 +201,7 @@ func _test_mods() -> void:
 		and Bushes.pick(Trees.HIGHLAND, 0.5) == Bushes.sample(Trees.HIGHLAND) and Bushes.pick(Trees.HIGHLAND, 0.9) == Bushes.sample(Bushes.ANY)
 		and Bushes.pick(Bushes.OPEN, 0.3) == Bushes.sample(Trees.LOWLAND) and Plants.kind_of(Plants.EARS) == Plants.KINDS.EARS,
 		"trees, bushes and plants are picked by their roles, with the plain bush where the roll misses")
-	_check(Content.problems.is_empty() and AiRules.SPECIES.has("birds:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
+	_check(Content.problems.is_empty() and AiRules.SPECIES.has("animals:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
 		"the full set loads clean again")
 
 

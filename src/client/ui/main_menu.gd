@@ -52,9 +52,9 @@ const STARS := 24
 const BIRD := Color("#14211b")
 const FLOCK_PX := CLOUD_PX
 const FLOCK_EVERY := 14.0
-## The sparrow on the name is the game's own (the birds mod's picture, facing right):
+## The sparrow on the name is the game's own (the animals mod's picture, facing right):
 ## sitting it is the first frame, in a hop it beats its wings with the others.
-const SPARROW := "birds:sparrow"
+const SPARROW := "animals:sparrow"
 ## Columns of the picture from which its head dips when it pecks.
 const SPARROW_HEAD := 5
 ## Seconds a hop takes and how high it goes (UI px), and how far one carries it.
