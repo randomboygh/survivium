@@ -1,0 +1,5 @@
+# Голоса: sounds/<id>_N.wav этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
+- id: bear
+  title: Рёв медведя
+  variants: 2
+  volume: 0.9

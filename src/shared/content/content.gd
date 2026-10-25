@@ -114,6 +114,7 @@ const SCHEMAS := {
 		"sprite": {"type": "string", "default": ""},
 		"frames": {"type": "int", "min": 1, "default": 1},
 		"flies": {"type": "bool", "default": false},
+		"swims": {"type": "bool", "default": false},
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
 		"likes": {"type": "list", "of": "ref:plants", "soft": true, "default": []},

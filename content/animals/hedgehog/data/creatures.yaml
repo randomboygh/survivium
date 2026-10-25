@@ -1,0 +1,16 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# Ночной, медленный, ест насекомых (meat, но мелкий), людей не боится.
+- id: hedgehog
+  title: Ёж
+  mass: 1
+  diet: [meat]
+  speed: 1.5
+  sight: 5
+  human_wariness: 0.3
+  active: night
+  count: 4
+  sprite: hedgehog
+  frames: 3
+  calls: hedgehog

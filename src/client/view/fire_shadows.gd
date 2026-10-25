@@ -617,9 +617,19 @@ func _shades(lights: Array, night: float) -> Dictionary:
 	var out := {}
 	var who := [[game.player, game.player.position, game.player.sprite]]
 	for a in game.wildlife.animals:
+		# Birds up in the air or in a crown are above the shadows on the ground; most
+		# animals are out of every light's range.
+		if not a.near or a.aloft():
+			continue
+		var lit_at_all := false
+		for l: Dictionary in lights:
+			if Vector2(a.pos.x - l.at.x, a.pos.z - l.at.z).length_squared() < l.range * l.range:
+				lit_at_all = true
+				break
+		if not lit_at_all:
+			continue
 		var sprite = game.creatures.sprite_of(a)
-		# Birds up in the air or in a crown are above the shadows on the ground.
-		if a.near and sprite != null and not a.aloft():
+		if sprite != null:
 			who.append([a, a.pos, sprite])
 	for w: Array in who:
 		var p: Vector3 = w[1]

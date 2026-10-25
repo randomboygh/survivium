@@ -21,6 +21,13 @@ func _test_ai_relations() -> void:
 	_check(not AiRules.is_food("animals:wolf", "core:human"), "a lone wolf does not see a human as food")
 	_check(AiRules.is_threat("animals:rabbit", "core:human"), "rabbit fears people")
 	_check(AiRules.is_active("animals:wolf", 0.0) and not AiRules.is_active("animals:wolf", 1.0), "wolves are active at night")
+	# Water and land: a walker does not hunt what swims, nor a swimmer what walks, but
+	# a flyer gets at both.
+	_check(not AiRules.is_food("animals:cat", "animals:perch"), "a cat does not hunt fish")
+	_check(not AiRules.is_threat("animals:frog", "animals:cat"), "a frog does not fear a cat")
+	_check(AiRules.is_food("animals:perch", "animals:frog"), "a perch hunts frogs")
+	_check(AiRules.is_food("animals:owl", "animals:frog") and AiRules.is_food("animals:owl", "animals:sparrow"), "an owl hunts frogs and sparrows")
+	_check(AiRules.is_threat("animals:sparrow", "animals:crow"), "a sparrow fears a crow")
 
 
 ## A forest chunk the player changed (a tree felled, a hole dug, a block placed, a bush
@@ -47,9 +54,10 @@ func _test_wildlife() -> void:
 		life.born.connect(func(_a: Wildlife.Animal) -> void: born[0] += 1)
 		life.start(7)
 		made.append(life.animals.map(func(a: Wildlife.Animal) -> String: return "%s %v" % [a.kind, a.pos]))
+		# The swimmers find no water here (see _test_swimmers).
 		var all := 0
 		for kind in AiRules.SPECIES:
-			if kind != AiRules.HUMAN:
+			if kind != AiRules.HUMAN and not AiRules.SPECIES[kind].swims:
 				all += AiRules.SPECIES[kind].count
 		_check(life.animals.size() == all and born[0] == all, "as many animals come as their species say")
 	_check(made[0] == made[1], "the same seed brings the same animals to the same places")
@@ -93,7 +101,58 @@ func _test_wildlife() -> void:
 	_check(wolf.pos == from and is_equal_approx(wolf.away, 0.05), "an animal no one looks at waits for its step")
 	life.update(0.06)
 	_check(wolf.pos != from and wolf.away == 0.0, "and then takes it at once")
+	_check(wolf.moving, "a walking animal walks its picture")
 	_test_birds(w, person)
+	_test_swimmers(w)
+
+
+## Swimmers (the perch bundle) keep to open water: one put into a pond stays a little
+## under its surface, and stops at the shore when its way leads onto the land.
+func _test_swimmers(w: WorldData) -> void:
+	var px := 20
+	var pz := 20
+	var side := 80
+	for z in range(pz, pz + side):
+		for x in range(px, px + side):
+			w.set_cell(x, 3, z, Mat.DIRT)
+			w.set_cell(x, 4, z, Mat.WATER)
+			w.set_cell(x, 5, z, Mat.WATER)
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [Who.new()]
+	var at := Vector3(px + 3.0, 0.0, pz + 3.0) * WorldData.CELL
+	var top := (5.0 + WorldData.WATER_TOP) * WorldData.CELL
+	_check(is_equal_approx(life.water_top(at.x, at.z), top), "the water surface of a pond")
+	var fish := _animal(life, "animals:perch", at)
+	fish.pos.y = top - Wildlife.DIP * WorldData.CELL
+	fish.state = "flee"
+	fish.think = 100.0
+	fish.target = at + Vector3(side + 10.0, 0.0, 0.0) * WorldData.CELL
+	for i in 400:
+		life.update(0.05)
+	var swam := fish.pos.x > at.x + 1.0
+	var in_water: bool = w.get_cell(floori(fish.pos.x / WorldData.CELL), 5, floori(fish.pos.z / WorldData.CELL)) == Mat.WATER
+	_check(swam and in_water and fish.pos.x < (px + side) * WorldData.CELL and fish.target == fish.pos
+		and is_equal_approx(fish.pos.y, top - Wildlife.DIP * WorldData.CELL),
+		"a perch swims to the shore and no further (%v)" % fish.pos)
+	life.animals.clear()
+	life.people = [Who.new()]
+	life.people[0].position = at
+	life.start(5)
+	var fishes := 0
+	for a in life.animals:
+		if a.kind == "animals:perch":
+			fishes += 1
+			if w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) != Mat.WATER:
+				fishes = -100
+	_check(fishes == AiRules.SPECIES["animals:perch"].count, "perches come into the water (%d)" % fishes)
+	for z in range(pz, pz + side):
+		for x in range(px, px + side):
+			w.set_cell(x, 3, z, Mat.AIR)
+			w.set_cell(x, 4, z, Mat.AIR)
+			w.set_cell(x, 5, z, Mat.GRASS)
 
 
 ## Birds (the sparrow bundle of the animals mod) come in flocks around a lead, fly off from a person together

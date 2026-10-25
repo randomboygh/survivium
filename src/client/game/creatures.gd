@@ -3,8 +3,8 @@ extends Node3D
 ## it walks and turned the way it faces, and the paw prints it leaves (see tracks.gd).
 ## Animals off the screen move in steps (Wildlife.FAR_STEP), and their sprites are
 ## put again only then. A species' picture is its mod's sprites/creatures/<sprite>.png,
-## a row of `frames` frames: the first is the
-## animal at rest, the others a flyer's wing beat in the air.
+## a row of `frames` frames: the first is the animal at rest, the others its walk (or
+## its swim), one per step, or a flyer's wing beat in the air.
 
 const Content := preload("res://src/shared/content/content.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -80,11 +80,14 @@ func _process(delta: float) -> void:
 				_fit(a, sprite)
 			# Facing east or west in the world, which way on the screen.
 			sprite.scale.x = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
-			if a.flying or a.frame != 0:
+			if a.flying or a.moving or a.frame != 0:
 				var mats: Array = looks[a.kind][1]
 				var frame := 0
 				if a.flying and mats.size() > 1:
 					frame = 1 + (int(beat) + a.get_instance_id()) % (mats.size() - 1)
+				elif a.moving and mats.size() > 1 and not AiRules.SPECIES[a.kind].flies:
+					# A walk of two frames, one a step; a flyer only hops on the ground.
+					frame = 1 + (1 if a.left else 0) % (mats.size() - 1)
 				if frame != a.frame:
 					a.frame = frame
 					sprite.material_override = mats[frame]

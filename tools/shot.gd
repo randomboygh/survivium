@@ -17,6 +17,7 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const CELL := 0.5
 const TEST_SAVES := "user://shot_ground"
 
@@ -212,6 +213,8 @@ func _run() -> void:
 			c.think = 100.0
 		if shot.get("birds", false):
 			_place_birds()
+		if shot.has("zoo"):
+			_place_zoo(shot.zoo == "water")
 		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
@@ -649,6 +652,49 @@ func _weather_index(id: String) -> int:
 
 ## Puts the sparrows round the player, every third in the air and every third in a
 ## crown when there is a tree near, and holds them there until the shot is taken.
+## One of every species on the land in rows before the player, walking (its second
+## frame), or, for `water`, every swimmer in the water near the player.
+func _place_zoo(water: bool) -> void:
+	var life = main.wildlife
+	var p: Vector3 = main.player.position
+	var kinds: Array = []
+	for kind in AiRules.SPECIES:
+		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].swims == water:
+			kinds.append(kind)
+	for c in life.animals:
+		c.pos = p + Vector3(60.0, 0.0, 60.0)
+		c.target = c.pos
+		c.think = 100.0
+	var spots: Array[Vector3] = []
+	if water:
+		# The water cells nearest the player, two cells apart.
+		var cells: Array[Vector3] = []
+		for dz in range(-14, 15):
+			for dx in range(-14, 15):
+				var at := p + Vector3(dx, 0.0, dz) * CELL
+				var y: float = life.water_top(at.x, at.z)
+				if y > 0.0 and dx % 2 == 0 and dz % 2 == 0:
+					cells.append(Vector3(at.x, y - life.DIP * CELL, at.z))
+		cells.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_to(p) < b.distance_to(p))
+		spots = cells
+	else:
+		for i in kinds.size():
+			var at := p + Vector3(-4.5 + (i % 5) * 2.2, 0.0, -1.2 + (i / 5) * 2.0)
+			spots.append(Vector3(at.x, life.ground(at.x, at.z), at.z))
+	var i := 0
+	for kind in kinds:
+		if i >= spots.size():
+			break
+		var c = life._add(kind, spots[i])
+		c.think = 100.0
+		c.facing = 1.0 if i % 2 == 0 else -1.0
+		c.moving = true
+		c.left = i % 2 == 0
+		i += 1
+	main.creatures._process(0.0)
+	main.creatures.set_process(false)
+
+
 func _place_birds() -> void:
 	var life = main.wildlife
 	var p: Vector3 = main.player.position
@@ -661,7 +707,7 @@ func _place_birds() -> void:
 		c.flying = false
 		c.perched = false
 		c.target = c.pos
-		var tree: Variant = life._tree_spot(p, 7.0) if i % 3 == 2 else null
+		var tree: Variant = life._tree_spot(AiRules.SPECIES[c.kind], p, 7.0) if i % 3 == 2 else null
 		if i % 3 == 1:
 			c.pos.y = life._canopy(c.pos.x, c.pos.z) + 1.0 + (i % 4) * 0.5
 			c.flying = true

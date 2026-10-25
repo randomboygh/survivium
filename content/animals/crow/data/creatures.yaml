@@ -1,0 +1,21 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# Всеядная птица стаей: ест и мелочь (воробьёв, лягушек, бабочек), и колоски; ночует на деревьях.
+- id: crow
+  title: Ворона
+  mass: 0.5
+  diet: [plants, meat]
+  speed: 7.0
+  sight: 12
+  human_wariness: 0.7
+  active: day
+  count: 7
+  sprite: crow
+  frames: 3
+  flies: true
+  flock: [3, 6]
+  roost: trees
+  likes: [plants:ears]
+  calls: crow
+  alarm: crow

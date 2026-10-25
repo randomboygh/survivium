@@ -1,0 +1,6 @@
+# Голоса: sounds/<id>_N.wav этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
+# Уханье: его же зовёт ночной лес (src/client/audio/nature.gd), без бандла он молчит.
+- id: owl
+  title: Сова
+  variants: 2
+  volume: 0.6
