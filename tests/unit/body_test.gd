@@ -290,9 +290,6 @@ func _test_ground() -> void:
 		"the hill of the test world has a tunnel into a hall")
 	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.BEACH
 		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
-	_check(w.is_bog(18, g, 33) and w.get_cell(18, g - 1, 33) == Mat.BANK and w.murk(18, g, 28) == 1
-		and w.get_cell(16, g, 16) == Mat.WATER and w.murk(16, g, 16) == 1,
-		"the swamp strip has pools and a pond running into a bog, all at one level")
 	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.ORE,
 		"the material strips are 4 cells deep")
 	_check(w.get_cell(50, g + 2, 0) == Mat.index("materials:planks") and w.get_cell(53, g + 1, 3) == Mat.AIR
@@ -341,6 +338,31 @@ func _test_ground() -> void:
 		and w.get_cell(rx + 7 * plot + 4, g + 1, rz + 4) == Mat.GRASS and w.get_cell(rx + 7 * plot + 7, g + 2, rz + 4) == Mat.GRASS
 		and w.get_cell(rx + 4, g + 1, rz + 3 * plot + 4) == Mat.STONE, "the relief ground has its shapes")
 	_check(w.slope_mask(rx + plot + 4, g + 1, rz + 3) != WorldData.FULL, "the grass square of the relief ground slopes down at its edge")
+	# The biome plots: the forest plot grows the forest's trees as thick as a forest, the
+	# steppe's none, the swamp's has pools and a pond running into a bog, every other
+	# plot a pool in its corner.
+	gen.generate_area(Vector2i(-5, 6), Vector2i(2, 9))
+	var forest := Biomes.index("biomes:forest")
+	var fo: Vector2i = gen.plot_origin(gen.plot_biomes.find(forest))
+	var so: Vector2i = gen.plot_origin(gen.plot_biomes.find(Biomes.index("biomes:steppe")))
+	var wo: Vector2i = gen.plot_origin(gen.plot_biomes.find(Biomes.SWAMP))
+	var in_forest := 0
+	var in_steppe := 0
+	var of_forest := true
+	var side: int = TestGround.BIOME_PLOT
+	for t: Vector2i in w.trees:
+		if Rect2i(fo, Vector2i(side, side)).has_point(t):
+			in_forest += 1
+			of_forest = of_forest and Biomes.of(forest).tree_shares.any(func(sh: Array) -> bool: return sh[0] == w.trees[t])
+		elif Rect2i(so, Vector2i(side, side)).has_point(t):
+			in_steppe += 1
+	_check(in_forest >= 8 and of_forest and in_steppe == 0,
+		"the forest plot of the test world grows the forest's trees (%d), the steppe's none (%d)" % [in_forest, in_steppe])
+	_check(w.is_bog(wo.x + 10, g, wo.y + 19) and w.get_cell(wo.x + 10, g - 1, wo.y + 19) == Mat.BANK and w.murk(wo.x + 10, g, wo.y + 14) == 1
+		and w.get_cell(wo.x + 4, g, wo.y + 4) == Mat.WATER and w.murk(wo.x + 4, g, wo.y + 4) == 1 and w.get_cell(wo.x + 8, g - 1, wo.y + 14) == Mat.WATER,
+		"the swamp plot has pools and a pond running into a bog, all at one level")
+	_check(w.get_cell(fo.x + 17, g, fo.y + 17) == Mat.WATER and w.get_cell(fo.x + 17, g - 1, fo.y + 17) == Mat.BANK
+		and w.get_cell(fo.x + 15, g, fo.y + 17) == Mat.GRASS, "a biome plot has a pool in its corner")
 	var other := TestGround.new()
 	var keys: Array[Vector2i] = []
 	for cz in range(-4, 3):
