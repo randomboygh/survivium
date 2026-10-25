@@ -5,6 +5,8 @@ shader_type spatial;
 // on the player); the normal offset of the shadow lookup keeps an upright quad from
 // shading itself.
 render_mode world_vertex_coords, cull_disabled;
+// Solid for the player's silhouette (see sprite_xray): it shows behind an animal.
+stencil_mode write, compare_always, 1;
 
 #include "res://shaders/common.gdshaderinc"
 

@@ -34,6 +34,10 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 		k += 1
 	var box := PILLAR if species < 0 else Trees.trunk_box(species, col, k)
 	var color := Color(1, 1, 1) if species < 0 else _bark_tone(col)
+	if species >= 0:
+		# Which cell of the trunk this is for world.gdshader, which clears a tree's trunk
+		# round the player but for its foot: 0.25 the foot, 0.5 the next, 0.75 above.
+		color.a = 0.25 * (mini(k, 2) + 1)
 	if species >= 0 and species < PixelTextures.bark_material.size() and PixelTextures.bark_material[species] >= 0:
 		m = PixelTextures.bark_material[species]
 	var top := CAP_CUT if not _covers(nb[2]) else CAP_NONE
