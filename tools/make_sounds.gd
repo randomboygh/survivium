@@ -1,7 +1,7 @@
 extends SceneTree
 ## Makes the sounds of the game from noise and tones (tools/sound/synth.gd) and saves
-## them as the mods' sounds, which content/<mod>/data/sounds.yaml lists:
-## content/<mod>/sounds/<name>.wav, or <name>_1.wav, <name>_2.wav ... for a sound with
+## them as the bundles' sounds, which content/<bundle>/data/sounds.yaml lists:
+## content/<bundle>/sounds/<name>.wav, or <name>_1.wav, <name>_2.wav ... for a sound with
 ## variants. A sound replaced by hand is overwritten, so name the sounds to make:
 ## godot --headless --path . --script res://tools/make_sounds.gd -- [sound ...]
 ## Each sound has its own seed: making it again gives the same file.
@@ -14,47 +14,47 @@ const OVERLAP := 1.0
 ## name: [bundle folder under content/, variants, loop]; the sound is made by the method `_<name>`.
 const SOUNDS := {
 	# Nature: loops.
-	"wind": ["sounds", 1, true],
-	"rain": ["sounds", 1, true],
-	"hail": ["sounds", 1, true],
-	"blizzard": ["sounds", 1, true],
-	"water": ["sounds", 1, true],
-	"fire": ["sounds", 1, true],
-	"crickets": ["sounds", 1, true],
+	"wind": ["core", 1, true],
+	"rain": ["core", 1, true],
+	"hail": ["core", 1, true],
+	"blizzard": ["core", 1, true],
+	"water": ["core", 1, true],
+	"fire": ["core", 1, true],
+	"crickets": ["core", 1, true],
 	# Nature: one-off.
-	"thunder": ["sounds", 2, false],
-	"bird": ["sounds", 5, false],
-	"owl": ["sounds", 2, false],
+	"thunder": ["core", 2, false],
+	"bird": ["animals/sparrow", 5, false],
+	"owl": ["core", 2, false],
 	# The player.
-	"step_grass": ["sounds", 4, false],
-	"step_dirt": ["sounds", 4, false],
-	"step_stone": ["sounds", 4, false],
-	"step_sand": ["sounds", 4, false],
-	"step_snow": ["sounds", 4, false],
-	"step_wood": ["sounds", 4, false],
-	"step_water": ["sounds", 3, false],
-	"swim": ["sounds", 3, false],
-	"jump": ["sounds", 2, false],
-	"land": ["sounds", 2, false],
-	"splash": ["sounds", 2, false],
+	"step_grass": ["core", 4, false],
+	"step_dirt": ["core", 4, false],
+	"step_stone": ["core", 4, false],
+	"step_sand": ["resources/soil", 4, false],
+	"step_snow": ["core", 4, false],
+	"step_wood": ["plants/wood", 4, false],
+	"step_water": ["core", 3, false],
+	"swim": ["core", 3, false],
+	"jump": ["core", 2, false],
+	"land": ["core", 2, false],
+	"splash": ["core", 2, false],
 	# Work.
-	"chop": ["sounds", 3, false],
-	"dig": ["sounds", 3, false],
-	"hit_stone": ["sounds", 3, false],
-	"rustle": ["sounds", 3, false],
-	"knock": ["sounds", 2, false],
-	"swish": ["sounds", 3, false],
-	"mow": ["sounds", 3, false],
-	"place": ["sounds", 3, false],
-	"pickup": ["sounds", 2, false],
-	"craft": ["sounds", 1, false],
-	"eat": ["sounds", 2, false],
-	"ignite": ["sounds", 1, false],
+	"chop": ["plants/wood", 3, false],
+	"dig": ["core", 3, false],
+	"hit_stone": ["core", 3, false],
+	"rustle": ["plants/wood", 3, false],
+	"knock": ["materials/planks", 2, false],
+	"swish": ["tools/sword", 3, false],
+	"mow": ["tools/scythe", 3, false],
+	"place": ["core", 3, false],
+	"pickup": ["core", 2, false],
+	"craft": ["core", 1, false],
+	"eat": ["core", 2, false],
+	"ignite": ["core", 1, false],
 	# The interface.
-	"click": ["sounds", 1, false],
-	"tab": ["sounds", 1, false],
-	"open": ["sounds", 1, false],
-	"close": ["sounds", 1, false],
+	"click": ["core", 1, false],
+	"tab": ["core", 1, false],
+	"open": ["core", 1, false],
+	"close": ["core", 1, false],
 	# Animals.
 	"rabbit": ["animals/rabbit", 2, false],
 	"squirrel": ["animals/squirrel", 2, false],
@@ -64,9 +64,9 @@ const SOUNDS := {
 	"wolf_growl": ["animals/wolf", 2, false],
 	"sparrow": ["animals/sparrow", 3, false],
 	# Music: notes the music plays at other pitches (src/client/audio/music.gd).
-	"note_pluck": ["sounds", 1, false],
-	"note_bell": ["sounds", 1, false],
-	"pad": ["sounds", 1, true],
+	"note_pluck": ["music", 1, false],
+	"note_bell": ["music", 1, false],
+	"pad": ["music", 1, true],
 }
 
 var rng := RandomNumberGenerator.new()

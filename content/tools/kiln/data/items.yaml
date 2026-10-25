@@ -1,0 +1,12 @@
+# Предметы бандла «Печь для обжига» мода «Инструменты и крафт». Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: kiln
+  title: Печь для обжига
+  weight: 20.0
+  stack: 1
+  icon: kiln
+  model: kiln
+  prop: kiln

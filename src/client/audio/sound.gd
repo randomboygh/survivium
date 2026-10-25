@@ -175,7 +175,7 @@ func input(event: InputEvent) -> void:
 		print("sound: on after the first tap")
 
 
-## The record id of sound `name`: a full id (`sounds:chop`) as it is, a bare name (`chop`,
+## The record id of sound `name`: a full id (`core:chop`) as it is, a bare name (`chop`,
 ## what the code asks for) the sound of that name in the last mod that gives one, "" when
 ## no loaded mod has it (then nothing sounds).
 func resolve(name: String) -> String:

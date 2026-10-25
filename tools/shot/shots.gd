@@ -301,6 +301,7 @@ const SHOTS := {
 	"ui-setup-mod": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:animals"},
 	"ui-setup-mod-plants": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:plants"},
 	"ui-setup-mod-resources": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:resources"},
+	"ui-setup-mod-tools": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:tools"},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
 	# The workbench, kiln, chest and campfire by the spawn marked on the map, close up.
 	"ui-map-marks": {"time": 0.45, "season": 1, "touch": true, "craft": true, "closed": true, "map": true, "map_zoom": 8},

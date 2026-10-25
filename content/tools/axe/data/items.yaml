@@ -1,0 +1,19 @@
+# Предметы бандла «Топор» мода «Инструменты и крафт». Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: stone_axe
+  title: Каменный топор
+  weight: 1.5
+  stack: 1
+  model: axe
+  icon: axe
+  tool: axe
+  sprite: axe
+  anim: chop
+  power: 2
+  swing: 0.6
+  reach: 9
+  durability: 120
+  repair: {resources:flint: 1, materials:cord: 1}

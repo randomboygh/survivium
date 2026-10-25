@@ -119,26 +119,26 @@ func _test_mods() -> void:
 	var mods := Content.available()
 	var all := Content.all_bundles()
 	_check(mods.size() >= 3 and mods[0] == "core" and "animals" in mods and not "birds" in mods, "the mods under content/ are found, core first: %s" % [mods])
-	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants/oak" in all and "sounds" in all
-		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("sounds") == "sounds",
+	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants/oak" in all and "music" in all and "tools/axe" in all
+		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
-	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("sounds") == "Звуки"
+	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 6 and Mods.bundles("plants").size() == 11
 		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 4, "bundles have titles")
+		and Mods.bundles("materials").size() == 4 and Mods.bundles("tools").size() == 8, "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
 			after_needs = after_needs and Content.loaded.find(need) < i
 	_check(after_needs and Content.loaded[0] == "core"
-		and Content.loaded.find("materials/cord") < Content.loaded.find("tools") and Content.loaded.find("tools") < Content.loaded.find("plants/ears")
-		and Content.loaded.find("plants/wood") < Content.loaded.find("plants/oak") and Content.loaded.find("resources/wood") < Content.loaded.find("tools"),
+		and Content.loaded.find("materials/cord") < Content.loaded.find("tools/workbench") and Content.loaded.find("tools/kiln") < Content.loaded.find("plants/ears")
+		and Content.loaded.find("plants/wood") < Content.loaded.find("plants/oak") and Content.loaded.find("resources/wood") < Content.loaded.find("tools/workbench"),
 		"every bundle loads after what its records refer to: %s" % [Content.loaded])
 	_check(Content.dropped.is_empty() and Content.problems.is_empty(), "the full set loads whole")
 	var ears := Mods.closure("plants/ears")
 	_check(Mods.closure("animals/sparrow") == ["core", "animals/sparrow"] and Mods.closure("plants/oak") == ["core", "plants/wood", "plants/oak"]
 		and Mods.closure("resources/soil") == ["core", "resources/soil"] and Mods.closure("materials/cord") == ["core", "resources/fiber", "materials/cord"]
-		and _ordered(ears) and ears[0] == "core" and ears[-1] == "plants/ears" and "tools" in ears and "resources/wood" in ears and not "plants/oak" in ears,
+		and _ordered(ears) and ears[0] == "core" and ears[-1] == "plants/ears" and "tools/kiln" in ears and "tools/workbench" in ears and "resources/wood" in ears and not "plants/oak" in ears,
 		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s" % [ears])
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
@@ -189,7 +189,7 @@ func _test_mods() -> void:
 		and Trees.SPECIES[Trees.index("_d:fir")].seed == "plants:cone" and Bushes.TYPES[Bushes.index("_d:thorn")].fruit == "",
 		"with the bundle it needs in the set, the bundle loads whole, a soft reference to nothing dropped in silence: %s %s" % [Content.dropped, Content.problems])
 	var d_closure := Mods.closure("_d", with_d)
-	_check(_ordered(d_closure) and d_closure[0] == "core" and d_closure[-1] == "_d" and "plants/ears" in d_closure and "tools" in d_closure
+	_check(_ordered(d_closure) and d_closure[0] == "core" and d_closure[-1] == "_d" and "plants/ears" in d_closure and "tools/kiln" in d_closure
 		and "resources/fiber" in d_closure and not "plants/spruce" in d_closure,
 		"a bundle's closure follows hard references through the bundles they lead to: %s" % [d_closure])
 	Content.strict = true

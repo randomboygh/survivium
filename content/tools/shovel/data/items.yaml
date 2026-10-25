@@ -1,0 +1,19 @@
+# Предметы бандла «Лопата» мода «Инструменты и крафт». Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: wooden_shovel
+  title: Деревянная лопата
+  weight: 1.2
+  stack: 1
+  model: shovel
+  icon: shovel
+  tool: shovel
+  sprite: shovel
+  anim: dig
+  power: 1
+  swing: 0.25
+  reach: 10
+  durability: 100
+  repair: {materials:planks: 1}

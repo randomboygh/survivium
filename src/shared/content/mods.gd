@@ -4,7 +4,7 @@ extends RefCounted
 ## makes that set the one loaded and fills the registries from it again, so
 ## `Mat.GRASS`, `Items.BY_ID`, `AiRules.SPECIES` and the rest describe the bundles of
 ## the world being played. Materials are numbered in load order, so a world's cells
-## keep their meaning as long as its set does. `reload` reads everything under content/
+## keep their meaning as long as its set does. `rescan` reads everything under content/
 ## again (hot reload of the data; the meshes and sprites already built stay as they
 ## were until they are built again). A mod is a folder of bundles, see Content.
 
@@ -18,7 +18,7 @@ const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 
 ## Mods of older saves and settings that live on as bundles of another mod.
-const RENAMED := {"birds": ["animals/sparrow"]}
+const RENAMED := {"birds": ["animals/sparrow"], "sounds": ["music"]}
 
 
 ## Every mod found under `content/`, core first (see Content.available).

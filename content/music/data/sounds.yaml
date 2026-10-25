@@ -1,0 +1,9 @@
+# Ноты до первой октавы, музыка (src/client/audio/music.gd) играет их на других высотах:
+# щипок и колокольчик — мелодия, протяжный тон — аккорды. Файлы sounds/<id>.wav (tools/make_sounds.gd).
+- id: note_pluck
+  title: Нота, щипок
+- id: note_bell
+  title: Нота, колокольчик
+- id: pad
+  title: Протяжный тон
+  loop: true

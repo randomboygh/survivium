@@ -26,7 +26,7 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game), materials, sounds, tools, plants, animals; mod.yaml, then
+content/      the mods: core (the base game), resources, materials, tools, plants, animals, music; mod.yaml, then
               either data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/ or a folder per bundle
               (bundle.yaml and the same inside; common/ for assets the bundles share)
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
@@ -117,8 +117,10 @@ its bundle, a row of `frames` frames, and its behaviour comes from its propertie
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in
 the `sounds/` of their bundle (`<name>.wav` or `<name>_N.wav` per variant), made by `tools/make_sounds.gd`
 from `tools/sound/synth.gd`; code asks for a sound by its bare name (`play("chop")`, `Sound.resolve`: the
-last loaded mod's record of that name, silence when none), a material's `step` and `hit` (patched onto
-core's materials by the sounds mod), a creature's `calls` and `alarm` (its own mod's records) say who sounds. The player's pictures, the models and the icons were drawn by `tools/art/` and saved by
+last loaded mod's record of that name, silence when none); each sound lives with its owner (weather, steps,
+work and interface sounds in core, `chop` with plants' wood, `swish` with the sword, `bird` with the sparrow, the
+notes `music.gd` plays in `content/music/`), a material's `step` and `hit`, a creature's `calls` and `alarm` say who
+sounds, and no sound reference binds bundles. The player's pictures, the models and the icons were drawn by `tools/art/` and saved by
 `tools/make_sprites.gd`, `tools/make_models.gd` and `tools/make_icons.gd`; they can be painted over by hand. Design: `plan/architecture/modding.md`.
 
 ## Rendering rules

@@ -1,0 +1,35 @@
+# Предметы бандла «Меч» мода «Инструменты и крафт». Поля — как у предметов основы
+# (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
+# доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
+# станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
+- id: wooden_sword
+  title: Деревянный меч
+  weight: 1.0
+  stack: 1
+  model: sword
+  icon: sword
+  tool: sword
+  sprite: sword
+  anim: slash
+  mows: tall
+  power: 1
+  swing: 0.4
+  reach: 8
+  durability: 80
+  repair: {materials:planks: 1}
+- id: stone_sword
+  title: Каменный меч
+  weight: 1.4
+  stack: 1
+  model: stone_sword
+  icon: stone_sword
+  tool: sword
+  sprite: stone_sword
+  anim: slash
+  mows: tall
+  power: 2
+  swing: 0.4
+  reach: 8
+  durability: 120
+  repair: {resources:flint: 1, materials:cord: 1}

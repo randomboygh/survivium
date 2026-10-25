@@ -133,7 +133,7 @@ func _test_sprite_sheet() -> void:
 	_check(anchors[0][works.mow.columns[1]].left.is_empty(), "in a two-handed work the left hand holds the same thing")
 	_check(Figure.opposite("se") == "sw" and Figure.opposite("w") == "e" and Figure.opposite("n") == "n", "opposite directions")
 	# Things held have sheets of their own, put at the hands.
-	var axe := {"sprite": "res://content/tools/sprites/held/axe.png", "anim": "chop"}
+	var axe := {"sprite": "res://content/tools/axe/sprites/held/axe.png", "anim": "chop"}
 	var cell := Vector2i(Figure.data().held.cell[0], Figure.data().held.cell[1])
 	_check(Figure.held_sheet(axe.sprite).get_size() == Vector2i(5, 8) * cell, "a tool's sheet: carried and its four frames, in eight directions")
 	var armed := Figure.sheet(look, {"right": axe, "active": "right"})
@@ -192,7 +192,7 @@ func _test_sprite_sheet() -> void:
 	var p = PlayerScript.new()
 	p.sheet = s
 	p.body.on_ground = true
-	p.held = {"left": {"sprite": "res://content/tools/sprites/held/shovel.png", "anim": "dig"}, "right": axe, "active": "left"}
+	p.held = {"left": {"sprite": "res://content/tools/shovel/sprites/held/shovel.png", "anim": "dig"}, "right": axe, "active": "left"}
 	p.work("", 0.4, Vector3(-5.0, 0.0, 0.0))
 	_check(p.work_kind == "dig" and p.facing == "w", "a shovel digs, turned towards the cell")
 	p._animate(Vector2.ZERO, 0.0, 0.1)
@@ -285,25 +285,25 @@ func _test_sound() -> void:
 		if list.is_empty() or s.records[id].loop and list[0].loop_mode != AudioStreamWAV.LOOP_FORWARD:
 			missing.append(id)
 	_check(missing.is_empty(), "every sound loads, the loops looping: %s" % [missing])
-	for id in ["sounds:wind", "sounds:step_grass", "sounds:click", "animals:sparrow", "sounds:note_pluck", "animals:wolf_howl"]:
+	for id in ["core:wind", "core:step_grass", "core:click", "animals:sparrow", "music:note_pluck", "animals:wolf_howl"]:
 		_check(s.records.has(id), "sound %s is there" % id)
-	_check(s.resolve("click") == "sounds:click" and s.resolve("sounds:click") == "sounds:click" and s.resolve("sparrow") == "animals:sparrow"
+	_check(s.resolve("click") == "core:click" and s.resolve("core:click") == "core:click" and s.resolve("sparrow") == "animals:sparrow"
 		and s.resolve("nothing") == "" and s.streams("nothing").is_empty(), "a sound is asked for by its bare name, from whichever mod gives it")
 	for m in Mat.COUNT:
 		var r: Dictionary = Mat.RECORDS[m]
 		_check(m == Mat.AIR or r.step != "", "%s has a step sound" % r.id)
 	s.unlocked = false
-	s.play_later(0.5, "sounds:chop", Vector3.ZERO)
+	s.play_later(0.5, "plants:chop", Vector3.ZERO)
 	_check(s._later.is_empty(), "nothing waits to sound before the first tap")
 	s.unlocked = true
 	var at := Vector3(1.0, 0.0, 1.0)
 	var cases := [
-		[{"at": at, "time": 0.4, "stuff": Mat.LOG}, "chop", "sounds:chop"],
-		[{"at": at, "time": 0.4, "stuff": Mat.STONE}, "chop", "sounds:hit_stone"],
-		[{"at": at, "time": 0.4, "stuff": Mat.GRASS}, "mow", "sounds:mow"],
-		[{"at": at, "time": 0.4, "stuff": Mat.DIRT}, "dig", "sounds:dig"],
-		[{"at": at, "time": 0.4, "stuff": -1}, "slash", "sounds:swish"],
-		[{"at": at, "time": 0.4, "stuff": Mat.DIRT, "placed": 1}, "reach", "sounds:place"],
+		[{"at": at, "time": 0.4, "stuff": Mat.LOG}, "chop", "plants:chop"],
+		[{"at": at, "time": 0.4, "stuff": Mat.STONE}, "chop", "core:hit_stone"],
+		[{"at": at, "time": 0.4, "stuff": Mat.GRASS}, "mow", "tools:mow"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT}, "dig", "core:dig"],
+		[{"at": at, "time": 0.4, "stuff": -1}, "slash", "tools:swish"],
+		[{"at": at, "time": 0.4, "stuff": Mat.DIRT, "placed": 1}, "reach", "core:place"],
 	]
 	for c: Array in cases:
 		s._later.clear()
