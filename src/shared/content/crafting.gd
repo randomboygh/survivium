@@ -159,7 +159,7 @@ static func check(whole := true) -> PackedStringArray:
 	var out: PackedStringArray = []
 	for r in RECIPES:
 		if r.at != "" and Items.get_item(r.at).get("prop", "none") in ["none", "chest"]:
-			out.append("recipes: %s.at: `%s` is no station (an item with prop workbench, kiln or campfire)" % [r.id, r.at])
+			out.append("recipes: %s.at: `%s` is no station (an item with prop workbench, kiln, forge or campfire)" % [r.id, r.at])
 	if not whole:
 		return out
 	var have := reachable()

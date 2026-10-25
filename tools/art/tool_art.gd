@@ -22,6 +22,7 @@ const INK := {
 	"q": "5a5e66", "a": "8a8f97", "A": "c3c8cc",
 	"r": "c8ad78", "R": "8e7650",
 	"m": "9a7646", "p": "c39c64", "P": "e2c48c",
+	"o": "8c4a26", "n": "c97b43", "N": "ecad72",
 }
 const SHAPES := {
 	"axe": {
@@ -197,11 +198,16 @@ const SHAPES := {
 
 
 ## Sheets drawn as another tool with some colours swapped: name -> [a key of SHAPES,
-## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe).
+## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe, copper tools).
 const RECOLOURED := {
 	"stone_sword": ["sword", {"P": "A", "p": "a"}],
 	"wooden_pickaxe": ["pickaxe", {"q": "R", "a": "m", "A": "p"}],
 	"wooden_scythe": ["scythe", {"q": "R", "a": "m", "A": "p"}],
+	"copper_axe": ["axe", {"q": "o", "a": "n", "A": "N"}],
+	"copper_pickaxe": ["pickaxe", {"q": "o", "a": "n", "A": "N"}],
+	"copper_shovel": ["shovel", {"m": "o", "p": "n", "P": "N"}],
+	"copper_sword": ["sword", {"P": "N", "p": "n"}],
+	"copper_scythe": ["scythe", {"q": "o", "a": "n", "A": "N"}],
 }
 
 

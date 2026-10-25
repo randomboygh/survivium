@@ -17,3 +17,17 @@
   reach: 9
   durability: 120
   repair: {resources:flint: 1, materials:cord: 1}
+- id: copper_axe
+  title: Медный топор
+  weight: 1.8
+  stack: 1
+  model: copper_axe
+  icon: copper_axe
+  tool: axe
+  sprite: copper_axe
+  anim: chop
+  power: 3
+  swing: 0.45
+  reach: 9
+  durability: 300
+  repair: {materials:copper_bar: 1}

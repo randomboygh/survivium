@@ -17,3 +17,17 @@
   reach: 10
   durability: 100
   repair: {materials:planks: 1}
+- id: copper_shovel
+  title: Медная лопата
+  weight: 1.6
+  stack: 1
+  model: copper_shovel
+  icon: copper_shovel
+  tool: shovel
+  sprite: copper_shovel
+  anim: dig
+  power: 2
+  swing: 0.18
+  reach: 10
+  durability: 300
+  repair: {materials:copper_bar: 1}

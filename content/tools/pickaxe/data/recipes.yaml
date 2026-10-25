@@ -13,3 +13,9 @@
   needs: {materials:planks: 2, resources:branch: 2}
   at: workbench
   time: 4
+- id: copper_pickaxe
+  title: Медная кирка
+  makes: copper_pickaxe
+  needs: {materials:copper_bar: 3, materials:planks: 1}
+  at: workbench
+  time: 7

@@ -37,3 +37,20 @@
   reach: 8
   durability: 40
   repair: {materials:planks: 1}
+- id: copper_scythe
+  title: Медная коса
+  weight: 1.8
+  stack: 1
+  model: copper_scythe
+  icon: copper_scythe
+  tool: scythe
+  sprite: copper_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 2
+  area: 4
+  swing: 0.4
+  reach: 8
+  durability: 300
+  repair: {materials:copper_bar: 1}

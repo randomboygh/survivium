@@ -1,0 +1,15 @@
+# Рецепты бандла «Горн»: сам горн на верстаке из кирпича «Материалов», камня и глины «Ресурсов»;
+# медный слиток в горне из руды «Материалов» и угля (бандл «Уголь»): так руда → слиток →
+# медные инструменты (их рецепты у каждого инструмента).
+- id: forge
+  title: Горн
+  makes: forge
+  needs: {materials:brick: 12, resources:stone: 8, resources:clay: 4}
+  at: workbench
+  time: 12
+- id: copper_bar
+  title: Медный слиток
+  makes: materials:copper_bar
+  needs: {materials:copper_ore: 2, materials:charcoal: 1}
+  at: forge
+  time: 6

@@ -7,3 +7,9 @@
   needs: {materials:planks: 2, resources:branch: 1}
   at: workbench
   time: 5
+- id: copper_shovel
+  title: Медная лопата
+  makes: copper_shovel
+  needs: {materials:copper_bar: 2, materials:planks: 1}
+  at: workbench
+  time: 6

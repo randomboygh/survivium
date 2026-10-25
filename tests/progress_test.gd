@@ -154,14 +154,30 @@ func _order() -> Array:
 func _wanted(id: String) -> bool:
 	if seeking.has(id):
 		return true
+	# Needed by a recipe not made yet, or by the recipe of something such a recipe needs
+	# (ore for the bars the copper tools are made of, once a bar has been made).
+	var needed := {}
 	for r: Dictionary in order:
-		if not made.has(r.id) and r.needs.has(id):
-			return true
+		if not made.has(r.id):
+			_needs_of(r, needed)
+	if needed.has(id):
+		return true
 	var item := Items.get_item(id)
 	if item.get("prop", "none") != "none":
 		return true
 	var kind: String = item.get("tool", "none")
 	return kind != "none" and _tool_of_kind(kind) == id
+
+
+## Adds to `out` what recipe `r` needs, and what the recipes of those need, and so on.
+func _needs_of(r: Dictionary, out: Dictionary) -> void:
+	for id: String in r.needs:
+		if out.has(id):
+			continue
+		out[id] = true
+		var sub := _recipe_for(id)
+		if not sub.is_empty():
+			_needs_of(sub, out)
 
 
 # --- Making -------------------------------------------------------------------------------

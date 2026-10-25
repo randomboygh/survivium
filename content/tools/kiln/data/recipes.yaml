@@ -13,3 +13,10 @@
   needs: {resources:clay: 1}
   at: kiln
   time: 4
+- id: charcoal
+  title: Уголь
+  makes: materials:charcoal
+  count: 2
+  needs: {resources:log: 1}
+  at: kiln
+  time: 6

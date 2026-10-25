@@ -31,3 +31,17 @@
   reach: 10
   durability: 30
   repair: {materials:planks: 1}
+- id: copper_pickaxe
+  title: Медная кирка
+  weight: 2.4
+  stack: 1
+  model: copper_pickaxe
+  icon: copper_pickaxe
+  tool: pickaxe
+  sprite: copper_pickaxe
+  anim: chop
+  power: 3
+  swing: 0.4
+  reach: 10
+  durability: 350
+  repair: {materials:copper_bar: 1}
