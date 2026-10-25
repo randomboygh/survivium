@@ -280,9 +280,9 @@ func _run() -> void:
 	c.from_dict(hands_saved)
 	_check(c.held() == "tools:wooden_shovel", "the hands are saved with the player")
 	# The last of what the hand in use holds leaves the bag: the hand is bare.
-	inv.add("core:sand", 1)
-	c.put_in_hand("core:sand", 1, false)
-	inv.remove("core:sand", inv.count("core:sand"))
+	inv.add("materials:sand", 1)
+	c.put_in_hand("materials:sand", 1, false)
+	inv.remove("materials:sand", inv.count("materials:sand"))
 	await process_frame
 	_check(c.held() == "" and c.hands[0] == "tools:wooden_shovel", "a hand whose last item is gone is bare")
 	c.put_in_hand("tools:wooden_shovel", 0, false)

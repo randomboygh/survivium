@@ -96,11 +96,19 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	ground = sea + 2
 	# A static func, so the world holds no reference back to its maker.
 	world.grows = Callable(get_script(), "growth")
-	strip_tops = [Mat.GRASS, Mat.DIRT, Mat.SAND, Mat.CLAY, Mat.STONE, Mat.COPPER_ORE, Mat.BRICK, Mat.PLANKS]
-	relief_tops = [Mat.GRASS, Mat.SAND, Mat.CLAY, Mat.STONE]
+	# The strip of materials shows what the loaded mods give: the roles, and the built
+	# blocks of the tools mod when it is loaded.
+	strip_tops = [Mat.GRASS, Mat.DIRT, beach, bank, Mat.STONE, ore, _block("brick"), _block("planks")]
+	relief_tops = [Mat.GRASS, beach, bank, Mat.STONE]
 
 
 ## The spawn: the middle of the meadow between the grounds.
+## The material of a built block of the tools mod, stone when the mod is not loaded.
+func _block(name: String) -> int:
+	var m := Mat.index("tools:" + name)
+	return m if m >= 0 else Mat.STONE
+
+
 func _pick_spawn() -> Vector3i:
 	return Vector3i(0, ground + 1, 0)
 
@@ -128,7 +136,7 @@ func column(x: int, z: int) -> Array:
 	# The pond: deeper to the east.
 	if x >= -44 and x < -14 and z >= 14 and z < 38:
 		var d: int = POND_DEPTHS[mini((x + 44) / 8, POND_DEPTHS.size() - 1)]
-		return [g - d, g, Mat.SAND, SEA, false]
+		return [g - d, g, beach, SEA, false]
 	# Biome strips, 8 cells each.
 	if x >= -8 and x < 48 and z >= 14 and z < 38:
 		var b: int = STRIP_BIOMES[(x + 8) / 8]
@@ -137,10 +145,10 @@ func column(x: int, z: int) -> Array:
 				# Swamp water a cell deep in clay, two in a corner of the pond; its
 				# murk is in extras.
 				if _swamp_water(x, z):
-					return [g - (2 if x >= 19 and x < 21 and z >= 27 and z < 29 else 1), g, Mat.CLAY, b, false]
+					return [g - (2 if x >= 19 and x < 21 and z >= 27 and z < 29 else 1), g, bank, b, false]
 				return [g, -1, Mat.GRASS, b, false]
 			DESERT, BEACH:
-				return [g, -1, Mat.SAND, b, false]
+				return [g, -1, beach, b, false]
 			TUNDRA:
 				return [g, -1, Mat.STONE if posmod(x * 7 + z * 3, 11) == 0 else Mat.GRASS, b, false]
 		return [g, -1, Mat.GRASS, b, false]
@@ -165,7 +173,7 @@ func column(x: int, z: int) -> Array:
 			return [g + rise, -1, Mat.GRASS, MEADOW, false]
 		if posmod(x * 7 + z * 13, 9) == 0:
 			return [g + rise, -1, Mat.STONE, ROCK, true]
-		return [g + rise, -1, Mat.SCREE, ROCK, false]
+		return [g + rise, -1, scree, ROCK, false]
 	# Material strips: 3 cells of each top, a cell of grass between.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		return [g, -1, strip_tops[(x - 16) / 4], MEADOW, false]
@@ -213,7 +221,7 @@ func _stream(x: int, z: int) -> Array:
 	var g := ground
 	if x >= STREAM_POOL:
 		if z >= STREAM_Z.x - 3 and z <= STREAM_Z.y + 3:
-			return [g - 3, g, Mat.SAND, SEA, false]
+			return [g - 3, g, beach, SEA, false]
 		return [g, -1, Mat.GRASS, MEADOW, false]
 	var rise := 0
 	for t: Array in STREAM:
@@ -222,7 +230,7 @@ func _stream(x: int, z: int) -> Array:
 	var channel := z >= STREAM_Z.x and z <= STREAM_Z.y
 	# The channel starts two cells in, behind a head of stone.
 	if channel and x >= STREAM[0][0] + 2:
-		return [g + rise - 2, g + rise, Mat.SAND, SEA, false]
+		return [g + rise - 2, g + rise, beach, SEA, false]
 	if channel or (z >= STREAM_Z.x - 2 and z <= STREAM_Z.y + 2):
 		return [g + rise, -1, Mat.STONE, ROCK, true]
 	return [g + rise, -1, Mat.GRASS, MEADOW, true]
@@ -277,7 +285,7 @@ func extras(x: int, z: int) -> Array:
 		var wall := x == 50 or x == 57 or z == -4 or z == 3
 		var door := z == 3 and (x == 53 or x == 54)
 		if wall and not door:
-			out.append([g + 1, g + 3, Mat.PLANKS, 0])
+			out.append([g + 1, g + 3, _block("planks"), 0])
 		out.append([g + 4, g + 4, Mat.STONE, 0])
 	return out
 
@@ -415,7 +423,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var height: int = lay.heights[j]
 		var wt: int = lay.water[j]
 		var top: int = lay.tops[j]
-		var dirt := height if top == Mat.STONE or top == Mat.SCREE else maxi(0, height - 4)
+		var dirt := height if top == Mat.STONE or top == scree else maxi(0, height - 4)
 		var air_bits := 0
 		var water_bits := 0
 		var wild_bits := 0

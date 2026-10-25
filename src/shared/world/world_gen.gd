@@ -149,6 +149,15 @@ const TUNNEL_LEN := 26
 var world: WorldData
 var world_seed: int
 var settings: Dictionary
+## The materials the generator lays by their roles (see Mat.ROLES): dirt or stone
+## where no loaded mod gives one.
+var beach: int
+var bank: int
+var scree: int
+var ore: int
+## Cells of a saved chunk come from a world saved with materials in another order:
+## saved index -> loaded index (see Mat.remap); empty when the orders agree.
+var material_map := PackedByteArray()
 var size_y: int
 var sea: int
 ## The continent noise's value at the coast: below it is the ocean.
@@ -238,6 +247,10 @@ func _init(seed_value: int, sy := 48, options := {}) -> void:
 			settings[k] = clampi(int(options[k]), 0, 2)
 	world = WorldData.new(sy)
 	sea = world.sea_level
+	beach = Mat.of_role("beach", Mat.DIRT)
+	bank = Mat.of_role("bank", Mat.DIRT)
+	scree = Mat.of_role("scree", Mat.STONE)
+	ore = Mat.of_role("ore", Mat.STONE)
 	_noises()
 	coast_level = _coast_level()
 	spawn_guess = _pick_spawn()
@@ -324,6 +337,11 @@ func start(key: Vector2i, stage: int) -> Job:
 	if stage == TERRAIN and saved != null and saved.has_chunk(key):
 		var d: Dictionary = saved.read_chunk(key)
 		if world.can_unpack(d):
+			if not material_map.is_empty():
+				var cells: PackedByteArray = d.cells
+				for i in cells.size():
+					cells[i] = material_map[cells[i]] if cells[i] < material_map.size() else Mat.STONE
+				d.cells = cells
 			job.restore = d
 			job.trees = d.get("planted", [])
 			job.rows = 1 + job.trees.size()
@@ -831,7 +849,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 					height = mini(height, channel)
 					wt = level
 					b = SEA
-					top = Mat.SAND
+					top = beach
 					sheer = false
 					feature = RIVER
 					# Rapids: where the river drops a level, boulders in the channel
@@ -847,7 +865,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				elif d <= rf:
 					if canyon:
 						height = mini(height, bed)
-						top = Mat.SAND
+						top = beach
 						sheer = false
 						feature = CANYON
 					else:
@@ -889,10 +907,10 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				# Loose scree lies in slopes, stone juts out of it in sheer outcrops.
 				sheer = steep[j] >= steep_t
 				if not sheer:
-					top = Mat.SCREE
+					top = scree
 		elif b == SEA:
 			if feature != RIVER:
-				top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
+				top = beach if soil[j] < soil_t else bank
 		elif feature == CANYON:
 			b = BEACH
 		elif kind == HIGHLAND:
@@ -900,7 +918,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
 		elif height <= sea + 2 and wet <= 1:
 			b = BEACH
-			top = Mat.SAND if soil[j] < soil_t else Mat.CLAY
+			top = beach if soil[j] < soil_t else bank
 		elif kind == PLAIN and height <= sea + 4 and swamp[j] > swamp_t and wet <= 4 and t > 0.3:
 			# A swamp: flat wet ground a level or two above the sea, with pools.
 			b = SWAMP
@@ -912,10 +930,10 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				# murkier, shallow water of a mire with no step.
 				wt = sea + 1
 				height = wt - (2 if p > pool_t + 20 else 1)
-				top = Mat.CLAY
+				top = bank
 				f |= MARSH if p > pool_t else MIRE
 			else:
-				top = Mat.CLAY if p > mud_t else Mat.GRASS
+				top = bank if p > mud_t else Mat.GRASS
 			sheer = false
 		elif t < 0.2:
 			# Tundra: cold lowland, bare stone and clay showing through the grass.
@@ -923,13 +941,13 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			if soil[j] < _byte(-0.35):
 				top = Mat.STONE
 			elif soil[j] > _byte(0.45):
-				top = Mat.CLAY
+				top = bank
 		elif t < 0.38 or height > sea + 14:
 			b = TAIGA
 		elif t > 0.66 and m < 0.56:
 			# Desert: sand in low dunes.
 			b = DESERT
-			top = Mat.SAND
+			top = beach
 			if kind == PLAIN and not sheer:
 				height += int(dunes[j] / 255.0 * 2.6)
 		elif m > 0.7:
@@ -1152,14 +1170,14 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var dirt := height if rocky else maxi(0, height - 4)
 		var i := col
 		for y in dirt:
-			cells[i] = Mat.COPPER_ORE if want and ores[(y >> 1) * CHUNK + lx] > ore_t else Mat.STONE
+			cells[i] = ore if want and ores[(y >> 1) * CHUNK + lx] > ore_t else Mat.STONE
 			natural[i] = WorldData.WILD
 			i += layer
 		for y in range(dirt, height):
 			cells[i] = Mat.DIRT
 			natural[i] = WorldData.WILD
 			i += layer
-		cells[i] = Mat.COPPER_ORE if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
+		cells[i] = ore if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
 		natural[i] = WorldData.WILD | WorldData.SHEER if flags[j] & SHEER_TOP else WorldData.WILD
 		var y := height + 1
 		var wet := WorldData.WILD | (WorldData.BOG if flags[j] & MIRE else (WorldData.SWAMP if flags[j] & MARSH else 0))

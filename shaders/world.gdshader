@@ -35,16 +35,23 @@ global uniform sampler2D terrain_atlas : source_color, filter_nearest;
 // Corner shape of each material (Mat.corner_shape): 0 a straight cut, 1 a little
 // rounded, 2 a quarter circle; the exponent p of the curve is 1, 1.5 or 2.
 uniform int corner_shapes[21];
+// A word per material from its data (Mat.shader_bits): bits 0..3 the priority (which
+// material grows over which at a boundary, 0 never blends), bit 4 DRAINS (no puddles),
+// bits 5..6 the kind of patches on open ground (GROUND_*). One entry for every
+// material, filled by main.gd: reading past the end draws garbage on some GPUs.
+uniform int material_bits[21];
 
 const int NONE = 63;
+// The core's materials come first in a fixed order; the rest are known by their bits.
 const int GRASS = 1;
 const int DIRT = 2;
 const int STONE = 3;
-const int SAND = 4;
-// Which material grows over which at a boundary; 0 never blends.
-// One for every material (Mat ids, see materials.yaml): reading past the end draws
-// garbage on some GPUs.
-const int PRIORITY[13] = int[](0, 6, 4, 1, 3, 0, 0, 0, 0, 2, 2, 0, 2);
+const int PRIORITY_MASK = 15;
+const int DRAINS = 16;
+const int GROUND_SHIFT = 5;
+const int GROUND_SOIL = 1;
+const int GROUND_SAND = 2;
+const int GROUND_ROCK = 3;
 // Outward directions of the N, S, W, E edges of a face, and of the diagonals of
 // corners NW, NE, SE, SW (seen from the rest of the cell).
 const vec2 EDGE_OUT[4] = vec2[](vec2(0.0, -1.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(1.0, 0.0));
@@ -86,24 +93,25 @@ vec3 tile_texel(int tile, ivec2 t) {
 	return texture(terrain_atlas, (origin + vec2(t) + 0.5) / (8.0 * TEXELS)).rgb;
 }
 
-// Patches on bare ground: damp and dry dirt with pebbles, dunes on sand, moss and
-// lichen on stone. Multiplies the tile colour.
+// Patches on bare ground by the material's `ground` kind: damp and dry soil with
+// pebbles, dunes on sand, moss and lichen on rock. Multiplies the tile colour.
 vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
+	int ground = (material_bits[mat] >> GROUND_SHIFT) & 3;
 	float p = ground_patch(xz, float(mat));
 	float q = ground_patch(xz, float(mat) + 7.0);
 	float speck = hash12(wt + 13.0);
 	vec3 k = vec3(1.0);
-	if (mat == DIRT) {
+	if (ground == GROUND_SOIL) {
 		k *= p > 0.66 ? vec3(0.84, 0.82, 0.8) : (p < 0.3 ? vec3(1.08, 1.06, 1.02) : vec3(1.0));
 		if (speck > 1.0 - 0.05 * q) {
 			k *= vec3(1.3, 1.3, 1.36);
 		}
-	} else if (mat == SAND) {
+	} else if (ground == GROUND_SAND) {
 		k *= p > 0.64 ? vec3(1.05, 1.04, 1.02) : (p < 0.34 ? vec3(0.93, 0.92, 0.9) : vec3(1.0));
 		if (speck > 0.992) {
 			k *= vec3(0.78, 0.76, 0.74);
 		}
-	} else if (mat == STONE) {
+	} else if (ground == GROUND_ROCK) {
 		k *= p > 0.65 ? vec3(0.9, 1.0, 0.82) : (p < 0.3 ? vec3(1.06) : vec3(1.0));
 		if (q > 0.72 && speck > 0.55) {
 			k *= vec3(0.84, 0.98, 0.72);
@@ -174,13 +182,13 @@ void fragment() {
 		if (top) {
 			// The neighbour with the higher priority spills 1..3 texels over the edge.
 			int n = int(packed.y + 0.5);
-			int best = PRIORITY[tile / 3];
+			int best = material_bits[tile / 3] & PRIORITY_MASK;
 			for (int e = 0; e < 4; e++) {
 				int nt = (n >> (6 * e)) & 63;
 				if (nt == NONE || best == 0) {
 					continue;
 				}
-				int p = PRIORITY[nt / 3];
+				int p = material_bits[nt / 3] & PRIORITY_MASK;
 				if (p <= best) {
 					continue;
 				}
@@ -334,7 +342,7 @@ void fragment() {
 	// and in the low cells, shrinking from their edges as they dry, a damp rim round
 	// them, and rings of drops on them while it rains.
 	if (puddles.x > 0.0 && top && !cap && !roof && flag != 4 && world_normal.y > 0.95 && tile != NONE
-			&& tile / 3 != SAND && snow <= 0.0 && warm < 0.5) {
+			&& (material_bits[tile / 3] & DRAINS) == 0 && snow <= 0.0 && warm < 0.5) {
 		vec2 at = world_pos.xz * 2.2;
 		float n = ground_patch(at, 17.0) + (h - 0.5) * 0.02;
 		float here = ground_top(world_pos.xz, vec2(0.0));

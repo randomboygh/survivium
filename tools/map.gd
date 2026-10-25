@@ -13,11 +13,9 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
-var colors: Dictionary = {
-	Mat.GRASS: Color(0.36, 0.56, 0.24), Mat.DIRT: Color(0.5, 0.36, 0.22), Mat.STONE: Color(0.55, 0.55, 0.55),
-	Mat.SAND: Color(0.86, 0.78, 0.52), Mat.CLAY: Color(0.6, 0.45, 0.38), Mat.COPPER_ORE: Color(0.6, 0.5, 0.4),
-	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.LEAVES: Color(0.16, 0.36, 0.14), Mat.SCREE: Color(0.62, 0.6, 0.57),
-}
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
+
+const CROWN := Color(0.16, 0.36, 0.14)
 
 
 func _initialize() -> void:
@@ -82,7 +80,7 @@ func _draw_cells(gen: WorldGen, img: Image, x0: int, z0: int, n: int) -> void:
 					depth += 1
 				c = Color(0.4, 0.66, 0.7).lerp(Color(0.1, 0.22, 0.4), clampf((depth - 1) / 6.0, 0.0, 1.0))
 			else:
-				c = colors.get(m, Color.MAGENTA)
+				c = PixelTextures.tint(m)
 				c = c * (0.75 + 0.5 * (y - w.sea_level) / float(w.size_y - w.sea_level))
 				var north := tops[maxi(z - 1, 0) * n + x]
 				var west := tops[z * n + maxi(x - 1, 0)]
@@ -91,7 +89,7 @@ func _draw_cells(gen: WorldGen, img: Image, x0: int, z0: int, n: int) -> void:
 				elif north - y >= 2 or west - y >= 2:
 					c = c.darkened(0.35)
 				if w.leaf_col(wx, wz) != 0:
-					c = c.lerp(colors[Mat.LEAVES], 0.7)
+					c = c.lerp(CROWN, 0.7)
 				elif w.peak_snow(y + 1) > 0.5:
 					c = c.lerp(Color(0.95, 0.96, 1.0), 0.75)
 				if w.air_col(wx, wz) & ((1 << y) - 1) != 0:

@@ -44,7 +44,7 @@
   swing: 0.25
   reach: 10
   durability: 100
-  repair: {core:planks: 1}
+  repair: {planks: 1}
 - id: wooden_sword
   title: Деревянный меч
   weight: 1.0
@@ -59,7 +59,7 @@
   swing: 0.4
   reach: 8
   durability: 80
-  repair: {core:planks: 1}
+  repair: {planks: 1}
 - id: stone_sword
   title: Каменный меч
   weight: 1.4
@@ -88,7 +88,7 @@
   swing: 0.8
   reach: 10
   durability: 30
-  repair: {core:planks: 1}
+  repair: {planks: 1}
 - id: stone_scythe
   title: Каменная коса
   weight: 1.5
@@ -122,7 +122,7 @@
   swing: 0.6
   reach: 8
   durability: 40
-  repair: {core:planks: 1}
+  repair: {planks: 1}
 - id: workbench
   title: Верстак
   weight: 8.0
@@ -144,3 +144,14 @@
   icon: chest
   model: chest
   prop: chest
+# Что делают на станках и ставят блоками: доски и кирпич (их ячейки — materials.yaml этого мода).
+- id: planks
+  title: Доски
+  weight: 1.0
+  stack: 20
+  place: planks
+- id: brick
+  title: Кирпич
+  weight: 1.5
+  stack: 20
+  place: brick

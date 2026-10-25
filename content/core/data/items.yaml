@@ -29,11 +29,11 @@
   stack: 20
   model: branch
   icon: branch
+# Бревно ставится как ячейка ствола мода «Растения»: place ему дописывает тот мод.
 - id: log
   title: Бревно
   weight: 5.0
   stack: 4
-  place: log
   model: log
   icon: log
 - id: dirt
@@ -46,31 +46,6 @@
   weight: 2.0
   stack: 20
   place: stone
-- id: sand
-  title: Песок
-  weight: 1.5
-  stack: 20
-  place: sand
-- id: clay
-  title: Глина
-  weight: 1.5
-  stack: 20
-  place: clay
-- id: planks
-  title: Доски
-  weight: 1.0
-  stack: 20
-  place: planks
-- id: brick
-  title: Кирпич
-  weight: 1.5
-  stack: 20
-  place: brick
-- id: copper_ore
-  title: Медная руда
-  weight: 2.5
-  stack: 20
-  icon: copper_ore
 - id: fiber
   title: Волокно
   weight: 0.05

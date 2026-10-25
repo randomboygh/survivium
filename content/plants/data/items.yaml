@@ -117,3 +117,7 @@
   heal: 30
   model: bandage
   icon: bandage
+# Бревно — предмет основы; ставится оно ячейкой ствола этого мода.
+- id: core:log
+  patch: true
+  place: plants:log

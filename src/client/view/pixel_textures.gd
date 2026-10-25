@@ -36,23 +36,57 @@ const BERRY_ALPHA := 0.65
 ## The atlas image, kept so scripts can read its tiles: reading a texture back is slow
 ## in the browser.
 static var atlas_image: Image
+## The average colour of each material's top tile (maps, particles), by material.
+static var tints: PackedColorArray = []
 
 
+## The atlas of the materials' textures, each read from its mod (Mat.texture_path: three
+## tiles of TILE px side by side, the top, the sides and the underside) into tiles
+## m * 3 + kind; magenta where a texture is missing or of another size (the validator
+## reports it).
 static func build_atlas() -> ImageTexture:
 	var img := Image.create_empty(TILE * TILES, TILE * TILES, false, Image.FORMAT_RGBA8)
 	img.fill(Color.MAGENTA)
-	var rng := RandomNumberGenerator.new()
+	tints = []
+	tints.resize(Mat.COUNT)
 	for m in Mat.COUNT:
+		tints[m] = Color(0.55, 0.5, 0.45)
+		var tex := texture_of(m)
+		if tex == null:
+			continue
 		for kind in 3:
-			rng.seed = m * 31 + kind + 7
 			var tile := m * 3 + kind
-			var ox := (tile % TILES) * TILE
-			var oy := floori(tile / float(TILES)) * TILE
-			for py in TILE:
-				for px in TILE:
-					img.set_pixel(ox + px, oy + py, _texel(m, kind, px, py, rng))
+			img.blit_rect(tex, Rect2i(kind * TILE, 0, TILE, TILE), Vector2i((tile % TILES) * TILE, floori(tile / float(TILES)) * TILE))
+		var sum := Color.BLACK
+		for py in TILE:
+			for px in TILE:
+				sum += tex.get_pixel(px, py)
+		tints[m] = sum / float(TILE * TILE)
 	atlas_image = img
 	return ImageTexture.create_from_image(img)
+
+
+## The texture of material `m` as its mod gives it, null when it is missing or not
+## three tiles of TILE px in a row.
+static func texture_of(m: int) -> Image:
+	if m <= 0 or m >= Mat.COUNT:
+		return null
+	var path := Mat.texture_path(m)
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	var img := tex.get_image() if tex != null else null
+	if img == null or img.get_width() != TILE * 3 or img.get_height() != TILE:
+		return null
+	img.convert(Image.FORMAT_RGBA8)
+	return img
+
+
+## The average colour of material `m`'s top tile, a neutral brown for none.
+static func tint(m: int) -> Color:
+	if tints.is_empty():
+		build_atlas()
+	return tints[m] if m >= 0 and m < tints.size() else Color(0.55, 0.5, 0.45)
 
 
 ## Ground plants side by side, each PLANT_W x PLANT_H px, drawn from the bottom row up
@@ -395,69 +429,3 @@ static func _mark_edges(img: Image, origin: Vector2i, cell: int) -> void:
 ## Grass.cloud_noise, which scripts read the same patches from).
 static func build_cloud_noise() -> ImageTexture:
 	return ImageTexture.create_from_image(Grass.cloud_noise())
-
-
-static func _vary(c: Color, rng: RandomNumberGenerator, amount := 0.05) -> Color:
-	var k := 1.0 + rng.randf_range(-amount, amount)
-	return Color(c.r * k, c.g * k, c.b * k)
-
-
-static func _texel(m: int, kind: int, px: int, py: int, rng: RandomNumberGenerator) -> Color:
-	var dirt := Color(0.47, 0.35, 0.25)
-	var stone := Color(0.5, 0.52, 0.55)
-	var grass := Color(0.4, 0.54, 0.25)
-	match m:
-		Mat.GRASS:
-			if kind == 0:
-				var r := rng.randf()
-				return _vary(grass * (0.9 if r < 0.12 else (1.07 if r > 0.92 else 1.0)), rng, 0.03)
-			if kind == 1 and py < 2 + (px * 7 % 3):
-				return _vary(grass * 0.95, rng, 0.03)
-			return _dirt(dirt, px, py, rng)
-		Mat.DIRT:
-			return _dirt(dirt, px, py, rng)
-		Mat.STONE:
-			if kind == 1:
-				# Strata on walls.
-				var seam := (py + (px / 5) % 2) % 6 == 5
-				return _vary(stone * (0.82 if seam else 1.0), rng, 0.03)
-			var crack := (px * 3 + py * 5) % 23 == 0 or rng.randf() < 0.05
-			return _vary(stone * (0.85 if crack else 1.0), rng, 0.03)
-		Mat.SAND:
-			return _vary(Color(0.77, 0.67, 0.48) * (0.93 if rng.randf() < 0.1 else 1.0), rng, 0.025)
-		Mat.WATER:
-			return Color(0.25, 0.45, 0.55)
-		Mat.LOG:
-			if kind == 1:
-				return _vary(Color(0.36, 0.27, 0.2) * (0.8 if px % 3 == 0 else 1.0), rng, 0.04)
-			var r := Vector2(px - 7.5, py - 7.5).length()
-			return _vary(Color(0.66, 0.52, 0.36) * (0.82 if int(r) % 3 == 0 else 1.0), rng, 0.03)
-		Mat.LEAVES:
-			return _vary(Color(0.3, 0.45, 0.22) * (0.8 if rng.randf() < 0.25 else 1.0), rng, 0.06)
-		Mat.PLANKS:
-			var line := py % 4 == 3 or (px == (py / 4 * 5) % 16 and py % 4 != 3)
-			return _vary(Color(0.64, 0.49, 0.33) * (0.72 if line else 1.0), rng, 0.03)
-		Mat.CLAY:
-			return _vary(Color(0.6, 0.47, 0.4), rng, 0.03)
-		Mat.COPPER_ORE:
-			if rng.randf() < 0.12:
-				return _vary(Color(0.78, 0.5, 0.3), rng)
-			return _vary(stone, rng, 0.03)
-		Mat.SCREE:
-			# Pebbles of a few greys, a shade darker in the gaps between them.
-			var r := rng.randf()
-			var gap := (px + (py / 3) * 2) % 4 == 0 and py % 3 == 2
-			var tone := 0.78 if gap else (0.9 if r < 0.3 else (1.08 if r > 0.8 else 1.0))
-			return _vary(Color(0.52, 0.5, 0.48) * tone, rng, 0.035)
-		Mat.BRICK:
-			var row := py / 4
-			var mortar := py % 4 == 3 or (px + (row % 2) * 4) % 8 == 7
-			return _vary(Color(0.74, 0.7, 0.64) if mortar else Color(0.58, 0.32, 0.25), rng, 0.04)
-	return Color.MAGENTA
-
-
-static func _dirt(dirt: Color, px: int, py: int, rng: RandomNumberGenerator) -> Color:
-	var r := rng.randf()
-	if r < 0.06:
-		return _vary(Color(0.6, 0.52, 0.42), rng, 0.03)
-	return _vary(dirt * (0.88 if r > 0.9 else 1.0), rng, 0.03)

@@ -11,9 +11,11 @@
 
 ```
 content/tools/
-  mod.yaml                    id: tools, requires: [core]
-  data/items.yaml             инструменты (tool, power, swing, reach, durability, repair) и станки (prop)
+  mod.yaml                    id: tools, requires: [core, materials]
+  data/materials.yaml         доски и кирпич как материалы ячеек
+  data/items.yaml             инструменты (tool, power, swing, reach, durability, repair), станки (prop), доски, кирпич
   data/recipes.yaml           рецепты: руками, на верстаке, в печи
+  textures/<id>.png           текстуры досок и кирпича (48×16: верх, бока, низ; см. README «Материалов»)
   sprites/held/<sprite>.png   как инструмент лежит в руках персонажа (лист кадров, см. README основы)
   models/<model>.png          воксельные модели вещей на земле и станков
   README.md                   этот файл
@@ -38,8 +40,9 @@ content/tools/
   рубят — `src/shared/content/tools.gd`), а станки по роли `prop` (workbench: у него делают и
   чинят; kiln: в нём обжигают; chest: хранит вещи). Какой предмет в этой роли — решают данные:
   верстак другого мода с `prop: workbench` починит инструменты так же.
-- Материалы (кремень, верёвка, доски, кирпич, ветка, бревно, глина) — записи основы, поэтому в
-  `needs` и `repair` они с приставкой `core:`.
+- Доски и кирпич — материалы и предметы этого мода (`data/materials.yaml`, `data/items.yaml`), их
+  в `needs` и `repair` пишут без приставки. Кремень, верёвка, ветка и бревно — записи основы
+  (`core:`), глина — мода «Материалы» (`materials:clay`), поэтому он в `requires`.
 - Новый инструмент: запись в `data/items.yaml` с `tool`, `sprite` и `anim` (работа персонажа из
   `content/core/sprites/player.yaml`), лист `sprites/held/<sprite>.png`, модель
   `models/<model>.png` и рецепт. Проверка: `godot --headless --path . --script res://tools/validate.gd`

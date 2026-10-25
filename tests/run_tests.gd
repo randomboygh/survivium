@@ -627,7 +627,7 @@ func _test_slopes() -> void:
 	_check(w.slope_mask(4, 1, 0) == WorldData.NE | WorldData.SE, "a ramp at the map edge still slopes")
 	w.set_cell(4, 1, 7, Mat.STONE)
 	_check(w.slope_mask(4, 1, 7) == WorldData.FULL, "stone and built blocks never slope")
-	w.set_cell(4, 2, 3, Mat.PLANKS)
+	w.set_cell(4, 2, 3, Mat.index("tools:planks"))
 	_check(w.slope_mask(4, 1, 3) == WorldData.FULL, "ground under a block does not slope")
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
@@ -772,14 +772,14 @@ func _test_ground() -> void:
 	_check(w.get_cell(27, g + 1, -30) == Mat.AIR and w.get_cell(27, g + 3, -30) == Mat.STONE
 		and w.get_cell(27, g, -30) == Mat.DIRT and w.get_cell(27, g + 4, -38) == Mat.AIR,
 		"the hill of the test world has a tunnel into a hall")
-	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.SAND
+	_check(w.get_cell(-40, g, 20) == Mat.WATER and w.get_cell(-40, g - 1, 20) == Mat.BEACH
 		and w.get_cell(-15, g - 4, 20) == Mat.WATER, "the pond goes from wading to swimming")
-	_check(w.is_bog(18, g, 33) and w.get_cell(18, g - 1, 33) == Mat.CLAY and w.murk(18, g, 28) == 1
+	_check(w.is_bog(18, g, 33) and w.get_cell(18, g - 1, 33) == Mat.BANK and w.murk(18, g, 28) == 1
 		and w.get_cell(16, g, 16) == Mat.WATER and w.murk(16, g, 16) == 1,
 		"the swamp strip has pools and a pond running into a bog, all at one level")
-	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.COPPER_ORE,
+	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.ORE,
 		"the material strips are 4 cells deep")
-	_check(w.get_cell(50, g + 2, 0) == Mat.PLANKS and w.get_cell(53, g + 1, 3) == Mat.AIR
+	_check(w.get_cell(50, g + 2, 0) == Mat.index("tools:planks") and w.get_cell(53, g + 1, 3) == Mat.AIR
 		and w.get_cell(54, g + 4, 0) == Mat.STONE, "the hut has walls, a door and a roof")
 	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
 		"every tree of the plan grows")
@@ -1589,8 +1589,20 @@ func _test_content() -> void:
 	_check(Mat.check().is_empty() and AiRules.check().is_empty() and Trees.check().is_empty() and Bushes.check().is_empty(),
 		"core content satisfies the engine")
 	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Mat.NAMES[Mat.GRASS] == "Трава", "materials get their indices")
-	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, Mat.PLANKS, Mat.BRICK, Mat.SAND, Mat.CLAY, Mat.LOG], "hotbar order comes from the data")
-	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.SAND),
+	var planks := Mat.index("tools:planks")
+	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("tools:brick"), Mat.BEACH, Mat.BANK, Mat.LOG],
+		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
+	_check(Mat.IDS[Mat.BEACH] == "materials:sand" and Mat.IDS[Mat.BANK] == "materials:clay" and Mat.IDS[Mat.SCREE] == "materials:scree"
+		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.COUNT == 13, "the engine finds materials by their roles")
+	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT)
+		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT), "the shader's word per material comes from the data")
+	_check(Mat.texture_path(Mat.BEACH) == "res://content/materials/textures/sand.png" and ResourceLoader.exists(Mat.texture_path(Mat.LOG)),
+		"a material's texture is a PNG of its mod")
+	var old: PackedStringArray = ["core:air", "core:stone", "materials:sand", "nobody:glass"]
+	_check(Mat.remap(old) == PackedByteArray([Mat.AIR, Mat.STONE, Mat.BEACH, Mat.STONE]) and Mat.remap(Mat.IDS).is_empty(),
+		"cells of a save numbered in another order are translated, unknown ones to stone")
+	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.BEACH),
 		"material flags come from the data")
 	_check(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].tints[0] is Color, "trees get their looks")
 	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].berries == Color.BLACK and Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].spread is Vector3, "bushes get their looks")
@@ -1673,6 +1685,10 @@ func _test_mods() -> void:
 	_check(Trees.pick(Trees.HIGHLAND, 0.5) == -1 and Bushes.pick(Trees.LOWLAND, 0.1) == -1 and Plants.TUFT == ""
 		and Grass.kinds(bare, 3, 0, 3, Mat.GRASS, true, bare_rng).is_empty() and Grass.plants_on(bare, 3, 0, 3).is_empty(),
 		"with core alone no tree, bush or plant is picked and grass grows nothing")
+	# Nor any material but the engine's five: the generator lays dirt and stone for the roles.
+	var bare_gen := WorldGen.new(20261018, 48)
+	_check(Mat.COUNT == 5 and Mat.BEACH == -1 and Mat.LOG == -1 and bare_gen.beach == Mat.DIRT and bare_gen.scree == Mat.STONE
+		and Mat.check().is_empty() and Trees.check().is_empty(), "with core alone the landscape roles fall back to dirt and stone")
 	Mods.activate(before)
 	_check(Trees.pick(Trees.HIGHLAND, 0.5) == Trees.sample(Trees.HIGHLAND) and Trees.pick("nowhere", 0.0) >= 0
 		and Bushes.pick(Trees.HIGHLAND, 0.5) == Bushes.sample(Trees.HIGHLAND) and Bushes.pick(Trees.HIGHLAND, 0.9) == Bushes.sample(Bushes.ANY)
@@ -1704,9 +1720,9 @@ func _test_tools() -> void:
 	_check(Tools.can_dig(hand, Mat.DIRT) and Tools.can_dig(hand, Mat.LEAVES) and not Tools.can_dig(hand, Mat.STONE),
 		"hands dig soft ground and leaves, not stone")
 	_check(Tools.swing_time(hand, Mat.DIRT) > Tools.swing_time(shovel, Mat.DIRT), "a shovel digs faster than hands")
-	_check(Tools.can_dig(pick, Mat.STONE) and Tools.can_dig(pick, Mat.COPPER_ORE) and not Tools.can_dig(shovel, Mat.STONE),
+	_check(Tools.can_dig(pick, Mat.STONE) and Tools.can_dig(pick, Mat.ORE) and not Tools.can_dig(shovel, Mat.STONE),
 		"stone and ore only with a pickaxe")
-	_check(Tools.can_dig(axe, Mat.PLANKS) and not Tools.can_dig(pick, Mat.LOG) and not Tools.can_dig(hand, Mat.WATER),
+	_check(Tools.can_dig(axe, Mat.index("tools:planks")) and not Tools.can_dig(pick, Mat.LOG) and not Tools.can_dig(hand, Mat.WATER),
 		"wood with an axe, water never")
 	_check(Tools.why_not(hand, Mat.STONE) != "" and Tools.why_not(pick, Mat.STONE) == "", "a reason when a tool cannot dig")
 	_check(Tools.step_of(Vector2(0, 1)) == Vector2i(0, 1) and Tools.step_of(Vector2(-0.7, -0.7)) == Vector2i(-1, -1),
@@ -1777,7 +1793,7 @@ func _test_crafting() -> void:
 	var have := Crafting.reachable()
 	for id in ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:stone_sword", "tools:wooden_pickaxe", "tools:wooden_scythe",
 			"tools:workbench",
-			"tools:kiln", "core:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
+			"tools:kiln", "tools:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
 	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
 	var cord := Crafting.get_recipe("core:cord")

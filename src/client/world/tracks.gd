@@ -92,10 +92,11 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 	elif ground == Mat.GRASS:
 		tint = Color(0.72, 0.68, 0.58) if wet < 0.5 else Color(0.6, 0.56, 0.5)
 		life = 20.0 if wet < 0.5 else 40.0
-	elif ground == Mat.DIRT or ground == Mat.CLAY or ground == Mat.SAND or ground == Mat.SCREE:
+	elif Mat.RECORDS[ground].dig == "shovel":
+		# Soft ground: dirt, clay, sand, scree.
 		tint = Color(0.7, 0.65, 0.58) if wet < 0.5 else Color(0.58, 0.53, 0.48)
 		life = 45.0
-	elif (ground == Mat.STONE or ground == Mat.COPPER_ORE) and world.roof_level(cell.x, cell.z) > cell.y:
+	elif Mat.RECORDS[ground].dig == "pickaxe" and world.roof_level(cell.x, cell.z) > cell.y:
 		# Dust on the floor of a cave.
 		tint = Color(0.66, 0.64, 0.62)
 		life = 60.0

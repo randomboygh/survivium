@@ -15,6 +15,13 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+
+## The materials of a world saved before they were split among the mods (`content`
+## below 5), in the order its cells were numbered, by their ids now.
+const OLD_MATERIALS: PackedStringArray = ["core:air", "core:grass", "core:dirt", "core:stone", "materials:sand",
+	"core:water", "plants:log", "plants:leaves", "tools:planks", "materials:clay", "materials:copper_ore",
+	"tools:brick", "materials:scree"]
 
 const PLAYER := "players/local.json"
 ## Seconds between saves while playing.
@@ -30,6 +37,9 @@ var store: WorldStore
 ## the player's record.
 var has_save := false
 var meta := {}
+## The ids of the materials in the order the save's cells are numbered (see
+## OLD_MATERIALS), empty for a new world.
+var saved_materials: PackedStringArray = []
 var player_record := {}
 ## The player was put back where the save had them (else they start at the spawn).
 var player_placed := false
@@ -76,12 +86,16 @@ func choose_world() -> void:
 		return
 	has_save = true
 	# A save from before mods were kept was made with every mod there was; one from before
-	# the plants (no `content` mark), the tools (`content` below 3) or the sounds (below 4)
-	# were mods of their own had them in the base game.
+	# the plants (no `content` mark), the tools (`content` below 3), the sounds (below 4)
+	# or the materials of the landscape (below 5) were mods of their own had them in the
+	# base game.
 	game.world_mods = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
-	for split in [[2, "plants"], [3, "tools"], [4, "sounds"]]:
+	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [5, "materials"]]:
 		if int(meta.get("content", 1)) < split[0] and not split[1] in game.world_mods and split[1] in Mods.available():
 			game.world_mods.insert(1, split[1])
+	# The order the materials were numbered in when the world was saved (its cells hold
+	# the numbers): a save from before the split (below 5) had the core's thirteen.
+	saved_materials = PackedStringArray(meta.get("materials", OLD_MATERIALS if int(meta.get("content", 1)) < 5 else []))
 	player_record = store.read_json(PLAYER)
 	played = meta.get("played", 0.0)
 	print("save %s: %d chunks, %.0f s played" % [store.dir, store.chunk_count(), played])
@@ -204,7 +218,8 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
-		"content": 4,
+		"content": 5,
+		"materials": Array(Mat.IDS),
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),
