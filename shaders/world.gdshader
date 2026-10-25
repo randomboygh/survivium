@@ -221,9 +221,15 @@ void fragment() {
 			// The neighbour with the higher priority spills 1..3 texels over the edge.
 			int n = int(packed.y + 0.5);
 			int best = material_bits[tile / 3] & PRIORITY_MASK;
+			// On a slope the edges with the same neighbour add up, so it grows over the
+			// slope as a whole: round a corner between two edges along the diagonal,
+			// fill a slope between two edges or three, instead of running a band round
+			// the cell as if it were a block.
+			bool slope = (flag & 4) != 0;
+			int own = best;
 			for (int e = 0; e < 4; e++) {
 				int nt = (n >> (6 * e)) & 63;
-				if (nt == NONE || best == 0) {
+				if (nt == NONE || own == 0) {
 					continue;
 				}
 				int p = material_bits[nt / 3] & PRIORITY_MASK;
@@ -232,7 +238,15 @@ void fragment() {
 				}
 				float along = e < 2 ? wt.x : wt.y;
 				float reach = 1.0 + floor(hash12(vec2(along, float(e))) * 2.0) + floor(hash12(vec2(floor(along / 3.0), 9.0)) * 2.0);
-				if (float(dist[e]) < reach) {
+				float near = CELL_TEXELS - float(dist[e]);
+				if (slope) {
+					for (int f = 0; f < 4; f++) {
+						if (f != e && ((n >> (6 * f)) & 63) == nt) {
+							near += CELL_TEXELS - float(dist[f]);
+						}
+					}
+				}
+				if (near > CELL_TEXELS - reach) {
 					best = p;
 					pick = nt;
 				}
