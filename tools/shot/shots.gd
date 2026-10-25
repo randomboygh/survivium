@@ -59,6 +59,10 @@ const SHOTS := {
 	# The torch by a wall to the north: lit from the foot of the wall up.
 	"torch-wall": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "wall": "north", "hands": {"tool": "tools:torch", "facing": "s"}},
 	"glow-wall": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "wall": "north", "hands": {"tool": "resources:stone", "facing": "s"}},
+	# Two torches on snowy slopes in the night's fog: the rings, the fog thinner round
+	# the player, the drawn shadows of the slopes.
+	"torch-snow": {"time": 0.95, "season": 3, "moon": 0.0, "slopes": true, "morning_fog": 1, "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# A torch in each hand: a flame at each.
 	"torch-two": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
@@ -405,6 +409,9 @@ const SHOTS := {
 	"ground-steps": {"time": 0.42, "season": 1, "at": [-28, -24]},
 	# In the trench between the loose and the stone ledges of 3 and 5 cells: the cut hides
 	# them, their rounded corners cut.
+	# A torch at night among the steps: the drawn shadows of the slopes and cut corners.
+	"ground-steps-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-28, -24], "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	"ground-steps-cut": {"time": 0.42, "season": 1, "at": [-22, -35]},
 	"ground-steps-cut-n": {"time": 0.42, "season": 1, "at": [-18, -35]},
 	"ground-pits": {"time": 0.42, "season": 1, "at": [0, -32]},
