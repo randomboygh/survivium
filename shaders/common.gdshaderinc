@@ -61,8 +61,10 @@ const float TEXELS = 16.0;
 const float CELL = 0.5;
 const float CELL_TEXELS = 8.0;
 // Rings of light around a torch or a fire: outer edges as shares of the light's range,
-// 1, 2, 3 and 5 parts of 5 (Fibonacci), and how bright each ring is.
-const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 1.0);
+// 1, 2, 3 and 5 parts of 5 (Fibonacci; the last a dither's width inside the range, so
+// it thins out to nothing over the whole dither before the light ends), and how bright
+// each ring is.
+const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 0.95);
 const vec4 LIGHT_RING_LEVELS = vec4(1.0, 0.55, 0.3, 0.14);
 // The edges between the rings are dithered over this share of the range on either
 // side, so the light falls off smoothly in whole texels.
@@ -406,8 +408,11 @@ float fog_at(vec3 p) {
 	float h = max(p.y - ground, 0.0);
 	float m = clamp(1.0 - h / depth, 0.0, 1.0);
 	m = m * (2.0 - m) * mix(0.45, 1.0, low) * (0.55 + 0.45 * bank) * fog;
-	float near = length(p.xz - player_pos.xz);
-	return m * mix(0.6, 1.0, smoothstep(1.0, 4.0, near));
+	// Thinner round the player, in three dithered steps like the light, not a smooth
+	// ring.
+	float near = smoothstep(1.0, 4.0, length(p.xz - player_pos.xz));
+	near = floor(near * 3.0 + bayer4(floor(screen_plane(p) * TEXELS))) / 3.0;
+	return m * mix(0.6, 1.0, near);
 }
 
 // What veils the colour at `p`: the levels below fading away (`fade`, from

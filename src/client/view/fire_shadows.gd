@@ -495,7 +495,9 @@ func _map_row(w, m: Dictionary, row: int) -> void:
 			var h := 0
 			if c != null and level >= 0:
 				var col := ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
-				var solid: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col]) & all
+				# A sloping top or a cell with corners cut off throws none: a column
+				# here is a whole square, its shadow would be one too.
+				var solid: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col] | c.sloped[col] | c.corner[col]) & all
 				var run := (solid >> level) & 7
 				h = 0 if run & 1 == 0 else (block if run & 2 == 0 else (2 * block if run & 4 == 0 else 3 * block))
 			# The thing the light stands on (a campfire) throws no shadow from it.
