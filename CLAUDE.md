@@ -99,10 +99,13 @@ id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushe
 (`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
 (`Items.with_prop`), a tool by its `tool`, a cell material by its `role` (`Mat.BEACH`, `Mat.BANK`, `Mat.SCREE`,
 `Mat.ORE`, `Mat.LOG`, `Mat.LEAVES`: -1 when no mod gives one, the generator lays dirt or stone instead, trees
-need `trunk` and `crown`); the only ids code names are core's (`Mat.GRASS`, `Items.LOG`,
-`Placed.CAMPFIRE`). Core keeps only air, stone, water, dirt and grass (`Mat.KNOWN`); the other materials
-live in the mod that owns them (`content/materials/` the landscape's, tools' planks and brick, plants' log and
-leaves). How a material is drawn is data too: `priority`, `ground`, `drains` make `Mat.shader_bits`, uploaded to
+need `trunk` and `crown`), fuel for a fire by `fuel` (`Items.fuel_in`), what a tree or bush gives by its
+`log`, `twig`, `seed`, `fruit` fields (soft refs, "" gives nothing); the only ids code names are core's (`Mat.GRASS`,
+`Placed.CAMPFIRE`). Core keeps only air, stone, water, dirt and grass (`Mat.KNOWN`), the campfire and the player;
+the base items are `content/resources/` (wood, stone, soil, fiber bundles: log, branch, stone, flint, dirt, sand, clay,
+fiber, with the scree, sand and clay cells) and `content/materials/` (copper, cord, planks, brick); tools' and plants'
+cells live with them (planks and brick with materials, log and leaves with plants). Saves from before name the old
+ids: `Items.canon`, `Crafting.canon` and `Mat.RENAMED` translate them as they load. How a material is drawn is data too: `priority`, `ground`, `drains` make `Mat.shader_bits`, uploaded to
 `world.gdshader` as `material_bits`; its texture is `textures/<id>.png` of its mod (48×16: top, sides, underside;
 `Mat.texture_path`, atlas by `PixelTextures`, whose average colour `tint` paints the maps and particles), drawn by
 `tools/art/texture_art.gd` and written by `tools/make_textures.gd`. A world saves its material list (`materials` in

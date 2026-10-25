@@ -56,7 +56,7 @@ func _test_felling() -> void:
 		for d: Array in w.drops[key]:
 			kinds[d[0]] = true
 			_check(d[1].z > 23 * WorldData.CELL, "the tree falls away from the axe")
-	_check(kinds.has("core:log") and kinds.has("core:branch") and kinds.has("plants:acorn"), "a felled oak leaves logs, branches and acorns")
+	_check(kinds.has("resources:log") and kinds.has("resources:branch") and kinds.has("plants:acorn"), "a felled oak leaves logs, branches and acorns")
 	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
 
 
@@ -85,8 +85,8 @@ func _test_front_choice() -> void:
 	_check(actions.ripe(berries, Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]) and actions.front_choice(who) == {"bush": berries},
 		"bare hands go for the berries before the branches of a nearer bush")
 	_check(WorldActions._rank(["plants:mushroom"]) < WorldActions._rank(["plants:acorn"])
-		and WorldActions._rank(["plants:acorn"]) < WorldActions._rank(["core:fiber"])
-		and WorldActions._rank(["core:branch"]) < WorldActions._rank([]), "food, then seeds, then the rest, then digging")
+		and WorldActions._rank(["plants:acorn"]) < WorldActions._rank(["resources:fiber"])
+		and WorldActions._rank(["resources:branch"]) < WorldActions._rank([]), "food, then seeds, then the rest, then digging")
 	w.remove_bush(Vector3i(30, 2, 29))
 	w.remove_bush(berries)
 	w.set_cell(30, 3, 29, Mat.DIRT)
@@ -127,7 +127,7 @@ func _test_world_actions() -> void:
 	var dirt := 0
 	for key in w.drops:
 		for d: Array in w.drops[key]:
-			dirt += WorldActions.count(d) if d[0] == "core:dirt" else 0
+			dirt += WorldActions.count(d) if d[0] == "resources:dirt" else 0
 	_check(not swing.is_empty() and w.get_cell(10, 1, 10) == Mat.AIR and dirt >= 1 and changed.has(Vector3i(10, 1, 10)),
 		"a shovel digs dirt, which falls on the ground")
 	_check(actions.dig_at(who, Vector3i(10, 0, 10), Vector3i.UP).is_empty(), "the bottom level is not dug")
@@ -147,10 +147,10 @@ func _test_world_actions() -> void:
 	who.item = ""
 	_check(not actions.dig_at(who, tall, Vector3i.UP).is_empty() and w.get_cell(tall.x, 1, tall.z) == Mat.DIRT,
 		"bare hands cut the grass down to the ground")
-	who.item = "core:stone"
-	who.inventory.add("core:stone", 3)
+	who.item = "resources:stone"
+	who.inventory.add("resources:stone", 3)
 	var placed := actions.place_at(who, Vector3i(12, 2, 10), Vector3i.UP, 40)
-	_check(placed.get("placed", 0) == 1 and w.get_cell(12, 2, 10) == Mat.STONE and who.inventory.count("core:stone") == 2,
+	_check(placed.get("placed", 0) == 1 and w.get_cell(12, 2, 10) == Mat.STONE and who.inventory.count("resources:stone") == 2,
 		"a block is placed from the bag")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
@@ -209,9 +209,9 @@ func _test_placed() -> void:
 	_check(bench.y == 2 and bench.z < 12 and w.blockers.has(bench), "in front of the one who placed it, and solid")
 	var shop := Workshop.new(who, placed, {"tool_wear": false})
 	var axe := Crafting.get_recipe("tools:stone_axe")
-	for id in ["core:flint", "core:cord"]:
+	for id in ["resources:flint", "materials:cord"]:
 		who.inventory.add(id, 1)
-	who.inventory.add("core:branch", 2)
+	who.inventory.add("resources:branch", 2)
 	_check(shop.start(axe) == 1, "a stone axe is started by the workbench")
 	who.position = Vector3(40.5, 2.0, 40.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
@@ -219,9 +219,9 @@ func _test_placed() -> void:
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
 	_check(who.inventory.count("tools:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
-	for id in ["core:flint", "core:cord"]:
+	for id in ["resources:flint", "materials:cord"]:
 		who.inventory.add(id, 1)
-	who.inventory.add("core:branch", 2)
+	who.inventory.add("resources:branch", 2)
 	var quick := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
 	_check(quick.start(axe) == 1, "another axe is started")
 	quick.update(0.01)
@@ -259,7 +259,7 @@ func _test_placed() -> void:
 	placed.put_out(fire)
 	_check(not placed.burns(cook.at) and w.blockers.has(fire.cell), "a campfire put out does not burn, and is still solid")
 	_check(not fire.lit and not placed.light(who, fire), "a campfire put out needs a branch to burn again")
-	who.inventory.add("core:branch", 1)
-	_check(placed.light(who, fire) and fire.lit and who.inventory.count("core:branch") == 0, "it is lit for a branch")
+	who.inventory.add("resources:branch", 1)
+	_check(placed.light(who, fire) and fire.lit and who.inventory.count("resources:branch") == 0, "it is lit for a branch")
 	placed.put_out(fire)
 	_check(placed.destroy(fire) and not placed.things.has(fire), "and destroyed once it is out")

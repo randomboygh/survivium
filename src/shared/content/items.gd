@@ -7,13 +7,16 @@ extends RefCounted
 const Content := preload("res://src/shared/content/content.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 
-## Items the engine itself refers to; the validator demands them.
-const KNOWN := {"BRANCH": "core:branch", "LOG": "core:log"}
 ## What lies on the ground where someone died: a sack with their things, not an item.
 const SACK := "sack"
-
-static var BRANCH := ""
-static var LOG := ""
+## Ids of items and recipes a save from before 2026-10-25 (`content` below 7) may hold, by
+## what they are called now: the base items went to the resources and materials mods.
+const RENAMED := {
+	"core:log": "resources:log", "core:branch": "resources:branch", "core:stone": "resources:stone",
+	"core:dirt": "resources:dirt", "core:fiber": "resources:fiber", "core:flint": "resources:flint",
+	"core:cord": "materials:cord", "materials:sand": "resources:sand",
+	"materials:clay": "resources:clay", "tools:planks": "materials:planks", "tools:brick": "materials:brick",
+}
 
 ## id -> record from the data files: id, title, weight (kg), stack, food, heal, place (a
 ## material id or ""), model, icon, sprite, anim, hands.
@@ -53,14 +56,25 @@ static func refresh() -> void:
 			var m := Mat.index(place)
 			if m >= 0 and placed_by[m] == "":
 				placed_by[m] = id
-	BRANCH = KNOWN.BRANCH
-	LOG = KNOWN.LOG
 
 
-## The record of item `id`; a bare name is taken as a core item (the kinds of things a
-## felled tree drops are named so). Empty if there is no such item.
+## The record of item `id`; a bare name is taken as a core item (the campfire). Empty if
+## there is no such item.
 static func get_item(id: String) -> Dictionary:
 	return BY_ID.get(Content.qualify(id, "core"), {})
+
+
+## Item id `id` as it is called now: an id from an old save by RENAMED, any other as it is.
+static func canon(id: String) -> String:
+	return RENAMED.get(id, id)
+
+
+## The id of the first item in bag `inv` that lights a fire (`fuel`), "" when it has none.
+static func fuel_in(inv) -> String:
+	for id in IDS:
+		if BY_ID[id].fuel and inv.count(id) > 0:
+			return id
+	return ""
 
 
 static func has(id: String) -> bool:
@@ -138,10 +152,8 @@ static func category(id: String) -> String:
 ## What is wrong with the loaded items for the engine, if anything.
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
-	for name in KNOWN:
-		if not BY_ID.has(KNOWN[name]):
-			out.append("items: the engine needs `%s`" % KNOWN[name])
-	for m in Mat.PLACEABLE:
-		if placed_by[m] == "":
-			out.append("items: `%s` is on the hotbar but no item places it" % Mat.IDS[m])
+	for id in IDS:
+		var place: String = BY_ID[id].place
+		if place != "" and Mat.index(place) >= 0 and placed_by[Mat.index(place)] != id:
+			out.append("items: `%s` and `%s` both place `%s`" % [placed_by[Mat.index(place)], id, place])
 	return out

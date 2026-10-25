@@ -137,11 +137,11 @@ func _test_weather() -> void:
 	for i in 2000:
 		storms.step(Storms.TICK, Vector3(24.5, 2.0, 24.5) * WorldData.CELL)
 	var branches := 0
+	var s: Dictionary = Trees.SPECIES[Trees.sample(Trees.LOWLAND)]
 	for key: Vector2i in w.drops:
 		for d: Array in w.drops[key]:
-			if d[0] == Items.BRANCH:
+			if d[0] == s.twig:
 				branches += WorldActions.count(d)
-	var s: Dictionary = Trees.SPECIES[Trees.sample(Trees.LOWLAND)]
 	_check(branches > 0 and branches == w.tree_twigs.get(Vector2i(24, 24), 0) and branches <= s.twigs,
 		"a storm breaks branches off a tree, no more than it has (%d of %d)" % [branches, s.twigs])
 	w.tree_twigs[Vector2i(24, 24)] = s.twigs

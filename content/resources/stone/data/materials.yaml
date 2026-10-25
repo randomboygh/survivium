@@ -1,0 +1,15 @@
+# Осыпь: каменная крошка на склонах высоких гор (role: scree), ложится скатами, копается
+# лопатой и даёт камень, иногда кремень. Поля — как у материалов основы
+# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+- id: scree
+  title: Осыпь
+  role: scree
+  corners: sharp
+  slope: true
+  priority: 2
+  item: stone
+  dig: shovel
+  bonus: flint
+  bonus_chance: 0.2
+  step: step_stone
+  hit: dig

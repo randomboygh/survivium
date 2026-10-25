@@ -23,47 +23,6 @@
 # сбоку), reach (тянуться: ставить, собирать; так и без поля), mow (косить двумя руками),
 # aim (держать перед собой двумя руками), eat (подносить ко рту); hands — сколько рук он
 # занимает (mow и aim — две).
-- id: branch
-  title: Ветка
-  weight: 0.3
-  stack: 20
-  model: branch
-  icon: branch
-# Бревно ставится как ячейка ствола мода «Растения»: place ему дописывает тот мод.
-- id: log
-  title: Бревно
-  weight: 5.0
-  stack: 4
-  model: log
-  icon: log
-- id: dirt
-  title: Земля
-  weight: 1.5
-  stack: 20
-  place: dirt
-- id: stone
-  title: Камень
-  weight: 2.0
-  stack: 20
-  place: stone
-- id: fiber
-  title: Волокно
-  weight: 0.05
-  stack: 50
-  model: fiber
-  icon: fiber
-- id: flint
-  title: Кремень
-  weight: 0.3
-  stack: 20
-  model: flint
-  icon: flint
-- id: cord
-  title: Верёвка
-  weight: 0.1
-  stack: 20
-  model: cord
-  icon: cord
 - id: campfire
   title: Костёр
   weight: 3.0

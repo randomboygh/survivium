@@ -76,8 +76,8 @@ func from_dict(d: Dictionary) -> void:
 	var held_ids: Variant = d.get("hands")
 	if held_ids is Array and held_ids.size() == 2:
 		for h in 2:
-			var id: Variant = held_ids[h]
-			hands[h] = id if id is String and (id == "" or Items.has(id)) else ""
+			var id: Variant = Items.canon(held_ids[h]) if held_ids[h] is String else ""
+			hands[h] = id if id == "" or Items.has(id) else ""
 	active = clampi(int(d.get("active", 0)), 0, 1)
 	brush = clampi(int(d.get("brush", 0)), 0, Tools.BRUSHES.size() - 1)
 

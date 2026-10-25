@@ -79,8 +79,9 @@ const PEAK_RISE := 20
 ## north part (CAMP_DROPS in turn, some heaped), sacks on a row, then the placed things
 ## (CAMP_THINGS), then lit campfires.
 const CAMP := Rect2i(60, -30, 32, 18)
-const CAMP_DROPS := ["log", "branch", "stone", "plants:acorn", "plants:cone", "plants:raspberry", "dirt", "planks", "flint",
-	"tools:stone_axe", "plants:mushroom", "clay", "fiber", "brick", "tools:wooden_shovel", "plants:blueberry"]
+const CAMP_DROPS := ["resources:log", "resources:branch", "resources:stone", "plants:acorn", "plants:cone", "plants:raspberry",
+	"resources:dirt", "materials:planks", "resources:flint", "tools:stone_axe", "plants:mushroom", "resources:clay", "resources:fiber",
+	"materials:brick", "tools:wooden_shovel", "plants:blueberry"]
 const CAMP_THINGS := ["tools:chest", "tools:workbench", "tools:kiln"]
 
 ## Top of the meadow (filled in _init: two cells above the sea).
@@ -105,7 +106,7 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 ## The spawn: the middle of the meadow between the grounds.
 ## The material of a built block of the tools mod, stone when the mod is not loaded.
 func _block(name: String) -> int:
-	var m := Mat.index("tools:" + name)
+	var m := Mat.index("materials:" + name)
 	return m if m >= 0 else Mat.STONE
 
 

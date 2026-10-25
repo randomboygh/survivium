@@ -333,9 +333,9 @@ func from_dict(d: Dictionary) -> void:
 	var saved: Array = d.get("slots", [])
 	for i in mini(saved.size(), slots.size()):
 		var s = saved[i]
-		if s is Array and s.size() in [2, 3, 4] and Items.has(s[0]) and int(s[1]) > 0:
+		if s is Array and s.size() in [2, 3, 4] and s[0] is String and Items.has(Items.canon(s[0])) and int(s[1]) > 0:
 			var w: int = int(s[2]) if s.size() >= 3 else 0
-			var id: String = Items.get_item(s[0]).id
+			var id: String = Items.get_item(Items.canon(s[0])).id
 			if s.size() == 4 and s[3] is Dictionary:
 				slots[i] = [id, 1, w, s[3]]
 			else:

@@ -1,0 +1,12 @@
+# Камень (его ставят ячейкой камня основы) и кремень. Поля — как у предметов основы.
+- id: stone
+  title: Камень
+  weight: 2.0
+  stack: 20
+  place: core:stone
+- id: flint
+  title: Кремень
+  weight: 0.3
+  stack: 20
+  model: flint
+  icon: flint

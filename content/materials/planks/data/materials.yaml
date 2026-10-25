@@ -1,0 +1,8 @@
+# Доски как ячейка: рубятся топором. Поля — как у материалов основы.
+- id: planks
+  title: Доски
+  hotbar: 3
+  item: planks
+  dig: axe
+  step: step_wood
+  hit: knock

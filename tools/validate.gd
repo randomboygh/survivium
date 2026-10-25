@@ -67,7 +67,7 @@ func _check_each_bundle() -> PackedStringArray:
 		problems.append_array(Trees.check())
 		problems.append_array(Bushes.check())
 		problems.append_array(Items.check())
-		problems.append_array(Crafting.check())
+		problems.append_array(Crafting.check(false))
 		problems.append_array(Plants.check())
 		for p in problems:
 			out.append("with %s only: %s" % [", ".join(set), p])

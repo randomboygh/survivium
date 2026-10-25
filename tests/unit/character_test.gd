@@ -12,62 +12,62 @@ func run() -> void:
 
 func _test_inventory() -> void:
 	var inv := Inventory.new(3)
-	var log_stack := Items.stack_size("core:log")
-	_check(inv.add("core:branch", 5) == 5 and inv.count("core:branch") == 5, "items go into the bag")
-	_check(inv.add("core:branch", 3) == 3 and inv.slots[1] == null, "a stack is topped up before a new slot")
-	_check(inv.add("core:log", log_stack * 3) == log_stack * 2, "only what fits goes in")
-	_check(inv.room_for("core:log") == 0 and inv.room_for("core:branch") == Items.stack_size("core:branch") - 8, "room is counted by stacks")
-	var w := 8 * Items.weight("core:branch") + log_stack * 2 * Items.weight("core:log")
+	var log_stack := Items.stack_size("resources:log")
+	_check(inv.add("resources:branch", 5) == 5 and inv.count("resources:branch") == 5, "items go into the bag")
+	_check(inv.add("resources:branch", 3) == 3 and inv.slots[1] == null, "a stack is topped up before a new slot")
+	_check(inv.add("resources:log", log_stack * 3) == log_stack * 2, "only what fits goes in")
+	_check(inv.room_for("resources:log") == 0 and inv.room_for("resources:branch") == Items.stack_size("resources:branch") - 8, "room is counted by stacks")
+	var w := 8 * Items.weight("resources:branch") + log_stack * 2 * Items.weight("resources:log")
 	_check(is_equal_approx(inv.weight(), w), "the bag weighs its items")
-	_check(inv.remove("core:log", 1) == 1 and inv.count("core:log") == log_stack * 2 - 1, "items come out of the bag")
+	_check(inv.remove("resources:log", 1) == 1 and inv.count("resources:log") == log_stack * 2 - 1, "items come out of the bag")
 	var heavy := Inventory.new()
 	_check(heavy.speed_factor() == 1.0, "an empty bag does not slow")
-	heavy.add("core:stone", ceili(Inventory.WEIGHT_LIMIT * 1.25 / Items.weight("core:stone")))
+	heavy.add("resources:stone", ceili(Inventory.WEIGHT_LIMIT * 1.25 / Items.weight("resources:stone")))
 	var f := heavy.speed_factor()
 	_check(heavy.overloaded() and f < 1.0 and f > Inventory.OVERLOAD_PACE, "overload slows the pace")
-	heavy.add("core:stone", 200)
+	heavy.add("resources:stone", 200)
 	_check(heavy.speed_factor() == Inventory.OVERLOAD_PACE, "heavy overload almost stops")
 	heavy.heavy = false
 	_check(heavy.speed_factor() == 1.0 and not heavy.overloaded(), "with overload off a full bag does not slow")
 	var copy := Inventory.new(3)
 	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
-	_check(copy.count("core:branch") == 8 and copy.count("core:log") == inv.count("core:log"), "the bag survives a save as JSON")
-	copy.from_dict({"slots": [["core:nothing", 3], ["core:branch", 2]]})
-	_check(copy.slots[0] == null and copy.count("core:branch") == 2, "unknown items are left out on load")
+	_check(copy.count("resources:branch") == 8 and copy.count("resources:log") == inv.count("resources:log"), "the bag survives a save as JSON")
+	copy.from_dict({"slots": [["core:nothing", 3], ["resources:branch", 2]]})
+	_check(copy.slots[0] == null and copy.count("resources:branch") == 2, "unknown items are left out on load")
 	var all := inv.take_all()
 	_check(inv.is_empty() and all.size() == 3, "a death empties the bag into a sack")
 	_check(Items.category("tools:stone_axe") == "tools" and Items.category("tools:workbench") == "stations"
 		and Items.category("plants:raspberry") == "food" and Items.category("plants:grain") == "plants"
-		and Items.category("core:stone") == "blocks" and Items.category("core:fiber") == "materials",
+		and Items.category("resources:stone") == "blocks" and Items.category("resources:fiber") == "materials",
 		"an item's kind follows from what it does")
 	var mess := Inventory.new(8)
-	mess.slots = [["core:fiber", 1], null, ["core:stone", 3], ["core:fiber", 2], null, ["tools:stone_axe", 1, 5],
-		["plants:raspberry", 4], ["core:fiber", 4]]
+	mess.slots = [["resources:fiber", 1], null, ["resources:stone", 3], ["resources:fiber", 2], null, ["tools:stone_axe", 1, 5],
+		["plants:raspberry", 4], ["resources:fiber", 4]]
 	mess.sort("kind", 1)
-	_check(mess.slots[0] == ["core:fiber", 1] and mess.slots[1] == ["tools:stone_axe", 1, 5]
-		and mess.slots[2] == ["core:fiber", 6] and mess.slots[3] == ["core:stone", 3]
+	_check(mess.slots[0] == ["resources:fiber", 1] and mess.slots[1] == ["tools:stone_axe", 1, 5]
+		and mess.slots[2] == ["resources:fiber", 6] and mess.slots[3] == ["resources:stone", 3]
 		and mess.slots[4] == ["plants:raspberry", 4] and mess.slots[5] == null and mess.slots[7] == null,
 		"sorting by kind tops up stacks, keeps a worn tool apart and leaves the first slots alone")
 	mess.sort("weight")
-	_check(mess.slots[0] == ["core:stone", 3] and mess.slots[1] == ["tools:stone_axe", 1, 5] and mess.count("core:fiber") == 7,
+	_check(mess.slots[0] == ["resources:stone", 3] and mess.slots[1] == ["tools:stone_axe", 1, 5] and mess.count("resources:fiber") == 7,
 		"sorting by weight puts the heaviest stacks first")
 	var box := Inventory.new(2)
-	mess.slots = [["core:fiber", 7], ["core:stone", 3], null]
+	mess.slots = [["resources:fiber", 7], ["resources:stone", 3], null]
 	mess.put_into(0, mess, 2)
-	_check(mess.slots[0] == null and mess.slots[2] == ["core:fiber", 7], "a stack moves to an empty slot")
+	_check(mess.slots[0] == null and mess.slots[2] == ["resources:fiber", 7], "a stack moves to an empty slot")
 	mess.put_into(1, mess, 2)
-	_check(mess.slots[1] == ["core:fiber", 7] and mess.slots[2] == ["core:stone", 3], "two stacks swap")
-	box.slots = [["core:fiber", Items.stack_size("core:fiber") - 2], null]
+	_check(mess.slots[1] == ["resources:fiber", 7] and mess.slots[2] == ["resources:stone", 3], "two stacks swap")
+	box.slots = [["resources:fiber", Items.stack_size("resources:fiber") - 2], null]
 	mess.put_into(1, box, 0)
-	_check(box.count("core:fiber") == Items.stack_size("core:fiber") and mess.slots[1] == ["core:fiber", 5],
+	_check(box.count("resources:fiber") == Items.stack_size("resources:fiber") and mess.slots[1] == ["resources:fiber", 5],
 		"onto a stack of the same item, as much as it takes")
 	# A chest taken up with things in it keeps them and weighs them.
 	var chest := Inventory.new(4)
 	chest.nests = false
-	chest.add("core:stone", 5)
+	chest.add("resources:stone", 5)
 	var bag := Inventory.new(4)
 	_check(bag.add("tools:chest", 1, 0, chest.to_dict()) == 1 and bag.contents(0) != null, "a chest goes into the bag with what it holds")
-	_check(is_equal_approx(bag.weight(), Items.weight("tools:chest") + 5 * Items.weight("core:stone")), "and weighs it too")
+	_check(is_equal_approx(bag.weight(), Items.weight("tools:chest") + 5 * Items.weight("resources:stone")), "and weighs it too")
 	_check(bag.add("tools:chest", 1) == 1 and bag.slots[1] != null and bag.slots[1].size() == 2, "an empty chest takes a slot of its own")
 	_check(bag.remove("tools:chest", 2) == 1 and bag.contents(0) != null, "a chest with things in it is not used up")
 	_check(bag.move_slot(0, chest) == 0, "a chest with things in it does not go into a chest")
@@ -75,22 +75,26 @@ func _test_inventory() -> void:
 	kept.from_dict(JSON.parse_string(JSON.stringify(bag.to_dict())))
 	var inner := Inventory.new(4)
 	inner.from_dict(kept.contents(0))
-	_check(inner.count("core:stone") == 5, "the chest's things survive a save")
+	_check(inner.count("resources:stone") == 5, "the chest's things survive a save")
+	var old_bag := Inventory.new(4)
+	old_bag.from_dict({"slots": [["core:branch", 3], ["core:stone", 2, 0], ["nobody:thing", 1]]})
+	_check(old_bag.count("resources:branch") == 3 and old_bag.count("resources:stone") == 2 and old_bag.slots[2] == null,
+		"a bag saved with the old ids of the base items comes back with the new ones")
 	_check(not bag.put_into(0, chest, 1) and bag.contents(0) != null and chest.slots[1] == null,
 		"nor is it moved into a chest's slot")
 	var put = bag.take_slot(0, 1)
 	_check(put.size() == 4 and put[3] is Dictionary and bag.is_empty(), "a chest taken out of the bag brings its things")
 	var spread := Inventory.new(4)
-	spread.slots = [["core:fiber", 3], ["core:stone", 2], ["core:fiber", 4], null]
+	spread.slots = [["resources:fiber", 3], ["resources:stone", 2], ["resources:fiber", 4], null]
 	var into := Inventory.new(4)
-	_check(spread.move_all(into, 1) == 6 and spread.slots[0] == ["core:fiber", 3] and spread.slots[1] == null
-		and into.count("core:fiber") == 4 and into.count("core:stone") == 2, "«all into the chest» leaves the first slots be")
+	_check(spread.move_all(into, 1) == 6 and spread.slots[0] == ["resources:fiber", 3] and spread.slots[1] == null
+		and into.count("resources:fiber") == 4 and into.count("resources:stone") == 2, "«all into the chest» leaves the first slots be")
 
 
 func _test_wear() -> void:
 	var inv := Inventory.new(4)
 	var d: int = Items.get_item("tools:stone_axe").durability
-	_check(d > 0 and Items.get_item("tools:stone_axe").repair.has("core:flint"), "tools wear and are repaired with materials")
+	_check(d > 0 and Items.get_item("tools:stone_axe").repair.has("resources:flint"), "tools wear and are repaired with materials")
 	inv.add("tools:stone_axe", 1)
 	for i in d - 1:
 		inv.wear_tool("tools:stone_axe", d)
@@ -176,7 +180,7 @@ func _test_death() -> void:
 	ch.clock.time_of_day += 0.25
 	ch.at = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
 	ch.update(0.1)
-	ch.give("core:branch", 3)
+	ch.give("resources:branch", 3)
 	_check(ch.act("dig") and ch.act("dig"), "the character digs twice")
 	ch.vitals.satiety = 0.0
 	ch.vitals.health = 0.0
@@ -185,8 +189,8 @@ func _test_death() -> void:
 	for d: Array in w.drops.get(WorldData.chunk_key(5, 5), []):
 		if d[0] == Items.SACK:
 			sack = d
-	_check(ch.is_dead() and ch.inventory.count("core:branch") == 0 and not sack.is_empty()
-		and ch.death.lost == [["core:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
+	_check(ch.is_dead() and ch.inventory.count("resources:branch") == 0 and not sack.is_empty()
+		and ch.death.lost == [["resources:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
 	_check(ch.sacks.size() == 1 and ch.sacks[0].is_equal_approx(sack[1]), "the character knows where the sack lies (the maps mark it)")
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
@@ -195,7 +199,7 @@ func _test_death() -> void:
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
 	_check(ch.fell_at.is_equal_approx(Vector3(5.5, 1.0, 5.5) * WorldData.CELL) and again.fell_at.is_equal_approx(ch.fell_at),
 		"the place of the last death is kept, in the save too")
-	_check(again.is_dead() and again.death.lost == [["core:branch", 3]] and again.sacks.size() == 1
+	_check(again.is_dead() and again.death.lost == [["resources:branch", 3]] and again.sacks.size() == 1
 		and again.sacks[0].is_equal_approx(sack[1]), "the death and the sack's place are kept in the save")
 	var lived: Dictionary = ch.death.life
 	_check(is_equal_approx(lived.walked, WorldData.CELL) and lived.dug == 2.0 and lived.got == 3.0
@@ -209,20 +213,20 @@ func _test_death() -> void:
 	_check(ch.fell_at.is_finite(), "and the place of the last death is not forgotten")
 	ch.at = sack[1]
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
-	_check(ch.inventory.count("core:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
+	_check(ch.inventory.count("resources:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
 	# What lies at the feet flies into the bag only as far as the weight limit goes, so
 	# digging with the button held does not leave the body too heavy to jump.
 	ch.at = ch.back_at
 	var heap := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
-	w.heap_drop("core:stone", heap, 30, 0.0)
+	w.heap_drop("resources:stone", heap, 30, 0.0)
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
 	var left := 0
 	for d: Array in w.drops.get(WorldData.chunk_key(floori(heap.x / WorldData.CELL), floori(heap.z / WorldData.CELL)), []):
-		left += WorldActions.count(d) if d[0] == "core:stone" else 0
-	_check(ch.inventory.count("core:stone") > 0 and not ch.inventory.overloaded() and left > 0
-		and ch.inventory.count("core:stone") + left == 30, "things are taken up by themselves only up to the weight limit")
+		left += WorldActions.count(d) if d[0] == "resources:stone" else 0
+	_check(ch.inventory.count("resources:stone") > 0 and not ch.inventory.overloaded() and left > 0
+		and ch.inventory.count("resources:stone") + left == 30, "things are taken up by themselves only up to the weight limit")
 	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, WorldActions.PICKUP_ALL, true)
-	_check(ch.inventory.count("core:stone") == 30 and ch.inventory.overloaded(), "or past it when the setting says so")
+	_check(ch.inventory.count("resources:stone") == 30 and ch.inventory.overloaded(), "or past it when the setting says so")
 	ch.inventory.take_all()
 	var spot := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
 	var food := ""
@@ -230,16 +234,16 @@ func _test_death() -> void:
 		if Items.food(id) > 0.0 and food == "":
 			food = id
 	w.heap_drop("core:stick", spot, 2, 0.0)
-	w.heap_drop("core:branch", spot, 2, 0.0)
+	w.heap_drop("resources:branch", spot, 2, 0.0)
 	w.heap_drop(food, spot, 1, 0.0)
-	ch.inventory.add("core:branch", 1)
+	ch.inventory.add("resources:branch", 1)
 	var acts := WorldActions.new(w, ch.clock, {"free_build": false})
 	acts.pick_up_near(ch, WorldActions.PICKUP_NONE)
-	_check(ch.inventory.count("core:branch") == 1 and ch.inventory.count(food) == 0, "pickup «ничего» takes nothing")
+	_check(ch.inventory.count("resources:branch") == 1 and ch.inventory.count(food) == 0, "pickup «ничего» takes nothing")
 	acts.pick_up_near(ch, WorldActions.PICKUP_FOOD)
-	_check(ch.inventory.count(food) == 1 and ch.inventory.count("core:branch") == 1, "pickup «еду» takes only food")
+	_check(ch.inventory.count(food) == 1 and ch.inventory.count("resources:branch") == 1, "pickup «еду» takes only food")
 	acts.pick_up_near(ch, WorldActions.PICKUP_KNOWN)
-	_check(ch.inventory.count("core:branch") == 3 and ch.inventory.count("core:stick") == 0,
+	_check(ch.inventory.count("resources:branch") == 3 and ch.inventory.count("core:stick") == 0,
 		"pickup «что есть» takes only what the bag already has")
 	acts.pick_up_near(ch, WorldActions.PICKUP_ALL)
 	_check(ch.inventory.count("core:stick") == 2, "pickup «всё» takes the rest")

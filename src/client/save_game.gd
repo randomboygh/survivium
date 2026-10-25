@@ -19,9 +19,9 @@ const Mat := preload("res://src/shared/content/materials.gd")
 
 ## The materials of a world saved before they were split among the mods (`content`
 ## below 5), in the order its cells were numbered, by their ids now.
-const OLD_MATERIALS: PackedStringArray = ["core:air", "core:grass", "core:dirt", "core:stone", "materials:sand",
-	"core:water", "plants:log", "plants:leaves", "tools:planks", "materials:clay", "materials:copper_ore",
-	"tools:brick", "materials:scree"]
+const OLD_MATERIALS: PackedStringArray = ["core:air", "core:grass", "core:dirt", "core:stone", "resources:sand",
+	"core:water", "plants:log", "plants:leaves", "materials:planks", "resources:clay", "materials:copper_ore",
+	"materials:brick", "resources:scree"]
 
 const PLAYER := "players/local.json"
 ## Seconds between saves while playing.
@@ -89,9 +89,11 @@ func choose_world() -> void:
 	# the plants (no `content` mark), the tools (`content` below 3), the sounds (below 4)
 	# or the materials of the landscape (below 5) were mods of their own had them in the
 	# base game; one from before bundles (below 6) lists mods, which stand for all their
-	# bundles (Mods.expand, which also follows the mods renamed since).
+	# bundles (Mods.expand, which also follows the mods renamed since); one from before the
+	# base items went to the resources and materials mods (below 7) had them in the base
+	# game, and its items and cells are renamed as they load (Items.canon, Mat.RENAMED).
 	var mods: Array = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
-	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [5, "materials"]]:
+	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [5, "materials"], [7, "resources"], [7, "materials"]]:
 		if int(meta.get("content", 1)) < split[0] and not split[1] in mods and split[1] in Mods.available():
 			mods.insert(1, split[1])
 	game.world_mods = Mods.expand(mods)
@@ -220,7 +222,7 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
-		"content": 6,
+		"content": 7,
 		"materials": Array(Mat.IDS),
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),

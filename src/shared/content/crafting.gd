@@ -33,6 +33,15 @@ static func get_recipe(id: String) -> Dictionary:
 	return BY_ID.get(id, {})
 
 
+## Ids of recipes a save from before 2026-10-25 may hold (see Items.RENAMED), by their ids now.
+const RENAMED := {"core:cord": "materials:cord", "core:campfire": "resources:campfire"}
+
+
+## Recipe id `id` as it is called now.
+static func canon(id: String) -> String:
+	return RENAMED.get(id, id)
+
+
 ## Whether a character who has seen the items of `seen` (id -> true) knows recipe `r`.
 static func is_known(r: Dictionary, seen: Dictionary) -> bool:
 	for id in r.needs:
@@ -95,10 +104,14 @@ static func take(r: Dictionary, inv) -> bool:
 	return true
 
 
-## Every item a player can get: what cells, the plants on them, trees and bushes give, and what recipes
-## make from those; the recipes that can never be made are reported by check().
+## Every item a player can get: what cells, the plants on them, trees and bushes give, the
+## campfire the camp starts with, and what recipes make from those; the recipes that can never
+## be made are reported by check().
 static func reachable() -> Dictionary:
 	var have := {}
+	for id in Items.IDS:
+		if Items.get_item(id).prop == "campfire":
+			have[id] = true
 	for rec: Dictionary in Mat.RECORDS:
 		for id in [rec.item, rec.bonus] + rec.mow_gives.keys():
 			if id != "":
@@ -106,13 +119,12 @@ static func reachable() -> Dictionary:
 	for p: Dictionary in Plants.BY_ID.values():
 		for id in p.gives:
 			have[id] = true
-	have[Items.BRANCH] = true
-	have[Items.LOG] = true
 	for s: Dictionary in Trees.SPECIES:
-		if s.seed != "":
-			have[s.seed] = true
+		for id in [s.seed, s.log, s.twig]:
+			if id != "":
+				have[id] = true
 	for b: Dictionary in Bushes.TYPES:
-		for id in [b.fruit, b.item]:
+		for id in [b.fruit, b.item, b.twig]:
 			if id != "":
 				have[id] = true
 	var grew := true
@@ -140,11 +152,16 @@ static func _has_tool_kind(have: Dictionary, kind: String) -> bool:
 
 
 ## What is wrong with the loaded recipes for the engine, if anything.
-static func check() -> PackedStringArray:
+## What is wrong with the loaded recipes: a station that is none, and, with `whole` (the
+## full set of mods; a part of it may well lack the source of something), a recipe that can
+## never be made from what the world gives.
+static func check(whole := true) -> PackedStringArray:
 	var out: PackedStringArray = []
 	for r in RECIPES:
 		if r.at != "" and Items.get_item(r.at).get("prop", "none") in ["none", "chest"]:
 			out.append("recipes: %s.at: `%s` is no station (an item with prop workbench, kiln or campfire)" % [r.id, r.at])
+	if not whole:
+		return out
 	var have := reachable()
 	for r in RECIPES:
 		if not have.has(r.makes):

@@ -286,9 +286,10 @@ static func _nearest(c: Vector2i, at: Vector2i, others: Array[Vector2i]) -> bool
 	return true
 
 
-## Lays what a felled tree leaves on the ground: a log for every two cells of trunk,
-## end to end from the stump toward `away`, and branches and seeds where the crown
-## lands, more of them for a larger crown.
+## Lays what a felled tree leaves on the ground (the species' `log`, `twig` and `seed`,
+## each when the species names one): a log for every two cells of trunk, end to end from
+## the stump toward `away`, and twigs and seeds where the crown lands, more of them for a
+## larger crown.
 static func _drops(w, cut: Vector3i, away: Vector2, s: Dictionary, logs: int, leaves: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(cut)
@@ -296,16 +297,16 @@ static func _drops(w, cut: Vector3i, away: Vector2, s: Dictionary, logs: int, le
 	var side := Vector2(-dir.y, dir.x)
 	var base := Vector2(cut.x + 0.5, cut.z + 0.5)
 	var along := atan2(dir.y, dir.x)
-	for i in maxi(1, (logs + 1) / 2):
+	for i in (maxi(1, (logs + 1) / 2) if s.log != "" else 0):
 		var p := base + dir * (2.0 + i * 1.8) + side * rng.randf_range(-0.4, 0.4)
-		_drop(w, Items.LOG, p, along + rng.randf_range(-0.3, 0.3))
+		_drop(w, s.log, p, along + rng.randf_range(-0.3, 0.3))
 	if leaves == 0:
 		return
 	var crown: float = 2.0 * s.crown[0]
 	var land := base + dir * (logs + crown)
-	for i in clampi(leaves / 60, 2, 8):
+	for i in (clampi(leaves / 60, 2, 8) if s.twig != "" else 0):
 		var p := land + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * crown
-		_drop(w, Items.BRANCH, p, rng.randf() * TAU)
+		_drop(w, s.twig, p, rng.randf() * TAU)
 	if s.seed != "":
 		for i in rng.randi_range(2, 4):
 			var p := land + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * crown * 0.8

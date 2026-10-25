@@ -1,0 +1,6 @@
+# Костёр складывают из веток и волокна руками; сам костёр — вещь основы.
+- id: campfire
+  title: Костёр
+  makes: core:campfire
+  needs: {branch: 5, fiber: 5}
+  time: 4

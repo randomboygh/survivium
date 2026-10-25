@@ -1,0 +1,10 @@
+# Медная руда: жилы в камне (role: ore), бьётся киркой. Поля — как у материалов основы
+# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+- id: copper_ore
+  title: Медная руда
+  role: ore
+  priority: 2
+  item: copper_ore
+  hardness: 2
+  step: step_stone
+  hit: hit_stone

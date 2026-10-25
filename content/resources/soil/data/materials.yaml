@@ -1,0 +1,30 @@
+# Песок и глина как ячейки ландшафта. role — где генератор их кладёт: beach — пляжи, русла
+# рек, пустыни; bank — берега, болота, глина тундры. Поля — как у материалов основы
+# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки». Кремень — бандл
+# «Камень»: без него песок даёт только песок.
+- id: sand
+  title: Песок
+  role: beach
+  corners: round
+  slope: true
+  priority: 3
+  ground: sand
+  drains: true
+  hotbar: 5
+  item: sand
+  dig: shovel
+  bonus: flint
+  bonus_chance: 0.12
+  step: step_sand
+  hit: dig
+- id: clay
+  title: Глина
+  role: bank
+  corners: soft
+  slope: true
+  priority: 2
+  hotbar: 6
+  item: clay
+  dig: shovel
+  step: step_dirt
+  hit: dig

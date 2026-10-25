@@ -127,10 +127,14 @@ func _test_birds(w: WorldData, person: Who) -> void:
 	_check(lead.flying and lead.state == "flee", "a sparrow takes off from a person")
 	var cat := _animal(life, "animals:cat", lead.pos)
 	cat.hunger = 1.0
+	# Each bird thinks on its own beat (0.4..0.7 s): the lead must notice the cat, then
+	# the mate the lead's fright.
 	var high := 0.0
-	for i in 10:
+	for i in 60:
 		life.update(0.05)
 		high = maxf(high, lead.pos.y - at.y)
+		if mate.state == "flee":
+			break
 	_check(mate.flying and mate.state == "flee", "its flock takes fright with it")
 	_check(cat.state != "hunt" and life.animals.has(lead), "a cat does not hunt a bird in the air")
 	for i in 200:

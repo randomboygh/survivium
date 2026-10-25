@@ -3,5 +3,5 @@
 - id: bandage
   title: Бинт
   makes: bandage
-  needs: {moss: 2, core:fiber: 2}
+  needs: {moss: 2, resources:fiber: 2}
   time: 3

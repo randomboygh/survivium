@@ -472,7 +472,7 @@ func set_free_build(on: bool) -> void:
 	free_build = on
 	if on and game.character != null:
 		for m in Mat.PLACEABLE:
-			if game.character.inventory.count(Items.placed_by[m]) == 0:
+			if Items.placed_by[m] != "" and game.character.inventory.count(Items.placed_by[m]) == 0:
 				game.character.give(Items.placed_by[m], 1)
 	if game.hud != null:
 		game.hud.refresh_counts()

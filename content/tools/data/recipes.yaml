@@ -6,83 +6,83 @@
 - id: workbench
   title: Верстак
   makes: workbench
-  needs: {core:branch: 8, core:cord: 2}
+  needs: {resources:branch: 8, materials:cord: 2}
   time: 6
 
 # На верстаке
 - id: stone_axe
   title: Каменный топор
   makes: stone_axe
-  needs: {core:flint: 1, core:branch: 2, core:cord: 1}
+  needs: {resources:flint: 1, resources:branch: 2, materials:cord: 1}
   at: workbench
   time: 5
 - id: stone_pickaxe
   title: Каменная кирка
   makes: stone_pickaxe
-  needs: {core:flint: 2, core:branch: 2, core:cord: 1}
+  needs: {resources:flint: 2, resources:branch: 2, materials:cord: 1}
   at: workbench
   time: 6
 - id: stone_scythe
   title: Каменная коса
   makes: stone_scythe
-  needs: {core:flint: 2, core:branch: 2, core:cord: 2}
+  needs: {resources:flint: 2, resources:branch: 2, materials:cord: 2}
   at: workbench
   time: 6
 - id: planks
   title: Доски
-  makes: planks
+  makes: materials:planks
   count: 2
-  needs: {core:log: 1}
+  needs: {resources:log: 1}
   at: workbench
   tool: axe
   time: 3
 - id: wooden_shovel
   title: Деревянная лопата
   makes: wooden_shovel
-  needs: {planks: 2, core:branch: 1}
+  needs: {materials:planks: 2, resources:branch: 1}
   at: workbench
   time: 5
 - id: wooden_sword
   title: Деревянный меч
   makes: wooden_sword
-  needs: {planks: 2, core:cord: 1}
+  needs: {materials:planks: 2, materials:cord: 1}
   at: workbench
   time: 5
 - id: stone_sword
   title: Каменный меч
   makes: stone_sword
-  needs: {core:flint: 2, core:branch: 1, core:cord: 1}
+  needs: {resources:flint: 2, resources:branch: 1, materials:cord: 1}
   at: workbench
   time: 5
 - id: wooden_pickaxe
   title: Деревянная кирка
   makes: wooden_pickaxe
-  needs: {planks: 2, core:branch: 2}
+  needs: {materials:planks: 2, resources:branch: 2}
   at: workbench
   time: 4
 - id: wooden_scythe
   title: Деревянная коса
   makes: wooden_scythe
-  needs: {planks: 1, core:branch: 2, core:cord: 1}
+  needs: {materials:planks: 1, resources:branch: 2, materials:cord: 1}
   at: workbench
   time: 4
 - id: chest
   title: Сундук
   makes: chest
-  needs: {planks: 6}
+  needs: {materials:planks: 6}
   at: workbench
   time: 8
 - id: kiln
   title: Печь для обжига
   makes: kiln
-  needs: {core:stone: 8, materials:clay: 4}
+  needs: {resources:stone: 8, resources:clay: 4}
   at: workbench
   time: 10
 
 # В печи
 - id: brick
   title: Кирпич
-  makes: brick
-  needs: {materials:clay: 1}
+  makes: materials:brick
+  needs: {resources:clay: 1}
   at: kiln
   time: 4
