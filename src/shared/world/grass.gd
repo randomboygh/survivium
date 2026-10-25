@@ -49,6 +49,12 @@ const GROW_MUSHROOMS := 3
 const GROW_GLOW := 4
 const GROW_NONE := 5
 const GROW_PLANT := 16
+## Flowers grow in clumps where the flower noise is above FLOWER_CLUMP: on most cells
+## at its rim, two to a cell more and more toward its heart (FLOWER_HEART above the
+## rim); a lone flower outside on FLOWERS_APART of the cells.
+const FLOWER_CLUMP := 0.42
+const FLOWER_HEART := 0.15
+const FLOWERS_APART := 0.004
 ## Lowland for ears: this many levels above the sea at most.
 const FERTILE_LEVELS := 10
 
@@ -76,7 +82,7 @@ static func _fields() -> void:
 	if flower_noise != null:
 		return
 	meadow_noise = _field_noise(20, 0.028)
-	flower_noise = _field_noise(21, 0.09)
+	flower_noise = _field_noise(21, 0.06)
 	herb_noise = _field_noise(22, 0.12)
 	ear_noise = _field_noise(23, 0.035)
 	moss_noise = _field_noise(24, 0.08)
@@ -141,6 +147,17 @@ static func tier_at(x: int, z: int) -> int:
 	return BARE_TIER if patch < 0.2 else (LOW_TIER if patch < 0.38 else MID_TIER)
 
 
+## How far into a clump of flowers column x, z lies: 0 outside, a little above 0 at its
+## rim, 1 at its heart (see FLOWER_CLUMP); whether flowers grow there also takes grass
+## (see kinds). Butterflies and the like can look for flowers by it.
+static func flower_clump(x: int, z: int) -> float:
+	_fields()
+	var f := flower_noise.get_noise_2d(x, z)
+	if f <= FLOWER_CLUMP:
+		return 0.0
+	return clampf((f - FLOWER_CLUMP) / FLOWER_HEART, 0.01, 1.0)
+
+
 ## True in a field of ears: fertile ground is flat grass on the lowland with no crown
 ## over it, and fields lie where the ear noise is high.
 static func ear_field_at(w, x: int, y: int, z: int) -> bool:
@@ -176,11 +193,14 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 				out.append(rng.randi_range(0, 3))
 		if tier != BARE_TIER:
 			# Flowers and herbs in clumps, dense inside and nearly absent outside.
-			var flowers := 0.55 if flower_noise.get_noise_2d(x, z) > 0.3 else 0.03
+			var clump := flower_clump(x, z)
+			var flowers := 0.75 + 0.25 * clump if clump > 0.0 else FLOWERS_APART
 			var herbs := 0.7 if herb_noise.get_noise_2d(x, z) > 0.35 else 0.04
 			var extra := rng.randf()
 			if extra < flowers:
 				out.append(FLOWER + rng.randi_range(0, 3))
+				if rng.randf() < clump * 0.8:
+					out.append(FLOWER + rng.randi_range(0, 3))
 			elif extra < flowers + herbs:
 				out.append(HERB + rng.randi_range(0, 1))
 		if tier != TALL_TIER and flat and ear_field_at(w, x, y, z):

@@ -37,8 +37,9 @@ global uniform sampler2D terrain_atlas : source_color, filter_nearest;
 uniform int corner_shapes[21];
 // A word per material from its data (Mat.shader_bits): bits 0..3 the priority (which
 // material grows over which at a boundary, 0 never blends), bit 4 DRAINS (no puddles),
-// bits 5..6 the kind of patches on open ground (GROUND_*). One entry for every
-// material, filled by main.gd: reading past the end draws garbage on some GPUs.
+// bits 5..6 the kind of patches on open ground (GROUND_*), bit 7 TRUNK (a log or a
+// bark: clears round the player like a crown). One entry for every material, filled
+// by main.gd: reading past the end draws garbage on some GPUs.
 uniform int material_bits[21];
 
 const int NONE = 63;
@@ -49,6 +50,7 @@ const int STONE = 3;
 const int PRIORITY_MASK = 15;
 const int DRAINS = 16;
 const int GROUND_SHIFT = 5;
+const int TRUNK = 128;
 const int GROUND_SOIL = 1;
 const int GROUND_SAND = 2;
 const int GROUND_ROCK = 3;
@@ -178,6 +180,13 @@ void fragment() {
 	}
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
+	// Trunks nearer the viewer than the player clear round them, as crowns do.
+	if (!IN_SHADOW_PASS && tile != NONE && (material_bits[tile / 3] & TRUNK) != 0) {
+		vec2 lt = light_texel(light_xz);
+		if (bayer4(lt) < see_through(lt, world_pos)) {
+			discard;
+		}
+	}
 	int edges = (a / 64) % 256;
 	int flag = a / 16384;
 	int last = int(CELL_TEXELS) - 1;
