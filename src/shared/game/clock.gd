@@ -8,6 +8,7 @@ extends RefCounted
 ## the shaders' tints).
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const DAY_LENGTH := 240.0
@@ -297,7 +298,7 @@ func settle_weather() -> void:
 func _next_weather() -> void:
 	var weights := PackedFloat32Array()
 	var total := 0.0
-	var desert := biome == WorldGen.DESERT
+	var desert := Biomes.sandstorms(biome)
 	for w: Dictionary in WEATHERS:
 		var c: float = w.chance[season]
 		if desert:

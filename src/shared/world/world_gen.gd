@@ -39,14 +39,8 @@ const TREE_REACH := 10
 const TERRAIN := 1
 const PLANTED := 2
 const SHAPED := 3
-## Chance of a tree on a lattice column (every other column each way) per biome, and
-## the share of spruces among them; groves of the forest noise raise the chance on
-## meadows. Content data of the core mod will replace these tables.
-const TREE_CHANCE := [0.0, 0.0, 0.004, 0.14, 0.12, 0.03, 0.0, 0.0, 0.0, 0.02]
-const SPRUCE_SHARE := [0.0, 0.0, 0.2, 0.15, 0.9, 0.0, 0.0, 0.0, 0.0, 1.0]
-const GROVE_CHANCE := 0.08
-## One bush try per this many cells of a biome's ground.
-const BUSH_SPARSITY := [0, 0, 160, 120, 140, 200, 0, 400, 900, 150]
+## Chance of a tree on a lattice column of the wooded slopes of a mountain (WOODS), at least.
+const WOODS_CHANCE := 0.12
 
 var world: WorldData
 ## Cells of a saved chunk come from a world saved with materials in another order:
@@ -427,9 +421,10 @@ func _tree_candidates(_key: Vector2i, lay: Dictionary) -> Array:
 	return out
 
 
-## Species of the tree a lattice column wants, -1 for none: a highland tree on the high
-## and cold ground, a lowland one in the lowland forest and the swamp, mixed where they
-## meet; which species that is, the loaded mods say (Trees.pick).
+## Species of the tree a lattice column wants, -1 for none: its biome's chance (more in
+## the biome's groves where the forest noise is high, and on the wooded slopes of a
+## mountain at least WOODS_CHANCE) and one of its biome's species by their shares; the
+## wooded slopes of a biome without trees take any loaded species.
 func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var j := lz * WINDOW + lx
 	var x: int = lay.x0 + lx
@@ -440,17 +435,20 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	if tops[j] != Mat.GRASS or water[j] >= 0 or flags[j] & (SHEER_TOP | ENTRANCE) or lay.heights[j] >= size_y - 8:
 		return -1
 	var b: int = lay.biome[j]
-	var chance: float = TREE_CHANCE[b]
+	var chance := Biomes.tree_chance(b)
 	var grids: Array = lay.grids
 	var forest: PackedByteArray = grids[8]
-	if b == MEADOW and forest[j] > _byte(0.3):
-		chance = GROVE_CHANCE
+	if forest[j] > _byte(0.3):
+		chance = maxf(chance, Biomes.groves(b))
+	var woods := flags[j] & WOODS != 0
+	if woods:
+		chance = maxf(chance, WOODS_CHANCE)
 	if _chance(x, z, 1) >= chance:
 		return -1
-	var spruce: float = SPRUCE_SHARE[b]
-	# Higher up the share of highland trees grows.
-	spruce += clampf((lay.heights[j] - sea - 6) * 0.15, 0.0, 1.0) * 0.5
-	return Trees.pick(Trees.HIGHLAND if _chance(x, z, 2) < spruce else Trees.LOWLAND, _chance(x, z, 6))
+	var species := Biomes.tree(b, _chance(x, z, 6))
+	if species < 0 and woods and Biomes.of(b).get("tree_shares", []).is_empty():
+		species = Trees.any(_chance(x, z, 2))
+	return species
 
 
 ## Grows one candidate tree of the job: [x, z, species, ground height]; its crown is
@@ -532,9 +530,7 @@ func _reshape_edges(key: Vector2i) -> void:
 
 
 ## Bushes of the chunk by biome: a hash of each cell against the biome's sparsity, on
-## level grass in the open; which bush, the loaded types say by the tree near the spot
-## (Bushes.pick: blueberries under spruces, raspberries near oaks and in the open,
-## plain shrubs elsewhere).
+## level grass in the open; which bush, the biome says by its shares (Biomes.bush).
 func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 	var biome: PackedByteArray = lay.biome
 	var x0: int = lay.x0
@@ -542,7 +538,7 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 	for lz in range(MARGIN, MARGIN + CHUNK):
 		for lx in range(MARGIN, MARGIN + CHUNK):
 			var j := lz * WINDOW + lx
-			var sparsity: int = BUSH_SPARSITY[biome[j]]
+			var sparsity := Biomes.sparsity(biome[j])
 			if sparsity == 0:
 				continue
 			var x := x0 + lx
@@ -552,8 +548,7 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 			var y: int = world.surface_y(x, z)
 			if not Bushes.fits(world, x, y, z):
 				continue
-			var near := Trees.land_of(Bushes.tree_near(world, x, z, 10))
-			var type := Bushes.pick(Bushes.OPEN if near == "" else near, _chance(x, z, 5), _hash(x, z, 7))
+			var type := Biomes.bush(biome[j], _chance(x, z, 5))
 			if type >= 0:
 				Bushes.place(world, x, y, z, type)
 
@@ -561,8 +556,8 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 # --- Spawn -----------------------------------------------------------------------
 
 
-## A dry open meadow near the origin, on the lowland near water: where the player
-## starts. Columns are tried on a spiral 16 cells apart; any dry land does when no
+## A dry open spot of a biome that allows it (a meadow) near the origin, on the lowland
+## near water: where the player starts. Columns are tried on a spiral 16 cells apart; any dry land does when no
 ## meadow turns up.
 func _pick_spawn() -> Vector3i:
 	var fallback := Vector3i(0, size_y - 1, 0)
@@ -584,7 +579,7 @@ func _pick_spawn() -> Vector3i:
 					fallback = Vector3i(x, h + 1, z)
 				var grids: Array = lay.grids
 				var forest: PackedByteArray = grids[8]
-				if lay.biome[0] == MEADOW and h >= sea + 3 and h <= sea + 8 and forest[0] <= forest_t \
+				if Biomes.spawn_ok(lay.biome[0]) and h >= sea + 3 and h <= sea + 8 and forest[0] <= forest_t \
 						and lay.river[0] > 12.0:
 					return Vector3i(x, h + 1, z)
 	return fallback

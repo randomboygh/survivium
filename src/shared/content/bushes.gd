@@ -12,10 +12,8 @@ const Content := preload("res://src/shared/content/content.gd")
 ## gives and what the client draws.
 const BERRY_AMOUNT := [0.0, 1.0, 0.55, 0.0]
 
-## Where a bush grows (the keys of its `under`): under the trees of a land (see Trees),
-## in the open (no tree near), or anywhere no other bush took the spot.
-const OPEN := "open"
-const ANY := "any"
+## Where a bush grows is the biomes' say (Biomes: a biome's `bushes` shares), not the
+## bush's: the generator asks the biome of a column for a bush, never for a type by name.
 
 ## Index -> record from `content/*/data/bushes.yaml` (see Content): id, title, tint
 ## (Color), berries (Color, black for none), berry_cards, cards, rise, spread
@@ -45,29 +43,16 @@ static func index(id: String) -> int:
 	return -1
 
 
-## The bush for a spot `where` (a land of Trees when a tree is near, else OPEN) and the
-## roll `roll` (0..1): the types that grow there are tried in record order, each taking
-## its share of the roll; what is left goes to the ANY types in turn by `salt`; -1 when
-## no bush fits.
-static func pick(where: String, roll: float, salt: int = 0) -> int:
-	var any := []
+## The first loaded type with berries (`berries` true) or without, skipping `skip` such
+## types, or -1: what the test world, the shots and the tests plant where the plan says
+## a raspberry, a blueberry or a plain shrub.
+static func first(berries: bool, skip := 0) -> int:
 	for i in TYPES.size():
-		var under: Dictionary = TYPES[i].under
-		if under.has(ANY):
-			any.append(i)
-		var share: float = under.get(where, 0.0)
-		if roll < share:
-			return i
-		roll -= share
-	return -1 if any.is_empty() else any[posmod(salt, any.size())]
-
-
-## A type that grows at `where`, the first one, or -1 (see `pick`).
-static func sample(where: String) -> int:
-	for i in TYPES.size():
-		if TYPES[i].under.get(where, 0.0) > 0.0:
-			return i
-	return pick(where, 1.0)
+		if (TYPES[i].berries != Color.BLACK) == berries:
+			if skip == 0:
+				return i
+			skip -= 1
+	return -1
 
 
 ## What is wrong with the loaded bushes for the engine, if anything.

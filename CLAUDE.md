@@ -11,7 +11,7 @@ README are in Russian; code, comments, commits and PRs are in English. Scripts a
 
 ```
 src/shared/   the world model and the rules of play the server will run; loads nothing from src/client
-  content/    mod loader and registries (content, yaml, materials, items, trees, bushes, plants,
+  content/    mod loader and registries (content, yaml, materials, items, trees, bushes, biomes, plants,
               crafting, tools, ai_rules)
   world/      world_cells, world_data (extends it), land_layout, world_gen (extends it), world_store, voxel_raycast,
               grass, test_ground
@@ -49,7 +49,7 @@ tools/        validate, shot (+ shot/shots the table, shot/places the spots), ma
 | Module | What it owns |
 | --- | --- |
 | `world_cells.gd`, `world_data.gd` | cells in `Chunk`s by key (`chunk_at`, `chunk_key`; `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below 0) and blocks bodies; what stands and lies on the cells (trees, bushes, `blockers`, `drops`, `grows`, trails), `track_edits` / `note_edit` and `pack_chunk` / `unpack_chunk` for saving. `WorldData` extends it with the shapes of natural ground (`update_shapes`, slopes and corners a column at a time), slope surfaces (`surface_patch`, `ground_height`) and what a body meets (`blocks_body`, `blocks_part`, `ground_part`) |
-| `land_layout.gd`, `world_gen.gd` | the layout of any window of columns from noise (`lay_out`: height, water, top, biome, flags; maps, the setup screen and `find_place` read it): slow noises on a lattice every `LATTICE` cells, distances to coast and river, `DEFAULT_SETTINGS` from the setup screen; mountains, scree and snow above `SNOW_LINE`, rivers in steps (rapids, falls), deltas, caves (`_tunnels`). `WorldGen` extends it and writes the cells: three stages per chunk, `TERRAIN` → `PLANTED` (trees, needs TERRAIN on the 3×3 around) → `SHAPED` (slopes, corners, bushes; needs PLANTED around), stepped a row or a tree at a time through `start`/`step` jobs; the result does not depend on the order chunks are made in (tested); unedited chunks beyond `DROP_RANGE` are forgotten (`forget`) and made again the same |
+| `land_layout.gd`, `world_gen.gd` | the layout of any window of columns from noise (`lay_out`: height, water, top, biome = an index into `Biomes.RECORDS`, flags; maps, the setup screen and `find_place` read it): slow noises on a lattice every `LATTICE` cells, distances to coast and river, `DEFAULT_SETTINGS` from the setup screen; mountains, scree and snow above `SNOW_LINE`, rivers in steps (rapids, falls), deltas, caves (`_tunnels`). `WorldGen` extends it and writes the cells: three stages per chunk, `TERRAIN` → `PLANTED` (trees, needs TERRAIN on the 3×3 around) → `SHAPED` (slopes, corners, bushes; needs PLANTED around), stepped a row or a tree at a time through `start`/`step` jobs; the result does not depend on the order chunks are made in (tested); unedited chunks beyond `DROP_RANGE` are forgotten (`forget`) and made again the same |
 | `world_store.gd`, `save_game.gd` | one folder per world under `user://saves`: `world.json`, players, only the changed chunks (`WorldGen.pack`), map regions; modules keep their part of the player with `save.track(name, obj)` (`to_dict`/`from_dict`); autosave; a saved chunk comes back SHAPED |
 | `chunk_streamer.gd` | generates and meshes chunks within `LOAD_RANGE`, frees beyond `UNLOAD_RANGE`; per-frame budgets (edits, then far chunks, then caps); the level cut and `_hiding_level`; `refit_boxes` per view |
 | `chunk_mesher.gd`, `foliage.gd`, `mesh_buffers.gd` | the chunk meshes built a column at a time: cells, cut corners and caps (`build_cap`); the parts it calls per column extend `mesh_faces.gd` (the face tables, packed words and drawing primitives): `slope_mesher.gd` (slopes, `patch`), `water_mesher.gd` (surface, shore, falls), `trunk_mesher.gd` (bark); plants and crowns |
@@ -73,7 +73,7 @@ tools/        validate, shot (+ shot/shots the table, shot/places the spots), ma
 ## Content
 
 `content/<mod>/` holds the game data: `mod.yaml` and `data/<kind>.yaml` (materials, items, creatures,
-trees, bushes, recipes, plants, sounds), lists of records with namespaced ids (`core:grass`), or, when the
+trees, bushes, biomes, recipes, plants, sounds), lists of records with namespaced ids (`core:grass`), or, when the
 mod is split, a folder per bundle (`content/animals/wolf/`: `bundle.yaml` with its title, then the same
 `data/`, `sprites/`, `sounds/`... inside; `content/<mod>/common/` holds assets the bundles share,
 `Content.asset` looks in the bundle, then there). A bundle is what the player switches on and off (ids
@@ -95,7 +95,7 @@ bundles (`mods` in `world.json`, older lists expanded by `Mods.expand`), a new o
 on at «Новый мир» (page «Моды», a row per mod, its own page per bundle); `mods.gd` activates a set and
 refreshes every registry (material numbers follow the load order, so a world's set must not change; the
 button to reread the data calls `Mods.rescan`, not `reload`, which `Script.reload` shadows). The engine asks for content by role, never by
-id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushes.pick`), a plant by its `kind`
+id: a tree and a bush by the shares of the column's biome (`Biomes.tree`, `Biomes.bush`; a `biomes` record says where it lies, `where: climate` with `warmth`/`moisture` windows or a relief the layout decides itself, its `top`, `trees`/`bushes` shares, chances; `Biomes.pick(t, m)` the most specific window first, `Biomes.NONE` bare grass; code that needs some tree asks `Trees.first(leaves)`), a plant by its `kind`
 (`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
 (`Items.with_prop`), a tool by its `tool`, a cell material by its `role` (`Mat.BEACH`, `Mat.BANK`, `Mat.SCREE`,
 `Mat.ORE`, `Mat.LOG`, `Mat.LEAVES`: -1 when no mod gives one, the generator lays dirt or stone instead, trees

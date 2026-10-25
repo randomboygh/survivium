@@ -72,8 +72,8 @@ func _test_content() -> void:
 		"cells of a save numbered in another order are translated, renamed ones by their new names, unknown ones to stone")
 	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.BEACH),
 		"material flags come from the data")
-	_check(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].tints[0] is Color, "trees get their looks")
-	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].berries == Color.BLACK and Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].spread is Vector3, "bushes get their looks")
+	_check(Trees.SPECIES[Trees.first(Trees.NEEDLES)].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.first(Trees.BROAD)].tints[0] is Color, "trees get their looks")
+	_check(Bushes.TYPES[Bushes.first(false)].berries == Color.BLACK and Bushes.TYPES[Bushes.first(true, 1)].spread is Vector3, "bushes get their looks")
 	_check(AiRules.SPECIES["animals:wolf"].diet == ["meat"] and AiRules.SPECIES["animals:wolf"].sprite == "wolf", "creatures get their properties")
 	# The checks catch what a mod author gets wrong.
 	var before := Content.BUNDLES.duplicate()
@@ -158,9 +158,9 @@ func _test_mods() -> void:
 	# A recipe out of grain (a hard reference to the plants bundle) and a tree that gives
 	# a cone (soft).
 	_write("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: resources:fiber\n  needs: {plants:grain: 2}\n")
-	_write("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  land: highland\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
+	_write("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
 	# And a bush whose fruit (soft) is a record nobody has.
-	_write("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  under: {any: 1}\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
+	_write("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
 	Content.refresh()
 	Mods.activate(["core", "animals/wolf", "animals/rabbit", "animals/sparrow", "_a", "_c", "_d", "_b"])
 	_check(Content.loaded == ["core", "_b", "_a", "animals/rabbit", "animals/sparrow", "animals/wolf"] or Content.loaded == ["core", "animals/rabbit", "animals/sparrow", "animals/wolf", "_b", "_a"],
@@ -174,7 +174,7 @@ func _test_mods() -> void:
 	_check(Content.dropped.get("_d") == "resources/fiber" and Crafting.get_recipe("_d:porridge").is_empty() and Trees.index("_d:fir") < 0,
 		"a bundle whose hard reference names a record of a bundle not in the set is left out with that bundle as the reason: %s" % [Content.dropped])
 	var sparrow: Dictionary = AiRules.SPECIES["animals:sparrow"]
-	_check(sparrow.likes.is_empty() and Trees.pick(Trees.HIGHLAND, 0.5) == -1, "a soft reference to a record not loaded is dropped: the sparrow lives without ears or trees")
+	_check(sparrow.likes.is_empty() and Trees.SPECIES.is_empty(), "a soft reference to a record not loaded is dropped: the sparrow lives without ears or trees")
 	var found := {}
 	for p in Content.problems:
 		for what in ["requires `_missing`", "core:nobody: patches", "rabbit.diet: `+`"]:
@@ -210,7 +210,7 @@ func _test_mods() -> void:
 		for z in 8:
 			bare.set_cell(x, 0, z, Mat.GRASS)
 	var bare_rng := RandomNumberGenerator.new()
-	_check(Trees.pick(Trees.HIGHLAND, 0.5) == -1 and Bushes.pick(Trees.LOWLAND, 0.1) == -1 and Plants.TUFT == ""
+	_check(Trees.SPECIES.is_empty() and Bushes.TYPES.is_empty() and Biomes.RECORDS.is_empty() and Biomes.tree(Biomes.pick(0.5, 0.5), 0.5) == -1 and Plants.TUFT == ""
 		and Grass.kinds(bare, 3, 0, 3, Mat.GRASS, true, bare_rng).is_empty() and Grass.plants_on(bare, 3, 0, 3).is_empty(),
 		"with core alone no tree, bush or plant is picked and grass grows nothing")
 	# Nor any material but the engine's five: the generator lays dirt and stone for the roles.
@@ -218,10 +218,16 @@ func _test_mods() -> void:
 	_check(Mat.COUNT == 5 and Mat.BEACH == -1 and Mat.LOG == -1 and bare_gen.beach == Mat.DIRT and bare_gen.scree == Mat.STONE
 		and Mat.check().is_empty() and Trees.check().is_empty(), "with core alone the landscape roles fall back to dirt and stone")
 	Mods.activate(before)
-	_check(Trees.pick(Trees.HIGHLAND, 0.5) == Trees.sample(Trees.HIGHLAND) and Trees.pick("nowhere", 0.0) >= 0
-		and Bushes.pick(Trees.HIGHLAND, 0.5) == Bushes.sample(Trees.HIGHLAND) and Bushes.pick(Trees.HIGHLAND, 0.9) == Bushes.sample(Bushes.ANY)
-		and Bushes.pick(Bushes.OPEN, 0.3) == Bushes.sample(Trees.LOWLAND) and Plants.kind_of(Plants.EARS) == Plants.KINDS.EARS,
-		"trees, bushes and plants are picked by their roles, with the plain bush where the roll misses")
+	var forest := Biomes.named("forest")
+	var taiga := Biomes.named("taiga")
+	_check(Biomes.pick(0.5, 0.5) == Biomes.named("meadow") and Biomes.pick(0.5, 0.8) == forest and Biomes.pick(0.3, 0.5) == taiga
+		and Biomes.pick(0.1, 0.9) == Biomes.named("tundra") and Biomes.pick(0.8, 0.3) == Biomes.named("desert") and Biomes.SWAMP >= 0 and Biomes.ROCK >= 0,
+		"a column's climate picks the biome whose windows hold it, the most specific first")
+	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
+		and Biomes.tree(forest, 0.99) == Trees.index("plants:spruce") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
+		and Biomes.bush(taiga, 0.1) == Bushes.index("plants:blueberry") and Biomes.bush(taiga, 0.95) == Bushes.index("plants:shrub")
+		and Biomes.bush(Biomes.named("meadow"), 0.1) == Bushes.index("plants:raspberry") and Plants.of_kind(Plants.KINDS.EARS) == Plants.EARS,
+		"a biome grows its trees and bushes by their shares, nothing where the roll misses; plants are picked by kind")
 	_check(Content.problems.is_empty() and AiRules.SPECIES.has("animals:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
 		"the full set loads clean again")
 
@@ -240,10 +246,10 @@ func _test_items() -> void:
 		_check(Items.get_item(Items.placed_by[m]).place == Mat.IDS[m], "an item places hotbar block %s" % Mat.IDS[m])
 	_check(Items.get_item("campfire").id == "core:campfire" and Items.title("resources:branch") == "Ветка" and Items.canon("core:branch") == "resources:branch"
 		and Items.canon("plants:acorn") == "plants:acorn", "a bare name is a core item, an old id is renamed")
-	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seed == "plants:acorn" and Items.has(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].seed), "tree seeds are items")
-	_check(Bushes.TYPES[Bushes.sample(Trees.LOWLAND)].fruit == "plants:raspberry" and Items.food(Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].fruit) > 0.0,
+	_check(Trees.SPECIES[Trees.first(Trees.BROAD)].seed == "plants:acorn" and Items.has(Trees.SPECIES[Trees.first(Trees.NEEDLES)].seed), "tree seeds are items")
+	_check(Bushes.TYPES[Bushes.index("plants:raspberry")].fruit == "plants:raspberry" and Items.food(Bushes.TYPES[Bushes.first(true, 1)].fruit) > 0.0,
 		"berries are food")
-	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].fruit == "" and Bushes.TYPES[Bushes.sample(Bushes.ANY)].twigs > 0, "a plain bush gives branches only")
+	_check(Bushes.TYPES[Bushes.first(false)].fruit == "" and Bushes.TYPES[Bushes.first(false)].twigs > 0, "a plain bush gives branches only")
 
 
 func _test_tools() -> void:
@@ -295,7 +301,7 @@ func _test_tools() -> void:
 		"ears give grain")
 	_check(Tools.use_of("plants:grain") == "sow" and Items.get_item("plants:grain").crop == Plants.EARS, "grain is sown into ears")
 	_check(Plants.harvest(["core:nothing"], rng).is_empty(), "an unknown plant gives nothing")
-	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].twigs > 0 and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seeds > 0, "a standing oak gives branches and acorns by hand")
+	_check(Trees.SPECIES[Trees.first(Trees.BROAD)].twigs > 0 and Trees.SPECIES[Trees.first(Trees.BROAD)].seeds > 0, "a standing oak gives branches and acorns by hand")
 	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
 	_check(wall[0] == f and wall[1] == f + Vector3i.UP and wall.size() == 9, "a swing at a wall takes the cell above next (a passage)")
 	for c in wall:
@@ -311,8 +317,8 @@ func _test_tools() -> void:
 		"tools reach farther than hands and a sword")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].bonus) and Mat.RECORDS[Mat.GRASS].bonus_chance > 0.0 and Mat.RECORDS[Mat.STONE].bonus == "",
 		"grass sometimes gives fibre")
-	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].hits > axe.power, "an oak takes more than one swing")
-	var b: Dictionary = Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]
+	_check(Trees.SPECIES[Trees.first(Trees.BROAD)].hits > axe.power, "an oak takes more than one swing")
+	var b: Dictionary = Bushes.TYPES[Bushes.first(true)]
 	_check(Items.get_item(b.item).plant == b.id, "a dug-out bush is an item that plants it again")
 	var w := WorldData.new(2, Vector2i(2, 2))
 	w.heap_drop("resources:dirt", Vector3(1.0, 1.0, 1.0), 1)

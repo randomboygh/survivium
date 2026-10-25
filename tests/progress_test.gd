@@ -275,7 +275,35 @@ func _place(id: String) -> bool:
 				set_down[id] = true
 				print("set down %s" % Items.title(id))
 				return true
-	return _fail("%s cannot be set down at the camp" % Items.title(id))
+	return _fail("%s cannot be set down at the camp: %s" % [Items.title(id), _camp_report()])
+
+
+## The camp as the placing sees it, for a failure's message: the view's cut, the feet,
+## the things set down and a map of the ground round the camp (surface level above the
+## feet, T a tree, b a bush, # a thing, . a cell not loaded).
+func _camp_report() -> String:
+	var w = main.world
+	var feet: Vector3i = main.controls.feet()
+	var out := "cut %d, feet %s, step %s, things %d" % [main.chunks.cut_level, feet, main.controls.step(), main.placed.things.size()]
+	var taken := {}
+	for e in main.placed.things:
+		for dz in 2:
+			for dx in 2:
+				taken[Vector2i(e.cell.x + dx, e.cell.z + dz)] = true
+	for z in range(feet.z - 6, feet.z + 7):
+		var row := ""
+		for x in range(feet.x - 6, feet.x + 7):
+			var y: int = w.surface_y(x, z)
+			var c := str(clampi(y + 1 - feet.y, 0, 9)) if y > 0 else "."
+			if taken.has(Vector2i(x, z)):
+				c = "#"
+			elif w.trees.has(Vector2i(x, z)):
+				c = "T"
+			elif w.bushes.has(Vector2i(x, z)):
+				c = "b"
+			row += c
+		out += "\n" + row
+	return out
 
 
 func _placed_count(id: String) -> int:

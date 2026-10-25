@@ -558,7 +558,7 @@ func _work() -> void:
 	var bush := f + Vector3i(0, 0, -7)
 	bush.y = w.surface_y(bush.x, bush.z)
 	if not w.bushes.has(bush):
-		w.add_bush(bush, Bushes.sample(Trees.LOWLAND))
+		w.add_bush(bush, Bushes.first(true))
 		main.chunks.remesh_chunk(WorldData.chunk_key(bush.x, bush.z))
 	c.hold("tools:wooden_sword")
 	main.gathering.gather({"bush": bush})
@@ -592,7 +592,7 @@ func _gather() -> void:
 	var at := Vector3i((main.player.position / CELL).floor())
 	for i in 3:
 		var cell := at + Vector3i(-6 + i * 3, 0, 5)
-		w.add_bush(cell, [Bushes.sample(Trees.LOWLAND), Bushes.sample(Trees.HIGHLAND), Bushes.sample(Bushes.ANY)][i])
+		w.add_bush(cell, [Bushes.first(true), Bushes.first(true, 1), Bushes.first(false)][i])
 		main.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
 	var a = main.actions
 	var who = main.character

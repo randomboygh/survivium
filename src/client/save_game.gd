@@ -90,10 +90,10 @@ func choose_world() -> void:
 	# or the materials of the landscape (below 5) were mods of their own had them in the
 	# base game; one from before bundles (below 6) lists mods, which stand for all their
 	# bundles (Mods.expand, which also follows the mods renamed since); one from before the
-	# base items went to the resources and materials mods (below 7) had them in the base
+	# base items went to the resources and materials mods (below 7), or the biomes (below 8), had them in the base
 	# game, and its items and cells are renamed as they load (Items.canon, Mat.RENAMED).
 	var mods: Array = Array(meta.get("mods", Mods.available())).filter(func(m) -> bool: return m is String)
-	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [4, "music"], [5, "materials"], [7, "resources"], [7, "materials"]]:
+	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [4, "music"], [5, "materials"], [7, "resources"], [7, "materials"], [8, "biomes"]]:
 		if int(meta.get("content", 1)) < split[0] and not split[1] in mods and split[1] in Mods.available():
 			mods.insert(1, split[1])
 	game.world_mods = Mods.expand(mods)
@@ -222,7 +222,7 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
-		"content": 7,
+		"content": 8,
 		"materials": Array(Mat.IDS),
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
