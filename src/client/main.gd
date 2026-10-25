@@ -543,12 +543,13 @@ func _build_materials() -> void:
 	drift_mesh = Drifts.mound_mesh()
 
 
-## A copy of `shader` (world or leaves, which mark what they draw as tall in the
-## stencil buffer) that marks it low, so the player's silhouette (sprite_xray) does
-## not show behind it.
+## A copy of `shader` (world or leaves, which mark what they draw as solid or as a
+## crown in the stencil buffer) that marks it low (2), so the player's silhouette
+## (sprite_xray) does not show behind it.
 static func low_variant(shader: Shader) -> Shader:
 	var low := Shader.new()
-	low.code = shader.code.replace("stencil_mode write, compare_always, 2;", "stencil_mode write, compare_always, 1;")
+	low.code = shader.code.replace("stencil_mode write, compare_always, 1;", "stencil_mode write, compare_always, 2;") \
+		.replace("stencil_mode write, compare_always, 3;", "stencil_mode write, compare_always, 2;")
 	return low
 
 

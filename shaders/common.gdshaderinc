@@ -320,6 +320,17 @@ float see_through(vec2 texel, vec3 p) {
 		* clamp((before - SEE_FRONT) / SEE_FRONT, 0.0, 1.0);
 }
 
+// As see_through for a tree's trunk: over the figure of the player (within SEE_FIGURE
+// of the middle of their body, and a rim) in full, so the player shows whole behind
+// it rather than through every other texel, the rest as a crown does.
+const float SEE_FIGURE = 0.6;
+
+float trunk_through(vec2 texel, vec3 p) {
+	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
+	float near = length((texel + 0.5) / TEXELS - body);
+	return see_through(texel, p) * (1.0 + clamp((SEE_FIGURE + SEE_RIM - near) / SEE_RIM, 0.0, 1.0));
+}
+
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
 // player's feet (below the picked level, when one is picked by hand, then in bigger
 // steps) fade one even step per level, so a pit or a drop shows its depth, and what

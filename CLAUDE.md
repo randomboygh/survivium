@@ -227,8 +227,10 @@ draws the icon and `assets/web/` (home screen icon, link preview; the `og:` tags
   an overlap (`ChunkMesher.EPS`), walls under 1 px tall rasterize as flickering dashes. Headless shows
   none of it: render with ±eps nudges and diff the shots.
 - Nodes scaled 1/16 (voxel models) need `extra_cull_margin` × 16 or the shear culls them.
-- Silhouettes behind geometry use `render_mode depth_test_inverted`; the player's skips pixels the
-  stencil marks low (1: grass, bushes, low props; tall world and crowns write 2).
+- Silhouettes behind geometry use `render_mode depth_test_inverted`; the player's shows only where
+  the stencil marks solid (1: the world, sprites) or nothing (0), not low (2: grass, bushes, low
+  props) nor crowns (3, which clear round the player instead); a tree's trunk clears over the player
+  but for its foot (its faces' vertex alpha says which cell of the trunk they are).
 - A light with shadows is drawn in a pass of its own and added in sRGB, not in linear light: it looks
   brighter over other light. Fires and the torch scale their energy for it (`Effects.SHADOW_ENERGY`)
   and cast shadows only at night; which things cast from which light goes by render layers
