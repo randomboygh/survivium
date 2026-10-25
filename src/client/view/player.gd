@@ -62,9 +62,10 @@ var underwater: MeshInstance3D
 var torch: OmniLight3D
 ## A thing held gives light (Character.light_held), set by sky.gd.
 var torch_lit := false
-## Where the flame of the light held burns, in world units: the brightest pixel of
-## what the hand holds in the frame shown (SpriteSheet.spots); INF when none shows.
-var flame_at := Vector3.INF
+## Where the flames of the lights held burn, in world units, one a hand that holds
+## one: the brightest pixel of what the hand holds in the frame shown
+## (SpriteSheet.spots); empty when none shows.
+var flames_at: Array = []
 
 
 func _ready() -> void:
@@ -247,22 +248,24 @@ func place_sprite() -> void:
 	_find_flame()
 
 
-## Puts flame_at on the frame shown: the frame's spot is a pixel of the upright quad
+## Puts flames_at on the frame shown: the frame's spot is a pixel of the upright quad
 ## (see PixelView.sprite_mesh), turned to face the view and made as tall as the
 ## shaders draw it (face_view, stand_tall).
 func _find_flame() -> void:
 	var f := sheet.frame_at(drawn_facing(), anim, anim_time)
-	var spot: Variant = sheet.spots.get(Vector2i(f.x, f.y))
-	if spot == null:
+	var spots: Variant = sheet.spots.get(Vector2i(f.x, f.y))
+	if spots == null:
 		if sheet.spots.is_empty():
-			flame_at = Vector3.INF
+			flames_at = []
 		return
 	var size := sheet.frame_size
-	var x: int = size.x - 1 - spot.x if f.z == 1 else spot.x
 	var px := 1.0 / PixelView.PIXELS_PER_UNIT
-	var across: float = (x + 0.5 - floorf(size.x / 2.0)) * px
-	var up: float = (size.y - spot.y - 0.5) * px / PixelView.slope
-	flame_at = sprite.global_position + Vector3(PixelView.right.x * across, up, PixelView.right.y * across)
+	flames_at = []
+	for spot: Vector2i in spots:
+		var x: int = size.x - 1 - spot.x if f.z == 1 else spot.x
+		var across: float = (x + 0.5 - floorf(size.x / 2.0)) * px
+		var up: float = (size.y - spot.y - 0.5) * px / PixelView.slope
+		flames_at.append(sprite.global_position + Vector3(PixelView.right.x * across, up, PixelView.right.y * across))
 
 
 ## The way the body faces on the screen: `facing` is a way of the world, the camera

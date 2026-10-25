@@ -270,7 +270,7 @@ func use_of(hand := -1) -> String:
 ## then the hand in use; a tool the bag holds one of leaves the other hand.
 func put_in_hand(id: String, hand := -1, say := true) -> void:
 	var h := active if hand < 0 else hand
-	if id != "" and hands[1 - h] == id and Tools.is_tool_item(id) and game.character.inventory.count(id) < 2:
+	if id != "" and hands[1 - h] == id and _kept_in_hand(id) and game.character.inventory.count(id) < 2:
 		hands[1 - h] = ""
 	hands[h] = id
 	active = h
@@ -311,21 +311,26 @@ func _check_hands() -> void:
 		if hands[h] != "" and inv.count(hands[h]) == 0:
 			hands[h] = ""
 			changed = true
-	if hands[0] != "" and hands[0] == hands[1] and Tools.is_tool_item(hands[0]) and inv.count(hands[0]) < 2:
+	if hands[0] != "" and hands[0] == hands[1] and _kept_in_hand(hands[0]) and inv.count(hands[0]) < 2:
 		hands[1 - active] = ""
 		changed = true
 	if changed:
 		game.hud.refresh_hands()
 
 
-## The next tool in the bag into the hand in use, after the last one nothing again.
+## The next tool or light in the bag into the hand in use, after the last one nothing again.
 func cycle_tool() -> void:
 	var ids: Array = [""]
 	for s in game.character.inventory.slots:
-		if s != null and Tools.is_tool_item(s[0]) and not ids.has(s[0]):
+		if s != null and _kept_in_hand(s[0]) and not ids.has(s[0]):
 			ids.append(s[0])
 	var at := ids.find(held())
 	put_in_hand(ids[(at + 1) % ids.size()])
+
+
+## Whether item `id` is one a hand keeps holding: a tool or a light (a torch).
+func _kept_in_hand(id: String) -> bool:
+	return Tools.is_tool_item(id) or Items.get_item(id).get("light", 0.0) > 0.0
 
 
 ## The next brush for placing blocks.

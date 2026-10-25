@@ -89,6 +89,17 @@ vec3 shear(vec3 p) {
 	return vec3(s.x, p.y, s.y);
 }
 
+// The way from a drawn (sheared) point to another, d, as the way between the world
+// points they were: shear undone. A light stands at its sheared place (PixelView.shear),
+// so a light above the ground seems to stand behind a wall close in front of it; the
+// faces the light reaches are found along the way undone.
+vec3 unshear_dir(vec3 d) {
+	vec2 s = d.xz - view_up * (view_slope * d.y);
+	float along = dot(s, view_up);
+	s += view_up * (along / view_squash - along);
+	return vec3(s.x, d.y, s.y);
+}
+
 // Where world point p is on the image plane, in world units (x right, y down), so
 // texels counted on it are pixels on the screen.
 vec2 screen_plane(vec3 p) {

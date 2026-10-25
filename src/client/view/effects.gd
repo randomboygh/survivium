@@ -78,8 +78,8 @@ var bolt_light: OmniLight3D
 var _anchored := []
 var bolt_time := 0.0
 var fireflies: CPUParticles3D
-## The flame of a torch in the player's hand (see hold_flame).
-var torch_flame: CPUParticles3D
+## The flames of the torches in the player's hands (see hold_flames).
+var torch_flames: Array[CPUParticles3D] = []
 ## The world the fireflies fly over (WorldData): only over grass, bushes and under the
 ## crowns, not over water, sand or stone. Their spots are picked around the view when it
 ## has moved FIREFLY_MOVE world units, from FIREFLY_TRIES columns.
@@ -233,7 +233,13 @@ func _ready() -> void:
 	bolt_light.light_energy = 0.0
 	add_child(bolt_light)
 
-	torch_flame = _emitter(10, 0.35, Vector2(PX, PX), 1.0)
+	for i in 2:
+		torch_flames.append(_torch_flame())
+
+
+## The flame of a torch in one of the player's hands.
+func _torch_flame() -> CPUParticles3D:
+	var torch_flame := _emitter(10, 0.35, Vector2(PX, PX), 1.0)
 	torch_flame.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	torch_flame.emission_sphere_radius = 0.03
 	torch_flame.direction = Vector3.UP
@@ -242,6 +248,7 @@ func _ready() -> void:
 	torch_flame.initial_velocity_max = 0.8
 	torch_flame.gravity = Vector3(0.0, 0.4, 0.0)
 	torch_flame.color_ramp = _ramp([Color(1.0, 0.95, 0.65, 1.0), Color(1.0, 0.65, 0.22, 1.0), Color(0.8, 0.28, 0.08, 0.0)])
+	return torch_flame
 
 
 ## A campfire one world unit square with its north-west corner at `corner`: stones,
@@ -426,14 +433,16 @@ func _blow(p: CPUParticles3D, dir: Vector2, side: float, down: float) -> void:
 	p.direction = Vector3(dir.x * side, down, dir.y * side)
 
 
-## The torch's flame burns at world point `at` (where the sprite draws its brightest
-## pixel, see Player.flame_at) while `lit`.
-func hold_flame(at: Vector3, lit: bool) -> void:
-	var on := lit and at.is_finite()
-	if on:
-		torch_flame.position = at
-	if torch_flame.emitting != on:
-		torch_flame.emitting = on
+## The torches' flames burn at world points `at` (where the sprite draws their
+## brightest pixels, see Player.flames_at) while `lit`.
+func hold_flames(at: Array, lit: bool) -> void:
+	for i in torch_flames.size():
+		var flame := torch_flames[i]
+		var on: bool = lit and i < at.size() and at[i].is_finite()
+		if on:
+			flame.position = at[i]
+		if flame.emitting != on:
+			flame.emitting = on
 
 
 ## How much the torch gives way to the fires around world point `p`: 1 within

@@ -185,7 +185,7 @@ func _run() -> void:
 		if shot.get("lab", false):
 			places.lab(main.world, Vector3i((main.player.position / CELL).floor()))
 			main.roof.build(main.world)
-		if shot.get("wall", false):
+		if shot.get("wall", false) and not shot.wall is String:
 			places.wall(main.world, Vector3i((main.player.position / CELL).floor()))
 			main.roof.build(main.world)
 		if shot.get("trench", false):
@@ -248,6 +248,12 @@ func _run() -> void:
 				await process_frame
 		if shot.has("hands"):
 			await _hands(shot.hands)
+		if shot.get("wall", "") is String and shot.get("wall", "") == "north":
+			# Right behind the player where they stand now.
+			places.wall(main.world, Vector3i((main.player.position / CELL).floor()), true)
+			main.roof.build(main.world)
+			for i in 20:
+				await process_frame
 		if shot.has("drops"):
 			# Things lying in a row in front of the player, not picked up (WorldActions.PICKUP_NONE).
 			main.settings.set_value("pickup", 3)
@@ -539,17 +545,18 @@ func _craft(forge := false) -> void:
 			main.hud.open_prop(e)
 
 
-## Puts the tool `h.tool` in the left hand and a stone block in the right, the right
-## one in use if `h.right`, turns the player to `h.facing` and holds the work `h.work`
+## Puts the tool `h.tool` in the left hand and a stone block (or `h.other`) in the
+## right, the right one in use if `h.right`, turns the player to `h.facing` and holds the work `h.work`
 ## still at its wind-up, or at its strike if `h.strike`.
 func _hands(h: Dictionary) -> void:
 	main.player.position = places.flat_near(main.world, main.player.position)
 	var inv = main.character.inventory
+	var other: String = h.get("other", "resources:stone")
 	inv.add(h.tool, 1)
-	inv.add("resources:stone", 10)
+	inv.add(other, 10 if other == "resources:stone" else 1)
 	# The tool in the left hand, a stone block in the right one; the tool's hand in use
 	# unless the shot says the right one.
-	main.controls.put_in_hand("resources:stone", 1, false)
+	main.controls.put_in_hand(other, 1, false)
 	main.controls.put_in_hand(h.tool, 0, false)
 	if h.get("right", false):
 		main.controls.set_active(1)

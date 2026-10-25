@@ -56,6 +56,11 @@ const SHOTS := {
 	# The torch held the other way and walking east: the flame stays at the hand.
 	"torch-east": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "e", "right": true}},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "s"}},
+	# The torch by a wall to the north: lit from the foot of the wall up.
+	"torch-wall": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "wall": "north", "hands": {"tool": "tools:torch", "facing": "s"}},
+	"glow-wall": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "wall": "north", "hands": {"tool": "resources:stone", "facing": "s"}},
+	# A torch in each hand: a flame at each.
+	"torch-two": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
 	# the campfire by the spawn, and an animal in the player's shadow: their shadows
 	# drawn ("drawn", and "mixed" with the player's real), and the real ones to compare.
