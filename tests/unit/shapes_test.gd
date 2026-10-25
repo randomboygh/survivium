@@ -142,7 +142,7 @@ func _patches_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 				if w.slope_mask(x, y, z) == WorldData.FULL or not w.get_cell(x, y + 1, z) in [Mat.AIR, Mat.WATER]:
 					continue
 				var i := (y + 1) * dy + (z - from.y + 2) * dz + x - from.x + 2
-				var a: PackedFloat32Array = ChunkMesher.patch(c, sh, i, dy, dz)
+				var a: PackedFloat32Array = SlopeMesher.patch(c, sh, i, dy, dz)
 				var b: PackedFloat32Array = w.surface_patch(x, y, z)
 				for k in 12:
 					if not is_equal_approx(a[k], b[k]):

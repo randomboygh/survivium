@@ -807,7 +807,7 @@ func slope_mask(x: int, y: int, z: int) -> int:
 ## meet there at the same height and slope. The patch is 12 numbers: the heights of the
 ## corners NW, NE, SE, SW above the cell's level, then their slopes along x, then
 ## along z. The mesher builds the same patch from its copy of the cells
-## (ChunkMesher.patch); tests check that both agree.
+## (SlopeMesher.patch); tests check that both agree.
 const PATCH_CI := [0, 1, 1, 0]
 const PATCH_CJ := [0, 0, 1, 1]
 
