@@ -17,8 +17,8 @@ func _test_felling() -> void:
 			w.set_cell(x, 0, z, Mat.STONE)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	Trees.place(w, 15, 1, 23, Trees.sample(Trees.LOWLAND), rng)
-	Trees.place(w, 31, 1, 23, Trees.sample(Trees.LOWLAND), rng)
+	Trees.place(w, 15, 1, 23, Trees.first(Trees.BROAD), rng)
+	Trees.place(w, 31, 1, 23, Trees.first(Trees.BROAD), rng)
 	var leaves_of_second := 0
 	for z in range(14, 33):
 		for x in range(24, 41):
@@ -27,14 +27,14 @@ func _test_felling() -> void:
 	# bark of one wider than its cell stops a body beside it.
 	var girths := {}
 	for i in 40:
-		var box := Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(2 * i + 1, 7), 0)
+		var box := Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(2 * i + 1, 7), 0)
 		girths[box.size.x] = true
-		var g: Array = Trees.SPECIES[Trees.sample(Trees.LOWLAND)].girth
+		var g: Array = Trees.SPECIES[Trees.first(Trees.BROAD)].girth
 		_check(box.size.x >= g[0] and box.size.x <= g[1], "a trunk's girth is in its species' range")
 	_check(girths.size() > 2, "trunks differ in girth")
-	_check(Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(15, 23), 0).size.x,
+	_check(Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 0).size.x,
 		"a trunk thins going up")
-	var box := Trees.trunk_box(Trees.sample(Trees.LOWLAND), Vector2i(15, 23), 1)
+	var box := Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 1)
 	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8), "thick bark east of a trunk is solid")
 	_check(not w.blocks_part(16, 2, 23, 0.7, 0.9, 0.4, 0.6), "a body further from the trunk is not stopped")
 	var gone := Trees.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
@@ -79,10 +79,10 @@ func _test_front_choice() -> void:
 	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
 	var who := Who.new()
 	who.position = Vector3(30.5, 2.0, 30.5) * WorldData.CELL
-	w.add_bush(Vector3i(30, 2, 29), Bushes.sample(Bushes.ANY))
-	w.add_bush(Vector3i(30, 2, 28), Bushes.sample(Trees.LOWLAND))
+	w.add_bush(Vector3i(30, 2, 29), Bushes.first(false))
+	w.add_bush(Vector3i(30, 2, 28), Bushes.first(true))
 	var berries := Vector3i(30, 2, 28)
-	_check(actions.ripe(berries, Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]) and actions.front_choice(who) == {"bush": berries},
+	_check(actions.ripe(berries, Bushes.TYPES[Bushes.first(true)]) and actions.front_choice(who) == {"bush": berries},
 		"bare hands go for the berries before the branches of a nearer bush")
 	_check(WorldActions._rank(["plants:mushroom"]) < WorldActions._rank(["plants:acorn"])
 		and WorldActions._rank(["plants:acorn"]) < WorldActions._rank(["resources:fiber"])
@@ -154,7 +154,7 @@ func _test_world_actions() -> void:
 		"a block is placed from the bag")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	Trees.place(w, 15, 2, 23, Trees.sample(Trees.LOWLAND), rng)
+	Trees.place(w, 15, 2, 23, Trees.first(Trees.BROAD), rng)
 	who.position = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
 	who.item = "tools:stone_axe"
 	var logs := w.log_col(15, 23)
@@ -162,7 +162,7 @@ func _test_world_actions() -> void:
 	while w.log_col(15, 23) == logs and hits < 50:
 		actions.chop(who, actions.trunk_cell(who, Vector2i(15, 23)))
 		hits += 1
-	_check(hits > 1 and hits <= Trees.SPECIES[Trees.sample(Trees.LOWLAND)].hits and not w.drops.is_empty(), "an oak falls after its hits")
+	_check(hits > 1 and hits <= Trees.SPECIES[Trees.first(Trees.BROAD)].hits and not w.drops.is_empty(), "an oak falls after its hits")
 	# Moss grows on bare stone in damp patches, where world.gdshader draws it: bare
 	# hands pick it, and the stone stays.
 	var rock := WorldData.new(8, Vector2i(96, 96))

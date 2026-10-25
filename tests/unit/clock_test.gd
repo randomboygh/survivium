@@ -128,7 +128,7 @@ func _test_weather() -> void:
 	clock.season = Clock.AUTUMN
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3
-	Trees.place(w, 24, 2, 24, Trees.sample(Trees.LOWLAND), rng)
+	Trees.place(w, 24, 2, 24, Trees.first(Trees.BROAD), rng)
 	for key: Vector2i in w.chunks:
 		w.chunks[key].final = true
 	var actions := WorldActions.new(w, clock, {"free_build": false})
@@ -137,7 +137,7 @@ func _test_weather() -> void:
 	for i in 2000:
 		storms.step(Storms.TICK, Vector3(24.5, 2.0, 24.5) * WorldData.CELL)
 	var branches := 0
-	var s: Dictionary = Trees.SPECIES[Trees.sample(Trees.LOWLAND)]
+	var s: Dictionary = Trees.SPECIES[Trees.first(Trees.BROAD)]
 	for key: Vector2i in w.drops:
 		for d: Array in w.drops[key]:
 			if d[0] == s.twig:

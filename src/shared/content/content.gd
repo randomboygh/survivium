@@ -53,7 +53,8 @@ static var strict := false
 ## ref:<kind> (an id of a record of that kind; an empty default means none; `soft` when
 ## the record lives without it), sound (the bare name of a sound, found at play time in
 ## the last loaded bundle that has one), amounts (a mapping of ids of `of` to how many,
-## at least 1 each). `min`/`max` bound numbers, in a list each item. A field without
+## at least 1 each), shares (a mapping to shares 0..1: of the names in `keys`, or of ids of
+## `of`). `min`/`max` bound numbers, in a list each item. A field without
 ## `default` is required. `id` and `title` are implied for every kind.
 const SCHEMAS := {
 	"materials": {
@@ -121,7 +122,6 @@ const SCHEMAS := {
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
-		"land": {"type": "enum", "values": ["lowland", "highland"]},
 		"trunk": {"type": "list", "of": "int", "len": 2, "min": 0},
 		"girth": {"type": "list", "of": "int", "len": 2, "min": 2, "default": [6, 6]},
 		"taper": {"type": "float", "min": 0.0, "default": 0.0},
@@ -139,7 +139,6 @@ const SCHEMAS := {
 	},
 	"bushes": {
 		"tint": {"type": "color"},
-		"under": {"type": "shares", "keys": ["lowland", "highland", "open", "any"]},
 		"berries": {"type": "color", "default": null},
 		"berry_cards": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"cards": {"type": "int", "min": 1},
@@ -151,6 +150,23 @@ const SCHEMAS := {
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"twig": {"type": "ref:items", "soft": true, "default": ""},
 		"item": {"type": "ref:items", "default": ""},
+	},
+	"biomes": {
+		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp"], "default": "climate"},
+		"warmth": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
+		"moisture": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
+		"top": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay"], "default": "grass"},
+		"stone_below": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
+		"clay_above": {"type": "float", "min": -1.0, "max": 1.0, "default": 1.0},
+		"dunes": {"type": "float", "min": 0.0, "default": 0.0},
+		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}},
+		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"groves": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}},
+		"bush_sparsity": {"type": "int", "min": 0, "default": 0},
+		"spawn": {"type": "bool", "default": false},
+		"sandstorms": {"type": "bool", "default": false},
+		"color": {"type": "color"},
 	},
 	"recipes": {
 		"makes": {"type": "ref:items"},
@@ -385,7 +401,7 @@ static func _refs_of(r: Dictionary, kind: String, mod: String) -> Array:
 		var spec: Dictionary = schema.get(str(key).trim_suffix("+"), {})
 		if spec.is_empty():
 			continue
-		var target: String = spec.get("of", "") if spec.type in ["list", "amounts"] else spec.type
+		var target: String = spec.get("of", "") if spec.type in ["list", "amounts", "shares"] else spec.type
 		if not target.begins_with("ref:"):
 			continue
 		var v: Variant = r[key]
@@ -765,15 +781,17 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 				amounts[qualify(k, mod)] = v[k]
 			out[0] = amounts
 		"shares":
-			if not v is Dictionary or v.is_empty():
-				return "expected a mapping of %s to shares 0..1, like {%s: 0.5}" % [", ".join(spec.keys), spec.keys[0]]
+			var named: bool = spec.has("keys")
+			if not v is Dictionary or (v.is_empty() and named):
+				return "expected a mapping of %s to shares 0..1, like {%s: 0.5}" % [", ".join(spec.keys), spec.keys[0]] if named \
+					else "expected a mapping of ids to shares 0..1, like {oak: 0.5}"
 			var shares := {}
 			for k in v:
-				if not k is String or not k in spec.keys:
-					return "`%s`: expected one of %s" % [k, ", ".join(spec.keys)]
+				if not k is String or k == "" or (named and not k in spec.keys):
+					return "`%s`: expected one of %s" % [k, ", ".join(spec.keys)] if named else "expected ids as keys"
 				if not (v[k] is float or v[k] is int) or v[k] < 0.0 or v[k] > 1.0:
 					return "`%s`: expected a share from 0 to 1" % k
-				shares[k] = float(v[k])
+				shares[k if named else qualify(k, mod)] = float(v[k])
 			out[0] = shares
 		_:
 			if type.begins_with("ref:"):
@@ -829,7 +847,7 @@ static func _check_refs() -> void:
 	for kind in SCHEMAS:
 		for key in SCHEMAS[kind]:
 			var spec: Dictionary = SCHEMAS[kind][key]
-			var target: String = spec.get("of", spec.type) if spec.type in ["list", "amounts"] else spec.type
+			var target: String = spec.get("of", spec.type) if spec.type in ["list", "amounts", "shares"] else spec.type
 			if not target.begins_with("ref:"):
 				continue
 			var of := target.substr(4)
@@ -843,7 +861,7 @@ static func _check_refs() -> void:
 						if not soft or not find(of, ref).is_empty():
 							keep.append(ref)
 					r[key] = keep
-				elif spec.type == "amounts":
+				elif spec.type in ["amounts", "shares"]:
 					for ref in r[key].keys():
 						if find(of, ref).is_empty():
 							_broken(r, kind, key, of, ref, soft)

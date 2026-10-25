@@ -11,6 +11,7 @@ extends RefCounted
 
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const CHUNK := WorldData.CHUNK
 ## Columns around a chunk the terrain stage lays out too, so banks, caves and trees
@@ -20,18 +21,9 @@ const WINDOW := CHUNK + 2 * MARGIN
 ## Cells between the samples of the slow noises (continents, rivers, lakes), which are
 ## sampled exactly and interpolated with their slopes in between.
 const LATTICE := 4
-## Biomes of a column, from its height, warmth and moisture.
-const SEA := 0
-const BEACH := 1
-const MEADOW := 2
-const FOREST := 3
-const TAIGA := 4
-const SWAMP := 5
-const ROCK := 6
-const PLATEAU := 7
-const DESERT := 8
-const TUNDRA := 9
-const BIOME_NAMES := ["Море", "Берег", "Луг", "Лес", "Тайга", "Болото", "Скалы", "Плато", "Пустыня", "Тундра"]
+## The biome of a column is a byte index into Biomes.RECORDS (Biomes.NONE when no loaded
+## biome fits): the relief decides the sea, beaches, bare rock, plateaus and swamps, the
+## climate (warmth and moisture) the rest.
 ## Relief kinds of a column.
 const PLAIN := 0
 const MOUNTAIN := 1
@@ -63,6 +55,8 @@ const ENTRANCE := 2
 ## The water of the column is a bog's (WorldData.BOG), or a swamp's (WorldData.SWAMP).
 const MIRE := 4
 const MARSH := 8
+## The column is on the wooded slope of a mountain: trees grow whatever its biome says.
+const WOODS := 16
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
@@ -490,7 +484,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		var f := 0
 		var feature := DRY
 		var top := Mat.GRASS
-		var b := MEADOW
+		var b := Biomes.NONE
+		var watery := false
 		var sheer := steep[j] >= steep_t or kind == CLIFFS or kind == HIGHLAND
 		if kind == MOUNTAIN:
 			# The foot and the woods of a mountain lie in slopes; only its rock has
@@ -531,7 +526,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		var channel := level - (2 if d < rw - 1.0 else 1) if wet_bed and d <= rw else size_y
 		if height < sea:
 			wt = sea
-			b = SEA
+			watery = true
 			feature = OCEAN
 			height = mini(height, channel)
 		else:
@@ -542,7 +537,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				if in_lake > 0.0:
 					height = mini(mini(height, sea - 1 - mini(4, int(in_lake / 3.0))), channel)
 					wt = sea
-					b = SEA
+					watery = true
 					feature = LAKE
 				else:
 					# The shore at the water's level, so it slopes into the water.
@@ -555,7 +550,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				if d <= rw and wet_bed:
 					height = mini(height, channel)
 					wt = level
-					b = SEA
+					watery = true
 					top = beach
 					sheer = false
 					feature = RIVER
@@ -607,28 +602,30 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		var rocky := height > sea + 12 or (kind == CLIFFS and height >= sea)
 		if kind == MOUNTAIN:
 			rocky = height >= sea + ROCK_LINE + (shape[j] - 128) / 48
+		var climate := false
 		if rocky and wt < 0:
 			top = Mat.STONE
-			b = ROCK
+			b = _biome(Biomes.ROCK)
 			if kind == MOUNTAIN:
 				# Loose scree lies in slopes, stone juts out of it in sheer outcrops.
 				sheer = steep[j] >= steep_t
 				if not sheer:
 					top = scree
-		elif b == SEA:
+		elif watery:
+			b = _biome(Biomes.SEA)
 			if feature != RIVER:
 				top = beach if soil[j] < soil_t else bank
 		elif feature == CANYON:
-			b = BEACH
+			b = _biome(Biomes.BEACH)
 		elif kind == HIGHLAND:
-			b = PLATEAU
+			b = _biome(Biomes.PLATEAU)
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
 		elif height <= sea + 2 and wet <= 1:
-			b = BEACH
+			b = _biome(Biomes.BEACH)
 			top = beach if soil[j] < soil_t else bank
 		elif kind == PLAIN and height <= sea + 4 and swamp[j] > swamp_t and wet <= 4 and t > 0.3:
 			# A swamp: flat wet ground a level or two above the sea, with pools.
-			b = SWAMP
+			b = _biome(Biomes.SWAMP)
 			height = sea + 1 + int(soil[j] > _byte(0.4))
 			var p := pools[j]
 			if p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t):
@@ -642,27 +639,23 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			else:
 				top = bank if p > mud_t else Mat.GRASS
 			sheer = false
-		elif t < 0.2:
-			# Tundra: cold lowland, bare stone and clay showing through the grass.
-			b = TUNDRA
-			if soil[j] < _byte(-0.35):
-				top = Mat.STONE
-			elif soil[j] > _byte(0.45):
-				top = bank
-		elif t < 0.38 or height > sea + 14:
-			b = TAIGA
-		elif t > 0.66 and m < 0.56:
-			# Desert: sand in low dunes.
-			b = DESERT
-			top = beach
-			if kind == PLAIN and not sheer:
-				height += int(dunes[j] / 255.0 * 2.6)
-		elif m > 0.7:
-			b = FOREST
-		# Some mountains are wooded between the foot and the rock.
-		if kind == MOUNTAIN and wt < 0 and (b == MEADOW or b == TUNDRA) and height >= sea + MOUNT_WOODS \
-				and forest[j] > _byte(-0.15):
-			b = TAIGA if t < 0.45 else FOREST
+		else:
+			# The climate's say: the loaded biome whose windows hold the warmth and the
+			# moisture, with its ground (sand in dunes, stone and clay showing through).
+			climate = true
+			b = Biomes.pick(t, m)
+			var rec := Biomes.of(b)
+			top = Biomes.top(b, beach, bank)
+			if not rec.is_empty():
+				if soil[j] < _byte(rec.stone_below):
+					top = Mat.STONE
+				elif soil[j] > _byte(rec.clay_above):
+					top = bank
+				if rec.dunes > 0.0 and kind == PLAIN and not sheer:
+					height += int(dunes[j] / 255.0 * rec.dunes)
+		# Some mountains are wooded between the foot and the rock, whatever grows below.
+		if kind == MOUNTAIN and wt < 0 and climate and height >= sea + MOUNT_WOODS and forest[j] > _byte(-0.15):
+			f |= WOODS
 			top = Mat.GRASS
 		if sheer:
 			f |= SHEER_TOP
@@ -885,15 +878,15 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 		"canyon":
 			return feature == CANYON
 		"swamp":
-			return b == SWAMP
+			return b == Biomes.SWAMP
 		"plateau":
-			return b == PLATEAU
+			return b == Biomes.PLATEAU
 		"cliffs":
 			return kind == CLIFFS and lay.heights[j] >= sea + 3 and lay.coast[j] < 6.0
 		"beach":
-			return b == BEACH and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
+			return b == Biomes.BEACH and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
 		"mountain":
-			return b == ROCK and kind == MOUNTAIN
+			return b == Biomes.ROCK and kind == MOUNTAIN
 		"peak":
 			return kind == MOUNTAIN and lay.heights[j] >= sea + WorldData.SNOW_LINE + 3
 		"waterfall":
@@ -907,15 +900,8 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 			return lay.flags[j] & ENTRANCE and kind == PLAIN and mouths[j] > _byte(0.7) and lay.heights[j] > sea + 7
 		"adit":
 			return lay.flags[j] & ENTRANCE and kind == MOUNTAIN
-		"forest":
-			return b == FOREST
-		"taiga":
-			return b == TAIGA and lay.heights[j] <= sea + 9
-		"desert":
-			return b == DESERT
-		"tundra":
-			return b == TUNDRA
-	return false
+	# Any other name is a biome's ("forest", "desert"...).
+	return b != Biomes.NONE and b == Biomes.named(what)
 
 
 ## Colour of a laid-out column for a map of the world before it is walked: the sea by
@@ -926,11 +912,10 @@ func column_color(lay: Dictionary, j: int) -> Color:
 	if wt >= 0:
 		var deep := clampf((wt - h - 1) / 6.0, 0.0, 1.0)
 		return Color(0.36, 0.6, 0.68).lerp(Color(0.12, 0.24, 0.42), deep)
-	var c: Color = MAP_COLORS[lay.biome[j]]
+	var c := Biomes.color(lay.biome[j])
 	return c * (0.75 + 0.5 * clampf((h - sea) / 24.0, 0.0, 1.0))
 
 
-## Colours of the biomes on the map.
-const MAP_COLORS := [Color(0.12, 0.24, 0.42), Color(0.84, 0.76, 0.5), Color(0.42, 0.6, 0.28),
-	Color(0.24, 0.44, 0.2), Color(0.22, 0.38, 0.3), Color(0.36, 0.44, 0.3), Color(0.56, 0.56, 0.56),
-	Color(0.55, 0.58, 0.4), Color(0.86, 0.74, 0.46), Color(0.6, 0.66, 0.6)]
+## The biome byte of a relief biome the loaded bundles may not give (-1): NONE then.
+static func _biome(i: int) -> int:
+	return i if i >= 0 else Biomes.NONE

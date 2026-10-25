@@ -15,13 +15,8 @@ const Items := preload("res://src/shared/content/items.gd")
 const BROAD := 0
 const NEEDLES := 1
 
-## The lands a species grows on (its `land`): the generator asks for a tree of the land
-## a column is, not for a species by name, so a mod decides what grows there.
-const LOWLAND := "lowland"
-const HIGHLAND := "highland"
-
-## Index -> the species of each land, in record order (see `pick`).
-static var BY_LAND := {}
+## Where a species grows is the biomes' say (Biomes: a biome's `trees` shares), not the
+## tree's: the generator asks the biome of a column for a tree, never for a species by name.
 
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := 8
@@ -43,9 +38,6 @@ static func refresh() -> void:
 		var s: Dictionary = r.duplicate()
 		s.leaves = NEEDLES if r.leaves == "needles" else BROAD
 		SPECIES.append(s)
-	BY_LAND = {LOWLAND: [], HIGHLAND: []}
-	for i in SPECIES.size():
-		BY_LAND[SPECIES[i].land].append(i)
 
 
 ## Index of the species with `id`, or -1.
@@ -56,25 +48,20 @@ static func index(id: String) -> int:
 	return -1
 
 
-## The species to plant on `land` for the roll `roll` (0..1): one of the land's species in
-## turn, or one of the other land's when the land has none, or -1 when no tree is loaded.
-static func pick(land: String, roll: float) -> int:
-	var of: Array = BY_LAND.get(land, [])
-	if of.is_empty():
-		of = BY_LAND.get(HIGHLAND if land == LOWLAND else LOWLAND, [])
-	if of.is_empty():
+## Any loaded species for the roll `roll` (0..1), each as likely; -1 when none is loaded.
+static func any(roll: float) -> int:
+	if SPECIES.is_empty():
 		return -1
-	return of[mini(int(roll * of.size()), of.size() - 1)]
+	return mini(int(roll * SPECIES.size()), SPECIES.size() - 1)
 
 
-## A species of `land`, the first one, or -1 (see `pick`).
-static func sample(land: String) -> int:
-	return pick(land, 0.0)
-
-
-## The land species `species` grows on, "" for none (-1).
-static func land_of(species: int) -> String:
-	return "" if species < 0 or species >= SPECIES.size() else SPECIES[species].land
+## The first loaded species with `leaves` (BROAD or NEEDLES; -1 any), or -1: what the test
+## world, the shots and the tests plant where the plan says an oak or a spruce.
+static func first(leaves := -1) -> int:
+	for i in SPECIES.size():
+		if leaves < 0 or SPECIES[i].leaves == leaves:
+			return i
+	return -1
 
 
 ## What is wrong with the loaded trees for the engine, if anything.

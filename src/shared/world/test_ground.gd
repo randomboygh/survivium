@@ -18,9 +18,9 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   biomes     x -8..48,   z 14..38    strips: meadow, forest, taiga, swamp (pools in its
-##                                      north, a pond running into a bog in its south), desert, tundra, beach; bushes
-##                                      under the trees
+##   biomes     x -8..48,   z 14..38    strips of the loaded biomes: three climate ones,
+##                                      the swamp (pools in its north, a pond running into a
+##                                      bog in its south), two more, the beach; bushes under the trees
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
 ##   stream     x 52..95,   z 16..34    a stream coming down terraces (STREAM): falls of
@@ -48,7 +48,6 @@ const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Л�
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 const POND_DEPTHS := [1, 2, 3, 5]
-const STRIP_BIOMES := [MEADOW, FOREST, TAIGA, SWAMP, DESERT, TUNDRA, BEACH]
 const HILL := 12
 ## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
 ## RELIEF_STRIDE apart (see relief_rise): a lone cell, a square, an L (inner corner), a
@@ -90,6 +89,13 @@ var ground := 22
 var strip_tops: Array = []
 ## Tops of the rows of the relief ground, north to south.
 var relief_tops: Array = []
+## The biome strips, 7 of 8 cells: three climate biomes in their load order, the swamp,
+## two more, the beach, NONE where fewer are loaded; the biome of the meadow (one the player may
+## start in), of the rock and of the water.
+var strip_biomes: Array = []
+var meadow := Biomes.NONE
+var rock := Biomes.NONE
+var water := Biomes.NONE
 
 
 func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
@@ -101,6 +107,18 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	# blocks of the tools mod when it is loaded.
 	strip_tops = [Mat.GRASS, Mat.DIRT, beach, bank, Mat.STONE, ore, _block("brick"), _block("planks")]
 	relief_tops = [Mat.GRASS, beach, bank, Mat.STONE]
+	for i in Biomes.RECORDS.size():
+		if Biomes.RECORDS[i].where == "climate" and strip_biomes.size() < 5:
+			strip_biomes.append(i)
+		if Biomes.spawn_ok(i) and meadow == Biomes.NONE:
+			meadow = i
+	while strip_biomes.size() < 5:
+		strip_biomes.append(Biomes.NONE)
+	# The swamp is the fourth strip (its pools and pond are laid out by x), the beach the last.
+	strip_biomes.insert(3, _biome(Biomes.SWAMP))
+	strip_biomes.append(_biome(Biomes.BEACH))
+	rock = _biome(Biomes.ROCK)
+	water = _biome(Biomes.SEA)
 
 
 ## The spawn: the middle of the meadow between the grounds.
@@ -123,35 +141,35 @@ func column(x: int, z: int) -> Array:
 	if x >= -44 and x < -12 and z >= -44 and z < -26:
 		var up: int = STEPS[(x + 44) / 4]
 		if z < -36:
-			return [g + up, -1, Mat.GRASS, MEADOW, false]
+			return [g + up, -1, Mat.GRASS, meadow, false]
 		if z >= -34:
-			return [g + up, -1, Mat.STONE, ROCK, true]
+			return [g + up, -1, Mat.STONE, rock, true]
 	# Pits: a pit 4 deep, a shaft 12 deep.
 	if x >= -6 and x < -3 and z >= -40 and z < -37:
-		return [g - 4, -1, Mat.DIRT, MEADOW, false]
+		return [g - 4, -1, Mat.DIRT, meadow, false]
 	if x >= 2 and x < 4 and z >= -40 and z < -38:
-		return [g - 12, -1, Mat.STONE, MEADOW, false]
+		return [g - 12, -1, Mat.STONE, meadow, false]
 	# The cave's hill.
 	if x >= 12 and x < 44 and z >= -46 and z < -24:
-		return [g + HILL, -1, Mat.STONE, ROCK, true]
+		return [g + HILL, -1, Mat.STONE, rock, true]
 	# The pond: deeper to the east.
 	if x >= -44 and x < -14 and z >= 14 and z < 38:
 		var d: int = POND_DEPTHS[mini((x + 44) / 8, POND_DEPTHS.size() - 1)]
-		return [g - d, g, beach, SEA, false]
+		return [g - d, g, beach, water, false]
 	# Biome strips, 8 cells each.
 	if x >= -8 and x < 48 and z >= 14 and z < 38:
-		var b: int = STRIP_BIOMES[(x + 8) / 8]
-		match b:
-			SWAMP:
-				# Swamp water a cell deep in clay, two in a corner of the pond; its
-				# murk is in extras.
-				if _swamp_water(x, z):
-					return [g - (2 if x >= 19 and x < 21 and z >= 27 and z < 29 else 1), g, bank, b, false]
-				return [g, -1, Mat.GRASS, b, false]
-			DESERT, BEACH:
-				return [g, -1, beach, b, false]
-			TUNDRA:
-				return [g, -1, Mat.STONE if posmod(x * 7 + z * 3, 11) == 0 else Mat.GRASS, b, false]
+		var b: int = strip_biomes[(x + 8) / 8]
+		if b == Biomes.SWAMP:
+			# Swamp water a cell deep in clay, two in a corner of the pond; its
+			# murk is in extras.
+			if _swamp_water(x, z):
+				return [g - (2 if x >= 19 and x < 21 and z >= 27 and z < 29 else 1), g, bank, b, false]
+			return [g, -1, Mat.GRASS, b, false]
+		if b == Biomes.BEACH or Biomes.top(b, beach, bank) == beach:
+			return [g, -1, beach, b, false]
+		if Biomes.of(b).get("stone_below", -1.0) > -1.0:
+			# Stone shows through the ground here and there (the tundra).
+			return [g, -1, Mat.STONE if posmod(x * 7 + z * 3, 11) == 0 else Mat.GRASS, b, false]
 		return [g, -1, Mat.GRASS, b, false]
 	# Relief: a row of shapes for each top.
 	var rx := x - RELIEF_X
@@ -162,7 +180,7 @@ func column(x: int, z: int) -> Array:
 		if px < RELIEF_PLOT and pz < RELIEF_PLOT:
 			var top: int = relief_tops[rz / RELIEF_STRIDE]
 			return [g + relief_rise(RELIEF[rx / RELIEF_STRIDE], px, pz), -1, top,
-				ROCK if top == Mat.STONE else MEADOW, false]
+				rock if top == Mat.STONE else meadow, false]
 	# The stream, the grove's ground is the meadow's.
 	if x >= STREAM[0][0] and x < STREAM_END and z >= 16 and z < 35:
 		return _stream(x, z)
@@ -171,14 +189,14 @@ func column(x: int, z: int) -> Array:
 	if d < PEAK_REACH:
 		var rise := clampi(int(PEAK_RISE * (1.0 - d / PEAK_REACH) + 0.5), 0, PEAK_RISE)
 		if rise < 6:
-			return [g + rise, -1, Mat.GRASS, MEADOW, false]
+			return [g + rise, -1, Mat.GRASS, meadow, false]
 		if posmod(x * 7 + z * 13, 9) == 0:
-			return [g + rise, -1, Mat.STONE, ROCK, true]
-		return [g + rise, -1, scree, ROCK, false]
+			return [g + rise, -1, Mat.STONE, rock, true]
+		return [g + rise, -1, scree, rock, false]
 	# Material strips: 3 cells of each top, a cell of grass between.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
-		return [g, -1, strip_tops[(x - 16) / 4], MEADOW, false]
-	return [g, -1, Mat.GRASS, MEADOW, false]
+		return [g, -1, strip_tops[(x - 16) / 4], meadow, false]
+	return [g, -1, Mat.GRASS, meadow, false]
 
 
 ## How many cells the relief shape `shape` rises (or sinks) at cell px, pz of its plot.
@@ -222,8 +240,8 @@ func _stream(x: int, z: int) -> Array:
 	var g := ground
 	if x >= STREAM_POOL:
 		if z >= STREAM_Z.x - 3 and z <= STREAM_Z.y + 3:
-			return [g - 3, g, beach, SEA, false]
-		return [g, -1, Mat.GRASS, MEADOW, false]
+			return [g - 3, g, beach, water, false]
+		return [g, -1, Mat.GRASS, meadow, false]
 	var rise := 0
 	for t: Array in STREAM:
 		if x >= t[0]:
@@ -231,10 +249,10 @@ func _stream(x: int, z: int) -> Array:
 	var channel := z >= STREAM_Z.x and z <= STREAM_Z.y
 	# The channel starts two cells in, behind a head of stone.
 	if channel and x >= STREAM[0][0] + 2:
-		return [g + rise - 2, g + rise, beach, SEA, false]
+		return [g + rise - 2, g + rise, beach, water, false]
 	if channel or (z >= STREAM_Z.x - 2 and z <= STREAM_Z.y + 2):
-		return [g + rise, -1, Mat.STONE, ROCK, true]
-	return [g + rise, -1, Mat.GRASS, MEADOW, true]
+		return [g + rise, -1, Mat.STONE, rock, true]
+	return [g + rise, -1, Mat.GRASS, meadow, true]
 
 
 ## What grows on grass column x, z of the test world in place of what the noises give
@@ -291,12 +309,17 @@ func extras(x: int, z: int) -> Array:
 	return out
 
 
-## The trees of the plan: [x, z, species] on odd columns; a lowland species where the
-## plan says oak, a highland one where spruce (none loaded: no trees).
+## The trees of the plan: [x, z, species] on odd columns; the first broad-leaved species
+## where the plan says oak, the first needled one where spruce (none loaded: no trees,
+## one kind loaded: that one everywhere).
 func plan_trees() -> Array:
 	var out := []
-	var oak := Trees.sample(Trees.LOWLAND)
-	var spruce := Trees.sample(Trees.HIGHLAND)
+	var oak := Trees.first(Trees.BROAD)
+	var spruce := Trees.first(Trees.NEEDLES)
+	if oak < 0:
+		oak = spruce
+	if spruce < 0:
+		spruce = oak
 	if oak < 0:
 		return out
 	for x in range(-45, -30, 4):
@@ -355,11 +378,17 @@ func plan_things() -> Array:
 func plan_bushes() -> Array:
 	var out := []
 	# The bush garden: a row of each kind and a mixed one.
-	var raspberry := Bushes.sample(Trees.LOWLAND)
-	var blueberry := Bushes.sample(Trees.HIGHLAND)
-	var shrub := Bushes.sample(Bushes.ANY)
+	var raspberry := Bushes.first(true)
+	var blueberry := Bushes.first(true, 1)
+	var shrub := Bushes.first(false)
+	if blueberry < 0:
+		blueberry = raspberry
+	if shrub < 0:
+		shrub = raspberry
+	if raspberry < 0:
+		raspberry = shrub
 	var kinds := [raspberry, blueberry, shrub]
-	if raspberry < 0 or blueberry < 0 or shrub < 0:
+	if raspberry < 0:
 		return out
 	for row in 4:
 		for x in range(63, 95, 2):

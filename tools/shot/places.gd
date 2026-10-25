@@ -595,18 +595,18 @@ func grove(w, at: Vector3i) -> void:
 			Bushes.place(w, at.x + dx, h, at.z + 10 + (k % 2), k % Bushes.TYPES.size())
 			k += 1
 		for dx in [-9, -7, 7, 9]:
-			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.sample(Trees.HIGHLAND))
+			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.first(true, 1))
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 3
 		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
 		for i in oaks.size():
 			var x: int = (at.x + oaks[i]) | 1
-			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.sample(Trees.LOWLAND)) != (i % 2 == 0):
+			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.first(Trees.BROAD)) != (i % 2 == 0):
 				x += 2
-			Trees.place(w, x, h, (at.z - 8) | 1, Trees.sample(Trees.LOWLAND), rng)
+			Trees.place(w, x, h, (at.z - 8) | 1, Trees.first(Trees.BROAD), rng)
 		var sizes := [0.75, 1.0, 1.2]
 		for i in spruces.size():
-			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.sample(Trees.HIGHLAND), rng, sizes[i])
+			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.first(Trees.NEEDLES), rng, sizes[i])
 		for z in range(at.z - 38, at.z + 34, 8):
 			for x in range(at.x - 48, at.x + 50, 8):
 				main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -635,8 +635,8 @@ func clearing(w, at: Vector3i, fell: bool) -> void:
 	rng.seed = 5
 	var oak := Vector2i((at.x - 7) | 1, (at.z - 3) | 1)
 	var spruce := Vector2i((at.x + 7) | 1, (at.z - 3) | 1)
-	Trees.place(w, oak.x, h, oak.y, Trees.sample(Trees.LOWLAND), rng)
-	Trees.place(w, spruce.x, h, spruce.y, Trees.sample(Trees.HIGHLAND), rng, 0.8)
+	Trees.place(w, oak.x, h, oak.y, Trees.first(Trees.BROAD), rng)
+	Trees.place(w, spruce.x, h, spruce.y, Trees.first(Trees.NEEDLES), rng, 0.8)
 	for z in range(at.z - 28, at.z + 28, 8):
 		for x in range(at.x - 34, at.x + 34, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))
