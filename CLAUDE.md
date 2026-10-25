@@ -62,7 +62,7 @@ tools/        validate, shot (+ shot/shots the table, shot/places the spots), ma
 | `character.gd` (shared + client) | the bag (`Inventory`) and the body's state (`Vitals`), action costs, eating, what a life did, death (the bag in a sack, the character lies dead until `death_screen.gd` respawns them) and the player's place, hands and screen on the client |
 | `placed.gd`, `props.gd`, `voxel_props.gd` | things on 2×2 cells by their item's `prop` role: chests and their contents, workbenches, kilns, campfires (solid through `WorldData.blockers`), the drops on the ground; their voxel models read from `content/<mod>/models/<model>.png` (`VoxelModel.from_image`), only the block clod, the sack and the bundle made in code |
 | `workshop.gd`, `crafting.gd`, `knowledge.gd`, `craft_queue.gd` | recipes known, the queue worked near its station, tool wear and repair (`game.workshop`); the window is `craft_panel.gd` |
-| `wildlife.gd`, `creatures.gd`, `ai_rules.gd` | animals from their properties: come, wander, rest, flee, hunt; flocks follow their lead, flyers roost in crowns; drawn by `creatures.gd` |
+| `wildlife.gd`, `creatures.gd`, `ai_rules.gd` | animals from their properties: come, wander, rest, flee, hunt; flocks follow their lead, flyers roost in crowns, swimmers keep to open water (a walker reaches no swimmer and the other way round, a flyer reaches both); drawn by `creatures.gd`: frame 0 at rest, walk frames by step, wing frames in the air |
 | `minimap.gd`, `map_view.gd`, `markers.gd` | the map painted per chunk into regions of 32 chunks kept in the save (`map_ground.gdshader`); the full-screen map; the player's markers (teleport from the playtest page) |
 | `main_menu.gd`, `world_setup.gd`, `world_list.gd` | the first screen over the live world of the saved seed; «Новый мир»; `main.restart()` reloads the scene; tests and tools set `main.skip_setup` |
 | `settings.gd`, `settings_menu.gd` | saved settings and playtest switches (every module reads its values there); the pages of rows "name ‹ value ›" |
@@ -113,7 +113,7 @@ ids: `Items.canon`, `Crafting.canon` and `Mat.RENAMED` translate them as they lo
 per level (alpha 128 marks a leaf), read by `VoxelModel.from_image`; its picture in the bag is `icons/<icon>.png`
 (12×12, `ItemIcons`), the interface's own pictures are `assets/ui/`. `content/animals/sparrow/` (see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
-its bundle, a row of `frames` frames, and its behaviour comes from its properties (`flies`, `flock`,
+its bundle, a row of `frames` frames (the new ones drawn by `tools/make_creatures.py`), and its behaviour comes from its properties (`flies`, `swims`, `flock`,
 `roost`, `likes`, mass, diet). Sounds are records of the `sounds` kind with files in
 the `sounds/` of their bundle (`<name>.wav` or `<name>_N.wav` per variant), made by `tools/make_sounds.gd`
 from `tools/sound/synth.gd`; code asks for a sound by its bare name (`play("chop")`, `Sound.resolve`: the

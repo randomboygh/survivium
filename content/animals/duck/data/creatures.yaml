@@ -1,0 +1,20 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# И летает, и плавает (flies, swims): садится на воду, перелетает стайкой между прудами.
+- id: duck
+  title: Утка
+  mass: 1.2
+  diet: [plants]
+  speed: 6.0
+  sight: 10
+  human_wariness: 0.7
+  active: day
+  count: 6
+  sprite: duck
+  frames: 3
+  flies: true
+  swims: true
+  flock: [3, 5]
+  calls: duck
+  alarm: duck

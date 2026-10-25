@@ -1,0 +1,18 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# Рыба (swims): живёт в открытой воде рек и озёр чуть под поверхностью, стайкой; с берега её не достать,
+# из воздуха — достают птицы.
+- id: perch
+  title: Окунь
+  mass: 0.6
+  diet: [meat]
+  speed: 3.0
+  sight: 6
+  human_wariness: 0.6
+  active: any
+  count: 8
+  sprite: perch
+  frames: 3
+  swims: true
+  flock: [2, 5]

@@ -24,7 +24,6 @@ const SOUNDS := {
 	# Nature: one-off.
 	"thunder": ["sounds/nature", 2, false],
 	"bird": ["animals/sparrow", 5, false],
-	"owl": ["sounds/nature", 2, false],
 	# The player.
 	"step_grass": ["sounds/player", 4, false],
 	"step_dirt": ["sounds/player", 4, false],
@@ -63,6 +62,14 @@ const SOUNDS := {
 	"wolf_howl": ["animals/wolf", 2, false],
 	"wolf_growl": ["animals/wolf", 2, false],
 	"sparrow": ["animals/sparrow", 3, false],
+	"fox": ["animals/fox", 2, false],
+	"boar": ["animals/boar", 2, false],
+	"bear": ["animals/bear", 2, false],
+	"hedgehog": ["animals/hedgehog", 2, false],
+	"crow": ["animals/crow", 3, false],
+	"owl": ["animals/owl", 2, false],
+	"duck": ["animals/duck", 3, false],
+	"frog": ["animals/frog", 3, false],
 	# Music: notes the music plays at other pitches (src/client/audio/music.gd).
 	"note_pluck": ["music", 1, false],
 	"note_bell": ["music", 1, false],
@@ -538,6 +545,93 @@ func _sparrow(_v: int) -> PackedFloat32Array:
 		b = _add(b, chirp, 1.0, t)
 		t += d + rng.randf_range(0.03, 0.08)
 	return Synth.normalize(b, 0.5)
+
+
+## A fox's bark: two or three short hoarse yaps.
+func _fox(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(0.1)
+	var t := 0.0
+	for n in rng.randi_range(2, 3):
+		var f := rng.randf_range(700.0, 900.0)
+		var d := rng.randf_range(0.08, 0.12)
+		var yap := _voice(d, func(x: float) -> float: return f * (1.0 + 0.4 * sin(PI * x / d)), 0.6, 0.5,
+			func(x: float, l: float) -> float: return minf(x / 0.01, 1.0) * exp(-x / (l * 0.35)))
+		b = _add(b, yap, 1.0, t)
+		t += d + rng.randf_range(0.12, 0.2)
+	return Synth.normalize(Synth.lowpass(b, 3500.0), 0.5)
+
+
+## A boar's grunt: low, rough, with a snort of breath.
+func _boar(_v: int) -> PackedFloat32Array:
+	var d := rng.randf_range(0.25, 0.4)
+	var f := rng.randf_range(90.0, 130.0)
+	var b := _voice(d, func(t: float) -> float: return f * (1.0 + 0.15 * sin(TAU * 22.0 * t)), 0.75, 0.7,
+		func(t: float, l: float) -> float: return minf(t / 0.02, 1.0) * sin(PI * t / l))
+	return Synth.normalize(Synth.lowpass(b, 1200.0), 0.6)
+
+
+## A bear's roar: a long low growl that rises, then falls.
+func _bear(_v: int) -> PackedFloat32Array:
+	var d := rng.randf_range(1.0, 1.4)
+	var f := rng.randf_range(70.0, 95.0)
+	var b := _voice(d, func(t: float) -> float:
+		var x := t / d
+		return f * (1.0 + 0.5 * sin(PI * minf(x * 1.3, 1.0))) * (1.0 + 0.05 * sin(TAU * 24.0 * t)), 0.85, 0.5,
+		func(t: float, l: float) -> float: return smoothstep(0.0, 0.15, t) * smoothstep(l, l * 0.6, t))
+	return Synth.normalize(Synth.lowpass(b, 1400.0), 0.7)
+
+
+## A hedgehog's snuffle: a few quick puffs of breath.
+func _hedgehog(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(0.1)
+	var t := 0.0
+	for n in rng.randi_range(3, 5):
+		var d := rng.randf_range(0.04, 0.07)
+		var puff := Synth.env(Synth.bandpass(Synth.white(d, rng), rng.randf_range(900.0, 1400.0), 1.2), 0.005, d * 0.6)
+		b = _add(b, puff, 1.0, t)
+		t += d + rng.randf_range(0.05, 0.1)
+	return Synth.normalize(b, 0.35)
+
+
+## A crow's caw: hoarse and flat, one to three.
+func _crow(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(0.1)
+	var t := 0.0
+	for n in rng.randi_range(1, 3):
+		var d := rng.randf_range(0.18, 0.26)
+		var f := rng.randf_range(560.0, 680.0)
+		var caw := _voice(d, func(x: float) -> float: return f * (1.0 - 0.15 * x / d), 0.8, 0.6,
+			func(x: float, l: float) -> float: return minf(x / 0.015, 1.0) * smoothstep(l, l * 0.5, x))
+		caw = Synth.bandpass(caw, 1500.0, 0.6)
+		b = _add(b, caw, 1.0, t)
+		t += d + rng.randf_range(0.15, 0.3)
+	return Synth.normalize(b, 0.5)
+
+
+## A duck's quack, a few in a row, each shorter than the last.
+func _duck(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(0.1)
+	var t := 0.0
+	var d := rng.randf_range(0.16, 0.2)
+	for n in rng.randi_range(2, 4):
+		var f := rng.randf_range(300.0, 380.0)
+		var quack := _voice(d, func(x: float) -> float: return f * (1.0 + 0.25 * sin(PI * x / d)), 0.8, 0.3,
+			func(x: float, l: float) -> float: return minf(x / 0.01, 1.0) * smoothstep(l, l * 0.4, x))
+		quack = Synth.bandpass(quack, 1100.0, 0.7)
+		b = _add(b, quack, 1.0, t)
+		t += d + 0.06
+		d *= 0.85
+	return Synth.normalize(b, 0.5)
+
+
+## A frog's croak: a low rattle of pulses.
+func _frog(_v: int) -> PackedFloat32Array:
+	var d := rng.randf_range(0.3, 0.5)
+	var f := rng.randf_range(180.0, 240.0)
+	var rate := rng.randf_range(18.0, 26.0)
+	var b := _voice(d, func(t: float) -> float: return f * (1.0 - 0.1 * t / d), 0.7, 0.2,
+		func(t: float, l: float) -> float: return sin(PI * t / l) * (0.5 + 0.5 * absf(sin(PI * rate * t))))
+	return Synth.normalize(Synth.lowpass(b, 1800.0), 0.5)
 
 
 # --- Music -----------------------------------------------------------------

@@ -1,0 +1,18 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# Насекомое: летает невысоко и недалеко, ищет цветы; добыча для птиц и лягушек.
+- id: butterfly
+  title: Бабочка
+  mass: 0.01
+  diet: [plants]
+  speed: 2.5
+  sight: 4
+  human_wariness: 0.5
+  active: day
+  count: 8
+  sprite: butterfly
+  frames: 3
+  flies: true
+  flock: [2, 4]
+  likes: [plants:flowers]

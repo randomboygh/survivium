@@ -1,0 +1,18 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# Ночной охотник: с воздуха достаёт и воробья в кроне, и лягушку в воде; днём спит на дереве.
+- id: owl
+  title: Сова
+  mass: 1.2
+  diet: [meat]
+  speed: 6.5
+  sight: 16
+  human_wariness: 0.6
+  active: night
+  count: 3
+  sprite: owl
+  frames: 3
+  flies: true
+  roost: trees
+  calls: owl

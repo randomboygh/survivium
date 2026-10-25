@@ -154,6 +154,10 @@ const SHOTS := {
 	# and in the crowns near.
 	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
 	"birds-forest": {"time": 0.42, "season": 1, "forest": true, "birds": true},
+	# One of every species that walks or flies in rows on a meadow, walking; every
+	# swimmer in the water of a lake.
+	"animals": {"time": 0.42, "season": 1, "find": "meadow", "zoo": "land"},
+	"animals-water": {"time": 0.42, "season": 1, "place": "lake", "zoo": "water"},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "plants:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "plants:glow_mushrooms"},

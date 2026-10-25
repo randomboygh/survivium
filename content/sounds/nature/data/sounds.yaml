@@ -28,7 +28,3 @@
 - id: thunder
   title: Гром
   variants: 2
-- id: owl
-  title: Сова
-  variants: 2
-  volume: 0.6

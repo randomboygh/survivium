@@ -1,0 +1,19 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# Стадо кабанов: вожак и за ним остальные (flock); людей почти не боится.
+- id: boar
+  title: Кабан
+  mass: 90
+  diet: [plants]
+  speed: 5.0
+  sight: 10
+  human_wariness: 0.4
+  active: any
+  count: 4
+  sprite: boar
+  frames: 3
+  flock: [2, 4]
+  likes: [plants:mushrooms]
+  calls: boar
+  alarm: boar

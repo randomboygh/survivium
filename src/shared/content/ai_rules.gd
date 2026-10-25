@@ -9,8 +9,8 @@ const Content := preload("res://src/shared/content/content.gd")
 const HUMAN := "core:human"
 
 ## id -> record from `content/*/data/creatures.yaml` (see Content): title, mass,
-## diet, speed, sight, human_wariness, active, count, sprite, frames, flies, flock,
-## roost, likes.
+## diet, speed, sight, human_wariness, active, count, sprite, frames, flies, swims,
+## flock, roost, likes.
 static var SPECIES := {}
 
 
@@ -43,10 +43,17 @@ const PREY_RATIO := 0.8
 const THREAT_RATIO := 1.25
 
 
+## Whether `hunter` can get at `other` at all: a flyer reaches everything, a walker
+## only what is on land and a swimmer only what is in the water.
+static func reaches(hunter: String, other: String) -> bool:
+	var a: Dictionary = SPECIES[hunter]
+	return a.flies or a.swims == SPECIES[other].swims
+
+
 static func is_food(eater: String, target: String) -> bool:
 	var a: Dictionary = SPECIES[eater]
 	var b: Dictionary = SPECIES[target]
-	return "meat" in a.diet and b.mass <= a.mass * PREY_RATIO
+	return "meat" in a.diet and b.mass <= a.mass * PREY_RATIO and reaches(eater, target)
 
 
 static func is_threat(self_kind: String, other: String) -> bool:
@@ -54,7 +61,7 @@ static func is_threat(self_kind: String, other: String) -> bool:
 	var b: Dictionary = SPECIES[other]
 	if other == HUMAN:
 		return a.human_wariness >= 0.5
-	return is_food(other, self_kind) or ("meat" in b.diet and b.mass >= a.mass * THREAT_RATIO)
+	return is_food(other, self_kind) or ("meat" in b.diet and b.mass >= a.mass * THREAT_RATIO and reaches(other, self_kind))
 
 
 ## `daylight` is 0 at night and 1 at day.

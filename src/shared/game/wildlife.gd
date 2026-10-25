@@ -8,7 +8,9 @@ extends RefCounted
 ## in a `flock` follow its first (the lead) and take fright together; those that like
 ## some plants seek them out; those that fly hop about on the ground, now and then fly
 ## over to another place, take off from a threat and, roosting in trees, sleep in the
-## crowns, where no walker reaches them.
+## crowns, where no walker reaches them; those that swim keep to open water, a little
+## under its surface, where no walker reaches them either (and one that also flies
+## comes down on the water).
 
 const Body := preload("res://src/shared/game/body.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -35,6 +37,8 @@ const CRUISE := 2.5
 const DESCENT := 4.0
 ## Chance a resting flyer flies over to another place each time it thinks.
 const FLY_CHANCE := 0.05
+## A swimmer keeps this far under the water surface, in cells.
+const DIP := 0.35
 ## A flock keeps within this many world units of its lead.
 const FLOCK_REACH := 1.5
 const FLOCK_GAP := 4.0
@@ -69,6 +73,8 @@ class Animal:
 	## Time from the last step to the next one while not near: FAR_STEP, less what the
 	## last one came late, so each animal keeps its own beat.
 	var wait := FAR_STEP
+	## It took a step this update (the client walks its picture).
+	var moving := false
 	## A flyer is in the air, or sits in a tree crown.
 	var flying := false
 	var perched := false
@@ -86,6 +92,10 @@ class Animal:
 	## _canopy), looked up again only in a new cell.
 	var over := Vector2i(1 << 30, 0)
 	var below := 0.0
+	## Where a walker last looked up the floor under it and what it found (see _move):
+	## looking it up costs the most of a step, so it is kept for the next few.
+	var looked := Vector3(INF, 0.0, INF)
+	var floor_y := 0.0
 
 	## Off the ground, out of reach of those that walk.
 	func aloft() -> bool:
@@ -214,6 +224,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if not a.flying:
 				_take_off(a, spec, a.pos + away.normalized() * FLIGHT_AWAY, FLIGHT_AWAY * 0.3)
 			return
+		# As far as the land or the water goes (see _move).
 		a.target = a.pos + away.normalized() * 6.0
 		return
 	if not AiRules.is_active(a.kind, _daylight):
@@ -223,7 +234,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		a.state = "rest"
 		if spec.flies and spec.roost == "trees" and not a.aloft() and not was_resting:
 			var around: Vector3 = a.pos if lead == null or lead == a else lead.target
-			var tree: Variant = _tree_spot(around, FLIGHT)
+			var tree: Variant = _tree_spot(spec, around, FLIGHT)
 			if tree != null:
 				a.target = tree
 				a.flying = true
@@ -290,7 +301,7 @@ func _follow(a: Animal, spec: Dictionary, lead: Animal) -> void:
 	var at := lead.target + a.spot
 	if spec.flies:
 		if lead.flying or a.pos.distance_to(lead.pos) > FLOCK_GAP:
-			a.target = _settle(at, lead.target.y > ground(lead.target.x, lead.target.z) + 0.3)
+			a.target = _settle(spec, at, lead.target.y > _floor(spec, lead.target.x, lead.target.z) + 0.3)
 			a.flying = true
 			a.perched = false
 		elif not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
@@ -314,11 +325,12 @@ func _take_off(a: Animal, spec: Dictionary, around: Vector3, reach: float) -> vo
 
 
 ## A place to go within `reach` of `around`: of a few tried, one where something the
-## species likes grows, else any open ground; a spot in a crown when `tree` and there
-## is a tree near. Null when all of those tried are water or under crowns.
+## species likes grows, else any open ground (open water for a swimmer); a spot in a
+## crown when `tree` and there is a tree near. Null when all of those tried are water
+## or under crowns (land, for a swimmer).
 func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool) -> Variant:
 	if tree:
-		var spot: Variant = _tree_spot(around, reach)
+		var spot: Variant = _tree_spot(spec, around, reach)
 		if spot != null:
 			return spot
 	var best := around
@@ -328,11 +340,15 @@ func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool) -> Vari
 		var x := floori(p.x / CELL)
 		var z := floori(p.z / CELL)
 		var y: int = world.surface_y(x, z)
+		if spec.swims:
+			# Open water only.
+			if y != -1:
+				continue
 		# Not over water or under a crown.
-		if y <= 0 or world.leaf_col(x, z) >> y != 0:
+		elif y <= 0 or world.leaf_col(x, z) >> y != 0:
 			continue
 		var score := 0
-		if not spec.likes.is_empty():
+		if not spec.likes.is_empty() and y > 0:
 			for plant in Grass.plants_on(world, x, y - 1, z):
 				if plant in spec.likes:
 					score = 1
@@ -343,25 +359,26 @@ func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool) -> Vari
 				break
 	if best_score < 0:
 		return null
-	best.y = ground(best.x, best.z)
+	best.y = _floor(spec, best.x, best.z)
 	return best
 
 
 ## Where to sit at x, z of `at`: on the crown there when `tree` and there is one,
-## else on the ground (at the height of `at` over water).
-func _settle(at: Vector3, tree: bool) -> Vector3:
+## else on the ground, or in the water for a swimmer (at the height of `at` where
+## there is neither).
+func _settle(spec: Dictionary, at: Vector3, tree: bool) -> Vector3:
 	if tree:
 		var leaves: int = world.leaf_col(floori(at.x / CELL), floori(at.z / CELL))
 		if leaves != 0:
 			return Vector3(at.x, (WorldData.top_level(leaves) + 1) * CELL, at.z)
-	var y := ground(at.x, at.z)
+	var y := _floor(spec, at.x, at.z)
 	return Vector3(at.x, y if y > 0.0 else at.y, at.z)
 
 
 ## A spot on the top of a tree crown within `reach` of `around`, or null: a few trees
 ## tried at random from the chunks there that have any (a forest chunk has dozens, too
 ## many to look through on a phone each time).
-func _tree_spot(around: Vector3, reach: float) -> Variant:
+func _tree_spot(spec: Dictionary, around: Vector3, reach: float) -> Variant:
 	var r := ceili(reach / CELL)
 	var cx := floori(around.x / CELL)
 	var cz := floori(around.z / CELL)
@@ -378,11 +395,20 @@ func _tree_spot(around: Vector3, reach: float) -> Variant:
 		var t: Vector2i = trees.keys()[rng.randi() % trees.size()]
 		if absi(t.x - cx) <= r and absi(t.y - cz) <= r and world.leaf_col(t.x, t.y) != 0:
 			var at := (Vector3(t.x, 0.0, t.y) + Vector3(rng.randf_range(0.0, 1.0), 0.0, rng.randf_range(0.0, 1.0))) * CELL
-			return _settle(at, true)
+			return _settle(spec, at, true)
 	return null
 
 
+## A walker looks the floor up again after this much of a cell walked within one
+## cell: a slope under its feet is followed a step late, less than a pixel.
+const LOOK_AGAIN := 0.2 * CELL
+
+
+## Walks (or swims) `a` toward its target: a walker over ground up to MAX_STEP up or
+## down a step, a swimmer through open water, where DIP under the surface it floats.
+## A walker whose way ends at water, and a swimmer whose way ends at land, stops.
 func _move(a: Animal, spec: Dictionary, delta: float) -> void:
+	a.moving = false
 	if a.perched:
 		return
 	var speed: float = spec.speed
@@ -397,9 +423,17 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	if speed > 0.0 and to.length() > 0.1:
 		var step := to.normalized() * minf(speed * delta, to.length())
 		var np := a.pos + step
-		var ny := ground(np.x, np.z)
-		if ny > 0.0 and absf(ny - a.pos.y) <= MAX_STEP:
+		var ny: float
+		if floori(np.x / CELL) == floori(a.looked.x / CELL) and floori(np.z / CELL) == floori(a.looked.z / CELL) \
+				and absf(np.x - a.looked.x) + absf(np.z - a.looked.z) < LOOK_AGAIN:
+			ny = a.floor_y
+		else:
+			ny = _floor(spec, np.x, np.z)
+			a.looked = np
+			a.floor_y = ny
+		if ny > 0.0 and (spec.swims or absf(ny - a.pos.y) <= MAX_STEP):
 			a.pos = Vector3(np.x, lerpf(a.pos.y, ny, minf(1.0, delta * 12.0)), np.z)
+			a.moving = true
 			if absf(step.x) > 0.001:
 				a.facing = -1.0 if step.x < 0.0 else 1.0
 			a.stride += step.length()
@@ -407,10 +441,11 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 			if a.stride >= 0.25 + 0.3 * size:
 				a.stride = 0.0
 				a.left = not a.left
-				stepped.emit(a, Vector3(a.pos.x, ny, a.pos.z), Vector2(step.x, step.z), a.left, size)
-				# Paths of the animals in the snow are trails the player walks easier.
-				if clock != null and clock.snow > Body.SNOW_DEEP.x:
-					world.tread(floori(a.pos.x / CELL), floori(a.pos.z / CELL), clock.now())
+				if not spec.swims:
+					stepped.emit(a, Vector3(a.pos.x, ny, a.pos.z), Vector2(step.x, step.z), a.left, size)
+					# Paths of the animals in the snow are trails the player walks easier.
+					if clock != null and clock.snow > Body.SNOW_DEEP.x:
+						world.tread(floori(a.pos.x / CELL), floori(a.pos.z / CELL), clock.now())
 		else:
 			a.target = a.pos
 	_catch(a, spec)
@@ -445,7 +480,7 @@ func _fly(a: Animal, spec: Dictionary, delta: float) -> void:
 	if d < 0.01 and absf(a.pos.y - a.target.y) < 0.01:
 		a.pos = a.target
 		a.flying = false
-		a.perched = a.target.y > ground(a.pos.x, a.pos.z) + 0.3
+		a.perched = a.target.y > _floor(spec, a.pos.x, a.pos.z) + 0.3
 	_catch(a, spec)
 
 
@@ -478,6 +513,25 @@ func ground(x: float, z: float) -> float:
 	return world.ground_height(x / CELL, z / CELL) * CELL
 
 
+## Height of the water surface at a world point, in world units; -INF where the
+## column's top is not open (unfrozen) water.
+func water_top(x: float, z: float) -> float:
+	var cx := floori(x / CELL)
+	var cz := floori(z / CELL)
+	if world.surface_y(cx, cz) != -1:
+		return -INF
+	return (WorldData.top_level(world.water_col(cx, cz)) + WorldData.WATER_TOP) * CELL
+
+
+## Where an animal of species `spec` stands at a world point, in world units: the
+## ground for a walker, DIP under the water surface for a swimmer; 0 or below where
+## it cannot be (water for the one, land for the other).
+func _floor(spec: Dictionary, x: float, z: float) -> float:
+	if spec.swims:
+		return water_top(x, z) - DIP * CELL
+	return ground(x, z)
+
+
 func _remove(a: Animal) -> void:
 	animals.erase(a)
 	a.gone = true
@@ -506,7 +560,7 @@ func _spawn_group(kind: String, most: int, away_from_people: bool) -> void:
 	for i in n - 1:
 		var spot := Vector3(rng.randf_range(-FLOCK_REACH, FLOCK_REACH), 0.0, rng.randf_range(-FLOCK_REACH, FLOCK_REACH))
 		var pos := lead.pos + spot
-		pos.y = ground(pos.x, pos.z)
+		pos.y = _floor(AiRules.SPECIES[kind], pos.x, pos.z)
 		if pos.y <= 0.0:
 			pos = lead.pos
 		var a := _add(kind, pos)
@@ -520,14 +574,20 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 	var around: Vector3 = people[0].position
 	var px := floori(around.x / CELL)
 	var pz := floori(around.z / CELL)
+	var spec: Dictionary = AiRules.SPECIES[kind]
 	for attempt in 40:
 		var x := px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var y: int = world.surface_y(x, z)
-		if y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
+		if spec.swims:
+			# Open water, a cell deep at least.
+			if y != -1 or WorldData.top_level(world.water_col(x, z)) < 1 \
+					or world.get_cell(x, WorldData.top_level(world.water_col(x, z)) - 1, z) != Mat.WATER:
+				continue
+		elif y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue
 		var pos := Vector3(x + 0.5, 0.0, z + 0.5) * CELL
-		pos.y = ground(pos.x, pos.z)
+		pos.y = _floor(spec, pos.x, pos.z)
 		if away_from_people and pos.distance_to(around) < 20.0:
 			continue
 		return _add(kind, pos)

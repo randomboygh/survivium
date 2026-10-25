@@ -1,0 +1,16 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+- id: fox
+  title: Лиса
+  mass: 4.5
+  diet: [meat]
+  speed: 6.5
+  sight: 13
+  human_wariness: 0.7
+  active: any
+  count: 3
+  sprite: fox
+  frames: 3
+  calls: fox
+  alarm: fox
