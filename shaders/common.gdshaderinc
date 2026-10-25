@@ -458,3 +458,137 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 	float face = ndl > 0.2 ? 1.0 : (ndl > 0.02 ? 0.7 : 0.0);
 	return light_color * lit * face / PI;
 }
+
+// Torches and fires light nothing a block stands in the way of (FireShadows._maps):
+// what stands around each of the lights nearest to the player, LIGHT_MAP by LIGHT_MAP
+// columns over LIGHT_LEVELS levels from a base level a few under the light's ground.
+// light_blocks holds the maps side by side, light i's from column i * LIGHT_MAP: its
+// first two rows of LIGHT_MAP texels are the cells that are solid, a bit a level (the
+// levels 0..7, then 8..15), then a row a level with the shape of each cell (Chunk.shapes:
+// the low corners of a sloping top, then the corners cut off or filled in). light_spots
+// is LIGHT_SPOTS by 2 texels: (where light i stands, unsheared, its range), then (the
+// column of its map's north-west corner x and z, its base level, 2 when it has one).
+global uniform sampler2D light_blocks : filter_nearest;
+global uniform sampler2D light_spots : filter_nearest;
+const int LIGHT_MAP = 32;
+const int LIGHT_LEVELS = 16;
+const int LIGHT_SPOTS = 8;
+
+// The light among light_spots that a point drawn at `at` (sheared) sees in the way
+// `dir` (sheared, in the world's axes), -1 for none of them.
+int light_spot(vec3 at, vec3 dir) {
+	int best = -1;
+	float most = 0.9995;
+	for (int i = 0; i < LIGHT_SPOTS; i++) {
+		if (texelFetch(light_spots, ivec2(i, 1), 0).w < 1.5) {
+			continue;
+		}
+		float c = dot(normalize(shear(texelFetch(light_spots, ivec2(i, 0), 0).xyz) - at), dir);
+		if (c > most) {
+			most = c;
+			best = i;
+		}
+	}
+	return best;
+}
+
+// True when (x, z) inside a cell (0..1) is in the triangle of one of the corners in
+// mask k (NW, NE, SE, SW; half a cell along each side, see WorldData.in_corner).
+bool in_cell_corners(int k, vec2 q) {
+	return ((k & 1) != 0 && q.x + q.y < 0.5) || ((k & 2) != 0 && q.x - q.y > 0.5)
+		|| ((k & 4) != 0 && q.x + q.y > 1.5) || ((k & 8) != 0 && q.y - q.x > 0.5);
+}
+
+// True when the way from p0 to p1 (in cells from the map's corner) through `cell` of
+// light i's map passes through what fills it: a block, under its sloping top and
+// beside its cut corners, or a corner filled into an open cell.
+bool light_cell_blocks(int i, ivec3 cell, vec3 p0, vec3 p1) {
+	if (cell.x < 0 || cell.y < 0 || cell.z < 0 || cell.x >= LIGHT_MAP || cell.z >= LIGHT_MAP
+			|| cell.y >= LIGHT_LEVELS) {
+		return false;
+	}
+	int x = i * LIGHT_MAP + cell.x;
+	int bits = int(texelFetch(light_blocks, ivec2(x, (cell.y >> 3) * LIGHT_MAP + cell.z), 0).r * 255.0 + 0.5);
+	bool solid = ((bits >> (cell.y & 7)) & 1) != 0;
+	int shape = int(texelFetch(light_blocks, ivec2(x, (2 + cell.y) * LIGHT_MAP + cell.z), 0).r * 255.0 + 0.5);
+	if (shape == 0 || (!solid && shape < 16)) {
+		return solid;
+	}
+	int corners = shape >> 4;
+	int high = ~shape & 15;
+	vec3 o = vec3(cell);
+	for (int s = 1; s <= 3; s++) {
+		vec3 q = mix(p0, p1, float(s) * 0.25) - o;
+		bool cut = in_cell_corners(corners, q.xz);
+		if (!solid) {
+			if (cut) {
+				return true;
+			}
+			continue;
+		}
+		// The sloping top between its corners, high or low, level at each corner.
+		vec2 f = smoothstep(0.0, 1.0, clamp(q.xz, 0.0, 1.0));
+		float top = mix(mix(float(high & 1), float((high >> 1) & 1), f.x),
+			mix(float((high >> 3) & 1), float((high >> 2) & 1), f.x), f.y);
+		if (!cut && q.y < top) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// True when something stands in the way from world point p (unsheared) to light i of
+// light_spots: cell by cell along it, from a little off p to a little short of the
+// light (it may hang over a block's edge).
+bool light_blocked(int i, vec3 p) {
+	vec4 spot = texelFetch(light_spots, ivec2(i, 0), 0);
+	vec4 m = texelFetch(light_spots, ivec2(i, 1), 0);
+	vec3 corner = vec3(m.x, m.z, m.y);
+	vec3 b = spot.xyz / CELL - corner;
+	vec3 a = p / CELL - corner;
+	vec3 d = b - a;
+	float len = length(d);
+	if (len < 1.0) {
+		return false;
+	}
+	a += d * (0.25 / len);
+	d *= 1.0 - 0.65 / len;
+	ivec3 cell = ivec3(floor(a));
+	ivec3 dir = ivec3(sign(d));
+	vec3 inv = 1.0 / max(abs(d), vec3(1e-6));
+	vec3 fa = fract(a);
+	vec3 next = vec3(
+		d.x > 0.0 ? (1.0 - fa.x) * inv.x : (d.x < 0.0 ? fa.x * inv.x : 2.0),
+		d.y > 0.0 ? (1.0 - fa.y) * inv.y : (d.y < 0.0 ? fa.y * inv.y : 2.0),
+		d.z > 0.0 ? (1.0 - fa.z) * inv.z : (d.z < 0.0 ? fa.z * inv.z : 2.0));
+	float t = 0.0;
+	for (int k = 0; k < 3 * LIGHT_MAP; k++) {
+		float t1 = min(min(next.x, next.y), min(next.z, 1.0));
+		if (light_cell_blocks(i, cell, a + d * t, a + d * t1)) {
+			return true;
+		}
+		if (t1 >= 1.0) {
+			return false;
+		}
+		t = t1;
+		if (next.x <= next.y && next.x <= next.z) {
+			next.x += inv.x;
+			cell.x += dir.x;
+		} else if (next.y <= next.z) {
+			next.y += inv.y;
+			cell.y += dir.y;
+		} else {
+			next.z += inv.z;
+			cell.z += dir.z;
+		}
+	}
+	return false;
+}
+
+// True when a torch or a fire that lights a point drawn at `at` from the way `dir`
+// (both sheared, in the world's axes) has something in the way to the world point p
+// whose face points along `normal` (unsheared): the light does not reach it.
+bool light_hidden(vec3 at, vec3 dir, vec3 p, vec3 normal) {
+	int i = light_spot(at, dir);
+	return i >= 0 && light_blocked(i, p + normal * 0.025);
+}

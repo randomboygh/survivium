@@ -4,9 +4,9 @@ extends MultiMeshInstance3D
 ## - a flat wedge on the ground behind the player, each animal, each campfire and each
 ##   tree trunk in a light, pointing away from it;
 ## - the shadows of the blocks and of the things placed (chests, stations): each light
-##   keeps a map of how high what stands on its ground around it is (see _maps), and
-##   the shader looks along the way from each point of the ground to the light for
-##   something higher than that way there.
+##   keeps a map of the cells around it (see _maps), and the shaders of the world and
+##   the plants look along the way from each point they draw to the light for a block
+##   in it (light_hidden in common.gdshaderinc): no light gets there.
 ## The animals and the player standing in them are drawn darker too (`shade` in
 ## sprite.gdshader).
 ## A few draws a frame where a real shadow (Effects, the "real" fire shadows setting)
@@ -60,16 +60,13 @@ const RING_LEVELS := [1.0, 0.55, 0.3, 0.14]
 const MAP := 32
 ## Rows of the lights' maps made a frame.
 const MAP_ROWS := 8
-## How many levels of a column a map looks at over the light's ground: a block that
-## high already hides the light.
-const MAP_LEVELS := 3
-## Steps of the heights in a map a world unit (MAP_SCALE in fire_shadow.gdshader).
-const MAP_SCALE := 32.0
-## The bit of a map's column set where its ground is not flat on the light's level (a
-## slope, a cut corner, a step down, water): the square drawn at that level would
-## not lie on that ground, so no shadow is drawn there. The bits under it are the height.
-const NOT_FLAT := 128
-const HEIGHT_BITS := 127
+## Levels a map holds (LIGHT_LEVELS in common.gdshaderinc), from BELOW under the
+## light's ground up: what stands far higher or lower is not in a light's way.
+const LEVELS := 16
+const BELOW := 6
+## Rows of a light's map in the atlas: two of the solid cells (a bit a level), then
+## one a level of the cells' shapes (see light_blocks in common.gdshaderinc).
+const MAP_ROWS_TALL := MAP * (2 + LEVELS)
 
 var game
 ## The fire shadows setting is on "drawn".
@@ -91,18 +88,21 @@ var _trunks_count := 0
 ## trunks' first, kept with their instances.
 var _wedges := []
 var _trunk_wedges := []
-## What stands on the ground around each light, by the light's id (see _lights): a
-## map of MAP by MAP columns from `origin` (the north-west column), each the height
-## over the light's ground `level` of the block or thing standing on it there, in
-## MAP_SCALE steps a world unit. {"origin": Vector2i, "level": int, "data":
+## What stands around each light, by the light's id (see _lights): a map of MAP by
+## MAP columns from `origin` (the north-west column) over LEVELS levels from BELOW
+## under the light's ground `level`, laid out as light_blocks in common.gdshaderinc
+## (MAP wide, MAP_ROWS_TALL tall): {"origin": Vector2i, "level": int, "data":
 ## PackedByteArray, "chunks": the chunks kept around it when it was made} once made;
 ## "next" is the same, with "row", for one being made a few rows a frame.
 var _maps := {}
-## The maps of the lights the shader knows, side by side in their order, and the maps
-## it holds now.
+## The maps of the lights the shaders know, side by side in their order, and the maps
+## it holds now; where those lights are (light_spots in common.gdshaderinc).
 var _atlas: Image
 var _atlas_texture: ImageTexture
 var _atlas_for := []
+var _spots: Image
+var _spots_texture: ImageTexture
+var _spots_for := PackedFloat32Array()
 ## Sprites drawn darker now, and how dark (see _shade).
 var _shaded := {}
 
@@ -131,9 +131,12 @@ func _ready() -> void:
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The shadows are moved every frame wherever the casters are.
 	extra_cull_margin = 16384.0
-	_atlas = Image.create_empty(MAP * MAX_LIGHTS, MAP, false, Image.FORMAT_R8)
+	_atlas = Image.create_empty(MAP * MAX_LIGHTS, MAP_ROWS_TALL, false, Image.FORMAT_R8)
 	_atlas_texture = ImageTexture.create_from_image(_atlas)
-	mat.set_shader_parameter("block_map", _atlas_texture)
+	RenderingServer.global_shader_parameter_set("light_blocks", _atlas_texture)
+	_spots = Image.create_empty(MAX_LIGHTS, 2, false, Image.FORMAT_RGBAF)
+	_spots_texture = ImageTexture.create_from_image(_spots)
+	RenderingServer.global_shader_parameter_set("light_spots", _spots_texture)
 	if game != null and game.actions != null:
 		game.actions.cell_changed.connect(_on_cell_changed)
 		game.placed.cell_changed.connect(_on_cell_changed)
@@ -166,7 +169,6 @@ func _process(_delta: float) -> void:
 		_update_maps(lights)
 		n = _fire_trunks(lights)
 		_wedges = _trunk_wedges.duplicate()
-		n = _cast_maps(lights, n)
 		for l: Dictionary in lights:
 			n = _cast_all(l, n)
 		_show_lights(lights)
@@ -179,6 +181,7 @@ func _process(_delta: float) -> void:
 	else:
 		_last_shades = {}
 		_trunks_for = ""
+		_show_spots([])
 	_shade(shades)
 	mm.visible_instance_count = n
 	game.hud.perf.note("тени огня", t)
@@ -224,10 +227,8 @@ func _chunks_lit(l: Dictionary) -> Rect2i:
 func _show_lights(lights: Array) -> void:
 	var at := PackedVector4Array()
 	var strengths := PackedFloat32Array()
-	var maps := PackedVector4Array()
 	at.resize(MAX_LIGHTS)
 	strengths.resize(MAX_LIGHTS)
-	maps.resize(MAX_LIGHTS)
 	var count := mini(lights.size(), MAX_LIGHTS)
 	var now := []
 	for i in count:
@@ -235,25 +236,48 @@ func _show_lights(lights: Array) -> void:
 		at[i] = Vector4(l.at.x, l.at.y + l.height, l.at.z, l.range)
 		strengths[i] = l.strength
 		var m: Dictionary = _maps.get(l.id, {})
-		if m.has("data"):
-			maps[i] = Vector4(m.origin.x, m.origin.y, m.level * CELL, 1.0)
-			now.append(m.data)
-		else:
-			now.append(null)
+		now.append(m.data if m.has("data") else null)
 	if now != _atlas_for:
 		_atlas_for = now
 		_atlas.fill(Color(0, 0, 0))
 		for i in now.size():
 			if now[i] != null:
-				_atlas.blit_rect(Image.create_from_data(MAP, MAP, false, Image.FORMAT_R8, now[i]),
-					Rect2i(0, 0, MAP, MAP), Vector2i(i * MAP, 0))
+				_atlas.blit_rect(Image.create_from_data(MAP, MAP_ROWS_TALL, false, Image.FORMAT_R8, now[i]),
+					Rect2i(0, 0, MAP, MAP_ROWS_TALL), Vector2i(i * MAP, 0))
 		_atlas_texture.update(_atlas)
 		game.hud.perf.mark("тени")
+	_show_spots(lights)
 	var mat: ShaderMaterial = material_override
 	mat.set_shader_parameter("lights", at)
 	mat.set_shader_parameter("strengths", strengths)
 	mat.set_shader_parameter("light_count", count)
-	mat.set_shader_parameter("maps", maps)
+
+
+## Tells the shaders where the lights with a map stand and where their maps lie
+## (light_spots in common.gdshaderinc); none when `lights` is empty.
+func _show_spots(lights: Array) -> void:
+	var data := PackedFloat32Array()
+	data.resize(MAX_LIGHTS * 8)
+	for i in mini(lights.size(), MAX_LIGHTS):
+		var l: Dictionary = lights[i]
+		var m: Dictionary = _maps.get(l.id, {})
+		if not m.has("data"):
+			continue
+		var j := i * 4
+		data[j] = l.at.x
+		data[j + 1] = l.at.y + l.height
+		data[j + 2] = l.at.z
+		data[j + 3] = l.range
+		j += MAX_LIGHTS * 4
+		data[j] = m.origin.x
+		data[j + 1] = m.origin.y
+		data[j + 2] = m.level - BELOW
+		data[j + 3] = 2.0
+	if data == _spots_for:
+		return
+	_spots_for = data
+	_spots.set_data(MAX_LIGHTS, 2, false, Image.FORMAT_RGBAF, data.to_byte_array())
+	_spots_texture.update(_spots)
 
 
 ## The lights that throw shadows, the nearest to the player first: {"id": the fire's
@@ -386,7 +410,8 @@ func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int, wh
 	multimesh.set_instance_transform(n, t)
 	var r: float = l.range
 	multimesh.set_instance_custom_data(n, Color(d / r, length / r, lh / r, 1.0 / spread))
-	multimesh.set_instance_color(n, Color(l.strength, _index_color(l), 0.0, 1.0))
+	# A shadow that reaches the edge of the light ends with the light's own rings there.
+	multimesh.set_instance_color(n, Color(l.strength, _index_color(l), 1.0 if height >= lh else 0.0, 1.0))
 	_wedges.append([l.id, Vector2(foot.x, foot.z), dir, length, width, width * spread, who])
 	return n + 1
 
@@ -394,26 +419,6 @@ func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int, wh
 ## A light's place among those the shader knows, as the instance colour gives it.
 static func _index_color(l: Dictionary) -> float:
 	return (l.index + 0.5) / MAX_LIGHTS
-
-
-# --- Blocks and things --------------------------------------------------------
-
-## Adds a square over the ground of each light with a map from instance `n` on, where
-## the shader draws the shadows of what the map holds; returns the next free one.
-func _cast_maps(lights: Array, n: int) -> int:
-	for l: Dictionary in lights:
-		if n >= MAX_SHADOWS or l.index >= MAX_LIGHTS or not _maps.get(l.id, {}).has("data"):
-			continue
-		var m: Dictionary = _maps[l.id]
-		var r: float = l.range
-		var corner := Vector3(l.at.x - r, m.level * CELL + 0.01, l.at.z - r)
-		var t := Transform3D(Basis(Vector3(2.0 * r, 0.0, 0.0), Vector3.UP, Vector3(0.0, 0.0, 2.0 * r)),
-			corner + Vector3(r, 0.0, 0.0))
-		multimesh.set_instance_transform(n, t)
-		multimesh.set_instance_custom_data(n, Color(0.0, 0.0, 0.0, 1.0))
-		multimesh.set_instance_color(n, Color(l.strength, _index_color(l), 1.0, 1.0))
-		n += 1
-	return n
 
 
 ## Makes the maps of the lights the shader knows when they have none, are out of date
@@ -442,7 +447,7 @@ func _update_maps(lights: Array) -> void:
 		if not fresh:
 			var origin := col - Vector2i(MAP / 2, MAP / 2)
 			var data := PackedByteArray()
-			data.resize(MAP * MAP)
+			data.resize(MAP * MAP_ROWS_TALL)
 			m.next = {"origin": origin, "level": level, "data": data, "row": 0,
 				"chunks": _chunks_kept(w, origin), "light": Vector2(l.at.x, l.at.z) / CELL}
 	for id in _maps.keys():
@@ -462,6 +467,7 @@ func _update_maps(lights: Array) -> void:
 			next.row += 1
 			rows -= 1
 		if next.row >= MAP:
+			_map_blockers(w, next)
 			m.erase("next")
 			m.erase("stale")
 			next.erase("row")
@@ -479,51 +485,71 @@ func _chunks_kept(w, origin: Vector2i) -> int:
 	return n
 
 
-## Fills row `row` of map `m`: over each column, how high the blocks standing on the
-## light's ground go (up to MAP_LEVELS; trunks have shadows of their own), or the thing
-## placed there (campfires have wedges of their own too).
+## Fills row `row` of map `m`: which cells over each column are solid, and the shapes
+## of those that slope or have corners cut off or filled in. Leaves let the light
+## through, and so do trunks, which have shadows of their own.
 func _map_row(w, m: Dictionary, row: int) -> void:
+	w.refresh_shapes()
 	var z: int = m.origin.y + row
-	var level: int = m.level
+	var base: int = m.level - BELOW
 	var data: PackedByteArray = m.data
 	var all: int = w.all_bits
-	var blockers: Dictionary = w.blockers
-	var light: Vector2 = m.light
-	var block := roundi(CELL * MAP_SCALE)
+	var layer := MAP * MAP
 	var i := row * MAP
 	var x: int = m.origin.x
 	var x1 := x + MAP
 	while x < x1:
 		var c = w.chunk_at(x, z)
 		var end := mini(x1, (x | WorldData.MASK) + 1)
+		if c == null:
+			i += end - x
+			x = end
+			continue
 		while x < end:
-			var h := 0
-			var flat := c != null and level >= 0
-			if c != null and level >= 0:
-				var col := ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
-				# A sloping top or a cell with corners cut off throws none: a column
-				# here is a whole square, its shadow would be one too.
-				var solid: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col] | c.sloped[col] | c.corner[col]) & all
-				var run := (solid >> level) & 7
-				h = 0 if run & 1 == 0 else (block if run & 2 == 0 else (2 * block if run & 4 == 0 else 3 * block))
-				if level > 0 and (solid >> (level - 1)) & 1 == 0 or (c.corner[col] >> level) & 1:
-					flat = false
-			# The thing the light stands on (a campfire) throws no shadow from it.
-			if h == 0 and not blockers.is_empty() \
-					and (absf(x + 0.5 - light.x) >= 1.0 or absf(z + 0.5 - light.y) >= 1.0):
-				var box: AABB = blockers.get(Vector3i(x, level, z), AABB())
-				if box.has_volume() and not _under_campfire(Vector3i(x, level, z)):
-					h = mini(roundi(box.end.y * CELL * MAP_SCALE), HEIGHT_BITS)
-			data[i] = h | (0 if flat else NOT_FLAT)
+			var col := ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
+			var solid := _window(~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col]) & all, base)
+			if base < 0:
+				# Under the world is stone.
+				solid |= (1 << mini(-base, LEVELS)) - 1
+			data[i] = solid & 255
+			data[layer + i] = solid >> 8
+			var shaped := _window(c.sloped[col] | c.corner[col], base)
+			while shaped != 0:
+				var bit := shaped & -shaped
+				shaped ^= bit
+				var y := WorldData.level_of(bit)
+				data[(2 + y) * layer + i] = c.shapes[((base + y) << 8) | col]
 			i += 1
 			x += 1
+
+
+## The LEVELS bits of a column's mask `bits` from level `base` up.
+static func _window(bits: int, base: int) -> int:
+	return ((bits >> base) if base >= 0 else (bits << -base)) & ((1 << LEVELS) - 1)
+
+
+## Marks the cells of map `m` that the things placed (chests, stations) stand in as
+## solid; campfires have wedges of their own.
+func _map_blockers(w, m: Dictionary) -> void:
+	var data: PackedByteArray = m.data
+	var base: int = m.level - BELOW
+	for cell: Vector3i in w.blockers:
+		var o: Vector2i = Vector2i(cell.x, cell.z) - m.origin
+		var y: int = cell.y - base
+		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP or y < 0 or y >= LEVELS:
+			continue
+		var box: AABB = w.blockers[cell]
+		if box.end.y < 0.5 or _under_campfire(cell):
+			continue
+		var i: int = (y >> 3) * MAP * MAP + o.y * MAP + o.x
+		data[i] = data[i] | (1 << (y & 7))
 
 
 ## A cell changed: the maps over it are made anew.
 func _on_cell_changed(cell: Vector3i) -> void:
 	for id in _maps:
 		var m: Dictionary = _maps[id]
-		if m.has("data") and not m.has("next") and cell.y >= m.level - 1 and cell.y < m.level + MAP_LEVELS \
+		if m.has("data") and not m.has("next") and cell.y >= m.level - BELOW and cell.y < m.level - BELOW + LEVELS \
 				and Rect2i(m.origin, Vector2i(MAP, MAP)).has_point(Vector2i(cell.x, cell.z)):
 			m.stale = true
 
@@ -569,43 +595,28 @@ func _cast_campfires(l: Dictionary, n: int) -> int:
 	return n
 
 
-## True when something on light `l`'s map stands between the ground at `p` and the
-## light (as fire_shadow.gdshader's `blocked` sees it).
+## True when a block stands in the way from `p` (a body's middle over it) to light
+## `l`, as the shaders see it (light_blocked in common.gdshaderinc), looked at every
+## quarter of a cell; a sloping top counts up to half its cell.
 func _blocked(l: Dictionary, p: Vector3) -> bool:
 	var m: Dictionary = _maps.get(l.id, {})
 	if not m.has("data"):
 		return false
 	var data: PackedByteArray = m.data
-	var a := Vector2(p.x, p.z) / CELL
-	var b := Vector2(l.at.x, l.at.z) / CELL
-	var lh: float = l.at.y + l.height - m.level * CELL
-	var d := b - a
-	var cell := Vector2i(floori(a.x), floori(a.y))
-	var last := Vector2i(floori(b.x), floori(b.y))
-	var step := Vector2i(int(signf(d.x)), int(signf(d.y)))
-	var inv := Vector2(1.0 / maxf(absf(d.x), 1e-6), 1.0 / maxf(absf(d.y), 1e-6))
-	# Where the way crosses the next line between columns, each way, as a share of it.
-	var t_next := Vector2(INF, INF)
-	if d.x != 0.0:
-		t_next.x = (cell.x + 1 - a.x if d.x > 0.0 else a.x - cell.x) * inv.x
-	if d.y != 0.0:
-		t_next.y = (cell.y + 1 - a.y if d.y > 0.0 else a.y - cell.y) * inv.y
-	for k in MAP * 2:
-		var t: float
-		if t_next.x < t_next.y:
-			t = t_next.x
-			t_next.x += inv.x
-			cell.x += step.x
-		else:
-			t = t_next.y
-			t_next.y += inv.y
-			cell.y += step.y
-		if t >= 1.0 or cell == last:
-			return false
-		var o: Vector2i = cell - m.origin
-		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP:
+	var corner := Vector3(m.origin.x, m.level - BELOW, m.origin.y)
+	var a := (p + Vector3(0.0, 0.3, 0.0)) / CELL - corner
+	var d: Vector3 = (l.at + Vector3(0.0, l.height, 0.0)) / CELL - corner - a
+	var steps := floori((d.length() - 0.4) * 4.0)
+	var layer := MAP * MAP
+	for k in range(1, steps):
+		var q: Vector3 = a + d * (k / (d.length() * 4.0))
+		var c := Vector3i(floori(q.x), floori(q.y), floori(q.z))
+		if c.x < 0 or c.y < 0 or c.z < 0 or c.x >= MAP or c.z >= MAP or c.y >= LEVELS:
 			continue
-		if (data[o.y * MAP + o.x] & HEIGHT_BITS) / MAP_SCALE > lh * t:
+		var i := c.z * MAP + c.x
+		if (data[(c.y >> 3) * layer + i] >> (c.y & 7)) & 1 == 0:
+			continue
+		if data[(2 + c.y) * layer + i] & 15 == 0 or q.y - c.y < 0.5:
 			return true
 	return false
 
@@ -668,7 +679,7 @@ func _shades(lights: Array, night: float) -> Dictionary:
 ## throw itself.
 func _in_shadow(l: Dictionary, p: Vector3, who) -> bool:
 	if absf(p.y - l.at.y) > SAME_GROUND:
-		return false
+		return _blocked(l, p)
 	var q := Vector2(p.x, p.z)
 	for wedge: Array in _wedges:
 		if wedge[0] != l.id or wedge[6] == who:

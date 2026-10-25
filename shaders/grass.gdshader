@@ -70,6 +70,8 @@ int kind_of(int plant) {
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
+// Where the point is drawn (sheared), to tell which light shines on it (light_hidden).
+varying vec3 drawn;
 
 void vertex() {
 	custom = INSTANCE_CUSTOM.xyz;
@@ -110,6 +112,7 @@ void vertex() {
 	}
 	VERTEX = shear(stand_tall(face_view(VERTEX, root), root));
 	light_xz = VERTEX.xz;
+	drawn = VERTEX;
 	NORMAL = vec3(0.0, 1.0, 0.0);
 }
 
@@ -217,5 +220,12 @@ void light() {
 	// A plant is a flat card standing in the light with a normal pointing up: a fire
 	// lights all of it, tip too, even where the tip stands higher than the flame.
 	vec3 normal = LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT;
-	DIFFUSE_LIGHT += toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
+	vec3 lit = toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
+	// None where a block stands between the plant's foot and the light, like the
+	// ground it grows on.
+	if (!LIGHT_IS_DIRECTIONAL && lit != vec3(0.0) && light_hidden(drawn,
+			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), root, vec3(0.0, 4.0, 0.0))) {
+		lit = vec3(0.0);
+	}
+	DIFFUSE_LIGHT += lit;
 }
