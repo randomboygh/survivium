@@ -144,9 +144,29 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 	return c;
 }
 
+// A wall the camera looks at from behind the player, of the space they are in, stays
+// whole above the automatic cut: in a cave or a room the far walls stand up to the
+// ceiling, out in a ravine or behind a hill the slope beyond stands up to its top, and
+// only what lies between the camera and the player (the rock above, the near walls,
+// whose faces turn their backs to the camera) goes. Under a roof only the walls of
+// covered space count, so the hill's own face over a cave does not hide the cave; out
+// in the open only open ones, and none under a crown, so trunks go with their crowns.
+bool back_wall(vec3 p, vec3 n) {
+	if (cut_ghost < 0.5 || p.y <= cut_height + 0.01 || abs(n.y) > 0.5 || dot(n.xz, view_up) > -0.3
+			|| dot(p.xz - player_pos.xz, view_up) <= 0.0) {
+		return false;
+	}
+	vec2 front = p.xz + n.xz * CELL * 0.5;
+	if (roofed(player_pos.xz, player_pos.y + 2.0 * CELL)) {
+		return roofed(front, p.y);
+	}
+	return !roofed(front, p.y) && !under_crown(front);
+}
+
 void fragment() {
+	bool kept = back_wall(world_pos, world_normal);
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
-	if (!IN_SHADOW_PASS && above_cut(world_pos)) {
+	if (!IN_SHADOW_PASS && !kept && above_cut(world_pos)) {
 		discard;
 	}
 	if (is_drift(packed.x, UV)) {
@@ -366,7 +386,7 @@ void fragment() {
 			col *= 0.78;
 		}
 	}
-	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
 	// Walls get less sky light than tops.
