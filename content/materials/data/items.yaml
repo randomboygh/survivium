@@ -1,0 +1,17 @@
+# Предметы мода «Материалы»: то, что дают его ячейки. Поля — как у предметов основы
+# (content/core/data/items.yaml); place — материал этого мода, который предмет ставит.
+- id: sand
+  title: Песок
+  weight: 1.5
+  stack: 20
+  place: sand
+- id: clay
+  title: Глина
+  weight: 1.5
+  stack: 20
+  place: clay
+- id: copper_ore
+  title: Медная руда
+  weight: 2.5
+  stack: 20
+  icon: copper_ore

@@ -80,6 +80,8 @@ static func land_of(species: int) -> String:
 ## What is wrong with the loaded trees for the engine, if anything.
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
+	if not SPECIES.is_empty() and (Mat.LOG < 0 or Mat.LEAVES < 0):
+		out.append("trees: a tree needs materials of the roles `trunk` and `crown` (materials.yaml `role`)")
 	for s in SPECIES:
 		if s.trunk[0] > s.trunk[1]:
 			out.append("trees: `%s`: trunk [min, max] has min above max" % s.id)

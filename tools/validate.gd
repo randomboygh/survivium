@@ -15,6 +15,7 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
 
@@ -32,6 +33,7 @@ func _init() -> void:
 	problems.append_array(_check_models())
 	problems.append_array(_check_icons())
 	problems.append_array(_check_sound_files())
+	problems.append_array(_check_textures())
 	problems.append_array(_check_each_mod())
 	for p in problems:
 		printerr("content: " + p)
@@ -117,6 +119,19 @@ func _check_icons() -> PackedStringArray:
 	for name in ItemIcons.UI:
 		if not ResourceLoader.exists(ItemIcons.ui_path(name)):
 			out.append("ui: no picture %s" % ItemIcons.ui_path(name))
+	return out
+
+
+## Every material but air has its texture in its mod, three tiles side by side (see
+## Mat.texture_path), and the roles the loaded trees need are given.
+func _check_textures() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for m in range(1, Mat.COUNT):
+		var path := Mat.texture_path(m)
+		if not ResourceLoader.exists(path):
+			out.append("materials: `%s`: no texture %s" % [Mat.IDS[m], path])
+		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.TILE * 3, PixelTextures.TILE):
+			out.append("materials: `%s`: %s is not three tiles of %d px in a row" % [Mat.IDS[m], path.get_file(), PixelTextures.TILE])
 	return out
 
 

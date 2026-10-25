@@ -30,7 +30,7 @@
   time: 6
 - id: planks
   title: Доски
-  makes: core:planks
+  makes: planks
   count: 2
   needs: {core:log: 1}
   at: workbench
@@ -39,13 +39,13 @@
 - id: wooden_shovel
   title: Деревянная лопата
   makes: wooden_shovel
-  needs: {core:planks: 2, core:branch: 1}
+  needs: {planks: 2, core:branch: 1}
   at: workbench
   time: 5
 - id: wooden_sword
   title: Деревянный меч
   makes: wooden_sword
-  needs: {core:planks: 2, core:cord: 1}
+  needs: {planks: 2, core:cord: 1}
   at: workbench
   time: 5
 - id: stone_sword
@@ -57,32 +57,32 @@
 - id: wooden_pickaxe
   title: Деревянная кирка
   makes: wooden_pickaxe
-  needs: {core:planks: 2, core:branch: 2}
+  needs: {planks: 2, core:branch: 2}
   at: workbench
   time: 4
 - id: wooden_scythe
   title: Деревянная коса
   makes: wooden_scythe
-  needs: {core:planks: 1, core:branch: 2, core:cord: 1}
+  needs: {planks: 1, core:branch: 2, core:cord: 1}
   at: workbench
   time: 4
 - id: chest
   title: Сундук
   makes: chest
-  needs: {core:planks: 6}
+  needs: {planks: 6}
   at: workbench
   time: 8
 - id: kiln
   title: Печь для обжига
   makes: kiln
-  needs: {core:stone: 8, core:clay: 4}
+  needs: {core:stone: 8, materials:clay: 4}
   at: workbench
   time: 10
 
 # В печи
 - id: brick
   title: Кирпич
-  makes: core:brick
-  needs: {core:clay: 1}
+  makes: brick
+  needs: {materials:clay: 1}
   at: kiln
   time: 4

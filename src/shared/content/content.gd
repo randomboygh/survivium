@@ -33,7 +33,8 @@ static var loaded: Array = []
 
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
-## ref:<kind> (an id of a record of that kind; an empty default means none), amounts
+## ref:<kind> (an id of a record of that kind; an empty default means none), sound (the
+## bare name of a sound, found at play time in the last loaded mod that has one), amounts
 ## (a mapping of ids of `of` to how many, at least 1 each). `min`/`max` bound numbers,
 ## in a list each item. A field without `default` is required. `id` and
 ## `title` are implied for every kind.
@@ -44,6 +45,11 @@ const SCHEMAS := {
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
+		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "ore", "trunk", "crown"], "default": "none"},
+		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
+		"ground": {"type": "enum", "values": ["none", "soil", "sand", "rock"], "default": "none"},
+		"drains": {"type": "bool", "default": false},
+		"texture": {"type": "string", "default": ""},
 		"item": {"type": "ref:items", "default": ""},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
 		"hardness": {"type": "int", "min": 0, "default": 1},
@@ -51,8 +57,8 @@ const SCHEMAS := {
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"mow": {"type": "ref:materials", "default": ""},
 		"mow_gives": {"type": "amounts", "of": "ref:items", "default": {}},
-		"step": {"type": "ref:sounds", "default": ""},
-		"hit": {"type": "ref:sounds", "default": ""},
+		"step": {"type": "sound", "default": ""},
+		"hit": {"type": "sound", "default": ""},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
@@ -92,8 +98,8 @@ const SCHEMAS := {
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
 		"likes": {"type": "list", "of": "ref:plants", "default": []},
-		"calls": {"type": "ref:sounds", "default": ""},
-		"alarm": {"type": "ref:sounds", "default": ""},
+		"calls": {"type": "sound", "default": ""},
+		"alarm": {"type": "sound", "default": ""},
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
@@ -417,6 +423,13 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 		"string":
 			if not v is String:
 				return "expected a string"
+			out[0] = v
+		"sound":
+			# The name of a sound, kept as written: the client finds the record of that
+			# name in the last loaded mod that has one (Sound.resolve), silence when none,
+			# so a mod may name sounds no mod it requires gives.
+			if not v is String:
+				return "expected the name of a sound"
 			out[0] = v
 		"enum":
 			if not v is String or not v in spec["values"]:

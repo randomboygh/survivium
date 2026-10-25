@@ -178,7 +178,7 @@
 - Движок: Godot 4.5.1, рендерер Compatibility (чтобы работать в браузере), чистый GDScript.
 - Открыть проект: Godot → Import → `project.godot`.
 - Данные игры (материалы, предметы, рецепты, звери, деревья, кусты, растения, звуки) лежат в `content/<мод>/data/*.yaml`
-  (моды `core`, `sounds`, `tools`, `plants`, `animals`, `birds`); проверить их:
+  (моды `core`, `materials`, `sounds`, `tools`, `plants`, `animals`, `birds`; у каждого мода свой README); проверить их:
   `godot --headless --path . --script res://tools/validate.gd`.
 - Тесты: `godot --headless --path . --import`, затем `godot --headless --path . --script res://tests/run_tests.gd`;
   тест фризов (игра без экрана, предел времени кадра): `timeout 600 godot --headless --path . --script res://tests/frame_test.gd`;

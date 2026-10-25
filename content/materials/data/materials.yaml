@@ -1,0 +1,51 @@
+# Материалы ландшафта. Поля — как у материалов основы (content/core/data/materials.yaml).
+# role — где генератор их кладёт: beach — пляжи, русла рек, пустыни; bank — берега, болота,
+# глина тундры; scree — склоны высоких гор; ore — жилы в камне. Звуки шага и удара —
+# по имени, из мода «Звуки» (без него — тишина).
+- id: sand
+  title: Песок
+  role: beach
+  corners: round
+  slope: true
+  priority: 3
+  ground: sand
+  drains: true
+  hotbar: 5
+  item: sand
+  dig: shovel
+  bonus: core:flint
+  bonus_chance: 0.12
+  step: step_sand
+  hit: dig
+- id: clay
+  title: Глина
+  role: bank
+  corners: soft
+  slope: true
+  priority: 2
+  hotbar: 6
+  item: clay
+  dig: shovel
+  step: step_dirt
+  hit: dig
+- id: copper_ore
+  title: Медная руда
+  role: ore
+  priority: 2
+  item: copper_ore
+  hardness: 2
+  step: step_stone
+  hit: hit_stone
+# Осыпь: каменная крошка на склонах высоких гор, ложится скатами, копается лопатой.
+- id: scree
+  title: Осыпь
+  role: scree
+  corners: sharp
+  slope: true
+  priority: 2
+  item: core:stone
+  dig: shovel
+  bonus: core:flint
+  bonus_chance: 0.2
+  step: step_stone
+  hit: dig

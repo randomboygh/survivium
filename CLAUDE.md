@@ -24,11 +24,12 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
   audio/      sound, nature, steps, voices, music
   game/       character (extends the shared one), gathering, props, creatures, markers
   ui/         hud, menus, windows, maps, panels, widgets, sound_marks, ui_style
-content/      the mods: core (the base game), sounds, tools, plants, animals, birds; mod.yaml, data/<kind>.yaml,
-              sprites/, icons/, models/, sounds/
+content/      the mods: core (the base game), materials, sounds, tools, plants, animals, birds; mod.yaml,
+              data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
-tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons, art/, sound/
+tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons,
+              make_textures, art/, sound/
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
@@ -81,8 +82,16 @@ takes the set switched on at «Новый мир»; `mods.gd` activates a set an
 (material numbers follow the load order, so a world's set must not change). The engine asks for content by role, never by
 id: a tree by its `land` (`Trees.pick`), a bush by what it grows `under` (`Bushes.pick`), a plant by its `kind`
 (`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
-(`Items.with_prop`), a tool by its `tool`; the only ids code names are core's (`Mat.GRASS`, `Items.LOG`,
-`Placed.CAMPFIRE`). A thing's voxel model is `models/<model>.png` of its mod, a row of square slices one
+(`Items.with_prop`), a tool by its `tool`, a cell material by its `role` (`Mat.BEACH`, `Mat.BANK`, `Mat.SCREE`,
+`Mat.ORE`, `Mat.LOG`, `Mat.LEAVES`: -1 when no mod gives one, the generator lays dirt or stone instead, trees
+need `trunk` and `crown`); the only ids code names are core's (`Mat.GRASS`, `Items.LOG`,
+`Placed.CAMPFIRE`). Core keeps only air, stone, water, dirt and grass (`Mat.KNOWN`); the other materials
+live in the mod that owns them (`content/materials/` the landscape's, tools' planks and brick, plants' log and
+leaves). How a material is drawn is data too: `priority`, `ground`, `drains` make `Mat.shader_bits`, uploaded to
+`world.gdshader` as `material_bits`; its texture is `textures/<id>.png` of its mod (48×16: top, sides, underside;
+`Mat.texture_path`, atlas by `PixelTextures`, whose average colour `tint` paints the maps and particles), drawn by
+`tools/art/texture_art.gd` and written by `tools/make_textures.gd`. A world saves its material list (`materials` in
+`world.json`) and `Mat.remap` translates the cells of an older one. A thing's voxel model is `models/<model>.png` of its mod, a row of square slices one
 per level (alpha 128 marks a leaf), read by `VoxelModel.from_image`; its picture in the bag is `icons/<icon>.png`
 (12×12, `ItemIcons`), the interface's own pictures are `assets/ui/`. `content/birds/` (sparrows, see its README) is a
 creature added by data and a picture alone: a species' picture is `sprites/creatures/<sprite>.png` of
@@ -219,7 +228,8 @@ draws the icon and `assets/web/` (home screen icon, link preview; the `og:` tags
   added by `AudioServer.add_bus` later is silent in the browser. The engine's web player loops a sound
   by starting it again when it ends, late; `tools/web_patch.py` makes the source node loop by itself
   and stops the engine copying the whole sample per play. Re-check the patch on an engine upgrade.
-- `world.gdshader` `PRIORITY` needs one entry per material (magenta patches otherwise).
+- `world.gdshader` reads `material_bits[]` per material (`Mat.shader_bits`, set by `main.gd`); its size is a
+  shader constant, raise it when the mods together pass it (magenta patches otherwise).
 - Web touch: a moving finger also arrives as a real `InputEventMouseMotion`; `controls.input` treats
   mouse motion as a mouse only with no finger down and more than 1 s after the last touch. The
   joystick and `TouchButton` follow their own touch index so two thumbs work at once.

@@ -16,6 +16,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
@@ -39,14 +40,9 @@ const REGION_PX := REGION * WorldData.CHUNK / STEP
 const CHUNK_PX := WorldData.CHUNK / STEP
 ## The way the camera looks, up on the screen (see set_view_up).
 var view_up := Vector2(0.0, -1.0)
-## Colours of the ground by its top, shaded by height (a var: the materials are data
-## of the core mod, not constants).
-var colors: Dictionary = {
-	Mat.GRASS: Color(0.38, 0.56, 0.26), Mat.DIRT: Color(0.5, 0.38, 0.24), Mat.STONE: Color(0.56, 0.56, 0.56),
-	Mat.SAND: Color(0.84, 0.76, 0.5), Mat.CLAY: Color(0.6, 0.47, 0.38), Mat.COPPER_ORE: Color(0.62, 0.5, 0.4),
-	Mat.LOG: Color(0.4, 0.28, 0.16), Mat.PLANKS: Color(0.6, 0.45, 0.25), Mat.BRICK: Color(0.6, 0.3, 0.25),
-	Mat.SCREE: Color(0.6, 0.58, 0.55),
-}
+## Colours of the ground by its top, shaded by height: the colour of each material's
+## texture, a shade brighter (filled as the materials are met, see ground_color).
+var colors: Dictionary = {}
 const LEAVES := Color(0.18, 0.38, 0.16)
 const SHALLOW := Color(0.36, 0.6, 0.68)
 const DEEP := Color(0.12, 0.24, 0.42)
@@ -245,7 +241,7 @@ func _color(w: WorldData, x: int, z: int) -> Color:
 		var floor_y := WorldData.top_level(~(air | water) & w.all_bits)
 		return SHALLOW.lerp(DEEP, clampf((y - floor_y - 1) / 6.0, 0.0, 1.0))
 	var m: int = ch.cells[y * WorldData.LAYER + col]
-	var c: Color = colors.get(m, Color(0.5, 0.5, 0.5))
+	var c: Color = ground_color(m)
 	c = c * (0.7 + 0.6 * clampf((y - sea) / float(top - sea), 0.0, 1.0))
 	if leaf != 0:
 		c = c.lerp(LEAVES, 0.75)
@@ -293,6 +289,13 @@ func _mark_color(id: String) -> Color:
 	if not _mark_colors.has(id):
 		_mark_colors[id] = ItemIcons.colour_of(id, UiStyle.INK)
 	return _mark_colors[id]
+
+
+## The colour of ground whose top is material `m` on the map.
+func ground_color(m: int) -> Color:
+	if not colors.has(m):
+		colors[m] = PixelTextures.tint(m).lightened(0.08)
+	return colors[m]
 
 
 ## The way the camera looks (up on the screen) when it is turned: a short line from

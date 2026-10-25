@@ -225,6 +225,9 @@ func start_world() -> void:
 	var maker: GDScript = TestGround if world_seed == TestGround.SEED else WorldGen
 	gen = maker.new(world_seed, 48, world_options)
 	gen.saved = save.store
+	if not save.saved_materials.is_empty():
+		# The save numbered its materials in its own order (its mods then): translate.
+		gen.material_map = Mat.remap(save.saved_materials)
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
 	await _loading_stage("Карта и материалы…")
 	roof = RoofMap.new()
@@ -478,12 +481,17 @@ func _build_materials() -> void:
 	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
 	world_mat = _material(WorldShader)
 	var shapes := PackedInt32Array()
+	var bits := PackedInt32Array()
 	shapes.resize(21)
+	bits.resize(21)
 	for m in mini(Mat.COUNT, 21):
 		shapes[m] = Mat.corner_shape[m]
+		bits[m] = Mat.shader_bits[m]
 	world_mat.set_shader_parameter("corner_shapes", shapes)
+	world_mat.set_shader_parameter("material_bits", bits)
 	low_mat = _material(low_variant(WorldShader))
 	low_mat.set_shader_parameter("corner_shapes", shapes)
+	low_mat.set_shader_parameter("material_bits", bits)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
 	grass_mat.set_shader_parameter("plant_texture", PixelTextures.build_plants())

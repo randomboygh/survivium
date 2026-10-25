@@ -239,7 +239,7 @@ const SHOTS := {
 	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "se", "right": false}},
 	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "nw"}},
 	# Bits of a trunk chopped flying off it.
-	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "core:log"},
+	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "plants:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
 	# A second chest set down beside the player: the bag button opens the bag with both
@@ -849,7 +849,7 @@ func _run() -> void:
 ## open at the workbench.
 func _craft() -> void:
 	var inv = main.character.inventory
-	for st in [["core:fiber", 14], ["core:branch", 16], ["core:flint", 3], ["core:log", 2], ["core:clay", 6],
+	for st in [["core:fiber", 14], ["core:branch", 16], ["core:flint", 3], ["core:log", 2], ["materials:clay", 6],
 			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
 		inv.add(st[0], st[1])
 	main.player.facing = "s"
@@ -1094,7 +1094,7 @@ func _copper_patch(w, at: Vector3i) -> void:
 			Vector2i(-1, -1), Vector2i(0, -2), Vector2i(-1, 0)]:
 		var c := at + Vector3i(o.x, 0, o.y)
 		wall_cells.append([c, w.get_cell(c.x, c.y, c.z), w.is_natural(c.x, c.y, c.z)])
-		w.set_cell(c.x, c.y, c.z, Mat.COPPER_ORE)
+		w.set_cell(c.x, c.y, c.z, Mat.of_role("ore", Mat.STONE))
 		main.actions.cell_changed.emit(c)
 
 
@@ -1409,7 +1409,7 @@ func _hut(w, at: Vector3) -> Vector3:
 			var wall := dx == -4 or dx == 3 or dz == -4 or dz == 3
 			var door := dz == 3 and (dx == -1 or dx == 0)
 			for dy in 5:
-				var m := Mat.PLANKS if dy == 4 or wall and not (door and dy < 2) else Mat.AIR
+				var m := maxi(Mat.index("tools:planks"), Mat.STONE) if dy == 4 or wall and not (door and dy < 2) else Mat.AIR
 				w.set_cell(best.x + dx, best.y + dy, best.z + dz, m)
 	# Bushes inside would hide the player.
 	for c: Vector3i in w.bushes.keys():

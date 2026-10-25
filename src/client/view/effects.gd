@@ -11,6 +11,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
 const Mat := preload("res://src/shared/content/materials.gd")
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const PX := 1.0 / 16.0
@@ -22,12 +23,6 @@ const FIREFLY_TRIES := 120
 ## their colour by material id ("" for any other).
 const BURSTS := 4
 const BURST_BITS := 8
-const BITS := {
-	"core:grass": Color(0.42, 0.62, 0.26), "core:dirt": Color(0.5, 0.36, 0.22), "core:stone": Color(0.58, 0.58, 0.6),
-	"core:sand": Color(0.86, 0.77, 0.52), "core:clay": Color(0.62, 0.48, 0.38), "core:log": Color(0.72, 0.55, 0.33),
-	"core:leaves": Color(0.3, 0.55, 0.22), "core:planks": Color(0.7, 0.53, 0.3), "core:copper_ore": Color(0.66, 0.5, 0.38),
-	"core:brick": Color(0.64, 0.32, 0.26), "": Color(0.55, 0.5, 0.45),
-}
 ## The pixels of a star sparkle (see _star).
 const STAR := [
 	"..x..",
@@ -513,7 +508,8 @@ func _burst_now(at: Vector3, m: int) -> void:
 		_bursts.append(e)
 	var p := _bursts[_burst_next]
 	_burst_next = (_burst_next + 1) % BURSTS
-	var c: Color = BITS.get(Mat.IDS[m] if m >= 0 and m < Mat.IDS.size() else "", BITS[""])
+	# The bits are the colour of the material's texture, a little lighter.
+	var c: Color = PixelTextures.tint(m).lightened(0.12)
 	p.color_ramp = _ramp([c.lightened(0.15), c, c.darkened(0.25)])
 	p.position = at
 	p.restart()

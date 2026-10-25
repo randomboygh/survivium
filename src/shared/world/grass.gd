@@ -183,7 +183,7 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		if w.leaf_col(x, z) != 0:
 			_forest_floor(x, z, out, rng)
 	# Reeds line grassy and muddy banks, not the sand of a beach.
-	if m != Mat.SAND and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
+	if m != Mat.BEACH and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
 	return loaded(out)

@@ -18,7 +18,9 @@ const LAND_SPEED := 9.0
 ## Snow lying this deep sounds under the feet on the open ground.
 const SNOW_UNDERFOOT := 0.35
 ## Ground that snow covers.
-const SNOWY := ["core:grass", "core:dirt", "core:sand", "core:stone", "core:scree", "core:clay"]
+## Open ground snow lies on: the core's, and the materials of the landscape roles.
+static func _snowy(m: int) -> bool:
+	return m in [Mat.GRASS, Mat.DIRT, Mat.STONE, Mat.BEACH, Mat.BANK, Mat.SCREE]
 
 var game
 var _last := Vector3.INF
@@ -80,6 +82,6 @@ func _underfoot(p: Vector3, in_water: bool) -> String:
 	if m <= 0 or m >= Mat.COUNT:
 		return ""
 	var rec: Dictionary = Mat.RECORDS[m]
-	if game.clock.snow > SNOW_UNDERFOOT and not game.chunks.indoor and rec.id in SNOWY:
+	if game.clock.snow > SNOW_UNDERFOOT and not game.chunks.indoor and _snowy(m):
 		return "step_snow"
 	return rec.step

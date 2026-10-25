@@ -1,8 +1,12 @@
 extends RefCounted
 ## Cell materials, read from `content/*/data/materials.yaml` (see Content). A cell
 ## holds a material's index: the order of the records, with `core:air` first so an
-## empty cell is 0. The usual names (Mat.GRASS, Mat.STONE...) are filled in from the
-## ids the engine knows, so code reads as before; `index(id)` finds any other.
+## empty cell is 0. The engine names only the five materials of the core mod (Mat.AIR,
+## GRASS, DIRT, STONE, WATER); the rest it asks for by `role`: the material of the
+## beaches and deserts (BEACH), of river banks and bogs (BANK), of mountain slopes
+## (SCREE), the ore in the rock (ORE), a tree's trunk (LOG) and crown (LEAVES), each
+## the last loaded material of that role or -1 when no mod gives one (the generator
+## then lays dirt or stone, and no tree can stand). `index(id)` finds any other.
 
 const Content := preload("res://src/shared/content/content.gd")
 
@@ -14,24 +18,32 @@ const SLOPE := 4
 ## Materials the engine itself refers to; the validator demands them.
 const KNOWN := {
 	"AIR": "core:air", "GRASS": "core:grass", "DIRT": "core:dirt", "STONE": "core:stone",
-	"SAND": "core:sand", "WATER": "core:water", "LOG": "core:log", "LEAVES": "core:leaves",
-	"PLANKS": "core:planks", "CLAY": "core:clay", "COPPER_ORE": "core:copper_ore",
-	"BRICK": "core:brick", "SCREE": "core:scree",
+	"WATER": "core:water",
 }
+## The roles the engine asks materials for (the `role` field), and the static var each
+## fills.
+const ROLES := {
+	"beach": "BEACH", "bank": "BANK", "scree": "SCREE", "ore": "ORE", "trunk": "LOG", "crown": "LEAVES",
+}
+## Bits of `shader_bits`, one word per material for world.gdshader: the priority at a
+## boundary (low 4 bits), DRAINS (no puddles), and the kind of patches on open ground
+## (`ground`: none, soil, sand, rock) in bits 5 and 6.
+const DRAINS := 16
+const GROUND_SHIFT := 5
+const GROUNDS := ["none", "soil", "sand", "rock"]
 
 static var AIR := 0
 static var GRASS := 0
 static var DIRT := 0
 static var STONE := 0
-static var SAND := 0
 static var WATER := 0
-static var LOG := 0
-static var LEAVES := 0
-static var PLANKS := 0
-static var CLAY := 0
-static var COPPER_ORE := 0
-static var BRICK := 0
-static var SCREE := 0
+## The materials of the roles (see ROLES), -1 when no mod gives one.
+static var BEACH := -1
+static var BANK := -1
+static var SCREE := -1
+static var ORE := -1
+static var LOG := -1
+static var LEAVES := -1
 static var COUNT := 0
 
 ## Index -> id (`core:grass`), title shown to players, record from the data file.
@@ -44,6 +56,8 @@ static var flags: PackedByteArray = []
 ## How round the cut corners of natural ground are, by material: 0 a straight cut at
 ## 45 degrees, 1 a little rounded, 2 a quarter circle (see ChunkMesher.CORNER_P).
 static var corner_shape: PackedByteArray = []
+## The word of each material for the world shader (see DRAINS).
+static var shader_bits: PackedInt32Array = []
 
 
 static func _static_init() -> void:
@@ -57,6 +71,7 @@ static func refresh() -> void:
 	NAMES = []
 	flags = []
 	corner_shape = []
+	shader_bits = []
 	var hotbar := []
 	for i in COUNT:
 		var r: Dictionary = RECORDS[i]
@@ -64,6 +79,7 @@ static func refresh() -> void:
 		NAMES.append(r.title)
 		flags.append((SOLID if r.solid else 0) | (ROOF if r.roof else 0) | (SLOPE if r.slope else 0))
 		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
+		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT))
 		if r.hotbar > 0:
 			hotbar.append([r.hotbar, i])
 	hotbar.sort()
@@ -74,20 +90,58 @@ static func refresh() -> void:
 	GRASS = index(KNOWN.GRASS)
 	DIRT = index(KNOWN.DIRT)
 	STONE = index(KNOWN.STONE)
-	SAND = index(KNOWN.SAND)
 	WATER = index(KNOWN.WATER)
-	LOG = index(KNOWN.LOG)
-	LEAVES = index(KNOWN.LEAVES)
-	PLANKS = index(KNOWN.PLANKS)
-	CLAY = index(KNOWN.CLAY)
-	COPPER_ORE = index(KNOWN.COPPER_ORE)
-	BRICK = index(KNOWN.BRICK)
-	SCREE = index(KNOWN.SCREE)
+	# The roles: the last loaded material of each (a mod replaces an earlier mod's).
+	BEACH = -1
+	BANK = -1
+	SCREE = -1
+	ORE = -1
+	LOG = -1
+	LEAVES = -1
+	for i in COUNT:
+		var role: String = RECORDS[i].role
+		if role != "none":
+			BEACH = i if role == "beach" else BEACH
+			BANK = i if role == "bank" else BANK
+			SCREE = i if role == "scree" else SCREE
+			ORE = i if role == "ore" else ORE
+			LOG = i if role == "trunk" else LOG
+			LEAVES = i if role == "crown" else LEAVES
 
 
 ## Index of the material with `id`, or -1.
 static func index(id: String) -> int:
 	return IDS.find(id)
+
+
+## The material of `role` (one of ROLES), `fallback` when no loaded mod gives one.
+static func of_role(role: String, fallback: int) -> int:
+	var m := -1
+	for i in COUNT:
+		if RECORDS[i].role == role:
+			m = i
+	return m if m >= 0 else fallback
+
+
+## The texture of material `m`: content/<mod>/textures/<texture>.png of its mod, three
+## tiles of PixelTextures.TILE px side by side (the top, the sides and the underside).
+static func texture_path(m: int) -> String:
+	var r: Dictionary = RECORDS[m]
+	var name: String = r.texture if r.texture != "" else r.id.get_slice(":", 1)
+	return "%s/%s/textures/%s.png" % [Content.ROOT, r.mod, name]
+
+
+## Remaps cell values from a world saved with materials in the order `saved` (ids)
+## to the materials loaded now: index -> index, as a table, or an empty one when the
+## order is the same. A saved material no loaded mod has becomes stone.
+static func remap(saved: PackedStringArray) -> PackedByteArray:
+	if saved == IDS:
+		return PackedByteArray()
+	var out := PackedByteArray()
+	for id in saved:
+		var m := index(id)
+		out.append(m if m >= 0 else STONE)
+	return out
 
 
 ## What is wrong with the loaded materials for the engine, if anything.

@@ -1,0 +1,20 @@
+# Материалы ячеек мода «Растения»: из чего сделаны деревья. Движок просит их по роли: trunk —
+# ствол, crown — крона; без них деревья не растут. Поля — как у материалов основы
+# (content/core/data/materials.yaml); бревно как предмет — запись основы (core:log), этот мод
+# дописывает ей, что она ставит (items.yaml). Звуки — по имени, из мода «Звуки».
+- id: log
+  title: Бревно
+  role: trunk
+  roof: false
+  hotbar: 7
+  item: core:log
+  dig: axe
+  step: step_wood
+  hit: chop
+- id: leaves
+  title: Листва
+  role: crown
+  roof: false
+  dig: hand
+  step: step_grass
+  hit: rustle
