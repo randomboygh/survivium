@@ -1,0 +1,18 @@
+- id: linden
+  title: Липа
+  shape: round
+  leaf: curly
+  leaves: broad
+  trunk: [5, 7]
+  girth: [9, 13]
+  taper: 0.4
+  crook: 1
+  roots: [1, 3]
+  crown: [2.0, 2.0, 1.7]
+  tints: ["#5a8f3a", "#62983f", "#548a36"]
+  bare: 0.8
+  bark: grey_bark
+  log: resources:log
+  twig: resources:branch
+  hits: 5
+  twigs: 4

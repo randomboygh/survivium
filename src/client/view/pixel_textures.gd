@@ -22,7 +22,12 @@ const CLUMP := 24
 const CLUMP_SIZES := [24, 16, 11]
 const NEEDLE_ROW := 3
 const BRANCH_ROW := 6
-const CLUMP_ROWS := 7
+## Then the curly lumps and the scale-like broad leaves, a row per size each.
+const CURLY_ROW := 7
+const SCALES_ROW := 10
+const CLUMP_ROWS := 13
+## The first row of each leaf style (Trees.LEAF_STYLES).
+const LEAF_ROWS := {"pointed": 0, "needles": NEEDLE_ROW, "curly": CURLY_ROW, "scales": SCALES_ROW}
 ## Alpha of the pixels on the upper edge of a leaf, needle or twig (see _mark_edges).
 const EDGE_ALPHA := 0.8
 ## Bush clusters: rows of bunches of leaves this many px across, then the same with
@@ -73,9 +78,15 @@ static func build_atlas() -> ImageTexture:
 	bark_material = []
 	bark_material.resize(Trees.SPECIES.size())
 	var next := Mat.COUNT
+	# Species sharing a bark (one picture in the mod's common/) share its tiles.
+	var by_path := {}
 	for i in Trees.SPECIES.size():
 		bark_material[i] = -1
-		var tex := _three_tiles(Trees.bark_path(i))
+		var path := Trees.bark_path(i)
+		if by_path.has(path):
+			bark_material[i] = by_path[path]
+			continue
+		var tex := _three_tiles(path)
 		if tex == null:
 			continue
 		if next >= MOST_MATERIALS:
@@ -83,6 +94,7 @@ static func build_atlas() -> ImageTexture:
 			continue
 		_blit_tiles(img, tex, next)
 		bark_material[i] = next
+		by_path[path] = next
 		next += 1
 	atlas_image = img
 	return ImageTexture.create_from_image(img)
@@ -92,8 +104,7 @@ static func build_atlas() -> ImageTexture:
 static func material_count() -> int:
 	var n := Mat.COUNT
 	for b in bark_material:
-		if b >= 0:
-			n += 1
+		n = maxi(n, b + 1)
 	return n
 
 
@@ -312,7 +323,7 @@ static func _plant_px(img: Image, v: int, x: int, row: int, c: Color) -> void:
 ## of the crown end along leaf outlines. Alpha marks the upper edge of every leaf, so
 ## single leaves show the way grass blades do.
 static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := true) -> ImageTexture:
-	var rows := sizes.size() * (2 if conifers else 1) + (1 if conifers else 0)
+	var rows := sizes.size() * (4 if conifers else 1) + (1 if conifers else 0)
 	var img := Image.create_empty(cell * 4, cell * rows, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
@@ -327,6 +338,10 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := 
 	if conifers:
 		for v in 4:
 			_branches(img, Vector2i(v * cell, 2 * sizes.size() * cell), cell, rng)
+		for row in sizes.size():
+			for v in 4:
+				_curly_bunch(img, Vector2i(v * cell, (CURLY_ROW + row) * cell), cell, sizes[row], c, rng)
+				_scale_bunch(img, Vector2i(v * cell, (SCALES_ROW + row) * cell), cell, sizes[row], c, rng)
 	for row in rows:
 		for v in 4:
 			_mark_edges(img, Vector2i(v * cell, row * cell), cell)
@@ -415,6 +430,58 @@ static func _leaf_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: V
 				if absf(d.dot(side)) > wide * t + 0.15:
 					continue
 				img.set_pixel(origin.x + x, origin.y + y, leaf)
+
+
+## Draws a curly bunch `size` px across: round lumps of tiny leaves, each lit as a
+## little dome of its own (its texels lean away from the lump's middle), the lower
+## ones over the upper ones, so the bunch reads as a heap of balls.
+static func _curly_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
+	var radius := clampf(size / 6.0, 2.0, 3.6)
+	var lumps := []
+	for k in int(size * 0.9):
+		var a := rng.randf() * TAU
+		var r := sqrt(rng.randf()) * (size / 2.0 - radius)
+		lumps.append(c + Vector2(cos(a), sin(a) * 0.85) * r)
+	lumps.sort_custom(func(p, q): return p.y < q.y)
+	for p: Vector2 in lumps:
+		var l := radius * rng.randf_range(0.8, 1.15)
+		var id := rng.randf()
+		for y in range(floori(p.y - l), ceili(p.y + l) + 1):
+			for x in range(floori(p.x - l), ceili(p.x + l) + 1):
+				if x < 0 or y < 0 or x >= cell or y >= cell:
+					continue
+				var d := (Vector2(x, y) - p) / l
+				# A ragged round edge: a few texels of the rim left out.
+				if d.length() > 1.0 or (d.length() > 0.8 and rng.randf() < 0.3):
+					continue
+				img.set_pixel(origin.x + x, origin.y + y, Color(id, clampf(0.5 + d.x * 0.45, 0.0, 1.0), clampf(0.5 - d.y * 0.45, 0.0, 1.0), 1))
+
+
+## Draws a bunch `size` px across of broad rounded leaves lying like scales: wide ovals
+## with a darker lower rim, each lower one over the one above, all tipped toward the
+## viewer, so rows of leaves show their lit tops.
+static func _scale_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
+	var wide := clampf(size / 4.5, 2.5, 4.5)
+	var leaves := []
+	for k in int(size * 1.6):
+		var a := rng.randf() * TAU
+		var r := sqrt(rng.randf()) * (size / 2.0 - wide)
+		leaves.append(c + Vector2(cos(a), sin(a) * 0.85) * r)
+	leaves.sort_custom(func(p, q): return p.y < q.y)
+	for p: Vector2 in leaves:
+		var a := wide * rng.randf_range(0.85, 1.15)
+		var b := a * 0.7
+		var id := rng.randf()
+		var lean := rng.randf_range(-0.3, 0.3)
+		for y in range(floori(p.y - b), ceili(p.y + b) + 1):
+			for x in range(floori(p.x - a), ceili(p.x + a) + 1):
+				if x < 0 or y < 0 or x >= cell or y >= cell:
+					continue
+				var d := Vector2((x - p.x) / a, (y - p.y) / b)
+				if d.length() > 1.0:
+					continue
+				# The upper half faces up, the lower rim turns away.
+				img.set_pixel(origin.x + x, origin.y + y, Color(id, clampf(0.5 + lean + d.x * 0.2, 0.0, 1.0), clampf(0.75 - d.y * 0.5 - maxf(0.0, d.y - 0.5) * 0.6, 0.0, 1.0), 1))
 
 
 ## Draws a spruce sprig `size` px across: a short twig across the card with needles

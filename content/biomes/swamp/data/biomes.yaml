@@ -10,7 +10,7 @@
 - id: swamp
   title: Болото
   where: swamp
-  trees: {plants:oak: 1.0}
+  trees: {plants:oak: 0.35, plants:willow: 0.4, plants:deadwood: 0.15, plants:bird_cherry: 0.1}
   tree_chance: 0.03
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 200

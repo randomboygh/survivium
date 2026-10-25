@@ -1,0 +1,19 @@
+- id: cherry
+  title: Вишня
+  shape: round
+  leaf: scales
+  leaves: broad
+  blossom: "#f5c6d6"
+  trunk: [3, 4]
+  girth: [6, 9]
+  taper: 0.4
+  crook: 3
+  roots: [0, 2]
+  crown: [1.7, 1.2, 1.5]
+  tints: ["#4f8a40", "#578f44", "#4a823c"]
+  bare: 1.0
+  bark: cherry_bark
+  log: resources:log
+  twig: resources:branch
+  hits: 3
+  twigs: 3

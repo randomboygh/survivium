@@ -14,7 +14,7 @@
   title: Берёзовая роща
   warmth: [0.38, 0.56]
   moisture: [0.52, 0.7]
-  trees: {plants:birch: 0.75, plants:rowan: 0.12, plants:oak: 0.08}
+  trees: {plants:birch: 0.7, plants:rowan: 0.1, plants:oak: 0.06, plants:bird_cherry: 0.05, plants:poplar: 0.05}
   tree_chance: 0.1
   groves: 0.2
   bushes: {plants:rosehip: 0.4, plants:currant: 0.3, plants:shrub: 0.3}

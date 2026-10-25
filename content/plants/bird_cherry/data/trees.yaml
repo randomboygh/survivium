@@ -1,0 +1,19 @@
+- id: bird_cherry
+  title: Черёмуха
+  shape: lobed
+  leaf: pointed
+  leaves: broad
+  blossom: "#f4f2ea"
+  trunk: [3, 5]
+  girth: [6, 9]
+  taper: 0.35
+  crook: 3
+  roots: [0, 2]
+  crown: [1.9, 1.5, 1.7]
+  tints: ["#4c8540", "#538c44", "#477d3c"]
+  bare: 1.0
+  bark: grey_bark
+  log: resources:log
+  twig: resources:branch
+  hits: 3
+  twigs: 4

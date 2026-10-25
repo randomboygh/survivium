@@ -14,7 +14,7 @@
   warmth: [0.3, 0.46]
   moisture: [0.28, 0.52]
   stone_below: -0.55
-  trees: {plants:pine: 0.85, plants:birch: 0.1}
+  trees: {plants:pine: 0.8, plants:birch: 0.1, plants:deadwood: 0.05}
   tree_chance: 0.13
   bushes: {plants:blueberry: 0.6, plants:shrub: 0.4}
   bush_sparsity: 140

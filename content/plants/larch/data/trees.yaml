@@ -1,0 +1,17 @@
+- id: larch
+  title: Лиственница
+  shape: cone
+  leaf: needles
+  leaves: needles
+  trunk: [2, 3]
+  girth: [7, 10]
+  taper: 0.25
+  crook: 1
+  roots: [0, 2]
+  crown: [2.1, 4, 5]
+  tints: ["#7aa04a", "#84a852", "#729846"]
+  bare: 1.0
+  log: resources:log
+  twig: resources:branch
+  hits: 4
+  twigs: 3

@@ -1,0 +1,18 @@
+- id: poplar
+  title: Тополь
+  shape: column
+  leaf: scales
+  leaves: broad
+  trunk: [3, 4]
+  girth: [7, 10]
+  taper: 0.3
+  crook: 0
+  roots: [0, 2]
+  crown: [1.2, 3.2, 1.1]
+  tints: ["#4d8a46", "#56914a", "#478242"]
+  bare: 1.0
+  bark: grey_bark
+  log: resources:log
+  twig: resources:branch
+  hits: 4
+  twigs: 3

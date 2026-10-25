@@ -10,7 +10,7 @@
 - id: taiga
   title: Тайга
   warmth: [0.2, 0.38]
-  trees: {plants:spruce: 0.9, plants:oak: 0.1}
+  trees: {plants:spruce: 0.6, plants:fir: 0.2, plants:larch: 0.12, plants:oak: 0.05, plants:deadwood: 0.03}
   tree_chance: 0.12
   bushes: {plants:blueberry: 0.6, plants:shrub: 0.4}
   bush_sparsity: 140

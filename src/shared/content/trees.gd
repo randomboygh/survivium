@@ -15,6 +15,15 @@ const Items := preload("res://src/shared/content/items.gd")
 const BROAD := 0
 const NEEDLES := 1
 
+## Shapes of a crown (`shape` in trees.yaml): a low ellipsoid; a few round lobes round the
+## trunk's top with dark gaps between them; a narrow crown tapering to a point; an
+## ellipsoid whose rim hangs down in a curtain; a flat crown of a few wide lobes high on a
+## bare trunk; a cone of tiers (spruce). A conifer is a cone unless it says otherwise.
+const SHAPES := ["round", "lobed", "column", "weeping", "umbrella", "cone"]
+## How a species' leaf clusters are drawn (`leaf`, see PixelTextures.build_clumps):
+## pointed leaves, round curly lumps, broad rounded leaves lying like scales, needles.
+const LEAF_STYLES := ["pointed", "curly", "scales", "needles"]
+
 ## Where a species grows is the biomes' say (Biomes: a biome's `trees` shares), not the
 ## tree's: the generator asks the biome of a column for a tree, never for a species by name.
 
@@ -33,11 +42,27 @@ static func _static_init() -> void:
 	refresh()
 
 
+## Most species that blossom (each its own colour, see `blossom` in trees.yaml): the leaf
+## shader keeps a colour for each.
+const BLOSSOMS := 7
+
+
 static func refresh() -> void:
 	SPECIES = []
+	var blossoms := 0
 	for r in Content.records("trees"):
 		var s: Dictionary = r.duplicate()
 		s.leaves = NEEDLES if r.leaves == "needles" else BROAD
+		if s.shape == "":
+			s.shape = "cone" if s.leaves == NEEDLES else "round"
+		if s.leaf == "":
+			s.leaf = "needles" if s.leaves == NEEDLES else "pointed"
+		s.tiers = s.shape == "cone"
+		# The slot of its blossom colour, from 1; 0 for none.
+		s.blossom_slot = 0
+		if s.blossom != null and blossoms < BLOSSOMS:
+			blossoms += 1
+			s.blossom_slot = blossoms
 		SPECIES.append(s)
 
 
@@ -95,7 +120,9 @@ static func check() -> PackedStringArray:
 			out.append("trees: `%s`: trunk [min, max] has min above max" % s.id)
 		if s.girth[0] > s.girth[1] or s.roots[0] > s.roots[1]:
 			out.append("trees: `%s`: girth and roots [min, max] need min not above max" % s.id)
-		if s.leaves == NEEDLES and s.crown[1] > s.crown[2]:
+		if s.blossom != null and s.blossom_slot == 0:
+			out.append("trees: `%s`: more than %d species blossom, its blossom is not drawn" % [s.id, BLOSSOMS])
+		if s.tiers and s.crown[1] > s.crown[2]:
 			out.append("trees: `%s`: crown [radius, min tiers, max tiers] has min above max" % s.id)
 	return out
 
@@ -121,8 +148,8 @@ static func trunk_box(species: int, col: Vector2i, k: int) -> Rect2i:
 ## Most cells a tree of `species` grown at `scale` takes above the ground it stands on.
 static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = SPECIES[species]
-	if s.leaves == NEEDLES:
-		return _hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
+	if s.tiers:
+		return hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
 	return roundi(s.trunk[1] * scale) + 2 * floori((s.crown[1] + 0.3) * scale * 1.1) + 4
 
 
@@ -150,8 +177,11 @@ static func place(w, x: int, y: int, z: int, species: int, rng: RandomNumberGene
 static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> Array[Vector3i]:
 	var s: Dictionary = SPECIES[species]
 	w.add_tree(x, z, species)
-	if s.leaves == NEEDLES:
-		return _conifer(w, x, y, z, s, rng, scale)
+	match s.shape:
+		"cone":
+			return _conifer(w, x, y, z, s, rng, scale)
+		"lobed", "umbrella":
+			return _lobed(w, x, y, z, s, rng, scale)
 	return _broadleaf(w, x, y, z, s, rng, scale)
 
 
@@ -169,12 +199,82 @@ static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumb
 	var middle := ((y + trunk - 1) & ~1) + 2
 	var points: Array[Vector3i] = []
 	var reach := ceili(maxf(rx, maxf(ry, rz)))
+	var column: bool = s.shape == "column"
 	for dy in range(-reach, reach + 1):
 		for dz in range(-reach, reach + 1):
 			for dx in range(-reach, reach + 1):
 				var d := Vector3(dx / rx, dy / ry, dz / rz)
+				# A column narrows above its middle to a point.
+				if column and dy > 0:
+					d.x /= 1.0 - 0.45 * dy / ry
+					d.z /= 1.0 - 0.45 * dy / ry
 				if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1):
 					points.append(Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz))
+	if s.shape == "weeping":
+		_curtain(points, x, z, y + 1, rng)
+	return points
+
+
+## The rim of a weeping crown hangs down: under each point of the outer ring of a
+## level that has no point below it, one or two more hang, not below `floor`.
+static func _curtain(points: Array[Vector3i], x: int, z: int, floor: int, rng: RandomNumberGenerator) -> void:
+	var have := {}
+	for p in points:
+		have[p] = true
+	var hang: Array[Vector3i] = []
+	for p in points:
+		var out := Vector2(p.x - x, p.z - z).length()
+		if out < 3.0 or have.has(p + Vector3i(0, -2, 0)):
+			continue
+		var drop := rng.randi_range(1, 2) + (1 if out > 4.0 else 0)
+		for k in range(1, drop + 1):
+			var q := p + Vector3i(0, -2 * k, 0)
+			if q.y - 1 < floor:
+				break
+			hang.append(q)
+	points.append_array(hang)
+
+
+## A crown of round lobes: one over the trunk and a ring of three to five round it,
+## each its own small ellipsoid at a height of its own, so the outline is bumpy and dark
+## gaps show between the lobes. An umbrella crown has its lobes flat and wide, high on
+## the trunk.
+static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
+	var umbrella: bool = s.shape == "umbrella"
+	var trunk := maxi(2, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
+	for i in trunk:
+		w.set_cell(x, y + i, z, Mat.LOG)
+	var rx: float = (s.crown[0] + rng.randf_range(-0.2, 0.3)) * scale
+	var ry: float = (s.crown[1] + rng.randf_range(-0.1, 0.2)) * scale
+	var rz: float = (s.crown[2] + rng.randf_range(-0.2, 0.2)) * scale
+	var middle := ((y + trunk - 1) & ~1) + 2
+	# Lobes: centre (in points, from the crown's middle) and radii.
+	var lobes := []
+	var count := rng.randi_range(3, 5)
+	var turn := rng.randf() * TAU
+	var lobe := 0.55 if umbrella else 0.5
+	lobes.append([Vector3(0.0, ry * (0.25 if umbrella else 0.45), 0.0), Vector3(rx, ry * (0.5 if umbrella else 0.6), rz) * lobe])
+	for k in count:
+		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
+		var out := rng.randf_range(0.5, 0.65)
+		# An umbrella's lobes stay round its top, none hangs down the trunk.
+		var up := rng.randf_range(-0.15, 0.3) * ry if umbrella else rng.randf_range(-0.6, 0.25) * ry
+		lobes.append([Vector3(cos(a) * rx * out, up, sin(a) * rz * out), Vector3(rx, ry * (0.4 if umbrella else 0.55), rz) * (lobe + rng.randf_range(-0.05, 0.1))])
+	var points: Array[Vector3i] = []
+	var have := {}
+	for l in lobes:
+		var c: Vector3 = l[0]
+		var r: Vector3 = l[1]
+		r = r.max(Vector3(0.75, 0.6, 0.75))
+		for dy in range(floori(c.y - r.y), ceili(c.y + r.y) + 1):
+			for dz in range(floori(c.z - r.z), ceili(c.z + r.z) + 1):
+				for dx in range(floori(c.x - r.x), ceili(c.x + r.x) + 1):
+					var d := Vector3((dx - c.x) / r.x, (dy - c.y) / r.y, (dz - c.z) / r.z)
+					if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1):
+						var p := Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz)
+						if p.y - 1 > y + 1 and not have.has(p):
+							have[p] = true
+							points.append(p)
 	return points
 
 
@@ -202,7 +302,7 @@ static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumber
 	# In the oblique view the front of the lowest tier hangs over the trunk by its
 	# depth and the sprigs below it, so the trunk below the tier is that long plus the
 	# bit that should show.
-	var bare := _hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
+	var bare := hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
 	var low := ((y + bare) + 1) & ~1
 	var top := low + 2 * (tiers - 1)
 	for i in range(y, top):
@@ -221,7 +321,7 @@ static func _tier_radius(radius: float, k: int, tiers: int) -> float:
 
 ## Cells of trunk a spruce's lowest tier hides on screen when its point in front of
 ## the trunk is `front` points south of it.
-static func _hidden_trunk(front: int) -> int:
+static func hidden_trunk(front: int) -> int:
 	return maxi(1, 3 * front - 1)
 
 

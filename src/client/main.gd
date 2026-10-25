@@ -49,6 +49,7 @@ const CreaturesScript := preload("res://src/client/game/creatures.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 const Drifts := preload("res://src/client/world/drifts.gd")
 const EffectsScript := preload("res://src/client/view/effects.gd")
 const FireShadowsScript := preload("res://src/client/view/fire_shadows.gd")
@@ -507,6 +508,13 @@ func _build_materials() -> void:
 	leaves_mat.set_shader_parameter("clump_size", Foliage.CLUMP_SIZE)
 	leaves_mat.set_shader_parameter("clump_rows", PixelTextures.CLUMP_ROWS)
 	leaves_mat.set_shader_parameter("branch_row", PixelTextures.BRANCH_ROW)
+	var blossoms := PackedVector3Array()
+	blossoms.resize(Trees.BLOSSOMS + 1)
+	for s: Dictionary in Trees.SPECIES:
+		if s.blossom_slot > 0:
+			var c: Color = s.blossom
+			blossoms[s.blossom_slot] = Vector3(c.r, c.g, c.b)
+	leaves_mat.set_shader_parameter("blossom_colors", blossoms)
 	leaf_shadow_mat = _material(LeafShadowShader)
 	bush_mat = _material(low_variant(LeavesShader))
 	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_bush_clumps(Foliage.BUSH_CLUMP))

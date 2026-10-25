@@ -100,7 +100,7 @@ id: a tree and a bush by the shares of the column's biome (`Biomes.tree`, `Biome
 picture, `sprite` in `sprites/plants/` of its bundle, `frames` frames of 8×24, that says where it `grows` (meadow, shade,
 bank), its `cover` and `clumps`: any number grow side by side, `Plants.CUSTOM`, their frames after the engine's in the
 plant texture and their kinds from `Grass.CUSTOM`; a tree with a `bark` draws its trunk with `textures/<bark>.png` of its
-bundle instead of the log's, a virtual material after the real ones in the atlas, `PixelTextures.bark_material`), a station by its `prop`
+bundle instead of the log's, a virtual material after the real ones in the atlas, `PixelTextures.bark_material`, shared when the picture is the same one in the mod's `common/`; its crown is `shape` and `leaf` data, `blossom` flowers in spring, `dead` shows bare branches), a station by its `prop`
 (`Items.with_prop`), a tool by its `tool`, a cell material by its `role` (`Mat.BEACH`, `Mat.BANK`, `Mat.SCREE`,
 `Mat.ORE`, `Mat.LOG`, `Mat.LEAVES`: -1 when no mod gives one, the generator lays dirt or stone instead, trees
 need `trunk` and `crown`), fuel for a fire by `fuel` (`Items.fuel_in`), what a tree or bush gives by its
