@@ -403,6 +403,9 @@ const SHOTS := {
 	"ground-cave-inside": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23},
 	"ground-forest": {"time": 0.42, "season": 1, "at": [-30, 2]},
 	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
+	# The clay: its top in the strip of materials, its walls on the row of relief.
+	"ground-clay": {"time": 0.42, "season": 1, "at": [30, -4]},
+	"ground-clay-relief": {"time": 0.42, "season": 1, "at": [-40, 74]},
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	# The plant garden south-east of the spawn: trees, bushes and ground plants in pens.
