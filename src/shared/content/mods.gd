@@ -17,8 +17,9 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 
-## Mods of older saves and settings that live on as bundles of another mod.
-const RENAMED := {"birds": ["animals/sparrow"], "sounds": ["music"]}
+## Mods of older saves and settings that live on as bundles of another mod (the old sounds
+## mod held the notes too).
+const RENAMED := {"birds": ["animals/sparrow"], "sounds": ["sounds/nature", "sounds/player", "sounds/ui", "music"]}
 
 
 ## Every mod found under `content/`, core first (see Content.available).

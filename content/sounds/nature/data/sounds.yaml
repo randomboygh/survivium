@@ -1,0 +1,34 @@
+# Звуки природы и погоды: ветер, дождь, град, метель, вода, огонь, сверчки, гром, сова. Файлы
+# sounds/<id>.wav, или <id>_1.wav ... — столько, сколько variants; volume — громкость, loop — по
+# кругу. Собраны tools/make_sounds.gd; код просит звук по имени (rain) — подойдёт запись с таким
+# именем из любого загруженного бандла, нет её — тишина.
+- id: wind
+  title: Ветер
+  loop: true
+- id: rain
+  title: Дождь
+  loop: true
+- id: hail
+  title: Град
+  loop: true
+- id: blizzard
+  title: Метель
+  loop: true
+- id: water
+  title: Вода
+  loop: true
+  volume: 0.8
+- id: fire
+  title: Костёр
+  loop: true
+- id: crickets
+  title: Сверчки
+  loop: true
+  volume: 0.4
+- id: thunder
+  title: Гром
+  variants: 2
+- id: owl
+  title: Сова
+  variants: 2
+  volume: 0.6
