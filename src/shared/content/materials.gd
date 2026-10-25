@@ -36,6 +36,8 @@ const ROLES := {
 ## (`ground`: none, soil, sand, rock) in bits 5 and 6.
 const DRAINS := 16
 const GROUND_SHIFT := 5
+## The bit main.gd adds for the log and the barks: they clear round the player.
+const TRUNK := 128
 const GROUNDS := ["none", "soil", "sand", "rock"]
 
 static var AIR := 0

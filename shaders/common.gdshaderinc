@@ -294,6 +294,32 @@ bool above_cut(vec3 p) {
 	return cut_dither(p.y, floor(screen_plane(p) * TEXELS));
 }
 
+// The window round the player in crowns and trunks nearer the viewer, and the thinner
+// rim beyond it, in world units.
+const float SEE_THROUGH = 1.8;
+const float SEE_RIM = 0.5;
+// How far in front of the player a thing starts to clear, and as far again until it
+// clears in full.
+const float SEE_FRONT = 0.5;
+
+// How many of the texels of a crown or a trunk at `p` (the texel `texel` of the
+// picture's pixels on the world) give way round the player when it stands nearer the
+// viewer than them: every other one (0.5) within SEE_THROUGH, fewer and fewer over a
+// rim beyond it, and fewer for a thing hardly in front of the player; compared with
+// bayer4(texel). Counted in the picture's pixels on the world, so the pattern does
+// not crawl as the view moves, and the cards over one another, swaying each its own
+// way, keep the window open together; and graded both ways, so a step of the player
+// takes or gives back single texels, not whole clumps at once, which flickered.
+float see_through(vec2 texel, vec3 p) {
+	vec2 frag = (texel + 0.5) / TEXELS;
+	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
+	float near = length(frag - body);
+	float toward = view_slope / view_squash;
+	float before = p.y - dot(p.xz, view_up) * toward - (player_pos.y - dot(player_pos.xz, view_up) * toward);
+	return 0.5 * clamp((SEE_THROUGH + SEE_RIM - near) / SEE_RIM, 0.0, 1.0)
+		* clamp((before - SEE_FRONT) / SEE_FRONT, 0.0, 1.0);
+}
+
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
 // player's feet (below the picked level, when one is picked by hand, then in bigger
 // steps) fade one even step per level, so a pit or a drop shows its depth, and what

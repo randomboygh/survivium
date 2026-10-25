@@ -23,17 +23,10 @@ stencil_mode write, compare_always, 2;
 
 uniform sampler2D clump_texture : filter_nearest;
 uniform float clump_size = 1.5;
-// The window round the player in a crown nearer the viewer, and the thinner rim
-// beyond it, in world units.
-const float SEE_THROUGH = 1.8;
-const float SEE_RIM = 0.5;
 // How far a sprig is drawn in front of a spruce's trunk, and the deep layer of a crown
 // behind its outer cards, toward or away from the camera whichever way it looks.
 const float SPRIG_AHEAD = 0.4375;
 const float DEEP_BEHIND = 0.25;
-// How far in front of the player a clump starts to clear, and as far again until it
-// clears in full.
-const float SEE_FRONT = 0.5;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
@@ -109,21 +102,8 @@ void fragment() {
 	if (!branches && (hash13(floor(center)) > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
 		discard;
 	}
-	// See-through around the player when the clump is nearer the viewer than them:
-	// every other texel within SEE_THROUGH, fewer and fewer over a rim beyond it, and
-	// fewer for a clump hardly in front of the player. Counted in the picture's pixels
-	// on the world, so the pattern does not crawl as the view moves, and the cards
-	// over one another, swaying each its own way, keep the window open together; and
-	// graded both ways, so a step of the player takes or gives back single texels,
-	// not whole clumps at once, which flickered.
-	vec2 frag = (texel + 0.5) / TEXELS;
-	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
-	float near = length(frag - body);
-	float toward = view_slope / view_squash;
-	float before = center.y - dot(center.xz, view_up) * toward - (player_pos.y - dot(player_pos.xz, view_up) * toward);
-	float clear = 0.5 * clamp((SEE_THROUGH + SEE_RIM - near) / SEE_RIM, 0.0, 1.0)
-		* clamp((before - SEE_FRONT) / SEE_FRONT, 0.0, 1.0);
-	if (bayer4(texel) < clear) {
+	// See-through around the player when the clump is nearer the viewer than them.
+	if (bayer4(texel) < see_through(texel, center)) {
 		discard;
 	}
 	// The crown's normal, tilted by the leaf this texel belongs to; leaves flutter
