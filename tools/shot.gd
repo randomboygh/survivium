@@ -238,7 +238,8 @@ func _run() -> void:
 		if shot.has("hands"):
 			await _hands(shot.hands)
 		if shot.has("drops"):
-			# Things lying in a row in front of the player.
+			# Things lying in a row in front of the player, not picked up (WorldActions.PICKUP_NONE).
+			main.settings.set_value("pickup", 3)
 			var w = main.world
 			var p: Vector3 = main.player.position
 			for i in shot.drops.size():
@@ -516,7 +517,7 @@ func _craft(forge := false) -> void:
 		main.player.facing = "n"
 		main.props.put_from_bag("tools:forge")
 		station = "tools:forge"
-		recipe = "materials:copper_bar"
+		recipe = "tools:copper_bar"
 	main.player.facing = "s"
 	var shop = main.workshop
 	shop.start(Crafting.get_recipe(recipe), 2)
