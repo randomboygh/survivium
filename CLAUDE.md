@@ -30,7 +30,7 @@ content/      the mods: core (the base game), materials, sounds, tools, plants, 
               data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
 tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
-tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons,
+tools/        validate, shot (+ shot/shots the table, shot/places the spots), map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons,
               make_textures, art/, sound/
 ```
 
@@ -176,7 +176,8 @@ one, so keep the smoke test's events few.
 
 Tools: screenshots without a GPU with `xvfb-run -a -s "-screen 0 1280x720x24" godot --path .
 --rendering-driver opengl3 --resolution 1280x720 --script res://tools/shot.gd -- <dir> [shot names]`
-(slow, run in the background; shots share one world per run, so a shot that edits cells restores
+(slow, run in the background; the shots are the table in `tools/shot/shots.gd`, the spots and scenes they
+stand in `tools/shot/places.gd`; shots share one world per run, so a shot that edits cells restores
 them; `ground-*` shots use the test world). `tools/map.gd` draws the land around the spawn from above;
 `tools/bench_*.gd` time generation, meshing and edits; `tools/profile.gd` times each module of a frame
 headless and counts draw calls under xvfb (`-- spikes` times one-off actions); `tools/make_icon.py`

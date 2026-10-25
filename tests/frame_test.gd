@@ -17,7 +17,7 @@ const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
-const Shot := preload("res://tools/shot.gd")
+const ShotPlaces := preload("res://tools/shot/places.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const CELL := 0.5
@@ -198,7 +198,7 @@ func _run() -> void:
 
 	# Jumping in a cave: the view stays cut at the floor level the whole time. The
 	# player lands first, and the automatic cut follows the floor after CUT_DELAY.
-	main.player.position = Shot._cave(w, main.player.position)
+	main.player.position = ShotPlaces.cave(w, main.player.position)
 	main.player.body.on_ground = false
 	await _scenario("landing in a cave", 100000, func(_i: int) -> bool:
 		return main.player.body.on_ground and clock >= 1.0)
