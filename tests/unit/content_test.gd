@@ -125,7 +125,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 16 and Mods.bundles("plants").size() == 29
 		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 5 and Mods.bundles("tools").size() == 9 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 5 and Mods.bundles("tools").size() == 10 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):

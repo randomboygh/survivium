@@ -23,6 +23,7 @@ const INK := {
 	"r": "c8ad78", "R": "8e7650",
 	"m": "9a7646", "p": "c39c64", "P": "e2c48c",
 	"o": "8c4a26", "n": "c97b43", "N": "ecad72",
+	"k": "3e2a1c", "e": "d8602a", "f": "ffb43c", "F": "fff2b0",
 }
 const SHAPES := {
 	"axe": {
@@ -193,6 +194,37 @@ const SHAPES := {
 			"...aAA",
 		],
 		"carry": {"front": 0, "side": 1, "back": 0},
+	},
+	# Carried upright, the flame on top; its brightest pixel is where the game lights it.
+	"torch": {
+		"up": [
+			".F.",
+			"fFf",
+			"efe",
+			"kek",
+			".k.",
+			".w.",
+			".W.",
+			".w.",
+			".g.",
+		],
+		"diagonal": [
+			"....F",
+			"...fF",
+			"..kef",
+			".kk..",
+			".W...",
+			"w....",
+			"g....",
+		],
+		"toward": [
+			".g.",
+			".w.",
+			"kek",
+			"efe",
+			".F.",
+		],
+		"carry": {"front": 0, "side": 0, "back": 0},
 	},
 }
 

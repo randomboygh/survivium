@@ -35,8 +35,8 @@ const SHOTS := {
 	"fire-18-winter": {"time": 0.75, "clock": 0.75, "season": 3, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
-	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1},
-	"torch-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 2},
+	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
+	"torch-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 2, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# Two more campfires by the one at the spawn and an animal by the player: drawn
 	# shadows from every fire.
 	"three-fires": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4),
@@ -50,7 +50,12 @@ const SHOTS := {
 	# chunks each lit by a different few showed square edges (bug 2026-10-24).
 	"many-fires": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4),
 		"more_fires": [Vector3(-7.5, 0.0, -4.0), Vector3(-7.5, 0.0, -9.0), Vector3(-4.5, 0.0, -4.0), Vector3(-4.5, 0.0, -9.0), Vector3(-1.5, 0.0, -4.0), Vector3(-1.5, 0.0, -9.0), Vector3(1.5, 0.0, -4.0), Vector3(1.5, 0.0, -9.0), Vector3(4.5, 0.0, -4.0), Vector3(4.5, 0.0, -9.0), Vector3(7.5, 0.0, -4.0), Vector3(7.5, 0.0, -9.0)], "fire_shadows": 3},
-	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
+	# Without a torch: only the faint glow round the player.
+	"dim-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow"},
+	"dim-trees": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1},
+	# The torch held the other way and walking east: the flame stays at the hand.
+	"torch-east": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "e", "right": true}},
+	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "s"}},
 	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
 	# the campfire by the spawn, and an animal in the player's shadow: their shadows
 	# drawn ("drawn", and "mixed" with the player's real), and the real ones to compare.
@@ -73,10 +78,10 @@ const SHOTS := {
 	"animal-shadow-trees": {"time": 0.45, "season": 1, "trees": true, "animal": Vector3(-1.0, 0.0, -0.6)},
 	# The torch by the same blocks, the fire put out.
 	"torch-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-3.0, 0.0, 3.4), "fire_blocks": true,
-		"fire_out": true, "fire_shadows": 1},
+		"fire_out": true, "fire_shadows": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# The torch by the campfire put out: its shadow round and low like the fire, not a cube.
 	"torch-campfire": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-1.2, 0.0, 1.4), "fire_out": true,
-		"fire_shadows": 1},
+		"fire_shadows": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# The campfire at dusk, when its shadows start.
 	"fire-dusk": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	"fire-dusk-before": {"time": 0.78, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},

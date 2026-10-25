@@ -24,6 +24,37 @@ const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
 ## a walk.
 const STRIDE_MAX := 3.0
+## What the two hands hold, "" for an empty one; the owner fills it in.
+func in_hands() -> Array:
+	return []
+
+
+## The thing held that gives light (an item with `light`), the one whose light reaches
+## farthest; "" for none. In water it goes out.
+func light_held() -> String:
+	if body == null or body.swimming:
+		return ""
+	var best := ""
+	for id: String in in_hands():
+		if id != "" and Items.get_item(id).get("light", 0.0) > Items.get_item(best).get("light", 0.0):
+			best = id
+	return best
+
+
+## The light held burns down a unit of its `durability` a second and is gone once
+## it has burned it all.
+func _burn_light(delta: float) -> void:
+	var id := light_held()
+	if id == "":
+		return
+	_burnt += delta
+	if _burnt < 1.0:
+		return
+	_burnt -= 1.0
+	if inventory.wear_tool(id, Items.get_item(id).durability):
+		say("Догорело: %s" % Items.title(id))
+
+
 ## A burning campfire touched throws the body back at this speed (cells a second) with
 ## this hop, and burns again no sooner than BURN_PAUSE seconds after.
 const BURN_KNOCK := 11.0
@@ -73,6 +104,8 @@ var position: Vector3:
 var _nagged := {}
 ## Seconds until a fire burns the body again (see BURN_PAUSE).
 var _burn_wait := 0.0
+## Seconds the light held has burned towards its next unit of wear (see _burn_light).
+var _burnt := 0.0
 
 
 func _init() -> void:
@@ -134,6 +167,7 @@ func update(delta: float) -> void:
 	_burn_wait = maxf(0.0, _burn_wait - delta)
 	if placed != null and _burn_wait <= 0.0:
 		_touch_fire(p)
+	_burn_light(delta)
 	if vitals.is_dead():
 		die()
 

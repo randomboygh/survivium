@@ -25,6 +25,9 @@ var animations: Dictionary
 var outline: bool
 var texture: ImageTexture
 var columns := 1
+## Where a light held burns in each frame it shows in: {Vector2i(column, row): its
+## pixel in the frame} (see Figure).
+var spots := {}
 ## Images filled with OUTLINE, by size.
 static var _dark := {}
 
@@ -64,17 +67,23 @@ static func direction_of(move: Vector2) -> String:
 ## animation `anim` at time `t` seconds. A mirrored direction gets a negative width,
 ## so the shader samples the drawn direction flipped.
 func frame_uv(dir: String, anim: String, t: float) -> Vector4:
+	var f := frame_at(dir, anim, t)
+	var w := 1.0 / columns
+	var h := 1.0 / directions.size()
+	if f.z == 1:
+		return Vector4((f.x + 1) * w, f.y * h, -w, h)
+	return Vector4(f.x * w, f.y * h, w, h)
+
+
+## The frame to show (see frame_uv): its column, its row and 1 when it is shown
+## flipped, else 0.
+func frame_at(dir: String, anim: String, t: float) -> Vector3i:
 	var flipped := mirror.has(dir)
 	var drawn: String = mirror[dir] if flipped else dir
 	var row := maxi(0, directions.find(drawn))
 	var a: Dictionary = animations[anim]
 	var frames: Array = a.frames
-	var col: int = frames[int(t * a.fps) % frames.size()]
-	var w := 1.0 / columns
-	var h := 1.0 / directions.size()
-	if flipped:
-		return Vector4((col + 1) * w, row * h, -w, h)
-	return Vector4(col * w, row * h, w, h)
+	return Vector3i(frames[int(t * a.fps) % frames.size()], row, 1 if flipped else 0)
 
 
 ## Draws OUTLINE on every clear pixel of `r` next to a drawn one (4 neighbours), the

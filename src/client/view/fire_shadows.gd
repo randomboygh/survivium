@@ -265,7 +265,7 @@ func _lights() -> Array:
 			out.append({"id": f.unit, "at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
 				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
-	if torch.light_energy > 0.01:
+	if torch.light_energy > 0.01 and game.player.torch_lit:
 		out.append({"id": TORCH_ID, "at": p + Vector3(-PixelView.up.x, 0.0, -PixelView.up.y) * TORCH_AHEAD, "height": TORCH_HEIGHT,
 			"range": torch.omni_range, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
 			"torch": true, "real": false})

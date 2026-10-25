@@ -115,6 +115,10 @@ func held() -> String:
 	return game.controls.held()
 
 
+func in_hands() -> Array:
+	return game.controls.hands
+
+
 ## The record of what the hand in use holds as a tool (see Tools.of).
 func tool() -> Dictionary:
 	return game.controls.tool_record()
