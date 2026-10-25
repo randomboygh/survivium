@@ -118,6 +118,7 @@ const SCHEMAS := {
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
 		"likes": {"type": "list", "of": "ref:plants", "soft": true, "default": []},
+		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": []},
 		"calls": {"type": "sound", "default": ""},
 		"alarm": {"type": "sound", "default": ""},
 	},

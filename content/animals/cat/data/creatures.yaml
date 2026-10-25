@@ -1,6 +1,7 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла; голоса (calls, alarm) — его sounds.yaml.
+# sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
+# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 - id: cat
   title: Дикая кошка
   mass: 4
@@ -11,5 +12,7 @@
   active: any
   count: 4
   sprite: cat
+  frames: 3
+  biomes: [biomes:forest, biomes:meadow]
   calls: cat
   alarm: cat

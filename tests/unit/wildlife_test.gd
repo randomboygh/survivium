@@ -104,6 +104,76 @@ func _test_wildlife() -> void:
 	_check(wolf.moving, "a walking animal walks its picture")
 	_test_birds(w, person)
 	_test_swimmers(w)
+	_test_climbers(w, person)
+	_test_biomes(w)
+
+
+## A walker that roosts in trees (the squirrel bundle) runs up a tree near it from a
+## person, where a cat does not get it, and comes down once they are gone.
+func _test_climbers(w: WorldData, person: Who) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [person]
+	var at := person.position + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var tx := floori(at.x / WorldData.CELL) + 4
+	var tz := floori(at.z / WorldData.CELL)
+	w.set_cell(tx, 6, tz, Mat.LOG)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.LEAVES)
+	w.add_tree(tx, tz, 0)
+	var squirrel := _animal(life, "animals:squirrel", at)
+	var cat := _animal(life, "animals:cat", at + Vector3(-1.0, 0.0, 0.0))
+	cat.hunger = 1.0
+	for i in 120:
+		life.update(0.05)
+		if squirrel.perched:
+			break
+	_check(squirrel.perched and squirrel.state == "flee" and is_equal_approx(squirrel.pos.y, 8 * WorldData.CELL)
+		and life.animals.has(squirrel), "a squirrel runs up a tree from a person, out of a cat's reach")
+	life.people = [Who.new()]
+	life.animals.erase(cat)
+	for i in 40:
+		life.update(0.05)
+	_check(not squirrel.perched and is_equal_approx(squirrel.pos.y, life.ground(squirrel.pos.x, squirrel.pos.z)),
+		"and comes down when they are gone")
+	w.remove_tree(tx, tz)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 7, tz + dz, Mat.AIR)
+	w.set_cell(tx, 6, tz, Mat.AIR)
+
+
+## A layout that says every column is one biome.
+class OneBiome extends RefCounted:
+	var biome := 0
+	func lay_out(_x: int, _z: int, _w: int, _h: int, _step := 1) -> Dictionary:
+		return {"biome": PackedByteArray([biome])}
+
+
+## A species that names its biomes comes only onto their ground: wolves (taiga, forest,
+## tundra) on a forest, none on a meadow.
+func _test_biomes(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	var person := Who.new()
+	person.position = Vector3(40.0, 6.0, 40.0) * WorldData.CELL
+	life.people = [person]
+	var lay := OneBiome.new()
+	life.gen = lay
+	lay.biome = Biomes.index("biomes:forest")
+	life.start(2)
+	var wolves := life.count("animals:wolf")
+	lay.biome = Biomes.index("biomes:meadow")
+	life.animals.clear()
+	life.start(2)
+	_check(wolves == AiRules.SPECIES["animals:wolf"].count and life.count("animals:wolf") == 0
+		and life.count("animals:rabbit") == AiRules.SPECIES["animals:rabbit"].count,
+		"wolves come to a forest and not a meadow, rabbits to a meadow (%d, %d)" % [wolves, life.count("animals:wolf")])
 
 
 ## Swimmers (the perch bundle) keep to open water: one put into a pond stays a little
