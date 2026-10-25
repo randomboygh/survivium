@@ -10,13 +10,17 @@ extends RefCounted
 ## over to another place, take off from a threat and, roosting in trees, sleep in the
 ## crowns, where no walker reaches them; those that swim keep to open water, a little
 ## under its surface, where no walker reaches them either (and one that also flies
-## comes down on the water).
+## comes down on the water). A walker that roosts in trees climbs them: up the nearest
+## one from a threat and to sleep, down again when it is safe and awake, and no walker
+## reaches it up there. A species that names `biomes` comes into the world only on
+## their ground (the layout tells the biome of a column; without one, anywhere).
 
 const Body := preload("res://src/shared/game/body.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 
 const RESPAWN_EVERY := 15.0
 const CELL := WorldData.CELL
@@ -37,6 +41,10 @@ const CRUISE := 2.5
 const DESCENT := 4.0
 ## Chance a resting flyer flies over to another place each time it thinks.
 const FLY_CHANCE := 0.05
+## Chance a walker that likes some plants looks for them when it picks where to go.
+const GRAZE_CHANCE := 0.3
+## How far a climber looks for a tree to run up from a threat, in world units.
+const CLIMB_REACH := 6.0
 ## A swimmer keeps this far under the water surface, in cells.
 const DIP := 0.35
 ## A flock keeps within this many world units of its lead.
@@ -75,9 +83,11 @@ class Animal:
 	var wait := FAR_STEP
 	## It took a step this update (the client walks its picture).
 	var moving := false
-	## A flyer is in the air, or sits in a tree crown.
+	## A flyer is in the air, or sits in a tree crown (a climber too).
 	var flying := false
 	var perched := false
+	## A climber on its way to the tree its target is on top of.
+	var climb := false
 	## The one it follows in its flock, null for a lead or one alone, and its own
 	## place in the flock around the lead.
 	var lead: Animal = null
@@ -103,6 +113,9 @@ class Animal:
 
 
 var world
+## The layout of the land (LandLayout: `lay_out`), for the biome of a column, where
+## species keep to their biomes; null when any ground will do.
+var gen
 ## The clock, for the daylight that sets who is active.
 var clock
 ## Those the animals see as people (threats to the wary, see AiRules.HUMAN): anything
@@ -224,24 +237,43 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if not a.flying:
 				_take_off(a, spec, a.pos + away.normalized() * FLIGHT_AWAY, FLIGHT_AWAY * 0.3)
 			return
+		if spec.roost == "trees":
+			# A climber stays up its tree, or runs up the nearest one.
+			if a.perched or a.climb:
+				return
+			var tree: Variant = _tree_spot(spec, a.pos, CLIMB_REACH)
+			if tree != null:
+				a.target = tree
+				a.climb = true
+				return
 		# As far as the land or the water goes (see _move).
 		a.target = a.pos + away.normalized() * 6.0
 		return
 	if not AiRules.is_active(a.kind, _daylight):
-		# Flyers sleep in the crowns, near their lead; one that found none sleeps where
-		# it is.
+		# Flyers sleep in the crowns, near their lead, climbers up a tree near; one
+		# that found none sleeps where it is.
 		var was_resting := a.state == "rest"
 		a.state = "rest"
-		if spec.flies and spec.roost == "trees" and not a.aloft() and not was_resting:
+		if a.climb:
+			return
+		if spec.roost == "trees" and not a.aloft() and not was_resting:
 			var around: Vector3 = a.pos if lead == null or lead == a else lead.target
-			var tree: Variant = _tree_spot(spec, around, FLIGHT)
+			var tree: Variant = _tree_spot(spec, around, FLIGHT if spec.flies else CLIMB_REACH)
 			if tree != null:
 				a.target = tree
-				a.flying = true
+				if spec.flies:
+					a.flying = true
+				else:
+					a.climb = true
 				return
 		if not a.flying:
 			a.target = a.pos
 		return
+	if a.perched and not spec.flies:
+		# Safe and awake: a climber comes down.
+		a.perched = false
+		a.pos.y = ground(a.pos.x, a.pos.z)
+		a.target = a.pos
 	if prey != null and a.hunger > 0.5:
 		a.state = "hunt"
 		a.prey = prey
@@ -267,7 +299,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 		return
 	if was != "wander" or a.pos.distance_to(a.target) < 0.3 or rng.randf() < 0.05:
-		var to: Variant = null if spec.likes.is_empty() else _place(spec, a.pos, 6.0, false)
+		# A grazer looks for what it likes now and then (looking is the dear part of a
+		# walker's thinking), else it wanders.
+		var to: Variant = null if spec.likes.is_empty() or rng.randf() > GRAZE_CHANCE else _place(spec, a.pos, 6.0, false, 4)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
 
 
@@ -324,18 +358,18 @@ func _take_off(a: Animal, spec: Dictionary, around: Vector3, reach: float) -> vo
 	a.perched = false
 
 
-## A place to go within `reach` of `around`: of a few tried, one where something the
+## A place to go within `reach` of `around`: of `tries` tried, one where something the
 ## species likes grows, else any open ground (open water for a swimmer); a spot in a
 ## crown when `tree` and there is a tree near. Null when all of those tried are water
 ## or under crowns (land, for a swimmer).
-func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool) -> Variant:
+func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool, tries := 8) -> Variant:
 	if tree:
 		var spot: Variant = _tree_spot(spec, around, reach)
 		if spot != null:
 			return spot
 	var best := around
 	var best_score := -1
-	for i in 8:
+	for i in tries:
 		var p := around + Vector3(rng.randf_range(-reach, reach), 0.0, rng.randf_range(-reach, reach))
 		var x := floori(p.x / CELL)
 		var z := floori(p.z / CELL)
@@ -414,12 +448,19 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	var speed: float = spec.speed
 	match a.state:
 		"rest":
-			speed = 0.0
+			# A climber on its way up to sleep.
+			speed = speed * 0.3 if a.climb else 0.0
 		"wander":
 			# Flyers only hop about on the ground.
 			speed *= 0.1 if spec.flies else 0.3
 	var to := a.target - a.pos
 	to.y = 0.0
+	if a.climb and to.length() < 0.3:
+		# At the trunk: up into the crown.
+		a.pos = a.target
+		a.perched = true
+		a.climb = false
+		return
 	if speed > 0.0 and to.length() > 0.1:
 		var step := to.normalized() * minf(speed * delta, to.length())
 		var np := a.pos + step
@@ -448,6 +489,7 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 						world.tread(floori(a.pos.x / CELL), floori(a.pos.z / CELL), clock.now())
 		else:
 			a.target = a.pos
+			a.climb = false
 	_catch(a, spec)
 
 
@@ -579,6 +621,10 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 		var x := px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var y: int = world.surface_y(x, z)
+		if not spec.biomes.is_empty() and gen != null:
+			var b: int = gen.lay_out(x, z, 1, 1).biome[0]
+			if b == Biomes.NONE or not Biomes.IDS[b] in spec.biomes:
+				continue
 		if spec.swims:
 			# Open water, a cell deep at least.
 			if y != -1 or WorldData.top_level(world.water_col(x, z)) < 1 \

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws the animals' pictures: content/animals/<bundle>/sprites/creatures/<sprite>.png, a row
+"""Draws the animals' pictures (all but the sparrow): content/animals/<bundle>/sprites/creatures/<sprite>.png, a row
 of frames (the first standing, the next two a walk, or a flyer's wings up and down), the animal
 facing right, with a dark outline round it like the player's. Each animal is a few filled
 shapes on a pixel canvas, so the sheets are easy to change here and remake:
@@ -314,7 +314,100 @@ def frog(f):
     return c
 
 
+def rabbit(f):
+    b = (168, 134, 104, 255)
+    l = (214, 190, 160, 255)
+    c = Canvas(13, 12)
+    c.ellipse(1, 5, 10, 11, b)  # body, hunched
+    c.ellipse(7, 3, 12, 8, b)  # head
+    c.rect(9, 0, 9, 3, b)  # ears
+    c.rect(11, 0, 11, 3, b)
+    c.dot(9, 1, l)
+    c.dot(11, 1, l)
+    c.ellipse(3, 8, 8, 11, l)  # belly
+    c.dot(0, 7, l)  # tail
+    c.dot(10, 5, DARK_EYE)
+    c.dot(12, 6, (200, 130, 130, 255))  # nose
+    legs(c, f, [(9, 2)], b, 10, 11)
+    c.rect(1, 11, 3, 11, b) if f == 0 else None
+    return c
+
+
+def squirrel(f):
+    r = (190, 96, 48, 255)
+    l = (230, 200, 160, 255)
+    c = Canvas(12, 12)
+    # The tail curls up behind.
+    c.ellipse(0, 1, 4, 9, r)
+    c.ellipse(1, 2, 3, 6, (214, 120, 66, 255))
+    c.ellipse(4, 6, 10, 11, r)  # body
+    c.ellipse(7, 3, 11, 7, r)  # head
+    c.dot(8, 2, r)  # ear tufts
+    c.dot(10, 2, r)
+    c.rect(6, 8, 8, 10, l)  # belly
+    c.dot(10, 4, DARK_EYE)
+    legs(c, f, [(9, 5)], r, 10, 11)
+    return c
+
+
+def cat(f):
+    g = (124, 122, 132, 255)
+    d = (84, 82, 94, 255)
+    c = Canvas(16, 11)
+    c.ellipse(3, 4, 13, 9, g)  # body
+    c.ellipse(10, 1, 15, 6, g)  # head
+    c.dot(11, 0, g)  # ears
+    c.dot(14, 0, g)
+    c.dot(13, 3, EYE)
+    c.line(5, 5, 11, 5, d)  # a dark stripe along the back
+    c.line(7, 6, 7, 8, d)
+    c.line(10, 6, 10, 8, d)
+    c.line(0, 2, 3, 5, d)  # tail up
+    legs(c, f, [(12, 10), (6, 4)], g, 9, 10)
+    return c
+
+
+def deer(f):
+    b = (160, 112, 64, 255)
+    l = (214, 186, 140, 255)
+    d = (96, 66, 40, 255)
+    c = Canvas(17, 19)
+    c.ellipse(1, 8, 12, 14, b)  # body
+    c.line(11, 7, 13, 3, b)  # neck
+    c.line(12, 7, 14, 3, b)
+    c.ellipse(12, 2, 16, 5, b)  # head
+    c.dot(16, 4, d)  # nose
+    c.dot(14, 3, DARK_EYE)
+    c.line(13, 1, 12, 0, d)  # antlers
+    c.line(13, 1, 14, 0, d)
+    c.dot(11, 0, d)
+    c.rect(4, 12, 10, 14, l)  # belly
+    c.dot(0, 9, l)  # tail
+    legs(c, f, [(11, 9), (4, 2)], d, 14, 18, hoof=d)
+    return c
+
+
+def wolf(f):
+    g = (120, 118, 122, 255)
+    d = (74, 70, 76, 255)
+    l = (190, 188, 192, 255)
+    c = Canvas(20, 14)
+    c.ellipse(2, 4, 15, 11, g)  # body
+    c.rect(4, 4, 13, 5, d)  # dark back
+    c.ellipse(12, 2, 18, 7, g)  # head
+    c.rect(17, 5, 19, 6, g)  # muzzle
+    c.dot(19, 6, d)
+    c.dot(13, 1, d)  # ears
+    c.dot(16, 1, d)
+    c.dot(16, 4, EYE)
+    c.rect(12, 7, 16, 9, l)  # chest
+    c.line(0, 4, 3, 6, d)  # tail
+    legs(c, f, [(14, 12), (6, 4)], d, 11, 13)
+    return c
+
+
 SHEETS = {
+    "rabbit": rabbit, "squirrel": squirrel, "cat": cat, "deer": deer, "wolf": wolf,
     "fox": fox, "boar": boar, "bear": bear, "hedgehog": hedgehog, "crow": crow, "owl": owl,
     "duck": duck, "butterfly": butterfly, "perch": perch, "frog": frog,
 }

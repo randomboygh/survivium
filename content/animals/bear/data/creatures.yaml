@@ -1,6 +1,7 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; biomes — где он живёт
+# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 # Самый тяжёлый зверь: всеядный, охотится на всё до 200 кг, людей не боится; любит грибные места.
 - id: bear
   title: Медведь
@@ -12,6 +13,7 @@
   active: any
   count: 2
   sprite: bear
+  biomes: [biomes:forest, biomes:taiga]
   frames: 3
   likes: [plants:mushrooms]
   calls: bear

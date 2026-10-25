@@ -245,6 +245,7 @@ func start_world() -> void:
 	clock.gen = gen
 	wildlife = Wildlife.new()
 	wildlife.world = world
+	wildlife.gen = gen
 	wildlife.clock = clock
 	actions = WorldActions.new(world, clock, settings)
 	actions.cell_changed.connect(chunks.on_cell_changed)

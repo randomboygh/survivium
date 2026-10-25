@@ -1,6 +1,7 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; biomes — где он живёт
+# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 # Стадо кабанов: вожак и за ним остальные (flock); людей почти не боится.
 - id: boar
   title: Кабан
@@ -12,6 +13,7 @@
   active: any
   count: 4
   sprite: boar
+  biomes: [biomes:forest, biomes:swamp]
   frames: 3
   flock: [2, 4]
   likes: [plants:mushrooms]

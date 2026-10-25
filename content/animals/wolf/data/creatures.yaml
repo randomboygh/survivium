@@ -1,6 +1,7 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла; голоса (calls, alarm) — его sounds.yaml.
+# sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
+# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 - id: wolf
   title: Волк
   mass: 40
@@ -11,5 +12,8 @@
   active: night
   count: 4
   sprite: wolf
+  frames: 3
+  flock: [2, 3]
+  biomes: [biomes:taiga, biomes:forest, biomes:tundra]
   calls: wolf_howl
   alarm: wolf_growl

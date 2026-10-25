@@ -10,7 +10,7 @@ const HUMAN := "core:human"
 
 ## id -> record from `content/*/data/creatures.yaml` (see Content): title, mass,
 ## diet, speed, sight, human_wariness, active, count, sprite, frames, flies, swims,
-## flock, roost, likes.
+## flock, roost, likes, biomes.
 static var SPECIES := {}
 
 
