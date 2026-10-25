@@ -13,7 +13,7 @@ README are in Russian; code, comments, commits and PRs are in English. Scripts a
 src/shared/   the world model and the rules of play the server will run; loads nothing from src/client
   content/    mod loader and registries (content, yaml, materials, items, trees, bushes, plants,
               crafting, tools, ai_rules)
-  world/      world_data, world_gen, world_store, voxel_raycast, grass, test_ground
+  world/      world_data, land_layout, world_gen (extends it), world_store, voxel_raycast, grass, test_ground
   game/       rules: inventory, vitals, knowledge, craft_queue, workshop, world_actions, body, placed,
               clock, real_weather, storms, character, wildlife
 src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the top
@@ -47,7 +47,7 @@ tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, ma
 | Module | What it owns |
 | --- | --- |
 | `world_data.gd` | cells in `Chunk`s by key (`chunk_at`, `chunk_key`; `>>`/`&` for negative coordinates); an absent chunk reads as air (stone below 0) and blocks bodies; `blockers`, `drops`, `grows`, `track_edits` / `note_edit` for saving |
-| `world_gen.gd` | everything from noise: slow noises on a lattice every `LATTICE` cells, distances to coast and river, `DEFAULT_SETTINGS` from the setup screen; mountains, scree and snow above `SNOW_LINE`, rivers in steps (rapids, falls), deltas, caves (`_tunnels`); three stages per chunk, `TERRAIN` → `PLANTED` (trees, needs TERRAIN on the 3×3 around) → `SHAPED` (slopes, corners, bushes; needs PLANTED around), stepped a row or a tree at a time through `start`/`step` jobs; the result does not depend on the order chunks are made in (tested); unedited chunks beyond `DROP_RANGE` are forgotten (`forget`) and made again the same; `lay_out` gives the layout of any window (maps, setup screen, `find_place`) |
+| `land_layout.gd`, `world_gen.gd` | the layout of any window of columns from noise (`lay_out`: height, water, top, biome, flags; maps, the setup screen and `find_place` read it): slow noises on a lattice every `LATTICE` cells, distances to coast and river, `DEFAULT_SETTINGS` from the setup screen; mountains, scree and snow above `SNOW_LINE`, rivers in steps (rapids, falls), deltas, caves (`_tunnels`). `WorldGen` extends it and writes the cells: three stages per chunk, `TERRAIN` → `PLANTED` (trees, needs TERRAIN on the 3×3 around) → `SHAPED` (slopes, corners, bushes; needs PLANTED around), stepped a row or a tree at a time through `start`/`step` jobs; the result does not depend on the order chunks are made in (tested); unedited chunks beyond `DROP_RANGE` are forgotten (`forget`) and made again the same |
 | `world_store.gd`, `save_game.gd` | one folder per world under `user://saves`: `world.json`, players, only the changed chunks (`WorldGen.pack`), map regions; modules keep their part of the player with `save.track(name, obj)` (`to_dict`/`from_dict`); autosave; a saved chunk comes back SHAPED |
 | `chunk_streamer.gd` | generates and meshes chunks within `LOAD_RANGE`, frees beyond `UNLOAD_RANGE`; per-frame budgets (edits, then far chunks, then caps); the level cut and `_hiding_level`; `refit_boxes` per view |
 | `chunk_mesher.gd`, `foliage.gd`, `mesh_buffers.gd` | the chunk meshes built a column at a time: cells, cut corners and caps (`build_cap`); the parts it calls per column extend `mesh_faces.gd` (the face tables, packed words and drawing primitives): `slope_mesher.gd` (slopes, `patch`), `water_mesher.gd` (surface, shore, falls), `trunk_mesher.gd` (bark); plants and crowns |
