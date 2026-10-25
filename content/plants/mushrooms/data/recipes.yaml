@@ -1,0 +1,9 @@
+# Рецепты мода «Растения»: что делают из зерна, мха и грибов. Поля — как у рецептов основы
+# (content/core/data/recipes.yaml); волокно и станки — записи основы.
+
+- id: fried_mushrooms
+  title: Жареные грибы
+  makes: fried_mushrooms
+  needs: {mushroom: 4}
+  at: core:campfire
+  time: 4

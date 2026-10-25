@@ -184,7 +184,10 @@ func _mod_rows(s) -> void:
 		return
 	var mod := _page.trim_prefix("mod:")
 	_header(Mods.mod_title(mod))
-	for bundle: String in Mods.bundles(mod):
+	# The bundles by their names, so the player reads a list, not the folders' order.
+	var bundles: Array = Mods.bundles(mod).duplicate()
+	bundles.sort_custom(func(a: String, b: String) -> bool: return Mods.title(a).naturalnocasecmp_to(Mods.title(b)) < 0)
+	for bundle: String in bundles:
 		var b := bundle
 		var need: String = state.dropped.get(bundle, "")
 		_add_row(Mods.title(bundle), ["выкл", "вкл"],

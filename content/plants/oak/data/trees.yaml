@@ -28,19 +28,3 @@
   hits: 6
   twigs: 4
   seeds: 3
-- id: spruce
-  title: Ель
-  leaves: needles
-  land: highland
-  trunk: [1, 1]
-  girth: [7, 10]
-  taper: 0.2
-  crook: 0
-  roots: [0, 2]
-  crown: [2.3, 5, 7]
-  tints: ["#2e5738", "#335c36", "#2b523d"]
-  bare: 0.0
-  seed: cone
-  hits: 4
-  twigs: 3
-  seeds: 2

@@ -1,0 +1,7 @@
+# Рецепты мода «Растения»: что делают из зерна, мха и грибов. Поля — как у рецептов основы
+# (content/core/data/recipes.yaml); волокно и станки — записи основы.
+- id: bandage
+  title: Бинт
+  makes: bandage
+  needs: {moss: 2, core:fiber: 2}
+  time: 3

@@ -1,0 +1,26 @@
+# Предметы мода «Растения»: семена деревьев, ягоды, кусты для посадки, семена трав и зерно,
+# что растения дают (мох, грибы) и что из этого делают (мука, лепёшка, бинт). Поля —
+# как у предметов основы (content/core/data/items.yaml). plant — куст этого мода, который
+# сажает предмет; sow — материал основы, на который сеют семена; crop — что из них вырастает.
+- id: grain
+  title: Зерно
+  weight: 0.02
+  stack: 50
+  model: grain
+  icon: grain
+  sow: core:grass
+  crop: ears
+- id: flour
+  title: Мука
+  weight: 0.1
+  stack: 30
+  model: flour
+  icon: flour
+- id: flatbread
+  title: Лепёшка
+  weight: 0.2
+  stack: 10
+  food: 25
+  model: flatbread
+  icon: flatbread
+  anim: eat

@@ -1,0 +1,19 @@
+# Предметы мода «Растения»: семена деревьев, ягоды, кусты для посадки, семена трав и зерно,
+# что растения дают (мох, грибы) и что из этого делают (мука, лепёшка, бинт). Поля —
+# как у предметов основы (content/core/data/items.yaml). plant — куст этого мода, который
+# сажает предмет; sow — материал основы, на который сеют семена; crop — что из них вырастает.
+- id: raspberry
+  title: Малина
+  weight: 0.1
+  stack: 30
+  food: 4
+  model: raspberry
+  icon: raspberry
+  anim: eat
+- id: raspberry_bush
+  title: Куст малины
+  weight: 2.0
+  stack: 5
+  model: bush
+  icon: bush_raspberry
+  plant: raspberry
