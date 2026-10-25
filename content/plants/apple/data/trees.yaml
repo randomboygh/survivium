@@ -1,0 +1,22 @@
+# Порода дерева: как оно выглядит (поля — как у дуба, content/plants/oak/data/trees.yaml). bark — своя
+# текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
+# рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
+# seed — яблоко: остаётся от срубленной яблони и собирается руками осенью (seeds).
+- id: apple
+  title: Яблоня
+  leaves: broad
+  trunk: [3, 4]
+  girth: [7, 10]
+  taper: 0.4
+  crook: 2
+  roots: [1, 2]
+  crown: [1.9, 1.3, 1.7]
+  tints: ["#4e8a3e", "#558f42", "#48843c"]
+  bare: 1.0
+  bark: apple_bark
+  seed: apple
+  log: resources:log
+  twig: resources:branch
+  hits: 4
+  twigs: 3
+  seeds: 5

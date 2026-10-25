@@ -143,6 +143,28 @@ func _check_textures() -> PackedStringArray:
 			out.append("materials: `%s`: no texture %s" % [Mat.IDS[m], path])
 		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.TILE * 3, PixelTextures.TILE):
 			out.append("materials: `%s`: %s is not three tiles of %d px in a row" % [Mat.IDS[m], path.get_file(), PixelTextures.TILE])
+	# A tree's own bark is a texture like a material's; a custom plant's picture is a
+	# row of frames of the plant size.
+	for i in Trees.SPECIES.size():
+		var path := Trees.bark_path(i)
+		if path == "":
+			continue
+		if not ResourceLoader.exists(path):
+			out.append("trees: `%s`: no bark texture %s" % [Trees.SPECIES[i].id, path])
+		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.TILE * 3, PixelTextures.TILE):
+			out.append("trees: `%s`: %s is not three tiles of %d px in a row" % [Trees.SPECIES[i].id, path.get_file(), PixelTextures.TILE])
+	var barks := 0
+	for i in Trees.SPECIES.size():
+		if Trees.bark_path(i) != "":
+			barks += 1
+	if Mat.COUNT + barks > PixelTextures.MOST_MATERIALS:
+		out.append("materials: %d materials and %d barks, the atlas holds %d together" % [Mat.COUNT, barks, PixelTextures.MOST_MATERIALS])
+	for c in Plants.CUSTOM:
+		var path := Plants.sprite_path(c)
+		if not ResourceLoader.exists(path):
+			out.append("plants: `%s`: no picture %s" % [c.id, path])
+		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.PLANT_W * c.frames, PixelTextures.PLANT_H):
+			out.append("plants: `%s`: %s is not %d frames of %dx%d px" % [c.id, path.get_file(), c.frames, PixelTextures.PLANT_W, PixelTextures.PLANT_H])
 	return out
 
 

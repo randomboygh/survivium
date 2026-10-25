@@ -162,6 +162,9 @@ func _run() -> void:
 		if shot.get("grove", false):
 			# Away from the campfire by the spawn, which melts the snow around it.
 			places.grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
+		if shot.get("orchard", false):
+			# South of the spawn, within the chunks loaded there (the grove is north, the clearing east).
+			places.orchard(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, 48))
 		if shot.get("clearing", false):
 			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
 			main.player.position += shot.get("offset", Vector3.ZERO)

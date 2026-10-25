@@ -187,6 +187,11 @@ const SHOTS := {
 	"grove-spring": {"time": 0.42, "season": 0, "grove": true},
 	"grove-autumn-morning": {"time": 0.31, "season": 2, "grove": true},
 
+	# One tree of every species in a row (with the plants of the shade under their crowns), a
+	# bush of every type before them: the plants mod's bundles side by side, in summer and
+	# in autumn, when the berries and the fruit are ripe.
+	"orchard": {"time": 0.42, "season": 1, "orchard": true},
+	"orchard-autumn": {"time": 0.42, "season": 2, "orchard": true},
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},

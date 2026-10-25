@@ -24,7 +24,8 @@ const TREE_REACH := 8
 ## Index -> record from `content/*/data/trees.yaml` (see Content): id, title,
 ## leaves (BROAD or NEEDLES), trunk [min, max], crown [3 radii], tints (Colors),
 ## bare (share of trees that drop their leaves in winter), seed (the item a felled
-## tree drops besides logs and branches, "" none). What each means is in the data file; a tree is noted in WorldData.trees by its species index.
+## tree drops besides logs and branches, "" none), bark (the texture of its trunk,
+## textures/<bark>.png of its bundle like a material's, "" the log's own). What each means is in the data file; a tree is noted in WorldData.trees by its species index.
 static var SPECIES: Array = []
 
 
@@ -38,6 +39,12 @@ static func refresh() -> void:
 		var s: Dictionary = r.duplicate()
 		s.leaves = NEEDLES if r.leaves == "needles" else BROAD
 		SPECIES.append(s)
+
+
+## The path of the bark texture of species `i`, "" when it has the log's.
+static func bark_path(i: int) -> String:
+	var s: Dictionary = SPECIES[i]
+	return "" if s.bark == "" else Content.asset(s, "textures/%s.png" % s.bark)
 
 
 ## Index of the species with `id`, or -1.
@@ -55,13 +62,27 @@ static func any(roll: float) -> int:
 	return mini(int(roll * SPECIES.size()), SPECIES.size() - 1)
 
 
-## The first loaded species with `leaves` (BROAD or NEEDLES; -1 any), or -1: what the test
-## world, the shots and the tests plant where the plan says an oak or a spruce.
+## The commonest species with `leaves` (BROAD or NEEDLES; -1 any): the one the loaded
+## biomes give the largest share together (ties and species no biome names: by load
+## order), or -1. What the test world, the shots and the tests plant where the plan says an
+## oak or a spruce, whatever the mods call them.
 static func first(leaves := -1) -> int:
-	for i in SPECIES.size():
-		if leaves < 0 or SPECIES[i].leaves == leaves:
-			return i
-	return -1
+	return commonest(SPECIES, "trees", func(s: Dictionary) -> bool: return leaves < 0 or s.leaves == leaves)
+
+
+## The index in `list` (records with ids) of the record `fits` takes that the loaded biomes
+## give the largest share of in their `field` (`trees` or `bushes`), ties and records no
+## biome names by load order; -1 when none fits.
+static func commonest(list: Array, field: String, fits: Callable) -> int:
+	var shares := {}
+	for b in Content.records("biomes"):
+		for id in b.get(field, {}):
+			shares[id] = shares.get(id, 0.0) + b[field][id]
+	var best := -1
+	for i in list.size():
+		if fits.call(list[i]) and (best < 0 or shares.get(list[i].id, 0.0) > shares.get(list[best].id, 0.0)):
+			best = i
+	return best
 
 
 ## What is wrong with the loaded trees for the engine, if anything.

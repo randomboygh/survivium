@@ -43,16 +43,20 @@ static func index(id: String) -> int:
 	return -1
 
 
-## The first loaded type with berries (`berries` true) or without, skipping `skip` such
-## types, or -1: what the test world, the shots and the tests plant where the plan says
-## a raspberry, a blueberry or a plain shrub.
+## The commonest type with berries (`berries` true) or without, skipping `skip` such
+## types, or -1: the ones the loaded biomes give the largest share together first (see
+## Trees.commonest). What the test world, the shots and the tests plant where the plan
+## says a raspberry, a blueberry or a plain shrub, whatever the mods call them.
 static func first(berries: bool, skip := 0) -> int:
-	for i in TYPES.size():
-		if (TYPES[i].berries != Color.BLACK) == berries:
-			if skip == 0:
-				return i
-			skip -= 1
-	return -1
+	var taken := {}
+	var found := -1
+	for k in skip + 1:
+		found = Trees.commonest(TYPES, "bushes", func(b: Dictionary) -> bool:
+			return (b.berries != Color.BLACK) == berries and not taken.has(b.id))
+		if found < 0:
+			return -1
+		taken[TYPES[found].id] = true
+	return found
 
 
 ## What is wrong with the loaded bushes for the engine, if anything.

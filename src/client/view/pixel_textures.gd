@@ -4,6 +4,8 @@ extends RefCounted
 ## The palette is muted and warm; mood and colour shifts come from the colour grade.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 
 const TILE := 16
@@ -38,6 +40,12 @@ const BERRY_ALPHA := 0.65
 static var atlas_image: Image
 ## The average colour of each material's top tile (maps, particles), by material.
 static var tints: PackedColorArray = []
+## The bark of each tree species (Trees.SPECIES, a species' `bark` texture) as the
+## material whose tiles it took in the atlas after the real ones, -1 for the log's own;
+## the trunk mesher draws the trunk with it. The tiles are 6 bits in the mesh (63 none),
+## so there is room for MOST_MATERIALS materials and barks together.
+static var bark_material: PackedInt32Array = []
+const MOST_MATERIALS := 21
 
 
 ## The atlas of the materials' textures, each read from its mod (Mat.texture_path: three
@@ -54,16 +62,45 @@ static func build_atlas() -> ImageTexture:
 		var tex := texture_of(m)
 		if tex == null:
 			continue
-		for kind in 3:
-			var tile := m * 3 + kind
-			img.blit_rect(tex, Rect2i(kind * TILE, 0, TILE, TILE), Vector2i((tile % TILES) * TILE, floori(tile / float(TILES)) * TILE))
+		_blit_tiles(img, tex, m)
 		var sum := Color.BLACK
 		for py in TILE:
 			for px in TILE:
 				sum += tex.get_pixel(px, py)
 		tints[m] = sum / float(TILE * TILE)
+	# The barks of the tree species after the materials, each a material of its own
+	# to the mesh and the shader.
+	bark_material = []
+	bark_material.resize(Trees.SPECIES.size())
+	var next := Mat.COUNT
+	for i in Trees.SPECIES.size():
+		bark_material[i] = -1
+		var tex := _three_tiles(Trees.bark_path(i))
+		if tex == null:
+			continue
+		if next >= MOST_MATERIALS:
+			push_warning("no room in the atlas for the bark of %s" % Trees.SPECIES[i].id)
+			continue
+		_blit_tiles(img, tex, next)
+		bark_material[i] = next
+		next += 1
 	atlas_image = img
 	return ImageTexture.create_from_image(img)
+
+
+## How many materials the atlas holds, the barks included (see bark_material).
+static func material_count() -> int:
+	var n := Mat.COUNT
+	for b in bark_material:
+		if b >= 0:
+			n += 1
+	return n
+
+
+static func _blit_tiles(img: Image, tex: Image, m: int) -> void:
+	for kind in 3:
+		var tile := m * 3 + kind
+		img.blit_rect(tex, Rect2i(kind * TILE, 0, TILE, TILE), Vector2i((tile % TILES) * TILE, floori(tile / float(TILES)) * TILE))
 
 
 ## The texture of material `m` as its mod gives it, null when it is missing or not
@@ -71,8 +108,12 @@ static func build_atlas() -> ImageTexture:
 static func texture_of(m: int) -> Image:
 	if m <= 0 or m >= Mat.COUNT:
 		return null
-	var path := Mat.texture_path(m)
-	if not ResourceLoader.exists(path):
+	return _three_tiles(Mat.texture_path(m))
+
+
+## The image at `path` when it is three tiles of TILE px in a row, else null.
+static func _three_tiles(path: String) -> Image:
+	if path == "" or not ResourceLoader.exists(path):
 		return null
 	var tex: Texture2D = load(path)
 	var img := tex.get_image() if tex != null else null
@@ -97,8 +138,21 @@ static func tint(m: int) -> Color:
 ## 14..17 and tall grass 18..21 (both masks like the tufts), cushions of moss 22..23,
 ## groups of mushrooms 24..25 and of glowing mushrooms 26..27, a spore 28 (see Grass).
 static func build_plants() -> ImageTexture:
-	var img := Image.create_empty(PLANT_W * PLANTS, PLANT_H, false, Image.FORMAT_RGBA8)
+	var img := Image.create_empty(PLANT_W * (PLANTS + Plants.custom_frames()), PLANT_H, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
+	# The mods' own plants after the engine's (Plants.CUSTOM, Grass.CUSTOM): each a
+	# row of frames of its picture, blank where the picture is missing or of another
+	# size (the validator reports it).
+	for c in Plants.CUSTOM:
+		var path := Plants.sprite_path(c)
+		if not ResourceLoader.exists(path):
+			continue
+		var tex: Texture2D = load(path)
+		var pic := tex.get_image() if tex != null else null
+		if pic == null or pic.get_width() != PLANT_W * c.frames or pic.get_height() != PLANT_H:
+			continue
+		pic.convert(Image.FORMAT_RGBA8)
+		img.blit_rect(pic, Rect2i(0, 0, pic.get_width(), PLANT_H), Vector2i(PLANT_W * (PLANTS + c.first), 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:

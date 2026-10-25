@@ -1,0 +1,19 @@
+# Порода дерева: как оно выглядит (поля — как у дуба, content/plants/oak/data/trees.yaml). bark — своя
+# текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
+# рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
+- id: willow
+  title: Ива
+  leaves: broad
+  trunk: [3, 5]
+  girth: [8, 13]
+  taper: 0.5
+  crook: 4
+  roots: [2, 4]
+  crown: [2.4, 1.0, 2.2]
+  tints: ["#7f9d4e", "#8aa65a", "#76964a"]
+  bare: 0.8
+  bark: willow_bark
+  log: resources:log
+  twig: resources:branch
+  hits: 5
+  twigs: 6

@@ -1,0 +1,9 @@
+# Предметы бандла: поля — как у предметов основы (content/core/data/items.yaml).
+- id: cranberry
+  title: Клюква
+  weight: 0.05
+  stack: 50
+  food: 2
+  model: cranberry
+  icon: cranberry
+  anim: eat

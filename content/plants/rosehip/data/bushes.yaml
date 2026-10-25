@@ -1,0 +1,14 @@
+# Куст: поля — как у малины (content/plants/raspberry/data/bushes.yaml). Где он растёт, говорят биомы.
+- id: rosehip
+  title: Шиповник
+  tint: "#3e6a2c"
+  berries: "#c8321e"
+  berry_cards: 0.4
+  cards: 10
+  rise: 0.42
+  spread: [0.3, 0.42, 0.22]
+  fruit: rosehip
+  fruit_count: [2, 4]
+  twigs: 3
+  twig: resources:branch
+  item: rosehip_bush

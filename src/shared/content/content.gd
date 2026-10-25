@@ -131,6 +131,7 @@ const SCHEMAS := {
 		"roots": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
+		"bark": {"type": "string", "default": ""},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"seed": {"type": "ref:items", "soft": true, "default": ""},
 		"log": {"type": "ref:items", "soft": true, "default": ""},
@@ -185,11 +186,16 @@ const SCHEMAS := {
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
-			"mushrooms", "glow_mushrooms"]},
+			"mushrooms", "glow_mushrooms", "custom"]},
 		"gives": {"type": "amounts", "of": "ref:items", "soft": true},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		"pick": {"type": "bool", "default": false},
 		"winter": {"type": "bool", "default": true},
+		"sprite": {"type": "string", "default": ""},
+		"frames": {"type": "int", "min": 1, "default": 1},
+		"grows": {"type": "enum", "values": ["meadow", "shade", "bank"], "default": "meadow"},
+		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
+		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 	},
 }
 const MOD_SCHEMA := {

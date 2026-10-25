@@ -31,6 +31,9 @@ const MUSHROOM := 24
 const GLOW := 26
 const SPORE := 28
 const HALO := 29
+## The plants the mods bring with their own pictures (Plants.CUSTOM) take the kinds
+## from here on, a kind per frame: CUSTOM + the plant's `first` + the frame.
+const CUSTOM := 30
 ## Grass tiers by the patch noise.
 const BARE_TIER := 0
 const LOW_TIER := 1
@@ -58,6 +61,8 @@ const STONE_MOSS := 0.66
 static var moss_noise: FastNoiseLite
 static var mushroom_noise: FastNoiseLite
 static var glow_noise: FastNoiseLite
+## The clumps of each custom plant that grows in clumps: id -> noise.
+static var custom_noises := {}
 ## The tileable noise of the ground patches, the clouds and the water's ripples (see
 ## PixelTextures.build_cloud_noise), kept so scripts read the same patches the shaders do.
 static var cloud_image: Image
@@ -186,7 +191,36 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 	if m != Mat.BEACH and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
+	if not Plants.CUSTOM.is_empty():
+		_custom(w, x, y, z, m, out, rng)
 	return loaded(out)
+
+
+## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
+## grass, the shade of a crown, a bank), on the share of that ground its `cover` says,
+## and only in clumps where its own noise is above `clumps` when that is set.
+static func _custom(w, x: int, y: int, z: int, m: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+	var shaded: bool = w.leaf_col(x, z) != 0
+	for c in Plants.CUSTOM:
+		match c.grows:
+			"meadow":
+				if m != Mat.GRASS or shaded or tier_at(x, z) == BARE_TIER:
+					continue
+			"shade":
+				if m != Mat.GRASS or not shaded:
+					continue
+			"bank":
+				if m == Mat.BEACH or not _by_water(w, x, y, z):
+					continue
+		if c.clumps > -1.0:
+			var noise: FastNoiseLite = custom_noises.get(c.id)
+			if noise == null:
+				noise = _field_noise(hash(c.id), 0.1)
+				custom_noises[c.id] = noise
+			if noise.get_noise_2d(x, z) < c.clumps:
+				continue
+		if rng.randf() < c.cover:
+			out.append(CUSTOM + c.first + rng.randi_range(0, c.frames - 1))
 
 
 ## The plants of a column whose growth the world sets (`grow`, one of GROW_*), added to
@@ -297,6 +331,8 @@ static func turf_kinds(grown_kinds: Array[int], grown: String, rng: RandomNumber
 
 ## The id (see Plants) of plant kind `kind`, "" when no loaded plant is of that kind.
 static func plant_of(kind: int) -> String:
+	if kind >= CUSTOM:
+		return Plants.custom_of(kind - CUSTOM)
 	if kind >= GLOW:
 		return Plants.GLOW
 	if kind >= MUSHROOM:
