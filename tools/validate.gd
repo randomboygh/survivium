@@ -20,7 +20,12 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
 
 func _init() -> void:
-	var problems := Content.problems.duplicate()
+	# The full set, strictly: a soft reference to nothing is a mistake too.
+	Content.strict = true
+	# A copy of its own (see Mods.activate): the loader makes a new list with every set.
+	var problems := Mods.rescan()
+	for b in Content.dropped:
+		problems.append("%s: left out, needs `%s`" % [b, Content.dropped[b]])
 	problems.append_array(Mat.check())
 	problems.append_array(AiRules.check())
 	problems.append_array(Trees.check())
@@ -34,7 +39,8 @@ func _init() -> void:
 	problems.append_array(_check_icons())
 	problems.append_array(_check_sound_files())
 	problems.append_array(_check_textures())
-	problems.append_array(_check_each_mod())
+	Content.strict = false
+	problems.append_array(_check_each_bundle())
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():
@@ -46,14 +52,16 @@ func _init() -> void:
 	quit(1 if problems.size() > 0 else 0)
 
 
-## Every mod loads clean with only the mods it requires, so a world made without the
-## others still works (and the engine finds what it needs).
-func _check_each_mod() -> PackedStringArray:
+## Every bundle loads clean with only what it cannot do without, so a world made
+## without the others still works (and the engine finds what it needs).
+func _check_each_bundle() -> PackedStringArray:
 	var out: PackedStringArray = []
-	var all := Mods.available()
-	for mod in all:
-		var set := Mods.closure(mod, all)
+	var all := Mods.all()
+	for bundle in all:
+		var set := Mods.closure(bundle, all)
 		var problems := Mods.activate(set)
+		if not Content.dropped.is_empty():
+			problems.append("left out: %s" % [Content.dropped])
 		problems.append_array(Mat.check())
 		problems.append_array(AiRules.check())
 		problems.append_array(Trees.check())
@@ -62,7 +70,7 @@ func _check_each_mod() -> PackedStringArray:
 		problems.append_array(Crafting.check())
 		problems.append_array(Plants.check())
 		for p in problems:
-			out.append("with mods %s only: %s" % [", ".join(set), p])
+			out.append("with %s only: %s" % [", ".join(set), p])
 	Mods.activate(all)
 	return out
 
@@ -93,7 +101,7 @@ func _check_held() -> PackedStringArray:
 			out.append("items: `%s`: `%s` takes %d hands, not %d" % [id, item.anim, work.hands, item.hands])
 		if item.sprite == "":
 			continue
-		var path := "res://content/%s/sprites/held/%s.png" % [item.mod, item.sprite]
+		var path := Content.asset(item, "sprites/held/%s.png" % item.sprite)
 		if not ResourceLoader.exists(path):
 			out.append("items: `%s`: no picture %s" % [id, path])
 			continue
@@ -104,14 +112,14 @@ func _check_held() -> PackedStringArray:
 	return out
 
 
-## Each item's picture is there, in its mod, square; the interface's pictures are in assets/ui.
+## Each item's picture is there, in its bundle, square; the interface's pictures are in assets/ui.
 func _check_icons() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for id in Items.IDS:
 		var item := Items.get_item(id)
 		if item.icon == "":
 			continue
-		var path := ItemIcons.icon_path(item.mod, item.icon)
+		var path := ItemIcons.icon_path(item)
 		if not ResourceLoader.exists(path):
 			out.append("items: `%s`: no picture %s" % [id, path])
 		elif Vector2i(load(path).get_size()) != Vector2i(12, 12):
@@ -122,7 +130,7 @@ func _check_icons() -> PackedStringArray:
 	return out
 
 
-## Every material but air has its texture in its mod, three tiles side by side (see
+## Every material but air has its texture in its bundle, three tiles side by side (see
 ## Mat.texture_path), and the roles the loaded trees need are given.
 func _check_textures() -> PackedStringArray:
 	var out: PackedStringArray = []
@@ -135,7 +143,7 @@ func _check_textures() -> PackedStringArray:
 	return out
 
 
-## Each item's model is there, in its mod, a row of square slices (see VoxelModel.from_image);
+## Each item's model is there, in its bundle, a row of square slices (see VoxelModel.from_image);
 ## a thing placed on cells has one.
 func _check_models() -> PackedStringArray:
 	var out: PackedStringArray = []
@@ -146,7 +154,7 @@ func _check_models() -> PackedStringArray:
 			if item.get("prop", "none") in ["chest", "workbench", "kiln"]:
 				out.append("items: `%s`: a thing placed on cells needs a `model`" % id)
 			continue
-		var path := VoxelProps.model_path(item.mod, name)
+		var path := VoxelProps.model_path(item, name)
 		if not ResourceLoader.exists(path):
 			out.append("items: `%s`: no model %s" % [id, path])
 			continue

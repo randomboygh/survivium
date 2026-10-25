@@ -11,7 +11,7 @@ const Synth := preload("res://tools/sound/synth.gd")
 ## Seconds of the loops, and how much of their end is faded into their start.
 const LOOP := 8.0
 const OVERLAP := 1.0
-## name: [mod, variants, loop]; the sound is made by the method `_<name>`.
+## name: [bundle folder under content/, variants, loop]; the sound is made by the method `_<name>`.
 const SOUNDS := {
 	# Nature: loops.
 	"wind": ["sounds", 1, true],
@@ -56,13 +56,13 @@ const SOUNDS := {
 	"open": ["sounds", 1, false],
 	"close": ["sounds", 1, false],
 	# Animals.
-	"rabbit": ["animals", 2, false],
-	"squirrel": ["animals", 2, false],
-	"cat": ["animals", 2, false],
-	"deer": ["animals", 2, false],
-	"wolf_howl": ["animals", 2, false],
-	"wolf_growl": ["animals", 2, false],
-	"sparrow": ["birds", 3, false],
+	"rabbit": ["animals/rabbit", 2, false],
+	"squirrel": ["animals/squirrel", 2, false],
+	"cat": ["animals/cat", 2, false],
+	"deer": ["animals/deer", 2, false],
+	"wolf_howl": ["animals/wolf", 2, false],
+	"wolf_growl": ["animals/wolf", 2, false],
+	"sparrow": ["animals/sparrow", 3, false],
 	# Music: notes the music plays at other pitches (src/client/audio/music.gd).
 	"note_pluck": ["sounds", 1, false],
 	"note_bell": ["sounds", 1, false],

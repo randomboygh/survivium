@@ -1,0 +1,9 @@
+# Голоса: sounds/<id>_1.wav ... этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
+- id: wolf_howl
+  title: Вой волка
+  variants: 2
+  volume: 0.8
+- id: wolf_growl
+  title: Рык волка
+  variants: 2
+  volume: 0.9

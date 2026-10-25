@@ -1,19 +1,32 @@
 extends RefCounted
-## Mods and their data files. A mod is a folder under `content/` with `mod.yaml` and
-## `data/<kind>.yaml`, one file per kind of record (materials, items, creatures,
-## trees, bushes, recipes, plants, sounds; a sound's files are the mod's
-## `sounds/<name>.wav`, or `<name>_1.wav` ... for its variants), each a list of records with an `id`. Ids carry the mod's namespace:
-## `grass` in the core mod is `core:grass`, and a reference without a namespace
-## means the same mod. A later mod may redefine a record of an earlier one by id, or
+## Mods, their bundles and their data files. A mod is a folder under `content/` with
+## `mod.yaml`; what it adds comes in bundles, a folder per thing (`content/animals/wolf/`
+## with `bundle.yaml`), each with its own `data/<kind>.yaml` (materials, items, creatures,
+## trees, bushes, recipes, plants, sounds) and its pictures, models, textures and sounds
+## beside them (`sprites/`, `models/`, `icons/`, `textures/`, `sounds/`: a sound's files are
+## `<name>.wav`, or `<name>_1.wav` ... for its variants; what a bundle lacks is looked for in
+## the mod's `common/`, see `asset`). A mod without bundle folders is one bundle with its
+## files at its root. A bundle's id is `mod/bundle` (`animals/wolf`), or the mod's id for a
+## mod of one bundle (`plants`). Records are namespaced by the mod whatever bundle holds
+## them: `wolf` in `animals/wolf` is `animals:wolf`, and a reference without a namespace
+## means the same mod. A later bundle may redefine a record of an earlier one by id, or
 ## patch it: a record with `patch: true` changes only the fields it gives, and a key
 ## with a `+` at the end (`diet+: [plants]`, `needs+: {core:cord: 1}`) adds to a list
 ## or an amounts field instead of replacing it.
 ##
-## `mod.yaml` names what a mod `requires`: those mods load first, whatever the order
-## asked for, and a mod whose requirement is not among the mods loaded is skipped
-## with a problem. MODS is the set a world plays with (the world remembers it, see
-## WorldStore); `available()` finds every mod under `content/`. Switch sets through
-## mods.gd, which also refreshes the registries.
+## What a bundle depends on is read from its records: a reference to a record of another
+## bundle (`needs: {materials:clay: 2}`) makes that bundle load first, and when the field
+## is hard (the schema's default) and no bundle of the set has the record, the bundle is
+## left out with the one that has it as the reason (`dropped`), so a world is made only
+## of things that work. A field marked `soft` in the schema (`likes`, `seed`, `fruit`,
+## `bonus`, `gives`, `repair`, `mow_gives`) only orders the load: the reference is dropped
+## from the record when its target is not loaded, a problem only when `strict` (the
+## validator checking the full set). A patch of another bundle's record loads after it and
+## is skipped when it is not loaded. Roles (`land`, `prop`, `kind`, `roost`) bind nothing.
+## `requires` (hard) and `wants` (order only) in mod.yaml or bundle.yaml add what the
+## records do not show, as bundle or mod ids. BUNDLES is the set a world plays with (the
+## world remembers it, see WorldStore); `all_bundles()` finds every bundle under
+## `content/`. Switch sets through mods.gd, which also refreshes the registries.
 ##
 ## Records are checked against SCHEMAS on load: wrong types, values out of range,
 ## unknown fields, missing fields without a default and broken references are
@@ -26,18 +39,22 @@ extends RefCounted
 const Yaml := preload("res://src/shared/content/yaml.gd")
 
 const ROOT := "res://content"
-## The mods to load, as asked for; `loaded` has the order they were loaded in after
-## their requirements, without the ones that could not be.
-static var MODS: Array = available()
+## The bundles to load, as asked for; `loaded` has the order they were loaded in after
+## their dependencies, without the ones left out: those are in `dropped` with the bundle
+## they needed.
+static var BUNDLES: Array = all_bundles()
 static var loaded: Array = []
+static var dropped := {}
+## The validator's mode: a soft reference to nothing is a problem too.
+static var strict := false
 
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
-## ref:<kind> (an id of a record of that kind; an empty default means none), sound (the
-## bare name of a sound, found at play time in the last loaded mod that has one), amounts
-## (a mapping of ids of `of` to how many, at least 1 each). `min`/`max` bound numbers,
-## in a list each item. A field without `default` is required. `id` and
-## `title` are implied for every kind.
+## ref:<kind> (an id of a record of that kind; an empty default means none; `soft` when
+## the record lives without it), sound (the bare name of a sound, found at play time in
+## the last loaded bundle that has one), amounts (a mapping of ids of `of` to how many,
+## at least 1 each). `min`/`max` bound numbers, in a list each item. A field without
+## `default` is required. `id` and `title` are implied for every kind.
 const SCHEMAS := {
 	"materials": {
 		"solid": {"type": "bool", "default": true},
@@ -53,10 +70,10 @@ const SCHEMAS := {
 		"item": {"type": "ref:items", "default": ""},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
 		"hardness": {"type": "int", "min": 0, "default": 1},
-		"bonus": {"type": "ref:items", "default": ""},
+		"bonus": {"type": "ref:items", "soft": true, "default": ""},
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"mow": {"type": "ref:materials", "default": ""},
-		"mow_gives": {"type": "amounts", "of": "ref:items", "default": {}},
+		"mow_gives": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}},
 		"step": {"type": "sound", "default": ""},
 		"hit": {"type": "sound", "default": ""},
 	},
@@ -78,7 +95,7 @@ const SCHEMAS := {
 		"crop": {"type": "ref:plants", "default": ""},
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
-		"repair": {"type": "amounts", "of": "ref:items", "default": {}},
+		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}},
 		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "campfire"], "default": "none"},
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},
@@ -97,7 +114,7 @@ const SCHEMAS := {
 		"flies": {"type": "bool", "default": false},
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
-		"likes": {"type": "list", "of": "ref:plants", "default": []},
+		"likes": {"type": "list", "of": "ref:plants", "soft": true, "default": []},
 		"calls": {"type": "sound", "default": ""},
 		"alarm": {"type": "sound", "default": ""},
 	},
@@ -112,7 +129,7 @@ const SCHEMAS := {
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
-		"seed": {"type": "ref:items", "default": ""},
+		"seed": {"type": "ref:items", "soft": true, "default": ""},
 		"hits": {"type": "int", "min": 1, "default": 4},
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"seeds": {"type": "int", "min": 0, "default": 0},
@@ -126,7 +143,7 @@ const SCHEMAS := {
 		"rise": {"type": "float", "min": 0.0},
 		"spread": {"type": "vec3"},
 		"small": {"type": "bool", "default": false},
-		"fruit": {"type": "ref:items", "default": ""},
+		"fruit": {"type": "ref:items", "soft": true, "default": ""},
 		"fruit_count": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"item": {"type": "ref:items", "default": ""},
@@ -147,7 +164,7 @@ const SCHEMAS := {
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
 			"mushrooms", "glow_mushrooms"]},
-		"gives": {"type": "amounts", "of": "ref:items"},
+		"gives": {"type": "amounts", "of": "ref:items", "soft": true},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		"pick": {"type": "bool", "default": false},
 		"winter": {"type": "bool", "default": true},
@@ -158,24 +175,45 @@ const MOD_SCHEMA := {
 	"version": {"type": "string"},
 	"api": {"type": "int", "min": 1, "max": 1},
 	"requires": {"type": "list", "of": "string", "default": []},
+	"wants": {"type": "list", "of": "string", "default": []},
 }
+const BUNDLE_SCHEMA := {
+	"title": {"type": "string"},
+	"requires": {"type": "list", "of": "string", "default": []},
+	"wants": {"type": "list", "of": "string", "default": []},
+}
+
 
 ## Problems found by the last load, "file: id.field: what".
 static var problems: PackedStringArray = []
-## kind -> Array of records in load order; a record's `mod` names its mod.
+## kind -> Array of records in load order; a record's `mod` names its mod (its
+## namespace) and `bundle` the bundle its files are in.
 static var _kinds := {}
 ## kind -> id -> the record as written (before conversion), for patches to build on.
 static var _raw := {}
-## mod -> its mod.yaml as read (checked), for the load being done.
-static var _infos := {}
 static var _loaded := false
+## Everything under content/, read once per run (refresh reads it again): bundle ->
+## {"mod", "info" (its manifest), "records" (kind -> raw records), "owns", "hard", "soft",
+## "patches" (sets of "kind/id"), "requires", "wants" (bundle ids)}, mod -> its mod.yaml,
+## the bundles in their order (core first, then by name), who owns which record, and
+## the problems found reading each bundle.
+static var _universe := {}
+static var _mods := {}
+static var _order: Array = []
+static var _owners := {}
+static var _scan_problems := {}
 
 
 ## Every mod under `content/`: the folders with a mod.yaml, core first, then by name.
+## Folders starting with `_` are the tests' and are left out.
 static func available() -> Array:
+	return _folders(false)
+
+
+static func _folders(hidden: bool) -> Array:
 	var out := []
 	for name in DirAccess.get_directories_at(ROOT):
-		if name.begins_with("_") or not FileAccess.file_exists("%s/%s/mod.yaml" % [ROOT, name]):
+		if (name.begins_with("_") and not hidden) or not FileAccess.file_exists("%s/%s/mod.yaml" % [ROOT, name]):
 			continue
 		out.append(name)
 	out.sort()
@@ -185,50 +223,296 @@ static func available() -> Array:
 	return out
 
 
+## The bundles of mod `mod`: its folders with a bundle.yaml by name, or the mod itself
+## when it has none.
+static func bundles_of(mod: String) -> Array:
+	var out := []
+	for name in DirAccess.get_directories_at("%s/%s" % [ROOT, mod]):
+		if FileAccess.file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, name]):
+			out.append("%s/%s" % [mod, name])
+	out.sort()
+	return out if not out.is_empty() else [mod]
+
+
+## Every bundle of every mod, in load order before dependencies.
+static func all_bundles() -> Array:
+	var out := []
+	for mod in available():
+		out.append_array(bundles_of(mod))
+	return out
+
+
+## The mod bundle `bundle` belongs to.
+static func mod_of(bundle: String) -> String:
+	return bundle.get_slice("/", 0)
+
+
 ## The mod.yaml of `mod` as a Dictionary with its fields checked, empty when it cannot
 ## be read.
 static func info(mod: String) -> Dictionary:
-	var path := "%s/%s/mod.yaml" % [ROOT, mod]
+	if universe().is_empty() or not _mods.has(mod):
+		return _manifest("%s/%s/mod.yaml" % [ROOT, mod], MOD_SCHEMA, mod, "%s/mod.yaml" % mod)
+	return _mods[mod]
+
+
+## The bundle.yaml of `bundle` (title, requires, wants) with its `mod`; a mod of one
+## bundle gives its mod.yaml.
+static func bundle_info(bundle: String) -> Dictionary:
+	if universe().has(bundle):
+		return _universe[bundle].info
+	return {}
+
+
+static func _manifest(path: String, schema: Dictionary, mod: String, file: String) -> Dictionary:
 	var d: Variant = _read(path)
 	if not d is Dictionary:
 		if d != null:
-			problems.append("%s/mod.yaml: expected a mapping" % mod)
+			problems.append("%s: expected a mapping" % file)
 		return {}
-	if d.get("id") != mod:
-		problems.append("%s/mod.yaml: id must be `%s`" % [mod, mod])
+	if schema == MOD_SCHEMA and d.get("id") != mod:
+		problems.append("%s: id must be `%s`" % [file, mod])
 	var out: Dictionary = d.duplicate()
-	_check_fields(out, MOD_SCHEMA, mod, "%s/mod.yaml" % mod, "mod")
+	_check_fields(out, schema, mod, file, "mod" if schema == MOD_SCHEMA else "bundle")
 	out.erase("id")
 	return out
 
 
-## The mods of `infos` (mod -> its mod.yaml, see `info`) in load order: each after what
-## it requires, otherwise as given; a mod that requires one not among them (or in a
-## cycle) is left out with a problem.
-static func order(infos: Dictionary) -> Array:
-	var mods := infos.keys()
+## Everything under content/ (see _universe), read on the first call.
+static func universe() -> Dictionary:
+	if _universe.is_empty():
+		_scan()
+	return _universe
+
+
+## Reads every manifest and data file under content/ once: what each bundle owns,
+## references and patches, for `resolve` and the load.
+static func _scan() -> void:
+	var kept := problems
+	_universe = {}
+	_mods = {}
+	_order = []
+	_owners = {}
+	_scan_problems = {}
+	for mod in _folders(true):
+		problems = []
+		var mod_info := _manifest("%s/%s/mod.yaml" % [ROOT, mod], MOD_SCHEMA, mod, "%s/mod.yaml" % mod)
+		var mod_problems := problems
+		_mods[mod] = mod_info
+		var bundles := bundles_of(mod)
+		if bundles != [mod] and DirAccess.dir_exists_absolute("%s/%s/data" % [ROOT, mod]):
+			mod_problems.append("%s/data: a mod with bundles keeps its records in them" % mod)
+		for b in bundles:
+			problems = mod_problems.duplicate() if b == bundles[0] else []
+			var bi := mod_info.duplicate() if b == mod else _manifest("%s/%s/bundle.yaml" % [ROOT, b], BUNDLE_SCHEMA, mod, "%s/bundle.yaml" % b)
+			if mod_info.is_empty():
+				problems.append("%s/mod.yaml: cannot read the mod" % mod)
+			bi["mod"] = mod
+			var u := {"mod": mod, "info": bi, "records": {}, "owns": {}, "hard": {}, "soft": {}, "patches": {},
+				"requires": _named(bi.get("requires", []), mod), "wants": _named(bi.get("wants", []), mod)}
+			for kind in SCHEMAS:
+				var list := _read_records(b, mod, kind)
+				u.records[kind] = list
+				for r in list:
+					var key := "%s/%s" % [kind, r.id]
+					if r.get("patch") == true:
+						u.patches[key] = true
+					else:
+						u.owns[key] = true
+						if not _owners.has(key):
+							_owners[key] = []
+						_owners[key].append(b)
+					for ref in _refs_of(r, kind, mod):
+						(u.soft if ref[2] else u.hard)["%s/%s" % [ref[0], ref[1]]] = true
+			_universe[b] = u
+			_order.append(b)
+			_scan_problems[b] = problems
+	problems = kept
+
+
+## Bundle ids out of `names` (bundle or mod ids, a bare name a bundle of `mod`).
+static func _named(names: Array, mod: String) -> Array:
 	var out := []
-	var waiting := mods.duplicate()
-	while not waiting.is_empty():
-		var progress := false
-		for mod in waiting.duplicate():
-			var needs: Array = infos[mod].get("requires", [])
-			var missing := needs.filter(func(m: String) -> bool: return not m in mods)
-			if not missing.is_empty():
-				problems.append("%s/mod.yaml: requires `%s`, which is not loaded" % [mod, "`, `".join(missing)])
-				waiting.erase(mod)
-				continue
-			if needs.all(func(m: String) -> bool: return m in out):
-				out.append(mod)
-				waiting.erase(mod)
-				progress = true
-		if not progress:
-			problems.append("%s: mods require each other in a circle" % ", ".join(waiting))
-			break
+	for n in names:
+		if not n is String:
+			continue
+		out.append("%s/%s" % [mod, n] if not "/" in n and FileAccess.file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, n]) else n)
 	return out
 
 
-## Records of `kind` from every mod, checked and with defaults filled in.
+## The records of `bundle/data/<kind>.yaml` as written, ids qualified, duplicates and
+## malformed ones left out with a problem.
+static func _read_records(bundle: String, mod: String, kind: String) -> Array:
+	var out := []
+	var path := "%s/%s/data/%s.yaml" % [ROOT, bundle, kind]
+	if not FileAccess.file_exists(path):
+		return out
+	var file := "%s/data/%s.yaml" % [bundle, kind]
+	var list: Variant = _read(path)
+	if list == null:
+		return out
+	if not list is Array:
+		problems.append("%s: expected a list of records" % file)
+		return out
+	var seen := {}
+	for i in list.size():
+		var r: Variant = list[i]
+		if not r is Dictionary or not r.get("id") is String or r.id == "":
+			problems.append("%s: record %d: expected a mapping with an `id`" % [file, i + 1])
+			continue
+		var id: String = qualify(r.id, mod)
+		if not _valid_id(id):
+			problems.append("%s: `%s`: id must be `mod:name`, lowercase letters, digits and `_`" % [file, r.id])
+			continue
+		if seen.has(id):
+			problems.append("%s: `%s`: duplicate id" % [file, id])
+			continue
+		seen[id] = true
+		var rec: Dictionary = r.duplicate()
+		rec.id = id
+		out.append(rec)
+	return out
+
+
+## The references of raw record `r` of `kind`: [kind, qualified id, soft] each.
+static func _refs_of(r: Dictionary, kind: String, mod: String) -> Array:
+	var out := []
+	var schema: Dictionary = SCHEMAS[kind]
+	for key in r:
+		var spec: Dictionary = schema.get(str(key).trim_suffix("+"), {})
+		if spec.is_empty():
+			continue
+		var target: String = spec.get("of", "") if spec.type in ["list", "amounts"] else spec.type
+		if not target.begins_with("ref:"):
+			continue
+		var v: Variant = r[key]
+		var values: Array = v if v is Array else (v.keys() if v is Dictionary else [v])
+		for id in values:
+			if id is String and id != "":
+				out.append([target.substr(4), qualify(id, mod), spec.get("soft", false)])
+	return out
+
+
+## Which of `set` load, in what order, and which are left out and why: {"order",
+## "dropped": bundle -> the bundle it needs}. A bundle is dropped when a hard field of
+## its records names a record no bundle of the set has (while some bundle under content/
+## does: a record nobody has is a mistake reported by the load), or when something it
+## `requires` is not in the set; what depended on it goes with it. `report` adds the
+## problems found (an unknown requirement, a circle) to `problems`.
+static func resolve(set: Array, report := false) -> Dictionary:
+	universe()
+	var kept := {}
+	for b in set:
+		if _universe.has(b):
+			kept[b] = true
+	var out_dropped := {}
+	var changed := true
+	while changed:
+		changed = false
+		for b in kept.keys():
+			var need := _missing(b, kept)
+			if need != "":
+				kept.erase(b)
+				out_dropped[b] = need
+				changed = true
+				if report and not _universe.has(need):
+					problems.append("%s: requires `%s`, which is not loaded" % [b, need])
+	var order := []
+	var placed := {}
+	while placed.size() < kept.size():
+		var progress := false
+		for b in _order:
+			if not kept.has(b) or placed.has(b):
+				continue
+			if _deps(b, kept).all(func(d: String) -> bool: return placed.has(d)):
+				order.append(b)
+				placed[b] = true
+				progress = true
+				break
+		if not progress:
+			var rest := _order.filter(func(b: String) -> bool: return kept.has(b) and not placed.has(b))
+			if report:
+				problems.append("%s: bundles require each other in a circle" % ", ".join(rest))
+			order.append_array(rest)
+			break
+	return {"order": order, "dropped": out_dropped}
+
+
+## What `b` needs that `kept` lacks: the first owner of a hard reference's record when
+## none of its owners is kept, a requirement that is not kept, or "".
+static func _missing(b: String, kept: Dictionary) -> String:
+	var u: Dictionary = _universe[b]
+	for key in u.hard:
+		var owners: Array = _owners.get(key, [])
+		if owners.is_empty() or u.owns.has(key):
+			continue
+		if not owners.any(func(o: String) -> bool: return kept.has(o)):
+			return owners[0]
+	for need in u.requires:
+		for nb in _expand_need(need):
+			if not kept.has(nb):
+				return nb
+	return ""
+
+
+## A requirement as bundles: a bundle id itself, a mod id all its bundles.
+static func _expand_need(need: String) -> Array:
+	if _universe.has(need):
+		return [need]
+	if _mods.has(need):
+		return _order.filter(func(b: String) -> bool: return mod_of(b) == need)
+	return [need]
+
+
+## The bundles of `kept` that load before `b`: the owners of what it references or
+## patches, and what it requires or wants.
+static func _deps(b: String, kept: Dictionary) -> Array:
+	var u: Dictionary = _universe[b]
+	var out := {}
+	for group in [u.hard, u.soft, u.patches]:
+		for key in group:
+			for o in _owners.get(key, []):
+				if o != b and kept.has(o):
+					out[o] = true
+	for need in u.requires + u.wants:
+		for nb in _expand_need(need):
+			if nb != b and kept.has(nb):
+				out[nb] = true
+	return out.keys()
+
+
+## The bundles `bundle` cannot do without, itself last, in load order: the base game,
+## the owners of its hard references and its requirements, and theirs. Out of `all`
+## (every bundle unless given); the first owner when several have a record.
+static func closure(bundle: String, all: Array = []) -> Array:
+	universe()
+	if all.is_empty():
+		all = _order
+	var set := {}
+	var stack := ["core", bundle]
+	while not stack.is_empty():
+		var b: String = stack.pop_back()
+		if set.has(b) or not _universe.has(b) or not b in all:
+			continue
+		set[b] = true
+		var u: Dictionary = _universe[b]
+		for key in u.hard:
+			var owners: Array = _owners.get(key, []).filter(func(o: String) -> bool: return o in all)
+			if not owners.is_empty() and not u.owns.has(key):
+				stack.append(owners[0])
+		for need in u.requires:
+			stack.append_array(_expand_need(need))
+	return resolve(set.keys()).order
+
+
+## The bundles loaded that `bundle` loads after (see _deps).
+static func deps(bundle: String) -> Array:
+	var kept := {}
+	for b in loaded:
+		kept[b] = true
+	return _deps(bundle, kept) if _universe.has(bundle) else []
+
+
+## Records of `kind` from every bundle, checked and with defaults filled in.
 static func records(kind: String) -> Array:
 	if not _loaded:
 		load_all()
@@ -243,85 +527,84 @@ static func find(kind: String, id: String) -> Dictionary:
 	return {}
 
 
+## Where record `rec` keeps file `rel` (`sprites/creatures/wolf.png`): in its bundle,
+## else in its mod's `common/`; the bundle's path when neither has it.
+static func asset(rec: Dictionary, rel: String) -> String:
+	var own := "%s/%s/%s" % [ROOT, rec.get("bundle", rec.get("mod", "core")), rel]
+	if ResourceLoader.exists(own) or FileAccess.file_exists(own):
+		return own
+	var common := "%s/%s/common/%s" % [ROOT, rec.get("mod", "core"), rel]
+	if ResourceLoader.exists(common) or FileAccess.file_exists(common):
+		return common
+	return own
+
+
 ## The files of sound record `rec` (see the `sounds` kind): one, or one per variant.
 static func sound_files(rec: Dictionary) -> PackedStringArray:
 	var name: String = rec.id.get_slice(":", 1)
-	var dir := "%s/%s/sounds/" % [ROOT, rec.mod]
 	if rec.variants == 1:
-		return [dir + name + ".wav"]
+		return [asset(rec, "sounds/%s.wav" % name)]
 	var out: PackedStringArray = []
 	for i in rec.variants:
-		out.append("%s%s_%d.wav" % [dir, name, i + 1])
+		out.append(asset(rec, "sounds/%s_%d.wav" % [name, i + 1]))
 	return out
 
 
-## Reads every mod again; the registries call their own `reload` after this.
+## Reads everything under content/ again and loads the set; the registries call their
+## own `refresh` after this.
 static func refresh() -> void:
+	_universe = {}
 	_loaded = false
 	load_all()
 
 
+## Loads BUNDLES: what they need in order, the rest left out (see resolve).
 static func load_all() -> void:
 	_loaded = true
 	problems = []
 	_kinds = {}
 	_raw = {}
-	_infos = {}
+	dropped = {}
 	for kind in SCHEMAS:
 		_kinds[kind] = []
 		_raw[kind] = {}
-	for mod in MODS:
-		var i := info(mod)
-		if i.is_empty():
-			problems.append("%s/mod.yaml: cannot read the mod" % mod)
+	universe()
+	var set := []
+	for b in BUNDLES:
+		if _universe.has(b):
+			set.append(b)
+			problems.append_array(_scan_problems.get(b, []))
 		else:
-			_infos[mod] = i
-	loaded = order(_infos)
-	for mod in loaded:
-		_load_mod(mod)
+			problems.append("%s: no such bundle" % b)
+	var res := resolve(set, true)
+	dropped = res.dropped
+	loaded = res.order
+	for b in loaded:
+		_load_bundle(b)
 	_check_refs()
 	for p in problems:
 		push_error("content: " + p)
 
 
-static func _load_mod(mod: String) -> void:
-	var dir := "%s/%s" % [ROOT, mod]
+static func _load_bundle(bundle: String) -> void:
+	var u: Dictionary = _universe[bundle]
 	for kind in SCHEMAS:
-		var path := "%s/data/%s.yaml" % [dir, kind]
-		if not FileAccess.file_exists(path):
-			continue
-		var file := "%s/data/%s.yaml" % [mod, kind]
-		var list: Variant = _read(path)
-		if list == null:
-			continue
-		if not list is Array:
-			problems.append("%s: expected a list of records" % file)
-			continue
-		var seen := {}
-		for i in list.size():
-			var r: Variant = list[i]
-			if not r is Dictionary or not r.get("id") is String or r.id == "":
-				problems.append("%s: record %d: expected a mapping with an `id`" % [file, i + 1])
-				continue
-			var id: String = qualify(r.id, mod)
-			if not _valid_id(id):
-				problems.append("%s: `%s`: id must be `mod:name`, lowercase letters, digits and `_`" % [file, r.id])
-				continue
-			if seen.has(id):
-				problems.append("%s: `%s`: duplicate id" % [file, id])
-				continue
-			seen[id] = true
+		var file := "%s/data/%s.yaml" % [bundle, kind]
+		for r in u.records[kind]:
 			var rec: Dictionary = r.duplicate()
-			rec.id = id
+			var id: String = rec.id
 			var raw: Dictionary = _raw[kind]
 			if rec.get("patch") == true:
 				rec.erase("patch")
 				if not raw.has(id):
-					problems.append("%s: %s: patches a record no loaded mod has" % [file, id])
+					# The record's bundle is not in the set: the patch waits for it.
+					if _owners.get("%s/%s" % [kind, id], []).is_empty():
+						problems.append("%s: %s: patches a record no mod has" % [file, id])
 					continue
 				rec = _patched(raw[id], rec, file, id)
 			else:
-				rec.mod = mod
+				rec.mod = u.mod
+				rec.bundle = bundle
 			raw[id] = rec.duplicate()
 			if not rec.get("title") is String or rec.title == "":
 				problems.append("%s: %s.title: expected a string" % [file, id])
@@ -339,7 +622,7 @@ static func _load_mod(mod: String) -> void:
 
 
 ## `base` with the fields of `patch` over it; a key ending in `+` adds its list or
-## mapping to the field's. The record stays its first mod's (its pictures and sounds
+## mapping to the field's. The record stays its first bundle's (its pictures and sounds
 ## are looked for there).
 static func _patched(base: Dictionary, patch: Dictionary, file: String, id: String) -> Dictionary:
 	var out := base.duplicate(true)
@@ -382,7 +665,7 @@ static func _valid_id(id: String) -> bool:
 ## types (Color, Vector3, qualified ids) and filling in defaults.
 static func _check_fields(rec: Dictionary, schema: Dictionary, mod: String, file: String, id: String) -> void:
 	for key in rec:
-		if key != "id" and key != "title" and key != "mod" and not schema.has(key):
+		if key != "id" and key != "title" and key != "mod" and key != "bundle" and not schema.has(key):
 			problems.append("%s: %s.%s: unknown field" % [file, id, key])
 	for key in schema:
 		var spec: Dictionary = schema[key]
@@ -533,6 +816,10 @@ static func _zero(spec: Dictionary) -> Variant:
 
 
 ## Every ref:<kind> field must name a record that exists.
+
+
+## Every ref:<kind> field must name a record that is loaded; a soft one that does not
+## is dropped from the record (and reported when strict).
 static func _check_refs() -> void:
 	for kind in SCHEMAS:
 		for key in SCHEMAS[kind]:
@@ -541,13 +828,35 @@ static func _check_refs() -> void:
 			if not target.begins_with("ref:"):
 				continue
 			var of := target.substr(4)
+			var soft: bool = spec.get("soft", false)
 			for r in _kinds[kind]:
-				var refs: Array = r[key] if spec.type == "list" else (r[key].keys() if spec.type == "amounts" else [r[key]])
-				for ref in refs:
+				if spec.type == "list":
+					var keep := []
+					for ref in r[key]:
+						if find(of, ref).is_empty():
+							_broken(r, kind, key, of, ref, soft)
+						if not soft or not find(of, ref).is_empty():
+							keep.append(ref)
+					r[key] = keep
+				elif spec.type == "amounts":
+					for ref in r[key].keys():
+						if find(of, ref).is_empty():
+							_broken(r, kind, key, of, ref, soft)
+							if soft:
+								r[key].erase(ref)
+				else:
+					var ref: String = r[key]
 					if ref == "" and spec.get("default") == "":
 						continue
 					if find(of, ref).is_empty():
-						problems.append("%s/data/%s.yaml: %s.%s: no %s `%s`" % [r.mod, kind, r.id, key, of, ref])
+						_broken(r, kind, key, of, ref, soft)
+						if soft:
+							r[key] = ""
+
+
+static func _broken(r: Dictionary, kind: String, key: String, of: String, ref: String, soft: bool) -> void:
+	if not soft or strict:
+		problems.append("%s/data/%s.yaml: %s.%s: no %s `%s`" % [r.bundle, kind, r.id, key, of, ref])
 
 
 static func _read(path: String) -> Variant:

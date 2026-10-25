@@ -1,0 +1,14 @@
+# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
+# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
+# sprites/creatures/<sprite>.png этого бандла; голоса (calls, alarm) — его sounds.yaml.
+- id: rabbit
+  title: Заяц
+  mass: 2
+  diet: [plants]
+  speed: 5.5
+  sight: 9
+  human_wariness: 0.9
+  active: day
+  count: 14
+  sprite: rabbit
+  alarm: rabbit

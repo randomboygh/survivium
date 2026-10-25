@@ -6,6 +6,7 @@ extends Node3D
 ## a row of `frames` frames: the first is the
 ## animal at rest, the others a flyer's wing beat in the air.
 
+const Content := preload("res://src/shared/content/content.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
@@ -97,7 +98,7 @@ static func picture(spec: Dictionary) -> Texture2D:
 
 
 static func picture_path(spec: Dictionary) -> String:
-	return "res://content/%s/sprites/creatures/%s.png" % [spec.mod, spec.sprite]
+	return Content.asset(spec, "sprites/creatures/%s.png" % spec.sprite)
 
 
 ## The screen-plane rectangle the camera shows, FAR_MARGIN larger all round (all of

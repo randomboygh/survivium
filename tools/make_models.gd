@@ -19,7 +19,7 @@ func _init() -> void:
 		var prop: String = item.get("prop", "none")
 		if name == "" or (not only.is_empty() and not name in only):
 			continue
-		var path := VoxelProps.model_path(item.mod, name)
+		var path := VoxelProps.model_path(item, name)
 		if done.has(path):
 			continue
 		done[path] = true

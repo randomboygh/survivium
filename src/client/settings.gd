@@ -85,7 +85,8 @@ const DEFAULTS := {
 	"world_mountains": 1,
 	"world_rivers": 1,
 	"world_biomes": 1,
-	## The mods a new world is made without, comma-separated ids (every mod found is on).
+	## The bundles (or whole mods) a new world is made without, comma-separated ids
+	## (everything found is on).
 	"world_mods_off": "",
 }
 ## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
@@ -213,38 +214,44 @@ func world_options() -> Dictionary:
 	return out
 
 
-## The mods a new world is made with: every mod found, less the ones switched off on
-## «Новый мир», in load order.
+## The bundles a new world is made with: every bundle found, less the ones switched off
+## on «Новый мир» and the ones left without what they need (see Mods.resolve), in load
+## order.
 func world_mods() -> Array:
-	var off: PackedStringArray = str(values.world_mods_off).split(",", false)
-	var on: Array = Mods.available().filter(func(m: String) -> bool: return m == "core" or not m in off)
-	# A mod is off with anything it requires.
-	var dropped := true
-	while dropped:
-		dropped = false
-		for m in on.duplicate():
-			if Mods.requires(m).any(func(need: String) -> bool: return not need in on):
-				on.erase(m)
-				dropped = true
-	return on
+	return Mods.resolve(world_mods_on()).order
 
 
-## Switches mod `mod` on or off for new worlds; on, with what it requires.
-func set_world_mod(mod: String, on: bool) -> void:
-	var off: Array = Array(str(values.world_mods_off).split(",", false))
-	off.erase(mod)
-	if on:
-		for need in Mods.closure(mod):
-			off.erase(need)
-	else:
-		off.append(mod)
+## The bundles switched on for new worlds, before their needs are looked at.
+func world_mods_on() -> Array:
+	var off := mods_off()
+	return Mods.all().filter(func(b: String) -> bool: return Mods.mod_of(b) == "core" or not b in off)
+
+
+## The bundles switched off for new worlds (a mod's id in the settings stands for all
+## its bundles).
+func mods_off() -> Array:
+	return Mods.expand(Array(str(values.world_mods_off).split(",", false)))
+
+
+## Switches bundle (or mod, all its bundles) `id` on or off for new worlds; on, with what
+## it cannot do without.
+func set_world_mod(id: String, on: bool) -> void:
+	var off: Array = mods_off()
+	var these: Array = Mods.expand([id])
+	for b in these:
+		off.erase(b)
+		if on:
+			for need in Mods.closure(b):
+				off.erase(need)
+	if not on:
+		off.append_array(these)
 	values.world_mods_off = ",".join(off)
 	save()
 
 
-## Reads the data of the world's mods again (Mods.reload) and tells how it went.
+## Reads the data of the world's mods again (Mods.rescan) and tells how it went.
 func reload_mods() -> void:
-	var problems := Mods.reload()
+	var problems := Mods.rescan()
 	VoxelProps.forget()
 	if game.hud != null:
 		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else "Ошибок в данных: %d (см. консоль)" % problems.size())

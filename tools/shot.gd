@@ -633,7 +633,7 @@ func _place_birds() -> void:
 	var p: Vector3 = main.player.position
 	var i := 0
 	for c in life.animals:
-		if c.kind != "birds:sparrow":
+		if c.kind != "animals:sparrow":
 			continue
 		c.pos = p + Vector3(-3.0 + (i % 5) * 1.4, 0.0, -2.5 + (i / 5) * 1.2)
 		c.pos.y = life.ground(c.pos.x, c.pos.z)

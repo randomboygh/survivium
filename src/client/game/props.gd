@@ -248,7 +248,7 @@ func _drop_mesh(kind: String) -> Mesh:
 	elif name == "":
 		name = "bundle"
 	elif kind != Items.SACK:
-		name = VoxelProps.model_path(item.mod, name)
+		name = VoxelProps.model_path(item, name)
 	if not drop_meshes.has(name):
 		var model = VoxelProps.block(_tile_colour(m)) if m >= 0 else (VoxelProps.sack() if name == "sack" else (VoxelProps.bundle() if name == "bundle" else VoxelProps.drop(item)))
 		if model == null:

@@ -285,9 +285,9 @@ func _test_sound() -> void:
 		if list.is_empty() or s.records[id].loop and list[0].loop_mode != AudioStreamWAV.LOOP_FORWARD:
 			missing.append(id)
 	_check(missing.is_empty(), "every sound loads, the loops looping: %s" % [missing])
-	for id in ["sounds:wind", "sounds:step_grass", "sounds:click", "birds:sparrow", "sounds:note_pluck", "animals:wolf_howl"]:
+	for id in ["sounds:wind", "sounds:step_grass", "sounds:click", "animals:sparrow", "sounds:note_pluck", "animals:wolf_howl"]:
 		_check(s.records.has(id), "sound %s is there" % id)
-	_check(s.resolve("click") == "sounds:click" and s.resolve("sounds:click") == "sounds:click" and s.resolve("sparrow") == "birds:sparrow"
+	_check(s.resolve("click") == "sounds:click" and s.resolve("sounds:click") == "sounds:click" and s.resolve("sparrow") == "animals:sparrow"
 		and s.resolve("nothing") == "" and s.streams("nothing").is_empty(), "a sound is asked for by its bare name, from whichever mod gives it")
 	for m in Mat.COUNT:
 		var r: Dictionary = Mat.RECORDS[m]

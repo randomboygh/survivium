@@ -16,7 +16,7 @@ func _init() -> void:
 	for id in Items.IDS:
 		var item := Items.get_item(id)
 		if item.icon != "":
-			paths[ItemIcons.icon_path(item.mod, item.icon)] = item.icon
+			paths[ItemIcons.icon_path(item)] = item.icon
 	for name in ItemIcons.UI:
 		paths[ItemIcons.ui_path(name)] = name
 	for path in paths:
