@@ -296,6 +296,7 @@ const SHOTS := {
 	"ui-corner-hidden": {"time": 0.45, "season": 1, "touch": true, "settings": {"level_buttons": false, "camera_buttons": false}},
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
+	"ui-setup-mods": {"time": 0.45, "season": 1, "touch": true, "setup": "mods"},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
 	# The workbench, kiln, chest and campfire by the spawn marked on the map, close up.
 	"ui-map-marks": {"time": 0.45, "season": 1, "touch": true, "craft": true, "closed": true, "map": true, "map_zoom": 8},

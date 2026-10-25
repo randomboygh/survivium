@@ -377,6 +377,9 @@ func _run() -> void:
 		if shot.get("setup", false):
 			setup = main.WorldSetup.new(main)
 			main.hud.add_child(setup)
+			# A page of the screen other than the first ("mods").
+			if shot.setup is String:
+				setup._show_page(shot.setup)
 			# The map of the setup screen is drawn a few rows a frame.
 			for i in 120:
 				await process_frame
