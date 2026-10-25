@@ -74,10 +74,10 @@ const RISE := 0.6
 const LINGER := Vector2(1.5, 5.0)
 ## A swimmer that comes ashore keeps within this many world units of the water it was
 ## last in, and wanders this far at a time.
-const SHORE := 3.0
+const SHORE := 4.0
 const SHORE_WALK := 3.0
 ## The share of its wanderings it may go ashore in, for one that swims and one that hops.
-const SHORE_SWIM := 0.3
+const SHORE_SWIM := 0.15
 const SHORE_HOP := 0.7
 ## A flyer that swims takes off only from a threat this near, in its sights; a farther
 ## one it swims away from. It flies over to another place this much less often.
@@ -406,7 +406,8 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			# Paddles about, or now and then goes out onto the shore near its water (one
 			# that hops more often) and back.
 			var land: bool = rng.randf() < (SHORE_HOP if spec.hops else SHORE_SWIM)
-			var near: Variant = _place(spec, a.pos, SHORE_WALK, false, 4, a.home if land else null)
+			var near: Variant = _place(spec, a.pos, SHORE_WALK * 2.0, false, 8, a.home) if land \
+					else _place(spec, a.pos, SHORE_WALK, false, 4)
 			a.target = near if near != null else a.pos
 			return
 		# A grazer looks for what it likes now and then (looking is the dear part of a
@@ -481,7 +482,7 @@ func _lift_off(a: Animal) -> void:
 
 ## A place to go within `reach` of `around`: of `tries` tried, one where something the
 ## species likes grows, else any open ground (open water for a swimmer, or for one
-## that comes ashore the ground within SHORE of `home` too); a spot in a crown when
+## that comes ashore the ground within SHORE of `home`, rather than water); a spot in a crown when
 ## `tree` and there is a tree near. Null when all of those tried are water or under
 ## crowns (land, for a swimmer).
 func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool, tries := 8, home: Variant = null) -> Variant:
@@ -503,7 +504,8 @@ func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool, tries :
 		# Not over water or under a crown.
 		elif y <= 0 or world.leaf_col(x, z) >> y != 0:
 			continue
-		var score := 0
+		# The shore, when it may go there, is where it goes.
+		var score := 1 if spec.swims and y != -1 else 0
 		if not spec.likes.is_empty() and y > 0:
 			for plant in Grass.plants_on(world, x, y - 1, z):
 				if plant in spec.likes:

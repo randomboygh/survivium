@@ -323,6 +323,7 @@ func _test_shore(w: WorldData) -> void:
 	life.people[0].position = Vector3(150.0, 6.0, 150.0) * WorldData.CELL
 	var pond := Rect2(px, pz, side, side)
 	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
+	life.rng.seed = 7
 	var duck := _animal(life, "animals:duck", at)
 	duck.pos.y = life.water_top(at.x, at.z) - Wildlife.DIP * WorldData.CELL
 	duck.home = duck.pos
