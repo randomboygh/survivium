@@ -321,7 +321,9 @@ void fragment() {
 	// on the high mountains (two levels to thicken above the snow line). The wind
 	// leaves a few spots bare, it melts away around fires, and none falls on the faces
 	// of a cell under a roof, an overhang or a cave ceiling.
-	bool roof = roofed(world_pos.xz, world_pos.y);
+	// A slope's top may go down into the cell below its own (a deep corner): that is
+	// still its own open surface, not ground under it.
+	bool roof = roofed(world_pos.xz, world_pos.y + ((flag & 4) != 0 && top ? CELL : 0.0));
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
