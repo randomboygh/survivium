@@ -1,0 +1,330 @@
+extends "res://tests/unit/test_case.gd"
+## The data: yaml, the schemas, mods and patches, items, tools, recipes, and the layer rule.
+
+
+func run() -> void:
+	_test_yaml()
+	_test_content()
+	_test_mods()
+	_test_items()
+	_test_tools()
+	_test_crafting()
+	_test_layers()
+
+
+func _test_yaml() -> void:
+	var yaml := Yaml.new()
+	var doc: Variant = yaml.parse("""
+# a comment
+id: core
+version: "0.1"
+deps: [a, 'b c', 3, 2.5, true, ~]
+colors:
+  - "#aabbcc"   # not a comment
+items:
+  - id: grass
+    title: Трава
+    spread: {x: 1, y: -2.5}
+  - id: dirt
+    nested:
+      - 1
+      - 2
+  -
+    id: stone
+empty:
+flat:
+- a
+- "b: c"
+""", "test.yaml")
+	_check(yaml.error == "", "yaml parses: " + yaml.error)
+	_check(doc is Dictionary and doc.get("id") == "core" and doc.get("version") == "0.1", "yaml reads scalars")
+	_check(doc.get("deps") == ["a", "b c", 3, 2.5, true, null], "yaml reads flow lists")
+	_check(doc.get("colors") == ["#aabbcc"], "yaml keeps # inside quotes")
+	var items: Array = doc.get("items", [])
+	_check(items.size() == 3 and items[0] == {"id": "grass", "title": "Трава", "spread": {"x": 1, "y": -2.5}},
+		"yaml reads mappings in a list")
+	_check(items.size() == 3 and items[1].get("nested") == [1, 2] and items[2] == {"id": "stone"},
+		"yaml reads nested lists and items on their own line")
+	_check(doc.get("empty") == null and doc.has("empty"), "an empty value is null")
+	_check(doc.get("flat") == ["a", "b: c"], "a list may sit at its key's indent")
+	for bad in ["a: [1, 2", "a: 1\n\tb: 2", "a: 1\na: 2", "- 1\n  - 2", "x: \"abc", "a: 1\n b: 2"]:
+		yaml.parse(bad, "bad.yaml")
+		_check(yaml.error.begins_with("bad.yaml:"), "yaml rejects %s" % bad.c_escape())
+
+
+func _test_content() -> void:
+	_check(Content.problems.is_empty(), "core content loads without problems")
+	_check(Mat.check().is_empty() and AiRules.check().is_empty() and Trees.check().is_empty() and Bushes.check().is_empty(),
+		"core content satisfies the engine")
+	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Mat.NAMES[Mat.GRASS] == "Трава", "materials get their indices")
+	var planks := Mat.index("tools:planks")
+	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("tools:brick"), Mat.BEACH, Mat.BANK, Mat.LOG],
+		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
+	_check(Mat.IDS[Mat.BEACH] == "materials:sand" and Mat.IDS[Mat.BANK] == "materials:clay" and Mat.IDS[Mat.SCREE] == "materials:scree"
+		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.COUNT == 13, "the engine finds materials by their roles")
+	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT)
+		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT), "the shader's word per material comes from the data")
+	_check(Mat.texture_path(Mat.BEACH) == "res://content/materials/textures/sand.png" and ResourceLoader.exists(Mat.texture_path(Mat.LOG)),
+		"a material's texture is a PNG of its mod")
+	var old: PackedStringArray = ["core:air", "core:stone", "materials:sand", "nobody:glass"]
+	_check(Mat.remap(old) == PackedByteArray([Mat.AIR, Mat.STONE, Mat.BEACH, Mat.STONE]) and Mat.remap(Mat.IDS).is_empty(),
+		"cells of a save numbered in another order are translated, unknown ones to stone")
+	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.BEACH),
+		"material flags come from the data")
+	_check(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].tints[0] is Color, "trees get their looks")
+	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].berries == Color.BLACK and Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].spread is Vector3, "bushes get their looks")
+	_check(AiRules.SPECIES["animals:wolf"].diet == ["meat"] and AiRules.SPECIES["animals:wolf"].sprite == "wolf", "creatures get their properties")
+	# The checks catch what a mod author gets wrong.
+	var before := Content.MODS.duplicate()
+	var mod := "res://content/_test"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write(mod + "/mod.yaml", "id: _test\ntitle: Test\nversion: \"1\"\napi: 1\n")
+	_write(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
+	_write(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
+	_write(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
+	_write(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: core:cord\n  needs: {core:fiber: 0}\n- id: dust\n  title: y\n  makes: core:cord\n  needs: {stone_dust: 1}\n")
+	Content.MODS.append("_test")
+	Content.refresh()
+	var found := {}
+	for p in Content.problems:
+		for what in ["Bad Id", "glass.solid", "glass.weight", "duplicate id", "bear.mass", "bear.diet",
+				"bear.human_wariness", "bear.active", "pine.trunk", "pine.tints", "rope.needs", "`_test:stone_dust`"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 12, "the loader reports every kind of mistake (%d of 12): %s" % [found.size(), Content.problems])
+	_check(Content.find("materials", "_test:glass").title == "Стекло", "a duplicate id within a mod is skipped")
+	Content.MODS.assign(before)
+	for f in ["data/materials.yaml", "data/creatures.yaml", "data/trees.yaml", "data/recipes.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	_check(Content.problems.is_empty(), "core content loads clean again")
+
+
+## Mods load after what they require, patch each other's records, and a world's set of
+## mods can leave some out (see mods.gd).
+func _test_mods() -> void:
+	var all := Content.available()
+	_check(all.size() >= 3 and all[0] == "core" and "animals" in all and "birds" in all, "the mods under content/ are found, core first: %s" % [all])
+	var after_needs := Content.loaded.size() == all.size()
+	for i in Content.loaded.size():
+		for need in Mods.requires(Content.loaded[i]):
+			after_needs = after_needs and Content.loaded.find(need) < i
+	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants") < Content.loaded.find("birds"),
+		"every mod loads after what it requires: %s" % [Content.loaded])
+	var before := Content.MODS.duplicate()
+	for m in ["_a", "_b", "_c"]:
+		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
+	_write("res://content/_a/mod.yaml", "id: _a\ntitle: A\nversion: \"1\"\napi: 1\nrequires: [_b]\n")
+	_write("res://content/_b/mod.yaml", "id: _b\ntitle: B\nversion: \"1\"\napi: 1\nrequires: [core]\n")
+	_write("res://content/_c/mod.yaml", "id: _c\ntitle: C\nversion: \"1\"\napi: 1\nrequires: [_missing]\n")
+	_write("res://content/_b/data/creatures.yaml",
+		"- id: animals:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: animals:rabbit\n  patch: true\n  diet+: 3\n")
+	_write("res://content/_a/data/creatures.yaml", "- id: animals:wolf\n  patch: true\n  sight: 99\n")
+	_write("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
+	Mods.activate(["core", "animals", "_a", "_c", "_b"])
+	_check(Content.loaded == ["core", "animals", "_b", "_a"], "a mod loads after what it requires, a mod missing its requirement is left out: %s" % [Content.loaded])
+	var wolf: Dictionary = AiRules.SPECIES["animals:wolf"]
+	_check(wolf.speed == 1.5 and wolf.diet == ["meat", "plants"] and wolf.sight == 99 and wolf.mod == "animals",
+		"patches change only the fields they give, `+` adds to a list, and stack: %s" % [wolf])
+	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("birds:sparrow"), "records of mods left out are not loaded")
+	var found := {}
+	for p in Content.problems:
+		for what in ["requires `_missing`", "core:nobody: patches", "rabbit.diet: `+`"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 3, "the loader reports a missing requirement, a patch of nothing and a bad `+` (%d of 3): %s" % [found.size(), Content.problems])
+	_check(Mods.closure("_a", ["core", "_a", "_b"]) == ["core", "_b", "_a"], "a mod's closure is it with what it requires, in load order")
+	for m in ["_a", "_b", "_c"]:
+		for f in DirAccess.get_files_at("res://content/%s/data" % m):
+			DirAccess.remove_absolute("res://content/%s/data/%s" % [m, f])
+		DirAccess.remove_absolute("res://content/%s/data" % m)
+		DirAccess.remove_absolute("res://content/%s/mod.yaml" % m)
+		DirAccess.remove_absolute("res://content/%s" % m)
+	# Without the plants mod the world knows no tree, bush or plant and grows nothing.
+	Mods.activate(["core"])
+	var bare := WorldData.new(8, Vector2i(8, 8))
+	for x in 8:
+		for z in 8:
+			bare.set_cell(x, 0, z, Mat.GRASS)
+	var bare_rng := RandomNumberGenerator.new()
+	_check(Trees.pick(Trees.HIGHLAND, 0.5) == -1 and Bushes.pick(Trees.LOWLAND, 0.1) == -1 and Plants.TUFT == ""
+		and Grass.kinds(bare, 3, 0, 3, Mat.GRASS, true, bare_rng).is_empty() and Grass.plants_on(bare, 3, 0, 3).is_empty(),
+		"with core alone no tree, bush or plant is picked and grass grows nothing")
+	# Nor any material but the engine's five: the generator lays dirt and stone for the roles.
+	var bare_gen := WorldGen.new(20261018, 48)
+	_check(Mat.COUNT == 5 and Mat.BEACH == -1 and Mat.LOG == -1 and bare_gen.beach == Mat.DIRT and bare_gen.scree == Mat.STONE
+		and Mat.check().is_empty() and Trees.check().is_empty(), "with core alone the landscape roles fall back to dirt and stone")
+	Mods.activate(before)
+	_check(Trees.pick(Trees.HIGHLAND, 0.5) == Trees.sample(Trees.HIGHLAND) and Trees.pick("nowhere", 0.0) >= 0
+		and Bushes.pick(Trees.HIGHLAND, 0.5) == Bushes.sample(Trees.HIGHLAND) and Bushes.pick(Trees.HIGHLAND, 0.9) == Bushes.sample(Bushes.ANY)
+		and Bushes.pick(Bushes.OPEN, 0.3) == Bushes.sample(Trees.LOWLAND) and Plants.kind_of(Plants.EARS) == Plants.KINDS.EARS,
+		"trees, bushes and plants are picked by their roles, with the plain bush where the roll misses")
+	_check(Content.problems.is_empty() and AiRules.SPECIES.has("birds:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
+		"the full set loads clean again")
+
+
+func _write(path: String, text: String) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text)
+	f.close()
+
+
+func _test_items() -> void:
+	_check(Items.check().is_empty(), "core items satisfy the engine")
+	_check(Items.dug[Mat.GRASS] == "core:dirt" and Items.dug[Mat.STONE] == "core:stone" and Items.dug[Mat.LEAVES] == "",
+		"dug cells give their items")
+	for m in Mat.PLACEABLE:
+		_check(Items.get_item(Items.placed_by[m]).place == Mat.IDS[m], "an item places hotbar block %s" % Mat.IDS[m])
+	_check(Items.get_item("log").id == "core:log" and Items.title("core:branch") == "Ветка", "bare drop names are core items")
+	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seed == "plants:acorn" and Items.has(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].seed), "tree seeds are items")
+	_check(Bushes.TYPES[Bushes.sample(Trees.LOWLAND)].fruit == "plants:raspberry" and Items.food(Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].fruit) > 0.0,
+		"berries are food")
+	_check(Bushes.TYPES[Bushes.sample(Bushes.ANY)].fruit == "" and Bushes.TYPES[Bushes.sample(Bushes.ANY)].twigs > 0, "a plain bush gives branches only")
+
+
+func _test_tools() -> void:
+	var hand := Tools.of("")
+	var axe := Tools.of("tools:stone_axe")
+	var pick := Tools.of("tools:stone_pickaxe")
+	var shovel := Tools.of("tools:wooden_shovel")
+	_check(hand == Tools.HAND and Tools.of("core:branch") == Tools.HAND and axe.tool == "axe", "items that are no tools are bare hands")
+	_check(Tools.can_dig(hand, Mat.DIRT) and Tools.can_dig(hand, Mat.LEAVES) and not Tools.can_dig(hand, Mat.STONE),
+		"hands dig soft ground and leaves, not stone")
+	_check(Tools.swing_time(hand, Mat.DIRT) > Tools.swing_time(shovel, Mat.DIRT), "a shovel digs faster than hands")
+	_check(Tools.can_dig(pick, Mat.STONE) and Tools.can_dig(pick, Mat.ORE) and not Tools.can_dig(shovel, Mat.STONE),
+		"stone and ore only with a pickaxe")
+	_check(Tools.can_dig(axe, Mat.index("tools:planks")) and not Tools.can_dig(pick, Mat.LOG) and not Tools.can_dig(hand, Mat.WATER),
+		"wood with an axe, water never")
+	_check(Tools.why_not(hand, Mat.STONE) != "" and Tools.why_not(pick, Mat.STONE) == "", "a reason when a tool cannot dig")
+	_check(Tools.step_of(Vector2(0, 1)) == Vector2i(0, 1) and Tools.step_of(Vector2(-0.7, -0.7)) == Vector2i(-1, -1),
+		"facing snaps to 8 steps")
+	var f := Vector3i(5, 3, 5)
+	var order := Tools.front_cells(f, Vector2i(1, 0))
+	_check(order.slice(0, 6) == [Vector3i(6, 4, 5), Vector3i(7, 4, 5), Vector3i(6, 4, 6), Vector3i(6, 4, 4), Vector3i(7, 4, 6), Vector3i(7, 4, 4)],
+		"the action button digs at the head's level first: in front, beyond it, left and right of it, beyond those")
+	_check(order[6] == Vector3i(6, 3, 5) and order[12] == Vector3i(6, 2, 5) and order.size() == 19,
+		"then at the waist, then the ground in front of the feet")
+	_check(order[18] == f + Vector3i(0, 2, 0) and not f + Vector3i.DOWN in order, "last over the head, not under the feet")
+	var diagonal := Tools.front_ring(Vector2i(1, 1))
+	_check(diagonal[0] == Vector3i(1, 0, 1) and diagonal[1] == Vector3i(2, 0, 2) and Vector3i(1, 0, 0) in diagonal \
+		and Vector3i(0, 0, 1) in diagonal, "facing a diagonal, the sides are the columns touching both")
+	_check(Tools.sweep(Vector3i(6, 2, 5), Vector2i(1, 0)) == [Vector3i(6, 2, 5), Vector3i(6, 2, 6), Vector3i(6, 2, 4)],
+		"a scythe sweeps an arc in front")
+	var sector := Tools.sector(Vector2i(0, 1))
+	_check(sector[0] == Vector2i(0, 1) and Vector2i(1, 0) in sector and Vector2i(2, 1) in sector and not Vector2i(0, -1) in sector \
+		and not Vector2i(1, -1) in sector, "trees and bushes are found ahead and beside, not behind")
+	_check(Tools.use_of("") == "hand" and Tools.use_of("tools:stone_axe") == "tool" and Tools.use_of("core:stone") == "place" \
+		and Tools.use_of("plants:raspberry_bush") == "plant" and Tools.use_of("plants:grass_seeds") == "sow" \
+		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("plants:raspberry") == "eat" and Tools.use_of("core:branch") == "hand",
+		"what a held item is used for")
+	var scythe := Tools.of("tools:stone_scythe")
+	_check(Tools.mown(Mat.GRASS) == Mat.DIRT and Tools.mown(Mat.DIRT) == -1, "cutting grass leaves dirt")
+	_check(Tools.mows(hand) and Tools.mows(scythe) and Tools.mows(Tools.of("tools:wooden_sword")) and not Tools.mows(shovel),
+		"hands, a sword and a scythe cut grass")
+	_check(Tools.mows_low(hand) and Tools.mows_low(scythe) and not Tools.mows_low(Tools.of("tools:wooden_sword")),
+		"a sword cuts only what grows tall on grass, hands and a scythe the grass too")
+	_check(shovel.area == 1 and pick.area == 1, "a tool digs one cell a swing")
+	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
+	_check(Items.has(Mat.RECORDS[Mat.GRASS].mow_gives.keys()[0]), "cut grass gives fibre")
+	var rng := RandomNumberGenerator.new()
+	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("plants:grain", 0) == 4,
+		"ears give grain")
+	_check(Tools.use_of("plants:grain") == "sow" and Items.get_item("plants:grain").crop == Plants.EARS, "grain is sown into ears")
+	_check(Plants.harvest(["core:nothing"], rng).is_empty(), "an unknown plant gives nothing")
+	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].twigs > 0 and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seeds > 0, "a standing oak gives branches and acorns by hand")
+	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
+	_check(wall[0] == f and wall[1] == f + Vector3i.UP and wall.size() == 9, "a swing at a wall takes the cell above next (a passage)")
+	for c in wall:
+		_check(c.x == f.x, "a swing at a wall stays in the wall")
+	var floor_cells := Tools.brush_cells(f, Vector3i.UP, 3)
+	_check(floor_cells.size() == 9 and floor_cells[0] == f, "a brush starts at its centre")
+	for c in floor_cells:
+		_check(c.y == f.y and absi(c.x - f.x) <= 1 and absi(c.z - f.z) <= 1, "a brush on a floor lies flat around its centre")
+	_check(Tools.brush_cells(f, Vector3i.BACK, 2).size() == 4 and Tools.brush_cells(f, Vector3i.BACK, 1) == [f], "brush sizes")
+	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[3]) == [f, f + Vector3i.UP], "the tall brush is two cells one on another")
+	_check(Tools.brush_shape(f, Vector3i.UP, Tools.BRUSHES[4]) == [f], "the line brush places one cell at a time")
+	_check(hand.reach < pick.reach and Tools.of("tools:wooden_sword").reach < pick.reach and Tools.PLACE_REACH >= pick.reach,
+		"tools reach farther than hands and a sword")
+	_check(Items.has(Mat.RECORDS[Mat.GRASS].bonus) and Mat.RECORDS[Mat.GRASS].bonus_chance > 0.0 and Mat.RECORDS[Mat.STONE].bonus == "",
+		"grass sometimes gives fibre")
+	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].hits > axe.power, "an oak takes more than one swing")
+	var b: Dictionary = Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]
+	_check(Items.get_item(b.item).plant == b.id, "a dug-out bush is an item that plants it again")
+	var w := WorldData.new(2, Vector2i(2, 2))
+	w.heap_drop("core:dirt", Vector3(1.0, 1.0, 1.0), 1)
+	w.heap_drop("core:dirt", Vector3(1.1, 1.0, 1.0), 2)
+	w.heap_drop("core:stone", Vector3(1.1, 1.0, 1.0), 1)
+	w.heap_drop("core:dirt", Vector3(3.0, 1.0, 1.0), 1)
+	var list: Array = w.drops[Vector2i.ZERO]
+	_check(list.size() == 3 and list[0][3] == 3, "what is dug together lies in one heap")
+
+
+func _test_crafting() -> void:
+	_check(Crafting.check().is_empty(), "every recipe can be made, at a real station: %s" % Crafting.check())
+	var have := Crafting.reachable()
+	for id in ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:stone_sword", "tools:wooden_pickaxe", "tools:wooden_scythe",
+			"tools:workbench",
+			"tools:kiln", "tools:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
+		_check(have.has(id), "%s can be had from a new world" % id)
+	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
+	var cord := Crafting.get_recipe("core:cord")
+	var axe := Crafting.get_recipe("tools:stone_axe")
+	var planks := Crafting.get_recipe("tools:planks")
+	_check(cord.at == "" and cord.needs == {"core:fiber": 3} and axe.at == "tools:workbench", "recipes come from the data")
+	var inv := Inventory.new()
+	var knows := Knowledge.new()
+	knows.look_at(inv)
+	_check(not knows.knows(cord) and knows.recipes().is_empty(), "nothing is known with an empty bag")
+	var heard := []
+	knows.learned.connect(func(id: String) -> void: heard.append(id))
+	inv.add("core:fiber", 7)
+	knows.look_at(inv)
+	_check(knows.knows(cord) and heard == ["core:cord"], "a recipe is learned when its materials have been in the bag")
+	var copy := Knowledge.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
+	_check(copy.knows(cord) and copy.seen.has("core:fiber"), "knowledge survives a save")
+	_check(Crafting.why_not(cord, inv, {}) == "" and Crafting.why_not(axe, inv, {}).begins_with("Нужен станок"),
+		"by hand anywhere, at a station only near it")
+	_check(Crafting.why_not(planks, inv, {"tools:workbench": true}).begins_with("Нужен инструмент"), "planks need an axe in the bag")
+	var q := CraftQueue.new()
+	_check(q.add(cord, inv) and q.add(cord, inv) and not q.add(cord, inv), "the queue takes the materials of each job")
+	_check(inv.count("core:fiber") == 1, "materials are gone while queued")
+	var stacks := q.cancel(1)
+	for st in stacks:
+		inv.add(st[0], st[1])
+	_check(inv.count("core:fiber") == 4 and q.jobs.size() == 1, "a cancel gives the materials back")
+	var made := q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return false)
+	_check(made.is_empty() and q.progress() == 0.0, "a job waits while it cannot be worked on")
+	q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return true)
+	_check(is_equal_approx(q.progress(), 0.5), "a job takes its time")
+	made = q.step(cord.time, func(_r: Dictionary) -> bool: return true)
+	_check(made.size() == 1 and made[0].makes == "core:cord" and q.jobs.is_empty(), "a job is done when its time is up")
+	var q2 := CraftQueue.new()
+	q2.add(cord, inv)
+	q2.step(0.5, func(_r: Dictionary) -> bool: return true)
+	var q3 := CraftQueue.new()
+	q3.from_dict(JSON.parse_string(JSON.stringify(q2.to_dict())))
+	_check(q3.jobs.size() == 1 and is_equal_approx(q3.jobs[0].left, cord.time - 0.5), "the queue survives a save")
+
+
+## The world model and the rules under src/shared are what the server will run, so
+## nothing there may load a script from src/client.
+func _test_layers() -> void:
+	var bad: Array = []
+	for path: String in _scripts("res://src/shared"):
+		if FileAccess.get_file_as_string(path).contains("res://src/client/"):
+			bad.append(path)
+	_check(bad.is_empty(), "src/shared loads nothing from src/client: %s" % [bad])
+
+
+func _scripts(dir: String) -> Array:
+	var out: Array = []
+	for f: String in DirAccess.get_files_at(dir):
+		if f.ends_with(".gd"):
+			out.append(dir.path_join(f))
+	for d: String in DirAccess.get_directories_at(dir):
+		out.append_array(_scripts(dir.path_join(d)))
+	return out
