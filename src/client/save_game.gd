@@ -96,7 +96,16 @@ func choose_world() -> void:
 	for split in [[2, "plants"], [3, "tools"], [4, "sounds"], [4, "music"], [5, "materials"], [7, "resources"], [7, "materials"], [8, "biomes"]]:
 		if int(meta.get("content", 1)) < split[0] and not split[1] in mods and split[1] in Mods.available():
 			mods.insert(1, split[1])
-	game.world_mods = Mods.expand(mods)
+	# Bundles added to a mod since the world was saved (below 9: the torch) join a world
+	# that has that mod: they add only things to make, no cells, trees or animals, so
+	# the land stays the same.
+	var bundles := Mods.expand(mods)
+	for added in [[9, "tools/torch"]]:
+		var mod := Mods.mod_of(added[1])
+		if int(meta.get("content", 1)) < added[0] and added[1] in Mods.all() and not added[1] in bundles \
+				and bundles.any(func(b: String) -> bool: return Mods.mod_of(b) == mod):
+			bundles = Mods.expand(bundles + [added[1]])
+	game.world_mods = bundles
 	# The order the materials were numbered in when the world was saved (its cells hold
 	# the numbers): a save from before the split (below 5) had the core's thirteen.
 	saved_materials = PackedStringArray(meta.get("materials", OLD_MATERIALS if int(meta.get("content", 1)) < 5 else []))
@@ -222,7 +231,7 @@ func _write_world() -> void:
 		"seed": game.world_seed,
 		"settings": game.world_options,
 		"mods": game.world_mods,
-		"content": 8,
+		"content": 9,
 		"materials": Array(Mat.IDS),
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),

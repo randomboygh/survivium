@@ -661,14 +661,16 @@ func _weather_index(id: String) -> int:
 ## Puts the sparrows round the player, every third in the air and every third in a
 ## crown when there is a tree near, and holds them there until the shot is taken.
 ## One of every species on the land in rows before the player, walking (its second
-## frame), or, for `water`, every swimmer in the water near the player.
+## frame), or, for `water`, every swimmer in the water near the player; a species
+## with tints once in each of them.
 func _place_zoo(water: bool) -> void:
 	var life = main.wildlife
 	var p: Vector3 = main.player.position
 	var kinds: Array = []
 	for kind in AiRules.SPECIES:
 		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].swims == water:
-			kinds.append(kind)
+			for t in maxi(1, AiRules.SPECIES[kind].tints.size()):
+				kinds.append([kind, t])
 	for c in life.animals:
 		c.pos = p + Vector3(60.0, 0.0, 60.0)
 		c.target = c.pos
@@ -690,10 +692,11 @@ func _place_zoo(water: bool) -> void:
 			var at := p + Vector3(-4.5 + (i % 5) * 2.2, 0.0, -1.2 + (i / 5) * 2.0)
 			spots.append(Vector3(at.x, life.ground(at.x, at.z), at.z))
 	var i := 0
-	for kind in kinds:
+	for kt in kinds:
 		if i >= spots.size():
 			break
-		var c = life._add(kind, spots[i])
+		var c = life._add(kt[0], spots[i])
+		c.tint = kt[1]
 		c.think = 100.0
 		c.facing = 1.0 if i % 2 == 0 else -1.0
 		c.moving = true
