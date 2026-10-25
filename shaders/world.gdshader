@@ -21,7 +21,7 @@
 //          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1); below
 //          1 on a stone top whose moss was picked, 16ths naming which tops beside,
 //          bits N, S, W, E, were picked too; on a tree's trunk which cell of it this
-//          is (0.25 the foot, 0.5 the next, 0.75 above)
+//          is, in eighths (1 the foot, 2 the next, up to 5)
 //   A snowdrift has tile 63 and UV = 4 + the vertex's place on the mound's round
 //          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
@@ -52,6 +52,8 @@ const int PRIORITY_MASK = 15;
 const int DRAINS = 16;
 const int GROUND_SHIFT = 5;
 const int TRUNK = 128;
+// Cells of a trunk over its foot it takes to clear in full round the player.
+const float TRUNK_RISE = 3.0;
 const int GROUND_SOIL = 1;
 const int GROUND_SAND = 2;
 const int GROUND_ROCK = 3;
@@ -182,12 +184,13 @@ void fragment() {
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
 	// The trunk of a tree nearer the viewer than the player clears round them (see
-	// trunk_through), but for its foot: its first cell stays and the second clears
-	// from the bottom up. The vertex alpha of a trunk's faces says which cell of it
-	// they are (see TrunkMesher.trunk_faces): 0.25 the foot, 0.5 the next, 0.75 above.
+	// trunk_through), but for its foot: its first cell stays whole and the
+	// TRUNK_RISE cells above it clear more and more from the bottom up. The vertex
+	// alpha of a trunk's faces says which cell of it they are, in eighths (see
+	// TrunkMesher.trunk_faces): 1 the foot, 2 the next, up to 5.
 	if (!IN_SHADOW_PASS && tile != NONE && COLOR.a < 0.9 && (material_bits[tile / 3] & TRUNK) != 0) {
-		float level = floor(COLOR.a * 4.0 + 0.5) - 1.0;
-		float rise = clamp(level - 1.0 + fract(world_pos.y / CELL), 0.0, 1.0);
+		float level = floor(COLOR.a * 8.0 + 0.5) - 1.0;
+		float rise = clamp((level - 1.0 + fract(world_pos.y / CELL)) / TRUNK_RISE, 0.0, 1.0);
 		vec2 lt = light_texel(light_xz);
 		if (bayer4(lt) < trunk_through(lt, world_pos) * rise) {
 			discard;
