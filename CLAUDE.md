@@ -27,14 +27,15 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
 content/      the mods: core (the base game), materials, sounds, tools, plants, animals, birds; mod.yaml,
               data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
-tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
+tests/        run_tests (runs unit/<topic>_test.gd, each extends unit/test_case.gd), save_test, progress_test,
+              frame_test, browser_smoke.mjs, run_all.sh
 tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons,
               make_textures, art/, sound/
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
   decide) goes into `src/shared/game/`; how it is drawn or asked for goes into `src/client/`.
-  `run_tests.gd` fails if anything under `src/shared/` loads a script from `src/client/`. A rule takes
+  `run_tests.gd` (`unit/content_test.gd`) fails if anything under `src/shared/` loads a script from `src/client/`. A rule takes
   the one acting as `who` (on the client `character.gd`: the body, the hands and the bag) and tells what
   it changed through signals the client's views connect to (`world_actions.gd`). Details and the
   table of systems: `plan/architecture/code-structure.md`.
@@ -156,7 +157,10 @@ timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 
 `tests/run_all.sh` runs the same after `--import`: the first four side by side, each with its own
 `user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times (`GODOT=path` if
-`godot` is not on PATH; names as arguments run only those). `frame_test.gd` plays scenarios headless
+`godot` is not on PATH; names as arguments run only those). `run_tests.gd` runs the files of `tests/unit/`
+(one per topic: generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, character;
+each extends `test_case.gd`, which holds `_check` and the shared helpers), topic names after `--` run only
+those; a new test goes into the file of its topic and its `run`. `frame_test.gd` plays scenarios headless
 and fails when chunk-sized work lands in one frame; its timings are noisy on a busy machine, rerun it
 alone before blaming code. `progress_test.gd` starts a new world with an empty bag and plays the way
 to every recipe through the game's own calls; run it after any change to tools, materials, stations,
