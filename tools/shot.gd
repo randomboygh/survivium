@@ -549,7 +549,9 @@ func _craft(forge := false) -> void:
 ## right, the right one in use if `h.right`, turns the player to `h.facing` and holds the work `h.work`
 ## still at its wind-up, or at its strike if `h.strike`.
 func _hands(h: Dictionary) -> void:
-	main.player.position = places.flat_near(main.world, main.player.position)
+	# On flat grass nearby, unless the shot keeps its spot (`h.stay`).
+	if not h.get("stay", false):
+		main.player.position = places.flat_near(main.world, main.player.position)
 	var inv = main.character.inventory
 	var other: String = h.get("other", "resources:stone")
 	inv.add(h.tool, 1)

@@ -27,7 +27,9 @@ uniform float strengths[8];
 uniform int light_count = 0;
 // The maps of what stands around each light (FireShadows._maps), side by side in the
 // order of `lights`: MAP_SIZE by MAP_SIZE columns, each how high the block or thing
-// on it rises over the light's ground, MAP_SCALE steps a world unit. maps[i]: xy the
+// on it rises over the light's ground, MAP_SCALE steps a world unit, in the low 7 bits,
+// and 128 added where the ground there is not flat on the light's level (the square
+// lies at that level, so it would not fall on that ground: no shadow is drawn there). maps[i]: xy the
 // column of its north-west corner, z the height of the light's ground, w 1 if it has one.
 uniform sampler2D block_map : filter_nearest;
 uniform vec4 maps[8];
@@ -41,6 +43,18 @@ varying flat vec4 shape;
 varying flat float strength;
 varying flat int light;
 varying flat float square;
+
+// True when the ground at `p` is not flat on the level of light `i`'s map.
+bool not_flat(int i, vec3 p) {
+	if (i >= light_count || maps[i].w < 0.5) {
+		return false;
+	}
+	ivec2 o = ivec2(floor(p.xz / CELL)) - ivec2(maps[i].xy);
+	if (o.x < 0 || o.y < 0 || o.x >= MAP_SIZE || o.y >= MAP_SIZE) {
+		return false;
+	}
+	return texelFetch(block_map, ivec2(i * MAP_SIZE + o.x, o.y), 0).r * 255.0 > 127.5;
+}
 
 // True when the way from the ground at `p` to light `i` passes over a column of its
 // map higher than the way is there: column by column from `p` to the light (not the
@@ -78,7 +92,7 @@ bool blocked(int i, vec3 p) {
 		}
 		ivec2 o = cell - origin;
 		if (o.x >= 0 && o.y >= 0 && o.x < MAP_SIZE && o.y < MAP_SIZE) {
-			float h = texelFetch(block_map, ivec2(i * MAP_SIZE + o.x, o.y), 0).r * 255.0 / MAP_SCALE;
+			float h = mod(round(texelFetch(block_map, ivec2(i * MAP_SIZE + o.x, o.y), 0).r * 255.0), 128.0) / MAP_SCALE;
 			if (h > lh * t) {
 				return true;
 			}
@@ -105,7 +119,7 @@ void fragment() {
 	float d;
 	if (square > 0.5) {
 		d = distance(world_pos, lights[light].xyz) / lights[light].w;
-		if (d >= LIGHT_RING_EDGES.w || !blocked(light, world_pos)) {
+		if (d >= LIGHT_RING_EDGES.w || not_flat(light, world_pos) || !blocked(light, world_pos)) {
 			discard;
 		}
 	} else {
