@@ -143,6 +143,14 @@ heat_map={
 "type": "sampler2D",
 "value": ""
 }
+light_blocks={
+"type": "sampler2D",
+"value": ""
+}
+light_spots={
+"type": "sampler2D",
+"value": ""
+}
 roof_map={
 "type": "sampler2D",
 "value": ""

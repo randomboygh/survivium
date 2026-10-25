@@ -63,8 +63,8 @@ const SHOTS := {
 	# the player, the drawn shadows of the slopes.
 	"torch-snow": {"time": 0.95, "season": 3, "moon": 0.0, "slopes": true, "morning_fog": 1, "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
-	# Two torches on a beach of sandy steps and in a canyon: drawn shadows only on the
-	# flat ground of the torch's level, none in squares on slopes or below.
+	# Two torches on a beach of sandy steps and in a canyon: the blocks, slopes and cut
+	# corners in the way of the light hide it, in their own shapes.
 	"torch-beach": {"time": 0.95, "season": 1, "moon": 0.0, "place": "beach", "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	"torch-canyon": {"time": 0.95, "season": 1, "moon": 0.0, "place": "canyon", "fire_shadows": 1,
