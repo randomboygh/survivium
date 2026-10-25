@@ -18,13 +18,15 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   biomes     x -8..,     z 14..38    strips of 8 cells of the loaded biomes: the climate ones
-##                                      in load order with the swamp fourth (pools in its north, a
-##                                      pond running into a bog in its south), the beach last; the
-##                                      trees and bushes each biome grows most, in rows (the animals
-##                                      of a biome come to its strip on their own)
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
+##   biomes     x -70..70,  z 100..     plots of 24 by 24 cells of the loaded biomes (BIOME_*), five
+##                                      in a row with 4 cells of meadow between: the climate ones in
+##                                      load order, then the swamp (pools in its north, a pond running
+##                                      into a bog in its south) and the beach; each grown the way the
+##                                      generator grows the biome (its tree chance and shares, its
+##                                      bushes), a pool in the south-east corner for the plants of the
+##                                      banks (the animals of a biome come to its plot on their own)
 ##   stream     x 136..179, z 16..34    a stream coming down terraces (STREAM): falls of
 ##                                      4, 3 and 2 cells, a rapid of 1, a pool at the foot
 ##   ears       x 100..131, z -12..11   a field of ears (sparrows come to it), a row of
@@ -45,12 +47,19 @@ const Grass := preload("res://src/shared/world/grass.gd")
 const Items := preload("res://src/shared/content/items.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
-const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Биомы", "Рельеф",
+const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Рельеф", "Биомы",
 	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
-## The width of a biome strip.
-const STRIP := 8
+## The biome plots: BIOME_PLOT cells square, BIOME_GAP cells of meadow between them,
+## BIOME_PER_ROW in a row east from BIOME_X, the rows south from BIOME_Z. The pool of a
+## plot is BIOME_POOL cells square in its south-east corner, BIOME_GAP from the edges.
+const BIOME_PLOT := 24
+const BIOME_GAP := 4
+const BIOME_PER_ROW := 5
+const BIOME_X := -70
+const BIOME_Z := 100
+const BIOME_POOL := 4
 const POND_DEPTHS := [1, 2, 3, 5]
 const HILL := 12
 ## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
@@ -93,10 +102,10 @@ var ground := 22
 var strip_tops: Array = []
 ## Tops of the rows of the relief ground, north to south.
 var relief_tops: Array = []
-## The biome strips of 8 cells from x = -8: every climate biome in load order with the swamp
-## fourth (NONE pads to it when fewer are loaded), the beach last; the biome of the meadow
-## (one the player may start in), of the rock and of the water.
-var strip_biomes: Array = []
+## The biomes of the plots: every climate biome in load order (NONE pads to 3 when fewer
+## are loaded), then the swamp and the beach; the biome of the meadow (one the player may
+## start in), of the rock and of the water.
+var plot_biomes: Array = []
 var meadow := Biomes.NONE
 var rock := Biomes.NONE
 var water := Biomes.NONE
@@ -113,14 +122,13 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	relief_tops = [Mat.GRASS, beach, bank, Mat.STONE]
 	for i in Biomes.RECORDS.size():
 		if Biomes.RECORDS[i].where == "climate":
-			strip_biomes.append(i)
+			plot_biomes.append(i)
 		if Biomes.spawn_ok(i) and meadow == Biomes.NONE:
 			meadow = i
-	while strip_biomes.size() < 3:
-		strip_biomes.append(Biomes.NONE)
-	# The swamp is the fourth strip (its pools and pond are laid out by x), the beach the last.
-	strip_biomes.insert(3, _biome(Biomes.SWAMP))
-	strip_biomes.append(_biome(Biomes.BEACH))
+	while plot_biomes.size() < 3:
+		plot_biomes.append(Biomes.NONE)
+	plot_biomes.append(_biome(Biomes.SWAMP))
+	plot_biomes.append(_biome(Biomes.BEACH))
 	rock = _biome(Biomes.ROCK)
 	water = _biome(Biomes.SEA)
 
@@ -137,6 +145,23 @@ func _pick_spawn() -> Vector3i:
 
 
 # --- The plan -----------------------------------------------------------------------
+
+## The plot column x, z lies in, -1 outside the plots and in the meadow between them.
+func plot_at(x: int, z: int) -> int:
+	var px := x - BIOME_X
+	var pz := z - BIOME_Z
+	var stride := BIOME_PLOT + BIOME_GAP
+	if px < 0 or pz < 0 or px >= BIOME_PER_ROW * stride or px % stride >= BIOME_PLOT or pz % stride >= BIOME_PLOT:
+		return -1
+	var i := (pz / stride) * BIOME_PER_ROW + px / stride
+	return i if i < plot_biomes.size() else -1
+
+
+## The north-west corner of plot i.
+func plot_origin(i: int) -> Vector2i:
+	var stride := BIOME_PLOT + BIOME_GAP
+	return Vector2i(BIOME_X + (i % BIOME_PER_ROW) * stride, BIOME_Z + (i / BIOME_PER_ROW) * stride)
+
 
 ## Column x, z: [height of its top cell, top water cell or -1, top, biome, sheer].
 func column(x: int, z: int) -> Array:
@@ -160,21 +185,24 @@ func column(x: int, z: int) -> Array:
 	if x >= -44 and x < -14 and z >= 14 and z < 38:
 		var d: int = POND_DEPTHS[mini((x + 44) / 8, POND_DEPTHS.size() - 1)]
 		return [g - d, g, beach, water, false]
-	# Biome strips, 8 cells each.
-	if x >= -8 and x < -8 + STRIP * strip_biomes.size() and z >= 14 and z < 38:
-		var b: int = strip_biomes[(x + 8) / STRIP]
+	# The biome plots.
+	var plot := plot_at(x, z)
+	if plot >= 0:
+		var b: int = plot_biomes[plot]
+		var at := Vector2i(x, z) - plot_origin(plot)
+		var top := beach if b == Biomes.BEACH or Biomes.top(b, beach, bank) == beach else Mat.GRASS
 		if b == Biomes.SWAMP:
 			# Swamp water a cell deep in clay, two in a corner of the pond; its
 			# murk is in extras.
-			if _swamp_water(x, z):
-				return [g - (2 if x >= 19 and x < 21 and z >= 27 and z < 29 else 1), g, bank, b, false]
+			if _swamp_water(at):
+				return [g - (2 if at.x >= 8 and at.x < 10 and at.y >= 14 and at.y < 16 else 1), g, bank, b, false]
 			return [g, -1, Mat.GRASS, b, false]
-		if b == Biomes.BEACH or Biomes.top(b, beach, bank) == beach:
-			return [g, -1, beach, b, false]
-		if Biomes.of(b).get("stone_below", -1.0) > -1.0:
+		if _plot_pool(at):
+			return [g - 1, g, beach if top == beach else bank, b, false]
+		if top == Mat.GRASS and Biomes.of(b).get("stone_below", -1.0) > -1.0:
 			# Stone shows through the ground here and there (the tundra).
 			return [g, -1, Mat.STONE if posmod(x * 7 + z * 3, 11) == 0 else Mat.GRASS, b, false]
-		return [g, -1, Mat.GRASS, b, false]
+		return [g, -1, top, b, false]
 	# Relief: a row of shapes for each top.
 	var rx := x - RELIEF_X
 	var rz := z - RELIEF_Z
@@ -271,19 +299,26 @@ static func growth(x: int, z: int) -> int:
 	return 0
 
 
-## True where the swamp strip has water: pools of 2 by 2 cells in its north, a pond
-## in its south whose southern part is a bog (see _bog).
-static func _swamp_water(x: int, z: int) -> bool:
-	if x < 16 or x >= 24 or z < 14 or z >= 38:
+## True where the swamp plot has water at `at` (a cell of the plot from its corner):
+## pools of 2 by 2 cells in its north, a pond in its south whose southern part is a
+## bog (see _bog).
+static func _swamp_water(at: Vector2i) -> bool:
+	if at.x < 2 or at.x >= BIOME_PLOT - 2 or at.y < 2 or at.y >= BIOME_PLOT - 1:
 		return false
-	if z < 26:
-		return posmod(x, 4) < 2 and posmod(z, 4) < 2
-	return x >= 17 and x < 23 and z >= 27 and z < 37
+	if at.y < 12:
+		return posmod(at.x, 4) < 2 and posmod(at.y, 4) < 2
+	return at.x >= 6 and at.x < 18 and at.y >= 13
 
 
-## True on the bog of the swamp strip's pond.
-static func _bog(x: int, z: int) -> bool:
-	return x >= 17 and x < 23 and z >= 31 and z < 37
+## True on the bog of the swamp plot's pond.
+static func _bog(at: Vector2i) -> bool:
+	return _swamp_water(at) and at.y >= 18
+
+
+## True on the pool in the south-east corner of a plot (not the swamp's).
+static func _plot_pool(at: Vector2i) -> bool:
+	var from := BIOME_PLOT - BIOME_GAP - BIOME_POOL
+	return at.x >= from and at.x < from + BIOME_POOL and at.y >= from and at.y < from + BIOME_POOL
 
 
 ## What column x, z has over its plain fill: [from y, to y (inclusive), material,
@@ -297,9 +332,12 @@ func extras(x: int, z: int) -> Array:
 	if tunnel or hall:
 		out.append([g, g, Mat.DIRT, WorldData.WILD])
 		out.append([g + 1, g + (4 if hall else 2), Mat.AIR, WorldData.WILD])
-	# The water of the swamp strip is murky, the bog's murkier.
-	if _swamp_water(x, z):
-		out.append([column(x, z)[0] + 1, g, Mat.WATER, WorldData.WILD | (WorldData.BOG if _bog(x, z) else WorldData.SWAMP)])
+	# The water of the swamp plot is murky, the bog's murkier.
+	var plot := plot_at(x, z)
+	if plot >= 0 and plot_biomes[plot] == Biomes.SWAMP:
+		var at := Vector2i(x, z) - plot_origin(plot)
+		if _swamp_water(at):
+			out.append([column(x, z)[0] + 1, g, Mat.WATER, WorldData.WILD | (WorldData.BOG if _bog(at) else WorldData.SWAMP)])
 	# Material strips are 4 cells deep.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		out.append([g - 3, g, strip_tops[(x - 16) / 4], WorldData.WILD])
@@ -332,18 +370,6 @@ func plan_trees() -> Array:
 	for x in range(-27, -14, 4):
 		out.append([x, -7, spruce])
 		out.append([x, 7, spruce])
-	# Two columns in each biome strip: the species it grows most and the one it grows
-	# least, where its ground is grass.
-	for i in strip_biomes.size():
-		var x0 := -8 + i * STRIP
-		var kinds := [Biomes.tree(strip_biomes[i], 0.0), Biomes.tree(strip_biomes[i], 0.999)]
-		for k in 2:
-			if kinds[k] < 0:
-				continue
-			for z in range(17, 38, 6):
-				var x := x0 + 1 + k * 4
-				if _level_grass(x, z):
-					out.append([x, z, kinds[k]])
 	# Oaks along the north edge of the field of ears, the grove in rows.
 	for x in range(101, 132, 6):
 		out.append([x, -11, oak])
@@ -386,18 +412,6 @@ func plan_things() -> Array:
 	return out
 
 
-## True when column x, z and the eight around it are dry grass at one level (a bush
-## beside the stone of the tundra strip would stand on a slope).
-func _level_grass(x: int, z: int) -> bool:
-	var h: int = column(x, z)[0]
-	for dz in range(-1, 2):
-		for dx in range(-1, 2):
-			var c := column(x + dx, z + dz)
-			if c[0] != h or c[1] >= 0 or c[2] != Mat.GRASS:
-				return false
-	return true
-
-
 ## The bushes of the plan: [x, z, type].
 func plan_bushes() -> Array:
 	var out := []
@@ -418,18 +432,6 @@ func plan_bushes() -> Array:
 		for x in range(63, 95, 2):
 			var kind: int = kinds[row] if row < 3 else kinds[posmod(x, 3)]
 			out.append([x, -8 + row * 3, kind])
-	# Two columns of bushes in each biome strip, between its trees: the type it grows
-	# most and the one it grows least, where its ground is grass.
-	for i in strip_biomes.size():
-		var x0 := -8 + i * STRIP
-		var types := [Biomes.bush(strip_biomes[i], 0.0), Biomes.bush(strip_biomes[i], 0.999)]
-		for k in 2:
-			if types[k] < 0:
-				continue
-			for z in range(15, 38, 3):
-				var x := x0 + 3 + k * 4
-				if _level_grass(x, z):
-					out.append([x, z, types[k]])
 	for x in range(-45, -32, 3):
 		out.append([x, 0, raspberry])
 	for x in range(-30, -20, 3):
@@ -517,15 +519,58 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		c.wild[col] = wild_bits
 
 
+## True when chunk `key` has cells of the biome plots.
+func _in_plots(key: Vector2i) -> bool:
+	var stride := BIOME_PLOT + BIOME_GAP
+	var rows := (plot_biomes.size() + BIOME_PER_ROW - 1) / BIOME_PER_ROW
+	var plots := Rect2i(BIOME_X, BIOME_Z, BIOME_PER_ROW * stride, rows * stride)
+	return plots.intersects(Rect2i(key.x * CHUNK, key.y * CHUNK, CHUNK, CHUNK))
+
+
+## The species of the tree a lattice column of a plot wants, -1 for none: its biome's
+## chance and one of its species by their shares, the way WorldGen._tree_at decides for
+## a generated world (no groves here).
+func _plot_tree(x: int, z: int) -> int:
+	var plot := plot_at(x, z)
+	if plot < 0:
+		return -1
+	var c := column(x, z)
+	if c[2] != Mat.GRASS or c[1] >= 0:
+		return -1
+	var b: int = plot_biomes[plot]
+	if _chance(x, z, 1) >= Biomes.tree_chance(b):
+		return -1
+	return Biomes.tree(b, _chance(x, z, 6))
+
+
+## The trees of the plan in the chunk, and in the biome plots the trees of the lattice
+## (odd columns, not beside a candidate to the west or north, as WorldGen lays them).
 func _tree_candidates(key: Vector2i, _lay: Dictionary) -> Array:
 	var out := []
 	for t: Array in plan_trees():
 		if t[0] >> WorldData.SHIFT == key.x and t[1] >> WorldData.SHIFT == key.y:
 			out.append([t[0], t[1], t[2], column(t[0], t[1])[0]])
+	if not _in_plots(key):
+		return out
+	for z in range(key.y * CHUNK, key.y * CHUNK + CHUNK):
+		if z & 1 == 0:
+			continue
+		for x in range(key.x * CHUNK, key.x * CHUNK + CHUNK):
+			if x & 1 == 0:
+				continue
+			var species := _plot_tree(x, z)
+			if species < 0 or _plot_tree(x - 2, z) >= 0 or _plot_tree(x, z - 2) >= 0:
+				continue
+			out.append([x, z, species, column(x, z)[0]])
 	return out
 
 
-func _bushes(key: Vector2i, _lay: Dictionary) -> void:
+## The bushes of the plan, and in the biome plots the bushes of each biome by its
+## sparsity and shares (WorldGen's rule; the layout of the chunk says the biome of each
+## column, the meadow between the plots gets its few as well).
+func _bushes(key: Vector2i, lay: Dictionary) -> void:
+	if _in_plots(key):
+		super(key, lay)
 	# The things lying in the camp come with its chunk, the way trees do.
 	for d: Array in plan_drops():
 		if d[1] >> WorldData.SHIFT == key.x and d[2] >> WorldData.SHIFT == key.y:

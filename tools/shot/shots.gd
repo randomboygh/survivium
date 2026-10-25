@@ -365,16 +365,21 @@ const SHOTS := {
 	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
-	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
-	# The strips of the biomes added as bundles (birch grove, pine wood, steppe) east of them.
-	"ground-biomes-east": {"time": 0.42, "season": 1, "at": [52, 26]},
-	# The swamp strip: pools in the north, a pond running into a bog in the south, and
+	# The biome plots south of the relief ground, five in a row from x -70 (TestGround.BIOME_*):
+	# the first row's birch grove and desert, forest and meadow, pine wood; the second
+	# row's steppe and taiga, tundra, swamp and beach.
+	"ground-biomes": {"time": 0.42, "season": 1, "at": [-44, 118]},
+	"ground-biomes-forest": {"time": 0.42, "season": 1, "at": [-14, 118]},
+	"ground-biomes-east": {"time": 0.42, "season": 1, "at": [26, 118]},
+	"ground-biomes-south": {"time": 0.42, "season": 1, "at": [-44, 146]},
+	"ground-biomes-tundra": {"time": 0.42, "season": 1, "at": [-2, 146]},
+	# The swamp plot: pools in the north, a pond running into a bog in the south, and
 	# the player wading the bog.
-	"ground-swamp": {"time": 0.42, "season": 1, "at": [18, 26]},
-	"ground-bog": {"time": 0.42, "season": 1, "at": [19, 33], "y": 23},
+	"ground-swamp": {"time": 0.42, "season": 1, "at": [26, 140]},
+	"ground-bog": {"time": 0.42, "season": 1, "at": [24, 147], "y": 23},
 	# Swimming in the deep end of the pond and in the deep corner of the swamp's pond.
 	"ground-swim": {"time": 0.42, "season": 1, "at": [-20, 26], "y": 18},
-	"ground-swim-swamp": {"time": 0.42, "season": 1, "at": [19, 27], "y": 21},
+	"ground-swim-swamp": {"time": 0.42, "season": 1, "at": [22, 142], "y": 21},
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
