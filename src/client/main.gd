@@ -53,6 +53,7 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Drifts := preload("res://src/client/world/drifts.gd")
 const EffectsScript := preload("res://src/client/view/effects.gd")
 const FireShadowsScript := preload("res://src/client/view/fire_shadows.gd")
+const SunRaysScript := preload("res://src/client/view/sun_rays.gd")
 const TracksScript := preload("res://src/client/world/tracks.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
@@ -79,6 +80,8 @@ var player
 var creatures
 var effects
 var fire_shadows
+## Shafts of sunlight among the trees, flecks of sun and dust in them (SunRays).
+var sun_rays
 var tracks
 var roof: RoofMap
 var hud
@@ -585,6 +588,9 @@ func _build_scene() -> void:
 	fire_shadows = FireShadowsScript.new()
 	fire_shadows.game = self
 	world_root.add_child(fire_shadows)
+	sun_rays = SunRaysScript.new()
+	sun_rays.game = self
+	world_root.add_child(sun_rays)
 	cursor = CursorScript.new()
 	cursor.world = world
 	world_root.add_child(cursor)

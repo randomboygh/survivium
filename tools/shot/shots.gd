@@ -92,10 +92,15 @@ const SHOTS := {
 	"fire-moon-before": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	"dawn": {"time": 0.255, "season": 1, "moon": 1.0},
 	"sunrise": {"time": 0.28, "season": 1, "moon": 1.0},
-	# Sun rays: a clear day, a low sun, and the breaking clouds after rain.
+	# Sunlight among the trees (SunRays): a clear day, a low sun, and the breaking clouds after rain.
 	"rays-day": {"time": 0.45, "season": 1},
 	"rays-evening": {"time": 0.72, "season": 1},
 	"rays-after-rain": {"time": 0.4, "season": 1, "weather": "cloudy", "after_rain": 1.0},
+	# Shafts and flecks among the trees of a forest, in the morning, at noon and in the evening.
+	"rays-forest-morning": {"time": 0.32, "season": 1, "forest": true},
+	"rays-forest-noon": {"time": 0.47, "season": 1, "forest": true},
+	"rays-forest-evening": {"time": 0.7, "season": 1, "forest": true},
+	"rays-trees": {"time": 0.33, "season": 1, "trees": true},
 	# Fog on the ground: a light morning one in the low places and over water, a thick
 	# morning one, the weather's fog and thick fog, and fog without the setting.
 	"fog-morning": {"time": 0.27, "season": 1, "morning_fog": 1},

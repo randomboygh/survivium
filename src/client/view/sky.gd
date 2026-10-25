@@ -2,7 +2,7 @@ extends RefCounted
 ## The sky drawn for the world's time and weather (Clock, src/shared): the sun and the
 ## moon with its phases, the ambient light and the background, the colour grade, the
 ## tints of leaves and grass in each season, clouds, wind, fog, lightning, snow and ice
-## on the ground, puddles after rain, sun rays in the air and the fog on the ground. Everything the shaders need goes out as global shader parameters.
+## on the ground, puddles after rain, how strong the sunlight among the trees is (SunRays) and the fog on the ground. Everything the shaders need goes out as global shader parameters.
 ## `game` is the Main node that owns the scene.
 
 const Bushes := preload("res://src/shared/content/bushes.gd")
@@ -16,11 +16,11 @@ const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
 const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
-## How bright the sun rays (god rays) are at most, added in the air over the picture.
 ## Steps a day the sun and the moon move in: a step every 1/6 s of a 4-minute day,
 ## a quarter of a degree, about a texel at the tip of a tree's shadow.
 const SUN_STEPS := 1440
-const RAYS_BRIGHTNESS := 0.45
+## How strong the sunlight among the trees is at most (see SunRays).
+const RAYS_BRIGHTNESS := 1.0
 ## The light round the player with a torch in hand, and without one: a faint glow
 ## that reaches GLOW_RANGE world units, enough to see the cells beside them.
 const TORCH_ENERGY := 1.3
@@ -217,33 +217,26 @@ func _light_side(azimuth: float) -> void:
 	RenderingServer.global_shader_parameter_set("light_side", Vector2(-sin(a), cos(a)))
 
 
-## Sun rays in the air: by day in clear weather, and brighter in the wet air after
-## rain as the clouds break up; none while anything falls, in fog and under a roof.
-## Brighter and warmer when the sun is low. `rise` is how far the sun is up (0..1).
+## Sunlight among the trees (SunRays): shafts, flecks and dust by day in clear
+## weather, stronger in the wet air after rain as the clouds break up; none while
+## anything falls, in fog and under a roof. Stronger and warmer when the sun is low.
+## `rise` is how far the sun is up (0..1).
 func _update_rays(rise: float, golden: float) -> void:
+	var rays = game.sun_rays
+	if rays == null:
+		return
 	var clock = game.clock
-	var grade_mat: ShaderMaterial = game.view.grade_mat
 	var clouds: float = clock.clouds
 	var clear := clampf((0.8 - clouds) / 0.4, 0.0, 1.0)
 	var breaking := after_rain * clampf((1.0 - clouds) / 0.3, 0.0, 1.0)
 	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
-	var amount := rise * maxf(clear * 0.9, breaking) * (1.0 + 0.3 * golden)
+	var amount := rise * maxf(clear * 0.9, breaking) * (1.0 + 0.4 * golden)
 	amount *= clampf(1.0 - falling * 4.0, 0.0, 1.0) * clampf(1.0 - clock.fog * 1.5, 0.0, 1.0)
 	if not rays_on or game.chunks.indoor:
 		amount = 0.0
-	grade_mat.set_shader_parameter("rays_amount", amount * RAYS_BRIGHTNESS)
-	if amount <= 0.0:
-		return
-	# The shafts come down from the sky, which is up on the image in this view, and
-	# lean the way the light runs east or west, as the shadows do, never further
-	# than about 30 degrees off straight down.
-	var dir := Vector2(clampf(-to_sun.x * 1.2, -0.6, 0.6), 1.0).normalized()
-	grade_mat.set_shader_parameter("rays_dir", dir)
-	grade_mat.set_shader_parameter("rays_color", Color(1.0, 0.96, 0.82).lerp(Color(1.0, 0.72, 0.45), golden))
-	# They fall on the sun's side of the image: the right in the morning, the left
-	# after noon, sliding across around noon.
-	grade_mat.set_shader_parameter("rays_anchor", 0.5 - 0.3 * clampf(dir.x * 6.0, -1.0, 1.0))
-	grade_mat.set_shader_parameter("rays_time", wind_clock)
+	rays.amount = amount * RAYS_BRIGHTNESS
+	rays.color = Color(1.0, 0.94, 0.78).lerp(Color(1.0, 0.7, 0.42), golden)
+	rays.to_sun = to_sun
 
 
 ## The fog on the ground (Clock.ground_fog, see fog_at in common.gdshaderinc): the
