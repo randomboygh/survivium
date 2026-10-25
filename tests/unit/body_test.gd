@@ -296,9 +296,28 @@ func _test_ground() -> void:
 		and w.get_cell(54, g + 4, 0) == Mat.STONE, "the hut has walls, a door and a roof")
 	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
 		"every tree of the plan grows")
+	# The plant garden: every species, bush type and ground plant in a walled pen of
+	# its own, the ground plant alone in its pen.
+	var garden := true
+	for i in Trees.SPECIES.size():
+		var m: Vector2i = TestGround.garden_middle(0, i)
+		garden = garden and w.trees.get(m, -1) == i
+	var ids: Array = Plants.BY_ID.keys()
+	for i in ids.size():
+		var m: Vector2i = TestGround.garden_middle(2, i)
+		for p in [m, m + Vector2i(1, 1)]:
+			var grown: Array = Grass.plants_on(w, p.x, g, p.y)
+			garden = garden and not grown.is_empty() and grown.all(func(id: String) -> bool: return id == ids[i])
+		garden = garden and w.get_cell(m.x - 2, g + 1, m.y) == Mat.index("materials:brick")
+	_check(garden, "the plant garden of the test world has every plant alone in its pen")
 	# The bush garden lies east, beyond the area above.
 	gen.generate_area(Vector2i(3, -1), Vector2i(8, 2))
 	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
+	var bushes_penned := true
+	for i in Bushes.TYPES.size():
+		var m: Vector2i = TestGround.garden_middle(1, i)
+		bushes_penned = bushes_penned and w.bushes.get(Vector3i(m.x, g + 1, m.y), -1) == i
+	_check(bushes_penned, "every type of bush grows in its pen of the plant garden")
 	# The stream falls from terrace to terrace into its pool (it lies east of the grove);
 	# the field and the grove grow what the plan sets, whatever the noises say.
 	gen.generate_area(Vector2i(8, 1), Vector2i(11, 2))

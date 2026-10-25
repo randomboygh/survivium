@@ -18,6 +18,11 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
+##   plants     x -8..,     z 14..35    every loaded plant alone in a pen of its own walled with
+##                                      a cell of brick, west to east in load order: the trees
+##                                      (pens of 9 cells, GARDEN_TREE), the bushes (5 cells) south
+##                                      of them, the ground plants (4 cells) south of those,
+##                                      nothing else growing in the pens
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
 ##   biomes     x -70..70,  z 100..     plots of 24 by 24 cells of the loaded biomes (BIOME_*), five
@@ -45,12 +50,20 @@ extends "res://src/shared/world/world_gen.gd"
 const SEED := -1
 const Grass := preload("res://src/shared/world/grass.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
-const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Рельеф", "Биомы",
+const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Растения", "Рельеф", "Биомы",
 	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
+## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
+## its inner side of cells plus a wall (a row's stride), the walls a cell high.
+const GARDEN_X := -8
+const GARDEN_Z := 14
+const GARDEN_TREE := 9
+const GARDEN_BUSH := 5
+const GARDEN_PLANT := 4
 ## The biome plots: BIOME_PLOT cells square, BIOME_GAP cells of meadow between them,
 ## BIOME_PER_ROW in a row east from BIOME_X, the rows south from BIOME_Z. The pool of a
 ## plot is BIOME_POOL cells square in its south-east corner, BIOME_GAP from the edges.
@@ -145,6 +158,42 @@ func _pick_spawn() -> Vector3i:
 
 
 # --- The plan -----------------------------------------------------------------------
+
+## The rows of the plant garden: [inner side, how many pens, z of the north wall] each,
+## the trees', the bushes', the ground plants'.
+static func garden_rows() -> Array:
+	var bushes_z := GARDEN_Z + GARDEN_TREE + 1
+	var plants_z := bushes_z + GARDEN_BUSH + 1
+	return [[GARDEN_TREE, Trees.SPECIES.size(), GARDEN_Z], [GARDEN_BUSH, Bushes.TYPES.size(), bushes_z],
+		[GARDEN_PLANT, Plants.BY_ID.size(), plants_z]]
+
+
+## The pen of the plant garden column x, z lies in: [row, pen] (row 0 the trees, 1
+## the bushes, 2 the ground plants; the pen the index of the species, type or plant in
+## load order), [row, -1] on a wall, [] outside the garden.
+static func garden_at(x: int, z: int) -> Array:
+	var rows := garden_rows()
+	for r in rows.size():
+		var side: int = rows[r][0]
+		var count: int = rows[r][1]
+		var z0: int = rows[r][2]
+		var stride := side + 1
+		if count == 0 or z < z0 or z > z0 + stride or x < GARDEN_X or x > GARDEN_X + count * stride:
+			continue
+		var px := x - GARDEN_X
+		if z == z0 or z == z0 + stride or px % stride == 0:
+			return [r, -1]
+		return [r, px / stride]
+	return []
+
+
+## The middle of pen `pen` of garden row `r`.
+static func garden_middle(r: int, pen: int) -> Vector2i:
+	var row: Array = garden_rows()[r]
+	var stride: int = row[0] + 1
+	var half: int = (row[0] + 1) / 2
+	return Vector2i(GARDEN_X + pen * stride + half, row[2] + half)
+
 
 ## The plot column x, z lies in, -1 outside the plots and in the meadow between them.
 func plot_at(x: int, z: int) -> int:
@@ -290,6 +339,10 @@ func _stream(x: int, z: int) -> Array:
 ## What grows on grass column x, z of the test world in place of what the noises give
 ## (Grass.GROW_*), 0 where they decide: the field of ears and the grove's floor.
 static func growth(x: int, z: int) -> int:
+	# The plant garden: its ground plants alone, nothing in the pens of trees and bushes.
+	var pen := garden_at(x, z)
+	if not pen.is_empty() and pen[1] >= 0:
+		return Grass.GROW_PLANT + pen[1] if pen[0] == 2 else Grass.GROW_NONE
 	if x < 100 or x >= 132:
 		return 0
 	if z >= -8 and z < 12:
@@ -341,6 +394,10 @@ func extras(x: int, z: int) -> Array:
 	# Material strips are 4 cells deep.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		out.append([g - 3, g, strip_tops[(x - 16) / 4], WorldData.WILD])
+	# The walls of the plant garden's pens.
+	var pen := garden_at(x, z)
+	if not pen.is_empty() and pen[1] < 0:
+		out.append([g + 1, g + 1, _block("brick"), 0])
 	# The hut: walls of planks, a door in the south wall, a roof of stone.
 	if x >= 50 and x < 58 and z >= -4 and z < 4:
 		var wall := x == 50 or x == 57 or z == -4 or z == 3
@@ -370,6 +427,10 @@ func plan_trees() -> Array:
 	for x in range(-27, -14, 4):
 		out.append([x, -7, spruce])
 		out.append([x, 7, spruce])
+	# A tree of each species in the middle of its pen of the plant garden.
+	for i in Trees.SPECIES.size():
+		var m := garden_middle(0, i)
+		out.append([m.x, m.y, i])
 	# Oaks along the north edge of the field of ears, the grove in rows.
 	for x in range(101, 132, 6):
 		out.append([x, -11, oak])
@@ -432,6 +493,10 @@ func plan_bushes() -> Array:
 		for x in range(63, 95, 2):
 			var kind: int = kinds[row] if row < 3 else kinds[posmod(x, 3)]
 			out.append([x, -8 + row * 3, kind])
+	# A bush of each type in the middle of its pen of the plant garden.
+	for i in Bushes.TYPES.size():
+		var m := garden_middle(1, i)
+		out.append([m.x, m.y, i])
 	for x in range(-45, -32, 3):
 		out.append([x, 0, raspberry])
 	for x in range(-30, -20, 3):
