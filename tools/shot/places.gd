@@ -637,7 +637,7 @@ func orchard(w, at: Vector3i) -> void:
 	rng.seed = 7
 	var n := Trees.SPECIES.size()
 	for i in n:
-		Trees.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, rng)
+		Trees.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, rng, Trees.fit(i, w.size_y - h))
 	var k := Bushes.TYPES.size()
 	for i in k:
 		Bushes.place(w, at.x + (i - k / 2) * 6, h, at.z + 5 + (i % 2), i)
@@ -650,7 +650,7 @@ func orchard(w, at: Vector3i) -> void:
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player
 ## and a spruce east of them, grown afresh each time; `fell` fells both away from the
 ## player a cell above their feet, as the axe would.
-func clearing(w, at: Vector3i, fell: bool) -> void:
+func clearing(w, at: Vector3i, fell: bool, species: Array = []) -> void:
 	var h: int = w.surface_y(at.x, at.z)
 	for z in range(at.z - 24, at.z + 24):
 		for x in range(at.x - 30, at.x + 30):
@@ -669,8 +669,11 @@ func clearing(w, at: Vector3i, fell: bool) -> void:
 	rng.seed = 5
 	var oak := Vector2i((at.x - 7) | 1, (at.z - 3) | 1)
 	var spruce := Vector2i((at.x + 7) | 1, (at.z - 3) | 1)
-	Trees.place(w, oak.x, h, oak.y, Trees.first(Trees.BROAD), rng)
-	Trees.place(w, spruce.x, h, spruce.y, Trees.first(Trees.NEEDLES), rng, 0.8)
+	# `species` names the two trees instead, west and east (ids of trees.yaml).
+	var west := Trees.index(species[0]) if species.size() > 0 else Trees.first(Trees.BROAD)
+	var east := Trees.index(species[1]) if species.size() > 1 else Trees.first(Trees.NEEDLES)
+	Trees.place(w, oak.x, h, oak.y, west, rng, minf(1.0, Trees.fit(west, w.size_y - h)))
+	Trees.place(w, spruce.x, h, spruce.y, east, rng, minf(0.8, Trees.fit(east, w.size_y - h)))
 	for z in range(at.z - 28, at.z + 28, 8):
 		for x in range(at.x - 34, at.x + 34, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))

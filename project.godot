@@ -127,6 +127,10 @@ berry_amount={
 "type": "float",
 "value": 1.0
 }
+blossom_amount={
+"type": "float",
+"value": 0.0
+}
 cloud_noise={
 "type": "sampler2D",
 "value": ""

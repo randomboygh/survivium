@@ -9,7 +9,7 @@
 # песчаные бури. color — цвет на карте. Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: meadow
   title: Луг
-  trees: {plants:oak: 0.8, plants:spruce: 0.2}
+  trees: {plants:oak: 0.5, plants:spruce: 0.15, plants:apple: 0.08, plants:cherry: 0.07, plants:linden: 0.08, plants:bird_cherry: 0.05, plants:poplar: 0.07}
   tree_chance: 0.004
   groves: 0.08
   bushes: {plants:raspberry: 0.35, plants:shrub: 0.65}

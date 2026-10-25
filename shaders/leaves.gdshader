@@ -45,6 +45,10 @@ uniform float hue_shift = 1.0;
 uniform vec3 berry_colors[4];
 // Share of the berries ripe, by season.
 global uniform float berry_amount;
+// Colours of blossom by slot (Trees.blossom_slot, from 1), and how much of it is out:
+// the trees blossom in spring.
+uniform vec3 blossom_colors[8];
+global uniform float blossom_amount;
 
 varying vec3 center;
 varying flat vec4 custom;
@@ -62,7 +66,7 @@ void vertex() {
 	if (custom.w < 0.0) {
 		away = -view_up * SPRIG_AHEAD;
 		custom.w = -custom.w;
-	} else if (tint.a >= 0.5 && custom.w >= 16.0) {
+	} else if (tint.a >= 0.5 && mod(floor(custom.w), 32.0) >= 16.0) {
 		away = view_up * DEEP_BEHIND;
 	}
 	center.xz += away;
@@ -77,6 +81,9 @@ void fragment() {
 	float phase = fract(custom.w);
 	float variant = floor(phase * 4.0);
 	float row = floor(custom.w);
+	// Every 32 rows up, the next colour of blossom (0 none).
+	float bloom = floor(row / 32.0);
+	row -= bloom * 32.0;
 	bool deep = row >= 15.5;
 	row -= deep ? 16.0 : 0.0;
 	bool evergreen = tint.a > 0.5 && tint.a < 0.7;
@@ -141,6 +148,11 @@ void fragment() {
 		if (ripe != vec3(0.0) && fract(leaf * 3.7) < berry_amount) {
 			col = ripe * (m.g > 0.75 ? 1.45 : (m.g > 0.25 ? 1.0 : 0.72));
 		}
+	}
+	// Blossom over most of the leaves in spring, lit like them; a leaf blossoms by its
+	// own number, so the flowers come out and drop one by one.
+	if (bloom > 0.5 && !branches && !berry && fract(leaf * 9.13 + 0.3) < blossom_amount * 0.75) {
+		col = blossom_colors[int(bloom)] * tone * (edge ? 1.08 : 1.0);
 	}
 	// The underside of the crown is shaded by the crown itself whatever the sun does,
 	// a step darker and cooler toward the bottom.

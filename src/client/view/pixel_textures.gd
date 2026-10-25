@@ -78,9 +78,15 @@ static func build_atlas() -> ImageTexture:
 	bark_material = []
 	bark_material.resize(Trees.SPECIES.size())
 	var next := Mat.COUNT
+	# Species sharing a bark (one picture in the mod's common/) share its tiles.
+	var by_path := {}
 	for i in Trees.SPECIES.size():
 		bark_material[i] = -1
-		var tex := _three_tiles(Trees.bark_path(i))
+		var path := Trees.bark_path(i)
+		if by_path.has(path):
+			bark_material[i] = by_path[path]
+			continue
+		var tex := _three_tiles(path)
 		if tex == null:
 			continue
 		if next >= MOST_MATERIALS:
@@ -88,6 +94,7 @@ static func build_atlas() -> ImageTexture:
 			continue
 		_blit_tiles(img, tex, next)
 		bark_material[i] = next
+		by_path[path] = next
 		next += 1
 	atlas_image = img
 	return ImageTexture.create_from_image(img)
@@ -97,8 +104,7 @@ static func build_atlas() -> ImageTexture:
 static func material_count() -> int:
 	var n := Mat.COUNT
 	for b in bark_material:
-		if b >= 0:
-			n += 1
+		n = maxi(n, b + 1)
 	return n
 
 

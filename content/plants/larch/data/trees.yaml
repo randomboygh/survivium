@@ -8,7 +8,7 @@
   taper: 0.25
   crook: 1
   roots: [0, 2]
-  crown: [1.9, 4, 5]
+  crown: [2.1, 4, 5]
   tints: ["#7aa04a", "#84a852", "#729846"]
   bare: 1.0
   log: resources:log

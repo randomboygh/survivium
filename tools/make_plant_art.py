@@ -40,7 +40,7 @@ def recolour(src, dark, light):
     return out
 
 
-def bark(name, dark, light, marks=None, seed=1):
+def bark(name, dark, light, marks=None, seed=1, file=None):
     src = Image.open(os.path.join(ROOT, "wood", "textures", "log.png")).convert("RGBA")
     img = recolour(src, dark, light)
     rng = random.Random(seed)
@@ -54,7 +54,7 @@ def bark(name, dark, light, marks=None, seed=1):
                 w = rng.randrange(2, 5)
                 for dx in range(w):
                     img.putpixel(((x + dx) % (TILE * 3), y), colour + (255,))
-    path = os.path.join(ROOT, name, "textures", "%s_bark.png" % name)
+    path = os.path.join(ROOT, name, "textures", "%s.png" % (file or name + "_bark"))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
     print(path)
@@ -214,12 +214,25 @@ def berry_model(name, bundle, colour, shine, size=3):
     print(path)
 
 
+# The barks of the trees added with the crown shapes: name, dark, light, options.
+# The atlas has room for 21 materials and barks together (PixelTextures.MOST_MATERIALS),
+# so the grey bark in common/ is shared by linden, poplar, fir and bird cherry, and maple
+# and larch keep the log's own.
+NEW_BARKS = [
+    ("common", (92, 90, 84), (156, 152, 142), {"marks": ((64, 60, 54), 6), "seed": 9, "file": "grey_bark"}),
+    ("cherry", (88, 44, 40), (150, 86, 74), {"marks": ((178, 128, 110), 10), "seed": 13}),
+    ("deadwood", (104, 100, 92), (192, 186, 172), {"marks": ((60, 54, 48), 10), "seed": 15}),
+]
+
+
 def main():
     bark("birch", (210, 206, 196), (246, 244, 238), marks=((48, 40, 36), 14), seed=3)
     bark("pine", (120, 66, 38), (196, 120, 70), seed=4)
     bark("willow", (86, 78, 66), (150, 140, 118), seed=5)
     bark("apple", (92, 82, 74), (150, 138, 124), seed=6)
     bark("rowan", (104, 96, 90), (164, 156, 146), seed=7)
+    for args in NEW_BARKS:
+        bark(*args[:3], **args[3])
     sprite("fern", FERN)
     sprite("nettle", NETTLE)
     sprite("cranberry", CRANBERRY)

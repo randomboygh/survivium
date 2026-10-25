@@ -168,7 +168,7 @@ func _run() -> void:
 			# A long row is shot in parts: the player steps `pan` cells east along it.
 			main.player.position.x += shot.get("pan", 0) * CELL
 		if shot.get("clearing", false):
-			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
+			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false), shot.get("trees", []))
 			main.player.position += shot.get("offset", Vector3.ZERO)
 		if shot.get("gather", false):
 			_gather()
@@ -202,6 +202,7 @@ func _run() -> void:
 			main.sky.foliage = main.sky.FOLIAGE[main.clock.season]
 			main.sky.grass = main.sky.GRASS[main.clock.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.clock.season]
+			main.sky.blossom_amount = main.sky.BLOSSOM_AMOUNT[main.clock.season]
 			main.sky.leaf_amount = lerpf(main.sky.LEAF_AMOUNT[main.clock.season], main.sky.LEAF_AMOUNT[3], main.clock.leaf_fall)
 		if shot.get("windfall", false):
 			# A long storm: the wind breaks branches off the trees around.

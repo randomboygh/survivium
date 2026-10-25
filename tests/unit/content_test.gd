@@ -123,7 +123,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 16 and Mods.bundles("plants").size() == 21
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 16 and Mods.bundles("plants").size() == 29
 		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 5 and Mods.bundles("tools").size() == 9 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -143,7 +143,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 16), Растения" and Mods.summary(["core"]) == "только основа"
-		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 21)", "a set is summed up by mods")
+		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 29)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -226,7 +226,7 @@ func _test_mods() -> void:
 		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe"),
 		"a column's climate picks the biome whose windows hold it, the most specific first")
 	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
-		and Biomes.tree(forest, 0.99) == Trees.index("plants:spruce") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
+		and Biomes.tree(forest, 0.85) == Trees.index("plants:spruce") and Biomes.tree(forest, 0.99) == Trees.index("plants:deadwood") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
 		and Biomes.bush(taiga, 0.1) == Bushes.index("plants:blueberry") and Biomes.bush(taiga, 0.95) == Bushes.index("plants:shrub")
 		and Biomes.bush(Biomes.named("meadow"), 0.1) == Bushes.index("plants:raspberry") and Plants.of_kind(Plants.KINDS.EARS) == Plants.EARS,
 		"a biome grows its trees and bushes by their shares, nothing where the roll misses; plants are picked by kind")

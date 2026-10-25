@@ -153,10 +153,12 @@ func _check_textures() -> PackedStringArray:
 			out.append("trees: `%s`: no bark texture %s" % [Trees.SPECIES[i].id, path])
 		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.TILE * 3, PixelTextures.TILE):
 			out.append("trees: `%s`: %s is not three tiles of %d px in a row" % [Trees.SPECIES[i].id, path.get_file(), PixelTextures.TILE])
-	var barks := 0
+	# Species sharing a bark picture share its tiles.
+	var paths := {}
 	for i in Trees.SPECIES.size():
 		if Trees.bark_path(i) != "":
-			barks += 1
+			paths[Trees.bark_path(i)] = true
+	var barks := paths.size()
 	if Mat.COUNT + barks > PixelTextures.MOST_MATERIALS:
 		out.append("materials: %d materials and %d barks, the atlas holds %d together" % [Mat.COUNT, barks, PixelTextures.MOST_MATERIALS])
 	for c in Plants.CUSTOM:

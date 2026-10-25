@@ -193,13 +193,20 @@ const SHOTS := {
 	"orchard": {"time": 0.42, "season": 1, "orchard": true},
 	"orchard-autumn": {"time": 0.42, "season": 2, "orchard": true},
 	"orchard-winter": {"time": 0.42, "season": 3, "orchard": true},
-	# The orchard's west and east halves, when the species are too many for one shot.
-	"orchard-west": {"time": 0.42, "season": 1, "orchard": true, "pan": -33},
-	"orchard-east": {"time": 0.42, "season": 1, "orchard": true, "pan": 33},
-	"orchard-west-autumn": {"time": 0.42, "season": 2, "orchard": true, "pan": -33},
-	"orchard-east-autumn": {"time": 0.42, "season": 2, "orchard": true, "pan": 33},
-	"orchard-west-winter": {"time": 0.42, "season": 3, "orchard": true, "pan": -33},
-	"orchard-east-winter": {"time": 0.42, "season": 3, "orchard": true, "pan": 33},
+	"orchard-spring": {"time": 0.42, "season": 0, "orchard": true},
+	# The orchard's west and east thirds, for more species than one shot holds, by season,
+	# and by a low sun.
+	"orchard-west": {"time": 0.42, "season": 1, "orchard": true, "pan": -55},
+	"orchard-east": {"time": 0.42, "season": 1, "orchard": true, "pan": 55},
+	"orchard-west-spring": {"time": 0.42, "season": 0, "orchard": true, "pan": -55},
+	"orchard-east-spring": {"time": 0.42, "season": 0, "orchard": true, "pan": 55},
+	"orchard-west-autumn": {"time": 0.42, "season": 2, "orchard": true, "pan": -55},
+	"orchard-east-autumn": {"time": 0.42, "season": 2, "orchard": true, "pan": 55},
+	"orchard-west-winter": {"time": 0.42, "season": 3, "orchard": true, "pan": -55},
+	"orchard-east-winter": {"time": 0.42, "season": 3, "orchard": true, "pan": 55},
+	"orchard-morning": {"time": 0.3, "season": 1, "orchard": true},
+	"orchard-west-morning": {"time": 0.3, "season": 1, "orchard": true, "pan": -55},
+	"orchard-east-morning": {"time": 0.3, "season": 1, "orchard": true, "pan": 55},
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
@@ -207,6 +214,13 @@ const SHOTS := {
 	# of their shadows.
 	"clearing-moon": {"time": 0.95, "season": 1, "moon": 1.0, "clearing": true},
 	"clearing-low-sun": {"time": 0.3, "season": 1, "clearing": true},
+	# Crowns of other shapes and their shadows by a low and a high sun: a lobed maple and
+	# a pine on its tall trunk, a weeping willow and a poplar, a dead tree and a larch.
+	"pine-low-sun": {"time": 0.3, "season": 1, "clearing": true, "trees": ["plants:maple", "plants:pine"]},
+	"pine-noon": {"time": 0.5, "season": 1, "clearing": true, "trees": ["plants:maple", "plants:pine"]},
+	"willow-low-sun": {"time": 0.3, "season": 1, "clearing": true, "trees": ["plants:willow", "plants:poplar"]},
+	"deadwood-noon": {"time": 0.5, "season": 1, "clearing": true, "trees": ["plants:deadwood", "plants:larch"]},
+	"cherry-spring": {"time": 0.42, "season": 0, "clearing": true, "trees": ["plants:cherry", "plants:bird_cherry"]},
 	# North of the spruce by the full moon, its shadow falling toward the player.
 	"spruce-moon": {"time": 0.85, "season": 1, "moon": 1.0, "clearing": true, "offset": Vector3(0.5, 0.0, -5.0)},
 	# Gathering on the felled clearing with berry bushes: some things picked up and

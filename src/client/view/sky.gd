@@ -46,6 +46,9 @@ var foliage := Vector3.ONE
 var grass := Vector3.ONE
 var leaf_amount := 1.0
 var berry_amount := 1.0
+## How much of the trees' blossom is out: all of it in spring, none after.
+const BLOSSOM_AMOUNT := [1.0, 0.0, 0.0, 0.0]
+var blossom_amount := 0.0
 var cloud_pos := Vector2.ZERO
 var wind_clock := 0.0
 var daylight := 1.0
@@ -308,6 +311,7 @@ func _update_weather(delta: float) -> void:
 		leaves = lerpf(leaves, LEAF_AMOUNT[Clock.WINTER], clock.leaf_fall)
 	leaf_amount = lerpf(leaf_amount, leaves, k2)
 	berry_amount = lerpf(berry_amount, BERRY_AMOUNT[season], k2)
+	blossom_amount = lerpf(blossom_amount, BLOSSOM_AMOUNT[season], k2)
 	wind_clock += delta
 	var storm_wind: float = clock.storm_wind
 	var gust := 0.25 + 0.25 * sin(wind_clock * 0.35) + 0.15 * sin(wind_clock * 1.3)
@@ -331,6 +335,7 @@ func _update_weather(delta: float) -> void:
 	# winter, and are gone as the trees leaf out again.
 	g.global_shader_parameter_set("leaf_litter", clampf((1.0 - leaf_amount) / (1.0 - LEAF_AMOUNT[Clock.WINTER]), 0.0, 1.0))
 	g.global_shader_parameter_set("berry_amount", berry_amount)
+	g.global_shader_parameter_set("blossom_amount", blossom_amount)
 	g.global_shader_parameter_set("night_glow", smoothstep(0.6, 0.15, daylight))
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)

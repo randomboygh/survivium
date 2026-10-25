@@ -11,6 +11,7 @@
   crown: [2.0, 2.0, 1.7]
   tints: ["#5a8f3a", "#62983f", "#548a36"]
   bare: 0.8
+  bark: grey_bark
   log: resources:log
   twig: resources:branch
   hits: 5

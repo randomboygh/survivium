@@ -12,7 +12,7 @@
   warmth: [0.0, 0.2]
   stone_below: -0.35
   clay_above: 0.45
-  trees: {plants:spruce: 1.0}
+  trees: {plants:spruce: 0.6, plants:larch: 0.4}
   tree_chance: 0.02
   bushes: {plants:blueberry: 0.3, plants:shrub: 0.7}
   bush_sparsity: 150

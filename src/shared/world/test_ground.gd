@@ -18,9 +18,9 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   plants     x -7..,     z 13..32    every loaded plant alone in a pen of its own walled with
+##   plants     x -7..99,   z 13..40    every loaded plant alone in a pen of its own walled with
 ##                                      a cell of brick, west to east in load order: the trees
-##                                      (pens of 7 cells, GARDEN_TREE), the bushes (5 cells) south
+##                                      (pens of 7 cells, GARDEN_TREE; a row wraps at GARDEN_EAST), the bushes (5 cells) south
 ##                                      of them, the ground plants (4 cells) south of those,
 ##                                      nothing else growing in the pens
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
@@ -58,12 +58,15 @@ const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Л�
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 ## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
-## its inner side of cells plus a wall (a row's stride), the walls a cell high.
+## its inner side of cells plus a wall (a row's stride), the walls a cell high. A tree's
+## pen is 7 cells, so its trunk in the middle stands on odd x and z as trunks must.
 const GARDEN_X := -7
 const GARDEN_Z := 13
 const GARDEN_TREE := 7
 const GARDEN_BUSH := 5
 const GARDEN_PLANT := 4
+## The garden's rows end before the field of ears and the grove (x 100..).
+const GARDEN_EAST := 100
 ## The biome plots: BIOME_PLOT cells square, BIOME_GAP cells of meadow between them,
 ## BIOME_PER_ROW in a row east from BIOME_X, the rows south from BIOME_Z. The pool of a
 ## plot is BIOME_POOL cells square in its south-east corner, BIOME_GAP from the edges.
@@ -159,40 +162,52 @@ func _pick_spawn() -> Vector3i:
 
 # --- The plan -----------------------------------------------------------------------
 
-## The rows of the plant garden: [inner side, how many pens, z of the north wall] each,
-## the trees', the bushes', the ground plants'.
+## The rows of the plant garden: [inner side, how many pens, z of the north wall, kind,
+## index of the first pen's plant] each, the kinds 0 the trees, 1 the bushes, 2 the
+## ground plants. A kind with more pens than fit west of GARDEN_EAST takes more rows.
 static func garden_rows() -> Array:
-	var bushes_z := GARDEN_Z + GARDEN_TREE + 1
-	var plants_z := bushes_z + GARDEN_BUSH + 1
-	return [[GARDEN_TREE, Trees.SPECIES.size(), GARDEN_Z], [GARDEN_BUSH, Bushes.TYPES.size(), bushes_z],
-		[GARDEN_PLANT, Plants.BY_ID.size(), plants_z]]
+	var rows := []
+	var z := GARDEN_Z
+	var kinds := [[GARDEN_TREE, Trees.SPECIES.size()], [GARDEN_BUSH, Bushes.TYPES.size()], [GARDEN_PLANT, Plants.BY_ID.size()]]
+	for kind in kinds.size():
+		var side: int = kinds[kind][0]
+		var count: int = kinds[kind][1]
+		var per_row := (GARDEN_EAST - GARDEN_X) / (side + 1)
+		var first := 0
+		while first < count:
+			var n := mini(per_row, count - first)
+			rows.append([side, n, z, kind, first])
+			first += n
+			z += side + 1
+	return rows
 
 
-## The pen of the plant garden column x, z lies in: [row, pen] (row 0 the trees, 1
+## The pen of the plant garden column x, z lies in: [kind, pen] (kind 0 the trees, 1
 ## the bushes, 2 the ground plants; the pen the index of the species, type or plant in
-## load order), [row, -1] on a wall, [] outside the garden.
+## load order), [kind, -1] on a wall, [] outside the garden.
 static func garden_at(x: int, z: int) -> Array:
-	var rows := garden_rows()
-	for r in rows.size():
-		var side: int = rows[r][0]
-		var count: int = rows[r][1]
-		var z0: int = rows[r][2]
+	for row: Array in garden_rows():
+		var side: int = row[0]
+		var count: int = row[1]
+		var z0: int = row[2]
 		var stride := side + 1
 		if count == 0 or z < z0 or z > z0 + stride or x < GARDEN_X or x > GARDEN_X + count * stride:
 			continue
 		var px := x - GARDEN_X
 		if z == z0 or z == z0 + stride or px % stride == 0:
-			return [r, -1]
-		return [r, px / stride]
+			return [row[3], -1]
+		return [row[3], row[4] + px / stride]
 	return []
 
 
-## The middle of pen `pen` of garden row `r`.
-static func garden_middle(r: int, pen: int) -> Vector2i:
-	var row: Array = garden_rows()[r]
-	var stride: int = row[0] + 1
-	var half: int = (row[0] + 1) / 2
-	return Vector2i(GARDEN_X + pen * stride + half, row[2] + half)
+## The middle of the pen of plant `pen` of garden kind `kind`.
+static func garden_middle(kind: int, pen: int) -> Vector2i:
+	for row: Array in garden_rows():
+		if row[3] == kind and pen >= row[4] and pen < row[4] + row[1]:
+			var stride: int = row[0] + 1
+			var half: int = (row[0] + 1) / 2
+			return Vector2i(GARDEN_X + (pen - row[4]) * stride + half, row[2] + half)
+	return Vector2i(GARDEN_X, GARDEN_Z)
 
 
 ## The plot column x, z lies in, -1 outside the plots and in the meadow between them.

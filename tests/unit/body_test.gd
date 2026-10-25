@@ -294,14 +294,15 @@ func _test_ground() -> void:
 		"the material strips are 4 cells deep")
 	_check(w.get_cell(50, g + 2, 0) == Mat.index("materials:planks") and w.get_cell(53, g + 1, 3) == Mat.AIR
 		and w.get_cell(54, g + 4, 0) == Mat.STONE, "the hut has walls, a door and a roof")
-	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
+	# The chunks of the area and the ring round it, which is planted for the area's shapes.
+	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 80 and t[1] < 64).size(),
 		"every tree of the plan grows")
 	# The plant garden: every species, bush type and ground plant in a walled pen of
 	# its own, the ground plant alone in its pen.
 	var garden := true
 	for i in Trees.SPECIES.size():
 		var m: Vector2i = TestGround.garden_middle(0, i)
-		garden = garden and w.trees.get(m, -1) == i
+		garden = garden and (m.x >= 80 or w.trees.get(m, -1) == i)
 	var ids: Array = Plants.BY_ID.keys()
 	for i in ids.size():
 		var m: Vector2i = TestGround.garden_middle(2, i)
@@ -391,7 +392,7 @@ func _test_ground() -> void:
 		_ensure_stage(other, keys[i], WorldGen.SHAPED)
 	var near := {}
 	for t: Vector2i in w.trees:
-		if t.x < 64 and t.y < 48:
+		if t.x < 80 and t.y < 64:
 			near[t] = w.trees[t]
 	_check(_same(other.world, w, keys) and other.world.trees == near,
 		"the test world is the same made in another order")

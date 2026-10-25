@@ -42,8 +42,14 @@ static func _static_init() -> void:
 	refresh()
 
 
+## Most species that blossom (each its own colour, see `blossom` in trees.yaml): the leaf
+## shader keeps a colour for each.
+const BLOSSOMS := 7
+
+
 static func refresh() -> void:
 	SPECIES = []
+	var blossoms := 0
 	for r in Content.records("trees"):
 		var s: Dictionary = r.duplicate()
 		s.leaves = NEEDLES if r.leaves == "needles" else BROAD
@@ -52,6 +58,11 @@ static func refresh() -> void:
 		if s.leaf == "":
 			s.leaf = "needles" if s.leaves == NEEDLES else "pointed"
 		s.tiers = s.shape == "cone"
+		# The slot of its blossom colour, from 1; 0 for none.
+		s.blossom_slot = 0
+		if s.blossom != null and blossoms < BLOSSOMS:
+			blossoms += 1
+			s.blossom_slot = blossoms
 		SPECIES.append(s)
 
 
@@ -109,6 +120,8 @@ static func check() -> PackedStringArray:
 			out.append("trees: `%s`: trunk [min, max] has min above max" % s.id)
 		if s.girth[0] > s.girth[1] or s.roots[0] > s.roots[1]:
 			out.append("trees: `%s`: girth and roots [min, max] need min not above max" % s.id)
+		if s.blossom != null and s.blossom_slot == 0:
+			out.append("trees: `%s`: more than %d species blossom, its blossom is not drawn" % [s.id, BLOSSOMS])
 		if s.tiers and s.crown[1] > s.crown[2]:
 			out.append("trees: `%s`: crown [radius, min tiers, max tiers] has min above max" % s.id)
 	return out
@@ -136,7 +149,7 @@ static func trunk_box(species: int, col: Vector2i, k: int) -> Rect2i:
 static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = SPECIES[species]
 	if s.tiers:
-		return _hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
+		return hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
 	return roundi(s.trunk[1] * scale) + 2 * floori((s.crown[1] + 0.3) * scale * 1.1) + 4
 
 
@@ -244,7 +257,8 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 	for k in count:
 		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
 		var out := rng.randf_range(0.5, 0.65)
-		var up := rng.randf_range(-0.6, 0.25) * ry * (0.5 if umbrella else 1.0)
+		# An umbrella's lobes stay round its top, none hangs down the trunk.
+		var up := rng.randf_range(-0.15, 0.3) * ry if umbrella else rng.randf_range(-0.6, 0.25) * ry
 		lobes.append([Vector3(cos(a) * rx * out, up, sin(a) * rz * out), Vector3(rx, ry * (0.4 if umbrella else 0.55), rz) * (lobe + rng.randf_range(-0.05, 0.1))])
 	var points: Array[Vector3i] = []
 	var have := {}
@@ -288,7 +302,7 @@ static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumber
 	# In the oblique view the front of the lowest tier hangs over the trunk by its
 	# depth and the sprigs below it, so the trunk below the tier is that long plus the
 	# bit that should show.
-	var bare := _hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
+	var bare := hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
 	var low := ((y + bare) + 1) & ~1
 	var top := low + 2 * (tiers - 1)
 	for i in range(y, top):
@@ -307,7 +321,7 @@ static func _tier_radius(radius: float, k: int, tiers: int) -> float:
 
 ## Cells of trunk a spruce's lowest tier hides on screen when its point in front of
 ## the trunk is `front` points south of it.
-static func _hidden_trunk(front: int) -> int:
+static func hidden_trunk(front: int) -> int:
 	return maxi(1, 3 * front - 1)
 
 
