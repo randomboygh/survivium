@@ -137,7 +137,7 @@ software, so its FPS means nothing, only the user's phone numbers count (stats p
 ## Version and changes
 
 The client's version is `<stage>.<PR>`: the stage is `application/config/version` in `project.godot`
-(raised by hand when an MVP stage closes), the PR is the last one merged into main (`0.1.67` has
+(raised by hand when an MVP stage closes or the code is reshaped), the PR is the last one merged into main (`0.1.67` has
 PR #67 in it). CI writes it with `tools/build_info.py` into `build_info.json` (not in git; a local run
 shows `dev`), along with the lines `Что нового [вид]: …` from the descriptions of the last merged PRs;
 «Тестирование» shows the version and opens them («Что нового»). So every PR description has at least

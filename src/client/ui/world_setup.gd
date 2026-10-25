@@ -2,8 +2,10 @@ extends Control
 ## The first screen: the world to make. The seed (typed in or rolled with the dice),
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
 ## as rows "name ‹ value ›" like the settings window, with a map of the land around
-## the spawn drawn a few rows a frame as the choice changes. "Создать мир" (or Enter)
-## keeps the choice in Settings and starts the world, "Назад" (or Escape) leaves it.
+## the spawn drawn a few rows a frame as the choice changes. The mods of the new world
+## are a page of their own, opened from the row «Моды» and left with "Назад" (or
+## Escape). "Создать мир" (or Enter) keeps the choice in Settings and starts the world,
+## "Назад" (or Escape) leaves it.
 ## It covers the whole screen over a shade of the world behind, the panel in the
 ## middle. `game` is the Main node.
 
@@ -12,6 +14,8 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 
 const NAME_WIDTH := 112
+## The names of the mods are longer than the settings' and have the room the map leaves.
+const MOD_NAME_WIDTH := 168
 const VALUE_WIDTH := 84
 const ARROW := 32
 ## Room for the scroll bar beside the rows.
@@ -39,6 +43,8 @@ signal cancelled
 var game
 var _rows := []
 var _focus := 0
+## The page of rows shown: "world" (the seed and the land) or "mods".
+var _page := "world"
 var _panel: PanelContainer
 var _box: BoxContainer
 var _list: VBoxContainer
@@ -101,28 +107,7 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_list)
-	_seed_row()
-	var s = game.settings
-	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
-		_kind, func(i: int) -> void:
-			if i < KINDS.size():
-				for j in OPTIONS.size():
-					s.values["world_" + OPTIONS[j]] = KINDS[i][1][j]
-				s.save())
-	_add_row("Материки", ["малые", "средние", "огромные"], _getter("size"), _setter("size"))
-	_add_row("Вода", LEVELS, _getter("water"), _setter("water"))
-	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
-	_add_row("Реки и озёра", LEVELS, _getter("rivers"), _setter("rivers"))
-	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
-	# One row per mod besides the base game: a world is made with the mods switched on
-	# and keeps them (a saved world's set cannot change here).
-	for mod: String in Mods.available():
-		if mod == "core":
-			continue
-		var m := mod
-		_add_row("Мод «%s»" % Mods.titles([mod])[0], ["выкл", "вкл"],
-			func() -> int: return 1 if m in s.world_mods() else 0,
-			func(i: int) -> void: s.set_world_mod(m, i == 1))
+	_build_rows()
 	var start := Button.new()
 	start.text = "Создать мир"
 	start.focus_mode = Control.FOCUS_NONE
@@ -140,14 +125,66 @@ func _ready() -> void:
 	back.text = "Назад"
 	back.focus_mode = Control.FOCUS_NONE
 	back.custom_minimum_size = Vector2(96, 36)
-	back.pressed.connect(cancelled.emit)
+	back.pressed.connect(_back)
 	buttons.add_child(back)
 	buttons.add_child(start)
 	_start_button = start
-	_refresh()
-	_set_focus(1)
 	get_parent().resized.connect(_fit)
 	_fit()
+
+
+## Fills the list with the rows of `_page`: the seed, the kind of world and the land's
+## settings with the row «Моды» last, or one row per mod besides the base game.
+func _build_rows() -> void:
+	for row in _list.get_children():
+		_list.remove_child(row)
+		row.queue_free()
+	_rows.clear()
+	var s = game.settings
+	if _page == "mods":
+		# A world is made with the mods switched on and keeps them (a saved world's set
+		# cannot change here).
+		for mod: String in Mods.available():
+			if mod == "core":
+				continue
+			var m := mod
+			_add_row(Mods.titles([mod])[0], ["выкл", "вкл"],
+				func() -> int: return 1 if m in s.world_mods() else 0,
+				func(i: int) -> void: s.set_world_mod(m, i == 1), MOD_NAME_WIDTH)
+		_refresh()
+		_set_focus(0)
+		return
+	_seed_row()
+	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
+		_kind, func(i: int) -> void:
+			if i < KINDS.size():
+				for j in OPTIONS.size():
+					s.values["world_" + OPTIONS[j]] = KINDS[i][1][j]
+				s.save())
+	_add_row("Материки", ["малые", "средние", "огромные"], _getter("size"), _setter("size"))
+	_add_row("Вода", LEVELS, _getter("water"), _setter("water"))
+	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
+	_add_row("Реки и озёра", LEVELS, _getter("rivers"), _setter("rivers"))
+	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
+	_mods_row()
+	_refresh()
+	_set_focus(1)
+
+
+## Shows page `page` (see _page) and fits the panel to its rows.
+func _show_page(page: String) -> void:
+	_page = page
+	_build_rows()
+	if is_inside_tree():
+		_fit()
+
+
+## "Назад": the mods page goes back to the world's rows, the world's rows leave the screen.
+func _back() -> void:
+	if _page == "mods":
+		_show_page("world")
+	else:
+		cancelled.emit()
 
 
 func _getter(option: String) -> Callable:
@@ -212,12 +249,47 @@ func _seed_row() -> void:
 	_rows.append({"name": label, "values": [], "get": Callable(), "set": Callable(), "label": null})
 
 
-func _add_row(name: String, values: Array, getter: Callable, setter: Callable) -> void:
+## The row «Моды»: how many of the mods besides the base game are on, and an arrow
+## that opens their page.
+func _mods_row() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	_list.add_child(row)
+	var label := UiStyle.label("Моды")
+	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	var index := _rows.size()
+	var value := UiStyle.label()
+	value.custom_minimum_size = Vector2(VALUE_WIDTH + ARROW + 2, 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var all: int = Mods.available().size() - 1
+	var on: int = game.settings.world_mods().size() - 1
+	value.text = "%d из %d" % [on, all] if on < all else "все"
+	row.add_child(value)
+	var b := Button.new()
+	b.icon = UiStyle.icon("next")
+	b.tooltip_text = "Выбрать моды нового мира"
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(ARROW, ARROW)
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.pressed.connect(func() -> void:
+		_set_focus(index)
+		_show_page("mods"))
+	row.add_child(b)
+	_rows.append({"name": label, "values": [], "get": Callable(), "set": Callable(), "label": null,
+		"open": _show_page.bind("mods")})
+
+
+func _add_row(name: String, values: Array, getter: Callable, setter: Callable, name_width := NAME_WIDTH) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	_list.add_child(row)
 	var label := UiStyle.label(name)
-	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
+	label.custom_minimum_size = Vector2(name_width, 0)
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	var index := _rows.size()
@@ -248,15 +320,19 @@ func _step(i: int, dir: int) -> void:
 	var r: Dictionary = _rows[i]
 	var n: int = r.values.size()
 	if n == 0:
+		# The row «Моды» opens its page to the right.
+		if dir > 0 and r.has("open"):
+			r.open.call()
 		return
 	var cur: int = clampi(r.get.call(), 0, n - 1)
 	var next := posmod(cur + dir, n)
 	# "Свой" is what the rows below make, not a choice of its own.
-	if i == 1 and next == KINDS.size():
+	if _page == "world" and i == 1 and next == KINDS.size():
 		next = posmod(next + dir, n)
 	r.set.call(next)
 	_refresh()
-	_restart_map()
+	if _page == "world":
+		_restart_map()
 
 
 func _refresh() -> void:
@@ -332,7 +408,8 @@ func _process(_delta: float) -> void:
 	_texture.update(_image)
 
 
-## Up and down pick a row, left and right change it, Enter makes the world.
+## Up and down pick a row, left and right change it (right opens the mods from «Моды»),
+## Enter makes the world, Escape leaves the mods page or the screen.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed):
 		return
@@ -342,7 +419,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				_start()
 		KEY_ESCAPE:
 			if not event.echo:
-				cancelled.emit()
+				_back()
 		KEY_UP, KEY_W:
 			_set_focus(_focus - 1)
 		KEY_DOWN, KEY_S:
