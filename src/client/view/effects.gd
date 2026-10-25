@@ -47,9 +47,10 @@ const FIRE_CASTERS := 0xFFFFF & ~PixelView.LAYER_SUN_CASTER
 ## first factor on a dark night and by the second under a full moon or by day
 ## (see shadow_energy).
 const SHADOW_ENERGY := Vector2(0.8, 0.6)
-## Fires cast shadows only while the light of the sky (sky.gd sky_light) is below this:
-## by day their faint light, drawn in a pass of its own, would glare yellow over the
-## sunlit ground.
+## Fires cast shadows only while the sun's light (sky.gd sun_light) is below this: by
+## day their faint light, drawn in a pass of its own, would glare yellow over the sunlit
+## ground. The moon does not count, so they come in at sunset (about 18:00 at the
+## equinox, later in summer and sooner in winter) under a full moon too.
 const SHADOW_SKY := 0.5
 ## Around a fire the torch goes out (see torch_off), world units from the fire.
 const TORCH_OFF_NEAR := 3.0
@@ -392,9 +393,9 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 		bolt.visible = false
 		bolt_light.light_energy = 0.0
 	shadow_energy = lerpf(SHADOW_ENERGY.x, SHADOW_ENERGY.y, clampf(sky.sky_light / 0.45, 0.0, 1.0))
-	dark = sky.sky_light < SHADOW_SKY
+	dark = sky.sun_light < SHADOW_SKY
 	# At dusk the shadows darken in over a short while instead of popping in.
-	var opacity := clampf((SHADOW_SKY - sky.sky_light) / 0.08, 0.0, 1.0)
+	var opacity := clampf((SHADOW_SKY - sky.sun_light) / 0.08, 0.0, 1.0)
 	for f in fires:
 		f.light.shadow_opacity = opacity
 	flicker_clock += delta

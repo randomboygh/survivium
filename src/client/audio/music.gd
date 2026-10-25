@@ -213,8 +213,9 @@ func _occasion(delta: float) -> String:
 			return "day" if clock.daylight() > 0.4 else "night"
 		return ""
 	var gap: float = GAPS[clampi(game.settings.values.music_often, 0, GAPS.size() - 1)] * 60.0
-	var dawn: bool = _last_time_of_day >= 0.0 and _last_time_of_day < 0.24 and clock.time_of_day >= 0.24
-	_last_time_of_day = clock.time_of_day
+	var sun: float = clock.sun_time()
+	var dawn: bool = _last_time_of_day >= 0.0 and _last_time_of_day < 0.24 and sun >= 0.24
+	_last_time_of_day = sun
 	var biome: int = clock.biome
 	var new_place := biome >= 0 and not _biomes.has(biome)
 	if biome >= 0:

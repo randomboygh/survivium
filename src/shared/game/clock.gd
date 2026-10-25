@@ -22,6 +22,13 @@ const WINTER := 3
 ## Days from one full moon to the next. The first night of a world is a bright one.
 const MOON_DAYS := 8.0
 const MOON_START := 0.75
+## The share of the day the sun is up on the shortest day (midwinter, 8 hours) and on
+## the longest (midsummer, 16 hours); half a day at mid-spring and mid-autumn.
+const DAY_SHARE := Vector2(8.0 / 24.0, 16.0 / 24.0)
+## The longest day of the calendar (June 21) and of the game's year (mid-summer), as a
+## day of the year and as a share of the year from the first day of spring.
+const SOLSTICE_DAY := 172
+const SOLSTICE_YEAR := 0.375
 
 ## Kinds of weather, what each brings and how often it comes in each season (spring,
 ## summer, autumn, winter). Strengths are 0..1: clouds is the share of the sky under
@@ -201,7 +208,49 @@ static func calendar_season() -> int:
 ## How much of the day's light there is now, 0 at night and 1 by day (dawn and dusk
 ## between).
 func daylight() -> float:
-	return clampf(-cos(time_of_day * TAU) * 1.6 + 0.35, 0.0, 1.0)
+	return clampf(-cos(sun_time() * TAU) * 1.6 + 0.35, 0.0, 1.0)
+
+
+## The share of the day the sun is up today: long in summer, short in winter, by the
+## season and how far it has gone (or the device's date with real_season).
+func day_share() -> float:
+	var off: float
+	if real_season:
+		off = (Time.get_date_dict_from_system().get("yday", SOLSTICE_DAY) - SOLSTICE_DAY) / 365.0
+	else:
+		off = (season + clampf(season_clock / DAYS_PER_SEASON, 0.0, 1.0)) / 4.0 - SOLSTICE_YEAR
+	return lerpf(DAY_SHARE.x, DAY_SHARE.y, 0.5 + 0.5 * cos(off * TAU))
+
+
+## The time of day as the sun sees it: the hours of today's daylight stretched or
+## squeezed onto 6:00..18:00 and those of the night onto the rest, so the sun rises at
+## 0.25 and sets at 0.75 of it in any season, while noon and midnight stay where they
+## are. The sky, the light and the daylight run on it.
+func sun_time() -> float:
+	var half := day_share() * 0.5
+	var t := wrapf(time_of_day - 0.5, -0.5, 0.5)
+	if absf(t) <= half:
+		return 0.5 + t * 0.25 / half
+	var night := 0.5 - half
+	return fposmod(0.5 + signf(t) * (0.25 + (absf(t) - half) * 0.25 / night), 1.0)
+
+
+## The time of day at which sun_time is `sun` today (screenshots pin the light this way).
+func time_at_sun(sun: float) -> float:
+	var half := day_share() * 0.5
+	var s := wrapf(sun - 0.5, -0.5, 0.5)
+	if absf(s) <= 0.25:
+		return 0.5 + s * half / 0.25
+	return fposmod(0.5 + signf(s) * (half + (absf(s) - 0.25) * (0.5 - half) / 0.25), 1.0)
+
+
+## The hour (0..24) the sun rises and sets today.
+func sunrise() -> float:
+	return (0.5 - day_share() * 0.5) * 24.0
+
+
+func sunset() -> float:
+	return (0.5 + day_share() * 0.5) * 24.0
 
 
 ## Moonlight (0..1) on day `t` of the game: full every MOON_DAYS days, dark for a few
