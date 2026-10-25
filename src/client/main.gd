@@ -43,6 +43,7 @@ const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const CreaturesScript := preload("res://src/client/game/creatures.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
@@ -488,6 +489,10 @@ func _build_materials() -> void:
 	for m in mini(Mat.COUNT, 21):
 		shapes[m] = Mat.corner_shape[m]
 		bits[m] = Mat.shader_bits[m]
+	# The barks of the trees are materials to the shader too, like the log.
+	for m in range(Mat.COUNT, mini(PixelTextures.material_count(), 21)):
+		shapes[m] = Mat.corner_shape[Mat.LOG] if Mat.LOG >= 0 else 0
+		bits[m] = Mat.shader_bits[Mat.LOG] if Mat.LOG >= 0 else 0
 	world_mat.set_shader_parameter("corner_shapes", shapes)
 	world_mat.set_shader_parameter("material_bits", bits)
 	low_mat = _material(low_variant(WorldShader))
@@ -496,6 +501,7 @@ func _build_materials() -> void:
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
 	grass_mat.set_shader_parameter("plant_texture", PixelTextures.build_plants())
+	grass_mat.set_shader_parameter("plant_count", float(PixelTextures.PLANTS + Plants.custom_frames()))
 	leaves_mat = _material(LeavesShader)
 	leaves_mat.set_shader_parameter("clump_texture", PixelTextures.build_clumps())
 	leaves_mat.set_shader_parameter("clump_size", Foliage.CLUMP_SIZE)

@@ -1,7 +1,10 @@
 extends "res://src/client/world/mesh_faces.gd"
 ## Trunks of trees and log pillars: the bark drawn as a ring of texels per level
 ## with roots at the foot and a cut or bark cap on top (see Trees.trunk_box).
-## Called by ChunkMesher a column at a time.
+## Called by ChunkMesher a column at a time. A species with a bark of its own
+## (PixelTextures.bark_material) is drawn with that in place of the log's texture.
+
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
 
 ## A log with open sides that continues up into a trunk or crown is a tree trunk.
@@ -31,6 +34,8 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 		k += 1
 	var box := PILLAR if species < 0 else Trees.trunk_box(species, col, k)
 	var color := Color(1, 1, 1) if species < 0 else _bark_tone(col)
+	if species >= 0 and species < PixelTextures.bark_material.size() and PixelTextures.bark_material[species] >= 0:
+		m = PixelTextures.bark_material[species]
 	var top := CAP_CUT if not _covers(nb[2]) else CAP_NONE
 	# Going up into more trunk, the bark slants to where the next cell has it.
 	var up := box

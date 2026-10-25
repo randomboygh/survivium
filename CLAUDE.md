@@ -95,8 +95,12 @@ bundles (`mods` in `world.json`, older lists expanded by `Mods.expand`), a new o
 on at «Новый мир» (page «Моды», a row per mod, its own page per bundle); `mods.gd` activates a set and
 refreshes every registry (material numbers follow the load order, so a world's set must not change; the
 button to reread the data calls `Mods.rescan`, not `reload`, which `Script.reload` shadows). The engine asks for content by role, never by
-id: a tree and a bush by the shares of the column's biome (`Biomes.tree`, `Biomes.bush`; a `biomes` record says where it lies, `where: climate` with `warmth`/`moisture` windows or a relief the layout decides itself, its `top`, `trees`/`bushes` shares, chances; `Biomes.pick(t, m)` the most specific window first, `Biomes.NONE` bare grass; code that needs some tree asks `Trees.first(leaves)`), a plant by its `kind`
-(`Plants.of_kind`, "" when no mod gives one, and that kind does not grow), a station by its `prop`
+id: a tree and a bush by the shares of the column's biome (`Biomes.tree`, `Biomes.bush`; a `biomes` record says where it lies, `where: climate` with `warmth`/`moisture` windows or a relief the layout decides itself, its `top`, `trees`/`bushes` shares, chances; `Biomes.pick(t, m)` the most specific window first, `Biomes.NONE` bare grass; code that needs some tree asks `Trees.first(leaves)`: the one the biomes grow most), a plant by its `kind`
+(`Plants.of_kind`, "" when no mod gives one, and that kind does not grow; `kind: custom` is a plant with its own
+picture, `sprite` in `sprites/plants/` of its bundle, `frames` frames of 8×24, that says where it `grows` (meadow, shade,
+bank), its `cover` and `clumps`: any number grow side by side, `Plants.CUSTOM`, their frames after the engine's in the
+plant texture and their kinds from `Grass.CUSTOM`; a tree with a `bark` draws its trunk with `textures/<bark>.png` of its
+bundle instead of the log's, a virtual material after the real ones in the atlas, `PixelTextures.bark_material`), a station by its `prop`
 (`Items.with_prop`), a tool by its `tool`, a cell material by its `role` (`Mat.BEACH`, `Mat.BANK`, `Mat.SCREE`,
 `Mat.ORE`, `Mat.LOG`, `Mat.LEAVES`: -1 when no mod gives one, the generator lays dirt or stone instead, trees
 need `trunk` and `crown`), fuel for a fire by `fuel` (`Items.fuel_in`), what a tree or bush gives by its

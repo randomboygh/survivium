@@ -1,0 +1,21 @@
+# Порода дерева: как оно выглядит (поля — как у дуба, content/plants/oak/data/trees.yaml). bark — своя
+# текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
+# рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
+- id: rowan
+  title: Рябина
+  leaves: broad
+  trunk: [4, 6]
+  girth: [5, 8]
+  taper: 0.3
+  crook: 2
+  roots: [0, 2]
+  crown: [1.5, 1.4, 1.4]
+  tints: ["#5c8f3c", "#649644", "#56893a"]
+  bare: 1.0
+  bark: rowan_bark
+  seed: rowan
+  log: resources:log
+  twig: resources:branch
+  hits: 3
+  twigs: 3
+  seeds: 4

@@ -1,0 +1,19 @@
+# Порода дерева: как оно выглядит (поля — как у дуба, content/plants/oak/data/trees.yaml). bark — своя
+# текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
+# рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
+- id: birch
+  title: Берёза
+  leaves: broad
+  trunk: [6, 9]
+  girth: [6, 9]
+  taper: 0.35
+  crook: 3
+  roots: [0, 2]
+  crown: [1.6, 1.8, 1.4]
+  tints: ["#6fa04a", "#7aa852", "#659a46"]
+  bare: 1.0
+  bark: birch_bark
+  log: resources:log
+  twig: resources:branch
+  hits: 4
+  twigs: 4

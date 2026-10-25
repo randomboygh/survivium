@@ -1,0 +1,14 @@
+# Куст: поля — как у малины (content/plants/raspberry/data/bushes.yaml). Где он растёт, говорят биомы.
+- id: currant
+  title: Смородина
+  tint: "#3a6a2e"
+  berries: "#2a1c38"
+  berry_cards: 0.5
+  cards: 9
+  rise: 0.36
+  spread: [0.28, 0.36, 0.2]
+  fruit: currant
+  fruit_count: [3, 5]
+  twigs: 2
+  twig: resources:branch
+  item: currant_bush

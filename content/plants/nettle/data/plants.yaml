@@ -1,0 +1,14 @@
+# Растение со своей картинкой (kind: custom): sprite — ряд из frames кадров 8×24 в sprites/plants/ бандла;
+# grows — где растёт: meadow (открытая трава), shade (тень крон), bank (у воды); cover — какую долю такой
+# земли занимает (0–1); clumps — порог шума (−1..1), выше которого растёт: пятнами, а не везде
+# (нет поля — везде). gives, chance, pick, winter — как у остальных растений.
+- id: nettle
+  kind: custom
+  title: Крапива
+  sprite: nettle
+  frames: 2
+  grows: meadow
+  cover: 0.5
+  clumps: 0.45
+  gives: {resources:fiber: 2}
+  winter: false

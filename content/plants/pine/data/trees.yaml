@@ -1,0 +1,22 @@
+# Порода дерева: как оно выглядит (поля — как у дуба, content/plants/oak/data/trees.yaml). bark — своя
+# текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
+# рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
+# seed — шишка бандла «Ель» (мягкая ссылка: без «Ели» сосна шишек не даёт).
+- id: pine
+  title: Сосна
+  leaves: needles
+  trunk: [3, 5]
+  girth: [7, 11]
+  taper: 0.25
+  crook: 1
+  roots: [0, 2]
+  crown: [1.8, 2, 3]
+  tints: ["#3f6b3a", "#44703c", "#3a6638"]
+  bare: 0.0
+  bark: pine_bark
+  seed: cone
+  log: resources:log
+  twig: resources:branch
+  hits: 5
+  twigs: 3
+  seeds: 2

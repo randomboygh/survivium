@@ -24,7 +24,8 @@ global uniform float night_glow;
 
 const float WIDTH = 0.5;
 const float HEIGHT = 1.5;
-const float PLANTS = 29.0;
+// Plants in the texture: the engine's 29 and the mods' own after them (main.gd).
+uniform float plant_count = 29.0;
 const int GRASS_TOP = 3;
 // Kinds of plant by their index in the texture.
 const int GRASS = 0;
@@ -39,6 +40,8 @@ const int MUSHROOM = 8;
 const int GLOW = 9;
 const int SPORE = 10;
 const int HALO = 11;
+// The mods' own plants (Grass.CUSTOM), drawn as their pictures are.
+const int CUSTOM = 12;
 // A halo's card is this much larger than the others (foliage.gd scales it).
 const float HALO_SCALE = 2.5;
 const vec3 GLOW_COLOR = vec3(0.35, 0.95, 0.8);
@@ -56,6 +59,9 @@ varying float clouds;
 varying flat float life;
 
 int kind_of(int plant) {
+	if (plant >= 30) {
+		return CUSTOM;
+	}
 	if (plant >= 22) {
 		return plant < 24 ? MOSS : (plant < 26 ? MUSHROOM : (plant < 28 ? GLOW : (plant < 29 ? SPORE : HALO)));
 	}
@@ -109,7 +115,7 @@ void vertex() {
 
 void fragment() {
 	vec2 cell = vec2(float(int(custom.x + 0.5)) * 8.0, 0.0);
-	vec4 m = texture(plant_texture, (cell + UV * vec2(8.0, 24.0)) / vec2(8.0 * PLANTS, 24.0));
+	vec4 m = texture(plant_texture, (cell + UV * vec2(8.0, 24.0)) / vec2(8.0 * plant_count, 24.0));
 	// Plants are too small to show above the cut. (A halo is drawn without the texture.)
 	if ((m.a < 0.5 && kind != HALO) || root.y > cut_height + 0.01) {
 		discard;
@@ -154,6 +160,11 @@ void fragment() {
 			discard;
 		}
 		col = m.rgb * mix(vec3(1.0), grass_tint, 0.4) * custom.y;
+	} else if (kind == CUSTOM) {
+		if (snow_here > 0.6) {
+			discard;
+		}
+		col = m.rgb * custom.y;
 	} else if (kind == MUSHROOM || kind == GLOW) {
 		// Mushrooms are gone under the snow.
 		if (snow_here > 0.4) {

@@ -613,6 +613,40 @@ func grove(w, at: Vector3i) -> void:
 	main.player.position = Vector3(at.x + 0.5, h, at.z + 0.5) * CELL
 
 
+## A flat orchard at `at`: one tree of every loaded species in a row behind the player
+## (the ground plants of the shade grow under their crowns on their own), a bush of every
+## type in a row before them.
+func orchard(w, at: Vector3i) -> void:
+	var h: int = w.surface_y(at.x, at.z)
+	var span := 6 * maxi(Trees.SPECIES.size(), Bushes.TYPES.size()) + 8
+	for z in range(at.z - 30, at.z + 20):
+		for x in range(at.x - span, at.x + span):
+			for y in w.size_y:
+				var m := Mat.AIR
+				if y < h:
+					m = Mat.GRASS if y == h - 1 else Mat.DIRT
+				w.set_cell(x, y, z, m)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < span + 10 and key.y - at.z > -40 and key.y - at.z < 30:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= span and b.z - at.z >= -30 and b.z - at.z <= 20:
+			w.remove_bush(b)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var n := Trees.SPECIES.size()
+	for i in n:
+		Trees.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, rng)
+	var k := Bushes.TYPES.size()
+	for i in k:
+		Bushes.place(w, at.x + (i - k / 2) * 6, h, at.z + 5 + (i % 2), i)
+	for z in range(at.z - 32, at.z + 24, 8):
+		for x in range(at.x - span - 8, at.x + span + 8, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	main.player.position = (Vector3(at.x, h, at.z) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player
 ## and a spruce east of them, grown afresh each time; `fell` fells both away from the
 ## player a cell above their feet, as the axe would.

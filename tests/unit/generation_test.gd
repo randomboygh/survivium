@@ -7,6 +7,7 @@ func run() -> void:
 	_test_mountains()
 	_test_trees()
 	_test_bushes()
+	_test_custom_plants()
 
 
 func _test_generation() -> void:
@@ -194,7 +195,8 @@ func _test_trees() -> void:
 		kinds[w.trees[at]] = true
 		trunks = trunks and w.log_col(at.x, at.y) != 0
 	_check(not w.trees.is_empty() and trunks, "every noted tree has a trunk")
-	_check(kinds.size() == Trees.SPECIES.size(), "the generator grows every species")
+	_check(kinds.keys().size() == _named("trees", Trees.SPECIES).size() and kinds.keys().all(func(k: int) -> bool: return k in _named("trees", Trees.SPECIES)),
+		"the generator grows every species the taiga and the forest name: %s" % [kinds.keys()])
 	# Crowns of spruces take needle cards, of oaks leaf cards.
 	var rows := {}
 	for key: Vector2i in strips.keys:
@@ -210,6 +212,18 @@ func _test_trees() -> void:
 ## tree and every type of bush grow: the world the tree and bush tests look at
 ## ({"world", "keys"}).
 const STRIP_CHUNKS := 6
+
+
+## The indices in `list` of the records the taiga's and the forest's `field` shares name
+## (a species no biome grows is not expected in the strips).
+func _named(field: String, list: Array) -> Array:
+	var out := []
+	for id in ["biomes:taiga", "biomes:forest"]:
+		for key in Biomes.of(Biomes.index(id)).get(field, {}):
+			for i in list.size():
+				if list[i].id == key and not i in out:
+					out.append(i)
+	return out
 
 
 func _woods() -> Dictionary:
@@ -232,7 +246,8 @@ func _test_bushes() -> void:
 		kinds[w.bushes[at]] = true
 		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR
 	_check(on_grass, "bushes stand in air on grass")
-	_check(kinds.size() == Bushes.TYPES.size(), "the generator grows every type of bush")
+	_check(kinds.keys().size() == _named("bushes", Bushes.TYPES).size() and kinds.keys().all(func(k: int) -> bool: return k in _named("bushes", Bushes.TYPES)),
+		"the generator grows every type of bush the taiga and the forest name: %s" % [kinds.keys()])
 	# Each bush draws its type's clusters, berry bushes some with berries.
 	var cells: Array[Vector3i] = []
 	cells.assign(w.bushes.keys())
@@ -298,3 +313,45 @@ func _test_bushes() -> void:
 		_check(not Grass.plants_on(w, picked.x, picked.y, picked.z).any(func(id) -> bool: return Plants.BY_ID[id].pick),
 			"picked moss and mushrooms are gone until spring")
 		w.set_turf(picked, null)
+
+
+## The mods' own plants (`kind: custom`): their frames follow the engine's in one row,
+## each grows where its record says (the fern in the shade of crowns, the nettle in the
+## open, the cranberry by the water) and is a plant with what it gives like the others.
+func _test_custom_plants() -> void:
+	var frames := 0
+	var ordered := true
+	for c in Plants.CUSTOM:
+		ordered = ordered and c.first == frames and Grass.plant_of(Grass.CUSTOM + c.first) == c.id \
+			and Grass.plant_of(Grass.CUSTOM + c.first + c.frames - 1) == c.id
+		frames += c.frames
+	_check(Plants.CUSTOM.size() >= 3 and ordered and Plants.custom_frames() == frames and Grass.plant_of(Grass.CUSTOM + frames) == "",
+		"custom plants take the kinds after the engine's, a kind per frame")
+	var by_where := {}
+	for c in Plants.CUSTOM:
+		by_where[c.grows] = c.id
+	_check(by_where.has("shade") and by_where.has("meadow") and by_where.has("bank"), "the test plants grow in the shade, the open and on the banks")
+	var strips := _woods()
+	var w: WorldData = strips.world
+	var seen := {}
+	var wrong := {}
+	for key: Vector2i in strips.keys:
+		for dz in 16:
+			for dx in 16:
+				var x := key.x * 16 + dx
+				var z := key.y * 16 + dz
+				var y := w.surface_y(x, z) - 1
+				var shaded := w.leaf_col(x, z) != 0
+				for id in Grass.plants_on(w, x, y, z):
+					var c: Dictionary = Plants.BY_ID.get(id, {})
+					if c.get("kind", "") != Plants.KINDS.CUSTOM:
+						continue
+					seen[id] = true
+					if (c.grows == "shade" and not shaded) or (c.grows == "meadow" and shaded):
+						wrong[id] = true
+	_check(seen.has(by_where.shade) and seen.has(by_where.meadow) and wrong.is_empty(),
+		"the fern grows under the crowns and the nettle in the open, not the other way: %s, wrong %s" % [seen.keys(), wrong.keys()])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var got := Plants.harvest([by_where.meadow, by_where.meadow, by_where.meadow], rng)
+	_check(not got.is_empty(), "a custom plant gives what its record says")
