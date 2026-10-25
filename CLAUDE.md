@@ -17,7 +17,8 @@ src/shared/   the world model and the rules of play the server will run; loads n
   game/       rules: inventory, vitals, knowledge, craft_queue, workshop, world_actions, body, placed,
               clock, real_weather, storms, character, wildlife
 src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the top
-  world/      chunk_streamer, chunk_mesher, mesh_buffers, foliage, drifts, tracks, roof_map
+  world/      chunk_streamer, chunk_mesher (+ mesh_faces, slope_mesher, water_mesher, trunk_mesher), mesh_buffers,
+              foliage, drifts, tracks, roof_map
   view/       pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures, voxel_model,
               voxel_props, player, figure, hands, sprite_sheet, draw_census, shader_warmup
   input/      controls, cursor, touch_stick, touch_button
@@ -27,15 +28,14 @@ src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the t
 content/      the mods: core (the base game), materials, sounds, tools, plants, animals, birds; mod.yaml,
               data/<kind>.yaml, sprites/, icons/, models/, textures/, sounds/
 shaders/      3D shaders (include common.gdshaderinc), the colour grade, map and UI shaders
-tests/        run_tests (runs unit/<topic>_test.gd, each extends unit/test_case.gd), save_test, progress_test,
-              frame_test, browser_smoke.mjs, run_all.sh
+tests/        run_tests, save_test, progress_test, frame_test, browser_smoke.mjs, run_all.sh
 tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, make_sprites, make_models, make_icons,
               make_textures, art/, sound/
 ```
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
   decide) goes into `src/shared/game/`; how it is drawn or asked for goes into `src/client/`.
-  `run_tests.gd` (`unit/content_test.gd`) fails if anything under `src/shared/` loads a script from `src/client/`. A rule takes
+  `run_tests.gd` fails if anything under `src/shared/` loads a script from `src/client/`. A rule takes
   the one acting as `who` (on the client `character.gd`: the body, the hands and the bag) and tells what
   it changed through signals the client's views connect to (`world_actions.gd`). Details and the
   table of systems: `plan/architecture/code-structure.md`.
@@ -50,7 +50,7 @@ tools/        validate, shot, map, profile, bench_*, build_info, make_sounds, ma
 | `world_gen.gd` | everything from noise: slow noises on a lattice every `LATTICE` cells, distances to coast and river, `DEFAULT_SETTINGS` from the setup screen; mountains, scree and snow above `SNOW_LINE`, rivers in steps (rapids, falls), deltas, caves (`_tunnels`); three stages per chunk, `TERRAIN` → `PLANTED` (trees, needs TERRAIN on the 3×3 around) → `SHAPED` (slopes, corners, bushes; needs PLANTED around), stepped a row or a tree at a time through `start`/`step` jobs; the result does not depend on the order chunks are made in (tested); unedited chunks beyond `DROP_RANGE` are forgotten (`forget`) and made again the same; `lay_out` gives the layout of any window (maps, setup screen, `find_place`) |
 | `world_store.gd`, `save_game.gd` | one folder per world under `user://saves`: `world.json`, players, only the changed chunks (`WorldGen.pack`), map regions; modules keep their part of the player with `save.track(name, obj)` (`to_dict`/`from_dict`); autosave; a saved chunk comes back SHAPED |
 | `chunk_streamer.gd` | generates and meshes chunks within `LOAD_RANGE`, frees beyond `UNLOAD_RANGE`; per-frame budgets (edits, then far chunks, then caps); the level cut and `_hiding_level`; `refit_boxes` per view |
-| `chunk_mesher.gd`, `foliage.gd`, `mesh_buffers.gd` | the chunk meshes built a column at a time: cells, slopes (`patch`), trunks, cut caps, falls; plants and crowns |
+| `chunk_mesher.gd`, `foliage.gd`, `mesh_buffers.gd` | the chunk meshes built a column at a time: cells, cut corners and caps (`build_cap`); the parts it calls per column extend `mesh_faces.gd` (the face tables, packed words and drawing primitives): `slope_mesher.gd` (slopes, `patch`), `water_mesher.gd` (surface, shore, falls), `trunk_mesher.gd` (bark); plants and crowns |
 | `pixel_view.gd`, `camera_rig.gd` | the low-res picture and the oblique 3/4 view: `shear(pos)`, `view_ray`, `set_view(turn, tilt)`, `world_dir` / `screen_dir`, safe rect; the camera turns in 45° steps and tilts two steps each way (wall 4..12 px under an 8 px top) |
 | `sky.gd`, `effects.gd`, `fire_shadows.gd` | light, colour grade, sun rays, ground fog, puddles, weather drawn for `game.clock`; `light_side` (one of eight, with a margin); particles, fires, the torch; fire shadows drawn on the ground |
 | `clock.gd`, `real_weather.gd` | time of day, seasons, moon, the `WEATHERS` table, wind side, leaf fall; or the device's time and the real weather by IP + Open-Meteo |
@@ -157,10 +157,7 @@ timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 
 `tests/run_all.sh` runs the same after `--import`: the first four side by side, each with its own
 `user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times (`GODOT=path` if
-`godot` is not on PATH; names as arguments run only those). `run_tests.gd` runs the files of `tests/unit/`
-(one per topic: generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, character;
-each extends `test_case.gd`, which holds `_check` and the shared helpers), topic names after `--` run only
-those; a new test goes into the file of its topic and its `run`. `frame_test.gd` plays scenarios headless
+`godot` is not on PATH; names as arguments run only those). `frame_test.gd` plays scenarios headless
 and fails when chunk-sized work lands in one frame; its timings are noisy on a busy machine, rerun it
 alone before blaming code. `progress_test.gd` starts a new world with an empty bag and plays the way
 to every recipe through the game's own calls; run it after any change to tools, materials, stations,

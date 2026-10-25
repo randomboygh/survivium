@@ -215,7 +215,7 @@
 - `src/client/`: `main.gd` собирает сцену и ведёт кадр, `settings.gd` хранит настройки,
   `save_game.gd` сохраняет и загружает мир. Остальное по папкам:
   - `world/`: мир на экране: `chunk_streamer.gd` (генерация и меши чанков вокруг игрока по бюджету
-    кадра, крышки, срез уровней), `chunk_mesher.gd` и `foliage.gd` (меши чанков, трава, кроны,
+    кадра, крышки, срез уровней), `chunk_mesher.gd` со `slope_mesher.gd`, `water_mesher.gd`, `trunk_mesher.gd` над общим `mesh_faces.gd` и `foliage.gd` (меши чанков: ячейки, склоны, вода, стволы; трава, кроны,
     кусты), `drifts.gd`, `tracks.gd`, `roof_map.gd`;
   - `view/`: картинка: `pixel_view.gd` (пиксельная проекция), `camera_rig.gd`, `sky.gd` (свет,
     цветокор и погода на экране по часам мира), `effects.gd` (частицы и огни), `fire_shadows.gd` (нарисованные
@@ -240,7 +240,7 @@
 - `shaders/`: шейдеры мира, воды, травы, крон, теней, спрайтов, частиц и цветокора; общий код и сдвиг
   проекции 3/4 в `common.gdshaderinc`.
 - `assets/fonts/`: пиксельный шрифт Press Start 2P (лицензия OFL).
-- `tests/`: headless-тесты (`run_tests.gd` запускает юнит-тесты `unit/<тема>_test.gd`: данные, генератор, меши, правила,
+- `tests/`: headless-тесты (`run_tests.gd` проверяет данные, генератор, меши и правила,
   `frame_test.gd` ловит фризы, `save_test.gd` сохранение, `progress_test.gd` путь от голых рук
   до всех рецептов) и проверка сборки в браузере
   (`browser_smoke.mjs`).
