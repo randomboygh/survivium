@@ -349,6 +349,10 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
+		# An animal the player ran into pushes back by its mass.
+		var push: Vector3 = wildlife.pushes[0] if not wildlife.pushes.is_empty() else Vector3.ZERO
+		player.body.nudge = Vector2(push.x, push.z) / CELL
+		wildlife.pushes.fill(Vector3.ZERO)
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
 		character.update(minf(delta, 0.05))

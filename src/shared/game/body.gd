@@ -104,6 +104,9 @@ var glide := Vector2.ZERO
 ## A shove the body got (see knock), in cells a second (x east, y south): it carries
 ## the body whatever the stick says and dies away by SHOVE_DRAG.
 var shove := Vector2.ZERO
+## How far something the body ran into (an animal, see Wildlife.pushes) pushes it
+## back in the next step, in cells (x east, y south); used up by the step.
+var nudge := Vector2.ZERO
 ## Where (world units) the last step tried to move the body and something was in
 ## the way, Vector3.INF if nothing was: what it pushed against (a fire burns).
 var bumped := Vector3.INF
@@ -167,6 +170,12 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		# What the shove pushed the body against is not what it pushed against itself.
 		bumped = bump
 		shove = shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
+	if nudge != Vector2.ZERO:
+		var bump := bumped
+		p = _try_move(p, Vector3(nudge.x, 0.0, 0.0), reach)
+		p = _try_move(p, Vector3(0.0, 0.0, nudge.y), reach)
+		bumped = bump
+		nudge = Vector2.ZERO
 	# A wall stops the glide along it.
 	if absf(p.x - before.x) < absf(glide.x * delta) * 0.5:
 		glide.x = 0.0
