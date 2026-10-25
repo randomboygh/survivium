@@ -349,6 +349,10 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
+		# An animal the player ran into pushes back by its mass.
+		var push: Vector3 = wildlife.pushes[0] if not wildlife.pushes.is_empty() else Vector3.ZERO
+		player.body.nudge = Vector2(push.x, push.z) / CELL
+		wildlife.pushes.fill(Vector3.ZERO)
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
 		character.update(minf(delta, 0.05))
@@ -539,12 +543,13 @@ func _build_materials() -> void:
 	drift_mesh = Drifts.mound_mesh()
 
 
-## A copy of `shader` (world or leaves, which mark what they draw as tall in the
-## stencil buffer) that marks it low, so the player's silhouette (sprite_xray) does
-## not show behind it.
+## A copy of `shader` (world or leaves, which mark what they draw as solid or as a
+## crown in the stencil buffer) that marks it low (2), so the player's silhouette
+## (sprite_xray) does not show behind it.
 static func low_variant(shader: Shader) -> Shader:
 	var low := Shader.new()
-	low.code = shader.code.replace("stencil_mode write, compare_always, 2;", "stencil_mode write, compare_always, 1;")
+	low.code = shader.code.replace("stencil_mode write, compare_always, 1;", "stencil_mode write, compare_always, 2;") \
+		.replace("stencil_mode write, compare_always, 3;", "stencil_mode write, compare_always, 2;")
 	return low
 
 

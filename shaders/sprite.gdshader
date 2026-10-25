@@ -5,6 +5,8 @@ shader_type spatial;
 // on the player); the normal offset of the shadow lookup keeps an upright quad from
 // shading itself.
 render_mode world_vertex_coords, cull_disabled;
+// Solid for the player's silhouette (see sprite_xray): it shows behind an animal.
+stencil_mode write, compare_always, 1;
 
 #include "res://shaders/common.gdshaderinc"
 
@@ -19,6 +21,9 @@ uniform float water_line = -1000.0;
 uniform vec3 ripple = vec3(0.85, 0.93, 0.92);
 // 1 while the sprite swims: the ripple splashes wider.
 uniform float splash = 0.0;
+// A colour the picture is multiplied by: one of a species' tints (butterflies of many
+// colours), white for none.
+uniform vec3 tint = vec3(1.0);
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
 // stands (FireShadows): 1 out of them. It comes as the sprite's scale along z, which
 // the flat quad does not use: an instance uniform read as 0 in the web build, and the
@@ -56,6 +61,7 @@ void vertex() {
 void fragment() {
 	vec2 uv = frame_uv.xy + UV * frame_uv.zw;
 	vec4 c = texture(sprite_texture, uv);
+	c.rgb *= tint;
 	// The player stays whole whatever level is cut; everyone else goes with their level.
 	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;
 	// The whole body casts its shadow, under the water too, so the shadow on the bed

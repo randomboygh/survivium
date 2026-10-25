@@ -15,9 +15,10 @@
 // (see Foliage.bush_kind), whose berries are pixels of the texture marked in alpha.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
-// Crowns are tall for the player's silhouette (see sprite_xray), bushes use a copy
-// that marks them low (see main.low_variant).
-stencil_mode write, compare_always, 2;
+// Crowns clear round the player (see see_through), so the player's silhouette (see
+// sprite_xray) does not show behind them (3); bushes use a copy that marks them low
+// (see main.low_variant).
+stencil_mode write, compare_always, 3;
 
 #include "res://shaders/common.gdshaderinc"
 

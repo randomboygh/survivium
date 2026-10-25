@@ -1,7 +1,8 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
 # sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
-# Плавает (swims), квакает по ночам; еда для окуня, вороны и совы.
+# Плавает (swims) и вылезает на берег (ashore), по земле прыгает (hops); выходит только после
+# дождя, пока стоят лужи (after_rain), и тем больше, чем их больше. Еда для окуня, вороны и совы.
 - id: frog
   title: Лягушка
   mass: 0.05
@@ -9,11 +10,14 @@
   speed: 2.0
   sight: 5
   human_wariness: 0.7
-  active: night
-  count: 6
+  active: any
+  count: 4
   sprite: frog
   frames: 3
   swims: true
-  flock: [2, 4]
+  ashore: true
+  hops: true
+  after_rain: true
+  flock: [1, 2]
   calls: frog
   alarm: frog

@@ -20,14 +20,15 @@
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
 //          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1); below
 //          1 on a stone top whose moss was picked, 16ths naming which tops beside,
-//          bits N, S, W, E, were picked too
+//          bits N, S, W, E, were picked too; on a tree's trunk which cell of it this
+//          is (0.25 the foot, 0.5 the next, 0.75 above)
 //   A snowdrift has tile 63 and UV = 4 + the vertex's place on the mound's round
 //          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
 render_mode world_vertex_coords, cull_back;
-// Marks the pixels it wins as tall for the player's silhouette (see sprite_xray);
+// Marks the pixels it wins as solid for the player's silhouette (1, see sprite_xray);
 // low props and snow drifts use a copy that marks them low (see main.low_variant).
-stencil_mode write, compare_always, 2;
+stencil_mode write, compare_always, 1;
 
 #include "res://shaders/common.gdshaderinc"
 
@@ -38,7 +39,7 @@ uniform int corner_shapes[21];
 // A word per material from its data (Mat.shader_bits): bits 0..3 the priority (which
 // material grows over which at a boundary, 0 never blends), bit 4 DRAINS (no puddles),
 // bits 5..6 the kind of patches on open ground (GROUND_*), bit 7 TRUNK (a log or a
-// bark: clears round the player like a crown). One entry for every material, filled
+// bark: a tree's trunk clears round the player). One entry for every material, filled
 // by main.gd: reading past the end draws garbage on some GPUs.
 uniform int material_bits[21];
 
@@ -180,10 +181,15 @@ void fragment() {
 	}
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
-	// Trunks nearer the viewer than the player clear round them, as crowns do.
-	if (!IN_SHADOW_PASS && tile != NONE && (material_bits[tile / 3] & TRUNK) != 0) {
+	// The trunk of a tree nearer the viewer than the player clears round them (see
+	// trunk_through), but for its foot: its first cell stays and the second clears
+	// from the bottom up. The vertex alpha of a trunk's faces says which cell of it
+	// they are (see TrunkMesher.trunk_faces): 0.25 the foot, 0.5 the next, 0.75 above.
+	if (!IN_SHADOW_PASS && tile != NONE && COLOR.a < 0.9 && (material_bits[tile / 3] & TRUNK) != 0) {
+		float level = floor(COLOR.a * 4.0 + 0.5) - 1.0;
+		float rise = clamp(level - 1.0 + fract(world_pos.y / CELL), 0.0, 1.0);
 		vec2 lt = light_texel(light_xz);
-		if (bayer4(lt) < see_through(lt, world_pos)) {
+		if (bayer4(lt) < trunk_through(lt, world_pos) * rise) {
 			discard;
 		}
 	}
@@ -315,7 +321,9 @@ void fragment() {
 	// on the high mountains (two levels to thicken above the snow line). The wind
 	// leaves a few spots bare, it melts away around fires, and none falls on the faces
 	// of a cell under a roof, an overhang or a cave ceiling.
-	bool roof = roofed(world_pos.xz, world_pos.y);
+	// A slope's top may go down into the cell below its own (a deep corner): that is
+	// still its own open surface, not ground under it.
+	bool roof = roofed(world_pos.xz, world_pos.y + ((flag & 4) != 0 && top ? CELL : 0.0));
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);

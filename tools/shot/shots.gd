@@ -230,6 +230,10 @@ const SHOTS := {
 	"orchard-east-morning": {"time": 0.3, "season": 1, "orchard": true, "pan": 55},
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
+	# The player just behind the oak of the clearing and behind its spruce: the trunk
+	# clears over them but for its foot, the crown round them, no silhouette there.
+	"behind-trunk": {"time": 0.42, "season": 1, "clearing": true, "offset": Vector3(-3.5, 0.0, -2.0)},
+	"behind-spruce": {"time": 0.42, "season": 1, "clearing": true, "offset": Vector3(3.5, 0.0, -2.0)},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
 	# The oak and the spruce of the clearing by the full moon and by a low sun: the shape
 	# of their shadows.
@@ -408,6 +412,9 @@ const SHOTS := {
 	"ground-cave-inside": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23},
 	"ground-forest": {"time": 0.42, "season": 1, "at": [-30, 2]},
 	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
+	# The clay: its top in the strip of materials, its walls on the row of relief.
+	"ground-clay": {"time": 0.42, "season": 1, "at": [30, -4]},
+	"ground-clay-relief": {"time": 0.42, "season": 1, "at": [-40, 74]},
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	# The plant garden south-east of the spawn: trees, bushes and ground plants in pens.

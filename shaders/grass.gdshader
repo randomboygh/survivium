@@ -13,7 +13,7 @@ shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Grass, flowers and ears are low: the player's silhouette does not show behind them
 // (see sprite_xray).
-stencil_mode write, compare_always, 1;
+stencil_mode write, compare_always, 2;
 
 #include "res://shaders/common.gdshaderinc"
 
