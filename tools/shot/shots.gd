@@ -366,6 +366,8 @@ const SHOTS := {
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
 	"ground-biomes": {"time": 0.42, "season": 1, "at": [20, 26]},
+	# The strips of the biomes added as bundles (birch grove, pine wood, steppe) east of them.
+	"ground-biomes-east": {"time": 0.42, "season": 1, "at": [52, 26]},
 	# The swamp strip: pools in the north, a pond running into a bog in the south, and
 	# the player wading the bog.
 	"ground-swamp": {"time": 0.42, "season": 1, "at": [18, 26]},
@@ -379,8 +381,8 @@ const SHOTS := {
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
 	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
 	# The stream down its terraces, from the meadow south of it and from its top.
-	"ground-stream": {"time": 0.42, "season": 1, "at": [72, 37]},
-	"ground-stream-top": {"time": 0.42, "season": 1, "at": [58, 20]},
+	"ground-stream": {"time": 0.42, "season": 1, "at": [156, 37]},
+	"ground-stream-top": {"time": 0.42, "season": 1, "at": [142, 20]},
 	"ground-ears": {"time": 0.42, "season": 1, "at": [116, 13]},
 	# The grove's floor: moss, mushrooms, and the mushrooms that glow at night.
 	"ground-grove": {"time": 0.42, "season": 1, "at": [112, 26]},

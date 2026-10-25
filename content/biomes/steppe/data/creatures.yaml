@@ -1,0 +1,10 @@
+# Кто живёт в степи: патчи записям «Животных» (biomes+ дописывает биом к их списку).
+- id: animals:rabbit
+  patch: true
+  biomes+: [biomes:steppe]
+- id: animals:fox
+  patch: true
+  biomes+: [biomes:steppe]
+- id: animals:deer
+  patch: true
+  biomes+: [biomes:steppe]

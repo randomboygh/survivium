@@ -195,8 +195,9 @@ func _test_trees() -> void:
 		kinds[w.trees[at]] = true
 		trunks = trunks and w.log_col(at.x, at.y) != 0
 	_check(not w.trees.is_empty() and trunks, "every noted tree has a trunk")
-	_check(kinds.keys().size() == _named("trees", Trees.SPECIES).size() and kinds.keys().all(func(k: int) -> bool: return k in _named("trees", Trees.SPECIES)),
-		"the generator grows every species the taiga and the forest name: %s" % [kinds.keys()])
+	_check(_named("trees", Trees.SPECIES, ["biomes:taiga", "biomes:forest"]).all(func(k: int) -> bool: return kinds.has(k))
+		and kinds.keys().all(func(k: int) -> bool: return k in _named("trees", Trees.SPECIES, Biomes.IDS)),
+		"the generator grows every species the taiga and the forest name, and only species some biome names: %s" % [kinds.keys()])
 	# Crowns of spruces take needle cards, of oaks leaf cards.
 	var rows := {}
 	for key: Vector2i in strips.keys:
@@ -214,11 +215,12 @@ func _test_trees() -> void:
 const STRIP_CHUNKS := 6
 
 
-## The indices in `list` of the records the taiga's and the forest's `field` shares name
-## (a species no biome grows is not expected in the strips).
-func _named(field: String, list: Array) -> Array:
+## The indices in `list` of the records the `field` shares of biomes `ids` name (a
+## species no biome grows is not expected in the strips; the strips across the taiga
+## and the forest cross other biomes too).
+func _named(field: String, list: Array, ids: Array) -> Array:
 	var out := []
-	for id in ["biomes:taiga", "biomes:forest"]:
+	for id in ids:
 		for key in Biomes.of(Biomes.index(id)).get(field, {}):
 			for i in list.size():
 				if list[i].id == key and not i in out:
@@ -246,8 +248,9 @@ func _test_bushes() -> void:
 		kinds[w.bushes[at]] = true
 		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR
 	_check(on_grass, "bushes stand in air on grass")
-	_check(kinds.keys().size() == _named("bushes", Bushes.TYPES).size() and kinds.keys().all(func(k: int) -> bool: return k in _named("bushes", Bushes.TYPES)),
-		"the generator grows every type of bush the taiga and the forest name: %s" % [kinds.keys()])
+	_check(_named("bushes", Bushes.TYPES, ["biomes:taiga", "biomes:forest"]).all(func(k: int) -> bool: return kinds.has(k))
+		and kinds.keys().all(func(k: int) -> bool: return k in _named("bushes", Bushes.TYPES, Biomes.IDS)),
+		"the generator grows every type of bush the taiga and the forest name, and only types some biome names: %s" % [kinds.keys()])
 	# Each bush draws its type's clusters, berry bushes some with berries.
 	var cells: Array[Vector3i] = []
 	cells.assign(w.bushes.keys())

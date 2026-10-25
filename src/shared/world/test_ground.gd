@@ -18,12 +18,14 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   biomes     x -8..48,   z 14..38    strips of the loaded biomes: three climate ones,
-##                                      the swamp (pools in its north, a pond running into a
-##                                      bog in its south), two more, the beach; bushes under the trees
+##   biomes     x -8..,     z 14..38    strips of 8 cells of the loaded biomes: the climate ones
+##                                      in load order with the swamp fourth (pools in its north, a
+##                                      pond running into a bog in its south), the beach last; the
+##                                      trees and bushes each biome grows most, in rows (the animals
+##                                      of a biome come to its strip on their own)
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
-##   stream     x 52..95,   z 16..34    a stream coming down terraces (STREAM): falls of
+##   stream     x 136..179, z 16..34    a stream coming down terraces (STREAM): falls of
 ##                                      4, 3 and 2 cells, a rapid of 1, a pool at the foot
 ##   ears       x 100..131, z -12..11   a field of ears (sparrows come to it), a row of
 ##                                      oaks along its north edge for them to sit in
@@ -47,6 +49,8 @@ const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Л�
 	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
+## The width of a biome strip.
+const STRIP := 8
 const POND_DEPTHS := [1, 2, 3, 5]
 const HILL := 12
 ## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
@@ -62,9 +66,9 @@ const RELIEF_Z := 44
 ## The stream's terraces, west to east: [first column, rise of the terrace]; the water
 ## stands at the terrace's top in a channel (STREAM_Z) between banks of stone, and
 ## falls to the next one, then into the pool from STREAM_POOL on.
-const STREAM := [[52, 10], [62, 6], [70, 3], [78, 2]]
-const STREAM_POOL := 86
-const STREAM_END := 96
+const STREAM := [[136, 10], [146, 6], [154, 3], [162, 2]]
+const STREAM_POOL := 170
+const STREAM_END := 180
 ## Channel z from, to (inclusive); a bank of stone 2 cells wide on each side.
 const STREAM_Z := Vector2i(23, 26)
 ## The grove's strips, each 10 or 11 cells wide from x 100: moss, mushrooms, glowing
@@ -89,9 +93,9 @@ var ground := 22
 var strip_tops: Array = []
 ## Tops of the rows of the relief ground, north to south.
 var relief_tops: Array = []
-## The biome strips, 7 of 8 cells: three climate biomes in their load order, the swamp,
-## two more, the beach, NONE where fewer are loaded; the biome of the meadow (one the player may
-## start in), of the rock and of the water.
+## The biome strips of 8 cells from x = -8: every climate biome in load order with the swamp
+## fourth (NONE pads to it when fewer are loaded), the beach last; the biome of the meadow
+## (one the player may start in), of the rock and of the water.
 var strip_biomes: Array = []
 var meadow := Biomes.NONE
 var rock := Biomes.NONE
@@ -108,11 +112,11 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	strip_tops = [Mat.GRASS, Mat.DIRT, beach, bank, Mat.STONE, ore, _block("brick"), _block("planks")]
 	relief_tops = [Mat.GRASS, beach, bank, Mat.STONE]
 	for i in Biomes.RECORDS.size():
-		if Biomes.RECORDS[i].where == "climate" and strip_biomes.size() < 5:
+		if Biomes.RECORDS[i].where == "climate":
 			strip_biomes.append(i)
 		if Biomes.spawn_ok(i) and meadow == Biomes.NONE:
 			meadow = i
-	while strip_biomes.size() < 5:
+	while strip_biomes.size() < 3:
 		strip_biomes.append(Biomes.NONE)
 	# The swamp is the fourth strip (its pools and pond are laid out by x), the beach the last.
 	strip_biomes.insert(3, _biome(Biomes.SWAMP))
@@ -157,8 +161,8 @@ func column(x: int, z: int) -> Array:
 		var d: int = POND_DEPTHS[mini((x + 44) / 8, POND_DEPTHS.size() - 1)]
 		return [g - d, g, beach, water, false]
 	# Biome strips, 8 cells each.
-	if x >= -8 and x < 48 and z >= 14 and z < 38:
-		var b: int = strip_biomes[(x + 8) / 8]
+	if x >= -8 and x < -8 + STRIP * strip_biomes.size() and z >= 14 and z < 38:
+		var b: int = strip_biomes[(x + 8) / STRIP]
 		if b == Biomes.SWAMP:
 			# Swamp water a cell deep in clay, two in a corner of the pond; its
 			# murk is in extras.
@@ -328,10 +332,18 @@ func plan_trees() -> Array:
 	for x in range(-27, -14, 4):
 		out.append([x, -7, spruce])
 		out.append([x, 7, spruce])
-	# A few in the forest and taiga strips.
-	for z in range(17, 38, 6):
-		out.append([3, z, oak])
-		out.append([11, z, spruce])
+	# Two columns in each biome strip: the species it grows most and the one it grows
+	# least, where its ground is grass.
+	for i in strip_biomes.size():
+		var x0 := -8 + i * STRIP
+		var kinds := [Biomes.tree(strip_biomes[i], 0.0), Biomes.tree(strip_biomes[i], 0.999)]
+		for k in 2:
+			if kinds[k] < 0:
+				continue
+			for z in range(17, 38, 6):
+				var x := x0 + 1 + k * 4
+				if _level_grass(x, z):
+					out.append([x, z, kinds[k]])
 	# Oaks along the north edge of the field of ears, the grove in rows.
 	for x in range(101, 132, 6):
 		out.append([x, -11, oak])
@@ -374,6 +386,18 @@ func plan_things() -> Array:
 	return out
 
 
+## True when column x, z and the eight around it are dry grass at one level (a bush
+## beside the stone of the tundra strip would stand on a slope).
+func _level_grass(x: int, z: int) -> bool:
+	var h: int = column(x, z)[0]
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var c := column(x + dx, z + dz)
+			if c[0] != h or c[1] >= 0 or c[2] != Mat.GRASS:
+				return false
+	return true
+
+
 ## The bushes of the plan: [x, z, type].
 func plan_bushes() -> Array:
 	var out := []
@@ -394,12 +418,18 @@ func plan_bushes() -> Array:
 		for x in range(63, 95, 2):
 			var kind: int = kinds[row] if row < 3 else kinds[posmod(x, 3)]
 			out.append([x, -8 + row * 3, kind])
-	# Under the trees of the forest and taiga strips.
-	for z in range(15, 38, 3):
-		out.append([0, z, raspberry])
-		out.append([6, z, shrub])
-		out.append([9, z, blueberry])
-		out.append([14, z, blueberry])
+	# Two columns of bushes in each biome strip, between its trees: the type it grows
+	# most and the one it grows least, where its ground is grass.
+	for i in strip_biomes.size():
+		var x0 := -8 + i * STRIP
+		var types := [Biomes.bush(strip_biomes[i], 0.0), Biomes.bush(strip_biomes[i], 0.999)]
+		for k in 2:
+			if types[k] < 0:
+				continue
+			for z in range(15, 38, 3):
+				var x := x0 + 3 + k * 4
+				if _level_grass(x, z):
+					out.append([x, z, types[k]])
 	for x in range(-45, -32, 3):
 		out.append([x, 0, raspberry])
 	for x in range(-30, -20, 3):

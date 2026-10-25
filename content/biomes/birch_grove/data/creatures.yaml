@@ -1,0 +1,17 @@
+# Кто живёт в берёзовой роще: патчи записям «Животных» (biomes+ дописывает биом к их списку);
+# без бандла зверя патч пропускается, так что роща ничего не требует.
+- id: animals:hedgehog
+  patch: true
+  biomes+: [biomes:birch_grove]
+- id: animals:rabbit
+  patch: true
+  biomes+: [biomes:birch_grove]
+- id: animals:fox
+  patch: true
+  biomes+: [biomes:birch_grove]
+- id: animals:deer
+  patch: true
+  biomes+: [biomes:birch_grove]
+- id: animals:owl
+  patch: true
+  biomes+: [biomes:birch_grove]

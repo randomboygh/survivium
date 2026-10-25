@@ -302,11 +302,12 @@ func _test_ground() -> void:
 	# The bush garden lies east, beyond the area above.
 	gen.generate_area(Vector2i(3, -1), Vector2i(8, 2))
 	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
-	# The stream falls from terrace to terrace into its pool; the field and the grove
-	# grow what the plan sets, whatever the noises say.
-	_check(w.get_cell(61, g + 10, 24) == Mat.WATER and w.get_cell(62, g + 10, 24) == Mat.AIR
-		and w.get_cell(62, g + 6, 24) == Mat.WATER and w.get_cell(53, g + 10, 24) == Mat.STONE
-		and w.get_cell(90, g, 24) == Mat.WATER, "the stream of the test world comes down in falls")
+	# The stream falls from terrace to terrace into its pool (it lies east of the grove);
+	# the field and the grove grow what the plan sets, whatever the noises say.
+	gen.generate_area(Vector2i(8, 1), Vector2i(11, 2))
+	_check(w.get_cell(145, g + 10, 24) == Mat.WATER and w.get_cell(146, g + 10, 24) == Mat.AIR
+		and w.get_cell(146, g + 6, 24) == Mat.WATER and w.get_cell(137, g + 10, 24) == Mat.STONE
+		and w.get_cell(174, g, 24) == Mat.WATER, "the stream of the test world comes down in falls")
 	_check(Grass.plants_on(w, 110, g, 0).has(Plants.EARS) and Grass.plants_on(w, 105, g, 25).has(Plants.MOSS),
 		"the test world has its field of ears and the moss of its grove")
 	var grove := {}

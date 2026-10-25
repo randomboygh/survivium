@@ -422,7 +422,9 @@ func _fell() -> bool:
 			if w.trees.has(best) and w.log_col(best.x, best.y) != 0:
 				return _fail("a tree at %s does not fall to the axe" % best)
 			if await _pick_up(Vector3(best.x + 0.5, feet.y, best.y + 0.5) * CELL, 14) == 0:
-				return _fail("a felled tree at %s left nothing wanted" % best)
+				# A tree by the water drops its logs into it: the next one, then.
+				print("a felled %s at %s left nothing wanted" % [Trees.SPECIES[w.trees.get(best, 0)].id if w.trees.has(best) else "tree", best])
+				continue
 			return true
 		if not await _trip():
 			break
