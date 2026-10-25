@@ -63,6 +63,12 @@ const SHOTS := {
 	# the player, the drawn shadows of the slopes.
 	"torch-snow": {"time": 0.95, "season": 3, "moon": 0.0, "slopes": true, "morning_fog": 1, "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	# Two torches on a beach of sandy steps and in a canyon: drawn shadows only on the
+	# flat ground of the torch's level, none in squares on slopes or below.
+	"torch-beach": {"time": 0.95, "season": 1, "moon": 0.0, "place": "beach", "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	"torch-canyon": {"time": 0.95, "season": 1, "moon": 0.0, "place": "canyon", "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# A torch in each hand: a flame at each.
 	"torch-two": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
@@ -412,6 +418,10 @@ const SHOTS := {
 	# A torch at night among the steps: the drawn shadows of the slopes and cut corners.
 	"ground-steps-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-28, -24], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	"ground-stair-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [3, 45], "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
+	"ground-pyramid-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-8, 49], "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
 	"ground-steps-cut": {"time": 0.42, "season": 1, "at": [-22, -35]},
 	"ground-steps-cut-n": {"time": 0.42, "season": 1, "at": [-18, -35]},
 	"ground-pits": {"time": 0.42, "season": 1, "at": [0, -32]},

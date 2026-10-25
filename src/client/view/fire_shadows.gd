@@ -65,6 +65,11 @@ const MAP_ROWS := 8
 const MAP_LEVELS := 3
 ## Steps of the heights in a map a world unit (MAP_SCALE in fire_shadow.gdshader).
 const MAP_SCALE := 32.0
+## The bit of a map's column set where its ground is not flat on the light's level (a
+## slope, a cut corner, a step down, water): the square drawn at that level would
+## not lie on that ground, so no shadow is drawn there. The bits under it are the height.
+const NOT_FLAT := 128
+const HEIGHT_BITS := 127
 
 var game
 ## The fire shadows setting is on "drawn".
@@ -493,6 +498,7 @@ func _map_row(w, m: Dictionary, row: int) -> void:
 		var end := mini(x1, (x | WorldData.MASK) + 1)
 		while x < end:
 			var h := 0
+			var flat := c != null and level >= 0
 			if c != null and level >= 0:
 				var col := ((z & WorldData.MASK) << WorldData.SHIFT) | (x & WorldData.MASK)
 				# A sloping top or a cell with corners cut off throws none: a column
@@ -500,13 +506,15 @@ func _map_row(w, m: Dictionary, row: int) -> void:
 				var solid: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col] | c.sloped[col] | c.corner[col]) & all
 				var run := (solid >> level) & 7
 				h = 0 if run & 1 == 0 else (block if run & 2 == 0 else (2 * block if run & 4 == 0 else 3 * block))
+				if level > 0 and (solid >> (level - 1)) & 1 == 0 or (c.corner[col] >> level) & 1:
+					flat = false
 			# The thing the light stands on (a campfire) throws no shadow from it.
 			if h == 0 and not blockers.is_empty() \
 					and (absf(x + 0.5 - light.x) >= 1.0 or absf(z + 0.5 - light.y) >= 1.0):
 				var box: AABB = blockers.get(Vector3i(x, level, z), AABB())
 				if box.has_volume() and not _under_campfire(Vector3i(x, level, z)):
-					h = mini(roundi(box.end.y * CELL * MAP_SCALE), 255)
-			data[i] = h
+					h = mini(roundi(box.end.y * CELL * MAP_SCALE), HEIGHT_BITS)
+			data[i] = h | (0 if flat else NOT_FLAT)
 			i += 1
 			x += 1
 
@@ -597,7 +605,7 @@ func _blocked(l: Dictionary, p: Vector3) -> bool:
 		var o: Vector2i = cell - m.origin
 		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP:
 			continue
-		if data[o.y * MAP + o.x] / MAP_SCALE > lh * t:
+		if (data[o.y * MAP + o.x] & HEIGHT_BITS) / MAP_SCALE > lh * t:
 			return true
 	return false
 
