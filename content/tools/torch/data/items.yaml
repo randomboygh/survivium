@@ -6,7 +6,7 @@
 - id: torch
   title: Факел
   weight: 0.3
-  stack: 1
+  stack: 5
   model: torch
   icon: torch
   sprite: torch

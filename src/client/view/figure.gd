@@ -49,7 +49,8 @@ var _part := -1
 var _things := {}
 var _sheets := {}
 var _turns := {}
-## Where a light held burns in the frames of the row being put together, by column.
+## Where the lights held burn in the frames of the row being put together, by column:
+## an array of pixels, one a hand.
 var _row_spots := {}
 
 
@@ -288,8 +289,10 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 			part.flip_x()
 			strip.blit_rect(part, Rect2i(Vector2i.ZERO, size), r.position)
 	for col: int in _row_spots:
-		var spot: Vector2i = _row_spots[col]
-		target.spots[Vector2i(col, row)] = Vector2i(size.x - 1 - spot.x, spot.y) if swap else spot
+		var spots: Array = []
+		for spot: Vector2i in _row_spots[col]:
+			spots.append(Vector2i(size.x - 1 - spot.x, spot.y) if swap else spot)
+		target.spots[Vector2i(col, row)] = spots
 	_img.blit_rect(strip, whole, Vector2i(c0 * size.x, row * size.y))
 
 
@@ -349,4 +352,6 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 					_bright[key] = _brightest(pic)
 				var spot: Vector2i = at + _bright[key] - frame.position + Vector2i.ONE
 				if Rect2i(Vector2i.ZERO, size).has_point(spot):
-					_row_spots[col] = spot
+					if not _row_spots.has(col):
+						_row_spots[col] = []
+					_row_spots[col].append(spot)

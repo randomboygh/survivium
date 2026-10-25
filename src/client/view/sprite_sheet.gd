@@ -25,8 +25,8 @@ var animations: Dictionary
 var outline: bool
 var texture: ImageTexture
 var columns := 1
-## Where a light held burns in each frame it shows in: {Vector2i(column, row): its
-## pixel in the frame} (see Figure).
+## Where the lights held burn in each frame they show in: {Vector2i(column, row): their
+## pixels in the frame, one a hand} (see Figure).
 var spots := {}
 ## Images filled with OUTLINE, by size.
 static var _dark := {}

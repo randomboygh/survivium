@@ -493,8 +493,8 @@ func unwall_cells(w) -> void:
 	wall_cells.clear()
 
 
-func wall(w, at: Vector3i) -> void:
-	for z in range(at.z + 2, at.z + 4):
+func wall(w, at: Vector3i, north := false) -> void:
+	for z in (range(at.z - 2, at.z) if north else range(at.z + 2, at.z + 4)):
 		for x in range(at.x - 5, at.x + 6):
 			for y in range(at.y, at.y + 3):
 				wall_cells.append([Vector3i(x, y, z), w.get_cell(x, y, z), w.is_natural(x, y, z)])
@@ -528,7 +528,8 @@ func trench(w, at: Vector3i) -> Vector3:
 
 func wall_changed(at: Vector3i) -> void:
 	for x in range(at.x - 8, at.x + 9, 8):
-		main.chunks.on_cell_changed(Vector3i(x, at.y, at.z + 2))
+		for dz in [-2, 2]:
+			main.chunks.on_cell_changed(Vector3i(x, at.y, at.z + dz))
 
 
 func lab(w, at: Vector3i) -> void:

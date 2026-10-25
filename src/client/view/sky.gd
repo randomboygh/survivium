@@ -173,7 +173,7 @@ func _update_torch(delta: float) -> void:
 	dark *= 1.0 - game.effects.torch_off(player.position)
 	var held: String = game.character.light_held() if game.character != null else ""
 	player.torch_lit = held != ""
-	game.effects.hold_flame(player.flame_at, player.torch_lit)
+	game.effects.hold_flames(player.flames_at, player.torch_lit)
 	var shadows: bool = player.torch_lit and dark > 0.0 and game.effects.shadows \
 			and not game.effects.player_only and not game.effects.fire_shadowing
 	player.torch.shadow_enabled = shadows

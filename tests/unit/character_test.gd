@@ -148,6 +148,15 @@ func _test_torch() -> void:
 	for i in d:
 		ch.update(1.0)
 	_check(ch.inventory.count("tools:torch") == 1, "burned out, it is gone")
+	var bag := Inventory.new(4)
+	bag.add("tools:torch", 5)
+	_check(bag.slots[0] == ["tools:torch", 5], "torches stack by five")
+	bag.wear_tool("tools:torch", d)
+	_check(bag.slots[0] == ["tools:torch", 4] and bag.slots[1] == ["tools:torch", 1, 1], "a burning one lies apart from the new")
+	bag.wear_tool("tools:torch", d)
+	_check(bag.worn(1) == 2 and bag.slots[0][1] == 4, "and keeps burning first")
+	bag.add("tools:torch", 1)
+	_check(bag.slots[0][1] == 5, "a new one joins the new")
 
 
 func _test_vitals() -> void:

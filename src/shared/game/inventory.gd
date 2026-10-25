@@ -226,24 +226,41 @@ static func _worn(s: Array) -> int:
 	return s[2] if s.size() > 2 else 0
 
 
-## One swing of tool `id` that lasts `durability` swings: the first such tool in the
-## bag wears (past the first `skip` of them); true when it broke and is gone.
+## One swing of tool `id` that lasts `durability` swings: the most worn such tool in
+## the bag wears (past the first `skip` of them); true when it broke and is gone. One
+## worn out of a stack (torches stack) goes to a slot of its own, so the worn ones lie
+## apart from the new; with no slot free the stack keeps the wear of the one in use.
 func wear_tool(id: String, durability: int, skip := 0) -> bool:
 	if durability <= 0:
 		return false
+	var at := []
 	for i in slots.size():
-		var s = slots[i]
-		if s != null and s[0] == id:
-			if skip > 0:
-				skip -= 1
-				continue
-			var w := _worn(s) + 1
+		if slots[i] != null and slots[i][0] == id:
+			at.append(i)
+	at.sort_custom(func(a: int, b: int) -> bool:
+		return _worn(slots[a]) > _worn(slots[b]) or _worn(slots[a]) == _worn(slots[b]) and a < b)
+	for i: int in at:
+		var s: Array = slots[i]
+		if skip >= s[1]:
+			skip -= s[1]
+			continue
+		var w := _worn(s) + 1
+		var free := slots.find(null)
+		if s[1] > 1 and free >= 0:
+			slots[i] = [id, s[1] - 1]
 			if w >= durability:
-				take_slot(i, 1)
+				changed.emit()
 				return true
-			slots[i] = [s[0], s[1], w]
-			changed.emit()
-			return false
+			slots[free] = [id, 1, w]
+		elif w >= durability:
+			take_slot(i, 1)
+			if slots[i] != null:
+				slots[i] = [id, slots[i][1]]
+			return true
+		else:
+			slots[i] = [id, s[1], w]
+		changed.emit()
+		return false
 	return false
 
 
