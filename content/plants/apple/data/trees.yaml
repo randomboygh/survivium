@@ -4,6 +4,8 @@
 # seed — яблоко: остаётся от срубленной яблони и собирается руками осенью (seeds).
 - id: apple
   title: Яблоня
+  shape: round
+  leaf: scales
   leaves: broad
   trunk: [3, 4]
   girth: [7, 10]

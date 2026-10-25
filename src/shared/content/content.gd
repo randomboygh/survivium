@@ -124,6 +124,8 @@ const SCHEMAS := {
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
+		"shape": {"type": "enum", "values": ["", "round", "lobed", "column", "weeping", "umbrella", "cone"], "default": ""},
+		"leaf": {"type": "enum", "values": ["", "pointed", "curly", "scales", "needles"], "default": ""},
 		"trunk": {"type": "list", "of": "int", "len": 2, "min": 0},
 		"girth": {"type": "list", "of": "int", "len": 2, "min": 2, "default": [6, 6]},
 		"taper": {"type": "float", "min": 0.0, "default": 0.0},

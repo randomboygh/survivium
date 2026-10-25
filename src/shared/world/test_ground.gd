@@ -18,9 +18,9 @@ extends "res://src/shared/world/world_gen.gd"
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   plants     x -8..,     z 14..35    every loaded plant alone in a pen of its own walled with
+##   plants     x -7..,     z 13..32    every loaded plant alone in a pen of its own walled with
 ##                                      a cell of brick, west to east in load order: the trees
-##                                      (pens of 9 cells, GARDEN_TREE), the bushes (5 cells) south
+##                                      (pens of 7 cells, GARDEN_TREE), the bushes (5 cells) south
 ##                                      of them, the ground plants (4 cells) south of those,
 ##                                      nothing else growing in the pens
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
@@ -59,9 +59,9 @@ const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Л�
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 ## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
 ## its inner side of cells plus a wall (a row's stride), the walls a cell high.
-const GARDEN_X := -8
-const GARDEN_Z := 14
-const GARDEN_TREE := 9
+const GARDEN_X := -7
+const GARDEN_Z := 13
+const GARDEN_TREE := 7
 const GARDEN_BUSH := 5
 const GARDEN_PLANT := 4
 ## The biome plots: BIOME_PLOT cells square, BIOME_GAP cells of meadow between them,

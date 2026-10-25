@@ -165,6 +165,8 @@ func _run() -> void:
 		if shot.get("orchard", false):
 			# South of the spawn, within the chunks loaded there (the grove is north, the clearing east).
 			places.orchard(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, 48))
+			# A long row is shot in parts: the player steps `pan` cells east along it.
+			main.player.position.x += shot.get("pan", 0) * CELL
 		if shot.get("clearing", false):
 			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false))
 			main.player.position += shot.get("offset", Vector3.ZERO)

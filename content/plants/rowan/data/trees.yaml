@@ -3,6 +3,8 @@
 # рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
 - id: rowan
   title: Рябина
+  shape: lobed
+  leaf: pointed
   leaves: broad
   trunk: [4, 6]
   girth: [5, 8]

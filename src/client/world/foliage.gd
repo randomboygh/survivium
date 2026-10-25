@@ -43,7 +43,7 @@ const EVERGREEN := 0.6
 ## Rows of the deep cards are offset by this, so the shader can swap them for bare
 ## branches in winter, and draw a tree's ones a little behind the rest from whichever
 ## side the camera looks (leaves.gdshader).
-const DEEP_ROW := 8
+const DEEP_ROW := 16
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := Trees.TREE_REACH
 ## How far the normals of a spruce's cards lean up on the top of a tier, and down under
@@ -253,11 +253,13 @@ static func _column(job: Job, x: int, z: int) -> void:
 	# others one disc per point.
 	var grown: bool = w.trees.has(tree[0])
 	var looks: Dictionary = Trees.SPECIES[tree[1]]
-	var needles: bool = looks.leaves == Trees.NEEDLES
+	# A cone of tiers (spruce) is built round its trunk; other crowns, needles or not,
+	# round the middle of their leaves.
+	var needles: bool = looks.tiers
 	var tints: Array = looks.tints
 	var base: Color = tints[tree[2] % tints.size()]
-	base.a = EVERGREEN if needles else (GOES_BARE if _goes_bare(tree[2], tree[1]) else KEEPS_LEAVES)
-	var first_row := PixelTextures.NEEDLE_ROW if needles else 0
+	base.a = EVERGREEN if looks.leaves == Trees.NEEDLES and looks.bare == 0.0 else (GOES_BARE if _goes_bare(tree[2], tree[1]) else KEEPS_LEAVES)
+	var first_row: int = PixelTextures.LEAF_ROWS[looks.leaf]
 	var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
 	if needles and tree[0] == Vector2i(x, z):
 		# Small sprigs in front of a spruce's trunk where the tiers are around
@@ -445,7 +447,7 @@ static func _trunks_near(w, x0: int, z0: int, x1: int, z1: int) -> Array:
 static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -> int:
 	var at: Vector2i = t[0]
 	var looks: Dictionary = Trees.SPECIES[t[1]]
-	var kind := EVERGREEN if looks.leaves == Trees.NEEDLES else (GOES_BARE if _goes_bare(t[2], t[1]) else KEEPS_LEAVES)
+	var kind := EVERGREEN if looks.leaves == Trees.NEEDLES and looks.bare == 0.0 else (GOES_BARE if _goes_bare(t[2], t[1]) else KEEPS_LEAVES)
 	# Per level: min x, max x, min z, max z of the points.
 	var levels := {}
 	for dz in range(-TREE_REACH, TREE_REACH + 1, 2):
@@ -469,7 +471,7 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 	# falls from the crown where it shows, the discs lowered to start CONIFER_BARE cells
 	# above the foot.
 	var lower := 0
-	if kind == EVERGREEN and not levels.is_empty():
+	if looks.tiers and not levels.is_empty():
 		var low: int = levels.keys().min()
 		var foot := low
 		while foot > 0 and w.get_cell(at.x, foot - 1, at.y) == Mat.LOG:

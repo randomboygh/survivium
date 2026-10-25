@@ -8,7 +8,7 @@
 // Single leaves differ a little in tone and their upper edges catch the light, so they
 // show one by one the way grass blades do.
 // INSTANCE_CUSTOM: xyz = normal of the crown at the card, w = row of the clump texture
-// (whole part, plus 8 for the deep layer of a crown) + sway phase (fraction), negative
+// (whole part, plus 16 for the deep layer of a crown) + sway phase (fraction), negative
 // for a sprig drawn in front of a spruce's trunk.
 // COLOR: tint of the tree; alpha what it does in winter (see Foliage): 1 keeps dry
 // leaves under snow, 0.8 goes bare, 0.6 is evergreen, 0.1, 0.2.. a bush of type 0, 1..
@@ -38,6 +38,9 @@ const float SEE_FRONT = 0.5;
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
 uniform int branch_row = -1;
+// How far the half light and the shade of the crowns lean cool (toward blue and violet),
+// as pixel artists shift the hue of shadows; 0 keeps them grey.
+uniform float hue_shift = 1.0;
 // Colours of ripe berries by bush type (see Bushes), black for none.
 uniform vec3 berry_colors[4];
 // Share of the berries ripe, by season.
@@ -59,7 +62,7 @@ void vertex() {
 	if (custom.w < 0.0) {
 		away = -view_up * SPRIG_AHEAD;
 		custom.w = -custom.w;
-	} else if (tint.a >= 0.5 && custom.w >= 8.0) {
+	} else if (tint.a >= 0.5 && custom.w >= 16.0) {
 		away = view_up * DEEP_BEHIND;
 	}
 	center.xz += away;
@@ -74,8 +77,8 @@ void fragment() {
 	float phase = fract(custom.w);
 	float variant = floor(phase * 4.0);
 	float row = floor(custom.w);
-	bool deep = row >= 7.5;
-	row -= deep ? 8.0 : 0.0;
+	bool deep = row >= 15.5;
+	row -= deep ? 16.0 : 0.0;
 	bool evergreen = tint.a > 0.5 && tint.a < 0.7;
 	float amount = leaves_left(tint.a);
 	// A bare tree's deep layer shows its branches.
@@ -170,7 +173,9 @@ void light() {
 		float ndl = dot(NORMAL, sun_view);
 		float shadow = min(step(0.5, ATTENUATION), step(0.99, clouds));
 		float step_n = (ndl > 0.6 ? 3.0 : (ndl > 0.38 ? 2.0 : (ndl > 0.08 ? 1.0 : 0.0))) - (1.0 - shadow);
-		vec3 band = step_n > 2.5 ? vec3(1.55, 1.45, 0.7) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? vec3(0.7) : vec3(0.32)));
+		vec3 half_light = mix(vec3(0.7), vec3(0.6, 0.7, 0.82), hue_shift);
+		vec3 shade = mix(vec3(0.32), vec3(0.25, 0.27, 0.45), hue_shift);
+		vec3 band = step_n > 2.5 ? mix(vec3(1.55, 1.45, 0.7), vec3(1.6, 1.5, 0.62), hue_shift) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? half_light : shade));
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
 		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz));

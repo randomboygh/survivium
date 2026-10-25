@@ -192,6 +192,14 @@ const SHOTS := {
 	# in autumn, when the berries and the fruit are ripe.
 	"orchard": {"time": 0.42, "season": 1, "orchard": true},
 	"orchard-autumn": {"time": 0.42, "season": 2, "orchard": true},
+	"orchard-winter": {"time": 0.42, "season": 3, "orchard": true},
+	# The orchard's west and east halves, when the species are too many for one shot.
+	"orchard-west": {"time": 0.42, "season": 1, "orchard": true, "pan": -33},
+	"orchard-east": {"time": 0.42, "season": 1, "orchard": true, "pan": 33},
+	"orchard-west-autumn": {"time": 0.42, "season": 2, "orchard": true, "pan": -33},
+	"orchard-east-autumn": {"time": 0.42, "season": 2, "orchard": true, "pan": 33},
+	"orchard-west-winter": {"time": 0.42, "season": 3, "orchard": true, "pan": -33},
+	"orchard-east-winter": {"time": 0.42, "season": 3, "orchard": true, "pan": 33},
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
 	"felled": {"time": 0.42, "season": 1, "clearing": true, "fell": true},
@@ -368,6 +376,11 @@ const SHOTS := {
 	# The plant garden south-east of the spawn: trees, bushes and ground plants in pens.
 	"ground-plants-west": {"time": 0.42, "season": 1, "at": [12, 26]},
 	"ground-plants-east": {"time": 0.42, "season": 1, "at": [44, 26]},
+	# The garden's trees up close, west to east, and in autumn and winter.
+	"ground-garden-1": {"time": 0.42, "season": 1, "at": [22, 6]},
+	"ground-garden-2": {"time": 0.42, "season": 1, "at": [60, 6]},
+	"ground-garden-autumn": {"time": 0.42, "season": 2, "at": [60, 6]},
+	"ground-garden-winter": {"time": 0.42, "season": 3, "at": [60, 6]},
 	# The biome plots south of the relief ground, five in a row from x -70 (TestGround.BIOME_*):
 	# the first row's birch grove and desert, forest and meadow, pine wood; the second
 	# row's steppe and taiga, tundra, swamp and beach.
