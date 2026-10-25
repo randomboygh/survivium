@@ -655,7 +655,8 @@ func is_solid(x: int, y: int, z: int) -> bool:
 
 ## True when a walking body cannot be in this cell: solid, frozen water, a thing
 ## standing in it (see blockers) or where no chunk is kept. Open water is waded and
-## swum through.
+## swum through, a crown's leaves walked through (only the trunk stops a body: a crown
+## hangs its cells lower than its drawn leaves show, and a forest would be a wall).
 func blocks_body(x: int, y: int, z: int) -> bool:
 	if chunk_at(x, z) == null:
 		return true
@@ -668,7 +669,7 @@ func _cell_blocks(x: int, y: int, z: int) -> bool:
 	var m := get_cell(x, y, z)
 	if m == Mat.WATER:
 		return water_frozen
-	return Mat.is_solid(m)
+	return m != Mat.LEAVES and Mat.is_solid(m)
 
 
 ## True when a body taking the part ax..bx, az..bz (0..1) of the cell at (x, y, z) is
@@ -739,8 +740,8 @@ func blocker_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: f
 
 
 ## True when the part ax..bx, az..bz (0..1) of the cell at (x, y, z) stands on its top:
-## solid there, not only its cut corner, ground filling its corner, ice, or a thing
-## standing there (see blockers).
+## solid there (not leaves, which a body goes through), not only its cut corner, ground
+## filling its corner, ice, or a thing standing there (see blockers).
 func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if _ground(x, y, z):
 		var cuts := corner_cuts(x, y, z)
@@ -748,7 +749,8 @@ func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 			if cuts & (1 << k) and in_corner(k, ax, bx, az, bz):
 				return false
 		return true
-	return is_solid(x, y, z) or water_frozen and get_cell(x, y, z) == Mat.WATER \
+	var m := get_cell(x, y, z)
+	return m != Mat.LEAVES and Mat.is_solid(m) or water_frozen and m == Mat.WATER \
 		or _fill_touched(x, y, z, ax, bx, az, bz) or not blockers.is_empty() and blocker_part(x, y, z, ax, bx, az, bz) > 0.0
 
 
