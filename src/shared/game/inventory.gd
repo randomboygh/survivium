@@ -227,13 +227,16 @@ static func _worn(s: Array) -> int:
 
 
 ## One swing of tool `id` that lasts `durability` swings: the first such tool in the
-## bag wears; true when it broke and is gone.
-func wear_tool(id: String, durability: int) -> bool:
+## bag wears (past the first `skip` of them); true when it broke and is gone.
+func wear_tool(id: String, durability: int, skip := 0) -> bool:
 	if durability <= 0:
 		return false
 	for i in slots.size():
 		var s = slots[i]
 		if s != null and s[0] == id:
+			if skip > 0:
+				skip -= 1
+				continue
 			var w := _worn(s) + 1
 			if w >= durability:
 				take_slot(i, 1)

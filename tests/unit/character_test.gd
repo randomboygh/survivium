@@ -128,6 +128,8 @@ func _test_torch() -> void:
 	_check(Items.get_item("tools:torch").light > 0.0 and d > 0, "a torch gives light and burns for a while")
 	ch.give("tools:torch", 1)
 	_check(ch.light_held() == "", "a torch in the bag gives no light")
+	ch.hands = ["tools:torch", "tools:torch"]
+	_check(ch.lights_held().size() == 1, "one torch in both hands lights once")
 	ch.hands = ["tools:torch", ""]
 	_check(ch.light_held() == "tools:torch", "a torch in either hand does")
 	for i in 30:
@@ -137,9 +139,15 @@ func _test_torch() -> void:
 	ch.update(5.0)
 	_check(ch.light_held() == "" and ch.inventory.worn(0) == 15, "in water it goes out and does not burn")
 	ch.body.swimming = false
+	ch.give("tools:torch", 1)
+	ch.hands = ["tools:torch", "tools:torch"]
+	ch.update(1.0)
+	_check(ch.lights_held().size() == 2 and ch.inventory.worn(0) == 16 and ch.inventory.worn(1) == 1,
+		"two torches, one in each hand, both burn")
+	ch.hands = ["tools:torch", ""]
 	for i in d:
 		ch.update(1.0)
-	_check(ch.inventory.count("tools:torch") == 0, "burned out, it is gone")
+	_check(ch.inventory.count("tools:torch") == 1, "burned out, it is gone")
 
 
 func _test_vitals() -> void:

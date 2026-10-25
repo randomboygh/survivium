@@ -24,8 +24,10 @@ const RAYS_BRIGHTNESS := 0.45
 ## The light round the player with a torch in hand, and without one: a faint glow
 ## that reaches GLOW_RANGE world units, enough to see the cells beside them.
 const TORCH_ENERGY := 1.3
-const GLOW_ENERGY := 0.45
-const GLOW_RANGE := 2.0
+const GLOW_ENERGY := 0.3
+const GLOW_RANGE := 1.5
+## Two torches, one in each hand, light this much farther than one.
+const TWO_TORCHES := 1.4
 ## How far, in degrees, the sun or the moon goes past the border of its eighth of the
 ## sky before the lit edges of the cells turn to the next one (see _light_side).
 const LIGHT_SIDE_MARGIN := 7.5
@@ -162,8 +164,8 @@ func _update_light(delta: float) -> void:
 
 
 ## The light round the player in the dark (Player.torch): a torch held (an item with
-## `light`, see Character.light_held) lights as far as its `light` and flickers, and
-## casts shadows; without one only a faint glow of GLOW_RANGE shows the player and the
+## `light`, see Character.light_held) lights as far as its `light` (two of them
+## TWO_TORCHES farther) and flickers, and casts shadows; without one only a faint glow of GLOW_RANGE shows the player and the
 ## cells beside them.
 func _update_torch(delta: float) -> void:
 	var player = game.player
@@ -177,7 +179,8 @@ func _update_torch(delta: float) -> void:
 	player.torch.shadow_enabled = shadows
 	var energy := GLOW_ENERGY
 	if player.torch_lit:
-		player.torch.omni_range = Items.get_item(held).light
+		var two: bool = game.character.lights_held().size() > 1
+		player.torch.omni_range = Items.get_item(held).light * (TWO_TORCHES if two else 1.0)
 		_flicker_clock -= delta
 		if _flicker_clock <= 0.0:
 			_flicker_clock = 0.09
