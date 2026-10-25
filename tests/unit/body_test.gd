@@ -37,6 +37,11 @@ func _test_walking_rules() -> void:
 	_check(w.blocks_body(1, 0, 1), "ice cannot be entered")
 	_check(w.surface_y(1, 1) == 1, "ice is a surface")
 	_check(w.blocks_body(-1, 1, 1), "nothing walks where no chunk is kept")
+	if Mat.LEAVES >= 0:
+		w.set_cell(2, 1, 2, Mat.LEAVES)
+		_check(not w.blocks_body(2, 1, 2) and not w.blocks_part(2, 1, 2, 0.2, 0.6, 0.2, 0.6),
+			"a crown's leaves are walked through")
+		_check(not w.ground_part(2, 1, 2, 0.0, 1.0, 0.0, 1.0), "nothing stands on a crown's leaves")
 
 
 ## A pool along x on a stone floor: water in levels 3..4 (open surface at 4.5) over
