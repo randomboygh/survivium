@@ -70,7 +70,10 @@ func _test_save() -> void:
 	for i in range(area.size() - 1, -1, -1):
 		_ensure_stage(b, area[i], WorldGen.SHAPED)
 	_check(_same_cells(b.world, w, area) and _same_view(b, b.world, w, area), "changed chunks come back from the save")
-	_check(b.world.trees == w.trees and b.world.bushes == w.bushes and b.world.drops == w.drops and b.world.tree_twigs == w.tree_twigs
+	# Only within the area: a chunk that comes back from the save is SHAPED at once, so
+	# the test plants nothing beyond it, while the first run planted the ring around.
+	_check(_within(b.world.trees, area) == _within(w.trees, area) and _within(b.world.bushes, area) == _within(w.bushes, area)
+		and _within(b.world.drops, area, true) == _within(w.drops, area, true) and _within(b.world.tree_twigs, area) == _within(w.tree_twigs, area)
 		and b.world.turf_at(lawn) == "", "with their trees, bushes, what was gathered and cut and what lies on the ground")
 	_check(b.world.unsaved.is_empty() and b.world.chunks[home].edited, "and stay kept without a new save")
 	# A neighbour dropped and made again regrows the crowns of the saved chunk's trees.
@@ -87,3 +90,14 @@ func _test_save() -> void:
 	_check(WorldStore.world_dir(42, {"size": 2, "water": 0}) == WorldStore.root + "/42-20111", "a world's directory names its seed and settings")
 	store.erase()
 	_check(not DirAccess.dir_exists_absolute("user://test_saves/save"), "a save is erased")
+
+
+## The entries of `d` (keyed by a column or a cell, or by a chunk key when `by_chunk`)
+## that lie in the chunks `area`.
+func _within(d: Dictionary, area: Array, by_chunk := false) -> Dictionary:
+	var out := {}
+	for k in d:
+		var key: Vector2i = k if by_chunk else WorldData.chunk_key(k.x, k.z if k is Vector3i else k.y)
+		if key in area:
+			out[k] = d[k]
+	return out

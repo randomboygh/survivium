@@ -19,5 +19,4 @@
   groves: 0.2
   bushes: {plants:rosehip: 0.4, plants:currant: 0.3, plants:shrub: 0.3}
   bush_sparsity: 150
-  spawn: true
   color: "#8fb45a"

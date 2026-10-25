@@ -21,6 +21,13 @@ func _test_generation() -> void:
 	for key: Vector2i in keys:
 		for m in a.world.chunks[key].cells:
 			counts[m] = counts.get(m, 0) + 1
+	# Water may lie beyond the area round the spawn: the chunk of the nearest lake then.
+	if counts.get(Mat.WATER, 0) == 0:
+		var lake: Vector2i = a.gen.find_place("lake", Vector2i(a.gen.spawn_guess.x, a.gen.spawn_guess.z))
+		var key := WorldData.chunk_key(lake.x, lake.y)
+		_ensure_stage(a.gen, key, WorldGen.TERRAIN)
+		for m in a.world.chunks[key].cells:
+			counts[m] = counts.get(m, 0) + 1
 	for m in [Mat.GRASS, Mat.STONE, Mat.WATER, Mat.DIRT]:
 		_check(counts.get(m, 0) > 0, "world contains %s" % Mat.NAMES[m])
 	var w: WorldData = a.world
