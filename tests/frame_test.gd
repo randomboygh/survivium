@@ -219,11 +219,20 @@ func _run() -> void:
 	var inv = main.character.inventory
 	main.settings.give_tools()
 	inv.add("resources:stone", 9)
+	# The cave found depends on the chunks loaded by then, so the column two cells east
+	# may be its wall (the floor found on it is then above the cut): the first column
+	# two cells away whose floor takes a block.
 	var spot: Vector3i = c.feet() + Vector3i(2, 0, 0)
-	while spot.y < w.size_y - 1 and w.is_solid(spot.x, spot.y, spot.z):
-		spot.y += 1
-	while spot.y > 1 and not w.is_solid(spot.x, spot.y - 1, spot.z):
-		spot.y -= 1
+	for d: Vector3i in [Vector3i(2, 0, 0), Vector3i(-2, 0, 0), Vector3i(0, 0, 2), Vector3i(0, 0, -2),
+			Vector3i(2, 0, 2), Vector3i(-2, 0, 2), Vector3i(2, 0, -2), Vector3i(-2, 0, -2)]:
+		var s: Vector3i = c.feet() + d
+		while s.y < w.size_y - 1 and w.is_solid(s.x, s.y, s.z):
+			s.y += 1
+		while s.y > 1 and not w.is_solid(s.x, s.y - 1, s.z):
+			s.y -= 1
+		if main.actions.can_place(main.character, s, main.chunks.cut_level):
+			spot = s
+			break
 	var slot0 = inv.slots[0]
 	c.select_slot(0)
 	_check(slot0 != null and c.held() == slot0[0], "a hotbar slot is the bag's first row")
@@ -232,7 +241,8 @@ func _run() -> void:
 	c.brush = 2
 	var stone_before: int = inv.count("resources:stone")
 	var placed: int = c.place_at(spot, Vector3i.UP)
-	_check(placed > 0 and inv.count("resources:stone") == stone_before - placed, "the brush places blocks from the bag")
+	_check(placed > 0 and inv.count("resources:stone") == stone_before - placed,
+		"the brush places blocks from the bag (at %s, feet %s, cut %d)" % [spot, c.feet(), main.chunks.cut_level])
 	var laid: Array[Vector3i] = []
 	for cell in Tools.brush_cells(spot, Vector3i.UP, 3):
 		if w.get_cell(cell.x, cell.y, cell.z) == Mat.STONE:
