@@ -1,0 +1,16 @@
+# Кто живёт в бору: патчи записям «Животных» (biomes+ дописывает биом к их списку).
+- id: animals:squirrel
+  patch: true
+  biomes+: [biomes:pine_wood]
+- id: animals:owl
+  patch: true
+  biomes+: [biomes:pine_wood]
+- id: animals:wolf
+  patch: true
+  biomes+: [biomes:pine_wood]
+- id: animals:bear
+  patch: true
+  biomes+: [biomes:pine_wood]
+- id: animals:boar
+  patch: true
+  biomes+: [biomes:pine_wood]

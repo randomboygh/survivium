@@ -220,8 +220,10 @@ func _test_mods() -> void:
 	Mods.activate(before)
 	var forest := Biomes.named("forest")
 	var taiga := Biomes.named("taiga")
-	_check(Biomes.pick(0.5, 0.5) == Biomes.named("meadow") and Biomes.pick(0.5, 0.8) == forest and Biomes.pick(0.3, 0.5) == taiga
-		and Biomes.pick(0.1, 0.9) == Biomes.named("tundra") and Biomes.pick(0.8, 0.3) == Biomes.named("desert") and Biomes.SWAMP >= 0 and Biomes.ROCK >= 0,
+	_check(Biomes.pick(0.5, 0.5) == Biomes.named("meadow") and Biomes.pick(0.5, 0.8) == forest and Biomes.pick(0.25, 0.6) == taiga
+		and Biomes.pick(0.1, 0.9) == Biomes.named("tundra") and Biomes.pick(0.8, 0.3) == Biomes.named("desert") and Biomes.SWAMP >= 0 and Biomes.ROCK >= 0
+		and Biomes.pick(0.4, 0.4) == Biomes.named("pine_wood") and Biomes.pick(0.45, 0.6) == Biomes.named("birch_grove")
+		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe"),
 		"a column's climate picks the biome whose windows hold it, the most specific first")
 	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
 		and Biomes.tree(forest, 0.99) == Trees.index("plants:spruce") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
