@@ -35,6 +35,7 @@ const SOUNDS := {
 	"swim": ["sounds/player", 3, false],
 	"jump": ["sounds/player", 2, false],
 	"land": ["sounds/player", 2, false],
+	"land_snow": ["sounds/player", 2, false],
 	"splash": ["sounds/player", 2, false],
 	# Work.
 	"chop": ["plants/wood", 3, false],
@@ -282,10 +283,14 @@ func _step_sand(_v: int) -> PackedFloat32Array:
 	return Synth.normalize(Synth.mix(_step(260.0, 2000.0, 0.2, 0.2, 80.0), shh, 0.6), 0.5)
 
 
+## A step in snow: a soft, muffled crump of the snow pressed down, low and slow to rise,
+## with only a faint dull squeak of the crystals inside it, nothing that clicks.
 func _step_snow(_v: int) -> PackedFloat32Array:
-	var crunch := Synth.grains(0.22, 600.0, 0.006, rng.randf_range(1800.0, 2600.0), 1.0, rng, 1.2)
-	crunch = Synth.shape(crunch, func(t: float, l: float) -> float: return sin(PI * minf(t / l * 1.3, 1.0)))
-	return Synth.normalize(Synth.mix(_step(250.0, 1500.0, 0.1, 0.22, 40.0), Synth.normalize(crunch, 1.0), 0.9), 0.55)
+	var b := _soft_step(0.3, 110.0, 250.0, rng.randf_range(900.0, 1200.0), 0.7, 1000.0, 0.12)
+	var squeak := Synth.grains(0.3, 160.0, 0.012, rng.randf_range(1100.0, 1400.0), 1.5, rng, 2.0)
+	squeak = Synth.shape(Synth.normalize(Synth.lowpass(squeak, 1600.0), 1.0), func(t: float, l: float) -> float:
+		return smoothstep(0.03, l * 0.35, t) * smoothstep(l, l * 0.45, t))
+	return Synth.normalize(Synth.lowpass(Synth.mix(b, squeak, 0.12), 1300.0), 0.35)
 
 
 func _step_wood(_v: int) -> PackedFloat32Array:
@@ -336,6 +341,15 @@ func _jump(_v: int) -> PackedFloat32Array:
 func _land(_v: int) -> PackedFloat32Array:
 	var thud := Synth.env(Synth.lowpass(Synth.white(0.2, rng), 180.0), 0.003, 0.05)
 	return Synth.normalize(Synth.mix(Synth.normalize(thud, 1.0), _step_dirt(0), 0.6), 0.7)
+
+
+## A landing in snow: a deep, soft whump that swells rather than knocks, and the snow
+## settling round the feet a moment after.
+func _land_snow(_v: int) -> PackedFloat32Array:
+	var whump := Synth.lowpass(Synth.lowpass(Synth.white(0.4, rng), 120.0), 120.0)
+	whump = Synth.shape(Synth.normalize(whump, 1.0), func(t: float, _l: float) -> float: return smoothstep(0.0, 0.03, t) * exp(-t / 0.08))
+	var settle := _step_snow(0)
+	return Synth.normalize(Synth.lowpass(Synth.mix(whump, settle, 0.7, 0.02), 1100.0), 0.55)
 
 
 func _splash(_v: int) -> PackedFloat32Array:

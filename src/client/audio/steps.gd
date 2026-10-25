@@ -1,7 +1,7 @@
 extends RefCounted
 ## What the player's body sounds like: a step every stride on what the feet stand on
 ## (the material's `step`, snow when it lies on the open ground, a splash in shallow
-## water), strokes when swimming, a jump, a landing as hard as the fall, a splash into
+## water), strokes when swimming, a jump, a landing as hard as the fall (softer in snow), a splash into
 ## deep water. `game` is the Main node; Sound runs it each frame.
 
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -50,7 +50,8 @@ func update(delta: float) -> void:
 	var in_water: bool = body.water_depth > 0.0
 	if body.on_ground and not _was_on_ground and _fall > LAND_SPEED:
 		var hard := clampf((_fall - LAND_SPEED) / (Body.MAX_FALL - LAND_SPEED), 0.0, 1.0)
-		sound.play("splash" if in_water else "land", p, 0.5 + 0.5 * hard)
+		var id := "splash" if in_water else "land_snow" if _underfoot(p, false) == "step_snow" else "land"
+		sound.play(id, p, 0.5 + 0.5 * hard)
 	elif in_water and not _was_in_water and _fall > LAND_SPEED:
 		sound.play("splash", p)
 	_fall = -body.velocity_y if not body.on_ground else 0.0
