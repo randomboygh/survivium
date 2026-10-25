@@ -79,8 +79,8 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true) -> Di
 ## Puts back the things of a save (see to_list).
 func from_list(list: Array) -> void:
 	for d in list:
-		if d is Dictionary and Items.has(d.get("item", "")) and d.get("cell") is Array and d.cell.size() == 3:
-			put(Items.get_item(d.item).id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
+		if d is Dictionary and Items.has(Items.canon(d.get("item", ""))) and d.get("cell") is Array and d.cell.size() == 3:
+			put(Items.get_item(Items.canon(d.item)).id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false))
 
 
@@ -230,12 +230,14 @@ func put_out(e: Dictionary) -> void:
 	world.note_edit(e.cell.x, e.cell.z)
 
 
-## `who` lights campfire `e` again for a branch from the bag; true if it burns.
+## `who` lights campfire `e` again for one piece of fuel from the bag (an item with
+## `fuel`, a branch); true if it burns.
 func light(who, e: Dictionary) -> bool:
 	if not is_fire(e) or e.lit:
 		return e.lit
-	if who.inventory.remove(Items.BRANCH, 1) < 1:
-		who.nag("light", "Чтобы разжечь, нужна ветка")
+	var fuel := Items.fuel_in(who.inventory)
+	if fuel == "" or who.inventory.remove(fuel, 1) < 1:
+		who.nag("light", "Чтобы разжечь, нужна ветка или другое топливо")
 		return false
 	e.lit = true
 	lit_changed.emit(e)

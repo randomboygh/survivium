@@ -218,7 +218,7 @@ func _run() -> void:
 	var c = main.controls
 	var inv = main.character.inventory
 	main.settings.give_tools()
-	inv.add("core:stone", 9)
+	inv.add("resources:stone", 9)
 	var spot: Vector3i = c.feet() + Vector3i(2, 0, 0)
 	while spot.y < w.size_y - 1 and w.is_solid(spot.x, spot.y, spot.z):
 		spot.y += 1
@@ -228,11 +228,11 @@ func _run() -> void:
 	c.select_slot(0)
 	_check(slot0 != null and c.held() == slot0[0], "a hotbar slot is the bag's first row")
 	await _portrait_hotbar()
-	c.put_in_hand("core:stone")
+	c.put_in_hand("resources:stone")
 	c.brush = 2
-	var stone_before: int = inv.count("core:stone")
+	var stone_before: int = inv.count("resources:stone")
 	var placed: int = c.place_at(spot, Vector3i.UP)
-	_check(placed > 0 and inv.count("core:stone") == stone_before - placed, "the brush places blocks from the bag")
+	_check(placed > 0 and inv.count("resources:stone") == stone_before - placed, "the brush places blocks from the bag")
 	var laid: Array[Vector3i] = []
 	for cell in Tools.brush_cells(spot, Vector3i.UP, 3):
 		if w.get_cell(cell.x, cell.y, cell.z) == Mat.STONE:
@@ -252,7 +252,7 @@ func _run() -> void:
 	for cell in laid:
 		all_dug = all_dug and w.get_cell(cell.x, cell.y, cell.z) == Mat.AIR
 	_check(all_dug, "the pickaxe digs the stone placed")
-	_check(inv.count("core:stone") >= stone_before - placed + laid.size() - 2, "what is dug beside the player flies into the bag")
+	_check(inv.count("resources:stone") >= stone_before - placed + laid.size() - 2, "what is dug beside the player flies into the bag")
 	# Back on the surface, where the ground in front is soil.
 	main.player.position = start
 	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.body.on_ground and clock >= 0.5)
@@ -261,28 +261,28 @@ func _run() -> void:
 	c.put_in_hand("tools:stone_scythe", 1)
 	var mown: Dictionary = main.actions.front_work(main.character, c.tool_record())
 	if mown.has("mow"):
-		var fibre: int = inv.count("core:fiber")
+		var fibre: int = inv.count("resources:fiber")
 		var first: Vector3i = mown.mow[0]
 		c.action_held = true
 		await _scenario("mowing", 100000, func(_i: int) -> bool: return clock >= 1.5)
 		c.action_held = false
-		_check(w.get_cell(first.x, first.y, first.z) == Mat.DIRT and inv.count("core:fiber") > fibre,
+		_check(w.get_cell(first.x, first.y, first.z) == Mat.DIRT and inv.count("resources:fiber") > fibre,
 			"the scythe cuts the grass in front into fibre and leaves dirt")
-	var dug_before: int = inv.count("core:stone") + inv.count("core:dirt")
+	var dug_before: int = inv.count("resources:stone") + inv.count("resources:dirt")
 	c.put_in_hand("tools:wooden_shovel", 0)
 	_check(c.active == 0 and c.held() == "tools:wooden_shovel" and c.hands[1] == "tools:stone_scythe", "each hand holds its own tool")
 	c.action_held = true
 	await _scenario("action button", 100000, func(_i: int) -> bool: return clock >= 2.0)
 	c.action_held = false
-	_check(inv.count("core:stone") + inv.count("core:dirt") > dug_before, "the action button digs in front of the player")
+	_check(inv.count("resources:stone") + inv.count("resources:dirt") > dug_before, "the action button digs in front of the player")
 	var hands_saved: Dictionary = c.to_dict()
 	c.put_in_hand("", 0)
 	c.from_dict(hands_saved)
 	_check(c.held() == "tools:wooden_shovel", "the hands are saved with the player")
 	# The last of what the hand in use holds leaves the bag: the hand is bare.
-	inv.add("materials:sand", 1)
-	c.put_in_hand("materials:sand", 1, false)
-	inv.remove("materials:sand", inv.count("materials:sand"))
+	inv.add("resources:sand", 1)
+	c.put_in_hand("resources:sand", 1, false)
+	inv.remove("resources:sand", inv.count("resources:sand"))
 	await process_frame
 	_check(c.held() == "" and c.hands[0] == "tools:wooden_shovel", "a hand whose last item is gone is bare")
 	c.put_in_hand("tools:wooden_shovel", 0, false)
@@ -291,12 +291,12 @@ func _run() -> void:
 	var bag = main.hud.bag
 	main.hud.open_chest()
 	bag._manual = true
-	var at: int = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "core:stone")[0])
+	var at: int = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "resources:stone")[0])
 	var free: int = main.placed.chest_items.slots.find(null)
-	var stones: int = main.placed.chest_items.count("core:stone") + inv.slots[at][1]
+	var stones: int = main.placed.chest_items.count("resources:stone") + inv.slots[at][1]
 	bag._tap(at, true)
 	bag._tap(free, false)
-	_check(inv.slots[at] == null and main.placed.chest_items.count("core:stone") == stones, "a stack goes into the chest")
+	_check(inv.slots[at] == null and main.placed.chest_items.count("resources:stone") == stones, "a stack goes into the chest")
 	bag._tap(free, false)
 	bag._tap(at, true)
 	_check(inv.slots[at] != null and main.placed.chest_items.slots[free] == null, "and back into the bag")
@@ -308,10 +308,10 @@ func _run() -> void:
 	_check(inv.slots == bag_before and main.placed.chest_items.slots[free] == null, "a second tap picks, it moves nothing")
 	# «Скинуть всё в сундук» leaves the hotbar row.
 	var chest_before: Array = main.placed.chest_items.slots.duplicate(true)
-	inv.slots[inv.slots.size() - 1] = ["core:flint", 1]
+	inv.slots[inv.slots.size() - 1] = ["resources:flint", 1]
 	bag._put_all_in_chest()
 	_check(inv.slots.slice(0, inv.HOTBAR) == bag_before.slice(0, inv.HOTBAR) and inv.slots[inv.slots.size() - 1] == null
-		and main.placed.chest_items.count("core:flint") > 0, "all the bag past the hotbar row goes into the chest")
+		and main.placed.chest_items.count("resources:flint") > 0, "all the bag past the hotbar row goes into the chest")
 	inv.slots = bag_before
 	main.placed.chest_items.slots = chest_before
 	bag.close()
@@ -319,14 +319,14 @@ func _run() -> void:
 	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,
 	# the workbench placed in front, a stone axe made at it, with the craft tab open.
 	var shop = main.workshop
-	inv.add("core:fiber", 9)
-	inv.add("core:branch", 10)
-	inv.add("core:flint", 1)
+	inv.add("resources:fiber", 9)
+	inv.add("resources:branch", 10)
+	inv.add("resources:flint", 1)
 	main.hud.toggle_bag()
 	bag.show_tab("craft")
-	for id in ["core:cord", "tools:workbench"]:
+	for id in ["materials:cord", "tools:workbench"]:
 		var r := Crafting.get_recipe(id)
-		var n: int = shop.start(r, 3 if id == "core:cord" else 1)
+		var n: int = shop.start(r, 3 if id == "materials:cord" else 1)
 		_check(n > 0, "%s is known and queued" % r.title)
 		for j in shop.queue.jobs:
 			j.left = 0.05
@@ -352,7 +352,7 @@ func _run() -> void:
 	_check(main.world.blocks_body(bench.x, bench.y, bench.z), "a workbench is solid")
 
 	# The chest by the spawn taken up with a stone in it, and set down again with it.
-	main.placed.chest_items.add("core:stone", 1)
+	main.placed.chest_items.add("resources:stone", 1)
 	var chest_e := {}
 	for e in main.placed.things:
 		if e.items == main.placed.chest_items:
@@ -364,7 +364,7 @@ func _run() -> void:
 	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
 		main.player.facing = facing
 		chest_back = chest_back or main.props.put_from_bag("tools:chest")
-	_check(chest_back and main.placed.chest_items != null and main.placed.chest_items.count("core:stone") == 1,
+	_check(chest_back and main.placed.chest_items != null and main.placed.chest_items.count("resources:stone") == 1,
 		"and set down again with it")
 	# The campfire by the spawn put out (no station then), lit again for a branch, put
 	# out and destroyed.
@@ -637,11 +637,11 @@ func _run() -> void:
 	main.clock.time_of_day = day
 	main.sky.moon_override = -1.0
 	main.placed.put_out(fire_e)
-	inv.add("core:branch", 1)
-	var branches: int = inv.count("core:branch")
+	inv.add("resources:branch", 1)
+	var branches: int = inv.count("resources:branch")
 	_check(not fire_e.lit and not main.placed.stations_near(main.placed.center(fire_e), 3.0).has("core:campfire"),
 		"a campfire put out is no station")
-	_check(main.placed.light(main.character, fire_e) and fire_e.lit and inv.count("core:branch") == branches - 1, "it is lit again for a branch")
+	_check(main.placed.light(main.character, fire_e) and fire_e.lit and inv.count("resources:branch") == branches - 1, "it is lit again for a branch")
 	main.placed.put_out(fire_e)
 	_check(main.placed.destroy(fire_e) and not main.placed.things.has(fire_e), "a campfire put out is destroyed without a trace")
 

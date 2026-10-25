@@ -119,13 +119,12 @@ func _raw() -> Dictionary:
 	for p: Dictionary in Plants.BY_ID.values():
 		for id in p.gives:
 			have[Items.get_item(id).get("id", id)] = true
-	have[Items.BRANCH] = true
-	have[Items.LOG] = true
 	for s: Dictionary in Trees.SPECIES:
-		if s.seed != "":
-			have[s.seed] = true
+		for id in [s.seed, s.log, s.twig]:
+			if id != "":
+				have[id] = true
 	for b: Dictionary in Bushes.TYPES:
-		for id in [b.fruit, b.item]:
+		for id in [b.fruit, b.item, b.twig]:
 			if id != "":
 				have[id] = true
 	return have
@@ -296,10 +295,11 @@ func _tidy() -> void:
 
 ## One go at getting item `id` from the world. False when there is no way.
 func _gather(id: String) -> bool:
-	if id == Items.BRANCH:
-		return await _branch()
-	if id == Items.LOG:
-		return await _fell()
+	for s: Dictionary in Trees.SPECIES:
+		if id == s.twig:
+			return await _branch()
+		if id == s.log:
+			return await _fell()
 	for p: Dictionary in Plants.BY_ID.values():
 		if p.gives.has(id) or p.gives.has(id.get_slice(":", 1)):
 			return await _mow(id, p.id)

@@ -385,28 +385,28 @@ func _spikes() -> void:
 		await process_frame
 	var hud = main.hud
 	var inv = main.character.inventory
-	inv.add("core:fiber", 30)
-	inv.add("core:branch", 30)
-	inv.add("core:flint", 3)
+	inv.add("resources:fiber", 30)
+	inv.add("resources:branch", 30)
+	inv.add("resources:flint", 3)
 	inv.add("core:campfire", 2)
 	print("action | call ms | next frame ms | frame after ms")
 	await _spike("open the bag", func() -> void: hud.toggle_bag())
 	await _spike("craft tab", func() -> void: hud.bag.show_tab("craft"))
 	await _spike("bag tab", func() -> void: hud.bag.show_tab("bag"))
-	await _spike("an item into the bag, bag open", func() -> void: main.character.give("core:fiber", 1))
+	await _spike("an item into the bag, bag open", func() -> void: main.character.give("resources:fiber", 1))
 	hud.bag.show_tab("craft")
 	await _frames(3)
-	await _spike("an item into the bag, craft tab open", func() -> void: main.character.give("core:fiber", 1))
+	await _spike("an item into the bag, craft tab open", func() -> void: main.character.give("resources:fiber", 1))
 	await _spike("a cord crafted, craft tab open", func() -> void:
-		main.workshop.start(Crafting.get_recipe("core:cord"), 1)
+		main.workshop.start(Crafting.get_recipe("materials:cord"), 1)
 		main.workshop.queue.jobs[0].left = 0.0
 		main.workshop.update(0.01))
 	await _spike("close the bag", func() -> void: hud.toggle_bag())
 	await _spike("open the bag again", func() -> void: hud.toggle_bag())
 	await _spike("close the bag again", func() -> void: hud.toggle_bag())
-	await _spike("an item into the bag, bag closed", func() -> void: main.character.give("core:fiber", 1))
+	await _spike("an item into the bag, bag closed", func() -> void: main.character.give("resources:fiber", 1))
 	await _spike("a cord crafted, bag closed", func() -> void:
-		main.workshop.start(Crafting.get_recipe("core:cord"), 1)
+		main.workshop.start(Crafting.get_recipe("materials:cord"), 1)
 		main.workshop.queue.jobs[0].left = 0.0
 		main.workshop.update(0.01))
 	await _spike("select hotbar slot 2", func() -> void: main.controls.select_slot(1))

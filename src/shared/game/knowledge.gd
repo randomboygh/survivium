@@ -50,8 +50,8 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	seen = {}
 	for id in d.get("seen", []):
-		if id is String and Items.has(id):
-			seen[id] = true
+		if id is String and Items.has(Items.canon(id)):
+			seen[Items.canon(id)] = true
 	_known = {}
 	for r in Crafting.RECIPES:
 		if Crafting.is_known(r, seen):

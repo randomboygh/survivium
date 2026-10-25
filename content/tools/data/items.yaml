@@ -1,6 +1,6 @@
 # Предметы мода «Инструменты и крафт»: инструменты и станки. Поля — как у предметов основы
 # (content/core/data/items.yaml): tool — что это за инструмент (axe, pickaxe, shovel, sword,
-# scythe), power, swing, reach, durability, repair — чем чинят (записи основы: кремень, верёвка,
+# scythe), power, swing, reach, durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка,
 # доски); sprite и anim — лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop —
 # станок (workbench, kiln, chest), model — его воксельная модель (models/<model>.png).
 - id: stone_axe
@@ -16,7 +16,7 @@
   swing: 0.6
   reach: 9
   durability: 120
-  repair: {core:flint: 1, core:cord: 1}
+  repair: {resources:flint: 1, materials:cord: 1}
 - id: stone_pickaxe
   title: Каменная кирка
   weight: 2.0
@@ -30,7 +30,7 @@
   swing: 0.55
   reach: 10
   durability: 150
-  repair: {core:flint: 1, core:cord: 1}
+  repair: {resources:flint: 1, materials:cord: 1}
 - id: wooden_shovel
   title: Деревянная лопата
   weight: 1.2
@@ -44,7 +44,7 @@
   swing: 0.25
   reach: 10
   durability: 100
-  repair: {planks: 1}
+  repair: {materials:planks: 1}
 - id: wooden_sword
   title: Деревянный меч
   weight: 1.0
@@ -59,7 +59,7 @@
   swing: 0.4
   reach: 8
   durability: 80
-  repair: {planks: 1}
+  repair: {materials:planks: 1}
 - id: stone_sword
   title: Каменный меч
   weight: 1.4
@@ -74,7 +74,7 @@
   swing: 0.4
   reach: 8
   durability: 120
-  repair: {core:flint: 1, core:cord: 1}
+  repair: {resources:flint: 1, materials:cord: 1}
 - id: wooden_pickaxe
   title: Деревянная кирка
   weight: 1.2
@@ -88,7 +88,7 @@
   swing: 0.8
   reach: 10
   durability: 30
-  repair: {planks: 1}
+  repair: {materials:planks: 1}
 - id: stone_scythe
   title: Каменная коса
   weight: 1.5
@@ -105,7 +105,7 @@
   swing: 0.5
   reach: 8
   durability: 150
-  repair: {core:flint: 1, core:cord: 1}
+  repair: {resources:flint: 1, materials:cord: 1}
 - id: wooden_scythe
   title: Деревянная коса
   weight: 1.0
@@ -122,7 +122,7 @@
   swing: 0.6
   reach: 8
   durability: 40
-  repair: {planks: 1}
+  repair: {materials:planks: 1}
 - id: workbench
   title: Верстак
   weight: 8.0
@@ -144,14 +144,3 @@
   icon: chest
   model: chest
   prop: chest
-# Что делают на станках и ставят блоками: доски и кирпич (их ячейки — materials.yaml этого мода).
-- id: planks
-  title: Доски
-  weight: 1.0
-  stack: 20
-  place: planks
-- id: brick
-  title: Кирпич
-  weight: 1.5
-  stack: 20
-  place: brick

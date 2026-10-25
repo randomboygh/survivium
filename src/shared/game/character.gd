@@ -348,6 +348,6 @@ func from_dict(d: Dictionary) -> void:
 		# Counts come back from JSON as floats.
 		var lost := []
 		for st: Variant in death.get("lost", []):
-			if st is Array and st.size() >= 2 and Items.has(str(st[0])):
-				lost.append([str(st[0]), int(st[1])])
+			if st is Array and st.size() >= 2 and Items.has(Items.canon(str(st[0]))):
+				lost.append([Items.canon(str(st[0])), int(st[1])])
 		death.lost = lost

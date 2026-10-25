@@ -339,7 +339,7 @@ func _show_head() -> void:
 	_destroy.visible = fire and not _station.lit
 	if fire:
 		_fire.icon = UiStyle.icon("put_out" if _station.lit else "light")
-		_fire.tooltip_text = "Потушить костёр" if _station.lit else "Разжечь (ветка)"
+		_fire.tooltip_text = "Потушить костёр" if _station.lit else "Разжечь (ветка или другое топливо)"
 
 
 ## Hands first (what is made anywhere), then the stations of the recipes known: lit

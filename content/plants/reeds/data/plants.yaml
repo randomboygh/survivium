@@ -9,4 +9,4 @@
 - id: reeds
   kind: reeds
   title: Тростник
-  gives: {core:fiber: 2}
+  gives: {resources:fiber: 2}

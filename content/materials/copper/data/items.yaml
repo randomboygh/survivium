@@ -1,0 +1,5 @@
+- id: copper_ore
+  title: Медная руда
+  weight: 2.5
+  stack: 20
+  icon: copper_ore

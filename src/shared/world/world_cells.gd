@@ -15,6 +15,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
+const Items := preload("res://src/shared/content/items.gd")
 ## Size of a cell in world units; a world unit is 16 px on screen.
 const CELL := 0.5
 ## Chunk size in cells: the unit the world is generated, kept, meshed and streamed in.
@@ -748,5 +749,8 @@ func unpack_chunk(d: Dictionary) -> bool:
 		turf[key] = grown.duplicate()
 	var on_ground: Array = d.get("drops", [])
 	if not on_ground.is_empty():
+		for drop in on_ground:
+			if drop is Array and not drop.is_empty() and drop[0] is String:
+				drop[0] = Items.canon(drop[0])
 		drops[key] = on_ground
 	return true

@@ -1,0 +1,6 @@
+- id: cord
+  title: Верёвка
+  weight: 0.1
+  stack: 20
+  model: cord
+  icon: cord

@@ -20,6 +20,12 @@ const KNOWN := {
 	"AIR": "core:air", "GRASS": "core:grass", "DIRT": "core:dirt", "STONE": "core:stone",
 	"WATER": "core:water",
 }
+## Ids of materials a save from before 2026-10-25 (`content` below 7) numbered, by what
+## they are called now: the landscape's went to the resources mod, the built ones to materials.
+const RENAMED := {
+	"materials:sand": "resources:sand", "materials:clay": "resources:clay", "materials:scree": "resources:scree",
+	"tools:planks": "materials:planks", "tools:brick": "materials:brick",
+}
 ## The roles the engine asks materials for (the `role` field), and the static var each
 ## fills.
 const ROLES := {
@@ -139,7 +145,7 @@ static func remap(saved: PackedStringArray) -> PackedByteArray:
 		return PackedByteArray()
 	var out := PackedByteArray()
 	for id in saved:
-		var m := index(id)
+		var m := index(RENAMED.get(id, id))
 		out.append(m if m >= 0 else STONE)
 	return out
 

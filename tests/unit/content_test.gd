@@ -57,19 +57,19 @@ func _test_content() -> void:
 	_check(Mat.check().is_empty() and AiRules.check().is_empty() and Trees.check().is_empty() and Bushes.check().is_empty(),
 		"core content satisfies the engine")
 	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Mat.NAMES[Mat.GRASS] == "Трава", "materials get their indices")
-	var planks := Mat.index("tools:planks")
-	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("tools:brick"), Mat.BEACH, Mat.BANK, Mat.LOG],
+	var planks := Mat.index("materials:planks")
+	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("materials:brick"), Mat.BEACH, Mat.BANK, Mat.LOG],
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
-	_check(Mat.IDS[Mat.BEACH] == "materials:sand" and Mat.IDS[Mat.BANK] == "materials:clay" and Mat.IDS[Mat.SCREE] == "materials:scree"
+	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
 		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.COUNT == 13, "the engine finds materials by their roles")
 	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT)
 		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT), "the shader's word per material comes from the data")
-	_check(Mat.texture_path(Mat.BEACH) == "res://content/materials/textures/sand.png" and ResourceLoader.exists(Mat.texture_path(Mat.LOG)),
+	_check(Mat.texture_path(Mat.BEACH) == "res://content/resources/soil/textures/sand.png" and ResourceLoader.exists(Mat.texture_path(Mat.LOG)),
 		"a material's texture is a PNG of its mod")
 	var old: PackedStringArray = ["core:air", "core:stone", "materials:sand", "nobody:glass"]
 	_check(Mat.remap(old) == PackedByteArray([Mat.AIR, Mat.STONE, Mat.BEACH, Mat.STONE]) and Mat.remap(Mat.IDS).is_empty(),
-		"cells of a save numbered in another order are translated, unknown ones to stone")
+		"cells of a save numbered in another order are translated, renamed ones by their new names, unknown ones to stone")
 	_check(Mat.is_solid(Mat.STONE) and not Mat.is_solid(Mat.WATER) and not Mat.is_roof(Mat.LEAVES) and Mat.can_slope(Mat.BEACH),
 		"material flags come from the data")
 	_check(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].leaves == Trees.NEEDLES and Trees.SPECIES[Trees.sample(Trees.LOWLAND)].tints[0] is Color, "trees get their looks")
@@ -83,7 +83,7 @@ func _test_content() -> void:
 	_write(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
 	_write(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
 	_write(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
-	_write(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: core:cord\n  needs: {core:fiber: 0}\n- id: dust\n  title: y\n  makes: core:cord\n  needs: {stone_dust: 1}\n")
+	_write(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 0}\n- id: dust\n  title: y\n  makes: materials:cord\n  needs: {stone_dust: 1}\n")
 	Content.BUNDLES.append("_test")
 	Content.refresh()
 	var found := {}
@@ -106,27 +106,40 @@ func _test_content() -> void:
 ## Mods are folders of bundles; a bundle loads after what its records refer to, a hard
 ## reference to a bundle left out leaves it out too, a soft one is dropped, patches wait
 ## for their records, and a world's set can leave bundles out (see content.gd, mods.gd).
+## Whether every bundle of `order` comes after the bundles it depends on.
+func _ordered(order: Array) -> bool:
+	for i in order.size():
+		for need in Content.deps(order[i]):
+			if order.find(need) > i or order.find(need) < 0:
+				return false
+	return true
+
+
 func _test_mods() -> void:
 	var mods := Content.available()
 	var all := Content.all_bundles()
 	_check(mods.size() >= 3 and mods[0] == "core" and "animals" in mods and not "birds" in mods, "the mods under content/ are found, core first: %s" % [mods])
-	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants/oak" in all and "materials" in all
-		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("materials") == "materials",
+	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants/oak" in all and "sounds" in all
+		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("sounds") == "sounds",
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
-	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("materials") == "Материалы"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 6 and Mods.bundles("plants").size() == 11, "bundles have titles")
+	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("sounds") == "Звуки"
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 6 and Mods.bundles("plants").size() == 11
+		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
+		and Mods.bundles("materials").size() == 4, "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
 			after_needs = after_needs and Content.loaded.find(need) < i
-	_check(after_needs and Content.loaded[0] == "core" and Content.loaded.find("plants/ears") < Content.loaded.find("animals/sparrow")
-		and Content.loaded.find("materials") < Content.loaded.find("tools") and Content.loaded.find("tools") < Content.loaded.find("plants/ears")
-		and Content.loaded.find("plants/wood") < Content.loaded.find("plants/oak"),
+	_check(after_needs and Content.loaded[0] == "core"
+		and Content.loaded.find("materials/cord") < Content.loaded.find("tools") and Content.loaded.find("tools") < Content.loaded.find("plants/ears")
+		and Content.loaded.find("plants/wood") < Content.loaded.find("plants/oak") and Content.loaded.find("resources/wood") < Content.loaded.find("tools"),
 		"every bundle loads after what its records refer to: %s" % [Content.loaded])
 	_check(Content.dropped.is_empty() and Content.problems.is_empty(), "the full set loads whole")
-	_check(Mods.closure("animals/sparrow") == ["core", "animals/sparrow"] and Mods.closure("plants/ears") == ["core", "materials", "tools", "plants/ears"]
-		and Mods.closure("plants/oak") == ["core", "plants/wood", "plants/oak"],
-		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s %s" % [Mods.closure("plants/ears"), Mods.closure("plants/oak")])
+	var ears := Mods.closure("plants/ears")
+	_check(Mods.closure("animals/sparrow") == ["core", "animals/sparrow"] and Mods.closure("plants/oak") == ["core", "plants/wood", "plants/oak"]
+		and Mods.closure("resources/soil") == ["core", "resources/soil"] and Mods.closure("materials/cord") == ["core", "resources/fiber", "materials/cord"]
+		and _ordered(ears) and ears[0] == "core" and ears[-1] == "plants/ears" and "tools" in ears and "resources/wood" in ears and not "plants/oak" in ears,
+		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s" % [ears])
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 6), Растения" and Mods.summary(["core"]) == "только основа"
@@ -144,7 +157,7 @@ func _test_mods() -> void:
 	_write("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
 	# A recipe out of grain (a hard reference to the plants bundle) and a tree that gives
 	# a cone (soft).
-	_write("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: core:fiber\n  needs: {plants:grain: 2}\n")
+	_write("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: resources:fiber\n  needs: {plants:grain: 2}\n")
 	_write("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  land: highland\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
 	# And a bush whose fruit (soft) is a record nobody has.
 	_write("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  under: {any: 1}\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
@@ -158,7 +171,7 @@ func _test_mods() -> void:
 		"patches change only the fields they give, `+` adds to a list, and stack: %s" % [wolf])
 	_check(not AiRules.SPECIES.has("_c:ghost") and not AiRules.SPECIES.has("animals:cat") and Content.dropped.get("_c") == "_missing",
 		"records of bundles left out are not loaded: %s" % [Content.dropped])
-	_check(Content.dropped.get("_d") == "plants/ears" and Crafting.get_recipe("_d:porridge").is_empty() and Trees.index("_d:fir") < 0,
+	_check(Content.dropped.get("_d") == "resources/fiber" and Crafting.get_recipe("_d:porridge").is_empty() and Trees.index("_d:fir") < 0,
 		"a bundle whose hard reference names a record of a bundle not in the set is left out with that bundle as the reason: %s" % [Content.dropped])
 	var sparrow: Dictionary = AiRules.SPECIES["animals:sparrow"]
 	_check(sparrow.likes.is_empty() and Trees.pick(Trees.HIGHLAND, 0.5) == -1, "a soft reference to a record not loaded is dropped: the sparrow lives without ears or trees")
@@ -170,14 +183,17 @@ func _test_mods() -> void:
 	_check(found.size() == 3, "the loader reports a missing requirement, a patch of nothing and a bad `+` (%d of 3): %s" % [found.size(), Content.problems])
 	_check(not Array(Content.problems).any(func(p: String) -> bool: return "deer" in p or "likes" in p or "cone" in p),
 		"a patch of a record not loaded and a soft reference dropped are no problems: %s" % [Content.problems])
-	Mods.activate(["core", "_d", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials"])
+	var with_d := Mods.expand(["core", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials", "resources"]) + ["_d"]
+	Mods.activate(with_d)
 	_check(Content.dropped.is_empty() and Content.problems.is_empty() and Crafting.get_recipe("_d:porridge").needs == {"plants:grain": 2}
 		and Trees.SPECIES[Trees.index("_d:fir")].seed == "plants:cone" and Bushes.TYPES[Bushes.index("_d:thorn")].fruit == "",
 		"with the bundle it needs in the set, the bundle loads whole, a soft reference to nothing dropped in silence: %s %s" % [Content.dropped, Content.problems])
-	_check(Mods.closure("_d", ["core", "_d", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials"]) == ["core", "materials", "tools", "plants/ears", "_d"],
-		"a bundle's closure follows hard references through the bundles they lead to")
+	var d_closure := Mods.closure("_d", with_d)
+	_check(_ordered(d_closure) and d_closure[0] == "core" and d_closure[-1] == "_d" and "plants/ears" in d_closure and "tools" in d_closure
+		and "resources/fiber" in d_closure and not "plants/spruce" in d_closure,
+		"a bundle's closure follows hard references through the bundles they lead to: %s" % [d_closure])
 	Content.strict = true
-	Mods.activate(["core", "_d", "plants/ears", "tools", "materials", "sounds"])
+	Mods.activate(Mods.all() + ["_d"])
 	_check(Array(Content.problems).any(func(p: String) -> bool: return "thorn.fruit" in p and "plants:nothing" in p), "strict, a soft reference to nothing is a problem too: %s" % [Content.problems])
 	Content.strict = false
 	for m in ["_a", "_b", "_c", "_d"]:
@@ -218,11 +234,12 @@ func _write(path: String, text: String) -> void:
 
 func _test_items() -> void:
 	_check(Items.check().is_empty(), "core items satisfy the engine")
-	_check(Items.dug[Mat.GRASS] == "core:dirt" and Items.dug[Mat.STONE] == "core:stone" and Items.dug[Mat.LEAVES] == "",
+	_check(Items.dug[Mat.GRASS] == "resources:dirt" and Items.dug[Mat.STONE] == "resources:stone" and Items.dug[Mat.LEAVES] == "",
 		"dug cells give their items")
 	for m in Mat.PLACEABLE:
 		_check(Items.get_item(Items.placed_by[m]).place == Mat.IDS[m], "an item places hotbar block %s" % Mat.IDS[m])
-	_check(Items.get_item("log").id == "core:log" and Items.title("core:branch") == "Ветка", "bare drop names are core items")
+	_check(Items.get_item("campfire").id == "core:campfire" and Items.title("resources:branch") == "Ветка" and Items.canon("core:branch") == "resources:branch"
+		and Items.canon("plants:acorn") == "plants:acorn", "a bare name is a core item, an old id is renamed")
 	_check(Trees.SPECIES[Trees.sample(Trees.LOWLAND)].seed == "plants:acorn" and Items.has(Trees.SPECIES[Trees.sample(Trees.HIGHLAND)].seed), "tree seeds are items")
 	_check(Bushes.TYPES[Bushes.sample(Trees.LOWLAND)].fruit == "plants:raspberry" and Items.food(Bushes.TYPES[Bushes.sample(Trees.HIGHLAND)].fruit) > 0.0,
 		"berries are food")
@@ -234,13 +251,13 @@ func _test_tools() -> void:
 	var axe := Tools.of("tools:stone_axe")
 	var pick := Tools.of("tools:stone_pickaxe")
 	var shovel := Tools.of("tools:wooden_shovel")
-	_check(hand == Tools.HAND and Tools.of("core:branch") == Tools.HAND and axe.tool == "axe", "items that are no tools are bare hands")
+	_check(hand == Tools.HAND and Tools.of("resources:branch") == Tools.HAND and axe.tool == "axe", "items that are no tools are bare hands")
 	_check(Tools.can_dig(hand, Mat.DIRT) and Tools.can_dig(hand, Mat.LEAVES) and not Tools.can_dig(hand, Mat.STONE),
 		"hands dig soft ground and leaves, not stone")
 	_check(Tools.swing_time(hand, Mat.DIRT) > Tools.swing_time(shovel, Mat.DIRT), "a shovel digs faster than hands")
 	_check(Tools.can_dig(pick, Mat.STONE) and Tools.can_dig(pick, Mat.ORE) and not Tools.can_dig(shovel, Mat.STONE),
 		"stone and ore only with a pickaxe")
-	_check(Tools.can_dig(axe, Mat.index("tools:planks")) and not Tools.can_dig(pick, Mat.LOG) and not Tools.can_dig(hand, Mat.WATER),
+	_check(Tools.can_dig(axe, Mat.index("materials:planks")) and not Tools.can_dig(pick, Mat.LOG) and not Tools.can_dig(hand, Mat.WATER),
 		"wood with an axe, water never")
 	_check(Tools.why_not(hand, Mat.STONE) != "" and Tools.why_not(pick, Mat.STONE) == "", "a reason when a tool cannot dig")
 	_check(Tools.step_of(Vector2(0, 1)) == Vector2i(0, 1) and Tools.step_of(Vector2(-0.7, -0.7)) == Vector2i(-1, -1),
@@ -260,9 +277,9 @@ func _test_tools() -> void:
 	var sector := Tools.sector(Vector2i(0, 1))
 	_check(sector[0] == Vector2i(0, 1) and Vector2i(1, 0) in sector and Vector2i(2, 1) in sector and not Vector2i(0, -1) in sector \
 		and not Vector2i(1, -1) in sector, "trees and bushes are found ahead and beside, not behind")
-	_check(Tools.use_of("") == "hand" and Tools.use_of("tools:stone_axe") == "tool" and Tools.use_of("core:stone") == "place" \
+	_check(Tools.use_of("") == "hand" and Tools.use_of("tools:stone_axe") == "tool" and Tools.use_of("resources:stone") == "place" \
 		and Tools.use_of("plants:raspberry_bush") == "plant" and Tools.use_of("plants:grass_seeds") == "sow" \
-		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("plants:raspberry") == "eat" and Tools.use_of("core:branch") == "hand",
+		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("plants:raspberry") == "eat" and Tools.use_of("resources:branch") == "hand",
 		"what a held item is used for")
 	var scythe := Tools.of("tools:stone_scythe")
 	_check(Tools.mown(Mat.GRASS) == Mat.DIRT and Tools.mown(Mat.DIRT) == -1, "cutting grass leaves dirt")
@@ -298,10 +315,10 @@ func _test_tools() -> void:
 	var b: Dictionary = Bushes.TYPES[Bushes.sample(Trees.LOWLAND)]
 	_check(Items.get_item(b.item).plant == b.id, "a dug-out bush is an item that plants it again")
 	var w := WorldData.new(2, Vector2i(2, 2))
-	w.heap_drop("core:dirt", Vector3(1.0, 1.0, 1.0), 1)
-	w.heap_drop("core:dirt", Vector3(1.1, 1.0, 1.0), 2)
-	w.heap_drop("core:stone", Vector3(1.1, 1.0, 1.0), 1)
-	w.heap_drop("core:dirt", Vector3(3.0, 1.0, 1.0), 1)
+	w.heap_drop("resources:dirt", Vector3(1.0, 1.0, 1.0), 1)
+	w.heap_drop("resources:dirt", Vector3(1.1, 1.0, 1.0), 2)
+	w.heap_drop("resources:stone", Vector3(1.1, 1.0, 1.0), 1)
+	w.heap_drop("resources:dirt", Vector3(3.0, 1.0, 1.0), 1)
 	var list: Array = w.drops[Vector2i.ZERO]
 	_check(list.size() == 3 and list[0][3] == 3, "what is dug together lies in one heap")
 
@@ -311,41 +328,41 @@ func _test_crafting() -> void:
 	var have := Crafting.reachable()
 	for id in ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:stone_sword", "tools:wooden_pickaxe", "tools:wooden_scythe",
 			"tools:workbench",
-			"tools:kiln", "tools:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
+			"tools:kiln", "materials:brick", "plants:grain", "plants:grass_seeds", "plants:flatbread"]:
 		_check(have.has(id), "%s can be had from a new world" % id)
-	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "core:flint", "digging soil now and then gives flint for the first tools")
-	var cord := Crafting.get_recipe("core:cord")
+	_check(Items.get_item(Mat.RECORDS[Mat.DIRT].bonus).id == "resources:flint", "digging soil now and then gives flint for the first tools")
+	var cord := Crafting.get_recipe("materials:cord")
 	var axe := Crafting.get_recipe("tools:stone_axe")
 	var planks := Crafting.get_recipe("tools:planks")
-	_check(cord.at == "" and cord.needs == {"core:fiber": 3} and axe.at == "tools:workbench", "recipes come from the data")
+	_check(cord.at == "" and cord.needs == {"resources:fiber": 3} and axe.at == "tools:workbench", "recipes come from the data")
 	var inv := Inventory.new()
 	var knows := Knowledge.new()
 	knows.look_at(inv)
 	_check(not knows.knows(cord) and knows.recipes().is_empty(), "nothing is known with an empty bag")
 	var heard := []
 	knows.learned.connect(func(id: String) -> void: heard.append(id))
-	inv.add("core:fiber", 7)
+	inv.add("resources:fiber", 7)
 	knows.look_at(inv)
-	_check(knows.knows(cord) and heard == ["core:cord"], "a recipe is learned when its materials have been in the bag")
+	_check(knows.knows(cord) and heard == ["materials:cord"], "a recipe is learned when its materials have been in the bag")
 	var copy := Knowledge.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
-	_check(copy.knows(cord) and copy.seen.has("core:fiber"), "knowledge survives a save")
+	_check(copy.knows(cord) and copy.seen.has("resources:fiber"), "knowledge survives a save")
 	_check(Crafting.why_not(cord, inv, {}) == "" and Crafting.why_not(axe, inv, {}).begins_with("Нужен станок"),
 		"by hand anywhere, at a station only near it")
 	_check(Crafting.why_not(planks, inv, {"tools:workbench": true}).begins_with("Нужен инструмент"), "planks need an axe in the bag")
 	var q := CraftQueue.new()
 	_check(q.add(cord, inv) and q.add(cord, inv) and not q.add(cord, inv), "the queue takes the materials of each job")
-	_check(inv.count("core:fiber") == 1, "materials are gone while queued")
+	_check(inv.count("resources:fiber") == 1, "materials are gone while queued")
 	var stacks := q.cancel(1)
 	for st in stacks:
 		inv.add(st[0], st[1])
-	_check(inv.count("core:fiber") == 4 and q.jobs.size() == 1, "a cancel gives the materials back")
+	_check(inv.count("resources:fiber") == 4 and q.jobs.size() == 1, "a cancel gives the materials back")
 	var made := q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return false)
 	_check(made.is_empty() and q.progress() == 0.0, "a job waits while it cannot be worked on")
 	q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return true)
 	_check(is_equal_approx(q.progress(), 0.5), "a job takes its time")
 	made = q.step(cord.time, func(_r: Dictionary) -> bool: return true)
-	_check(made.size() == 1 and made[0].makes == "core:cord" and q.jobs.is_empty(), "a job is done when its time is up")
+	_check(made.size() == 1 and made[0].makes == "materials:cord" and q.jobs.is_empty(), "a job is done when its time is up")
 	var q2 := CraftQueue.new()
 	q2.add(cord, inv)
 	q2.step(0.5, func(_r: Dictionary) -> bool: return true)

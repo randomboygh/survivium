@@ -54,17 +54,17 @@ func _run() -> void:
 	var bag := Bag.new()
 	main.save.track("bag", bag)
 	bag.items = {"core:stick": 3.0}
-	main.character.inventory.add("core:branch", 7)
-	main.character.inventory.add("core:fiber", 9)
+	main.character.inventory.add("resources:branch", 7)
+	main.character.inventory.add("resources:fiber", 9)
 	main.character.vitals.satiety = 42.0
 	# A cord being made, a worn axe, a workbench placed and a log in the spawn chest.
 	var shop = main.workshop
-	_check(shop.start(shop.knowledge.recipes().filter(func(r: Dictionary) -> bool: return r.id == "core:cord")[0], 2) == 2,
+	_check(shop.start(shop.knowledge.recipes().filter(func(r: Dictionary) -> bool: return r.id == "materials:cord")[0], 2) == 2,
 		"cord is known from fibre and queued")
 	main.character.inventory.add("tools:stone_axe", 1, 17)
 	main.character.inventory.add("tools:workbench", 1)
 	_check(main.props.put_from_bag("tools:workbench"), "a workbench is placed in front of the player")
-	main.placed.chest_items.add("core:log", 2)
+	main.placed.chest_items.add("resources:log", 2)
 	# A marker, and a far region of the map as if explored, one pixel painted red.
 	main.markers.add(Vector2i(120, -40), 4)
 	var mm = main.hud.minimap
@@ -112,9 +112,9 @@ func _run() -> void:
 	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
 	_check(main.clock.day == 5 and absf(main.clock.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
 	_check(str(main.placed.to_list()) == str(props), "the props stand where they stood")
-	_check(main.placed.cell_of("tools:workbench") != null and main.placed.chest_items.count("core:log") == 2,
+	_check(main.placed.cell_of("tools:workbench") != null and main.placed.chest_items.count("resources:log") == 2,
 		"the workbench placed and what the chest holds come back")
-	_check(main.workshop.queue.jobs.size() >= 1 and main.workshop.knowledge.seen.has("core:fiber"),
+	_check(main.workshop.queue.jobs.size() >= 1 and main.workshop.knowledge.seen.has("resources:fiber"),
 		"the crafting queue and what the character knows come back")
 	var axe_slot: int = main.character.inventory.slots.find(main.character.inventory.slots.filter(
 		func(x) -> bool: return x != null and x[0] == "tools:stone_axe")[0])
@@ -122,7 +122,7 @@ func _run() -> void:
 	var bag2 := Bag.new()
 	main.save.track("bag", bag2)
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
-	_check(main.character.inventory.count("core:branch") == 7, "the character's bag comes back")
+	_check(main.character.inventory.count("resources:branch") == 7, "the character's bag comes back")
 	_check(absf(main.character.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
 	_check(main.markers.list.size() == 1 and main.markers.list[0].cell == Vector2i(120, -40) and main.markers.list[0].color == 4,
 		"the markers come back")
@@ -141,7 +141,7 @@ func _run() -> void:
 	await process_frame
 	_check(ch.is_dead() and ch.inventory.is_empty() and not main.player.visible, "a death empties the bag and hides the player")
 	_check(main.death_screen.visible and not main.hud.visible, "the death screen is shown")
-	_check(ch.death.lost.any(func(st: Array) -> bool: return st[0] == "core:branch" and st[1] == 7),
+	_check(ch.death.lost.any(func(st: Array) -> bool: return st[0] == "resources:branch" and st[1] == 7),
 		"the death screen knows what was lost")
 	var fell: Vector3 = main.player.position
 	main.queue_free()

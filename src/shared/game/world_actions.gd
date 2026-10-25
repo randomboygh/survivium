@@ -620,13 +620,15 @@ func front_choice(who) -> Dictionary:
 func _gives(who, target: Dictionary) -> Array:
 	if target.has("tree"):
 		var s: Dictionary = Trees.SPECIES[world.trees[target.tree]]
-		return [s.seed] if _tree_seeds_left(target.tree, s) > 0 else [Items.BRANCH]
+		if _tree_seeds_left(target.tree, s) > 0:
+			return [s.seed]
+		return [s.twig] if s.twig != "" else []
 	if not target.has("bush"):
 		return []
 	var b: Dictionary = Bushes.TYPES[world.bushes[target.bush]]
 	if ripe(target.bush, b):
 		return [b.fruit]
-	return [Items.BRANCH] if who.tool().tool == "hand" else []
+	return [b.twig] if who.tool().tool == "hand" and b.twig != "" else []
 
 
 ## The items cutting the grass on `cell` would likely give (see mow): what grows tall on
@@ -871,12 +873,15 @@ func _from_bush(who, cell: Vector3i) -> bool:
 		world.note_bush(cell)
 		looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		return true
+	if b.twig == "":
+		who.nag("bush", "%s: взять с него нечего" % b.title)
+		return false
 	if twigs_left(cell, b) <= 0:
 		who.nag("bush", "На кусте больше ничего нет до весны")
 		return false
 	if not who.act("gather"):
 		return false
-	if who.give(Items.BRANCH, 1) == 0:
+	if who.give(b.twig, 1) == 0:
 		return false
 	world.bush_twigs[cell] = world.bush_twigs.get(cell, 0) + 1
 	world.note_bush(cell)
@@ -910,14 +915,15 @@ func blow_berries(cell: Vector3i) -> bool:
 	return true
 
 
-## An axe fells a bush: it is gone, and the branches it had left this year lie beside it.
+## An axe fells a bush: it is gone, and the twigs it had left this year lie beside it.
 func _fell_bush(who, cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
 	if not who.act("chop"):
 		return false
 	var n := maxi(1, twigs_left(cell, b))
 	_remove_bush(cell)
-	_scatter(cell, Items.BRANCH, n)
+	if b.twig != "":
+		_scatter(cell, b.twig, n)
 	return true
 
 
@@ -950,19 +956,22 @@ func _scatter(cell: Vector3i, id: String, n: int) -> void:
 
 
 ## Hands at a standing tree: in autumn its seeds while it has any left this year, else
-## a branch while it has any; they go into the bag.
+## a twig (the species' `twig`) while it has any; they go into the bag.
 func _from_tree(who, col: Vector2i) -> bool:
 	if not world.trees.has(col) or not has_crown(col):
 		return false
 	var s: Dictionary = Trees.SPECIES[world.trees[col]]
 	var seeds := _tree_seeds_left(col, s) > 0
+	if not seeds and s.twig == "":
+		who.nag("tree", "%s: взять с него нечего" % s.title)
+		return false
 	if not seeds and _tree_twigs_left(col, s) <= 0:
 		who.nag("tree", "%s: больше ничего до весны" % s.title)
 		return false
 	if not who.act("gather"):
 		return false
-	var id: String = s.seed if seeds else Items.BRANCH
-	if who.give(Items.get_item(id).get("id", id), 1) == 0:
+	var id: String = s.seed if seeds else s.twig
+	if who.give(id, 1) == 0:
 		return false
 	var map: Dictionary = world.tree_seeds if seeds else world.tree_twigs
 	map[col] = map.get(col, 0) + 1
@@ -976,11 +985,12 @@ func _from_tree(who, col: Vector2i) -> bool:
 func blow_branch(col: Vector2i, at: Vector3, angle: float) -> bool:
 	if not world.trees.has(col) or not has_crown(col):
 		return false
-	if _tree_twigs_left(col, Trees.SPECIES[world.trees[col]]) <= 0:
+	var s: Dictionary = Trees.SPECIES[world.trees[col]]
+	if s.twig == "" or _tree_twigs_left(col, s) <= 0:
 		return false
 	world.tree_twigs[col] = world.tree_twigs.get(col, 0) + 1
 	world.note_edit(col.x, col.y)
-	world.heap_drop(Items.BRANCH, at, 1, angle)
+	world.heap_drop(s.twig, at, 1, angle)
 	drops_changed.emit(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
 	return true
 

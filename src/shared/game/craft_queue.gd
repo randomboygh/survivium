@@ -76,6 +76,6 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	jobs = []
 	for j in d.get("jobs", []):
-		if j is Dictionary and j.get("recipe") is String and not Crafting.get_recipe(j.recipe).is_empty():
-			jobs.append({"recipe": j.recipe, "left": float(j.get("left", 0.0))})
+		if j is Dictionary and j.get("recipe") is String and not Crafting.get_recipe(Crafting.canon(j.recipe)).is_empty():
+			jobs.append({"recipe": Crafting.canon(j.recipe), "left": float(j.get("left", 0.0))})
 	changed.emit()

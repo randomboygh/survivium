@@ -10,7 +10,8 @@
 # который даёт выкопанная ячейка (нет поля — ничего); dig — чем копают: hand — чем угодно,
 # shovel — мягкое (руками медленно, лопатой быстро, киркой тоже), pickaxe — только киркой,
 # axe — только топором, none — не копается; hardness — твёрдость: кирке или топору нужна
-# сила не меньше; bonus — предмет, который выкопанная ячейка иногда даёт сверх item,
+# сила не меньше; bonus — предмет, который выкопанная ячейка иногда даёт сверх item (оба —
+# предметы мода «Ресурсы»; без него ячейка не даёт ничего),
 # bonus_chance — как часто (0–1). mow — во что превращается ячейка, когда с неё срезают
 # верхний слой руками, мечом или косой (трава — в землю), mow_gives — что срезанный слой
 # даёт всегда; растения на нём (plants.yaml) дают своё сверх этого.
@@ -38,12 +39,12 @@
   corners: soft
   slope: true
   priority: 6
-  item: dirt
-  bonus: fiber
+  item: resources:dirt
+  bonus: resources:fiber
   bonus_chance: 0.25
   dig: shovel
   mow: dirt
-  mow_gives: {fiber: 1}
+  mow_gives: {resources:fiber: 1}
 - id: dirt
   title: Земля
   corners: soft
@@ -51,16 +52,16 @@
   priority: 4
   ground: soil
   hotbar: 2
-  item: dirt
+  item: resources:dirt
   dig: shovel
-  bonus: flint
+  bonus: resources:flint
   bonus_chance: 0.15
 - id: stone
   title: Камень
   priority: 1
   ground: rock
   hotbar: 1
-  item: stone
+  item: resources:stone
   hardness: 2
 - id: water
   title: Вода

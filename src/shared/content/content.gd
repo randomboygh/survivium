@@ -67,7 +67,7 @@ const SCHEMAS := {
 		"ground": {"type": "enum", "values": ["none", "soil", "sand", "rock"], "default": "none"},
 		"drains": {"type": "bool", "default": false},
 		"texture": {"type": "string", "default": ""},
-		"item": {"type": "ref:items", "default": ""},
+		"item": {"type": "ref:items", "soft": true, "default": ""},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
 		"hardness": {"type": "int", "min": 0, "default": 1},
 		"bonus": {"type": "ref:items", "soft": true, "default": ""},
@@ -97,6 +97,7 @@ const SCHEMAS := {
 		"durability": {"type": "int", "min": 0, "default": 0},
 		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}},
 		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "campfire"], "default": "none"},
+		"fuel": {"type": "bool", "default": false},
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},
 		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},
@@ -130,6 +131,8 @@ const SCHEMAS := {
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"seed": {"type": "ref:items", "soft": true, "default": ""},
+		"log": {"type": "ref:items", "soft": true, "default": ""},
+		"twig": {"type": "ref:items", "soft": true, "default": ""},
 		"hits": {"type": "int", "min": 1, "default": 4},
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"seeds": {"type": "int", "min": 0, "default": 0},
@@ -146,6 +149,7 @@ const SCHEMAS := {
 		"fruit": {"type": "ref:items", "soft": true, "default": ""},
 		"fruit_count": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"twigs": {"type": "int", "min": 0, "default": 0},
+		"twig": {"type": "ref:items", "soft": true, "default": ""},
 		"item": {"type": "ref:items", "default": ""},
 	},
 	"recipes": {
@@ -468,7 +472,8 @@ static func _expand_need(need: String) -> Array:
 static func _deps(b: String, kept: Dictionary) -> Array:
 	var u: Dictionary = _universe[b]
 	var out := {}
-	for group in [u.hard, u.soft, u.patches]:
+	# A soft reference orders nothing: it is looked up once everything is loaded.
+	for group in [u.hard, u.patches]:
 		for key in group:
 			for o in _owners.get(key, []):
 				if o != b and kept.has(o):

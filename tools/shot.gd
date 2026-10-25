@@ -305,7 +305,7 @@ func _run() -> void:
 			if shot.get("destroy", false):
 				main.hud.bag._destroy.pressed.emit()
 		if shot.get("chest", false):
-			main.placed.chest_items.add("core:log", 3)
+			main.placed.chest_items.add("resources:log", 3)
 			main.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._kinds.pick("")
@@ -327,7 +327,7 @@ func _run() -> void:
 		if shot.get("craft", false):
 			_craft()
 			if shot.has("recipe"):
-				main.character.inventory.add("core:cord", 2)
+				main.character.inventory.add("materials:cord", 2)
 				main.hud.bag.craft._choose(shot.recipe)
 			if shot.get("unknown", false) or shot.get("idle", false):
 				while not main.workshop.queue.jobs.is_empty():
@@ -351,7 +351,7 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 		if shot.get("death", false):
-			for st in [["core:branch", 12], ["core:fiber", 9], ["plants:raspberry", 23], ["tools:stone_axe", 1], ["core:flint", 3]]:
+			for st in [["resources:branch", 12], ["resources:fiber", 9], ["plants:raspberry", 23], ["tools:stone_axe", 1], ["resources:flint", 3]]:
 				main.character.inventory.add(st[0], st[1])
 			main.player.position += Vector3(14.0, 0.0, 9.0)
 			main.player.position = places.flat_near(main.world, main.player.position)
@@ -488,7 +488,7 @@ func _run() -> void:
 ## open at the workbench.
 func _craft() -> void:
 	var inv = main.character.inventory
-	for st in [["core:fiber", 14], ["core:branch", 16], ["core:flint", 3], ["core:log", 2], ["materials:clay", 6],
+	for st in [["resources:fiber", 14], ["resources:branch", 16], ["resources:flint", 3], ["resources:log", 2], ["resources:clay", 6],
 			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
 		inv.add(st[0], st[1])
 	main.player.facing = "s"
@@ -499,7 +499,7 @@ func _craft() -> void:
 	main.props.put_from_bag("tools:chest")
 	main.player.facing = "s"
 	var shop = main.workshop
-	shop.start(Crafting.get_recipe("core:cord"), 2)
+	shop.start(Crafting.get_recipe("materials:cord"), 2)
 	shop.queue.jobs[0].left = 0.5
 	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
 	for e in main.placed.things:
@@ -514,10 +514,10 @@ func _hands(h: Dictionary) -> void:
 	main.player.position = places.flat_near(main.world, main.player.position)
 	var inv = main.character.inventory
 	inv.add(h.tool, 1)
-	inv.add("core:stone", 10)
+	inv.add("resources:stone", 10)
 	# The tool in the left hand, a stone block in the right one; the tool's hand in use
 	# unless the shot says the right one.
-	main.controls.put_in_hand("core:stone", 1, false)
+	main.controls.put_in_hand("resources:stone", 1, false)
 	main.controls.put_in_hand(h.tool, 0, false)
 	if h.get("right", false):
 		main.controls.set_active(1)
@@ -541,9 +541,9 @@ func _work() -> void:
 	var w = main.world
 	main.settings.set_value("pickup", 3)
 	main.settings.give_tools()
-	main.character.inventory.add("core:stone", 20)
+	main.character.inventory.add("resources:stone", 20)
 	var f: Vector3i = c.feet()
-	c.put_in_hand("core:stone")
+	c.put_in_hand("resources:stone")
 	c.brush = 2
 	var spot := f + Vector3i(-4, 0, -4)
 	spot.y = w.surface_y(spot.x, spot.z)
@@ -603,8 +603,8 @@ func _gather() -> void:
 		for i in range(list.size() - 1, -1, -1):
 			if i < list.size() and list[i][1].x < main.player.position.x - 1.0:
 				a.pick_up(who, key, i)
-	main.character.inventory.add("core:dirt", 4)
-	main.character.inventory.add("core:stone", 5)
+	main.character.inventory.add("resources:dirt", 4)
+	main.character.inventory.add("resources:stone", 5)
 	main.character.vitals.stamina = 45.0
 	main.character.vitals.satiety = 35.0
 	main.hud.refresh_counts()

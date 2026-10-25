@@ -451,7 +451,7 @@ func hut(w, at: Vector3) -> Vector3:
 			var wall := dx == -4 or dx == 3 or dz == -4 or dz == 3
 			var door := dz == 3 and (dx == -1 or dx == 0)
 			for dy in 5:
-				var m := maxi(Mat.index("tools:planks"), Mat.STONE) if dy == 4 or wall and not (door and dy < 2) else Mat.AIR
+				var m := maxi(Mat.index("materials:planks"), Mat.STONE) if dy == 4 or wall and not (door and dy < 2) else Mat.AIR
 				w.set_cell(best.x + dx, best.y + dy, best.z + dz, m)
 	# Bushes inside would hide the player.
 	for c: Vector3i in w.bushes.keys():

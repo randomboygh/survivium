@@ -143,7 +143,7 @@ func _test_slopes() -> void:
 	_check(w.slope_mask(4, 1, 0) == WorldData.NE | WorldData.SE, "a ramp at the map edge still slopes")
 	w.set_cell(4, 1, 7, Mat.STONE)
 	_check(w.slope_mask(4, 1, 7) == WorldData.FULL, "stone and built blocks never slope")
-	w.set_cell(4, 2, 3, Mat.index("tools:planks"))
+	w.set_cell(4, 2, 3, Mat.index("materials:planks"))
 	_check(w.slope_mask(4, 1, 3) == WorldData.FULL, "ground under a block does not slope")
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
@@ -204,7 +204,7 @@ func _test_steps() -> void:
 	_check(_climb_pit(false) < 3.0, "jumping cannot get out of a pit four cells deep")
 	_check(_climb_pit(true) > 4.9, "air jumps get out of a pit four cells deep")
 	# Models are PNG slices in the item's mod and come back the same from their image.
-	var drawn := VoxelProps.drop(Items.get_item("core:branch"))
+	var drawn := VoxelProps.drop(Items.get_item("resources:branch"))
 	var again = VoxelModel.from_image(drawn.to_image(true), true)
 	_check(drawn != null and drawn.voxels.size() > 20 and again.voxels.keys() == drawn.voxels.keys() and again.foliage == drawn.foliage
 		and not drawn.foliage.is_empty() and VoxelProps.drop({"model": "nothing", "mod": "core"}) == null,
@@ -295,7 +295,7 @@ func _test_ground() -> void:
 		"the swamp strip has pools and a pond running into a bog, all at one level")
 	_check(w.get_cell(21, g - 3, 0) == Mat.DIRT and w.get_cell(37, g - 3, 0) == Mat.ORE,
 		"the material strips are 4 cells deep")
-	_check(w.get_cell(50, g + 2, 0) == Mat.index("tools:planks") and w.get_cell(53, g + 1, 3) == Mat.AIR
+	_check(w.get_cell(50, g + 2, 0) == Mat.index("materials:planks") and w.get_cell(53, g + 1, 3) == Mat.AIR
 		and w.get_cell(54, g + 4, 0) == Mat.STONE, "the hut has walls, a door and a roof")
 	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 64 and t[1] < 48).size(),
 		"every tree of the plan grows")
