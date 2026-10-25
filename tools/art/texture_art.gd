@@ -95,38 +95,36 @@ const CLAY := Color(0.6, 0.47, 0.4)
 const CLAY_PLATES: Array[Vector2] = [Vector2(3, 3), Vector2(11, 2), Vector2(7, 10), Vector2(15, 11), Vector2(1, 13)]
 
 
-## Clay: on the top plates of dried clay, each its own shade, some cracked apart,
-## the far edge of a crack lit; on the sides wavy layers of silt with a pebble here
+## Clay: on the top plates of dried clay, each its own shade, a few cracked apart;
+## all of it faint, so the tile does not show its repeat; on the sides wavy layers of silt with a pebble here
 ## and there; below mottled. Specks of rust and pale silt everywhere.
 static func _clay(kind: int, px: int, py: int, rng: RandomNumberGenerator) -> Color:
 	var r := rng.randf()
 	var tone := 1.0
 	if kind == 0:
 		var plate := _plate(px, py)
-		tone = [1.0, 0.95, 1.04, 0.97, 1.02][plate]
+		tone = [1.0, 0.98, 1.02, 0.99, 1.01][plate]
 		if _cracked(plate, _plate(px + 1, py)) or _cracked(plate, _plate(px, py + 1)):
-			tone = 0.86
-		elif _cracked(plate, _plate(px - 1, py)) or _cracked(plate, _plate(px, py - 1)):
-			tone += 0.03
+			tone = 0.93
 	elif kind == 1:
 		var wave := int(round(sin(px * TAU / 16.0) * 1.2))
 		var layer := posmod(py + wave, 16) / 3
-		tone = [1.03, 0.94, 1.0, 1.06, 0.92, 0.97][layer]
-		if r > 0.985:
+		tone = [1.02, 0.97, 1.0, 1.03, 0.96, 0.99][layer]
+		if r > 0.994:
 			return _vary(Color(0.55, 0.53, 0.5), rng, 0.04)
 	else:
-		tone = [1.0, 0.96, 1.03, 0.98, 1.01][_plate(px, py)]
-	if r < 0.025:
-		return _vary(Color(0.66, 0.4, 0.27), rng, 0.04)
-	if r > 0.97 and r <= 0.985:
-		return _vary(Color(0.72, 0.64, 0.56), rng, 0.03)
+		tone = [1.0, 0.98, 1.02, 0.99, 1.0][_plate(px, py)]
+	if r < 0.01:
+		return _vary(Color(0.62, 0.44, 0.35), rng, 0.03)
+	if r > 0.985 and r <= 0.994:
+		return _vary(Color(0.65, 0.53, 0.46), rng, 0.02)
 	return _vary(CLAY * tone, rng, 0.025)
 
 
 ## Whether plates `a` and `b` are cracked apart: only some of them, so the cracks run
 ## and break off instead of paving the ground.
 static func _cracked(a: int, b: int) -> bool:
-	return a != b and (a + b) % 3 != 0
+	return a != b and (a + b) % 3 == 1
 
 
 ## The plate of clay a texel lies on: the nearest of CLAY_PLATES, on the tile wrapped round.
