@@ -102,6 +102,7 @@ const SCHEMAS := {
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},
 		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},
+		"light": {"type": "float", "min": 0.0, "default": 0.0},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},

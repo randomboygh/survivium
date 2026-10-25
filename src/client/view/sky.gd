@@ -7,6 +7,7 @@ extends RefCounted
 
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
+const Items := preload("res://src/shared/content/items.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -20,6 +21,13 @@ const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 ## a quarter of a degree, about a texel at the tip of a tree's shadow.
 const SUN_STEPS := 1440
 const RAYS_BRIGHTNESS := 0.45
+## The light round the player with a torch in hand, and without one: a faint glow
+## that reaches GLOW_RANGE world units, enough to see the cells beside them.
+const TORCH_ENERGY := 1.3
+const GLOW_ENERGY := 0.3
+const GLOW_RANGE := 1.5
+## Two torches, one in each hand, light this much farther than one.
+const TWO_TORCHES := 1.4
 ## How far, in degrees, the sun or the moon goes past the border of its eighth of the
 ## sky before the lit edges of the cells turn to the next one (see _light_side).
 const LIGHT_SIDE_MARGIN := 7.5
@@ -45,6 +53,9 @@ var sky_light := 1.0
 ## less under clouds; fires cast their shadows below Effects.SHADOW_SKY of it.
 var sun_light := 1.0
 var rng := RandomNumberGenerator.new()
+## The torch's flicker and the seconds until it changes.
+var _flicker := 1.0
+var _flicker_clock := 0.0
 var foliage := Vector3.ONE
 var grass := Vector3.ONE
 var leaf_amount := 1.0
@@ -147,14 +158,37 @@ func _update_light(delta: float) -> void:
 	var haze := (Color(0.02, 0.02, 0.03) if cut_on else env.background_color).srgb_to_linear()
 	RenderingServer.global_shader_parameter_set("depth_haze", Vector3(haze.r, haze.g, haze.b))
 	if game.player != null:
-		var dark := 1.0 if game.chunks.indoor else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
-		dark *= 1.0 - game.effects.torch_off(game.player.position)
-		var shadows: bool = dark > 0.0 and game.effects.shadows and not game.effects.player_only \
-				and not game.effects.fire_shadowing
-		game.player.torch.shadow_enabled = shadows
-		game.player.torch.light_energy = 1.3 * dark * (game.effects.shadow_energy if shadows else 1.0)
+		_update_torch(delta)
 	_update_grade(golden, night, minf(moonlight, 1.0))
 	_update_fog(golden, delta)
+
+
+## The light round the player in the dark (Player.torch): a torch held (an item with
+## `light`, see Character.light_held) lights as far as its `light` (two of them
+## TWO_TORCHES farther) and flickers, and casts shadows; without one only a faint glow of GLOW_RANGE shows the player and the
+## cells beside them.
+func _update_torch(delta: float) -> void:
+	var player = game.player
+	var dark := 1.0 if game.chunks.indoor else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
+	dark *= 1.0 - game.effects.torch_off(player.position)
+	var held: String = game.character.light_held() if game.character != null else ""
+	player.torch_lit = held != ""
+	game.effects.hold_flame(player.flame_at, player.torch_lit)
+	var shadows: bool = player.torch_lit and dark > 0.0 and game.effects.shadows \
+			and not game.effects.player_only and not game.effects.fire_shadowing
+	player.torch.shadow_enabled = shadows
+	var energy := GLOW_ENERGY
+	if player.torch_lit:
+		var two: bool = game.character.lights_held().size() > 1
+		player.torch.omni_range = Items.get_item(held).light * (TWO_TORCHES if two else 1.0)
+		_flicker_clock -= delta
+		if _flicker_clock <= 0.0:
+			_flicker_clock = 0.09
+			_flicker = rng.randf_range(0.88, 1.05)
+		energy = TORCH_ENERGY * _flicker
+	else:
+		player.torch.omni_range = GLOW_RANGE
+	player.torch.light_energy = energy * dark * (game.effects.shadow_energy if shadows else 1.0)
 
 
 ## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)

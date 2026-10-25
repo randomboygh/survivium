@@ -48,6 +48,8 @@ static func drop(model: String) -> VoxelModel:
 			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else (Color(0.55, 0.57, 0.6) if model == "stone_sword" else COPPER))
 		"scythe", "wooden_scythe", "copper_scythe":
 			return _tool(_head(model), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
+		"torch":
+			return _torch()
 		"copper_bar":
 			return _bar()
 		"charcoal":
@@ -362,6 +364,21 @@ static func _sword(blade: Color) -> VoxelModel:
 	for x in range(-6, -3):
 		m.set_voxel(Vector3i(x, 0, 0), dark)
 		m.set_voxel(Vector3i(x, 0, 1), dark)
+	return m
+
+
+## A torch lying on the ground: a stick, its head wrapped and charred, an ember on it.
+static func _torch() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.5, 0.35, 0.2)
+	var wrap := Color(0.28, 0.2, 0.13)
+	for x in range(-5, 3):
+		m.set_voxel(Vector3i(x, 0, 0), wood * (0.85 if x % 3 == 0 else 1.0))
+	for x in range(3, 6):
+		for z in range(-1, 2):
+			m.set_voxel(Vector3i(x, 0, z), wrap)
+		m.set_voxel(Vector3i(x, 1, 0), wrap * 1.2)
+	m.set_voxel(Vector3i(4, 1, 0), Color(0.85, 0.4, 0.15))
 	return m
 
 

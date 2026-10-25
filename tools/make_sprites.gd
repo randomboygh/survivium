@@ -27,6 +27,7 @@ const HELD := {
 	"copper_shovel": "dig",
 	"copper_sword": "slash",
 	"copper_scythe": "mow",
+	"torch": "reach",
 }
 const LUMP := [
 	".aaa.",

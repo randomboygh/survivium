@@ -33,6 +33,9 @@ static var _layers := {}
 static var _anchors := []
 static var _held := {}
 static var _icons := {}
+## The brightest pixel of each frame of a sheet held, by "path|column|row|flipped"
+## (see _brightest).
+static var _bright := {}
 
 var target: SpriteSheet
 var look: Array
@@ -46,6 +49,8 @@ var _part := -1
 var _things := {}
 var _sheets := {}
 var _turns := {}
+## Where a light held burns in the frames of the row being put together, by column.
+var _row_spots := {}
 
 
 func _init(worn: Array, hands: Dictionary) -> void:
@@ -237,6 +242,20 @@ func step() -> bool:
 	return true
 
 
+## The brightest pixel of `picture`, the highest of equals.
+static func _brightest(picture: Image) -> Vector2i:
+	var best := Vector2i.ZERO
+	var most := -1.0
+	for y in picture.get_height():
+		for x in picture.get_width():
+			var c := picture.get_pixel(x, y)
+			var l := (c.r + c.g + c.b) * c.a
+			if l > most + 0.001:
+				most = l
+				best = Vector2i(x, y)
+	return best
+
+
 static func _other(hand: String) -> String:
 	return "left" if hand == "right" else "right"
 
@@ -252,6 +271,7 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 	var strip := Image.create_empty(size.x * (c1 - c0), size.y, false, Image.FORMAT_RGBA8)
 	strip.fill(Color(0, 0, 0, 0))
 	var from := Rect2i(c0 * size.x, src * size.y, strip.get_width(), size.y)
+	_row_spots = {}
 	_put_things(strip, src, false, c0, c1)
 	for name in data().layers:
 		if look.has(name):
@@ -267,6 +287,9 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 			var part := strip.get_region(r)
 			part.flip_x()
 			strip.blit_rect(part, Rect2i(Vector2i.ZERO, size), r.position)
+	for col: int in _row_spots:
+		var spot: Vector2i = _row_spots[col]
+		target.spots[Vector2i(col, row)] = Vector2i(size.x - 1 - spot.x, spot.y) if swap else spot
 	_img.blit_rect(strip, whole, Vector2i(c0 * size.x, row * size.y))
 
 
@@ -293,6 +316,8 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 			var working: bool = right and work[0] != "" and work[0] == thing.get("anim", "")
 			var pic: Image
 			var hold: Vector2i
+			var pic_col := 0
+			var trow_of := 0
 			if _turns.has(hand):
 				pic = _turns[hand][maxi(0, a.angle) if working else 0]
 				hold = pic.get_size() / 2
@@ -305,6 +330,8 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 				if (tcol + 1) * cell.x > sheet_img.get_width():
 					tcol = 0
 				var trow: int = src if right else target.directions.find(opposite(dir))
+				pic_col = tcol
+				trow_of = trow
 				pic = sheet_img.get_region(Rect2i(Vector2i(tcol, trow) * cell, cell))
 				hold = grip
 				if not right:
@@ -315,3 +342,11 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 			var dst := Rect2i(at, pic.get_size()).intersection(frame)
 			if dst.has_area():
 				strip.blend_rect(pic, Rect2i(dst.position - at, dst.size), dst.position)
+			# A light burns at the brightest pixel of what gives it.
+			if thing.get("light", false) and not _turns.has(hand):
+				var key := "%s|%d|%d|%s" % [thing.sprite, pic_col, trow_of, right]
+				if not _bright.has(key):
+					_bright[key] = _brightest(pic)
+				var spot: Vector2i = at + _bright[key] - frame.position + Vector2i.ONE
+				if Rect2i(Vector2i.ZERO, size).has_point(spot):
+					_row_spots[col] = spot

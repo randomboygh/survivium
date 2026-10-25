@@ -24,6 +24,53 @@ const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
 ## a walk.
 const STRIDE_MAX := 3.0
+## What the two hands hold, "" for an empty one; the owner fills it in.
+func in_hands() -> Array:
+	return []
+
+
+## The thing held that gives light (an item with `light`), the one whose light reaches
+## farthest; "" for none. In water it goes out.
+func light_held() -> String:
+	var lights := lights_held()
+	var best := ""
+	for id: String in lights:
+		if Items.get_item(id).light > Items.get_item(best).get("light", 0.0):
+			best = id
+	return best
+
+
+## The things held that give light, one for each hand that holds one (as many as the
+## bag has); none in water.
+func lights_held() -> Array:
+	var out := []
+	if body == null or body.swimming:
+		return out
+	for id: String in in_hands():
+		# Both hands may hold the same one: it lights once.
+		if id != "" and Items.get_item(id).get("light", 0.0) > 0.0 and out.count(id) < inventory.count(id):
+			out.append(id)
+	return out
+
+
+## Each light held burns down a unit of its `durability` a second and is gone once it
+## has burned it all; two of the same burn the first two of them in the bag.
+func _burn_light(delta: float) -> void:
+	var lights := lights_held()
+	if lights.is_empty():
+		return
+	_burnt += delta
+	if _burnt < 1.0:
+		return
+	_burnt -= 1.0
+	var seen := {}
+	for id: String in lights:
+		if inventory.wear_tool(id, Items.get_item(id).durability, seen.get(id, 0)):
+			say("Догорело: %s" % Items.title(id))
+		else:
+			seen[id] = seen.get(id, 0) + 1
+
+
 ## A burning campfire touched throws the body back at this speed (cells a second) with
 ## this hop, and burns again no sooner than BURN_PAUSE seconds after.
 const BURN_KNOCK := 11.0
@@ -73,6 +120,8 @@ var position: Vector3:
 var _nagged := {}
 ## Seconds until a fire burns the body again (see BURN_PAUSE).
 var _burn_wait := 0.0
+## Seconds the light held has burned towards its next unit of wear (see _burn_light).
+var _burnt := 0.0
 
 
 func _init() -> void:
@@ -134,6 +183,7 @@ func update(delta: float) -> void:
 	_burn_wait = maxf(0.0, _burn_wait - delta)
 	if placed != null and _burn_wait <= 0.0:
 		_touch_fire(p)
+	_burn_light(delta)
 	if vitals.is_dead():
 		die()
 

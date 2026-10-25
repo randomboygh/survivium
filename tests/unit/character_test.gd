@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_inventory()
 	_test_wear()
+	_test_torch()
 	_test_vitals()
 	_test_changes()
 	_test_death()
@@ -111,6 +112,42 @@ func _test_wear() -> void:
 	var at := inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null)[0])
 	inv.mend(at)
 	_check(inv.worn(at) == 0, "a repaired tool is as good as new")
+
+
+func _test_torch() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var ch := Survivor.new()
+	ch.world = w
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
+	var d: int = Items.get_item("tools:torch").durability
+	_check(Items.get_item("tools:torch").light > 0.0 and d > 0, "a torch gives light and burns for a while")
+	ch.give("tools:torch", 1)
+	_check(ch.light_held() == "", "a torch in the bag gives no light")
+	ch.hands = ["tools:torch", "tools:torch"]
+	_check(ch.lights_held().size() == 1, "one torch in both hands lights once")
+	ch.hands = ["tools:torch", ""]
+	_check(ch.light_held() == "tools:torch", "a torch in either hand does")
+	for i in 30:
+		ch.update(0.5)
+	_check(ch.inventory.worn(0) == 15, "it burns down a unit a second while held")
+	ch.body.swimming = true
+	ch.update(5.0)
+	_check(ch.light_held() == "" and ch.inventory.worn(0) == 15, "in water it goes out and does not burn")
+	ch.body.swimming = false
+	ch.give("tools:torch", 1)
+	ch.hands = ["tools:torch", "tools:torch"]
+	ch.update(1.0)
+	_check(ch.lights_held().size() == 2 and ch.inventory.worn(0) == 16 and ch.inventory.worn(1) == 1,
+		"two torches, one in each hand, both burn")
+	ch.hands = ["tools:torch", ""]
+	for i in d:
+		ch.update(1.0)
+	_check(ch.inventory.count("tools:torch") == 1, "burned out, it is gone")
 
 
 func _test_vitals() -> void:

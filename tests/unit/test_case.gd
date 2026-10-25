@@ -129,9 +129,13 @@ func _same_view(gen, a: WorldData, b: WorldData, keys: Array) -> bool:
 class Survivor extends "res://src/shared/game/character.gd":
 	var at := Vector3.ZERO
 	var back_at := Vector3.ZERO
+	var hands := ["", ""]
 
 	func _where() -> Vector3:
 		return at
+
+	func in_hands() -> Array:
+		return hands
 
 	func _came_back(to: Vector3) -> void:
 		back_at = to
