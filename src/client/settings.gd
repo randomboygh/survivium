@@ -41,7 +41,7 @@ const DEFAULTS := {
 	# campfire against 83 drawn and 63 real).
 	"fire_shadows": 3,
 	"effects": true,
-	# Sun rays in the air in clear weather and after rain (Sky._update_rays).
+	# Sunlight among the trees in clear weather and after rain: shafts, flecks, dust (SunRays).
 	"sun_rays": true,
 	# Fog drawn on the ground, deep in the low places (Sky._update_fog); off, a plain haze.
 	"fog": true,

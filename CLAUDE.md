@@ -20,7 +20,7 @@ src/shared/   the world model and the rules of play the server will run; loads n
 src/client/   draws and reads input; main.gd, settings.gd, save_game.gd at the top
   world/      chunk_streamer, chunk_mesher (+ mesh_faces, slope_mesher, water_mesher, trunk_mesher), mesh_buffers,
               foliage, drifts, tracks, roof_map
-  view/       pixel_view, camera_rig, sky, effects, fire_shadows, pixel_textures, voxel_model,
+  view/       pixel_view, camera_rig, sky, effects, fire_shadows, sun_rays, pixel_textures, voxel_model,
               voxel_props, player, figure, hands, sprite_sheet, draw_census, shader_warmup
   input/      controls, cursor, touch_stick, touch_button
   audio/      sound, nature, steps, voices, music
@@ -54,7 +54,7 @@ tools/        validate, shot (+ shot/shots the table, shot/places the spots), ma
 | `chunk_streamer.gd` | generates and meshes chunks within `LOAD_RANGE`, frees beyond `UNLOAD_RANGE`; per-frame budgets (edits, then far chunks, then caps); the level cut and `_hiding_level`; `refit_boxes` per view |
 | `chunk_mesher.gd`, `foliage.gd`, `mesh_buffers.gd` | the chunk meshes built a column at a time: cells, cut corners and caps (`build_cap`); the parts it calls per column extend `mesh_faces.gd` (the face tables, packed words and drawing primitives): `slope_mesher.gd` (slopes, `patch`), `water_mesher.gd` (surface, shore, falls), `trunk_mesher.gd` (bark); plants and crowns |
 | `pixel_view.gd`, `camera_rig.gd` | the low-res picture and the oblique 3/4 view: `shear(pos)`, `view_ray`, `set_view(turn, tilt)`, `world_dir` / `screen_dir`, safe rect; the camera turns in 45° steps and tilts two steps each way (wall 4..12 px under an 8 px top) |
-| `sky.gd`, `effects.gd`, `fire_shadows.gd` | light, colour grade, sun rays, ground fog, puddles, weather drawn for `game.clock`; `light_side` (one of eight, with a margin); particles, fires, the torch; fire shadows drawn on the ground |
+| `sky.gd`, `effects.gd`, `fire_shadows.gd`, `sun_rays.gd` | light, colour grade, ground fog, puddles, weather drawn for `game.clock`; `light_side` (one of eight, with a margin); particles, fires, the torch (an item with `light` held, else a faint glow); fire shadows drawn on the ground; sunlight among the trees (shafts past the crowns, flecks in their shadows, dust) |
 | `clock.gd`, `real_weather.gd` | time of day, seasons, moon, the `WEATHERS` table, wind side, leaf fall; or the device's time and the real weather by IP + Open-Meteo |
 | `controls.gd`, `cursor.gd`, `gathering.gd` | keys, mouse, touch; `hands` (an item in each hand, `active` the one in use), the hotbar (the bag's first `Inventory.HOTBAR` slots), brushes and strokes, the action button in front; what a tap gathers and its hint; the frame round the cells an action works on |
 | `world_actions.gd`, `tools.gd` | what the hands do to the world: dig, build, chop, gather, plant, mow; each tool's rules |
