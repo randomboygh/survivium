@@ -100,7 +100,9 @@ async function debug(page, log) {
 }
 
 async function screenshot(name, page) {
-  const shot = await page.screenshot({ type: 'jpeg', quality: 70, scale: 'css' });
+  // A software-WebGL winter frame takes over 3 s, and the screenshot waits behind the
+  // frames already queued: the default 30 s is not always enough.
+  const shot = await page.screenshot({ type: 'jpeg', quality: 70, scale: 'css', timeout: 120000 });
   console.log(`SCREENSHOT_BASE64 ${name} ${shot.toString('base64')}`);
 }
 
