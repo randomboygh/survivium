@@ -241,7 +241,8 @@ func _ready() -> void:
 	pad.call()
 	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
 	pad.call()
-	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево", func() -> void: game.view.turn_by(1))
+	# Held, a turn button turns the camera on smoothly (see CameraRig.hold_turn).
+	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево (держать: плавно)", Callable())
 	_camera_reset = Button.new()
 	_camera_reset.focus_mode = Control.FOCUS_NONE
 	_camera_reset.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_MIDDLE.y)
@@ -255,7 +256,11 @@ func _ready() -> void:
 	tight.base_font = UiStyle.font()
 	tight.spacing_glyph = -1
 	_camera_label.add_theme_font_override("font", tight)
-	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо", func() -> void: game.view.turn_by(-1))
+	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо (держать: плавно)", Callable())
+	for side: Array in [[turn_left, 1], [turn_right, -1]]:
+		var dir: int = side[1]
+		side[0].button_down.connect(func() -> void: game.view.hold_turn(dir))
+		side[0].button_up.connect(func() -> void: game.view.release_turn(dir))
 	pad.call()
 	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
 	pad.call()
@@ -998,7 +1003,8 @@ func _icon_button(parent: Node, icon: String, tip: String, action: Callable) -> 
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.add_theme_stylebox_override("normal", UiStyle.panel())
 	b.add_theme_stylebox_override("hover", UiStyle.panel())
-	b.pressed.connect(action)
+	if action.is_valid():
+		b.pressed.connect(action)
 	parent.add_child(b)
 	return b
 
