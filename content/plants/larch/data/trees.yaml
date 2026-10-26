@@ -3,12 +3,14 @@
   shape: cone
   leaf: needles
   leaves: needles
-  trunk: [2, 3]
-  girth: [7, 10]
+  trunk: [1, 2]
+  girth: [11, 15]
   taper: 0.25
   crook: 1
-  roots: [0, 2]
-  crown: [2.1, 4, 5]
+  roots: [2, 3]
+  # branches — насколько густо ветки яруса у хвойного (1 — как у ели, меньше — реже).
+  branches: 0.6
+  crown: [2.6, 4, 5]
   tints: ["#7aa04a", "#84a852", "#729846"]
   bare: 1.0
   log: resources:log

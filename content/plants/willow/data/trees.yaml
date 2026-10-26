@@ -6,8 +6,8 @@
   shape: weeping
   leaf: pointed
   leaves: broad
-  trunk: [3, 5]
-  girth: [8, 13]
+  trunk: [2, 3]
+  girth: [14, 20]
   taper: 0.5
   crook: 4
   roots: [2, 4]

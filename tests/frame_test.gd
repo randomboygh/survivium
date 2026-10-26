@@ -248,6 +248,9 @@ func _run() -> void:
 		if w.get_cell(cell.x, cell.y, cell.z) == Mat.STONE:
 			laid.append(cell)
 	c.hold("tools:stone_pickaxe")
+	# Rested, whatever the jumps and climbs before (which depend on the cave and the
+	# trees found) left of the stamina digging costs.
+	main.character.vitals.stamina = main.character.vitals.stamina_cap()
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < laid.size():
 			c._cooldown = 0.0

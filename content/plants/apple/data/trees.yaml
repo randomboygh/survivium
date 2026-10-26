@@ -7,8 +7,8 @@
   shape: round
   leaf: scales
   leaves: broad
-  trunk: [3, 4]
-  girth: [7, 10]
+  trunk: [2, 3]
+  girth: [12, 16]
   taper: 0.4
   crook: 2
   roots: [1, 2]

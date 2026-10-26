@@ -17,12 +17,12 @@
   title: Ель
   leaves: needles
   trunk: [1, 1]
-  girth: [7, 10]
+  girth: [14, 18]
   taper: 0.2
   crook: 0
-  roots: [0, 2]
-  crown: [2.3, 5, 7]
-  tints: ["#2e5738", "#335c36", "#2b523d"]
+  roots: [3, 4]
+  crown: [3.4, 5, 6]
+  tints: ["#3b6b40", "#40703d", "#376644"]
   bare: 0.0
   seed: cone
   log: resources:log

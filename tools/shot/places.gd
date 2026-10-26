@@ -648,6 +648,37 @@ func orchard(w, at: Vector3i) -> void:
 	main.player.position = (Vector3(at.x, h, at.z) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## A flat bare plate of sand at `at`, wider than a crown, with nothing on it but a row
+## of trees of `species` (ids of trees.yaml) 22 cells apart, north of the player, at
+## their full size: for looking at trees' shapes and light alone. The air over it is cleared up to the world's top.
+func specimen(w, at: Vector3i, species: Array) -> void:
+	var h: int = w.surface_y(at.x, at.z)
+	var sand := Mat.index("resources:sand")
+	var ground := sand if sand >= 0 else Mat.STONE
+	for z in range(at.z - 28, at.z + 20):
+		for x in range(at.x - 40, at.x + 40):
+			for y in w.size_y:
+				w.set_cell(x, y, z, ground if y < h else Mat.AIR)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 50 and key.y - at.z > -38 and key.y - at.z < 30:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 40 and b.z - at.z >= -28 and b.z - at.z <= 20:
+			w.remove_bush(b)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	for i in species.size():
+		var kind := Trees.index(species[i])
+		Trees.place(w, (at.x + (i * 2 - species.size() + 1) * 11) | 1, h, (at.z - 6) | 1, kind, rng, Trees.fit(kind, w.size_y - h))
+	for z in range(at.z - 32, at.z + 24, 8):
+		for x in range(at.x - 44, at.x + 44, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	# The player stands behind, in a gap between the crowns (none turns see-through),
+	# so the row is in the middle of the picture.
+	main.player.position = (Vector3(at.x + 11 * (species.size() % 2), h, at.z - 15) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player
 ## and a spruce east of them, grown afresh each time; `fell` fells both away from the
 ## player a cell above their feet, as the axe would.

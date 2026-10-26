@@ -72,8 +72,10 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 		var across := foot.size.y if side < 2 else foot.size.x
 		var wide := 2 + (h & 1)
 		var at := 2 + posmod(h >> 1, maxi(1, across - 4 - wide))
-		var root := _root(foot, side, -1, 3 + posmod(h >> 5, 3), at, wide)
-		_bark(buf, base, root, root, 0, 1 + (h >> 8 & 1), CAP_BARK, false, m, color)
+		# A conifer's roots spread farther and stand taller round its broad foot.
+		var big := 3 if s.tiers else 0
+		var root := _root(foot, side, -1, 3 + big + posmod(h >> 5, 3), at, wide + big / 2)
+		_bark(buf, base, root, root, 0, 1 + (h >> 8 & 1) + big, CAP_BARK, false, m, color)
 
 
 ## The part `from`..`to` texels out from the side `side` (E, W, S, N) of `foot` of a root

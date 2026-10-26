@@ -4,12 +4,12 @@
   leaf: needles
   leaves: needles
   trunk: [1, 1]
-  girth: [6, 9]
+  girth: [10, 14]
   taper: 0.2
   crook: 0
-  roots: [0, 1]
-  crown: [1.7, 4, 6]
-  tints: ["#2a5446", "#2e5a4a", "#274e42"]
+  roots: [3, 4]
+  crown: [2.0, 5, 6]
+  tints: ["#3f7250", "#447755", "#3b6c4c"]
   bare: 0.0
   bark: grey_bark
   log: resources:log

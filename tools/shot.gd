@@ -169,6 +169,9 @@ func _run() -> void:
 			places.orchard(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, 48))
 			# A long row is shot in parts: the player steps `pan` cells east along it.
 			main.player.position.x += shot.get("pan", 0) * CELL
+		if shot.has("specimen"):
+			# West of the spawn, away from the grove, the orchard and the clearing.
+			places.specimen(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 0), shot.specimen)
 		if shot.get("clearing", false):
 			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false), shot.get("trees", []))
 			main.player.position += shot.get("offset", Vector3.ZERO)
@@ -204,6 +207,8 @@ func _run() -> void:
 			await process_frame
 			main.clock.snow = 1.0 if main.clock.season == 3 else 0.0
 			main.clock.settle_weather()
+			if shot.has("clouds"):
+				main.clock.clouds = shot.clouds
 			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.clock.puddles = shot.get("puddles", 0.0)
@@ -466,7 +471,12 @@ func _run() -> void:
 			# The key hints come back with the interface; they would hide the sack.
 			main.hud.show_keys(false)
 			await process_frame
+		if not shot.get("hud", true):
+			main.hud.visible = false
+			await process_frame
+			await process_frame
 		var img := root.get_texture().get_image()
+		main.hud.visible = true
 		print("player at ", main.player.position)
 		img.save_png(out_dir.path_join(shot_name + ".png"))
 		# Frames of the sun moving at the game's speed, 60 a second, to see how the

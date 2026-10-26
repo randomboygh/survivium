@@ -4,8 +4,8 @@
   leaf: pointed
   leaves: broad
   blossom: "#f4f2ea"
-  trunk: [3, 5]
-  girth: [6, 9]
+  trunk: [2, 3]
+  girth: [11, 15]
   taper: 0.35
   crook: 3
   roots: [0, 2]

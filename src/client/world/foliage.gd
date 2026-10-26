@@ -25,7 +25,7 @@ const HALO_SCALE := 2.5
 ## Leaf cluster cards: size in world units (24 px, see PixelTextures.CLUMP; the bunch of
 ## leaves in a card is one of three sizes), cards on each open face of a crown point the
 ## camera sees.
-const CLUMP_SIZE := 1.5
+const CLUMP_SIZE := 2.0
 const CARDS_PER_FACE := 1
 ## Tint of the layer of large cards deeper in the crown, which fills the gaps between
 ## the outer cards: darker and cooler, as light gets less far into the leaves.
@@ -33,7 +33,7 @@ const DEEP := Color(0.7, 0.76, 0.84)
 ## Crown points within this many steps give the crown's middle for the light.
 const CROWN_REACH := 2
 ## How much the bumps of a crown (a smooth wave about two units across) bend its normal.
-const BUMP := 0.45
+const BUMP := 0.25
 ## What a tree does over the year, in the alpha of its cards' colour (see
 ## leaves.gdshader): keeps dry leaves under snow caps in winter, drops all of them (bare
 ## branches show), keeps its needles; bushes are below 0.5 (see bush_kind).
@@ -60,6 +60,10 @@ const BUSH_DISC := 0.9
 const SHADOW_DISC := 1.6
 ## One pixel and one cell in world units.
 const PX := 1.0 / 16.0
+## A card's normal is this long when it lies flat (see _layer_cards, leaves.gdshader).
+const FLAT := 2.0
+## How far round its trunk a cone's crown is looked for, in cells (see _spruce).
+const SPRUCE_REACH := 8
 const CELL := WorldData.CELL
 ## Levels 0, 2, 4.. of a column mask.
 const EVEN_LEVELS := 0x5555555555555555
@@ -248,7 +252,15 @@ static func _column(job: Job, x: int, z: int) -> void:
 	if x & 1 == 0 or z & 1 == 0:
 		return
 	var leaves: int = ch.leaf[col] & EVEN_LEVELS
-	if leaves == 0:
+	# Where a trunk runs up into its crown (leaves beside it), a bundle covers it like
+	# a point of the crown, drawn in front of it: the thick trunk of a broad-leaved tree
+	# must not poke through between the bundles.
+	var around: int = w.leaf_col(x + 1, z) | w.leaf_col(x - 1, z) | w.leaf_col(x, z + 1) | w.leaf_col(x, z - 1)
+	# So does its top, where it ends in the crown: seen from above at 3/4 the flat top of
+	# a thick trunk would show as a dark disc under the crown.
+	var crown_bits: int = ch.leaf[col]
+	var collar: int = ch.logs[col] & (around | (crown_bits >> 1) | (crown_bits >> 2)) & EVEN_LEVELS
+	if (leaves | collar) == 0:
 		return
 	var tree := _tree_at(trunks, x, z)
 	if tree.is_empty():
@@ -260,13 +272,31 @@ static func _column(job: Job, x: int, z: int) -> void:
 	# A cone of tiers (spruce) is built round its trunk; other crowns, needles or not,
 	# round the middle of their leaves.
 	var needles: bool = looks.tiers
+	if not needles and tree[0] == Vector2i(x, z):
+		# The trunk of a crown of lobes runs up through the gaps between them: covered
+		# with bundles from the lowest leaves of the crown up, it never shows inside it.
+		var crown_any := 0
+		for dz in range(-6, 7, 2):
+			for dx in range(-6, 7, 2):
+				crown_any |= w.leaf_col(x + dx, z + dz)
+		if crown_any != 0:
+			var lowest := crown_any & -crown_any
+			collar |= ch.logs[col] & ~(lowest - 1) & EVEN_LEVELS
+	leaves |= collar
+	if leaves == 0:
+		return
 	var tints: Array = looks.tints
 	var base: Color = tints[tree[2] % tints.size()]
 	base.a = _year_kind(looks, tree[2], tree[1])
 	var first_row: int = PixelTextures.LEAF_ROWS[looks.leaf] + BLOSSOM_ROW * looks.blossom_slot
 	var dead: bool = looks.dead
 	var axis := (Vector3(tree[0].x, 0, tree[0].y) + Vector3(0.5, 0.0, 0.5)) * CELL
-	if needles and tree[0] == Vector2i(x, z):
+	if needles and not dead:
+		# A cone is drawn whole from its trunk's column (see _spruce).
+		if tree[0] == Vector2i(x, z):
+			_spruce(job, w, x, z, base, first_row, looks, rng)
+		return
+	if needles and dead and tree[0] == Vector2i(x, z):
 		# Small sprigs in front of a spruce's trunk where the tiers are around
 		# it: the trunk shows only under the lowest tier. Put in the trunk, they
 		# are drawn on the side of it the camera looks from (leaves.gdshader).
@@ -284,7 +314,21 @@ static func _column(job: Job, x: int, z: int) -> void:
 		leaves ^= bit
 		var y := WorldData.level_of(bit)
 		var faces := _open_faces(w, x, y, z)
+		# A trunk in its crown takes the bundles of a point lying on it (see collar).
+		if faces.is_empty() and not dead and cells[y * layer + col] == Mat.LOG:
+			faces.append(Vector3i.UP)
+		# A bundle over a trunk (see collar) is drawn in front of it, or the near half
+		# of the trunk's top would show through.
+		var over_trunk: bool = cells[y * layer + col] == Mat.LOG
 		var mid := (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) * CELL
+		if not dead:
+			if not faces.is_empty() or needles:
+				_layer_cards(job, w, x, y, z, faces, mid, axis, needles, base, first_row, rng)
+				if not grown:
+					put(shadows, mid)
+					shadows.append_array([base.a, 0.0, 0.0, 0.0])
+					job.ns += 1
+			continue
 		if faces.is_empty():
 			# Inside a spruce a dark sprig fills the room between the tiers, so
 			# the ground never shows through.
@@ -306,18 +350,29 @@ static func _column(job: Job, x: int, z: int) -> void:
 		# Spruce tiers stay dense out to their rim, only the lone points of the
 		# top take small sprigs, so the tip is pointed.
 		var small: bool = faces.size() >= 4 and tree[0] == Vector2i(x, z) if needles else faces.size() >= 3
-		var rows := [1, 2] if small else [0, 1]
+		var rows := ([1, 2] if small else [0, 1]) if needles else ([0, 1] if small else [0, 0])
 		# A dead tree has only the deep layer, which shows its branches.
-		for f in ([] as Array[Vector3i] if dead else faces):
-			# Cards cover each face the camera can see, poking out of it a
-			# little, so no gap shows the trunk inside.
+		# Broad leaves take one bundle per point, out toward its open faces: a
+		# bundle is as wide as two points (SLYNYRD's bundles overlap by about half),
+		# more of them only cover each other and turn the crown to noise. Needles
+		# cover each open face with a sprig.
+		var outs: Array[Vector3] = []
+		if not dead and not needles:
+			var sum := Vector3.ZERO
+			for f in faces:
+				sum += Vector3(f)
+			outs.append(sum.normalized() if sum.length() > 0.1 else Vector3.UP)
+		elif not dead:
+			for f in faces:
+				outs.append(Vector3(f))
+		for f in outs:
 			for k in CARDS_PER_FACE:
-				var c := mid + Vector3(f) * (0.4 + rng.randi_range(0, 3) * PX)
+				var c := mid + f * (0.4 + rng.randi_range(0, 3) * PX)
 				var spread := Vector3(rng.randi_range(-4, 4), rng.randi_range(-4, 4), rng.randi_range(-4, 4)) * PX
-				c += spread - Vector3(f) * Vector3(f).dot(spread)
+				c += spread - f * f.dot(spread)
 				c = PixelView.snap(c)
 				var n := _tier_normal(c, middle, lean) if needles else _card_normal(c, middle)
-				_card(clumps, c, n, base, first_row + rows[rng.randi_range(0, 1)], rng)
+				_card(clumps, c, n, base, first_row + rows[rng.randi_range(0, 1)], rng, over_trunk)
 				job.nc += 1
 		# A deeper, darker layer behind the outer cards (a little inward, and
 		# drawn a little farther from the camera, see leaves.gdshader) fills the
@@ -332,6 +387,157 @@ static func _column(job: Job, x: int, z: int) -> void:
 			put(shadows, mid)
 			shadows.append_array([base.a, 0.0, 0.0, 0.0])
 			job.ns += 1
+
+## A cone of tiers drawn as SLYNYRD builds a conifer: round the trunk, on every level of
+## its crown, branches lying flat and pointing away from it (the shader turns each the
+## way its normal leans, drooping), as many as the tier is wide times the species'
+## `branches` of `looks` (trees.yaml), at its rim; each with a
+## darker copy a cell lower and a little aside, the drop shadow on the branches under
+## it; and a dark tuft at the trunk that fills the middle of the tier. A tuft crowns the
+## top. The branches face up and out, so the light of the sun makes them light, middle
+## or dark by the side of the tree they are on.
+static func _spruce(job: Job, w, x: int, z: int, base: Color, first_row: int, looks: Dictionary, rng: RandomNumberGenerator) -> void:
+	var density: float = looks.branches
+	var axis := (Vector3(x, 0, z) + Vector3(0.5, 0.0, 0.5)) * CELL
+	var dark := base * DEEP
+	dark.a = base.a
+	var shade := dark * DEEP
+	shade.a = base.a
+	# The levels of the crown and how far each reaches from the trunk, in cells.
+	var crown := 0
+	for dz in range(-SPRUCE_REACH, SPRUCE_REACH + 1, 2):
+		for dx in range(-SPRUCE_REACH, SPRUCE_REACH + 1, 2):
+			crown |= w.leaf_col(x + dx, z + dz)
+	crown &= EVEN_LEVELS
+	if crown == 0:
+		return
+	var top := WorldData.level_of(_top_bit(crown))
+	var low := WorldData.level_of(crown & -crown)
+	var widest := 0.0
+	var bits := crown
+	while bits != 0:
+		var bit := bits & -bits
+		bits ^= bit
+		var y := WorldData.level_of(bit)
+		var reach := 0.0
+		for dz in range(-SPRUCE_REACH, SPRUCE_REACH + 1, 2):
+			for dx in range(-SPRUCE_REACH, SPRUCE_REACH + 1, 2):
+				if w.get_cell(x + dx, y, z + dz) == Mat.LEAVES:
+					reach = maxf(reach, Vector2(dx, dz).length())
+		rng.seed = hash(Vector3i(x, y, z))
+		var mid := axis + Vector3(0.0, (y + 0.5) * CELL, 0.0)
+		for k in 2:
+			_card(job.clumps, PixelView.snap(mid - Vector3(0.0, k * CELL, 0.0)), Vector3.UP * FLAT, shade, first_row + 2, rng)
+		job.nc += 2
+		# The branches narrow evenly from the widest tier to the tip, whatever the
+		# lattice of points rounds each level's reach to, so the cone is straight-sided
+		# and the tip pointed.
+		var t := float(y - low) / maxf(1.0, top - low)
+		if y == low:
+			widest = _widest_tier(reach, looks)
+		reach = widest * (1.0 - t) + 0.5
+		# Small branches on the top of the cone, large ones on its bottom, so the tiers
+		# meet.
+		var row := first_row - PixelTextures.NEEDLE_ROW + (PixelTextures.SMALL_BRANCH_ROW if t > 0.7
+			else (PixelTextures.LARGE_BRANCH_ROW if t < 0.35 else PixelTextures.NEEDLE_ROW))
+		# An outer ring of branches at the rim and an inner one between them.
+		var count := clampi(roundi(reach * 2.2 * density), 3, 14)
+		var turn := rng.randf() * TAU
+		for i in count + count / 2:
+			var outer := i < count
+			var a: float = turn + TAU * ((i if outer else i - count + 0.5) * (1.0 if outer else 2.0) + rng.randf_range(-0.2, 0.2)) / count
+			var out := Vector3(cos(a), 0.0, sin(a))
+			var spread := reach * CELL * (rng.randf_range(0.65, 0.85) if outer else rng.randf_range(0.3, 0.45))
+			var c := mid + out * spread
+			# The length beyond FLAT says how far out from the trunk (leaves.gdshader).
+			var n := (out + Vector3.UP * 0.45).normalized() * (FLAT + spread)
+			_card(job.clumps, PixelView.snap(c), n, base, row, rng)
+			_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark, row + DEEP_ROW, rng)
+			job.nc += 2
+	# The tip: a tuft and over it a small branch pointing straight up the screen.
+	rng.seed = hash(Vector3i(x, top + 2, z))
+	var tip := axis + Vector3(0.0, (top + 1.0) * CELL, 0.0)
+	_card(job.clumps, PixelView.snap(tip), Vector3.UP * FLAT, base, first_row + 2, rng)
+	_card(job.clumps, PixelView.snap(tip + Vector3(0.0, CELL * 0.5, 0.0)), Vector3.UP * FLAT, base,
+		first_row - PixelTextures.NEEDLE_ROW + PixelTextures.UP_BRANCH_ROW, rng)
+	job.nc += 2
+
+
+## How far the lowest tier of a conifer `looks` reaches from the trunk, in cells, its
+## crown points `reach` cells out: the lattice of points, two cells apart, rounds a
+## narrow crown out as far as a broad one, so the species' radius (in points) holds it in.
+static func _widest_tier(reach: float, looks: Dictionary) -> float:
+	return clampf(reach, 1.5, maxf(1.5, looks.crown[0] * 1.8))
+
+
+## The highest set bit of `bits` (not 0).
+static func _top_bit(bits: int) -> int:
+	var top := bits
+	while bits != 0:
+		top = bits & -bits
+		bits ^= top
+	return top
+
+
+## A crown is layers parallel to the ground (SLYNYRD): every other level of points is a
+## layer whose points take a bundle lying flat on the top of their leaves, a little out
+## from the trunk, and a darker one a cell under it that shades the edge of the layer.
+## The levels between show as the shade under the layer above: a point there takes a
+## dark upright bundle where it is open to the side, or a flat lit one where nothing
+## lies on it. The bundles lean their normal out from the trunk and less up the lower
+## they lie in the crown, so each layer is lit on its sunny side and the lower ones are
+## darker.
+static func _layer_cards(job: Job, w, x: int, y: int, z: int, faces: Array[Vector3i], mid: Vector3, axis: Vector3,
+		needles: bool, base: Color, first_row: int, rng: RandomNumberGenerator) -> void:
+	var looks_needles := first_row % BLOSSOM_ROW == PixelTextures.NEEDLE_ROW
+	rng.seed = hash(Vector3i(x, y, z))
+	var top := mid
+	var out := Vector3(top.x - axis.x, 0.0, top.z - axis.z)
+	var outward := out.normalized() if out.length() > 0.2 else Vector3.ZERO
+	var middle := mid + _crown_offset(w, x, y, z)
+	# The tiers of a cone face the sky alike, their branches lit on the sunny side.
+	var rise := 1.0 if needles else clampf(0.75 + 0.3 * (mid.y - middle.y) / CELL, 0.15, 1.6)
+	var n := (outward * 0.8 + Vector3(0.0, rise, 0.0)).normalized()
+	var dark := base * DEEP
+	dark.a = base.a
+	if faces.is_empty():
+		# Inside a cone a dark tuft fills the room between the branches, so the
+		# trunk and the ground never show through.
+		_card(job.clumps, PixelView.snap(mid), n * FLAT, dark, first_row + 2, rng)
+		job.nc += 1
+		return
+	# Each tier of a cone is a layer of its own.
+	var layer := needles or (y >> 1) & 1 == 0
+	if layer or faces[0] == Vector3i.UP:
+		var c := top + outward * rng.randi_range(1, 4) * PX + Vector3(rng.randi_range(-3, 3), 0.0, rng.randi_range(-3, 3)) * PX
+		# The rim of a layer takes smaller bundles, so its edge is scalloped and the
+		# shade under it shows between them.
+		var rim := faces.size() >= 3 if not needles else outward == Vector3.ZERO and faces.size() >= 4
+		var row := first_row + (1 if rim else 0)
+		# Needles not in tiers (a pine's) take the tufts of the tips.
+		if looks_needles and not needles:
+			row = first_row + 2
+		if needles and outward != Vector3.ZERO:
+			# A cone's tier is spruce branches (the shader turns each the way its
+			# normal leans): two per point, fanned either side of straight out.
+			for turn in [rng.randf_range(0.25, 0.6), -rng.randf_range(0.25, 0.6)]:
+				var way := outward.rotated(Vector3.UP, turn)
+				var bn := (way * 0.8 + Vector3(0.0, rise, 0.0)).normalized()
+				var bc := c + way * 2.0 * PX
+				_card(job.clumps, PixelView.snap(bc), bn * FLAT, base, row, rng)
+				_card(job.clumps, PixelView.snap(bc - Vector3(0.0, CELL, 0.0)), bn * FLAT, dark, first_row + DEEP_ROW, rng)
+				job.nc += 2
+			return
+		_card(job.clumps, PixelView.snap(c), n * FLAT, base, row, rng)
+		_card(job.clumps, PixelView.snap(c - Vector3(0.0, CELL, 0.0)), n * FLAT, dark, first_row + DEEP_ROW, rng)
+		job.nc += 2
+	else:
+		var side := Vector3(outward.x, -0.5, outward.z).normalized()
+		var shade := dark * DEEP
+		shade.a = base.a
+		_card(job.clumps, PixelView.snap(mid + outward * 4.0 * PX), side, shade, first_row, rng)
+		job.nc += 1
+
 
 ## The plants once every column is built (see build_chunk), with the bushes of the
 ## chunk (their shadows go with the trees') and its snowdrifts.
@@ -487,6 +693,8 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 			if p.x == at.x:
 				front = maxi(front, (p.y - at.y) / 2)
 		lower = maxi(0, Trees.hidden_trunk(front) - (CONIFER_BARE - 1))
+	if looks.tiers:
+		return _cone_shadow(at, looks, levels, lower, kind, buf)
 	# A disc round all the points of each level, and one on every level between them
 	# (odd ones too, and those a gap between lobes leaves empty) grown from the levels
 	# above and below: discs a level apart overlap into one shadow of the crown, two or
@@ -513,6 +721,30 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 			buf.append_array([wx, 0.0, 0.0, c.x, 0.0, 1.0, 0.0, c.y, 0.0, 0.0, wz, c.z])
 			buf.append_array([kind, 0.0, 0.0, 0.0])
 			discs += 1
+	return discs
+
+
+## The shadow of a conifer drawn by _spruce: discs round its trunk every half level
+## from its lowest tier to its tip, as wide as the branches there, so the cone casts
+## one straight-sided shadow with a point, not a string of balls.
+static func _cone_shadow(at: Vector2i, looks: Dictionary, levels: Dictionary, lower: int, kind: float, buf: PackedFloat32Array) -> int:
+	var low: int = levels.keys().min()
+	var top: int = levels.keys().max()
+	var reach := 0.0
+	for p: Vector2i in levels[low]:
+		reach = maxf(reach, Vector2(p - at).length())
+	var widest := _widest_tier(reach, looks)
+	var discs := 0
+	for s in (top - low) * 2 + 4:
+		var y := low + s * 0.5
+		var t := (y - low) / maxf(1.0, top - low)
+		# The branches reach widest * (1 - t) + 0.5 and a little more with their leaves.
+		var r := maxf(widest * (1.0 - t) + 1.1, 0.4)
+		var c := Vector3(at.x + 0.5, y - lower + 0.5, at.y + 0.5) * CELL
+		var d := 2.0 * r * CELL / SHADOW_DISC
+		buf.append_array([d, 0.0, 0.0, c.x, 0.0, 1.0, 0.0, c.y, 0.0, 0.0, d, c.z])
+		buf.append_array([kind, 0.0, 0.0, 0.0])
+		discs += 1
 	return discs
 
 

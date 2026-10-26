@@ -260,6 +260,14 @@ const SHOTS := {
 	"pine-noon": {"time": 0.5, "season": 1, "clearing": true, "trees": ["plants:maple", "plants:pine"]},
 	"willow-low-sun": {"time": 0.3, "season": 1, "clearing": true, "trees": ["plants:willow", "plants:poplar"]},
 	"deadwood-noon": {"time": 0.5, "season": 1, "clearing": true, "trees": ["plants:deadwood", "plants:larch"]},
+	# One spruce on bare flat sand, clear sky, no sun rays, fog or interface, the sun low in
+	# the east so its shaded side shows: its shape and light alone.
+	"spruce-alone": {"time": 0.33, "season": 1, "specimen": ["plants:spruce"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	# A spruce, a fir and a larch side by side, the same way.
+	"conifers-alone": {"time": 0.33, "season": 1, "specimen": ["plants:fir", "plants:spruce", "plants:larch"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	# A linden and a fir, a cherry and a larch, side by side on the clearing.
+	"linden-fir": {"time": 0.42, "season": 1, "clearing": true, "trees": ["plants:linden", "plants:fir"]},
+	"cherry-larch": {"time": 0.42, "season": 1, "clearing": true, "trees": ["plants:cherry", "plants:larch"]},
 	"cherry-spring": {"time": 0.42, "season": 0, "clearing": true, "trees": ["plants:cherry", "plants:bird_cherry"]},
 	# North of the spruce by the full moon, its shadow falling toward the player.
 	"spruce-moon": {"time": 0.85, "season": 1, "moon": 1.0, "clearing": true, "offset": Vector3(0.5, 0.0, -5.0)},

@@ -3,8 +3,8 @@
   shape: column
   leaf: scales
   leaves: broad
-  trunk: [3, 4]
-  girth: [7, 10]
+  trunk: [4, 5]
+  girth: [11, 15]
   taper: 0.3
   crook: 0
   roots: [0, 2]

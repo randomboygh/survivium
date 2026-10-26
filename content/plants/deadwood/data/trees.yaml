@@ -4,8 +4,8 @@
   leaf: pointed
   leaves: broad
   dead: true
-  trunk: [4, 7]
-  girth: [7, 11]
+  trunk: [3, 5]
+  girth: [12, 18]
   taper: 0.5
   crook: 3
   roots: [1, 3]
