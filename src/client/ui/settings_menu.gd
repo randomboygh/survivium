@@ -85,6 +85,11 @@ var _version: Label
 var _changes: Button
 ## «Очистить журнал» beside «Назад» on the freezes' page (two taps, see _confirm).
 var _clear: Button
+## «Скопировать» and «Поделиться» in the same row on the freezes' and the report page:
+## the text of the page shown (_shown_text).
+var _copy: Button
+var _share: Button
+var _shown_text := ""
 var _scroll: ScrollContainer
 var _list: VBoxContainer
 ## The kinds of change and their icons, under the changes.
@@ -164,6 +169,20 @@ func _ready() -> void:
 	_changes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_changes.pressed.connect(open.bind("changes"))
 	buttons.add_child(_changes)
+	_copy = Button.new()
+	_copy.text = "Скопировать"
+	_copy.focus_mode = Control.FOCUS_NONE
+	_copy.custom_minimum_size = Vector2(0, 32)
+	_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_copy.pressed.connect(_copy_shown)
+	buttons.add_child(_copy)
+	_share = Button.new()
+	_share.text = "Поделиться"
+	_share.focus_mode = Control.FOCUS_NONE
+	_share.custom_minimum_size = Vector2(0, 32)
+	_share.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_share.pressed.connect(_share_shown)
+	buttons.add_child(_share)
 	_clear = Button.new()
 	_clear.text = "Очистить журнал"
 	_clear.focus_mode = Control.FOCUS_NONE
@@ -223,6 +242,11 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
+	_copy.visible = which in ["freezes", "report"]
+	_copy.text = "Скопировать"
+	# The phone's sharing, where the browser has it.
+	_share.visible = which == "report" and OS.has_feature("web") \
+			and JavaScriptBridge.eval("typeof navigator.share === 'function'", true) == true
 	_defaults.visible = which == "settings"
 	_ask_reset(false)
 	_tabs.visible = PAGES.has(which)
@@ -659,6 +683,10 @@ func _add_freezes(key: String) -> void:
 		TabRow.light(b, sec[0] == key)
 	_list.add_child(_paragraph(game.freeze_log.usual_line(), UiStyle.MUTED))
 	var lines: Array = game.freeze_log.lines(key)
+	var shown := [game.freeze_log.usual_line()]
+	for l: Array in lines:
+		shown.append(l[1])
+	_shown_text = "\n".join(shown)
 	if lines.is_empty():
 		_list.add_child(_paragraph("Фризов нет" if key == "all" else "Таких фризов нет", UiStyle.MUTED))
 	for l: Array in lines:
@@ -671,19 +699,21 @@ func _clear_freezes() -> void:
 	_fill()
 
 
-## The buttons that copy the playtest report (report_text) or, where the browser can,
-## hand it to the phone's sharing, and the report under them.
+## The playtest report (report_text), which the buttons under the page copy or share.
 func _add_report() -> void:
-	var text := report_text()
-	var copy := _add_action("Скопировать", DisplayServer.clipboard_set.bind(text))
-	copy.pressed.connect(func() -> void: copy.text = "Скопировано")
-	if OS.has_feature("web") and JavaScriptBridge.eval("typeof navigator.share === 'function'", true) == true:
-		_add_action("Поделиться", func() -> void:
-			JavaScriptBridge.eval("navigator.share({text: %s}).catch(function () {})" % JSON.stringify(text), true))
-	var gap := Control.new()
-	gap.custom_minimum_size.y = GAP
-	_list.add_child(gap)
-	_list.add_child(_paragraph(text, UiStyle.INK))
+	_shown_text = report_text()
+	_list.add_child(_paragraph(_shown_text, UiStyle.INK))
+
+
+## «Скопировать»: the text of the page shown into the clipboard.
+func _copy_shown() -> void:
+	DisplayServer.clipboard_set(_shown_text)
+	_copy.text = "Скопировано"
+
+
+## «Поделиться»: the text of the page shown to the phone's sharing.
+func _share_shown() -> void:
+	JavaScriptBridge.eval("navigator.share({text: %s}).catch(function () {})" % JSON.stringify(_shown_text), true)
 
 
 ## What a playtest report needs for the moment to be played again, a line each: the
