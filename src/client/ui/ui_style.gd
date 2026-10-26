@@ -27,6 +27,7 @@ const COLD := Color("#7cc0f0")
 const DANGER := Color("#e0613f")
 const DANGER_DARK := Color("#a8432a")
 const GOOD := Color("#8fcf6a")
+const GOOD_DARK := Color("#5e9443")
 
 const PALETTE := {
 	"w": INK, "m": MUTED, "a": ACCENT, "y": Color("#f6d27a"), "b": Color("#9fd2f7"),
@@ -768,13 +769,17 @@ static func slot(selected := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "slot", WELL, ACCENT if selected else EDGE, Vector4.ZERO)
 
 
-## A button's frame; `accent` lights it amber, `danger` red (a second tap destroys).
-static func button(state: String, accent := false, danger := false) -> StyleBoxTexture:
+## A button's frame; `accent` lights it amber, `danger` red (a second tap destroys),
+## `good` green (what it did worked).
+static func button(state: String, accent := false, danger := false, good := false) -> StyleBoxTexture:
 	var fill := BUTTON
 	var shade := BUTTON_SHADE
 	if danger:
 		fill = DANGER
 		shade = DANGER_DARK
+	elif good:
+		fill = GOOD
+		shade = GOOD_DARK
 	elif accent:
 		fill = ACCENT
 		shade = ACCENT_DARK
@@ -788,6 +793,37 @@ static func button(state: String, accent := false, danger := false) -> StyleBoxT
 		box.draw_center = false
 		box.modulate_color = Color(0, 0, 0, 0)
 	return box
+
+
+## The red and green frames of the window's buttons, made once.
+static var _lit_boxes := {}
+
+
+## Lights button `b` red while it waits for its second tap (as the bin in the bag), or
+## puts it back; its text stays.
+static func arm(b: Button, on: bool) -> void:
+	_paint(b, "danger" if on else "")
+
+
+## Lights button `b` green when what it did worked («Скопировано»), or puts it back.
+static func succeed(b: Button, on: bool) -> void:
+	_paint(b, "good" if on else "")
+
+
+static func _paint(b: Button, kind: String) -> void:
+	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
+		if kind == "":
+			b.remove_theme_stylebox_override(state)
+			continue
+		var key := kind + ":" + state
+		if not _lit_boxes.has(key):
+			_lit_boxes[key] = button(state, false, kind == "danger", kind == "good")
+		b.add_theme_stylebox_override(state, _lit_boxes[key])
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+		if kind == "":
+			b.remove_theme_color_override(c)
+		else:
+			b.add_theme_color_override(c, DARK_INK)
 
 
 ## Big round-ish touch button: an octagon with cut corners, a light rim along the top

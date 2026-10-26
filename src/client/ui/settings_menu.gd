@@ -225,6 +225,10 @@ func _make_tabs(which: String) -> void:
 		b.custom_minimum_size.y = TAB_HEIGHT
 		b.disabled = key in SOON
 		b.tooltip_text = "Скоро" if b.disabled else ""
+		if which == "freezes":
+			# Their counts grow: the tabs share the window's width and never widen it.
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.clip_text = true
 		_tabs.add_child(b)
 		_tab_buttons[key] = b
 
@@ -244,9 +248,10 @@ func _fill() -> void:
 	_clear.visible = which == "freezes"
 	_copy.visible = which in ["freezes", "report"]
 	_copy.text = "Скопировать"
+	UiStyle.succeed(_copy, false)
 	# The phone's sharing, where the browser has it.
 	_share.visible = which == "report" and OS.has_feature("web") \
-			and JavaScriptBridge.eval("typeof navigator.share === 'function'", true) == true
+			and int(JavaScriptBridge.eval("typeof navigator.share === 'function' ? 1 : 0", true)) == 1
 	_defaults.visible = which == "settings"
 	_ask_reset(false)
 	_tabs.visible = PAGES.has(which)
@@ -571,9 +576,8 @@ func _reset_pressed() -> void:
 
 func _ask_reset(on: bool) -> void:
 	_asking_reset = on
-	_defaults.text = "Сбросить все настройки?" if on else "По умолчанию"
-	_defaults.add_theme_color_override("font_color", UiStyle.DANGER if on else UiStyle.INK)
-	_defaults.add_theme_color_override("font_hover_color", UiStyle.DANGER if on else UiStyle.INK)
+	_defaults.text = "По умолчанию"
+	UiStyle.arm(_defaults, on)
 
 
 func _go_back() -> void:
@@ -679,7 +683,8 @@ func _add_changes(changes: Array) -> void:
 func _add_freezes(key: String) -> void:
 	for sec in PAGES.freezes:
 		var b: Button = _tab_buttons[sec[0]]
-		b.text = "%s · %d" % [sec[1], game.freeze_log.lines(sec[0]).size()]
+		# No « · » before the count: four tabs of two-figure counts fit an upright phone.
+		b.text = "%s %d" % [sec[1], game.freeze_log.lines(sec[0]).size()]
 		TabRow.light(b, sec[0] == key)
 	_list.add_child(_paragraph(game.freeze_log.usual_line(), UiStyle.MUTED))
 	var lines: Array = game.freeze_log.lines(key)
@@ -709,6 +714,7 @@ func _add_report() -> void:
 func _copy_shown() -> void:
 	DisplayServer.clipboard_set(_shown_text)
 	_copy.text = "Скопировано"
+	UiStyle.succeed(_copy, true)
 
 
 ## «Поделиться»: the text of the page shown to the phone's sharing.
@@ -731,7 +737,7 @@ func report_text() -> String:
 		"Survivium %s · %s · %s" % [info.version, info.commit, info.date],
 		"Мир: %s, настройки %s" % ["тестовый" if s.in_test_world() else "зерно %d" % game.world_seed,
 			JSON.stringify(game.world_options)],
-		"Игрок: x %d, z %d, уровень %d, срез %d" % [cell.x, cell.z, cell.y, game.chunks.cut_level],
+		"Игрок: x %d, y %d, уровень %d, срез %d" % [cell.x, cell.z, cell.y, game.chunks.cut_level],
 		"Камера: поворот %d°, наклон %d" % [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps],
 		"Время: день %d, %s, %02d:%02d, ход ×%s%s%s" % [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
 			str(clock.time_speed * s.time_boost), ", как в жизни" if clock.real_time else "",
@@ -828,12 +834,12 @@ func _add_action(text: String, action: Callable, confirm := false) -> Button:
 	return b
 
 
-## A button that asks first: the first tap turns it into «Точно? Ещё раз» (for a few
-## seconds), the second does `action`.
+## A button that asks first: the first tap turns it red (for a few seconds, its text
+## as it was), the second does `action`.
 func _confirm(b: Button, text: String, action: Callable) -> void:
-	if b.text == text:
-		b.text = "Точно? Ещё раз"
-		b.add_theme_color_override("font_color", UiStyle.DANGER)
+	if not b.get_meta("armed", false):
+		b.set_meta("armed", true)
+		UiStyle.arm(b, true)
 		get_tree().create_timer(CONFIRM_WAIT, true).timeout.connect(_unarm.bind(b, text))
 		return
 	action.call()
@@ -842,7 +848,8 @@ func _confirm(b: Button, text: String, action: Callable) -> void:
 func _unarm(b: Button, text: String) -> void:
 	if is_instance_valid(b):
 		b.text = text
-		b.remove_theme_color_override("font_color")
+		b.set_meta("armed", false)
+		UiStyle.arm(b, false)
 
 
 ## A marker (game.markers, `i`) as a row: its colour, its name and column, and a
@@ -871,13 +878,13 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	swatch.add_child(fill)
 	row.add_child(swatch)
-	var label := UiStyle.label("%s · X %d, Z %d" % [name, cell.x, cell.y])
+	var label := UiStyle.label("%s · X %d, Y %d" % [name, cell.x, cell.y])
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
 	row.add_child(label)
 	var b := Button.new()
-	b.text = "Туда"
+	b.text = "Перейти"
 	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(0, ARROW)

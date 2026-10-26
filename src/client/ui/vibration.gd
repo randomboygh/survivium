@@ -17,7 +17,8 @@ const HURT_MOST := 220
 ## True where the device can buzz at all.
 static func supported() -> bool:
 	if OS.has_feature("web"):
-		return JavaScriptBridge.eval("typeof navigator.vibrate === 'function'", true) == true
+		# The browser hands a JS boolean back as an int; int == bool is a runtime error.
+		return int(JavaScriptBridge.eval("typeof navigator.vibrate === 'function' ? 1 : 0", true)) == 1
 	return OS.has_feature("android")
 
 

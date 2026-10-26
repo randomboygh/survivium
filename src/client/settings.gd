@@ -337,11 +337,12 @@ func can_fullscreen() -> bool:
 ## Whether the browser has a way for the page to fill the screen; some phone browsers
 ## have only the older webkit names.
 func _fullscreen_api() -> bool:
-	return JavaScriptBridge.eval("""(function () {
+	# The browser hands a JS boolean back as an int; int == bool is a runtime error.
+	return int(JavaScriptBridge.eval("""(function () {
 		var e = document.documentElement;
-		return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled
-			|| e.requestFullscreen || e.webkitRequestFullscreen);
-	})()""", true) == true
+		return document.fullscreenEnabled || document.webkitFullscreenEnabled
+			|| e.requestFullscreen || e.webkitRequestFullscreen ? 1 : 0;
+	})()""", true)) == 1
 
 
 func fullscreen() -> bool:
@@ -349,7 +350,7 @@ func fullscreen() -> bool:
 		# The browser goes full screen a moment after it is asked.
 		if Time.get_ticks_msec() - _fullscreen_asked < 1500:
 			return _fullscreen_wanted
-		return JavaScriptBridge.eval("!!(document.fullscreenElement || document.webkitFullscreenElement)", true) == true
+		return int(JavaScriptBridge.eval("document.fullscreenElement || document.webkitFullscreenElement ? 1 : 0", true)) == 1
 	return DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN,
 		DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
 
