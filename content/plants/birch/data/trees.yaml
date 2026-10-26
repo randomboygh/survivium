@@ -4,7 +4,7 @@
 - id: birch
   title: Берёза
   shape: column
-  leaf: pointed
+  leaf: soft
   leaves: broad
   trunk: [5, 6]
   girth: [10, 14]

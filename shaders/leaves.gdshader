@@ -36,6 +36,8 @@ const float UP_BRANCH_ROW = 14.0;
 const float LARGE_BRANCH_ROW = 15.0;
 // How deep a conifer's tier is drawn along the view, as a share of its width.
 const float CONE_DEPTH = 0.45;
+// How much of its colour a leaf keeps (1 all, 0 grey).
+const float LEAF_SATURATION = 0.75;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
@@ -198,6 +200,8 @@ void fragment() {
 		(off < 0.5 ? vec3(1.25, 1.22, 1.0) : vec3(1.6, 1.52, 1.05)))));
 	tone = mix(vec3(dot(tone, vec3(0.333))), tone, hue_shift);
 	vec3 col = tint.rgb * season * tone;
+	// Toned down toward grey to sit with the grass and the ground.
+	col = mix(vec3(dot(col, vec3(0.3, 0.55, 0.15))), col, LEAF_SATURATION);
 	if (branches) {
 		col = vec3(0.3, 0.24, 0.2) * (edge ? 1.15 : 1.0);
 	}

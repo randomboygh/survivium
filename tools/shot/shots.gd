@@ -265,6 +265,11 @@ const SHOTS := {
 	"spruce-alone": {"time": 0.33, "season": 1, "specimen": ["plants:spruce"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
 	# A spruce, a fir and a larch side by side, the same way.
 	"conifers-alone": {"time": 0.33, "season": 1, "specimen": ["plants:fir", "plants:spruce", "plants:larch"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	"linden-alone": {"time": 0.33, "season": 1, "specimen": ["plants:linden"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	"broad-alone": {"time": 0.33, "season": 1, "specimen": ["plants:oak", "plants:linden", "plants:birch"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	"broad-alone-2": {"time": 0.33, "season": 1, "specimen": ["plants:maple", "plants:poplar", "plants:willow"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	"broad-alone-3": {"time": 0.33, "season": 1, "specimen": ["plants:apple", "plants:rowan", "plants:cherry"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
+	"broad-alone-4": {"time": 0.33, "season": 1, "specimen": ["plants:bird_cherry", "plants:pine", "plants:deadwood"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
 	# A linden and a fir, a cherry and a larch, side by side on the clearing.
 	"linden-fir": {"time": 0.42, "season": 1, "clearing": true, "trees": ["plants:linden", "plants:fir"]},
 	"cherry-larch": {"time": 0.42, "season": 1, "clearing": true, "trees": ["plants:cherry", "plants:larch"]},

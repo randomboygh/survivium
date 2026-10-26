@@ -21,8 +21,8 @@ const NEEDLES := 1
 ## bare trunk; a cone of tiers (spruce). A conifer is a cone unless it says otherwise.
 const SHAPES := ["round", "lobed", "column", "weeping", "umbrella", "cone"]
 ## How a species' leaf clusters are drawn (`leaf`, see PixelTextures.build_clumps):
-## pointed leaves, round curly lumps, broad rounded leaves lying like scales, needles.
-const LEAF_STYLES := ["pointed", "curly", "scales", "needles"]
+## pointed leaves, soft oval ones, round curly lumps, broad rounded leaves lying like scales, needles.
+const LEAF_STYLES := ["pointed", "soft", "curly", "scales", "needles"]
 
 ## Where a species grows is the biomes' say (Biomes: a biome's `trees` shares), not the
 ## tree's: the generator asks the biome of a column for a tree, never for a species by name.

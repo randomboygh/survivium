@@ -1,7 +1,7 @@
 - id: linden
   title: Липа
   shape: round
-  leaf: pointed
+  leaf: soft
   leaves: broad
   trunk: [3, 4]
   girth: [16, 22]

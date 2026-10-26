@@ -41,7 +41,9 @@ const LARGE_BRANCH := 0.8
 ## The ways of the mirrored rows, in order (see _spruce_branch).
 const BRANCH_WAYS := [0, 1, 2, 7]
 ## The first row of each leaf style (Trees.LEAF_STYLES).
-const LEAF_ROWS := {"pointed": 0, "needles": NEEDLE_ROW, "curly": CURLY_ROW, "scales": SCALES_ROW}
+## A layered crown (Foliage._broad) takes only the largest bundle of its style, so the
+## pointed style's smaller rows hold the soft one: leaves blunter and wider (linden, birch).
+const LEAF_ROWS := {"pointed": 0, "soft": 1, "needles": NEEDLE_ROW, "curly": CURLY_ROW, "scales": SCALES_ROW}
 ## Alpha of the pixels on the upper edge of a leaf, needle or twig (see _mark_edges).
 const EDGE_ALPHA := 0.8
 ## Bush clusters: rows of bunches of leaves this many px across, then the same with
@@ -346,7 +348,10 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := 
 	for row in sizes.size():
 		var size: int = sizes[row]
 		for v in 4:
-			_leaf_bunch(img, Vector2i(v * cell, row * cell), cell, size, c, rng)
+			if row == 0:
+				_leaf_bunch(img, Vector2i(v * cell, row * cell), cell, size, c, rng)
+			else:
+				_bundle(img, Vector2i(v * cell, row * cell), cell, sizes[row - 1], c, rng, "soft")
 			if conifers:
 				# Spruce branches pointing one of eight ways round, the first four in the
 				# first needle row, the others in the next, then tufts for the tips.
@@ -469,7 +474,7 @@ static func _bundle(img: Image, origin: Vector2i, cell: int, size: int, c: Vecto
 			if Vector2(x / heap, y / (heap * 0.9)).length() <= 1.0:
 				px[Vector2i(x, y)] = LEAF_RIM
 				ids[Vector2i(x, y)] = 0.5
-	if style == "pointed":
+	if style == "pointed" or style == "soft":
 		var leaves := []
 		for i in 9:
 			var a := (i + rng.randf_range(-0.15, 0.15)) / 9.0 * TAU
@@ -485,7 +490,7 @@ static func _bundle(img: Image, origin: Vector2i, cell: int, size: int, c: Vecto
 			var o := Vector2(cos(l[1]) * l[2], sin(l[1]) * l[2] * 0.9)
 			var id := rng.randf()
 			# The leaves turn a little the same way round, a pinwheel.
-			var leaf := _rhombus(l[3], l[4], l[1] + 0.3)
+			var leaf := _rhombus(l[3], l[4] * (1.2 if style == "soft" else 1.0), l[1] + 0.3, style == "soft")
 			for q: Vector2i in leaf:
 				var p := Vector2i(roundi(o.x + q.x), roundi(o.y + q.y * 0.92))
 				px[p] = leaf[q]
@@ -546,8 +551,8 @@ static func _bundle(img: Image, origin: Vector2i, cell: int, size: int, c: Vecto
 
 ## Pixels of a leaf from (0, 0) out along `angle`, `length` long and `width` wide at a
 ## third of the way: LEAF_RIM on its lower-left border, LEAF_LIT on the half facing the
-## light (upper right), LEAF_BODY on the other half.
-static func _rhombus(length: float, width: float, angle: float) -> Dictionary:
+## light (upper right), LEAF_BODY on the other half; `soft`: an oval with a blunt tip.
+static func _rhombus(length: float, width: float, angle: float, soft := false) -> Dictionary:
 	var ca := cos(angle)
 	var sa := sin(angle)
 	var shape := {}
@@ -559,6 +564,9 @@ static func _rhombus(length: float, width: float, angle: float) -> Dictionary:
 			if u < -0.3 or u > length:
 				continue
 			var t := u / (length * 0.35) if u < length * 0.35 else (length - u) / (length * 0.65)
+			# A soft leaf is an oval with a blunt tip.
+			if soft:
+				t = pow(clampf(t, 0.0, 1.0), 0.45)
 			if absf(v) <= width * t + 0.35:
 				shape[Vector2i(x, y)] = v
 	# The side of the midrib that faces the light (1, -1).

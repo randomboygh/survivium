@@ -62,6 +62,10 @@ const SHADOW_DISC := 1.6
 const PX := 1.0 / 16.0
 ## A card's normal is this long when it lies flat (see _layer_cards, leaves.gdshader).
 const FLAT := 2.0
+## A broad crown's bundles (see _broad): how far from a point of the crown they lie and
+## how far apart, in cells.
+const BUNDLE_REACH := 1.2
+const BUNDLE_STEP := 2.0
 ## How far round its trunk a cone's crown is looked for, in cells (see _spruce).
 const SPRUCE_REACH := 8
 const CELL := WorldData.CELL
@@ -296,6 +300,11 @@ static func _column(job: Job, x: int, z: int) -> void:
 		if tree[0] == Vector2i(x, z):
 			_spruce(job, w, x, z, base, first_row, looks, rng)
 		return
+	if grown and not needles and not dead and looks.leaf != "needles":
+		# So is a broad crown, in layers (see _broad).
+		if tree[0] == Vector2i(x, z):
+			_broad(job, w, tree, trunks, base, first_row, rng)
+		return
 	if needles and dead and tree[0] == Vector2i(x, z):
 		# Small sprigs in front of a spruce's trunk where the tiers are around
 		# it: the trunk shows only under the lowest tier. Put in the trunk, they
@@ -468,6 +477,111 @@ static func _spruce(job: Job, w, x: int, z: int, base: Color, first_row: int, lo
 ## narrow crown out as far as a broad one, so the species' radius (in points) holds it in.
 static func _widest_tier(reach: float, looks: Dictionary) -> float:
 	return clampf(reach, 1.5, maxf(1.5, looks.crown[0] * 1.8))
+
+
+## A broad crown drawn whole from its trunk's column, as SLYNYRD layers bundles of
+## leaves: each level of its points a flat layer of bundles packed over their shape, the
+## bundles leaning out from the middle of the crown so the sun lights it as one mass,
+## light on its sunny side and dark on the other; under every bundle its dark copy a
+## cell lower and a little aside, the shade a layer casts on the one below, which also
+## fills the crown so nothing shows through. The bundles a layer above covers whichever
+## way the camera looks are left out.
+static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_row: int, rng: RandomNumberGenerator) -> void:
+	var at: Vector2i = tree[0]
+	var levels := _crown_levels(w, at, trunks)
+	if levels.is_empty():
+		return
+	var dark := base * DEEP
+	dark.a = base.a
+	var ys: Array = levels.keys()
+	ys.sort()
+	var low: int = ys[0]
+	var top: int = ys[-1]
+	# The middle of the crown, in cells.
+	var middle := Vector2.ZERO
+	var count := 0
+	for y: int in ys:
+		for p: Vector2i in levels[y]:
+			middle += Vector2(p)
+			count += 1
+	middle = middle / count + Vector2(0.5, 0.5)
+	# Each level a round layer as wide as its points reach: the cells it covers.
+	var covers := {}
+	var reach := {}
+	for y: int in ys:
+		var far := 0.0
+		for p: Vector2i in levels[y]:
+			far = maxf(far, (Vector2(p) + Vector2(0.5, 0.5) - middle).length())
+		var r := far + BUNDLE_REACH
+		var cells := {}
+		for dz in range(-ceili(r), ceili(r) + 1):
+			for dx in range(-ceili(r), ceili(r) + 1):
+				var cell := Vector2i(floori(middle.x) + dx, floori(middle.y) + dz)
+				if (Vector2(cell) + Vector2(0.5, 0.5) - middle).length() <= r:
+					cells[cell] = true
+		covers[y] = cells
+		reach[y] = r
+	for y: int in ys:
+		var cells: Dictionary = covers[y]
+		var above: Dictionary = covers.get(y + 2, {})
+		var t := float(y - low) / maxf(1.0, top - low)
+		var r: float = reach[y]
+		# The lower a layer, the more the ones above shade it.
+		var tint := base.lerp(base * DEEP * DEEP, 1.0 - t)
+		tint.a = base.a
+		rng.seed = hash(Vector3i(at.x, y, at.y))
+		var lo := middle - Vector2(r, r)
+		var rows := ceili(2.0 * r / BUNDLE_STEP) + 1
+		for j in rows:
+			for i in rows:
+				# A lattice of triangles, every other row half a step aside.
+				var q := lo + Vector2((i + 0.5 * (j & 1)) * BUNDLE_STEP, j * BUNDLE_STEP * 0.87)
+				q += Vector2(rng.randf_range(-0.3, 0.3), rng.randf_range(-0.3, 0.3))
+				var cell := Vector2i(floori(q.x), floori(q.y))
+				if not cells.has(cell) or _covered(above, cell):
+					continue
+				var off := (q - middle) / r
+				# The length beyond FLAT says how far out from the middle (leaves.gdshader
+				# draws the layer shallower along the view, as it does a cone's tier).
+				var n := (Vector3(off.x, 0.0, off.y) * 2.2 + Vector3.UP * (0.2 + 0.8 * t)).normalized() \
+					* (FLAT + (q - middle).length() * CELL)
+				var c := Vector3(q.x, y + 1.0, q.y) * CELL
+				_card(job.clumps, PixelView.snap(c), n, tint, first_row, rng)
+				_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark * DEEP, first_row + DEEP_ROW, rng)
+				job.nc += 2
+
+
+## Whether the cells `cells` of a layer cover `cell` and the cells two round it, so the
+## layer hides what lies under `cell` whichever way the camera looks.
+static func _covered(cells: Dictionary, cell: Vector2i) -> bool:
+	if cells.is_empty():
+		return false
+	for dz in [-2, 0, 2]:
+		for dx in [-2, 0, 2]:
+			if not cells.has(cell + Vector2i(dx, dz)):
+				return false
+	return true
+
+
+## The points of the crown of the tree on column `at`, per even level: {level: [column]};
+## `trunks` are the trees around, to tell which points belong to it.
+static func _crown_levels(w, at: Vector2i, trunks: Array) -> Dictionary:
+	var levels := {}
+	for dz in range(-TREE_REACH, TREE_REACH + 1, 2):
+		for dx in range(-TREE_REACH, TREE_REACH + 1, 2):
+			var x := at.x + dx
+			var z := at.y + dz
+			var leaves: int = w.leaf_col(x, z) & EVEN_LEVELS
+			if leaves == 0 or _tree_at(trunks, x, z)[0] != at:
+				continue
+			while leaves != 0:
+				var bit := leaves & -leaves
+				leaves ^= bit
+				var y := WorldData.level_of(bit)
+				if not levels.has(y):
+					levels[y] = []
+				levels[y].append(Vector2i(x, z))
+	return levels
 
 
 ## The highest set bit of `bits` (not 0).
@@ -663,21 +777,7 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 	if kind == DEAD:
 		return 0
 	# Per level: the columns of the points there.
-	var levels := {}
-	for dz in range(-TREE_REACH, TREE_REACH + 1, 2):
-		for dx in range(-TREE_REACH, TREE_REACH + 1, 2):
-			var x := at.x + dx
-			var z := at.y + dz
-			var leaves: int = w.leaf_col(x, z) & EVEN_LEVELS
-			if leaves == 0 or _tree_at(trunks, x, z)[0] != at:
-				continue
-			while leaves != 0:
-				var bit := leaves & -leaves
-				leaves ^= bit
-				var y := WorldData.level_of(bit)
-				if not levels.has(y):
-					levels[y] = {}
-				levels[y][Vector2i(x, z)] = true
+	var levels := _crown_levels(w, at, trunks)
 	if levels.is_empty():
 		return 0
 	# A conifer's lowest tier hangs on screen over the trunk below it (see

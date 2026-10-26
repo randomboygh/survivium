@@ -132,7 +132,7 @@ const SCHEMAS := {
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
 		"shape": {"type": "enum", "values": ["", "round", "lobed", "column", "weeping", "umbrella", "cone"], "default": ""},
-		"leaf": {"type": "enum", "values": ["", "pointed", "curly", "scales", "needles"], "default": ""},
+		"leaf": {"type": "enum", "values": ["", "pointed", "soft", "curly", "scales", "needles"], "default": ""},
 		"blossom": {"type": "color", "default": null},
 		"dead": {"type": "bool", "default": false},
 		"trunk": {"type": "list", "of": "int", "len": 2, "min": 0},
