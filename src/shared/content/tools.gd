@@ -129,32 +129,74 @@ static func step_of(dir: Vector2) -> Vector2i:
 	return Vector2i(roundi(cos(a)), roundi(sin(a)))
 
 
-## Cells the action button works on, in order, for a body with its feet in `feet`
-## facing `step`, from the top down like a wall cut back in front of it: at the head's
-## level (the body is two cells tall) the cell in front, the one beyond it, the ones left
-## and right of the first, the ones beyond those (see front_ring); then the same at the
-## waist, then the ground in front of the feet; last the cell over the head. The one
-## under the feet is not here: WorldActions.front_order adds it once all around is dug.
+## How many rings of columns round the body the action button works on (see ring).
+const RINGS := 2
+
+
+## Cells the action button digs, in order, for a body with its feet in `feet` facing
+## `step`: the ring of columns next to the body first, then the one beyond it (see
+## ring), each from the top down like a wall cut back: at the head's level (the body is
+## two cells tall), then the waist, then the ground; last the cell over the head. The
+## one under the feet is not here: WorldActions.front_order adds it once all around is
+## dug, and the body drops into the pit and starts again.
 static func front_cells(feet: Vector3i, step: Vector2i) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
-	for dy in [1, 0, -1]:
-		for o in front_ring(step):
-			out.append(feet + o + Vector3i(0, dy, 0))
+	for r in range(1, RINGS + 1):
+		var cols := ring(step, r)
+		for dy in [1, 0, -1]:
+			var at := feet + Vector3i(0, dy, 0)
+			for o in cols:
+				out.append(at + o)
 	out.append(feet + Vector3i(0, 2, 0))
 	return out
 
 
-## The columns in front of a body facing `step`, as offsets from its feet, in the order
-## of front_cells: in front, beyond it, left and right of the first, beyond those. Facing
-## a diagonal, left and right are the two columns that touch both the body's and the
-## front one.
-static func front_ring(step: Vector2i) -> Array[Vector3i]:
-	var s := Vector3i(step.x, 0, step.y)
-	var sides := _sides(step)
-	return [s, s * 2, s + sides[0], s + sides[1], s * 2 + sides[0], s * 2 + sides[1]]
+## Cells a block goes in, in order (see front_cells): the near ring, then the one beyond,
+## each from the bottom up (the holes first, then the waist, then the head's level).
+static func place_cells(feet: Vector3i, step: Vector2i) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for r in range(1, RINGS + 1):
+		for dy in [-1, 0, 1]:
+			for o in ring(step, r):
+				out.append(feet + o + Vector3i(0, dy, 0))
+	return out
 
 
-## Offsets from the column in front to the ones left and right of it (see front_ring).
+## The columns `r` steps round a body facing `step` (the square ring), as offsets from
+## its feet, in the order the action button takes them: the one it faces, then the ones
+## left and right of it, then those further left and right, and so on round to the one
+## behind, the left before the right at each turn.
+static func ring(step: Vector2i, r: int) -> Array[Vector3i]:
+	var key := Vector3i(step.x, step.y, r)
+	if not _rings.has(key):
+		_rings[key] = _make_ring(step, r)
+	return _rings[key]
+
+
+static var _rings := {}
+
+
+static func _make_ring(step: Vector2i, r: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for dz in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			if maxi(absi(dx), absi(dz)) == r:
+				out.append(Vector3i(dx, 0, dz))
+	out.sort_custom(func(a: Vector3i, b: Vector3i) -> bool:
+		var ta := _turn(step, a)
+		var tb := _turn(step, b)
+		if not is_equal_approx(absf(ta), absf(tb)):
+			return absf(ta) < absf(tb)
+		return ta > tb)
+	return out
+
+
+## The angle from the way `step` faces to column offset `o`, signed by the side.
+static func _turn(step: Vector2i, o: Vector3i) -> float:
+	return atan2(float(step.x * o.z - step.y * o.x), float(step.x * o.x + step.y * o.z))
+
+
+## Offsets from the column in front to the ones left and right of it (see sweep).
 static func _sides(step: Vector2i) -> Array[Vector3i]:
 	if step.x == 0 or step.y == 0:
 		return [Vector3i(-step.y, 0, step.x), Vector3i(step.y, 0, -step.x)]
@@ -168,25 +210,14 @@ static func sweep(cell: Vector3i, step: Vector2i) -> Array[Vector3i]:
 	return [cell, cell + sides[0], cell + sides[1]]
 
 
-## Columns around a body facing `step` (offsets from its feet) where it can reach a tree
-## or a bush with the action button: up to two columns away and not behind it, the
-## nearest first and, at one distance, the ones most ahead.
+## Columns round a body facing `step` (offsets from its feet) where it can reach a tree
+## or a bush with the action button, in the order of front_cells: the near ring, then
+## the one beyond, each from the one it faces round to the one behind.
 static func sector(step: Vector2i) -> Array[Vector2i]:
-	var ahead := Vector2(step).normalized()
 	var out: Array[Vector2i] = []
-	for dz in range(-2, 3):
-		for dx in range(-2, 3):
-			var o := Vector2i(dx, dz)
-			var d := Vector2(o)
-			if o == Vector2i.ZERO:
-				continue
-			var cos_a := d.normalized().dot(ahead)
-			if cos_a >= 0.3 or d.length() < 1.5 and cos_a >= -0.1:
-				out.append(o)
-	out.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		var la := Vector2(a).length() - Vector2(a).normalized().dot(ahead) * 0.4
-		var lb := Vector2(b).length() - Vector2(b).normalized().dot(ahead) * 0.4
-		return la < lb)
+	for r in range(1, RINGS + 1):
+		for o in ring(step, r):
+			out.append(Vector2i(o.x, o.z))
 	return out
 
 
