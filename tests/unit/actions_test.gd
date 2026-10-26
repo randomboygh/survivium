@@ -68,8 +68,8 @@ func _bits(v: int) -> int:
 	return n
 
 
-## What the action button picks in front: the most worth gathering first, then digging
-## from the head down, never under the feet.
+## What the action button picks round the body: the most worth gathering first, then digging
+## from the head down, under the feet only once both rings round it are dug.
 func _test_front_choice() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:
@@ -95,8 +95,8 @@ func _test_front_choice() -> void:
 	w.set_cell(30, 3, 29, Mat.AIR)
 	_check(actions.front_choice(who) == {"dig": [Vector3i(30, 2, 29)]}, "then at the waist")
 	w.set_cell(30, 2, 29, Mat.AIR)
-	_check(actions.front_choice(who).get("dig", [])[0].y == 1 and not Vector3i(30, 1, 30) in actions.front_order(who),
-		"then the ground in front, not the cell under the feet while ground is left around")
+	_check(actions.front_choice(who).get("dig", [])[0].y == 1 and actions.front_order(who)[-1] == Vector3i(30, 1, 30),
+		"then the ground in front, the cell under the feet last")
 	for z in range(28, 33):
 		for x in range(28, 33):
 			if x != 30 or z != 30:

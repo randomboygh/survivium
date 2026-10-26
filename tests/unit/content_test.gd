@@ -272,19 +272,28 @@ func _test_tools() -> void:
 		"facing snaps to 8 steps")
 	var f := Vector3i(5, 3, 5)
 	var order := Tools.front_cells(f, Vector2i(1, 0))
-	_check(order.slice(0, 6) == [Vector3i(6, 4, 5), Vector3i(7, 4, 5), Vector3i(6, 4, 6), Vector3i(6, 4, 4), Vector3i(7, 4, 6), Vector3i(7, 4, 4)],
-		"the action button digs at the head's level first: in front, beyond it, left and right of it, beyond those")
-	_check(order[6] == Vector3i(6, 3, 5) and order[12] == Vector3i(6, 2, 5) and order.size() == 19,
-		"then at the waist, then the ground in front of the feet")
-	_check(order[18] == f + Vector3i(0, 2, 0) and not f + Vector3i.DOWN in order, "last over the head, not under the feet")
-	var diagonal := Tools.front_ring(Vector2i(1, 1))
-	_check(diagonal[0] == Vector3i(1, 0, 1) and diagonal[1] == Vector3i(2, 0, 2) and Vector3i(1, 0, 0) in diagonal \
-		and Vector3i(0, 0, 1) in diagonal, "facing a diagonal, the sides are the columns touching both")
+	_check(Tools.ring(Vector2i(1, 0), 1) == [Vector3i(1, 0, 0), Vector3i(1, 0, 1), Vector3i(1, 0, -1), Vector3i(0, 0, 1),
+		Vector3i(0, 0, -1), Vector3i(-1, 0, 1), Vector3i(-1, 0, -1), Vector3i(-1, 0, 0)],
+		"round the body: the one it faces, left and right of it, further left and right, the one behind last")
+	var far := Tools.ring(Vector2i(1, 0), 2)
+	_check(far.size() == 16 and far[0] == Vector3i(2, 0, 0) and far[1] == Vector3i(2, 0, 1) and far[2] == Vector3i(2, 0, -1)
+		and far[15] == Vector3i(-2, 0, 0), "the ring beyond in the same order")
+	_check(order[0] == Vector3i(6, 4, 5)
+		and order[1] == Vector3i(6, 4, 6) and order[7] == Vector3i(4, 4, 5), "the action button digs the near ring at the head's level first")
+	_check(order[8] == Vector3i(6, 3, 5) and order[16] == Vector3i(6, 2, 5) and order[24] == Vector3i(7, 4, 5) and order.size() == 24 + 48 + 1,
+		"then at the waist, then the ground, then the ring beyond")
+	_check(order[-1] == f + Vector3i(0, 2, 0) and not f + Vector3i.DOWN in order, "last over the head, not under the feet")
+	var diagonal := Tools.ring(Vector2i(1, 1), 1)
+	_check(diagonal[0] == Vector3i(1, 0, 1) and diagonal[7] == Vector3i(-1, 0, -1) and Vector3i(1, 0, 0) in diagonal.slice(1, 3) \
+		and Vector3i(0, 0, 1) in diagonal.slice(1, 3), "facing a diagonal, the sides are the columns touching both")
+	var place := Tools.place_cells(f, Vector2i(1, 0))
+	_check(place[0] == Vector3i(6, 2, 5) and place[8] == Vector3i(6, 3, 5) and place[24] == Vector3i(7, 2, 5),
+		"a block goes in the near ring from the bottom up, then the ring beyond")
 	_check(Tools.sweep(Vector3i(6, 2, 5), Vector2i(1, 0)) == [Vector3i(6, 2, 5), Vector3i(6, 2, 6), Vector3i(6, 2, 4)],
 		"a scythe sweeps an arc in front")
 	var sector := Tools.sector(Vector2i(0, 1))
-	_check(sector[0] == Vector2i(0, 1) and Vector2i(1, 0) in sector and Vector2i(2, 1) in sector and not Vector2i(0, -1) in sector \
-		and not Vector2i(1, -1) in sector, "trees and bushes are found ahead and beside, not behind")
+	_check(sector[0] == Vector2i(0, 1) and sector.size() == 24 and sector[7] == Vector2i(0, -1) and sector[8] == Vector2i(0, 2),
+		"trees and bushes are found round the body in the same order, the near ring first")
 	_check(Tools.use_of("") == "hand" and Tools.use_of("tools:stone_axe") == "tool" and Tools.use_of("resources:stone") == "place" \
 		and Tools.use_of("plants:raspberry_bush") == "plant" and Tools.use_of("plants:grass_seeds") == "sow" \
 		and Tools.use_of("core:campfire") == "prop" and Tools.use_of("plants:raspberry") == "eat" and Tools.use_of("resources:branch") == "hand",
