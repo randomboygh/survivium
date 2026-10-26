@@ -41,10 +41,10 @@ func light_held() -> String:
 
 
 ## The things held that give light, one for each hand that holds one (as many as the
-## bag has); none in water.
+## bag has); a swimmer holds them over the water (sky.gd draws their light shorter).
 func lights_held() -> Array:
 	var out := []
-	if body == null or body.swimming:
+	if body == null:
 		return out
 	for id: String in in_hands():
 		# Both hands may hold the same one: it lights once.

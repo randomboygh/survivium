@@ -171,6 +171,7 @@ void light() {
 		vec3 band = step_n > 2.5 ? mix(vec3(1.55, 1.45, 0.7), vec3(1.6, 1.5, 0.62), hue_shift) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? half_light : shade));
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
-		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz));
+		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz),
+			light_stretch(INV_VIEW_MATRIX, LIGHT));
 	}
 }

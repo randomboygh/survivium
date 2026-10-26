@@ -14,6 +14,9 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
+## How far round it a lightning bolt lights, world units.
+const BOLT_RANGE := 10.0
+
 const PX := 1.0 / 16.0
 const CELL := WorldData.CELL
 ## See _place_fireflies.
@@ -228,7 +231,7 @@ func _ready() -> void:
 	add_child(bolt)
 	bolt_light = OmniLight3D.new()
 	bolt_light.light_color = Color(0.8, 0.88, 1.0)
-	bolt_light.omni_range = 10.0
+	bolt_light.omni_range = BOLT_RANGE
 	bolt_light.omni_attenuation = 0.0
 	bolt_light.light_energy = 0.0
 	add_child(bolt_light)
@@ -504,6 +507,7 @@ func strike(view: Vector2, ground: float, power: float) -> void:
 	bolt.visible = true
 	bolt_time = 0.12 + 0.1 * power
 	bolt_light.position = PixelView.shear(p + Vector3(0.0, 1.0, 0.0))
+	bolt_light.omni_range = PixelView.light_range(BOLT_RANGE)
 	bolt_light.light_energy = 3.0 * power
 
 
@@ -684,11 +688,12 @@ func sack_glow(at: Vector3) -> Node3D:
 	return root
 
 
-## Puts `light` over world point `p` as the shaders draw it, and keeps it there when
-## the camera turns.
-func anchor(light: Light3D, p: Vector3) -> void:
+## Puts omni `light` over world point `p` as the shaders draw it, lighting as far round
+## it as its range is now (PixelView.light_range), and keeps it so when the view changes.
+func anchor(light: OmniLight3D, p: Vector3) -> void:
+	_anchored.append([light, p, light.omni_range])
 	light.position = PixelView.shear(p)
-	_anchored.append([light, p])
+	light.omni_range = PixelView.light_range(light.omni_range)
 
 
 ## Puts the anchored lights where the view now draws their places; forgets the freed.
@@ -697,5 +702,6 @@ func reanchor() -> void:
 	for a: Array in _anchored:
 		if is_instance_valid(a[0]):
 			a[0].position = PixelView.shear(a[1])
+			a[0].omni_range = PixelView.light_range(a[2])
 			kept.append(a)
 	_anchored = kept
