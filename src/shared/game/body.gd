@@ -15,7 +15,9 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const CELL := WorldData.CELL
 ## Body and motion in cells: a little narrower than a cell, a little under two tall.
-const HALF_WIDTH := 0.44
+## The sprite is a cell wide, so the body is nearly that and the sprite keeps out of the
+## walls beside it; a gap of one cell still lets it through (ASSIST lines it up with it).
+const HALF_WIDTH := 0.47
 ## The body is thin north to south: the sprite has no depth, and the 3/4 view draws
 ## anything deeper as feet off what they stand on (in the air over the back edge of a
 ## chest's lid, or hanging in front of it).
@@ -26,6 +28,9 @@ const GRAVITY := 44.0
 ## A jump rises about 1.45 cells: onto a block of one cell, not of two.
 const JUMP_SPEED := 11.3
 const MAX_FALL := 30.0
+## Walking into a wall with the middle of the body this close to the middle of a gap of
+## one cell beside it slides the body sideways into line with the gap.
+const ASSIST := 0.35
 ## Walking keeps the feet on the ground up and down slopes by up to this much per step;
 ## a sheer step of a whole cell is not walked up or down.
 const STEP_UP := 0.5
@@ -324,8 +329,28 @@ func _try_move(p: Vector3, d: Vector3, reach: float) -> Vector3:
 		var top := _ground_top(np, p.y, reach)
 		if top > p.y and not _collides(Vector3(np.x, top, np.z)):
 			_pull_up = maxf(_pull_up, top - p.y)
+	var slid := _line_up(p, d)
+	if slid != p:
+		return slid
 	bumped = np * CELL
 	return p
+
+
+## The body at `p` stopped moving by `d` along one axis: moved sideways toward the middle
+## of its column, by as much as `d`, when there the way on is open (a door, a gap of one
+## cell between trunks or blocks); `p` otherwise.
+func _line_up(p: Vector3, d: Vector3) -> Vector3:
+	var along_x := d.x != 0.0
+	var side := p.z if along_x else p.x
+	var off := floorf(side) + 0.5 - side
+	if is_zero_approx(off) or absf(off) > ASSIST:
+		return p
+	var lined := p + (Vector3(0.0, 0.0, off) if along_x else Vector3(off, 0.0, 0.0))
+	if _collides(lined + d):
+		return p
+	var shift := signf(off) * minf(absf(off), d.length())
+	var slid := p + (Vector3(0.0, 0.0, shift) if along_x else Vector3(shift, 0.0, 0.0))
+	return p if _collides(slid) else slid
 
 
 ## Height of the water surface in the column under the middle of the body when the
