@@ -245,5 +245,6 @@ void light() {
 	// it falls on the bed and shows through the water. Water under a roof or in a
 	// cave stays in the dark of what covers it; clouds shade it anyway.
 	float shade = LIGHT_IS_DIRECTIONAL && open_sky > 0.5 ? 1.0 : ATTENUATION;
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
+		light_stretch(INV_VIEW_MATRIX, LIGHT));
 }

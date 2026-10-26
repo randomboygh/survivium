@@ -220,11 +220,21 @@ void light() {
 	// A plant is a flat card standing in the light with a normal pointing up: a fire
 	// lights all of it, tip too, even where the tip stands higher than the flame.
 	vec3 normal = LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT;
-	vec3 lit = toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
+	// The plant stands up in the drawn world (stand_tall): its light rings go by the way
+	// from its foot to the light in the world where that light is known (light_spots),
+	// so they match the ground's; else by the drawn way.
+	vec3 dir = normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz);
+	float stretch = light_reach;
+	int spot = LIGHT_IS_DIRECTIONAL ? -1 : light_spot(drawn, dir);
+	if (spot >= 0) {
+		vec4 s = texelFetch(light_spots, ivec2(spot, 0), 0);
+		stretch = distance(root, s.xyz) / s.w / max(light_share(ATTENUATION), 1e-4);
+	}
+	vec3 lit = toon_light(normal, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
+		stretch);
 	// None where a block stands between the plant's foot and the light, like the
 	// ground it grows on.
-	if (!LIGHT_IS_DIRECTIONAL && lit != vec3(0.0) && light_hidden(drawn,
-			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), root, vec3(0.0, 4.0, 0.0))) {
+	if (spot >= 0 && lit != vec3(0.0) && light_blocked(spot, root + vec3(0.0, 0.1, 0.0))) {
 		lit = vec3(0.0);
 	}
 	DIFFUSE_LIGHT += lit;

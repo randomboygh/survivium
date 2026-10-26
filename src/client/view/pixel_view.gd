@@ -35,6 +35,11 @@ static var up := Vector2(0.0, -1.0)
 static var right := Vector2(1.0, 0.0)
 static var squash := 1.0
 static var slope := 1.0
+## How much farther a point a world unit from a light can be drawn from it (the most
+## the shear stretches a way): torches and fires reach this many times their range in
+## the drawn world, and the shaders ring them by the way in the world (light_range,
+## light_reach in common.gdshaderinc).
+static var light_reach := reach_of(1.0)
 ## The views the culling boxes must hold (see sheared_box): the one shown and, while
 ## the camera turns, the one it turns to. Each is [up, squash, slope].
 static var box_views: Array = [[Vector2(0.0, -1.0), 1.0, 1.0]]
@@ -78,6 +83,18 @@ static func set_view(turn: float, tilt: float) -> void:
 	RenderingServer.global_shader_parameter_set("view_up", up)
 	RenderingServer.global_shader_parameter_set("view_squash", squash)
 	RenderingServer.global_shader_parameter_set("view_slope", slope)
+	light_reach = reach_of(slope)
+	RenderingServer.global_shader_parameter_set("light_reach", light_reach)
+
+
+## The most the shear with `s` (see set_view) stretches a way: its larger singular value.
+static func reach_of(s: float) -> float:
+	return (sqrt(s * s + 4.0) + absf(s)) * 0.5
+
+
+## The range to give a light that lights `r` world units round it in the world.
+static func light_range(r: float) -> float:
+	return r * light_reach
 
 
 ## [up, squash, slope] of a view (see set_view).

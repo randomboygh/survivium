@@ -29,7 +29,8 @@ var wildlife
 var tracks
 ## The performance statistics (PerfPanel), told how long the animals take a frame.
 var perf
-## kind -> [mesh, materials: for each of its tints (one, white, for none) one a frame]
+## kind -> [mesh, materials: for each of its tints (one, white, for none) one a frame,
+## the size of the body its first frame shows (world units, see body_size)]
 var looks := {}
 var _sprites := {}
 ## sprite -> where its culling box was fitted, and the views it was fitted for.
@@ -55,7 +56,8 @@ func watch(w) -> void:
 				m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
 				mats.append(m)
 			variants.append(mats)
-		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height()), variants]
+		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height()), variants,
+			body_size(tex, frames)]
 	wildlife = w
 	for a in w.animals:
 		_on_born(a)
@@ -111,6 +113,28 @@ func _mats(a) -> Array:
 
 
 ## The picture of species `spec` (a record of AiRules.SPECIES).
+## How wide and how tall the body drawn in the first frame of picture `tex` (of
+## `frames` frames side by side) is, in world units: its opaque pixels. An animal's
+## drawn shadows are as big (see FireShadows._cast_all), so a new one needs no size.
+static func body_size(tex: Texture2D, frames: int) -> Vector2:
+	var img := tex.get_image()
+	if img == null:
+		return Vector2(tex.get_width() / frames, tex.get_height()) / PixelView.PIXELS_PER_UNIT
+	if img.is_compressed():
+		img.decompress()
+	var w := img.get_width() / frames
+	var lo := Vector2i(w, img.get_height())
+	var hi := Vector2i(-1, -1)
+	for y in img.get_height():
+		for x in w:
+			if img.get_pixel(x, y).a > 0.5:
+				lo = lo.min(Vector2i(x, y))
+				hi = hi.max(Vector2i(x, y))
+	if hi.x < 0:
+		return Vector2.ZERO
+	return Vector2(hi - lo + Vector2i.ONE) / PixelView.PIXELS_PER_UNIT
+
+
 static func picture(spec: Dictionary) -> Texture2D:
 	return load(picture_path(spec))
 

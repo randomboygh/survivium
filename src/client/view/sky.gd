@@ -28,6 +28,8 @@ const GLOW_ENERGY := 0.3
 const GLOW_RANGE := 1.5
 ## Two torches, one in each hand, light this much farther than one.
 const TWO_TORCHES := 1.4
+## A swimmer holds the torch low over the water: its light reaches this share as far.
+const SWIMMING_TORCH := 0.5
 ## How far, in degrees, the sun or the moon goes past the border of its eighth of the
 ## sky before the lit edges of the cells turn to the next one (see _light_side).
 const LIGHT_SIDE_MARGIN := 7.5
@@ -180,14 +182,15 @@ func _update_torch(delta: float) -> void:
 	var energy := GLOW_ENERGY
 	if player.torch_lit:
 		var two: bool = game.character.lights_held().size() > 1
-		player.torch.omni_range = Items.get_item(held).light * (TWO_TORCHES if two else 1.0)
+		player.torch.omni_range = PixelView.light_range(Items.get_item(held).light * (TWO_TORCHES if two else 1.0)
+			* (SWIMMING_TORCH if game.character.body.swimming else 1.0))
 		_flicker_clock -= delta
 		if _flicker_clock <= 0.0:
 			_flicker_clock = 0.09
 			_flicker = rng.randf_range(0.88, 1.05)
 		energy = TORCH_ENERGY * _flicker
 	else:
-		player.torch.omni_range = GLOW_RANGE
+		player.torch.omni_range = PixelView.light_range(GLOW_RANGE)
 	player.torch.light_energy = energy * dark * (game.effects.shadow_energy if shadows else 1.0)
 
 

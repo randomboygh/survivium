@@ -85,6 +85,10 @@ global uniform vec3 sun_view;
 // moves within its side (Sky.light_side): open edges of the cells toward it get a
 // light rim, the others a dark outline.
 global uniform vec2 light_side;
+// Torches and fires reach this many times their range in the drawn world, the most the
+// shear stretches a way (PixelView.light_range): the shaders ring them by the way in
+// the world (light_stretch), so their light stays round them however the view tilts.
+global uniform float light_reach;
 
 vec3 shear(vec3 p) {
 	vec2 s = p.xz + view_up * (dot(p.xz, view_up) * (view_squash - 1.0) + view_slope * p.y);
@@ -431,8 +435,20 @@ vec4 veil(vec3 p, float fade) {
 // stepped rings around torches and fires, dithered from one to the next. A cloud does not darken what is already
 // in shadow, so cloud and tree shadows merge instead of stacking, and caves (in the
 // shadow of the rock above) never see clouds.
+// The distance to a torch or a fire as a share of its range, from Godot's attenuation
+// (see toon_light).
+float light_share(float attenuation) {
+	return sqrt(sqrt(max(1.0 - sqrt(attenuation), 0.0)));
+}
+
+// How much farther than drawn a torch or a fire is in the world, in shares of its
+// range in the world: the light's way `light` (view space, as LIGHT) undone of the shear.
+float light_stretch(mat4 inv_view, vec3 light) {
+	return light_reach * length(unshear_dir(normalize((inv_view * vec4(light, 0.0)).xyz)));
+}
+
 vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bool directional, float clouds,
-		vec2 texel) {
+		vec2 texel, float stretch) {
 	float ndl = clamp(dot(normal, directional ? sun_view : light), 0.0, 1.0);
 	if (directional) {
 		float shadow = min(mix(0.2, 1.0, step(0.5, attenuation)), clouds);
@@ -448,11 +464,15 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 	// range r. The light is cut into flat rings by that distance, each paler and wider
 	// than the one inside it. Beyond the range the attenuation is 0, which would read as
 	// the outer ring's edge and dither it over all the mesh the light touches (a chunk,
-	// cut off square far away), so nothing is lit there.
+	// cut off square far away), so nothing is lit there. The range reaches farther than
+	// the light does in the world (PixelView.light_range): the share is the world's.
 	if (attenuation <= 0.0) {
 		return vec3(0.0);
 	}
-	float d = sqrt(sqrt(max(1.0 - sqrt(attenuation), 0.0)));
+	float d = light_share(attenuation) * stretch;
+	if (d >= 1.0) {
+		return vec3(0.0);
+	}
 	float lit = light_ring(d, texel);
 	// Faces turned away from the light get none, grazing ones a little less.
 	float face = ndl > 0.2 ? 1.0 : (ndl > 0.02 ? 0.7 : 0.0);

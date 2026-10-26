@@ -53,5 +53,8 @@ void fragment() {
 }
 
 void light() {
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
+	// A sprite stands up in the drawn world, not in the world (stand_tall): its light
+	// rings go by the drawn way to the light, only the range undone (light_reach).
+	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
+		light_reach);
 }
