@@ -463,7 +463,8 @@ func can_place(who, cell: Vector3i, top: int) -> bool:
 ## planted. A tool or bare hands first work the nearest tree or bush in front that they
 ## can do something to (see useful: an axe chops, hands gather, a sword knocks berries
 ## off, a shovel digs a bush out), then cut the grass in front (hands, sword, scythe),
-## then dig one cell, in the order of Tools.front_cells; with none of that the hand
+## then dig one cell, in the order of Tools.front_cells (round the body, the one it faces
+## first); with none of that the hand
 ## swings at the air. Setting down a placed thing and eating are not this module's.
 func act_in_front(who, top: int) -> Dictionary:
 	match Tools.use_of(who.held()):
@@ -499,7 +500,7 @@ func swing_air(who, at: Vector3) -> Dictionary:
 	return {"swing": IDLE_SWING}
 
 
-## Places the block in hand in front of `who`, in the hole in front first.
+## Places the block in hand round `who` (front_place_cells), in the hole it faces first.
 func place_in_front(who, top: int) -> Dictionary:
 	var s: Vector2i = who.facing_step()
 	for cell in front_place_cells(who):
@@ -507,16 +508,15 @@ func place_in_front(who, top: int) -> Dictionary:
 			var done := place_at(who, cell, Vector3i(s.x, 0, s.y if s.x == 0 else 0), top)
 			done.swing = FRONT_PLACE_SWING
 			return done
-	who.nag("front", "Перед тобой некуда ставить")
+	who.nag("front", "Рядом некуда ставить")
 	return {"swing": IDLE_SWING}
 
 
-## The cells in front of `who` a block goes in, in order: below, level, above.
+## The cells round `who` a block goes in, in order (Tools.place_cells): the near ring
+## from the one it faces round to the one behind, below, level, above, then the ring
+## beyond.
 func front_place_cells(who) -> Array[Vector3i]:
-	var f: Vector3i = who.feet()
-	var s: Vector2i = who.facing_step()
-	var front := f + Vector3i(s.x, 0, s.y)
-	return [front + Vector3i.DOWN, front, front + Vector3i.UP]
+	return Tools.place_cells(who.feet(), who.facing_step())
 
 
 ## What a swing of tool `t` in front of `who` would do: {"mow": cells} (the grass first,
@@ -531,30 +531,24 @@ func front_work(who, t: Dictionary) -> Dictionary:
 	return {"dig": cells} if not cells.is_empty() else {}
 
 
-## The cells the action button digs, in order (Tools.front_cells), counted from the
-## cell over the ground the feet stand on; last the one under the feet, only while `who` stands still and nothing the hand in use digs is left around
-## the body at the head, the waist and the ground, so the pit it drops into is open on
-## every side and it walks out.
+## The cells the action button digs, in order (Tools.front_cells: the near ring round
+## the body, then the one beyond), counted from the cell over the ground the feet stand
+## on; last the one under the feet while `who` stands still, so it is dug only once
+## nothing the hand in use digs is left in both rings at the head, the waist and the
+## ground and the pit it drops into is open on every side; then it starts again a level
+## down.
 func front_order(who) -> Array[Vector3i]:
 	var f: Vector3i = who.feet()
 	# On a slope the feet are down in the sloping cell: count from the cell over it.
 	if world.get_cell(f.x, f.y, f.z) != Mat.AIR and world.get_cell(f.x, f.y + 1, f.z) == Mat.AIR:
 		f += Vector3i.UP
 	var cells := Tools.front_cells(f, who.facing_step())
-	if who.moving():
-		return cells
-	var around: Array[Vector3i] = []
-	for dy in [1, 0, -1]:
-		for dz in range(-1, 2):
-			for dx in range(-1, 2):
-				if dx != 0 or dz != 0:
-					around.append(f + Vector3i(dx, dy, dz))
-	if dig_targets(who, around, who.tool(), 1).is_empty():
+	if not who.moving():
 		cells.append(f + Vector3i.DOWN)
 	return cells
 
 
-## The nearest tree or bush in front of `who` (Tools.sector) that the hand in use can do
+## The first tree or bush round `who` (in the order of Tools.sector) that the hand in use can do
 ## something to: {"trunk": cell} for an axe at a tree, {"tree": column} for bare hands,
 ## {"bush": cell}; {} for none.
 func front_target(who) -> Dictionary:
@@ -562,8 +556,8 @@ func front_target(who) -> Dictionary:
 	return all[0] if not all.is_empty() else {}
 
 
-## All the trees and bushes in front of `who` that the hand in use can do something to
-## (see front_target), the nearest first.
+## All the trees and bushes round `who` that the hand in use can do something to
+## (see front_target), in the order of Tools.sector.
 func front_targets(who) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var f: Vector3i = who.feet()
@@ -602,17 +596,22 @@ func front_choice(who) -> Dictionary:
 		if r < best_rank:
 			best = target
 			best_rank = r
+	var order := front_order(who)
 	if Tools.mows(t):
-		var order := front_order(who)
+		var ranks := {}
 		for c in order:
+			if best_rank == FOOD_RANK:
+				break
 			if can_mow(c, t) and not too_far(who, c, t.reach):
-				var r := _rank(_mow_gives(c))
-				if r < best_rank:
+				var gives := _mow_gives(c)
+				if not ranks.has(gives):
+					ranks[gives] = _rank(gives)
+				if ranks[gives] < best_rank:
 					best = {"mow": mow_targets(who, [c], t)}
-					best_rank = r
+					best_rank = ranks[gives]
 	if not best.is_empty():
 		return best
-	var cells := dig_targets(who, front_order(who), t, 1)
+	var cells := dig_targets(who, order, t, 1)
 	return {"dig": cells} if not cells.is_empty() else {}
 
 
@@ -1041,19 +1040,19 @@ func plant(who, id: String) -> bool:
 	var spot: Variant = plant_spot(who, id)
 	if spot == null:
 		var item := Items.get_item(id)
-		who.nag("plant", "Сажать можно на ровную траву перед собой" if item.get("plant", "") != "" \
-			else "Сеять можно на голую землю перед собой")
+		who.nag("plant", "Сажать можно на ровную траву рядом" if item.get("plant", "") != "" \
+			else "Сеять можно на голую землю рядом")
 		return false
 	return plant_at(who, id, spot)
 
 
-## The ground cell in front of `who` where item `id` would be planted (see plant_at), or
-## null.
+## The ground cell round `who` where item `id` would be planted (see plant_at), in the
+## order of Tools.sector, or null.
 func plant_spot(who, id: String) -> Variant:
 	var feet: Vector3i = who.feet()
-	for o in Tools.front_ring(who.facing_step()):
+	for o in Tools.sector(who.facing_step()):
 		for dy in [-1, 0, -2]:
-			var cell: Vector3i = feet + o + Vector3i(0, dy, 0)
+			var cell: Vector3i = feet + Vector3i(o.x, dy, o.y)
 			if _can_plant(who, id, cell):
 				return cell
 	return null
