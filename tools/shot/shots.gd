@@ -450,6 +450,9 @@ const SHOTS := {
 	# The plant garden south-east of the spawn: trees, bushes and ground plants in pens.
 	"ground-plants-west": {"time": 0.42, "season": 1, "at": [12, 26]},
 	"ground-plants-east": {"time": 0.42, "season": 1, "at": [44, 26]},
+	# The cherry's pen (pale pink blossom) and the bird cherry's (white) in spring and in summer.
+	"ground-cherry-spring": {"time": 0.42, "season": 0, "at": [17, 19]},
+	"ground-cherry-summer": {"time": 0.42, "season": 1, "at": [17, 19]},
 	# The garden's trees up close, west to east, and in autumn and winter.
 	"ground-garden-1": {"time": 0.42, "season": 1, "at": [22, 6]},
 	"ground-garden-2": {"time": 0.42, "season": 1, "at": [60, 6]},
