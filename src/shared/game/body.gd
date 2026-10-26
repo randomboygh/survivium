@@ -184,7 +184,9 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		glide.x = 0.0
 	if absf(p.z - before.z) < absf(glide.y * delta) * 0.5:
 		glide.y = 0.0
-	if on_ground and not jump:
+	# Down a slope or a step with the feet on it; standing still, gravity below finds
+	# the ground (a frame of a body standing is most of what it costs).
+	if on_ground and not jump and p != before:
 		var below := _ground_top(p, p.y - STEP_DOWN, p.y)
 		if below > -INF:
 			p.y = below
