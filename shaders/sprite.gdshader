@@ -35,6 +35,8 @@ varying float clouds;
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
+// Where the point is drawn (sheared), to tell which light shines on it (light_spot).
+varying vec3 drawn;
 
 void vertex() {
 	if (IN_SHADOW_PASS) {
@@ -56,6 +58,7 @@ void vertex() {
 	world_pos = VERTEX;
 	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
 	light_xz = VERTEX.xz;
+	drawn = VERTEX;
 }
 
 void fragment() {
@@ -101,8 +104,18 @@ void fragment() {
 }
 
 void light() {
-	// A sprite stands up in the drawn world, not in the world (stand_tall): its light
-	// rings go by the drawn way to the light, only the range undone (light_reach).
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
-		light_reach);
+	// A sprite stands up in the drawn world, not in the world (stand_tall), where a
+	// torch or a fire may seem behind it or far off at a tilt: it takes their light
+	// facing them, its rings by the way to the light in the world where that light is
+	// known (light_spots), else by the drawn way, the range undone (light_reach).
+	float stretch = light_reach;
+	if (!LIGHT_IS_DIRECTIONAL) {
+		int spot = light_spot(drawn, normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz));
+		if (spot >= 0) {
+			vec4 s = texelFetch(light_spots, ivec2(spot, 0), 0);
+			stretch = distance(world_pos, s.xyz) / s.w / max(light_share(ATTENUATION), 1e-4);
+		}
+	}
+	DIFFUSE_LIGHT += toon_light(LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT, LIGHT, LIGHT_COLOR, ATTENUATION,
+		LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch);
 }

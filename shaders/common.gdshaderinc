@@ -61,10 +61,11 @@ const float TEXELS = 16.0;
 const float CELL = 0.5;
 const float CELL_TEXELS = 8.0;
 // Rings of light around a torch or a fire: outer edges as shares of the light's range,
-// 1, 2, 3 and 5 parts of 5 (Fibonacci; the last a dither's width inside the range, so
-// it thins out to nothing over the whole dither before the light ends), and how bright
-// each ring is.
-const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 0.95);
+// 1, 2, 3 and 5 parts of 5 (Fibonacci), and how bright each ring is. The last one
+// thins out to nothing by a dither from LIGHT_FADE to its edge, so the light has no
+// edge of its own.
+const vec4 LIGHT_RING_EDGES = vec4(0.2, 0.4, 0.6, 1.0);
+const float LIGHT_FADE = 0.7;
 const vec4 LIGHT_RING_LEVELS = vec4(1.0, 0.55, 0.3, 0.14);
 // The edges between the rings are dithered over this share of the range on either
 // side, so the light falls off smoothly in whole texels.
@@ -170,6 +171,9 @@ float bayer4(vec2 t) {
 // How bright the rings of a torch or a fire are at `d`, the distance as a share of its
 // range, on `texel` of the picture (see light_texel): flat rings with dithered edges.
 float light_ring(float d, vec2 texel) {
+	if (d > LIGHT_FADE && bayer4(texel + vec2(2.0, 1.0)) * (1.0 - LIGHT_FADE) > 1.0 - d) {
+		return 0.0;
+	}
 	d += (bayer4(texel) - 0.5) * 2.0 * LIGHT_RING_DITHER;
 	return d < LIGHT_RING_EDGES.x ? LIGHT_RING_LEVELS.x
 		: (d < LIGHT_RING_EDGES.y ? LIGHT_RING_LEVELS.y
