@@ -41,7 +41,14 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 		color.a = (mini(k, 4) + 1) / 8.0
 	if species >= 0 and species < PixelTextures.bark_material.size() and PixelTextures.bark_material[species] >= 0:
 		m = PixelTextures.bark_material[species]
+	# A trunk ending in its crown is capped with bark in the crown's shade, dark enough
+	# for world.gdshader to keep snow off it: the light end grain of a cut or a cap of
+	# snow would show up through bare branches as a stump.
 	var top := CAP_CUT if not _covers(nb[2]) else CAP_NONE
+	var shade := 1.0
+	if species >= 0 and nb[2] == LEAVES:
+		top = CAP_BARK
+		shade = 0.45
 	# Going up into more trunk, the bark slants to where the next cell has it.
 	var up := box
 	if nb[2] == Mat.LOG:
@@ -50,11 +57,11 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 			up = Trees.trunk_box(species, col, k + 1)
 	var bottom := not _covers(nb[3]) and nb[3] != Mat.LOG
 	if k > 0 or species < 0:
-		_bark(buf, base, box, up, 0, 8, top, bottom, m, color)
+		_bark(buf, base, box, up, 0, 8, top, bottom, m, color, shade)
 		return
 	# The foot flares out two texels each way, then the roots.
 	_bark(buf, base, box.grow(2), box, 0, 4, CAP_NONE, bottom, m, color)
-	_bark(buf, base, box, up, 4, 8, top, false, m, color)
+	_bark(buf, base, box, up, 4, 8, top, false, m, color, shade)
 	var foot := box.grow(2)
 	var s: Dictionary = Trees.SPECIES[species]
 	var roots: int = s.roots[0] + posmod(hash(col * 3 + Vector2i(1, 2)), s.roots[1] - s.roots[0] + 1)
@@ -94,8 +101,9 @@ static func _bark_tone(col: Vector2i) -> Color:
 ## A column of bark from `r0` at `y0` texels up to `r1` at `y1` (texels of the cell at
 ## `base` seen from above, x west to east, y north to south), its corners cut by a
 ## quarter of its width (see _ring); with its bottom when asked and its top as `top`
-## says: CAP_NONE, CAP_CUT (the end grain of a stump) or CAP_BARK (a root).
-static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, top: int, bottom: bool, m: int, color: Color) -> void:
+## says: CAP_NONE, CAP_CUT (the end grain of a stump) or CAP_BARK (a root, or a trunk
+## ending in its crown), its colour times `shade`.
+static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, top: int, bottom: bool, m: int, color: Color, shade := 1.0) -> void:
 	var c := mini(r0.size.x, r1.size.x) / 4
 	var low := _ring(r0, c)
 	var high := _ring(r1, c)
@@ -134,11 +142,12 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 			_facing(buf, pts, n, uvs, color, Vector2(pack(side, hf[6], 0), around))
 	var caps: Array = []
 	if top != CAP_NONE:
-		caps.append([high, y1, Vector3.UP, m * 3 + (0 if top == CAP_CUT else 1)])
+		caps.append([high, y1, Vector3.UP, m * 3 + (0 if top == CAP_CUT else 1), shade])
 	if bottom:
-		caps.append([low, y0, Vector3.DOWN, m * 3 + 2])
+		caps.append([low, y0, Vector3.DOWN, m * 3 + 2, 1.0])
 	for cap: Array in caps:
 		var ring: Array = cap[0]
+		var tint := Color(color.r * cap[4], color.g * cap[4], color.b * cap[4], color.a)
 		var packed := Vector2(pack(cap[3], 0, 0), around)
 		var rows := [[ring[7], ring[2], ring[3], ring[6]]]
 		if c > 0:
@@ -150,7 +159,7 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 			for p: Vector2 in q:
 				pts.append(_texel(base, p, cap[1]))
 				uvs.append(Vector2(clampf(p.x / 8.0, 0.0, 1.0), clampf(p.y / 8.0, 0.0, 1.0)))
-			_facing(buf, pts, cap[2], uvs, color, packed)
+			_facing(buf, pts, cap[2], uvs, tint, packed)
 
 
 ## The eight corners round `r`, clockwise from the north end of its north-west cut

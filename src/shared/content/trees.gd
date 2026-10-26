@@ -275,6 +275,17 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 						if p.y - 1 > y + 1 and not have.has(p):
 							have[p] = true
 							points.append(p)
+	# The trunk goes on up into the lowest point over it, or its top, with air above
+	# it in a gap between the lobes, would show as a square block of log.
+	var into := -1
+	for p in points:
+		if p.x == x and p.z == z and p.y > y + trunk - 1 and (into < 0 or p.y < into):
+			into = p.y
+	if into < 0:
+		into = middle
+		points.append(Vector3i(x, middle, z))
+	for i in range(y + trunk, into):
+		w.set_cell(x, i, z, Mat.LOG)
 	return points
 
 
