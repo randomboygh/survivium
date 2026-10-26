@@ -178,6 +178,12 @@ func _run() -> void:
 		main.settings.values.camera_turn = shot.get("turn", 0)
 		main.settings.values.camera_tilt = shot.get("tilt", 0)
 		main.view.look_at_player()
+		if shot.has("spin"):
+			# Caught in a smooth turn (a turn button held), `spin` degrees round, held still.
+			main.view.hold_turn(1)
+			main.view._spin_start()
+			main.view._hold = 0
+			main.view.turn = deg_to_rad(shot.spin)
 		if shot.get("work", false):
 			_work()
 		main.hud.perf.visible = shot.get("stats", false)

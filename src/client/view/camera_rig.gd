@@ -24,6 +24,10 @@ const LOWER := 4
 const BOX_STEP := PI / 12.0
 ## How fast the view glides to the one set: the share of the way left gone a second.
 const TURN_RATE := 9.0
+## A turn button held this many seconds turns the camera on smoothly, SPIN_RATE
+## radians a second, until it is let go and the view glides to the nearest step.
+const HOLD_TIME := 0.35
+const SPIN_RATE := PI / 2.0
 ## Seconds a shake lasts.
 const SHAKE_TIME := 0.3
 
@@ -53,6 +57,11 @@ var turn_steps := 0
 var tilt_steps := 0
 var turn := 0.0
 var tilt := 0.0
+## The turn button held (1 left, -1 right, 0 none), how long, and whether it has
+## started turning the camera smoothly.
+var _hold := 0
+var _held := 0.0
+var _spinning := false
 ## A shake of the picture (see shake): how far, in low-res pixels, and its seconds left.
 var _shake := 0.0
 var _shake_left := 0.0
@@ -109,6 +118,31 @@ func turn_by(steps: int) -> void:
 	_aim()
 
 
+## A turn button pressed: a step to that side at once, and a smooth turn when it is
+## held (see HOLD_TIME).
+func hold_turn(dir: int) -> void:
+	turn_by(dir)
+	if _spinning and dir != _hold:
+		_spinning = false
+	_hold = dir
+	_held = 0.0
+
+
+## The turn button let go: a smooth turn stops at the nearest step.
+func release_turn(dir: int) -> void:
+	if dir != _hold:
+		return
+	_hold = 0
+	if _spinning:
+		_spinning = false
+		turn_steps = roundi(turn / TURN_STEP)
+		_aim()
+
+
+func is_spinning() -> bool:
+	return _spinning
+
+
 ## Tilts the camera `steps` steps of TILT_STEP steeper (negative: lower), within
 ## STEEPER and LOWER.
 func tilt_by(steps: int) -> void:
@@ -118,6 +152,8 @@ func tilt_by(steps: int) -> void:
 
 ## Back to the default view, turning the short way.
 func reset_turn() -> void:
+	_hold = 0
+	_spinning = false
 	turn_steps = roundi(turn_steps / float(TURNS)) * TURNS
 	tilt_steps = 0
 	_aim()
@@ -127,23 +163,29 @@ func is_default() -> bool:
 	return posmod(turn_steps, TURNS) == 0 and tilt_steps == 0
 
 
-## The turn set, in whole degrees to the left of north, 0..315.
+## The turn set, in whole degrees to the left of north, 0..315 (any while it turns
+## smoothly).
 func turn_degrees() -> int:
+	if _spinning:
+		return posmod(roundi(rad_to_deg(turn)), 360)
 	return posmod(turn_steps, TURNS) * 45
 
 
 ## A new view is set: the chunks get culling boxes that hold what they draw all the
 ## way there (a box per step of the way), and the setting is kept.
 func _aim() -> void:
-	var to := turn_steps * TURN_STEP
-	var to_tilt := tilt_steps * TILT_STEP
-	var views := [PixelView.view_of(turn, tilt)]
-	var n := maxi(1, ceili(absf(to - turn) / BOX_STEP))
-	for i in range(1, n + 1):
-		views.append(PixelView.view_of(lerpf(turn, to, i / float(n)), lerpf(tilt, to_tilt, i / float(n))))
-	PixelView.box_views = views
-	if game.chunks != null:
-		game.chunks.refit_boxes()
+	if _spinning:
+		_spin_boxes()
+	else:
+		var to := turn_steps * TURN_STEP
+		var to_tilt := tilt_steps * TILT_STEP
+		var views := [PixelView.view_of(turn, tilt)]
+		var n := maxi(1, ceili(absf(to - turn) / BOX_STEP))
+		for i in range(1, n + 1):
+			views.append(PixelView.view_of(lerpf(turn, to, i / float(n)), lerpf(tilt, to_tilt, i / float(n))))
+		PixelView.box_views = views
+		if game.chunks != null:
+			game.chunks.refit_boxes()
 	var values: Dictionary = game.settings.values
 	if values.camera_turn != posmod(turn_steps, TURNS) or values.camera_tilt != tilt_steps:
 		values.camera_turn = posmod(turn_steps, TURNS)
@@ -151,17 +193,47 @@ func _aim() -> void:
 		game.settings.save()
 
 
+## A smooth turn starts: it may stop anywhere round, so the culling boxes hold the
+## views all the way round at once, until it settles on a step again.
+func _spin_start() -> void:
+	_spinning = true
+	_spin_boxes()
+
+
+func _spin_boxes() -> void:
+	var views := []
+	var n := ceili(TAU / BOX_STEP)
+	for i in n:
+		views.append(PixelView.view_of(turn + i * TAU / n, tilt))
+	var to_tilt := tilt_steps * TILT_STEP
+	if to_tilt != tilt:
+		for i in n:
+			views.append(PixelView.view_of(turn + i * TAU / n, to_tilt))
+	PixelView.box_views = views
+	if game.chunks != null:
+		game.chunks.refit_boxes()
+
+
 ## Glides the drawn view to the one set; once there, the culling boxes hold that view
 ## alone again.
 func _glide(delta: float) -> void:
+	if _hold != 0 and not _spinning:
+		_held += delta
+		if _held >= HOLD_TIME:
+			_spin_start()
 	var to := turn_steps * TURN_STEP
 	var to_tilt := tilt_steps * TILT_STEP
-	if turn == to and tilt == to_tilt:
+	if turn == to and tilt == to_tilt and not _spinning:
 		return
 	var k := minf(1.0, delta * TURN_RATE)
-	turn = lerpf(turn, to, k)
+	if _spinning:
+		turn += _hold * SPIN_RATE * delta
+		# The step it is nearest to is the one set, for whoever reads it.
+		turn_steps = roundi(turn / TURN_STEP)
+	else:
+		turn = lerpf(turn, to, k)
 	tilt = lerpf(tilt, to_tilt, k)
-	if absf(turn - to) < 0.002 and absf(tilt - to_tilt) < 0.0005:
+	if not _spinning and absf(turn - to) < 0.002 and absf(tilt - to_tilt) < 0.0005:
 		turn = to
 		tilt = to_tilt
 		# The turn counts round from 0 again, as it was set.
