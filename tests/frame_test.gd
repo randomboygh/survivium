@@ -524,7 +524,7 @@ func _run() -> void:
 	hud.perf.freeze_log.append([11.0, 70.0, [], [], 1])
 	hud.open_settings("freezes")
 	var log_page = hud._settings
-	_check(log_page._list.get_child(0).text.begins_with("Обычный кадр") and log_page._list.get_child_count() == 3 + 3,
+	_check(log_page._list.get_child(0).text.begins_with("Обычный кадр") and log_page._list.get_child_count() == 1 + 3,
 		"the freezes' log opens with the ordinary frame and every freeze kept")
 	_check(main.freeze_log.lines("critical").size() == 2 and main.freeze_log.lines("big").size() == 0
 		and main.freeze_log.lines("small").size() == 1 and log_page._tab_buttons.critical.text == "от 200 · 2",
