@@ -108,6 +108,13 @@ func input(event: InputEvent) -> void:
 
 
 func unhandled_input(event: InputEvent) -> void:
+	# The turn keys, like the buttons, turn the camera on smoothly while held.
+	if event is InputEventKey and not event.pressed:
+		match event.physical_keycode:
+			KEY_BRACKETLEFT:
+				game.view.release_turn(1)
+			KEY_BRACKETRIGHT:
+				game.view.release_turn(-1)
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.physical_keycode
 		if key >= KEY_1 and key < KEY_1 + Inventory.HOTBAR:
@@ -120,9 +127,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_R:
 				game.chunks.reset_view_level()
 			KEY_BRACKETLEFT:
-				game.view.turn_by(1)
+				game.view.hold_turn(1)
 			KEY_BRACKETRIGHT:
-				game.view.turn_by(-1)
+				game.view.hold_turn(-1)
 			KEY_MINUS:
 				game.view.tilt_by(-1)
 			KEY_EQUAL:

@@ -334,6 +334,7 @@ const SHOTS := {
 	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 1},
 	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 2},
 	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 4},
+	"turn-spin": {"time": 0.45, "season": 1, "trees": true, "spin": 22},
 	"turn-trees": {"time": 0.45, "season": 1, "trees": true},
 	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -2},
 	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 2},
