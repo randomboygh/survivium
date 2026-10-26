@@ -355,6 +355,9 @@ const SHOTS := {
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
+	# The freezes' log and the playtest report, windows of the playtest page.
+	"ui-freezes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true},
+	"ui-report": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report"},
 	# The screen's answer to a hurt (red edges, the number over the head), and to a heal with food.
 	"ui-hurt": {"time": 0.45, "season": 1, "touch": true, "body": "hurt"},
 	"ui-fed": {"time": 0.45, "season": 1, "touch": true, "body": "fed"},

@@ -2,18 +2,19 @@ extends Node
 ## The log of the last freezes, for finding where they come from on the device itself:
 ## marks what the game did in each frame (a jump, cells dug or built, the torch lit,
 ## the sun gone, the weather turned...) on the statistics (PerfPanel.mark), which keeps
-## them with every freeze, and shows the freezes kept, the newest first, over the screen
-## from the playtest page («Отладка») until it is tapped.
+## them with every freeze, and tells the freezes kept as lines, the newest first, for
+## the window of the playtest page («Отладка» → «Журнал фризов», SettingsMenu), each
+## band of length (BANDS) on a tab of its own, so the worst can be fixed first.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
-## Lines in the list at most.
-const LINES := 20
+## The bands of freezes the window shows apart, by the tabs' keys (SettingsMenu.PAGES):
+## from, to ms (a freeze is over PerfPanel.FREEZE_MS).
+const BANDS := {"all": [0.0, INF], "critical": [200.0, INF], "big": [100.0, 200.0], "small": [0.0, 100.0]}
 ## The parts of an ordinary frame, in the order of PerfPanel.usual after the frame itself.
 const PARTS := ["игра", "движок", "отрисовка", "ввод", "браузер", "конец кадра"]
 
 var game
-var _panel: PanelContainer
 var _torch := false
 var _sun := true
 var _weather := -1
@@ -90,10 +91,8 @@ func update() -> void:
 	_paused = paused
 
 
-## Shows the freezes kept over the screen until it is tapped.
-func show_log() -> void:
-	if _panel != null:
-		_panel.queue_free()
+## An ordinary frame and its parts, heading the log.
+func usual_line() -> String:
 	var perf = game.hud.perf
 	var u: PackedFloat32Array = perf.usual
 	var told := []
@@ -101,15 +100,21 @@ func show_log() -> void:
 		# The three parts of the rest are told where the browser gives them (see PerfPanel._parts).
 		if i < 3 or u[i + 1] >= 0.05:
 			told.append("%s %.1f" % [PARTS[i], u[i + 1]])
-	var lines := ["Обычный кадр %.1f мс: %s" % [u[0], ", ".join(told)]]
+	var line := "Обычный кадр %.1f мс: %s" % [u[0], ", ".join(told)]
 	if OS.has_feature("web"):
-		lines[0] += " · полных сборок мусора %d" % perf.collections
-	lines.append("Фризы, последние сверху:")
-	var kept: Array = perf.freeze_log
-	if kept.is_empty():
-		lines.append("пока не было")
-	for i in range(kept.size() - 1, maxi(-1, kept.size() - 1 - LINES), -1):
+		line += " · полных сборок мусора %d" % perf.collections
+	return line
+
+
+## The freezes kept in band `key` (see BANDS), the newest first: [ms, line] each.
+func lines(key: String) -> Array:
+	var band: Array = BANDS[key]
+	var out := []
+	var kept: Array = game.hud.perf.freeze_log
+	for i in range(kept.size() - 1, -1, -1):
 		var f: Array = kept[i]
+		if f[1] < band[0] or f[1] >= band[1]:
+			continue
 		var at := int(f[0])
 		var parts := []
 		for p: Array in f[2]:
@@ -120,20 +125,10 @@ func show_log() -> void:
 			line += " · " + ", ".join(f[3])
 		if f.size() > 4:
 			line += " · вызовов %d" % f[4]
-		lines.append(line)
-	_panel = PanelContainer.new()
-	_panel.add_theme_stylebox_override("panel", UiStyle.panel())
-	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var label := UiStyle.label("\n".join(lines))
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.x = game.hud.size.x - 16.0
-	_panel.add_child(label)
-	_panel.position = Vector2(8, 8)
-	_panel.gui_input.connect(_on_panel_input)
-	game.hud.add_child(_panel)
+		out.append([f[1], line])
+	return out
 
 
-func _on_panel_input(event: InputEvent) -> void:
-	if (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed:
-		_panel.queue_free()
-		_panel = null
+## Forgets the freezes kept, so the next ones stand alone.
+func clear() -> void:
+	game.hud.perf.freeze_log.clear()
