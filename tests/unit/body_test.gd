@@ -227,11 +227,11 @@ func _test_steps() -> void:
 	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")
 	var on_top := _walk_to_thing(true, 5.9)
 	_check(is_equal_approx(on_top.y, 2.25), "a jump gets up onto a chest")
-	_check(is_equal_approx(_walk_to_thing(true, 7.0).y, 1.0), "a jump by the chest's front does not stand on air")
-	_check(is_equal_approx(_walk_to_thing(true, 5.1).y, 1.0), "a jump by the chest's back does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 7.3).y, 1.0), "a jump by the chest's front does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 4.85).y, 1.0), "a jump by the chest's back does not stand on air")
 	_check(is_equal_approx(_walk_to_thing(true, 5.5).y, 2.25), "a jump just inside the chest's back edge stands on its lid")
-	_check(is_equal_approx(_drop_by_block(4.7), 1.0) and is_equal_approx(_drop_by_block(4.9), 2.0),
-		"the feet stand on a block only near its north edge, not a body's depth beyond it")
+	_check(is_equal_approx(_drop_by_block(4.5), 1.0) and is_equal_approx(_drop_by_block(4.6), 2.0),
+		"the feet stand on a block while the body overlaps its north edge, not beyond it")
 	_check(_walk_to_gap(5.5) < 3.0 and _walk_to_gap(5.2) < 3.0 and _walk_to_gap(5.8) < 3.0,
 		"a gap of one cell in a wall is walked through, lined up with it when off its middle")
 	_check(_walk_to_gap(4.6) > 5.0, "a wall beside the gap stops the walker")

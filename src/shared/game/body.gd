@@ -15,13 +15,11 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const CELL := WorldData.CELL
 ## Body and motion in cells: a little narrower than a cell, a little under two tall.
-## The sprite is a cell wide, so the body is nearly that and the sprite keeps out of the
-## walls beside it; a gap of one cell still lets it through (ASSIST lines it up with it).
+## The sprite is a cell wide, so the body is nearly that, and as deep as it is wide: the
+## camera turns, and whichever way it looks the sprite keeps out of the walls beside it.
+## A gap of one cell still lets it through (ASSIST lines it up with it).
 const HALF_WIDTH := 0.47
-## The body is thin north to south: the sprite has no depth, and the 3/4 view draws
-## anything deeper as feet off what they stand on (in the air over the back edge of a
-## chest's lid, or hanging in front of it).
-const HALF_DEPTH := 0.2
+const HALF_DEPTH := 0.47
 const HEIGHT := 1.8
 const SPEED := 8.0
 const GRAVITY := 44.0
