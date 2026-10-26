@@ -208,6 +208,15 @@ func paint_chunk(w: WorldData, key: Vector2i) -> void:
 	unsaved[Vector2i(key.x >> REGION_SHIFT, key.y >> REGION_SHIFT)] = true
 
 
+## Whether chunk `key` has been painted (see paint_chunk): its first pixel is opaque.
+func has_chunk(key: Vector2i) -> bool:
+	var r: Dictionary = regions.get(Vector2i(key.x >> REGION_SHIFT, key.y >> REGION_SHIFT), {})
+	if r.is_empty():
+		return false
+	var img: Image = r.image
+	return img.get_pixel((key.x & (REGION - 1)) * CHUNK_PX, (key.y & (REGION - 1)) * CHUNK_PX).a > 0.0
+
+
 ## Repaints the column of a changed cell.
 func touch(w: WorldData, cell: Vector3i) -> void:
 	var key := WorldData.chunk_key(cell.x, cell.z)
