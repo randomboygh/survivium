@@ -366,15 +366,15 @@ void fragment() {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
-	// rust and yellow, thicker in patches and under the middle of a crown, thinning out
-	// to a ragged edge round it rather than the squares of the columns it covers.
-	// The cheap tests first: most texels hold no leaf whatever the cover.
-	float l = hash12(texel.xz + 41.0);
-	vec2 litter_at = (texel.xz + 0.5) / TEXELS;
-	if (top && !cap && tile != NONE && l < leaf_litter * 0.65 && texture(roof_map_soft, litter_at / wrap_size).g > 0.0) {
-		float cover = crown_cover(litter_at);
-		float edge = smoothstep(0.1, 0.6, cover + (hash12(texel.xz + 59.0) - 0.5) * 0.25 + (ground_patch(world_pos.xz, 17.0) - 0.5) * 0.4);
-		if (l < leaf_litter * (0.15 + 0.5 * ground_patch(world_pos.xz, 11.0)) * edge) {
+	// rust and yellow, thicker in patches. The filtered map goes from 1 under a crown to
+	// 0 a column away: with some noise on it the leaves thin out to a ragged edge round
+	// the crown rather than fill the squares of the columns it covers.
+	if (top && !cap && tile != NONE && leaf_litter > 0.0) {
+		float l = hash12(texel.xz + 41.0);
+		float heap = ground_patch(world_pos.xz, 11.0);
+		float cover = texture(roof_map_soft, (texel.xz + 0.5) / TEXELS / wrap_size).g;
+		float edge = smoothstep(0.2, 0.7, cover + (hash12(texel.xz + 59.0) - 0.5) * 0.35 + (heap - 0.5) * 0.4);
+		if (l < leaf_litter * (0.15 + 0.5 * heap) * edge) {
 			float tone = fract(l * 37.1);
 			vec3 leaf = tone < 0.4 ? vec3(0.62, 0.34, 0.13) : (tone < 0.75 ? vec3(0.74, 0.52, 0.16) : vec3(0.46, 0.3, 0.17));
 			col = leaf * (0.9 + 0.2 * h);

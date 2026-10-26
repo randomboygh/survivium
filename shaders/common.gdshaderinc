@@ -254,16 +254,6 @@ bool under_crown(vec2 xz) {
 	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / wrap_size).g > 0.5;
 }
 
-// How much crown is over a spot, 0..1, smoothed across the neighbouring columns so it
-// falls off round a crown's edge instead of stopping at the side of a cell: the
-// filtered map at the spot and at four spots about a cell away.
-float crown_cover(vec2 xz) {
-	vec2 uv = xz / wrap_size;
-	vec2 far = vec2(0.8 * CELL) / wrap_size;
-	return (2.0 * texture(roof_map_soft, uv).g + texture(roof_map_soft, uv + far).g + texture(roof_map_soft, uv - far).g
-		+ texture(roof_map_soft, uv + vec2(far.x, -far.y)).g + texture(roof_map_soft, uv + vec2(-far.x, far.y)).g) / 6.0;
-}
-
 // True at height `y` under a roof, an overhang or a cave ceiling: below the bottom of
 // the column's highest covering cell. The faces of that cell itself, its ramps and
 // walls included, lie within its span and are not under it.
