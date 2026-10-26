@@ -368,9 +368,11 @@ void fragment() {
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
 	// rust and yellow, thicker in patches and under the middle of a crown, thinning out
 	// to a ragged edge round it rather than the squares of the columns it covers.
-	float cover = top && !cap && tile != NONE && leaf_litter > 0.0 ? crown_cover((texel.xz + 0.5) / TEXELS) : 0.0;
-	if (cover > 0.05) {
-		float l = hash12(texel.xz + 41.0);
+	// The cheap tests first: most texels hold no leaf whatever the cover.
+	float l = hash12(texel.xz + 41.0);
+	vec2 litter_at = (texel.xz + 0.5) / TEXELS;
+	if (top && !cap && tile != NONE && l < leaf_litter * 0.65 && texture(roof_map_soft, litter_at / wrap_size).g > 0.0) {
+		float cover = crown_cover(litter_at);
 		float edge = smoothstep(0.1, 0.6, cover + (hash12(texel.xz + 59.0) - 0.5) * 0.25 + (ground_patch(world_pos.xz, 17.0) - 0.5) * 0.4);
 		if (l < leaf_litter * (0.15 + 0.5 * ground_patch(world_pos.xz, 11.0)) * edge) {
 			float tone = fract(l * 37.1);
