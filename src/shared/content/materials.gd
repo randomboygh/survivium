@@ -65,6 +65,9 @@ static var flags: PackedByteArray = []
 ## How round the cut corners of natural ground are, by material: 0 a straight cut at
 ## 45 degrees, 1 a little rounded, 2 a quarter circle (see ChunkMesher.CORNER_P).
 static var corner_shape: PackedByteArray = []
+## How many cells of the material lie under it where the generator lays it as the top,
+## in place of the dirt (the `layers` field).
+static var layers: PackedByteArray = []
 ## The word of each material for the world shader (see DRAINS).
 static var shader_bits: PackedInt32Array = []
 
@@ -80,6 +83,7 @@ static func refresh() -> void:
 	NAMES = []
 	flags = []
 	corner_shape = []
+	layers = []
 	shader_bits = []
 	var hotbar := []
 	for i in COUNT:
@@ -88,6 +92,7 @@ static func refresh() -> void:
 		NAMES.append(r.title)
 		flags.append((SOLID if r.solid else 0) | (ROOF if r.roof else 0) | (SLOPE if r.slope else 0))
 		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
+		layers.append(r.layers)
 		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT))
 		if r.hotbar > 0:
 			hotbar.append([r.hotbar, i])
