@@ -25,7 +25,7 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      nothing else growing in the pens
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
-##   combos     x -108..107, z -472..-97  every shape of COMBO_SHAPES on every top of COMBO_ROWS
+##   combos     x -108..203, z -472..-97  every shape of COMBO_SHAPES on every top of COMBO_ROWS
 ##                                      (one material, quarters, diagonal halves, a checker of
 ##                                      cells, grass that stays sheer), in three bands north to
 ##                                      south: on a plateau in the snow (a ramp up from the west),
@@ -98,9 +98,15 @@ const RELIEF_Z := 44
 ## bands of COMBO_BANDS (north to south: snow, water, dry), COMBO_BAND cells apart, from
 ## the north-west corner COMBO_X, COMBO_Z. The new shapes: a bowl (an upturned pyramid),
 ## two terraces on a diagonal, a square with notches and a lone hole, shafts 4 and 2
-## deep, a block with a hollow under its south half, a mound with a tunnel through.
+## deep, a block with a hollow under its south half, a mound with a tunnel through; then
+## the diagonal ones and the smooth ones two and three cells high: a diamond a cell high
+## (its edges step on the diagonal), a diamond of two and a cone of three in rings a cell
+## wide, pillars 2 and 3 high (two of them meeting only at a corner), an L three high,
+## walls a cell thick on the diagonal 1 and 2 high, a ramp up two levels a cell each
+## along x and along the diagonal.
 const COMBO_SHAPES := ["cell", "square", "ell", "ring", "pit", "pyramid", "stair", "cliff", "ridge", "checker",
-	"round", "cross", "bowl", "diagonal", "notch", "shaft", "overhang", "tunnel"]
+	"round", "cross", "bowl", "diagonal", "notch", "shaft", "overhang", "tunnel", "diamond", "diamond2", "cone",
+	"pillar", "ell3", "zigzag", "slope2", "slope2_diag"]
 const COMBO_X := -108
 const COMBO_Z := -472
 const COMBO_BAND := 128
@@ -379,6 +385,30 @@ func relief_rise(shape: String, px: int, pz: int) -> int:
 			return 4 if px >= 2 and pz >= 2 and px < 8 and pz < 8 else 0
 		"tunnel":
 			return 3 if px >= 1 and pz >= 2 and px < 9 and pz < 8 else 0
+		"diamond", "diamond2", "cone":
+			# Twice the distance from the middle along x plus along z: 2 in the middle,
+			# 2 more a cell further.
+			var m := absi(2 * px - 9) + absi(2 * pz - 9)
+			if shape == "diamond":
+				return 1 if m <= 10 else 0
+			return clampi((12 - m) / 2, 0, 2 if shape == "diamond2" else 3)
+		"pillar":
+			var c := Vector2i(px, pz)
+			if c == Vector2i(2, 2) or c == Vector2i(6, 6) or c == Vector2i(7, 7):
+				return 2
+			return 3 if c == Vector2i(6, 2) or px >= 2 and px < 4 and pz >= 6 and pz < 8 else 0
+		"ell3":
+			return 3 if px >= 2 and pz >= 2 and px < 8 and pz < 8 and (px < 5 or pz >= 5) else 0
+		"zigzag":
+			if px < 1 or pz < 1 or px >= 9 or pz >= 9:
+				return 0
+			return 1 if px - pz == 0 or px - pz == -1 else (2 if px - pz == 4 or px - pz == 5 else 0)
+		"slope2":
+			if pz < 1 or pz >= 9:
+				return 0
+			return 2 if px >= 6 else (1 if px == 5 else 0)
+		"slope2_diag":
+			return 2 if px + pz >= 11 else (1 if px + pz == 10 else 0)
 	return 0
 
 
