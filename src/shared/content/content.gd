@@ -67,6 +67,7 @@ const SCHEMAS := {
 		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
 		"ground": {"type": "enum", "values": ["none", "soil", "sand", "rock"], "default": "none"},
 		"drains": {"type": "bool", "default": false},
+		"layers": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"texture": {"type": "string", "default": ""},
 		"item": {"type": "ref:items", "soft": true, "default": ""},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},

@@ -301,7 +301,7 @@ func _terrain_step(job: Job, row: int) -> void:
 
 
 ## Writes the cells of one row of the chunk from the laid-out columns: stone with ore,
-## a few cells of dirt (not under stone tops), the top, water up to its level, and
+## a few cells of dirt (not under stone tops) or of the top's own (Mat.layers), the top, water up to its level, and
 ## caves under dry land away from water.
 func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 	var c: WorldData.Chunk = world.chunks[key]
@@ -347,13 +347,14 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var top: int = tops[j]
 		var rocky := top == Mat.STONE
 		var dirt := height if rocky else maxi(0, height - 4)
+		var bed := maxi(0, height - Mat.layers[top])
 		var i := col
 		for y in dirt:
 			cells[i] = ore if want and ores[(y >> 1) * CHUNK + lx] > ore_t else Mat.STONE
 			natural[i] = WorldData.WILD
 			i += layer
 		for y in range(dirt, height):
-			cells[i] = Mat.DIRT
+			cells[i] = Mat.DIRT if y < bed else top
 			natural[i] = WorldData.WILD
 			i += layer
 		cells[i] = ore if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top

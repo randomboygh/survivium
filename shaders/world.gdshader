@@ -341,6 +341,13 @@ void fragment() {
 	// A slope's top may go down into the cell below its own (a deep corner): that is
 	// still its own open surface, not ground under it.
 	bool roof = roofed(world_pos.xz, world_pos.y + ((flag & 4) != 0 && top ? CELL : 0.0));
+	// Ground in a cut corner of a wall lies in the wall's column, under it on the roof
+	// map, but open to the sky like the column beyond the corner.
+	if (roof && top && (flag & 72) == 72) {
+		int k = (flag >> 4) & 3;
+		vec2 out_dir = vec2(k == 1 || k == 2 ? 1.0 : -1.0, k >= 2 ? 1.0 : -1.0);
+		roof = roofed((floor(world_pos.xz / CELL) + 0.5 + out_dir) * CELL, world_pos.y);
+	}
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	// No snow on the top of a trunk inside its crown (a dark cap, see TrunkMesher).
 	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;

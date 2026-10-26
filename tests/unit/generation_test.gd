@@ -61,6 +61,29 @@ func _test_generation() -> void:
 	# Water above the sea never leaks: nothing open under it, and no air beside it.
 	var leaks := _leaks(w, keys)
 	_check(leaks == 0, "water above the sea does not leak (%d leaks)" % leaks)
+	# Sand lies deep: under a sand top, its own layers (Mat.layers), then dirt or stone.
+	var shore: Vector2i = a.gen.find_place("beach", Vector2i(a.gen.spawn_guess.x, a.gen.spawn_guess.z))
+	var shore_key := WorldData.chunk_key(shore.x, shore.y)
+	_ensure_stage(a.gen, shore_key, WorldGen.TERRAIN)
+	var deep := Mat.layers[Mat.BEACH]
+	var sandy := 0
+	var bedded := 0
+	for lz in WorldData.CHUNK:
+		for lx in WorldData.CHUNK:
+			var x := shore_key.x * WorldData.CHUNK + lx
+			var z := shore_key.y * WorldData.CHUNK + lz
+			var y := w.size_y - 1
+			while y > 0 and w.get_cell(x, y, z) in [Mat.AIR, Mat.WATER]:
+				y -= 1
+			if w.get_cell(x, y, z) != Mat.BEACH or y <= deep:
+				continue
+			sandy += 1
+			var bed := w.get_cell(x, y - deep - 1, z)
+			if range(1, deep + 1).all(func(d: int) -> bool: return w.get_cell(x, y - d, z) == Mat.BEACH) \
+					and (bed == Mat.DIRT or bed == Mat.STONE):
+				bedded += 1
+	_check(deep >= 2 and sandy > 0 and bedded == sandy,
+		"sand on the surface has %d more layers of sand under it (%d of %d columns)" % [deep, bedded, sandy])
 	# Settings change the world: more water, a different world.
 	var wet := WorldGen.new(42, 40, {"water": 2})
 	_check(wet.coast_level > a.gen.coast_level, "more water lifts the coast")

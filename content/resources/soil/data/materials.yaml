@@ -10,6 +10,7 @@
   priority: 3
   ground: sand
   drains: true
+  layers: 3
   hotbar: 5
   item: sand
   dig: shovel

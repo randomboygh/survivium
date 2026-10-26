@@ -88,12 +88,12 @@ func _test_water() -> void:
 	w.water_frozen = true
 	player.step(1.0 / 60.0, false)
 	player.step(1.0 / 60.0, false)
-	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.body.on_ground,
-		"a swimmer caught by the frost stands on the ice")
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 4.5) and player.body.on_ground,
+		"a swimmer caught by the frost stands on the ice, at the water's surface")
 	player.body.move_input = Vector2(1, 0)
 	for i in 120:
 		player.step(1.0 / 60.0, false)
-	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.position.x / WorldData.CELL > 7.0,
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 4.5) and player.position.x / WorldData.CELL > 7.0,
 		"ice is walked on")
 	player.free()
 
@@ -363,6 +363,39 @@ func _test_ground() -> void:
 		and w.get_cell(rx + 7 * plot + 4, g + 1, rz + 4) == Mat.GRASS and w.get_cell(rx + 7 * plot + 7, g + 2, rz + 4) == Mat.GRASS
 		and w.get_cell(rx + 4, g + 1, rz + 3 * plot + 4) == Mat.STONE, "the relief ground has its shapes")
 	_check(w.slope_mask(rx + plot + 4, g + 1, rz + 3) != WorldData.FULL, "the grass square of the relief ground slopes down at its edge")
+	# The combinations ground: the bands on the meadow, in water and in the snow, a
+	# square that slopes where loose and stays whole where the row is sheer, the hollow
+	# under the overhang, the tunnel through the mound filled up to the water.
+	var cxo: int = TestGround.COMBO_X
+	var czo: int = TestGround.COMBO_Z
+	var band: int = TestGround.COMBO_BAND
+	var st: int = TestGround.RELIEF_STRIDE
+	var dry := czo + 2 * band
+	var wet := czo + band
+	gen.generate_area(Vector2i(-7, (dry >> 4) - 1), Vector2i(-5, ((dry + 9 * st) >> 4) + 1))
+	gen.generate_area(Vector2i((cxo + 16 * st) >> 4, dry >> 4), Vector2i((cxo + 18 * st) >> 4, (dry >> 4) + 1))
+	gen.generate_area(Vector2i(-7, (wet >> 4) - 1), Vector2i(-3, (wet >> 4) + 1))
+	gen.generate_area(Vector2i((cxo + 17 * st) >> 4, wet >> 4), Vector2i(((cxo + 18 * st) >> 4) + 1, (wet >> 4) + 1))
+	gen.generate_area(Vector2i(-8, (czo >> 4) - 1), Vector2i(-6, ((czo + 60) >> 4) + 1))
+	_check(w.get_cell(cxo + 4, g + 1, dry + 4) == Mat.GRASS and w.get_cell(cxo + 4, g + 1, dry + st + 4) == Mat.DIRT
+		and w.get_cell(cxo + 4, g + 1, dry + 5 * st + 4) == Mat.STONE, "the combinations ground has a row for each top")
+	_check(w.slope_mask(cxo + st + 4, g + 1, dry + st + 3) != WorldData.FULL
+		and w.slope_mask(cxo + st + 4, g + 1, dry + 9 * st + 3) == WorldData.FULL,
+		"a square of the combinations ground slopes where loose, stays whole where the row is sheer")
+	_check(w.get_cell(cxo + 16 * st + 4, g + 1, dry + 6) == Mat.AIR and w.get_cell(cxo + 16 * st + 4, g + 2, dry + 6) == Mat.AIR
+		and w.get_cell(cxo + 16 * st + 4, g + 3, dry + 6) != Mat.AIR and w.surface_y(cxo + 16 * st + 4, dry + 6) == g + 5,
+		"the overhang of the combinations ground has a hollow under it")
+	_check(w.get_cell(cxo + 4 * st + 4, g, wet + 4) == Mat.WATER and w.get_cell(cxo + 4 * st + 4, g - 2, wet + 4) == Mat.GRASS
+		and w.get_cell(cxo + 17 * st + 4, g, wet + 4) == Mat.WATER and w.get_cell(cxo + 17 * st + 4, g + 1, wet + 4) == Mat.AIR
+		and w.get_cell(cxo + 17 * st + 4, g + 2, wet + 4) == Mat.GRASS, "the water band of the combinations ground floods its shapes")
+	gen.generate_area(Vector2i((cxo + 20 * st) >> 4, dry >> 4), Vector2i(((cxo + 26 * st) >> 4) + 1, (dry >> 4) + 1))
+	_check(w.surface_y(cxo + 20 * st + 4, dry + 4) == g + 4 and w.surface_y(cxo + 24 * st + 5, dry + 4) == g + 2
+		and w.surface_y(cxo + 24 * st + 7, dry + 4) == g + 3 and w.slope_mask(cxo + 24 * st + 5, g + 1, dry + 4) != WorldData.FULL,
+		"the combinations ground has a cone three high and a ramp up two levels a cell each")
+	var snowy: int = gen.snow_base
+	_check(w.get_cell(cxo + 4, snowy + 1, czo + 4) == Mat.GRASS and w.peak_snow(snowy) == 1.0
+		and w.surface_y(cxo - 3, czo + TestGround.COMBO_RAMP.x) == snowy and w.surface_y(cxo - 10, czo + TestGround.COMBO_RAMP.x) == snowy - 7,
+		"the snow band of the combinations ground lies in the snow, a ramp up to it")
 	# The biome plots: the forest plot grows the forest's trees as thick as a forest, the
 	# steppe's none, the swamp's has pools and a pond running into a bog, every other
 	# plot a pool in its corner.
