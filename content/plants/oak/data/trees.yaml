@@ -31,7 +31,7 @@
   crook: 2
   roots: [1, 3]
   crown: [2.4, 1.6, 2.0]
-  tints: ["#456e40", "#4c7538", "#406945"]
+  tints: ["#527d47", "#5a8442", "#4d784e"]
   bare: 0.6
   seed: acorn
   log: resources:log

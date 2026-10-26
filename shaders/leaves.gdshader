@@ -12,7 +12,7 @@
 // leaves under snow, 0.8 goes bare, 0.6 is evergreen, 0.1, 0.2.. a bush of type 0, 1..
 // (see Foliage.bush_kind), whose berries are pixels of the texture marked in alpha.
 shader_type spatial;
-render_mode world_vertex_coords, cull_disabled;
+render_mode world_vertex_coords, cull_disabled, shadows_disabled;
 // Crowns clear round the player (see see_through), so the player's silhouette (see
 // sprite_xray) does not show behind them (3); bushes use a copy that marks them low
 // (see main.low_variant).
@@ -37,9 +37,15 @@ const float LARGE_BRANCH_ROW = 15.0;
 // How deep a conifer's tier is drawn along the view, as a share of its width.
 const float CONE_DEPTH = 0.45;
 // How much of its colour a leaf keeps (1 all, 0 grey).
-const float LEAF_SATURATION = 0.75;
+const float LEAF_SATURATION = 0.6;
+// How much of the steps of its ramp a bundle keeps (1 all, 0 one flat colour).
+const float LEAF_CONTRAST = 0.75;
 // Rows of the clump texture, one per size of leaf bunch.
 uniform int clump_rows = 1;
+// How much of its square each row's pictures fill, from the middle out
+// (PixelTextures.row_reach): a card is cut down to it, so the pixels round a small
+// bundle cost nothing to draw; 0 (not set, the bushes) keeps the whole card.
+uniform float row_reach[16];
 // Row of bare branches, which the deep layer of a bare tree shows in winter; -1 for none.
 uniform int branch_row = -1;
 // How far the half light and the shade of the crowns lean cool (toward blue and violet),
@@ -66,6 +72,17 @@ void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
 	tint = COLOR;
+	// The card cut down to what its row draws (a bare tree's deep layer may show the
+	// branches instead).
+	float row_in = mod(floor(abs(custom.w)), 32.0);
+	bool deep_card = row_in >= 15.5;
+	float reach = row_reach[int(row_in) - (deep_card ? 16 : 0)];
+	if (deep_card && branch_row >= 0 && tint.a > 0.7 && tint.a < 0.9) {
+		reach = max(reach, row_reach[branch_row]);
+	}
+	reach = reach > 0.0 ? reach : 1.0;
+	VERTEX = center + (VERTEX - center) * reach;
+	UV = 0.5 + (UV - 0.5) * reach;
 	// A card whose normal is longer than 1 lies flat, a bundle of a layer of the crown
 	// (Foliage._layer_cards): square to the screen whichever way the camera looks, its
 	// depth along the view kept so the shear draws it at its size in pixels.
@@ -195,10 +212,12 @@ void fragment() {
 	// Steps of the tree's ramp below or above its own colour (PixelTextures._tone_px:
 	// BUNDLE_DARKEST -4 .. BUNDLE_LIGHTEST 1), the darks cooler, toward blue.
 	float off = berry ? 0.0 : round(m.g * 5.0) - 4.0;
-	vec3 tone = off < -3.5 ? vec3(0.34, 0.44, 0.7) : (off < -2.5 ? vec3(0.53, 0.64, 0.92) :
+	// The darkest step is the rim of the leaves, kept soft: a little under the shade.
+	vec3 tone = off < -3.5 ? vec3(0.45, 0.55, 0.8) : (off < -2.5 ? vec3(0.53, 0.64, 0.92) :
 		(off < -1.5 ? vec3(0.78, 0.88, 1.05) : (off < -0.5 ? vec3(1.0) :
 		(off < 0.5 ? vec3(1.25, 1.22, 1.0) : vec3(1.6, 1.52, 1.05)))));
 	tone = mix(vec3(dot(tone, vec3(0.333))), tone, hue_shift);
+	tone = mix(vec3(1.0), tone, LEAF_CONTRAST);
 	vec3 col = tint.rgb * season * tone;
 	// Toned down toward grey to sit with the grass and the ground.
 	col = mix(vec3(dot(col, vec3(0.3, 0.55, 0.15))), col, LEAF_SATURATION);
@@ -233,7 +252,7 @@ void fragment() {
 	// branches do: the sides of a cone part into light and shade more than a crown's.
 	if (needle_branch) {
 		float sun_side = dot(normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz), sun_view);
-		col *= mix(mix(vec3(0.62), vec3(0.5, 0.52, 0.86), hue_shift), vec3(1.0), smoothstep(-0.35, 0.15, sun_side));
+		col *= mix(mix(vec3(0.7), vec3(0.6, 0.62, 0.86), hue_shift), vec3(1.0), smoothstep(-0.35, 0.15, sun_side));
 	}
 	col *= 1.0 - 0.25 * wetness;
 	vec4 veiled = veil(center, depth_fade(center.y));

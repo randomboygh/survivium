@@ -378,6 +378,30 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := 
 	return ImageTexture.create_from_image(img)
 
 
+## How much of its `cell` px square each row of the clump picture `img` fills, from the
+## middle out (1 all of it), in whole pairs of pixels so a card cut down to it keeps its
+## pixels on the screen's (see leaves.gdshader). The rows of spruce branches, which the
+## shader swaps for one another, share the largest.
+static func row_reach(img: Image, cell: int) -> PackedFloat32Array:
+	var reach := PackedFloat32Array()
+	reach.resize(16)
+	reach.fill(1.0)
+	var half := cell / 2.0
+	for row in mini(img.get_height() / cell, 16):
+		var far := 0.0
+		for y in cell:
+			for x in cell * 4:
+				if img.get_pixel(x, row * cell + y).a > 0.0:
+					far = maxf(far, maxf(absf(x % cell + 0.5 - half), absf(y + 0.5 - half)))
+		reach[row] = minf(1.0, 2.0 * ceilf(far) / cell)
+	var needles := 0.0
+	for row in [NEEDLE_ROW, NEEDLE_ROW + 1, NEEDLE_ROW + 2, SMALL_BRANCH_ROW, UP_BRANCH_ROW, LARGE_BRANCH_ROW]:
+		needles = maxf(needles, reach[row])
+	for row in [NEEDLE_ROW, NEEDLE_ROW + 1, NEEDLE_ROW + 2, SMALL_BRANCH_ROW, UP_BRANCH_ROW, LARGE_BRANCH_ROW]:
+		reach[row] = needles
+	return reach
+
+
 ## Leaf clusters of bushes, `cell` px squares: four variants of each of BUSH_SIZES, then
 ## the same bunches with berries, then twigs (see BUSH_SIZES).
 static func build_bush_clumps(cell: int) -> ImageTexture:

@@ -66,6 +66,12 @@ const FLAT := 2.0
 ## how far apart, in cells.
 const BUNDLE_REACH := 1.2
 const BUNDLE_STEP := 2.0
+## How far round a point of a crown of lobes its layer reaches, in cells.
+const LOBE_REACH := 2.2
+## A willow's strands: how far apart round the rim and how far apart their bundles one
+## under another, in cells (see _strands).
+const STRAND_STEP := 1.4
+const STRAND_DROP := 0.8
 ## How far round its trunk a cone's crown is looked for, in cells (see _spruce).
 const SPRUCE_REACH := 8
 const CELL := WorldData.CELL
@@ -300,10 +306,10 @@ static func _column(job: Job, x: int, z: int) -> void:
 		if tree[0] == Vector2i(x, z):
 			_spruce(job, w, x, z, base, first_row, looks, rng)
 		return
-	if grown and not needles and not dead and looks.leaf != "needles":
+	if grown and not needles and not dead:
 		# So is a broad crown, in layers (see _broad).
 		if tree[0] == Vector2i(x, z):
-			_broad(job, w, tree, trunks, base, first_row, rng)
+			_broad(job, w, tree, trunks, base, first_row, looks, rng)
 		return
 	if needles and dead and tree[0] == Vector2i(x, z):
 		# Small sprigs in front of a spruce's trunk where the tiers are around
@@ -461,8 +467,12 @@ static func _spruce(job: Job, w, x: int, z: int, base: Color, first_row: int, lo
 			# The length beyond FLAT says how far out from the trunk (leaves.gdshader).
 			var n := (out + Vector3.UP * 0.45).normalized() * (FLAT + spread)
 			_card(job.clumps, PixelView.snap(c), n, base, row, rng)
-			_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark, row + DEEP_ROW, rng)
-			job.nc += 2
+			job.nc += 1
+			# The inner ring lies under the outer one of the tier above: its drop shadow
+			# would not show.
+			if outer:
+				_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark, row + DEEP_ROW, rng)
+				job.nc += 1
 	# The tip: a tuft and over it a small branch pointing straight up the screen.
 	rng.seed = hash(Vector3i(x, top + 2, z))
 	var tip := axis + Vector3(0.0, (top + 1.0) * CELL, 0.0)
@@ -486,17 +496,33 @@ static func _widest_tier(reach: float, looks: Dictionary) -> float:
 ## cell lower and a little aside, the shade a layer casts on the one below, which also
 ## fills the crown so nothing shows through. The bundles a layer above covers whichever
 ## way the camera looks are left out.
-static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_row: int, rng: RandomNumberGenerator) -> void:
+static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_row: int, looks: Dictionary,
+		rng: RandomNumberGenerator) -> void:
 	var at: Vector2i = tree[0]
 	var levels := _crown_levels(w, at, trunks)
 	if levels.is_empty():
 		return
+	var shape: String = looks.shape
+	# Needles not in tiers (a pine's) take tufts, here and in the shade under them.
+	var row := first_row + 2 if looks.leaf == "needles" else first_row
 	var dark := base * DEEP
 	dark.a = base.a
 	var ys: Array = levels.keys()
 	ys.sort()
 	var low: int = ys[0]
 	var top: int = ys[-1]
+	# A weeping crown is a dome of layers over the trunk with strands hanging from its
+	# rim (see _strands): the points hanging round the trunk (Trees._curtain) take no
+	# layers of their own.
+	var hang_to := low
+	var dome := 0.0
+	if shape == "weeping":
+		# A dome of three layers, its widest the lowest, as wide as the crown reaches.
+		for y: int in ys:
+			for p: Vector2i in levels[y]:
+				dome = maxf(dome, Vector2(p - at).length())
+		low = maxi(low, top - 4)
+		ys = ys.filter(func(y: int) -> bool: return y >= low)
 	# The middle of the crown, in cells.
 	var middle := Vector2.ZERO
 	var count := 0
@@ -505,29 +531,49 @@ static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_r
 			middle += Vector2(p)
 			count += 1
 	middle = middle / count + Vector2(0.5, 0.5)
-	# Each level a round layer as wide as its points reach: the cells it covers.
+	# Each level a layer, round and as wide as its points reach, or for a crown of lobes
+	# a disc round each of its points, so the gaps between the lobes show: the cells it
+	# covers.
+	var lobes := shape == "lobed" or shape == "umbrella"
 	var covers := {}
 	var reach := {}
 	for y: int in ys:
 		var far := 0.0
 		for p: Vector2i in levels[y]:
 			far = maxf(far, (Vector2(p) + Vector2(0.5, 0.5) - middle).length())
-		var r := far + BUNDLE_REACH
+		# A column's bundles keep close to its points, so it stays slender.
+		var r := far * 0.8 + 0.8 if shape == "column" else far + BUNDLE_REACH
+		if dome > 0.0:
+			r = (dome + BUNDLE_REACH) * (1.0 - 0.35 * (y - low) / 4.0)
 		var cells := {}
 		for dz in range(-ceili(r), ceili(r) + 1):
 			for dx in range(-ceili(r), ceili(r) + 1):
 				var cell := Vector2i(floori(middle.x) + dx, floori(middle.y) + dz)
-				if (Vector2(cell) + Vector2(0.5, 0.5) - middle).length() <= r:
-					cells[cell] = true
+				var spot := Vector2(cell) + Vector2(0.5, 0.5)
+				if (spot - middle).length() > r:
+					continue
+				if lobes and not levels[y].any(func(p: Vector2i) -> bool:
+						return (Vector2(p) + Vector2(0.5, 0.5) - spot).length() <= LOBE_REACH):
+					continue
+				cells[cell] = true
 		covers[y] = cells
 		reach[y] = r
+	# A column (birch, poplar) takes a layer between every two, as narrow as the upper
+	# one, so its sides run up smooth instead of in tiers.
+	if shape == "column":
+		for y: int in ys.duplicate():
+			if covers.has(y + 2):
+				covers[y + 1] = covers[y + 2]
+				reach[y + 1] = reach[y + 2]
+				ys.append(y + 1)
+		ys.sort()
 	for y: int in ys:
 		var cells: Dictionary = covers[y]
 		var above: Dictionary = covers.get(y + 2, {})
 		var t := float(y - low) / maxf(1.0, top - low)
 		var r: float = reach[y]
 		# The lower a layer, the more the ones above shade it.
-		var tint := base.lerp(base * DEEP * DEEP, 1.0 - t)
+		var tint := base.lerp(base * DEEP, 1.0 - t)
 		tint.a = base.a
 		rng.seed = hash(Vector3i(at.x, y, at.y))
 		var lo := middle - Vector2(r, r)
@@ -546,9 +592,49 @@ static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_r
 				var n := (Vector3(off.x, 0.0, off.y) * 2.2 + Vector3.UP * (0.2 + 0.8 * t)).normalized() \
 					* (FLAT + (q - middle).length() * CELL)
 				var c := Vector3(q.x, y + 1.0, q.y) * CELL
-				_card(job.clumps, PixelView.snap(c), n, tint, first_row, rng)
-				_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark * DEEP, first_row + DEEP_ROW, rng)
-				job.nc += 2
+				_card(job.clumps, PixelView.snap(c), n, tint, row, rng)
+				job.nc += 1
+				# The shade under a bundle shows at the rim of its layer; inside it the
+				# bundles round it hide most of it, so only one in three is drawn there,
+				# enough to darken the gaps.
+				if _inside(cells, q) and (i + j) % 3 != 0:
+					continue
+				_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark * DEEP, row + DEEP_ROW, rng)
+				job.nc += 1
+	if shape == "weeping":
+		_strands(job, at, middle, reach[low], low, hang_to, base, row, rng)
+
+
+## The strands of a weeping crown (willow): upright bundles one under another hanging
+## from under the rim of its lowest layer `y_from` (radius `r` round `middle`, in cells)
+## down to the level `y_to` its hanging points reach.
+static func _strands(job: Job, at: Vector2i, middle: Vector2, r: float, y_from: int, y_to: int, base: Color, row: int,
+		rng: RandomNumberGenerator) -> void:
+	rng.seed = hash(Vector3i(at.x, y_from, at.y) + Vector3i(7, 7, 7))
+	var radius := r * 0.85
+	var count := maxi(6, roundi(TAU * radius / STRAND_STEP))
+	var turn := rng.randf() * TAU
+	for i in count:
+		var a := turn + TAU * (i + rng.randf_range(-0.25, 0.25)) / count
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var foot := Vector3(middle.x, 0.0, middle.y) + out * radius
+		var bottom := y_to - rng.randf_range(0.0, 1.5)
+		var n := (out + Vector3.UP * 0.3).normalized()
+		var y := float(y_from) - 0.3
+		while y > bottom:
+			var c := (foot + Vector3(rng.randf_range(-0.15, 0.15), y, rng.randf_range(-0.15, 0.15))) * CELL
+			_card(job.clumps, PixelView.snap(c), n, base, row + 1, rng)
+			job.nc += 1
+			y -= STRAND_DROP
+
+
+## Whether the bundles of a layer of cells `cells` lie all round the spot `q` (in cells).
+static func _inside(cells: Dictionary, q: Vector2) -> bool:
+	for k in 6:
+		var p := q + Vector2.from_angle(k * TAU / 6.0) * BUNDLE_STEP
+		if not cells.has(Vector2i(floori(p.x), floori(p.y))):
+			return false
+	return true
 
 
 ## Whether the cells `cells` of a layer cover `cell` and the cells two round it, so the
