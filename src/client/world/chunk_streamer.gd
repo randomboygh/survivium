@@ -143,6 +143,9 @@ var budget_us := 0
 ## Time spent generating and building, for the log.
 var mesh_us := 0
 var gen_us := 0
+## Time spent on each kind of work since take_work last read it, for the loading
+## screens (see Main.loading_phase): "terrain", "saved", "trees", "shapes", "meshes".
+var work_us := {}
 
 var cut_level := -1
 var manual_level := -1
@@ -292,15 +295,19 @@ func build_chunk(key: Vector2i) -> void:
 	var t0 := Time.get_ticks_usec()
 	var need := _prerequisite(key)
 	while not need.is_empty():
+		var tg := Time.get_ticks_usec()
 		gen.run(need[0], need[1])
 		# A chunk from the save comes back SHAPED in place of its terrain.
-		_on_generated(need[0], gen.stage_of(need[0]), true)
+		var stage := gen.stage_of(need[0])
+		_note_work(_gen_work(need[1], stage), Time.get_ticks_usec() - tg)
+		_on_generated(need[0], stage, true)
 		need = _prerequisite(key)
 	gen_us += Time.get_ticks_usec() - t0
 	t0 = Time.get_ticks_usec()
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	var plants: Dictionary = Foliage.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
 	mesh_us += Time.get_ticks_usec() - t0
+	_note_work("meshes", Time.get_ticks_usec() - t0)
 	dirty_chunks.erase(key)
 	_apply_chunk(key, meshes, plants)
 
@@ -323,6 +330,27 @@ func build_around() -> void:
 	while not drop_queue.is_empty():
 		_drop_some()
 	game.roof.flush()
+
+
+## Adds `us` to the time spent on a kind of work (see work_us).
+func _note_work(kind: String, us: int) -> void:
+	work_us[kind] = work_us.get(kind, 0) + us
+
+
+## The kind of work a generator job asked for `stage` is: a chunk from the save comes
+## back SHAPED (`made`) in place of its terrain.
+func _gen_work(stage: int, made: int) -> String:
+	if stage == WorldGen.TERRAIN:
+		return "saved" if made == WorldGen.SHAPED else "terrain"
+	return "trees" if stage == WorldGen.PLANTED else "shapes"
+
+
+## The time spent on each kind of work since the last call (usec by kind), and the
+## count starts anew.
+func take_work() -> Dictionary:
+	var spent := work_us
+	work_us = {}
+	return spent
 
 
 ## The next generator stage some chunk needs before `key` can be meshed: [chunk,
@@ -449,6 +477,8 @@ func run_jobs() -> void:
 				done = gen.step(job_gen, 1)
 				worked = true
 			gen_us += Time.get_ticks_usec() - tg
+			_note_work(_gen_work(job_gen.stage, WorldGen.SHAPED if not job_gen.restore.is_empty() else job_gen.stage),
+				Time.get_ticks_usec() - tg)
 			budget_us += Time.get_ticks_usec() - t1
 			if done:
 				# A chunk from the save comes back SHAPED in place of its terrain.
@@ -460,6 +490,7 @@ func run_jobs() -> void:
 				done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
 				worked = true
 			budget_us += Time.get_ticks_usec() - t1
+			_note_work("meshes", Time.get_ticks_usec() - t1)
 			if not done:
 				break
 			job_part = 0
@@ -470,6 +501,7 @@ func run_jobs() -> void:
 		var finished := _finish_part()
 		worked = true
 		budget_us += Time.get_ticks_usec() - t1
+		_note_work("meshes", Time.get_ticks_usec() - t1)
 		if finished:
 			has_target = false
 			if not game.ready_to_play and not job_edit and _is_near(job_key, _player_chunk()):

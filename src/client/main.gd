@@ -73,6 +73,18 @@ const LeavesShader := preload("res://shaders/leaves.gdshader")
 const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
 
 const CELL := WorldData.CELL
+## While the land around is built, the loading screens name in turn the kinds of work
+## that took at least LOADING_SHARE of the time (ChunkStreamer.take_work), each caption
+## kept LOADING_HOLD at least (msec) so it can be read.
+const LOADING_HOLD := 1500
+const LOADING_SHARE := 0.05
+const LOADING_WORK := {
+	"terrain": "Холмы, вода и пещеры",
+	"saved": "Участки из сохранения",
+	"trees": "Растут деревья",
+	"shapes": "Склоны и кусты",
+	"meshes": "Земля и трава",
+}
 
 var world
 var gen: WorldGen
@@ -156,6 +168,12 @@ var world_mods: Array = []
 var start_ms := 0
 ## What start_world is doing before the chunks are built, for the loading screens.
 var loading_stage := ""
+## The kind of work the loading screens name while the land is built, and since when
+## (msec, see loading_phase).
+var _work_shown := ""
+var _work_since := 0
+## When each kind of work was last named (msec).
+var _work_named := {}
 ## Set before a restart for another world: the scene that comes up goes straight in.
 static var play_at_once := false
 
@@ -267,14 +285,39 @@ func start_world() -> void:
 
 
 ## The part of the loading going on, in a few words for the loading screens: what
-## start_world does, then the land around being built, then the last preparations (the
-## shaders built ahead, see ShaderWarmup).
+## start_world does, then the work going on while the land around is built, each
+## caption kept LOADING_HOLD at least so it can be read (see _next_work), then the last
+## preparations (the shaders built ahead, see ShaderWarmup).
 func loading_phase() -> String:
 	if ready_to_play:
 		return "Последний штрих"
 	if loading_stage != "":
 		return loading_stage.trim_suffix("…")
-	return "Строим окрестности"
+	var now := Time.get_ticks_msec()
+	if _work_shown == "" or now - _work_since >= LOADING_HOLD:
+		var work := _next_work(chunks.take_work())
+		if work != "":
+			_work_shown = work
+			_work_since = now
+			_work_named[work] = now
+	return LOADING_WORK.get(_work_shown, "Строим окрестности")
+
+
+## Of the kinds of work that took a fair share (LOADING_SHARE) of the time `spent`
+## (usec by kind, see ChunkStreamer.take_work), the one named longest ago, so the
+## captions take turns over what is really being done; "" when nothing was done.
+func _next_work(spent: Dictionary) -> String:
+	var total := 0
+	for kind: String in spent:
+		total += spent[kind]
+	var best := ""
+	for kind: String in spent:
+		if spent[kind] < LOADING_SHARE * total:
+			continue
+		if best == "" or _work_named.get(kind, 0) < _work_named.get(best, 0) \
+				or _work_named.get(kind, 0) == _work_named.get(best, 0) and spent[kind] > spent[best]:
+			best = kind
+	return best
 
 
 ## How far the loading has gone, 0 to 1: a little for start_world's parts, most for the
