@@ -7,6 +7,7 @@ extends SceneTree
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const ROOT := "user://test_saves/game"
 
@@ -139,6 +140,20 @@ func _run() -> void:
 	_check(explored.all(func(k: Vector2i) -> bool: return mm.regions.has(k)), "the explored map comes back")
 	_check(mm.regions.has(far) and mm.regions[far].image.get_pixel(3, 5).is_equal_approx(Color.RED),
 		"a region explored far away comes back as it was painted")
+	# A chunk the map already shows is not painted bare when its terrain is made again
+	# (its trees would go from the map until it is shaped); one not shown yet is.
+	var gen = main.gen
+	var seen := Vector2i(main.chunks.load_home.x + 20, main.chunks.load_home.y)
+	var unseen := seen + Vector2i(0, 3)
+	var seen_px := Vector2i((seen.x & (mm.REGION - 1)) * mm.CHUNK_PX, (seen.y & (mm.REGION - 1)) * mm.CHUNK_PX)
+	var seen_region := Vector2i(seen.x >> mm.REGION_SHIFT, seen.y >> mm.REGION_SHIFT)
+	mm._region(seen_region).image.set_pixel(seen_px.x, seen_px.y, Color.RED)
+	for key: Vector2i in [seen, unseen]:
+		gen.run(key, WorldGen.TERRAIN)
+		main.chunks._on_generated(key, WorldGen.TERRAIN, true)
+	_check(mm.regions[seen_region].image.get_pixel(seen_px.x, seen_px.y).is_equal_approx(Color.RED),
+		"a chunk already on the map keeps its picture when its terrain is made again")
+	_check(mm.has_chunk(unseen), "a chunk not on the map yet is painted with its terrain")
 
 	# Death: the bag goes into a sack, the character lies dead until brought back, and a
 	# world left dead is entered dead.

@@ -372,12 +372,15 @@ func _prerequisite(key: Vector2i) -> Array:
 ## map and the minimap take them, at once with `now` (the loading screen and tools),
 ## else one a frame (see run_jobs). The minimap paints its ground already at TERRAIN,
 ## two chunks ahead of the meshes, so the world is not seen being made at its edge;
-## the trees come in with SHAPED.
+## the trees come in with SHAPED. A chunk the map already shows (from the save, or
+## made again after it was forgotten) is not painted bare at TERRAIN: its trees would
+## go from the map until it is SHAPED again.
 func _on_generated(key: Vector2i, stage: int, now := false) -> void:
 	var parts: Array
 	if stage == WorldGen.SHAPED:
 		parts = [0, 1]
-	elif stage == WorldGen.TERRAIN:
+	elif stage == WorldGen.TERRAIN and not (game.hud != null and game.hud.minimap != null
+			and game.hud.minimap.has_chunk(key)):
 		parts = [1]
 	for part: int in parts:
 		if now:
