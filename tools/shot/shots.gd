@@ -476,6 +476,21 @@ const SHOTS := {
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
 	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
 	# The stream down its terraces, from the meadow south of it and from its top.
+	# The combinations ground (TestGround.COMBO_*): its west (the shapes of the relief
+	# ground) and its east (bowl, diagonal, notch, shafts, overhang, tunnel), the rows of
+	# one material to the north of each band and the mixed ones to the south.
+	"ground-combo-west": {"time": 0.42, "season": 1, "at": [-80, -190]},
+	"ground-combo-mixed": {"time": 0.42, "season": 1, "at": [-80, -130]},
+	"ground-combo-east": {"time": 0.42, "season": 1, "at": [80, -190]},
+	"ground-combo-east-mixed": {"time": 0.42, "season": 1, "at": [80, -130]},
+	"ground-combo-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [84, -196], "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
+	"ground-combo-water": {"time": 0.42, "season": 1, "at": [-80, -318]},
+	"ground-combo-water-east": {"time": 0.42, "season": 1, "at": [80, -318]},
+	"ground-combo-ice": {"time": 0.42, "season": 3, "at": [-80, -318]},
+	"ground-combo-snow": {"time": 0.42, "season": 1, "at": [-80, -446]},
+	"ground-combo-snow-east": {"time": 0.42, "season": 1, "at": [80, -446]},
+	"ground-combo-ramp": {"time": 0.42, "season": 1, "at": [-118, -414]},
 	"ground-stream": {"time": 0.42, "season": 1, "at": [156, 37]},
 	"ground-stream-top": {"time": 0.42, "season": 1, "at": [142, 20]},
 	"ground-ears": {"time": 0.42, "season": 1, "at": [116, 13]},
