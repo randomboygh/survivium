@@ -4,8 +4,8 @@
   leaf: scales
   leaves: broad
   blossom: "#e396b6"
-  trunk: [3, 4]
-  girth: [6, 9]
+  trunk: [2, 3]
+  girth: [11, 15]
   taper: 0.4
   crook: 3
   roots: [0, 2]

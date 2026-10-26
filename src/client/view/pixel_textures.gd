@@ -18,16 +18,32 @@ const PLANTS := 29
 ## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
 ## one of CLUMP_SIZES across. The texture has a row per size of broad-leaf bunch, then a
 ## row per size of needle sprig (from NEEDLE_ROW), then bare branches (BRANCH_ROW).
-const CLUMP := 24
-const CLUMP_SIZES := [24, 16, 11]
+const CLUMP := 32
+const CLUMP_SIZES := [28, 22, 16]
+## Needle rows: spruce branches pointing eight ways (two rows of four, leaves.gdshader
+## picks one by the way the card points on the screen), then tufts for the tips.
 const NEEDLE_ROW := 3
 const BRANCH_ROW := 6
 ## Then the curly lumps and the scale-like broad leaves, a row per size each.
 const CURLY_ROW := 7
 const SCALES_ROW := 10
-const CLUMP_ROWS := 13
+## Then spruce branches smaller and larger than those of the needle rows, for the top
+## and the bottom of a cone: four ways each (right, down-right, down, up-right; the
+## shader mirrors them for the left), small in SMALL_BRANCH_ROW, large in
+## LARGE_BRANCH_ROW, and the two pointing up in UP_BRANCH_ROW, small then large.
+const SMALL_BRANCH_ROW := 13
+const UP_BRANCH_ROW := 14
+const LARGE_BRANCH_ROW := 15
+const CLUMP_ROWS := 16
+## Lengths of the small and the large spruce branches, as shares of the card.
+const SMALL_BRANCH := 0.5
+const LARGE_BRANCH := 0.8
+## The ways of the mirrored rows, in order (see _spruce_branch).
+const BRANCH_WAYS := [0, 1, 2, 7]
 ## The first row of each leaf style (Trees.LEAF_STYLES).
-const LEAF_ROWS := {"pointed": 0, "needles": NEEDLE_ROW, "curly": CURLY_ROW, "scales": SCALES_ROW}
+## A layered crown (Foliage._broad) takes only the largest bundle of its style, so the
+## pointed style's smaller rows hold the soft one: leaves blunter and wider (linden, birch).
+const LEAF_ROWS := {"pointed": 0, "soft": 1, "needles": NEEDLE_ROW, "curly": CURLY_ROW, "scales": SCALES_ROW}
 ## Alpha of the pixels on the upper edge of a leaf, needle or twig (see _mark_edges).
 const EDGE_ALPHA := 0.8
 ## Bush clusters: rows of bunches of leaves this many px across, then the same with
@@ -323,7 +339,7 @@ static func _plant_px(img: Image, v: int, x: int, row: int, c: Color) -> void:
 ## of the crown end along leaf outlines. Alpha marks the upper edge of every leaf, so
 ## single leaves show the way grass blades do.
 static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := true) -> ImageTexture:
-	var rows := sizes.size() * (4 if conifers else 1) + (1 if conifers else 0)
+	var rows := CLUMP_ROWS if conifers else sizes.size()
 	var img := Image.create_empty(cell * 4, cell * rows, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
@@ -332,9 +348,18 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := 
 	for row in sizes.size():
 		var size: int = sizes[row]
 		for v in 4:
-			_leaf_bunch(img, Vector2i(v * cell, row * cell), cell, size, c, rng)
+			if row == 0:
+				_leaf_bunch(img, Vector2i(v * cell, row * cell), cell, size, c, rng)
+			else:
+				_bundle(img, Vector2i(v * cell, row * cell), cell, sizes[row - 1], c, rng, "soft")
 			if conifers:
-				_needle_sprig(img, Vector2i(v * cell, (row + sizes.size()) * cell), cell, size, c, rng)
+				# Spruce branches pointing one of eight ways round, the first four in the
+				# first needle row, the others in the next, then tufts for the tips.
+				var at := Vector2i(v * cell, (row + sizes.size()) * cell)
+				if row < 2:
+					_spruce_branch(img, at, cell, row * 4 + v, c, rng)
+				else:
+					_needle_sprig(img, at, cell, sizes[1], c, rng)
 	if conifers:
 		for v in 4:
 			_branches(img, Vector2i(v * cell, 2 * sizes.size() * cell), cell, rng)
@@ -342,10 +367,39 @@ static func build_clumps(cell := CLUMP, sizes: Array = CLUMP_SIZES, conifers := 
 			for v in 4:
 				_curly_bunch(img, Vector2i(v * cell, (CURLY_ROW + row) * cell), cell, sizes[row], c, rng)
 				_scale_bunch(img, Vector2i(v * cell, (SCALES_ROW + row) * cell), cell, sizes[row], c, rng)
+		for v in 4:
+			_spruce_branch(img, Vector2i(v * cell, SMALL_BRANCH_ROW * cell), cell, BRANCH_WAYS[v], c, rng, SMALL_BRANCH)
+			_spruce_branch(img, Vector2i(v * cell, LARGE_BRANCH_ROW * cell), cell, BRANCH_WAYS[v], c, rng, LARGE_BRANCH)
+		_spruce_branch(img, Vector2i(0, UP_BRANCH_ROW * cell), cell, 6, c, rng, SMALL_BRANCH)
+		_spruce_branch(img, Vector2i(cell, UP_BRANCH_ROW * cell), cell, 6, c, rng, LARGE_BRANCH)
 	for row in rows:
 		for v in 4:
 			_mark_edges(img, Vector2i(v * cell, row * cell), cell)
 	return ImageTexture.create_from_image(img)
+
+
+## How much of its `cell` px square each row of the clump picture `img` fills, from the
+## middle out (1 all of it), in whole pairs of pixels so a card cut down to it keeps its
+## pixels on the screen's (see leaves.gdshader). The rows of spruce branches, which the
+## shader swaps for one another, share the largest.
+static func row_reach(img: Image, cell: int) -> PackedFloat32Array:
+	var reach := PackedFloat32Array()
+	reach.resize(16)
+	reach.fill(1.0)
+	var half := cell / 2.0
+	for row in mini(img.get_height() / cell, 16):
+		var far := 0.0
+		for y in cell:
+			for x in cell * 4:
+				if img.get_pixel(x, row * cell + y).a > 0.0:
+					far = maxf(far, maxf(absf(x % cell + 0.5 - half), absf(y + 0.5 - half)))
+		reach[row] = minf(1.0, 2.0 * ceilf(far) / cell)
+	var needles := 0.0
+	for row in [NEEDLE_ROW, NEEDLE_ROW + 1, NEEDLE_ROW + 2, SMALL_BRANCH_ROW, UP_BRANCH_ROW, LARGE_BRANCH_ROW]:
+		needles = maxf(needles, reach[row])
+	for row in [NEEDLE_ROW, NEEDLE_ROW + 1, NEEDLE_ROW + 2, SMALL_BRANCH_ROW, UP_BRANCH_ROW, LARGE_BRANCH_ROW]:
+		reach[row] = needles
+	return reach
 
 
 ## Leaf clusters of bushes, `cell` px squares: four variants of each of BUSH_SIZES, then
@@ -398,115 +452,289 @@ static func _berries(img: Image, origin: Vector2i, cell: int, count: int, rng: R
 		img.set_pixelv(origin + p + Vector2i(1, 1), Color(berry, 0.0, 0.0, BERRY_ALPHA))
 
 
-## Draws one bunch `size` px across into the `cell` px square at `origin`.
+## Leaf bundles after SLYNYRD (Pixelblog 44). A bundle is a ball of broad leaves
+## pointing outward (up at its top, down at its bottom), the inner ones on top, each
+## leaf with a lit and a dark half and a dark rim, shaded as a sphere: a crescent a
+## step darker along the lower left, a circle a step lighter on the upper right. Green
+## holds the tone, a step of the tree's ramp from BUNDLE_DARKEST to BUNDLE_LIGHTEST
+## below or above its own colour (see _tone_px); leaves.gdshader turns the steps into
+## colours and lights each bundle as a whole by where it lies in the crown, so a crown
+## is bundles in dark, middle and light variants layered toward the sun. Red is a
+## random number per leaf.
+const BUNDLE_DARKEST := -4
+const BUNDLE_LIGHTEST := 1
+## Steps of a leaf's parts in a bundle of middle value: the rim, the dark half, the
+## lit half.
+const LEAF_RIM := -3
+const LEAF_BODY := -2
+const LEAF_LIT := 0
+
+
+## Draws one bundle of pointed (rhombus) leaves `size` px across.
 static func _leaf_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
-	var length := clampf(size / 3.2, 3.0, 5.5)
-	var leaves := []
-	for k in int(size * 4.5):
-		var a := rng.randf() * TAU
-		var r := sqrt(rng.randf()) * (size / 2.0 - length * 0.9)
-		leaves.append(c + Vector2(cos(a), sin(a)) * r)
-	# Lower leaves are nearer the viewer and drawn over the upper ones.
-	leaves.sort_custom(func(p, q): return p.y < q.y)
-	for p: Vector2 in leaves:
-		# Leaves point away from the middle of the bunch and hang a little.
-		var out := p - c
-		var dir := (out.normalized() if out.length() > 1.5 else Vector2.from_angle(rng.randf() * TAU)) + Vector2(0.0, 0.4)
-		dir = dir.normalized().rotated(rng.randf_range(-0.5, 0.5))
-		var side := Vector2(-dir.y, dir.x)
-		var l := length * rng.randf_range(0.8, 1.15)
-		var wide := rng.randf_range(1.0, 1.5)
-		var leaf := Color(rng.randf(), rng.randf_range(0.25, 0.75), rng.randf_range(0.25, 0.75), 1)
-		for y in range(floori(p.y - l), ceili(p.y + l) + 1):
-			for x in range(floori(p.x - l), ceili(p.x + l) + 1):
-				if x < 0 or y < 0 or x >= cell or y >= cell:
-					continue
-				var d := Vector2(x, y) - p
-				var along := d.dot(dir) / l
-				if along < 0.0 or along > 1.0:
-					continue
-				# A lens: widest a third of the way along, pointed at the tip.
-				var t := along / 0.35 if along < 0.35 else (1.0 - along) / 0.65
-				if absf(d.dot(side)) > wide * t + 0.15:
-					continue
-				img.set_pixel(origin.x + x, origin.y + y, leaf)
+	_bundle(img, origin, cell, size, c, rng, "pointed")
 
 
-## Draws a curly bunch `size` px across: round lumps of tiny leaves, each lit as a
-## little dome of its own (its texels lean away from the lump's middle), the lower
-## ones over the upper ones, so the bunch reads as a heap of balls.
+## Draws a bundle `size` px across of small square leaves, 2 by 2 px, touching but not
+## overlapping (small leaves; lime, linden).
 static func _curly_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
-	var radius := clampf(size / 6.0, 2.0, 3.6)
-	var lumps := []
-	for k in int(size * 0.9):
-		var a := rng.randf() * TAU
-		var r := sqrt(rng.randf()) * (size / 2.0 - radius)
-		lumps.append(c + Vector2(cos(a), sin(a) * 0.85) * r)
-	lumps.sort_custom(func(p, q): return p.y < q.y)
-	for p: Vector2 in lumps:
-		var l := radius * rng.randf_range(0.8, 1.15)
-		var id := rng.randf()
-		for y in range(floori(p.y - l), ceili(p.y + l) + 1):
-			for x in range(floori(p.x - l), ceili(p.x + l) + 1):
-				if x < 0 or y < 0 or x >= cell or y >= cell:
-					continue
-				var d := (Vector2(x, y) - p) / l
-				# A ragged round edge: a few texels of the rim left out.
-				if d.length() > 1.0 or (d.length() > 0.8 and rng.randf() < 0.3):
-					continue
-				img.set_pixel(origin.x + x, origin.y + y, Color(id, clampf(0.5 + d.x * 0.45, 0.0, 1.0), clampf(0.5 - d.y * 0.45, 0.0, 1.0), 1))
+	_bundle(img, origin, cell, size, c, rng, "squares")
 
 
-## Draws a bunch `size` px across of broad rounded leaves lying like scales: wide ovals
-## with a darker lower rim, each lower one over the one above, all tipped toward the
-## viewer, so rows of leaves show their lit tops.
+## Draws a bundle `size` px across of round leaves.
 static func _scale_bunch(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
-	var wide := clampf(size / 4.5, 2.5, 4.5)
-	var leaves := []
-	for k in int(size * 1.6):
-		var a := rng.randf() * TAU
-		var r := sqrt(rng.randf()) * (size / 2.0 - wide)
-		leaves.append(c + Vector2(cos(a), sin(a) * 0.85) * r)
-	leaves.sort_custom(func(p, q): return p.y < q.y)
-	for p: Vector2 in leaves:
-		var a := wide * rng.randf_range(0.85, 1.15)
-		var b := a * 0.7
-		var id := rng.randf()
-		var lean := rng.randf_range(-0.3, 0.3)
-		for y in range(floori(p.y - b), ceili(p.y + b) + 1):
-			for x in range(floori(p.x - a), ceili(p.x + a) + 1):
-				if x < 0 or y < 0 or x >= cell or y >= cell:
-					continue
-				var d := Vector2((x - p.x) / a, (y - p.y) / b)
-				if d.length() > 1.0:
-					continue
-				# The upper half faces up, the lower rim turns away.
-				img.set_pixel(origin.x + x, origin.y + y, Color(id, clampf(0.5 + lean + d.x * 0.2, 0.0, 1.0), clampf(0.75 - d.y * 0.5 - maxf(0.0, d.y - 0.5) * 0.6, 0.0, 1.0), 1))
+	_bundle(img, origin, cell, size, c, rng, "round")
 
 
-## Draws a spruce sprig `size` px across: a short twig across the card with needles
-## hanging from it in short strokes, a dense mass a little wider than tall, its lower
-## edge a fringe of tips.
+static func _bundle(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator, style: String) -> void:
+	var r := size / 2.0
+	var k := size / 28.0
+	var px := {}
+	var ids := {}
+	# A dark heap under the leaves, so no gap shows through.
+	var heap := r - 4.0 * k
+	for y in range(-ceili(r), ceili(r) + 1):
+		for x in range(-ceili(r), ceili(r) + 1):
+			if Vector2(x / heap, y / (heap * 0.9)).length() <= 1.0:
+				px[Vector2i(x, y)] = LEAF_RIM
+				ids[Vector2i(x, y)] = 0.5
+	if style == "pointed" or style == "soft":
+		var leaves := []
+		for i in 9:
+			var a := (i + rng.randf_range(-0.15, 0.15)) / 9.0 * TAU
+			leaves.append([0, a, rng.randf_range(3.5, 4.5) * k, rng.randf_range(9.5, 10.5) * k, rng.randf_range(3.3, 3.8) * k])
+		for i in 6:
+			var a := (i + 0.5 + rng.randf_range(-0.2, 0.2)) / 6.0 * TAU
+			leaves.append([1, a, rng.randf_range(0.5, 1.2) * k, rng.randf_range(7.5, 8.5) * k, rng.randf_range(3.0, 3.4) * k])
+		leaves.append([2, -PI / 2.0 + rng.randf_range(-0.6, 0.6), 0.0, 6.0 * k, 2.8 * k])
+		# Outer ring first, the upper leaves under the lower ones.
+		leaves.sort_custom(func(p: Array, q: Array) -> bool:
+			return p[0] < q[0] or (p[0] == q[0] and sin(p[1]) * p[2] < sin(q[1]) * q[2]))
+		for l: Array in leaves:
+			var o := Vector2(cos(l[1]) * l[2], sin(l[1]) * l[2] * 0.9)
+			var id := rng.randf()
+			# The leaves turn a little the same way round, a pinwheel.
+			var leaf := _rhombus(l[3], l[4] * (1.2 if style == "soft" else 1.0), l[1] + 0.3, style == "soft")
+			for q: Vector2i in leaf:
+				var p := Vector2i(roundi(o.x + q.x), roundi(o.y + q.y * 0.92))
+				px[p] = leaf[q]
+				ids[p] = id
+	elif style == "round":
+		var spots: Array[Vector2] = []
+		for i in 26:
+			var a := rng.randf() * TAU
+			var d := sqrt(rng.randf()) * (r - 3.2 * k)
+			spots.append(Vector2(cos(a) * d, sin(a) * d * 0.9))
+		spots.sort_custom(func(p: Vector2, q: Vector2) -> bool: return p.y - absf(p.x) * 0.2 < q.y - absf(q.x) * 0.2)
+		for s in spots:
+			var id := rng.randf()
+			var leaf := _disc(rng.randf_range(2.3, 2.8) * k)
+			for q: Vector2i in leaf:
+				var p := Vector2i(roundi(s.x) + q.x, roundi(s.y) + q.y)
+				px[p] = leaf[q]
+				ids[p] = id
+	else:
+		# Squares touch in places but never overlap, so the square shape prevails.
+		var cells: Array[Vector2i] = []
+		for y in range(-ceili(r), ceili(r) + 1):
+			for x in range(-ceili(r), ceili(r) + 1):
+				if Vector2(x / (r - 1.0), y / ((r - 1.0) * 0.9)).length() <= 1.0:
+					cells.append(Vector2i(x, y))
+		for i in range(cells.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var t := cells[i]
+			cells[i] = cells[j]
+			cells[j] = t
+		var taken := {}
+		for p in cells:
+			var sq := [p, p + Vector2i(1, 0), p + Vector2i(0, 1), p + Vector2i(1, 1)]
+			if sq.any(func(q: Vector2i) -> bool: return taken.has(q)):
+				continue
+			var around := 0
+			for q: Vector2i in [p + Vector2i(-1, 0), p + Vector2i(-1, 1), p + Vector2i(2, 0), p + Vector2i(2, 1),
+					p + Vector2i(0, -1), p + Vector2i(1, -1), p + Vector2i(0, 2), p + Vector2i(1, 2)]:
+				around += 1 if taken.has(q) else 0
+			if around > 3 and rng.randf() < 0.7:
+				continue
+			var id := rng.randf()
+			var tone := LEAF_BODY + (1 if rng.randf() < 0.33 else 0)
+			for q: Vector2i in sq:
+				taken[q] = true
+				ids[q] = id
+			px[p] = tone + 1
+			px[p + Vector2i(1, 0)] = tone
+			px[p + Vector2i(0, 1)] = tone
+			px[p + Vector2i(1, 1)] = tone - 1
+	# Shaded as a sphere lit from the upper right.
+	for p: Vector2i in px:
+		var d := Vector2(p).length() / r
+		var crescent := (-p.x + p.y) / r > 0.45 - d * 0.1 and d > 0.35
+		var lit := Vector2(p.x - r * 0.28, p.y + r * 0.3).length() < r * 0.48
+		_tone_px(img, origin, cell, roundi(c.x) + p.x, roundi(c.y) + p.y, ids[p], px[p] - (1 if crescent else 0) + (1 if lit else 0))
+
+
+## Pixels of a leaf from (0, 0) out along `angle`, `length` long and `width` wide at a
+## third of the way: LEAF_RIM on its lower-left border, LEAF_LIT on the half facing the
+## light (upper right), LEAF_BODY on the other half; `soft`: an oval with a blunt tip.
+static func _rhombus(length: float, width: float, angle: float, soft := false) -> Dictionary:
+	var ca := cos(angle)
+	var sa := sin(angle)
+	var shape := {}
+	var reach := ceili(length) + 2
+	for y in range(-reach, reach + 1):
+		for x in range(-reach, reach + 1):
+			var u := x * ca + y * sa
+			var v := -x * sa + y * ca
+			if u < -0.3 or u > length:
+				continue
+			var t := u / (length * 0.35) if u < length * 0.35 else (length - u) / (length * 0.65)
+			# A soft leaf is an oval with a blunt tip.
+			if soft:
+				t = pow(clampf(t, 0.0, 1.0), 0.45)
+			if absf(v) <= width * t + 0.35:
+				shape[Vector2i(x, y)] = v
+	# The side of the midrib that faces the light (1, -1).
+	var lit_side := 1.0 if (-sa - ca) < 0.0 else -1.0
+	var out := {}
+	for p: Vector2i in shape:
+		if not shape.has(p + Vector2i(-1, 0)) or not shape.has(p + Vector2i(0, 1)):
+			out[p] = LEAF_RIM
+		elif shape[p] * lit_side < -0.2:
+			out[p] = LEAF_LIT
+		else:
+			out[p] = LEAF_BODY
+	return out
+
+
+## Pixels of a round leaf of radius `r`, parts as in _rhombus.
+static func _disc(r: float) -> Dictionary:
+	var out := {}
+	var reach := ceili(r) + 1
+	for y in range(-reach, reach + 1):
+		for x in range(-reach, reach + 1):
+			if x * x + y * y <= r * r + 0.5:
+				out[Vector2i(x, y)] = LEAF_BODY
+	for p: Vector2i in out.keys():
+		if not out.has(p + Vector2i(-1, 0)) or not out.has(p + Vector2i(0, 1)):
+			out[p] = LEAF_RIM
+		elif p.x - p.y > r * 0.4:
+			out[p] = LEAF_LIT
+	return out
+
+
+## Sets a texel of a bundle: red `id`, green the step `off` of the ramp (BUNDLE_DARKEST
+## .. BUNDLE_LIGHTEST) as a fraction.
+static func _tone_px(img: Image, origin: Vector2i, cell: int, x: int, y: int, id: float, off: int) -> void:
+	if x < 0 or y < 0 or x >= cell or y >= cell:
+		return
+	off = clampi(off, BUNDLE_DARKEST, BUNDLE_LIGHTEST)
+	img.set_pixel(origin.x + x, origin.y + y, Color(id, float(off - BUNDLE_DARKEST) / (BUNDLE_LIGHTEST - BUNDLE_DARKEST), 0.5, 1.0))
+
+
+## Draws a conifer sprig `size` px across: feathery branches (a spine, needle strokes
+## slanting toward the tip, a serrated rim) radiating from the middle of the card, the
+## ones pointing down (toward the viewer) drawn last, those toward the light (right)
+## lighter and the left ones darker, so the card is a whole tuft of branches with no
+## empty half to float above the next.
 static func _needle_sprig(img: Image, origin: Vector2i, cell: int, size: int, c: Vector2, rng: RandomNumberGenerator) -> void:
-	var half := size / 2.0
-	var length := clampf(size / 6.0, 2.0, 3.5)
-	var needles := []
-	for k in int(size * 9.0):
-		var u := rng.randf_range(-1.0, 1.0)
-		# Thick in the middle, thinning toward the ends of the sprig; the twig droops.
-		var fall := (1.0 - u * u * 0.7) * half * 0.85
-		var p := c + Vector2(u * (half - 1.0), u * u * half * 0.3 - fall * 0.5 + rng.randf() * fall)
-		needles.append(p)
-	needles.sort_custom(func(p, q): return p.y < q.y)
-	for p: Vector2 in needles:
-		# Needles hang down and away from the middle of the sprig.
-		var dir := Vector2(clampf((p.x - c.x) / half, -1.0, 1.0) * 0.8 + rng.randf_range(-0.4, 0.4), 1.0).normalized()
-		var needle := Color(rng.randf(), rng.randf_range(0.3, 0.7), rng.randf_range(0.3, 0.7), 1)
-		var l := length * rng.randf_range(0.7, 1.2)
-		for i in ceili(l) + 1:
-			var q := (p + dir * i).round()
-			if q.x >= 0 and q.y >= 0 and q.x < cell and q.y < cell:
-				img.set_pixel(origin.x + int(q.x), origin.y + int(q.y), needle)
+	var k := size / 28.0
+	var fronds := []
+	for i in 7:
+		var a := (i + rng.randf_range(-0.2, 0.2)) / 7.0 * TAU
+		fronds.append(a)
+	fronds.sort_custom(func(p: float, q: float) -> bool: return sin(p) < sin(q))
+	for a: float in fronds:
+		# Seen from above at 3/4 the tuft is flattened, and its branches droop.
+		var dir := Vector2(cos(a), sin(a) * 0.6 + 0.25).normalized()
+		var length := (13.0 - 3.0 * maxf(0.0, -sin(a))) * k * rng.randf_range(0.9, 1.05)
+		var base := 1 if dir.x > 0.35 else (0 if dir.x > -0.35 else -1)
+		var shape := _frond(length, 3.8 * k, dir.angle())
+		var id := rng.randf()
+		for q: Vector2i in shape:
+			_tone_px(img, origin, cell, roundi(c.x) + q.x, roundi(c.y) + q.y, id, shape[q] + base)
+
+
+## Draws a spruce branch (SLYNYRD's conifer): a broad frond from just behind the middle
+## of the card out toward `way` of eight (0 right, then clockwise on the screen), widest
+## a little before its middle and pointed, its edges stepped by the tips of its leaflets
+## (deeper on the side away from the light, upper right), dark strokes of the leaflets
+## slanting toward the tip, a dark rim. One fill: the light and shade of the branch as a
+## whole come from the card (leaves.gdshader), as SLYNYRD shades whole branches light,
+## middle or dark.
+static func _spruce_branch(img: Image, origin: Vector2i, cell: int, way: int, c: Vector2, rng: RandomNumberGenerator,
+		size := 0.6) -> void:
+	var length := roundi(cell * size * rng.randf_range(0.95, 1.05))
+	var width := length * 0.33
+	# The frond pointing right with the light above it, cells (u, v).
+	var shape := {}
+	for u in length + 1:
+		var t := float(u) / length
+		var h := width * pow(sin(PI * minf(1.0, t * 0.85 + 0.12)), 0.8)
+		for v in range(-ceili(width) - 1, ceili(width) + 2):
+			var step := fmod(u + absf(v) * 0.6, 3.0)
+			var edge := h - ((1.6 if step < 1.2 else 0.0) if v > 0 else (0.9 if step < 1.0 else 0.0))
+			if absf(v) <= edge + 0.2:
+				shape[Vector2i(u, v)] = true
+	var a := way * TAU / 8.0
+	var dir := Vector2(cos(a), sin(a))
+	var side := Vector2(-dir.y, dir.x)
+	# The side of the frond toward the light is its upper one (v < 0).
+	var flip := 1.0 if (-side).dot(Vector2(1.0, -1.0)) > 0.0 else -1.0
+	# A long branch starts farther behind the middle, or its tip would leave the card.
+	var from := c - dir * length * (0.2 if size <= 0.6 else 0.42)
+	var id := rng.randf()
+	for y in cell:
+		for x in cell:
+			var rel := Vector2(x, y) - from
+			var q := Vector2i(roundi(rel.dot(dir)), roundi(rel.dot(side) * flip))
+			if not shape.has(q):
+				continue
+			var off := LEAF_LIT
+			var rim := false
+			for n in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				if not shape.has(q + n):
+					rim = true
+			var stroke := fmod(q.x - absi(q.y) * 1.2 + 40.0, 4.0)
+			if rim:
+				off = LEAF_RIM
+			elif absi(q.y) >= 1 and stroke < 0.8 and q.x < length - 2:
+				off = LEAF_BODY + 1
+			elif q.y < 0 and stroke > 2.5:
+				off = LEAF_LIT + 1
+			if q.x < length / 4 and not rim:
+				off -= 1
+			_tone_px(img, origin, cell, x, y, id, off)
+
+
+## Pixels of a frond from (0, 0) out along `angle`: steps from LEAF_RIM to LEAF_LIT.
+static func _frond(length: float, width: float, angle: float) -> Dictionary:
+	var ca := cos(angle)
+	var sa := sin(angle)
+	var shape := {}
+	var reach := ceili(length) + 2
+	for y in range(-reach, reach + 1):
+		for x in range(-reach, reach + 1):
+			var u := x * ca + y * sa
+			var v := -x * sa + y * ca
+			if u < 0.0 or u > length:
+				continue
+			var t := u / length
+			var half := width * minf(1.0, t * 3.5) * pow(1.0 - t, 0.55)
+			# Serrated: teeth along the frond.
+			var tooth := 0.9 * fmod(u + absf(v) * 0.9, 3.0) / 3.0
+			if absf(v) <= half - tooth + 0.4:
+				shape[Vector2i(x, y)] = Vector2(u, v)
+	var lit_side := 1.0 if (-sa - ca) < 0.0 else -1.0
+	var out := {}
+	for p: Vector2i in shape:
+		var uv: Vector2 = shape[p]
+		if not shape.has(p + Vector2i(-1, 0)) or not shape.has(p + Vector2i(0, 1)):
+			out[p] = LEAF_RIM
+		elif absf(uv.y) < 0.6 or fmod(uv.x + absf(uv.y), 3.0) < 1.0:
+			out[p] = LEAF_BODY
+		else:
+			out[p] = LEAF_LIT if uv.y * lit_side < 0.0 else LEAF_BODY
+	return out
 
 
 ## Draws bare twigs: branches growing up and outward from the bottom of the card,

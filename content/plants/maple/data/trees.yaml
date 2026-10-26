@@ -3,8 +3,8 @@
   shape: lobed
   leaf: scales
   leaves: broad
-  trunk: [5, 7]
-  girth: [8, 12]
+  trunk: [3, 4]
+  girth: [14, 20]
   taper: 0.4
   crook: 2
   roots: [1, 2]

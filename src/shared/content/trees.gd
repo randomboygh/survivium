@@ -21,12 +21,16 @@ const NEEDLES := 1
 ## bare trunk; a cone of tiers (spruce). A conifer is a cone unless it says otherwise.
 const SHAPES := ["round", "lobed", "column", "weeping", "umbrella", "cone"]
 ## How a species' leaf clusters are drawn (`leaf`, see PixelTextures.build_clumps):
-## pointed leaves, round curly lumps, broad rounded leaves lying like scales, needles.
-const LEAF_STYLES := ["pointed", "curly", "scales", "needles"]
+## pointed leaves, soft oval ones, round curly lumps, broad rounded leaves lying like scales, needles.
+const LEAF_STYLES := ["pointed", "soft", "curly", "scales", "needles"]
 
 ## Where a species grows is the biomes' say (Biomes: a biome's `trees` shares), not the
 ## tree's: the generator asks the biome of a column for a tree, never for a species by name.
 
+## The lowest a crown point of a broad-leaved tree sits above its trunk's foot, in cells.
+const LOWEST_POINT := 3
+## How much narrower the levels between the layers of a broad crown are than the layers.
+const INSET := 0.72
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := 8
 
@@ -208,7 +212,15 @@ static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumb
 				if column and dy > 0:
 					d.x /= 1.0 - 0.45 * dy / ry
 					d.z /= 1.0 - 0.45 * dy / ry
-				if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1):
+				# The crown is layers (Foliage._layer_cards): every other level of points
+				# a layer, the levels between them drawn in, so a band of shade shows
+				# under each layer.
+				if (middle + 2 * dy) >> 1 & 1 == 1:
+					d.x /= INSET
+					d.z /= INSET
+				# A crown hanging low over a short trunk stays a little above the ground
+				# (the point fills the cells round it, one on either side).
+				if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1) and middle + 2 * dy >= y + LOWEST_POINT:
 					points.append(Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz))
 	if s.shape == "weeping":
 		_curtain(points, x, z, y + 1, rng)
@@ -275,8 +287,8 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 						if p.y - 1 > y + 1 and not have.has(p):
 							have[p] = true
 							points.append(p)
-	# The trunk goes on up into the lowest point over it, or its top, with air above
-	# it in a gap between the lobes, would show as a square block of log.
+	# The trunk goes on up into the lowest point over it: a trunk with air round it in a
+	# gap between the lobes would show as a block of log standing in the crown.
 	var into := -1
 	for p in points:
 		if p.x == x and p.z == z and p.y > y + trunk - 1 and (into < 0 or p.y < into):
@@ -284,14 +296,26 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 	if into < 0:
 		into = middle
 		points.append(Vector3i(x, middle, z))
+	# A ring of points round the trunk from the lowest level of the crown up to there
+	# hides it in front lobes' gaps too, from every side the camera looks.
+	var lowest := into
+	for p in points:
+		lowest = mini(lowest, p.y)
+	for level in range(lowest, into + 1, 2):
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var p := Vector3i(x + 2 * dx, level, z + 2 * dz)
+				if (level < into or dx != 0 or dz != 0) and not have.has(p):
+					have[p] = true
+					points.append(p)
 	for i in range(y + trunk, into):
 		w.set_cell(x, i, z, Mat.LOG)
 	return points
 
 
-## A tall trunk in a cone of tiers: every other level of points spreads wide and the one
-## above it stays narrow, so the tiers show as layers of drooping branches, widest at
-## the bottom.
+## A tall trunk in a cone of tiers, widest at the bottom and narrowing evenly to a
+## point: every other level of points stays a little narrower than the one under it,
+## so the tiers show as layers of drooping branches.
 static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
 	var tiers := maxi(3, roundi(rng.randi_range(s.crown[1], s.crown[2]) * scale))
 	var radius: float = (s.crown[0] + rng.randf_range(-0.2, 0.2)) * scale
@@ -302,7 +326,7 @@ static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumber
 	for k in tiers:
 		var r := _tier_radius(radius, k, tiers)
 		if k % 2 == 1:
-			r *= 0.68
+			r *= 0.85
 		for dz in range(-reach, reach + 1):
 			for dx in range(-reach, reach + 1):
 				# A little narrower across z, as the top and front of a tier both show.
@@ -316,7 +340,8 @@ static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumber
 	var bare := hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
 	var low := ((y + bare) + 1) & ~1
 	var top := low + 2 * (tiers - 1)
-	for i in range(y, top):
+	# The trunk ends a tier under the top, inside the narrow tiers there.
+	for i in range(y, top - 2):
 		w.set_cell(x, i, z, Mat.LOG)
 	var points: Array[Vector3i] = []
 	for o in offsets:
@@ -327,13 +352,13 @@ static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumber
 
 ## Radius in points of tier `k` of `tiers` (before the narrow tiers are narrowed).
 static func _tier_radius(radius: float, k: int, tiers: int) -> float:
-	return radius * (1.0 - (k + 0.6) / tiers) + 0.35
+	return radius * (1.0 - (k + 0.5) / tiers) + 0.6
 
 
 ## Cells of trunk a spruce's lowest tier hides on screen when its point in front of
-## the trunk is `front` points south of it.
+## the trunk is `front` points south of it (the tier drawn shallow, see Foliage._spruce).
 static func hidden_trunk(front: int) -> int:
-	return maxi(1, 3 * front - 1)
+	return maxi(1, front - 1)
 
 
 ## Each crown point fills the air cells of the 3x3x3 block around it with leaves: the

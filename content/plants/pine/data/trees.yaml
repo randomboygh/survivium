@@ -7,8 +7,8 @@
   shape: umbrella
   leaf: needles
   leaves: needles
-  trunk: [9, 12]
-  girth: [7, 11]
+  trunk: [6, 8]
+  girth: [11, 15]
   taper: 0.25
   crook: 1
   roots: [0, 2]
