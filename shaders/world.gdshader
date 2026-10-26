@@ -349,7 +349,9 @@ void fragment() {
 		roof = roofed((floor(world_pos.xz / CELL) + 0.5 + out_dir) * CELL, world_pos.y);
 	}
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
-	float snow_here = roof ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
+	// No snow on the top of a trunk inside its crown (a dark cap, see TrunkMesher).
+	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;
+	float snow_here = roof || crowned ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire nor where it was
@@ -371,10 +373,15 @@ void fragment() {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
-	// rust and yellow, thicker in patches.
-	if (top && !cap && tile != NONE && leaf_litter > 0.0 && under_crown(world_pos.xz)) {
+	// rust and yellow, thicker in patches. The filtered map goes from 1 under a crown to
+	// 0 a column away: with some noise on it the leaves thin out to a ragged edge round
+	// the crown rather than fill the squares of the columns it covers.
+	if (top && !cap && tile != NONE && leaf_litter > 0.0) {
 		float l = hash12(texel.xz + 41.0);
-		if (l < leaf_litter * (0.15 + 0.5 * ground_patch(world_pos.xz, 11.0))) {
+		float heap = ground_patch(world_pos.xz, 11.0);
+		float cover = texture(roof_map_soft, (texel.xz + 0.5) / TEXELS / wrap_size).g;
+		float edge = smoothstep(0.2, 0.7, cover + (hash12(texel.xz + 59.0) - 0.5) * 0.35 + (heap - 0.5) * 0.4);
+		if (l < leaf_litter * (0.15 + 0.5 * heap) * edge) {
 			float tone = fract(l * 37.1);
 			vec3 leaf = tone < 0.4 ? vec3(0.62, 0.34, 0.13) : (tone < 0.75 ? vec3(0.74, 0.52, 0.16) : vec3(0.46, 0.3, 0.17));
 			col = leaf * (0.9 + 0.2 * h);

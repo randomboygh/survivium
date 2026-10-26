@@ -25,6 +25,11 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      nothing else growing in the pens
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
+##   combos     x -108..203, z -472..-97  every shape of COMBO_SHAPES on every top of COMBO_ROWS
+##                                      (one material, quarters, diagonal halves, a checker of
+##                                      cells, grass that stays sheer), in three bands north to
+##                                      south: on a plateau in the snow (a ramp up from the west),
+##                                      in water a cell deep (ice in winter), on the meadow
 ##   biomes     x -70..70,  z 100..     plots of 24 by 24 cells of the loaded biomes (BIOME_*), five
 ##                                      in a row with 4 cells of meadow between: the climate ones in
 ##                                      load order, then the swamp (pools in its north, a pond running
@@ -54,7 +59,7 @@ const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
 const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Растения", "Рельеф", "Биомы",
-	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь"]
+	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь", "Сочетания"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 ## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
@@ -88,6 +93,28 @@ const RELIEF_PLOT := 10
 const RELIEF_STRIDE := 12
 const RELIEF_X := -70
 const RELIEF_Z := 44
+## The combinations ground: the shapes of RELIEF and more, west to east on plots of
+## RELIEF_PLOT cells RELIEF_STRIDE apart, a row for each top of COMBO_ROWS, the rows in
+## bands of COMBO_BANDS (north to south: snow, water, dry), COMBO_BAND cells apart, from
+## the north-west corner COMBO_X, COMBO_Z. The new shapes: a bowl (an upturned pyramid),
+## two terraces on a diagonal, a square with notches and a lone hole, shafts 4 and 2
+## deep, a block with a hollow under its south half, a mound with a tunnel through; then
+## the diagonal ones and the smooth ones two and three cells high: a diamond a cell high
+## (its edges step on the diagonal), a diamond of two and a cone of three in rings a cell
+## wide, pillars 2 and 3 high (two of them meeting only at a corner), an L three high,
+## walls a cell thick on the diagonal 1 and 2 high, a ramp up two levels a cell each
+## along x and along the diagonal.
+const COMBO_SHAPES := ["cell", "square", "ell", "ring", "pit", "pyramid", "stair", "cliff", "ridge", "checker",
+	"round", "cross", "bowl", "diagonal", "notch", "shaft", "overhang", "tunnel", "diamond", "diamond2", "cone",
+	"pillar", "ell3", "zigzag", "slope2", "slope2_diag"]
+const COMBO_X := -108
+const COMBO_Z := -472
+const COMBO_BAND := 128
+## Where each band's ground lies: the snow plateau, a cell under the water, the meadow.
+enum { BAND_SNOW, BAND_WATER, BAND_DRY }
+const COMBO_BANDS := [BAND_SNOW, BAND_WATER, BAND_DRY]
+## Rows of the bands' rows on the plateau the ramp up from the west runs beside.
+const COMBO_RAMP := Vector2i(56, 60)
 ## The stream's terraces, west to east: [first column, rise of the terrace]; the water
 ## stands at the terrace's top in a channel (STREAM_Z) between banks of stone, and
 ## falls to the next one, then into the pool from STREAM_POOL on.
@@ -118,6 +145,13 @@ var ground := 22
 var strip_tops: Array = []
 ## Tops of the rows of the relief ground, north to south.
 var relief_tops: Array = []
+## The rows of each band of the combinations ground, north to south: [pattern, sheer,
+## materials], the pattern "one" (the first material), "quarters" (NW, NE, SE, SW),
+## "halves" (the first north-west of the diagonal, the second south-east of it) or
+## "cells" (a checker of the two).
+var combo_rows: Array = []
+## Level of the snow plateau's ground: high enough for the snow to lie whole.
+var snow_base := 40
 ## The biomes of the plots: every climate biome in load order (NONE pads to 3 when fewer
 ## are loaded), then the swamp and the beach; the biome of the meadow (one the player may
 ## start in), of the rock and of the water.
@@ -136,6 +170,11 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	# blocks of the tools mod when it is loaded.
 	strip_tops = [Mat.GRASS, Mat.DIRT, beach, bank, Mat.STONE, ore, _block("brick"), _block("planks")]
 	relief_tops = [Mat.GRASS, beach, bank, Mat.STONE]
+	combo_rows = [["one", false, [Mat.GRASS]], ["one", false, [Mat.DIRT]], ["one", false, [beach]],
+		["one", false, [bank]], ["one", false, [scree]], ["one", false, [Mat.STONE]],
+		["quarters", false, [Mat.GRASS, beach, bank, scree]], ["halves", false, [Mat.GRASS, Mat.STONE]],
+		["cells", false, [beach, Mat.DIRT]], ["one", true, [Mat.GRASS]]]
+	snow_base = sea + WorldData.SNOW_LINE + 2
 	for i in Biomes.RECORDS.size():
 		if Biomes.RECORDS[i].where == "climate":
 			plot_biomes.append(i)
@@ -267,6 +306,9 @@ func column(x: int, z: int) -> Array:
 			# Stone shows through the ground here and there (the tundra).
 			return [g, -1, Mat.STONE if posmod(x * 7 + z * 3, 11) == 0 else Mat.GRASS, b, false]
 		return [g, -1, top, b, false]
+	var combo := _combo(x, z)
+	if not combo.is_empty():
+		return combo
 	# Relief: a row of shapes for each top.
 	var rx := x - RELIEF_X
 	var rz := z - RELIEF_Z
@@ -327,7 +369,120 @@ func relief_rise(shape: String, px: int, pz: int) -> int:
 			return clampi(int(3.5 - d * 0.8), 0, 3)
 		"cross":
 			return 1 if (px >= 4 and px < 6 and pz >= 1 and pz < 9) or (pz >= 4 and pz < 6 and px >= 1 and px < 9) else 0
+		"bowl":
+			return -clampi(mini(mini(px, pz), mini(9 - px, 9 - pz)) - 1, 0, 3)
+		"diagonal":
+			return 2 if px - pz >= 5 else (1 if px - pz >= 1 else 0)
+		"notch":
+			var notch := Vector2i(px, pz) in [Vector2i(4, 2), Vector2i(7, 4), Vector2i(5, 7), Vector2i(2, 4), Vector2i(2, 5),
+				Vector2i(5, 5)]
+			return 1 if px >= 2 and pz >= 2 and px < 8 and pz < 8 and not notch else 0
+		"shaft":
+			if px >= 2 and px < 4 and pz >= 2 and pz < 4:
+				return -4
+			return -2 if px == 6 and pz == 6 else 0
+		"overhang":
+			return 4 if px >= 2 and pz >= 2 and px < 8 and pz < 8 else 0
+		"tunnel":
+			return 3 if px >= 1 and pz >= 2 and px < 9 and pz < 8 else 0
+		"diamond", "diamond2", "cone":
+			# Twice the distance from the middle along x plus along z: 2 in the middle,
+			# 2 more a cell further.
+			var m := absi(2 * px - 9) + absi(2 * pz - 9)
+			if shape == "diamond":
+				return 1 if m <= 10 else 0
+			return clampi((12 - m) / 2, 0, 2 if shape == "diamond2" else 3)
+		"pillar":
+			var c := Vector2i(px, pz)
+			if c == Vector2i(2, 2) or c == Vector2i(6, 6) or c == Vector2i(7, 7):
+				return 2
+			return 3 if c == Vector2i(6, 2) or px >= 2 and px < 4 and pz >= 6 and pz < 8 else 0
+		"ell3":
+			return 3 if px >= 2 and pz >= 2 and px < 8 and pz < 8 and (px < 5 or pz >= 5) else 0
+		"zigzag":
+			if px < 1 or pz < 1 or px >= 9 or pz >= 9:
+				return 0
+			return 1 if px - pz == 0 or px - pz == -1 else (2 if px - pz == 4 or px - pz == 5 else 0)
+		"slope2":
+			if pz < 1 or pz >= 9:
+				return 0
+			return 2 if px >= 6 else (1 if px == 5 else 0)
+		"slope2_diag":
+			return 2 if px + pz >= 11 else (1 if px + pz == 10 else 0)
 	return 0
+
+
+## The levels over the plot's ground (from, to) that shape `shape` leaves open at cell
+## px, pz under its top, Vector2i.ZERO where it has none: the hollow under the south
+## half of the overhang, the tunnel through the mound from west to east.
+static func relief_hollow(shape: String, px: int, pz: int) -> Vector2i:
+	if shape == "overhang" and px >= 2 and px < 8 and pz >= 5 and pz < 8:
+		return Vector2i(1, 2)
+	if shape == "tunnel" and px >= 1 and px < 9 and pz >= 4 and pz < 6:
+		return Vector2i(1, 2)
+	return Vector2i.ZERO
+
+
+## Where column x, z lies on the combinations ground: [band, row, shape, px, pz], the
+## row -1 between the plots (then shape is -1 too), [] off the ground; the plateau of the
+## snow band has a rim of 2 cells to the north and west.
+func combo_at(x: int, z: int) -> Array:
+	var cx := x - COMBO_X
+	var cz := z - COMBO_Z
+	var width := COMBO_SHAPES.size() * RELIEF_STRIDE
+	var depth := combo_rows.size() * RELIEF_STRIDE
+	if cx < -2 or cx >= width or cz < -2 or cz >= COMBO_BANDS.size() * COMBO_BAND:
+		return []
+	var band := maxi(cz, 0) / COMBO_BAND
+	var lz := cz - band * COMBO_BAND
+	if lz >= depth or (cx < 0 or lz < 0) and COMBO_BANDS[band] != BAND_SNOW:
+		return []
+	if cx < 0 or lz < 0:
+		return [band, -1, -1, 0, 0]
+	var px := cx % RELIEF_STRIDE
+	var pz := lz % RELIEF_STRIDE
+	if px >= RELIEF_PLOT or pz >= RELIEF_PLOT:
+		return [band, -1, -1, px, pz]
+	return [band, lz / RELIEF_STRIDE, cx / RELIEF_STRIDE, px, pz]
+
+
+## The top of row `row` of the combinations ground at cell px, pz of a plot.
+func combo_top(row: int, px: int, pz: int) -> int:
+	var r: Array = combo_rows[row]
+	var mats: Array = r[2]
+	match r[0]:
+		"quarters":
+			if pz < 5:
+				return mats[1 if px >= 5 else 0]
+			return mats[2 if px >= 5 else 3]
+		"halves":
+			return mats[0] if px + pz < 9 else mats[1]
+		"cells":
+			return mats[(px + pz) & 1]
+	return mats[0]
+
+
+## Column x, z of the combinations ground (see column), [] off it; the ramp up to the
+## snow plateau from the west.
+func _combo(x: int, z: int) -> Array:
+	var g := ground
+	var cx := x - COMBO_X
+	var cz := z - COMBO_Z
+	if cx < -2 and cz >= COMBO_RAMP.x and cz < COMBO_RAMP.y and snow_base + 2 + cx > g:
+		return [snow_base + 2 + cx, -1, Mat.GRASS, meadow, false]
+	var at := combo_at(x, z)
+	if at.is_empty():
+		return []
+	var band: int = COMBO_BANDS[at[0]]
+	var base := snow_base if band == BAND_SNOW else (g - 1 if band == BAND_WATER else g)
+	var wt := g if band == BAND_WATER else -1
+	if at[1] < 0:
+		return [base if band != BAND_WATER else g, -1, Mat.GRASS, meadow, false]
+	var shape: String = COMBO_SHAPES[at[2]]
+	var h := base + relief_rise(shape, at[3], at[4])
+	var top := combo_top(at[1], at[3], at[4])
+	var biome := rock if top == Mat.STONE else (water if h < wt else meadow)
+	return [h, wt, top, biome, combo_rows[at[1]][1]]
 
 
 ## The stream ground's column x, z (see STREAM): terraces of grass with sheer sides,
@@ -406,6 +561,18 @@ func extras(x: int, z: int) -> Array:
 		var at := Vector2i(x, z) - plot_origin(plot)
 		if _swamp_water(at):
 			out.append([column(x, z)[0] + 1, g, Mat.WATER, WorldData.WILD | (WorldData.BOG if _bog(at) else WorldData.SWAMP)])
+	# The hollows of the combinations ground, water up to the band's water.
+	var combo := combo_at(x, z)
+	if not combo.is_empty() and combo[2] >= 0:
+		var hollow := relief_hollow(COMBO_SHAPES[combo[2]], combo[3], combo[4])
+		if hollow != Vector2i.ZERO:
+			var band: int = COMBO_BANDS[combo[0]]
+			var base := snow_base if band == BAND_SNOW else (g - 1 if band == BAND_WATER else g)
+			var wet := g if band == BAND_WATER else base
+			if base + hollow.x <= wet:
+				out.append([base + hollow.x, mini(base + hollow.y, wet), Mat.WATER, WorldData.WILD])
+			if base + hollow.y > wet:
+				out.append([maxi(base + hollow.x, wet + 1), base + hollow.y, Mat.AIR, WorldData.WILD])
 	# Material strips are 4 cells deep.
 	if x >= 16 and x < 48 and z >= -10 and z < 10 and posmod(x, 4) != 3:
 		out.append([g - 3, g, strip_tops[(x - 16) / 4], WorldData.WILD])
