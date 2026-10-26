@@ -166,7 +166,7 @@ func _test_slopes() -> void:
 	for i in 60:
 		player.step(1.0 / 60.0, false)
 		var p: Vector3 = player.position / WorldData.CELL
-		if p.x > 4.2 and p.x < 4.6:
+		if p.x > 4.2 and p.x < 4.45:
 			climbed = climbed and p.y > 1.3 and p.y < 1.995
 	_check(climbed and is_equal_approx(player.position.y / WorldData.CELL, 2.0), "walking up a ramp needs no jump")
 	_check(player.position.x / WorldData.CELL < 5.6, "a two-cell cliff stops the walker")
@@ -227,11 +227,47 @@ func _test_steps() -> void:
 	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")
 	var on_top := _walk_to_thing(true, 5.9)
 	_check(is_equal_approx(on_top.y, 2.25), "a jump gets up onto a chest")
-	_check(is_equal_approx(_walk_to_thing(true, 7.0).y, 1.0), "a jump by the chest's front does not stand on air")
-	_check(is_equal_approx(_walk_to_thing(true, 5.1).y, 1.0), "a jump by the chest's back does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 7.3).y, 1.0), "a jump by the chest's front does not stand on air")
+	_check(is_equal_approx(_walk_to_thing(true, 4.85).y, 1.0), "a jump by the chest's back does not stand on air")
 	_check(is_equal_approx(_walk_to_thing(true, 5.5).y, 2.25), "a jump just inside the chest's back edge stands on its lid")
-	_check(is_equal_approx(_drop_by_block(4.7), 1.0) and is_equal_approx(_drop_by_block(4.9), 2.0),
-		"the feet stand on a block only near its north edge, not a body's depth beyond it")
+	_check(is_equal_approx(_drop_by_block(4.5), 1.0) and is_equal_approx(_drop_by_block(4.6), 2.0),
+		"the feet stand on a block while the body overlaps its north edge, not beyond it")
+	_check(_walk_to_gap(5.5) < 3.0 and _walk_to_gap(5.2) < 3.0 and _walk_to_gap(5.8) < 3.0,
+		"a gap of one cell in a wall is walked through, lined up with it when off its middle")
+	_check(_walk_to_gap(4.6) > 5.0, "a wall beside the gap stops the walker")
+
+
+## Walks north at `x` toward a wall two high along z = 5 with a gap of one cell at x = 5;
+## returns where the feet end up after 1.5 s (z, in cells). Also checks how near the wall
+## beside the gap the body comes: the sprite, a cell wide, stays out of it.
+func _walk_to_gap(x: float) -> float:
+	var w := WorldData.new(6, Vector2i(16, 16))
+	for cz in 16:
+		for cx in 16:
+			w.set_cell(cx, 0, cz, Mat.STONE)
+	for cx in 16:
+		if cx != 5:
+			w.set_cell(cx, 1, 5, Mat.STONE)
+			w.set_cell(cx, 2, 5, Mat.STONE)
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(x, 1.0, 8.5) * WorldData.CELL
+	player.body.on_ground = true
+	player.body.move_input = Vector2(0, -1)
+	for i in 90:
+		player.step(1.0 / 60.0, false)
+	var z: float = player.position.z / WorldData.CELL
+	if z < 4.0:
+		# Through the gap: east along the wall's north face, up against a block.
+		w.set_cell(7, 1, 4, Mat.STONE)
+		player.position = Vector3(5.5, 1.0, 4.5) * WorldData.CELL
+		player.body.move_input = Vector2(1, 0)
+		for i in 60:
+			player.step(1.0 / 60.0, false)
+		var x_at: float = player.position.x / WorldData.CELL
+		_check(x_at + Body.HALF_WIDTH <= 7.0 and x_at + 0.5 > 6.85, "a wall stops the body with its sprite just short of it")
+	player.free()
+	return z
 
 
 ## Drops the player at `z` from above a stone block on cell (5, 1, 5) of a stone floor;

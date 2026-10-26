@@ -22,7 +22,7 @@ const CHEST_SLOTS := 16
 ## when a loaded mod has it).
 const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body standing by a burning campfire comes to be burnt.
-const SINGE := 0.05
+const SINGE := 0.02
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)

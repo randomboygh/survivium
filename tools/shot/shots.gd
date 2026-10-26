@@ -150,6 +150,14 @@ const SHOTS := {
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
+	# The player pressed against the walls of the hut, east, west, north and south, and
+	# with the camera turned a quarter: the sprite stays out of the wall.
+	"walk-into-east": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 0], "facing": "e"},
+	"walk-into-west": {"time": 0.42, "season": 1, "hut": true, "walk_into": [-1, 0], "facing": "w"},
+	"walk-into-north": {"time": 0.42, "season": 1, "hut": true, "walk_into": [0, -1], "facing": "n"},
+	"walk-into-south": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 1], "facing": "se"},
+	"walk-into-turned": {"time": 0.42, "season": 1, "hut": true, "walk_into": [0, -1], "facing": "n", "turn": 2},
+	"walk-into-turned-corner": {"time": 0.42, "season": 1, "hut": true, "walk_into": [-1, -1], "facing": "nw", "turn": 2},
 	"shore": {"time": 0.4, "season": 1, "shore": true},
 	"slopes": {"time": 0.42, "season": 1, "slopes": true},
 	"corners": {"time": 0.42, "season": 1, "corners": true},

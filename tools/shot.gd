@@ -199,6 +199,14 @@ func _run() -> void:
 			main.roof.build(main.world)
 		if shot.get("trench", false):
 			main.player.position = places.trench(main.world, Vector3i((main.player.position / CELL).floor()))
+		if shot.has("walk_into"):
+			# The player walks into what stands that way (x east, y south) until it stops them.
+			var body = main.player.body
+			body.move_input = Vector2(shot.walk_into[0], shot.walk_into[1])
+			for i in 90:
+				main.player.position = body.step(main.player.position, 1.0 / 60.0, false)
+			body.move_input = Vector2.ZERO
+			main.player.facing = shot.get("facing", "s")
 		if shot.has("cut"):
 			main.chunks.manual_level = main.player.level() + int(shot.cut)
 			main.chunks.update_cut(0.0)
