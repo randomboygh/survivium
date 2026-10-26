@@ -34,6 +34,7 @@ const ROLES := {
 ## Bits of `shader_bits`, one word per material for world.gdshader: the priority at a
 ## boundary (low 4 bits), DRAINS (no puddles), and the kind of patches on open ground
 ## (`ground`: none, soil, sand, rock) in bits 5 and 6.
+const PRIORITY_MASK := 15
 const DRAINS := 16
 const GROUND_SHIFT := 5
 ## The bit main.gd adds for the log and the barks: they clear round the player.

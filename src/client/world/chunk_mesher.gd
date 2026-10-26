@@ -310,7 +310,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			if exposed != 0:
 				var edges := _top_edges(c, cov, i, dy, dz)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
-					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0)
+					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy])
 	return true
 
 
@@ -596,10 +596,11 @@ static func _fill_shape(c: PackedByteArray, cov: PackedByteArray, i: int, dy: in
 	return Mat.corner_shape[mf]
 
 
-## Tops of padded cell `i` under the cut corners of the cell above: the ground beside
-## goes on into them, and a wall above (not a slope) shades their diagonal.
+## Tops of padded cell `i` under the cut corners of the cell above (of material `over`):
+## the ground beside goes on into them, and a wall above (not a slope) shades their
+## diagonal.
 static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int, dz: int, base: Vector3, m: int,
-		exposed: int, edges: int, halves: int, under_wall: bool) -> void:
+		exposed: int, edges: int, halves: int, under_wall: bool, over: int) -> void:
 	var white := Color(1, 1, 1)
 	for k in 4:
 		if exposed & (1 << k) == 0:
@@ -610,6 +611,11 @@ static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int,
 			me = c[i + o.y * dz]
 		if not cov[me]:
 			me = m
+		# Under a slope the corner lies at its foot: the slope's ground goes on into it
+		# when it grows over the ground beside (grass over sand), or a triangle of sand
+		# shows amid the grass.
+		if not under_wall and Mat.shader_bits[over] & Mat.PRIORITY_MASK > Mat.shader_bits[me] & Mat.PRIORITY_MASK:
+			me = over
 		var flag := _diag(k, true, CONTACT if under_wall else 0)
 		_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white,
 			Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILE * 0x41041)))
