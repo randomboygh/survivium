@@ -94,13 +94,10 @@ vec3 murky_color(vec2 tex, float depth, float murk) {
 varying vec2 light_xz;
 
 void vertex() {
-	// Ice fills its cell to the top, level with the ground beside it, where it is
-	// walked on (see WorldData.water_frozen).
+	// Ice lies where the water stood, so it is never above the shore it is walked on
+	// from (see WorldData.ice_top).
 	kind = COLOR.b > 0.48 ? 2 : 0;
 	murk_here = (COLOR.b - (kind == 2 ? 0.5 : 0.0)) / 0.45;
-	if (ice_amount > 0.8 && (kind & 2) == 0 && abs(fract(VERTEX.y / CELL) - 0.5) < 0.01) {
-		VERTEX.y += 0.5 * CELL;
-	}
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	data = UV2;

@@ -79,6 +79,9 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 	if absf(feet.x - focus.x) > REACH or absf(feet.z - focus.z) > REACH:
 		return
 	var cell := Vector3i(floori(feet.x / CELL), floori(feet.y / CELL + 0.01) - 1, floori(feet.z / CELL))
+	# Ice lies at the water's surface, inside its cell (see WorldData.ice_top).
+	if world.water_frozen and world.get_cell(cell.x, cell.y + 1, cell.z) == Mat.WATER:
+		cell.y += 1
 	var ground: int = world.get_cell(cell.x, cell.y, cell.z)
 	var tint: Color
 	var life: float

@@ -88,12 +88,12 @@ func _test_water() -> void:
 	w.water_frozen = true
 	player.step(1.0 / 60.0, false)
 	player.step(1.0 / 60.0, false)
-	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.body.on_ground,
-		"a swimmer caught by the frost stands on the ice")
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 4.5) and player.body.on_ground,
+		"a swimmer caught by the frost stands on the ice, at the water's surface")
 	player.body.move_input = Vector2(1, 0)
 	for i in 120:
 		player.step(1.0 / 60.0, false)
-	_check(is_equal_approx(player.position.y / WorldData.CELL, 5.0) and player.position.x / WorldData.CELL > 7.0,
+	_check(is_equal_approx(player.position.y / WorldData.CELL, 4.5) and player.position.x / WorldData.CELL > 7.0,
 		"ice is walked on")
 	player.free()
 

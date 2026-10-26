@@ -139,7 +139,7 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var surface := _water_surface(p)
 	if surface > -INF and world.water_frozen:
 		# The water froze around the body: stand on the ice.
-		p.y = ceilf(surface)
+		p.y = maxf(p.y, surface)
 		surface = -INF
 	water_depth = maxf(0.0, surface - p.y)
 	water_level = surface if water_depth > 0.0 else -INF
@@ -228,7 +228,8 @@ func knock(dir: Vector2, speed: float, hop: float) -> void:
 func on_ice(p: Vector3) -> bool:
 	if not on_ground or not world.water_frozen:
 		return false
-	return world.get_cell(floori(p.x), floori(p.y + 0.01) - 1, floori(p.z)) == Mat.WATER
+	# Ice lies at the water's surface, inside its cell.
+	return world.get_cell(floori(p.x), floori(p.y - 0.01), floori(p.z)) == Mat.WATER
 
 
 ## The level of the cell the feet at `at` (world units) are in.
@@ -395,7 +396,10 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 		var thing: float = world.blocker_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y)
 		if thing > 0.0:
 			return thing
-	if not Mat.can_slope(world.get_cell(x, y, z)):
+	var m: int = world.get_cell(x, y, z)
+	if m == Mat.WATER:
+		return world.ice_top(x, y, z)
+	if not Mat.can_slope(m):
 		return 1.0
 	var mask: int = world.slope_mask(x, y, z)
 	if mask == WorldData.FULL:

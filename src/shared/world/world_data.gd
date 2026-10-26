@@ -540,7 +540,7 @@ func ground_height(x: float, z: float) -> float:
 			if inside and corner_fill(cx, y, cz, k):
 				return y + 1.0
 			if m == Mat.WATER:
-				return y + 1.0 if water_frozen else -1.0
+				return y + ice_top(cx, y, cz) if water_frozen else -1.0
 			continue
 		if inside and corner_cut(cx, y, cz, k):
 			var o: Vector2i = CORNER_DIRS[k]
@@ -663,6 +663,12 @@ func blocks_body(x: int, y: int, z: int) -> bool:
 	if not blockers.is_empty() and blocker_top(x, y, z) > 0.0:
 		return true
 	return _cell_blocks(x, y, z)
+
+
+## Height of frozen water cell (x, y, z) over its floor, in cells: ice lies where the
+## water stood, so the shore beside is not lower than it, and fills cells under water.
+func ice_top(x: int, y: int, z: int) -> float:
+	return 1.0 if get_cell(x, y + 1, z) == Mat.WATER else WATER_TOP
 
 
 func _cell_blocks(x: int, y: int, z: int) -> bool:
