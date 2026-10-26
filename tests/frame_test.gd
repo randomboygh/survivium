@@ -527,7 +527,7 @@ func _run() -> void:
 	_check(log_page._list.get_child(0).text.begins_with("Обычный кадр") and log_page._list.get_child_count() == 1 + 3,
 		"the freezes' log opens with the ordinary frame and every freeze kept")
 	_check(main.freeze_log.lines("critical").size() == 2 and main.freeze_log.lines("big").size() == 0
-		and main.freeze_log.lines("small").size() == 1 and log_page._tab_buttons.critical.text == "от 200 · 2",
+		and main.freeze_log.lines("small").size() == 1 and log_page._tab_buttons.critical.text == "от 200 2",
 		"the freezes' log splits the freezes by their length")
 	log_page.show_section("critical")
 	_check(log_page._list.get_child(1).text.begins_with("0:10  250 мс"), "the critical tab shows the freeze of 250 ms")
@@ -608,10 +608,12 @@ func _run() -> void:
 	menu.show_section("game")
 	main.settings.set_value("shake", false)
 	menu._defaults.pressed.emit()
-	var asked: bool = main.settings.values.shake == false and menu._defaults.text != "По умолчанию"
+	# Asking, the button turns red and keeps its text.
+	var asked: bool = main.settings.values.shake == false and menu._defaults.text == "По умолчанию" \
+		and menu._defaults.has_theme_stylebox_override("normal")
 	menu._defaults.pressed.emit()
-	_check(asked and main.settings.values.shake == true and menu._defaults.text == "По умолчанию",
-		"«По умолчанию» asks, then resets the settings")
+	_check(asked and main.settings.values.shake == true and not menu._defaults.has_theme_stylebox_override("normal"),
+		"«По умолчанию» asks (red), then resets the settings")
 	# Stepping through a row's values never moves the rows (a long value is cut).
 	menu.open("test")
 	menu.show_section("world")

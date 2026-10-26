@@ -143,18 +143,15 @@ func _reset(button: Button) -> void:
 	_fit.call_deferred()
 
 
-## Whether `button` was asked already; else asks with it ("Точно?") and puts back the
-## one asked before.
+## Whether `button` was asked already; else asks with it (red, its text as it was) and
+## puts back the one asked before.
 func _arm(button: Button) -> bool:
 	if _armed == button:
 		return true
 	if _armed != null:
-		_armed.text = _armed.get_meta("text")
-		_armed.remove_theme_color_override("font_color")
+		UiStyle.arm(_armed, false)
 	_armed = button
-	button.set_meta("text", button.text)
-	button.text = "Точно?"
-	button.add_theme_color_override("font_color", UiStyle.DANGER)
+	UiStyle.arm(button, true)
 	return false
 
 

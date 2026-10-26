@@ -315,6 +315,10 @@ func _run() -> void:
 				[140.0, 312.0, [["движок", 250.0], ["игра", 40.0]], ["запись", "мусор 93 → 61 МБ"], 380],
 				[171.0, 58.0, [["браузер", 45.0]], [], 300],
 			]
+			# `many` times as many, for two-figure counts on the tabs.
+			var one: Array = main.hud.perf.freeze_log.duplicate(true)
+			for i in shot.get("many", 1) - 1:
+				main.hud.perf.freeze_log.append_array(one.duplicate(true))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			if shot.has("page"):
@@ -322,6 +326,9 @@ func _run() -> void:
 				# The window keeps the section shown last: an earlier shot may have left another.
 				if shot.page in ["settings", "test"]:
 					main.hud._settings.show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
+				# Buttons of the window tapped once, by their vars (a two-tap one turns red).
+				for b: String in shot.get("press", []):
+					(main.hud._settings.get(b) as Button).pressed.emit()
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.

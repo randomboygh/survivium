@@ -279,7 +279,7 @@ func _process(_delta: float) -> void:
 ## Where the player is (column and level) and the clock, as the corner of the game shows it.
 func _update_info() -> void:
 	var c := minimap.player_cell
-	var where := "X %d · Z %d" % [c.x, c.y]
+	var where := "X %d · Y %d" % [c.x, c.y]
 	var clock := ""
 	if game != null and game.player != null:
 		where += " · ур. %d" % game.player.level()
@@ -394,7 +394,7 @@ func _show_popup(i: int) -> void:
 	editing = i
 	var cell := _new_cell if i < 0 else (markers.list[i].cell as Vector2i)
 	var away := Vector2(cell).distance_to(Vector2(minimap.player_cell))
-	_popup_info.text = "X %d · Z %d · %d кл. от вас" % [cell.x, cell.y, roundi(away)]
+	_popup_info.text = "X %d · Y %d · %d кл. от вас" % [cell.x, cell.y, roundi(away)]
 	for j in _swatches.size():
 		var lit: bool = i >= 0 and markers.list[i].color == j
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
