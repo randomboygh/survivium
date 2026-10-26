@@ -73,7 +73,7 @@ const LeavesShader := preload("res://shaders/leaves.gdshader")
 const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
 
 const CELL := WorldData.CELL
-## While the land around is built, the loading screens name in turn the kinds of work
+## While the land around is built, the loading screens name, each once, the kinds of work
 ## that took at least LOADING_SHARE of the time (ChunkStreamer.take_work), each caption
 ## kept LOADING_HOLD at least (msec) so it can be read.
 const LOADING_HOLD := 1500
@@ -304,18 +304,18 @@ func loading_phase() -> String:
 
 
 ## Of the kinds of work that took a fair share (LOADING_SHARE) of the time `spent`
-## (usec by kind, see ChunkStreamer.take_work), the one named longest ago, so the
-## captions take turns over what is really being done; "" when nothing was done.
+## (usec by kind, see ChunkStreamer.take_work) and were not named yet, the one that
+## took the most, so each caption is shown once, in the order the work comes; "" when
+## there is none (the caption shown stays).
 func _next_work(spent: Dictionary) -> String:
 	var total := 0
 	for kind: String in spent:
 		total += spent[kind]
 	var best := ""
 	for kind: String in spent:
-		if spent[kind] < LOADING_SHARE * total:
+		if spent[kind] < LOADING_SHARE * total or _work_named.has(kind):
 			continue
-		if best == "" or _work_named.get(kind, 0) < _work_named.get(best, 0) \
-				or _work_named.get(kind, 0) == _work_named.get(best, 0) and spent[kind] > spent[best]:
+		if best == "" or spent[kind] > spent[best]:
 			best = kind
 	return best
 

@@ -1,5 +1,8 @@
 extends "res://tests/unit/test_case.gd"
-## The client view: the pixel view, sprite sheets, tracks, the level cut and sound.
+## The client view: the pixel view, sprite sheets, tracks, the level cut, sound and the
+## camera's smooth turn.
+
+const CameraRig := preload("res://src/client/view/camera_rig.gd")
 
 
 func run() -> void:
@@ -8,6 +11,7 @@ func run() -> void:
 	_test_tracks()
 	_test_hidden()
 	_test_sound()
+	_test_camera_spin()
 
 
 func _test_pixel_view() -> void:
@@ -327,3 +331,46 @@ func _test_sound() -> void:
 		_check(music._notes.size() >= 16 and ordered, "a %s piece has its notes in order" % mood)
 		_check(lo >= -18 and hi <= 15, "a %s piece stays within the notes' range (%d..%d)" % [mood, lo, hi])
 	s.free()
+
+
+class _FakeSettings:
+	var values := {"camera_turn": 0, "camera_tilt": 0}
+	func save() -> void:
+		pass
+
+
+class _FakeGame:
+	var settings := _FakeSettings.new()
+	var player := Node3D.new()
+	var chunks = null
+	var effects = null
+
+
+## A turn button held turns the camera on smoothly; let go, it settles on the nearest step.
+func _test_camera_spin() -> void:
+	var game := _FakeGame.new()
+	var rig = CameraRig.new(game)
+	rig.look_at_player()
+	rig.hold_turn(1)
+	_check(rig.turn_steps == 1 and not rig.is_spinning(), "a tap turns the camera a step")
+	rig.release_turn(1)
+	for i in 60:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn == CameraRig.TURN_STEP, "a tap glides to the step and stops there")
+	rig.hold_turn(1)
+	var t := 0.0
+	while t < 1.5:
+		rig._glide(1.0 / 30.0)
+		t += 1.0 / 30.0
+	_check(rig.is_spinning() and rig.turn > 2.0 * CameraRig.TURN_STEP + 0.3, "held, the camera turns on past the step")
+	_check(PixelView.box_views.size() >= ceili(TAU / CameraRig.BOX_STEP), "turning on, the culling boxes hold the views all round")
+	var nearest := roundi(rig.turn / CameraRig.TURN_STEP)
+	rig.release_turn(1)
+	for i in 90:
+		rig._glide(1.0 / 30.0)
+	_check(not rig.is_spinning() and rig.turn == posmod(nearest, CameraRig.TURNS) * CameraRig.TURN_STEP
+		and PixelView.box_views.size() == 1, "let go, the camera settles on the nearest step")
+	_check(game.settings.values.camera_turn == posmod(nearest, CameraRig.TURNS), "the step settled on is kept")
+	game.player.free()
+	PixelView.set_view(0.0, 0.0)
+	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]

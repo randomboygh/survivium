@@ -59,6 +59,9 @@ var _stroke := {}
 ## Seconds until the hands can swing again.
 var _cooldown := 0.0
 var _cursor_clock := 0.0
+## What the frame of the action button was worked out for (feet, facing, hand): it is
+## worked out again only when that changes or the button acts, not every frame.
+var _preview_for := []
 var _touch_tip_clock := 0.0
 
 
@@ -108,6 +111,13 @@ func input(event: InputEvent) -> void:
 
 
 func unhandled_input(event: InputEvent) -> void:
+	# The turn keys, like the buttons, turn the camera on smoothly while held.
+	if event is InputEventKey and not event.pressed:
+		match event.physical_keycode:
+			KEY_BRACKETLEFT:
+				game.view.release_turn(1)
+			KEY_BRACKETRIGHT:
+				game.view.release_turn(-1)
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.physical_keycode
 		if key >= KEY_1 and key < KEY_1 + Inventory.HOTBAR:
@@ -120,9 +130,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_R:
 				game.chunks.reset_view_level()
 			KEY_BRACKETLEFT:
-				game.view.turn_by(1)
+				game.view.hold_turn(1)
 			KEY_BRACKETRIGHT:
-				game.view.turn_by(-1)
+				game.view.hold_turn(-1)
 			KEY_MINUS:
 				game.view.tilt_by(-1)
 			KEY_EQUAL:
@@ -226,10 +236,16 @@ func update(delta: float) -> void:
 		if not _stroke.held and not _stroke.pending:
 			_stroke = {}
 	elif action_held or Input.is_physical_key_pressed(KEY_F):
-		if _cooldown <= 0.0:
+		var acted := _cooldown <= 0.0
+		if acted:
 			act_in_front()
-		game.cursor.show_cells(_front_preview(), true)
+		var key := [game.character.feet(), game.character.facing_step(), held()]
+		if acted or key != _preview_for or _cursor_clock <= 0.0:
+			_preview_for = key
+			game.cursor.show_cells(_front_preview(), true)
 		_cursor_clock = CURSOR_TIME
+	else:
+		_preview_for = []
 	if touch and _cursor_clock <= 0.0:
 		game.cursor.show_cells([], true)
 
@@ -551,7 +567,9 @@ func act_in_front() -> void:
 		"eat", "heal":
 			_eat_held()
 			return
-	_did(game.actions.act_in_front(game.character, game.chunks.cut_level))
+	if not _did(game.actions.act_in_front(game.character, game.chunks.cut_level)):
+		# Too tired to swing: try again a little later, not every frame.
+		_cooldown = WorldActions.IDLE_SWING
 
 
 ## The cells the action button would work on now, for the cursor frame.

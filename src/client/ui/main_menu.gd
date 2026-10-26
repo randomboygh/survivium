@@ -87,6 +87,8 @@ const STRIP_PAD := 5
 const CALM_FRAME := 0.05
 const CALM_FRAMES := 12
 const SETTLE_MAX := 5.0
+## Tips under the map while the world is built, each shown once a load in a shuffled
+## order (see _next_tip).
 const TIPS := [
 	"Волокно дают высокая трава, травы и тростник; из трёх волокон скручивают верёвку.",
 	"Кремень попадается, когда копаешь землю, песок и осыпь.",
@@ -99,6 +101,23 @@ const TIPS := [
 	"Карта помнит всё, что вы видели, и на ней можно ставить метки.",
 	"Кнопки уровня у миникарты срезают вид: так видно, что в пещере и под кронами.",
 	"Против ветра идти тяжелее, а в прыжке он сносит в сторону.",
+	"Факел из ветки и двух волокон светит в темноте, но со временем догорает.",
+	"Доски делают у верстака из бревна, если в сумке есть топор.",
+	"Медную руду бьют киркой в жилах камня, а слитки плавят в горне из руды и угля.",
+	"Уголь выжигают из брёвен в печи для обжига.",
+	"Сундук из шести досок хранит вещи, которые не помещаются в сумку.",
+	"Изношенный инструмент чинят у верстака: каменный — кремнём и верёвкой.",
+	"Прыжки, плавание и работа тратят силы, а в покое они возвращаются.",
+	"Голодному не восстановить силы полностью: ешьте ягоды, грибы и лепёшки.",
+	"С тяжёлой сумкой идёшь медленнее: лишнее можно оставить в сундуке.",
+	"Без сил в воде начинаешь тонуть: далеко не заплывайте.",
+	"Горящий костёр обжигает и отбрасывает, если подойти вплотную.",
+	"После смерти вещи остаются в мешке на месте гибели, он отмечен на карте.",
+	"Возвращаешься к жизни у своего костра: поставьте его рядом с домом.",
+	"Жёлуди, шишки и семена можно посадить, и из них вырастут деревья и травы.",
+	"Траву срезают руками, мечом или косой, и с неё падает волокно.",
+	"Камеру можно повернуть кнопками у миникарты и наклонить, чтобы заглянуть за деревья.",
+	"В настройках время суток, сезон и погоду можно сделать как в жизни.",
 ]
 ## Seconds between two glints over the name.
 const GLINT_EVERY := 4.0
@@ -181,7 +200,8 @@ var _phase_clock := 0.0
 var settled := false
 var _calm := 0
 var _ready_clock := 0.0
-var _tip_index := -1
+## The tips not shown yet, by index, in the order they come (see _next_tip).
+var _tips_left: Array = []
 var _tip_clock := 0.0
 var _map_room := false
 var _map_well: Control
@@ -444,9 +464,17 @@ func _update_loading(delta: float) -> void:
 	_tip_clock -= delta
 	if _tip_clock <= 0.0:
 		_tip_clock = TIP_TIME
-		_tip_index = (_tip_index + 1 + randi() % (TIPS.size() - 1)) % TIPS.size() if _tip_index >= 0 \
-			else randi() % TIPS.size()
-		_tip.text = TIPS[_tip_index]
+		_next_tip()
+
+
+## Shows the next tip of the shuffled deck; once every tip has been shown the last one
+## stays, so none comes twice in a load.
+func _next_tip() -> void:
+	if _tips_left.is_empty() and _tip.text == "":
+		_tips_left = range(TIPS.size())
+		_tips_left.shuffle()
+	if not _tips_left.is_empty():
+		_tip.text = TIPS[_tips_left.pop_back()]
 
 
 func _add_button(parent: Node, key: String, text: String, action: Callable, tag := "") -> void:

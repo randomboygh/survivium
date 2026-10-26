@@ -137,12 +137,12 @@ func _test_torch() -> void:
 	_check(ch.inventory.worn(0) == 15, "it burns down a unit a second while held")
 	ch.body.swimming = true
 	ch.update(5.0)
-	_check(ch.light_held() == "" and ch.inventory.worn(0) == 15, "in water it goes out and does not burn")
+	_check(ch.light_held() == "tools:torch" and ch.inventory.worn(0) == 16, "in water it is held up and keeps burning")
 	ch.body.swimming = false
 	ch.give("tools:torch", 1)
 	ch.hands = ["tools:torch", "tools:torch"]
 	ch.update(1.0)
-	_check(ch.lights_held().size() == 2 and ch.inventory.worn(0) == 16 and ch.inventory.worn(1) == 1,
+	_check(ch.lights_held().size() == 2 and ch.inventory.worn(0) == 17 and ch.inventory.worn(1) == 1,
 		"two torches, one in each hand, both burn")
 	ch.hands = ["tools:torch", ""]
 	for i in d:

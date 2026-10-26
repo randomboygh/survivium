@@ -33,6 +33,8 @@ const TORCH_HEIGHT := 1.2
 const TORCH_AHEAD := 0.3
 ## Widths of the shadows at their foot, world units.
 const PLAYER_WIDTH := 0.4
+## How thick an animal is across, as a share of how long it is drawn.
+const ANIMAL_DEPTH := 0.4
 ## A trunk's, for one 6 texels across; a thicker one throws a wider shadow.
 const TRUNK_WIDTH := 0.5
 ## How wide and how tall a campfire throws its shadow, in world units: its ring of
@@ -107,6 +109,9 @@ var _spots_for := PackedFloat32Array()
 var _shaded := {}
 
 
+## Height of the ground the player last stood on (see _player_ground).
+var _ground_y := INF
+
 ## Frames left until the sprites' shades are worked out again, and the last ones.
 var _shade_wait := 0
 var _last_shades := {}
@@ -165,6 +170,7 @@ func _process(_delta: float) -> void:
 		var moon := clampf(game.sky.sky_light / 0.45, 0.0, 1.0)
 		var night := lerpf(NIGHT_LIGHT.x, NIGHT_LIGHT.y, moon)
 		material_override.set_shader_parameter("night", night)
+		_ground_y = _player_ground()
 		var lights := _lights()
 		_update_maps(lights)
 		n = _fire_trunks(lights)
@@ -185,6 +191,22 @@ func _process(_delta: float) -> void:
 	_shade(shades)
 	mm.visible_instance_count = n
 	game.hud.perf.note("тени огня", t)
+
+
+## The ground under the player: where they stand, or in a jump where they last stood
+## (or lower, where the jump comes down), so the shadows by the torch and of the player
+## stay on the ground while they are in the air.
+func _player_ground() -> float:
+	var player = game.player
+	if player.body.on_ground or player.body.swimming:
+		return player.position.y
+	return minf(_ground_y, player.position.y)
+
+
+## The player's place on the ground under them (see _player_ground).
+func _player_feet() -> Vector3:
+	var p: Vector3 = game.player.position
+	return Vector3(p.x, _ground_y, p.z)
 
 
 ## Puts the shadows the fires' lights throw from tree trunks first, unless they are
@@ -290,13 +312,16 @@ func _lights() -> Array:
 	var effects = game.effects
 	for f in effects.fires:
 		var light: OmniLight3D = f.light
-		if p.distance_to(f.at) < light.omni_range + VIEW_REACH:
-			out.append({"id": f.unit, "at": f.at, "height": FIRE_HEIGHT, "range": light.omni_range,
+		var r := light.omni_range / PixelView.light_reach
+		if p.distance_to(f.at) < r + VIEW_REACH:
+			out.append({"id": f.unit, "at": f.at, "height": FIRE_HEIGHT, "range": r,
 				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01 and game.player.torch_lit:
-		out.append({"id": TORCH_ID, "at": p + Vector3(-PixelView.up.x, 0.0, -PixelView.up.y) * TORCH_AHEAD, "height": TORCH_HEIGHT,
-			"range": torch.omni_range, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
+		# In a jump the torch goes up with the hand, its ground stays where it was.
+		out.append({"id": TORCH_ID, "at": _player_feet() + Vector3(-PixelView.up.x, 0.0, -PixelView.up.y) * TORCH_AHEAD,
+			"height": TORCH_HEIGHT + p.y - _ground_y,
+			"range": torch.omni_range / PixelView.light_reach, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
 			"torch": true, "real": false})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
 	for i in out.size():
@@ -310,15 +335,17 @@ func _cast_all(l: Dictionary, n: int) -> int:
 	# A fire with a real shadow (the "mixed" setting, see Effects.player_only) throws
 	# the player's itself.
 	if not l.torch and not l.real:
-		n = _cast(l, game.player.position, game.player.HEIGHT * CELL, PLAYER_WIDTH, n, game.player)
+		n = _cast(l, _player_feet(), game.player.HEIGHT * CELL, PLAYER_WIDTH, n, game.player)
 	var at: Vector3 = l.at
 	var r2: float = l.range * l.range
 	for c in game.wildlife.animals:
 		# Most animals are far from every light; birds in the air throw none on the ground.
 		if c.aloft() or Vector2(c.pos.x - at.x, c.pos.z - at.z).length_squared() >= r2:
 			continue
-		var aabb: AABB = game.creatures.looks[c.kind][0].get_aabb()
-		n = _cast(l, c.pos, aabb.size.y, aabb.size.x * 0.4, n, c)
+		# The body is as long as its picture is wide, along the picture (an animal is drawn
+		# from the side, facing the view), and ANIMAL_DEPTH of that across.
+		var size: Vector2 = game.creatures.looks[c.kind][2]
+		n = _cast(l, c.pos, size.y, size.x, n, c, size.x * ANIMAL_DEPTH)
 	n = _cast_campfires(l, n)
 	if l.torch:
 		n = _cast_trunks(l, n)
@@ -390,8 +417,9 @@ func _base(w, col: Vector2i, at: Vector3) -> float:
 
 ## One shadow of a caster standing at `foot`, `height` tall and `width` wide, thrown by
 ## light `l`, as instance `n`; returns the next free instance. `who` is the caster (an
-## animal, the player, null for a trunk), whom its own shadow does not darken.
-func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int, who) -> int:
+## animal, the player, null for a trunk), whom its own shadow does not darken. With a
+## `depth`, `width` is a body's length along the picture and `depth` its thickness.
+func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int, who, depth := -1.0) -> int:
 	if n >= MAX_SHADOWS or absf(foot.y - l.at.y) > SAME_GROUND:
 		return n
 	var away := Vector2(foot.x - l.at.x, foot.z - l.at.z)
@@ -404,6 +432,10 @@ func _cast(l: Dictionary, foot: Vector3, height: float, width: float, n: int, wh
 	var length := reach - d if height >= lh else minf(d * height / (lh - height), reach - d)
 	var spread := minf((d + length) / d, MAX_SPREAD)
 	var dir := away / d
+	if depth >= 0.0:
+		# A body `width` long along the picture and `depth` across: as wide as it shows
+		# to the light.
+		width = width * absf(dir.cross(PixelView.right)) + depth * absf(dir.dot(PixelView.right))
 	var x_axis := Vector3(dir.y, 0.0, -dir.x) * width * spread
 	var z_axis := Vector3(dir.x, 0.0, dir.y) * length
 	var t := Transform3D(Basis(x_axis, Vector3.UP, z_axis), foot + Vector3(0.0, 0.01, 0.0))
@@ -636,7 +668,7 @@ static func _ring(d: float) -> float:
 ## out for the ground).
 func _shades(lights: Array, night: float) -> Dictionary:
 	var out := {}
-	var who := [[game.player, game.player.position, game.player.sprite]]
+	var who := [[game.player, _player_feet(), game.player.sprite]]
 	for a in game.wildlife.animals:
 		# Birds up in the air or in a crown are above the shadows on the ground; most
 		# animals are out of every light's range.

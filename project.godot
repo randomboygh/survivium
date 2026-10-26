@@ -143,6 +143,10 @@ heat_map={
 "type": "sampler2D",
 "value": ""
 }
+light_reach={
+"type": "float",
+"value": 1.618
+}
 light_blocks={
 "type": "sampler2D",
 "value": ""

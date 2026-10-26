@@ -71,6 +71,11 @@ const SHOTS := {
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# A torch in each hand: a flame at each.
 	"torch-two": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	# The same with the camera tilted low and steep: the rings stay round the torch.
+	"torch-two-low": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "tilt": -4,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	"torch-two-steep": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "tilt": 3,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# Blocks (a wall, a low wall, a pillar, a lone block), a chest and a workbench round
 	# the campfire by the spawn, and an animal in the player's shadow: their shadows
 	# drawn ("drawn", and "mixed" with the player's real), and the real ones to compare.
@@ -334,6 +339,7 @@ const SHOTS := {
 	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 1},
 	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 2},
 	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 4},
+	"turn-spin": {"time": 0.45, "season": 1, "trees": true, "spin": 22},
 	"turn-trees": {"time": 0.45, "season": 1, "trees": true},
 	"tilt-low": {"time": 0.45, "season": 1, "trees": true, "tilt": -2},
 	"tilt-steep": {"time": 0.45, "season": 1, "trees": true, "tilt": 2},

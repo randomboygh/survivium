@@ -443,7 +443,8 @@ void light() {
 	// to its sheared place (see unshear_dir): the foot of a wall beside it too.
 	vec3 to_light = LIGHT_IS_DIRECTIONAL ? LIGHT
 		: normalize((VIEW_MATRIX * vec4(unshear_dir((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), 0.0)).xyz);
-	vec3 lit = toon_light(NORMAL, to_light, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz));
+	vec3 lit = toon_light(NORMAL, to_light, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
+		light_stretch(INV_VIEW_MATRIX, LIGHT));
 	// Nor what a block stands between it and the light.
 	if (!LIGHT_IS_DIRECTIONAL && lit != vec3(0.0) && light_hidden(shear(world_pos),
 			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), world_pos, world_normal)) {
