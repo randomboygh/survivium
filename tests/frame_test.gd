@@ -519,11 +519,26 @@ func _run() -> void:
 	hud.perf._mark_last_freeze("мусор")
 	_check(hud.perf.freeze_log[0][3].back() == "мусор 93 → 61 МБ" and hud.perf.freeze_log[0][3].count("мусор") == 0,
 		"a late told collection is marked on the last freeze once: %s" % [hud.perf.freeze_log[0][3]])
-	main.freeze_log.show_log()
-	_check(main.freeze_log._panel != null and main.freeze_log._panel.get_child(0).text.begins_with("Обычный кадр"),
-		"the freezes' log opens with the ordinary frame")
-	main.freeze_log._panel.queue_free()
-	main.freeze_log._panel = null
+	# The log's window: the ordinary frame first, a tab for each band of length.
+	hud.perf.freeze_log.append([10.0, 250.0, [], [], 1])
+	hud.perf.freeze_log.append([11.0, 70.0, [], [], 1])
+	hud.open_settings("freezes")
+	var log_page = hud._settings
+	_check(log_page._list.get_child(0).text.begins_with("Обычный кадр") and log_page._list.get_child_count() == 1 + 3,
+		"the freezes' log opens with the ordinary frame and every freeze kept")
+	_check(main.freeze_log.lines("critical").size() == 2 and main.freeze_log.lines("big").size() == 0
+		and main.freeze_log.lines("small").size() == 1 and log_page._tab_buttons.critical.text == "от 200 · 2",
+		"the freezes' log splits the freezes by their length")
+	log_page.show_section("critical")
+	_check(log_page._list.get_child(1).text.begins_with("0:10  250 мс"), "the critical tab shows the freeze of 250 ms")
+	# The report for a playtest: a line each for the build, the world, the place, the
+	# camera, the time, the weather, the light, the settings, the device and the frame.
+	log_page.open("report")
+	var report: String = log_page.report_text()
+	_check(report.split("\n").size() == 10 and report.contains("Мир: ") and report.contains("Погода: ")
+		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
+	log_page.close()
+	hud.perf.freeze_log.resize(1)
 	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]], ["тень огня", "сетка"]]
 	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
 	hud.perf.freeze_marks = {"тень огня": 123, "фигура": 45, "запись": 12, "ничего": 8}

@@ -48,7 +48,7 @@ const LINE := 45
 ## What a freeze with no mark before it is counted as.
 const NO_MARK := "ничего"
 ## Freezes the log keeps.
-const LOG_SIZE := 40
+const LOG_SIZE := 100
 ## A change of video memory (textures and meshes sent to the GPU) or of the objects
 ## drawn from one frame to the next that is marked.
 const VIDEO_JUMP := 256 * 1024

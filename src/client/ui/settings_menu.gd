@@ -11,7 +11,11 @@ extends PanelContainer
 ## for what is done once (into the test world, the tools into the bag, to a marker set
 ## on the map: Маркеры lists them with their colour and column). The playtest page also
 ## shows the version of the build and opens the list of recent changes ("changes" page,
-## its legend of kinds above the buttons), no taller than the settings and scrolling.
+## its legend of kinds above the buttons), no taller than the settings and scrolling,
+## and from «Отладка» the log of freezes ("freezes" page, FreezeLog): a tab for each
+## band of their length, the worst first after all of them; and what a playtest report
+## needs to be played again ("report" page: the world, the place, the time, the weather,
+## the light, the camera, the settings, the device), to copy or share.
 ## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -48,11 +52,12 @@ const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолу
 const PAGES := {
 	"settings": [["game", "Игра"], ["interface", "Интерфейс"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
 	"test": [["world", "Мир"], ["player", "Игрок"], ["marks", "Маркеры"], ["debug", "Отладка"]],
+	"freezes": [["all", "Все"], ["critical", "от 200"], ["big", "100–200"], ["small", "50–100"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := []
 ## Sections as long as there is something in them: no taller page for them, they scroll.
-const LISTS := ["marks"]
+const LISTS := ["marks", "all", "critical", "big", "small"]
 ## The room between the quality preset and the settings by hand, or the rows and a
 ## button.
 const GAP := 8
@@ -67,10 +72,10 @@ const BUILD_INFO := "res://build_info.json"
 signal closed
 
 var game
-## "settings", "test" or "changes": which page is shown.
+## "settings", "test", "changes", "freezes" or "report": which page is shown.
 var page := ""
 ## The section shown on each page with tabs (see PAGES); kept between openings.
-var sections := {"settings": "game", "test": "world"}
+var sections := {"settings": "game", "test": "world", "freezes": "all"}
 var _title: Label
 var _tabs: HBoxContainer
 var _tab_buttons := {}
@@ -78,6 +83,13 @@ var _tab_buttons := {}
 var _tabs_page := ""
 var _version: Label
 var _changes: Button
+## «Очистить журнал» beside «Назад» on the freezes' page (two taps, see _confirm).
+var _clear: Button
+## «Скопировать» and «Поделиться» in the same row on the freezes' and the report page:
+## the text of the page shown (_shown_text).
+var _copy: Button
+var _share: Button
+var _shown_text := ""
 var _scroll: ScrollContainer
 var _list: VBoxContainer
 ## The kinds of change and their icons, under the changes.
@@ -157,6 +169,27 @@ func _ready() -> void:
 	_changes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_changes.pressed.connect(open.bind("changes"))
 	buttons.add_child(_changes)
+	_copy = Button.new()
+	_copy.text = "Скопировать"
+	_copy.focus_mode = Control.FOCUS_NONE
+	_copy.custom_minimum_size = Vector2(0, 32)
+	_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_copy.pressed.connect(_copy_shown)
+	buttons.add_child(_copy)
+	_share = Button.new()
+	_share.text = "Поделиться"
+	_share.focus_mode = Control.FOCUS_NONE
+	_share.custom_minimum_size = Vector2(0, 32)
+	_share.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_share.pressed.connect(_share_shown)
+	buttons.add_child(_share)
+	_clear = Button.new()
+	_clear.text = "Очистить журнал"
+	_clear.focus_mode = Control.FOCUS_NONE
+	_clear.custom_minimum_size = Vector2(0, 32)
+	_clear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_clear.pressed.connect(_confirm.bind(_clear, _clear.text, _clear_freezes))
+	buttons.add_child(_clear)
 	_back = Button.new()
 	_back.text = "Назад"
 	_back.focus_mode = Control.FOCUS_NONE
@@ -208,6 +241,12 @@ func _fill() -> void:
 	_version.text = "Версия %s · %s · %s" % [info.version, info.commit, info.date]
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
+	_clear.visible = which == "freezes"
+	_copy.visible = which in ["freezes", "report"]
+	_copy.text = "Скопировать"
+	# The phone's sharing, where the browser has it.
+	_share.visible = which == "report" and OS.has_feature("web") \
+			and JavaScriptBridge.eval("typeof navigator.share === 'function'", true) == true
 	_defaults.visible = which == "settings"
 	_ask_reset(false)
 	_tabs.visible = PAGES.has(which)
@@ -216,6 +255,12 @@ func _fill() -> void:
 	if which == "changes":
 		_title.text = "Что нового"
 		_add_changes(info.changes)
+	elif which == "freezes":
+		_title.text = "Журнал фризов"
+		_add_freezes(sections[which])
+	elif which == "report":
+		_title.text = "Данные для теста"
+		_add_report()
 	else:
 		_title.text = "Настройки" if which == "settings" else "Тестирование"
 		for k in _tab_buttons:
@@ -358,11 +403,8 @@ func _section_rows(key: String) -> Array:
 					if get_tree().paused:
 						game.hud.toggle_menu()
 					game.draw_census.start()},
-				{"action": "Журнал фризов", "do": func() -> void:
-					close()
-					if get_tree().paused:
-						game.hud.toggle_menu()
-					game.freeze_log.show_log()},
+				{"action": "Журнал фризов", "do": func() -> void: open("freezes")},
+				{"action": "Данные для теста", "do": func() -> void: open("report")},
 				{"action": "Перечитать данные модов", "do": func() -> void: s.reload_mods()},
 				null,
 				{"action": "Очистить все данные", "do": func() -> void: s.wipe_all(), "confirm": true},
@@ -535,7 +577,7 @@ func _ask_reset(on: bool) -> void:
 
 
 func _go_back() -> void:
-	if page == "changes":
+	if page in ["changes", "freezes", "report"]:
 		open("test")
 	else:
 		close()
@@ -577,7 +619,7 @@ func fit(screen: Vector2) -> void:
 	# Every page takes the columns the settings need, so all are as wide.
 	var n := 2 if _page_height("settings", 1) > room \
 			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x - BAR_ROOM >= 2 * ROW_WIDTH + COLUMN_GAP else 1
-	if n != _columns and page == "changes":
+	if n != _columns and page in ["changes", "freezes", "report"]:
 		_columns = n
 		_fill()
 		return
@@ -630,6 +672,81 @@ func _add_changes(changes: Array) -> void:
 			pr = int(c.pr)
 			_list.add_child(_paragraph("#%d · %s" % [pr, merged_at(c)], UiStyle.ACCENT))
 		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, content_width()))
+
+
+## The freezes of band `key` (FreezeLog.BANDS) under an ordinary frame, a wrapped
+## paragraph each, the longest in red; each tab tells how many its band holds.
+func _add_freezes(key: String) -> void:
+	for sec in PAGES.freezes:
+		var b: Button = _tab_buttons[sec[0]]
+		b.text = "%s · %d" % [sec[1], game.freeze_log.lines(sec[0]).size()]
+		TabRow.light(b, sec[0] == key)
+	_list.add_child(_paragraph(game.freeze_log.usual_line(), UiStyle.MUTED))
+	var lines: Array = game.freeze_log.lines(key)
+	var shown := [game.freeze_log.usual_line()]
+	for l: Array in lines:
+		shown.append(l[1])
+	_shown_text = "\n".join(shown)
+	if lines.is_empty():
+		_list.add_child(_paragraph("Фризов нет" if key == "all" else "Таких фризов нет", UiStyle.MUTED))
+	for l: Array in lines:
+		_list.add_child(_paragraph(l[1], UiStyle.DANGER if l[0] >= 200.0 else (UiStyle.ACCENT if l[0] >= 100.0 else UiStyle.INK)))
+
+
+func _clear_freezes() -> void:
+	game.freeze_log.clear()
+	_unarm(_clear, "Очистить журнал")
+	_fill()
+
+
+## The playtest report (report_text), which the buttons under the page copy or share.
+func _add_report() -> void:
+	_shown_text = report_text()
+	_list.add_child(_paragraph(_shown_text, UiStyle.INK))
+
+
+## «Скопировать»: the text of the page shown into the clipboard.
+func _copy_shown() -> void:
+	DisplayServer.clipboard_set(_shown_text)
+	_copy.text = "Скопировано"
+
+
+## «Поделиться»: the text of the page shown to the phone's sharing.
+func _share_shown() -> void:
+	JavaScriptBridge.eval("navigator.share({text: %s}).catch(function () {})" % JSON.stringify(_shown_text), true)
+
+
+## What a playtest report needs for the moment to be played again, a line each: the
+## build, the world, where the player stands and looks, the time, the weather, the light,
+## the settings and the device.
+func report_text() -> String:
+	var info := build_info()
+	var s = game.settings
+	var clock = game.clock
+	var sky = game.sky
+	var p: Vector3 = game.player.position
+	var cell := Vector3i((p / game.CELL).floor())
+	var minutes := int(clock.time_of_day * 24.0 * 60.0)
+	var lines := [
+		"Survivium %s · %s · %s" % [info.version, info.commit, info.date],
+		"Мир: %s, настройки %s" % ["тестовый" if s.in_test_world() else "зерно %d" % game.world_seed,
+			JSON.stringify(game.world_options)],
+		"Игрок: x %d, z %d, уровень %d, срез %d" % [cell.x, cell.z, cell.y, game.chunks.cut_level],
+		"Камера: поворот %d°, наклон %d" % [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps],
+		"Время: день %d, %s, %02d:%02d, ход ×%s%s%s" % [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
+			str(clock.time_speed * s.time_boost), ", как в жизни" if clock.real_time else "",
+			", сезон как в жизни" if clock.real_season else ""],
+		"Погода: %s%s, облака %.2f, дождь %.2f, снег %.2f, туман %.2f, ветер %.2f к %d°, снег лежит %.2f, лужи %.2f" % [
+			clock.WEATHERS[clock.weather].name, "" if clock.weather_auto else " (выбрана)", clock.clouds, clock.rain,
+			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles],
+		"Свет: день %.2f, луна %.2f%s" % [sky.daylight, sky.moon, " (выбрана)" if sky.moon_override >= 0.0 else ""],
+		"Настройки: %s" % JSON.stringify(s.values),
+		"Устройство: %s, экран %dx%d, окно %dx%d, %s" % [OS.get_name(), DisplayServer.screen_get_size().x,
+			DisplayServer.screen_get_size().y, get_viewport().get_visible_rect().size.x,
+			get_viewport().get_visible_rect().size.y, RenderingServer.get_video_adapter_name()],
+		"Кадр: обычный %.1f мс, фризов в журнале %d" % [game.hud.perf.usual[0], game.hud.perf.freeze_log.size()],
+	]
+	return "\n".join(lines)
 
 
 ## When change `c` was merged, in this device's time: "2026-10-23 18:32"; only the date
@@ -697,8 +814,8 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 
 
 ## A button as wide as a row that does `action` once (a way into the test world); with
-## `confirm` only when tapped twice.
-func _add_action(text: String, action: Callable, confirm := false) -> void:
+## `confirm` only when tapped twice. Returns the button.
+func _add_action(text: String, action: Callable, confirm := false) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
@@ -708,6 +825,7 @@ func _add_action(text: String, action: Callable, confirm := false) -> void:
 	else:
 		b.pressed.connect(action)
 	_grid().add_child(b)
+	return b
 
 
 ## A button that asks first: the first tap turns it into «Точно? Ещё раз» (for a few
