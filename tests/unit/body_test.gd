@@ -388,6 +388,10 @@ func _test_ground() -> void:
 	_check(w.get_cell(cxo + 4 * st + 4, g, wet + 4) == Mat.WATER and w.get_cell(cxo + 4 * st + 4, g - 2, wet + 4) == Mat.GRASS
 		and w.get_cell(cxo + 17 * st + 4, g, wet + 4) == Mat.WATER and w.get_cell(cxo + 17 * st + 4, g + 1, wet + 4) == Mat.AIR
 		and w.get_cell(cxo + 17 * st + 4, g + 2, wet + 4) == Mat.GRASS, "the water band of the combinations ground floods its shapes")
+	gen.generate_area(Vector2i((cxo + 20 * st) >> 4, dry >> 4), Vector2i(((cxo + 26 * st) >> 4) + 1, (dry >> 4) + 1))
+	_check(w.surface_y(cxo + 20 * st + 4, dry + 4) == g + 4 and w.surface_y(cxo + 24 * st + 5, dry + 4) == g + 2
+		and w.surface_y(cxo + 24 * st + 7, dry + 4) == g + 3 and w.slope_mask(cxo + 24 * st + 5, g + 1, dry + 4) != WorldData.FULL,
+		"the combinations ground has a cone three high and a ramp up two levels a cell each")
 	var snowy: int = gen.snow_base
 	_check(w.get_cell(cxo + 4, snowy + 1, czo + 4) == Mat.GRASS and w.peak_snow(snowy) == 1.0
 		and w.surface_y(cxo - 3, czo + TestGround.COMBO_RAMP.x) == snowy and w.surface_y(cxo - 10, czo + TestGround.COMBO_RAMP.x) == snowy - 7,

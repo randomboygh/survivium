@@ -485,6 +485,16 @@ const SHOTS := {
 	"ground-combo-east-mixed": {"time": 0.42, "season": 1, "at": [80, -130]},
 	"ground-combo-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [84, -196], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
+	# The diagonal shapes and the smooth ones two and three high (diamond to slope2_diag):
+	# from the north-west and turned 45 degrees, at night by a torch, in water and snow.
+	"ground-combo-diag": {"time": 0.42, "season": 1, "at": [134, -190]},
+	"ground-combo-diag-east": {"time": 0.42, "season": 1, "at": [180, -190]},
+	"ground-combo-diag-mixed": {"time": 0.42, "season": 1, "at": [134, -130]},
+	"ground-combo-diag-turn": {"time": 0.42, "season": 1, "at": [134, -190], "turn": 1},
+	"ground-combo-diag-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [130, -196], "fire_shadows": 1,
+		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
+	"ground-combo-diag-water": {"time": 0.42, "season": 1, "at": [156, -318]},
+	"ground-combo-diag-snow": {"time": 0.42, "season": 3, "at": [156, -190]},
 	"ground-combo-water": {"time": 0.42, "season": 1, "at": [-80, -318]},
 	"ground-combo-water-east": {"time": 0.42, "season": 1, "at": [80, -318]},
 	"ground-combo-ice": {"time": 0.42, "season": 3, "at": [-80, -318]},
