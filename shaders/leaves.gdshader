@@ -25,6 +25,9 @@ uniform float clump_size = 1.5;
 // How far a sprig is drawn in front of a spruce's trunk, and the deep layer of a crown
 // behind its outer cards, toward or away from the camera whichever way it looks.
 const float SPRIG_AHEAD = 0.4375;
+// A bush (main.gd sets it in the bushes' copy of this shader): clears round the player
+// as low things do (low_through).
+const bool LOW_PLANT = false;
 const float DEEP_BEHIND = 0.25;
 // How much nearer the camera a flat bundle is drawn than it lies (in depth alone).
 const float FLAT_AHEAD = 0.75;
@@ -198,7 +201,7 @@ void fragment() {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them.
-	if (bayer4(texel) < see_through(texel, center)) {
+	if (bayer4(texel) < (LOW_PLANT ? low_through(texel, center) : see_through(texel, center))) {
 		discard;
 	}
 	// The card is lit as a whole by the crown's normal at its spot (see light), so each

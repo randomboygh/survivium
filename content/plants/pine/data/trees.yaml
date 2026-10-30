@@ -7,12 +7,12 @@
   shape: umbrella
   leaf: needles
   leaves: needles
-  trunk: [6, 8]
+  trunk: [7, 8]
   girth: [11, 15]
   taper: 0.25
   crook: 1
   roots: [0, 2]
-  crown: [2.4, 1.2, 2.1]
+  crown: [2.4, 2.4, 2.1]
   tints: ["#3f6b3a", "#44703c", "#3a6638"]
   bare: 0.0
   bark: pine_bark

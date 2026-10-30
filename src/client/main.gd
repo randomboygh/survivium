@@ -575,7 +575,12 @@ func _build_materials() -> void:
 			blossoms[s.blossom_slot] = Vector3(c.r, c.g, c.b)
 	leaves_mat.set_shader_parameter("blossom_colors", blossoms)
 	leaf_shadow_mat = _material(LeafShadowShader)
-	bush_mat = _material(low_variant(LeavesShader))
+	# Bushes take the shade of their own shadow at their foot, which sets them on the
+	# ground; the crowns skip that pass (see leaves.gdshader).
+	var bush_shader := low_variant(LeavesShader)
+	bush_shader.code = bush_shader.code.replace(", shadows_disabled", "") \
+		.replace("const bool LOW_PLANT = false;", "const bool LOW_PLANT = true;")
+	bush_mat = _material(bush_shader)
 	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_bush_clumps(Foliage.BUSH_CLUMP))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)
 	bush_mat.set_shader_parameter("clump_rows", PixelTextures.BUSH_ROWS)
