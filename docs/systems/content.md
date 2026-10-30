@@ -8,8 +8,9 @@
 контент.
 
 **Файлы**
-- `src/shared/content/content.gd` — `SCHEMAS` всех видов, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; поиск модов и
-  бандлов, `resolve` (порядок и выпавшие бандлы), загрузка, патчи, проверка ссылок, `asset`,
+- `src/shared/content/content.gd` — `SCHEMAS` всех видов, общие поля `COMMON`, словарь связей `RELATIONS` и
+  действий `ACTIONS`, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; поиск модов и бандлов, `resolve` (порядок и выпавшие
+  бандлы), загрузка, замены (`replaces`) и патчи, проверка ссылок, предупреждения об именах, `asset`,
   `sound_files`.
 - `src/shared/content/yaml.gd` — свой разбор той части YAML, что нужна данным (ключи с `:` внутри,
   `{core:fiber: 1}`).
@@ -20,8 +21,9 @@
   инструментов над `Items` и `Mat` (без своего вида данных).
 
 **Интерфейс**
-- `Content.records(kind)`, `Content.find(kind, id)`, `Content.asset(rec, "sprites/x.png")` (бандл, затем
-  `common/` мода), `Content.problems`, `Content.loaded`, `Content.dropped[b]` (почему выпал).
+- `Content.records(kind)`, `Content.find(kind, id)`, `Content.schema(kind)` (поля вида и общие),
+  `Content.asset(rec, "sprites/x.png")` (бандл, затем `common/` мода), `Content.problems`,
+  `Content.warnings` (имена против правил), `Content.loaded`, `Content.dropped[b]` (почему выпал).
 - `Content.all_bundles()`, `bundles_of(mod)`, `mod_of(b)`, `deps(b)`, `closure(b)`, `resolve(set)`.
 - `Mods.activate(bundles)` — сделать набор мира текущим и пересобрать реестры; `Mods.rescan()` —
   перечитать `content/` (кнопка на «Тестировании»); `Mods.expand(list)` — старые id модов в бандлы.
@@ -37,13 +39,16 @@
 полей — комментарий в начале каждого YAML и схема в `content.gd`.
 
 **Как добавить**
-- Поле: строка в `SCHEMAS[вид]` (тип, `default`, `min`/`max`, `soft` для мягкой ссылки), чтение в
-  реестре, комментарий в YAML, проверка в `tests/unit/content_test.gd`.
+- Поле: строка в `SCHEMAS[вид]` (тип, `default`, `min`/`max`, `soft` для мягкой ссылки; у ссылки — тип
+  связи `rel` из `RELATIONS` и, если связь даёт действие, `via` из `ACTIONS`, иначе тест не пройдёт), чтение
+  в реестре, комментарий в YAML, проверка в `tests/unit/content_test.gd`.
 - Вид данных: схема в `SCHEMAS`, новый реестр со `refresh()`, вызов его в `Mods._refresh_registries`,
   проверка в `tools/validate.gd`.
 - Бандл с готовыми ролями — только данные и ассеты, код не нужен (пример: `content/animals/sparrow/`).
 
 **Подводные камни**
+- Запись с id чужой записи без `replaces: true` — ошибка: молча заменить чужое нельзя. Замена — целая
+  запись: поля, которых она не пишет, получают значения по умолчанию, а не берутся у заменённой.
 - Статическая функция с именем метода `Script` (`reload`, `get_class`, `is_tool`) затеняется:
   `Mat.reload()` перекомпилирует скрипт. Поэтому `Mods.rescan`, а не `reload`.
 - `const X := Mat.GRASS` — ошибка разбора: номера материалов известны только после загрузки.
@@ -56,9 +61,12 @@
   номер плитки — 6 бит в меше; `uniform int material_bits[21]` в `world.gdshader`). Новый материал
   или своя кора в любом бандле валит `validate.gd`; поднять предел — правка упаковки мешей и шейдера.
 
-**Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `mods`, `items`, `tools`, `crafting`, `layers`),
+**Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — тип связи у каждой ссылки, `mods`,
+`records` — общие поля, замены, предупреждения, `items`, `tools`, `crafting`, `layers` — и слои внутри
+`src/shared/`),
 `tools/validate.gd` (каждый бандл отдельно, звуки, картинки в руках, иконки, текстуры, модели, листы
-существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка), `tests/progress_test.gd` (все рецепты
+существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка; предупреждения об именах печатает, не
+падая), `tests/progress_test.gd` (все рецепты
 достижимы игрой).
 
 **Известные проблемы.** Роли — закрытые списки (`items.tool`, `items.prop`, `plants.kind`,

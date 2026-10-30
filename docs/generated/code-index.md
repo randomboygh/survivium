@@ -217,7 +217,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## tools
 
-- `tools/validate.gd`: Checks the content files of every mod and fails on any problem, for CI and for a quick check after editing data: godot --headless --path . --script res://tools/validate.gd
+- `tools/validate.gd`: Checks the content files of every mod and fails on any problem, for CI and for a quick check after editing data (names against the naming rules are printed as warnings and fail nothing): godot…
 - `tools/web_patch.py`: Patches the web export after Godot writes it.
 
 ## Folders of src/ and what they load

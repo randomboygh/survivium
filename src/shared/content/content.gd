@@ -9,10 +9,12 @@ extends RefCounted
 ## files at its root. A bundle's id is `mod/bundle` (`animals/wolf`), or the mod's id for a
 ## mod of one bundle (`plants`). Records are namespaced by the mod whatever bundle holds
 ## them: `wolf` in `animals/wolf` is `animals:wolf`, and a reference without a namespace
-## means the same mod. A later bundle may redefine a record of an earlier one by id, or
-## patch it: a record with `patch: true` changes only the fields it gives, and a key
-## with a `+` at the end (`diet+: [plants]`, `needs+: {materials:cord: 1}`) adds to a list
-## or an amounts field instead of replacing it.
+## means the same mod. A later bundle may replace a record of an earlier one by id when
+## it says so (`replaces: true`; the same id again without it is a problem), or patch it:
+## a record with `patch: true` changes only the fields it gives, and a key with a `+` at
+## the end (`diet+: [plants]`, `needs+: {materials:cord: 1}`) adds to a list or an
+## amounts field instead of replacing it. Every record may have the COMMON fields
+## (`description`, `tags`, `provisional`) besides those of its kind.
 ##
 ## What a bundle depends on is read from its records: a reference to a record of another
 ## bundle (`needs: {materials:clay: 2}`) makes that bundle load first, and when the field
@@ -31,7 +33,11 @@ extends RefCounted
 ## Records are checked against SCHEMAS on load: wrong types, values out of range,
 ## unknown fields, missing fields without a default and broken references are
 ## reported with the file and the id. The game loads what it can and reports the
-## problems; `tools/validate.gd` runs the same checks in CI and fails on any.
+## problems; `tools/validate.gd` runs the same checks in CI and fails on any. Names that
+## break the naming rules (docs/specifications/BUNDLE_SYSTEM.md, section 3) are only
+## `warnings`. Every reference field names its link (`rel`, one of RELATIONS: what the
+## record is to the one it names) and, where an action makes it, which (`via`, ACTIONS),
+## for the content graph.
 ## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd, plants.gd) read their kind
 ## with `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.OAK` or `AiRules.SPECIES` as before.
@@ -51,7 +57,8 @@ static var strict := false
 ## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
 ## ref:<kind> (an id of a record of that kind; an empty default means none; `soft` when
-## the record lives without it), sound (the bare name of a sound, found at play time in
+## the record lives without it; `rel` names the link and `via` the action, see RELATIONS),
+## sound (the bare name of a sound, found at play time in
 ## the last loaded bundle that has one), amounts (a mapping of ids of `of` to how many,
 ## at least 1 each), shares (a mapping to shares 0..1: of the names in `keys`, or of ids of
 ## `of`). `min`/`max` bound numbers, in a list each item. A field without
@@ -69,13 +76,13 @@ const SCHEMAS := {
 		"drains": {"type": "bool", "default": false},
 		"layers": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"texture": {"type": "string", "default": ""},
-		"item": {"type": "ref:items", "soft": true, "default": ""},
+		"item": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
 		"hardness": {"type": "int", "min": 0, "default": 1},
-		"bonus": {"type": "ref:items", "soft": true, "default": ""},
+		"bonus": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
-		"mow": {"type": "ref:materials", "default": ""},
-		"mow_gives": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}},
+		"mow": {"type": "ref:materials", "default": "", "rel": "becomes", "via": "mow"},
+		"mow_gives": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "mow"},
 		"step": {"type": "sound", "default": ""},
 		"hit": {"type": "sound", "default": ""},
 	},
@@ -84,7 +91,7 @@ const SCHEMAS := {
 		"stack": {"type": "int", "min": 1},
 		"food": {"type": "float", "min": 0.0, "default": 0.0},
 		"heal": {"type": "float", "min": 0.0, "default": 0.0},
-		"place": {"type": "ref:materials", "default": ""},
+		"place": {"type": "ref:materials", "default": "", "rel": "builds", "via": "place"},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
 		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
@@ -92,12 +99,12 @@ const SCHEMAS := {
 		"area": {"type": "int", "min": 1, "default": 1},
 		"mows": {"type": "enum", "values": ["none", "tall", "all"], "default": "none"},
 		"swing": {"type": "float", "min": 0.05, "default": 0.5},
-		"plant": {"type": "ref:bushes", "default": ""},
-		"sow": {"type": "ref:materials", "default": ""},
-		"crop": {"type": "ref:plants", "default": ""},
+		"plant": {"type": "ref:bushes", "default": "", "rel": "grows_into", "via": "plant"},
+		"sow": {"type": "ref:materials", "default": "", "rel": "grows_into", "via": "sow"},
+		"crop": {"type": "ref:plants", "default": "", "rel": "grows_into", "via": "sow"},
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
-		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}},
+		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "repaired_with", "via": "repair"},
 		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "forge", "campfire"], "default": "none"},
 		"fuel": {"type": "bool", "default": false},
 		"sprite": {"type": "string", "default": ""},
@@ -124,8 +131,8 @@ const SCHEMAS := {
 		"tints": {"type": "list", "of": "color", "default": []},
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
-		"likes": {"type": "list", "of": "ref:plants", "soft": true, "default": []},
-		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": []},
+		"likes": {"type": "list", "of": "ref:plants", "soft": true, "default": [], "rel": "feeds_on"},
+		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
 		"calls": {"type": "sound", "default": ""},
 		"alarm": {"type": "sound", "default": ""},
 	},
@@ -145,9 +152,9 @@ const SCHEMAS := {
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bark": {"type": "string", "default": ""},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
-		"seed": {"type": "ref:items", "soft": true, "default": ""},
-		"log": {"type": "ref:items", "soft": true, "default": ""},
-		"twig": {"type": "ref:items", "soft": true, "default": ""},
+		"seed": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "gather"},
+		"log": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "fell"},
+		"twig": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "gather"},
 		"hits": {"type": "int", "min": 1, "default": 4},
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"seeds": {"type": "int", "min": 0, "default": 0},
@@ -160,11 +167,11 @@ const SCHEMAS := {
 		"rise": {"type": "float", "min": 0.0},
 		"spread": {"type": "vec3"},
 		"small": {"type": "bool", "default": false},
-		"fruit": {"type": "ref:items", "soft": true, "default": ""},
+		"fruit": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "gather"},
 		"fruit_count": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
 		"twigs": {"type": "int", "min": 0, "default": 0},
-		"twig": {"type": "ref:items", "soft": true, "default": ""},
-		"item": {"type": "ref:items", "default": ""},
+		"twig": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "gather"},
+		"item": {"type": "ref:items", "default": "", "rel": "drops", "via": "dig_out"},
 	},
 	"biomes": {
 		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp"], "default": "climate"},
@@ -174,20 +181,20 @@ const SCHEMAS := {
 		"stone_below": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		"clay_above": {"type": "float", "min": -1.0, "max": 1.0, "default": 1.0},
 		"dunes": {"type": "float", "min": 0.0, "default": 0.0},
-		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}},
+		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}, "rel": "spawns"},
 		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"groves": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
-		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}},
+		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}, "rel": "spawns"},
 		"bush_sparsity": {"type": "int", "min": 0, "default": 0},
 		"spawn": {"type": "bool", "default": false},
 		"sandstorms": {"type": "bool", "default": false},
 		"color": {"type": "color"},
 	},
 	"recipes": {
-		"makes": {"type": "ref:items"},
+		"makes": {"type": "ref:items", "rel": "produces"},
 		"count": {"type": "int", "min": 1, "default": 1},
-		"needs": {"type": "amounts", "of": "ref:items"},
-		"at": {"type": "ref:items", "default": ""},
+		"needs": {"type": "amounts", "of": "ref:items", "rel": "consumes"},
+		"at": {"type": "ref:items", "default": "", "rel": "requires_station"},
 		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
 		"time": {"type": "float", "min": 0.0, "default": 2.0},
 	},
@@ -199,7 +206,7 @@ const SCHEMAS := {
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
 			"mushrooms", "glow_mushrooms", "custom"]},
-		"gives": {"type": "amounts", "of": "ref:items", "soft": true},
+		"gives": {"type": "amounts", "of": "ref:items", "soft": true, "rel": "drops", "via": "mow"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		"pick": {"type": "bool", "default": false},
 		"winter": {"type": "bool", "default": true},
@@ -209,6 +216,38 @@ const SCHEMAS := {
 		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
 		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 	},
+}
+## The links a reference field names (`rel` in its spec), read from the record that has
+## the field to the record it names: what the content graph and its reports are made of.
+## The links of mechanics still to come (wearing, ammunition, power) are named before any
+## field has them; a field brings its link with it otherwise.
+const RELATIONS := {
+	"drops": "gives the named items when acted on (`via`)",
+	"becomes": "turns into the named record when acted on",
+	"builds": "puts the named cell into the world",
+	"grows_into": "planted or sown, grows into the named record",
+	"repaired_with": "is mended with the named items",
+	"feeds_on": "eats or seeks out the named records",
+	"lives_in": "appears in the named biomes",
+	"spawns": "grows the named records over its land",
+	"produces": "makes the named item",
+	"consumes": "uses the named items up",
+	"requires_station": "is made at the named station",
+	"equips": "is worn in the named place",
+	"ammo_for": "is shot by the named item",
+	"requires_power": "works only with power",
+	"powered_by": "runs on the named source of power",
+}
+## The actions a link comes about by (`via`): the rules of the hands
+## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair"]
+## Fields every record may have besides its kind's: a text for the player, tags for
+## reports and search (they decide nothing in the engine), and which of the record's
+## numbers are provisional, still to be balanced.
+const COMMON := {
+	"description": {"type": "string", "default": ""},
+	"tags": {"type": "list", "of": "string", "default": []},
+	"provisional": {"type": "list", "of": "string", "default": []},
 }
 const MOD_SCHEMA := {
 	"title": {"type": "string"},
@@ -226,15 +265,19 @@ const BUNDLE_SCHEMA := {
 
 ## Problems found by the last load, "file: id.field: what".
 static var problems: PackedStringArray = []
+## Names the last load found against the naming rules (see _check_names): reported by
+## the validator, never failing it.
+static var warnings: PackedStringArray = []
 ## kind -> Array of records in load order; a record's `mod` names its mod (its
 ## namespace) and `bundle` the bundle its files are in.
 static var _kinds := {}
+static var _schemas := {}
 ## kind -> id -> the record as written (before conversion), for patches to build on.
 static var _raw := {}
 static var _loaded := false
 ## Everything under content/, read once per run (refresh reads it again): bundle ->
 ## {"mod", "info" (its manifest), "records" (kind -> raw records), "owns", "hard", "soft",
-## "patches" (sets of "kind/id"), "requires", "wants" (bundle ids)}, mod -> its mod.yaml,
+## "patches", "replaces" (sets of "kind/id"), "requires", "wants" (bundle ids)}, mod -> its mod.yaml,
 ## the bundles in their order (core first, then by name), who owns which record, and
 ## the problems found reading each bundle.
 static var _universe := {}
@@ -347,7 +390,7 @@ static func _scan() -> void:
 			if mod_info.is_empty():
 				problems.append("%s/mod.yaml: cannot read the mod" % mod)
 			bi["mod"] = mod
-			var u := {"mod": mod, "info": bi, "records": {}, "owns": {}, "hard": {}, "soft": {}, "patches": {},
+			var u := {"mod": mod, "info": bi, "records": {}, "owns": {}, "hard": {}, "soft": {}, "patches": {}, "replaces": {},
 				"requires": _named(bi.get("requires", []), mod), "wants": _named(bi.get("wants", []), mod)}
 			for kind in SCHEMAS:
 				var list := _read_records(b, mod, kind)
@@ -357,6 +400,8 @@ static func _scan() -> void:
 					if r.get("patch") == true:
 						u.patches[key] = true
 					else:
+						if r.get("replaces") == true:
+							u.replaces[key] = true
 						u.owns[key] = true
 						if not _owners.has(key):
 							_owners[key] = []
@@ -503,8 +548,8 @@ static func _expand_need(need: String) -> Array:
 	return [need]
 
 
-## The bundles of `kept` that load before `b`: the owners of what it references or
-## patches, and what it requires or wants.
+## The bundles of `kept` that load before `b`: the owners of what it references, patches
+## or replaces, and what it requires or wants.
 static func _deps(b: String, kept: Dictionary) -> Array:
 	var u: Dictionary = _universe[b]
 	var out := {}
@@ -514,6 +559,11 @@ static func _deps(b: String, kept: Dictionary) -> Array:
 			for o in _owners.get(key, []):
 				if o != b and kept.has(o):
 					out[o] = true
+	# A replacement loads after the record it replaces (not after other replacements).
+	for key in u.replaces:
+		for o in _owners.get(key, []):
+			if o != b and kept.has(o) and not _universe[o].replaces.has(key):
+				out[o] = true
 	for need in u.requires + u.wants:
 		for nb in _expand_need(need):
 			if nb != b and kept.has(nb):
@@ -551,6 +601,15 @@ static func deps(bundle: String) -> Array:
 	for b in loaded:
 		kept[b] = true
 	return _deps(bundle, kept) if _universe.has(bundle) else []
+
+
+## The fields of a record of `kind`: its kind's and the COMMON ones.
+static func schema(kind: String) -> Dictionary:
+	if not _schemas.has(kind):
+		var all: Dictionary = SCHEMAS[kind].duplicate()
+		all.merge(COMMON)
+		_schemas[kind] = all
+	return _schemas[kind]
 
 
 ## Records of `kind` from every bundle, checked and with defaults filled in.
@@ -603,6 +662,7 @@ static func refresh() -> void:
 static func load_all() -> void:
 	_loaded = true
 	problems = []
+	warnings = []
 	_kinds = {}
 	_raw = {}
 	dropped = {}
@@ -623,6 +683,7 @@ static func load_all() -> void:
 	for b in loaded:
 		_load_bundle(b)
 	_check_refs()
+	_check_names()
 	for p in problems:
 		push_error("content: " + p)
 
@@ -642,15 +703,25 @@ static func _load_bundle(bundle: String) -> void:
 					if _owners.get("%s/%s" % [kind, id], []).is_empty():
 						problems.append("%s: %s: patches a record no mod has" % [file, id])
 					continue
-				rec = _patched(raw[id], rec, file, id)
+				rec = _patched(raw[id], rec, file, id, kind)
 			else:
+				var replaces: bool = rec.get("replaces") == true
+				rec.erase("replaces")
+				if raw.has(id) and not replaces:
+					problems.append("%s: %s: %s has it already; a record of the same id replaces it only with `replaces: true`"
+						% [file, id, raw[id].bundle])
+				elif replaces and not raw.has(id) and _owners.get("%s/%s" % [kind, id], []).size() < 2:
+					problems.append("%s: %s: replaces a record no mod has" % [file, id])
 				rec.mod = u.mod
 				rec.bundle = bundle
 			raw[id] = rec.duplicate()
 			if not rec.get("title") is String or rec.title == "":
 				problems.append("%s: %s.title: expected a string" % [file, id])
 				rec.title = id
-			_check_fields(rec, SCHEMAS[kind], rec.mod, file, id)
+			_check_fields(rec, schema(kind), rec.mod, file, id)
+			for f in rec.provisional:
+				if not SCHEMAS[kind].has(f):
+					problems.append("%s: %s.provisional: `%s` is no field of %s" % [file, id, f, kind])
 			var list_of_kind: Array = _kinds[kind]
 			var at := -1
 			for j in list_of_kind.size():
@@ -663,9 +734,9 @@ static func _load_bundle(bundle: String) -> void:
 
 
 ## `base` with the fields of `patch` over it; a key ending in `+` adds its list or
-## mapping to the field's. The record stays its first bundle's (its pictures and sounds
-## are looked for there).
-static func _patched(base: Dictionary, patch: Dictionary, file: String, id: String) -> Dictionary:
+## mapping to the field's (to its default when `base` does not write it). The record
+## stays its first bundle's (its pictures and sounds are looked for there).
+static func _patched(base: Dictionary, patch: Dictionary, file: String, id: String, kind: String) -> Dictionary:
 	var out := base.duplicate(true)
 	for key in patch:
 		if key == "id":
@@ -673,7 +744,7 @@ static func _patched(base: Dictionary, patch: Dictionary, file: String, id: Stri
 		var v: Variant = patch[key]
 		if key.ends_with("+"):
 			var field: String = key.trim_suffix("+")
-			var had: Variant = out.get(field)
+			var had: Variant = out.get(field, schema(kind).get(field, {}).get("default"))
 			if had is Array and v is Array:
 				out[field] = had + v
 			elif had is Dictionary and v is Dictionary:
@@ -895,6 +966,42 @@ static func _check_refs() -> void:
 						_broken(r, kind, key, of, ref, soft)
 						if soft:
 							r[key] = ""
+
+
+## Names against the rules of docs/specifications/BUNDLE_SYSTEM.md (section 3), as
+## `warnings`: a recipe is named after what it makes, or `<item>_from_<what it needs>`
+## when the item has more recipes; a tool `<material>_<thing>`; ore `<metal>_ore`; a tag
+## is a lowercase word, and one only one record has is likely a slip.
+static func _check_names() -> void:
+	var bare := {}
+	for r in records("recipes"):
+		var name: String = r.id.get_slice(":", 1)
+		var item: String = r.makes.get_slice(":", 1)
+		if name == item:
+			if bare.has(r.makes):
+				warnings.append("recipes: `%s` and `%s` both make `%s` by its name; name the other `%s_from_<what it needs>`"
+					% [bare[r.makes], r.id, r.makes, item])
+			bare[r.makes] = r.id
+		elif not name.begins_with(item + "_from_"):
+			warnings.append("recipes: `%s` makes `%s`: name it `%s`, or `%s_from_<what it needs>`" % [r.id, r.makes, item, item])
+		elif not r.needs.keys().any(func(n: String) -> bool: return n.get_slice(":", 1) == name.trim_prefix(item + "_from_")):
+			warnings.append("recipes: `%s`: `%s` is not among what it needs" % [r.id, name.trim_prefix(item + "_from_")])
+	for r in records("items"):
+		if r.tool != "none" and not "_" in r.id.get_slice(":", 1):
+			warnings.append("items: `%s`: a tool is named `<material>_<thing>`, like `stone_axe`" % r.id)
+	for r in records("materials"):
+		if r.role == "ore" and not r.id.ends_with("_ore"):
+			warnings.append("materials: `%s`: ore is named `<metal>_ore`" % r.id)
+	var tagged := {}
+	for kind in SCHEMAS:
+		for r in records(kind):
+			for t in r.tags:
+				if not t.is_valid_ascii_identifier() or t != t.to_lower():
+					warnings.append("%s: `%s`: the tag `%s` is not a lowercase word" % [kind, r.id, t])
+				tagged[t] = tagged.get(t, []) + ["%s `%s`" % [kind, r.id]]
+	for t in tagged:
+		if tagged[t].size() == 1:
+			warnings.append("%s: the tag `%s` is on nothing else" % [tagged[t][0], t])
 
 
 static func _broken(r: Dictionary, kind: String, key: String, of: String, ref: String, soft: bool) -> void:

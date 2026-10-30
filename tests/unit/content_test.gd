@@ -5,7 +5,9 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_yaml()
 	_test_content()
+	_test_schemas()
 	_test_mods()
+	_test_records()
 	_test_items()
 	_test_tools()
 	_test_crafting()
@@ -234,6 +236,74 @@ func _test_mods() -> void:
 		"the full set loads clean again")
 
 
+## Every reference field names its link and the action behind it from the lists the
+## content graph knows; the fields every record may have clash with no kind's own.
+func _test_schemas() -> void:
+	var unnamed := []
+	for kind in Content.SCHEMAS:
+		for key in Content.SCHEMAS[kind]:
+			var spec: Dictionary = Content.SCHEMAS[kind][key]
+			if Content.COMMON.has(key):
+				unnamed.append("%s.%s is a common field" % [kind, key])
+			if not str(spec.get("of", spec.type)).begins_with("ref:"):
+				continue
+			if not Content.RELATIONS.has(spec.get("rel", "")):
+				unnamed.append("%s.%s: no link" % [kind, key])
+			if spec.has("via") and not spec.via in Content.ACTIONS:
+				unnamed.append("%s.%s: no action `%s`" % [kind, key, spec.via])
+	_check(unnamed.is_empty(), "every reference field names its link: %s" % [unnamed])
+	var oak := Content.find("trees", "plants:oak")
+	_check(oak.description == "" and oak.tags == [] and oak.provisional == [], "a record without the common fields gets them empty")
+
+
+## The rules a bundle's records keep beside their kind's schema: common fields, the same id
+## again only with `replaces: true` (which loads after what it replaces), and names that
+## break the naming rules only warn.
+func _test_records() -> void:
+	var before := Content.BUNDLES.duplicate()
+	var mod := "res://content/_e"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write(mod + "/mod.yaml", "id: _e\ntitle: E\nversion: \"1\"\napi: 1\n")
+	_write(mod + "/data/items.yaml", "- id: club\n  title: Дубинка\n  description: Тяжёлая палка.\n  tags: [heavy, Heavy Wood]\n"
+		+ "  provisional: [weight, power, colour]\n  weight: 1.5\n  stack: 1\n  tool: axe\n  power: 1\n")
+	var beast := "  mass: 30\n  diet: [meat]\n  speed: 3\n  sight: 9\n  human_wariness: 0.5\n  active: night\n"
+	_write(mod + "/data/creatures.yaml", "- id: animals:wolf\n  title: Другой волк\n  replaces: true\n" + beast
+		+ "- id: animals:rabbit\n  title: Другой кролик\n" + beast + "- id: ghost\n  title: Призрак\n  replaces: true\n" + beast)
+	_write(mod + "/data/recipes.yaml", "- id: odd_name\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 3}\n"
+		+ "- id: cord_from_bark\n  title: y\n  makes: materials:cord\n  needs: {resources:fiber: 2}\n")
+	Content.refresh()
+	Mods.activate(Mods.all() + ["_e"])
+	var club := Content.find("items", "_e:club")
+	_check(club.description == "Тяжёлая палка." and club.tags == ["heavy", "Heavy Wood"] and club.provisional == ["weight", "power", "colour"],
+		"a record keeps its description, tags and provisional fields: %s" % [club])
+	var found := {}
+	for p in Content.problems:
+		for what in ["club.provisional: `colour`", "animals:rabbit: animals/rabbit has it already", "_e:ghost: replaces a record no mod has"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 3 and Content.problems.size() == 3,
+		"a provisional field the kind lacks, the same id again without `replaces` and a replacement of nothing are problems, and a patch adds to a field the replacement leaves at its default: %s" % [Content.problems])
+	_check(AiRules.SPECIES["animals:wolf"].title == "Другой волк" and AiRules.SPECIES["animals:wolf"].bundle == "_e"
+		and Content.loaded.find("_e") > Content.loaded.find("animals/wolf"),
+		"a record with `replaces: true` replaces the other bundle's, loading after it: %s" % [Content.loaded])
+	found = {}
+	for w in Content.warnings:
+		for what in ["`_e:odd_name` makes `materials:cord`: name it `cord`", "`_e:cord_from_bark`: `bark` is not among",
+				"`_e:club`: a tool is named", "the tag `Heavy Wood` is not a lowercase word", "the tag `heavy` is on nothing else"]:
+			if what in w:
+				found[what] = true
+	_check(found.size() == 5, "names against the rules are warnings (%d of 5): %s" % [found.size(), Content.warnings])
+	Mods.activate(before)
+	for f in ["data/items.yaml", "data/creatures.yaml", "data/recipes.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty() and Content.warnings.is_empty() and AiRules.SPECIES["animals:wolf"].bundle == "animals/wolf",
+		"the full set loads clean again, without warnings: %s" % [Content.warnings])
+
+
 func _write(path: String, text: String) -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_string(text)
@@ -389,13 +459,21 @@ func _test_crafting() -> void:
 
 
 ## The world model and the rules under src/shared are what the server will run, so
-## nothing there may load a script from src/client.
+## nothing there may load a script from src/client. Inside it the layers go one way:
+## the content loads neither the world nor the rules, the world not the rules.
 func _test_layers() -> void:
 	var bad: Array = []
 	for path: String in _scripts("res://src/shared"):
 		if FileAccess.get_file_as_string(path).contains("res://src/client/"):
 			bad.append(path)
 	_check(bad.is_empty(), "src/shared loads nothing from src/client: %s" % [bad])
+	bad = []
+	for layer in [["content", ["world", "game"]], ["world", ["game"]]]:
+		for path: String in _scripts("res://src/shared/" + layer[0]):
+			for above: String in layer[1]:
+				if FileAccess.get_file_as_string(path).contains("res://src/shared/%s/" % above):
+					bad.append("%s loads from %s" % [path, above])
+	_check(bad.is_empty(), "inside src/shared, content loads neither world nor game, and world not game: %s" % [bad])
 
 
 func _scripts(dir: String) -> Array:
