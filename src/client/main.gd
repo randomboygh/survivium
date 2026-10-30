@@ -372,6 +372,8 @@ func _process(delta: float) -> void:
 				player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
 			props.place()
+			if not save.has_save:
+				character.start_bag()
 			character.find_home(placed)
 			player.visible = not character.is_dead()
 			wildlife.people = [character]

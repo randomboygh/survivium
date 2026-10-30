@@ -10,8 +10,8 @@
 **Файлы**
 - `src/shared/content/content.gd` — `SCHEMAS` всех видов, общие поля `COMMON`, словарь связей `RELATIONS` и
   действий `ACTIONS`, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; поиск модов и бандлов, `resolve` (порядок и выпавшие
-  бандлы), загрузка, замены (`replaces`) и патчи, проверка ссылок, предупреждения об именах, `asset`,
-  `sound_files`.
+  бандлы), загрузка, замены (`replaces`) и патчи, проверка ссылок (и внутри `entries`), предупреждения об
+  именах, `refs` / `target` / `named` (поля-ссылки вида и что запись по ним называет), `asset`, `sound_files`.
 - `src/shared/content/yaml.gd` — свой разбор той части YAML, что нужна данным (ключи с `:` внутри,
   `{core:fiber: 1}`).
 - `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan`, `expand` (старые списки),
@@ -19,11 +19,13 @@
 - `tools/content_report.gd` — реестр сущностей `docs/generated/content-index.md` из загруженных данных;
   `-- --check` для CI.
 - Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
-  `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`; `tools.gd` — правила
-  инструментов над `Items` и `Mat` (без своего вида данных).
+  `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (старт нового
+  мира: `Starts.START`, `check`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
+  данных): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`).
 
 **Интерфейс**
 - `Content.records(kind)`, `Content.find(kind, id)`, `Content.schema(kind)` (поля вида и общие),
+  `Content.refs(kind)` (поля-ссылки, и поля записей внутри `entries` как `camp.item`), `Content.named(r, key)`,
   `Content.canon(kind, id)` (старый id из `was` — в нынешний), `Content.origin(kind, id)` (кто определил,
   заменил, поправил),
   `Content.asset(rec, "sprites/x.png")` (бандл, затем `common/` мода), `Content.problems`,
@@ -34,7 +36,7 @@
 - Реестры: `Mat.GRASS` и др. (только ядро), `Mat.of_role`, `Mat.index`, `Mat.remap`; `Items.get_item`,
   `with_prop`, `with_tool`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `reachable`,
   `canon`; `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
-  `AiRules.SPECIES`, `is_food`, `is_threat`.
+  `AiRules.SPECIES`, `is_food`, `is_threat`; `Starts.START` (`bag`, `camp`).
 
 **Кто использует.** Почти всё: `materials.gd` грузят 41 файл, `items.gd` — 32, `content.gd` — 17.
 Правка схемы или реестра затрагивает генератор, меши, правила и UI.
@@ -58,7 +60,8 @@
 - `const X := Mat.GRASS` — ошибка разбора: номера материалов известны только после загрузки.
 - Номера материалов идут в порядке загрузки: набор бандлов мира менять нельзя, старый мир переводится
   `Mat.remap` по списку `materials` из `world.json`.
-- Ссылка без пространства имён значит «тот же мод»; в патче чужой записи ссылку пишите полностью.
+- Ссылка без пространства имён значит мод файла, где она написана: в патче чужой записи — мод патча
+  (`Content._qualified` дописывает его до слияния), не мод записи.
 - Возврат с типом своего же скрипта (`-> VoxelModel`) без `class_name` — ошибка разбора, на которой
   инструменты `make_*` молча висят; сначала `--check-only`.
 - Атлас материалов полон: 13 материалов и 8 разных кор = 21 из 21 (`PixelTextures.MOST_MATERIALS`:
@@ -66,7 +69,8 @@
   или своя кора в любом бандле валит `validate.gd`; поднять предел — правка упаковки мешей и шейдера.
 
 **Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — тип связи у каждой ссылки, `mods`,
-`records` — общие поля, замены, предупреждения, `renames` — `was` и происхождение записей, `items`,
+`records` — общие поля, замены, предупреждения, `renames` — `was` и происхождение записей, `starts` — старт,
+его патч и поля `entries`, `items`,
 `tools`, `crafting`, `layers` — и слои внутри `src/shared/`), `tools/content_report.gd -- --check` (реестр
 свежий),
 `tools/validate.gd` (каждый бандл отдельно, звуки, картинки в руках, иконки, текстуры, модели, листы

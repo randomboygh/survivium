@@ -17,6 +17,7 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
+const Starts := preload("res://src/shared/content/starts.gd")
 
 ## Mods of older saves and settings that live on as bundles of another mod (the old sounds
 ## mod held the notes too).
@@ -71,6 +72,7 @@ static func _refresh_registries() -> void:
 	Plants.refresh()
 	AiRules.refresh()
 	Crafting.refresh()
+	Starts.refresh()
 
 
 ## `bundle` with everything it cannot do without, in load order, out of `all` (every

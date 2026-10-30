@@ -62,9 +62,9 @@ func watch(placed) -> void:
 	placed.lit_changed.connect(_on_lit_changed)
 
 
-## Puts the placed things into the world as the save had them, or a chest and a
-## campfire next to the player in a new world (and the test world's camp); the near
-## chunks are built by then, so the ground under them is known.
+## Puts the placed things into the world as the save had them, or the camp of the start
+## next to the player in a new world (Placed.start_camp; and the test world's camp); the
+## near chunks are built by then, so the ground under them is known.
 func place() -> void:
 	var meta: Dictionary = game.save.meta
 	if meta.get("placed") is Array:

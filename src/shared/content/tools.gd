@@ -7,8 +7,10 @@ extends RefCounted
 ## `mow`) before anything digs the ground under it. Also what a held item is used for,
 ## the order cells are worked in (around a cell that was tapped, and in front of the
 ## body for the action button, outward from it so the body is dug under last), and the
-## shapes of the brush blocks are placed with. Shared, so the server can check the same
-## rules.
+## shapes of the brush blocks are placed with. What a tool can get out of the world
+## (can_dig, can_chop, can_dig_out, can_gather, mows) the hands' rules
+## (src/shared/game/world_actions.gd) and the content graph ask alike. Shared, so the
+## server can check the same rules.
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -97,6 +99,26 @@ static func can_dig(t: Dictionary, m: int) -> bool:
 		"pickaxe", "axe":
 			return t.tool == rec.dig and t.power >= rec.hardness
 	return false
+
+
+## Whether tool `t` fells a tree, hit after hit, or a bush at one go: an axe.
+static func can_chop(t: Dictionary) -> bool:
+	return t.tool == "axe"
+
+
+## Whether tool `t` digs a bush out whole, to be planted again: a shovel.
+static func can_dig_out(t: Dictionary) -> bool:
+	return t.tool == "shovel"
+
+
+## Whether tool `t` knocks the ripe berries off a bush onto the ground: a sword or a scythe.
+static func can_knock(t: Dictionary) -> bool:
+	return t.tool in ["sword", "scythe"]
+
+
+## Whether `t` gathers seeds, twigs and berries off trees and bushes into the bag: bare hands.
+static func can_gather(t: Dictionary) -> bool:
+	return t.tool == "hand"
 
 
 ## Why tool `t` cannot dig material `m`, for a message; "" when it can.

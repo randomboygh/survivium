@@ -17,7 +17,7 @@ const INDEX := "res://docs/generated/content-index.md"
 ## The kinds by their names in the register, in its order; a kind not here comes after
 ## them under its own name.
 const KINDS := {"items": "Предметы", "recipes": "Рецепты", "materials": "Материалы ячеек", "trees": "Деревья",
-	"bushes": "Кусты", "plants": "Растения", "creatures": "Существа", "biomes": "Биомы", "sounds": "Звуки"}
+	"bushes": "Кусты", "plants": "Растения", "creatures": "Существа", "biomes": "Биомы", "starts": "Старт", "sounds": "Звуки"}
 
 
 func _init() -> void:
@@ -82,23 +82,16 @@ func _index() -> String:
 	return "\n".join(out) + "\n"
 
 
-## "kind/id" -> [how many records it names, how many name it], by every reference field.
+## "kind/id" -> [how many records it names, how many name it], by every reference field
+## (Content.refs, the entries of a field too).
 func _links() -> Dictionary:
 	var out := {}
 	for kind: String in Content.SCHEMAS:
-		for key: String in Content.SCHEMAS[kind]:
-			var spec: Dictionary = Content.SCHEMAS[kind][key]
-			var target: String = spec.get("of", spec.type) if spec.type in ["list", "amounts", "shares"] else spec.type
-			if not target.begins_with("ref:"):
-				continue
+		for ref: Array in Content.refs(kind):
 			for r: Dictionary in Content.records(kind):
-				var v: Variant = r[key]
-				var named: Array = v if v is Array else (v.keys() if v is Dictionary else [v])
-				for id: String in named:
-					if id == "":
-						continue
+				for id: String in Content.named(r, ref[0]):
 					var from := "%s/%s" % [kind, r.id]
-					var to := "%s/%s" % [target.substr(4), id]
+					var to := "%s/%s" % [Content.target(ref[1]), id]
 					out[from] = [out.get(from, [0, 0])[0] + 1, out.get(from, [0, 0])[1]]
 					out[to] = [out.get(to, [0, 0])[0], out.get(to, [0, 0])[1] + 1]
 	return out

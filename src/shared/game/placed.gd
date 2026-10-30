@@ -1,7 +1,7 @@
 extends RefCounted
 ## Things standing on two by two cells that are not cells (an item's `prop`): chests
 ## with what they hold, workbenches, kilns and campfires, placed from the bag, and the
-## chest and the campfire a new world starts with next to the spawn. They are solid
+## camp a new world starts with next to the spawn (Starts: a campfire, a chest). They are solid
 ## (WorldData.blockers): bodies go round them or jump on them, and a burning campfire
 ## burns a body that touches it (see burns). A chest is taken up with what it holds; a
 ## campfire cannot be carried, but it can be put out, lit again for a branch, and
@@ -11,6 +11,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
@@ -18,8 +19,8 @@ const Body := preload("res://src/shared/game/body.gd")
 const CELL := WorldData.CELL
 ## Slots of a chest.
 const CHEST_SLOTS := 16
-## The campfire by the spawn of a new world (with a chest, the first item placed as one,
-## when a loaded mod has it).
+## The campfire of the camp by the spawn of a new world (see Starts), the place to come
+## back to after death.
 const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body standing by a burning campfire comes to be burnt.
 const SINGE := 0.02
@@ -98,15 +99,14 @@ func to_list() -> Array:
 	return out
 
 
-## Puts the chest and the campfire of a new world next to world point `at`; the
+## Puts the camp of the start (Starts.START: the campfire, the chest when its bundle is
+## loaded) next to world point `at`, each thing its cells east and south of it; the
 ## chunks there are made by then, so the ground under them is known.
 func start_camp(at: Vector3) -> void:
-	for e in [[Items.with_prop("chest"), Vector3(2.0, 0.0, 1.0)], [CAMPFIRE, Vector3(-2.0, 0.0, 2.0)]]:
-		if e[0] == "":
-			continue
-		var spot := spot_near(at + e[1])
+	for e: Dictionary in Starts.START.camp:
+		var spot := spot_near(at + Vector3(e.at[0], 0.0, e.at[1]) * CELL)
 		if spot.y >= 0:
-			put(e[0], spot)
+			put(e.item, spot)
 
 
 ## The cell of the first thing placed of `item`, or null.

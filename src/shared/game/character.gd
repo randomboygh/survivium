@@ -4,7 +4,8 @@ extends RefCounted
 ## pace, what actions cost, eating, throwing things away, what this life has done (for
 ## the death screen's statistics), and death: the bag's
 ## contents stay on the spot in a sack and the character lies dead until brought back
-## at a respawn point. The death is kept in the save. The rules in src/shared/game/ take
+## at a respawn point. The death is kept in the save. A character new to the world starts
+## with the bag of the start (Starts). The rules in src/shared/game/ take
 ## a character as `who`; where it stands, what its hands hold and how it speaks to the
 ## player its owner fills in by extending this (on the client
 ## src/client/game/character.gd).
@@ -12,6 +13,7 @@ extends RefCounted
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Vitals := preload("res://src/shared/game/vitals.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const CELL := WorldData.CELL
@@ -151,6 +153,12 @@ func nag(reason: String, text: String) -> void:
 		return
 	_nagged[reason] = now
 	say(text)
+
+
+## Fills the bag of a character new to the world with what the start gives (its `bag`).
+func start_bag() -> void:
+	for id: String in Starts.START.bag:
+		inventory.add(id, Starts.START.bag[id])
 
 
 ## Picks the place to come back to after death, once the things of `camp` (Placed)

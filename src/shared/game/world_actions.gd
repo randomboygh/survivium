@@ -160,7 +160,7 @@ func trunk_cell(who, col: Vector2i) -> Vector3i:
 ## up to its species' `hits`.
 func chop(who, cell: Vector3i) -> Dictionary:
 	var t: Dictionary = who.tool()
-	if t.tool != "axe":
+	if not Tools.can_chop(t):
 		who.nag("tool", "Дерево рубят топором")
 		return {}
 	if not _is_trunk(cell) or not who.act("chop"):
@@ -221,9 +221,9 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 		return {}
 	var tree: Variant = tree_of(cell)
 	if tree != null:
-		if t.tool == "axe":
+		if Tools.can_chop(t):
 			return chop(who, trunk_cell(who, tree))
-		if t.tool == "hand":
+		if Tools.can_gather(t):
 			if gather(who, {"tree": tree}):
 				return _work(t.swing, "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LEAVES)
 			return {}
@@ -564,10 +564,10 @@ func front_targets(who) -> Array[Dictionary]:
 	var t: Dictionary = who.tool()
 	for o in Tools.sector(who.facing_step()):
 		var col := Vector2i(f.x + o.x, f.z + o.y)
-		if world.trees.has(col) and t.tool in ["axe", "hand"]:
+		if world.trees.has(col) and (Tools.can_chop(t) or Tools.can_gather(t)):
 			var trunk := trunk_cell(who, col)
 			if world.log_col(col.x, col.y) != 0 and absi(trunk.y - f.y) <= 2:
-				if t.tool == "axe":
+				if Tools.can_chop(t):
 					out.append({"trunk": trunk})
 				elif useful(who, {"tree": col}):
 					out.append({"tree": col})
@@ -627,7 +627,7 @@ func _gives(who, target: Dictionary) -> Array:
 	var b: Dictionary = Bushes.TYPES[world.bushes[target.bush]]
 	if ripe(target.bush, b):
 		return [b.fruit]
-	return [b.twig] if who.tool().tool == "hand" and b.twig != "" else []
+	return [b.twig] if Tools.can_gather(who.tool()) and b.twig != "" else []
 
 
 ## The items cutting the grass on `cell` would likely give (see mow): what grows tall on
@@ -684,19 +684,19 @@ func gather(who, target: Dictionary) -> bool:
 		return _from_tree(who, target.tree)
 	if not world.bushes.has(target.bush):
 		return false
+	var t: Dictionary = who.tool()
+	if Tools.can_gather(t):
+		return _from_bush(who, target.bush)
 	var done := false
-	match who.tool().tool:
-		"sword", "scythe":
-			done = _knock_berries(who, target.bush)
-		"axe":
-			done = _fell_bush(who, target.bush)
-		"shovel":
-			done = _dig_out(who, target.bush)
-		"hand":
-			return _from_bush(who, target.bush)
-		_:
-			who.nag("bush", "Куст: руки собирают, топор рубит, лопата выкапывает")
-			return false
+	if Tools.can_knock(t):
+		done = _knock_berries(who, target.bush)
+	elif Tools.can_chop(t):
+		done = _fell_bush(who, target.bush)
+	elif Tools.can_dig_out(t):
+		done = _dig_out(who, target.bush)
+	else:
+		who.nag("bush", "Куст: руки собирают, топор рубит, лопата выкапывает")
+		return false
 	if done:
 		who.use_tool()
 	return done
@@ -705,9 +705,9 @@ func gather(who, target: Dictionary) -> bool:
 ## Whether gather(who, target) would do anything to the tree or bush of `target` with the
 ## hand in use now (the action button passes over the ones it would not).
 func useful(who, target: Dictionary) -> bool:
-	var tool: String = who.tool().tool
+	var t: Dictionary = who.tool()
 	if target.has("tree"):
-		if tool != "hand" or not has_crown(target.tree):
+		if not Tools.can_gather(t) or not has_crown(target.tree):
 			return false
 		var s: Dictionary = Trees.SPECIES[world.trees[target.tree]]
 		return _tree_seeds_left(target.tree, s) > 0 or _tree_twigs_left(target.tree, s) > 0
@@ -715,14 +715,12 @@ func useful(who, target: Dictionary) -> bool:
 	if not world.bushes.has(cell):
 		return false
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
-	match tool:
-		"axe", "shovel":
-			return true
-		"sword":
-			return ripe(cell, b)
-		"hand":
-			return ripe(cell, b) or twigs_left(cell, b) > 0
-	return false
+	if Tools.can_chop(t) or Tools.can_dig_out(t):
+		return true
+	if Tools.can_gather(t):
+		return ripe(cell, b) or twigs_left(cell, b) > 0
+	# The action button knocks berries off with a sword; a scythe mows past them.
+	return t.tool == "sword" and ripe(cell, b)
 
 
 ## Takes by themselves the things lying near the feet of `who` that pickup `mode` wants
