@@ -39,8 +39,10 @@ const CANYON := 4
 ## World settings, each a level from 0 (little) to 2 (much); 1 is the usual world.
 ## size: how large continents and islands are; water: the share of the ocean;
 ## mountains: how much of the land rises into mountains; rivers: how many rivers and
-## lakes; biomes: how far one climate stretches.
-const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1}
+## lakes; biomes: how far one climate stretches; caves: how many caves there are under
+## the ground, how many mouths open to them and how many are cut into mountain sides.
+## Here caves is 1, what worlds made before the setting have; «Новый мир» starts at 0.
+const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1}
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.
@@ -48,6 +50,14 @@ const MOUNTAIN_FROM := [0.5, 0.3, 0.12]
 const RIVER_FROM := [0.1, -0.1, -0.3]
 const LAKE_FROM := [0.66, 0.55, 0.45]
 const BIOME_SCALE := [0.5, 1.0, 2.0]
+## Caves by the caves setting: the 3D noise level above which the ground is hollow
+## (under a cave mouth and elsewhere; about 4%, 7.5% and 11% of the ground away from
+## mouths), the level of the mouths noise above which a cave mouth opens, and the
+## share of TUNNEL_GRID squares with a cave cut into a mountain side.
+const CAVE_FROM := [0.5, 0.42, 0.36]
+const MOUTH_CAVE_FROM := [0.36, 0.3, 0.24]
+const MOUTH_FROM := [0.65, 0.55, 0.45]
+const TUNNEL_CHANCE := [0.15, 0.45, 0.75]
 ## Column flags while laying out: the top keeps a sheer wall; a cave mouth is here
 ## (see _entrances), with bigger caves under it.
 const SHEER_TOP := 1
@@ -92,10 +102,9 @@ const DELTA_SPREAD := 16.0
 ## How steep the river noise must be per cell for the arms of a delta.
 const DELTA_SLOPE := 0.001
 ## Rare caves in the side of a mountain: in a square of TUNNEL_GRID cells, now and then
-## (TUNNEL_CHANCE), a gallery TUNNEL_LEN cells long is cut uphill into a slope, ending
-## in a chamber over bigger caves (see _tunnels).
+## (TUNNEL_CHANCE by the caves setting), a gallery TUNNEL_LEN cells long is cut uphill
+## into a slope, ending in a chamber over bigger caves (see _tunnels).
 const TUNNEL_GRID := 48
-const TUNNEL_CHANCE := 0.45
 const TUNNEL_LEN := 26
 
 var world_seed: int
@@ -461,7 +470,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var w: int = lay.w
 	var soil_t := _byte(0.25)
 	var steep_t := _byte(0.4)
-	var mouth_t := _byte(0.55)
+	var mouth_t := _byte(MOUTH_FROM[settings.caves])
 	var rough_t := _byte(0.3)
 	var pool_t := _byte(0.12)
 	var mud_t := _byte(0.0)
@@ -684,7 +693,7 @@ func _entrances(lay: Dictionary) -> void:
 	var pit: PackedByteArray = lay.pit
 	var mouths: PackedByteArray = lay.grids[10]
 	var w: int = lay.w
-	var pit_t := _byte(0.68)
+	var pit_t := _byte(MOUTH_FROM[settings.caves] + 0.13)
 	# Pits only in the rolling half of the land.
 	var roll: PackedByteArray = lay.grids[17]
 	var pit_roll_t := _byte(0.1)
@@ -784,7 +793,7 @@ func _tunnel(gx: int, gz: int) -> Array:
 
 
 func _find_tunnel(gx: int, gz: int) -> Array:
-	if _chance(gx, gz, 6) >= TUNNEL_CHANCE:
+	if _chance(gx, gz, 6) >= TUNNEL_CHANCE[settings.caves]:
 		return []
 	var x := gx * TUNNEL_GRID + 8 + _hash(gx, gz, 7) % (TUNNEL_GRID - 16)
 	var z := gz * TUNNEL_GRID + 8 + _hash(gx, gz, 8) % (TUNNEL_GRID - 16)

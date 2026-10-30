@@ -38,13 +38,16 @@ func _init(path: String) -> void:
 
 
 ## The directory of the world of `seed_value` and WorldGen `options`: the seed and one
-## digit per setting (size, water, mountains, rivers, biomes); the test world is "test".
+## digit per setting (size, water, mountains, rivers, biomes, then caves unless 1, as
+## worlds made before that setting have); the test world is "test".
 static func world_dir(seed_value: int, options: Dictionary) -> String:
 	if seed_value == TestGround.SEED:
 		return root + "/test"
 	var digits := ""
 	for k in ["size", "water", "mountains", "rivers", "biomes"]:
 		digits += str(int(options.get(k, 1)))
+	if int(options.get("caves", 1)) != 1:
+		digits += str(int(options.caves))
 	return "%s/%d-%s" % [root, seed_value, digits]
 
 
@@ -73,7 +76,7 @@ static func list_worlds() -> Array:
 			continue
 		var settings := {}
 		var saved_settings: Dictionary = meta.get("settings", {})
-		for k in ["size", "water", "mountains", "rivers", "biomes"]:
+		for k in ["size", "water", "mountains", "rivers", "biomes", "caves"]:
 			settings[k] = int(saved_settings.get(k, 1))
 		var mods: Array = Array(meta.get("mods", [])).filter(func(m) -> bool: return m is String)
 		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings, "mods": mods,
