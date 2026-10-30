@@ -1,5 +1,6 @@
 - id: cord
   title: Верёвка
+  era: core:primitive
   weight: 0.1
   stack: 20
   model: cord

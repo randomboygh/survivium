@@ -2,6 +2,7 @@
 # (рецепт в бандле «Горн» «Инструментов»); из слитков на верстаке делают медные инструменты.
 - id: copper_ore
   title: Медная руда
+  era: core:bronze
   weight: 2.5
   stack: 20
   icon: copper_ore

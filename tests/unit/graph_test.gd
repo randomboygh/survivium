@@ -6,9 +6,12 @@ extends "res://tests/unit/test_case.gd"
 ## that needs a tool only it makes, an item nothing gives, a plant whose seeds cannot be had,
 ## an animal whose food never grows; and its warnings: dead ends, stations of one recipe,
 ## twins, a loop of recipes that gives back more than it takes; a station that stands in
-## for another, set down with a tool; and what a recipe keeps, its tools and by-products.
+## for another, set down with a tool; what a recipe keeps, its tools and by-products; and the
+## eras: derived for each thing, an item written into an era earlier than it can come in, a
+## chain too long for its era, two eras of one order.
 
 const ContentGraph := preload("res://src/shared/content/content_graph.gd")
+const Eras := preload("res://src/shared/content/eras.gd")
 
 ## The bundles of the test mod, each loaded with core alone: file -> records.
 const DEAD := {
@@ -83,6 +86,18 @@ const DEAD := {
 			+ "- {id: board, title: Доска, makes: board, needs: {rod: 1}, tools: [saw]}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
 	},
+	# Eras after core's: a pot written into the stone era made in an oven of the iron era, a
+	# rack of the stone era two steps deep where the era expects one; iron and tin of one order.
+	"era": {
+		"eras": "- {id: stone, title: Камень, order: 10, depth: 1}\n- {id: iron, title: Железо, order: 11}\n"
+			+ "- {id: tin, title: Олово, order: 11}\n",
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: oven, title: Печь, weight: 5, stack: 1, prop: kiln, era: iron}\n"
+			+ "- {id: pot, title: Горшок, weight: 1, stack: 5, era: stone}\n- {id: peg, title: Колышек, weight: 0.1, stack: 20, era: stone}\n"
+			+ "- {id: rack, title: Решётка, weight: 1, stack: 5}\n",
+		"recipes": "- {id: oven, title: Печь, makes: oven, needs: {rod: 2}}\n- {id: pot, title: Горшок, makes: pot, needs: {rod: 1}, at: oven}\n"
+			+ "- {id: peg, title: Колышек, makes: peg, needs: {rod: 1}}\n- {id: rack, title: Решётка, makes: rack, needs: {peg: 2}}\n",
+		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
+	},
 }
 
 
@@ -127,6 +142,15 @@ func _test_full_set() -> void:
 	_check(g.findings.size() == g.errors.size() + g.warnings.size() and g.findings.all(func(f: Dictionary) -> bool:
 		return ContentGraph.CHECKS.has(f.check) and not f.keys.is_empty() and f.keys.all(func(k: String) -> bool: return g.records.has(k))),
 		"each error and warning is a finding of a known check about records of the set")
+	var primitive := Eras.rank("core:primitive")
+	var bronze := Eras.rank("core:bronze")
+	_check(g.era.get("items/resources:branch") == 0 and g.era.get("items/plants:fried_mushrooms") == 0
+		and g.era.get("items/materials:cord") == primitive and g.era.get("items/tools:stone_axe") == primitive
+		and g.era.get("items/resources:log") == primitive and g.era.get("items/materials:copper_ore") == bronze
+		and g.era.get("items/plants:flatbread") == bronze and g.era.get("items/tools:copper_axe") == bronze
+		and g.era.keys().size() == g.reached.keys().size() and not g.findings.any(func(f: Dictionary) -> bool:
+			return f.check in ["early_era", "long_chain"]),
+		"branches come by hand in the first era and the spawn's campfire cooks there; cord opens the primitive era, the stone axe and the logs it fells are in it; ore and what the kiln bakes are bronze; every thing reached has an era")
 	var log_from: Array = g.basis("items/resources:log")
 	_check(log_from.has("items/tools:stone_axe") and log_from[0].begins_with("trees/")
 		and g.basis("items/tools:stone_axe") == ["recipes/tools:stone_axe"]
@@ -190,6 +214,19 @@ func _test_dead_ends() -> void:
 	_expect(_errors_with("_dead/kept"), ["items: `_dead:die` has no source", "recipes: `_dead:coin` can never be made: lacking `_dead:die`",
 		"items: `_dead:coin` can never be had", "recipes: `_dead:board`.tools: no item is a `saw`", "items: `_dead:board` can never be had"], 5,
 		"a recipe that keeps what nothing gives, or needs a class of tool no item is, can never be made")
+	_expect(_errors_with("_dead/era"), ["items: `_dead:pot`.era: `_dead:stone`, but it comes no earlier than `_dead:iron`, needing `_dead:oven` set down"], 1,
+		"an item written into an era earlier than what it needs is an error")
+	g = ContentGraph.new()
+	said = "\n".join(g.warnings)
+	var iron := Eras.rank("_dead:iron")
+	_check(g.era.get("items/_dead:rod") == 0 and g.era.get("items/_dead:oven") == iron and g.era.get("recipes/_dead:pot") == iron
+		and g.era.get("items/_dead:pot") == iron and g.era.get("items/_dead:peg") == Eras.rank("_dead:stone")
+		and g.era.get("items/_dead:rack") == Eras.rank("_dead:stone") and g.basis("recipes/_dead:pot", true).has("placed/_dead:oven")
+		and "items: `_dead:rack` of era `_dead:stone` comes at depth 2, deeper than its era's 1" in said
+		and not "`_dead:peg` of era" in said,
+		"an era comes from the latest of what a recipe takes and the one written, a chain deeper than its era expects is a warning: %s" % said)
+	_check(Array(Eras.check()) == ["eras: `_dead:iron` and `_dead:tin` have the same order 11"] and Eras.title(iron) == "11. Железо",
+		"two eras of one order are a problem: %s" % [Eras.check()])
 	Mods.activate(before)
 	_remove(mod)
 	Content.refresh()

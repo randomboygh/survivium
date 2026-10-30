@@ -2,7 +2,7 @@ extends RefCounted
 ## Mods, their bundles and their data files. A mod is a folder under `content/` with
 ## `mod.yaml`; what it adds comes in bundles, a folder per thing (`content/animals/wolf/`
 ## with `bundle.yaml`), each with its own `data/<kind>.yaml` (materials, items, creatures,
-## trees, bushes, recipes, plants, sounds, starts) and its pictures, models, textures and sounds
+## trees, bushes, recipes, plants, sounds, starts, eras) and its pictures, models, textures and sounds
 ## beside them (`sprites/`, `models/`, `icons/`, `textures/`, `sounds/`: a sound's files are
 ## `<name>.wav`, or `<name>_1.wav` ... for its variants; what a bundle lacks is looked for in
 ## the mod's `common/`, see `asset`). A mod without bundle folders is one bundle with its
@@ -22,8 +22,8 @@ extends RefCounted
 ## is hard (the schema's default) and no bundle of the set has the record, the bundle is
 ## left out with the one that has it as the reason (`dropped`), so a world is made only
 ## of things that work. A field marked `soft` in the schema (`likes`, `seed`, `fruit`,
-## `bonus`, `gives`, `repair`, `mow_gives`) only orders the load: the reference is dropped
-## from the record when its target is not loaded, a problem only when `strict` (the
+## `bonus`, `gives`, `repair`, `mow_gives`, `era`) only orders the load: the reference is
+## dropped from the record when its target is not loaded, a problem only when `strict` (the
 ## validator checking the full set). A patch of another bundle's record loads after it and
 ## is skipped when it is not loaded. Roles (`land`, `prop`, `kind`, `roost`) bind nothing.
 ## `requires` (hard) and `wants` (order only) in mod.yaml or bundle.yaml add what the
@@ -39,9 +39,10 @@ extends RefCounted
 ## `warnings`. Every reference field names its link (`rel`, one of RELATIONS: what the
 ## record is to the one it names) and, where an action makes it, which (`via`, ACTIONS),
 ## for the content graph.
-## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd, plants.gd, starts.gd) read their kind
-## with `records(kind)` when their class loads, so the rest of the code keeps using
-## `Mat.GRASS`, `Trees.OAK` or `AiRules.SPECIES` as before.
+## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd,
+## plants.gd, starts.gd, eras.gd) read their kind with `records(kind)` when their class
+## loads, so the rest of the code keeps using `Mat.GRASS`, `Trees.OAK` or
+## `AiRules.SPECIES` as before.
 
 const Yaml := preload("res://src/shared/content/yaml.gd")
 
@@ -130,6 +131,9 @@ const SCHEMAS := {
 		# `special`: had in ways the content graph does not see (a quest, a trade), so it is
 		# no item without a source.
 		"source": {"type": "enum", "values": ["", "special"], "default": ""},
+		# The era of progress the item opens (a station, the first tool of a new material, a new
+		# material); the content graph derives the era of the rest and holds it to this one.
+		"era": {"type": "ref:eras", "soft": true, "default": "", "rel": "in_era"},
 	},
 	"creatures": {
 		"mass": {"type": "float", "min": 0.01},
@@ -244,6 +248,13 @@ const SCHEMAS := {
 			"at": {"type": "list", "of": "int", "len": 2},
 		}},
 	},
+	# The eras of progress (Eras): their order, from 0, and the most steps of making from
+	# the start their things are expected to take (0: not checked). A label the content
+	# graph checks: it locks nothing in play.
+	"eras": {
+		"order": {"type": "int", "min": 0},
+		"depth": {"type": "int", "min": 0, "default": 0},
+	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
 			"mushrooms", "glow_mushrooms", "custom"]},
@@ -281,6 +292,7 @@ const RELATIONS := {
 	"ammo_for": "is shot by the named item",
 	"requires_power": "works only with power",
 	"powered_by": "runs on the named source of power",
+	"in_era": "opens the named era of progress (a label the content graph checks; it locks nothing in play)",
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.

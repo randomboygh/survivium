@@ -5,6 +5,7 @@
 # (sprites/held/<sprite>.png): самая яркая точка кадра — где горит огонь.
 - id: torch
   title: Факел
+  era: core:primitive
   weight: 0.3
   stack: 5
   model: torch

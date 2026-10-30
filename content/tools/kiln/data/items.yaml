@@ -7,6 +7,7 @@
 # model — её воксельная модель (models/<model>.png).
 - id: kiln
   title: Печь для обжига
+  era: core:bronze
   weight: 20.0
   stack: 1
   icon: kiln

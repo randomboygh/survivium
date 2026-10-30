@@ -6,6 +6,7 @@
 
 Категория — у предметов та, что выводит игра (у рецепта — его предмета), у остальных их роль или вид.
 Бандл — где запись определена; «→» — кто её заменил (`replaces`), «патчи» — кто поправил.
+Эпоха — у предметов и рецептов та, что выводит граф (карта эпох — в [content-graph.md](content-graph.md)).
 Связи — сколько записей называет эта и сколько называют её (поля-ссылки с типом связи `rel`).
 Проверка — что говорят о записи проверки загрузки и графа: «ок», ошибки или предупреждения. Граф —
 [content-graph.md](content-graph.md), что нашли проверки — [content-checks.md](content-checks.md).
@@ -24,97 +25,97 @@
 
 ## Предметы (`items`, 56)
 
-| Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
-|---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 0 / 3 | предупреждения: 1 |
-| `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 1 / 3 | ок |
-| `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 0 / 2 | ок |
-| `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 0 / 2 | ок |
-| `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 0 / 11 | ок |
-| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1 / 16 | ок |
-| `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0 / 1 | предупреждения: 1 |
-| `plants:blueberry_bush` | Кустик черники | Посадки |  | `plants/blueberry` | 1 / 1 | ок |
-| `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0 / 1 | предупреждения: 1 |
-| `plants:currant` | Смородина | Еда |  | `plants/currant` | 0 / 1 | предупреждения: 1 |
-| `plants:currant_bush` | Куст смородины | Посадки |  | `plants/currant` | 1 / 1 | ок |
-| `plants:grass_seeds` | Семена трав | Посадки |  | `plants/grass` | 1 / 2 | ок |
-| `plants:mushroom` | Гриб | Еда |  | `plants/mushrooms` | 0 / 2 | ок |
-| `plants:glow_mushroom` | Светящийся гриб | Еда |  | `plants/mushrooms` | 0 / 1 | ок |
-| `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0 / 1 | ок |
-| `plants:raspberry` | Малина | Еда |  | `plants/raspberry` | 0 / 1 | ок |
-| `plants:raspberry_bush` | Куст малины | Посадки |  | `plants/raspberry` | 1 / 1 | ок |
-| `plants:rosehip` | Шиповник | Еда |  | `plants/rosehip` | 0 / 1 | предупреждения: 1 |
-| `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1 / 1 | ок |
-| `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1 / 1 | ок |
-| `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0 / 11 | ок |
-| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 0 / 12 | ок |
-| `plants:moss` | Мох | Материалы |  | `plants/moss` | 0 / 2 | ок |
-| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0 / 1 | ок |
-| `resources:dirt` | Земля | Блоки |  | `resources/soil` | 1 / 2 | ок |
-| `resources:sand` | Песок | Блоки |  | `resources/soil` | 1 / 1 | ок |
-| `resources:clay` | Глина | Блоки |  | `resources/soil` | 1 / 4 | ок |
-| `resources:stone` | Камень | Блоки |  | `resources/stone` | 1 / 4 | ок |
-| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0 / 11 | ок |
-| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0 / 30 | ок |
-| `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1 / 18 | ок |
-| `plants:apple` | Яблоко | Еда |  | `plants/apple` | 0 / 1 | ок |
-| `plants:acorn` | Жёлудь | Материалы |  | `plants/oak` | 0 / 1 | предупреждения: 1 |
-| `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0 / 1 | предупреждения: 1 |
-| `plants:cone` | Шишка | Материалы |  | `plants/spruce` | 0 / 2 | предупреждения: 1 |
-| `tools:torch` | Факел | Материалы |  | `tools/torch` | 0 / 1 | ок |
-| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 0 / 18 | ок |
-| `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 2 / 1 | ок |
-| `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 1 / 1 | ок |
-| `tools:chest` | Сундук | Станки |  | `tools/chest` | 0 / 2 | ок |
-| `tools:forge` | Горн | Станки |  | `tools/forge` | 0 / 2 | предупреждения: 1 |
-| `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 0 / 4 | ок |
-| `plants:grain` | Зерно | Посадки |  | `plants/ears` | 2 / 2 | ок |
-| `plants:flour` | Мука | Материалы |  | `plants/ears` | 0 / 2 | ок |
-| `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 0 / 1 | ок |
-| `tools:stone_pickaxe` | Каменная кирка | Инструменты |  | `tools/pickaxe` | 2 / 1 | ок |
-| `tools:wooden_pickaxe` | Деревянная кирка | Инструменты |  | `tools/pickaxe` | 1 / 1 | ок |
-| `tools:copper_pickaxe` | Медная кирка | Инструменты |  | `tools/pickaxe` | 1 / 1 | ок |
-| `tools:stone_scythe` | Каменная коса | Инструменты |  | `tools/scythe` | 2 / 1 | ок |
-| `tools:wooden_scythe` | Деревянная коса | Инструменты |  | `tools/scythe` | 1 / 1 | ок |
-| `tools:copper_scythe` | Медная коса | Инструменты |  | `tools/scythe` | 1 / 1 | ок |
-| `tools:wooden_shovel` | Деревянная лопата | Инструменты |  | `tools/shovel` | 1 / 1 | ок |
-| `tools:copper_shovel` | Медная лопата | Инструменты |  | `tools/shovel` | 1 / 1 | ок |
-| `tools:wooden_sword` | Деревянный меч | Инструменты |  | `tools/sword` | 1 / 1 | ок |
-| `tools:stone_sword` | Каменный меч | Инструменты |  | `tools/sword` | 2 / 1 | ок |
-| `tools:copper_sword` | Медный меч | Инструменты |  | `tools/sword` | 1 / 1 | ок |
+| Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
+|---|---|---|---|---|---|---|---|
+| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 3 | предупреждения: 1 |
+| `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 3 | ок |
+| `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
+| `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 1 / 2 | ок |
+| `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 11 | ок |
+| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 16 | ок |
+| `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
+| `plants:blueberry_bush` | Кустик черники | Посадки |  | `plants/blueberry` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
+| `plants:currant` | Смородина | Еда |  | `plants/currant` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
+| `plants:currant_bush` | Куст смородины | Посадки |  | `plants/currant` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `plants:grass_seeds` | Семена трав | Посадки |  | `plants/grass` | 0. Выживание без инструментов | 1 / 2 | ок |
+| `plants:mushroom` | Гриб | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `plants:glow_mushroom` | Светящийся гриб | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 0 / 1 | ок |
+| `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 0 / 1 | ок |
+| `plants:raspberry` | Малина | Еда |  | `plants/raspberry` | 0. Выживание без инструментов | 0 / 1 | ок |
+| `plants:raspberry_bush` | Куст малины | Посадки |  | `plants/raspberry` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `plants:rosehip` | Шиповник | Еда |  | `plants/rosehip` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
+| `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0. Выживание без инструментов | 0 / 11 | ок |
+| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 12 | ок |
+| `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
+| `resources:dirt` | Земля | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 2 | ок |
+| `resources:sand` | Песок | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 1 | ок |
+| `resources:clay` | Глина | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 4 | ок |
+| `resources:stone` | Камень | Блоки |  | `resources/stone` | 0. Выживание без инструментов | 1 / 4 | ок |
+| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 11 | ок |
+| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 30 | ок |
+| `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1. Примитивные инструменты | 1 / 18 | ок |
+| `plants:apple` | Яблоко | Еда |  | `plants/apple` | 0. Выживание без инструментов | 0 / 1 | ок |
+| `plants:acorn` | Жёлудь | Материалы |  | `plants/oak` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
+| `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
+| `plants:cone` | Шишка | Материалы |  | `plants/spruce` | 0. Выживание без инструментов | 0 / 2 | предупреждения: 1 |
+| `tools:torch` | Факел | Материалы |  | `tools/torch` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 1 / 18 | ок |
+| `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 1. Примитивные инструменты | 2 / 1 | ок |
+| `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
+| `tools:chest` | Сундук | Станки |  | `tools/chest` | 1. Примитивные инструменты | 0 / 2 | ок |
+| `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 1 / 2 | предупреждения: 1 |
+| `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 1 / 4 | ок |
+| `plants:grain` | Зерно | Посадки |  | `plants/ears` | 0. Выживание без инструментов | 2 / 2 | ок |
+| `plants:flour` | Мука | Материалы |  | `plants/ears` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `tools:stone_pickaxe` | Каменная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 2 / 1 | ок |
+| `tools:wooden_pickaxe` | Деревянная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `tools:copper_pickaxe` | Медная кирка | Инструменты |  | `tools/pickaxe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
+| `tools:stone_scythe` | Каменная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 2 / 1 | ок |
+| `tools:wooden_scythe` | Деревянная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `tools:copper_scythe` | Медная коса | Инструменты |  | `tools/scythe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
+| `tools:wooden_shovel` | Деревянная лопата | Инструменты |  | `tools/shovel` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `tools:copper_shovel` | Медная лопата | Инструменты |  | `tools/shovel` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
+| `tools:wooden_sword` | Деревянный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 1 / 1 | ок |
+| `tools:stone_sword` | Каменный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 2 / 1 | ок |
+| `tools:copper_sword` | Медный меч | Инструменты |  | `tools/sword` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
 
 ## Рецепты (`recipes`, 28)
 
-| Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
-|---|---|---|---|---|---|---|
-| `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 3 / 0 | ок |
-| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 2 / 0 | ок |
-| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 3 / 0 | ок |
-| `resources:campfire` | Костёр | Станки |  | `resources/wood` | 3 / 0 | ок |
-| `tools:torch` | Факел | Материалы |  | `tools/torch` | 3 / 0 | ок |
-| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 3 / 0 | ок |
-| `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 5 / 0 | ок |
-| `tools:planks` | Доски | Блоки |  | `tools/axe` | 3 / 0 | ок |
-| `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 4 / 0 | ок |
-| `tools:chest` | Сундук | Станки |  | `tools/chest` | 3 / 0 | ок |
-| `tools:forge` | Горн | Станки |  | `tools/forge` | 5 / 0 | ок |
-| `tools:copper_bar` | Медный слиток | Материалы |  | `tools/forge` | 4 / 0 | ок |
-| `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 4 / 0 | ок |
-| `tools:brick` | Кирпич | Блоки |  | `tools/kiln` | 3 / 0 | ок |
-| `tools:charcoal` | Уголь | Материалы |  | `tools/kiln` | 3 / 0 | ок |
-| `plants:flour` | Мука | Материалы |  | `plants/ears` | 2 / 0 | ок |
-| `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3 / 0 | ок |
-| `tools:stone_pickaxe` | Каменная кирка | Инструменты |  | `tools/pickaxe` | 5 / 0 | ок |
-| `tools:wooden_pickaxe` | Деревянная кирка | Инструменты |  | `tools/pickaxe` | 4 / 0 | ок |
-| `tools:copper_pickaxe` | Медная кирка | Инструменты |  | `tools/pickaxe` | 4 / 0 | ок |
-| `tools:stone_scythe` | Каменная коса | Инструменты |  | `tools/scythe` | 5 / 0 | ок |
-| `tools:wooden_scythe` | Деревянная коса | Инструменты |  | `tools/scythe` | 5 / 0 | ок |
-| `tools:copper_scythe` | Медная коса | Инструменты |  | `tools/scythe` | 4 / 0 | ок |
-| `tools:wooden_shovel` | Деревянная лопата | Инструменты |  | `tools/shovel` | 4 / 0 | ок |
-| `tools:copper_shovel` | Медная лопата | Инструменты |  | `tools/shovel` | 4 / 0 | ок |
-| `tools:wooden_sword` | Деревянный меч | Инструменты |  | `tools/sword` | 4 / 0 | ок |
-| `tools:stone_sword` | Каменный меч | Инструменты |  | `tools/sword` | 5 / 0 | ок |
-| `tools:copper_sword` | Медный меч | Инструменты |  | `tools/sword` | 4 / 0 | ок |
+| Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
+|---|---|---|---|---|---|---|---|
+| `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 3 / 0 | ок |
+| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 0. Выживание без инструментов | 2 / 0 | ок |
+| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 3 / 0 | ок |
+| `resources:campfire` | Костёр | Станки |  | `resources/wood` | 0. Выживание без инструментов | 3 / 0 | ок |
+| `tools:torch` | Факел | Материалы |  | `tools/torch` | 0. Выживание без инструментов | 3 / 0 | ок |
+| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 3 / 0 | ок |
+| `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 1. Примитивные инструменты | 5 / 0 | ок |
+| `tools:planks` | Доски | Блоки |  | `tools/axe` | 1. Примитивные инструменты | 3 / 0 | ок |
+| `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:chest` | Сундук | Станки |  | `tools/chest` | 1. Примитивные инструменты | 3 / 0 | ок |
+| `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
+| `tools:copper_bar` | Медный слиток | Материалы |  | `tools/forge` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:brick` | Кирпич | Блоки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
+| `tools:charcoal` | Уголь | Материалы |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
+| `plants:flour` | Мука | Материалы |  | `plants/ears` | 0. Выживание без инструментов | 2 / 0 | ок |
+| `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
+| `tools:stone_pickaxe` | Каменная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 5 / 0 | ок |
+| `tools:wooden_pickaxe` | Деревянная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:copper_pickaxe` | Медная кирка | Инструменты |  | `tools/pickaxe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:stone_scythe` | Каменная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 5 / 0 | ок |
+| `tools:wooden_scythe` | Деревянная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 5 / 0 | ок |
+| `tools:copper_scythe` | Медная коса | Инструменты |  | `tools/scythe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:wooden_shovel` | Деревянная лопата | Инструменты |  | `tools/shovel` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:copper_shovel` | Медная лопата | Инструменты |  | `tools/shovel` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:wooden_sword` | Деревянный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:stone_sword` | Каменный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 5 / 0 | ок |
+| `tools:copper_sword` | Медный меч | Инструменты |  | `tools/sword` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 
 ## Материалы ячеек (`materials`, 13)
 
@@ -226,6 +227,15 @@
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
 | `core:default` | Обычный старт |  | Пустые руки, пустая сумка и костёр у точки появления. | `core`; патчи: `tools/chest` | 2 / 0 | ок |
+
+## Эпохи (`eras`, 4)
+
+| Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
+|---|---|---|---|---|---|---|
+| `core:foraging` | Выживание без инструментов | порядок 0 | Сбор руками, ветки, волокно, камни, ягоды и грибы; простые вещи из них руками. | `core` | 0 / 0 | ок |
+| `core:primitive` | Примитивные инструменты | порядок 1 | Верёвка, костёр, верстак, каменные и деревянные инструменты, брёвна и доски, сундук. | `core` | 0 / 4 | ок |
+| `core:bone_leather` | Дерево, кости и кожа | порядок 2 | Разделка зверей, шкуры и кости, простые луки, ткань. Контента пока нет. | `core` | 0 / 0 | ок |
+| `core:bronze` | Керамика и ранняя металлургия | порядок 3 | Печь для обжига, кирпич, уголь, горн, медь и медные инструменты. | `core` | 0 / 3 | ок |
 
 ## Звуки (`sounds`, 55)
 
