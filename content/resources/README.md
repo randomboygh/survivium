@@ -37,5 +37,10 @@ content/resources/
   осыпи камень). Текстуры — `textures/<id>.png` (48×16: верх, бока, низ; см. README «Материалов»).
 - Новый ресурс: папка `content/resources/<имя>/` с `bundle.yaml`, `data/items.yaml` и, если это ячейка,
   `data/materials.yaml` и текстура; затем назвать его в `log`/`twig`/`seed` дерева, `twig`/`fruit` куста
-  или `item`/`bonus` ячейки того мода, который его даёт. Проверка: `godot --headless --path .
-  --script res://tools/validate.gd`.
+  или `item`/`bonus` ячейки того мода, который его даёт. Без источника проверка скажет «нет источника»;
+  вещь, которую даёт квест или торговля, пишет `source: special`.
+- Ещё один источник старого ресурса — одно поле у нового объекта в его моде, со ссылкой на тот же id:
+  куст с `twig: resources:branch`, ячейка с `bonus: resources:flint`. Код не нужен, и ресурс не
+  переезжает: оба источника ведут к одной вещи, а граф показывает их все
+  (`docs/generated/content-graph.md`, «откуда и куда»).
+- Проверка: `godot --headless --path . --script res://tools/validate.gd`.

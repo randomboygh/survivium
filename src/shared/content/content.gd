@@ -239,9 +239,17 @@ const SCHEMAS := {
 		"volume": {"type": "float", "min": 0.0, "max": 4.0, "default": 1.0},
 		"loop": {"type": "bool", "default": false},
 	},
-	# How a new world starts (Starts): what the bag holds and what stands by the spawn,
-	# each thing `at` so many cells east and south of it.
+	# How a new world starts (Starts): what bare hands do (Tools.HAND: their power, the
+	# cells a swing takes, the seconds it lasts, the cells they reach, the grass they cut,
+	# and how many times slower than they swing they dig soft ground), what the bag holds
+	# and what stands by the spawn, each thing `at` so many cells east and south of it.
 	"starts": {
+		"hand_power": {"type": "int", "min": 0, "default": 1},
+		"hand_area": {"type": "int", "min": 1, "default": 1},
+		"hand_swing": {"type": "float", "min": 0.05, "default": 0.45},
+		"hand_reach": {"type": "int", "min": 1, "default": 8},
+		"hand_mows": {"type": "enum", "values": ["none", "tall", "all"], "default": "all"},
+		"hand_slow": {"type": "float", "min": 1.0, "default": 2.0},
 		"bag": {"type": "amounts", "of": "ref:items", "default": {}, "rel": "starts_with"},
 		"camp": {"type": "entries", "default": [], "fields": {
 			"item": {"type": "ref:items", "rel": "starts_with"},

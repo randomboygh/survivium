@@ -422,7 +422,7 @@ func _test_starts() -> void:
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
 	_write_file(mod + "/mod.yaml", "id: _s\ntitle: S\nversion: \"1\"\napi: 1\n")
 	_write_file(mod + "/data/items.yaml", "- id: tent\n  title: Шатёр\n  weight: 5\n  stack: 1\n  prop: chest\n")
-	_write_file(mod + "/data/starts.yaml", "- id: core:default\n  patch: true\n  bag+: {resources:branch: 3}\n  camp+:\n    - {item: tent, at: [0, -6]}\n"
+	_write_file(mod + "/data/starts.yaml", "- id: core:default\n  patch: true\n  hand_reach: 12\n  bag+: {resources:branch: 3}\n  camp+:\n    - {item: tent, at: [0, -6]}\n"
 		+ "- id: long\n  title: a\n  camp: [{item: tent, at: [1, 2, 3]}]\n"
 		+ "- id: odd\n  title: b\n  camp: [{item: tent, size: 2, at: [0, 0]}]\n"
 		+ "- id: bare\n  title: c\n  camp: [{at: [5, 5]}]\n"
@@ -432,6 +432,8 @@ func _test_starts() -> void:
 	_check(Starts.START.bag == {"resources:branch": 3} and Starts.START.camp.size() == 3
 		and Starts.START.camp.has({"item": "_s:tent", "at": [0, -6]}) and Starts.check().is_empty(),
 		"a bundle adds to the start by a patch, naming its own records as its mod does: %s" % [Starts.START])
+	_check(Tools.HAND.reach == 12 and Tools.of("").reach == 12 and Tools.HAND.power == 1,
+		"a patch of the start changes what the hands do, the rest stays: %s" % [Tools.HAND])
 	var found := {}
 	for p in Content.problems:
 		for what in ["long.camp: entry 1: `at`: expected 2 items", "odd.camp: entry 1: `size`: unknown field",
@@ -446,7 +448,8 @@ func _test_starts() -> void:
 	DirAccess.remove_absolute(mod)
 	Content.refresh()
 	Mods.rescan()
-	_check(Content.problems.is_empty() and Starts.START.bag.is_empty() and Starts.START.camp.size() == 2, "the start is core's again")
+	_check(Content.problems.is_empty() and Starts.START.bag.is_empty() and Starts.START.camp.size() == 2 and Tools.HAND.reach == 8,
+		"the start is core's again, and so are the hands")
 
 
 func _test_items() -> void:
@@ -469,6 +472,9 @@ func _test_tools() -> void:
 	var pick := Tools.of("tools:stone_pickaxe")
 	var shovel := Tools.of("tools:wooden_shovel")
 	_check(hand == Tools.HAND and Tools.of("resources:branch") == Tools.HAND and axe.tool == "axe", "items that are no tools are bare hands")
+	_check(hand.power == 1 and hand.area == 1 and is_equal_approx(hand.swing, 0.45) and hand.reach == 8 and hand.mows == "all"
+		and is_equal_approx(Tools.swing_time(hand, Mat.DIRT), hand.swing * 2.0) and is_equal_approx(Tools.swing_time(hand, Mat.LEAVES), hand.swing),
+		"the hands do what the start gives them: power 1, a cell a swing of 0.45 s, 8 cells' reach, all grass cut, soft ground twice as slow: %s" % [hand])
 	_check(Tools.can_dig(hand, Mat.DIRT) and Tools.can_dig(hand, Mat.LEAVES) and not Tools.can_dig(hand, Mat.STONE),
 		"hands dig soft ground and leaves, not stone")
 	_check(Tools.swing_time(hand, Mat.DIRT) > Tools.swing_time(shovel, Mat.DIRT), "a shovel digs faster than hands")

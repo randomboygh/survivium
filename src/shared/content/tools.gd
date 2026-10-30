@@ -3,7 +3,8 @@ extends RefCounted
 ## hard it is (`hardness`), a tool item says what it is (`tool`), its power, how many
 ## cells a swing takes (`area`), how long a swing lasts and how far it reaches
 ## (plan/design/character.md, "Взаимодействие с миром"). Bare hands are the tool when
-## nothing is held. Hands, a sword and a scythe cut the top of grass (the material's
+## nothing is held, with the abilities the start of the world gives them (HAND, from
+## Starts.START). Hands, a sword and a scythe cut the top of grass (the material's
 ## `mow`) before anything digs the ground under it. Also what a held item is used for,
 ## the order cells are worked in (around a cell that was tapped, and in front of the
 ## body for the action button, outward from it so the body is dug under last), and the
@@ -16,12 +17,8 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Starts := preload("res://src/shared/content/starts.gd")
 
-## Bare hands: grass, leaves, soft ground (slowly, see HAND_SLOW), berries and branches.
-## Not an item, so not in the data files.
-const HAND := {"id": "", "title": "Руки", "tool": "hand", "power": 1, "area": 1, "swing": 0.45, "reach": 8, "mows": "all"}
-## Hands dig soft ground this many times slower than they swing.
-const HAND_SLOW := 2.0
 ## The classes of tools whose work in the world the engine knows (see can_dig and the rest).
 const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe"]
 ## How far blocks, plants and seeds are placed from the body, in cells.
@@ -36,6 +33,21 @@ const BRUSHES := [
 	{"title": "1×2", "size": 1, "tall": true},
 	{"title": "линия", "size": 1, "line": true},
 ]
+
+## Bare hands, a tool record like an item's: grass, leaves, soft ground (`slow` times slower
+## than they swing), berries and branches. Not an item: their abilities are the start's
+## (the `hand_*` fields of Starts.START), read again with the registries.
+static var HAND := {}
+
+
+static func _static_init() -> void:
+	refresh()
+
+
+static func refresh() -> void:
+	var s: Dictionary = Starts.START
+	HAND = {"id": "", "title": "Руки", "tool": "hand", "power": s.hand_power, "area": s.hand_area, "swing": s.hand_swing,
+		"reach": s.hand_reach, "mows": s.hand_mows, "slow": s.hand_slow}
 
 
 ## The tool record of item `id` (see Items) for the work in the world: bare hands for "",
@@ -159,7 +171,7 @@ static func why_not(t: Dictionary, m: int) -> String:
 ## when they cut grass).
 static func swing_time(t: Dictionary, m: int) -> float:
 	var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
-	return t.swing * (HAND_SLOW if slow else 1.0)
+	return t.swing * (t.slow if slow else 1.0)
 
 
 ## The column step (x, z) for a direction the body faces, snapped to 8 ways.
