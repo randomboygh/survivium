@@ -482,8 +482,12 @@ func _ranges_and_mesas(land: float, floor_h: float, mask: float, kind: int, coas
 		plateau: int, peak: int, rng: int, gorge: int, crag: int, warm: int, wet: int) -> Array:
 	var from: float = MOUNTAIN_FROM[settings.mountains]
 	var m := mount / 127.5 - 1.0
-	var c := crag / 127.5 - 1.0
 	var plat := plateau / 127.5 - 1.0
+	if m <= from - 0.35 and plat <= -0.1:
+		# Most of the land: no range, mesa, butte nor tor can rise here.
+		var plain := clampi(int(round(lerpf(floor_h, land, mask))), 2, size_y - 4)
+		return [plain, SEA_FLOOR if plain < sea else kind, 0.0, 0.0, 0]
+	var c := crag / 127.5 - 1.0
 	# How far into the gorge or canyon line a column is, in hundredths of the noise.
 	var g := absf(gorge / 127.5 - 1.0) * 100.0
 	var dry := smoothstep(-DRY_BLEND, DRY_BLEND, warm - DRY_WARM) * smoothstep(-DRY_BLEND, DRY_BLEND, DRY_WET - wet)
@@ -521,7 +525,8 @@ func _ranges(land: float, kind: int, coast: float, h: float, m: float, c: float,
 	var area := smoothstep(from - 0.35, from + 0.25, m) * smoothstep(24.0, 120.0, coast)
 	# 1 on the zero line of the range noise, the crest: a broad shoulder and a sharp top.
 	var near := 1.0 - absf(rng / 127.5 - 1.0)
-	var crest := 0.5 * near * near + 0.5 * pow(near, 6.0)
+	var near2 := near * near
+	var crest := 0.5 * near2 + 0.5 * near2 * near2 * near2
 	if area > 0.0:
 		var tall := 0.45 + 0.55 * smoothstep(-0.3, 0.3, peak / 127.5 - 1.0)
 		rise = (RANGE_FOOT + RANGE_RISE * crest * tall) * area
@@ -553,7 +558,8 @@ func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, 
 		from: float) -> Array:
 	var cut := 0
 	# Mesas rise where the plateaus and where the mountains would; ragged at the edges.
-	var p := maxf(plat + c * 0.12 - MESA_FROM, smoothstep(from - 0.1, from + 0.5, m) * 0.6 - 0.05)
+	var near_plateau := plat + c * 0.12 - MESA_FROM
+	var p := maxf(near_plateau, smoothstep(from - 0.1, from + 0.5, m) * 0.6 - 0.05)
 	if p > 0.0 and coast > 48.0:
 		var tier := clampi(int((smoothstep(0.0, 0.57, p) + (h - 0.5) * 0.35) * MESA_TIERS.size()), 0,
 			MESA_TIERS.size() - 1)
@@ -568,7 +574,7 @@ func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, 
 			land = sea + 2.0 + MESA_TIERS[tier]
 			cut = MESA
 		kind = HIGHLAND
-	elif p > -0.16 and coast > 48.0 and c > BUTTE_FROM:
+	elif near_plateau > -0.16 and coast > 48.0 and c > BUTTE_FROM:
 		# A butte: a lone pillar beyond the mesas.
 		land = sea + 2.0 + MESA_TIERS[1 if c > BUTTE_FROM + 0.12 else 0]
 		kind = HIGHLAND

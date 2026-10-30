@@ -538,6 +538,11 @@ func close() -> void:
 	closed.emit()
 
 
+## The painted sky covers the whole window (see _draw_sky): nothing of the world shows.
+func hides_world() -> bool:
+	return _backdrop.visible and not _fading
+
+
 ## "Играть": into the world now, or as soon as it is built.
 func play() -> void:
 	if settled:
