@@ -114,4 +114,4 @@ campfire), `plants.kind` (10 видов), `materials.role` (6), `biomes.where` (
 `vitals`, `character`, `knowledge`, `crafting`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
 карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving.md).
 
-**Подробнее.** `plan/architecture/modding.md` (устройство модов и история шагов), README модов.
+**Подробнее.** `plan/architecture/modding.md` (устройство модов; история шагов — `plan/history/modding.md`), README модов.
