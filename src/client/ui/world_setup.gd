@@ -26,7 +26,8 @@ const MAP_STEP := 32
 ## Time the map may take a frame, in microseconds.
 const MAP_BUDGET_US := 4000
 const LEVELS := ["мало", "средне", "много"]
-## Kinds of world and the settings each picks: size, water, mountains, rivers, biomes.
+## Kinds of world and the settings each picks: size, water, mountains, rivers, biomes
+## (caves are set apart from the kind).
 const KINDS := [
 	["Обычный", [1, 1, 1, 1, 1]],
 	["Материк", [2, 1, 1, 1, 1]],
@@ -158,6 +159,7 @@ func _build_rows() -> void:
 	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
 	_add_row("Реки и озёра", LEVELS, _getter("rivers"), _setter("rivers"))
 	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
+	_add_row("Пещеры", LEVELS, _getter("caves"), _setter("caves"))
 	_mods_row()
 	_refresh()
 

@@ -317,10 +317,12 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 	var water_cols := c.water
 	var wild_cols := c.wild
 	var all: int = world.all_bits
-	var cave_t := _byte(0.42)
-	var mouth_cave_t := _byte(0.3)
+	var cave_t := _byte(CAVE_FROM[settings.caves])
+	var mouth_cave_t := _byte(MOUTH_CAVE_FROM[settings.caves])
 	var adit: PackedByteArray = lay.adit
 	var pit: PackedByteArray = lay.pit
+	var shape: PackedByteArray = lay.grids[3]
+	var bands := PackedInt32Array([Mat.STONE, bank, beach, bank, Mat.STONE])
 	var ore_t := _byte(0.55)
 	var ore_top_t := _byte(0.7)
 	var x_first := key.x * CHUNK
@@ -357,6 +359,12 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 			cells[i] = Mat.DIRT if y < bed else top
 			natural[i] = WorldData.WILD
 			i += layer
+		if flags[j] & STRATA:
+			# A mesa's walls are banded: layers of stone, clay and sand two cells
+			# thick, wavering a little.
+			var wob: int = shape[j] >> 6
+			for y in range(maxi(0, sea - 2), height):
+				cells[col + y * layer] = bands[((y + wob) >> 1) % bands.size()]
 		cells[i] = ore if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
 		natural[i] = WorldData.WILD | WorldData.SHEER if flags[j] & SHEER_TOP else WorldData.WILD
 		var y := height + 1
