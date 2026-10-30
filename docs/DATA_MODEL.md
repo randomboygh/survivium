@@ -129,16 +129,18 @@ content/<мод>/common/             ассеты, общие для бандл�
 
 ## Числа во время игры
 
-- Материал ячейки — номер в порядке загрузки (`core:air` = 0). Поэтому набор бандлов мира менять нельзя;
-  мир хранит список `materials` и переводится `Mat.remap`.
+- Материал ячейки — номер в порядке загрузки (`core:air` = 0). Поэтому набор бандлов мира менять нельзя
+  (входят в старый мир только дополняющие бандлы, без ячеек); мир хранит список `materials` и переводится
+  `Mat.remap`.
 - Атлас: материалы и разные коры вместе не больше 21 (`PixelTextures.MOST_MATERIALS`, 6 бит плитки в
   меше, `material_bits[21]` в шейдере). Сейчас занято 21 из 21.
 - Реестры пересобираются `Mods.activate(набор мира)` при старте мира.
 
 ## Сохранения
 
-`world.json`: `format` (1), `seed`, `settings` (генератор), `mods` (бандлы мира), `content` (метка версии
-контента, сейчас 9), `materials` (id в порядке номеров), `levels`, `created`, `saved`, `played`, `sky`
+`world.json`: `format` (1), `seed`, `settings` (генератор), `mods` (бандлы мира), `known` (все бандлы, что
+были при сохранении: дополняющий бандл, которого мир не знал, войдёт в него, `Mods.of_world`), `content`
+(метка версии контента, сейчас 9), `materials` (id в порядке номеров), `levels`, `created`, `saved`, `played`, `sky`
 (часы), `placed` (вещи на клетках). `players/<имя>.json`: `position` и части модулей (`inventory`,
 `vitals`, `character`, `knowledge`, `crafting`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
 карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving.md).

@@ -10,7 +10,7 @@ HUD (часы, срез уровней, панель, кнопки), окно с
 **Файлы** (`src/client/ui/`, кроме отмеченных)
 - Экраны: `main_menu.gd` (первый экран над миром сохранённого зерна; `main.restart()` перезагружает
   сцену), `world_setup.gd` («Новый мир»: зерно, вид мира, настройки генератора с картой, страница
-  «Моды»), `world_list.gd` («Миры»), `death_screen.gd`.
+  «Моды»: под выпавшим бандлом — вся цепочка причины, `Mods.why`), `world_list.gd` («Миры»), `death_screen.gd`.
 - Игра: `hud.gd` (главный экран), `inventory_window.gd` и `craft_panel.gd` (сумка, сундук, станок,
   крафт), `vitals_panel.gd`, `body_feedback.gd`, `sound_marks.gd` (метки направления звуков),
   `vibration.gd`.

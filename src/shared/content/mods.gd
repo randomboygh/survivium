@@ -1,6 +1,7 @@
 extends RefCounted
 ## The set of bundles the game plays with. A world remembers its bundles (WorldStore, the
-## `mods` of world.json) and a new one takes the set chosen on «Новый мир»; `activate`
+## `mods` of world.json; `of_world` reads them back, with the bundles that joined it since)
+## and a new one takes the set chosen on «Новый мир»; `activate`
 ## makes that set the one loaded and fills the registries from it again, so
 ## `Mat.GRASS`, `Items.BY_ID`, `AiRules.SPECIES` and the rest describe the bundles of
 ## the world being played. Materials are numbered in load order, so a world's cells
@@ -23,6 +24,19 @@ const Eras := preload("res://src/shared/content/eras.gd")
 ## Mods of older saves and settings that live on as bundles of another mod (the old sounds
 ## mod held the notes too).
 const RENAMED := {"birds": ["animals/sparrow"], "sounds": ["sounds/nature", "sounds/player", "sounds/ui", "music"]}
+## Mods split out of the base game: a world saved before the `content` mark of its
+## world.json reached the number had their things in the base game, so it gets the mod.
+const SPLITS := [[2, "plants"], [3, "tools"], [4, "sounds"], [4, "music"], [5, "materials"], [7, "resources"],
+	[7, "materials"], [8, "biomes"]]
+## The kinds of records a bundle may hold to join a world saved without it (`additive`):
+## things to make and their sounds, nothing that changes the land or the numbers of its cells.
+const ADDITIVE := ["items", "recipes", "eras", "starts", "sounds"]
+## The bundles that may join a world (`additive`) there were before world.json kept the
+## bundles a world knew (`known`): a world saved before knew them all, the torch only
+## from `content` 9 on.
+const OLD_ADDITIVE := ["materials/charcoal", "materials/cord", "music", "resources/fiber", "resources/wood",
+	"sounds/nature", "sounds/player", "sounds/ui", "tools/axe", "tools/chest", "tools/forge", "tools/kiln",
+	"tools/pickaxe", "tools/scythe", "tools/shovel", "tools/sword", "tools/torch", "tools/workbench"]
 
 
 ## Every mod found under `content/`, core first (see Content.available).
@@ -86,6 +100,60 @@ static func closure(bundle: String, all: Array = []) -> Array:
 ## Which of `on` load and which are left out and why (see Content.resolve).
 static func resolve(on: Array) -> Dictionary:
 	return Content.resolve(on)
+
+
+## Why `bundle` is left out of a set, out of `dropped` of `resolve`: what it needs, then
+## what that one needs in turn while it is left out too, to the one not in the set at all
+## (switched off, or not there): ["materials/cord", "resources/fiber"]. Empty when it is in.
+static func why(bundle: String, dropped: Dictionary) -> Array:
+	var out := []
+	var b := bundle
+	while dropped.has(b) and not dropped[b] in out and dropped[b] != bundle:
+		b = dropped[b]
+		out.append(b)
+	return out
+
+
+## Whether `bundle` only adds things to make (its records and patches all of ADDITIVE
+## kinds): no cells, trees, bushes, plants, biomes or creatures, so it may join a world
+## saved without it and the land stays the same.
+static func additive(bundle: String) -> bool:
+	var u: Dictionary = Content.universe().get(bundle, {})
+	if u.is_empty():
+		return false
+	for kind: String in u.records:
+		if not kind in ADDITIVE and not u.records[kind].is_empty():
+			return false
+	return true
+
+
+## The bundles of a world saved with world.json `meta`, in the order of `all` (decision
+## 4А, docs/specifications/BUNDLE_SYSTEM.md, section 14): the mods and bundles it lists (a
+## mod stands for all its bundles, see expand; one from before mods were kept had every
+## mod), a mod split out of the base game since (SPLITS), and a bundle new to it that only
+## adds things to make (`additive`), when the world has a bundle of its mod and what the
+## new one needs. A bundle the world knew (`known`, every bundle there was when it was
+## saved; OLD_ADDITIVE before it kept them) and left out stays out; one with cells, trees
+## or creatures never joins, so the land and the numbers of its cells stay.
+static func of_world(meta: Dictionary) -> Array:
+	var content := int(meta.get("content", 1))
+	var mods: Array = Array(meta.get("mods", available())).filter(func(m) -> bool: return m is String)
+	for split: Array in SPLITS:
+		if content < split[0] and not split[1] in mods and split[1] in available():
+			mods.insert(1, split[1])
+	var bundles := expand(mods)
+	var listed: Variant = meta.get("known")
+	var known: Array = expand(listed) if listed is Array \
+		else OLD_ADDITIVE.filter(func(b: String) -> bool: return content >= 9 or b != "tools/torch")
+	var theirs := {}
+	for b: String in bundles:
+		theirs[mod_of(b)] = true
+	var new := all().filter(func(b: String) -> bool:
+		return theirs.has(mod_of(b)) and not b in bundles and not b in known and additive(b))
+	if new.is_empty():
+		return bundles
+	var kept: Array = resolve(bundles + new).order
+	return expand(bundles + new.filter(func(b: String) -> bool: return b in kept))
 
 
 ## Bundles out of a list of mods and bundles (a saved world's or the settings'): a mod

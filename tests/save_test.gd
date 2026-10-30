@@ -6,6 +6,7 @@ extends SceneTree
 ## godot --headless --path . --script res://tests/save_test.gd
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -103,18 +104,22 @@ func _run() -> void:
 	var seed_value: int = main.world_seed
 	_check(main.workshop.knowledge.recipes().any(func(r: Dictionary) -> bool: return r.id == "tools:torch"),
 		"the torch is known with branches and fibre in the bag")
-	# Saved as a world from before the torch: it gets the torch's bundle when it loads.
+	_check(main.save.meta.get("known", []) == Mods.all(), "a world keeps the bundles there were when it was saved")
+	# Saved as a world from before the torch, and before worlds kept the bundles they knew,
+	# with the sword left out: it gets the torch's bundle when it loads, not the sword's.
 	var store = main.save.store
 	main.queue_free()
 	await process_frame
 	await process_frame
 	var old_meta: Dictionary = store.read_json(WorldStore.WORLD)
 	old_meta.content = 8
-	old_meta.mods = Array(old_meta.mods).filter(func(b: String) -> bool: return b != "tools/torch")
+	old_meta.erase("known")
+	old_meta.mods = Array(old_meta.mods).filter(func(b: String) -> bool: return not b in ["tools/torch", "tools/sword"])
 	store.write_json(WorldStore.WORLD, old_meta)
 
 	main = await _start()
-	_check("tools/torch" in main.world_mods, "a world saved before the torch gets it with the other tools")
+	_check("tools/torch" in main.world_mods and not "tools/sword" in main.world_mods,
+		"a world saved before the torch gets it with the other tools; the sword it left out stays out")
 	w = main.world
 	_check(main.save.has_save and main.world_seed == seed_value, "the same world starts again from its save")
 	_check(w.get_cell(pit.x, top - 1, pit.z) == Mat.AIR and w.get_cell(pit.x, top - 3, pit.z) == Mat.AIR,

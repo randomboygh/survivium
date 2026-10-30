@@ -435,7 +435,10 @@ func _run() -> void:
 				for i in 30:
 					await process_frame
 		var setup: Control = null
+		var mods_off: String = main.settings.values.world_mods_off
 		if shot.get("setup", false):
+			# The bundles switched off for new worlds, for this shot only (not saved).
+			main.settings.values.world_mods_off = shot.get("mods_off", mods_off)
 			setup = main.WorldSetup.new(main)
 			main.hud.add_child(setup)
 			# A page of the screen other than the first ("mods").
@@ -499,6 +502,7 @@ func _run() -> void:
 			_hold(shot.keys, false)
 		if setup != null:
 			setup.queue_free()
+			main.settings.values.world_mods_off = mods_off
 		if shot.has("main_menu"):
 			main.menu.get_parent().queue_free()
 			main.menu = null
