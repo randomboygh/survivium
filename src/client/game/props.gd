@@ -55,7 +55,7 @@ func _init(g) -> void:
 func watch(placed) -> void:
 	for id in Items.IDS:
 		var kind: String = Items.get_item(id).get("prop", "none")
-		if kind != "none" and kind != "campfire":
+		if kind != "none" and not Items.get_item(id).fire:
 			placed.footprints[kind] = VoxelProps.footprint(_model(kind))
 	placed.added.connect(_on_added)
 	placed.removed.connect(_on_removed)

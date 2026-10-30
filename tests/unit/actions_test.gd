@@ -7,6 +7,7 @@ func run() -> void:
 	_test_front_choice()
 	_test_world_actions()
 	_test_placed()
+	_test_station_flags()
 
 
 func _test_felling() -> void:
@@ -265,3 +266,78 @@ func _test_placed() -> void:
 	_check(placed.light(who, fire) and fire.lit and who.inventory.count("resources:branch") == 0, "it is lit for a branch")
 	placed.put_out(fire)
 	_check(placed.destroy(fire) and not placed.things.has(fire), "and destroyed once it is out")
+
+
+## What a thing set down does goes by its item's flags, its class an open word (a mod of
+## the test's own): a rack that serves the workbench makes the workbench's recipes and is
+## set down only with a knife in the bag, a tool of a class the world does not know that
+## works there as bare hands; a crate of four slots stores and is no station; tools are
+## mended where the workbench's flag says, at the rack too. And what the checks say of
+## flags out of place.
+func _test_station_flags() -> void:
+	var before := Content.BUNDLES.duplicate()
+	var mod := "res://content/_k"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write_file(mod + "/mod.yaml", "id: _k\ntitle: K\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/items.yaml", "- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife}\n"
+		+ "- {id: stone_knife, title: Каменный нож, weight: 0.3, stack: 1, tool: knife}\n"
+		+ "- {id: rack, title: Стойка, weight: 4, stack: 1, prop: rack, serves: [tools:workbench], place_tool: knife}\n"
+		+ "- {id: crate, title: Ящик, weight: 4, stack: 1, prop: crate, storage: 4}\n"
+		+ "- {id: odd, title: Странное, weight: 1, stack: 1, fire: true, tool: Big}\n"
+		+ "- {id: shelf, title: Полка, weight: 1, stack: 1, prop: shelf, serves: [crate], place_tool: saw}\n")
+	_write_file(mod + "/data/recipes.yaml", "- {id: crate, title: Ящик, makes: crate, needs: {resources:branch: 2}, at: crate}\n")
+	Content.refresh()
+	Mods.activate(Mods.all() + ["_k"])
+	var said := "\n".join(Content.problems + Items.check() + Crafting.check())
+	_check("_k:odd.tool: expected a lowercase word" in said and "`_k:odd`.fire: only a thing set down" in said
+		and "`_k:shelf`.serves: `_k:crate` is no other station" in said and "`_k:shelf`.place_tool: no item is a `saw`" in said
+		and "_k:crate.at: `_k:crate` is no station" in said,
+		"a class is a lowercase word, flags are a thing's set down, a thing serves stations and is set down with a tool some item is; what stores is no station: %s" % said)
+	_check(Tools.of("_k:knife") == Tools.HAND and Items.tool_title("knife") == "нож" and Items.tool_title("axe") == "топор"
+		and Items.is_station("_k:rack") and not Items.is_station("_k:crate") and Items.most_storage() == 16,
+		"a knife works in the world as bare hands; a class is named by the last word its items share")
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var placed := Placed.new()
+	placed.world = w
+	var who := Who.new()
+	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	who.inventory.add("_k:rack", 1)
+	_check(not placed.put_from_bag(who, "_k:rack", -1, 40) and placed.things.is_empty()
+		and who.said.back() == "Чтобы поставить, нужен инструмент: нож", "a rack is set down only with a knife in the bag")
+	who.inventory.add("_k:stone_knife", 1)
+	_check(placed.put_from_bag(who, "_k:rack", -1, 40) and placed.things.size() == 1, "with a knife it is")
+	var rack: Dictionary = placed.things[0]
+	var near := placed.stations_near(Placed.center(rack), 1.0)
+	_check(near.has("_k:rack") and near.has("tools:workbench") and rack.items == null and rack.lit,
+		"a rack set down is a station and stands in for the workbench")
+	var shop := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
+	for id in ["resources:flint", "materials:cord"]:
+		who.inventory.add(id, 1)
+	who.inventory.add("resources:branch", 2)
+	_check(shop.start(Crafting.get_recipe("tools:stone_axe")) == 1, "a stone axe is started at the rack")
+	shop.update(0.01)
+	_check(who.inventory.count("tools:stone_axe") == 1, "and made there")
+	var crate := placed.put("_k:crate", Vector3i(20, 2, 20))
+	_check(crate.items != null and crate.items.slots.size() == 4 and not placed.stations_near(Placed.center(crate), 1.0).has("_k:crate")
+		and not Placed.is_fire(crate) and Placed.is_fire({"item": Placed.CAMPFIRE}), "a crate holds four slots and is no station; the campfire burns by its flag")
+	who.inventory.wear_tool("tools:stone_axe", 100)
+	var slot := -1
+	for i in who.inventory.slots.size():
+		if who.inventory.slots[i] != null and who.inventory.slots[i][0] == "tools:stone_axe":
+			slot = i
+	var by_rack := shop.why_not_repair(slot)
+	who.position = Vector3(40.5, 2.0, 40.5) * WorldData.CELL
+	_check(by_rack.begins_with("Не хватает") and shop.why_not_repair(slot) == "Чинят у станка: Верстак",
+		"tools are mended at a station that repairs (the workbench), or one that stands in for it: %s" % by_rack)
+	Mods.activate(before)
+	for f in ["data/items.yaml", "data/recipes.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty() and Items.check().is_empty(), "the full set loads clean again")

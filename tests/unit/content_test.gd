@@ -86,11 +86,11 @@ func _test_content() -> void:
 	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_test"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
-	_write(mod + "/mod.yaml", "id: _test\ntitle: Test\nversion: \"1\"\napi: 1\n")
-	_write(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
-	_write(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
-	_write(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
-	_write(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 0}\n- id: dust\n  title: y\n  makes: materials:cord\n  needs: {stone_dust: 1}\n")
+	_write_file(mod + "/mod.yaml", "id: _test\ntitle: Test\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
+	_write_file(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
+	_write_file(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
+	_write_file(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 0}\n- id: dust\n  title: y\n  makes: materials:cord\n  needs: {stone_dust: 1}\n")
 	Content.BUNDLES.append("_test")
 	Content.refresh()
 	var found := {}
@@ -154,20 +154,20 @@ func _test_mods() -> void:
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
-	_write("res://content/_a/mod.yaml", "id: _a\ntitle: A\nversion: \"1\"\napi: 1\nrequires: [_b]\n")
-	_write("res://content/_b/mod.yaml", "id: _b\ntitle: B\nversion: \"1\"\napi: 1\nrequires: [core]\n")
-	_write("res://content/_c/mod.yaml", "id: _c\ntitle: C\nversion: \"1\"\napi: 1\nrequires: [_missing]\n")
-	_write("res://content/_d/mod.yaml", "id: _d\ntitle: D\nversion: \"1\"\napi: 1\n")
-	_write("res://content/_b/data/creatures.yaml",
+	_write_file("res://content/_a/mod.yaml", "id: _a\ntitle: A\nversion: \"1\"\napi: 1\nrequires: [_b]\n")
+	_write_file("res://content/_b/mod.yaml", "id: _b\ntitle: B\nversion: \"1\"\napi: 1\nrequires: [core]\n")
+	_write_file("res://content/_c/mod.yaml", "id: _c\ntitle: C\nversion: \"1\"\napi: 1\nrequires: [_missing]\n")
+	_write_file("res://content/_d/mod.yaml", "id: _d\ntitle: D\nversion: \"1\"\napi: 1\n")
+	_write_file("res://content/_b/data/creatures.yaml",
 		"- id: animals:wolf\n  patch: true\n  speed: 1.5\n  diet+: [plants]\n- id: core:nobody\n  patch: true\n  speed: 1\n- id: animals:rabbit\n  patch: true\n  diet+: 3\n- id: animals:deer\n  patch: true\n  speed: 9\n")
-	_write("res://content/_a/data/creatures.yaml", "- id: animals:wolf\n  patch: true\n  sight: 99\n")
-	_write("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
+	_write_file("res://content/_a/data/creatures.yaml", "- id: animals:wolf\n  patch: true\n  sight: 99\n")
+	_write_file("res://content/_c/data/creatures.yaml", "- id: ghost\n  title: x\n  mass: 1\n  diet: [meat]\n  speed: 1\n  sight: 1\n  human_wariness: 0\n  active: any\n")
 	# A recipe out of grain (a hard reference to the plants bundle) and a tree that gives
 	# a cone (soft).
-	_write("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: resources:fiber\n  needs: {plants:grain: 2}\n")
-	_write("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
+	_write_file("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: resources:fiber\n  needs: {plants:grain: 2}\n")
+	_write_file("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
 	# And a bush whose fruit (soft) is a record nobody has.
-	_write("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
+	_write_file("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
 	Content.refresh()
 	Mods.activate(["core", "animals/wolf", "animals/rabbit", "animals/sparrow", "_a", "_c", "_d", "_b"])
 	_check(Content.loaded == ["core", "_b", "_a", "animals/rabbit", "animals/sparrow", "animals/wolf"] or Content.loaded == ["core", "animals/rabbit", "animals/sparrow", "animals/wolf", "_b", "_a"],
@@ -281,13 +281,13 @@ func _test_records() -> void:
 	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_e"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
-	_write(mod + "/mod.yaml", "id: _e\ntitle: E\nversion: \"1\"\napi: 1\n")
-	_write(mod + "/data/items.yaml", "- id: club\n  title: Дубинка\n  description: Тяжёлая палка.\n  tags: [heavy, Heavy Wood]\n"
+	_write_file(mod + "/mod.yaml", "id: _e\ntitle: E\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/items.yaml", "- id: club\n  title: Дубинка\n  description: Тяжёлая палка.\n  tags: [heavy, Heavy Wood]\n"
 		+ "  provisional: [weight, power, colour]\n  weight: 1.5\n  stack: 1\n  tool: axe\n  power: 1\n")
 	var beast := "  mass: 30\n  diet: [meat]\n  speed: 3\n  sight: 9\n  human_wariness: 0.5\n  active: night\n"
-	_write(mod + "/data/creatures.yaml", "- id: animals:wolf\n  title: Другой волк\n  replaces: true\n" + beast
+	_write_file(mod + "/data/creatures.yaml", "- id: animals:wolf\n  title: Другой волк\n  replaces: true\n" + beast
 		+ "- id: animals:rabbit\n  title: Другой кролик\n" + beast + "- id: ghost\n  title: Призрак\n  replaces: true\n" + beast)
-	_write(mod + "/data/recipes.yaml", "- id: odd_name\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 3}\n"
+	_write_file(mod + "/data/recipes.yaml", "- id: odd_name\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 3}\n"
 		+ "- id: cord_from_bark\n  title: y\n  makes: materials:cord\n  needs: {resources:fiber: 2}\n")
 	Content.refresh()
 	Mods.activate(Mods.all() + ["_e"])
@@ -330,11 +330,11 @@ func _test_renames() -> void:
 	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_g"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
-	_write(mod + "/mod.yaml", "id: _g\ntitle: G\nversion: \"1\"\napi: 1\n")
-	_write(mod + "/data/items.yaml", "- id: stick\n  title: Палка\n  was: [twig_old, core:old_branch]\n  weight: 0.5\n  stack: 10\n"
+	_write_file(mod + "/mod.yaml", "id: _g\ntitle: G\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/items.yaml", "- id: stick\n  title: Палка\n  was: [twig_old, core:old_branch]\n  weight: 0.5\n  stack: 10\n"
 		+ "- id: pebble\n  title: Камешек\n  was: [resources:branch]\n  weight: 0.1\n  stack: 20\n"
 		+ "- id: shard\n  title: Осколок\n  was: [twig_old]\n  weight: 0.1\n  stack: 20\n")
-	_write(mod + "/data/recipes.yaml", "- id: stick\n  title: Палка\n  was: [make_stick]\n  makes: stick\n  needs: {resources:branch: 1}\n")
+	_write_file(mod + "/data/recipes.yaml", "- id: stick\n  title: Палка\n  was: [make_stick]\n  makes: stick\n  needs: {resources:branch: 1}\n")
 	Content.refresh()
 	Mods.activate(Mods.all() + ["_g"])
 	_check(Items.canon("_g:twig_old") == "_g:stick" and Items.canon("core:old_branch") == "_g:stick" and Crafting.canon("_g:make_stick") == "_g:stick"
@@ -375,9 +375,9 @@ func _test_starts() -> void:
 	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_s"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
-	_write(mod + "/mod.yaml", "id: _s\ntitle: S\nversion: \"1\"\napi: 1\n")
-	_write(mod + "/data/items.yaml", "- id: tent\n  title: Шатёр\n  weight: 5\n  stack: 1\n  prop: chest\n")
-	_write(mod + "/data/starts.yaml", "- id: core:default\n  patch: true\n  bag+: {resources:branch: 3}\n  camp+:\n    - {item: tent, at: [0, -6]}\n"
+	_write_file(mod + "/mod.yaml", "id: _s\ntitle: S\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/items.yaml", "- id: tent\n  title: Шатёр\n  weight: 5\n  stack: 1\n  prop: chest\n")
+	_write_file(mod + "/data/starts.yaml", "- id: core:default\n  patch: true\n  bag+: {resources:branch: 3}\n  camp+:\n    - {item: tent, at: [0, -6]}\n"
 		+ "- id: long\n  title: a\n  camp: [{item: tent, at: [1, 2, 3]}]\n"
 		+ "- id: odd\n  title: b\n  camp: [{item: tent, size: 2, at: [0, 0]}]\n"
 		+ "- id: bare\n  title: c\n  camp: [{at: [5, 5]}]\n"
@@ -402,12 +402,6 @@ func _test_starts() -> void:
 	Content.refresh()
 	Mods.rescan()
 	_check(Content.problems.is_empty() and Starts.START.bag.is_empty() and Starts.START.camp.size() == 2, "the start is core's again")
-
-
-func _write(path: String, text: String) -> void:
-	var f := FileAccess.open(path, FileAccess.WRITE)
-	f.store_string(text)
-	f.close()
 
 
 func _test_items() -> void:

@@ -27,6 +27,8 @@ static var IDS: PackedStringArray = []
 ## the material ("" none).
 static var dug: PackedStringArray = []
 static var placed_by: PackedStringArray = []
+## The name of each tool class the items have, for hints (see tool_title).
+static var TOOL_TITLES := {}
 
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
@@ -56,6 +58,14 @@ static func refresh() -> void:
 			var m := Mat.index(place)
 			if m >= 0 and placed_by[m] == "":
 				placed_by[m] = id
+	TOOL_TITLES = {}
+	var titles := {}
+	for id in IDS:
+		var kind: String = BY_ID[id].tool
+		if kind != "none":
+			titles[kind] = titles.get(kind, []) + [BY_ID[id].title]
+	for kind: String in titles:
+		TOOL_TITLES[kind] = _shared_ending(titles[kind])
 
 
 ## The record of item `id`; a bare name is taken as a core item (the campfire). Empty if
@@ -91,6 +101,41 @@ static func with_prop(kind: String) -> String:
 ## The id of the first item used as a `tool` of `kind` (an axe, a pickaxe), "" for none.
 static func with_tool(kind: String) -> String:
 	return _first("tool", kind)
+
+
+## The name of tool class `kind` for a hint ("Нужен инструмент: топор"): the last words the
+## titles of all its items share («Каменный топор», «Медный топор»: «топор»), else the
+## first one's title, from a small letter; the class itself when no item is one.
+static func tool_title(kind: String) -> String:
+	return TOOL_TITLES.get(kind, kind)
+
+
+## The last words `titles` all end with, else the first title, from a small letter.
+static func _shared_ending(titles: Array) -> String:
+	var words: PackedStringArray = titles[0].split(" ")
+	var n := words.size()
+	for t: String in titles:
+		var other := t.split(" ")
+		var same := 0
+		while same < mini(n, other.size()) and words[words.size() - 1 - same].to_lower() == other[other.size() - 1 - same].to_lower():
+			same += 1
+		n = same
+	var text: String = " ".join(words.slice(words.size() - n)) if n > 0 else titles[0]
+	return text.left(1).to_lower() + text.substr(1)
+
+
+## Whether item `id` is a station: set down in the world (a `prop`) and storing nothing.
+static func is_station(id: String) -> bool:
+	var item := get_item(id)
+	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0
+
+
+## The most slots a thing set down holds (`storage`), 0 when none stores.
+static func most_storage() -> int:
+	var most := 0
+	for id in IDS:
+		most = maxi(most, BY_ID[id].storage)
+	return most
 
 
 ## The id of the first item of `category` (see category), "" for none.
@@ -150,11 +195,23 @@ static func category(id: String) -> String:
 	return "materials"
 
 
-## What is wrong with the loaded items for the engine, if anything.
+## What is wrong with the loaded items for the engine, if anything: two items that place
+## one material; the flags of a thing set down on an item that is none; a thing that
+## serves what is no station; a class of tool to set it down with that no item is.
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for id in IDS:
-		var place: String = BY_ID[id].place
+		var item: Dictionary = BY_ID[id]
+		var place: String = item.place
 		if place != "" and Mat.index(place) >= 0 and placed_by[Mat.index(place)] != id:
 			out.append("items: `%s` and `%s` both place `%s`" % [placed_by[Mat.index(place)], id, place])
+		if item.prop == "none":
+			for flag: String in ["storage", "fire", "repairs", "serves", "place_tool"]:
+				if item[flag] != Content.schema("items")[flag].default:
+					out.append("items: `%s`.%s: only a thing set down in the world (a `prop`) has it" % [id, flag])
+		for s: String in item.serves:
+			if not is_station(s) or s == id:
+				out.append("items: `%s`.serves: `%s` is no other station" % [id, s])
+		if item.place_tool != "none" and not TOOL_TITLES.has(item.place_tool):
+			out.append("items: `%s`.place_tool: no item is a `%s`" % [id, item.place_tool])
 	return out

@@ -1,11 +1,13 @@
 extends RefCounted
 ## Things standing on two by two cells that are not cells (an item's `prop`): chests
 ## with what they hold, workbenches, kilns and campfires, placed from the bag, and the
-## camp a new world starts with next to the spawn (Starts: a campfire, a chest). They are solid
-## (WorldData.blockers): bodies go round them or jump on them, and a burning campfire
-## burns a body that touches it (see burns). A chest is taken up with what it holds; a
-## campfire cannot be carried, but it can be put out, lit again for a branch, and
-## destroyed without a trace. The rules take the
+## camp a new world starts with next to the spawn (Starts: a campfire, a chest). What a
+## thing does goes by its item's flags, not its class: `storage` (it holds things, a
+## chest), `fire` (a campfire), `serves` (the stations it stands in for), `place_tool` (the
+## tool it is set down with). They are solid (WorldData.blockers): bodies go round them
+## or jump on them, and a burning fire burns a body that touches it (see burns). A thing
+## that stores is taken up with what it holds; a fire cannot be carried, but it can be put
+## out, lit again for a branch, and destroyed without a trace. The rules take the
 ## one acting as `who` (see WorldActions) and tell what changed through signals: the
 ## client draws the things (Props) and rebuilds the chunks.
 
@@ -15,10 +17,9 @@ const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 
 const CELL := WorldData.CELL
-## Slots of a chest.
-const CHEST_SLOTS := 16
 ## The campfire of the camp by the spawn of a new world (see Starts), the place to come
 ## back to after death.
 const CAMPFIRE := "core:campfire"
@@ -36,10 +37,10 @@ signal cell_changed(cell: Vector3i)
 
 var world
 ## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its two by two
-## cells), "items": what a chest holds (an Inventory, else null), "lit": false for a
-## campfire put out}. Saved with the world (to_list).
+## cells), "items": what a thing that stores holds (an Inventory, else null), "lit": false
+## for a fire put out}. Saved with the world (to_list).
 var things: Array = []
-## What the chest by the spawn holds (the first chest placed).
+## What the chest by the spawn holds (the first thing that stores placed).
 var chest_items = null
 ## The solid boxes of a thing of a prop kind in each of its cells (see
 ## WorldData.blockers): kind -> [north-west, north-east, south-west, south-east], each
@@ -49,24 +50,24 @@ var chest_items = null
 var footprints := {}
 
 
-## True for a campfire (what burns, see put_out and light).
+## True for a fire (its item's `fire`: what burns, see put_out and light).
 static func is_fire(e: Dictionary) -> bool:
-	return Items.get_item(e.item).prop == "campfire"
+	return Items.get_item(e.item).get("fire", false)
 
 
 ## Places thing `item` (an item with a `prop`) with its north-west cell at `cell`;
-## `items` is what a chest holds, as Inventory.to_dict() gave it; `lit` false puts a
-## campfire there cold.
+## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
+## puts a fire there cold.
 func put(item: String, cell: Vector3i, items: Variant = null, lit := true) -> Dictionary:
-	var kind: String = Items.get_item(item).prop
-	var e := {"item": item, "cell": cell, "items": null, "lit": lit or kind != "campfire"}
+	var rec := Items.get_item(item)
+	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire}
 	var whole := AABB(Vector3.ZERO, Vector3.ONE)
-	var boxes: Array = footprints.get(kind, [whole, whole, whole, whole])
+	var boxes: Array = footprints.get(rec.prop, [whole, whole, whole, whole])
 	for i in 4:
 		if boxes[i].has_volume():
 			world.blockers[cell + Vector3i(i & 1, 0, i >> 1)] = boxes[i]
-	if kind == "chest":
-		e.items = Inventory.new(CHEST_SLOTS)
+	if rec.storage > 0:
+		e.items = Inventory.new(rec.storage)
 		e.items.nests = false
 		if items is Dictionary:
 			e.items.from_dict(items)
@@ -134,13 +135,15 @@ func nearest(p: Vector3, reach: float) -> Dictionary:
 	return best
 
 
-## The stations (items with a prop other than a chest; a campfire while it burns)
-## within `reach` world units of world point `p`: item id -> true.
+## The stations (things that store nothing; a fire while it burns) within `reach` world
+## units of world point `p`, and those they serve: item id -> true.
 func stations_near(p: Vector3, reach: float) -> Dictionary:
 	var out := {}
 	for e in things:
 		if e.items == null and e.lit and center(e).distance_to(p) <= reach:
 			out[e.item] = true
+			for s: String in Items.get_item(e.item).serves:
+				out[s] = true
 	return out
 
 
@@ -177,7 +180,8 @@ func chest_center() -> Variant:
 
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first
 ## that holds it) on two by two free cells of level ground in front, at or below level
-## `top`; a chest brings back what it held. True if it was placed.
+## `top`, with a tool of its `place_tool` class in the bag; a thing that stores brings back
+## what it held. True if it was placed.
 func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	var item := Items.get_item(id)
 	var inv = who.inventory
@@ -186,6 +190,9 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 			if slot < 0 and inv.slots[i] != null and inv.slots[i][0] == item.get("id", ""):
 				slot = i
 	if item.get("prop", "none") == "none" or slot < 0 or inv.slots[slot] == null or inv.slots[slot][0] != item.id:
+		return false
+	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
+		who.nag("put", "Чтобы поставить, нужен инструмент: %s" % Items.tool_title(item.place_tool))
 		return false
 	var spot: Variant = _spot_in_front(who, top)
 	if spot == null:
@@ -203,12 +210,12 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	return true
 
 
-## `who` takes placed thing `e` back into the bag, a chest with what it holds (its
-## weight and theirs go to the bag); not a campfire (see put_out and destroy). True if
-## it was taken.
+## `who` takes placed thing `e` back into the bag, a thing that stores with what it holds
+## (its weight and theirs go to the bag); not a fire (see put_out and destroy). True if it
+## was taken.
 func take_up(who, e: Dictionary) -> bool:
 	if is_fire(e):
-		who.nag("take", "Костёр не унести: его можно потушить и разобрать")
+		who.nag("take", "%s не унести: его можно потушить и разобрать" % Items.title(e.item))
 		return false
 	var inv = who.inventory
 	var full: bool = e.items != null and not e.items.is_empty()

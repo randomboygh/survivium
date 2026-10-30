@@ -9,8 +9,10 @@ extends RefCounted
 ## body for the action button, outward from it so the body is dug under last), and the
 ## shapes of the brush blocks are placed with. What a tool can get out of the world
 ## (can_dig, can_chop, can_dig_out, can_gather, mows) the hands' rules
-## (src/shared/game/world_actions.gd) and the content graph ask alike. Shared, so the
-## server can check the same rules.
+## (src/shared/game/world_actions.gd) and the content graph ask alike. A tool's class is an
+## open word: the engine knows the work in the world of WORLD_KINDS, and a tool of any other
+## class (a knife, a hammer) works there as bare hands and is asked for by recipes and
+## stations. Shared, so the server can check the same rules.
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -20,6 +22,8 @@ const Items := preload("res://src/shared/content/items.gd")
 const HAND := {"id": "", "title": "Руки", "tool": "hand", "power": 1, "area": 1, "swing": 0.45, "reach": 8, "mows": "all"}
 ## Hands dig soft ground this many times slower than they swing.
 const HAND_SLOW := 2.0
+## The classes of tools whose work in the world the engine knows (see can_dig and the rest).
+const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe"]
 ## How far blocks, plants and seeds are placed from the body, in cells.
 const PLACE_REACH := 10
 ## Brushes of the hand that places: squares across the tapped face, two cells one on
@@ -34,16 +38,26 @@ const BRUSHES := [
 ]
 
 
-## The tool record of item `id` (see Items), bare hands for "" or an item that is no tool.
+## The tool record of item `id` (see Items) for the work in the world: bare hands for "",
+## an item that is no tool or a tool of a class the world does not know (WORLD_KINDS).
 static func of(id: String) -> Dictionary:
 	if id == "":
 		return HAND
 	var item := Items.get_item(id)
-	return item if not item.is_empty() and item.tool != "none" else HAND
+	return item if not item.is_empty() and item.tool in WORLD_KINDS else HAND
 
 
+## Whether item `id` works in the world as a tool (one of WORLD_KINDS).
 static func is_tool_item(id: String) -> bool:
 	return of(id) != HAND
+
+
+## Whether bag `inv` holds a tool of class `kind`.
+static func holds(inv, kind: String) -> bool:
+	for s in inv.slots:
+		if s != null and Items.get_item(s[0]).get("tool", "none") == kind:
+			return true
+	return false
 
 
 ## What item `id` in a hand is used for: "tool" (dig, chop, mow with it), "place" (a

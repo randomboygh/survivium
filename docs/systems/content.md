@@ -26,7 +26,8 @@
 - Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
   `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (старт нового
   мира: `Starts.START`, `check`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
-  данных): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`).
+  данных): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`),
+  работа в мире пяти классов `WORLD_KINDS` (любой другой класс там — руки), `holds(inv, класс)`.
 
 **Интерфейс**
 - `Content.records(kind)`, `Content.find(kind, id)`, `Content.schema(kind)` (поля вида и общие),
@@ -39,7 +40,8 @@
 - `Mods.activate(bundles)` — сделать набор мира текущим и пересобрать реестры; `Mods.rescan()` —
   перечитать `content/` (кнопка на «Тестировании»); `Mods.expand(list)` — старые id модов в бандлы.
 - Реестры: `Mat.GRASS` и др. (только ядро), `Mat.of_role`, `Mat.index`, `Mat.remap`; `Items.get_item`,
-  `with_prop`, `with_tool`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`; `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
+  `with_prop`, `with_tool`, `tool_title` (название класса инструмента из названий его предметов),
+  `is_station`, `most_storage`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`; `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
   `AiRules.SPECIES`, `is_food`, `is_threat`; `Starts.START` (`bag`, `camp`).
 - `ContentGraph.new()` — граф набора, загруженного сейчас: `reached` (ключ «вид/id» → глубина), `how` (путь
   этой глубины), `sources`, `uses`, `basis(key)` (из чего вещь получается), `able(way)` / `by_hand(way)` (чем

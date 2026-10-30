@@ -65,6 +65,13 @@ func _check(cond: bool, what: String) -> void:
 		printerr("FAIL: " + what)
 
 
+## Writes `text` into the file at `path` (a temporary mod's data).
+func _write_file(path: String, text: String) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text)
+	f.close()
+
+
 ## Brings a chunk to `stage` the way the game does: its own earlier stages first,
 ## then the chunks around it to the stage before.
 func _ensure_stage(gen, key: Vector2i, stage: int) -> void:

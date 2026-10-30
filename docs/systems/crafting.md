@@ -12,8 +12,9 @@
 - `src/shared/game/knowledge.gd` — рецепт известен, когда в сумке побывали все его материалы
   (`look_at`, `knows`); сигнал `learned`.
 - `src/shared/game/craft_queue.gd` — очередь: идёт, пока станок рядом; пауза и отмена с возвратом.
-- `src/shared/content/crafting.gd` — реестр рецептов: `get_recipe`, `missing`, `has_tool`, `why_not`,
-  `take`, `canon` (старые id), `check` (станок каждого рецепта — станок). Можно ли сделать каждый рецепт со
+- `src/shared/content/crafting.gd` — реестр рецептов: `get_recipe`, `missing`, `has_tool`, `why_not`
+  («Нужен инструмент: …» по `Items.tool_title`), `take`, `canon` (старые id), `check` (станок каждого рецепта
+  — станок). Можно ли сделать каждый рецепт со
   старта, решает граф контента `content_graph.gd` ([content.md](content.md)).
 - `src/shared/game/placed.gd` — вещи на клетках по роли предмета `prop` (`chest`, `workbench`, `kiln`,
   `forge`, `campfire`): `put_from_bag`, `take_up`, `put_out`, `light`, `destroy`, `stations_near`,
@@ -28,11 +29,18 @@
 (`Items.fuel_in`); модели — `models/<model>.png`. Износ и починка включаются переключателем
 «Тестирования».
 
-**Ограничения.** Виды станков — закрытый список `prop` в схеме: новый вид станка требует кода. Твёрдые
+**Станки флагами.** `prop` — открытый класс вещи (модель, твёрдые части), а что она делает — флаги
+предмета: `storage` (хранит вещи, сундук: 16 мест; такая вещь не станок), `fire` (горит: тушится,
+разжигается топливом, обжигает), `repairs` (у неё чинят инструменты: верстак), `serves` (заменяет названные
+станки: их рецепты и починка), `place_tool` (ставится, только если в сумке инструмент этого класса).
+`Placed` и `Workshop` спрашивают флаги; новый станок — одни данные: предмет, модель, иконка, рецепты.
+
+**Ограничения.** Твёрдые
 части вещи клиент берёт из её воксельной модели (`Placed.footprints`); серверу их нужно будет отдать
 из данных.
 
-**Тесты.** `tests/unit/content_test.gd` (`crafting`), `tests/unit/actions_test.gd` (`placed`),
+**Тесты.** `tests/unit/content_test.gd` (`crafting`), `tests/unit/actions_test.gd` (`placed`, `station_flags` —
+станок другого класса, который заменяет верстак и ставится с ножом, ящик на 4 места, починка по флагу),
 `tests/unit/character_test.gd` (`wear`), `tests/progress_test.gd` (с пустой сумкой: собирает, ставит
 станки и делает каждый рецепт), `tests/unit/graph_test.gd` и `tools/validate.gd` (граф: каждый рецепт
 достижим со старта с инструментами добычи, без замкнутых кругов). Что из чего и на каком станке —

@@ -161,7 +161,7 @@ func _ready() -> void:
 	_chest_gap = Control.new()
 	_chest_gap.custom_minimum_size.y = 4
 	cells.add_child(_chest_gap)
-	_chest_grid = _slot_grid(cells, game.placed.CHEST_SLOTS, _chest_slots, _tap.bind(false))
+	_chest_grid = _slot_grid(cells, Items.most_storage(), _chest_slots, _tap.bind(false))
 	# Sorting on the right, over the tabs of the chests near.
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 2)
@@ -489,6 +489,10 @@ func refresh() -> void:
 ## chosen, the other cells dimmed.
 func _show_slots(bag, cells: Array) -> void:
 	for i in cells.size():
+		# A chest of fewer slots than the most any holds (Items.most_storage) shows only its own.
+		cells[i].visible = i < bag.slots.size()
+		if not cells[i].visible:
+			continue
 		var s = bag.slots[i]
 		var cell = cells[i]
 		cell.texture = ItemIcons.of_item(s[0]) if s != null else null

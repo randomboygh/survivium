@@ -344,9 +344,9 @@ func cycle_tool() -> void:
 	put_in_hand(ids[(at + 1) % ids.size()])
 
 
-## Whether item `id` is one a hand keeps holding: a tool or a light (a torch).
+## Whether item `id` is one a hand keeps holding: a tool (of any class) or a light (a torch).
 func _kept_in_hand(id: String) -> bool:
-	return Tools.is_tool_item(id) or Items.get_item(id).get("light", 0.0) > 0.0
+	return Items.get_item(id).get("tool", "none") != "none" or Items.get_item(id).get("light", 0.0) > 0.0
 
 
 ## The next brush for placing blocks.
