@@ -28,7 +28,8 @@
 | [generated/code-index.md](generated/code-index.md) | каждый скрипт с первой строкой его описания (генератор) | найти файл по смыслу |
 | [generated/content-index.md](generated/content-index.md) | моды, бандлы и записи каждого вида, в том числе рецепты (генератор) | найти запись или бандл |
 | [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | аудит этапа 0: состояние, находки, что почищено | история реорганизации |
-| [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | готовность к работе над бандлами | перед этапом бандлов |
+| [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md) | система игровых бандлов по ТЗ: понятия, связи, рецепты, станки, граф, эпохи, этапы и их состояние | менять виды контента, рецепты, станки, инструменты |
+| [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | готовность к работе над бандлами (этап 0) и ответы на её вопросы | история решения 152 |
 
 Рядом с кодом: `README.md` в корне (по-русски: что есть в игре, как запустить) и README каждого мода
 (`content/<мод>/README.md`: как устроен мод и как добавить в него своё).
@@ -45,7 +46,8 @@
 | Замыслы, ещё не сделанные: сервер, сеть, редактор, территории | `plan/architecture/networking.md`, `editor.md`, `deployment.md`, `plan/design/territory-pvp.md` |
 | История закрытых тем (варианты, раунды, старые замеры, выполненные планы) | `plan/history/*.md` |
 | Скриншоты по темам (оглавление в README) | `survivium-builds/` |
-| ТЗ этапа 0 и следующего этапа | `audition.md`, `bundles.md` (корень библиотеки) |
+| ТЗ этапа 0 и системы бандлов | `audition.md`, `bundles.md` (корень библиотеки) |
+| План системы бандлов: анализ ТЗ, аудит данных, этапы с файлами и рисками | `plan/architecture/bundle-system.md` |
 
 Статусы документов библиотеки (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) стоят строкой
 `Статус:` под заголовком каждого документа и в оглавлении `plan/README.md`. Документ со статусом

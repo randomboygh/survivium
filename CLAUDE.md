@@ -72,10 +72,11 @@ tests/ tools/      headless tests and the browser smoke test; validator, screens
 
 ## Bundles
 
-A bundle today is a switchable part of a mod (`content/animals/wolf/`, id `animals/wolf`); its
-mechanics are in `docs/DATA_MODEL.md` and `docs/systems/content.md`. The next stage (the user's spec
-`bundles.md` in the library) has not started: before it, read
-`docs/specifications/BUNDLE_SYSTEM_READINESS.md`; its own rules will be linked here once approved.
+A bundle is a switchable part of a mod (`content/animals/wolf/`, id `animals/wolf`); its mechanics are
+in `docs/DATA_MODEL.md` and `docs/systems/content.md`. The bundle system of the user's spec `bundles.md`
+(decision 152) keeps that meaning: what the spec calls a bundle is a record (`mod:name`). No
+technologies: eras are labels the content graph checks. Its rules and the state of its stages are in
+`docs/specifications/BUNDLE_SYSTEM.md`; read it before changing content kinds, recipes, stations or tools.
 
 ## Version and changes
 
