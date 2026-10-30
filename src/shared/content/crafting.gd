@@ -8,10 +8,6 @@ extends RefCounted
 
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
-const Mat := preload("res://src/shared/content/materials.gd")
-const Trees := preload("res://src/shared/content/trees.gd")
-const Bushes := preload("res://src/shared/content/bushes.gd")
-const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Records in the order of the data files, and by id.
 static var RECIPES: Array = []
@@ -104,66 +100,11 @@ static func take(r: Dictionary, inv) -> bool:
 	return true
 
 
-## Every item a player can get: what cells, the plants on them, trees and bushes give, the
-## campfire the camp starts with, and what recipes make from those; the recipes that can never
-## be made are reported by check().
-static func reachable() -> Dictionary:
-	var have := {}
-	for id in Items.IDS:
-		if Items.get_item(id).prop == "campfire":
-			have[id] = true
-	for rec: Dictionary in Mat.RECORDS:
-		for id in [rec.item, rec.bonus] + rec.mow_gives.keys():
-			if id != "":
-				have[id] = true
-	for p: Dictionary in Plants.BY_ID.values():
-		for id in p.gives:
-			have[id] = true
-	for s: Dictionary in Trees.SPECIES:
-		for id in [s.seed, s.log, s.twig]:
-			if id != "":
-				have[id] = true
-	for b: Dictionary in Bushes.TYPES:
-		for id in [b.fruit, b.item, b.twig]:
-			if id != "":
-				have[id] = true
-	var grew := true
-	while grew:
-		grew = false
-		for r in RECIPES:
-			if have.has(r.makes) or (r.at != "" and not have.has(r.at)):
-				continue
-			if r.tool != "none" and not _has_tool_kind(have, r.tool):
-				continue
-			var ok := true
-			for id in r.needs:
-				ok = ok and have.has(id)
-			if ok:
-				have[r.makes] = true
-				grew = true
-	return have
-
-
-static func _has_tool_kind(have: Dictionary, kind: String) -> bool:
-	for id in have:
-		if Items.get_item(id).get("tool", "none") == kind:
-			return true
-	return false
-
-
-## What is wrong with the loaded recipes for the engine, if anything.
-## What is wrong with the loaded recipes: a station that is none, and, with `whole` (the
-## full set of mods; a part of it may well lack the source of something), a recipe that can
-## never be made from what the world gives.
-static func check(whole := true) -> PackedStringArray:
+## What is wrong with the loaded recipes for the engine: a station that is none. Whether
+## each can be made from what the world gives is the content graph's (ContentGraph).
+static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for r in RECIPES:
 		if r.at != "" and Items.get_item(r.at).get("prop", "none") in ["none", "chest"]:
 			out.append("recipes: %s.at: `%s` is no station (an item with prop workbench, kiln, forge or campfire)" % [r.id, r.at])
-	if not whole:
-		return out
-	var have := reachable()
-	for r in RECIPES:
-		if not have.has(r.makes):
-			out.append("recipes: %s can never be made: its materials, station or tool cannot be had" % r.id)
 	return out

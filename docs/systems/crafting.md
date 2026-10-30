@@ -13,7 +13,8 @@
   (`look_at`, `knows`); сигнал `learned`.
 - `src/shared/game/craft_queue.gd` — очередь: идёт, пока станок рядом; пауза и отмена с возвратом.
 - `src/shared/content/crafting.gd` — реестр рецептов: `get_recipe`, `missing`, `has_tool`, `why_not`,
-  `take`, `reachable` (всё ли можно сделать из того, что даёт мир), `canon` (старые id).
+  `take`, `canon` (старые id), `check` (станок каждого рецепта — станок). Можно ли сделать каждый рецепт со
+  старта, решает граф контента `content_graph.gd` ([content.md](content.md)).
 - `src/shared/game/placed.gd` — вещи на клетках по роли предмета `prop` (`chest`, `workbench`, `kiln`,
   `forge`, `campfire`): `put_from_bag`, `take_up`, `put_out`, `light`, `destroy`, `stations_near`,
   `burns`; твёрдые через `WorldData.blockers`; новый мир начинает с лагеря старта у спавна
@@ -33,6 +34,8 @@
 
 **Тесты.** `tests/unit/content_test.gd` (`crafting`), `tests/unit/actions_test.gd` (`placed`),
 `tests/unit/character_test.gd` (`wear`), `tests/progress_test.gd` (с пустой сумкой: собирает, ставит
-станки и делает каждый рецепт), `tools/validate.gd` (рецепты достижимы из того, что даёт мир).
+станки и делает каждый рецепт), `tests/unit/graph_test.gd` и `tools/validate.gd` (граф: каждый рецепт
+достижим со старта с инструментами добычи, без замкнутых кругов). Что из чего и на каком станке —
+`docs/generated/content-graph.md`.
 
 **Подробнее.** `plan/design/crafting.md`, `plan/design/first-hours.md`, README мода `content/tools/`.

@@ -16,8 +16,13 @@
   `{core:fiber: 1}`).
 - `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan`, `expand` (старые списки),
   `RENAMED`, названия для экрана «Моды».
-- `tools/content_report.gd` — реестр сущностей `docs/generated/content-index.md` из загруженных данных;
-  `-- --check` для CI.
+- `src/shared/content/content_graph.gd` — граф контента (`ContentGraph`): пути, которыми вещи появляются
+  (мир, старт, действие с инструментом по правилам `Tools`, рецепт, станок, посадка), достижимость со старта
+  с глубиной, ошибки (нет источника, не достать, рецепт не сделать, не растёт, нет корма, замкнутый круг) и
+  предупреждения (тупик, станок одного рецепта, двойники, прибыльный круг, материал не встречается). Строят
+  только валидатор, отчёты и тесты, игра — нет.
+- `tools/content_report.gd` — отчёты из загруженных данных: реестр сущностей
+  `docs/generated/content-index.md`, граф `content-graph.md`, проверки `content-checks.md`; `-- --check` для CI.
 - Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
   `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (старт нового
   мира: `Starts.START`, `check`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
@@ -34,9 +39,11 @@
 - `Mods.activate(bundles)` — сделать набор мира текущим и пересобрать реестры; `Mods.rescan()` —
   перечитать `content/` (кнопка на «Тестировании»); `Mods.expand(list)` — старые id модов в бандлы.
 - Реестры: `Mat.GRASS` и др. (только ядро), `Mat.of_role`, `Mat.index`, `Mat.remap`; `Items.get_item`,
-  `with_prop`, `with_tool`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `reachable`,
-  `canon`; `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
+  `with_prop`, `with_tool`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`; `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
   `AiRules.SPECIES`, `is_food`, `is_threat`; `Starts.START` (`bag`, `camp`).
+- `ContentGraph.new()` — граф набора, загруженного сейчас: `reached` (ключ «вид/id» → глубина), `how` (путь
+  этой глубины), `sources`, `uses`, `basis(key)` (из чего вещь получается), `able(way)` / `by_hand(way)` (чем
+  сделать действие пути), `errors`, `warnings`, `findings` (проверка, текст, записи), `cycles()`.
 
 **Кто использует.** Почти всё: `materials.gd` грузят 41 файл, `items.gd` — 32, `content.gd` — 17.
 Правка схемы или реестра затрагивает генератор, меши, правила и UI.
@@ -49,7 +56,10 @@
   связи `rel` из `RELATIONS` и, если связь даёт действие, `via` из `ACTIONS`, иначе тест не пройдёт), чтение
   в реестре, комментарий в YAML, проверка в `tests/unit/content_test.gd`.
 - Вид данных: схема в `SCHEMAS`, новый реестр со `refresh()`, вызов его в `Mods._refresh_registries`,
-  проверка в `tools/validate.gd`.
+  проверка в `tools/validate.gd`; каждое поле-ссылка — строка в `ContentGraph.LINKS` (что эта связь значит
+  для графа), иначе не пройдёт `graph_test`.
+- Предмет, который даёт квест или торговля, а не мир и не рецепт: `source: special`, иначе граф скажет
+  «нет источника».
 - Бандл с готовыми ролями — только данные и ассеты, код не нужен (пример: `content/animals/sparrow/`).
 
 **Подводные камни**
@@ -71,12 +81,12 @@
 **Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — тип связи у каждой ссылки, `mods`,
 `records` — общие поля, замены, предупреждения, `renames` — `was` и происхождение записей, `starts` — старт,
 его патч и поля `entries`, `items`,
-`tools`, `crafting`, `layers` — и слои внутри `src/shared/`), `tools/content_report.gd -- --check` (реестр
-свежий),
-`tools/validate.gd` (каждый бандл отдельно, звуки, картинки в руках, иконки, текстуры, модели, листы
-существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка; предупреждения об именах печатает, не
-падая), `tests/progress_test.gd` (все рецепты
-достижимы игрой).
+`tools`, `crafting`, `layers` — и слои внутри `src/shared/`), `tests/unit/graph_test.gd` (граф: полный
+набор без ошибок, глубина добытого инструментом, тупики раздела 18 ТЗ на бандлах тестового мода, круги,
+двойники, прибыльный круг), `tools/content_report.gd -- --check` (отчёты свежие),
+`tools/validate.gd` (каждый бандл отдельно, граф полного набора, звуки, картинки в руках, иконки, текстуры,
+модели, листы существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка; предупреждения об именах и
+графа печатает, не падая), `tests/progress_test.gd` (все рецепты достижимы игрой).
 
 **Известные проблемы.** Роли — закрытые списки (`items.tool`, `items.prop`, `plants.kind`,
 `materials.role`, `biomes.where`), новая роль требует кода. Голоса зверей синтезирует таблица в

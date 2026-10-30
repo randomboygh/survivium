@@ -7,7 +7,8 @@
 Категория — у предметов та, что выводит игра (у рецепта — его предмета), у остальных их роль или вид.
 Бандл — где запись определена; «→» — кто её заменил (`replaces`), «патчи» — кто поправил.
 Связи — сколько записей называет эта и сколько называют её (поля-ссылки с типом связи `rel`).
-Проверка — что валидатор говорит о записи: «ок», ошибки или предупреждения.
+Проверка — что говорят о записи проверки загрузки и графа: «ок», ошибки или предупреждения. Граф —
+[content-graph.md](content-graph.md), что нашли проверки — [content-checks.md](content-checks.md).
 
 ## Моды и бандлы
 
@@ -25,16 +26,16 @@
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 0 / 3 | ок |
+| `core:campfire` | Костёр | Станки |  | `core` | 0 / 3 | предупреждения: 1 |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 1 / 3 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 0 / 2 | ок |
 | `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 0 / 2 | ок |
 | `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 0 / 11 | ок |
 | `materials:planks` | Доски | Блоки |  | `materials/planks` | 1 / 16 | ок |
-| `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0 / 1 | ок |
+| `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0 / 1 | предупреждения: 1 |
 | `plants:blueberry_bush` | Кустик черники | Посадки |  | `plants/blueberry` | 1 / 1 | ок |
-| `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0 / 1 | ок |
-| `plants:currant` | Смородина | Еда |  | `plants/currant` | 0 / 1 | ок |
+| `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0 / 1 | предупреждения: 1 |
+| `plants:currant` | Смородина | Еда |  | `plants/currant` | 0 / 1 | предупреждения: 1 |
 | `plants:currant_bush` | Куст смородины | Посадки |  | `plants/currant` | 1 / 1 | ок |
 | `plants:grass_seeds` | Семена трав | Посадки |  | `plants/grass` | 1 / 2 | ок |
 | `plants:mushroom` | Гриб | Еда |  | `plants/mushrooms` | 0 / 2 | ок |
@@ -42,7 +43,7 @@
 | `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0 / 1 | ок |
 | `plants:raspberry` | Малина | Еда |  | `plants/raspberry` | 0 / 1 | ок |
 | `plants:raspberry_bush` | Куст малины | Посадки |  | `plants/raspberry` | 1 / 1 | ок |
-| `plants:rosehip` | Шиповник | Еда |  | `plants/rosehip` | 0 / 1 | ок |
+| `plants:rosehip` | Шиповник | Еда |  | `plants/rosehip` | 0 / 1 | предупреждения: 1 |
 | `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1 / 1 | ок |
 | `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1 / 1 | ок |
 | `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0 / 11 | ок |
@@ -57,15 +58,15 @@
 | `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0 / 30 | ок |
 | `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1 / 18 | ок |
 | `plants:apple` | Яблоко | Еда |  | `plants/apple` | 0 / 1 | ок |
-| `plants:acorn` | Жёлудь | Материалы |  | `plants/oak` | 0 / 1 | ок |
-| `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0 / 1 | ок |
-| `plants:cone` | Шишка | Материалы |  | `plants/spruce` | 0 / 2 | ок |
+| `plants:acorn` | Жёлудь | Материалы |  | `plants/oak` | 0 / 1 | предупреждения: 1 |
+| `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0 / 1 | предупреждения: 1 |
+| `plants:cone` | Шишка | Материалы |  | `plants/spruce` | 0 / 2 | предупреждения: 1 |
 | `tools:torch` | Факел | Материалы |  | `tools/torch` | 0 / 1 | ок |
 | `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 0 / 18 | ок |
 | `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 2 / 1 | ок |
 | `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 1 / 1 | ок |
 | `tools:chest` | Сундук | Станки |  | `tools/chest` | 0 / 2 | ок |
-| `tools:forge` | Горн | Станки |  | `tools/forge` | 0 / 2 | ок |
+| `tools:forge` | Горн | Станки |  | `tools/forge` | 0 / 2 | предупреждения: 1 |
 | `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 0 / 4 | ок |
 | `plants:grain` | Зерно | Посадки |  | `plants/ears` | 2 / 2 | ок |
 | `plants:flour` | Мука | Материалы |  | `plants/ears` | 0 / 2 | ок |

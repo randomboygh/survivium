@@ -1,0 +1,548 @@
+extends RefCounted
+## The content graph of the loaded set (docs/specifications/BUNDLE_SYSTEM.md, section 11):
+## the records and the links their reference fields name (Content.refs, by LINKS), and
+## what a player comes to from the start (Starts) by the rules of the hands (Tools): the
+## biomes, the cells the generator lays and the plants, trees, bushes and animals living
+## there; what acting on them gives with the tools had so far; what the recipes make of
+## that at the stations set down; what is set down, planted and sown in turn, until nothing
+## new comes. `errors` (the validator fails on them in the full set): an item that can
+## never be had or that nothing gives, a recipe never made, a plant, bush or tree that
+## never grows, an animal whose food never grows, a tool kind no item is, and the cycles
+## that block them; `warnings` (they fail nothing): dead ends, stations of one recipe,
+## twins, loops of recipes that give back more than they take, cells that never appear.
+## Each is a finding too, with its check and the records it is about, and `basis` tells
+## what each thing comes of: tools/content_report.gd writes them into
+## docs/generated/content-graph.md and content-checks.md. Built by the validator, the
+## reports and the tests, never by the game: `new()` builds it for the set loaded now.
+
+const Content := preload("res://src/shared/content/content.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
+const Crafting := preload("res://src/shared/content/crafting.gd")
+const Starts := preload("res://src/shared/content/starts.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
+
+## What each reference field ("kind.field", see Content.refs) is to the graph: `gives` —
+## what it names comes from the record by the field's action (`via`, under its rule of the
+## hands, see _can); `makes` — what it names comes into the world from the item had (set
+## down, planted, sown); `grows` — a biome grows it; `lives` — the record lives in the
+## world when one of what it names is there; `made`, `needs`, `station` — a recipe's
+## product, materials and station; `start`, `camp` — the start's bag and the things it sets
+## down by the spawn; `use` — a use only (mending, an animal's food). A field not here fails
+## graph_test: the graph must know every link.
+const LINKS := {
+	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
+	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use",
+	"creatures.likes": "use", "creatures.biomes": "lives",
+	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
+	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
+	"biomes.trees": "grows", "biomes.bushes": "grows",
+	"recipes.makes": "made", "recipes.needs": "needs", "recipes.at": "station",
+	"starts.bag": "start", "starts.camp.item": "camp",
+	"plants.gives": "gives",
+}
+## The links by which a record uses an item (see uses).
+const USED_BY := ["consumes", "requires_station", "repaired_with"]
+## The fields that say what an item is for besides being used up: an item with none of
+## them set that no recipe needs and nothing mends with is a dead end.
+const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "heal", "fuel", "light"]
+## The fields that make two items alike in what they do (see _twins).
+const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "area", "mows", "swing", "plant", "sow",
+	"crop", "reach", "durability", "repair", "prop", "fuel", "light"]
+## A depth past every real one.
+const FAR := 1 << 30
+## The checks, each an error (true: the validator fails on it in the full set) or a warning.
+const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "never_made": true, "never_grows": true,
+	"no_food": true, "cycle": true, "dead_end": false, "station": false, "twins": false, "loop": false,
+	"never_appears": false}
+## How each way is told in a message (see _why).
+const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
+	"recipe": "made by", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
+	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
+	"gather": "gathered from", "dig_out": "dug out of"}
+
+## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
+## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "spawns",
+## "lives", "is" for a tool of a kind), "from": the key it comes from or "", "needs": the
+## keys it takes besides, "act": the action whose rule of the hands a tool had must keep,
+## "" for none, "step": 1 for a recipe's product}. Keys: "kind/id" for a record in the world
+## or had (`items/` in the bag), "placed/<item>" for a thing standing in the world,
+## "tool/<kind>" for a tool of that kind in the bag.
+var ways: Array = []
+## Key -> the ways that give it (see ways), reached or not.
+var sources := {}
+## Item key -> [link, key of the record that uses it] for each link of USED_BY and an
+## animal's food (`feeds_on`).
+var uses := {}
+## What the start comes to: key -> depth, the steps of making from the start (what the
+## world and the start give with bare hands is 0; what a tool gets, the tool's depth; a
+## recipe's product one more than the deepest of its materials, station and tool).
+var reached := {}
+## Reached key -> the way that gives it at its depth.
+var how := {}
+## Records of the set by key ("items/resources:log"), "placed/" keys by their item's.
+var records := {}
+## What the checks found, in order: {"check": a key of CHECKS, "text": the message (in
+## `errors` or `warnings`), "keys": the records it is about, "of": a check's details (a
+## station's recipes, a loop's yield), null for none}.
+var findings: Array = []
+var errors: PackedStringArray = []
+var warnings: PackedStringArray = []
+
+
+func _init() -> void:
+	for kind: String in ["materials", "items", "trees", "bushes", "plants", "creatures", "biomes", "recipes", "starts"]:
+		for r: Dictionary in Content.records(kind):
+			records["%s/%s" % [kind, r.id]] = r
+	_make_ways()
+	_reach()
+	_check()
+
+
+## The ways things come about in the set loaded now (see ways).
+func _make_ways() -> void:
+	_way("starts/" + Starts.START.id, "world")
+	# The world as the generator makes it: every biome; the cells it lays (core's and those
+	# of the roles; a trunk's and a crown's are a tree's, felled rather than dug); the plant
+	# of each kind and every plant of its own picture (Grass).
+	for r: Dictionary in Content.records("biomes"):
+		_way("biomes/" + r.id, "world")
+	for id: String in Mat.KNOWN.values():
+		_way("materials/" + id, "world")
+	for role: String in Mat.ROLES:
+		var m := Mat.of_role(role, -1)
+		if m >= 0 and not role in ["trunk", "crown"]:
+			_way("materials/" + Mat.IDS[m], "world")
+	for kind: String in Plants.KINDS.values():
+		if kind != Plants.KINDS.CUSTOM and Plants.of_kind(kind) != "":
+			_way("plants/" + Plants.of_kind(kind), "world")
+	for c: Dictionary in Plants.CUSTOM:
+		_way("plants/" + c.id, "world")
+	for r: Dictionary in Content.records("creatures"):
+		if r.biomes.is_empty():
+			_way("creatures/" + r.id, "world")
+	for id: String in Items.IDS:
+		var item := Items.get_item(id)
+		if item.source == "special":
+			_way("items/" + id, "special")
+		if item.prop != "none":
+			_way("placed/" + id, "place", "items/" + id)
+			records["placed/" + id] = item
+		if item.tool != "none":
+			_way("tool/" + item.tool, "is", "items/" + id)
+	for r: Dictionary in Crafting.RECIPES:
+		var needs := []
+		for id: String in r.needs:
+			needs.append("items/" + id)
+		if r.at != "":
+			needs.append("placed/" + r.at)
+		if r.tool != "none":
+			needs.append("tool/" + r.tool)
+		_way("recipes/" + r.id, "craft", "", needs)
+	# A tree stands on cells of the trunk and crown roles (Trees.check).
+	var trees_stand := Mat.LOG >= 0 and Mat.LEAVES >= 0
+	for kind: String in Content.SCHEMAS:
+		for ref: Array in Content.refs(kind):
+			var spec: Dictionary = ref[1]
+			var of := Content.target(spec)
+			for r: Dictionary in Content.records(kind):
+				var from := "%s/%s" % [kind, r.id]
+				for id: String in Content.named(r, ref[0]):
+					var to := "%s/%s" % [of, id]
+					match LINKS.get("%s.%s" % [kind, ref[0]], ""):
+						"gives":
+							_way(to, spec.via, from, [], spec.via)
+						"makes":
+							_way(to, spec.via, from)
+						"grows":
+							if of != "trees" or trees_stand:
+								_way(to, "spawns", from)
+						"lives":
+							_way(from, "lives", to)
+						"made":
+							_way(to, "recipe", from, [], "", 1)
+						"start":
+							_way(to, "start", from)
+						"camp":
+							_way("placed/" + id, "start", from)
+					if spec.rel in USED_BY or spec.rel == "feeds_on":
+						if not uses.has(to):
+							uses[to] = []
+						uses[to].append([spec.rel, from])
+
+
+func _way(to: String, via: String, from := "", needs: Array = [], act := "", step := 0) -> void:
+	var w := {"to": to, "via": via, "from": from, "needs": needs, "act": act, "step": step}
+	ways.append(w)
+	if not sources.has(to):
+		sources[to] = []
+	sources[to].append(w)
+
+
+## Goes over the ways until nothing new comes and no depth gets less.
+func _reach() -> void:
+	var changed := true
+	while changed:
+		changed = false
+		var tools := _tools_had()
+		for w: Dictionary in ways:
+			var d := _depth(w, tools)
+			if d >= 0 and d < reached.get(w.to, FAR):
+				reached[w.to] = d
+				how[w.to] = w
+				changed = true
+
+
+## The tools had now, [tool record (Tools.of), depth] each, bare hands first.
+func _tools_had() -> Array:
+	var out := [[Tools.HAND, 0]]
+	for key: String in reached:
+		if key.begins_with("items/") and Tools.is_tool_item(key.substr(6)):
+			out.append([Tools.of(key.substr(6)), reached[key]])
+	return out
+
+
+## The depth way `w` gives its thing at with the tools of `tools` (see _tools_had), -1 when
+## it gives nothing yet.
+func _depth(w: Dictionary, tools: Array) -> int:
+	var d := 0
+	for key: String in _takes(w):
+		if not reached.has(key):
+			return -1
+		d = maxi(d, reached[key])
+	if w.act != "":
+		var best := -1
+		for t: Array in tools:
+			if (best < 0 or t[1] < best) and _can(w.act, t[0], w.from):
+				best = t[1]
+		if best < 0:
+			return -1
+		d = maxi(d, best)
+	return d + w.step
+
+
+## The keys way `w` takes: where it comes from and what it needs besides.
+static func _takes(w: Dictionary) -> Array:
+	return ([w.from] if w.from != "" else []) + w.needs
+
+
+## Whether tool `t` does action `act` to the record of key `from`, by the rules of the
+## hands (Tools, as WorldActions asks them): a cell is dug by what digs it; its own top is
+## cut only by what cuts low (Tools.mows_low), a plant on it by what mows at all, low grass
+## (a tuft) again only low; a tree is felled, a bush dug out, seeds, twigs and berries
+## gathered by hand.
+func _can(act: String, t: Dictionary, from: String) -> bool:
+	var r: Dictionary = records.get(from, {})
+	match act:
+		"dig":
+			return Tools.can_dig(t, Mat.index(r.id))
+		"mow":
+			if from.begins_with("materials/"):
+				return r.mow != "" and Tools.mows_low(t)
+			return Tools.mows_low(t) if r.get("kind", "") == Plants.KINDS.TUFT else Tools.mows(t)
+		"fell":
+			return Tools.can_chop(t)
+		"gather":
+			return Tools.can_gather(t)
+		"dig_out":
+			return Tools.can_dig_out(t)
+	return true
+
+
+# --- Checks -------------------------------------------------------------------------------
+
+func _check() -> void:
+	for id: String in Items.IDS:
+		var key := "items/" + id
+		if reached.has(key):
+			continue
+		if not sources.has(key):
+			_found("no_source", "items: `%s` has no source: no recipe makes it, nothing in the world gives it and the start has none (when a quest or a trade gives it, mark it `source: special`)" % id, [key])
+		else:
+			_found("never_had", "items: `%s` can never be had: %s" % [id, _why(key)], [key])
+	for r: Dictionary in Crafting.RECIPES:
+		var key: String = "recipes/" + r.id
+		if r.tool != "none" and not sources.has("tool/" + r.tool):
+			_found("no_tool_item", "recipes: `%s`.tool: no item is a `%s`" % [r.id, r.tool], [key])
+		elif not reached.has(key):
+			_found("never_made", "recipes: `%s` can never be made: %s" % [r.id, _why(key)], [key])
+	for kind: String in ["plants", "bushes", "trees"]:
+		for r: Dictionary in Content.records(kind):
+			var key := "%s/%s" % [kind, r.id]
+			if not reached.has(key):
+				_found("never_grows", "%s: `%s` never grows in the world: %s" % [kind, r.id,
+					_why(key) if sources.has(key) else "no biome grows it and nothing plants or sows it"], [key])
+	for r: Dictionary in Content.records("creatures"):
+		if not r.likes.is_empty() and not r.likes.any(func(p: String) -> bool: return reached.has("plants/" + p)):
+			_found("no_food", "creatures: `%s` feeds on %s, and none of them ever grows" % [r.id, _list(r.likes)],
+				["creatures/" + r.id])
+	for cycle: Array in cycles():
+		_found("cycle", "a blocking cycle, each needing the next: %s" % " → ".join((cycle + [cycle[0]]).map(_name)),
+			cycle.map(func(k: String) -> String: return "items/" + k.substr(7) if k.begins_with("placed/") else k))
+	_dead_ends()
+	_stations()
+	_twins()
+	_loops()
+	for r: Dictionary in Content.records("materials"):
+		if not reached.has("materials/" + r.id) and not r.role in ["trunk", "crown"]:
+			_found("never_appears", "materials: `%s` never appears in the world: the generator lays it for no role and nothing places it" % r.id,
+				["materials/" + r.id])
+
+
+func _found(check: String, text: String, keys: Array, of: Variant = null) -> void:
+	findings.append({"check": check, "text": text, "keys": keys, "of": of})
+	if CHECKS[check]:
+		errors.append(text)
+	else:
+		warnings.append(text)
+
+
+## Why `key` is never reached: each way to it and what it lacks ("made by recipe `x`
+## (never come to)", "felled from tree `y`, lacking a tool that can fell it (`z`)"; a
+## recipe's: "lacking `a`, `b` set down").
+func _why(key: String) -> String:
+	var parts := []
+	for w: Dictionary in sources.get(key, []):
+		var lacks := []
+		for k: String in w.needs:
+			if not reached.has(k):
+				lacks.append(_name(k))
+		if w.act != "" and (w.from == "" or reached.has(w.from)):
+			var tools := able(w)
+			lacks.append("a tool that can %s it (%s)" % [w.act, _list(tools) if not tools.is_empty() else "no item can"])
+		var text: String = "" if w.via == "craft" else TOLD.get(w.via, w.via)
+		if w.from != "":
+			text += " %s%s" % [_name(w.from), "" if reached.has(w.from) else " (never come to)"]
+		if not lacks.is_empty():
+			text += ("" if text == "" else ", ") + "lacking " + ", ".join(lacks)
+		parts.append(text)
+	return "; ".join(parts)
+
+
+## The items that would do the action of way `w` as tools (see _can).
+func able(w: Dictionary) -> Array:
+	return Array(Items.IDS).filter(func(id: String) -> bool: return Tools.is_tool_item(id) and _can(w.act, Tools.of(id), w.from))
+
+
+## Whether bare hands do the action of way `w` (or it has none).
+func by_hand(w: Dictionary) -> bool:
+	return w.act == "" or _can(w.act, Tools.HAND, w.from)
+
+
+## What `key` comes of at its depth: the keys the way giving it takes (where it comes from;
+## a recipe's materials, station and tool) and the earliest tool item had that does its
+## action when bare hands cannot. Empty for what is never reached.
+func basis(key: String) -> Array:
+	if not how.has(key):
+		return []
+	var w: Dictionary = how[key]
+	var out := _takes(w)
+	if not by_hand(w):
+		var best := ""
+		for id: String in able(w):
+			if reached.has("items/" + id) and (best == "" or reached["items/" + id] < reached["items/" + best]):
+				best = id
+		if best != "":
+			out.append("items/" + best)
+	return out
+
+
+## Key `key` named for a message: "`id`" for an item, "`id` set down", "a `kind` tool",
+## else "kind `id`".
+static func _name(key: String) -> String:
+	var kind := key.get_slice("/", 0)
+	var id := key.substr(kind.length() + 1)
+	match kind:
+		"items":
+			return "`%s`" % id
+		"placed":
+			return "`%s` set down" % id
+		"tool":
+			return "a `%s` tool" % id
+		"recipes":
+			return "recipe `%s`" % id
+	return "%s `%s`" % [kind.trim_suffix("s"), id]
+
+
+static func _list(ids: Array) -> String:
+	return ", ".join(ids.map(func(id: String) -> String: return "`%s`" % id))
+
+
+## The cycles that keep things from ever being reached: the strongly connected groups of
+## what is never reached, linked from each thing to what its ways lack (and to the tools
+## that could do their action), each as one cycle through its first member. Mending,
+## recycling and ways back and forth between things reached block nothing.
+func cycles() -> Array:
+	var lacks := {}
+	for key: String in sources:
+		if reached.has(key):
+			continue
+		var out := {}
+		for w: Dictionary in sources[key]:
+			for k: String in _takes(w):
+				if not reached.has(k):
+					out[k] = true
+			if w.act != "":
+				for id: String in able(w):
+					if not reached.has("items/" + id):
+						out["items/" + id] = true
+		lacks[key] = out.keys()
+	var found := []
+	for group: Array in _strong(lacks):
+		if group.size() > 1 or lacks.get(group[0], []).has(group[0]):
+			found.append(_cycle_through(group, lacks))
+	return found
+
+
+## The strongly connected groups of `edges` (key -> keys), by Tarjan's way, members in
+## the order the keys come.
+static func _strong(edges: Dictionary) -> Array:
+	var index := {}
+	var low := {}
+	var on := {}
+	var stack := []
+	var groups := []
+	for root: String in edges:
+		if index.has(root):
+			continue
+		# Without recursion: each frame is [key, the next of its edges to follow].
+		var frames := [[root, 0]]
+		index[root] = index.size()
+		low[root] = index[root]
+		stack.append(root)
+		on[root] = true
+		while not frames.is_empty():
+			var top: Array = frames.back()
+			var key: String = top[0]
+			var next: Array = edges.get(key, [])
+			if top[1] < next.size():
+				var to: String = next[top[1]]
+				top[1] += 1
+				if not index.has(to):
+					index[to] = index.size()
+					low[to] = index[to]
+					stack.append(to)
+					on[to] = true
+					frames.append([to, 0])
+				elif on.get(to, false):
+					low[key] = mini(low[key], index[to])
+				continue
+			frames.pop_back()
+			if not frames.is_empty():
+				var up: String = frames.back()[0]
+				low[up] = mini(low[up], low[key])
+			if low[key] == index[key]:
+				var group := []
+				while true:
+					var k: String = stack.pop_back()
+					on[k] = false
+					group.push_front(k)
+					if k == key:
+						break
+				groups.append(group)
+	return groups
+
+
+## A cycle through the first member of strongly connected `group`, following `edges`
+## (a search that steps back from a member with no way on).
+static func _cycle_through(group: Array, edges: Dictionary) -> Array:
+	var start: String = group[0]
+	var path := [start]
+	var seen := {start: true}
+	while not path.is_empty():
+		var key: String = path.back()
+		var next := ""
+		for to: String in edges.get(key, []):
+			if to == start:
+				return path
+			if next == "" and group.has(to) and not seen.has(to):
+				next = to
+		if next == "":
+			path.pop_back()
+		else:
+			seen[next] = true
+			path.append(next)
+	return group
+
+
+# --- Warnings -----------------------------------------------------------------------------
+
+## Items had that nothing needs and that are for nothing else either.
+func _dead_ends() -> void:
+	for id: String in Items.IDS:
+		if reached.has("items/" + id) and not uses.has("items/" + id) and not _has_function(Items.get_item(id)):
+			_found("dead_end", "items: `%s` is a dead end: no recipe needs it, nothing is mended with it, and it is no tool, station, block, seed, food, cure, fuel or light" % id,
+				["items/" + id])
+
+
+static func _has_function(item: Dictionary) -> bool:
+	for f: String in FUNCTIONS:
+		var v: Variant = item.get(f)
+		if v is String and v != "" and v != "none" or v is bool and v or (v is float or v is int) and v > 0:
+			return true
+	return false
+
+
+## Stations no recipe or only one is made at (a chest stores, it makes nothing).
+func _stations() -> void:
+	for id: String in Items.IDS:
+		var prop: String = Items.get_item(id).prop
+		if prop == "none" or prop == "chest":
+			continue
+		var at := Array(Crafting.RECIPES).filter(func(r: Dictionary) -> bool: return r.at == id).map(func(r: Dictionary) -> String: return r.id)
+		if at.size() < 2:
+			_found("station", "items: `%s` is the station of %s" % [id, "no recipe" if at.is_empty() else "one recipe only, %s" % _list(at)],
+				["items/" + id], at)
+
+
+## Items alike in everything they do (ALIKE) and needed by the same records.
+func _twins() -> void:
+	var by := {}
+	for id: String in Items.IDS:
+		var item := Items.get_item(id)
+		if not uses.has("items/" + id) and not _has_function(item):
+			continue
+		var sign := []
+		for f: String in ALIKE:
+			sign.append(item.get(f))
+		sign.append(uses.get("items/" + id, []).map(func(u: Array) -> String: return "%s %s" % u))
+		var k := str(sign)
+		by[k] = by.get(k, []) + [id]
+	for k: String in by:
+		if by[k].size() > 1:
+			_found("twins", "items: %s are alike in all they do and in what needs them" % _list(by[k]),
+				by[k].map(func(id: String) -> String: return "items/" + id))
+
+
+## Loops of recipes that give back more of an item than went in (an endless source): the
+## best yield of a path of recipes from each item to each other, by how many come out of
+## one going in, and an item whose yield back to itself is above 1.
+func _loops() -> void:
+	var ids := []
+	for r: Dictionary in Crafting.RECIPES:
+		for id: String in r.needs.keys() + [r.makes]:
+			if not ids.has(id):
+				ids.append(id)
+	var n := ids.size()
+	var gain := []
+	gain.resize(n * n)
+	gain.fill(0.0)
+	for r: Dictionary in Crafting.RECIPES:
+		var j := ids.find(r.makes)
+		for id: String in r.needs:
+			var i := ids.find(id)
+			gain[i * n + j] = maxf(gain[i * n + j], float(r.count) / r.needs[id])
+	# Not through a loop at the item gone through (m), which would multiply its own yield.
+	for m in n:
+		for i in n:
+			if i == m or gain[i * n + m] == 0.0:
+				continue
+			for j in n:
+				if j != m:
+					gain[i * n + j] = maxf(gain[i * n + j], gain[i * n + m] * gain[m * n + j])
+	for i in n:
+		if gain[i * n + i] > 1.0001:
+			var yield_back := minf(gain[i * n + i], 99.0)
+			_found("loop", "recipes: a loop of recipes gives back ×%.2f of `%s`: an endless source of it" % [yield_back, ids[i]],
+				["items/" + ids[i]], yield_back)

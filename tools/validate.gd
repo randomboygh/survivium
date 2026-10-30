@@ -1,7 +1,9 @@
 extends SceneTree
 ## Checks the content files of every mod and fails on any problem, for CI and for a
-## quick check after editing data (names against the naming rules are printed as
-## warnings and fail nothing):
+## quick check after editing data: schemas and references, each bundle by itself, the
+## pictures, sounds and models, and the content graph of the full set (everything can be
+## had from the start, no cycle blocks anything). Names against the naming rules and the
+## graph's warnings (dead ends, stations of one recipe...) are printed and fail nothing:
 ## godot --headless --path . --script res://tools/validate.gd
 
 const Content := preload("res://src/shared/content/content.gd")
@@ -15,6 +17,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
+const ContentGraph := preload("res://src/shared/content/content_graph.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
@@ -40,6 +43,9 @@ func _init() -> void:
 	problems.append_array(Crafting.check())
 	problems.append_array(Plants.check())
 	problems.append_array(Starts.check())
+	var graph := ContentGraph.new()
+	problems.append_array(graph.errors)
+	warnings.append_array(graph.warnings)
 	problems.append_array(_check_held())
 	problems.append_array(_check_creature_pictures())
 	problems.append_array(_check_models())
@@ -77,7 +83,7 @@ func _check_each_bundle() -> PackedStringArray:
 		problems.append_array(Bushes.check())
 		problems.append_array(Biomes.check())
 		problems.append_array(Items.check())
-		problems.append_array(Crafting.check(false))
+		problems.append_array(Crafting.check())
 		problems.append_array(Plants.check())
 		problems.append_array(Starts.check())
 		for p in problems:
