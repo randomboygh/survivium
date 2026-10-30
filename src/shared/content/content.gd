@@ -242,12 +242,14 @@ const RELATIONS := {
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
 const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
-## reports and search (they decide nothing in the engine), and which of the record's
-## numbers are provisional, still to be balanced.
+## reports and search (they decide nothing in the engine), which of the record's numbers
+## are provisional, still to be balanced, and the ids it had before (`was`), so a save
+## that names one finds it (see canon).
 const COMMON := {
 	"description": {"type": "string", "default": ""},
 	"tags": {"type": "list", "of": "string", "default": []},
 	"provisional": {"type": "list", "of": "string", "default": []},
+	"was": {"type": "list", "of": "string", "default": []},
 }
 const MOD_SCHEMA := {
 	"title": {"type": "string"},
@@ -268,6 +270,12 @@ static var problems: PackedStringArray = []
 ## Names the last load found against the naming rules (see _check_names): reported by
 ## the validator, never failing it.
 static var warnings: PackedStringArray = []
+## Where each loaded record comes from, by "kind/id": {"bundle" that defined it first,
+## "replaced" (the bundles whose `replaces` took its place, in order), "patched" (the
+## bundles that patched it)}.
+static var origins := {}
+## kind -> an id a record had before (its `was`) -> its id now.
+static var _renamed := {}
 ## kind -> Array of records in load order; a record's `mod` names its mod (its
 ## namespace) and `bundle` the bundle its files are in.
 static var _kinds := {}
@@ -627,6 +635,21 @@ static func find(kind: String, id: String) -> Dictionary:
 	return {}
 
 
+## Id `id` of `kind` as it is called now: the id of the record whose `was` names it, any
+## other as it is. The registries' own tables of older renames (Items.RENAMED...) go first.
+static func canon(kind: String, id: String) -> String:
+	if not _loaded:
+		load_all()
+	return _renamed.get(kind, {}).get(id, id)
+
+
+## Where the record `id` of `kind` comes from (see origins), empty when it is not loaded.
+static func origin(kind: String, id: String) -> Dictionary:
+	if not _loaded:
+		load_all()
+	return origins.get("%s/%s" % [kind, id], {})
+
+
 ## Where record `rec` keeps file `rel` (`sprites/creatures/wolf.png`): in its bundle,
 ## else in its mod's `common/`; the bundle's path when neither has it.
 static func asset(rec: Dictionary, rel: String) -> String:
@@ -663,6 +686,8 @@ static func load_all() -> void:
 	_loaded = true
 	problems = []
 	warnings = []
+	origins = {}
+	_renamed = {}
 	_kinds = {}
 	_raw = {}
 	dropped = {}
@@ -683,6 +708,7 @@ static func load_all() -> void:
 	for b in loaded:
 		_load_bundle(b)
 	_check_refs()
+	_check_renames()
 	_check_names()
 	for p in problems:
 		push_error("content: " + p)
@@ -704,6 +730,7 @@ static func _load_bundle(bundle: String) -> void:
 						problems.append("%s: %s: patches a record no mod has" % [file, id])
 					continue
 				rec = _patched(raw[id], rec, file, id, kind)
+				origins["%s/%s" % [kind, id]].patched.append(bundle)
 			else:
 				var replaces: bool = rec.get("replaces") == true
 				rec.erase("replaces")
@@ -714,6 +741,11 @@ static func _load_bundle(bundle: String) -> void:
 					problems.append("%s: %s: replaces a record no mod has" % [file, id])
 				rec.mod = u.mod
 				rec.bundle = bundle
+				var key := "%s/%s" % [kind, id]
+				if origins.has(key):
+					origins[key].replaced.append(bundle)
+				else:
+					origins[key] = {"bundle": bundle, "replaced": [], "patched": []}
 			raw[id] = rec.duplicate()
 			if not rec.get("title") is String or rec.title == "":
 				problems.append("%s: %s.title: expected a string" % [file, id])
@@ -966,6 +998,26 @@ static func _check_refs() -> void:
 						_broken(r, kind, key, of, ref, soft)
 						if soft:
 							r[key] = ""
+
+
+## The ids records had before (`was`): each in the record's mod unless it names one, not
+## the id of a record still loaded, and claimed by one record only.
+static func _check_renames() -> void:
+	for kind in SCHEMAS:
+		var renamed := {}
+		for r in _kinds[kind]:
+			for old in r.was:
+				var q := qualify(old, r.mod)
+				var file := "%s/data/%s.yaml" % [r.bundle, kind]
+				if not _valid_id(q):
+					problems.append("%s: %s.was: `%s`: an id is `mod:name`" % [file, r.id, old])
+				elif not find(kind, q).is_empty():
+					problems.append("%s: %s.was: `%s` is a record still" % [file, r.id, q])
+				elif renamed.has(q):
+					problems.append("%s: %s.was: `%s` was `%s` already" % [file, r.id, renamed[q], q])
+				else:
+					renamed[q] = r.id
+		_renamed[kind] = renamed
 
 
 ## Names against the rules of docs/specifications/BUNDLE_SYSTEM.md (section 3), as

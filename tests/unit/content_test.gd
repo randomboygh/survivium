@@ -8,6 +8,7 @@ func run() -> void:
 	_test_schemas()
 	_test_mods()
 	_test_records()
+	_test_renames()
 	_test_items()
 	_test_tools()
 	_test_crafting()
@@ -302,6 +303,48 @@ func _test_records() -> void:
 	Mods.rescan()
 	_check(Content.problems.is_empty() and Content.warnings.is_empty() and AiRules.SPECIES["animals:wolf"].bundle == "animals/wolf",
 		"the full set loads clean again, without warnings: %s" % [Content.warnings])
+
+
+## A record that was called otherwise lists its old ids in `was`: a save naming one
+## finds it, by the same canon calls the bag and the knowledge use; an old id that is a
+## record still, or that two records claim, is a problem. The register knows who defined
+## a record and who patched it.
+func _test_renames() -> void:
+	var before := Content.BUNDLES.duplicate()
+	var mod := "res://content/_g"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write(mod + "/mod.yaml", "id: _g\ntitle: G\nversion: \"1\"\napi: 1\n")
+	_write(mod + "/data/items.yaml", "- id: stick\n  title: Палка\n  was: [twig_old, core:old_branch]\n  weight: 0.5\n  stack: 10\n"
+		+ "- id: pebble\n  title: Камешек\n  was: [resources:branch]\n  weight: 0.1\n  stack: 20\n"
+		+ "- id: shard\n  title: Осколок\n  was: [twig_old]\n  weight: 0.1\n  stack: 20\n")
+	_write(mod + "/data/recipes.yaml", "- id: stick\n  title: Палка\n  was: [make_stick]\n  makes: stick\n  needs: {resources:branch: 1}\n")
+	Content.refresh()
+	Mods.activate(Mods.all() + ["_g"])
+	_check(Items.canon("_g:twig_old") == "_g:stick" and Items.canon("core:old_branch") == "_g:stick" and Crafting.canon("_g:make_stick") == "_g:stick"
+		and Items.canon("core:log") == "resources:log" and Content.canon("items", "resources:branch") == "resources:branch",
+		"an old id finds the record whose `was` names it, the older tables go first, a live id stays")
+	var inv := Inventory.new()
+	inv.from_dict({"slots": [["_g:twig_old", 3]]})
+	var knows := Knowledge.new()
+	knows.from_dict({"seen": ["core:old_branch"]})
+	_check(inv.count("_g:stick") == 3 and knows.seen.has("_g:stick"), "a saved bag and knowledge come back under the new id")
+	var found := {}
+	for p in Content.problems:
+		for what in ["pebble.was: `resources:branch` is a record still", "shard.was: `_g:stick` was `_g:twig_old` already"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 2 and Content.problems.size() == 2,
+		"an old id that is a record still, or that another record claimed, is a problem: %s" % [Content.problems])
+	_check(Content.origin("items", "_g:stick").bundle == "_g" and Content.origin("creatures", "animals:deer").patched.has("biomes/steppe")
+		and Content.origin("items", "nobody:nothing").is_empty(), "the register knows who defined a record and who patched it")
+	Mods.activate(before)
+	for f in ["data/items.yaml", "data/recipes.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty() and Items.canon("_g:twig_old") == "_g:twig_old", "the full set loads clean again")
 
 
 func _write(path: String, text: String) -> void:

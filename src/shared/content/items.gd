@@ -64,9 +64,10 @@ static func get_item(id: String) -> Dictionary:
 	return BY_ID.get(Content.qualify(id, "core"), {})
 
 
-## Item id `id` as it is called now: an id from an old save by RENAMED, any other as it is.
+## Item id `id` as it is called now: an id from an old save by RENAMED, then by the
+## `was` of the items (see Content.canon), any other as it is.
 static func canon(id: String) -> String:
-	return RENAMED.get(id, id)
+	return Content.canon("items", RENAMED.get(id, id))
 
 
 ## The id of the first item in bag `inv` that lights a fire (`fuel`), "" when it has none.

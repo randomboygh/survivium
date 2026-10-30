@@ -82,4 +82,4 @@ graph LR
 куст, растение, дерево → предметы, биом → деревья и кусты, существо → растения и биомы. Жёсткая ссылка
 связывает бандлы, мягкая только задаёт порядок ([DATA_MODEL.md](DATA_MODEL.md)). Зависимости
 конкретного бандла: `Content.deps(b)`, со всеми, без кого он не может, — `Content.closure(b)`; полный
-список записей по бандлам — [generated/content-index.md](generated/content-index.md).
+реестр записей с бандлами и связями — [generated/content-index.md](generated/content-index.md).

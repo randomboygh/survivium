@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Runs the content check and the headless tests side by side, each with its own user://
-# folder (saves, settings.cfg) so they do not see each other's files, then prints each log
-# in turn and fails if any of them failed. frame_test measures frame times, so it runs by
-# itself after the others. Run from the repo root after --import:
+# Runs the content check, the check that the content reports are fresh and the headless
+# tests side by side, each with its own user:// folder (saves, settings.cfg) so they do not
+# see each other's files, then prints each log in turn and fails if any of them failed.
+# frame_test measures frame times, so it runs by itself after the others. Run from the
+# repo root after --import:
 #     tests/run_all.sh                     all of them
 #     tests/run_all.sh run_tests save_test only these, side by side
 # GODOT=path/to/godot if it is not on PATH.
@@ -11,9 +12,10 @@ godot=${GODOT:-godot}
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
 declare -A script=(
-	[validate]=tools/validate.gd [run_tests]=tests/run_tests.gd [save_test]=tests/save_test.gd
-	[progress_test]=tests/progress_test.gd [frame_test]=tests/frame_test.gd)
-declare -A limit=([validate]=120 [run_tests]=300 [save_test]=300 [progress_test]=600 [frame_test]=600)
+	[validate]=tools/validate.gd [report]=tools/content_report.gd [run_tests]=tests/run_tests.gd
+	[save_test]=tests/save_test.gd [progress_test]=tests/progress_test.gd [frame_test]=tests/frame_test.gd)
+declare -A args=([report]=--check)
+declare -A limit=([validate]=120 [report]=120 [run_tests]=300 [save_test]=300 [progress_test]=600 [frame_test]=600)
 failed=()
 
 # Runs the named checks at once and prints their logs.
@@ -24,7 +26,7 @@ batch() {
 		(
 			start=$SECONDS
 			XDG_DATA_HOME="$out/$n.data" timeout "${limit[$n]}" "$godot" --headless --path . \
-				--script "res://${script[$n]}" >"$out/$n.log" 2>&1
+				--script "res://${script[$n]}" ${args[$n]:+-- ${args[$n]}} >"$out/$n.log" 2>&1
 			echo "$? $((SECONDS - start))" >"$out/$n.code"
 		) &
 	done
@@ -41,7 +43,7 @@ batch() {
 if [ $# -gt 0 ]; then
 	batch "$@"
 else
-	batch validate run_tests save_test progress_test
+	batch validate report run_tests save_test progress_test
 	batch frame_test
 fi
 if [ ${#failed[@]} -gt 0 ]; then

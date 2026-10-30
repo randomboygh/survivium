@@ -13,7 +13,7 @@ are in English.
   key files, where new things go), `docs/SYSTEMS.md` (each system, its files, its context doc in
   `docs/systems/`, its tests), `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/DEPENDENCIES.md`,
   `docs/DECISIONS.md`. Every script with its description: `docs/generated/code-index.md`; every
-  mod, bundle and record: `docs/generated/content-index.md`.
+  mod, bundle and record, with its links: `docs/generated/content-index.md`.
 - Design, the decision log, the MVP stages and the backlog live outside the repo, in the Claude
   project's library, `plan/` (`plan/README.md` index and decisions, `plan/mvp.md`, `plan/backlog.md`,
   `plan/design/`, `plan/architecture/` for rendering, performance and modding in depth); screenshots
@@ -40,7 +40,8 @@ tests/ tools/      headless tests and the browser smoke test; validator, screens
 3. A change of the project's structure or architecture is laid out to the user with options and a
    recommendation first; everything else goes ahead.
 4. Make the change, update the docs it touches (the system's context doc, `SYSTEMS.md` for a new
-   system, `PROJECT_MAP.md` for a new folder), run `python3 tools/doc_index.py`, then the checks.
+   system, `PROJECT_MAP.md` for a new folder), run `python3 tools/doc_index.py` (and, after a change
+   of content, `tools/content_report.gd`), then the checks.
 
 ## Rules that must hold
 
@@ -93,6 +94,7 @@ docs); a PR that does several things has a line for each.
 ```
 godot --headless --path . --import
 godot --headless --path . --script res://tools/validate.gd
+godot --headless --path . --script res://tools/content_report.gd -- --check
 godot --headless --path . --script res://tests/run_tests.gd
 timeout 300 godot --headless --path . --script res://tests/save_test.gd
 timeout 600 godot --headless --path . --script res://tests/progress_test.gd
@@ -100,7 +102,7 @@ timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 python3 tools/doc_index.py --check
 ```
 
-`tests/run_all.sh` runs the godot ones after `--import`: the first four side by side, each with its own
+`tests/run_all.sh` runs the godot ones after `--import`: the first five side by side, each with its own
 `user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times (`GODOT=path` if
 `godot` is not on PATH; names as arguments run only those). `frame_test` timings are noisy on a busy
 machine: rerun it alone before blaming code. Run `progress_test` after any change to tools, materials,

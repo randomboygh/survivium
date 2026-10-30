@@ -16,12 +16,16 @@
   `{core:fiber: 1}`).
 - `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan`, `expand` (старые списки),
   `RENAMED`, названия для экрана «Моды».
+- `tools/content_report.gd` — реестр сущностей `docs/generated/content-index.md` из загруженных данных;
+  `-- --check` для CI.
 - Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
   `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`; `tools.gd` — правила
   инструментов над `Items` и `Mat` (без своего вида данных).
 
 **Интерфейс**
 - `Content.records(kind)`, `Content.find(kind, id)`, `Content.schema(kind)` (поля вида и общие),
+  `Content.canon(kind, id)` (старый id из `was` — в нынешний), `Content.origin(kind, id)` (кто определил,
+  заменил, поправил),
   `Content.asset(rec, "sprites/x.png")` (бандл, затем `common/` мода), `Content.problems`,
   `Content.warnings` (имена против правил), `Content.loaded`, `Content.dropped[b]` (почему выпал).
 - `Content.all_bundles()`, `bundles_of(mod)`, `mod_of(b)`, `deps(b)`, `closure(b)`, `resolve(set)`.
@@ -62,8 +66,9 @@
   или своя кора в любом бандле валит `validate.gd`; поднять предел — правка упаковки мешей и шейдера.
 
 **Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — тип связи у каждой ссылки, `mods`,
-`records` — общие поля, замены, предупреждения, `items`, `tools`, `crafting`, `layers` — и слои внутри
-`src/shared/`),
+`records` — общие поля, замены, предупреждения, `renames` — `was` и происхождение записей, `items`,
+`tools`, `crafting`, `layers` — и слои внутри `src/shared/`), `tools/content_report.gd -- --check` (реестр
+свежий),
 `tools/validate.gd` (каждый бандл отдельно, звуки, картинки в руках, иконки, текстуры, модели, листы
 существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка; предупреждения об именах печатает, не
 падая), `tests/progress_test.gd` (все рецепты
