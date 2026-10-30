@@ -22,12 +22,14 @@
   предупреждения (тупик, станок одного рецепта, двойники, прибыльный круг, материал не встречается). Строят
   только валидатор, отчёты и тесты, игра — нет.
 - `tools/content_report.gd` — отчёты из загруженных данных: реестр сущностей
-  `docs/generated/content-index.md`, граф `content-graph.md`, проверки `content-checks.md`; `-- --check` для CI.
+  `docs/generated/content-index.md`, граф `content-graph.md`, реестр рецептов `content-recipes.md`, проверки
+  `content-checks.md`; `-- --check` для CI.
 - Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
   `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (старт нового
   мира: `Starts.START`, `check`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
   данных): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`),
-  работа в мире пяти классов `WORLD_KINDS` (любой другой класс там — руки), `holds(inv, класс)`.
+  работа в мире пяти классов `WORLD_KINDS` (любой другой класс там — руки), `holds(inv, класс)`,
+  `held_of(inv, класс)`.
 
 **Интерфейс**
 - `Content.records(kind)`, `Content.find(kind, id)`, `Content.schema(kind)` (поля вида и общие),
@@ -41,7 +43,8 @@
   перечитать `content/` (кнопка на «Тестировании»); `Mods.expand(list)` — старые id модов в бандлы.
 - Реестры: `Mat.GRASS` и др. (только ядро), `Mat.of_role`, `Mat.index`, `Mat.remap`; `Items.get_item`,
   `with_prop`, `with_tool`, `tool_title` (название класса инструмента из названий его предметов),
-  `is_station`, `most_storage`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`; `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
+  `is_station`, `most_storage`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`, `outputs` (что
+  даёт работа с номером n: изделие и побочное по шансу); `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
   `AiRules.SPECIES`, `is_food`, `is_threat`; `Starts.START` (`bag`, `camp`).
 - `ContentGraph.new()` — граф набора, загруженного сейчас: `reached` (ключ «вид/id» → глубина), `how` (путь
   этой глубины), `sources`, `uses`, `basis(key)` (из чего вещь получается), `able(way)` / `by_hand(way)` (чем
@@ -85,14 +88,15 @@
 его патч и поля `entries`, `items`,
 `tools`, `crafting`, `layers` — и слои внутри `src/shared/`), `tests/unit/graph_test.gd` (граф: полный
 набор без ошибок, глубина добытого инструментом, тупики раздела 18 ТЗ на бандлах тестового мода, круги,
-двойники, прибыльный круг), `tools/content_report.gd -- --check` (отчёты свежие),
+двойники, прибыльный круг, станок вместо станка, что рецепт держит в сумке, классы его инструментов и
+побочное), `tools/content_report.gd -- --check` (отчёты свежие),
 `tools/validate.gd` (каждый бандл отдельно, граф полного набора, звуки, картинки в руках, иконки, текстуры,
 модели, листы существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка; предупреждения об именах и
 графа печатает, не падая), `tests/progress_test.gd` (все рецепты достижимы игрой).
 
-**Известные проблемы.** Роли — закрытые списки (`items.tool`, `items.prop`, `plants.kind`,
-`materials.role`, `biomes.where`), новая роль требует кода. Голоса зверей синтезирует таблица в
-`tools/make_sounds.gd`, бандл приносит только готовые `.wav`.
+**Известные проблемы.** Роли — закрытые списки (`plants.kind`, `materials.role`, `biomes.where`), новая
+роль требует кода; классы инструментов и вещей на 2×2 (`items.tool`, `items.prop`) открыты с этапа 5а.
+Голоса зверей синтезирует таблица в `tools/make_sounds.gd`, бандл приносит только готовые `.wav`.
 
 **Подробнее.** `plan/architecture/modding.md`; решения 140, 142, 143, 146 в `plan/README.md`; README
 каждого мода.

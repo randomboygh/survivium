@@ -141,9 +141,10 @@ func _order() -> Array:
 		for r: Dictionary in Crafting.RECIPES:
 			if out.has(r) or (r.at != "" and not have.has(r.at)):
 				continue
-			if r.tool != "none" and not have.keys().any(func(id: String) -> bool: return Items.get_item(id).get("tool", "none") == r.tool):
+			if not r.tools.all(func(kind: String) -> bool:
+					return have.keys().any(func(id: String) -> bool: return Items.get_item(id).get("tool", "none") == kind)):
 				continue
-			if r.needs.keys().all(func(id: String) -> bool: return have.has(id)):
+			if (r.needs.keys() + r.keeps.keys()).all(func(id: String) -> bool: return have.has(id)):
 				out.append(r)
 				have[r.makes] = true
 				grew = true
@@ -170,9 +171,10 @@ func _wanted(id: String) -> bool:
 	return kind != "none" and _tool_of_kind(kind) == id
 
 
-## Adds to `out` what recipe `r` needs, and what the recipes of those need, and so on.
+## Adds to `out` what recipe `r` needs and keeps, and what the recipes of those need, and
+## so on.
 func _needs_of(r: Dictionary, out: Dictionary) -> void:
-	for id: String in r.needs:
+	for id: String in r.needs.keys() + r.keeps.keys():
 		if out.has(id):
 			continue
 		out[id] = true
@@ -183,19 +185,23 @@ func _needs_of(r: Dictionary, out: Dictionary) -> void:
 
 # --- Making -------------------------------------------------------------------------------
 
-## Makes recipe `r` `times` times at the camp: its station set down, its tool and its
-## materials got first.
+## Makes recipe `r` `times` times at the camp: its station set down, its tools, its
+## materials and what it keeps got first.
 func _craft(r: Dictionary, times: int) -> bool:
 	if r.at != "" and _placed_count(r.at) == 0:
 		# A station is set down as soon as it is made.
 		var station := _recipe_for(r.at)
 		if station.is_empty() or not await _craft(station, 1):
 			return false
-	if r.tool != "none" and _tool_of_kind(r.tool) == "":
-		if not await _get_tool(r.tool):
-			return false
+	for kind: String in r.tools:
+		if _tool_of_kind(kind) == "":
+			if not await _get_tool(kind):
+				return false
 	for id: String in r.needs:
 		if not await _obtain(id, r.needs[id] * times):
+			return false
+	for id: String in r.keeps:
+		if not await _obtain(id, r.keeps[id]):
 			return false
 	await _go(camp)
 	var inv = main.character.inventory

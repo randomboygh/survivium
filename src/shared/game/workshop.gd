@@ -3,11 +3,12 @@ extends RefCounted
 ## (Knowledge: learned as their materials come into the bag), the queue of things being
 ## made (CraftQueue: materials are taken when a job is queued, a cancel gives them
 ## back), worked on while the job's station stands near (Placed.stations_near; by hand
-## anywhere), and what is made going into the bag or, when it is full, on the ground.
-## Also tool wear (on only with the playtest switch until the difficulty presets come:
-## decision 105) and repair at a station that `repairs` (a workbench). `who` is the
-## character (see WorldActions); on the client the window is the craft tab of the bag
-## (InventoryWindow).
+## anywhere) and its tools and what it keeps are in the bag, and what is made, with the
+## by-products that come (Crafting.outputs), going into the bag or, when it is full, on
+## the ground. Also tool wear, by swings in the world and by the `wear` of a recipe made
+## (on only with the playtest switch until the difficulty presets come: decision 105),
+## and repair at a station that `repairs` (a workbench). `who` is the character (see
+## WorldActions); on the client the window is the craft tab of the bag (InventoryWindow).
 
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
@@ -114,19 +115,36 @@ func update(delta: float) -> void:
 		return
 	# A job a frame when crafting is instant.
 	var work := 1e9 if settings.get("instant_craft") == true else delta
-	for r in queue.step(work, _can_work):
-		_receive(r.makes, r.count)
+	for job: Dictionary in queue.step(work, _can_work):
+		var r: Dictionary = job.recipe
+		var got := Crafting.outputs(r, job.n)
+		for id: String in got:
+			_receive(id, got[id])
+		_wear_tools(r)
 		who.note("crafted", r.count)
 		who.say("Готово: %s" % r.title)
 		made.emit(r)
 
 
-## Whether the first job can be worked on: its station is near and its tool in the bag.
+## What job `r` waits for to be worked on, named for the window: its station, a tool of a
+## class it needs or a thing it keeps, missing; "" when nothing.
+func waits_for(r: Dictionary) -> String:
+	if r.at != "" and not stations().has(r.at):
+		return Items.title(r.at)
+	var kind := Crafting.lacks_tool(r, who.inventory)
+	if kind != "":
+		return Items.tool_title(kind)
+	for id: String in r.keeps:
+		if who.inventory.count(id) < r.keeps[id]:
+			return Items.title(id)
+	return ""
+
+
 func _can_work(r: Dictionary) -> bool:
-	return (r.at == "" or stations().has(r.at)) and Crafting.has_tool(r, who.inventory)
+	return waits_for(r) == ""
 
 
-## Whether the first job waits for its station or tool.
+## Whether the first job waits for its station, a tool or a thing it keeps.
 func waiting() -> bool:
 	return not queue.jobs.is_empty() and not _can_work(Crafting.get_recipe(queue.jobs[0].recipe))
 
@@ -148,6 +166,21 @@ func use_tool() -> void:
 		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
 		who.say("Сломалось: %s" % Items.title(id))
+
+
+## Recipe `r` made wears a tool of each class it needs by its `wear` swings, when wear is
+## on (a tool of any class: what lasts no swings, `durability` 0, does not wear).
+func _wear_tools(r: Dictionary) -> void:
+	if r.wear <= 0 or not settings.tool_wear:
+		return
+	for kind: String in r.tools:
+		var id := Tools.held_of(who.inventory, kind)
+		if id == "":
+			continue
+		for i: int in r.wear:
+			if who.inventory.wear_tool(id, Items.get_item(id).durability):
+				who.say("Сломалось: %s" % Items.title(id))
+				break
 
 
 ## How much of tool `id` worn by `worn` swings is left, 0..1 (1 for no wear).

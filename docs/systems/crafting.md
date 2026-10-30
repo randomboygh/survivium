@@ -7,27 +7,35 @@
 
 **Файлы**
 - `src/shared/game/workshop.gd` — крафт одного персонажа (`game.workshop`): `stations()`, `recipes()`,
-  `why_not(r)`, `start(r, times)`, `cancel`, `update(delta)`, `use_tool`, `repair`; сигналы `changed`,
-  `made`.
+  `why_not(r)`, `start(r, times)`, `cancel`, `update(delta)` (готовое и побочное — в сумку, износ
+  инструментов рецепта на `wear`), `waits_for(r)` (чего ждёт работа: станка, инструмента, вещи в сумке),
+  `use_tool`, `repair`; сигналы `changed`, `made`.
 - `src/shared/game/knowledge.gd` — рецепт известен, когда в сумке побывали все его материалы
   (`look_at`, `knows`); сигнал `learned`.
-- `src/shared/game/craft_queue.gd` — очередь: идёт, пока станок рядом; пауза и отмена с возвратом.
-- `src/shared/content/crafting.gd` — реестр рецептов: `get_recipe`, `missing`, `has_tool`, `why_not`
-  («Нужен инструмент: …» по `Items.tool_title`), `take`, `canon` (старые id), `check` (станок каждого рецепта
-  — станок). Можно ли сделать каждый рецепт со
+- `src/shared/game/craft_queue.gd` — очередь: идёт, пока станок рядом; пауза и отмена с возвратом; у
+  каждой работы свой номер (`serial`, сохраняется), по нему решаются побочные продукты.
+- `src/shared/content/crafting.gd` — реестр рецептов: `get_recipe`, `missing` (что тратит и что держит в
+  сумке), `lacks_tool`, `why_not` («Нужен инструмент: …» по `Items.tool_title`), `take` (только `needs`),
+  `outputs(r, n)` и `comes` (побочное по шансу от номера работы, без случайных чисел), `canon` (старые id),
+  `check` (станок каждого рецепта — станок, износ только с инструментом). Можно ли сделать каждый рецепт со
   старта, решает граф контента `content_graph.gd` ([content.md](content.md)).
-- `src/shared/game/placed.gd` — вещи на клетках по роли предмета `prop` (`chest`, `workbench`, `kiln`,
-  `forge`, `campfire`): `put_from_bag`, `take_up`, `put_out`, `light`, `destroy`, `stations_near`,
+- `src/shared/game/placed.gd` — вещи на клетках по классу предмета `prop` и его флагам (ниже):
+  `put_from_bag`, `take_up`, `put_out`, `light`, `destroy`, `stations_near`,
   `burns`; твёрдые через `WorldData.blockers`; новый мир начинает с лагеря старта у спавна
   (`start_camp` по `Starts.START.camp`: костёр, сундук — патч бандла сундука). Сигналы
   `added`, `removed`, `lit_changed`, `cell_changed`.
 - `src/client/game/props.gd`, `src/client/view/voxel_props.gd` — модели вещей и огонь на экране.
-- `src/client/ui/craft_panel.gd`, `inventory_window.gd` — вкладка «Крафт» и окно сумки.
+- `src/client/ui/craft_panel.gd`, `inventory_window.gd` — вкладка «Крафт» (что тратит и что держит в сумке,
+  станок, инструменты с износом, время, побочное) и окно сумки.
 
-**Данные.** Рецепты — вид `recipes` (`makes`, `count`, `needs`, `at` — станок, `tool`, `time`) в бандлах
-инструментов и материалов; станок ищется по роли (`Items.with_prop`), топливо костра — по `fuel`
-(`Items.fuel_in`); модели — `models/<model>.png`. Износ и починка включаются переключателем
-«Тестирования».
+**Данные.** Рецепты — вид `recipes` в бандлах инструментов, материалов и растений: `makes`, `count`,
+`also` (побочные продукты: `item`, `count`, `chance`), `needs` (тратится, когда работа встаёт в очередь),
+`keeps` (нужно в сумке, пока идёт работа, не тратится), `at` (станок), `tools` (классы инструментов, по
+одному в сумке), `wear` (сколько ударов снимает изделие с инструмента каждого класса), `process` (`craft`,
+`refine`, `smelt`, `cook` — для отчётов), `time`; поля и примеры — раздел 6
+[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM.md). Станок ищется по роли (`Items.with_prop`),
+топливо костра — по `fuel` (`Items.fuel_in`); модели — `models/<model>.png`. Износ и починка включаются
+переключателем «Тестирования».
 
 **Станки флагами.** `prop` — открытый класс вещи (модель, твёрдые части), а что она делает — флаги
 предмета: `storage` (хранит вещи, сундук: 16 мест; такая вещь не станок), `fire` (горит: тушится,
@@ -39,11 +47,13 @@
 части вещи клиент берёт из её воксельной модели (`Placed.footprints`); серверу их нужно будет отдать
 из данных.
 
-**Тесты.** `tests/unit/content_test.gd` (`crafting`), `tests/unit/actions_test.gd` (`placed`, `station_flags` —
-станок другого класса, который заменяет верстак и ставится с ножом, ящик на 4 места, починка по флагу),
+**Тесты.** `tests/unit/content_test.gd` (`crafting`: очередь и номера работ), `tests/unit/actions_test.gd`
+(`placed`, `station_flags` — станок другого класса, который заменяет верстак и ставится с ножом, ящик на 4
+места, починка по флагу; `recipe_fields` — форма в сумке не тратится и держит работу, нож изнашивается за
+изделие и ломается, побочное по шансу от номера работы),
 `tests/unit/character_test.gd` (`wear`), `tests/progress_test.gd` (с пустой сумкой: собирает, ставит
 станки и делает каждый рецепт), `tests/unit/graph_test.gd` и `tools/validate.gd` (граф: каждый рецепт
 достижим со старта с инструментами добычи, без замкнутых кругов). Что из чего и на каком станке —
-`docs/generated/content-graph.md`.
+`docs/generated/content-graph.md`, все рецепты по процессам — `content-recipes.md`.
 
 **Подробнее.** `plan/design/crafting.md`, `plan/design/first-hours.md`, README мода `content/tools/`.

@@ -538,13 +538,17 @@ func _test_crafting() -> void:
 	q.step(cord.time * 0.5, func(_r: Dictionary) -> bool: return true)
 	_check(is_equal_approx(q.progress(), 0.5), "a job takes its time")
 	made = q.step(cord.time, func(_r: Dictionary) -> bool: return true)
-	_check(made.size() == 1 and made[0].makes == "materials:cord" and q.jobs.is_empty(), "a job is done when its time is up")
+	_check(made.size() == 1 and made[0].recipe.makes == "materials:cord" and made[0].n == 0 and q.jobs.is_empty(),
+		"a job is done when its time is up, with the serial it was queued with")
 	var q2 := CraftQueue.new()
 	q2.add(cord, inv)
 	q2.step(0.5, func(_r: Dictionary) -> bool: return true)
 	var q3 := CraftQueue.new()
 	q3.from_dict(JSON.parse_string(JSON.stringify(q2.to_dict())))
-	_check(q3.jobs.size() == 1 and is_equal_approx(q3.jobs[0].left, cord.time - 0.5), "the queue survives a save")
+	_check(q3.jobs.size() == 1 and is_equal_approx(q3.jobs[0].left, cord.time - 0.5) and q3.jobs[0].n == 0 and q3.serial == 1,
+		"the queue survives a save, serials too")
+	q3.from_dict({"jobs": [{"recipe": "materials:cord", "left": 1.0}], "serial": 5})
+	_check(q3.jobs[0].n == 5 and q3.serial == 6, "a job saved before serials gets the next one")
 
 
 ## The world model and the rules under src/shared are what the server will run, so

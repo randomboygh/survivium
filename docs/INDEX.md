@@ -28,6 +28,7 @@
 | [generated/code-index.md](generated/code-index.md) | каждый скрипт с первой строкой его описания (генератор) | найти файл по смыслу |
 | [generated/content-index.md](generated/content-index.md) | реестр сущностей: моды, бандлы и каждая запись с категорией, бандлом, заменами и патчами, числом связей и итогом проверки (`tools/content_report.gd`) | найти запись или бандл |
 | [generated/content-graph.md](generated/content-graph.md) | граф контента: старт, предметы по глубине, откуда и куда каждый, общие ресурсы, чем что добывается, станки, цепочки, схема рецептов | что из чего и чем, что держится на ресурсе |
+| [generated/content-recipes.md](generated/content-recipes.md) | реестр рецептов по процессам: что делает и что побочно, что тратит и что держит в сумке, станок и те, что его заменяют, инструменты и износ, время, глубина, альтернативы | баланс рецептов, где что делают |
 | [generated/content-checks.md](generated/content-checks.md) | что нашли проверки контента: каждая проверка, что значит и как исправить, найденное | тупики, двойники, ошибки графа |
 | [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | аудит этапа 0: состояние, находки, что почищено | история реорганизации |
 | [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md) | система игровых бандлов по ТЗ: понятия, связи, рецепты, станки, граф, эпохи, этапы и их состояние | менять виды контента, рецепты, станки, инструменты |
@@ -77,8 +78,8 @@ PROPOSED или DRAFT описывает замысел, а не код: что 
   `python3 tools/doc_index.py` (пишет `generated/code-index.md`). CI запускает
   `python3 tools/doc_index.py --check`: индекс свежий, а пути, названные в документах, существуют.
 - После правки данных модов: `godot --headless --path . --script res://tools/content_report.gd` (пишет
-  `generated/content-index.md`, `content-graph.md`, `content-checks.md`); CI проверяет их свежесть тем же
-  скриптом с `-- --check`.
+  `generated/content-index.md`, `content-graph.md`, `content-recipes.md`, `content-checks.md`); CI проверяет
+  их свежесть тем же скриптом с `-- --check`.
 - Принятое архитектурное решение: строка в журнале `plan/README.md` и, если оно меняет принцип кода,
   в [DECISIONS.md](DECISIONS.md).
 - Устаревший документ не удаляется молча: сверху ставится `Статус: DEPRECATED` с причиной и ссылкой на
