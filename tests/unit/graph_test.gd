@@ -5,8 +5,8 @@ extends "res://tests/unit/test_case.gd"
 ## a workbench that needs a tool made at it, a kiln that needs metal from itself, a station
 ## that needs a tool only it makes, an item nothing gives, a plant whose seeds cannot be had,
 ## an animal whose food never grows; and its warnings: dead ends, stations of one recipe,
-## twins, a loop of recipes that gives back more than it takes; and a station that stands
-## in for another, set down with a tool.
+## twins, a loop of recipes that gives back more than it takes; a station that stands in
+## for another, set down with a tool; and what a recipe keeps, its tools and by-products.
 
 const ContentGraph := preload("res://src/shared/content/content_graph.gd")
 
@@ -22,7 +22,7 @@ const DEAD := {
 	"bench": {
 		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: bench, title: Верстак, weight: 5, stack: 1, prop: workbench}\n"
 			+ "- {id: pick, title: Кирка, weight: 1, stack: 1, tool: pickaxe, power: 1}\n",
-		"recipes": "- {id: bench, title: Верстак, makes: bench, needs: {rod: 2}, tool: pickaxe}\n- {id: pick, title: Кирка, makes: pick, needs: {rod: 1}, at: bench}\n",
+		"recipes": "- {id: bench, title: Верстак, makes: bench, needs: {rod: 2}, tools: [pickaxe]}\n- {id: pick, title: Кирка, makes: pick, needs: {rod: 1}, at: bench}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
 	},
 	"kiln": {
@@ -33,7 +33,7 @@ const DEAD := {
 	"anvil": {
 		"items": "- {id: chip, title: Щепа, weight: 0.1, stack: 20}\n- {id: anvil, title: Наковальня, weight: 9, stack: 1, prop: forge}\n"
 			+ "- {id: blade, title: Клинок, weight: 1, stack: 1, tool: sword, power: 1}\n",
-		"recipes": "- {id: anvil, title: Наковальня, makes: anvil, needs: {chip: 3}, tool: sword}\n- {id: blade, title: Клинок, makes: blade, needs: {chip: 1}, at: anvil}\n",
+		"recipes": "- {id: anvil, title: Наковальня, makes: anvil, needs: {chip: 3}, tools: [sword]}\n- {id: blade, title: Клинок, makes: blade, needs: {chip: 1}, at: anvil}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:chip: 10}}\n",
 	},
 	"ammo": {
@@ -62,6 +62,25 @@ const DEAD := {
 			+ "- {id: rack, title: Стойка, weight: 4, stack: 1, prop: rack, serves: [bench], place_tool: knife}\n",
 		"recipes": "- {id: knife, title: Нож, makes: knife, needs: {rod: 1}}\n- {id: rack, title: Стойка, makes: rack, needs: {rod: 2}}\n"
 			+ "- {id: peg, title: Колышек, makes: peg, needs: {rod: 1}, at: bench}\n- {id: bench, title: Верстак, makes: bench, needs: {peg: 2}}\n",
+		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
+	},
+	# Not a dead end: a cup is made with a mould kept in the bag and a knife, and gives chips
+	# besides, of which rods are made again: a loop that gives back more than it takes.
+	"keep": {
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife}\n"
+			+ "- {id: mould, title: Форма, weight: 1, stack: 1}\n- {id: cup, title: Чашка, weight: 0.2, stack: 10}\n"
+			+ "- {id: chips, title: Щепа, weight: 0.1, stack: 50}\n",
+		"recipes": "- {id: knife, title: Нож, makes: knife, needs: {rod: 1}}\n- {id: mould, title: Форма, makes: mould, needs: {rod: 2}, tools: [knife]}\n"
+			+ "- {id: cup, title: Чашка, makes: cup, needs: {rod: 1}, keeps: {mould: 1}, tools: [knife], also: [{item: chips, count: 4, chance: 0.5}]}\n"
+			+ "- {id: rod_from_chips, title: Прут, makes: rod, needs: {chips: 1}}\n",
+		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
+	},
+	# A coin kept a die nothing gives, a board needing a saw no item is.
+	"kept": {
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: die, title: Штамп, weight: 1, stack: 1}\n"
+			+ "- {id: coin, title: Монета, weight: 0.1, stack: 50}\n- {id: board, title: Доска, weight: 1, stack: 10}\n",
+		"recipes": "- {id: coin, title: Монета, makes: coin, needs: {rod: 1}, keeps: {die: 1}}\n"
+			+ "- {id: board, title: Доска, makes: board, needs: {rod: 1}, tools: [saw]}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
 	},
 }
@@ -159,6 +178,18 @@ func _test_dead_ends() -> void:
 	_check(errors_served.is_empty() and g.how["placed/_dead:bench"].via == "serves" and g.how["placed/_dead:rack"].needs == ["tool/knife"]
 		and g.reached.get("placed/_dead:rack") == 1 and g.reached.get("items/_dead:peg") == 2 and g.reached.get("items/_dead:bench") == 3,
 		"a station set down stands in for those it serves, and is set down with its tool: %s" % [errors_served])
+	var errors_kept := _errors_with("_dead/keep")
+	g = ContentGraph.new()
+	said = "\n".join(g.warnings)
+	_check(errors_kept.is_empty() and g.reached.get("items/_dead:mould") == 2 and g.reached.get("items/_dead:cup") == 3
+		and g.how["items/_dead:chips"].via == "also" and g.reached.get("items/_dead:chips") == 3
+		and g.uses["items/_dead:mould"].has(["requires", "recipes/_dead:cup"]) and not "`_dead:mould` is a dead end" in said
+		and "gives back ×2.00 of `_dead:rod`" in said,
+		"what a recipe keeps and its tools come before it, what it keeps is no dead end, a by-product comes with it and counts in a loop: %s %s"
+			% [errors_kept, said])
+	_expect(_errors_with("_dead/kept"), ["items: `_dead:die` has no source", "recipes: `_dead:coin` can never be made: lacking `_dead:die`",
+		"items: `_dead:coin` can never be had", "recipes: `_dead:board`.tools: no item is a `saw`", "items: `_dead:board` can never be had"], 5,
+		"a recipe that keeps what nothing gives, or needs a class of tool no item is, can never be made")
 	Mods.activate(before)
 	_remove(mod)
 	Content.refresh()

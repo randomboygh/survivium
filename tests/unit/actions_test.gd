@@ -8,6 +8,7 @@ func run() -> void:
 	_test_world_actions()
 	_test_placed()
 	_test_station_flags()
+	_test_recipe_fields()
 
 
 func _test_felling() -> void:
@@ -341,3 +342,71 @@ func _test_station_flags() -> void:
 	Content.refresh()
 	Mods.rescan()
 	_check(Content.problems.is_empty() and Items.check().is_empty(), "the full set loads clean again")
+
+
+## The fields of a recipe beyond what it uses up (a mod of the test's own): what it keeps is
+## needed in the bag and stays there, also while the job is worked on; its tools are
+## classes, one of each in the bag, worn by its `wear` an item made when wear is on; its
+## by-products come by their chance, decided by the job's serial; and what the checks say
+## of a class that is no word and of wear with no tool.
+func _test_recipe_fields() -> void:
+	var before := Content.BUNDLES.duplicate()
+	var mod := "res://content/_r"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write_file(mod + "/mod.yaml", "id: _r\ntitle: R\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/items.yaml", "- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife, durability: 3}\n"
+		+ "- {id: mould, title: Форма, weight: 1, stack: 1}\n- {id: chips, title: Щепа, weight: 0.1, stack: 50, fuel: true}\n"
+		+ "- {id: cup, title: Чашка, weight: 0.2, stack: 10}\n")
+	_write_file(mod + "/data/recipes.yaml", "- {id: cup, title: Чашка, makes: cup, needs: {resources:branch: 1}, keeps: {mould: 1}, "
+		+ "tools: [knife], wear: 1, also: [{item: chips, count: 2}, {item: resources:fiber, chance: 0.5}], time: 1}\n"
+		+ "- {id: chips, title: Щепа, makes: chips, needs: {resources:branch: 1}, tools: [Saw], wear: 2}\n")
+	Content.refresh()
+	Mods.activate(Mods.all() + ["_r"])
+	var said := "\n".join(Content.problems + Crafting.check())
+	_check("_r:chips.tools: expected a lowercase word" in said and "_r:chips.wear: it needs no tool to wear" in said,
+		"a class of tool is a lowercase word, and wear wants a tool: %s" % said)
+	var cup := Crafting.get_recipe("_r:cup")
+	var who := Who.new()
+	var placed := Placed.new()
+	placed.world = WorldData.new(4, Vector2i(16, 16))
+	var shop := Workshop.new(who, placed, {"tool_wear": true, "instant_craft": true})
+	who.inventory.add("resources:branch", 5)
+	_check(shop.why_not(cup) == "Нужен инструмент: нож", "a cup needs a knife in the bag: %s" % shop.why_not(cup))
+	who.inventory.add("_r:knife", 1)
+	_check(shop.why_not(cup) == "Не хватает: 1 Форма", "and a mould: %s" % shop.why_not(cup))
+	who.inventory.add("_r:mould", 1)
+	_check(shop.why_not(cup) == "" and shop.start(cup, 3) == 3 and who.inventory.count("resources:branch") == 2
+		and who.inventory.count("_r:mould") == 1, "three cups are queued: a branch each is used up, the mould is kept")
+	who.inventory.remove("_r:mould", 1)
+	shop.update(0.01)
+	_check(who.inventory.count("_r:cup") == 0 and shop.waiting() and shop.waits_for(cup) == "Форма",
+		"without the mould in the bag the work waits for it")
+	who.inventory.add("_r:mould", 1)
+	shop.update(0.01)
+	var knife := -1
+	for i in who.inventory.slots.size():
+		if who.inventory.slots[i] != null and who.inventory.slots[i][0] == "_r:knife":
+			knife = i
+	_check(who.inventory.count("_r:cup") == 1 and who.inventory.count("_r:chips") == 2 and knife >= 0 and who.inventory.worn(knife) == 1,
+		"with it a cup is made with two chips, and the knife wears by one")
+	shop.update(0.01)
+	shop.update(0.01)
+	_check(who.inventory.count("_r:cup") == 3 and who.inventory.count("_r:chips") == 6 and who.inventory.count("_r:knife") == 0
+		and who.said.has("Сломалось: Нож"), "a knife that lasts three swings breaks with the third cup")
+	var fiber := 0
+	for n in 3:
+		fiber += Crafting.outputs(cup, n).get("resources:fiber", 0)
+	var hits := 0
+	for n in 200:
+		if Crafting.comes(cup, n, 1):
+			hits += 1
+	_check(who.inventory.count("resources:fiber") == fiber and hits > 80 and hits < 120 and Crafting.comes(cup, 0, 0),
+		"a by-product of chance 0.5 comes with about half the jobs, decided by their serials (%d of 200); one of chance 1 with each" % hits)
+	Mods.activate(before)
+	for f in ["data/items.yaml", "data/recipes.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty() and Crafting.check().is_empty(), "the full set loads clean again")

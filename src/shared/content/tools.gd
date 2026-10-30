@@ -54,10 +54,15 @@ static func is_tool_item(id: String) -> bool:
 
 ## Whether bag `inv` holds a tool of class `kind`.
 static func holds(inv, kind: String) -> bool:
+	return held_of(inv, kind) != ""
+
+
+## The item of the first tool of class `kind` in bag `inv`, "" for none.
+static func held_of(inv, kind: String) -> String:
 	for s in inv.slots:
 		if s != null and Items.get_item(s[0]).get("tool", "none") == kind:
-			return true
-	return false
+			return s[0]
+	return ""
 
 
 ## What item `id` in a hand is used for: "tool" (dig, chop, mow with it), "place" (a

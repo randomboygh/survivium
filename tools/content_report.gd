@@ -10,9 +10,11 @@ extends SceneTree
 ## the content graph (ContentGraph): the start, the items by depth, where each comes from
 ## and where it goes, the shared resources, what the hands and each tool get out of the
 ## world, the stations, the chain of each thing made and a diagram of the recipes.
-## docs/generated/content-checks.md is what the checks found, each check with what it
-## means and how to fix what it finds. CI runs --check; run it without arguments after
-## changing the data.
+## docs/generated/content-recipes.md is the register of recipes: by kind of work, what
+## each makes and gives besides, uses up and keeps, its station, tools, time, depth and
+## the other recipes of its thing. docs/generated/content-checks.md is what the checks
+## found, each check with what it means and how to fix what it finds. CI runs --check;
+## run it without arguments after changing the data.
 
 const Content := preload("res://src/shared/content/content.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
@@ -23,15 +25,18 @@ const ContentGraph := preload("res://src/shared/content/content_graph.gd")
 
 const INDEX := "res://docs/generated/content-index.md"
 const GRAPH := "res://docs/generated/content-graph.md"
+const RECIPES := "res://docs/generated/content-recipes.md"
 const CHECKS := "res://docs/generated/content-checks.md"
 ## The kinds by their names in the register, in its order; a kind not here comes after
 ## them under its own name.
 const KINDS := {"items": "Предметы", "recipes": "Рецепты", "materials": "Материалы ячеек", "trees": "Деревья",
 	"bushes": "Кусты", "plants": "Растения", "creatures": "Существа", "biomes": "Биомы", "starts": "Старт", "sounds": "Звуки"}
 ## How the ways of the graph are said (ContentGraph.ways: the `via` of each).
-const VIA := {"world": "мир", "start": "старт", "special": "особый источник", "recipe": "рецепт", "craft": "сделать",
+const VIA := {"world": "мир", "start": "старт", "special": "особый источник", "recipe": "рецепт", "also": "побочно", "craft": "сделать",
 	"spawns": "растёт в биоме", "lives": "живёт в биоме", "is": "это", "place": "поставить", "plant": "посадить",
 	"sow": "посеять", "dig": "копать", "mow": "косить", "fell": "рубить", "gather": "собирать", "dig_out": "выкопать"}
+## The kinds of work of recipes (`process`), in the order of the register of recipes.
+const PROCESS := {"craft": "Изготовление", "refine": "Переработка", "smelt": "Плавка и обжиг", "cook": "Готовка"}
 ## The checks of the graph (ContentGraph.CHECKS): name, what they find, how to fix it.
 const CHECK_TEXT := {
 	"no_source": ["Нет источника", "предмет не делает ни один рецепт, его не даёт мир и его нет в старте",
@@ -71,7 +76,7 @@ func _init() -> void:
 	Mods.rescan()
 	graph = ContentGraph.new()
 	loader_errors = Content.problems + Crafting.check() + Starts.check()
-	var wanted := {INDEX: _index(), GRAPH: _graph(), CHECKS: _checks()}
+	var wanted := {INDEX: _index(), GRAPH: _graph(), RECIPES: _recipes(), CHECKS: _checks()}
 	Content.strict = false
 	var stale := []
 	var check := "--check" in OS.get_cmdline_user_args()
@@ -316,7 +321,8 @@ func _to(id: String) -> String:
 	var item := Items.get_item(id)
 	var by := {}
 	for u: Array in graph.uses.get("items/" + id, []):
-		var what: String = {"consumes": "в рецепты", "requires_station": "станок рецептов", "repaired_with": "чинит"}.get(u[0], u[0])
+		var what: String = {"consumes": "в рецепты", "requires": "нужен в сумке рецептам", "requires_station": "станок рецептов",
+			"repaired_with": "чинит"}.get(u[0], u[0])
 		if not by.has(what):
 			by[what] = []
 		by[what].append(_title(u[1]))
@@ -443,7 +449,7 @@ func _chains() -> Array:
 	for key: String in graph.reached:
 		back[key] = graph.basis(key)
 	var made := Array(Items.IDS).filter(func(id: String) -> bool:
-		return graph.how.get("items/" + id, {}).get("via", "") == "recipe")
+		return graph.how.get("items/" + id, {}).get("via", "") in ["recipe", "also"])
 	made.sort_custom(func(a: String, b: String) -> bool:
 		var da: int = graph.reached["items/" + a]
 		var db: int = graph.reached["items/" + b]
@@ -458,21 +464,21 @@ func _chains() -> Array:
 			if not k.begins_with("items/") or k == "items/" + id:
 				continue
 			var item := Items.get_item(k.substr(6))
-			var i := 3 if item.tool != "none" else 2 if item.prop != "none" else 1 if graph.how[k].via == "recipe" else 0
+			var i := 3 if item.tool != "none" else 2 if item.prop != "none" else 1 if graph.how[k].via in ["recipe", "also"] else 0
 			parts[i].append(_title(k))
 		var cells := parts.map(func(p: Array) -> String: return ", ".join(p) if not p.is_empty() else "—")
 		out.append("| %s | %s | %s | %s | %s | %s |" % ([_named("items/" + id), _depth("items/" + id)] + cells))
 	return out
 
 
-## The recipes as a mermaid diagram: an arrow from each material to what is made of it, a
-## dotted one from the station and the tool; what no recipe makes is rounded, stations are
-## framed, a tool of a kind is a hexagon.
+## The recipes as a mermaid diagram: an arrow from each material to what is made of it and
+## its by-products, a dotted one from the station, the tools and what is kept; what no
+## recipe makes is rounded, stations are framed, a tool of a kind is a hexagon.
 func _diagram() -> Array:
 	var out := ["", "## Схема рецептов", "",
-		"Сплошная стрелка — материал рецепта, пунктир — станок или инструмент. Скруглено то, что не делает ни один",
-		"рецепт (его даёт мир или старт), в рамке — станки, в шестиугольнике — инструмент любого вида.", "", "```mermaid",
-		"flowchart LR"]
+		"Сплошная стрелка — материал рецепта (к изделию и побочному), пунктир — то, что не тратится: станок,",
+		"инструмент, вещь в сумке. Скруглено то, что не делает ни один рецепт (его даёт мир или старт), в рамке —",
+		"станки, в шестиугольнике — инструмент любого вида.", "", "```mermaid", "flowchart LR"]
 	var nodes := {}
 	var node := func(key: String) -> String:
 		if not nodes.has(key):
@@ -484,19 +490,30 @@ func _diagram() -> Array:
 				shape = "{{\"%s\"}}"
 			elif not item.is_empty() and item.prop != "none":
 				shape = "[[\"%s\"]]"
-			elif not Array(Crafting.RECIPES).any(func(r: Dictionary) -> bool: return "items/" + r.makes == key):
+			elif not Array(Crafting.RECIPES).any(func(r: Dictionary) -> bool: return key.substr(6) in _made_by(r)):
 				shape = "([\"%s\"])"
 			out.append("  %s%s" % [nodes[key], shape % title])
 		return nodes[key]
 	for r: Dictionary in Crafting.RECIPES:
 		var to: String = node.call("items/" + r.makes)
-		for id: String in r.needs:
-			out.append("  %s --> %s" % [node.call("items/" + id), to])
-		if r.at != "":
-			out.append("  %s -.-> %s" % [node.call("items/" + r.at), to])
-		if r.tool != "none":
-			out.append("  %s -.-> %s" % [node.call("tool/" + r.tool), to])
+		for made: String in _made_by(r):
+			for id: String in r.needs:
+				out.append("  %s --> %s" % [node.call("items/" + id), node.call("items/" + made)])
+		var kept := ["items/" + r.at] if r.at != "" else []
+		kept += r.tools.map(func(kind: String) -> String: return "tool/" + kind)
+		kept += r.keeps.keys().map(func(id: String) -> String: return "items/" + id)
+		for k: String in kept:
+			out.append("  %s -.-> %s" % [node.call(k), to])
 	out.append("```")
+	return out
+
+
+## The items recipe `r` makes: its own, then its by-products.
+static func _made_by(r: Dictionary) -> Array:
+	var out := [r.makes]
+	for e: Dictionary in r.also:
+		if not out.has(e.item):
+			out.append(e.item)
 	return out
 
 
@@ -535,6 +552,72 @@ func _depth(key: String) -> String:
 	return str(graph.reached[key]) if graph.reached.has(key) else "не достать"
 
 
+# --- The register of recipes -------------------------------------------------------------
+
+## The register of recipes (result 3 of the spec): by kind of work, each recipe with what
+## it makes and gives besides, uses up and keeps, its station and those that serve it, its
+## tools and their wear, its time, the depth of its thing by it and the other recipes of it.
+func _recipes() -> String:
+	var out := ["# Реестр рецептов", "",
+		"Создаёт `tools/content_report.gd` из данных всех модов; руками не править, CI проверяет, что реестр свежий.",
+		"Поля рецепта — [DATA_MODEL.md](../DATA_MODEL.md), правила — раздел 6",
+		"[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM.md), что из чего по цепочкам — [content-graph.md](content-graph.md).", "",
+		"Рецепт узнаётся, когда в сумке побывало всё, что он тратит. Тратит — забирается из сумки, когда работа",
+		"встаёт в очередь (отмена возвращает); в сумке — нужно, пока идёт работа, и не тратится. Станок — где",
+		"делают; годится и тот, что его заменяет (`serves`). Инструменты — классы, по одному каждого в сумке;",
+		"износ — сколько ударов снимает с инструмента каждое изделие, когда износ включён. Побочно — что выходит",
+		"вместе с изделием, с шансом, который решает номер работы, а не случай. Глубина — шагов изготовления",
+		"от старта до изделия по этому рецепту. Альтернативы — другие рецепты той же вещи.", "",
+		"## Сводка", "", "| Процесс | Рецептов | Где делают |", "|---|---|---|"]
+	var by := {}
+	for r: Dictionary in Crafting.RECIPES:
+		by[r.process] = by.get(r.process, []) + [r]
+	for p: String in PROCESS:
+		if by.has(p):
+			var at := []
+			for r: Dictionary in by[p]:
+				var where := _title("items/" + r.at) if r.at != "" else "руки"
+				if not where in at:
+					at.append(where)
+			out.append("| %s (`%s`) | %d | %s |" % [PROCESS[p], p, by[p].size(), ", ".join(at)])
+	for p: String in PROCESS:
+		if not by.has(p):
+			continue
+		out += ["", "## %s (`%s`)" % [PROCESS[p], p], "",
+			"| Рецепт | Делает | Тратит | В сумке | Станок | Инструменты | Время | Глубина | Альтернативы |",
+			"|---|---|---|---|---|---|---|---|---|"]
+		for r: Dictionary in by[p]:
+			var key: String = "recipes/" + r.id
+			var makes := "%s ×%d" % [_title("items/" + r.makes), r.count]
+			for e: Dictionary in r.also:
+				makes += "; побочно: %s ×%d%s" % [_title("items/" + e.item), e.count,
+					" (%d%%)" % roundi(e.chance * 100.0) if e.chance < 1.0 else ""]
+			var tools: Array = r.tools.map(func(kind: String) -> String: return Items.tool_title(kind))
+			var others := Array(Crafting.RECIPES).filter(func(o: Dictionary) -> bool: return o.makes == r.makes and o.id != r.id)
+			out.append("| %s | %s | %s | %s | %s | %s | %d с | %s | %s |" % [_named(key), makes, _amounts(r.needs), _amounts(r.keeps),
+				_station(r.at), (", ".join(tools) + (" (износ %d)" % r.wear if r.wear > 0 else "")) if not tools.is_empty() else "—",
+				roundi(r.time), str(graph.reached[key] + 1) if graph.reached.has(key) else "не сделать",
+				", ".join(others.map(func(o: Dictionary) -> String: return _named("recipes/" + o.id))) if not others.is_empty() else "—"])
+	return "\n".join(out) + "\n"
+
+
+## "Бревно ×1, Ветка ×2" for a mapping of item ids to how many, "—" for none.
+func _amounts(amounts: Dictionary) -> String:
+	var parts := []
+	for id: String in amounts:
+		parts.append("%s ×%d" % [_title("items/" + id), amounts[id]])
+	return ", ".join(parts) if not parts.is_empty() else "—"
+
+
+## Station `at` of a recipe with those that serve it: "Верстак (или Стойка)"; "руки" for none.
+func _station(at: String) -> String:
+	if at == "":
+		return "руки"
+	var servers := Array(Items.IDS).filter(func(id: String) -> bool: return Items.get_item(id).serves.has(at))
+	return _title("items/" + at) + (" (или %s)" % ", ".join(servers.map(func(id: String) -> String: return _title("items/" + id)))
+		if not servers.is_empty() else "")
+
+
 # --- What the checks found ----------------------------------------------------------------
 
 ## What the checks found (result 9): every check with what it means, how to fix what it
@@ -551,7 +634,7 @@ func _checks() -> String:
 		"и каждый бандл отдельно. Предупреждения CI не валят. Правила — раздел 11",
 		"[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM.md), граф — [content-graph.md](content-graph.md).", "",
 		"## Сводка", "", "| Проверка | Вид | Найдено | Что находит | Как исправить |", "|---|---|---|---|---|",
-		"| Загрузка и схемы | ошибка | %d | битые ссылки, поля не по схеме, повтор id, станок рецепта не станок, лагерь старта | по сообщению |" % loader_errors.size()]
+		"| Загрузка и схемы | ошибка | %d | битые ссылки, поля не по схеме, повтор id, станок рецепта не станок, износ без инструмента, лагерь старта | по сообщению |" % loader_errors.size()]
 	for check: String in ContentGraph.CHECKS:
 		var t: Array = CHECK_TEXT[check]
 		out.append("| %s | %s | %d | %s | %s |" % [t[0], "ошибка" if ContentGraph.CHECKS[check] else "предупреждение",

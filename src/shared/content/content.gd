@@ -209,12 +209,25 @@ const SCHEMAS := {
 		"sandstorms": {"type": "bool", "default": false},
 		"color": {"type": "color"},
 	},
+	# What a recipe makes and its by-products (`also`, each with its chance, decided by the
+	# job: Crafting.outputs), what it uses up (`needs`), what must be in the bag and is not
+	# used up (`keeps`), its station (`at`, or one that serves it), the classes of tools in
+	# the bag (`tools`, one of each, worn by `wear` swings an item when wear is on), what
+	# kind of work it is for the graph and the reports (`process`) and its time.
 	"recipes": {
 		"makes": {"type": "ref:items", "rel": "produces"},
 		"count": {"type": "int", "min": 1, "default": 1},
+		"also": {"type": "entries", "default": [], "fields": {
+			"item": {"type": "ref:items", "rel": "produces"},
+			"count": {"type": "int", "min": 1, "default": 1},
+			"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
+		}},
 		"needs": {"type": "amounts", "of": "ref:items", "rel": "consumes"},
+		"keeps": {"type": "amounts", "of": "ref:items", "default": {}, "rel": "requires"},
 		"at": {"type": "ref:items", "default": "", "rel": "requires_station"},
-		"tool": {"type": "word", "default": "none"},
+		"tools": {"type": "list", "of": "word", "default": []},
+		"wear": {"type": "int", "min": 0, "default": 0},
+		"process": {"type": "enum", "values": ["craft", "refine", "smelt", "cook"], "default": "craft"},
 		"time": {"type": "float", "min": 0.0, "default": 2.0},
 	},
 	"sounds": {
@@ -260,6 +273,7 @@ const RELATIONS := {
 	"spawns": "grows the named records over its land",
 	"produces": "makes the named item",
 	"consumes": "uses the named items up",
+	"requires": "needs the named items in the bag and does not use them up",
 	"requires_station": "is made at the named station",
 	"serves": "does the work of the named stations: their recipes are made at it too",
 	"starts_with": "a new world starts with the named items, in the bag or set down by the spawn",

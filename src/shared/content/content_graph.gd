@@ -27,8 +27,9 @@ const Tools := preload("res://src/shared/content/tools.gd")
 ## what it names comes from the record by the field's action (`via`, under its rule of the
 ## hands, see _can); `makes` — what it names comes into the world from the item had (set
 ## down, planted, sown); `grows` — a biome grows it; `lives` — the record lives in the
-## world when one of what it names is there; `made`, `needs`, `station` — a recipe's
-## product, materials and station; `start`, `camp` — the start's bag and the things it sets
+## world when one of what it names is there; `made`, `also`, `needs`, `station` — a
+## recipe's product, by-products, what it takes (uses up or keeps) and station; `start`,
+## `camp` — the start's bag and the things it sets
 ## down by the spawn; `serves` — a station set down stands for the ones it names; `use` — a
 ## use only (mending, an animal's food). A field not here fails graph_test: the graph must
 ## know every link.
@@ -40,12 +41,13 @@ const LINKS := {
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
 	"biomes.trees": "grows", "biomes.bushes": "grows",
-	"recipes.makes": "made", "recipes.needs": "needs", "recipes.at": "station",
+	"recipes.makes": "made", "recipes.also.item": "also", "recipes.needs": "needs", "recipes.keeps": "needs",
+	"recipes.at": "station",
 	"starts.bag": "start", "starts.camp.item": "camp",
 	"plants.gives": "gives",
 }
 ## The links by which a record uses an item (see uses).
-const USED_BY := ["consumes", "requires_station", "repaired_with"]
+const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
 ## The fields that say what an item is for besides being used up: an item with none of
 ## them set that no recipe needs and nothing mends with is a dead end.
 const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "heal", "fuel", "light"]
@@ -60,16 +62,18 @@ const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "ne
 	"never_appears": false}
 ## How each way is told in a message (see _why).
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
-	"recipe": "made by", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
+	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
 	"gather": "gathered from", "dig_out": "dug out of", "serves": "stood in for by"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
-## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "spawns",
-## "lives", "is" for a tool of a kind, "serves" for a station another stands in for),
+## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "also"
+## for a by-product, "spawns", "lives", "is" for a tool of a kind, "serves" for a station
+## another stands in for),
 ## "from": the key it comes from or "", "needs": the keys it takes besides (a recipe's
-## materials, station and tool; the tool a thing is set down with), "act": the action whose
-## rule of the hands a tool had must keep, "" for none, "step": 1 for a recipe's product}.
+## materials, what it keeps, station and tools; the tool a thing is set down with), "act":
+## the action whose rule of the hands a tool had must keep, "" for none, "step": 1 for a
+## recipe's product or by-product}.
 ## Keys: "kind/id" for a record in the world or had (`items/` in the bag), "placed/<item>"
 ## for a thing standing in the world, "tool/<kind>" for a tool of that kind in the bag.
 var ways: Array = []
@@ -80,7 +84,7 @@ var sources := {}
 var uses := {}
 ## What the start comes to: key -> depth, the steps of making from the start (what the
 ## world and the start give with bare hands is 0; what a tool gets, the tool's depth; a
-## recipe's product one more than the deepest of its materials, station and tool).
+## recipe's product one more than the deepest of what it takes, station and tools).
 var reached := {}
 ## Reached key -> the way that gives it at its depth.
 var how := {}
@@ -136,12 +140,13 @@ func _make_ways() -> void:
 			_way("tool/" + item.tool, "is", "items/" + id)
 	for r: Dictionary in Crafting.RECIPES:
 		var needs := []
-		for id: String in r.needs:
-			needs.append("items/" + id)
+		for id: String in r.needs.keys() + r.keeps.keys():
+			if not needs.has("items/" + id):
+				needs.append("items/" + id)
 		if r.at != "":
 			needs.append("placed/" + r.at)
-		if r.tool != "none":
-			needs.append("tool/" + r.tool)
+		for kind: String in r.tools:
+			needs.append("tool/" + kind)
 		_way("recipes/" + r.id, "craft", "", needs)
 	# A tree stands on cells of the trunk and crown roles (Trees.check).
 	var trees_stand := Mat.LOG >= 0 and Mat.LEAVES >= 0
@@ -165,6 +170,8 @@ func _make_ways() -> void:
 							_way(from, "lives", to)
 						"made":
 							_way(to, "recipe", from, [], "", 1)
+						"also":
+							_way(to, "also", from, [], "", 1)
 						"start":
 							_way(to, "start", from)
 						"camp":
@@ -268,8 +275,9 @@ func _check() -> void:
 			_found("never_had", "items: `%s` can never be had: %s" % [id, _why(key)], [key])
 	for r: Dictionary in Crafting.RECIPES:
 		var key: String = "recipes/" + r.id
-		if r.tool != "none" and not sources.has("tool/" + r.tool):
-			_found("no_tool_item", "recipes: `%s`.tool: no item is a `%s`" % [r.id, r.tool], [key])
+		var no_item: Array = r.tools.filter(func(kind: String) -> bool: return not sources.has("tool/" + kind))
+		if not no_item.is_empty():
+			_found("no_tool_item", "recipes: `%s`.tools: no item is a %s" % [r.id, _list(no_item)], [key])
 		elif not reached.has(key):
 			_found("never_made", "recipes: `%s` can never be made: %s" % [r.id, _why(key)], [key])
 	for kind: String in ["plants", "bushes", "trees"]:
@@ -336,8 +344,8 @@ func by_hand(w: Dictionary) -> bool:
 
 
 ## What `key` comes of at its depth: the keys the way giving it takes (where it comes from;
-## a recipe's materials, station and tool) and the earliest tool item had that does its
-## action when bare hands cannot. Empty for what is never reached.
+## a recipe's materials, what it keeps, station and tools) and the earliest tool item had
+## that does its action when bare hands cannot. Empty for what is never reached.
 func basis(key: String) -> Array:
 	if not how.has(key):
 		return []
@@ -523,11 +531,12 @@ func _twins() -> void:
 
 ## Loops of recipes that give back more of an item than went in (an endless source): the
 ## best yield of a path of recipes from each item to each other, by how many come out of
-## one going in, and an item whose yield back to itself is above 1.
+## one going in (a by-product by its share), and an item whose yield back to itself is
+## above 1.
 func _loops() -> void:
 	var ids := []
 	for r: Dictionary in Crafting.RECIPES:
-		for id: String in r.needs.keys() + [r.makes]:
+		for id: String in r.needs.keys() + _products(r).keys():
 			if not ids.has(id):
 				ids.append(id)
 	var n := ids.size()
@@ -535,10 +544,12 @@ func _loops() -> void:
 	gain.resize(n * n)
 	gain.fill(0.0)
 	for r: Dictionary in Crafting.RECIPES:
-		var j := ids.find(r.makes)
-		for id: String in r.needs:
-			var i := ids.find(id)
-			gain[i * n + j] = maxf(gain[i * n + j], float(r.count) / r.needs[id])
+		var out := _products(r)
+		for made: String in out:
+			var j := ids.find(made)
+			for id: String in r.needs:
+				var i := ids.find(id)
+				gain[i * n + j] = maxf(gain[i * n + j], out[made] / r.needs[id])
 	# Not through a loop at the item gone through (m), which would multiply its own yield.
 	for m in n:
 		for i in n:
@@ -552,3 +563,12 @@ func _loops() -> void:
 			var yield_back := minf(gain[i * n + i], 99.0)
 			_found("loop", "recipes: a loop of recipes gives back ×%.2f of `%s`: an endless source of it" % [yield_back, ids[i]],
 				["items/" + ids[i]], yield_back)
+
+
+## What recipe `r` gives a job on the whole: item id -> how many, a by-product by its
+## chance.
+static func _products(r: Dictionary) -> Dictionary:
+	var out := {r.makes: float(r.count)}
+	for e: Dictionary in r.also:
+		out[e.item] = out.get(e.item, 0.0) + e.count * e.chance
+	return out

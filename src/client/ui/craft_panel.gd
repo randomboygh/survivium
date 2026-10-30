@@ -4,9 +4,10 @@ extends VBoxContainer
 ## (dimmed when they cannot be made now), the stations near as a column of pictures on
 ## the right (hands first, then the stations of the recipes known, the far ones
 ## dimmed). Under them two panels: the recipe chosen, as small wells with pictures in
-## columns (see FactChips): what it needs (have / need, short in red), its station and
-## tool («нет» in red when missing), its time (the recipe's: no skills yet), then what
-## it makes weighs, does and lasts, with a wide «сделать» under «×5 | MAX» on the
+## columns (see FactChips): what it uses up and what it keeps (have / need, short in
+## red), its station and tools («нет» in red when missing), its time (the recipe's: no
+## skills yet), then what it makes weighs, does and lasts, and its by-products, with a
+## wide «сделать» under «×5 | MAX» on the
 ## right; and under it, while it holds jobs, the queue, a row as wide: small cells
 ## for the jobs, the time left of the one chosen and the count over the first job's
 ## progress, the pause and «отменить | отменить все». Opened at a station, buttons in the window's head (by
@@ -22,6 +23,7 @@ const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 
 const COLUMNS := 8
@@ -368,8 +370,9 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 
 
 ## The panel of the recipe chosen: what it makes and its weight, a picture for each
-## thing it needs with how many the bag has of how many, its station and tool (red
-## when missing), its time; the buttons work only when it can be made now.
+## thing it uses up and keeps with how many the bag has of how many, its station and
+## tools (red when missing), its time, its by-products; the buttons work only when it
+## can be made now.
 func _show_details(near: Dictionary) -> void:
 	var r := Crafting.get_recipe(_chosen)
 	_details.visible = not r.is_empty()
@@ -382,18 +385,27 @@ func _show_details(near: Dictionary) -> void:
 	for id in r.needs:
 		var have: int = inv.count(id)
 		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Items.title(id)])
+	for id in r.keeps:
+		var have: int = inv.count(id)
+		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], "%s: не расходуется" % Items.title(id)])
 	var where := []
 	if r.at != "":
 		where.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
-	if r.tool != "none":
-		var has := Crafting.has_tool(r, inv)
-		var name := Items.tool_title(r.tool)
-		where.append([ItemIcons.of_tool(r.tool), "" if has else "нет", not has, name.left(1).to_upper() + name.substr(1)])
+	for kind: String in r.tools:
+		var has := Tools.holds(inv, kind)
+		var name := Items.tool_title(kind)
+		where.append([ItemIcons.of_tool(kind), "" if has else "нет", not has,
+			name.left(1).to_upper() + name.substr(1) + (": износ %d за изделие" % r.wear if r.wear > 0 else "")])
 	if where.is_empty():
 		where.append([ItemIcons.picture("hand"), "", false, "Руками"])
 	# The time of the recipe; with skills it will be the time at the character's skill.
 	var time := [UiStyle.icon("clock"), "%d с" % roundi(r.time), false, "Время изготовления"]
-	_facts.show_wells(needs + where + [time] + FactChips.item_wells(r.makes, r.count))
+	var also := []
+	for e: Dictionary in r.also:
+		var share := roundi(e.chance * 100.0)
+		also.append([ItemIcons.of_item(e.item), "+%d" % e.count if share >= 100 else "%d%%" % share, false,
+			"Побочно: %s ×%d%s" % [Items.title(e.item), e.count, "" if share >= 100 else ", шанс %d%%" % share]])
+	_facts.show_wells(needs + where + [time] + FactChips.item_wells(r.makes, r.count) + also)
 	var can := Crafting.why_not(r, inv, near) == ""
 	for b in _make.get_child(0).get_children() + [_make.get_child(1)]:
 		b.disabled = not can
@@ -458,11 +470,9 @@ func _choose_job(i: int) -> void:
 	_show_queue()
 
 
-## What the first job waits for: its station or its tool.
+## What the first job waits for: its station, a tool or a thing it keeps.
 func _where(r: Dictionary) -> String:
-	if r.at != "" and not game.workshop.stations().has(r.at):
-		return Items.title(r.at)
-	return Items.tool_title(r.tool)
+	return game.workshop.waits_for(r)
 
 
 ## Takes `px` UI pixels off the cells of recipes (they scroll), so the window fits the

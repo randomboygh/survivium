@@ -46,8 +46,8 @@
 - `build_info.py` — версия и «Что нового» для сборки (CI); `web_patch.py` — патч web-сборки для звука
   (CI, после экспорта); `doc_index.py` — индекс скриптов для `docs/` и проверка путей в документах;
   `content_report.gd` — отчёты о контенте из загруженных данных: реестр сущностей
-  `docs/generated/content-index.md`, граф `content-graph.md`, что нашли проверки `content-checks.md`
-  (`-- --check` — только проверить свежесть, так его запускает CI).
+  `docs/generated/content-index.md`, граф `content-graph.md`, реестр рецептов `content-recipes.md`, что
+  нашли проверки `content-checks.md` (`-- --check` — только проверить свежесть, так его запускает CI).
 
 ## CI (`.github/workflows/build.yml`)
 
