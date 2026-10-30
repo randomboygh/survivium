@@ -119,4 +119,4 @@ campfire), `plants.kind` (10 видов), `materials.role` (beach, bank, scree, 
   (`activate`, `RENAMED`), `src/shared/content/materials.gd` (`remap`, `RENAMED`),
   `src/client/view/pixel_textures.gd` (`MOST_MATERIALS`), `src/client/save_game.gd`,
   `tools/validate.gd`, `tools/make_sounds.gd`.
-- Библиотека: `plan/architecture/modding.md` (устройство модов, история шагов), ТЗ `bundles.md`.
+- Библиотека: `plan/architecture/modding.md` (устройство модов), `plan/history/modding.md` (история шагов), ТЗ `bundles.md`.

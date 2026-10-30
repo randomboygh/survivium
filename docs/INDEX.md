@@ -26,6 +26,7 @@
 | [DECISIONS.md](DECISIONS.md) | архитектурные решения с причинами и номерами журнала | прежде чем менять принцип |
 | [ROADMAP.md](ROADMAP.md) | где этапы и бэклог; технический долг из аудита | планировать работу |
 | [generated/code-index.md](generated/code-index.md) | каждый скрипт с первой строкой его описания (генератор) | найти файл по смыслу |
+| [generated/content-index.md](generated/content-index.md) | моды, бандлы и записи каждого вида, в том числе рецепты (генератор) | найти запись или бандл |
 | [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | аудит этапа 0: состояние, находки, что почищено | история реорганизации |
 | [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | готовность к работе над бандлами | перед этапом бандлов |
 
@@ -36,19 +37,25 @@
 
 | Что | Где |
 |---|---|
-| Оглавление и журнал решений (№ 1–150 и дальше) | `plan/README.md` |
+| Оглавление и журнал решений (№ 1–151 и дальше) | `plan/README.md` |
 | Этапы MVP и их состояние | `plan/mvp.md` |
 | Бэклог (единственный список задач, GitHub Issues не ведутся) | `plan/backlog.md` |
 | Геймдизайн по темам | `plan/design/*.md` |
 | Подробности реализации: рендер, производительность, моды | `plan/architecture/rendering.md`, `performance.md`, `modding.md` |
 | Замыслы, ещё не сделанные: сервер, сеть, редактор, территории | `plan/architecture/networking.md`, `editor.md`, `deployment.md`, `plan/design/territory-pvp.md` |
-| История закрытых тем (варианты, раунды) | `plan/history/*.md` |
+| История закрытых тем (варианты, раунды, старые замеры, выполненные планы) | `plan/history/*.md` |
 | Скриншоты по темам (оглавление в README) | `survivium-builds/` |
 | ТЗ этапа 0 и следующего этапа | `audition.md`, `bundles.md` (корень библиотеки) |
 
-Статусы документов библиотеки (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) стоят в оглавлении
-`plan/README.md`. Документ со статусом PROPOSED или DRAFT описывает замысел, а не код: что сделано,
-проверяйте по `docs/` и коду.
+Статусы документов библиотеки (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) стоят строкой
+`Статус:` под заголовком каждого документа и в оглавлении `plan/README.md`. Документ со статусом
+PROPOSED или DRAFT описывает замысел, а не код: что сделано, проверяйте по `docs/` и коду.
+
+Что устарело и куда перенесено (2026-10-30): `plan/architecture/code-structure.md` (DEPRECATED) —
+[ARCHITECTURE.md](ARCHITECTURE.md) и [PROJECT_MAP.md](PROJECT_MAP.md), его текст и прежний раздел «Модули»
+`plan/architecture/overview.md` — `plan/history/code-structure.md`; старые замеры из `performance.md` —
+`plan/history/performance.md`; выполненный план разделения на моды из `modding.md` —
+`plan/history/modding.md`; сделанные пункты бэклога — `plan/history/backlog-done.md`.
 
 ## Как искать, не читая всё
 
@@ -69,4 +76,8 @@
   в [DECISIONS.md](DECISIONS.md).
 - Устаревший документ не удаляется молча: сверху ставится `Статус: DEPRECATED` с причиной и ссылкой на
   замену, история темы уходит в `plan/history/`.
+- Техническая спецификация кода (что и как сделать в коде) — `docs/specifications/`; ТЗ и замысел
+  пользователя — в библиотеке (`plan/design/`, корень).
 - Временные заметки и черновики в репозиторий не кладутся: они в треде или в библиотеке.
+- Куда класть новые скрипты, данные, ассеты и скриншоты — [PROJECT_MAP.md](PROJECT_MAP.md); как менять
+  связи систем — [ARCHITECTURE.md](ARCHITECTURE.md); проверки после изменений — `CLAUDE.md`.
