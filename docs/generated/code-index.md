@@ -115,6 +115,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/content/biomes.gd`: Biomes from `content/*/data/biomes.yaml` (see Content): where a biome lies and what grows there.
 - `src/shared/content/bushes.gd`: Bush types: what a bush looks like is data here, where it grows is up to the world generator (per biome).
 - `src/shared/content/content.gd`: Mods, their bundles and their data files.
+- `src/shared/content/content_graph.gd`: The content graph of the loaded set (docs/specifications/BUNDLE_SYSTEM.md, section 11): the records and the links their reference fields name (Content.refs, by LINKS), and what a player comes to from…
 - `src/shared/content/crafting.gd`: Recipes: what is made by hand, at a workbench, in a kiln, read from `content/*/data/recipes.yaml` (see Content; plan/design/crafting.md).
 - `src/shared/content/items.gd`: Items: what a bag holds and what lies on the ground, read from `content/*/data/items.yaml` (see Content).
 - `src/shared/content/materials.gd`: Cell materials, read from `content/*/data/materials.yaml` (see Content).
@@ -169,6 +170,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/clock_test.gd`: Time of day, seasons, the moon and the weather.
 - `tests/unit/content_test.gd`: The data: yaml, the schemas, mods and patches, items, tools, recipes, and the layer rule.
 - `tests/unit/generation_test.gd`: The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
+- `tests/unit/graph_test.gd`: The content graph (src/shared/content/content_graph.gd): the full set comes to every item and recipe from the start by the rules of the hands; on bundles made for the test it finds each dead end of…
 - `tests/unit/mesher_test.gd`: The chunk meshes: cells, slopes and cut caps.
 - `tests/unit/shapes_test.gd`: The shapes of natural ground (slopes and corners) against the rules written out one cell at a time.
 - `tests/unit/store_test.gd`: Saving and loading a world and its chunks.
@@ -219,7 +221,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## tools
 
-- `tools/validate.gd`: Checks the content files of every mod and fails on any problem, for CI and for a quick check after editing data (names against the naming rules are printed as warnings and fail nothing): godot…
+- `tools/validate.gd`: Checks the content files of every mod and fails on any problem, for CI and for a quick check after editing data: schemas and references, each bundle by itself, the pictures, sounds and models, and…
 - `tools/web_patch.py`: Patches the web export after Godot writes it.
 
 ## Folders of src/ and what they load

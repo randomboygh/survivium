@@ -108,8 +108,9 @@ func _run() -> void:
 
 # --- The plan ---------------------------------------------------------------------------
 
-## What the world gives a player (see Crafting.reachable, its first part): what cells,
-## the plants on them, trees and bushes give.
+## What the world gives a player (the content graph, src/shared/content/content_graph.gd,
+## finds the same and which tool each takes): what cells, the plants on them, trees and
+## bushes give.
 func _raw() -> Dictionary:
 	var have := {}
 	for rec: Dictionary in Mat.RECORDS:

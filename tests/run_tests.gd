@@ -3,7 +3,7 @@ extends SceneTree
 ## Run: godot --headless --path . --script res://tests/run_tests.gd [-- topic ...]
 ## Names as arguments run only those files, e.g. `-- body shapes`.
 
-const FILES := ["generation", "mesher", "body", "shapes", "view", "actions", "clock", "wildlife", "store", "content", "character"]
+const FILES := ["generation", "mesher", "body", "shapes", "view", "actions", "clock", "wildlife", "store", "content", "graph", "character"]
 
 
 func _init() -> void:

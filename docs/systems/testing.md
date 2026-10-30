@@ -6,7 +6,7 @@
 
 | Файл | Что проверяет | Предел |
 |---|---|---|
-| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, character); каждый файл наследует `unit/test_case.gd` (`_check` и помощники); `-- тема …` запускает только их | 300 с |
+| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, character); каждый файл наследует `unit/test_case.gd` (`_check` и помощники); `-- тема …` запускает только их | 300 с |
 | `save_test.gd` | играет, сохраняет, запускает заново: копки, место, часы, вещи, карта, маркеры, части модулей, старые сохранения | 300 с |
 | `progress_test.gd` | новый мир с пустой сумкой: путь до каждого рецепта через вызовы самой игры; при провале говорит, чего не достать | 600 с |
 | `frame_test.gd` | играет сценарии без экрана и падает, если работа размером с чанк попала в один кадр; тайминги шумят на занятой машине — перезапустите отдельно | 600 с |
@@ -45,7 +45,8 @@
   растения, плоды новых растений). Нарисованное можно поправить руками.
 - `build_info.py` — версия и «Что нового» для сборки (CI); `web_patch.py` — патч web-сборки для звука
   (CI, после экспорта); `doc_index.py` — индекс скриптов для `docs/` и проверка путей в документах;
-  `content_report.gd` — реестр сущностей `docs/generated/content-index.md` из загруженных данных
+  `content_report.gd` — отчёты о контенте из загруженных данных: реестр сущностей
+  `docs/generated/content-index.md`, граф `content-graph.md`, что нашли проверки `content-checks.md`
   (`-- --check` — только проверить свежесть, так его запускает CI).
 
 ## CI (`.github/workflows/build.yml`)
