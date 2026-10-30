@@ -6,7 +6,7 @@
 
 | Файл | Что проверяет | Предел |
 |---|---|---|
-| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, character); каждый файл наследует `unit/test_case.gd` (`_check` и помощники); `-- тема …` запускает только их | 300 с |
+| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, bundle_system, character); каждый файл наследует `unit/test_case.gd` (`_check` и помощники); `-- тема …` запускает только их | 300 с |
 | `save_test.gd` | играет, сохраняет, запускает заново: копки, место, часы, вещи, карта, маркеры, части модулей, старые сохранения | 300 с |
 | `progress_test.gd` | новый мир с пустой сумкой: путь до каждого рецепта через вызовы самой игры; при провале говорит, чего не достать | 600 с |
 | `frame_test.gd` | играет сценарии без экрана и падает, если работа размером с чанк попала в один кадр; тайминги шумят на занятой машине — перезапустите отдельно | 600 с |
@@ -36,7 +36,8 @@
   снимок с правкой ячеек возвращает их; `ground-*` — в тестовом мире).
 - `map.gd` — карта местности вокруг спавна сверху; `profile.gd` — время каждого модуля кадра headless и
   вызовы отрисовки под xvfb (`-- spikes` — разовые действия); `bench_gen.gd`, `bench_mesh.gd`,
-  `bench_edit.gd`, `bench_turn.gd` — замеры.
+  `bench_edit.gd`, `bench_turn.gd` — замеры; `bench_content.gd [бандлов]` — чтение и загрузка данных модов,
+  реестры и граф, сейчас и с придуманным модом в придачу.
 - Ассеты: `make_sprites.gd`, `make_models.gd`, `make_icons.gd`, `make_textures.gd` (рисовалки в
   `art/*.gd`), `make_sounds.gd` (кирпичики в `sound/synth.gd`), `sheet.gd` (лист игрока в PNG);
   Python с Pillow: `make_icon.py` (иконка и `assets/web/`; теги `og:` превью ссылки — в `html/head_include`

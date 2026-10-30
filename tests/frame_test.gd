@@ -20,6 +20,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const ShotPlaces := preload("res://tools/shot/places.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const Content := preload("res://src/shared/content/content.gd")
 const CELL := 0.5
 const CHUNK := 16
 ## Frames over a limit allowed in a scenario, one plus one per this many frames: a
@@ -535,10 +536,12 @@ func _run() -> void:
 	log_page.show_section("critical")
 	_check(log_page._list.get_child(1).text.begins_with("0:10  250 мс"), "the critical tab shows the freeze of 250 ms")
 	# The report for a playtest: a line each for the build, the world, the place, the
-	# camera, the time, the weather, the light, the settings, the device and the frame.
+	# camera, the time, the weather, the light, the settings, the device, the frame and the
+	# start (the mods' records, read and loaded).
 	log_page.open("report")
 	var report: String = log_page.report_text()
-	_check(report.split("\n").size() == 10 and report.contains("Мир: ") and report.contains("Погода: ")
+	_check(report.split("\n").size() == 11 and report.contains("Мир: ") and report.contains("Погода: ")
+		and report.contains("(данные модов: записей %d, чтение " % Content.record_count())
 		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
 	log_page.close()
 	hud.perf.freeze_log.resize(1)

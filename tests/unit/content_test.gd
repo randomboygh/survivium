@@ -109,6 +109,15 @@ func _test_content() -> void:
 	DirAccess.remove_absolute(mod)
 	Content.refresh()
 	_check(Content.problems.is_empty(), "core content loads clean again")
+	var found_all := true
+	var count := 0
+	for kind: String in Content.SCHEMAS:
+		for r: Dictionary in Content.records(kind):
+			found_all = found_all and is_same(Content.find(kind, r.id), r)
+			count += 1
+	_check(found_all and Content.find("items", "nobody:thing").is_empty() and Content.find("nothing", "core:grass").is_empty()
+		and Content.record_count() == count and Content.read_ms > 0.0 and Content.load_ms > 0.0,
+		"each record is found by its id, and the load tells how many there are and how long reading and loading them took")
 
 
 ## Mods are folders of bundles; a bundle loads after what its records refer to, a hard

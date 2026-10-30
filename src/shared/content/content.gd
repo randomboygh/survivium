@@ -343,6 +343,8 @@ static var _renamed := {}
 ## kind -> Array of records in load order; a record's `mod` names its mod (its
 ## namespace) and `bundle` the bundle its files are in.
 static var _kinds := {}
+## kind -> id -> the place of its record in `_kinds[kind]`, so `find` is a lookup.
+static var _at := {}
 static var _schemas := {}
 ## kind -> id -> the record as written (before conversion), for patches to build on.
 static var _raw := {}
@@ -357,6 +359,11 @@ static var _mods := {}
 static var _order: Array = []
 static var _owners := {}
 static var _scan_problems := {}
+## How long the last reading of everything under content/ took (_scan: the files read and
+## their records parsed), and the last load of a set after it (load_all), in ms: what the
+## mods' data costs a start of the game, shown in the playtest report.
+static var read_ms := 0.0
+static var load_ms := 0.0
 
 
 ## Every mod under `content/`: the folders with a mod.yaml, core first, then by name.
@@ -442,6 +449,7 @@ static func universe() -> Dictionary:
 ## Reads every manifest and data file under content/ once: what each bundle owns,
 ## references and patches, for `resolve` and the load.
 static func _scan() -> void:
+	var t := Time.get_ticks_usec()
 	var kept := problems
 	_universe = {}
 	_mods = {}
@@ -484,6 +492,7 @@ static func _scan() -> void:
 			_order.append(b)
 			_scan_problems[b] = problems
 	problems = kept
+	read_ms = (Time.get_ticks_usec() - t) / 1000.0
 
 
 ## Bundle ids out of `names` (bundle or mod ids, a bare name a bundle of `mod`).
@@ -755,12 +764,19 @@ static func records(kind: String) -> Array:
 	return _kinds.get(kind, [])
 
 
+## How many records the set loaded has, of every kind.
+static func record_count() -> int:
+	var n := 0
+	for kind in SCHEMAS:
+		n += records(kind).size()
+	return n
+
+
 ## The record with `id` of `kind`, or an empty Dictionary.
 static func find(kind: String, id: String) -> Dictionary:
-	for r in records(kind):
-		if r.id == id:
-			return r
-	return {}
+	var list := records(kind)
+	var at: int = _at.get(kind, {}).get(id, -1)
+	return list[at] if at >= 0 else {}
 
 
 ## Id `id` of `kind` as it is called now: the id of the record whose `was` names it, any
@@ -817,12 +833,15 @@ static func load_all() -> void:
 	origins = {}
 	_renamed = {}
 	_kinds = {}
+	_at = {}
 	_raw = {}
 	dropped = {}
 	for kind in SCHEMAS:
 		_kinds[kind] = []
+		_at[kind] = {}
 		_raw[kind] = {}
 	universe()
+	var t := Time.get_ticks_usec()
 	var set := []
 	for b in BUNDLES:
 		if _universe.has(b):
@@ -840,6 +859,7 @@ static func load_all() -> void:
 	_check_names()
 	for p in problems:
 		push_error("content: " + p)
+	load_ms = (Time.get_ticks_usec() - t) / 1000.0
 
 
 static func _load_bundle(bundle: String) -> void:
@@ -883,13 +903,11 @@ static func _load_bundle(bundle: String) -> void:
 				if not SCHEMAS[kind].has(f):
 					problems.append("%s: %s.provisional: `%s` is no field of %s" % [file, id, f, kind])
 			var list_of_kind: Array = _kinds[kind]
-			var at := -1
-			for j in list_of_kind.size():
-				if list_of_kind[j].id == id:
-					at = j
+			var at: int = _at[kind].get(id, -1)
 			if at >= 0:
 				list_of_kind[at] = rec
 			else:
+				_at[kind][id] = list_of_kind.size()
 				list_of_kind.append(rec)
 
 
