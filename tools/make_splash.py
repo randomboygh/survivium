@@ -1,7 +1,7 @@
 """Draws assets/splash.png, the logo the browser shows while the game downloads and the
 engine shows as it starts: "SURVIVIUM" in the interface's pixel font, amber with a dark
-outline as on the main menu (MainMenu, TITLE_SIZE 32, outline 8), and the birds mod's
-sparrow sitting on the S. Needs Pillow; run from the project folder:
+outline as on the main menu (MainMenu, TITLE_SIZE 32, outline 8), and the sparrow of the
+animals mod sitting on the S. Needs Pillow; run from the project folder:
 
     python3 tools/make_splash.py
 
@@ -12,7 +12,7 @@ The page's sky behind it and the progress bar are CSS in export_presets.cfg
 from PIL import Image, ImageDraw, ImageFont
 
 FONT = "assets/fonts/PressStart2P.ttf"
-SPARROW = "content/birds/sprites/creatures/sparrow.png"
+SPARROW = "content/animals/sparrow/sprites/creatures/sparrow.png"
 OUT = "assets/splash.png"
 TEXT = "SURVIVIUM"
 SIZE = 32

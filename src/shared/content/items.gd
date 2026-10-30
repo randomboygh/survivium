@@ -1,7 +1,7 @@
 extends RefCounted
 ## Items: what a bag holds and what lies on the ground, read from
 ## `content/*/data/items.yaml` (see Content). An item is known by its id
-## (`core:branch`); a stack of items is an id and a count. Cells give an item when
+## (`resources:branch`); a stack of items is an id and a count. Cells give an item when
 ## dug (the material's `item`) and an item with `place` puts that material back.
 
 const Content := preload("res://src/shared/content/content.gd")

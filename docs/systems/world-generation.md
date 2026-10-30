@@ -1,0 +1,49 @@
+# Генерация мира
+
+Статус: ACTIVE.
+
+**Назначение.** Из зерна и настроек сделать мир без края: раскладку любого окна столбцов (высота, вода,
+верх, биом, флаги) и ячейки чанка в три стадии. Результат не зависит от порядка, в котором делаются
+чанки (это проверяет тест), поэтому далёкие нетронутые чанки забываются и делаются заново такими же.
+
+**Файлы**
+- `src/shared/world/land_layout.gd` — раскладка из шумов: медленные шумы на решётке через `LATTICE`
+  ячеек, расстояния до берега и реки; материки, горы с осыпью и снегом выше `WorldData.SNOW_LINE`, реки
+  ступенями (пороги, водопады), дельты, озёра, климат (тепло, влага), пещеры (`_tunnels`, число по
+  настройке `caves`); при настройке `relief` 1 (новые миры; 0 — старые) хребты, ущелья и останцы там,
+  где прохладно и влажно, столовые горы с полосатыми стенами и каньоны там, где жарко и сухо
+  (`_ranges_and_mesas`). `DEFAULT_SETTINGS` — настройки экрана «Новый мир».
+- `src/shared/world/world_gen.gd` (наследует раскладку) — пишет ячейки: `TERRAIN` (камень, руда, грунт,
+  верх, вода, пещеры) → `PLANTED` (деревья по биому; нужен TERRAIN на 3×3 вокруг) → `SHAPED` (склоны,
+  углы, кусты; нужен PLANTED вокруг); задания `start` / `step` по ряду или дереву; `find_spawn`,
+  `pack` / сохранённый чанк приходит сразу SHAPED, `forget`.
+- `src/shared/content/biomes.gd` — биом столбца по климату (`pick(t, m)`: самое узкое окно сначала) или
+  по рельефу (`where`: sea, beach, rock, plateau, swamp), его верх, доли деревьев и кустов, шансы;
+  `Biomes.NONE` — голая трава.
+- `src/shared/content/trees.gd`, `bushes.gd` — как дерево и куст ставятся и растут в ячейки (`place`,
+  `grow`, `fell`).
+- `src/shared/world/test_ground.gd` — тестовый мир (открывается со страницы «Тестирование»): площадки
+  рельефа, биомов, растений, «Лагерь»; подменяет `WorldGen` при `TestGround.SEED`.
+
+**Интерфейс.** `WorldGen.new(seed, 48, options)`, `lay_out(x0, z0, w, h, step)`,
+`find_place(what, near)`, `column_color(lay, j)` (карты), `start(key, stage)` / `step(job, n)`,
+`stage_of(key)`, `missing(key, reach, stage)`, `generate_area(from, to)` (тесты, инструменты),
+`WorldGen.find_spawn(world, around)`.
+
+**Кто использует.** `chunk_streamer.gd` (задания в бюджете кадра), карты (`minimap.gd`, `map_view.gd`,
+`world_setup.gd`), звери (`gen.lay_out`: биом столбца для вида с `biomes`), `clock.gd` (погода по
+месту), `tools/map.gd`, бенчмарки.
+
+**Данные.** Биомы — вид `biomes` (`content/biomes/<биом>/data/biomes.yaml`); породы и кусты — `trees`,
+`bushes` (моды «Растения»); материалы по ролям (`beach`, `bank`, `scree`, `ore`, `trunk`, `crown`; нет
+роли — кладётся грунт или камень). Шумы и рельеф — код (`land_layout.gd`), в данные не вынесены.
+
+**Ограничения.** Миры старых зёрен после смены биомов раскладываются иначе (принято, решение 146);
+настройка `relief` хранится в мире, чтобы старые миры не менялись. Чанк делается только по стадиям и
+кусками: никакой генерации целого чанка в кадре (`tests/frame_test.gd`).
+
+**Тесты.** `tests/unit/generation_test.gd` (`generation`: независимость от порядка; `mountains`, `caves`,
+`relief`, `trees`, `bushes`, `custom_plants`), `tools/bench_gen.gd`, `tools/map.gd` (карта сверху).
+
+**Подробнее.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
+`plan/architecture/performance.md`; решения о рельефе в журнале `plan/README.md`.
