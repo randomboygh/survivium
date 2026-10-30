@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_generation()
 	_test_mountains()
+	_test_caves()
 	_test_trees()
 	_test_bushes()
 	_test_custom_plants()
@@ -198,6 +199,41 @@ func _test_mountains() -> void:
 					if w.get_cell(x, floor_y + 1, z) == Mat.AIR and w.surface_y(x, z) > floor_y + 4:
 						roofed += 1
 		_check(roofed > 0, "a gallery runs into the mountain under its roof (%d cells)" % roofed)
+
+
+## The caves setting: more caves under the ground, more mouths and more galleries cut
+## into mountain sides the higher it is.
+func _test_caves() -> void:
+	var counts := []
+	for level in 3:
+		var gen := WorldGen.new(20261018, 48, {"caves": level})
+		var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+		var mountain := gen.find_place("mountain", near)
+		var tunnels := 0
+		for gz in range(-8, 9):
+			for gx in range(-8, 9):
+				if not gen._tunnel(floori(mountain.x / float(WorldGen.TUNNEL_GRID)) + gx,
+						floori(mountain.y / float(WorldGen.TUNNEL_GRID)) + gz).is_empty():
+					tunnels += 1
+		var key := WorldData.chunk_key(mountain.x, mountain.y)
+		gen.generate_area(key - Vector2i(1, 1), key + Vector2i(2, 2))
+		var hollow := 0
+		var mouths := 0
+		var lay := gen.lay_out(key.x * WorldData.CHUNK - 32, key.y * WorldData.CHUNK - 32, 96, 96)
+		for f in lay.flags:
+			mouths += 1 if f & WorldGen.ENTRANCE else 0
+		for dz in range(-WorldData.CHUNK, 2 * WorldData.CHUNK):
+			for dx in range(-WorldData.CHUNK, 2 * WorldData.CHUNK):
+				var x := key.x * WorldData.CHUNK + dx
+				var z := key.y * WorldData.CHUNK + dz
+				var top := gen.world.surface_y(x, z)
+				for y in range(1, top - 3):
+					hollow += 1 if gen.world.get_cell(x, y, z) == Mat.AIR else 0
+		counts.append([tunnels, mouths, hollow])
+	_check(counts[0][0] < counts[1][0] and counts[1][0] < counts[2][0], "more caves in mountain sides with the setting %s" % [counts])
+	_check(counts[0][1] < counts[1][1] and counts[1][1] < counts[2][1], "more cave mouths with the setting")
+	_check(counts[0][2] < counts[1][2] and counts[1][2] < counts[2][2], "more hollows under the ground with the setting")
+	_check(WorldGen.new(20261018).settings.caves == 1, "a world made before the setting keeps its caves")
 
 
 func _test_trees() -> void:

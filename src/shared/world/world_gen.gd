@@ -317,8 +317,8 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 	var water_cols := c.water
 	var wild_cols := c.wild
 	var all: int = world.all_bits
-	var cave_t := _byte(0.42)
-	var mouth_cave_t := _byte(0.3)
+	var cave_t := _byte(CAVE_FROM[settings.caves])
+	var mouth_cave_t := _byte(MOUTH_CAVE_FROM[settings.caves])
 	var adit: PackedByteArray = lay.adit
 	var pit: PackedByteArray = lay.pit
 	var ore_t := _byte(0.55)
