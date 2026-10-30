@@ -5,20 +5,19 @@ extends RefCounted
 ## back), worked on while the job's station stands near (Placed.stations_near; by hand
 ## anywhere), and what is made going into the bag or, when it is full, on the ground.
 ## Also tool wear (on only with the playtest switch until the difficulty presets come:
-## decision 105) and repair at a workbench. `who` is the character (see WorldActions);
-## on the client the window is the craft tab of the bag (InventoryWindow).
+## decision 105) and repair at a station that `repairs` (a workbench). `who` is the
+## character (see WorldActions); on the client the window is the craft tab of the bag
+## (InventoryWindow).
 
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Knowledge := preload("res://src/shared/game/knowledge.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 
 ## How far from the character a station works, in world units (as far as a placed
 ## thing is used, see Gathering.REACH).
 const REACH := 4.0
-## The station a tool is repaired at.
-## Tools are repaired at a workbench: the station placed as a `prop` of this kind.
-const REPAIR_AT := "workbench"
 
 signal changed
 ## Recipe `recipe` was made and what it makes put into the bag (or on the ground).
@@ -141,10 +140,11 @@ func _receive(id: String, n: int) -> void:
 
 # --- Wear -------------------------------------------------------------------------
 
-## One swing of the tool in the hand in use: it wears when wear is on, and may break.
+## One swing of the tool in the hand in use: it wears when wear is on, and may break. A
+## tool of a class the world does not know works as bare hands and does not wear by it.
 func use_tool() -> void:
 	var id: String = who.held()
-	if id == "" or Items.get_item(id).get("tool", "none") == "none" or not settings.tool_wear:
+	if not Tools.is_tool_item(id) or not settings.tool_wear:
 		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
 		who.say("Сломалось: %s" % Items.title(id))
@@ -162,11 +162,12 @@ func why_not_repair(i: int) -> String:
 	var s = inv.slots[i]
 	if s == null or inv.worn(i) == 0:
 		return "Чинить нечего"
-	var bench := Items.with_prop(REPAIR_AT)
-	if bench == "":
-		return "Чинить негде: нет верстака"
-	if not stations().has(bench):
-		return "Чинят у станка: %s" % Items.title(bench)
+	var benches := Array(Items.IDS).filter(func(id: String) -> bool: return Items.get_item(id).repairs)
+	if benches.is_empty():
+		return "Чинить негде: нет станка для починки"
+	var near := stations()
+	if not benches.any(func(id: String) -> bool: return near.has(id)):
+		return "Чинят у станка: %s" % Items.title(benches[0])
 	var item := Items.get_item(s[0])
 	var short := {}
 	for id in item.repair:

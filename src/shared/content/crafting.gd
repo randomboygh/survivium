@@ -2,12 +2,14 @@ extends RefCounted
 ## Recipes: what is made by hand, at a workbench, in a kiln, read from
 ## `content/*/data/recipes.yaml` (see Content; plan/design/crafting.md). A recipe makes
 ## `count` of item `makes` from the items of `needs` in `time` seconds, by hand or at
-## the station `at` (an item with a `prop`, placed in the world), with a tool of kind
-## `tool` in the bag. A recipe is known once every item it needs has been in the bag
-## (see Knowledge). Shared, so the server can check the same rules.
+## the station `at` (an item with a `prop` that stores nothing, placed in the world; one
+## that `serves` it does too), with a tool of class `tool` in the bag. A recipe is known
+## once every item it needs has been in the bag (see Knowledge). Shared, so the server
+## can check the same rules.
 
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 
 ## Records in the order of the data files, and by id.
 static var RECIPES: Array = []
@@ -56,14 +58,9 @@ static func missing(r: Dictionary, inv) -> Dictionary:
 	return out
 
 
-## Whether bag `inv` holds a tool of the kind recipe `r` needs (or it needs none).
+## Whether bag `inv` holds a tool of the class recipe `r` needs (or it needs none).
 static func has_tool(r: Dictionary, inv) -> bool:
-	if r.tool == "none":
-		return true
-	for s in inv.slots:
-		if s != null and Items.get_item(s[0]).get("tool", "none") == r.tool:
-			return true
-	return false
+	return r.tool == "none" or Tools.holds(inv, r.tool)
 
 
 ## Why recipe `r` cannot be started now with bag `inv` and the stations near
@@ -72,14 +69,11 @@ static func why_not(r: Dictionary, inv, stations: Dictionary) -> String:
 	if r.at != "" and not stations.has(r.at):
 		return "Нужен станок: %s" % Items.title(r.at)
 	if not has_tool(r, inv):
-		return "Нужен инструмент: %s" % TOOL_NAMES.get(r.tool, r.tool)
+		return "Нужен инструмент: %s" % Items.tool_title(r.tool)
 	var short := missing(r, inv)
 	if not short.is_empty():
 		return "Не хватает: %s" % amounts_text(short)
 	return ""
-
-
-const TOOL_NAMES := {"axe": "топор", "pickaxe": "кирка", "shovel": "лопата", "sword": "меч", "scythe": "коса"}
 
 
 ## "2 Ветка, 1 Верёвка" for a mapping of item ids to how many.
@@ -105,6 +99,6 @@ static func take(r: Dictionary, inv) -> bool:
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for r in RECIPES:
-		if r.at != "" and Items.get_item(r.at).get("prop", "none") in ["none", "chest"]:
-			out.append("recipes: %s.at: `%s` is no station (an item with prop workbench, kiln, forge or campfire)" % [r.id, r.at])
+		if r.at != "" and not Items.is_station(r.at):
+			out.append("recipes: %s.at: `%s` is no station (an item with a `prop` that stores nothing)" % [r.id, r.at])
 	return out

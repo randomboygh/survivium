@@ -387,8 +387,8 @@ func _show_details(near: Dictionary) -> void:
 		where.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
 	if r.tool != "none":
 		var has := Crafting.has_tool(r, inv)
-		var name: String = Crafting.TOOL_NAMES.get(r.tool, r.tool)
-		where.append([ItemIcons.of_tool(r.tool), "" if has else "нет", not has, name.capitalize()])
+		var name := Items.tool_title(r.tool)
+		where.append([ItemIcons.of_tool(r.tool), "" if has else "нет", not has, name.left(1).to_upper() + name.substr(1)])
 	if where.is_empty():
 		where.append([ItemIcons.picture("hand"), "", false, "Руками"])
 	# The time of the recipe; with skills it will be the time at the character's skill.
@@ -462,7 +462,7 @@ func _choose_job(i: int) -> void:
 func _where(r: Dictionary) -> String:
 	if r.at != "" and not game.workshop.stations().has(r.at):
 		return Items.title(r.at)
-	return Crafting.TOOL_NAMES.get(r.tool, r.tool)
+	return Items.tool_title(r.tool)
 
 
 ## Takes `px` UI pixels off the cells of recipes (they scroll), so the window fits the

@@ -141,7 +141,7 @@ func _order() -> Array:
 		for r: Dictionary in Crafting.RECIPES:
 			if out.has(r) or (r.at != "" and not have.has(r.at)):
 				continue
-			if r.tool != "none" and not have.keys().any(func(id: String) -> bool: return Tools.of(id).tool == r.tool):
+			if r.tool != "none" and not have.keys().any(func(id: String) -> bool: return Items.get_item(id).get("tool", "none") == r.tool):
 				continue
 			if r.needs.keys().all(func(id: String) -> bool: return have.has(id)):
 				out.append(r)
@@ -264,7 +264,7 @@ func _recipe_for(id: String) -> Dictionary:
 ## Makes a tool of kind `kind` (axe, pickaxe...), the first recipe for one.
 func _get_tool(kind: String) -> bool:
 	for r: Dictionary in order:
-		if Tools.of(r.makes).tool == kind:
+		if Items.get_item(r.makes).get("tool", "none") == kind:
 			return await _craft(r, 1)
 	return _fail("no recipe makes a tool of kind %s" % kind)
 

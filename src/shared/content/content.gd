@@ -55,7 +55,8 @@ static var dropped := {}
 ## The validator's mode: a soft reference to nothing is a problem too.
 static var strict := false
 
-## Field types: bool, int, float, string, color ("#rrggbb"), vec3 ([x, y, z]),
+## Field types: bool, int, float, string, word (a lowercase word, an open class: a tool's,
+## a station's; a mod may bring a new one), color ("#rrggbb"), vec3 ([x, y, z]),
 ## enum (one of `values`), list (of `of`, with `len` or at `least` so many items),
 ## ref:<kind> (an id of a record of that kind; an empty default means none; `soft` when
 ## the record lives without it; `rel` names the link and `via` the action, see RELATIONS),
@@ -96,7 +97,9 @@ const SCHEMAS := {
 		"place": {"type": "ref:materials", "default": "", "rel": "builds", "via": "place"},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
-		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
+		# The tool's class: the engine knows the work in the world of Tools.WORLD_KINDS; any
+		# other works there as bare hands and is asked for by recipes.
+		"tool": {"type": "word", "default": "none"},
 		"power": {"type": "int", "min": 0, "default": 0},
 		"area": {"type": "int", "min": 1, "default": 1},
 		"mows": {"type": "enum", "values": ["none", "tall", "all"], "default": "none"},
@@ -107,7 +110,18 @@ const SCHEMAS := {
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
 		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "repaired_with", "via": "repair"},
-		"prop": {"type": "enum", "values": ["none", "chest", "workbench", "kiln", "forge", "campfire"], "default": "none"},
+		# Set down on two by two cells, a thing of this class (its model, its solid parts); a
+		# station unless it stores. What it does besides is in its flags: `storage` slots it
+		# holds things in, `fire` it burns (put out, lit again with fuel, it burns a body),
+		# `repairs` tools are mended at it, `serves` the stations it stands in for (their
+		# recipes are made at it, tools mended if they mend them), `place_tool` the class of
+		# tool it is set down with (one in the bag).
+		"prop": {"type": "word", "default": "none"},
+		"storage": {"type": "int", "min": 0, "default": 0},
+		"fire": {"type": "bool", "default": false},
+		"repairs": {"type": "bool", "default": false},
+		"serves": {"type": "list", "of": "ref:items", "default": [], "rel": "serves"},
+		"place_tool": {"type": "word", "default": "none"},
 		"fuel": {"type": "bool", "default": false},
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},
@@ -200,7 +214,7 @@ const SCHEMAS := {
 		"count": {"type": "int", "min": 1, "default": 1},
 		"needs": {"type": "amounts", "of": "ref:items", "rel": "consumes"},
 		"at": {"type": "ref:items", "default": "", "rel": "requires_station"},
-		"tool": {"type": "enum", "values": ["none", "axe", "pickaxe", "shovel", "sword", "scythe"], "default": "none"},
+		"tool": {"type": "word", "default": "none"},
 		"time": {"type": "float", "min": 0.0, "default": 2.0},
 	},
 	"sounds": {
@@ -247,6 +261,7 @@ const RELATIONS := {
 	"produces": "makes the named item",
 	"consumes": "uses the named items up",
 	"requires_station": "is made at the named station",
+	"serves": "does the work of the named stations: their recipes are made at it too",
 	"starts_with": "a new world starts with the named items, in the bag or set down by the spawn",
 	"equips": "is worn in the named place",
 	"ammo_for": "is shot by the named item",
@@ -936,6 +951,10 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 			# so a mod may name sounds no mod it requires gives.
 			if not v is String:
 				return "expected the name of a sound"
+			out[0] = v
+		"word":
+			if not v is String or not v.is_valid_ascii_identifier() or v != v.to_lower():
+				return "expected a lowercase word, like axe"
 			out[0] = v
 		"enum":
 			if not v is String or not v in spec["values"]:

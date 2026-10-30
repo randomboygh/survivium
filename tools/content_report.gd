@@ -19,7 +19,6 @@ const Mods := preload("res://src/shared/content/mods.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
-const Tools := preload("res://src/shared/content/tools.gd")
 const ContentGraph := preload("res://src/shared/content/content_graph.gd")
 
 const INDEX := "res://docs/generated/content-index.md"
@@ -325,11 +324,12 @@ func _to(id: String) -> String:
 	for what: String in by:
 		parts.append("%s: %s" % [what, ", ".join(by[what])])
 	if item.tool != "none":
-		parts.append("инструмент: %s" % Crafting.TOOL_NAMES.get(item.tool, item.tool))
-	if item.prop == "chest":
-		parts.append("хранит вещи")
+		parts.append("инструмент: %s" % Items.tool_title(item.tool))
+	if item.storage > 0:
+		parts.append("хранит вещи: %d мест" % item.storage)
 	elif item.prop != "none" and not by.has("станок рецептов"):
 		parts.append("станок")
+	parts += _flags(item)
 	for f: String in ["place", "plant", "sow", "crop"]:
 		if item[f] != "":
 			var of := {"place": "materials", "plant": "bushes", "sow": "materials", "crop": "plants"}[f] as String
@@ -404,18 +404,35 @@ func _harvest() -> Array:
 	return out
 
 
-## The stations and the recipes made at each, the hands' first.
+## The stations, the recipes made at each and what else each does, the hands' first.
 func _stations() -> Array:
-	var out := ["", "## Станки", "", "| Станок | Глубина | Рецепты |", "|---|---|---|"]
+	var out := ["", "## Станки", "", "| Станок | Класс | Глубина | Рецепты | Ещё |", "|---|---|---|---|---|"]
 	var of := func(at: String) -> String:
 		return ", ".join(Array(Crafting.RECIPES).filter(func(r: Dictionary) -> bool: return r.at == at)
 			.map(func(r: Dictionary) -> String: return _title("recipes/" + r.id)))
-	out.append("| Руки, без станка | 0 | %s |" % of.call(""))
+	out.append("| Руки, без станка | — | 0 | %s | — |" % of.call(""))
 	for id: String in Items.IDS:
-		var prop: String = Items.get_item(id).prop
-		if prop != "none" and prop != "chest":
+		if Items.is_station(id):
+			var item := Items.get_item(id)
 			var made: String = of.call(id)
-			out.append("| %s | %s | %s |" % [_named("items/" + id), _depth("placed/" + id), made if made != "" else "—"])
+			var more := _flags(item)
+			out.append("| %s | `%s` | %s | %s | %s |" % [_named("items/" + id), item.prop, _depth("placed/" + id),
+				made if made != "" else "—", "; ".join(more) if not more.is_empty() else "—"])
+	return out
+
+
+## What the flags of a thing set down make it do besides (Placed): it burns, tools are
+## mended at it, it stands in for other stations, it is set down with a tool.
+func _flags(item: Dictionary) -> Array:
+	var out := []
+	if item.fire:
+		out.append("горит: тушится и разжигается топливом")
+	if item.repairs:
+		out.append("здесь чинят инструменты")
+	if not item.serves.is_empty():
+		out.append("заменяет: " + ", ".join(item.serves.map(func(id: String) -> String: return _title("items/" + id))))
+	if item.place_tool != "none":
+		out.append("ставится, если в сумке есть: %s" % Items.tool_title(item.place_tool))
 	return out
 
 
@@ -441,7 +458,7 @@ func _chains() -> Array:
 			if not k.begins_with("items/") or k == "items/" + id:
 				continue
 			var item := Items.get_item(k.substr(6))
-			var i := 3 if Tools.is_tool_item(item.id) else 2 if item.prop != "none" else 1 if graph.how[k].via == "recipe" else 0
+			var i := 3 if item.tool != "none" else 2 if item.prop != "none" else 1 if graph.how[k].via == "recipe" else 0
 			parts[i].append(_title(k))
 		var cells := parts.map(func(p: Array) -> String: return ", ".join(p) if not p.is_empty() else "—")
 		out.append("| %s | %s | %s | %s | %s | %s |" % ([_named("items/" + id), _depth("items/" + id)] + cells))
@@ -505,7 +522,7 @@ func _title(key: String) -> String:
 	if kind == "placed":
 		return _title("items/" + id)
 	if kind == "tool":
-		return "%s (любой)" % Crafting.TOOL_NAMES.get(id, id)
+		return "%s (любой)" % Items.tool_title(id)
 	return graph.records.get(key, {}).get("title", id)
 
 

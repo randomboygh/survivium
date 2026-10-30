@@ -5,7 +5,8 @@ extends "res://tests/unit/test_case.gd"
 ## a workbench that needs a tool made at it, a kiln that needs metal from itself, a station
 ## that needs a tool only it makes, an item nothing gives, a plant whose seeds cannot be had,
 ## an animal whose food never grows; and its warnings: dead ends, stations of one recipe,
-## twins, a loop of recipes that gives back more than it takes.
+## twins, a loop of recipes that gives back more than it takes; and a station that stands
+## in for another, set down with a tool.
 
 const ContentGraph := preload("res://src/shared/content/content_graph.gd")
 
@@ -52,6 +53,16 @@ const DEAD := {
 		"recipes": "- {id: dust, title: Пыль, makes: dust, count: 3, needs: {ore2: 1}}\n- {id: ore2_from_dust, title: Руда, makes: ore2, needs: {dust: 2}}\n"
 			+ "- {id: wall, title: Стенка, makes: wall, needs: {pebble_a: 1, pebble_b: 1}}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:ore2: 1, _dead:pebble_a: 5, _dead:pebble_b: 5}}\n",
+	},
+	# Not a dead end: the bench needs pegs made only at a bench, but a rack set down (with a
+	# knife in the bag) stands in for it.
+	"serve": {
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife}\n"
+			+ "- {id: bench, title: Верстак, weight: 5, stack: 1, prop: workbench}\n- {id: peg, title: Колышек, weight: 0.1, stack: 20, fuel: true}\n"
+			+ "- {id: rack, title: Стойка, weight: 4, stack: 1, prop: rack, serves: [bench], place_tool: knife}\n",
+		"recipes": "- {id: knife, title: Нож, makes: knife, needs: {rod: 1}}\n- {id: rack, title: Стойка, makes: rack, needs: {rod: 2}}\n"
+			+ "- {id: peg, title: Колышек, makes: peg, needs: {rod: 1}, at: bench}\n- {id: bench, title: Верстак, makes: bench, needs: {peg: 2}}\n",
+		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
 	},
 }
 
@@ -143,6 +154,11 @@ func _test_dead_ends() -> void:
 		and "gives back ×1.50 of `_dead:ore2`" in said and "`_dead:pebble_a`, `_dead:pebble_b` are alike" in said
 		and "gives back ×1.50 of `_dead:dust`" in said and "`_dead:wall` is a dead end" in said and g.reached.get("items/_dead:dust") == 1,
 		"a loop of recipes that gives back more than it takes, twins and a dead end are warnings: %s %s" % [g.errors, said])
+	var errors_served := _errors_with("_dead/serve")
+	g = ContentGraph.new()
+	_check(errors_served.is_empty() and g.how["placed/_dead:bench"].via == "serves" and g.how["placed/_dead:rack"].needs == ["tool/knife"]
+		and g.reached.get("placed/_dead:rack") == 1 and g.reached.get("items/_dead:peg") == 2 and g.reached.get("items/_dead:bench") == 3,
+		"a station set down stands in for those it serves, and is set down with its tool: %s" % [errors_served])
 	Mods.activate(before)
 	_remove(mod)
 	Content.refresh()

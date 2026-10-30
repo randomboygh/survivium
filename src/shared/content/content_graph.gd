@@ -29,11 +29,13 @@ const Tools := preload("res://src/shared/content/tools.gd")
 ## down, planted, sown); `grows` — a biome grows it; `lives` — the record lives in the
 ## world when one of what it names is there; `made`, `needs`, `station` — a recipe's
 ## product, materials and station; `start`, `camp` — the start's bag and the things it sets
-## down by the spawn; `use` — a use only (mending, an animal's food). A field not here fails
-## graph_test: the graph must know every link.
+## down by the spawn; `serves` — a station set down stands for the ones it names; `use` — a
+## use only (mending, an animal's food). A field not here fails graph_test: the graph must
+## know every link.
 const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
 	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use",
+	"items.serves": "serves",
 	"creatures.likes": "use", "creatures.biomes": "lives",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
@@ -60,15 +62,16 @@ const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "ne
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
 	"recipe": "made by", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
-	"gather": "gathered from", "dig_out": "dug out of"}
+	"gather": "gathered from", "dig_out": "dug out of", "serves": "stood in for by"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
 ## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "spawns",
-## "lives", "is" for a tool of a kind), "from": the key it comes from or "", "needs": the
-## keys it takes besides, "act": the action whose rule of the hands a tool had must keep,
-## "" for none, "step": 1 for a recipe's product}. Keys: "kind/id" for a record in the world
-## or had (`items/` in the bag), "placed/<item>" for a thing standing in the world,
-## "tool/<kind>" for a tool of that kind in the bag.
+## "lives", "is" for a tool of a kind, "serves" for a station another stands in for),
+## "from": the key it comes from or "", "needs": the keys it takes besides (a recipe's
+## materials, station and tool; the tool a thing is set down with), "act": the action whose
+## rule of the hands a tool had must keep, "" for none, "step": 1 for a recipe's product}.
+## Keys: "kind/id" for a record in the world or had (`items/` in the bag), "placed/<item>"
+## for a thing standing in the world, "tool/<kind>" for a tool of that kind in the bag.
 var ways: Array = []
 ## Key -> the ways that give it (see ways), reached or not.
 var sources := {}
@@ -127,7 +130,7 @@ func _make_ways() -> void:
 		if item.source == "special":
 			_way("items/" + id, "special")
 		if item.prop != "none":
-			_way("placed/" + id, "place", "items/" + id)
+			_way("placed/" + id, "place", "items/" + id, ["tool/" + item.place_tool] if item.place_tool != "none" else [])
 			records["placed/" + id] = item
 		if item.tool != "none":
 			_way("tool/" + item.tool, "is", "items/" + id)
@@ -166,6 +169,8 @@ func _make_ways() -> void:
 							_way(to, "start", from)
 						"camp":
 							_way("placed/" + id, "start", from)
+						"serves":
+							_way("placed/" + id, "serves", "placed/" + r.id)
 					if spec.rel in USED_BY or spec.rel == "feeds_on":
 						if not uses.has(to):
 							uses[to] = []
@@ -484,13 +489,14 @@ static func _has_function(item: Dictionary) -> bool:
 	return false
 
 
-## Stations no recipe or only one is made at (a chest stores, it makes nothing).
+## Stations no recipe or only one is made at, theirs or those of the stations they serve
+## (a thing that stores makes nothing).
 func _stations() -> void:
 	for id: String in Items.IDS:
-		var prop: String = Items.get_item(id).prop
-		if prop == "none" or prop == "chest":
+		if not Items.is_station(id):
 			continue
-		var at := Array(Crafting.RECIPES).filter(func(r: Dictionary) -> bool: return r.at == id).map(func(r: Dictionary) -> String: return r.id)
+		var at_it: Array = [id] + Items.get_item(id).serves
+		var at := Array(Crafting.RECIPES).filter(func(r: Dictionary) -> bool: return r.at in at_it).map(func(r: Dictionary) -> String: return r.id)
 		if at.size() < 2:
 			_found("station", "items: `%s` is the station of %s" % [id, "no recipe" if at.is_empty() else "one recipe only, %s" % _list(at)],
 				["items/" + id], at)
