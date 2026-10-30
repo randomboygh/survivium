@@ -251,12 +251,3 @@ func _write(dir: String, file: String, text: String) -> void:
 	var f := FileAccess.open("%s/%s" % [dir, file], FileAccess.WRITE)
 	f.store_string(text)
 	f.close()
-
-
-## Removes folder `dir` with all it holds.
-func _remove(dir: String) -> void:
-	for sub in DirAccess.get_directories_at(dir):
-		_remove("%s/%s" % [dir, sub])
-	for f in DirAccess.get_files_at(dir):
-		DirAccess.remove_absolute("%s/%s" % [dir, f])
-	DirAccess.remove_absolute(dir)

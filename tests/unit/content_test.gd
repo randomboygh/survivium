@@ -7,6 +7,7 @@ func run() -> void:
 	_test_content()
 	_test_schemas()
 	_test_mods()
+	_test_old_worlds()
 	_test_records()
 	_test_renames()
 	_test_starts()
@@ -239,6 +240,50 @@ func _test_mods() -> void:
 		"a biome grows its trees and bushes by their shares, nothing where the roll misses; plants are picked by kind")
 	_check(Content.problems.is_empty() and AiRules.SPECIES.has("animals:sparrow") and AiRules.SPECIES["animals:wolf"].speed != 1.5,
 		"the full set loads clean again")
+	# Without fibre the wood of the resources is left out, the workbench for want of it,
+	# and the chest for want of the workbench.
+	var dropped: Dictionary = Mods.resolve(all.filter(func(b: String) -> bool: return b != "resources/fiber")).dropped
+	_check(Mods.why("tools/chest", dropped) == ["tools/workbench", "resources/wood", "resources/fiber"]
+		and Mods.why("materials/cord", dropped) == ["resources/fiber"] and Mods.why("animals/wolf", dropped).is_empty(),
+		"a bundle left out tells what it needs, and what that one needs in turn: %s" % [dropped])
+
+
+## Old worlds and the bundles that come later (decision 4А): one that only adds things to
+## make joins a world that has its mod, unless the world knew it and left it out, or lacks
+## what it needs; one with cells, trees or creatures never joins; a world of every
+## `content` mark gets the mods split out since.
+func _test_old_worlds() -> void:
+	var all := Mods.all()
+	_check(Mods.additive("tools/torch") and Mods.additive("sounds/ui") and Mods.additive("materials/cord") and Mods.additive("tools/chest")
+		and not Mods.additive("materials/copper") and not Mods.additive("plants/oak") and not Mods.additive("animals/wolf")
+		and not Mods.additive("core") and not Mods.additive("nothing"),
+		"a bundle of items, recipes, eras, starts and sounds only adds things to make; one with cells, trees or creatures does not")
+	_check(all.filter(func(b: String) -> bool: return Mods.additive(b)) == Mods.OLD_ADDITIVE,
+		"OLD_ADDITIVE lists the bundles that only add things to make: %s" % [all.filter(func(b: String) -> bool: return Mods.additive(b))])
+	var without := func(out: Array) -> Array: return all.filter(func(b: String) -> bool: return not b in out)
+	var at_8 := Mods.of_world({"content": 8, "mods": without.call(["tools/torch", "tools/sword"])})
+	_check(at_8 == without.call(["tools/sword"]), "a world saved before the torch gets it; a bundle it had left out stays out: %s" % [at_8])
+	_check(Mods.of_world({"content": 9, "mods": without.call(["tools/torch"])}) == without.call(["tools/torch"])
+		and Mods.of_world({"content": 9, "mods": without.call(["tools/torch"]), "known": all}) == without.call(["tools/torch"]),
+		"a world that knew the torch and left it out stays without it")
+	var later := Mods.of_world({"content": 9, "mods": without.call(["tools/torch", "tools/chest", "tools/workbench", "animals/wolf"]),
+		"known": without.call(["tools/torch", "tools/chest", "animals/wolf"])})
+	_check(later == without.call(["tools/chest", "tools/workbench", "animals/wolf"]),
+		"a bundle of things to make that came later joins; one with creatures does not, nor one that needs a bundle the world left out: %s"
+			% [all.filter(func(b: String) -> bool: return not b in later)])
+	var bare := Mods.of_world({"content": 9, "mods": ["core", "animals/wolf"], "known": ["core"]})
+	_check(bare == ["core", "animals/wolf"], "a bundle joins only a world that has its mod: %s" % [bare])
+	# A world of each mark had every mod there was then (bundles from 6 on, the torch from 9).
+	var fine := true
+	for content in range(1, 10):
+		var had := ["core", "animals"]
+		for split: Array in Mods.SPLITS:
+			if split[0] <= content and not split[1] in had:
+				had.append(split[1])
+		var mods: Array = had if content < 6 else Mods.expand(had).filter(func(b: String) -> bool: return content >= 9 or b != "tools/torch")
+		var listed := Mods.of_world({"content": content, "mods": mods})
+		fine = fine and listed == all and Mods.resolve(listed).dropped.is_empty()
+	_check(fine and Mods.of_world({}) == all, "a world of every `content` mark from 1 to 9 has every bundle there is")
 
 
 ## Every reference field names its link and the action behind it from the lists the
@@ -549,6 +594,35 @@ func _test_crafting() -> void:
 		"the queue survives a save, serials too")
 	q3.from_dict({"jobs": [{"recipe": "materials:cord", "left": 1.0}], "serial": 5})
 	_check(q3.jobs[0].n == 5 and q3.serial == 6, "a job saved before serials gets the next one")
+	# A recipe that needs a tool of a class no item of the world is cannot be made there:
+	# it is never known, so never shown; with such a tool in the world it is.
+	var before := Content.BUNDLES.duplicate()
+	_write_file("res://content/_h/mod.yaml", "id: _h\ntitle: H\nversion: \"1\"\napi: 1\n")
+	_write_file("res://content/_h/data/recipes.yaml",
+		"- id: carving\n  title: Резьба\n  makes: resources:branch\n  needs: {resources:fiber: 1}\n  tools: [chisel]\n")
+	_write_file("res://content/_i/mod.yaml", "id: _i\ntitle: I\nversion: \"1\"\napi: 1\n")
+	_write_file("res://content/_i/data/items.yaml", "- id: chisel\n  title: Долото\n  weight: 0.5\n  stack: 1\n  tool: chisel\n")
+	Content.refresh()
+	Mods.activate(before + ["_h"])
+	var fibre := Inventory.new()
+	fibre.add("resources:fiber", 1)
+	var learner := Knowledge.new()
+	learner.look_at(fibre)
+	var carving := Crafting.get_recipe("_h:carving")
+	_check(not carving.is_empty() and not Crafting.possible(carving) and not learner.knows(carving)
+		and Crafting.possible(cord) and Crafting.possible(planks),
+		"a recipe that needs a tool no item of the world is is not made there, nor known, nor shown")
+	Mods.activate(before + ["_h", "_i"])
+	learner = Knowledge.new()
+	learner.look_at(fibre)
+	carving = Crafting.get_recipe("_h:carving")
+	_check(Crafting.possible(carving) and learner.knows(carving), "with a chisel in the world it is known")
+	Mods.activate(before)
+	_remove("res://content/_h")
+	_remove("res://content/_i")
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty() and Crafting.get_recipe("_h:carving").is_empty(), "the full set loads clean again")
 
 
 ## The world model and the rules under src/shared are what the server will run, so

@@ -6,7 +6,8 @@ extends RefCounted
 ## bag, not used up, by hand or at the station `at` (an item with a `prop` that stores
 ## nothing, placed in the world; one that `serves` it does too), with a tool of each class
 ## of `tools` in the bag. A recipe is known once every item it needs has been in the bag
-## (see Knowledge). Shared, so the server can check the same rules.
+## (see Knowledge), unless no item of the world is a tool it asks for (`possible`).
+## Shared, so the server can check the same rules.
 
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -41,8 +42,22 @@ static func canon(id: String) -> String:
 	return Content.canon("recipes", RENAMED.get(id, id))
 
 
-## Whether a character who has seen the items of `seen` (id -> true) knows recipe `r`.
+## Whether recipe `r` can be made with the bundles loaded: some item is a tool of each
+## class it asks for. A world without some bundles may have none (a recipe that needs a
+## knife, without the knife's bundle); its station is always there, as `at` binds the
+## recipe's bundle to the station's.
+static func possible(r: Dictionary) -> bool:
+	for kind: String in r.tools:
+		if not Items.TOOL_TITLES.has(kind):
+			return false
+	return true
+
+
+## Whether a character who has seen the items of `seen` (id -> true) knows recipe `r`:
+## one that cannot be made in this world (`possible`) never is, nor shown.
 static func is_known(r: Dictionary, seen: Dictionary) -> bool:
+	if not possible(r):
+		return false
 	for id in r.needs:
 		if not seen.has(id):
 			return false

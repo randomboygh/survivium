@@ -418,6 +418,8 @@ const SHOTS := {
 	"ui-setup-mod-tools": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:tools"},
 	"ui-setup-mod-sounds": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:sounds"},
 	"ui-setup-mod-biomes": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:biomes"},
+	# The tools without the fibre's bundle: under each one left out, what it lacks, to the fibre.
+	"ui-setup-mod-left-out": {"time": 0.45, "season": 1, "touch": true, "setup": "mod:tools", "mods_off": "resources/fiber"},
 	"ui-map": {"time": 0.45, "season": 1, "touch": true, "map": true},
 	# The workbench, kiln, chest and campfire by the spawn marked on the map, close up.
 	"ui-map-marks": {"time": 0.45, "season": 1, "touch": true, "craft": true, "closed": true, "map": true, "map_zoom": 8},

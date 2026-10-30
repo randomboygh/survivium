@@ -166,8 +166,9 @@ func _build_rows() -> void:
 
 ## The rows of the mods page, one per mod besides the base game («выкл», «вкл» or how
 ## many of its bundles are on, with a button to its page when it has several), or of a
-## mod's page, one per bundle (one left out for want of another says which). A world is
-## made with what is switched on and keeps it (a saved world's set cannot change here).
+## mod's page, one per bundle (under one left out for want of another, which, and what
+## that one wants in turn: _why_line). A world is made with what is switched on and keeps
+## it (a saved world's set cannot change here).
 func _mod_rows(s) -> void:
 	var state: Dictionary = Mods.resolve(s.world_mods_on())
 	var on: Array = state.order
@@ -191,11 +192,29 @@ func _mod_rows(s) -> void:
 	bundles.sort_custom(func(a: String, b: String) -> bool: return Mods.title(a).naturalnocasecmp_to(Mods.title(b)) < 0)
 	for bundle: String in bundles:
 		var b := bundle
-		var need: String = state.dropped.get(bundle, "")
 		_add_row(Mods.title(bundle), ["выкл", "вкл"],
 			func() -> int: return 1 if b in on else 0,
-			func(i: int) -> void: s.set_world_mod(b, i == 1), MOD_NAME_WIDTH,
-			"нужен «%s»" % Mods.title(need) if need != "" else "")
+			func(i: int) -> void: s.set_world_mod(b, i == 1), MOD_NAME_WIDTH)
+		_why_line(Mods.why(bundle, state.dropped))
+
+
+## A line under the row of a bundle left out for want of another: what it needs, and what
+## that one needs in turn, to the one switched off («нужен «Дерево», а ему «Волокно»»).
+func _why_line(chain: Array) -> void:
+	if chain.is_empty():
+		return
+	var parts: PackedStringArray = []
+	for need: String in chain:
+		parts.append(("нужен «%s»" if parts.is_empty() else "а ему «%s»") % Mods.title(need))
+	var label := UiStyle.label(", ".join(parts), UiStyle.MUTED)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Indented, and further from the next row than from its own.
+	var box := MarginContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("margin_left", 12)
+	box.add_theme_constant_override("margin_bottom", 10)
+	box.add_child(label)
+	_list.add_child(box)
 
 
 ## A line over the rows of a page: the name of what they belong to.

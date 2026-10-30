@@ -65,11 +65,21 @@ func _check(cond: bool, what: String) -> void:
 		printerr("FAIL: " + what)
 
 
-## Writes `text` into the file at `path` (a temporary mod's data).
+## Writes `text` into the file at `path` (a temporary mod's data), making its folder.
 func _write_file(path: String, text: String) -> void:
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_string(text)
 	f.close()
+
+
+## Removes folder `dir` with all it holds (a temporary mod).
+func _remove(dir: String) -> void:
+	for sub in DirAccess.get_directories_at(dir):
+		_remove("%s/%s" % [dir, sub])
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute("%s/%s" % [dir, f])
+	DirAccess.remove_absolute(dir)
 
 
 ## Brings a chunk to `stage` the way the game does: its own earlier stages first,
