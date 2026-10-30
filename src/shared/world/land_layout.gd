@@ -40,9 +40,12 @@ const CANYON := 4
 ## size: how large continents and islands are; water: the share of the ocean;
 ## mountains: how much of the land rises into mountains; rivers: how many rivers and
 ## lakes; biomes: how far one climate stretches; caves: how many caves there are under
-## the ground, how many mouths open to them and how many are cut into mountain sides.
-## Here caves is 1, what worlds made before the setting have; «Новый мир» starts at 0.
-const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1}
+## the ground, how many mouths open to them and how many are cut into mountain sides;
+## relief: how mountains and plateaus are shaped, 0 domes and flat terraces, 1 ranges
+## with gorges where it is cool and wet, mesas with canyons where it is hot and dry
+## (see _ranges_and_mesas). Here caves is 1 and relief 0, what worlds made before those
+## settings have; «Новый мир» makes caves 0 and relief 1.
+const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0}
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.
@@ -67,6 +70,8 @@ const MIRE := 4
 const MARSH := 8
 ## The column is on the wooded slope of a mountain: trees grow whatever its biome says.
 const WOODS := 16
+## The column's walls are banded (a mesa, see _fill_row).
+const STRATA := 32
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
@@ -86,6 +91,33 @@ const MOUNT_RISE := 15.0
 const RIDGE_RISE := 5.0
 const ROCK_LINE := 15
 const MOUNT_WOODS := 7
+## Relief 1 (see _ranges_and_mesas). Ranges: the rise of their feet and of their
+## highest crests, the crags on the crests and the low ranges where plateaus were;
+## gorges GORGE_WIDTH hundredths of the gorge noise wide; tors where the crag noise
+## is above TOR_FROM. Mesas: from MESA_FROM over the plateau noise, tops MESA_TIERS
+## levels over the land at the coast; canyon walls a tier lower every CANYON_STEP
+## hundredths of the gorge noise; buttes where the crag noise is above BUTTE_FROM.
+## The land is dry (mesas) where the warmth byte is over DRY_WARM and the moisture byte
+## under DRY_WET, blending over DRY_BLEND either way.
+const RANGE_FOOT := 4.0
+const RANGE_RISE := 26.0
+const CRAG_RISE := 3.0
+const LOW_RANGE_RISE := 14.0
+const GORGE_WIDTH := 3.5
+const TOR_FROM := 0.7
+const MESA_FROM := 0.18
+const MESA_TIERS := [5.0, 9.0, 12.0, 17.0, 21.0]
+const CANYON_STEP := 3.5
+const BUTTE_FROM := 0.56
+const DRY_WARM := 140.0
+const DRY_WET := 135.0
+const DRY_BLEND := 10.0
+## What _ranges_and_mesas lays on a column: the floor of a gorge, of a canyon, a mesa
+## (banded walls) or a tor.
+const GORGE := 1
+const CANYON_FLOOR := 2
+const MESA := 3
+const TOR := 4
 ## Rivers in the mountains run higher, climbing a fraction RIVER_CLIMB of the
 ## mountain's rise in steps (see _river_level): FALL_STEP levels apart, each a rapid of
 ## one level and then a waterfall of the rest. Boulders stand in the channel where it
@@ -142,6 +174,11 @@ var n_dunes: FastNoiseLite
 var n_roll: FastNoiseLite
 var n_peak: FastNoiseLite
 var n_caves: FastNoiseLite
+## Relief 1 only (see _ranges_and_mesas): the crests of the ranges (along the zero
+## lines of n_range), the lines of gorges and canyons, crags, tors and buttes.
+var n_range: FastNoiseLite
+var n_gorge: FastNoiseLite
+var n_crag: FastNoiseLite
 var n_ores: FastNoiseLite
 ## The slow noises sampled on the lattice: continents, rivers (along its zero lines)
 ## and lakes (over its high spots).
@@ -182,8 +219,13 @@ func _noises() -> void:
 	n_land = _noise(20, 0.00028 / size, 4)
 	n_river = _noise(21, 0.0018, 2)
 	n_lake = _noise(22, 0.004, 2)
+	n_range = _noise(25, 0.003, 1)
+	n_gorge = _noise(26, 0.005, 2)
+	n_crag = _noise(27, 0.06, 2)
 	window_noises = [n_hills, n_ridges, n_mount, n_shape, n_cliff, n_plateau, n_steep, n_soil,
 		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes, n_roll, n_peak]
+	if settings.relief >= 1:
+		window_noises.append_array([n_range, n_gorge, n_crag])
 
 
 func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
@@ -241,7 +283,7 @@ func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 		a.resize(count)
 		lay[k] = a
 	lay.water.fill(-1)
-	for k: String in ["tops", "flags", "biome", "kind", "feature", "falls", "adit", "pit"]:
+	for k: String in ["tops", "flags", "biome", "kind", "feature", "falls", "adit", "pit", "cut"]:
 		var a := PackedByteArray()
 		a.resize(count)
 		lay[k] = a
@@ -379,7 +421,7 @@ static func _slope(g: PackedFloat32Array, gw: int, ix: int, iz: int, tx: float, 
 ## how far up the mountain the column is (0 at its foot, 1 at the top); `coast` is the
 ## distance from the coast in cells.
 func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, cliff: int, plateau: int, roll: int,
-		peak: int) -> Array:
+		peak: int, rng := 128, gorge := 128, crag := 128, warm := 128, wet := 128) -> Array:
 	# A ragged coast: the distance wobbles with a faster noise.
 	coast += (shape - 128) / 128.0 * 6.0
 	var h := hills / 255.0
@@ -407,6 +449,9 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 	var from: float = MOUNTAIN_FROM[settings.mountains]
 	var mountain := smoothstep(from, from + 0.55, mount / 127.5 - 1.0) * smoothstep(24.0, 140.0, coast)
 	var rise := 0.0
+	if settings.relief >= 1:
+		return _ranges_and_mesas(land, floor_h, mask, kind, coast, h, mount, plateau, peak, rng, gorge, crag,
+			warm, wet)
 	if mountain > 0.0:
 		var ridge := 1.0 - absf(ridges / 127.5 - 1.0)
 		var tall := 0.4 + 0.6 * smoothstep(-0.3, 0.3, peak / 127.5 - 1.0)
@@ -423,7 +468,112 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 	var height := clampi(int(round(lerpf(floor_h, land, mask))), 2, size_y - 4)
 	if height < sea:
 		kind = SEA_FLOOR
-	return [height, kind, rise, mountain]
+	return [height, kind, rise, mountain, 0]
+
+
+## The relief of worlds made with the relief setting 1 (see _relief): in the cool and
+## wet lands long ranges with sharp crests, crags on them and gorges cut across, low
+## ranges where the plateaus were and stone tors at their feet; in the hot and dry
+## lands mesas in tiers of uneven height with ragged edges, buttes beyond them and
+## canyons through them in steps, their walls banded (STRATA). Over a band of climate
+## between the two the heights blend. Returns [height, kind, rise, mountain, cut], `cut`
+## what _layout_row lays on top: GORGE, CANYON_FLOOR, MESA or TOR, else 0.
+func _ranges_and_mesas(land: float, floor_h: float, mask: float, kind: int, coast: float, h: float, mount: int,
+		plateau: int, peak: int, rng: int, gorge: int, crag: int, warm: int, wet: int) -> Array:
+	var from: float = MOUNTAIN_FROM[settings.mountains]
+	var m := mount / 127.5 - 1.0
+	var c := crag / 127.5 - 1.0
+	var plat := plateau / 127.5 - 1.0
+	# How far into the gorge or canyon line a column is, in hundredths of the noise.
+	var g := absf(gorge / 127.5 - 1.0) * 100.0
+	var dry := smoothstep(-DRY_BLEND, DRY_BLEND, warm - DRY_WARM) * smoothstep(-DRY_BLEND, DRY_BLEND, DRY_WET - wet)
+	var out := [land, kind, 0.0, 0.0, 0]
+	var ranges := []
+	var mesas := []
+	if dry < 1.0:
+		ranges = _ranges(land, kind, coast, h, m, c, plat, g, peak, rng, from)
+		out = ranges
+	if dry > 0.0:
+		mesas = _mesas(land, kind, coast, h, m, c, plat, g, from)
+		out = mesas
+		if dry < 1.0:
+			# Between the two the heights blend; the shape of the nearer one stays.
+			out = (ranges if dry < 0.5 else mesas).duplicate()
+			out[0] = lerpf(ranges[0], mesas[0], dry)
+			if dry < 0.5:
+				out[2] = ranges[2] * (1.0 - dry * 2.0)
+	var height := clampi(int(round(lerpf(floor_h, out[0], mask))), 2, size_y - 4)
+	out[0] = height
+	if height < sea:
+		out[1] = SEA_FLOOR
+		out[4] = 0
+	return out
+
+
+## Ranges (see _ranges_and_mesas): [land, kind, rise, mountain, cut].
+func _ranges(land: float, kind: int, coast: float, h: float, m: float, c: float, plat: float, g: float, peak: int,
+		rng: int, from: float) -> Array:
+	var rise := 0.0
+	var mountain := 0.0
+	var cut := 0
+	# The ranges stretch wider than the old mountains; the ridged noise draws their
+	# crests, the valleys between them stay low.
+	var area := smoothstep(from - 0.35, from + 0.25, m) * smoothstep(24.0, 120.0, coast)
+	# 1 on the zero line of the range noise, the crest: a broad shoulder and a sharp top.
+	var near := 1.0 - absf(rng / 127.5 - 1.0)
+	var crest := 0.5 * near * near + 0.5 * pow(near, 6.0)
+	if area > 0.0:
+		var tall := 0.45 + 0.55 * smoothstep(-0.3, 0.3, peak / 127.5 - 1.0)
+		rise = (RANGE_FOOT + RANGE_RISE * crest * tall) * area
+		land += rise + (c * CRAG_RISE * crest + h * 2.0) * area
+		mountain = clampf(area * (0.3 + crest), 0.0, 1.0)
+		if area > 0.25 and land > sea + 5.0:
+			kind = MOUNTAIN
+		# A gorge: a narrow cut along the zero line of its noise, down near the foot of
+		# the range, with sheer walls.
+		if area > 0.35 and g < GORGE_WIDTH and land > sea + 8.0:
+			land = sea + 3.0 + area * 3.0 + maxf(0.0, g - GORGE_WIDTH * 0.45) * 2.0
+			cut = GORGE
+	# Where the plateaus were: low ranges of the same crests.
+	var low := smoothstep(0.3, 0.6, plat) * smoothstep(48.0, 120.0, coast)
+	if low > 0.0 and kind != MOUNTAIN:
+		land += low * (3.0 + LOW_RANGE_RISE * crest + c * 2.0 * crest)
+		if low > 0.5 and land > sea + 8.0:
+			kind = MOUNTAIN
+			mountain = maxf(mountain, low * 0.5)
+	# Stone tors here and there at the feet of the ranges.
+	if kind == PLAIN and cut == 0 and area + low > 0.05 and c > TOR_FROM and coast > 32.0:
+		land += 3.0 + (c - TOR_FROM) * 40.0
+		cut = TOR
+	return [land, kind, rise * 0.5, mountain if kind == MOUNTAIN else 0.0, cut]
+
+
+## Mesas (see _ranges_and_mesas): [land, kind, rise, mountain, cut].
+func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, plat: float, g: float,
+		from: float) -> Array:
+	var cut := 0
+	# Mesas rise where the plateaus and where the mountains would; ragged at the edges.
+	var p := maxf(plat + c * 0.12 - MESA_FROM, smoothstep(from - 0.1, from + 0.5, m) * 0.6 - 0.05)
+	if p > 0.0 and coast > 48.0:
+		var tier := clampi(int((smoothstep(0.0, 0.57, p) + (h - 0.5) * 0.35) * MESA_TIERS.size()), 0,
+			MESA_TIERS.size() - 1)
+		# A canyon through the mesas: a floor of sand a few cells wide, walls in steps
+		# down from the tier the mesa stands at.
+		if g < CANYON_STEP * MESA_TIERS.size():
+			tier = mini(tier, int(g / CANYON_STEP) - 1)
+		if tier < 0:
+			land = sea + 2.0
+			cut = CANYON_FLOOR
+		else:
+			land = sea + 2.0 + MESA_TIERS[tier]
+			cut = MESA
+		kind = HIGHLAND
+	elif p > -0.16 and coast > 48.0 and c > BUTTE_FROM:
+		# A butte: a lone pillar beyond the mesas.
+		land = sea + 2.0 + MESA_TIERS[1 if c > BUTTE_FROM + 0.12 else 0]
+		kind = HIGHLAND
+		cut = MESA
+	return [land, kind, 0.0, 0.0, cut]
 
 
 ## How many levels above the sea a river runs where it has climbed `climb` levels up a
@@ -483,11 +633,17 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var forest: PackedByteArray = grids[8]
 	var peak: PackedByteArray = grids[18]
 	var falls: PackedByteArray = lay.falls
+	var old_relief: bool = settings.relief < 1
+	var ranges: PackedByteArray = grids[19] if not old_relief else PackedByteArray()
+	var gorges: PackedByteArray = grids[20] if not old_relief else PackedByteArray()
+	var crags: PackedByteArray = grids[21] if not old_relief else PackedByteArray()
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
 		var j := lz * w + lx
-		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j], peak[j])
+		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j], peak[j]) \
+			if old_relief else _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j],
+				peak[j], ranges[j], gorges[j], crags[j], temp[j], moist[j])
 		var height: int = r[0]
 		var kind: int = r[1]
 		var f := 0
@@ -608,7 +764,10 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			height -= 6 if g < 4 else 4
 		# Bare rock: mountains above their rock line, which wavers a little, high
 		# plateaus and cliff coasts.
-		var rocky := height > sea + 12 or (kind == CLIFFS and height >= sea)
+		var cut: int = r[4]
+		lay.cut[j] = cut
+		var rocky := (height > sea + 12 and cut != CANYON_FLOOR and cut != MESA) or (kind == CLIFFS and height >= sea) \
+			or cut == TOR
 		if kind == MOUNTAIN:
 			rocky = height >= sea + ROCK_LINE + (shape[j] - 128) / 48
 		var climate := false
@@ -620,12 +779,27 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				sheer = steep[j] >= steep_t
 				if not sheer:
 					top = scree
+			elif cut == TOR:
+				sheer = true
 		elif watery:
 			b = _biome(Biomes.SEA)
 			if feature != RIVER:
 				top = beach if soil[j] < soil_t else bank
 		elif feature == CANYON:
 			b = _biome(Biomes.BEACH)
+		elif cut == CANYON_FLOOR:
+			# The floor of a canyon through mesas: sand.
+			b = _biome(Biomes.BEACH)
+			top = beach
+			sheer = false
+		elif cut == MESA:
+			# A mesa: banded walls, its top sand or clay in the heat, grass else.
+			b = _biome(Biomes.PLATEAU)
+			f |= STRATA
+			var hot := t > 0.55 and m < 0.62
+			top = (beach if soil[j] < _byte(0.0) else bank) if hot else Mat.GRASS
+			if hot and Biomes.pick(t, m) != Biomes.NONE:
+				b = Biomes.pick(t, m)
 		elif kind == HIGHLAND:
 			b = _biome(Biomes.PLATEAU)
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
@@ -666,6 +840,11 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		if kind == MOUNTAIN and wt < 0 and climate and height >= sea + MOUNT_WOODS and forest[j] > _byte(-0.15):
 			f |= WOODS
 			top = Mat.GRASS
+		if cut == GORGE and wt < 0:
+			# The floor of a gorge: scree between sheer walls.
+			top = scree
+			b = _biome(Biomes.ROCK)
+			sheer = false
 		if sheer:
 			f |= SHEER_TOP
 		# Cave mouths here and there in the hills, more often in the mountains.
@@ -885,7 +1064,13 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 		"river":
 			return feature == RIVER and kind == PLAIN
 		"canyon":
-			return feature == CANYON
+			return feature == CANYON or (lay.cut[j] == CANYON_FLOOR and lay.heights[j] > sea)
+		"gorge":
+			return lay.cut[j] == GORGE and lay.heights[j] > sea + 2
+		"mesa":
+			return lay.cut[j] == MESA and lay.heights[j] > sea + 12
+		"tor":
+			return lay.cut[j] == TOR
 		"swamp":
 			return b == Biomes.SWAMP
 		"plateau":

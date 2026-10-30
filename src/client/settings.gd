@@ -87,6 +87,9 @@ const DEFAULTS := {
 	"world_biomes": 1,
 	# New worlds have few caves; worlds made before the setting keep theirs (1).
 	"world_caves": 0,
+	# New worlds have ranges, gorges, mesas and canyons (WorldGen relief 1); worlds made
+	# before keep their domes and terraces (0). Not on «Новый мир».
+	"world_relief": 1,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
 	## (everything found is on).
 	"world_mods_off": "",
@@ -208,10 +211,10 @@ func set_quality(i: int) -> void:
 	save()
 
 
-## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves.
+## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves, relief.
 func world_options() -> Dictionary:
 	var out := {}
-	for k in ["size", "water", "mountains", "rivers", "biomes", "caves"]:
+	for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief"]:
 		out[k] = values["world_" + k]
 	return out
 

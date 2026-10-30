@@ -6,6 +6,7 @@ func run() -> void:
 	_test_generation()
 	_test_mountains()
 	_test_caves()
+	_test_relief()
 	_test_trees()
 	_test_bushes()
 	_test_custom_plants()
@@ -234,6 +235,44 @@ func _test_caves() -> void:
 	_check(counts[0][1] < counts[1][1] and counts[1][1] < counts[2][1], "more cave mouths with the setting")
 	_check(counts[0][2] < counts[1][2] and counts[1][2] < counts[2][2], "more hollows under the ground with the setting")
 	_check(WorldGen.new(20261018).settings.caves == 1, "a world made before the setting keeps its caves")
+
+
+## Relief 1: ranges with gorges, tors, mesas with banded walls and canyons, the same
+## whichever order the chunks are made in; worlds without the setting keep relief 0.
+func _test_relief() -> void:
+	_check(WorldGen.new(20261018).settings.relief == 0, "a world made before the relief setting keeps its relief")
+	var gen := WorldGen.new(20261018, 48, {"relief": 1})
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	for what in ["gorge", "tor", "mesa", "canyon"]:
+		_check(gen.find_place(what, near) != near, "relief 1 has a %s" % what)
+	# A gorge: ground on both sides of its floor rises sheer above it.
+	var gorge := gen.find_place("gorge", near)
+	var lay := gen.lay_out(gorge.x - 8, gorge.y - 8, 17, 17)
+	var floor_h: int = lay.heights[8 * 17 + 8]
+	var walls := 0
+	for j in lay.heights.size():
+		walls += 1 if lay.heights[j] >= floor_h + 4 else 0
+	_check(walls > 0, "a gorge has walls over its floor")
+	# A mesa: its walls are banded (clay and sand under its top), and its chunks are the
+	# same made in another order.
+	var mesa := gen.find_place("mesa", near)
+	var from := WorldData.chunk_key(mesa.x, mesa.y) - Vector2i(1, 1)
+	gen.generate_area(from, from + Vector2i(3, 3))
+	var w: WorldData = gen.world
+	var kinds := {}
+	var top := w.surface_y(mesa.x, mesa.y)
+	for y in range(w.sea_level, top - 1):
+		kinds[w.get_cell(mesa.x, y, mesa.y)] = true
+	_check(kinds.size() >= 3, "a mesa's walls are banded (%d kinds of layer)" % kinds.size())
+	var keys := []
+	for cz in range(from.y, from.y + 3):
+		for cx in range(from.x, from.x + 3):
+			keys.append(Vector2i(cx, cz))
+	var other := WorldGen.new(20261018, 48, {"relief": 1})
+	for i in range(keys.size() - 1, -1, -1):
+		_ensure_stage(other, keys[i], WorldGen.SHAPED)
+	_check(_same(other.world, w, keys), "made in another order the mesas are the same")
+	_check(_leaks(w, keys) == 0, "and water does not leak there")
 
 
 func _test_trees() -> void:

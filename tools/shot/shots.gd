@@ -172,6 +172,12 @@ const SHOTS := {
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
 	"river": {"time": 0.42, "season": 1, "place": "river"},
 	"canyon": {"time": 0.42, "season": 1, "place": "canyon"},
+	# Relief 1 (new worlds): a gorge across a range, a mesa with banded walls, a canyon
+	# through mesas in steps, a stone tor; the camera tilted low to show the walls.
+	"gorge": {"time": 0.42, "season": 1, "place": "gorge", "tilt": -2},
+	"mesa": {"time": 0.42, "season": 1, "place": "mesa", "tilt": -2},
+	"mesa-canyon": {"time": 0.42, "season": 1, "place": "canyon", "tilt": -2},
+	"tor": {"time": 0.42, "season": 1, "place": "tor", "tilt": -2},
 	"lake": {"time": 0.42, "season": 1, "place": "lake"},
 	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},

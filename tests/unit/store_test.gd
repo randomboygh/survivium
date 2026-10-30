@@ -89,6 +89,7 @@ func _test_save() -> void:
 		"world.json is written and read")
 	_check(WorldStore.world_dir(42, {"size": 2, "water": 0}) == WorldStore.root + "/42-20111", "a world's directory names its seed and settings")
 	_check(WorldStore.world_dir(42, {"caves": 0}) == WorldStore.root + "/42-111110", "and its caves when they are not as before the setting")
+	_check(WorldStore.world_dir(42, {"caves": 0, "relief": 1}) == WorldStore.root + "/42-111110r1", "and its relief")
 	store.erase()
 	_check(not DirAccess.dir_exists_absolute("user://test_saves/save"), "a save is erased")
 
