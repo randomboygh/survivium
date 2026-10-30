@@ -1,6 +1,7 @@
 extends SceneTree
 ## Checks the content files of every mod and fails on any problem, for CI and for a
-## quick check after editing data:
+## quick check after editing data (names against the naming rules are printed as
+## warnings and fail nothing):
 ## godot --headless --path . --script res://tools/validate.gd
 
 const Content := preload("res://src/shared/content/content.gd")
@@ -25,6 +26,8 @@ func _init() -> void:
 	Content.strict = true
 	# A copy of its own (see Mods.activate): the loader makes a new list with every set.
 	var problems := Mods.rescan()
+	# Names against the rules only warn (see Content._check_names).
+	var warnings := Content.warnings.duplicate()
 	for b in Content.dropped:
 		problems.append("%s: left out, needs `%s`" % [b, Content.dropped[b]])
 	problems.append_array(Mat.check())
@@ -43,6 +46,8 @@ func _init() -> void:
 	problems.append_array(_check_textures())
 	Content.strict = false
 	problems.append_array(_check_each_bundle())
+	for w in warnings:
+		print("content warning: " + w)
 	for p in problems:
 		printerr("content: " + p)
 	if problems.is_empty():

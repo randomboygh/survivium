@@ -24,8 +24,7 @@ graph TD
 - `src/shared/` — то, что будет крутить сервер. Он не загружает ничего из `src/client/`: это проверяет
   `_test_layers` в `tests/unit/content_test.gd`, нарушение валит CI.
 - Внутри `src/shared/`: `content/` не грузит других папок `src/`, `world/` грузит только `content/`,
-  `game/` — `content/` и `world/`. Это соблюдается сейчас, но тестом проверяется только граница
-  shared → client.
+  `game/` — `content/` и `world/`. Это проверяет тот же `_test_layers`.
 - Папки `src/client/` ссылаются друг на друга свободно (без циклов `preload`): общий стиль UI
   (`ui/ui_style.gd`) нужен вводу и картинке, проекция (`view/pixel_view.gd`) — мешам.
 - Скрипты подключаются константой `preload("res://…")` с полным путём, без `class_name`; базовый

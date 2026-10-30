@@ -47,7 +47,7 @@ tests/ tools/      headless tests and the browser smoke test; validator, screens
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
   decide) goes into `src/shared/game/`; how it is drawn or asked for goes into `src/client/`.
   `src/shared/` loads nothing from `src/client/` (`run_tests.gd` fails otherwise); inside it,
-  `content/` has so far loaded nothing else and `world/` only `content/` (not tested).
+  `content/` loads nothing else and `world/` only `content/` (tested too).
 - A rule takes the one acting as `who` (on the client `src/client/game/character.gd`: the body, the
   hands, the bag) and tells what it changed through signals the client's views connect to
   (`world_actions.gd`, `placed.gd`, `wildlife.gd`).
