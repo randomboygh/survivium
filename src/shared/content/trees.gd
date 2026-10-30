@@ -19,6 +19,8 @@ const NEEDLES := 1
 ## trunk's top with dark gaps between them; a narrow crown tapering to a point; an
 ## ellipsoid whose rim hangs down in a curtain; a flat crown of a few wide lobes high on a
 ## bare trunk; a cone of tiers (spruce). A conifer is a cone unless it says otherwise.
+## Tiers of lobes of an umbrella crown (pine), see _lobed.
+const UMBRELLA_TIERS := 3
 const SHAPES := ["round", "lobed", "column", "weeping", "umbrella", "cone"]
 ## How a species' leaf clusters are drawn (`leaf`, see PixelTextures.build_clumps):
 ## pointed leaves, soft oval ones, round curly lumps, broad rounded leaves lying like scales, needles.
@@ -262,16 +264,24 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 	var middle := ((y + trunk - 1) & ~1) + 2
 	# Lobes: centre (in points, from the crown's middle) and radii.
 	var lobes := []
-	var count := rng.randi_range(3, 5)
+	var count := rng.randi_range(6, 8) if umbrella else rng.randi_range(3, 5)
 	var turn := rng.randf() * TAU
 	var lobe := 0.55 if umbrella else 0.5
-	lobes.append([Vector3(0.0, ry * (0.25 if umbrella else 0.45), 0.0), Vector3(rx, ry * (0.5 if umbrella else 0.6), rz) * lobe])
+	lobes.append([Vector3(0.0, ry * (1.0 if umbrella else 0.45), 0.0), Vector3(rx, ry * (0.3 if umbrella else 0.6), rz) * lobe])
 	for k in count:
 		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
 		var out := rng.randf_range(0.5, 0.65)
-		# An umbrella's lobes stay round its top, none hangs down the trunk.
-		var up := rng.randf_range(-0.15, 0.3) * ry if umbrella else rng.randf_range(-0.6, 0.25) * ry
-		lobes.append([Vector3(cos(a) * rx * out, up, sin(a) * rz * out), Vector3(rx, ry * (0.4 if umbrella else 0.55), rz) * (lobe + rng.randf_range(-0.05, 0.1))])
+		var up := rng.randf_range(-0.6, 0.25) * ry
+		var size := Vector3(rx, ry * 0.55, rz) * (lobe + rng.randf_range(-0.05, 0.1))
+		if umbrella:
+			# An umbrella (pine) stands in tiers of flat lobes, none hanging down the
+			# trunk: the lower tiers wider and farther out, the top one small.
+			var tier := k % UMBRELLA_TIERS
+			var t := float(tier) / (UMBRELLA_TIERS - 1)
+			up = (t * 2.0 - 1.0) * ry
+			out *= 1.3 - 0.7 * t
+			size = Vector3(rx, ry * 0.25, rz) * (lobe + rng.randf_range(-0.05, 0.1)) * (1.2 - 0.5 * t)
+		lobes.append([Vector3(cos(a) * rx * out, up, sin(a) * rz * out), size])
 	var points: Array[Vector3i] = []
 	var have := {}
 	for l in lobes:

@@ -762,7 +762,11 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 	out.bushes = bushes(cells, w.bushes, w.bush_picked)
 	var s := BUSH_DISC / SHADOW_DISC
 	for cell in cells:
-		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, 0.5, 0.0)
+		# The disc lies as high as the middle of the bush, so its shadow starts at its
+		# foot and the bush stands on the ground instead of hanging over its shadow.
+		var type: int = w.bushes.get(cell, 0)
+		var rise: float = Bushes.TYPES[type].rise if type < Bushes.TYPES.size() else 0.5
+		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, rise, 0.0)
 		job.shadows.append_array([s, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, s, p.z])
 		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 0.0, 0.0, 0.0])
 		job.ns += 1
