@@ -197,9 +197,10 @@
   тест сохранения (играет, сохраняет и запускает заново): `timeout 300 godot --headless --path . --script res://tests/save_test.gd`;
   тест первых инструментов (с пустой сумкой собирает материалы, ставит станки и делает все рецепты): `timeout 600 godot --headless --path . --script res://tests/progress_test.gd`.
 - Все проверки разом: `tests/run_all.sh` (четыре теста параллельно, затем тест фризов отдельно).
-- Документы: `python3 tools/doc_index.py` обновляет списки скриптов и записей модов в `docs/generated/`,
-  `python3 tools/doc_index.py --check` (его запускает CI) проверяет, что они свежие и что документы называют
-  существующие файлы.
+- Документы: `python3 tools/doc_index.py` обновляет список скриптов в `docs/generated/`,
+  `python3 tools/doc_index.py --check` (его запускает CI) проверяет, что он свежий и что документы называют
+  существующие файлы; реестр записей модов пишет `godot --headless --path . --script res://tools/content_report.gd`
+  (с `-- --check` только проверяет, так его запускает CI).
 - GitHub Actions (`.github/workflows/build.yml`) на каждый пуш и PR параллельно проверяет данные, запускает тесты и собирает
   web-версию, затем проверяет её в Chrome (`tests/browser_smoke.mjs`, как ПК и как телефон с сенсором, на двух машинах сразу)
   и из `main` публикует на GitHub Pages. В PR проверка в Chrome идёт, только если PR меняет клиент, шейдеры, картинки,

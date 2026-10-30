@@ -52,7 +52,13 @@ content/<мод>/common/             ассеты, общие для бандл�
   записан тип связи `rel` (`Content.RELATIONS`: `drops`, `produces`, `consumes`, `requires_station`…) и,
   где связь даёт действие, `via` (`Content.ACTIONS`: `dig`, `fell`, `gather`…): из них строится граф.
 - Общие поля любой записи (`Content.COMMON`): `description` — текст для игрока, `tags` — метки для
-  отчётов и поиска, `provisional` — какие числа записи предварительные (имена её полей).
+  отчётов и поиска, `provisional` — какие числа записи предварительные (имена её полей), `was` — id, которые
+  у неё были раньше: сохранение со старым id находит её (`Content.canon(вид, id)`, им пользуются
+  `Items.canon`, `Crafting.canon`, `Mat.remap`). Старый id, который ещё носит живая запись, или названный
+  двумя записями — ошибка.
+- Откуда запись: `Content.origin(вид, id)` — бандл, где она определена, кто её заменил и кто поправил;
+  реестр всех записей с категориями, связями и итогом проверки —
+  [generated/content-index.md](generated/content-index.md) (`tools/content_report.gd`).
 - Имена против правил (раздел 3 [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md):
   рецепт называется по предмету или `<предмет>_from_<вход>`, инструмент `<материал>_<вещь>`, руда
   `<металл>_ore`, метка — строчное слово) — предупреждения `Content.warnings`: валидатор их печатает, но не

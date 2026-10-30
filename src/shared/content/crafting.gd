@@ -37,9 +37,9 @@ static func get_recipe(id: String) -> Dictionary:
 const RENAMED := {"core:cord": "materials:cord", "core:campfire": "resources:campfire"}
 
 
-## Recipe id `id` as it is called now.
+## Recipe id `id` as it is called now (RENAMED, then the recipes' `was`).
 static func canon(id: String) -> String:
-	return RENAMED.get(id, id)
+	return Content.canon("recipes", RENAMED.get(id, id))
 
 
 ## Whether a character who has seen the items of `seen` (id -> true) knows recipe `r`.

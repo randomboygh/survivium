@@ -56,12 +56,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The docs name only files that exist and their indexes are fresh (tools/doc_index.py).
+      # The docs name only files that exist and the code index is fresh (tools/doc_index.py).
       - name: Docs
         run: python3 tools/doc_index.py --check
       - uses: ./.github/actions/godot
-      - name: Content, unit tests, save and the way to every recipe
-        run: GODOT=~/godot/godot tests/run_all.sh validate run_tests save_test progress_test
+      # The content reports in docs/generated are fresh (tools/content_report.gd, `report`).
+      - name: Content, its reports, unit tests, save and the way to every recipe
+        run: GODOT=~/godot/godot tests/run_all.sh validate report run_tests save_test progress_test
 
   frames:
     runs-on: ubuntu-latest

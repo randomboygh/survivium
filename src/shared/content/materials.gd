@@ -147,13 +147,14 @@ static func texture_path(m: int) -> String:
 
 ## Remaps cell values from a world saved with materials in the order `saved` (ids)
 ## to the materials loaded now: index -> index, as a table, or an empty one when the
-## order is the same. A saved material no loaded mod has becomes stone.
+## order is the same. A renamed material is found by RENAMED or its `was` (see
+## Content.canon); a saved material no loaded mod has becomes stone.
 static func remap(saved: PackedStringArray) -> PackedByteArray:
 	if saved == IDS:
 		return PackedByteArray()
 	var out := PackedByteArray()
 	for id in saved:
-		var m := index(RENAMED.get(id, id))
+		var m := index(Content.canon("materials", RENAMED.get(id, id)))
 		out.append(m if m >= 0 else STONE)
 	return out
 
