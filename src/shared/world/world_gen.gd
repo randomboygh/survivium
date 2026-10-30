@@ -41,6 +41,9 @@ const PLANTED := 2
 const SHAPED := 3
 ## Chance of a tree on a lattice column of the wooded slopes of a mountain (WOODS), at least.
 const WOODS_CHANCE := 0.12
+## With relief 1 the spawn keeps this many cells from mountains, mesas, gorges and tors
+## (see _calm_around): about the chunks built before the world is ready.
+const SPAWN_CALM := 64
 
 var world: WorldData
 ## Cells of a saved chunk come from a world saved with materials in another order:
@@ -589,9 +592,24 @@ func _pick_spawn() -> Vector3i:
 				var grids: Array = lay.grids
 				var forest: PackedByteArray = grids[8]
 				if Biomes.spawn_ok(lay.biome[0]) and h >= sea + 3 and h <= sea + 8 and forest[0] <= forest_t \
-						and lay.river[0] > 12.0:
+						and lay.river[0] > 12.0 and _calm_around(x, z):
 					return Vector3i(x, h + 1, z)
 	return fallback
+
+
+## With relief 1, whether the land within SPAWN_CALM cells of column x, z has no
+## mountains, mesas, gorges or tors: a new player starts on gentle ground, and the
+## chunks built first round them are the lighter ones to make and draw. Older worlds
+## keep their spawn (always true).
+func _calm_around(x: int, z: int) -> bool:
+	if settings.relief < 1:
+		return true
+	var n := SPAWN_CALM * 2 / 16 + 1
+	var lay := lay_out(x - SPAWN_CALM, z - SPAWN_CALM, n, n, 16)
+	for j in lay.kind.size():
+		if lay.kind[j] == MOUNTAIN or lay.kind[j] == HIGHLAND or lay.cut[j] != 0:
+			return false
+	return true
 
 
 ## Nearest dry grass cell to `around` on level ground (the chunks there must be

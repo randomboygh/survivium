@@ -422,6 +422,10 @@ func _process(delta: float) -> void:
 		perf.mark("карта")
 	t = perf.note("карты", t)
 	view.update(delta)
+	# While the world is built behind the menu's painted sky it is not drawn: in a slow
+	# browser drawing the chunks already built took most of each frame of the loading.
+	var unseen := not ready_to_play and menu != null and menu.hides_world()
+	view.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED if unseen else SubViewport.UPDATE_WHEN_VISIBLE
 	if warmup != null and warmup.step():
 		warmup = null
 		hud.perf.warmed_up()

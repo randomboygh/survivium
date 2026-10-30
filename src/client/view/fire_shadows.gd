@@ -463,7 +463,9 @@ func _update_maps(lights: Array) -> void:
 			continue
 		known[l.id] = true
 		var level := floori(l.at.y / CELL + 0.01)
-		var reach := ceili(l.range / CELL)
+		# A fire's light reaches MAP / 2 cells, a hair more by rounding: past that a map
+		# about the light is never fresh and is made again every few frames.
+		var reach := mini(ceili(l.range / CELL), MAP / 2)
 		var col := Vector2i(floori(l.at.x / CELL), floori(l.at.z / CELL))
 		var m: Dictionary = _maps.get(l.id, {})
 		_maps[l.id] = m
