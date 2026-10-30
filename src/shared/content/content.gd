@@ -2,14 +2,15 @@ extends RefCounted
 ## Mods, their bundles and their data files. A mod is a folder under `content/` with
 ## `mod.yaml`; what it adds comes in bundles, a folder per thing (`content/animals/wolf/`
 ## with `bundle.yaml`), each with its own `data/<kind>.yaml` (materials, items, creatures,
-## trees, bushes, recipes, plants, sounds) and its pictures, models, textures and sounds
+## trees, bushes, recipes, plants, sounds, starts) and its pictures, models, textures and sounds
 ## beside them (`sprites/`, `models/`, `icons/`, `textures/`, `sounds/`: a sound's files are
 ## `<name>.wav`, or `<name>_1.wav` ... for its variants; what a bundle lacks is looked for in
 ## the mod's `common/`, see `asset`). A mod without bundle folders is one bundle with its
 ## files at its root. A bundle's id is `mod/bundle` (`animals/wolf`), or the mod's id for a
 ## mod of one bundle (`plants`). Records are namespaced by the mod whatever bundle holds
 ## them: `wolf` in `animals/wolf` is `animals:wolf`, and a reference without a namespace
-## means the same mod. A later bundle may replace a record of an earlier one by id when
+## means the mod of the file it is written in (a patch of another mod's record too). A
+## later bundle may replace a record of an earlier one by id when
 ## it says so (`replaces: true`; the same id again without it is a problem), or patch it:
 ## a record with `patch: true` changes only the fields it gives, and a key with a `+` at
 ## the end (`diet+: [plants]`, `needs+: {materials:cord: 1}`) adds to a list or an
@@ -38,7 +39,7 @@ extends RefCounted
 ## `warnings`. Every reference field names its link (`rel`, one of RELATIONS: what the
 ## record is to the one it names) and, where an action makes it, which (`via`, ACTIONS),
 ## for the content graph.
-## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd, plants.gd) read their kind
+## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd, plants.gd, starts.gd) read their kind
 ## with `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.OAK` or `AiRules.SPECIES` as before.
 
@@ -61,8 +62,9 @@ static var strict := false
 ## sound (the bare name of a sound, found at play time in
 ## the last loaded bundle that has one), amounts (a mapping of ids of `of` to how many,
 ## at least 1 each), shares (a mapping to shares 0..1: of the names in `keys`, or of ids of
-## `of`). `min`/`max` bound numbers, in a list each item. A field without
-## `default` is required. `id` and `title` are implied for every kind.
+## `of`), entries (a list of mappings, each with the fields of `fields`, checked like a
+## record's: the camp of a start). `min`/`max` bound numbers, in a list each item. A field
+## without `default` is required. `id` and `title` are implied for every kind.
 const SCHEMAS := {
 	"materials": {
 		"solid": {"type": "bool", "default": true},
@@ -203,6 +205,15 @@ const SCHEMAS := {
 		"volume": {"type": "float", "min": 0.0, "max": 4.0, "default": 1.0},
 		"loop": {"type": "bool", "default": false},
 	},
+	# How a new world starts (Starts): what the bag holds and what stands by the spawn,
+	# each thing `at` so many cells east and south of it.
+	"starts": {
+		"bag": {"type": "amounts", "of": "ref:items", "default": {}, "rel": "starts_with"},
+		"camp": {"type": "entries", "default": [], "fields": {
+			"item": {"type": "ref:items", "rel": "starts_with"},
+			"at": {"type": "list", "of": "int", "len": 2},
+		}},
+	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
 			"mushrooms", "glow_mushrooms", "custom"]},
@@ -233,6 +244,7 @@ const RELATIONS := {
 	"produces": "makes the named item",
 	"consumes": "uses the named items up",
 	"requires_station": "is made at the named station",
+	"starts_with": "a new world starts with the named items, in the bag or set down by the spawn",
 	"equips": "is worn in the named place",
 	"ammo_for": "is shot by the named item",
 	"requires_power": "works only with power",
@@ -469,20 +481,46 @@ static func _read_records(bundle: String, mod: String, kind: String) -> Array:
 ## The references of raw record `r` of `kind`: [kind, qualified id, soft] each.
 static func _refs_of(r: Dictionary, kind: String, mod: String) -> Array:
 	var out := []
-	var schema: Dictionary = SCHEMAS[kind]
-	for key in r:
-		var spec: Dictionary = schema.get(str(key).trim_suffix("+"), {})
-		if spec.is_empty():
-			continue
-		var target: String = spec.get("of", "") if spec.type in ["list", "amounts", "shares"] else spec.type
-		if not target.begins_with("ref:"):
-			continue
-		var v: Variant = r[key]
-		var values: Array = v if v is Array else (v.keys() if v is Dictionary else [v])
-		for id in values:
-			if id is String and id != "":
-				out.append([target.substr(4), qualify(id, mod), spec.get("soft", false)])
+	for ref: Array in refs(kind):
+		var field: String = ref[0].get_slice(".", 0)
+		for key in [field, field + "+"]:
+			if r.has(key):
+				for id: String in named({field: r[key]}, ref[0]):
+					out.append([target(ref[1]), qualify(id, mod), ref[1].get("soft", false)])
 	return out
+
+
+## Raw record `r` of `kind` with what its references name qualified by `mod`, the mod of
+## the file it is written in: a patch names records as its own mod does, not as the one
+## it patches.
+static func _qualified(r: Dictionary, kind: String, mod: String) -> Dictionary:
+	var out := r.duplicate(true)
+	for ref: Array in refs(kind):
+		var field: String = ref[0].get_slice(".", 0)
+		var sub: String = ref[0].get_slice(".", 1) if "." in ref[0] else ""
+		for key in [field, field + "+"]:
+			if out.has(key):
+				out[key] = _qualify_all(out[key], sub, mod)
+	return out
+
+
+## Value `v` of a reference field with its ids qualified by `mod`; `sub` the field of its
+## entries that names one, "" for the value itself.
+static func _qualify_all(v: Variant, sub: String, mod: String) -> Variant:
+	var q := func(id: Variant) -> Variant: return qualify(id, mod) if id is String and id != "" else id
+	if sub != "":
+		for e: Variant in (v if v is Array else []):
+			if e is Dictionary and e.has(sub):
+				e[sub] = q.call(e[sub])
+		return v
+	if v is Array:
+		return v.map(q)
+	if v is Dictionary:
+		var out := {}
+		for k: Variant in v:
+			out[q.call(k)] = v[k]
+		return out
+	return q.call(v)
 
 
 ## Which of `set` load, in what order, and which are left out and why: {"order",
@@ -620,6 +658,44 @@ static func schema(kind: String) -> Dictionary:
 	return _schemas[kind]
 
 
+## The reference fields of records of `kind`, those of their entries too: [key, spec]
+## each, `key` the field's name or "field.sub" for field `sub` of the entries of `field`
+## (see named), `spec` the reference's own (with its `rel`).
+static func refs(kind: String) -> Array:
+	var out := []
+	for key: String in SCHEMAS[kind]:
+		var spec: Dictionary = SCHEMAS[kind][key]
+		if spec.type == "entries":
+			for sub: String in spec.fields:
+				if target(spec.fields[sub]) != "":
+					out.append(["%s.%s" % [key, sub], spec.fields[sub]])
+		elif target(spec) != "":
+			out.append([key, spec])
+	return out
+
+
+## The kind the reference field of `spec` names (`items` for a `ref:items`, a list or a
+## mapping of them), "" when it is no reference.
+static func target(spec: Dictionary) -> String:
+	var type: String = spec.get("of", "") if spec.type in ["list", "amounts", "shares"] else spec.type
+	return type.substr(4) if type.begins_with("ref:") else ""
+
+
+## The ids record `r` names by its reference field `key` (see refs), "" left out.
+static func named(r: Dictionary, key: String) -> Array:
+	var values := []
+	if "." in key:
+		var sub := key.get_slice(".", 1)
+		var entries: Variant = r.get(key.get_slice(".", 0))
+		for e: Variant in (entries if entries is Array else []):
+			if e is Dictionary:
+				values.append(e.get(sub))
+	else:
+		var v: Variant = r.get(key)
+		values = v.duplicate() if v is Array else (v.keys() if v is Dictionary else [v])
+	return values.filter(func(id: Variant) -> bool: return id is String and id != "")
+
+
 ## Records of `kind` from every bundle, checked and with defaults filled in.
 static func records(kind: String) -> Array:
 	if not _loaded:
@@ -729,7 +805,7 @@ static func _load_bundle(bundle: String) -> void:
 					if _owners.get("%s/%s" % [kind, id], []).is_empty():
 						problems.append("%s: %s: patches a record no mod has" % [file, id])
 					continue
-				rec = _patched(raw[id], rec, file, id, kind)
+				rec = _patched(raw[id], _qualified(rec, kind, u.mod), file, id, kind)
 				origins["%s/%s" % [kind, id]].patched.append(bundle)
 			else:
 				var replaces: bool = rec.get("replaces") == true
@@ -916,6 +992,19 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 					return "`%s`: expected a share from 0 to 1" % k
 				shares[k if named else qualify(k, mod)] = float(v[k])
 			out[0] = shares
+		"entries":
+			if not v is Array:
+				return "expected a list of mappings, like [{%s}]" % ", ".join(spec.fields.keys().map(func(k: String) -> String: return k + ": …"))
+			var entries := []
+			for i in v.size():
+				if not v[i] is Dictionary:
+					return "entry %d: expected a mapping" % (i + 1)
+				var e: Dictionary = v[i].duplicate()
+				var what := _entry(e, spec.fields, mod)
+				if what != "":
+					return "entry %d: %s" % [i + 1, what]
+				entries.append(e)
+			out[0] = entries
 		_:
 			if type.begins_with("ref:"):
 				if not v is String or v == "":
@@ -923,6 +1012,28 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 				out[0] = qualify(v, mod)
 			else:
 				return "unknown type %s in the schema" % type
+	return ""
+
+
+## Checks entry `e` of an `entries` field against `fields` like a record's fields (see
+## _check_fields), converting its values and filling in defaults; returns what is wrong,
+## or "".
+static func _entry(e: Dictionary, fields: Dictionary, mod: String) -> String:
+	for key: Variant in e:
+		if not fields.has(key):
+			return "`%s`: unknown field" % key
+	for key: String in fields:
+		var spec: Dictionary = fields[key]
+		if not e.has(key) or e[key] == null:
+			if not spec.has("default"):
+				return "`%s`: missing" % key
+			e[key] = spec.default
+			continue
+		var one := [null]
+		var what := _convert(e[key], spec, mod, one)
+		if what != "":
+			return "`%s`: %s" % [key, what]
+		e[key] = one[0]
 	return ""
 
 
@@ -951,6 +1062,8 @@ static func _zero(spec: Dictionary) -> Variant:
 			return Vector3.ZERO
 		"amounts", "shares":
 			return {}
+		"entries":
+			return []
 		"list":
 			var items := []
 			var item_spec := spec.duplicate()
@@ -961,22 +1074,28 @@ static func _zero(spec: Dictionary) -> Variant:
 	return ""
 
 
-## Every ref:<kind> field must name a record that exists.
-
-
-## Every ref:<kind> field must name a record that is loaded; a soft one that does not
-## is dropped from the record (and reported when strict).
+## Every reference must name a record that is loaded; a soft one that does not is dropped
+## from the record (an entry naming it with it), and reported when strict.
 static func _check_refs() -> void:
 	for kind in SCHEMAS:
-		for key in SCHEMAS[kind]:
-			var spec: Dictionary = SCHEMAS[kind][key]
-			var target: String = spec.get("of", spec.type) if spec.type in ["list", "amounts", "shares"] else spec.type
-			if not target.begins_with("ref:"):
-				continue
-			var of := target.substr(4)
+		for field_ref: Array in refs(kind):
+			var key: String = field_ref[0]
+			var spec: Dictionary = field_ref[1]
+			var of := target(spec)
 			var soft: bool = spec.get("soft", false)
 			for r in _kinds[kind]:
-				if spec.type == "list":
+				if "." in key:
+					var field := key.get_slice(".", 0)
+					var sub := key.get_slice(".", 1)
+					var keep := []
+					for e: Dictionary in r[field]:
+						var gone: bool = e[sub] != "" and find(of, e[sub]).is_empty()
+						if gone:
+							_broken(r, kind, key, of, e[sub], soft)
+						if not (gone and soft):
+							keep.append(e)
+					r[field] = keep
+				elif spec.type == "list":
 					var keep := []
 					for ref in r[key]:
 						if find(of, ref).is_empty():

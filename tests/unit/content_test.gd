@@ -9,6 +9,7 @@ func run() -> void:
 	_test_mods()
 	_test_records()
 	_test_renames()
+	_test_starts()
 	_test_items()
 	_test_tools()
 	_test_crafting()
@@ -50,6 +51,9 @@ flat:
 		"yaml reads nested lists and items on their own line")
 	_check(doc.get("empty") == null and doc.has("empty"), "an empty value is null")
 	_check(doc.get("flat") == ["a", "b: c"], "a list may sit at its key's indent")
+	doc = yaml.parse("- {item: x, count: 1}\n- {item: y, at: [4, 2]}\n", "entries.yaml")
+	_check(yaml.error == "" and doc == [{"item": "x", "count": 1}, {"item": "y", "at": [4, 2]}],
+		"yaml reads flow mappings in a list (the entries of a field)")
 	for bad in ["a: [1, 2", "a: 1\n\tb: 2", "a: 1\na: 2", "- 1\n  - 2", "x: \"abc", "a: 1\n b: 2"]:
 		yaml.parse(bad, "bad.yaml")
 		_check(yaml.error.begins_with("bad.yaml:"), "yaml rejects %s" % bad.c_escape())
@@ -241,18 +245,31 @@ func _test_mods() -> void:
 ## content graph knows; the fields every record may have clash with no kind's own.
 func _test_schemas() -> void:
 	var unnamed := []
+	var refs := 0
 	for kind in Content.SCHEMAS:
 		for key in Content.SCHEMAS[kind]:
 			var spec: Dictionary = Content.SCHEMAS[kind][key]
 			if Content.COMMON.has(key):
 				unnamed.append("%s.%s is a common field" % [kind, key])
-			if not str(spec.get("of", spec.type)).begins_with("ref:"):
-				continue
+			# A reference anywhere in a field, its entries' too, is among Content.refs.
+			if str(spec.get("of", spec.type)).begins_with("ref:") or spec.type == "entries" \
+					and spec.fields.values().any(func(f: Dictionary) -> bool: return Content.target(f) != ""):
+				refs += 1
+		for ref: Array in Content.refs(kind):
+			var spec: Dictionary = ref[1]
 			if not Content.RELATIONS.has(spec.get("rel", "")):
-				unnamed.append("%s.%s: no link" % [kind, key])
+				unnamed.append("%s.%s: no link" % [kind, ref[0]])
 			if spec.has("via") and not spec.via in Content.ACTIONS:
-				unnamed.append("%s.%s: no action `%s`" % [kind, key, spec.via])
+				unnamed.append("%s.%s: no action `%s`" % [kind, ref[0], spec.via])
 	_check(unnamed.is_empty(), "every reference field names its link: %s" % [unnamed])
+	var listed := 0
+	for kind in Content.SCHEMAS:
+		var fields := {}
+		for ref: Array in Content.refs(kind):
+			fields[ref[0].get_slice(".", 0)] = true
+		listed += fields.size()
+	_check(refs == listed and Content.refs("starts").has(["camp.item", Content.SCHEMAS.starts.camp.fields.item]),
+		"Content.refs lists every reference field, those of entries too (%d of %d)" % [listed, refs])
 	var oak := Content.find("trees", "plants:oak")
 	_check(oak.description == "" and oak.tags == [] and oak.provisional == [], "a record without the common fields gets them empty")
 
@@ -345,6 +362,46 @@ func _test_renames() -> void:
 	Content.refresh()
 	Mods.rescan()
 	_check(Content.problems.is_empty() and Items.canon("_g:twig_old") == "_g:twig_old", "the full set loads clean again")
+
+
+## A new world starts by core's record `default` as the loaded bundles patch it (the chest's
+## bundle adds the chest); the entries of a camp are checked like a record's fields, and a
+## patch names records as its own mod does.
+func _test_starts() -> void:
+	var start: Dictionary = Starts.START
+	_check(start.id == "core:default" and start.bag.is_empty() and Starts.check().is_empty()
+		and start.camp == [{"item": "core:campfire", "at": [-4, 4]}, {"item": "tools:chest", "at": [4, 2]}],
+		"a new world starts with an empty bag, the campfire and the chest: %s" % [start])
+	var before := Content.BUNDLES.duplicate()
+	var mod := "res://content/_s"
+	DirAccess.make_dir_recursive_absolute(mod + "/data")
+	_write(mod + "/mod.yaml", "id: _s\ntitle: S\nversion: \"1\"\napi: 1\n")
+	_write(mod + "/data/items.yaml", "- id: tent\n  title: Шатёр\n  weight: 5\n  stack: 1\n  prop: chest\n")
+	_write(mod + "/data/starts.yaml", "- id: core:default\n  patch: true\n  bag+: {resources:branch: 3}\n  camp+:\n    - {item: tent, at: [0, -6]}\n"
+		+ "- id: long\n  title: a\n  camp: [{item: tent, at: [1, 2, 3]}]\n"
+		+ "- id: odd\n  title: b\n  camp: [{item: tent, size: 2, at: [0, 0]}]\n"
+		+ "- id: bare\n  title: c\n  camp: [{at: [5, 5]}]\n"
+		+ "- id: lost\n  title: d\n  camp:\n    - item: nothing\n      at: [9, 9]\n")
+	Content.refresh()
+	Mods.activate(Mods.all() + ["_s"])
+	_check(Starts.START.bag == {"resources:branch": 3} and Starts.START.camp.size() == 3
+		and Starts.START.camp.has({"item": "_s:tent", "at": [0, -6]}) and Starts.check().is_empty(),
+		"a bundle adds to the start by a patch, naming its own records as its mod does: %s" % [Starts.START])
+	var found := {}
+	for p in Content.problems:
+		for what in ["long.camp: entry 1: `at`: expected 2 items", "odd.camp: entry 1: `size`: unknown field",
+				"bare.camp: entry 1: `item`: missing", "lost.camp.item: no items `_s:nothing`"]:
+			if what in p:
+				found[what] = true
+	_check(found.size() == 4 and Content.problems.size() == 4, "the entries of a camp are checked like a record's fields: %s" % [Content.problems])
+	Mods.activate(before)
+	for f in ["data/items.yaml", "data/starts.yaml", "mod.yaml"]:
+		DirAccess.remove_absolute(mod + "/" + f)
+	DirAccess.remove_absolute(mod + "/data")
+	DirAccess.remove_absolute(mod)
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty() and Starts.START.bag.is_empty() and Starts.START.camp.size() == 2, "the start is core's again")
 
 
 func _write(path: String, text: String) -> void:

@@ -25,7 +25,7 @@
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 0 / 2 | ок |
+| `core:campfire` | Костёр | Станки |  | `core` | 0 / 3 | ок |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 1 / 3 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 0 / 2 | ок |
 | `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 0 / 2 | ок |
@@ -64,7 +64,7 @@
 | `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 0 / 18 | ок |
 | `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 2 / 1 | ок |
 | `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 1 / 1 | ок |
-| `tools:chest` | Сундук | Станки |  | `tools/chest` | 0 / 1 | ок |
+| `tools:chest` | Сундук | Станки |  | `tools/chest` | 0 / 2 | ок |
 | `tools:forge` | Горн | Станки |  | `tools/forge` | 0 / 2 | ок |
 | `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 0 / 4 | ок |
 | `plants:grain` | Зерно | Посадки |  | `plants/ears` | 2 / 2 | ок |
@@ -219,6 +219,12 @@
 | `biomes:swamp` | Болото | swamp |  | `biomes/swamp` | 5 / 1 | ок |
 | `biomes:taiga` | Тайга | climate |  | `biomes/taiga` | 7 / 6 | ок |
 | `biomes:tundra` | Тундра | climate |  | `biomes/tundra` | 4 / 1 | ок |
+
+## Старт (`starts`, 1)
+
+| Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
+|---|---|---|---|---|---|---|
+| `core:default` | Обычный старт |  | Пустые руки, пустая сумка и костёр у точки появления. | `core`; патчи: `tools/chest` | 2 / 0 | ок |
 
 ## Звуки (`sounds`, 55)
 

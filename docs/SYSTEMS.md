@@ -5,7 +5,7 @@
 
 | Система | Главные файлы | Контекст | Тесты (`tests/unit/` и др.) |
 |---|---|---|---|
-| Моды, бандлы, данные | `src/shared/content/content.gd`, `mods.gd`, `yaml.gd`, реестры | [systems/content.md](systems/content.md), [DATA_MODEL.md](DATA_MODEL.md) | `content_test.gd`, `tools/validate.gd` |
+| Моды, бандлы, данные | `src/shared/content/content.gd`, `mods.gd`, `yaml.gd`, реестры (и `starts.gd` — старт нового мира) | [systems/content.md](systems/content.md), [DATA_MODEL.md](DATA_MODEL.md) | `content_test.gd`, `tools/validate.gd` |
 | Генерация мира | `src/shared/world/land_layout.gd`, `world_gen.gd`, `src/shared/content/biomes.gd`, `trees.gd`, `bushes.gd`, `test_ground.gd` | [systems/world-generation.md](systems/world-generation.md) | `generation_test.gd` |
 | Данные мира: ячейки, формы, трава | `src/shared/world/world_cells.gd`, `world_data.gd`, `grass.gd`, `voxel_raycast.gd` | [systems/world-data.md](systems/world-data.md) | `shapes_test.gd`, `generation_test.gd` |
 | Чанки на экране | `src/client/world/chunk_streamer.gd`, `chunk_mesher.gd` (+ `mesh_faces`, `slope_mesher`, `water_mesher`, `trunk_mesher`), `foliage.gd` | [systems/chunks.md](systems/chunks.md) | `mesher_test.gd`, `frame_test.gd` |

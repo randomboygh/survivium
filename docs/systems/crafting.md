@@ -16,7 +16,8 @@
   `take`, `reachable` (всё ли можно сделать из того, что даёт мир), `canon` (старые id).
 - `src/shared/game/placed.gd` — вещи на клетках по роли предмета `prop` (`chest`, `workbench`, `kiln`,
   `forge`, `campfire`): `put_from_bag`, `take_up`, `put_out`, `light`, `destroy`, `stations_near`,
-  `burns`; твёрдые через `WorldData.blockers`; новый мир начинает с костра и сундука у спавна. Сигналы
+  `burns`; твёрдые через `WorldData.blockers`; новый мир начинает с лагеря старта у спавна
+  (`start_camp` по `Starts.START.camp`: костёр, сундук — патч бандла сундука). Сигналы
   `added`, `removed`, `lit_changed`, `cell_changed`.
 - `src/client/game/props.gd`, `src/client/view/voxel_props.gd` — модели вещей и огонь на экране.
 - `src/client/ui/craft_panel.gd`, `inventory_window.gd` — вкладка «Крафт» и окно сумки.
