@@ -1,11 +1,11 @@
 extends RefCounted
-## How a new world starts, read from `content/*/data/starts.yaml` (see Content): what the
-## bag of a new character holds and the camp by the spawn, each thing of it `at` so many
-## cells east and south of the spawn. Every new world starts by core's record (DEFAULT) as
-## the loaded bundles patch it (the chest's bundle adds the chest), and the content graph
-## starts from the same record, so the check and the game begin alike
-## (docs/specifications/BUNDLE_SYSTEM.md, section 11). Shared, so the server can start
-## worlds and players the same way.
+## How a new world starts, read from `content/*/data/starts.yaml` (see Content): what bare
+## hands do (`hand_*`, Tools.HAND), what the bag of a new character holds and the camp by
+## the spawn, each thing of it `at` so many cells east and south of the spawn. Every new
+## world starts by core's record (DEFAULT) as the loaded bundles patch it (the chest's
+## bundle adds the chest), and the content graph starts from the same record, so the check
+## and the game begin alike (docs/specifications/BUNDLE_SYSTEM.md, section 11). Shared, so
+## the server can start worlds and players the same way.
 
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -13,9 +13,9 @@ const Items := preload("res://src/shared/content/items.gd")
 ## The start of every new world.
 const DEFAULT := "core:default"
 
-## The record of DEFAULT as loaded: id, title, bag (item id -> how many), camp ([{item,
-## at: [east, south]}], in the order they are set down); an empty start when no loaded
-## mod has it.
+## The record of DEFAULT as loaded: id, title, the hands' fields (`hand_power`...), bag
+## (item id -> how many), camp ([{item, at: [east, south]}], in the order they are set
+## down); the defaults of the fields when no loaded mod has it.
 static var START := {}
 
 
@@ -26,7 +26,10 @@ static func _static_init() -> void:
 static func refresh() -> void:
 	START = Content.find("starts", DEFAULT)
 	if START.is_empty():
-		START = {"id": DEFAULT, "title": DEFAULT, "bag": {}, "camp": []}
+		START = {"id": DEFAULT, "title": DEFAULT}
+		for key: String in Content.SCHEMAS.starts:
+			var d: Variant = Content.SCHEMAS.starts[key].default
+			START[key] = d.duplicate() if d is Dictionary or d is Array else d
 
 
 ## What is wrong with the loaded start for the engine, if anything: a camp thing that is

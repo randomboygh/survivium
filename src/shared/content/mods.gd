@@ -19,6 +19,7 @@ const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 const Eras := preload("res://src/shared/content/eras.gd")
 
 ## Mods of older saves and settings that live on as bundles of another mod (the old sounds
@@ -88,6 +89,7 @@ static func _refresh_registries() -> void:
 	AiRules.refresh()
 	Crafting.refresh()
 	Starts.refresh()
+	Tools.refresh()
 	Eras.refresh()
 
 

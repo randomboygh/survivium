@@ -69,6 +69,44 @@ content/tools/
   игрока ночью лишь слабый отсвет.
 - Новый инструмент: своя папка с `bundle.yaml`, запись в `data/items.yaml` с `tool`, `sprite` и
   `anim` (работа персонажа из `content/core/sprites/player.yaml`), лист `sprites/held/<sprite>.png`,
-  модель `models/<model>.png`, картинка `icons/<icon>.png` и рецепт. Проверка:
-  `godot --headless --path . --script res://tools/validate.gd` (поля, ссылки, листы и модели на
-  месте, каждый бандл в одиночку), `tests/progress_test.gd` (все рецепты достижимы в новом мире).
+  модель `models/<model>.png`, картинка `icons/<icon>.png` и рецепт. Класс инструмента — любое слово:
+  `tool: knife` — нож для рецептов (`tools: [knife]`), в мире он как руки; ножи разных модов годятся
+  одному рецепту. В мире без единого ножа рецепт с ножом не показывается.
+- Новый станок: предмет с классом `prop` (`prop: loom`), флагами (что он хранит, горит ли, чинят ли
+  у него, какие станки заменяет, с каким инструментом ставится), моделью 2×2 клетки и рецептом, а
+  рецепты, которые делают у него, называют его в `at`:
+
+  ```yaml
+  - id: loom
+    title: Ткацкий станок
+    weight: 12
+    stack: 1
+    model: loom
+    icon: loom
+    prop: loom
+    serves: [tools:workbench]   # необязательно: у него делают и всё, что у верстака
+  ```
+- Новый рецепт или второй путь к той же вещи — ещё одна запись `data/recipes.yaml` (так делают
+  альтернативы, а не исключения в коде):
+
+  ```yaml
+  - id: cloth
+    title: Ткань
+    makes: cloth
+    count: 1
+    needs: {resources:fiber: 4}
+    at: loom
+    tools: [knife]                  # класс инструмента в сумке, по одному каждого
+    keeps: {mould: 1}               # в сумке, не тратится
+    wear: 1                         # износ инструментов за изделие
+    also: [{item: resources:fiber, count: 1, chance: 0.25}]   # побочное
+    process: craft
+    time: 4
+  ```
+
+  Эпоха рецепта и вещи выводится сама (README основы, «Как добавить эпоху»).
+- Проверка: `godot --headless --path . --script res://tools/validate.gd` (поля, ссылки, листы и модели
+  на месте, каждый бандл в одиночку, граф: всё достижимо со старта, нет тупиков и кругов),
+  `tests/progress_test.gd` (все рецепты достижимы в новом мире), отчёты
+  `godot --headless --path . --script res://tools/content_report.gd` (рецепт появится в
+  `docs/generated/content-recipes.md`).
