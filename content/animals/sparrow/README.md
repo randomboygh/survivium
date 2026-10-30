@@ -45,7 +45,7 @@ content/animals/sparrow/
      рядом с ним, а испуг одного поднимает всю стаю.
    - `roost: trees` — спит и иногда садится на деревья, в крону.
    - `likes: [plants:ears]` — тянется к полям колосков: выбирая, куда лететь, ищет место,
-     где они растут. Ссылка на растение мода «Растения» (`content/plants/data/plants.yaml`).
+     где они растут. Ссылка на растение мода «Растения» (бандл колосьев, `content/plants/ears/data/plants.yaml`).
    - `sprite: sparrow`, `frames: 3` — картинка и сколько в ней кадров.
    - `calls: sparrow`, `alarm: sparrow` — чириканье: запись `data/sounds.yaml` бандла и файлы
      `sounds/sparrow_1.wav` ... (код просит звук по имени без приставки).

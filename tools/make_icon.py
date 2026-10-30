@@ -257,7 +257,7 @@ def badge(c: Canvas, tones: list) -> None:
 
 
 def sparrow() -> Canvas:
-	"""The birds mod's sparrow, large, on a branch, the setting sun behind, in a round
+	"""The sparrow of the animals mod, large, on a branch, the setting sun behind, in a round
 	badge."""
 	c = Canvas()
 	inside = lambda x, y: (x - 16) ** 2 + (y - 16) ** 2 <= 14.5 ** 2

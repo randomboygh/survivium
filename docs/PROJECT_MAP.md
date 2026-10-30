@@ -1,0 +1,76 @@
+# Карта проекта
+
+Статус: ACTIVE. Полный список скриптов с их назначением: [generated/code-index.md](generated/code-index.md).
+
+## Каталоги
+
+```
+project.godot            настройки движка: главная сцена, версия стадии, глобальные параметры шейдеров
+export_presets.cfg       web-экспорт (единственный), html head_include со стилями загрузки
+default_bus_layout.tres  звуковые шины (web копирует их при старте: новые шины только здесь)
+scenes/main.tscn         единственная сцена: узел Main со скриптом src/client/main.gd
+src/shared/              мир и правила игры; их запустит сервер; ничего не грузит из src/client/
+  content/               загрузчик модов (content, yaml, mods) и реестры видов данных
+  world/                 ячейки и чанки, формы земли, раскладка и генератор, сохранения на диск, трава, тестовый мир
+  game/                  правила: сумка, силы, персонаж, тело, действия рук, вещи на клетках, крафт, часы, погода, бури, звери
+src/client/              картинка, ввод и звук этого устройства; main.gd, settings.gd, save_game.gd
+  world/                 чанки на экране: стример, меши (ячейки, склоны, вода, стволы), трава и кроны, сугробы, следы, карта крыши
+  view/                  проекция, камера, небо и свет, огни и тени, лучи, текстуры, воксельные модели, игрок и его лист, прогрев шейдеров
+  input/                 клавиши, мышь, касания, рамка-курсор, джойстик и кнопки
+  game/                  клиентские части систем: персонаж игрока, сбор, вещи и звери на экране, маркеры карты
+  audio/                 шины, ухо, природа, шаги, голоса, музыка
+  ui/                    HUD, меню, окна сумки и крафта, настройки, карты, смерть, журнал фризов, стиль
+shaders/                 3D-шейдеры (общий common.gdshaderinc), цветокор, карта, интерфейс
+content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/; common/ общие ассеты
+assets/                  шрифт, заставка, облака меню, значки интерфейса (ui/), иконки web-страницы (web/, без импорта)
+tests/                   headless-тесты (run_tests + unit/, save, progress, frame), проверка в браузере, run_all.sh
+tools/                   валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/
+.github/                 CI (workflows/build.yml), установка Godot (actions/godot), шаблон PR
+docs/                    эта документация
+```
+
+Подробно по слоям и связям: [ARCHITECTURE.md](ARCHITECTURE.md); по системам: [SYSTEMS.md](SYSTEMS.md).
+
+## Ключевые файлы
+
+| Файл | Почему важен |
+|---|---|
+| `src/client/main.gd` | собирает сцену и все модули, ведёт кадр; модули получают Main как `game` |
+| `src/shared/content/content.gd` | схемы всех видов данных, загрузка бандлов, зависимости, патчи |
+| `src/shared/content/materials.gd`, `items.gd` | самые используемые реестры (41 и 32 зависимых файла) |
+| `src/shared/world/world_data.gd` | мир, его ячейки и формы (37 зависимых) |
+| `src/shared/world/world_gen.gd` | генератор по стадиям и заданиям |
+| `src/client/world/chunk_streamer.gd` | что и когда строится в кадре: бюджеты, срез уровней |
+| `src/shared/game/world_actions.gd` | всё, что руки делают с миром |
+| `src/client/save_game.gd` | когда и что сохраняется; переводы старых сохранений |
+| `shaders/common.gdshaderinc` | общий код шейдеров: сдвиг 3/4, свет, крыша |
+| `tests/run_all.sh`, `.github/workflows/build.yml` | все проверки локально и в CI |
+
+## Куда класть новое
+
+| Что | Куда |
+|---|---|
+| Правило игры (что решает сервер) | `src/shared/game/` (данные мира — `src/shared/world/`, загрузка данных — `src/shared/content/`) |
+| Как это показать, спросить, озвучить | папка слоя в `src/client/` |
+| Новая система | новый модуль-скрипт; Main создаёт его и передаёт себя как `game`; строка в [SYSTEMS.md](SYSTEMS.md) |
+| Числа и записи контента | YAML мода и схема в `content.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL.md)) |
+| Новое существо, растение, инструмент, биом | папка-бандл в своём моде (`content/animals/<имя>/` …), см. README мода |
+| 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
+| Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd` |
+| Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
+| Картинка интерфейса | `assets/ui/` |
+| Документ о коде | `docs/` (система — `docs/systems/`) |
+| Геймдизайн, решение, задача | библиотека: `plan/design/`, журнал в `plan/README.md`, `plan/backlog.md` |
+| Скриншот | библиотека: `survivium-builds/<тема>/` и строка в его README |
+
+Новые каталоги верхнего уровня без нужды не создаются.
+
+## Что не читать без нужды
+
+- `.godot/`, `*.import`, `*.uid`, `build/`, `build_info.json`: кеши и сборка, не в git.
+- `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: бинарные ассеты; их делают `tools/make_*`.
+- `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py`: рисовалки ассетов, большие таблицы пикселей.
+- `src/shared/world/test_ground.gd`: площадки тестового мира, нужен только для них.
+- `tools/shot/places.gd`, `tools/shot/shots.gd`: места и таблица скриншотов.
+- `assets/fonts/PressStart2P.ttf`, `assets/fonts/OFL.txt`: шрифт и лицензия.
+- В библиотеке: `plan/history/` (история закрытых тем), `survivium-builds/` (картинки), `uploads/`.

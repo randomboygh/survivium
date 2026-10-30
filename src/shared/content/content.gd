@@ -11,7 +11,7 @@ extends RefCounted
 ## them: `wolf` in `animals/wolf` is `animals:wolf`, and a reference without a namespace
 ## means the same mod. A later bundle may redefine a record of an earlier one by id, or
 ## patch it: a record with `patch: true` changes only the fields it gives, and a key
-## with a `+` at the end (`diet+: [plants]`, `needs+: {core:cord: 1}`) adds to a list
+## with a `+` at the end (`diet+: [plants]`, `needs+: {materials:cord: 1}`) adds to a list
 ## or an amounts field instead of replacing it.
 ##
 ## What a bundle depends on is read from its records: a reference to a record of another
