@@ -10,6 +10,9 @@ extends RefCounted
 ## never grows, an animal whose food never grows, a tool kind no item is, and the cycles
 ## that block them; `warnings` (they fail nothing): dead ends, stations of one recipe,
 ## twins, loops of recipes that give back more than they take, cells that never appear.
+## Each thing reached has a depth (`reached`) and an era of progress (`era`, section 9): the
+## earliest it comes in, not before the era written on an item; an item written into an era
+## earlier than it can come in is an error, an item deeper than its era expects a warning.
 ## Each is a finding too, with its check and the records it is about, and `basis` tells
 ## what each thing comes of: tools/content_report.gd writes them into
 ## docs/generated/content-graph.md and content-checks.md. Built by the validator, the
@@ -22,6 +25,7 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const Eras := preload("res://src/shared/content/eras.gd")
 
 ## What each reference field ("kind.field", see Content.refs) is to the graph: `gives` —
 ## what it names comes from the record by the field's action (`via`, under its rule of the
@@ -31,8 +35,8 @@ const Tools := preload("res://src/shared/content/tools.gd")
 ## recipe's product, by-products, what it takes (uses up or keeps) and station; `start`,
 ## `camp` — the start's bag and the things it sets
 ## down by the spawn; `serves` — a station set down stands for the ones it names; `use` — a
-## use only (mending, an animal's food). A field not here fails graph_test: the graph must
-## know every link.
+## use only (mending, an animal's food); `era` — the era of an item (see era). A field not
+## here fails graph_test: the graph must know every link.
 const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
 	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use",
@@ -45,6 +49,7 @@ const LINKS := {
 	"recipes.at": "station",
 	"starts.bag": "start", "starts.camp.item": "camp",
 	"plants.gives": "gives",
+	"items.era": "era",
 }
 ## The links by which a record uses an item (see uses).
 const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
@@ -58,8 +63,8 @@ const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "ar
 const FAR := 1 << 30
 ## The checks, each an error (true: the validator fails on it in the full set) or a warning.
 const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "never_made": true, "never_grows": true,
-	"no_food": true, "cycle": true, "dead_end": false, "station": false, "twins": false, "loop": false,
-	"never_appears": false}
+	"no_food": true, "cycle": true, "early_era": true, "dead_end": false, "station": false, "twins": false, "loop": false,
+	"never_appears": false, "long_chain": false}
 ## How each way is told in a message (see _why).
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
 	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
@@ -88,6 +93,13 @@ var uses := {}
 var reached := {}
 ## Reached key -> the way that gives it at its depth.
 var how := {}
+## What the start comes to: key -> era, a rank of Eras.ERAS (0 the first): what the world and
+## the start give with bare hands 0; what a tool gets, the earliest era of a tool that can;
+## a recipe's product the latest of what it takes, station and tools; never before the era
+## written on an item (`era`). The same keys as `reached`.
+var era := {}
+## Reached key -> the way that gives it at its era.
+var dated := {}
 ## Records of the set by key ("items/resources:log"), "placed/" keys by their item's.
 var records := {}
 ## What the checks found, in order: {"check": a key of CHECKS, "text": the message (in
@@ -192,37 +204,50 @@ func _way(to: String, via: String, from := "", needs: Array = [], act := "", ste
 	sources[to].append(w)
 
 
-## Goes over the ways until nothing new comes and no depth gets less.
+## Goes over the ways until nothing new comes and no depth gets less; then the same for
+## the eras.
 func _reach() -> void:
+	_settle(reached, how, true)
+	_settle(era, dated, false)
+
+
+## Gives each key the least of `at` its ways come to, until none gets less, and the way in
+## `by`: a depth (`steps`: a recipe's product one more than what it takes) or an era (not
+## before the one written on an item).
+func _settle(at: Dictionary, by: Dictionary, steps: bool) -> void:
 	var changed := true
 	while changed:
 		changed = false
-		var tools := _tools_had()
+		var tools := _tools_had(at)
 		for w: Dictionary in ways:
-			var d := _depth(w, tools)
-			if d >= 0 and d < reached.get(w.to, FAR):
-				reached[w.to] = d
-				how[w.to] = w
+			var d := _over(w, tools, at)
+			if d < 0:
+				continue
+			d = d + w.step if steps else maxi(d, _written(w.to))
+			if d < at.get(w.to, FAR):
+				at[w.to] = d
+				by[w.to] = w
 				changed = true
 
 
-## The tools had now, [tool record (Tools.of), depth] each, bare hands first.
-func _tools_had() -> Array:
+## The tools had now, [tool record (Tools.of), its depth or era in `at`] each, bare hands
+## first.
+func _tools_had(at: Dictionary) -> Array:
 	var out := [[Tools.HAND, 0]]
-	for key: String in reached:
+	for key: String in at:
 		if key.begins_with("items/") and Tools.is_tool_item(key.substr(6)):
-			out.append([Tools.of(key.substr(6)), reached[key]])
+			out.append([Tools.of(key.substr(6)), at[key]])
 	return out
 
 
-## The depth way `w` gives its thing at with the tools of `tools` (see _tools_had), -1 when
-## it gives nothing yet.
-func _depth(w: Dictionary, tools: Array) -> int:
+## The most of `at` (depths or eras) over what way `w` takes and the earliest tool of
+## `tools` (see _tools_had) that does its action; -1 when it gives nothing yet.
+func _over(w: Dictionary, tools: Array, at: Dictionary) -> int:
 	var d := 0
 	for key: String in _takes(w):
-		if not reached.has(key):
+		if not at.has(key):
 			return -1
-		d = maxi(d, reached[key])
+		d = maxi(d, at[key])
 	if w.act != "":
 		var best := -1
 		for t: Array in tools:
@@ -231,7 +256,12 @@ func _depth(w: Dictionary, tools: Array) -> int:
 		if best < 0:
 			return -1
 		d = maxi(d, best)
-	return d + w.step
+	return d
+
+
+## The era written on the record of `key` (an item's `era`), as a rank; 0 for none.
+func _written(key: String) -> int:
+	return Eras.rank(records[key].era) if key.begins_with("items/") and records.has(key) else 0
 
 
 ## The keys way `w` takes: where it comes from and what it needs besides.
@@ -293,6 +323,7 @@ func _check() -> void:
 	for cycle: Array in cycles():
 		_found("cycle", "a blocking cycle, each needing the next: %s" % " → ".join((cycle + [cycle[0]]).map(_name)),
 			cycle.map(func(k: String) -> String: return "items/" + k.substr(7) if k.begins_with("placed/") else k))
+	_eras()
 	_dead_ends()
 	_stations()
 	_twins()
@@ -343,18 +374,21 @@ func by_hand(w: Dictionary) -> bool:
 	return w.act == "" or _can(w.act, Tools.HAND, w.from)
 
 
-## What `key` comes of at its depth: the keys the way giving it takes (where it comes from;
-## a recipe's materials, what it keeps, station and tools) and the earliest tool item had
-## that does its action when bare hands cannot. Empty for what is never reached.
-func basis(key: String) -> Array:
-	if not how.has(key):
+## What `key` comes of at its depth (at its era, `by_era`): the keys the way giving it takes
+## (where it comes from; a recipe's materials, what it keeps, station and tools) and the
+## earliest tool item had that does its action when bare hands cannot. Empty for what is
+## never reached.
+func basis(key: String, by_era := false) -> Array:
+	var by: Dictionary = dated if by_era else how
+	var at: Dictionary = era if by_era else reached
+	if not by.has(key):
 		return []
-	var w: Dictionary = how[key]
+	var w: Dictionary = by[key]
 	var out := _takes(w)
 	if not by_hand(w):
 		var best := ""
 		for id: String in able(w):
-			if reached.has("items/" + id) and (best == "" or reached["items/" + id] < reached["items/" + best]):
+			if at.has("items/" + id) and (best == "" or at["items/" + id] < at["items/" + best]):
 				best = id
 		if best != "":
 			out.append("items/" + best)
@@ -380,6 +414,54 @@ static func _name(key: String) -> String:
 
 static func _list(ids: Array) -> String:
 	return ", ".join(ids.map(func(id: String) -> String: return "`%s`" % id))
+
+
+## The eras (section 9 of the spec): an item written into an era earlier than any way to it
+## comes in is an error (it needs a thing of a later era, or a tool of one gets it); an item
+## that comes deeper than the `depth` its era expects is a warning (a long chain for an
+## early era).
+func _eras() -> void:
+	var tools := _tools_had(era)
+	for id: String in Items.IDS:
+		var key := "items/" + id
+		if not era.has(key):
+			continue
+		var written: String = records[key].era
+		if written != "":
+			var best := FAR
+			var late := ""
+			for w: Dictionary in sources.get(key, []):
+				var e := _over(w, tools, era)
+				if e >= 0 and e < best:
+					best = e
+					late = _latest(w)
+			if best < FAR and best > Eras.rank(written):
+				_found("early_era", "items: `%s`.era: `%s`, but it comes no earlier than `%s`, needing %s" % [id, written,
+					Eras.ERAS[best].id, late], [key], best)
+		var limit: int = Eras.ERAS[era[key]].depth if era[key] < Eras.ERAS.size() else 0
+		if limit > 0 and reached[key] > limit:
+			_found("long_chain", "items: `%s` of era `%s` comes at depth %d, deeper than its era's %d: a long chain for an early era" % [
+				id, Eras.ERAS[era[key]].id, reached[key], limit], [key], reached[key])
+
+
+## What of way `w` comes in the latest era, named for a message: of what it takes the latest
+## (through a recipe, what the recipe takes), or the earliest tool that does its action when
+## that comes later.
+func _latest(w: Dictionary) -> String:
+	var last := ""
+	for key: String in _takes(w):
+		if last == "" or era.get(key, -1) > era.get(last, -1):
+			last = key
+	var tool := ""
+	if not by_hand(w):
+		for id: String in able(w):
+			if era.has("items/" + id) and (tool == "" or era["items/" + id] < era[tool]):
+				tool = "items/" + id
+	if tool != "" and (last == "" or era[tool] > era.get(last, -1)):
+		return _name(tool)
+	if last.begins_with("recipes/") and dated.has(last):
+		return _latest(dated[last])
+	return _name(last) if last != "" else "nothing"
 
 
 ## The cycles that keep things from ever being reached: the strongly connected groups of

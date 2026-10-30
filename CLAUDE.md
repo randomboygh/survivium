@@ -13,9 +13,9 @@ are in English.
   key files, where new things go), `docs/SYSTEMS.md` (each system, its files, its context doc in
   `docs/systems/`, its tests), `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/DEPENDENCIES.md`,
   `docs/DECISIONS.md`. Every script with its description: `docs/generated/code-index.md`; every
-  mod, bundle and record, with its links: `docs/generated/content-index.md`; what comes of what and
-  how deep, every recipe, and what the content checks found: `content-graph.md`, `content-recipes.md`,
-  `content-checks.md` there.
+  mod, bundle and record, with its links: `docs/generated/content-index.md`; what comes of what, how
+  deep and in which era, every recipe, and what the content checks found: `content-graph.md`,
+  `content-recipes.md`, `content-checks.md` there.
 - Design, the decision log, the MVP stages and the backlog live outside the repo, in the Claude
   project's library, `plan/` (`plan/README.md` index and decisions, `plan/mvp.md`, `plan/backlog.md`,
   `plan/design/`, `plan/architecture/` for rendering, performance and modding in depth); screenshots

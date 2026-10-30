@@ -4,6 +4,7 @@
 # (models/<model>.png).
 - id: forge
   title: Горн
+  era: core:bronze
   weight: 24.0
   stack: 1
   icon: forge

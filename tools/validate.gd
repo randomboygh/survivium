@@ -1,9 +1,10 @@
 extends SceneTree
 ## Checks the content files of every mod and fails on any problem, for CI and for a
 ## quick check after editing data: schemas and references, each bundle by itself, the
-## pictures, sounds and models, and the content graph of the full set (everything can be
-## had from the start, no cycle blocks anything). Names against the naming rules and the
-## graph's warnings (dead ends, stations of one recipe...) are printed and fail nothing:
+## pictures, sounds and models, the eras, and the content graph of the full set (everything
+## can be had from the start, no cycle blocks anything, no item is written into an era
+## earlier than it can come in). Names against the naming rules and the graph's warnings
+## (dead ends, stations of one recipe, long chains...) are printed and fail nothing:
 ## godot --headless --path . --script res://tools/validate.gd
 
 const Content := preload("res://src/shared/content/content.gd")
@@ -17,6 +18,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
+const Eras := preload("res://src/shared/content/eras.gd")
 const ContentGraph := preload("res://src/shared/content/content_graph.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
@@ -43,6 +45,7 @@ func _init() -> void:
 	problems.append_array(Crafting.check())
 	problems.append_array(Plants.check())
 	problems.append_array(Starts.check())
+	problems.append_array(Eras.check())
 	var graph := ContentGraph.new()
 	problems.append_array(graph.errors)
 	warnings.append_array(graph.warnings)
@@ -86,6 +89,7 @@ func _check_each_bundle() -> PackedStringArray:
 		problems.append_array(Crafting.check())
 		problems.append_array(Plants.check())
 		problems.append_array(Starts.check())
+		problems.append_array(Eras.check())
 		for p in problems:
 			out.append("with %s only: %s" % [", ".join(set), p])
 	Mods.activate(all)
