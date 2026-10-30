@@ -574,7 +574,8 @@ func _build_materials() -> void:
 	# Bushes take the shade of their own shadow at their foot, which sets them on the
 	# ground; the crowns skip that pass (see leaves.gdshader).
 	var bush_shader := low_variant(LeavesShader)
-	bush_shader.code = bush_shader.code.replace(", shadows_disabled", "")
+	bush_shader.code = bush_shader.code.replace(", shadows_disabled", "") \
+		.replace("const bool LOW_PLANT = false;", "const bool LOW_PLANT = true;")
 	bush_mat = _material(bush_shader)
 	bush_mat.set_shader_parameter("clump_texture", PixelTextures.build_bush_clumps(Foliage.BUSH_CLUMP))
 	bush_mat.set_shader_parameter("clump_size", Foliage.BUSH_CLUMP / 16.0)

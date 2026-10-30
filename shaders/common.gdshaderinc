@@ -322,6 +322,8 @@ const float SEE_RIM = 0.5;
 // How far in front of the player a thing starts to clear, and as far again until it
 // clears in full.
 const float SEE_FRONT = 0.5;
+// The same for a low thing (a bush), whose middle is barely above the player's feet.
+const float LOW_FRONT = 0.25;
 
 // How many of the texels of a crown or a trunk at `p` (the texel `texel` of the
 // picture's pixels on the world) give way round the player when it stands nearer the
@@ -350,6 +352,18 @@ float trunk_through(vec2 texel, vec3 p) {
 	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
 	float near = length((texel + 0.5) / TEXELS - body);
 	return see_through(texel, p) * (1.0 + clamp((SEE_FIGURE + SEE_RIM - near) / SEE_RIM, 0.0, 1.0));
+}
+
+// As see_through for a bush: a low thing hides the player only where it lies over
+// their figure and just in front of them, so it clears there alone (a bush a few
+// cells in front, low under the player's feet on the screen, stays whole).
+float low_through(vec2 texel, vec3 p) {
+	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
+	float near = length((texel + 0.5) / TEXELS - body);
+	float toward = view_slope / view_squash;
+	float before = p.y - dot(p.xz, view_up) * toward - (player_pos.y - dot(player_pos.xz, view_up) * toward);
+	return 0.5 * clamp((SEE_FIGURE + SEE_RIM - near) / SEE_RIM, 0.0, 1.0)
+		* clamp((before - LOW_FRONT) / LOW_FRONT, 0.0, 1.0);
 }
 
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
