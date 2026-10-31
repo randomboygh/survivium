@@ -112,6 +112,18 @@ func save(server) -> bool:
 	return ok
 
 
+## Who the host blocked and the list of who may come in (Server.access), "" none yet.
+const ACCESS := "access.json"
+
+
+func read_access() -> Dictionary:
+	return store.read_json(ACCESS)
+
+
+func write_access(access: Dictionary) -> bool:
+	return store.write_json(ACCESS, access)
+
+
 ## Writes the record of the player of account `a` alone (their character leaves).
 func save_player(a) -> bool:
 	return store.write_json(player_file(a.key), record_of(a))

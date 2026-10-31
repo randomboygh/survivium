@@ -6,7 +6,8 @@ extends Control
 ## сервер» starts the game again with the server made and joined (Main.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
-## players with «Выгнать», the server's last lines; «Играть» says `play` (into its world),
+## players with «Выгнать», the server's last lines and a field for the host's commands
+## (Server.command: give, tp, ban, whitelist…); «Играть» says `play` (into its world),
 ## «Остановить сервер» asks again and stops it (Main.stop_server), «Назад» leaves it
 ## running. It covers the whole screen over a shade of the world behind. `game` is the
 ## Main node.
@@ -277,6 +278,19 @@ func _build_running() -> void:
 	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log.custom_minimum_size = Vector2(WIDTH - 2 * UiStyle.WELL_PAD - UiStyle.SCROLL_BAR - 2, 0)
 	_log_scroll.add_child(_log)
+	# The host's commands, as in the terminal; what they answer goes into the log.
+	var command := LineEdit.new()
+	command.placeholder_text = "команда: help — список"
+	command.custom_minimum_size = Vector2(WIDTH, ROW_H)
+	command.text_submitted.connect(func(line: String) -> void:
+		if line.strip_edges() == "":
+			return
+		node.say("> " + line)
+		for out in node.command(line).split("\n", false):
+			node.say(out)
+		command.clear()
+		_clock = 0.0)
+	_box.add_child(command)
 	_button("Играть", play.emit, true)
 	_stop = _button("Остановить сервер", _ask_stop)
 	_button("Назад", cancelled.emit)
