@@ -6,7 +6,8 @@ extends SceneTree
 ## answered after its events, a connection lost and the character waiting for the key
 ## to come back, a goodbye, the host's commands (who, say, kick, stop); then the game
 ## itself joins (Main over a socket): the world comes from the server as chunks, the
-## cells dug by anyone change in its copy, the things dropped come with their list.
+## cells dug by anyone change in its copy, the things dropped come with their list;
+## then the server is started again over the world it saved (С4).
 ## Run: godot --headless --path . --script res://tests/server_test.gd
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -14,6 +15,7 @@ const Socket := preload("res://src/client/net/socket.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const ServerStore := preload("res://src/server/server_store.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -111,6 +113,7 @@ func _run() -> void:
 	server.config.seed_value = 5
 	server.config.world = ""
 	server.quit_on_stop = false
+	server.config.autosave = 2.0
 	root.add_child(server)
 	# The scene is readied with the first frame.
 	await _until(func() -> bool: return server.server != null)
@@ -315,6 +318,13 @@ func _run() -> void:
 		"a kicked player is told, closed with 4001 and out of the world (code %d, kicks %d, players %d)"
 		% [back.socket.close_code, back.of(Protocol.KICK).size(), server.session.players.size()])
 	_check(server.command("nothing").contains("help"), "an unknown command says where the list is")
+	_check(server.saves != null and server.saves.saves > 0, "the world is saved as it goes (%d saves)" % (server.saves.saves if server.saves != null else 0))
+	var anya_file := ServerStore.player_file(w.key)
+	_check(server.store.read_json(anya_file).get("name") == "Аня" and not FileAccess.get_file_as_string(server.store.dir + "/" + anya_file).contains(w.key),
+		"a player who leaves is saved, in a file that does not hold the key")
+	var dug_at: int = server.session.world.get_cell(ground.x, ground.y, ground.z)
+	var things: int = server.session.placed.things.size()
+	var dir: String = server.store.dir
 	server.command("stop")
 	_check(net.stopping and not net.listening, "stop closes the port")
 	_check(await _until(func() -> bool: return net.done()), "and the connections")
@@ -323,8 +333,48 @@ func _run() -> void:
 		"nobody comes in after stop")
 	root.remove_child(server)
 	server.free()
+	await _restart(w, ground, dug_at, things, dir)
 	print("server_test: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
+
+
+## The server again over the world it saved (С4): a save cut off (files left beside
+## their place) is cleaned away, the world is the one left (the cell dug, the things
+## placed), and Аня comes back with her key to her character as it was, with the same
+## number; a new player gets the next one.
+func _restart(w: Dictionary, ground: Vector3i, dug_at: int, things: int, dir: String) -> void:
+	WorldStore.write_json_beside(dir + "/" + WorldStore.WORLD, {"format": 1, "seed": 99})
+	WorldStore.write_json_beside(dir + "/" + ServerStore.player_file(w.key), {"format": 1, "id": 7, "name": "ложь"})
+	server = load("res://scenes/server.tscn").instantiate()
+	server.config.port = PORT
+	server.config.password = PASSWORD
+	server.config.console = false
+	server.config.seed_value = 5
+	server.config.world = ""
+	server.quit_on_stop = false
+	root.add_child(server)
+	await _until(func() -> bool: return server.server != null)
+	var net = server.server
+	_check(server.had_save and server.seed_value == 5 and not FileAccess.file_exists(dir + "/" + WorldStore.WORLD + ".tmp"),
+		"the server opens the world it saved; what a save cut off left is cleaned away")
+	_check(server.session.world.get_cell(ground.x, ground.y, ground.z) == dug_at and server.session.placed.things.size() == things,
+		"the cell dug and the things placed are as they were (%d things)" % server.session.placed.things.size())
+	var p: Array = WorldStore.read_json_at(dir + "/" + ServerStore.player_file(w.key)).get("position", [0, 0, 0])
+	var left_at := Vector3(p[0], p[1], p[2])
+	var anya := _bot("Аня", w.key)
+	_check(await _until(func() -> bool: return anya.reply.done) and anya.reply.value.get("ok") == true
+		and anya.reply.value.get("id") == 1 and anya.reply.value.get("key") == w.key, "Аня comes back by her key after the restart: %s" % [anya.reply.value])
+	var who = server.session.players[0] if not server.session.players.is_empty() else null
+	_check(who != null and who.inventory.count("resources:branch") >= 3 and anya.reply.value.get("at") == left_at,
+		"to her character as it was: the branches in the bag, the body where it was left (%s, %s)"
+		% [who.inventory.count("resources:branch") if who != null else -1, anya.reply.value.get("at")])
+	var newcomer := _bot("Новый")
+	_check(await _until(func() -> bool: return newcomer.reply.done) and newcomer.reply.value.get("id") == 4,
+		"a new player gets the next number (%s)" % [newcomer.reply.value.get("id")])
+	server.command("stop")
+	await _until(func() -> bool: return net.done())
+	root.remove_child(server)
+	server.free()
 
 
 static func _unique(a: Array) -> Array:

@@ -9,12 +9,14 @@ extends Node
 ## come, and listens (Server). The server's loop (src/server/runner.gd, never paused)
 ## ticks the session before each frame; then the connections are polled, the terminal's
 ## lines done (Console) and the events of the tick sent. The animals come when the
-## first player does (Server). Saving the world is С4: a server's world is not saved yet.
+## first player does (Server). The world and the players are saved (ServerStore, С4)
+## every Config.autosave seconds, when a character leaves and on stop.
 
 const Config := preload("res://src/server/config.gd")
 const Console := preload("res://src/server/console.gd")
 const Server := preload("res://src/server/server.gd")
 const Runner := preload("res://src/server/runner.gd")
+const ServerStore := preload("res://src/server/server_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
@@ -42,6 +44,8 @@ var runner: Runner
 var server: Server
 var console: Console
 var store: WorldStore
+## The save, null with `--no-save`.
+var saves: ServerStore
 ## The world's seed and WorldGen settings, and where the players start, in world units.
 var seed_value := 0
 var settings := {}
@@ -53,6 +57,7 @@ var had_save := false
 ## The process ends once the server stopped (a test keeps it).
 var quit_on_stop := true
 var _stop_at := -1.0
+var _meta := {}
 
 
 func _ready() -> void:
@@ -65,6 +70,16 @@ func _ready() -> void:
 		return
 	server = Server.new(session, config, {"seed": seed_value, "settings": settings, "mods": mods,
 		"materials": Array(Mat.IDS), "spawn": spawn})
+	if config.save:
+		saves = ServerStore.new(store, session, {"seed": seed_value, "settings": settings, "mods": mods}, _meta)
+		saves.every = config.autosave
+		var left := saves.clean()
+		if left > 0:
+			say("сохранение было прервано: %d недописанных файлов убрано, мир — с прошлого сохранения" % left)
+		server.store = saves
+		server.next_id = saves.next_player()
+	else:
+		say("мир не сохраняется (--no-save)")
 	if config.console and OS.get_stdin_type() != OS.STD_HANDLE_INVALID:
 		console = Console.new()
 		console.start()
@@ -89,6 +104,7 @@ func _open_world() -> bool:
 			say("сохранение %s не прочитать (формат %s, нужен %d)" % [store.dir, meta.get("format"), WorldStore.FORMAT])
 			return false
 		had_save = true
+		_meta = meta
 		seed_value = int(meta.seed)
 		settings = {}
 		for k: String in WorldGen.DEFAULT_SETTINGS:
@@ -137,7 +153,7 @@ func _open_world() -> bool:
 	return true
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if server == null:
 		return
 	if console != null:
@@ -147,6 +163,8 @@ func _process(_delta: float) -> void:
 				print(out)
 	server.poll()
 	server.flush()
+	if saves != null and not server.stopping:
+		saves.update(delta, server)
 	for line in server.lines:
 		say(line)
 	server.lines.clear()

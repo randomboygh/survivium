@@ -130,7 +130,8 @@ Each in one line; the system's context doc has the detail.
 - A server from the terminal: `godot --headless --path . -- --server [--port N] [--seed N | --world <dir>]`
   (from a PC build `Survivium.console.exe --headless -- --server` or `./Survivium.x86_64 …`)
   (`src/server/server_main.gd`, `docs/systems/network.md`); the test world is `--seed -1`. A client joins
-  it with `-- --join ws://host:port [--name X]`, in the browser with `?server=ws://host:port`.
+  it with `-- --join ws://host:port [--name X]`, in the browser with `?server=ws://host:port`. The server
+  saves every 10 s and on `stop` (`src/server/server_store.gd`); Ctrl+C kills Godot at once, no hook.
 - A lambda that uses `self`, connected to a signal of something the object holds, makes a cycle a
   RefCounted is never freed from: connect a method (`src/shared/game/character.gd`).
 - `var i := expr` with a Variant `expr` is a parse error: type it. `typed_array = expr if c else []`
