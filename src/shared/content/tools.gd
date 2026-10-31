@@ -142,6 +142,12 @@ static func can_dig_out(t: Dictionary) -> bool:
 	return t.tool == "shovel"
 
 
+## Whether tool `t` strikes an animal in front before it works anything else: a sword or
+## a knife (any other hand strikes one only when it has nothing else to do).
+static func hunts(t: Dictionary) -> bool:
+	return t.tool in ["sword", "knife"]
+
+
 ## Whether tool `t` knocks the ripe berries off a bush onto the ground: a sword or a scythe.
 static func can_knock(t: Dictionary) -> bool:
 	return t.tool in ["sword", "scythe"]

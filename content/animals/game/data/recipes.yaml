@@ -1,0 +1,29 @@
+# Рецепты бандла «Добыча»: разделка и жарка. Тушку разделывают руками, тушу — ножом (tools: класс
+# инструмента в сумке, wear — сколько он теряет); мясо жарят на костре основы. Поля — docs/DATA_MODEL.md.
+- id: raw_meat_from_small_carcass
+  title: Разделать тушку
+  makes: raw_meat
+  needs: {small_carcass: 1}
+  also:
+    - {item: bone, chance: 0.5}
+    - {item: hide, chance: 0.3}
+  time: 3
+- id: raw_meat_from_carcass
+  title: Разделать тушу
+  makes: raw_meat
+  count: 5
+  needs: {carcass: 1}
+  also:
+    - {item: hide, count: 1}
+    - {item: bone, count: 3}
+    - {item: fat, count: 2}
+  tools: [knife]
+  wear: 2
+  time: 10
+- id: roasted_meat
+  title: Жареное мясо
+  makes: roasted_meat
+  needs: {raw_meat: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 4

@@ -18,3 +18,5 @@
   likes: [plants:mushrooms]
   calls: bear
   alarm: bear
+  health: 25
+  carcass: carcass

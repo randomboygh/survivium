@@ -160,6 +160,10 @@ const SCHEMAS := {
 		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
 		"calls": {"type": "sound", "default": ""},
 		"alarm": {"type": "sound", "default": ""},
+		# Hunting: the hits of power 1 it takes (0: it cannot be hit) and what its
+		# body leaves (a carcass to butcher).
+		"health": {"type": "int", "min": 0, "default": 0},
+		"carcass": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "hunt"},
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
@@ -306,7 +310,7 @@ const RELATIONS := {
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
-const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair"]
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
 ## reports and search (they decide nothing in the engine), which of the record's numbers
 ## are provisional, still to be balanced, and the ids it had before (`was`), so a save

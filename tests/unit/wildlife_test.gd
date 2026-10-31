@@ -109,6 +109,7 @@ func _test_wildlife() -> void:
 	_test_shore(w)
 	_test_jostle(w)
 	_test_looked(w)
+	_test_hunting(w)
 
 
 ## A walker that roosts in trees (the squirrel bundle) runs up a tree near it from a
@@ -390,6 +391,59 @@ func _test_jostle(w: WorldData) -> void:
 	bear.think = 100.0
 	life.update(0.05)
 	_check(life.pushes[0].x < -0.1, "a bear pushes a person back (%v)" % life.pushes[0])
+
+
+## A blow lands on the animal in front of the one who strikes, not on one behind; a hit
+## animal flees, whether it fears people or not; with no health left it dies and leaves
+## its carcass on the ground; one with no `health` cannot be hit.
+func _test_hunting(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var person := Who.new()
+	person.position = Vector3(60.0, 6.0, 60.0) * WorldData.CELL
+	life.people = [person]
+	var actions := WorldActions.new(w, life.clock, Rules.new())
+	actions.wildlife = life
+	var north := person.position + Vector3(0.0, 0.0, -1.1)
+	var deer := _animal(life, "animals:deer", north)
+	deer.health = AiRules.SPECIES["animals:deer"].health
+	var behind := _animal(life, "animals:hedgehog", person.position + Vector3(0.0, 0.0, 1.2))
+	behind.health = AiRules.SPECIES["animals:hedgehog"].health
+	_check(life.in_front(person.position, Vector2(0, -1)) == deer and life.in_front(person.position, Vector2(0, 1)) == behind,
+		"a blow lands on the animal in front, the one behind only facing it")
+	var was := deer.health
+	var done := actions.strike(person)
+	_check(done.get("hit", false) and deer.health == was - 1 and not deer.gone, "bare hands hit the deer once (%d of %d)" % [deer.health, was])
+	life.update(0.05)
+	_check(deer.state == "flee" and deer.target.z < north.z, "the hit deer flees away from the blow")
+	# The hedgehog fears nobody, yet a hit one runs off.
+	life.animals.erase(deer)
+	behind.pos = north
+	behind.target = north
+	life.update(0.05)
+	var calm := behind.state
+	life.hurt(behind, 1, person.position)
+	life.update(0.05)
+	_check(calm != "flee" and behind.state == "flee", "a hedgehog that fears no one flees once hit (%s)" % calm)
+	life.animals.append(deer)
+	behind.pos = person.position + Vector3(0.0, 0.0, 3.0)
+	deer.pos = north
+	var key := WorldData.chunk_key(floori(north.x / WorldData.CELL), floori(north.z / WorldData.CELL))
+	var lying: int = w.drops.get(key, []).size()
+	person.item = "tools:steel_sword"
+	var left := deer.health
+	var blows := 0
+	while not deer.gone and blows < 20:
+		actions.strike(person)
+		blows += 1
+	var carcass: Array = w.drops.get(key, []).filter(func(d: Array) -> bool: return d[0] == "animals:carcass")
+	_check(deer.gone and blows == ceili(float(left) / Tools.of("tools:steel_sword").power) and carcass.size() == 1
+		and w.drops[key].size() == lying + 1, "a steel sword kills the deer in %d blows and its carcass lies there" % blows)
+	var fly := _animal(life, "animals:butterfly", north)
+	_check(fly.health == 0 and life.in_front(person.position, Vector2(0, -1)) != fly and actions.strike(person).is_empty(),
+		"a butterfly cannot be hit: the swing finds nothing")
 
 
 func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:

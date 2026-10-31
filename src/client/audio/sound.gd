@@ -327,6 +327,8 @@ func work(done: Dictionary, kind: String, strike: float) -> void:
 	var id := ""
 	if done.has("placed"):
 		id = "place"
+	elif done.get("hit", false):
+		id = "knock"
 	elif kind == "reach" and stuff < 0:
 		return
 	elif kind in ["mow", "slash"] and stuff in [Mat.GRASS, Mat.LEAVES]:

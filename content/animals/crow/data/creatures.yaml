@@ -19,3 +19,5 @@
   likes: [plants:ears]
   calls: crow
   alarm: crow
+  health: 3
+  carcass: small_carcass

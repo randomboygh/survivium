@@ -17,3 +17,5 @@
   biomes: [biomes:taiga, biomes:forest, biomes:tundra]
   calls: wolf_howl
   alarm: wolf_growl
+  health: 11
+  carcass: carcass

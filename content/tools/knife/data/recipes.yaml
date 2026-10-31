@@ -1,0 +1,31 @@
+# Рецепты бандла «Нож»: кремнёвый делают руками, медный и бронзовый — на верстаке, железный и
+# стальной — на наковальне. Поля рецепта — docs/DATA_MODEL.md.
+- id: flint_knife
+  title: Кремнёвый нож
+  makes: flint_knife
+  needs: {resources:flint: 1, resources:branch: 1, materials:cord: 1}
+  time: 4
+- id: copper_knife
+  title: Медный нож
+  makes: copper_knife
+  needs: {materials:copper_bar: 1, materials:planks: 1}
+  at: workbench
+  time: 5
+- id: bronze_knife
+  title: Бронзовый нож
+  makes: bronze_knife
+  needs: {materials:bronze_bar: 1, materials:planks: 1}
+  at: workbench
+  time: 5
+- id: iron_knife
+  title: Железный нож
+  makes: iron_knife
+  needs: {materials:iron_bar: 1, materials:planks: 1}
+  at: anvil
+  time: 5
+- id: steel_knife
+  title: Стальной нож
+  makes: steel_knife
+  needs: {materials:steel_bar: 1, materials:planks: 1}
+  at: anvil
+  time: 5
