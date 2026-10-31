@@ -25,6 +25,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const COLUMNS := 8
 const JOB_SLOT := 24
@@ -102,19 +103,11 @@ func _ready() -> void:
 	station_buttons.add_theme_constant_override("separation", 4)
 	station_buttons.visible = false
 	_take_up = TabRow.icon_button(UiStyle.icon("take"), "Забрать в сумку", func() -> void:
-		if game.placed.take_up(game.character, _station):
-			_station = {}
-			refresh())
+		game.net.request(Protocol.PROP_TAKE, [_station.cell]).then(_station_gone))
 	_fire = TabRow.icon_button(UiStyle.icon("put_out"), "Потушить", func() -> void:
-		if _station.lit:
-			game.placed.put_out(_station)
-		else:
-			game.placed.light(game.character, _station)
-		refresh())
+		game.net.request(Protocol.PROP_FIRE, [_station.cell, not _station.lit]).then(func(_v: Variant) -> void: refresh()))
 	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
-		if game.placed.destroy(_station):
-			_station = {}
-			refresh())
+		game.net.request(Protocol.PROP_DESTROY, [_station.cell]).then(_station_gone))
 	for b in [_take_up, _fire, _destroy]:
 		b.custom_minimum_size = Vector2(30, 30)
 		station_buttons.add_child(b)
@@ -229,12 +222,11 @@ func _ready() -> void:
 	_controls.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_controls)
 	_pause = TabRow.icon_button(UiStyle.icon("pause"), "Пауза", func() -> void:
-		game.workshop.paused = not game.workshop.paused
-		refresh_now())
+		game.net.request(Protocol.CRAFT_PAUSE, [not game.workshop.paused]).then(func(_v: Variant) -> void: refresh_now()))
 	_controls.add_child(_pause)
 	_controls.add_child(TabRow.split([
-		[UiStyle.icon("close"), "Отменить выбранную", func() -> void: game.workshop.cancel(_job)],
-		[UiStyle.icon("cancel_all"), "Отменить все", func() -> void: game.workshop.cancel_all()],
+		[UiStyle.icon("close"), "Отменить выбранную", func() -> void: game.net.request(Protocol.CRAFT_CANCEL, [_job])],
+		[UiStyle.icon("cancel_all"), "Отменить все", func() -> void: game.net.request(Protocol.CRAFT_CANCEL_ALL, [])],
 	]))
 	game.workshop.changed.connect(refresh)
 
@@ -326,7 +318,14 @@ func _choose(id: String) -> void:
 
 
 func _start(n: int) -> void:
-	game.workshop.start(Crafting.get_recipe(_chosen), n)
+	game.net.request(Protocol.CRAFT, [_chosen, n])
+
+
+## The station the tab was opened at was taken up or destroyed (`done` true).
+func _station_gone(done: Variant) -> void:
+	if done is bool and done:
+		_station = {}
+		refresh()
 
 
 ## What can be done with the station the tab was opened at.

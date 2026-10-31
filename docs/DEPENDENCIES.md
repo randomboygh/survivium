@@ -17,20 +17,30 @@ graph LR
     cgame["game/"]
     audio["audio/"]
     ui["ui/"]
+    cnet["net/"]
+  end
+  subgraph server["src/server/"]
+    requests["requests.gd"]
   end
   subgraph shared["src/shared/"]
+    net["net/"]
     game["game/"]
     world["world/"]
     content["content/"]
   end
-  main --> cworld & view & input & cgame & audio & ui
-  client --> game & world & content
+  main --> cworld & view & input & cgame & audio & ui & cnet
+  cnet -. local_host.gd .-> requests
+  client --> net & game & world & content
+  requests --> net & game & content
   game --> world --> content
   game --> content
+  net --> content
 ```
 
-Запрещено: `src/shared/` → `src/client/` (тест `_test_layers`). Внутри shared сейчас нет и обратных
-стрелок (`content/` не грузит `world/` и `game/`, `world/` не грузит `game/`); тестом это не проверяется.
+Запрещено (тест `_test_layers`): `src/shared/` → `src/client/` или `src/server/`; `src/server/` →
+`src/client/`; `src/client/` → `src/server/` кроме `net/local_host.gd`; внутри shared обратные стрелки
+(`content/` не грузит `world/`, `game/`, `net/`; `world/` не грузит `game/`, `net/`; `net/` грузит только
+`content/`).
 
 ## Узлы, от которых зависит больше всего
 

@@ -188,6 +188,15 @@ func cell_of(item: String) -> Variant:
 	return null
 
 
+## The thing placed with its north-west cell at `cell`, or {}: how a request names a
+## thing (Requests).
+func at(cell: Vector3i) -> Dictionary:
+	for e in things:
+		if e.cell == cell:
+			return e
+	return {}
+
+
 ## The middle of placed thing `e` in world units.
 static func center(e: Dictionary) -> Vector3:
 	return (Vector3(e.cell) + Vector3(1.0, 0.5, 1.0)) * CELL

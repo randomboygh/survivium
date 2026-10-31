@@ -149,6 +149,7 @@ func _same_view(gen, a: WorldData, b: WorldData, keys: Array) -> bool:
 class Survivor extends "res://src/shared/game/character.gd":
 	var at := Vector3.ZERO
 	var back_at := Vector3.ZERO
+	## What the hands hold; the first is the hand in use.
 	var hands := ["", ""]
 
 	func _where() -> Vector3:
@@ -159,6 +160,30 @@ class Survivor extends "res://src/shared/game/character.gd":
 
 	func _came_back(to: Vector3) -> void:
 		back_at = to
+
+	func feet() -> Vector3i:
+		return Vector3i((at / WorldData.CELL).floor())
+
+	func facing_step() -> Vector2i:
+		return Vector2i(0, -1)
+
+	func moving() -> bool:
+		return false
+
+	func overlaps_cell(_cell: Vector3i) -> bool:
+		return false
+
+	func held() -> String:
+		return hands[0]
+
+	func tool() -> Dictionary:
+		return Tools.of(hands[0])
+
+	func brush() -> Dictionary:
+		return Tools.BRUSHES[0]
+
+	func use_tool() -> void:
+		pass
 
 
 class Who extends RefCounted:

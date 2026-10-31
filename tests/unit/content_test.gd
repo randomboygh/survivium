@@ -656,12 +656,17 @@ func _test_layers() -> void:
 			bad.append(path)
 	_check(bad.is_empty(), "src/client loads src/server only from net/local_host.gd (the server in the game): %s" % [bad])
 	bad = []
-	for layer in [["content", ["world", "game"]], ["world", ["game"]]]:
+	for layer in [["content", ["world", "game", "net"]], ["world", ["game", "net"]], ["net", ["world", "game"]]]:
 		for path: String in _scripts("res://src/shared/" + layer[0]):
 			for above: String in layer[1]:
 				if FileAccess.get_file_as_string(path).contains("res://src/shared/%s/" % above):
 					bad.append("%s loads from %s" % [path, above])
-	_check(bad.is_empty(), "inside src/shared, content loads neither world nor game, and world not game: %s" % [bad])
+	_check(bad.is_empty(), "inside src/shared, content loads neither world, game nor net, world not game or net, net only content: %s" % [bad])
+	bad = []
+	for path: String in _scripts("res://src/server"):
+		if FileAccess.get_file_as_string(path).contains("res://src/client/"):
+			bad.append(path)
+	_check(bad.is_empty(), "src/server loads nothing from src/client: %s" % [bad])
 
 
 func _scripts(dir: String) -> Array:

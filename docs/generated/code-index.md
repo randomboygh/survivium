@@ -48,6 +48,14 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## src/client
 
 - `src/client/main.gd`: Technical prototype entry point: starts the world of the saved settings and shows the main menu over it while it is built (MainMenu; a new world from its WorldSetup screen restarts the scene), builds…
+
+## src/client/net
+
+- `src/client/net/connection.gd`: The client's side of the protocol (plan/architecture/server.md, Protocol): makes requests of the server and hands their replies to whoever asked.
+- `src/client/net/local_host.gd`: The server inside the game, for single player (plan/architecture/server.md, decision 153): the one place the client loads the server's code.
+
+## src/client
+
 - `src/client/save_game.gd`: Saving the game on this device (see WorldStore for the files).
 - `src/client/settings.gd`: Game settings: what the player can change and keep between runs (time speed, graphics, interface, the world made at the start) and the playtest switches that are not saved (season, weather, time of…
 
@@ -109,6 +117,10 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/world/trunk_mesher.gd`: Trunks of trees and log pillars: the bark drawn as a ring of texels per level with roots at the foot and a cut or bark cap on top (see Trees.trunk_box).
 - `src/client/world/water_mesher.gd`: Water in the chunk meshes: the surface with its shore, murk and depth colours, the water of cut corners, waterfalls with their sheet and foam, and the water on a shore that follows the slope under it.
 
+## src/server
+
+- `src/server/requests.gd`: The requests of one player, done by the rules of the session on the server's side (plan/architecture/server.md, Protocol): a request `[kind, seq, args]` is answered `[seq, value]` with what the rule…
+
 ## src/shared/content
 
 - `src/shared/content/ai_rules.gd`: Shared behaviour rules.
@@ -145,6 +157,10 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/game/workshop.gd`: Crafting for one character (plan/design/crafting.md): the recipes they know (Knowledge: learned as their materials come into the bag), the queue of things being made (CraftQueue: materials are taken…
 - `src/shared/game/world_actions.gd`: What a character's hands do to the world (plan/design/character.md, "Взаимодействие с миром"): digging cells, cutting the grass, chopping and felling trees, placing blocks, the action button's work…
 
+## src/shared/net
+
+- `src/shared/net/protocol.gd`: What the client and the server say to each other (plan/architecture/server.md): the kinds of request the client makes of the rules and the shape of a message on the wire.
+
 ## src/shared/world
 
 - `src/shared/world/grass.gd`: What grows on the top of a ground cell: the plants drawn there (Foliage) are the ones cutting the grass gives (WorldActions), so both read them from here, from a hash of the cell and slow noises over…
@@ -176,6 +192,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/generation_test.gd`: The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
 - `tests/unit/graph_test.gd`: The content graph (src/shared/content/content_graph.gd): the full set comes to every item and recipe from the start by the rules of the hands; on bundles made for the test it finds each dead end of…
 - `tests/unit/mesher_test.gd`: The chunk meshes: cells, slopes and cut caps.
+- `tests/unit/net_test.gd`: The protocol between the client and the server (plan/architecture/server.md): the shape of a message on the wire, the requests of a player done by the rules on the server's side through the loop of…
 - `tests/unit/session_test.gd`: The session of a world (the server's tick): the rules of play, and a tick that runs the clock, every character with their workshop, the animals around all the players and the wind around each of them.
 - `tests/unit/shapes_test.gd`: The shapes of natural ground (slopes and corners) against the rules written out one cell at a time.
 - `tests/unit/store_test.gd`: Saving and loading a world and its chunks.
@@ -234,13 +251,16 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 | Folder | Loads scripts from |
 |---|---|
-| `src/client` | `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/ui`, `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
+| `src/client` | `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/net`, `src/client/ui`, `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/audio` | `src/client/input`, `src/client/ui`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
-| `src/client/game` | `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
-| `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
-| `src/client/ui` | `src/client`, `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
+| `src/client/game` | `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
+| `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
+| `src/client/net` | `src/server`, `src/shared/net` |
+| `src/client/ui` | `src/client`, `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/view` | `src/client/ui`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/world` | `src/client/view`, `src/shared/content`, `src/shared/world` |
+| `src/server` | `src/shared/content`, `src/shared/net` |
 | `src/shared/content` | — |
 | `src/shared/game` | `src/shared/content`, `src/shared/world` |
+| `src/shared/net` | — |
 | `src/shared/world` | `src/shared/content` |

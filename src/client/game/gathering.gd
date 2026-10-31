@@ -12,6 +12,7 @@ const Bushes := preload("res://src/shared/content/bushes.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
@@ -113,12 +114,14 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens, the rest is WorldActions.gather. True if anything was done.
+## opens, the rest is WorldActions.gather through the server. True if anything was done
+## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
 	if target.has("prop"):
 		game.hud.open_prop(target.prop)
 		return true
-	return game.actions.gather(game.character, target)
+	var r = game.net.request(Protocol.GATHER, [target])
+	return r.done and r.value is bool and r.value
 
 
 ## Takes by themselves the things lying near the player's feet, unless the setting is
@@ -129,4 +132,4 @@ func update(delta: float) -> void:
 		return
 	_pickup_clock = 0.0
 	var v: Dictionary = game.settings.values
-	game.actions.pick_up_near(game.character, v.pickup, v.pickup_heavy)
+	game.net.request(Protocol.PICKUP, [int(v.pickup), bool(v.pickup_heavy)])

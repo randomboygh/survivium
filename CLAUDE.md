@@ -48,9 +48,12 @@ tests/ tools/      headless tests and the browser smoke test; validator, screens
 ## Rules that must hold
 
 - A new script goes into the folder of its layer. What happens in the game (a rule the server must
-  decide) goes into `src/shared/game/`; how it is drawn or asked for goes into `src/client/`.
-  `src/shared/` loads nothing from `src/client/` (`run_tests.gd` fails otherwise); inside it,
-  `content/` loads nothing else and `world/` only `content/` (tested too).
+  decide) goes into `src/shared/game/`; how it is drawn or asked for goes into `src/client/`; what the
+  client asks of a rule is a request of `src/shared/net/protocol.gd` done by `src/server/requests.gd`
+  (`docs/systems/network.md`). `src/shared/` loads nothing from `src/client/` or `src/server/`
+  (`run_tests.gd` fails otherwise); inside it, `content/` loads nothing else, `world/` and `net/` only
+  `content/`; `src/server/` loads only `src/shared/`; the client loads `src/server/` only from
+  `src/client/net/local_host.gd` (tested too).
 - A rule takes the one acting as `who` (on the client `src/client/game/character.gd`: the body, the
   hands, the bag) and tells what it changed through signals the client's views connect to
   (`world_actions.gd`, `placed.gd`, `wildlife.gd`).

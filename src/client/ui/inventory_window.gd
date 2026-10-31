@@ -25,6 +25,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const CraftPanel := preload("res://src/client/ui/craft_panel.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 ## Room kept between the window and the edges of the screen, in UI pixels.
 const EDGE := 4
@@ -132,8 +133,7 @@ func _ready() -> void:
 	_chest_buttons.add_child(TabRow.icon_button(UiStyle.icon("take"), "Забрать сундук в сумку", func() -> void:
 		var e := _chest_entry
 		_let_go()
-		game.placed.take_up(game.character, e)
-		refresh()))
+		game.net.request(Protocol.PROP_TAKE, [e.cell]).then(func(_v: Variant) -> void: refresh())))
 	for b in [_to_chest, into.get_child(1), _chest_buttons.get_child(1)]:
 		b.custom_minimum_size = Vector2(30, 30)
 	craft = CraftPanel.new(game)
@@ -205,7 +205,7 @@ func _ready() -> void:
 	_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_info.custom_minimum_size.x = 120
 	name_row.add_child(_info)
-	_repair = _button("Починить", func() -> void: game.workshop.repair(_at))
+	_repair = _button("Починить", func() -> void: game.net.request(Protocol.REPAIR, [_at]))
 	name_row.add_child(_repair)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 6)
@@ -217,8 +217,8 @@ func _ready() -> void:
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 4)
 	_throw = TabRow.split([
-		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.character.throw_away(_at, 1)],
-		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.character.throw_away(_at, 1 << 20)],
+		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.net.request(Protocol.THROW, [_at, 1])],
+		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.net.request(Protocol.THROW, [_at, 1 << 20])],
 	])
 	top.add_child(_throw)
 	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
@@ -233,9 +233,9 @@ func _ready() -> void:
 	var block := TabRow.block(top, ["Взять", "", func() -> void:
 		var id: String = _from.slots[_at][0]
 		if Items.food(id) > 0.0 or Items.heal(id) > 0.0:
-			game.character.eat(_at)
+			game.net.request(Protocol.EAT, [_at])
 		elif _plantable(id):
-			game.actions.plant(game.character, id)
+			game.net.request(Protocol.PLANT, [id])
 		elif _placeable(id):
 			if game.props.put_from_bag(id, _at):
 				close()
@@ -389,7 +389,8 @@ func _tap(i: int, in_bag: bool) -> void:
 			_from = to
 			_at = i
 	else:
-		if not _from.put_into(_at, to, i):
+		var r = game.net.request(Protocol.BAG_PUT, [_where(_from), _at, _where(to), i])
+		if r.done and not (r.value is bool and r.value):
 			game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
 		_let_go()
 	refresh()
@@ -402,7 +403,8 @@ func _put_in_chest() -> void:
 	if chest == null or _from != inv:
 		return
 	var at := _at
-	if inv.move_slot(at, chest) == 0:
+	var r = game.net.request(Protocol.BAG_MOVE, [null, at, _chest_entry.cell])
+	if r.done and r.value is int and r.value == 0:
 		game.character.nag("chest", "Сундук с вещами в сундук не положить" if inv.contents(at) != null else "Сундук полон")
 	if inv.slots[at] == null:
 		_let_go()
@@ -417,7 +419,8 @@ func _put_all_in_chest() -> void:
 		return
 	_let_go()
 	var had: bool = inv.slots.slice(Inventory.HOTBAR).any(func(s) -> bool: return s != null)
-	if inv.move_all(chest, Inventory.HOTBAR) == 0 and had:
+	var r = game.net.request(Protocol.BAG_ALL, [null, _chest_entry.cell, Inventory.HOTBAR])
+	if r.done and r.value is int and r.value == 0 and had:
 		game.character.nag("chest", "Сундук полон")
 	refresh()
 
@@ -431,19 +434,36 @@ func _let_go() -> void:
 ## Sorts the bag past the hotbar row and the chest shown, by `by` (see Inventory.SORTS).
 func sort(by: String) -> void:
 	_let_go()
-	game.character.inventory.sort(by, Inventory.HOTBAR)
+	game.net.request(Protocol.SORT, [null, by, Inventory.HOTBAR])
 	if _chest_entry.get("items") != null:
-		_chest_entry.items.sort(by)
+		game.net.request(Protocol.SORT, [_chest_entry.cell, by, 0])
 	refresh()
 
 
 ## The chosen stack is gone for good: the second tap of the bin.
 func destroy_chosen() -> void:
-	var taken = _from.take_slot(_at, 1 << 20) if _from != null else null
+	if _from != null:
+		game.net.request(Protocol.BAG_DESTROY, [_where(_from), _at]).then(_destroyed)
 	_let_go()
-	if taken != null:
+	refresh()
+
+
+## Stack `taken` (as Inventory.take_slot gave it) is gone: the bin's toast.
+func _destroyed(taken: Variant) -> void:
+	if taken is Array and taken.size() >= 2:
 		game.hud.toast("Уничтожено: %s ×%d" % [Items.title(taken[0]), taken[1]])
 	refresh()
+
+
+## How a request names bag `inv` (Protocol): null for the player's own, the cell of the
+## chest that holds it.
+func _where(inv) -> Variant:
+	if inv == game.character.inventory:
+		return null
+	for e: Dictionary in _chests:
+		if e.get("items") == inv:
+			return e.cell
+	return _chest_entry.get("cell")
 
 
 ## Shows the bag and the chest as they are now.

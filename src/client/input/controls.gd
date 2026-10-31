@@ -24,6 +24,7 @@ const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const CELL := WorldData.CELL
 ## How often the hint under the mouse pointer is updated, in seconds.
@@ -201,9 +202,8 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 			_start_stroke(button, pos, false)
 		"plant", "sow":
 			var hit := pick(pos)
-			if not hit.is_empty() and _cooldown <= 0.0 and game.actions.plant_at(game.character, held(), hit.cell):
-				_cooldown = WorldActions.FRONT_PLACE_SWING
-				game.player.work("reach", WorldActions.FRONT_PLACE_SWING, (Vector3(hit.cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+			if not hit.is_empty() and _cooldown <= 0.0:
+				game.net.request(Protocol.PLANT_AT, [held(), hit.cell]).then(_planted.bind(hit.cell))
 		"prop":
 			game.props.put_from_bag(held())
 		"eat", "heal":
@@ -393,8 +393,7 @@ func _eat_held() -> void:
 	var slots: Array = game.character.inventory.slots
 	for i in slots.size():
 		if slots[i] != null and slots[i][0] == held():
-			if game.character.eat(i):
-				game.sound.play("eat", game.player.position)
+			game.net.request(Protocol.EAT, [i]).then(_ate)
 			_cooldown = 0.5
 			game.player.work("", _cooldown)
 			return
@@ -524,8 +523,8 @@ func _on_line(cell: Vector3i) -> Vector3i:
 
 ## Takes on what a rule of WorldActions did with the hands: the wait until they swing
 ## again and the work the body plays. True if it did anything.
-func _did(done: Dictionary) -> bool:
-	if done.is_empty():
+func _did(done: Variant) -> bool:
+	if not done is Dictionary or done.is_empty():
 		return false
 	_cooldown = done.swing
 	if done.has("work"):
@@ -541,15 +540,15 @@ func _did(done: Dictionary) -> bool:
 ## Works at `cell`, tapped on its face `normal`, with the hand in use (see
 ## WorldActions.dig_at). True if anything was done.
 func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
-	return _did(game.actions.dig_at(game.character, cell, normal))
+	var r = game.net.request(Protocol.DIG, [cell, normal]).then(_did)
+	return r.done and r.value is Dictionary and not r.value.is_empty()
 
 
 ## Places the block in the hand in use with the brush around `center`, across face
 ## `normal`, below the cut (see WorldActions.place_at). Returns how many were placed.
 func place_at(center: Vector3i, normal: Vector3i) -> int:
-	var done: Dictionary = game.actions.place_at(game.character, center, normal, game.chunks.cut_level)
-	_did(done)
-	return done.get("placed", 0)
+	var r = game.net.request(Protocol.PLACE, [center, normal, game.chunks.cut_level]).then(_did)
+	return r.value.get("placed", 0) if r.done and r.value is Dictionary else 0
 
 
 func _can_place(cell: Vector3i) -> bool:
@@ -567,9 +566,29 @@ func act_in_front() -> void:
 		"eat", "heal":
 			_eat_held()
 			return
-	if not _did(game.actions.act_in_front(game.character, game.chunks.cut_level)):
+	# Until the reply (at once over the loop), as long as it takes to try again, not every frame.
+	_cooldown = WorldActions.IDLE_SWING
+	game.net.request(Protocol.FRONT, [game.chunks.cut_level]).then(_did_front)
+
+
+## What the action button did (see act_in_front).
+func _did_front(done: Variant) -> void:
+	if not _did(done):
 		# Too tired to swing: try again a little later, not every frame.
 		_cooldown = WorldActions.IDLE_SWING
+
+
+## The item in hand was planted at `cell` (or not: `done` false).
+func _planted(done: Variant, cell: Vector3i) -> void:
+	if done is bool and done:
+		_cooldown = WorldActions.FRONT_PLACE_SWING
+		game.player.work("reach", WorldActions.FRONT_PLACE_SWING, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+
+
+## Something was eaten (or not: `done` false).
+func _ate(done: Variant) -> void:
+	if done is bool and done:
+		game.sound.play("eat", game.player.position)
 
 
 ## The cells the action button would work on now, for the cursor frame.
