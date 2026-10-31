@@ -6,13 +6,25 @@ extends RefCounted
 ## PROP_GONE, PROP_LIT, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
-## after each tick. The methods are connected, not lambdas, so the link is freed with
-## the session; what is connected to the session's own objects is disconnected on leave.
+## after each tick. Over a socket (send_world) the link also brings the client its copy
+## of the world (С3.2): the chunks made within Session.ZONE of the body, nearest first
+## (CHUNK, a few a flush; FORGET beyond Session.DROP; a chunk whose looks changed is sent
+## again), the cells changed in the chunks it holds (CELLS), the things on the ground
+## with their list (DROPS) and what was taken (TAKEN); over the loop the client reads
+## the one world itself. The methods are connected, not lambdas, so the link is freed
+## with the session; what is connected to the session's own objects is disconnected on
+## leave.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Player := preload("res://src/server/player.gd")
 const Requests := preload("res://src/server/requests.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
+const Session := preload("res://src/shared/game/session.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const WorldGen := preload("res://src/shared/world/world_gen.gd")
+
+## Chunks sent in one flush at most (each a few KB zstd).
+const CHUNKS_PER_FLUSH := 2
 
 var session
 var who: Player
@@ -26,6 +38,14 @@ const CLOCK_EVERY := 0.25
 ## over a socket the server sets a few a second.
 var snap_every := 0.0
 var _snap_sent := -1.0
+## The client gets its copy of the world from here (a socket); false over the loop.
+var send_world := false
+## The chunks the client holds (sent and not forgotten), and those to send again.
+var _sent := {}
+var _again := {}
+## Cells changed since the last flush, and the chunks whose things on the ground changed.
+var _cells := {}
+var _drops := {}
 
 var _you := true
 var _shop := true
@@ -64,6 +84,12 @@ func _init(s) -> void:
 	wild.born.connect(_on_born)
 	wild.gone.connect(_on_gone)
 	wild.stepped.connect(_on_stepped)
+	var actions = session.actions
+	actions.cell_changed.connect(_on_cell)
+	placed.cell_changed.connect(_on_cell)
+	actions.drops_changed.connect(_on_drops)
+	actions.looks_changed.connect(_on_looks)
+	actions.taken.connect(_on_taken)
 
 
 ## Takes the player out of the session, and the link off the session's signals.
@@ -73,6 +99,12 @@ func leave() -> void:
 	placed.added.disconnect(_on_placed)
 	placed.removed.disconnect(_on_removed)
 	placed.lit_changed.disconnect(_on_lit)
+	placed.cell_changed.disconnect(_on_cell)
+	var actions = session.actions
+	actions.cell_changed.disconnect(_on_cell)
+	actions.drops_changed.disconnect(_on_drops)
+	actions.looks_changed.disconnect(_on_looks)
+	actions.taken.disconnect(_on_taken)
 	for e: Dictionary in placed.things:
 		if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 			e.items.changed.disconnect(_chest_call(e))
@@ -93,6 +125,10 @@ func rejoin() -> void:
 	_all = true
 	_clock_sent = -1.0
 	_snap_sent = -1.0
+	_sent.clear()
+	_again.clear()
+	_cells.clear()
+	_drops.clear()
 
 
 ## Takes message `bytes` from the client: the reply's bytes for a request, null for an
@@ -142,6 +178,11 @@ func flush() -> Array[PackedByteArray]:
 		for a in session.wildlife.animals:
 			out.append(_event(Protocol.ANIMAL, [a.id, a.kind, a.tint, a.pos]))
 		_snapped.clear()
+	if send_world:
+		_world_events(out)
+	for key: Vector2i in _drops:
+		out.append(_event(Protocol.DROPS, [key, session.world.drops.get(key, [])] if send_world else [key]))
+	_drops.clear()
 	out.append_array(outbox)
 	outbox = []
 	if snap_every <= 0.0 or _snap_sent < 0.0 or now - _snap_sent >= snap_every:
@@ -153,6 +194,53 @@ func flush() -> Array[PackedByteArray]:
 	if push != Vector3.ZERO:
 		out.append(_event(Protocol.PUSH, [push]))
 	return out
+
+
+## The client's copy of the world: the cells changed in the chunks it holds, the chunks
+## within Session.ZONE of the body it lacks (nearest first, CHUNKS_PER_FLUSH a flush)
+## or whose looks changed, and the chunks it holds beyond Session.DROP.
+func _world_events(out: Array[PackedByteArray]) -> void:
+	var cells := []
+	for cell: Vector3i in _cells:
+		if _sent.has(WorldData.chunk_key(cell.x, cell.z)):
+			cells.append([cell, session.world.get_cell(cell.x, cell.y, cell.z)])
+	_cells.clear()
+	if not cells.is_empty():
+		out.append(_event(Protocol.CELLS, cells))
+	var gen = session.gen
+	if gen == null:
+		return
+	var at: Vector3 = who.position
+	var home := WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
+	var n := 0
+	for key: Vector2i in _again:
+		if _sent.has(key) and gen.stage_of(key) >= WorldGen.SHAPED:
+			out.append(_event(Protocol.CHUNK, _packed(key)))
+			n += 1
+	_again.clear()
+	for r in range(0, Session.ZONE + 1):
+		if n >= CHUNKS_PER_FLUSH:
+			break
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r or n >= CHUNKS_PER_FLUSH:
+					continue
+				var key := Vector2i(home.x + dx, home.y + dz)
+				if _sent.has(key) or gen.stage_of(key) < WorldGen.SHAPED:
+					continue
+				out.append(_event(Protocol.CHUNK, _packed(key)))
+				_sent[key] = true
+				n += 1
+	for key: Vector2i in _sent.keys():
+		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > Session.DROP:
+			_sent.erase(key)
+			out.append(_event(Protocol.FORGET, [key]))
+
+
+## The CHUNK args of chunk `key`: its record, var_to_bytes and zstd.
+func _packed(key: Vector2i) -> Array:
+	var raw := var_to_bytes(session.gen.pack(key))
+	return [key, raw.size(), raw.compress(FileAccess.COMPRESSION_ZSTD)]
 
 
 ## The entries of a SNAP: the animals that stepped since the last flush and are not
@@ -203,7 +291,26 @@ func _on_said(text: String) -> void:
 
 
 func _on_laid(key: Vector2i) -> void:
-	_push(Protocol.DROPS, [key])
+	_drops[key] = true
+
+
+func _on_drops(key: Vector2i) -> void:
+	_drops[key] = true
+
+
+func _on_cell(cell: Vector3i) -> void:
+	if send_world:
+		_cells[cell] = true
+
+
+func _on_looks(key: Vector2i) -> void:
+	if send_world:
+		_again[key] = true
+
+
+func _on_taken(id: String, from: Vector3) -> void:
+	if send_world:
+		_push(Protocol.TAKEN, [id, from])
 
 
 func _on_moved(at: Vector3) -> void:

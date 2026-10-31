@@ -65,6 +65,10 @@ func watch(placed) -> void:
 ## server's things (the saves move to the server at С4); the copy drawn here gets them
 ## by events.
 func place() -> void:
+	if game.session == null:
+		# A server far away placed them: the copy has them (Protocol.PROPS).
+		_heat_later()
+		return
 	var meta: Dictionary = game.save.meta
 	var placed = game.session.placed
 	if meta.get("placed") is Array:

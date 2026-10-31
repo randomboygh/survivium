@@ -4,8 +4,10 @@ extends SceneTree
 ## WebSockets with the client's socket: hello and the welcome, the refusals (the
 ## version, the password, a full server, no hello), the events of joining, a request
 ## answered after its events, a connection lost and the character waiting for the key
-## to come back, a goodbye, the host's commands (who, say, kick, stop). Run:
-## godot --headless --path . --script res://tests/server_test.gd
+## to come back, a goodbye, the host's commands (who, say, kick, stop); then the game
+## itself joins (Main over a socket): the world comes from the server as chunks, the
+## cells dug by anyone change in its copy, the things dropped come with their list.
+## Run: godot --headless --path . --script res://tests/server_test.gd
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Socket := preload("res://src/client/net/socket.gd")
@@ -199,6 +201,58 @@ func _run() -> void:
 	_check(server.session.players.size() == 2 and net.online() == 2, "and nobody new in the world")
 	var again = back.socket.net.request(Protocol.CRAFT_PAUSE, [false])
 	_check(await _until(func() -> bool: return again.done) and again.value == false, "requests count from one again on the new connection")
+	var chunk_events: Array = anya.of(Protocol.CHUNK)
+	var record: Variant = null
+	if not chunk_events.is_empty() and chunk_events[0][1].size() == 3:
+		record = bytes_to_var(chunk_events[0][1][2].decompress(chunk_events[0][1][1], FileAccess.COMPRESSION_ZSTD))
+	_check(record is Dictionary and record.get("key") == chunk_events[0][1][0] and server.session.world.can_unpack(record),
+		"the chunks round the body come to a player over a socket, each a record of the world (%d)" % chunk_events.size())
+
+	# The game itself joins: the world comes from the server.
+	server.config.max_players = 3
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.skip_setup = true
+	main.join_url = "ws://127.0.0.1:%d" % PORT
+	main.player_name = "Клиент"
+	main.join_password = PASSWORD
+	root.add_child(main)
+	_check(await _until(func() -> bool: return main.ready_to_play or main.join_error != "", 180.0) and main.join_error == "",
+		"the game joins the server and builds the world it sends: %s" % main.join_error)
+	if main.ready_to_play:
+		_check(main.host == null and main.session == null and main.socket != null and main.welcome.get("id") == 3
+			and main.world_seed == 5, "over a socket the game has no server inside, and the world is the server's")
+		var at: Vector3 = main.welcome.at
+		var spawn_key := WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
+		_check(main.player.position.distance_to(at) < WorldData.CELL and main.world.has_chunk(spawn_key) and main.chunks.chunk_nodes.has(spawn_key)
+			and main.chunks.chunk_nodes.size() >= 9, "the body stands where the server put it (%s vs %s), on chunks the server sent (%d built, spawn %s)"
+			% [main.player.position, at, main.chunks.chunk_nodes.size(), main.chunks.chunk_nodes.has(spawn_key)])
+		_check(main.world.get_cell(floori(at.x / WorldData.CELL), floori(at.y / WorldData.CELL) - 1, floori(at.z / WorldData.CELL))
+			== server.session.world.get_cell(floori(at.x / WorldData.CELL), floori(at.y / WorldData.CELL) - 1, floori(at.z / WorldData.CELL)),
+			"the cells are the server's")
+		_check(main.placed.things.size() == server.session.placed.things.size() and main.placed.things.size() > 0
+			and main.wildlife.animals.size() == server.session.wildlife.animals.size() and main.clock.season == server.session.clock.season,
+			"the copies of the things, the animals and the clock are full")
+		var one: Vector3i = Vector3i((at / WorldData.CELL).floor()) + Vector3i(1, -1, 0)
+		var before: int = main.world.get_cell(one.x, one.y, one.z)
+		var dug = back.socket.net.request(Protocol.DIG, [one, Vector3i.UP])
+		_check(await _until(func() -> bool: return dug.done) and dug.value is Dictionary and dug.value.has("swing")
+			and before != Mat.AIR, "another player digs beside the character")
+		_check(await _until(func() -> bool: return main.world.get_cell(one.x, one.y, one.z) != before),
+			"and the cell changes in the game's copy (%d -> %d)" % [before, main.world.get_cell(one.x, one.y, one.z)])
+		var two: Vector3i = Vector3i((at / WorldData.CELL).floor()) + Vector3i(-1, -1, 0)
+		var mine = main.net.request(Protocol.DIG, [two, Vector3i.UP])
+		_check(await _until(func() -> bool: return mine.done) and mine.value is Dictionary, "the game digs through the socket")
+		_check(await _until(func() -> bool: return main.world.get_cell(two.x, two.y, two.z) != before and not main.world.drops.get(spawn_key, []).is_empty()),
+			"the cell changes and what it gave lies on the ground in the copy")
+	# The game leaves as the menu's exit does: a goodbye, then the scene goes.
+	main.socket.leave()
+	_check(await _until(func() -> bool: return main.socket.ended and net.online() == 2), "the game's goodbye closes its connection")
+	var game_account = net.accounts.values().filter(func(a) -> bool: return a.id == 3)
+	_check(game_account.size() == 1 and game_account[0].linger == net.BYE_LINGER, "its character waits a short while")
+	game_account[0].left_at -= net.BYE_LINGER
+	_check(await _until(func() -> bool: return server.session.players.size() == 2), "and then leaves the world")
+	root.remove_child(main)
+	main.free()
 
 	# A goodbye: the character waits a short while; the host's say, kick and stop.
 	borya.socket.leave()
@@ -206,7 +260,7 @@ func _run() -> void:
 	var borya_account = net.accounts.values().filter(func(a) -> bool: return a.id == 2)
 	_check(borya_account.size() == 1 and borya_account[0].linger == net.BYE_LINGER, "after a goodbye the character waits less")
 	borya_account[0].left_at -= net.BYE_LINGER
-	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and then leaves the world")
+	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and so does Боря's")
 	server.command("say всем привет")
 	_check(await _until(func() -> bool: return back.of(Protocol.SAY).any(func(e: Array) -> bool: return e[1] == ["всем привет"])),
 		"say reaches the players")

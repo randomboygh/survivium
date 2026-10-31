@@ -437,6 +437,8 @@ func _check_fullscreen() -> void:
 # --- Playtest switches --------------------------------------------------------------
 
 func set_season(s: int) -> void:
+	if game.session == null:
+		return
 	var clock = game.session.clock
 	clock.season = posmod(s, 4)
 	clock.season_clock = 0.0
@@ -451,6 +453,8 @@ func set_raining(on: bool) -> void:
 
 ## Pins the weather to Clock.WEATHERS[`index`]; -1 lets it change by itself again.
 func set_weather(index: int) -> void:
+	if game.session == null:
+		return
 	if index < 0:
 		game.session.clock.weather_auto = true
 	else:
@@ -464,6 +468,8 @@ func set_moon(light: float) -> void:
 
 ## Moves the clock to `hour` (0-24) of the current day.
 func set_hour(hour: float) -> void:
+	if game.session == null:
+		return
 	game.session.clock.time_of_day = fposmod(hour / 24.0, 1.0)
 
 
@@ -534,6 +540,8 @@ func set_shadow_map(i: int) -> void:
 
 ## Puts one of each tool of TOOL_SET the bag lacks into it.
 func give_tools() -> void:
+	if game.host == null:
+		return
 	for id in TOOL_SET:
 		if game.host.player.inventory.count(id) == 0:
 			game.host.player.give(id, 1)

@@ -147,7 +147,8 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_C:
 				cycle_brush()
 			KEY_Z:
-				game.session.clock.next_season()
+				if game.session != null:
+					game.session.clock.next_season()
 			KEY_X:
 				game.settings.set_raining(not game.clock.raining)
 			KEY_T:
