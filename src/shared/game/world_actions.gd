@@ -40,6 +40,14 @@ const IDLE_SWING := 0.3
 const PILE := 0.8
 ## Things lying this close to the feet (world units) are taken by themselves.
 const PICKUP := 1.6
+## How far from the body a thing on the ground or a placed thing is taken or used, in
+## world units (ten cells, as Tools.PLACE_REACH; Gathering.REACH), and what the rules
+## let pass over it and over a tool's reach: the body the server knows lags a step
+## behind the player's (С6, plan/architecture/server.md).
+const HAND_REACH := 5.0
+const REACH_SLACK := 1.5
+## Cells a crown spreads round its trunk at most, with the slack (gathering from a tree).
+const TREE_SPREAD := 6
 ## What is taken by themselves (the setting «Автоподбор»): everything, only things the
 ## bag already has, only food, nothing. The sack of a death is taken in all but the last.
 enum { PICKUP_ALL, PICKUP_KNOWN, PICKUP_FOOD, PICKUP_NONE }
@@ -94,6 +102,13 @@ func too_far(who, cell: Vector3i, reach: int) -> bool:
 	var center := (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL
 	var at: Vector3 = who.position
 	return center.distance_to(at + Vector3(0.0, 0.5, 0.0)) > reach * CELL
+
+
+## Whether world point `at` is within the hand's reach of `who` (HAND_REACH with the
+## slack): a thing on the ground, a placed thing, a chest.
+static func within_hand(who, at: Vector3) -> bool:
+	var from: Vector3 = who.position
+	return at.distance_to(from + Vector3(0.0, 0.5, 0.0)) <= HAND_REACH + REACH_SLACK
 
 
 ## Where a thing let go in `cell` comes to lie: on the ground under it, in world units.
@@ -676,15 +691,25 @@ static func _tree_seed(id: String) -> bool:
 ## Gathers `target` with what is in the hand in use of `who`: {"drop": [chunk key, index]}
 ## takes a thing off the ground (with the ones lying close to it), {"tree": trunk's
 ## column} gathers from a standing tree, {"bush": cell} does what the tool does to a bush.
-## True if anything was done.
+## True if anything was done. A target out of reach (a thing farther than HAND_REACH, a
+## bush beyond the tool's reach, a trunk beyond it and TREE_SPREAD, each with its slack) or of another shape does nothing.
 func gather(who, target: Dictionary) -> bool:
 	if target.has("drop"):
-		return pick_up(who, target.drop[0], target.drop[1])
-	if target.has("tree"):
-		return _from_tree(who, target.tree)
-	if not world.bushes.has(target.bush):
-		return false
+		var d: Variant = target.drop
+		return d is Array and d.size() == 2 and d[0] is Vector2i and d[1] is int and pick_up(who, d[0], d[1])
 	var t: Dictionary = who.tool()
+	if target.has("tree"):
+		var col: Variant = target.tree
+		if not col is Vector2i or not world.trees.has(col):
+			return false
+		# The crown spreads round the trunk: across the ground, the tool's reach and the crown's.
+		var from: Vector3 = who.position / CELL
+		if Vector2(col.x + 0.5 - from.x, col.y + 0.5 - from.z).length() > t.reach + TREE_SPREAD:
+			return false
+		return _from_tree(who, col)
+	var bush: Variant = target.get("bush")
+	if not bush is Vector3i or not world.bushes.has(bush) or too_far(who, bush, t.reach + 2):
+		return false
 	if Tools.can_gather(t):
 		return _from_bush(who, target.bush)
 	var done := false
@@ -806,9 +831,11 @@ static func _is_held_back(held_back: Array[Vector3], at: Vector3) -> bool:
 ## Takes thing `i` of chunk `key` off the ground into the bag of `who` with the things
 ## lying close to it; what does not fit stays where it lay.
 func pick_up(who, key: Vector2i, i: int) -> bool:
-	var list: Array = world.drops[key]
+	var list: Array = world.drops.get(key, [])
+	if i < 0 or i >= list.size():
+		return false
 	var at: Vector3 = list[i][1]
-	if not who.act("pick_up"):
+	if not within_hand(who, at) or not who.act("pick_up"):
 		return false
 	var near: Array[int] = []
 	for j in list.size():

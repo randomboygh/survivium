@@ -2,7 +2,7 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH), of the things placed (PROPS, PROP,
+## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; HEARD, the chat), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -152,9 +152,15 @@ func handle(bytes: PackedByteArray) -> Variant:
 	return null
 
 
-## A line for the player (the host's `say`).
+## A line for the player (the rules' words, as their own SAY).
 func tell(text: String) -> void:
 	_push(Protocol.SAY, [text])
+
+
+## A line of chat the player hears: said by player `id` named `name` (0 and "" the
+## server).
+func hear(id: int, name: String, text: String) -> void:
+	_push(Protocol.HEARD, [id, name, text])
 
 
 ## The events for the client since the last flush: the state noted as changed first,

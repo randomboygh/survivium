@@ -4,7 +4,8 @@ extends RefCounted
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
 ## PROP_LIT, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
-## players, `game.others`); over a socket the world too:
+## players, `game.others`); HEARD (the chat, `game.hud.chat`, and the line over the
+## speaker's head); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
 ## the world and `game.actions`' signals), and the client's own event each frame: where
 ## its body is and what the hands do (INPUT), which the rules on the server act from.
@@ -166,3 +167,7 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.PERSON_GONE:
 			if args is Array and args.size() == 1 and args[0] is int:
 				game.others.take_gone(args[0])
+		Protocol.HEARD:
+			if args is Array and args.size() == 3 and args[0] is int:
+				game.hud.chat.hear(args[0], str(args[1]), str(args[2]))
+				game.others.speak(args[0], str(args[2]))

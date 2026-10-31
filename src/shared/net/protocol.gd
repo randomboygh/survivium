@@ -91,6 +91,10 @@ const SORT := "sort"
 const BAG_DESTROY := "bag_destroy"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
+## Says a line in the chat: [text]; true when it was said (the server hands it to the
+## players within the chat's reach, HEARD; a line that begins with "/" is a command,
+## done for the server's hosts only, its answer coming back as HEARD from the server).
+const CHAT := "chat"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -153,6 +157,8 @@ const STEP := "step"
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"
+## A line of chat heard: [id of who said it (0 the server), their name, the text].
+const HEARD := "heard"
 ## A chunk of the world made, for the client's copy (С3.2; over a socket): [key, size,
 ## bytes], the record WorldGen.pack gives as var_to_bytes, zstd (`size` its length
 ## before); sent again when what the chunk shows changed (a bush picked, grass mown).

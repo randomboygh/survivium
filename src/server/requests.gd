@@ -5,11 +5,25 @@ extends RefCounted
 ## above the last) is answered as before and not done again: a message sent twice does
 ## one thing. The args are checked for their types before the rule sees them; a request
 ## that does not fit is answered null. Chests are named by the cell of the thing that
-## holds them (Placed.at). The server will make one of these per player as they join;
-## in single player LocalHost makes it.
+## holds them (Placed.at); a chest or a placed thing out of the hand's reach
+## (WorldActions.within_hand) is as none, so a player moves things only where they
+## stand (С6). Each request is done whole before the next of anyone, so a thing taken
+## by two players at once goes to one. A line of chat (CHAT) is told on (`chatted`) to
+## the server, which hands it to those near; lines come no faster than CHAT_LINES in
+## CHAT_WINDOW seconds. The server makes one of these per player as they join; in single
+## player LocalHost makes it.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const WorldActions := preload("res://src/shared/game/world_actions.gd")
+
+## Letters a line of chat keeps at most; lines in a while at most.
+const CHAT_MAX := 160
+const CHAT_LINES := 5
+const CHAT_WINDOW := 8.0
+
+## The player said `text` in the chat (trimmed and cut; "/…" a command).
+signal chatted(text: String)
 
 var session
 ## The character playing (Character) and their workshop (Workshop).
@@ -18,6 +32,8 @@ var workshop
 ## The last request answered and its reply, for a request sent twice.
 var last_seq := -1
 var last_reply: Array = []
+## When the last lines of chat were said (seconds).
+var _chat_times: Array[float] = []
 
 
 func _init(s, w, shop) -> void:
@@ -77,11 +93,11 @@ func _do(kind: String, args: Array) -> Variant:
 				return placed.put_from_bag(who, args[0], args[1], args[2])
 		Protocol.PROP_TAKE:
 			if _fit(args, [TYPE_VECTOR3I]):
-				var e: Dictionary = placed.at(args[0])
+				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.take_up(who, e)
 		Protocol.PROP_FIRE:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_BOOL]):
-				var e: Dictionary = placed.at(args[0])
+				var e: Dictionary = _near(args[0])
 				if e.is_empty() or not placed.is_fire(e):
 					return false
 				if args[1]:
@@ -90,7 +106,7 @@ func _do(kind: String, args: Array) -> Variant:
 				return true
 		Protocol.PROP_DESTROY:
 			if _fit(args, [TYPE_VECTOR3I]):
-				var e: Dictionary = placed.at(args[0])
+				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.destroy(e)
 		Protocol.CRAFT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]) and Crafting.BY_ID.has(args[0]):
@@ -138,6 +154,9 @@ func _do(kind: String, args: Array) -> Variant:
 				var where = _bag(args[0])
 				if where != null and _slot(where, args[1]):
 					return where.take_slot(args[1], 1 << 20)
+		Protocol.CHAT:
+			if _fit(args, [TYPE_STRING]):
+				return _chat(args[0])
 		Protocol.REVIVE:
 			if _fit(args, [TYPE_VECTOR3]):
 				who.revive(args[0])
@@ -160,11 +179,36 @@ static func _slot(inv, i: int) -> bool:
 
 
 ## The bag `where` names: the player's for null, a chest's for the cell of the thing
-## that holds it; null for a cell with no such thing.
+## that holds it; null for a cell with no such thing within reach.
 func _bag(where: Variant):
 	if where == null:
 		return who.inventory
 	if where is Vector3i:
-		var e: Dictionary = session.placed.at(where)
+		var e: Dictionary = _near(where)
 		return e.get("items") if not e.is_empty() else null
 	return null
+
+
+## The thing placed at `cell` when it is within the hand's reach, else {}.
+func _near(cell: Vector3i) -> Dictionary:
+	var e: Dictionary = session.placed.at(cell)
+	if e.is_empty() or not WorldActions.within_hand(who, session.placed.center(e)):
+		return {}
+	return e
+
+
+## A line of chat: trimmed and cut to CHAT_MAX, told to the server; false for an empty
+## one or one too soon after CHAT_LINES others.
+func _chat(text: String) -> bool:
+	var line := text.strip_edges().replace("\n", " ").replace("\r", " ").left(CHAT_MAX)
+	if line == "":
+		return false
+	var now := Time.get_ticks_msec() / 1000.0
+	while not _chat_times.is_empty() and now - _chat_times[0] > CHAT_WINDOW:
+		_chat_times.pop_front()
+	if _chat_times.size() >= CHAT_LINES:
+		who.nag("chat", "Не так часто: подождите немного")
+		return false
+	_chat_times.append(now)
+	chatted.emit(line)
+	return true

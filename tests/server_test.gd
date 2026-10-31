@@ -315,8 +315,8 @@ func _run() -> void:
 	borya_account[0].left_at -= net.BYE_LINGER
 	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and so does Боря's")
 	server.command("say всем привет")
-	_check(await _until(func() -> bool: return back.of(Protocol.SAY).any(func(e: Array) -> bool: return e[1] == ["всем привет"])),
-		"say reaches the players")
+	_check(await _until(func() -> bool: return back.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == [0, "Сервер", "всем привет"])),
+		"say reaches the players' chat from the server")
 	_check(server.command("kick Аня").contains("Аня"), "kick names the player")
 	_check(await _until(func() -> bool: return back.socket.ended) and back.socket.close_code == 4001
 		and back.of(Protocol.KICK).size() == 1 and server.session.players.is_empty(),
@@ -406,7 +406,9 @@ func _hosted() -> void:
 	var host := _bot("Хозяин", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return host.reply.done) and host.reply.value.get("ok") == true
 		and host.reply.value.get("title") == "Дача", "a player comes in, told the server's name")
-	await _commands(node, host)
+	var pair: Array = await _commands(node, host)
+	await _chat(node, pair[0], pair[1])
+	await _trades(node, pair[0], pair[1])
 	var said := [false]
 	node.stopped.connect(func() -> void: said[0] = true)
 	node.command("stop")
@@ -419,7 +421,7 @@ func _hosted() -> void:
 ## The host's commands (С5.3): give into a bag (by the item's id, its end or its
 ## name), tp to cells or to another player, ban (the player put out, the key and the
 ## name refused, kept in the world's save), unban, whitelist (only the names on it).
-func _commands(node: Node, host: Bot) -> void:
+func _commands(node: Node, host: Bot) -> Array:
 	var who = node.session.players[0]
 	var before: int = who.inventory.count("resources:branch")
 	var out: String = node.command("/give Хозяин branch 3")
@@ -453,6 +455,109 @@ func _commands(node: Node, host: Bot) -> void:
 	_check(await _until(func() -> bool: return friend.reply.done) and friend.reply.value.get("ok") == true,
 		"a name added to the list comes in")
 	node.command("whitelist off")
+	return [back, friend]
+
+
+## The chat (С6): a line is heard by the players near, the speaker too, not by one far
+## away; "/" is a command for a host only (op makes one), answered in the chat.
+func _chat(node: Node, a: Bot, b: Bot) -> void:
+	var server = node.server
+	var spawn: Vector3 = a.reply.value.spawn
+	var pa = server._find("Хозяин").link.who
+	var pb = server._find("Чужой").link.who
+	pa.teleport(spawn)
+	pb.teleport(spawn + Vector3(2.0, 0.0, 0.0))
+	var hi = a.socket.net.request(Protocol.CHAT, ["  привет  "])
+	var heard := func(bot: Bot, what: Array) -> bool: return bot.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == what)
+	var id_a: int = a.reply.value.id
+	_check(await _until(func() -> bool: return hi.done and heard.call(a, [id_a, "Хозяин", "привет"]) and heard.call(b, [id_a, "Хозяин", "привет"]))
+		and hi.value == true, "a line of chat is heard by the player near and by the speaker, trimmed")
+	_check(node.log_lines.any(func(l: String) -> bool: return l.contains("Хозяин (%d): привет" % id_a)), "and written to the server's log")
+	pb.teleport(spawn + Vector3(server.CHAT_RANGE + 5.0, 0.0, 0.0))
+	var far = a.socket.net.request(Protocol.CHAT, ["далеко"])
+	_check(await _until(func() -> bool: return far.done and heard.call(a, [id_a, "Хозяин", "далеко"])), "the speaker hears their own line")
+	await _frames(10)
+	_check(not heard.call(b, [id_a, "Хозяин", "далеко"]), "a player beyond the chat's reach does not hear it")
+	var cmd = b.socket.net.request(Protocol.CHAT, ["/who"])
+	_check(await _until(func() -> bool: return cmd.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).contains("хозяина"))),
+		"a command from a player who is not a host is refused in the chat")
+	_check(node.command("op Чужой").contains("Чужой") and server.is_host(b.reply.value.key)
+		and node.saves.read_access().get("hosts", {}).has(b.reply.value.key), "op makes a host, kept in the world's save")
+	var who = b.socket.net.request(Protocol.CHAT, ["/who"])
+	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Игроков на связи"))),
+		"a host's command in the chat is done and answered there")
+	_check(not a.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).begins_with("Игроков на связи")), "to them alone")
+	node.command("deop Чужой")
+	_check(not server.is_host(b.reply.value.key), "deop takes it back")
+	_check(not (await _said(b, "")) and not (await _said(b, "   ")), "an empty line is not said")
+
+
+func _said(b: Bot, text: String) -> bool:
+	var r = b.socket.net.request(Protocol.CHAT, [text])
+	await _until(func() -> bool: return r.done)
+	return r.value == true
+
+
+## Things moved between players and a chest (С6): two players taking the same stack at
+## once, a request sent twice, a connection lost while a transfer is on its way: the
+## things are never more than they were. A chest out of reach is as none.
+func _trades(node: Node, a: Bot, b: Bot) -> void:
+	var server = node.server
+	var spawn: Vector3 = a.reply.value.spawn
+	var pa = server._find("Хозяин").link.who
+	var pb = server._find("Чужой").link.who
+	pa.teleport(spawn)
+	pb.teleport(spawn + Vector3(0.5, 0.0, 0.0))
+	var stone := "resources:stone"
+	pa.inventory.remove(stone, pa.inventory.count(stone))
+	pb.inventory.remove(stone, pb.inventory.count(stone))
+	var cell := Vector3i((spawn / WorldData.CELL).floor()) + Vector3i(2, 0, 2)
+	var e: Dictionary = node.session.placed.put("tools:chest", cell)
+	var chest = e.items
+	chest.add(stone, 10)
+	var total := func() -> int: return pa.inventory.count(stone) + pb.inventory.count(stone) + chest.count(stone)
+	var slot: int = chest.slots.find([stone, 10])
+	# Both ask in the same frame: the server does one request whole, then the other.
+	var ra = a.socket.net.request(Protocol.BAG_MOVE, [cell, slot, null])
+	var rb = b.socket.net.request(Protocol.BAG_MOVE, [cell, slot, null])
+	_check(await _until(func() -> bool: return ra.done and rb.done), "two players take the same stack at once")
+	_check(total.call() == 10 and chest.count(stone) == 0 and (pa.inventory.count(stone) == 10) != (pb.inventory.count(stone) == 10)
+		and [ra.value, rb.value].count(10) == 1, "one gets it all, the other nothing: %s, %s (total %d)" % [ra.value, rb.value, total.call()])
+	var holder = pa if pa.inventory.count(stone) == 10 else pb
+	var bot: Bot = a if holder == pa else b
+	var other: Bot = b if holder == pa else a
+	# The same request twice, as a client sends it again after no answer.
+	var from: int = holder.inventory.slots.find([stone, 10])
+	var twice := Protocol.encode(Protocol.request(Protocol.BAG_PUT, 1 << 20, [null, from, cell, 0]))
+	bot.socket.ws.put_packet(twice)
+	bot.socket.ws.put_packet(twice)
+	_check(await _until(func() -> bool: return chest.count(stone) > 0) and total.call() == 10,
+		"a request sent twice moves the stack once (chest %d, total %d)" % [chest.count(stone), total.call()])
+	await _frames(10)
+	_check(total.call() == 10 and chest.count(stone) == 10, "and nothing more comes of it (chest %d)" % chest.count(stone))
+	# Far from the chest it is as none: nothing goes in or out.
+	pb.teleport(spawn + Vector3(30.0, 0.0, 0.0))
+	pa.teleport(spawn + Vector3(30.0, 0.0, 0.0))
+	var reach = other.socket.net.request(Protocol.BAG_MOVE, [cell, chest.slots.find([stone, 10]), null])
+	var take = other.socket.net.request(Protocol.PROP_TAKE, [cell])
+	_check(await _until(func() -> bool: return reach.done and take.done) and reach.value == null and take.value == false
+		and chest.count(stone) == 10 and node.session.placed.at(cell) == e, "a chest out of reach is as none: nothing moves, it stays")
+	# The connection lost right after a request: the stack is either moved or not, never both.
+	pa.teleport(spawn)
+	pb.teleport(spawn + Vector3(0.5, 0.0, 0.0))
+	var lost: Bot = other
+	var lost_who = pa if lost == a else pb
+	var key: String = lost.reply.value.key
+	lost.socket.net.request(Protocol.BAG_MOVE, [cell, chest.slots.find([stone, 10]), null])
+	lost.socket.ws.poll()
+	lost.socket.ws.close()
+	_check(await _until(func() -> bool: return server.online() == 1), "the connection is lost mid-transfer")
+	_check(total.call() == 10, "the stack is in one place: bag %d, chest %d" % [lost_who.inventory.count(stone), chest.count(stone)])
+	var again := _bot(lost.name, key, "", PORT + 1)
+	_check(await _until(func() -> bool: return again.reply.done and again.of(Protocol.YOU).size() > 0) and again.reply.value.get("ok") == true,
+		"the player comes back")
+	var told: Dictionary = again.of(Protocol.YOU)[0][1].inventory if again.of(Protocol.YOU).size() > 0 else {}
+	_check(told == lost_who.inventory.to_dict() and total.call() == 10, "to the bag as the server keeps it, the stones %d in all" % total.call())
 
 
 static func _unique(a: Array) -> Array:

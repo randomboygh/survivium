@@ -236,7 +236,7 @@ func update(delta: float) -> void:
 			_cursor_clock = CURSOR_TIME
 		if not _stroke.held and not _stroke.pending:
 			_stroke = {}
-	elif action_held or Input.is_physical_key_pressed(KEY_F):
+	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
 		var acted := _cooldown <= 0.0
 		if acted:
 			act_in_front()
@@ -403,11 +403,18 @@ func _eat_held() -> void:
 
 ## Whether the jump key or the jump button is held.
 func jump() -> bool:
-	return Input.is_physical_key_pressed(KEY_SPACE) or jump_held
+	return (Input.is_physical_key_pressed(KEY_SPACE) and not _typing()) or jump_held
+
+
+## The chat's field has the keys: they do not walk, jump or work.
+func _typing() -> bool:
+	return game.hud != null and game.hud.chat != null and game.hud.chat.typing
 
 
 func read_move() -> Vector2:
 	var v := Vector2.ZERO
+	if _typing():
+		return PixelView.world_dir(game.hud.stick.value if touch else v)
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
 		v.x -= 1.0
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):

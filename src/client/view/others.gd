@@ -4,7 +4,8 @@ extends Node3D
 ## the works it does), drawn between the server's snapshots of it (Protocol.PEOPLE, 20
 ## a second over a socket) DELAY seconds behind them, so it walks smoothly, and its
 ## name over its head. One the server stops telling of (PERSON_GONE: out of the zone or
-## the world) goes. `game` is the Main node (its `hands` gives the looks of the things
+## the world) goes. A line one says in the chat (HEARD) hangs over the name SAY_TIME
+## seconds. `game` is the Main node (its `hands` gives the looks of the things
 ## held).
 
 const PlayerScript := preload("res://src/client/view/player.gd")
@@ -22,11 +23,15 @@ const KEPT := 4
 ## The name's letters in world pixels, and how high over the head it hangs (world units).
 const NAME_SIZE := 8
 const NAME_OVER := 0.4
+## Seconds a line said shows over the head, and how wide it wraps (world pixels).
+const SAY_TIME := 6.0
+const SAY_WIDTH := 110
 
 var game
 ## The performance statistics (PerfPanel), told how long the figures take a frame.
 var perf
-## id -> {"figure": PlayerScript, "label": Label3D, "snaps": [[time, entry], …],
+## id -> {"figure": PlayerScript, "label": Label3D, "line": Label3D (what they said, "until"
+## it goes), "snaps": [[time, entry], …],
 ## "work_n": the last work count shown, "hands": the hands shown, "left|right|active"}
 var people := {}
 
@@ -57,6 +62,17 @@ func take_gone(id: int) -> void:
 	people.erase(id)
 	one.figure.queue_free()
 	one.label.queue_free()
+	one.line.queue_free()
+
+
+## Player `id` said `text` in the chat: it hangs over their head a while.
+func speak(id: int, text: String) -> void:
+	var one: Dictionary = people.get(id, {})
+	if one.is_empty():
+		return
+	one.line.text = text
+	one.line.visible = true
+	one.until = Time.get_ticks_msec() / 1000.0 + SAY_TIME
 
 
 func _make(at: Vector3) -> Dictionary:
@@ -66,6 +82,17 @@ func _make(at: Vector3) -> Dictionary:
 	# The silhouette behind walls, the stencil and the torch are the player's own.
 	f.xray.visible = false
 	f.sprite.layers = 1
+	var label := _label()
+	var line := _label()
+	line.modulate = UiStyle.INK
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.width = SAY_WIDTH
+	line.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	line.visible = false
+	return {"figure": f, "label": label, "line": line, "until": 0.0, "snaps": [], "work_n": -1, "hands": ""}
+
+
+func _label() -> Label3D:
 	var label := Label3D.new()
 	label.font = UiStyle.font()
 	label.font_size = NAME_SIZE
@@ -77,7 +104,7 @@ func _make(at: Vector3) -> Dictionary:
 	label.render_priority = 2
 	label.top_level = true
 	add_child(label)
-	return {"figure": f, "label": label, "snaps": [], "work_n": -1, "hands": ""}
+	return label
 
 
 func _process(delta: float) -> void:
@@ -130,5 +157,8 @@ func _process(delta: float) -> void:
 		f._animate(dir.limit_length(1.0), dir.length(), delta)
 		f.place_sprite()
 		one.label.position = PixelView.shear(at + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0))
+		if one.line.visible:
+			one.line.visible = Time.get_ticks_msec() / 1000.0 < one.until
+			one.line.position = one.label.position + Vector3(0.0, float(NAME_SIZE + 2) / PixelView.PIXELS_PER_UNIT, 0.0)
 	if perf != null:
 		perf.add("другие", Time.get_ticks_usec() - t)
