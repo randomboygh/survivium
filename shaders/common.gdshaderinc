@@ -359,7 +359,7 @@ bool plane_hides(vec3 p) {
 // Whether the cell holding `p` is solid by solid_map; true outside it.
 bool solid_at(vec3 p) {
 	vec3 c = floor(p / CELL) - solid_origin;
-	if (c.x < 0.0 || c.z < 0.0 || c.x >= 128.0 || c.z >= 128.0 || c.y < 0.0 || c.y >= 32.0) {
+	if (c.x < 0.0 || c.z < 0.0 || c.x >= 64.0 || c.z >= 64.0 || c.y < 0.0 || c.y >= 32.0) {
 		return true;
 	}
 	vec4 t = texelFetch(solid_map, ivec2(int(c.x), int(c.z)), 0);

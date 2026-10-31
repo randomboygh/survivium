@@ -8,13 +8,13 @@ extends RefCounted
 ## Made again round the player a few rows a frame once they near its edge (the old one
 ## shows meanwhile); a changed cell is written at once (touch).
 
-const SIZE := 128
+const SIZE := 64
 const LEVELS := 32
 ## How far the player may go from the middle, in cells and levels, before it is made
 ## again round them.
-const SLACK := 24
+const SLACK := 12
 const LEVEL_SLACK := 6
-const ROWS_PER_FRAME := 3
+const ROWS_PER_FRAME := 2
 
 var image := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 var texture: ImageTexture
