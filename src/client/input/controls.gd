@@ -27,6 +27,8 @@ const Inventory := preload("res://src/shared/game/inventory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const CELL := WorldData.CELL
+## The margin of the cut in the plane of the camera, as PLANE_MARGIN in common.gdshaderinc.
+const PLANE_MARGIN := 0.25
 ## How often the hint under the mouse pointer is updated, in seconds.
 const TIP_INTERVAL := 0.1
 ## How long the cursor frame stays after a touch, in seconds.
@@ -457,7 +459,30 @@ func pick(screen_pos: Vector2) -> Dictionary:
 		return {}
 	var ray := _ray(screen_pos)
 	var max_level: int = mini(game.chunks.cut_level, game.world.size_y - 1)
+	if game.chunks.plane_cut():
+		# The plane hides only what is before it: behind the player all levels show.
+		ray[0] = _past_plane(ray[0], ray[1])
+		max_level = game.world.size_y - 1
 	return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level)
+
+
+## Where a ray from `o` (in cells) along `d` comes out of what the cut in the plane of
+## the camera hides (plane_hides in common.gdshaderinc: before the plane through the
+## body and above the feet), backed up most of a cell so a cell the plane cuts through
+## can still be picked. `o` itself when the ray starts outside it.
+func _past_plane(o: Vector3, d: Vector3) -> Vector3:
+	var toward := PixelView.slope / PixelView.squash
+	var up := PixelView.up
+	var p: Vector3 = game.player.position
+	var body := p + Vector3(0.0, 0.5, 0.0)
+	var ow := o * CELL
+	var before := ow.y - (ow.x * up.x + ow.z * up.y) * toward - (body.y - (body.x * up.x + body.z * up.y) * toward)
+	var rate := d.y - (d.x * up.x + d.z * up.y) * toward
+	if before <= PLANE_MARGIN or ow.y <= p.y + 0.05 or rate >= 0.0 or d.y >= 0.0:
+		return o
+	var t := minf((PLANE_MARGIN - before) / rate, (p.y + 0.05 - ow.y) / d.y)
+	t = maxf(0.0, t - 0.7 * CELL)
+	return (ow + d * t) / CELL
 
 
 ## The cell under a screen point in the layer of cells across `normal` that holds

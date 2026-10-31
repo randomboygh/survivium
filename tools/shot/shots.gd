@@ -149,10 +149,10 @@ const SHOTS := {
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
-	# The same and other hidden places in the open cave view (setting «Вид в пещере»):
-	# only what stands in front of the player goes.
-	"underground-open": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 1}},
-	"ground-cave-inside-open": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 1}},
+	# The same and another hidden place with the levels cut (setting «Вид в пещере»)
+	# instead of the default cut in the plane of the camera.
+	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 0}},
+	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 0}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.

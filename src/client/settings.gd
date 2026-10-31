@@ -61,10 +61,10 @@ const DEFAULTS := {
 	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-LOWER..STEEPER).
 	# How a cave (or a ravine, or a hill over the player) is shown (see ChunkStreamer
 	# update_cut): 0 the levels above the player cut off, a dim ghost of them left, the
-	# ones below darker; 1 open: everything drawn as on the surface but what stands in
-	# front of the player near them on the screen (the shader global cut_front,
-	# front_hides in common.gdshaderinc).
-	"cave_view": 0,
+	# ones below darker; 1 cut in the plane of the camera: behind the player all stays,
+	# in front of them what stands above their feet goes, the rock cut open in dots
+	# (the shader global cut_front, plane_hides in common.gdshaderinc).
+	"cave_view": 1,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):

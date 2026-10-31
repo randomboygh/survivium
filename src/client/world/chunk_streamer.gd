@@ -13,6 +13,7 @@ extends RefCounted
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const SolidMap := preload("res://src/client/world/solid_map.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -146,6 +147,8 @@ var work_us := {}
 var _whole := false
 
 var cut_level := -1
+## The solid cells round the player, for the cut in the plane of the camera.
+var solid := SolidMap.new()
 var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
 var _surface_at := Vector3i(1 << 30, 0, 0)
@@ -610,6 +613,7 @@ static func _fit_box(n: GeometryInstance3D) -> void:
 ## first, and tells the roof map and the props.
 func on_cell_changed(cell: Vector3i) -> void:
 	game.roof.touch(world, cell)
+	solid.touch(world, cell)
 	# The ground around the player may have risen or gone: look again.
 	sunk_at.y = -1000
 	if game.hud != null and game.hud.minimap != null:
@@ -676,6 +680,13 @@ func update_cut(delta: float) -> void:
 			indoor = true
 			break
 	var at := Vector3i(px, level, pz)
+	# The section of the cut in the plane of the camera is a second pass over the whole
+	# world: only while that cut is on.
+	var plane := plane_cut() and cut_level < world.size_y - 1
+	if plane:
+		solid.update(world, px, level, pz)
+	if game.world_mat != null and (game.world_mat.next_pass != null) != plane:
+		game.world_mat.next_pass = game.section_mat if plane else null
 	if at != sunk_at:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
@@ -814,6 +825,20 @@ func _apply_cut() -> void:
 		cap_levels.clear()
 
 
+## The cut follows the player in the plane of the camera (setting «Вид в пещере»).
+func plane_cut() -> bool:
+	return game.settings.values.cave_view == 1 and manual_level < 0
+
+
+## The level the caps of the cut lie on, -1 for none: the cut's own, or in the plane of
+## the camera the one under the player's feet, so they close the rock it cuts open down
+## to the floor (shown only where the plane cuts rock, see world.gdshader).
+func cap_level() -> int:
+	if cut_level >= world.size_y - 1:
+		return -1
+	return maxi(ground_level - 1, 0) if plane_cut() else cut_level
+
+
 ## Brings the caps of the chunks around the player to the current cut, nearest first,
 ## a few a frame. The cap of a chunk is rebuilt when the cut moves or the chunk is
 ## edited (its entry in cap_levels goes); chunks out of range lose theirs.
@@ -834,7 +859,7 @@ func update_caps() -> void:
 			if maxi(absi(key.x - home.x), absi(key.y - home.y)) > CAP_RANGE:
 				cap_nodes[key].mesh = null
 				cap_levels.erase(key)
-	var want: int = cut_level if cut_level < world.size_y - 1 else -1
+	var want: int = cap_level()
 	if want < 0:
 		return
 	var t0 := Time.get_ticks_usec()

@@ -18,7 +18,7 @@
   красятся сразу; `build_around` сначала шлёт серверу тело — `mirror.send_input`, чтобы сеанс делал и
   забывал вокруг нового места); сигнал `WorldGen.made` → `_on_generated` (карта крыши и миникарта);
   `take_work()` отдаёт свои «meshes» вместе с видами работы сеанса; срез уровней (`update_cut`,
-  `_hiding_level`; как он выглядит, решают шейдеры и настройка «Вид в пещере», см. rendering.md), крышки (`update_caps`), `refit_boxes` под поворот камеры, `on_cell_changed` /
+  `_hiding_level`; как он выглядит, решают шейдеры и настройка «Вид в пещере», см. rendering.md), крышки (`update_caps`, уровень — `cap_level`), `solid` (`solid_map.gd`, карта твёрдых клеток для разреза по камере), `refit_boxes` под поворот камеры, `on_cell_changed` /
   `remesh_chunk`.
 - `src/client/world/chunk_mesher.gd` — меш чанка по столбцу: ячейки, скошенные углы, крышки
   (`build_cap`); вызывает части, которые наследуют `mesh_faces.gd` (таблицы граней, упакованные слова,

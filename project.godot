@@ -84,6 +84,14 @@ cut_front={
 "type": "float",
 "value": 0.0
 }
+solid_map={
+"type": "sampler2D",
+"value": ""
+}
+solid_origin={
+"type": "vec3",
+"value": Vector3(0, -1000, 0)
+}
 view_height={
 "type": "float",
 "value": 0.0

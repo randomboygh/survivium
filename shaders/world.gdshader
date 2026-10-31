@@ -97,6 +97,11 @@ void vertex() {
 	packed = UV2;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
+#ifdef SECTION
+	// A hair farther from the camera than the faces in front, so the inside of the
+	// rock never wins over them at their edges.
+	VERTEX.y -= 0.02;
+#endif
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
@@ -174,9 +179,26 @@ bool back_wall(vec3 p, vec3 n) {
 }
 
 void fragment() {
+	// The cut in the plane of the camera (see plane_hides). Its section, the inside of
+	// the rock it cuts open, is drawn by a second pass of this shader with SECTION
+	// defined that draws the back faces (Main.section_mat, on while the setting is),
+	// and by the caps of the cut, which lie at the player's feet then (see
+	// ChunkStreamer.cap_level): both only where the plane truly cuts rock.
+	bool section = plane_on();
+#ifdef SECTION
+	if (IN_SHADOW_PASS || !section || plane_hides(world_pos) || !section_here(world_pos)) {
+		discard;
+	}
+#endif
 	bool kept = back_wall(world_pos, world_normal);
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
 	if (!IN_SHADOW_PASS && !kept && above_cut(world_pos)) {
+		discard;
+	}
+	// A cap of the cut (dark, see build_cap), not a trunk's top in its crown.
+	int cap_tile = int(packed.x + 0.5) % 64;
+	bool cut_cap = cap_tile != NONE && COLOR.r < 0.5 && (material_bits[cap_tile / 3] & TRUNK) == 0;
+	if (section && cut_cap && !IN_SHADOW_PASS && !section_here(world_pos)) {
 		discard;
 	}
 	if (is_drift(packed.x, UV)) {
@@ -313,7 +335,8 @@ void fragment() {
 		if (code == 1 && dist[e] == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dist[e] == 0) {
-			col *= top ? 0.45 : 0.6;
+			// In the plane cut the walls stand whole and in the dark: softer lines.
+			col *= top ? 0.45 : (section ? 0.85 : 0.6);
 		} else if (code == 2 && top && dist[e] == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dist[e] <= 1) {
@@ -335,7 +358,7 @@ void fragment() {
 		if (code == 1 && dd == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dd == 0) {
-			col *= 0.45;
+			col *= section && !top ? 0.85 : 0.45;
 		} else if (code == 2 && dd == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dd <= 1) {
@@ -451,6 +474,18 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
+	// The section, in dots of the material's colour, a little darker, unlit (a cap's
+	// colour carries its dark shade, 0.4, undone here).
+	bool inside = cut_cap;
+#ifdef SECTION
+	inside = true;
+#endif
+	if (section && inside) {
+		vec2 st = floor(screen_plane(world_pos) * TEXELS);
+		ALBEDO = vec3(0.0);
+		EMISSION = (cut_cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
+		clouds = 0.0;
+	}
 }
 
 void light() {

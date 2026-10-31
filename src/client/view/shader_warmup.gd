@@ -49,8 +49,9 @@ func start() -> void:
 	var kinds := {}
 	_collect(game.view.world_root, kinds)
 	# What may not be around yet: the ground's, water's and the low things' material on a
-	# face like the chunks have.
-	for mat: Material in [game.world_mat, game.low_mat, game.water_mat]:
+	# face like the chunks have, and the cut in the plane of the camera (a pass of the
+	# ground's that is on only with that setting).
+	for mat: Material in [game.world_mat, game.section_mat, game.low_mat, game.water_mat]:
 		var face := MeshInstance3D.new()
 		face.mesh = _face()
 		face.material_override = mat
