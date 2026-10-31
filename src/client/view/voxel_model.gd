@@ -75,7 +75,7 @@ func build_mesh() -> ArrayMesh:
 	var faces := ChunkMesher.face_table()
 	var buf := MeshBuffers.new()
 	var zero_uv := [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
-	var no_tiles := float(ChunkMesher.NO_TILE * 0x41041)
+	var no_tiles := float(ChunkMesher.NO_TILES)
 	for key in voxels:
 		var p: Vector3i = key
 		var base := Vector3(p.x, p.y, p.z)

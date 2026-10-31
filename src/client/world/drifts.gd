@@ -10,8 +10,6 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const CELL := WorldData.CELL
-## Tile 63 of the terrain shader: colour from COLOR only, shaded by COLOR.a.
-const PLAIN := 63
 ## The mound's own colour where the snow pattern leaves a texel bare: a snow tone.
 const SHADE := Color(0.68, 0.71, 0.79)
 ## One candidate column in this many, on a grid of every other column.
@@ -56,7 +54,8 @@ static func mound_mesh() -> ArrayMesh:
 		uvs[i] = Vector2(4.0, 4.0) + Vector2(verts[i].x, verts[i].z)
 	var uv2 := PackedVector2Array()
 	uv2.resize(n)
-	uv2.fill(Vector2(Mesher.pack(PLAIN, 0, 0), 0.0))
+	# No tile (see Mesher.pack): colour from COLOR only, shaded by COLOR.a.
+	uv2.fill(Vector2(Mesher.pack(Mesher.NO_TILE, 0, 0), 0.0))
 	var colors := PackedColorArray()
 	colors.resize(n)
 	for i in n:

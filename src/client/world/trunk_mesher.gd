@@ -111,7 +111,7 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 	var high := _ring(r1, c)
 	var mid := Vector2(r0.get_center())
 	var side := m * 3 + 1
-	var around := float(NO_TILE * 0x41041)
+	var around := float(NO_TILES)
 	for i in 8:
 		var a: Vector2 = low[i]
 		var b: Vector2 = low[(i + 1) % 8]

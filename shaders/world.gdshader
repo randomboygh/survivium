@@ -6,16 +6,19 @@
 //   UV   = position on the cell's face, 0..1 (v = 0 at the north edge of a top face
 //          and at the top of a wall), for edges; merged plain tops run past 1. The
 //          texture itself is laid by world position, a 16x16 tile over two cells.
-//   UV2.x = tile + 64 * edges + 16384 * flag; tile 63 means "colour from COLOR only"
-//          (voxels); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
+//   UV2.x = material + 64 * edges + 16384 * flag; material 63 means "colour from COLOR
+//          only" (voxels); the tile drawn is material * 3 + kind: kind 1 (the sides'
+//          tile) where flag bit 1 is set, else 2 (the underside's) on a face looking
+//          down, else 0 (the top's); edges hold 2 bits per edge N, S, W, E: 1 light rim, 2 dark
 //          outline, 3 contact shadow (on tops 1 and 2 both mean open ground lower
-//          beside, drawn as a rim toward the sun or the moon, else an outline); flag bits: 1 = season-tinted foliage voxel,
+//          beside, drawn as a rim toward the sun or the moon, else an outline); flag bits: 1 = season-tinted foliage voxel
+//          (material 63) or the sides' tile (any other),
 //          2 = wall with open sky above (gets a snow fringe), 4 = sloping top or
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
 //          lying on the corner's side of it if bit 64, with the edge code in bits
 //          128..256
-//   UV2.y = top tiles of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
+//   UV2.y = top materials of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
 //          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1); below
@@ -35,15 +38,18 @@ stencil_mode write, compare_always, 1;
 global uniform sampler2D terrain_atlas : source_color, filter_nearest;
 // Corner shape of each material (Mat.corner_shape): 0 a straight cut, 1 a little
 // rounded, 2 a quarter circle; the exponent p of the curve is 1, 1.5 or 2.
-uniform int corner_shapes[21];
+uniform int corner_shapes[63];
 // A word per material from its data (Mat.shader_bits): bits 0..3 the priority (which
 // material grows over which at a boundary, 0 never blends), bit 4 DRAINS (no puddles),
 // bits 5..6 the kind of patches on open ground (GROUND_*), bit 7 TRUNK (a log or a
 // bark: a tree's trunk clears round the player). One entry for every material, filled
 // by main.gd: reading past the end draws garbage on some GPUs.
-uniform int material_bits[21];
+uniform int material_bits[63];
 
-const int NONE = 63;
+// A face drawn in its vertex colour only (a voxel, a drift): material code NO_MATERIAL
+// in UV2, tile NONE.
+const int NO_MATERIAL = 63;
+const int NONE = -1;
 // The core's materials come first in a fixed order; the rest are known by their bits.
 const int GRASS = 1;
 const int DIRT = 2;
@@ -74,7 +80,7 @@ float drift_size() {
 }
 
 bool is_drift(float packed_tile, vec2 uv) {
-	return int(packed_tile + 0.5) % 64 == NONE && uv.x > 2.5;
+	return int(packed_tile + 0.5) % 64 == NO_MATERIAL && uv.x > 2.5;
 }
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
@@ -94,8 +100,7 @@ void vertex() {
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
-	vec2 origin = vec2(float(tile % 8), float(tile / 8)) * TEXELS;
-	return texture(terrain_atlas, (origin + vec2(t) + 0.5) / (8.0 * TEXELS)).rgb;
+	return texture(terrain_atlas, atlas_uv(tile, vec2(t))).rgb;
 }
 
 // Patches on bare ground by the material's `ground` kind: damp and dry soil with
@@ -182,7 +187,10 @@ void fragment() {
 		}
 	}
 	int a = int(packed.x + 0.5);
-	int tile = a % 64;
+	int code = a % 64;
+	int flag = a / 16384;
+	int tile = code == NO_MATERIAL ? NONE
+		: code * 3 + ((flag & 1) != 0 ? 1 : (world_normal.y < -0.5 ? 2 : 0));
 	// The trunk of a tree nearer the viewer than the player clears round them (see
 	// trunk_through), but for its foot: its first cell stays whole and the
 	// TRUNK_RISE cells above it clear more and more from the bottom up. The vertex
@@ -197,7 +205,6 @@ void fragment() {
 		}
 	}
 	int edges = (a / 64) % 256;
-	int flag = a / 16384;
 	int last = int(CELL_TEXELS) - 1;
 	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
 	// Texel distance to the N, S, W, E edges of the face.
@@ -228,10 +235,11 @@ void fragment() {
 			bool slope = (flag & 4) != 0;
 			int own = best;
 			for (int e = 0; e < 4; e++) {
-				int nt = (n >> (6 * e)) & 63;
-				if (nt == NONE || own == 0) {
+				int nc = (n >> (6 * e)) & 63;
+				if (nc == NO_MATERIAL || own == 0) {
 					continue;
 				}
+				int nt = nc * 3;
 				int p = material_bits[nt / 3] & PRIORITY_MASK;
 				if (p <= best) {
 					continue;
@@ -241,7 +249,7 @@ void fragment() {
 				float near = CELL_TEXELS - float(dist[e]);
 				if (slope) {
 					for (int f = 0; f < 4; f++) {
-						if (f != e && ((n >> (6 * f)) & 63) == nt) {
+						if (f != e && ((n >> (6 * f)) & 63) == nc) {
 							near += CELL_TEXELS - float(dist[f]);
 						}
 					}
@@ -260,7 +268,7 @@ void fragment() {
 		if (top) {
 			tm = tile_mirror(tm, floor(world_pos.xz));
 		}
-		if (flag == 4) {
+		if ((flag & ~1) == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
 			// where they show on screen, one texel per pixel.
 			tm = ivec2(mod(floor(screen_plane(world_pos) * TEXELS), TEXELS));

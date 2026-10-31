@@ -233,9 +233,9 @@ def berry_model(name, bundle, colour, shine, size=3):
 
 
 # The barks of the trees added with the crown shapes: name, dark, light, options.
-# The atlas has room for 21 materials and barks together (PixelTextures.MOST_MATERIALS),
-# so the grey bark in common/ is shared by linden, poplar, fir and bird cherry, and maple
-# and larch keep the log's own.
+# The atlas had room for 21 materials and barks together then (PixelTextures.MOST_MATERIALS,
+# 63 now), so the grey bark in common/ is shared by linden, poplar, fir and bird cherry,
+# and maple and larch keep the log's own.
 NEW_BARKS = [
     ("common", (92, 90, 84), (156, 152, 142), {"marks": ((64, 60, 54), 6), "seed": 9, "file": "grey_bark"}),
     ("cherry", (88, 44, 40), (150, 86, 74), {"marks": ((178, 128, 110), 10), "seed": 13}),

@@ -136,8 +136,7 @@ void fragment() {
 			discard;
 		}
 		ivec2 t = tile_mirror(ivec2(floor(fract(root.xz) * TEXELS)), floor(root.xz));
-		vec2 origin = vec2(float(GRASS_TOP % 8), float(GRASS_TOP / 8)) * TEXELS;
-		vec3 ground = texture(terrain_atlas, (origin + vec2(t) + 0.5) / (8.0 * TEXELS)).rgb;
+		vec3 ground = texture(terrain_atlas, atlas_uv(GRASS_TOP, vec2(t))).rgb;
 		// Tall blades run from a shaded base to a lit tip.
 		float light = kind == TALL ? mix(0.7, 1.22, m.r) : mix(0.8, 1.18, m.r);
 		col = ground * grass_tint * grass_variation(root.xz) * light * custom.y;
