@@ -16,6 +16,7 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
+const LocalHost := preload("res://src/client/net/local_host.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -79,11 +80,11 @@ func _until(cond: Callable, timeout := WAIT) -> bool:
 	return false
 
 
-func _bot(name: String, key := "", password := PASSWORD) -> Bot:
+func _bot(name: String, key := "", password := PASSWORD, port := PORT) -> Bot:
 	var s = Socket.new()
 	sockets.append(s)
 	var b := Bot.new(s, name)
-	s.open("ws://127.0.0.1:%d" % PORT)
+	s.open("ws://127.0.0.1:%d" % port)
 	b.reply = s.hello(name, key, password)
 	return b
 
@@ -338,6 +339,7 @@ func _run() -> void:
 	root.remove_child(server)
 	server.free()
 	await _restart(w, ground, dug_at, things, dir)
+	await _hosted()
 	print("server_test: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -379,6 +381,38 @@ func _restart(w: Dictionary, ground: Vector3i, dug_at: int, things: int, dir: St
 	await _until(func() -> bool: return net.done())
 	root.remove_child(server)
 	server.free()
+
+
+## The server the menu makes on a computer (С5.2, LocalHost.host): started at once with
+## the settings given, listening, under the tree's root at the end of the frame and
+## going on while the game is paused, its settings written for the terminal; a second
+## one on the same port says the port is taken; stopped, it says so and stays (the
+## game frees it).
+func _hosted() -> void:
+	var values := {"title": "Дача", "port": PORT + 1, "max_players": 4, "password": "", "world": "",
+		"seed_value": 6, "settings": {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 0, "relief": 1}}
+	var node: Node = LocalHost.host(values, root)
+	_check(node.failed == "" and node.server.listening and node.hosted and node.config.title == "Дача"
+		and node.config.max_players == 4, "a server made in the game starts at once: %s" % node.failed)
+	await process_frame
+	_check(node.get_parent() == root and node.process_mode == Node.PROCESS_MODE_ALWAYS,
+		"it lives under the tree's root and goes on while the game is paused")
+	var cfg := ConfigFile.new()
+	_check(cfg.load("user://server.cfg") == OK and cfg.get_value("server", "title") == "Дача"
+		and cfg.get_value("server", "port") == PORT + 1, "its settings are written for the server from the terminal")
+	var twin: Node = LocalHost.host(values, root)
+	_check(twin.failed == "Порт %d занят" % (PORT + 1), "a second one on the same port says it is taken: %s" % twin.failed)
+	twin.free()
+	var host := _bot("Хозяин", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return host.reply.done) and host.reply.value.get("ok") == true
+		and host.reply.value.get("title") == "Дача", "a player comes in, told the server's name")
+	var said := [false]
+	node.stopped.connect(func() -> void: said[0] = true)
+	node.command("stop")
+	_check(await _until(func() -> bool: return said[0]) and node.is_inside_tree() and node.log_lines.size() > 3,
+		"stopped, it says so and keeps its log; the game frees it")
+	root.remove_child(node)
+	node.free()
 
 
 static func _unique(a: Array) -> Array:

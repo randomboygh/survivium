@@ -487,6 +487,17 @@ func _run() -> void:
 				if shot.get("press_host", false):
 					main.menu._buttons.host.pressed.emit()
 				await process_frame
+			if shot.main_menu in ["host", "host-running"]:
+				if shot.main_menu == "host-running":
+					# A server for real, on a port of its own, stopped after the shot.
+					main.hosted = main.LocalHost.host({"title": "Дача", "port": 7799, "max_players": 8,
+						"password": "", "world": "", "seed_value": main.world_seed, "settings": main.world_options}, root)
+					for i in 3:
+						await process_frame
+				main.menu._fill_page("multi")
+				main.menu.open_host()
+				for i in 3:
+					await process_frame
 			if shot.main_menu == "join":
 				_fake_servers()
 				main.menu._fill_page("multi")
@@ -528,6 +539,10 @@ func _run() -> void:
 			setup.queue_free()
 			main.settings.values.world_mods_off = mods_off
 		if shot.has("main_menu"):
+			if main.hosted != null:
+				main.hosted.command("stop")
+				main.hosted.queue_free()
+				main.hosted = null
 			main.menu.get_parent().queue_free()
 			main.menu = null
 			main.hud.visible = true

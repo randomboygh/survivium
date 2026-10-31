@@ -237,6 +237,14 @@ static var join := {}
 static var _args_read := false
 ## The address of `?server=` on the web: the menu opens «Присоединиться» with it.
 static var offered := ""
+## The server made from the menu on a computer (С5.2, LocalHost.host): it lives under
+## the tree's root over the restarts, and the game joins it over a socket. `host_ask`
+## holds its settings over the restart that starts it; `host_error` why it did not
+## start; `show_host` opens the menu on its window after that restart.
+static var hosted: Node = null
+static var host_ask := {}
+static var host_error := ""
+static var show_host := false
 ## Seconds to wait for a server's welcome.
 const JOIN_WAIT := 15.0
 
@@ -249,6 +257,8 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/server.tscn")
 		return
 	start_ms = Time.get_ticks_msec()
+	if not host_ask.is_empty():
+		_start_hosting()
 	_read_join()
 	controls = Controls.new(self)
 	settings = SettingsScript.new(self)
@@ -307,9 +317,10 @@ func _ready() -> void:
 	start_world()
 
 
-## Starts the game again for the world the settings now ask for, past the menu.
-func restart() -> void:
-	play_at_once = true
+## Starts the game again for the world the settings now ask for, past the menu (or on
+## it, `go_in` off).
+func restart(go_in := true) -> void:
+	play_at_once = go_in
 	# The pause menu may be open (the playtest page goes to the test world from it).
 	get_tree().paused = false
 	get_tree().reload_current_scene()
@@ -356,6 +367,57 @@ func leave_server() -> void:
 	join = {}
 
 
+## Starts the game again with a server made here of the settings `values` (Config's,
+## and "player": the host's name), joined to it (see _start_hosting).
+func host_server(values: Dictionary) -> void:
+	host_ask = values.duplicate()
+	restart.call_deferred(false)
+
+
+## Before anything of the scene is built: the server of `host_ask` is made (its world's
+## bundles activated), and the game joins it at its port as the host, with those
+## bundles; the menu opens on the server's window.
+func _start_hosting() -> void:
+	var values := host_ask
+	host_ask = {}
+	show_host = true
+	var player := str(values.get("player", "Хозяин"))
+	values.erase("player")
+	var node := LocalHost.host(values, get_tree().root)
+	if node.failed != "":
+		host_error = node.failed
+		node.free()
+		return
+	host_error = ""
+	hosted = node
+	join = {"url": "ws://127.0.0.1:%d" % node.config.port, "name": player, "password": node.config.password}
+	pending_mods = node.mods.duplicate()
+	print("hosting: port %d, world %s" % [node.config.port, node.store.dir])
+
+
+## Stops the server made here: it saves the world and closes the connections, then the
+## game starts again in a world of this device.
+func stop_server() -> void:
+	if hosted == null:
+		return
+	if not hosted.stopped.is_connected(_on_server_stopped):
+		hosted.stopped.connect(_on_server_stopped)
+	hosted.command("stop")
+
+
+func _on_server_stopped() -> void:
+	if hosted != null:
+		hosted.queue_free()
+	hosted = null
+	join = {}
+	restart(false)
+
+
+## The server made here is stopping: its connections closing are not a failure.
+static func server_stopping() -> bool:
+	return hosted != null and hosted.server != null and hosted.server.stopping
+
+
 ## Opens the socket to the server and says hello; the welcome comes while the scene
 ## is built (see start_world).
 func _connect() -> void:
@@ -384,6 +446,8 @@ func _on_welcome(v: Variant) -> void:
 
 
 func _on_socket_closed(code: int, reason: String) -> void:
+	if server_stopping():
+		return
 	if join_error == "" and welcome.is_empty():
 		# A browser says nothing of a server that is not there but a code without words.
 		join_error = "Сервер не отвечает" if code < 0 or reason == "" else "Сервер закрыл вход: " + reason
@@ -835,6 +899,10 @@ func _build_menu() -> void:
 	if play_at_once:
 		play_at_once = false
 		menu.play()
+	elif show_host:
+		# The server was made (or not) by the restart: its window.
+		show_host = false
+		menu.open_host()
 	elif offered != "":
 		# A link with `?server=`: «Присоединиться» with its address.
 		menu.open_join(offered)

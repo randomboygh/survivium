@@ -11,6 +11,11 @@ extends Node
 ## lines done (Console) and the events of the tick sent. The animals come when the
 ## first player does (Server). The world and the players are saved (ServerStore, С4)
 ## every Config.autosave seconds, when a character leaves and on stop.
+## The same node is the server made from the menu on a computer («Создать сервер», С5.2;
+## `hosted`, made by LocalHost.host): its settings are given, not read; it is started
+## at once (`start`), lives under the tree's root over the game's restarts, does not
+## cap the frames nor read the terminal, goes on while the game is paused, and keeps
+## the last lines of its log for the window; once stopped it says `stopped`.
 
 const Config := preload("res://src/server/config.gd")
 const Console := preload("res://src/server/console.gd")
@@ -36,6 +41,11 @@ const FPS := 60
 const SPAWN_REACH := 2
 ## Seconds to wait for the connections to close after stop.
 const STOP_WAIT := 1.0
+## Lines of the log kept for the window.
+const LOG_LINES := 60
+
+## The server has stopped (the connections closed, the world saved).
+signal stopped
 
 ## The settings; a test sets them before adding the node to the tree.
 var config := Config.new()
@@ -56,18 +66,35 @@ var spawn := Vector3.ZERO
 var had_save := false
 ## The process ends once the server stopped (a test keeps it).
 var quit_on_stop := true
+## Made in the game from the menu (see the top).
+var hosted := false
+## Why it could not start, "" when it did (or has not tried).
+var failed := ""
+## The last lines of the log, the newest last.
+var log_lines: Array[String] = []
+var _started := false
 var _stop_at := -1.0
 var _meta := {}
 
 
 func _ready() -> void:
-	Engine.max_fps = FPS
-	config.read()
-	config.take_args(OS.get_cmdline_user_args())
+	if hosted:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+	if not _started and not start():
+		get_tree().quit(1)
+
+
+## Opens the world and listens; false (and `failed` says why) when it cannot.
+func start() -> bool:
+	_started = true
+	if not hosted:
+		Engine.max_fps = FPS
+		config.read()
+		config.take_args(OS.get_cmdline_user_args())
 	say("Survivium, сборка %s, протокол %d" % [Protocol.build_version(), Protocol.VERSION])
 	if not _open_world():
-		get_tree().quit(1)
-		return
+		failed = "Мир не открыть: " + (str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else "")
+		return false
 	server = Server.new(session, config, {"seed": seed_value, "settings": settings, "mods": mods,
 		"materials": Array(Mat.IDS), "spawn": spawn})
 	if config.save:
@@ -80,16 +107,18 @@ func _ready() -> void:
 		server.next_id = saves.next_player()
 	else:
 		say("мир не сохраняется (--no-save)")
-	if config.console and OS.get_stdin_type() != OS.STD_HANDLE_INVALID:
+	if config.console and not hosted and OS.get_stdin_type() != OS.STD_HANDLE_INVALID:
 		console = Console.new()
 		console.start()
 	var err := server.listen()
 	if err != OK:
 		say("не могу слушать порт %d (%s)" % [config.port, error_string(err)])
-		get_tree().quit(1)
-		return
+		failed = "Порт %d занят" % config.port
+		server = null
+		return false
 	say("слушаю порт %d, игроков не больше %d%s" % [config.port, config.max_players,
 		", вход по паролю" if config.password != "" else ""])
+	return true
 
 
 ## Opens the save or makes the world; false when the save cannot be read.
@@ -181,7 +210,8 @@ func _quit() -> void:
 		console.stop()
 	say("сервер остановлен")
 	set_process(false)
-	if quit_on_stop:
+	stopped.emit()
+	if quit_on_stop and not hosted:
 		get_tree().quit()
 
 
@@ -195,4 +225,8 @@ func command(line: String) -> String:
 
 ## A line of the server's log, with the time.
 func say(text: String) -> void:
-	print("[%s] %s" % [Time.get_time_string_from_system(), text])
+	var line := "[%s] %s" % [Time.get_time_string_from_system(), text]
+	print(line)
+	log_lines.append(line)
+	if log_lines.size() > LOG_LINES:
+		log_lines.pop_front()

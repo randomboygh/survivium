@@ -862,6 +862,13 @@ func toggle_test() -> void:
 		open_settings("test")
 
 
+## The window of the server made here, over the main menu (the world goes on).
+func _to_server() -> void:
+	toggle_menu()
+	game.menu.open()
+	game.menu.open_host()
+
+
 ## Leaves the pause for the main menu over the running world.
 func _to_main_menu() -> void:
 	toggle_menu()
@@ -886,6 +893,7 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
+	_menu_buttons["server"] = _add_menu_button(box, "Сервер", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 	_settings = SettingsMenu.new(game)
 	_settings.closed.connect(func() -> void:
@@ -900,6 +908,8 @@ func _update_menu() -> void:
 		return
 	# Tests and tools play without the main menu.
 	_menu_buttons["main"].visible = game.menu != null
+	# The window of the server made here (Main.hosted), the world going on meanwhile.
+	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 

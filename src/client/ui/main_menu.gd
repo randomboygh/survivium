@@ -11,8 +11,11 @@ extends Control
 ## (WorldList). Joined to a server, each of them leaves it for a world of this device.
 ## «Мультиплеер»: «Присоединиться» opens JoinScreen (a link with `?server=` opens it
 ## at the start, its address filled in; a failed joining opens it again with why),
-## «Создать сервер» is for a computer (С5.2; on a phone or in the browser a tap says
-## so); joined, «Вернуться на сервер» and «Отключиться» come first.
+## «Создать сервер» opens HostScreen on a computer (on a phone or in the browser a tap
+## says it is for a computer); joined, «Вернуться на сервер» and «Отключиться» come
+## first. While a server made here runs, its button is «Сервер работает», and what
+## would load other bundles under it (single player, joining another server,
+## disconnecting) waits until it is stopped.
 ## «Настройки» opens the settings page. The editor is not there yet, so its button is
 ## disabled, and "Выход" is disabled in the browser. Until the world is built a painted sky
 ## stands in for it, with clouds drifting, stars blinking, a few birds crossing and a
@@ -26,6 +29,7 @@ const TestGround := preload("res://src/shared/world/test_ground.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
 const JoinScreen := preload("res://src/client/ui/join_screen.gd")
+const HostScreen := preload("res://src/client/ui/host_screen.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
@@ -493,7 +497,11 @@ func _fill_page(page: String) -> void:
 	var lit := ""
 	match page:
 		"top":
-			_add_button(_box, "single", "Одиночная игра", _fill_page.bind("single"))
+			if game.hosted != null:
+				# Its bundles are the server's while it runs.
+				_add_button(_box, "single", "Одиночная игра", Callable(), "сервер")
+			else:
+				_add_button(_box, "single", "Одиночная игра", _fill_page.bind("single"))
 			_add_button(_box, "multi", "Мультиплеер", _fill_page.bind("multi"))
 			_add_button(_box, "editor", "Редактор", Callable(), "скоро")
 			_add_button(_box, "settings", "Настройки", _open_settings)
@@ -504,7 +512,7 @@ func _fill_page(page: String) -> void:
 				_add_button(_box, "quit", "Выход", func() -> void:
 					game.save.flush()
 					get_tree().quit())
-			lit = "multi" if joined else "single"
+			lit = "multi" if joined or game.hosted != null else "single"
 		"single":
 			_caption("Одиночная игра")
 			_add_button(_box, "play", "Продолжить" if game.save.has_save else "Играть", _play_single)
@@ -514,21 +522,26 @@ func _fill_page(page: String) -> void:
 			lit = "play"
 		"multi":
 			_caption("Мультиплеер")
+			var hosting: bool = game.hosted != null
 			if on_server:
 				_add_button(_box, "server", "Вернуться на сервер", play)
-				_add_button(_box, "leave", "Отключиться", func() -> void:
-					game.leave_server()
-					game.restart.call_deferred())
-			_add_button(_box, "join", "Присоединиться", open_join.bind(""))
+				if not hosting:
+					_add_button(_box, "leave", "Отключиться", func() -> void:
+						game.leave_server()
+						game.restart.call_deferred())
+			if hosting:
+				_add_button(_box, "join", "Присоединиться", Callable(), "сервер")
+			else:
+				_add_button(_box, "join", "Присоединиться", open_join.bind(""))
 			if host_here:
-				_add_button(_box, "host", "Создать сервер", Callable(), "скоро")
+				_add_button(_box, "host", "Сервер работает" if hosting else "Создать сервер", open_host)
 			else:
 				# Not here, but it says where it is.
 				_add_button(_box, "host", "Создать сервер", _host_elsewhere, "на ПК")
 				_buttons.host.add_theme_color_override("font_color", Color(UiStyle.MUTED, 0.6))
 				_buttons.host.add_theme_color_override("font_hover_color", Color(UiStyle.MUTED, 0.8))
 			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
-			lit = "server" if on_server else "join"
+			lit = "server" if on_server else ("host" if hosting else "join")
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_buttons[lit].add_theme_stylebox_override(state, UiStyle.button(state, true))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
@@ -698,6 +711,22 @@ func open_join(url: String, error := "") -> void:
 		_fill_page("multi"))
 	_setup.chosen.connect(func(address: String, name: String, password: String) -> void:
 		game.join_server(address, name, password))
+
+
+## «Создать сервер» over the menu: its settings, or the server running.
+func open_host() -> void:
+	if _setup != null:
+		_setup.queue_free()
+	_page = "multi"
+	_column.visible = false
+	_setup = HostScreen.new(game)
+	_screen.add_child(_setup)
+	_setup.cancelled.connect(func() -> void:
+		_close_setup()
+		_fill_page("multi"))
+	_setup.play.connect(func() -> void:
+		_close_setup()
+		play())
 
 
 ## Joining the server failed, or the connection to it was lost: the menu opens on
