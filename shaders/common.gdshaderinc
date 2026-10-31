@@ -12,6 +12,10 @@ global uniform float cut_height;
 // 1 when the cut follows the player under a roof and what lies above shows as a ghost,
 // 0 when the player moved the cut by hand to look at the levels below.
 global uniform float cut_ghost;
+// 1 for the open cave view (setting «Вид в пещере»): above an automatic cut only what
+// stands between the camera and the player goes, the rest is drawn as on the surface
+// (see front_hides).
+global uniform float cut_front;
 global uniform float snow_amount;
 // Height (world units) above which snow lies all year: the tops of high mountains (see
 // WorldData.SNOW_LINE and peak_snow).
@@ -311,8 +315,54 @@ bool cut_dither(float y, vec2 texel) {
 	return band > (cut_ghost < 0.5 ? 3.5 : 2.5) || bayer4(texel) >= 0.5 / exp2(band);
 }
 
+// The open cave view (cut_front) is on and the cut follows the player.
+bool open_cut() {
+	return cut_front > 0.5 && cut_ghost > 0.5;
+}
+
+// How far round the player, on the screen and in world units, the open cave view
+// clears what stands in front of them, and the dithered rim beyond that.
+const float FRONT_WINDOW = 5.0;
+const float FRONT_RIM = 1.0;
+// How much nearer the camera than the middle of the player's body a thing must be to
+// count as in front: the rock straight over the head goes, the wall behind stays.
+const float FRONT_MARGIN = 0.25;
+
+// In the open cave view, true where the texel `texel` of a thing at `p` above the cut
+// lies nearer the camera than the player and within FRONT_WINDOW of them on the
+// screen: the near wall, the rock over the head and the slope in front go, and the
+// caps of the cut fill the rock they leave open; the back wall, the land above and
+// behind, and the floor stay whole and undimmed.
+bool front_hides(vec3 p, vec2 texel) {
+	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
+	float toward = view_slope / view_squash;
+	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
+	if (before <= FRONT_MARGIN) {
+		return false;
+	}
+	float near = length((texel + 0.5) / TEXELS - screen_plane(body));
+	float k = clamp((FRONT_WINDOW + FRONT_RIM - near) / FRONT_RIM, 0.0, 1.0);
+	return k >= 1.0 || bayer4(texel) < k;
+}
+
+// True where the texel `texel` of a thing at `p` is not drawn because of the cut: the
+// ghost of the levels above it (cut_dither), or in the open cave view what stands in
+// front of the player.
+bool cut_hides(vec3 p, vec2 texel) {
+	if (p.y <= cut_height + 0.01) {
+		return false;
+	}
+	return open_cut() ? front_hides(p, texel) : cut_dither(p.y, texel);
+}
+
 bool above_cut(vec3 p) {
-	return cut_dither(p.y, floor(screen_plane(p) * TEXELS));
+	return cut_hides(p, floor(screen_plane(p) * TEXELS));
+}
+
+// For what is too small to show as a ghost (plants, motes, sunlight): gone above the
+// cut, or in the open cave view only in front of the player.
+bool gone_above(vec3 p) {
+	return p.y > cut_height + 0.01 && (!open_cut() || front_hides(p, floor(screen_plane(p) * TEXELS)));
 }
 
 // The window round the player in crowns and trunks nearer the viewer, and the thinner
@@ -372,6 +422,9 @@ float low_through(vec2 texel, vec3 p) {
 // shows above the cut is a dim ghost, dimmer higher up.
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
+		if (open_cut()) {
+			return 0.0;
+		}
 		return clamp(0.35 + 0.03 * floor((y - cut_height) / CELL - 0.01), 0.0, 0.7);
 	}
 	float below = floor((view_height - y) / CELL + 0.01) - 1.0;

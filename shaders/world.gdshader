@@ -157,7 +157,7 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 // covered space count, so the hill's own face over a cave does not hide the cave; out
 // in the open only open ones, and none under a crown, so trunks go with their crowns.
 bool back_wall(vec3 p, vec3 n) {
-	if (cut_ghost < 0.5 || p.y <= cut_height + 0.01 || abs(n.y) > 0.5 || dot(n.xz, view_up) > -0.3
+	if (cut_ghost < 0.5 || cut_front > 0.5 || p.y <= cut_height + 0.01 || abs(n.y) > 0.5 || dot(n.xz, view_up) > -0.3
 			|| dot(p.xz - player_pos.xz, view_up) <= 0.0) {
 		return false;
 	}

@@ -46,7 +46,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (world_pos.y > cut_height + 0.01) {
+	if (gone_above(world_pos)) {
 		discard;
 	}
 	ivec2 b = ivec2(mod(FRAGCOORD.xy, 4.0));
