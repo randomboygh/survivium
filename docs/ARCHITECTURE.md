@@ -8,23 +8,33 @@
 ```mermaid
 graph TD
   client["src/client/ — картинка, ввод, звук, UI, сохранение на устройстве"]
+  server["src/server/ — сторона сервера: запросы игрока к правилам"]
+  net["src/shared/net/ — протокол: виды запросов, сообщения в байты"]
   game["src/shared/game/ — правила игры"]
   world["src/shared/world/ — мир, генератор, файлы мира"]
   content["src/shared/content/ — загрузчик модов и реестры"]
   data["content/ — данные и ассеты модов"]
+  client -. только net/local_host.gd .-> server
+  client --> net
   client --> game
   client --> world
   client --> content
+  server --> net
+  server --> game
+  net --> content
   game --> world
   game --> content
   world --> content
   content -. читает .-> data
 ```
 
-- `src/shared/` — то, что будет крутить сервер. Он не загружает ничего из `src/client/`: это проверяет
-  `_test_layers` в `tests/unit/content_test.gd`, нарушение валит CI.
+- `src/shared/` — то, что крутит сервер. Он не загружает ничего из `src/client/` и `src/server/`: это
+  проверяет `_test_layers` в `tests/unit/content_test.gd`, нарушение валит CI.
 - Внутри `src/shared/`: `content/` не грузит других папок `src/`, `world/` грузит только `content/`,
-  `game/` — `content/` и `world/`. Это проверяет тот же `_test_layers`.
+  `net/` — только `content/`, `game/` — `content/` и `world/`. Это проверяет тот же `_test_layers`.
+- `src/server/` грузит только `src/shared/`; клиент грузит `src/server/` только из
+  `src/client/net/local_host.gd` — сервера внутри игры для одиночной (решение 153). Что клиент просит
+  у правил, идёт запросами протокола через `game.net` ([systems/network.md](systems/network.md)).
 - Папки `src/client/` ссылаются друг на друга свободно (без циклов `preload`): общий стиль UI
   (`ui/ui_style.gd`) нужен вводу и картинке, проекция (`view/pixel_view.gd`) — мешам.
 - Скрипты подключаются константой `preload("res://…")` с полным путём, без `class_name`; базовый

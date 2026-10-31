@@ -12,6 +12,7 @@
 | Картинка: камера, свет, шейдеры | `src/client/view/*`, `shaders/*` | [systems/rendering.md](systems/rendering.md) | `view_test.gd` (pixel_view, sprite_sheet, hidden, camera_spin), скриншоты `tools/shot.gd` |
 | Руки и мир: копать, строить, рубить, косить, собирать | `src/shared/game/world_actions.gd`, `src/shared/content/tools.gd`, `src/client/input/controls.gd`, `cursor.gd`, `src/client/game/gathering.gd` | [systems/interaction.md](systems/interaction.md) | `actions_test.gd`, `progress_test.gd` |
 | Сеанс мира и правила игры | `src/shared/game/session.gd`, `rules.gd` | [systems/session.md](systems/session.md) | `session_test.gd` |
+| Протокол и сервер в игре | `src/shared/net/protocol.gd`, `src/server/requests.gd`, `src/client/net/connection.gd`, `local_host.gd` | [systems/network.md](systems/network.md) | `net_test.gd`, `content_test.gd` (layers) |
 | Персонаж: сумка, силы, тело, смерть | `src/shared/game/character.gd`, `inventory.gd`, `vitals.gd`, `body.gd`, `src/client/game/character.gd`, `src/client/view/player.gd`, `figure.gd`, `hands.gd` | [systems/character.md](systems/character.md) | `character_test.gd`, `body_test.gd` |
 | Крафт, станки, вещи на клетках | `src/shared/game/workshop.gd`, `craft_queue.gd`, `knowledge.gd`, `placed.gd`, `src/shared/content/crafting.gd`, `src/client/game/props.gd` | [systems/crafting.md](systems/crafting.md) | `content_test.gd` (crafting), `graph_test.gd`, `actions_test.gd` (placed, station_flags, recipe_fields), `character_test.gd` (wear), `progress_test.gd` |
 | Звери | `src/shared/game/wildlife.gd`, `src/shared/content/ai_rules.gd`, `src/client/game/creatures.gd` | [systems/wildlife.md](systems/wildlife.md) | `wildlife_test.gd` |
@@ -27,7 +28,7 @@
 
 | Система | Где замысел | Что в коде |
 |---|---|---|
-| Сервер, сеть, многопользовательская игра | `plan/architecture/server.md` (решение 153, этапы С1–С7), `networking.md`, `overview.md`, `plan/mvp.md` (этап 1) | сеанс мира с тиком есть (С1, [systems/session.md](systems/session.md)); сети и папки `src/server/` нет |
+| Сервер, сеть, многопользовательская игра | `plan/architecture/server.md` (решение 153, этапы С1–С7), `networking.md`, `overview.md`, `plan/mvp.md` (этап 1) | сеанс мира с тиком (С1, [systems/session.md](systems/session.md)) и протокол запросов через сервер в игре (С2.1, [systems/network.md](systems/network.md)) есть; сети, реплик и headless-сервера нет |
 | Территории и PvP | `plan/design/territory-pvp.md` | нет |
 | Строительство предметами (стены, двери, крыши) | `plan/design/mvp-design.md` | только ячейки: копать и ставить блоки (`world_actions.gd`) |
 | Редактор контента | `plan/design/editor.md`, `plan/architecture/editor.md` | нет; схемы `content.gd` — его будущая основа |

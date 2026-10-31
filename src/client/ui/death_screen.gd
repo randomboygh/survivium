@@ -16,6 +16,7 @@ const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const WIDTH := 252
 const BUTTON_H := 30
@@ -317,7 +318,7 @@ static func _where(sack: Variant, point: Array) -> String:
 
 
 func _revive(at: Vector3) -> void:
-	game.character.revive(at)
+	game.net.request(Protocol.REVIVE, [at])
 	visible = false
 	game.hud.visible = true
 	game.hud.toast("Вы снова живы")

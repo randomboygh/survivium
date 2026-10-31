@@ -22,6 +22,9 @@
   перед телом наружу, под ногами последней), формы кисти для блоков.
 - `src/client/input/controls.gd` — клавиши, мышь, касания; `hands` (предмет в каждой руке, `active` —
   рука в работе), панель (первые `Inventory.HOTBAR` ячеек сумки), кисти и мазки, кнопка действия.
+  Правила рук он зовёт не напрямую, а запросами `game.net` (`Protocol.DIG`, `PLACE`, `FRONT`,
+  `PLANT_AT`, `EAT`), и по ответу играет работу тела (`_did`); так же `gathering.gd` (`GATHER`,
+  `PICKUP`) и `props.gd` (`PROP_PUT`) — [network.md](network.md).
 - `src/client/input/cursor.gd` — рамка вокруг клеток, над которыми будет работа.
 - `src/client/game/gathering.gd` — что собирает касание и подсказка к нему, подбор рядом с игроком.
 - `src/client/game/character.gd` — клиентский `who` (тело, руки, сумка, сообщения).

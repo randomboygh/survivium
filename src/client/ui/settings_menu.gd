@@ -756,6 +756,9 @@ func report_text() -> String:
 		"Загрузка: запуск %.1f с (данные модов: записей %d, чтение %d мс, набор %d мс), мир %.1f с" % [game.start_ms / 1000.0,
 			Content.record_count(), roundi(Content.read_ms), roundi(Content.load_ms), game.hud.perf.world_ms / 1000.0],
 	]
+	if game.net != null:
+		lines.append("Сервер: в игре (петля), запросов %d, байт туда %d, обратно %d, кодирование %.1f мс, ждут %d" % [
+			game.net.requests, game.net.sent_bytes, game.net.received_bytes, game.net.coding_us / 1000.0, game.net.pending()])
 	return "\n".join(lines)
 
 

@@ -43,6 +43,8 @@ const Placed := preload("res://src/shared/game/placed.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Rules := preload("res://src/shared/game/rules.gd")
 const Session := preload("res://src/shared/game/session.gd")
+const LocalHost := preload("res://src/client/net/local_host.gd")
+const Connection := preload("res://src/client/net/connection.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
@@ -120,6 +122,10 @@ var rules: Rules
 ## The world being played and the rules run over it, once the world is made; `actions`,
 ## `storms` and `wildlife` are its.
 var session: Session
+## The server inside the game (single player) and the client's connection to it: what
+## the player asks of the rules goes through `net` (Protocol).
+var host: LocalHost
+var net: Connection
 ## The rules of what the hands do to the world (dig, build, chop, gather).
 var actions: WorldActions
 ## What strong wind does to the trees and bushes around the player.
@@ -273,6 +279,8 @@ func start_world() -> void:
 	world = gen.world
 	session = Session.new(world, gen, clock, rules, placed)
 	session.add_player(character, workshop)
+	host = LocalHost.new(session, character, workshop)
+	net = host.link()
 	actions = session.actions
 	storms = session.storms
 	wildlife = session.wildlife

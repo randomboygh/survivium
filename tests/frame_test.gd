@@ -536,12 +536,13 @@ func _run() -> void:
 	log_page.show_section("critical")
 	_check(log_page._list.get_child(1).text.begins_with("0:10  250 мс"), "the critical tab shows the freeze of 250 ms")
 	# The report for a playtest: a line each for the build, the world, the place, the
-	# camera, the time, the weather, the light, the settings, the device, the frame and the
-	# start (the mods' records, read and loaded).
+	# camera, the time, the weather, the light, the settings, the device, the frame, the
+	# start (the mods' records, read and loaded) and the server (the requests through it).
 	log_page.open("report")
 	var report: String = log_page.report_text()
-	_check(report.split("\n").size() == 11 and report.contains("Мир: ") and report.contains("Погода: ")
+	_check(report.split("\n").size() == 12 and report.contains("Мир: ") and report.contains("Погода: ")
 		and report.contains("(данные модов: записей %d, чтение " % Content.record_count())
+		and report.contains("Сервер: в игре (петля), запросов ") and main.net.requests > 0
 		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
 	log_page.close()
 	hud.perf.freeze_log.resize(1)

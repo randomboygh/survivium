@@ -16,6 +16,7 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding box of a thing flying to the player grows by, so the shear
@@ -82,9 +83,10 @@ func place() -> void:
 
 
 ## The player places item `id` from the bag (see Placed.put_from_bag) below the level
-## cut; true if it was placed.
+## cut, through the server; true if it was placed (over the loop the reply is in at once).
 func put_from_bag(id: String, slot := -1) -> bool:
-	return game.placed.put_from_bag(game.character, id, slot, game.chunks.cut_level)
+	var r = game.net.request(Protocol.PROP_PUT, [id, slot, game.chunks.cut_level])
+	return r.done and r.value is bool and r.value
 
 
 func _model(kind: String):
