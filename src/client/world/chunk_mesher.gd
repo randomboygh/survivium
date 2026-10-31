@@ -173,7 +173,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 	var dz := job.dz
 	var dy := job.dy
 	var white := Color(1, 1, 1)
-	var no_tiles := float(NO_TILE * 0x41041)
+	var no_tiles := float(NO_TILES)
 	var nb := job.nb
 	var side_offsets := job.side_offsets
 	var plain := job.plain
@@ -256,7 +256,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
 					and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
 					and not cov[c[i + dy - dz]]:
-				plain.append(((y * 64 + m * 3) * 64 + z - z0) * 64 + x - x0)
+				plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
 				continue
 			for d in 6:
 				var n := nb[d]
@@ -276,8 +276,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					if cuts != 0 or halves != 0:
 						_top_pieces(solid, base, m, cuts, edges, halves, float(a))
 						continue
-					if edges == 0 and not bare and _plain_around(a, tile):
-						plain.append(((y * 64 + tile) * 64 + z - z0) * 64 + x - x0)
+					if edges == 0 and not bare and _plain_around(a, m):
+						plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
 						continue
 					around = float(a)
 					if bare:
@@ -373,7 +373,7 @@ static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Arr
 	return out
 
 
-## Top tiles of the neighbours N, S, W, E of padded cell `i`, packed for UV2.y
+## Top materials of the neighbours N, S, W, E of padded cell `i`, packed for UV2.y
 ## (material transitions, see world.gdshader): the top at this level, or where a
 ## slope goes on from it a level up or down (`sh` given), the slope's or the one it goes
 ## down to, so two materials meeting on a slope spill over each other's edges in a
@@ -381,40 +381,41 @@ static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Arr
 static func _around_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
 		sh := PackedByteArray()) -> int:
 	if sh.is_empty():
-		var tn := c[i - dz] * 3 if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_TILE
-		var ts := c[i + dz] * 3 if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_TILE
-		var tw := c[i - 1] * 3 if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_TILE
-		var te := c[i + 1] * 3 if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_TILE
+		var tn := c[i - dz] if cov[c[i - dz]] and not cov[c[i - dz + dy]] else NO_MATERIAL
+		var ts := c[i + dz] if cov[c[i + dz]] and not cov[c[i + dz + dy]] else NO_MATERIAL
+		var tw := c[i - 1] if cov[c[i - 1]] and not cov[c[i - 1 + dy]] else NO_MATERIAL
+		var te := c[i + 1] if cov[c[i + 1]] and not cov[c[i + 1 + dy]] else NO_MATERIAL
 		return tn | ts << 6 | tw << 12 | te << 18
 	var sloped := sh[i] & 15 != 0
 	return _tile_beside(c, cov, sh, i - dz, dy, sloped) | _tile_beside(c, cov, sh, i + dz, dy, sloped) << 6 \
 		| _tile_beside(c, cov, sh, i - 1, dy, sloped) << 12 | _tile_beside(c, cov, sh, i + 1, dy, sloped) << 18
 
 
-## The top tile beside a top at padded cell `j` (see _around_tiles): its own when open
+## The top material beside a top at padded cell `j` (see _around_tiles): its own when open
 ## above, the slope's over it, or for a `sloped` top the one under it it goes down to.
 static func _tile_beside(c: PackedByteArray, cov: PackedByteArray, sh: PackedByteArray, j: int, dy: int,
 		sloped: bool) -> int:
 	if cov[c[j]]:
 		if not cov[c[j + dy]]:
-			return c[j] * 3
+			return c[j]
 		if j + 2 * dy < c.size() and sh[j + dy] & 15 != 0 and not cov[c[j + 2 * dy]]:
-			return c[j + dy] * 3
+			return c[j + dy]
 	elif sloped and j - dy >= 0 and cov[c[j - dy]]:
-		return c[j - dy] * 3
-	return NO_TILE
+		return c[j - dy]
+	return NO_MATERIAL
 
 
-## True when no neighbour tile differs from `tile`, so the top has no transitions.
-static func _plain_around(a: int, tile: int) -> bool:
+## True when no neighbour's top material differs from material `m`, so the top has no
+## transitions.
+static func _plain_around(a: int, m: int) -> bool:
 	for e in 4:
 		var t := a >> (6 * e) & 63
-		if t != NO_TILE and t != tile:
+		if t != NO_MATERIAL and t != m:
 			return false
 	return true
 
 
-## Draws the plain tops (sorted keys from build_chunk: level, tile or water depth, z
+## Draws the plain tops (sorted keys from build_chunk: level, top material or water depth, z
 ## and x in the chunk) as one quad per row of neighbours with the same tile, up to
 ## `runs` quads from key `from` on; returns the key to go on from. The shaders texture
 ## tops by their world position, so a long quad looks the same as the cells it covers.
@@ -423,7 +424,7 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 	var corners: Array = face_table()[FACE_TOP].corners
 	var height := WATER_TOP if water else 1.0
 	var white := Color(1, 1, 1)
-	var no_tiles := float(NO_TILE * 0x41041)
+	var no_tiles := float(NO_TILES)
 	var n := keys.size()
 	var j := from
 	while j < n and runs > 0:
@@ -435,6 +436,7 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 		var length := end - j
 		var lx := first & 63
 		var lz := first >> 6 & 63
+		# The top's material, or the water's depth.
 		var tile := first >> 12 & 63
 		var y := first >> 18
 		var base := Vector3(x0 + lx, y, z0 + lz)
@@ -444,7 +446,7 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 			pts.append(base + Vector3(v.x * length, v.y * height, v.z))
 			uvs.append(Vector2(v.x * length, v.z))
 		buf.quad(pts, Vector3.UP, uvs, Water.water_color(tile - WATER_TOP, 1.0, 0.0) if water else white,
-			Vector2(0.0, tile) if water else Vector2(pack(tile, 0, 0), no_tiles))
+			Vector2(0.0, tile) if water else Vector2(pack(tile * 3, 0, 0), no_tiles))
 		j = end
 	return j
 
@@ -545,7 +547,7 @@ static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color
 static func _cut_walls(w, buf, water, c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, base: Vector3,
 		m: int, cuts: int) -> void:
 	var white := Color(1, 1, 1)
-	var no_tiles := float(NO_TILE * 0x41041)
+	var no_tiles := float(NO_TILES)
 	for k in 4:
 		if cuts & (1 << k) == 0:
 			continue
@@ -560,7 +562,7 @@ static func _cut_walls(w, buf, water, c: PackedByteArray, cov: PackedByteArray, 
 static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int,
 		dz: int, base: Vector3) -> void:
 	var white := Color(1, 1, 1)
-	var no_tiles := float(NO_TILE * 0x41041)
+	var no_tiles := float(NO_TILES)
 	var fills := sh[i] >> 4
 	for k in 4:
 		if fills & (1 << k) == 0:
@@ -618,7 +620,7 @@ static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int,
 			me = over
 		var flag := _diag(k, true, CONTACT if under_wall else 0)
 		_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white,
-			Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILE * 0x41041)))
+			Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILES)))
 
 
 ## Dark tops of solid cells on `level` that are covered by solid cells above:
@@ -638,7 +640,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 	var bit := 1 << level
 	var both := bit | bit << 1
 	var dark := Color(0.4, 0.4, 0.4)
-	var no_tiles := float(NO_TILE * 0x41041)
+	var no_tiles := float(NO_TILES)
 	var corners: Array = face_table()[FACE_TOP].corners
 	var cells := PackedByteArray()
 	var shapes := PackedByteArray()

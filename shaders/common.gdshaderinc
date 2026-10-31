@@ -64,6 +64,16 @@ global uniform vec2 puddles;
 const float TEXELS = 16.0;
 const float CELL = 0.5;
 const float CELL_TEXELS = 8.0;
+// The terrain atlas (PixelTextures.build_atlas): ATLAS_COLUMNS by ATLAS_ROWS tiles of
+// TEXELS px, three per material (top, sides, underside), tile m * 3 + kind.
+const int ATLAS_COLUMNS = 16;
+const int ATLAS_ROWS = 12;
+
+// Where texel `t` of atlas tile `tile` is in the terrain atlas, as a UV.
+vec2 atlas_uv(int tile, vec2 t) {
+	vec2 origin = vec2(float(tile % ATLAS_COLUMNS), float(tile / ATLAS_COLUMNS)) * TEXELS;
+	return (origin + t + 0.5) / (vec2(float(ATLAS_COLUMNS), float(ATLAS_ROWS)) * TEXELS);
+}
 // Rings of light around a torch or a fire: outer edges as shares of the light's range,
 // 1, 2, 3 and 5 parts of 5 (Fibonacci), and how bright each ring is. The last one
 // thins out to nothing by a dither from LIGHT_FADE to its edge, so the light has no

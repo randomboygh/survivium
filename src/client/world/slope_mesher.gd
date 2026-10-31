@@ -159,7 +159,7 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 	if cuts == 0:
 		_surface(buf, base, hs, ns, steps, top)
 	else:
-		_cut_surface(buf, base, hs, ns, cuts, top, Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILE * 0x41041)))
+		_cut_surface(buf, base, hs, ns, cuts, top, Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILES)))
 	var own := _corner_heights(sh, i, dy)
 	for d in [0, 1, 3, 4, 5]:
 		var nm := nb[d]
@@ -168,7 +168,7 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 		if d == FACE_BOTTOM:
 			for q in 4:
 				_piece(buf, base, 0.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.DOWN, white,
-					Vector2(pack(m * 3 + 2, 0, 0), float(NO_TILE * 0x41041)))
+					Vector2(pack(m * 3 + 2, 0, 0), float(NO_TILES)))
 			continue
 		_patch_side(buf, faces, c, sh, i, dy, side_offsets[d], d, base, m, hs, steps, own, cuts)
 
@@ -310,7 +310,7 @@ static func _patch_side(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 	var face: Dictionary = faces[d]
 	var c0 := Vector2(CORNER_DIRS[ks[0]]) * 0.5 + Vector2(0.5, 0.5)
 	var c1 := Vector2(CORNER_DIRS[ks[1]]) * 0.5 + Vector2(0.5, 0.5)
-	var packed := Vector2(pack(m * 3 + 1, 0, 0), float(NO_TILE * 0x41041))
+	var packed := Vector2(pack(m * 3 + 1, 0, 0), float(NO_TILES))
 	var white := Color(1, 1, 1)
 	var count := steps.y if d < 2 else steps.x
 	for s in count:

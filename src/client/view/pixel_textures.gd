@@ -9,7 +9,10 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 
 const TILE := 16
-const TILES := 8
+## The terrain atlas: TILES tiles a row, ROWS rows (ATLAS_COLUMNS and ATLAS_ROWS in
+## common.gdshaderinc), three tiles a material.
+const TILES := 16
+const ROWS := 12
 const TUFT := 8
 ## Ground plants: PLANTS variants, each PLANT_W x PLANT_H px (see build_plants).
 const PLANT_W := 8
@@ -63,10 +66,12 @@ static var atlas_image: Image
 static var tints: PackedColorArray = []
 ## The bark of each tree species (Trees.SPECIES, a species' `bark` texture) as the
 ## material whose tiles it took in the atlas after the real ones, -1 for the log's own;
-## the trunk mesher draws the trunk with it. The tiles are 6 bits in the mesh (63 none),
-## so there is room for MOST_MATERIALS materials and barks together.
+## the trunk mesher draws the trunk with it. Materials are 6 bits in the mesh (63 none,
+## see MeshFaces.pack), so there is room for MOST_MATERIALS materials and barks together
+## (ROWS * TILES / 3 tiles, the size of `material_bits` and `corner_shapes` in
+## world.gdshader).
 static var bark_material: PackedInt32Array = []
-const MOST_MATERIALS := 21
+const MOST_MATERIALS := 63
 
 
 ## The atlas of the materials' textures, each read from its mod (Mat.texture_path: three
@@ -74,7 +79,7 @@ const MOST_MATERIALS := 21
 ## m * 3 + kind; magenta where a texture is missing or of another size (the validator
 ## reports it).
 static func build_atlas() -> ImageTexture:
-	var img := Image.create_empty(TILE * TILES, TILE * TILES, false, Image.FORMAT_RGBA8)
+	var img := Image.create_empty(TILE * TILES, TILE * ROWS, false, Image.FORMAT_RGBA8)
 	img.fill(Color.MAGENTA)
 	tints = []
 	tints.resize(Mat.COUNT)
