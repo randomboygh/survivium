@@ -709,7 +709,7 @@ func _stand_by(cell: Vector3i) -> void:
 ## there to be made.
 func _trip() -> bool:
 	trips += 1
-	if trips > MAX_TRIPS * 4:
+	if trips > MAX_TRIPS * 6:
 		return false
 	var turn := trips * 2.4
 	var r := (2.0 + trips * 1.5) * CHUNK
