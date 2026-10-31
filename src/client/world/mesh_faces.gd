@@ -38,7 +38,12 @@ static var AIR: int = Mat.AIR
 static var WATER: int = Mat.WATER
 static var LEAVES: int = Mat.LEAVES
 ## Tile index meaning "no texture" (voxels) or "no neighbour" (transitions).
-const NO_TILE := 63
+const NO_TILE := 255
+## A material code in UV2 (see pack): NO_MATERIAL for a face drawn in its vertex colour
+## (NO_TILE), and the lanes of UV2.y with no neighbour's top (NO_TILES, see
+## ChunkMesher._around_tiles).
+const NO_MATERIAL := 63
+const NO_TILES := NO_MATERIAL * 0x41041
 ## Plain tops merged per step of a job once its columns are done: as costly as a column.
 const PLAIN_RUNS := 64
 ## Edge codes, 2 bits per edge in the order N, S, W, E (see world.gdshader).
@@ -54,6 +59,8 @@ const EDGE_E := 6
 ## corner k (flag bits 16..32) on the corner's side of it or away from it, with an edge
 ## code (bits 128..256).
 const FOLIAGE_VOXEL := 1
+## The same bit on a textured face: it shows its material's sides' tile (see pack).
+const SIDE_TILE := 1
 const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
@@ -130,9 +137,14 @@ static func face_uv(d: int, v: Vector3) -> Vector2:
 	return Vector2(v.x, 1.0 - v.y)
 
 
-## Packs a face's tile, edge codes and flag into UV2.x (see world.gdshader).
+## Packs a face's tile (material * 3 + kind: 0 the top's, 1 the sides', 2 the
+## underside's; NO_TILE for its vertex colour), edge codes and flag into UV2.x (see
+## world.gdshader): the material in 6 bits, the sides' tile as flag bit SIDE_TILE, the
+## underside's by the face looking down.
 static func pack(tile: int, edges: int, flag: int) -> float:
-	return float(tile + 64 * edges + 16384 * flag)
+	if tile == NO_TILE:
+		return float(NO_MATERIAL + 64 * edges + 16384 * flag)
+	return float(tile / 3 + 64 * edges + 16384 * (flag | (SIDE_TILE if tile % 3 == 1 else 0)))
 
 
 ## The corner curve of corner k for corner shape `shape` (see CORNER_P), on the top

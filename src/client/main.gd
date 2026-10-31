@@ -924,16 +924,17 @@ func _build_materials() -> void:
 	world_mat = _material(WorldShader)
 	var shapes := PackedInt32Array()
 	var bits := PackedInt32Array()
-	shapes.resize(21)
-	bits.resize(21)
-	for m in mini(Mat.COUNT, 21):
+	var most := PixelTextures.MOST_MATERIALS
+	shapes.resize(most)
+	bits.resize(most)
+	for m in mini(Mat.COUNT, most):
 		shapes[m] = Mat.corner_shape[m]
 		bits[m] = Mat.shader_bits[m]
 	# The barks of the trees are materials to the shader too, like the log; both clear
 	# round the player like crowns (TRUNK in world.gdshader).
-	if Mat.LOG >= 0 and Mat.LOG < 21:
+	if Mat.LOG >= 0 and Mat.LOG < most:
 		bits[Mat.LOG] |= Mat.TRUNK
-	for m in range(Mat.COUNT, mini(PixelTextures.material_count(), 21)):
+	for m in range(Mat.COUNT, mini(PixelTextures.material_count(), most)):
 		shapes[m] = Mat.corner_shape[Mat.LOG] if Mat.LOG >= 0 else 0
 		bits[m] = Mat.shader_bits[Mat.LOG] | Mat.TRUNK if Mat.LOG >= 0 else 0
 	world_mat.set_shader_parameter("corner_shapes", shapes)

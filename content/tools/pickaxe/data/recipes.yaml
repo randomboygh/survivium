@@ -20,3 +20,9 @@
   needs: {materials:copper_bar: 3, materials:planks: 1}
   at: workbench
   time: 7
+- id: bronze_pickaxe
+  title: Бронзовая кирка
+  makes: bronze_pickaxe
+  needs: {materials:bronze_bar: 3, materials:planks: 1}
+  at: workbench
+  time: 7

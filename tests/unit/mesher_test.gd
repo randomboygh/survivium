@@ -26,6 +26,21 @@ func _test_mesher() -> void:
 		if (p1 - p0).cross(p2 - p0).dot(normals[indices[t]]) >= 0.0:
 			clockwise = false
 	_check(clockwise, "faces are wound clockwise")
+	# UV2.x holds the material and the sides' tile as a flag bit; the shader takes the
+	# underside's tile for a face looking down (see MeshFaces.pack, world.gdshader).
+	var uv2: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+	var tiles_right := true
+	for v in verts.size():
+		var tile := _shader_tile(uv2[v].x, normals[v])
+		var want := Mat.STONE * 3 + (0 if normals[v].y > 0.5 else (2 if normals[v].y < -0.5 else 1))
+		tiles_right = tiles_right and tile == want
+	_check(tiles_right, "each face of a cube draws its material's top, side or underside tile")
+	_check(_shader_tile(ChunkMesher.pack(62 * 3 + 1, 255, 0), Vector3.FORWARD) == 62 * 3 + 1
+		and _shader_tile(ChunkMesher.pack(62 * 3 + 2, 0, ChunkMesher.DIAG), Vector3.DOWN) == 62 * 3 + 2
+		and _shader_tile(ChunkMesher.pack(40 * 3, 0, ChunkMesher.SLOPE), Vector3(0.6, 0.4, 0.0)) == 40 * 3
+		and _shader_tile(ChunkMesher.pack(ChunkMesher.NO_TILE, 0, ChunkMesher.FOLIAGE_VOXEL), Vector3.UP) == -1
+		and ChunkMesher.pack(62 * 3 + 1, 255, 511) < float(1 << 24),
+		"the last of %d materials packs, a voxel has no tile, UV2.x stays a whole float" % PixelTextures.MOST_MATERIALS)
 	w.set_cell(2, 1, 1, Mat.STONE)
 	meshes = ChunkMesher.build_chunk(w, 0, 0, 16)
 	verts = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
@@ -101,3 +116,14 @@ func _mesh_area(mesh: ArrayMesh) -> float:
 	for i in range(0, idx.size(), 3):
 		area += (v[idx[i + 1]] - v[idx[i]]).cross(v[idx[i + 2]] - v[idx[i]]).length() * 0.5
 	return area
+
+
+## The tile world.gdshader draws for a face with UV2.x `packed` and normal `normal`
+## (-1 for none: the vertex colour).
+static func _shader_tile(packed: float, normal: Vector3) -> int:
+	var a := int(packed + 0.5)
+	var code := a % 64
+	var flag := a / 16384
+	if code == ChunkMesher.NO_MATERIAL:
+		return -1
+	return code * 3 + (1 if flag & 1 != 0 else (2 if normal.y < -0.5 else 0))

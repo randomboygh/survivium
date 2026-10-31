@@ -7,6 +7,9 @@ const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 
 ## The colour of copper heads, blades and bars.
 const COPPER := Color(0.78, 0.46, 0.25)
+## Bronze and tin.
+const BRONZE := Color(0.6, 0.48, 0.27)
+const TIN := Color(0.72, 0.74, 0.76)
 
 
 ## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
@@ -42,15 +45,15 @@ static func drop(model: String) -> VoxelModel:
 			return _cone()
 		"axe":
 			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
-		"copper_axe":
-			return _tool(COPPER, [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
-		"pickaxe", "wooden_pickaxe", "copper_pickaxe":
+		"copper_axe", "bronze_axe":
+			return _tool(_head(model), [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
+		"pickaxe", "wooden_pickaxe", "copper_pickaxe", "bronze_pickaxe":
 			return _tool(_head(model), [Vector3i(4, 0, -3), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(4, 0, 1), Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(5, 0, -3), Vector3i(5, 0, 3), Vector3i(4, 1, 0)])
-		"shovel", "copper_shovel":
-			return _tool(Color(0.42, 0.29, 0.18) if model == "shovel" else COPPER, [Vector3i(5, 0, -1), Vector3i(5, 0, 1), Vector3i(6, 0, -1), Vector3i(6, 0, 0), Vector3i(6, 0, 1), Vector3i(7, 0, -1), Vector3i(7, 0, 0), Vector3i(7, 0, 1), Vector3i(8, 0, 0)])
-		"sword", "stone_sword", "copper_sword":
-			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else (Color(0.55, 0.57, 0.6) if model == "stone_sword" else COPPER))
-		"scythe", "wooden_scythe", "copper_scythe":
+		"shovel", "copper_shovel", "bronze_shovel":
+			return _tool(Color(0.42, 0.29, 0.18) if model == "shovel" else _head(model), [Vector3i(5, 0, -1), Vector3i(5, 0, 1), Vector3i(6, 0, -1), Vector3i(6, 0, 0), Vector3i(6, 0, 1), Vector3i(7, 0, -1), Vector3i(7, 0, 0), Vector3i(7, 0, 1), Vector3i(8, 0, 0)])
+		"sword", "stone_sword", "copper_sword", "bronze_sword":
+			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else (Color(0.55, 0.57, 0.6) if model == "stone_sword" else _head(model)))
+		"scythe", "wooden_scythe", "copper_scythe", "bronze_scythe":
 			return _tool(_head(model), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
 		"torch":
 			return _torch()
@@ -58,6 +61,14 @@ static func drop(model: String) -> VoxelModel:
 			return _torch(Color(0.12, 0.1, 0.08))
 		"copper_bar":
 			return _bar()
+		"bronze_bar":
+			return _bar(BRONZE)
+		"tin_bar":
+			return _bar(TIN)
+		"raw_crucible":
+			return _crucible(Color(0.7, 0.64, 0.56))
+		"crucible":
+			return _crucible(Color(0.62, 0.36, 0.22))
 		"charcoal":
 			return _charcoal()
 		"grain":
@@ -335,17 +346,32 @@ static func _cone() -> VoxelModel:
 static func _head(model: String) -> Color:
 	if model.begins_with("wooden_"):
 		return Color(0.55, 0.4, 0.24)
+	if model.begins_with("bronze_"):
+		return BRONZE
 	return COPPER if model.begins_with("copper_") else Color(0.42, 0.44, 0.46)
 
 
-## A copper bar: a flat ingot with sloped sides, a bright top edge.
-static func _bar() -> VoxelModel:
+## A bar of metal `c` (copper by default): a flat ingot with sloped sides, a bright top edge.
+static func _bar(c := COPPER) -> VoxelModel:
 	var m := VoxelModel.new()
 	for x in range(-3, 4):
 		for z in range(-1, 2):
-			m.set_voxel(Vector3i(x, 0, z), COPPER * (0.85 if abs(x) == 3 or abs(z) == 1 else 1.0))
+			m.set_voxel(Vector3i(x, 0, z), c * (0.85 if abs(x) == 3 or abs(z) == 1 else 1.0))
 	for x in range(-2, 3):
-		m.set_voxel(Vector3i(x, 1, 0), COPPER * (1.2 if x % 2 == 0 else 1.1))
+		m.set_voxel(Vector3i(x, 1, 0), c * (1.2 if x % 2 == 0 else 1.1))
+	return m
+
+
+## A crucible of clay `c`: a thick squat cup, dark inside.
+static func _crucible(c: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in range(0, 4):
+		for z in range(-2, 2):
+			for x in range(-2, 2):
+				var inside := y > 0 and x >= -1 and x <= 0 and z >= -1 and z <= 0
+				if inside and y == 3:
+					continue
+				m.set_voxel(Vector3i(x, y, z), c * 0.4 if inside else c * (0.85 if x == -2 or z == 1 else 1.0))
 	return m
 
 

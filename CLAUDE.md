@@ -152,8 +152,9 @@ Each in one line; the system's context doc has the detail.
   lights; `toon_light` returns 0 where ATTENUATION is 0 (`docs/systems/rendering.md`).
 - A new kind of light or a material shown only later goes into `shader_warmup.gd`, or its first draw
   compiles shaders mid-game (100 ms+ on a phone).
-- The material atlas is full: 13 materials and 8 barks = 21 of 21 (`PixelTextures.MOST_MATERIALS`,
-  `material_bits[21]` in `world.gdshader`); a new material or bark fails `validate.gd`.
+- The material atlas holds 63 materials and barks together (`PixelTextures.MOST_MATERIALS`,
+  `material_bits[63]` in `world.gdshader`): the mesh packs the material in 6 bits, the sides' tile as
+  flag bit 1, the underside's by a face looking down (`MeshFaces.pack`); 21 are used.
 - Material numbers follow the load order: a world's bundle set must not change; old saves go through
   `Mat.remap`.
 - Audio buses live in `default_bus_layout.tres` (a bus added later is silent on the web);
