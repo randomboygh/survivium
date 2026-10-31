@@ -231,6 +231,8 @@ func fell(who, cell: Vector3i) -> bool:
 ## scythe cut the grass on top of it, else the tool digs as many cells around it as it
 ## takes in a swing.
 func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
+	if Tools.shoots(Tools.weapon(who.held())):
+		return shoot(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cell.y == 0 or m == Mat.AIR:
 		return {}
@@ -494,9 +496,12 @@ func act_in_front(who, top: int) -> Dictionary:
 				return _work(FRONT_PLACE_SWING, "reach", Vector3.INF)
 			return {"swing": IDLE_SWING}
 	var t: Dictionary = who.tool()
-	# A sword or a knife goes for an animal in front first, any other hand for one
-	# right by the body.
-	var blow := strike(who, Tools.hunts(t))
+	var arm := Tools.weapon(who.held())
+	# A spear, a sling or a bow shoots ahead; a sword or a knife goes for an animal in
+	# front first, any other hand for one right by the body.
+	if Tools.shoots(arm):
+		return shoot(who)
+	var blow := strike(who, Tools.hunts(arm))
 	if not blow.is_empty():
 		return blow
 	var work := front_choice(who)
@@ -539,18 +544,92 @@ func strike(who, far := true) -> Dictionary:
 	var a = wildlife.in_front(at, Vector2(s), wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
 	if a == null or not who.act("swing"):
 		return {}
-	var t: Dictionary = who.tool()
+	var arm := Tools.weapon(who.held())
+	var t: Dictionary = arm if not arm.is_empty() else who.tool()
 	var where: Vector3 = a.pos
-	var spec: Dictionary = AiRules.SPECIES[a.kind]
-	if wildlife.hurt(a, t.power, at) and spec.carcass != "" and Items.has(spec.carcass):
-		var cell := Vector3i(floori(where.x / CELL), floori(where.y / CELL + 0.5), floori(where.z / CELL))
-		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
-		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
-		who.note("hunted")
+	_wound(who, a, t.power)
 	if t.tool != "hand":
 		who.use_tool()
 	var done := _work(t.swing, "", where + Vector3(0.0, 0.3, 0.0))
 	done.hit = true
+	return done
+
+
+## Animal `a` takes a blow of `power` from `who`; if it dies, its carcass (its species'
+## `carcass`) is left on the ground where it fell.
+func _wound(who, a, power: int) -> void:
+	var where: Vector3 = a.pos
+	var spec: Dictionary = AiRules.SPECIES[a.kind]
+	if wildlife.hurt(a, power, who.position) and spec.carcass != "" and Items.has(spec.carcass):
+		var cell := _cell_at(where)
+		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
+		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
+		who.note("hunted")
+
+
+static func _cell_at(p: Vector3) -> Vector3i:
+	return Vector3i(floori(p.x / CELL), floori(p.y / CELL + 0.01), floori(p.z / CELL))
+
+
+## How fast a shot flies, in world units a second (for the flight drawn: the shot itself
+## lands at once), and how wide the way it is aimed counts, as the cosine of the half angle.
+const SHOT_SPEED := 14.0
+const AIM_CONE := 0.9
+
+
+## A shot of the weapon in hand (a spear thrown, a stone from a sling, an arrow from a
+## bow) toward `aim` (world units; the way `who` faces when not finite), as far as the
+## weapon's `range`: it hits the first animal along that way (Wildlife.in_front within
+## AIM_CONE) unless a solid cell stops it first, and what was shot lies where it ended up,
+## to be picked up again. Nothing to shoot (no `ammo` in the bag): a word and an idle swing.
+func shoot(who, aim := Vector3.INF) -> Dictionary:
+	var item := Tools.weapon(who.held())
+	if not Tools.shoots(item):
+		return {}
+	var ammo: String = item.ammo if item.ammo != "" else item.id
+	if who.inventory.count(ammo) == 0:
+		who.nag("ammo", "Нечем стрелять: нужно «%s»" % Items.title(ammo))
+		return {"swing": IDLE_SWING}
+	if not who.act("swing"):
+		return {}
+	var at: Vector3 = who.position
+	var from := at + Vector3(0.0, 0.6, 0.0)
+	var s: Vector2i = who.facing_step()
+	var dir := Vector2(s).normalized()
+	if aim.is_finite() and Vector2(aim.x - at.x, aim.z - at.z).length() > 0.05:
+		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
+	var reach: float = item.range * CELL
+	var a = wildlife.in_front(at, dir, reach, AIM_CONE) if wildlife != null else null
+	var to: Vector3 = a.pos + Vector3(0.0, 0.3, 0.0) if a != null else from + Vector3(dir.x, 0.0, dir.y) * reach
+	# Along the way, the first solid cell stops it.
+	var steps := maxi(1, ceili(from.distance_to(to) / (CELL * 0.5)))
+	var end := to
+	for i in range(1, steps + 1):
+		var c := _cell_at(from.lerp(to, float(i) / steps))
+		if world.is_solid(c.x, c.y, c.z):
+			end = from.lerp(to, float(i - 1) / steps)
+			a = null
+			break
+	# One out of the bag: a thrown weapon keeps its wear.
+	var data: Variant = 1
+	if ammo == item.id:
+		for i in who.inventory.slots.size():
+			var slot = who.inventory.slots[i]
+			if slot != null and slot[0] == ammo:
+				var taken = who.inventory.take_slot(i, 1)
+				data = {"n": 1, "worn": taken[2]} if taken.size() > 2 else 1
+				break
+	else:
+		who.inventory.remove(ammo, 1)
+		who.use_tool()
+	if a != null:
+		_wound(who, a, item.power)
+	var land := floor_under(_cell_at(end))
+	world.add_drop(ammo, land, randf() * TAU, data)
+	drops_changed.emit(WorldData.chunk_key(floori(land.x / CELL), floori(land.z / CELL)))
+	var done := _work(item.swing, "", end)
+	done.hit = a != null
+	done.shot = [ammo, from, land, from.distance_to(land) / SHOT_SPEED]
 	return done
 
 

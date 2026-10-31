@@ -112,6 +112,10 @@ const SCHEMAS := {
 		"crop": {"type": "ref:plants", "default": "", "rel": "grows_into", "via": "sow"},
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
+		# A weapon that shoots or is thrown: how far, in cells, and what it shoots (one of
+		# it out of the bag a shot; none: the weapon itself is thrown).
+		"range": {"type": "int", "min": 0, "default": 0},
+		"ammo": {"type": "ref:items", "default": "", "rel": "consumes"},
 		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "repaired_with", "via": "repair"},
 		# Set down on two by two cells, a thing of this class (its model, its solid parts); a
 		# station unless it stores. What it does besides is in its flags: `storage` slots it

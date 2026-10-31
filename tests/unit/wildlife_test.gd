@@ -445,6 +445,45 @@ func _test_hunting(w: WorldData) -> void:
 	var fly := _animal(life, "animals:butterfly", north)
 	_check(fly.health == 0 and life.in_front(person.position, Vector2(0, -1)) != fly and actions.strike(person).is_empty(),
 		"a butterfly cannot be hit: the swing finds nothing")
+	life.animals.erase(fly)
+	_test_shooting(w, life, actions, person)
+
+
+## A bow shoots an arrow out of the bag at the first animal ahead within its range, and
+## the arrow lies where it fell; a wall in the way stops it; a spear is thrown out of the
+## bag itself; with nothing to shoot the bow only says so.
+func _test_shooting(w: WorldData, life: Wildlife, actions: WorldActions, person: Who) -> void:
+	life.animals.clear()
+	var far := person.position + Vector3(0.0, 0.0, -6.0)
+	var deer := _animal(life, "animals:deer", far)
+	deer.health = AiRules.SPECIES["animals:deer"].health
+	person.item = "tools:wooden_bow"
+	person.inventory.add("tools:wooden_bow", 1)
+	_check(actions.shoot(person).get("swing", 0.0) == WorldActions.IDLE_SWING and person.said.back().begins_with("Нечем стрелять"),
+		"a bow with no arrows only says so")
+	person.inventory.add("tools:arrow", 3)
+	var was := deer.health
+	var done := actions.shoot(person)
+	var key := WorldData.chunk_key(floori(far.x / WorldData.CELL), floori(far.z / WorldData.CELL))
+	var arrows: Array = w.drops.get(key, []).filter(func(d: Array) -> bool: return d[0] == "tools:arrow")
+	_check(done.get("hit", false) and deer.health == was - Items.get_item("tools:wooden_bow").power and person.inventory.count("tools:arrow") == 2
+		and arrows.size() == 1 and done.shot[0] == "tools:arrow", "an arrow hits the deer 6 away and lies by it")
+	# A wall of stone halfway: the arrow stops at it.
+	var mid := Vector3i((person.position / WorldData.CELL).floor()) + Vector3i(0, 1, -6)
+	for dx in range(-3, 4):
+		for dy in range(-1, 3):
+			w.set_cell(mid.x + dx, mid.y + dy, mid.z, Mat.STONE)
+	deer.pos = far
+	was = deer.health
+	done = actions.shoot(person)
+	_check(not done.get("hit", true) and deer.health == was and done.shot[2].z > mid.z * WorldData.CELL, "a wall in the way stops the arrow")
+	for dx in range(-3, 4):
+		for dy in range(-1, 3):
+			w.set_cell(mid.x + dx, mid.y + dy, mid.z, Mat.AIR)
+	person.item = "tools:flint_spear"
+	person.inventory.add("tools:flint_spear", 1)
+	done = actions.shoot(person)
+	_check(done.get("hit", false) and person.inventory.count("tools:flint_spear") == 0, "a spear is thrown out of the bag and hits")
 
 
 func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:

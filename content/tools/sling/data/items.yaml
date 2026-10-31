@@ -1,0 +1,28 @@
+# Предметы бандла «Праща» мода «Инструменты и крафт»: оружие, которое бросают или из которого стреляют.
+# range — как далеко (в клетках), ammo — чем стреляют (по одному из сумки на выстрел; без него бросают само
+# оружие); удар по зверю — power. Кнопка действия стреляет туда, куда смотрит персонаж, касание земли — туда,
+# где коснулись; выстрел попадает в первого зверя на пути, а выпущенное ложится там, где упало.
+- id: cord_sling
+  title: Праща
+  description: Ремень из верёвки: мечет камешки дальше, чем рука.
+  weight: 0.2
+  stack: 1
+  model: cord_sling
+  icon: cord_sling
+  tool: sling
+  sprite: cord_sling
+  anim: slash
+  power: 2
+  swing: 0.6
+  reach: 4
+  range: 20
+  ammo: sling_stone
+  durability: 150
+  repair: {materials:cord: 1}
+- id: sling_stone
+  title: Камешки
+  description: Круглые камешки для пращи.
+  weight: 0.1
+  stack: 40
+  model: sling_stone
+  icon: sling_stone

@@ -185,6 +185,77 @@ const SHAPES := {
 		],
 		"carry": {"front": 0, "side": 0, "back": 0},
 	},
+	"flint_spear": {
+		"up": [
+			".A.",
+			"Aa.",
+			".w.",
+			".w.",
+			".W.",
+			".w.",
+			".g.",
+			".w.",
+			".W.",
+		],
+		"diagonal": [
+			".......A",
+			"......Aa",
+			".....w..",
+			"....W...",
+			"...w....",
+			"..g.....",
+			".w......",
+			"W.......",
+		],
+		"toward": [
+			".g.",
+			".w.",
+			".a.",
+		],
+		"carry": {"front": 7, "side": 1, "back": 1},
+	},
+	"cord_sling": {
+		"up": [
+			".rR",
+			".r.",
+			".r.",
+			".g.",
+		],
+		"diagonal": [
+			"..rR",
+			".r..",
+			"g...",
+		],
+		"toward": [
+			".g.",
+			".r.",
+			"rR.",
+		],
+		"carry": {"front": 0, "side": 0, "back": 0},
+	},
+	"wooden_bow": {
+		"up": [
+			".w..",
+			"w.r.",
+			"w..r",
+			"g..r",
+			"w..r",
+			"w.r.",
+			".w..",
+		],
+		"diagonal": [
+			"..ww.",
+			".w..r",
+			"g..r.",
+			"w.r..",
+			".r...",
+		],
+		"toward": [
+			"wgw",
+			".r.",
+		],
+		"carry": {"front": 0, "side": 0, "back": 0},
+	},
 	"scythe": {
 		"up": [
 			"daaAA..",
@@ -261,6 +332,8 @@ const SHAPES := {
 const RECOLOURED := {
 	"stone_sword": ["sword", {"P": "A", "p": "a"}],
 	"copper_knife": ["flint_knife", {"A": "N", "a": "n"}],
+	"bronze_spear": ["flint_spear", {"A": "Z", "a": "z"}],
+	"iron_spear": ["flint_spear", {"A": "J", "a": "j"}],
 	"bronze_knife": ["flint_knife", {"A": "Z", "a": "z"}],
 	"iron_knife": ["flint_knife", {"A": "J", "a": "j"}],
 	"steel_knife": ["flint_knife", {"A": "Y", "a": "y"}],

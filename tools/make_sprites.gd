@@ -47,6 +47,11 @@ const HELD := {
 	"bronze_knife": "slash",
 	"iron_knife": "slash",
 	"steel_knife": "slash",
+	"flint_spear": "slash",
+	"bronze_spear": "slash",
+	"iron_spear": "slash",
+	"cord_sling": "slash",
+	"wooden_bow": "slash",
 	"torch": "reach",
 }
 const LUMP := [

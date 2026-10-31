@@ -368,6 +368,12 @@ const SHOTS := {
 		"hands": {"tool": "tools:iron_knife", "facing": "e", "work": "slash", "strike": true},
 		"drops": ["animals:small_carcass", "animals:carcass", "animals:raw_meat", "animals:roasted_meat", "animals:hide", "animals:bone",
 			"animals:fat", "tools:flint_knife", "tools:bronze_knife", "tools:steel_knife"]},
+	# A bow drawn at a deer, an arrow halfway to it, and the spears, the sling and its
+	# stones, the bow and arrows lying on the ground.
+	"ranged": {"time": 0.42, "season": 1, "clearing": true, "prey": ["animals:deer", 10, -1], "flight": "tools:arrow",
+		"hands": {"tool": "tools:wooden_bow", "facing": "e", "work": "slash", "strike": true},
+		"drops": ["tools:flint_spear", "tools:bronze_spear", "tools:iron_spear", "tools:cord_sling", "tools:sling_stone",
+			"tools:wooden_bow", "tools:arrow"]},
 	# A bronze pickaxe at its strike, and the things of tin and bronze lying on the ground.
 	"hands-bronze": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["materials:tin_ore", "materials:tin_bar", "materials:raw_crucible", "materials:crucible", "materials:bronze_bar", "tools:bronze_axe",

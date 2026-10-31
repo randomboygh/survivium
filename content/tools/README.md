@@ -11,7 +11,7 @@
 ```
 content/tools/
   mod.yaml                      id: tools, название, версия, api
-  axe/ pickaxe/ shovel/ sword/ knife/ scythe/ torch/ tar_torch/ lantern/ workbench/ kiln/ forge/ loom/ potters_wheel/
+  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ bow/ scythe/ torch/ tar_torch/ lantern/ workbench/ kiln/ forge/ loom/ potters_wheel/
   bloomery/ anvil/ chest/
                                 бандл на вещь:
     bundle.yaml                 название
@@ -46,7 +46,9 @@ content/tools/
   рубят — `src/shared/content/tools.gd`); любой другой класс (hammer) — для рецептов и станков, в мире
   он как руки. Нож (knife) в мире тоже как руки, но, как и меч, сначала бьёт зверя перед собой (`Tools.hunts`; другие руки — только зверя вплотную),
   а в сумке разделывает туши (рецепт «Разделать тушу» мода «Животные» просит класс knife). Удар по зверю
-  снимает с него `power` инструмента (руки — 1). Класс вещи `prop` — тоже открытое слово (workbench, kiln, forge, chest), а что вещь делает,
+  снимает с него `power` инструмента (руки — 1). Копьё (spear), праща (sling) и лук (bow) с `range` (в клетках)
+  стреляют: кнопка действия — туда, куда смотрит персонаж, касание земли — туда, где коснулись; `ammo` — чем
+  (по одному из сумки за выстрел; без него бросают само оружие). Выпущенное ложится там, где упало. Класс вещи `prop` — тоже открытое слово (workbench, kiln, forge, chest), а что вещь делает,
   говорят флаги: `storage: 16` — хранит вещи (сундук), `repairs: true` — у неё чинят (верстак), `fire: true` —
   горит (костёр), `serves` — заменяет названные станки, `place_tool` — ставится с инструментом этого класса
   в сумке. Новый станок другого мода — одни данные; с `serves: [tools:workbench]` у него делают всё, что

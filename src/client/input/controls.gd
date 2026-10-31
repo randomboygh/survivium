@@ -560,6 +560,8 @@ func _did(done: Variant) -> bool:
 	if not done is Dictionary or done.is_empty():
 		return false
 	_cooldown = done.swing
+	if done.has("shot"):
+		game.props.fly_shot(done.shot)
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
 		game.sound.work(done, game.player.work_kind, STRIKE)

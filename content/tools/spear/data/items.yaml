@@ -1,0 +1,50 @@
+# Предметы бандла «Копьё» мода «Инструменты и крафт»: оружие, которое бросают или из которого стреляют.
+# range — как далеко (в клетках), ammo — чем стреляют (по одному из сумки на выстрел; без него бросают само
+# оружие); удар по зверю — power. Кнопка действия стреляет туда, куда смотрит персонаж, касание земли — туда,
+# где коснулись; выстрел попадает в первого зверя на пути, а выпущенное ложится там, где упало.
+- id: flint_spear
+  title: Кремнёвое копьё
+  description: Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова.
+  weight: 1.5
+  stack: 1
+  model: flint_spear
+  icon: flint_spear
+  tool: spear
+  sprite: flint_spear
+  anim: slash
+  power: 4
+  swing: 0.7
+  reach: 4
+  range: 14
+  durability: 40
+  repair: {resources:flint: 1}
+- id: bronze_spear
+  title: Бронзовое копьё
+  weight: 1.5
+  stack: 1
+  model: bronze_spear
+  icon: bronze_spear
+  tool: spear
+  sprite: bronze_spear
+  anim: slash
+  power: 6
+  swing: 0.7
+  reach: 4
+  range: 14
+  durability: 120
+  repair: {materials:bronze_bar: 1}
+- id: iron_spear
+  title: Железное копьё
+  weight: 1.5
+  stack: 1
+  model: iron_spear
+  icon: iron_spear
+  tool: spear
+  sprite: iron_spear
+  anim: slash
+  power: 8
+  swing: 0.7
+  reach: 4
+  range: 14
+  durability: 250
+  repair: {materials:iron_bar: 1}

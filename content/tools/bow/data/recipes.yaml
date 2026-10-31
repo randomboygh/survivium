@@ -1,0 +1,14 @@
+# Рецепты бандла «Лук»: лук и стрелы делают на верстаке.
+- id: wooden_bow
+  title: Деревянный лук
+  makes: wooden_bow
+  needs: {materials:planks: 1, materials:cord: 2}
+  at: workbench
+  time: 6
+- id: arrow
+  title: Стрелы
+  makes: arrow
+  count: 4
+  needs: {resources:branch: 1, resources:flint: 1, resources:fiber: 1}
+  at: workbench
+  time: 4
