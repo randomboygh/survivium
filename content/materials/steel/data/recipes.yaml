@@ -2,7 +2,7 @@
 - id: steel_bar
   title: Стальной слиток
   makes: steel_bar
-  needs: {iron_bar: 2, charcoal: 3}
+  needs: {iron_bar: 1, charcoal: 1}
   keeps: {crucible: 1}
   at: tools:bloomery
   process: smelt
