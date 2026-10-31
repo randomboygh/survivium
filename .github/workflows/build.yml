@@ -1,10 +1,11 @@
 name: Test and build
 
 # Jobs run side by side: the docs check and the headless tests, the frame test (alone, it
-# measures frame times), the web export, then the browser smoke test as a desktop and as a
-# phone, each on a machine of its own. On a pull request the smoke test runs only when the PR
-# touches what the browser shows differently (see `changes`) or carries the label `smoke`; on
-# main it always runs, and the build is published only when everything passed.
+# measures frame times), the web export, the Windows and Linux exports, then the browser smoke
+# test as a desktop and as a phone, each on a machine of its own. On a pull request the smoke
+# test runs only when the PR touches what the browser shows differently (see `changes`) or
+# carries the label `smoke`; on main it always runs, and the builds are published only when
+# everything passed: the web one to Pages, the PC ones to the rolling release `pc-latest`.
 
 on:
   push:
@@ -109,6 +110,41 @@ jobs:
         with:
           path: build/web
 
+  # The game for Windows (with the console wrapper, which shows the log of a server run from
+  # the terminal) and Linux; the same files run the server with `--headless -- --server`.
+  pc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/godot
+
+      - name: Version and recent changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tools/build_info.py build_info.json
+
+      - name: Export the Windows and Linux builds
+        run: |
+          mkdir -p build/windows build/linux
+          ~/godot/godot --headless --path . --export-release "Windows Desktop" build/windows/Survivium.exe
+          ~/godot/godot --headless --path . --export-release "Linux" build/linux/Survivium.x86_64
+          ls -la build/windows build/linux
+          (cd build/windows && zip -qr ../survivium-windows.zip .)
+          tar czf build/survivium-linux.tar.gz -C build/linux .
+
+      - name: Upload the Windows build (download from the run page)
+        uses: actions/upload-artifact@v4
+        with:
+          name: survivium-windows
+          path: build/survivium-windows.zip
+
+      - name: Upload the Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: survivium-linux
+          path: build/survivium-linux.tar.gz
+
   smoke:
     needs: [changes, export]
     if: needs.changes.outputs.smoke == 'true'
@@ -129,6 +165,39 @@ jobs:
           python3 -m http.server 8060 --directory build/web >/dev/null 2>&1 &
           npm install --no-save --no-package-lock --silent playwright-core@1.48.2
           node tests/browser_smoke.mjs ${{ matrix.device }}
+
+  # The PC builds of main go to the release `pc-latest`, the same files every time.
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: [tests, frames, pc, smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: survivium-windows
+          path: build
+      - uses: actions/download-artifact@v4
+        with:
+          name: survivium-linux
+          path: build
+      - name: Put the builds on the release pc-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          python3 tools/build_info.py build_info.json
+          version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
+          notes="Сборки игры для ПК из main, версия $version (обновляются с каждым слиянием). Windows: распакуйте и запустите Survivium.exe; сервер из терминала — Survivium.console.exe --headless -- --server. Linux: ./Survivium.x86_64 (сервер: --headless -- --server)."
+          if gh release view pc-latest >/dev/null 2>&1; then
+            gh release edit pc-latest --prerelease --title "Сборки для ПК ($version)" --notes "$notes"
+          else
+            gh release create pc-latest --prerelease --title "Сборки для ПК ($version)" --notes "$notes"
+          fi
+          gh release upload pc-latest build/survivium-windows.zip build/survivium-linux.tar.gz --clobber
 
   deploy:
     if: github.ref == 'refs/heads/main'

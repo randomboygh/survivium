@@ -53,11 +53,16 @@
 
 ## CI (`.github/workflows/build.yml`)
 
-Задания идут параллельно: `tests` (validate, run_tests, save_test, progress_test и проверка документов),
-`frames` (frame_test один), `export` (версия, web-экспорт, патч), затем `smoke` (Chrome как ПК и как
-телефон). В PR проверка в браузере идёт, только если PR трогает то, что браузер может показать иначе
-(шаблон `web` в задании `changes`), или у PR метка `smoke`; в `main` — всегда, и Pages публикуются, только
-когда прошли все задания. Кадр программного WebGL занимает секунду и больше, каждое событие ввода ждёт
+Задания идут параллельно: `tests` (validate, run_tests, save_test, progress_test, server_test и проверка
+документов), `frames` (frame_test один), `export` (версия, web-экспорт, патч), `pc` (версия, экспорт
+Windows — `Survivium.exe` с консольной обёрткой `Survivium.console.exe` — и Linux — `Survivium.x86_64`;
+архивы `survivium-windows.zip` и `survivium-linux.tar.gz` как артефакты), затем `smoke` (Chrome как ПК
+и как телефон). В PR проверка в браузере идёт, только если PR трогает то, что браузер может показать иначе
+(шаблон `web` в задании `changes`), или у PR метка `smoke`; в `main` — всегда, и сборки публикуются,
+только когда прошли все задания: web на Pages (`deploy`), ПК — в скользящий пререлиз `pc-latest`
+(`publish`, те же имена файлов каждый раз; описание с версией). Шаблоны экспорта (web, Windows, Linux)
+кладёт `.github/actions/godot`; пресеты — в `export_presets.cfg` (Windows без rcedit:
+`application/modify_resources=false`). Кадр программного WebGL занимает секунду и больше, каждое событие ввода ждёт
 кадра: событий в smoke-тесте держите мало. FPS в CI ничего не значит.
 
 ## Версия и «Что нового»
