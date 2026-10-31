@@ -24,7 +24,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (world_pos.y > cut_height + 0.01 || COLOR.a < 0.02) {
+	if (gone_above(world_pos) || COLOR.a < 0.02) {
 		discard;
 	}
 	if (sky_only > 0.5 && roofed(world_pos.xz, world_pos.y)) {

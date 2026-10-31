@@ -80,6 +80,10 @@ cut_ghost={
 "type": "float",
 "value": 1.0
 }
+cut_front={
+"type": "float",
+"value": 0.0
+}
 view_height={
 "type": "float",
 "value": 0.0

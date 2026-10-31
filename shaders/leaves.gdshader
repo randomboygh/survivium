@@ -189,7 +189,7 @@ void fragment() {
 	// sway or offset, so the dithers of the cards lying one over another leave out the
 	// same pixels instead of filling each other's gaps.
 	vec2 texel = light_texel(light_xz);
-	if (m.a < 0.5 || cut_dither(center.y, texel)) {
+	if (m.a < 0.5 || cut_hides(center, texel)) {
 		discard;
 	}
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters

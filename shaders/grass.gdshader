@@ -119,8 +119,9 @@ void vertex() {
 void fragment() {
 	vec2 cell = vec2(float(int(custom.x + 0.5)) * 8.0, 0.0);
 	vec4 m = texture(plant_texture, (cell + UV * vec2(8.0, 24.0)) / vec2(8.0 * plant_count, 24.0));
-	// Plants are too small to show above the cut. (A halo is drawn without the texture.)
-	if ((m.a < 0.5 && kind != HALO) || root.y > cut_height + 0.01) {
+	// Plants are too small to show above the cut (in the open cave view, only in front
+	// of the player). (A halo is drawn without the texture.)
+	if ((m.a < 0.5 && kind != HALO) || gone_above(root)) {
 		discard;
 	}
 	float patch = ground_patch(root.xz, 0.0);
