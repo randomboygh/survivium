@@ -153,6 +153,12 @@ const SHOTS := {
 	# only what stands in front of the player goes.
 	"underground-open": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 1}},
 	"ground-cave-inside-open": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 1}},
+	"underground-s1": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 1}},
+	"ground-cave-inside-s1": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 1}},
+	"underground-s2": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 2}},
+	"ground-cave-inside-s2": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 2}},
+	"underground-s3": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 3}},
+	"ground-cave-inside-s3": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 3}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.

@@ -659,6 +659,30 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 				open = c.air[col] | c.water[col] | c.leaf[col]
 				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16:
 					tile = cells[i] * 3
+					# PROTOTYPE: the sides of the cut rock toward open space, outlined.
+					var rim := 0
+					var k := 0
+					for o: Vector2i in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+						if not Mat.is_roof(w.get_cell(x + o.x, level, z + o.y)):
+							rim |= 1 << (2 * k)
+						k += 1
+					if rim != 0:
+						if run_tile >= 0:
+							var rb := Vector3(run_x, level, z)
+							var rp := []
+							var ru := []
+							for v: Vector3 in corners:
+								rp.append(rb + Vector3(v.x * (x - run_x), v.y, v.z))
+								ru.append(Vector2(v.x * (x - run_x), v.z))
+							buf.quad(rp, Vector3.UP, ru, dark, Vector2(pack(run_tile, 0, 0), no_tiles))
+							run_tile = -1
+						var cp := []
+						var cu := []
+						for v: Vector3 in corners:
+							cp.append(Vector3(x, level, z) + v)
+							cu.append(Vector2(v.x, v.z))
+						buf.quad(cp, Vector3.UP, cu, dark, Vector2(pack(tile, rim, 0), no_tiles))
+						continue
 			# (A run is marked by its tile: x may be negative.)
 			if tile != run_tile and run_tile >= 0:
 				var base := Vector3(run_x, level, z)

@@ -437,6 +437,20 @@ void fragment() {
 	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
+	if (cave_style > 0.5 && cut_height < 999.0 && !IN_SHADOW_PASS) {
+		float d = length(world_pos.xz - player_pos.xz);
+		if (cap) {
+			EMISSION += col * 1.3;
+		}
+		if (cave_style > 2.5) {
+			float glow = clamp((6.0 - d) / 3.0, 0.0, 1.0);
+			if (!cap) {
+				EMISSION += col * vec3(1.0, 0.85, 0.6) * 0.9 * glow;
+			}
+			float dark = clamp((d - 6.5) / 2.0, 0.0, 1.0);
+			EMISSION = mix(EMISSION, veiled.rgb, dark);
+		}
+	}
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
 	AO_LIGHT_AFFECT = 0.6;

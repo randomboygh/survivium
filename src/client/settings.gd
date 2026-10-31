@@ -65,6 +65,7 @@ const DEFAULTS := {
 	# front of the player near them on the screen (the shader global cut_front,
 	# front_hides in common.gdshaderinc).
 	"cave_view": 0,
+	"cave_style": 0,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
@@ -322,6 +323,7 @@ func apply() -> void:
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
 	game.controls.show_help = values.show_help
 	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_view == 1 else 0.0)
+	RenderingServer.global_shader_parameter_set("cave_style", float(values.cave_style))
 	var view = game.view
 	if view != null and view.target_height != PixelView.TARGET_HEIGHT / pixel_size():
 		view.target_height = PixelView.TARGET_HEIGHT / pixel_size()

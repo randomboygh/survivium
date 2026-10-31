@@ -16,6 +16,8 @@ global uniform float cut_ghost;
 // stands between the camera and the player goes, the rest is drawn as on the surface
 // (see front_hides).
 global uniform float cut_front;
+// PROTOTYPE cave looks: 0 as is, 1 lit caps and no ghost, 2 the same cut a level lower, 3 and a lantern.
+global uniform float cave_style;
 global uniform float snow_amount;
 // Height (world units) above which snow lies all year: the tops of high mountains (see
 // WorldData.SNOW_LINE and peak_snow).
@@ -352,6 +354,9 @@ bool cut_hides(vec3 p, vec2 texel) {
 	if (p.y <= cut_height + 0.01) {
 		return false;
 	}
+	if (cave_style > 0.5 && cut_ghost > 0.5 && !open_cut()) {
+		return true;
+	}
 	return open_cut() ? front_hides(p, texel) : cut_dither(p.y, texel);
 }
 
@@ -495,6 +500,10 @@ float fog_at(vec3 p) {
 // it and the crowns stay clear.
 // rgb is the colour given off in place, a how much of the thing's own colour gives way.
 vec4 veil(vec3 p, float fade) {
+	if (cave_style > 2.5 && cut_height < 999.0) {
+		// PROTOTYPE lantern: dark beyond the player's light.
+		fade = max(fade, clamp((length(p.xz - player_pos.xz) - 6.5) / 2.0, 0.0, 1.0));
+	}
 	if (fog <= 0.0) {
 		return vec4(depth_haze * fade, fade);
 	}

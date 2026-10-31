@@ -84,6 +84,10 @@ cut_front={
 "type": "float",
 "value": 0.0
 }
+cave_style={
+"type": "float",
+"value": 0.0
+}
 view_height={
 "type": "float",
 "value": 0.0

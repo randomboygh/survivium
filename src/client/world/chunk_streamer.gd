@@ -693,7 +693,7 @@ func update_cut(delta: float) -> void:
 	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
-		target = level + 1
+		target = level + 1 if game.settings.values.get("cave_style", 0) < 2 else level
 	else:
 		if sunk:
 			target = sunk_rim
