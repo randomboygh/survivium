@@ -26,6 +26,8 @@ const GRAVITY := 44.0
 ## A jump rises about 1.45 cells: onto a block of one cell, not of two.
 const JUMP_SPEED := 11.3
 const MAX_FALL := 30.0
+## Cells below the feet a falling body counts as on the ground already (see step).
+const LAND_EPS := 0.002
 ## Walking into a wall with the middle of the body this close to the middle of a gap of
 ## one cell beside it slides the body sideways into line with the gap.
 const ASSIST := 0.35
@@ -209,9 +211,14 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		return p * CELL
 	velocity_y = maxf(velocity_y - GRAVITY * delta, -SINK_SPEED if water_depth > 0.0 else -MAX_FALL)
 	var ny := p.y + velocity_y * delta
-	if _collides(Vector3(p.x, ny, p.z)):
+	# Falling, the ground a hair below counts as reached: at a high frame rate a body
+	# standing still sinks less a frame than _collides lets pass (0.001), so it would
+	# drop a frame and land the next, on and off the ground every other frame (and
+	# tell the server so each time).
+	var probe := ny - LAND_EPS if velocity_y < 0.0 else ny
+	if _collides(Vector3(p.x, probe, p.z)):
 		if velocity_y < 0.0:
-			var ground := _ground_top(p, ny, p.y)
+			var ground := _ground_top(p, probe, p.y)
 			p.y = ground if ground > -INF else floorf(ny) + 1.0
 			on_ground = true
 		velocity_y = 0.0

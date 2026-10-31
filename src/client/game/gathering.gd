@@ -16,8 +16,8 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
-## in world units (ten cells, as Tools.PLACE_REACH).
-const REACH := 5.0
+## in world units (the rules' own, which the server checks with a slack).
+const REACH := WorldActions.HAND_REACH
 ## How near the point on the screen a thing must be, in pixels of the world image: a
 ## finger is wider than a mouse pointer.
 const FINGER := 14.0

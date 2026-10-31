@@ -2,7 +2,7 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH), of the things placed (PROPS, PROP,
+## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; HEARD, the chat), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -152,9 +152,15 @@ func handle(bytes: PackedByteArray) -> Variant:
 	return null
 
 
-## A line for the player (the host's `say`).
+## A line for the player (the rules' words, as their own SAY).
 func tell(text: String) -> void:
 	_push(Protocol.SAY, [text])
+
+
+## A line of chat the player hears: said by player `id` named `name` (0 and "" the
+## server).
+func hear(id: int, name: String, text: String) -> void:
+	_push(Protocol.HEARD, [id, name, text])
 
 
 ## The events for the client since the last flush: the state noted as changed first,
@@ -167,11 +173,9 @@ func flush() -> Array[PackedByteArray]:
 		_vitals = _vitals_now()
 		out.append(_event(Protocol.YOU, {"inventory": who.inventory.to_dict(), "vitals": _vitals, "state": who.to_dict(),
 			"home": who.home, "held_back": Array(who.held_back)}))
-	else:
-		var v := _vitals_now()
-		if v != _vitals:
-			_vitals = v
-			out.append(_event(Protocol.VITALS, v))
+	elif _vitals_changed():
+		_vitals = _vitals_now()
+		out.append(_event(Protocol.VITALS, _vitals))
 	if _knowledge:
 		_knowledge = false
 		out.append(_event(Protocol.KNOWLEDGE, [workshop.knowledge.to_dict()]))
@@ -290,13 +294,29 @@ func _packed(key: Vector2i) -> Array:
 func _snap() -> Array:
 	var out := []
 	for a in session.wildlife.animals:
-		if a.away != 0.0 and _snapped.has(a.id):
+		var old: Variant = _snapped.get(a.id)
+		if old != null and (a.away != 0.0 or _same_snap(old, a)):
 			continue
 		var s := [a.id, a.pos, a.lift, a.facing, a.flying, a.perched, a.moving, a.hop, a.left, a.near, a.state]
 		if _snapped.get(a.id) != s:
 			_snapped[a.id] = s
 			out.append(s)
 	return out
+
+
+## Whether animal `a` stands as entry `old` told: no Array is made for one that did
+## not move (most stand still most frames, and over the loop this runs every frame).
+static func _same_snap(old: Array, a) -> bool:
+	return old[1] == a.pos and old[10] == a.state and old[3] == a.facing and old[6] == a.moving \
+		and old[7] == a.hop and old[2] == a.lift and old[4] == a.flying and old[5] == a.perched \
+		and old[8] == a.left and old[9] == a.near
+
+
+## Whether the body's state differs from the last told (no Array made a frame).
+func _vitals_changed() -> bool:
+	var v = who.vitals
+	return _vitals.size() != 5 or _vitals[0] != v.health or _vitals[1] != v.satiety or _vitals[2] != v.stamina \
+		or _vitals[3] != v.hunger or _vitals[4] != v.hurt_by
 
 
 func _vitals_now() -> Array:

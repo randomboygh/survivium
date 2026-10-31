@@ -27,6 +27,7 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
+const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 
@@ -94,6 +95,9 @@ var vitals: VitalsPanel
 ## The red frame and the numbers over the player when the body is hurt, healed or fed.
 var feedback: BodyFeedback
 var bag: InventoryWindow
+## The chat on a server (hidden in single player), and its button.
+var chat: ChatBox
+var _chat_button: Button
 var _bag_button: Button
 ## The tab on the hotbar with how many slots are taken and the load (a tap opens the
 ## bag).
@@ -201,6 +205,8 @@ func _ready() -> void:
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
+	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
+	_chat_button.visible = game != null and game.join_url != ""
 	_bag_button = _icon_button(_top, "bag", "Сумка", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
@@ -355,6 +361,8 @@ func _ready() -> void:
 	_loading_label.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	_loading.add_child(_loading_label)
 
+	chat = ChatBox.new(game)
+	add_child(chat)
 	bag = InventoryWindow.new(game)
 	add_child(bag)
 	game.character.state_changed.connect(refresh_counts)
@@ -378,6 +386,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				toggle_stats()
 				game.print_debug()
 				get_viewport().set_input_as_handled()
+			KEY_ENTER, KEY_KP_ENTER:
+				if _chat_button.visible and not bag.visible:
+					chat.open()
+					get_viewport().set_input_as_handled()
 
 
 # --- Layout --------------------------------------------------------------------
@@ -490,6 +502,12 @@ func _place() -> void:
 	# Off the camera cross under the minimap, on the left of a short window.
 	if _camera.visible and Rect2(_keys.position, _keys.size).intersects(Rect2(_camera.position, _camera.size).grow(4)):
 		_keys.position.x = MARGIN
+	# The chat in the bottom left corner: over the stick, over the hotbar where they
+	# share the left of the screen.
+	var chat_bottom: float = stick.position.y - 6 if touch else bottom
+	if x < MARGIN + ChatBox.WIDTH + 8:
+		chat_bottom = minf(chat_bottom, _bag_meter.position.y - 4)
+	chat.place(Vector2(MARGIN, chat_bottom), w - 2 * MARGIN)
 	_loading.reset_size()
 	_loading.position = ((size - _loading.size) * 0.5).floor()
 	_menu.reset_size()

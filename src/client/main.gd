@@ -444,6 +444,9 @@ func _on_welcome(v: Variant) -> void:
 		return
 	welcome = v
 	ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
+	# The player who made the server here is its host: commands in the chat are theirs.
+	if hosted != null and hosted.server != null:
+		hosted.server.make_host(str(v.get("key", "")))
 
 
 func _on_socket_closed(code: int, reason: String) -> void:

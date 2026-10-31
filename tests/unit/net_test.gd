@@ -182,6 +182,34 @@ func _test_requests() -> void:
 	_check(net.request(Protocol.BAG_MOVE, [cell, 0, null]).value == 2 and a.inventory.count("resources:stone") == 2,
 		"and back")
 	_check(net.request(Protocol.BAG_MOVE, [null, 0, Vector3i(20, 2, 20)]).value == null, "a chest at an empty cell is nobody's")
+	# Out of the hand's reach (С6): a chest, a thing on the ground, a bush are as none.
+	var far_cell := Vector3i(28, 2, 28)
+	var far_chest = placed.put("tools:chest", far_cell).items
+	far_chest.add("resources:stone", 1)
+	_check(net.request(Protocol.BAG_MOVE, [far_cell, 0, null]).value == null and net.request(Protocol.BAG_ALL, [null, far_cell, 0]).value == null
+		and net.request(Protocol.PROP_TAKE, [far_cell]).value == false and far_chest.count("resources:stone") == 1
+		and not placed.at(far_cell).is_empty(), "a chest out of the hand's reach is as none: nothing goes in or out, it is not taken")
+	placed._remove(placed.at(far_cell))
+	w.add_drop("resources:stone", Vector3(14.0, 1.0, 14.0), 0.0, 1)
+	var far_key := WorldData.chunk_key(28, 28)
+	_check(net.request(Protocol.GATHER, [{"drop": [far_key, w.drops[far_key].size() - 1]}]).value == false
+		and w.drops.has(far_key), "a thing on the ground out of reach is not picked up")
+	w.drops.erase(far_key)
+	_check(net.request(Protocol.GATHER, [{"drop": [Vector2i(0, 0), 99]}]).value == false
+		and net.request(Protocol.GATHER, [{"drop": "x"}]).value == false and net.request(Protocol.GATHER, [{"bush": "x"}]).value == false
+		and net.request(Protocol.GATHER, [{"tree": Vector2i(1, 1)}]).value == false and net.request(Protocol.GATHER, [{"tree": 3}]).value == false,
+		"a target of another shape, or a tree that is not there, is refused")
+	# The chat: a line is told on to the server, trimmed and cut; no more than a few at once.
+	var lines: Array = []
+	host.link.requests.chatted.connect(func(t: String) -> void: lines.append(t))
+	var said: Array = []
+	for i in Requests.CHAT_LINES + 1:
+		said.append(net.request(Protocol.CHAT, ["  строка %d  " % i]).value)
+	_check(lines.size() == Requests.CHAT_LINES and lines[0] == "строка 0" and said.count(true) == Requests.CHAT_LINES and said.back() == false,
+		"lines of chat are told on trimmed, %d at most in a while: %s" % [Requests.CHAT_LINES, said])
+	host.link.requests._chat_times.clear()
+	_check(net.request(Protocol.CHAT, ["x".repeat(500)]).value == true and lines.back().length() == Requests.CHAT_MAX
+		and net.request(Protocol.CHAT, ["   "]).value == false, "a long line is cut, an empty one not said")
 	_check(net.request(Protocol.PROP_FIRE, [cell, true]).value == false and net.request(Protocol.PROP_DESTROY, [cell]).value == false,
 		"a chest is not lit or destroyed")
 	_check(net.request(Protocol.PROP_TAKE, [cell]).value == true and placed.things.is_empty()

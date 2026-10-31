@@ -5,7 +5,10 @@ extends RefCounted
 ## each tick (flush). A player whose connection is lost keeps their character in the
 ## world LINGER seconds, so a page reloaded comes back to it with the key the welcome
 ## gave; one who says goodbye (BYE) a short while. The host's commands (command): who,
-## say, kick, stop. Each message is one binary frame; the reply to HELLO goes before
+## say, kick, stop, give, tp, ban, whitelist, op. A line of chat (Protocol.CHAT, С6) is
+## heard by the players within CHAT_RANGE of who said it (HEARD); one that begins with
+## "/" is a command, done for the server's hosts (`access.hosts`: the keys `op` gave,
+## and the player who made the server in the game) and answered to them alone. Each message is one binary frame; the reply to HELLO goes before
 ## the events of joining (the client knows who it is before its copies fill), and the
 ## events of any other request before its reply, as over the loop. With a `store`
 ## (ServerStore, С4) a character that leaves the world is saved and a player who comes
@@ -22,6 +25,8 @@ const Items := preload("res://src/shared/content/items.gd")
 ## goodbye.
 const LINGER := 30.0
 const BYE_LINGER := 5.0
+## How far a line of chat is heard, in world units (sixty cells: about a screen and a half).
+const CHAT_RANGE := 30.0
 ## Seconds a connection has to say hello.
 const HELLO_WAIT := 10.0
 ## Seconds between the animals' snapshots over a socket (PlayerLink.snap_every).
@@ -97,8 +102,9 @@ var stopping := false
 var lines: Array[String] = []
 ## Who may come in, kept in the world's save (ServerStore.ACCESS): the keys blocked
 ## (with the name each had), the names blocked (lower case), whether only the names on
-## the list are let in, and the list (lower case).
-var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": []}
+## the list are let in, the list (lower case), and the keys of the hosts (who may give
+## commands in the chat) with the name each had.
+var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": [], "hosts": {}}
 
 
 func _init(s, cfg: Config, info: Dictionary) -> void:
@@ -201,7 +207,7 @@ func command(line: String) -> String:
 			if rest == "":
 				return "say <слова для всех>"
 			for key in accounts:
-				accounts[key].link.tell(rest)
+				accounts[key].link.hear(0, "Сервер", rest)
 			return "сказано: " + rest
 		"kick":
 			var a := _find(rest)
@@ -224,10 +230,28 @@ func command(line: String) -> String:
 			return "заблокированы: " + (", ".join(_banned()) if not _banned().is_empty() else "никто")
 		"whitelist":
 			return _whitelist(rest)
+		"op":
+			var a := _find(rest)
+			if a == null:
+				return "op <кто> — дать команды в чате; нет такого игрока: " + rest
+			make_host(a.key)
+			a.link.hear(0, "", "Вы хозяин сервера: команды в чате через «/», /help — список")
+			return "хозяин: " + a.name
+		"deop":
+			var low := rest.to_lower()
+			for key in access.hosts.keys():
+				if str(access.hosts[key]).to_lower() == low or str(key) == rest:
+					access.hosts.erase(key)
+					_save_access()
+					return "больше не хозяин: " + rest
+			return "не хозяин: " + rest
+		"hosts":
+			return "хозяева: " + (", ".join(access.hosts.values()) if not access.hosts.is_empty() else "только терминал")
 		"help", "?":
 			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
 				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
 				"ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих",
+				"op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/»",
 				"<кто> — имя или номер игрока (who)"])
 	return "неизвестная команда «%s»; help — список" % parts[0]
 
@@ -237,12 +261,46 @@ func load_access() -> void:
 	if store == null:
 		return
 	var d: Dictionary = store.read_access()
-	if d.get("banned_keys") is Dictionary:
-		access.banned_keys = d.banned_keys
+	for k in ["banned_keys", "hosts"]:
+		if d.get(k) is Dictionary:
+			access[k] = d[k]
 	for k in ["banned_names", "listed"]:
 		if d.get(k) is Array:
 			access[k] = d[k]
 	access.listed_only = d.get("listed_only") == true
+
+
+## The player of `key` may give commands in the chat (the server's own player, `op`).
+func make_host(key: String) -> void:
+	var a: Account = accounts.get(key)
+	access.hosts[key] = a.name if a != null else str(access.hosts.get(key, ""))
+	_save_access()
+
+
+func is_host(key: String) -> bool:
+	return access.hosts.has(key)
+
+
+## Player `key` said `text`: a command for a host (answered to them), else a line heard
+## by everyone within CHAT_RANGE, the speaker too.
+func _on_chat(text: String, key: String) -> void:
+	var a: Account = accounts.get(key)
+	if a == null:
+		return
+	if text.begins_with("/"):
+		if not is_host(key):
+			a.link.hear(0, "", "Команды через «/» — только для хозяина сервера")
+			return
+		_say("%s (%d): %s" % [a.name, a.id, text])
+		for line in command(text).split("\n"):
+			a.link.hear(0, "", line)
+		return
+	_say("%s (%d): %s" % [a.name, a.id, text])
+	var at: Vector3 = a.link.who.position
+	for k in accounts:
+		var b: Account = accounts[k]
+		if b.link.who.position.distance_to(at) <= CHAT_RANGE:
+			b.link.hear(a.id, a.name, text)
 
 
 func _save_access() -> void:
@@ -475,6 +533,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.who.id = a.id
 		a.link.who.player_name = a.name
 		a.link.who.check_moves = true
+		a.link.requests.chatted.connect(_on_chat.bind(a.key))
 		if record.is_empty():
 			a.link.who.start_bag()
 			a.link.who.teleport(world_info.spawn)

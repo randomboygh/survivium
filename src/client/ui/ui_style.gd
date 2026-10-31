@@ -161,6 +161,15 @@ const ICONS := {
 		"wwwwwwwww",
 		"wwwwwwwww",
 	],
+	"chat": [
+		".wwwwwww.",
+		"w.......w",
+		"w.w.w.w.w",
+		"w.......w",
+		".wwwwwww.",
+		".ww......",
+		".w.......",
+	],
 	"bag": [
 		"...www...",
 		"..w...w..",
