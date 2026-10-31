@@ -224,12 +224,19 @@ func _craft_now(r: Dictionary, times: int) -> bool:
 		if _tool_of_kind(kind) == "":
 			if not await _get_tool(kind):
 				return false
-	for id: String in r.needs:
-		if not await _obtain(id, r.needs[id] * times):
-			return false
-	for id: String in r.keeps:
-		if not await _obtain(id, r.keeps[id]):
-			return false
+	# What is made first, then what is gathered: making bricks would use the clay got for
+	# the recipe itself.
+	var needs: Array = r.needs.keys()
+	needs.sort_custom(func(a: String, b: String) -> bool: return not _recipe_for(a).is_empty() and _recipe_for(b).is_empty())
+	# Twice: getting one thing can use up another got before (copper bars made into the
+	# copper pickaxe that digs the tin for the bronze).
+	for round_i in 2:
+		for id: String in needs:
+			if not await _obtain(id, r.needs[id] * times):
+				return false
+		for id: String in r.keeps:
+			if not await _obtain(id, r.keeps[id]):
+				return false
 	await _go(camp)
 	var inv = main.host.player.inventory
 	var before: int = inv.count(r.makes)
@@ -423,7 +430,10 @@ func _branch() -> bool:
 			_rest()
 			swings += 1
 			if not main.gathering.gather(best):
-				return _fail("hands take nothing from %s at %s" % ["a bush" if best.has("bush") else "a tree", at])
+				_tidy()
+				if not main.gathering.gather(best):
+					return _fail("hands take nothing from %s at %s, the bag: %s" % ["a bush" if best.has("bush") else "a tree", at,
+						main.host.player.inventory.slots.filter(func(sl) -> bool: return sl != null).map(func(sl) -> String: return "%s ×%d" % sl)])
 			await process_frame
 			return true
 		if not await _trip():

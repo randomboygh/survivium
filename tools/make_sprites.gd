@@ -32,6 +32,16 @@ const HELD := {
 	"bronze_shovel": "dig",
 	"bronze_sword": "slash",
 	"bronze_scythe": "mow",
+	"iron_axe": "chop",
+	"iron_pickaxe": "chop",
+	"iron_shovel": "dig",
+	"iron_sword": "slash",
+	"iron_scythe": "mow",
+	"steel_axe": "chop",
+	"steel_pickaxe": "chop",
+	"steel_shovel": "dig",
+	"steel_sword": "slash",
+	"steel_scythe": "mow",
 	"torch": "reach",
 }
 const LUMP := [

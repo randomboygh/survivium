@@ -61,3 +61,31 @@
   reach: 10
   durability: 550
   repair: {materials:bronze_bar: 1}
+- id: iron_pickaxe
+  title: Железная кирка
+  weight: 2.7
+  stack: 1
+  model: iron_pickaxe
+  icon: iron_pickaxe
+  tool: pickaxe
+  sprite: iron_pickaxe
+  anim: chop
+  power: 5
+  swing: 0.36
+  reach: 10
+  durability: 800
+  repair: {materials:iron_bar: 1}
+- id: steel_pickaxe
+  title: Стальная кирка
+  weight: 2.7
+  stack: 1
+  model: steel_pickaxe
+  icon: steel_pickaxe
+  tool: pickaxe
+  sprite: steel_pickaxe
+  anim: chop
+  power: 6
+  swing: 0.36
+  reach: 10
+  durability: 1200
+  repair: {materials:steel_bar: 1}

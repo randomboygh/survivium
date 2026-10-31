@@ -47,3 +47,31 @@
   reach: 9
   durability: 500
   repair: {materials:bronze_bar: 1}
+- id: iron_axe
+  title: Железный топор
+  weight: 2.1
+  stack: 1
+  model: iron_axe
+  icon: iron_axe
+  tool: axe
+  sprite: iron_axe
+  anim: chop
+  power: 5
+  swing: 0.4
+  reach: 9
+  durability: 800
+  repair: {materials:iron_bar: 1}
+- id: steel_axe
+  title: Стальной топор
+  weight: 2.1
+  stack: 1
+  model: steel_axe
+  icon: steel_axe
+  tool: axe
+  sprite: steel_axe
+  anim: chop
+  power: 6
+  swing: 0.4
+  reach: 9
+  durability: 1200
+  repair: {materials:steel_bar: 1}

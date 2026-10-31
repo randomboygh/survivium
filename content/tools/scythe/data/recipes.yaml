@@ -26,3 +26,15 @@
   needs: {materials:bronze_bar: 2, materials:planks: 2}
   at: workbench
   time: 7
+- id: iron_scythe
+  title: Железная коса
+  makes: iron_scythe
+  needs: {materials:iron_bar: 2, materials:planks: 2}
+  at: anvil
+  time: 7
+- id: steel_scythe
+  title: Стальная коса
+  makes: steel_scythe
+  needs: {materials:steel_bar: 2, materials:planks: 2}
+  at: anvil
+  time: 7

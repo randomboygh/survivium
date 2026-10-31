@@ -24,6 +24,8 @@ const INK := {
 	"m": "9a7646", "p": "c39c64", "P": "e2c48c",
 	"o": "8c4a26", "n": "c97b43", "N": "ecad72",
 	"b": "5a4622", "z": "94783e", "Z": "c4ac72",
+	"x": "2e3136", "j": "54595f", "J": "8e949b",
+	"X": "506070", "y": "9aaabb", "Y": "e0e8f0",
 	"k": "3e2a1c", "e": "d8602a", "f": "ffb43c", "F": "fff2b0",
 }
 const SHAPES := {
@@ -246,6 +248,16 @@ const RECOLOURED := {
 	"bronze_shovel": ["shovel", {"m": "b", "p": "z", "P": "Z"}],
 	"bronze_sword": ["sword", {"P": "Z", "p": "z"}],
 	"bronze_scythe": ["scythe", {"q": "b", "a": "z", "A": "Z"}],
+	"iron_axe": ["axe", {"q": "x", "a": "j", "A": "J"}],
+	"iron_pickaxe": ["pickaxe", {"q": "x", "a": "j", "A": "J"}],
+	"iron_shovel": ["shovel", {"m": "x", "p": "j", "P": "J"}],
+	"iron_sword": ["sword", {"P": "J", "p": "j"}],
+	"iron_scythe": ["scythe", {"q": "x", "a": "j", "A": "J"}],
+	"steel_axe": ["axe", {"q": "X", "a": "y", "A": "Y"}],
+	"steel_pickaxe": ["pickaxe", {"q": "X", "a": "y", "A": "Y"}],
+	"steel_shovel": ["shovel", {"m": "X", "p": "y", "P": "Y"}],
+	"steel_sword": ["sword", {"P": "Y", "p": "y"}],
+	"steel_scythe": ["scythe", {"q": "X", "a": "y", "A": "Y"}],
 }
 
 

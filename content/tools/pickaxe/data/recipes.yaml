@@ -26,3 +26,15 @@
   needs: {materials:bronze_bar: 3, materials:planks: 1}
   at: workbench
   time: 7
+- id: iron_pickaxe
+  title: Железная кирка
+  makes: iron_pickaxe
+  needs: {materials:iron_bar: 3, materials:planks: 1}
+  at: anvil
+  time: 7
+- id: steel_pickaxe
+  title: Стальная кирка
+  makes: steel_pickaxe
+  needs: {materials:steel_bar: 3, materials:planks: 1}
+  at: anvil
+  time: 7

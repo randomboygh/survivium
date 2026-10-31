@@ -1,0 +1,16 @@
+# Рецепты бандла «Железо»: крица — в сыродутной печи, слиток — в горне (оба станка в
+# «Инструментах»); лежат здесь, чтобы станки не зависели от железа.
+- id: iron_bloom
+  title: Крица
+  makes: iron_bloom
+  needs: {iron_ore: 3, charcoal: 2}
+  at: tools:bloomery
+  process: smelt
+  time: 10
+- id: iron_bar
+  title: Железный слиток
+  makes: iron_bar
+  needs: {iron_bloom: 1, charcoal: 1}
+  at: tools:forge
+  process: smelt
+  time: 6

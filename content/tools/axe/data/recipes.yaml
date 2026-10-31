@@ -29,3 +29,15 @@
   needs: {materials:bronze_bar: 2, materials:planks: 1}
   at: workbench
   time: 6
+- id: iron_axe
+  title: Железный топор
+  makes: iron_axe
+  needs: {materials:iron_bar: 2, materials:planks: 1}
+  at: anvil
+  time: 6
+- id: steel_axe
+  title: Стальной топор
+  makes: steel_axe
+  needs: {materials:steel_bar: 2, materials:planks: 1}
+  at: anvil
+  time: 6
