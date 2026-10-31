@@ -88,8 +88,9 @@ func _run() -> void:
 	# The median of three passes: one pass on a shared runner swings by a tenth or more,
 	# and every limit below moves with it.
 	var passes: Array[float] = []
+	var t := 0
 	for pass_i in 3:
-		var t := Time.get_ticks_usec()
+		t = Time.get_ticks_usec()
 		for dz in range(-1, 2):
 			for dx in range(-1, 2):
 				ChunkMesher.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
