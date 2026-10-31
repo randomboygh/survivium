@@ -1,0 +1,11 @@
+# Ткацкий станок: на нём ткут ткань (prop: loom; у него делают то, что в recipes.yaml указывает на
+# него в `at`): грубую из верёвки — здесь, льняную из нити — в бандле «Лён» «Растений». Поля — как у
+# предметов основы (content/core/data/items.yaml); model — воксельная модель (models/<model>.png).
+- id: loom
+  title: Ткацкий станок
+  era: core:bone_leather
+  weight: 14.0
+  stack: 1
+  icon: loom
+  model: loom
+  prop: loom

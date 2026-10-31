@@ -1,0 +1,15 @@
+# Рецепты бандла «Ткацкий станок»: сам станок — на верстаке из досок, веток и верёвки; на нём
+# грубая ткань из верёвки («Материалы»). Поля рецепта — docs/DATA_MODEL.md.
+- id: loom
+  title: Ткацкий станок
+  makes: loom
+  needs: {materials:planks: 6, resources:branch: 4, materials:cord: 4}
+  at: workbench
+  time: 10
+- id: cloth_from_cord
+  title: Грубая ткань
+  makes: materials:cloth
+  needs: {materials:cord: 4}
+  at: loom
+  process: refine
+  time: 6

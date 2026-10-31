@@ -1,0 +1,12 @@
+# Дикий лён (kind: custom, поля — как у крапивы): тонкие стебли с голубыми цветами пятнами на лугах;
+# его срезают руками, мечом или косой и получают стебли льна, из которых прядут нить.
+- id: flax
+  kind: custom
+  title: Лён
+  sprite: flax
+  frames: 2
+  grows: meadow
+  cover: 0.35
+  clumps: 0.55
+  gives: {flax_stalks: 2}
+  winter: false
