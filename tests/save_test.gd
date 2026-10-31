@@ -44,7 +44,15 @@ func _start() -> Node:
 	main.skip_setup = true
 	main.save_root = ROOT
 	root.add_child(main)
+	var zone_checked := false
 	while not main.ready_to_play:
+		if not zone_checked and main.session != null and main.chunks.gen != null:
+			# The menu's loading builds what the session makes, so the session must know
+			# where the body is before the world is ready (the smoke test's path).
+			zone_checked = true
+			var zones: Array = main.session.zones()
+			_check(zones.has(main.chunks._player_chunk()),
+				"the server makes the world around the player's body before the world is ready")
 		await process_frame
 	return main
 

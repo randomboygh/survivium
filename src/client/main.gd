@@ -318,7 +318,10 @@ func start_world() -> void:
 	_build_scene()
 	save.restore_player()
 	settings.apply()
-	# The copies get the clock, the bag and the rest at once (the menu shows the day).
+	# The server learns where the body is, so the session makes the world around it
+	# behind the menu (Session.zones); the copies get the clock, the bag and the rest at
+	# once (the menu shows the day).
+	mirror.send_input()
 	host.flush(net)
 	chunks.prepare(gen)
 	loading_stage = ""
