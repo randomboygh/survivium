@@ -1,6 +1,6 @@
 # Протокол и сервер в игре
 
-Статус: ACTIVE (этапы С2.1–С2.2б сервера, решение 153; план `plan/architecture/server.md`).
+Статус: ACTIVE (этапы С2.1–С2.3 сервера, решение 153; план `plan/architecture/server.md`).
 
 **Назначение.** То, что клиент просит у правил, идёт сообщениями: запрос `[вид, номер, аргументы]`,
 ответ `[номер, значение]`; то, что одна сторона сообщает другой без ответа, — событие `[вид, аргументы]`:
@@ -49,9 +49,12 @@
   `received_bytes`, `coding_us`, `pending()`. Транспорт — `Callable`, что возвращает байты ответа
   сразу (петля) или `null` (сокет: ответы придут через `receive`).
 - `src/client/net/local_host.gd` — сервер внутри игры: единственное место, где клиент грузит
-  `src/server/`; `join()` делает `PlayerLink` в сеансе и даёт `Connection`; `deliver(bytes)` проводит
-  сообщение через линк и возвращает события и ответ; `flush(net)` после тика; `player` и `workshop` —
-  серверные объекты, к которым до С4/С5 напрямую ходят сохранение и страница «Тестирование».
+  `src/server/`; `LocalHost.new(session, get_tree().root)` ставит узел сервера `src/server/runner.gd`
+  под корень дерева (без корня — тесты — узла нет, сеанс шагает тест), `stop()` снимает его с дерева и
+  освобождает (Main зовёт в `_exit_tree`, если узел не `keep`); `join()` делает `PlayerLink` в сеансе и
+  даёт `Connection`; `deliver(bytes)` проводит сообщение через линк и возвращает события и ответ;
+  `flush(net)` после тика; `player` и `workshop` — серверные объекты, к которым до С4/С5 напрямую ходят
+  сохранение и страница «Тестирование». Узел сервера — [session.md](session.md).
 - `src/client/net/mirror.gd` — копии на клиенте: слушает `Connection.event` и раздаёт события
   `game.character` (`take`, `take_vitals`, `say`, `teleport`), `game.workshop` (`take`,
   `take_knowledge`, `made`), `game.props.show_drops`, `game.player.body.knock` / `nudge` (`push`),
@@ -81,12 +84,12 @@
   очередь и пауза из `shop`, знания из `knowledge`, сама ничего не узнаёт и не делает.
 - `src/client/main.gd` — копии `clock`, `placed`, `wildlife` в `_ready`; серверные часы и вещи
   (`Clock.new()`, `Placed.new()`) в `start_world` только для сеанса (сохранение и настоящая погода пишут
-  в них), `host`, `net`, `mirror` там же, первый `host.flush(net)` в конце `start_world` (копии полны
-  до меню); сохранение следит за серверными объектами (`save.track(host.player…)`,
-  `session.clock.to_dict()`, `session.placed.to_list()`); в кадре: `session.step_clock` →
-  `clock.advance` → небо … `player.step` → `character.update` → `mirror.send_input()` →
-  `session.step_players` → `host.flush(net)`; строка «Сервер» в «Данных для теста»
-  (`settings_menu.gd`) показывает счётчики соединения.
+  в них), `host` (с узлом сервера), `net`, `mirror` там же, первый `host.flush(net)` в конце
+  `start_world` (копии полны до меню); сохранение следит за серверными объектами
+  (`save.track(host.player…)`, `session.clock.to_dict()`, `session.placed.to_list()`); в кадре: узел
+  сервера сделал тик до Main → `clock.advance` → небо … `host.flush(net)` (события тика) →
+  `player.step` → `character.update` → `mirror.send_input()` (тик следующего кадра возьмёт его);
+  строка «Сервер» в «Данных для теста» (`settings_menu.gd`) показывает счётчики соединения.
 
 **Кто зовёт.** `controls.gd` (копать, ставить, действие, посадить, съесть), `gathering.gd` (собрать,
 подобрать), `props.gd` (поставить вещь), `inventory_window.gd` (съесть, посадить, выбросить, починить,
@@ -95,10 +98,10 @@
 (`controls.dig_at`, `gathering.gather`, `props.put_from_bag`), берут его из `Reply.value`; через сокет
 они вернут `false` до ответа, а дела по ответу (`_did`, звук еды, тост корзины) идут через `then`.
 
-**Что остаётся прямым.** Мир один объект (решение 153, 2А): правки ячеек (`actions.cell_changed` →
-чанки, `placed.cell_changed` серверных вещей), вещи на земле (`world.drops`, событие `drops` только
-называет чанк) и ветер (`game.storms`) клиент читает у сеанса — сообщения `cells`, `chunk`, `drops` со
-списком придут с чанками по сети (С2.3, С3). Сохранение и страница «Тестирование» (`give`, `heavy`,
+**Что остаётся прямым.** Мир один объект (решение 153, 2А): сделанные чанки (`WorldGen.needed`,
+стадии), правки ячеек (`actions.cell_changed` → чанки, `placed.cell_changed` серверных вещей), вещи на
+земле (`world.drops`, событие `drops` только называет чанк) и ветер (`game.storms`) клиент читает у
+сеанса — сообщения `chunk`, `cells`, `drops` со списком придут с чанками по сети (С3). Сохранение и страница «Тестирование» (`give`, `heavy`,
 `hunger`, `start_bag`, `find_home`, сезон, погода, час) ходят в `game.host.player` / `host.workshop` /
 `session.clock` / `session.placed` напрямую — до С4 и С5. Движение тела — клиент (решение 153, 3А);
 проверка его сервером — С3. Тесты и инструменты пишут в серверные объекты (`main.host.player`,
@@ -123,5 +126,5 @@
 `teleport`, `say` один раз; снимок часов другой формы отказан; не подошедший запрос; повтор и
 устаревший номер; выход — и ничего о мире больше); `_test_layers` в `content_test.gd` (`net/` грузит только
 `content/`, `src/server/` не грузит `src/client/`, клиент грузит `src/server/` только из
-`local_host.gd`); `save_test` (смерть через сервер, мёртвый мир), `progress_test`, `frame_test` играют
-через петлю.
+`local_host.gd`); `save_test` (смерть через сервер, мёртвый мир, узел сервера под корнем и уходит со
+сценой), `progress_test`, `frame_test` играют через петлю.

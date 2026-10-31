@@ -27,10 +27,12 @@
 
 **Интерфейс.** `WorldGen.new(seed, 48, options)`, `lay_out(x0, z0, w, h, step)`,
 `find_place(what, near)`, `column_color(lay, j)` (карты), `start(key, stage)` / `step(job, n)`,
-`stage_of(key)`, `missing(key, reach, stage)`, `generate_area(from, to)` (тесты, инструменты),
-`WorldGen.find_spawn(world, around)`.
+`stage_of(key)`, `missing(key, reach, stage)`, `needed(key)` (что ещё нужно, чтобы чанк можно было
+строить: террейн в 2, деревья в 1, сам SHAPED), сигнал `made(key, stage)` (задание закончено),
+`forget(key)`, `generate_area(from, to)` (тесты, инструменты), `WorldGen.find_spawn(world, around)`.
 
-**Кто использует.** `chunk_streamer.gd` (задания в бюджете кадра), карты (`minimap.gd`, `map_view.gd`,
+**Кто использует.** `session.gd` (заказывает стадии вокруг игроков в бюджете, забывает дальние —
+[session.md](session.md)), `chunk_streamer.gd` (`needed`, `made`), карты (`minimap.gd`, `map_view.gd`,
 `world_setup.gd`), звери (`gen.lay_out`: биом столбца для вида с `biomes`), `clock.gd` (погода по
 месту), `tools/map.gd`, бенчмарки.
 

@@ -282,6 +282,13 @@ func note(what: String, since: int) -> int:
 	return now
 
 
+## Adds `us` microseconds to part `what` of the game's code in this frame: work done
+## before Main's frame (the server's loop).
+func add(what: String, us: int) -> void:
+	if us > 0:
+		_work[what] = _work.get(what, 0) + us
+
+
 ## Records one frame; called every frame first thing (Main._process), also while the
 ## panel is hidden. `delta` is the time of the frame before, whose work was noted.
 func add_frame(delta: float) -> void:
