@@ -47,3 +47,17 @@
   reach: 10
   durability: 350
   repair: {materials:copper_bar: 1}
+- id: bronze_pickaxe
+  title: Бронзовая кирка
+  weight: 2.5
+  stack: 1
+  model: bronze_pickaxe
+  icon: bronze_pickaxe
+  tool: pickaxe
+  sprite: bronze_pickaxe
+  anim: chop
+  power: 4
+  swing: 0.36
+  reach: 10
+  durability: 550
+  repair: {materials:bronze_bar: 1}

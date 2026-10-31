@@ -4,8 +4,8 @@ extends RefCounted
 ## empty cell is 0. The engine names only the five materials of the core mod (Mat.AIR,
 ## GRASS, DIRT, STONE, WATER); the rest it asks for by `role`: the material of the
 ## beaches and deserts (BEACH), of river banks and bogs (BANK), of mountain slopes
-## (SCREE), the ore in the rock (ORE), a tree's trunk (LOG) and crown (LEAVES), each
-## the last loaded material of that role or -1 when no mod gives one (the generator
+## (SCREE), the ore in the rock (ORE: the first loaded, every ore in ORES), a tree's trunk
+## (LOG) and crown (LEAVES), each the last loaded material of that role or -1 when no mod gives one (the generator
 ## then lays dirt or stone, and no tree can stand). `index(id)` finds any other.
 
 const Content := preload("res://src/shared/content/content.gd")
@@ -54,6 +54,9 @@ static var ORE := -1
 static var LOG := -1
 static var LEAVES := -1
 static var COUNT := 0
+## Every material of role ore, and the running sum of their `veins` (see vein_at).
+static var ORES: PackedInt32Array = []
+static var ORE_SUMS: PackedFloat32Array = []
 
 ## Index -> id (`core:grass`), title shown to players, record from the data file.
 static var IDS: PackedStringArray = []
@@ -112,15 +115,33 @@ static func refresh() -> void:
 	ORE = -1
 	LOG = -1
 	LEAVES = -1
+	ORES = []
+	ORE_SUMS = []
+	for i in COUNT:
+		if RECORDS[i].role == "ore" and RECORDS[i].veins > 0.0:
+			ORES.append(i)
+			ORE_SUMS.append((ORE_SUMS[-1] if not ORE_SUMS.is_empty() else 0.0) + RECORDS[i].veins)
 	for i in COUNT:
 		var role: String = RECORDS[i].role
 		if role != "none":
 			BEACH = i if role == "beach" else BEACH
 			BANK = i if role == "bank" else BANK
 			SCREE = i if role == "scree" else SCREE
-			ORE = i if role == "ore" else ORE
+			ORE = i if role == "ore" and ORE < 0 else ORE
 			LOG = i if role == "trunk" else LOG
 			LEAVES = i if role == "crown" else LEAVES
+
+
+## The ore of the vein a share `pick` (0..1) of the way through the ores' `veins`, or
+## `fallback` when no mod gives an ore.
+static func vein_at(pick: float, fallback: int) -> int:
+	if ORES.is_empty():
+		return fallback
+	var at := pick * ORE_SUMS[-1]
+	for k in ORES.size():
+		if at < ORE_SUMS[k]:
+			return ORES[k]
+	return ORES[-1]
 
 
 ## Index of the material with `id`, or -1.

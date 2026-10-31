@@ -33,6 +33,7 @@ const STALLS_PER_FRAMES := 250
 ## phone pays ten times as much for it (an animal looking for the ground from the sky
 ## took 70 % of the frame until 2026-10-21).
 const IDLE_SHARE := 20.0
+const NIGHT_SHARE := 16.0
 const NIGHT := "idle at night by the campfire"
 
 var main: Node
@@ -84,12 +85,19 @@ func _run() -> void:
 	# What a whole chunk costs on this machine, the mean over the chunks around the
 	# spawn (a meadow chunk is a few milliseconds, a forest one several times that):
 	# the unit the limits are set in.
-	var t := Time.get_ticks_usec()
-	for dz in range(-1, 2):
-		for dx in range(-1, 2):
-			ChunkMesher.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
-			Foliage.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
-	chunk_ms = (Time.get_ticks_usec() - t) / 9000.0
+	# The median of three passes: one pass on a shared runner swings by a tenth or more,
+	# and every limit below moves with it.
+	var passes: Array[float] = []
+	var t := 0
+	for pass_i in 3:
+		t = Time.get_ticks_usec()
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				ChunkMesher.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
+				Foliage.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
+		passes.append((Time.get_ticks_usec() - t) / 9000.0)
+	passes.sort()
+	chunk_ms = passes[1]
 	print("a chunk costs %.1f ms here" % chunk_ms)
 
 	# The smallest step a job takes must stay far below a chunk, or the budgets
@@ -693,10 +701,13 @@ func _run() -> void:
 		step_limit, free_limit, idle_ms])
 	for r in runs:
 		if r[0] == "idle" or r[0] == NIGHT:
+			# At night the fire's light, its sparks and the night sounds come on top of an
+			# idle frame: a share of a chunk more.
+			var share: float = IDLE_SHARE if r[0] == "idle" else NIGHT_SHARE
 			var outside: float = _mean(r[1]) - _mean(r[2])
-			print("%s: %.2f ms a frame past the budgets (limit %.2f)" % [r[0], outside, chunk_ms / IDLE_SHARE])
-			_check(outside < chunk_ms / IDLE_SHARE, "%s: a frame takes under 1/%d of a chunk past the budgets (%.2f ms of %.2f)" % [
-				r[0], IDLE_SHARE, outside, chunk_ms / IDLE_SHARE])
+			print("%s: %.2f ms a frame past the budgets (limit %.2f)" % [r[0], outside, chunk_ms / share])
+			_check(outside < chunk_ms / share, "%s: a frame takes under 1/%d of a chunk past the budgets (%.2f ms of %.2f)" % [
+				r[0], share, outside, chunk_ms / share])
 	for r in runs:
 		var frames: PackedFloat32Array = r[1]
 		var steps: PackedFloat32Array = r[2]

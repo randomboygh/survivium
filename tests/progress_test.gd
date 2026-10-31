@@ -32,6 +32,8 @@ const SEARCH := 32
 const DEPTH := 6
 ## Swings of the hands for the whole way: a way that leads nowhere ends.
 const MAX_SWINGS := 6000
+## How many recipes not made yet, the next in order, keep what they need in the bag.
+const WANT_AHEAD := 4
 ## Trips further out when nothing wanted is near.
 const MAX_TRIPS := 16
 
@@ -49,6 +51,8 @@ var made := {}
 var set_down := {}
 ## The items being got now, with how many calls of _obtain want each.
 var seeking := {}
+## The recipes being made now, the outermost first (see _wanted).
+var crafting: Array[Dictionary] = []
 ## What the world gives (see _raw).
 var raw := {}
 
@@ -151,24 +155,40 @@ func _order() -> Array:
 	return out
 
 
-## Whether item `id` is still wanted: it is being got now, a recipe not made yet needs
-## it, it is a thing to set down, or it is the first tool of its kind in the bag.
+## Whether item `id` is still wanted: it is being got now, a recipe being made or one
+## of the next WANT_AHEAD not made yet needs it, it is a thing to set down, or it is the
+## first tool of its kind in the bag. (Keeping what every later recipe needs fills the
+## bag's 16 slots once the chains are long; what is thrown away is got again.)
 func _wanted(id: String) -> bool:
 	if seeking.has(id):
 		return true
-	# Needed by a recipe not made yet, or by the recipe of something such a recipe needs
-	# (ore for the bars the copper tools are made of, once a bar has been made).
+	# Needed by such a recipe, or by the recipe of something such a recipe needs (ore for
+	# the bars the copper tools are made of, once a bar has been made).
 	var needed := {}
+	for r: Dictionary in crafting:
+		_needs_of(r, needed)
+	var ahead := 0
 	for r: Dictionary in order:
+		if ahead >= WANT_AHEAD:
+			break
 		if not made.has(r.id):
 			_needs_of(r, needed)
+			ahead += 1
 	if needed.has(id):
 		return true
 	var item := Items.get_item(id)
 	if item.get("prop", "none") != "none":
 		return true
+	# The strongest tool of each kind is kept (a copper pickaxe digs what the stone one
+	# does not, and the stone one goes).
 	var kind: String = item.get("tool", "none")
-	return kind != "none" and _tool_of_kind(kind) == id
+	if kind == "none":
+		return false
+	for s in main.host.player.inventory.slots:
+		if s != null and s[0] != id and Items.get_item(s[0]).get("tool", "none") == kind \
+				and Items.get_item(s[0]).get("power", 0) > item.get("power", 0):
+			return false
+	return true
 
 
 ## Adds to `out` what recipe `r` needs and keeps, and what the recipes of those need, and
@@ -188,6 +208,13 @@ func _needs_of(r: Dictionary, out: Dictionary) -> void:
 ## Makes recipe `r` `times` times at the camp: its station set down, its tools, its
 ## materials and what it keeps got first.
 func _craft(r: Dictionary, times: int) -> bool:
+	crafting.append(r)
+	var ok: bool = await _craft_now(r, times)
+	crafting.pop_back()
+	return ok
+
+
+func _craft_now(r: Dictionary, times: int) -> bool:
 	if r.at != "" and _placed_count(r.at) == 0:
 		# A station is set down as soon as it is made.
 		var station := _recipe_for(r.at)
@@ -560,7 +587,7 @@ func _dig_for(id: String, mats: Array[int]) -> bool:
 		if best == Vector3i.MAX:
 			# Nothing the tools in the bag dig: make one that digs these materials.
 			var tool := _tool_recipe_for(mats)
-			if tool != "" and _tool_of_kind(Tools.of(tool).tool) == "":
+			if tool != "" and main.host.player.inventory.count(tool) == 0:
 				if not await _obtain(tool, 1):
 					return false
 				continue

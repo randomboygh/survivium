@@ -1,0 +1,24 @@
+# Рецепты бандла «Бронза»: тигель — на гончарном круге и в печи для обжига, сплав — в горне
+# («Инструменты»); медь, олово и уголь — бандлы «Медь», «Олово» и «Уголь».
+- id: raw_crucible
+  title: Сырой тигель
+  makes: raw_crucible
+  needs: {resources:clay: 3, resources:sand: 1}
+  at: tools:potters_wheel
+  time: 5
+- id: crucible
+  title: Тигель
+  makes: crucible
+  needs: {raw_crucible: 1}
+  at: tools:kiln
+  process: smelt
+  time: 8
+- id: bronze_bar
+  title: Бронзовый слиток
+  makes: bronze_bar
+  count: 3
+  needs: {copper_bar: 3, tin_bar: 1, charcoal: 1}
+  keeps: {crucible: 1}
+  at: tools:forge
+  process: smelt
+  time: 8

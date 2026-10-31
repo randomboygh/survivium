@@ -23,3 +23,9 @@
   needs: {materials:copper_bar: 2, materials:planks: 1}
   at: workbench
   time: 6
+- id: bronze_axe
+  title: Бронзовый топор
+  makes: bronze_axe
+  needs: {materials:bronze_bar: 2, materials:planks: 1}
+  at: workbench
+  time: 6

@@ -50,3 +50,18 @@
   reach: 8
   durability: 300
   repair: {materials:copper_bar: 1}
+- id: bronze_sword
+  title: Бронзовый меч
+  weight: 1.7
+  stack: 1
+  model: bronze_sword
+  icon: bronze_sword
+  tool: sword
+  sprite: bronze_sword
+  anim: slash
+  mows: tall
+  power: 4
+  swing: 0.27
+  reach: 8
+  durability: 500
+  repair: {materials:bronze_bar: 1}

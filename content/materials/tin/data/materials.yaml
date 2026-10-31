@@ -1,0 +1,12 @@
+# Оловянная руда: жилы в камне (role: ore) реже медных (veins — доля жил против других руд), твёрже
+# медной: её берёт медная кирка и лучше (hardness 3). Поля — как у материалов основы
+# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+- id: tin_ore
+  title: Оловянная руда
+  role: ore
+  veins: 0.5
+  priority: 2
+  item: tin_ore
+  hardness: 3
+  step: step_stone
+  hit: hit_stone

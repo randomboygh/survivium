@@ -15,7 +15,7 @@ const GRASS := Color(0.4, 0.54, 0.25)
 
 ## The texture named `name` (the bare id of the material), or null for one not drawn here.
 static func picture(name: String) -> Image:
-	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "scree", "brick"]:
+	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "scree", "brick"]:
 		return null
 	var img := Image.create_empty(TILE * KINDS, TILE, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -70,6 +70,14 @@ static func _texel(name: String, kind: int, px: int, py: int, rng: RandomNumberG
 			if rng.randf() < 0.12:
 				return _vary(Color(0.78, 0.5, 0.3), rng)
 			return _vary(STONE, rng, 0.03)
+		"tin_ore":
+			# Darker rock with pale silvery grains and a few black ones.
+			var r := rng.randf()
+			if r < 0.1:
+				return _vary(Color(0.82, 0.84, 0.86), rng, 0.03)
+			if r < 0.16:
+				return _vary(Color(0.22, 0.22, 0.24), rng, 0.02)
+			return _vary(STONE * 0.86, rng, 0.03)
 		"scree":
 			# Pebbles of a few greys, a shade darker in the gaps between them.
 			var r := rng.randf()

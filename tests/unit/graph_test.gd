@@ -137,8 +137,8 @@ func _test_full_set() -> void:
 		"bare hands get branches and stone off scree, cord is one step and a workbench two; the campfire stands from the start")
 	var said := "\n".join(g.warnings)
 	_check(not "`plants:acorn` is a dead end" in said and not "`plants:cone` is a dead end" in said
-		and not "`tools:forge` is the station of one recipe only" in said and "`tools:potters_wheel` is the station of one recipe only" in said,
-		"acorns are roasted and cones light fires, the forge makes bars and glass, the potter's wheel one thing: %s" % said)
+		and not "`tools:forge` is the station of one recipe only" in said and not "is the station of one recipe only" in said,
+		"acorns are roasted and cones light fires, every station makes two things or more: %s" % said)
 	_check(g.cycles().is_empty(), "no cycle blocks anything in the full set")
 	_check(g.findings.size() == g.errors.size() + g.warnings.size() and g.findings.all(func(f: Dictionary) -> bool:
 		return ContentGraph.CHECKS.has(f.check) and not f.keys.is_empty() and f.keys.all(func(k: String) -> bool: return g.records.has(k))),

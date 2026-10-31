@@ -48,6 +48,8 @@ const WOODS_CHANCE := 0.12
 ## With relief 1 the spawn keeps this many cells from mountains, mesas, gorges and tors
 ## (see _calm_around): about the chunks built before the world is ready.
 const SPAWN_CALM := 64
+## Veins are of one ore in each block of 2^VEIN_SHIFT cells a side (see _vein).
+const VEIN_SHIFT := 3
 
 var world: WorldData
 ## Cells of a saved chunk come from a world saved with materials in another order:
@@ -109,7 +111,7 @@ func _init(seed_value: int, sy := 48, options := {}) -> void:
 	beach = Mat.of_role("beach", Mat.DIRT)
 	bank = Mat.of_role("bank", Mat.DIRT)
 	scree = Mat.of_role("scree", Mat.STONE)
-	ore = Mat.of_role("ore", Mat.STONE)
+	ore = Mat.ORE if Mat.ORE >= 0 else Mat.STONE
 	_noises()
 	coast_level = _coast_level()
 	spawn_guess = _pick_spawn()
@@ -325,6 +327,15 @@ func _terrain_step(job: Job, row: int) -> void:
 # --- Cells of a chunk ------------------------------------------------------------
 
 
+## The ore of the vein at cell x, y, z: which of the loaded ores (Mat.vein_at, by their
+## `veins`) the world's seed gives the block of VEIN cells it lies in.
+func _vein(x: int, y: int, z: int) -> int:
+	if Mat.ORES.size() < 2:
+		return ore
+	var h := hash(Vector4i(x >> VEIN_SHIFT, y >> VEIN_SHIFT, z >> VEIN_SHIFT, world_seed))
+	return Mat.vein_at((h & 0xFFFF) / 65536.0, ore)
+
+
 ## Writes the cells of one row of the chunk from the laid-out columns: stone with ore,
 ## a few cells of dirt (not under stone tops) or of the top's own (Mat.layers), the top, water up to its level, and
 ## caves under dry land away from water.
@@ -377,7 +388,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var bed := maxi(0, height - Mat.layers[top])
 		var i := col
 		for y in dirt:
-			cells[i] = ore if want and ores[(y >> 1) * CHUNK + lx] > ore_t else Mat.STONE
+			cells[i] = _vein(x_first + lx, y, z) if want and ores[(y >> 1) * CHUNK + lx] > ore_t else Mat.STONE
 			natural[i] = WorldData.WILD
 			i += layer
 		for y in range(dirt, height):
@@ -390,7 +401,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 			var wob: int = shape[j] >> 6
 			for y in range(maxi(0, sea - 2), height):
 				cells[col + y * layer] = bands[((y + wob) >> 1) % bands.size()]
-		cells[i] = ore if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
+		cells[i] = _vein(x_first + lx, height, z) if rocky and want and ores[(height >> 1) * CHUNK + lx] > ore_top_t else top
 		natural[i] = WorldData.WILD | WorldData.SHEER if flags[j] & SHEER_TOP else WorldData.WILD
 		var y := height + 1
 		var wet := WorldData.WILD | (WorldData.BOG if flags[j] & MIRE else (WorldData.SWAMP if flags[j] & MARSH else 0))

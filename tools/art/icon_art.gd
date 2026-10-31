@@ -13,7 +13,8 @@ const PALETTE := {
 	"o": Color("#c0703a"), "O": Color("#3f9a6a"), "c": Color("#d8c9a8"), "w": UiStyle.INK,
 	"h": UiStyle.DANGER, "a": UiStyle.ACCENT, "g": UiStyle.GOOD, "m": UiStyle.MUTED,
 	"y": Color("#4fd8b8"), "Y": Color("#b8fff0"), "e": Color("#a8a290"),
-	"n": Color("#e09a5a"), "N": Color("#f4c48c"), "d": Color("#2a2320"), "D": Color("#4a4440"),
+	"n": Color("#e09a5a"), "N": Color("#f4c48c"), "v": Color("#94783e"), "V": Color("#c4ac72"),
+	"i": Color("#d8dce0"), "d": Color("#2a2320"), "D": Color("#4a4440"),
 }
 
 const PICTURES := {
@@ -591,6 +592,20 @@ const PICTURES := {
 		"............",
 		"............",
 	],
+	"crucible": [
+		"............",
+		"............",
+		"............",
+		"..oooooooo..",
+		"..okkkkkkob.",
+		"..oookkooob.",
+		"...ooooooob.",
+		"...ooooooob.",
+		"....oooooob.",
+		".....bbbbb..",
+		"............",
+		"............",
+	],
 	"copper_ore": [
 		"............",
 		"....ssss....",
@@ -759,6 +774,15 @@ const RECOLOURED := {
 	"copper_pickaxe": ["pickaxe", {"s": "n", "S": "N"}],
 	"copper_sword": ["sword", {"t": "N", "B": "n"}],
 	"copper_scythe": ["scythe", {"s": "n", "S": "N"}],
+	"bronze_axe": ["axe", {"s": "v", "S": "V"}],
+	"bronze_pickaxe": ["pickaxe", {"s": "v", "S": "V"}],
+	"bronze_sword": ["sword", {"t": "V", "B": "v"}],
+	"bronze_scythe": ["scythe", {"s": "v", "S": "V"}],
+	"bronze_shovel": ["copper_shovel", {"n": "v", "N": "V"}],
+	"bronze_bar": ["copper_bar", {"n": "v", "N": "V", "o": "b"}],
+	"tin_bar": ["copper_bar", {"n": "s", "N": "i", "o": "D"}],
+	"tin_ore": ["copper_ore", {"o": "i", "O": "d", "s": "D", "S": "s"}],
+	"raw_crucible": ["crucible", {"o": "e", "b": "c", "k": "e"}],
 	"wooden_pickaxe": ["pickaxe", {"s": "B", "S": "t"}],
 	"wooden_scythe": ["scythe", {"s": "B", "S": "t"}],
 }
