@@ -1,0 +1,235 @@
+extends SceneTree
+## The server over the network (plan/architecture/server.md, С3): the headless server's
+## scene in this process, listening on a port of its own, and bots that come in over
+## WebSockets with the client's socket: hello and the welcome, the refusals (the
+## version, the password, a full server, no hello), the events of joining, a request
+## answered after its events, a connection lost and the character waiting for the key
+## to come back, a goodbye, the host's commands (who, say, kick, stop). Run:
+## godot --headless --path . --script res://tests/server_test.gd
+
+const Protocol := preload("res://src/shared/net/protocol.gd")
+const Socket := preload("res://src/client/net/socket.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+
+const ROOT := "user://test_saves/server"
+const PORT := 7791
+const PASSWORD := "пароль"
+## Seconds to wait for a reply or an event.
+const WAIT := 15.0
+
+var checks := 0
+var failures := 0
+var server: Node
+## The sockets polled every frame.
+var sockets: Array = []
+
+
+## A player over a socket: what the server sent it.
+class Bot extends RefCounted:
+	var socket
+	var name := ""
+	var events: Array = []
+	var welcome: Dictionary = {}
+	var reply
+
+	func _init(s, n: String) -> void:
+		socket = s
+		name = n
+		socket.net.event.connect(_on_event)
+
+	func _on_event(kind: String, args: Variant) -> void:
+		events.append([kind, args])
+
+	func kinds() -> Array:
+		return events.map(func(e: Array) -> String: return e[0])
+
+	func of(kind: String) -> Array:
+		return events.filter(func(e: Array) -> bool: return e[0] == kind)
+
+
+func _initialize() -> void:
+	OS.low_processor_usage_mode_sleep_usec = 0
+	_run()
+
+
+func _check(cond: bool, what: String) -> void:
+	checks += 1
+	if not cond:
+		failures += 1
+		printerr("FAIL: " + what)
+
+
+## Polls the sockets each frame until `cond` holds or `timeout` seconds pass.
+func _until(cond: Callable, timeout := WAIT) -> bool:
+	var t0 := Time.get_ticks_msec()
+	while true:
+		for s in sockets:
+			s.poll()
+		if cond.call():
+			return true
+		if Time.get_ticks_msec() - t0 > timeout * 1000.0:
+			return false
+		await process_frame
+	return false
+
+
+func _bot(name: String, key := "", password := PASSWORD) -> Bot:
+	var s = Socket.new()
+	sockets.append(s)
+	var b := Bot.new(s, name)
+	s.open("ws://127.0.0.1:%d" % PORT)
+	b.reply = s.hello(name, key, password)
+	return b
+
+
+func _input_at(b: Bot, at: Vector3) -> void:
+	var cell := Vector3i((at / WorldData.CELL).floor())
+	b.socket.net.send(Protocol.INPUT, [at, cell, Vector2i(0, 1), ["", ""], 0, 0, false, false, false, false,
+		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0)])
+
+
+func _run() -> void:
+	WorldStore.root = ROOT
+	WorldStore.new(ROOT + "/5-11111").erase()
+	server = load("res://scenes/server.tscn").instantiate()
+	server.config.port = PORT
+	server.config.max_players = 2
+	server.config.password = PASSWORD
+	server.config.console = false
+	server.config.seed_value = 5
+	server.config.world = ""
+	server.quit_on_stop = false
+	root.add_child(server)
+	# The scene is readied with the first frame.
+	await _until(func() -> bool: return server.server != null)
+	var net = server.server
+	_check(net != null and net.listening and server.session != null and server.runner.playing and not server.had_save,
+		"the server opens a new world, makes the ground round the spawn and listens")
+	_check(server.session.players.is_empty() and server.session.wildlife.animals.is_empty(),
+		"nobody is in the world yet, and no animals: they come with the first player")
+
+	# Hello and the welcome; the events of joining follow it.
+	var anya := _bot("Аня")
+	_check(await _until(func() -> bool: return anya.reply.done), "the hello is answered over the socket")
+	var w: Dictionary = anya.reply.value if anya.reply.value is Dictionary else {}
+	_check(w.get("ok") == true and w.get("id") == 1 and w.get("name") == "Аня" and str(w.get("key", "")).length() == 32,
+		"the welcome names the player and gives a key: %s" % [w.keys()])
+	_check(w.get("seed") == 5 and w.get("settings") is Dictionary and w.get("mods") is Array and not w.mods.is_empty()
+		and w.get("materials") == Array(Mat.IDS) and w.get("spawn") is Vector3 and w.get("at") == w.get("spawn"),
+		"and tells the world: its seed, settings, bundles, materials and the spawn")
+	_check(server.session.players.size() == 1 and server.session.players[0].position == w.spawn,
+		"the character stands at the spawn on the server")
+	_check(await _until(func() -> bool: return anya.kinds().has(Protocol.ANIMAL)), "the animals come with the first player")
+	var kinds: Array = anya.kinds()
+	_check(kinds.has(Protocol.YOU) and kinds.has(Protocol.CLOCK) and kinds.has(Protocol.PROPS) and kinds.has(Protocol.TELEPORT)
+		and kinds.find(Protocol.YOU) < kinds.find(Protocol.ANIMAL), "joining brings the player's state, the clock, the things and the body's place")
+	var you: Dictionary = anya.of(Protocol.YOU)[0][1]
+	_check(you.inventory.slots is Array and you.inventory.slots == server.session.players[0].inventory.to_dict().slots,
+		"a new character's bag is told as it is (the start's, empty by the data)")
+	var animal_ids: Array = anya.of(Protocol.ANIMAL).map(func(e: Array) -> int: return e[1][0])
+	_check(animal_ids.size() == server.session.wildlife.animals.size() and animal_ids.size() == _unique(animal_ids).size(),
+		"every animal is told once (%d)" % animal_ids.size())
+	_check(anya.of(Protocol.PROPS)[0][1][0].size() > 0, "the camp of a new world is placed at the spawn")
+
+	# Refusals: another version, the wrong password, a full server, no hello.
+	var old = Socket.new()
+	sockets.append(old)
+	old.open("ws://127.0.0.1:%d" % PORT)
+	var old_reply = old.net.request(Protocol.HELLO, [Protocol.VERSION + 1, Protocol.build_version(), "Дед", "", PASSWORD])
+	_check(await _until(func() -> bool: return old_reply.done and old.ended),
+		"a hello of another protocol version is answered and the socket closed")
+	_check(old_reply.value is Dictionary and old_reply.value.get("ok") == false and old_reply.value.get("why") == Protocol.WHY_VERSION
+		and old.close_code == 4000, "with the refusal 'version': %s, code %d" % [old_reply.value, old.close_code])
+	var wrong := _bot("Боря", "", "не тот")
+	_check(await _until(func() -> bool: return wrong.reply.done and wrong.socket.ended)
+		and wrong.reply.value.get("why") == Protocol.WHY_PASSWORD, "the wrong password is refused")
+	var borya := _bot("Боря")
+	_check(await _until(func() -> bool: return borya.reply.done) and borya.reply.value.get("ok") == true
+		and borya.reply.value.get("id") == 2, "the right password lets the second player in")
+	var third := _bot("Вася")
+	_check(await _until(func() -> bool: return third.reply.done) and third.reply.value.get("why") == Protocol.WHY_FULL,
+		"a third player is refused: the server is full")
+	var mute := WebSocketPeer.new()
+	mute.connect_to_url("ws://127.0.0.1:%d" % PORT)
+	var mute_sent := false
+	_check(await _until(func() -> bool:
+		mute.poll()
+		if mute.get_ready_state() == WebSocketPeer.STATE_OPEN and not mute_sent:
+			mute_sent = true
+			mute.put_packet(Protocol.encode(Protocol.event(Protocol.INPUT, [])))
+		return mute.get_ready_state() == WebSocketPeer.STATE_CLOSED) and mute.get_close_code() == 4000,
+		"a connection that speaks before its hello is closed")
+
+	# The body and a request: the events of what changed come before the reply.
+	_input_at(anya, w.spawn)
+	var feet := Vector3i((w.spawn / WorldData.CELL).floor())
+	_check(await _until(func() -> bool: return server.session.players[0].feet() == feet),
+		"the server's character takes the body from the input")
+	var ground := feet + Vector3i(0, -1, 1)
+	var was: int = server.session.world.get_cell(ground.x, ground.y, ground.z)
+	var dig = anya.socket.net.request(Protocol.DIG, [ground, Vector3i.UP])
+	_check(await _until(func() -> bool: return dig.done), "a dig request is answered over the socket")
+	_check(dig.value is Dictionary and dig.value.has("swing") and was != Mat.AIR
+		and server.session.world.get_cell(ground.x, ground.y, ground.z) != was, "and the cell is dug on the server")
+	var order: Array = []
+	anya.socket.net.event.connect(func(kind: String, _args: Variant) -> void: order.append(kind))
+	var pause = anya.socket.net.request(Protocol.CRAFT_PAUSE, [true]).then(func(_v: Variant) -> void: order.append("reply"))
+	_check(await _until(func() -> bool: return pause.done) and pause.value == true, "the queue is paused over the socket")
+	_check(order.has(Protocol.SHOP) and order.back() == "reply", "the state changed comes before the reply: %s" % [order])
+	_check(await _until(func() -> bool: return anya.of(Protocol.SNAP).size() > 2), "the animals' snapshots keep coming")
+	_check(await _until(func() -> bool: return anya.of(Protocol.CLOCK).size() > 2), "and the clock's")
+
+	# The connection lost: the character waits for the key; the player comes back to it.
+	var who: String = server.command("who")
+	_check(who.contains("Аня (1)") and who.contains("Боря (2)") and who.contains("2 из 2"), "who lists the players: %s" % who)
+	var on_server = server.session.players[0]
+	on_server.inventory.add("resources:branch", 3)
+	anya.socket.ws.close()
+	_check(await _until(func() -> bool: return net.online() == 1), "the server sees the connection lost")
+	_check(server.session.players.size() == 2 and net.accounts.has(w.key), "the character waits in the world")
+	var back := _bot("Аня", w.key)
+	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("ok") == true
+		and back.reply.value.get("id") == 1, "the key brings the player back as the same one")
+	_check(await _until(func() -> bool: return back.of(Protocol.YOU).size() > 0)
+		and back.of(Protocol.YOU)[0][1].inventory == on_server.inventory.to_dict()
+		and back.of(Protocol.YOU)[0][1].inventory.slots.any(func(s: Variant) -> bool: return s is Array and s[0] == "resources:branch"),
+		"with the character as it was, the branches in the bag")
+	_check(server.session.players.size() == 2 and net.online() == 2, "and nobody new in the world")
+	var again = back.socket.net.request(Protocol.CRAFT_PAUSE, [false])
+	_check(await _until(func() -> bool: return again.done) and again.value == false, "requests count from one again on the new connection")
+
+	# A goodbye: the character waits a short while; the host's say, kick and stop.
+	borya.socket.leave()
+	_check(await _until(func() -> bool: return net.online() == 1), "a goodbye closes the connection")
+	var borya_account = net.accounts.values().filter(func(a) -> bool: return a.id == 2)
+	_check(borya_account.size() == 1 and borya_account[0].linger == net.BYE_LINGER, "after a goodbye the character waits less")
+	borya_account[0].left_at -= net.BYE_LINGER
+	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and then leaves the world")
+	server.command("say всем привет")
+	_check(await _until(func() -> bool: return back.of(Protocol.SAY).any(func(e: Array) -> bool: return e[1] == ["всем привет"])),
+		"say reaches the players")
+	_check(server.command("kick Аня").contains("Аня"), "kick names the player")
+	_check(await _until(func() -> bool: return back.socket.ended) and back.socket.close_code == 4001
+		and back.of(Protocol.KICK).size() == 1 and server.session.players.is_empty(),
+		"a kicked player is told, closed with 4001 and out of the world")
+	_check(server.command("nothing").contains("help"), "an unknown command says where the list is")
+	server.command("stop")
+	_check(net.stopping and not net.listening, "stop closes the port")
+	_check(await _until(func() -> bool: return net.done()), "and the connections")
+	var late := _bot("Поздний")
+	_check(await _until(func() -> bool: return late.socket.ended, 5.0) and not late.reply.done,
+		"nobody comes in after stop")
+	root.remove_child(server)
+	server.free()
+	print("server_test: %d checks, %d failures" % [checks, failures])
+	quit(1 if failures > 0 else 0)
+
+
+static func _unique(a: Array) -> Array:
+	var out := []
+	for v in a:
+		if not out.has(v):
+			out.append(v)
+	return out

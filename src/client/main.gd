@@ -208,6 +208,12 @@ static var play_at_once := false
 
 
 func _ready() -> void:
+	if "--server" in OS.get_cmdline_user_args():
+		# A server from the terminal (plan С3): its own scene, by path (the client loads
+		# the server's code only in local_host.gd), with nothing of the client built.
+		set_process(false)
+		get_tree().change_scene_to_file.call_deferred("res://scenes/server.tscn")
+		return
 	start_ms = Time.get_ticks_msec()
 	controls = Controls.new(self)
 	settings = SettingsScript.new(self)
@@ -526,6 +532,8 @@ func _notification(what: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if sound == null:
+		return
 	sound.input(event)
 	controls.input(event)
 

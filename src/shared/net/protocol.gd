@@ -9,9 +9,28 @@ extends RefCounted
 ## the client's body each frame, the server's state for the client's copies (the
 ## player's own, the things placed, the clock, the animals). The bytes
 ## are var_to_bytes of the Array: Vector3i, Dictionary and String go through as they are.
+## Over a socket (С3) each message is one binary WebSocket frame; the first request on
+## it is HELLO, and nothing else is read until the server has welcomed the player.
 
 ## The protocol's version: a client and a server of different versions do not play.
 const VERSION := 1
+## The file CI writes the build's version into (tools/build_info.py); "dev" without it.
+const BUILD_INFO := "res://build_info.json"
+
+## The first request over a socket: [VERSION, the build's version (build_version), the
+## player's name, the key the server gave the player before ("" the first time), the
+## server's password ("" when it asks none)]. The reply is the welcome: {"ok": true,
+## "id", "key" (keep it for this server), "name" (as the server took it), "seed",
+## "settings", "mods" (the bundles of the world, in order), "materials" (the ids in the
+## order the cells are numbered), "spawn", "at" (where the character is)}; or the
+## refusal {"ok": false, "why": one of the reasons below}, after which the server closes.
+const HELLO := "hello"
+## Why a server refuses a player (HELLO): the protocol or the build is another, the
+## password is wrong, the server is full, the name is empty.
+const WHY_VERSION := "version"
+const WHY_PASSWORD := "password"
+const WHY_FULL := "full"
+const WHY_NAME := "name"
 
 ## The requests, each with its args. The rules they reach are in src/shared/game/; what
 ## each gives back is what that rule returns (Requests._do).
@@ -116,6 +135,10 @@ const ANIMAL_GONE := "animal_gone"
 const SNAP := "snap"
 ## A paw of an animal came down: [id, at, dir, left, size] (Wildlife.stepped).
 const STEP := "step"
+## The client leaves on purpose: [] (the server lets the character linger a while less).
+const BYE := "bye"
+## The server puts the player out: [why] (words for the player); then it closes.
+const KICK := "kick"
 
 
 ## An event message.
@@ -136,6 +159,19 @@ static func reply(seq: int, value: Variant) -> Array:
 ## A message as bytes for the wire.
 static func encode(msg: Array) -> PackedByteArray:
 	return var_to_bytes(msg)
+
+
+## The version of this build ("0.2.253": the stage and the last PR merged, "0.2.253+pr7"
+## a pull request's build, "dev" a run from the editor or a test): a client and a
+## server of different builds do not play, since their content may differ (decision
+## 153, 5А: the mods are built in).
+static func build_version() -> String:
+	if not FileAccess.file_exists(BUILD_INFO):
+		return "dev"
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(BUILD_INFO))
+	if data is Dictionary and data.get("version") is String and data.version != "":
+		return data.version
+	return "dev"
 
 
 ## The message in `bytes`, or an empty Array when it is not one.

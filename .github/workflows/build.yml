@@ -61,8 +61,8 @@ jobs:
         run: python3 tools/doc_index.py --check
       - uses: ./.github/actions/godot
       # The content reports in docs/generated are fresh (tools/content_report.gd, `report`).
-      - name: Content, its reports, unit tests, save and the way to every recipe
-        run: GODOT=~/godot/godot tests/run_all.sh validate report run_tests save_test progress_test
+      - name: Content, its reports, unit tests, save, the way to every recipe and the server
+        run: GODOT=~/godot/godot tests/run_all.sh validate report run_tests save_test progress_test server_test
 
   frames:
     runs-on: ubuntu-latest
