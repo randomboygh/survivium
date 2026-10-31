@@ -82,16 +82,16 @@ func _run() -> void:
 	for shot_name in names:
 		main.player.position = spawn
 		var shot: Dictionary = Shots.SHOTS[shot_name]
-		main.clock.time_speed = 0.0
-		main.clock.season = shot.season
+		main.session.clock.time_speed = 0.0
+		main.session.clock.season = shot.season
 		# A shot's time is the sun's: the same light whatever the season's day length.
-		main.clock.season_clock = main.clock.DAYS_PER_SEASON * 0.5
-		main.clock.time_of_day = shot.clock if shot.has("clock") else main.clock.time_at_sun(shot.time)
-		main.clock.raining = shot.get("rain", false)
+		main.session.clock.season_clock = main.session.clock.DAYS_PER_SEASON * 0.5
+		main.session.clock.time_of_day = shot.clock if shot.has("clock") else main.session.clock.time_at_sun(shot.time)
+		main.session.clock.raining = shot.get("rain", false)
 		if shot.has("weather"):
-			main.clock.set_weather(_weather_index(shot.weather))
-		main.clock.wind_to = shot.get("wind", 0.0)
-		main.clock.leaf_fall = shot.get("leaf_fall", 0.0)
+			main.session.clock.set_weather(_weather_index(shot.weather))
+		main.session.clock.wind_to = shot.get("wind", 0.0)
+		main.session.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
 		if "sun_steps" in main.sky:
 			main.sky.sun_steps = shot.get("sun_steps", main.sky.SUN_STEPS)
@@ -100,7 +100,7 @@ func _run() -> void:
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.values.sun_rays = shot.get("rays", true)
 		main.settings.values.fog = shot.get("fog", true)
-		main.clock.morning_fog_pin = shot.get("morning_fog", 0)
+		main.session.clock.morning_fog_pin = shot.get("morning_fog", 0)
 		main.settings.set_value("shadows", shot.get("shadows", true))
 		# Fires burn steadily in shots, so shots with and without shadows compare.
 		main.effects.flicker_clock = -INF
@@ -128,22 +128,22 @@ func _run() -> void:
 			main.chunks.build_around()
 			main.player.position.y = shot.get("y", main.world.surface_y(at.x, at.y)) * CELL
 		if shot.has("by_fire"):
-			for e: Dictionary in main.placed.things:
-				if main.placed.is_fire(e):
-					main.player.position = main.placed.center(e) + shot.by_fire
+			for e: Dictionary in main.session.placed.things:
+				if main.session.placed.is_fire(e):
+					main.player.position = main.session.placed.center(e) + shot.by_fire
 					for off: Vector3 in shot.get("more_fires", []):
-						var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + off)
+						var spot: Vector3i = main.session.placed.spot_near(main.session.placed.center(e) + off)
 						if spot.y >= 0:
-							added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
+							added_fires.append(main.session.placed.put(main.session.placed.CAMPFIRE, spot, null))
 					if shot.get("fire_blocks", false):
 						places.fire_blocks(main.world, e.cell)
 						for put: Array in [["tools:chest", Vector3(2.6, 0.0, 2.2)], ["tools:workbench", Vector3(-3.2, 0.0, 1.0)]]:
-							var spot: Vector3i = main.placed.spot_near(main.placed.center(e) + put[1])
+							var spot: Vector3i = main.session.placed.spot_near(main.session.placed.center(e) + put[1])
 							if spot.y >= 0:
-								added_fires.append(main.placed.put(put[0], spot, null))
+								added_fires.append(main.session.placed.put(put[0], spot, null))
 					if shot.get("fire_out", false):
 						places.out_fire = e
-						main.placed.put_out(e)
+						main.session.placed.put_out(e)
 					break
 		# The shots look at far places too: the chunks around the new spot at once.
 		main.chunks.build_around()
@@ -213,29 +213,29 @@ func _run() -> void:
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
-			main.clock.snow = 1.0 if main.clock.season == 3 else 0.0
-			main.clock.settle_weather()
+			main.session.clock.snow = 1.0 if main.session.clock.season == 3 else 0.0
+			main.session.clock.settle_weather()
 			if shot.has("clouds"):
-				main.clock.clouds = shot.clouds
-			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else shot.get("after_rain", 0.0)
+				main.session.clock.clouds = shot.clouds
+			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
-			main.clock.puddles = shot.get("puddles", 0.0)
-			main.sky.foliage = main.sky.FOLIAGE[main.clock.season]
-			main.sky.grass = main.sky.GRASS[main.clock.season]
-			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.clock.season]
-			main.sky.blossom_amount = main.sky.BLOSSOM_AMOUNT[main.clock.season]
-			main.sky.leaf_amount = lerpf(main.sky.LEAF_AMOUNT[main.clock.season], main.sky.LEAF_AMOUNT[3], main.clock.leaf_fall)
+			main.session.clock.puddles = shot.get("puddles", 0.0)
+			main.sky.foliage = main.sky.FOLIAGE[main.session.clock.season]
+			main.sky.grass = main.sky.GRASS[main.session.clock.season]
+			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.session.clock.season]
+			main.sky.blossom_amount = main.sky.BLOSSOM_AMOUNT[main.session.clock.season]
+			main.sky.leaf_amount = lerpf(main.sky.LEAF_AMOUNT[main.session.clock.season], main.sky.LEAF_AMOUNT[3], main.session.clock.leaf_fall)
 		if shot.get("windfall", false):
 			# A long storm: the wind breaks branches off the trees around.
-			main.clock.time_speed = 20.0
+			main.session.clock.time_speed = 20.0
 			for i in 2000:
 				main.storms.step(main.storms.TICK, main.player.position)
-			main.clock.time_speed = 0.0
-		if shot.has("animal") and not main.wildlife.animals.is_empty():
+			main.session.clock.time_speed = 0.0
+		if shot.has("animal") and not main.session.wildlife.animals.is_empty():
 			# Stands still where it is put until the shot is taken.
-			var c = main.wildlife.animals[0]
+			var c = main.session.wildlife.animals[0]
 			c.pos = main.player.position + shot.animal
-			c.pos.y = main.wildlife.ground(c.pos.x, c.pos.z)
+			c.pos.y = main.session.wildlife.ground(c.pos.x, c.pos.z)
 			c.target = c.pos
 			c.think = 100.0
 		if shot.get("birds", false):
@@ -247,9 +247,9 @@ func _run() -> void:
 			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
 					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
 		if shot.has("put_fire"):
-			var spot: Vector3i = main.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
+			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:
-				added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
+				added_fires.append(main.session.placed.put(main.session.placed.CAMPFIRE, spot, null))
 		for at: Array in shot.get("sacks", []):
 			main.host.player.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
@@ -366,8 +366,8 @@ func _run() -> void:
 			if shot.get("destroy", false):
 				main.hud.bag._destroy.pressed.emit()
 		if shot.get("chest", false):
-			main.placed.chest_items.add("resources:log", 3)
-			main.placed.chest_items.add("plants:raspberry", 12)
+			main.session.placed.chest_items.add("resources:log", 3)
+			main.session.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, false)
@@ -375,14 +375,14 @@ func _run() -> void:
 			main.host.player.inventory.add("tools:chest", 1)
 			main.player.facing = "e"
 			main.props.put_from_bag("tools:chest")
-			main.placed.chest_items.add("plants:raspberry", 12)
+			main.session.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, true)
 		if shot.get("campfire", false):
-			for e in main.placed.things:
-				if main.placed.is_fire(e):
+			for e in main.session.placed.things:
+				if main.session.placed.is_fire(e):
 					main.hud.open_prop(e)
 					break
 		if shot.get("craft", false):
@@ -401,7 +401,7 @@ func _run() -> void:
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
 			if shot.has("on"):
-				for e in main.placed.things:
+				for e in main.session.placed.things:
 					if e.item == shot.on[0]:
 						main.player.position = (Vector3(e.cell) + shot.on[1]) * main.CELL
 				for i in 30:
@@ -420,8 +420,8 @@ func _run() -> void:
 			var ch = main.host.player
 			ch.life = {"walked": 1840.0, "dug": 64.0, "built": 23.0, "trees": 3.0, "got": 212.0, "eaten": 17.0,
 				"crafted": 6.0, "jumps": 148.0}
-			main.clock.day += 2
-			ch.born = main.clock.day + main.clock.time_of_day - 2.4
+			main.session.clock.day += 2
+			ch.born = main.session.clock.day + main.session.clock.time_of_day - 2.4
 			ch.deaths = 1
 			ch.best_days = 1.2
 			main.host.player.vitals.health = 0.0
@@ -493,7 +493,7 @@ func _run() -> void:
 		# Frames of the sun moving at the game's speed, 60 a second, to see how the
 		# shadows move: <name>-01.png and on.
 		for i in shot.get("sweep", 0):
-			main.clock.time_of_day += shot.get("sweep_step", 1.0) / (main.clock.DAY_LENGTH * 60.0)
+			main.session.clock.time_of_day += shot.get("sweep_step", 1.0) / (main.session.clock.DAY_LENGTH * 60.0)
 			await process_frame
 			await process_frame
 			root.get_texture().get_image().save_png(out_dir.path_join("%s-%02d.png" % [shot_name, i + 1]))
@@ -513,11 +513,11 @@ func _run() -> void:
 		main.markers.from_dict({})
 		print("saved ", shot_name)
 		for e in added_fires:
-			main.placed._remove(e)
+			main.session.placed._remove(e)
 		added_fires.clear()
 		if not places.out_fire.is_empty():
 			places.out_fire.lit = true
-			main.placed.lit_changed.emit(places.out_fire)
+			main.session.placed.lit_changed.emit(places.out_fire)
 			places.out_fire = {}
 		if shot.get("fire_blocks", false) or shot.get("copper_moss", false):
 			places.unwall_cells(main.world)
@@ -535,12 +535,12 @@ func _run() -> void:
 		if shot.get("craft", false):
 			while not main.host.workshop.queue.jobs.is_empty():
 				main.host.workshop.queue.cancel(0)
-			for e in main.placed.things.duplicate():
+			for e in main.session.placed.things.duplicate():
 				if e.item in ["tools:workbench", "tools:kiln", "tools:forge"]:
-					main.placed.take_up(main.host.player, e)
+					main.session.placed.take_up(main.host.player, e)
 			main.host.player.inventory.take_all()
 		if shot.get("chest", false):
-			main.placed.chest_items.take_all()
+			main.session.placed.chest_items.take_all()
 		if shot.get("gather", false) or shot.get("work", false):
 			main.host.player.inventory.take_all()
 			main.host.player.vitals.revive(1.0)
@@ -583,7 +583,7 @@ func _craft(forge := false) -> void:
 	shop.start(Crafting.get_recipe(recipe), 2)
 	shop.queue.jobs[0].left = 0.5
 	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
-	for e in main.placed.things:
+	for e in main.session.placed.things:
 		if e.item == station:
 			main.hud.open_prop(e)
 
@@ -704,8 +704,8 @@ func _hold(keys: Array, down: bool) -> void:
 
 
 func _weather_index(id: String) -> int:
-	for i in main.clock.WEATHERS.size():
-		if main.clock.WEATHERS[i].id == id:
+	for i in main.session.clock.WEATHERS.size():
+		if main.session.clock.WEATHERS[i].id == id:
 			return i
 	return 0
 
@@ -716,7 +716,7 @@ func _weather_index(id: String) -> int:
 ## frame), or, for `water`, every swimmer in the water near the player; a species
 ## with tints once in each of them.
 func _place_zoo(water: bool) -> void:
-	var life = main.wildlife
+	var life = main.session.wildlife
 	var p: Vector3 = main.player.position
 	var kinds: Array = []
 	for kind in AiRules.SPECIES:
@@ -759,7 +759,7 @@ func _place_zoo(water: bool) -> void:
 
 
 func _place_birds() -> void:
-	var life = main.wildlife
+	var life = main.session.wildlife
 	var p: Vector3 = main.player.position
 	var i := 0
 	for c in life.animals:

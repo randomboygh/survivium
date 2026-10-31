@@ -9,6 +9,9 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const Requests := preload("res://src/server/requests.gd")
 const Connection := preload("res://src/client/net/connection.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
+const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
+const RemoteClock := preload("res://src/client/net/remote_clock.gd")
+const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 
 
 func run() -> void:
@@ -31,8 +34,9 @@ func _test_protocol() -> void:
 
 ## A character plays through the loop: joins the server in the game, tells it where
 ## the body is, digs, crafts, moves a stack into a chest, comes back from the dead; the
-## server's events bring the client its state before the reply; a request sent twice is
-## done once; one that does not fit is refused.
+## server's events bring the client its state before the reply, and the client's copies
+## of the things placed, the clock and the animals follow the server's; a request sent
+## twice is done once; one that does not fit is refused.
 func _test_requests() -> void:
 	var w := WorldData.new(8, Vector2i(32, 32))
 	for z in 32:
@@ -41,6 +45,8 @@ func _test_requests() -> void:
 			w.set_cell(x, 1, z, Mat.DIRT)
 	var placed := Placed.new()
 	var s := Session.new(w, null, Clock.new(), Rules.of({"instant_craft": true}), placed)
+	s.clock.weather = Clock.RAIN
+	s.clock.time_of_day = 0.4
 	var host := LocalHost.new(s)
 	var net := host.join()
 	var a = host.player
@@ -48,6 +54,12 @@ func _test_requests() -> void:
 	_check(s.players == [a] and s.workshops == [shop], "the player who joins is in the session with their workshop")
 	var events: Array = []
 	net.event.connect(func(kind: String, args: Variant) -> void: events.append([kind, args]))
+	# The client's copies, fed as Mirror feeds them.
+	var copy := RemotePlaced.new()
+	copy.world = w
+	var clock := RemoteClock.new()
+	var wild := RemoteWildlife.new()
+	net.event.connect(_feed.bind(copy, clock, wild))
 	var at := Vector3(8.5, 2.0, 8.5) * WorldData.CELL
 	net.send(Protocol.INPUT, [at, Vector3i(8, 2, 8), Vector2i(0, -1), ["", ""], 0, 0, false, false, false, false, Vector3.INF])
 	_check(a.position == at and a.feet() == Vector3i(8, 2, 8) and a.facing_step() == Vector2i(0, -1) and a.held() == "",
@@ -58,6 +70,12 @@ func _test_requests() -> void:
 	var you: Array = events.filter(func(e: Array) -> bool: return e[0] == Protocol.YOU)
 	_check(you.size() == 1 and you[0][1].inventory == a.inventory.to_dict() and you[0][1].vitals[0] == a.vitals.health,
 		"the first flush brings the player their state")
+	_check(events.has([Protocol.CLOCK, [s.clock.snapshot()]]) and clock.weather == Clock.RAIN and clock.time_of_day == 0.4
+		and events.has([Protocol.PROPS, [[]]]) and copy.things.is_empty(), "and the clock and the things placed (none yet)")
+	clock.advance(Clock.DAY_LENGTH * 0.1)
+	_check(is_equal_approx(clock.time_of_day, 0.5) and clock.weather == Clock.RAIN, "the copy of the clock runs the time of day between snapshots")
+	_check(not clock.from_snapshot([1, 2]) and not clock.from_snapshot(s.clock.snapshot().map(func(_v: Variant) -> String: return "x")),
+		"a snapshot of another shape or of strings is refused")
 	events.clear()
 	var r = net.request(Protocol.DIG, [Vector3i(8, 1, 7), Vector3i.UP])
 	_check(r.done and r.value is Dictionary and r.value.has("swing") and w.get_cell(8, 1, 7) == Mat.AIR,
@@ -98,9 +116,15 @@ func _test_requests() -> void:
 	placed.put("tools:chest", cell)
 	var chest = placed.at(cell).items
 	_check(chest != null and placed.at(Vector3i(11, 2, 10)).is_empty(), "a thing placed is found by its north-west cell")
+	host.flush(net)
+	_check(events == [[Protocol.PROP, [placed.record(placed.at(cell))]]] and copy.at(cell).item == "tools:chest"
+		and copy.at(cell).items != null and copy.chest_items == copy.at(cell).items and w.blockers.has(cell),
+		"the thing placed reaches the client's copy with its cells")
+	events.clear()
 	a.inventory.add("resources:stone", 2)
 	var slot: int = a.inventory.slots.find(["resources:stone", 2])
 	_check(net.request(Protocol.BAG_MOVE, [null, slot, cell]).value == 2 and chest.count("resources:stone") == 2
+		and events.has([Protocol.CHEST, [cell, chest.to_dict()]]) and copy.at(cell).items.count("resources:stone") == 2
 		and a.inventory.count("resources:stone") == 0, "a stack moves from the bag into a chest named by its cell")
 	_check(net.request(Protocol.BAG_MOVE, [cell, 0, null]).value == 2 and a.inventory.count("resources:stone") == 2,
 		"and back")
@@ -109,6 +133,43 @@ func _test_requests() -> void:
 		"a chest is not lit or destroyed")
 	_check(net.request(Protocol.PROP_TAKE, [cell]).value == true and placed.things.is_empty()
 		and a.inventory.count("tools:chest") == 1, "a thing placed is taken up by its cell")
+	_check(events.has([Protocol.PROP_GONE, [cell]]) and copy.things.is_empty() and copy.chest_items == null
+		and not w.blockers.has(cell), "and leaves the copy")
+	events.clear()
+	var fire_cell := Vector3i(12, 2, 12)
+	var fire := placed.put(Placed.CAMPFIRE, fire_cell)
+	placed.put_out(fire)
+	host.flush(net)
+	_check(events.has([Protocol.PROP, [{"item": Placed.CAMPFIRE, "cell": [12, 2, 12]}]])
+		and events.has([Protocol.PROP_LIT, [fire_cell, false]]) and not copy.at(fire_cell).lit,
+		"a fire put out is told to the copy")
+	events.clear()
+	# An animal comes by the player, moves, and leaves.
+	var rabbit = s.wildlife._add("animals:rabbit", at + Vector3(0.2, 0.0, 0.0))
+	host.flush(net)
+	_check(events.has([Protocol.ANIMAL, [rabbit.id, "animals:rabbit", rabbit.tint, rabbit.pos]])
+		and events.any(func(e: Array) -> bool: return e[0] == Protocol.SNAP and e[1].size() == 1 and e[1][0][0] == rabbit.id)
+		and wild.animals.size() == 1 and wild.animals[0].pos == rabbit.pos and wild.animals[0].near,
+		"an animal born reaches the copy, and where it stands")
+	events.clear()
+	host.flush(net)
+	_check(not events.any(func(e: Array) -> bool: return e[0] == Protocol.SNAP), "one that did not move is not told again")
+	for i in 10:
+		s.wildlife.update(0.05)
+		host.flush(net)
+	var snaps: Array = events.filter(func(e: Array) -> bool: return e[0] == Protocol.SNAP)
+	_check(rabbit.pos != at + Vector3(0.2, 0.0, 0.0) and not snaps.is_empty() and wild.animals[0].pos == rabbit.pos
+		and wild.animals[0].state == rabbit.state and wild.animals[0].fresh,
+		"the rabbit runs from the player, and the copy follows it (%d snapshots)" % snaps.size())
+	var pushed: Array = events.filter(func(e: Array) -> bool: return e[0] == Protocol.PUSH)
+	_check(not pushed.is_empty() and pushed[0][1][0] is Vector3 and pushed[0][1][0] != Vector3.ZERO,
+		"the rabbit the player stood on pushed the body, the client is told")
+	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.STEP and e[1][0] == rabbit.id), "its paw prints are told")
+	events.clear()
+	s.wildlife._remove(rabbit)
+	host.flush(net)
+	_check(events == [[Protocol.ANIMAL_GONE, [rabbit.id]]] and wild.animals.is_empty() and wild.by_id(rabbit.id) == null,
+		"an animal gone leaves the copy")
 	events.clear()
 	var stone: int = a.inventory.slots.find(["resources:stone", 2])
 	net.request(Protocol.THROW, [stone, 2])
@@ -140,3 +201,34 @@ func _test_requests() -> void:
 	_check(net.request(Protocol.CRAFT, ["materials:cord", 1]).value == null, "so is the connection's next, behind the count")
 	host.link.leave()
 	_check(s.players.is_empty(), "a player who leaves is out of the session")
+	events.clear()
+	placed.put("tools:chest", cell)
+	s.wildlife._add("animals:rabbit", at)
+	host.flush(net)
+	_check(not events.any(func(e: Array) -> bool: return e[0] in [Protocol.PROP, Protocol.ANIMAL]),
+		"and is told nothing of the world any more")
+
+
+## Feeds the copies of the things placed, the clock and the animals as Mirror does.
+func _feed(kind: String, args: Variant, copy: RemotePlaced, clock: RemoteClock, wild: RemoteWildlife) -> void:
+	match kind:
+		Protocol.PROPS:
+			copy.take_all(args[0])
+		Protocol.PROP:
+			copy.take_prop(args[0])
+		Protocol.PROP_GONE:
+			copy.take_gone(args[0])
+		Protocol.PROP_LIT:
+			copy.take_lit(args[0], args[1])
+		Protocol.CHEST:
+			copy.take_chest(args[0], args[1])
+		Protocol.CLOCK:
+			clock.from_snapshot(args[0])
+		Protocol.ANIMAL:
+			wild.take_born(args)
+		Protocol.ANIMAL_GONE:
+			wild.take_gone(args)
+		Protocol.SNAP:
+			wild.take_snap(args)
+		Protocol.STEP:
+			wild.take_step(args)

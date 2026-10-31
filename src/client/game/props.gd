@@ -51,8 +51,8 @@ func _init(g) -> void:
 	game = g
 
 
-## Draws the things of `placed` (Placed) as they come and go (their solid parts it reads
-## itself from the same models, Placed.read_footprints).
+## Draws the things of `placed` (the client's copy, RemotePlaced) as they come and go
+## (their solid parts it reads itself from the same models, Placed.read_footprints).
 func watch(placed) -> void:
 	placed.added.connect(_on_added)
 	placed.removed.connect(_on_removed)
@@ -61,24 +61,27 @@ func watch(placed) -> void:
 
 ## Puts the placed things into the world as the save had them, or the camp of the start
 ## next to the player in a new world (Placed.start_camp; and the test world's camp); the
-## near chunks are built by then, so the ground under them is known.
+## near chunks are built by then, so the ground under them is known. They go into the
+## server's things (the saves move to the server at С4); the copy drawn here gets them
+## by events.
 func place() -> void:
 	var meta: Dictionary = game.save.meta
+	var placed = game.session.placed
 	if meta.get("placed") is Array:
-		game.placed.from_list(meta.placed)
+		placed.from_list(meta.placed)
 	elif meta.get("props") is Dictionary:
 		# A save from before things could be placed: the chest and the campfire by name.
 		for name in ["chest", "campfire"]:
 			var c: Variant = game.save.prop_cell(name)
 			if c != null:
-				game.placed.put(Items.with_prop("chest") if name == "chest" else Placed.CAMPFIRE, c,
+				placed.put(Items.with_prop("chest") if name == "chest" else Placed.CAMPFIRE, c,
 					meta.get("chest") if name == "chest" else null)
 	else:
-		game.placed.start_camp(game.player.position)
+		placed.start_camp(game.player.position)
 		# The camp of the test world (TestGround.plan_things), for FPS and freezes.
 		if game.gen.has_method("plan_things"):
 			for t: Array in game.gen.plan_things():
-				game.placed.put(t[0], t[1])
+				placed.put(t[0], t[1])
 	_heat_later()
 
 

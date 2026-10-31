@@ -160,14 +160,20 @@ func from_list(list: Array) -> void:
 func to_list() -> Array:
 	var out := []
 	for e in things:
-		var c: Vector3i = e.cell
-		var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
-		if e.items != null:
-			d.items = e.items.to_dict()
-		if not e.lit:
-			d.out = true
-		out.append(d)
+		out.append(record(e))
 	return out
+
+
+## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
+## holds (Inventory.to_dict) if it stores, "out" true for a fire put out}.
+static func record(e: Dictionary) -> Dictionary:
+	var c: Vector3i = e.cell
+	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
+	if e.items != null:
+		d.items = e.items.to_dict()
+	if not e.lit:
+		d.out = true
+	return d
 
 
 ## Puts the camp of the start (Starts.START: the campfire, the chest when its bundle is
@@ -341,6 +347,12 @@ func destroy(e: Dictionary) -> bool:
 
 ## Takes placed thing `e` out of the world.
 func _remove(e: Dictionary) -> void:
+	_forget(e)
+	world.note_edit(e.cell.x, e.cell.z)
+
+
+## Lets go of thing `e`: its cells are free again, it is told gone (removed).
+func _forget(e: Dictionary) -> void:
 	for dz in 2:
 		for dx in 2:
 			world.blockers.erase(e.cell + Vector3i(dx, 0, dz))
@@ -348,7 +360,6 @@ func _remove(e: Dictionary) -> void:
 		chest_items = null
 	things.erase(e)
 	removed.emit(e)
-	world.note_edit(e.cell.x, e.cell.z)
 
 
 ## The north-west cell of two by two cells in front of `who` where a thing can be

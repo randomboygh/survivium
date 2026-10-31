@@ -6,7 +6,8 @@ extends RefCounted
 ## far away): `[kind, seq, args]` for a request, `[seq, value]` for its reply. `seq`
 ## grows by one with each request of a player, so a request sent twice is answered
 ## twice the same way and done once (Requests). An event `[kind, args]` has no reply:
-## the client's body each frame, the server's state for the client's copies. The bytes
+## the client's body each frame, the server's state for the client's copies (the
+## player's own, the things placed, the clock, the animals). The bytes
 ## are var_to_bytes of the Array: Vector3i, Dictionary and String go through as they are.
 
 ## The protocol's version: a client and a server of different versions do not play.
@@ -90,6 +91,30 @@ const DROPS := "drops"
 const TELEPORT := "teleport"
 ## The body is thrown (a burning campfire): [dir, speed, hop] (Body.knock).
 const KNOCK := "knock"
+## The animals the player ran into pushed the body, this tick: [by] (world units, Body.nudge).
+const PUSH := "push"
+## Every thing placed on cells, on joining: [list] (each as Placed.to_list gives it).
+const PROPS := "props"
+## A thing was placed: [thing] (as Placed.to_list gives it).
+const PROP := "prop"
+## A thing placed was taken out of the world: [cell].
+const PROP_GONE := "prop_gone"
+## A campfire was put out or lit: [cell, lit].
+const PROP_LIT := "prop_lit"
+## What a thing that stores holds changed: [cell, Inventory.to_dict()].
+const CHEST := "chest"
+## The time, the season and the weather: [Clock.snapshot()], on joining and then a few
+## times a second (the client's copy runs the time of day between them).
+const CLOCK := "clock"
+## An animal came into the world: [id, kind, tint, position].
+const ANIMAL := "animal"
+## An animal left the world: [id].
+const ANIMAL_GONE := "animal_gone"
+## Where the animals that moved are, every tick: [[id, position, lift, facing, flying,
+## perched, moving, hop, left, near, state], …] (the fields of Wildlife.Animal).
+const SNAP := "snap"
+## A paw of an animal came down: [id, at, dir, left, size] (Wildlife.stepped).
+const STEP := "step"
 
 
 ## An event message.

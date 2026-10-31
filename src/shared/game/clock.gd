@@ -428,6 +428,40 @@ func from_dict(d: Dictionary) -> void:
 	leaf_fall = clampf(d.get("leaf_fall", 0.0), 0.0, 1.0)
 
 
+## The names of the fields a snapshot carries, in its order (see snapshot).
+const SNAPSHOT: Array[StringName] = [&"day", &"time_of_day", &"time_speed", &"real_time", &"real_season",
+	&"season", &"season_clock", &"weather", &"weather_auto", &"real_wind", &"weather_left", &"rain",
+	&"snowing", &"hail", &"sand", &"fog", &"fog_depth", &"haze", &"storm_wind", &"wind_angle", &"wind_to",
+	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome"]
+
+
+## All the clock shows (the time, the season, the weather and what it leaves on the
+## ground) as plain data for a client's copy (Protocol.CLOCK): the fields of SNAPSHOT in
+## its order.
+func snapshot() -> Array:
+	var out := []
+	for f in SNAPSHOT:
+		out.append(get(f))
+	return out
+
+
+## Takes the state of snapshot `a` (see snapshot); a new season is told (season_changed).
+## False for an Array that is not one.
+func from_snapshot(a: Array) -> bool:
+	if a.size() != SNAPSHOT.size():
+		return false
+	for i in a.size():
+		var v = a[i]
+		if not (v is float or v is int or v is bool):
+			return false
+	var was := season
+	for i in a.size():
+		set(SNAPSHOT[i], a[i])
+	if season != was:
+		season_changed.emit(season)
+	return true
+
+
 ## The fog lying on the ground now: x how thick (0..1), y how deep it is above the
 ## ground, in world units. The weather's fog, or the morning fog of the day around
 ## sunrise, thinning out by mid-morning (a thick one later), in still air when nothing

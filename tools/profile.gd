@@ -181,11 +181,11 @@ func _profile() -> void:
 		for n in nodes:
 			n.set_process(true)
 		main.player.position = spawn
-		main.clock.time_of_day = s.time
-		main.clock.time_speed = 0.0
-		main.clock.season = s.season
-		main.clock.raining = s.get("rain", false)
-		main.clock.set_weather(_weather_index(s.get("weather", "clear")))
+		main.session.clock.time_of_day = s.time
+		main.session.clock.time_speed = 0.0
+		main.session.clock.season = s.season
+		main.session.clock.raining = s.get("rain", false)
+		main.session.clock.set_weather(_weather_index(s.get("weather", "clear")))
 		main.sky.moon_override = s.get("moon", -1.0)
 		main.settings.values.fire_shadows = s.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
 		main.settings.set_value("shadows", s.get("shadows", true))
@@ -201,9 +201,9 @@ func _profile() -> void:
 		if s.get("underground", false):
 			main.player.position = Places.cave(main.world, main.player.position)
 		if s.has("by_fire"):
-			for e: Dictionary in main.placed.things:
-				if main.placed.is_fire(e):
-					main.player.position = main.placed.center(e) + s.by_fire
+			for e: Dictionary in main.session.placed.things:
+				if main.session.placed.is_fire(e):
+					main.player.position = main.session.placed.center(e) + s.by_fire
 					break
 		if s.has("keys"):
 			main.player.position = places.flat_near(main.world, main.player.position)
@@ -212,9 +212,9 @@ func _profile() -> void:
 			main.hud.toggle_bag()
 		for i in SETTLE:
 			await process_frame
-			main.clock.snow = 1.0 if main.clock.season == 3 else 0.0
-			main.clock.settle_weather()
-			main.clock.wet = 1.0 if main.clock.raining and main.clock.season != 3 else 0.0
+			main.session.clock.snow = 1.0 if main.session.clock.season == 3 else 0.0
+			main.session.clock.settle_weather()
+			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else 0.0
 		if s.has("keys"):
 			_hold(s.keys, true)
 		for n in nodes:
@@ -288,7 +288,7 @@ func _hitches() -> void:
 	# The phone's cadence: a frame every 11 ms, the game's code a share of it.
 	Engine.max_fps = 90
 	main.save.begin()
-	main.clock.time_speed = 12.0
+	main.session.clock.time_speed = 12.0
 	main.player.position = places.flat_near(main.world, main.player.position)
 	var nodes: Array = [main, main.creatures, main.fire_shadows, main.tracks, main.hud]
 	for n in nodes:
@@ -420,24 +420,24 @@ func _spikes() -> void:
 	await _spike("a toast", func() -> void: hud.toast("Готово: Верёвка"))
 	main.player.facing = "e"
 	await _spike("a campfire put down", func() -> void: main.props.put_from_bag("core:campfire"))
-	main.clock.time_of_day = 0.95
+	main.session.clock.time_of_day = 0.95
 	await _spike("night falls (torch on)", func() -> void: pass)
 	await _frames(30)
 	var fire: Vector3 = main.player.position
-	for e: Dictionary in main.placed.things:
-		if main.placed.is_fire(e):
-			fire = main.placed.center(e)
+	for e: Dictionary in main.session.placed.things:
+		if main.session.placed.is_fire(e):
+			fire = main.session.placed.center(e)
 	await _spike("by a fire at night (its shadow)", func() -> void:
 		main.player.position = fire + Vector3(0.6, 0.0, -1.4))
 	await _frames(30)
 	await _spike("rain starts", func() -> void:
-		main.clock.set_weather(_weather_index("downpour"))
-		main.clock.settle_weather())
+		main.session.clock.set_weather(_weather_index("downpour"))
+		main.session.clock.settle_weather())
 	await _frames(30)
-	main.clock.season = 3
+	main.session.clock.season = 3
 	await _spike("snow starts", func() -> void:
-		main.clock.set_weather(_weather_index("snow"))
-		main.clock.settle_weather())
+		main.session.clock.set_weather(_weather_index("snow"))
+		main.session.clock.settle_weather())
 	quit()
 
 
