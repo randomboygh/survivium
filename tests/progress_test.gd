@@ -81,7 +81,7 @@ func _run() -> void:
 	# Only what is wanted is taken off the ground (see _pick_up), so the bag keeps room.
 	main.settings.values.pickup = 3
 	main.settings.set_tool_wear(false)
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	inv.slots.fill(null)
 	inv.changed.emit()
 	main.controls.hands[0] = ""
@@ -204,21 +204,21 @@ func _craft(r: Dictionary, times: int) -> bool:
 		if not await _obtain(id, r.keeps[id]):
 			return false
 	await _go(camp)
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	var before: int = inv.count(r.makes)
-	var why: String = main.workshop.why_not(r)
-	if main.workshop.start(r, times) < times:
+	var why: String = main.host.workshop.why_not(r)
+	if main.host.workshop.start(r, times) < times:
 		return _fail("%s cannot be started at the camp: %s" % [r.title, why])
 	var frames := 0
-	while not main.workshop.queue.jobs.is_empty() and frames < 600:
+	while not main.host.workshop.queue.jobs.is_empty() and frames < 600:
 		# The crafting clock runs fast; the rule that the station must be near still holds.
-		main.workshop.update(r.time / 4.0)
+		main.host.workshop.update(r.time / 4.0)
 		await process_frame
 		frames += 1
 	var got: int = inv.count(r.makes) - before
 	if got < r.count * times:
 		return _fail("%s: made %d of %d (%s)" % [r.title, got, r.count * times,
-			"waits for its station" if main.workshop.waiting() else "the bag is full?"])
+			"waits for its station" if main.host.workshop.waiting() else "the bag is full?"])
 	made[r.id] = true
 	print("made %s ×%d" % [r.title, got])
 	if Items.get_item(r.makes).get("prop", "none") != "none" and not await _place(r.makes):
@@ -238,7 +238,7 @@ func _obtain(id: String, n: int) -> bool:
 
 
 func _obtain_more(id: String, n: int) -> bool:
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	var tries := 0
 	while inv.count(id) < n:
 		if swings > MAX_SWINGS:
@@ -277,7 +277,7 @@ func _get_tool(kind: String) -> bool:
 
 ## The first item in the bag that is a tool of kind `kind`, "" for none.
 func _tool_of_kind(kind: String) -> String:
-	for s in main.character.inventory.slots:
+	for s in main.host.player.inventory.slots:
 		if s != null and Items.get_item(s[0]).get("tool", "none") == kind:
 			return s[0]
 	return ""
@@ -335,11 +335,11 @@ func _placed_count(id: String) -> int:
 
 ## Throws away what is no longer wanted, so the bag keeps room.
 func _tidy() -> void:
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	for i in inv.slots.size():
 		var s = inv.slots[i]
 		if s != null and not _wanted(s[0]):
-			main.character.throw_away(i, s[1])
+			main.host.player.throw_away(i, s[1])
 
 
 # --- Getting things from the world ------------------------------------------------------
@@ -424,7 +424,7 @@ func _fell() -> bool:
 					break
 				_rest()
 				swings += 1
-				main.controls.dig_at(main.actions.trunk_cell(main.character, best), Vector3i.UP)
+				main.controls.dig_at(main.actions.trunk_cell(main.host.player, best), Vector3i.UP)
 				await process_frame
 			if w.trees.has(best) and w.log_col(best.x, best.y) != 0:
 				return _fail("a tree at %s does not fall to the axe" % best)
@@ -548,7 +548,7 @@ func _dig_for(id: String, mats: Array[int]) -> bool:
 ## shovel or a pickaxe before the hands, never an axe.
 func _digger(m: int) -> String:
 	var found := "-"
-	for s in main.character.inventory.slots:
+	for s in main.host.player.inventory.slots:
 		if s != null and Tools.is_tool_item(s[0]) and Tools.can_dig(Tools.of(s[0]), m) and Tools.of(s[0]).tool != "axe":
 			if found == "-" or found == "" or Tools.of(s[0]).tool == "shovel":
 				found = s[0]
@@ -582,9 +582,9 @@ func _pick_up(at: Vector3, radius: float) -> int:
 					var d: Array = list[i]
 					if d[1].distance_to(at) <= radius * CELL and _wanted(Items.get_item(d[0]).get("id", d[0])):
 						_rest()
-						var before: int = main.character.inventory.count(d[0])
+						var before: int = main.host.player.inventory.count(d[0])
 						main.gathering.gather({"drop": [key, i]})
-						took += main.character.inventory.count(d[0]) - before
+						took += main.host.player.inventory.count(d[0]) - before
 				i -= 1
 	_tidy()
 	return took
@@ -653,7 +653,7 @@ func _near_camp(x: int, z: int) -> bool:
 
 ## Tiredness and hunger are not tested here.
 func _rest() -> void:
-	var v = main.character.vitals
+	var v = main.host.player.vitals
 	v.stamina = v.MAX
 	v.health = v.MAX
 	v.satiety = v.MAX

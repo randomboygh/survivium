@@ -20,7 +20,7 @@ graph LR
     cnet["net/"]
   end
   subgraph server["src/server/"]
-    requests["requests.gd"]
+    requests["requests.gd, player.gd, player_link.gd"]
   end
   subgraph shared["src/shared/"]
     net["net/"]

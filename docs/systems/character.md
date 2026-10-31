@@ -15,8 +15,11 @@
 - `src/shared/game/body.gd` — тело на сетке: `step(at, delta, jump)`, склоны и ступени, вода и плавание,
   лёд, глубокий снег и ветер (`weather_pace`, `air_drift`), толчки (`knock`), тропы. Где стоит тело,
   держит владелец: на клиенте узел игрока передаёт своё место в `body.step` каждый кадр.
-- `src/client/game/character.gd` (наследует общий) — место игрока, руки (из `controls`), строки под
-  часами, экран смерти, `go_to_column` («Тестирование»).
+- `src/server/player.gd` (наследует общий) — персонаж игрока на сервере, тот, над кем идут правила:
+  тело и руки такие, какими клиент прислал их событием `input` ([network.md](network.md)).
+- `src/client/game/character.gd` (наследует общий) — копия персонажа на клиенте: сумка, силы, смерть
+  из событий сервера (`take`, `take_vitals`), место игрока, руки (из `controls`), строки под часами,
+  экран смерти, `go_to_column` («Тестирование»); правил не крутит.
 - `src/client/view/player.gd` — игрок на экране: двигает тело, рисует спрайт по состоянию тела;
   `player.work` начинает замах.
 - `src/client/view/figure.gd` — лист кадров игрока из `content/core/sprites/` по `player.yaml` (слои,
@@ -27,7 +30,8 @@
 
 **Данные.** Предметы (`food`, `heal`, `weight`, `stack`, `light`, `sprite`, `anim`, `hands`); существо
 `core:human`; слои и работы фигуры — `content/core/sprites/player.yaml`, листы инструментов в руке —
-`sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character`, `hands`.
+`sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character` (с серверного
+персонажа, `game.host.player`), `hands` (с клиента).
 
 **Подводные камни.** Сигналы сумки и очереди подключайте методом, не лямбдой с `self` (цикл ссылок,
 RefCounted не освободится — см. комментарий в `src/shared/game/character.gd`). `var i := expr`, где

@@ -45,6 +45,8 @@ const Rules := preload("res://src/shared/game/rules.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Connection := preload("res://src/client/net/connection.gd")
+const Mirror := preload("res://src/client/net/mirror.gd")
+const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
@@ -123,14 +125,16 @@ var rules: Rules
 ## `storms` and `wildlife` are its.
 var session: Session
 ## The server inside the game (single player) and the client's connection to it: what
-## the player asks of the rules goes through `net` (Protocol).
+## the player asks of the rules goes through `net` (Protocol); `character` and `workshop`
+## are the client's copies of the player's, kept by `mirror` from the server's events.
 var host: LocalHost
 var net: Connection
+var mirror: Mirror
 ## The rules of what the hands do to the world (dig, build, chop, gather).
 var actions: WorldActions
 ## What strong wind does to the trees and bushes around the player.
 var storms: Storms
-var workshop: Workshop
+var workshop: RemoteWorkshop
 var placed: Placed
 var wildlife: Wildlife
 var hands: HandsScript
@@ -223,18 +227,14 @@ func _ready() -> void:
 	placed.cell_changed.connect(chunks.on_cell_changed)
 	character = CharacterScript.new(self)
 	character.clock = clock
-	save.track("inventory", character.inventory)
-	save.track("vitals", character.vitals)
-	save.track("character", character)
+	character.placed = placed
 	gathering = Gathering.new(self)
 	hands = HandsScript.new(self)
-	workshop = Workshop.new(character, placed, rules)
-	save.track("knowledge", workshop.knowledge)
-	save.track("crafting", workshop.queue)
+	workshop = RemoteWorkshop.new(character, placed, rules)
+	mirror = Mirror.new(self)
 	save.track("hands", controls)
 	markers = Markers.new()
 	save.track("markers", markers)
-	workshop.settle()
 	view.build(self)
 	world_root = view.world_root
 	_build_ui()
@@ -278,9 +278,17 @@ func start_world() -> void:
 	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
 	world = gen.world
 	session = Session.new(world, gen, clock, rules, placed)
-	session.add_player(character, workshop)
-	host = LocalHost.new(session, character, workshop)
-	net = host.link()
+	character.world = world
+	host = LocalHost.new(session)
+	net = host.join()
+	mirror.watch(net)
+	# The player's save goes into the server's character (the saves move there at С4).
+	save.track("inventory", host.player.inventory)
+	save.track("vitals", host.player.vitals)
+	save.track("character", host.player)
+	save.track("knowledge", host.workshop.knowledge)
+	save.track("crafting", host.workshop.queue)
+	host.workshop.settle()
 	actions = session.actions
 	storms = session.storms
 	wildlife = session.wildlife
@@ -385,8 +393,10 @@ func _process(delta: float) -> void:
 			view.look_at_player()
 			props.place()
 			if not save.has_save:
-				character.start_bag()
-			character.find_home(placed)
+				host.player.start_bag()
+			host.player.find_home(placed)
+			mirror.send_input()
+			host.flush(net)
 			player.visible = not character.is_dead()
 			session.start_wildlife(world_seed)
 			creatures.watch(wildlife)
@@ -406,12 +416,16 @@ func _process(delta: float) -> void:
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		# An animal the player ran into pushes back by its mass.
-		var push: Vector3 = session.push_on(character)
+		var push: Vector3 = session.push_on(host.player)
 		player.body.nudge = Vector2(push.x, push.z) / CELL
 		wildlife.pushes.fill(Vector3.ZERO)
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
+		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.step(minf(delta, 0.05), jump)
+		character.update(delta)
+		mirror.send_input()
 		session.step_players(delta)
+		host.flush(net)
 		if playing:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)

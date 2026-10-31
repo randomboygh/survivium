@@ -155,7 +155,7 @@ func pick_moss(w, at: Vector3i) -> void:
 		var c := at + Vector3i(o.x, 0, o.y)
 		if Grass.stone_moss(w, c.x, c.y, c.z):
 			cells.append(c)
-	main.actions.mow(main.character, cells)
+	main.actions.mow(main.host.player, cells)
 
 
 ## Standing spot at the nearest place of a kind (see WorldGen.find_place):
@@ -712,7 +712,7 @@ func clearing(w, at: Vector3i, fell: bool, species: Array = []) -> void:
 	main.player.position = (Vector3(at.x, h, at.z) + Vector3(0.5, 0.0, 0.5)) * CELL
 	if fell:
 		for t in [oak, spruce]:
-			main.actions.fell(main.character, Vector3i(t.x, h + 1, t.y))
+			main.actions.fell(main.host.player, Vector3i(t.x, h + 1, t.y))
 
 
 ## The open spot near `at` with the most crowns around it.

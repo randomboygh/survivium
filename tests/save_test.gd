@@ -56,15 +56,15 @@ func _run() -> void:
 	var bag := Bag.new()
 	main.save.track("bag", bag)
 	bag.items = {"core:stick": 3.0}
-	main.character.inventory.add("resources:branch", 7)
-	main.character.inventory.add("resources:fiber", 9)
-	main.character.vitals.satiety = 42.0
+	main.host.player.inventory.add("resources:branch", 7)
+	main.host.player.inventory.add("resources:fiber", 9)
+	main.host.player.vitals.satiety = 42.0
 	# A cord being made, a worn axe, a workbench placed and a log in the spawn chest.
-	var shop = main.workshop
+	var shop = main.host.workshop
 	_check(shop.start(shop.knowledge.recipes().filter(func(r: Dictionary) -> bool: return r.id == "materials:cord")[0], 2) == 2,
 		"cord is known from fibre and queued")
-	main.character.inventory.add("tools:stone_axe", 1, 17)
-	main.character.inventory.add("tools:workbench", 1)
+	main.host.player.inventory.add("tools:stone_axe", 1, 17)
+	main.host.player.inventory.add("tools:workbench", 1)
 	_check(main.props.put_from_bag("tools:workbench"), "a workbench is placed in front of the player")
 	main.placed.chest_items.add("resources:log", 2)
 	# A marker, and a far region of the map as if explored, one pixel painted red.
@@ -102,7 +102,7 @@ func _run() -> void:
 	var stood: Vector3 = main.player.position
 	var props: Array = main.placed.to_list()
 	var seed_value: int = main.world_seed
-	_check(main.workshop.knowledge.recipes().any(func(r: Dictionary) -> bool: return r.id == "tools:torch"),
+	_check(main.host.workshop.knowledge.recipes().any(func(r: Dictionary) -> bool: return r.id == "tools:torch"),
 		"the torch is known with branches and fibre in the bag")
 	_check(main.save.meta.get("known", []) == Mods.all(), "a world keeps the bundles there were when it was saved")
 	# Saved as a world from before the torch, and before worlds kept the bundles they knew,
@@ -129,16 +129,16 @@ func _run() -> void:
 	_check(str(main.placed.to_list()) == str(props), "the props stand where they stood")
 	_check(main.placed.cell_of("tools:workbench") != null and main.placed.chest_items.count("resources:log") == 2,
 		"the workbench placed and what the chest holds come back")
-	_check(main.workshop.queue.jobs.size() >= 1 and main.workshop.knowledge.seen.has("resources:fiber"),
+	_check(main.host.workshop.queue.jobs.size() >= 1 and main.host.workshop.knowledge.seen.has("resources:fiber"),
 		"the crafting queue and what the character knows come back")
-	var axe_slot: int = main.character.inventory.slots.find(main.character.inventory.slots.filter(
+	var axe_slot: int = main.host.player.inventory.slots.find(main.host.player.inventory.slots.filter(
 		func(x) -> bool: return x != null and x[0] == "tools:stone_axe")[0])
-	_check(main.character.inventory.worn(axe_slot) == 17, "a tool's wear comes back")
+	_check(main.host.player.inventory.worn(axe_slot) == 17, "a tool's wear comes back")
 	var bag2 := Bag.new()
 	main.save.track("bag", bag2)
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
-	_check(main.character.inventory.count("resources:branch") == 7, "the character's bag comes back")
-	_check(absf(main.character.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
+	_check(main.host.player.inventory.count("resources:branch") == 7, "the character's bag comes back")
+	_check(absf(main.host.player.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
 	_check(main.markers.list.size() == 1 and main.markers.list[0].cell == Vector2i(120, -40) and main.markers.list[0].color == 4,
 		"the markers come back")
 	mm = main.hud.minimap
@@ -164,8 +164,8 @@ func _run() -> void:
 	# world left dead is entered dead.
 	main.save.begin()
 	var ch = main.character
-	ch.vitals.health = 0.0
-	ch.vitals.hurt_by = "hunger"
+	main.host.player.vitals.health = 0.0
+	main.host.player.vitals.hurt_by = "hunger"
 	await process_frame
 	await process_frame
 	_check(ch.is_dead() and ch.inventory.is_empty() and not main.player.visible, "a death empties the bag and hides the player")

@@ -251,7 +251,7 @@ func _run() -> void:
 			if spot.y >= 0:
 				added_fires.append(main.placed.put(main.placed.CAMPFIRE, spot, null))
 		for at: Array in shot.get("sacks", []):
-			main.character.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
+			main.host.player.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
 		if shot.get("walk", false):
 			# A walk in a hook south-east, then west, over a flat open spot, leaving
@@ -306,7 +306,7 @@ func _run() -> void:
 		await process_frame
 		if shot.has("body"):
 			# What the screen shows when the body is hurt, or healed and fed.
-			var v = main.character.vitals
+			var v = main.host.player.vitals
 			if shot.body == "fed":
 				v.health = 60.0
 				v.satiety = 30.0
@@ -355,9 +355,9 @@ func _run() -> void:
 			main.hud.bag._let_go()
 			var slot: int = shot.get("slot", 1)
 			if shot.has("give"):
-				main.character.give(shot.give, 1)
-				for i in main.character.inventory.slots.size():
-					var st = main.character.inventory.slots[i]
+				main.host.player.give(shot.give, 1)
+				for i in main.host.player.inventory.slots.size():
+					var st = main.host.player.inventory.slots[i]
 					if st != null and st[0] == shot.give:
 						slot = i
 			main.hud.bag._tap(slot, true)
@@ -372,7 +372,7 @@ func _run() -> void:
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0, false)
 		if shot.get("chests", false):
-			main.character.inventory.add("tools:chest", 1)
+			main.host.player.inventory.add("tools:chest", 1)
 			main.player.facing = "e"
 			main.props.put_from_bag("tools:chest")
 			main.placed.chest_items.add("plants:raspberry", 12)
@@ -388,15 +388,15 @@ func _run() -> void:
 		if shot.get("craft", false):
 			_craft(shot.get("forge", false))
 			if shot.has("recipe"):
-				main.character.inventory.add("materials:cord", 2)
+				main.host.player.inventory.add("materials:cord", 2)
 				main.hud.bag.craft._choose(shot.recipe)
 			if shot.get("unknown", false) or shot.get("idle", false):
-				while not main.workshop.queue.jobs.is_empty():
-					main.workshop.queue.cancel(0)
+				while not main.host.workshop.queue.jobs.is_empty():
+					main.host.workshop.queue.cancel(0)
 				main.hud.bag.craft.refresh_now()
 			if shot.get("unknown", false):
-				main.workshop.knowledge.seen.clear()
-				main.workshop.knowledge._known.clear()
+				main.host.workshop.knowledge.seen.clear()
+				main.host.workshop.knowledge._known.clear()
 				main.hud.bag.craft.refresh_now()
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
@@ -413,24 +413,24 @@ func _run() -> void:
 				await process_frame
 		if shot.get("death", false):
 			for st in [["resources:branch", 12], ["resources:fiber", 9], ["plants:raspberry", 23], ["tools:stone_axe", 1], ["resources:flint", 3]]:
-				main.character.inventory.add(st[0], st[1])
+				main.host.player.inventory.add(st[0], st[1])
 			main.player.position += Vector3(14.0, 0.0, 9.0)
 			main.player.position = places.flat_near(main.world, main.player.position)
 			# A life of two and a half days, the second in this world.
-			var ch = main.character
+			var ch = main.host.player
 			ch.life = {"walked": 1840.0, "dug": 64.0, "built": 23.0, "trees": 3.0, "got": 212.0, "eaten": 17.0,
 				"crafted": 6.0, "jumps": 148.0}
 			main.clock.day += 2
 			ch.born = main.clock.day + main.clock.time_of_day - 2.4
 			ch.deaths = 1
 			ch.best_days = 1.2
-			main.character.vitals.health = 0.0
-			main.character.vitals.satiety = 0.0
-			main.character.vitals.hurt_by = "hunger"
+			main.host.player.vitals.health = 0.0
+			main.host.player.vitals.satiety = 0.0
+			main.host.player.vitals.hurt_by = "hunger"
 			for i in 10:
 				await process_frame
 			if shot.get("revive", false):
-				var fell: Array = main.character.death.at
+				var fell: Array = main.host.player.death.at
 				main.death_screen._revive(Vector3(fell[0] - 1.5, fell[1], fell[2] + 1.0))
 				for i in 30:
 					await process_frame
@@ -509,7 +509,7 @@ func _run() -> void:
 			main.hud.visible = true
 		if shot.get("map", false):
 			main.hud.map_view.close()
-		main.character.sacks.clear()
+		main.host.player.sacks.clear()
 		main.markers.from_dict({})
 		print("saved ", shot_name)
 		for e in added_fires:
@@ -533,19 +533,19 @@ func _run() -> void:
 				or (shot.get("craft", false) and not shot.get("closed", false)):
 			main.hud.toggle_bag()
 		if shot.get("craft", false):
-			while not main.workshop.queue.jobs.is_empty():
-				main.workshop.queue.cancel(0)
+			while not main.host.workshop.queue.jobs.is_empty():
+				main.host.workshop.queue.cancel(0)
 			for e in main.placed.things.duplicate():
 				if e.item in ["tools:workbench", "tools:kiln", "tools:forge"]:
-					main.placed.take_up(main.character, e)
-			main.character.inventory.take_all()
+					main.placed.take_up(main.host.player, e)
+			main.host.player.inventory.take_all()
 		if shot.get("chest", false):
 			main.placed.chest_items.take_all()
 		if shot.get("gather", false) or shot.get("work", false):
-			main.character.inventory.take_all()
-			main.character.vitals.revive(1.0)
+			main.host.player.inventory.take_all()
+			main.host.player.vitals.revive(1.0)
 		if shot.get("death", false):
-			main.death_screen._revive(main.character.home)
+			main.death_screen._revive(main.host.player.home)
 		if shot.get("work", false):
 			main.settings.set_value("pickup", 0)
 			main.controls.hold("")
@@ -559,7 +559,7 @@ func _run() -> void:
 ## With `forge`, a forge too, to the north, with ore, charcoal and bars in the bag, a copper
 ## bar being smelted, the craft tab open at the forge.
 func _craft(forge := false) -> void:
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	for st in [["resources:fiber", 14], ["resources:branch", 16], ["resources:flint", 3], ["resources:log", 2], ["resources:clay", 6],
 			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
 		inv.add(st[0], st[1])
@@ -579,7 +579,7 @@ func _craft(forge := false) -> void:
 		station = "tools:forge"
 		recipe = "tools:copper_bar"
 	main.player.facing = "s"
-	var shop = main.workshop
+	var shop = main.host.workshop
 	shop.start(Crafting.get_recipe(recipe), 2)
 	shop.queue.jobs[0].left = 0.5
 	shop.queue.step(0.25, func(_r: Dictionary) -> bool: return true)
@@ -595,7 +595,7 @@ func _hands(h: Dictionary) -> void:
 	# On flat grass nearby, unless the shot keeps its spot (`h.stay`).
 	if not h.get("stay", false):
 		main.player.position = places.flat_near(main.world, main.player.position)
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	var other: String = h.get("other", "resources:stone")
 	inv.add(h.tool, 1)
 	inv.add(other, 10 if other == "resources:stone" else 1)
@@ -625,7 +625,7 @@ func _work() -> void:
 	var w = main.world
 	main.settings.set_value("pickup", 3)
 	main.settings.give_tools()
-	main.character.inventory.add("resources:stone", 20)
+	main.host.player.inventory.add("resources:stone", 20)
 	var f: Vector3i = c.feet()
 	c.put_in_hand("resources:stone")
 	c.brush = 2
@@ -650,17 +650,17 @@ func _work() -> void:
 	# grass), the next cut twice (dirt with fibre on it), the far row cut twice and sown
 	# with grain (ears).
 	c.put_in_hand("tools:stone_scythe", 1, false)
-	main.character.inventory.add("plants:grain", 5)
+	main.host.player.inventory.add("plants:grain", 5)
 	var mown := 0
 	for i in 15:
 		var cell := f + Vector3i(-7 + i % 5, 0, 1 + i / 5)
 		cell.y = w.surface_y(cell.x, cell.z) - 1
 		var one: Array[Vector3i] = [cell]
 		for k in 1 if i < 5 else 2:
-			if main.actions.can_mow(cell) and main.actions.mow(main.character, one):
+			if main.actions.can_mow(cell) and main.actions.mow(main.host.player, one):
 				mown += 1
 		if i >= 10:
-			main.actions.plant_at(main.character, "plants:grain", cell)
+			main.actions.plant_at(main.host.player, "plants:grain", cell)
 	print("grass cut %d times" % mown)
 	c.put_in_hand("tools:wooden_shovel", 0, false)
 	c.set_active(1)
@@ -679,7 +679,7 @@ func _gather() -> void:
 		w.add_bush(cell, [Bushes.first(true), Bushes.first(true, 1), Bushes.first(false)][i])
 		main.chunks.remesh_chunk(WorldData.chunk_key(cell.x, cell.z))
 	var a = main.actions
-	var who = main.character
+	var who = main.host.player
 	a._from_bush(who, at + Vector3i(-6, 0, 5))
 	a._from_bush(who, at + Vector3i(0, 0, 5))
 	for key: Vector2i in w.drops.keys():
@@ -687,10 +687,10 @@ func _gather() -> void:
 		for i in range(list.size() - 1, -1, -1):
 			if i < list.size() and list[i][1].x < main.player.position.x - 1.0:
 				a.pick_up(who, key, i)
-	main.character.inventory.add("resources:dirt", 4)
-	main.character.inventory.add("resources:stone", 5)
-	main.character.vitals.stamina = 45.0
-	main.character.vitals.satiety = 35.0
+	main.host.player.inventory.add("resources:dirt", 4)
+	main.host.player.inventory.add("resources:stone", 5)
+	main.host.player.vitals.stamina = 45.0
+	main.host.player.vitals.satiety = 35.0
 	main.hud.refresh_counts()
 
 
