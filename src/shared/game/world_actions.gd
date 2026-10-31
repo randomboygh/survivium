@@ -20,6 +20,7 @@ extends RefCounted
 ## wait. What changes in the world is told through the signals, for the views (the
 ## chunks, the things on the ground) and later the network.
 
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -82,6 +83,9 @@ var clock
 var rules
 ## Damage each tree being chopped has taken, by its trunk's column (not saved).
 var chops := {}
+## The animals (Wildlife) blows land on; null where there are none (a client's copy of
+## the rules), and then no blow lands.
+var wildlife
 
 
 func _init(w, c, r) -> void:
@@ -490,6 +494,11 @@ func act_in_front(who, top: int) -> Dictionary:
 				return _work(FRONT_PLACE_SWING, "reach", Vector3.INF)
 			return {"swing": IDLE_SWING}
 	var t: Dictionary = who.tool()
+	# A sword or a knife goes for an animal in front first, any other hand for one
+	# right by the body.
+	var blow := strike(who, Tools.hunts(t))
+	if not blow.is_empty():
+		return blow
 	var work := front_choice(who)
 	if work.has("trunk"):
 		return chop(who, work.trunk)
@@ -510,9 +519,39 @@ func act_in_front(who, top: int) -> Dictionary:
 ## Nothing to work: the hand in use swings at the air (toward `at`, if finite), without
 ## a word and for less stamina.
 func swing_air(who, at: Vector3) -> Dictionary:
+	var blow := strike(who)
+	if not blow.is_empty():
+		return blow
 	if who.act("swing"):
 		return _work(who.tool().swing, "", at)
 	return {"swing": IDLE_SWING}
+
+
+## A blow of the hand in use at the animal in front of `who` (Wildlife.in_front; only
+## one right by the body unless `far`), with the hand's power: the animal flees, or dies
+## and leaves its carcass (its species' `carcass`) on the ground where it fell. {} with
+## no animal there.
+func strike(who, far := true) -> Dictionary:
+	if wildlife == null:
+		return {}
+	var s: Vector2i = who.facing_step()
+	var at: Vector3 = who.position
+	var a = wildlife.in_front(at, Vector2(s), wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
+	if a == null or not who.act("swing"):
+		return {}
+	var t: Dictionary = who.tool()
+	var where: Vector3 = a.pos
+	var spec: Dictionary = AiRules.SPECIES[a.kind]
+	if wildlife.hurt(a, t.power, at) and spec.carcass != "" and Items.has(spec.carcass):
+		var cell := Vector3i(floori(where.x / CELL), floori(where.y / CELL + 0.5), floori(where.z / CELL))
+		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
+		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
+		who.note("hunted")
+	if t.tool != "hand":
+		who.use_tool()
+	var done := _work(t.swing, "", where + Vector3(0.0, 0.3, 0.0))
+	done.hit = true
+	return done
 
 
 ## Places the block in hand round `who` (front_place_cells), in the hole it faces first.

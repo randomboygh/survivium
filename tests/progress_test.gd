@@ -9,10 +9,14 @@ extends SceneTree
 ## or recipes that cuts the way is caught in CI. Run:
 ## timeout 600 godot --headless --path . --script res://tests/progress_test.gd
 ##
+## The animals are hunted the same way: the player is carried up to one and strikes it with
+## the action button until it falls, then takes its carcass.
+##
 ## The player is carried to what it works on instead of walking there, its stamina is
 ## topped up and the crafting clock runs fast: walking, tiredness and waiting are not
 ## what is tested here.
 
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -132,6 +136,10 @@ func _raw() -> Dictionary:
 		for id in [b.fruit, b.item, b.twig]:
 			if id != "":
 				have[id] = true
+	for kind: String in AiRules.SPECIES:
+		var spec: Dictionary = AiRules.SPECIES[kind]
+		if kind != AiRules.HUMAN and spec.health > 0 and spec.carcass != "" and Items.has(spec.carcass):
+			have[spec.carcass] = true
 	return have
 
 
@@ -180,13 +188,24 @@ func _wanted(id: String) -> bool:
 	if item.get("prop", "none") != "none":
 		return true
 	# The strongest tool of each kind is kept (a copper pickaxe digs what the stone one
-	# does not, and the stone one goes).
+	# does not, and the stone one goes), of two as strong the one earlier in the bag.
 	var kind: String = item.get("tool", "none")
 	if kind == "none":
 		return false
-	for s in main.host.player.inventory.slots:
-		if s != null and s[0] != id and Items.get_item(s[0]).get("tool", "none") == kind \
-				and Items.get_item(s[0]).get("power", 0) > item.get("power", 0):
+	# A sword, a knife and the like only while a recipe not made yet asks for one: the
+	# bag has room for the tools that get things from the world.
+	if not kind in ["axe", "pickaxe", "shovel", "scythe"] and not order.any(func(r: Dictionary) -> bool:
+			return not made.has(r.id) and kind in r.tools):
+		return false
+	var slots: Array = main.host.player.inventory.slots
+	var mine := slots.find(slots.filter(func(s) -> bool: return s != null and s[0] == id).front()) \
+		if slots.any(func(s) -> bool: return s != null and s[0] == id) else slots.size()
+	for i in slots.size():
+		var s = slots[i]
+		if s == null or s[0] == id or Items.get_item(s[0]).get("tool", "none") != kind:
+			continue
+		var power: int = Items.get_item(s[0]).get("power", 0)
+		if power > item.get("power", 0) or (power == item.get("power", 0) and i < mine):
 			return false
 	return true
 
@@ -407,7 +426,63 @@ func _gather(id: String) -> bool:
 			mats.append(m)
 	if not mats.is_empty():
 		return await _dig_for(id, mats)
+	for kind: String in AiRules.SPECIES:
+		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("carcass", "") == id:
+			return await _hunt(id)
 	return _fail("no way known to get %s from the world" % Items.title(id))
+
+
+## A carcass `id`: the nearest animal on the ground that leaves one is struck with the
+## action button, the strongest sword or knife in the bag in hand, until it falls (the
+## player carried up to it after each blow, as it flees), and its carcass taken. One is
+## let into the world by the player when none of them lives near: how animals come is
+## not what is tested here.
+func _hunt(id: String) -> bool:
+	var life = main.session.wildlife
+	var kinds: Array = AiRules.SPECIES.keys().filter(func(k: String) -> bool:
+		var spec: Dictionary = AiRules.SPECIES[k]
+		return k != AiRules.HUMAN and spec.carcass == id and spec.health > 0 and not spec.flies and not spec.swims)
+	if kinds.is_empty():
+		return _fail("no animal that walks leaves %s" % Items.title(id))
+	var inv = main.host.player.inventory
+	var before: int = inv.count(id)
+	var weapon := ""
+	for s in inv.slots:
+		if s != null and Tools.hunts(Tools.of(s[0])) and (weapon == "" or Tools.of(s[0]).power > Tools.of(weapon).power):
+			weapon = s[0]
+	main.controls.put_in_hand(weapon, -1, false)
+	var prey = null
+	for blow in 400:
+		if prey == null or prey.gone or prey.aloft():
+			prey = null
+			var best := INF
+			for a in life.animals:
+				var d: float = a.pos.distance_to(main.player.position)
+				if a.kind in kinds and not a.gone and not a.aloft() and d < best:
+					prey = a
+					best = d
+			if prey == null or best > 40.0:
+				var at: Vector3 = main.player.position + Vector3(2.0, 0.0, 0.0)
+				at.y = life.ground(at.x, at.z)
+				prey = life._add(kinds[0], at)
+		# Close by, it is struck whichever way the player faces.
+		await _go(prey.pos + Vector3(0.0, 0.0, 0.15))
+		# The server has the body where the player was carried a frame later.
+		await process_frame
+		_rest()
+		swings += 1
+		main.controls.act_in_front()
+		await process_frame
+		if prey.gone:
+			for i in 10:
+				await _pick_up(main.player.position, 4)
+				if inv.count(id) > before:
+					print("hunted %s: %s" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
+					return true
+				await process_frame
+			return _fail("%s fell, but its %s is not on the ground" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
+	return _fail("%s cannot be hunted down: %s at %s, the player at %s" % [Items.title(id), prey.kind if prey != null else "none",
+		prey.pos if prey != null else Vector3.ZERO, main.host.player.position])
 
 
 ## A branch off the nearest bush or tree crown that has one, by hand.

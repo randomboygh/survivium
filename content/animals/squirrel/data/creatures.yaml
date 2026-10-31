@@ -17,3 +17,5 @@
   biomes: [biomes:forest, biomes:taiga, biomes:meadow]
   calls: squirrel
   alarm: squirrel
+  health: 3
+  carcass: small_carcass

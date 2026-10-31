@@ -85,6 +85,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	wildlife.gen = gen
 	wildlife.clock = clock
 	wildlife.people = players
+	actions.wildlife = wildlife
 
 
 ## Brings `who` (Character) into the world with their `workshop` (Workshop).

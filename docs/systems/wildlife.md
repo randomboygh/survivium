@@ -17,6 +17,11 @@
   досягаемости восточнее; радиус тела хранится в `Animal.radius`; `_shove` берёт пол из последнего
   взгляда зверя, как `_move`; `pushes` для игрока). У зверя номер `id` (по нему его знает копия
   клиента). Сигналы `born`, `gone`, `stepped`.
+- Охота: `in_front(at, dir)` — зверь, на которого падает удар (ближайший на земле в `STRIKE_REACH` впереди,
+  вплотную — с любой стороны, с `health` больше 0), `hurt(a, power, from)` — удар: зверь теряет `power`
+  здоровья и `HURT_FLEE` секунд бежит от места удара (даже тот, кто людей не боится), без здоровья убран
+  (`gone`). Удар наносит `WorldActions.strike` (кнопка действия: меч и нож бьют зверя впереди первым делом,
+  остальное в руке — первым делом только зверя вплотную, `STRIKE_CLOSE`, а дальнего — когда больше нечего делать), он же кладёт тушу вида (`carcass`) на землю.
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
   `is_active`; `AiRules.SPECIES`.
 - `src/client/net/remote_wildlife.gd` — копия зверей на клиенте из событий сервера `animal`, `snap`,
@@ -32,7 +37,7 @@
 `creatures.gd`, `voices.gd`, следы, `fire_shadows.gd` (тени зверей у огня); тесты и `tools/shot.gd`
 пишут в `main.session.wildlife`.
 
-**Данные.** Вид `creatures` (`mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,
+**Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,
 `sprite`, `frames`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
 `likes`, `biomes`, `calls`, `alarm`) в бандлах `content/animals/<зверь>/`; картинка —
 `sprites/creatures/<sprite>.png` бандла, ряд из `frames` кадров (новые рисует `tools/make_creatures.py`).
@@ -43,7 +48,7 @@
 (синтез — таблица в `tools/make_sounds.gd`).
 
 **Тесты.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`,
-`birds`, `shore`, `jostle`; стая ждёт тактов мышления, а не порядка случайных чисел).
+`birds`, `shore`, `jostle`, `hunting`; стая ждёт тактов мышления, а не порядка случайных чисел).
 
 **Подробнее.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — замысел движка поведения
 (формулы помечены как черновик, в коде проще).

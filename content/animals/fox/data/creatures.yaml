@@ -16,3 +16,5 @@
   frames: 3
   calls: fox
   alarm: fox
+  health: 5
+  carcass: small_carcass

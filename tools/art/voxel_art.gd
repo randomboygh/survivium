@@ -78,6 +78,22 @@ static func drop(model: String) -> VoxelModel:
 			return _bar(STEEL)
 		"iron_bloom":
 			return _bloom()
+		"flint_knife", "copper_knife", "bronze_knife", "iron_knife", "steel_knife":
+			return _knife(Color(0.3, 0.31, 0.34) if model == "flint_knife" else _head(model))
+		"small_carcass":
+			return _carcass(Color(0.55, 0.45, 0.36), Vector3i(3, 2, 1))
+		"carcass":
+			return _carcass(Color(0.5, 0.36, 0.24), Vector3i(6, 3, 3))
+		"raw_meat":
+			return _meat(Color(0.72, 0.2, 0.2), Color(0.92, 0.84, 0.8))
+		"roasted_meat":
+			return _meat(Color(0.48, 0.26, 0.12), Color(0.66, 0.42, 0.2))
+		"hide":
+			return _hide()
+		"bone":
+			return _bone()
+		"fat":
+			return _heap(Color(0.95, 0.9, 0.74))
 		"raw_crucible":
 			return _crucible(Color(0.7, 0.64, 0.56))
 		"crucible":
@@ -427,6 +443,80 @@ static func _head(model: String) -> Color:
 	if model.begins_with("steel_"):
 		return STEEL
 	return COPPER if model.begins_with("copper_") else Color(0.42, 0.44, 0.46)
+
+
+## A knife lying flat: a short blade of `blade` along x, a dark wooden grip.
+static func _knife(blade: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(0, 5):
+		m.set_voxel(Vector3i(x, 0, 0), blade * (1.15 if x % 2 == 0 else 1.0))
+		if x < 3:
+			m.set_voxel(Vector3i(x, 0, 1), blade * 0.85)
+	for x in range(-4, 0):
+		m.set_voxel(Vector3i(x, 0, 0), Color(0.3, 0.2, 0.12))
+		m.set_voxel(Vector3i(x, 0, 1), Color(0.36, 0.24, 0.14))
+	return m
+
+
+## A dead animal on its side: a body of fur `c` with half sizes `half` (x long, y high,
+## z wide), its legs out to the south, a darker back.
+static func _carcass(c: Color, half: Vector3i) -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in range(0, half.y * 2):
+		for z in range(-half.z, half.z):
+			for x in range(-half.x, half.x):
+				var d := Vector3((x + 0.5) / half.x, (y + 0.5 - half.y) / half.y, (z + 0.5) / half.z)
+				if d.length() > 1.05:
+					continue
+				m.set_voxel(Vector3i(x, y, z), c * (0.8 if z < 0 else (1.1 if y >= half.y else 1.0)))
+	for x in [-half.x + 1, -half.x + 2, half.x - 3, half.x - 2]:
+		for z in range(half.z, half.z + maxi(2, half.z)):
+			m.set_voxel(Vector3i(x, 0, z), c * 0.7)
+	# The head at the east end.
+	for y in range(0, maxi(2, half.y)):
+		for z in range(-1, 1):
+			m.set_voxel(Vector3i(half.x, y, z), c * 0.9)
+			m.set_voxel(Vector3i(half.x + 1, y, z), c * 0.9)
+	return m
+
+
+## A slab of meat `c` with a streak of fat `streak` across it.
+static func _meat(c: Color, streak: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in range(0, 2):
+		for z in range(-2, 2):
+			for x in range(-3, 3):
+				if (abs(x + 0.5) > 2.0 and abs(z + 0.5) > 1.0) or (y == 1 and (x == -3 or x == 2)):
+					continue
+				m.set_voxel(Vector3i(x, y, z), streak if x == z or x == z + 1 else c * (1.1 if y == 1 else 1.0))
+	return m
+
+
+## A raw hide spread flat: a rough brown skin, the legs' flaps at its corners.
+static func _hide() -> VoxelModel:
+	var m := VoxelModel.new()
+	var skin := Color(0.56, 0.4, 0.26)
+	for z in range(-3, 3):
+		for x in range(-4, 4):
+			if (abs(x + 0.5) > 3.0 and abs(z + 0.5) > 1.5):
+				continue
+			m.set_voxel(Vector3i(x, 0, z), skin * (0.85 if (x * 3 + z * 5) % 4 == 0 else 1.0))
+	for o in [Vector3i(-5, 0, -3), Vector3i(4, 0, -3), Vector3i(-5, 0, 2), Vector3i(4, 0, 2)]:
+		m.set_voxel(o, skin * 0.8)
+	return m
+
+
+## A bone: a white shaft with knobs at both ends.
+static func _bone() -> VoxelModel:
+	var m := VoxelModel.new()
+	var white := Color(0.92, 0.9, 0.82)
+	for x in range(-3, 3):
+		m.set_voxel(Vector3i(x, 0, 0), white)
+	for x in [-4, 3]:
+		m.set_voxel(Vector3i(x, 0, -1), white * 0.92)
+		m.set_voxel(Vector3i(x, 0, 1), white * 0.92)
+		m.set_voxel(Vector3i(x, 1, 0), white)
+	return m
 
 
 ## An iron bloom: a porous lump, dark slag in its pits, rusty here and there.

@@ -162,7 +162,12 @@ class Animal:
 	var spot := Vector3.ZERO
 	## Where the threat it flees from was, for its flock to take fright too.
 	var fear := Vector3.ZERO
-	## Eaten, out of the world.
+	## Hits of power 1 it takes yet (its species' `health`; 0: it cannot be hit).
+	var health := 0
+	## Seconds it keeps fleeing from where it was last hit (see hurt), and that place.
+	var hurt := 0.0
+	var hurt_from := Vector3.ZERO
+	## Eaten or killed, out of the world.
 	var gone := false
 	## The frame of its picture drawn (on the client, see Creatures).
 	var frame := 0
@@ -257,6 +262,7 @@ func update(delta: float) -> void:
 		var spec: Dictionary = AiRules.SPECIES[a.kind]
 		a.hunger = minf(1.0, a.hunger + dt * 0.012)
 		a.idle = maxf(0.0, a.idle - dt)
+		a.hurt = maxf(0.0, a.hurt - dt)
 		a.think -= dt
 		if a.think <= 0.0:
 			a.think = 0.4 + rng.randf() * 0.3
@@ -303,6 +309,10 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if d < wary and d < threat_d:
 				threat_pos = at
 				threat_d = d
+	if a.hurt > 0.0:
+		# A hit one flees from where it was hit, whether it fears people or not.
+		threat_pos = a.hurt_from
+		threat_d = a.pos.distance_to(a.hurt_from)
 	var prey: Animal = null
 	var prey_d := INF
 	var lead := _lead(a)
@@ -766,6 +776,55 @@ func _catch(a: Animal, spec: Dictionary) -> void:
 		a.state = "wander"
 
 
+# --- Hunting ----------------------------------------------------------------------------
+
+## How long a hit animal flees from the place of the hit, in seconds.
+const HURT_FLEE := 8.0
+## How far in front of the one who strikes a blow lands, in world units, and how wide
+## (the cosine of the half angle): one right by their side is hit whichever way they face.
+const STRIKE_REACH := 1.4
+const STRIKE_CLOSE := 0.5
+const STRIKE_CONE := 0.35
+
+
+## The animal a blow from `at` toward `dir` (over the ground, x east and y south)
+## lands on: the nearest on the ground within `reach` (STRIKE_REACH) in front, one that
+## can be hit (its species has `health`); null for none.
+func in_front(at: Vector3, dir: Vector2, reach := STRIKE_REACH) -> Animal:
+	var best: Animal = null
+	var best_d := INF
+	var way := dir.normalized() if dir.length() > 0.01 else Vector2.ZERO
+	for a in animals:
+		if a.gone or a.health <= 0 or a.aloft() or absf(a.pos.y - at.y) > 1.5:
+			continue
+		var off := Vector2(a.pos.x - at.x, a.pos.z - at.z)
+		var d := maxf(0.0, off.length() - a.radius)
+		if d > reach or d >= best_d:
+			continue
+		if d > STRIKE_CLOSE and off.normalized().dot(way) < STRIKE_CONE:
+			continue
+		best = a
+		best_d = d
+	return best
+
+
+## Animal `a` is hit with `power` from world point `from`: it loses that much health
+## and flees (its flock with it); at none it dies and is taken out of the world. Whether
+## it died.
+func hurt(a: Animal, power: int, from: Vector3) -> bool:
+	if a.gone or a.health <= 0:
+		return false
+	a.health -= maxi(1, power)
+	if a.health <= 0:
+		_remove(a)
+		return true
+	a.hurt = HURT_FLEE
+	a.hurt_from = from
+	a.idle = 0.0
+	a.think = 0.0
+	return false
+
+
 ## Height of the ground at a world point, in world units; below 0 over open water.
 func ground(x: float, z: float) -> float:
 	return world.ground_height(x / CELL, z / CELL) * CELL
@@ -881,6 +940,7 @@ func _add(kind: String, pos: Vector3) -> Animal:
 	a.home = pos
 	a.floor_wet = AiRules.SPECIES[kind].swims
 	a.radius = radius(AiRules.SPECIES[kind])
+	a.health = AiRules.SPECIES[kind].health
 	var tints: Array = AiRules.SPECIES[kind].tints
 	if tints.size() > 1:
 		a.tint = rng.randi() % tints.size()

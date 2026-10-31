@@ -285,6 +285,18 @@ func _run() -> void:
 			main.roof.build(main.world)
 			for i in 20:
 				await process_frame
+		if shot.has("prey"):
+			# One animal [kind, east, south] of the player, standing still.
+			var life = main.session.wildlife
+			for c in life.animals:
+				c.pos = main.player.position + Vector3(60.0, 0.0, 60.0)
+				c.target = c.pos
+				c.think = 100.0
+			var at: Vector3 = main.player.position + Vector3(shot.prey[1], 0.0, shot.prey[2]) * CELL
+			at.y = life.ground(at.x, at.z)
+			var one = life._add(shot.prey[0], at)
+			one.think = 100.0
+			one.facing = -1.0
 		if shot.has("drops"):
 			# Things lying in a row in front of the player, not picked up (WorldActions.PICKUP_NONE).
 			main.settings.set_value("pickup", 3)

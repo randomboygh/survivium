@@ -161,6 +161,30 @@ const SHAPES := {
 		# the ground.
 		"carry": {"front": 7, "side": 1, "back": 1},
 	},
+	"flint_knife": {
+		"up": [
+			".A.",
+			".Aa",
+			".Aa",
+			"ddd",
+			".w.",
+			".g.",
+		],
+		"diagonal": [
+			"....A",
+			"...Aa",
+			".dAa.",
+			"..d..",
+			".w...",
+			"g....",
+		],
+		"toward": [
+			".g.",
+			"ddd",
+			".a.",
+		],
+		"carry": {"front": 0, "side": 0, "back": 0},
+	},
 	"scythe": {
 		"up": [
 			"daaAA..",
@@ -236,6 +260,10 @@ const SHAPES := {
 ## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe, copper tools).
 const RECOLOURED := {
 	"stone_sword": ["sword", {"P": "A", "p": "a"}],
+	"copper_knife": ["flint_knife", {"A": "N", "a": "n"}],
+	"bronze_knife": ["flint_knife", {"A": "Z", "a": "z"}],
+	"iron_knife": ["flint_knife", {"A": "J", "a": "j"}],
+	"steel_knife": ["flint_knife", {"A": "Y", "a": "y"}],
 	"wooden_pickaxe": ["pickaxe", {"q": "R", "a": "m", "A": "p"}],
 	"wooden_scythe": ["scythe", {"q": "R", "a": "m", "A": "p"}],
 	"copper_axe": ["axe", {"q": "o", "a": "n", "A": "N"}],

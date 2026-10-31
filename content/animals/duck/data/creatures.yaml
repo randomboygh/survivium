@@ -21,3 +21,5 @@
   flock: [3, 5]
   calls: duck
   alarm: duck
+  health: 3
+  carcass: small_carcass

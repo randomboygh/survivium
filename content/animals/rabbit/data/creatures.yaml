@@ -16,3 +16,5 @@
   likes: [plants:tuft, plants:flowers]
   biomes: [biomes:meadow, biomes:forest]
   alarm: rabbit
+  health: 4
+  carcass: small_carcass
