@@ -71,6 +71,18 @@ func _fake_saves() -> void:
 			"sky": {"day": w[2]}, "saved": w[3], "played": 1800.0})
 
 
+## Servers joined lately made up for «Присоединиться», in a file of their own.
+func _fake_servers() -> void:
+	var list = main.ServerList
+	list.path = "user://shot_servers.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(list.path))
+	list.set_player_name("Аня")
+	for i in 3:
+		var s: Array = [["ws://192.168.1.20:7777", "Дача"], ["wss://quiet-river-lamp.trycloudflare.com", "У Миши"],
+			["wss://north-pines-water.trycloudflare.com", "Survivium"]][i]
+		list.remember(s[0], "key", s[1])
+
+
 func _run() -> void:
 	while not main.ready_to_play:
 		await process_frame
@@ -467,6 +479,18 @@ func _run() -> void:
 			if shot.main_menu == "worlds":
 				_fake_saves()
 				main.menu._open_worlds()
+				await process_frame
+			if shot.main_menu in ["single", "multi"]:
+				# A phone's menu on a touch screen: «Создать сервер» is not there.
+				main.menu.host_here = not shot.get("touch", false)
+				main.menu._fill_page(shot.main_menu)
+				if shot.get("press_host", false):
+					main.menu._buttons.host.pressed.emit()
+				await process_frame
+			if shot.main_menu == "join":
+				_fake_servers()
+				main.menu._fill_page("multi")
+				main.menu.open_join("", shot.get("error", ""))
 				await process_frame
 			await process_frame
 		if shot.get("map", false):

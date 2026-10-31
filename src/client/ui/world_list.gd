@@ -78,7 +78,7 @@ func _fill() -> void:
 		none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_rows.add_child(none)
 	for w: Dictionary in worlds:
-		var current: bool = w.seed == game.world_seed and w.settings == game.world_options
+		var current: bool = w.seed == game.world_seed and w.settings == game.world_options and game.join_url == ""
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		_rows.add_child(row)

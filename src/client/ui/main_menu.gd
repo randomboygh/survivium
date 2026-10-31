@@ -1,13 +1,20 @@
 extends Control
-## The main menu (plan/design/ui.md, section 2): the first screen, over the live world
-## played last (see SaveGame), which is built behind it meanwhile. "Играть" goes into
-## that world (as soon as it is built), "Продолжить" once it has a save; "Новый мир"
-## opens WorldSetup over the menu and restarts the game when the world asked for is
-## another one (a world made before comes back from its save), "Миры" lists the saved
-## worlds to go back to one or delete it (WorldList), "Настройки" opens the settings
-## page.
-## The network game and the editor are not there yet, so their buttons are disabled,
-## and "Выход" is disabled in the browser. Until the world is built a painted sky
+## The main menu (plan/design/ui.md, section 2; plan/architecture/server.md, «Меню и
+## экраны»): the first screen, over the live world played last (see SaveGame), which is
+## built behind it meanwhile. Its first page: «Одиночная игра», «Мультиплеер»,
+## «Редактор», «Настройки», «Выход»; the first two open pages of their own in the same
+## panel, with «Назад» at the bottom.
+## «Одиночная игра»: "Играть" goes into that world (as soon as it is built),
+## "Продолжить" once it has a save; "Новый мир" opens WorldSetup over the menu and
+## restarts the game when the world asked for is another one (a world made before comes
+## back from its save), "Миры" lists the saved worlds to go back to one or delete it
+## (WorldList). Joined to a server, each of them leaves it for a world of this device.
+## «Мультиплеер»: «Присоединиться» opens JoinScreen (a link with `?server=` opens it
+## at the start, its address filled in; a failed joining opens it again with why),
+## «Создать сервер» is for a computer (С5.2; on a phone or in the browser a tap says
+## so); joined, «Вернуться на сервер» and «Отключиться» come first.
+## «Настройки» opens the settings page. The editor is not there yet, so its button is
+## disabled, and "Выход" is disabled in the browser. Until the world is built a painted sky
 ## stands in for it, with clouds drifting, stars blinking, a few birds crossing and a
 ## glint running over the name, and then fades out. The game's interface is hidden while the menu
 ## is open; the menu takes the scale and the safe rect the interface was fitted to.
@@ -18,6 +25,7 @@ const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
+const JoinScreen := preload("res://src/client/ui/join_screen.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
@@ -173,12 +181,21 @@ var _strip_fill: Control
 ## The words on the strip: the part of the loading at the left, how far at the right.
 var _strip_left := ""
 var _strip_right := ""
+## The panel's buttons and the page they are of: "top", "single" or "multi".
+var _box: VBoxContainer
+var _page := "top"
+## A server can be made here: a computer, not a phone or the browser (a shot sets it).
+var host_here := OS.has_feature("pc")
+## Frames until the page shown says where its buttons are (the browser test taps them).
+var _announce := 0
+## Under the buttons of «Мультиплеер»: why «Создать сервер» is not here.
+var _note: Label
 ## Buttons by name, and the names in order of the keyboard focus.
 var _buttons := {}
 var _order := []
 var _focus := 0
 var _settings: SettingsMenu
-## The screen open over the menu: WorldSetup or WorldList.
+## The screen open over the menu: WorldSetup, WorldList or JoinScreen.
 var _setup: Control
 ## "Играть" was pressed before the world was built: go in once it is.
 var _want_play := false
@@ -270,26 +287,10 @@ func _ready() -> void:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_column.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
-	_add_button(box, "play", "Играть", play)
-	_add_button(box, "new", "Новый мир", _new_world)
-	_add_button(box, "worlds", "Миры", _open_worlds)
-	_add_button(box, "net", "Сетевая игра", Callable(), "скоро")
-	_add_button(box, "editor", "Редактор", Callable(), "скоро")
-	_add_button(box, "settings", "Настройки", _open_settings)
-	if OS.has_feature("web"):
-		_add_button(box, "quit", "Выход", Callable(), "вкладка")
-		_buttons.quit.tooltip_text = "В браузере игра закрывается вместе с вкладкой"
-	else:
-		_add_button(box, "quit", "Выход", func() -> void:
-			game.save.flush()
-			get_tree().quit())
-	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_buttons.play.add_theme_stylebox_override(state, UiStyle.button(state, true))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		_buttons.play.add_theme_color_override(c, UiStyle.DARK_INK)
+	_box = VBoxContainer.new()
+	_box.add_theme_constant_override("separation", 6)
+	panel.add_child(_box)
+	_fill_page("top")
 
 	_build_loading()
 	_settings = SettingsMenu.new(game)
@@ -477,6 +478,88 @@ func _next_tip() -> void:
 		_tip.text = TIPS[_tips_left.pop_back()]
 
 
+## The buttons of `page` in the panel, the one to press first lit (and the keyboard on
+## it).
+func _fill_page(page: String) -> void:
+	_page = page
+	for c in _box.get_children():
+		_box.remove_child(c)
+		c.queue_free()
+	_buttons.clear()
+	_order.clear()
+	_note = null
+	var joined: bool = game.join_url != ""
+	var on_server: bool = joined and not game.welcome.is_empty() and game.join_error == ""
+	var lit := ""
+	match page:
+		"top":
+			_add_button(_box, "single", "Одиночная игра", _fill_page.bind("single"))
+			_add_button(_box, "multi", "Мультиплеер", _fill_page.bind("multi"))
+			_add_button(_box, "editor", "Редактор", Callable(), "скоро")
+			_add_button(_box, "settings", "Настройки", _open_settings)
+			if OS.has_feature("web"):
+				_add_button(_box, "quit", "Выход", Callable(), "вкладка")
+				_buttons.quit.tooltip_text = "В браузере игра закрывается вместе с вкладкой"
+			else:
+				_add_button(_box, "quit", "Выход", func() -> void:
+					game.save.flush()
+					get_tree().quit())
+			lit = "multi" if joined else "single"
+		"single":
+			_caption("Одиночная игра")
+			_add_button(_box, "play", "Продолжить" if game.save.has_save else "Играть", _play_single)
+			_add_button(_box, "new", "Новый мир", _new_world)
+			_add_button(_box, "worlds", "Миры", _open_worlds)
+			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
+			lit = "play"
+		"multi":
+			_caption("Мультиплеер")
+			if on_server:
+				_add_button(_box, "server", "Вернуться на сервер", play)
+				_add_button(_box, "leave", "Отключиться", func() -> void:
+					game.leave_server()
+					game.restart())
+			_add_button(_box, "join", "Присоединиться", open_join.bind(""))
+			if host_here:
+				_add_button(_box, "host", "Создать сервер", Callable(), "скоро")
+			else:
+				# Not here, but it says where it is.
+				_add_button(_box, "host", "Создать сервер", _host_elsewhere, "на ПК")
+				_buttons.host.add_theme_color_override("font_color", Color(UiStyle.MUTED, 0.6))
+				_buttons.host.add_theme_color_override("font_hover_color", Color(UiStyle.MUTED, 0.8))
+			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
+			lit = "server" if on_server else "join"
+	for state in ["normal", "hover", "pressed", "hover_pressed"]:
+		_buttons[lit].add_theme_stylebox_override(state, UiStyle.button(state, true))
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+		_buttons[lit].add_theme_color_override(c, UiStyle.DARK_INK)
+	_set_focus(_order.find(lit))
+	if is_open:
+		_fit()
+		# Laid out in two frames: then the page says where its buttons are.
+		_announce = 2
+
+
+## The page's name over its buttons.
+func _caption(text: String) -> void:
+	var l := UiStyle.label(text, UiStyle.MUTED)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.add_child(l)
+
+
+## «Создать сервер» away from a computer: where it is, under the buttons.
+func _host_elsewhere() -> void:
+	if _note != null:
+		return
+	_note = UiStyle.label("Сервер запускают на компьютере: Survivium для Windows или Linux. "
+		+ "С телефона и из браузера к нему присоединяются.", UiStyle.MUTED)
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_note.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.add_child(_note)
+	_fit()
+
+
 func _add_button(parent: Node, key: String, text: String, action: Callable, tag := "") -> void:
 	var b := Button.new()
 	b.text = text
@@ -513,10 +596,12 @@ func open() -> void:
 	if game.save.has_save:
 		_seed_label.text += " · день %d" % game.clock.day
 	_map_seed.text = "тестовый мир" if game.world_seed == TestGround.SEED else "зерно %d" % game.world_seed
+	if game.join_url != "":
+		_seed_label.text = "сетевая игра · " + JoinScreen._short(game.join_url)
+		_map_seed.text = JoinScreen._short(game.join_url)
 	_strip.visible = not _entered
-	_buttons.play.text = "Продолжить" if game.save.has_save else "Играть"
 	game.hud.visible = false
-	_set_focus(0)
+	_fill_page("top")
 	_fit()
 	opened.emit()
 
@@ -541,6 +626,16 @@ func close() -> void:
 ## The painted sky covers the whole window (see _draw_sky): nothing of the world shows.
 func hides_world() -> bool:
 	return _backdrop.visible and not _fading
+
+
+## «Играть» of «Одиночная игра»: into the world behind the menu, or, joined to a
+## server, back to this device's world by a restart.
+func _play_single() -> void:
+	if game.join_url != "":
+		game.leave_server()
+		game.restart()
+	else:
+		play()
 
 
 ## "Играть": into the world now, or as soon as it is built.
@@ -571,10 +666,11 @@ func _new_world() -> void:
 ## Into the world of `seed_value` and `options`: the one behind the menu at once, any
 ## other by a restart (from its save if it has one).
 func _go_to(seed_value: int, options: Dictionary) -> void:
-	if seed_value == game.world_seed and options == game.world_options:
+	if seed_value == game.world_seed and options == game.world_options and game.join_url == "":
 		play()
 	else:
 		game.save.switch_world(seed_value, options)
+		game.leave_server()
 		game.restart()
 
 
@@ -586,6 +682,31 @@ func _open_worlds() -> void:
 	_setup.chosen.connect(func(seed_value: int, options: Dictionary) -> void:
 		_close_setup()
 		_go_to(seed_value, options))
+
+
+## «Присоединиться» over the menu, the address `url` in its field (the last server's
+## when ""), `error` saying why joining failed.
+func open_join(url: String, error := "") -> void:
+	if _setup != null:
+		_setup.queue_free()
+	_page = "multi"
+	_column.visible = false
+	_setup = JoinScreen.new(game, url, error)
+	_screen.add_child(_setup)
+	_setup.cancelled.connect(func() -> void:
+		_close_setup()
+		_fill_page("multi"))
+	_setup.chosen.connect(func(address: String, name: String, password: String) -> void:
+		game.join_server(address, name, password))
+
+
+## Joining the server failed, or the connection to it was lost: the menu opens on
+## «Присоединиться» saying why.
+func join_failed(why: String) -> void:
+	if not is_open:
+		open()
+	_fill_page("multi")
+	open_join(game.join_url, why)
 
 
 func _close_setup() -> void:
@@ -635,10 +756,17 @@ func _process(delta: float) -> void:
 	if settled and _want_play:
 		close()
 		return
+	if _announce > 0:
+		_announce -= 1
+		if _announce == 0 and _page != "top" and _column.is_visible_in_tree():
+			var rects := []
+			for k: String in _order:
+				rects.append("%s %s" % [k, _buttons[k].get_global_rect()])
+			print("menu page %s: %s" % [_page, ", ".join(rects)])
 	if not _shown and _column.is_visible_in_tree():
 		# Laid out by now; the browser test taps the buttons from this line.
 		_shown = true
-		print("main menu shown: play %s, new %s" % [_buttons.play.get_global_rect(), _buttons.new.get_global_rect()])
+		print("main menu shown: single %s, multi %s" % [_buttons.single.get_global_rect(), _buttons.multi.get_global_rect()])
 	_screen.queue_redraw()
 
 
@@ -867,7 +995,8 @@ func _draw_motion() -> void:
 				_motion.draw_rect(Rect2(p + q * FLOCK_PX, Vector2.ONE * FLOCK_PX), BIRD)
 
 
-## Up and down pick a button, Enter presses it, Escape goes back into the world. Every
+## Up and down pick a button, Enter presses it, Escape goes back a page, from the first
+## one back into the world. Every
 ## key stops here while the menu is open, so the game behind it gets none.
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_open or not (event is InputEventKey):
@@ -883,5 +1012,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 			_buttons[_order[_focus]].pressed.emit()
 		KEY_ESCAPE:
-			if _entered:
+			if _page != "top":
+				_fill_page("top")
+			elif _entered:
 				play()

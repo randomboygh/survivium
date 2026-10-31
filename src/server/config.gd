@@ -10,11 +10,12 @@ extends RefCounted
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const FILE := "user://server.cfg"
 ## Players a server takes at most, by default; the port by default.
 const PLAYERS := 8
-const PORT := 7777
+const PORT := Protocol.PORT
 
 ## The server's name, for the players.
 var title := "Survivium"

@@ -232,6 +232,10 @@ func _run() -> void:
 	if main.ready_to_play:
 		_check(main.host == null and main.session == null and main.socket != null and main.welcome.get("id") == 3
 			and main.world_seed == 5, "over a socket the game has no server inside, and the world is the server's")
+		var recent: Array = main.ServerList.recent()
+		_check(not recent.is_empty() and recent[0].url == main.join_url and recent[0].title == server.config.title
+			and main.ServerList.key(main.join_url) == main.welcome.key,
+			"the server joined goes first in the recent ones, under its name, its key kept: %s" % [recent])
 		var at: Vector3 = main.welcome.at
 		var spawn_key := WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
 		_check(main.player.position.distance_to(at) < WorldData.CELL and main.world.has_chunk(spawn_key) and main.chunks.chunk_nodes.has(spawn_key)
