@@ -396,5 +396,6 @@ func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:
 	a.kind = kind
 	a.pos = at
 	a.target = at
+	a.radius = Wildlife.radius(AiRules.SPECIES[kind])
 	life.animals.append(a)
 	return a
