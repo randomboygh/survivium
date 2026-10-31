@@ -159,6 +159,10 @@ func _update_light(delta: float) -> void:
 	var cut_on: bool = game.chunks.cut_level < game.world.size_y
 	var haze := (Color(0.02, 0.02, 0.03) if cut_on else env.background_color).srgb_to_linear()
 	RenderingServer.global_shader_parameter_set("depth_haze", Vector3(haze.r, haze.g, haze.b))
+	# PROTOTYPE (cave_style 6, 7): rock the plane cuts with no face behind shows the
+	# background: the colour of the section.
+	if cut_on and game.chunks.manual_level < 0 and game.settings.values.get("cave_style", 0) >= 6:
+		env.background_color = Color(0.09, 0.085, 0.1)
 	if game.player != null:
 		_update_torch(delta)
 	_update_grade(golden, night, minf(moonlight, 1.0))

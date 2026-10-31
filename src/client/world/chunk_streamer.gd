@@ -679,7 +679,7 @@ func update_cut(delta: float) -> void:
 			indoor = true
 			break
 	var at := Vector3i(px, level, pz)
-	if game.settings.values.get("cave_style", 0) >= 5:
+	if game.settings.values.get("cave_style", 0) == 5:
 		if reach == null:
 			reach = ReachMap.new()
 		reach.update(world, px, level, pz)

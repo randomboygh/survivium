@@ -165,6 +165,12 @@ const SHOTS := {
 	"hard-cave-s3": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 3}},
 	"hard-cave-s4": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 4}},
 	"hard-cave-s5": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 5}},
+	"hard-cave-s6": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 6}},
+	"underground-s6": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 6}},
+	"ground-cave-inside-s6": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 6}},
+	"hard-cave-side": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"side_cut": true}},
+	"hard-cave-s7": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 6, "side_cut": true}},
+	"ground-cave-inside-s7": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 6, "side_cut": true}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.

@@ -66,6 +66,7 @@ const DEFAULTS := {
 	# front_hides in common.gdshaderinc).
 	"cave_view": 0,
 	"cave_style": 0,
+	"side_cut": false,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):

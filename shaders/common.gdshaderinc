@@ -320,6 +320,19 @@ bool cut_dither(float y, vec2 texel) {
 	return band > (cut_ghost < 0.5 ? 3.5 : 2.5) || bayer4(texel) >= 0.5 / exp2(band);
 }
 
+// PROTOTYPE (cave_style 6): the cut in the plane of the camera. Behind the player all
+// stays, top to bottom; in front everything above their feet goes.
+bool plane_on() {
+	return cave_style > 5.5 && cut_height < 999.0 && cut_ghost > 0.5;
+}
+
+bool plane_hides(vec3 p) {
+	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
+	float toward = view_slope / view_squash;
+	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
+	return before > 0.25 && p.y > player_pos.y + 0.05;
+}
+
 // The open cave view (cut_front) is on and the cut follows the player.
 bool open_cut() {
 	return cut_front > 0.5 && cut_ghost > 0.5;
@@ -354,10 +367,13 @@ bool front_hides(vec3 p, vec2 texel) {
 // ghost of the levels above it (cut_dither), or in the open cave view what stands in
 // front of the player.
 bool cut_hides(vec3 p, vec2 texel) {
+	if (plane_on()) {
+		return plane_hides(p);
+	}
 	if (p.y <= cut_height + 0.01) {
 		return false;
 	}
-	if (cave_style > 0.5 && cut_ghost > 0.5 && !open_cut()) {
+	if (cave_style > 0.5 && cave_style < 5.5 && cut_ghost > 0.5 && !open_cut()) {
 		return true;
 	}
 	return open_cut() ? front_hides(p, texel) : cut_dither(p.y, texel);
@@ -370,6 +386,9 @@ bool above_cut(vec3 p) {
 // For what is too small to show as a ghost (plants, motes, sunlight): gone above the
 // cut, or in the open cave view only in front of the player.
 bool gone_above(vec3 p) {
+	if (plane_on()) {
+		return plane_hides(p);
+	}
 	return p.y > cut_height + 0.01 && (!open_cut() || front_hides(p, floor(screen_plane(p) * TEXELS)));
 }
 

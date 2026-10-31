@@ -25,7 +25,7 @@
 //   A snowdrift has tile 63 and UV = 4 + the vertex's place on the mound's round
 //          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
-render_mode world_vertex_coords, cull_back;
+render_mode world_vertex_coords, cull_disabled;
 // Marks the pixels it wins as solid for the player's silhouette (1, see sprite_xray);
 // low props and snow drifts use a copy that marks them low (see main.low_variant).
 stencil_mode write, compare_always, 1;
@@ -169,6 +169,14 @@ bool back_wall(vec3 p, vec3 n) {
 }
 
 void fragment() {
+	// PROTOTYPE (cave_style 6): the faces are drawn both sides; a back face seen is the
+	// inside of rock cut open by the plane, drawn flat and hatched as a section.
+	bool section = plane_on();
+	if (!FRONT_FACING) {
+		if (IN_SHADOW_PASS || !section || plane_hides(world_pos)) {
+			discard;
+		}
+	}
 	bool kept = back_wall(world_pos, world_normal);
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
 	if (!IN_SHADOW_PASS && !kept && above_cut(world_pos)) {
@@ -183,6 +191,9 @@ void fragment() {
 	}
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
+	if (section && tile != NONE && COLOR.r < 0.5 && !IN_SHADOW_PASS) {
+		discard;
+	}
 	// The trunk of a tree nearer the viewer than the player clears round them (see
 	// trunk_through), but for its foot: its first cell stays whole and the
 	// TRUNK_RISE cells above it clear more and more from the bottom up. The vertex
@@ -434,7 +445,7 @@ void fragment() {
 			col *= 0.78;
 		}
 	}
-	if (cave_style > 3.5 && cut_height < 999.0 && !cap && tile != NONE) {
+	if (cave_style > 3.5 && cave_style < 5.5 && cut_height < 999.0 && !cap && tile != NONE) {
 		// PROTOTYPE height map: a line at every level on walls, so a drop can be
 		// counted, and tops tinted by how far below the player they are.
 		if (!top && fract(world_pos.y / CELL + 0.001) < 1.0 / CELL_TEXELS) {
@@ -451,12 +462,12 @@ void fragment() {
 	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
-	if (cave_style > 0.5 && cut_height < 999.0 && !IN_SHADOW_PASS) {
+	if (cave_style > 0.5 && cave_style < 5.5 && cut_height < 999.0 && !IN_SHADOW_PASS) {
 		float d = length(world_pos.xz - player_pos.xz);
 		if (cap) {
 			EMISSION += col * 1.3;
 		}
-		if (cave_style > 4.5 && top && !cap) {
+		if (cave_style > 4.5 && cave_style < 5.5 && top && !cap) {
 			// PROTOTYPE: the floor the player can walk to is lit, the rest dimmed.
 			vec2 rc = floor(world_pos.xz / CELL) - reach_origin;
 			float stood = rc.x >= 0.0 && rc.y >= 0.0 && rc.x < 64.0 && rc.y < 64.0
@@ -482,6 +493,13 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
+	if (!FRONT_FACING) {
+		vec2 st = floor(screen_plane(world_pos) * TEXELS);
+		float hatch = mod(st.x + st.y, 6.0) < 1.0 ? 1.0 : 0.0;
+		ALBEDO = vec3(0.0);
+		EMISSION = mix(vec3(0.09, 0.085, 0.1), vec3(0.2, 0.19, 0.21), hatch);
+		clouds = 0.0;
+	}
 }
 
 void light() {
