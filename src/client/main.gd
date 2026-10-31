@@ -347,7 +347,8 @@ func _read_join() -> void:
 ## Starts the game again joined to the server of `url` as `name`.
 func join_server(url: String, name: String, password: String) -> void:
 	join = {"url": url, "name": name, "password": password}
-	restart()
+	# After the tap that asked it is over (its sound played in this scene).
+	restart.call_deferred()
 
 
 ## The next start is a world of this device's own again, not the server's.
@@ -384,7 +385,8 @@ func _on_welcome(v: Variant) -> void:
 
 func _on_socket_closed(code: int, reason: String) -> void:
 	if join_error == "" and welcome.is_empty():
-		join_error = "Сервер не отвечает" if code < 0 else "Сервер закрыл вход: " + reason
+		# A browser says nothing of a server that is not there but a code without words.
+		join_error = "Сервер не отвечает" if code < 0 or reason == "" else "Сервер закрыл вход: " + reason
 	elif join_error == "":
 		join_error = "Связь с сервером потеряна" if code < 0 else ("Сервер: " + reason if reason != "" else "Сервер закрыл связь")
 		if hud != null:

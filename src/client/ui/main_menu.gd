@@ -518,7 +518,7 @@ func _fill_page(page: String) -> void:
 				_add_button(_box, "server", "Вернуться на сервер", play)
 				_add_button(_box, "leave", "Отключиться", func() -> void:
 					game.leave_server()
-					game.restart())
+					game.restart.call_deferred())
 			_add_button(_box, "join", "Присоединиться", open_join.bind(""))
 			if host_here:
 				_add_button(_box, "host", "Создать сервер", Callable(), "скоро")
@@ -633,7 +633,7 @@ func hides_world() -> bool:
 func _play_single() -> void:
 	if game.join_url != "":
 		game.leave_server()
-		game.restart()
+		game.restart.call_deferred()
 	else:
 		play()
 
@@ -671,7 +671,7 @@ func _go_to(seed_value: int, options: Dictionary) -> void:
 	else:
 		game.save.switch_world(seed_value, options)
 		game.leave_server()
-		game.restart()
+		game.restart.call_deferred()
 
 
 func _open_worlds() -> void:
