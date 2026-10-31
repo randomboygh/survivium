@@ -47,6 +47,7 @@ const Session := preload("res://src/shared/game/session.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Connection := preload("res://src/client/net/connection.gd")
 const Socket := preload("res://src/client/net/socket.gd")
+const ServerList := preload("res://src/client/net/server_list.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const RemoteGen := preload("res://src/client/net/remote_gen.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
@@ -144,9 +145,9 @@ var host: LocalHost
 var net: Connection
 var mirror: Mirror
 ## Over the network (С3.2): the socket to the server far away, the address joined
-## (`--join ws://host:port`, `?server=` on the web, or set by a test before the scene
-## starts), the player's name, the password given, the welcome the server gave and
-## why joining failed (words for the loading screen). `host` and `session` are null
+## (from `join`, or set by a test before the scene starts), the player's name, the
+## password given, the welcome the server gave and why joining failed (words for the
+## loading screen and «Присоединиться», MainMenu.join_failed). `host` and `session` are null
 ## then: the world comes from the server through `world_maker` (RemoteGen).
 var socket: Socket
 var join_url := ""
@@ -228,8 +229,14 @@ static var play_at_once := false
 ## The bundles a server far away plays with, when they are not the ones loaded: the
 ## scene is started again with them (decision 153, 5А).
 static var pending_mods: Array = []
-## Where the keys the servers gave this player are kept, by address.
-const SERVERS := "user://servers.cfg"
+## The server to join, kept over a restart of the scene ({url, name, password}): set
+## by the «Присоединиться» screen (join_server) or `--join`, emptied when the player goes
+## back to a world of their own (leave_server).
+static var join := {}
+## The command line and the page's address are read once, at the first start.
+static var _args_read := false
+## The address of `?server=` on the web: the menu opens «Присоединиться» with it.
+static var offered := ""
 ## Seconds to wait for a server's welcome.
 const JOIN_WAIT := 15.0
 
@@ -308,22 +315,45 @@ func restart() -> void:
 	get_tree().reload_current_scene()
 
 
-## The address to join, from the command line (`--join <url>`, `--name`, `--password`)
-## or the page's address on the web (`?server=`); a test sets join_url itself.
+## The address to join: the one a test set, else the one of `join` (from the
+## «Присоединиться» screen, or the command line's `--join <url>`, `--name`,
+## `--password` read at the first start). On the web `?server=` only fills the
+## «Присоединиться» screen (offered).
 func _read_join() -> void:
-	var args := OS.get_cmdline_user_args()
-	for i in args.size() - 1:
-		match args[i]:
-			"--join":
-				join_url = args[i + 1]
-			"--name":
-				player_name = args[i + 1]
-			"--password":
-				join_password = args[i + 1]
-	if join_url == "" and OS.has_feature("web"):
-		var v: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('server') || ''", true)
-		if v is String:
-			join_url = v
+	if not _args_read:
+		_args_read = true
+		var args := OS.get_cmdline_user_args()
+		var given := {"url": "", "name": "Игрок", "password": ""}
+		for i in args.size() - 1:
+			match args[i]:
+				"--join":
+					given.url = args[i + 1]
+				"--name":
+					given.name = args[i + 1]
+				"--password":
+					given.password = args[i + 1]
+		if given.url != "":
+			join = given
+		if OS.has_feature("web"):
+			var v: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('server') || ''", true)
+			if v is String:
+				offered = v
+	if join_url == "" and not join.is_empty():
+		join_url = join.url
+		player_name = join.name
+		join_password = join.password
+
+
+## Starts the game again joined to the server of `url` as `name`.
+func join_server(url: String, name: String, password: String) -> void:
+	join = {"url": url, "name": name, "password": password}
+	# After the tap that asked it is over (its sound played in this scene).
+	restart.call_deferred()
+
+
+## The next start is a world of this device's own again, not the server's.
+func leave_server() -> void:
+	join = {}
 
 
 ## Opens the socket to the server and says hello; the welcome comes while the scene
@@ -335,7 +365,7 @@ func _connect() -> void:
 		join_error = "Неверный адрес сервера"
 		return
 	net = socket.net
-	socket.hello(player_name, _server_key(), join_password).then(_on_welcome)
+	socket.hello(player_name, ServerList.key(join_url), join_password).then(_on_welcome)
 
 
 func _on_welcome(v: Variant) -> void:
@@ -350,27 +380,19 @@ func _on_welcome(v: Variant) -> void:
 		join_error = "Сервер ответил не по-нашему"
 		return
 	welcome = v
-	var cfg := ConfigFile.new()
-	cfg.load(SERVERS)
-	cfg.set_value("keys", join_url, str(v.get("key", "")))
-	cfg.save(SERVERS)
-
-
-## The key this server gave the player before, "" the first time.
-func _server_key() -> String:
-	var cfg := ConfigFile.new()
-	if cfg.load(SERVERS) != OK:
-		return ""
-	return str(cfg.get_value("keys", join_url, ""))
+	ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
 
 
 func _on_socket_closed(code: int, reason: String) -> void:
 	if join_error == "" and welcome.is_empty():
-		join_error = "Сервер не отвечает" if code < 0 else "Сервер закрыл вход: " + reason
+		# A browser says nothing of a server that is not there but a code without words.
+		join_error = "Сервер не отвечает" if code < 0 or reason == "" else "Сервер закрыл вход: " + reason
 	elif join_error == "":
 		join_error = "Связь с сервером потеряна" if code < 0 else ("Сервер: " + reason if reason != "" else "Сервер закрыл связь")
 		if hud != null:
 			hud.set_loading(join_error)
+		if menu != null:
+			menu.join_failed(join_error)
 
 
 ## Generates the world chosen (see SaveGame.choose_world) and builds the scene around
@@ -457,6 +479,8 @@ func _join_world() -> void:
 	if join_error != "":
 		hud.set_loading(join_error)
 		print("join %s failed: %s" % [join_url, join_error])
+		if menu != null:
+			menu.join_failed(join_error)
 		return
 	world_seed = welcome.seed
 	world_options = {}
@@ -570,6 +594,9 @@ func _loading_stage(text: String) -> void:
 ## around the player, so less is left to build when the game goes on (see
 ## ChunkStreamer.paused, Runner).
 func _build_while_paused() -> void:
+	if get_tree().paused and socket != null:
+		# The server goes on: what it sends is taken while the game here is paused.
+		socket.poll()
 	if not get_tree().paused or not ready_to_play or world == null:
 		return
 	chunks.paused = true
@@ -808,6 +835,10 @@ func _build_menu() -> void:
 	if play_at_once:
 		play_at_once = false
 		menu.play()
+	elif offered != "":
+		# A link with `?server=`: «Присоединиться» with its address.
+		menu.open_join(offered)
+		offered = ""
 
 
 func _build_materials() -> void:

@@ -97,7 +97,8 @@ func choose_world() -> void:
 ## played is saved first.
 func switch_world(seed_value: int, options: Dictionary) -> void:
 	flush()
-	if enabled:
+	# Joined to a server the save is off, but the world asked for is the next one.
+	if enabled or game.join_url != "":
 		WorldStore.write_current(seed_value, options)
 
 

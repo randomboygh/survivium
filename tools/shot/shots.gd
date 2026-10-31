@@ -451,6 +451,13 @@ const SHOTS := {
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
+	# The pages «Одиночная игра» and «Мультиплеер» («Создать сервер» tapped on a phone),
+	# and «Присоединиться» over a few servers made up for it, then saying why joining failed.
+	"ui-main-menu-single": {"time": 0.42, "season": 1, "touch": true, "main_menu": "single"},
+	"ui-main-menu-multi": {"time": 0.42, "season": 1, "touch": true, "main_menu": "multi", "press_host": true},
+	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},
+	"ui-main-menu-join-failed": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join",
+		"error": "Сервер не отвечает"},
 	# The grounds of the test world (TestGround), a run of their own: the player at
 	# `at` (cells). Named "ground-*", they switch the run to the test world.
 	"ground-spawn": {"time": 0.42, "season": 1, "at": [0, 0]},

@@ -329,7 +329,8 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	a.left_at = -1.0
 	a.linger = LINGER
 	peer.account = a
-	var welcome := {"ok": true, "id": a.id, "key": a.key, "name": a.name, "at": a.link.who.position}
+	var welcome := {"ok": true, "id": a.id, "key": a.key, "name": a.name, "at": a.link.who.position,
+		"title": config.title}
 	welcome.merge(world_info)
 	peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, welcome)))
 	for b in a.link.flush():

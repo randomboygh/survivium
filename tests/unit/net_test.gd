@@ -12,11 +12,62 @@ const LocalHost := preload("res://src/client/net/local_host.gd")
 const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
 const RemoteClock := preload("res://src/client/net/remote_clock.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
+const ServerList := preload("res://src/client/net/server_list.gd")
 
 
 func run() -> void:
 	_test_protocol()
 	_test_requests()
+	_test_server_list()
+
+
+## An address typed by hand as the socket takes it, what is wrong with one, and what
+## the device keeps of the servers joined: keys, the recent ones newest first (at most
+## ServerList.RECENT), the player's name.
+func _test_server_list() -> void:
+	var typed := {
+		"192.168.1.5": "ws://192.168.1.5:7777",
+		" 192.168.1.5:8000/ ": "ws://192.168.1.5:8000",
+		"localhost": "ws://localhost:7777",
+		"ws://10.0.0.2": "ws://10.0.0.2:7777",
+		"https://quiet-river.trycloudflare.com/": "wss://quiet-river.trycloudflare.com",
+		"quiet-river.trycloudflare.com": "wss://quiet-river.trycloudflare.com",
+		"http://box:7000": "ws://box:7000",
+		"wss://a.b": "wss://a.b",
+		"": "",
+	}
+	var wrong := []
+	for t: String in typed:
+		if ServerList.normalize(t) != typed[t]:
+			wrong.append("%s -> %s" % [t, ServerList.normalize(t)])
+	_check(wrong.is_empty(), "addresses typed by hand are read as the socket takes them: %s" % [wrong])
+	_check(ServerList.problem("", false) != "" and ServerList.problem("wss://", false) != ""
+		and ServerList.problem("ws://192.168.1.5:7777", true) != "" and ServerList.problem("ws://192.168.1.5:7777", false) == ""
+		and ServerList.problem("ws://localhost:7777", true) == "" and ServerList.problem("wss://a.b", true) == "",
+		"no address, or ws:// from a page over https, is said to be wrong")
+	var was := ServerList.path
+	ServerList.path = "user://servers_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(ServerList.path))
+	_check(ServerList.key("ws://a:1") == "" and ServerList.recent().is_empty() and ServerList.player_name() == "",
+		"nothing is kept before the first server")
+	for i in ServerList.RECENT + 2:
+		ServerList.remember("ws://s%d:1" % i, "key%d" % i, "Сервер %d" % i)
+		# The recent ones are told apart by the second they were joined.
+		var cfg := ConfigFile.new()
+		cfg.load(ServerList.path)
+		cfg.set_value("recent", "ws://s%d:1" % i, ["Сервер %d" % i, 1000 + i])
+		cfg.save(ServerList.path)
+	ServerList.remember("ws://s9:1", "key9", "Девятый")
+	var recent := ServerList.recent()
+	_check(recent.size() == ServerList.RECENT and recent[0].url == "ws://s9:1" and recent[0].title == "Девятый"
+		and recent[1].url == "ws://s%d:1" % (ServerList.RECENT + 1) and ServerList.key("ws://s0:1") == "key0",
+		"the recent servers newest first, at most %d, the keys of all kept" % ServerList.RECENT)
+	ServerList.forget("ws://s9:1")
+	ServerList.set_player_name("Аня")
+	_check(ServerList.recent()[0].url != "ws://s9:1" and ServerList.key("ws://s9:1") == "key9"
+		and ServerList.player_name() == "Аня", "a server forgotten leaves the list but keeps its key; the name is kept")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(ServerList.path))
+	ServerList.path = was
 
 
 func _test_protocol() -> void:

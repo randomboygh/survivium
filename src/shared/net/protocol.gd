@@ -14,13 +14,17 @@ extends RefCounted
 
 ## The protocol's version: a client and a server of different versions do not play.
 const VERSION := 1
+## The port a server listens on when it is not told another (the address a player
+## types without one goes there).
+const PORT := 7777
 ## The file CI writes the build's version into (tools/build_info.py); "dev" without it.
 const BUILD_INFO := "res://build_info.json"
 
 ## The first request over a socket: [VERSION, the build's version (build_version), the
 ## player's name, the key the server gave the player before ("" the first time), the
 ## server's password ("" when it asks none)]. The reply is the welcome: {"ok": true,
-## "id", "key" (keep it for this server), "name" (as the server took it), "seed",
+## "id", "key" (keep it for this server), "name" (as the server took it), "title" (the
+## server's name), "seed",
 ## "settings", "mods" (the bundles of the world, in order), "materials" (the ids in the
 ## order the cells are numbered), "spawn", "at" (where the character is)}; or the
 ## refusal {"ok": false, "why": one of the reasons below}, after which the server closes.

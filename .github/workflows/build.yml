@@ -2,7 +2,7 @@ name: Test and build
 
 # Jobs run side by side: the docs check and the headless tests, the frame test (alone, it
 # measures frame times), the web export, the Windows and Linux exports, then the browser smoke
-# test as a desktop and as a phone, each on a machine of its own. On a pull request the smoke
+# test as a desktop, as a phone and as a phone held upright, each on a machine of its own. On a pull request the smoke
 # test runs only when the PR touches what the browser shows differently (see `changes`) or
 # carries the label `smoke`; on main it always runs, and the builds are published only when
 # everything passed: the web one to Pages, the PC ones to the rolling release `pc-latest`.
@@ -152,7 +152,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        device: [desktop, phone]
+        device: [desktop, phone, upright]
     name: smoke (${{ matrix.device }})
     steps:
       - uses: actions/checkout@v4

@@ -1,11 +1,12 @@
-// Opens the exported web build in headless Chrome (software WebGL) twice: as a desktop
-// browser and as a phone in landscape whose toolbar hides the bottom of the page.
-// Plays a little in each, prints the browser console and a screenshot of each as base64,
-// and fails on script errors or touch controls outside the visible screen. Software WebGL
+// Opens the exported web build in headless Chrome (software WebGL): as a desktop browser,
+// as a phone in landscape whose toolbar hides the bottom of the page, and as a phone
+// held upright opening a link to a server. Plays a little in the first two, joins in the
+// third, prints the browser console and a screenshot of each as base64, and fails on
+// script errors or touch controls outside the visible screen. Software WebGL
 // draws a frame in a second or more and every input event waits for one, so the test sends
 // as few events as it can.
 // Run from the repo root after exporting to build/web and serving it on port 8060:
-//     node tests/browser_smoke.mjs [desktop] [phone]     (both when none is named)
+//     node tests/browser_smoke.mjs [desktop] [phone] [upright]     (all when none is named)
 import { chromium } from 'playwright-core';
 
 const URL = 'http://localhost:8060/index.html';
@@ -20,9 +21,16 @@ const browser = await chromium.launch({
 });
 const errors = [];
 
+// The button `key` of a line like "menu page single: play [P: (x, y), S: (w, h)], new …".
+const rectOf = (line, key) => {
+  const at = line.indexOf(` ${key} [`);
+  return at < 0 ? '' : line.slice(at + key.length + 2, line.indexOf(']', at) + 1);
+};
+
 // Opens the page, goes into the world from the main menu and waits until it is built:
-// the phone taps "Новый мир" and then "Создать мир" on the setup screen (the same world,
-// so the menu goes straight in), the desktop presses Enter on "Играть".
+// the phone taps «Одиночная игра», "Новый мир" and then "Создать мир" on the setup
+// screen (the same world, so the menu goes straight in), the desktop presses Enter on
+// «Одиночная игра» and on "Играть".
 async function open(name, options, init, tapDpr) {
   const context = await browser.newContext(options);
   if (init) await context.addInitScript(init);
@@ -58,11 +66,14 @@ async function open(name, options, init, tapDpr) {
   };
   const menu = await waitFor('main menu shown', 'the main menu');
   if (menu && tapDpr) {
-    await tap(menu.slice(menu.indexOf('new')));
+    await tap(rectOf(menu, 'single'));
+    const single = await waitFor('menu page single', 'the page «Одиночная игра»');
+    if (single) await tap(rectOf(single, 'new'));
     const setup = await waitFor('world setup shown', 'the world setup screen');
     if (setup) await tap(setup);
   } else if (menu) {
     await page.keyboard.press('Enter');
+    if (await waitFor('menu page single', 'the page «Одиночная игра»')) await page.keyboard.press('Enter');
   }
   // Wait until the world is built (main.gd prints "world ready").
   const deadline = Date.now() + 180000;
@@ -204,6 +215,59 @@ if (runs('phone')) {
     await page.waitForTimeout(500);
   }
   await screenshot('phone', page);
+  await context.close();
+}
+
+// --- Phone held upright, opening a link to a server --------------------------------
+// The link fills «Присоединиться»; with a name typed in, «Подключиться» starts the game
+// again joined to the server, which is not there: the screen comes back saying why.
+if (runs('upright')) {
+  const dpr = 3;
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: dpr,
+    isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const log = [];
+  page.on('console', (m) => {
+    const text = m.text();
+    log.push(text);
+    console.log(`[upright console.${m.type()}] ${text}`);
+    if (/SCRIPT ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`upright: ${text}`);
+  });
+  page.on('pageerror', (e) => errors.push(`upright: ${e.message}`));
+  await page.goto(`${URL}?server=127.0.0.1:9`);
+  const waitFor = async (prefix, what, from = 0) => {
+    const deadline = Date.now() + 120000;
+    const line = () => log.slice(from).find((t) => t.startsWith(prefix));
+    while (!line() && Date.now() < deadline) await page.waitForTimeout(500);
+    if (!line()) errors.push(`upright: ${what} did not show within 120 s`);
+    return line() || '';
+  };
+  const tap = async (rect) => {
+    const r = (rect.match(/-?[\d.]+/g) || []).map(Number);
+    const x = (r[0] + r[2] / 2) / dpr;
+    const y = (r[1] + r[3] / 2) / dpr;
+    if (!(r.length === 4 && x >= 0 && y >= 0 && x < 390 && y < 844)) errors.push(`upright: the button at ${rect} is outside the visible screen`);
+    await page.touchscreen.tap(x, y);
+  };
+  const shown = await waitFor('join screen shown', 'the link to a server opening «Присоединиться»');
+  if (shown) {
+    for (const key of ['url', 'name', 'go', 'back']) {
+      const r = (rectOf(shown, key).match(/-?[\d.]+/g) || []).map(Number);
+      if (r.length !== 4 || r[0] < 0 || r[1] < 0 || (r[0] + r[2]) / dpr > 390 || (r[1] + r[3]) / dpr > 844) {
+        errors.push(`upright: «Присоединиться»'s ${key} is not on the screen: ${rectOf(shown, key)}`);
+      }
+    }
+    await tap(rectOf(shown, 'name'));
+    await page.keyboard.type('Тест');
+    await page.waitForTimeout(500);
+    const before = log.length;
+    await tap(rectOf(shown, 'go'));
+    const asked = await waitFor('joining ', 'joining the server of the link', before);
+    if (!asked.includes('ws://127.0.0.1:9 as Тест')) errors.push(`upright: joined not as asked: ${asked}`);
+    const back = await waitFor('join screen shown', '«Присоединиться» after the failed joining', log.indexOf(asked) + 1);
+    if (back && !log.some((t) => / failed: /.test(t))) errors.push('upright: the failed joining said nothing');
+  }
+  await screenshot('upright', page);
   await context.close();
 }
 
