@@ -56,3 +56,20 @@
   reach: 8
   durability: 300
   repair: {materials:copper_bar: 1}
+- id: bronze_scythe
+  title: Бронзовая коса
+  weight: 1.9
+  stack: 1
+  model: bronze_scythe
+  icon: bronze_scythe
+  tool: scythe
+  sprite: bronze_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 2
+  area: 4
+  swing: 0.36
+  reach: 8
+  durability: 500
+  repair: {materials:bronze_bar: 1}

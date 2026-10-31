@@ -75,6 +75,8 @@ const SCHEMAS := {
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
 		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "ore", "trunk", "crown"], "default": "none"},
+		# An ore's share of the veins in the rock, against the other ores' (role ore).
+		"veins": {"type": "float", "min": 0.0, "default": 1.0},
 		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
 		"ground": {"type": "enum", "values": ["none", "soil", "sand", "rock"], "default": "none"},
 		"drains": {"type": "bool", "default": false},

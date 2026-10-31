@@ -123,7 +123,7 @@ func _init() -> void:
 func _make_ways() -> void:
 	_way("starts/" + Starts.START.id, "world")
 	# The world as the generator makes it: every biome; the cells it lays (core's and those
-	# of the roles; a trunk's and a crown's are a tree's, felled rather than dug); the plant
+	# of the roles, every ore; a trunk's and a crown's are a tree's, felled rather than dug); the plant
 	# of each kind and every plant of its own picture (Grass).
 	for r: Dictionary in Content.records("biomes"):
 		_way("biomes/" + r.id, "world")
@@ -133,6 +133,9 @@ func _make_ways() -> void:
 		var m := Mat.of_role(role, -1)
 		if m >= 0 and not role in ["trunk", "crown"]:
 			_way("materials/" + Mat.IDS[m], "world")
+	# Every ore with a share of the veins (Mat.ORES), not only the last.
+	for m: int in Mat.ORES:
+		_way("materials/" + Mat.IDS[m], "world")
 	for kind: String in Plants.KINDS.values():
 		if kind != Plants.KINDS.CUSTOM and Plants.of_kind(kind) != "":
 			_way("plants/" + Plants.of_kind(kind), "world")
