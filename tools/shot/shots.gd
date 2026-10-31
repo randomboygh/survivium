@@ -363,6 +363,11 @@ const SHOTS := {
 	"craft-anvil": {"time": 0.42, "season": 1, "touch": true, "craft": true, "smith": true, "recipe": "tools:steel_axe"},
 	# Every recipe known: the list cut through its fifth row, the stations' column with arrows.
 	"craft-all": {"time": 0.42, "season": 1, "touch": true, "craft": true, "smith": true, "recipe": "tools:steel_axe", "know_all": true},
+	# An iron knife at its strike at a deer, and what game gives lying on the ground.
+	"hunt": {"time": 0.42, "season": 1, "clearing": true, "prey": ["animals:deer", 4, -1],
+		"hands": {"tool": "tools:iron_knife", "facing": "e", "work": "slash", "strike": true},
+		"drops": ["animals:small_carcass", "animals:carcass", "animals:raw_meat", "animals:roasted_meat", "animals:hide", "animals:bone",
+			"animals:fat", "tools:flint_knife", "tools:bronze_knife", "tools:steel_knife"]},
 	# A bronze pickaxe at its strike, and the things of tin and bronze lying on the ground.
 	"hands-bronze": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["materials:tin_ore", "materials:tin_bar", "materials:raw_crucible", "materials:crucible", "materials:bronze_bar", "tools:bronze_axe",

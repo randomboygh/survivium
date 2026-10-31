@@ -19,3 +19,5 @@
   likes: [plants:mushrooms]
   calls: boar
   alarm: boar
+  health: 16
+  carcass: carcass

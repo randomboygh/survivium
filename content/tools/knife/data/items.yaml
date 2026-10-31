@@ -1,0 +1,74 @@
+# Предметы бандла «Нож» мода «Инструменты и крафт»: класс knife. Нож разделывает туши (рецепт
+# «Разделать тушу» мода «Животные» просит его в сумке) и бьёт зверя, как меч: удар по зверю перед
+# собой — его power. Поля — как у мечей (content/tools/sword/data/items.yaml).
+- id: flint_knife
+  title: Кремнёвый нож
+  description: Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.
+  weight: 0.3
+  stack: 1
+  model: flint_knife
+  icon: flint_knife
+  tool: knife
+  sprite: flint_knife
+  anim: slash
+  power: 2
+  swing: 0.3
+  reach: 4
+  durability: 120
+  repair: {resources:flint: 1}
+- id: copper_knife
+  title: Медный нож
+  weight: 0.3
+  stack: 1
+  model: copper_knife
+  icon: copper_knife
+  tool: knife
+  sprite: copper_knife
+  anim: slash
+  power: 3
+  swing: 0.3
+  reach: 4
+  durability: 250
+  repair: {materials:copper_bar: 1}
+- id: bronze_knife
+  title: Бронзовый нож
+  weight: 0.3
+  stack: 1
+  model: bronze_knife
+  icon: bronze_knife
+  tool: knife
+  sprite: bronze_knife
+  anim: slash
+  power: 4
+  swing: 0.3
+  reach: 4
+  durability: 400
+  repair: {materials:bronze_bar: 1}
+- id: iron_knife
+  title: Железный нож
+  weight: 0.3
+  stack: 1
+  model: iron_knife
+  icon: iron_knife
+  tool: knife
+  sprite: iron_knife
+  anim: slash
+  power: 5
+  swing: 0.3
+  reach: 4
+  durability: 800
+  repair: {materials:iron_bar: 1}
+- id: steel_knife
+  title: Стальной нож
+  weight: 0.3
+  stack: 1
+  model: steel_knife
+  icon: steel_knife
+  tool: knife
+  sprite: steel_knife
+  anim: slash
+  power: 6
+  swing: 0.3
+  reach: 4
+  durability: 1200
+  repair: {materials:steel_bar: 1}

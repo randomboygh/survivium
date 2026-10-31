@@ -16,3 +16,5 @@
   biomes: [biomes:meadow, biomes:forest]
   frames: 3
   calls: hedgehog
+  health: 3
+  carcass: small_carcass

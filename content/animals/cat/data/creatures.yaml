@@ -16,3 +16,5 @@
   biomes: [biomes:forest, biomes:meadow]
   calls: cat
   alarm: cat
+  health: 4
+  carcass: small_carcass

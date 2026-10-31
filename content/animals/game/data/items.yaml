@@ -1,0 +1,54 @@
+# Предметы бандла «Добыча»: что остаётся от убитого зверя и что из этого выходит. Тушку мелкого зверя
+# разделывают руками, тушу крупного — ножом (класс knife, бандл «Нож» «Инструментов»); у зверя туша
+# записана в его creatures.yaml (carcass). Шкура, кость и жир пойдут в дело на шаге кожи и кости.
+- id: small_carcass
+  title: Тушка
+  description: Мелкий зверь или птица. Разделывается руками.
+  weight: 1.5
+  stack: 5
+  model: small_carcass
+  icon: small_carcass
+- id: carcass
+  title: Туша
+  description: Крупный зверь. Разделать её можно только ножом.
+  weight: 12.0
+  stack: 1
+  model: carcass
+  icon: carcass
+- id: raw_meat
+  title: Сырое мясо
+  description: Есть можно, но жареное сытнее.
+  weight: 0.3
+  stack: 20
+  food: 6
+  model: raw_meat
+  icon: raw_meat
+  anim: eat
+- id: roasted_meat
+  title: Жареное мясо
+  description: Мясо, зажаренное на костре. Очень сытное.
+  weight: 0.25
+  stack: 20
+  food: 30
+  model: roasted_meat
+  icon: roasted_meat
+  anim: eat
+- id: hide
+  title: Шкура
+  description: Сырая шкура зверя.
+  weight: 0.8
+  stack: 10
+  model: hide
+  icon: hide
+- id: bone
+  title: Кость
+  weight: 0.2
+  stack: 30
+  model: bone
+  icon: bone
+- id: fat
+  title: Жир
+  weight: 0.2
+  stack: 20
+  model: fat
+  icon: fat

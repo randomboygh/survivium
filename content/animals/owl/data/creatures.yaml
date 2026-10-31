@@ -18,3 +18,5 @@
   flies: true
   roost: trees
   calls: owl
+  health: 3
+  carcass: small_carcass

@@ -18,3 +18,5 @@
   biomes: [biomes:meadow, biomes:forest, biomes:taiga]
   calls: deer
   alarm: deer
+  health: 13
+  carcass: carcass
