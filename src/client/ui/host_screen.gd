@@ -2,10 +2,13 @@ extends Control
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; on a computer): the
 ## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
 ## the world (one of the saved ones, ‹ › go through them, the one played last first),
-## the server's name, its port, a password and how many players it takes; «Запустить
+## the server's name, its port, a password, how many players it takes and «Доступ из
+## интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared); «Запустить
 ## сервер» starts the game again with the server made and joined (Main.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
+## address from the internet once the tunnel gives it («Скопировать ссылку»: the game's
+## page that opens «Присоединиться» with it), the
 ## players with «Выгнать», the server's last lines and a field for the host's commands
 ## (Server.command: give, tp, ban, whitelist…); «Играть» says `play` (into its world),
 ## «Остановить сервер» asks again and stops it (Main.stop_server), «Назад» leaves it
@@ -45,6 +48,10 @@ var _world_label: Label
 var _title: LineEdit
 var _port: LineEdit
 var _password: LineEdit
+var _tunnel: CheckButton
+## The tunnel's state and its link's button while the server runs.
+var _tunnel_label: Label
+var _tunnel_copy: Button
 var _players := 2
 var _players_label: Label
 var _error: Label
@@ -122,8 +129,15 @@ func _build_setup() -> void:
 	row.add_child(_players_label)
 	var more := _arrow_button(row, "next")
 	more.pressed.connect(_step_players.bind(1))
+	_tunnel = CheckButton.new()
+	_tunnel.text = "Доступ из интернета"
+	_tunnel.focus_mode = Control.FOCUS_NONE
+	_tunnel.button_pressed = bool(cfg.get_value("server", "tunnel", false))
+	_tunnel.custom_minimum_size = Vector2(WIDTH, ROW_H)
+	_box.add_child(_tunnel)
 	var note := UiStyle.label("Игроки из домашней сети входят по адресу этого компьютера; "
-		+ "из интернета — через туннель (позже).", UiStyle.MUTED)
+		+ "из интернета — через туннель Cloudflare: нужна программа cloudflared рядом с игрой, "
+		+ "аккаунт и роутер не нужны, адрес новый при каждом запуске.", UiStyle.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(note)
@@ -211,7 +225,7 @@ func _step_players(step: int) -> void:
 func settings() -> Dictionary:
 	var port := int(_port.text) if _port.text.is_valid_int() else 0
 	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": _players,
-		"password": _password.text, "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
+		"password": _password.text, "tunnel": _tunnel.button_pressed, "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
 	if _worlds.is_empty():
 		out.world = ""
 		out.seed_value = int(game.settings.values.world_seed)
@@ -259,6 +273,14 @@ func _build_running() -> void:
 		var copy := _button("Скопировать адрес", func() -> void:
 			DisplayServer.clipboard_set(addresses[0]))
 		copy.tooltip_text = addresses[0]
+	if node.tunnel != null:
+		_box.add_child(UiStyle.label("Из интернета:", UiStyle.MUTED))
+		_tunnel_label = UiStyle.label("", UiStyle.ACCENT)
+		_tunnel_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_tunnel_label.custom_minimum_size = Vector2(WIDTH, 0)
+		_box.add_child(_tunnel_label)
+		_tunnel_copy = _button("Скопировать ссылку", func() -> void:
+			DisplayServer.clipboard_set(node.tunnel.link()))
 	_box.add_child(UiStyle.label("Игроки", UiStyle.MUTED))
 	_people = VBoxContainer.new()
 	_people.add_theme_constant_override("separation", 4)
@@ -335,6 +357,15 @@ func _refresh() -> void:
 	var net = node.server
 	_state.text = "порт %d · игроков %d из %d%s" % [node.config.port, net.online(), node.config.max_players,
 		" · пароль" if node.config.password != "" else ""]
+	if _tunnel_label != null:
+		var t = node.tunnel
+		var said: String = t.url if t.url != "" else ("ещё запускается…" if t.failed == "" else t.failed)
+		if said != _tunnel_label.text:
+			_tunnel_label.text = said
+			_tunnel_label.add_theme_color_override("font_color", UiStyle.ACCENT if t.url != "" else (UiStyle.MUTED if t.failed == "" else UiStyle.DANGER))
+			_tunnel_copy.visible = t.url != ""
+			_tunnel_copy.tooltip_text = t.link()
+			_fit.call_deferred()
 	var people := []
 	for a in net.players():
 		people.append([a.name, a.id, a.peer != null])

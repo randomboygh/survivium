@@ -4,7 +4,7 @@ extends RefCounted
 ## server set up there starts from the terminal the same), then the user arguments of
 ## the command line over it: `godot --headless -- --server [--config <file>] [--port N]
 ## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]
-## [--autosave <seconds>] [--no-save]`. The
+## [--autosave <seconds>] [--no-save] [--tunnel [--cloudflared <file>]]`. The
 ## world is a folder of the game's own saves (WorldStore.root: a name under it, or a
 ## path), or the world of `seed_value` and `settings` (a new one when it has no save).
 
@@ -39,6 +39,10 @@ var bind := "*"
 ## when `save` is off (a test world tried out).
 var autosave := 10.0
 var save := true
+## Access from the internet through a Cloudflare quick tunnel (Tunnel, С7), and the
+## cloudflared to run ("" to look for it beside the game and on the PATH).
+var tunnel := false
+var cloudflared := ""
 
 
 ## Reads `path` (a ConfigFile); a file that is not there leaves the defaults.
@@ -53,6 +57,8 @@ func read(path := FILE) -> void:
 	bind = str(cfg.get_value("server", "bind", bind))
 	autosave = float(cfg.get_value("server", "autosave", autosave))
 	save = bool(cfg.get_value("server", "save", save))
+	tunnel = bool(cfg.get_value("server", "tunnel", tunnel))
+	cloudflared = str(cfg.get_value("server", "cloudflared", cloudflared))
 	world = str(cfg.get_value("world", "folder", world))
 	seed_value = int(cfg.get_value("world", "seed", seed_value))
 	for k: String in settings:
@@ -71,6 +77,8 @@ func write(path := FILE) -> bool:
 	cfg.set_value("server", "bind", bind)
 	cfg.set_value("server", "autosave", autosave)
 	cfg.set_value("server", "save", save)
+	cfg.set_value("server", "tunnel", tunnel)
+	cfg.set_value("server", "cloudflared", cloudflared)
 	cfg.set_value("world", "folder", world)
 	cfg.set_value("world", "seed", seed_value)
 	for k: String in settings:
@@ -116,6 +124,14 @@ func take_args(args: PackedStringArray) -> void:
 				j += 1
 			"--no-save":
 				save = false
+			"--tunnel":
+				tunnel = true
+			"--no-tunnel":
+				tunnel = false
+			"--cloudflared":
+				cloudflared = next
+				tunnel = true
+				j += 1
 		j += 1
 
 

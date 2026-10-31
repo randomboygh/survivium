@@ -120,7 +120,7 @@
   `lines`, сцена печатает их со временем.
 - `src/server/server_main.gd` — корень `scenes/server.tscn`, сервер из терминала: `godot --headless
   --path . -- --server [--port N] [--world <папка>] [--seed N] [--players N] [--password <слово>]
-  [--config <файл>]` (из сборки для ПК — `Survivium.console.exe --headless -- --server` в Windows,
+  [--config <файл>] [--tunnel]` (из сборки для ПК — `Survivium.console.exe --headless -- --server` в Windows,
   обёртка показывает журнал в терминале, или `./Survivium.x86_64 --headless -- --server` в Linux;
   сборки — релиз `pc-latest`, [testing.md](testing.md)); `main.gd` по `--server` первым делом уходит в
   эту сцену по пути строкой (`change_scene_to_file`, отложенно: в `_ready` дерево занято), не построив
@@ -135,6 +135,8 @@
   `FPS` 60; `run/flush_stdout_on_print` в `project.godot`, чтобы журнал через конвейер шёл сразу.
   Сохранение — `ServerStore` (если не `--no-save`): при старте убирает недописанное прерванным
   сохранением, в кадре `saves.update`.
+  С `config.tunnel` после `listen` — `open_tunnel()` (`Tunnel`), в кадре `tunnel.poll()`: адрес и ссылка в
+  журнал («из интернета», «ссылка для друзей») или «туннель: <почему нет>»; `close_tunnel()` в `_quit` и `_exit_tree`.
 - `src/server/server_store.gd` — сохранение сервера (С4) в папке мира, как у игры (`WorldStore`: мир из
   одиночной игры открывается сервером и наоборот; `players/local.json` игры сервер не читает). Каждые
   `every` секунд (`Config.autosave`, 10 с), на `stop` и в `save()`: сначала изменённые чанки
@@ -151,10 +153,18 @@
   сохранение цело; правильно — `stop`.
 - `src/server/config.gd` — настройки сервера: `user://server.cfg` (секции `server`: title, port 7777,
   players 8, password, bind, autosave 10, save; `world`: folder, seed, настройки WorldGen, mods), поверх — аргументы
-  (`--autosave <секунды>`, `--no-save` — мир не сохранять)
+  (`--autosave <секунды>`, `--no-save` — мир не сохранять; С7: `tunnel`, `cloudflared` — `--tunnel`,
+  `--no-tunnel`, `--cloudflared <файл>`)
   командной строки (`take_args`; `--config` читается первым); `world_path()` — папка сохранения:
   имя под `WorldStore.root`, путь или папка сида и настроек (`WorldStore.world_dir`). Окно «Создать
   сервер» (С5) пишет тот же файл.
+- `src/server/tunnel.gd` — доступ из интернета (С7, решение 153 6Б): `start(port, path)` запускает
+  `cloudflared tunnel --no-autoupdate --url http://localhost:<port>` (`OS.execute_with_pipe`, не блокируя;
+  `find`: данный путь, рядом с исполняемым файлом, потом `which`/`where`), `poll()` читает его вывод
+  (адрес он пишет в stderr) и ищет `https://<слова>.trycloudflare.com` (`url_in` → `wss://…`); `link()` —
+  страница игры `PAGE` с `?server=`; `failed` — почему нет (не найден, не запустился, остановился без
+  адреса); `stop()` — `OS.kill`. Быстрый туннель без аккаунта: адрес новый при каждом запуске; как
+  включить — README, «Свой сервер и доступ из интернета».
 - `src/server/console.gd` — терминал: поток читает stdin (`OS.read_buffer_from_stdin`: чтение
   блокирует; пустой буфер — конец ввода, а не пустая строка — у `read_string_from_stdin` они
   неразличимы), `lines()` отдаёт строки, после `stop` или конца ввода поток завершается и `stop()`
@@ -300,7 +310,8 @@
 там, где поставил сервер, копии вещей, зверей и часов полны, копка другого игрока и своя меняют
 ячейки копии, выкопанное ложится на землю списком; `bye` и короткое ожидание; `who`, `say`,
 `kick` с кодом 4001, `stop` — порт закрыт, никто не входит; свой сервер из меню `LocalHost.host` и команды
-хозяина give / tp / ban / unban / whitelist с отказами по ключу и имени). `tests/unit/net_test.gd` (сообщения туда и обратно; через петлю: вход с `clock` и `props`,
+хозяина give / tp / ban / unban / whitelist с отказами по ключу и имени; туннель С7 с подставным
+cloudflared — скриптом, что печатает адрес: адрес, ссылка в журнале, процесс убит на `stop`; `url_in`, `--tunnel`). `tests/unit/net_test.gd` (сообщения туда и обратно; через петлю: вход с `clock` и `props`,
 `input`, копать, крафт и тик с событиями `you`/`shop`/`made` до ответа, `vitals` только при перемене,
 сундук по клетке и его `chest`, вещь по клетке в копию и из неё, костёр потушен, зверь родился /
 бежит / толкнул / ушёл в копии (`snap` только когда сдвинулся), выброс и `drops`, смерть и `revive` с

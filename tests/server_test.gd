@@ -17,6 +17,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
+const Tunnel := preload("res://src/server/tunnel.gd")
+const Config := preload("res://src/server/config.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -389,8 +391,26 @@ func _restart(w: Dictionary, ground: Vector3i, dug_at: int, things: int, dir: St
 ## one on the same port says the port is taken; stopped, it says so and stays (the
 ## game frees it).
 func _hosted() -> void:
+	# The tunnel (С7): cloudflared's address read from what it prints; a stand-in
+	# cloudflared that prints it the way the real one does, run beside the server.
+	_check(Tunnel.url_in("2026 INF |  https://brave-lions-test.trycloudflare.com  |") == "wss://brave-lions-test.trycloudflare.com"
+		and Tunnel.url_in("INF Requesting new quick Tunnel on trycloudflare.com...") == "", "the tunnel's address is read from cloudflared's lines")
+	var args := Config.new()
+	args.take_args(PackedStringArray(["--tunnel", "--port", "8000"]))
+	var named := Config.new()
+	named.take_args(PackedStringArray(["--cloudflared", "/opt/cf"]))
+	_check(args.tunnel and args.cloudflared == "" and named.tunnel and named.cloudflared == "/opt/cf", "--tunnel and --cloudflared turn the tunnel on")
+	var fake := ""
+	if not OS.has_feature("windows"):
+		fake = ProjectSettings.globalize_path("user://fake_cloudflared")
+		var f := FileAccess.open(fake, FileAccess.WRITE)
+		f.store_string("#!/bin/sh\necho \"INF Requesting new quick Tunnel on trycloudflare.com...\" 1>&2\nsleep 1\n"
+			+ "echo \"INF |  https://quiet-river-test.trycloudflare.com  |\" 1>&2\nexec sleep 120\n")
+		f.close()
+		OS.execute("chmod", ["+x", fake])
 	var values := {"title": "Дача", "port": PORT + 1, "max_players": 4, "password": "", "world": "",
-		"seed_value": 6, "settings": {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 0, "relief": 1}}
+		"seed_value": 6, "settings": {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 0, "relief": 1},
+		"tunnel": fake != "", "cloudflared": fake}
 	var node: Node = LocalHost.host(values, root)
 	_check(node.failed == "" and node.server.listening and node.hosted and node.config.title == "Дача"
 		and node.config.max_players == 4, "a server made in the game starts at once: %s" % node.failed)
@@ -400,7 +420,17 @@ func _hosted() -> void:
 	var cfg := ConfigFile.new()
 	_check(cfg.load("user://server.cfg") == OK and cfg.get_value("server", "title") == "Дача"
 		and cfg.get_value("server", "port") == PORT + 1, "its settings are written for the server from the terminal")
-	var twin: Node = LocalHost.host(values, root)
+	if fake != "":
+		_check(await _until(func() -> bool: return node.tunnel != null and node.tunnel.url != "")
+			and node.tunnel.url == "wss://quiet-river-test.trycloudflare.com"
+			and node.log_lines.any(func(l: String) -> bool: return l.contains("ссылка для друзей: " + Tunnel.PAGE + "?server=wss://quiet-river-test")),
+			"with the tunnel on, cloudflared runs beside the server and its address goes into the log as a link for friends")
+	var missing := Tunnel.new()
+	_check(not missing.start(PORT, "/nowhere/cloudflared") and missing.failed.contains("cloudflared не найден"),
+		"a cloudflared that is not there says where to get it")
+	var twin_values := values.duplicate()
+	twin_values.tunnel = false
+	var twin: Node = LocalHost.host(twin_values, root)
 	_check(twin.failed == "Порт %d занят" % (PORT + 1), "a second one on the same port says it is taken: %s" % twin.failed)
 	twin.free()
 	var host := _bot("Хозяин", "", "", PORT + 1)
@@ -412,8 +442,11 @@ func _hosted() -> void:
 	var said := [false]
 	node.stopped.connect(func() -> void: said[0] = true)
 	node.command("stop")
+	var cf_pid: int = node.tunnel.pid if node.tunnel != null else 0
 	_check(await _until(func() -> bool: return said[0]) and node.is_inside_tree() and node.log_lines.size() > 3,
 		"stopped, it says so and keeps its log; the game frees it")
+	if cf_pid > 0:
+		_check(node.tunnel == null and not OS.is_process_running(cf_pid), "and the tunnel is closed with it")
 	root.remove_child(node)
 	node.free()
 

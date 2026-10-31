@@ -2,7 +2,9 @@ extends Node
 ## The server run from the terminal (plan/architecture/server.md, С3): the root of
 ## scenes/server.tscn, which main.gd changes to on `--server` before building anything
 ## of the client (`godot --headless --path . -- --server [--port N] [--world <folder>]
-## [--seed N] [--players N] [--password <word>] [--config <file>]`, see Config). It opens
+## [--seed N] [--players N] [--password <word>] [--config <file>] [--tunnel]`, see
+## Config; with `--tunnel` it runs cloudflared beside it and logs the address friends
+## join from the internet, Tunnel, С7). It opens
 ## the world the way the game does (a save under user://saves: the bundles it was made
 ## with, its materials, clock and things; else a new world of the seed and settings),
 ## makes the ground round the spawn and the camp there in a new world, lets the animals
@@ -22,6 +24,7 @@ const Console := preload("res://src/server/console.gd")
 const Server := preload("res://src/server/server.gd")
 const Runner := preload("res://src/server/runner.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
+const Tunnel := preload("res://src/server/tunnel.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
@@ -72,6 +75,8 @@ var hosted := false
 var failed := ""
 ## The last lines of the log, the newest last.
 var log_lines: Array[String] = []
+## The tunnel from the internet (С7), null without `tunnel` in the settings.
+var tunnel: Tunnel
 var _started := false
 var _stop_at := -1.0
 var _meta := {}
@@ -119,7 +124,26 @@ func start() -> bool:
 		return false
 	say("слушаю порт %d, игроков не больше %d%s" % [config.port, config.max_players,
 		", вход по паролю" if config.password != "" else ""])
+	if config.tunnel:
+		open_tunnel()
 	return true
+
+
+## Starts the tunnel from the internet (Tunnel); its address comes a few seconds later.
+func open_tunnel() -> void:
+	if tunnel != null:
+		return
+	tunnel = Tunnel.new()
+	if tunnel.start(config.port, config.cloudflared):
+		say("туннель: запускаю %s…" % tunnel.program)
+	else:
+		say("туннель: " + tunnel.failed)
+
+
+func close_tunnel() -> void:
+	if tunnel != null:
+		tunnel.stop()
+		tunnel = null
 
 
 ## Opens the save or makes the world; false when the save cannot be read.
@@ -193,6 +217,12 @@ func _process(delta: float) -> void:
 				print(out)
 	server.poll()
 	server.flush()
+	if tunnel != null and tunnel.failed == "":
+		if tunnel.poll():
+			say("из интернета: %s" % tunnel.url)
+			say("ссылка для друзей: %s" % tunnel.link())
+		elif tunnel.failed != "":
+			say("туннель: " + tunnel.failed)
 	if saves != null and not server.stopping:
 		saves.update(delta, server)
 	for line in server.lines:
@@ -206,9 +236,14 @@ func _process(delta: float) -> void:
 			_quit()
 
 
+func _exit_tree() -> void:
+	close_tunnel()
+
+
 func _quit() -> void:
 	if console != null:
 		console.stop()
+	close_tunnel()
 	say("сервер остановлен")
 	set_process(false)
 	stopped.emit()
