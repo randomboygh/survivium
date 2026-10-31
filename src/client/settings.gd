@@ -300,9 +300,11 @@ func apply() -> void:
 	if game.player != null:
 		game.player.body.speed_scale = player_speed
 		game.player.body.air_jumps = air_jumps
-	if game.character != null:
-		game.character.inventory.heavy = not no_overload
-		game.character.vitals.hunger = not no_hunger
+	# The server's character and the client's copy both (the copy shows the weight).
+	for who in [game.host.player if game.host != null else null, game.character]:
+		if who != null:
+			who.inventory.heavy = not no_overload
+			who.vitals.hunger = not no_hunger
 	Sound.set_volume("Music", values.music_volume)
 	Sound.set_volume("Sounds", values.sound_volume)
 	Sound.set_volume("Nature", values.nature_volume)
@@ -483,10 +485,10 @@ func set_air_jumps(on: bool) -> void:
 func set_free_build(on: bool) -> void:
 	free_build = on
 	apply()
-	if on and game.character != null:
+	if on and game.host != null:
 		for m in Mat.PLACEABLE:
-			if Items.placed_by[m] != "" and game.character.inventory.count(Items.placed_by[m]) == 0:
-				game.character.give(Items.placed_by[m], 1)
+			if Items.placed_by[m] != "" and game.host.player.inventory.count(Items.placed_by[m]) == 0:
+				game.host.player.give(Items.placed_by[m], 1)
 	if game.hud != null:
 		game.hud.refresh_counts()
 
@@ -531,8 +533,8 @@ func set_shadow_map(i: int) -> void:
 ## Puts one of each tool of TOOL_SET the bag lacks into it.
 func give_tools() -> void:
 	for id in TOOL_SET:
-		if game.character.inventory.count(id) == 0:
-			game.character.give(id, 1)
+		if game.host.player.inventory.count(id) == 0:
+			game.host.player.give(id, 1)
 
 
 func in_test_world() -> bool:

@@ -5,8 +5,9 @@ extends RefCounted
 ## the game's own process (single player, LocalHost) and through a socket (a server
 ## far away): `[kind, seq, args]` for a request, `[seq, value]` for its reply. `seq`
 ## grows by one with each request of a player, so a request sent twice is answered
-## twice the same way and done once (Requests). The bytes are var_to_bytes of the
-## Array: Vector3i, Dictionary and String go through as they are.
+## twice the same way and done once (Requests). An event `[kind, args]` has no reply:
+## the client's body each frame, the server's state for the client's copies. The bytes
+## are var_to_bytes of the Array: Vector3i, Dictionary and String go through as they are.
 
 ## The protocol's version: a client and a server of different versions do not play.
 const VERSION := 1
@@ -63,6 +64,37 @@ const SORT := "sort"
 const BAG_DESTROY := "bag_destroy"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
+
+## The events: `[kind, args]`, with no reply. From the client, each frame: where its
+## body is and what it does. From the server: what the player's state became, for the
+## client's copies (Mirror).
+## The client's body and hands: [position, feet cell, facing step, hands, active hand,
+## brush, moving, swimming, jumped, air jumps, bumped].
+const INPUT := "input"
+## The player's own state changed: {"inventory", "vitals", "state", "home",
+## "held_back"} (each as to_dict gives it; vitals as VITALS).
+const YOU := "you"
+## What the player knows how to make changed: [Knowledge.to_dict()].
+const KNOWLEDGE := "knowledge"
+## The body's state, every tick it changes: [health, satiety, stamina, hunger, hurt_by].
+const VITALS := "vitals"
+## The workshop: {"queue", "paused"}.
+const SHOP := "shop"
+## A line for the player: [text].
+const SAY := "say"
+## A recipe was made: [recipe id].
+const MADE := "made"
+## Things lying on the ground changed in a chunk: [key].
+const DROPS := "drops"
+## The body is put at a point (coming back to life, the playtest page): [at].
+const TELEPORT := "teleport"
+## The body is thrown (a burning campfire): [dir, speed, hop] (Body.knock).
+const KNOCK := "knock"
+
+
+## An event message.
+static func event(kind: String, args: Variant) -> Array:
+	return [kind, args]
 
 
 ## A request message.

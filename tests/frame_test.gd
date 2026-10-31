@@ -217,9 +217,11 @@ func _run() -> void:
 	# player, dug out again with the pickaxe a cell every tenth frame, what falls taken
 	# up by itself, then digging in front with the action button held.
 	var c = main.controls
-	var inv = main.character.inventory
+	var inv = main.host.player.inventory
 	main.settings.give_tools()
 	inv.add("resources:stone", 9)
+	# The client's copy of the bag takes the stones at the next flush.
+	await process_frame
 	# The cave found depends on the chunks loaded by then, so the column two cells east
 	# may be its wall (the floor found on it is then above the cut): the first column
 	# two cells away whose floor takes a block.
@@ -231,7 +233,7 @@ func _run() -> void:
 			s.y += 1
 		while s.y > 1 and not w.is_solid(s.x, s.y - 1, s.z):
 			s.y -= 1
-		if main.actions.can_place(main.character, s, main.chunks.cut_level):
+		if main.actions.can_place(main.host.player, s, main.chunks.cut_level):
 			spot = s
 			break
 	var slot0 = inv.slots[0]
@@ -251,7 +253,7 @@ func _run() -> void:
 	c.hold("tools:stone_pickaxe")
 	# Rested, whatever the jumps and climbs before (which depend on the cave and the
 	# trees found) left of the stamina digging costs.
-	main.character.vitals.stamina = main.character.vitals.stamina_cap()
+	main.host.player.vitals.stamina = main.host.player.vitals.stamina_cap()
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < laid.size():
 			c._cooldown = 0.0
@@ -273,7 +275,7 @@ func _run() -> void:
 	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
 	# into the bag, dirt shows where the grass was.
 	c.put_in_hand("tools:stone_scythe", 1)
-	var mown: Dictionary = main.actions.front_work(main.character, c.tool_record())
+	var mown: Dictionary = main.actions.front_work(main.host.player, c.tool_record())
 	if mown.has("mow"):
 		var fibre: int = inv.count("resources:fiber")
 		var first: Vector3i = mown.mow[0]
@@ -332,7 +334,7 @@ func _run() -> void:
 
 	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,
 	# the workbench placed in front, a stone axe made at it, with the craft tab open.
-	var shop = main.workshop
+	var shop = main.host.workshop
 	inv.add("resources:fiber", 9)
 	inv.add("resources:branch", 10)
 	inv.add("resources:flint", 1)
@@ -372,7 +374,7 @@ func _run() -> void:
 		if e.items == main.placed.chest_items:
 			chest_e = e
 	var light_bag: float = inv.weight()
-	_check(main.placed.take_up(main.character, chest_e) and inv.weight() > light_bag + 2.0 and main.placed.chest_items == null,
+	_check(main.placed.take_up(main.host.player, chest_e) and inv.weight() > light_bag + 2.0 and main.placed.chest_items == null,
 		"the chest is taken up with what it holds")
 	var chest_back := false
 	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
@@ -661,13 +663,13 @@ func _run() -> void:
 	map.zoom_by(zoom_was)
 	# A hurt reddens the screen's edges and puts its number over the player's head.
 	var feedback = main.hud.feedback
-	var health: float = main.character.vitals.health
-	main.character.vitals.health -= 10.0
+	var health: float = main.host.player.vitals.health
+	main.host.player.vitals.health -= 10.0
 	await process_frame
 	await process_frame
 	_check(feedback._frame > 0.0 and feedback._frame_color == feedback.KINDS.hurt[0]
 		and feedback._floats.size() > 0, "a hurt shows the red frame and its number")
-	main.character.vitals.health = health
+	main.host.player.vitals.health = health
 	main.clock.time_of_day = day
 	main.sky.moon_override = -1.0
 	main.placed.put_out(fire_e)
@@ -675,7 +677,7 @@ func _run() -> void:
 	var branches: int = inv.count("resources:branch")
 	_check(not fire_e.lit and not main.placed.stations_near(main.placed.center(fire_e), 3.0).has("core:campfire"),
 		"a campfire put out is no station")
-	_check(main.placed.light(main.character, fire_e) and fire_e.lit and inv.count("resources:branch") == branches - 1, "it is lit again for a branch")
+	_check(main.placed.light(main.host.player, fire_e) and fire_e.lit and inv.count("resources:branch") == branches - 1, "it is lit again for a branch")
 	main.placed.put_out(fire_e)
 	_check(main.placed.destroy(fire_e) and not main.placed.things.has(fire_e), "a campfire put out is destroyed without a trace")
 

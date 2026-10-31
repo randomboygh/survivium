@@ -1,9 +1,11 @@
 extends "res://src/shared/game/character.gd"
-## The player's character (Character, src/shared: the bag, the body's state, what
-## actions cost, death) on this device: the body is the player's node, the hands are
-## the controls', it speaks in lines under the clock, and a death hides the player
-## behind the death screen (DeathScreen) and is saved at once. The playtest page can
-## take them to any column (go_to_column). `game` is the Main node.
+## The player's character on this device: the client's copy of the one on the server
+## (Player in src/server, fed by the server's events through Mirror: the bag, the body's
+## state, death), and the one who acts for what the client reads of the rules itself
+## (the cursor's preview): the body is the player's node, the hands are the controls'.
+## It runs no rule: what it speaks (say) and a death (the player hidden behind the
+## death screen, DeathScreen) come from the server. The playtest page can take them to
+## any column (go_to_column). `game` is the Main node.
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -26,15 +28,39 @@ func say(text: String) -> void:
 	game.hud.toast(text)
 
 
-func lay(kind: String, data: Variant) -> Vector3:
-	var at := super.lay(kind, data)
-	game.props.show_drops(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
-	return at
+## Takes the state a YOU event gives (see PlayerLink.flush): the bag, the body's state,
+## death and the life's statistics, home, where things were thrown.
+func take(d: Dictionary) -> void:
+	var was_dead := is_dead()
+	if d.get("vitals") is Array:
+		take_vitals(d.vitals)
+	if d.get("state") is Dictionary:
+		from_dict(d.state)
+	if d.get("home") is Vector3:
+		home = d.home
+	held_back.clear()
+	for p in d.get("held_back", []):
+		if p is Vector3:
+			held_back.append(p)
+	if is_dead() and not was_dead:
+		_fell()
+		game.save.flush()
+	# The bag last: its `changed` tells the state changed (see _on_bag_changed), once.
+	if d.get("inventory") is Dictionary:
+		inventory.from_dict(d.inventory)
+	elif is_dead() != was_dead:
+		state_changed.emit()
 
 
-func die() -> void:
-	super.die()
-	game.save.flush()
+## Takes the body's state a VITALS event gives.
+func take_vitals(v: Array) -> void:
+	if v.size() != 5:
+		return
+	vitals.health = float(v[0])
+	vitals.satiety = float(v[1])
+	vitals.stamina = float(v[2])
+	vitals.hunger = bool(v[3])
+	vitals.hurt_by = str(v[4])
 
 
 func _fell() -> void:
@@ -55,10 +81,11 @@ func go_to_column(cell: Vector2i) -> void:
 	game.view.look_at_player()
 
 
-func update(delta: float) -> void:
+## The copy runs no rule (the server does); it only puts the player down where
+## go_to_column took them.
+func update(_delta: float) -> void:
 	if arriving != null:
 		_arrive()
-	super.update(delta)
 
 
 ## Holds the player over the column go_to_column took them to until its chunk is made,
@@ -76,11 +103,6 @@ func _arrive() -> void:
 		game.player.position = (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
 	_last_at = Vector3.INF
 	game.view.look_at_player()
-
-
-func _came_back(at: Vector3) -> void:
-	teleport(at)
-	game.player.visible = true
 
 
 ## Puts the body at `at` (world units) at once, the view with it.
@@ -129,6 +151,7 @@ func brush() -> Dictionary:
 	return game.controls.brush_record()
 
 
-## A swing of the tool in use wears it (see Workshop.use_tool).
+## A swing of the tool in use wears it on the server (Player.use_tool); the copy's
+## tools wear by its events.
 func use_tool() -> void:
-	game.workshop.use_tool()
+	pass

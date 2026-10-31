@@ -8,7 +8,7 @@
 ```mermaid
 graph TD
   client["src/client/ — картинка, ввод, звук, UI, сохранение на устройстве"]
-  server["src/server/ — сторона сервера: запросы игрока к правилам"]
+  server["src/server/ — сторона сервера: персонаж игрока, его запросы и события"]
   net["src/shared/net/ — протокол: виды запросов, сообщения в байты"]
   game["src/shared/game/ — правила игры"]
   world["src/shared/world/ — мир, генератор, файлы мира"]
@@ -34,7 +34,8 @@ graph TD
   `net/` — только `content/`, `game/` — `content/` и `world/`. Это проверяет тот же `_test_layers`.
 - `src/server/` грузит только `src/shared/`; клиент грузит `src/server/` только из
   `src/client/net/local_host.gd` — сервера внутри игры для одиночной (решение 153). Что клиент просит
-  у правил, идёт запросами протокола через `game.net` ([systems/network.md](systems/network.md)).
+  у правил, идёт запросами протокола через `game.net`; персонаж и мастерская игрока живут на сервере,
+  клиент держит их копии по событиям сервера ([systems/network.md](systems/network.md)).
 - Папки `src/client/` ссылаются друг на друга свободно (без циклов `preload`): общий стиль UI
   (`ui/ui_style.gd`) нужен вводу и картинке, проекция (`view/pixel_view.gd`) — мешам.
 - Скрипты подключаются константой `preload("res://…")` с полным путём, без `class_name`; базовый

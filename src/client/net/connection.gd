@@ -1,11 +1,12 @@
 extends RefCounted
 ## The client's side of the protocol (plan/architecture/server.md, Protocol): makes
-## requests of the server and hands their replies to whoever asked. A request goes out
-## as bytes through `transport` (a Callable: the loop into the game's own process in
-## single player, LocalHost; a socket at stage С3) and comes back as a Reply, which is
-## done at once over the loop and later over a socket; `then` runs a callback either
-## way. The bytes are counted both ways, with the time spent coding them, for the
-## stats panel to tell what the protocol costs.
+## requests of the server and hands their replies to whoever asked, sends the client's
+## events (its body each frame) and gives out the server's (the state of the player's
+## copies) as the `event` signal. A message goes out as bytes through `transport` (a
+## Callable: the loop into the game's own process in single player, LocalHost; a socket
+## at stage С3); a request comes back as a Reply, done at once over the loop and later
+## over a socket; `then` runs a callback either way. The bytes are counted both ways,
+## with the time spent coding them, for the stats panel to tell what the protocol costs.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
@@ -32,8 +33,14 @@ class Reply extends RefCounted:
 		_then.clear()
 
 
-## Sends bytes to the server; gives back the reply's bytes when it is in at once (the
-## loop), else null (the replies come through `receive`).
+## An event from the server (Protocol: YOU, SHOP, SAY…), for the client's copies.
+signal event(kind: String, args: Variant)
+## A request is about to go out: what the server should know first (the body and the
+## hands, Mirror.send_input) goes before it.
+signal sending
+
+## Sends bytes to the server; gives back what came in at once (the loop: an Array of
+## the messages' bytes), else null (they come through `receive`).
 var transport: Callable
 var _seq := 0
 var _waiting := {}
@@ -51,6 +58,7 @@ func _init(t: Callable) -> void:
 
 ## Asks the server for `kind` with `args` (Protocol); the Reply.
 func request(kind: String, args: Array) -> Reply:
+	sending.emit()
 	_seq += 1
 	requests += 1
 	var reply := Reply.new()
@@ -59,10 +67,25 @@ func request(kind: String, args: Array) -> Reply:
 	var bytes := Protocol.encode(Protocol.request(kind, _seq, args))
 	coding_us += Time.get_ticks_usec() - t
 	sent_bytes += bytes.size()
-	var back: Variant = transport.call(bytes)
-	if back is PackedByteArray:
-		receive(back)
+	_send(bytes)
 	return reply
+
+
+## Tells the server `kind` with `args` (an event, Protocol): no reply.
+func send(kind: String, args: Variant) -> void:
+	var t := Time.get_ticks_usec()
+	var bytes := Protocol.encode(Protocol.event(kind, args))
+	coding_us += Time.get_ticks_usec() - t
+	sent_bytes += bytes.size()
+	_send(bytes)
+
+
+func _send(bytes: PackedByteArray) -> void:
+	var back: Variant = transport.call(bytes)
+	if back is Array:
+		for b in back:
+			if b is PackedByteArray:
+				receive(b)
 
 
 ## Takes in the reply in `bytes` from the server.
@@ -71,7 +94,12 @@ func receive(bytes: PackedByteArray) -> void:
 	var t := Time.get_ticks_usec()
 	var msg := Protocol.decode(bytes)
 	coding_us += Time.get_ticks_usec() - t
-	if msg.size() != 2 or not msg[0] is int:
+	if msg.size() != 2:
+		return
+	if msg[0] is String:
+		event.emit(msg[0], msg[1])
+		return
+	if not msg[0] is int:
 		return
 	var reply: Reply = _waiting.get(msg[0])
 	if reply != null:

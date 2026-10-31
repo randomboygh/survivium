@@ -32,7 +32,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## src/client/game
 
-- `src/client/game/character.gd`: The player's character (Character, src/shared: the bag, the body's state, what actions cost, death) on this device: the body is the player's node, the hands are the controls', it speaks in lines…
+- `src/client/game/character.gd`: The player's character on this device: the client's copy of the one on the server (Player in src/server, fed by the server's events through Mirror: the bag, the body's state, death), and the one who…
 - `src/client/game/creatures.gd`: The animals drawn (the rules are Wildlife, src/shared, stepped by the world's session): a sprite for each, put where it walks and turned the way it faces, and the paw prints it leaves (see tracks.gd).
 - `src/client/game/gathering.gd`: Gathering on the screen: a tap or a click finds the nearest thing to gather within a finger's reach of the point on the screen (plan/design/ui.md: cells are too small to hit), within reach of the…
 - `src/client/game/markers.gd`: The markers the player sets on the map: a column and a colour each, drawn on the whole map as flags and on the minimap as dots (kept at its edge while beyond it), kept in the player's save (see…
@@ -51,8 +51,10 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## src/client/net
 
-- `src/client/net/connection.gd`: The client's side of the protocol (plan/architecture/server.md, Protocol): makes requests of the server and hands their replies to whoever asked.
+- `src/client/net/connection.gd`: The client's side of the protocol (plan/architecture/server.md, Protocol): makes requests of the server and hands their replies to whoever asked, sends the client's events (its body each frame) and…
 - `src/client/net/local_host.gd`: The server inside the game, for single player (plan/architecture/server.md, decision 153): the one place the client loads the server's code.
+- `src/client/net/mirror.gd`: The client's copies of what the server holds of the player (plan/architecture/server.md): their character (the bag, the body's state, death) and workshop, fed by the server's events (Protocol.YOU,…
+- `src/client/net/remote_workshop.gd`: The client's copy of the player's workshop (plan/architecture/server.md): the queue, the pause and the knowledge as the server's events give them (Protocol.SHOP, YOU).
 
 ## src/client
 
@@ -119,6 +121,8 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## src/server
 
+- `src/server/player.gd`: A player's character on the server (plan/architecture/server.md, decision 153): the one acting (`who`) for the rules, with the body and the hands as the client last told them (Protocol.INPUT: the…
+- `src/server/player_link.gd`: One player on the server (plan/architecture/server.md): their character (Player) and workshop in the session, their requests (Requests), and the events that go back to the client's copies…
 - `src/server/requests.gd`: The requests of one player, done by the rules of the session on the server's side (plan/architecture/server.md, Protocol): a request `[kind, seq, args]` is answered `[seq, value]` with what the rule…
 
 ## src/shared/content
@@ -255,11 +259,11 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 | `src/client/audio` | `src/client/input`, `src/client/ui`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/game` | `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
-| `src/client/net` | `src/server`, `src/shared/net` |
+| `src/client/net` | `src/server`, `src/shared/content`, `src/shared/game`, `src/shared/net` |
 | `src/client/ui` | `src/client`, `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/view` | `src/client/ui`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/world` | `src/client/view`, `src/shared/content`, `src/shared/world` |
-| `src/server` | `src/shared/content`, `src/shared/net` |
+| `src/server` | `src/shared/content`, `src/shared/game`, `src/shared/net` |
 | `src/shared/content` | — |
 | `src/shared/game` | `src/shared/content`, `src/shared/world` |
 | `src/shared/net` | — |
