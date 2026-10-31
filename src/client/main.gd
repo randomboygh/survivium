@@ -60,6 +60,7 @@ const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
+const OthersScript := preload("res://src/client/view/others.gd")
 const CreaturesScript := preload("res://src/client/game/creatures.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
@@ -105,6 +106,8 @@ var world
 var gen: WorldGen
 var player
 var creatures
+## The other players on the screen (С3.3).
+var others
 var effects
 var fire_shadows
 ## Shafts of sunlight among the trees, flecks of sun and dust in them (SunRays).
@@ -914,6 +917,10 @@ func _build_scene() -> void:
 	creatures.tracks = tracks
 	creatures.perf = hud.perf
 	world_root.add_child(creatures)
+	others = OthersScript.new()
+	others.game = self
+	others.perf = hud.perf
+	world_root.add_child(others)
 	player.perf = hud.perf
 
 	effects = EffectsScript.new()

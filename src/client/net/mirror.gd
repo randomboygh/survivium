@@ -3,7 +3,8 @@ extends RefCounted
 ## player's character (the bag, the body's state, death) and workshop, the things placed
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
-## PROP_LIT, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; over a socket the world too:
+## PROP_LIT, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
+## players, `game.others`); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
 ## the world and `game.actions`' signals), and the client's own event each frame: where
 ## its body is and what the hands do (INPUT), which the rules on the server act from.
@@ -56,7 +57,7 @@ func send_input() -> void:
 	var half: Vector2 = Vector2(game.view.viewport.size) / PixelView.PIXELS_PER_UNIT * 0.5 + Vector2.ONE * SEEN_MARGIN
 	var now: Array = [p.position, c.feet(), c.step(), [c.hands[0], c.hands[1]], c.active, c.brush,
 		p.body.move_input.length() > 0.1, p.body.swimming, p.body.jumped, p.body.air_jumps, p.body.bumped,
-		PixelView.right, half]
+		PixelView.right, half, p.body.on_ground, p.work_kind, p.work_length, p.work_n, p.work_at]
 	if now == _last:
 		return
 	_last = now
@@ -159,3 +160,9 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.STEP:
 			if args is Array:
 				game.wildlife.take_step(args)
+		Protocol.PEOPLE:
+			if args is Array:
+				game.others.take_people(args)
+		Protocol.PERSON_GONE:
+			if args is Array and args.size() == 1 and args[0] is int:
+				game.others.take_gone(args[0])

@@ -45,7 +45,11 @@ var held := {"left": {}, "right": {}, "active": "right"}
 ## The work playing (one of player.yaml `works`, "" none), how long it lasts and
 ## how far it has got, in seconds.
 var work_kind := ""
-var _work_length := 0.0
+var work_length := 0.0
+## How many works were started, and where the last was turned to (INF for none): the
+## server tells the other players of them (Protocol.INPUT, PEOPLE).
+var work_n := 0
+var work_at := Vector3.INF
 var _work_time := 0.0
 ## The sheet being built for a new look (see _redraw) and the sheets built, by look.
 var _build = null
@@ -162,11 +166,13 @@ func work(kind: String, seconds: float, at := Vector3.INF) -> void:
 		kind = thing.get("anim", "")
 		if not Figure.data().works.has(kind):
 			kind = "reach"
-	if work_kind != "" and _work_time < _work_length * 0.5:
+	if work_kind != "" and _work_time < work_length * 0.5:
 		return
 	work_kind = kind
-	_work_length = maxf(seconds, MIN_WORK)
+	work_length = maxf(seconds, MIN_WORK)
 	_work_time = 0.0
+	work_n += 1
+	work_at = at
 	if at != Vector3.INF:
 		var to := Vector2(at.x - position.x, at.z - position.z)
 		if to.length() > 0.1 * CELL:
@@ -182,10 +188,10 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 	if work_kind != "":
 		# A work plays once over its length, then the body walks or stands again.
 		_work_time += delta
-		if _work_time < _work_length:
+		if _work_time < work_length:
 			var frames: Array = sheet.animations[work_kind].frames
 			anim = work_kind
-			anim_time = minf(_work_time / _work_length, 0.999) * frames.size() / sheet.animations[work_kind].fps
+			anim_time = minf(_work_time / work_length, 0.999) * frames.size() / sheet.animations[work_kind].fps
 			return
 		work_kind = ""
 	var next := "idle"
