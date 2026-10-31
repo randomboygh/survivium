@@ -406,6 +406,7 @@ func _hosted() -> void:
 	var host := _bot("Хозяин", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return host.reply.done) and host.reply.value.get("ok") == true
 		and host.reply.value.get("title") == "Дача", "a player comes in, told the server's name")
+	await _commands(node, host)
 	var said := [false]
 	node.stopped.connect(func() -> void: said[0] = true)
 	node.command("stop")
@@ -413,6 +414,45 @@ func _hosted() -> void:
 		"stopped, it says so and keeps its log; the game frees it")
 	root.remove_child(node)
 	node.free()
+
+
+## The host's commands (С5.3): give into a bag (by the item's id, its end or its
+## name), tp to cells or to another player, ban (the player put out, the key and the
+## name refused, kept in the world's save), unban, whitelist (only the names on it).
+func _commands(node: Node, host: Bot) -> void:
+	var who = node.session.players[0]
+	var before: int = who.inventory.count("resources:branch")
+	var out: String = node.command("/give Хозяин branch 3")
+	_check(who.inventory.count("resources:branch") == before + 3 and out.begins_with("выдано"),
+		"give puts the item into the player's bag: %s" % out)
+	_check(node.command("give Хозяин nothing_like_it").begins_with("нет такого предмета"), "give names a missing item")
+	out = node.command("tp 1 4 30 -5")
+	_check(who.position.distance_to(Vector3(4.5, 30, -4.5) * WorldData.CELL) < 0.01 and out.contains("4, 30, -5"),
+		"tp puts the player at the cells: %s" % out)
+	var key: String = host.reply.value.key
+	out = node.command("ban Хозяин")
+	_check(await _until(func() -> bool: return host.socket.ended) and node.server.accounts.is_empty(),
+		"ban puts the player out: %s" % out)
+	var again := _bot("Хозяин", key, "", PORT + 1)
+	var renamed := _bot("Другой", key, "", PORT + 1)
+	var by_name := _bot("хозяин", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return again.reply.done and renamed.reply.done and by_name.reply.done)
+		and [again, renamed, by_name].all(func(b: Bot) -> bool: return b.reply.value.get("why") == Protocol.WHY_BANNED),
+		"a banned player is refused by the key, under another name too, and by the name")
+	var kept: Dictionary = node.saves.read_access()
+	_check(kept.get("banned_keys", {}).has(key) and node.command("bans").contains("хозяин"), "bans are kept in the world's save")
+	node.command("unban Хозяин")
+	var back := _bot("Хозяин", key, "", PORT + 1)
+	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("ok") == true, "unban lets them in again")
+	node.command("whitelist on")
+	var stranger := _bot("Чужой", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return stranger.reply.done) and stranger.reply.value.get("why") == Protocol.WHY_LIST,
+		"with the list on, a name not on it is refused (those here were put on it)")
+	node.command("whitelist add чужой")
+	var friend := _bot("Чужой", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return friend.reply.done) and friend.reply.value.get("ok") == true,
+		"a name added to the list comes in")
+	node.command("whitelist off")
 
 
 static func _unique(a: Array) -> Array:

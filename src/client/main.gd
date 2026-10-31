@@ -435,7 +435,8 @@ func _on_welcome(v: Variant) -> void:
 		var why: String = v.get("why", "") if v is Dictionary else ""
 		join_error = {Protocol.WHY_VERSION: "Версия игры другая — обновите страницу",
 			Protocol.WHY_PASSWORD: "Неверный пароль", Protocol.WHY_FULL: "Сервер полон",
-			Protocol.WHY_NAME: "Нужно имя"}.get(why, "Сервер не пустил")
+			Protocol.WHY_NAME: "Нужно имя", Protocol.WHY_BANNED: "Хозяин сервера заблокировал вас",
+			Protocol.WHY_LIST: "Сервер пускает только своих: попросите хозяина добавить ваше имя"}.get(why, "Сервер не пустил")
 		return
 	if not v.get("seed") is int or not v.get("settings") is Dictionary or not v.get("mods") is Array \
 			or not v.get("materials") is Array or not v.get("at") is Vector3:

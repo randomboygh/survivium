@@ -104,6 +104,7 @@ func start() -> bool:
 		if left > 0:
 			say("сохранение было прервано: %d недописанных файлов убрано, мир — с прошлого сохранения" % left)
 		server.store = saves
+		server.load_access()
 		server.next_id = saves.next_player()
 	else:
 		say("мир не сохраняется (--no-save)")

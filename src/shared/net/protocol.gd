@@ -35,6 +35,9 @@ const WHY_VERSION := "version"
 const WHY_PASSWORD := "password"
 const WHY_FULL := "full"
 const WHY_NAME := "name"
+## The host blocked the player, or lets in only the names on the server's list.
+const WHY_BANNED := "banned"
+const WHY_LIST := "list"
 
 ## The requests, each with its args. The rules they reach are in src/shared/game/; what
 ## each gives back is what that rule returns (Requests._do).

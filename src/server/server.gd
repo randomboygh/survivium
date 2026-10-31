@@ -16,6 +16,7 @@ const PlayerLink := preload("res://src/server/player_link.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
 const Config := preload("res://src/server/config.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 ## Seconds a character stays in the world after its connection is lost, and after a
 ## goodbye.
@@ -94,6 +95,10 @@ var wild := false
 var stopping := false
 ## Lines for the terminal (the server's scene prints them).
 var lines: Array[String] = []
+## Who may come in, kept in the world's save (ServerStore.ACCESS): the keys blocked
+## (with the name each had), the names blocked (lower case), whether only the names on
+## the list are let in, and the list (lower case).
+var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": []}
 
 
 func _init(s, cfg: Config, info: Dictionary) -> void:
@@ -179,7 +184,8 @@ func online() -> int:
 
 ## Does the host's command `line` (who, say, kick, stop, help); the words to print.
 func command(line: String) -> String:
-	var parts := line.strip_edges().split(" ", false, 1)
+	# "/give …" as in a chat, or "give …".
+	var parts := line.strip_edges().trim_prefix("/").split(" ", false, 1)
 	if parts.is_empty():
 		return ""
 	var rest := parts[1].strip_edges() if parts.size() > 1 else ""
@@ -206,9 +212,165 @@ func command(line: String) -> String:
 		"stop":
 			stop()
 			return "сервер останавливается"
+		"give":
+			return _give(rest)
+		"tp":
+			return _tp(rest)
+		"ban":
+			return _ban(rest)
+		"unban":
+			return _unban(rest)
+		"bans":
+			return "заблокированы: " + (", ".join(_banned()) if not _banned().is_empty() else "никто")
+		"whitelist":
+			return _whitelist(rest)
 		"help", "?":
-			return "who — кто в мире; say <слова> — сказать всем; kick <имя или номер> — отключить; stop — остановить сервер"
+			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
+				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
+				"ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих",
+				"<кто> — имя или номер игрока (who)"])
 	return "неизвестная команда «%s»; help — список" % parts[0]
+
+
+## Loads who may come in from the world's save (the server's scene, at start).
+func load_access() -> void:
+	if store == null:
+		return
+	var d: Dictionary = store.read_access()
+	if d.get("banned_keys") is Dictionary:
+		access.banned_keys = d.banned_keys
+	for k in ["banned_names", "listed"]:
+		if d.get(k) is Array:
+			access[k] = d[k]
+	access.listed_only = d.get("listed_only") == true
+
+
+func _save_access() -> void:
+	if store != null:
+		store.write_access(access)
+
+
+## "give <кто> <предмет> [сколько]": into the player's bag (an item by its id, the
+## end of its id or its name).
+func _give(rest: String) -> String:
+	var args := rest.split(" ", false)
+	if args.size() < 2:
+		return "give <кто> <предмет> [сколько]"
+	var a := _find(args[0])
+	if a == null:
+		return "нет такого игрока: " + args[0]
+	var n := clampi(int(args[2]), 1, 999) if args.size() > 2 and args[2].is_valid_int() else 1
+	var id := _item(args[1])
+	if id == "":
+		return "нет такого предмета: " + args[1]
+	var got: int = a.link.who.give(id, n)
+	return "выдано %s: %d × %s" % [a.name, got, Items.title(id)]
+
+
+## The item meant by `what`: its id, the part after the colon, or its name.
+static func _item(what: String) -> String:
+	var id := Items.canon(what)
+	if Items.has(id):
+		return id
+	for i: String in Items.IDS:
+		if i.get_slice(":", 1) == what or Items.title(i).to_lower() == what.to_lower().replace("_", " "):
+			return i
+	return ""
+
+
+## "tp <кто> <x> <y> <z>" (cells) or "tp <кто> <к кому>".
+func _tp(rest: String) -> String:
+	var args := rest.split(" ", false)
+	if args.size() != 2 and args.size() != 4:
+		return "tp <кто> <x> <y> <z> | tp <кто> <к кому>"
+	var a := _find(args[0])
+	if a == null:
+		return "нет такого игрока: " + args[0]
+	var to: Vector3
+	if args.size() == 2:
+		var b := _find(args[1])
+		if b == null:
+			return "нет такого игрока: " + args[1]
+		to = b.link.who.position
+	else:
+		for k in range(1, 4):
+			if not args[k].is_valid_int():
+				return "клетки — целые числа: " + rest
+		to = (Vector3(int(args[1]), int(args[2]), int(args[3])) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL
+	a.link.who.teleport(to)
+	var c := (to / WorldData.CELL).floor()
+	return "%s перенесён на %d, %d, %d" % [a.name, c.x, c.y, c.z]
+
+
+## "ban <кто или имя>": a player here is put out and their key blocked; a name not
+## here is blocked by the name.
+func _ban(rest: String) -> String:
+	if rest == "":
+		return "ban <кто или имя>"
+	var a := _find(rest)
+	var name := a.name if a != null else rest
+	if not access.banned_names.has(name.to_lower()):
+		access.banned_names.append(name.to_lower())
+	if a != null:
+		access.banned_keys[a.key] = a.name
+		kick(a, "хозяин заблокировал вас")
+	_save_access()
+	_say("%s заблокирован" % name)
+	return "заблокирован: " + name
+
+
+## "unban <имя>": the name and the keys that came with it.
+func _unban(rest: String) -> String:
+	var low := rest.to_lower()
+	var was: bool = access.banned_names.has(low)
+	access.banned_names.erase(low)
+	for key in access.banned_keys.keys():
+		if str(access.banned_keys[key]).to_lower() == low:
+			access.banned_keys.erase(key)
+			was = true
+	if not was:
+		return "не заблокирован: " + rest
+	_save_access()
+	return "разблокирован: " + rest
+
+
+func _banned() -> Array:
+	var out: Array = access.banned_names.duplicate()
+	for key in access.banned_keys:
+		var n := str(access.banned_keys[key]).to_lower()
+		if not out.has(n):
+			out.append(n)
+	return out
+
+
+## "whitelist on|off|add <имя>|remove <имя>": only the names on the list come in while
+## it is on; turning it on puts those here on it.
+func _whitelist(rest: String) -> String:
+	var args := rest.split(" ", false, 1)
+	var what := args[0] if not args.is_empty() else ""
+	var name := args[1].strip_edges().to_lower() if args.size() > 1 else ""
+	match what:
+		"on":
+			access.listed_only = true
+			for a: Account in players():
+				if not access.listed.has(a.name.to_lower()):
+					access.listed.append(a.name.to_lower())
+		"off":
+			access.listed_only = false
+		"add":
+			if name == "":
+				return "whitelist add <имя>"
+			if not access.listed.has(name):
+				access.listed.append(name)
+		"remove":
+			access.listed.erase(name)
+		"":
+			pass
+		_:
+			return "whitelist on|off|add <имя>|remove <имя>"
+	_save_access()
+	return "только свои: %s; в списке: %s" % ["да" if access.listed_only else "нет",
+		", ".join(access.listed) if not access.listed.is_empty() else "никого"]
 
 
 ## Puts `a` out with `why` (words for the player) and takes the character out of the world.
@@ -348,6 +510,11 @@ func _refusal(args: Array) -> String:
 		return Protocol.WHY_NAME
 	if config.password != "" and args[4] != config.password:
 		return Protocol.WHY_PASSWORD
+	var low := str(args[2]).strip_edges().left(NAME_MAX).to_lower()
+	if access.banned_keys.has(args[3]) or access.banned_names.has(low):
+		return Protocol.WHY_BANNED
+	if access.listed_only and not access.listed.has(low):
+		return Protocol.WHY_LIST
 	if not accounts.has(args[3]) and accounts.size() >= config.max_players:
 		return Protocol.WHY_FULL
 	return ""
