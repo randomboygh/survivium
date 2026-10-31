@@ -22,6 +22,10 @@ var requests: Requests
 var outbox: Array[PackedByteArray] = []
 ## Seconds between the clock's snapshots (CLOCK); the client runs the time between them.
 const CLOCK_EVERY := 0.25
+## Seconds between the animals' snapshots (SNAP): 0 sends one every flush (the loop);
+## over a socket the server sets a few a second.
+var snap_every := 0.0
+var _snap_sent := -1.0
 
 var _you := true
 var _shop := true
@@ -78,6 +82,19 @@ func leave() -> void:
 	wild.stepped.disconnect(_on_stepped)
 
 
+## The player comes back on a new connection (a page reloaded): the requests count
+## from one again, and the next flush brings everything, as on joining.
+func rejoin() -> void:
+	requests.last_seq = -1
+	requests.last_reply = []
+	_you = true
+	_shop = true
+	_knowledge = true
+	_all = true
+	_clock_sent = -1.0
+	_snap_sent = -1.0
+
+
 ## Takes message `bytes` from the client: the reply's bytes for a request, null for an
 ## event.
 func handle(bytes: PackedByteArray) -> Variant:
@@ -87,6 +104,11 @@ func handle(bytes: PackedByteArray) -> Variant:
 	if msg.size() == 2 and msg[0] == Protocol.INPUT and msg[1] is Array:
 		who.take_input(msg[1])
 	return null
+
+
+## A line for the player (the host's `say`).
+func tell(text: String) -> void:
+	_push(Protocol.SAY, [text])
 
 
 ## The events for the client since the last flush: the state noted as changed first,
@@ -122,9 +144,11 @@ func flush() -> Array[PackedByteArray]:
 		_snapped.clear()
 	out.append_array(outbox)
 	outbox = []
-	var snap := _snap()
-	if not snap.is_empty():
-		out.append(_event(Protocol.SNAP, snap))
+	if snap_every <= 0.0 or _snap_sent < 0.0 or now - _snap_sent >= snap_every:
+		_snap_sent = now
+		var snap := _snap()
+		if not snap.is_empty():
+			out.append(_event(Protocol.SNAP, snap))
 	var push: Vector3 = session.push_on(who)
 	if push != Vector3.ZERO:
 		out.append(_event(Protocol.PUSH, [push]))
@@ -223,7 +247,10 @@ func _on_chest(cell: Vector3i) -> void:
 
 
 func _on_born(a) -> void:
-	_push(Protocol.ANIMAL, [a.id, a.kind, a.tint, a.pos])
+	# On joining the next flush names every animal there is (the server lets them in
+	# with the first player): not twice.
+	if not _all:
+		_push(Protocol.ANIMAL, [a.id, a.kind, a.tint, a.pos])
 
 
 func _on_gone(a) -> void:

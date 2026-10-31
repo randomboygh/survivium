@@ -832,7 +832,10 @@ func _spawn_group(kind: String, most: int, away_from_people: bool) -> void:
 
 func _spawn(kind: String, away_from_people: bool) -> Animal:
 	# Within the ground made around one of the people (on the client the player, see
-	# ChunkStreamer.LOAD_RANGE).
+	# ChunkStreamer.LOAD_RANGE); none come while nobody is in the world (a server
+	# waiting for players).
+	if people.is_empty():
+		return null
 	var around: Vector3 = _someone().position
 	var px := floori(around.x / CELL)
 	var pz := floori(around.z / CELL)

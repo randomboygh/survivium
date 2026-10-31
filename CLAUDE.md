@@ -107,10 +107,11 @@ godot --headless --path . --script res://tests/run_tests.gd
 timeout 300 godot --headless --path . --script res://tests/save_test.gd
 timeout 600 godot --headless --path . --script res://tests/progress_test.gd
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
+timeout 300 godot --headless --path . --script res://tests/server_test.gd
 python3 tools/doc_index.py --check
 ```
 
-`tests/run_all.sh` runs the godot ones after `--import`: the first five side by side, each with its own
+`tests/run_all.sh` runs the godot ones after `--import`: the first six side by side, each with its own
 `user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times (`GODOT=path` if
 `godot` is not on PATH; names as arguments run only those). `frame_test` timings are noisy on a busy
 machine: rerun it alone before blaming code. Run `progress_test` after any change to tools, materials,
@@ -126,6 +127,8 @@ Each in one line; the system's context doc has the detail.
 
 - A static func named like a method of `Script` (`reload`, `get_class`, `is_tool`) is shadowed:
   `Mat.reload()` recompiles the script. Hence `Mods.rescan`.
+- A server from the terminal: `godot --headless --path . -- --server [--port N] [--seed N | --world <dir>]`
+  (`src/server/server_main.gd`, `docs/systems/network.md`); the test world is `--seed -1`.
 - A lambda that uses `self`, connected to a signal of something the object holds, makes a cycle a
   RefCounted is never freed from: connect a method (`src/shared/game/character.gd`).
 - `var i := expr` with a Variant `expr` is a parse error: type it. `typed_array = expr if c else []`
