@@ -308,28 +308,28 @@ func _run() -> void:
 	main.hud.open_chest()
 	bag._manual = true
 	var at: int = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "resources:stone")[0])
-	var free: int = main.placed.chest_items.slots.find(null)
-	var stones: int = main.placed.chest_items.count("resources:stone") + inv.slots[at][1]
+	var free: int = main.session.placed.chest_items.slots.find(null)
+	var stones: int = main.session.placed.chest_items.count("resources:stone") + inv.slots[at][1]
 	bag._tap(at, true)
 	bag._tap(free, false)
-	_check(inv.slots[at] == null and main.placed.chest_items.count("resources:stone") == stones, "a stack goes into the chest")
+	_check(inv.slots[at] == null and main.session.placed.chest_items.count("resources:stone") == stones, "a stack goes into the chest")
 	bag._tap(free, false)
 	bag._tap(at, true)
-	_check(inv.slots[at] != null and main.placed.chest_items.slots[free] == null, "and back into the bag")
+	_check(inv.slots[at] != null and main.session.placed.chest_items.slots[free] == null, "and back into the bag")
 	bag._manual = false
 	# Else a tap only picks.
 	var bag_before: Array = inv.slots.duplicate(true)
 	bag._tap(at, true)
 	bag._tap(free, false)
-	_check(inv.slots == bag_before and main.placed.chest_items.slots[free] == null, "a second tap picks, it moves nothing")
+	_check(inv.slots == bag_before and main.session.placed.chest_items.slots[free] == null, "a second tap picks, it moves nothing")
 	# «Скинуть всё в сундук» leaves the hotbar row.
-	var chest_before: Array = main.placed.chest_items.slots.duplicate(true)
+	var chest_before: Array = main.session.placed.chest_items.slots.duplicate(true)
 	inv.slots[inv.slots.size() - 1] = ["resources:flint", 1]
 	bag._put_all_in_chest()
 	_check(inv.slots.slice(0, inv.HOTBAR) == bag_before.slice(0, inv.HOTBAR) and inv.slots[inv.slots.size() - 1] == null
-		and main.placed.chest_items.count("resources:flint") > 0, "all the bag past the hotbar row goes into the chest")
+		and main.session.placed.chest_items.count("resources:flint") > 0, "all the bag past the hotbar row goes into the chest")
 	inv.slots = bag_before
-	main.placed.chest_items.slots = chest_before
+	main.session.placed.chest_items.slots = chest_before
 	bag.close()
 
 	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,
@@ -364,41 +364,41 @@ func _run() -> void:
 	await _scenario("crafting at a workbench", 100000, func(_i: int) -> bool: return shop.queue.jobs.is_empty() or clock >= 2.0)
 	_check(inv.count("tools:stone_axe") == axes + 1, "a stone axe is made at the workbench")
 	main.hud.toggle_bag()
-	var bench: Vector3i = main.placed.cell_of("tools:workbench")
+	var bench: Vector3i = main.session.placed.cell_of("tools:workbench")
 	_check(main.world.blocks_body(bench.x, bench.y, bench.z), "a workbench is solid")
 
 	# The chest by the spawn taken up with a stone in it, and set down again with it.
-	main.placed.chest_items.add("resources:stone", 1)
+	main.session.placed.chest_items.add("resources:stone", 1)
 	var chest_e := {}
-	for e in main.placed.things:
-		if e.items == main.placed.chest_items:
+	for e in main.session.placed.things:
+		if e.items == main.session.placed.chest_items:
 			chest_e = e
 	var light_bag: float = inv.weight()
-	_check(main.placed.take_up(main.host.player, chest_e) and inv.weight() > light_bag + 2.0 and main.placed.chest_items == null,
+	_check(main.session.placed.take_up(main.host.player, chest_e) and inv.weight() > light_bag + 2.0 and main.session.placed.chest_items == null,
 		"the chest is taken up with what it holds")
 	var chest_back := false
 	for facing in ["s", "e", "n", "w", "se", "sw", "ne", "nw"]:
 		main.player.facing = facing
 		chest_back = chest_back or main.props.put_from_bag("tools:chest")
-	_check(chest_back and main.placed.chest_items != null and main.placed.chest_items.count("resources:stone") == 1,
+	_check(chest_back and main.session.placed.chest_items != null and main.session.placed.chest_items.count("resources:stone") == 1,
 		"and set down again with it")
 	# The campfire by the spawn put out (no station then), lit again for a branch, put
 	# out and destroyed.
 	var fire_e := {}
-	for e in main.placed.things:
+	for e in main.session.placed.things:
 		if e.item == "core:campfire":
 			fire_e = e
 
 	# Standing by the campfire on a moonless night with the fire shadows drawn: the
 	# shadows the fire throws from the player, the animals and the trees are drawn every
 	# frame.
-	var day: float = main.clock.time_of_day
+	var day: float = main.session.clock.time_of_day
 	var fire_setting: int = main.settings.values.fire_shadows
 	main.settings.values.fire_shadows = 1
 	main.settings.apply()
-	main.clock.time_of_day = 0.95
+	main.session.clock.time_of_day = 0.95
 	main.sky.moon_override = 0.0
-	main.player.position = main.placed.center(fire_e) + Vector3(0.6, 0.0, -1.4)
+	main.player.position = main.session.placed.center(fire_e) + Vector3(0.6, 0.0, -1.4)
 	# Until the chunks stop being built (the earlier scenarios left work queued), so
 	# the frames measured hold the fire's work and not the streamer's.
 	var quiet := 0
@@ -670,16 +670,16 @@ func _run() -> void:
 	_check(feedback._frame > 0.0 and feedback._frame_color == feedback.KINDS.hurt[0]
 		and feedback._floats.size() > 0, "a hurt shows the red frame and its number")
 	main.host.player.vitals.health = health
-	main.clock.time_of_day = day
+	main.session.clock.time_of_day = day
 	main.sky.moon_override = -1.0
-	main.placed.put_out(fire_e)
+	main.session.placed.put_out(fire_e)
 	inv.add("resources:branch", 1)
 	var branches: int = inv.count("resources:branch")
-	_check(not fire_e.lit and not main.placed.stations_near(main.placed.center(fire_e), 3.0).has("core:campfire"),
+	_check(not fire_e.lit and not main.session.placed.stations_near(main.session.placed.center(fire_e), 3.0).has("core:campfire"),
 		"a campfire put out is no station")
-	_check(main.placed.light(main.host.player, fire_e) and fire_e.lit and inv.count("resources:branch") == branches - 1, "it is lit again for a branch")
-	main.placed.put_out(fire_e)
-	_check(main.placed.destroy(fire_e) and not main.placed.things.has(fire_e), "a campfire put out is destroyed without a trace")
+	_check(main.session.placed.light(main.host.player, fire_e) and fire_e.lit and inv.count("resources:branch") == branches - 1, "it is lit again for a branch")
+	main.session.placed.put_out(fire_e)
+	_check(main.session.placed.destroy(fire_e) and not main.session.placed.things.has(fire_e), "a campfire put out is destroyed without a trace")
 
 	# An idle frame of the finished map is the engine's own share: it grows with the
 	# chunks on the map and the machine, not with the game's work.

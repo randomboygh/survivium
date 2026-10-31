@@ -1,13 +1,16 @@
 # Протокол и сервер в игре
 
-Статус: ACTIVE (этапы С2.1–С2.2а сервера, решение 153; план `plan/architecture/server.md`).
+Статус: ACTIVE (этапы С2.1–С2.2б сервера, решение 153; план `plan/architecture/server.md`).
 
 **Назначение.** То, что клиент просит у правил, идёт сообщениями: запрос `[вид, номер, аргументы]`,
 ответ `[номер, значение]`; то, что одна сторона сообщает другой без ответа, — событие `[вид, аргументы]`:
 клиент каждый кадр говорит, где его тело и что в руках (`input`), сервер — что стало с персонажем
-(`you`, `vitals`, `knowledge`, `shop`, `say`, `made`, `drops`, `teleport`, `knock`). Байты `var_to_bytes` без
-объектов. Персонаж и мастерская игрока живут на сервере (`src/server/player.gd`); на клиенте — их
-копии (`game.character`, `game.workshop`), которые кормит `Mirror`. В одиночной игре те же байты идут
+(`you`, `vitals`, `knowledge`, `shop`, `say`, `made`, `drops`, `teleport`, `knock`, `push`), с вещами на
+клетках (`props`, `prop`, `prop_gone`, `prop_lit`, `chest`), с часами (`clock`) и со зверями (`animal`,
+`animal_gone`, `snap`, `step`). Байты `var_to_bytes` без объектов. Персонаж и мастерская игрока живут на
+сервере (`src/server/player.gd`), вещи, часы и звери — в сеансе сервера; на клиенте — их копии
+(`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые кормит
+`Mirror` и которые отдают видам те же сигналы, что и правила. В одиночной игре те же байты идут
 через петлю в своём процессе (сервер внутри игры), на этапе С3 — через сокет к серверу далеко; клиент
 играет через протокол всегда, чтобы ничего не работало только через петлю и цена протокола мерилась
 на телефоне (счётчики `Connection`).
@@ -29,11 +32,18 @@
   кладёт на землю, куда его ставят и как толкают — сигналы `said`, `laid`, `moved`, `knocked`,
   `tool_used` (мастерскую он не держит: она держит его).
 - `src/server/player_link.gd` — один игрок на сервере: делает `Player`, `Workshop`, `Requests`, входит в
-  сеанс (`add_player`, `leave`); `handle(bytes)` — запрос → байты ответа, событие `input` → тело; сигналы
-  правил ставят флажки, `flush()` отдаёт события разом: `you` (сумка, силы, состояние `to_dict`, дом,
-  откуда отброшено), `vitals` только когда изменились, `knowledge` когда узнан рецепт, `shop`
-  (очередь, пауза), затем накопленные `say`, `made`, `drops` (чанк), `teleport`, `knock`. Хост зовёт
-  `flush` после каждого запроса (события приходят до ответа) и после каждого тика.
+  сеанс (`add_player`, `leave` — и отключается от сигналов сеанса); `handle(bytes)` — запрос → байты
+  ответа, событие `input` → тело; сигналы правил ставят флажки, `flush()` отдаёт события разом: `you`
+  (сумка, силы, состояние `to_dict`, дом, откуда отброшено), `vitals` только когда изменились,
+  `knowledge` когда узнан рецепт, `shop` (очередь, пауза), `clock` (снимок часов `Clock.snapshot`) при
+  входе и затем раз в `CLOCK_EVERY` 0,25 с, при входе `props` (все вещи `Placed.to_list`) и `animal` на
+  каждого зверя, затем накопленные `say`, `made`, `drops` (чанк), `teleport`, `knock`, `prop` (вещь
+  поставлена, запись как в `to_list`), `prop_gone` (клетка), `prop_lit` (клетка, горит), `chest`
+  (клетка, `Inventory.to_dict` — сигнал `changed` сундука подключён с клеткой в `bind`, не с записью),
+  `animal` (номер, вид, оттенок, место), `animal_gone`, `step` (след лапы); в конце `snap` — звери,
+  что шагнули с прошлого `flush` и стоят не там, где были названы (`_snapped` по номеру), и `push`
+  (чем звери толкнули тело, `Session.push_on` берётся один раз). Хост зовёт `flush` после каждого
+  запроса (события приходят до ответа) и после каждого тика.
 - `src/client/net/connection.gd` — сторона клиента: `request(kind, args)` → `Reply` (`done`, `value`,
   `then(cb)` зовёт сразу, если ответ уже есть), `receive(bytes)`, счётчики `sent_bytes`,
   `received_bytes`, `coding_us`, `pending()`. Транспорт — `Callable`, что возвращает байты ответа
@@ -44,18 +54,39 @@
   серверные объекты, к которым до С4/С5 напрямую ходят сохранение и страница «Тестирование».
 - `src/client/net/mirror.gd` — копии на клиенте: слушает `Connection.event` и раздаёт события
   `game.character` (`take`, `take_vitals`, `say`, `teleport`), `game.workshop` (`take`,
-  `take_knowledge`, `made`), `game.props.show_drops`, `game.player.body.knock`; `send_input()` шлёт
-  тело и руки каждый кадр и перед каждым запросом (`Connection.sending`), только если что-то
-  изменилось (руки копируются: массив из `controls.hands` делит с ним данные и не отличался бы).
+  `take_knowledge`, `made`), `game.props.show_drops`, `game.player.body.knock` / `nudge` (`push`),
+  `game.placed` (`take_all`, `take_prop`, `take_gone`, `take_lit`, `take_chest`), `game.clock`
+  (`from_snapshot`), `game.wildlife` (`take_born`, `take_gone`, `take_snap`, `take_step`);
+  `send_input()` шлёт тело и руки каждый кадр и перед каждым запросом (`Connection.sending`), только
+  если что-то изменилось (руки копируются: массив из `controls.hands` делит с ним данные и не
+  отличался бы).
+- `src/client/net/remote_placed.gd` (наследует `placed.gd`) — копия вещей на клетках: те же записи
+  `things`, `chest_items`, сигналы `added` / `removed` / `lit_changed`; занимает клетки вещей
+  (`world.blockers`, в петле — те же, что сервер) и ничего в мире не меняет (`_forget`, не `_remove`:
+  без `note_edit`); сундук копии — `Inventory`, которую `chest` наполняет `from_dict` (окно сумки
+  слушает её `changed`). `remote_clock.gd` (наследует `clock.gd`) — копия часов: `from_snapshot` раз в
+  0,25 с, между снимками `advance(delta)` сам ведёт время суток (солнце идёт каждый кадр), `step` пуст;
+  сезон, погода и её силы — только из снимков. `remote_wildlife.gd` — копия зверей: свой `Animal`
+  (номер, вид, место, `lift`, `facing`, `flying`, `perched`, `moving`, `hop`, `left`, `near`, `state`,
+  `tint`, `frame`, `fresh`, `aloft()`), те же сигналы `born` / `gone` / `stepped`; `fresh` ставит `snap`,
+  `creatures.gd` снимает, когда поставил картинку.
+- `src/client/game/creatures.gd`, `props.gd`, `fire_shadows.gd`, `voices.gd`, `sky.gd`, HUD, звуки —
+  читают копии как читали правила; `props.place()` (вещи сохранения, лагерь старта) и страница
+  «Тестирование» (`settings.gd`: сезон, погода, час, скорость времени) пишут в серверные
+  `game.session.placed` / `session.clock` — до С4 и С5.
 - `src/client/game/character.gd` — копия персонажа игрока: не крутит правил (`update` только ставит
   игрока после `go_to_column`), сумку, силы, смерть и дом берёт из `you`/`vitals`, смерть прячет
   игрока (`_fell`) и сбрасывает сохранение; остаётся `who` для того, что клиент читает у правил сам
   (превью курсора, `useful`, `front_choice`). `src/client/net/remote_workshop.gd` — копия мастерской:
   очередь и пауза из `shop`, знания из `knowledge`, сама ничего не узнаёт и не делает.
-- `src/client/main.gd` — `host`, `net`, `mirror` в `start_world`; сохранение следит за серверными
-  объектами (`save.track(host.player…)`); в кадре: `player.step` → `character.update` →
-  `mirror.send_input()` → `session.step_players` → `host.flush(net)`; `session.push_on(host.player)`;
-  строка «Сервер» в «Данных для теста» (`settings_menu.gd`) показывает счётчики соединения.
+- `src/client/main.gd` — копии `clock`, `placed`, `wildlife` в `_ready`; серверные часы и вещи
+  (`Clock.new()`, `Placed.new()`) в `start_world` только для сеанса (сохранение и настоящая погода пишут
+  в них), `host`, `net`, `mirror` там же, первый `host.flush(net)` в конце `start_world` (копии полны
+  до меню); сохранение следит за серверными объектами (`save.track(host.player…)`,
+  `session.clock.to_dict()`, `session.placed.to_list()`); в кадре: `session.step_clock` →
+  `clock.advance` → небо … `player.step` → `character.update` → `mirror.send_input()` →
+  `session.step_players` → `host.flush(net)`; строка «Сервер» в «Данных для теста»
+  (`settings_menu.gd`) показывает счётчики соединения.
 
 **Кто зовёт.** `controls.gd` (копать, ставить, действие, посадить, съесть), `gathering.gd` (собрать,
 подобрать), `props.gd` (поставить вещь), `inventory_window.gd` (съесть, посадить, выбросить, починить,
@@ -64,12 +95,14 @@
 (`controls.dig_at`, `gathering.gather`, `props.put_from_bag`), берут его из `Reply.value`; через сокет
 они вернут `false` до ответа, а дела по ответу (`_did`, звук еды, тост корзины) идут через `then`.
 
-**Что остаётся прямым.** Вещи на клетках (`game.placed`), часы (`game.clock`), звери (`game.wildlife`)
-и капли на земле (`world.drops`) — клиент пока читает общие объекты сеанса (копии — С2.2б). Сохранение
-и страница «Тестирование» (`give`, `heavy`, `hunger`, `start_bag`, `find_home`) ходят в
-`game.host.player` / `host.workshop` напрямую — до С4 и С5. Движение тела — клиент (решение 153, 3А);
-проверка его сервером — С3. Тесты и инструменты пишут в серверные объекты (`main.host.player`),
-читают копии.
+**Что остаётся прямым.** Мир один объект (решение 153, 2А): правки ячеек (`actions.cell_changed` →
+чанки, `placed.cell_changed` серверных вещей), вещи на земле (`world.drops`, событие `drops` только
+называет чанк) и ветер (`game.storms`) клиент читает у сеанса — сообщения `cells`, `chunk`, `drops` со
+списком придут с чанками по сети (С2.3, С3). Сохранение и страница «Тестирование» (`give`, `heavy`,
+`hunger`, `start_bag`, `find_home`, сезон, погода, час) ходят в `game.host.player` / `host.workshop` /
+`session.clock` / `session.placed` напрямую — до С4 и С5. Движение тела — клиент (решение 153, 3А);
+проверка его сервером — С3. Тесты и инструменты пишут в серверные объекты (`main.host.player`,
+`main.session.clock`, `main.session.placed`, `main.session.wildlife`), читают копии через интерфейс.
 
 **Подводные камни.** Переменная под `Reply` не типизируется (`var r = game.net.request(…)`: тип
 вложенного класса не выводится). Запрос, отданный хосту мимо `Connection` (как в тесте), сдвигает
@@ -78,12 +111,17 @@
 между RefCounted (игрок ↔ мастерская, тело ↔ игрок, хост ↔ соединение) не освобождаются — `run_tests`
 пишет «ObjectDB instances leaked»: связь назад — сигналом или аргументом (`flush(net)`), не полем.
 Копия на клиенте отстаёт от сервера на `flush`: тест, что пишет в `host.player`, ждёт кадр, прежде чем
-читать `game.character`.
+читать `game.character`. Сигнал `Inventory.changed` сундука подключается с клеткой (`bind(e.cell)`), не
+с записью: запись держит сумку, сумка держала бы `Callable` с записью — цикл; `is_connected` и
+`disconnect` сверяют тот же `bind`. Кто «смотрит» на зверя (`near`, каждый кадр против шага в 0,1 с),
+решает сеанс по расстоянию до игроков (`Wildlife.look_from`, `NEAR` 30 единиц), не экран клиента.
 
-**Тесты.** `tests/unit/net_test.gd` (сообщения туда и обратно; через петлю: вход, `input`, копать,
-крафт и тик с событиями `you`/`shop`/`made` до ответа, `vitals` только при перемене, сундук по клетке,
-вещь по клетке, выброс и `drops`, смерть и `revive` с `teleport`, `say` один раз; не подошедший
-запрос; повтор и устаревший номер; выход); `_test_layers` в `content_test.gd` (`net/` грузит только
+**Тесты.** `tests/unit/net_test.gd` (сообщения туда и обратно; через петлю: вход с `clock` и `props`,
+`input`, копать, крафт и тик с событиями `you`/`shop`/`made` до ответа, `vitals` только при перемене,
+сундук по клетке и его `chest`, вещь по клетке в копию и из неё, костёр потушен, зверь родился /
+бежит / толкнул / ушёл в копии (`snap` только когда сдвинулся), выброс и `drops`, смерть и `revive` с
+`teleport`, `say` один раз; снимок часов другой формы отказан; не подошедший запрос; повтор и
+устаревший номер; выход — и ничего о мире больше); `_test_layers` в `content_test.gd` (`net/` грузит только
 `content/`, `src/server/` не грузит `src/client/`, клиент грузит `src/server/` только из
 `local_host.gd`); `save_test` (смерть через сервер, мёртвый мир), `progress_test`, `frame_test` играют
 через петлю.

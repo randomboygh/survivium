@@ -1,9 +1,10 @@
 extends Node3D
 ## The animals drawn (the rules are Wildlife, src/shared, stepped by the world's
-## session): a sprite for each, put where
-## it walks and turned the way it faces, and the paw prints it leaves (see tracks.gd).
-## Animals off the screen move in steps (Wildlife.FAR_STEP), and their sprites are
-## put again only then. A species' picture is its mod's sprites/creatures/<sprite>.png,
+## session on the server; drawn is the client's copy, RemoteWildlife): a sprite for
+## each, put where it walks and turned the way it faces, and the paw prints it leaves
+## (see tracks.gd). Animals far from the player move in steps (Wildlife.FAR_STEP), and
+## their sprites are put again only when the server moved them (Animal.fresh). A
+## species' picture is its mod's sprites/creatures/<sprite>.png,
 ## a row of `frames` frames: the first is the animal at rest, the others its walk (or
 ## its swim), one per step, or a flyer's wing beat in the air; one that hops shows
 ## the second while in a leap (legs stretched) and the third as it takes off and lands.
@@ -15,9 +16,6 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
 
-## Animals off the screen by more than this many world units are not near (see
-## Wildlife.Animal.near).
-const FAR_MARGIN := 4.0
 ## Frames of a wing beat a second.
 const FLAP_RATE := 12.0
 ## World units round a sprite's culling box for what the shaders move a little (the
@@ -39,7 +37,7 @@ var _fitted := {}
 var _views: Array = []
 
 
-## Draws the animals of `w` (Wildlife) from now on, those there already and those to come.
+## Draws the animals of `w` (RemoteWildlife) from now on, those there already and those to come.
 func watch(w) -> void:
 	for kind in AiRules.SPECIES:
 		if kind == AiRules.HUMAN:
@@ -71,9 +69,6 @@ func _process(delta: float) -> void:
 	if wildlife == null:
 		return
 	var t := Time.get_ticks_usec()
-	var seen := _seen()
-	for a in wildlife.animals:
-		a.near = seen.has_point(PixelView.screen_plane(a.pos))
 	var beat := Time.get_ticks_msec() * 0.001 * FLAP_RATE
 	if _views != PixelView.box_views:
 		# The camera turns: every box again, for the views it may show.
@@ -82,7 +77,8 @@ func _process(delta: float) -> void:
 		for a in wildlife.animals:
 			_fit(a, _sprites[a])
 	for a in wildlife.animals:
-		if a.away == 0.0:
+		if a.fresh:
+			a.fresh = false
 			var sprite: MeshInstance3D = _sprites[a]
 			sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
 			if _fitted.get(sprite) != sprite.position:
@@ -141,17 +137,6 @@ static func picture(spec: Dictionary) -> Texture2D:
 
 static func picture_path(spec: Dictionary) -> String:
 	return Content.asset(spec, "sprites/creatures/%s.png" % spec.sprite)
-
-
-## The screen-plane rectangle the camera shows, FAR_MARGIN larger all round (all of
-## the plane without a camera).
-func _seen() -> Rect2:
-	var cam := get_viewport().get_camera_3d()
-	if cam == null:
-		return Rect2(-1e9, -1e9, 2e9, 2e9)
-	var half := get_viewport().get_visible_rect().size / PixelView.PIXELS_PER_UNIT * 0.5 + Vector2.ONE * FAR_MARGIN
-	var centre := PixelView.plane_of(Vector2(cam.global_position.x, cam.global_position.z))
-	return Rect2(centre - half, half * 2.0)
 
 
 ## The sprite drawn for animal `a`, or null.

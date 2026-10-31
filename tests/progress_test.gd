@@ -307,9 +307,9 @@ func _place(id: String) -> bool:
 func _camp_report() -> String:
 	var w = main.world
 	var feet: Vector3i = main.controls.feet()
-	var out := "cut %d, feet %s, step %s, things %d" % [main.chunks.cut_level, feet, main.controls.step(), main.placed.things.size()]
+	var out := "cut %d, feet %s, step %s, things %d" % [main.chunks.cut_level, feet, main.controls.step(), main.session.placed.things.size()]
 	var taken := {}
-	for e in main.placed.things:
+	for e in main.session.placed.things:
 		for dz in 2:
 			for dx in 2:
 				taken[Vector2i(e.cell.x + dx, e.cell.z + dz)] = true
@@ -330,7 +330,7 @@ func _camp_report() -> String:
 
 
 func _placed_count(id: String) -> int:
-	return main.placed.things.filter(func(e: Dictionary) -> bool: return e.item == id).size()
+	return main.session.placed.things.filter(func(e: Dictionary) -> bool: return e.item == id).size()
 
 
 ## Throws away what is no longer wanted, so the bag keeps room.

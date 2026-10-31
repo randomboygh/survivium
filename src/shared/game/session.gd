@@ -99,8 +99,14 @@ func step_players(delta: float) -> void:
 		workshops[i].update(d)
 
 
+## The animals: those near a player move every step, the rest now and then
+## (Wildlife.look_from).
 func step_wildlife(delta: float) -> void:
 	if _wild:
+		var around: Array = []
+		for who in players:
+			around.append(who.position)
+		wildlife.look_from(around)
 		wildlife.update(delta)
 
 
@@ -112,8 +118,13 @@ func step_storms(delta: float) -> void:
 	storms.step_around(delta, around)
 
 
-## What the animals pushed `who` by since the last step (Wildlife.pushes), in world
-## units; nothing for one who is not playing.
+## What the animals pushed `who` by since the last call (Wildlife.pushes), in world
+## units; nothing for one who is not playing. Taken once: the next call gives nothing
+## until the animals step again.
 func push_on(who) -> Vector3:
 	var i := players.find(who)
-	return wildlife.pushes[i] if i >= 0 and i < wildlife.pushes.size() else Vector3.ZERO
+	if i < 0 or i >= wildlife.pushes.size():
+		return Vector3.ZERO
+	var push: Vector3 = wildlife.pushes[i]
+	wildlife.pushes[i] = Vector3.ZERO
+	return push

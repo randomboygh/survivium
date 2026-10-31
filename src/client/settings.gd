@@ -260,6 +260,8 @@ func reload_mods() -> void:
 	VoxelProps.forget()
 	if game.placed != null:
 		game.placed.read_footprints()
+	if game.session != null:
+		game.session.placed.read_footprints()
 	if game.hud != null:
 		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else "Ошибок в данных: %d (см. консоль)" % problems.size())
 
@@ -279,10 +281,10 @@ func apply() -> void:
 		game.rules.free_build = free_build
 		game.rules.tool_wear = tool_wear
 		game.rules.instant_craft = instant_craft
-	if game.clock != null:
-		game.clock.time_speed = time_speed() * time_boost
-		game.clock.real_time = values.real_time
-		game.clock.real_season = values.real_season
+	if game.session != null:
+		game.session.clock.time_speed = time_speed() * time_boost
+		game.session.clock.real_time = values.real_time
+		game.session.clock.real_season = values.real_season
 	if game.real_weather != null:
 		game.real_weather.enabled = values.real_weather
 	var sky = game.sky
@@ -435,7 +437,7 @@ func _check_fullscreen() -> void:
 # --- Playtest switches --------------------------------------------------------------
 
 func set_season(s: int) -> void:
-	var clock = game.clock
+	var clock = game.session.clock
 	clock.season = posmod(s, 4)
 	clock.season_clock = 0.0
 	print("season: %s" % clock.SEASONS[clock.season])
@@ -450,9 +452,9 @@ func set_raining(on: bool) -> void:
 ## Pins the weather to Clock.WEATHERS[`index`]; -1 lets it change by itself again.
 func set_weather(index: int) -> void:
 	if index < 0:
-		game.clock.weather_auto = true
+		game.session.clock.weather_auto = true
 	else:
-		game.clock.set_weather(index)
+		game.session.clock.set_weather(index)
 
 
 ## Pins the moonlight (0 new moon .. 1 full moon); -1 follows the phase of the moon.
@@ -462,7 +464,7 @@ func set_moon(light: float) -> void:
 
 ## Moves the clock to `hour` (0-24) of the current day.
 func set_hour(hour: float) -> void:
-	game.clock.time_of_day = fposmod(hour / 24.0, 1.0)
+	game.session.clock.time_of_day = fposmod(hour / 24.0, 1.0)
 
 
 func set_time_boost(k: float) -> void:

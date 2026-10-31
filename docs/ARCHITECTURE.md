@@ -64,7 +64,9 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 нужное (`Workshop.new(character, placed, rules)`). Правила над миром держит сеанс
 (`src/shared/game/session.gd`): он делает `WorldActions`, `Storms` и `Wildlife`, принимает персонажей и
 делает тик, который сервер будет звать 20 раз в секунду; Main зовёт его шаги по одному между своими делами
-([systems/session.md](systems/session.md)).
+([systems/session.md](systems/session.md)). Сеанс крутится на сервере внутри игры; виды клиента читают
+копии (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые
+`src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network.md)).
 
 Порядок сборки (`_ready`, затем `start_world`): ввод и настройки → звук → сохранение (выбор мира) →
 `Mods.activate` (набор бандлов мира) → камера, стример чанков, небо, часы, настоящая погода → вещи на
@@ -86,7 +88,8 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
   `Placed.added` / `removed` / `lit_changed` / `cell_changed` → `props.gd`, огни, чанки;
   `Wildlife.born` / `gone` / `stepped` → `creatures.gd`, следы, голоса; `Inventory.changed`,
   `Workshop.changed` / `made`, `Knowledge.learned`, `Clock.season_changed`, `Character.state_changed`
-  → интерфейс и звук. Позже к тем же сигналам подключится сеть.
+  → интерфейс и звук. На сервере к ним подключён `player_link.gd`, который шлёт события клиенту; копии
+  на клиенте (`src/client/net/remote_*.gd`) отдают видам те же сигналы.
 - Правила, которые хозяин задаёт всем (свободная стройка, износ, мгновенный крафт), правила читают из
   общего объекта `rules.gd`; на клиенте его заполняет `settings.gd`, сервер заполнит из конфига.
 - Сигнал подключается методом, а не лямбдой с `self`: лямбда держит объект, и RefCounted не

@@ -162,13 +162,16 @@ func start_bag() -> void:
 
 
 ## Picks the place to come back to after death, once the things of `camp` (Placed)
-## are put down.
+## are put down; a new one is told (state_changed), so a copy learns it.
 func find_home(camp) -> void:
 	var fire: Variant = camp.cell_of(camp.CAMPFIRE)
+	var was := home
 	if fire is Vector3i:
 		home = (Vector3(fire) + Vector3(2.5, 0.0, 0.5)) * CELL
 	else:
 		home = position
+	if home != was:
+		state_changed.emit()
 
 
 ## Runs the body's state for `delta` seconds and sets the pace of the body.

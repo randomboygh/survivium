@@ -109,10 +109,11 @@ func restore_player() -> void:
 		player_placed = true
 
 
-## Puts the saved clock and season back (the save keeps them as "sky").
-func restore_clock() -> void:
+## Puts the saved clock and season back into `clock` (the server's; the save keeps
+## them as "sky").
+func restore_clock(clock) -> void:
 	if has_save and meta.get("sky") is Dictionary:
-		game.clock.from_dict(meta.sky)
+		clock.from_dict(meta.sky)
 
 
 ## The cell of a prop ("chest", "campfire") in a save from before things could be
@@ -217,8 +218,8 @@ func _write_world() -> void:
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),
 		"played": played,
-		"sky": game.clock.to_dict(),
-		"placed": game.placed.to_list(),
+		"sky": game.session.clock.to_dict(),
+		"placed": game.session.placed.to_list(),
 	}
 	var p: Vector3 = game.player.position
 	player_record = {"format": WorldStore.FORMAT, "position": [p.x, p.y, p.z]}

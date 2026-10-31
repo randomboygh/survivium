@@ -1,13 +1,18 @@
 extends RefCounted
-## The client's copies of what the server holds of the player
-## (plan/architecture/server.md): their character (the bag, the body's state, death) and
-## workshop, fed by the server's events (Protocol.YOU, VITALS, KNOWLEDGE, SHOP, SAY, MADE, DROPS,
-## TELEPORT, KNOCK), and the client's own event each frame: where its body is and what
-## the hands do (INPUT), which the rules on the server act from. `game` is the Main
-## node; the copies are `game.character` and `game.workshop`.
+## The client's copies of what the server holds (plan/architecture/server.md): the
+## player's character (the bag, the body's state, death) and workshop, the things placed
+## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
+## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
+## PROP_LIT, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP), and the client's own event
+## each frame: where its body is and what the hands do (INPUT), which the rules on the
+## server act from. `game` is the Main node; the copies are `game.character`,
+## `game.workshop`, `game.placed`, `game.clock` and `game.wildlife`.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+
+const CELL := WorldData.CELL
 
 var game
 ## The last INPUT sent: the next goes only when something changed.
@@ -73,3 +78,37 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.KNOCK:
 			if args is Array and args.size() == 3 and args[0] is Vector2:
 				game.player.body.knock(args[0], float(args[1]), float(args[2]))
+		Protocol.PUSH:
+			if args is Array and args.size() == 1 and args[0] is Vector3:
+				var push: Vector3 = args[0]
+				game.player.body.nudge += Vector2(push.x, push.z) / CELL
+		Protocol.PROPS:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.placed.take_all(args[0])
+		Protocol.PROP:
+			if args is Array and args.size() == 1 and args[0] is Dictionary:
+				game.placed.take_prop(args[0])
+		Protocol.PROP_GONE:
+			if args is Array and args.size() == 1 and args[0] is Vector3i:
+				game.placed.take_gone(args[0])
+		Protocol.PROP_LIT:
+			if args is Array and args.size() == 2 and args[0] is Vector3i:
+				game.placed.take_lit(args[0], bool(args[1]))
+		Protocol.CHEST:
+			if args is Array and args.size() == 2 and args[0] is Vector3i and args[1] is Dictionary:
+				game.placed.take_chest(args[0], args[1])
+		Protocol.CLOCK:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.clock.from_snapshot(args[0])
+		Protocol.ANIMAL:
+			if args is Array:
+				game.wildlife.take_born(args)
+		Protocol.ANIMAL_GONE:
+			if args is Array:
+				game.wildlife.take_gone(args)
+		Protocol.SNAP:
+			if args is Array:
+				game.wildlife.take_snap(args)
+		Protocol.STEP:
+			if args is Array:
+				game.wildlife.take_step(args)

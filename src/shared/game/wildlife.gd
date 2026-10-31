@@ -40,6 +40,10 @@ const SPAWN_REACH := 80
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
 const FAR_STEP := 0.1
+## World units from a player within which an animal is looked at (`near`, see
+## look_from): it moves every frame, the others step now and then. The screen of a phone
+## or a desktop shows at most about 25 units from the player to a corner.
+const NEAR := 30.0
 ## Flyers: how far they fly to another place, in world units, and how far from a
 ## threat; how high they fly above the ground and crowns, and over how much of the
 ## way's end they come down.
@@ -100,6 +104,8 @@ signal stepped(a: Animal, at: Vector3, dir: Vector2, left: bool, size: float)
 
 
 class Animal:
+	## Its number in the world, by which a client's copy knows it (see Protocol.SNAP).
+	var id := 0
 	var kind := ""
 	var pos := Vector3.ZERO
 	var target := Vector3.ZERO
@@ -112,8 +118,8 @@ class Animal:
 	## Way walked since the last footprint, and which foot made it.
 	var stride := 0.0
 	var left := false
-	## Someone looks at it (on the client: it is on the screen), so it moves every
-	## frame; set by the owner before update().
+	## Someone looks at it (within NEAR of one of the players, see look_from), so it
+	## moves every frame; set by the owner before update().
 	var near := true
 	## Time gathered since the last step while not near (see FAR_STEP); 0 right after
 	## a step.
@@ -187,6 +193,8 @@ var _seen := {}
 ## What the people were pushed by the animals they ran into (see _jostle), in world
 ## units, one for each of `people` (on the client, the player's body takes it).
 var pushes: Array[Vector3] = []
+## The number the last animal got (Animal.id).
+var _next_id := 0
 
 
 ## Lets the animals of every species come into the world around the people.
@@ -847,6 +855,8 @@ func _someone():
 
 func _add(kind: String, pos: Vector3) -> Animal:
 	var a := Animal.new()
+	_next_id += 1
+	a.id = _next_id
 	a.kind = kind
 	a.pos = pos
 	a.target = pos
@@ -862,6 +872,17 @@ func _add(kind: String, pos: Vector3) -> Animal:
 	animals.append(a)
 	born.emit(a)
 	return a
+
+
+## Marks the animals within NEAR of one of the world points `from` (the players, each
+## with the screen around them) as looked at (`near`), the rest not.
+func look_from(from: Array) -> void:
+	for a in animals:
+		a.near = false
+		for at: Vector3 in from:
+			if absf(at.x - a.pos.x) < NEAR and absf(at.z - a.pos.z) < NEAR:
+				a.near = true
+				break
 
 
 ## A body's half width on the ground, in world units, by its mass.

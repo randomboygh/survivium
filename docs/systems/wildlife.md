@@ -10,18 +10,23 @@
 **Файлы**
 - `src/shared/game/wildlife.gd` — правила: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
   `people` — все игроки, новый зверь появляется у случайного из них (`_someone`, при одном без броска);
-  зверь без зрителя (`near` выключен) ходит шагами раз в 0,1 с; толчки тел по массе (`_jostle`,
-  `pushes` для игрока). Сигналы `born`, `gone`, `stepped`.
+  зверь без зрителя (`near` выключен: дальше `NEAR` 30 единиц от всех игроков, `look_from` зовёт сеанс
+  перед шагом) ходит шагами раз в 0,1 с; толчки тел по массе (`_jostle`, `pushes` для игрока). У зверя
+  номер `id` (по нему его знает копия клиента). Сигналы `born`, `gone`, `stepped`.
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
   `is_active`; `AiRules.SPECIES`.
-- `src/client/game/creatures.gd` — рисует зверей: кадр 0 в покое, кадры шага по шагам, кадры крыльев в
-  воздухе; ставит `near` по экрану.
+- `src/client/net/remote_wildlife.gd` — копия зверей на клиенте из событий сервера `animal`, `snap`,
+  `animal_gone`, `step` ([network.md](network.md)): свой `Animal` с полями, что читают виды, те же
+  сигналы.
+- `src/client/game/creatures.gd` — рисует зверей копии: кадр 0 в покое, кадры шага по шагам, кадры
+  крыльев в воздухе; картинку ставит заново, когда сервер сдвинул зверя (`Animal.fresh`).
 - `src/client/audio/voices.gd` — голоса (`calls`) и крик испуга (`alarm`); `src/client/world/tracks.gd` —
   следы.
 
 **Кто использует.** Сеанс мира (`session.gd`: создаёт, `start_wildlife` после готовности мира, шаг
-`step_wildlife` каждый кадр из Main), `creatures.gd`, `voices.gd`, следы,
-`fire_shadows.gd` (тени зверей у огня), тесты.
+`step_wildlife` каждый кадр из Main), `player_link.gd` (события для клиента); копию —
+`creatures.gd`, `voices.gd`, следы, `fire_shadows.gd` (тени зверей у огня); тесты и `tools/shot.gd`
+пишут в `main.session.wildlife`.
 
 **Данные.** Вид `creatures` (`mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,
 `sprite`, `frames`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,

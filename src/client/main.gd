@@ -15,8 +15,10 @@ extends Node
 ## between the frame's own work): Clock (time of day, seasons and weather), Character
 ## (the bag, health, satiety, stamina, death), WorldActions (what the hands do to the
 ## world), Placed (the things placed on two by two cells), Workshop (recipes known, the
-## crafting queue, tool wear), Wildlife and Storms, under the Rules of play; their
-## signals redraw the chunks and the things.
+## crafting queue, tool wear), Wildlife and Storms, under the Rules of play. The session
+## runs on the server inside the game (LocalHost); what the views draw are the client's
+## copies (`character`, `workshop`, `placed`, `clock`, `wildlife`), fed by the server's
+## events (Mirror): their signals redraw the things and the animals.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -40,13 +42,15 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Storms := preload("res://src/shared/game/storms.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
-const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Rules := preload("res://src/shared/game/rules.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Connection := preload("res://src/client/net/connection.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
+const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
+const RemoteClock := preload("res://src/client/net/remote_clock.gd")
+const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
@@ -109,7 +113,8 @@ var hud
 var warmup: ShaderWarmup
 var chunks: ChunkStreamer
 var sky: SkyScript
-var clock: Clock
+## The client's copy of the clock (the server's is `session.clock`).
+var clock: RemoteClock
 ## The real world's weather pinned on the clock, when the setting asks (settings.gd).
 var real_weather: RealWeather
 var controls: Controls
@@ -121,8 +126,10 @@ var gathering: Gathering
 var markers: Markers
 ## The rules of play the playtest page sets (free building, tool wear, instant crafting).
 var rules: Rules
-## The world being played and the rules run over it, once the world is made; `actions`,
-## `storms` and `wildlife` are its.
+## The world being played and the rules run over it, once the world is made, on the
+## server inside the game; `actions` and `storms` are its (the client still reads them
+## for the cells changed and the wind: С2.3), and so are the clock and the things placed
+## the saves and the playtest page write to (until С4 and С5).
 var session: Session
 ## The server inside the game (single player) and the client's connection to it: what
 ## the player asks of the rules goes through `net` (Protocol); `character` and `workshop`
@@ -135,8 +142,10 @@ var actions: WorldActions
 ## What strong wind does to the trees and bushes around the player.
 var storms: Storms
 var workshop: RemoteWorkshop
-var placed: Placed
-var wildlife: Wildlife
+## The client's copies of the things placed and the animals (the server's are
+## `session.placed` and `session.wildlife`).
+var placed: RemotePlaced
+var wildlife: RemoteWildlife
 var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
@@ -214,17 +223,15 @@ func _ready() -> void:
 	chunks = ChunkStreamer.new(self)
 	get_tree().process_frame.connect(_build_while_paused)
 	sky = SkyScript.new(self)
-	clock = Clock.new()
+	clock = RemoteClock.new()
 	clock.season_changed.connect(sky.on_season)
 	real_weather = RealWeather.new()
-	real_weather.clock = clock
 	add_child(real_weather)
-	save.restore_clock()
 	props = Props.new(self)
-	placed = Placed.new()
+	placed = RemotePlaced.new()
 	placed.read_footprints()
 	props.watch(placed)
-	placed.cell_changed.connect(chunks.on_cell_changed)
+	wildlife = RemoteWildlife.new()
 	character = CharacterScript.new(self)
 	character.clock = clock
 	character.placed = placed
@@ -277,7 +284,17 @@ func start_world() -> void:
 	_build_materials()
 	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
 	world = gen.world
-	session = Session.new(world, gen, clock, rules, placed)
+	# The server's clock and things placed; the save and the real weather go to them
+	# (the saves move to the server at С4).
+	var world_clock := Clock.new()
+	save.restore_clock(world_clock)
+	real_weather.clock = world_clock
+	var world_placed := Placed.new()
+	world_placed.read_footprints()
+	world_placed.cell_changed.connect(chunks.on_cell_changed)
+	session = Session.new(world, gen, world_clock, rules, world_placed)
+	clock.gen = gen
+	placed.world = world
 	character.world = world
 	host = LocalHost.new(session)
 	net = host.join()
@@ -291,7 +308,6 @@ func start_world() -> void:
 	host.workshop.settle()
 	actions = session.actions
 	storms = session.storms
-	wildlife = session.wildlife
 	actions.cell_changed.connect(chunks.on_cell_changed)
 	actions.looks_changed.connect(chunks.remesh_chunk)
 	actions.drops_changed.connect(props.show_drops)
@@ -300,6 +316,8 @@ func start_world() -> void:
 	_build_scene()
 	save.restore_player()
 	settings.apply()
+	# The copies get the clock, the bag and the rest at once (the menu shows the day).
+	host.flush(net)
 	chunks.prepare(gen)
 	loading_stage = ""
 
@@ -394,12 +412,12 @@ func _process(delta: float) -> void:
 			props.place()
 			if not save.has_save:
 				host.player.start_bag()
-			host.player.find_home(placed)
+			host.player.find_home(session.placed)
+			creatures.watch(wildlife)
+			session.start_wildlife(world_seed)
 			mirror.send_input()
 			host.flush(net)
 			player.visible = not character.is_dead()
-			session.start_wildlife(world_seed)
-			creatures.watch(wildlife)
 			ready_to_play = true
 			warmup = ShaderWarmup.new(self)
 			warmup.start()
@@ -409,16 +427,13 @@ func _process(delta: float) -> void:
 			hud.set_loading("%s… %d%%" % [loading_phase(), roundi(100.0 * loading_progress())])
 		t = perf.note("чанки", t)
 	session.step_clock(delta)
+	clock.advance(delta)
 	sky.update(delta)
 	t = perf.note("небо", t)
 	if ready_to_play:
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
-		# An animal the player ran into pushes back by its mass.
-		var push: Vector3 = session.push_on(host.player)
-		player.body.nudge = Vector2(push.x, push.z) / CELL
-		wildlife.pushes.fill(Vector3.ZERO)
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.step(minf(delta, 0.05), jump)

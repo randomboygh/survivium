@@ -66,7 +66,7 @@ func _run() -> void:
 	main.host.player.inventory.add("tools:stone_axe", 1, 17)
 	main.host.player.inventory.add("tools:workbench", 1)
 	_check(main.props.put_from_bag("tools:workbench"), "a workbench is placed in front of the player")
-	main.placed.chest_items.add("resources:log", 2)
+	main.session.placed.chest_items.add("resources:log", 2)
 	# A marker, and a far region of the map as if explored, one pixel painted red.
 	main.markers.add(Vector2i(120, -40), 4)
 	var mm = main.hud.minimap
@@ -84,8 +84,8 @@ func _run() -> void:
 		w.set_cell(pit.x, y, pit.z, Mat.AIR)
 		main.chunks.on_cell_changed(Vector3i(pit.x, y, pit.z))
 	main.player.position += Vector3(-1.0, 0.0, 0.5)
-	main.clock.day = 5
-	main.clock.time_of_day = 0.6
+	main.session.clock.day = 5
+	main.session.clock.time_of_day = 0.6
 	for i in 10:
 		await process_frame
 	# A save while playing goes a few chunks a frame.
@@ -100,7 +100,7 @@ func _run() -> void:
 	var listed := WorldStore.list_worlds()
 	_check(listed.size() == 1 and listed[0].seed == main.world_seed and listed[0].day == 5, "the world list shows the save")
 	var stood: Vector3 = main.player.position
-	var props: Array = main.placed.to_list()
+	var props: Array = main.session.placed.to_list()
 	var seed_value: int = main.world_seed
 	_check(main.host.workshop.knowledge.recipes().any(func(r: Dictionary) -> bool: return r.id == "tools:torch"),
 		"the torch is known with branches and fibre in the bag")
@@ -125,9 +125,9 @@ func _run() -> void:
 	_check(w.get_cell(pit.x, top - 1, pit.z) == Mat.AIR and w.get_cell(pit.x, top - 3, pit.z) == Mat.AIR,
 		"the pit dug is still there")
 	_check(main.player.position.distance_to(stood) < 0.01, "the player stands where they stood")
-	_check(main.clock.day == 5 and absf(main.clock.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
-	_check(str(main.placed.to_list()) == str(props), "the props stand where they stood")
-	_check(main.placed.cell_of("tools:workbench") != null and main.placed.chest_items.count("resources:log") == 2,
+	_check(main.session.clock.day == 5 and absf(main.session.clock.time_of_day - 0.6) < 0.01, "the clock goes on from the save")
+	_check(str(main.session.placed.to_list()) == str(props), "the props stand where they stood")
+	_check(main.session.placed.cell_of("tools:workbench") != null and main.session.placed.chest_items.count("resources:log") == 2,
 		"the workbench placed and what the chest holds come back")
 	_check(main.host.workshop.queue.jobs.size() >= 1 and main.host.workshop.knowledge.seen.has("resources:fiber"),
 		"the crafting queue and what the character knows come back")
