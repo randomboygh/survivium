@@ -708,6 +708,9 @@ func update_cut(delta: float) -> void:
 		# ravine running across the view, the near wall of a diagonal one, a hill.
 		if hidden_by >= 0:
 			target = mini(target, hidden_by - 1)
+	# PROTOTYPE (cave_style 6): the plane cut's caps lie at the player's feet.
+	if target < world.size_y and manual_level < 0 and game.settings.values.get("cave_style", 0) >= 6:
+		target = level - 1
 	if target != cut_target:
 		cut_target = target
 		cut_clock = 0.0

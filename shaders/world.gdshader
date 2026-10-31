@@ -191,9 +191,6 @@ void fragment() {
 	}
 	int a = int(packed.x + 0.5);
 	int tile = a % 64;
-	if (section && tile != NONE && COLOR.r < 0.5 && !IN_SHADOW_PASS) {
-		discard;
-	}
 	// The trunk of a tree nearer the viewer than the player clears round them (see
 	// trunk_through), but for its foot: its first cell stays whole and the
 	// TRUNK_RISE cells above it clear more and more from the bottom up. The vertex
@@ -493,11 +490,12 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
-	if (!FRONT_FACING) {
+	// The section: the inside of the rock the plane cuts (a back face) and the cap of
+	// the cut at the player's feet, in dots of the material's colour, a little darker.
+	if (section && (!FRONT_FACING || cap)) {
 		vec2 st = floor(screen_plane(world_pos) * TEXELS);
-		float hatch = mod(st.x + st.y, 6.0) < 1.0 ? 1.0 : 0.0;
 		ALBEDO = vec3(0.0);
-		EMISSION = mix(vec3(0.09, 0.085, 0.1), vec3(0.2, 0.19, 0.21), hatch);
+		EMISSION = (cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
 		clouds = 0.0;
 	}
 }

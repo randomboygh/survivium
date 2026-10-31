@@ -449,7 +449,7 @@ float low_through(vec2 texel, vec3 p) {
 // shows above the cut is a dim ghost, dimmer higher up.
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
-		if (open_cut()) {
+		if (open_cut() || plane_on()) {
 			return 0.0;
 		}
 		return clamp(0.35 + 0.03 * floor((y - cut_height) / CELL - 0.01), 0.0, 0.7);
