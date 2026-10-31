@@ -100,8 +100,11 @@
   `lines`, сцена печатает их со временем.
 - `src/server/server_main.gd` — корень `scenes/server.tscn`, сервер из терминала: `godot --headless
   --path . -- --server [--port N] [--world <папка>] [--seed N] [--players N] [--password <слово>]
-  [--config <файл>]`; `main.gd` по `--server` первым делом уходит в эту сцену по пути строкой
-  (`change_scene_to_file`, отложенно: в `_ready` дерево занято), не построив ничего клиентского.
+  [--config <файл>]` (из сборки для ПК — `Survivium.console.exe --headless -- --server` в Windows,
+  обёртка показывает журнал в терминале, или `./Survivium.x86_64 --headless -- --server` в Linux;
+  сборки — релиз `pc-latest`, [testing.md](testing.md)); `main.gd` по `--server` первым делом уходит в
+  эту сцену по пути строкой (`change_scene_to_file`, отложенно: в `_ready` дерево занято), не построив
+  ничего клиентского.
   Открывает мир как игра: сохранение под `user://saves` (бандлы `Mods.of_world`, материалы `Mat.remap`,
   часы `sky`, вещи `placed`) или новый мир по сиду и настройкам (бандлы конфига или все,
   `Mods.resolve`); делает землю на `SPAWN_REACH` 2 чанка вокруг догадки о старте (`Session.make_chunk`),
