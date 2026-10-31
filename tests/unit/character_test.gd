@@ -238,7 +238,7 @@ func _test_death() -> void:
 	_check(ch.is_dead() and ch.inventory.count("resources:branch") == 0 and not sack.is_empty()
 		and ch.death.lost == [["resources:branch", 3]] and ch.death.cause == "hunger", "a death leaves the bag in a sack where they fell")
 	_check(ch.sacks.size() == 1 and ch.sacks[0].is_equal_approx(sack[1]), "the character knows where the sack lies (the maps mark it)")
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
+	WorldActions.new(w, ch.clock, Rules.new()).pick_up_near(ch)
 	_check(ch.inventory.is_empty() and w.drops.get(WorldData.chunk_key(5, 5), []).has(sack),
 		"the dead do not take their sack back by themselves")
 	var again := Survivor.new()
@@ -258,20 +258,20 @@ func _test_death() -> void:
 	_check(ch.life.is_empty() and ch.deaths == 1, "a new life counts from nothing")
 	_check(ch.fell_at.is_finite(), "and the place of the last death is not forgotten")
 	ch.at = sack[1]
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
+	WorldActions.new(w, ch.clock, Rules.new()).pick_up_near(ch)
 	_check(ch.inventory.count("resources:branch") == 3 and ch.sacks.is_empty(), "the sack taken back is no longer marked")
 	# What lies at the feet flies into the bag only as far as the weight limit goes, so
 	# digging with the button held does not leave the body too heavy to jump.
 	ch.at = ch.back_at
 	var heap := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
 	w.heap_drop("resources:stone", heap, 30, 0.0)
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch)
+	WorldActions.new(w, ch.clock, Rules.new()).pick_up_near(ch)
 	var left := 0
 	for d: Array in w.drops.get(WorldData.chunk_key(floori(heap.x / WorldData.CELL), floori(heap.z / WorldData.CELL)), []):
 		left += WorldActions.count(d) if d[0] == "resources:stone" else 0
 	_check(ch.inventory.count("resources:stone") > 0 and not ch.inventory.overloaded() and left > 0
 		and ch.inventory.count("resources:stone") + left == 30, "things are taken up by themselves only up to the weight limit")
-	WorldActions.new(w, ch.clock, {"free_build": false}).pick_up_near(ch, WorldActions.PICKUP_ALL, true)
+	WorldActions.new(w, ch.clock, Rules.new()).pick_up_near(ch, WorldActions.PICKUP_ALL, true)
 	_check(ch.inventory.count("resources:stone") == 30 and ch.inventory.overloaded(), "or past it when the setting says so")
 	ch.inventory.take_all()
 	var spot := Vector3(ch.at.x, 1.0 * WorldData.CELL, ch.at.z)
@@ -283,7 +283,7 @@ func _test_death() -> void:
 	w.heap_drop("resources:branch", spot, 2, 0.0)
 	w.heap_drop(food, spot, 1, 0.0)
 	ch.inventory.add("resources:branch", 1)
-	var acts := WorldActions.new(w, ch.clock, {"free_build": false})
+	var acts := WorldActions.new(w, ch.clock, Rules.new())
 	acts.pick_up_near(ch, WorldActions.PICKUP_NONE)
 	_check(ch.inventory.count("resources:branch") == 1 and ch.inventory.count(food) == 0, "pickup «ничего» takes nothing")
 	acts.pick_up_near(ch, WorldActions.PICKUP_FOOD)

@@ -11,10 +11,12 @@ extends Node
 ## gathers, things taken up by themselves), Hands (what the player is drawn holding),
 ## Sound (the buses, the ear and the sounds), Settings (the saved settings and the
 ## playtest switches) and SaveGame (the saved world
-## and player). The rules live in src/shared: Clock (time of day, seasons and weather),
-## Character (the bag, health, satiety, stamina, death), WorldActions (what the hands do
-## to the world), Placed (the things placed on two by two cells) and Workshop (recipes
-## known, the crafting queue, tool wear); their signals redraw the chunks and the things.
+## and player). The rules live in src/shared, run by the world's Session (its steps go
+## between the frame's own work): Clock (time of day, seasons and weather), Character
+## (the bag, health, satiety, stamina, death), WorldActions (what the hands do to the
+## world), Placed (the things placed on two by two cells), Workshop (recipes known, the
+## crafting queue, tool wear), Wildlife and Storms, under the Rules of play; their
+## signals redraw the chunks and the things.
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -39,6 +41,8 @@ const Storms := preload("res://src/shared/game/storms.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
+const Rules := preload("res://src/shared/game/rules.gd")
+const Session := preload("res://src/shared/game/session.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
@@ -111,8 +115,12 @@ var character: CharacterScript
 var gathering: Gathering
 ## The markers the player set on the map.
 var markers: Markers
-## The rules of what the hands do to the world (dig, build, chop, gather), once the
-## world is made.
+## The rules of play the playtest page sets (free building, tool wear, instant crafting).
+var rules: Rules
+## The world being played and the rules run over it, once the world is made; `actions`,
+## `storms` and `wildlife` are its.
+var session: Session
+## The rules of what the hands do to the world (dig, build, chop, gather).
 var actions: WorldActions
 ## What strong wind does to the trees and bushes around the player.
 var storms: Storms
@@ -191,6 +199,7 @@ func _ready() -> void:
 		WorldStore.root = save_root
 	save.choose_world()
 	Mods.activate(world_mods)
+	rules = Rules.new()
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
 	get_tree().process_frame.connect(_build_while_paused)
@@ -203,6 +212,7 @@ func _ready() -> void:
 	save.restore_clock()
 	props = Props.new(self)
 	placed = Placed.new()
+	placed.read_footprints()
 	props.watch(placed)
 	placed.cell_changed.connect(chunks.on_cell_changed)
 	character = CharacterScript.new(self)
@@ -212,7 +222,7 @@ func _ready() -> void:
 	save.track("character", character)
 	gathering = Gathering.new(self)
 	hands = HandsScript.new(self)
-	workshop = Workshop.new(character, placed, settings)
+	workshop = Workshop.new(character, placed, rules)
 	save.track("knowledge", workshop.knowledge)
 	save.track("crafting", workshop.queue)
 	save.track("hands", controls)
@@ -261,21 +271,15 @@ func start_world() -> void:
 	_build_materials()
 	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
 	world = gen.world
-	placed.world = world
-	character.world = world
-	character.placed = placed
-	clock.world = world
-	clock.gen = gen
-	wildlife = Wildlife.new()
-	wildlife.world = world
-	wildlife.gen = gen
-	wildlife.clock = clock
-	actions = WorldActions.new(world, clock, settings)
+	session = Session.new(world, gen, clock, rules, placed)
+	session.add_player(character, workshop)
+	actions = session.actions
+	storms = session.storms
+	wildlife = session.wildlife
 	actions.cell_changed.connect(chunks.on_cell_changed)
 	actions.looks_changed.connect(chunks.remesh_chunk)
 	actions.drops_changed.connect(props.show_drops)
 	actions.taken.connect(props.fly)
-	storms = Storms.new(world, clock, actions)
 	freeze_log.watch()
 	_build_scene()
 	save.restore_player()
@@ -376,8 +380,7 @@ func _process(delta: float) -> void:
 				character.start_bag()
 			character.find_home(placed)
 			player.visible = not character.is_dead()
-			wildlife.people = [character]
-			wildlife.start(world_seed)
+			session.start_wildlife(world_seed)
 			creatures.watch(wildlife)
 			ready_to_play = true
 			warmup = ShaderWarmup.new(self)
@@ -387,7 +390,7 @@ func _process(delta: float) -> void:
 		else:
 			hud.set_loading("%s… %d%%" % [loading_phase(), roundi(100.0 * loading_progress())])
 		t = perf.note("чанки", t)
-	clock.step(delta, player.position if player != null else Vector3.INF)
+	session.step_clock(delta)
 	sky.update(delta)
 	t = perf.note("небо", t)
 	if ready_to_play:
@@ -395,19 +398,20 @@ func _process(delta: float) -> void:
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		# An animal the player ran into pushes back by its mass.
-		var push: Vector3 = wildlife.pushes[0] if not wildlife.pushes.is_empty() else Vector3.ZERO
+		var push: Vector3 = session.push_on(character)
 		player.body.nudge = Vector2(push.x, push.z) / CELL
 		wildlife.pushes.fill(Vector3.ZERO)
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.step(minf(delta, 0.05), jump)
-		character.update(minf(delta, 0.05))
-		workshop.update(minf(delta, 0.05))
+		session.step_players(delta)
 		if playing:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)
 		hands.update()
 		t = perf.note("игрок", t)
-		storms.step(delta, player.position)
+		session.step_wildlife(delta)
+		t = perf.note("животные", t)
+		session.step_storms(delta)
 		_leave_footprints()
 		t = perf.note("ветер и следы", t)
 		save.update(delta)

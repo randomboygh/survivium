@@ -55,7 +55,9 @@ tests/ tools/      headless tests and the browser smoke test; validator, screens
   hands, the bag) and tells what it changed through signals the client's views connect to
   (`world_actions.gd`, `placed.gd`, `wildlife.gd`).
 - `main.gd` only builds the scene and runs the frame; client modules get the Main node as `game`. New
-  state goes into the module it belongs to; a new system is a new module.
+  state goes into the module it belongs to; a new system is a new module. The rules over the world are
+  run by the session (`src/shared/game/session.gd`, the server's tick): a rule that goes on in time is a
+  step of the session, which `main.gd` calls, not code in `_process` (`docs/systems/session.md`).
 - Content is data: numbers that describe content go into the YAML of a mod and the schema in
   `src/shared/content/content.gd`, not into constants. The engine asks for content by role, never by
   id (`Items.with_prop`, `Plants.of_kind`, `Mat.of_role`, `Biomes.tree`); the only ids code names are

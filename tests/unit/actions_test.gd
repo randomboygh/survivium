@@ -80,7 +80,7 @@ func _test_front_choice() -> void:
 		for x in 48:
 			w.set_cell(x, 0, z, Mat.STONE)
 			w.set_cell(x, 1, z, Mat.DIRT)
-	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
 	var who := Who.new()
 	who.position = Vector3(30.5, 2.0, 30.5) * WorldData.CELL
 	w.add_bush(Vector3i(30, 2, 29), Bushes.first(false))
@@ -121,7 +121,7 @@ func _test_world_actions() -> void:
 		for x in 48:
 			w.set_cell(x, 0, z, Mat.STONE)
 			w.set_cell(x, 1, z, Mat.DIRT)
-	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
 	var changed: Array[Vector3i] = []
 	actions.cell_changed.connect(func(c: Vector3i) -> void: changed.append(c))
 	var who := Who.new()
@@ -183,7 +183,7 @@ func _test_world_actions() -> void:
 			else:
 				dry += 1
 	_check(mossy.x >= 0 and dry > 0, "some stone is mossy, some is not")
-	var picker := WorldActions.new(rock, {"season": 1, "day": 0}, {"free_build": false})
+	var picker := WorldActions.new(rock, {"season": 1, "day": 0}, Rules.new())
 	_check(picker.can_mow(mossy, Tools.of("")) and picker.picking(mossy) != "", "bare hands can pick moss off stone")
 	_check(picker.mow(who, [mossy] as Array[Vector3i]) and rock.get_cell(mossy.x, mossy.y, mossy.z) == Mat.STONE
 		and not Grass.stone_moss(rock, mossy.x, mossy.y, mossy.z) and not rock.drops.is_empty()
@@ -211,7 +211,7 @@ func _test_placed() -> void:
 		and who.inventory.count("tools:workbench") == 0, "a workbench is placed from the bag")
 	var bench: Vector3i = placed.things[0].cell
 	_check(bench.y == 2 and bench.z < 12 and w.blockers.has(bench), "in front of the one who placed it, and solid")
-	var shop := Workshop.new(who, placed, {"tool_wear": false})
+	var shop := Workshop.new(who, placed, Rules.new())
 	var axe := Crafting.get_recipe("tools:stone_axe")
 	for id in ["resources:flint", "materials:cord"]:
 		who.inventory.add(id, 1)
@@ -226,7 +226,7 @@ func _test_placed() -> void:
 	for id in ["resources:flint", "materials:cord"]:
 		who.inventory.add(id, 1)
 	who.inventory.add("resources:branch", 2)
-	var quick := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
+	var quick := Workshop.new(who, placed, Rules.of({"instant_craft": true}))
 	_check(quick.start(axe) == 1, "another axe is started")
 	quick.update(0.01)
 	_check(who.inventory.count("tools:stone_axe") == 2, "with instant crafting it is made in a frame")
@@ -315,7 +315,7 @@ func _test_station_flags() -> void:
 	var near := placed.stations_near(Placed.center(rack), 1.0)
 	_check(near.has("_k:rack") and near.has("tools:workbench") and rack.items == null and rack.lit,
 		"a rack set down is a station and stands in for the workbench")
-	var shop := Workshop.new(who, placed, {"tool_wear": false, "instant_craft": true})
+	var shop := Workshop.new(who, placed, Rules.of({"instant_craft": true}))
 	for id in ["resources:flint", "materials:cord"]:
 		who.inventory.add(id, 1)
 	who.inventory.add("resources:branch", 2)
@@ -369,7 +369,7 @@ func _test_recipe_fields() -> void:
 	var who := Who.new()
 	var placed := Placed.new()
 	placed.world = WorldData.new(4, Vector2i(16, 16))
-	var shop := Workshop.new(who, placed, {"tool_wear": true, "instant_craft": true})
+	var shop := Workshop.new(who, placed, Rules.of({"tool_wear": true, "instant_craft": true}))
 	who.inventory.add("resources:branch", 5)
 	_check(shop.why_not(cup) == "Нужен инструмент: нож", "a cup needs a knife in the bag: %s" % shop.why_not(cup))
 	who.inventory.add("_r:knife", 1)

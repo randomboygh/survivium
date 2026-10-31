@@ -69,17 +69,17 @@ signal taken(id: String, from: Vector3)
 var world
 ## The clock: `season` (0 spring .. 3 winter) and `day`.
 var clock
-## The playtest switches: `free_build` (building takes nothing from the bag, digging
+## The rules of play (Rules): `free_build` (building takes nothing from the bag, digging
 ## gives nothing).
-var settings
+var rules
 ## Damage each tree being chopped has taken, by its trunk's column (not saved).
 var chops := {}
 
 
-func _init(w, c, s) -> void:
+func _init(w, c, r) -> void:
 	world = w
 	clock = c
-	settings = s
+	rules = r
 
 
 ## What the hands did: they swing again in `seconds`, the body plays work `kind` ("" for
@@ -266,7 +266,7 @@ func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
 		var was: int = world.get_cell(c.x, c.y, c.z)
 		world.set_cell(c.x, c.y, c.z, Mat.AIR)
 		_changed(c)
-		if settings.free_build:
+		if rules.free_build:
 			continue
 		var at := floor_under(c)
 		var rec: Dictionary = Mat.RECORDS[was]
@@ -377,7 +377,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 			world.set_turf(c, null)
 			world.set_material(c.x, c.y, c.z, to)
 			_changed(c)
-		if settings.free_build:
+		if rules.free_build:
 			continue
 		var at: Vector3 = floor_under(c + Vector3i.UP)
 		for id in gives:
@@ -414,7 +414,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 	var block := Mat.index(Items.get_item(item).get("place", ""))
 	if block < 0:
 		return {}
-	var free: bool = settings.free_build
+	var free: bool = rules.free_build
 	var placed := 0
 	var far := false
 	for cell in Tools.brush_shape(center, normal, who.brush()):

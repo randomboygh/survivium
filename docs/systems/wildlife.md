@@ -9,6 +9,7 @@
 
 **Файлы**
 - `src/shared/game/wildlife.gd` — правила: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
+  `people` — все игроки, новый зверь появляется у случайного из них (`_someone`, при одном без броска);
   зверь без зрителя (`near` выключен) ходит шагами раз в 0,1 с; толчки тел по массе (`_jostle`,
   `pushes` для игрока). Сигналы `born`, `gone`, `stepped`.
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
@@ -18,7 +19,8 @@
 - `src/client/audio/voices.gd` — голоса (`calls`) и крик испуга (`alarm`); `src/client/world/tracks.gd` —
   следы.
 
-**Кто использует.** Main (`wildlife.start` после готовности мира), `creatures.gd`, `voices.gd`, следы,
+**Кто использует.** Сеанс мира (`session.gd`: создаёт, `start_wildlife` после готовности мира, шаг
+`step_wildlife` каждый кадр из Main), `creatures.gd`, `voices.gd`, следы,
 `fire_shadows.gd` (тени зверей у огня), тесты.
 
 **Данные.** Вид `creatures` (`mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,

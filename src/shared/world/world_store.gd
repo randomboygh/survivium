@@ -15,6 +15,14 @@ const TestGround := preload("res://src/shared/world/test_ground.gd")
 
 const FORMAT := 1
 const WORLD := "world.json"
+## The version of the content a world is saved with (`content` in world.json), for the
+## translations of older saves (materials_of, Mods.of_world).
+const CONTENT := 9
+## The materials of a world saved before they were split among the mods (`content`
+## below 5), in the order its cells were numbered, by their ids now.
+const OLD_MATERIALS: PackedStringArray = ["core:air", "core:grass", "core:dirt", "core:stone", "resources:sand",
+	"core:water", "plants:log", "plants:leaves", "materials:planks", "resources:clay", "materials:copper_ore",
+	"materials:brick", "resources:scree"]
 ## Where the worlds are kept (tests keep theirs apart).
 static var root := "user://saves"
 
@@ -52,6 +60,13 @@ static func world_dir(seed_value: int, options: Dictionary) -> String:
 	if int(options.get("relief", 0)) != 0:
 		digits += "r%d" % int(options.relief)
 	return "%s/%d-%s" % [root, seed_value, digits]
+
+
+## The ids of the materials in the order the cells of the world saved as `meta` (its
+## world.json) are numbered, for Mat.remap: the save's own list, the core's thirteen for
+## one from before the split; empty for a new world.
+static func materials_of(meta: Dictionary) -> PackedStringArray:
+	return PackedStringArray(meta.get("materials", OLD_MATERIALS if int(meta.get("content", 1)) < 5 else []))
 
 
 ## The world the game starts with: {"seed", "settings"}, empty when none was chosen.

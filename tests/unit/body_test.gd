@@ -214,14 +214,18 @@ func _test_steps() -> void:
 	_check(drawn != null and drawn.voxels.size() > 20 and again.voxels.keys() == drawn.voxels.keys() and again.foliage == drawn.foliage
 		and not drawn.foliage.is_empty() and VoxelProps.drop({"model": "nothing", "mod": "core"}) == null,
 		"a model read from its mod's PNG survives a round trip through the image, leaves and all")
-	var chest := VoxelProps.footprint(VoxelProps.prop("chest"))
+	var chest := Placed.footprint(VoxelProps.prop("chest").voxels)
 	_check(is_equal_approx(chest[0].position.x, 0.125) and is_equal_approx(chest[3].end.x, 0.875)
 		and is_equal_approx(chest[0].position.z, 0.375) and is_equal_approx(chest[3].end.z, 0.75)
 		and is_equal_approx(chest[0].end.y, 1.25), "a chest's boxes are the model's, not its whole cells")
-	var bench := VoxelProps.footprint(VoxelProps.prop("workbench"))
+	var bench := Placed.footprint(VoxelProps.prop("workbench").voxels)
 	_check(is_equal_approx(bench[0].end.y, 1.0) and is_equal_approx(bench[3].end.y, 1.0)
-		and is_equal_approx(VoxelProps.footprint(VoxelProps.prop("kiln"))[0].end.y, 1.75),
+		and is_equal_approx(Placed.footprint(VoxelProps.prop("kiln").voxels)[0].end.y, 1.75),
 		"a workbench is stood on at its planks, not on what lies on them; the kiln's dome counts")
+	var read := Placed.new()
+	read.read_footprints()
+	_check(read.footprints.get("chest") == chest and read.footprints.get("workbench") == bench
+		and not read.footprints.has("campfire"), "the things' boxes read from the mods' models are the models', and a fire is not solid")
 	_check(_walk_to_thing(false, 5.9).x < 4.7, "a chest is not walked through")
 	_check(_walk_to_thing(false, 7.3).x > 6.0, "the strip south of a chest's lock is walked along")
 	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")
@@ -296,7 +300,7 @@ func _walk_to_thing(jump: bool, z: float) -> Vector3:
 	for cz in 16:
 		for cx in 16:
 			w.set_cell(cx, 0, cz, Mat.STONE)
-	var boxes := VoxelProps.footprint(VoxelProps.prop("chest"))
+	var boxes := Placed.footprint(VoxelProps.prop("chest").voxels)
 	for i in 4:
 		w.blockers[Vector3i(5 + (i & 1), 1, 5 + (i >> 1))] = boxes[i]
 	_check(w.blocks_body(5, 1, 5) and w.blocks_body(5, 2, 5) and not w.blocks_body(5, 3, 5) and w.blocker_top(5, 2, 5) == 0.25,

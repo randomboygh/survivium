@@ -80,7 +80,7 @@ func _run() -> void:
 	print("world %d, spawn %s" % [main.world_seed, main.controls.feet()])
 	# Only what is wanted is taken off the ground (see _pick_up), so the bag keeps room.
 	main.settings.values.pickup = 3
-	main.settings.tool_wear = false
+	main.settings.set_tool_wear(false)
 	var inv = main.character.inventory
 	inv.slots.fill(null)
 	inv.changed.emit()

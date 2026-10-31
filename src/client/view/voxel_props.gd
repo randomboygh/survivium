@@ -2,8 +2,8 @@ extends RefCounted
 ## The voxel models of things: read from `content/<mod>/models/<model>.png` (an item's
 ## `model`, see VoxelModel.from_image), drawn once by `tools/art/voxel_art.gd` and
 ## written by `tools/make_models.gd`, so a mod paints its own. Here only what the engine
-## makes itself: a clod of a block's colour, the sack a death leaves, the bundle of a thing
-## without a model, and the boxes a placed thing takes.
+## makes itself: a clod of a block's colour, the sack a death leaves and the bundle of a
+## thing without a model (the boxes a placed thing takes are Placed.footprint's).
 
 const Content := preload("res://src/shared/content/content.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
@@ -59,36 +59,6 @@ static func crate() -> VoxelModel:
 				if x == 1 or x == 14 or z == 1 or z == 14 or y == 0 or y == 7:
 					m.set_voxel(Vector3i(x, y, z), wood * (0.85 if (x + y + z) % 5 == 0 else 1.0))
 	return m
-
-
-## The boxes model `m` (a thing on 2x2 cells) takes in each of its cells, for
-## WorldData.blockers: [north-west, north-east, south-west, south-east], each in cell
-## units from that cell's corner (8 voxels a cell), with no size where it leaves the
-## cell empty. A layer much smaller than the one under it (a flint lying on a
-## workbench) is left out of the box's top, so it does not lift the player off the planks.
-static func footprint(m: VoxelModel) -> Array[AABB]:
-	var lo: Array[Vector3i] = []
-	var hi: Array[Vector3i] = []
-	var layers: Array[Dictionary] = []
-	for i in 4:
-		lo.append(Vector3i(8, 0, 8))
-		hi.append(Vector3i.ZERO)
-		layers.append({})
-	for p: Vector3i in m.voxels:
-		var i := (p.z >> 3) * 2 + (p.x >> 3)
-		var q := Vector3i(p.x & 7, 0, p.z & 7)
-		lo[i] = lo[i].min(q)
-		hi[i] = hi[i].max(q + Vector3i(1, 0, 1))
-		layers[i][p.y] = layers[i].get(p.y, 0) + 1
-	var out: Array[AABB] = []
-	for i in 4:
-		var size := (hi[i] - lo[i]).max(Vector3i.ZERO)
-		var top := 0
-		for y: int in layers[i]:
-			if y + 1 > top and layers[i][y] * 4 >= layers[i].get(y - 1, 0):
-				top = y + 1
-		out.append(AABB(Vector3(lo[i].x, 0, lo[i].z) / 8.0, Vector3(size.x, top, size.z) / 8.0) if size.x > 0 else AABB())
-	return out
 
 
 ## A clod of a dug block, four voxels a side, of colour `c`.

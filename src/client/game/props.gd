@@ -50,13 +50,9 @@ func _init(g) -> void:
 	game = g
 
 
-## Draws the things of `placed` (Placed) as they come and go; their solid parts are
-## the shapes of these models.
+## Draws the things of `placed` (Placed) as they come and go (their solid parts it reads
+## itself from the same models, Placed.read_footprints).
 func watch(placed) -> void:
-	for id in Items.IDS:
-		var kind: String = Items.get_item(id).get("prop", "none")
-		if kind != "none" and not Items.get_item(id).fire:
-			placed.footprints[kind] = VoxelProps.footprint(_model(kind))
 	placed.added.connect(_on_added)
 	placed.removed.connect(_on_removed)
 	placed.lit_changed.connect(_on_lit_changed)

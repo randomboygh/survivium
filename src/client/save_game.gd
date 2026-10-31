@@ -8,20 +8,15 @@ extends RefCounted
 ## game loses focus or quits; so are the regions of the map the player explored
 ## (Minimap), one a frame among the chunks. What goes in, the systems of src/shared tell themselves
 ## (Clock, Placed, Character, the bag: to_dict or to_list); other modules keep their
-## part of the player with track(). Off for tests and tools (`enabled`). `game` is the
-## Main node.
+## part of the player with track(). Older saves are translated by the store
+## (WorldStore.materials_of, Mods.of_world), the same way for the server. Off for tests
+## and tools (`enabled`). `game` is the Main node.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
-
-## The materials of a world saved before they were split among the mods (`content`
-## below 5), in the order its cells were numbered, by their ids now.
-const OLD_MATERIALS: PackedStringArray = ["core:air", "core:grass", "core:dirt", "core:stone", "resources:sand",
-	"core:water", "plants:log", "plants:leaves", "materials:planks", "resources:clay", "materials:copper_ore",
-	"materials:brick", "resources:scree"]
 
 const PLAYER := "players/local.json"
 ## Seconds between saves while playing.
@@ -38,7 +33,7 @@ var store: WorldStore
 var has_save := false
 var meta := {}
 ## The ids of the materials in the order the save's cells are numbered (see
-## OLD_MATERIALS), empty for a new world.
+## WorldStore.materials_of), empty for a new world.
 var saved_materials: PackedStringArray = []
 var player_record := {}
 ## The player was put back where the save had them (else they start at the spawn).
@@ -91,8 +86,8 @@ func choose_world() -> void:
 	# are renamed as they load (Items.canon, Mat.RENAMED).
 	game.world_mods = Mods.of_world(meta)
 	# The order the materials were numbered in when the world was saved (its cells hold
-	# the numbers): a save from before the split (below 5) had the core's thirteen.
-	saved_materials = PackedStringArray(meta.get("materials", OLD_MATERIALS if int(meta.get("content", 1)) < 5 else []))
+	# the numbers).
+	saved_materials = WorldStore.materials_of(meta)
 	player_record = store.read_json(PLAYER)
 	played = meta.get("played", 0.0)
 	print("save %s: %d chunks, %.0f s played" % [store.dir, store.chunk_count(), played])
@@ -216,7 +211,7 @@ func _write_world() -> void:
 		"settings": game.world_options,
 		"mods": game.world_mods,
 		"known": Mods.all(),
-		"content": 9,
+		"content": WorldStore.CONTENT,
 		"materials": Array(Mat.IDS),
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
