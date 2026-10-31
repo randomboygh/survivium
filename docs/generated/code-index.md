@@ -127,6 +127,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/server/player.gd`: A player's character on the server (plan/architecture/server.md, decision 153): the one acting (`who`) for the rules, with the body and the hands as the client last told them (Protocol.INPUT: the…
 - `src/server/player_link.gd`: One player on the server (plan/architecture/server.md): their character (Player) and workshop in the session, their requests (Requests), and the events that go back to the client's copies: of the…
 - `src/server/requests.gd`: The requests of one player, done by the rules of the session on the server's side (plan/architecture/server.md, Protocol): a request `[kind, seq, args]` is answered `[seq, value]` with what the rule…
+- `src/server/runner.gd`: The server's loop in the scene tree (plan/architecture/server.md, С2.3): a node under the tree's root, not under the client's scene, so the world goes on while the client restarts its scene (a server…
 
 ## src/shared/content
 
@@ -262,10 +263,10 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 | `src/client/audio` | `src/client/input`, `src/client/ui`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/game` | `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
-| `src/client/net` | `src/server`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
+| `src/client/net` | `src/client/view`, `src/server`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/ui` | `src/client`, `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/view` | `src/client/ui`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
-| `src/client/world` | `src/client/view`, `src/shared/content`, `src/shared/world` |
+| `src/client/world` | `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/server` | `src/shared/content`, `src/shared/game`, `src/shared/net` |
 | `src/shared/content` | — |
 | `src/shared/game` | `src/shared/content`, `src/shared/world` |

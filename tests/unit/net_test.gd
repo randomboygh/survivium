@@ -61,9 +61,11 @@ func _test_requests() -> void:
 	var wild := RemoteWildlife.new()
 	net.event.connect(_feed.bind(copy, clock, wild))
 	var at := Vector3(8.5, 2.0, 8.5) * WorldData.CELL
-	net.send(Protocol.INPUT, [at, Vector3i(8, 2, 8), Vector2i(0, -1), ["", ""], 0, 0, false, false, false, false, Vector3.INF])
+	net.send(Protocol.INPUT, [at, Vector3i(8, 2, 8), Vector2i(0, -1), ["", ""], 0, 0, false, false, false, false, Vector3.INF,
+		Vector2(0.0, 1.0), Vector2(12.0, 8.0)])
 	_check(a.position == at and a.feet() == Vector3i(8, 2, 8) and a.facing_step() == Vector2i(0, -1) and a.held() == "",
 		"the server's character stands where the client's body is, with its hands")
+	_check(a.view_right == Vector2(0.0, 1.0) and a.view_half == Vector2(12.0, 8.0), "and with the player's screen")
 	net.send(Protocol.INPUT, [at, Vector3i(8, 2, 8)])
 	_check(a.position == at, "an input that does not fit changes nothing")
 	host.flush(net)
@@ -154,7 +156,8 @@ func _test_requests() -> void:
 	events.clear()
 	host.flush(net)
 	_check(not events.any(func(e: Array) -> bool: return e[0] == Protocol.SNAP), "one that did not move is not told again")
-	for i in 10:
+	# It thinks within 0.5 s, then a hop takes 0.35 s: its first paw prints come within a second.
+	for i in 24:
 		s.wildlife.update(0.05)
 		host.flush(net)
 	var snaps: Array = events.filter(func(e: Array) -> bool: return e[0] == Protocol.SNAP)

@@ -44,7 +44,15 @@ func _start() -> Node:
 	main.skip_setup = true
 	main.save_root = ROOT
 	root.add_child(main)
+	var zone_checked := false
 	while not main.ready_to_play:
+		if not zone_checked and main.session != null and main.chunks.gen != null:
+			# The menu's loading builds what the session makes, so the session must know
+			# where the body is before the world is ready (the smoke test's path).
+			zone_checked = true
+			var zones: Array = main.session.zones()
+			_check(zones.has(main.chunks._player_chunk()),
+				"the server makes the world around the player's body before the world is ready")
 		await process_frame
 	return main
 
@@ -108,9 +116,12 @@ func _run() -> void:
 	# Saved as a world from before the torch, and before worlds kept the bundles they knew,
 	# with the sword left out: it gets the torch's bundle when it loads, not the sword's.
 	var store = main.save.store
+	var runner: Node = main.host.runner
+	_check(runner.get_parent() == root and runner.is_processing(), "the server's loop runs under the tree's root while the game is played")
 	main.queue_free()
 	await process_frame
 	await process_frame
+	_check(not is_instance_valid(runner) and root.get_node_or_null("ServerRunner") == null, "the server's loop goes with the scene")
 	var old_meta: Dictionary = store.read_json(WorldStore.WORLD)
 	old_meta.content = 8
 	old_meta.erase("known")
@@ -153,9 +164,11 @@ func _run() -> void:
 	var seen_px := Vector2i((seen.x & (mm.REGION - 1)) * mm.CHUNK_PX, (seen.y & (mm.REGION - 1)) * mm.CHUNK_PX)
 	var seen_region := Vector2i(seen.x >> mm.REGION_SHIFT, seen.y >> mm.REGION_SHIFT)
 	mm._region(seen_region).image.set_pixel(seen_px.x, seen_px.y, Color.RED)
+	# Made whole, as the loading screen does: the maps take the chunk at once.
+	main.chunks._whole = true
 	for key: Vector2i in [seen, unseen]:
 		gen.run(key, WorldGen.TERRAIN)
-		main.chunks._on_generated(key, WorldGen.TERRAIN, true)
+	main.chunks._whole = false
 	_check(mm.regions[seen_region].image.get_pixel(seen_px.x, seen_px.y).is_equal_approx(Color.RED),
 		"a chunk already on the map keeps its picture when its terrain is made again")
 	_check(mm.has_chunk(unseen), "a chunk not on the map yet is painted with its terrain")

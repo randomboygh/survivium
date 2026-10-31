@@ -97,8 +97,22 @@ func _frame(delta: float) -> void:
 	var d := minf(delta, 0.05)
 	t_last = Time.get_ticks_usec()
 	var pl = g.player
-	g.clock.step(delta, pl.position)
+	# The server's loop, as Runner runs it before the frame.
+	g.session.step_clock(delta)
 	_lap("clock")
+	g.session.step_players(d)
+	_lap("character, workshop")
+	g.session.step_wildlife(delta)
+	_lap("wildlife")
+	g.session.step_storms(delta)
+	_lap("storms")
+	var budgets: Vector2i = g.chunks.gen_budgets()
+	var spent: int = g.session.make_chunks(budgets.x, budgets.y)
+	g.session.forget_far()
+	_lap("generation")
+	g.clock.advance(delta)
+	g.host.flush(g.net)
+	_lap("events")
 	g.sky._update_light(1.0 / 60.0)
 	_lap("sky light")
 	# The weather without Effects, which it calls: Effects is timed on its own.
@@ -111,24 +125,22 @@ func _frame(delta: float) -> void:
 	pl.body.move_input = g.controls.read_move()
 	var jump: bool = g.controls.jump() and (pl.body.air_jumps or g.character.can_jump())
 	pl.step(d, jump)
+	g.character.update(delta)
+	g.mirror.send_input()
 	_lap("player")
-	g.session.step_players(d)
-	_lap("character, workshop")
 	g.controls.update(d)
 	_lap("controls")
 	g.gathering.update(delta)
 	_lap("gathering")
 	g.hands.update()
 	_lap("hands")
-	g.session.step_storms(delta)
-	_lap("storms")
 	g._leave_footprints()
 	_lap("footprints")
 	g.save.update(delta)
 	_lap("save")
 	g.chunks.update_cut(delta)
 	_lap("chunks cut")
-	g.chunks.run_jobs()
+	g.chunks.run_jobs(spent)
 	_lap("chunks jobs")
 	g.chunks.update_caps()
 	_lap("chunks caps")
@@ -144,8 +156,6 @@ func _frame(delta: float) -> void:
 	_lap("hud.update_state")
 	g.controls.update_tip(delta)
 	_lap("tips")
-	g.session.step_wildlife(delta)
-	_lap("wildlife")
 	g.creatures._process(delta)
 	_lap("creatures")
 	g.fire_shadows._process(delta)
@@ -174,7 +184,7 @@ func _profile() -> void:
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	RenderingServer.viewport_set_measure_render_time(sub, true)
 	var spawn: Vector3 = main.player.position
-	var nodes: Array = [main, main.creatures, main.fire_shadows, main.tracks, main.hud]
+	var nodes: Array = [main, main.host.runner, main.creatures, main.fire_shadows, main.tracks, main.hud]
 	print("scene | frame ms | game code ms | engine ms | calls | objects | tris k | lights (shadowed) | nodes | top pieces")
 	for scene_name in names:
 		var s: Dictionary = SCENES[scene_name]
@@ -290,7 +300,7 @@ func _hitches() -> void:
 	main.save.begin()
 	main.session.clock.time_speed = 12.0
 	main.player.position = places.flat_near(main.world, main.player.position)
-	var nodes: Array = [main, main.creatures, main.fire_shadows, main.tracks, main.hud]
+	var nodes: Array = [main, main.host.runner, main.creatures, main.fire_shadows, main.tracks, main.hud]
 	for n in nodes:
 		n.set_process(false)
 	var dirs := [[KEY_D], [KEY_S], [KEY_A], [KEY_W], [KEY_D, KEY_W], [KEY_A, KEY_S]]

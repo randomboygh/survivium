@@ -7,6 +7,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_rules()
 	_test_session()
+	_test_making()
 
 
 func _test_rules() -> void:
@@ -92,3 +93,49 @@ func _test_session() -> void:
 	_check(s.players == [b] and s.workshops == [shop_b], "a player removed leaves the rest")
 	s.tick(0.1)
 	_check(s.wildlife.people == [b], "the animals see only those still playing")
+
+
+## The session makes the chunks within reach of each player a step at a time within a
+## budget, nearest first, keeps a job across calls, makes a chunk whole on demand and
+## forgets the chunks far from everyone; the counts of the work and the stages left go
+## with it.
+func _test_making() -> void:
+	var gen := WorldGen.new(42, 40)
+	var s := Session.new(gen.world, gen, Clock.new(), Rules.new(), Placed.new())
+	var a := Survivor.new()
+	a.body = Body.new()
+	a.at = Vector3(8.0, 20.0, 8.0) * WorldData.CELL
+	s.add_player(a, Workshop.new(a, s.placed, s.rules))
+	var zones: Array[Vector2i] = s.zones()
+	_check(zones.size() == 1 and zones[0] == Vector2i.ZERO, "the zone of a player is their chunk")
+	var made: Array = []
+	gen.made.connect(func(key: Vector2i, stage: int) -> void: made.append([key, stage]))
+	var spent: int = s.make_chunks(1, 1, 1)
+	_check(spent > 0 and s._gen_job != null and made.is_empty(), "a step is taken on a tiny budget, and the job waits for the next call")
+	var calls := 1
+	while s.stages_left(1) > 0 and calls < 100000:
+		s.make_chunks(2000, 500, 1)
+		calls += 1
+	_check(s.stages_left(1) == 0 and gen.around(Vector2i.ZERO, 1, WorldGen.SHAPED) and gen.around(Vector2i.ZERO, 2, WorldGen.PLANTED)
+		and gen.around(Vector2i.ZERO, 3, WorldGen.TERRAIN), "within reach 1 the chunks are shaped, around them planted, around those terrain (%d calls)" % calls)
+	_check(made[0][0] == Vector2i.ZERO and made[0][1] == WorldGen.TERRAIN
+		and made.any(func(m: Array) -> bool: return m[0] == Vector2i.ZERO and m[1] == WorldGen.SHAPED),
+		"the player's own chunk is made first, and every stage is told")
+	var work: Dictionary = s.take_work()
+	_check(work.get("terrain", 0) > 0 and work.get("trees", 0) >= 0 and work.get("shapes", 0) > 0 and s.take_work().is_empty(),
+		"the work is counted by kind and taken once")
+	s.make_chunks(2000, 500, 1)
+	_check(s._all_made and s._gen_job == null, "nothing is left to make around the player")
+	var far := Vector2i(6, 6)
+	s.make_chunk(far)
+	_check(gen.needed(far).is_empty() and gen.stage_of(far) == WorldGen.SHAPED, "a chunk asked for is made whole with what it needs")
+	s.forget_far(100)
+	_check(gen.stage_of(far) == WorldGen.SHAPED and gen.stage_of(Vector2i.ZERO) == WorldGen.SHAPED,
+		"nothing within Session.DROP of the player is forgotten")
+	a.at = Vector3(16.0 * (Session.DROP + 2) + 8.0, 20.0, 8.0) * WorldData.CELL
+	s.forget_far(100)
+	_check(gen.stage_of(Vector2i.ZERO) == 0, "a player moved away: the chunk they left beyond DROP is forgotten")
+	_check(gen.stage_of(Vector2i(Session.DROP + 2, 0)) == 0 and s.stages_left(1) > 0, "and the new place is still to make")
+	s.remove_player(a)
+	s.make_chunks(2000, 500, 1)
+	_check(s.zones().is_empty() and s._all_made and s._gen_job == null, "with no player there is nothing to make")

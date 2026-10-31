@@ -89,6 +89,12 @@ var body
 var placed
 var inventory := Inventory.new()
 var vitals := Vitals.new()
+## The screen of the character's player, as their client told it (zero: not told):
+## half its width and height in world units, the width along `view_right` over the
+## ground (the way the camera is turned), the height across it. The animals someone
+## looks at are those on a screen (Wildlife.look_from).
+var view_half := Vector2.ZERO
+var view_right := Vector2(1.0, 0.0)
 ## Where the character comes back after death, in world units: beside the campfire
 ## (the spawn's, until fires are made), else where they first stood.
 var home := Vector3.ZERO

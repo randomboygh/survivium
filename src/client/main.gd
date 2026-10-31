@@ -201,6 +201,8 @@ var _work_shown := ""
 var _work_since := 0
 ## When each kind of work was last named (msec).
 var _work_named := {}
+## Stages of generation the near chunks needed when the loading began (see loading_progress).
+var _stages_total := 0
 ## Set before a restart for another world: the scene that comes up goes straight in.
 static var play_at_once := false
 
@@ -296,7 +298,7 @@ func start_world() -> void:
 	clock.gen = gen
 	placed.world = world
 	character.world = world
-	host = LocalHost.new(session)
+	host = LocalHost.new(session, get_tree().root)
 	net = host.join()
 	mirror.watch(net)
 	# The player's save goes into the server's character (the saves move there at С4).
@@ -316,7 +318,10 @@ func start_world() -> void:
 	_build_scene()
 	save.restore_player()
 	settings.apply()
-	# The copies get the clock, the bag and the rest at once (the menu shows the day).
+	# The server learns where the body is, so the session makes the world around it
+	# behind the menu (Session.zones); the copies get the clock, the bag and the rest at
+	# once (the menu shows the day).
+	mirror.send_input()
 	host.flush(net)
 	chunks.prepare(gen)
 	loading_stage = ""
@@ -359,13 +364,19 @@ func _next_work(spent: Dictionary) -> String:
 
 
 ## How far the loading has gone, 0 to 1: a little for start_world's parts, most for the
-## near chunks, the rest for the last preparations.
+## near chunks (the stages of the session's generation around the spawn, then the
+## meshes), the rest for the last preparations.
 func loading_progress() -> float:
 	if ready_to_play:
 		return 0.95 if warmup != null else 1.0
 	if loading_stage != "" or chunks.near_total == 0:
 		return 0.05
-	return 0.1 + 0.85 * (chunks.near_total - chunks.near_pending) / chunks.near_total
+	var stages: int = session.stages_left(ChunkStreamer.NEAR_CHUNKS)
+	if _stages_total == 0:
+		_stages_total = stages
+	var total: int = _stages_total + chunks.near_total
+	var left: int = mini(stages, _stages_total) + chunks.near_pending
+	return 0.1 + 0.85 * (total - left) / total
 
 
 ## Says what start_world does next (`text`) and lets it show for two frames.
@@ -376,14 +387,29 @@ func _loading_stage(text: String) -> void:
 	await get_tree().process_frame
 
 
-## While the game is paused (its menu open) the world goes on being built around the
-## player, so less is left to build when the game goes on (see ChunkStreamer.paused).
+## While the game is paused (its menu open) the world goes on being made and built
+## around the player, so less is left to build when the game goes on (see
+## ChunkStreamer.paused, Runner).
 func _build_while_paused() -> void:
 	if not get_tree().paused or not ready_to_play or world == null:
 		return
 	chunks.paused = true
-	chunks.run_jobs()
+	chunks.run_jobs(host.runner.take_spent())
 	chunks.update_caps()
+	_budget_server()
+
+
+## Tells the server's loop how much of the next frame it may spend making the world.
+func _budget_server() -> void:
+	var budgets := chunks.gen_budgets()
+	host.runner.near_us = budgets.x
+	host.runner.far_us = budgets.y
+
+
+## The server's loop is stopped with the scene, unless it is kept for the next one.
+func _exit_tree() -> void:
+	if host != null and host.runner != null and not host.runner.keep:
+		host.stop()
 
 
 func _process(delta: float) -> void:
@@ -393,6 +419,12 @@ func _process(delta: float) -> void:
 	if world == null:
 		return
 	var t := Time.get_ticks_usec()
+	# The server's loop ran before this frame: its steps go to the statistics as parts.
+	var took: Dictionary = host.runner.took_us
+	perf.add("небо", took.get("clock", 0))
+	perf.add("игрок", took.get("players", 0))
+	perf.add("животные", took.get("wildlife", 0))
+	perf.add("ветер и следы", took.get("storms", 0))
 	chunks.paused = false
 	if not ready_to_play:
 		# Behind the main menu the chunks are built a step at a time (run_jobs below),
@@ -417,20 +449,23 @@ func _process(delta: float) -> void:
 			session.start_wildlife(world_seed)
 			mirror.send_input()
 			host.flush(net)
+			host.runner.playing = true
 			player.visible = not character.is_dead()
 			ready_to_play = true
 			warmup = ShaderWarmup.new(self)
 			warmup.start()
-			print("near chunks generated in %d ms, meshed in %d ms" % [chunks.gen_us / 1000, chunks.mesh_us / 1000])
+			print("near chunks generated in %d ms, meshed in %d ms" % [session.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
 			hud.set_loading("%s… %d%%" % [loading_phase(), roundi(100.0 * loading_progress())])
 		t = perf.note("чанки", t)
-	session.step_clock(delta)
 	clock.advance(delta)
 	sky.update(delta)
 	t = perf.note("небо", t)
 	if ready_to_play:
+		# What the server's tick changed comes first, then the body moves and tells
+		# the server where it is (the tick takes it next frame).
+		host.flush(net)
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
@@ -439,16 +474,11 @@ func _process(delta: float) -> void:
 		player.step(minf(delta, 0.05), jump)
 		character.update(delta)
 		mirror.send_input()
-		session.step_players(delta)
-		host.flush(net)
 		if playing:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)
 		hands.update()
 		t = perf.note("игрок", t)
-		session.step_wildlife(delta)
-		t = perf.note("животные", t)
-		session.step_storms(delta)
 		_leave_footprints()
 		t = perf.note("ветер и следы", t)
 		save.update(delta)
@@ -456,8 +486,9 @@ func _process(delta: float) -> void:
 	chunks.update_cut(delta)
 	# Behind the death screen the world is made ready where the character comes back.
 	chunks.set_focus(character.respawn_points()[0][1] if ready_to_play and character.is_dead() else Vector3.INF)
-	chunks.run_jobs()
+	chunks.run_jobs(host.runner.take_spent())
 	chunks.update_caps()
+	_budget_server()
 	t = perf.note("чанки", t)
 	if roof.flush():
 		perf.mark("крыши")

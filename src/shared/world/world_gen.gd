@@ -20,7 +20,8 @@ extends "res://src/shared/world/land_layout.gd"
 ##    neighbours agree without looking at each other's cells.
 ## 3. SHAPED: slopes and corners (see WorldData.update_shapes) and bushes, once the
 ##    chunks around are planted, so nothing changes under them later.
-## A chunk is meshed when it and its neighbours are SHAPED. Every generated cell is
+## A chunk is meshed when it and its neighbours are SHAPED (see `needed`); the stages
+## are ordered by the session of the world (Session.make_chunks). Every generated cell is
 ## marked wild: loose ground lies as slopes wherever it steps down one cell, while
 ## stone, steep patches, cliffs and canyon walls keep sheer walls. Water above the sea
 ## never stands beside open air: banks are raised to its level and caves keep away
@@ -29,6 +30,9 @@ extends "res://src/shared/world/land_layout.gd"
 ## place of its terrain stage, SHAPED at once, and grows its trees again into the
 ## chunks around that are not final, as its planting would have.
 
+## A chunk reached `stage` (a job of it finished, see step): a chunk from the save comes
+## back SHAPED in place of its terrain.
+signal made(key: Vector2i, stage: int)
 
 const Trees := preload("res://src/shared/content/trees.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
@@ -156,6 +160,22 @@ func missing(key: Vector2i, reach: int, stage: int) -> Variant:
 	return null
 
 
+## The next stage some chunk needs before `key` can be meshed: [chunk, stage], or
+## empty when it can be. A chunk is meshed once it is SHAPED, which takes the chunks
+## around it PLANTED, which takes the chunks around those with terrain (a chunk from
+## the save, SHAPED at once, still waits for them: its meshes read their cells).
+func needed(key: Vector2i) -> Array:
+	var m: Variant = missing(key, 2, TERRAIN)
+	if m != null:
+		return [m, TERRAIN]
+	m = missing(key, 1, PLANTED)
+	if m != null:
+		return [m, PLANTED]
+	if stages.get(key, 0) < SHAPED:
+		return [key, SHAPED]
+	return []
+
+
 ## Drops a chunk the player has not changed: its cells, trees and bushes are made
 ## again the same when it is needed again. Chunks the player changed stay.
 func forget(key: Vector2i) -> bool:
@@ -250,6 +270,7 @@ func step(job: Job, n: int) -> bool:
 			job.stage = SHAPED
 			stages[job.key] = SHAPED
 			planted[job.key] = job.trees
+			made.emit(job.key, SHAPED)
 			return true
 		stages[job.key] = job.stage
 		if job.stage == TERRAIN:
@@ -263,6 +284,7 @@ func step(job: Job, n: int) -> bool:
 			var c: WorldData.Chunk = world.chunks.get(job.key)
 			if c != null:
 				c.final = true
+		made.emit(job.key, job.stage)
 	return job.done
 
 

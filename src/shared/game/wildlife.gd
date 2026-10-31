@@ -41,9 +41,14 @@ const SPAWN_REACH := 80
 ## ground under them.
 const FAR_STEP := 0.1
 ## World units from a player within which an animal is looked at (`near`, see
-## look_from): it moves every frame, the others step now and then. The screen of a phone
-## or a desktop shows at most about 25 units from the player to a corner.
-const NEAR := 30.0
+## look_from) when the player's screen is not known, and the most of a screen's half
+## size taken: it moves every frame, the others step now and then. The screen of a phone
+## or a desktop shows at most about 25 units from the player to a corner, so a circle of
+## this radius holds what any screen shows and little else (the near ones cost: a frame
+## each, and the jostle grows with their number).
+const NEAR := 28.0
+## The widest body's half width (see radius): past it no two animals meet.
+const MOST_RADIUS := 0.6
 ## Flyers: how far they fly to another place, in world units, and how far from a
 ## threat; how high they fly above the ground and crowns, and over how much of the
 ## way's end they come down.
@@ -121,6 +126,8 @@ class Animal:
 	## Someone looks at it (within NEAR of one of the players, see look_from), so it
 	## moves every frame; set by the owner before update().
 	var near := true
+	## Its body's half width on the ground (see radius), kept from the species.
+	var radius := 0.0
 	## Time gathered since the last step while not near (see FAR_STEP); 0 right after
 	## a step.
 	var away := 0.0
@@ -570,6 +577,13 @@ func _tree_spot(spec: Dictionary, around: Vector3, reach: float) -> Variant:
 const LOOK_AGAIN := 0.2 * CELL
 
 
+## Whether the floor `a` last looked up (Animal.looked, floor_y) still serves at a world
+## point: the same cell, within LOOK_AGAIN of where it looked.
+func _looked(a: Animal, x: float, z: float) -> bool:
+	return floori(x / CELL) == floori(a.looked.x / CELL) and floori(z / CELL) == floori(a.looked.z / CELL) \
+			and absf(x - a.looked.x) + absf(z - a.looked.z) < LOOK_AGAIN
+
+
 ## Walks (or swims) `a` toward its target: a walker over ground up to MAX_STEP up or
 ## down a step, a swimmer through open water, where DIP under the surface it floats
 ## (and one that comes ashore over the land too). Its velocity is steered toward the
@@ -621,8 +635,7 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 		a.vel = Vector2.ZERO
 	var np := a.pos + Vector3(v.x, 0.0, v.y)
 	var ny: float
-	if floori(np.x / CELL) == floori(a.looked.x / CELL) and floori(np.z / CELL) == floori(a.looked.z / CELL) \
-			and absf(np.x - a.looked.x) + absf(np.z - a.looked.z) < LOOK_AGAIN:
+	if _looked(a, np.x, np.z):
 		ny = a.floor_y
 	else:
 		ny = _floor(spec, np.x, np.z)
@@ -864,6 +877,7 @@ func _add(kind: String, pos: Vector3) -> Animal:
 	a.think = rng.randf() * 0.5
 	a.home = pos
 	a.floor_wet = AiRules.SPECIES[kind].swims
+	a.radius = radius(AiRules.SPECIES[kind])
 	var tints: Array = AiRules.SPECIES[kind].tints
 	if tints.size() > 1:
 		a.tint = rng.randi() % tints.size()
@@ -874,13 +888,28 @@ func _add(kind: String, pos: Vector3) -> Animal:
 	return a
 
 
-## Marks the animals within NEAR of one of the world points `from` (the players, each
-## with the screen around them) as looked at (`near`), the rest not.
+## Marks the animals on one of the players' screens as looked at (`near`), the rest
+## not: `from` has for each player [where they stand (Vector3), the way their screen's
+## width lies over the ground (Vector2, unit) and half its width and height in world
+## units (Vector2; see Character.view_half)]. A screen not told (zero) is a circle of
+## NEAR; a screen is taken as at most NEAR each way.
 func look_from(from: Array) -> void:
+	var near2 := NEAR * NEAR
 	for a in animals:
 		a.near = false
-		for at: Vector3 in from:
-			if absf(at.x - a.pos.x) < NEAR and absf(at.z - a.pos.z) < NEAR:
+		for view: Array in from:
+			var at: Vector3 = view[0]
+			var dx := a.pos.x - at.x
+			var dz := a.pos.z - at.z
+			var half: Vector2 = view[2]
+			if half == Vector2.ZERO:
+				if dx * dx + dz * dz < near2:
+					a.near = true
+					break
+				continue
+			var right: Vector2 = view[1]
+			if absf(dx * right.x + dz * right.y) < minf(half.x, NEAR) \
+					and absf(dz * right.x - dx * right.y) < minf(half.y, NEAR):
 				a.near = true
 				break
 
@@ -903,21 +932,26 @@ func _jostle() -> void:
 			low.append(a)
 	if low.is_empty():
 		return
+	# Sorted west to east, so each one is tried only against those within reach east of
+	# it, not every other one.
+	low.sort_custom(_wester)
 	var n := low.size()
 	var people_mass: float = AiRules.SPECIES[AiRules.HUMAN].mass
 	var people_radius := Body.HALF_WIDTH * CELL
 	for i in n:
 		var a := low[i]
 		var sa: Dictionary = AiRules.SPECIES[a.kind]
-		var ra := radius(sa)
+		var ra := a.radius
 		for j in range(i + 1, n):
 			var b := low[j]
 			var dx := b.pos.x - a.pos.x
+			if dx >= ra + MOST_RADIUS:
+				break
 			var dz := b.pos.z - a.pos.z
-			var sb: Dictionary = AiRules.SPECIES[b.kind]
-			var reach := ra + radius(sb)
-			if absf(dx) >= reach or absf(dz) >= reach or absf(b.pos.y - a.pos.y) > reach + 0.5:
+			var reach := ra + b.radius
+			if dx >= reach or absf(dz) >= reach or absf(b.pos.y - a.pos.y) > reach + 0.5:
 				continue
+			var sb: Dictionary = AiRules.SPECIES[b.kind]
 			var d := sqrt(dx * dx + dz * dz)
 			if d >= reach:
 				continue
@@ -947,6 +981,10 @@ func _jostle() -> void:
 			pushes[k] += Vector3(back.x, 0.0, back.y)
 
 
+static func _wester(a: Animal, b: Animal) -> bool:
+	return a.pos.x < b.pos.x
+
+
 ## Moves animal `a` over the ground by `by` (world units) when it can stand there;
 ## whether it did.
 func _shove(a: Animal, spec: Dictionary, by: Vector2) -> bool:
@@ -954,7 +992,14 @@ func _shove(a: Animal, spec: Dictionary, by: Vector2) -> bool:
 		return true
 	var x := a.pos.x + by.x
 	var z := a.pos.z + by.y
-	var y := _floor(spec, x, z)
+	var y: float
+	if _looked(a, x, z):
+		y = a.floor_y
+	else:
+		# One shoved about on the spot (a flock standing) looks the floor up once.
+		y = _floor(spec, x, z)
+		a.looked = Vector3(x, 0.0, z)
+		a.floor_y = y
 	if y <= 0.0 or (not (spec.swims and not spec.ashore) and absf(y - a.pos.y) > MAX_STEP):
 		return false
 	a.pos = Vector3(x, y, z)

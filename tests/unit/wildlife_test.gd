@@ -108,6 +108,7 @@ func _test_wildlife() -> void:
 	_test_biomes(w)
 	_test_shore(w)
 	_test_jostle(w)
+	_test_looked(w)
 
 
 ## A walker that roosts in trees (the squirrel bundle) runs up a tree near it from a
@@ -396,5 +397,28 @@ func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:
 	a.kind = kind
 	a.pos = at
 	a.target = at
+	a.radius = Wildlife.radius(AiRules.SPECIES[kind])
 	life.animals.append(a)
 	return a
+
+
+## The animals on a player's screen are looked at: a rectangle the client told, turned
+## with the camera, else a circle of NEAR.
+func _test_looked(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	var east := _animal(life, "animals:deer", Vector3(8.0, 1.0, 0.0))
+	var south := _animal(life, "animals:deer", Vector3(0.0, 1.0, 8.0))
+	var far := _animal(life, "animals:deer", Vector3(20.0, 1.0, 0.0))
+	var farther := _animal(life, "animals:deer", Vector3(30.0, 1.0, 0.0))
+	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(10.0, 5.0)]])
+	_check(east.near and not south.near and not far.near, "a screen wider than tall shows the deer east, not the one south")
+	life.look_from([[Vector3.ZERO, Vector2(0.0, 1.0), Vector2(10.0, 5.0)]])
+	_check(south.near and not east.near, "the camera turned, the screen shows the deer south instead")
+	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2.ZERO]])
+	_check(east.near and south.near and far.near and not farther.near, "with no screen told, a circle of NEAR is looked at")
+	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(100.0, 100.0)]])
+	_check(far.near and not farther.near, "a screen told too wide is taken as at most NEAR each way")
+	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(10.0, 5.0)], [Vector3(30.0, 1.0, 10.0), Vector2(1.0, 0.0), Vector2(5.0, 12.0)]])
+	_check(east.near and farther.near and not far.near, "a second player's screen shows the deer by them too")

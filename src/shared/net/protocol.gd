@@ -69,8 +69,9 @@ const REVIVE := "revive"
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
 ## client's copies (Mirror).
-## The client's body and hands: [position, feet cell, facing step, hands, active hand,
-## brush, moving, swimming, jumped, air jumps, bumped].
+## The client's body, hands and screen: [position, feet cell, facing step, hands, active
+## hand, brush, moving, swimming, jumped, air jumps, bumped, the way the screen's width
+## lies over the ground (Vector2), half its width and height in world units (Vector2)].
 const INPUT := "input"
 ## The player's own state changed: {"inventory", "vitals", "state", "home",
 ## "held_back"} (each as to_dict gives it; vitals as VITALS).
