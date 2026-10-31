@@ -45,8 +45,9 @@
   узел не `keep`; `actions`, `storms` Main — ссылки на сеансовые, `clock`, `placed`, `wildlife` — копии
   клиента ([network.md](network.md)).
 
-**Кто использует.** Main, `src/server/runner.gd`, `chunk_streamer.gd` (`make_chunk`, `forget_far` при
-сборке целиком, `take_work`, `gen_us`), `tools/profile.gd` (шаги по отдельности, узел сервера
+**Кто использует.** Main, `src/server/runner.gd`, `chunk_streamer.gd` (через `game.world_maker`: сеанс
+по петле, копия генератора `remote_gen.gd` через сокет — `make_chunk`, `forget_far` при сборке целиком,
+`take_work`, `gen_us`, `stages_left`), `tools/profile.gd` (шаги по отдельности, узел сервера
 выключен), тесты. Игроки сеанса — серверные
 персонажи (`src/server/player.gd`), которых приводит `PlayerLink`; клиент читает `game.actions`,
 `game.storms`, `game.rules`, как раньше, персонажа, мастерскую, вещи на клетках, часы и зверей — по их

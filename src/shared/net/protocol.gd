@@ -105,7 +105,8 @@ const SHOP := "shop"
 const SAY := "say"
 ## A recipe was made: [recipe id].
 const MADE := "made"
-## Things lying on the ground changed in a chunk: [key].
+## Things lying on the ground changed in a chunk: [key] over the loop (the world is one
+## object), [key, list] over a socket (the things as WorldData.drops keeps them).
 const DROPS := "drops"
 ## The body is put at a point (coming back to life, the playtest page): [at].
 const TELEPORT := "teleport"
@@ -135,6 +136,17 @@ const ANIMAL_GONE := "animal_gone"
 const SNAP := "snap"
 ## A paw of an animal came down: [id, at, dir, left, size] (Wildlife.stepped).
 const STEP := "step"
+## A chunk of the world made, for the client's copy (С3.2; over a socket): [key, size,
+## bytes], the record WorldGen.pack gives as var_to_bytes, zstd (`size` its length
+## before); sent again when what the chunk shows changed (a bush picked, grass mown).
+const CHUNK := "chunk"
+## The client may drop a chunk far from its body: [key].
+const FORGET := "forget"
+## Cells of the world changed (dug, built, cut): [[cell, material], …].
+const CELLS := "cells"
+## Something was taken from the world by anyone, for the picture of it flying to the
+## bag: [id, from] (WorldActions.taken).
+const TAKEN := "taken"
 ## The client leaves on purpose: [] (the server lets the character linger a while less).
 const BYE := "bye"
 ## The server puts the player out: [why] (words for the player); then it closes.

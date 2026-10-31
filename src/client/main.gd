@@ -46,6 +46,9 @@ const Rules := preload("res://src/shared/game/rules.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Connection := preload("res://src/client/net/connection.gd")
+const Socket := preload("res://src/client/net/socket.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
+const RemoteGen := preload("res://src/client/net/remote_gen.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
@@ -137,6 +140,20 @@ var session: Session
 var host: LocalHost
 var net: Connection
 var mirror: Mirror
+## Over the network (С3.2): the socket to the server far away, the address joined
+## (`--join ws://host:port`, `?server=` on the web, or set by a test before the scene
+## starts), the player's name, the password given, the welcome the server gave and
+## why joining failed (words for the loading screen). `host` and `session` are null
+## then: the world comes from the server through `world_maker` (RemoteGen).
+var socket: Socket
+var join_url := ""
+var player_name := "Игрок"
+var join_password := ""
+var welcome := {}
+var join_error := ""
+## What orders the world made around the player: the session over the loop, the
+## generator copy over a socket (make_chunk, make_chunks, forget_far, take_work).
+var world_maker
 ## The rules of what the hands do to the world (dig, build, chop, gather).
 var actions: WorldActions
 ## What strong wind does to the trees and bushes around the player.
@@ -205,6 +222,13 @@ var _work_named := {}
 var _stages_total := 0
 ## Set before a restart for another world: the scene that comes up goes straight in.
 static var play_at_once := false
+## The bundles a server far away plays with, when they are not the ones loaded: the
+## scene is started again with them (decision 153, 5А).
+static var pending_mods: Array = []
+## Where the keys the servers gave this player are kept, by address.
+const SERVERS := "user://servers.cfg"
+## Seconds to wait for a server's welcome.
+const JOIN_WAIT := 15.0
 
 
 func _ready() -> void:
@@ -215,17 +239,26 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/server.tscn")
 		return
 	start_ms = Time.get_ticks_msec()
+	_read_join()
 	controls = Controls.new(self)
 	settings = SettingsScript.new(self)
 	settings.load()
 	sound = SoundScript.new(self)
 	add_child(sound)
 	save = SaveGame.new(self)
-	save.enabled = not skip_setup or save_root != ""
+	save.enabled = (not skip_setup or save_root != "") and join_url == ""
 	if save_root != "":
 		WorldStore.root = save_root
-	save.choose_world()
+	if join_url == "":
+		save.choose_world()
+	elif not pending_mods.is_empty():
+		world_mods = pending_mods
+		pending_mods = []
+	else:
+		world_mods = settings.world_mods()
 	Mods.activate(world_mods)
+	if join_url != "":
+		_connect()
 	rules = Rules.new()
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
@@ -247,6 +280,10 @@ func _ready() -> void:
 	hands = HandsScript.new(self)
 	workshop = RemoteWorkshop.new(character, placed, rules)
 	mirror = Mirror.new(self)
+	if socket != null:
+		# The server speaks right after the welcome: the copies keep what comes before
+		# the world is made (Mirror.replay).
+		mirror.watch(net)
 	save.track("hands", controls)
 	markers = Markers.new()
 	save.track("markers", markers)
@@ -268,9 +305,78 @@ func restart() -> void:
 	get_tree().reload_current_scene()
 
 
+## The address to join, from the command line (`--join <url>`, `--name`, `--password`)
+## or the page's address on the web (`?server=`); a test sets join_url itself.
+func _read_join() -> void:
+	var args := OS.get_cmdline_user_args()
+	for i in args.size() - 1:
+		match args[i]:
+			"--join":
+				join_url = args[i + 1]
+			"--name":
+				player_name = args[i + 1]
+			"--password":
+				join_password = args[i + 1]
+	if join_url == "" and OS.has_feature("web"):
+		var v: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('server') || ''", true)
+		if v is String:
+			join_url = v
+
+
+## Opens the socket to the server and says hello; the welcome comes while the scene
+## is built (see start_world).
+func _connect() -> void:
+	socket = Socket.new()
+	socket.closed.connect(_on_socket_closed)
+	if socket.open(join_url) != OK:
+		join_error = "Неверный адрес сервера"
+		return
+	net = socket.net
+	socket.hello(player_name, _server_key(), join_password).then(_on_welcome)
+
+
+func _on_welcome(v: Variant) -> void:
+	if not v is Dictionary or v.get("ok") != true:
+		var why: String = v.get("why", "") if v is Dictionary else ""
+		join_error = {Protocol.WHY_VERSION: "Версия игры другая — обновите страницу",
+			Protocol.WHY_PASSWORD: "Неверный пароль", Protocol.WHY_FULL: "Сервер полон",
+			Protocol.WHY_NAME: "Нужно имя"}.get(why, "Сервер не пустил")
+		return
+	if not v.get("seed") is int or not v.get("settings") is Dictionary or not v.get("mods") is Array \
+			or not v.get("materials") is Array or not v.get("at") is Vector3:
+		join_error = "Сервер ответил не по-нашему"
+		return
+	welcome = v
+	var cfg := ConfigFile.new()
+	cfg.load(SERVERS)
+	cfg.set_value("keys", join_url, str(v.get("key", "")))
+	cfg.save(SERVERS)
+
+
+## The key this server gave the player before, "" the first time.
+func _server_key() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(SERVERS) != OK:
+		return ""
+	return str(cfg.get_value("keys", join_url, ""))
+
+
+func _on_socket_closed(code: int, reason: String) -> void:
+	if join_error == "" and welcome.is_empty():
+		join_error = "Сервер не отвечает" if code < 0 else "Сервер закрыл вход: " + reason
+	elif join_error == "":
+		join_error = "Связь с сервером потеряна" if code < 0 else ("Сервер: " + reason if reason != "" else "Сервер закрыл связь")
+		if hud != null:
+			hud.set_loading(join_error)
+
+
 ## Generates the world chosen (see SaveGame.choose_world) and builds the scene around
-## the spawn, or where the player was when it was saved.
+## the spawn, or where the player was when it was saved; over a socket, takes the world
+## of the server's welcome and builds the scene where the server put the character.
 func start_world() -> void:
+	if socket != null:
+		await _join_world()
+		return
 	# Each heavy part says what it does and lets it show first; `world` is set only once
 	# they are done, so nothing runs on a world half made.
 	await _loading_stage("Материки и реки…")
@@ -301,6 +407,7 @@ func start_world() -> void:
 	world_placed.read_footprints()
 	world_placed.cell_changed.connect(chunks.on_cell_changed)
 	session = Session.new(world, gen, world_clock, rules, world_placed)
+	world_maker = session
 	clock.gen = gen
 	placed.world = world
 	character.world = world
@@ -329,6 +436,69 @@ func start_world() -> void:
 	# once (the menu shows the day).
 	mirror.send_input()
 	host.flush(net)
+	chunks.prepare(gen)
+	loading_stage = ""
+
+
+## The world of a server far away: waits for its welcome, starts the scene again when
+## it plays with other bundles, lays the land out from its seed (RemoteGen) and builds
+## the scene where the server put the character; the chunks come from the server.
+func _join_world() -> void:
+	await _loading_stage("Связь с сервером…")
+	var since := Time.get_ticks_msec()
+	while welcome.is_empty() and join_error == "":
+		if Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
+			join_error = "Сервер не отвечает"
+			break
+		await get_tree().process_frame
+	if join_error != "":
+		hud.set_loading(join_error)
+		print("join %s failed: %s" % [join_url, join_error])
+		return
+	world_seed = welcome.seed
+	world_options = {}
+	for k: String in WorldGen.DEFAULT_SETTINGS:
+		world_options[k] = int(welcome.settings.get(k, WorldGen.DEFAULT_SETTINGS[k]))
+	if Array(welcome.mods) != world_mods:
+		# The server's bundles: the scene starts again with them (decision 153, 5А).
+		print("the server plays with other bundles: starting again with them")
+		pending_mods = Array(welcome.mods)
+		restart()
+		return
+	await _loading_stage("Материки и реки…")
+	var t0 := Time.get_ticks_msec()
+	gen = RemoteGen.new(world_seed, 48, world_options)
+	if Array(welcome.materials) != Array(Mat.IDS):
+		# The server numbered its materials in its own order: translate.
+		gen.material_map = Mat.remap(PackedStringArray(welcome.materials))
+	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, join_url, Time.get_ticks_msec() - t0])
+	await _loading_stage("Карта и материалы…")
+	roof = RoofMap.new()
+	roof.prepare()
+	hud.minimap.setup(gen)
+	_build_materials()
+	await _loading_stage("Игрок и небо…")
+	world = gen.world
+	world_maker = gen
+	clock.gen = gen
+	placed.world = world
+	character.world = world
+	# The rules are asked only what they read of the world (the cursor's preview, what
+	# a bush gives); what they would change comes from the server as events.
+	actions = WorldActions.new(world, clock, rules)
+	actions.cell_changed.connect(chunks.on_cell_changed)
+	actions.looks_changed.connect(chunks.remesh_chunk)
+	actions.drops_changed.connect(props.show_drops)
+	actions.taken.connect(props.fly)
+	gen.changed.connect(chunks.remesh_chunk)
+	freeze_log.watch()
+	_build_scene()
+	player.position = welcome.at
+	save.player_placed = true
+	settings.apply()
+	mirror.replay()
+	gen.home = chunks._player_chunk()
+	mirror.send_input()
 	chunks.prepare(gen)
 	loading_stage = ""
 
@@ -377,7 +547,7 @@ func loading_progress() -> float:
 		return 0.95 if warmup != null else 1.0
 	if loading_stage != "" or chunks.near_total == 0:
 		return 0.05
-	var stages: int = session.stages_left(ChunkStreamer.NEAR_CHUNKS)
+	var stages: int = world_maker.stages_left(ChunkStreamer.NEAR_CHUNKS)
 	if _stages_total == 0:
 		_stages_total = stages
 	var total: int = _stages_total + chunks.near_total
@@ -400,37 +570,59 @@ func _build_while_paused() -> void:
 	if not get_tree().paused or not ready_to_play or world == null:
 		return
 	chunks.paused = true
-	chunks.run_jobs(host.runner.take_spent())
+	chunks.run_jobs(_world_made())
 	chunks.update_caps()
 	_budget_server()
 
 
 ## Tells the server's loop how much of the next frame it may spend making the world.
 func _budget_server() -> void:
+	if host == null:
+		return
 	var budgets := chunks.gen_budgets()
 	host.runner.near_us = budgets.x
 	host.runner.far_us = budgets.y
+
+
+## Microseconds the world's making took this frame, for the streamer's budget: the
+## server's loop ran before the frame (Runner.take_spent); over a socket the chunks
+## that came are restored now, within the same budgets.
+func _world_made() -> int:
+	if host != null:
+		return host.runner.take_spent()
+	gen.home = chunks._player_chunk()
+	var budgets := chunks.gen_budgets()
+	return world_maker.make_chunks(budgets.x, budgets.y)
 
 
 ## The server's loop is stopped with the scene, unless it is kept for the next one.
 func _exit_tree() -> void:
 	if host != null and host.runner != null and not host.runner.keep:
 		host.stop()
+	if socket != null:
+		socket.leave()
+		socket.poll()
 
 
 func _process(delta: float) -> void:
 	# The frame before is over: the statistics take its time and what its parts took.
 	var perf = hud.perf
 	perf.add_frame(delta)
+	if socket != null:
+		# What the server sent since the last frame: the copies take it first.
+		socket.poll()
 	if world == null:
 		return
 	var t := Time.get_ticks_usec()
-	# The server's loop ran before this frame: its steps go to the statistics as parts.
-	var took: Dictionary = host.runner.took_us
-	perf.add("небо", took.get("clock", 0))
-	perf.add("игрок", took.get("players", 0))
-	perf.add("животные", took.get("wildlife", 0))
-	perf.add("ветер и следы", took.get("storms", 0))
+	if host != null:
+		# The server's loop ran before this frame: its steps go to the statistics as parts.
+		var took: Dictionary = host.runner.took_us
+		perf.add("небо", took.get("clock", 0))
+		perf.add("игрок", took.get("players", 0))
+		perf.add("животные", took.get("wildlife", 0))
+		perf.add("ветер и следы", took.get("storms", 0))
+	else:
+		t = perf.note("сеть", t)
 	chunks.paused = false
 	if not ready_to_play:
 		# Behind the main menu the chunks are built a step at a time (run_jobs below),
@@ -448,19 +640,20 @@ func _process(delta: float) -> void:
 				player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
 			props.place()
-			if not save.has_save:
-				host.player.start_bag()
-			host.player.find_home(session.placed)
 			creatures.watch(wildlife)
-			session.start_wildlife(world_seed)
-			mirror.send_input()
-			host.flush(net)
-			host.runner.playing = true
+			if host != null:
+				if not save.has_save:
+					host.player.start_bag()
+				host.player.find_home(session.placed)
+				session.start_wildlife(world_seed)
+				mirror.send_input()
+				host.flush(net)
+				host.runner.playing = true
 			player.visible = not character.is_dead()
 			ready_to_play = true
 			warmup = ShaderWarmup.new(self)
 			warmup.start()
-			print("near chunks generated in %d ms, meshed in %d ms" % [session.gen_us / 1000, chunks.mesh_us / 1000])
+			print("near chunks generated in %d ms, meshed in %d ms" % [world_maker.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
 			hud.set_loading("%s… %d%%" % [loading_phase(), roundi(100.0 * loading_progress())])
@@ -471,7 +664,8 @@ func _process(delta: float) -> void:
 	if ready_to_play:
 		# What the server's tick changed comes first, then the body moves and tells
 		# the server where it is (the tick takes it next frame).
-		host.flush(net)
+		if host != null:
+			host.flush(net)
 		# The player stands still behind the main menu, and lies dead behind the death screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
@@ -492,7 +686,7 @@ func _process(delta: float) -> void:
 	chunks.update_cut(delta)
 	# Behind the death screen the world is made ready where the character comes back.
 	chunks.set_focus(character.respawn_points()[0][1] if ready_to_play and character.is_dead() else Vector3.INF)
-	chunks.run_jobs(host.runner.take_spent())
+	chunks.run_jobs(_world_made())
 	chunks.update_caps()
 	_budget_server()
 	t = perf.note("чанки", t)

@@ -55,6 +55,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/net/local_host.gd`: The server inside the game, for single player (plan/architecture/server.md, decision 153): the one place the client loads the server's code.
 - `src/client/net/mirror.gd`: The client's copies of what the server holds (plan/architecture/server.md): the player's character (the bag, the body's state, death) and workshop, the things placed on cells, the clock and the…
 - `src/client/net/remote_clock.gd`: The client's copy of the clock (Clock), fed by the server's snapshots (Protocol.CLOCK; Mirror) a few times a second: the time, the season, the weather and what it leaves on the ground, for the sky,…
+- `src/client/net/remote_gen.gd`: The client's copy of the world over a socket (plan/architecture/server.md, decision 153, 1А; С3.2): a generator that makes nothing, but lays the land out the same as the server's (the seed and…
 - `src/client/net/remote_placed.gd`: The client's copy of the things placed on cells (Placed), fed by the server's events (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, CHEST; Mirror): the same records and the same signals, so what draws…
 - `src/client/net/remote_wildlife.gd`: The client's copy of the animals (Wildlife), fed by the server's events (Protocol.ANIMAL, ANIMAL_GONE, SNAP, STEP; Mirror): an Animal for each with the fields the views read (where it is, which way…
 - `src/client/net/remote_workshop.gd`: The client's copy of the player's workshop (plan/architecture/server.md): the queue, the pause and the knowledge as the server's events give them (Protocol.SHOP, YOU).
@@ -265,7 +266,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 | Folder | Loads scripts from |
 |---|---|
-| `src/client` | `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/net`, `src/client/ui`, `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
+| `src/client` | `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/net`, `src/client/ui`, `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/audio` | `src/client/input`, `src/client/ui`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/game` | `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |

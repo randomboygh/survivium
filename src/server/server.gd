@@ -286,6 +286,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.key = Crypto.new().generate_random_bytes(16).hex_encode()
 		a.link = PlayerLink.new(session)
 		a.link.snap_every = SNAP_EVERY
+		a.link.send_world = true
 		a.link.who.start_bag()
 		a.link.who.teleport(world_info.spawn)
 		a.link.who.find_home(session.placed)

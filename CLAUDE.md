@@ -128,7 +128,8 @@ Each in one line; the system's context doc has the detail.
 - A static func named like a method of `Script` (`reload`, `get_class`, `is_tool`) is shadowed:
   `Mat.reload()` recompiles the script. Hence `Mods.rescan`.
 - A server from the terminal: `godot --headless --path . -- --server [--port N] [--seed N | --world <dir>]`
-  (`src/server/server_main.gd`, `docs/systems/network.md`); the test world is `--seed -1`.
+  (`src/server/server_main.gd`, `docs/systems/network.md`); the test world is `--seed -1`. A client joins
+  it with `-- --join ws://host:port [--name X]`, in the browser with `?server=ws://host:port`.
 - A lambda that uses `self`, connected to a signal of something the object holds, makes a cycle a
   RefCounted is never freed from: connect a method (`src/shared/game/character.gd`).
 - `var i := expr` with a Variant `expr` is a parse error: type it. `typed_array = expr if c else []`

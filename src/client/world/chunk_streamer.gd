@@ -206,6 +206,11 @@ func build_near(ms: int) -> bool:
 			near_pending = 0
 			break
 		pending_chunks.erase(key)
+		game.world_maker.make_chunk(key)
+		if not gen.needed(key).is_empty():
+			# Over a socket the chunk, or one beside it, has not come yet: next frame.
+			pending_chunks.append(key)
+			return false
 		near_pending -= 1
 		build_chunk(key)
 	return near_pending == 0
@@ -288,7 +293,7 @@ func next_chunk() -> Vector2i:
 ## (the loading screen and tools).
 func build_chunk(key: Vector2i) -> void:
 	_whole = true
-	game.session.make_chunk(key)
+	game.world_maker.make_chunk(key)
 	_whole = false
 	var t0 := Time.get_ticks_usec()
 	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
@@ -315,7 +320,7 @@ func build_around() -> void:
 	map_done = true
 	while not unload_queue.is_empty():
 		_unload_some()
-	game.session.forget_far(1 << 30)
+	game.world_maker.forget_far(1 << 30)
 	game.roof.flush()
 
 
@@ -329,7 +334,7 @@ func _note_work(kind: String, us: int) -> void:
 func take_work() -> Dictionary:
 	var spent := work_us
 	work_us = {}
-	var made: Dictionary = game.session.take_work()
+	var made: Dictionary = game.world_maker.take_work()
 	for kind: String in made:
 		spent[kind] = spent.get(kind, 0) + made[kind]
 	return spent
@@ -481,10 +486,30 @@ func run_jobs(spent := 0) -> void:
 				game.hud.perf.chunks = chunk_nodes.size()
 			if not job_edit and pending_chunks.is_empty() and not map_done:
 				map_done = true
-				print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), game.session.gen_us / 1000, mesh_us / 1000])
+				print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), game.world_maker.gen_us / 1000, mesh_us / 1000])
 	mesh_us += Time.get_ticks_usec() - t0 - spent
 	_unload_some()
 	_jobs_end = Time.get_ticks_usec()
+
+
+## Frees the meshes of chunk `key` now (the server told the client to forget it).
+func unload_chunk(key: Vector2i) -> void:
+	if job_mesh != null and job_key == key:
+		_drop_job()
+		has_target = false
+	pending_chunks.erase(key)
+	dirty_chunks.erase(key)
+	if not chunk_nodes.has(key):
+		return
+	for node: Node in chunk_nodes[key]:
+		node.queue_free()
+	chunk_nodes.erase(key)
+	game.props.hide_drops(key)
+	if cap_nodes.has(key):
+		cap_nodes[key].queue_free()
+		cap_nodes.erase(key)
+		cap_levels.erase(key)
+	game.hud.perf.chunks = chunk_nodes.size()
 
 
 ## Frees the meshes of a couple of far chunks a frame.
