@@ -26,3 +26,15 @@
   needs: {materials:bronze_bar: 2, materials:planks: 1}
   at: workbench
   time: 6
+- id: iron_sword
+  title: Железный меч
+  makes: iron_sword
+  needs: {materials:iron_bar: 2, materials:planks: 1}
+  at: anvil
+  time: 6
+- id: steel_sword
+  title: Стальной меч
+  makes: steel_sword
+  needs: {materials:steel_bar: 2, materials:planks: 1}
+  at: anvil
+  time: 6

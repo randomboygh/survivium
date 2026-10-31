@@ -10,6 +10,9 @@ const COPPER := Color(0.78, 0.46, 0.25)
 ## Bronze and tin.
 const BRONZE := Color(0.6, 0.48, 0.27)
 const TIN := Color(0.72, 0.74, 0.76)
+## Iron (dark, bluish) and steel (pale, cold).
+const IRON := Color(0.32, 0.34, 0.38)
+const STEEL := Color(0.66, 0.72, 0.8)
 
 
 ## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
@@ -28,6 +31,10 @@ static func prop(kind: String) -> VoxelModel:
 			return loom()
 		"potters_wheel":
 			return potters_wheel()
+		"bloomery":
+			return bloomery()
+		"anvil":
+			return anvil()
 	return null
 
 
@@ -45,15 +52,15 @@ static func drop(model: String) -> VoxelModel:
 			return _cone()
 		"axe":
 			return _tool(Color(0.42, 0.44, 0.46), [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
-		"copper_axe", "bronze_axe":
+		"copper_axe", "bronze_axe", "iron_axe", "steel_axe":
 			return _tool(_head(model), [Vector3i(3, 0, -2), Vector3i(3, 0, -1), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(3, 0, 1), Vector3i(4, 0, 1), Vector3i(5, 0, -1), Vector3i(3, 1, -1), Vector3i(4, 1, -1)])
-		"pickaxe", "wooden_pickaxe", "copper_pickaxe", "bronze_pickaxe":
+		"pickaxe", "wooden_pickaxe", "copper_pickaxe", "bronze_pickaxe", "iron_pickaxe", "steel_pickaxe":
 			return _tool(_head(model), [Vector3i(4, 0, -3), Vector3i(4, 0, -2), Vector3i(4, 0, -1), Vector3i(4, 0, 1), Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(5, 0, -3), Vector3i(5, 0, 3), Vector3i(4, 1, 0)])
-		"shovel", "copper_shovel", "bronze_shovel":
+		"shovel", "copper_shovel", "bronze_shovel", "iron_shovel", "steel_shovel":
 			return _tool(Color(0.42, 0.29, 0.18) if model == "shovel" else _head(model), [Vector3i(5, 0, -1), Vector3i(5, 0, 1), Vector3i(6, 0, -1), Vector3i(6, 0, 0), Vector3i(6, 0, 1), Vector3i(7, 0, -1), Vector3i(7, 0, 0), Vector3i(7, 0, 1), Vector3i(8, 0, 0)])
-		"sword", "stone_sword", "copper_sword", "bronze_sword":
+		"sword", "stone_sword", "copper_sword", "bronze_sword", "iron_sword", "steel_sword":
 			return _sword(Color(0.5, 0.37, 0.22) if model == "sword" else (Color(0.55, 0.57, 0.6) if model == "stone_sword" else _head(model)))
-		"scythe", "wooden_scythe", "copper_scythe", "bronze_scythe":
+		"scythe", "wooden_scythe", "copper_scythe", "bronze_scythe", "iron_scythe", "steel_scythe":
 			return _tool(_head(model), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
 		"torch":
 			return _torch()
@@ -65,6 +72,12 @@ static func drop(model: String) -> VoxelModel:
 			return _bar(BRONZE)
 		"tin_bar":
 			return _bar(TIN)
+		"iron_bar":
+			return _bar(IRON)
+		"steel_bar":
+			return _bar(STEEL)
+		"iron_bloom":
+			return _bloom()
 		"raw_crucible":
 			return _crucible(Color(0.7, 0.64, 0.56))
 		"crucible":
@@ -120,6 +133,67 @@ static func drop(model: String) -> VoxelModel:
 		"lantern":
 			return _lantern()
 	return null
+
+
+## A bloomery: a tall round clay furnace on a stone ring, a glowing mouth at the front
+## (south) and a smoking top, a pile of charcoal beside it.
+static func bloomery() -> VoxelModel:
+	var m := VoxelModel.new()
+	var clay := Color(0.66, 0.46, 0.32)
+	var dark := Color(0.5, 0.33, 0.22)
+	var stone := Color(0.5, 0.49, 0.47)
+	var soot := Color(0.12, 0.1, 0.09)
+	var glow := Color(0.98, 0.55, 0.16)
+	for y in range(0, 22):
+		var r := 5.6 - y * 0.12
+		for z in range(1, 15):
+			for x in range(1, 15):
+				var d := Vector2(x - 7.5, z - 7.5).length()
+				if y < 2:
+					if d < 6.6:
+						m.set_voxel(Vector3i(x, y, z), stone * (0.9 if (x + z) % 3 == 0 else 1.0))
+					continue
+				if d > r:
+					continue
+				var hollow := d < r - 1.6
+				if hollow and y > 2:
+					if y == 21:
+						m.set_voxel(Vector3i(x, y, z), soot)
+					continue
+				# The mouth at the front, glowing, low down.
+				if y >= 2 and y <= 5 and z > 11 and x >= 6 and x <= 9:
+					m.set_voxel(Vector3i(x, y, z), glow if y <= 3 else glow * 0.7)
+					continue
+				m.set_voxel(Vector3i(x, y, z), dark if (y % 5 == 0 or (x * 3 + z + y) % 11 == 0) else clay)
+	return m
+
+
+## An anvil: a dark iron body with a horn to the east on a log stump.
+static func anvil() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.45, 0.3, 0.17)
+	var ring := Color(0.62, 0.48, 0.3)
+	for y in range(0, 6):
+		for z in range(3, 13):
+			for x in range(3, 13):
+				var d := Vector2(x - 7.5, z - 7.5).length()
+				if d < 4.6:
+					m.set_voxel(Vector3i(x, y, z), ring if y == 5 and d < 3.2 else wood * (0.85 if (x + y) % 3 == 0 else 1.0))
+	# The waist, then the face and the horn.
+	for y in range(6, 9):
+		for z in range(6, 10):
+			for x in range(5, 11):
+				m.set_voxel(Vector3i(x, y, z), IRON * 0.8)
+	for y in range(9, 12):
+		for z in range(5, 11):
+			for x in range(2, 13):
+				m.set_voxel(Vector3i(x, y, z), IRON * (1.35 if y == 11 else 1.0))
+		for x in range(13, 16):
+			var w := 15 - x
+			for z in range(8 - w, 8 + w):
+				if y >= 10:
+					m.set_voxel(Vector3i(x, y, z), IRON * (1.35 if y == 11 else 1.0))
+	return m
 
 
 ## A workbench: a plank top on four legs, a log for a stool's worth of work on it.
@@ -348,7 +422,26 @@ static func _head(model: String) -> Color:
 		return Color(0.55, 0.4, 0.24)
 	if model.begins_with("bronze_"):
 		return BRONZE
+	if model.begins_with("iron_"):
+		return IRON
+	if model.begins_with("steel_"):
+		return STEEL
 	return COPPER if model.begins_with("copper_") else Color(0.42, 0.44, 0.46)
+
+
+## An iron bloom: a porous lump, dark slag in its pits, rusty here and there.
+static func _bloom() -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in range(0, 4):
+		for z in range(-3, 3):
+			for x in range(-3, 3):
+				var d := Vector3(x + 0.5, y * 1.3, z + 0.5).length()
+				if d > 3.3 - (0.6 if (x * 7 + z * 3 + y * 5) % 4 == 0 else 0.0):
+					continue
+				var pit := (x * 5 + z * 11 + y * 3) % 7 == 0
+				var rust := (x * 3 + z * 7 + y) % 9 == 0
+				m.set_voxel(Vector3i(x, y, z), Color(0.12, 0.11, 0.1) if pit else (Color(0.48, 0.3, 0.2) if rust else IRON * (1.1 if y == 3 else 1.0)))
+	return m
 
 
 ## A bar of metal `c` (copper by default): a flat ingot with sloped sides, a bright top edge.

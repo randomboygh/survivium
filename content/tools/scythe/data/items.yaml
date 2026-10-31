@@ -73,3 +73,37 @@
   reach: 8
   durability: 500
   repair: {materials:bronze_bar: 1}
+- id: iron_scythe
+  title: Железная коса
+  weight: 2.1
+  stack: 1
+  model: iron_scythe
+  icon: iron_scythe
+  tool: scythe
+  sprite: iron_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 3
+  area: 4
+  swing: 0.36
+  reach: 8
+  durability: 800
+  repair: {materials:iron_bar: 1}
+- id: steel_scythe
+  title: Стальная коса
+  weight: 2.1
+  stack: 1
+  model: steel_scythe
+  icon: steel_scythe
+  tool: scythe
+  sprite: steel_scythe
+  anim: mow
+  hands: 2
+  mows: all
+  power: 4
+  area: 4
+  swing: 0.36
+  reach: 8
+  durability: 1200
+  repair: {materials:steel_bar: 1}

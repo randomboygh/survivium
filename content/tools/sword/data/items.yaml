@@ -65,3 +65,33 @@
   reach: 8
   durability: 500
   repair: {materials:bronze_bar: 1}
+- id: iron_sword
+  title: Железный меч
+  weight: 1.9
+  stack: 1
+  model: iron_sword
+  icon: iron_sword
+  tool: sword
+  sprite: iron_sword
+  anim: slash
+  mows: tall
+  power: 5
+  swing: 0.27
+  reach: 8
+  durability: 800
+  repair: {materials:iron_bar: 1}
+- id: steel_sword
+  title: Стальной меч
+  weight: 1.9
+  stack: 1
+  model: steel_sword
+  icon: steel_sword
+  tool: sword
+  sprite: steel_sword
+  anim: slash
+  mows: tall
+  power: 6
+  swing: 0.27
+  reach: 8
+  durability: 1200
+  repair: {materials:steel_bar: 1}

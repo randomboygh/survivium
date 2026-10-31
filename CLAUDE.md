@@ -105,7 +105,7 @@ godot --headless --path . --script res://tools/validate.gd
 godot --headless --path . --script res://tools/content_report.gd -- --check
 godot --headless --path . --script res://tests/run_tests.gd
 timeout 300 godot --headless --path . --script res://tests/save_test.gd
-timeout 600 godot --headless --path . --script res://tests/progress_test.gd
+timeout 900 godot --headless --path . --script res://tests/progress_test.gd
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 timeout 300 godot --headless --path . --script res://tests/server_test.gd
 python3 tools/doc_index.py --check

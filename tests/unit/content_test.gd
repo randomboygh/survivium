@@ -70,9 +70,10 @@ func _test_content() -> void:
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.COUNT == 14
-		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:tin_ore")]) and Mat.vein_at(0.0, -1) == Mat.ORE
-		and Mat.vein_at(0.99, -1) == Mat.index("materials:tin_ore") and Mat.vein_at(0.6, -1) == Mat.ORE,
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.COUNT == 15
+		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore")])
+		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.4, -1) == Mat.ORE and Mat.vein_at(0.6, -1) == Mat.index("materials:iron_ore")
+		and Mat.vein_at(0.99, -1) == Mat.index("materials:tin_ore") and Mat.vein_at(0.5, 7) != 7,
 		"the engine finds materials by their roles, the first ore as ORE, every ore by its share of the veins")
 	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT)
 		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT), "the shader's word per material comes from the data")
@@ -145,7 +146,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 16 and Mods.bundles("plants").size() == 31
 		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 10 and Mods.bundles("tools").size() == 14 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 12 and Mods.bundles("tools").size() == 16 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
@@ -271,8 +272,8 @@ func _test_old_worlds() -> void:
 		and not Mods.additive("core") and not Mods.additive("nothing"),
 		"a bundle of items, recipes, eras, starts and sounds only adds things to make; one with cells, trees or creatures does not")
 	# Bundles of things to make that came after world.json kept the bundles a world knew.
-	var since := ["materials/bronze", "materials/cloth", "materials/glass", "materials/tar", "plants/roasted_acorns", "tools/lantern", "tools/loom",
-		"tools/potters_wheel", "tools/tar_torch"]
+	var since := ["materials/bronze", "materials/cloth", "materials/glass", "materials/steel", "materials/tar", "plants/roasted_acorns",
+		"tools/anvil", "tools/bloomery", "tools/lantern", "tools/loom", "tools/potters_wheel", "tools/tar_torch"]
 	var adds := all.filter(func(b: String) -> bool: return Mods.additive(b) and not b in since)
 	_check(adds == Mods.OLD_ADDITIVE and since.all(func(b: String) -> bool: return Mods.additive(b)),
 		"OLD_ADDITIVE lists the bundles that only add things to make, but those that came later: %s" % [adds])

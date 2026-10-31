@@ -47,3 +47,31 @@
   reach: 10
   durability: 500
   repair: {materials:bronze_bar: 1}
+- id: iron_shovel
+  title: Железная лопата
+  weight: 1.9
+  stack: 1
+  model: iron_shovel
+  icon: iron_shovel
+  tool: shovel
+  sprite: iron_shovel
+  anim: dig
+  power: 3
+  swing: 0.16
+  reach: 10
+  durability: 800
+  repair: {materials:iron_bar: 1}
+- id: steel_shovel
+  title: Стальная лопата
+  weight: 1.9
+  stack: 1
+  model: steel_shovel
+  icon: steel_shovel
+  tool: shovel
+  sprite: steel_shovel
+  anim: dig
+  power: 4
+  swing: 0.16
+  reach: 10
+  durability: 1200
+  repair: {materials:steel_bar: 1}

@@ -1,0 +1,11 @@
+# Железная руда: жилы в камне (role: ore), твёрже оловянной: её берёт бронзовая кирка и лучше
+# (hardness 4). Поля — как у материалов основы (content/core/data/materials.yaml).
+- id: iron_ore
+  title: Железная руда
+  role: ore
+  veins: 0.6
+  priority: 2
+  item: iron_ore
+  hardness: 4
+  step: step_stone
+  hit: hit_stone

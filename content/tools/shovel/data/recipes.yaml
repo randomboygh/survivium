@@ -20,3 +20,15 @@
   needs: {materials:bronze_bar: 2, materials:planks: 1}
   at: workbench
   time: 6
+- id: iron_shovel
+  title: Железная лопата
+  makes: iron_shovel
+  needs: {materials:iron_bar: 2, materials:planks: 1}
+  at: anvil
+  time: 6
+- id: steel_shovel
+  title: Стальная лопата
+  makes: steel_shovel
+  needs: {materials:steel_bar: 2, materials:planks: 1}
+  at: anvil
+  time: 6

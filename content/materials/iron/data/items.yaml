@@ -1,0 +1,24 @@
+# Железо: руду с углём жгут в сыродутной печи — выходит крица, её перековывают в горне в слиток.
+# Из слитков — наковальня (бандл «Наковальня») и железные инструменты (бандлы их видов).
+- id: iron_ore
+  title: Железная руда
+  description: Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.
+  weight: 3.0
+  stack: 20
+  icon: iron_ore
+- id: iron_bloom
+  title: Крица
+  description: Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.
+  era: core:iron
+  weight: 3.0
+  stack: 10
+  model: iron_bloom
+  icon: iron_bloom
+- id: iron_bar
+  title: Железный слиток
+  description: Тёмный прочный металл. Из него наковальня и железные инструменты.
+  era: core:iron
+  weight: 2.4
+  stack: 20
+  model: iron_bar
+  icon: iron_bar

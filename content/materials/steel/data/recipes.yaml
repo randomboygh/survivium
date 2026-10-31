@@ -1,0 +1,9 @@
+# Рецепт бандла «Сталь»: железо с углём в тигле (бандл «Бронза») в сыродутной печи «Инструментов».
+- id: steel_bar
+  title: Стальной слиток
+  makes: steel_bar
+  needs: {iron_bar: 1, charcoal: 1}
+  keeps: {crucible: 1}
+  at: tools:bloomery
+  process: smelt
+  time: 12

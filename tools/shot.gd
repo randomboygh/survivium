@@ -398,7 +398,7 @@ func _run() -> void:
 					main.hud.open_prop(e)
 					break
 		if shot.get("craft", false):
-			_craft(shot.get("forge", false), shot.get("weave", false))
+			_craft(shot.get("forge", false), shot.get("weave", false), shot.get("smith", false))
 			if shot.has("recipe"):
 				main.host.player.inventory.add("materials:cord", 2)
 				main.hud.bag.craft._choose(shot.recipe)
@@ -599,7 +599,7 @@ func _run() -> void:
 ## bar being smelted, the craft tab open at the forge.
 ## With `weave`, a loom to the north and a potter's wheel to the west in place of the chest,
 ## linen thread, cord and clay in the bag, linen cloth being woven, the craft tab at the loom.
-func _craft(forge := false, weave := false) -> void:
+func _craft(forge := false, weave := false, smith := false) -> void:
 	var inv = main.host.player.inventory
 	for st in [["resources:fiber", 14], ["resources:branch", 16], ["resources:flint", 3], ["resources:log", 2], ["resources:clay", 6],
 			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
@@ -615,6 +615,12 @@ func _craft(forge := false, weave := false) -> void:
 		main.props.put_from_bag("tools:potters_wheel")
 		main.player.facing = "n"
 		main.props.put_from_bag("tools:loom")
+	elif smith:
+		for st in [["tools:bloomery", 1], ["tools:anvil", 1], ["materials:iron_bar", 6], ["materials:steel_bar", 6], ["materials:planks", 4]]:
+			inv.add(st[0], st[1])
+		main.props.put_from_bag("tools:bloomery")
+		main.player.facing = "n"
+		main.props.put_from_bag("tools:anvil")
 	else:
 		main.props.put_from_bag("tools:chest")
 	var station := "tools:workbench"
@@ -629,6 +635,9 @@ func _craft(forge := false, weave := false) -> void:
 	if weave:
 		station = "tools:loom"
 		recipe = "plants:cloth"
+	if smith:
+		station = "tools:anvil"
+		recipe = "tools:steel_axe"
 	main.player.facing = "s"
 	var shop = main.host.workshop
 	shop.start(Crafting.get_recipe(recipe), 2)

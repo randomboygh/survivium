@@ -355,6 +355,12 @@ const SHOTS := {
 	# A copper pickaxe at its strike, and copper tools lying on the ground.
 	"hands-copper": {"time": 0.42, "season": 1, "hands": {"tool": "tools:copper_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["tools:copper_axe", "tools:copper_sword", "tools:copper_scythe", "tools:copper_shovel", "materials:copper_bar", "materials:charcoal"]},
+	# A bloomery and an anvil set down by the workbench and kiln, closed, the things of iron and
+	# steel lying in front; and the anvil open, a steel axe being forged.
+	"smith": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "smith": true,
+		"drops": ["materials:iron_ore", "materials:iron_bloom", "materials:iron_bar", "materials:steel_bar", "tools:iron_axe", "tools:iron_pickaxe",
+			"tools:iron_sword", "tools:steel_axe", "tools:steel_pickaxe", "tools:steel_sword", "tools:steel_scythe", "tools:steel_shovel"]},
+	"craft-anvil": {"time": 0.42, "season": 1, "touch": true, "craft": true, "smith": true, "recipe": "tools:steel_axe"},
 	# A bronze pickaxe at its strike, and the things of tin and bronze lying on the ground.
 	"hands-bronze": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["materials:tin_ore", "materials:tin_bar", "materials:raw_crucible", "materials:crucible", "materials:bronze_bar", "tools:bronze_axe",
