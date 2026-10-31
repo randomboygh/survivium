@@ -456,6 +456,9 @@ const SHOTS := {
 	"ui-main-menu-single": {"time": 0.42, "season": 1, "touch": true, "main_menu": "single"},
 	"ui-main-menu-multi": {"time": 0.42, "season": 1, "touch": true, "main_menu": "multi", "press_host": true},
 	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},
+	# «Создать сервер» on a computer, before and while it runs.
+	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
+	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	"ui-main-menu-join-failed": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join",
 		"error": "Сервер не отвечает"},
 	# The grounds of the test world (TestGround), a run of their own: the player at
