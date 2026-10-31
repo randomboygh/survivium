@@ -146,6 +146,9 @@ var work_us := {}
 var _whole := false
 
 var cut_level := -1
+## PROTOTYPE (cave_style 5).
+var reach = null
+const ReachMap := preload("res://src/client/world/reach_map.gd")
 var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
 var _surface_at := Vector3i(1 << 30, 0, 0)
@@ -676,6 +679,10 @@ func update_cut(delta: float) -> void:
 			indoor = true
 			break
 	var at := Vector3i(px, level, pz)
+	if game.settings.values.get("cave_style", 0) >= 5:
+		if reach == null:
+			reach = ReachMap.new()
+		reach.update(world, px, level, pz)
 	if at != sunk_at:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
@@ -693,7 +700,7 @@ func update_cut(delta: float) -> void:
 	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
-		target = level + 1 if game.settings.values.get("cave_style", 0) < 2 else level
+		target = level if game.settings.values.get("cave_style", 0) in [2, 3] else level + 1
 	else:
 		if sunk:
 			target = sunk_rim

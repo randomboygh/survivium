@@ -18,6 +18,9 @@ global uniform float cut_ghost;
 global uniform float cut_front;
 // PROTOTYPE cave looks: 0 as is, 1 lit caps and no ghost, 2 the same cut a level lower, 3 and a lantern.
 global uniform float cave_style;
+// PROTOTYPE: the floor the player can walk to (see reach_map.gd): r = level + 1 over 255.
+global uniform sampler2D reach_map : filter_nearest;
+global uniform vec2 reach_origin;
 global uniform float snow_amount;
 // Height (world units) above which snow lies all year: the tops of high mountains (see
 // WorldData.SNOW_LINE and peak_snow).
@@ -500,7 +503,7 @@ float fog_at(vec3 p) {
 // it and the crowns stay clear.
 // rgb is the colour given off in place, a how much of the thing's own colour gives way.
 vec4 veil(vec3 p, float fade) {
-	if (cave_style > 2.5 && cut_height < 999.0) {
+	if (cave_style > 2.5 && cave_style < 3.5 && cut_height < 999.0) {
 		// PROTOTYPE lantern: dark beyond the player's light.
 		fade = max(fade, clamp((length(p.xz - player_pos.xz) - 6.5) / 2.0, 0.0, 1.0));
 	}

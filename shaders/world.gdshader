@@ -434,6 +434,20 @@ void fragment() {
 			col *= 0.78;
 		}
 	}
+	if (cave_style > 3.5 && cut_height < 999.0 && !cap && tile != NONE) {
+		// PROTOTYPE height map: a line at every level on walls, so a drop can be
+		// counted, and tops tinted by how far below the player they are.
+		if (!top && fract(world_pos.y / CELL + 0.001) < 1.0 / CELL_TEXELS) {
+			col *= 0.55;
+		}
+		if (top) {
+			float d = floor((player_pos.y - world_pos.y) / CELL + 0.5);
+			if (d > 0.5) {
+				col = mix(col, vec3(0.25, 0.35, 0.6) * dot(col, vec3(0.4)), clamp(d * 0.12, 0.0, 0.7));
+				col *= mod(d, 2.0) > 0.5 ? 0.9 : 1.0;
+			}
+		}
+	}
 	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
@@ -442,7 +456,18 @@ void fragment() {
 		if (cap) {
 			EMISSION += col * 1.3;
 		}
-		if (cave_style > 2.5) {
+		if (cave_style > 4.5 && top && !cap) {
+			// PROTOTYPE: the floor the player can walk to is lit, the rest dimmed.
+			vec2 rc = floor(world_pos.xz / CELL) - reach_origin;
+			float stood = rc.x >= 0.0 && rc.y >= 0.0 && rc.x < 64.0 && rc.y < 64.0
+				? floor(texelFetch(reach_map, ivec2(rc), 0).r * 255.0 + 0.5) - 1.0 : -1.0;
+			if (stood >= 0.0 && abs(stood - floor(world_pos.y / CELL + 0.5)) < 0.5) {
+				EMISSION += col * vec3(1.0, 0.9, 0.7) * 0.7;
+			} else {
+				ALBEDO *= 0.55;
+			}
+		}
+		if (cave_style > 2.5 && cave_style < 3.5) {
 			float glow = clamp((6.0 - d) / 3.0, 0.0, 1.0);
 			if (!cap) {
 				EMISSION += col * vec3(1.0, 0.85, 0.6) * 0.9 * glow;

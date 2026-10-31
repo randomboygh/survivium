@@ -88,6 +88,14 @@ cave_style={
 "type": "float",
 "value": 0.0
 }
+reach_map={
+"type": "sampler2D",
+"value": ""
+}
+reach_origin={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
 view_height={
 "type": "float",
 "value": 0.0
