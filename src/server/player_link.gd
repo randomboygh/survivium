@@ -38,6 +38,11 @@ const CLOCK_EVERY := 0.25
 ## over a socket the server sets a few a second.
 var snap_every := 0.0
 var _snap_sent := -1.0
+## Seconds between the other players' snapshots (PEOPLE); 0 every flush.
+var people_every := 0.0
+var _people_sent := -1.0
+## The last PEOPLE entry sent of each other player, by id.
+var _people := {}
 ## The client gets its copy of the world from here (a socket); false over the loop.
 var send_world := false
 ## The chunks the client holds (sent and not forgotten), and those to send again.
@@ -65,6 +70,9 @@ func _init(s) -> void:
 	who.tool_used.connect(workshop.use_tool)
 	requests = Requests.new(session, who, workshop)
 	session.add_player(who, workshop)
+	# The server's body walks the world when the client's claims are checked (3А).
+	who.body.world = session.world
+	who.body.clock = session.clock
 	who.inventory.changed.connect(_mark_you)
 	who.state_changed.connect(_mark_you)
 	workshop.knowledge.learned.connect(_on_learned)
@@ -125,6 +133,8 @@ func rejoin() -> void:
 	_all = true
 	_clock_sent = -1.0
 	_snap_sent = -1.0
+	_people_sent = -1.0
+	_people.clear()
 	_sent.clear()
 	_again.clear()
 	_cells.clear()
@@ -190,6 +200,9 @@ func flush() -> Array[PackedByteArray]:
 		var snap := _snap()
 		if not snap.is_empty():
 			out.append(_event(Protocol.SNAP, snap))
+	if people_every <= 0.0 or _people_sent < 0.0 or now - _people_sent >= people_every:
+		_people_sent = now
+		_people_events(out)
 	var push: Vector3 = session.push_on(who)
 	if push != Vector3.ZERO:
 		out.append(_event(Protocol.PUSH, [push]))
@@ -235,6 +248,35 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > Session.DROP:
 			_sent.erase(key)
 			out.append(_event(Protocol.FORGET, [key]))
+
+
+## The other players within Session.ZONE chunks of the body, those whose entry changed
+## since last told (PEOPLE), and those gone out of it or out of the world, or dead
+## (PERSON_GONE).
+func _people_events(out: Array[PackedByteArray]) -> void:
+	var at: Vector3 = who.position
+	var home := WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
+	var here := {}
+	var changed := []
+	for p in session.players:
+		if p == who or p.get("player_name") == null or p.is_dead():
+			continue
+		var pp: Vector3 = p.position
+		var key := WorldData.chunk_key(floori(pp.x / WorldData.CELL), floori(pp.z / WorldData.CELL))
+		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > Session.ZONE:
+			continue
+		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
+			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3]]
+		here[p.id] = true
+		if _people.get(p.id) != e:
+			_people[p.id] = e
+			changed.append(e)
+	for id in _people.keys():
+		if not here.has(id):
+			_people.erase(id)
+			out.append(_event(Protocol.PERSON_GONE, [id]))
+	if not changed.is_empty():
+		out.append(_event(Protocol.PEOPLE, changed))
 
 
 ## The CHUNK args of chunk `key`: its record, var_to_bytes and zstd.

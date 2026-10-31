@@ -22,6 +22,8 @@ const BYE_LINGER := 5.0
 const HELLO_WAIT := 10.0
 ## Seconds between the animals' snapshots over a socket (PlayerLink.snap_every).
 const SNAP_EVERY := 0.1
+## Seconds between the other players' snapshots to a player (PlayerLink.people_every).
+const PEOPLE_EVERY := 0.05
 ## Bytes a frame may hold each way (the chunks of С3.2 are large).
 const BUFFER := 4 << 20
 ## Letters a name may have.
@@ -130,7 +132,9 @@ func poll() -> void:
 				ws.close(peer.close_code, peer.close_reason)
 		match state:
 			WebSocketPeer.STATE_OPEN:
-				if peer.account == null and now - peer.since > HELLO_WAIT:
+				# One that never said hello; a connection closing (kicked, refused,
+				# elsewhere) has no account either, and goes its own way.
+				if peer.account == null and peer.close_code == 0 and now - peer.since > HELLO_WAIT:
 					ws.close(CLOSE_REFUSED, "hello first")
 			WebSocketPeer.STATE_CONNECTING:
 				if now - peer.since > HELLO_WAIT:
@@ -276,6 +280,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 			a.peer.close_after(CLOSE_ELSEWHERE, "вы вошли с другого устройства")
 			a.peer.account = null
 		a.name = name
+		a.link.who.player_name = name
 		a.link.rejoin()
 		_say("%s (%d): снова на связи с %s" % [a.name, a.id, peer.address])
 	else:
@@ -286,7 +291,11 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.key = Crypto.new().generate_random_bytes(16).hex_encode()
 		a.link = PlayerLink.new(session)
 		a.link.snap_every = SNAP_EVERY
+		a.link.people_every = PEOPLE_EVERY
 		a.link.send_world = true
+		a.link.who.id = a.id
+		a.link.who.player_name = a.name
+		a.link.who.check_moves = true
 		a.link.who.start_bag()
 		a.link.who.teleport(world_info.spawn)
 		a.link.who.find_home(session.placed)

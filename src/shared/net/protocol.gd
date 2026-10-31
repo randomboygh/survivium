@@ -90,7 +90,11 @@ const REVIVE := "revive"
 ## client's copies (Mirror).
 ## The client's body, hands and screen: [position, feet cell, facing step, hands, active
 ## hand, brush, moving, swimming, jumped, air jumps, bumped, the way the screen's width
-## lies over the ground (Vector2), half its width and height in world units (Vector2)].
+## lies over the ground (Vector2), half its width and height in world units (Vector2),
+## on the ground, the work the hands do: its kind, its length in seconds, its count (one
+## more at each swing) and the point it is turned to (INF for none)]. Over a socket the
+## server runs its own body towards the position told and puts the client where that
+## got when the two part (С3.3, decision 153 3А: TELEPORT).
 const INPUT := "input"
 ## The player's own state changed: {"inventory", "vitals", "state", "home",
 ## "held_back"} (each as to_dict gives it; vitals as VITALS).
@@ -136,6 +140,12 @@ const ANIMAL_GONE := "animal_gone"
 const SNAP := "snap"
 ## A paw of an animal came down: [id, at, dir, left, size] (Wildlife.stepped).
 const STEP := "step"
+## The other players in the zone, those that changed since last told (С3.3; 20 a second
+## over a socket): [[id, name, position, facing step, hands, active hand, moving,
+## swimming, on the ground, work kind, work length, work count, work at], …].
+const PEOPLE := "people"
+## Another player went out of the zone or the world: [id].
+const PERSON_GONE := "person_gone"
 ## A chunk of the world made, for the client's copy (С3.2; over a socket): [key, size,
 ## bytes], the record WorldGen.pack gives as var_to_bytes, zstd (`size` its length
 ## before); sent again when what the chunk shows changed (a bush picked, grass mown).

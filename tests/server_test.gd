@@ -89,7 +89,15 @@ func _bot(name: String, key := "", password := PASSWORD) -> Bot:
 func _input_at(b: Bot, at: Vector3) -> void:
 	var cell := Vector3i((at / WorldData.CELL).floor())
 	b.socket.net.send(Protocol.INPUT, [at, cell, Vector2i(0, 1), ["", ""], 0, 0, false, false, false, false,
-		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0)])
+		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0), true, "", 0.0, 0, Vector3.INF])
+
+
+## Polls the sockets for `n` frames.
+func _frames(n: int) -> void:
+	for i in n:
+		for s in sockets:
+			s.poll()
+		await process_frame
 
 
 func _run() -> void:
@@ -244,6 +252,41 @@ func _run() -> void:
 		_check(await _until(func() -> bool: return mine.done) and mine.value is Dictionary, "the game digs through the socket")
 		_check(await _until(func() -> bool: return main.world.get_cell(two.x, two.y, two.z) != before and not main.world.drops.get(spawn_key, []).is_empty()),
 			"the cell changes and what it gave lies on the ground in the copy")
+		# The other players (С3.3): Боря steps aside and shows on the game's screen, a
+		# figure with his name, where the server says; the game's own body passes the
+		# server's check (3А) with no correction.
+		var fixes: Array = []
+		main.net.event.connect(func(kind: String, _a: Variant) -> void: fixes.append(kind))
+		var aside: Vector3 = at + Vector3(1.5 * WorldData.CELL, 0.0, 0.0)
+		_input_at(borya, aside)
+		_check(await _until(func() -> bool: return main.others.people.has(2) and main.others.people[2].figure.position.distance_to(aside) < 0.5 * WorldData.CELL),
+			"another player's figure stands where the server says (%s)" % [main.others.people.get(2, {}).get("figure", null)])
+		_check(main.others.people.has(2) and main.others.people[2].label.text == "Боря" and main.others.people.has(1)
+			and not main.others.people.has(3), "with his name over his head; the game itself is not among the others (%s)" % [main.others.people.keys()])
+		_check(back.of(Protocol.PEOPLE).any(func(e: Array) -> bool: return e[1].any(func(p: Array) -> bool: return p[0] == 3 and p[1] == "Клиент")),
+			"the game's player is told to the others")
+		# A leap across the land is refused: the server's body walks instead, and the
+		# client is put where it is.
+		var leaps: int = borya.of(Protocol.TELEPORT).size()
+		var far: Vector3 = at + Vector3(200.0 * WorldData.CELL, 0.0, 0.0)
+		for i in 12:
+			_input_at(borya, far)
+			await _frames(1)
+		_check(await _until(func() -> bool: return borya.of(Protocol.TELEPORT).size() > leaps),
+			"a body claimed far away is put back by the server")
+		var put: Vector3 = borya.of(Protocol.TELEPORT)[-1][1][0] if borya.of(Protocol.TELEPORT).size() > leaps else Vector3.INF
+		_check(put.is_finite() and put.distance_to(far) > 100.0 * WorldData.CELL and server.session.players[1].position.distance_to(far) > 100.0 * WorldData.CELL,
+			"to where its body got walking (%s from %s)" % [put, aside])
+		# A walk at the body's pace is taken as told.
+		leaps = borya.of(Protocol.TELEPORT).size()
+		var walked: Vector3 = server.session.players[1].position
+		for i in 10:
+			walked += Vector3(0.0, 0.0, 0.3 * WorldData.CELL)
+			_input_at(borya, walked)
+			await _frames(1)
+		_check(server.session.players[1].position == walked and borya.of(Protocol.TELEPORT).size() == leaps,
+			"a walk at the body's pace is taken as told (%s vs %s)" % [server.session.players[1].position, walked])
+		_check(fixes.count(Protocol.TELEPORT) == 0, "the game's own body is not put back")
 	# The game leaves as the menu's exit does: a goodbye, then the scene goes.
 	main.socket.leave()
 	_check(await _until(func() -> bool: return main.socket.ended and net.online() == 2), "the game's goodbye closes its connection")
@@ -251,6 +294,8 @@ func _run() -> void:
 	_check(game_account.size() == 1 and game_account[0].linger == net.BYE_LINGER, "its character waits a short while")
 	game_account[0].left_at -= net.BYE_LINGER
 	_check(await _until(func() -> bool: return server.session.players.size() == 2), "and then leaves the world")
+	_check(await _until(func() -> bool: return back.of(Protocol.PERSON_GONE).any(func(e: Array) -> bool: return e[1] == [3])),
+		"and the others are told it went")
 	root.remove_child(main)
 	main.free()
 
@@ -267,7 +312,8 @@ func _run() -> void:
 	_check(server.command("kick Аня").contains("Аня"), "kick names the player")
 	_check(await _until(func() -> bool: return back.socket.ended) and back.socket.close_code == 4001
 		and back.of(Protocol.KICK).size() == 1 and server.session.players.is_empty(),
-		"a kicked player is told, closed with 4001 and out of the world")
+		"a kicked player is told, closed with 4001 and out of the world (code %d, kicks %d, players %d)"
+		% [back.socket.close_code, back.of(Protocol.KICK).size(), server.session.players.size()])
 	_check(server.command("nothing").contains("help"), "an unknown command says where the list is")
 	server.command("stop")
 	_check(net.stopping and not net.listening, "stop closes the port")
