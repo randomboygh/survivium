@@ -413,6 +413,7 @@ func _test_hunting(w: WorldData) -> void:
 	behind.health = AiRules.SPECIES["animals:hedgehog"].health
 	_check(life.in_front(person.position, Vector2(0, -1)) == deer and life.in_front(person.position, Vector2(0, 1)) == behind,
 		"a blow lands on the animal in front, the one behind only facing it")
+	_check(actions.strike(person, false).is_empty(), "a hand that is no weapon strikes only an animal right by the body")
 	var was := deer.health
 	var done := actions.strike(person)
 	_check(done.get("hit", false) and deer.health == was - 1 and not deer.gone, "bare hands hit the deer once (%d of %d)" % [deer.health, was])

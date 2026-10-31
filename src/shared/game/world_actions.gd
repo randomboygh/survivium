@@ -494,10 +494,11 @@ func act_in_front(who, top: int) -> Dictionary:
 				return _work(FRONT_PLACE_SWING, "reach", Vector3.INF)
 			return {"swing": IDLE_SWING}
 	var t: Dictionary = who.tool()
-	if Tools.hunts(t):
-		var blow := strike(who)
-		if not blow.is_empty():
-			return blow
+	# A sword or a knife goes for an animal in front first, any other hand for one
+	# right by the body.
+	var blow := strike(who, Tools.hunts(t))
+	if not blow.is_empty():
+		return blow
 	var work := front_choice(who)
 	if work.has("trunk"):
 		return chop(who, work.trunk)
@@ -526,15 +527,16 @@ func swing_air(who, at: Vector3) -> Dictionary:
 	return {"swing": IDLE_SWING}
 
 
-## A blow of the hand in use at the animal in front of `who` (Wildlife.in_front), with
-## the hand's power: the animal flees, or dies and leaves its carcass (its species'
-## `carcass`) on the ground where it fell. {} with no animal there.
-func strike(who) -> Dictionary:
+## A blow of the hand in use at the animal in front of `who` (Wildlife.in_front; only
+## one right by the body unless `far`), with the hand's power: the animal flees, or dies
+## and leaves its carcass (its species' `carcass`) on the ground where it fell. {} with
+## no animal there.
+func strike(who, far := true) -> Dictionary:
 	if wildlife == null:
 		return {}
 	var s: Vector2i = who.facing_step()
 	var at: Vector3 = who.position
-	var a = wildlife.in_front(at, Vector2(s))
+	var a = wildlife.in_front(at, Vector2(s), wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
 	if a == null or not who.act("swing"):
 		return {}
 	var t: Dictionary = who.tool()

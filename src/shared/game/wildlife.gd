@@ -788,9 +788,9 @@ const STRIKE_CONE := 0.35
 
 
 ## The animal a blow from `at` toward `dir` (over the ground, x east and y south)
-## lands on: the nearest on the ground within STRIKE_REACH in front, one that can be hit
-## (its species has `health`); null for none.
-func in_front(at: Vector3, dir: Vector2) -> Animal:
+## lands on: the nearest on the ground within `reach` (STRIKE_REACH) in front, one that
+## can be hit (its species has `health`); null for none.
+func in_front(at: Vector3, dir: Vector2, reach := STRIKE_REACH) -> Animal:
 	var best: Animal = null
 	var best_d := INF
 	var way := dir.normalized() if dir.length() > 0.01 else Vector2.ZERO
@@ -799,7 +799,7 @@ func in_front(at: Vector3, dir: Vector2) -> Animal:
 			continue
 		var off := Vector2(a.pos.x - at.x, a.pos.z - at.z)
 		var d := maxf(0.0, off.length() - a.radius)
-		if d > STRIKE_REACH or d >= best_d:
+		if d > reach or d >= best_d:
 			continue
 		if d > STRIKE_CLOSE and off.normalized().dot(way) < STRIKE_CONE:
 			continue

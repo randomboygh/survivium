@@ -466,7 +466,7 @@ func _hunt(id: String) -> bool:
 				at.y = life.ground(at.x, at.z)
 				prey = life._add(kinds[0], at)
 		# Close by, it is struck whichever way the player faces.
-		await _go(prey.pos + Vector3(0.0, 0.0, 0.3))
+		await _go(prey.pos + Vector3(0.0, 0.0, 0.15))
 		# The server has the body where the player was carried a frame later.
 		await process_frame
 		_rest()
