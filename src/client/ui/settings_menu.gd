@@ -461,7 +461,7 @@ func _section_rows(key: String) -> Array:
 				["Уровень и срез", ["выкл", "вкл"],
 					func() -> int: return int(s.values.level_buttons),
 					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
-				["Вид в пещере", ["срез уровней", "без стены"],
+				["Вид в пещере", ["срез уровней", "разрез по камере"],
 					func() -> int: return s.values.cave_view,
 					func(i: int) -> void: s.set_value("cave_view", i)],
 				["Кнопки камеры", ["выкл", "вкл"],

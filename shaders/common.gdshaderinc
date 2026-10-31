@@ -12,17 +12,13 @@ global uniform float cut_height;
 // 1 when the cut follows the player under a roof and what lies above shows as a ghost,
 // 0 when the player moved the cut by hand to look at the levels below.
 global uniform float cut_ghost;
-// 1 for the open cave view (setting «Вид в пещере»): above an automatic cut only what
-// stands between the camera and the player goes, the rest is drawn as on the surface
-// (see front_hides).
+// 1 for the cut in the plane of the camera (setting «Вид в пещере»): while the cut
+// follows the player, what stands in front of them above their feet goes and the rest
+// is drawn whole (see plane_hides).
 global uniform float cut_front;
-// PROTOTYPE cave looks: 0 as is, 1 lit caps and no ghost, 2 the same cut a level lower, 3 and a lantern.
-global uniform float cave_style;
-// PROTOTYPE: the floor the player can walk to (see reach_map.gd): r = level + 1 over 255.
-global uniform sampler2D reach_map : filter_nearest;
-global uniform vec2 reach_origin;
-// PROTOTYPE: solid cells round the player (see solid_map.gd): 32 levels from
-// solid_origin.y, a bit each in the texel's bytes.
+// The cells round the player that are solid (see SolidMap): one texel per column of a
+// SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
+// eight in each of r, g, b, a.
 global uniform sampler2D solid_map : filter_nearest;
 global uniform vec3 solid_origin;
 global uniform float snow_amount;
@@ -324,23 +320,36 @@ bool cut_dither(float y, vec2 texel) {
 	return band > (cut_ghost < 0.5 ? 3.5 : 2.5) || bayer4(texel) >= 0.5 / exp2(band);
 }
 
-// PROTOTYPE (cave_style 6): the cut in the plane of the camera. Behind the player all
-// stays, top to bottom; in front everything above their feet goes.
+// The cut in the plane of the camera is on: the setting, and the cut follows the
+// player (not a level picked by hand).
 bool plane_on() {
-	return cave_style > 5.5 && cut_height < 999.0 && cut_ghost > 0.5;
+	return cut_front > 0.5 && cut_ghost > 0.5 && cut_height < 999.0;
 }
 
-bool plane_hides(vec3 p) {
+// How much nearer the camera than the middle of the player's body a thing must be to
+// count as in front: the rock straight over the head goes, the wall behind stays.
+const float PLANE_MARGIN = 0.25;
+
+// How far nearer the camera than the plane through the middle of the player's body,
+// across the way the camera looks, `p` is, in world units along the image's up.
+float before_player(vec3 p) {
 	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
 	float toward = view_slope / view_squash;
-	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
-	return before > 0.25 && p.y > player_pos.y + 0.05;
+	return p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
 }
 
-// Whether the cell at p is solid, by solid_map; true outside it.
+// In the cut in the plane of the camera, true where `p` is cut away: in front of the
+// plane and above the player's feet. Behind the player everything stays, from the
+// floor far below to the top of the hill; in front the walls and the rock over them go,
+// and the floor stays.
+bool plane_hides(vec3 p) {
+	return before_player(p) > PLANE_MARGIN && p.y > player_pos.y + 0.05;
+}
+
+// Whether the cell holding `p` is solid by solid_map; true outside it.
 bool solid_at(vec3 p) {
 	vec3 c = floor(p / CELL) - solid_origin;
-	if (c.x < 0.0 || c.z < 0.0 || c.x >= 64.0 || c.z >= 64.0 || c.y < 0.0 || c.y >= 32.0) {
+	if (c.x < 0.0 || c.z < 0.0 || c.x >= 128.0 || c.z >= 128.0 || c.y < 0.0 || c.y >= 32.0) {
 		return true;
 	}
 	vec4 t = texelFetch(solid_map, ivec2(int(c.x), int(c.z)), 0);
@@ -349,18 +358,16 @@ bool solid_at(vec3 p) {
 	return ((int(byte * 255.0 + 0.5) >> (lv % 8)) & 1) != 0;
 }
 
-// Whether the section may show at p (a face behind the plane): the line of sight
-// through p crosses the plane above the player's feet inside rock, so what stood in
-// front was cut away there, not merely missing at a seam.
+// Whether the section of the cut may show at `p`, a point behind what it hides: the
+// line of sight through `p` leaves what is cut away (through the plane, or through the
+// level of the feet where the plane runs lower) inside rock, so the rock in front was
+// cut open there. A seam between two faces of the world lets the line of sight
+// through to the inside of the rock too, and must not show it.
 bool section_here(vec3 p) {
-	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
 	float toward = view_slope / view_squash;
 	vec3 d = unshear_dir(vec3(0.0, 1.0, 0.0));
-	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
 	float rate = d.y - dot(d.xz, view_up) * toward;
-	// Where the line leaves what the cut hides: through the plane, or through the
-	// level of the feet where the plane lies lower; just inside that.
-	vec3 q = p + d * ((0.25 - before) / rate);
+	vec3 q = p + d * ((PLANE_MARGIN - before_player(p)) / rate);
 	float feet = player_pos.y + 0.05;
 	if (q.y < feet) {
 		q = p + d * ((feet - p.y) / d.y);
@@ -368,39 +375,8 @@ bool section_here(vec3 p) {
 	return solid_at(q + d * 0.02);
 }
 
-// The open cave view (cut_front) is on and the cut follows the player.
-bool open_cut() {
-	return cut_front > 0.5 && cut_ghost > 0.5;
-}
-
-// How far round the player, on the screen and in world units, the open cave view
-// clears what stands in front of them, and the dithered rim beyond that.
-const float FRONT_WINDOW = 5.0;
-const float FRONT_RIM = 1.0;
-// How much nearer the camera than the middle of the player's body a thing must be to
-// count as in front: the rock straight over the head goes, the wall behind stays.
-const float FRONT_MARGIN = 0.25;
-
-// In the open cave view, true where the texel `texel` of a thing at `p` above the cut
-// lies nearer the camera than the player and within FRONT_WINDOW of them on the
-// screen: the near wall, the rock over the head and the slope in front go, and the
-// caps of the cut fill the rock they leave open; the back wall, the land above and
-// behind, and the floor stay whole and undimmed.
-bool front_hides(vec3 p, vec2 texel) {
-	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
-	float toward = view_slope / view_squash;
-	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
-	if (before <= FRONT_MARGIN) {
-		return false;
-	}
-	float near = length((texel + 0.5) / TEXELS - screen_plane(body));
-	float k = clamp((FRONT_WINDOW + FRONT_RIM - near) / FRONT_RIM, 0.0, 1.0);
-	return k >= 1.0 || bayer4(texel) < k;
-}
-
 // True where the texel `texel` of a thing at `p` is not drawn because of the cut: the
-// ghost of the levels above it (cut_dither), or in the open cave view what stands in
-// front of the player.
+// ghost of the levels above it (cut_dither), or what the plane cuts away.
 bool cut_hides(vec3 p, vec2 texel) {
 	if (plane_on()) {
 		return plane_hides(p);
@@ -408,10 +384,7 @@ bool cut_hides(vec3 p, vec2 texel) {
 	if (p.y <= cut_height + 0.01) {
 		return false;
 	}
-	if (cave_style > 0.5 && cave_style < 5.5 && cut_ghost > 0.5 && !open_cut()) {
-		return true;
-	}
-	return open_cut() ? front_hides(p, texel) : cut_dither(p.y, texel);
+	return cut_dither(p.y, texel);
 }
 
 bool above_cut(vec3 p) {
@@ -419,12 +392,9 @@ bool above_cut(vec3 p) {
 }
 
 // For what is too small to show as a ghost (plants, motes, sunlight): gone above the
-// cut, or in the open cave view only in front of the player.
+// cut, or what the plane cuts away.
 bool gone_above(vec3 p) {
-	if (plane_on()) {
-		return plane_hides(p);
-	}
-	return p.y > cut_height + 0.01 && (!open_cut() || front_hides(p, floor(screen_plane(p) * TEXELS)));
+	return plane_on() ? plane_hides(p) : p.y > cut_height + 0.01;
 }
 
 // The window round the player in crowns and trunks nearer the viewer, and the thinner
@@ -484,7 +454,7 @@ float low_through(vec2 texel, vec3 p) {
 // shows above the cut is a dim ghost, dimmer higher up.
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
-		if (open_cut() || plane_on()) {
+		if (plane_on()) {
 			return 0.0;
 		}
 		return clamp(0.35 + 0.03 * floor((y - cut_height) / CELL - 0.01), 0.0, 0.7);
@@ -557,10 +527,6 @@ float fog_at(vec3 p) {
 // it and the crowns stay clear.
 // rgb is the colour given off in place, a how much of the thing's own colour gives way.
 vec4 veil(vec3 p, float fade) {
-	if (cave_style > 2.5 && cave_style < 3.5 && cut_height < 999.0) {
-		// PROTOTYPE lantern: dark beyond the player's light.
-		fade = max(fade, clamp((length(p.xz - player_pos.xz) - 6.5) / 2.0, 0.0, 1.0));
-	}
 	if (fog <= 0.0) {
 		return vec4(depth_haze * fade, fade);
 	}

@@ -93,7 +93,7 @@ void vertex() {
 	light_xz = VERTEX.xz;
 #ifdef SECTION
 	// A hair farther from the camera than the faces in front, so the inside of the
-	// rock never shows at their edges.
+	// rock never wins over them at their edges.
 	VERTEX.y -= 0.02;
 #endif
 }
@@ -174,8 +174,11 @@ bool back_wall(vec3 p, vec3 n) {
 }
 
 void fragment() {
-	// PROTOTYPE (cave_style 6): a second pass (main.section_mat, culling the front
-	// faces) draws the inside of the rock the plane cuts open as the section.
+	// The cut in the plane of the camera (see plane_hides). Its section, the inside of
+	// the rock it cuts open, is drawn by a second pass of this shader with SECTION
+	// defined that draws the back faces (Main.section_mat, on while the setting is),
+	// and by the caps of the cut, which lie at the player's feet then (see
+	// ChunkStreamer.cap_level): both only where the plane truly cuts rock.
 	bool section = plane_on();
 #ifdef SECTION
 	if (IN_SHADOW_PASS || !section || plane_hides(world_pos) || !section_here(world_pos)) {
@@ -187,9 +190,10 @@ void fragment() {
 	if (!IN_SHADOW_PASS && !kept && above_cut(world_pos)) {
 		discard;
 	}
-	// PROTOTYPE: the caps at the feet show only through the cut.
-	if (section && !IN_SHADOW_PASS && int(packed.x + 0.5) % 64 != NONE && COLOR.r < 0.5
-			&& (material_bits[(int(packed.x + 0.5) % 64) / 3] & TRUNK) == 0 && !section_here(world_pos)) {
+	// A cap of the cut (dark, see build_cap), not a trunk's top in its crown.
+	int cap_tile = int(packed.x + 0.5) % 64;
+	bool cut_cap = cap_tile != NONE && COLOR.r < 0.5 && (material_bits[cap_tile / 3] & TRUNK) == 0;
+	if (section && cut_cap && !IN_SHADOW_PASS && !section_here(world_pos)) {
 		discard;
 	}
 	if (is_drift(packed.x, UV)) {
@@ -323,8 +327,8 @@ void fragment() {
 		if (code == 1 && dist[e] == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dist[e] == 0) {
-			// PROTOTYPE: in the plane cut the walls stand whole in the dark: softer lines.
-			col *= section && !top ? 0.85 : (top ? 0.45 : 0.6);
+			// In the plane cut the walls stand whole and in the dark: softer lines.
+			col *= top ? 0.45 : (section ? 0.85 : 0.6);
 		} else if (code == 2 && top && dist[e] == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dist[e] <= 1) {
@@ -453,64 +457,25 @@ void fragment() {
 			col *= 0.78;
 		}
 	}
-	if (cave_style > 3.5 && cave_style < 5.5 && cut_height < 999.0 && !cap && tile != NONE) {
-		// PROTOTYPE height map: a line at every level on walls, so a drop can be
-		// counted, and tops tinted by how far below the player they are.
-		if (!top && fract(world_pos.y / CELL + 0.001) < 1.0 / CELL_TEXELS) {
-			col *= 0.55;
-		}
-		if (top) {
-			float d = floor((player_pos.y - world_pos.y) / CELL + 0.5);
-			if (d > 0.5) {
-				col = mix(col, vec3(0.25, 0.35, 0.6) * dot(col, vec3(0.4)), clamp(d * 0.12, 0.0, 0.7));
-				col *= mod(d, 2.0) > 0.5 ? 0.9 : 1.0;
-			}
-		}
-	}
 	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
 	ALBEDO = col * (1.0 - veiled.a);
 	EMISSION = veiled.rgb;
-	if (cave_style > 0.5 && cave_style < 5.5 && cut_height < 999.0 && !IN_SHADOW_PASS) {
-		float d = length(world_pos.xz - player_pos.xz);
-		if (cap) {
-			EMISSION += col * 1.3;
-		}
-		if (cave_style > 4.5 && cave_style < 5.5 && top && !cap) {
-			// PROTOTYPE: the floor the player can walk to is lit, the rest dimmed.
-			vec2 rc = floor(world_pos.xz / CELL) - reach_origin;
-			float stood = rc.x >= 0.0 && rc.y >= 0.0 && rc.x < 64.0 && rc.y < 64.0
-				? floor(texelFetch(reach_map, ivec2(rc), 0).r * 255.0 + 0.5) - 1.0 : -1.0;
-			if (stood >= 0.0 && abs(stood - floor(world_pos.y / CELL + 0.5)) < 0.5) {
-				EMISSION += col * vec3(1.0, 0.9, 0.7) * 0.7;
-			} else {
-				ALBEDO *= 0.55;
-			}
-		}
-		if (cave_style > 2.5 && cave_style < 3.5) {
-			float glow = clamp((6.0 - d) / 3.0, 0.0, 1.0);
-			if (!cap) {
-				EMISSION += col * vec3(1.0, 0.85, 0.6) * 0.9 * glow;
-			}
-			float dark = clamp((d - 6.5) / 2.0, 0.0, 1.0);
-			EMISSION = mix(EMISSION, veiled.rgb, dark);
-		}
-	}
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
 	AO_LIGHT_AFFECT = 0.6;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
-	// The section: the inside of the rock the plane cuts (a back face) and the cap of
-	// the cut at the player's feet, in dots of the material's colour, a little darker.
-	bool inside = cap;
+	// The section, in dots of the material's colour, a little darker, unlit (a cap's
+	// colour carries its dark shade, 0.4, undone here).
+	bool inside = cut_cap;
 #ifdef SECTION
 	inside = true;
 #endif
 	if (section && inside) {
 		vec2 st = floor(screen_plane(world_pos) * TEXELS);
 		ALBEDO = vec3(0.0);
-		EMISSION = (cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
+		EMISSION = (cut_cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
 		clouds = 0.0;
 	}
 }

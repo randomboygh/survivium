@@ -22,9 +22,6 @@ const TouchStick := preload("res://src/client/input/touch_stick.gd")
 const TouchButton := preload("res://src/client/input/touch_button.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
-const SideCut := preload("res://src/client/ui/side_cut.gd")
-## PROTOTYPE (setting side_cut).
-var side_cut
 const MapView := preload("res://src/client/ui/map_view.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
@@ -192,8 +189,6 @@ func _ready() -> void:
 	row.add_child(_clock)
 	vitals = VitalsPanel.new()
 	_left.add_child(vitals)
-	side_cut = SideCut.new(game)
-	_left.add_child(side_cut)
 	vitals.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Over the whole top of the interface, which moves down under it.
 	perf = PerfPanel.new()
@@ -679,7 +674,6 @@ func update_state() -> void:
 	# The state stays in sight while the bag is open, by the food it may be eaten from.
 	vitals.pinned = bag.visible
 	vitals.update(game.character.vitals, get_process_delta_time())
-	side_cut.update(get_process_delta_time())
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))

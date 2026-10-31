@@ -149,28 +149,10 @@ const SHOTS := {
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
-	# The same and other hidden places in the open cave view (setting «Вид в пещере»):
-	# only what stands in front of the player goes.
-	"underground-open": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 1}},
-	"ground-cave-inside-open": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 1}},
-	"underground-s1": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 1}},
-	"ground-cave-inside-s1": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 1}},
-	"underground-s2": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 2}},
-	"ground-cave-inside-s2": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 2}},
-	"underground-s3": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 3}},
-	"ground-cave-inside-s3": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 3}},
-	"hard-cave": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 0}},
-	"hard-cave-open": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_view": 1}},
-	"hard-cave-s1": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 1}},
-	"hard-cave-s3": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 3}},
-	"hard-cave-s4": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 4}},
-	"hard-cave-s5": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 5}},
-	"hard-cave-s6": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 6}},
-	"underground-s6": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_style": 6}},
-	"ground-cave-inside-s6": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 6}},
-	"hard-cave-side": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"side_cut": true}},
-	"hard-cave-s7": {"time": 0.55, "season": 2, "at": [-1156, -219], "y": 26, "settings": {"cave_style": 6, "side_cut": true}},
-	"ground-cave-inside-s7": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_style": 6, "side_cut": true}},
+	# The same and another hidden place with the levels cut (setting «Вид в пещере»)
+	# instead of the default cut in the plane of the camera.
+	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 0}},
+	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 0}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.

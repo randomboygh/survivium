@@ -61,12 +61,10 @@ const DEFAULTS := {
 	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-LOWER..STEEPER).
 	# How a cave (or a ravine, or a hill over the player) is shown (see ChunkStreamer
 	# update_cut): 0 the levels above the player cut off, a dim ghost of them left, the
-	# ones below darker; 1 open: everything drawn as on the surface but what stands in
-	# front of the player near them on the screen (the shader global cut_front,
-	# front_hides in common.gdshaderinc).
-	"cave_view": 0,
-	"cave_style": 0,
-	"side_cut": false,
+	# ones below darker; 1 cut in the plane of the camera: behind the player all stays,
+	# in front of them what stands above their feet goes, the rock cut open in dots
+	# (the shader global cut_front, plane_hides in common.gdshaderinc).
+	"cave_view": 1,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
@@ -324,9 +322,6 @@ func apply() -> void:
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
 	game.controls.show_help = values.show_help
 	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_view == 1 else 0.0)
-	RenderingServer.global_shader_parameter_set("cave_style", float(values.cave_style))
-	if game.world_mat != null:
-		game.world_mat.next_pass = game.section_mat if values.cave_style >= 6 else null
 	var view = game.view
 	if view != null and view.target_height != PixelView.TARGET_HEIGHT / pixel_size():
 		view.target_height = PixelView.TARGET_HEIGHT / pixel_size()

@@ -188,6 +188,8 @@ var world_mat: ShaderMaterial
 ## The world shader for low things (chests, workbenches, campfires, things on the
 ## ground, snow drifts): the player's silhouette does not show behind them.
 var low_mat: ShaderMaterial
+## The section of the cut in the plane of the camera: the world shader drawing the back
+## faces (SECTION), world_mat's next pass while that cut is on (ChunkStreamer.update_cut).
 var section_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var grass_mat: ShaderMaterial
@@ -936,11 +938,7 @@ func _build_materials() -> void:
 		bits[m] = Mat.shader_bits[Mat.LOG] | Mat.TRUNK if Mat.LOG >= 0 else 0
 	world_mat.set_shader_parameter("corner_shapes", shapes)
 	world_mat.set_shader_parameter("material_bits", bits)
-	# PROTOTYPE (cave_style 6): the section pass, set as world_mat.next_pass by Settings.
-	var section := Shader.new()
-	section.code = WorldShader.code.replace("render_mode world_vertex_coords, cull_back;",
-		"render_mode world_vertex_coords, cull_front;\n#define SECTION")
-	section_mat = _material(section)
+	section_mat = _material(section_variant(WorldShader))
 	section_mat.set_shader_parameter("corner_shapes", shapes)
 	section_mat.set_shader_parameter("material_bits", bits)
 	low_mat = _material(low_variant(WorldShader))
@@ -995,6 +993,15 @@ static func low_variant(shader: Shader) -> Shader:
 	low.code = shader.code.replace("stencil_mode write, compare_always, 1;", "stencil_mode write, compare_always, 2;") \
 		.replace("stencil_mode write, compare_always, 3;", "stencil_mode write, compare_always, 2;")
 	return low
+
+
+## The world shader drawing only the back faces, for the section of the cut in the
+## plane of the camera (SECTION in world.gdshader).
+static func section_variant(shader: Shader) -> Shader:
+	var section := Shader.new()
+	section.code = shader.code.replace("render_mode world_vertex_coords, cull_back;",
+		"render_mode world_vertex_coords, cull_front;\n#define SECTION")
+	return section
 
 
 func _material(shader: Shader) -> ShaderMaterial:
