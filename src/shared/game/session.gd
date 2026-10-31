@@ -132,13 +132,13 @@ func step_players(delta: float) -> void:
 		workshops[i].update(d)
 
 
-## The animals: those near a player move every step, the rest now and then
+## The animals: those on a player's screen move every step, the rest now and then
 ## (Wildlife.look_from).
 func step_wildlife(delta: float) -> void:
 	if _wild:
 		var around: Array = []
 		for who in players:
-			around.append(who.position)
+			around.append([who.position, who.view_right, who.view_half])
 		wildlife.look_from(around)
 		wildlife.update(delta)
 

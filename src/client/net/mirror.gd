@@ -11,12 +11,16 @@ extends RefCounted
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 
 const CELL := WorldData.CELL
 
 var game
 ## The last INPUT sent: the next goes only when something changed.
 var _last: Array = []
+## World units past the screen's edge an animal still counts as looked at (it moves
+## every frame, so one walking in is already on its way; see Wildlife.look_from).
+const SEEN_MARGIN := 4.0
 
 
 func _init(g) -> void:
@@ -37,8 +41,12 @@ func send_input() -> void:
 	var c = game.controls
 	# The hands are copied: an Array made of the controls' shares their data, so the
 	# last input sent would change with them and never differ.
+	# The screen: half its size in world units (the tops keep their pixels a cell at any
+	# tilt, PixelView.squash 1), along the camera's right and across it.
+	var half: Vector2 = Vector2(game.view.viewport.size) / PixelView.PIXELS_PER_UNIT * 0.5 + Vector2.ONE * SEEN_MARGIN
 	var now: Array = [p.position, c.feet(), c.step(), [c.hands[0], c.hands[1]], c.active, c.brush,
-		p.body.move_input.length() > 0.1, p.body.swimming, p.body.jumped, p.body.air_jumps, p.body.bumped]
+		p.body.move_input.length() > 0.1, p.body.swimming, p.body.jumped, p.body.air_jumps, p.body.bumped,
+		PixelView.right, half]
 	if now == _last:
 		return
 	_last = now

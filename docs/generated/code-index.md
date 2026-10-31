@@ -263,7 +263,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 | `src/client/audio` | `src/client/input`, `src/client/ui`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/game` | `src/client/view`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
-| `src/client/net` | `src/server`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
+| `src/client/net` | `src/client/view`, `src/server`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/ui` | `src/client`, `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/view` | `src/client/ui`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/world` | `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/world` |

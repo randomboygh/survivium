@@ -41,7 +41,8 @@ const SPAWN_REACH := 80
 ## ground under them.
 const FAR_STEP := 0.1
 ## World units from a player within which an animal is looked at (`near`, see
-## look_from): it moves every frame, the others step now and then. The screen of a phone
+## look_from) when the player's screen is not known, and the most of a screen's half
+## size taken: it moves every frame, the others step now and then. The screen of a phone
 ## or a desktop shows at most about 25 units from the player to a corner, so a circle of
 ## this radius holds what any screen shows and little else (the near ones cost: a frame
 ## each, and the jostle grows with their number).
@@ -887,16 +888,28 @@ func _add(kind: String, pos: Vector3) -> Animal:
 	return a
 
 
-## Marks the animals within NEAR (over the ground) of one of the world points `from`
-## (the players, each with the screen around them) as looked at (`near`), the rest not.
+## Marks the animals on one of the players' screens as looked at (`near`), the rest
+## not: `from` has for each player [where they stand (Vector3), the way their screen's
+## width lies over the ground (Vector2, unit) and half its width and height in world
+## units (Vector2; see Character.view_half)]. A screen not told (zero) is a circle of
+## NEAR; a screen is taken as at most NEAR each way.
 func look_from(from: Array) -> void:
 	var near2 := NEAR * NEAR
 	for a in animals:
 		a.near = false
-		for at: Vector3 in from:
-			var dx := at.x - a.pos.x
-			var dz := at.z - a.pos.z
-			if dx * dx + dz * dz < near2:
+		for view: Array in from:
+			var at: Vector3 = view[0]
+			var dx := a.pos.x - at.x
+			var dz := a.pos.z - at.z
+			var half: Vector2 = view[2]
+			if half == Vector2.ZERO:
+				if dx * dx + dz * dz < near2:
+					a.near = true
+					break
+				continue
+			var right: Vector2 = view[1]
+			if absf(dx * right.x + dz * right.y) < minf(half.x, NEAR) \
+					and absf(dz * right.x - dx * right.y) < minf(half.y, NEAR):
 				a.near = true
 				break
 
