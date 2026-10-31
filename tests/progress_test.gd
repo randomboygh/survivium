@@ -318,10 +318,15 @@ func _tool_of_kind(kind: String) -> String:
 
 
 ## Sets placed thing `id` down from the bag in front of the player at the camp, with
-## the action button, turning round until there is room.
+## the action button, turning round until there is room; with many things set down
+## already, farther out round the camp.
 func _place(id: String) -> bool:
 	var before := _placed_count(id)
-	for shift in [Vector3.ZERO, Vector3(3, 0, 0), Vector3(-3, 0, 0), Vector3(0, 0, 3), Vector3(0, 0, -3)]:
+	var shifts := [Vector3.ZERO]
+	for r in [3, 6, 9]:
+		for d in [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, -1)]:
+			shifts.append(d * r)
+	for shift in shifts:
 		await _go(camp + shift * CELL)
 		for facing in SpriteSheet.COMPASS:
 			main.player.facing = facing

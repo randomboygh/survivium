@@ -361,6 +361,8 @@ const SHOTS := {
 		"drops": ["materials:iron_ore", "materials:iron_bloom", "materials:iron_bar", "materials:steel_bar", "tools:iron_axe", "tools:iron_pickaxe",
 			"tools:iron_sword", "tools:steel_axe", "tools:steel_pickaxe", "tools:steel_sword", "tools:steel_scythe", "tools:steel_shovel"]},
 	"craft-anvil": {"time": 0.42, "season": 1, "touch": true, "craft": true, "smith": true, "recipe": "tools:steel_axe"},
+	# Every recipe known: the list cut through its fifth row, the stations' column with arrows.
+	"craft-all": {"time": 0.42, "season": 1, "touch": true, "craft": true, "smith": true, "recipe": "tools:steel_axe", "know_all": true},
 	# A bronze pickaxe at its strike, and the things of tin and bronze lying on the ground.
 	"hands-bronze": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["materials:tin_ore", "materials:tin_bar", "materials:raw_crucible", "materials:crucible", "materials:bronze_bar", "tools:bronze_axe",

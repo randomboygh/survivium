@@ -410,6 +410,11 @@ func _run() -> void:
 				main.host.workshop.knowledge.seen.clear()
 				main.host.workshop.knowledge._known.clear()
 				main.hud.bag.craft.refresh_now()
+			if shot.get("know_all", false):
+				for r in Crafting.RECIPES:
+					main.host.workshop.knowledge._known[r.id] = true
+					main.workshop.knowledge._known[r.id] = true
+				main.hud.bag.craft.refresh_now()
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
 			if shot.has("on"):
