@@ -1,5 +1,6 @@
 extends Node3D
-## The animals drawn (the rules are Wildlife, src/shared): a sprite for each, put where
+## The animals drawn (the rules are Wildlife, src/shared, stepped by the world's
+## session): a sprite for each, put where
 ## it walks and turned the way it faces, and the paw prints it leaves (see tracks.gd).
 ## Animals off the screen move in steps (Wildlife.FAR_STEP), and their sprites are
 ## put again only then. A species' picture is its mod's sprites/creatures/<sprite>.png,
@@ -73,7 +74,6 @@ func _process(delta: float) -> void:
 	var seen := _seen()
 	for a in wildlife.animals:
 		a.near = seen.has_point(PixelView.screen_plane(a.pos))
-	wildlife.update(delta)
 	var beat := Time.get_ticks_msec() * 0.001 * FLAP_RATE
 	if _views != PixelView.box_views:
 		# The camera turns: every box again, for the views it may show.

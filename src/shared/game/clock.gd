@@ -370,7 +370,7 @@ func _next_weather() -> void:
 
 func _change_weather(delta: float, at: Vector3) -> void:
 	var winter := season == WINTER
-	if at != Vector3.INF:
+	if at != Vector3.INF and gen != null:
 		biome_clock -= delta
 		if biome_clock <= 0.0:
 			biome_clock = 5.0

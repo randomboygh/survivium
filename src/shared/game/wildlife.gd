@@ -176,7 +176,7 @@ var gen
 ## The clock, for the daylight that sets who is active.
 var clock
 ## Those the animals see as people (threats to the wary, see AiRules.HUMAN): anything
-## with a `position` in world units. Animals appear around the first of them.
+## with a `position` in world units. Animals appear around any of them (see _someone).
 var people := []
 var animals: Array[Animal] = []
 var rng := RandomNumberGenerator.new()
@@ -810,9 +810,9 @@ func _spawn_group(kind: String, most: int, away_from_people: bool) -> void:
 
 
 func _spawn(kind: String, away_from_people: bool) -> Animal:
-	# Within the ground made around the first of the people (on the client the
-	# player, see ChunkStreamer.LOAD_RANGE).
-	var around: Vector3 = people[0].position
+	# Within the ground made around one of the people (on the client the player, see
+	# ChunkStreamer.LOAD_RANGE).
+	var around: Vector3 = _someone().position
 	var px := floori(around.x / CELL)
 	var pz := floori(around.z / CELL)
 	var spec: Dictionary = AiRules.SPECIES[kind]
@@ -837,6 +837,12 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 			continue
 		return _add(kind, pos)
 	return null
+
+
+## One of the people for the animals to come around: the only one, else any; the roll is
+## spared with one, so a world played alone keeps its animals.
+func _someone():
+	return people[0] if people.size() == 1 else people[rng.randi() % people.size()]
 
 
 func _add(kind: String, pos: Vector3) -> Animal:

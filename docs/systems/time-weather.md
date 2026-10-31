@@ -14,7 +14,8 @@
 - `src/shared/game/real_weather.gd` — узел с `HTTPRequest`: место по IP (ipapi.co, ipwho.is), погода
   Open-Meteo, `apply(data)` → `clock.set_real_weather`. Сетевой сервис устройства в общей папке — место
   спорное (см. аудит).
-- `src/shared/game/storms.gd` — что делает сильный ветер: по чанку вокруг места за такт (`TICK` 0,25 с),
+- `src/shared/game/storms.gd` — что делает сильный ветер: по чанку вокруг места за такт (`TICK` 0,25 с;
+  `step_around(delta, места)` — игроки по очереди, `last_at`; зовёт сеанс мира),
   правила — `WorldActions.blow_branch` / `blow_berries`.
 - `src/client/view/sky.gd` — как это выглядит: свет, цветокор, облака, оттенки шейдеров
   (см. [rendering.md](rendering.md)); `src/client/audio/nature.gd` — как звучит.

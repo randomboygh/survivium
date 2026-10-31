@@ -27,9 +27,9 @@ signal made(recipe: Dictionary)
 var who
 ## The placed things (Placed), for the stations near.
 var placed
-## Whose `tool_wear` turns tool wear on and `instant_craft` makes a job take no time
-## (the playtest settings on the client).
-var settings
+## The rules of play (Rules): `tool_wear` turns tool wear on, `instant_craft` makes a
+## job take no time.
+var rules
 var queue := CraftQueue.new()
 var knowledge := Knowledge.new()
 ## The queue stands still while paused (the pause button of the craft tab); an empty
@@ -40,10 +40,10 @@ var paused := false:
 		changed.emit()
 
 
-func _init(by, things, with_settings) -> void:
+func _init(by, things, with_rules) -> void:
 	who = by
 	placed = things
-	settings = with_settings
+	rules = with_rules
 	# Methods, not lambdas: a lambda would keep the workshop, and the world through
 	# `placed`, alive by its own signals after the scene is gone.
 	who.inventory.changed.connect(_on_bag_changed)
@@ -114,7 +114,7 @@ func update(delta: float) -> void:
 	if paused:
 		return
 	# A job a frame when crafting is instant.
-	var work := 1e9 if settings.get("instant_craft") == true else delta
+	var work := 1e9 if rules.instant_craft else delta
 	for job: Dictionary in queue.step(work, _can_work):
 		var r: Dictionary = job.recipe
 		var got := Crafting.outputs(r, job.n)
@@ -162,7 +162,7 @@ func _receive(id: String, n: int) -> void:
 ## tool of a class the world does not know works as bare hands and does not wear by it.
 func use_tool() -> void:
 	var id: String = who.held()
-	if not Tools.is_tool_item(id) or not settings.tool_wear:
+	if not Tools.is_tool_item(id) or not rules.tool_wear:
 		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
 		who.say("Сломалось: %s" % Items.title(id))
@@ -171,7 +171,7 @@ func use_tool() -> void:
 ## Recipe `r` made wears a tool of each class it needs by its `wear` swings, when wear is
 ## on (a tool of any class: what lasts no swings, `durability` 0, does not wear).
 func _wear_tools(r: Dictionary) -> void:
-	if r.wear <= 0 or not settings.tool_wear:
+	if r.wear <= 0 or not rules.tool_wear:
 		return
 	for kind: String in r.tools:
 		var id := Tools.held_of(who.inventory, kind)

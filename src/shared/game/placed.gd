@@ -12,6 +12,7 @@ extends RefCounted
 ## client draws the things (Props) and rebuilds the chunks.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -45,9 +46,78 @@ var chest_items = null
 ## The solid boxes of a thing of a prop kind in each of its cells (see
 ## WorldData.blockers): kind -> [north-west, north-east, south-west, south-east], each
 ## in cell units from that cell's corner, with no size where the cell stays empty. The
-## shapes are the models' (on the client VoxelProps.footprint fills them in); a kind
-## not given fills its four cells.
+## shapes are the models' (read_footprints); a kind not given fills its four cells.
 var footprints := {}
+## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
+## it, its walls a voxel in from the edges of its cells.
+const CRATE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 1.0, 0.75))
+
+
+## Reads the solid boxes of every kind of thing placed from its model, so bodies go
+## round the things as they are drawn: the model of the first item with that `prop`
+## (its `model` PNG in its bundle, read as VoxelModel.from_image reads it, the slice's
+## corner at the cell's). A fire is not solid (it burns bodies instead); a kind without
+## a model gets the crate's boxes. Called once the mods are loaded, and again when they
+## are read anew.
+func read_footprints() -> void:
+	footprints = {}
+	for id in Items.IDS:
+		var rec := Items.get_item(id)
+		var kind: String = rec.get("prop", "none")
+		if kind == "none" or rec.get("fire", false) or footprints.has(kind):
+			continue
+		var name: String = rec.get("model", "")
+		var path := Content.asset(rec, "models/%s.png" % name) if name != "" else ""
+		if path != "" and ResourceLoader.exists(path):
+			footprints[kind] = footprint_of_image(load(path).get_image())
+		else:
+			footprints[kind] = [CRATE_BOX, CRATE_BOX, CRATE_BOX, CRATE_BOX]
+
+
+## The boxes of the model in `img`, a row of square slices (the image's height wide),
+## one per level from the ground up, a pixel of any alpha the voxel at its x and z (z
+## down the slice), the slice's corner at the thing's north-west cell.
+static func footprint_of_image(img: Image) -> Array[AABB]:
+	var voxels: Array[Vector3i] = []
+	var size := img.get_height()
+	if size > 0 and img.get_width() % size == 0:
+		for y in img.get_width() / size:
+			for z in size:
+				for x in size:
+					if img.get_pixel(y * size + x, z).a > 0.0:
+						voxels.append(Vector3i(x, y, z))
+	return footprint(voxels)
+
+
+## The boxes a thing on 2x2 cells of the voxels `voxels` (Vector3i each, an Array or the
+## keys of a Dictionary, 8 voxels a cell, from the north-west cell's corner) takes in
+## each of its cells, for WorldData.blockers: [north-west, north-east, south-west,
+## south-east], each in cell units from that cell's corner, with no size where it leaves
+## the cell empty. A layer much smaller than the one under it (a flint lying on a
+## workbench) is left out of the box's top, so it does not lift the player off the planks.
+static func footprint(voxels) -> Array[AABB]:
+	var lo: Array[Vector3i] = []
+	var hi: Array[Vector3i] = []
+	var layers: Array[Dictionary] = []
+	for i in 4:
+		lo.append(Vector3i(8, 0, 8))
+		hi.append(Vector3i.ZERO)
+		layers.append({})
+	for p: Vector3i in voxels:
+		var i := (p.z >> 3) * 2 + (p.x >> 3)
+		var q := Vector3i(p.x & 7, 0, p.z & 7)
+		lo[i] = lo[i].min(q)
+		hi[i] = hi[i].max(q + Vector3i(1, 0, 1))
+		layers[i][p.y] = layers[i].get(p.y, 0) + 1
+	var out: Array[AABB] = []
+	for i in 4:
+		var size := (hi[i] - lo[i]).max(Vector3i.ZERO)
+		var top := 0
+		for y: int in layers[i]:
+			if y + 1 > top and layers[i][y] * 4 >= layers[i].get(y - 1, 0):
+				top = y + 1
+		out.append(AABB(Vector3(lo[i].x, 0, lo[i].z) / 8.0, Vector3(size.x, top, size.z) / 8.0) if size.x > 0 else AABB())
+	return out
 
 
 ## True for a fire (its item's `fire`: what burns, see put_out and light).

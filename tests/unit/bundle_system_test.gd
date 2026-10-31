@@ -114,7 +114,7 @@ func _test_play(before: Array) -> void:
 		for x in 48:
 			w.set_cell(x, 0, z, Mat.STONE)
 			w.set_cell(x, 1, z, Mat.DIRT)
-	var actions := WorldActions.new(w, {"season": 1, "day": 0}, {"free_build": false})
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
 	var who := Who.new()
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	var bush := Vector3i(10, 2, 11)
@@ -132,7 +132,7 @@ func _test_play(before: Array) -> void:
 	who.item = ""
 	var placed := Placed.new()
 	placed.world = w
-	var shop := Workshop.new(who, placed, {"tool_wear": true, "instant_craft": true})
+	var shop := Workshop.new(who, placed, Rules.of({"tool_wear": true, "instant_craft": true}))
 	var scutch := Crafting.get_recipe("_ex:scutch")
 	var flax := who.inventory.count("_ex:flax")
 	_check(shop.start(scutch, 2) == 2 and who.inventory.count("_ex:flax") == flax - 2, "two bundles of flax are scutched")

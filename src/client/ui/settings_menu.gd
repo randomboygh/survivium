@@ -364,7 +364,7 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void: s.set_no_overload(i == 1)],
 				["Изготовление", ["по времени", "сразу"],
 					func() -> int: return int(s.instant_craft),
-					func(i: int) -> void: s.instant_craft = i == 1],
+					func(i: int) -> void: s.set_instant_craft(i == 1)],
 				["Голод", ["вкл", "выкл"],
 					func() -> int: return int(s.no_hunger),
 					func(i: int) -> void: s.set_no_hunger(i == 1)],

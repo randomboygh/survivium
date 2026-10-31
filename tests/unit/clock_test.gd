@@ -158,7 +158,7 @@ func _test_weather() -> void:
 	Trees.place(w, 24, 2, 24, Trees.first(Trees.BROAD), rng)
 	for key: Vector2i in w.chunks:
 		w.chunks[key].final = true
-	var actions := WorldActions.new(w, clock, {"free_build": false})
+	var actions := WorldActions.new(w, clock, Rules.new())
 	var storms := Storms.new(w, clock, actions)
 	clock.time_speed = 20.0
 	for i in 2000:

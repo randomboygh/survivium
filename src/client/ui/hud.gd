@@ -699,7 +699,7 @@ func _update_hands() -> void:
 	if game == null:
 		return
 	var c = game.controls
-	var free: bool = game.settings.free_build
+	var free: bool = game.rules.free_build
 	for h in 2:
 		var slot = _hand_left if h == 0 else _hand_right
 		var id: String = c.hands[h]

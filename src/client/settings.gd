@@ -258,6 +258,8 @@ func set_world_mod(id: String, on: bool) -> void:
 func reload_mods() -> void:
 	var problems := Mods.rescan()
 	VoxelProps.forget()
+	if game.placed != null:
+		game.placed.read_footprints()
 	if game.hud != null:
 		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else "Ошибок в данных: %d (см. консоль)" % problems.size())
 
@@ -273,6 +275,10 @@ func pixel_size() -> float:
 ## Pushes every setting into the modules. Safe to call before the world is built: what
 ## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
+	if game.rules != null:
+		game.rules.free_build = free_build
+		game.rules.tool_wear = tool_wear
+		game.rules.instant_craft = instant_craft
 	if game.clock != null:
 		game.clock.time_speed = time_speed() * time_boost
 		game.clock.real_time = values.real_time
@@ -476,6 +482,7 @@ func set_air_jumps(on: bool) -> void:
 ## from the bag, so turning it on puts one of each block the bag lacks into it.
 func set_free_build(on: bool) -> void:
 	free_build = on
+	apply()
 	if on and game.character != null:
 		for m in Mat.PLACEABLE:
 			if Items.placed_by[m] != "" and game.character.inventory.count(Items.placed_by[m]) == 0:
@@ -486,6 +493,12 @@ func set_free_build(on: bool) -> void:
 
 func set_tool_wear(on: bool) -> void:
 	tool_wear = on
+	apply()
+
+
+func set_instant_craft(on: bool) -> void:
+	instant_craft = on
+	apply()
 
 
 func set_no_overload(on: bool) -> void:

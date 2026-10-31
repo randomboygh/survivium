@@ -4,8 +4,9 @@ extends RefCounted
 ## downwind, and knocks the ripe berries off the bushes. A tree gives no more branches
 ## than its hands can break off in a year, so after a storm the forest has firewood
 ## lying about. The rules of each are WorldActions (blow_branch, blow_berries); this
-## picks which, one chunk of those around the place a tick, so a storm costs the same
-## little every frame. The autumn wind's leaf fall is the Clock's (leaf_fall).
+## picks which, one chunk of those around one of the places a tick (the players, each in
+## turn), so a storm costs the same little every frame. The autumn wind's leaf fall is
+## the Clock's (leaf_fall).
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -31,6 +32,10 @@ var rng := RandomNumberGenerator.new()
 var _clock := 0.0
 ## Which chunk of the square around the place comes next.
 var _next := 0
+## Which of the places comes next (see step_around).
+var _who := 0
+## Where the wind worked last, in world units; INF before it did.
+var last_at := Vector3.INF
 
 
 func _init(w, c, a) -> void:
@@ -40,16 +45,28 @@ func _init(w, c, a) -> void:
 	rng.seed = 7177
 
 
-## Runs the wind for `delta` seconds around world point `at` (the player on the client).
+## Runs the wind for `delta` seconds around world point `at`.
 func step(delta: float, at: Vector3) -> void:
+	step_around(delta, [at])
+
+
+## Runs the wind for `delta` seconds around the world points `around` (the players),
+## one of them a tick in turn; a tick does as much as the chunk waited for, so each
+## chunk gets the same wind however many places there are.
+func step_around(delta: float, around: Array) -> void:
 	_clock += delta
 	if _clock < TICK:
 		return
 	var waited := _clock
 	_clock = 0.0
 	var wind: float = clampf((clock.storm_wind - GALE) / (FULL - GALE), 0.0, 1.0)
-	if wind <= 0.0 or at == Vector3.INF:
+	if wind <= 0.0 or around.is_empty():
 		return
+	var at: Vector3 = around[_who % around.size()]
+	_who = (_who + 1) % around.size()
+	if at == Vector3.INF:
+		return
+	last_at = at
 	var side := 2 * REACH + 1
 	var i := _next
 	_next = (_next + 1) % (side * side)
@@ -57,8 +74,8 @@ func step(delta: float, at: Vector3) -> void:
 	var c = world.chunks.get(key)
 	if c == null or not c.final:
 		return
-	# Each chunk comes round once in side * side ticks.
-	var days: float = clock.days(waited * side * side) * wind
+	# Each chunk comes round once in side * side ticks of its place.
+	var days: float = clock.days(waited * side * side * around.size()) * wind
 	var dir: Vector2 = clock.wind_dir()
 	for col: Vector2i in world.tree_chunks.get(key, {}).keys():
 		if rng.randf() < BRANCH_RATE * days:

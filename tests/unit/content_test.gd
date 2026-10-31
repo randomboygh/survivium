@@ -646,9 +646,15 @@ func _test_crafting() -> void:
 func _test_layers() -> void:
 	var bad: Array = []
 	for path: String in _scripts("res://src/shared"):
-		if FileAccess.get_file_as_string(path).contains("res://src/client/"):
+		var text := FileAccess.get_file_as_string(path)
+		if text.contains("res://src/client/") or text.contains("res://src/server/"):
 			bad.append(path)
-	_check(bad.is_empty(), "src/shared loads nothing from src/client: %s" % [bad])
+	_check(bad.is_empty(), "src/shared loads nothing from src/client or src/server: %s" % [bad])
+	bad = []
+	for path: String in _scripts("res://src/client"):
+		if path != "res://src/client/net/local_host.gd" and FileAccess.get_file_as_string(path).contains("res://src/server/"):
+			bad.append(path)
+	_check(bad.is_empty(), "src/client loads src/server only from net/local_host.gd (the server in the game): %s" % [bad])
 	bad = []
 	for layer in [["content", ["world", "game"]], ["world", ["game"]]]:
 		for path: String in _scripts("res://src/shared/" + layer[0]):

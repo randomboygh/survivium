@@ -42,7 +42,8 @@ docs/                    эта документация
 | `src/shared/world/world_gen.gd` | генератор по стадиям и заданиям |
 | `src/client/world/chunk_streamer.gd` | что и когда строится в кадре: бюджеты, срез уровней |
 | `src/shared/game/world_actions.gd` | всё, что руки делают с миром |
-| `src/client/save_game.gd` | когда и что сохраняется; переводы старых сохранений |
+| `src/shared/game/session.gd` | сеанс мира: правила над миром, игроки, тик (то, что крутит сервер) |
+| `src/client/save_game.gd` | когда и что сохраняется (переводы старых сохранений — `world_store.gd`) |
 | `shaders/common.gdshaderinc` | общий код шейдеров: сдвиг 3/4, свет, крыша |
 | `tests/run_all.sh`, `.github/workflows/build.yml` | все проверки локально и в CI |
 
