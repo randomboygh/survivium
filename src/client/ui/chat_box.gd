@@ -37,6 +37,8 @@ func _init(g) -> void:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Runs only while lines fade (hear and open start it, _refresh stops it).
+	set_process(false)
 	add_theme_constant_override("separation", 4)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
@@ -129,8 +131,7 @@ func place(corner: Vector2, room: float) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not lines.is_empty():
-		_refresh()
+	_refresh()
 
 
 ## Shows the lines that are still fresh (all recent ones while open), fading the old.
@@ -159,6 +160,7 @@ func _refresh() -> void:
 		var bottom := position.y + size.y
 		reset_size()
 		position.y = floorf(bottom - size.y)
+	set_process(not shown.is_empty() and not open)
 	var labels := _list.get_children()
 	for i in labels.size():
 		var age: float = now - shown[i].at
