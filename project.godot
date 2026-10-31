@@ -92,6 +92,14 @@ reach_map={
 "type": "sampler2D",
 "value": ""
 }
+solid_map={
+"type": "sampler2D",
+"value": ""
+}
+solid_origin={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
 reach_origin={
 "type": "vec2",
 "value": Vector2(0, 0)

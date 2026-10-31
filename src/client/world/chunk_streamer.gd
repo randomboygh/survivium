@@ -148,6 +148,8 @@ var _whole := false
 var cut_level := -1
 ## PROTOTYPE (cave_style 5).
 var reach = null
+var solid = null
+const SolidMap := preload("res://src/client/world/solid_map.gd")
 const ReachMap := preload("res://src/client/world/reach_map.gd")
 var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
@@ -613,6 +615,8 @@ static func _fit_box(n: GeometryInstance3D) -> void:
 ## first, and tells the roof map and the props.
 func on_cell_changed(cell: Vector3i) -> void:
 	game.roof.touch(world, cell)
+	if solid != null:
+		solid.dirty = true
 	# The ground around the player may have risen or gone: look again.
 	sunk_at.y = -1000
 	if game.hud != null and game.hud.minimap != null:
@@ -679,6 +683,10 @@ func update_cut(delta: float) -> void:
 			indoor = true
 			break
 	var at := Vector3i(px, level, pz)
+	if game.settings.values.get("cave_style", 0) >= 6:
+		if solid == null:
+			solid = SolidMap.new()
+		solid.update(world, px, level, pz)
 	if game.settings.values.get("cave_style", 0) == 5:
 		if reach == null:
 			reach = ReachMap.new()

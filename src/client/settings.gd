@@ -325,6 +325,8 @@ func apply() -> void:
 	game.controls.show_help = values.show_help
 	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_view == 1 else 0.0)
 	RenderingServer.global_shader_parameter_set("cave_style", float(values.cave_style))
+	if game.world_mat != null:
+		game.world_mat.next_pass = game.section_mat if values.cave_style >= 6 else null
 	var view = game.view
 	if view != null and view.target_height != PixelView.TARGET_HEIGHT / pixel_size():
 		view.target_height = PixelView.TARGET_HEIGHT / pixel_size()

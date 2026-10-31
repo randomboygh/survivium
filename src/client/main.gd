@@ -188,6 +188,7 @@ var world_mat: ShaderMaterial
 ## The world shader for low things (chests, workbenches, campfires, things on the
 ## ground, snow drifts): the player's silhouette does not show behind them.
 var low_mat: ShaderMaterial
+var section_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var grass_mat: ShaderMaterial
 var leaves_mat: ShaderMaterial
@@ -935,6 +936,13 @@ func _build_materials() -> void:
 		bits[m] = Mat.shader_bits[Mat.LOG] | Mat.TRUNK if Mat.LOG >= 0 else 0
 	world_mat.set_shader_parameter("corner_shapes", shapes)
 	world_mat.set_shader_parameter("material_bits", bits)
+	# PROTOTYPE (cave_style 6): the section pass, set as world_mat.next_pass by Settings.
+	var section := Shader.new()
+	section.code = WorldShader.code.replace("render_mode world_vertex_coords, cull_back;",
+		"render_mode world_vertex_coords, cull_front;\n#define SECTION")
+	section_mat = _material(section)
+	section_mat.set_shader_parameter("corner_shapes", shapes)
+	section_mat.set_shader_parameter("material_bits", bits)
 	low_mat = _material(low_variant(WorldShader))
 	low_mat.set_shader_parameter("corner_shapes", shapes)
 	low_mat.set_shader_parameter("material_bits", bits)

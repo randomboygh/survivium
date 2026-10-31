@@ -21,6 +21,10 @@ global uniform float cave_style;
 // PROTOTYPE: the floor the player can walk to (see reach_map.gd): r = level + 1 over 255.
 global uniform sampler2D reach_map : filter_nearest;
 global uniform vec2 reach_origin;
+// PROTOTYPE: solid cells round the player (see solid_map.gd): 32 levels from
+// solid_origin.y, a bit each in the texel's bytes.
+global uniform sampler2D solid_map : filter_nearest;
+global uniform vec3 solid_origin;
 global uniform float snow_amount;
 // Height (world units) above which snow lies all year: the tops of high mountains (see
 // WorldData.SNOW_LINE and peak_snow).
@@ -331,6 +335,37 @@ bool plane_hides(vec3 p) {
 	float toward = view_slope / view_squash;
 	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
 	return before > 0.25 && p.y > player_pos.y + 0.05;
+}
+
+// Whether the cell at p is solid, by solid_map; true outside it.
+bool solid_at(vec3 p) {
+	vec3 c = floor(p / CELL) - solid_origin;
+	if (c.x < 0.0 || c.z < 0.0 || c.x >= 64.0 || c.z >= 64.0 || c.y < 0.0 || c.y >= 32.0) {
+		return true;
+	}
+	vec4 t = texelFetch(solid_map, ivec2(int(c.x), int(c.z)), 0);
+	int lv = int(c.y);
+	float byte = lv < 8 ? t.r : (lv < 16 ? t.g : (lv < 24 ? t.b : t.a));
+	return ((int(byte * 255.0 + 0.5) >> (lv % 8)) & 1) != 0;
+}
+
+// Whether the section may show at p (a face behind the plane): the line of sight
+// through p crosses the plane above the player's feet inside rock, so what stood in
+// front was cut away there, not merely missing at a seam.
+bool section_here(vec3 p) {
+	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
+	float toward = view_slope / view_squash;
+	vec3 d = unshear_dir(vec3(0.0, 1.0, 0.0));
+	float before = p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
+	float rate = d.y - dot(d.xz, view_up) * toward;
+	// Where the line leaves what the cut hides: through the plane, or through the
+	// level of the feet where the plane lies lower; just inside that.
+	vec3 q = p + d * ((0.25 - before) / rate);
+	float feet = player_pos.y + 0.05;
+	if (q.y < feet) {
+		q = p + d * ((feet - p.y) / d.y);
+	}
+	return solid_at(q + d * 0.02);
 }
 
 // The open cave view (cut_front) is on and the cut follows the player.

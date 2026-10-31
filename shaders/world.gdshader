@@ -25,7 +25,7 @@
 //   A snowdrift has tile 63 and UV = 4 + the vertex's place on the mound's round
 //          base, -0.5..0.5 (see drifts.gd)
 shader_type spatial;
-render_mode world_vertex_coords, cull_disabled;
+render_mode world_vertex_coords, cull_back;
 // Marks the pixels it wins as solid for the player's silhouette (1, see sprite_xray);
 // low props and snow drifts use a copy that marks them low (see main.low_variant).
 stencil_mode write, compare_always, 1;
@@ -91,6 +91,11 @@ void vertex() {
 	packed = UV2;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
+#ifdef SECTION
+	// A hair farther from the camera than the faces in front, so the inside of the
+	// rock never shows at their edges.
+	VERTEX.y -= 0.02;
+#endif
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
@@ -169,17 +174,22 @@ bool back_wall(vec3 p, vec3 n) {
 }
 
 void fragment() {
-	// PROTOTYPE (cave_style 6): the faces are drawn both sides; a back face seen is the
-	// inside of rock cut open by the plane, drawn flat and hatched as a section.
+	// PROTOTYPE (cave_style 6): a second pass (main.section_mat, culling the front
+	// faces) draws the inside of the rock the plane cuts open as the section.
 	bool section = plane_on();
-	if (!FRONT_FACING) {
-		if (IN_SHADOW_PASS || !section || plane_hides(world_pos)) {
-			discard;
-		}
+#ifdef SECTION
+	if (IN_SHADOW_PASS || !section || plane_hides(world_pos) || !section_here(world_pos)) {
+		discard;
 	}
+#endif
 	bool kept = back_wall(world_pos, world_normal);
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
 	if (!IN_SHADOW_PASS && !kept && above_cut(world_pos)) {
+		discard;
+	}
+	// PROTOTYPE: the caps at the feet show only through the cut.
+	if (section && !IN_SHADOW_PASS && int(packed.x + 0.5) % 64 != NONE && COLOR.r < 0.5
+			&& (material_bits[(int(packed.x + 0.5) % 64) / 3] & TRUNK) == 0 && !section_here(world_pos)) {
 		discard;
 	}
 	if (is_drift(packed.x, UV)) {
@@ -313,7 +323,8 @@ void fragment() {
 		if (code == 1 && dist[e] == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dist[e] == 0) {
-			col *= top ? 0.45 : 0.6;
+			// PROTOTYPE: in the plane cut the walls stand whole in the dark: softer lines.
+			col *= section && !top ? 0.85 : (top ? 0.45 : 0.6);
 		} else if (code == 2 && top && dist[e] == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dist[e] <= 1) {
@@ -335,7 +346,7 @@ void fragment() {
 		if (code == 1 && dd == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dd == 0) {
-			col *= 0.45;
+			col *= section && !top ? 0.85 : 0.45;
 		} else if (code == 2 && dd == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dd <= 1) {
@@ -492,7 +503,11 @@ void fragment() {
 	clouds = cloud_light(world_pos);
 	// The section: the inside of the rock the plane cuts (a back face) and the cap of
 	// the cut at the player's feet, in dots of the material's colour, a little darker.
-	if (section && (!FRONT_FACING || cap)) {
+	bool inside = cap;
+#ifdef SECTION
+	inside = true;
+#endif
+	if (section && inside) {
 		vec2 st = floor(screen_plane(world_pos) * TEXELS);
 		ALBEDO = vec3(0.0);
 		EMISSION = (cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
