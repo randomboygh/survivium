@@ -20,6 +20,7 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
+const ScrollColumn := preload("res://src/client/ui/scroll_column.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -28,6 +29,8 @@ const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const COLUMNS := 8
+## The rows of recipes shown whole before the list scrolls.
+const ROWS := 4
 const JOB_SLOT := 24
 ## What the queue's row keeps beside its cells, in UI pixels: the time and count over
 ## the progress, the pause and the two buttons to cancel.
@@ -53,7 +56,7 @@ var _take_up: Button
 var _fire: Button
 var _destroy: Button
 var _tabs: IconTabs
-var _stations: VBoxContainer
+var _stations: ScrollColumn
 var _scroll: ScrollContainer
 var _grid: GridContainer
 var _empty: Label
@@ -141,9 +144,8 @@ func _ready() -> void:
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_empty.custom_minimum_size.x = 160
 	cells.add_child(_empty)
-	_stations = VBoxContainer.new()
-	_stations.add_theme_constant_override("separation", 2)
-	_stations.custom_minimum_size.x = IconTabs.SIDE
+	# Past six stations the column scrolls as the hotbar does.
+	_stations = ScrollColumn.new(IconTabs.SIDE)
 	middle.add_child(_stations)
 
 	var bottom := VBoxContainer.new()
@@ -353,19 +355,21 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 	for id in near:
 		if not ids.has(id):
 			ids.append(id)
-	while _stations.get_child_count() < ids.size():
+	while _stations.items().size() < ids.size():
 		var chip := _chip(null, "")
 		chip.custom_minimum_size = Vector2(IconTabs.SIDE, IconTabs.SIDE - 2)
-		_stations.add_child(chip)
-	for i in _stations.get_child_count():
-		var chip: PanelContainer = _stations.get_child(i)
-		chip.visible = i < ids.size()
-		if not chip.visible:
+		_stations.add_item(chip)
+	var chips := _stations.items()
+	for i in chips.size():
+		var chip: PanelContainer = chips[i]
+		_stations.set_shown(chip, i < ids.size())
+		if i >= ids.size():
 			continue
 		var id: String = ids[i]
 		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id), "")
 		chip.tooltip_text = "Руками" if id == "" else "%s%s" % [Items.title(id), "" if near.has(id) else ": далеко"]
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
+	_stations.refresh()
 
 
 ## The panel of the recipe chosen: what it makes and its weight, a picture for each
@@ -482,8 +486,15 @@ func shrink_list(px: float) -> void:
 
 
 ## The cells as tall as their rows, up to the limit; true when that changed the height.
+## Past ROWS rows (or the room the window has) the list is cut through the middle of its
+## last row, so the half row shows there is more below to scroll to.
 func _fit_list() -> bool:
-	var h := float(mini(_cap, maxi(slot, ceili(_grid.get_combined_minimum_size().y))))
+	var full := maxi(slot, ceili(_grid.get_combined_minimum_size().y))
+	var row := slot + 4
+	var h := float(full)
+	if full > mini(_cap, ROWS * row):
+		var rows := clampi((mini(_cap, ROWS * row + slot / 2) - slot / 2) / row, 1, ROWS)
+		h = rows * row + slot / 2
 	if h == _scroll.custom_minimum_size.y:
 		return false
 	_scroll.custom_minimum_size.y = h
