@@ -21,6 +21,10 @@ static func prop(kind: String) -> VoxelModel:
 			return chest()
 		"forge":
 			return forge()
+		"loom":
+			return loom()
+		"potters_wheel":
+			return potters_wheel()
 	return null
 
 
@@ -50,6 +54,8 @@ static func drop(model: String) -> VoxelModel:
 			return _tool(_head(model), [Vector3i(4, 0, 2), Vector3i(4, 0, 3), Vector3i(3, 0, 4), Vector3i(2, 0, 5), Vector3i(1, 0, 5), Vector3i(0, 0, 6), Vector3i(-1, 0, 6), Vector3i(3, 1, 3)])
 		"torch":
 			return _torch()
+		"tar_torch":
+			return _torch(Color(0.12, 0.1, 0.08))
 		"copper_bar":
 			return _bar()
 		"charcoal":
@@ -84,6 +90,24 @@ static func drop(model: String) -> VoxelModel:
 			return _berries(Color(0.78, 0.13, 0.2))
 		"blueberry":
 			return _berries(Color(0.2, 0.24, 0.52))
+		"flax_stalks":
+			return _flax()
+		"linen_thread":
+			return _skein(Color(0.88, 0.84, 0.72))
+		"cloth":
+			return _cloth()
+		"tar":
+			return _tar()
+		"glass":
+			return _glass()
+		"raw_pot":
+			return _pot(Color(0.66, 0.6, 0.52))
+		"pot":
+			return _pot(Color(0.7, 0.4, 0.24))
+		"roasted_acorns":
+			return _roasted_acorns()
+		"lantern":
+			return _lantern()
 	return null
 
 
@@ -367,11 +391,11 @@ static func _sword(blade: Color) -> VoxelModel:
 	return m
 
 
-## A torch lying on the ground: a stick, its head wrapped and charred, an ember on it.
-static func _torch() -> VoxelModel:
+## A torch lying on the ground: a stick, its head wrapped and charred (`wrap`: tarred cloth
+## on a tar torch), an ember on it.
+static func _torch(wrap := Color(0.28, 0.2, 0.13)) -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.5, 0.35, 0.2)
-	var wrap := Color(0.28, 0.2, 0.13)
 	for x in range(-5, 3):
 		m.set_voxel(Vector3i(x, 0, 0), wood * (0.85 if x % 3 == 0 else 1.0))
 	for x in range(3, 6):
@@ -526,4 +550,181 @@ static func _cord() -> VoxelModel:
 				m.set_voxel(Vector3i(x, 0, z), cord * (0.85 if (x + z) % 2 == 0 else 1.0))
 	m.set_voxel(Vector3i(2, 0, 0), cord * 0.8)
 	m.set_voxel(Vector3i(3, 0, 1), cord * 0.8)
+	return m
+
+
+## A loom: two wooden uprights joined by beams, warp threads strung between them and a band
+## of woven cloth across the middle; it stands along x, its face to the south.
+static func loom() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.58, 0.4, 0.23)
+	var dark := Color(0.38, 0.25, 0.14)
+	var thread := Color(0.88, 0.84, 0.72)
+	var cloth := Color(0.8, 0.74, 0.6)
+	for y in range(0, 15):
+		for p in [Vector2i(1, 7), Vector2i(14, 7), Vector2i(1, 8), Vector2i(14, 8)]:
+			m.set_voxel(Vector3i(p.x, y, p.y), dark)
+	for x in range(1, 15):
+		for z in range(7, 9):
+			m.set_voxel(Vector3i(x, 14, z), wood)
+			m.set_voxel(Vector3i(x, 3, z), wood)
+	for x in range(3, 13):
+		for y in range(4, 14):
+			if y >= 7 and y <= 9:
+				m.set_voxel(Vector3i(x, y, 8), cloth * (0.9 if (x + y) % 2 == 0 else 1.0))
+			elif x % 2 == 0:
+				m.set_voxel(Vector3i(x, y, 8), thread)
+	# The feet, a bench in front for the weaver.
+	for x in range(0, 16):
+		if x < 3 or x > 12:
+			for z in range(4, 12):
+				m.set_voxel(Vector3i(x, 0, z), dark)
+	for x in range(5, 11):
+		for z in range(12, 14):
+			m.set_voxel(Vector3i(x, 4, z), wood)
+		m.set_voxel(Vector3i(x, 3, 12), dark)
+	for y in range(0, 4):
+		m.set_voxel(Vector3i(5, y, 13), dark)
+		m.set_voxel(Vector3i(10, y, 13), dark)
+	return m
+
+
+## A potter's wheel: a stone kick wheel at the foot, a wooden shaft, a round head with a
+## lump of clay turning on it, and a low bench to the south.
+static func potters_wheel() -> VoxelModel:
+	var m := VoxelModel.new()
+	var stone := Color(0.52, 0.51, 0.5)
+	var wood := Color(0.58, 0.4, 0.23)
+	var dark := Color(0.38, 0.25, 0.14)
+	var clay := Color(0.7, 0.44, 0.3)
+	for z in range(1, 15):
+		for x in range(1, 15):
+			var d := Vector2(x - 7.5, z - 7.5).length()
+			if d < 6.0:
+				m.set_voxel(Vector3i(x, 0, z), stone * (0.9 if (x + z) % 3 == 0 else 1.0))
+				m.set_voxel(Vector3i(x, 1, z), stone * (1.05 if d < 5.0 else 0.85))
+	for y in range(2, 8):
+		for x in range(7, 9):
+			for z in range(7, 9):
+				m.set_voxel(Vector3i(x, y, z), dark)
+	for z in range(3, 13):
+		for x in range(3, 13):
+			if Vector2(x - 7.5, z - 7.5).length() < 4.8:
+				m.set_voxel(Vector3i(x, 8, z), wood * (0.9 if (x * 3 + z) % 5 == 0 else 1.0))
+	for y in range(9, 12):
+		for z in range(6, 10):
+			for x in range(6, 10):
+				if y < 11 or (x > 6 and x < 9 and z > 6 and z < 9):
+					m.set_voxel(Vector3i(x, y, z), clay * (1.1 if y == 11 else 1.0))
+	return m
+
+
+## Flax stalks in a bundle, blue flowers at one end.
+static func _flax() -> VoxelModel:
+	var m := VoxelModel.new()
+	var stalk := Color(0.45, 0.58, 0.28)
+	var flower := Color(0.42, 0.5, 0.88)
+	for z in range(-1, 2):
+		for x in range(-4, 3):
+			m.set_voxel(Vector3i(x, 0, z), stalk * (0.85 if (x + z) % 2 == 0 else 1.0))
+		m.set_voxel(Vector3i(3, 0, z), flower)
+	m.set_voxel(Vector3i(4, 0, 0), flower * 1.15)
+	m.set_voxel(Vector3i(-1, 1, 0), Color(0.72, 0.6, 0.38))
+	return m
+
+
+## A skein of thread of colour `c`.
+static func _skein(c: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-2, 3):
+		for z in range(-1, 2):
+			m.set_voxel(Vector3i(x, 0, z), c * (0.85 if x % 2 == 0 else 1.0))
+	for x in range(-1, 2):
+		m.set_voxel(Vector3i(x, 1, 0), c * 1.05)
+	return m
+
+
+## A folded piece of cloth, a few layers high.
+static func _cloth() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cloth := Color(0.86, 0.8, 0.66)
+	for y in range(0, 2):
+		for z in range(-2, 3):
+			for x in range(-3, 3):
+				m.set_voxel(Vector3i(x, y, z), cloth * (0.82 if z == 2 or (y == 0 and x == -3) else 1.0))
+	return m
+
+
+## A lump of tar: a black blob with a shine on top.
+static func _tar() -> VoxelModel:
+	var m := VoxelModel.new()
+	var tar := Color(0.1, 0.08, 0.07)
+	for z in range(-2, 2):
+		for x in range(-2, 2):
+			if absi(x * 2 + 1) + absi(z * 2 + 1) < 7:
+				m.set_voxel(Vector3i(x, 0, z), tar)
+	m.set_voxel(Vector3i(0, 1, 0), tar)
+	m.set_voxel(Vector3i(-1, 1, -1), Color(0.35, 0.3, 0.26))
+	return m
+
+
+## A pane of greenish glass lying flat, a pale edge.
+static func _glass() -> VoxelModel:
+	var m := VoxelModel.new()
+	var glass := Color(0.55, 0.78, 0.7)
+	for z in range(-2, 2):
+		for x in range(-3, 3):
+			var edge := x == -3 or x == 2 or z == -2 or z == 1
+			m.set_voxel(Vector3i(x, 0, z), glass * (1.25 if edge else 1.0))
+	return m
+
+
+## A clay pot of colour `c` standing on the ground.
+static func _pot(c: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in range(0, 5):
+		var r := 1.6 if y == 0 or y == 4 else 2.4
+		for z in range(-3, 3):
+			for x in range(-3, 3):
+				var d := Vector2(x + 0.5, z + 0.5).length()
+				if d > r:
+					continue
+				if y == 4 and d < 1.0:
+					continue
+				m.set_voxel(Vector3i(x, y, z), c * (0.85 if x == -3 or z == 2 else 1.0))
+	return m
+
+
+## A few roasted acorns, dark caps.
+static func _roasted_acorns() -> VoxelModel:
+	var m := VoxelModel.new()
+	for p in [Vector2i(-2, -1), Vector2i(1, 0), Vector2i(-1, 1)]:
+		for x in 2:
+			for z in 2:
+				m.set_voxel(Vector3i(p.x + x, 0, p.y + z), Color(0.5, 0.32, 0.16))
+				m.set_voxel(Vector3i(p.x + x, 1, p.y + z), Color(0.28, 0.2, 0.13))
+	return m
+
+
+## A lantern: a copper frame round green glass, a glow inside, a ring on top.
+static func _lantern() -> VoxelModel:
+	var m := VoxelModel.new()
+	var frame := COPPER
+	var glass := Color(0.6, 0.82, 0.72)
+	var glow := Color(1.0, 0.75, 0.3)
+	for y in range(0, 7):
+		for z in range(-1, 2):
+			for x in range(-1, 2):
+				var rim := y == 0 or y == 6
+				var corner := absi(x) == 1 and absi(z) == 1
+				if rim or corner:
+					m.set_voxel(Vector3i(x, y, z), frame * (0.85 if y == 0 else 1.0))
+				elif x == 0 and z == 0 and y >= 2 and y <= 4:
+					m.set_voxel(Vector3i(x, y, z), glow)
+				else:
+					m.set_voxel(Vector3i(x, y, z), glass)
+	m.set_voxel(Vector3i(0, 7, 0), frame)
+	m.set_voxel(Vector3i(0, 8, -1), frame)
+	m.set_voxel(Vector3i(0, 8, 1), frame)
+	m.set_voxel(Vector3i(0, 9, 0), frame)
 	return m

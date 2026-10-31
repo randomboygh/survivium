@@ -343,6 +343,11 @@ const SHOTS := {
 	# A forge set down with the rest, closed; and open, a copper bar being smelted in it.
 	"forge": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true, "forge": true},
 	"craft-forge": {"time": 0.42, "season": 1, "touch": true, "craft": true, "forge": true, "recipe": "tools:copper_bar"},
+	# A loom and a potter's wheel set down by the workbench and kiln, closed, the new things of
+	# flax, tar, pottery and glass lying in front; and the loom open, linen cloth being woven.
+	"weave": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "weave": true,
+		"drops": ["plants:flax_stalks", "plants:linen_thread", "materials:cloth", "materials:tar", "materials:glass", "tools:raw_pot", "tools:pot", "tools:lantern", "tools:tar_torch", "plants:roasted_acorns"]},
+	"craft-loom": {"time": 0.42, "season": 1, "touch": true, "craft": true, "weave": true, "recipe": "plants:cloth"},
 	# A copper pickaxe at its strike, and copper tools lying on the ground.
 	"hands-copper": {"time": 0.42, "season": 1, "hands": {"tool": "tools:copper_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["tools:copper_axe", "tools:copper_sword", "tools:copper_scythe", "tools:copper_shovel", "materials:copper_bar", "materials:charcoal"]},

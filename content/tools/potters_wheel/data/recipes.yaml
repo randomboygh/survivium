@@ -1,0 +1,21 @@
+# Рецепты бандла «Гончарный круг»: круг — на верстаке; на круге сырой горшок из глины
+# («Ресурсы»), обжигают его в печи для обжига. Поля рецепта — docs/DATA_MODEL.md.
+- id: potters_wheel
+  title: Гончарный круг
+  makes: potters_wheel
+  needs: {materials:planks: 4, resources:stone: 4, resources:branch: 2}
+  at: workbench
+  time: 8
+- id: raw_pot
+  title: Сырой горшок
+  makes: raw_pot
+  needs: {resources:clay: 3}
+  at: potters_wheel
+  time: 5
+- id: pot
+  title: Глиняный горшок
+  makes: pot
+  needs: {raw_pot: 1}
+  at: kiln
+  process: smelt
+  time: 6

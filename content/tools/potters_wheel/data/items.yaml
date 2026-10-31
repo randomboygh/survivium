@@ -1,0 +1,25 @@
+# Гончарный круг (prop: potters_wheel): на нём лепят сырой горшок из глины, а обжигают его в печи
+# для обжига. Горшок нужен в сумке, когда в печи выгоняют смолу и когда на костре жарят жёлуди
+# (keeps рецептов: он не тратится), потом в нём будут варить и носить воду. Поля — как у предметов
+# основы (content/core/data/items.yaml).
+- id: potters_wheel
+  title: Гончарный круг
+  weight: 12.0
+  stack: 1
+  icon: potters_wheel
+  model: potters_wheel
+  prop: potters_wheel
+- id: raw_pot
+  title: Сырой горшок
+  description: Вылепленный из глины горшок. Его ещё нужно обжечь в печи.
+  weight: 1.2
+  stack: 5
+  model: raw_pot
+  icon: raw_pot
+- id: pot
+  title: Глиняный горшок
+  description: Обожжённый горшок. В нём выгоняют смолу и жарят жёлуди; сам он не тратится.
+  weight: 1.0
+  stack: 5
+  model: pot
+  icon: pot

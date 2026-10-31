@@ -1,0 +1,6 @@
+# Смоляной факел: ветка, ткань и смола («Материалы»), руками.
+- id: tar_torch
+  title: Смоляной факел
+  makes: tar_torch
+  needs: {resources:branch: 1, materials:cloth: 1, materials:tar: 1}
+  time: 3

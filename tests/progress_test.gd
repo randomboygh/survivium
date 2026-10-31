@@ -347,6 +347,9 @@ func _tidy() -> void:
 ## One go at getting item `id` from the world. False when there is no way.
 func _gather(id: String) -> bool:
 	for s: Dictionary in Trees.SPECIES:
+		if id == s.seed:
+			return await _tree_seed(id)
+	for s: Dictionary in Trees.SPECIES:
 		if id == s.twig:
 			return await _branch()
 		if id == s.log:
@@ -401,8 +404,53 @@ func _branch() -> bool:
 	return _fail("no bush or tree with branches found")
 
 
-## Fells the nearest tree with an axe and takes up its logs.
-func _fell() -> bool:
+## Gathers by hand from the nearest tree whose seed is `id` (an acorn off an oak) while
+## it has seeds left (in autumn); out of season fells such a tree for the seeds it leaves.
+func _tree_seed(id: String) -> bool:
+	if not _seeds_on_trees(id):
+		return await _fell(id)
+	main.controls.put_in_hand("", -1, false)
+	var who = main.character
+	var w = main.world
+	for attempt in MAX_TRIPS:
+		var best := Vector2i.MAX
+		var best_d := INF
+		var feet: Vector3i = main.controls.feet()
+		for col: Vector2i in w.trees:
+			if Trees.SPECIES[w.trees[col]].seed != id:
+				continue
+			var d := Vector2(col.x - feet.x, col.y - feet.z).length()
+			if d < best_d and d < SEARCH and w.log_col(col.x, col.y) != 0 and main.actions.useful(who, {"tree": col}) \
+					and main.actions._gives(who, {"tree": col}) == [id]:
+				best = col
+				best_d = d
+		if best != Vector2i.MAX:
+			await _stand_by(_foot(best))
+			_rest()
+			swings += 1
+			if not main.gathering.gather({"tree": best}):
+				return _fail("hands take no %s from the tree at %s" % [Items.title(id), best])
+			await process_frame
+			return true
+		if not await _trip():
+			break
+	return _fail("no tree with %s found" % Items.title(id))
+
+
+## Whether a tree within reach of the player holds seeds `id` to gather by hand now.
+func _seeds_on_trees(id: String) -> bool:
+	var w = main.world
+	var feet: Vector3i = main.controls.feet()
+	for col: Vector2i in w.trees:
+		if Trees.SPECIES[w.trees[col]].seed == id and Vector2(col.x - feet.x, col.y - feet.z).length() < SEARCH \
+				and main.actions._gives(main.character, {"tree": col}) == [id]:
+			return true
+	return false
+
+
+## Fells the nearest tree with an axe and takes up its logs (with `seed`, the nearest
+## tree of the species with that seed, for the seeds it leaves).
+func _fell(seed := "") -> bool:
 	if _tool_of_kind("axe") == "" and not await _get_tool("axe"):
 		return false
 	main.controls.put_in_hand(_tool_of_kind("axe"), -1, false)
@@ -412,6 +460,8 @@ func _fell() -> bool:
 		var best := Vector2i.MAX
 		var best_d := INF
 		for col: Vector2i in w.trees:
+			if seed != "" and Trees.SPECIES[w.trees[col]].seed != seed:
+				continue
 			var d := Vector2(col.x - feet.x, col.y - feet.z).length()
 			if d < best_d and d < SEARCH and w.log_col(col.x, col.y) != 0 and Vector2(col.x, col.y).distance_to(
 					Vector2(camp.x, camp.z) / CELL) > 6:

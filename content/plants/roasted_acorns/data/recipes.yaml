@@ -1,0 +1,10 @@
+# Рецепт бандла «Жареные жёлуди»: жёлуди «Дуба» калят на костре основы в глиняном горшке «Инструментов» (бандл
+# «Гончарный круг»; горшок нужен в сумке и не тратится). Поля рецепта — docs/DATA_MODEL.md.
+- id: roasted_acorns
+  title: Жареные жёлуди
+  makes: roasted_acorns
+  needs: {acorn: 6}
+  keeps: {tools:pot: 1}
+  at: core:campfire
+  process: cook
+  time: 5

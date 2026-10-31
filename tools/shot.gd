@@ -398,7 +398,7 @@ func _run() -> void:
 					main.hud.open_prop(e)
 					break
 		if shot.get("craft", false):
-			_craft(shot.get("forge", false))
+			_craft(shot.get("forge", false), shot.get("weave", false))
 			if shot.has("recipe"):
 				main.host.player.inventory.add("materials:cord", 2)
 				main.hud.bag.craft._choose(shot.recipe)
@@ -575,7 +575,7 @@ func _run() -> void:
 			while not main.host.workshop.queue.jobs.is_empty():
 				main.host.workshop.queue.cancel(0)
 			for e in main.session.placed.things.duplicate():
-				if e.item in ["tools:workbench", "tools:kiln", "tools:forge"]:
+				if e.item in ["tools:workbench", "tools:kiln", "tools:forge", "tools:loom", "tools:potters_wheel"]:
 					main.session.placed.take_up(main.host.player, e)
 			main.host.player.inventory.take_all()
 		if shot.get("chest", false):
@@ -597,7 +597,9 @@ func _run() -> void:
 ## open at the workbench.
 ## With `forge`, a forge too, to the north, with ore, charcoal and bars in the bag, a copper
 ## bar being smelted, the craft tab open at the forge.
-func _craft(forge := false) -> void:
+## With `weave`, a loom to the north and a potter's wheel to the west in place of the chest,
+## linen thread, cord and clay in the bag, linen cloth being woven, the craft tab at the loom.
+func _craft(forge := false, weave := false) -> void:
 	var inv = main.host.player.inventory
 	for st in [["resources:fiber", 14], ["resources:branch", 16], ["resources:flint", 3], ["resources:log", 2], ["resources:clay", 6],
 			["tools:workbench", 1], ["tools:kiln", 1], ["tools:chest", 1]]:
@@ -607,7 +609,14 @@ func _craft(forge := false) -> void:
 	main.player.facing = "e"
 	main.props.put_from_bag("tools:kiln")
 	main.player.facing = "w"
-	main.props.put_from_bag("tools:chest")
+	if weave:
+		for st in [["tools:loom", 1], ["tools:potters_wheel", 1], ["plants:linen_thread", 12], ["materials:cord", 8], ["tools:pot", 1]]:
+			inv.add(st[0], st[1])
+		main.props.put_from_bag("tools:potters_wheel")
+		main.player.facing = "n"
+		main.props.put_from_bag("tools:loom")
+	else:
+		main.props.put_from_bag("tools:chest")
 	var station := "tools:workbench"
 	var recipe := "materials:cord"
 	if forge:
@@ -617,6 +626,9 @@ func _craft(forge := false) -> void:
 		main.props.put_from_bag("tools:forge")
 		station = "tools:forge"
 		recipe = "tools:copper_bar"
+	if weave:
+		station = "tools:loom"
+		recipe = "plants:cloth"
 	main.player.facing = "s"
 	var shop = main.host.workshop
 	shop.start(Crafting.get_recipe(recipe), 2)

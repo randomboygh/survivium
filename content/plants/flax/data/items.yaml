@@ -1,0 +1,16 @@
+# Предметы бандла «Лён»: стебли и нить из них. Поля — как у предметов основы
+# (content/core/data/items.yaml).
+- id: flax_stalks
+  title: Стебли льна
+  description: Срезанный дикий лён. Из него прядут льняную нить.
+  weight: 0.05
+  stack: 50
+  model: flax_stalks
+  icon: flax_stalks
+- id: linen_thread
+  title: Льняная нить
+  description: Тонкая прочная нить. На ткацком станке из неё ткут ткань.
+  weight: 0.03
+  stack: 50
+  model: linen_thread
+  icon: linen_thread

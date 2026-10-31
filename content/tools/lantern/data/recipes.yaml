@@ -1,0 +1,7 @@
+# Рецепт бандла «Фонарь»: стекло, медный слиток и смола («Материалы») на верстаке.
+- id: lantern
+  title: Фонарь
+  makes: lantern
+  needs: {materials:glass: 2, materials:copper_bar: 1, materials:tar: 1}
+  at: workbench
+  time: 8

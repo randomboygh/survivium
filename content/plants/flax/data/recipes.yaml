@@ -1,0 +1,16 @@
+# Рецепты бандла «Лён»: нить прядут руками, ткань ткут на ткацком станке «Инструментов»
+# (бандл «Ткацкий станок»); ткань — «Материалов». Поля рецепта — docs/DATA_MODEL.md.
+- id: linen_thread
+  title: Льняная нить
+  makes: linen_thread
+  needs: {flax_stalks: 3}
+  process: refine
+  time: 3
+- id: cloth
+  title: Льняная ткань
+  makes: materials:cloth
+  count: 2
+  needs: {linen_thread: 4}
+  at: tools:loom
+  process: refine
+  time: 6

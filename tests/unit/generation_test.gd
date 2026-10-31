@@ -437,7 +437,8 @@ func _test_custom_plants() -> void:
 		"custom plants take the kinds after the engine's, a kind per frame")
 	var by_where := {}
 	for c in Plants.CUSTOM:
-		by_where[c.grows] = c.id
+		if not by_where.has(c.grows):
+			by_where[c.grows] = c.id
 	_check(by_where.has("shade") and by_where.has("meadow") and by_where.has("bank"), "the test plants grow in the shade, the open and on the banks")
 	var strips := _woods()
 	var w: WorldData = strips.world
