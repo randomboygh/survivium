@@ -7,10 +7,13 @@ extends RefCounted
 ## gave; one who says goodbye (BYE) a short while. The host's commands (command): who,
 ## say, kick, stop. Each message is one binary frame; the reply to HELLO goes before
 ## the events of joining (the client knows who it is before its copies fill), and the
-## events of any other request before its reply, as over the loop.
+## events of any other request before its reply, as over the loop. With a `store`
+## (ServerStore, С4) a character that leaves the world is saved and a player who comes
+## back with their key, after a restart too, gets it again; stop saves everything.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const PlayerLink := preload("res://src/server/player_link.gd")
+const ServerStore := preload("res://src/server/server_store.gd")
 const Config := preload("res://src/server/config.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -75,6 +78,8 @@ class Account extends RefCounted:
 
 var session
 var config: Config
+## The save (ServerStore), null for a world not saved.
+var store
 ## What the welcome tells of the world: seed, settings, mods, materials, spawn.
 var world_info := {}
 var tcp := TCPServer.new()
@@ -218,6 +223,11 @@ func kick(a: Account, why: String) -> void:
 
 ## Closes every connection; the characters leave the world.
 func stop() -> void:
+	if store != null and not stopping:
+		if store.save(self):
+			_say("мир сохранён")
+		else:
+			_say("мир не сохранить: см. ошибки выше")
 	stopping = true
 	for peer in peers:
 		if peer.ws.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
@@ -284,11 +294,18 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.rejoin()
 		_say("%s (%d): снова на связи с %s" % [a.name, a.id, peer.address])
 	else:
+		# One who was here before (the character left the world, or the server was
+		# restarted) comes back to it by the key.
+		var record: Dictionary = store.read_player(key) if store != null and key != "" else {}
 		a = Account.new()
-		a.id = next_id
-		next_id += 1
+		if record.is_empty():
+			a.id = next_id
+			a.key = Crypto.new().generate_random_bytes(16).hex_encode()
+		else:
+			a.id = int(record.id)
+			a.key = key
+		next_id = maxi(next_id, a.id + 1)
 		a.name = name
-		a.key = Crypto.new().generate_random_bytes(16).hex_encode()
 		a.link = PlayerLink.new(session)
 		a.link.snap_every = SNAP_EVERY
 		a.link.people_every = PEOPLE_EVERY
@@ -296,14 +313,18 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.who.id = a.id
 		a.link.who.player_name = a.name
 		a.link.who.check_moves = true
-		a.link.who.start_bag()
-		a.link.who.teleport(world_info.spawn)
+		if record.is_empty():
+			a.link.who.start_bag()
+			a.link.who.teleport(world_info.spawn)
+		else:
+			ServerStore.restore(a.link, record)
 		a.link.who.find_home(session.placed)
 		accounts[a.key] = a
 		if not wild:
 			wild = true
 			session.start_wildlife(int(world_info.seed))
-		_say("%s (%d): вход с %s (%d из %d)" % [a.name, a.id, peer.address, online() + 1, config.max_players])
+		_say("%s (%d): %s с %s (%d из %d)" % [a.name, a.id, "вход" if record.is_empty() else "возвращается",
+			peer.address, online() + 1, config.max_players])
 	a.peer = peer
 	a.left_at = -1.0
 	a.linger = LINGER
@@ -345,10 +366,12 @@ func _dropped(peer: Peer) -> void:
 	_say("%s (%d): связь потеряна, персонаж ждёт %d с" % [a.name, a.id, int(a.linger)])
 
 
-## The character of `a` leaves the world (С4 will save it first).
+## The character of `a` leaves the world, saved first (on stop the snapshot has it).
 func _forget(a: Account) -> void:
 	if not accounts.has(a.key):
 		return
+	if store != null and not stopping:
+		store.save_player(a)
 	accounts.erase(a.key)
 	if a.peer != null:
 		a.peer.account = null

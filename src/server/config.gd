@@ -3,7 +3,8 @@ extends RefCounted
 ## `user://server.cfg` (the window «Создать сервер» will write the same file, С5, so a
 ## server set up there starts from the terminal the same), then the user arguments of
 ## the command line over it: `godot --headless -- --server [--config <file>] [--port N]
-## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]`. The
+## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]
+## [--autosave <seconds>] [--no-save]`. The
 ## world is a folder of the game's own saves (WorldStore.root: a name under it, or a
 ## path), or the world of `seed_value` and `settings` (a new one when it has no save).
 
@@ -33,6 +34,10 @@ var mods: Array = []
 var console := true
 ## The address to listen on: "*" every one of this machine's.
 var bind := "*"
+## Seconds between saves of the world (ServerStore); the world is not saved at all
+## when `save` is off (a test world tried out).
+var autosave := 10.0
+var save := true
 
 
 ## Reads `path` (a ConfigFile); a file that is not there leaves the defaults.
@@ -45,6 +50,8 @@ func read(path := FILE) -> void:
 	max_players = int(cfg.get_value("server", "players", max_players))
 	password = str(cfg.get_value("server", "password", password))
 	bind = str(cfg.get_value("server", "bind", bind))
+	autosave = float(cfg.get_value("server", "autosave", autosave))
+	save = bool(cfg.get_value("server", "save", save))
 	world = str(cfg.get_value("world", "folder", world))
 	seed_value = int(cfg.get_value("world", "seed", seed_value))
 	for k: String in settings:
@@ -61,6 +68,8 @@ func write(path := FILE) -> bool:
 	cfg.set_value("server", "players", max_players)
 	cfg.set_value("server", "password", password)
 	cfg.set_value("server", "bind", bind)
+	cfg.set_value("server", "autosave", autosave)
+	cfg.set_value("server", "save", save)
 	cfg.set_value("world", "folder", world)
 	cfg.set_value("world", "seed", seed_value)
 	for k: String in settings:
@@ -101,6 +110,11 @@ func take_args(args: PackedStringArray) -> void:
 			"--bind":
 				bind = next
 				j += 1
+			"--autosave":
+				autosave = maxf(1.0, float(next))
+				j += 1
+			"--no-save":
+				save = false
 		j += 1
 
 

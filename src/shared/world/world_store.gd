@@ -8,8 +8,9 @@ extends RefCounted
 ##   map/<rx>_<rz>.bin     a region of the map the player explored: its pixels, zstd
 ## Files are written beside their place and then moved over it, so a save cut off
 ## halfway leaves the old file whole. On the web user:// is kept in IndexedDB, on
-## Android and the desktop it is a folder; the server will keep its worlds the same
-## way. current.json in the root names the world the game starts with.
+## Android and the desktop it is a folder; the server keeps its worlds the same way
+## (src/server/server_store.gd: players/<hash of the key>.json). current.json in the
+## root names the world the game starts with.
 
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 
@@ -199,6 +200,13 @@ static func read_json_at(path: String) -> Dictionary:
 
 
 static func write_json_at(path: String, d: Dictionary) -> bool:
+	return write_json_beside(path, d) and move_over(path)
+
+
+## Writes `d` beside `path` (path.tmp), for move_over to put in its place: several files
+## written first and moved after are a save that is all old or all new but for the
+## moves (the server's snapshot, ServerStore).
+static func write_json_beside(path: String, d: Dictionary) -> bool:
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if f == null:
@@ -206,7 +214,27 @@ static func write_json_at(path: String, d: Dictionary) -> bool:
 		return false
 	f.store_string(JSON.stringify(d, "\t"))
 	f.close()
+	return true
+
+
+## Moves the file written beside `path` over it.
+static func move_over(path: String) -> bool:
 	return _replace(path)
+
+
+## Removes the files left beside their place in `path` and the folders in it by a save
+## cut off before it moved them (*.tmp): what they hold is not the save.
+static func remove_beside(path: String) -> int:
+	var n := 0
+	if not DirAccess.dir_exists_absolute(path):
+		return n
+	for d in DirAccess.get_directories_at(path):
+		n += remove_beside(path + "/" + d)
+	for f in DirAccess.get_files_at(path):
+		if f.ends_with(".tmp"):
+			DirAccess.remove_absolute(path + "/" + f)
+			n += 1
+	return n
 
 
 ## Moves the file written beside `path` over it.
