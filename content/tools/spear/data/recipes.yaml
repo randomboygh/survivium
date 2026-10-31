@@ -1,0 +1,18 @@
+# Рецепты бандла «Копьё»: кремнёвое — руками, бронзовое — на верстаке, железное — на наковальне.
+- id: flint_spear
+  title: Кремнёвое копьё
+  makes: flint_spear
+  needs: {resources:branch: 2, resources:flint: 1, materials:cord: 1}
+  time: 5
+- id: bronze_spear
+  title: Бронзовое копьё
+  makes: bronze_spear
+  needs: {materials:bronze_bar: 1, materials:planks: 1}
+  at: workbench
+  time: 5
+- id: iron_spear
+  title: Железное копьё
+  makes: iron_spear
+  needs: {materials:iron_bar: 1, materials:planks: 1}
+  at: anvil
+  time: 5

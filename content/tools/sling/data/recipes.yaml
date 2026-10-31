@@ -1,0 +1,12 @@
+# Рецепты бандла «Праща»: праща из верёвки и камешки из камня, руками.
+- id: cord_sling
+  title: Праща
+  makes: cord_sling
+  needs: {materials:cord: 2, resources:fiber: 2}
+  time: 4
+- id: sling_stone
+  title: Камешки
+  makes: sling_stone
+  count: 8
+  needs: {resources:stone: 1}
+  time: 2

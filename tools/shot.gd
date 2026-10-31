@@ -297,6 +297,12 @@ func _run() -> void:
 			var one = life._add(shot.prey[0], at)
 			one.think = 100.0
 			one.facing = -1.0
+			if shot.has("flight"):
+				# Something shot on its way to the animal, caught halfway.
+				var from: Vector3 = main.player.position + Vector3(0.0, 0.6, 0.0)
+				main.props.fly_shot([shot.flight, from, at + Vector3(0.0, 0.3, 0.0), 12.0])
+				for i in 30:
+					await process_frame
 		if shot.has("drops"):
 			# Things lying in a row in front of the player, not picked up (WorldActions.PICKUP_NONE).
 			main.settings.set_value("pickup", 3)

@@ -39,7 +39,7 @@ const Eras := preload("res://src/shared/content/eras.gd")
 ## here fails graph_test: the graph must know every link.
 const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
-	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use",
+	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.ammo": "use",
 	"items.serves": "serves",
 	"creatures.likes": "use", "creatures.biomes": "lives", "creatures.carcass": "gives",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",

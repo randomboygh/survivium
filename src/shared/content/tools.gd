@@ -142,10 +142,25 @@ static func can_dig_out(t: Dictionary) -> bool:
 	return t.tool == "shovel"
 
 
-## Whether tool `t` strikes an animal in front before it works anything else: a sword or
-## a knife (any other hand strikes one only when it has nothing else to do).
+## The classes of tools that strike or shoot animals: the blow takes their item's power.
+const WEAPON_KINDS := ["sword", "knife", "spear", "sling", "bow"]
+
+
+## The item record of weapon `id` (one of WEAPON_KINDS), {} for anything else.
+static func weapon(id: String) -> Dictionary:
+	var item := Items.get_item(id) if id != "" else {}
+	return item if not item.is_empty() and item.tool in WEAPON_KINDS else {}
+
+
+## Whether the item record `t` strikes an animal in front before it works anything else:
+## a sword or a knife (any other hand strikes first only one right by the body).
 static func hunts(t: Dictionary) -> bool:
-	return t.tool in ["sword", "knife"]
+	return t.get("tool", "") in ["sword", "knife"]
+
+
+## Whether item record `t` shoots or is thrown (it has a `range`): a spear, a sling, a bow.
+static func shoots(t: Dictionary) -> bool:
+	return t.get("range", 0) > 0
 
 
 ## Whether tool `t` knocks the ripe berries off a bush onto the ground: a sword or a scythe.

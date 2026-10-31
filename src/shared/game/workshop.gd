@@ -162,7 +162,7 @@ func _receive(id: String, n: int) -> void:
 ## tool of a class the world does not know works as bare hands and does not wear by it.
 func use_tool() -> void:
 	var id: String = who.held()
-	if not Tools.is_tool_item(id) or not rules.tool_wear:
+	if not (Tools.is_tool_item(id) or not Tools.weapon(id).is_empty()) or not rules.tool_wear:
 		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
 		who.say("Сломалось: %s" % Items.title(id))

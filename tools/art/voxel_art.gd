@@ -80,6 +80,16 @@ static func drop(model: String) -> VoxelModel:
 			return _bloom()
 		"flint_knife", "copper_knife", "bronze_knife", "iron_knife", "steel_knife":
 			return _knife(Color(0.3, 0.31, 0.34) if model == "flint_knife" else _head(model))
+		"flint_spear", "bronze_spear", "iron_spear":
+			return _spear(Color(0.3, 0.31, 0.34) if model == "flint_spear" else _head(model))
+		"cord_sling":
+			return _sling()
+		"sling_stone":
+			return _pebbles()
+		"wooden_bow":
+			return _bow()
+		"arrow":
+			return _arrow()
 		"small_carcass":
 			return _carcass(Color(0.55, 0.45, 0.36), Vector3i(3, 2, 1))
 		"carcass":
@@ -455,6 +465,66 @@ static func _knife(blade: Color) -> VoxelModel:
 	for x in range(-4, 0):
 		m.set_voxel(Vector3i(x, 0, 0), Color(0.3, 0.2, 0.12))
 		m.set_voxel(Vector3i(x, 0, 1), Color(0.36, 0.24, 0.14))
+	return m
+
+
+## A spear lying flat: a long shaft along x, a head of `tip` at the east end.
+static func _spear(tip: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-10, 7):
+		m.set_voxel(Vector3i(x, 0, 0), Color(0.5, 0.35, 0.2) * (0.9 if x % 3 == 0 else 1.0))
+	for x in range(7, 10):
+		m.set_voxel(Vector3i(x, 0, 0), tip * (1.15 if x == 8 else 1.0))
+	m.set_voxel(Vector3i(7, 0, -1), tip)
+	m.set_voxel(Vector3i(7, 0, 1), tip)
+	m.set_voxel(Vector3i(6, 0, 0), Color(0.8, 0.74, 0.6))
+	return m
+
+
+## A sling lying: two cords and the pouch between them.
+static func _sling() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cord := Color(0.8, 0.74, 0.6)
+	for x in range(-6, 7):
+		m.set_voxel(Vector3i(x, 0, 1 if x < 0 else -1), cord * (0.9 if x % 2 == 0 else 1.0))
+	for x in range(-1, 2):
+		for z in range(-1, 2):
+			m.set_voxel(Vector3i(x, 0, z), Color(0.5, 0.36, 0.22))
+	return m
+
+
+## A few round pebbles.
+static func _pebbles() -> VoxelModel:
+	var m := VoxelModel.new()
+	var grey := Color(0.6, 0.6, 0.58)
+	for o in [Vector3i(-2, 0, -1), Vector3i(1, 0, 0), Vector3i(-1, 0, 2), Vector3i(2, 0, -2)]:
+		m.set_voxel(o, grey)
+		m.set_voxel(o + Vector3i(1, 0, 0), grey * 0.85)
+		m.set_voxel(o + Vector3i(0, 0, 1), grey * 0.9)
+	return m
+
+
+## A bow lying flat: its curved limb and the string straight across.
+static func _bow() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.55, 0.38, 0.2)
+	for x in range(-6, 7):
+		var bend := 3 - int(round(x * x / 12.0))
+		m.set_voxel(Vector3i(x, 0, bend), wood * (1.1 if x % 2 == 0 else 1.0))
+		m.set_voxel(Vector3i(x, 0, 0), Color(0.86, 0.82, 0.72))
+	return m
+
+
+## An arrow lying flat: a thin shaft, a flint head, fletching at the tail.
+static func _arrow() -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-5, 4):
+		m.set_voxel(Vector3i(x, 0, 0), Color(0.6, 0.45, 0.28))
+	m.set_voxel(Vector3i(4, 0, 0), Color(0.3, 0.31, 0.34))
+	m.set_voxel(Vector3i(5, 0, 0), Color(0.4, 0.41, 0.44))
+	for x in [-5, -4]:
+		m.set_voxel(Vector3i(x, 0, -1), Color(0.85, 0.82, 0.76))
+		m.set_voxel(Vector3i(x, 0, 1), Color(0.85, 0.82, 0.76))
 	return m
 
 

@@ -448,7 +448,7 @@ func _hunt(id: String) -> bool:
 	var before: int = inv.count(id)
 	var weapon := ""
 	for s in inv.slots:
-		if s != null and Tools.hunts(Tools.of(s[0])) and (weapon == "" or Tools.of(s[0]).power > Tools.of(weapon).power):
+		if s != null and Tools.hunts(Tools.weapon(s[0])) and (weapon == "" or Tools.weapon(s[0]).power > Tools.weapon(weapon).power):
 			weapon = s[0]
 	main.controls.put_in_hand(weapon, -1, false)
 	var prey = null
@@ -467,8 +467,6 @@ func _hunt(id: String) -> bool:
 				prey = life._add(kinds[0], at)
 		# Close by, it is struck whichever way the player faces.
 		await _go(prey.pos + Vector3(0.0, 0.0, 0.15))
-		# The server has the body where the player was carried a frame later.
-		await process_frame
 		_rest()
 		swings += 1
 		main.controls.act_in_front()
@@ -759,9 +757,12 @@ func _pick_up(at: Vector3, radius: float) -> int:
 
 # --- Moving about ------------------------------------------------------------------------
 
-## Carries the player to `at` (world units) and lets the game run a frame.
+## Carries the player to `at` (world units) and lets the game run two frames.
 func _go(at: Vector3) -> void:
 	main.player.position = at
+	await process_frame
+	# The server has the body where it was carried a frame later: a swing at once
+	# could still be judged from where it stood before.
 	await process_frame
 
 
@@ -814,8 +815,10 @@ func _foot(col: Vector2i) -> Vector3i:
 	return Vector3i(col.x, WorldData.level_of(logs & -logs), col.y)
 
 
+## Whether column (x, z) is among the things set down at the camp (rings of 3, 6 and 9
+## cells round it, see _place, and a station is two cells wide): not dug there.
 func _near_camp(x: int, z: int) -> bool:
-	return Vector2(x + 0.5, z + 0.5).distance_to(Vector2(camp.x, camp.z) / CELL) < 6.0
+	return Vector2(x + 0.5, z + 0.5).distance_to(Vector2(camp.x, camp.z) / CELL) < 12.0
 
 
 ## Tiredness and hunger are not tested here.

@@ -195,6 +195,28 @@ func show_drops(key: Vector2i) -> void:
 	drop_nodes[key] = nodes
 
 
+## Draws a shot in flight (WorldActions.shoot, its `shot`: [kind, from, to, seconds]):
+## the model of the thing shot flies from `from` to `to` (world units) in a low arc,
+## turned along its way, and is gone where it lands (it lies there as a drop).
+func fly_shot(shot: Array) -> void:
+	var node := MeshInstance3D.new()
+	node.mesh = _drop_mesh(shot[0])
+	node.material_override = game.low_mat
+	# Scaled 1/16: the shear would cull it by its small box.
+	node.extra_cull_margin = CULL_MARGIN
+	var from: Vector3 = shot[1]
+	var to: Vector3 = shot[2]
+	var flat := Vector2(to.x - from.x, to.z - from.z)
+	var turn := Basis(Vector3.UP, -flat.angle()).scaled(Vector3.ONE / 16.0)
+	node.transform = Transform3D(turn, from)
+	game.world_root.add_child(node)
+	var arc := flat.length() * 0.12
+	var tween := node.create_tween()
+	tween.tween_method(func(k: float) -> void:
+		node.position = from.lerp(to, k) + Vector3(0.0, sin(k * PI) * arc, 0.0), 0.0, 1.0, maxf(0.05, float(shot[3])))
+	tween.tween_callback(node.queue_free)
+
+
 ## Frees what was drawn lying in chunk `key`, as its chunk goes from the screen.
 func hide_drops(key: Vector2i) -> void:
 	for node: Node in drop_nodes.get(key, []):
