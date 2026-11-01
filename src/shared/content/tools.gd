@@ -20,7 +20,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 
 ## The classes of tools whose work in the world the engine knows (see can_dig and the rest).
-const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe"]
+const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod"]
 ## How far blocks, plants and seeds are placed from the body, in cells.
 const PLACE_REACH := 10
 ## Brushes of the hand that places: squares across the tapped face, two cells one on
@@ -135,6 +135,11 @@ static func can_dig(t: Dictionary, m: int) -> bool:
 ## Whether tool `t` fells a tree, hit after hit, or a bush at one go: an axe.
 static func can_chop(t: Dictionary) -> bool:
 	return t.tool == "axe"
+
+
+## Whether tool `t` casts into water for what bites there (Biomes.fish): a rod.
+static func can_fish(t: Dictionary) -> bool:
+	return t.get("tool", "") == "rod"
 
 
 ## Whether tool `t` digs a bush out whole, to be planted again: a shovel.

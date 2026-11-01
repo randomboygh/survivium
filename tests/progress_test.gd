@@ -10,13 +10,15 @@ extends SceneTree
 ## timeout 600 godot --headless --path . --script res://tests/progress_test.gd
 ##
 ## The animals are hunted the same way: the player is carried up to one and strikes it with
-## the action button until it falls, then takes its carcass.
+## the action button until it falls, then takes its carcass. Fish are caught with a rod from
+## the nearest shore where they bite.
 ##
 ## The player is carried to what it works on instead of walking there, its stamina is
 ## topped up and the crafting clock runs fast: walking, tiredness and waiting are not
 ## what is tested here.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -146,6 +148,10 @@ func _raw() -> Dictionary:
 		var spec: Dictionary = AiRules.SPECIES[kind]
 		if kind != AiRules.HUMAN and spec.health > 0 and spec.carcass != "" and Items.has(spec.carcass):
 			have[spec.carcass] = true
+	for b: Dictionary in Biomes.RECORDS:
+		for id: String in b.fish:
+			if Items.has(id):
+				have[id] = true
 	return have
 
 
@@ -203,7 +209,7 @@ func _wanted(id: String) -> bool:
 	# A sword, a knife and the like only while a recipe being made or not made yet asks for
 	# one (a carcass cut up again for its hide): the bag has room for the tools that get
 	# things from the world.
-	if not kind in ["axe", "pickaxe", "shovel", "scythe"] and not (crafting + order).any(func(r: Dictionary) -> bool:
+	if not kind in ["axe", "pickaxe", "shovel", "scythe", "rod"] and not (crafting + order).any(func(r: Dictionary) -> bool:
 			return (not made.has(r.id) or r in crafting) and kind in r.tools):
 		return false
 	var slots: Array = main.host.player.inventory.slots
@@ -468,6 +474,9 @@ func _gather(id: String) -> bool:
 	for kind: String in AiRules.SPECIES:
 		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("carcass", "") == id:
 			return await _hunt(id)
+	for b: Dictionary in Biomes.RECORDS:
+		if b.fish.has(id):
+			return await _fish(id)
 	return _fail("no way known to get %s from the world" % Items.title(id))
 
 
@@ -533,6 +542,108 @@ func _hunt(id: String) -> bool:
 				inv.slots.count(null)])
 	return _fail("%s cannot be hunted down: %s at %s, the player at %s" % [Items.title(id), prey.kind if prey != null else "none",
 		prey.pos if prey != null else Vector3.ZERO, main.host.player.position])
+
+
+## Fish `id`: from the layout of the land round the camp, the nearest shore where it bites
+## (WorldActions.fishing_biome from a land column beside water), the player carried there
+## and the rod cast into the water with the action button until it bites.
+func _fish(id: String) -> bool:
+	if _tool_of_kind("rod") == "" and not await _get_tool("rod"):
+		return false
+	var inv = main.host.player.inventory
+	var before: int = inv.count(id)
+	var actions = main.session.actions
+	const STEP := 4
+	const N := 400
+	var x0 := floori(camp.x / CELL) - N * STEP / 2
+	var z0 := floori(camp.z / CELL) - N * STEP / 2
+	var lay: Dictionary = main.gen.lay_out(x0, z0, N, N, STEP)
+	var shores := []
+	for j in N * N:
+		if lay.water[j] >= 0:
+			continue
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var i := j % N + d.x
+			var k := j / N + d.y
+			if i >= 0 and i < N and k >= 0 and k < N and lay.water[k * N + i] >= 0:
+				var land := Vector2i(x0 + (j % N) * STEP, z0 + (j / N) * STEP)
+				shores.append([Vector2(land).distance_to(Vector2(camp.x, camp.z) / CELL), land, d])
+				break
+	shores.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	var tried := 0
+	for s: Array in shores:
+		var land: Vector2i = s[1]
+		var d: Vector2i = s[2]
+		var at := Vector3(land.x + 0.5, 0.0, land.y + 0.5) * CELL
+		var water := at + Vector3(d.x, 0.0, d.y) * STEP * CELL
+		if not Biomes.of(actions.fishing_biome(at, water)).fish.has(id):
+			continue
+		tried += 1
+		if tried > 4:
+			break
+		# Carried there, the chunks made, then a dry cell with water ahead in reach.
+		await _go(Vector3(at.x, main.world.size_y - 2, at.z))
+		var frames := 0
+		while frames < 4000:
+			await process_frame
+			frames += 1
+			if frames > 5 and main.gen.stages.get(WorldData.chunk_key(land.x, land.y), 0) >= WorldGen.SHAPED and main.chunks.map_done:
+				break
+		var spot := _shore_near(land, id)
+		if spot.is_empty():
+			print("no shore near %s for %s" % [land, Items.title(id)])
+			continue
+		await _go(spot[0])
+		main.player.facing = SpriteSheet.direction_of(spot[1])
+		# Into the hotbar's first slot: the client's bag shows only its own slots, and a
+		# hand holding what it does not show is emptied.
+		var rod := 0
+		for i in inv.slots.size():
+			if inv.slots[i] != null and inv.slots[i][0] == _tool_of_kind("rod"):
+				rod = i
+		var first = inv.slots[0]
+		inv.slots[0] = inv.slots[rod]
+		inv.slots[rod] = first
+		inv.changed.emit()
+		await process_frame
+		await process_frame
+		main.controls.put_in_hand(_tool_of_kind("rod"), -1, false)
+		for cast in 120:
+			_rest()
+			swings += 1
+			main.controls.act_in_front()
+			await process_frame
+			await process_frame
+			if inv.count(id) > before:
+				print("fished %s at %s after %d casts" % [Items.title(id), spot[0], cast + 1])
+				return true
+		print("no bite in 120 casts at %s for %s" % [spot[0], Items.title(id)])
+	return _fail("no shore found where %s bites (%d tried)" % [Items.title(id), tried])
+
+
+## A dry standing spot within 16 cells of `col` with open water a few cells ahead in one of
+## the four ways where `id` bites: [world point, way], [] for none.
+func _shore_near(col: Vector2i, id: String) -> Array:
+	var w = main.world
+	var actions = main.session.actions
+	for r in range(0, 17):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := col.x + dx
+				var z := col.y + dz
+				if w.water_col(x, z) != 0:
+					continue
+				var y: int = w.surface_y(x, z)
+				if y <= 0 or w.get_cell(x, y, z) != Mat.AIR or w.get_cell(x, y + 1, z) != Mat.AIR or w.blocker_top(x, y, z) > 0.0:
+					continue
+				var at := (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
+				for way: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+					var water: Vector3 = actions.water_ahead(at, way, 5)
+					if water != Vector3.INF and Biomes.of(actions.fishing_biome(at, water)).fish.has(id):
+						return [at, way]
+	return []
 
 
 ## A branch off the nearest bush or tree crown that has one, by hand.

@@ -21,6 +21,7 @@ extends RefCounted
 ## chunks, the things on the ground) and later the network.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -233,6 +234,8 @@ func fell(who, cell: Vector3i) -> bool:
 func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 	if Tools.shoots(Tools.weapon(who.held())):
 		return shoot(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+	if Tools.can_fish(who.tool()):
+		return fish(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cell.y == 0 or m == Mat.AIR:
 		return {}
@@ -496,6 +499,8 @@ func act_in_front(who, top: int) -> Dictionary:
 				return _work(FRONT_PLACE_SWING, "reach", Vector3.INF)
 			return {"swing": IDLE_SWING}
 	var t: Dictionary = who.tool()
+	if Tools.can_fish(t):
+		return fish(who)
 	var arm := Tools.weapon(who.held())
 	# A spear, a sling or a bow shoots ahead; a sword or a knife goes for an animal in
 	# front first, any other hand for one right by the body.
@@ -631,6 +636,105 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 	done.hit = a != null
 	done.shot = [ammo, from, land, from.distance_to(land) / SHOT_SPEED]
 	return done
+
+
+# --- Fishing ---------------------------------------------------------------------------
+
+## The share of casts something bites on, before the biome's shares say what; how long a
+## cast takes, in seconds; how fast a catch flies to the angler, in world units a second.
+const BITE := 0.4
+const CAST_SWING := 0.9
+const CATCH_SPEED := 8.0
+
+
+## Casts the rod in hand of `who` toward `aim` (ahead if not finite) into the nearest open
+## water within the rod's `range`: with chance BITE something of the biome `who` stands in
+## bites (Biomes.fish of fishing_biome) and goes into the bag, its flight to the angler in
+## `shot`. Nothing when there is no water there, or the biome has no fish.
+func fish(who, aim := Vector3.INF) -> Dictionary:
+	var rod: Dictionary = who.tool()
+	var at: Vector3 = who.position
+	var dir := Vector2(who.facing_step()).normalized()
+	if aim.is_finite() and Vector2(aim.x - at.x, aim.z - at.z).length() > 0.05:
+		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
+	var water := water_ahead(at, dir, maxi(2, rod.get("range", 0)))
+	if water == Vector3.INF:
+		who.nag("fish", "Удочку закидывают в воду: подойдите к ней")
+		return {"swing": IDLE_SWING}
+	var b := fishing_biome(at, water)
+	if Biomes.of(b).get("fish", {}).is_empty():
+		who.nag("fish", "Здесь рыба не водится")
+		return {"swing": IDLE_SWING}
+	if not who.act("swing"):
+		return {}
+	who.use_tool()
+	var done := _work(CAST_SWING, "", water)
+	var caught := Biomes.fish(b, randf()) if randf() < BITE else ""
+	if caught == "" or not Items.has(caught) or who.give(caught, 1) == 0:
+		who.nag("bite", "Не клюёт")
+		return done
+	who.note("fished")
+	var to := at + Vector3(0.0, 0.6, 0.0)
+	done.shot = [caught, water, to, water.distance_to(to) / CATCH_SPEED]
+	return done
+
+
+## The top of the nearest open water from `at` along `dir` (x, z), from a cell out to
+## `reach` cells, as a world point; INF when there is none.
+func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
+	var from := Vector2(at.x, at.z) / CELL
+	for i in range(2, reach * 2 + 1):
+		var p := from + dir * (i * 0.5)
+		var x := floori(p.x)
+		var z := floori(p.y)
+		var bits: int = world.water_col(x, z)
+		if bits == 0:
+			continue
+		var top := WorldData.level_of(_highest(bits))
+		if world.get_cell(x, top + 1, z) == Mat.AIR:
+			return Vector3(p.x, top + 1.0, p.y) * CELL
+	return Vector3.INF
+
+
+static func _highest(bits: int) -> int:
+	var top := bits
+	while top & (top - 1) != 0:
+		top &= top - 1
+	return top
+
+
+## Whose fish bite on a cast from world point `at` into the water at `water`: in a lake,
+## a river or the pools of a swamp the land's round it, the first biome other than the
+## sea and the plain beach from the angler back (the shore of a lake is often beach);
+## in the sea the sea's, or that of a beach of its own (a tropical one) the angler stands
+## on. Biomes.NONE without a layout of the land.
+func fishing_biome(at: Vector3, water: Vector3) -> int:
+	if wildlife == null or wildlife.gen == null:
+		return Biomes.NONE
+	var gen = wildlife.gen
+	var w: Dictionary = gen.lay_out(floori(water.x / CELL), floori(water.z / CELL), 1, 1)
+	var here := biome_under(at)
+	var fresh: bool = w.feature[0] == gen.LAKE or w.feature[0] == gen.RIVER or w.flags[0] & (gen.MARSH | gen.MIRE) != 0
+	if not fresh:
+		return here if Biomes.where(here) == "beach" and here != Biomes.BEACH else _biome_or(Biomes.SEA, here)
+	var back := Vector2(at.x - water.x, at.z - water.z).normalized()
+	for k in [0, 4, 8, 16, 24]:
+		var b := biome_under(at + Vector3(back.x, 0.0, back.y) * k * CELL)
+		if b != Biomes.NONE and b != Biomes.SEA and b != Biomes.BEACH:
+			return b
+	return here
+
+
+static func _biome_or(b: int, other: int) -> int:
+	return b if b >= 0 else other
+
+
+## The biome of the column under world point `at` by the layout of the land (Biomes.NONE
+## without one).
+func biome_under(at: Vector3) -> int:
+	if wildlife == null or wildlife.gen == null:
+		return Biomes.NONE
+	return wildlife.gen.lay_out(floori(at.x / CELL), floori(at.z / CELL), 1, 1).biome[0]
 
 
 ## Places the block in hand round `who` (front_place_cells), in the hole it faces first.

@@ -44,7 +44,7 @@ const LINKS := {
 	"creatures.likes": "use", "creatures.biomes": "lives", "creatures.carcass": "gives",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
-	"biomes.trees": "grows", "biomes.bushes": "grows",
+	"biomes.trees": "grows", "biomes.bushes": "grows", "biomes.fish": "gives",
 	"recipes.makes": "made", "recipes.also.item": "also", "recipes.needs": "needs", "recipes.keeps": "needs",
 	"recipes.at": "station",
 	"starts.bag": "start", "starts.camp.item": "camp",
@@ -69,7 +69,7 @@ const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "ne
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
 	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
-	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "serves": "stood in for by"}
+	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "serves": "stood in for by"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
 ## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "also"
@@ -292,6 +292,8 @@ func _can(act: String, t: Dictionary, from: String) -> bool:
 			return Tools.can_gather(t)
 		"dig_out":
 			return Tools.can_dig_out(t)
+		"fish":
+			return Tools.can_fish(t)
 	return true
 
 

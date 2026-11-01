@@ -154,6 +154,22 @@ static func drop(model: String) -> VoxelModel:
 			return _bandage()
 		"coconut":
 			return _coconut()
+		"roach":
+			return _fish(Color(0.55, 0.58, 0.6), Color(0.78, 0.8, 0.8), Color(0.6, 0.25, 0.18))
+		"pike":
+			return _fish(Color(0.34, 0.46, 0.24), Color(0.62, 0.68, 0.42), Color(0.3, 0.38, 0.2))
+		"salmon":
+			return _fish(Color(0.72, 0.45, 0.33), Color(0.92, 0.72, 0.56), Color(0.5, 0.52, 0.56))
+		"cod":
+			return _fish(Color(0.55, 0.47, 0.25), Color(0.76, 0.67, 0.45), Color(0.48, 0.4, 0.22))
+		"parrotfish":
+			return _fish(Color(0.25, 0.72, 0.62), Color(0.68, 0.96, 0.88), Color(0.25, 0.6, 0.4))
+		"catfish":
+			return _fish(Color(0.26, 0.24, 0.22), Color(0.4, 0.42, 0.44), Color(0.18, 0.19, 0.21))
+		"roasted_fish":
+			return _fish(Color(0.42, 0.26, 0.15), Color(0.7, 0.44, 0.24), Color(0.32, 0.2, 0.12))
+		"fishing_rod":
+			return _rod()
 		"banana":
 			return _banana()
 		"raspberry":
@@ -807,6 +823,35 @@ static func _berries(c: Color) -> VoxelModel:
 	for p in [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 1), Vector3i(1, 0, -1), Vector3i(0, 1, 0), Vector3i(-1, 0, -1)]:
 		m.set_voxel(p, c * (1.2 if p.y > 0 else 1.0))
 	m.set_voxel(Vector3i(2, 0, 1), Color(0.3, 0.46, 0.22), true)
+	return m
+
+
+## A fish lying on its side: a back of `back`, a belly of `belly`, the tail and fins `fin`.
+static func _fish(back: Color, belly: Color, fin: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-3, 4):
+		var wide := 1 if absi(x) < 3 else 0
+		for z in range(-wide, wide + 1):
+			m.set_voxel(Vector3i(x, 0, z), belly if z > 0 else back)
+		if absi(x) < 2:
+			m.set_voxel(Vector3i(x, 1, 0), back * 0.9)
+	m.set_voxel(Vector3i(3, 1, 0), Color(0.08, 0.08, 0.08))
+	for z in range(-1, 2):
+		m.set_voxel(Vector3i(-4, 0, z), fin)
+	m.set_voxel(Vector3i(-5, 0, -2), fin)
+	m.set_voxel(Vector3i(-5, 0, 2), fin)
+	m.set_voxel(Vector3i(0, 0, -2), fin)
+	return m
+
+
+## A fishing rod lying: a long thin rod, the line coiled at its tip and the hook.
+static func _rod() -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-10, 9):
+		m.set_voxel(Vector3i(x, 0, 0), Color(0.55, 0.4, 0.24) * (0.88 if x % 3 == 0 else 1.0))
+	for z in range(1, 4):
+		m.set_voxel(Vector3i(8, 0, z), Color(0.84, 0.8, 0.7))
+	m.set_voxel(Vector3i(7, 0, 3), Color(0.5, 0.52, 0.56))
 	return m
 
 
