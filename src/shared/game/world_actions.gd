@@ -12,7 +12,8 @@ extends RefCounted
 ## (that item's record as a tool, Tools.of), `brush()` (one of Tools.BRUSHES), `act(action)`
 ## (pays the stamina, false when too tired), `give(id, n, worn)` (into the bag, returns how
 ## many fit), `use_tool()` (wears the tool in use), `nag(reason, text)` and `say(text)`
-## (messages to the player).
+## (messages to the player), `note(stat, n)` (counts a deed in its life's statistics),
+## `is_dead()` and `sacks` (where its death sacks lie).
 ##
 ## A swing that did something returns {"swing": seconds until the hands can swing again,
 ## "work": the work to play (see Player.work), "time": its seconds, "at": what it is done
@@ -690,17 +691,10 @@ func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
 		var bits: int = world.water_col(x, z)
 		if bits == 0:
 			continue
-		var top := WorldData.level_of(_highest(bits))
+		var top := WorldData.top_level(bits)
 		if world.get_cell(x, top + 1, z) == Mat.AIR:
 			return Vector3(p.x, top + 1.0, p.y) * CELL
 	return Vector3.INF
-
-
-static func _highest(bits: int) -> int:
-	var top := bits
-	while top & (top - 1) != 0:
-		top &= top - 1
-	return top
 
 
 ## Whose fish bite on a cast from world point `at` into the water at `water`: in a lake,
@@ -788,16 +782,9 @@ func front_order(who) -> Array[Vector3i]:
 	return cells
 
 
-## The first tree or bush round `who` (in the order of Tools.sector) that the hand in use can do
-## something to: {"trunk": cell} for an axe at a tree, {"tree": column} for bare hands,
-## {"bush": cell}; {} for none.
-func front_target(who) -> Dictionary:
-	var all := front_targets(who)
-	return all[0] if not all.is_empty() else {}
-
-
-## All the trees and bushes round `who` that the hand in use can do something to
-## (see front_target), in the order of Tools.sector.
+## All the trees and bushes round `who` that the hand in use can do something to, in the
+## order of Tools.sector: {"trunk": cell} for an axe at a tree, {"tree": column} for bare
+## hands, {"bush": cell}.
 func front_targets(who) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var f: Vector3i = who.feet()
@@ -819,7 +806,7 @@ func front_targets(who) -> Array[Dictionary]:
 
 
 ## What the action button does in front of `who` with a tool or bare hands: {"trunk":
-## cell}, {"tree": column}, {"bush": cell} (see front_target), {"mow": cells} or {"dig":
+## cell}, {"tree": column}, {"bush": cell} (see front_targets), {"mow": cells} or {"dig":
 ## cells} (see front_work); {} for nothing. An axe chops the nearest tree; hands and a
 ## sword take what is worth most first, the nearest of it: food (berries, mushrooms),
 ## then seeds (acorns, ears, grass seeds), then the rest (branches, fibre, moss), and

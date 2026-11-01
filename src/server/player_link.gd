@@ -152,11 +152,6 @@ func handle(bytes: PackedByteArray) -> Variant:
 	return null
 
 
-## A line for the player (the rules' words, as their own SAY).
-func tell(text: String) -> void:
-	_push(Protocol.SAY, [text])
-
-
 ## A line of chat the player hears: said by player `id` named `name` (0 and "" the
 ## server).
 func hear(id: int, name: String, text: String) -> void:

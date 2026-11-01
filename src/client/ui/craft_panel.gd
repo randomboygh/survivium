@@ -235,8 +235,6 @@ func _ready() -> void:
 	game.workshop.changed.connect(refresh)
 
 
-## The tab is `w` UI pixels wide: the recipe's name is measured at its panel's width
-## (a wrapping label is laid out at its least width).
 ## The recipe and the queue in a column `w` UI pixels wide right of the cells (a wide
 ## screen low for them under the cells), or under the cells as wide as the tab.
 func set_side(on: bool, w: int) -> void:
@@ -245,6 +243,8 @@ func set_side(on: bool, w: int) -> void:
 	fit_width(w)
 
 
+## The tab is `w` UI pixels wide: the recipe's name is measured at its panel's width
+## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
 	_title.custom_minimum_size.x = w - 2 * UiStyle.WELL_PAD - 30
 	var room := w - 2 * UiStyle.WELL_PAD - QUEUE_INFO - QUEUE_BUTTONS - 3 * 6 - 16

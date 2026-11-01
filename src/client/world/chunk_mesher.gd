@@ -18,9 +18,6 @@ const Trunks := preload("res://src/client/world/trunk_mesher.gd")
 static var _cell_faces: Array = []
 
 
-## Returns [solid_mesh_or_null, water_mesh_or_null] for the column of cells x0..x0+size, z0..z0+size.
-## Works on copies of the chunk's cells and shapes with a border of PAD cells (outside
-## the map is air, below it is stone), so neighbour lookups are plain array reads.
 ## The state of a chunk's meshes being built column by column (see `start`, `step`, `finish`),
 ## so the game can spread the work over frames.
 class Job extends RefCounted:
@@ -51,7 +48,10 @@ class Job extends RefCounted:
 	var prep := PREP_STEPS
 
 
-## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once.
+## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once:
+## [solid_mesh_or_null, water_mesh_or_null]. Works on copies of the chunk's cells and
+## shapes with a border of PAD cells (outside the map is air, below it is stone), so
+## neighbour lookups are plain array reads.
 static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 	var job := start(w, x0, z0, size)
 	while not step(job, 1 << 30):

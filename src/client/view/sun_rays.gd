@@ -37,7 +37,7 @@ const FLECKS := 8
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
 const CROWN_REACH := 8
-## The crowns found: {column: Vector3(foot, top, radius) in world units}.
+## Crowns remembered before the memory is cleared.
 const MAX_CROWNS := 4096
 
 var game
@@ -50,6 +50,7 @@ var flecks: MultiMeshInstance3D
 var motes: CPUParticles3D
 var _shaft_mat: ShaderMaterial
 var _fleck_mat: ShaderMaterial
+## The crowns found: {column: Vector3(foot, top, radius) in world units}.
 var _crowns := {}
 ## Where and for what sun the light was laid out last, and how many trees there were.
 var _laid_at := Vector3.INF

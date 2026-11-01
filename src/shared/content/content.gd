@@ -22,7 +22,7 @@ extends RefCounted
 ## is hard (the schema's default) and no bundle of the set has the record, the bundle is
 ## left out with the one that has it as the reason (`dropped`), so a world is made only
 ## of things that work. A field marked `soft` in the schema (`likes`, `seed`, `fruit`,
-## `bonus`, `gives`, `repair`, `mow_gives`, `era`) only orders the load: the reference is
+## `gives`, `era`, a creature's `biomes` and more: see SCHEMAS) only orders the load: the reference is
 ## dropped from the record when its target is not loaded, a problem only when `strict` (the
 ## validator checking the full set). A patch of another bundle's record loads after it and
 ## is skipped when it is not loaded. Roles (`land`, `prop`, `kind`, `roost`) bind nothing.
@@ -39,10 +39,10 @@ extends RefCounted
 ## `warnings`. Every reference field names its link (`rel`, one of RELATIONS: what the
 ## record is to the one it names) and, where an action makes it, which (`via`, ACTIONS),
 ## for the content graph.
-## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, crafting.gd,
-## plants.gd, starts.gd, eras.gd) read their kind with `records(kind)` when their class
-## loads, so the rest of the code keeps using `Mat.GRASS`, `Trees.OAK` or
-## `AiRules.SPECIES` as before.
+## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, biomes.gd,
+## crafting.gd, plants.gd, starts.gd, eras.gd, tools.gd) read their kind with
+## `records(kind)` when their class loads, so the rest of the code keeps using
+## `Mat.GRASS`, `Trees.SPECIES` or `AiRules.SPECIES` as before.
 
 const Yaml := preload("res://src/shared/content/yaml.gd")
 ## The mods' YAML files parsed when the game was built (tools/content_cache.gd, run by CI

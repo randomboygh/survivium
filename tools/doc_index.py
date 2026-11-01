@@ -25,8 +25,8 @@ import sys
 CODE_INDEX = "docs/generated/code-index.md"
 CODE_DIRS = ("src/", "tests/", "tools/", "shaders/")
 CODE_EXT = (".gd", ".gdshader", ".gdshaderinc", ".py", ".mjs", ".sh")
-# Paths the docs name on purpose that do not exist: folders the plans promise.
-MISSING_OK = {"src/server/"}
+# Paths the docs name on purpose that do not exist (none now; folders a plan promises).
+MISSING_OK: set = set()
 PATH = re.compile(r"(?<![\w/.-])((?:src|tools|tests|shaders|content|assets|scenes|docs|\.github)/[A-Za-z0-9_./-]*)")
 LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?\)")
 LOAD = re.compile(r'(?:preload|load|extends)\s*\(?\s*"res://([^"]+\.gd)"')

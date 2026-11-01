@@ -6,7 +6,6 @@ extends Node
 ## the window of the playtest page («Отладка» → «Журнал фризов», SettingsMenu), each
 ## band of length (BANDS) on a tab of its own, so the worst can be fixed first.
 
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 ## The bands of freezes the window shows apart, by the tabs' keys (SettingsMenu.PAGES):
 ## from, to ms (a freeze is over PerfPanel.FREEZE_MS).

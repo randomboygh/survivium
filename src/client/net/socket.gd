@@ -82,11 +82,6 @@ func poll() -> void:
 			closed.emit(close_code, close_reason)
 
 
-## The socket is open and nothing waits.
-func is_open() -> bool:
-	return _open
-
-
 ## Says goodbye (Protocol.BYE) and closes, a few polls later.
 func leave() -> void:
 	if _open and _close_in < 0:

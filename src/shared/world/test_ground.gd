@@ -188,13 +188,13 @@ func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	water = _biome(Biomes.SEA)
 
 
-## The spawn: the middle of the meadow between the grounds.
 ## The material of a built block of the tools mod, stone when the mod is not loaded.
 func _block(name: String) -> int:
 	var m := Mat.index("materials:" + name)
 	return m if m >= 0 else Mat.STONE
 
 
+## The spawn: the middle of the meadow between the grounds.
 func _pick_spawn() -> Vector3i:
 	return Vector3i(0, ground + 1, 0)
 

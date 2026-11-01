@@ -108,7 +108,6 @@ func _mats(a) -> Array:
 	return variants[a.tint % variants.size()]
 
 
-## The picture of species `spec` (a record of AiRules.SPECIES).
 ## How wide and how tall the body drawn in the first frame of picture `tex` (of
 ## `frames` frames side by side) is, in world units: its opaque pixels. An animal's
 ## drawn shadows are as big (see FireShadows._cast_all), so a new one needs no size.
@@ -131,6 +130,7 @@ static func body_size(tex: Texture2D, frames: int) -> Vector2:
 	return Vector2(hi - lo + Vector2i.ONE) / PixelView.PIXELS_PER_UNIT
 
 
+## The picture of species `spec` (a record of AiRules.SPECIES).
 static func picture(spec: Dictionary) -> Texture2D:
 	return load(picture_path(spec))
 

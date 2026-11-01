@@ -33,7 +33,6 @@ const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 
 const MARGIN := 8.0
-const CELL := 0.5
 const GAP := 4.0
 const SLOT := 40
 ## UI height the scale aims for on the shorter side of the screen: on a phone exactly,
@@ -207,7 +206,7 @@ func _ready() -> void:
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
-	_chat_button.visible = game != null and game.join_url != ""
+	_chat_button.visible = game.join_url != ""
 	_bag_button = _icon_button(_top, "bag", "Сумка", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
@@ -283,7 +282,7 @@ func _ready() -> void:
 	add_child(map_view)
 	minimap.open_map.connect(map_view.open)
 	minimap.painted.connect(map_view.redraw)
-	if game != null and game.markers != null:
+	if game.markers != null:
 		minimap.markers = game.markers
 		map_view.markers = game.markers
 		game.markers.changed.connect(minimap.redraw)
@@ -373,7 +372,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if game == null or game.world == null:
+	if game.world == null:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.physical_keycode:
@@ -451,7 +450,7 @@ func _place() -> void:
 	stick.visible = touch
 	_action.visible = touch
 	_jump.visible = touch
-	_keys.visible = not touch and game != null and game.controls.show_help and not bag.visible
+	_keys.visible = not touch and game.controls.show_help and not bag.visible
 	var bottom := h - MARGIN
 	# The controls' own size setting, whatever the interface's: undo the latter.
 	var k: float = CONTROL_SIZES[control_size] * _screen_scale / scale.x
@@ -602,8 +601,6 @@ func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 ## Shows the bag's first row on the hotbar: each item with how many there are and its
 ## number (its key with a keyboard, as in the bag); then the hands and the bag button.
 func refresh_counts() -> void:
-	if game == null:
-		return
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var s = slots[i]
@@ -678,7 +675,7 @@ func update_state() -> void:
 	vitals.update(game.character.vitals, get_process_delta_time())
 	if bag.visible:
 		bag.refresh_state()
-	minimap.set_player(Vector2i(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL)))
+	minimap.set_player(Vector2i(floori(game.player.position.x / game.CELL), floori(game.player.position.z / game.CELL)))
 	minimap.set_marks(game.placed.things, game.character.sacks)
 	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
@@ -716,8 +713,6 @@ func update_state() -> void:
 ## Shows what each hand holds and marks the hand in use and the blocks in the hands;
 ## called when any of it changes.
 func _update_hands() -> void:
-	if game == null:
-		return
 	var c = game.controls
 	var free: bool = game.rules.free_build
 	for h in 2:
@@ -930,7 +925,7 @@ func settings_menu() -> Control:
 
 
 func _update_menu() -> void:
-	if game == null or not _menu.visible:
+	if not _menu.visible:
 		return
 	# Tests and tools play without the main menu.
 	_menu_buttons["main"].visible = game.menu != null
@@ -1059,8 +1054,6 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 ## The tab on the hotbar: the bag, how many of its slots are taken (amber when all),
 ## and a bar of the load against the limit (amber near it, red past it).
 func _draw_bag_meter() -> void:
-	if game == null:
-		return
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
 	var w := c.size.x

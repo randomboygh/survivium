@@ -6,7 +6,7 @@
 
 | Файл | Что проверяет | Предел |
 |---|---|---|
-| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, bundle_system, character); каждый файл наследует `unit/test_case.gd` (`_check` и помощники); `-- тема …` запускает только их | 300 с |
+| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, bundle_system, character, session, net); каждый файл наследует `unit/test_case.gd` (`_check` и помощники); `-- тема …` запускает только их | 300 с |
 | `save_test.gd` | играет, сохраняет, запускает заново: копки, место, часы, вещи, карта, маркеры, части модулей, старые сохранения | 300 с |
 | `progress_test.gd` | новый мир с пустой сумкой (на 24 места, как с рюкзаком): путь до каждого рецепта через вызовы самой игры; при провале говорит, чего не достать | 1200 с |
 | `frame_test.gd` | играет сценарии без экрана и падает, если работа размером с чанк попала в один кадр; тайминги шумят на занятой машине — перезапустите отдельно | 600 с |

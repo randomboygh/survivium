@@ -15,7 +15,6 @@ extends Control
 ## (see save_region, load_regions), so the explored map comes back with the world.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
-const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")

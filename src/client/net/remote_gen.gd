@@ -11,6 +11,8 @@ extends "res://src/shared/world/world_gen.gd"
 ## (FORGET). A chunk sent again (its looks changed) is restored anew and `changed` tells
 ## the streamer to build its mesh again.
 
+const Session := preload("res://src/shared/game/session.gd")
+
 ## The chunk's cells and records are in again (sent again by the server).
 signal changed(key: Vector2i)
 
@@ -124,7 +126,7 @@ func make_chunks(near_us: int, far_us: int, _reach := 0) -> int:
 			if _job == null:
 				packs.erase(key)
 				continue
-		var budget := near_us if maxi(absi(_job.key.x - home.x), absi(_job.key.y - home.y)) <= 4 else far_us
+		var budget := near_us if maxi(absi(_job.key.x - home.x), absi(_job.key.y - home.y)) <= Session.NEAR else far_us
 		var done := false
 		while not done and (Time.get_ticks_usec() - t0 < budget or not worked):
 			done = step(_job, 1)

@@ -208,18 +208,6 @@ static func center(e: Dictionary) -> Vector3:
 	return (Vector3(e.cell) + Vector3(1.0, 0.5, 1.0)) * CELL
 
 
-## The placed thing nearest world point `p` within `reach` world units, or {}.
-func nearest(p: Vector3, reach: float) -> Dictionary:
-	var best := {}
-	var best_d := reach
-	for e in things:
-		var d := center(e).distance_to(p)
-		if d <= best_d:
-			best_d = d
-			best = e
-	return best
-
-
 ## The stations (things that store nothing; a fire while it burns) within `reach` world
 ## units of world point `p`, and those they serve: item id -> true.
 func stations_near(p: Vector3, reach: float) -> Dictionary:
@@ -253,14 +241,6 @@ func burning(p: Vector3) -> Dictionary:
 				and c.z + Body.HALF_DEPTH + SINGE > at.z and c.z - Body.HALF_DEPTH - SINGE < at.z + 2:
 			return e
 	return {}
-
-
-## The middle of the chest by the spawn in world units, or null when there is none.
-func chest_center() -> Variant:
-	for e in things:
-		if e.items == chest_items and chest_items != null:
-			return center(e)
-	return null
 
 
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first

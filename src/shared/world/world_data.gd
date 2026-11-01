@@ -17,7 +17,7 @@ const SE := 4
 const SW := 8
 const FULL := 15
 ## Horizontal neighbours N, S, W, E.
-const SIDES := [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+const SIDES: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
 ## Slope mask for the low sides N, S, W, E (1, 2, 4, 8) of a cell; FULL where it stays
 ## a cube: no low side, or two opposite ones.
 const RAMPS := [FULL, SE | SW, NW | NE, FULL, NE | SE, SE, NE, FULL, NW | SW, SW, NW,
@@ -387,25 +387,6 @@ static func patch_height(p: PackedFloat32Array, u: float, v: float) -> float:
 	return h
 
 
-## Slope of patch `p` at (u, v): the height's change along x and along z.
-static func patch_slope(p: PackedFloat32Array, u: float, v: float) -> Vector2:
-	var au := [1.0 - u * u * (3.0 - 2.0 * u), u * u * (3.0 - 2.0 * u)]
-	var av := [1.0 - v * v * (3.0 - 2.0 * v), v * v * (3.0 - 2.0 * v)]
-	var bu := [u * (1.0 - u) * (1.0 - u), u * u * (u - 1.0)]
-	var bv := [v * (1.0 - v) * (1.0 - v), v * v * (v - 1.0)]
-	var du := [6.0 * u * (u - 1.0), 6.0 * u * (1.0 - u)]
-	var dv := [6.0 * v * (v - 1.0), 6.0 * v * (1.0 - v)]
-	var eu := [1.0 - 4.0 * u + 3.0 * u * u, 3.0 * u * u - 2.0 * u]
-	var ev := [1.0 - 4.0 * v + 3.0 * v * v, 3.0 * v * v - 2.0 * v]
-	var s := Vector2.ZERO
-	for k in 4:
-		var i: int = PATCH_CI[k]
-		var j: int = PATCH_CJ[k]
-		s.x += p[k] * du[i] * av[j] + p[4 + k] * eu[i] * av[j] + p[8 + k] * du[i] * bv[j]
-		s.y += p[k] * au[i] * dv[j] + p[4 + k] * bu[i] * dv[j] + p[8 + k] * au[i] * ev[j]
-	return s
-
-
 ## Slope of a patch at a corner from the rise d1 of the step before it and d2 of the
 ## one after, along a line of corners: level where the ground turns (or stays level),
 ## so a patch never bulges beyond its corners, and a steady slope where both agree.
@@ -631,8 +612,7 @@ func corner_fills(x: int, y: int, z: int) -> int:
 ## Ground that may have its corners cut or fill a neighbour's corner: anything that
 ## hides what is behind it except tree trunks.
 func _ground(x: int, y: int, z: int) -> bool:
-	var m := get_cell(x, y, z)
-	return m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES and m != Mat.LOG
+	return _surface_ground(get_cell(x, y, z))
 
 
 func _can_slope(x: int, y: int, z: int) -> bool:
@@ -700,15 +680,12 @@ func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 	return _cell_blocks(x, y, z)
 
 
-const _SIDES: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
-
-
 ## Whether the part ax..bx, az..bz (0..1) of air cell (x, y, z) holds the bark of a trunk
 ## beside it thicker than its own cell (see Trees.trunk_box).
 func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if get_cell(x, y, z) != Mat.AIR:
 		return false
-	for o in _SIDES:
+	for o in SIDES:
 		var col := Vector2i(x + o.x, z + o.y)
 		var species: int = trees.get(col, -1)
 		if species < 0 or species >= Trees.SPECIES.size() or get_cell(col.x, y, col.y) != Mat.LOG:

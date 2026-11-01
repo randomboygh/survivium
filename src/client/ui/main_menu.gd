@@ -374,7 +374,7 @@ func _set_map_side(side: int) -> void:
 
 ## The column at the middle of the map: where the player starts.
 func _map_centre() -> Vector2:
-	return Vector2(game.player.position.x, game.player.position.z) / 0.5
+	return Vector2(game.player.position.x, game.player.position.z) / game.CELL
 
 
 func _draw_map(l: Control) -> void:

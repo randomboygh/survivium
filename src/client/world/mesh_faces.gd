@@ -18,7 +18,6 @@ const DIRS := [
 ]
 const FACE_TOP := 2
 const FACE_BOTTOM := 3
-const FACE_SOUTH := 4
 const CORNERS := [
 	[Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(1, 1, 1), Vector3(1, 0, 1)],
 	[Vector3(0, 0, 0), Vector3(0, 1, 0), Vector3(0, 1, 1), Vector3(0, 0, 1)],
@@ -65,7 +64,6 @@ const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
 const DIAG_CORNER := 64
-const FULL := WorldData.FULL
 const CORNER_DIRS := WorldData.CORNER_DIRS
 ## Pieces of a top (see _piece): a whole quarter of the cell, the part of a quarter away
 ## from its corner, the triangle at its corner.

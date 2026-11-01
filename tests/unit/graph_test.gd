@@ -164,11 +164,11 @@ func _test_full_set() -> void:
 func _test_dead_ends() -> void:
 	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_dead"
-	_write(mod, "mod.yaml", "id: _dead\ntitle: Тупики\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/mod.yaml", "id: _dead\ntitle: Тупики\nversion: \"1\"\napi: 1\n")
 	for b: String in DEAD:
-		_write("%s/%s" % [mod, b], "bundle.yaml", "title: %s\n" % b)
+		_write_file("%s/%s/bundle.yaml" % [mod, b], "title: %s\n" % b)
 		for kind: String in DEAD[b]:
-			_write("%s/%s/data" % [mod, b], kind + ".yaml", DEAD[b][kind])
+			_write_file("%s/%s/data/%s.yaml" % [mod, b, kind], DEAD[b][kind])
 	Content.refresh()
 	var errors := _errors_with("_dead/axe")
 	_expect(errors, ["items: `_dead:wood` can never be had", "felled from tree `_dead:big`, lacking a tool that can fell it (`_dead:axe`)",
@@ -246,9 +246,3 @@ func _expect(errors: Array, wants: Array, count: int, what: String) -> void:
 	var missing := wants.filter(func(w: String) -> bool: return not errors.any(func(e: String) -> bool: return w in e))
 	_check(missing.is_empty() and errors.size() == count, "%s (%d errors of %d; not said: %s): %s" % [what, errors.size(), count, missing, errors])
 
-
-func _write(dir: String, file: String, text: String) -> void:
-	DirAccess.make_dir_recursive_absolute(dir)
-	var f := FileAccess.open("%s/%s" % [dir, file], FileAccess.WRITE)
-	f.store_string(text)
-	f.close()
