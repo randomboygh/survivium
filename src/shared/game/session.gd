@@ -118,6 +118,7 @@ func start_wildlife(seed_value: int) -> void:
 func tick(delta: float) -> void:
 	step_clock(delta)
 	step_players(delta)
+	step_things(delta)
 	step_wildlife(delta)
 	step_storms(delta)
 
@@ -134,6 +135,11 @@ func step_players(delta: float) -> void:
 	for i in players.size():
 		players[i].update(d)
 		workshops[i].update(d)
+
+
+## The lights set down burn (Placed.step).
+func step_things(delta: float) -> void:
+	placed.step(minf(delta, STEP_MAX))
 
 
 ## The animals: those on a player's screen move every step, the rest now and then

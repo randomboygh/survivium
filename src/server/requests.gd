@@ -91,6 +91,9 @@ func _do(kind: String, args: Array) -> Variant:
 		Protocol.PROP_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT, TYPE_INT]):
 				return placed.put_from_bag(who, args[0], args[1], args[2])
+		Protocol.LIGHT_PUT:
+			if _fit(args, [TYPE_STRING, TYPE_INT]):
+				return placed.put_light_from_bag(who, args[0], args[1])
 		Protocol.PROP_TAKE:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])

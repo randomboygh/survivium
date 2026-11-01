@@ -12,7 +12,7 @@ extends "res://src/shared/game/placed.gd"
 ## Takes every thing placed, as the server has them on joining (see to_list): what it
 ## held is gone first.
 func take_all(list: Array) -> void:
-	for e in things.duplicate():
+	for e in things + lights:
 		_forget(e)
 	from_list(list)
 

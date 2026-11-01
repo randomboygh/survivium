@@ -61,7 +61,10 @@ const EAT := "eat"
 const THROW := "throw"
 ## Sets a thing down from the bag in front, below the cut: [id, slot, top] (Placed.put_from_bag).
 const PROP_PUT := "prop_put"
-## Takes a thing placed back into the bag: [cell] (Placed.take_up).
+## Sets a light (a torch, a candle) down from the bag in front, below the cut: [id, top]
+## (Placed.put_light_from_bag).
+const LIGHT_PUT := "light_put"
+## Takes a thing placed, or a light set down, back into the bag: [cell] (Placed.take_up).
 const PROP_TAKE := "prop_take"
 ## Puts out a campfire or lights it again: [cell, on] (Placed.put_out, Placed.light).
 const PROP_FIRE := "prop_fire"

@@ -47,6 +47,7 @@ func _process(delta: float) -> void:
 		t = _took("clock", t)
 		if playing:
 			session.step_players(delta)
+			session.step_things(delta)
 			t = _took("players", t)
 			session.step_wildlife(delta)
 			t = _took("wildlife", t)
