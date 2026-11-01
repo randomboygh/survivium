@@ -1,23 +1,26 @@
 extends PanelContainer
 ## The inventory window (plan/design/ui.md, section 5): the character (PersonPanel: what
-## is worn and held, the load, the skills) beside the bag or the craft tab on a wide
-## screen, over the bag on a tall one (hidden on the craft tab there). A tap on a slot
-## of the figure picks it (a hand becomes the hand in use); with a thing to wear chosen
-## in the bag, a tap on its slot puts it on. The bag part is as wide whatever it shows: the bag's
-## slots with a column of tabs by kind of item on the left (the other slots dim) and
-## the sorting buttons on the right (they sort the bag past the hotbar row and the
-## chest shown), the switch of sorting by hand over them. The chests within reach stand
-## under the bag, one at a time, picked by their tabs on the right; the head of the
-## window has, by the cross, the chest's buttons: the chosen stack into it, all the bag
-## past the hotbar row into it, take it up. A tap picks a slot, a tap on another picks
-## that one; with sorting by hand on, a tap on another slot (of the bag or a chest)
-## moves the stack there, swaps the two or tops up a stack of the same item, and lets
-## it go; a tap on the chosen one lets it go. The panel at the bottom names the chosen
-## stack (plant, repair by the name), shows what it is in small wells
-## (FactChips: weight, food, work, wear) and, on the right, a wide «Взять» (into the
-## hand in use; «Съесть» for food, «Поставить» for a chest, station or campfire) under throwing away one | all and the bin (red at
-## the first tap, it destroys at the second). The craft tab (CraftPanel) has its own cells and
-## panels; opened at a station it starts there.
+## is worn and held, the skills) beside the bag or the craft tab on a wide screen, over
+## the bag on a tall one (hidden on the craft tab there). A tap on a slot of the figure
+## works as a tap on a hand of the hotbar (the next tool) or takes off and puts on what
+## is worn there (see _tap_person). The bag part is as wide whatever it shows: the bag's
+## slots, ROWS rows and a half of them showing (they scroll), with a column of tabs by
+## kind of item on the left (the other slots dim) and the sorting buttons on the right
+## (they sort the bag past the hotbar row and the chest shown), the switch of sorting by
+## hand over them. The chests within reach stand under the bag, one at a time, picked by
+## their tabs on the right; the head of the window has, by the cross, the chest's
+## buttons: the chosen stack into it, all the bag past the hotbar row into it, take it
+## up. A tap picks a slot, a tap on another picks that one; with sorting by hand on, a
+## tap on another slot (of the bag or a chest) moves the stack there, swaps the two or
+## tops up a stack of the same item, and lets it go; a tap on the chosen one lets it go.
+## The panel at the bottom names the chosen stack (repair by the name), shows what it is
+## as named groups of small wells side by side (FactChips.item_groups: weight, food, the
+## bag, the tool's work, wear) and a line of buttons on the right: throwing away one |
+## all, the bin (red at the first tap, it destroys at the second) and a wide «Взять»
+## (into the hand in use; «Съесть» for food, «Поставить» for a chest, station or
+## campfire, «Надеть»...); the line goes under the groups in a tall window and by the
+## name in a wide one. The craft tab (CraftPanel) has its own cells and panels; opened
+## at a station it starts there.
 ## Opens over the running world, which goes on; taps inside it do not reach the world.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -44,6 +47,8 @@ const FRAME := 6
 const GAP := 4
 ## Slots across; and the side of a slot, the larger when the window fits the screen.
 const COLUMNS := 8
+## The rows of the bag's slots shown before they scroll (and half the next).
+const ROWS := 3
 const SLOT := 40
 const SLOT_SMALL := 36
 ## The width of the craft tab's column of the recipe and the queue beside the cells on
@@ -67,7 +72,6 @@ var _stacked := false
 var _worn := ""
 ## The bag's slots scroll when there are more than the screen has room for.
 var _scroll: ScrollContainer
-var _cells: VBoxContainer
 var craft: CraftPanel
 var _kinds: IconTabs
 var _chest_tabs: IconTabs
@@ -91,6 +95,11 @@ var _use: Button
 var _repair: Button
 ## Sets a light (a torch, a candle) down in front; the wide button takes it in hand.
 var _set_down: Button
+## The row of buttons for the chosen stack: under the facts in a tall window, beside the
+## name in a wide one (one line less, so more of the bag shows).
+var _buttons: HBoxContainer
+var _name_row: HBoxContainer
+var _info_box: VBoxContainer
 ## Throw away one and all, and the bin.
 var _throw: HBoxContainer
 var _destroy: Button
@@ -184,15 +193,14 @@ func _ready() -> void:
 	_kinds = IconTabs.new()
 	_kinds.picked.connect(func(_k: String) -> void: refresh())
 	middle.add_child(_kinds)
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	middle.add_child(_scroll)
 	var cells := VBoxContainer.new()
 	cells.add_theme_constant_override("separation", 4)
-	cells.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(cells)
-	_cells = cells
-	_grid = _slot_grid(cells, game.character.inventory.slots.size(), _slots, _tap.bind(true))
+	middle.add_child(cells)
+	# The bag's slots scroll (ROWS rows and a half show); the chest's stand under them.
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	cells.add_child(_scroll)
+	_grid = _slot_grid(_scroll, game.character.inventory.slots.size(), _slots, _tap.bind(true))
 	_chest_gap = Control.new()
 	_chest_gap.custom_minimum_size.y = 4
 	cells.add_child(_chest_gap)
@@ -246,15 +254,18 @@ func _ready() -> void:
 		if game.props.put_light(_from.slots[_at][0]):
 			close())
 	name_row.add_child(_set_down)
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 6)
-	info.add_child(body)
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(_facts)
-	# «Взять» (or «Съесть», «Посадить» for a bush) wide under «выбросить | выбросить все» and the bin, apart.
+	info.add_child(_facts)
+	# The buttons in a line on the right: «выбросить | выбросить все», the bin, then
+	# «Взять» (or «Съесть», «Посадить» for a bush...), wide.
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 4)
+	top.alignment = BoxContainer.ALIGNMENT_END
+	info.add_child(top)
+	_buttons = top
+	_name_row = name_row
+	_info_box = info
 	_throw = TabRow.split([
 		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.net.request(Protocol.THROW, [_at, 1])],
 		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.net.request(Protocol.THROW, [_at, 1 << 20])],
@@ -269,7 +280,7 @@ func _ready() -> void:
 	top.add_child(_destroy)
 	for b in _throw.get_children() + [_destroy]:
 		b.custom_minimum_size = Vector2(30, 30)
-	var block := TabRow.block(top, ["Взять", "", func() -> void:
+	_use = _button("Взять", func() -> void:
 		if _worn != "":
 			_use_worn()
 			return
@@ -286,9 +297,9 @@ func _ready() -> void:
 			if game.props.put_from_bag(id, _at):
 				close()
 		else:
-			game.controls.hold(id)], 3 * 30 - 2 + 4, false)
-	body.add_child(block)
-	_use = block.get_child(1)
+			game.controls.hold(id))
+	_use.custom_minimum_size.x = 3 * 30 - 2 + 4
+	top.add_child(_use)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
 
@@ -321,6 +332,8 @@ func _slot_grid(parent: Node, n: int, cells: Array, tap: Callable) -> GridContai
 func _grow_grid(grid: GridContainer, n: int, cells: Array, tap: Callable) -> void:
 	while cells.size() > n:
 		var last: Control = cells.pop_back()
+		# Out of the grid at once, so the window is measured without it.
+		grid.remove_child(last)
 		last.queue_free()
 	while cells.size() < n:
 		var i := cells.size()
@@ -330,24 +343,41 @@ func _grow_grid(grid: GridContainer, n: int, cells: Array, tap: Callable) -> voi
 		cells.append(s)
 
 
-## A tap on slot `k` of the figure (see PersonPanel.picked): puts on the chosen thing of
-## the bag that is worn there; else picks the slot (a hand is the hand in use then), or
-## lets it go when it was chosen.
+## A tap on slot `k` of the figure (see PersonPanel.picked), as a tap on a hand of the
+## hotbar: a hand becomes the hand in use, and a tap on the hand in use gives it the next
+## tool (or brush); a body slot takes off what is worn there, or puts on what the bag has
+## for it (the chosen thing if it fits, else the bag with the most slots for the back).
+## The slot is chosen then, for the panel at the bottom.
 func _tap_person(k: String) -> void:
 	_confirming = false
-	if _from == game.character.inventory and _from.slots[_at] != null and Items.wear_on(_from.slots[_at][0]) == k:
-		game.net.request(Protocol.WEAR, [_at])
-		_let_go()
-	elif _worn == k:
-		_let_go()
+	var inv = game.character.inventory
+	var chosen: int = _at if _from == inv and _from.slots[_at] != null and Items.wear_on(_from.slots[_at][0]) == k else -1
+	_let_go()
+	_worn = k
+	if k.begins_with("hand"):
+		game.hud.tap_hand(int(k.right(1)))
+	elif chosen < 0 and inv.gear.get(k, "") != "":
+		game.net.request(Protocol.TAKE_OFF, [k])
 	else:
-		_let_go()
-		_worn = k
-		if k.begins_with("hand"):
-			game.controls.set_active(int(k.right(1)))
-	if not _bag_page.visible:
-		show_tab("bag")
+		if chosen < 0:
+			chosen = _to_wear(inv, k)
+		if chosen >= 0:
+			game.net.request(Protocol.WEAR, [chosen])
+		else:
+			game.character.nag("wear", "В сумке нечего надеть сюда")
 	refresh()
+
+
+## The slot of bag `inv` with a thing worn in body slot `k`, the bag with the most slots
+## for the back; -1 for none.
+static func _to_wear(inv, k: String) -> int:
+	var best := -1
+	for i in inv.slots.size():
+		var s = inv.slots[i]
+		if s != null and Items.wear_on(s[0]) == k and not (k == "back" and i >= inv.base) \
+				and (best < 0 or Items.bag_slots(s[0]) > Items.bag_slots(inv.slots[best][0])):
+			best = i
+	return best
 
 
 ## The wide button with a slot of the figure chosen: takes off what is worn there, or
@@ -438,11 +468,15 @@ func fit(screen: Vector2) -> void:
 		s.custom_minimum_size = Vector2(slot, slot)
 	person.set_slot(slot)
 	_main.vertical = _stacked
+	var by_name := not _stacked
+	if (_buttons.get_parent() == _name_row) != by_name:
+		_buttons.get_parent().remove_child(_buttons)
+		(_name_row if by_name else _info_box).add_child(_buttons)
 	person.visible = _bag_page.visible or not _stacked
 	_bag_page.custom_minimum_size.x = _width(slot)
 	# A wrapping label is measured at its least width: as wide as the panel it is in
 	# (less the buttons by it, see _show_info).
-	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD
+	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD - _beside()
 	craft.slot = slot
 	# On a wide screen the craft tab's recipe and queue go right of the cells, so the
 	# window is not too tall for it; the window is that much wider on the craft tab.
@@ -469,17 +503,21 @@ func _place() -> void:
 	_place_queued = false
 	var screen := get_parent_area_size()
 	var room := Vector2(screen.x, screen.y - HOTBAR)
-	var full := _cells.get_combined_minimum_size()
-	_scroll.custom_minimum_size = full
+	var full := _grid.get_combined_minimum_size()
+	var row := slot + 4
+	# Up to ROWS rows, the next one cut through its middle when there are more, so the
+	# half row shows the slots scroll.
+	var most := ROWS * row + slot * 0.5
+	_scroll.custom_minimum_size = Vector2(full.x, minf(full.y, most))
 	reset_size()
 	var over := size.y - (room.y - 2 * EDGE)
 	if craft.visible and over > 0.0:
 		craft.shrink_list(over)
 		reset_size()
 	elif _bag_page.visible and over > 0.0:
-		# Whole rows of slots, the rest scrolled.
-		var rows := maxi(1, floori((full.y - over + 4) / (slot + 4)))
-		_scroll.custom_minimum_size.y = rows * (slot + 4) - 4
+		# Less room on the screen: fewer rows, still cut through the last one.
+		var rows := clampi(floori((_scroll.custom_minimum_size.y - over - slot * 0.5) / row), 0, ROWS)
+		_scroll.custom_minimum_size.y = maxf(slot * 0.5, rows * row + slot * 0.5)
 		reset_size()
 	position = ((room - size) * 0.5).floor().max(Vector2(EDGE, EDGE))
 
@@ -649,13 +687,13 @@ func _show_info(inv) -> void:
 	if s == null:
 		_info.text = ("Выбери ячейку, затем ту, куда её переложить" if _manual else "Выбери ячейку, чтобы узнать о вещи") \
 			if not inv.is_empty() else "Пусто. Подбирай ветки, ягоды и брёвна."
-		_facts.show_wells([])
+		_facts.show_groups([])
 	else:
 		var id: String = s[0]
 		_info.text = "%s ×%d%s%s" % [Items.title(id), s[1],
 			" · с вещами" if _from.contents(_at) != null else "",
 			"" if mine else " · в сундуке"]
-		_facts.show_wells(FactChips.item_wells(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
+		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
 			game.character.burn_left(id) if mine else 1.0))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
 	_repair.visible = mine and inv.worn(_at) > 0
@@ -665,7 +703,7 @@ func _show_info(inv) -> void:
 	for b: Button in [_repair, _set_down]:
 		if b.visible:
 			room -= int(b.get_combined_minimum_size().x) + 6
-	_info.custom_minimum_size.x = room
+	_info.custom_minimum_size.x = room - _beside()
 	var heals: bool = s != null and Items.heal(s[0]) > 0.0
 	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals
 	var put: bool = s != null and _placeable(s[0])
@@ -682,6 +720,11 @@ func _show_info(inv) -> void:
 	TabRow.light(_destroy, _confirming, _confirming)
 
 
+## The width the buttons take beside the name (none when they are under the facts).
+func _beside() -> int:
+	return int(_buttons.get_combined_minimum_size().x) + 6 if _buttons.get_parent() == _name_row else 0
+
+
 ## The panel at the bottom with a slot of the figure chosen: what is worn or held
 ## there, «Снять» (or «Убрать» for a hand).
 func _show_worn(inv) -> void:
@@ -696,17 +739,17 @@ func _show_worn(inv) -> void:
 		var h := int(_worn.right(1))
 		# A light in the second hand is the second one lit when the first holds one too.
 		var k := 1 if hand and h == 1 and game.controls.hands[0] == id and inv.count(id) > 1 else 0
-		_facts.show_wells(FactChips.item_wells(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0))
+		_facts.show_groups(FactChips.item_groups(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0))
 	elif _worn == "back":
 		_info.text = "Сумка: %d ячеек, всегда с собой. Надень котомку, сумку или рюкзак — станет больше" % inv.base
-		_facts.show_wells([])
+		_facts.show_groups([])
 	else:
 		_info.text = "%s: пусто" % title
-		_facts.show_wells([])
+		_facts.show_groups([])
 	_info.add_theme_color_override("font_color", UiStyle.INK if id != "" else UiStyle.MUTED)
-	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD
 	_repair.visible = false
 	_set_down.visible = false
+	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD - _beside()
 	_use.visible = true
 	_use.text = "Убрать" if hand else "Снять"
 	_use.tooltip_text = "Освободить руку" if hand else "Снять в сумку"

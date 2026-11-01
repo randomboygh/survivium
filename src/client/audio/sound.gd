@@ -366,7 +366,8 @@ func _on_window(w: Control) -> void:
 
 
 func _on_node_added(node: Node) -> void:
-	if node is BaseButton and not node is TouchButton:
+	# A button moved to another parent enters the tree again: connect it once.
+	if node is BaseButton and not node is TouchButton and not node.pressed.is_connected(_on_button):
 		node.pressed.connect(_on_button.bind(node))
 
 

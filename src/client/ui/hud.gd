@@ -298,9 +298,9 @@ func _ready() -> void:
 	_bar_row = bar_row
 	# A tap on a hand makes it the hand in use; on the hand in use it changes what it
 	# holds: the next brush for a block, else the next tool.
-	_hand_left = _slot(bar_row, _tap_hand.bind(0))
+	_hand_left = _slot(bar_row, tap_hand.bind(0))
 	_hand_left.tag = "Л"
-	_hand_right = _slot(bar_row, _tap_hand.bind(1))
+	_hand_right = _slot(bar_row, tap_hand.bind(1))
 	_hand_right.tag = "П"
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
@@ -778,7 +778,7 @@ func refresh_hands() -> void:
 
 
 ## A tap on hand `hand` of the hotbar.
-func _tap_hand(hand: int) -> void:
+func tap_hand(hand: int) -> void:
 	var c = game.controls
 	if c.active != hand:
 		c.set_active(hand)
