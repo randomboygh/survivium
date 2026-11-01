@@ -66,7 +66,8 @@ const PROP_PUT := "prop_put"
 const LIGHT_PUT := "light_put"
 ## Takes a thing placed, or a light set down, back into the bag: [cell] (Placed.take_up).
 const PROP_TAKE := "prop_take"
-## Puts out a campfire or lights it again: [cell, on] (Placed.put_out, Placed.light).
+## Puts out a campfire, or lights it again or feeds it one piece of fuel: [cell, on]
+## (Placed.put_out, Placed.feed).
 const PROP_FIRE := "prop_fire"
 ## Destroys a campfire put out: [cell] (Placed.destroy).
 const PROP_DESTROY := "prop_destroy"
@@ -146,6 +147,8 @@ const PROP := "prop"
 const PROP_GONE := "prop_gone"
 ## A campfire was put out or lit: [cell, lit].
 const PROP_LIT := "prop_lit"
+## What a campfire has left to burn: [cell, seconds] (Placed.fuel_changed).
+const PROP_FUEL := "prop_fuel"
 ## What a thing that stores holds changed: [cell, Inventory.to_dict()].
 const CHEST := "chest"
 ## The time, the season and the weather: [Clock.snapshot()], on joining and then a few

@@ -1,6 +1,7 @@
 # Бревно и ветка. Какое дерево их даёт, говорит само дерево (поля log и twig пород в
 # «Растениях»); куст даёт ветки полем twig. Поля — как у предметов основы
-# (content/core/data/items.yaml). fuel — этим разжигают костёр.
+# (content/core/data/items.yaml). fuel — этим разжигают и кормят костёр, fuel_time — сколько секунд
+# горит костёр на одной штуке (ветка 5 минут, бревно 20).
 - id: branch
   title: Ветка
   weight: 0.3
@@ -8,9 +9,12 @@
   model: branch
   icon: branch
   fuel: true
+  fuel_time: 300
 - id: log
   title: Бревно
   weight: 5.0
   stack: 4
   model: log
   icon: log
+  fuel: true
+  fuel_time: 1200

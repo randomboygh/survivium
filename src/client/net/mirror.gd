@@ -3,7 +3,7 @@ extends RefCounted
 ## player's character (the bag, the body's state, death) and workshop, the things placed
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
-## PROP_LIT, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
+## PROP_LIT, PROP_FUEL, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
@@ -143,6 +143,9 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.PROP_LIT:
 			if args is Array and args.size() == 2 and args[0] is Vector3i:
 				game.placed.take_lit(args[0], bool(args[1]))
+		Protocol.PROP_FUEL:
+			if args is Array and args.size() == 2 and args[0] is Vector3i and (args[1] is float or args[1] is int):
+				game.placed.take_fuel(args[0], float(args[1]))
 		Protocol.CHEST:
 			if args is Array and args.size() == 2 and args[0] is Vector3i and args[1] is Dictionary:
 				game.placed.take_chest(args[0], args[1])

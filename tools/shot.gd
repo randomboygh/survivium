@@ -8,6 +8,7 @@ extends SceneTree
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
 
+const Items := preload("res://src/shared/content/items.gd")
 const Shots := preload("res://tools/shot/shots.gd")
 const Places := preload("res://tools/shot/places.gd")
 
@@ -324,6 +325,13 @@ func _run() -> void:
 			main.effects.burst(main.player.position + Vector3(0.6, 0.4, 0.0), main.Mat.index(shot.burst))
 			for i in 3:
 				await process_frame
+		if shot.has("fuel"):
+			# The fire by the spawn this full, the player standing by it till its bar shows.
+			for e: Dictionary in main.session.placed.things:
+				if main.session.placed.is_fire(e):
+					e.fuel = Items.get_item(e.item).fuel_max * float(shot.fuel)
+					main.session.placed.fuel_changed.emit(e)
+			await create_timer(2.6).timeout
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
 			await process_frame

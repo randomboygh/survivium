@@ -18,9 +18,10 @@ const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
-## Seconds a step of a character or a workshop covers at most: a long frame does not
-## starve or craft for all of it.
-const STEP_MAX := 0.05
+## Seconds of one long frame the characters, workshops and lights catch up on at most: a
+## slow phone's frame (5 FPS) counts in full, while a pause (the tab hidden, a freeze of
+## seconds) does not starve or craft for all of it.
+const CATCH_UP := 1.0
 ## Chunks within this many chunks of a player (their zone) are made, farther than any
 ## screen shows (a phone held sideways shows about three chunks each way, and the
 ## tallest mountains a few more to the south).
@@ -131,15 +132,15 @@ func step_clock(delta: float) -> void:
 
 ## Every character's state and their workshop's queue.
 func step_players(delta: float) -> void:
-	var d := minf(delta, STEP_MAX)
+	var d := minf(delta, CATCH_UP)
 	for i in players.size():
 		players[i].update(d)
 		workshops[i].update(d)
 
 
-## The lights set down burn (Placed.step).
+## The lights set down and the campfires burn, the rain falling on the fires (Placed.step).
 func step_things(delta: float) -> void:
-	placed.step(minf(delta, STEP_MAX))
+	placed.step(minf(delta, CATCH_UP), clock.WEATHERS[clock.weather].get("rain", 0.0))
 
 
 ## The animals: those on a player's screen move every step, the rest now and then

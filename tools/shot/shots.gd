@@ -367,6 +367,8 @@ const SHOTS := {
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
 	# The craft tab with nothing queued: no queue panel under the recipe.
 	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
+	# Standing by the spawn campfire a while: the bar of what it has left to burn over it.
+	"fire-gauge": {"time": 0.9, "season": 1, "moon": 1.0, "by_fire": Vector3(1.4, 0.0, 0.4), "fuel": 0.6},
 	# The spawn campfire opened: the craft tab with its buttons by the cross.
 	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
 	# The same workbench, kiln and chest with the window closed.

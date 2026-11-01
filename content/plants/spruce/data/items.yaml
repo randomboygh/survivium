@@ -10,3 +10,4 @@
   model: cone
   icon: cone
   fuel: true
+  fuel_time: 120

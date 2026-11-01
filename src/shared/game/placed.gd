@@ -7,8 +7,10 @@ extends RefCounted
 ## tool it is set down with). They are solid (WorldData.blockers): bodies go round them
 ## or jump on them, and a burning fire burns a body that touches it (see burns). A thing
 ## that stores is taken up with what it holds; a fire cannot be carried, but it can be put
-## out, lit again for a branch, and destroyed without a trace. The rules take the
-## one acting as `who` (see WorldActions) and tell what changed through signals: the
+## out, lit again for a branch, and destroyed without a trace. A fire burns on fuel (its
+## item's `fuel_max`, see step): fed with branches, logs and the like, it goes out once
+## they have burned, or in a downpour under the open sky; put out, it keeps what it has
+## left. The rules take the one acting as `who` (see WorldActions) and tell what changed through signals: the
 ## client draws the things (Props) and rebuilds the chunks.
 ##
 ## Lights (an item with `light` and no `prop`: a torch, a candle, a lantern) are set down
@@ -33,6 +35,16 @@ const CELL := WorldData.CELL
 const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body standing by a burning campfire comes to be burnt.
 const SINGE := 0.02
+## A fire burning under the open sky goes out after this many seconds of a heavy rain
+## (of strength RAIN_HEAVY or more: a downpour, a storm; a light rain does not), and dries
+## as fast once it stops.
+const RAIN_OUT := 60.0
+const RAIN_HEAVY := 0.9
+## A fire is not fed while it has room for less than this many seconds.
+const FUEL_ROOM := 30.0
+## Those who copy the world learn what a fire has left this often, in seconds of it
+## (fuel_changed), besides when it is fed.
+const FUEL_TELL := 10.0
 ## How far (cells) from its own spot a thing of the start's camp is set down when that
 ## spot is taken, and how many levels above or below the spawn it may stand (see camp_spot).
 const CAMP_REACH := 12
@@ -44,6 +56,9 @@ signal added(e: Dictionary)
 signal removed(e: Dictionary)
 ## Campfire `e` was put out or lit again (its `lit`).
 signal lit_changed(e: Dictionary)
+## What campfire `e` has left to burn (its `fuel`) changed: it was fed, or another
+## FUEL_TELL seconds of it burned.
+signal fuel_changed(e: Dictionary)
 ## A cell under a thing was levelled or a bush there taken away: its chunks change.
 signal cell_changed(cell: Vector3i)
 
@@ -54,7 +69,8 @@ var world
 var lights: Array = []
 ## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its two by two
 ## cells), "items": what a thing that stores holds (an Inventory, else null), "lit": false
-## for a fire put out}. Saved with the world (to_list).
+## for a fire put out, and for a fire "fuel": the seconds it has left to burn, "wet": the
+## seconds it has stood in the rain}. Saved with the world (to_list).
 var things: Array = []
 ## What the chest by the spawn holds (the first thing that stores placed).
 var chest_items = null
@@ -142,10 +158,14 @@ static func is_fire(e: Dictionary) -> bool:
 
 ## Places thing `item` (an item with a `prop`) with its north-west cell at `cell`;
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
-## puts a fire there cold.
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true) -> Dictionary:
+## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
+## `fuel_start`).
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0) -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire}
+	if rec.fire:
+		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
+		e.wet = 0.0
 	var whole := AABB(Vector3.ZERO, Vector3.ONE)
 	var boxes: Array = footprints.get(rec.prop, [whole, whole, whole, whole])
 	for i in 4:
@@ -171,8 +191,8 @@ func from_list(list: Array) -> void:
 			if is_light_item(id):
 				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)))
 				continue
-			put(Items.get_item(Items.canon(d.item)).id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
-				not d.get("out", false))
+			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
+				not d.get("out", false), float(d.get("fuel", -1.0)))
 
 
 ## The placed things as plain data for the save.
@@ -186,7 +206,8 @@ func to_list() -> Array:
 
 
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
-## holds (Inventory.to_dict) if it stores, "out" true for a fire put out}.
+## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
+## seconds a fire has left}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -197,6 +218,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.items = e.items.to_dict()
 	if not e.lit:
 		d.out = true
+	if e.has("fuel"):
+		d.fuel = snappedf(e.fuel, 0.1)
 	return d
 
 
@@ -360,18 +383,81 @@ func put_out(e: Dictionary) -> void:
 
 
 ## `who` lights campfire `e` again for one piece of fuel from the bag (an item with
-## `fuel`, a branch); true if it burns.
+## `fuel`, a branch), which it then burns on, with what it had left; true if it burns.
 func light(who, e: Dictionary) -> bool:
 	if not is_fire(e) or e.lit:
 		return e.lit
-	var fuel := Items.fuel_in(who.inventory)
+	var fuel := fuel_for(who.inventory)
 	if fuel == "" or who.inventory.remove(fuel, 1) < 1:
 		who.nag("light", "Чтобы разжечь, нужна ветка или другое топливо")
 		return false
+	_add_fuel(e, fuel)
+	e.wet = 0.0
 	e.lit = true
 	lit_changed.emit(e)
 	world.note_edit(e.cell.x, e.cell.z)
 	return true
+
+
+## `who` puts one piece of fuel from the bag on campfire `e` that burns (see fuel_for):
+## it burns that much longer, up to its `fuel_max`; true if it was fed. One put out is
+## lit (see light).
+func feed(who, e: Dictionary) -> bool:
+	if not is_fire(e):
+		return false
+	if not e.lit:
+		return light(who, e)
+	var most: float = Items.get_item(e.item).fuel_max
+	if most <= 0.0:
+		return false
+	if most - e.fuel < FUEL_ROOM:
+		who.nag("fuel", "Костёр и так горит в полную силу")
+		return false
+	var fuel := fuel_for(who.inventory)
+	if fuel == "" or who.inventory.remove(fuel, 1) < 1:
+		who.nag("fuel", "Подложить нечего: нужна ветка, бревно или другое топливо")
+		return false
+	_add_fuel(e, fuel)
+	world.note_edit(e.cell.x, e.cell.z)
+	return true
+
+
+## The fuel in bag `inv` to put on a fire: the shortest burning (a branch before a log,
+## which is worth more as timber); "" when the bag holds none.
+static func fuel_for(inv) -> String:
+	var shortest := ""
+	for id: String in Items.IDS:
+		var t := Items.fuel_time(id)
+		if t > 0.0 and inv.count(id) > 0 and (shortest == "" or t < Items.fuel_time(shortest)):
+			shortest = id
+	return shortest
+
+
+func _add_fuel(e: Dictionary, fuel: String) -> void:
+	var most: float = Items.get_item(e.item).fuel_max
+	if most > 0.0:
+		e.fuel = minf(most, float(e.get("fuel", 0.0)) + Items.fuel_time(fuel))
+		fuel_changed.emit(e)
+
+
+## The share of what fire `e` holds that it has left to burn, 0..1 (1 for one that burns
+## for ever).
+static func fuel_share(e: Dictionary) -> float:
+	var most: float = Items.get_item(e.item).get("fuel_max", 0.0)
+	return 1.0 if most <= 0.0 else clampf(float(e.get("fuel", 0.0)) / most, 0.0, 1.0)
+
+
+## True when nothing keeps the rain off fire `e`: a column of its cells has no roof above
+## it (WorldData.roof_level), its chunk in memory.
+func _in_rain(e: Dictionary) -> bool:
+	var c: Vector3i = e.cell
+	if world.chunk_at(c.x, c.z) == null:
+		return false
+	for dz in 2:
+		for dx in 2:
+			if world.roof_level(c.x + dx, c.z + dz) < c.y:
+				return true
+	return false
 
 
 ## Destroys campfire `e` that has been put out: nothing is left of it.
@@ -589,10 +675,16 @@ func take_light(who, e: Dictionary) -> bool:
 	return true
 
 
-## The lights burn `delta` seconds: one that has burned its Items.burns is gone, and so
-## is one whose cell was filled or the ground under it dug (it goes out). The session's
-## step (only where the chunk is in memory is its cell asked).
-func step(delta: float) -> void:
+## The lights and the fires burn `delta` seconds in a rain of strength `rain` (0 for
+## none, 1 a downpour; Clock.WEATHERS): a light that has burned its Items.burns is gone,
+## and so is one whose cell was filled or the ground under it dug (it goes out); a fire
+## goes out once its fuel has burned, or after RAIN_OUT seconds in the rain under the
+## open sky in a heavy rain (see _in_rain). The session's step (only where the chunk is in memory are
+## cells asked).
+func step(delta: float, rain := 0.0) -> void:
+	for e: Dictionary in things:
+		if e.lit and e.has("fuel"):
+			_burn_fire(e, delta, rain)
 	for e: Dictionary in lights.duplicate():
 		e.burnt += delta
 		var lasts := Items.burns(e.item)
@@ -601,3 +693,20 @@ func step(delta: float) -> void:
 			_remove(e)
 		elif world.chunk_at(c.x, c.z) != null and (world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z)):
 			_remove(e)
+
+
+func _burn_fire(e: Dictionary, delta: float, rain: float) -> void:
+	if Items.get_item(e.item).fuel_max <= 0.0:
+		return
+	var was: float = e.fuel
+	e.fuel = maxf(0.0, was - delta)
+	if rain >= RAIN_HEAVY and _in_rain(e):
+		e.wet += delta
+	else:
+		e.wet = maxf(0.0, e.wet - delta)
+	if e.fuel <= 0.0 or e.wet >= RAIN_OUT:
+		e.wet = 0.0
+		put_out(e)
+		fuel_changed.emit(e)
+	elif floori(e.fuel / FUEL_TELL) != floori(was / FUEL_TELL):
+		fuel_changed.emit(e)
