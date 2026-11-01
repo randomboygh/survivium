@@ -42,7 +42,7 @@ jobs:
         run: |
           # The client, its shaders, scenes and pictures, the web save store, the export, the
           # smoke test and CI itself. Rules, data and tests are covered by the headless tests.
-          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/(sprites|models|icons|textures)/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|tools/web_patch\.py|\.github/)'
+          web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/(sprites|models|icons|textures)/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|tools/web_patch\.py|tools/web_cache\.py|\.github/)'
           if [ -z "$PR" ] || [ "$LABELED" = true ]; then
             smoke=true
           else
@@ -95,6 +95,9 @@ jobs:
           # The engine's audio position worklet posted a message per 128 sound frames of
           # every sound playing, the phone's garbage collector stalled on them.
           python3 tools/web_patch.py build/web
+          # The engine's files named by their content and kept on the device by a service
+          # worker: a deploy no longer makes the phone download the 9 MB engine again.
+          python3 tools/web_cache.py build/web
           # The link preview, and the home screen icon drawn at its size rather than the
           # export's smoothed one (tools/make_icon.py).
           cp assets/web/og.png build/web/
