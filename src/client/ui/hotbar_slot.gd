@@ -2,7 +2,7 @@ extends Control
 ## One item cell of the hotbar, a hand or the bag: a sunken well with an icon, a tag in
 ## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
 ## a number (how many) in the bottom right, and a strip along the bottom for how much
-## of a light held is left to burn.
+## of a light held is left to burn (or how loaded the bag on the back is).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
@@ -35,6 +35,11 @@ var fill := -1.0:
 		if v != fill:
 			fill = v
 			queue_redraw()
+## The strip's colour; transparent for a light's (amber, red when nearly out).
+var fill_color := Color(0, 0, 0, 0):
+	set(v):
+		fill_color = v
+		queue_redraw()
 var selected := false:
 	set(v):
 		selected = v
@@ -104,7 +109,7 @@ func _draw() -> void:
 		var w := size.x - 8.0
 		var r := Rect2(4.0, size.y - 6.0, w, 2.0)
 		draw_rect(r.grow(1.0), UiStyle.EDGE)
-		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT)
+		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), fill_color if fill_color.a > 0.0 else (UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT))
 	if tag != "":
 		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":

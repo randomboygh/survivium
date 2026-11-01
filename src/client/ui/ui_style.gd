@@ -235,6 +235,15 @@ const ICONS := {
 		"mmmmmmmmm",
 		".mmmmmmm.",
 	],
+	"cells": [
+		"www.www",
+		"w.w.w.w",
+		"www.www",
+		".......",
+		"www.www",
+		"w.w.w.w",
+		"www.www",
+	],
 	"bag": [
 		"...www...",
 		"..w...w..",
@@ -688,6 +697,7 @@ const ICONS := {
 
 static var _font: FontFile
 static var _icons := {}
+static var _weight: Texture2D
 static var _centred := {}
 ## Images that textures were made from, by the texture's instance id (see remember).
 static var _images := {}
@@ -803,39 +813,53 @@ static func theme() -> Theme:
 	return t
 
 
-## A bag's load as one bar in `r` of `c`: filled by `weight` of `limit` (green, amber
-## near the limit, red past it), the slots taken of all and the weight of the limit
-## written inside, «10 / 40 • 35 / 40 кг» in one line or the two on two lines.
-static func draw_load(c: CanvasItem, r: Rect2, taken: int, slots: int, weight: float, limit: int, two_lines := false) -> void:
-	c.draw_rect(r, EDGE)
-	var inner := r.grow(-1)
-	c.draw_rect(inner, WELL)
-	var share := weight / float(maxi(limit, 1))
-	var fill := DANGER_DARK if share > 1.0 else (Color("#8a6a2a") if share > 0.9 else Color("#3f6a2c"))
-	c.draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * clampf(share, 0.0, 1.0)), inner.size.y)), fill)
+## A bag's load as one line in `r` of `c`, in the look of the clock under the hotbar:
+## the slots' picture and the slots taken of all (amber when all are), a dot, the
+## weight's picture and the weight of the limit (red past it), centred down `r`; and
+## under it a thin strip of the weight against the limit, as a light's in a slot.
+static func draw_load(c: CanvasItem, r: Rect2, taken: int, slots: int, weight: float, limit: int) -> void:
 	var f := font()
 	var fs := FONT_SIZE
-	var cells := "%d / %d" % [taken, slots]
-	var kg := "%d / %d кг" % [roundi(weight), limit]
-	var cells_ink := ACCENT if taken >= slots else INK
-	if two_lines:
-		var h := f.get_height(fs)
-		var top := floorf(r.position.y + (r.size.y - 2 * h - 2) * 0.5)
-		c.draw_string(f, Vector2(r.position.x + 4, top + f.get_ascent(fs)), cells, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cells_ink)
-		c.draw_string(f, Vector2(r.position.x + 4, top + h + 2 + f.get_ascent(fs)), kg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
-		return
 	var y := floorf(r.position.y + (r.size.y - f.get_height(fs)) * 0.5) + f.get_ascent(fs)
-	var x := r.position.x + 4
-	c.draw_string(f, Vector2(x, y), cells, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cells_ink)
-	x += ceilf(f.get_string_size(cells + " • ", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
-	c.draw_string(f, Vector2(x - ceilf(f.get_string_size("• ", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x), y), "•", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, MUTED)
-	c.draw_string(f, Vector2(x, y), kg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
+	var x := r.position.x
+	var cells := icon("cells")
+	var mid := r.position.y + r.size.y * 0.5
+	c.draw_texture(cells, Vector2(x, floorf(mid - cells.get_height() * 0.5)))
+	x += cells.get_width() + 4
+	var a := "%d / %d" % [taken, slots]
+	c.draw_string(f, Vector2(x, y), a, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ACCENT if taken >= slots else INK)
+	x += _text_width(a) + _text_width(" ")
+	c.draw_string(f, Vector2(x, y), "·", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
+	x += _text_width("· ")
+	var kg := _weight_icon()
+	if kg != null:
+		c.draw_texture(kg, Vector2(x, floorf(mid - kg.get_height() * 0.5)))
+		x += kg.get_width() + 4
+	var share := weight / float(maxi(limit, 1))
+	c.draw_string(f, Vector2(x, y), "%d / %d кг" % [roundi(weight), limit], HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+		DANGER if share > 1.0 else INK)
 
 
-## The width draw_load needs in one line for `slots` slots and a limit of `limit` kg.
+## The width draw_load takes for `slots` slots and a limit of `limit` kg, the weight up
+## to ten times the limit.
 static func load_width(slots: int, limit: int) -> int:
-	var text := "%d / %d • %d / %d кг" % [slots, slots, limit * 10, limit * 10]
-	return int(ceilf(font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x)) + 8
+	var kg := _weight_icon()
+	return int(icon("cells").get_width() + 4 + _text_width("%d / %d · " % [slots, slots])
+		+ (kg.get_width() + 4 if kg != null else 0) + _text_width("%d / %d кг" % [limit * 10, limit]))
+
+
+static func _text_width(t: String) -> float:
+	return ceilf(font().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x)
+
+
+## The weight's picture (assets/ui/weight.png), as the bag's sorting by weight shows it.
+## Read once into a texture of its own, as ItemIcons reads pictures.
+static func _weight_icon() -> Texture2D:
+	if _weight == null and ResourceLoader.exists("res://assets/ui/weight.png"):
+		var img: Image = load("res://assets/ui/weight.png").get_image()
+		_weight = ImageTexture.create_from_image(img)
+		remember(_weight, img)
+	return _weight
 
 
 ## The room between a panel's edge and what it holds (left, top, right, bottom): its

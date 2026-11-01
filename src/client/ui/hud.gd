@@ -321,11 +321,11 @@ func _ready() -> void:
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
-	# As wide as its line with two-digit slots and three-digit kilos.
-	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 4, 16)
+	# In the clock's look, as wide as its line with two-digit slots and three-digit kilos.
+	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, 19)
 	_bag_meter.size = _bag_meter.custom_minimum_size
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_bag_meter.add_theme_stylebox_override(state, _bar_box())
+		_bag_meter.add_theme_stylebox_override(state, UiStyle.panel(Vector4(5, 4, 5, 4)))
 	_bag_meter.draw.connect(_draw_bag_meter)
 	_bag_meter.pressed.connect(toggle_bag)
 	add_child(_bag_meter)
@@ -1105,9 +1105,9 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## The tab on the hotbar: the bag's load as one bar (UiStyle.draw_load): the slots
-## taken of all (amber when all are) and the weight of the limit, the bar filled by
-## the weight (amber near the limit, red past it).
+## The tab on the hotbar, in the look of the clock under it: the slots taken of all and
+## the weight of the limit (UiStyle.draw_load), a thin strip of the load along its
+## bottom (amber near the limit, red past it).
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
@@ -1115,7 +1115,11 @@ func _draw_bag_meter() -> void:
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	UiStyle.draw_load(c, Rect2(Vector2(2, 2), c.size - Vector2(4, 4)), taken, inv.slots.size(), inv.weight(), inv.weight_limit)
+	UiStyle.draw_load(c, Rect2(Vector2(5, 3), c.size - Vector2(10, 8)), taken, inv.slots.size(), inv.weight(), inv.weight_limit)
+	var share: float = inv.load_share()
+	var strip := Rect2(4, c.size.y - 5, c.size.x - 8, 1)
+	c.draw_rect(Rect2(strip.position, Vector2(roundf(strip.size.x * clampf(share, 0.0, 1.0)), 1)),
+		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
 	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 
 

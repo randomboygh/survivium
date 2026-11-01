@@ -2,9 +2,9 @@ extends PanelContainer
 ## The character in the inventory window (plan/design/ui.md, «Инвентарь»): the slots of
 ## what is worn where it is worn (body, legs, feet down the middle, the head's slot at the
 ## top left as the bag on the back is at the top right) and of the two hands under them,
-## joined by faint lines of a body; beside them the bag's load (one bar as tall as a
-## slot: the slots taken of all over the weight of the limit) over the skills, two columns
-## of bars in a panel of their own (examples until skills come). A tap on a slot says
+## joined by faint lines of a body, a strip of the bag's load along the bottom of the
+## back's slot; beside them the skills, two columns of bars in a panel of their own
+## (examples until skills come). A tap on a slot says
 ## which with `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -29,7 +29,7 @@ const TITLES := {
 ## Room between the columns of slots (the arms are drawn there) and between the rows.
 const GAP_X := 12
 const GAP_Y := 4
-## The width of the column of the load and the skills (two columns of them).
+## The width of the panel of skills (two columns of them).
 const SIDE := 132
 ## The room inside the panel's frame, and between the figure and the column.
 const PAD := 4
@@ -49,8 +49,6 @@ var chosen := "":
 		chosen = v
 		refresh()
 var _figure: Control
-## The bag's load by the bag's slot.
-var _load: Control
 var _cells := {}
 
 
@@ -74,23 +72,16 @@ func _ready() -> void:
 		s.tooltip_text = TITLES[k]
 		_figure.add_child(s)
 		_cells[k] = s
-	# By the bag on the back, its load: a bar of the weight against the limit, the
-	# numbers inside; under it the skills in a panel of their own, a bar each.
-	var side := VBoxContainer.new()
-	side.add_theme_constant_override("separation", 4)
-	side.custom_minimum_size.x = SIDE
-	row.add_child(side)
-	_load = Control.new()
-	_load.draw.connect(_draw_load)
-	side.add_child(_load)
+	# The skills in a panel of their own, two columns of bars.
 	var skills := PanelContainer.new()
 	var well := UiStyle.well()
 	well.set_content_margin_all(3)
 	skills.add_theme_stylebox_override("panel", well)
 	skills.tooltip_text = "Навыки (пока для примера: навыков в игре ещё нет)"
-	skills.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	side.add_child(skills)
+	skills.custom_minimum_size.x = SIDE
+	row.add_child(skills)
 	var bars := GridContainer.new()
+	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bars.columns = 2
 	bars.add_theme_constant_override("h_separation", 2)
 	bars.add_theme_constant_override("v_separation", 2)
@@ -124,26 +115,12 @@ func _draw_bar(bar: Control, title: String, level: int, top: int) -> void:
 	bar.draw_string(font, Vector2(4, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.INK)
 
 
-## The load bar, as tall as the bag's slot beside it: the slots taken of all over the
-## weight of the limit, filled by the weight (UiStyle.draw_load).
-func _draw_load() -> void:
-	var inv = game.character.inventory
-	var taken := 0
-	for s in inv.slots:
-		if s != null:
-			taken += 1
-	UiStyle.draw_load(_load, Rect2(Vector2.ZERO, _load.size), taken, inv.slots.size(), inv.weight(), inv.weight_limit, true)
-	_load.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг%s" % [taken, inv.slots.size(), inv.weight(),
-		inv.weight_limit, " — перегруз" if inv.overloaded() else ""]
-
-
 ## Lays the figure out for slots `side` UI pixels large.
 func set_slot(side: int) -> void:
 	slot = side
 	if _figure == null:
 		return
 	_figure.custom_minimum_size = Vector2(3 * slot + 2 * GAP_X, ROWS * slot + (ROWS - 1) * GAP_Y)
-	_load.custom_minimum_size.y = slot
 	for k: String in PLACES:
 		var c: Control = _cells[k]
 		c.custom_minimum_size = Vector2(slot, slot)
@@ -181,7 +158,8 @@ func refresh() -> void:
 		if worn != "":
 			c.texture = ItemIcons.of_item(worn)
 			if k == "back":
-				c.number = "+%d" % Items.bag_slots(worn)
+				# In the top corner: the bottom one holds the strip of the load.
+				c.key = "+%d" % Items.bag_slots(worn)
 		elif k == "back":
 			# The bag the character always has.
 			c.texture = UiStyle.icon("bag")
@@ -192,10 +170,20 @@ func refresh() -> void:
 			c.texture = UiStyle.icon("wear_" + k)
 			c.icon_size = c.texture.get_size() * 2
 			c.modulate = Color(1, 1, 1, 0.6)
-	_cells.back.tooltip_text = "Сумка: %d ячеек%s" % [inv.base,
-		(", %s: ещё %d" % [Items.title(inv.gear.back), Items.bag_slots(inv.gear.back)]) if inv.gear.has("back") else ""]
+	# Under the bag, a strip of its load, as a light's in a slot: green, amber near the
+	# limit, red past it.
+	var share: float = inv.load_share()
+	var back = _cells.back
+	back.fill = clampf(share, 0.0, 1.0)
+	back.fill_color = UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD)
+	var taken := 0
+	for s in inv.slots:
+		if s != null:
+			taken += 1
+	back.tooltip_text = "Сумка: %d ячеек%s; занято %d из %d, %.1f из %d кг" % [inv.base,
+		(", %s: ещё %d" % [Items.title(inv.gear.back), Items.bag_slots(inv.gear.back)]) if inv.gear.has("back") else "",
+		taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 	_figure.queue_redraw()
-	_load.queue_redraw()
 
 
 ## The faint body joining the slots: arms down to the hands, legs, and the head's slot
