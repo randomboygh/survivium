@@ -504,15 +504,18 @@ const SHOTS := {
 		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]]},
 	"ui-test-marks": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "marks",
 		"markers": [[30, -20, 0], [-40, 10, 1], [12, 36, 2], [-24, -44, 3], [140, 30, 4], [-70, -60, 5]]},
-	# The main menu over the live world, over the painted sky it shows while the world is
-	# built, and with the setup screen of a new world open over it.
+	# The main menu over the live world (the pause menu's way back to it), over the painted
+	# landscape at the hours asked, the loading screen, and with the setup screen of a new
+	# world open over it.
 	"ui-main-menu": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live"},
 	"ui-main-menu-pc": {"time": 0.42, "season": 1, "main_menu": "live"},
-	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky"},
-	# The clouds parting once the world is built, caught halfway.
-	"ui-main-menu-part": {"time": 0.42, "season": 1, "touch": true, "main_menu": "part"},
-	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading"},
+	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 12.0},
+	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5},
 	"ui-main-menu-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading"},
+	"ui-main-menu-sky-pc": {"time": 0.42, "season": 1, "main_menu": "sky", "menu_hour": 12.0},
+	"ui-main-menu-dawn": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 6.3},
+	"ui-main-menu-sunset": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 19.6},
+	"ui-main-menu-night": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 23.5},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},

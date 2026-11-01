@@ -186,6 +186,11 @@ func _key(mi: MeshInstance3D) -> Array:
 	return key
 
 
+## How far the warm-up has gone, 0 to 1 (the loading screen's strip).
+func progress() -> float:
+	return clampf(float(frames) / MIXES.size(), 0.0, 1.0)
+
+
 ## Called every frame; true once every mix was drawn and the hidden view is gone.
 func step() -> bool:
 	frames += 1

@@ -13,6 +13,10 @@ const Content := preload("res://src/shared/content/content.gd")
 ## The last starts kept, the newest first, a line each.
 const FILE := "user://starts.txt"
 const KEEP := 6
+## How long each part of the last loading took (msec, see keep_parts), and the shares of
+## the loading screen's strip the parts take before any loading was kept.
+const PARTS_FILE := "user://load_parts.cfg"
+const DEFAULT_SHARES := {"setup": 0.08, "build": 0.6, "warm": 0.12, "settle": 0.2}
 
 ## The steps of this scene's start: name → Time.get_ticks_msec when it ended.
 static var marks := {}
@@ -137,11 +141,12 @@ static func line() -> String:
 		parts.append("сцена заново")
 	parts.append_array(_steps())
 	if marks.has("world"):
-		var from: float = marks.get("modules", marks.scene)
+		# From the moment the world was asked for (the menu's choice), not the scene's start.
+		var from: float = marks.get("load", marks.get("modules", marks.scene))
 		var w := "мир %s (место %s, чанки %s, сетки %s" % [_s(marks.world - from), _s(spawn_ms), _s(chunks_ms), _s(mesh_ms)]
-		if marks.has("play"):
-			# What the player waited after leaving the menu, the rest was built behind it.
-			w += ", после меню %s" % _s(maxf(0.0, marks.world - marks.play))
+		if marks.has("ready"):
+			# The shaders built ahead and the first frames, until the world showed.
+			w += ", первые кадры %s" % _s(maxf(0.0, marks.ready - marks.world))
 		parts.append(w + ")")
 	var total := ""
 	if marks.has("menu"):
@@ -161,7 +166,8 @@ static func keep() -> void:
 		return
 	_kept = true
 	var short := "%s: до меню %s с (%s), мир %s с" % [Time.get_datetime_string_from_system().replace("T", " ").left(16),
-		_s(_on_page(marks.get("menu", marks.world))), ", ".join(_steps(false)), _s(marks.world - marks.get("modules", marks.scene))]
+		_s(_on_page(marks.get("menu", marks.world))), ", ".join(_steps(false)),
+		_s(marks.world - marks.get("load", marks.get("modules", marks.scene)))]
 	var lines := past()
 	lines.push_front(short)
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
@@ -174,3 +180,40 @@ static func past() -> Array:
 	if not FileAccess.file_exists(FILE):
 		return []
 	return Array(FileAccess.get_file_as_string(FILE).split("\n", false))
+
+
+## The share of the loading screen's strip each of `parts` takes: what it took of the
+## time the last loading (keep_parts), else DEFAULT_SHARES; a part never under 3 %.
+static func part_shares(parts: Array) -> Dictionary:
+	var cfg := ConfigFile.new()
+	var ms := {}
+	var total := 0.0
+	if cfg.load(PARTS_FILE) == OK:
+		for p: String in parts:
+			ms[p] = maxf(float(cfg.get_value("ms", p, 0.0)), 0.0)
+			total += ms[p]
+	var shares := {}
+	var sum := 0.0
+	for p: String in parts:
+		shares[p] = maxf(ms[p] / total if total > 0.0 else float(DEFAULT_SHARES.get(p, 0.1)), 0.03)
+		sum += shares[p]
+	for p: String in parts:
+		shares[p] /= sum
+	return shares
+
+
+## How long part `part` took the last loading (msec), `fallback` if none was kept.
+static func last_part_ms(part: String, fallback: float) -> float:
+	var cfg := ConfigFile.new()
+	if cfg.load(PARTS_FILE) != OK:
+		return fallback
+	var v := float(cfg.get_value("ms", part, 0.0))
+	return v if v > 0.0 else fallback
+
+
+## Keeps how long each part of this loading took (msec by part), for the next one.
+static func keep_parts(times: Dictionary) -> void:
+	var cfg := ConfigFile.new()
+	for p: String in times:
+		cfg.set_value("ms", p, int(times[p]))
+	cfg.save(PARTS_FILE)
