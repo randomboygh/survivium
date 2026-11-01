@@ -18,7 +18,9 @@
 ## Технический аудит кода (этап 4, 2026-11-01)
 
 Находки по системам — [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), план шагов и что ждёт решения
-пользователя — [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md).
+пользователя — [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md). Сделано (шаги 1–6,
+PR #289–#293): что исправлено и что осталось — [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md),
+замеры — [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md).
 
 ## Технический долг и ограничения, найденные аудитом этапа 0 (предложения, не утверждены)
 

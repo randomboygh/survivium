@@ -157,6 +157,9 @@ class OneBiome extends RefCounted:
 	func lay_out(_x: int, _z: int, _w: int, _h: int, _step := 1) -> Dictionary:
 		return {"biome": PackedByteArray([biome])}
 
+	func biome_of(_x: int, _z: int) -> int:
+		return biome
+
 
 ## A species that names its biomes comes only onto their ground: wolves (taiga, forest,
 ## tundra) on a forest, none on a meadow.
