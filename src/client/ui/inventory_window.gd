@@ -31,6 +31,7 @@ const CraftPanel := preload("res://src/client/ui/craft_panel.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const PersonPanel := preload("res://src/client/ui/person_panel.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 
 ## Room kept between the window and the edges of the screen, in UI pixels.
 const EDGE := 4
@@ -88,6 +89,8 @@ var _facts: FactChips
 ## «Посадить» for a bush.
 var _use: Button
 var _repair: Button
+## Sets a light (a torch, a candle) down in front; the wide button takes it in hand.
+var _set_down: Button
 ## Throw away one and all, and the bin.
 var _throw: HBoxContainer
 var _destroy: Button
@@ -239,6 +242,10 @@ func _ready() -> void:
 	name_row.add_child(_info)
 	_repair = _button("Починить", func() -> void: game.net.request(Protocol.REPAIR, [_at]))
 	name_row.add_child(_repair)
+	_set_down = _button("Поставить", func() -> void:
+		if game.props.put_light(_from.slots[_at][0]):
+			close())
+	name_row.add_child(_set_down)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 6)
 	info.add_child(body)
@@ -652,10 +659,12 @@ func _show_info(inv) -> void:
 			game.character.burn_left(id) if mine else 1.0))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
 	_repair.visible = mine and inv.worn(_at) > 0
+	_set_down.visible = mine and Placed.is_light_item(s[0])
 	# The name wraps in what the buttons by it leave.
 	var room := _width(slot) - 2 * UiStyle.WELL_PAD
-	if _repair.visible:
-		room -= int(_repair.get_combined_minimum_size().x) + 6
+	for b: Button in [_repair, _set_down]:
+		if b.visible:
+			room -= int(b.get_combined_minimum_size().x) + 6
 	_info.custom_minimum_size.x = room
 	var heals: bool = s != null and Items.heal(s[0]) > 0.0
 	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals
@@ -697,6 +706,7 @@ func _show_worn(inv) -> void:
 	_info.add_theme_color_override("font_color", UiStyle.INK if id != "" else UiStyle.MUTED)
 	_info.custom_minimum_size.x = _width(slot) - 2 * UiStyle.WELL_PAD
 	_repair.visible = false
+	_set_down.visible = false
 	_use.visible = true
 	_use.text = "Убрать" if hand else "Снять"
 	_use.tooltip_text = "Освободить руку" if hand else "Снять в сумку"

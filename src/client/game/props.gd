@@ -44,6 +44,11 @@ var drop_nodes := {}
 var _models := {}
 var _nodes := {}
 var _fires := {}
+## The lights set down (Placed.lights): their records in Effects (Effects.add_lamp) by
+## their cell; their models are in _nodes.
+var _lamps := {}
+## Meshes of the lights standing, by item.
+var _standing := {}
 var _heat_queued := false
 
 
@@ -96,6 +101,13 @@ func put_from_bag(id: String, slot := -1) -> bool:
 	return r.done and r.value is bool and r.value
 
 
+## The player sets light `id` down in front (see Placed.put_light_from_bag) below the
+## level cut, through the server; true if it was set down.
+func put_light(id: String) -> bool:
+	var r = game.net.request(Protocol.LIGHT_PUT, [id, game.chunks.cut_level])
+	return r.done and r.value is bool and r.value
+
+
 func _model(kind: String):
 	if not _models.has(kind):
 		_models[kind] = VoxelProps.prop(kind)
@@ -103,6 +115,9 @@ func _model(kind: String):
 
 
 func _on_added(e: Dictionary) -> void:
+	if Placed.is_light(e):
+		_add_lamp(e)
+		return
 	if Placed.is_fire(e):
 		_fires[e.cell] = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat)
 		if not e.lit:
@@ -120,6 +135,9 @@ func _on_added(e: Dictionary) -> void:
 
 
 func _on_removed(e: Dictionary) -> void:
+	if _lamps.has(e.cell):
+		game.effects.remove_lamp(_lamps[e.cell])
+		_lamps.erase(e.cell)
 	if _nodes.has(e.cell):
 		_nodes[e.cell].queue_free()
 		_nodes.erase(e.cell)
@@ -127,6 +145,25 @@ func _on_removed(e: Dictionary) -> void:
 		game.effects.remove_campfire(_fires[e.cell])
 		_fires.erase(e.cell)
 		_heat_later()
+
+
+## Light `e` set down: its model standing in the middle of its cell and its flame on top
+## (Effects.add_lamp), lighting as far as the item's `light`.
+func _add_lamp(e: Dictionary) -> void:
+	var item := Items.get_item(e.item)
+	if not _standing.has(e.item):
+		_standing[e.item] = VoxelProps.standing(item).build_mesh()
+	var mesh: Mesh = _standing[e.item]
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = game.low_mat
+	node.scale = Vector3.ONE / 16.0
+	node.position = (Vector3(e.cell) + Vector3(0.5, 0.0, 0.5)) * CELL
+	_fit(node)
+	game.world_root.add_child(node)
+	_nodes[e.cell] = node
+	var top := mesh.get_aabb().end.y / 16.0
+	_lamps[e.cell] = game.effects.add_lamp(node.position + Vector3(0.0, top + 0.03, 0.0), float(item.get("light", 0.0)))
 
 
 func _on_lit_changed(e: Dictionary) -> void:

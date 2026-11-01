@@ -8,6 +8,7 @@ func run() -> void:
 	_test_world_actions()
 	_test_placed()
 	_test_start_camp()
+	_test_lights()
 	_test_station_flags()
 	_test_recipe_fields()
 
@@ -308,6 +309,45 @@ func _test_start_camp() -> void:
 ## works there as bare hands; a crate of four slots stores and is no station; tools are
 ## mended where the workbench's flag says, at the rack too. And what the checks say of
 ## flags out of place.
+## A torch set down in front burns there what it has left and is gone; taken back, what it
+## burned goes with it; it is saved with the things.
+func _test_lights() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var placed := Placed.new()
+	placed.world = w
+	var who := Survivor.new()
+	who.world = w
+	who.at = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	var id := "tools:torch"
+	var lasts := Items.burns(id)
+	who.give(id, 2)
+	who.burning[id] = [100.0]
+	_check(Placed.is_light_item(id) and not Placed.is_light_item("tools:workbench"), "a torch is a light to set down")
+	_check(not placed.put_light_from_bag(who, id, 1), "nothing is set down above the level cut")
+	_check(placed.put_light_from_bag(who, id, 40) and placed.lights.size() == 1 and who.inventory.count(id) == 1
+		and placed.things.is_empty(), "a torch is set down from the bag, apart from the things")
+	var e: Dictionary = placed.lights[0]
+	_check(e.cell == Vector3i(10, 2, 11) and is_equal_approx(e.burnt, 100.0) and who.burning[id].is_empty()
+		and not w.blockers.has(e.cell), "on the cell in front, the burning one with what it burned, not solid")
+	_check(placed.at(e.cell) == e and placed.light_spot(who, 40) == Vector3i(10, 2, 10), "found by its cell; the next goes farther")
+	placed.step(10.0)
+	_check(is_equal_approx(e.burnt, 110.0), "it burns where it stands")
+	var copy := Placed.new()
+	copy.world = w
+	copy.from_list(JSON.parse_string(JSON.stringify(placed.to_list())))
+	_check(copy.lights.size() == 1 and copy.lights[0].cell == e.cell and is_equal_approx(copy.lights[0].burnt, 110.0),
+		"it is saved with the things")
+	_check(placed.take_up(who, e) and placed.lights.is_empty() and who.inventory.count(id) == 2
+		and who.burning[id] == [110.0], "taken back, it goes on burning from where it was")
+	_check(placed.put_light_from_bag(who, id, 40), "set down again")
+	placed.step(lasts)
+	_check(placed.lights.is_empty() and who.inventory.count(id) == 1, "burned out, it is gone")
+
+
 func _test_station_flags() -> void:
 	var before := Content.BUNDLES.duplicate()
 	var mod := "res://content/_k"

@@ -10,6 +10,13 @@ extends RefCounted
 ## out, lit again for a branch, and destroyed without a trace. The rules take the
 ## one acting as `who` (see WorldActions) and tell what changed through signals: the
 ## client draws the things (Props) and rebuilds the chunks.
+##
+## Lights (an item with `light` and no `prop`: a torch, a candle, a lantern) are set down
+## on one cell of their own (`lights`, see put_light_from_bag): not solid, they burn out
+## their Items.burns seconds where they stand (step) and are gone, as in a hand (also when
+## their cell is filled or the ground under it dug); taken
+## back, what has burned goes with them. They come and go by the same signals as the
+## things, their records marked `light`.
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Content := preload("res://src/shared/content/content.gd")
@@ -41,6 +48,10 @@ signal lit_changed(e: Dictionary)
 signal cell_changed(cell: Vector3i)
 
 var world
+## Each light set down: {"item": id, "cell": Vector3i (the cell it stands in), "burnt":
+## seconds it has burned, "light": true, "items": null, "lit": true}. Saved with the
+## things (to_list).
+var lights: Array = []
 ## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its two by two
 ## cells), "items": what a thing that stores holds (an Inventory, else null), "lit": false
 ## for a fire put out}. Saved with the world (to_list).
@@ -156,6 +167,10 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true) -> Di
 func from_list(list: Array) -> void:
 	for d in list:
 		if d is Dictionary and Items.has(Items.canon(d.get("item", ""))) and d.get("cell") is Array and d.cell.size() == 3:
+			var id: String = Items.get_item(Items.canon(d.item)).id
+			if is_light_item(id):
+				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)))
+				continue
 			put(Items.get_item(Items.canon(d.item)).id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false))
 
@@ -165,6 +180,8 @@ func to_list() -> Array:
 	var out := []
 	for e in things:
 		out.append(record(e))
+	for e in lights:
+		out.append(record(e))
 	return out
 
 
@@ -173,6 +190,9 @@ func to_list() -> Array:
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
+	if is_light(e):
+		d.burnt = e.burnt
+		return d
 	if e.items != null:
 		d.items = e.items.to_dict()
 	if not e.lit:
@@ -230,11 +250,16 @@ func at(cell: Vector3i) -> Dictionary:
 	for e in things:
 		if e.cell == cell:
 			return e
+	for e in lights:
+		if e.cell == cell:
+			return e
 	return {}
 
 
 ## The middle of placed thing `e` in world units.
 static func center(e: Dictionary) -> Vector3:
+	if is_light(e):
+		return (Vector3(e.cell) + Vector3(0.5, 0.5, 0.5)) * CELL
 	return (Vector3(e.cell) + Vector3(1.0, 0.5, 1.0)) * CELL
 
 
@@ -309,6 +334,8 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 ## (its weight and theirs go to the bag); not a fire (see put_out and destroy). True if it
 ## was taken.
 func take_up(who, e: Dictionary) -> bool:
+	if is_light(e):
+		return take_light(who, e)
 	if is_fire(e):
 		who.nag("take", "%s не унести: его можно потушить и разобрать" % Items.title(e.item))
 		return false
@@ -363,6 +390,10 @@ func _remove(e: Dictionary) -> void:
 
 ## Lets go of thing `e`: its cells are free again, it is told gone (removed).
 func _forget(e: Dictionary) -> void:
+	if is_light(e):
+		lights.erase(e)
+		removed.emit(e)
+		return
 	for dz in 2:
 		for dx in 2:
 			world.blockers.erase(e.cell + Vector3i(dx, 0, dz))
@@ -405,6 +436,10 @@ func _fits(who, corner: Vector3i, top: int) -> bool:
 	for e in things:
 		var o: Vector3i = e.cell
 		if o.y == corner.y and absi(o.x - corner.x) < 2 and absi(o.z - corner.z) < 2:
+			return false
+	for e in lights:
+		var o: Vector3i = e.cell
+		if o.y == corner.y and o.x - corner.x in [0, 1] and o.z - corner.z in [0, 1]:
 			return false
 	return true
 
@@ -456,3 +491,113 @@ func _remove_bush(cell: Vector3i) -> void:
 		return
 	world.remove_bush(cell)
 	cell_changed.emit(cell)
+
+
+# --- Lights set down --------------------------------------------------------------------
+
+## True for item `id` that is set down as a light on a cell of its own: it gives light
+## (`light`) and is no thing of two by two cells (`prop`).
+static func is_light_item(id: String) -> bool:
+	var item := Items.get_item(id)
+	return item.get("light", 0.0) > 0.0 and item.get("prop", "none") == "none"
+
+
+## True for a light set down (see lights).
+static func is_light(e: Dictionary) -> bool:
+	return e.get("light", false)
+
+
+## Sets light `item` down on `cell`, burned `burnt` seconds already.
+func put_light(item: String, cell: Vector3i, burnt := 0.0) -> Dictionary:
+	var e := {"item": item, "cell": cell, "burnt": burnt, "light": true, "items": null, "lit": true}
+	lights.append(e)
+	added.emit(e)
+	return e
+
+
+## The light standing in `cell`, {} for none.
+func light_at(cell: Vector3i) -> Dictionary:
+	for e in lights:
+		if e.cell == cell:
+			return e
+	return {}
+
+
+## The cell in front of `who` a light can stand in (see _light_fits): one step ahead,
+## else two, at the feet's level or a cell below or above; null if none.
+func light_spot(who, top: int) -> Variant:
+	var feet: Vector3i = who.feet()
+	var s: Vector2i = who.facing_step()
+	for ahead: int in [1, 2]:
+		for dy: int in [0, -1, 1]:
+			var c := Vector3i(feet.x + s.x * ahead, feet.y + dy, feet.z + s.y * ahead)
+			if _light_fits(who, c, top):
+				return c
+	return null
+
+
+## Whether a light can stand in `cell`: air over solid ground, no higher than `top`,
+## clear of `who`, of the things and of the other lights.
+func _light_fits(who, cell: Vector3i, top: int) -> bool:
+	if cell.y > top or world.get_cell(cell.x, cell.y, cell.z) != Mat.AIR or not world.is_solid(cell.x, cell.y - 1, cell.z):
+		return false
+	if who.overlaps_cell(cell) or world.blockers.has(cell) or not light_at(cell).is_empty():
+		return false
+	for e in things:
+		var o: Vector3i = e.cell
+		if o.y == cell.y and cell.x - o.x in [0, 1] and cell.z - o.z in [0, 1]:
+			return false
+	return true
+
+
+## `who` sets light `id` from the bag down in front (see light_spot), at or below level
+## `top`: the one burning in a hand first, with what it has burned (Character.burning).
+## True if it was set down.
+func put_light_from_bag(who, id: String, top: int) -> bool:
+	if not is_light_item(id) or who.inventory.count(id) < 1:
+		return false
+	var spot: Variant = light_spot(who, top)
+	if spot == null:
+		who.nag("put", "Некуда поставить: нужна свободная клетка на земле перед собой")
+		return false
+	if not who.act("place"):
+		return false
+	var burnt := 0.0
+	if "burning" in who:
+		var lit: Array = who.burning.get(id, [])
+		if not lit.is_empty():
+			burnt = float(lit.pop_front())
+	if who.inventory.remove(id, 1) < 1:
+		return false
+	put_light(id, spot, burnt)
+	world.note_edit(spot.x, spot.z)
+	return true
+
+
+## `who` takes light `e` back into the bag; what it has burned goes with it (it burns
+## after the ones already lit, see Character.burning). True if it was taken.
+func take_light(who, e: Dictionary) -> bool:
+	if who.give(e.item, 1) < 1:
+		who.nag("full", "Сумка полна")
+		return false
+	if "burning" in who and float(e.burnt) > 0.0:
+		var lit: Array = who.burning.get(e.item, [])
+		lit.append(float(e.burnt))
+		who.burning[e.item] = lit
+		who.state_changed.emit()
+	_remove(e)
+	return true
+
+
+## The lights burn `delta` seconds: one that has burned its Items.burns is gone, and so
+## is one whose cell was filled or the ground under it dug (it goes out). The session's
+## step (only where the chunk is in memory is its cell asked).
+func step(delta: float) -> void:
+	for e: Dictionary in lights.duplicate():
+		e.burnt += delta
+		var lasts := Items.burns(e.item)
+		var c: Vector3i = e.cell
+		if lasts > 0.0 and e.burnt >= lasts:
+			_remove(e)
+		elif world.chunk_at(c.x, c.z) != null and (world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z)):
+			_remove(e)

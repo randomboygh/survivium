@@ -41,6 +41,42 @@ static func of_item(item: Dictionary, centred: bool) -> VoxelModel:
 	return _read[key]
 
 
+## The model of light `item` set down standing on a cell (Placed.lights), centred on the
+## origin, the ground at 0: its model as it lies on the ground when it stands already (a
+## candle, a lantern), else stood up on its long side, the end with more voxels (a
+## torch's head) on top; a bundle without a model.
+static func standing(item: Dictionary) -> VoxelModel:
+	var key := "standing|%s" % item.get("id", "")
+	if _read.has(key):
+		return _read[key]
+	var m: VoxelModel = of_item(item, true)
+	if m == null or m.voxels.is_empty():
+		m = bundle()
+	var lo := Vector3i(1 << 20, 1 << 20, 1 << 20)
+	var hi := -lo
+	for p: Vector3i in m.voxels:
+		lo = lo.min(p)
+		hi = hi.max(p)
+	var size := hi - lo + Vector3i.ONE
+	var out := m
+	if size.y < maxi(size.x, size.z):
+		var along_x := size.x >= size.z
+		var a0 := lo.x if along_x else lo.z
+		var a1 := hi.x if along_x else hi.z
+		var w_mid := ((lo.z + hi.z) if along_x else (lo.x + hi.x)) / 2
+		var y_mid := (lo.y + hi.y) / 2
+		var high := 0
+		for p: Vector3i in m.voxels:
+			high += 1 if 2 * (p.x if along_x else p.z) > a0 + a1 else -1
+		out = VoxelModel.new()
+		for p: Vector3i in m.voxels:
+			var a := p.x if along_x else p.z
+			var w := p.z if along_x else p.x
+			out.set_voxel(Vector3i(w - w_mid, a - a0 if high >= 0 else a1 - a, p.y - y_mid), m.voxels[p])
+	_read[key] = out
+	return out
+
+
 ## Where item `item` keeps model `name`: in its bundle (see Content.asset).
 static func model_path(item: Dictionary, name: String) -> String:
 	return Content.asset(item, "models/%s.png" % name)

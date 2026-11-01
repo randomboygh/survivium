@@ -13,6 +13,7 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
@@ -50,7 +51,7 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 	var bush_reach: float = game.controls.tool_record().reach * CELL
 	# A placed thing is big: it is hit 6 px farther than the radius, and the nearest wins.
 	var prop_d := radius + 6.0
-	for e: Dictionary in game.placed.things:
+	for e: Dictionary in game.placed.things + game.placed.lights:
 		var at: Vector3 = game.placed.center(e)
 		if at.distance_to(player_pos) <= REACH:
 			var d := _screen_distance(at, vp_pos)
@@ -93,6 +94,8 @@ func describe(target: Dictionary) -> String:
 	if target.has("prop"):
 		var e: Dictionary = target.prop
 		var title := Items.title(e.item)
+		if Placed.is_light(e):
+			return "%s\nЛКМ забрать" % title
 		if e.items != null:
 			return "%s\nЛКМ открыть" % title
 		return "%s\nЛКМ крафт" % title
@@ -120,6 +123,9 @@ func describe(target: Dictionary) -> String:
 ## opens, the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
+	if target.has("prop") and Placed.is_light(target.prop):
+		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
+		return taken.done and taken.value is bool and taken.value
 	if target.has("prop"):
 		game.hud.open_prop(target.prop)
 		return true

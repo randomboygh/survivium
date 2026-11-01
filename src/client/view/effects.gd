@@ -56,6 +56,12 @@ const SHADOW_ENERGY := Vector2(0.8, 0.6)
 ## equinox, later in summer and sooner in winter) under a full moon too.
 const SHADOW_SKY := 0.5
 ## Around a fire the torch goes out (see torch_off), world units from the fire.
+## How many of the lights set down light the world at once (see lamps), how bright.
+const LAMP_LIGHTS := 6
+const LAMP_ENERGY := 1.3
+## Flames of lights set down farther than this from the view (screen-plane units) stop:
+## off the screen, their particles would still cost the phone's processor.
+const LAMP_FLAME_REACH := 24.0
 const TORCH_OFF_NEAR := 3.0
 const TORCH_OFF_FAR := 5.5
 
@@ -100,6 +106,10 @@ var pollen: CPUParticles3D
 ## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it
 ## stands in), "at": Vector3 (its middle on the ground)}
 var fires: Array = []
+## Each light set down (a torch, a candle, a lantern; Placed.lights): {"light":
+## OmniLight3D, "flame": CPUParticles3D, "at": Vector3}. Only the LAMP_LIGHTS nearest the
+## view light the world, the rest show their flame alone (a field of torches on a phone).
+var lamps: Array = []
 ## The effects setting: off stops the weather and the ambient particles.
 var enabled := true
 ## The fire shadows setting: the nearest fire or the torch casts shadows (see
@@ -319,6 +329,58 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire}
 
 
+## A light set down with its flame at world point `at`, lighting `reach` world units
+## round (an item's `light`): a small flame and a flickering light. Returns its record
+## for remove_lamp.
+func add_lamp(at: Vector3, reach: float) -> Dictionary:
+	var flame := _torch_flame()
+	flame.position = at
+	flame.emitting = true
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.55, 0.25)
+	light.omni_range = reach
+	light.omni_attenuation = 0.0
+	light.light_energy = 0.0
+	light.visible = false
+	add_child(light)
+	anchor(light, at)
+	var rec := {"light": light, "flame": flame, "at": at}
+	lamps.append(rec)
+	return rec
+
+
+## Takes light `rec` (see add_lamp) out of the world.
+func remove_lamp(rec: Dictionary) -> void:
+	rec.flame.queue_free()
+	rec.light.queue_free()
+	lamps.erase(rec)
+
+
+## The LAMP_LIGHTS lights set down nearest the screen-plane point `view` light the world,
+## flickering, dimmer by day; the rest are dark but for their flames, and those far off
+## the screen not even those.
+func _light_lamps(view: Vector2, daylight: float) -> void:
+	if lamps.is_empty():
+		return
+	var near: Array = lamps
+	if lamps.size() > LAMP_LIGHTS:
+		near = lamps.duplicate()
+		near.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return PixelView.screen_plane(a.at).distance_squared_to(view) < PixelView.screen_plane(b.at).distance_squared_to(view))
+		near = near.slice(0, LAMP_LIGHTS)
+	for rec: Dictionary in lamps:
+		var on: bool = near.has(rec)
+		var flame: CPUParticles3D = rec.flame
+		var burns := PixelView.screen_plane(rec.at).distance_to(view) < LAMP_FLAME_REACH
+		if flame.emitting != burns:
+			flame.emitting = burns
+		var light: OmniLight3D = rec.light
+		if light.visible != on:
+			light.visible = on
+		if on:
+			light.light_energy = LAMP_ENERGY * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.85, 1.05)
+
+
 ## Puts out campfire `rec` (see add_campfire): the flames, smoke and light go, its warmth
 ## too (the caller remakes the heat map), and grey ash lies on the cold logs.
 func put_out(rec: Dictionary) -> void:
@@ -428,6 +490,7 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 		for f in fires:
 			var energy: float = f.base * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.8, 1.1)
 			f.light.light_energy = energy * (shadow_energy if f.light.shadow_enabled else 1.0)
+		_light_lamps(view, daylight)
 
 
 ## Points emitter `p` `down` (negative falls) and `side` along the wind `dir` (x east,
