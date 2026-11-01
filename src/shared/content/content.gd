@@ -45,6 +45,10 @@ extends RefCounted
 ## `AiRules.SPECIES` as before.
 
 const Yaml := preload("res://src/shared/content/yaml.gd")
+## The mods' YAML files parsed when the game was built (tools/content_cache.gd, run by CI
+## before an export; not in git): md5 of a file's text → its value. A file whose text is
+## not in it (edited since, or no cache at all, as in the editor) is parsed as before.
+const PARSED := "res://content_cache.bin"
 
 const ROOT := "res://content"
 ## The bundles to load, as asked for; `loaded` has the order they were loaded in after
@@ -392,6 +396,13 @@ static var _scan_problems := {}
 ## mods' data costs a start of the game, shown in the playtest report.
 static var read_ms := 0.0
 static var load_ms := 0.0
+## PARSED, read on the first file (null until then, {} without one).
+static var _parsed: Variant = null
+## How many files _read took from PARSED and how many it parsed, for the report.
+static var cached_files := 0
+## refs by kind.
+static var _refs := {}
+static var parsed_files := 0
 
 
 ## Every mod under `content/`: the folders with a mod.yaml, core first, then by name.
@@ -500,7 +511,12 @@ static func _scan() -> void:
 			bi["mod"] = mod
 			var u := {"mod": mod, "info": bi, "records": {}, "owns": {}, "hard": {}, "soft": {}, "patches": {}, "replaces": {},
 				"requires": _named(bi.get("requires", []), mod), "wants": _named(bi.get("wants", []), mod)}
+			# One listing of the bundle's data/ instead of asking for a file of every kind.
+			var present := DirAccess.get_files_at("%s/%s/data" % [ROOT, b])
 			for kind in SCHEMAS:
+				if not ("%s.yaml" % kind) in present:
+					u.records[kind] = []
+					continue
 				var list := _read_records(b, mod, kind)
 				u.records[kind] = list
 				for r in list:
@@ -751,6 +767,9 @@ static func schema(kind: String) -> Dictionary:
 ## each, `key` the field's name or "field.sub" for field `sub` of the entries of `field`
 ## (see named), `spec` the reference's own (with its `rel`).
 static func refs(kind: String) -> Array:
+	# SCHEMAS is constant: worked out once a kind (every record of the start asks).
+	if _refs.has(kind):
+		return _refs[kind]
 	var out := []
 	for key: String in SCHEMAS[kind]:
 		var spec: Dictionary = SCHEMAS[kind][key]
@@ -760,6 +779,7 @@ static func refs(kind: String) -> Array:
 					out.append(["%s.%s" % [key, sub], spec.fields[sub]])
 		elif target(spec) != "":
 			out.append([key, spec])
+	_refs[kind] = out
 	return out
 
 
@@ -1298,8 +1318,53 @@ static func _read(path: String) -> Variant:
 	if f == null:
 		problems.append("%s: cannot read" % path.trim_prefix(ROOT + "/"))
 		return null
+	var text := f.get_as_text()
+	if _parsed == null:
+		_parsed = {}
+		var c := FileAccess.open(PARSED, FileAccess.READ)
+		var got: Variant = c.get_var() if c != null else null
+		if got is Dictionary:
+			_parsed = got
+	if not _parsed.is_empty():
+		var key := text.md5_text()
+		if _parsed.has(key):
+			cached_files += 1
+			# Its records are changed by who reads them (ids qualified...): a copy each time.
+			var v: Variant = _parsed[key]
+			return v.duplicate(true) if v is Dictionary or v is Array else v
+	parsed_files += 1
+	return parse_text(text, path.trim_prefix(ROOT + "/"))
+
+
+## Every YAML file under content/ parsed, for PARSED: md5 of its text → its value; a
+## malformed file is left out (the game parses it and reports it).
+static func parsed_cache() -> Dictionary:
+	var out := {}
+	var files := []
+	_yaml_files(ROOT, files)
+	for path: String in files:
+		var text := FileAccess.get_file_as_string(path)
+		var had := problems.size()
+		var value: Variant = parse_text(text, path.trim_prefix(ROOT + "/"))
+		if problems.size() > had:
+			problems.resize(had)
+			continue
+		out[text.md5_text()] = value
+	return out
+
+
+static func _yaml_files(dir: String, files: Array) -> void:
+	for f in DirAccess.get_files_at(dir):
+		if f.ends_with(".yaml"):
+			files.append(dir.path_join(f))
+	for d in DirAccess.get_directories_at(dir):
+		_yaml_files(dir.path_join(d), files)
+
+
+## The value of YAML `text` (of `file`, for the problem), null with a problem when malformed.
+static func parse_text(text: String, file: String) -> Variant:
 	var yaml := Yaml.new()
-	var value: Variant = yaml.parse(f.get_as_text(), path.trim_prefix(ROOT + "/"))
+	var value: Variant = yaml.parse(text, file)
 	if yaml.error != "":
 		problems.append(yaml.error)
 		return null
