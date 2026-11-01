@@ -133,7 +133,13 @@ const SCHEMAS := {
 		"repairs": {"type": "bool", "default": false},
 		"serves": {"type": "list", "of": "ref:items", "default": [], "rel": "serves"},
 		"place_tool": {"type": "word", "default": "none"},
+		# A fire (`fire`) burns on fuel: it holds at most `fuel_max` seconds of burning and
+		# a new one is set down with `fuel_start` of them; 0 burns for ever. Fuel (`fuel`)
+		# lights a fire and feeds it `fuel_time` seconds.
+		"fuel_max": {"type": "float", "min": 0.0, "default": 0.0},
+		"fuel_start": {"type": "float", "min": 0.0, "default": 0.0},
 		"fuel": {"type": "bool", "default": false},
+		"fuel_time": {"type": "float", "min": 0.0, "default": 120.0},
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},
 		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},

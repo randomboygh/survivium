@@ -126,11 +126,25 @@ func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_light(target.prop):
 		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
 		return taken.done and taken.value is bool and taken.value
+	if target.has("prop") and _feeds(target.prop):
+		var fed = game.net.request(Protocol.PROP_FIRE, [target.prop.cell, true])
+		return fed.done and fed.value is bool and fed.value
 	if target.has("prop"):
 		game.hud.open_prop(target.prop)
 		return true
 	var r = game.net.request(Protocol.GATHER, [target])
 	return r.done and r.value is bool and r.value
+
+
+## True when touching placed thing `e` feeds it rather than opens it: a campfire burning
+## on fuel with room for more, and fuel in the bag (Placed.feed). A full one, or with
+## nothing to put on it, opens as a station.
+func _feeds(e: Dictionary) -> bool:
+	if not Placed.is_fire(e) or not e.lit:
+		return false
+	var most: float = Items.get_item(e.item).get("fuel_max", 0.0)
+	return most > 0.0 and most - float(e.get("fuel", 0.0)) >= Placed.FUEL_ROOM \
+		and Items.fuel_in(game.character.inventory) != ""
 
 
 ## Takes by themselves the things lying near the player's feet, unless the setting is

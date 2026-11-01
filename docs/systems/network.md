@@ -6,7 +6,7 @@
 ответ `[номер, значение]`; то, что одна сторона сообщает другой без ответа, — событие `[вид, аргументы]`:
 клиент каждый кадр говорит, где его тело и что в руках (`input`), сервер — что стало с персонажем
 (`you`, `vitals`, `knowledge`, `shop`, `say`, `made`, `drops`, `teleport`, `knock`, `push`), с вещами на
-клетках (`props`, `prop`, `prop_gone`, `prop_lit`, `chest`), с часами (`clock`) и со зверями (`animal`,
+клетках (`props`, `prop`, `prop_gone`, `prop_lit`, `prop_fuel`, `chest`), с часами (`clock`) и со зверями (`animal`,
 `animal_gone`, `snap`, `step`). Байты `var_to_bytes` без объектов. Персонаж и мастерская игрока живут на
 сервере (`src/server/player.gd`), вещи, часы и звери — в сеансе сервера; на клиенте — их копии
 (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые кормит
@@ -71,7 +71,7 @@
   `knowledge` когда узнан рецепт, `shop` (очередь, пауза), `clock` (снимок часов `Clock.snapshot`) при
   входе и затем раз в `CLOCK_EVERY` 0,25 с, при входе `props` (все вещи `Placed.to_list`) и `animal` на
   каждого зверя, затем накопленные `say`, `made`, `drops` (чанк), `teleport`, `knock`, `prop` (вещь
-  поставлена, запись как в `to_list`), `prop_gone` (клетка), `prop_lit` (клетка, горит), `chest`
+  поставлена, запись как в `to_list`), `prop_gone` (клетка), `prop_lit` (клетка, горит), `prop_fuel` (клетка, секунды топлива), `chest`
   (клетка, `Inventory.to_dict` — сигнал `changed` сундука подключён с клеткой в `bind`, не с записью),
   `animal` (номер, вид, оттенок, место), `animal_gone`, `step` (след лапы); в конце `snap` — звери,
   что шагнули с прошлого `flush` и стоят не там, где были названы (`_snapped` по номеру), и `push`

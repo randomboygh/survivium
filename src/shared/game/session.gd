@@ -137,9 +137,9 @@ func step_players(delta: float) -> void:
 		workshops[i].update(d)
 
 
-## The lights set down burn (Placed.step).
+## The lights set down and the campfires burn, the rain falling on the fires (Placed.step).
 func step_things(delta: float) -> void:
-	placed.step(minf(delta, STEP_MAX))
+	placed.step(minf(delta, STEP_MAX), clock.WEATHERS[clock.weather].get("rain", 0.0))
 
 
 ## The animals: those on a player's screen move every step, the rest now and then

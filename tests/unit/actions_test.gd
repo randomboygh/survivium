@@ -267,6 +267,46 @@ func _test_placed() -> void:
 	_check(not fire.lit and not placed.light(who, fire), "a campfire put out needs a branch to burn again")
 	who.inventory.add("resources:branch", 1)
 	_check(placed.light(who, fire) and fire.lit and who.inventory.count("resources:branch") == 0, "it is lit for a branch")
+	var rec := Items.get_item(Placed.CAMPFIRE)
+	_check(is_equal_approx(fire.fuel, rec.fuel_start + Items.fuel_time("resources:branch")),
+		"a new campfire has fuel for a while, and the branch it was lit for burns on with it")
+	who.inventory.add("resources:log", 1)
+	who.inventory.add("resources:branch", 1)
+	fire.fuel = 100.0
+	_check(placed.feed(who, fire) and who.inventory.count("resources:branch") == 0
+		and is_equal_approx(fire.fuel, 100.0 + Items.fuel_time("resources:branch")), "a fire is fed a branch before a log")
+	_check(placed.feed(who, fire) and who.inventory.count("resources:log") == 0, "and a log when there is no branch")
+	who.inventory.add("resources:branch", 1)
+	fire.fuel = rec.fuel_max - 10.0
+	_check(not placed.feed(who, fire) and who.inventory.count("resources:branch") == 1, "a full one takes no more")
+	var copy := Placed.new()
+	copy.world = w
+	copy.from_list(JSON.parse_string(JSON.stringify(placed.to_list())))
+	var saved: Dictionary = copy.at(fire.cell)
+	_check(not saved.is_empty() and is_equal_approx(saved.fuel, fire.fuel), "what a fire has left is saved")
+	fire.fuel = 15.0
+	placed.step(10.0)
+	_check(fire.lit and is_equal_approx(fire.fuel, 5.0), "a fire burns its fuel down")
+	placed.step(10.0)
+	_check(not fire.lit and fire.fuel == 0.0 and not placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE),
+		"and goes out once it has burned: no station then")
+	_check(placed.light(who, fire) and is_equal_approx(fire.fuel, Items.fuel_time("resources:branch")), "lit again, it burns the new branch")
+	for i in 12:
+		placed.step(10.0, 0.5)
+	_check(fire.lit and fire.wet == 0.0, "a light rain does not put it out")
+	for i in 5:
+		placed.step(10.0, 1.0)
+	_check(fire.lit, "fifty seconds of a downpour do not put it out yet")
+	placed.step(10.0, 1.0)
+	_check(not fire.lit and fire.fuel > 0.0, "a minute of a downpour under the open sky does, and leaves its fuel")
+	who.inventory.add("resources:branch", 1)
+	placed.light(who, fire)
+	for z in range(fire.cell.z - 1, fire.cell.z + 3):
+		for x in range(fire.cell.x - 1, fire.cell.x + 3):
+			w.set_cell(x, 6, z, Mat.STONE)
+	for i in 12:
+		placed.step(10.0, 1.0)
+	_check(fire.lit, "under a roof the rain does not reach it")
 	placed.put_out(fire)
 	_check(placed.destroy(fire) and not placed.things.has(fire), "and destroyed once it is out")
 

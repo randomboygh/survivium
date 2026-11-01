@@ -1,6 +1,6 @@
 extends "res://src/shared/game/placed.gd"
 ## The client's copy of the things placed on cells (Placed), fed by the server's events
-## (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, CHEST; Mirror): the same records and the
+## (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, PROP_FUEL, CHEST; Mirror): the same records and the
 ## same signals, so what draws the things (Props), looks for them (Gathering, the
 ## inventory window, the craft panel, the map) and listens to them (sounds, the freeze
 ## log) sees no difference. It changes nothing in the world by itself: a thing is
@@ -35,6 +35,16 @@ func take_lit(cell: Vector3i, lit: bool) -> void:
 	if not e.is_empty() and e.lit != lit:
 		e.lit = lit
 		lit_changed.emit(e)
+
+
+## The campfire at `cell` has `fuel` seconds left to burn. Between the server's word
+## the copy does not burn it down itself (it is not stepped): what is shown is at most
+## Placed.FUEL_TELL seconds behind.
+func take_fuel(cell: Vector3i, fuel: float) -> void:
+	var e := at(cell)
+	if not e.is_empty() and e.has("fuel"):
+		e.fuel = fuel
+		fuel_changed.emit(e)
 
 
 ## What the thing at `cell` holds is now `items` (Inventory.to_dict); the window that

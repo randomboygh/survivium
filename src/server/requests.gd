@@ -104,7 +104,7 @@ func _do(kind: String, args: Array) -> Variant:
 				if e.is_empty() or not placed.is_fire(e):
 					return false
 				if args[1]:
-					return placed.light(who, e)
+					return placed.feed(who, e)
 				placed.put_out(e)
 				return true
 		Protocol.PROP_DESTROY:
