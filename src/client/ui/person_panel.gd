@@ -1,10 +1,11 @@
 extends PanelContainer
 ## The character in the inventory window (plan/design/ui.md, «Инвентарь»): the slots of
-## what is worn where it is worn (head, body, legs, feet down the middle, the bag on the
-## back over the right shoulder) and of the two hands at the sides, joined by faint lines
-## of a body, and beside them the skills, a bar each in a panel of their own (examples
-## until skills come). A tap on a slot says which with `picked`: a slot of
-## Inventory.WEAR_SLOTS, or "hand0" / "hand1".
+## what is worn where it is worn (body, legs, feet down the middle, the head's slot at the
+## top left as the bag on the back is at the top right) and of the two hands under them,
+## joined by faint lines of a body, a strip of the bag's load along the bottom of the
+## back's slot; beside them the skills, two columns of bars in a panel of their own
+## (examples until skills come). A tap on a slot says
+## which with `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
@@ -13,11 +14,14 @@ const Items := preload("res://src/shared/content/items.gd")
 
 signal picked(slot: String)
 
-## Where each slot stands on the figure, in slots across and down (columns 0..2, rows 0..3).
+## Where each slot stands on the figure, in slots across and down (columns 0..2, rows
+## 0..2): the body, legs and feet down the middle, the head's slot at the top left as
+## the bag on the back is at the top right, the hands under them.
 const PLACES := {
-	"head": Vector2(1, 0), "body": Vector2(1, 1), "legs": Vector2(1, 2), "feet": Vector2(1, 3),
+	"head": Vector2(0, 0), "body": Vector2(1, 0), "legs": Vector2(1, 1), "feet": Vector2(1, 2),
 	"back": Vector2(2, 0), "hand0": Vector2(0, 1.5), "hand1": Vector2(2, 1.5),
 }
+const ROWS := 3
 const TITLES := {
 	"head": "Голова", "body": "Тело", "legs": "Ноги", "feet": "Обувь", "back": "Сумка за спиной",
 	"hand0": "Левая рука", "hand1": "Правая рука",
@@ -25,8 +29,8 @@ const TITLES := {
 ## Room between the columns of slots (the arms are drawn there) and between the rows.
 const GAP_X := 12
 const GAP_Y := 4
-## The width of the panel of skills.
-const SIDE := 86
+## The width of the panel of skills (two columns of them).
+const SIDE := 132
 ## The room inside the panel's frame, and between the figure and the column.
 const PAD := 4
 const SEP := 6
@@ -68,7 +72,7 @@ func _ready() -> void:
 		s.tooltip_text = TITLES[k]
 		_figure.add_child(s)
 		_cells[k] = s
-	# The skills in a panel of their own: a bar each, its name inside.
+	# The skills in a panel of their own, two columns of bars.
 	var skills := PanelContainer.new()
 	var well := UiStyle.well()
 	well.set_content_margin_all(3)
@@ -76,9 +80,11 @@ func _ready() -> void:
 	skills.tooltip_text = "Навыки (пока для примера: навыков в игре ещё нет)"
 	skills.custom_minimum_size.x = SIDE
 	row.add_child(skills)
-	var bars := VBoxContainer.new()
-	bars.add_theme_constant_override("separation", 2)
-	bars.alignment = BoxContainer.ALIGNMENT_CENTER
+	var bars := GridContainer.new()
+	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bars.columns = 2
+	bars.add_theme_constant_override("h_separation", 2)
+	bars.add_theme_constant_override("v_separation", 2)
 	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	skills.add_child(bars)
 	var top := 0
@@ -87,6 +93,7 @@ func _ready() -> void:
 	for sk: Array in SKILLS:
 		var bar := Control.new()
 		bar.custom_minimum_size = Vector2(0, BAR)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bar.draw.connect(_draw_bar.bind(bar, sk[0], sk[1], top))
 		bars.add_child(bar)
@@ -113,7 +120,7 @@ func set_slot(side: int) -> void:
 	slot = side
 	if _figure == null:
 		return
-	_figure.custom_minimum_size = Vector2(3 * slot + 2 * GAP_X, 4 * slot + 3 * GAP_Y)
+	_figure.custom_minimum_size = Vector2(3 * slot + 2 * GAP_X, ROWS * slot + (ROWS - 1) * GAP_Y)
 	for k: String in PLACES:
 		var c: Control = _cells[k]
 		c.custom_minimum_size = Vector2(slot, slot)
@@ -151,7 +158,8 @@ func refresh() -> void:
 		if worn != "":
 			c.texture = ItemIcons.of_item(worn)
 			if k == "back":
-				c.number = "+%d" % Items.bag_slots(worn)
+				# In the top corner: the bottom one holds the strip of the load.
+				c.key = "+%d" % Items.bag_slots(worn)
 		elif k == "back":
 			# The bag the character always has.
 			c.texture = UiStyle.icon("bag")
@@ -162,13 +170,24 @@ func refresh() -> void:
 			c.texture = UiStyle.icon("wear_" + k)
 			c.icon_size = c.texture.get_size() * 2
 			c.modulate = Color(1, 1, 1, 0.6)
-	_cells.back.tooltip_text = "Сумка: %d ячеек%s" % [inv.base,
-		(", %s: ещё %d" % [Items.title(inv.gear.back), Items.bag_slots(inv.gear.back)]) if inv.gear.has("back") else ""]
+	# Under the bag, a strip of its load, as a light's in a slot: green, amber near the
+	# limit, red past it.
+	var share: float = inv.load_share()
+	var back = _cells.back
+	back.fill = clampf(share, 0.0, 1.0)
+	back.fill_color = UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD)
+	var taken := 0
+	for s in inv.slots:
+		if s != null:
+			taken += 1
+	back.tooltip_text = "Сумка: %d ячеек%s; занято %d из %d, %.1f из %d кг" % [inv.base,
+		(", %s: ещё %d" % [Items.title(inv.gear.back), Items.bag_slots(inv.gear.back)]) if inv.gear.has("back") else "",
+		taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 	_figure.queue_redraw()
 
 
-## The faint body joining the slots: a neck, arms down to the hands, legs and the
-## bag's strap.
+## The faint body joining the slots: arms down to the hands, legs, and the head's slot
+## and the bag's strap at the top.
 func _draw_figure() -> void:
 	var c := Color(UiStyle.MUTED, 0.18)
 	var s := float(slot)
@@ -177,17 +196,19 @@ func _draw_figure() -> void:
 	var legs: Rect2 = _rect("legs")
 	var feet: Rect2 = _rect("feet")
 	var mid := floorf(body.get_center().x)
-	_figure.draw_rect(Rect2(mid - 4, head.end.y, 8, body.position.y - head.end.y), c)
 	_figure.draw_rect(Rect2(mid - 6, body.end.y, 12, legs.position.y - body.end.y), c)
 	_figure.draw_rect(Rect2(legs.position.x + s * 0.2, legs.end.y, 5, feet.position.y - legs.end.y), c)
 	_figure.draw_rect(Rect2(legs.end.x - s * 0.2 - 5, legs.end.y, 5, feet.position.y - legs.end.y), c)
+	# The arms from low on the body, under the head's and the bag's slots, to the hands.
 	for h in 2:
 		var hand: Rect2 = _rect("hand%d" % h)
-		var from := Vector2(body.position.x if h == 0 else body.end.x, body.position.y + 6)
+		var from := Vector2(body.position.x if h == 0 else body.end.x, body.position.y + body.size.y * 0.75)
 		var to := Vector2(hand.get_center().x, hand.position.y)
 		_figure.draw_line(from, to, c, 5.0)
+	# The head's slot and the bag's joined to the top of the body, alike.
 	var back: Rect2 = _rect("back")
-	_figure.draw_line(Vector2(back.position.x, back.get_center().y), Vector2(body.end.x - 4, body.position.y + 2), c, 3.0)
+	_figure.draw_line(Vector2(back.position.x, back.get_center().y), Vector2(body.end.x, body.position.y + 4), c, 3.0)
+	_figure.draw_line(Vector2(head.end.x, head.get_center().y), Vector2(body.position.x, body.position.y + 4), c, 3.0)
 
 
 func _rect(k: String) -> Rect2:

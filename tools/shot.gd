@@ -424,7 +424,7 @@ func _run() -> void:
 					var st = main.host.player.inventory.slots[i]
 					if st != null and st[0] == shot.give:
 						slot = i
-			main.hud.bag._tap(slot, true)
+			main.hud.bag._tap(slot)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
@@ -436,7 +436,8 @@ func _run() -> void:
 			main.session.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._kinds.pick("")
-			main.hud.bag._tap(0, false)
+			main.hud.bag.refresh_state()
+			main.hud.bag._tap(0, main.hud.bag._chests.find(main.hud.bag._chest_entry))
 		if shot.get("chests", false):
 			main.host.player.inventory.add("tools:chest", 1)
 			main.player.facing = "e"
@@ -445,7 +446,7 @@ func _run() -> void:
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
-			main.hud.bag._tap(0, true)
+			main.hud.bag._tap(0)
 		if shot.get("campfire", false):
 			for e in main.session.placed.things:
 				if main.session.placed.is_fire(e):
