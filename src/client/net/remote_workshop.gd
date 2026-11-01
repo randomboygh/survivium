@@ -15,6 +15,15 @@ func _on_bag_changed() -> void:
 	changed.emit()
 
 
+## Counts down the first job between the server's events, so its time and bar move:
+## the server sends the queue only when it changes. The job is never finished here;
+## the next SHOP event (the job done) replaces it.
+func update(delta: float) -> void:
+	if paused or queue.jobs.is_empty() or waiting():
+		return
+	queue.jobs[0].left = maxf(float(queue.jobs[0].left) - delta, 0.0)
+
+
 ## Takes the queue and the pause from a SHOP event's `d` (the queue tells `changed`).
 func take(d: Dictionary) -> void:
 	var p := bool(d.get("paused", false))

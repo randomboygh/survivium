@@ -14,9 +14,11 @@ const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 
 ## The mixes of lights: [the sun, a light without a shadow (the torch, the far fires),
 ## a light with a shadow (the nearest fire)]. The sun goes out when its energy is 0, at
-## dusk and on a moonless night.
+## dusk and on a moonless night. All eight: the sun alone (the land beyond the torch's
+## glow) was left to the first frames of the game, but the world is not drawn behind
+## the menu, so it came mid-game (six shaders of up to 370 ms on a phone, 2026-11-01).
 const MIXES := [
-	[true, true, true], [true, false, true], [true, true, false],
+	[true, true, true], [true, false, true], [true, true, false], [true, false, false],
 	[false, true, true], [false, false, true], [false, true, false], [false, false, false],
 ]
 ## How far apart the copies stand, in world units, and the lights' reach over them all.

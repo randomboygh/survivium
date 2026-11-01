@@ -793,6 +793,7 @@ func _process(delta: float) -> void:
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.step(minf(delta, 0.05), jump)
 		character.update(delta)
+		workshop.update(delta)
 		mirror.send_input()
 		if playing:
 			controls.update(minf(delta, 0.05))
