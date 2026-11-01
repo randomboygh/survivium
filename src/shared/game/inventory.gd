@@ -123,6 +123,9 @@ func _unpack_back(packed: Variant) -> void:
 ## first; returns how many went in (fewer when the slots are full). A chest with
 ## `contents` goes in alone, into a slot of its own.
 func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
+	# Only what wears keeps its wear (a torch of an old save burned by wear is whole).
+	if worn > 0 and Items.get_item(id).get("durability", 0) <= 0:
+		worn = 0
 	if contents is Dictionary:
 		var free := slots.find(null)
 		if not nests or free < 0 or n < 1:
@@ -312,7 +315,7 @@ static func _worn(s: Array) -> int:
 
 ## One swing of tool `id` that lasts `durability` swings: the most worn such tool in
 ## the bag wears (past the first `skip` of them); true when it broke and is gone. One
-## worn out of a stack (torches stack) goes to a slot of its own, so the worn ones lie
+## worn out of a stack goes to a slot of its own, so the worn ones lie
 ## apart from the new; with no slot free the stack keeps the wear of the one in use.
 func wear_tool(id: String, durability: int, skip := 0) -> bool:
 	if durability <= 0:
@@ -452,8 +455,8 @@ func from_dict(d: Dictionary) -> void:
 	for i in mini(saved.size(), slots.size()):
 		var s = saved[i]
 		if s is Array and s.size() in [2, 3, 4] and s[0] is String and Items.has(Items.canon(s[0])) and int(s[1]) > 0:
-			var w: int = int(s[2]) if s.size() >= 3 else 0
 			var id: String = Items.get_item(Items.canon(s[0])).id
+			var w: int = int(s[2]) if s.size() >= 3 and Items.get_item(id).get("durability", 0) > 0 else 0
 			if s.size() == 4 and s[3] is Dictionary:
 				slots[i] = [id, 1, w, s[3]]
 			else:

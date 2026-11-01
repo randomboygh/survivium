@@ -648,7 +648,8 @@ func _show_info(inv) -> void:
 		_info.text = "%s ×%d%s%s" % [Items.title(id), s[1],
 			" · с вещами" if _from.contents(_at) != null else "",
 			"" if mine else " · в сундуке"]
-		_facts.show_wells(FactChips.item_wells(id, s[1], _from.worn(_at), Inventory.stack_weight(s)))
+		_facts.show_wells(FactChips.item_wells(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
+			game.character.burn_left(id) if mine else 1.0))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
 	_repair.visible = mine and inv.worn(_at) > 0
 	# The name wraps in what the buttons by it leave.
@@ -683,7 +684,10 @@ func _show_worn(inv) -> void:
 		if _worn == "back":
 			extra = " · +%d ячеек" % Items.bag_slots(id)
 		_info.text = "%s: %s%s" % [title, Items.title(id), extra]
-		_facts.show_wells(FactChips.item_wells(id, 1, 0, Items.weight(id)))
+		var h := int(_worn.right(1))
+		# A light in the second hand is the second one lit when the first holds one too.
+		var k := 1 if hand and h == 1 and game.controls.hands[0] == id and inv.count(id) > 1 else 0
+		_facts.show_wells(FactChips.item_wells(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0))
 	elif _worn == "back":
 		_info.text = "Сумка: %d ячеек, всегда с собой. Надень котомку, сумку или рюкзак — станет больше" % inv.base
 		_facts.show_wells([])

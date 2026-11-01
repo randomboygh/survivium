@@ -165,8 +165,10 @@ func _test_torch() -> void:
 	ch.clock = Clock.new()
 	ch.body = Body.new()
 	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
-	var d: int = Items.get_item("tools:torch").durability
-	_check(Items.get_item("tools:torch").light > 0.0 and d > 0, "a torch gives light and burns for a while")
+	var d := Items.burns("tools:torch")
+	_check(Items.get_item("tools:torch").light > 0.0 and d > 0.0 and Items.get_item("tools:torch").durability == 0,
+		"a torch gives light and burns for a while, it does not wear")
+	_check(Items.category("tools:torch") == "light", "a torch is a light in the bag, not a tool")
 	ch.give("tools:torch", 1)
 	_check(ch.light_held() == "", "a torch in the bag gives no light")
 	ch.hands = ["tools:torch", "tools:torch"]
@@ -175,29 +177,40 @@ func _test_torch() -> void:
 	_check(ch.light_held() == "tools:torch", "a torch in either hand does")
 	for i in 30:
 		ch.update(0.5)
-	_check(ch.inventory.worn(0) == 15, "it burns down a unit a second while held")
+	_check(is_equal_approx(ch.burning["tools:torch"][0], 15.0) and ch.inventory.slots[0] == ["tools:torch", 1],
+		"it burns while held, the bag keeps it whole")
 	ch.body.swimming = true
 	ch.update(5.0)
-	_check(ch.light_held() == "tools:torch" and ch.inventory.worn(0) == 16, "in water it is held up and keeps burning")
+	_check(ch.light_held() == "tools:torch" and is_equal_approx(ch.burning["tools:torch"][0], 20.0),
+		"in water it is held up and keeps burning")
 	ch.body.swimming = false
+	ch.hands = ["", ""]
+	ch.update(5.0)
+	_check(is_equal_approx(ch.burning["tools:torch"][0], 20.0), "put away, it waits with what it has burned")
+	var saved := ch.to_dict()
+	var copy := Survivor.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(saved)))
+	_check(is_equal_approx(copy.burning.get("tools:torch", [0.0])[0], 20.0) and is_equal_approx(copy.burn_left("tools:torch"), 1.0 - 20.0 / d),
+		"what has burned is kept in the save")
 	ch.give("tools:torch", 1)
 	ch.hands = ["tools:torch", "tools:torch"]
 	ch.update(1.0)
-	_check(ch.lights_held().size() == 2 and ch.inventory.worn(0) == 17 and ch.inventory.worn(1) == 1,
-		"two torches, one in each hand, both burn")
+	_check(ch.lights_held().size() == 2 and is_equal_approx(ch.burning["tools:torch"][0], 21.0)
+		and is_equal_approx(ch.burning["tools:torch"][1], 1.0) and ch.inventory.slots[0] == ["tools:torch", 2],
+		"two torches, one in each hand, both burn, and they stack")
 	ch.hands = ["tools:torch", ""]
-	for i in d:
+	for i in ceili(d):
 		ch.update(1.0)
-	_check(ch.inventory.count("tools:torch") == 1, "burned out, it is gone")
+	_check(ch.inventory.count("tools:torch") == 1, "burned out, one of the stack is gone")
+	_check(ch.burning["tools:torch"].size() == 1 and ch.burning["tools:torch"][0] < 25.0, "and the next one is lit")
+	ch.inventory.remove("tools:torch", 1)
+	ch.update(1.0)
+	_check(not ch.burning.has("tools:torch"), "thrown away, its burning goes with it")
 	var bag := Inventory.new(4)
 	bag.add("tools:torch", 5)
 	_check(bag.slots[0] == ["tools:torch", 5], "torches stack by five")
-	bag.wear_tool("tools:torch", d)
-	_check(bag.slots[0] == ["tools:torch", 4] and bag.slots[1] == ["tools:torch", 1, 1], "a burning one lies apart from the new")
-	bag.wear_tool("tools:torch", d)
-	_check(bag.worn(1) == 2 and bag.slots[0][1] == 4, "and keeps burning first")
-	bag.add("tools:torch", 1)
-	_check(bag.slots[0][1] == 5, "a new one joins the new")
+	bag.add("tools:torch", 1, 40)
+	_check(bag.slots[0] == ["tools:torch", 5] and bag.slots[1] == ["tools:torch", 1], "one burned by wear in an old save comes back whole")
 
 
 func _test_vitals() -> void:
