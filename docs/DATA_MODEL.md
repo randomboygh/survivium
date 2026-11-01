@@ -110,7 +110,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 `fruit`. По id код называет только записи ядра (`Mat.GRASS`, `Placed.CAMPFIRE`). `items.tool` и
 `items.prop` — открытые классы (тип `word`: мод заводит свой; работу в мире движок знает у пяти классов
 `Tools.WORLD_KINDS`, что делает вещь на 2×2 — по её флагам); закрыты схемой `plants.kind` (10 видов),
-`materials.role` (8), `biomes.where` (climate и 5 рельефов), `biomes.zone` (7 зон).
+`materials.role` (9), `biomes.where` (climate и 5 рельефов), `biomes.zone` (7 зон).
 
 ## Ассеты по соглашению
 

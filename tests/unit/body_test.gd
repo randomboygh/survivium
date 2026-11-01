@@ -439,11 +439,15 @@ func _test_ground() -> void:
 	# The biome plots: the forest plot grows the forest's trees as thick as a forest, the
 	# steppe's none, the swamp's has pools and a pond running into a bog, every other
 	# plot a pool in its corner.
-	gen.generate_area(Vector2i(-5, 6), Vector2i(2, 9))
 	var forest := Biomes.index("biomes:forest")
 	var fo: Vector2i = gen.plot_origin(gen.plot_biomes.find(forest))
 	var so: Vector2i = gen.plot_origin(gen.plot_biomes.find(Biomes.index("biomes:steppe")))
 	var wo: Vector2i = gen.plot_origin(gen.plot_biomes.find(Biomes.SWAMP))
+	# The plots' chunks, however many biomes the mods bring (a row of plots each five).
+	var plots_end: Vector2i = gen.plot_origin(gen.plot_biomes.size() - 1) + Vector2i(TestGround.BIOME_PLOT, TestGround.BIOME_PLOT)
+	var stride: int = TestGround.BIOME_PLOT + TestGround.BIOME_GAP
+	gen.generate_area(WorldData.chunk_key(TestGround.BIOME_X, TestGround.BIOME_Z),
+		WorldData.chunk_key(TestGround.BIOME_X + TestGround.BIOME_PER_ROW * stride, plots_end.y) + Vector2i.ONE)
 	var in_forest := 0
 	var in_steppe := 0
 	var of_forest := true
