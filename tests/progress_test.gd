@@ -547,6 +547,13 @@ func _hunt(id: String) -> bool:
 				await _pick_up(main.player.position, 4)
 				if inv.count(id) <= before:
 					await _pick_up(fell, 4)
+				if inv.count(id) <= before:
+					# It fell where it was struck, down to the floor under it (into water,
+					# off a ledge): the player goes to the carcass nearest that column.
+					var lying := _drop_near(id, fell)
+					if lying != Vector3.INF:
+						await _go(lying)
+						await _pick_up(lying, 4)
 				if inv.count(id) > before:
 					print("hunted %s: %s" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
 					return true
@@ -909,6 +916,21 @@ func _tool_recipe_for(mats: Array[int]) -> String:
 
 ## Takes up the wanted things lying within `radius` cells of `at` (world units), each
 ## with a tap as the game does; returns how many were taken.
+## Where the nearest thing `id` lies on the ground in the chunks round `at`, measured
+## across the ground (any height), or INF for none.
+func _drop_near(id: String, at: Vector3) -> Vector3:
+	var best := Vector3.INF
+	var home := WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL))
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			for d: Array in main.world.drops.get(home + Vector2i(dx, dz), []):
+				var p: Vector3 = d[1]
+				if Items.get_item(d[0]).get("id", d[0]) == id and (best == Vector3.INF
+						or Vector2(p.x - at.x, p.z - at.z).length() < Vector2(best.x - at.x, best.z - at.z).length()):
+					best = p
+	return best
+
+
 func _pick_up(at: Vector3, radius: float) -> int:
 	var w = main.world
 	var took := 0
