@@ -64,11 +64,15 @@ static func page() -> Dictionary:
 		var r = {now: performance.now(), cores: navigator.hardwareConcurrency || 0};
 		var n = performance.getEntriesByType('navigation')[0];
 		r.html = n ? n.responseEnd : 0;
+		// Where the page's own wait went: a service worker started, the request sent, the answer begun.
+		r.nav = n ? [n.workerStart || 0, n.requestStart || 0, n.responseStart || 0] : [];
 		performance.getEntriesByType('resource').forEach(function (e) {
 			var k = /\\.wasm(\\?|$)/.test(e.name) ? 'wasm' : (/\\.pck(\\?|$)/.test(e.name) ? 'pck' : '');
 			if (k) r[k] = [e.responseEnd, e.encodedBodySize || e.decodedBodySize, e.transferSize];
 		});
 		if (window.svStart && window.svStart.gl) r.gl = window.svStart.gl;
+		// The wasm from the page's own cache (tools/web_cache.py) leaves no resource timing.
+		if (!r.wasm && window.svStart && window.svStart.wasm) r.wasm = [window.svStart.wasm, 0, 0];
 		return JSON.stringify(r);
 	})()""", true)
 	var parsed: Variant = JSON.parse_string(str(js)) if js != null else null
@@ -86,10 +90,26 @@ static func _s(ms: float) -> String:
 
 ## A download: "wasm 9.2 МБ по сети" / "из кэша", and when it ended.
 static func _download(what: String, d: Array) -> String:
+	if float(d[1]) <= 0.0:
+		# Kept by the page itself (tools/web_cache.py): found there at this moment.
+		return "%s из памяти к %s" % [what, _s(float(d[0]))]
 	var mb := float(d[1]) / 1048576.0
 	# A file from the cache moves no bytes, or a few hundred for asking it is still fresh.
 	var net := "по сети" if float(d[2]) > 4096.0 else "из кэша"
 	return "%s %.1f МБ %s к %s" % [what, mb, net, _s(float(d[0]))]
+
+
+## The page's own wait: "(воркер 0.1, запрос 0.2, ответ 0.3)", the moments it began.
+static func _nav(p: Dictionary) -> String:
+	var n: Array = p.get("nav", [])
+	if n.size() < 3:
+		return ""
+	var out := []
+	if float(n[0]) > 0.0:
+		out.append("воркер %s" % _s(float(n[0])))
+	out.append("запрос %s" % _s(float(n[1])))
+	out.append("ответ %s" % _s(float(n[2])))
+	return " (%s)" % ", ".join(out)
 
 
 ## The engine's steps one after another: each with how long it took, from the engine's
@@ -132,7 +152,7 @@ static func line() -> String:
 	var parts := []
 	var p := page()
 	if not p.is_empty() and not again:
-		parts.append("страница %s" % _s(float(p.get("html", 0.0))))
+		parts.append("страница %s%s" % [_s(float(p.get("html", 0.0))), _nav(p)])
 		for k: String in ["wasm", "pck"]:
 			if p.has(k):
 				parts.append(_download(k, p[k]))
