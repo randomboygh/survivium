@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_yaml()
 	_test_content()
+	_test_parsed_cache()
 	_test_schemas()
 	_test_mods()
 	_test_old_worlds()
@@ -335,6 +336,29 @@ func _test_old_worlds() -> void:
 
 ## Every reference field names its link and the action behind it from the lists the
 ## content graph knows; the fields every record may have clash with no kind's own.
+## The YAML parsed when the game was built gives the same records as parsing it, and a
+## file whose text is not in it is parsed.
+func _test_parsed_cache() -> void:
+	var kept: Variant = Content._parsed
+	var cache := Content.parsed_cache()
+	Content._parsed = {}
+	Content.refresh()
+	var plain := var_to_str(Content.universe())
+	var plain_problems := Content.problems.duplicate()
+	var key: String = cache.keys()[0]
+	cache.erase(key)
+	Content._parsed = cache
+	Content.cached_files = 0
+	Content.parsed_files = 0
+	Content.refresh()
+	_check(var_to_str(Content.universe()) == plain and Content.problems == plain_problems
+		and Content.cached_files > 300 and Content.parsed_files == 1,
+		"the mods' YAML parsed at the build reads as parsed at the start: %d files from it, %d parsed" % [
+			Content.cached_files, Content.parsed_files])
+	Content._parsed = kept
+	Mods.rescan()
+
+
 func _test_schemas() -> void:
 	var unnamed := []
 	var refs := 0

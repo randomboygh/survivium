@@ -241,6 +241,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/bench_mesh.gd`: Times building the meshes and plants of 16 by 16 chunks around the spawn: godot --headless --path . --script res://tools/bench_mesh.gd
 - `tools/bench_turn.gd`: Times what a turn of the camera costs at once: fitting the culling boxes of every chunk shown to the views on the way (CameraRig._aim), and the frames of the glide. godot --headless --path . --script…
 - `tools/build_info.py`: Writes build_info.json for the client: version, commit, date and the recent changes.
+- `tools/content_cache.gd`: Parses every mod's YAML file under content/ and writes them to Content.PARSED (md5 of a file's text → its value), which the game reads instead of parsing them at its start.
 - `tools/content_report.gd`: Writes the reports docs/ keeps of the content, from the data of every mod as the game loads it (docs/specifications/BUNDLE_SYSTEM.md, section 13), and checks they are fresh: godot --headless --path .…
 - `tools/doc_index.py`: Writes the index docs/ keeps of what the code holds, and checks the docs against the repository:
 - `tools/make_clouds.py`: Draws assets/menu_clouds.png, the cumulus clouds drifting over the main menu's painted sky (MainMenu.CLOUDS): a row of CLOUDS cells CELL_W x CELL_H, a cloud in each, sitting on the bottom of its cell.

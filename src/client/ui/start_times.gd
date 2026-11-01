@@ -104,8 +104,10 @@ static func _steps(full := true) -> Array:
 		var mods := Content.read_ms + Content.load_ms
 		out.append("%s %s" % ["скрипты" if at > 0.0 else "движок и скрипты", _s(maxf(0.0, compiled_ms - at - mods))])
 		if full:
-			out.append("данные модов %s (записей %d: чтение %d мс, набор %d мс)" % [_s(mods), Content.record_count(),
-				roundi(Content.read_ms), roundi(Content.load_ms)])
+			# Files from Content.PARSED (parsed when the game was built) of all read.
+			out.append("данные модов %s (записей %d: чтение %d мс, набор %d мс, готовых файлов %d из %d)" % [_s(mods),
+				Content.record_count(), roundi(Content.read_ms), roundi(Content.load_ms), Content.cached_files,
+				Content.cached_files + Content.parsed_files])
 		else:
 			out.append("моды %s" % _s(mods))
 		at = compiled_ms

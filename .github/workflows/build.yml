@@ -85,6 +85,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python3 tools/build_info.py build_info.json
 
+      - name: The mods' YAML parsed for the game's start (tools/content_cache.gd)
+        run: ~/godot/godot --headless --path . --script res://tools/content_cache.gd
+
       - name: Export web build
         run: |
           mkdir -p build/web
@@ -123,6 +126,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python3 tools/build_info.py build_info.json
+
+      - name: The mods' YAML parsed for the game's start (tools/content_cache.gd)
+        run: ~/godot/godot --headless --path . --script res://tools/content_cache.gd
 
       - name: Export the Windows and Linux builds
         run: |
