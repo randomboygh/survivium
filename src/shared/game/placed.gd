@@ -695,6 +695,17 @@ func step(delta: float, rain := 0.0) -> void:
 			_remove(e)
 
 
+## What the things that store hold spoils `days` of game time (Inventory.spoil), slower
+## in winter and under a roof: a chest in a cellar or a cave keeps food longest. The
+## session's step.
+func spoil(days: float, winter: bool) -> void:
+	for e: Dictionary in things:
+		if e.items != null:
+			var c: Vector3i = e.cell
+			var roofed: bool = world.chunk_at(c.x, c.z) != null and world.roof_level(c.x, c.z) > c.y
+			e.items.spoil(days, Inventory.spoil_rate(winter, roofed))
+
+
 func _burn_fire(e: Dictionary, delta: float, rain: float) -> void:
 	if Items.get_item(e.item).fuel_max <= 0.0:
 		return

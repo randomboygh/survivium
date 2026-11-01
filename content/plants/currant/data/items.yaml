@@ -4,6 +4,8 @@
   weight: 0.1
   stack: 30
   food: 3
+  spoils: 3
+  rots_to: core:rot
   model: currant
   icon: currant
   anim: eat

@@ -11,6 +11,12 @@
   `die`, `revive`, `respawn_points`, `to_dict` / `from_dict`); сигнал `state_changed`.
 - `src/shared/game/inventory.gd` — сумка: `SLOTS` 16 (`base`), первые `HOTBAR` 8 — панель внизу; стопки, вес
   (40 кг без замедления), сортировка, перенос в сундук, износ (`wear_tool`, `mend`); сигнал `changed`.
+  Порча еды (`spoil(days, rate)`): у еды с `spoils` (игровые сутки) в третьем поле ячейки — насколько
+  она испортилась (из `ROTTEN`), стопки сливаются при любом возрасте со средним; время копится и
+  ложится шагами `SPOIL_STEP`, `changed` — раз в `TELL_AGE`; испорченная становится `rots_to`
+  (`core:rot`, «Гниль»). Зимой и под крышей медленнее (`spoil_rate`: `WINTER_RATE`, `ROOF_RATE`);
+  сумку портит шаг персонажа, сундуки — `Placed.spoil` в шаге сеанса. `freshness(i)` — полоска на
+  ячейке и «Свежесть» в описании; `worn(i)` у еды 0 (её не чинят).
   Надетое (`gear`: слот тела → предмет, `WEAR_SLOTS` голова, тело, ноги, обувь, спина): `wear(i)` надевает
   вещь из ячейки, прежняя ложится на её место; `take_off(slot)` снимает в свободную из первых `base` ячеек.
   Сумка за спиной (`wear_on: back`, `bag_slots`) добавляет ячейки после `base`; снятая, уносит их вещи в себе
@@ -47,7 +53,7 @@
 персонажа на клиенте узнаёт о горении раз в `BURN_TELL` секунд и при догорании; рука на панели
 показывает остаток полоской (`HotbarSlot.fill`), сумка — временем.
 
-**Данные.** Предметы (`food`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
+**Данные.** Предметы (`food`, `spoils`, `rots_to`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
 `core:human`; слои и работы фигуры — `content/core/sprites/player.yaml`, листы инструментов в руке —
 `sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character` (с серверного
 персонажа, `game.host.player`), `hands` (с клиента).

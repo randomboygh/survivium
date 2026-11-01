@@ -22,6 +22,8 @@
   weight: 0.3
   stack: 20
   food: 6
+  spoils: 2
+  rots_to: core:rot
   model: raw_meat
   icon: raw_meat
   anim: eat
@@ -31,6 +33,8 @@
   weight: 0.25
   stack: 20
   food: 30
+  spoils: 4
+  rots_to: core:rot
   model: roasted_meat
   icon: roasted_meat
   anim: eat

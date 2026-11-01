@@ -326,12 +326,16 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 		if shot.has("fuel"):
-			# The fire by the spawn this full, the player standing by it till its bar shows.
+			# A campfire just north of the player, every fire this full, its flames given a
+			# while to follow.
+			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(-0.5, 0.0, -3.0) * CELL)
+			if spot.y >= 0:
+				main.session.placed.put(main.session.placed.CAMPFIRE, spot)
 			for e: Dictionary in main.session.placed.things:
 				if main.session.placed.is_fire(e):
 					e.fuel = Items.get_item(e.item).fuel_max * float(shot.fuel)
 					main.session.placed.fuel_changed.emit(e)
-			await create_timer(2.6).timeout
+			await create_timer(1.5).timeout
 		if shot.get("toast", false):
 			main.hud.toast("Наступило лето")
 			await process_frame
@@ -404,6 +408,16 @@ func _run() -> void:
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._let_go()
 			var slot: int = shot.get("slot", 1)
+			if shot.get("food", false):
+				# Food at each stage of going off: fresh, half, nearly spoiled, and rot.
+				var inv = main.host.player.inventory
+				inv.take_all()
+				var ages := [["animals:raw_meat", 3, 0], ["animals:roasted_meat", 2, 5000], ["plants:raspberry", 12, 8600],
+					["plants:apple", 4, 2000], ["core:rot", 5, 0]]
+				for i in ages.size():
+					inv.slots[i] = [ages[i][0], ages[i][1], ages[i][2]] if ages[i][2] > 0 else [ages[i][0], ages[i][1]]
+				inv.changed.emit()
+				slot = 1
 			if shot.has("give"):
 				main.host.player.give(shot.give, 1)
 				for i in main.host.player.inventory.slots.size():

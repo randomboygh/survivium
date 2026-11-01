@@ -7,6 +7,8 @@
   weight: 0.1
   stack: 30
   food: 4
+  spoils: 2
+  rots_to: core:rot
   model: raspberry
   icon: raspberry
   anim: eat

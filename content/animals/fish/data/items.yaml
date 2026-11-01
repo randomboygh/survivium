@@ -6,6 +6,8 @@
   weight: 0.3
   stack: 10
   food: 3
+  spoils: 1.5
+  rots_to: core:rot
   model: roach
   icon: roach
   anim: eat
@@ -15,6 +17,8 @@
   weight: 1.2
   stack: 10
   food: 6
+  spoils: 1.5
+  rots_to: core:rot
   model: pike
   icon: pike
   anim: eat
@@ -24,6 +28,8 @@
   weight: 1.0
   stack: 10
   food: 7
+  spoils: 1.5
+  rots_to: core:rot
   model: salmon
   icon: salmon
   anim: eat
@@ -33,6 +39,8 @@
   weight: 0.9
   stack: 10
   food: 6
+  spoils: 1.5
+  rots_to: core:rot
   model: cod
   icon: cod
   anim: eat
@@ -42,6 +50,8 @@
   weight: 0.7
   stack: 10
   food: 5
+  spoils: 1.5
+  rots_to: core:rot
   model: parrotfish
   icon: parrotfish
   anim: eat
@@ -51,6 +61,8 @@
   weight: 1.6
   stack: 10
   food: 8
+  spoils: 1.5
+  rots_to: core:rot
   model: catfish
   icon: catfish
   anim: eat
@@ -60,6 +72,8 @@
   weight: 0.3
   stack: 20
   food: 18
+  spoils: 3
+  rots_to: core:rot
   model: roasted_fish
   icon: roasted_fish
   anim: eat
