@@ -729,6 +729,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 	for lx in CHUNK:
 		var j := (row + MARGIN) * WINDOW + lx + MARGIN
 		var col := (row << WorldData.SHIFT) | lx
+		c.biome[col] = lay.biome[j]
 		var height: int = lay.heights[j]
 		var wt: int = lay.water[j]
 		var top: int = lay.tops[j]

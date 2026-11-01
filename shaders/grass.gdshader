@@ -139,7 +139,7 @@ void fragment() {
 		vec3 ground = texture(terrain_atlas, atlas_uv(GRASS_TOP, vec2(t))).rgb;
 		// Tall blades run from a shaded base to a lit tip.
 		float light = kind == TALL ? mix(0.7, 1.22, m.r) : mix(0.8, 1.18, m.r);
-		col = ground * grass_tint * grass_variation(root.xz) * light * custom.y;
+		col = ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz) * light * custom.y;
 	} else if (kind == FLOWER) {
 		// Flowers bloom on the lush patches and are gone under the first snow.
 		if (bare || patch < 0.5 || snow_here > 0.3) {

@@ -300,6 +300,11 @@ void fragment() {
 			pick = DIRT * 3;
 		}
 		col *= tile_texel(pick, tm);
+		// The biome's colour of the ground (see biome_tint); the sides of turf are mostly
+		// the soil under it and keep their colour.
+		if (pick % 3 == 0 || pick / 3 != GRASS) {
+			col *= biome_tint(pick / 3, world_pos.xz);
+		}
 		if (pick == GRASS * 3) {
 			col *= grass_tint * grass_variation(world_pos.xz);
 		} else if (top && pick % 3 == 0 && !cap) {

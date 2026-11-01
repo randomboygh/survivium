@@ -122,7 +122,7 @@ void fragment() {
 	ivec2 bt = ivec2(mod(tex, 4.0));
 	float bayer = float(BAYER[bt.y * 4 + bt.x]) / 16.0;
 	depth = clamp(floor(depth * DEPTH_STEPS + bayer) / DEPTH_STEPS, 0.0, 1.0);
-	vec3 col = mix(shallow, deep, depth);
+	vec3 col = mix(shallow, deep, depth) * biome_tint(WATER_MATERIAL, world_pos.xz);
 	float alpha = mix(0.45, 1.0, depth);
 	// Murky water: the murk blended over the cells, broken up by a still patch noise
 	// between its levels (clear, swamp, bog) and dithered in steps, so a swamp runs

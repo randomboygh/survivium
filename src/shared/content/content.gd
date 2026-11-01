@@ -234,6 +234,10 @@ const SCHEMAS := {
 		"spawn": {"type": "bool", "default": false},
 		"sandstorms": {"type": "bool", "default": false},
 		"color": {"type": "color"},
+		# The colour the biome's ground and water take instead of their own, by the names
+		# of the `top` field and water (white sand and turquoise water by a tropical beach,
+		# yellow grass in a savanna): the client tints the texture toward it.
+		"tints": {"type": "colors", "keys": ["grass", "dirt", "sand", "clay", "snow", "peat", "salt", "water"], "default": {}},
 	},
 	# What a recipe makes and its by-products (`also`, each with its chance, decided by the
 	# job: Crafting.outputs), what it uses up (`needs`), what must be in the bag and is not
@@ -297,6 +301,8 @@ const SCHEMAS := {
 		"grows": {"type": "enum", "values": ["meadow", "shade", "bank"], "default": "meadow"},
 		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
 		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
+		# Only in these biomes (none: anywhere its `grows` says).
+		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
 	},
 }
 ## The links a reference field names (`rel` in its spec), read from the record that has
@@ -1088,6 +1094,17 @@ static func _convert(v: Variant, spec: Dictionary, mod: String, out: Array) -> S
 					return "`%s`: expected a share from 0 to 1" % k
 				shares[k if named else qualify(k, mod)] = float(v[k])
 			out[0] = shares
+		"colors":
+			if not v is Dictionary:
+				return "expected a mapping of %s to colours, like {%s: \"#e8e0c8\"}" % [", ".join(spec.keys), spec.keys[0]]
+			var colors := {}
+			for k in v:
+				if not k is String or not k in spec.keys:
+					return "`%s`: expected one of %s" % [k, ", ".join(spec.keys)]
+				if not v[k] is String or not Color.html_is_valid(v[k]) or not v[k].begins_with("#"):
+					return "`%s`: expected a colour like \"#5a8f3c\"" % k
+				colors[k] = Color.html(v[k])
+			out[0] = colors
 		"entries":
 			if not v is Array:
 				return "expected a list of mappings, like [{%s}]" % ", ".join(spec.fields.keys().map(func(k: String) -> String: return k + ": …"))
@@ -1156,7 +1173,7 @@ static func _zero(spec: Dictionary) -> Variant:
 			return Color.MAGENTA
 		"vec3":
 			return Vector3.ZERO
-		"amounts", "shares":
+		"amounts", "shares", "colors":
 			return {}
 		"entries":
 			return []
