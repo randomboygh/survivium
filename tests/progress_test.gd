@@ -515,8 +515,16 @@ func _hunt(id: String) -> bool:
 			prey = null
 			continue
 		if prey.gone:
-			for i in 10:
+			# What it leaves lies where it fell, which a running animal may have
+			# reached past the player in the frames of the blow.
+			# The client's world gets the drop from the host a few frames later: wait
+			# by the clock, not by frames.
+			var fell: Vector3 = prey.pos
+			var until := Time.get_ticks_msec() + 3000
+			while Time.get_ticks_msec() < until:
 				await _pick_up(main.player.position, 4)
+				if inv.count(id) <= before:
+					await _pick_up(fell, 4)
 				if inv.count(id) > before:
 					print("hunted %s: %s" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
 					return true
