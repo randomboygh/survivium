@@ -24,6 +24,7 @@ extends Control
 ## `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const StartTimes := preload("res://src/client/ui/start_times.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
@@ -623,6 +624,7 @@ func close() -> void:
 	if is_open:
 		# The browser test waits for this line before it looks at the game's screen.
 		print("main menu closed")
+		StartTimes.mark("play")
 	is_open = false
 	_want_play = false
 	_entered = true
@@ -795,6 +797,7 @@ func _process(delta: float) -> void:
 	if not _shown and _column.is_visible_in_tree():
 		# Laid out by now; the browser test taps the buttons from this line.
 		_shown = true
+		StartTimes.mark("menu")
 		print("main menu shown: single %s, multi %s" % [_buttons.single.get_global_rect(), _buttons.multi.get_global_rect()])
 	_screen.queue_redraw()
 
