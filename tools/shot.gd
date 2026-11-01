@@ -378,6 +378,10 @@ func _run() -> void:
 				# Buttons of the window tapped once, by their vars (a two-tap one turns red).
 				for b: String in shot.get("press", []):
 					(main.hud.settings_menu().get(b) as Button).pressed.emit()
+		if shot.get("kit", false):
+			main.settings.give_tools()
+			await process_frame
+			await process_frame
 		if shot.has("wear"):
 			main.host.player.give(shot.wear, 1)
 			main.host.player.wear(main.host.player.inventory.slots.find_custom(
@@ -734,7 +738,9 @@ func _work() -> void:
 	var c = main.controls
 	var w = main.world
 	main.settings.set_value("pickup", 3)
-	main.settings.give_tools()
+	# The first tools of the game (the playtest button gives the best ones, Items.best_kit).
+	for id in ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:torch"]:
+		main.host.player.inventory.add(id, 1)
 	main.host.player.inventory.add("resources:stone", 20)
 	var f: Vector3i = c.feet()
 	c.put_in_hand("resources:stone")

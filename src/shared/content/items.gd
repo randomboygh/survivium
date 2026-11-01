@@ -138,6 +138,30 @@ static func most_storage() -> int:
 	return most
 
 
+## A full kit for playtests («Выдать инструменты»): the strongest item of each tool
+## class (by `power`, then `durability`) in the order the classes first come, the
+## brightest light carried in the hand and the bag on the back with the most slots.
+static func best_kit() -> PackedStringArray:
+	var best := {}
+	var light := ""
+	var bag := ""
+	for id in IDS:
+		var it: Dictionary = BY_ID[id]
+		if it.tool != "none":
+			var was: String = best.get(it.tool, "")
+			if was == "" or [it.power, it.durability] > [BY_ID[was].power, BY_ID[was].durability]:
+				best[it.tool] = id
+		elif it.light > 0.0 and it.prop == "none" and (light == "" or it.light > BY_ID[light].light):
+			light = id
+		elif it.wear_on == "back" and (bag == "" or it.bag_slots > BY_ID[bag].bag_slots):
+			bag = id
+	var out := PackedStringArray(best.values())
+	for id in [light, bag]:
+		if id != "":
+			out.append(id)
+	return out
+
+
 ## The id of the first item of `category` (see category), "" for none.
 static func of_category(category: String) -> String:
 	for id in IDS:

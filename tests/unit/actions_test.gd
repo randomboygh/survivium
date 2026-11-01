@@ -7,6 +7,7 @@ func run() -> void:
 	_test_front_choice()
 	_test_world_actions()
 	_test_placed()
+	_test_start_camp()
 	_test_station_flags()
 	_test_recipe_fields()
 
@@ -267,6 +268,38 @@ func _test_placed() -> void:
 	_check(placed.light(who, fire) and fire.lit and who.inventory.count("resources:branch") == 0, "it is lit for a branch")
 	placed.put_out(fire)
 	_check(placed.destroy(fire) and not placed.things.has(fire), "and destroyed once it is out")
+
+
+## The camp of a new world stands by the spawn even when its own spots are taken: a
+## thing goes to the nearest free level spot, off the spawn and off the other thing;
+## where none is near at the spawn's level, none is put.
+func _test_start_camp() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var home := Vector3i(24, 2, 24)
+	# Stone where the campfire and the chest would stand, water by the chest.
+	for e: Dictionary in Starts.START.camp:
+		for dz in 3:
+			for dx in 3:
+				w.set_cell(home.x + e.at[0] + dx - 1, 2, home.z + e.at[1] + dz - 1, Mat.STONE)
+	w.set_cell(home.x + 6, 1, home.z + 2, Mat.WATER)
+	var placed := Placed.new()
+	placed.world = w
+	placed.start_camp((Vector3(home) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL)
+	var items := placed.things.map(func(e: Dictionary) -> String: return e.item)
+	_check(items == Starts.START.camp.map(func(e: Dictionary) -> String: return e.item),
+		"every thing of the camp is set down though its spot is taken: %s" % [items])
+	for e: Dictionary in placed.things:
+		var c: Vector3i = e.cell
+		_check(c.y == 2 and maxi(absi(c.x - home.x), absi(c.z - home.z)) <= 12
+			and (c.x > home.x + 1 or c.x + 1 < home.x - 1 or c.z > home.z + 1 or c.z + 1 < home.z - 1),
+			"%s stands near the spawn on the ground, off the spawn: %s" % [e.item, c])
+	var a: Vector3i = placed.things[0].cell
+	var b: Vector3i = placed.things[1].cell
+	_check(absi(a.x - b.x) >= 2 or absi(a.z - b.z) >= 2, "the two do not share cells")
 
 
 ## What a thing set down does goes by its item's flags, its class an open word (a mod of

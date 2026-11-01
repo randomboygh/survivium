@@ -26,6 +26,10 @@ const CELL := WorldData.CELL
 const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body standing by a burning campfire comes to be burnt.
 const SINGE := 0.02
+## How far (cells) from its own spot a thing of the start's camp is set down when that
+## spot is taken, and how many levels above or below the spawn it may stand (see camp_spot).
+const CAMP_REACH := 12
+const CAMP_RISE := 3
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)
@@ -177,13 +181,39 @@ static func record(e: Dictionary) -> Dictionary:
 
 
 ## Puts the camp of the start (Starts.START: the campfire, the chest when its bundle is
-## loaded) next to world point `at`, each thing its cells east and south of it; the
-## chunks there are made by then, so the ground under them is known.
+## loaded) next to world point `at` (the spawn), each thing its cells east and south of
+## it, or at the nearest free level spot round there when that one is taken (a tree, a
+## slope, water, the other thing): every thing of the camp stands by the spawn. The chunks
+## there are made by then, so the ground under them is known.
 func start_camp(at: Vector3) -> void:
+	var home := Vector3i((at / CELL).floor())
 	for e: Dictionary in Starts.START.camp:
-		var spot := spot_near(at + Vector3(e.at[0], 0.0, e.at[1]) * CELL)
+		var spot := camp_spot(home, Vector2i(home.x + int(e.at[0]), home.z + int(e.at[1])))
 		if spot.y >= 0:
 			put(e.item, spot)
+
+
+## The north-west cell of the free level two by two cells nearest to column `want`
+## within CAMP_REACH of it and off the spawn `home`: at the spawn's level if
+## there is one, else within CAMP_RISE levels, else at any level; the ground under them
+## levelled. y = -1 when there is none.
+func camp_spot(home: Vector3i, want: Vector2i) -> Vector3i:
+	for rise in [0, CAMP_RISE, -1]:
+		for r in CAMP_REACH + 1:
+			for dz in range(-r, r + 1):
+				for dx in range(-r, r + 1):
+					if maxi(absi(dx), absi(dz)) != r:
+						continue
+					var x := want.x + dx
+					var z := want.y + dz
+					# The spawn's cell and those round it stay free for the body.
+					if x <= home.x + 1 and x + 1 >= home.x - 1 and z <= home.z + 1 and z + 1 >= home.z - 1:
+						continue
+					var y := _free_at(x, z)
+					if y >= 0 and (rise < 0 or absi(y - home.y) <= rise):
+						_clear(Vector3i(x, y, z))
+						return Vector3i(x, y, z)
+	return Vector3i(0, -1, 0)
 
 
 ## The cell of the first thing placed of `item`, or null.
@@ -384,18 +414,33 @@ func _fits(who, corner: Vector3i, top: int) -> bool:
 func spot_near(p: Vector3) -> Vector3i:
 	var x := floori(p.x / CELL)
 	var z := floori(p.z / CELL)
+	var y := _free_at(x, z)
+	if y < 0:
+		return Vector3i(0, -1, 0)
+	_clear(Vector3i(x, y, z))
+	return Vector3i(x, y, z)
+
+
+## The level of the ground of the two by two cells from column x, z when they are free
+## (air on solid ground at one level, no other thing there), else -1.
+func _free_at(x: int, z: int) -> int:
 	var y: int = world.surface_y(x, z)
 	if y <= 0:
-		return Vector3i(0, -1, 0)
+		return -1
 	for dz in 2:
 		for dx in 2:
-			if world.get_cell(x + dx, y, z + dz) != Mat.AIR or not world.is_solid(x + dx, y - 1, z + dz):
-				return Vector3i(0, -1, 0)
+			if world.get_cell(x + dx, y, z + dz) != Mat.AIR or not world.is_solid(x + dx, y - 1, z + dz) \
+					or world.blockers.has(Vector3i(x + dx, y, z + dz)):
+				return -1
+	return y
+
+
+## Levels the ground under the two by two cells from `corner` and takes the bushes off them.
+func _clear(corner: Vector3i) -> void:
 	for dz in 2:
 		for dx in 2:
-			_level_ground(Vector3i(x + dx, y - 1, z + dz))
-			_remove_bush(Vector3i(x + dx, y, z + dz))
-	return Vector3i(x, y, z)
+			_level_ground(corner + Vector3i(dx, -1, dz))
+			_remove_bush(corner + Vector3i(dx, 0, dz))
 
 
 ## Things stand on level ground: a slope under them becomes a whole cube.

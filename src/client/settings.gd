@@ -145,7 +145,6 @@ var player_speed := 1.0
 ## gives none. Not saved.
 var free_build := false
 ## Playtest: the stone and wooden tools the game has before crafting, into the bag.
-const TOOL_SET := ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:torch"]
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
 var air_jumps := false
 ## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
@@ -567,13 +566,27 @@ func set_shadow_map(i: int) -> void:
 	apply()
 
 
-## Puts one of each tool of TOOL_SET the bag lacks into it.
+## Puts the playtest kit (Items.best_kit: the best tool of each class, a light, the
+## biggest bag) into the bag, each thing the bag and the body lack, and puts the bag on
+## when nothing is worn on the back yet. Single player only: a server far away gives
+## nothing, and says so.
 func give_tools() -> void:
 	if game.host == null:
+		game.character.say("Выдать инструменты можно только в своём мире")
 		return
-	for id in TOOL_SET:
-		if game.host.player.inventory.count(id) == 0:
-			game.host.player.give(id, 1)
+	var who = game.host.player
+	var inv = who.inventory
+	for id in Items.best_kit():
+		if inv.count(id) > 0 or inv.gear.values().has(id):
+			continue
+		if who.give(id, 1) < 1:
+			break
+		var on := Items.wear_on(id)
+		if on != "" and inv.gear.get(on, "") == "":
+			for i in inv.slots.size():
+				if inv.slots[i] != null and inv.slots[i][0] == id:
+					who.wear(i)
+					break
 
 
 func in_test_world() -> bool:

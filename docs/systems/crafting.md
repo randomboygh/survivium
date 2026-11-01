@@ -23,7 +23,11 @@
 - `src/shared/game/placed.gd` — вещи на клетках по классу предмета `prop` и его флагам (ниже):
   `put_from_bag`, `take_up`, `put_out`, `light`, `destroy`, `stations_near`,
   `burns`; твёрдые через `WorldData.blockers`; новый мир начинает с лагеря старта у спавна
-  (`start_camp` по `Starts.START.camp`: костёр, сундук — патч бандла сундука). Сигналы
+  (`start_camp` по `Starts.START.camp`: костёр, сундук — патч бандла сундука; занятое место —
+  дерево, склон, вода — заменяет ближайшее ровное свободное в `CAMP_REACH` клеток, `camp_spot`:
+  сначала на уровне спавна, потом в `CAMP_RISE` уровней, потом на любом). Кнопка «Выдать
+  инструменты» («Тестирование») выдаёт `Items.best_kit`: лучший инструмент каждого класса, свет
+  и самую большую сумку на спину, сразу надетую. Сигналы
   `added`, `removed`, `lit_changed`, `cell_changed`.
 - `src/client/game/props.gd`, `src/client/view/voxel_props.gd` — модели вещей и огонь на экране.
 - `src/client/ui/craft_panel.gd`, `inventory_window.gd` — вкладка «Крафт» (что тратит и что держит в сумке,

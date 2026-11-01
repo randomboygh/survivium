@@ -322,6 +322,9 @@ const SHOTS := {
 		"wear": "tools:canvas_backpack", "give": "tools:wicker_bag"},
 	"bag-worn": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"wear": "tools:canvas_backpack", "person": "back"},
+	# «Выдать инструменты» pressed (Items.best_kit: the best tool of each class, a light,
+	# the biggest bag put on at once), then the bag open.
+	"bag-kit": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "kit": true},
 	# A chest chosen in the bag: its wide button sets it down.
 	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"give": "tools:chest"},
