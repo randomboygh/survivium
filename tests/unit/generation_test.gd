@@ -288,13 +288,13 @@ func _test_trees() -> void:
 			for k in 6:
 				rng.seed = k
 				var w := WorldData.new(40, Vector2i(32, 32))
-				Trees.place(w, 15, 1, 15, species, rng, scale)
+				Growth.place(w, 15, 1, 15, species, rng, scale)
 				var top := 0
 				for c: WorldData.Chunk in w.chunks.values():
 					for col in WorldData.LAYER:
 						top = maxi(top, WorldData.top_level(c.leaf[col] | c.logs[col]))
-				fits = fits and top <= Trees.height(species, scale)
-	_check(fits, "trees stay within Trees.height")
+				fits = fits and top <= Growth.height(species, scale)
+	_check(fits, "trees stay within Growth.height")
 	var strips := _woods()
 	var w: WorldData = strips.world
 	var kinds := {}

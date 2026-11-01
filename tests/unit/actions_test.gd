@@ -19,8 +19,8 @@ func _test_felling() -> void:
 			w.set_cell(x, 0, z, Mat.STONE)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	Trees.place(w, 15, 1, 23, Trees.first(Trees.BROAD), rng)
-	Trees.place(w, 31, 1, 23, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 15, 1, 23, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 31, 1, 23, Trees.first(Trees.BROAD), rng)
 	var leaves_of_second := 0
 	for z in range(14, 33):
 		for x in range(24, 41):
@@ -29,19 +29,19 @@ func _test_felling() -> void:
 	# bark of one wider than its cell stops a body beside it.
 	var girths := {}
 	for i in 40:
-		var box := Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(2 * i + 1, 7), 0)
+		var box := Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(2 * i + 1, 7), 0)
 		girths[box.size.x] = true
 		var g: Array = Trees.SPECIES[Trees.first(Trees.BROAD)].girth
 		_check(box.size.x >= g[0] and box.size.x <= g[1], "a trunk's girth is in its species' range")
 	_check(girths.size() > 2, "trunks differ in girth")
-	_check(Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 6).size.x < Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 0).size.x,
+	_check(Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 6).size.x < Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 0).size.x,
 		"a trunk thins going up")
-	var box := Trees.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 1)
+	var box := Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 1)
 	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8), "thick bark east of a trunk is solid")
 	var past := box.end.x + 1
 	_check(not w.blocks_part(15 + past / 8, 2, 23, (past % 8) / 8.0, (past % 8 + 0.8) / 8.0, 0.4, 0.6),
 		"a body further from the trunk is not stopped")
-	var gone := Trees.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
+	var gone := Felling.fell(w, Vector3i(15, 2, 23), Vector2(0.0, 1.0))
 	_check(not gone.is_empty() and gone[0] == Vector3i(15, 2, 23), "a cut trunk is felled from the cut")
 	_check(not w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6), "bark of a felled trunk stops nothing")
 	_check(w.log_col(15, 23) == 0b10, "the stump stays below the cut")
@@ -61,7 +61,7 @@ func _test_felling() -> void:
 			kinds[d[0]] = true
 			_check(d[1].z > 23 * WorldData.CELL, "the tree falls away from the axe")
 	_check(kinds.has("resources:log") and kinds.has("resources:branch") and kinds.has("plants:acorn"), "a felled oak leaves logs, branches and acorns")
-	_check(Trees.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
+	_check(Felling.fell(w, Vector3i(15, 0, 23), Vector2.ZERO).is_empty(), "only logs of noted trees are felled")
 
 
 func _bits(v: int) -> int:
@@ -158,7 +158,7 @@ func _test_world_actions() -> void:
 		"a block is placed from the bag")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
-	Trees.place(w, 15, 2, 23, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 15, 2, 23, Trees.first(Trees.BROAD), rng)
 	who.position = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
 	who.item = "tools:stone_axe"
 	var logs := w.log_col(15, 23)

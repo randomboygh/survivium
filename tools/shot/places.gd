@@ -10,6 +10,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
@@ -628,10 +629,10 @@ func grove(w, at: Vector3i) -> void:
 		# them.
 		var k := 0
 		for dx in range(-21, 22, 6):
-			Bushes.place(w, at.x + dx, h, at.z + 10 + (k % 2), k % Bushes.TYPES.size())
+			Growth.place_bush(w, at.x + dx, h, at.z + 10 + (k % 2), k % Bushes.TYPES.size())
 			k += 1
 		for dx in [-9, -7, 7, 9]:
-			Bushes.place(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.first(true, 1))
+			Growth.place_bush(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.first(true, 1))
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 3
 		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
@@ -639,10 +640,10 @@ func grove(w, at: Vector3i) -> void:
 			var x: int = (at.x + oaks[i]) | 1
 			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.first(Trees.BROAD)) != (i % 2 == 0):
 				x += 2
-			Trees.place(w, x, h, (at.z - 8) | 1, Trees.first(Trees.BROAD), rng)
+			Growth.place(w, x, h, (at.z - 8) | 1, Trees.first(Trees.BROAD), rng)
 		var sizes := [0.75, 1.0, 1.2]
 		for i in spruces.size():
-			Trees.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.first(Trees.NEEDLES), rng, sizes[i])
+			Growth.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.first(Trees.NEEDLES), rng, sizes[i])
 		for z in range(at.z - 38, at.z + 34, 8):
 			for x in range(at.x - 48, at.x + 50, 8):
 				main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -673,10 +674,10 @@ func orchard(w, at: Vector3i) -> void:
 	rng.seed = 7
 	var n := Trees.SPECIES.size()
 	for i in n:
-		Trees.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, rng, Trees.fit(i, w.size_y - h))
+		Growth.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, rng, Growth.fit(i, w.size_y - h))
 	var k := Bushes.TYPES.size()
 	for i in k:
-		Bushes.place(w, at.x + (i - k / 2) * 6, h, at.z + 5 + (i % 2), i)
+		Growth.place_bush(w, at.x + (i - k / 2) * 6, h, at.z + 5 + (i % 2), i)
 	for z in range(at.z - 32, at.z + 24, 8):
 		for x in range(at.x - span - 8, at.x + span + 8, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -705,7 +706,7 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 	rng.seed = 3
 	for i in species.size():
 		var kind := Trees.index(species[i])
-		Trees.place(w, (at.x + (i * 2 - species.size() + 1) * 11) | 1, h, (at.z - 6) | 1, kind, rng, Trees.fit(kind, w.size_y - h))
+		Growth.place(w, (at.x + (i * 2 - species.size() + 1) * 11) | 1, h, (at.z - 6) | 1, kind, rng, Growth.fit(kind, w.size_y - h))
 	for z in range(at.z - 32, at.z + 24, 8):
 		for x in range(at.x - 44, at.x + 44, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -739,8 +740,8 @@ func clearing(w, at: Vector3i, fell: bool, species: Array = []) -> void:
 	# `species` names the two trees instead, west and east (ids of trees.yaml).
 	var west := Trees.index(species[0]) if species.size() > 0 else Trees.first(Trees.BROAD)
 	var east := Trees.index(species[1]) if species.size() > 1 else Trees.first(Trees.NEEDLES)
-	Trees.place(w, oak.x, h, oak.y, west, rng, minf(1.0, Trees.fit(west, w.size_y - h)))
-	Trees.place(w, spruce.x, h, spruce.y, east, rng, minf(0.8, Trees.fit(east, w.size_y - h)))
+	Growth.place(w, oak.x, h, oak.y, west, rng, minf(1.0, Growth.fit(west, w.size_y - h)))
+	Growth.place(w, spruce.x, h, spruce.y, east, rng, minf(0.8, Growth.fit(east, w.size_y - h)))
 	for z in range(at.z - 28, at.z + 28, 8):
 		for x in range(at.x - 34, at.x + 34, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))

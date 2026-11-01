@@ -15,6 +15,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Content := preload("res://src/shared/content/content.gd")
 ## Size of a cell in world units; a world unit is 16 px on screen.

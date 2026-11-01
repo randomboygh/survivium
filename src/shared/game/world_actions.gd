@@ -31,6 +31,8 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
+const Felling := preload("res://src/shared/game/felling.gd")
 
 const CELL := WorldData.CELL
 ## Seconds between two placings of a stroke, and of the action button (slower, so a
@@ -154,8 +156,8 @@ func tree_of(cell: Vector3i) -> Variant:
 	if m != Mat.LEAVES:
 		return null
 	var best: Variant = null
-	var best_d := Trees.TREE_REACH * Trees.TREE_REACH * 2 + 1
-	var r := Trees.TREE_REACH
+	var best_d := Growth.TREE_REACH * Growth.TREE_REACH * 2 + 1
+	var r := Growth.TREE_REACH
 	for tz in range(cell.z - r, cell.z + r + 1):
 		for tx in range(cell.x - r, cell.x + r + 1):
 			var at := Vector2i(tx, tz)
@@ -207,7 +209,7 @@ func fell(who, cell: Vector3i) -> bool:
 	var before := {}
 	for key in world.drops:
 		before[key] = world.drops[key].size()
-	var gone: Array[Vector3i] = Trees.fell(world, cell, away)
+	var gone: Array[Vector3i] = Felling.fell(world, cell, away)
 	if gone.is_empty():
 		return false
 	who.note("trees")
@@ -1310,7 +1312,7 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 	who.inventory.remove(item.id, 1)
 	if item.plant != "":
 		var at := cell + Vector3i.UP
-		Bushes.place(world, at.x, at.y, at.z, Bushes.index(item.plant))
+		Growth.place_bush(world, at.x, at.y, at.z, Bushes.index(item.plant))
 		world.note_bush(at)
 		looks_changed.emit(WorldData.chunk_key(at.x, at.z))
 	else:
@@ -1329,7 +1331,7 @@ func _can_plant(who, id: String, cell: Vector3i) -> bool:
 		return false
 	var at := cell + Vector3i.UP
 	if item.plant != "":
-		return Bushes.index(item.plant) >= 0 and Bushes.fits(world, at.x, at.y, at.z) and not world.bushes.has(at) \
+		return Bushes.index(item.plant) >= 0 and Growth.bush_fits(world, at.x, at.y, at.z) and not world.bushes.has(at) \
 			and not who.overlaps_cell(at)
 	if item.sow == "":
 		return false

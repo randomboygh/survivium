@@ -1,10 +1,9 @@
 extends RefCounted
 ## Bush types: what a bush looks like is data here, where it grows is up to the world
-## generator (per biome). A bush stands in one air cell on grass and is noted in
-## WorldData.bushes by that cell; the client draws it as a few leaf clusters (see
-## Foliage.bushes), some of them with berries that ripen in summer.
+## generator (per biome), growing one into the world Growth's (src/shared/world/growth.gd).
+## The client draws a bush as a few leaf clusters (see Foliage.bushes), some of them with
+## berries that ripen in summer.
 
-const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Content := preload("res://src/shared/content/content.gd")
 
@@ -62,15 +61,4 @@ static func first(berries: bool, skip := 0) -> int:
 ## What is wrong with the loaded bushes for the engine, if anything.
 static func check() -> PackedStringArray:
 	return []
-
-
-## True when a bush can stand in cell x, y, z: air on level grass.
-static func fits(w, x: int, y: int, z: int) -> bool:
-	return y > 0 and y < w.size_y and w.get_cell(x, y - 1, z) == Mat.GRASS and w.get_cell(x, y, z) == Mat.AIR \
-		and w.slope_mask(x, y - 1, z) == w.FULL
-
-
-## Grows a bush of `type` in cell x, y, z (the first cell above the ground).
-static func place(w, x: int, y: int, z: int, type: int) -> void:
-	w.add_bush(Vector3i(x, y, z), type)
 

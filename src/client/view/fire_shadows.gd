@@ -18,6 +18,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const FireShadowShader := preload("res://shaders/fire_shadow.gdshader")
+const Growth := preload("res://src/shared/world/growth.gd")
 
 const CELL := WorldData.CELL
 const MAX_SHADOWS := 512
@@ -370,13 +371,13 @@ func _cast_trunks(l: Dictionary, n: int) -> int:
 	return n
 
 
-## How wide the trunk standing at `foot` is at its foot (see Trees.trunk_box).
+## How wide the trunk standing at `foot` is at its foot (see Growth.trunk_box).
 func _girth(foot: Vector3) -> float:
 	var col := Vector2i(floori(foot.x / CELL), floori(foot.z / CELL))
 	var species: int = game.world.trees.get(col, -1)
 	if species < 0 or species >= Trees.SPECIES.size():
 		return TRUNK_WIDTH
-	return TRUNK_WIDTH * Trees.trunk_box(species, col, 0).size.x / 6.0
+	return TRUNK_WIDTH * Growth.trunk_box(species, col, 0).size.x / 6.0
 
 
 ## The trunks of chunk `key` seen from a light at `at`: [their feet (see _base), how

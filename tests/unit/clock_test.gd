@@ -155,7 +155,7 @@ func _test_weather() -> void:
 	clock.season = Clock.AUTUMN
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3
-	Trees.place(w, 24, 2, 24, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 24, 2, 24, Trees.first(Trees.BROAD), rng)
 	for key: Vector2i in w.chunks:
 		w.chunks[key].final = true
 	var actions := WorldActions.new(w, clock, Rules.new())
