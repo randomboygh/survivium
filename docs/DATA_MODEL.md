@@ -50,7 +50,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 - Смысл полей описан комментарием в начале каждого YAML и схемой `SCHEMAS` в
   `src/shared/content/content.gd` (типы `bool`, `int`, `float`, `string`, `word` — строчное слово, открытый
   класс: `tool` предмета, `prop` станка, мод может завести свой, `color`, `vec3`, `enum`, `list`,
-  `ref:<вид>`, `sound`, `amounts`, `shares`, `entries` — список словарей со своими полями `fields`, каждый
+  `ref:<вид>`, `sound`, `amounts`, `shares`, `colors` — цвета по именам ключей `keys`, `entries` — список словарей со своими полями `fields`, каждый
   проверяется как запись: `camp: [{item: campfire, at: [-4, 4]}]`; `default`, `min` / `max`, `soft`). У каждого поля-ссылки
   записан тип связи `rel` (`Content.RELATIONS`: `drops`, `produces`, `consumes`, `requires_station`…) и,
   где связь даёт действие, `via` (`Content.ACTIONS`: `dig`, `fell`, `gather`…): из них строится граф

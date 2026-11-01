@@ -26,7 +26,8 @@
   водопады), `trunk_mesher.gd` (кора стволов).
 - `src/client/world/foliage.gd` — трава, растения и кроны чанка как MultiMesh, тоже по столбцу.
 - `src/client/world/mesh_buffers.gd` — растущие буферы вершин; `drifts.gd` — сугробы; `tracks.gd` —
-  следы; `roof_map.gd` — карта крыши для шейдеров (оборачивается через `RoofMap.WRAP`).
+  следы; `roof_map.gd` — карта крыши для шейдеров (оборачивается через `RoofMap.WRAP`) и рядом с ней карта
+  биомов столбцов (`biome_map`) с множителями цвета материалов по биомам (`biome_tints`, из `tints` биомов).
 
 **Интерфейс.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
 `take_work()`, `set_focus(at)`,

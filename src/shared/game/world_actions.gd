@@ -706,8 +706,8 @@ static func _highest(bits: int) -> int:
 ## Whose fish bite on a cast from world point `at` into the water at `water`: in a lake,
 ## a river or the pools of a swamp the land's round it, the first biome other than the
 ## sea and the plain beach from the angler back (the shore of a lake is often beach);
-## in the sea the sea's, or that of a beach of its own (a tropical one) the angler stands
-## on. Biomes.NONE without a layout of the land.
+## in the sea that of a beach of its own (a tropical one) the angler stands on, else the
+## sea's there (the tropical sea's in the tropics). Biomes.NONE without a layout of the land.
 func fishing_biome(at: Vector3, water: Vector3) -> int:
 	if wildlife == null or wildlife.gen == null:
 		return Biomes.NONE
@@ -716,11 +716,14 @@ func fishing_biome(at: Vector3, water: Vector3) -> int:
 	var here := biome_under(at)
 	var fresh: bool = w.feature[0] == gen.LAKE or w.feature[0] == gen.RIVER or w.flags[0] & (gen.MARSH | gen.MIRE) != 0
 	if not fresh:
-		return here if Biomes.where(here) == "beach" and here != Biomes.BEACH else _biome_or(Biomes.SEA, here)
+		if Biomes.where(here) == "beach" and here != Biomes.BEACH:
+			return here
+		var sea: int = w.biome[0]
+		return sea if Biomes.where(sea) == "sea" else _biome_or(Biomes.SEA, here)
 	var back := Vector2(at.x - water.x, at.z - water.z).normalized()
 	for k in [0, 4, 8, 16, 24]:
 		var b := biome_under(at + Vector3(back.x, 0.0, back.y) * k * CELL)
-		if b != Biomes.NONE and b != Biomes.SEA and b != Biomes.BEACH:
+		if b != Biomes.NONE and Biomes.where(b) != "sea" and b != Biomes.BEACH:
 			return b
 	return here
 

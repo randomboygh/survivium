@@ -13,6 +13,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const CELL := WorldData.CELL
@@ -222,7 +223,8 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 
 ## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
 ## grass, the shade of a crown, a bank), on the share of that ground its `cover` says,
-## and only in clumps where its own noise is above `clumps` when that is set.
+## and only in clumps where its own noise is above `clumps` when that is set, and only
+## in its `biomes` when it names some.
 static func _custom(w, x: int, y: int, z: int, m: int, out: Array[int], rng: RandomNumberGenerator) -> void:
 	var shaded: bool = w.leaf_col(x, z) != 0
 	for c in Plants.CUSTOM:
@@ -236,6 +238,10 @@ static func _custom(w, x: int, y: int, z: int, m: int, out: Array[int], rng: Ran
 			"bank":
 				if m == Mat.BEACH or not _by_water(w, x, y, z):
 					continue
+		if not c.biomes.is_empty():
+			var b: int = w.biome_at(x, z)
+			if b >= Biomes.IDS.size() or not Biomes.IDS[b] in c.biomes:
+				continue
 		if c.clumps > -1.0:
 			var noise: FastNoiseLite = custom_noises.get(c.id)
 			if noise == null:

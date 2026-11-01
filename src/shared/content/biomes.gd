@@ -223,6 +223,24 @@ static func clay_as(b: int, ground: Dictionary) -> int:
 	return ground.get(of(b).get("clay_as", "clay"), Mat.GRASS)
 
 
+## The colours biome `b`'s grounds and water take (its `tints`): material -> colour, by
+## the materials the names of the `top` field stand for in the loaded mods (see top) and
+## water; empty for NONE.
+static func tints(b: int) -> Dictionary:
+	var out := {}
+	var named: Dictionary = of(b).get("tints", {})
+	if named.is_empty():
+		return out
+	var grounds := {"grass": Mat.GRASS, "dirt": Mat.DIRT, "sand": Mat.of_role("beach", -1),
+		"clay": Mat.of_role("bank", -1), "snow": Mat.of_role("snow", -1), "peat": Mat.of_role("peat", -1),
+		"salt": Mat.of_role("salt", -1), "water": Mat.WATER}
+	for name: String in named:
+		var m: int = grounds.get(name, -1)
+		if m >= 0:
+			out[m] = named[name]
+	return out
+
+
 ## The colour of biome `b` on the map; a dull green for NONE.
 static func color(b: int) -> Color:
 	return of(b).get("color", Color(0.45, 0.5, 0.35))

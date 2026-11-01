@@ -12,6 +12,7 @@ func run() -> void:
 	_test_custom_plants()
 	_test_mountain_zone()
 	_test_tropics()
+	_test_biome_bytes()
 
 
 func _test_generation() -> void:
@@ -521,3 +522,88 @@ func _test_tropics() -> void:
 				if t[2] == palm and lay.tops[j] == gen.beach:
 					on_sand += 1
 	_check(on_sand > 0, "palms grow on the sand of a tropical beach (%d round %s)" % [on_sand, p])
+
+
+## A saved chunk record for WorldGen.saved: one chunk, kept as given.
+class OneSaved:
+	var key: Vector2i
+	var record: Dictionary
+
+	func has_chunk(k: Vector2i) -> bool:
+		return k == key
+
+	func read_chunk(_k: Vector2i) -> Dictionary:
+		return record.duplicate()
+
+
+## Chunks keep the biome of each column (what tints the ground and the water, which plants
+## grow there): as the layout gives it, through a save, and laid out again for a chunk saved
+## before they kept it; the tropics have a sea of their own; the jungle's own plant
+## grows only in the jungle.
+func _test_biome_bytes() -> void:
+	var gen := WorldGen.new(20261018, 48, {"climate": 1})
+	var p: Vector2i = gen.find_place("tropical_beach", Vector2i(gen.spawn_guess.x, gen.spawn_guess.z))
+	var key := Vector2i(floori(p.x / float(WorldGen.CHUNK)), floori(p.y / float(WorldGen.CHUNK)))
+	gen.generate_area(key, key + Vector2i.ONE)
+	var c: WorldData.Chunk = gen.world.chunks[key]
+	var lay := gen.lay_out(key.x * WorldGen.CHUNK, key.y * WorldGen.CHUNK, WorldGen.CHUNK, WorldGen.CHUNK)
+	var same := 0
+	for i in WorldData.LAYER:
+		same += int(c.biome[i] == lay.biome[i])
+	var x := key.x * WorldGen.CHUNK + 3
+	var z := key.y * WorldGen.CHUNK + 5
+	_check(same == WorldData.LAYER and gen.world.biome_at(x, z) == lay.biome[5 * WorldGen.CHUNK + 3]
+		and gen.world.biome_at(x + 100000, z) == WorldData.NO_BIOME,
+		"a chunk keeps its columns' biomes as laid out (%d of %d), none where no chunk is" % [same, WorldData.LAYER])
+	var record := gen.pack(key)
+	var old := record.duplicate()
+	old.erase("biome")
+	var brought := {}
+	for d: Dictionary in [record, old]:
+		var again := WorldGen.new(20261018, 48, {"climate": 1})
+		var saved := OneSaved.new()
+		saved.key = key
+		saved.record = d
+		again.saved = saved
+		again.run(key, WorldGen.TERRAIN)
+		brought[brought.size()] = again.world.chunks[key].biome
+	_check(brought[0] == c.biome and brought[1] == c.biome,
+		"the biomes come back with a saved chunk, and are laid out again for one saved without them")
+	var sea := Biomes.named("tropical_sea")
+	var near := {}
+	for row in 40:
+		var l := gen.lay_out(-8000, -8000 + row * 400, 40, 1, 400)
+		for i in 40:
+			near[l.biome[i]] = true
+	var tints := Biomes.tints(sea)
+	_check(sea >= 0 and near.has(sea) and tints.has(Mat.WATER) and tints.has(Mat.of_role("beach", -1))
+		and Biomes.tints(Biomes.named("meadow")).is_empty(),
+		"the tropics have a sea of their own, its water and sand tinted, a meadow's not")
+	var monstera: Dictionary = Plants.BY_ID.get("plants:monstera", {})
+	var jungle := Biomes.named("jungle")
+	_check(monstera.get("biomes", []) == ["biomes:jungle", "biomes:mangrove"] and Biomes.IDS[jungle] in monstera.biomes,
+		"the monstera names the biomes it grows in")
+	# Grass on a test world: the monstera only where its chunk says jungle.
+	var w: WorldData = _woods().world
+	var shaded := Vector3i.MAX
+	for k: Vector2i in w.chunks:
+		for col in WorldData.LAYER:
+			var cx := k.x * WorldGen.CHUNK + (col & 15)
+			var cz := k.y * WorldGen.CHUNK + (col >> 4)
+			if w.leaf_col(cx, cz) != 0 and w.get_cell(cx, w.surface_y(cx, cz) - 1, cz) == Mat.GRASS:
+				shaded = Vector3i(cx, w.surface_y(cx, cz) - 1, cz)
+				break
+		if shaded != Vector3i.MAX:
+			break
+	var counts := []
+	for b in [WorldData.NO_BIOME, jungle]:
+		w.chunk_at(shaded.x, shaded.z).biome.fill(b)
+		var n := 0
+		for dz in 16:
+			for dx in 16:
+				var cx := (shaded.x & ~15) + dx
+				var cz := (shaded.z & ~15) + dz
+				n += Grass.plants_on(w, cx, w.surface_y(cx, cz) - 1, cz).count("plants:monstera")
+		counts.append(n)
+	_check(shaded != Vector3i.MAX and counts[0] == 0 and counts[1] > 0,
+		"the monstera grows in the shade of a jungle chunk only: %s" % [counts])

@@ -24,6 +24,9 @@ const SHIFT := 4
 const MASK := CHUNK - 1
 ## Columns in a chunk: a level of a chunk is this many cells.
 const LAYER := CHUNK * CHUNK
+## A column's biome not known (Biomes.NONE; world/ loads no content but materials and
+## trees, so the number is kept here too).
+const NO_BIOME := 255
 ## Open water lies this far up its top cell (4 px under the ground beside it). Ice
 ## fills the cell to the top.
 const WATER_TOP := 0.5
@@ -138,6 +141,10 @@ class Chunk extends RefCounted:
 	var wild := PackedInt64Array()
 	var sloped := PackedInt64Array()
 	var corner := PackedInt64Array()
+	## The biome of each column (an index of Biomes, Biomes.NONE where it is not known:
+	## a chunk of the test world, or one saved before biomes were kept), written by the
+	## generator: what tints its ground and water and which plants grow on it.
+	var biome := PackedByteArray()
 	## Changed by the player: kept when the player goes far away.
 	var edited := false
 	## Done by the generator: its later stages of the chunks around write nothing here
@@ -177,6 +184,13 @@ static func col_of(x: int, z: int) -> int:
 	return ((z & MASK) << SHIFT) | (x & MASK)
 
 
+## The biome of column x, z (an index of Biomes), NO_BIOME when its chunk is not kept
+## or did not know it (see Chunk.biome).
+func biome_at(x: int, z: int) -> int:
+	var c: Chunk = chunk_at(x, z)
+	return NO_BIOME if c == null else c.biome[col_of(x, z)]
+
+
 ## A new empty chunk (all air), replacing what was kept there.
 func add_chunk(key: Vector2i) -> Chunk:
 	var c := Chunk.new()
@@ -187,6 +201,8 @@ func add_chunk(key: Vector2i) -> Chunk:
 	for a: PackedInt64Array in [c.air, c.water, c.leaf, c.logs, c.wild, c.sloped, c.corner]:
 		a.resize(LAYER)
 	c.air.fill(all_bits)
+	c.biome.resize(LAYER)
+	c.biome.fill(NO_BIOME)
 	chunks[key] = c
 	if key == _last_key:
 		_last = c
@@ -697,7 +713,7 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		bush_lists[name] = list
 	return {"key": key, "levels": size_y, "cells": c.cells, "natural": c.natural, "shapes": c.shapes,
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
-		"corner": c.corner, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(), "drops": drops.get(key, []).duplicate(true)}
+		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(), "drops": drops.get(key, []).duplicate(true)}
 
 
 ## True when `d` is a chunk packed by pack_chunk for a world of this height.
@@ -724,6 +740,12 @@ func unpack_chunk(d: Dictionary) -> bool:
 	c.key = key
 	for name in ["cells", "natural", "shapes", "air", "water", "leaf", "logs", "wild", "sloped", "corner"]:
 		c.set(name, d[name])
+	var biomes: Variant = d.get("biome")
+	if biomes is PackedByteArray and biomes.size() == LAYER:
+		c.biome = biomes
+	else:
+		c.biome.resize(LAYER)
+		c.biome.fill(NO_BIOME)
 	c.edited = true
 	c.final = true
 	chunks[key] = c

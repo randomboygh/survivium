@@ -19,7 +19,7 @@
 
 **Интерфейс.** `get_cell` / `set_cell` / `set_material`, `is_natural`, `in_bounds`, `add_tree`,
 `remove_tree`, `add_bush`, `add_drop` / `heap_drop` / `take_drop`, `tread` / `trail`, `column_masks`,
-`padded`; `is_solid`, `blocks_body`, `ground_height`, `surface_height`, `corner_cuts`;
+`padded`, `biome_at` (биом столбца из `Chunk.biome`, `NO_BIOME` без него); `is_solid`, `blocks_body`, `ground_height`, `surface_height`, `corner_cuts`;
 `Grass.kinds`, `plants_on`, `has_tall`; `VoxelRaycast.cast`. Константы: `CELL` (0,5 единицы мира,
 8 px), `CHUNK` (16), `SNOW_LINE` (18).
 

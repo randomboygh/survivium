@@ -46,6 +46,12 @@ global uniform sampler2D roof_map : filter_nearest, repeat_enable;
 // The same map filtered between the columns' centres, for what changes smoothly over
 // the land (the fog's low places).
 global uniform sampler2D roof_map_soft : filter_linear, repeat_enable;
+// One texel per column like the roof map: r = the column's biome (an index of Biomes,
+// 255 not known), see roof_map.gd.
+global uniform sampler2D biome_map : filter_nearest, repeat_enable;
+// What each biome does to the colour of each material: texel (material, biome) holds
+// the factor over 4, 0.25 none (see roof_map.gd, Biomes.tints).
+global uniform sampler2D biome_tints : filter_nearest;
 // The world has no edge: the heat and roof maps repeat every wrap_size world units.
 global uniform vec2 wrap_size;
 // Height of the ground the player last stood on, and what the levels far below it
@@ -274,6 +280,24 @@ float heat_at(vec3 p) {
 // -1 when the sky is open all the way down.
 float roof_level(vec2 xz) {
 	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / wrap_size).r * 255.0 - 1.0;
+}
+
+// The factor biome tints multiply material `mat` by at `xz` (white sand by a tropical
+// sea, yellow grass in a savanna): the biome of the column, looked up a texel's random
+// way up to most of a cell off, so the colours of two biomes are dithered into each
+// other along their border instead of meeting in a straight line.
+// The core's grass and water come first in a fixed order (content/core materials).
+const int GRASS_MATERIAL = 1;
+const int WATER_MATERIAL = 4;
+
+vec3 biome_tint(int mat, vec2 xz) {
+	vec2 t = floor(xz * TEXELS);
+	vec2 off = vec2(hash12(t + 3.7), hash12(t + 19.1)) - 0.5;
+	vec2 col = floor(xz / CELL + off * 1.5);
+	int b = int(texture(biome_map, (col + 0.5) * CELL / wrap_size).r * 255.0 + 0.5);
+	vec3 f = texelFetch(biome_tints, ivec2(mat, b), 0).rgb;
+	// No tints given yet (a texture not set reads black): the colour as it is.
+	return f.r + f.g + f.b > 0.0 ? f * 4.0 : vec3(1.0);
 }
 
 // True when the column at `xz` lies under a tree's crown.

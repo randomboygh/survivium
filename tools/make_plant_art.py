@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draws the pictures of the plants added as bundles (birch, pine, willow, apple, rowan,
-currant, rose hip, fern, nettle, cranberry): the barks of the trees as textures like a
+currant, rose hip, fern, nettle, cranberry, flax, monstera): the barks of the trees as textures like a
 material's (48x16: the end grain, the bark, the underside; recoloured from the log's
 texture of the wood bundle, with marks of their own), the ground plants' sprites (8x24 a
 frame, two frames each, in sprites/plants/ of the bundle), the icons (12x12) and the
@@ -90,6 +90,8 @@ PAL = {
     "f": (88, 128, 60, 255),  # flax stalk
     "u": (96, 120, 220, 255),  # flax flower
     "U": (150, 170, 240, 255),
+    "m": (30, 88, 40, 255),  # monstera leaf
+    "M": (64, 136, 58, 255),  # its lit side
 }
 
 FERN = [
@@ -134,6 +136,23 @@ FLAX = [
         "........", "........", "...U....", "..UuU.U.", "...f.UuU", "...f..f.",
         "...f..f.", "...f.f..", "U..f.f..", "uU.f.f..", ".f..ff..", ".f..ff..",
         "..f.f...", "..f.f...", "..f.f...", "...ff...", "...ff...", "...ff...",
+    ],
+]
+
+# Monstera: two or three broad leaves split to the rib on short stalks, the jungle's
+# undergrowth.
+MONSTERA = [
+    [
+        "........", "........", "........", "........", "........", "........",
+        "........", "........", "........", "........", ".MM.....", "MmMM..m.",
+        "M.mM.mMM", "MmM..M.m", ".mm.MmMM", "..s.mM.m", "..s..mm.", "...s.s..",
+        ".mMs.s..", "mM.Mss..", "Mm.MMs..", ".mMm.s..", "...ss...", "...s....",
+    ],
+    [
+        "........", "........", "........", "........", "........", "........",
+        "........", "........", "........", "........", "......MM", "..m..MMm",
+        ".MMm.Mm.", "Mm.M.mMm", "MmMM..m.", ".mm.s.s.", "...s..s.", "...s.s..",
+        "..s..sMm", "..s.Mm.M", "..ssMM.m", "...s.mMm", "...ss...", "....s...",
     ],
 ]
 
@@ -255,6 +274,7 @@ def main():
     sprite("nettle", NETTLE)
     sprite("cranberry", CRANBERRY)
     sprite("flax", FLAX)
+    sprite("monstera", MONSTERA)
     berry_icon("apple", "apple", (196, 44, 40, 255), (236, 120, 100, 255), cluster=False)
     berry_icon("rowan", "rowan", (220, 90, 30, 255), (240, 150, 80, 255))
     berry_icon("currant", "currant", (40, 28, 52, 255), (110, 80, 130, 255))

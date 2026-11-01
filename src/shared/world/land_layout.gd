@@ -837,7 +837,9 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			elif cut == TOR:
 				sheer = true
 		elif watery:
-			b = _biome(Biomes.SEA)
+			# The open sea of a warm zone may be a biome of its own (the tropics'
+			# turquoise shallows); lakes and rivers are the sea's.
+			b = _biome(Biomes.relief(Biomes.SEA, t, m) if zoned and feature == OCEAN else Biomes.SEA)
 			if feature != RIVER:
 				top = beach if soil[j] < soil_t else bank
 		elif feature == CANYON:

@@ -1,0 +1,12 @@
+# Поля биома — как у остальных (content/biomes/sea/data/biomes.yaml); tints — цвета грунта и воды
+# биома вместо их собственных: grass, dirt, sand, clay, snow, peat, salt (по именам поля top) и water.
+# Тропическое море: открытое море жаркой зоны (where: sea с окном тепла — вариант моря, как
+# тропический берег у берега). Бирюзовая вода над белым песком дна; ловится рыба-попугай.
+- id: tropical_sea
+  title: Тропическое море
+  where: sea
+  zone: tropic
+  warmth: [0.72, 1.0]
+  fish: {animals:parrotfish: 0.6, animals:cod: 0.2}
+  tints: {water: "#44c0c0", sand: "#e2d8ba"}
+  color: "#2a94a6"

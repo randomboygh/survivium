@@ -1,0 +1,14 @@
+# Растение со своей картинкой (kind: custom), поля — как у папоротника (content/plants/fern/data/plants.yaml);
+# biomes — только в этих биомах (нет поля — везде, где позволяет grows).
+# Монстера: широкие резные листья подлеска джунглей и мангров, густо в тени крон; даёт волокно.
+- id: monstera
+  kind: custom
+  title: Монстера
+  sprite: monstera
+  frames: 2
+  grows: shade
+  cover: 0.55
+  gives: {resources:fiber: 1}
+  chance: 0.8
+  winter: false
+  biomes: [biomes:jungle, biomes:mangrove]
