@@ -1,0 +1,43 @@
+# Рецепты бандла «Рыба»: любую рыбу жарят на костре.
+- id: roasted_fish_from_roach
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {roach: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3
+- id: roasted_fish_from_pike
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {pike: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3
+- id: roasted_fish_from_salmon
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {salmon: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3
+- id: roasted_fish_from_cod
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {cod: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3
+- id: roasted_fish_from_parrotfish
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {parrotfish: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3
+- id: roasted_fish_from_catfish
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {catfish: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3

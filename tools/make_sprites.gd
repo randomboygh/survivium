@@ -51,6 +51,7 @@ const HELD := {
 	"bronze_spear": "slash",
 	"iron_spear": "slash",
 	"cord_sling": "slash",
+	"fishing_rod": "slash",
 	"wooden_bow": "slash",
 	"leather_sling": "slash",
 	"composite_bow": "slash",

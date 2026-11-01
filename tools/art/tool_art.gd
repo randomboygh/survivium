@@ -214,6 +214,33 @@ const SHAPES := {
 		],
 		"carry": {"front": 7, "side": 1, "back": 1},
 	},
+	"fishing_rod": {
+		"up": [
+			".Wr",
+			".wr",
+			".wr",
+			".w.",
+			".w.",
+			".w.",
+			".W.",
+			".g.",
+		],
+		"diagonal": [
+			"......Wr",
+			".....w.r",
+			"....w..r",
+			"...w....",
+			"..W.....",
+			".w......",
+			"g.......",
+		],
+		"toward": [
+			".g.",
+			".w.",
+			".W.",
+		],
+		"carry": {"front": 7, "side": 1, "back": 1},
+	},
 	"cord_sling": {
 		"up": [
 			".rR",

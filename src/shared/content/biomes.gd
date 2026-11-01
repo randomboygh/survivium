@@ -171,6 +171,17 @@ static func tree(b: int, roll: float) -> int:
 	return _roll(of(b).get("tree_shares", []), roll)
 
 
+## The item that bites on a cast from the shore of biome `b` for the roll `roll` (0..1):
+## each of its `fish` takes its share of the roll; "" for nothing.
+static func fish(b: int, roll: float) -> String:
+	for id in of(b).get("fish", {}):
+		var share: float = of(b).fish[id]
+		if roll < share:
+			return id
+		roll -= share
+	return ""
+
+
 ## The type of the bush biome `b` grows for the roll `roll`, -1 for none (see tree).
 static func bush(b: int, roll: float) -> int:
 	return _roll(of(b).get("bush_shares", []), roll)

@@ -1,0 +1,65 @@
+# Предметы бандла «Рыба»: что ловят удочкой («Удочка» «Инструментов»). Где что клюёт, говорят биомы (поле fish
+# в content/biomes), не рыба. Сырую рыбу есть можно, жаренная на костре сытнее.
+- id: roach
+  title: Плотва
+  description: Мелкая речная рыба. Её жарят на костре.
+  weight: 0.3
+  stack: 10
+  food: 3
+  model: roach
+  icon: roach
+  anim: eat
+- id: pike
+  title: Щука
+  description: Хищница тихих заводей. Её жарят на костре.
+  weight: 1.2
+  stack: 10
+  food: 6
+  model: pike
+  icon: pike
+  anim: eat
+- id: salmon
+  title: Лосось
+  description: Рыба холодных северных рек. Её жарят на костре.
+  weight: 1.0
+  stack: 10
+  food: 7
+  model: salmon
+  icon: salmon
+  anim: eat
+- id: cod
+  title: Треска
+  description: Морская рыба холодного берега. Её жарят на костре.
+  weight: 0.9
+  stack: 10
+  food: 6
+  model: cod
+  icon: cod
+  anim: eat
+- id: parrotfish
+  title: Рыба-попугай
+  description: Пёстрая рыба тёплого моря. Её жарят на костре.
+  weight: 0.7
+  stack: 10
+  food: 5
+  model: parrotfish
+  icon: parrotfish
+  anim: eat
+- id: catfish
+  title: Сом
+  description: Большая рыба тёплых болот и рек. Её жарят на костре.
+  weight: 1.6
+  stack: 10
+  food: 8
+  model: catfish
+  icon: catfish
+  anim: eat
+- id: roasted_fish
+  title: Жареная рыба
+  description: Рыба, зажаренная на костре. Сытная.
+  weight: 0.3
+  stack: 20
+  food: 18
+  model: roasted_fish
+  icon: roasted_fish
+  anim: eat

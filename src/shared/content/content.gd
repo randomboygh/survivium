@@ -228,6 +228,9 @@ const SCHEMAS := {
 		"trees_on": {"type": "list", "of": "enum", "values": ["dirt", "stone", "sand", "clay", "snow", "peat", "salt"], "default": []},
 		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}, "rel": "spawns"},
 		"bush_sparsity": {"type": "int", "min": 0, "default": 0},
+		# What bites in the water by this biome, caught with a rod from its shore: shares of
+		# the items (the rest of a cast catches nothing).
+		"fish": {"type": "shares", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "fish"},
 		"spawn": {"type": "bool", "default": false},
 		"sandstorms": {"type": "bool", "default": false},
 		"color": {"type": "color"},
@@ -323,7 +326,7 @@ const RELATIONS := {
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
-const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt"]
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt", "fish"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
 ## reports and search (they decide nothing in the engine), which of the record's numbers
 ## are provisional, still to be balanced, and the ids it had before (`was`), so a save

@@ -11,7 +11,7 @@
 ```
 content/tools/
   mod.yaml                      id: tools, название, версия, api
-  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ torch/ tar_torch/ lantern/
+  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ torch/ tar_torch/ lantern/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/
                                 бандл на вещь:
     bundle.yaml                 название

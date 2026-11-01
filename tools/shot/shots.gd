@@ -391,6 +391,10 @@ const SHOTS := {
 		"hands": {"tool": "tools:wooden_bow", "facing": "e", "work": "slash", "strike": true},
 		"drops": ["tools:flint_spear", "tools:bronze_spear", "tools:iron_spear", "tools:cord_sling", "tools:sling_stone",
 			"tools:wooden_bow", "tools:arrow"]},
+	# A rod in hand on the shore of a lake and the fish it catches lying on the ground.
+	"fishing": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:fishing_rod", "facing": "s", "work": "slash", "strike": true},
+		"drops": ["tools:fishing_rod", "animals:roach", "animals:pike", "animals:salmon", "animals:cod", "animals:parrotfish",
+			"animals:catfish", "animals:roasted_fish"]},
 	# A drying rack set down by the workbench and kiln, closed, a composite bow in hand, the
 	# things of leather and bone lying in front; and the rack open, leather being tanned.
 	"leather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "dry": true,

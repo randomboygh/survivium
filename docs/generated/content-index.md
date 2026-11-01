@@ -14,20 +14,20 @@
 ## Моды и бандлы
 
 - `core` Основа
-- `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк
+- `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fish` Рыба, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк
 - `biomes` Биомы: `biomes/alpine_meadow` Альпийский луг, `biomes/beach` Берег, `biomes/birch_grove` Берёзовая роща, `biomes/desert` Пустыня, `biomes/floodplain` Пойма, `biomes/forest` Лес, `biomes/forest_steppe` Лесостепь, `biomes/glacier` Ледник, `biomes/ice_waste` Ледяная пустошь, `biomes/jungle` Джунгли, `biomes/mangrove` Мангровые заросли, `biomes/maple_wood` Кленовник, `biomes/meadow` Луг, `biomes/peat_bog` Торфяное болото, `biomes/pine_wood` Бор, `biomes/plateau` Плато, `biomes/red_rocks` Красные скалы, `biomes/rock` Скалы, `biomes/salt_flat` Солончак, `biomes/savanna` Саванна, `biomes/sea` Море, `biomes/steppe` Степь, `biomes/stony_tundra` Каменистая тундра, `biomes/swamp` Болото, `biomes/taiga` Тайга, `biomes/tropical_beach` Тропический берег, `biomes/tundra` Тундра
 - `materials` Материалы: `materials/bone_glue` Костный клей, `materials/brick` Кирпич, `materials/bronze` Бронза, `materials/charcoal` Уголь, `materials/cloth` Ткань, `materials/copper` Медь, `materials/cord` Верёвка, `materials/glass` Стекло, `materials/iron` Железо, `materials/leather` Кожа, `materials/planks` Доски, `materials/steel` Сталь, `materials/tar` Смола, `materials/tin` Олово
 - `music` Музыка
 - `plants` Растения: `plants/acacia` Акация, `plants/apple` Яблоня, `plants/banana` Банан, `plants/birch` Берёза, `plants/bird_cherry` Черёмуха, `plants/blueberry` Черника, `plants/ceiba` Сейба, `plants/cherry` Вишня, `plants/cranberry` Клюква, `plants/currant` Смородина, `plants/deadwood` Сухое дерево, `plants/ears` Колоски, `plants/fern` Папоротник, `plants/fir` Пихта, `plants/flax` Лён, `plants/grass` Травы, `plants/larch` Лиственница, `plants/linden` Липа, `plants/mangrove` Мангр, `plants/maple` Клён, `plants/moss` Мох, `plants/mushrooms` Грибы, `plants/nettle` Крапива, `plants/oak` Дуб, `plants/palm` Пальма, `plants/pine` Сосна, `plants/poplar` Тополь, `plants/raspberry` Малина, `plants/red_maple` Клён красный, `plants/reeds` Тростник, `plants/roasted_acorns` Жареные жёлуди, `plants/rosehip` Шиповник, `plants/rowan` Рябина, `plants/shrub` Куст, `plants/spruce` Ель, `plants/willow` Ива, `plants/wood` Древесина
 - `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/salt` Соль, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
-- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bloomery` Сыродутная печь, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/drying_rack` Сушилка, `tools/forge` Горн, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/workbench` Верстак
+- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bloomery` Сыродутная печь, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/drying_rack` Сушилка, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/workbench` Верстак
 
-## Предметы (`items`, 128)
+## Предметы (`items`, 136)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 6 | ок |
+| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 12 | ок |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 4 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 9 | ок |
 | `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 3 | ок |
@@ -49,7 +49,7 @@
 | `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0. Выживание без инструментов | 0 / 15 | ок |
-| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 22 | ок |
+| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 24 | ок |
 | `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
 | `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `resources:peat` | Торф | Блоки |  | `resources/peat` | 0. Выживание без инструментов | 1 / 1 | ок |
@@ -60,9 +60,16 @@
 | `resources:sand` | Песок | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
 | `resources:clay` | Глина | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 7 | ок |
 | `resources:stone` | Камень | Блоки |  | `resources/stone` | 0. Выживание без инструментов | 1 / 7 | ок |
-| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 16 | ок |
-| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 46 | ок |
+| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 17 | ок |
+| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 53 | ок |
 | `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1. Примитивные инструменты | 1 / 25 | ок |
+| `animals:roach` | Плотва | Еда | Мелкая речная рыба. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 0 / 21 | ок |
+| `animals:pike` | Щука | Еда | Хищница тихих заводей. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 0 / 18 | ок |
+| `animals:salmon` | Лосось | Еда | Рыба холодных северных рек. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 0 / 11 | ок |
+| `animals:cod` | Треска | Еда | Морская рыба холодного берега. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 0 / 5 | ок |
+| `animals:parrotfish` | Рыба-попугай | Еда | Пёстрая рыба тёплого моря. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 0 / 3 | ок |
+| `animals:catfish` | Сом | Еда | Большая рыба тёплых болот и рек. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 0 / 15 | ок |
+| `animals:roasted_fish` | Жареная рыба | Еда | Рыба, зажаренная на костре. Сытная. | `animals/fish` | 1. Примитивные инструменты | 0 / 6 | ок |
 | `plants:apple` | Яблоко | Еда |  | `plants/apple` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `plants:banana` | Банан | Еда |  | `plants/banana` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `plants:banana_bush` | Куст банана | Посадки |  | `plants/banana` | 1. Примитивные инструменты | 1 / 1 | ок |
@@ -70,6 +77,7 @@
 | `plants:coconut` | Кокос | Еда |  | `plants/palm` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0. Выживание без инструментов | 0 / 1 | предупреждения: 1 |
 | `plants:cone` | Шишка | Материалы |  | `plants/spruce` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `tools:fishing_rod` | Удочка | Инструменты | Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки. | `tools/fishing_rod` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `tools:cord_sling` | Праща | Инструменты | Ремень из верёвки: мечет камешки дальше, чем рука. | `tools/sling` | 1. Примитивные инструменты | 2 / 1 | ок |
 | `tools:sling_stone` | Камешки | Материалы | Круглые камешки для пращи. | `tools/sling` | 0. Выживание без инструментов | 0 / 3 | ок |
 | `tools:torch` | Факел | Материалы |  | `tools/torch` | 1. Примитивные инструменты | 1 / 1 | ок |
@@ -156,7 +164,7 @@
 | `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 1 / 1 | ок |
 | `tools:tar_torch` | Смоляной факел | Материалы | Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше. | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 88)
+## Рецепты (`recipes`, 95)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -164,6 +172,13 @@
 | `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 0. Выживание без инструментов | 2 / 0 | ок |
 | `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 3 / 0 | ок |
 | `resources:campfire` | Костёр | Станки |  | `resources/wood` | 0. Выживание без инструментов | 3 / 0 | ок |
+| `animals:roasted_fish_from_roach` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `animals:roasted_fish_from_pike` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `animals:roasted_fish_from_salmon` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `animals:roasted_fish_from_cod` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `animals:roasted_fish_from_parrotfish` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `animals:roasted_fish_from_catfish` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:fishing_rod` | Удочка | Инструменты |  | `tools/fishing_rod` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `tools:cord_sling` | Праща | Инструменты |  | `tools/sling` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:sling_stone` | Камешки | Материалы |  | `tools/sling` | 0. Выживание без инструментов | 2 / 0 | ок |
 | `tools:torch` | Факел | Материалы |  | `tools/torch` | 0. Выживание без инструментов | 3 / 0 | ок |
@@ -353,33 +368,33 @@
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `biomes:alpine_meadow` | Альпийский луг | alpine |  | `biomes/alpine_meadow` | 3 / 0 | ок |
-| `biomes:beach` | Берег | beach |  | `biomes/beach` | 0 / 0 | ок |
-| `biomes:birch_grove` | Берёзовая роща | climate |  | `biomes/birch_grove` | 8 / 5 | ок |
-| `biomes:desert` | Пустыня | climate |  | `biomes/desert` | 1 / 0 | ок |
-| `biomes:floodplain` | Пойма | climate |  | `biomes/floodplain` | 6 / 0 | ок |
-| `biomes:forest` | Лес | climate |  | `biomes/forest` | 10 / 10 | ок |
-| `biomes:forest_steppe` | Лесостепь | climate |  | `biomes/forest_steppe` | 6 / 0 | ок |
-| `biomes:glacier` | Ледник | glacier |  | `biomes/glacier` | 0 / 0 | ок |
-| `biomes:ice_waste` | Ледяная пустошь | climate |  | `biomes/ice_waste` | 0 / 0 | ок |
-| `biomes:jungle` | Джунгли | climate |  | `biomes/jungle` | 5 / 0 | ок |
-| `biomes:mangrove` | Мангровые заросли | swamp |  | `biomes/mangrove` | 3 / 0 | ок |
-| `biomes:maple_wood` | Кленовник | climate |  | `biomes/maple_wood` | 8 / 0 | ок |
-| `biomes:meadow` | Луг | climate |  | `biomes/meadow` | 9 / 6 | ок |
-| `biomes:peat_bog` | Торфяное болото | climate |  | `biomes/peat_bog` | 5 / 0 | ок |
-| `biomes:pine_wood` | Бор | climate |  | `biomes/pine_wood` | 5 / 5 | ок |
-| `biomes:plateau` | Плато | plateau |  | `biomes/plateau` | 1 / 0 | ок |
-| `biomes:red_rocks` | Красные скалы | climate |  | `biomes/red_rocks` | 1 / 0 | ок |
-| `biomes:rock` | Скалы | rock |  | `biomes/rock` | 0 / 0 | ок |
-| `biomes:salt_flat` | Солончак | climate |  | `biomes/salt_flat` | 0 / 0 | ок |
-| `biomes:savanna` | Саванна | climate |  | `biomes/savanna` | 4 / 0 | ок |
-| `biomes:sea` | Море | sea |  | `biomes/sea` | 0 / 0 | ок |
-| `biomes:steppe` | Степь | climate |  | `biomes/steppe` | 2 / 3 | ок |
-| `biomes:stony_tundra` | Каменистая тундра | climate |  | `biomes/stony_tundra` | 3 / 0 | ок |
-| `biomes:swamp` | Болото | swamp |  | `biomes/swamp` | 5 / 1 | ок |
-| `biomes:taiga` | Тайга | climate |  | `biomes/taiga` | 7 / 6 | ок |
-| `biomes:tropical_beach` | Тропический берег | beach |  | `biomes/tropical_beach` | 1 / 0 | ок |
-| `biomes:tundra` | Тундра | climate |  | `biomes/tundra` | 4 / 1 | ок |
+| `biomes:alpine_meadow` | Альпийский луг | alpine |  | `biomes/alpine_meadow` | 6 / 0 | ок |
+| `biomes:beach` | Берег | beach |  | `biomes/beach` | 2 / 0 | ок |
+| `biomes:birch_grove` | Берёзовая роща | climate |  | `biomes/birch_grove` | 11 / 5 | ок |
+| `biomes:desert` | Пустыня | climate |  | `biomes/desert` | 3 / 0 | ок |
+| `biomes:floodplain` | Пойма | climate |  | `biomes/floodplain` | 9 / 0 | ок |
+| `biomes:forest` | Лес | climate |  | `biomes/forest` | 13 / 10 | ок |
+| `biomes:forest_steppe` | Лесостепь | climate |  | `biomes/forest_steppe` | 9 / 0 | ок |
+| `biomes:glacier` | Ледник | glacier |  | `biomes/glacier` | 2 / 0 | ок |
+| `biomes:ice_waste` | Ледяная пустошь | climate |  | `biomes/ice_waste` | 2 / 0 | ок |
+| `biomes:jungle` | Джунгли | climate |  | `biomes/jungle` | 7 / 0 | ок |
+| `biomes:mangrove` | Мангровые заросли | swamp |  | `biomes/mangrove` | 5 / 0 | ок |
+| `biomes:maple_wood` | Кленовник | climate |  | `biomes/maple_wood` | 11 / 0 | ок |
+| `biomes:meadow` | Луг | climate |  | `biomes/meadow` | 12 / 6 | ок |
+| `biomes:peat_bog` | Торфяное болото | climate |  | `biomes/peat_bog` | 8 / 0 | ок |
+| `biomes:pine_wood` | Бор | climate |  | `biomes/pine_wood` | 8 / 5 | ок |
+| `biomes:plateau` | Плато | plateau |  | `biomes/plateau` | 4 / 0 | ок |
+| `biomes:red_rocks` | Красные скалы | climate |  | `biomes/red_rocks` | 3 / 0 | ок |
+| `biomes:rock` | Скалы | rock |  | `biomes/rock` | 3 / 0 | ок |
+| `biomes:salt_flat` | Солончак | climate |  | `biomes/salt_flat` | 2 / 0 | ок |
+| `biomes:savanna` | Саванна | climate |  | `biomes/savanna` | 6 / 0 | ок |
+| `biomes:sea` | Море | sea |  | `biomes/sea` | 1 / 0 | ок |
+| `biomes:steppe` | Степь | climate |  | `biomes/steppe` | 5 / 3 | ок |
+| `biomes:stony_tundra` | Каменистая тундра | climate |  | `biomes/stony_tundra` | 5 / 0 | ок |
+| `biomes:swamp` | Болото | swamp |  | `biomes/swamp` | 8 / 1 | ок |
+| `biomes:taiga` | Тайга | climate |  | `biomes/taiga` | 10 / 6 | ок |
+| `biomes:tropical_beach` | Тропический берег | beach |  | `biomes/tropical_beach` | 3 / 0 | ок |
+| `biomes:tundra` | Тундра | climate |  | `biomes/tundra` | 6 / 1 | ок |
 
 ## Старт (`starts`, 1)
 

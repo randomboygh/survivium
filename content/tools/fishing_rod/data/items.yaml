@@ -1,0 +1,18 @@
+# Удочка бандла «Удочка» мода «Инструменты и крафт»: класс rod. Кнопка действия закидывает её в воду перед
+# персонажем (касание земли — туда, где коснулись) не дальше range клеток; клюёт то, что водится у берега
+# биома, где стоит рыбак (поле fish биома в content/biomes), и пойманное идёт в сумку.
+- id: fishing_rod
+  title: Удочка
+  description: Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.
+  weight: 0.6
+  stack: 1
+  model: fishing_rod
+  icon: fishing_rod
+  tool: rod
+  sprite: fishing_rod
+  anim: slash
+  swing: 0.9
+  reach: 4
+  range: 6
+  durability: 80
+  repair: {materials:cord: 1}
