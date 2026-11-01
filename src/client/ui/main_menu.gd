@@ -224,7 +224,10 @@ var _phase_clock := 0.0
 ## part, «Играть» goes in.
 var settled := false
 var _calm := 0
-var _ready_clock := 0.0
+## When the world was ready (msec of the clock, -1 before): SETTLE_MAX goes by real
+## time, not by the frames' delta, which the engine caps at 8 physics steps a frame
+## (a slow device's second-long frames would stretch it to minutes).
+var _ready_at := -1
 ## The tips not shown yet, by index, in the order they come (see _next_tip).
 var _tips_left: Array = []
 var _tip_clock := 0.0
@@ -816,9 +819,10 @@ func _process(delta: float) -> void:
 func _settle(delta: float) -> void:
 	if settled or not game.ready_to_play:
 		return
-	_ready_clock += delta
+	if _ready_at < 0:
+		_ready_at = Time.get_ticks_msec()
 	_calm = _calm + 1 if game.warmup == null and delta < CALM_FRAME else 0
-	settled = _calm >= CALM_FRAMES or _ready_clock >= SETTLE_MAX
+	settled = _calm >= CALM_FRAMES or Time.get_ticks_msec() - _ready_at >= SETTLE_MAX * 1000.0
 
 
 ## The card's map as large as fits: on a wide screen in the room right of the column,
