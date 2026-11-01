@@ -803,6 +803,41 @@ static func theme() -> Theme:
 	return t
 
 
+## A bag's load as one bar in `r` of `c`: filled by `weight` of `limit` (green, amber
+## near the limit, red past it), the slots taken of all and the weight of the limit
+## written inside, «10 / 40 • 35 / 40 кг» in one line or the two on two lines.
+static func draw_load(c: CanvasItem, r: Rect2, taken: int, slots: int, weight: float, limit: int, two_lines := false) -> void:
+	c.draw_rect(r, EDGE)
+	var inner := r.grow(-1)
+	c.draw_rect(inner, WELL)
+	var share := weight / float(maxi(limit, 1))
+	var fill := DANGER_DARK if share > 1.0 else (Color("#8a6a2a") if share > 0.9 else Color("#3f6a2c"))
+	c.draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * clampf(share, 0.0, 1.0)), inner.size.y)), fill)
+	var f := font()
+	var fs := FONT_SIZE
+	var cells := "%d / %d" % [taken, slots]
+	var kg := "%d / %d кг" % [roundi(weight), limit]
+	var cells_ink := ACCENT if taken >= slots else INK
+	if two_lines:
+		var h := f.get_height(fs)
+		var top := floorf(r.position.y + (r.size.y - 2 * h - 2) * 0.5)
+		c.draw_string(f, Vector2(r.position.x + 4, top + f.get_ascent(fs)), cells, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cells_ink)
+		c.draw_string(f, Vector2(r.position.x + 4, top + h + 2 + f.get_ascent(fs)), kg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
+		return
+	var y := floorf(r.position.y + (r.size.y - f.get_height(fs)) * 0.5) + f.get_ascent(fs)
+	var x := r.position.x + 4
+	c.draw_string(f, Vector2(x, y), cells, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cells_ink)
+	x += ceilf(f.get_string_size(cells + " • ", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	c.draw_string(f, Vector2(x - ceilf(f.get_string_size("• ", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x), y), "•", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, MUTED)
+	c.draw_string(f, Vector2(x, y), kg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
+
+
+## The width draw_load needs in one line for `slots` slots and a limit of `limit` kg.
+static func load_width(slots: int, limit: int) -> int:
+	var text := "%d / %d • %d / %d кг" % [slots, slots, limit * 10, limit * 10]
+	return int(ceilf(font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x)) + 8
+
+
 ## The room between a panel's edge and what it holds (left, top, right, bottom): its
 ## frame is 4 px, so text keeps a few pixels clear of it.
 const PAD := Vector4(10, 8, 10, 8)

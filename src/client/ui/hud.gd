@@ -57,8 +57,6 @@ const DPAD_MIDDLE := Vector2(38, 30)
 ## The room round the buttons and panels on the screen, in UI pixels, where a tap
 ## that just misses one does not reach the world (see covers).
 const SAFE_ZONE := 8
-## The tab on the hotbar with the bag's slots and load, in UI pixels.
-const METER_WIDTH := 108
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
 const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
@@ -323,7 +321,8 @@ func _ready() -> void:
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
-	_bag_meter.custom_minimum_size = Vector2(METER_WIDTH, 16)
+	# As wide as its line with two-digit slots and three-digit kilos.
+	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 4, 16)
 	_bag_meter.size = _bag_meter.custom_minimum_size
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_bag_meter.add_theme_stylebox_override(state, _bar_box())
@@ -500,7 +499,7 @@ func _place() -> void:
 	_clock_panel.position.y = y + bh - 2
 	_align_clock()
 	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
-	_bag_meter.position = Vector2(x + bw - METER_WIDTH, y - _bag_meter.size.y + 2)
+	_bag_meter.position = Vector2(x + bw - _bag_meter.size.x, y - _bag_meter.size.y + 2)
 
 	_keys.reset_size()
 	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
@@ -1106,32 +1105,18 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## The tab on the hotbar: the bag (amber when all its slots are taken), the weight
-## carried against the limit (red past it), and a bar of that load (amber near the
-## limit, red past it). The slots taken are on its tooltip.
+## The tab on the hotbar: the bag's load as one bar (UiStyle.draw_load): the slots
+## taken of all (amber when all are) and the weight of the limit, the bar filled by
+## the weight (amber near the limit, red past it).
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
-	var w := c.size.x
 	var taken := 0
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	var full: bool = taken >= inv.slots.size()
-	c.draw_texture(UiStyle.icon("bag"), Vector2(5, 4), UiStyle.ACCENT if full else Color.WHITE)
-	var share: float = inv.load_share()
-	var text := "%d/%d кг" % [roundi(inv.weight()), inv.weight_limit]
-	var font := UiStyle.font()
-	var fs := UiStyle.FONT_SIZE
-	c.draw_string(font, Vector2(17, 4 + font.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
-		UiStyle.DANGER if share > 1.0 else UiStyle.INK)
-	var x := 17.0 + ceilf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x) + 5.0
-	var bar := Rect2(x, 6, maxf(6.0, w - x - 5.0), 5)
-	c.draw_rect(bar.grow(1), UiStyle.EDGE)
-	c.draw_rect(bar, UiStyle.WELL)
-	c.draw_rect(Rect2(bar.position, Vector2(roundf(bar.size.x * clampf(share, 0.0, 1.0)), bar.size.y)),
-		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
-	c.tooltip_text = "Сумка: %.1f из %d кг, занято %d из %d ячеек" % [inv.weight(), inv.weight_limit, taken, inv.slots.size()]
+	UiStyle.draw_load(c, Rect2(Vector2(2, 2), c.size - Vector2(4, 4)), taken, inv.slots.size(), inv.weight(), inv.weight_limit)
+	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 
 
 func _draw_wind() -> void:

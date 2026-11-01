@@ -150,10 +150,6 @@ func _ready() -> void:
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_empty.custom_minimum_size.x = 160
 	cells.add_child(_empty)
-	# The cells end where the bag's do; the column on their right is the bag's chest tabs'.
-	var right := Control.new()
-	right.custom_minimum_size.x = IconTabs.SIDE
-	middle.add_child(right)
 	_drag = DragScroll.new()
 	_scroll.add_child(_drag)
 

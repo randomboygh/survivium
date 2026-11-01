@@ -50,6 +50,8 @@ const GAP := 4
 const COLUMNS := 8
 ## The rows of the bag's slots shown before they scroll (and half the next).
 const ROWS := 4
+## The room between the bag's slots and a chest's, and between chests.
+const CHEST_GAP := 10
 const SLOT := 40
 const SLOT_SMALL := 36
 ## The width of the craft tab's column of the recipe and the queue beside the cells on
@@ -75,18 +77,18 @@ var _worn := ""
 var _scroll: ScrollContainer
 var craft: CraftPanel
 var _kinds: IconTabs
-var _chest_tabs: IconTabs
 var _grid: GridContainer
 var _slots := []
 ## The chest's buttons in the head, and the gap over its slots.
 var _chest_buttons: HBoxContainer
 var _to_chest: Button
-var _chest_gap: Control
-var _chest_grid: GridContainer
+## The list of the bag's slots and the chests'.
+var _list: VBoxContainer
+## A grid and its cells for each chest within reach, in the order of _chests.
+var _chest_grids := []
 ## Sorting by hand: a tap on a second slot moves the chosen stack there.
 var _manual := false
 var _manual_button: Button
-var _chest_slots := []
 var _info: Label
 var _facts: FactChips
 ## «Взять» into the hand in use, «Съесть» for food, «Поставить» for what is set down,
@@ -104,8 +106,6 @@ var _right: HBoxContainer
 var _icon: TextureRect
 ## «в сундук | всё в сундук», shown with a chest.
 var _into: HBoxContainer
-## The chest's slots and the tabs of the chests near beside them.
-var _chest_row: HBoxContainer
 ## Dragging over the bag's slots scrolls them.
 var _drag: DragScroll
 ## Throw away one and all, and the bin.
@@ -116,8 +116,9 @@ var _confirming := false
 ## The chosen stack: the bag it is in (the character's or a chest's) and its slot.
 var _from = null
 var _at := -1
-## The chests within reach (records of Props.placed), the one shown, and what they were
-## at the last look (to notice walking up to one or away).
+## The chests within reach (records of Props.placed), the one the chest buttons work on
+## (of the stack chosen last in a chest, else the nearest), and what they were at the
+## last look (to notice walking up to one or away).
 var _chests: Array = []
 var _chest_entry := {}
 var _chests_seen := ""
@@ -191,33 +192,18 @@ func _ready() -> void:
 	_kinds = IconTabs.new()
 	_kinds.picked.connect(func(_k: String) -> void: refresh())
 	middle.add_child(_kinds)
-	var cells := VBoxContainer.new()
-	cells.add_theme_constant_override("separation", 4)
-	middle.add_child(cells)
-	# The bag's slots scroll (ROWS rows show), a finger dragged over them scrolls them
-	# too; their bar stands in the column of the chests' tabs, so the window is as wide
-	# with it as without.
+	# The bag's slots and under them those of each chest within reach, one list: it
+	# scrolls past ROWS rows, by its thin bar or a finger dragged over the slots.
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	cells.add_child(_scroll)
+	middle.add_child(_scroll)
 	_drag = DragScroll.new()
 	_scroll.add_child(_drag)
-	_grid = _slot_grid(_scroll, game.character.inventory.slots.size(), _slots, _tap.bind(true))
-	_chest_gap = Control.new()
-	_chest_gap.custom_minimum_size.y = 4
-	cells.add_child(_chest_gap)
-	# The chest shown under the bag, the tabs of the chests near on its right.
-	_chest_row = HBoxContainer.new()
-	_chest_row.add_theme_constant_override("separation", GAP)
-	cells.add_child(_chest_row)
-	_chest_grid = _slot_grid(_chest_row, Items.most_storage(), _chest_slots, _tap.bind(false))
-	_chest_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	_chest_tabs = IconTabs.new()
-	_chest_tabs.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	_chest_tabs.picked.connect(func(k: String) -> void:
-		_show_chest(_chests[int(k)])
-		refresh())
-	_chest_row.add_child(_chest_tabs)
+	_list = VBoxContainer.new()
+	# Between the bag and a chest, and between chests, a little more than between slots.
+	_list.add_theme_constant_override("separation", CHEST_GAP)
+	_scroll.add_child(_list)
+	_grid = _slot_grid(_list, game.character.inventory.slots.size(), _slots, _tap.bind(-1))
 
 	# The panel at the bottom: the chosen stack and what can be done with it.
 	var bottom := PanelContainer.new()
@@ -488,7 +474,7 @@ func fit(screen: Vector2) -> void:
 				_stacked = false
 				room -= PersonPanel.width(side) + GAP_MAIN
 				break
-	for s in _slots + _chest_slots:
+	for s in _slots + _chest_cells():
 		s.custom_minimum_size = Vector2(slot, slot)
 	person.set_slot(slot)
 	_main.vertical = _stacked
@@ -513,7 +499,7 @@ func fit(screen: Vector2) -> void:
 
 ## The width inside the window's frame with slots `side` across.
 static func _width(side: int) -> int:
-	return 2 * IconTabs.SIDE + 2 * GAP + COLUMNS * (side + 4) - 4
+	return IconTabs.SIDE + 2 * GAP + COLUMNS * (side + 4) - 4 + UiStyle.SCROLL_BAR
 
 
 ## Sizes the window round what it shows, shortens the craft tab's cells or the bag's
@@ -523,11 +509,11 @@ func _place() -> void:
 	_place_queued = false
 	var screen := get_parent_area_size()
 	var room := Vector2(screen.x, screen.y - HOTBAR)
-	var full := _grid.get_combined_minimum_size()
+	var full := _list.get_combined_minimum_size()
 	var row := slot + 4
-	# Up to ROWS whole rows; the rest scrolls (its bar in the column of the chests' tabs).
+	# Up to ROWS whole rows; the rest scrolls (its bar a gap right of the slots).
 	var most := ROWS * row - 4
-	_scroll.custom_minimum_size = Vector2(full.x + GAP + IconTabs.SIDE, minf(full.y, most))
+	_scroll.custom_minimum_size = Vector2(full.x + GAP + UiStyle.SCROLL_BAR, minf(full.y, most))
 	reset_size()
 	var over := size.y - (room.y - 2 * EDGE)
 	if craft.visible and over > 0.0:
@@ -541,12 +527,17 @@ func _place() -> void:
 	position = ((room - size) * 0.5).floor().max(Vector2(EDGE, EDGE))
 
 
-## A tap on slot `i` of the bag (`in_bag`) or of the chest shown: picks it, lets the
-## chosen one go, or (sorting by hand) moves the chosen stack there and lets it go.
-func _tap(i: int, in_bag: bool) -> void:
-	if in_bag and not _drag.take_tap():
+## A tap on slot `i` of the bag (`chest` -1) or of chest `chest` of _chests: picks it,
+## lets the chosen one go, or (sorting by hand) moves the chosen stack there and lets it
+## go. A chest tapped is the one the chest buttons work on.
+func _tap(i: int, chest := -1) -> void:
+	if not _drag.take_tap():
 		return
-	var to = game.character.inventory if in_bag else _chest_entry.get("items")
+	if chest >= _chests.size():
+		return
+	if chest >= 0:
+		_chest_entry = _chests[chest]
+	var to = game.character.inventory if chest < 0 else _chest_entry.get("items")
 	if to == null:
 		return
 	_confirming = false
@@ -605,8 +596,8 @@ func _let_go() -> void:
 func sort(by: String) -> void:
 	_let_go()
 	game.net.request(Protocol.SORT, [null, by, Inventory.HOTBAR])
-	if _chest_entry.get("items") != null:
-		game.net.request(Protocol.SORT, [_chest_entry.cell, by, 0])
+	for e: Dictionary in _chests:
+		game.net.request(Protocol.SORT, [e.cell, by, 0])
 	refresh()
 
 
@@ -648,14 +639,17 @@ func refresh() -> void:
 	var inv = game.character.inventory
 	var chest = _chest_entry.get("items")
 	if _slots.size() != inv.slots.size():
-		_grow_grid(_grid, inv.slots.size(), _slots, _tap.bind(true))
+		_grow_grid(_grid, inv.slots.size(), _slots, _tap.bind(-1))
 	person.chosen = _worn
 	if _from != null and (_from.slots[_at] == null or (_from != inv and not _chests.any(
 			func(e: Dictionary) -> bool: return e.items == _from))):
 		_let_go()
 	# Tabs of the kinds of things in the bag and the chest; the rest is dimmed.
 	var have := {}
-	for s in inv.slots + (chest.slots if chest != null else []):
+	var all: Array = inv.slots.duplicate()
+	for e: Dictionary in _chests:
+		all.append_array(e.items.slots)
+	for s in all:
 		if s != null:
 			have[Items.category(s[0])] = true
 	var kinds := IconTabs.kinds(have)
@@ -665,23 +659,24 @@ func refresh() -> void:
 		# The first row is the hotbar: its slots carry their numbers.
 		_slots[i].key = str(i + 1) if i < inv.HOTBAR else ""
 	_chest_buttons.visible = chest != null
-	_chest_gap.visible = chest != null
-	_chest_row.visible = chest != null
 	_into.visible = chest != null
 	if chest != null:
 		_to_chest.disabled = _from != inv
-		_show_slots(chest, _chest_slots)
-		for i in _chests.size():
-			_chest_tabs.set_tip(str(i), "Сундук %d · %.1f кг" % [i + 1, _chests[i].items.weight()])
+	for i in _chest_grids.size():
+		var g: Dictionary = _chest_grids[i]
+		_show_slots(_chests[i].items, g.cells)
+		g.grid.tooltip_text = "Сундук %d · %.1f кг" % [i + 1, _chests[i].items.weight()]
 	TabRow.light(_manual_button, _manual)
 	_show_info(inv)
 	# The two sides of the line of buttons as wide, so the sorting stands in its middle,
 	# as far as the line has room (with a chest's buttons too it may not).
 	_left.custom_minimum_size.x = 0
 	_right.custom_minimum_size.x = 0
-	var l := _left.get_combined_minimum_size().x
 	var r := _right.get_combined_minimum_size().x
 	var room := _width(slot) - 2 * UiStyle.WELL_PAD - _sorts.get_combined_minimum_size().x - 4 * 4
+	# The wide button narrower on a narrow window with a chest's buttons too.
+	_use.custom_minimum_size.x = clampf(room - r, 56, 3 * 30 - 2 + 4)
+	var l := _left.get_combined_minimum_size().x
 	_left.custom_minimum_size.x = clampf(room - r, l, maxf(l, r))
 	_right.custom_minimum_size.x = clampf(room - l, r, maxf(l, r))
 	_place()
@@ -809,19 +804,30 @@ func refresh_state() -> void:
 			e.items.changed.connect(refresh)
 		if not _chests.has(_chest_entry):
 			_show_chest(_chests[0] if not _chests.is_empty() else {})
-		var keys := []
-		var icons := {}
-		var tips := {}
-		for i in _chests.size():
-			keys.append(str(i))
-			icons[str(i)] = ItemIcons.of_item(_chests[i].item) if _chests[i].has("item") else UiStyle.icon("to_chest")
-			tips[str(i)] = "Сундук %d" % (i + 1)
-		_chest_tabs.set_tabs(keys, icons, tips)
-		_chest_tabs.visible = not _chests.is_empty()
+		_make_chest_grids()
 		refresh.call_deferred()
-	_chest_tabs.select(str(_chests.find(_chest_entry)))
 	craft.refresh_progress()
 
+
+
+## A grid under the bag for each chest within reach, as many slots as it holds.
+func _make_chest_grids() -> void:
+	for g: Dictionary in _chest_grids:
+		_list.remove_child(g.grid)
+		g.grid.queue_free()
+	_chest_grids.clear()
+	for i in _chests.size():
+		var cells := []
+		var grid := _slot_grid(_list, _chests[i].items.slots.size(), cells, _tap.bind(i))
+		_chest_grids.append({"grid": grid, "cells": cells})
+
+
+## The slots of every chest shown.
+func _chest_cells() -> Array:
+	var out := []
+	for g: Dictionary in _chest_grids:
+		out.append_array(g.cells)
+	return out
 
 
 func _button(text: String, action: Callable) -> Button:
