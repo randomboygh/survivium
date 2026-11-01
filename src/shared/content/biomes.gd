@@ -27,6 +27,10 @@ static var BEACH := -1
 static var ROCK := -1
 static var PLATEAU := -1
 static var SWAMP := -1
+## The upper slopes of mountains under the rock and their rock in the cold, with climate 1
+## (see LandLayout): the record's warmth window says where.
+static var ALPINE := -1
+static var GLACIER := -1
 ## The climate biomes, most specific first (see pick).
 static var CLIMATE: Array = []
 
@@ -43,6 +47,8 @@ static func refresh() -> void:
 	ROCK = -1
 	PLATEAU = -1
 	SWAMP = -1
+	ALPINE = -1
+	GLACIER = -1
 	CLIMATE = []
 	for r in Content.records("biomes"):
 		var b: Dictionary = r.duplicate()
@@ -63,6 +69,10 @@ static func refresh() -> void:
 				PLATEAU = i
 			"swamp":
 				SWAMP = i
+			"alpine":
+				ALPINE = i
+			"glacier":
+				GLACIER = i
 			_:
 				CLIMATE.append(i)
 	CLIMATE.sort_custom(func(a: int, c: int) -> bool:
@@ -148,7 +158,7 @@ static func sparsity(b: int) -> int:
 
 ## The material biome `b` lays on top, of `ground` (the generator's grounds by the names
 ## of the `top` field: grass, dirt, stone, and the loaded mods' materials of the roles
-## beach as sand, bank as clay, snow, peat, salt); grass unless its record says otherwise.
+## beach as sand, bank as clay, snow, peat, salt, ice); grass unless its record says otherwise.
 static func top(b: int, ground: Dictionary) -> int:
 	return ground.get(of(b).get("top", "grass"), Mat.GRASS)
 

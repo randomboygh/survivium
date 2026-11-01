@@ -13,3 +13,16 @@
   dig: shovel
   step: step_snow
   hit: dig
+# Лёд: голубой лёд ледников (role: ice) — в их отвесных стенах (биом glacier). Колется киркой и даёт
+# лёд. Без него на его месте камень.
+- id: ice
+  title: Лёд
+  role: ice
+  corners: sharp
+  priority: 4
+  ground: rock
+  drains: true
+  item: ice
+  dig: pickaxe
+  step: step_snow
+  hit: dig

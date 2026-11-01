@@ -186,6 +186,8 @@ const SHOTS := {
 	# The savanna in the heart of its biggest plain near the spawn of the default world (climate 1).
 	"savanna": {"time": 0.42, "season": 1, "at": [-1268, -364]},
 	"red-rocks": {"time": 0.42, "season": 1, "place": "red_rocks"},
+	"alpine-meadow": {"time": 0.42, "season": 1, "place": "alpine_meadow"},
+	"glacier": {"time": 0.42, "season": 1, "place": "glacier"},
 	"canyon": {"time": 0.42, "season": 1, "place": "canyon"},
 	# Relief 1 (new worlds): a gorge across a range, a mesa with banded walls, a canyon
 	# through mesas in steps, a stone tor; the camera tilted low to show the walls.

@@ -74,7 +74,7 @@ const SCHEMAS := {
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
-		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ore", "trunk", "crown"], "default": "none"},
+		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ice", "ore", "trunk", "crown"], "default": "none"},
 		# An ore's share of the veins in the rock, against the other ores' (role ore).
 		"veins": {"type": "float", "min": 0.0, "default": 1.0},
 		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
@@ -207,17 +207,17 @@ const SCHEMAS := {
 		"item": {"type": "ref:items", "default": "", "rel": "drops", "via": "dig_out"},
 	},
 	"biomes": {
-		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp"], "default": "climate"},
+		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp", "alpine", "glacier"], "default": "climate"},
 		# The climate zone the biome belongs to (with climate 1 a zone's biomes lie side by
 		# side): a label for the map, the reports and the test world, not a rule.
 		"zone": {"type": "enum", "values": ["", "polar", "north", "temperate", "steppe", "hot", "tropic", "mountain"], "default": ""},
 		"warmth": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
 		"moisture": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
-		"top": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt"], "default": "grass"},
+		"top": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice"], "default": "grass"},
 		"stone_below": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		"clay_above": {"type": "float", "min": -1.0, "max": 1.0, "default": 1.0},
 		# The ground that shows where the soil noise is above clay_above.
-		"clay_as": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt"], "default": "clay"},
+		"clay_as": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice"], "default": "clay"},
 		"dunes": {"type": "float", "min": 0.0, "default": 0.0},
 		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}, "rel": "spawns"},
 		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},

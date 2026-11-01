@@ -29,7 +29,7 @@ const RENAMED := {
 ## The roles the engine asks materials for (the `role` field), and the static var each
 ## fills.
 const ROLES := {
-	"beach": "BEACH", "bank": "BANK", "scree": "SCREE", "snow": "SNOW", "peat": "PEAT", "salt": "SALT", "ore": "ORE", "trunk": "LOG", "crown": "LEAVES",
+	"beach": "BEACH", "bank": "BANK", "scree": "SCREE", "snow": "SNOW", "peat": "PEAT", "salt": "SALT", "ice": "ICE", "ore": "ORE", "trunk": "LOG", "crown": "LEAVES",
 }
 ## Bits of `shader_bits`, one word per material for world.gdshader: the priority at a
 ## boundary (low 4 bits), DRAINS (no puddles), and the kind of patches on open ground
@@ -53,6 +53,7 @@ static var SCREE := -1
 static var SNOW := -1
 static var PEAT := -1
 static var SALT := -1
+static var ICE := -1
 static var ORE := -1
 static var LOG := -1
 static var LEAVES := -1
@@ -118,6 +119,7 @@ static func refresh() -> void:
 	SNOW = -1
 	PEAT = -1
 	SALT = -1
+	ICE = -1
 	ORE = -1
 	LOG = -1
 	LEAVES = -1
@@ -136,6 +138,7 @@ static func refresh() -> void:
 			SNOW = i if role == "snow" else SNOW
 			PEAT = i if role == "peat" else PEAT
 			SALT = i if role == "salt" else SALT
+			ICE = i if role == "ice" else ICE
 			ORE = i if role == "ore" and ORE < 0 else ORE
 			LOG = i if role == "trunk" else LOG
 			LEAVES = i if role == "crown" else LEAVES

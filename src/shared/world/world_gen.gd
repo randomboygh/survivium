@@ -114,7 +114,8 @@ func _init(seed_value: int, sy := 48, options := {}) -> void:
 	snow = Mat.of_role("snow", Mat.STONE)
 	peat = Mat.of_role("peat", Mat.DIRT)
 	salt = Mat.of_role("salt", beach)
-	grounds = {"grass": Mat.GRASS, "dirt": Mat.DIRT, "stone": Mat.STONE, "sand": beach, "clay": bank, "snow": snow, "peat": peat, "salt": salt}
+	ice = Mat.of_role("ice", Mat.STONE)
+	grounds = {"grass": Mat.GRASS, "dirt": Mat.DIRT, "stone": Mat.STONE, "sand": beach, "clay": bank, "snow": snow, "peat": peat, "salt": salt, "ice": ice}
 	ore = Mat.ORE if Mat.ORE >= 0 else Mat.STONE
 	_noises()
 	coast_level = _coast_level()

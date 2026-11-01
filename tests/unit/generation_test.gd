@@ -10,6 +10,7 @@ func run() -> void:
 	_test_trees()
 	_test_bushes()
 	_test_custom_plants()
+	_test_mountain_zone()
 
 
 func _test_generation() -> void:
@@ -468,3 +469,23 @@ func _test_custom_plants() -> void:
 	rng.seed = 3
 	var got := Plants.harvest([by_where.meadow, by_where.meadow, by_where.meadow], rng)
 	_check(not got.is_empty(), "a custom plant gives what its record says")
+
+
+## With climate 1 the cold mountains' rock is a glacier (snow on the slopes, ice in the
+## walls) and the open upper slopes are alpine meadows; old worlds keep their rock.
+func _test_mountain_zone() -> void:
+	var gen := WorldGen.new(20261018, 48, {"relief": 1, "climate": 1})
+	var old := WorldGen.new(20261018, 48, {"relief": 1})
+	var found := {}
+	var tops := {}
+	for row in 60:
+		var lay := gen.lay_out(-12000, -12000 + row * 400, 60, 1, 400)
+		var was := old.lay_out(-12000, -12000 + row * 400, 60, 1, 400)
+		for i in 60:
+			found[lay.biome[i]] = found.get(lay.biome[i], 0) + 1
+			if lay.biome[i] == Biomes.GLACIER:
+				tops[lay.tops[i]] = true
+			found["old"] = found.get("old", 0) + int(was.biome[i] == Biomes.GLACIER or was.biome[i] == Biomes.ALPINE)
+	_check(found.get(Biomes.GLACIER, 0) > 0 and found.get(Biomes.ALPINE, 0) > 0 and found.old == 0
+		and tops.keys().all(func(m: int) -> bool: return m == Mat.SNOW or m == Mat.ICE),
+		"climate 1 lays glaciers (%d) under snow and ice and alpine meadows (%d), climate 0 neither" % [found.get(Biomes.GLACIER, 0), found.get(Biomes.ALPINE, 0)])
