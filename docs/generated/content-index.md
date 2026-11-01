@@ -15,15 +15,15 @@
 
 - `core` Основа
 - `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк
-- `biomes` Биомы: `biomes/beach` Берег, `biomes/birch_grove` Берёзовая роща, `biomes/desert` Пустыня, `biomes/floodplain` Пойма, `biomes/forest` Лес, `biomes/ice_waste` Ледяная пустошь, `biomes/maple_wood` Кленовник, `biomes/meadow` Луг, `biomes/peat_bog` Торфяное болото, `biomes/pine_wood` Бор, `biomes/plateau` Плато, `biomes/rock` Скалы, `biomes/sea` Море, `biomes/steppe` Степь, `biomes/stony_tundra` Каменистая тундра, `biomes/swamp` Болото, `biomes/taiga` Тайга, `biomes/tundra` Тундра
+- `biomes` Биомы: `biomes/beach` Берег, `biomes/birch_grove` Берёзовая роща, `biomes/desert` Пустыня, `biomes/floodplain` Пойма, `biomes/forest` Лес, `biomes/forest_steppe` Лесостепь, `biomes/ice_waste` Ледяная пустошь, `biomes/maple_wood` Кленовник, `biomes/meadow` Луг, `biomes/peat_bog` Торфяное болото, `biomes/pine_wood` Бор, `biomes/plateau` Плато, `biomes/rock` Скалы, `biomes/salt_flat` Солончак, `biomes/sea` Море, `biomes/steppe` Степь, `biomes/stony_tundra` Каменистая тундра, `biomes/swamp` Болото, `biomes/taiga` Тайга, `biomes/tundra` Тундра
 - `materials` Материалы: `materials/bone_glue` Костный клей, `materials/brick` Кирпич, `materials/bronze` Бронза, `materials/charcoal` Уголь, `materials/cloth` Ткань, `materials/copper` Медь, `materials/cord` Верёвка, `materials/glass` Стекло, `materials/iron` Железо, `materials/leather` Кожа, `materials/planks` Доски, `materials/steel` Сталь, `materials/tar` Смола, `materials/tin` Олово
 - `music` Музыка
 - `plants` Растения: `plants/apple` Яблоня, `plants/birch` Берёза, `plants/bird_cherry` Черёмуха, `plants/blueberry` Черника, `plants/cherry` Вишня, `plants/cranberry` Клюква, `plants/currant` Смородина, `plants/deadwood` Сухое дерево, `plants/ears` Колоски, `plants/fern` Папоротник, `plants/fir` Пихта, `plants/flax` Лён, `plants/grass` Травы, `plants/larch` Лиственница, `plants/linden` Липа, `plants/maple` Клён, `plants/moss` Мох, `plants/mushrooms` Грибы, `plants/nettle` Крапива, `plants/oak` Дуб, `plants/pine` Сосна, `plants/poplar` Тополь, `plants/raspberry` Малина, `plants/red_maple` Клён красный, `plants/reeds` Тростник, `plants/roasted_acorns` Жареные жёлуди, `plants/rosehip` Шиповник, `plants/rowan` Рябина, `plants/shrub` Куст, `plants/spruce` Ель, `plants/willow` Ива, `plants/wood` Древесина
-- `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
+- `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/salt` Соль, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
 - `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bloomery` Сыродутная печь, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/drying_rack` Сушилка, `tools/forge` Горн, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/workbench` Верстак
 
-## Предметы (`items`, 123)
+## Предметы (`items`, 124)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -53,6 +53,7 @@
 | `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
 | `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `resources:peat` | Торф | Блоки |  | `resources/peat` | 0. Выживание без инструментов | 1 / 1 | ок |
+| `resources:salt` | Соль | Блоки |  | `resources/salt` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:snow` | Снег | Блоки |  | `resources/snow` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:dirt` | Земля | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 2 | ок |
 | `resources:sand` | Песок | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
@@ -244,7 +245,7 @@
 | `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 4 / 0 | ок |
 | `tools:tar_torch` | Смоляной факел | Материалы |  | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 
-## Материалы ячеек (`materials`, 17)
+## Материалы ячеек (`materials`, 18)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -257,6 +258,7 @@
 | `materials:copper_ore` | Медная руда | ore |  | `materials/copper` | 1 / 0 | ок |
 | `materials:planks` | Доски |  |  | `materials/planks` | 1 / 1 | ок |
 | `resources:peat` | Торф | peat |  | `resources/peat` | 1 / 1 | ок |
+| `resources:salt` | Соль | salt |  | `resources/salt` | 1 / 1 | ок |
 | `resources:snow` | Снег | snow |  | `resources/snow` | 1 / 1 | ок |
 | `resources:sand` | Песок | beach |  | `resources/soil` | 2 / 1 | ок |
 | `resources:clay` | Глина | bank |  | `resources/soil` | 1 / 1 | ок |
@@ -271,7 +273,7 @@
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
 | `plants:apple` | Яблоня | broad |  | `plants/apple` | 3 / 1 | ок |
-| `plants:birch` | Берёза | broad |  | `plants/birch` | 2 / 3 | ок |
+| `plants:birch` | Берёза | broad |  | `plants/birch` | 2 / 4 | ок |
 | `plants:bird_cherry` | Черёмуха | broad |  | `plants/bird_cherry` | 2 / 5 | ок |
 | `plants:cherry` | Вишня | broad |  | `plants/cherry` | 2 / 1 | ок |
 | `plants:deadwood` | Сухое дерево | broad |  | `plants/deadwood` | 2 / 5 | ок |
@@ -279,11 +281,11 @@
 | `plants:larch` | Лиственница | needles |  | `plants/larch` | 2 / 3 | ок |
 | `plants:linden` | Липа | broad |  | `plants/linden` | 2 / 3 | ок |
 | `plants:maple` | Клён | broad |  | `plants/maple` | 2 / 2 | ок |
-| `plants:oak` | Дуб | broad |  | `plants/oak` | 3 / 7 | ок |
-| `plants:pine` | Сосна | needles |  | `plants/pine` | 3 / 2 | ок |
+| `plants:oak` | Дуб | broad |  | `plants/oak` | 3 / 8 | ок |
+| `plants:pine` | Сосна | needles |  | `plants/pine` | 3 / 3 | ок |
 | `plants:poplar` | Тополь | broad |  | `plants/poplar` | 2 / 3 | ок |
 | `plants:red_maple` | Клён красный | broad |  | `plants/red_maple` | 2 / 1 | ок |
-| `plants:rowan` | Рябина | broad |  | `plants/rowan` | 3 / 3 | ок |
+| `plants:rowan` | Рябина | broad |  | `plants/rowan` | 3 / 4 | ок |
 | `plants:spruce` | Ель | needles |  | `plants/spruce` | 3 / 4 | ок |
 | `plants:willow` | Ива | broad |  | `plants/willow` | 2 / 2 | ок |
 
@@ -294,8 +296,8 @@
 | `plants:blueberry` | Черника |  |  | `plants/blueberry` | 3 / 7 | ок |
 | `plants:currant` | Смородина |  |  | `plants/currant` | 3 / 4 | ок |
 | `plants:raspberry` | Малина |  |  | `plants/raspberry` | 3 / 4 | ок |
-| `plants:rosehip` | Шиповник |  |  | `plants/rosehip` | 3 / 3 | ок |
-| `plants:shrub` | Куст |  |  | `plants/shrub` | 2 / 15 | ок |
+| `plants:rosehip` | Шиповник |  |  | `plants/rosehip` | 3 / 4 | ок |
+| `plants:shrub` | Куст |  |  | `plants/shrub` | 2 / 16 | ок |
 
 ## Растения (`plants`, 13)
 
@@ -337,7 +339,7 @@
 | `animals:squirrel` | Белка |  |  | `animals/squirrel`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
 | `animals:wolf` | Волк |  |  | `animals/wolf`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
 
-## Биомы (`biomes`, 18)
+## Биомы (`biomes`, 20)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -346,6 +348,7 @@
 | `biomes:desert` | Пустыня | climate |  | `biomes/desert` | 1 / 0 | ок |
 | `biomes:floodplain` | Пойма | climate |  | `biomes/floodplain` | 6 / 0 | ок |
 | `biomes:forest` | Лес | climate |  | `biomes/forest` | 10 / 10 | ок |
+| `biomes:forest_steppe` | Лесостепь | climate |  | `biomes/forest_steppe` | 6 / 0 | ок |
 | `biomes:ice_waste` | Ледяная пустошь | climate |  | `biomes/ice_waste` | 0 / 0 | ок |
 | `biomes:maple_wood` | Кленовник | climate |  | `biomes/maple_wood` | 8 / 0 | ок |
 | `biomes:meadow` | Луг | climate |  | `biomes/meadow` | 9 / 6 | ок |
@@ -353,6 +356,7 @@
 | `biomes:pine_wood` | Бор | climate |  | `biomes/pine_wood` | 5 / 5 | ок |
 | `biomes:plateau` | Плато | plateau |  | `biomes/plateau` | 1 / 0 | ок |
 | `biomes:rock` | Скалы | rock |  | `biomes/rock` | 0 / 0 | ок |
+| `biomes:salt_flat` | Солончак | climate |  | `biomes/salt_flat` | 0 / 0 | ок |
 | `biomes:sea` | Море | sea |  | `biomes/sea` | 0 / 0 | ок |
 | `biomes:steppe` | Степь | climate |  | `biomes/steppe` | 2 / 3 | ок |
 | `biomes:stony_tundra` | Каменистая тундра | climate |  | `biomes/stony_tundra` | 3 / 0 | ок |

@@ -1,0 +1,15 @@
+# Соль: белая корка солончаков (role: salt; биомы кладут её через top или clay_as: salt). Копается
+# лопатой и даёт соль. Поля — как у материалов основы (content/core/data/materials.yaml); звуки по
+# имени, из мода «Звуки». Без бандла на её месте песок (роль beach), а без него — земля.
+- id: salt
+  title: Соль
+  role: salt
+  corners: soft
+  slope: true
+  priority: 3
+  ground: sand
+  drains: true
+  item: salt
+  dig: shovel
+  step: step_sand
+  hit: dig

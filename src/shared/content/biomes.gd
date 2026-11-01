@@ -148,7 +148,7 @@ static func sparsity(b: int) -> int:
 
 ## The material biome `b` lays on top, of `ground` (the generator's grounds by the names
 ## of the `top` field: grass, dirt, stone, and the loaded mods' materials of the roles
-## beach as sand, bank as clay, snow, peat); grass unless its record says otherwise.
+## beach as sand, bank as clay, snow, peat, salt); grass unless its record says otherwise.
 static func top(b: int, ground: Dictionary) -> int:
 	return ground.get(of(b).get("top", "grass"), Mat.GRASS)
 

@@ -157,6 +157,7 @@ var bank: int
 var scree: int
 var snow: int
 var peat: int
+var salt: int
 ## The grounds a biome lays by the names of its `top` and `clay_as` (see Biomes.top).
 var grounds := {}
 var ore: int
