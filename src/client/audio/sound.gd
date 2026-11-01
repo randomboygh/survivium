@@ -310,12 +310,6 @@ func spot(id: String, pos: Vector3, level: float, bus := "Nature") -> void:
 		_spots[id].player.global_position = pos
 
 
-## The level loop `id` is at now (0 when it is not playing).
-func loop_level(id: String) -> float:
-	id = resolve(id)
-	return _loops[id].level if _loops.has(id) else 0.0
-
-
 ## The sound of the hands' work `done` (a result of a WorldActions rule, see
 ## Controls._did) played as `kind` (one of player.yaml `works`), at the moment of its
 ## strike, `strike` of the way through the swing: a block set down thuds, a blade

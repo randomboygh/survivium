@@ -40,17 +40,6 @@ func remove(i: int) -> void:
 		changed.emit()
 
 
-## The index of the marker nearest column `cell` within `reach` cells, else -1.
-func near(cell: Vector2, reach: float) -> int:
-	var best := -1
-	var best_d := reach
-	for i in list.size():
-		var d := Vector2(list[i].cell).distance_to(cell)
-		if d <= best_d:
-			best = i
-			best_d = d
-	return best
-
 
 static func color_of(m: Dictionary) -> Color:
 	return COLORS[m.color][1]

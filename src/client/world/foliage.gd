@@ -130,12 +130,6 @@ static func disc_mesh(size: float) -> ArrayMesh:
 	return mesh
 
 
-## Returns {"grass": [count, buffer], "clumps": [count, buffer], "shadows": [count, buffer]}
-## for the cells x0..x0+size, z0..z0+size. Buffers are laid out for MultiMesh with
-## 3D transforms in world units; grass has custom data, clumps colours and custom data,
-## shadows custom data (what the tree does over the year, as in the clumps' alpha).
-## Leaf clumps stand on a lattice two cells apart (odd x and z, even levels), where the
-## generator centres its crowns.
 ## The state of a chunk's plants being built column by column (see `start`, `step`, `finish`).
 class Job extends RefCounted:
 	var w
@@ -159,6 +153,12 @@ class Job extends RefCounted:
 	var tree := 0
 
 
+## The plants of the cells x0..x0+size, z0..z0+size, all at once: {"grass", "clumps",
+## "shadows", "bushes", "drifts"} (ChunkStreamer.PARTS), each [count, buffer]. Buffers
+## are laid out for MultiMesh with 3D transforms in world units; grass has custom data,
+## clumps colours and custom data, shadows custom data (what the tree does over the
+## year, as in the clumps' alpha). Leaf clumps stand on a lattice two cells apart (odd x
+## and z, even levels), where the generator centres its crowns.
 static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 	var job := start(w, x0, z0, size)
 	while not step(job, 1 << 30):

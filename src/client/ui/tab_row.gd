@@ -1,58 +1,9 @@
-extends HFlowContainer
-## A row of small tabs under a window's tabs (the kinds of items in the craft tab and
-## the bag): «Все» and the kinds given, the chosen one lit; wraps onto more rows when
-## narrow. `picked` gives the key of the tab tapped ("" for «Все»).
+extends RefCounted
+## Small buttons for the windows' rows of tabs and choices: a small button, one with a
+## picture, buttons joined side by side (`split`), a block of them at a panel's corner,
+## and lighting one amber (`light`). All static; the kinds row itself is IconTabs.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
-
-signal picked(key: String)
-
-## The key of the tab chosen, "" for «Все».
-var chosen := ""
-var _keys: Array = []
-var _buttons := {}
-## The tab lit now ("-" before the first time).
-var _lit := "-"
-
-
-func _init() -> void:
-	add_theme_constant_override("h_separation", 4)
-	add_theme_constant_override("v_separation", 4)
-
-
-## Shows «Все» and tabs `keys` named by `names` (key -> name); a chosen tab that is gone
-## gives way to «Все». True when that changed what is chosen.
-func set_tabs(keys: Array, names: Dictionary) -> bool:
-	var was := chosen
-	if not keys.has(chosen):
-		chosen = ""
-	var all := [""] + keys
-	if all != _keys:
-		_keys = all
-		for b in get_children():
-			b.queue_free()
-		_buttons = {}
-		_lit = "-"
-		for k in all:
-			var b := small_button("Все" if k == "" else names.get(k, k), func() -> void: pick(k))
-			add_child(b)
-			_buttons[k] = b
-	_light()
-	return chosen != was
-
-
-func pick(key: String) -> void:
-	chosen = key
-	_light()
-	picked.emit(key)
-
-
-func _light() -> void:
-	if _lit == chosen:
-		return
-	_lit = chosen
-	for k in _buttons:
-		light(_buttons[k], k == chosen)
 
 
 ## A small square button with a picture (`texture`, an icon) and a tooltip.

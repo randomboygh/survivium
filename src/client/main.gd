@@ -704,9 +704,9 @@ func _world_made() -> int:
 	return world_maker.make_chunks(budgets.x, budgets.y)
 
 
-## The server's loop is stopped with the scene, unless it is kept for the next one.
+## The server's loop is stopped with the scene.
 func _exit_tree() -> void:
-	if host != null and host.runner != null and not host.runner.keep:
+	if host != null and host.runner != null:
 		host.stop()
 	if socket != null:
 		socket.leave()

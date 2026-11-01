@@ -504,14 +504,7 @@ func unload_chunk(key: Vector2i) -> void:
 	dirty_chunks.erase(key)
 	if not chunk_nodes.has(key):
 		return
-	for node: Node in chunk_nodes[key]:
-		node.queue_free()
-	chunk_nodes.erase(key)
-	game.props.hide_drops(key)
-	if cap_nodes.has(key):
-		cap_nodes[key].queue_free()
-		cap_nodes.erase(key)
-		cap_levels.erase(key)
+	_free_chunk(key)
 	game.hud.perf.chunks = chunk_nodes.size()
 
 
@@ -525,18 +518,23 @@ func _unload_some() -> void:
 		var at := _player_chunk()
 		if maxi(absi(key.x - at.x), absi(key.y - at.y)) <= LOAD_RANGE:
 			continue
-		for node: Node in chunk_nodes[key]:
-			node.queue_free()
-		chunk_nodes.erase(key)
-		game.props.hide_drops(key)
-		dirty_chunks.erase(key)
-		if cap_nodes.has(key):
-			cap_nodes[key].queue_free()
-			cap_nodes.erase(key)
-			cap_levels.erase(key)
+		_free_chunk(key)
 		n += 1
 	if n > 0:
 		game.hud.perf.chunks = chunk_nodes.size()
+
+
+## Frees the nodes of shown chunk `key`: its meshes, its drops and its cap.
+func _free_chunk(key: Vector2i) -> void:
+	for node: Node in chunk_nodes[key]:
+		node.queue_free()
+	chunk_nodes.erase(key)
+	game.props.hide_drops(key)
+	dirty_chunks.erase(key)
+	if cap_nodes.has(key):
+		cap_nodes[key].queue_free()
+		cap_nodes.erase(key)
+		cap_levels.erase(key)
 
 
 func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:

@@ -22,8 +22,8 @@ const CELL := WorldData.CELL
 ## See _place_fireflies.
 const FIREFLY_MOVE := 4.0
 const FIREFLY_TRIES := 120
-## Bits flying off worked material (see burst): emitters used in turn, bits in each, and
-## their colour by material id ("" for any other).
+## Bits flying off worked material (see burst): emitters used in turn and bits in each;
+## their colour is the material's tint (PixelTextures.tint).
 const BURSTS := 4
 const BURST_BITS := 8
 ## The pixels of a star sparkle (see _star).

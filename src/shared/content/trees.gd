@@ -9,7 +9,6 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Content := preload("res://src/shared/content/content.gd")
-const Items := preload("res://src/shared/content/items.gd")
 
 ## Leaves of a species.
 const BROAD := 0

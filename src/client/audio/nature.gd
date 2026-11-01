@@ -43,6 +43,9 @@ var _columns := 0
 var water := 0.0
 var water_at := Vector3.INF
 var woods := 0.0
+## World units from the player to the nearest burning campfire (INF for none), as the last
+## tick found it; the music reads it too.
+var fire_d := INF
 
 
 func _init(g) -> void:
@@ -115,6 +118,7 @@ func _fire(sound) -> void:
 		if d < best_d:
 			best_d = d
 			best = at
+	fire_d = sqrt(best_d)
 	sound.spot("fire", best, 1.0 if best_d <= sound.HEAR_RANGE * sound.HEAR_RANGE else 0.0)
 
 

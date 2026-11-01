@@ -121,12 +121,6 @@ static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
 	return m
 
 
-## Changes what the body wears: the sheet is drawn again with these layers.
-func set_look(layers: Array) -> void:
-	look = layers
-	_redraw()
-
-
 ## Puts things in the hands, each {} or {"sprite", "colour", "anim"} (see Figure), and
 ## says which hand is in use ("left" or "right"); the sheet is drawn again on a change.
 func hold(left: Dictionary, right: Dictionary, active: String) -> void:

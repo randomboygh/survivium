@@ -184,14 +184,6 @@ static func mod_title(mod: String) -> String:
 	return str(Content.info(mod).get("title", mod))
 
 
-## The titles of `mods` from their mod.yaml, for the player.
-static func titles(mods: Array) -> PackedStringArray:
-	var out: PackedStringArray = []
-	for m in mods:
-		out.append(mod_title(m))
-	return out
-
-
 ## The title of `bundle` from its bundle.yaml (or its mod's).
 static func title(bundle: String) -> String:
 	return str(Content.bundle_info(bundle).get("title", bundle))

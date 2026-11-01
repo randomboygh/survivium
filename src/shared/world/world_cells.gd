@@ -612,8 +612,6 @@ func bushes_in(x0: int, z0: int) -> Array[Vector3i]:
 	return out
 
 
-## Level a walker stands on in this column (the cell above the highest ground),
-## or -1 over open water. Tree crowns are ignored so animals walk under them.
 ## Level of the highest cell in the column that keeps rain and snow off what lies
 ## below (anything but air, water and leaves), -1 when there is none.
 func roof_level(x: int, z: int) -> int:

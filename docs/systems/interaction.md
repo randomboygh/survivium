@@ -32,7 +32,8 @@
 
 **Контракт `who`.** `inventory`, `position`, `held_back`, `feet()`, `facing_step()`, `moving()`,
 `overlaps_cell(cell)`, `held()`, `tool()`, `brush()`, `act(action)` (платит выносливостью, false — нет
-сил), `give(id, n, worn)`, `use_tool()` (износ), `nag(reason, text)`, `say(text)`. Взмах, который что-то
+сил), `give(id, n, worn)`, `use_tool()` (износ), `nag(reason, text)`, `say(text)`, `note(stat, n)` (статистика жизни),
+`is_dead()`, `sacks` (где лежат мешки после смерти). Взмах, который что-то
 сделал, возвращает `{"swing", "work", "time", "at"}`, пустой — `{}` или только `{"swing"}`.
 
 **Данные.** Предметы с `tool`, `power`, `area`, `reach`, `swing`, `mows`, `durability`, `repair`,

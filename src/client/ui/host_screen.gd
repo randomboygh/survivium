@@ -249,8 +249,6 @@ func _start() -> void:
 		_fit.call_deferred()
 		return
 	s.erase("why")
-	if s.title == "":
-		s.title = "Survivium"
 	print("host: %s" % [s])
 	game.host_server(s)
 

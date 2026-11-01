@@ -33,11 +33,6 @@ func lines() -> PackedStringArray:
 	return out
 
 
-## The input ended, or the stop line came: the thread is done and is joined.
-func over() -> bool:
-	return _over
-
-
 ## Joins the thread if it is done; true when it was, or there is none.
 func stop() -> bool:
 	if _thread == null:

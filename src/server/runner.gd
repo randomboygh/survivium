@@ -20,8 +20,6 @@ var pausable := true
 ## The players are in the world: the characters, the animals and the wind step. Before
 ## that (the world being made ready) only the clock goes.
 var playing := false
-## Kept in the tree when the client's scene leaves it (С5); else Main stops it.
-var keep := false
 ## Microseconds a frame generation may take: when the chunk being made is within
 ## Session.NEAR of a player, and when farther (see Session.make_chunks).
 var near_us := BUDGET_US

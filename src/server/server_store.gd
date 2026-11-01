@@ -33,10 +33,8 @@ var meta := {}
 var every := 10.0
 ## Seconds played in this world, over all runs.
 var played := 0.0
-## Saves done, chunks written by the last, and how long it took (ms).
+## Saves done.
 var saves := 0
-var last_chunks := 0
-var last_ms := 0
 var _clock := 0.0
 
 
@@ -80,18 +78,15 @@ func update(delta: float, server) -> void:
 ## Saves the chunks changed, then world.json and every player in the world as one
 ## snapshot (see above); false when a file could not be written (the old ones stay).
 func save(server) -> bool:
-	var t0 := Time.get_ticks_msec()
 	_clock = 0.0
 	var ok := true
 	var world = session.world
-	last_chunks = 0
 	for key: Vector2i in world.unsaved.keys():
 		if not world.has_chunk(key):
 			world.unsaved.erase(key)
 			continue
 		if store.write_chunk(key, session.gen.pack(key)):
 			world.unsaved.erase(key)
-			last_chunks += 1
 		else:
 			ok = false
 	var files := {}
@@ -108,7 +103,6 @@ func save(server) -> bool:
 	else:
 		clean()
 	saves += 1
-	last_ms = Time.get_ticks_msec() - t0
 	return ok
 
 

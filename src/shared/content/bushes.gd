@@ -74,13 +74,3 @@ static func fits(w, x: int, y: int, z: int) -> bool:
 static func place(w, x: int, y: int, z: int, type: int) -> void:
 	w.add_bush(Vector3i(x, y, z), type)
 
-
-## Species of a tree within `reach` cells of column x, z, -1 for none. Trunks stand on
-## odd columns.
-static func tree_near(w, x: int, z: int, reach: int) -> int:
-	for tz in range((z - reach) | 1, z + reach + 1, 2):
-		for tx in range((x - reach) | 1, x + reach + 1, 2):
-			var at := Vector2i(tx, tz)
-			if w.trees.has(at):
-				return w.trees[at]
-	return -1

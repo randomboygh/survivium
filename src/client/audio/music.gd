@@ -9,7 +9,6 @@ extends RefCounted
 ## piece forgives. `game` is the Main node; Sound runs it each frame.
 
 const Clock := preload("res://src/shared/game/clock.gd")
-const Placed := preload("res://src/shared/game/placed.gd")
 
 ## Minutes of silence at least between two pieces, by the setting (rarely, sometimes,
 ## often), and the chance a minute of a piece coming by itself after that.
@@ -236,9 +235,6 @@ func _occasion(delta: float) -> String:
 	return ""
 
 
+## A campfire burns near the player: Nature found it on the same tick, just before.
 func _fire_near() -> bool:
-	var p: Vector3 = game.player.position
-	for e in game.placed.things:
-		if e.lit and Placed.is_fire(e) and Placed.center(e).distance_to(p) <= FIRE_NEAR:
-			return true
-	return false
+	return game.sound.nature.fire_d <= FIRE_NEAR
