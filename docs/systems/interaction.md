@@ -7,6 +7,8 @@
 лежащее. Правила общие (их проверит сервер), ввод и подсказки — клиентские.
 
 **Файлы**
+- `src/shared/game/felling.gd` — рубка дерева: ствол выше разреза и его крона уходят, брёвна, ветки и
+  семена ложатся по линии падения (`Felling.fell`, его зовёт `chop`).
 - `src/shared/game/world_actions.gd` — правила рук: `dig` / `dig_at`, `place_at` / `can_place`, `chop`,
   `fell`, `mow` / `mow_swing`, `act_in_front`, `place_in_front`, `swing_air`, сбор с кустов и деревьев,
   весеннее восстановление. Сигналы: `cell_changed`, `looks_changed`, `drops_changed`, `taken`.

@@ -94,7 +94,7 @@ const SIDE_CORNERS := [[1, 2], [0, 3], [], [], [3, 2], [0, 1]]
 const HALF_CORNER := [3, 2, 0, 1, 1, 2, 0, 3]
 const QUARTER_HALVES := [[0, 4], [1, 6], [3, 7], [2, 5]]
 ## A log pillar that is no noted tree is drawn as a trunk 6 texels wide in its 8-texel
-## cell; a tree's trunk has its own girth (see Trees.trunk_box).
+## cell; a tree's trunk has its own girth (see Growth.trunk_box).
 const PILLAR := Rect2i(1, 1, 6, 6)
 ## What tops a piece of a trunk (see _bark).
 const CAP_NONE := 0

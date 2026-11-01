@@ -35,9 +35,10 @@ extends "res://src/shared/world/land_layout.gd"
 signal made(key: Vector2i, stage: int)
 
 const Trees := preload("res://src/shared/content/trees.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 ## How far a tree reaches from its trunk, so a chunk made again knows which trees of
-## its neighbours to grow again (see Trees.place).
+## its neighbours to grow again (see Growth.place).
 const TREE_REACH := 10
 ## Stages of a chunk (see above); 0 is nothing yet.
 const TERRAIN := 1
@@ -257,7 +258,7 @@ func step(job: Job, n: int) -> bool:
 	world.track_edits = false
 	while n > 0 and (job.row < job.rows or job.crown_at < job.crown.size()):
 		if job.crown_at < job.crown.size():
-			job.crown_at = Trees.fill(world, job.crown, job.crown_at, CROWN_STEP)
+			job.crown_at = Growth.fill(world, job.crown, job.crown_at, CROWN_STEP)
 		elif not job.restore.is_empty():
 			if job.row == 0:
 				world.unpack_chunk(job.restore)
@@ -535,9 +536,9 @@ func _plant(job: Job, t: Array, again := false) -> void:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _hash(x, z, 3)
-	var scale := Trees.fit(species, size_y - 1 - hh)
+	var scale := Growth.fit(species, size_y - 1 - hh)
 	if scale > 0.0:
-		job.crown = Trees.grow(world, x, hh + 1, z, species, rng, scale)
+		job.crown = Growth.grow(world, x, hh + 1, z, species, rng, scale)
 		job.crown_at = 0
 
 
@@ -613,11 +614,11 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 			if _hash(x, z, 4) % sparsity != 0:
 				continue
 			var y: int = world.surface_y(x, z)
-			if not Bushes.fits(world, x, y, z):
+			if not Growth.bush_fits(world, x, y, z):
 				continue
 			var type := Biomes.bush(biome[j], _chance(x, z, 5))
 			if type >= 0:
-				Bushes.place(world, x, y, z, type)
+				Growth.place_bush(world, x, y, z, type)
 
 
 # --- Spawn -----------------------------------------------------------------------

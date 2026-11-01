@@ -830,5 +830,5 @@ func _bushes(key: Vector2i, lay: Dictionary) -> void:
 		if b[0] >> WorldData.SHIFT != key.x or b[1] >> WorldData.SHIFT != key.y:
 			continue
 		var y: int = world.surface_y(b[0], b[1])
-		if Bushes.fits(world, b[0], y, b[1]):
-			Bushes.place(world, b[0], y, b[1], b[2])
+		if Growth.bush_fits(world, b[0], y, b[1]):
+			Growth.place_bush(world, b[0], y, b[1], b[2])

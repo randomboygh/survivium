@@ -28,7 +28,7 @@ func _test_save() -> void:
 		if w.get_cell(trunk.x, y, trunk.y) == Mat.LOG and w.get_cell(trunk.x, y - 1, trunk.y) != Mat.LOG:
 			foot = y
 			break
-	Trees.fell(w, Vector3i(trunk.x, foot + 1, trunk.y), Vector2(1.0, 0.0))
+	Felling.fell(w, Vector3i(trunk.x, foot + 1, trunk.y), Vector2(1.0, 0.0))
 	var x0 := home.x * WorldData.CHUNK
 	var z0 := home.y * WorldData.CHUNK
 	var top := w.surface_y(x0 + 1, z0 + 1)

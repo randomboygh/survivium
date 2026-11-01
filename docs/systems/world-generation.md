@@ -24,8 +24,10 @@
 - `src/shared/content/biomes.gd` — биом столбца по климату (`pick(t, m)`: самое узкое окно сначала) или
   по рельефу (`where`: sea, beach, rock, plateau, swamp), его верх, доли деревьев и кустов, шансы;
   `Biomes.NONE` — голая трава.
-- `src/shared/content/trees.gd`, `bushes.gd` — как дерево и куст ставятся и растут в ячейки (`place`,
-  `grow`, `fell`).
+- `src/shared/content/trees.gd`, `bushes.gd` — реестры пород деревьев и видов кустов (данные модов).
+- `src/shared/world/growth.gd` — как дерево и куст растут в ячейки мира: форма ствола и кроны
+  (`trunk_box`, `height`, `fit`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`. Рубка — правило
+  игры: `src/shared/game/felling.gd` (`fell`), см. [interaction.md](interaction.md).
 - `src/shared/world/test_ground.gd` — тестовый мир (открывается со страницы «Тестирование»): площадки
   рельефа, биомов, растений, «Лагерь»; подменяет `WorldGen` при `TestGround.SEED`.
 

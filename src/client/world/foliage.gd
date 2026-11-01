@@ -15,6 +15,7 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 
 ## Ground plants (see Grass, PixelTextures.build_plants and grass.gdshader): the size
 ## of their cards.
@@ -49,7 +50,7 @@ const BLOSSOM_ROW := 32
 ## side the camera looks (leaves.gdshader).
 const DEEP_ROW := 16
 ## A crown point belongs to the nearest trunk within this many cells.
-const TREE_REACH := Trees.TREE_REACH
+const TREE_REACH := Growth.TREE_REACH
 ## How far the normals of a spruce's cards lean up on the top of a tier, and down under
 ## the tier above.
 const TIER_UP := 0.8
@@ -515,7 +516,7 @@ static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_r
 	var low: int = ys[0]
 	var top: int = ys[-1]
 	# A weeping crown is a dome of layers over the trunk with strands hanging from its
-	# rim (see _strands): the points hanging round the trunk (Trees._curtain) take no
+	# rim (see _strands): the points hanging round the trunk (Growth._curtain) take no
 	# layers of their own.
 	var hang_to := low
 	var dome := 0.0
@@ -634,7 +635,7 @@ static func _strands(job: Job, at: Vector2i, middle: Vector2, r: float, y_from: 
 
 
 ## The fronds of a palm whose trunk stands on column `at`, its crown points `levels`
-## (see _crown_levels, Trees._palm): a tuft of bundles on the top point and a line of
+## (see _crown_levels, Growth._palm): a tuft of bundles on the top point and a line of
 ## branches out along each frond, from the top through each of its points and on a little
 ## past the last, sinking as it goes.
 static func _fronds(job: Job, at: Vector2i, levels: Dictionary, base: Color, row: int, rng: RandomNumberGenerator) -> void:
@@ -924,7 +925,7 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 	if levels.is_empty():
 		return 0
 	# A conifer's lowest tier hangs on screen over the trunk below it (see
-	# Trees.hidden_trunk), so the tree looks green further down than its tiers are; its
+	# Growth.hidden_trunk), so the tree looks green further down than its tiers are; its
 	# shadow falls from the crown where it shows, the discs lowered by the trunk the
 	# tier hides (bar CONIFER_BARE - 1 cells). The trunk that shows below the tier, short
 	# on a spruce and long on a larch, stays lit, its shadow from the trunk itself.
@@ -935,7 +936,7 @@ static func _tree_shadows(w, t: Array, trunks: Array, buf: PackedFloat32Array) -
 		for p: Vector2i in levels[low]:
 			if p.x == at.x:
 				front = maxi(front, (p.y - at.y) / 2)
-		lower = maxi(0, Trees.hidden_trunk(front) - (CONIFER_BARE - 1))
+		lower = maxi(0, Growth.hidden_trunk(front) - (CONIFER_BARE - 1))
 	if looks.tiers:
 		return _cone_shadow(at, looks, levels, lower, kind, buf)
 	# A disc round all the points of each level, and one on every level between them

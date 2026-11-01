@@ -129,7 +129,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/world/slope_mesher.gd`: The slopes of natural ground: a smooth curved surface over the corner heights WorldData shaped (`patch`), shared with the slopes beside it, its sides and the cuts where the surface meets a wall; the…
 - `src/client/world/solid_map.gd`: Which cells round the player are solid, for the cut in the plane of the camera (setting «Вид в пещере»): the shaders draw its section only where the plane truly passes through rock (section_here in…
 - `src/client/world/tracks.gd`: Footprints left behind by the player and the animals: a ring of flat quads over the ground, drawn with track.gdshader, which darkens the ground under each print and fades it out with age.
-- `src/client/world/trunk_mesher.gd`: Trunks of trees and log pillars: the bark drawn as a ring of texels per level with roots at the foot and a cut or bark cap on top (see Trees.trunk_box).
+- `src/client/world/trunk_mesher.gd`: Trunks of trees and log pillars: the bark drawn as a ring of texels per level with roots at the foot and a cut or bark cap on top (see Growth.trunk_box).
 - `src/client/world/water_mesher.gd`: Water in the chunk meshes: the surface with its shore, murk and depth colours, the water of cut corners, waterfalls with their sheet and foam, and the water on a shore that follows the slope under it.
 
 ## src/server
@@ -149,7 +149,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 - `src/shared/content/ai_rules.gd`: Shared behaviour rules.
 - `src/shared/content/biomes.gd`: Biomes from `content/*/data/biomes.yaml` (see Content): where a biome lies and what grows there.
-- `src/shared/content/bushes.gd`: Bush types: what a bush looks like is data here, where it grows is up to the world generator (per biome).
+- `src/shared/content/bushes.gd`: Bush types: what a bush looks like is data here, where it grows is up to the world generator (per biome), growing one into the world Growth's (src/shared/world/growth.gd).
 - `src/shared/content/content.gd`: Mods, their bundles and their data files.
 - `src/shared/content/content_graph.gd`: The content graph of the loaded set (docs/specifications/BUNDLE_SYSTEM.md, section 11): the records and the links their reference fields name (Content.refs, by LINKS), and what a player comes to from…
 - `src/shared/content/crafting.gd`: Recipes: what is made by hand, at a workbench, in a kiln, read from `content/*/data/recipes.yaml` (see Content; plan/design/crafting.md).
@@ -169,6 +169,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/game/character.gd`: The one who plays, as the rules see them (plan/design/character.md): the bag (Inventory) and the body's state (Vitals), what the load and tiredness do to the pace, what actions cost, eating, throwing…
 - `src/shared/game/clock.gd`: The world's time and weather: the time of day, days and seasons, the phases of the moon, and the weather that comes by the season and the land (deserts have sand storms), with how hard it rains,…
 - `src/shared/game/craft_queue.gd`: What a character is making, in order (plan/design/crafting.md, "Время и износ"): each job is a recipe whose materials were taken from the bag when it was queued, so a cancel gives them back.
+- `src/shared/game/felling.gd`: Felling a tree: a rule of play (WorldActions chops, the session's world changes).
 - `src/shared/game/inventory.gd`: A bag of item stacks: a fixed number of slots, each empty or holding one item id up to its stack size, and the weight of it all (plan/design/character.md).
 - `src/shared/game/knowledge.gd`: What a character knows (plan/design/crafting.md, "Открытие рецептов"): the items that have been in the bag, and so the recipes made of them.
 - `src/shared/game/placed.gd`: Things standing on two by two cells that are not cells (an item's `prop`): chests with what they hold, workbenches, kilns and campfires, placed from the bag, and the camp a new world starts with next…
@@ -188,6 +189,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## src/shared/world
 
 - `src/shared/world/grass.gd`: What grows on the top of a ground cell: the plants drawn there (Foliage) are the ones cutting the grass gives (WorldActions), so both read them from here, from a hash of the cell and slow noises over…
+- `src/shared/world/growth.gd`: Trees and bushes growing in the world: the shape a tree of a species takes (Trees has the species) and the cells it fills.
 - `src/shared/world/land_layout.gd`: The land laid out from noise, which WorldGen extends: for any window of columns, `lay_out` gives height, water, top material, biome and flags (see `_window` and `_layout_row`), the same wherever and…
 - `src/shared/world/test_ground.gd`: The test world (opened from the «Тестирование» page): flat meadow without end and, around the spawn, grounds laid out by hand for the tests of the game, so nobody has to look for a ledge, a pit, a…
 - `src/shared/world/voxel_raycast.gd`: Ray cast through the cell grid (Amanatides & Woo).

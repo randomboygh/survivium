@@ -1,10 +1,11 @@
 extends "res://src/client/world/mesh_faces.gd"
 ## Trunks of trees and log pillars: the bark drawn as a ring of texels per level
-## with roots at the foot and a cut or bark cap on top (see Trees.trunk_box).
+## with roots at the foot and a cut or bark cap on top (see Growth.trunk_box).
 ## Called by ChunkMesher a column at a time. A species with a bark of its own
 ## (PixelTextures.bark_material) is drawn with that in place of the log's texture.
 
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 
 
 ## A log with open sides that continues up into a trunk or crown is a tree trunk.
@@ -20,7 +21,7 @@ static func trunk_at(w, x: int, y: int, z: int) -> bool:
 
 
 ## The trunk of a tree in its log cell at x, y, z: a column of bark of the tree's own
-## girth and crook (see Trees.trunk_box) with its corners cut, so the light gives it a
+## girth and crook (see Growth.trunk_box) with its corners cut, so the light gives it a
 ## lit and a shaded side from every side, with a dark outline where it turns away. Its sides slant
 ## from cell to cell as it thins and bends; at the foot it flares out and sends out a
 ## few roots (on stilts for a species with `stilts`).
@@ -32,7 +33,7 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 	var k := 0
 	while k < 64 and w.get_cell(x, y - k - 1, z) == Mat.LOG:
 		k += 1
-	var box := PILLAR if species < 0 else Trees.trunk_box(species, col, k)
+	var box := PILLAR if species < 0 else Growth.trunk_box(species, col, k)
 	var color := Color(1, 1, 1) if species < 0 else _bark_tone(col)
 	if species >= 0:
 		# Which cell of the trunk this is for world.gdshader, which clears a tree's trunk
@@ -54,7 +55,7 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 	if nb[2] == Mat.LOG:
 		top = CAP_NONE
 		if species >= 0:
-			up = Trees.trunk_box(species, col, k + 1)
+			up = Growth.trunk_box(species, col, k + 1)
 	var bottom := not _covers(nb[3]) and nb[3] != Mat.LOG
 	if k > 0 or species < 0:
 		_bark(buf, base, box, up, 0, 8, top, bottom, m, color, shade)

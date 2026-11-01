@@ -687,7 +687,7 @@ func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 
 
 ## Whether the part ax..bx, az..bz (0..1) of air cell (x, y, z) holds the bark of a trunk
-## beside it thicker than its own cell (see Trees.trunk_box).
+## beside it thicker than its own cell (see Growth.trunk_box).
 func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if get_cell(x, y, z) != Mat.AIR:
 		return false
@@ -699,7 +699,7 @@ func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 		var k := 0
 		while k < 64 and get_cell(col.x, y - k - 1, col.y) == Mat.LOG:
 			k += 1
-		var box := Trees.trunk_box(species, col, k)
+		var box := Growth.trunk_box(species, col, k)
 		# The box in texels of this cell.
 		box.position += o * 8
 		if ax * 8.0 < box.end.x and bx * 8.0 > box.position.x and az * 8.0 < box.end.y and bz * 8.0 > box.position.y:
