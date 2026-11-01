@@ -1,0 +1,18 @@
+# Платиновая руда: редкие жилы в камне (role: ore, veins — доля жил против других руд), её берёт бронзовая кирка
+# и лучше (hardness 4); платиновый блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
+# основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+- id: platinum_ore
+  title: Платиновая руда
+  role: ore
+  veins: 0.12
+  priority: 2
+  item: platinum_ore
+  hardness: 4
+  step: step_stone
+  hit: hit_stone
+- id: platinum_block
+  title: Платиновый блок
+  item: platinum_block
+  hardness: 3
+  step: step_stone
+  hit: hit_stone

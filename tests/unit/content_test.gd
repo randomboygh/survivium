@@ -70,10 +70,13 @@ func _test_content() -> void:
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 19
-		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore")])
-		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.4, -1) == Mat.ORE and Mat.vein_at(0.6, -1) == Mat.index("materials:iron_ore")
-		and Mat.vein_at(0.99, -1) == Mat.index("materials:tin_ore") and Mat.vein_at(0.5, 7) != 7,
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 25
+		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore"),
+			Mat.index("materials:gold_ore"), Mat.index("materials:platinum_ore"), Mat.index("materials:silver_ore")])
+		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.3, -1) == Mat.ORE and Mat.vein_at(0.5, -1) == Mat.index("materials:iron_ore")
+		and Mat.vein_at(0.7, -1) == Mat.index("materials:tin_ore") and Mat.vein_at(0.8, -1) == Mat.index("materials:gold_ore")
+		and Mat.vein_at(0.87, -1) == Mat.index("materials:platinum_ore") and Mat.vein_at(0.95, -1) == Mat.index("materials:silver_ore")
+		and Mat.vein_at(0.5, 7) != 7,
 		"the engine finds materials by their roles, the first ore as ORE, every ore by its share of the veins")
 	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT)
 		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT), "the shader's word per material comes from the data")
@@ -146,7 +149,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 18 and Mods.bundles("plants").size() == 38
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 14 and Mods.bundles("tools").size() == 26 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 17 and Mods.bundles("tools").size() == 26 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):

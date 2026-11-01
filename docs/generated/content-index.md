@@ -16,20 +16,20 @@
 - `core` Основа
 - `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fish` Рыба, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк
 - `biomes` Биомы: `biomes/alpine_meadow` Альпийский луг, `biomes/beach` Берег, `biomes/birch_grove` Берёзовая роща, `biomes/desert` Пустыня, `biomes/floodplain` Пойма, `biomes/forest` Лес, `biomes/forest_steppe` Лесостепь, `biomes/glacier` Ледник, `biomes/ice_waste` Ледяная пустошь, `biomes/jungle` Джунгли, `biomes/mangrove` Мангровые заросли, `biomes/maple_wood` Кленовник, `biomes/meadow` Луг, `biomes/peat_bog` Торфяное болото, `biomes/pine_wood` Бор, `biomes/plateau` Плато, `biomes/red_rocks` Красные скалы, `biomes/rock` Скалы, `biomes/salt_flat` Солончак, `biomes/savanna` Саванна, `biomes/sea` Море, `biomes/steppe` Степь, `biomes/stony_tundra` Каменистая тундра, `biomes/swamp` Болото, `biomes/taiga` Тайга, `biomes/tropical_beach` Тропический берег, `biomes/tropical_sea` Тропическое море, `biomes/tundra` Тундра
-- `materials` Материалы: `materials/bone_glue` Костный клей, `materials/brick` Кирпич, `materials/bronze` Бронза, `materials/charcoal` Уголь, `materials/cloth` Ткань, `materials/copper` Медь, `materials/cord` Верёвка, `materials/glass` Стекло, `materials/iron` Железо, `materials/leather` Кожа, `materials/planks` Доски, `materials/steel` Сталь, `materials/tar` Смола, `materials/tin` Олово
+- `materials` Материалы: `materials/bone_glue` Костный клей, `materials/brick` Кирпич, `materials/bronze` Бронза, `materials/charcoal` Уголь, `materials/cloth` Ткань, `materials/copper` Медь, `materials/cord` Верёвка, `materials/glass` Стекло, `materials/gold` Золото, `materials/iron` Железо, `materials/leather` Кожа, `materials/planks` Доски, `materials/platinum` Платина, `materials/silver` Серебро, `materials/steel` Сталь, `materials/tar` Смола, `materials/tin` Олово
 - `music` Музыка
 - `plants` Растения: `plants/acacia` Акация, `plants/apple` Яблоня, `plants/banana` Банан, `plants/birch` Берёза, `plants/bird_cherry` Черёмуха, `plants/blueberry` Черника, `plants/ceiba` Сейба, `plants/cherry` Вишня, `plants/cranberry` Клюква, `plants/currant` Смородина, `plants/deadwood` Сухое дерево, `plants/ears` Колоски, `plants/fern` Папоротник, `plants/fir` Пихта, `plants/flax` Лён, `plants/grass` Травы, `plants/larch` Лиственница, `plants/linden` Липа, `plants/mangrove` Мангр, `plants/maple` Клён, `plants/monstera` Монстера, `plants/moss` Мох, `plants/mushrooms` Грибы, `plants/nettle` Крапива, `plants/oak` Дуб, `plants/palm` Пальма, `plants/pine` Сосна, `plants/poplar` Тополь, `plants/raspberry` Малина, `plants/red_maple` Клён красный, `plants/reeds` Тростник, `plants/roasted_acorns` Жареные жёлуди, `plants/rosehip` Шиповник, `plants/rowan` Рябина, `plants/shrub` Куст, `plants/spruce` Ель, `plants/willow` Ива, `plants/wood` Древесина
 - `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/salt` Соль, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
 - `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bloomery` Сыродутная печь, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/drying_rack` Сушилка, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/workbench` Верстак
 
-## Предметы (`items`, 136)
+## Предметы (`items`, 145)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
 | `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 12 | ок |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 4 | ок |
-| `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 9 | ок |
+| `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
 | `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 3 | ок |
 | `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 1 / 2 | ок |
 | `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 15 | ок |
@@ -97,14 +97,23 @@
 | `animals:jerky` | Вяленое мясо | Еда | Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно. | `animals/game` | 2. Дерево, кости и кожа | 0 / 1 | ок |
 | `materials:leather` | Кожа | Материалы | Выделанная шкура. Из неё шьют иглой. | `materials/leather` | 2. Дерево, кости и кожа | 1 / 4 | ок |
 | `tools:tallow_candle` | Сальная свеча | Материалы | Фитиль в жиру. Светит слабее факела, но горит дольше. | `tools/candle` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 1 / 6 | ок |
+| `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 1 / 9 | ок |
 | `materials:glass` | Стекло | Материалы | Мутноватое зелёное стекло из песка. Идёт на фонарь. | `materials/glass` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
 | `materials:iron_ore` | Железная руда | Материалы | Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка. | `materials/iron` | 4. Бронза | 0 / 2 | ок |
 | `materials:iron_bloom` | Крица | Материалы | Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка. | `materials/iron` | 5. Железо | 1 / 2 | ок |
 | `materials:iron_bar` | Железный слиток | Материалы | Тёмный прочный металл. Из него наковальня и железные инструменты. | `materials/iron` | 5. Железо | 1 / 17 | ок |
 | `materials:tin_ore` | Оловянная руда | Материалы | Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка. | `materials/tin` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
 | `materials:tin_bar` | Слиток олова | Материалы | Мягкий серебристый металл. С медью даёт бронзу. | `materials/tin` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
-| `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 1 / 14 | ок |
+| `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 1 / 17 | ок |
+| `materials:gold_ore` | Золотая руда | Материалы | Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка. | `materials/gold` | 4. Бронза | 0 / 2 | ок |
+| `materials:gold_bar` | Золотой слиток | Материалы | Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки. | `materials/gold` | 4. Бронза | 0 / 2 | ок |
+| `materials:gold_block` | Золотой блок | Блоки | Блестящий жёлтый блок для построек. | `materials/gold` | 5. Железо | 1 / 2 | ок |
+| `materials:platinum_ore` | Платиновая руда | Материалы | Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка. | `materials/platinum` | 4. Бронза | 0 / 2 | ок |
+| `materials:platinum_bar` | Платиновый слиток | Материалы | Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки. | `materials/platinum` | 4. Бронза | 0 / 2 | ок |
+| `materials:platinum_block` | Платиновый блок | Блоки | Тяжёлый серо-белый блок для построек. | `materials/platinum` | 5. Железо | 1 / 2 | ок |
+| `materials:silver_ore` | Серебряная руда | Материалы | Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка. | `materials/silver` | 4. Бронза | 0 / 2 | ок |
+| `materials:silver_bar` | Серебряный слиток | Материалы | Мягкий белый металл. Из слитков складывают серебряные блоки. | `materials/silver` | 4. Бронза | 0 / 2 | ок |
+| `materials:silver_block` | Серебряный блок | Блоки | Гладкий светлый металлический блок для построек. | `materials/silver` | 5. Железо | 1 / 2 | ок |
 | `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 1 / 7 | ок |
 | `plants:grain` | Зерно | Посадки |  | `plants/ears` | 0. Выживание без инструментов | 2 / 2 | ок |
 | `plants:flour` | Мука | Материалы |  | `plants/ears` | 0. Выживание без инструментов | 0 / 2 | ок |
@@ -164,7 +173,7 @@
 | `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 1 / 1 | ок |
 | `tools:tar_torch` | Смоляной факел | Материалы | Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше. | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 95)
+## Рецепты (`recipes`, 101)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -201,6 +210,12 @@
 | `materials:iron_bar` | Железный слиток | Материалы |  | `materials/iron` | 5. Железо | 4 / 0 | ок |
 | `materials:tin_bar` | Слиток олова | Материалы |  | `materials/tin` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 | `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 4 / 0 | ок |
+| `materials:gold_bar` | Золотой слиток | Материалы |  | `materials/gold` | 4. Бронза | 4 / 0 | ок |
+| `materials:gold_block` | Золотой блок | Блоки |  | `materials/gold` | 5. Железо | 3 / 0 | ок |
+| `materials:platinum_bar` | Платиновый слиток | Материалы |  | `materials/platinum` | 4. Бронза | 4 / 0 | ок |
+| `materials:platinum_block` | Платиновый блок | Блоки |  | `materials/platinum` | 5. Железо | 3 / 0 | ок |
+| `materials:silver_bar` | Серебряный слиток | Материалы |  | `materials/silver` | 4. Бронза | 4 / 0 | ок |
+| `materials:silver_block` | Серебряный блок | Блоки |  | `materials/silver` | 5. Железо | 3 / 0 | ок |
 | `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `tools:brick` | Кирпич | Блоки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
 | `tools:charcoal` | Уголь | Материалы |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
@@ -264,7 +279,7 @@
 | `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 4 / 0 | ок |
 | `tools:tar_torch` | Смоляной факел | Материалы |  | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 
-## Материалы ячеек (`materials`, 19)
+## Материалы ячеек (`materials`, 25)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -287,6 +302,12 @@
 | `plants:leaves` | Листва | crown |  | `plants/wood` | 0 / 0 | ок |
 | `materials:iron_ore` | Железная руда | ore |  | `materials/iron` | 1 / 0 | ок |
 | `materials:tin_ore` | Оловянная руда | ore |  | `materials/tin` | 1 / 0 | ок |
+| `materials:gold_ore` | Золотая руда | ore |  | `materials/gold` | 1 / 0 | ок |
+| `materials:gold_block` | Золотой блок |  |  | `materials/gold` | 1 / 1 | ок |
+| `materials:platinum_ore` | Платиновая руда | ore |  | `materials/platinum` | 1 / 0 | ок |
+| `materials:platinum_block` | Платиновый блок |  |  | `materials/platinum` | 1 / 1 | ок |
+| `materials:silver_ore` | Серебряная руда | ore |  | `materials/silver` | 1 / 0 | ок |
+| `materials:silver_block` | Серебряный блок |  |  | `materials/silver` | 1 / 1 | ок |
 
 ## Деревья (`trees`, 20)
 
