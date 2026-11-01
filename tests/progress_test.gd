@@ -927,6 +927,11 @@ func _go(at: Vector3) -> void:
 	# The server has the body where it was carried a frame later: a swing at once
 	# could still be judged from where it stood before.
 	await process_frame
+	# On a busy machine it can take longer (a station at the camp not yet near, 2026-11-01).
+	var until := Time.get_ticks_msec() + 3000
+	while Vector2(main.host.player.position.x - at.x, main.host.player.position.z - at.z).length() > 0.5 \
+			and Time.get_ticks_msec() < until:
+		await process_frame
 
 
 ## Puts the player on open ground beside `cell`, facing it.

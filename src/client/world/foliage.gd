@@ -526,6 +526,8 @@ static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_r
 				dome = maxf(dome, Vector2(p - at).length())
 		low = maxi(low, top - 4)
 		ys = ys.filter(func(y: int) -> bool: return y >= low)
+		# A sparse crown may have no level right there (a script error, 2026-11-01).
+		low = ys.min()
 	# The middle of the crown, in cells.
 	var middle := Vector2.ZERO
 	var count := 0
