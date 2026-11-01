@@ -56,7 +56,9 @@ flat:
 	doc = yaml.parse("- {item: x, count: 1}\n- {item: y, at: [4, 2]}\n", "entries.yaml")
 	_check(yaml.error == "" and doc == [{"item": "x", "count": 1}, {"item": "y", "at": [4, 2]}],
 		"yaml reads flow mappings in a list (the entries of a field)")
-	for bad in ["a: [1, 2", "a: 1\n\tb: 2", "a: 1\na: 2", "- 1\n  - 2", "x: \"abc", "a: 1\n b: 2"]:
+	doc = yaml.parse("d: Wolf's den  # a note\ne: 'it''s'\n", "apostrophe.yaml")
+	_check(yaml.error == "" and doc.get("d") == "Wolf's den", "an apostrophe inside a plain value leaves the comment cut: %s" % [doc])
+	for bad in ["a: [1, 2", "a: 1\n\tb: 2", "a: 1\na: 2", "- 1\n  - 2", "x: \"abc", "a: 1\n b: 2", "a: {x: 1, x: 2}"]:
 		yaml.parse(bad, "bad.yaml")
 		_check(yaml.error.begins_with("bad.yaml:"), "yaml rejects %s" % bad.c_escape())
 
@@ -348,8 +350,6 @@ func _test_parsed_cache() -> void:
 	var key: String = cache.keys()[0]
 	cache.erase(key)
 	Content._parsed = cache
-	Content.cached_files = 0
-	Content.parsed_files = 0
 	Content.refresh()
 	_check(var_to_str(Content.universe()) == plain and Content.problems == plain_problems
 		and Content.cached_files > 300 and Content.parsed_files == 1,
@@ -420,6 +420,8 @@ func _test_records() -> void:
 	_check(AiRules.SPECIES["animals:wolf"].title == "Другой волк" and AiRules.SPECIES["animals:wolf"].bundle == "_e"
 		and Content.loaded.find("_e") > Content.loaded.find("animals/wolf"),
 		"a record with `replaces: true` replaces the other bundle's, loading after it: %s" % [Content.loaded])
+	_check(AiRules.SPECIES["animals:rabbit"].bundle == "animals/rabbit" and AiRules.SPECIES["animals:rabbit"].title != "Другой кролик",
+		"a record of the same id without `replaces` leaves the first one: %s" % [AiRules.SPECIES["animals:rabbit"].bundle])
 	found = {}
 	for w in Content.warnings:
 		for what in ["`_e:odd_name` makes `materials:cord`: name it `cord`", "`_e:cord_from_bark`: `bark` is not among",

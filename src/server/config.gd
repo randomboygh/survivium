@@ -13,6 +13,8 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const FILE := "user://server.cfg"
+## Where read and write go when given no path: FILE, but server_test keeps its own.
+static var file := FILE
 ## Players a server takes at most, by default; the port by default.
 const PLAYERS := 8
 const PORT := Protocol.PORT
@@ -46,16 +48,18 @@ var cloudflared := ""
 
 
 ## Reads `path` (a ConfigFile); a file that is not there leaves the defaults.
-func read(path := FILE) -> void:
+func read(path := "") -> void:
+	if path == "":
+		path = file
 	var cfg := ConfigFile.new()
 	if cfg.load(path) != OK:
 		return
 	title = str(cfg.get_value("server", "title", title))
-	port = int(cfg.get_value("server", "port", port))
-	max_players = int(cfg.get_value("server", "players", max_players))
+	port = clampi(int(cfg.get_value("server", "port", port)), 1, 65535)
+	max_players = maxi(1, int(cfg.get_value("server", "players", max_players)))
 	password = str(cfg.get_value("server", "password", password))
 	bind = str(cfg.get_value("server", "bind", bind))
-	autosave = float(cfg.get_value("server", "autosave", autosave))
+	autosave = maxf(1.0, float(cfg.get_value("server", "autosave", autosave)))
 	save = bool(cfg.get_value("server", "save", save))
 	tunnel = bool(cfg.get_value("server", "tunnel", tunnel))
 	cloudflared = str(cfg.get_value("server", "cloudflared", cloudflared))
@@ -68,7 +72,9 @@ func read(path := FILE) -> void:
 
 
 ## Writes the settings to `path`.
-func write(path := FILE) -> bool:
+func write(path := "") -> bool:
+	if path == "":
+		path = file
 	var cfg := ConfigFile.new()
 	cfg.set_value("server", "title", title)
 	cfg.set_value("server", "port", port)
@@ -98,10 +104,10 @@ func take_args(args: PackedStringArray) -> void:
 		var next := args[j + 1] if j + 1 < args.size() else ""
 		match args[j]:
 			"--port":
-				port = int(next)
+				port = clampi(int(next), 1, 65535)
 				j += 1
 			"--players":
-				max_players = int(next)
+				max_players = maxi(1, int(next))
 				j += 1
 			"--password":
 				password = next

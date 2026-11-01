@@ -392,6 +392,8 @@ func _arrow(parent: Node, icon: String, row: int, dir: int) -> void:
 
 ## Picks the next (`dir` = 1) or the previous value of row `i`, wrapping around.
 func _step(i: int, dir: int) -> void:
+	if i < 0 or i >= _rows.size():
+		return
 	var r: Dictionary = _rows[i]
 	var n: int = r.values.size()
 	if n == 0:
@@ -425,6 +427,10 @@ func _refresh() -> void:
 
 
 func _set_focus(i: int) -> void:
+	if _rows.is_empty():
+		# A page with no rows (the mods' page with core alone).
+		_focus = 0
+		return
 	_focus = posmod(i, _rows.size())
 	for j in _rows.size():
 		_rows[j].name.add_theme_color_override("font_color", UiStyle.ACCENT if j == _focus else UiStyle.INK)

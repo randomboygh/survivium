@@ -13,8 +13,15 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
+const Hud := preload("res://src/client/ui/hud.gd")
+const Minimap := preload("res://src/client/ui/minimap.gd")
+const Music := preload("res://src/client/audio/music.gd")
+const WorldActions := preload("res://src/shared/game/world_actions.gd")
 
 const PATH := "user://settings.cfg"
+## Where the settings are read and saved: PATH, but the scene tests keep theirs apart
+## (a tool that saves settings, shot.gd, would change what they play).
+static var path := PATH
 ## How fast the clock runs: 1.0 is a 4 minute day (Sky.DAY_LENGTH); the default 0.1 is
 ## a 40 minute day, slow enough for the meditative pace.
 const TIME_SPEEDS := [0.05, 0.1, 0.2, 0.5, 1.0]
@@ -102,6 +109,17 @@ const DEFAULTS := {
 	## (everything found is on).
 	"world_mods_off": "",
 }
+## How many values each setting that picks from a table has: one saved by a later build
+## with more steps, or written by hand, falls back to the default instead of stopping
+## apply() on an index out of range.
+static func _index_limits() -> Dictionary:
+	var volumes := Sound.STEPS + 1
+	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
+		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "cave_view": 2,
+		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
+
+
 ## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
 ## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
 const QUALITIES := [
@@ -171,11 +189,12 @@ func _init(g) -> void:
 
 func load() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(PATH) != OK:
+	if cfg.load(path) != OK:
 		return
+	var limits := _index_limits()
 	for k in DEFAULTS:
 		var v: Variant = cfg.get_value("game", k, DEFAULTS[k])
-		if typeof(v) == typeof(DEFAULTS[k]):
+		if typeof(v) == typeof(DEFAULTS[k]) and (not limits.has(k) or (v >= 0 and v < limits[k])):
 			values[k] = v
 	# Before the kinds of pickup it was on or off.
 	if not cfg.has_section_key("game", "pickup") and cfg.get_value("game", "auto_pickup", true) == false:
@@ -192,7 +211,7 @@ func save() -> void:
 	var cfg := ConfigFile.new()
 	for k in values:
 		cfg.set_value("game", k, values[k])
-	cfg.save(PATH)
+	cfg.save(path)
 
 
 ## Changes one setting, applies it and saves.

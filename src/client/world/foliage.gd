@@ -1037,7 +1037,9 @@ static func _crown_offset(w, x: int, y: int, z: int) -> Vector3:
 				if w.get_cell(x + 2 * dx, y + 2 * dy, z + 2 * dz) == Mat.LEAVES:
 					sum += Vector3(dx, dy, dz)
 					n += 1
-	return sum / n
+	# A collar with no leaves on the lattice round it (a sparse or cut crown) is its own
+	# middle, not NaN.
+	return sum / n if n > 0 else Vector3.ZERO
 
 
 ## Normal for a card at `c`: away from the crown's middle, bent by a few large bumps,

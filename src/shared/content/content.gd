@@ -489,6 +489,8 @@ static func universe() -> Dictionary:
 ## references and patches, for `resolve` and the load.
 static func _scan() -> void:
 	var t := Time.get_ticks_usec()
+	cached_files = 0
+	parsed_files = 0
 	var kept := problems
 	_universe = {}
 	_mods = {}
@@ -918,6 +920,11 @@ static func _load_bundle(bundle: String) -> void:
 			var rec: Dictionary = r.duplicate()
 			var id: String = rec.id
 			var raw: Dictionary = _raw[kind]
+			for own in ["mod", "bundle"]:
+				# Where a record comes from is the folder it lies in, never a field it writes.
+				if rec.has(own):
+					problems.append("%s: %s.%s: unknown field" % [file, id, own])
+					rec.erase(own)
 			if rec.get("patch") == true:
 				rec.erase("patch")
 				if not raw.has(id):
@@ -931,8 +938,10 @@ static func _load_bundle(bundle: String) -> void:
 				var replaces: bool = rec.get("replaces") == true
 				rec.erase("replaces")
 				if raw.has(id) and not replaces:
+					# The first record stays: another bundle's is never swapped silently.
 					problems.append("%s: %s: %s has it already; a record of the same id replaces it only with `replaces: true`"
 						% [file, id, raw[id].bundle])
+					continue
 				elif replaces and not raw.has(id) and _owners.get("%s/%s" % [kind, id], []).size() < 2:
 					problems.append("%s: %s: replaces a record no mod has" % [file, id])
 				rec.mod = u.mod

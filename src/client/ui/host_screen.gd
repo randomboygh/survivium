@@ -370,6 +370,7 @@ func _refresh() -> void:
 		_shown_people = people
 		for c in _people.get_children():
 			c.queue_free()
+			_people.remove_child(c)
 		if people.is_empty():
 			_people.add_child(UiStyle.label("пока никого", UiStyle.MUTED))
 		for p: Array in people:

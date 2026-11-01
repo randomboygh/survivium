@@ -648,12 +648,7 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	if _looked(a, np.x, np.z):
 		ny = a.floor_y
 	else:
-		ny = _floor(spec, np.x, np.z)
-		a.looked = np
-		a.floor_y = ny
-		a.floor_wet = spec.swims and (not spec.ashore or water_top(np.x, np.z) > -INF)
-		if spec.ashore and a.floor_wet:
-			a.home = np
+		ny = _look_floor(a, spec, np)
 	if ny > 0.0 and ((spec.swims and not spec.ashore) or absf(ny - a.pos.y) <= MAX_STEP):
 		a.pos = Vector3(np.x, lerpf(a.pos.y, ny, minf(1.0, delta * 12.0)), np.z)
 		a.moving = v.length() > speed * delta * 0.2 or a.hop > 0.0
@@ -1049,6 +1044,18 @@ static func _wester(a: Animal, b: Animal) -> bool:
 	return a.pos.x < b.pos.x
 
 
+## Looks up the floor of animal `a` at `at` (world units, its height unused) and keeps
+## it: the level, whether it is water to swim in, and where an ashore swimmer last swam.
+func _look_floor(a: Animal, spec: Dictionary, at: Vector3) -> float:
+	var y := _floor(spec, at.x, at.z)
+	a.looked = at
+	a.floor_y = y
+	a.floor_wet = spec.swims and (not spec.ashore or water_top(at.x, at.z) > -INF)
+	if spec.ashore and a.floor_wet:
+		a.home = at
+	return y
+
+
 ## Moves animal `a` over the ground by `by` (world units) when it can stand there;
 ## whether it did.
 func _shove(a: Animal, spec: Dictionary, by: Vector2) -> bool:
@@ -1061,9 +1068,7 @@ func _shove(a: Animal, spec: Dictionary, by: Vector2) -> bool:
 		y = a.floor_y
 	else:
 		# One shoved about on the spot (a flock standing) looks the floor up once.
-		y = _floor(spec, x, z)
-		a.looked = Vector3(x, 0.0, z)
-		a.floor_y = y
+		y = _look_floor(a, spec, Vector3(x, a.pos.y, z))
 	if y <= 0.0 or (not (spec.swims and not spec.ashore) and absf(y - a.pos.y) > MAX_STEP):
 		return false
 	a.pos = Vector3(x, y, z)

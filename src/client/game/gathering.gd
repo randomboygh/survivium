@@ -48,11 +48,14 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 	var player_pos: Vector3 = game.player.position + Vector3(0.0, 0.5, 0.0)
 	var world = game.world
 	var bush_reach: float = game.controls.tool_record().reach * CELL
+	# A placed thing is big: it is hit 6 px farther than the radius, and the nearest wins.
+	var prop_d := radius + 6.0
 	for e: Dictionary in game.placed.things:
 		var at: Vector3 = game.placed.center(e)
 		if at.distance_to(player_pos) <= REACH:
 			var d := _screen_distance(at, vp_pos)
-			if d < best_d + 6.0:
+			if d < prop_d:
+				prop_d = d
 				best_d = d
 				best = {"prop": e, "at": at}
 	var home := WorldData.chunk_key(floori(player_pos.x / CELL), floori(player_pos.z / CELL))

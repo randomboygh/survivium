@@ -139,6 +139,9 @@ func rejoin() -> void:
 	_again.clear()
 	_cells.clear()
 	_drops.clear()
+	# What piled up while the player was away is in the full flush; sent again after
+	# it, a thing placed meanwhile would be put twice.
+	outbox.clear()
 
 
 ## Takes message `bytes` from the client: the reply's bytes for a request, null for an
@@ -365,8 +368,9 @@ func _on_looks(key: Vector2i) -> void:
 		_again[key] = true
 
 
-func _on_taken(id: String, from: Vector3) -> void:
-	if send_world:
+## Only the one who took it sees it fly into their bag.
+func _on_taken(id: String, from: Vector3, by: Object) -> void:
+	if send_world and by == who:
 		_push(Protocol.TAKEN, [id, from])
 
 

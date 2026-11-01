@@ -175,7 +175,9 @@ func unhandled_input(event: InputEvent) -> void:
 			MOUSE_BUTTON_RIGHT:
 				tap(1, event.position, MOUSE_BUTTON_RIGHT)
 			MOUSE_BUTTON_WHEEL_UP:
-				select_slot((_slot_index() - 1 + n) % n)
+				# From a hand not on the hotbar (-1), up goes to the last slot.
+				var at := _slot_index()
+				select_slot(n - 1 if at < 0 else (at - 1 + n) % n)
 			MOUSE_BUTTON_WHEEL_DOWN:
 				select_slot((_slot_index() + 1) % n)
 

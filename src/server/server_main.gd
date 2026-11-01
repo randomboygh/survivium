@@ -237,6 +237,14 @@ func _process(delta: float) -> void:
 			_quit()
 
 
+## The world is saved when the window closes (a server made from the game's menu, which
+## has a window) or the app is sent to the background: the autosave may be seconds away.
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_PAUSED] \
+			and saves != null and server != null and not server.stopping:
+		saves.save(server)
+
+
 func _exit_tree() -> void:
 	close_tunnel()
 

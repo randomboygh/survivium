@@ -164,6 +164,8 @@ var water := Biomes.NONE
 func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	super(SEED, sy, {})
 	ground = sea + 2
+	# WorldGen._init picked the spawn before the ground's level was known.
+	spawn_guess = _pick_spawn()
 	# A static func, so the world holds no reference back to its maker.
 	world.grows = Callable(get_script(), "growth")
 	# The strip of materials shows what the loaded mods give: the roles, and the built

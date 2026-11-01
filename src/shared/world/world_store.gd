@@ -143,9 +143,7 @@ func write_chunk(key: Vector2i, d: Dictionary) -> bool:
 	if f == null:
 		push_error("cannot write %s: %s" % [path, error_string(FileAccess.get_open_error())])
 		return false
-	f.store_var(d)
-	f.close()
-	if not _replace(path):
+	if not _written(f, path, f.store_var(d)) or not _replace(path):
 		return false
 	_chunks[key] = true
 	return true
@@ -177,9 +175,7 @@ func write_map(key: Vector2i, data: PackedByteArray) -> bool:
 	if f == null:
 		push_error("cannot write %s: %s" % [path, error_string(FileAccess.get_open_error())])
 		return false
-	f.store_var(data)
-	f.close()
-	return _replace(path)
+	return _written(f, path, f.store_var(data)) and _replace(path)
 
 
 ## How many chunks are on disk.
@@ -217,9 +213,23 @@ static func write_json_beside(path: String, d: Dictionary) -> bool:
 	if f == null:
 		push_error("cannot write %s: %s" % [path, error_string(FileAccess.get_open_error())])
 		return false
-	f.store_string(JSON.stringify(d, "\t"))
+	return _written(f, path, f.store_string(JSON.stringify(d, "\t")))
+
+
+## Closes `f`, the file written beside `path`, and tells whether the write went well
+## (`stored`, what the store call returned, no error on the file, something on disk). A
+## write that failed (a full disk, a storage quota) leaves no `.tmp` behind, so it never
+## replaces the good file at `path`.
+static func _written(f: FileAccess, path: String, stored: bool) -> bool:
+	var ok := stored and f.get_error() == OK
 	f.close()
-	return true
+	if ok:
+		var back := FileAccess.open(path + ".tmp", FileAccess.READ)
+		ok = back != null and back.get_length() > 0
+	if not ok:
+		push_error("cannot write %s: the write failed, the file there is kept" % path)
+		DirAccess.remove_absolute(path + ".tmp")
+	return ok
 
 
 ## Moves the file written beside `path` over it.

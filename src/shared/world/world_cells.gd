@@ -16,6 +16,7 @@ extends RefCounted
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Content := preload("res://src/shared/content/content.gd")
 ## Size of a cell in world units; a world unit is 16 px on screen.
 const CELL := 0.5
 ## Chunk size in cells: the unit the world is generated, kept, meshed and streamed in.
@@ -764,13 +765,23 @@ func unpack_chunk(d: Dictionary) -> bool:
 				add_bush(b[0], b[1])
 			else:
 				map[b[0]] = b[1]
+	# Ids saved before a record was renamed (its `was`) are read as the record's id now:
+	# the crops sown, the drops and the stacks in a sack.
 	var grown: Dictionary = d.get("turf", {})
 	if not grown.is_empty():
-		turf[key] = grown.duplicate()
+		var sown := {}
+		for cell in grown:
+			var what: Variant = grown[cell]
+			sown[cell] = Content.canon("plants", what) if what is String and what != "" else what
+		turf[key] = sown
 	var on_ground: Array = d.get("drops", [])
 	if not on_ground.is_empty():
 		for drop in on_ground:
 			if drop is Array and not drop.is_empty() and drop[0] is String:
 				drop[0] = Items.canon(drop[0])
+				if drop.size() > 3 and drop[3] is Array:
+					for s in drop[3]:
+						if s is Array and not s.is_empty() and s[0] is String:
+							s[0] = Items.canon(s[0])
 		drops[key] = on_ground
 	return true

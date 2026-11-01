@@ -18,6 +18,7 @@ extends SceneTree
 ## what is tested here.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const SettingsFile := preload("res://src/client/settings.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -67,6 +68,9 @@ var raw := {}
 
 func _initialize() -> void:
 	OS.low_processor_usage_mode_sleep_usec = 0
+	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
+	SettingsFile.path = "user://test_settings.cfg"
+	DirAccess.remove_absolute(SettingsFile.path)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
 	root.add_child(main)

@@ -3,7 +3,7 @@ extends SceneTree
 ## each item that names one as its `icon`, content/<mod>/icons/<icon>.png, and the
 ## interface's small pictures (ItemIcons.UI) as assets/ui/<name>.png. A picture painted
 ## over by hand is overwritten, so name the pictures to make:
-## godot --headless --path . --script res://tools/make_icons.gd -- [picture ...]
+## godot --headless --path . --script res://tools/make_icons.gd -- <picture ...> | --all
 
 const Items := preload("res://src/shared/content/items.gd")
 const IconArt := preload("res://tools/art/icon_art.gd")
@@ -12,6 +12,14 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
 func _init() -> void:
 	var only := OS.get_cmdline_user_args()
+	# Everything is drawn again only when asked for by `--all`: what was painted over
+	# by hand would be lost.
+	if only.is_empty():
+		printerr("name what to make, or --all for everything (it overwrites what was painted by hand)")
+		quit(1)
+		return
+	if only == PackedStringArray(["--all"]):
+		only = PackedStringArray()
 	var paths := {}
 	for id in Items.IDS:
 		var item := Items.get_item(id)

@@ -38,7 +38,15 @@ batch() {
 		if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::group::$n: $secs s, exit $code"; else echo "=== $n: $secs s, exit $code"; fi
 		cat "$out/$n.log"
 		[ -n "${GITHUB_ACTIONS:-}" ] && echo "::endgroup::"
-		[ "$code" = 0 ] || failed+=("$n")
+		if [ "$code" != 0 ]; then
+			failed+=("$n")
+		elif grep -q 'SCRIPT ERROR' "$out/$n.log"; then
+			# A runtime error aborts the function it is in, and the test goes on without
+			# the checks after it: the exit code alone does not show it.
+			echo "$n: script errors in the log:"
+			grep -A2 'SCRIPT ERROR' "$out/$n.log" | head -20
+			failed+=("$n")
+		fi
 	done
 }
 

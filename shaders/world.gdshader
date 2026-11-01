@@ -195,9 +195,10 @@ void fragment() {
 	if (!IN_SHADOW_PASS && !kept && above_cut(world_pos)) {
 		discard;
 	}
-	// A cap of the cut (dark, see build_cap), not a trunk's top in its crown.
-	int cap_tile = int(packed.x + 0.5) % 64;
-	bool cut_cap = cap_tile != NONE && COLOR.r < 0.5 && (material_bits[cap_tile / 3] & TRUNK) == 0;
+	// A cap of the cut (dark, see build_cap), not a trunk's top in its crown, nor a
+	// voxel (its material code is NO_MATERIAL; see MeshFaces.pack).
+	int cap_code = int(packed.x + 0.5) % 64;
+	bool cut_cap = cap_code != NO_MATERIAL && COLOR.r < 0.5 && (material_bits[cap_code] & TRUNK) == 0;
 	if (section && cut_cap && !IN_SHADOW_PASS && !section_here(world_pos)) {
 		discard;
 	}

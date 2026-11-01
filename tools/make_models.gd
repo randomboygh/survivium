@@ -3,7 +3,7 @@ extends SceneTree
 ## slices in the mod of each item that names one as its `model`:
 ## content/<mod>/models/<model>.png (see VoxelModel.from_image). A model painted over by
 ## hand is overwritten, so name the models to make:
-## godot --headless --path . --script res://tools/make_models.gd -- [model ...]
+## godot --headless --path . --script res://tools/make_models.gd -- <model ...> | --all
 
 const Items := preload("res://src/shared/content/items.gd")
 const VoxelArt := preload("res://tools/art/voxel_art.gd")
@@ -12,6 +12,14 @@ const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 
 func _init() -> void:
 	var only := OS.get_cmdline_user_args()
+	# Everything is drawn again only when asked for by `--all`: what was painted over
+	# by hand would be lost.
+	if only.is_empty():
+		printerr("name what to make, or --all for everything (it overwrites what was painted by hand)")
+		quit(1)
+		return
+	if only == PackedStringArray(["--all"]):
+		only = PackedStringArray()
 	var done := {}
 	for id in Items.IDS:
 		var item := Items.get_item(id)

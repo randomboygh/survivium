@@ -163,5 +163,7 @@ Each in one line; the system's context doc has the detail.
   params: that makes an object per call.
 - Web touch also arrives as mouse motion: `controls.input` treats it as a mouse only with no finger
   down and 1 s after the last touch.
-- `tools/shot.gd` and `tools/profile.gd` save `user://settings.cfg`, which breaks a later local
-  `frame_test`: delete it first.
+- `tools/shot.gd` and `tools/profile.gd` save `user://settings.cfg`; the scene tests read their own
+  `user://test_settings.cfg` (`Settings.path`), so a tool no longer changes what they play.
+- A runtime error in a test aborts only its function: `run_tests` counts each as a failure and
+  `run_all.sh` fails any log with `SCRIPT ERROR`.

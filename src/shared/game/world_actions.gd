@@ -74,8 +74,8 @@ signal cell_changed(cell: Vector3i)
 signal looks_changed(key: Vector2i)
 ## The things lying on the ground in chunk `key` (WorldData.drops) changed.
 signal drops_changed(key: Vector2i)
-## A thing lying at `from` flew into the bag by itself (see pick_up_near).
-signal taken(id: String, from: Vector3)
+## A thing lying at `from` flew into the bag of `by` by itself (see pick_up_near).
+signal taken(id: String, from: Vector3, by: Object)
 
 var world
 ## The clock: `season` (0 spring .. 3 winter) and `day`.
@@ -999,7 +999,7 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 				if not rest.is_empty():
 					world.add_drop(rest[0], rest[1], rest[2], rest[3])
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
-					taken.emit(d[0], d[1])
+					taken.emit(d[0], d[1], who)
 				took = true
 				list = world.drops.get(key, [])
 			if took:

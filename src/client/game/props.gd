@@ -303,7 +303,7 @@ func _tile_colour(m: int) -> Color:
 
 
 ## A thing taken from the ground at `from` flies to the player and is gone.
-func fly(kind: String, from: Vector3) -> void:
+func fly(kind: String, from: Vector3, _by: Object = null) -> void:
 	var mesh := _drop_mesh(kind)
 	if mesh == null:
 		return

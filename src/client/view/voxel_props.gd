@@ -34,9 +34,11 @@ static func of_item(item: Dictionary, centred: bool) -> VoxelModel:
 	if name == "":
 		return null
 	var path := model_path(item, name)
-	if not _read.has(path):
-		_read[path] = VoxelModel.from_image(load(path).get_image(), centred) if ResourceLoader.exists(path) else null
-	return _read[path]
+	# A model centred on the origin (a drop) and one at its corner (placed) are two.
+	var key := path + ("|centred" if centred else "|corner")
+	if not _read.has(key):
+		_read[key] = VoxelModel.from_image(load(path).get_image(), centred) if ResourceLoader.exists(path) else null
+	return _read[key]
 
 
 ## Where item `item` keeps model `name`: in its bundle (see Content.asset).

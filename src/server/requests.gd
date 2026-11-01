@@ -158,7 +158,8 @@ func _do(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_STRING]):
 				return _chat(args[0])
 		Protocol.REVIVE:
-			if _fit(args, [TYPE_VECTOR3]):
+			# Only the dead come back (where to is checked at stage С6).
+			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():
 				who.revive(args[0])
 				return true
 	return null

@@ -201,8 +201,10 @@ func _fill() -> void:
 	_cause.visible = cause[1] != ""
 	var t := float(death.get("time", 0.0)) * 24.0
 	_when.text = "день %d · %02d:%02d" % [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))]
+	# Out of the grid at once: the panel is measured below, before the frame ends.
 	for c in _lost.get_children():
 		c.queue_free()
+		_lost.remove_child(c)
 	var lost: Array = death.get("lost", [])
 	for st: Array in lost:
 		var s := HotbarSlot.new(SLOT)
