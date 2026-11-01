@@ -79,9 +79,13 @@ async function open(name, options, init, tapDpr) {
   const deadline = Date.now() + 180000;
   while (!log.some((t) => t.includes('world ready')) && Date.now() < deadline) await page.waitForTimeout(1000);
   if (!log.some((t) => t.includes('world ready'))) errors.push(`${name}: world was not ready within 180 s`);
-  // The menu goes in once the world's first frames have settled (main_menu.gd settled).
+  // The menu goes in once the world's first frames have settled (main_menu.gd settled):
+  // its own two minutes from when the world was ready, which under software GL can come
+  // late in the wait above (a phone run closed the menu just after the old shared limit,
+  // 2026-11-01).
   if (menu) {
-    while (!log.some((t) => t.includes('main menu closed')) && Date.now() < deadline + 60000) await page.waitForTimeout(1000);
+    const settled = Date.now() + 120000;
+    while (!log.some((t) => t.includes('main menu closed')) && Date.now() < settled) await page.waitForTimeout(1000);
     if (!log.some((t) => t.includes('main menu closed'))) errors.push(`${name}: the main menu did not go into the world`);
   }
   return { context, page, log };
