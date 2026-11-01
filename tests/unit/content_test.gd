@@ -144,7 +144,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 32
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 33
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 14 and Mods.bundles("tools").size() == 25 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -164,7 +164,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 17), Растения" and Mods.summary(["core"]) == "только основа"
-		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 32)", "a set is summed up by mods")
+		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 33)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -247,7 +247,8 @@ func _test_mods() -> void:
 		and Biomes.pick(0.4, 0.4) == Biomes.named("pine_wood") and Biomes.pick(0.45, 0.6) == Biomes.named("birch_grove")
 		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe") and Biomes.pick(0.03, 0.9) == Biomes.named("ice_waste")
 		and Biomes.pick(0.15, 0.3) == Biomes.named("stony_tundra") and Biomes.pick(0.3, 0.9) == Biomes.named("peat_bog")
-		and Biomes.pick(0.7, 0.3) == Biomes.named("salt_flat") and Biomes.pick(0.6, 0.47) == Biomes.named("forest_steppe"),
+		and Biomes.pick(0.7, 0.3) == Biomes.named("salt_flat") and Biomes.pick(0.6, 0.47) == Biomes.named("forest_steppe")
+		and Biomes.pick(0.85, 0.6) == Biomes.named("savanna") and Biomes.pick(0.95, 0.4) == Biomes.named("red_rocks"),
 		"a column's climate picks the biome whose windows hold it, the most specific first")
 	var gen := WorldGen.new(20261018, 48)
 	_check(Biomes.top(Biomes.named("ice_waste"), gen.grounds) == Mat.SNOW and Mat.SNOW >= 0
