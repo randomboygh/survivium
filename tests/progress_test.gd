@@ -423,7 +423,10 @@ func _place(id: String) -> bool:
 func _camp_report() -> String:
 	var w = main.world
 	var feet: Vector3i = main.controls.feet()
-	var out := "cut %d, feet %s, step %s, things %d" % [main.chunks.cut_level, feet, main.controls.step(), main.session.placed.things.size()]
+	var ch = main.chunks
+	var out := "cut %d (target %d, manual %d, ground %d, level %d, on ground %s, indoor %s, sunk %s rim %d, hidden by %d), feet %s, step %s, things %d" % [
+		ch.cut_level, ch.cut_target, ch.manual_level, ch.ground_level, main.player.level(), main.player.body.on_ground,
+		ch.indoor, ch.sunk, ch.sunk_rim, ch.hidden_by, feet, main.controls.step(), main.session.placed.things.size()]
 	var taken := {}
 	for e in main.session.placed.things:
 		for dz in 2:
