@@ -170,6 +170,8 @@ const BURN_WARN := 20.0
 ## A copy of the character (a client's) learns of a light burning this often, in
 ## seconds, besides when one burns out.
 const BURN_TELL := 5.0
+## Seconds of one step of the body (Vitals.step) within a longer frame.
+const VITALS_STEP := 0.05
 
 
 func _init() -> void:
@@ -231,7 +233,13 @@ func update(delta: float) -> void:
 	if stride < STRIDE_MAX:
 		note("walked", stride)
 	_last_at = p
-	vitals.step(delta, clock.days(delta), body.swimming, inventory.load_share() if inventory.heavy else 0.0)
+	# The body runs in short steps, so a long frame drowns or heals as short ones would.
+	var share := inventory.load_share() if inventory.heavy else 0.0
+	var left := delta
+	while left > 0.0:
+		var d := minf(left, VITALS_STEP)
+		vitals.step(d, clock.days(d), body.swimming, share)
+		left -= d
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	if body.jumped:
 		note("jumps")
