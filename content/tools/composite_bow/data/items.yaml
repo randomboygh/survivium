@@ -1,0 +1,20 @@
+# Составной лук: деревянный лук бандла «Лук», усиленный костью, склеенный костным клеем и обмотанный
+# кожей; стреляет теми же стрелами. Отдельным бандлом, чтобы «Лук» не зависел от зверей и кожи. Поля —
+# как в бандле «Лук» (content/tools/bow/data/items.yaml).
+- id: composite_bow
+  title: Составной лук
+  description: Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее.
+  weight: 0.9
+  stack: 1
+  model: composite_bow
+  icon: composite_bow
+  tool: bow
+  sprite: composite_bow
+  anim: slash
+  power: 7
+  swing: 0.6
+  reach: 4
+  range: 36
+  ammo: arrow
+  durability: 450
+  repair: {materials:bone_glue: 1}

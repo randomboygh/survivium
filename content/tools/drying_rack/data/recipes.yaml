@@ -1,0 +1,7 @@
+# Рецепт бандла «Сушилка»: рама из веток, связанная верёвкой, на верстаке. Поля — docs/DATA_MODEL.md.
+- id: drying_rack
+  title: Сушилка
+  makes: drying_rack
+  needs: {resources:branch: 8, materials:cord: 3}
+  at: workbench
+  time: 8

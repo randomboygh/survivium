@@ -1,0 +1,12 @@
+# Сушилка: рама из веток, на ней сушат и вялят (prop: drying_rack; у неё делают то, что в recipes.yaml
+# указывает на неё в `at`): кожу из шкуры с жиром — в бандле «Кожа» «Материалов», вяленое мясо — в
+# бандле «Добыча» «Животных». Поля — как у предметов основы (content/core/data/items.yaml).
+- id: drying_rack
+  title: Сушилка
+  description: Рама из веток. На ней выделывают шкуры и вялят мясо.
+  era: core:bone_leather
+  weight: 6.0
+  stack: 1
+  icon: drying_rack
+  model: drying_rack
+  prop: drying_rack

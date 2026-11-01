@@ -1,0 +1,20 @@
+# Кожаная праща: та же праща (класс sling, камешки бандла «Праща»), но из кожи — дальше и сильнее.
+# Отдельным бандлом, чтобы «Праща» не зависела от кожи и зверей. Поля — как в бандле «Праща»
+# (content/tools/sling/data/items.yaml).
+- id: leather_sling
+  title: Кожаная праща
+  description: Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной.
+  weight: 0.2
+  stack: 1
+  model: leather_sling
+  icon: leather_sling
+  tool: sling
+  sprite: leather_sling
+  anim: slash
+  power: 3
+  swing: 0.6
+  reach: 4
+  range: 24
+  ammo: sling_stone
+  durability: 300
+  repair: {materials:leather: 1}

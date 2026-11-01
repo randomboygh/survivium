@@ -146,7 +146,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 31
 		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 12 and Mods.bundles("tools").size() == 20 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 14 and Mods.bundles("tools").size() == 25 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
@@ -204,7 +204,7 @@ func _test_mods() -> void:
 	_check(found.size() == 3, "the loader reports a missing requirement, a patch of nothing and a bad `+` (%d of 3): %s" % [found.size(), Content.problems])
 	_check(not Array(Content.problems).any(func(p: String) -> bool: return "deer" in p or "likes" in p or "cone" in p),
 		"a patch of a record not loaded and a soft reference dropped are no problems: %s" % [Content.problems])
-	var with_d := Mods.expand(["core", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials", "resources"]) + ["_d"]
+	var with_d := Mods.expand(["core", "plants/ears", "plants/spruce", "plants/wood", "tools", "materials", "resources", "animals/game"]) + ["_d"]
 	Mods.activate(with_d)
 	_check(Content.dropped.is_empty() and Content.problems.is_empty() and Crafting.get_recipe("_d:porridge").needs == {"plants:grain": 2}
 		and Trees.SPECIES[Trees.index("_d:fir")].seed == "plants:cone" and Bushes.TYPES[Bushes.index("_d:thorn")].fruit == "",
@@ -272,8 +272,8 @@ func _test_old_worlds() -> void:
 		and not Mods.additive("core") and not Mods.additive("nothing"),
 		"a bundle of items, recipes, eras, starts and sounds only adds things to make; one with cells, trees or creatures does not")
 	# Bundles of things to make that came after world.json kept the bundles a world knew.
-	var since := ["animals/game", "materials/bronze", "materials/cloth", "materials/glass", "materials/steel", "materials/tar", "plants/roasted_acorns",
-		"tools/anvil", "tools/bloomery", "tools/bow", "tools/knife", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch"]
+	var since := ["animals/game", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
+		"plants/roasted_acorns", "tools/anvil", "tools/bloomery", "tools/bow", "tools/candle", "tools/composite_bow", "tools/drying_rack", "tools/knife", "tools/leather_sling", "tools/needle", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch"]
 	var adds := all.filter(func(b: String) -> bool: return Mods.additive(b) and not b in since)
 	_check(adds == Mods.OLD_ADDITIVE and since.all(func(b: String) -> bool: return Mods.additive(b)),
 		"OLD_ADDITIVE lists the bundles that only add things to make, but those that came later: %s" % [adds])

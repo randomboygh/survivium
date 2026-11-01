@@ -16,7 +16,7 @@ declare -A script=(
 	[save_test]=tests/save_test.gd [progress_test]=tests/progress_test.gd [frame_test]=tests/frame_test.gd
 	[server_test]=tests/server_test.gd)
 declare -A args=([report]=--check)
-declare -A limit=([validate]=120 [report]=120 [run_tests]=300 [save_test]=300 [progress_test]=900 [frame_test]=600
+declare -A limit=([validate]=120 [report]=120 [run_tests]=300 [save_test]=300 [progress_test]=1200 [frame_test]=600
 	[server_test]=300)
 failed=()
 

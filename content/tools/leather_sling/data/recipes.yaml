@@ -1,0 +1,8 @@
+# Рецепт бандла «Кожаная праща»: кожу («Материалы») с верёвкой шьют иглой (класс needle, бандл «Игла»).
+- id: leather_sling
+  title: Кожаная праща
+  makes: leather_sling
+  needs: {materials:leather: 1, materials:cord: 1}
+  tools: [needle]
+  wear: 1
+  time: 5

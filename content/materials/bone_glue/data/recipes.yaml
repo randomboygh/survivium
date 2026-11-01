@@ -1,0 +1,10 @@
+# Рецепт бандла «Костный клей»: кости («Животные», бандл «Добыча») с веткой на дрова варят на костре
+# основы в глиняном горшке гончарного круга (горшок остаётся в сумке).
+- id: bone_glue
+  title: Костный клей
+  makes: bone_glue
+  needs: {animals:bone: 3, resources:branch: 1}
+  keeps: {tools:pot: 1}
+  at: core:campfire
+  process: cook
+  time: 6

@@ -35,6 +35,8 @@ static func prop(kind: String) -> VoxelModel:
 			return bloomery()
 		"anvil":
 			return anvil()
+		"drying_rack":
+			return drying_rack()
 	return null
 
 
@@ -83,11 +85,15 @@ static func drop(model: String) -> VoxelModel:
 		"flint_spear", "bronze_spear", "iron_spear":
 			return _spear(Color(0.3, 0.31, 0.34) if model == "flint_spear" else _head(model))
 		"cord_sling":
-			return _sling()
+			return _sling(Color(0.5, 0.36, 0.22), Color(0.8, 0.74, 0.6))
+		"leather_sling":
+			return _sling(Color(0.42, 0.27, 0.16), Color(0.62, 0.44, 0.28))
 		"sling_stone":
 			return _pebbles()
 		"wooden_bow":
-			return _bow()
+			return _bow(Color(0.55, 0.38, 0.2), Color(0.55, 0.38, 0.2))
+		"composite_bow":
+			return _bow(Color(0.45, 0.3, 0.16), Color(0.92, 0.9, 0.82))
 		"arrow":
 			return _arrow()
 		"small_carcass":
@@ -99,7 +105,17 @@ static func drop(model: String) -> VoxelModel:
 		"roasted_meat":
 			return _meat(Color(0.48, 0.26, 0.12), Color(0.66, 0.42, 0.2))
 		"hide":
-			return _hide()
+			return _hide(Color(0.56, 0.4, 0.26), true)
+		"leather":
+			return _hide(Color(0.66, 0.45, 0.27), false)
+		"jerky":
+			return _meat(Color(0.4, 0.16, 0.12), Color(0.55, 0.3, 0.2))
+		"bone_needle":
+			return _needle()
+		"bone_glue":
+			return _heap(Color(0.82, 0.62, 0.3))
+		"tallow_candle":
+			return _candle()
 		"bone":
 			return _bone()
 		"fat":
@@ -481,15 +497,14 @@ static func _spear(tip: Color) -> VoxelModel:
 	return m
 
 
-## A sling lying: two cords and the pouch between them.
-static func _sling() -> VoxelModel:
+## A sling lying: two cords of `cord` and the pouch of `pouch` between them.
+static func _sling(pouch: Color, cord: Color) -> VoxelModel:
 	var m := VoxelModel.new()
-	var cord := Color(0.8, 0.74, 0.6)
 	for x in range(-6, 7):
 		m.set_voxel(Vector3i(x, 0, 1 if x < 0 else -1), cord * (0.9 if x % 2 == 0 else 1.0))
 	for x in range(-1, 2):
 		for z in range(-1, 2):
-			m.set_voxel(Vector3i(x, 0, z), Color(0.5, 0.36, 0.22))
+			m.set_voxel(Vector3i(x, 0, z), pouch)
 	return m
 
 
@@ -504,13 +519,14 @@ static func _pebbles() -> VoxelModel:
 	return m
 
 
-## A bow lying flat: its curved limb and the string straight across.
-static func _bow() -> VoxelModel:
+## A bow lying flat: its curved limb of `wood`, `tips` at both ends and the grip (bone on a
+## composite bow), and the string straight across.
+static func _bow(wood: Color, tips: Color) -> VoxelModel:
 	var m := VoxelModel.new()
-	var wood := Color(0.55, 0.38, 0.2)
 	for x in range(-6, 7):
 		var bend := 3 - int(round(x * x / 12.0))
-		m.set_voxel(Vector3i(x, 0, bend), wood * (1.1 if x % 2 == 0 else 1.0))
+		var c := tips if tips != wood and (abs(x) >= 5 or x == 0) else wood * (1.1 if x % 2 == 0 else 1.0)
+		m.set_voxel(Vector3i(x, 0, bend), c)
 		m.set_voxel(Vector3i(x, 0, 0), Color(0.86, 0.82, 0.72))
 	return m
 
@@ -562,17 +578,45 @@ static func _meat(c: Color, streak: Color) -> VoxelModel:
 	return m
 
 
-## A raw hide spread flat: a rough brown skin, the legs' flaps at its corners.
-static func _hide() -> VoxelModel:
+## A hide spread flat: a skin of `skin`, rough with the legs' flaps at its corners when
+## `raw`, smooth and square when tanned into leather.
+static func _hide(skin: Color, raw: bool) -> VoxelModel:
 	var m := VoxelModel.new()
-	var skin := Color(0.56, 0.4, 0.26)
 	for z in range(-3, 3):
 		for x in range(-4, 4):
 			if (abs(x + 0.5) > 3.0 and abs(z + 0.5) > 1.5):
 				continue
-			m.set_voxel(Vector3i(x, 0, z), skin * (0.85 if (x * 3 + z * 5) % 4 == 0 else 1.0))
+			m.set_voxel(Vector3i(x, 0, z), skin * (0.85 if raw and (x * 3 + z * 5) % 4 == 0 else 1.0))
+	if not raw:
+		for x in range(-4, 4):
+			m.set_voxel(Vector3i(x, 1, -3), skin * 0.9)
+		return m
 	for o in [Vector3i(-5, 0, -3), Vector3i(4, 0, -3), Vector3i(-5, 0, 2), Vector3i(4, 0, 2)]:
 		m.set_voxel(o, skin * 0.8)
+	return m
+
+
+## A bone needle: a thin white sliver with an eye at its blunt end.
+static func _needle() -> VoxelModel:
+	var m := VoxelModel.new()
+	var white := Color(0.92, 0.9, 0.82)
+	for x in range(-3, 4):
+		m.set_voxel(Vector3i(x, 0, 0), white * (0.85 if x == 3 else 1.0))
+	m.set_voxel(Vector3i(-4, 0, -1), white * 0.9)
+	m.set_voxel(Vector3i(-4, 0, 1), white * 0.9)
+	m.set_voxel(Vector3i(-5, 0, 0), white * 0.9)
+	return m
+
+
+## A tallow candle standing: a pale yellow stick with a dark wick on top.
+static func _candle() -> VoxelModel:
+	var m := VoxelModel.new()
+	var tallow := Color(0.94, 0.88, 0.66)
+	for y in range(0, 5):
+		for z in range(-1, 1):
+			for x in range(-1, 1):
+				m.set_voxel(Vector3i(x, y, z), tallow * (0.9 if x + z == -1 else 1.0))
+	m.set_voxel(Vector3i(0, 5, 0), Color(0.2, 0.16, 0.12))
 	return m
 
 
@@ -865,6 +909,40 @@ static func loom() -> VoxelModel:
 	for y in range(0, 4):
 		m.set_voxel(Vector3i(5, y, 13), dark)
 		m.set_voxel(Vector3i(10, y, 13), dark)
+	return m
+
+
+## A drying rack: two A-shaped frames of branches tied with cord, a pole across them,
+## a hide hanging over the pole and strips of meat drying beside it.
+static func drying_rack() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.5, 0.35, 0.2)
+	var dark := Color(0.36, 0.24, 0.13)
+	var cord := Color(0.8, 0.74, 0.6)
+	var skin := Color(0.62, 0.43, 0.26)
+	var meat := Color(0.48, 0.18, 0.14)
+	# The frames at the west and east ends: two legs leaning together.
+	for x in [1, 14]:
+		for y in range(0, 15):
+			var lean := int(y / 3.0)
+			m.set_voxel(Vector3i(x, y, 3 + lean), dark if y % 4 == 0 else wood)
+			m.set_voxel(Vector3i(x, y, 12 - lean), dark if y % 4 == 0 else wood)
+		m.set_voxel(Vector3i(x, 13, 7), cord)
+		m.set_voxel(Vector3i(x, 13, 8), cord)
+	# The pole on top, a lower bar on each side.
+	for x in range(0, 16):
+		m.set_voxel(Vector3i(x, 14, 7), wood * (1.1 if x % 3 == 0 else 1.0))
+		m.set_voxel(Vector3i(x, 14, 8), wood)
+	# A hide hung over the pole, its two halves down the sides.
+	for x in range(3, 9):
+		for y in range(7, 14):
+			var side := int((14 - y) / 3.0)
+			m.set_voxel(Vector3i(x, y, 6 - side), skin * (0.88 if (x + y) % 3 == 0 else 1.0))
+			m.set_voxel(Vector3i(x, y, 9 + side), skin * 0.85)
+	# Strips of meat hanging from the pole.
+	for x in [10, 12]:
+		for y in range(9, 14):
+			m.set_voxel(Vector3i(x, y, 7), meat * (1.15 if y == 13 else 1.0))
 	return m
 
 

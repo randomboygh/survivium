@@ -374,6 +374,13 @@ const SHOTS := {
 		"hands": {"tool": "tools:wooden_bow", "facing": "e", "work": "slash", "strike": true},
 		"drops": ["tools:flint_spear", "tools:bronze_spear", "tools:iron_spear", "tools:cord_sling", "tools:sling_stone",
 			"tools:wooden_bow", "tools:arrow"]},
+	# A drying rack set down by the workbench and kiln, closed, a composite bow in hand, the
+	# things of leather and bone lying in front; and the rack open, leather being tanned.
+	"leather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "dry": true,
+		"hands": {"tool": "tools:composite_bow", "facing": "s", "stay": true},
+		"drops": ["materials:leather", "materials:bone_glue", "tools:bone_needle", "tools:tallow_candle", "animals:jerky", "tools:leather_sling",
+			"tools:composite_bow", "animals:hide", "animals:bone", "animals:fat"]},
+	"craft-dry": {"time": 0.42, "season": 1, "touch": true, "craft": true, "dry": true, "recipe": "materials:leather"},
 	# A bronze pickaxe at its strike, and the things of tin and bronze lying on the ground.
 	"hands-bronze": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["materials:tin_ore", "materials:tin_bar", "materials:raw_crucible", "materials:crucible", "materials:bronze_bar", "tools:bronze_axe",

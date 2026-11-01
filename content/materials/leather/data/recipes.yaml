@@ -1,0 +1,9 @@
+# Рецепт бандла «Кожа»: шкура, натёртая жиром («Животные», бандл «Добыча»), сохнет на сушилке
+# («Инструменты»); рецепт лежит здесь, чтобы сушилка не зависела от кожи.
+- id: leather
+  title: Кожа
+  makes: leather
+  needs: {animals:hide: 1, animals:fat: 1}
+  at: tools:drying_rack
+  process: refine
+  time: 12

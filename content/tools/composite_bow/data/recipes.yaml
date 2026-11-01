@@ -1,0 +1,15 @@
+# Рецепты бандла «Составной лук»: сам лук из деревянного с костью («Животные», бандл «Добыча»), костным
+# клеем и кожей («Материалы») и стрелы с костяным наконечником — на верстаке.
+- id: composite_bow
+  title: Составной лук
+  makes: composite_bow
+  needs: {wooden_bow: 1, animals:bone: 2, materials:bone_glue: 1, materials:leather: 1}
+  at: workbench
+  time: 10
+- id: arrow_from_bone
+  title: Стрелы с костяным наконечником
+  makes: arrow
+  count: 4
+  needs: {resources:branch: 1, animals:bone: 1, resources:fiber: 1}
+  at: workbench
+  time: 4
