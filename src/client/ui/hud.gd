@@ -31,6 +31,7 @@ const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 const MARGIN := 8.0
 const GAP := 4.0
@@ -760,6 +761,9 @@ func _update_hands() -> void:
 			slot.number = brush.title if brush.title != "1×1" else ""
 		else:
 			slot.number = "×%d" % n if n > 1 else ""
+		# A light burns down in the hand: the second hand holds the second one lit.
+		var k := 1 if h == 1 and c.hands[0] == id and n > 1 else 0
+		slot.fill = game.character.burn_left(id, k) if id != "" and n > 0 and Items.burns(id) > 0.0 else -1.0
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var item: String = slots[i][0] if slots[i] != null else ""

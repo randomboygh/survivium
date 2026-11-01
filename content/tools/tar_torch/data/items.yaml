@@ -10,4 +10,4 @@
   icon: tar_torch
   sprite: tar_torch
   light: 6.0
-  durability: 1080
+  burns: 1080

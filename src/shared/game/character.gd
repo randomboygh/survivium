@@ -55,22 +55,56 @@ func lights_held() -> Array:
 	return out
 
 
-## Each light held burns down a unit of its `durability` a second and is gone once it
-## has burned it all; two of the same burn the first two of them in the bag.
+## A light is used up as it burns, as food is eaten: the stack holds whole ones, and
+## each one held burns its Items.burns seconds (counted in `burning`), then one of the
+## stack is gone and the next one lit; two of the same burn two of them. One put away
+## keeps what it has burned, so taking it again goes on with it.
 func _burn_light(delta: float) -> void:
 	var lights := lights_held()
+	for id: String in burning.keys():
+		# Those thrown away or given up take their burning with them.
+		var have := inventory.count(id)
+		if have == 0:
+			burning.erase(id)
+		elif burning[id].size() > have:
+			burning[id].resize(have)
 	if lights.is_empty():
 		return
-	_burnt += delta
-	if _burnt < 1.0:
-		return
-	_burnt -= 1.0
 	var seen := {}
+	var told := false
 	for id: String in lights:
-		if inventory.wear_tool(id, Items.get_item(id).durability, seen.get(id, 0)):
-			say("Догорело: %s" % Items.title(id))
-		else:
-			seen[id] = seen.get(id, 0) + 1
+		var k: int = seen.get(id, 0)
+		seen[id] = k + 1
+		var lasts := Items.burns(id)
+		if lasts <= 0.0:
+			continue
+		var lit: Array = burning.get(id, [])
+		while lit.size() <= k:
+			lit.append(0.0)
+		burning[id] = lit
+		var was: float = lit[k]
+		lit[k] = was + delta
+		if was < lasts - BURN_WARN and lit[k] >= lasts - BURN_WARN and inventory.count(id) == 1 + k:
+			say("%s догорает" % Items.title(id))
+		if lit[k] >= lasts:
+			lit.remove_at(k)
+			if inventory.remove(id, 1) > 0:
+				say("Догорело: %s" % Items.title(id))
+			told = true
+		elif floori(lit[k] / BURN_TELL) != floori(was / BURN_TELL):
+			told = true
+	if told:
+		state_changed.emit()
+
+
+## How much of light `id` held in its `k`th hand is left to burn, 0..1 (1 for a new one
+## or one that burns for ever).
+func burn_left(id: String, k := 0) -> float:
+	var lasts := Items.burns(id)
+	var lit: Array = burning.get(id, [])
+	if lasts <= 0.0 or lit.size() <= k:
+		return 1.0
+	return clampf(1.0 - lit[k] / lasts, 0.0, 1.0)
 
 
 ## A burning campfire touched throws the body back at this speed (cells a second) with
@@ -128,8 +162,14 @@ var position: Vector3:
 var _nagged := {}
 ## Seconds until a fire burns the body again (see BURN_PAUSE).
 var _burn_wait := 0.0
-## Seconds the light held has burned towards its next unit of wear (see _burn_light).
-var _burnt := 0.0
+## The lights lit, by item id: the seconds each one lit has burned (see _burn_light),
+## the first for the first hand that holds one. Kept in the save.
+var burning := {}
+## The last seconds of the last light of a stack are told of (it is about to go out).
+const BURN_WARN := 20.0
+## A copy of the character (a client's) learns of a light burning this often, in
+## seconds, besides when one burns out.
+const BURN_TELL := 5.0
 
 
 func _init() -> void:
@@ -407,7 +447,8 @@ static func cause_text(cause: String) -> Array:
 func to_dict() -> Dictionary:
 	return {"death": death.duplicate(true), "life": life.duplicate(), "born": born, "deaths": deaths,
 		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z]),
-		"fell_at": [fell_at.x, fell_at.y, fell_at.z] if fell_at.is_finite() else null}
+		"fell_at": [fell_at.x, fell_at.y, fell_at.z] if fell_at.is_finite() else null,
+		"burning": burning.duplicate(true)}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -417,6 +458,13 @@ func from_dict(d: Dictionary) -> void:
 		for k: Variant in saved_life:
 			life[str(k)] = float(saved_life[k])
 	born = float(d.get("born", -1.0))
+	burning = {}
+	var lit: Variant = d.get("burning")
+	if lit is Dictionary:
+		for k: Variant in lit:
+			var id := Items.canon(str(k))
+			if Items.has(id) and lit[k] is Array:
+				burning[Items.get_item(id).id] = Array(lit[k]).map(func(t: Variant) -> float: return float(t))
 	deaths = int(d.get("deaths", 0))
 	best_days = float(d.get("best_days", 0.0))
 	var fell: Variant = d.get("fell_at")

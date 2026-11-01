@@ -32,7 +32,7 @@ static var TOOL_TITLES := {}
 
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
-const CATEGORIES := {"tools": "Инструменты", "gear": "Одежда и сумки", "stations": "Станки", "materials": "Материалы",
+const CATEGORIES := {"tools": "Инструменты", "light": "Свет", "gear": "Одежда и сумки", "stations": "Станки", "materials": "Материалы",
 	"blocks": "Блоки", "food": "Еда", "heal": "Лечение", "plants": "Посадки"}
 
 
@@ -203,12 +203,17 @@ static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
 
+## Seconds one of light `id` burns once lit in a hand (used up then), 0 for ever.
+static func burns(id: String) -> float:
+	return get_item(id).get("burns", 0.0)
+
+
 ## Health one of item `id` gives back (a bandage), 0 for none.
 static func heal(id: String) -> float:
 	return get_item(id).get("heal", 0.0)
 
 
-## The kind of item `id` (a key of CATEGORIES): something worn, a tool, a thing set down in the world,
+## The kind of item `id` (a key of CATEGORIES): something worn, a tool, a light, a thing set down in the world,
 ## food, something planted or sown, a block, else a material. The one place that
 ## decides it, so a `category` field of the data can take over here when items need
 ## one (decided with the user: derived for now).
@@ -218,6 +223,8 @@ static func category(id: String) -> String:
 		return "gear"
 	if item.get("tool", "none") != "none":
 		return "tools"
+	if item.get("light", 0.0) > 0.0:
+		return "light"
 	if item.get("prop", "none") != "none":
 		return "stations"
 	if item.get("food", 0.0) > 0.0:
@@ -250,6 +257,10 @@ static func check() -> PackedStringArray:
 				out.append("items: `%s`.serves: `%s` is no other station" % [id, s])
 		if item.bag_slots > 0 and item.wear_on != "back":
 			out.append("items: `%s`.bag_slots: only a bag worn on the back (`wear_on: back`) has slots" % id)
+		if item.light > 0.0 and item.durability > 0:
+			out.append("items: `%s`: a light burns down (`burns`, seconds), it does not wear (`durability`)" % id)
+		if item.burns > 0.0 and item.light <= 0.0:
+			out.append("items: `%s`.burns: only a light (`light`) burns down" % id)
 		if item.wear_on != "" and item.stack != 1:
 			out.append("items: `%s`: a thing worn (`wear_on`) stacks by one" % id)
 		if item.place_tool != "none" and not TOOL_TITLES.has(item.place_tool):

@@ -89,8 +89,9 @@ static func _well() -> PanelContainer:
 ## The wells every item has, for `count` of item `id` worn by `worn` swings (a stack in
 ## the bag) or made new (worn -1, a recipe): its weight (`weight` when it holds more,
 ## a chest with things), what it feeds, a tool's power, the time of its swing and its
-## reach, and how many swings it lasts. Quality comes later.
-static func item_wells(id: String, count: int, worn := -1, weight := -1.0) -> Array:
+## reach, and how many swings it lasts; how far a light reaches and how long one burns
+## (`burn_left` of it when one of them is lit, a share 0..1). Quality comes later.
+static func item_wells(id: String, count: int, worn := -1, weight := -1.0, burn_left := 1.0) -> Array:
 	var it := Items.get_item(id)
 	var wells := [[ItemIcons.picture("weight"), "%.1f кг" % (weight if weight >= 0.0 else Items.weight(id) * count), false, "Вес"]]
 	if Items.food(id) > 0.0:
@@ -99,6 +100,14 @@ static func item_wells(id: String, count: int, worn := -1, weight := -1.0) -> Ar
 		wells.append([UiStyle.icon("power"), str(it.power), false, "Сила"])
 		wells.append([UiStyle.icon("hammer"), "%.1f с" % it.swing, false, "Удар"])
 		wells.append([UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"])
+	if it.get("light", 0.0) > 0.0:
+		wells.append([UiStyle.icon("sun"), str(snappedf(it.light, 0.1)), false, "Свет, клеток"])
+		var burns: float = it.get("burns", 0.0)
+		if burns > 0.0:
+			var text := _minutes(burns)
+			if burn_left < 1.0:
+				text = "%s/%s" % [_minutes(burns * burn_left), text]
+			wells.append([UiStyle.icon("light"), text, burn_left < 0.25, "Горит одна, мин:с"])
 	var d: int = it.get("durability", 0)
 	if d > 0:
 		if worn < 0:
@@ -108,3 +117,9 @@ static func item_wells(id: String, count: int, worn := -1, weight := -1.0) -> Ar
 			wells.append([UiStyle.icon("shield"), "%d/%d" % [left, d], Workshop.condition(id, worn) < 0.25,
 				"Ресурс: ударов до поломки"])
 	return wells
+
+
+## Seconds `t` as minutes and seconds, "6:00".
+static func _minutes(t: float) -> String:
+	var s := ceili(t)
+	return "%d:%02d" % [s / 60, s % 60]
