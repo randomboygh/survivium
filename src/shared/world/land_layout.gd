@@ -100,6 +100,9 @@ const MOUNT_RISE := 15.0
 const RIDGE_RISE := 5.0
 const ROCK_LINE := 15
 const MOUNT_WOODS := 7
+## With climate 1 the slopes this many levels under a mountain's rock line that no
+## woods cover are the alpine biome's (Biomes.ALPINE), when its warmth window holds them.
+const ALPINE_BELOW := 6
 ## Relief 1 (see _ranges_and_mesas). Ranges: the rise of their feet and of their
 ## highest crests, the crags on the crests and the low ranges where plateaus were;
 ## gorges GORGE_WIDTH hundredths of the gorge noise wide; tors where the crag noise
@@ -158,6 +161,7 @@ var scree: int
 var snow: int
 var peat: int
 var salt: int
+var ice: int
 ## The grounds a biome lays by the names of its `top` and `clay_as` (see Biomes.top).
 var grounds := {}
 var ore: int
@@ -644,6 +648,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	# How much colder a level up is: in zones, half as much, so the hills of a hot zone
 	# are not tundra.
 	var cooling := 0.006
+	var zoned := zone_grid >= 0
 	if zone_grid >= 0:
 		temp = _zoned(grids[zone_grid], temp)
 		cooling = 0.003
@@ -824,6 +829,11 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				sheer = steep[j] >= steep_t
 				if not sheer:
 					top = scree
+				# With climate 1 the rock of cold mountains is a glacier: its ground on
+				# the slopes, ice in the outcrops.
+				if zoned and Biomes.GLACIER >= 0 and _in_window(Biomes.GLACIER, t, m):
+					b = Biomes.GLACIER
+					top = grounds.get("ice", Mat.STONE) if sheer else Biomes.top(b, grounds)
 			elif cut == TOR:
 				sheer = true
 		elif watery:
@@ -885,6 +895,15 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		if kind == MOUNTAIN and wt < 0 and climate and height >= sea + MOUNT_WOODS and forest[j] > _byte(-0.15):
 			f |= WOODS
 			top = Mat.GRASS
+		elif kind == MOUNTAIN and wt < 0 and climate and zoned and Biomes.ALPINE >= 0 and height >= sea + ROCK_LINE - ALPINE_BELOW \
+				and _in_window(Biomes.ALPINE, t, m):
+			# With climate 1 the open upper slopes are an alpine meadow.
+			b = Biomes.ALPINE
+			top = Biomes.top(b, grounds)
+		# A dry bed through land that lies under snow (a canyon in the ice waste) is
+		# snow too, not sand.
+		if zoned and top == beach and wt < 0 and not watery and Biomes.top(Biomes.pick(t, m), grounds) == snow:
+			top = snow
 		if cut == GORGE and wt < 0:
 			# The floor of a gorge: scree between sheer walls.
 			top = scree
@@ -1159,3 +1178,9 @@ func column_color(lay: Dictionary, j: int) -> Color:
 ## The biome byte of a relief biome the loaded bundles may not give (-1): NONE then.
 static func _biome(i: int) -> int:
 	return i if i >= 0 else Biomes.NONE
+
+
+## Biome `b`'s warmth and moisture windows hold `t` and `m`.
+static func _in_window(b: int, t: float, m: float) -> bool:
+	var r: Dictionary = Biomes.of(b)
+	return t >= r.warmth[0] and t <= r.warmth[1] and m >= r.moisture[0] and m <= r.moisture[1]

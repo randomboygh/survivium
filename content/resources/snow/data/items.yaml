@@ -4,3 +4,9 @@
   weight: 0.5
   stack: 20
   place: snow
+# Лёд в сумке: ставится ячейкой льда.
+- id: ice
+  title: Лёд
+  weight: 1.0
+  stack: 20
+  place: ice

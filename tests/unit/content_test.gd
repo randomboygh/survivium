@@ -70,7 +70,7 @@ func _test_content() -> void:
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.COUNT == 18
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 19
 		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore")])
 		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.4, -1) == Mat.ORE and Mat.vein_at(0.6, -1) == Mat.index("materials:iron_ore")
 		and Mat.vein_at(0.99, -1) == Mat.index("materials:tin_ore") and Mat.vein_at(0.5, 7) != 7,
@@ -255,7 +255,9 @@ func _test_mods() -> void:
 		and Biomes.top(Biomes.named("ice_waste"), bare_gen.grounds) == Mat.STONE and bare_gen.snow == Mat.STONE
 		and Biomes.top(Biomes.named("peat_bog"), gen.grounds) == Mat.GRASS and Biomes.clay_as(Biomes.named("peat_bog"), gen.grounds) == Mat.PEAT
 		and Biomes.clay_as(Biomes.named("taiga"), gen.grounds) == Mat.BANK and bare_gen.peat == Mat.DIRT
-		and Biomes.top(Biomes.named("salt_flat"), gen.grounds) == Mat.SALT and bare_gen.salt == Mat.DIRT,
+		and Biomes.top(Biomes.named("salt_flat"), gen.grounds) == Mat.SALT and bare_gen.salt == Mat.DIRT
+		and Biomes.ALPINE == Biomes.named("alpine_meadow") and Biomes.GLACIER == Biomes.named("glacier") and not Biomes.GLACIER in Biomes.CLIMATE
+		and gen.grounds.ice == Mat.ICE and bare_gen.ice == Mat.STONE,
 		"the ice waste lies under the snow of the mods, stone without them; the peat bog shows peat where others show clay")
 	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
 		and Biomes.tree(forest, 0.85) == Trees.index("plants:spruce") and Biomes.tree(forest, 0.99) == Trees.index("plants:deadwood") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
