@@ -277,6 +277,23 @@ func eat(i: int) -> bool:
 	return true
 
 
+## Puts on what lies in bag slot `i` (see Inventory.wear); false, and says why, if not.
+func wear(i: int) -> bool:
+	var why := inventory.wear(i)
+	if why == "inside":
+		nag("wear", "Сумку не надеть из её же ячеек: переложи её выше")
+	return why == ""
+
+
+## Takes off what is worn in body slot `on` (see Inventory.take_off); false, and says
+## why, if not.
+func take_off(on: String) -> bool:
+	var why := inventory.take_off(on)
+	if why == "full":
+		nag("take_off", "Нет свободной ячейки в сумке")
+	return why == ""
+
+
 ## Counts `n` more of `stat` in this life's statistics (see `life`).
 func note(stat: String, n: float = 1.0) -> void:
 	if n != 0.0:

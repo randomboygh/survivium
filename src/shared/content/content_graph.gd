@@ -55,10 +55,10 @@ const LINKS := {
 const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
 ## The fields that say what an item is for besides being used up: an item with none of
 ## them set that no recipe needs and nothing mends with is a dead end.
-const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "heal", "fuel", "light"]
+const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "heal", "fuel", "light", "wear_on"]
 ## The fields that make two items alike in what they do (see _twins).
 const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "area", "mows", "swing", "plant", "sow",
-	"crop", "reach", "durability", "repair", "prop", "fuel", "light"]
+	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "wear_on", "bag_slots"]
 ## A depth past every real one.
 const FAR := 1 << 30
 ## The checks, each an error (true: the validator fails on it in the full set) or a warning.
@@ -572,7 +572,7 @@ static func _cycle_through(group: Array, edges: Dictionary) -> Array:
 func _dead_ends() -> void:
 	for id: String in Items.IDS:
 		if reached.has("items/" + id) and not uses.has("items/" + id) and not _has_function(Items.get_item(id)):
-			_found("dead_end", "items: `%s` is a dead end: no recipe needs it, nothing is mended with it, and it is no tool, station, block, seed, food, cure, fuel or light" % id,
+			_found("dead_end", "items: `%s` is a dead end: no recipe needs it, nothing is mended with it, and it is no tool, station, block, seed, food, cure, fuel, light or thing worn" % id,
 				["items/" + id])
 
 

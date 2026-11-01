@@ -1,0 +1,8 @@
+# Рецепт бандла «Холщовый рюкзак»: ткань, кожу и верёвку («Материалы») шьют иглой (бандл «Игла»).
+- id: canvas_backpack
+  title: Холщовый рюкзак
+  makes: canvas_backpack
+  needs: {materials:cloth: 4, materials:leather: 2, materials:cord: 2}
+  tools: [needle]
+  wear: 3
+  time: 14

@@ -207,7 +207,7 @@ func _ready() -> void:
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
 	_chat_button.visible = game.join_url != ""
-	_bag_button = _icon_button(_top, "bag", "Сумка", toggle_bag)
+	_bag_button = _icon_button(_top, "person", "Персонаж, сумка и крафт", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
 	# The level buttons in a column beside the minimap, as tall as it.

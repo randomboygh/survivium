@@ -1,0 +1,12 @@
+# Предмет бандла «Плетёная котомка» мода «Инструменты и крафт»: первая сумка за спину. wear_on — слот
+# тела, куда вещь надевают (head, body, legs, feet, back), bag_slots — сколько ячеек сумка за спиной
+# добавляет к 16 ячейкам сумки, которая есть всегда (src/shared/game/inventory.gd, gear).
+- id: wicker_bag
+  title: Плетёная котомка
+  description: Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек.
+  weight: 0.6
+  stack: 1
+  model: wicker_bag
+  icon: wicker_bag
+  wear_on: back
+  bag_slots: 8

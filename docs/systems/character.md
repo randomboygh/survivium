@@ -7,10 +7,15 @@
 снег, ветер); спрайт игрока из слоёв PNG.
 
 **Файлы**
-- `src/shared/game/character.gd` — правила персонажа (`in_hands`, `act`, `give`, `eat`, `throw_away`,
+- `src/shared/game/character.gd` — правила персонажа (`in_hands`, `act`, `give`, `eat`, `wear`, `take_off`, `throw_away`,
   `die`, `revive`, `respawn_points`, `to_dict` / `from_dict`); сигнал `state_changed`.
-- `src/shared/game/inventory.gd` — сумка: `SLOTS` 16, первые `HOTBAR` 8 — панель внизу; стопки, вес
+- `src/shared/game/inventory.gd` — сумка: `SLOTS` 16 (`base`), первые `HOTBAR` 8 — панель внизу; стопки, вес
   (40 кг без замедления), сортировка, перенос в сундук, износ (`wear_tool`, `mend`); сигнал `changed`.
+  Надетое (`gear`: слот тела → предмет, `WEAR_SLOTS` голова, тело, ноги, обувь, спина): `wear(i)` надевает
+  вещь из ячейки, прежняя ложится на её место; `take_off(slot)` снимает в свободную из первых `base` ячеек.
+  Сумка за спиной (`wear_on: back`, `bag_slots`) добавляет ячейки после `base`; снятая, уносит их вещи в себе
+  (как забранный сундук, `contents`) и возвращает, когда её надевают снова. Надетое весит и сохраняется
+  в `to_dict` (`gear`), при смерти остаётся на персонаже (`take_all` берёт только ячейки).
 - `src/shared/game/vitals.gd` — здоровье, сытость, выносливость (0..`MAX`), цена действий (`spend`, `can`).
 - `src/shared/game/body.gd` — тело на сетке: `step(at, delta, jump)`, склоны и ступени, вода и плавание,
   лёд, глубокий снег и ветер (`weather_pace`, `air_drift`), толчки (`knock`), тропы. Где стоит тело,
@@ -31,7 +36,8 @@
 - `src/client/view/figure.gd` — лист кадров игрока из `content/core/sprites/` по `player.yaml` (слои,
   метки кистей `hands.png`, лист на каждый инструмент в руке или иконка предмета), строится по части ряда
   за кадр; `hands.gd` — что в руках видно на спрайте; `sprite_sheet.gd` — лист кадров по данным.
-- `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — экран смерти,
+- `src/client/ui/person_panel.gd` — персонаж в окне инвентаря (слоты надетого и рук, ячейки, навыки
+  пока для примера, `SKILLS`); `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — экран смерти,
   полоски сил, отклик экрана на урон, вибрация телефона.
 
 **Данные.** Предметы (`food`, `heal`, `weight`, `stack`, `light`, `sprite`, `anim`, `hands`); существо
@@ -44,7 +50,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `torch`, `vitals`, `changes`, `death`),
+**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `vitals`, `changes`, `death`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

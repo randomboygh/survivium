@@ -316,6 +316,12 @@ const SHOTS := {
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# A canvas backpack worn (24 more slots, scrolled where they do not fit), a wicker bag
+	# chosen in the bag: its wide button puts it on; then the backpack chosen on the figure.
+	"bag-gear": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"wear": "tools:canvas_backpack", "give": "tools:wicker_bag"},
+	"bag-worn": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"wear": "tools:canvas_backpack", "person": "back"},
 	# A chest chosen in the bag: its wide button sets it down.
 	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"give": "tools:chest"},

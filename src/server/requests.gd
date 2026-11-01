@@ -122,6 +122,12 @@ func _do(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_BOOL]):
 				workshop.paused = args[0]
 				return workshop.paused
+		Protocol.WEAR:
+			if _fit(args, [TYPE_INT]) and _slot(who.inventory, args[0]):
+				return who.wear(args[0])
+		Protocol.TAKE_OFF:
+			if _fit(args, [TYPE_STRING]):
+				return who.take_off(args[0])
 		Protocol.REPAIR:
 			if _fit(args, [TYPE_INT]) and _slot(who.inventory, args[0]):
 				return workshop.repair(args[0])

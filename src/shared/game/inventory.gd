@@ -1,5 +1,5 @@
 extends RefCounted
-## A bag of item stacks: a fixed number of slots, each empty or holding one item id up
+## A bag of item stacks: a number of slots (more with a bag worn on the back, see gear), each empty or holding one item id up
 ## to its stack size, and the weight of it all (plan/design/character.md). Weight has a
 ## limit from strength: past it the carrier slows down (see speed_factor) but may
 ## still pick things up. A tool wears with use (see wear_tool): its slot keeps how many
@@ -26,13 +26,97 @@ var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
 ## Whether a chest with things in it may go in (not into another chest).
 var nests := true
+## What is worn on the body, by slot (Items.wear_on: head, body, legs, feet, back):
+## the worn item's id. A bag on the back adds its Items.bag_slots after the `base`
+## slots the character always has; taken off, what those slots held goes into it,
+## as a chest taken up keeps its things.
+var gear := {}
+## The slots of the bag without anything on the back.
+var base := SLOTS
 ## Whether weight past the limit weighs on the carrier (slower pace, no jumps, slower
 ## recovery); a playtest switch turns it off.
 var heavy := true
 
 
 func _init(n := SLOTS) -> void:
+	base = n
 	slots.resize(n)
+
+
+## The body's slots things are worn in, in the order the window shows them.
+const WEAR_SLOTS := ["head", "body", "legs", "feet", "back"]
+
+
+## Puts on what lies in slot `i` (an item with Items.wear_on); what was worn in that
+## slot goes into slot `i` in its place, a bag on the back with what its slots held.
+## A bag put on brings back what it was taken off with. Returns "" or why not.
+func wear(i: int) -> String:
+	var s = slots[i] if i >= 0 and i < slots.size() else null
+	if s == null:
+		return "empty"
+	var on := Items.wear_on(s[0])
+	if on == "":
+		return "not_worn"
+	if on == "back" and i >= base:
+		# The bag's own slots go into it when it comes off.
+		return "inside"
+	var packed: Variant = contents(i)
+	slots[i] = null
+	var old: String = gear.get(on, "")
+	if old != "":
+		slots[i] = _packed(old, _pack_back() if on == "back" else null)
+	gear[on] = s[0]
+	if on == "back":
+		_unpack_back(packed)
+	changed.emit()
+	return ""
+
+
+## Takes off what is worn in slot `on` into the first free slot of the bag the
+## character always has; a bag on the back takes what its slots hold with it. Returns
+## "" or why not ("none", "full": no free slot).
+func take_off(on: String) -> String:
+	var id: String = gear.get(on, "")
+	if id == "":
+		return "none"
+	var free := slots.slice(0, base).find(null)
+	if free < 0:
+		return "full"
+	var packed: Variant = _pack_back() if on == "back" else null
+	gear.erase(on)
+	slots[free] = _packed(id, packed)
+	changed.emit()
+	return ""
+
+
+## A slot holding worn item `id`, with things `packed` in it (to_dict data) or none.
+static func _packed(id: String, packed: Variant) -> Array:
+	return [id, 1, 0, packed] if packed is Dictionary else [id, 1]
+
+
+## Empties the slots past `base` and gives what they held (to_dict data), null when
+## they were empty; the bag is `base` slots then.
+func _pack_back() -> Variant:
+	var held := slots.slice(base)
+	slots.resize(base)
+	if held.all(func(h) -> bool: return h == null):
+		return null
+	return {"slots": held}
+
+
+## Makes room for the slots of the bag now on the back, filled from `packed` (what
+## _pack_back gave, or null).
+func _unpack_back(packed: Variant) -> void:
+	slots.resize(base + Items.bag_slots(gear.get("back", "")))
+	if not packed is Dictionary:
+		return
+	var held: Array = packed.get("slots", [])
+	for j in mini(held.size(), slots.size() - base):
+		var h = held[j]
+		if h is Array and h.size() >= 2 and h[0] is String and Items.has(Items.canon(h[0])) and int(h[1]) > 0:
+			var id: String = Items.get_item(Items.canon(h[0])).id
+			var w: int = int(h[2]) if h.size() >= 3 else 0
+			slots[base + j] = [id, 1, w, h[3]] if h.size() == 4 and h[3] is Dictionary else ([id, int(h[1]), w] if w > 0 else [id, int(h[1])])
 
 
 ## Puts up to `n` of item `id` (worn by `worn` swings) into the bag, topping up stacks
@@ -299,9 +383,11 @@ func is_empty() -> bool:
 	return true
 
 
-## Weight of everything in the bag, kg, with what chests in it hold.
+## Weight of everything in the bag, kg, with what chests in it hold and what is worn.
 func weight() -> float:
 	var w := 0.0
+	for on: String in gear:
+		w += Items.weight(gear[on])
 	for i in slots.size():
 		w += slot_weight(i)
 	return w
@@ -342,13 +428,25 @@ func overloaded() -> bool:
 	return heavy and load_share() > 1.0
 
 
-## The bag as plain data for a save or the network: {"slots": [[id, count] or null...]}.
+## The bag as plain data for a save or the network: {"slots": [[id, count] or null...]},
+## and "gear" ({slot: id}) when something is worn.
 func to_dict() -> Dictionary:
-	return {"slots": slots.duplicate(true)}
+	var d := {"slots": slots.duplicate(true)}
+	if not gear.is_empty():
+		d.gear = gear.duplicate()
+	return d
 
 
 ## Fills the bag from to_dict() data; unknown items are left out.
 func from_dict(d: Dictionary) -> void:
+	gear = {}
+	var worn: Variant = d.get("gear")
+	if worn is Dictionary:
+		for on: Variant in worn:
+			var id := Items.canon(str(worn[on]))
+			if str(on) in WEAR_SLOTS and Items.has(id) and Items.wear_on(id) == str(on):
+				gear[str(on)] = Items.get_item(id).id
+	slots.resize(base + Items.bag_slots(gear.get("back", "")))
 	slots.fill(null)
 	var saved: Array = d.get("slots", [])
 	for i in mini(saved.size(), slots.size()):

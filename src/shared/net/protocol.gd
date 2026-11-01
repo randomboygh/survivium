@@ -89,6 +89,10 @@ const SORT := "sort"
 ## Destroys the stack in a slot of a bag or a chest, the bin: [where, i]
 ## (Inventory.take_slot); the stack taken.
 const BAG_DESTROY := "bag_destroy"
+## Puts on what lies in a slot of the bag: [slot] (Character.wear); true when it went on.
+const WEAR := "wear"
+## Takes off what is worn in a slot of the body: [slot name] (Character.take_off).
+const TAKE_OFF := "take_off"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
 ## Says a line in the chat: [text]; true when it was said (the server hands it to the

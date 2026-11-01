@@ -1,0 +1,11 @@
+# Предмет бандла «Холщовый рюкзак»: самая большая сумка за спину. Поля — как у котомки
+# (content/tools/wicker_bag/data/items.yaml).
+- id: canvas_backpack
+  title: Холщовый рюкзак
+  description: Рюкзак из ткани с кожаными лямками и клапаном. Надетый за спину, даёт ещё 24 ячейки.
+  weight: 1.8
+  stack: 1
+  model: canvas_backpack
+  icon: canvas_backpack
+  wear_on: back
+  bag_slots: 24
