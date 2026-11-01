@@ -230,7 +230,9 @@ func _run() -> void:
 	# up by itself, then digging in front with the action button held.
 	var c = main.controls
 	var inv = main.host.player.inventory
-	main.settings.give_tools()
+	# The first tools of the game (the playtest button gives the best ones, Items.best_kit).
+	for id in ["tools:stone_axe", "tools:stone_pickaxe", "tools:wooden_shovel", "tools:wooden_sword", "tools:stone_scythe", "tools:torch"]:
+		inv.add(id, 1)
 	inv.add("resources:stone", 9)
 	# The client's copy of the bag takes the stones at the next flush.
 	await process_frame

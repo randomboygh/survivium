@@ -528,6 +528,18 @@ func _test_starts() -> void:
 
 func _test_items() -> void:
 	_check(Items.check().is_empty(), "core items satisfy the engine")
+	var kit := Items.best_kit()
+	var classes := {}
+	for id in kit:
+		var it := Items.get_item(id)
+		if it.tool != "none":
+			classes[it.tool] = true
+			for other in Items.IDS:
+				var o := Items.get_item(other)
+				_check(o.tool != it.tool or o.power <= it.power, "the kit's %s is the strongest of its class, not %s" % [id, other])
+	_check(classes.has("pickaxe") and classes.has("axe") and classes.size() == kit.size() - 2
+		and Items.get_item(kit[kit.size() - 2]).light > 0.0 and Items.bag_slots(kit[kit.size() - 1]) == 24,
+		"the playtest kit: a tool of each class, a light and the biggest bag: %s" % [kit])
 	_check(Items.dug[Mat.GRASS] == "resources:dirt" and Items.dug[Mat.STONE] == "resources:stone" and Items.dug[Mat.LEAVES] == "",
 		"dug cells give their items")
 	for m in Mat.PLACEABLE:
