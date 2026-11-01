@@ -146,22 +146,17 @@ static func sparsity(b: int) -> int:
 	return of(b).get("bush_sparsity", 0)
 
 
-## The material biome `b` lays on top: grass unless its record says otherwise (sand, clay
-## and snow are the loaded mods' beach, bank and snow materials, `beach`, `bank` and `snow`
-## here).
-static func top(b: int, beach: int, bank: int, snow := Mat.STONE) -> int:
-	match of(b).get("top", "grass"):
-		"stone":
-			return Mat.STONE
-		"dirt":
-			return Mat.DIRT
-		"sand":
-			return beach
-		"clay":
-			return bank
-		"snow":
-			return snow
-	return Mat.GRASS
+## The material biome `b` lays on top, of `ground` (the generator's grounds by the names
+## of the `top` field: grass, dirt, stone, and the loaded mods' materials of the roles
+## beach as sand, bank as clay, snow, peat); grass unless its record says otherwise.
+static func top(b: int, ground: Dictionary) -> int:
+	return ground.get(of(b).get("top", "grass"), Mat.GRASS)
+
+
+## The material that shows in patches of biome `b` where the soil noise is above its
+## `clay_above` (clay unless its record says otherwise), of `ground` (see top).
+static func clay_as(b: int, ground: Dictionary) -> int:
+	return ground.get(of(b).get("clay_as", "clay"), Mat.GRASS)
 
 
 ## The colour of biome `b` on the map; a dull green for NONE.
