@@ -685,6 +685,7 @@ func update_cut(delta: float) -> void:
 	# The section of the cut in the plane of the camera is a second pass over the whole
 	# world: only while that cut is on.
 	var plane := plane_cut() and cut_level < world.size_y - 1
+	solid.flush()
 	if plane:
 		solid.update(world, px, level, pz)
 	if game.world_mat != null and (game.world_mat.next_pass != null) != plane:

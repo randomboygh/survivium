@@ -608,12 +608,12 @@ func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, 
 	return [land, kind, 0.0, 0.0, cut]
 
 
-## The warmth bytes of climate 1: the zone's warmth `zone`, stirred by ZONE_SPREAD of the
-## local warmth `local`.
-static func _zoned(zone: PackedByteArray, local: PackedByteArray) -> PackedByteArray:
-	var out := PackedByteArray()
-	out.resize(zone.size())
-	for j in zone.size():
+## The warmth bytes of climate 1 for the `count` entries from `from` (a row of the
+## window; the rest stay `local`): the zone's warmth `zone`, stirred by ZONE_SPREAD of
+## the local warmth `local`.
+static func _zoned(zone: PackedByteArray, local: PackedByteArray, from: int, count: int) -> PackedByteArray:
+	var out := local.duplicate()
+	for j in range(from, from + count):
 		var v := (zone[j] - 128) * (1.0 - ZONE_SPREAD) + (local[j] - 128) * ZONE_SPREAD
 		out[j] = clampi(roundi(128 + v), 0, 255)
 	return out
@@ -650,7 +650,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var cooling := 0.006
 	var zoned := zone_grid >= 0
 	if zone_grid >= 0:
-		temp = _zoned(grids[zone_grid], temp)
+		temp = _zoned(grids[zone_grid], temp, lz * lay.w, lay.w)
 		cooling = 0.003
 	var moist: PackedByteArray = grids[13]
 	var swamp: PackedByteArray = grids[14]

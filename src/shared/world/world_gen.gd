@@ -683,3 +683,11 @@ static func find_spawn(w: WorldData, around: Vector3i) -> Vector3i:
 						and w.slope_mask(x, y - 1, z) == WorldData.FULL:
 					return Vector3i(x, y, z)
 	return Vector3i(around.x, w.size_y - 1, around.z)
+
+
+## The biome of column x, z (an index of Biomes): as its chunk keeps it when the chunk is
+## made, else laid out for the column alone (the same: the layout of a column does not
+## depend on its window; generation_test checks it).
+func biome_of(x: int, z: int) -> int:
+	var b: int = world.biome_at(x, z) if world != null else WorldData.NO_BIOME
+	return b if b != WorldData.NO_BIOME else lay_out(x, z, 1, 1).biome[0]

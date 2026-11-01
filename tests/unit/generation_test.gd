@@ -555,6 +555,13 @@ func _test_biome_bytes() -> void:
 	_check(same == WorldData.LAYER and gen.world.biome_at(x, z) == lay.biome[5 * WorldGen.CHUNK + 3]
 		and gen.world.biome_at(x + 100000, z) == WorldData.NO_BIOME,
 		"a chunk keeps its columns' biomes as laid out (%d of %d), none where no chunk is" % [same, WorldData.LAYER])
+	# The rules read the kept biome (WorldGen.biome_of) where they laid out the column alone.
+	var alone := 0
+	for i in range(0, WorldData.LAYER, 7):
+		var cx := key.x * WorldGen.CHUNK + i % WorldGen.CHUNK
+		var cz := key.y * WorldGen.CHUNK + i / WorldGen.CHUNK
+		alone += int(gen.lay_out(cx, cz, 1, 1).biome[0] == gen.biome_of(cx, cz))
+	_check(alone == ceili(WorldData.LAYER / 7.0), "a column laid out alone has the biome its chunk keeps (%d of %d)" % [alone, ceili(WorldData.LAYER / 7.0)])
 	var record := gen.pack(key)
 	var old := record.duplicate()
 	old.erase("biome")

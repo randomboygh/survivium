@@ -224,10 +224,11 @@ func _next_needed(reach: int) -> Array:
 		return []
 	for r in range(0, reach + 1):
 		for z in _zones:
+			# The ring at r, in the order of a square's rows: a whole row at its top and
+			# bottom, its two ends between.
 			for dz in range(-r, r + 1):
-				for dx in range(-r, r + 1):
-					if maxi(absi(dx), absi(dz)) != r:
-						continue
+				var step := 1 if absi(dz) == r else maxi(2 * r, 1)
+				for dx in range(-r, r + 1, step):
 					var key := Vector2i(z.x + dx, z.y + dz)
 					if gen.stage_of(key) < WorldGen.SHAPED:
 						return gen.needed(key)

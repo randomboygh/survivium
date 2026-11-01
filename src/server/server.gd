@@ -483,7 +483,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 		if open:
 			peer.close_after(1000, "пока")
 		return
-	var reply: Variant = link.handle(bytes)
+	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:
 		for b in link.flush():
 			peer.ws.put_packet(b)

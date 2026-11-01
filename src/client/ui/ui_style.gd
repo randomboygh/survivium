@@ -725,7 +725,11 @@ static func _even(img: Image) -> Image:
 
 ## The theme of the whole UI: pixel font, panels and buttons.
 static func theme() -> Theme:
+	# One for the HUD, the menu and the death screen: none of them changes it.
+	if _theme != null:
+		return _theme
 	var t := Theme.new()
+	_theme = t
 	t.default_font = font()
 	t.default_font_size = FONT_SIZE
 	t.set_color("font_color", "Label", INK)
@@ -886,13 +890,25 @@ static func label(text := "", color := INK) -> Label:
 
 ## A square nine-patch `n` px across with `margin` px corners; `content` is the inner
 ## padding (left, top, right, bottom).
+## The pictures of the nine-patches drawn so far, by n, margin, kind and colours.
+static var _patches := {}
+static var _theme: Theme = null
+
+
 static func _nine_patch(n: int, margin: int, kind: String, fill: Color, edge: Color, content: Vector4) -> StyleBoxTexture:
-	var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
-	for y in n:
-		for x in n:
-			img.set_pixel(x, y, _pixel(kind, x, y, n, fill, edge))
+	# The picture is drawn once per look and shared; the box is new each time, since
+	# callers change its margins, centre and tint.
+	var key := "%d:%d:%s:%d:%d" % [n, margin, kind, fill.to_rgba32(), edge.to_rgba32()]
+	var tex: ImageTexture = _patches.get(key)
+	if tex == null:
+		var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
+		for y in n:
+			for x in n:
+				img.set_pixel(x, y, _pixel(kind, x, y, n, fill, edge))
+		tex = ImageTexture.create_from_image(img)
+		_patches[key] = tex
 	var box := StyleBoxTexture.new()
-	box.texture = ImageTexture.create_from_image(img)
+	box.texture = tex
 	box.texture_margin_left = margin
 	box.texture_margin_top = margin
 	box.texture_margin_right = margin

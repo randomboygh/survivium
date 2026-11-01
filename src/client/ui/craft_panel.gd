@@ -288,7 +288,8 @@ func refresh_now() -> void:
 	_scroll.visible = not known.is_empty()
 	var shown := []
 	var made := 0
-	for r: Dictionary in known:
+	for i in known.size():
+		var r: Dictionary = known[i]
 		if not _cells.has(r.id):
 			# Many recipes learnt at once (a cord makes a dozen known): their cells come
 			# a few a frame, as each reads its picture from the disk.
@@ -306,7 +307,7 @@ func refresh_now() -> void:
 		var cell = _cells[r.id]
 		cell.custom_minimum_size = Vector2(slot, slot)
 		# In the order of the data files (a move sorts the grid again: only when needed).
-		var at := mini(known.find(r), _grid.get_child_count() - 1)
+		var at := mini(i, _grid.get_child_count() - 1)
 		if cell.get_index() != at:
 			_grid.move_child(cell, at)
 		cell.visible = _tabs.chosen == "" or Items.category(r.makes) == _tabs.chosen

@@ -20,7 +20,13 @@ func quad(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2, cols :
 		uvs.append(uv[i])
 		uv2s.append(packed)
 		colors.append(cols[i] if cols else color)
-	indices.append_array(PackedInt32Array([start, start + 1, start + 2, start, start + 2, start + 3]))
+	# One append per index: a literal Array turned packed costs twice as much.
+	indices.append(start)
+	indices.append(start + 1)
+	indices.append(start + 2)
+	indices.append(start)
+	indices.append(start + 2)
+	indices.append(start + 3)
 
 
 ## One triangle, corners clockwise like `quad`.
@@ -32,7 +38,9 @@ func tri(p: Array, n: Vector3, uv: Array, color: Color, packed: Vector2, cols :=
 		uvs.append(uv[i])
 		uv2s.append(packed)
 		colors.append(cols[i] if cols else color)
-	indices.append_array(PackedInt32Array([start, start + 1, start + 2]))
+	indices.append(start)
+	indices.append(start + 1)
+	indices.append(start + 2)
 
 
 ## One triangle with a normal per corner (a curved surface), corners clockwise.
@@ -44,7 +52,9 @@ func tri_n(p: Array, n: Array, uv: Array, color: Color, packed: Vector2) -> void
 		uvs.append(uv[i])
 		uv2s.append(packed)
 		colors.append(color)
-	indices.append_array(PackedInt32Array([start, start + 1, start + 2]))
+	indices.append(start)
+	indices.append(start + 1)
+	indices.append(start + 2)
 
 
 func is_empty() -> bool:

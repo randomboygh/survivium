@@ -58,6 +58,8 @@ static var ORE := -1
 static var LOG := -1
 static var LEAVES := -1
 static var COUNT := 0
+## What each material becomes mown (its `mow`, an index), -1 for none (Tools.mown).
+static var mow_to: PackedInt32Array = []
 ## role -> the last material of that role (of_role), filled by refresh.
 static var BY_ROLE := {}
 ## Every material of role ore, and the running sum of their `veins` (see vein_at).
@@ -109,6 +111,9 @@ static func refresh() -> void:
 	PLACEABLE = []
 	for h in hotbar:
 		PLACEABLE.append(h[1])
+	mow_to = PackedInt32Array()
+	for r: Dictionary in RECORDS:
+		mow_to.append(index(r.mow) if r.mow != "" else -1)
 	AIR = index(KNOWN.AIR)
 	GRASS = index(KNOWN.GRASS)
 	DIRT = index(KNOWN.DIRT)

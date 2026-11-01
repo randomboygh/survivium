@@ -474,10 +474,14 @@ func pick_shadow_fires(view: Vector2) -> void:
 				best = f
 	if best != null and not best.light.shadow_enabled and perf != null:
 		perf.mark("тень огня")
+	# Written only on a change: each write marks the light's cube shadow dirty.
 	for f in fires:
-		f.light.shadow_enabled = f == best
+		if f.light.shadow_enabled != (f == best):
+			f.light.shadow_enabled = f == best
 	if best != null:
-		best.light.shadow_caster_mask = PixelView.LAYER_PLAYER if player_only else FIRE_CASTERS
+		var mask: int = PixelView.LAYER_PLAYER if player_only else FIRE_CASTERS
+		if best.light.shadow_caster_mask != mask:
+			best.light.shadow_caster_mask = mask
 	fire_shadowing = best != null
 
 

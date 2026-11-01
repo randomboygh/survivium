@@ -252,4 +252,9 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 	for b in steps.y:
 		for a in steps.x:
 			var j := start + b * nu + a
-			buf.indices.append_array(PackedInt32Array([j, j + 1, j + nu + 1, j, j + nu + 1, j + nu]))
+			buf.indices.append(j)
+			buf.indices.append(j + 1)
+			buf.indices.append(j + nu + 1)
+			buf.indices.append(j)
+			buf.indices.append(j + nu + 1)
+			buf.indices.append(j + nu)

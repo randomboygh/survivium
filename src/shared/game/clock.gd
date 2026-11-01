@@ -374,7 +374,7 @@ func _change_weather(delta: float, at: Vector3) -> void:
 		biome_clock -= delta
 		if biome_clock <= 0.0:
 			biome_clock = 5.0
-			biome = gen.lay_out(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL), 1, 1).biome[0]
+			biome = gen.biome_of(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
 	if weather_auto:
 		weather_left -= days(delta)
 		if weather_left <= 0.0:

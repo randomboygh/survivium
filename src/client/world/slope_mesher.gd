@@ -192,7 +192,12 @@ static func _surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVecto
 		for a in steps.x:
 			var j := start + b * nu + a
 			# Clockwise from above (Godot front faces).
-			buf.indices.append_array(PackedInt32Array([j, j + 1, j + nu + 1, j, j + nu + 1, j + nu]))
+			buf.indices.append(j)
+			buf.indices.append(j + 1)
+			buf.indices.append(j + nu + 1)
+			buf.indices.append(j)
+			buf.indices.append(j + nu + 1)
+			buf.indices.append(j + nu)
 
 
 ## Cut walls lower than this, in cells, would be thinner than a pixel: drawn, they show

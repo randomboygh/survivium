@@ -77,7 +77,7 @@ var enabled := true
 ## or -INF where none was found, the level looked from).
 var _trunk_base := {}
 ## The feet of the trunks of a chunk by Vector3i(chunk x, chunk z, the level they were
-## looked for from): [the chunk's number of trees then, PackedVector3Array].
+## looked for from): [the chunk's number of trees then, [feet, girths]] (see _trunks).
 var _chunk_feet := {}
 ## The trunk shadows of the fires, which stand still, are the first instances and are
 ## written again only when something they depend on changes: what they were made for
@@ -360,9 +360,13 @@ func _cast_trunks(l: Dictionary, n: int) -> int:
 	var k := _chunks_lit(l)
 	for kz in range(k.position.y, k.end.y + 1):
 		for kx in range(k.position.x, k.end.x + 1):
-			for foot: Vector3 in _feet(Vector2i(kx, kz), at):
+			var trunks := _trunks(Vector2i(kx, kz), at)
+			var feet: PackedVector3Array = trunks[0]
+			var girths: PackedFloat64Array = trunks[1]
+			for i in feet.size():
+				var foot := feet[i]
 				if Vector2(foot.x - at.x, foot.z - at.z).length_squared() < r2:
-					n = _cast(l, foot, 64.0, _girth(foot), n, null)
+					n = _cast(l, foot, 64.0, girths[i], n, null)
 	return n
 
 
@@ -375,9 +379,9 @@ func _girth(foot: Vector3) -> float:
 	return TRUNK_WIDTH * Trees.trunk_box(species, col, 0).size.x / 6.0
 
 
-## The feet of the trunks of chunk `key` seen from a light at `at` (see _base), kept
-## while the chunk's trees stay the same.
-func _feet(key: Vector2i, at: Vector3) -> PackedVector3Array:
+## The trunks of chunk `key` seen from a light at `at`: [their feet (see _base), how
+## wide each is (_girth)], kept while the chunk's trees stay the same.
+func _trunks(key: Vector2i, at: Vector3) -> Array:
 	var w = game.world
 	var trees: Dictionary = w.tree_chunks.get(key, {})
 	var id := Vector3i(key.x, key.y, floori(at.y / CELL))
@@ -385,14 +389,18 @@ func _feet(key: Vector2i, at: Vector3) -> PackedVector3Array:
 	if not known.is_empty() and known[0] == trees.size():
 		return known[1]
 	var feet := PackedVector3Array()
+	var girths := PackedFloat64Array()
 	for col: Vector2i in trees:
 		var base := _base(w, col, at)
 		if base > -INF:
-			feet.append(Vector3((col.x + 0.5) * CELL, base, (col.y + 0.5) * CELL))
+			var foot := Vector3((col.x + 0.5) * CELL, base, (col.y + 0.5) * CELL)
+			feet.append(foot)
+			girths.append(_girth(foot))
 	if _chunk_feet.size() > MAX_TRUNKS:
 		_chunk_feet.clear()
-	_chunk_feet[id] = [trees.size(), feet]
-	return feet
+	var trunks := [feet, girths]
+	_chunk_feet[id] = [trees.size(), trunks]
+	return trunks
 
 
 ## Height of the foot of the trunk in column `col` near the light at `at`, or -INF.
