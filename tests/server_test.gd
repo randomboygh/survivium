@@ -201,7 +201,9 @@ func _run() -> void:
 	anya.socket.net.event.connect(func(kind: String, _args: Variant) -> void: order.append(kind))
 	var pause = anya.socket.net.request(Protocol.CRAFT_PAUSE, [true]).then(func(_v: Variant) -> void: order.append("reply"))
 	_check(await _until(func() -> bool: return pause.done) and pause.value == true, "the queue is paused over the socket")
-	_check(order.has(Protocol.SHOP) and order.back() == "reply", "the state changed comes before the reply: %s" % [order])
+	# Events the server sends later (the clock's) may come after the reply before the test looks.
+	_check(order.has(Protocol.SHOP) and order.find(Protocol.SHOP) < order.find("reply"),
+		"the state changed comes before the reply: %s" % [order])
 	_check(await _until(func() -> bool: return anya.of(Protocol.SNAP).size() > 2), "the animals' snapshots keep coming")
 	_check(await _until(func() -> bool: return anya.of(Protocol.CLOCK).size() > 2), "and the clock's")
 
