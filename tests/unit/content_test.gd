@@ -144,7 +144,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 31
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 32
 		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 14 and Mods.bundles("tools").size() == 25 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -164,7 +164,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 17), Растения" and Mods.summary(["core"]) == "только основа"
-		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 31)", "a set is summed up by mods")
+		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 32)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -241,7 +241,8 @@ func _test_mods() -> void:
 	Mods.activate(before)
 	var forest := Biomes.named("forest")
 	var taiga := Biomes.named("taiga")
-	_check(Biomes.pick(0.5, 0.5) == Biomes.named("meadow") and Biomes.pick(0.5, 0.8) == forest and Biomes.pick(0.25, 0.6) == taiga
+	_check(Biomes.pick(0.5, 0.5) == Biomes.named("meadow") and Biomes.pick(0.7, 0.75) == forest
+		and Biomes.pick(0.5, 0.7) == Biomes.named("maple_wood") and Biomes.pick(0.5, 0.9) == Biomes.named("floodplain") and Biomes.pick(0.25, 0.6) == taiga
 		and Biomes.pick(0.1, 0.9) == Biomes.named("tundra") and Biomes.pick(0.8, 0.3) == Biomes.named("desert") and Biomes.SWAMP >= 0 and Biomes.ROCK >= 0
 		and Biomes.pick(0.4, 0.4) == Biomes.named("pine_wood") and Biomes.pick(0.45, 0.6) == Biomes.named("birch_grove")
 		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe"),
@@ -588,6 +589,10 @@ func _test_crafting() -> void:
 	inv.add("resources:fiber", 7)
 	knows.look_at(inv)
 	_check(knows.knows(cord) and heard == ["materials:cord"], "a recipe is learned when its materials have been in the bag")
+	_check(Workshop.learned_line(PackedStringArray(["materials:cord"])) == "Новый рецепт: Верёвка"
+		and Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"])).begins_with("Новые рецепты: Верёвка, ")
+		and Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"])).ends_with(" и ещё 2"),
+		"what one look teaches is told in one line, two names and how many more")
 	var copy := Knowledge.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
 	_check(copy.knows(cord) and copy.seen.has("resources:fiber"), "knowledge survives a save")

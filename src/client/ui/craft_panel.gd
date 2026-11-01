@@ -29,6 +29,8 @@ const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const COLUMNS := 8
+## The most cells of recipes made in one refresh (see refresh_now).
+const NEW_CELLS := 2
 ## The rows of recipes shown whole before the list scrolls.
 const ROWS := 4
 const JOB_SLOT := 24
@@ -285,8 +287,15 @@ func refresh_now() -> void:
 	_empty.visible = known.is_empty()
 	_scroll.visible = not known.is_empty()
 	var shown := []
+	var made := 0
 	for r: Dictionary in known:
 		if not _cells.has(r.id):
+			# Many recipes learnt at once (a cord makes a dozen known): their cells come
+			# a few a frame, as each reads its picture from the disk.
+			if made >= NEW_CELLS:
+				_dirty = true
+				continue
+			made += 1
 			var cell = HotbarSlot.new(slot)
 			cell.texture = ItemIcons.of_item(r.makes)
 			cell.number = "×%d" % r.count if r.count > 1 else ""
@@ -296,8 +305,10 @@ func refresh_now() -> void:
 			_cells[r.id] = cell
 		var cell = _cells[r.id]
 		cell.custom_minimum_size = Vector2(slot, slot)
-		# In the order of the data files.
-		_grid.move_child(cell, known.find(r))
+		# In the order of the data files (a move sorts the grid again: only when needed).
+		var at := mini(known.find(r), _grid.get_child_count() - 1)
+		if cell.get_index() != at:
+			_grid.move_child(cell, at)
 		cell.visible = _tabs.chosen == "" or Items.category(r.makes) == _tabs.chosen
 		cell.modulate = Color.WHITE if Crafting.why_not(r, inv, stations) == "" else Color(1, 1, 1, 0.45)
 		if cell.visible:

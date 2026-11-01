@@ -43,9 +43,12 @@ const CANYON := 4
 ## the ground, how many mouths open to them and how many are cut into mountain sides;
 ## relief: how mountains and plateaus are shaped, 0 domes and flat terraces, 1 ranges
 ## with gorges where it is cool and wet, mesas with canyons where it is hot and dry
-## (see _ranges_and_mesas). Here caves is 1 and relief 0, what worlds made before those
-## settings have; «Новый мир» makes caves 0 and relief 1.
-const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0}
+## (see _ranges_and_mesas); climate: 0 warmth from one noise, so any climate can lie
+## next to any other, 1 in zones (see ZONE_SPREAD). Here caves is 1, relief and climate
+## 0, what worlds made before those settings have; «Новый мир» makes caves 0, relief and
+## climate 1.
+const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
+	"climate": 0}
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.
@@ -53,6 +56,12 @@ const MOUNTAIN_FROM := [0.5, 0.3, 0.12]
 const RIVER_FROM := [0.1, -0.1, -0.3]
 const LAKE_FROM := [0.66, 0.55, 0.45]
 const BIOME_SCALE := [0.5, 1.0, 2.0]
+## Climate 1: the warmth of a column is mostly that of its zone, a noise this many times
+## slower than the old warmth's, and the old warmth noise only stirs it by ZONE_SPREAD,
+## so the biomes of one zone (the tundra by the taiga, the steppe by the desert) lie
+## side by side in patches and the zones follow one another, the cold far from the hot.
+const ZONE_SLOWER := 2.5
+const ZONE_SPREAD := 0.18
 ## Caves by the caves setting: the 3D noise level above which the ground is hollow
 ## (under a cave mouth and elsewhere; about 4%, 7.5% and 11% of the ground away from
 ## mouths), the level of the mouths noise above which a cave mouth opens, and the
@@ -180,6 +189,9 @@ var n_range: FastNoiseLite
 var n_gorge: FastNoiseLite
 var n_crag: FastNoiseLite
 var n_ores: FastNoiseLite
+## Climate 1 only: the zones' warmth, and where it lies in window_noises (-1 without).
+var n_zone: FastNoiseLite
+var zone_grid := -1
 ## The slow noises sampled on the lattice: continents, rivers (along its zero lines)
 ## and lakes (over its high spots).
 var n_land: FastNoiseLite
@@ -226,6 +238,11 @@ func _noises() -> void:
 		n_forest, n_gully, n_mouths, n_pools, n_temp, n_moist, n_swamp, n_flow, n_dunes, n_roll, n_peak]
 	if settings.relief >= 1:
 		window_noises.append_array([n_range, n_gorge, n_crag])
+	zone_grid = -1
+	if settings.get("climate", 0) >= 1:
+		n_zone = _noise(28, 0.0005 / biomes / ZONE_SLOWER, 1)
+		zone_grid = window_noises.size()
+		window_noises.append(n_zone)
 
 
 func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
@@ -582,6 +599,17 @@ func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, 
 	return [land, kind, 0.0, 0.0, cut]
 
 
+## The warmth bytes of climate 1: the zone's warmth `zone`, stirred by ZONE_SPREAD of the
+## local warmth `local`.
+static func _zoned(zone: PackedByteArray, local: PackedByteArray) -> PackedByteArray:
+	var out := PackedByteArray()
+	out.resize(zone.size())
+	for j in zone.size():
+		var v := (zone[j] - 128) * (1.0 - ZONE_SPREAD) + (local[j] - 128) * ZONE_SPREAD
+		out[j] = clampi(roundi(128 + v), 0, 255)
+	return out
+
+
 ## How many levels above the sea a river runs where it has climbed `climb` levels up a
 ## mountain: in steps of FALL_STEP, each first a rapid of one level and then a
 ## waterfall of the rest.
@@ -608,6 +636,12 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var mouths: PackedByteArray = grids[10]
 	var pools: PackedByteArray = grids[11]
 	var temp: PackedByteArray = grids[12]
+	# How much colder a level up is: in zones, half as much, so the hills of a hot zone
+	# are not tundra.
+	var cooling := 0.006
+	if zone_grid >= 0:
+		temp = _zoned(grids[zone_grid], temp)
+		cooling = 0.003
 	var moist: PackedByteArray = grids[13]
 	var swamp: PackedByteArray = grids[14]
 	var flow: PackedByteArray = grids[15]
@@ -760,7 +794,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			near = minf(near, river[j])
 		var wet := clampi(int(near / 16.0), 0, 15)
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
-		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * 0.006
+		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * cooling
 		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * 0.04
 		# Ravines: narrow winding cuts along a noise's zero line, four to six cells
 		# deep, through the dry hot lowland and the rolling hills only.

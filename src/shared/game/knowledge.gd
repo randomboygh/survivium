@@ -8,6 +8,8 @@ const Items := preload("res://src/shared/content/items.gd")
 
 ## A recipe became known: its id.
 signal learned(recipe: String)
+## The recipes one look at the bag made known, after their `learned` each.
+signal learned_all(recipes: PackedStringArray)
 
 ## Item ids that have been in the bag -> true.
 var seen := {}
@@ -25,11 +27,15 @@ func look_at(inv, announce := true) -> void:
 			fresh = true
 	if not fresh:
 		return
+	var ids: PackedStringArray = []
 	for r in Crafting.RECIPES:
 		if not _known.has(r.id) and Crafting.is_known(r, seen):
 			_known[r.id] = true
 			if announce:
 				learned.emit(r.id)
+				ids.append(r.id)
+	if not ids.is_empty():
+		learned_all.emit(ids)
 
 
 func knows(r: Dictionary) -> bool:

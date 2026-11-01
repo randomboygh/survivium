@@ -30,6 +30,7 @@ content/plants/
   fir/, cherry/,        ветки круглый год); своя кора только у вишни и сухого дерева, серая кора
   bird_cherry/,         common/textures/grey_bark.png общая у липы, тополя, пихты и черёмухи, клён и
   deadwood/             лиственница с корой бревна
+  red_maple/            «Клён красный»: клён с багряной кроной круглый год (биом «Кленовник»)
   shrub/, raspberry/,   «Куст», «Малина», «Черника», «Смородина», «Шиповник»: куст (data/bushes.yaml), его
   blueberry/, currant/, ягоды и куст для посадки; модель куста общая — common/models/bush.png
   rosehip/
