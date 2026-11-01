@@ -319,12 +319,18 @@ func _run() -> void:
 	# A stack into the chest by the spawn and back, sorting by hand: a tap on it, a tap
 	# on a free slot.
 	var bag = main.hud.bag
+	# The bag lists the chests within reach: stand by the spawn's chest.
+	var stood_at: Vector3 = main.player.position
+	for e: Dictionary in main.placed.things:
+		if e.items != null and e.items == main.placed.chest_items:
+			main.player.position = main.placed.center(e) + Vector3(0.8, 0, 0)
 	main.hud.open_chest()
+	bag.refresh_state()
 	bag._manual = true
 	var at: int = inv.slots.find(inv.slots.filter(func(x) -> bool: return x != null and x[0] == "resources:stone")[0])
 	var free: int = main.session.placed.chest_items.slots.find(null)
 	var stones: int = main.session.placed.chest_items.count("resources:stone") + inv.slots[at][1]
-	var chest_at: int = bag._chests.find(bag._chests.filter(func(e) -> bool: return e.items == main.session.placed.chest_items)[0])
+	var chest_at: int = bag._chests.find(bag._chests.filter(func(e) -> bool: return e.items == main.placed.chest_items)[0])
 	bag._tap(at)
 	bag._tap(free, chest_at)
 	_check(inv.slots[at] == null and main.session.placed.chest_items.count("resources:stone") == stones, "a stack goes into the chest")
@@ -346,6 +352,7 @@ func _run() -> void:
 	inv.slots = bag_before
 	main.session.placed.chest_items.slots = chest_before
 	bag.close()
+	main.player.position = stood_at
 
 	# Crafting as a player does, with the jobs cut short: cord and a workbench by hand,
 	# the workbench placed in front, a stone axe made at it, with the craft tab open.
