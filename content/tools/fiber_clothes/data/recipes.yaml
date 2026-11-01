@@ -1,0 +1,21 @@
+# Рецепты бандла «Одежда из волокна»: плетут руками из волокна («Ресурсы») и верёвки («Материалы»).
+- id: fiber_hat
+  title: Плетёная шапка
+  makes: fiber_hat
+  needs: {resources:fiber: 4}
+  time: 4
+- id: grass_cape
+  title: Травяная накидка
+  makes: grass_cape
+  needs: {resources:fiber: 8, materials:cord: 2}
+  time: 8
+- id: leg_wraps
+  title: Обмотки
+  makes: leg_wraps
+  needs: {resources:fiber: 5, materials:cord: 1}
+  time: 5
+- id: bast_shoes
+  title: Лапти
+  makes: bast_shoes
+  needs: {resources:fiber: 4, materials:cord: 2}
+  time: 5

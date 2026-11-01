@@ -111,7 +111,7 @@ static func _well() -> PanelContainer:
 
 ## The groups every item has, for `count` of item `id` worn by `worn` swings (a stack in
 ## the bag) or made new (worn -1, a recipe): its weight (`weight` when it holds more,
-## a chest with things), what it feeds, what a bag on the back adds, a tool's power, the
+## a chest with things), what it feeds, how warm clothes keep, what a bag on the back adds, a tool's power, the
 ## time of its swing and its reach, and how many swings it lasts; how far a light reaches
 ## and how long one burns (`burn_left` of it when one of them is lit, a share 0..1);
 ## how long food keeps and how fresh a stack is (`fresh` 0..1, below 0 for one made new).
@@ -127,6 +127,9 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
 				"Свежесть: испортится за %s, в холоде и под крышей дольше" % days])
 		groups.append(["Еда", food])
+	if it.get("warmth", 0.0) > 0.0:
+		groups.append(["Одежда", [[ItemIcons.picture("thermo"), "+%d°" % roundi(it.warmth), false,
+			"Теплее на столько градусов, надетая; мокрая греет вполовину"]]])
 	if Items.bag_slots(id) > 0:
 		groups.append(["Сумка", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "Ячеек, надетая за спину"]]])
 	if it.get("tool", "none") != "none":

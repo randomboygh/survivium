@@ -15,6 +15,7 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Warmth := preload("res://src/shared/game/warmth.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -241,6 +242,7 @@ func update(delta: float) -> void:
 		vitals.step(d, clock.days(d), body.swimming, share)
 		left -= d
 	_spoil(p, clock.days(delta))
+	_warm(p, clock.days(delta))
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	if body.jumped:
 		note("jumps")
@@ -254,12 +256,35 @@ func update(delta: float) -> void:
 		die()
 
 
+## The body warms or cools towards what the air feels like where it stands (Warmth):
+## the biome, season, time and weather, a campfire near, a roof, the clothes worn, how
+## wet it is; rain and snow wet it under the open sky.
+func _warm(p: Vector3, days: float) -> void:
+	var roofed := _roofed(p)
+	var fire := Warmth.fire_heat(placed, p)
+	var feel := Warmth.feel(Warmth.air(world, clock, p, roofed), fire, Warmth.clothes(inventory.gear), vitals.wet,
+		roofed, body.swimming)
+	var rain := 0.0
+	var snow := 0.0
+	if not roofed and clock != null:
+		var w: Dictionary = clock.WEATHERS[clock.weather]
+		rain = w.get("rain", 0.0) + w.get("hail", 0.0) * 0.5
+		snow = w.get("snow", 0.0)
+	vitals.warm(days, feel, rain, snow, body.swimming, roofed, fire)
+
+
+## Whether a roof (a cave, a house: anything over the head that keeps the rain off,
+## WorldData.roof_level) is over the body at `p`.
+func _roofed(p: Vector3) -> bool:
+	if world == null:
+		return false
+	var c := (p / WorldData.CELL).floor()
+	return world.roof_level(int(c.x), int(c.z)) > int(c.y) + 1
+
+
 ## The food in the bag spoils, slower in winter and under a roof (Inventory.spoil_rate).
 func _spoil(p: Vector3, days: float) -> void:
-	var roofed := false
-	if world != null:
-		var c := (p / WorldData.CELL).floor()
-		roofed = world.roof_level(int(c.x), int(c.z)) > int(c.y)
+	var roofed := _roofed(p)
 	inventory.spoil(days, Inventory.spoil_rate(clock.season == clock.WINTER, roofed))
 
 
@@ -458,6 +483,8 @@ static func cause_text(cause: String) -> Array:
 			return ["Вы утонули", "в воде кончились силы"]
 		"fire":
 			return ["Вы сгорели", "в огне костра"]
+		"cold":
+			return ["Вы замёрзли", "ночь без огня и тёплой одежды"]
 	return ["Вы погибли", ""]
 
 

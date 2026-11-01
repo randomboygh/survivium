@@ -23,6 +23,17 @@
   (как забранный сундук, `contents`) и возвращает, когда её надевают снова. Надетое весит и сохраняется
   в `to_dict` (`gear`), при смерти остаётся на персонаже (`take_all` берёт только ячейки).
 - `src/shared/game/vitals.gd` — здоровье, сытость, выносливость (0..`MAX`), цена действий (`spend`, `can`).
+  Тепло тела `warmth` (0..`MAX`, удобно `COMFORT` 50) и промокание `wet` (0..1): `warm(days, feel, …)`
+  тянет тепло к тому, что следует из ощущаемой температуры (между `COMFY_LOW` и `COMFY_HIGH` — удобно),
+  ниже `COLD` нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`; ниже `FREEZING`
+  мороз ранит (`hurt_by` "cold"); выше `HOT` выносливость до `HOT_CAP`. Дождь и снег мочат, вода — сразу
+  насквозь, сохнет на воздухе, под крышей быстрее, у огня быстрее всего. `cold` выкл — тестовый
+  переключатель «Холод и жара».
+- `src/shared/game/warmth.gd` — сколько градусов там, где стоит тело: `air` (середина окна `warmth` биома
+  между `COLDEST` и `WARMEST`, сезон `SEASON`, ночь `NIGHT`, дождь/снег/ветер без крыши), `fire_heat`
+  (горящий костёр в `FIRE_REACH`, слабее на исходе топлива), `clothes` (сумма `warmth` надетого), `feel`
+  (огонь, одежда — мокрая вполовину, мокрое тело −`WET_CHILL`, крыша +`ROOF`, в воде холоднее воздуха).
+  Считает шаг персонажа (`_warm`); полоска с термометром и капля в `vitals_panel.gd`.
 - `src/shared/game/body.gd` — тело на сетке: `step(at, delta, jump)`, склоны и ступени, вода и плавание,
   лёд, глубокий снег и ветер (`weather_pace`, `air_drift`), толчки (`knock`), тропы. Где стоит тело,
   держит владелец: на клиенте узел игрока передаёт своё место в `body.step` каждый кадр.
@@ -53,7 +64,7 @@
 персонажа на клиенте узнаёт о горении раз в `BURN_TELL` секунд и при догорании; рука на панели
 показывает остаток полоской (`HotbarSlot.fill`), сумка — временем.
 
-**Данные.** Предметы (`food`, `spoils`, `rots_to`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
+**Данные.** Предметы (`food`, `spoils`, `rots_to`, `warmth`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
 `core:human`; слои и работы фигуры — `content/core/sprites/player.yaml`, листы инструментов в руке —
 `sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character` (с серверного
 персонажа, `game.host.player`), `hands` (с клиента).
@@ -63,7 +74,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `vitals`, `changes`, `death`),
+**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `changes`, `death`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

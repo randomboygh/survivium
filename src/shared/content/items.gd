@@ -274,6 +274,8 @@ static func check() -> PackedStringArray:
 				out.append("items: `%s`.serves: `%s` is no other station" % [id, s])
 		if item.bag_slots > 0 and item.wear_on != "back":
 			out.append("items: `%s`.bag_slots: only a bag worn on the back (`wear_on: back`) has slots" % id)
+		if item.warmth > 0.0 and not item.wear_on in ["head", "body", "legs", "feet"]:
+			out.append("items: `%s`.warmth: only clothes (`wear_on` head, body, legs, feet) warm" % id)
 		if item.fuel_start > item.fuel_max:
 			out.append("items: `%s`.fuel_start: a fire holds no more than `fuel_max`" % id)
 		if item.light > 0.0 and item.durability > 0:

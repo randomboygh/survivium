@@ -736,6 +736,8 @@ func _show_worn(inv) -> void:
 		var extra := ""
 		if _worn == "back":
 			extra = " · +%d ячеек" % Items.bag_slots(id)
+		elif not hand and Items.get_item(id).get("warmth", 0.0) > 0.0:
+			extra = " · +%d°" % roundi(Items.get_item(id).warmth)
 		_info.text = "%s: %s%s" % [title, Items.title(id), extra]
 		var h := int(_worn.right(1))
 		# A light in the second hand is the second one lit when the first holds one too.

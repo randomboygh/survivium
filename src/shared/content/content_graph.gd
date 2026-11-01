@@ -59,7 +59,7 @@ const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
 const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "heal", "fuel", "light", "wear_on"]
 ## The fields that make two items alike in what they do (see _twins).
 const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "area", "mows", "swing", "plant", "sow",
-	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils"]
+	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils", "warmth"]
 ## A depth past every real one.
 const FAR := 1 << 30
 ## The checks, each an error (true: the validator fails on it in the full set) or a warning.

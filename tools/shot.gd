@@ -395,13 +395,22 @@ func _run() -> void:
 			await process_frame
 			await process_frame
 		if shot.has("wear"):
-			main.host.player.give(shot.wear, 1)
-			main.host.player.wear(main.host.player.inventory.slots.find_custom(
-				func(st) -> bool: return st != null and st[0] == shot.wear))
+			for worn: String in (shot.wear if shot.wear is Array else [shot.wear]):
+				main.host.player.give(worn, 1)
+				main.host.player.wear(main.host.player.inventory.slots.find_custom(
+					func(st) -> bool: return st != null and st[0] == worn))
 			main.host.player.inventory.add("resources:fiber", 30)
 			main.host.player.inventory.add("resources:stone", 40)
 			await process_frame
 			await process_frame
+		if shot.has("chill"):
+			# A body chilled and wet: the warmth bar low and blue, the drop by it.
+			var v = main.host.player.vitals
+			v.warmth = shot.chill[0]
+			v.wet = shot.chill[1]
+			main.hud.vitals.pinned = true
+			for i in 4:
+				await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -424,6 +433,9 @@ func _run() -> void:
 					var st = main.host.player.inventory.slots[i]
 					if st != null and st[0] == shot.give:
 						slot = i
+				# The client's copy of the bag takes it with the next frame.
+				await process_frame
+				await process_frame
 			main.hud.bag._tap(slot, true)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
