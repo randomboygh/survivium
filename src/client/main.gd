@@ -884,14 +884,18 @@ func _process(delta: float) -> void:
 	t = perf.note("карты", t)
 	view.update(delta)
 	# While the world is built behind the loading screen's painted sky it is not drawn: in a slow
-	# browser drawing the chunks already built took most of each frame of the loading.
-	var unseen := not ready_to_play and menu != null and menu.hides_world()
+	# browser drawing the chunks already built took most of each frame of the loading. Nor
+	# while the shaders are built ahead: the warm-up's frames are its own (on a phone the
+	# world drawn beside them made each a second or more); the first frames of the world
+	# come after it, still behind the landscape (MainMenu._settle).
+	var unseen := (not ready_to_play or warmup != null) and menu != null and menu.hides_world()
 	view.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED if unseen else SubViewport.UPDATE_WHEN_VISIBLE
 	if warmup != null and warmup.step():
 		warmup = null
 		hud.perf.warmed_up()
 		hud.set_loading("")
-	elif warmup != null and (menu == null or not menu.is_open):
+	elif warmup != null and menu == null:
+		# Only without a menu (tests, tools): the loading screen says it itself.
 		hud.set_loading("%s…" % loading_phase())
 	freeze_log.update()
 	t = perf.note("камера", t)

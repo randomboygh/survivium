@@ -42,7 +42,7 @@ func _ready() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	_panel.add_child(outer)
-	var title := UiStyle.label("Миры", UiStyle.ACCENT)
+	var title := UiStyle.label("Загрузить мир", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)

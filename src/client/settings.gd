@@ -32,6 +32,9 @@ const PIXEL_SIZES := [0.75, 0.875, 1.0, 1.25, 1.5]
 const FPS_LIMITS := [0, 30, 60]
 ## The settings that are saved, with their defaults.
 const DEFAULTS := {
+	# The «Тестирование» buttons (the flask on the screen, the pause menu's row) are there:
+	# the easter egg of the main menu opens them (ten taps on the sparrow of the name).
+	"testing_unlocked": false,
 	"time_speed": 1,
 	# The time of day follows the device's clock (Clock.real_time).
 	"real_time": false,
@@ -359,10 +362,11 @@ func apply() -> void:
 		hud.show_keys(values.show_help)
 
 
-## Puts every setting back as it comes, all but the world the setup screen makes.
+## Puts every setting back as it comes, all but the world the setup screen makes and
+## the «Тестирование» buttons once found.
 func reset() -> void:
 	for k in DEFAULTS:
-		if not k.begins_with("world_"):
+		if not k.begins_with("world_") and k != "testing_unlocked":
 			values[k] = DEFAULTS[k]
 	apply()
 	save()
