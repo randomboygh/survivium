@@ -32,7 +32,8 @@ static var TOOL_TITLES := {}
 
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
-const CATEGORIES := {"tools": "Инструменты", "light": "Свет", "gear": "Одежда и сумки", "stations": "Станки", "materials": "Материалы",
+## In the order the bag sorts by kind and the craft tab lists recipes: stations first, then tools.
+const CATEGORIES := {"stations": "Станки", "tools": "Инструменты", "light": "Свет", "gear": "Одежда и сумки", "materials": "Материалы",
 	"blocks": "Блоки", "food": "Еда", "heal": "Лечение", "plants": "Посадки"}
 
 

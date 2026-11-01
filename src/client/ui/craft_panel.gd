@@ -1,19 +1,19 @@
 extends VBoxContainer
 ## The craft tab of the bag window (plan/design/ui.md, section 5), as wide as the bag
-## tab: a column of tabs by kind of item on the left, the recipes known as cells
-## (dimmed when they cannot be made now), the stations near as a column of pictures on
-## the right (hands first, then the stations of the recipes known, the far ones
-## dimmed). Under them two panels: the recipe chosen, as small wells with pictures in
-## columns (see FactChips): what it uses up and what it keeps (have / need, short in
-## red), its station and tools («нет» in red when missing), its time (the recipe's: no
-## skills yet), then what it makes weighs, does and lasts, and its by-products, with a
-## wide «сделать» under «×5 | MAX» on the
-## right; and under it, while it holds jobs, the queue, a row as wide: small cells
-## for the jobs, the time left of the one chosen and the count over the first job's
-## progress, the pause and «отменить | отменить все». Opened at a station, buttons in the window's head (by
-## the cross, see station_buttons) take it back into the bag; at a campfire, put it
-## out, light it again for a branch and destroy it once it is out. Works through
-## Workshop.
+## tab: a column of tabs by kind of item on the left, the recipes known as cells sorted
+## by kind (Items.CATEGORIES: stations, then tools...; dimmed when they cannot be made
+## now), the stations near as a column of pictures on the right (hands first, then the
+## stations of the recipes known, the far ones dimmed). Under them two panels: the recipe
+## chosen, as named groups of small wells laid side by side (see FactChips): «Материалы»
+## and «Не тратится» (have / need, short in red), the station or «Где» (hands), the tools
+## («нет» in red when missing), the time (the recipe's: no skills yet), what it makes
+## (weight, work, how long it lasts) and its by-products, then «×5 | MAX» and a wide
+## «сделать» in one line on the right; and under it, while it holds jobs, the queue, a
+## row as wide: small cells for the jobs, the time left of the one chosen and the count
+## over the first job's progress, the pause and «отменить | отменить все». Opened at a
+## station, buttons in the window's head (by the cross, see station_buttons) take it
+## back into the bag; at a campfire, put it out, light it again for a branch and destroy
+## it once it is out. Works through Workshop.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
@@ -70,7 +70,7 @@ var _details: PanelContainer
 var _icon: TextureRect
 var _title: Label
 var _facts: FactChips
-var _make: VBoxContainer
+var _make: HBoxContainer
 ## The panel of the queue.
 var _queue_panel: Control
 ## The cells of jobs that fit the queue's row (see fit_width).
@@ -170,21 +170,25 @@ func _ready() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.custom_minimum_size.x = 100
 	top.add_child(_title)
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 6)
-	box.add_child(body)
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(_facts)
-	# «Сделать» is the button most pressed: wide, under «×5 | MAX».
+	box.add_child(_facts)
+	# The buttons in a line on the right: «×5 | MAX», then «Сделать», the one most
+	# pressed, wide.
+	_make = HBoxContainer.new()
+	_make.add_theme_constant_override("separation", 4)
+	_make.alignment = BoxContainer.ALIGNMENT_END
+	box.add_child(_make)
 	var more := TabRow.split([
 		["×5", "Сделать пять", func() -> void: _start(5)],
 		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
 	])
 	for b in more.get_children():
 		b.custom_minimum_size = Vector2(41, 30)
-	_make = TabRow.block(more, [UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)], 2 * 41 - 2)
-	body.add_child(_make)
+	_make.add_child(more)
+	var one := TabRow.icon_button(UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1))
+	one.custom_minimum_size = Vector2(2 * 41 - 2, 30)
+	_make.add_child(one)
 
 	var queue := _panel(bottom)
 	_queue_panel = queue
@@ -271,7 +275,7 @@ func refresh_now() -> void:
 		return
 	var shop = game.workshop
 	var inv = game.character.inventory
-	var known: Array = shop.recipes()
+	var known: Array = _by_kind(shop.recipes())
 	var stations: Dictionary = shop.stations()
 	_stations_seen = str(stations.keys())
 	if not _station.is_empty() and not game.placed.things.has(_station):
@@ -306,7 +310,7 @@ func refresh_now() -> void:
 			_cells[r.id] = cell
 		var cell = _cells[r.id]
 		cell.custom_minimum_size = Vector2(slot, slot)
-		# In the order of the data files (a move sorts the grid again: only when needed).
+		# By kind (see _by_kind; a move sorts the grid again: only when needed).
 		var at := mini(i, _grid.get_child_count() - 1)
 		if cell.get_index() != at:
 			_grid.move_child(cell, at)
@@ -324,6 +328,17 @@ func refresh_now() -> void:
 	_fit_list()
 	if on_layout.is_valid():
 		on_layout.call()
+
+
+## Recipes `known` by the kind of what they make, in the order of Items.CATEGORIES
+## (stations first, then tools...), in the order of the data files within a kind.
+static func _by_kind(known: Array) -> Array:
+	var order := Items.CATEGORIES.keys()
+	var keyed := []
+	for i in known.size():
+		keyed.append([order.find(Items.category(known[i].makes)), i, known[i]])
+	keyed.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0] or a[0] == b[0] and a[1] < b[1])
+	return keyed.map(func(k: Array) -> Dictionary: return k[2])
 
 
 func _choose(id: String) -> void:
@@ -400,27 +415,33 @@ func _show_details(near: Dictionary) -> void:
 	for id in r.needs:
 		var have: int = inv.count(id)
 		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Items.title(id)])
+	var keeps := []
 	for id in r.keeps:
 		var have: int = inv.count(id)
-		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], "%s: не расходуется" % Items.title(id)])
-	var where := []
+		keeps.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], "%s: не расходуется" % Items.title(id)])
+	var at := []
 	if r.at != "":
-		where.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
+		at.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
+	else:
+		at.append([ItemIcons.picture("hand"), "", false, "Руками, без станка"])
+	var tools := []
 	for kind: String in r.tools:
 		var has := Tools.holds(inv, kind)
 		var name := Items.tool_title(kind)
-		where.append([ItemIcons.of_tool(kind), "" if has else "нет", not has,
+		tools.append([ItemIcons.of_tool(kind), "" if has else "нет", not has,
 			name.left(1).to_upper() + name.substr(1) + (": износ %d за изделие" % r.wear if r.wear > 0 else "")])
-	if where.is_empty():
-		where.append([ItemIcons.picture("hand"), "", false, "Руками"])
 	# The time of the recipe; with skills it will be the time at the character's skill.
-	var time := [UiStyle.icon("clock"), "%d с" % roundi(r.time), false, "Время изготовления"]
+	var time := [[UiStyle.icon("clock"), "%d с" % roundi(r.time), false, "Время изготовления"]]
 	var also := []
 	for e: Dictionary in r.also:
 		var share := roundi(e.chance * 100.0)
 		also.append([ItemIcons.of_item(e.item), "+%d" % e.count if share >= 100 else "%d%%" % share, false,
 			"Побочно: %s ×%d%s" % [Items.title(e.item), e.count, "" if share >= 100 else ", шанс %d%%" % share]])
-	_facts.show_wells(needs + where + [time] + FactChips.item_wells(r.makes, r.count) + also)
+	var made := []
+	for g: Array in FactChips.item_groups(r.makes, r.count):
+		made.append_array(g[1])
+	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["Станок" if r.at != "" else "Где", at],
+		["Инструменты", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
 	var can := Crafting.why_not(r, inv, near) == ""
 	for b in _make.get_child(0).get_children() + [_make.get_child(1)]:
 		b.disabled = not can
