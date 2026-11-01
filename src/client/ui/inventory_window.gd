@@ -2,8 +2,8 @@ extends PanelContainer
 ## The inventory window (plan/design/ui.md, section 5): the character (PersonPanel: what
 ## is worn and held, the load, the skills) beside the bag or the craft tab on a wide
 ## screen, over the bag on a tall one (hidden on the craft tab there). A tap on a slot
-## of the figure picks it (a hand becomes the hand in use); with a thing to wear chosen
-## in the bag, a tap on its slot puts it on. The bag part is as wide whatever it shows: the bag's
+## of the figure works as a tap on a hand of the hotbar (the next tool) or takes off and
+## puts on what is worn there (see _tap_person). The bag part is as wide whatever it shows: the bag's
 ## slots with a column of tabs by kind of item on the left (the other slots dim) and
 ## the sorting buttons on the right (they sort the bag past the hotbar row and the
 ## chest shown), the switch of sorting by hand over them. The chests within reach stand
@@ -321,6 +321,8 @@ func _slot_grid(parent: Node, n: int, cells: Array, tap: Callable) -> GridContai
 func _grow_grid(grid: GridContainer, n: int, cells: Array, tap: Callable) -> void:
 	while cells.size() > n:
 		var last: Control = cells.pop_back()
+		# Out of the grid at once, so the window is measured without it.
+		grid.remove_child(last)
 		last.queue_free()
 	while cells.size() < n:
 		var i := cells.size()
@@ -330,24 +332,41 @@ func _grow_grid(grid: GridContainer, n: int, cells: Array, tap: Callable) -> voi
 		cells.append(s)
 
 
-## A tap on slot `k` of the figure (see PersonPanel.picked): puts on the chosen thing of
-## the bag that is worn there; else picks the slot (a hand is the hand in use then), or
-## lets it go when it was chosen.
+## A tap on slot `k` of the figure (see PersonPanel.picked), as a tap on a hand of the
+## hotbar: a hand becomes the hand in use, and a tap on the hand in use gives it the next
+## tool (or brush); a body slot takes off what is worn there, or puts on what the bag has
+## for it (the chosen thing if it fits, else the bag with the most slots for the back).
+## The slot is chosen then, for the panel at the bottom.
 func _tap_person(k: String) -> void:
 	_confirming = false
-	if _from == game.character.inventory and _from.slots[_at] != null and Items.wear_on(_from.slots[_at][0]) == k:
-		game.net.request(Protocol.WEAR, [_at])
-		_let_go()
-	elif _worn == k:
-		_let_go()
+	var inv = game.character.inventory
+	var chosen: int = _at if _from == inv and _from.slots[_at] != null and Items.wear_on(_from.slots[_at][0]) == k else -1
+	_let_go()
+	_worn = k
+	if k.begins_with("hand"):
+		game.hud.tap_hand(int(k.right(1)))
+	elif chosen < 0 and inv.gear.get(k, "") != "":
+		game.net.request(Protocol.TAKE_OFF, [k])
 	else:
-		_let_go()
-		_worn = k
-		if k.begins_with("hand"):
-			game.controls.set_active(int(k.right(1)))
-	if not _bag_page.visible:
-		show_tab("bag")
+		if chosen < 0:
+			chosen = _to_wear(inv, k)
+		if chosen >= 0:
+			game.net.request(Protocol.WEAR, [chosen])
+		else:
+			game.character.nag("wear", "В сумке нечего надеть сюда")
 	refresh()
+
+
+## The slot of bag `inv` with a thing worn in body slot `k`, the bag with the most slots
+## for the back; -1 for none.
+static func _to_wear(inv, k: String) -> int:
+	var best := -1
+	for i in inv.slots.size():
+		var s = inv.slots[i]
+		if s != null and Items.wear_on(s[0]) == k and not (k == "back" and i >= inv.base) \
+				and (best < 0 or Items.bag_slots(s[0]) > Items.bag_slots(inv.slots[best][0])):
+			best = i
+	return best
 
 
 ## The wide button with a slot of the figure chosen: takes off what is worn there, or
