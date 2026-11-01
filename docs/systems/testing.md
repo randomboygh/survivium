@@ -34,7 +34,8 @@
 - `shot.gd` (+ `shot/shots.gd` — таблица снимков, `shot/places.gd` — места и сцены) — скриншоты без GPU:
   `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --resolution 1280x720
   --script res://tools/shot.gd -- <папка> [--phone] [имена]` (медленно, в фоне; снимки делят один мир,
-  снимок с правкой ячеек возвращает их; `ground-*` — в тестовом мире).
+  снимок с правкой ячеек возвращает их; `ground-*` — в тестовом мире; `place` с именем биома ставит
+  игрока в его середину, а не на ближний край, `places.inland`).
 - `map.gd` — карта местности вокруг спавна сверху; `profile.gd` — время каждого модуля кадра headless и
   вызовы отрисовки под xvfb (`-- spikes` — разовые действия); `bench_gen.gd`, `bench_mesh.gd`,
   `bench_edit.gd`, `bench_turn.gd` — замеры; `bench_content.gd [бандлов]` — чтение и загрузка данных модов,

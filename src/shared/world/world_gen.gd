@@ -111,6 +111,7 @@ func _init(seed_value: int, sy := 48, options := {}) -> void:
 	beach = Mat.of_role("beach", Mat.DIRT)
 	bank = Mat.of_role("bank", Mat.DIRT)
 	scree = Mat.of_role("scree", Mat.STONE)
+	snow = Mat.of_role("snow", Mat.STONE)
 	ore = Mat.ORE if Mat.ORE >= 0 else Mat.STONE
 	_noises()
 	coast_level = _coast_level()

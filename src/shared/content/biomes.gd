@@ -146,9 +146,10 @@ static func sparsity(b: int) -> int:
 	return of(b).get("bush_sparsity", 0)
 
 
-## The material biome `b` lays on top: grass unless its record says otherwise (sand and
-## clay are the loaded mods' beach and bank materials, `beach` and `bank` here).
-static func top(b: int, beach: int, bank: int) -> int:
+## The material biome `b` lays on top: grass unless its record says otherwise (sand, clay
+## and snow are the loaded mods' beach, bank and snow materials, `beach`, `bank` and `snow`
+## here).
+static func top(b: int, beach: int, bank: int, snow := Mat.STONE) -> int:
 	match of(b).get("top", "grass"):
 		"stone":
 			return Mat.STONE
@@ -158,6 +159,8 @@ static func top(b: int, beach: int, bank: int) -> int:
 			return beach
 		"clay":
 			return bank
+		"snow":
+			return snow
 	return Mat.GRASS
 
 
