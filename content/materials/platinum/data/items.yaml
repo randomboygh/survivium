@@ -1,0 +1,21 @@
+# Платиновая руда, слиток (плавят в горне «Инструментов») и блок из слитков. Поля — как у предметов основы
+# (content/core/data/items.yaml).
+- id: platinum_ore
+  title: Платиновая руда
+  description: Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка.
+  weight: 3.0
+  stack: 20
+  icon: platinum_ore
+- id: platinum_bar
+  title: Платиновый слиток
+  description: Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки.
+  weight: 2.4
+  stack: 20
+  model: platinum_bar
+  icon: platinum_bar
+- id: platinum_block
+  title: Платиновый блок
+  description: Тяжёлый серо-белый блок для построек.
+  weight: 4.0
+  stack: 20
+  place: platinum_block

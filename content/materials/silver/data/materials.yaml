@@ -1,0 +1,18 @@
+# Серебряная руда: редкие жилы в камне (role: ore, veins — доля жил против других руд), её берёт бронзовая кирка
+# и лучше (hardness 4); серебряный блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
+# основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+- id: silver_ore
+  title: Серебряная руда
+  role: ore
+  veins: 0.3
+  priority: 2
+  item: silver_ore
+  hardness: 4
+  step: step_stone
+  hit: hit_stone
+- id: silver_block
+  title: Серебряный блок
+  item: silver_block
+  hardness: 3
+  step: step_stone
+  hit: hit_stone

@@ -8,11 +8,15 @@ const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 ## The colour of copper heads, blades and bars.
 const COPPER := Color(0.78, 0.46, 0.25)
 ## Bronze and tin.
-const BRONZE := Color(0.6, 0.48, 0.27)
+const BRONZE := Color(0.55, 0.42, 0.29)
 const TIN := Color(0.72, 0.74, 0.76)
 ## Iron (dark, bluish) and steel (pale, cold).
 const IRON := Color(0.32, 0.34, 0.38)
 const STEEL := Color(0.66, 0.72, 0.8)
+## The precious metals.
+const SILVER := Color(0.8, 0.82, 0.85)
+const GOLD := Color(0.92, 0.72, 0.22)
+const PLATINUM := Color(0.66, 0.68, 0.71)
 
 
 ## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
@@ -78,6 +82,12 @@ static func drop(model: String) -> VoxelModel:
 			return _bar(IRON)
 		"steel_bar":
 			return _bar(STEEL)
+		"silver_bar":
+			return _bar(SILVER)
+		"gold_bar":
+			return _bar(GOLD)
+		"platinum_bar":
+			return _bar(PLATINUM)
 		"iron_bloom":
 			return _bloom()
 		"flint_knife", "copper_knife", "bronze_knife", "iron_knife", "steel_knife":

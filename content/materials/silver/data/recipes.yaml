@@ -1,0 +1,15 @@
+# Рецепты бандла «Серебро»: руду плавят с углём в горне «Инструментов», блок складывают из слитков на
+# наковальне; лежат здесь, чтобы станки не зависели от этого металла.
+- id: silver_bar
+  title: Серебряный слиток
+  makes: silver_bar
+  needs: {silver_ore: 2, charcoal: 1}
+  at: tools:forge
+  process: smelt
+  time: 7
+- id: silver_block
+  title: Серебряный блок
+  makes: silver_block
+  needs: {silver_bar: 3}
+  at: tools:anvil
+  time: 5

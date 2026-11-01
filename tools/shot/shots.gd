@@ -406,6 +406,11 @@ const SHOTS := {
 	"hands-bronze": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["materials:tin_ore", "materials:tin_bar", "materials:raw_crucible", "materials:crucible", "materials:bronze_bar", "tools:bronze_axe",
 			"tools:bronze_sword", "tools:bronze_scythe", "tools:bronze_shovel"]},
+	# The precious metals: their ores, bars and blocks lying by copper and bronze to compare.
+	"metals": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:bronze_pickaxe", "facing": "e", "stay": true},
+		"drops": ["materials:silver_ore", "materials:silver_bar", "materials:gold_ore", "materials:gold_bar", "materials:platinum_ore",
+			"materials:platinum_bar", "materials:copper_bar", "materials:bronze_bar", "materials:silver_block", "materials:gold_block",
+			"materials:platinum_block", "tools:bronze_axe"]},
 	# The same with the player standing on the chest, by the front edge of its lid, and on
 	# the workbench as far back as its planks hold.
 	"stations-top": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true,

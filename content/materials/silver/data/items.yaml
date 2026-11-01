@@ -1,0 +1,21 @@
+# Серебряная руда, слиток (плавят в горне «Инструментов») и блок из слитков. Поля — как у предметов основы
+# (content/core/data/items.yaml).
+- id: silver_ore
+  title: Серебряная руда
+  description: Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.
+  weight: 3.0
+  stack: 20
+  icon: silver_ore
+- id: silver_bar
+  title: Серебряный слиток
+  description: Мягкий белый металл. Из слитков складывают серебряные блоки.
+  weight: 2.4
+  stack: 20
+  model: silver_bar
+  icon: silver_bar
+- id: silver_block
+  title: Серебряный блок
+  description: Гладкий светлый металлический блок для построек.
+  weight: 4.0
+  stack: 20
+  place: silver_block

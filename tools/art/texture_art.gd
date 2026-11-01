@@ -15,7 +15,8 @@ const GRASS := Color(0.4, 0.54, 0.25)
 
 ## The texture named `name` (the bare id of the material), or null for one not drawn here.
 static func picture(name: String) -> Image:
-	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "iron_ore", "scree", "brick", "snow", "peat", "salt", "ice"]:
+	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "iron_ore", "scree", "brick", "snow", "peat", "salt", "ice",
+			"silver_ore", "gold_ore", "platinum_ore", "silver_block", "gold_block", "platinum_block"]:
 		return null
 	var img := Image.create_empty(TILE * KINDS, TILE, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -122,6 +123,39 @@ static func _texel(name: String, kind: int, px: int, py: int, rng: RandomNumberG
 				return _vary(Color(0.9, 0.95, 1.0), rng, 0.02)
 			var streak := (px + py * 3) % 13 < 2
 			return _vary(Color(0.55, 0.74, 0.86) * (0.85 if streak else 1.0), rng, 0.03)
+		"silver_ore":
+			# Grey rock with white flecks of native silver.
+			var r := rng.randf()
+			if r < 0.09:
+				return _vary(Color(0.9, 0.91, 0.93), rng, 0.03)
+			if r < 0.13:
+				return _vary(Color(0.7, 0.72, 0.75), rng, 0.03)
+			return _vary(STONE * 0.95, rng, 0.03)
+		"gold_ore":
+			# Pale quartz-streaked rock with yellow grains.
+			var r := rng.randf()
+			var vein := (px + py * 2 + kind * 5) % 11 < 2
+			if r < 0.08 or (vein and r < 0.3):
+				return _vary(Color(0.95, 0.76, 0.25), rng, 0.04)
+			if vein:
+				return _vary(Color(0.78, 0.77, 0.72), rng, 0.03)
+			return _vary(STONE, rng, 0.03)
+		"platinum_ore":
+			# Dark heavy rock with dull grey-white grains.
+			var r := rng.randf()
+			if r < 0.1:
+				return _vary(Color(0.78, 0.8, 0.82), rng, 0.03)
+			return _vary(STONE * 0.72, rng, 0.03)
+		"silver_block", "gold_block", "platinum_block":
+			# Cast plates two by two on a tile, a lit rim top left and a dark one bottom right.
+			var base: Color = {"silver_block": Color(0.8, 0.82, 0.85), "gold_block": Color(0.9, 0.7, 0.24),
+				"platinum_block": Color(0.7, 0.72, 0.74)}[name]
+			var lx := px % 8
+			var ly := py % 8
+			var k := 1.18 if lx == 0 or ly == 0 else (0.72 if lx == 7 or ly == 7 else 1.0)
+			if (lx + ly) % 9 == 3 and k == 1.0:
+				k = 1.1
+			return _vary(base * k, rng, 0.02)
 		"brick":
 			var row := py / 4
 			var mortar := py % 4 == 3 or (px + (row % 2) * 4) % 8 == 7

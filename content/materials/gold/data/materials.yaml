@@ -1,0 +1,18 @@
+# Золотая руда: редкие жилы в камне (role: ore, veins — доля жил против других руд), её берёт бронзовая кирка
+# и лучше (hardness 4); золотой блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
+# основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+- id: gold_ore
+  title: Золотая руда
+  role: ore
+  veins: 0.2
+  priority: 2
+  item: gold_ore
+  hardness: 4
+  step: step_stone
+  hit: hit_stone
+- id: gold_block
+  title: Золотой блок
+  item: gold_block
+  hardness: 3
+  step: step_stone
+  hit: hit_stone
