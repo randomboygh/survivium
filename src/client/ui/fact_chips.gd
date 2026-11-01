@@ -113,13 +113,20 @@ static func _well() -> PanelContainer:
 ## the bag) or made new (worn -1, a recipe): its weight (`weight` when it holds more,
 ## a chest with things), what it feeds, what a bag on the back adds, a tool's power, the
 ## time of its swing and its reach, and how many swings it lasts; how far a light reaches
-## and how long one burns (`burn_left` of it when one of them is lit, a share 0..1).
+## and how long one burns (`burn_left` of it when one of them is lit, a share 0..1);
+## how long food keeps and how fresh a stack is (`fresh` 0..1, below 0 for one made new).
 ## Quality comes later.
-static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn_left := 1.0) -> Array:
+static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn_left := 1.0, fresh := -1.0) -> Array:
 	var it := Items.get_item(id)
 	var groups := [["Вес", [[ItemIcons.picture("weight"), "%.1f кг" % (weight if weight >= 0.0 else Items.weight(id) * count), false, "Вес"]]]]
 	if Items.food(id) > 0.0:
-		groups.append(["Еда", [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id)), false, "Сытость"]]])
+		var food := [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id)), false, "Сытость"]]
+		var keeps := Items.spoils(id)
+		if keeps > 0.0:
+			var days := "%s сут." % str(snappedf(keeps, 0.1))
+			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
+				"Свежесть: испортится за %s, в холоде и под крышей дольше" % days])
+		groups.append(["Еда", food])
 	if Items.bag_slots(id) > 0:
 		groups.append(["Сумка", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "Ячеек, надетая за спину"]]])
 	if it.get("tool", "none") != "none":

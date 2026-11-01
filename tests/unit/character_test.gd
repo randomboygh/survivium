@@ -7,6 +7,7 @@ func run() -> void:
 	_test_wear()
 	_test_gear()
 	_test_torch()
+	_test_spoil()
 	_test_vitals()
 	_test_changes()
 	_test_death()
@@ -347,3 +348,33 @@ func _test_death() -> void:
 		"pickup «что есть» takes only what the bag already has")
 	acts.pick_up_near(ch, WorldActions.PICKUP_ALL)
 	_check(ch.inventory.count("core:stick") == 2, "pickup «всё» takes the rest")
+
+
+## Food spoils with game time, stacks of it join at their age together, cold and a roof
+## slow it, and what has gone off turns into rot; a tool's wear is not freshness.
+func _test_spoil() -> void:
+	var meat := "animals:raw_meat"
+	var days := Items.spoils(meat)
+	_check(days > 0.0 and Items.rots_to(meat) == "core:rot", "raw meat spoils into rot")
+	var inv := Inventory.new()
+	inv.add(meat, 2)
+	_check(inv.freshness(0) == 1.0 and inv.freshness(1) == -1.0, "fresh meat is fresh; an empty slot is no food")
+	inv.spoil(days * 0.5)
+	_check(absf(inv.freshness(0) - 0.5) < 0.01 and inv.worn(0) == 0, "half its days later it is half fresh, and not worn")
+	inv.add(meat, 2)
+	_check(inv.slots[0][1] == 4 and absf(inv.freshness(0) - 0.75) < 0.01, "fresh meat joins the stack at the age of both")
+	var copy := Inventory.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
+	_check(absf(copy.freshness(0) - 0.75) < 0.01, "how fresh it is is saved")
+	var cold := Inventory.new()
+	cold.add(meat, 1)
+	cold.spoil(days * 0.5, Inventory.spoil_rate(true, true))
+	_check(absf(cold.freshness(0) - 1.0 + 0.5 * Inventory.WINTER_RATE * Inventory.ROOF_RATE) < 0.01,
+		"in a winter cellar it keeps much longer")
+	inv.add("tools:stone_axe", 1)
+	inv.spoil(days)
+	_check(inv.count(meat) == 0 and inv.count("core:rot") == 4 and inv.count("tools:stone_axe") == 1,
+		"gone off, the meat is rot; the axe is untouched")
+	var tiny := Inventory.new()
+	tiny.add(meat, 1)
+	_check(not tiny.spoil(Inventory.SPOIL_STEP * 0.5) and tiny.freshness(0) == 1.0, "a moment is gathered, not put on at once")

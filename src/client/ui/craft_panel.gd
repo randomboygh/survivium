@@ -12,8 +12,7 @@ extends VBoxContainer
 ## row as wide: small cells for the jobs, the time left of the one chosen and the count
 ## over the first job's progress, the pause and «отменить | отменить все». Opened at a
 ## station, buttons in the window's head (by the cross, see station_buttons) take it
-## back into the bag; at a campfire, a bar of what it has left to burn, feed it one piece
-## of fuel, put it out, light it again for a branch and destroy it once it is out. Works through Workshop.
+## back into the bag; at a campfire, feed it one piece of fuel, put it out, light it again for a branch and destroy it once it is out. Works through Workshop.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
@@ -27,7 +26,6 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
-const Placed := preload("res://src/shared/game/placed.gd")
 
 const COLUMNS := 8
 ## The most cells of recipes made in one refresh (see refresh_now).
@@ -90,9 +88,8 @@ var _job_slots := []
 var _job_more: Label
 var _job_label: Label
 var _progress: ProgressBar
-## At a campfire: feed it, and what it has left to burn.
+## At a campfire: feed it (how long it burns on is told by its tooltip).
 var _feed: Button
-var _fuel: ProgressBar
 ## The station the tab was opened at (a record of Props.placed), or {}.
 var _station := {}
 ## What the stations near were at the last refresh, to notice walking up to one.
@@ -121,13 +118,6 @@ func _ready() -> void:
 		game.net.request(Protocol.PROP_FIRE, [_station.cell, not _station.lit]).then(func(_v: Variant) -> void: refresh()))
 	_feed = TabRow.icon_button(UiStyle.icon("plus"), "Подложить топливо", func() -> void:
 		game.net.request(Protocol.PROP_FIRE, [_station.cell, true]).then(func(_v: Variant) -> void: refresh()))
-	_fuel = ProgressBar.new()
-	_fuel.show_percentage = false
-	_fuel.max_value = 1.0
-	_fuel.custom_minimum_size = Vector2(36, 6)
-	_fuel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_fuel.mouse_filter = Control.MOUSE_FILTER_PASS
-	station_buttons.add_child(_fuel)
 	game.placed.lit_changed.connect(_on_fire)
 	game.placed.fuel_changed.connect(_on_fire)
 	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
@@ -398,11 +388,9 @@ func _show_head() -> void:
 	_destroy.visible = fire and not _station.lit
 	var burns: bool = fire and Items.get_item(_station.item).fuel_max > 0.0
 	_feed.visible = burns and _station.lit
-	_fuel.visible = burns
 	if burns:
-		_fuel.value = Placed.fuel_share(_station)
 		var left := roundi(float(_station.get("fuel", 0.0)))
-		_fuel.tooltip_text = "Горит ещё %d:%02d" % [left / 60, left % 60] if _station.lit else "Потух, топлива на %d:%02d" % [left / 60, left % 60]
+		_feed.tooltip_text = "Подложить топливо (горит ещё %d:%02d)" % [left / 60, left % 60]
 	if fire:
 		_fire.icon = UiStyle.icon("put_out" if _station.lit else "light")
 		_fire.tooltip_text = "Потушить костёр" if _station.lit else "Разжечь (ветка или другое топливо)"

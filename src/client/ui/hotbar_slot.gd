@@ -2,7 +2,7 @@ extends Control
 ## One item cell of the hotbar, a hand or the bag: a sunken well with an icon, a tag in
 ## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
 ## a number (how many) in the bottom right, and a strip along the bottom for how much
-## of a light held is left to burn (or how loaded the bag on the back is).
+## of a light held is left to burn, how fresh food is, or how loaded the bag on the back is.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
@@ -29,7 +29,8 @@ var key := "":
 	set(v):
 		key = v
 		queue_redraw()
-## How much is left of what burns in the slot, 0..1, drawn as a strip; below 0 none.
+## How much is left of what burns in the slot, or how fresh its food is, 0..1, drawn
+## as a strip; below 0 none.
 var fill := -1.0:
 	set(v):
 		if v != fill:

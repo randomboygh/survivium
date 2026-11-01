@@ -4,6 +4,8 @@
   weight: 0.15
   stack: 30
   food: 5
+  spoils: 4
+  rots_to: core:rot
   model: banana
   icon: banana
   anim: eat

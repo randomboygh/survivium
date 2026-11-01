@@ -27,7 +27,6 @@ const MapView := preload("res://src/client/ui/map_view.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
-const FireGauge := preload("res://src/client/ui/fire_gauge.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
@@ -162,7 +161,6 @@ func _ready() -> void:
 	# Under the rest of the interface.
 	feedback = BodyFeedback.new(game)
 	add_child(feedback)
-	add_child(FireGauge.new(game))
 
 	_left = VBoxContainer.new()
 	_left.add_theme_constant_override("separation", 6)
@@ -614,6 +612,7 @@ func refresh_counts() -> void:
 		var s = slots[i]
 		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
 		_slots[i].number = "×%d" % s[1] if s != null and s[1] > 1 else ""
+		_slots[i].fill = game.character.inventory.freshness(i)
 		_slots[i].key = str(i + 1)
 	_update_hands()
 	_bag_meter.queue_redraw()

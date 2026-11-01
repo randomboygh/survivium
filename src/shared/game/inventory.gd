@@ -4,8 +4,10 @@ extends RefCounted
 ## limit from strength: past it the carrier slows down (see speed_factor) but may
 ## still pick things up. A tool wears with use (see wear_tool): its slot keeps how many
 ## swings it has taken. A chest taken up with things in it keeps them (its contents,
-## as to_dict() gives them) and weighs them too. Shared, so the server can keep the
-## same bag.
+## as to_dict() gives them) and weighs them too. Food that spoils (Items.spoils) keeps
+## in the same place of its slot how far it has gone off (see spoil): stacks of it join
+## whatever their age, at the age of the two together. Shared, so the server can keep
+## the same bag.
 
 const Items := preload("res://src/shared/content/items.gd")
 
@@ -17,11 +19,19 @@ const WEIGHT_LIMIT := 40.0
 ## Past the limit the pace falls steadily, to OVERLOAD_PACE at OVERLOAD times the limit.
 const OVERLOAD := 1.5
 const OVERLOAD_PACE := 0.15
+## How far food has gone off, kept in a slot: 0 fresh, ROTTEN spoiled (it turns into its
+## Items.rots_to then).
+const ROTTEN := 10000
+## Time spoils food in steps of this many game days (at the full rate), so a slot changes
+## only now and then, and is told (changed) when it crosses a TELL_AGE of its age.
+const SPOIL_STEP := 0.005
+const TELL_AGE := 500
 
 signal changed
 
-## Each slot: [id, count], [id, count, worn] for a tool that has taken `worn` swings,
-## [id, 1, 0, contents] for a chest with things in it, or null for an empty one.
+## Each slot: [id, count], [id, count, worn] for a tool that has taken `worn` swings or
+## food that has gone off by `worn` (of ROTTEN), [id, 1, 0, contents] for a chest with
+## things in it, or null for an empty one.
 var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
 ## Whether a chest with things in it may go in (not into another chest).
@@ -36,6 +46,8 @@ var base := SLOTS
 ## Whether weight past the limit weighs on the carrier (slower pace, no jumps, slower
 ## recovery); a playtest switch turns it off.
 var heavy := true
+## Game days of spoiling not yet put on the food (see spoil).
+var _spoil_carry := 0.0
 
 
 func _init(n := SLOTS) -> void:
@@ -123,9 +135,10 @@ func _unpack_back(packed: Variant) -> void:
 ## first; returns how many went in (fewer when the slots are full). A chest with
 ## `contents` goes in alone, into a slot of its own.
 func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
-	# Only what wears keeps its wear (a torch of an old save burned by wear is whole).
-	if worn > 0 and Items.get_item(id).get("durability", 0) <= 0:
+	# Only what wears or spoils keeps its wear (a torch of an old save burned by wear is whole).
+	if worn > 0 and not keeps_wear(id):
 		worn = 0
+	var spoils := Items.spoils(id) > 0.0
 	if contents is Dictionary:
 		var free := slots.find(null)
 		if not nests or free < 0 or n < 1:
@@ -136,8 +149,14 @@ func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
 	var left := n
 	var size := Items.stack_size(id)
 	for s in slots:
-		if left > 0 and s != null and s[0] == id and s[1] < size and _worn(s) == worn and s.size() < 4:
+		if left > 0 and s != null and s[0] == id and s[1] < size and (spoils or _worn(s) == worn) and s.size() < 4:
 			var k := mini(left, size - s[1])
+			if spoils:
+				var age := roundi(float(_worn(s) * s[1] + worn * k) / float(s[1] + k))
+				if s.size() > 2:
+					s[2] = age
+				elif age > 0:
+					s.append(age)
 			s[1] += k
 			left -= k
 	for i in slots.size():
@@ -306,7 +325,73 @@ func put_into(i: int, to, j: int) -> bool:
 
 ## Swings the tool in slot `i` has taken.
 func worn(i: int) -> int:
-	return _worn(slots[i]) if slots[i] != null else 0
+	return _worn(slots[i]) if slots[i] != null and Items.spoils(slots[i][0]) <= 0.0 else 0
+
+
+## True for item `id` whose slot keeps a number of its own: a tool that wears, food that
+## spoils.
+static func keeps_wear(id: String) -> bool:
+	return Items.get_item(id).get("durability", 0) > 0 or Items.spoils(id) > 0.0
+
+
+## How fresh the food in slot `i` is, 1 (fresh) .. 0 (about to spoil); -1 for what does
+## not spoil.
+func freshness(i: int) -> float:
+	var s = slots[i] if i >= 0 and i < slots.size() else null
+	if s == null or Items.spoils(s[0]) <= 0.0:
+		return -1.0
+	return clampf(1.0 - float(_worn(s)) / ROTTEN, 0.0, 1.0)
+
+
+## How fast food spoils in winter, and under a roof (a cellar, a cave, a house), as a
+## share of the full pace; both together multiply.
+const WINTER_RATE := 0.25
+const ROOF_RATE := 0.5
+
+
+## The pace food spoils at (see spoil) in winter or not, under a roof or not.
+static func spoil_rate(winter: bool, roofed: bool) -> float:
+	return (WINTER_RATE if winter else 1.0) * (ROOF_RATE if roofed else 1.0)
+
+
+## Lets `days` of game time go by on the food in the bag at `rate` times the full pace
+## (cold slows it): each slot goes off by its share of Items.spoils, and one gone off
+## turns into its Items.rots_to (or is gone). What a chest in the bag holds keeps. True
+## when anything was told (changed).
+func spoil(days: float, rate := 1.0) -> bool:
+	_spoil_carry += days * rate
+	if _spoil_carry < SPOIL_STEP:
+		return false
+	var step := _spoil_carry
+	_spoil_carry = 0.0
+	var told := false
+	var rotten := []
+	for i in slots.size():
+		var s = slots[i]
+		if s == null or s.size() > 3:
+			continue
+		var lasts := Items.spoils(s[0])
+		if lasts <= 0.0:
+			continue
+		var was := _worn(s)
+		var age := mini(ROTTEN, was + maxi(1, roundi(step / lasts * ROTTEN)))
+		if age >= ROTTEN:
+			rotten.append([i, s[0], s[1]])
+		elif s.size() > 2:
+			s[2] = age
+		else:
+			s.append(age)
+		told = told or age / TELL_AGE != was / TELL_AGE
+	for r: Array in rotten:
+		slots[r[0]] = null
+	for r: Array in rotten:
+		var into := Items.rots_to(r[1])
+		if into != "":
+			add(into, r[2])
+	if told or not rotten.is_empty():
+		changed.emit()
+		return true
+	return false
 
 
 static func _worn(s: Array) -> int:
@@ -456,7 +541,7 @@ func from_dict(d: Dictionary) -> void:
 		var s = saved[i]
 		if s is Array and s.size() in [2, 3, 4] and s[0] is String and Items.has(Items.canon(s[0])) and int(s[1]) > 0:
 			var id: String = Items.get_item(Items.canon(s[0])).id
-			var w: int = int(s[2]) if s.size() >= 3 and Items.get_item(id).get("durability", 0) > 0 else 0
+			var w: int = int(s[2]) if s.size() >= 3 and keeps_wear(id) else 0
 			if s.size() == 4 and s[3] is Dictionary:
 				slots[i] = [id, 1, w, s[3]]
 			else:

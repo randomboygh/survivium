@@ -133,6 +133,10 @@ const SCHEMAS := {
 		"repairs": {"type": "bool", "default": false},
 		"serves": {"type": "list", "of": "ref:items", "default": [], "rel": "serves"},
 		"place_tool": {"type": "word", "default": "none"},
+		# Food that spoils: it keeps this many game days (slower in the cold, see
+		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
+		"spoils": {"type": "float", "min": 0.0, "default": 0.0},
+		"rots_to": {"type": "ref:items", "default": "", "rel": "becomes"},
 		# A fire (`fire`) burns on fuel: it holds at most `fuel_max` seconds of burning and
 		# a new one is set down with `fuel_start` of them; 0 burns for ever. Fuel (`fuel`)
 		# lights a fire and feeds it `fuel_time` seconds.

@@ -264,6 +264,12 @@ func _torch_flame() -> CPUParticles3D:
 	return torch_flame
 
 
+## The light of a campfire burning in full, and how strongly one about to go out burns
+## (see fire_strength).
+const FIRE_ENERGY := 1.8
+const FIRE_LOW := 0.3
+
+
 ## A campfire one world unit square with its north-west corner at `corner`: stones,
 ## logs, flames, sparks, smoke and a flickering light, the model drawn with `material`.
 ## Returns its record for put_out and remove_campfire: {"model", "parts" (what burns),
@@ -324,9 +330,30 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	light.shadow_caster_mask = FIRE_CASTERS
 	add_child(light)
 	anchor(light, c + Vector3(0.0, 0.6, 0.0))
-	var fire := {"light": light, "base": 1.8, "unit": Vector3i(c.floor()), "at": c}
+	var fire := {"light": light, "base": FIRE_ENERGY, "unit": Vector3i(c.floor()), "at": c}
 	fires.append(fire)
-	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire}
+	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire, "flames": flames, "sparks": sparks,
+		"smoke": smoke}
+
+
+## How strongly campfire `rec` (see add_campfire) burns, from what it has left to burn
+## (`share` 0..1, Placed.fuel_share): a full one burns wide and high, sparks and lights
+## far; one running low is a few low flames, no sparks, a short light.
+func fire_strength(rec: Dictionary, share: float) -> void:
+	if rec.fire == null:
+		return
+	var k := lerpf(FIRE_LOW, 1.0, clampf(share, 0.0, 1.0))
+	var flames: CPUParticles3D = rec.flames
+	flames.emission_sphere_radius = 0.14 * k
+	flames.initial_velocity_min = 0.5 * k
+	flames.initial_velocity_max = 0.9 * k
+	flames.scale_amount_min = 0.5 * k
+	flames.scale_amount_max = lerpf(0.6, 1.25, k)
+	(rec.sparks as CPUParticles3D).emitting = k > 0.5
+	(rec.smoke as CPUParticles3D).scale_amount_max = k
+	var light: OmniLight3D = rec.fire.light
+	light.omni_range = 8.0 * lerpf(0.5, 1.0, k)
+	rec.fire.base = FIRE_ENERGY * lerpf(0.45, 1.0, k)
 
 
 ## A light set down with its flame at world point `at`, lighting `reach` world units

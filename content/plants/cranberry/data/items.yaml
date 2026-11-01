@@ -4,6 +4,8 @@
   weight: 0.05
   stack: 50
   food: 2
+  spoils: 6
+  rots_to: core:rot
   model: cranberry
   icon: cranberry
   anim: eat

@@ -240,6 +240,7 @@ func update(delta: float) -> void:
 		var d := minf(left, VITALS_STEP)
 		vitals.step(d, clock.days(d), body.swimming, share)
 		left -= d
+	_spoil(p, clock.days(delta))
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	if body.jumped:
 		note("jumps")
@@ -251,6 +252,15 @@ func update(delta: float) -> void:
 	_burn_light(delta)
 	if vitals.is_dead():
 		die()
+
+
+## The food in the bag spoils, slower in winter and under a roof (Inventory.spoil_rate).
+func _spoil(p: Vector3, days: float) -> void:
+	var roofed := false
+	if world != null:
+		var c := (p / WorldData.CELL).floor()
+		roofed = world.roof_level(int(c.x), int(c.z)) > int(c.y)
+	inventory.spoil(days, Inventory.spoil_rate(clock.season == clock.WINTER, roofed))
 
 
 ## A burning campfire the body at `p` stands by or pushed against burns it and throws

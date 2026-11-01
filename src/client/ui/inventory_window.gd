@@ -694,6 +694,7 @@ func _show_slots(bag, cells: Array) -> void:
 		var cell = cells[i]
 		cell.texture = ItemIcons.of_item(s[0]) if s != null else null
 		cell.number = "×%d" % s[1] if s != null and s[1] > 1 else ""
+		cell.fill = bag.freshness(i)
 		cell.selected = bag == _from and i == _at
 		var shown: bool = _kinds.chosen == "" or s != null and Items.category(s[0]) == _kinds.chosen
 		cell.modulate = Color.WHITE if shown else Color(1, 1, 1, 0.3)
@@ -718,7 +719,7 @@ func _show_info(inv) -> void:
 			" · с вещами" if _from.contents(_at) != null else "",
 			"" if mine else " · в сундуке"]
 		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
-			game.character.burn_left(id) if mine else 1.0))
+			game.character.burn_left(id) if mine else 1.0, _from.freshness(_at)))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
 	_icon.texture = ItemIcons.of_item(s[0]) if s != null else null
 	_icon.visible = _icon.texture != null
