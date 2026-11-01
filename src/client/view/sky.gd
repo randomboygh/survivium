@@ -182,19 +182,23 @@ func _update_torch(delta: float) -> void:
 	game.effects.hold_flames(player.flames_at, player.torch_lit)
 	var shadows: bool = player.torch_lit and dark > 0.0 and game.effects.shadows \
 			and not game.effects.player_only and not game.effects.fire_shadowing
-	player.torch.shadow_enabled = shadows
+	# The shadow and the range are set only when they change: each write re-pairs the
+	# light and marks its cube shadow dirty, redrawn then (the energy is free).
+	if player.torch.shadow_enabled != shadows:
+		player.torch.shadow_enabled = shadows
 	var energy := GLOW_ENERGY
+	var reach := PixelView.light_range(GLOW_RANGE)
 	if player.torch_lit:
 		var two: bool = game.character.lights_held().size() > 1
-		player.torch.omni_range = PixelView.light_range(Items.get_item(held).light * (TWO_TORCHES if two else 1.0)
+		reach = PixelView.light_range(Items.get_item(held).light * (TWO_TORCHES if two else 1.0)
 			* (SWIMMING_TORCH if game.character.body.swimming else 1.0))
 		_flicker_clock -= delta
 		if _flicker_clock <= 0.0:
 			_flicker_clock = 0.09
 			_flicker = rng.randf_range(0.88, 1.05)
 		energy = TORCH_ENERGY * _flicker
-	else:
-		player.torch.omni_range = PixelView.light_range(GLOW_RANGE)
+	if not is_equal_approx(player.torch.omni_range, reach):
+		player.torch.omni_range = reach
 	player.torch.light_energy = energy * dark * (game.effects.shadow_energy if shadows else 1.0)
 
 

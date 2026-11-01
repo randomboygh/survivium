@@ -1062,4 +1062,18 @@ static func _tier_normal(c: Vector3, axis: Vector3, lean: float) -> Vector3:
 
 ## Appends a translation-only transform in MultiMesh buffer order.
 static func put(buf: PackedFloat32Array, p: Vector3) -> void:
-	buf.append_array([1.0, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, 1.0, p.z])
+	# Written in place: a literal Array per instance costs twice as much.
+	var at := buf.size()
+	buf.resize(at + 12)
+	buf[at] = 1.0
+	buf[at + 1] = 0.0
+	buf[at + 2] = 0.0
+	buf[at + 3] = p.x
+	buf[at + 4] = 0.0
+	buf[at + 5] = 1.0
+	buf[at + 6] = 0.0
+	buf[at + 7] = p.y
+	buf[at + 8] = 0.0
+	buf[at + 9] = 0.0
+	buf[at + 10] = 1.0
+	buf[at + 11] = p.z

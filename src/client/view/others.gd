@@ -82,6 +82,8 @@ func _make(at: Vector3) -> Dictionary:
 	# The silhouette behind walls, the stencil and the torch are the player's own.
 	f.xray.visible = false
 	f.sprite.layers = 1
+	# Its light stays dark (Sky lights only the player's): hidden, the renderer skips it.
+	f.torch.visible = false
 	var label := _label()
 	var line := _label()
 	line.modulate = UiStyle.INK

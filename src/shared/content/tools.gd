@@ -105,8 +105,7 @@ static func use_of(id: String) -> String:
 
 ## The material a cell of `m` becomes when its top is cut, -1 when it has no top to cut.
 static func mown(m: int) -> int:
-	var to: String = Mat.RECORDS[m].mow
-	return Mat.index(to) if to != "" else -1
+	return Mat.mow_to[m]
 
 
 ## Whether tool `t` cuts grass: what grows tall on it at least (the item's `mows`).

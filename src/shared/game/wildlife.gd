@@ -899,10 +899,6 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 		var x := px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var y: int = world.surface_y(x, z)
-		if not spec.biomes.is_empty() and gen != null:
-			var b: int = gen.lay_out(x, z, 1, 1).biome[0]
-			if b == Biomes.NONE or not Biomes.IDS[b] in spec.biomes:
-				continue
 		if spec.swims:
 			# Open water, a cell deep at least.
 			if y != -1 or WorldData.top_level(world.water_col(x, z)) < 1 \
@@ -910,6 +906,11 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 				continue
 		elif y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue
+		# The biome last: the cheap tests above leave most places out first.
+		if not spec.biomes.is_empty() and gen != null:
+			var b: int = gen.biome_of(x, z)
+			if b == Biomes.NONE or not Biomes.IDS[b] in spec.biomes:
+				continue
 		var pos := Vector3(x + 0.5, 0.0, z + 0.5) * CELL
 		pos.y = _floor(spec, pos.x, pos.z)
 		if away_from_people and pos.distance_to(around) < 20.0:

@@ -375,15 +375,21 @@ const PATCH_CJ := [0, 0, 1, 1]
 
 ## Height above the cell's level of patch `p` at (u, v) inside the cell, 0..1.
 static func patch_height(p: PackedFloat32Array, u: float, v: float) -> float:
-	var au := [1.0 - u * u * (3.0 - 2.0 * u), u * u * (3.0 - 2.0 * u)]
-	var av := [1.0 - v * v * (3.0 - 2.0 * v), v * v * (3.0 - 2.0 * v)]
-	var bu := [u * (1.0 - u) * (1.0 - u), u * u * (u - 1.0)]
-	var bv := [v * (1.0 - v) * (1.0 - v), v * v * (v - 1.0)]
+	# The corners k = 0..3 lie at (i, j) = PATCH_CI/CJ[k]: (0,0), (1,0), (1,1), (0,1),
+	# summed in that order (locals, not arrays: this runs for every body step on a slope).
+	var au0 := 1.0 - u * u * (3.0 - 2.0 * u)
+	var au1 := u * u * (3.0 - 2.0 * u)
+	var av0 := 1.0 - v * v * (3.0 - 2.0 * v)
+	var av1 := v * v * (3.0 - 2.0 * v)
+	var bu0 := u * (1.0 - u) * (1.0 - u)
+	var bu1 := u * u * (u - 1.0)
+	var bv0 := v * (1.0 - v) * (1.0 - v)
+	var bv1 := v * v * (v - 1.0)
 	var h := 0.0
-	for k in 4:
-		var i: int = PATCH_CI[k]
-		var j: int = PATCH_CJ[k]
-		h += p[k] * au[i] * av[j] + p[4 + k] * bu[i] * av[j] + p[8 + k] * au[i] * bv[j]
+	h += p[0] * au0 * av0 + p[4] * bu0 * av0 + p[8] * au0 * bv0
+	h += p[1] * au1 * av0 + p[5] * bu1 * av0 + p[9] * au1 * bv0
+	h += p[2] * au1 * av1 + p[6] * bu1 * av1 + p[10] * au1 * bv1
+	h += p[3] * au0 * av1 + p[7] * bu0 * av1 + p[11] * au0 * bv1
 	return h
 
 

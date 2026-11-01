@@ -731,7 +731,7 @@ static func _biome_or(b: int, other: int) -> int:
 func biome_under(at: Vector3) -> int:
 	if wildlife == null or wildlife.gen == null:
 		return Biomes.NONE
-	return wildlife.gen.lay_out(floori(at.x / CELL), floori(at.z / CELL), 1, 1).biome[0]
+	return wildlife.gen.biome_of(floori(at.x / CELL), floori(at.z / CELL))
 
 
 ## Places the block in hand round `who` (front_place_cells), in the hole it faces first.

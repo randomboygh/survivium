@@ -177,9 +177,10 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		if grow != 0:
 			_grown(grow, out, rng)
 			return loaded(out)
+	var tier := BARE_TIER
 	if m == Mat.GRASS:
 		_fields()
-		var tier := tier_at(x, z)
+		tier = tier_at(x, z)
 		if tier == TALL_TIER:
 			for k in 3:
 				out.append(TALL + rng.randi_range(0, 3))
@@ -213,30 +214,32 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		if w.leaf_col(x, z) != 0:
 			_forest_floor(x, z, out, rng)
 	# Reeds line grassy and muddy banks, not the sand of a beach.
-	if m != Mat.BEACH and _by_water(w, x, y, z) and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
+	var by_water: bool = m != Mat.BEACH and _by_water(w, x, y, z)
+	if by_water and rng.randf() < (0.7 if m == Mat.GRASS else 0.4):
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
 	if not Plants.CUSTOM.is_empty():
-		_custom(w, x, y, z, m, out, rng)
+		_custom(w, x, z, m, tier, by_water, out, rng)
 	return loaded(out)
 
 
 ## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
 ## grass, the shade of a crown, a bank), on the share of that ground its `cover` says,
 ## and only in clumps where its own noise is above `clumps` when that is set, and only
-## in its `biomes` when it names some.
-static func _custom(w, x: int, y: int, z: int, m: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+## in its `biomes` when it names some. `tier` and `by_water` are the cell's, as kinds
+## found them.
+static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: Array[int], rng: RandomNumberGenerator) -> void:
 	var shaded: bool = w.leaf_col(x, z) != 0
 	for c in Plants.CUSTOM:
 		match c.grows:
 			"meadow":
-				if m != Mat.GRASS or shaded or tier_at(x, z) == BARE_TIER:
+				if m != Mat.GRASS or shaded or tier == BARE_TIER:
 					continue
 			"shade":
 				if m != Mat.GRASS or not shaded:
 					continue
 			"bank":
-				if m == Mat.BEACH or not _by_water(w, x, y, z):
+				if not by_water:
 					continue
 		if not c.biomes.is_empty():
 			var b: int = w.biome_at(x, z)

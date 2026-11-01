@@ -53,17 +53,29 @@ func update(w, x: int, level: int, z: int) -> void:
 	origin = _next
 	image.set_data(SIZE, SIZE, false, Image.FORMAT_RGBA8, _data)
 	texture.update(image)
+	_dirty = false
 	RenderingServer.global_shader_parameter_set("solid_origin", Vector3(origin))
 
 
-## Cell `cell` changed: its column is written again.
+## Whether cells touched since the last upload wait in `image` (see flush).
+var _dirty := false
+
+
+## Uploads the cells touched since the last time, once a frame however many changed.
+func flush() -> void:
+	if _dirty:
+		texture.update(image)
+		_dirty = false
+
+
+## Cell `cell` changed: its column is written again (uploaded by the next flush).
 func touch(w, cell: Vector3i) -> void:
 	var c := cell.x - origin.x
 	var r := cell.z - origin.z
 	if origin.y > -1000 and c >= 0 and r >= 0 and c < SIZE and r < SIZE:
 		var b := _bits(w, cell.x, cell.z, origin.y)
 		image.set_pixel(c, r, Color8(b & 255, (b >> 8) & 255, (b >> 16) & 255, (b >> 24) & 255))
-		texture.update(image)
+		_dirty = true
 	# A map being made may have passed that row already.
 	c = cell.x - _next.x
 	r = cell.z - _next.z

@@ -667,6 +667,36 @@ func clock_text() -> String:
 	return "%s · д. %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
 
 
+## The things placed whose marks the minimap shows (see _update_marks), and whether
+## they or the sacks changed since the marks were made.
+var _marks_of: Object = null
+var _marks_dirty := true
+var _sacks_seen: Array[Vector3] = []
+
+
+## Gives the minimap the marks of the things placed and the sacks only when something
+## was placed or taken or a sack moved, not every frame.
+func _update_marks() -> void:
+	if _marks_of != game.placed:
+		if _marks_of != null:
+			_marks_of.added.disconnect(_on_marks_changed)
+			_marks_of.removed.disconnect(_on_marks_changed)
+		_marks_of = game.placed
+		_marks_of.added.connect(_on_marks_changed)
+		_marks_of.removed.connect(_on_marks_changed)
+		_marks_dirty = true
+	var sacks: Array[Vector3] = game.character.sacks
+	if not _marks_dirty and sacks == _sacks_seen:
+		return
+	minimap.set_marks(game.placed.things, sacks)
+	_marks_dirty = false
+	_sacks_seen = sacks.duplicate()
+
+
+func _on_marks_changed(_e: Dictionary) -> void:
+	_marks_dirty = true
+
+
 func update_state() -> void:
 	var winter: bool = game.clock.season == game.clock.WINTER
 	_clock.text = clock_text()
@@ -676,7 +706,7 @@ func update_state() -> void:
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / game.CELL), floori(game.player.position.z / game.CELL)))
-	minimap.set_marks(game.placed.things, game.character.sacks)
+	_update_marks()
 	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT

@@ -147,7 +147,11 @@ func rejoin() -> void:
 ## Takes message `bytes` from the client: the reply's bytes for a request, null for an
 ## event.
 func handle(bytes: PackedByteArray) -> Variant:
-	var msg := Protocol.decode(bytes)
+	return handle_msg(Protocol.decode(bytes))
+
+
+## handle for a message already decoded (Protocol.decode), as the server has it.
+func handle_msg(msg: Array) -> Variant:
 	if msg.size() == 3:
 		return Protocol.encode(requests.handle(msg))
 	if msg.size() == 2 and msg[0] == Protocol.INPUT and msg[1] is Array:
