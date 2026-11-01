@@ -14,7 +14,7 @@
   `WorldActions`, `Storms`, `Wildlife`; `add_player(who, workshop)` / `remove_player(who)` (персонаж
   получает мир, часы и вещи; звери видят персонажей как людей); `start_wildlife(seed)`; `tick(delta)` =
   `step_clock` (время и погода; погода чувствуется у первого игрока, пока нет климата по районам) →
-  `step_players` (каждый персонаж и его мастерская, шаг не больше `STEP_MAX` 0,05 с) → `step_things`
+  `step_players` (каждый персонаж и его мастерская, кадр до `CATCH_UP` 1 с засчитывается целиком, тело — шагами по 0,05 с; дольше — остаток теряется) → `step_things`
   (поставленный свет догорает, `Placed.step`) → `step_wildlife`
   (на зверей на экранах игроков смотрят — `look_from` по `Character.view_right` / `view_half`, круг
   `Wildlife.NEAR` без экрана; они ходят каждый шаг, остальные раз в 0,1 с) → `step_storms` (ветер вокруг игроков по очереди); `push_on(who)` — чем звери толкнули игрока,
