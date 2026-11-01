@@ -792,6 +792,19 @@ static func slot(selected := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "slot", WELL, ACCENT if selected else EDGE, Vector4.ZERO)
 
 
+## The sunken well around a block of text (a slot's frame with WELL_PAD inside), made
+## once and shared: no caller changes it.
+static func well() -> StyleBox:
+	if _well_box == null:
+		_well_box = slot()
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			_well_box.set_content_margin(side, WELL_PAD)
+	return _well_box
+
+
+static var _well_box: StyleBoxTexture
+
+
 ## A button's frame; `accent` lights it amber, `danger` red (a second tap destroys),
 ## `good` green (what it did worked).
 static func button(state: String, accent := false, danger := false, good := false) -> StyleBoxTexture:
@@ -833,6 +846,12 @@ static func succeed(b: Button, on: bool) -> void:
 	_paint(b, "good" if on else "")
 
 
+## Paints button `b` in the accent colour (the one to press: «Начать», the world in
+## play), dark text on it; the boxes are made once and shared.
+static func accent(b: Button) -> void:
+	_paint(b, "accent")
+
+
 static func _paint(b: Button, kind: String) -> void:
 	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
 		if kind == "":
@@ -840,7 +859,7 @@ static func _paint(b: Button, kind: String) -> void:
 			continue
 		var key := kind + ":" + state
 		if not _lit_boxes.has(key):
-			_lit_boxes[key] = button(state, false, kind == "danger", kind == "good")
+			_lit_boxes[key] = button(state, kind == "accent", kind == "danger", kind == "good")
 		b.add_theme_stylebox_override(state, _lit_boxes[key])
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
 		if kind == "":

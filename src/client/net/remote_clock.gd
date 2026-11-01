@@ -8,6 +8,23 @@ extends "res://src/shared/game/clock.gd"
 ## enough: they change over minutes). It decides nothing: the seasons turn and the
 ## weather changes on the server, and the playtest page writes there.
 
+## False until the first snapshot: the season it brings is the world's, not a new one,
+## so it is taken without season_changed.
+var _synced := false
+
+
+## Takes the server's snapshot; the first one sets the season quietly.
+func from_snapshot(a: Array) -> bool:
+	if _synced:
+		return super(a)
+	var at := SNAPSHOT.find(&"season")
+	if at >= 0 and a.size() == SNAPSHOT.size() and (a[at] is int or a[at] is float):
+		season = int(a[at])
+	if not super(a):
+		return false
+	_synced = true
+	return true
+
 
 ## Runs the time of day for `delta` seconds since the last frame; the day turns, the
 ## season waits for the server.

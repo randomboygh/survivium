@@ -46,7 +46,10 @@
   `Content.warnings` (имена против правил), `Content.loaded`, `Content.dropped[b]` (почему выпал),
   `Content.read_ms` / `load_ms` (сколько длились последнее чтение `content/` и последняя загрузка набора: строка
   «Загрузка» в «Данных для теста»).
-- `Content.all_bundles()`, `bundles_of(mod)`, `mod_of(b)`, `deps(b)`, `closure(b)`, `resolve(set)`.
+- `Content.all_bundles()`, `available()`, `bundles_of(mod)` (из скана `content/`, не с диска: новую папку видит
+  `refresh`), `mod_of(b)`, `deps(b)`, `closure(b)`, `resolve(set)` (порядок Кана: из готовых первым идёт
+  стоящий раньше в скане). `Content.generation` растёт с каждой загрузкой; `Mods.activate` пересобирает
+  реестры, если они собраны с другой загрузки (после прямого `Content.refresh`).
 - `Mods.activate(bundles)` — сделать набор мира текущим и пересобрать реестры; `Mods.rescan()` —
   перечитать `content/` (кнопка на «Тестировании»); `Mods.expand(list)` — старые id модов в бандлы;
   `Mods.of_world(meta)` — бандлы мира по его `world.json`, с вошедшими с тех пор дополняющими (решение 4А);

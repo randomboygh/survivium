@@ -95,10 +95,7 @@ func _fill() -> void:
 		# Every row as wide as the widest, its delete button at the same place.
 		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if current:
-			for state in ["normal", "hover", "pressed", "hover_pressed"]:
-				pick.add_theme_stylebox_override(state, UiStyle.button(state, true))
-			for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
-				pick.add_theme_color_override(c, UiStyle.DARK_INK)
+			UiStyle.accent(pick)
 		var seed_value: int = w.seed
 		var options: Dictionary = w.settings
 		pick.pressed.connect(func() -> void: chosen.emit(seed_value, options))

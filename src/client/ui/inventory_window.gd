@@ -189,7 +189,7 @@ func _ready() -> void:
 
 	# The panel at the bottom: the chosen stack and what can be done with it.
 	var bottom := PanelContainer.new()
-	bottom.add_theme_stylebox_override("panel", _well())
+	bottom.add_theme_stylebox_override("panel", UiStyle.well())
 	_bag_page.add_child(bottom)
 	var info := VBoxContainer.new()
 	info.add_theme_constant_override("separation", 6)
@@ -593,12 +593,6 @@ func refresh_state() -> void:
 	_chest_tabs.select(str(_chests.find(_chest_entry)))
 	craft.refresh_progress()
 
-
-func _well() -> StyleBox:
-	var box := UiStyle.slot()
-	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		box.set_content_margin(side, UiStyle.WELL_PAD)
-	return box
 
 
 func _button(text: String, action: Callable) -> Button:

@@ -76,10 +76,7 @@ func _ready() -> void:
 	_go.text = "Подключиться"
 	_go.focus_mode = Control.FOCUS_NONE
 	_go.custom_minimum_size = Vector2(WIDTH, ROW_H)
-	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_go.add_theme_stylebox_override(state, UiStyle.button(state, true))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
-		_go.add_theme_color_override(c, UiStyle.DARK_INK)
+	UiStyle.accent(_go)
 	_go.pressed.connect(submit)
 	box.add_child(_go)
 	_back = Button.new()

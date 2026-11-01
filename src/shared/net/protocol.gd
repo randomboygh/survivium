@@ -107,6 +107,8 @@ const CHAT := "chat"
 ## server runs its own body towards the position told and puts the client where that
 ## got when the two part (С3.3, decision 153 3А: TELEPORT).
 const INPUT := "input"
+## How many fields an INPUT has (above); the server leaves out one of another size.
+const INPUT_SIZE := 18
 ## The player's own state changed: {"inventory", "vitals", "state", "home",
 ## "held_back"} (each as to_dict gives it; vitals as VITALS).
 const YOU := "you"
@@ -201,12 +203,23 @@ static func encode(msg: Array) -> PackedByteArray:
 ## server of different builds do not play, since their content may differ (decision
 ## 153, 5А: the mods are built in).
 static func build_version() -> String:
-	if not FileAccess.file_exists(BUILD_INFO):
-		return "dev"
-	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(BUILD_INFO))
-	if data is Dictionary and data.get("version") is String and data.version != "":
+	var data := build_info()
+	if data.get("version") is String and data.version != "":
 		return data.version
 	return "dev"
+
+
+## BUILD_INFO as written by CI ({} without one), read once: the file does not change
+## while the game runs. Callers must not change it.
+static func build_info() -> Dictionary:
+	if _build_info == null:
+		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(BUILD_INFO)) \
+			if FileAccess.file_exists(BUILD_INFO) else null
+		_build_info = data if data is Dictionary else {}
+	return _build_info
+
+
+static var _build_info: Variant = null
 
 
 ## The message in `bytes`, or an empty Array when it is not one.

@@ -7,6 +7,7 @@ extends "res://tests/unit/test_case.gd"
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Requests := preload("res://src/server/requests.gd")
+const ServerPlayer := preload("res://src/server/player.gd")
 const Connection := preload("res://src/client/net/connection.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
@@ -129,6 +130,26 @@ func _test_requests() -> void:
 	_check(is_equal_approx(clock.time_of_day, 0.5) and clock.weather == Clock.RAIN, "the copy of the clock runs the time of day between snapshots")
 	_check(not clock.from_snapshot([1, 2]) and not clock.from_snapshot(s.clock.snapshot().map(func(_v: Variant) -> String: return "x")),
 		"a snapshot of another shape or of strings is refused")
+	var told: Array[int] = []
+	var fresh := RemoteClock.new()
+	fresh.season_changed.connect(func(season: int) -> void: told.append(season))
+	var server_clock := Clock.new()
+	server_clock.season = Clock.WINTER
+	fresh.from_snapshot(server_clock.snapshot())
+	server_clock.season = Clock.SPRING
+	fresh.from_snapshot(server_clock.snapshot())
+	_check(told == [Clock.SPRING] and fresh.season == Clock.SPRING,
+		"the copy takes the season of its first snapshot quietly and tells the next one")
+	# INPUT's layout is kept in three places (Mirror, Player.take_input, server_test):
+	# one of Protocol.INPUT_SIZE in Mirror's types is taken, a short one is not.
+	var input: Array = [Vector3(4, 2, 4), Vector3i(1, 0, 1), Vector2i(0, 1), ["a", "b"], 1, 0, true, false, false, false,
+		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0), true, "", 0.0, 0, Vector3.INF]
+	var taker := ServerPlayer.new()
+	taker.take_input(input.slice(0, input.size() - 1))
+	var refused := taker.hands == ["", ""]
+	taker.take_input(input)
+	_check(input.size() == Protocol.INPUT_SIZE and refused and taker.hands == ["a", "b"] and taker.feet_cell == Vector3i(1, 0, 1),
+		"an INPUT of Protocol.INPUT_SIZE fields is taken, a short one is not")
 	events.clear()
 	var r = net.request(Protocol.DIG, [Vector3i(8, 1, 7), Vector3i.UP])
 	_check(r.done and r.value is Dictionary and r.value.has("swing") and w.get_cell(8, 1, 7) == Mat.AIR,

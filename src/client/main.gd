@@ -512,9 +512,7 @@ func start_world() -> void:
 	world_placed.cell_changed.connect(chunks.on_cell_changed)
 	session = Session.new(world, gen, world_clock, rules, world_placed)
 	world_maker = session
-	clock.gen = gen
-	placed.world = world
-	character.world = world
+	_attach_world()
 	host = LocalHost.new(session, get_tree().root)
 	net = host.join()
 	mirror.watch(net)
@@ -527,10 +525,7 @@ func start_world() -> void:
 	host.workshop.settle()
 	actions = session.actions
 	storms = session.storms
-	actions.cell_changed.connect(chunks.on_cell_changed)
-	actions.looks_changed.connect(chunks.remesh_chunk)
-	actions.drops_changed.connect(props.show_drops)
-	actions.taken.connect(props.fly)
+	_watch_actions()
 	freeze_log.watch()
 	_build_scene()
 	save.restore_player()
@@ -586,16 +581,11 @@ func _join_world() -> void:
 	await _loading_stage("Игрок и небо…")
 	world = gen.world
 	world_maker = gen
-	clock.gen = gen
-	placed.world = world
-	character.world = world
+	_attach_world()
 	# The rules are asked only what they read of the world (the cursor's preview, what
 	# a bush gives); what they would change comes from the server as events.
 	actions = WorldActions.new(world, clock, rules)
-	actions.cell_changed.connect(chunks.on_cell_changed)
-	actions.looks_changed.connect(chunks.remesh_chunk)
-	actions.drops_changed.connect(props.show_drops)
-	actions.taken.connect(props.fly)
+	_watch_actions()
 	gen.changed.connect(chunks.remesh_chunk)
 	freeze_log.watch()
 	_build_scene()
@@ -608,6 +598,21 @@ func _join_world() -> void:
 	chunks.prepare(gen)
 	loading_stage = ""
 
+
+## Fits the client's copies (the clock, the things placed, the character) to the world
+## of `gen`; the same for a world of this device and one of a server.
+func _attach_world() -> void:
+	clock.gen = gen
+	placed.world = world
+	character.world = world
+
+
+## Connects the views to what the rules change (`actions`); the same for both ways in.
+func _watch_actions() -> void:
+	actions.cell_changed.connect(chunks.on_cell_changed)
+	actions.looks_changed.connect(chunks.remesh_chunk)
+	actions.drops_changed.connect(props.show_drops)
+	actions.taken.connect(props.fly)
 
 ## The part of the loading going on, in a few words for the loading screens: what
 ## start_world does, then the work going on while the land around is built, each

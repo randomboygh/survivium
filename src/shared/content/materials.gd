@@ -58,6 +58,8 @@ static var ORE := -1
 static var LOG := -1
 static var LEAVES := -1
 static var COUNT := 0
+## role -> the last material of that role (of_role), filled by refresh.
+static var BY_ROLE := {}
 ## Every material of role ore, and the running sum of their `veins` (see vein_at).
 static var ORES: PackedInt32Array = []
 static var ORE_SUMS: PackedFloat32Array = []
@@ -129,9 +131,11 @@ static func refresh() -> void:
 		if RECORDS[i].role == "ore" and RECORDS[i].veins > 0.0:
 			ORES.append(i)
 			ORE_SUMS.append((ORE_SUMS[-1] if not ORE_SUMS.is_empty() else 0.0) + RECORDS[i].veins)
+	BY_ROLE = {}
 	for i in COUNT:
 		var role: String = RECORDS[i].role
 		if role != "none":
+			BY_ROLE[role] = i
 			BEACH = i if role == "beach" else BEACH
 			BANK = i if role == "bank" else BANK
 			SCREE = i if role == "scree" else SCREE
@@ -163,11 +167,7 @@ static func index(id: String) -> int:
 
 ## The material of `role` (one of ROLES), `fallback` when no loaded mod gives one.
 static func of_role(role: String, fallback: int) -> int:
-	var m := -1
-	for i in COUNT:
-		if RECORDS[i].role == role:
-			m = i
-	return m if m >= 0 else fallback
+	return BY_ROLE.get(role, fallback)
 
 
 ## The texture of material `m`: textures/<texture>.png of its bundle (see Content.asset),

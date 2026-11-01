@@ -29,7 +29,9 @@ CODE_EXT = (".gd", ".gdshader", ".gdshaderinc", ".py", ".mjs", ".sh")
 MISSING_OK: set = set()
 PATH = re.compile(r"(?<![\w/.-])((?:src|tools|tests|shaders|content|assets|scenes|docs|\.github)/[A-Za-z0-9_./-]*)")
 LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?\)")
-LOAD = re.compile(r'(?:preload|load|extends)\s*\(?\s*"res://([^"]+\.gd)"')
+LOAD = re.compile(r'(?:preload|load|extends)\s*\(?\s*"res://([^"]+\.(?:gd|tscn))"')
+# A scene or resource names its scripts by path (ext_resource ... path="res://x.gd").
+SCENE_LOAD = re.compile(r'path="res://([^"]+\.gd)"')
 SENTENCE = 200
 
 
@@ -95,6 +97,8 @@ def loads(files: list) -> dict:
     for f in files:
         if f.endswith(".gd"):
             edges[f] = sorted(set(LOAD.findall(read(f))))
+        elif f.endswith((".tscn", ".tres")):
+            edges[f] = sorted(set(SCENE_LOAD.findall(read(f))))
     return edges
 
 

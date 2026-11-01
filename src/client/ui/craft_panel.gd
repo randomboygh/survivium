@@ -367,7 +367,7 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 		if not ids.has(id):
 			ids.append(id)
 	while _stations.items().size() < ids.size():
-		var chip := _chip(null, "")
+		var chip := _chip()
 		chip.custom_minimum_size = Vector2(IconTabs.SIDE, IconTabs.SIDE - 2)
 		_stations.add_item(chip)
 	var chips := _stations.items()
@@ -377,7 +377,7 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 		if i >= ids.size():
 			continue
 		var id: String = ids[i]
-		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id), "")
+		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id))
 		chip.tooltip_text = "Руками" if id == "" else "%s%s" % [Items.title(id), "" if near.has(id) else ": далеко"]
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
 	_stations.refresh()
@@ -532,40 +532,28 @@ func refresh_progress() -> void:
 ## A sunken panel in `parent`.
 func _panel(parent: Node) -> PanelContainer:
 	var p := PanelContainer.new()
-	var box := UiStyle.slot()
-	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		box.set_content_margin(side, UiStyle.WELL_PAD)
-	p.add_theme_stylebox_override("panel", box)
+	p.add_theme_stylebox_override("panel", UiStyle.well())
 	parent.add_child(p)
 	return p
 
 
-## A small well with a picture and a few letters (how many, a time).
-func _chip(texture: Texture2D, text: String) -> PanelContainer:
+## A small well with a picture (a station's).
+func _chip() -> PanelContainer:
 	var p := PanelContainer.new()
 	var box := UiStyle.slot()
 	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		box.set_content_margin(side, 4)
 	p.add_theme_stylebox_override("panel", box)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 3)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
-	row.add_child(_picture(texture, 12))
-	var label := UiStyle.label(text)
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(label)
+	row.add_child(_picture(null, 12))
 	return p
 
 
-func _set_chip(chip: PanelContainer, texture: Texture2D, text: String, short := false) -> void:
-	var row := chip.get_child(0)
-	row.get_child(0).texture = texture
-	var label: Label = row.get_child(1)
-	label.text = text
-	label.visible = text != ""
-	label.add_theme_color_override("font_color", UiStyle.DANGER if short else UiStyle.INK)
+func _set_chip(chip: PanelContainer, texture: Texture2D) -> void:
+	chip.get_child(0).get_child(0).texture = texture
 
 
 func _picture(texture: Texture2D, side: int) -> TextureRect:

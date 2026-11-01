@@ -29,6 +29,11 @@ func _init() -> void:
 	var failures := 0
 	var errors := ScriptErrors.new()
 	OS.add_logger(errors)
+	# A test file left out of FILES would never run: each must be listed.
+	for f in DirAccess.get_files_at("res://tests/unit"):
+		if f.ends_with("_test.gd") and not f.trim_suffix("_test.gd") in FILES:
+			printerr("FAIL: tests/unit/%s is not in FILES of run_tests.gd" % f)
+			failures += 1
 	for name in FILES:
 		if not only.is_empty() and not name in only:
 			continue

@@ -79,6 +79,9 @@ func _init(w, g, c: Clock, r, p) -> void:
 	clock.gen = gen
 	placed.world = world
 	actions = WorldActions.new(world, clock, rules)
+	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
+	# server's; a client's copy only shows the season.
+	clock.season_changed.connect(actions.on_season)
 	storms = Storms.new(world, clock, actions)
 	wildlife = Wildlife.new()
 	wildlife.world = world

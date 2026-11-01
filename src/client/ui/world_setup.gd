@@ -114,10 +114,7 @@ func _ready() -> void:
 	start.text = "Создать мир"
 	start.focus_mode = Control.FOCUS_NONE
 	start.custom_minimum_size = Vector2(0, 36)
-	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		start.add_theme_stylebox_override(state, UiStyle.button(state, true))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
-		start.add_theme_color_override(c, UiStyle.DARK_INK)
+	UiStyle.accent(start)
 	start.pressed.connect(_start)
 	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var buttons := HBoxContainer.new()

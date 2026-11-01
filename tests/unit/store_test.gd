@@ -34,7 +34,8 @@ func _test_save() -> void:
 	var top := w.surface_y(x0 + 1, z0 + 1)
 	for y in range(top - 3, top):
 		w.set_cell(x0 + 1, y, z0 + 1, Mat.AIR)
-	w.set_cell(x0 + 14, w.surface_y(x0 + 14, z0 + 8), z0 + 8, Mat.STONE)
+	var stone := Vector3i(x0 + 14, w.surface_y(x0 + 14, z0 + 8), z0 + 8)
+	w.set_cell(stone.x, stone.y, stone.z, Mat.STONE)
 	var bushes: Array = w.bush_chunks.get(home, {}).keys()
 	if not bushes.is_empty():
 		w.remove_bush(bushes[0])
@@ -84,6 +85,22 @@ func _test_save() -> void:
 			_ensure_stage(b, side, WorldGen.SHAPED)
 			remade += 1
 	_check(remade > 0 and _same_cells(b.world, w, area), "neighbours made again get the saved chunk's crowns")
+	# A save made when the materials were numbered in another order (its world.json's
+	# `materials`): read through Mat.remap, its stone comes back as stone by name. Here
+	# the save's list says dirt where stone is and stone where dirt is.
+	var swapped := Mat.IDS.duplicate()
+	swapped[Mat.DIRT] = Mat.IDS[Mat.STONE]
+	swapped[Mat.STONE] = Mat.IDS[Mat.DIRT]
+	var c := WorldGen.new(42)
+	c.saved = again
+	c.material_map = Mat.remap(swapped)
+	for i in range(area.size() - 1, -1, -1):
+		_ensure_stage(c, area[i], WorldGen.SHAPED)
+	_check(b.world.get_cell(stone.x, stone.y, stone.z) == Mat.STONE and c.world.get_cell(stone.x, stone.y, stone.z) == Mat.DIRT,
+		"a saved chunk is read by the material order of its save (Mat.remap)")
+	_check(WorldStore.materials_of({"content": 4}) == WorldStore.OLD_MATERIALS and WorldStore.materials_of({"content": 9}).is_empty()
+		and WorldStore.materials_of({"content": 2, "materials": ["core:air"]}) == PackedStringArray(["core:air"]),
+		"an old save without its list numbers by the core's first thirteen; a newer one by its own list")
 	# The rest of the files.
 	_check(store.write_json("world.json", {"seed": 42.0}) and store.exists() and store.read_json("world.json").seed == 42.0,
 		"world.json is written and read")
