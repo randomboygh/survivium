@@ -155,6 +155,7 @@ var settings: Dictionary
 var beach: int
 var bank: int
 var scree: int
+var snow: int
 var ore: int
 var size_y: int
 var sea: int
@@ -868,7 +869,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			climate = true
 			b = Biomes.pick(t, m)
 			var rec := Biomes.of(b)
-			top = Biomes.top(b, beach, bank)
+			top = Biomes.top(b, beach, bank, snow)
 			if not rec.is_empty():
 				if soil[j] < _byte(rec.stone_below):
 					top = Mat.STONE
@@ -1134,8 +1135,9 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 			return lay.flags[j] & ENTRANCE and kind == PLAIN and mouths[j] > _byte(0.7) and lay.heights[j] > sea + 7
 		"adit":
 			return lay.flags[j] & ENTRANCE and kind == MOUNTAIN
-	# Any other name is a biome's ("forest", "desert"...).
-	return b != Biomes.NONE and b == Biomes.named(what)
+	# Any other name is a biome's ("forest", "desert"...), off the wooded slopes of
+	# mountains, where trees grow whatever the biome.
+	return b != Biomes.NONE and b == Biomes.named(what) and lay.flags[j] & WOODS == 0
 
 
 ## Colour of a laid-out column for a map of the world before it is walked: the sea by

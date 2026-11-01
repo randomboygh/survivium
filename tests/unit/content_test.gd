@@ -70,7 +70,7 @@ func _test_content() -> void:
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.COUNT == 15
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.COUNT == 16
 		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore")])
 		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.4, -1) == Mat.ORE and Mat.vein_at(0.6, -1) == Mat.index("materials:iron_ore")
 		and Mat.vein_at(0.99, -1) == Mat.index("materials:tin_ore") and Mat.vein_at(0.5, 7) != 7,
@@ -145,7 +145,7 @@ func _test_mods() -> void:
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 32
-		and Mods.bundles("resources") == ["resources/fiber", "resources/soil", "resources/stone", "resources/wood"]
+		and Mods.bundles("resources") == ["resources/fiber", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 14 and Mods.bundles("tools").size() == 25 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
@@ -245,8 +245,13 @@ func _test_mods() -> void:
 		and Biomes.pick(0.5, 0.7) == Biomes.named("maple_wood") and Biomes.pick(0.5, 0.9) == Biomes.named("floodplain") and Biomes.pick(0.25, 0.6) == taiga
 		and Biomes.pick(0.1, 0.9) == Biomes.named("tundra") and Biomes.pick(0.8, 0.3) == Biomes.named("desert") and Biomes.SWAMP >= 0 and Biomes.ROCK >= 0
 		and Biomes.pick(0.4, 0.4) == Biomes.named("pine_wood") and Biomes.pick(0.45, 0.6) == Biomes.named("birch_grove")
-		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe"),
+		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe") and Biomes.pick(0.03, 0.9) == Biomes.named("ice_waste")
+		and Biomes.pick(0.15, 0.3) == Biomes.named("stony_tundra"),
 		"a column's climate picks the biome whose windows hold it, the most specific first")
+	var gen := WorldGen.new(20261018, 48)
+	_check(Biomes.top(Biomes.named("ice_waste"), gen.beach, gen.bank, gen.snow) == Mat.SNOW and Mat.SNOW >= 0
+		and Biomes.top(Biomes.named("ice_waste"), gen.beach, gen.bank) == Mat.STONE and bare_gen.snow == Mat.STONE,
+		"the ice waste lies under the snow of the mods, stone without them")
 	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
 		and Biomes.tree(forest, 0.85) == Trees.index("plants:spruce") and Biomes.tree(forest, 0.99) == Trees.index("plants:deadwood") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
 		and Biomes.bush(taiga, 0.1) == Bushes.index("plants:blueberry") and Biomes.bush(taiga, 0.95) == Bushes.index("plants:shrub")

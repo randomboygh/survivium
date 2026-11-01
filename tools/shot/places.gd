@@ -166,6 +166,9 @@ func place(w, what: String) -> Vector3:
 	var p := Vector2(main.gen.find_place("mountain" if what == "mountain-cave" else what, near))
 	if what == "mountain-cave":
 		p = mountain_cave(p)
+	elif not what in ["lake", "river", "canyon", "gorge",
+			"mesa", "tor", "cliffs", "beach", "waterfall", "rapids", "delta", "pit", "adit", "peak", "mountain"]:
+		p = inland(what, near, p)
 	main.player.position = Vector3(p.x + 0.5, w.size_y - 1, p.y + 0.5) * CELL
 	main.chunks.build_around()
 	match what:
@@ -180,6 +183,38 @@ func place(w, what: String) -> Vector3:
 		"beach":
 			return coast(w, p, seaward(w, p), 4.0)
 	return dry_near(w, p, 20)
+
+
+## The heart of the biome `what` within `reach` cells of `near`: of the columns a grid of
+## STEP cells apart, the one with the most of its 7×7 neighbours in that biome, the
+## nearest of those; `p` when the biome is not there. The nearest place is on an edge,
+## where the neighbours' trees and grounds mix in.
+func inland(what: String, near: Vector2i, p: Vector2, reach := 3200) -> Vector2:
+	const STEP := 32
+	var n := reach * 2 / STEP
+	var x0 := near.x - reach
+	var z0 := near.y - reach
+	var lay: Dictionary = main.gen.lay_out(x0, z0, n, n, STEP)
+	var hit := PackedByteArray()
+	hit.resize(n * n)
+	for j in n * n:
+		hit[j] = 1 if main.gen._is_place(what, lay, j) else 0
+	var best := p
+	var best_score := -1.0
+	for z in range(3, n - 3):
+		for x in range(3, n - 3):
+			if hit[z * n + x] == 0:
+				continue
+			var count := 0
+			for dz in range(-3, 4):
+				for dx in range(-3, 4):
+					count += hit[(z + dz) * n + x + dx]
+			var at := Vector2(x0 + x * STEP, z0 + z * STEP)
+			var score := count - at.distance_to(Vector2(near)) / 100000.0
+			if score > best_score:
+				best_score = score
+				best = at
+	return best
 
 
 ## Nearest dry standing spot to the cell point `p` within `radius` cells.

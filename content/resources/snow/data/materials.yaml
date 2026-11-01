@@ -1,0 +1,15 @@
+# Снег, лежащий круглый год: грунт ледяной пустоши (role: snow, биомы с top: snow). Копается
+# лопатой и даёт снег. Поля — как у материалов основы (content/core/data/materials.yaml); звуки
+# по имени, из мода «Звуки». Без бандла на его месте камень.
+- id: snow
+  title: Снег
+  role: snow
+  corners: round
+  slope: true
+  priority: 3
+  ground: soil
+  layers: 3
+  item: snow
+  dig: shovel
+  step: step_snow
+  hit: dig
