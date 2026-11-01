@@ -1,0 +1,16 @@
+# Банан и куст банана для посадки (поля — как у предметов основы, content/core/data/items.yaml).
+- id: banana
+  title: Банан
+  weight: 0.15
+  stack: 30
+  food: 5
+  model: banana
+  icon: banana
+  anim: eat
+- id: banana_bush
+  title: Куст банана
+  weight: 2.0
+  stack: 5
+  model: bush
+  icon: bush_banana
+  plant: banana

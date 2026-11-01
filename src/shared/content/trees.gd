@@ -18,12 +18,13 @@ const NEEDLES := 1
 ## Shapes of a crown (`shape` in trees.yaml): a low ellipsoid; a few round lobes round the
 ## trunk's top with dark gaps between them; a narrow crown tapering to a point; an
 ## ellipsoid whose rim hangs down in a curtain; a flat crown of a few wide lobes high on a
-## bare trunk; a cone of tiers (spruce). A conifer is a cone unless it says otherwise.
+## bare trunk; a cone of tiers (spruce); a tuft of long fronds arching out and down from
+## the top of a tall bare trunk (palm). A conifer is a cone unless it says otherwise.
 ## Tiers of lobes of an umbrella crown (pine), see _lobed.
 const UMBRELLA_TIERS := 3
 ## How high over the crown's middle an umbrella's top lobe stands, in its heights.
 const UMBRELLA_TOP := 1.65
-const SHAPES := ["round", "lobed", "column", "weeping", "umbrella", "cone"]
+const SHAPES := ["round", "lobed", "column", "weeping", "umbrella", "cone", "palm"]
 ## How a species' leaf clusters are drawn (`leaf`, see PixelTextures.build_clumps):
 ## pointed leaves, soft oval ones, round curly lumps, broad rounded leaves lying like scales, needles.
 const LEAF_STYLES := ["pointed", "soft", "curly", "scales", "needles"]
@@ -132,6 +133,8 @@ static func check() -> PackedStringArray:
 			out.append("trees: `%s`: more than %d species blossom, its blossom is not drawn" % [s.id, BLOSSOMS])
 		if s.tiers and s.crown[1] > s.crown[2]:
 			out.append("trees: `%s`: crown [radius, min tiers, max tiers] has min above max" % s.id)
+		if s.shape == "palm" and (s.crown[1] > s.crown[2] or s.crown[1] < 1.0):
+			out.append("trees: `%s`: crown [frond length, min fronds, max fronds] needs 1 to max fronds" % s.id)
 	return out
 
 
@@ -158,6 +161,9 @@ static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = SPECIES[species]
 	if s.tiers:
 		return hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
+	if s.shape == "palm":
+		# The trunk up to the tuft, the tuft a point (three cells) over it.
+		return roundi(s.trunk[1] * scale) + 6
 	if s.shape == "umbrella":
 		# Tiers up from just over the trunk to the top lobe (see _lobed).
 		return roundi(s.trunk[1] * scale) + 2 * ceili(UMBRELLA_TOP * (s.crown[1] + 0.2) * scale + 0.6) + 5
@@ -193,6 +199,8 @@ static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGener
 			return _conifer(w, x, y, z, s, rng, scale)
 		"lobed", "umbrella":
 			return _lobed(w, x, y, z, s, rng, scale)
+		"palm":
+			return _palm(w, x, y, z, s, rng, scale)
 	return _broadleaf(w, x, y, z, s, rng, scale)
 
 
@@ -328,6 +336,30 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 					points.append(p)
 	for i in range(y + trunk, into):
 		w.set_cell(x, i, z, Mat.LOG)
+	return points
+
+
+## A palm: a tall bare trunk and on its top a tuft of fronds, each a line of points
+## going out from the top, level for the first and then a level of points lower for each
+## one further out, so they arch down; `crown` [length of a frond in points, fewest
+## fronds, most fronds]. The client draws the fronds over these points (Foliage._fronds).
+static func _palm(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
+	var trunk := maxi(3, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
+	var top := ((y + trunk) & ~1) + 2
+	for i in range(y, top - 1):
+		w.set_cell(x, i, z, Mat.LOG)
+	var points: Array[Vector3i] = [Vector3i(x, top, z)]
+	var have := {points[0]: true}
+	var length := maxi(1, roundi(s.crown[0] * scale))
+	var count := rng.randi_range(roundi(s.crown[1]), roundi(s.crown[2]))
+	var turn := rng.randf() * TAU
+	for k in count:
+		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
+		for d in range(1, length + 1):
+			var p := Vector3i(x + 2 * roundi(cos(a) * d), top - 2 * maxi(0, d - 1), z + 2 * roundi(sin(a) * d))
+			if p.y - 1 > y + 1 and not have.has(p):
+				have[p] = true
+				points.append(p)
 	return points
 
 

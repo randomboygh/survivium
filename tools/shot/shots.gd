@@ -188,6 +188,10 @@ const SHOTS := {
 	"red-rocks": {"time": 0.42, "season": 1, "place": "red_rocks"},
 	"alpine-meadow": {"time": 0.42, "season": 1, "place": "alpine_meadow"},
 	"glacier": {"time": 0.42, "season": 1, "place": "glacier"},
+	# The tropical zone: jungle, mangroves in a hot swamp, palms on a warm beach.
+	"jungle": {"time": 0.42, "season": 1, "place": "jungle"},
+	"mangrove": {"time": 0.42, "season": 1, "place": "mangrove"},
+	"tropical-beach": {"time": 0.42, "season": 1, "place": "tropical_beach"},
 	"canyon": {"time": 0.42, "season": 1, "place": "canyon"},
 	# Relief 1 (new worlds): a gorge across a range, a mesa with banded walls, a canyon
 	# through mesas in steps, a stone tor; the camera tilted low to show the walls.

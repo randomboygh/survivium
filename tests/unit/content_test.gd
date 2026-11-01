@@ -144,7 +144,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 33
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 17 and Mods.bundles("plants").size() == 37
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 14 and Mods.bundles("tools").size() == 25 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -164,7 +164,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 17), Растения" and Mods.summary(["core"]) == "только основа"
-		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 33)", "a set is summed up by mods")
+		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 37)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -248,7 +248,8 @@ func _test_mods() -> void:
 		and Biomes.pick(0.6, 0.2) == Biomes.named("steppe") and Biomes.pick(0.03, 0.9) == Biomes.named("ice_waste")
 		and Biomes.pick(0.15, 0.3) == Biomes.named("stony_tundra") and Biomes.pick(0.3, 0.9) == Biomes.named("peat_bog")
 		and Biomes.pick(0.7, 0.3) == Biomes.named("salt_flat") and Biomes.pick(0.6, 0.47) == Biomes.named("forest_steppe")
-		and Biomes.pick(0.85, 0.6) == Biomes.named("savanna") and Biomes.pick(0.95, 0.4) == Biomes.named("red_rocks"),
+		and Biomes.pick(0.85, 0.6) == Biomes.named("savanna") and Biomes.pick(0.95, 0.4) == Biomes.named("red_rocks")
+		and Biomes.pick(0.85, 0.8) == Biomes.named("jungle"),
 		"a column's climate picks the biome whose windows hold it, the most specific first")
 	var gen := WorldGen.new(20261018, 48)
 	_check(Biomes.top(Biomes.named("ice_waste"), gen.grounds) == Mat.SNOW and Mat.SNOW >= 0
@@ -259,6 +260,15 @@ func _test_mods() -> void:
 		and Biomes.ALPINE == Biomes.named("alpine_meadow") and Biomes.GLACIER == Biomes.named("glacier") and not Biomes.GLACIER in Biomes.CLIMATE
 		and gen.grounds.ice == Mat.ICE and bare_gen.ice == Mat.STONE,
 		"the ice waste lies under the snow of the mods, stone without them; the peat bog shows peat where others show clay")
+	var beach := Biomes.named("tropical_beach")
+	var mangrove := Biomes.named("mangrove")
+	_check(Biomes.BEACH == Biomes.named("beach") and Biomes.SWAMP == Biomes.named("swamp") and beach >= 0 and mangrove >= 0
+		and not beach in Biomes.CLIMATE and Biomes.relief(Biomes.BEACH, 0.8, 0.5) == beach and Biomes.relief(Biomes.BEACH, 0.5, 0.5) == Biomes.BEACH
+		and Biomes.relief(Biomes.SWAMP, 0.8, 0.9) == mangrove and Biomes.relief(Biomes.SWAMP, 0.4, 0.9) == Biomes.SWAMP
+		and Biomes.relief(Biomes.ROCK, 0.9, 0.9) == Biomes.ROCK and Biomes.where(beach) == "beach" and Biomes.check().is_empty()
+		and Mat.BEACH in Biomes.tree_grounds(beach, gen.grounds) and not Mat.BEACH in Biomes.tree_grounds(Biomes.BEACH, gen.grounds)
+		and Trees.SPECIES[Trees.index("plants:palm")].shape == "palm" and Trees.check().is_empty(),
+		"a relief biome with a window of its own stands for its relief where the window holds the climate; palms grow on its sand")
 	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
 		and Biomes.tree(forest, 0.85) == Trees.index("plants:spruce") and Biomes.tree(forest, 0.99) == Trees.index("plants:deadwood") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
 		and Biomes.bush(taiga, 0.1) == Bushes.index("plants:blueberry") and Biomes.bush(taiga, 0.95) == Bushes.index("plants:shrub")

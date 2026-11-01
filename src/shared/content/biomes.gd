@@ -33,6 +33,10 @@ static var ALPINE := -1
 static var GLACIER := -1
 ## The climate biomes, most specific first (see pick).
 static var CLIMATE: Array = []
+## Biomes of a relief with a warmth or moisture window of their own (a tropical beach,
+## a mangrove swamp): `where` -> their indices, most specific first. With climate 1 they
+## stand for the relief where their windows hold the column's climate (see relief).
+static var VARIANTS: Dictionary = {}
 
 
 static func _static_init() -> void:
@@ -50,6 +54,7 @@ static func refresh() -> void:
 	ALPINE = -1
 	GLACIER = -1
 	CLIMATE = []
+	VARIANTS = {}
 	for r in Content.records("biomes"):
 		var b: Dictionary = r.duplicate()
 		b.tree_shares = _shares(b.trees, Trees.SPECIES)
@@ -58,6 +63,12 @@ static func refresh() -> void:
 		var i := RECORDS.size()
 		RECORDS.append(b)
 		IDS.append(b.id)
+		b.variant = b.where != "climate" and b.where != "alpine" and b.where != "glacier" and b.area < 1.0
+		if b.variant:
+			if not VARIANTS.has(b.where):
+				VARIANTS[b.where] = []
+			VARIANTS[b.where].append(i)
+			continue
 		match b.where:
 			"sea":
 				SEA = i
@@ -75,8 +86,14 @@ static func refresh() -> void:
 				GLACIER = i
 			_:
 				CLIMATE.append(i)
-	CLIMATE.sort_custom(func(a: int, c: int) -> bool:
-		return RECORDS[a].area < RECORDS[c].area if RECORDS[a].area != RECORDS[c].area else a < c)
+	CLIMATE.sort_custom(_specific)
+	for w in VARIANTS:
+		VARIANTS[w].sort_custom(_specific)
+
+
+## Whether biome `a` comes before `c`: the smaller window first, the first loaded on a tie.
+static func _specific(a: int, c: int) -> bool:
+	return RECORDS[a].area < RECORDS[c].area if RECORDS[a].area != RECORDS[c].area else a < c
 
 
 ## `shares` (id -> share) as [[index in `list`, share], ...], the ids not in the list left out.
@@ -115,6 +132,32 @@ static func pick(t: float, m: float) -> int:
 		if t >= b.warmth[0] and t <= b.warmth[1] and m >= b.moisture[0] and m <= b.moisture[1]:
 			return i
 	return NONE
+
+
+## The biome of the relief biome `b` (BEACH, SWAMP...) for a column of warmth `t` and
+## moisture `m`: its variant whose windows hold them (see VARIANTS), else `b` itself.
+static func relief(b: int, t: float, m: float) -> int:
+	if b < 0 or b >= RECORDS.size():
+		return b
+	for i in VARIANTS.get(RECORDS[b].where, []):
+		var r: Dictionary = RECORDS[i]
+		if t >= r.warmth[0] and t <= r.warmth[1] and m >= r.moisture[0] and m <= r.moisture[1]:
+			return i
+	return b
+
+
+## The relief biome `b` stands for ("climate" for a climate biome, "" for NONE).
+static func where(b: int) -> String:
+	return of(b).get("where", "")
+
+
+## The grounds of `ground` (see top) trees grow on in biome `b`: grass and its `trees_on`.
+static func tree_grounds(b: int, ground: Dictionary) -> Array:
+	var out := [Mat.GRASS]
+	for g in of(b).get("trees_on", []):
+		if ground.has(g):
+			out.append(ground[g])
+	return out
 
 
 ## The record of biome `b`, {} for NONE.
@@ -195,14 +238,14 @@ static func title(b: int) -> String:
 
 
 ## What is wrong with the loaded biomes for the engine, if anything: a window must not
-## be empty, and a relief may have one biome.
+## be empty, and a relief may have one biome without a window of its own.
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
 	var seen := {}
 	for b in RECORDS:
 		if b.warmth[0] > b.warmth[1] or b.moisture[0] > b.moisture[1]:
 			out.append("biomes: `%s`: an empty warmth or moisture window" % b.id)
-		if b.where != "climate":
+		if b.where != "climate" and not b.variant:
 			if seen.has(b.where):
 				out.append("biomes: `%s` and `%s` both stand for the %s" % [seen[b.where], b.id, b.where])
 			seen[b.where] = b.id
