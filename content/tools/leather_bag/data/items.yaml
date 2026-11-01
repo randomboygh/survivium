@@ -1,0 +1,11 @@
+# Предмет бандла «Кожаная сумка»: вторая сумка за спину. Поля — как у котомки
+# (content/tools/wicker_bag/data/items.yaml).
+- id: leather_bag
+  title: Кожаная сумка
+  description: Сшитая из кожи сумка с ремнём через плечо. Надетая за спину, даёт ещё 16 ячеек.
+  weight: 1.2
+  stack: 1
+  model: leather_bag
+  icon: leather_bag
+  wear_on: back
+  bag_slots: 16

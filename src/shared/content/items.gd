@@ -32,7 +32,7 @@ static var TOOL_TITLES := {}
 
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
-const CATEGORIES := {"tools": "Инструменты", "stations": "Станки", "materials": "Материалы",
+const CATEGORIES := {"tools": "Инструменты", "gear": "Одежда и сумки", "stations": "Станки", "materials": "Материалы",
 	"blocks": "Блоки", "food": "Еда", "heal": "Лечение", "plants": "Посадки"}
 
 
@@ -165,6 +165,16 @@ static func stack_size(id: String) -> int:
 	return get_item(id).get("stack", 1)
 
 
+## The slot of the body item `id` is worn in (head, body, legs, feet, back), "" for none.
+static func wear_on(id: String) -> String:
+	return get_item(id).get("wear_on", "")
+
+
+## The slots a bag worn on the back adds to the bag the character always has.
+static func bag_slots(id: String) -> int:
+	return get_item(id).get("bag_slots", 0)
+
+
 static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
@@ -174,12 +184,14 @@ static func heal(id: String) -> float:
 	return get_item(id).get("heal", 0.0)
 
 
-## The kind of item `id` (a key of CATEGORIES): a tool, a thing set down in the world,
+## The kind of item `id` (a key of CATEGORIES): something worn, a tool, a thing set down in the world,
 ## food, something planted or sown, a block, else a material. The one place that
 ## decides it, so a `category` field of the data can take over here when items need
 ## one (decided with the user: derived for now).
 static func category(id: String) -> String:
 	var item := get_item(id)
+	if item.get("wear_on", "") != "":
+		return "gear"
 	if item.get("tool", "none") != "none":
 		return "tools"
 	if item.get("prop", "none") != "none":
@@ -212,6 +224,10 @@ static func check() -> PackedStringArray:
 		for s: String in item.serves:
 			if not is_station(s) or s == id:
 				out.append("items: `%s`.serves: `%s` is no other station" % [id, s])
+		if item.bag_slots > 0 and item.wear_on != "back":
+			out.append("items: `%s`.bag_slots: only a bag worn on the back (`wear_on: back`) has slots" % id)
+		if item.wear_on != "" and item.stack != 1:
+			out.append("items: `%s`: a thing worn (`wear_on`) stacks by one" % id)
 		if item.place_tool != "none" and not TOOL_TITLES.has(item.place_tool):
 			out.append("items: `%s`.place_tool: no item is a `%s`" % [id, item.place_tool])
 	return out

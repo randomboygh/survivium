@@ -96,6 +96,12 @@ static func drop(model: String) -> VoxelModel:
 			return _spear(Color(0.3, 0.31, 0.34) if model == "flint_spear" else _head(model))
 		"cord_sling":
 			return _sling(Color(0.5, 0.36, 0.22), Color(0.8, 0.74, 0.6))
+		"wicker_bag":
+			return _bag(Color(0.77, 0.67, 0.45), Color(0.58, 0.47, 0.24), 4)
+		"leather_bag":
+			return _bag(Color(0.66, 0.45, 0.27), Color(0.42, 0.27, 0.16), 4)
+		"canvas_backpack":
+			return _bag(Color(0.85, 0.79, 0.66), Color(0.66, 0.64, 0.56), 5)
 		"leather_sling":
 			return _sling(Color(0.42, 0.27, 0.16), Color(0.62, 0.44, 0.28))
 		"sling_stone":
@@ -623,6 +629,26 @@ static func _hide(skin: Color, raw: bool) -> VoxelModel:
 		return m
 	for o in [Vector3i(-5, 0, -3), Vector3i(4, 0, -3), Vector3i(-5, 0, 2), Vector3i(4, 0, 2)]:
 		m.set_voxel(o, skin * 0.8)
+	return m
+
+
+## A bag lying on the ground: a box of `body` `h` voxels high with a flap of `flap`
+## over its top and down its front, a strap looped beside it.
+static func _bag(body: Color, flap: Color, h: int) -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in h:
+		for z in range(-2, 2):
+			for x in range(-3, 3):
+				var edge := x == -3 or x == 2 or z == 1
+				m.set_voxel(Vector3i(x, y, z), body * (0.88 if edge and (x + y) % 2 == 0 else 1.0))
+	for z in range(-2, 2):
+		for x in range(-3, 3):
+			m.set_voxel(Vector3i(x, h, z), flap)
+	for x in range(-3, 3):
+		for y in range(h - 2, h):
+			m.set_voxel(Vector3i(x, y, 2), flap * (1.2 if x in [-1, 0] and y == h - 2 else 1.0))
+	for z in range(-2, 2):
+		m.set_voxel(Vector3i(3, 0, z), flap * 0.8)
 	return m
 
 

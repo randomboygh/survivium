@@ -378,6 +378,14 @@ func _run() -> void:
 				# Buttons of the window tapped once, by their vars (a two-tap one turns red).
 				for b: String in shot.get("press", []):
 					(main.hud.settings_menu().get(b) as Button).pressed.emit()
+		if shot.has("wear"):
+			main.host.player.give(shot.wear, 1)
+			main.host.player.wear(main.host.player.inventory.slots.find_custom(
+				func(st) -> bool: return st != null and st[0] == shot.wear))
+			main.host.player.inventory.add("resources:fiber", 30)
+			main.host.player.inventory.add("resources:stone", 40)
+			await process_frame
+			await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -395,6 +403,8 @@ func _run() -> void:
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
 				main.hud.bag._destroy.pressed.emit()
+			if shot.has("person"):
+				main.hud.bag._tap_person(shot.person)
 		if shot.get("chest", false):
 			main.session.placed.chest_items.add("resources:log", 3)
 			main.session.placed.chest_items.add("plants:raspberry", 12)

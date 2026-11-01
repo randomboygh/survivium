@@ -138,6 +138,10 @@ const SCHEMAS := {
 		"anim": {"type": "string", "default": "reach"},
 		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},
 		"light": {"type": "float", "min": 0.0, "default": 0.0},
+		# Worn on the body (Inventory.wear): the slot it goes in; a bag on the back adds
+		# `bag_slots` to the slots of the bag the character always has.
+		"wear_on": {"type": "enum", "values": ["", "head", "body", "legs", "feet", "back"], "default": ""},
+		"bag_slots": {"type": "int", "min": 0, "default": 0},
 		# `special`: had in ways the content graph does not see (a quest, a trade), so it is
 		# no item without a source.
 		"source": {"type": "enum", "values": ["", "special"], "default": ""},

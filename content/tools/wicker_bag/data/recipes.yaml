@@ -1,0 +1,6 @@
+# Рецепт бандла «Плетёная котомка»: плетут руками из волокна («Ресурсы») и верёвки («Материалы»).
+- id: wicker_bag
+  title: Плетёная котомка
+  makes: wicker_bag
+  needs: {resources:fiber: 6, materials:cord: 4}
+  time: 8

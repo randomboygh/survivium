@@ -1,0 +1,8 @@
+# Рецепт бандла «Кожаная сумка»: кожу и верёвку («Материалы») шьют иглой (класс needle, бандл «Игла»).
+- id: leather_bag
+  title: Кожаная сумка
+  makes: leather_bag
+  needs: {materials:leather: 3, materials:cord: 2}
+  tools: [needle]
+  wear: 2
+  time: 10
