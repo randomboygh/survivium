@@ -34,13 +34,14 @@ const Eras := preload("res://src/shared/content/eras.gd")
 ## world when one of what it names is there; `made`, `also`, `needs`, `station` — a
 ## recipe's product, by-products, what it takes (uses up or keeps) and station; `start`,
 ## `camp` — the start's bag and the things it sets
-## down by the spawn; `serves` — a station set down stands for the ones it names; `use` — a
+## down by the spawn; `serves` — a station set down stands for the ones it names; `rots` —
+## what food turns into when it spoils; `use` — a
 ## use only (mending, an animal's food); `era` — the era of an item (see era). A field not
 ## here fails graph_test: the graph must know every link.
 const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
 	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.ammo": "use",
-	"items.serves": "serves",
+	"items.serves": "serves", "items.rots_to": "rots",
 	"creatures.likes": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
@@ -58,7 +59,7 @@ const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
 const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "heal", "fuel", "light", "wear_on"]
 ## The fields that make two items alike in what they do (see _twins).
 const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "area", "mows", "swing", "plant", "sow",
-	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots"]
+	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils"]
 ## A depth past every real one.
 const FAR := 1 << 30
 ## The checks, each an error (true: the validator fails on it in the full set) or a warning.
@@ -69,7 +70,7 @@ const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "ne
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
 	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
-	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "serves": "stood in for by"}
+	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "serves": "stood in for by", "spoil": "spoiled from"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
 ## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "also"
@@ -193,6 +194,8 @@ func _make_ways() -> void:
 							_way("placed/" + id, "start", from)
 						"serves":
 							_way("placed/" + id, "serves", "placed/" + r.id)
+						"rots":
+							_way(to, "spoil", from)
 					if spec.rel in USED_BY or spec.rel == "feeds_on":
 						if not uses.has(to):
 							uses[to] = []

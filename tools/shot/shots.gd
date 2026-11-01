@@ -315,6 +315,8 @@ const SHOTS := {
 	# berries picked; then the bag open on a touch screen and with a mouse.
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
+	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
+	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
 	# A canvas backpack worn (24 more slots, scrolled where they do not fit), a wicker bag
 	# chosen in the bag: its wide button puts it on; then a tap on the backpack on the figure
@@ -367,8 +369,10 @@ const SHOTS := {
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
 	# The craft tab with nothing queued: no queue panel under the recipe.
 	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
-	# Standing by the spawn campfire a while: the bar of what it has left to burn over it.
-	"fire-gauge": {"time": 0.9, "season": 1, "moon": 1.0, "by_fire": Vector3(1.4, 0.0, 0.4), "fuel": 0.6},
+	# The spawn campfire at night full of fuel, and nearly burned down: its flames and light
+	# follow what it has left.
+	"fire-full": {"time": 0.9, "season": 1, "moon": 0.0, "place": "beach", "fuel": 1.0},
+	"fire-low": {"time": 0.9, "season": 1, "moon": 0.0, "place": "beach", "fuel": 0.05},
 	# The spawn campfire opened: the craft tab with its buttons by the cross.
 	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
 	# The same workbench, kiln and chest with the window closed.

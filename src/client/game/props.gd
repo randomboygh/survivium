@@ -62,6 +62,7 @@ func watch(placed) -> void:
 	placed.added.connect(_on_added)
 	placed.removed.connect(_on_removed)
 	placed.lit_changed.connect(_on_lit_changed)
+	placed.fuel_changed.connect(_on_fuel_changed)
 
 
 ## Puts the placed things into the world as the save had them, or the camp of the start
@@ -122,6 +123,8 @@ func _on_added(e: Dictionary) -> void:
 		_fires[e.cell] = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat)
 		if not e.lit:
 			game.effects.put_out(_fires[e.cell])
+		else:
+			game.effects.fire_strength(_fires[e.cell], Placed.fuel_share(e))
 		_heat_later()
 		return
 	var node := MeshInstance3D.new()
@@ -170,9 +173,17 @@ func _on_lit_changed(e: Dictionary) -> void:
 	if e.lit:
 		game.effects.remove_campfire(_fires[e.cell])
 		_fires[e.cell] = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat)
+		game.effects.fire_strength(_fires[e.cell], Placed.fuel_share(e))
 	else:
 		game.effects.put_out(_fires[e.cell])
 	_heat_later()
+
+
+## A campfire was fed or burned down a little: its flames and light follow what it has
+## left (Effects.fire_strength).
+func _on_fuel_changed(e: Dictionary) -> void:
+	if _fires.has(e.cell):
+		game.effects.fire_strength(_fires[e.cell], Placed.fuel_share(e))
 
 
 ## The fires' warmth on the ground is drawn again at the end of the frame, once for all

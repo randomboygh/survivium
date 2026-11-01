@@ -140,7 +140,9 @@ func step_players(delta: float) -> void:
 
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step).
 func step_things(delta: float) -> void:
-	placed.step(minf(delta, CATCH_UP), clock.WEATHERS[clock.weather].get("rain", 0.0))
+	var d := minf(delta, CATCH_UP)
+	placed.step(d, clock.WEATHERS[clock.weather].get("rain", 0.0))
+	placed.spoil(clock.days(d), clock.season == clock.WINTER)
 
 
 ## The animals: those on a player's screen move every step, the rest now and then

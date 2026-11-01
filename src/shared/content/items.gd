@@ -204,6 +204,16 @@ static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
 
+## Game days item `id` keeps before it spoils (Inventory.spoil), 0 for what keeps.
+static func spoils(id: String) -> float:
+	return get_item(id).get("spoils", 0.0)
+
+
+## What item `id` turns into when it spoils, "" for nothing.
+static func rots_to(id: String) -> String:
+	return get_item(id).get("rots_to", "")
+
+
 ## Seconds one of fuel `id` keeps a fire burning, 0 for what is no fuel.
 static func fuel_time(id: String) -> float:
 	var item := get_item(id)
