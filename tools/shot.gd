@@ -483,18 +483,25 @@ func _run() -> void:
 			for i in 120:
 				await process_frame
 		if shot.has("main_menu"):
+			# The painted landscape at the hour asked (the device's clock otherwise).
+			main.MainMenu.hour_override = shot.get("menu_hour", -1.0)
 			main._build_menu()
-			# Painted sky only for "sky": the world is built already, so it would fade.
-			main.menu._fading = shot.main_menu in ["sky", "loading", "part"]
-			main.menu._backdrop.visible = shot.main_menu in ["sky", "loading", "part"]
-			main.menu._clouds.visible = shot.main_menu in ["sky", "loading", "part"]
+			# The landscape only for "sky" and "loading": the world is built already, so it
+			# would fade (the menu holds it while it is open and no world was asked for).
+			var painted: bool = shot.main_menu in ["sky", "loading"]
+			main.menu._backdrop.visible = painted
+			main.menu._fading = not painted
+			main.menu.settled = not painted
 			await process_frame
-			if shot.main_menu == "part":
-				# Halfway through the clouds parting, held there for the shot.
-				main.menu._part = 0.6
-				main.menu._backdrop.modulate.a = 0.5
-				main.menu.set_process(false)
-				main.menu._clouds.queue_redraw()
+			if shot.main_menu == "loading":
+				# The loading screen held at a part of the shaders built ahead.
+				main.menu.shown_progress = shot.get("progress", 0.62)
+				main.menu._show_loading(true)
+				main.menu._update_strip(0.0)
+				main.menu._phase_shown = shot.get("caption", main.menu.WARM_CAPTION)
+				main.menu._update_strip(0.0)
+				for i in 3:
+					await process_frame
 			if shot.main_menu == "setup":
 				main.menu._new_world()
 				for i in 120:

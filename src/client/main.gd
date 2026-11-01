@@ -1,7 +1,7 @@
 extends Node
-## Technical prototype entry point: starts the world of the saved settings and shows
-## the main menu over it while it is built (MainMenu; a new world from its WorldSetup
-## screen restarts the scene), builds the scene and runs the frame. The work is
+## Technical prototype entry point: shows the main menu and loads the world of the saved
+## settings once the player asks for it (MainMenu; another world restarts the scene,
+## which loads it at once), builds the scene and runs the frame. The work is
 ## split between modules that each hold their own state and get `self` as `game`:
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (the light, colour grade
 ## and weather drawn for the clock), Controls (keys, mouse, touch and the edits they
@@ -97,8 +97,8 @@ const CELL := WorldData.CELL
 const LOADING_HOLD := 1500
 const LOADING_SHARE := 0.05
 const LOADING_WORK := {
-	"terrain": "Холмы, вода и пещеры",
-	"saved": "Участки из сохранения",
+	"terrain": "Холмы, реки, пещеры",
+	"saved": "Сохранённые места",
 	"trees": "Растут деревья",
 	"shapes": "Склоны и кусты",
 	"meshes": "Земля и трава",
@@ -221,8 +221,14 @@ var start_ms := 0
 ## When this script was compiled with every one it loads, before the scene was made
 ## (filled once, by the engine right after compiling it: StartTimes).
 static var _compiled_ms := Time.get_ticks_msec()
-## What start_world is doing before the chunks are built, for the loading screens.
+## The world's loading was started (begin_world): only once the player asks for it
+## behind the main menu, at once for tests, tools and a server joined.
+var world_started := false
+## What start_world is doing before the chunks are built, for the loading screens, and
+## how many of its steps are done of how many.
 var loading_stage := ""
+var _stages_done := 0
+var _stages_count := 3
 ## The kind of work the loading screens name while the land is built, and since when
 ## (msec, see loading_phase).
 var _work_shown := ""
@@ -321,10 +327,32 @@ func _ready() -> void:
 	_build_ui()
 	get_viewport().size_changed.connect(view.on_screen_resized)
 	view.on_screen_resized()
+	StartTimes.mark("modules")
+	# A server's world comes over the socket opened above: it loads at once.
+	if skip_setup or join_url != "":
+		begin_world()
 	if not skip_setup:
 		_build_menu()
-	StartTimes.mark("modules")
+
+
+## Starts loading the world chosen (see start_world), once.
+func begin_world() -> void:
+	if world_started:
+		return
+	world_started = true
+	StartTimes.mark("load")
 	start_world()
+
+
+## «Отмена» on the loading screen: the scene starts again on the menu without a world;
+## a server's world is left first (a server made here keeps running and its window
+## opens: the world loads behind it again).
+func cancel_loading() -> void:
+	if hosted != null:
+		show_host = true
+	elif join_url != "":
+		leave_server()
+	restart.call_deferred(false)
 
 
 ## Starts the game again for the world the settings now ask for, past the menu (or on
@@ -477,6 +505,7 @@ func _on_socket_closed(code: int, reason: String) -> void:
 ## the spawn, or where the player was when it was saved; over a socket, takes the world
 ## of the server's welcome and builds the scene where the server put the character.
 func start_world() -> void:
+	_stages_count = 4 if socket != null else 3
 	if socket != null:
 		await _join_world()
 		return
@@ -531,12 +560,13 @@ func start_world() -> void:
 	save.restore_player()
 	settings.apply()
 	# The server learns where the body is, so the session makes the world around it
-	# behind the menu (Session.zones); the copies get the clock, the bag and the rest at
-	# once (the menu shows the day).
+	# behind the loading screen (Session.zones); the copies get the clock, the bag and the
+	# rest at once.
 	mirror.send_input()
 	host.flush(net)
 	chunks.prepare(gen)
 	loading_stage = ""
+	_stages_done = _stages_count
 
 
 ## The world of a server far away: waits for its welcome, starts the scene again when
@@ -597,6 +627,7 @@ func _join_world() -> void:
 	mirror.send_input()
 	chunks.prepare(gen)
 	loading_stage = ""
+	_stages_done = _stages_count
 
 
 ## Fits the client's copies (the clock, the things placed, the character) to the world
@@ -616,11 +647,11 @@ func _watch_actions() -> void:
 
 ## The part of the loading going on, in a few words for the loading screens: what
 ## start_world does, then the work going on while the land around is built, each
-## caption kept LOADING_HOLD at least so it can be read (see _next_work), then the last
-## preparations (the shaders built ahead, see ShaderWarmup).
+## caption kept LOADING_HOLD at least so it can be read (see _next_work), then the
+## shaders built ahead (see ShaderWarmup) and the first frames.
 func loading_phase() -> String:
 	if ready_to_play:
-		return "Последний штрих"
+		return "Прогрев шейдеров" if warmup != null else "Первые кадры мира"
 	if loading_stage != "":
 		return loading_stage.trim_suffix("…")
 	var now := Time.get_ticks_msec()
@@ -650,24 +681,57 @@ func _next_work(spent: Dictionary) -> String:
 	return best
 
 
-## How far the loading has gone, 0 to 1: a little for start_world's parts, most for the
-## near chunks (the stages of the session's generation around the spawn, then the
-## meshes), the rest for the last preparations.
-func loading_progress() -> float:
+## The part of the loading going on: "wait" (not asked for yet), "setup" (start_world's
+## steps), "build" (the near chunks: the stages of their generation, then their meshes),
+## "warm" (the shaders built ahead, see ShaderWarmup), "" once the world is ready.
+func loading_part() -> String:
+	if not world_started:
+		return "wait"
 	if ready_to_play:
-		return 0.95 if warmup != null else 1.0
+		return "warm" if warmup != null else ""
 	if loading_stage != "" or chunks.near_total == 0:
-		return 0.05
-	var stages: int = world_maker.stages_left(ChunkStreamer.NEAR_CHUNKS)
-	if _stages_total == 0:
-		_stages_total = stages
-	var total: int = _stages_total + chunks.near_total
-	var left: int = mini(stages, _stages_total) + chunks.near_pending
-	return 0.1 + 0.85 * (total - left) / total
+		return "setup"
+	return "build"
+
+
+## How far the part of the loading going on (loading_part) has gone, 0 to 1.
+func loading_fraction() -> float:
+	match loading_part():
+		"wait":
+			return 0.0
+		"setup":
+			return clampf(float(_stages_done) / _stages_count, 0.0, 1.0)
+		"build":
+			var stages: int = world_maker.stages_left(ChunkStreamer.NEAR_CHUNKS)
+			if _stages_total == 0:
+				_stages_total = stages
+			var total: int = _stages_total + chunks.near_total
+			var left: int = mini(stages, _stages_total) + chunks.near_pending
+			return float(total - left) / total
+		"warm":
+			return warmup.progress()
+	return 1.0
+
+
+## How far the loading has gone, 0 to 1, for the words of the interface's own loading
+## line (no menu: tests, tools); the loading screen weighs the parts itself (MainMenu).
+func loading_progress() -> float:
+	match loading_part():
+		"wait":
+			return 0.0
+		"setup":
+			return 0.1 * loading_fraction()
+		"build":
+			return 0.1 + 0.8 * loading_fraction()
+		"warm":
+			return 0.9 + 0.1 * loading_fraction()
+	return 1.0
 
 
 ## Says what start_world does next (`text`) and lets it show for two frames.
 func _loading_stage(text: String) -> void:
+	if loading_stage != "":
+		_stages_done += 1
 	loading_stage = text
 	hud.set_loading(text)
 	await get_tree().process_frame
@@ -728,6 +792,8 @@ func _process(delta: float) -> void:
 		# What the server sent since the last frame: the copies take it first.
 		socket.poll()
 	if world == null:
+		# On the menu, before the world is asked for: the safe rect still follows the screen.
+		view.poll_safe_rect(delta)
 		return
 	if host != null:
 		# The server's loop ran before this frame: its steps go to the statistics as parts.
@@ -740,8 +806,8 @@ func _process(delta: float) -> void:
 		t = perf.note("сеть", t)
 	chunks.paused = false
 	if not ready_to_play:
-		# Behind the main menu the chunks are built a step at a time (run_jobs below),
-		# so the menu does not stutter; else whole, as fast as it goes.
+		# Behind the loading screen the chunks are built a step at a time (run_jobs below),
+		# so its strip and its cancel button do not stutter; else whole, as fast as it goes.
 		chunks.load_steps = menu != null and menu.is_open
 		if chunks.near_pending == 0 if chunks.load_steps else chunks.build_near(40):
 			hud.set_loading("")
@@ -816,7 +882,7 @@ func _process(delta: float) -> void:
 		perf.mark("карта")
 	t = perf.note("карты", t)
 	view.update(delta)
-	# While the world is built behind the menu's painted sky it is not drawn: in a slow
+	# While the world is built behind the loading screen's painted sky it is not drawn: in a slow
 	# browser drawing the chunks already built took most of each frame of the loading.
 	var unseen := not ready_to_play and menu != null and menu.hides_world()
 	view.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED if unseen else SubViewport.UPDATE_WHEN_VISIBLE
@@ -924,7 +990,7 @@ func _build_menu() -> void:
 	menu.open()
 	if play_at_once:
 		play_at_once = false
-		menu.play()
+		menu.play(MainMenu.back_to)
 	elif show_host:
 		# The server was made (or not) by the restart: its window.
 		show_host = false
@@ -933,6 +999,9 @@ func _build_menu() -> void:
 		# A link with `?server=`: «Присоединиться» with its address.
 		menu.open_join(offered)
 		offered = ""
+	elif MainMenu.back_to != "":
+		# The loading was cancelled: the page it was asked from.
+		menu.go_back()
 
 
 func _build_materials() -> void:
