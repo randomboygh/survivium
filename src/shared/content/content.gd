@@ -208,6 +208,9 @@ const SCHEMAS := {
 	},
 	"biomes": {
 		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp"], "default": "climate"},
+		# The climate zone the biome belongs to (with climate 1 a zone's biomes lie side by
+		# side): a label for the map, the reports and the test world, not a rule.
+		"zone": {"type": "enum", "values": ["", "polar", "north", "temperate", "steppe", "hot", "tropic", "mountain"], "default": ""},
 		"warmth": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
 		"moisture": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
 		"top": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay"], "default": "grass"},

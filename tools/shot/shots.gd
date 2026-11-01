@@ -175,6 +175,9 @@ const SHOTS := {
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
 	"river": {"time": 0.42, "season": 1, "place": "river"},
+	# The biomes of the temperate zone of new worlds: red maples, willows and poplars by water.
+	"maple-wood": {"time": 0.42, "season": 1, "place": "maple_wood"},
+	"floodplain": {"time": 0.42, "season": 1, "place": "floodplain"},
 	"canyon": {"time": 0.42, "season": 1, "place": "canyon"},
 	# Relief 1 (new worlds): a gorge across a range, a mesa with banded walls, a canyon
 	# through mesas in steps, a stone tor; the camera tilted low to show the walls.

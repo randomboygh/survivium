@@ -48,7 +48,8 @@ func _init(path: String) -> void:
 
 ## The directory of the world of `seed_value` and WorldGen `options`: the seed and one
 ## digit per setting (size, water, mountains, rivers, biomes, then caves unless 1 and
-## "r" and the relief unless 0, as worlds made before those settings have); the test
+## "r" and the relief and "c" and the climate unless 0, as worlds made before those
+## settings have); the test
 ## world is "test".
 static func world_dir(seed_value: int, options: Dictionary) -> String:
 	if seed_value == TestGround.SEED:
@@ -60,6 +61,8 @@ static func world_dir(seed_value: int, options: Dictionary) -> String:
 		digits += str(int(options.caves))
 	if int(options.get("relief", 0)) != 0:
 		digits += "r%d" % int(options.relief)
+	if int(options.get("climate", 0)) != 0:
+		digits += "c%d" % int(options.climate)
 	return "%s/%d-%s" % [root, seed_value, digits]
 
 
@@ -95,8 +98,8 @@ static func list_worlds() -> Array:
 			continue
 		var settings := {}
 		var saved_settings: Dictionary = meta.get("settings", {})
-		for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief"]:
-			settings[k] = int(saved_settings.get(k, 0 if k == "relief" else 1))
+		for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate"]:
+			settings[k] = int(saved_settings.get(k, 0 if k in ["relief", "climate"] else 1))
 		var mods: Array = Array(meta.get("mods", [])).filter(func(m) -> bool: return m is String)
 		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings, "mods": mods,
 			"day": int(meta.get("sky", {}).get("day", 1)), "saved": str(meta.get("saved", "")),
