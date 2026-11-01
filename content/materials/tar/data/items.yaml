@@ -9,3 +9,4 @@
   model: tar
   icon: tar
   fuel: true
+  fuel_time: 360

@@ -204,6 +204,12 @@ static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
 
+## Seconds one of fuel `id` keeps a fire burning, 0 for what is no fuel.
+static func fuel_time(id: String) -> float:
+	var item := get_item(id)
+	return item.get("fuel_time", 0.0) if item.get("fuel", false) else 0.0
+
+
 ## Seconds one of light `id` burns once lit in a hand (used up then), 0 for ever.
 static func burns(id: String) -> float:
 	return get_item(id).get("burns", 0.0)
@@ -250,7 +256,7 @@ static func check() -> PackedStringArray:
 		if place != "" and Mat.index(place) >= 0 and placed_by[Mat.index(place)] != id:
 			out.append("items: `%s` and `%s` both place `%s`" % [placed_by[Mat.index(place)], id, place])
 		if item.prop == "none":
-			for flag: String in ["storage", "fire", "repairs", "serves", "place_tool"]:
+			for flag: String in ["storage", "fire", "repairs", "serves", "place_tool", "fuel_max", "fuel_start"]:
 				if item[flag] != Content.schema("items")[flag].default:
 					out.append("items: `%s`.%s: only a thing set down in the world (a `prop`) has it" % [id, flag])
 		for s: String in item.serves:
@@ -258,6 +264,8 @@ static func check() -> PackedStringArray:
 				out.append("items: `%s`.serves: `%s` is no other station" % [id, s])
 		if item.bag_slots > 0 and item.wear_on != "back":
 			out.append("items: `%s`.bag_slots: only a bag worn on the back (`wear_on: back`) has slots" % id)
+		if item.fuel_start > item.fuel_max:
+			out.append("items: `%s`.fuel_start: a fire holds no more than `fuel_max`" % id)
 		if item.light > 0.0 and item.durability > 0:
 			out.append("items: `%s`: a light burns down (`burns`, seconds), it does not wear (`durability`)" % id)
 		if item.burns > 0.0 and item.light <= 0.0:

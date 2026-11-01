@@ -5,3 +5,4 @@
   stack: 20
   place: peat
   fuel: true
+  fuel_time: 600

@@ -261,9 +261,17 @@ func _test_requests() -> void:
 	var fire := placed.put(Placed.CAMPFIRE, fire_cell)
 	placed.put_out(fire)
 	host.flush(net)
-	_check(events.has([Protocol.PROP, [{"item": Placed.CAMPFIRE, "cell": [12, 2, 12]}]])
+	var start: float = Items.get_item(Placed.CAMPFIRE).fuel_start
+	_check(events.has([Protocol.PROP, [{"item": Placed.CAMPFIRE, "cell": [12, 2, 12], "fuel": start}]])
 		and events.has([Protocol.PROP_LIT, [fire_cell, false]]) and not copy.at(fire_cell).lit,
 		"a fire put out is told to the copy")
+	events.clear()
+	a.inventory.add("resources:branch", 1)
+	placed.light(a, fire)
+	placed.step(Placed.FUEL_TELL)
+	host.flush(net)
+	_check(events.has([Protocol.PROP_FUEL, [fire_cell, fire.fuel]]) and is_equal_approx(copy.at(fire_cell).fuel, fire.fuel)
+		and copy.at(fire_cell).lit, "a fire lit again and burning down is told to the copy with what it has left")
 	events.clear()
 	# An animal comes by the player, moves, and leaves.
 	var rabbit = s.wildlife._add("animals:rabbit", at + Vector3(0.2, 0.0, 0.0))
@@ -342,6 +350,8 @@ func _feed(kind: String, args: Variant, copy: RemotePlaced, clock: RemoteClock, 
 			copy.take_gone(args[0])
 		Protocol.PROP_LIT:
 			copy.take_lit(args[0], args[1])
+		Protocol.PROP_FUEL:
+			copy.take_fuel(args[0], args[1])
 		Protocol.CHEST:
 			copy.take_chest(args[0], args[1])
 		Protocol.CLOCK:

@@ -285,6 +285,13 @@ func _craft_now(r: Dictionary, times: int) -> bool:
 					main.session.placed.center(e).distance_to(main.host.player.position)])
 				await _stand_by(e.cell)
 				break
+	if r.at != "":
+		# A campfire burns on fuel and goes out: lit again, or fed, for a branch.
+		for e: Dictionary in main.session.placed.things:
+			if e.item == r.at and main.session.placed.is_fire(e) and (not e.lit or float(e.get("fuel", 1e9)) < 120.0):
+				if await _obtain("resources:branch", 1):
+					await _go(camp)
+					main.session.placed.feed(main.host.player, e)
 	var inv = main.host.player.inventory
 	var before: int = inv.count(r.makes)
 	var why: String = main.host.workshop.why_not(r)

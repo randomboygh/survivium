@@ -7,3 +7,4 @@
   model: charcoal
   icon: charcoal
   fuel: true
+  fuel_time: 960
