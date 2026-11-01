@@ -343,7 +343,7 @@ func _exit_tree() -> void:
 		l.player.stop()
 
 
-func _on_taken(_id: String, from: Vector3) -> void:
+func _on_taken(_id: String, from: Vector3, _by: Object = null) -> void:
 	play("pickup", from)
 
 

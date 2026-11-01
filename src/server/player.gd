@@ -77,7 +77,10 @@ func _on_thrown(dir: Vector2, speed: float, hop: float) -> void:
 func take_input(args: Array) -> void:
 	if args.size() != 18 or not args[0] is Vector3 or not args[1] is Vector3i or not args[2] is Vector2i \
 			or not args[3] is Array or args[3].size() != 2 or not args[4] is int or not args[5] is int \
-			or not args[11] is Vector2 or not args[12] is Vector2 or not args[16] is int:
+			or not args[11] is Vector2 or not args[12] is Vector2 or not args[16] is int \
+			or not (args[6] is bool and args[7] is bool and args[8] is bool and args[9] is bool and args[13] is bool) \
+			or not (args[15] is float or args[15] is int):
+		# A malformed INPUT is left out whole, before any of it is taken.
 		return
 	var claim: Vector3 = args[0]
 	feet_cell = args[1]

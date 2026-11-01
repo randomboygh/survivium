@@ -11,6 +11,7 @@ extends SceneTree
 ## Run: godot --headless --path . --script res://tests/server_test.gd
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const SettingsFile := preload("res://src/client/settings.gd")
 const Socket := preload("res://src/client/net/socket.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -58,6 +59,10 @@ class Bot extends RefCounted:
 
 func _initialize() -> void:
 	OS.low_processor_usage_mode_sleep_usec = 0
+	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
+	SettingsFile.path = "user://test_settings.cfg"
+	DirAccess.remove_absolute(SettingsFile.path)
+	Config.file = "user://test_server.cfg"
 	_run()
 
 
@@ -418,7 +423,7 @@ func _hosted() -> void:
 	_check(node.get_parent() == root and node.process_mode == Node.PROCESS_MODE_ALWAYS,
 		"it lives under the tree's root and goes on while the game is paused")
 	var cfg := ConfigFile.new()
-	_check(cfg.load("user://server.cfg") == OK and cfg.get_value("server", "title") == "Дача"
+	_check(cfg.load(Config.file) == OK and cfg.get_value("server", "title") == "Дача"
 		and cfg.get_value("server", "port") == PORT + 1, "its settings are written for the server from the terminal")
 	if fake != "":
 		_check(await _until(func() -> bool: return node.tunnel != null and node.tunnel.url != "")

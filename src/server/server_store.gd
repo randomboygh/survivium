@@ -118,11 +118,6 @@ func write_access(access: Dictionary) -> bool:
 	return store.write_json(ACCESS, access)
 
 
-## Writes the record of the player of account `a` alone (their character leaves).
-func save_player(a) -> bool:
-	return store.write_json(player_file(a.key), record_of(a))
-
-
 ## The record of account `a`: who they are and their character as it is.
 static func record_of(a) -> Dictionary:
 	var who = a.link.who

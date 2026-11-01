@@ -169,7 +169,9 @@ void fragment() {
 		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75);
 		col += vec3(0.35) * s * (1.0 - ice_amount);
 		// Foam along the shore, washing in and out by a texel or two.
-		int foam = int(data.x + 0.5);
+		// An exact whole number in a flat varying: its corner fills reach bit 23, where
+		// `+ 0.5` would round an odd word to even.
+		int foam = int(data.x);
 		int mid = int(CELL_TEXELS) / 2;
 		for (int e = 0; e < 4; e++) {
 			int half = (e < 2 ? t.x : t.y) / mid;

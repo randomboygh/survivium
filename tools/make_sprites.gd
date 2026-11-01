@@ -4,7 +4,7 @@ extends SceneTree
 ## player/hands.png and held/lump.png (what a hand shows of a thing without a sheet or an
 ## icon) in core, held/<tool>.png in the bundle of the item that names the sprite. A picture painted over by hand is overwritten, so name
 ## the pictures to make:
-## godot --headless --path . --script res://tools/make_sprites.gd -- [picture ...]
+## godot --headless --path . --script res://tools/make_sprites.gd -- <picture ...> | --all
 
 const Figure := preload("res://src/client/view/figure.gd")
 const Content := preload("res://src/shared/content/content.gd")
@@ -67,6 +67,14 @@ const LUMP := [
 
 func _init() -> void:
 	var only := OS.get_cmdline_user_args()
+	# Everything is drawn again only when asked for by `--all`: what was painted over
+	# by hand would be lost.
+	if only.is_empty():
+		printerr("name what to make, or --all for everything (it overwrites what was painted by hand)")
+		quit(1)
+		return
+	if only == PackedStringArray(["--all"]):
+		only = PackedStringArray()
 	var dir := Figure.SPRITES
 	var pictures := {}
 	for name in Figure.data().layers + [Figure.data().fists]:

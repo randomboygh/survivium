@@ -438,6 +438,10 @@ func run_jobs(spent := 0) -> void:
 			break
 		if job_mesh == null:
 			if not dirty_chunks.is_empty():
+				if has_target and not dirty_chunks.has(job_key):
+					# A chunk being streamed whose job an edit dropped: back into the
+					# queue, or it would never be built.
+					pending_chunks.append(job_key)
 				job_key = dirty_chunks.keys()[0]
 				dirty_chunks.erase(job_key)
 				job_edit = true
@@ -497,7 +501,7 @@ func run_jobs(spent := 0) -> void:
 
 ## Frees the meshes of chunk `key` now (the server told the client to forget it).
 func unload_chunk(key: Vector2i) -> void:
-	if job_mesh != null and job_key == key:
+	if (job_mesh != null or has_target) and job_key == key:
 		_drop_job()
 		has_target = false
 	pending_chunks.erase(key)

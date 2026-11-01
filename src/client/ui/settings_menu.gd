@@ -598,16 +598,37 @@ func close() -> void:
 	closed.emit()
 
 
-## Updates every value label from the game state (values change by hotkeys too).
+## Updates every value label from the game state (values change by hotkeys too, and the
+## clock runs while the playtest page is open); the window is laid out again only when
+## a label changed.
 func refresh() -> void:
+	var changed := false
 	for r in _rows:
 		var i: int = r.get.call()
-		r.label.text = r.other if i < 0 and r.other != "" else r.values[clampi(i, 0, r.values.size() - 1)]
+		var text: String = r.other if i < 0 and r.other != "" else r.values[clampi(i, 0, r.values.size() - 1)]
+		if r.label.text != text:
+			r.label.text = text
+			changed = true
 		var on := _works(r)
 		r.left.disabled = not on
 		r.right.disabled = not on
 		r.row.modulate.a = 1.0 if on else 0.4
-	reset_size()
+	if changed:
+		reset_size()
+
+
+## Seconds between the updates of the shown values while the window is open.
+const REFRESH_EVERY := 0.5
+var _refresh_in := 0.0
+
+
+func _process(delta: float) -> void:
+	if not visible or _rows.is_empty():
+		return
+	_refresh_in -= delta
+	if _refresh_in <= 0.0:
+		_refresh_in = REFRESH_EVERY
+		refresh()
 
 
 func _works(r: Dictionary) -> bool:

@@ -192,6 +192,8 @@ func _flow(text: String, pos: Array, number: int) -> Variant:
 			if pos[0] >= text.length() or text[pos[0]] != ":":
 				return _fail(number, "expected `:` in a flow mapping")
 			pos[0] += 1
+			if map.has(str(key)):
+				return _fail(number, "duplicate key `%s`" % key)
 			map[str(key)] = _flow(text, pos, number)
 			if error != "":
 				return null
@@ -257,15 +259,22 @@ static func _unquote(s: String) -> String:
 ## Cuts a `# comment` that is not inside quotes.
 static func _strip_comment(line: String) -> String:
 	var quote := ""
+	# The last character outside quotes that is not a space: a quote opens a quoted
+	# scalar only where a value starts (after `:`, `-`, `[`, `{`, `,` or at the start), so
+	# an apostrophe inside a plain value (`Wolf's den  # note`) leaves the comment cut.
+	var last := ""
 	for i in line.length():
 		var c := line[i]
 		if quote != "":
 			if c == quote:
 				quote = ""
-		elif c == "\"" or c == "'":
+				last = c
+		elif (c == "\"" or c == "'") and last in ["", ":", "-", "[", "{", ","]:
 			quote = c
 		elif c == "#" and (i == 0 or line[i - 1] == " "):
 			return line.substr(0, i)
+		elif c != " " and c != "\t":
+			last = c
 	return line
 
 

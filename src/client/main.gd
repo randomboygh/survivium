@@ -717,12 +717,13 @@ func _process(delta: float) -> void:
 	# The frame before is over: the statistics take its time and what its parts took.
 	var perf = hud.perf
 	perf.add_frame(delta)
+	# Taken before the poll, so the part «сеть» holds what the copies took of it.
+	var t := Time.get_ticks_usec()
 	if socket != null:
 		# What the server sent since the last frame: the copies take it first.
 		socket.poll()
 	if world == null:
 		return
-	var t := Time.get_ticks_usec()
 	if host != null:
 		# The server's loop ran before this frame: its steps go to the statistics as parts.
 		var took: Dictionary = host.runner.took_us

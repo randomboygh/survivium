@@ -6,6 +6,7 @@ extends SceneTree
 ## godot --headless --path . --script res://tests/save_test.gd
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const SettingsFile := preload("res://src/client/settings.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -29,6 +30,9 @@ class Bag extends RefCounted:
 
 func _initialize() -> void:
 	OS.low_processor_usage_mode_sleep_usec = 0
+	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
+	SettingsFile.path = "user://test_settings.cfg"
+	DirAccess.remove_absolute(SettingsFile.path)
 	_run()
 
 

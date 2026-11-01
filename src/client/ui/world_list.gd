@@ -69,6 +69,7 @@ func _ready() -> void:
 func _fill() -> void:
 	for c in _rows.get_children():
 		c.queue_free()
+		_rows.remove_child(c)
 	_armed = null
 	var worlds := WorldStore.list_worlds()
 	if worlds.is_empty():

@@ -129,6 +129,7 @@ func _next_after(f: LineEdit) -> void:
 func _fill_recent(recent: Array[Dictionary]) -> void:
 	for c in _recent.get_children():
 		c.queue_free()
+		_recent.remove_child(c)
 	if recent.is_empty():
 		return
 	_recent.add_child(UiStyle.label("Недавние", UiStyle.MUTED))

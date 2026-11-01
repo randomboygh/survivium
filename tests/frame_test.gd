@@ -13,6 +13,7 @@ extends SceneTree
 ## test on any machine, and a slow runner does not.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const SettingsFile := preload("res://src/client/settings.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
@@ -57,6 +58,9 @@ func _initialize() -> void:
 	# Without a screen the engine sleeps 6.9 ms a frame (low_processor_usage_mode_sleep_usec),
 	# which would hide the game's own time.
 	OS.low_processor_usage_mode_sleep_usec = 0
+	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
+	SettingsFile.path = "user://test_settings.cfg"
+	DirAccess.remove_absolute(SettingsFile.path)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
 	root.add_child(main)

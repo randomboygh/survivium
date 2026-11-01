@@ -204,6 +204,14 @@ func warmed_up() -> void:
 ## and data sent to the GPU, garbage collected, and what ran in the page's long frames
 ## (GlWatch).
 func _engine_marks(ms := 0.0) -> void:
+	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
+	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
+		mark("видео", "%+d КБ" % roundi((video - _video) / 1024.0))
+	if _objects > 0.0 and absf(objects - _objects) >= OBJECTS_JUMP:
+		mark("объекты", "%+d" % roundi(objects - _objects))
+	_video = video
+	_objects = objects
 	var gl := _gl.take()
 	if not gl.is_empty():
 		if gl.programs > 0.0 or gl.build_ms >= 1.0:
@@ -264,14 +272,6 @@ func _attach_long_frames() -> void:
 			if Time.get_ticks_msec() - end < 2000.0:
 				left.append(f)
 	_long_frames = left
-	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
-	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
-	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
-		mark("видео", "%+d КБ" % roundi((video - _video) / 1024.0))
-	if _objects > 0.0 and absf(objects - _objects) >= OBJECTS_JUMP:
-		mark("объекты", "%+d" % roundi(objects - _objects))
-	_video = video
-	_objects = objects
 
 
 ## Adds the time from `since` (Time.get_ticks_usec) until now to part `what` of the

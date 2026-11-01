@@ -23,8 +23,12 @@
   Флаг кадра, посчитанный до обновления состояния, в этом кадре уже устарел.
 - Headless-запуск оборачивайте в `timeout`: ошибка в скрипте с `await` оставляет Godot висеть.
 - `--check-only --script res://x.gd` только разбирает скрипт.
-- `tools/shot.gd` и `tools/profile.gd` пишут `user://settings.cfg`, что ломает последующий локальный
-  `frame_test`: сначала удалите его.
+- `tools/shot.gd` и `tools/profile.gd` пишут `user://settings.cfg`; сценовые тесты читают свой
+  `user://test_settings.cfg` (`Settings.path`, удаляется в начале теста), `server_test` — `user://test_server.cfg`
+  (`Config.file`), так что инструменты больше не меняют то, во что играют тесты.
+- Ошибка выполнения скрипта обрывает только свою функцию, и тест идёт дальше без проверок после неё:
+  `run_tests.gd` считает каждую такую ошибку провалом (свой `Logger`), `run_all.sh` валит проверку, в журнале
+  которой есть `SCRIPT ERROR`.
 
 ## Инструменты (`tools/`)
 
@@ -41,7 +45,8 @@
   `bench_edit.gd`, `bench_turn.gd` — замеры; `bench_content.gd [бандлов]` — чтение и загрузка данных модов,
   реестры и граф, сейчас и с придуманным модом в придачу.
 - Ассеты: `make_sprites.gd`, `make_models.gd`, `make_icons.gd`, `make_textures.gd` (рисовалки в
-  `art/*.gd`), `make_sounds.gd` (кирпичики в `sound/synth.gd`), `sheet.gd` (лист игрока в PNG);
+  `art/*.gd`), `make_sounds.gd` (кирпичики в `sound/synth.gd`) — делают только названные
+  (`-- <имя> …`), всё разом только с `-- --all`: перезаписывается и нарисованное руками; `sheet.gd` (лист игрока в PNG);
   Python с Pillow: `make_icon.py` (иконка и `assets/web/`; теги `og:` превью ссылки — в `html/head_include`
   пресета `export_presets.cfg`), `make_splash.py` (заставка),
   `make_clouds.py` (облака меню), `make_creatures.py` (листы новых зверей), `make_plant_art.py` (кора,

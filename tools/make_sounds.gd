@@ -3,7 +3,7 @@ extends SceneTree
 ## them as the bundles' sounds, which content/<bundle>/data/sounds.yaml lists:
 ## content/<bundle>/sounds/<name>.wav, or <name>_1.wav, <name>_2.wav ... for a sound with
 ## variants. A sound replaced by hand is overwritten, so name the sounds to make:
-## godot --headless --path . --script res://tools/make_sounds.gd -- [sound ...]
+## godot --headless --path . --script res://tools/make_sounds.gd -- <sound ...> | --all
 ## Each sound has its own seed: making it again gives the same file.
 
 const Synth := preload("res://tools/sound/synth.gd")
@@ -82,6 +82,14 @@ var rng := RandomNumberGenerator.new()
 
 func _init() -> void:
 	var only := OS.get_cmdline_user_args()
+	# Everything is drawn again only when asked for by `--all`: what was painted over
+	# by hand would be lost.
+	if only.is_empty():
+		printerr("name what to make, or --all for everything (it overwrites what was painted by hand)")
+		quit(1)
+		return
+	if only == PackedStringArray(["--all"]):
+		only = PackedStringArray()
 	var count := 0
 	for name: String in SOUNDS:
 		if not only.is_empty() and not name in only:

@@ -170,6 +170,9 @@ func flush() -> void:
 		if a.peer != null and a.peer.ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
 			for b in a.link.flush():
 				a.peer.ws.put_packet(b)
+		elif a.peer == null:
+			# Lingering without a connection: nothing piles up (rejoin sends it all).
+			a.link.outbox.clear()
 
 
 ## The players in the world: their accounts, by id.
@@ -598,7 +601,9 @@ func _forget(a: Account) -> void:
 	if not accounts.has(a.key):
 		return
 	if store != null and not stopping:
-		store.save_player(a)
+		# The whole snapshot, the player still in it: a thing moved between a chest and
+		# the bag is saved in one of them, never both or neither.
+		store.save(self)
 	accounts.erase(a.key)
 	if a.peer != null:
 		a.peer.account = null

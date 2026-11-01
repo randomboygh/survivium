@@ -29,6 +29,8 @@ var _row: PanelContainer
 var _field: LineEdit
 ## What the labels show (open, how many, of how many heard): they are made again when it changes.
 var _shown_key := ""
+## Lines heard in all: the shown lines change with it even once KEPT are kept.
+var _heard := 0
 
 
 func _init(g) -> void:
@@ -115,6 +117,7 @@ func hear(id: int, who: String, text: String) -> void:
 	var line := text if who == "" else "%s: %s" % [who, text]
 	var color := UiStyle.MUTED if id == 0 else (UiStyle.ACCENT if own else UiStyle.INK)
 	lines.append({"text": line, "color": color, "at": _now()})
+	_heard += 1
 	while lines.size() > KEPT:
 		lines.pop_front()
 	print("chat: %s" % line)
@@ -144,7 +147,7 @@ func _refresh() -> void:
 		if shown.size() >= (OPEN_SHOWN if open else SHOWN) or (not open and now - l.at > FADE):
 			break
 		shown.push_front(l)
-	var key := "%s|%d|%d" % [open, shown.size(), lines.size()]
+	var key := "%s|%d|%d" % [open, shown.size(), _heard]
 	if key != _shown_key:
 		_shown_key = key
 		for c in _list.get_children():
