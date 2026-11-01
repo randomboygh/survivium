@@ -205,6 +205,7 @@ func _ready() -> void:
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
+	_test_button.visible = game.settings.values.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
 	_chat_button.visible = game.join_url != ""
 	_bag_button = _icon_button(_top, "person", "Персонаж, сумка и крафт", toggle_bag)
@@ -905,6 +906,12 @@ func open_settings(page: String) -> void:
 	_settings.fit(size)
 
 
+## The «Тестирование» buttons come out: the easter egg of the main menu found them.
+func unlock_testing() -> void:
+	_test_button.visible = true
+	_place()
+
+
 ## The flask button: the playtest page over the running game, without the pause.
 func toggle_test() -> void:
 	if _settings != null and _settings.visible and _settings.page == "test":
@@ -965,6 +972,8 @@ func _update_menu() -> void:
 		return
 	# Tests and tools play without the main menu.
 	_menu_buttons["main"].visible = game.menu != null
+	# Found by the easter egg of the main menu (Settings «testing_unlocked»).
+	_menu_buttons["test"].visible = game.settings.values.testing_unlocked
 	# The window of the server made here (Main.hosted), the world going on meanwhile.
 	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
 	_menu.reset_size()

@@ -66,6 +66,14 @@ async function open(name, options, init, tapDpr) {
   };
   const menu = await waitFor('main menu shown', 'the main menu');
   if (menu && tapDpr) {
+    // The easter egg: ten taps on the sparrow of the name blow it up and bring out the
+    // «Тестирование» buttons (the flask is tapped in the game below).
+    const sparrow = rectOf(menu, 'sparrow');
+    for (let i = 0; sparrow && i < 10; i++) {
+      await tap(sparrow);
+      await page.waitForTimeout(120);
+    }
+    await waitFor('easter egg', 'the easter egg after ten taps on the sparrow');
     await tap(rectOf(menu, 'single'));
     const single = await waitFor('menu page single', 'the page «Одиночная игра»');
     if (single) await tap(rectOf(single, 'new'));
@@ -191,7 +199,7 @@ if (runs('phone')) {
       if (!rose) errors.push(`phone: jump with a second finger while holding the joystick did nothing: ${d1.player} -> ${last.player}`);
     }
   }
-  if (d0.test.length === 4) {
+  if (d0.test.length === 4 && d0.test[2] > 0) {
     // Open the playtest page with the flask button and tap the season's "next" arrow.
     const center = (r) => [(r[0] + r[2] / 2) / dpr, (r[1] + r[3] / 2) / dpr];
     await page.touchscreen.tap(...center(d0.test));

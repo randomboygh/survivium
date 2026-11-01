@@ -498,7 +498,7 @@ func _run() -> void:
 			main._build_menu()
 			# The landscape only for "sky" and "loading": the world is built already, so it
 			# would fade (the menu holds it while it is open and no world was asked for).
-			var painted: bool = shot.main_menu in ["sky", "loading"]
+			var painted: bool = shot.main_menu in ["sky", "loading"] or shot.get("painted", false)
 			main.menu._backdrop.visible = painted
 			main.menu._fading = not painted
 			main.menu.settled = not painted
@@ -519,6 +519,15 @@ func _run() -> void:
 			if shot.main_menu == "worlds":
 				_fake_saves()
 				main.menu._open_worlds()
+				await process_frame
+			if shot.get("egg", false):
+				# The easter egg caught a moment after the sparrow blew up.
+				main.menu._explode()
+				# Stepped by hand at 20 steps a second: software frames are too slow for it.
+				main.menu.set_process(false)
+				for i in int(shot.get("egg_ms", 1300) / 50):
+					main.menu._update_fx(0.05)
+				main.menu._sparrow.queue_redraw()
 				await process_frame
 			if shot.main_menu in ["single", "multi"]:
 				# A phone's menu on a touch screen: «Создать сервер» is not there.

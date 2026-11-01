@@ -7,7 +7,7 @@ extends Control
 ## own in the same panel, with «Назад» at the bottom.
 ## «Одиночная игра»: "Играть" ("Продолжить" once the world has a save) loads the world
 ## played last, "Новый мир" opens WorldSetup over the menu and loads the world asked for,
-## "Миры" lists the saved worlds to load one or delete it (WorldList); a world other than
+## "Загрузить мир" lists the saved worlds to load one or delete it (WorldList); a world other than
 ## the one the scene was started for is loaded by a restart of the scene (Main.restart),
 ## which comes up on the loading screen at once. Joined to a server, each of them leaves
 ## it for a world of this device.
@@ -48,10 +48,15 @@ const Creatures := preload("res://src/client/game/creatures.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 
-const WIDTH := 200
+const WIDTH := 216
 const BUTTON_H := 30
+## The two-line «Продолжить» of «Одиночная игра», as tall as a row of «Загрузить мир».
+const PLAY_H := 42
 const MARGIN := 24
 const TITLE_SIZE := 32
+## The name's top as a share of the screen's height, and UI px between it and the column.
+const TITLE_AT := 0.1
+const GAP := 14
 ## Seconds the painted landscape takes to fade once the world's first frames are calm.
 const FADE := 1.2
 ## The painted sky over the day, by the hour of the device's clock: [hour, the bands
@@ -97,6 +102,19 @@ const HOP_HIGH := 12.0
 const HOP_STEP := 16.0
 ## One pixel of the sparrow in UI px, so it stands a little lower than the capitals.
 const BIRD_PX := 3
+## The easter egg: taps on the sparrow in a row (each within TAP_GAP seconds) that blow
+## it up, the rockets of the salute, their colours and the feathers', the seconds the
+## sparrow is away and the seconds it takes to fly back in.
+const TAPS_TO_BLOW := 10
+const TAP_GAP := 2.5
+const ROCKETS := 7
+## How fast a rising rocket slows (UI px/s²).
+const ROCKET_FALL := 60.0
+const SALUTE := [Color("#e9b44c"), Color("#e0613f"), Color("#8fcf6a"), Color("#7cc0f0"), Color("#f08cc8"),
+	Color("#fff3c4")]
+const FEATHERS := [Color("#6b4a2e"), Color("#8f6a44"), Color("#c9a77c"), Color("#3a2a1c"), Color("#e8d8bc")]
+const BIRD_AWAY := 12.0
+const FLY_TIME := 1.8
 ## The loading screen's map: the sides tried in turn until the card fits the screen (as
 ## wide as the card, then smaller, then none: the tips and the strip alone), and UI px
 ## a map pixel. A new tip comes every TIP_TIME seconds.
@@ -214,8 +232,20 @@ var _bird_do := "sit"
 var _bird_left := 1.0
 var _bird_from := 40.0
 var _bird_to := 40.0
+## The easter egg (see _explode): what takes the taps on the sparrow, the taps so far
+## and the seconds left to the next, the layer the salute is drawn on, its rockets and
+## sparks, the flash where the sparrow was, the seconds the name shakes and where the
+## name stands still.
+var _sparrow_hit: Control
+var _taps := 0
+var _tap_clock := 0.0
+var _fx: Control
+var _rockets: Array = []
+var _sparks: Array = []
+var _flash := {}
+var _shake := 0.0
+var _title_at := Vector2.ZERO
 var _column: VBoxContainer
-var _seed_label: Label
 ## The seed written over the map.
 var _map_seed: Label
 var _strip: Control
@@ -262,7 +292,7 @@ var _phase_clock := 0.0
 ## fades, the menu goes in.
 var settled := false
 var _calm := 0
-## When the world was ready (msec of the clock, -1 before): SETTLE_MAX goes by real
+## When the world was ready and its shaders built (msec of the clock, -1 before): SETTLE_MAX goes by real
 ## time, not by the frames' delta, which the engine caps at 8 physics steps a frame
 ## (a slow device's second-long frames would stretch it to minutes).
 var _ready_at := -1
@@ -316,7 +346,8 @@ func _ready() -> void:
 	glint.shader = Shader.new()
 	glint.shader.code = GLINT_SHADER
 	title.material = glint
-	_column.add_child(title)
+	# Fixed at the top of the screen, not in the column: the pages differ in height.
+	_screen.add_child(title)
 	_title = title
 	_sparrow = Control.new()
 	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -325,14 +356,10 @@ func _ready() -> void:
 		_sparrow_picture = Creatures.picture(AiRules.SPECIES[SPARROW])
 		_sparrow_frames = AiRules.SPECIES[SPARROW].frames
 	title.add_child(_sparrow)
-	_seed_label = UiStyle.label("", UiStyle.INK)
-	_seed_label.add_theme_color_override("font_outline_color", UiStyle.EDGE)
-	_seed_label.add_theme_constant_override("outline_size", 4)
-	_seed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_column.add_child(_seed_label)
-	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(0, 4)
-	_column.add_child(gap)
+	_sparrow_hit = Control.new()
+	_sparrow_hit.mouse_filter = Control.MOUSE_FILTER_STOP
+	_sparrow_hit.gui_input.connect(_on_sparrow_input)
+	title.add_child(_sparrow_hit)
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_column.add_child(panel)
@@ -342,6 +369,10 @@ func _ready() -> void:
 	_fill_page("top")
 
 	_build_loading()
+	_fx = Control.new()
+	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fx.draw.connect(_draw_fx)
+	_screen.add_child(_fx)
 	visible = false
 	_screen.visible = false
 
@@ -628,9 +659,10 @@ func _fill_page(page: String) -> void:
 			lit = "multi" if joined or game.hosted != null else "single"
 		"single":
 			_caption("Одиночная игра")
-			_add_button(_box, "play", "Продолжить" if game.save.has_save else "Играть", _play_single)
+			_add_button(_box, "play", "Продолжить", _play_single)
+			_describe_world(_buttons.play)
 			_add_button(_box, "new", "Новый мир", _new_world)
-			_add_button(_box, "worlds", "Миры", _open_worlds)
+			_add_button(_box, "worlds", "Загрузить мир", _open_worlds)
 			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
 			lit = "play"
 		"multi":
@@ -662,6 +694,34 @@ func _fill_page(page: String) -> void:
 		_fit()
 		# Laid out in two frames: then the page says where its buttons are.
 		_announce = 2
+
+
+## «Продолжить» in two lines, like a row of «Загрузить мир»: the seed and the kind of
+## world under the word, the day at the right of it (from the save: the world is not
+## loaded yet, or from the clock when it is). Joined to a server it stays one line.
+func _describe_world(b: Button) -> void:
+	if game.join_url != "":
+		return
+	var test: bool = game.world_seed == WorldStore.TEST_SEED
+	var kind: String = "площадки" if test else load(WORLD_LIST)._kind(game.world_options)
+	b.text += "\n%s · %s" % ["тестовый мир" if test else "зерно %d" % game.world_seed, kind]
+	b.custom_minimum_size.y = PLAY_H
+	b.add_theme_constant_override("line_spacing", 4)
+	var day := -1
+	var sky: Variant = game.save.meta.get("sky")
+	if game.clock.gen != null:
+		day = game.clock.day
+	elif game.save.has_save and sky is Dictionary and sky.has("day"):
+		day = int(sky.day)
+	if day < 0:
+		return
+	var l := UiStyle.label("день %d" % day, UiStyle.DARK_INK)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	l.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	l.offset_left = -80
+	l.offset_right = -10
+	l.offset_top = 9
+	b.add_child(l)
 
 
 ## The page's name over its buttons.
@@ -717,16 +777,8 @@ func open() -> void:
 	_want_play = false
 	_show_loading(false)
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
-	_seed_label.text = "тестовый мир" if test else "мир · зерно %d" % game.world_seed
-	var sky: Variant = game.save.meta.get("sky")
-	if game.clock.gen != null:
-		_seed_label.text += " · день %d" % game.clock.day
-	elif game.save.has_save and sky is Dictionary and sky.has("day"):
-		# Read from the save: the world is not loaded yet.
-		_seed_label.text += " · день %d" % int(sky.day)
 	_map_seed.text = "тестовый мир" if test else "зерно %d" % game.world_seed
 	if game.join_url != "":
-		_seed_label.text = "сетевая игра · " + load(JOIN_SCREEN)._short(game.join_url)
 		_map_seed.text = load(JOIN_SCREEN)._short(game.join_url)
 	game.hud.visible = false
 	_fill_page("top")
@@ -952,8 +1004,11 @@ func _process(delta: float) -> void:
 	if not is_open:
 		return
 	_update_loading(delta)
+	_title.visible = _column.visible
+	_fx.visible = _column.visible
 	if _column.visible:
 		_move_sparrow(delta)
+		_update_fx(delta)
 		_title.material.set_shader_parameter("glint", fmod(_time, GLINT_EVERY) * 120.0 - 20.0)
 	if settled and _want_play:
 		_keep_part_times()
@@ -970,7 +1025,8 @@ func _process(delta: float) -> void:
 		# Laid out by now; the browser test taps the buttons from this line.
 		_shown = true
 		StartTimes.mark("menu")
-		print("main menu shown: single %s, multi %s" % [_buttons.single.get_global_rect(), _buttons.multi.get_global_rect()])
+		print("main menu shown: single %s, multi %s, sparrow %s" % [_buttons.single.get_global_rect(),
+			_buttons.multi.get_global_rect(), _sparrow_hit.get_global_rect()])
 	_screen.queue_redraw()
 
 
@@ -978,10 +1034,15 @@ func _process(delta: float) -> void:
 func _settle() -> void:
 	if settled or not game.ready_to_play or shown_progress >= 0.0:
 		return
+	# The first frames are counted from the end of the warm-up: until then the world is not
+	# drawn, and the game must not show before its shaders are built.
+	if game.warmup != null:
+		return
 	if _ready_at < 0:
 		_ready_at = Time.get_ticks_msec()
+		_part_at["settle"] = _ready_at
 	var delta := get_process_delta_time()
-	_calm = _calm + 1 if game.warmup == null and delta < CALM_FRAME else 0
+	_calm = _calm + 1 if delta < CALM_FRAME else 0
 	settled = _calm >= CALM_FRAMES or Time.get_ticks_msec() - _ready_at >= SETTLE_MAX * 1000.0
 	if settled:
 		StartTimes.mark("ready")
@@ -1019,10 +1080,17 @@ func _fit() -> void:
 	_screen.size = size
 	_backdrop.size = size
 	_backdrop.queue_redraw()
+	# The name at a fixed height of the screen; the column in the middle of the room under
+	# it, its top no higher than the name's bottom, so pages of any height leave the name
+	# where it is.
+	_title.reset_size()
+	_title_at = Vector2((size.x - _title.size.x) * 0.5, maxf(12.0, size.y * TITLE_AT)).floor()
+	_title.position = _title_at
+	_fx.size = size
 	_column.reset_size()
 	var c := _column.size
-	var low := 0.5 if size.x >= size.y * 1.2 else 0.55
-	_column.position = Vector2((size.x - c.x) * 0.5, maxf(MARGIN, (size.y - c.y) * low)).floor()
+	var top := _title.position.y + _title.size.y + GAP
+	_column.position = Vector2((size.x - c.x) * 0.5, maxf(top, top + (size.y - MARGIN - top - c.y) * 0.45)).floor()
 	if loading:
 		for side: int in MAP_SIZES:
 			_set_map_side(side)
@@ -1154,16 +1222,28 @@ func _pixel_disc(at: Vector2, r: float, color: Color) -> void:
 
 
 ## The sparrow sits a while, pecks now and then, and hops along the name, turning
-## back at its ends.
+## back at its ends. Blown up (see _explode) it is gone for BIRD_AWAY seconds, then
+## flies in from the left and sits down where it was.
 func _move_sparrow(delta: float) -> void:
+	_tap_clock -= delta
+	if _tap_clock <= 0.0:
+		_taps = 0
 	_bird_left -= delta
+	if _bird_do == "gone":
+		if _bird_left <= 0.0:
+			_bird_do = "fly"
+			_bird_dir = 1.0
+			_bird_left = FLY_TIME
+		_sparrow.queue_redraw()
+		return
 	if _bird_do == "hop":
 		var t := clampf(1.0 - _bird_left / HOP_TIME, 0.0, 1.0)
 		_bird_x = lerpf(_bird_from, _bird_to, t)
 	if _bird_left <= 0.0:
 		_bird_x = _bird_to if _bird_do == "hop" else _bird_x
 		var roll := randf()
-		if _bird_do != "hop" and roll < 0.45:
+		# Still while it is being tapped, so the taps keep finding it.
+		if _bird_do not in ["hop", "fly"] and roll < 0.45 and _taps == 0:
 			var room := _title.size.x - _sparrow_size().x - 6.0
 			if _bird_x + _bird_dir * HOP_STEP < 6.0 or _bird_x + _bird_dir * HOP_STEP > room or randf() < 0.15:
 				_bird_dir = -_bird_dir
@@ -1177,6 +1257,9 @@ func _move_sparrow(delta: float) -> void:
 		else:
 			_bird_do = "sit"
 			_bird_left = randf_range(0.5, 2.0)
+	var r := _bird_rect()
+	_sparrow_hit.position = r.position - Vector2(8, 8)
+	_sparrow_hit.size = r.size + Vector2(16, 16)
 	_sparrow.queue_redraw()
 
 
@@ -1187,22 +1270,43 @@ func _sparrow_size() -> Vector2:
 	return Vector2(_sparrow_picture.get_width() / _sparrow_frames, _sparrow_picture.get_height()) * BIRD_PX
 
 
-## The sparrow on the top of the letters: raised in a hop beating its wings, its head
-## down when it pecks.
-func _draw_sparrow() -> void:
-	if _sparrow_picture == null:
-		return
+## Where the sparrow is drawn in the name's UI px (its frame's rect), and its frame:
+## [rect, frame]. A hop lifts it, flying in it comes down an arc from the left.
+func _bird_place() -> Array:
 	# The top of the capitals of the 32 px font, under the label's own room above them.
 	var top := floorf(_title.size.y * 0.5 - TITLE_SIZE * 0.34) - 3.0
+	var size := _sparrow_size()
 	var lift := 0.0
+	var x := _bird_x
 	var frame := 0
 	if _bird_do == "hop":
 		var t := clampf(1.0 - _bird_left / HOP_TIME, 0.0, 1.0)
 		lift = floorf(HOP_HIGH * 4.0 * t * (1.0 - t))
 		if _sparrow_frames > 1:
 			frame = 1 + int(t * 3.0) % (_sparrow_frames - 1)
+	elif _bird_do == "fly":
+		var t := clampf(1.0 - _bird_left / FLY_TIME, 0.0, 1.0)
+		var ease := 1.0 - (1.0 - t) * (1.0 - t)
+		x = lerpf(-_title.position.x - size.x - 10.0, _bird_x, ease)
+		lift = floorf((1.0 - ease) * 90.0)
+		if _sparrow_frames > 1 and t < 0.96:
+			frame = 1 + int(_time * 14.0) % (_sparrow_frames - 1)
+	return [Rect2(Vector2(floorf(x), top - size.y - lift), size), frame]
+
+
+func _bird_rect() -> Rect2:
+	return _bird_place()[0]
+
+
+## The sparrow on the top of the letters: raised in a hop beating its wings, its head
+## down when it pecks; nothing while it is blown away.
+func _draw_sparrow() -> void:
+	if _sparrow_picture == null or _bird_do == "gone":
+		return
+	var place := _bird_place()
+	var at: Vector2 = place[0].position
+	var frame: int = place[1]
 	var cell := _sparrow_size() / BIRD_PX
-	var at := Vector2(floorf(_bird_x), top - cell.y * BIRD_PX - lift)
 	# Facing left is the picture mirrored about its middle.
 	if _bird_dir > 0.0:
 		_sparrow.draw_set_transform(at, 0.0, Vector2(BIRD_PX, BIRD_PX))
@@ -1218,6 +1322,134 @@ func _draw_sparrow() -> void:
 	else:
 		_sparrow.draw_texture_rect_region(_sparrow_picture, Rect2(0, 0, cell.x, cell.y), Rect2(x0, 0, cell.x, cell.y))
 	_sparrow.draw_set_transform(Vector2.ZERO)
+
+
+## A tap on the sparrow: it jumps up, startled, with a click a little higher each time;
+## the TAPS_TO_BLOW-th tap in a row (each within TAP_GAP of the last) blows it up.
+func _on_sparrow_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	if _bird_do in ["gone", "fly"]:
+		return
+	_sparrow_hit.accept_event()
+	_taps += 1
+	_tap_clock = TAP_GAP
+	game.sound.play("click", Vector3.INF, 0.7, 1.0 + 0.09 * _taps, "UI")
+	if _taps >= TAPS_TO_BLOW:
+		_explode()
+		return
+	if _bird_do != "hop":
+		_bird_do = "hop"
+		_bird_from = _bird_x
+		_bird_to = _bird_x
+		_bird_left = HOP_TIME
+
+
+## The easter egg: the sparrow bursts into feathers with a flash, the name shakes, and
+## a salute of pixel rockets goes up over it, each bursting into sparks of its colour
+## that fall and twinkle out; the sparrow comes back later (see _move_sparrow).
+func _explode() -> void:
+	_taps = 0
+	print("easter egg: the sparrow blew up")
+	if not game.settings.values.testing_unlocked:
+		game.settings.set_value("testing_unlocked", true)
+		game.hud.unlock_testing()
+	var r := _bird_rect()
+	var at := _title.position + r.get_center()
+	_bird_do = "gone"
+	_bird_left = BIRD_AWAY
+	_shake = 0.7
+	_flash = {"p": at, "t": 0.0}
+	game.sound.play("thunder", Vector3.INF, 0.7, 2.2, "UI")
+	for i in 46:
+		var a := randf() * TAU
+		var v := Vector2(cos(a), sin(a)) * randf_range(40.0, 150.0) + Vector2(0, -40)
+		_sparks.append({"p": at, "v": v, "t": 0.0, "life": randf_range(0.8, 1.6),
+			"c": FEATHERS[randi() % FEATHERS.size()], "s": 2.0 if i % 3 == 0 else 1.0, "drag": 2.2, "fall": 60.0})
+	# Each rocket goes up from under the name and bursts around it, on the screen however
+	# near its top the name stands.
+	var name := Rect2(_title.position, _title.size)
+	for i in ROCKETS:
+		var x := name.position.x + name.size.x * randf_range(0.0, 1.0)
+		var from := Vector2(x, name.end.y + 110.0)
+		var burst := Vector2(x + randf_range(-30.0, 30.0), name.position.y + randf_range(-4.0, name.size.y + 50.0))
+		var fuse := randf_range(0.6, 0.8)
+		var v := (burst - from) / fuse - Vector2(0.0, 0.5 * ROCKET_FALL * fuse)
+		_rockets.append({"p": from, "v": v, "wait": i * 0.28 + randf() * 0.1, "fuse": fuse,
+			"c": SALUTE[randi() % SALUTE.size()]})
+
+
+## Moves the salute's rockets and sparks (UI px, seconds) and draws them again.
+func _update_fx(delta: float) -> void:
+	if _sparks.is_empty() and _rockets.is_empty() and _shake <= 0.0 and _flash.is_empty():
+		return
+	_shake = maxf(_shake - delta, 0.0)
+	if not _flash.is_empty():
+		_flash.t += delta
+		if _flash.t > 0.25:
+			_flash = {}
+	for k in range(_rockets.size() - 1, -1, -1):
+		var r: Dictionary = _rockets[k]
+		if r.wait > 0.0:
+			r.wait -= delta
+			if r.wait <= 0.0:
+				game.sound.play("ignite", Vector3.INF, 0.35, 1.6, "UI")
+			continue
+		r.p += r.v * delta
+		r.v.y += ROCKET_FALL * delta
+		r.fuse -= delta
+		# A trail of fading sparks behind it.
+		_sparks.append({"p": r.p, "v": Vector2(randf_range(-8, 8), randf_range(10, 30)), "t": 0.0, "life": 0.35,
+			"c": Color("#ffe9a8"), "s": 1.0, "drag": 1.0, "fall": 20.0})
+		if r.fuse <= 0.0:
+			game.sound.play("thunder", Vector3.INF, 0.45, randf_range(2.4, 3.2), "UI")
+			var n := 56
+			for i in n:
+				var a := TAU * i / n + randf() * 0.1
+				var speed := randf_range(90.0, 150.0)
+				_sparks.append({"p": r.p, "v": Vector2(cos(a), sin(a)) * speed, "t": 0.0, "life": randf_range(1.1, 1.7),
+					"c": r.c if i % 4 else Color.WHITE, "s": 3.0 if i % 5 == 0 else 2.0, "drag": 1.4, "fall": 45.0,
+					"twinkle": true})
+			_rockets.remove_at(k)
+	for k in range(_sparks.size() - 1, -1, -1):
+		var p: Dictionary = _sparks[k]
+		p.t += delta
+		if p.t >= p.life:
+			_sparks.remove_at(k)
+			continue
+		p.v *= maxf(0.0, 1.0 - p.drag * delta)
+		p.v.y += p.fall * delta
+		p.p += p.v * delta
+	var shake := Vector2.ZERO
+	if _shake > 0.0:
+		shake = Vector2(randi_range(-2, 2), randi_range(-1, 1)) * ceilf(_shake * 2.0)
+	_title.position = _title_at + shake
+	_fx.queue_redraw()
+
+
+func _draw_fx() -> void:
+	if not _flash.is_empty():
+		var k: float = 1.0 - _flash.t / 0.25
+		var r: float = 6.0 + 40.0 * _flash.t / 0.25
+		_fx_ring(_flash.p, r, Color(1.0, 0.97, 0.85, k))
+	for r: Dictionary in _rockets:
+		if r.wait <= 0.0:
+			_fx.draw_rect(Rect2(r.p.floor(), Vector2(2, 2)), Color("#fff3c4"))
+	for p: Dictionary in _sparks:
+		var a: float = 1.0 - p.t / p.life
+		if p.get("twinkle", false) and p.t > p.life * 0.5 and int(p.t * 20.0 + p.p.x) % 3 == 0:
+			continue
+		var c: Color = p.c
+		c.a = clampf(a * 1.5, 0.0, 1.0)
+		_fx.draw_rect(Rect2(p.p.floor(), Vector2.ONE * p.s), c)
+
+
+## A ring of whole pixels of radius `r` around `at`.
+func _fx_ring(at: Vector2, r: float, color: Color) -> void:
+	var n := maxi(12, int(r * 1.5))
+	for i in n:
+		var a := TAU * i / n
+		_fx.draw_rect(Rect2((at + Vector2(cos(a), sin(a)) * r).floor(), Vector2(2, 2)), color)
 
 
 ## The sky's moving parts, over the painted sky: stars blinking at the top as far as
