@@ -266,9 +266,13 @@ func _run() -> void:
 		_check(await _until(func() -> bool: return main.world.get_cell(one.x, one.y, one.z) != before),
 			"and the cell changes in the game's copy (%d -> %d)" % [before, main.world.get_cell(one.x, one.y, one.z)])
 		var two: Vector3i = Vector3i((at / WorldData.CELL).floor()) + Vector3i(-1, -1, 0)
+		var two_was: int = main.world.get_cell(two.x, two.y, two.z)
 		var mine = main.net.request(Protocol.DIG, [two, Vector3i.UP])
 		_check(await _until(func() -> bool: return mine.done) and mine.value is Dictionary, "the game digs through the socket")
-		_check(await _until(func() -> bool: return main.world.get_cell(two.x, two.y, two.z) != before and not main.world.drops.get(spawn_key, []).is_empty()),
+		# What `two` gives falls in its own chunk, which may not be the spawn's (the spawn
+		# can stand on a chunk's west edge); the other player's drop may be picked up.
+		var two_key := WorldData.chunk_key(two.x, two.z)
+		_check(await _until(func() -> bool: return main.world.get_cell(two.x, two.y, two.z) != two_was and not main.world.drops.get(two_key, []).is_empty()),
 			"the cell changes and what it gave lies on the ground in the copy")
 		# The other players (С3.3): Боря steps aside and shows on the game's screen, a
 		# figure with his name, where the server says; the game's own body passes the
