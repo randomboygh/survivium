@@ -13,6 +13,7 @@ const LocalHost := preload("res://src/client/net/local_host.gd")
 const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
 const RemoteClock := preload("res://src/client/net/remote_clock.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
+const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 
 
@@ -20,6 +21,24 @@ func run() -> void:
 	_test_protocol()
 	_test_requests()
 	_test_server_list()
+	_test_remote_workshop()
+
+
+## The client's copy of the workshop counts the first job down between the server's
+## events (sent only when the queue changes), so its time and bar move; it finishes
+## nothing itself and stands still while paused.
+func _test_remote_workshop() -> void:
+	var r := Crafting.get_recipe("materials:cord")
+	var copy := RemoteWorkshop.new(ServerPlayer.new(), Placed.new(), Rules.new())
+	copy.take({"queue": {"jobs": [{"recipe": "materials:cord", "left": r.time, "n": 0}], "serial": 1}, "paused": false})
+	_check(copy.queue.progress() == 0.0, "a job the server has just started shows no progress")
+	copy.update(r.time / 2.0)
+	_check(is_equal_approx(copy.queue.progress(), 0.5), "half its time later the copy shows it half done")
+	copy.update(r.time * 2.0)
+	_check(copy.queue.jobs.size() == 1 and copy.queue.progress() == 1.0, "the copy never finishes a job: the server tells")
+	copy.take({"queue": {"jobs": [{"recipe": "materials:cord", "left": r.time, "n": 1}], "serial": 2}, "paused": true})
+	copy.update(r.time / 2.0)
+	_check(copy.queue.progress() == 0.0, "paused, the copy stands still")
 
 
 ## An address typed by hand as the socket takes it, what is wrong with one, and what

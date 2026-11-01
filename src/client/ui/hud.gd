@@ -365,6 +365,8 @@ func _ready() -> void:
 	add_child(chat)
 	bag = InventoryWindow.new(game)
 	add_child(bag)
+	# However the window closes (the button, its cross, a key), the button follows it.
+	bag.visibility_changed.connect(_on_bag_shown)
 	game.character.state_changed.connect(refresh_counts)
 
 	_build_menu()
@@ -861,6 +863,10 @@ func open_prop(e: Dictionary) -> void:
 ## Opens or closes the bag over the running game.
 func toggle_bag() -> void:
 	bag.toggle()
+
+
+## The bag opened or closed: the button lit while it is open, the HUD laid out again.
+func _on_bag_shown() -> void:
 	_bag_button.modulate = UiStyle.ACCENT if bag.visible else Color.WHITE
 	_place()
 
