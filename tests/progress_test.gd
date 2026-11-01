@@ -272,6 +272,15 @@ func _craft_now(r: Dictionary, times: int) -> bool:
 			if not await _obtain(id, r.keeps[id]):
 				return false
 	await _go(camp)
+	if r.at != "" and not main.host.workshop.stations().has(r.at):
+		# Set down far round a crowded camp, the station can be out of reach of its
+		# middle (CI, 2026-11-01): the player walks over to it.
+		for e: Dictionary in main.session.placed.things:
+			if e.item == r.at:
+				print("%s is %.1f from the body at the camp: going to it" % [Items.title(r.at),
+					main.session.placed.center(e).distance_to(main.host.player.position)])
+				await _stand_by(e.cell)
+				break
 	var inv = main.host.player.inventory
 	var before: int = inv.count(r.makes)
 	var why: String = main.host.workshop.why_not(r)
