@@ -93,6 +93,21 @@ func _test_session() -> void:
 	_check(s.players == [b] and s.workshops == [shop_b], "a player removed leaves the rest")
 	s.tick(0.1)
 	_check(s.wildlife.people == [b], "the animals see only those still playing")
+	# A slow phone's long frame counts in full (in short steps of the body); a pause of
+	# seconds counts only CATCH_UP of them.
+	var fed := b.vitals.satiety
+	s.step_players(0.5)
+	var long_frame := fed - b.vitals.satiety
+	fed = b.vitals.satiety
+	for i in 10:
+		s.step_players(0.05)
+	var short_frames := fed - b.vitals.satiety
+	_check(long_frame > 0.0 and absf(long_frame - short_frames) < 1e-6,
+		"a frame of 0.5 s starves as ten of 0.05 s (%.6f vs %.6f)" % [long_frame, short_frames])
+	fed = b.vitals.satiety
+	s.step_players(30.0)
+	_check(absf((fed - b.vitals.satiety) - long_frame * Session.CATCH_UP / 0.5) < 1e-6,
+		"a pause of 30 s counts as CATCH_UP")
 	# The spring reset is the session's: the server's clock turning to spring clears what
 	# was picked; a clock restored in spring (from_dict) does not.
 	var bush := Vector3i(30, 6, 30)
