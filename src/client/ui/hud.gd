@@ -337,6 +337,9 @@ func _ready() -> void:
 	_action.custom_minimum_size = Vector2(84, 84)
 	_action.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_action.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	# The picture of what the hand holds, at twice its pixels.
+	_action.expand_icon = true
+	_action.add_theme_constant_override("icon_max_width", 24)
 	_octagon_look(_action, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
 	_action.held.connect(func(on: bool) -> void: game.controls.action_held = on)
 	add_child(_action)
@@ -770,7 +773,10 @@ func _update_hands() -> void:
 		_slots[i].selected = item != "" and c.held() == item
 		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else ""))
 	_action.text = c.action_name()
-	_action.icon = UiStyle.icon("place_dark" if c.use_of() in ["place", "plant", "sow", "prop"] else "pick_dark")
+	# The picture of what the hand in use holds, bare hands for nothing.
+	var held: String = c.held()
+	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null
+	_action.icon = pic if pic != null else ItemIcons.picture("hand")
 
 
 func refresh_hands() -> void:
@@ -1100,30 +1106,32 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## The tab on the hotbar: the bag, how many of its slots are taken (amber when all),
-## and a bar of the load against the limit (amber near it, red past it).
+## The tab on the hotbar: the bag (amber when all its slots are taken), the weight
+## carried against the limit (red past it), and a bar of that load (amber near the
+## limit, red past it). The slots taken are on its tooltip.
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
 	var w := c.size.x
-	var icon := UiStyle.icon("bag")
-	c.draw_texture(icon, Vector2(5, 4))
 	var taken := 0
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	var text := "%d/%d" % [taken, inv.slots.size()]
+	var full: bool = taken >= inv.slots.size()
+	c.draw_texture(UiStyle.icon("bag"), Vector2(5, 4), UiStyle.ACCENT if full else Color.WHITE)
+	var share: float = inv.load_share()
+	var text := "%d/%d кг" % [roundi(inv.weight()), inv.weight_limit]
 	var font := UiStyle.font()
 	var fs := UiStyle.FONT_SIZE
 	c.draw_string(font, Vector2(17, 4 + font.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
-		UiStyle.ACCENT if taken >= inv.slots.size() else UiStyle.INK)
-	var share: float = inv.load_share()
-	var bar := Rect2(61, 6, w - 66, 5)
+		UiStyle.DANGER if share > 1.0 else UiStyle.INK)
+	var x := 17.0 + ceilf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x) + 5.0
+	var bar := Rect2(x, 6, maxf(6.0, w - x - 5.0), 5)
 	c.draw_rect(bar.grow(1), UiStyle.EDGE)
 	c.draw_rect(bar, UiStyle.WELL)
 	c.draw_rect(Rect2(bar.position, Vector2(roundf(bar.size.x * clampf(share, 0.0, 1.0)), bar.size.y)),
 		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
-	c.tooltip_text = "Сумка: %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
+	c.tooltip_text = "Сумка: %.1f из %d кг, занято %d из %d ячеек" % [inv.weight(), inv.weight_limit, taken, inv.slots.size()]
 
 
 func _draw_wind() -> void:

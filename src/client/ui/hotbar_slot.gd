@@ -40,8 +40,9 @@ var selected := false:
 		selected = v
 		queue_redraw()
 
-## When set, a touch picks the slot as the finger lifts over it, not as it lands (the
-## hotbar, where a finger also drags the slots along); cancel_tap() forgets the touch.
+## When set, a touch (or a click) picks the slot as the finger lifts over it, not as it
+## lands (the hotbar and the lists that scroll, where a finger also drags the slots
+## along); cancel_tap() forgets the touch.
 var on_release := false
 
 var _box: StyleBox
@@ -76,9 +77,16 @@ func _gui_input(event: InputEvent) -> void:
 			if Rect2(Vector2.ZERO, size).has_point(event.position):
 				pressed.emit()
 		accept_event()
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.device != InputEvent.DEVICE_ID_EMULATION and Time.get_ticks_msec() - _touch_ms > 1000:
-			pressed.emit()
+			if event.pressed and not on_release:
+				pressed.emit()
+			elif event.pressed:
+				_down = -2
+			elif _down == -2:
+				_down = -1
+				if Rect2(Vector2.ZERO, size).has_point(event.position):
+					pressed.emit()
 		accept_event()
 
 

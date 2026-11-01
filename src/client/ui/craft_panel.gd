@@ -20,7 +20,7 @@ const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
-const ScrollColumn := preload("res://src/client/ui/scroll_column.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -58,7 +58,11 @@ var _take_up: Button
 var _fire: Button
 var _destroy: Button
 var _tabs: IconTabs
-var _stations: ScrollColumn
+var _stations: HBoxContainer
+## How many stations fit the line of «Сделать» (see fit_width).
+var _stations_fit := 6
+## Dragging over the cells scrolls them.
+var _drag: DragScroll
 var _scroll: ScrollContainer
 var _grid: GridContainer
 var _empty: Label
@@ -146,9 +150,12 @@ func _ready() -> void:
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_empty.custom_minimum_size.x = 160
 	cells.add_child(_empty)
-	# Past six stations the column scrolls as the hotbar does.
-	_stations = ScrollColumn.new(IconTabs.SIDE)
-	middle.add_child(_stations)
+	# The cells end where the bag's do; the column on their right is the bag's chest tabs'.
+	var right := Control.new()
+	right.custom_minimum_size.x = IconTabs.SIDE
+	middle.add_child(right)
+	_drag = DragScroll.new()
+	_scroll.add_child(_drag)
 
 	var bottom := VBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 6)
@@ -157,7 +164,7 @@ func _ready() -> void:
 	_details = _panel(bottom)
 	_details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 4)
 	_details.add_child(box)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 6)
@@ -173,22 +180,27 @@ func _ready() -> void:
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_facts)
-	# The buttons in a line on the right: «×5 | MAX», then «Сделать», the one most
-	# pressed, wide.
+	# One line: «Сделать» (the one most pressed, wide) joined to «×5 | MAX» on the left,
+	# the stations on the right (hands first, then those near, then the far ones dimmed).
 	_make = HBoxContainer.new()
 	_make.add_theme_constant_override("separation", 4)
-	_make.alignment = BoxContainer.ALIGNMENT_END
 	box.add_child(_make)
-	var more := TabRow.split([
+	var make := TabRow.split([
+		[UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)],
 		["×5", "Сделать пять", func() -> void: _start(5)],
 		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
 	])
-	for b in more.get_children():
+	make.get_child(0).custom_minimum_size = Vector2(2 * 41 - 2, 30)
+	for b in [make.get_child(1), make.get_child(2)]:
 		b.custom_minimum_size = Vector2(41, 30)
-	_make.add_child(more)
-	var one := TabRow.icon_button(UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1))
-	one.custom_minimum_size = Vector2(2 * 41 - 2, 30)
-	_make.add_child(one)
+	_make.add_child(make)
+	var gap := Control.new()
+	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_make.add_child(gap)
+	_stations = HBoxContainer.new()
+	_stations.add_theme_constant_override("separation", 2)
+	_stations.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_make.add_child(_stations)
 
 	var queue := _panel(bottom)
 	_queue_panel = queue
@@ -251,6 +263,8 @@ func set_side(on: bool, w: int) -> void:
 ## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
 	_title.custom_minimum_size.x = w - 2 * UiStyle.WELL_PAD - 30
+	# What «Сделать | ×5 | MAX» leaves of the line for the stations.
+	_stations_fit = maxi(1, (w - 2 * UiStyle.WELL_PAD - (4 * 41 - 6) - 8) / (IconTabs.SIDE + 2))
 	var room := w - 2 * UiStyle.WELL_PAD - QUEUE_INFO - QUEUE_BUTTONS - 3 * 6 - 16
 	_job_fit = maxi(1, room / (JOB_SLOT + 4))
 
@@ -305,7 +319,11 @@ func refresh_now() -> void:
 			cell.texture = ItemIcons.of_item(r.makes)
 			cell.number = "×%d" % r.count if r.count > 1 else ""
 			cell.tooltip_text = r.title
-			cell.pressed.connect(_choose.bind(r.id))
+			# Picked as the finger lifts: a finger dragged over the cells scrolls them.
+			cell.on_release = true
+			cell.pressed.connect(func() -> void:
+				if _drag.take_tap():
+					_choose(r.id))
 			_grid.add_child(cell)
 			_cells[r.id] = cell
 		var cell = _cells[r.id]
@@ -376,27 +394,28 @@ func _show_head() -> void:
 ## when near, dimmed when not.
 func _show_stations(known: Array, near: Dictionary) -> void:
 	var ids := [""]
-	for r: Dictionary in known:
-		if r.at != "" and not ids.has(r.at):
-			ids.append(r.at)
 	for id in near:
 		if not ids.has(id):
 			ids.append(id)
-	while _stations.items().size() < ids.size():
+	for r: Dictionary in known:
+		if r.at != "" and not ids.has(r.at):
+			ids.append(r.at)
+	# As many as the line has room for: the far ones go first.
+	ids.resize(mini(ids.size(), _stations_fit))
+	while _stations.get_child_count() < ids.size():
 		var chip := _chip()
 		chip.custom_minimum_size = Vector2(IconTabs.SIDE, IconTabs.SIDE - 2)
-		_stations.add_item(chip)
-	var chips := _stations.items()
+		_stations.add_child(chip)
+	var chips := _stations.get_children()
 	for i in chips.size():
 		var chip: PanelContainer = chips[i]
-		_stations.set_shown(chip, i < ids.size())
-		if i >= ids.size():
+		chip.visible = i < ids.size()
+		if not chip.visible:
 			continue
 		var id: String = ids[i]
 		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id))
 		chip.tooltip_text = "Руками" if id == "" else "%s%s" % [Items.title(id), "" if near.has(id) else ": далеко"]
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
-	_stations.refresh()
 
 
 ## The panel of the recipe chosen: what it makes and its weight, a picture for each
@@ -443,7 +462,7 @@ func _show_details(near: Dictionary) -> void:
 	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["Станок" if r.at != "" else "Где", at],
 		["Инструменты", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
 	var can := Crafting.why_not(r, inv, near) == ""
-	for b in _make.get_child(0).get_children() + [_make.get_child(1)]:
+	for b in _make.get_child(0).get_children():
 		b.disabled = not can
 
 
@@ -519,15 +538,14 @@ func shrink_list(px: float) -> void:
 
 
 ## The cells as tall as their rows, up to the limit; true when that changed the height.
-## Past ROWS rows (or the room the window has) the list is cut through the middle of its
-## last row, so the half row shows there is more below to scroll to.
+## Past ROWS whole rows (or the room the window has) the list scrolls.
 func _fit_list() -> bool:
 	var full := maxi(slot, ceili(_grid.get_combined_minimum_size().y))
 	var row := slot + 4
 	var h := float(full)
-	if full > mini(_cap, ROWS * row):
-		var rows := clampi((mini(_cap, ROWS * row + slot / 2) - slot / 2) / row, 1, ROWS)
-		h = rows * row + slot / 2
+	if full > mini(_cap, ROWS * row - 4):
+		var rows := clampi((mini(_cap, ROWS * row - 4) + 4) / row, 1, ROWS)
+		h = rows * row - 4
 	if h == _scroll.custom_minimum_size.y:
 		return false
 	_scroll.custom_minimum_size.y = h

@@ -684,31 +684,6 @@ const ICONS := {
 		".....rr.....",
 		".....rr.....",
 	],
-	"pick_dark": [
-		"...kkkkkk...",
-		"..kk.kk.kk..",
-		".kk..kk..kk.",
-		".k...kk...k.",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-	],
-	"place_dark": [
-		"....kk....",
-		"....kk....",
-		"..kkkkkk..",
-		"....kk....",
-		"....kk....",
-		"..........",
-		"kkkkkkkkkk",
-		"k........k",
-		"k........k",
-		"kkkkkkkkkk",
-	],
 }
 
 static var _font: FontFile
@@ -817,8 +792,8 @@ static func theme() -> Theme:
 	# A thin bar in a sunken groove for the lists that scroll.
 	var groove := StyleBoxFlat.new()
 	groove.bg_color = WELL
-	groove.content_margin_left = SCROLL_BAR / 2.0
-	groove.content_margin_right = SCROLL_BAR / 2.0
+	groove.content_margin_left = floorf(SCROLL_BAR / 2.0)
+	groove.content_margin_right = SCROLL_BAR - floorf(SCROLL_BAR / 2.0)
 	t.set_stylebox("scroll", "VScrollBar", groove)
 	t.set_stylebox("scroll_focus", "VScrollBar", groove)
 	for state in ["grabber", "grabber_highlight", "grabber_pressed"]:
@@ -837,7 +812,7 @@ const TIGHT := Vector4(6, 6, 6, 6)
 ## The room in a sunken well holding text (the bag's and the craft tab's panels).
 const WELL_PAD := 8
 ## The width of a scroll bar.
-const SCROLL_BAR := 6
+const SCROLL_BAR := 3
 
 
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.

@@ -2,8 +2,8 @@ extends PanelContainer
 ## The character in the inventory window (plan/design/ui.md, «Инвентарь»): the slots of
 ## what is worn where it is worn (head, body, legs, feet down the middle, the bag on the
 ## back over the right shoulder) and of the two hands at the sides, joined by faint lines
-## of a body, and beside them the skills, a bar each in a panel of their own (examples
-## until skills come). A tap on a slot says which with `picked`: a slot of
+## of a body, and beside them the bag's load (a bar, the weight and the limit inside) over
+## the skills, a bar each in a panel of their own (examples until skills come). A tap on a slot says which with `picked`: a slot of
 ## Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -45,6 +45,8 @@ var chosen := "":
 		chosen = v
 		refresh()
 var _figure: Control
+## The bag's load by the bag's slot.
+var _load: Control
 var _cells := {}
 
 
@@ -68,14 +70,23 @@ func _ready() -> void:
 		s.tooltip_text = TITLES[k]
 		_figure.add_child(s)
 		_cells[k] = s
-	# The skills in a panel of their own: a bar each, its name inside.
+	# By the bag on the back, its load: a bar of the weight against the limit, the
+	# numbers inside; under it the skills in a panel of their own, a bar each.
+	var side := VBoxContainer.new()
+	side.add_theme_constant_override("separation", 4)
+	side.custom_minimum_size.x = SIDE
+	row.add_child(side)
+	_load = Control.new()
+	_load.custom_minimum_size = Vector2(0, BAR + 4)
+	_load.draw.connect(_draw_load)
+	side.add_child(_load)
 	var skills := PanelContainer.new()
 	var well := UiStyle.well()
 	well.set_content_margin_all(3)
 	skills.add_theme_stylebox_override("panel", well)
 	skills.tooltip_text = "Навыки (пока для примера: навыков в игре ещё нет)"
-	skills.custom_minimum_size.x = SIDE
-	row.add_child(skills)
+	skills.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side.add_child(skills)
 	var bars := VBoxContainer.new()
 	bars.add_theme_constant_override("separation", 2)
 	bars.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -106,6 +117,29 @@ func _draw_bar(bar: Control, title: String, level: int, top: int) -> void:
 	var fs := UiStyle.FONT_SIZE
 	var y := floorf((r.size.y - font.get_height(fs)) * 0.5) + font.get_ascent(fs)
 	bar.draw_string(font, Vector2(4, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.INK)
+
+
+## The load bar: the weight carried against the limit, amber near it, red past it.
+func _draw_load() -> void:
+	var inv = game.character.inventory
+	var r := Rect2(Vector2.ZERO, _load.size)
+	_load.draw_rect(r, UiStyle.EDGE)
+	var inner := r.grow(-1)
+	_load.draw_rect(inner, UiStyle.WELL)
+	var share: float = inv.load_share()
+	_load.draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * clampf(share, 0.0, 1.0)), inner.size.y)),
+		Color(UiStyle.DANGER, 0.6) if share > 1.0 else (Color(UiStyle.ACCENT, 0.5) if share > 0.9 else BAR_FILL))
+	var font := UiStyle.font()
+	var fs := UiStyle.FONT_SIZE
+	var y := floorf((r.size.y - font.get_height(fs)) * 0.5) + font.get_ascent(fs)
+	var icon := ItemIcons.picture("weight")
+	var x := 3.0
+	if icon != null:
+		_load.draw_texture(icon, Vector2(x, floorf((r.size.y - icon.get_height()) * 0.5)))
+		x += icon.get_width() + 3
+	_load.draw_string(font, Vector2(x, y), "%d/%d кг" % [roundi(inv.weight()), inv.weight_limit],
+		HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.INK)
+	_load.tooltip_text = "Вес: %.1f из %d кг%s" % [inv.weight(), inv.weight_limit, " — перегруз" if share > 1.0 else ""]
 
 
 ## Lays the figure out for slots `side` UI pixels large.
@@ -165,6 +199,7 @@ func refresh() -> void:
 	_cells.back.tooltip_text = "Сумка: %d ячеек%s" % [inv.base,
 		(", %s: ещё %d" % [Items.title(inv.gear.back), Items.bag_slots(inv.gear.back)]) if inv.gear.has("back") else ""]
 	_figure.queue_redraw()
+	_load.queue_redraw()
 
 
 ## The faint body joining the slots: a neck, arms down to the hands, legs and the
