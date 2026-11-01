@@ -589,6 +589,10 @@ func _test_crafting() -> void:
 	inv.add("resources:fiber", 7)
 	knows.look_at(inv)
 	_check(knows.knows(cord) and heard == ["materials:cord"], "a recipe is learned when its materials have been in the bag")
+	_check(Workshop.learned_line(PackedStringArray(["materials:cord"])) == "Новый рецепт: Верёвка"
+		and Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"])).begins_with("Новые рецепты: Верёвка, ")
+		and Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"])).ends_with(" и ещё 2"),
+		"what one look teaches is told in one line, two names and how many more")
 	var copy := Knowledge.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
 	_check(copy.knows(cord) and copy.seen.has("resources:fiber"), "knowledge survives a save")

@@ -348,6 +348,9 @@ func _run() -> void:
 	inv.add("resources:flint", 1)
 	main.hud.toggle_bag()
 	bag.show_tab("craft")
+	# The tab's first layout is the opening's cost, not the crafting's.
+	for k in 2:
+		await process_frame
 	for id in ["materials:cord", "tools:workbench"]:
 		var r := Crafting.get_recipe(id)
 		var n: int = shop.start(r, 3 if id == "materials:cord" else 1)

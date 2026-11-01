@@ -47,7 +47,7 @@ func _init(by, things, with_rules) -> void:
 	# Methods, not lambdas: a lambda would keep the workshop, and the world through
 	# `placed`, alive by its own signals after the scene is gone.
 	who.inventory.changed.connect(_on_bag_changed)
-	knowledge.learned.connect(_on_learned)
+	knowledge.learned_all.connect(_on_learned)
 	queue.changed.connect(_on_queue_changed)
 
 
@@ -55,9 +55,22 @@ func _on_bag_changed() -> void:
 	knowledge.look_at(who.inventory)
 
 
-func _on_learned(id: String) -> void:
-	who.say("Новый рецепт: %s" % Crafting.get_recipe(id).title)
+## One line for what one look at the bag taught, however much: a cord teaches a dozen
+## recipes, and a line each would fill the screen and cost a frame.
+func _on_learned(ids: PackedStringArray) -> void:
+	who.say(learned_line(ids))
 	changed.emit()
+
+
+## "Новый рецепт: X", or for more "Новые рецепты: X, Y и ещё N".
+static func learned_line(ids: PackedStringArray) -> String:
+	if ids.size() == 1:
+		return "Новый рецепт: %s" % Crafting.get_recipe(ids[0]).title
+	var names := []
+	for i in mini(ids.size(), 2):
+		names.append(Crafting.get_recipe(ids[i]).title)
+	var line := "Новые рецепты: %s" % ", ".join(names)
+	return line + (" и ещё %d" % (ids.size() - 2) if ids.size() > 2 else "")
 
 
 func _on_queue_changed() -> void:

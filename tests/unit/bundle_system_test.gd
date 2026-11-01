@@ -142,7 +142,8 @@ func _test_play(before: Array) -> void:
 	for n in 2:
 		seeds += Crafting.outputs(scutch, n).get("_ex:flax_seed", 0)
 	_check(who.inventory.count("resources:fiber") == 4 and who.inventory.count("_ex:flax_seed") == seeds
-		and who.said.has("Новый рецепт: Ткань") and who.said.has("Новый рецепт: Ткань руками"),
+		and shop.knowledge.knows(Crafting.get_recipe("_ex:cloth")) and shop.knowledge.knows(Crafting.get_recipe("_ex:cloth_by_hand"))
+		and " | ".join(who.said).contains("Новые рецепты: "),
 		"into four fibres and the seeds that fall out, and fibre in the bag teaches both recipes of cloth: %s" % [who.said])
 	who.inventory.add("resources:flint", 2)
 	who.inventory.add("resources:branch", 8)
