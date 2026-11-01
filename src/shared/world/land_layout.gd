@@ -156,6 +156,9 @@ var beach: int
 var bank: int
 var scree: int
 var snow: int
+var peat: int
+## The grounds a biome lays by the names of its `top` and `clay_as` (see Biomes.top).
+var grounds := {}
 var ore: int
 var size_y: int
 var sea: int
@@ -869,12 +872,12 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			climate = true
 			b = Biomes.pick(t, m)
 			var rec := Biomes.of(b)
-			top = Biomes.top(b, beach, bank, snow)
+			top = Biomes.top(b, grounds)
 			if not rec.is_empty():
 				if soil[j] < _byte(rec.stone_below):
 					top = Mat.STONE
 				elif soil[j] > _byte(rec.clay_above):
-					top = bank
+					top = Biomes.clay_as(b, grounds)
 				if rec.dunes > 0.0 and kind == PLAIN and not sheer:
 					height += int(dunes[j] / 255.0 * rec.dunes)
 		# Some mountains are wooded between the foot and the rock, whatever grows below.

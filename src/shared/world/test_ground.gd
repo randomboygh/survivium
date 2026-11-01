@@ -293,7 +293,7 @@ func column(x: int, z: int) -> Array:
 	if plot >= 0:
 		var b: int = plot_biomes[plot]
 		var at := Vector2i(x, z) - plot_origin(plot)
-		var top := beach if b == Biomes.BEACH or Biomes.top(b, beach, bank) == beach else Mat.GRASS
+		var top := beach if b == Biomes.BEACH or Biomes.top(b, grounds) == beach else Mat.GRASS
 		if b == Biomes.SWAMP:
 			# Swamp water a cell deep in clay, two in a corner of the pond; its
 			# murk is in extras.

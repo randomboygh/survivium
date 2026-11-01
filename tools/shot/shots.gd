@@ -180,6 +180,7 @@ const SHOTS := {
 	"floodplain": {"time": 0.42, "season": 1, "place": "floodplain"},
 	"ice-waste": {"time": 0.42, "season": 1, "place": "ice_waste"},
 	"stony-tundra": {"time": 0.42, "season": 1, "place": "stony_tundra"},
+	"peat-bog": {"time": 0.42, "season": 1, "place": "peat_bog"},
 	"canyon": {"time": 0.42, "season": 1, "place": "canyon"},
 	# Relief 1 (new worlds): a gorge across a range, a mesa with banded walls, a canyon
 	# through mesas in steps, a stone tor; the camera tilted low to show the walls.

@@ -1,0 +1,14 @@
+# Торф: мягкий бурый грунт торфяных болот (role: peat; биомы кладут его через top или clay_as: peat).
+# Копается лопатой и даёт торф. Поля — как у материалов основы (content/core/data/materials.yaml);
+# звуки по имени, из мода «Звуки». Без бандла на его месте земля.
+- id: peat
+  title: Торф
+  role: peat
+  corners: soft
+  slope: true
+  priority: 2
+  ground: soil
+  item: peat
+  dig: shovel
+  step: step_dirt
+  hit: dig
