@@ -1,0 +1,6 @@
+# Рецепт бандла «Сальная свеча»: жир («Животные», бандл «Добыча») и волокно («Ресурсы»), руками.
+- id: tallow_candle
+  title: Сальная свеча
+  makes: tallow_candle
+  needs: {animals:fat: 1, resources:fiber: 1}
+  time: 3

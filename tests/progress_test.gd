@@ -40,6 +40,8 @@ const MAX_SWINGS := 6000
 const WANT_AHEAD := 4
 ## Trips further out when nothing wanted is near.
 const MAX_TRIPS := 16
+## Slots of the bag here (see _run).
+const BAG := 24
 
 var main: Node
 var checks := 0
@@ -91,6 +93,10 @@ func _run() -> void:
 	main.settings.set_tool_wear(false)
 	var inv = main.host.player.inventory
 	inv.slots.fill(null)
+	# A backpack's room (plan/design/character.md): with hides, bones, glue and the tools
+	# that work them the long chains no longer fit 16 slots, and what is tested here is
+	# that every recipe can be made, not how a bag is packed.
+	inv.slots.resize(BAG)
 	inv.changed.emit()
 	main.controls.hands[0] = ""
 	main.controls.hands[1] = ""
@@ -159,6 +165,8 @@ func _order() -> Array:
 			if (r.needs.keys() + r.keeps.keys()).all(func(id: String) -> bool: return have.has(id)):
 				out.append(r)
 				have[r.makes] = true
+				for e: Dictionary in r.also:
+					have[e.item] = true
 				grew = true
 	return out
 
@@ -166,7 +174,7 @@ func _order() -> Array:
 ## Whether item `id` is still wanted: it is being got now, a recipe being made or one
 ## of the next WANT_AHEAD not made yet needs it, it is a thing to set down, or it is the
 ## first tool of its kind in the bag. (Keeping what every later recipe needs fills the
-## bag's 16 slots once the chains are long; what is thrown away is got again.)
+## bag once the chains are long; what is thrown away is got again.)
 func _wanted(id: String) -> bool:
 	if seeking.has(id):
 		return true
@@ -192,10 +200,11 @@ func _wanted(id: String) -> bool:
 	var kind: String = item.get("tool", "none")
 	if kind == "none":
 		return false
-	# A sword, a knife and the like only while a recipe not made yet asks for one: the
-	# bag has room for the tools that get things from the world.
-	if not kind in ["axe", "pickaxe", "shovel", "scythe"] and not order.any(func(r: Dictionary) -> bool:
-			return not made.has(r.id) and kind in r.tools):
+	# A sword, a knife and the like only while a recipe being made or not made yet asks for
+	# one (a carcass cut up again for its hide): the bag has room for the tools that get
+	# things from the world.
+	if not kind in ["axe", "pickaxe", "shovel", "scythe"] and not (crafting + order).any(func(r: Dictionary) -> bool:
+			return (not made.has(r.id) or r in crafting) and kind in r.tools):
 		return false
 	var slots: Array = main.host.player.inventory.slots
 	var mine := slots.find(slots.filter(func(s) -> bool: return s != null and s[0] == id).front()) \
@@ -268,6 +277,17 @@ func _craft_now(r: Dictionary, times: int) -> bool:
 		main.host.workshop.update(r.time / 4.0)
 		await process_frame
 		frames += 1
+	# What found the bag full lies at the player's feet (on the client a frame or two
+	# later): by-products, or the thing itself.
+	if not r.also.is_empty() or inv.count(r.makes) - before < r.count * times:
+		seeking[r.makes] = seeking.get(r.makes, 0) + 1
+		_tidy()
+		for i in 3:
+			await process_frame
+		await _pick_up(main.player.position, 2)
+		seeking[r.makes] -= 1
+		if seeking[r.makes] == 0:
+			seeking.erase(r.makes)
 	var got: int = inv.count(r.makes) - before
 	if got < r.count * times:
 		return _fail("%s: made %d of %d (%s)" % [r.title, got, r.count * times,
@@ -300,7 +320,7 @@ func _obtain_more(id: String, n: int) -> bool:
 		# built with them), else got from the world.
 		var r := _recipe_for(id)
 		if not r.is_empty():
-			if not await _craft(r, ceili(float(n - inv.count(id)) / r.count)):
+			if not await _craft(r, ceili(float(n - inv.count(id)) / _yield(r, id))):
 				return false
 		elif raw.has(id):
 			if not await _gather(id):
@@ -309,15 +329,34 @@ func _obtain_more(id: String, n: int) -> bool:
 			return _fail("no way known to get %s" % Items.title(id))
 		tries += 1
 		if tries > 2000:
-			return _fail("%s does not come" % Items.title(id))
+			return _fail("%s does not come; the bag: %s" % [Items.title(id), inv.slots.map(func(x): return "%s×%d" % x if x != null else "")])
 	return true
 
 
+## The recipe that makes item `id`, else the one that gives the most of it on the side
+## (hide and bone from cutting up a carcass), {} for none.
 func _recipe_for(id: String) -> Dictionary:
+	var best := {}
 	for r: Dictionary in order:
 		if r.makes == id:
 			return r
-	return {}
+		if not best.is_empty() and _yield(best, id) >= _yield(r, id):
+			continue
+		for e: Dictionary in r.also:
+			if e.item == id:
+				best = r
+	return best
+
+
+## How many of item `id` recipe `r` gives a time, by-products counted at their chance.
+func _yield(r: Dictionary, id: String) -> float:
+	if r.makes == id:
+		return r.count
+	var n := 0.0
+	for e: Dictionary in r.also:
+		if e.item == id:
+			n += e.count * e.chance
+	return n
 
 
 ## Makes a tool of kind `kind` (axe, pickaxe...), the first recipe for one.
@@ -471,6 +510,10 @@ func _hunt(id: String) -> bool:
 		swings += 1
 		main.controls.act_in_front()
 		await process_frame
+		if prey.gone and prey.health > 0:
+			# It left the world unhurt to death (wandered off past the players' range).
+			prey = null
+			continue
 		if prey.gone:
 			for i in 10:
 				await _pick_up(main.player.position, 4)
@@ -478,7 +521,8 @@ func _hunt(id: String) -> bool:
 					print("hunted %s: %s" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
 					return true
 				await process_frame
-			return _fail("%s fell, but its %s is not on the ground" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
+			return _fail("%s fell, but its %s is not on the ground or the bag is full (%d slots free)" % [AiRules.SPECIES[prey.kind].title, Items.title(id),
+				inv.slots.count(null)])
 	return _fail("%s cannot be hunted down: %s at %s, the player at %s" % [Items.title(id), prey.kind if prey != null else "none",
 		prey.pos if prey != null else Vector3.ZERO, main.host.player.position])
 

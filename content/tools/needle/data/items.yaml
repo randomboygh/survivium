@@ -1,0 +1,12 @@
+# Предметы бандла «Игла» мода «Инструменты и крафт»: класс needle. Игла в мире ничего не делает, а в
+# сумке шьёт кожу (рецепты просят `tools: [needle]` и стирают её на `wear`). Поля — как у ножей
+# (content/tools/knife/data/items.yaml).
+- id: bone_needle
+  title: Костяная игла
+  description: Шьёт кожу. Лежит в сумке, пока шьёшь.
+  weight: 0.02
+  stack: 1
+  model: bone_needle
+  icon: bone_needle
+  tool: needle
+  durability: 40

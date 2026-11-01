@@ -11,8 +11,8 @@
 ```
 content/tools/
   mod.yaml                      id: tools, название, версия, api
-  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ bow/ scythe/ torch/ tar_torch/ lantern/ workbench/ kiln/ forge/ loom/ potters_wheel/
-  bloomery/ anvil/ chest/
+  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ torch/ tar_torch/ lantern/
+  candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/
                                 бандл на вещь:
     bundle.yaml                 название
     data/items.yaml             предмет(ы): инструмент (tool, power, swing, reach, durability, repair) или станок (prop)
@@ -45,7 +45,8 @@ content/tools/
 - Движок знает работу в мире пяти классов `tool` (axe, pickaxe, shovel, sword, scythe: что чем копают и
   рубят — `src/shared/content/tools.gd`); любой другой класс (hammer) — для рецептов и станков, в мире
   он как руки. Нож (knife) в мире тоже как руки, но, как и меч, сначала бьёт зверя перед собой (`Tools.hunts`; другие руки — только зверя вплотную),
-  а в сумке разделывает туши (рецепт «Разделать тушу» мода «Животные» просит класс knife). Удар по зверю
+  а в сумке разделывает туши (рецепт «Разделать тушу» мода «Животные» просит класс knife). Игла (needle) в мире
+  ничего не делает, в сумке шьёт кожу (кожаная праща). Удар по зверю
   снимает с него `power` инструмента (руки — 1). Копьё (spear), праща (sling) и лук (bow) с `range` (в клетках)
   стреляют: кнопка действия — туда, куда смотрит персонаж, касание земли — туда, где коснулись; `ammo` — чем
   (по одному из сумки за выстрел; без него бросают само оружие). Выпущенное ложится там, где упало. Класс вещи `prop` — тоже открытое слово (workbench, kiln, forge, chest), а что вещь делает,

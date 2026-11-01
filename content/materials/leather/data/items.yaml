@@ -1,0 +1,10 @@
+# Кожа: шкуру с жиром выделывают на сушилке «Инструментов». Идёт на кожаную пращу и составной лук,
+# потом — на одежду. Поля — как у предметов основы (content/core/data/items.yaml).
+- id: leather
+  title: Кожа
+  description: Выделанная шкура. Из неё шьют иглой.
+  era: core:bone_leather
+  weight: 0.5
+  stack: 20
+  model: leather
+  icon: leather

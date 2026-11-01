@@ -1,0 +1,9 @@
+# Костный клей: кости вываривают в горшке на костре. Склеивает составной лук. Поля — как у предметов
+# основы (content/core/data/items.yaml).
+- id: bone_glue
+  title: Костный клей
+  description: Вываренный из костей клей. Склеивает составной лук.
+  weight: 0.1
+  stack: 20
+  model: bone_glue
+  icon: bone_glue

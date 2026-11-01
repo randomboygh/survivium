@@ -332,6 +332,8 @@ const SHAPES := {
 const RECOLOURED := {
 	"stone_sword": ["sword", {"P": "A", "p": "a"}],
 	"copper_knife": ["flint_knife", {"A": "N", "a": "n"}],
+	"leather_sling": ["cord_sling", {"r": "n", "R": "o"}],
+	"composite_bow": ["wooden_bow", {"w": "k", "g": "P"}],
 	"bronze_spear": ["flint_spear", {"A": "Z", "a": "z"}],
 	"iron_spear": ["flint_spear", {"A": "J", "a": "j"}],
 	"bronze_knife": ["flint_knife", {"A": "Z", "a": "z"}],
