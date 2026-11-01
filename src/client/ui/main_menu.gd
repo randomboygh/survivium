@@ -25,12 +25,14 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
-const WorldSetup := preload("res://src/client/ui/world_setup.gd")
-const TestGround := preload("res://src/shared/world/test_ground.gd")
-const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
-const WorldList := preload("res://src/client/ui/world_list.gd")
-const JoinScreen := preload("res://src/client/ui/join_screen.gd")
-const HostScreen := preload("res://src/client/ui/host_screen.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
+## The menu's own screens are compiled when first opened, not at the game's start
+## (StartTimes: compiling every script was most of the start).
+const WORLD_SETUP := "res://src/client/ui/world_setup.gd"
+const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
+const WORLD_LIST := "res://src/client/ui/world_list.gd"
+const JOIN_SCREEN := "res://src/client/ui/join_screen.gd"
+const HOST_SCREEN := "res://src/client/ui/host_screen.gd"
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
@@ -199,7 +201,8 @@ var _note: Label
 var _buttons := {}
 var _order := []
 var _focus := 0
-var _settings: SettingsMenu
+## The settings, made when first opened (settings_menu).
+var _settings: Control = null
 ## The screen open over the menu: WorldSetup, WorldList or JoinScreen.
 var _setup: Control
 ## "Играть" was pressed before the world was built: go in once it is.
@@ -298,11 +301,6 @@ func _ready() -> void:
 	_fill_page("top")
 
 	_build_loading()
-	_settings = SettingsMenu.new(game)
-	_settings.closed.connect(func() -> void:
-		_column.visible = true
-		_fit())
-	_screen.add_child(_settings)
 	visible = false
 	_screen.visible = false
 
@@ -606,13 +604,13 @@ func open() -> void:
 	_screen.visible = true
 	_column.visible = true
 	_want_play = false
-	_seed_label.text = "тестовый мир" if game.world_seed == TestGround.SEED else "мир · зерно %d" % game.world_seed
+	_seed_label.text = "тестовый мир" if game.world_seed == WorldStore.TEST_SEED else "мир · зерно %d" % game.world_seed
 	if game.save.has_save:
 		_seed_label.text += " · день %d" % game.clock.day
-	_map_seed.text = "тестовый мир" if game.world_seed == TestGround.SEED else "зерно %d" % game.world_seed
+	_map_seed.text = "тестовый мир" if game.world_seed == WorldStore.TEST_SEED else "зерно %d" % game.world_seed
 	if game.join_url != "":
-		_seed_label.text = "сетевая игра · " + JoinScreen._short(game.join_url)
-		_map_seed.text = JoinScreen._short(game.join_url)
+		_seed_label.text = "сетевая игра · " + load(JOIN_SCREEN)._short(game.join_url)
+		_map_seed.text = load(JOIN_SCREEN)._short(game.join_url)
 	_strip.visible = not _entered
 	game.hud.visible = false
 	_fill_page("top")
@@ -632,7 +630,8 @@ func close() -> void:
 	if _setup != null:
 		_setup.queue_free()
 		_setup = null
-	_settings.visible = false
+	if _settings != null:
+		_settings.visible = false
 	game.hud.visible = true
 	visible = _backdrop.visible
 	closed.emit()
@@ -669,7 +668,7 @@ func new_world() -> void:
 
 func _new_world() -> void:
 	_column.visible = false
-	_setup = WorldSetup.new(game)
+	_setup = load(WORLD_SETUP).new(game)
 	_screen.add_child(_setup)
 	_setup.cancelled.connect(_close_setup)
 	_setup.done.connect(func() -> void:
@@ -691,7 +690,7 @@ func _go_to(seed_value: int, options: Dictionary) -> void:
 
 func _open_worlds() -> void:
 	_column.visible = false
-	_setup = WorldList.new(game)
+	_setup = load(WORLD_LIST).new(game)
 	_screen.add_child(_setup)
 	_setup.cancelled.connect(_close_setup)
 	_setup.chosen.connect(func(seed_value: int, options: Dictionary) -> void:
@@ -706,7 +705,7 @@ func open_join(url: String, error := "") -> void:
 		_setup.queue_free()
 	_page = "multi"
 	_column.visible = false
-	_setup = JoinScreen.new(game, url, error)
+	_setup = load(JOIN_SCREEN).new(game, url, error)
 	_screen.add_child(_setup)
 	_setup.cancelled.connect(func() -> void:
 		_close_setup()
@@ -721,7 +720,7 @@ func open_host() -> void:
 		_setup.queue_free()
 	_page = "multi"
 	_column.visible = false
-	_setup = HostScreen.new(game)
+	_setup = load(HOST_SCREEN).new(game)
 	_screen.add_child(_setup)
 	_setup.cancelled.connect(func() -> void:
 		_close_setup()
@@ -750,8 +749,19 @@ func _close_setup() -> void:
 
 func _open_settings() -> void:
 	_column.visible = false
-	_settings.open("settings")
+	settings_menu().open("settings")
 	_settings.fit(_screen.size)
+
+
+## The settings over the menu, made the first time they are asked for.
+func settings_menu() -> Control:
+	if _settings == null:
+		_settings = load(SETTINGS_MENU).new(game)
+		_settings.closed.connect(func() -> void:
+			_column.visible = true
+			_fit())
+		_screen.add_child(_settings)
+	return _settings
 
 
 func _process(delta: float) -> void:
@@ -861,7 +871,7 @@ func _fit() -> void:
 	else:
 		var low := 0.5 if _map_room else 0.55
 		_column.position = Vector2((size.x - c.x) * 0.5, maxf(MARGIN, (size.y - c.y) * low)).floor()
-	if _settings.visible:
+	if _settings != null and _settings.visible:
 		_settings.fit(size)
 	_screen.queue_redraw()
 

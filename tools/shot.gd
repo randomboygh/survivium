@@ -355,7 +355,7 @@ func _run() -> void:
 			await process_frame
 		if shot.get("test", false):
 			main.hud.toggle_test()
-			main.hud._settings.show_section(shot.get("section", "world"))
+			main.hud.settings_menu().show_section(shot.get("section", "world"))
 		if shot.get("freezes", false):
 			# A few made-up freezes of every band for the log's window.
 			main.hud.perf.freeze_log = [
@@ -374,10 +374,10 @@ func _run() -> void:
 				main.hud.open_settings(shot.page)
 				# The window keeps the section shown last: an earlier shot may have left another.
 				if shot.page in ["settings", "test"]:
-					main.hud._settings.show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
+					main.hud.settings_menu().show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
 				# Buttons of the window tapped once, by their vars (a two-tap one turns red).
 				for b: String in shot.get("press", []):
-					(main.hud._settings.get(b) as Button).pressed.emit()
+					(main.hud.settings_menu().get(b) as Button).pressed.emit()
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -474,7 +474,7 @@ func _run() -> void:
 		if shot.get("setup", false):
 			# The bundles switched off for new worlds, for this shot only (not saved).
 			main.settings.values.world_mods_off = shot.get("mods_off", mods_off)
-			setup = main.WorldSetup.new(main)
+			setup = load("res://src/client/ui/world_setup.gd").new(main)
 			main.hud.add_child(setup)
 			# A page of the screen other than the first ("mods").
 			if shot.setup is String:

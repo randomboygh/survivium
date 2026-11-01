@@ -20,7 +20,8 @@ const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const PerfPanel := preload("res://src/client/ui/perf_panel.gd")
 const TouchStick := preload("res://src/client/input/touch_stick.gd")
 const TouchButton := preload("res://src/client/input/touch_button.gd")
-const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
+## The settings and the playtest page, compiled and made when first opened (settings_menu).
+const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const MapView := preload("res://src/client/ui/map_view.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
@@ -149,7 +150,7 @@ var _tip_label: Label
 var _loading: PanelContainer
 var _loading_label: Label
 var _menu: PanelContainer
-var _settings: SettingsMenu
+var _settings: Control = null
 ## Dims the game behind the menu and keeps taps from reaching it.
 var _shade: ColorRect
 var _menu_buttons := {}
@@ -512,7 +513,8 @@ func _place() -> void:
 	_loading.position = ((size - _loading.size) * 0.5).floor()
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
-	_settings.fit(size)
+	if _settings != null:
+		_settings.fit(size)
 	bag.fit(size)
 	map_view.fit(size, touch)
 	refresh_counts()
@@ -848,7 +850,7 @@ func toggle_stats() -> void:
 
 
 func toggle_menu() -> void:
-	if _settings.visible:
+	if _settings != null and _settings.visible:
 		_settings.close()
 		return
 	_menu.visible = not _menu.visible
@@ -867,14 +869,14 @@ func toggle_menu() -> void:
 ## Opens the settings or the playtest page in place of the pause menu.
 func open_settings(page: String) -> void:
 	_menu.visible = false
-	_settings.move_to_front()
+	settings_menu().move_to_front()
 	_settings.open(page)
 	_settings.fit(size)
 
 
 ## The flask button: the playtest page over the running game, without the pause.
 func toggle_test() -> void:
-	if _settings.visible and _settings.page == "test":
+	if _settings != null and _settings.visible and _settings.page == "test":
 		_settings.close()
 	else:
 		open_settings("test")
@@ -913,12 +915,18 @@ func _build_menu() -> void:
 	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
 	_menu_buttons["server"] = _add_menu_button(box, "Сервер", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
-	_settings = SettingsMenu.new(game)
-	_settings.closed.connect(func() -> void:
-		if get_tree().paused:
-			_menu.visible = true
-			_update_menu())
-	add_child(_settings)
+
+
+## The settings and the playtest page, made the first time they are opened.
+func settings_menu() -> Control:
+	if _settings == null:
+		_settings = load(SETTINGS_MENU).new(game)
+		_settings.closed.connect(func() -> void:
+			if get_tree().paused:
+				_menu.visible = true
+				_update_menu())
+		add_child(_settings)
+	return _settings
 
 
 func _update_menu() -> void:
@@ -952,7 +960,7 @@ func debug_rects() -> Dictionary:
 		var c: Control = items[k]
 		out[k] = c.get_global_rect() if c.is_visible_in_tree() else Rect2()
 	# The "next" arrow of the season row while the playtest page is open.
-	out["season"] = _settings.debug_rects().get("Сезон", Rect2()) if _settings.visible else Rect2()
+	out["season"] = _settings.debug_rects().get("Сезон", Rect2()) if _settings != null and _settings.visible else Rect2()
 	return out
 
 

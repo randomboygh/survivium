@@ -33,7 +33,8 @@ const Rules := preload("res://src/shared/game/rules.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
-const TestGround := preload("res://src/shared/world/test_ground.gd")
+## The test world's plan, compiled only for the test world (WorldStore.TEST_SEED).
+const TEST_GROUND := "res://src/shared/world/test_ground.gd"
 const Mods := preload("res://src/shared/content/mods.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 
@@ -173,7 +174,7 @@ func _open_world() -> bool:
 	for problem in Mods.activate(mods):
 		say("контент: " + str(problem))
 	var t0 := Time.get_ticks_msec()
-	var maker: GDScript = TestGround if seed_value == TestGround.SEED else WorldGen
+	var maker: GDScript = load(TEST_GROUND) if seed_value == WorldStore.TEST_SEED else WorldGen
 	var gen = maker.new(seed_value, 48, settings)
 	gen.saved = store
 	if had_save:
