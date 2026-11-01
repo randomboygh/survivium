@@ -17,7 +17,6 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
-const TestGround := preload("res://src/shared/world/test_ground.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 
@@ -98,7 +97,7 @@ func running() -> bool:
 func _build_setup() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load("user://server.cfg")
-	_worlds = WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed != TestGround.SEED)
+	_worlds = WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed != WorldStore.TEST_SEED)
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i

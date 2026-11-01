@@ -9,7 +9,6 @@ extends RefCounted
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
-const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
@@ -559,19 +558,19 @@ func give_tools() -> void:
 
 
 func in_test_world() -> bool:
-	return game.world_seed == TestGround.SEED
+	return game.world_seed == WorldStore.TEST_SEED
 
 
 ## Saves the world and goes over to the test world, or from it back to the world
 ## saved last before it (the one set up on the first screen when there is none).
 func switch_test_world() -> void:
-	var seed_value := TestGround.SEED
+	var seed_value := WorldStore.TEST_SEED
 	var options: Dictionary = game.world_options
 	if in_test_world():
 		seed_value = values.world_seed
 		options = world_options()
 		for w: Dictionary in WorldStore.list_worlds():
-			if w.seed != TestGround.SEED:
+			if w.seed != WorldStore.TEST_SEED:
 				seed_value = w.seed
 				options = w.settings
 				break
@@ -585,10 +584,10 @@ func reset_test_world() -> void:
 	if in_test_world() and game.save.store != null:
 		game.save.active = false
 		game.save.store.erase()
-		WorldStore.write_current(TestGround.SEED, game.world_options)
+		WorldStore.write_current(WorldStore.TEST_SEED, game.world_options)
 		game.restart()
 	else:
-		WorldStore.new(WorldStore.world_dir(TestGround.SEED, {})).erase()
+		WorldStore.new(WorldStore.world_dir(WorldStore.TEST_SEED, {})).erase()
 
 
 ## Forgets everything the game keeps on this device (the worlds with their maps and

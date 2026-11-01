@@ -17,7 +17,8 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const PlayerLink := preload("res://src/server/player_link.gd")
 const Runner := preload("res://src/server/runner.gd")
 const Connection := preload("res://src/client/net/connection.gd")
-const ServerMain := preload("res://src/server/server_main.gd")
+## The server made from the menu: compiled only when one is made.
+const SERVER_MAIN := "res://src/server/server_main.gd"
 
 var session
 var link: PlayerLink
@@ -43,7 +44,7 @@ func _init(s, tree_root: Node = null) -> void:
 ## start; its settings are written to the server's settings file, so a server from the
 ## terminal starts the same.
 static func host(values: Dictionary, tree_root: Node) -> Node:
-	var node: Node = ServerMain.new()
+	var node: Node = load(SERVER_MAIN).new()
 	node.name = "HostedServer"
 	node.hosted = true
 	node.config.read()

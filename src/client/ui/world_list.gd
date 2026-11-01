@@ -11,7 +11,6 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
-const TestGround := preload("res://src/shared/world/test_ground.gd")
 
 const ROW_WIDTH := 170
 const ROW_H := 36
@@ -84,7 +83,7 @@ func _fill() -> void:
 		_rows.add_child(row)
 		var pick := Button.new()
 		pick.text = "зерно %d\n%s · день %d" % [w.seed, _kind(w.settings), w.day]
-		if w.seed == TestGround.SEED:
+		if w.seed == WorldStore.TEST_SEED:
 			pick.text = "Тестовый мир\nплощадки · день %d" % w.day
 		pick.tooltip_text = "Сохранён %s, в игре %d мин" % [w.saved.replace("T", " "), int(w.played / 60.0)]
 		if not w.mods.is_empty():
@@ -106,7 +105,7 @@ func _fill() -> void:
 		var del := Button.new()
 		del.focus_mode = Control.FOCUS_NONE
 		del.custom_minimum_size = Vector2(DELETE_WIDTH, ROW_H)
-		if w.seed == TestGround.SEED:
+		if w.seed == WorldStore.TEST_SEED:
 			del.text = "Сбросить"
 			del.tooltip_text = "Вернуть тестовый мир к началу"
 			del.pressed.connect(func() -> void: _reset(del))

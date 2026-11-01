@@ -12,7 +12,9 @@ extends RefCounted
 ## (src/server/server_store.gd: players/<hash of the key>.json). current.json in the
 ## root names the world the game starts with.
 
-const TestGround := preload("res://src/shared/world/test_ground.gd")
+## The test world's seed (TestGround.SEED): named here, so what only asks whether a
+## world is the test one does not compile the test ground's plan.
+const TEST_SEED := -1
 
 const FORMAT := 1
 const WORLD := "world.json"
@@ -52,7 +54,7 @@ func _init(path: String) -> void:
 ## settings have); the test
 ## world is "test".
 static func world_dir(seed_value: int, options: Dictionary) -> String:
-	if seed_value == TestGround.SEED:
+	if seed_value == TEST_SEED:
 		return root + "/test"
 	var digits := ""
 	for k in ["size", "water", "mountains", "rivers", "biomes"]:

@@ -52,7 +52,7 @@ extends "res://src/shared/world/world_gen.gd"
 ## by the noises.
 
 ## The seed of the test world; a rolled seed is never negative.
-const SEED := -1
+const SEED := preload("res://src/shared/world/world_store.gd").TEST_SEED
 const Grass := preload("res://src/shared/world/grass.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Plants := preload("res://src/shared/content/plants.gd")

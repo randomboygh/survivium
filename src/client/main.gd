@@ -27,7 +27,8 @@ extends Node
 const Mat := preload("res://src/shared/content/materials.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
-const TestGround := preload("res://src/shared/world/test_ground.gd")
+## The test world's plan, compiled only for the test world (WorldStore.TEST_SEED).
+const TEST_GROUND := "res://src/shared/world/test_ground.gd"
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
@@ -73,7 +74,6 @@ const FireShadowsScript := preload("res://src/client/view/fire_shadows.gd")
 const SunRaysScript := preload("res://src/client/view/sun_rays.gd")
 const TracksScript := preload("res://src/client/world/tracks.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
-const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
@@ -485,7 +485,7 @@ func start_world() -> void:
 	await _loading_stage("Материки и реки…")
 	var t0 := Time.get_ticks_msec()
 	# The test world is laid out by hand (see TestGround), every other one from noise.
-	var maker: GDScript = TestGround if world_seed == TestGround.SEED else WorldGen
+	var maker: GDScript = load(TEST_GROUND) if world_seed == WorldStore.TEST_SEED else WorldGen
 	gen = maker.new(world_seed, 48, world_options)
 	gen.saved = save.store
 	if not save.saved_materials.is_empty():
