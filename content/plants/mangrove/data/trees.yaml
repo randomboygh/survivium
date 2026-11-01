@@ -1,0 +1,21 @@
+# Мангр: дерево тропических болот — невысокий кривой ствол на корнях-ходулях, которые дугой уходят
+# в ил, и густая округлая крона (поля — как у дуба, content/plants/oak/data/trees.yaml; stilts — на
+# сколько пикселей над землёй поднимаются корни). Листву не сбрасывает.
+- id: mangrove
+  title: Мангр
+  shape: round
+  leaf: soft
+  leaves: broad
+  trunk: [3, 4]
+  girth: [8, 12]
+  taper: 0.4
+  crook: 3
+  roots: [4, 6]
+  stilts: 7
+  crown: [1.9, 1.0, 1.6]
+  tints: ["#4b7a3c", "#537f37", "#46733f"]
+  bare: 0.0
+  log: resources:log
+  twig: resources:branch
+  hits: 4
+  twigs: 4

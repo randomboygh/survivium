@@ -152,6 +152,10 @@ static func drop(model: String) -> VoxelModel:
 			return _moss()
 		"bandage":
 			return _bandage()
+		"coconut":
+			return _coconut()
+		"banana":
+			return _banana()
 		"raspberry":
 			return _berries(Color(0.78, 0.13, 0.2))
 		"blueberry":
@@ -803,6 +807,32 @@ static func _berries(c: Color) -> VoxelModel:
 	for p in [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 1), Vector3i(1, 0, -1), Vector3i(0, 1, 0), Vector3i(-1, 0, -1)]:
 		m.set_voxel(p, c * (1.2 if p.y > 0 else 1.0))
 	m.set_voxel(Vector3i(2, 0, 1), Color(0.3, 0.46, 0.22), true)
+	return m
+
+
+## A coconut: a brown husk, a little lighter on top, with fibres in a darker check.
+static func _coconut() -> VoxelModel:
+	var m := VoxelModel.new()
+	for y in 3:
+		for z in range(-1, 2):
+			for x in range(-1, 2):
+				if y == 2 and absi(x) + absi(z) > 1:
+					continue
+				var c := Color(0.42, 0.29, 0.17) * (1.15 if y == 2 else (0.85 if (x + z + y) % 2 == 0 else 1.0))
+				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A banana lying on its side: a yellow crescent with dark tips.
+static func _banana() -> VoxelModel:
+	var m := VoxelModel.new()
+	var yellow := Color(0.9, 0.78, 0.26)
+	for p in [Vector3i(-3, 0, -1), Vector3i(-2, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1), Vector3i(2, 0, 0), Vector3i(3, 0, -1)]:
+		m.set_voxel(p, yellow * (0.9 if p.x % 2 == 0 else 1.0))
+		if absi(p.x) < 3:
+			m.set_voxel(p + Vector3i(0, 1, 0), yellow * 1.08)
+	m.set_voxel(Vector3i(-4, 0, -1), Color(0.3, 0.24, 0.12))
+	m.set_voxel(Vector3i(4, 0, -2), Color(0.3, 0.24, 0.12))
 	return m
 
 

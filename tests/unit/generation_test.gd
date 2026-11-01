@@ -11,6 +11,7 @@ func run() -> void:
 	_test_bushes()
 	_test_custom_plants()
 	_test_mountain_zone()
+	_test_tropics()
 
 
 func _test_generation() -> void:
@@ -489,3 +490,34 @@ func _test_mountain_zone() -> void:
 	_check(found.get(Biomes.GLACIER, 0) > 0 and found.get(Biomes.ALPINE, 0) > 0 and found.old == 0
 		and tops.keys().all(func(m: int) -> bool: return m == Mat.SNOW or m == Mat.ICE),
 		"climate 1 lays glaciers (%d) under snow and ice and alpine meadows (%d), climate 0 neither" % [found.get(Biomes.GLACIER, 0), found.get(Biomes.ALPINE, 0)])
+
+
+## With climate 1 warm beaches are tropical beaches and hot swamps mangroves, with palms on
+## the sand and mangroves in the mud; climate 0 keeps the plain beach and swamp.
+func _test_tropics() -> void:
+	var gen := WorldGen.new(20261018, 48, {"climate": 1})
+	var old := WorldGen.new(20261018, 48, {})
+	var beach := Biomes.named("tropical_beach")
+	var mangrove := Biomes.named("mangrove")
+	var found := {}
+	for row in 80:
+		var lay := gen.lay_out(-8000, -8000 + row * 200, 80, 1, 200)
+		var was := old.lay_out(-8000, -8000 + row * 200, 80, 1, 200)
+		for i in 80:
+			found[lay.biome[i]] = found.get(lay.biome[i], 0) + 1
+			found["old"] = found.get("old", 0) + int(was.biome[i] == beach or was.biome[i] == mangrove)
+	_check(found.get(beach, 0) > 0 and found.get(mangrove, 0) > 0 and found.get(Biomes.named("jungle"), 0) > 0 and found.old == 0,
+		"climate 1 lays tropical beaches (%d), mangroves (%d) and jungle (%d), climate 0 no tropical relief" % [found.get(beach, 0), found.get(mangrove, 0), found.get(Biomes.named("jungle"), 0)])
+	# Palms grow on the sand of a tropical beach: the chunks round one plant some there.
+	var palm := Trees.index("plants:palm")
+	var p: Vector2i = gen.find_place("tropical_beach", Vector2i(gen.spawn_guess.x, gen.spawn_guess.z))
+	var on_sand := 0
+	for dz in range(-2, 3):
+		for dx in range(-2, 3):
+			var key := Vector2i(floori(p.x / float(WorldGen.CHUNK)) + dx, floori(p.y / float(WorldGen.CHUNK)) + dz)
+			var lay := gen.lay_out(key.x * WorldGen.CHUNK - WorldGen.MARGIN, key.y * WorldGen.CHUNK - WorldGen.MARGIN, WorldGen.WINDOW, WorldGen.WINDOW)
+			for t: Array in gen._tree_candidates(key, lay):
+				var j: int = (t[1] - lay.z0) * WorldGen.WINDOW + t[0] - lay.x0
+				if t[2] == palm and lay.tops[j] == gen.beach:
+					on_sand += 1
+	_check(on_sand > 0, "palms grow on the sand of a tropical beach (%d round %s)" % [on_sand, p])

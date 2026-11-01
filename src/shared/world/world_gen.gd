@@ -482,9 +482,9 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var tops: PackedByteArray = lay.tops
 	var water: PackedInt32Array = lay.water
 	var flags: PackedByteArray = lay.flags
-	if tops[j] != Mat.GRASS or water[j] >= 0 or flags[j] & (SHEER_TOP | ENTRANCE) or lay.heights[j] >= size_y - 8:
-		return -1
 	var b: int = lay.biome[j]
+	if (tops[j] != Mat.GRASS and not tops[j] in Biomes.tree_grounds(b, grounds)) or water[j] >= 0 or flags[j] & (SHEER_TOP | ENTRANCE) or lay.heights[j] >= size_y - 8:
+		return -1
 	var chance := Biomes.tree_chance(b)
 	var grids: Array = lay.grids
 	var forest: PackedByteArray = grids[8]

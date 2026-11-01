@@ -167,7 +167,7 @@ func place(w, what: String) -> Vector3:
 	if what == "mountain-cave":
 		p = mountain_cave(p)
 	elif not what in ["lake", "river", "canyon", "gorge",
-			"mesa", "tor", "cliffs", "beach", "waterfall", "rapids", "delta", "pit", "adit", "peak", "mountain"]:
+			"mesa", "tor", "cliffs", "beach", "tropical_beach", "waterfall", "rapids", "delta", "pit", "adit", "peak", "mountain"]:
 		p = inland(what, near, p)
 	main.player.position = Vector3(p.x + 0.5, w.size_y - 1, p.y + 0.5) * CELL
 	main.chunks.build_around()
@@ -180,7 +180,7 @@ func place(w, what: String) -> Vector3:
 			return dry_near(w, p, 24)
 		"cliffs":
 			return coast(w, p, seaward(w, p), 3.0)
-		"beach":
+		"beach", "tropical_beach":
 			return coast(w, p, seaward(w, p), 4.0)
 	return dry_near(w, p, 20)
 

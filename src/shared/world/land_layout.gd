@@ -859,11 +859,13 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			b = _biome(Biomes.PLATEAU)
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
 		elif height <= sea + 2 and wet <= 1:
-			b = _biome(Biomes.BEACH)
+			# With climate 1 the beach of a warm coast may be a biome of its own (palms).
+			b = _biome(Biomes.relief(Biomes.BEACH, t, m) if zoned else Biomes.BEACH)
 			top = beach if soil[j] < soil_t else bank
 		elif kind == PLAIN and height <= sea + 4 and swamp[j] > swamp_t and wet <= 4 and t > 0.3:
-			# A swamp: flat wet ground a level or two above the sea, with pools.
-			b = _biome(Biomes.SWAMP)
+			# A swamp: flat wet ground a level or two above the sea, with pools (with
+			# climate 1 a hot one may be a biome of its own: mangroves).
+			b = _biome(Biomes.relief(Biomes.SWAMP, t, m) if zoned else Biomes.SWAMP)
 			height = sea + 1 + int(soil[j] > _byte(0.4))
 			var p := pools[j]
 			if p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t):
@@ -1136,13 +1138,13 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 		"tor":
 			return lay.cut[j] == TOR
 		"swamp":
-			return b == Biomes.SWAMP
+			return b == Biomes.SWAMP or (b >= 0 and Biomes.where(b) == "swamp")
 		"plateau":
 			return b == Biomes.PLATEAU
 		"cliffs":
 			return kind == CLIFFS and lay.heights[j] >= sea + 3 and lay.coast[j] < 6.0
 		"beach":
-			return b == Biomes.BEACH and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
+			return (b == Biomes.BEACH or (b >= 0 and Biomes.where(b) == "beach")) and feature == DRY and lay.coast[j] < 8.0 and kind == PLAIN
 		"mountain":
 			return b == Biomes.ROCK and kind == MOUNTAIN
 		"peak":

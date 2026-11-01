@@ -1,0 +1,23 @@
+# Пальма: дерево тропического берега и джунглей — высокий тонкий изогнутый ствол без веток и на
+# его макушке пучок длинных перистых листьев, которые дугой расходятся и свисают (поля — как у дуба,
+# content/plants/oak/data/trees.yaml; у формы palm crown — [длина листа в точках кроны, меньше и
+# больше всего листьев]). Листву не сбрасывает; срубленная роняет кокосы, осенью их собирают руками.
+- id: palm
+  title: Пальма
+  shape: palm
+  leaf: pointed
+  leaves: broad
+  trunk: [7, 10]
+  girth: [6, 8]
+  taper: 0.12
+  crook: 4
+  roots: [0, 1]
+  crown: [3, 6, 8]
+  tints: ["#6e9a3a", "#78a242", "#679236"]
+  bare: 0.0
+  seed: coconut
+  log: resources:log
+  twig: resources:branch
+  hits: 4
+  twigs: 2
+  seeds: 3

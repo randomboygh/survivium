@@ -23,7 +23,7 @@ static func trunk_at(w, x: int, y: int, z: int) -> bool:
 ## girth and crook (see Trees.trunk_box) with its corners cut, so the light gives it a
 ## lit and a shaded side from every side, with a dark outline where it turns away. Its sides slant
 ## from cell to cell as it thins and bends; at the foot it flares out and sends out a
-## few roots.
+## few roots (on stilts for a species with `stilts`).
 static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, base: Vector3, m: int) -> void:
 	var col := Vector2i(x, z)
 	var species: int = w.trees.get(col, -1)
@@ -74,6 +74,17 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 		var at := 2 + posmod(h >> 1, maxi(1, across - 4 - wide))
 		# A conifer's roots spread farther and stand taller round its broad foot.
 		var big := 3 if s.tiers else 0
+		var stilts: int = s.stilts
+		if stilts > 0:
+			# A mangrove's roots stand on stilts: an arm out from the trunk `stilts`
+			# texels up and a leg down from its end into the mud.
+			var reach := 5 + posmod(h >> 5, 3)
+			var high := clampi(stilts - (h >> 8 & 1), 3, 8)
+			var leg := _root(foot, side, reach - 2, reach, at, 2)
+			var arm := _root(foot, side, -1, reach, at, 2)
+			_bark(buf, base, leg, leg, 0, high, CAP_NONE, false, m, color)
+			_bark(buf, base, arm, arm, high - 2, high, CAP_BARK, true, m, color)
+			continue
 		var root := _root(foot, side, -1, 3 + big + posmod(h >> 5, 3), at, wide + big / 2)
 		_bark(buf, base, root, root, 0, 1 + (h >> 8 & 1) + big, CAP_BARK, false, m, color)
 

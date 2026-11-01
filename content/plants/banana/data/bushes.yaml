@@ -1,0 +1,15 @@
+# Банан: подлесок джунглей — высокий куст с крупными листьями и гроздьями жёлтых плодов (поля —
+# как у малины, content/plants/raspberry/data/bushes.yaml).
+- id: banana
+  title: Банан
+  tint: "#4e8a2c"
+  berries: "#e6cf45"
+  berry_cards: 0.3
+  cards: 11
+  rise: 0.5
+  spread: [0.34, 0.46, 0.22]
+  fruit: banana
+  fruit_count: [1, 3]
+  twigs: 1
+  twig: resources:branch
+  item: banana_bush

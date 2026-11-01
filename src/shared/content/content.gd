@@ -171,7 +171,7 @@ const SCHEMAS := {
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
-		"shape": {"type": "enum", "values": ["", "round", "lobed", "column", "weeping", "umbrella", "cone"], "default": ""},
+		"shape": {"type": "enum", "values": ["", "round", "lobed", "column", "weeping", "umbrella", "cone", "palm"], "default": ""},
 		"leaf": {"type": "enum", "values": ["", "pointed", "soft", "curly", "scales", "needles"], "default": ""},
 		"blossom": {"type": "color", "default": null},
 		"dead": {"type": "bool", "default": false},
@@ -180,6 +180,8 @@ const SCHEMAS := {
 		"taper": {"type": "float", "min": 0.0, "default": 0.0},
 		"crook": {"type": "int", "min": 0, "default": 0},
 		"roots": {"type": "list", "of": "int", "len": 2, "min": 0, "default": [0, 0]},
+		# How many texels up the trunk the roots stand on stilts (mangrove), 0 low roots.
+		"stilts": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"branches": {"type": "float", "min": 0.2, "max": 2.0, "default": 1.0},
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
@@ -222,6 +224,8 @@ const SCHEMAS := {
 		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}, "rel": "spawns"},
 		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"groves": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		# Grounds besides grass trees grow on here (palms on the sand of a tropical beach).
+		"trees_on": {"type": "list", "of": "enum", "values": ["dirt", "stone", "sand", "clay", "snow", "peat", "salt"], "default": []},
 		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}, "rel": "spawns"},
 		"bush_sparsity": {"type": "int", "min": 0, "default": 0},
 		"spawn": {"type": "bool", "default": false},
