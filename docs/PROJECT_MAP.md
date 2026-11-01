@@ -29,7 +29,7 @@ assets/                  шрифт, заставка, облака меню, з
 tests/                   headless-тесты (run_tests + unit/, save, progress, frame, server), проверка в браузере, run_all.sh
 tools/                   валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/
 .github/                 CI (workflows/build.yml), установка Godot (actions/godot), шаблон PR
-docs/                    эта документация
+docs/                    эта документация (audit/ — отчёты аудитов, planning/ — план рефакторинга)
 ```
 
 Подробно по слоям и связям: [ARCHITECTURE.md](ARCHITECTURE.md); по системам: [SYSTEMS.md](SYSTEMS.md).

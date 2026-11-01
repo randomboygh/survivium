@@ -15,7 +15,12 @@
   [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), план этапов с файлами и рисками —
   `plan/architecture/bundle-system.md`.
 
-## Технический долг и ограничения, найденные аудитом (предложения, не утверждены)
+## Технический аудит кода (этап 4, 2026-11-01)
+
+Находки по системам — [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), план шагов и что ждёт решения
+пользователя — [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md).
+
+## Технический долг и ограничения, найденные аудитом этапа 0 (предложения, не утверждены)
 
 | # | Что | Почему важно | Предложение |
 |---|---|---|---|

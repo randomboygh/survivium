@@ -31,6 +31,7 @@
 | [generated/content-recipes.md](generated/content-recipes.md) | реестр рецептов по процессам: что делает и что побочно, что тратит и что держит в сумке, станок и те, что его заменяют, инструменты и износ, время, глубина, эпоха, альтернативы | баланс рецептов, где что делают |
 | [generated/content-checks.md](generated/content-checks.md) | что нашли проверки контента: каждая проверка, что значит и как исправить, найденное | тупики, двойники, ошибки графа |
 | [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | аудит этапа 0: состояние, находки, что почищено | история реорганизации |
+| [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md), [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md), [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md) | технический аудит кода этапа 4 (131 находка по системам), план рефакторинга, что сделано, замеры до и после | технический долг кода, прежде чем чинить систему |
 | [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md) | система игровых бандлов по ТЗ: понятия, связи, рецепты, станки, граф, эпохи, этапы и их состояние | менять виды контента, рецепты, станки, инструменты |
 | [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | готовность к работе над бандлами (этап 0) и ответы на её вопросы | история решения 152 |
 
