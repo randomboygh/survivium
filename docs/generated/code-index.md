@@ -273,6 +273,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## tools
 
 - `tools/validate.gd`: Checks the content files of every mod and fails on any problem, for CI and for a quick check after editing data: schemas and references, each bundle by itself, the pictures, sounds and models, the…
+- `tools/web_cache.py`: Keeps the engine on the device between starts of the web build.
 - `tools/web_patch.py`: Patches the web export after Godot writes it.
 
 ## Folders of src/ and what they load
