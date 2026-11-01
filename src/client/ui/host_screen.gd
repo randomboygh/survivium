@@ -196,10 +196,7 @@ func _button(text: String, action: Callable, accent := false) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(WIDTH, ROW_H + 4)
 	if accent:
-		for state in ["normal", "hover", "pressed", "hover_pressed"]:
-			b.add_theme_stylebox_override(state, UiStyle.button(state, true))
-		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
-			b.add_theme_color_override(c, UiStyle.DARK_INK)
+		UiStyle.accent(b)
 	b.pressed.connect(action)
 	_box.add_child(b)
 	return b
@@ -283,10 +280,7 @@ func _build_running() -> void:
 	_people.add_theme_constant_override("separation", 4)
 	_box.add_child(_people)
 	var well := PanelContainer.new()
-	var style := UiStyle.slot()
-	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		style.set_content_margin(side, UiStyle.WELL_PAD)
-	well.add_theme_stylebox_override("panel", style)
+	well.add_theme_stylebox_override("panel", UiStyle.well())
 	_box.add_child(well)
 	_log_scroll = ScrollContainer.new()
 	_log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

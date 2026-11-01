@@ -93,6 +93,16 @@ func _test_session() -> void:
 	_check(s.players == [b] and s.workshops == [shop_b], "a player removed leaves the rest")
 	s.tick(0.1)
 	_check(s.wildlife.people == [b], "the animals see only those still playing")
+	# The spring reset is the session's: the server's clock turning to spring clears what
+	# was picked; a clock restored in spring (from_dict) does not.
+	var bush := Vector3i(30, 6, 30)
+	w.bush_picked[bush] = 1
+	clock.season = Clock.WINTER
+	clock.next_season()
+	_check(clock.season == Clock.SPRING and not w.bush_picked.has(bush), "spring on the session's clock clears the picked bushes")
+	w.bush_picked[bush] = 1
+	clock.from_dict(clock.to_dict())
+	_check(w.bush_picked.has(bush), "a clock restored in spring clears nothing")
 
 
 ## The session makes the chunks within reach of each player a step at a time within a

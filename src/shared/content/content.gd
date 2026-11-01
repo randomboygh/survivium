@@ -54,7 +54,7 @@ const ROOT := "res://content"
 ## The bundles to load, as asked for; `loaded` has the order they were loaded in after
 ## their dependencies, without the ones left out: those are in `dropped` with the bundle
 ## they needed.
-static var BUNDLES: Array = all_bundles()
+static var BUNDLES: Array = _all_on_disk()
 static var loaded: Array = []
 static var dropped := {}
 ## The validator's mode: a soft reference to nothing is a problem too.
@@ -396,6 +396,9 @@ static var _scan_problems := {}
 ## mods' data costs a start of the game, shown in the playtest report.
 static var read_ms := 0.0
 static var load_ms := 0.0
+## Counts the loads (load_all): the registries (Mods) know from it whether they hold the
+## arrays of the last one.
+static var generation := 0
 ## PARSED, read on the first file (null until then, {} without one).
 static var _parsed: Variant = null
 ## How many files _read took from PARSED and how many it parsed, for the report.
@@ -406,9 +409,11 @@ static var parsed_files := 0
 
 
 ## Every mod under `content/`: the folders with a mod.yaml, core first, then by name.
-## Folders starting with `_` are the tests' and are left out.
+## Folders starting with `_` are the tests' and are left out. Read from the scan
+## (universe); refresh sees new folders.
 static func available() -> Array:
-	return _folders(false)
+	universe()
+	return _mods.keys().filter(func(m: String) -> bool: return not m.begins_with("_"))
 
 
 static func _folders(hidden: bool) -> Array:
@@ -425,8 +430,15 @@ static func _folders(hidden: bool) -> Array:
 
 
 ## The bundles of mod `mod`: its folders with a bundle.yaml by name, or the mod itself
-## when it has none.
+## when it has none. Read from the scan (universe).
 static func bundles_of(mod: String) -> Array:
+	universe()
+	var out := _order.filter(func(b: String) -> bool: return mod_of(b) == mod)
+	return out if not out.is_empty() else [mod]
+
+
+## bundles_of as the folders on disk say now, for the scan.
+static func _bundles_on_disk(mod: String) -> Array:
 	var out := []
 	for name in DirAccess.get_directories_at("%s/%s" % [ROOT, mod]):
 		if FileAccess.file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, name]):
@@ -435,11 +447,18 @@ static func bundles_of(mod: String) -> Array:
 	return out if not out.is_empty() else [mod]
 
 
-## Every bundle of every mod, in load order before dependencies.
+## Every bundle of every mod, in load order before dependencies (from the scan).
 static func all_bundles() -> Array:
+	universe()
+	return _order.filter(func(b: String) -> bool: return not b.begins_with("_"))
+
+
+## all_bundles as the folders on disk say, without the scan: BUNDLES' first value, set
+## before the scan's own static vars exist.
+static func _all_on_disk() -> Array:
 	var out := []
-	for mod in available():
-		out.append_array(bundles_of(mod))
+	for mod in _folders(false):
+		out.append_array(_bundles_on_disk(mod))
 	return out
 
 
@@ -502,7 +521,7 @@ static func _scan() -> void:
 		var mod_info := _manifest("%s/%s/mod.yaml" % [ROOT, mod], MOD_SCHEMA, mod, "%s/mod.yaml" % mod)
 		var mod_problems := problems
 		_mods[mod] = mod_info
-		var bundles := bundles_of(mod)
+		var bundles := _bundles_on_disk(mod)
 		if bundles != [mod] and DirAccess.dir_exists_absolute("%s/%s/data" % [ROOT, mod]):
 			mod_problems.append("%s/data: a mod with bundles keeps its records in them" % mod)
 		for b in bundles:
@@ -654,24 +673,41 @@ static func resolve(set: Array, report := false) -> Dictionary:
 				changed = true
 				if report and not _universe.has(need):
 					problems.append("%s: requires `%s`, which is not loaded" % [b, need])
+	# Kahn's order: each step places the ready bundle (all it depends on placed) that
+	# comes first in _order, so the order is the one of the scan where nothing forces
+	# another. The dependencies are found once per bundle.
 	var order := []
 	var placed := {}
-	while placed.size() < kept.size():
-		var progress := false
-		for b in _order:
-			if not kept.has(b) or placed.has(b):
-				continue
-			if _deps(b, kept).all(func(d: String) -> bool: return placed.has(d)):
-				order.append(b)
-				placed[b] = true
-				progress = true
-				break
-		if not progress:
-			var rest := _order.filter(func(b: String) -> bool: return kept.has(b) and not placed.has(b))
-			if report:
-				problems.append("%s: bundles require each other in a circle" % ", ".join(rest))
-			order.append_array(rest)
-			break
+	var waits := {}
+	var after := {}
+	var ready: Array[int] = []
+	for i in _order.size():
+		var b: String = _order[i]
+		if not kept.has(b):
+			continue
+		var deps := _deps(b, kept)
+		waits[b] = deps.size()
+		for d in deps:
+			if not after.has(d):
+				after[d] = []
+			after[d].append(i)
+		if deps.is_empty():
+			ready.append(i)
+	while not ready.is_empty():
+		var i: int = ready.pop_front()
+		var b: String = _order[i]
+		order.append(b)
+		placed[b] = true
+		for j: int in after.get(b, []):
+			var next: String = _order[j]
+			waits[next] -= 1
+			if waits[next] == 0:
+				ready.insert(ready.bsearch(j), j)
+	if placed.size() < kept.size():
+		var rest := _order.filter(func(b: String) -> bool: return kept.has(b) and not placed.has(b))
+		if report:
+			problems.append("%s: bundles require each other in a circle" % ", ".join(rest))
+		order.append_array(rest)
 	return {"order": order, "dropped": out_dropped}
 
 
@@ -878,6 +914,7 @@ static func refresh() -> void:
 ## Loads BUNDLES: what they need in order, the rest left out (see resolve).
 static func load_all() -> void:
 	_loaded = true
+	generation += 1
 	problems = []
 	warnings = []
 	origins = {}

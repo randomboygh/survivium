@@ -79,6 +79,7 @@ graph LR
   placed -- cell_changed --> chunks
   wildlife["Wildlife"] -- born / gone / stepped --> creatures["Creatures"]
   clock["Clock"] -- season_changed --> sky["Sky"]
+  clock -- season_changed --> actions
   inventory["Inventory"] -- changed --> hud["HUD, окно сумки"]
   workshop["Workshop"] -- changed / made --> hud
   knowledge["Knowledge"] -- learned --> hud

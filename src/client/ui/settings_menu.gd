@@ -26,6 +26,7 @@ const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -68,8 +69,6 @@ const TAB_HEIGHT := 28
 const SIZES := ["очень мелкий", "мелкий", "обычный", "крупнее", "крупный"]
 ## The minimap sizes (Minimap.SIDES).
 const MAP_SIZES := ["маленькая", "обычная", "большая"]
-## Written by tools/build_info.py in CI; a local run has none and shows "dev".
-const BUILD_INFO := "res://build_info.json"
 
 signal closed
 
@@ -562,10 +561,7 @@ static func _height(rows: Array, columns: int) -> int:
 ## {"version", "commit", "date", "changes": [{"pr", "date", "text"}]}.
 static func build_info() -> Dictionary:
 	var info := {"version": "dev", "commit": "", "date": "", "changes": []}
-	if FileAccess.file_exists(BUILD_INFO):
-		var data = JSON.parse_string(FileAccess.get_file_as_string(BUILD_INFO))
-		if data is Dictionary:
-			info.merge(data, true)
+	info.merge(Protocol.build_info(), true)
 	return info
 
 

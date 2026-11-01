@@ -10,6 +10,7 @@ extends "res://src/shared/game/character.gd"
 ## the client's copy (PlayerLink).
 
 const Tools := preload("res://src/shared/content/tools.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 const BodyScript := preload("res://src/shared/game/body.gd")
 
 ## A line for the player (say).
@@ -75,7 +76,7 @@ func _on_thrown(dir: Vector2, speed: float, hop: float) -> void:
 
 ## Takes the client's body and hands from an INPUT event's `args`.
 func take_input(args: Array) -> void:
-	if args.size() != 18 or not args[0] is Vector3 or not args[1] is Vector3i or not args[2] is Vector2i \
+	if args.size() != Protocol.INPUT_SIZE or not args[0] is Vector3 or not args[1] is Vector3i or not args[2] is Vector2i \
 			or not args[3] is Array or args[3].size() != 2 or not args[4] is int or not args[5] is int \
 			or not args[11] is Vector2 or not args[12] is Vector2 or not args[16] is int \
 			or not (args[6] is bool and args[7] is bool and args[8] is bool and args[9] is bool and args[13] is bool) \

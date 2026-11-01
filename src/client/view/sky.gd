@@ -316,11 +316,9 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 	grade_mat.set_shader_parameter("haze_offset", cloud_pos * Vector2(1.5, 0.6) * (1.0 + 3.0 * clock.storm_wind))
 
 
-## A new season began (see Clock.next_season): the bushes ripen or shed, and the
-## player is told.
+## A new season began on the server (see Clock.next_season): the player is told. The
+## rule of the season (bushes, twigs, grass) is the session's (Session._init).
 func on_season(season: int) -> void:
-	if game.actions != null:
-		game.actions.on_season(season)
 	print("season: %s" % Clock.SEASONS[season])
 	game.hud.toast("Наступила %s" % Clock.SEASONS[season].to_lower() if season != 1 else "Наступило лето")
 

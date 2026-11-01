@@ -98,8 +98,10 @@ func _bot(name: String, key := "", password := PASSWORD, port := PORT) -> Bot:
 
 func _input_at(b: Bot, at: Vector3) -> void:
 	var cell := Vector3i((at / WorldData.CELL).floor())
-	b.socket.net.send(Protocol.INPUT, [at, cell, Vector2i(0, 1), ["", ""], 0, 0, false, false, false, false,
-		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0), true, "", 0.0, 0, Vector3.INF])
+	var input: Array = [at, cell, Vector2i(0, 1), ["", ""], 0, 0, false, false, false, false,
+		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0), true, "", 0.0, 0, Vector3.INF]
+	assert(input.size() == Protocol.INPUT_SIZE, "the bots' INPUT follows Protocol.INPUT")
+	b.socket.net.send(Protocol.INPUT, input)
 
 
 ## Polls the sockets for `n` frames.
@@ -112,7 +114,8 @@ func _frames(n: int) -> void:
 
 func _run() -> void:
 	WorldStore.root = ROOT
-	WorldStore.new(ROOT + "/5-11111").erase()
+	# Every world of an earlier run goes, whatever its folder is called.
+	WorldStore.erase_dir(ROOT)
 	server = load("res://scenes/server.tscn").instantiate()
 	server.config.port = PORT
 	server.config.max_players = 2
@@ -356,7 +359,7 @@ func _run() -> void:
 ## placed), and Аня comes back with her key to her character as it was, with the same
 ## number; a new player gets the next one.
 func _restart(w: Dictionary, ground: Vector3i, dug_at: int, things: int, dir: String) -> void:
-	WorldStore.write_json_beside(dir + "/" + WorldStore.WORLD, {"format": 1, "seed": 99})
+	WorldStore.write_json_beside(dir + "/" + WorldStore.WORLD, {"format": WorldStore.FORMAT, "seed": 99})
 	WorldStore.write_json_beside(dir + "/" + ServerStore.player_file(w.key), {"format": 1, "id": 7, "name": "ложь"})
 	server = load("res://scenes/server.tscn").instantiate()
 	server.config.port = PORT

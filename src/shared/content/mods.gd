@@ -59,10 +59,15 @@ static func mod_of(bundle: String) -> String:
 	return Content.mod_of(bundle)
 
 
+## The load of Content (Content.generation) the registries were last refreshed from;
+## activate refreshes them again after a Content.refresh of its own.
+static var _built := -1
+
+
 ## Loads `bundles` (and nothing else) and refreshes the registries; returns a copy of the problems
 ## found. Does nothing when `bundles` is the set already loaded.
 static func activate(bundles: Array) -> PackedStringArray:
-	if bundles == Content.BUNDLES and Content.records("materials").size() > 0:
+	if bundles == Content.BUNDLES and _built == Content.generation and Content.records("materials").size() > 0:
 		return Content.problems.duplicate()
 	Content.BUNDLES = bundles.duplicate()
 	Content.load_all()
@@ -80,6 +85,7 @@ static func rescan() -> PackedStringArray:
 
 
 static func _refresh_registries() -> void:
+	_built = Content.generation
 	Mat.refresh()
 	Items.refresh()
 	Trees.refresh()

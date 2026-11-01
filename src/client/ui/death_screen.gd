@@ -230,10 +230,8 @@ func _fill() -> void:
 	for p: Array in choices:
 		var at: Vector3 = p[1]
 		var b := _button(_respawn, "Возродиться " + (p[0] as String).to_lower(), func() -> void: _revive(at))
-		for state in ["normal", "hover", "pressed", "hover_pressed"]:
-			b.add_theme_stylebox_override(state, UiStyle.button(state, true))
-		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-			b.add_theme_color_override(c, UiStyle.DARK_INK)
+		UiStyle.accent(b)
+		b.add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
 	var has_menu: bool = game.menu != null
 	_menu_button.disabled = not has_menu
 	_new_button.disabled = not has_menu

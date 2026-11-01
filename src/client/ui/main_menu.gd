@@ -340,10 +340,7 @@ func _build_loading() -> void:
 	_build_strip(box)
 	var well := PanelContainer.new()
 	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := UiStyle.slot()
-	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		style.set_content_margin(side, UiStyle.WELL_PAD)
-	well.add_theme_stylebox_override("panel", style)
+	well.add_theme_stylebox_override("panel", UiStyle.well())
 	box.add_child(well)
 	_tip = UiStyle.label("", UiStyle.MUTED)
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -544,10 +541,8 @@ func _fill_page(page: String) -> void:
 				_buttons.host.add_theme_color_override("font_hover_color", Color(UiStyle.MUTED, 0.8))
 			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
 			lit = "server" if on_server else ("host" if hosting else "join")
-	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_buttons[lit].add_theme_stylebox_override(state, UiStyle.button(state, true))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		_buttons[lit].add_theme_color_override(c, UiStyle.DARK_INK)
+	UiStyle.accent(_buttons[lit])
+	_buttons[lit].add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
 	_set_focus(_order.find(lit))
 	if is_open:
 		_fit()
@@ -670,9 +665,7 @@ func new_world() -> void:
 
 
 func _new_world() -> void:
-	_column.visible = false
-	_setup = load(WORLD_SETUP).new(game)
-	_screen.add_child(_setup)
+	_show_screen(WORLD_SETUP, [game])
 	_setup.cancelled.connect(_close_setup)
 	_setup.done.connect(func() -> void:
 		_close_setup()
@@ -692,9 +685,7 @@ func _go_to(seed_value: int, options: Dictionary) -> void:
 
 
 func _open_worlds() -> void:
-	_column.visible = false
-	_setup = load(WORLD_LIST).new(game)
-	_screen.add_child(_setup)
+	_show_screen(WORLD_LIST, [game])
 	_setup.cancelled.connect(_close_setup)
 	_setup.chosen.connect(func(seed_value: int, options: Dictionary) -> void:
 		_close_setup()
@@ -704,12 +695,8 @@ func _open_worlds() -> void:
 ## «Присоединиться» over the menu, the address `url` in its field (the last server's
 ## when ""), `error` saying why joining failed.
 func open_join(url: String, error := "") -> void:
-	if _setup != null:
-		_setup.queue_free()
 	_page = "multi"
-	_column.visible = false
-	_setup = load(JOIN_SCREEN).new(game, url, error)
-	_screen.add_child(_setup)
+	_show_screen(JOIN_SCREEN, [game, url, error])
 	_setup.cancelled.connect(func() -> void:
 		_close_setup()
 		_fill_page("multi"))
@@ -719,12 +706,8 @@ func open_join(url: String, error := "") -> void:
 
 ## «Создать сервер» over the menu: its settings, or the server running.
 func open_host() -> void:
-	if _setup != null:
-		_setup.queue_free()
 	_page = "multi"
-	_column.visible = false
-	_setup = load(HOST_SCREEN).new(game)
-	_screen.add_child(_setup)
+	_show_screen(HOST_SCREEN, [game])
 	_setup.cancelled.connect(func() -> void:
 		_close_setup()
 		_fill_page("multi"))
@@ -740,6 +723,16 @@ func join_failed(why: String) -> void:
 		open()
 	_fill_page("multi")
 	open_join(game.join_url, why)
+
+
+## Puts the screen of script `path`, made with `args`, over the menu in place of the
+## column and of any screen up before it; the caller connects its signals to _setup.
+func _show_screen(path: String, args: Array) -> void:
+	if _setup != null:
+		_setup.queue_free()
+	_column.visible = false
+	_setup = load(path).new.callv(args)
+	_screen.add_child(_setup)
 
 
 func _close_setup() -> void:
