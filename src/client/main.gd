@@ -82,6 +82,7 @@ const Markers := preload("res://src/client/game/markers.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
+const StartTimes := preload("res://src/client/ui/start_times.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
@@ -217,6 +218,9 @@ var world_options := {}
 var world_mods: Array = []
 ## When the scene started, for the load time.
 var start_ms := 0
+## When this script was compiled with every one it loads, before the scene was made
+## (filled once, by the engine right after compiling it: StartTimes).
+static var _compiled_ms := Time.get_ticks_msec()
 ## What start_world is doing before the chunks are built, for the loading screens.
 var loading_stage := ""
 ## The kind of work the loading screens name while the land is built, and since when
@@ -260,6 +264,8 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/server.tscn")
 		return
 	start_ms = Time.get_ticks_msec()
+	StartTimes.begin()
+	StartTimes.compiled_ms = _compiled_ms
 	if not host_ask.is_empty():
 		_start_hosting()
 	_read_join()
@@ -317,6 +323,7 @@ func _ready() -> void:
 	view.on_screen_resized()
 	if not skip_setup:
 		_build_menu()
+	StartTimes.mark("modules")
 	start_world()
 
 
@@ -484,7 +491,8 @@ func start_world() -> void:
 	if not save.saved_materials.is_empty():
 		# The save numbered its materials in its own order (its mods then): translate.
 		gen.material_map = Mat.remap(save.saved_materials)
-	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, Time.get_ticks_msec() - t0])
+	StartTimes.spawn_ms = Time.get_ticks_msec() - t0
+	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, StartTimes.spawn_ms])
 	await _loading_stage("Карта и материалы…")
 	roof = RoofMap.new()
 	roof.prepare()
@@ -754,6 +762,11 @@ func _process(delta: float) -> void:
 			ready_to_play = true
 			warmup = ShaderWarmup.new(self)
 			warmup.start()
+			StartTimes.chunks_ms = world_maker.gen_us / 1000
+			StartTimes.mesh_ms = chunks.mesh_us / 1000
+			StartTimes.mark("world")
+			StartTimes.keep()
+			print(StartTimes.line())
 			print("near chunks generated in %d ms, meshed in %d ms" % [world_maker.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:

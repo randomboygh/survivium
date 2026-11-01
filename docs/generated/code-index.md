@@ -90,6 +90,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/ui/scroll_column.gd`: A column of square buttons (the kinds of items, the stations near) that shows at most SHOWN of them: past that, arrows above and below and a finger dragged along it move the column a button at a…
 - `src/client/ui/settings_menu.gd`: The settings window and the playtest window, opened from the pause menu.
 - `src/client/ui/sound_marks.gd`: Faint marks at the edge of the screen on the side an important sound came from (decision 89: a predator's voice off the screen), fading in a moment.
+- `src/client/ui/start_times.gd`: Where the start of the game goes, for the line «Загрузка» of «Данные для теста» (SettingsMenu.report_text) and the last starts kept on the device (FILE): on the web the page and its two downloads…
 - `src/client/ui/tab_row.gd`: A row of small tabs under a window's tabs (the kinds of items in the craft tab and the bag): «Все» and the kinds given, the chosen one lit; wraps onto more rows when narrow.
 - `src/client/ui/ui_style.gd`: Pixel-art look of the interface (see plan/design/ui.md): dark wooden panels with a two-pixel outline, square corners, a pixel font and icons drawn from text.
 - `src/client/ui/vibration.gd`: The phone's vibration, when the setting «Вибрация» is on: a buzz the longer the bigger a hurt (BodyFeedback), and a short tick when a swing strikes something (Controls._did).

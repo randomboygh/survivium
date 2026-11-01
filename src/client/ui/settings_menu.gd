@@ -25,6 +25,7 @@ const Markers := preload("res://src/client/game/markers.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const StartTimes := preload("res://src/client/ui/start_times.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -728,8 +729,9 @@ func _share_shown() -> void:
 
 ## What a playtest report needs for the moment to be played again, a line each: the
 ## build, the world, where the player stands and looks, the time, the weather, the light,
-## the settings, the device and how long the start took (the engine to the game's scene,
-## the mods' data read and loaded, the world built).
+## the settings, the device, where the start went (StartTimes: the page's downloads, the
+## engine's graphics, the scripts compiled, the modules, the menu, the world, the mods'
+## data read and loaded) and the last starts kept on the device.
 func report_text() -> String:
 	var info := build_info()
 	var s = game.settings
@@ -756,8 +758,8 @@ func report_text() -> String:
 			DisplayServer.screen_get_size().y, get_viewport().get_visible_rect().size.x,
 			get_viewport().get_visible_rect().size.y, RenderingServer.get_video_adapter_name()],
 		"Кадр: обычный %.1f мс, фризов в журнале %d" % [game.hud.perf.usual[0], game.hud.perf.freeze_log.size()],
-		"Загрузка: запуск %.1f с (данные модов: записей %d, чтение %d мс, набор %d мс), мир %.1f с" % [game.start_ms / 1000.0,
-			Content.record_count(), roundi(Content.read_ms), roundi(Content.load_ms), game.hud.perf.world_ms / 1000.0],
+		StartTimes.line(),
+		"Прошлые запуски: %s" % ("; ".join(StartTimes.past().slice(0, 3)) if not StartTimes.past().is_empty() else "нет"),
 	]
 	if game.net != null:
 		lines.append("Сервер: %s, запросов %d, байт туда %d, обратно %d, кодирование %.1f мс, ждут %d" % [
