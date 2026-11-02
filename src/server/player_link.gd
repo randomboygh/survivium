@@ -3,7 +3,7 @@ extends RefCounted
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; HEARD, the chat; TEAM and INVITES, the
-## team), of the things placed (PROPS, PROP,
+## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_FUEL, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -56,6 +56,12 @@ var _drops := {}
 var _you := true
 var _team := true
 var _invites := true
+## The claims are told again (made, gone, a team changed); squares changed since the last
+## flush (all of them when `_squares_all`); the land told last ([used, budget]).
+var _claims := true
+var _squares_all := true
+var _squares: Array = []
+var _land: Array = []
 var _shop := true
 var _knowledge := true
 var _vitals: Array = []
@@ -104,6 +110,8 @@ func _init(s) -> void:
 	actions.taken.connect(_on_taken)
 	session.teams.changed.connect(_on_team)
 	session.teams.invited.connect(_on_invited)
+	session.territory.claims_changed.connect(_on_claims)
+	session.territory.squares_changed.connect(_on_squares)
 
 
 ## Takes the player out of the session, and the link off the session's signals.
@@ -122,6 +130,8 @@ func leave() -> void:
 	actions.taken.disconnect(_on_taken)
 	session.teams.changed.disconnect(_on_team)
 	session.teams.invited.disconnect(_on_invited)
+	session.territory.claims_changed.disconnect(_on_claims)
+	session.territory.squares_changed.disconnect(_on_squares)
 	for e: Dictionary in placed.things:
 		if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 			e.items.changed.disconnect(_chest_call(e))
@@ -139,6 +149,10 @@ func rejoin() -> void:
 	_you = true
 	_team = true
 	_invites = true
+	_claims = true
+	_squares_all = true
+	_squares.clear()
+	_land = []
 	_shop = true
 	_knowledge = true
 	_all = true
@@ -195,6 +209,20 @@ func flush() -> Array[PackedByteArray]:
 	if _invites:
 		_invites = false
 		out.append(_event(Protocol.INVITES, [session.teams.invites_of(who.id, Time.get_ticks_msec() / 1000.0)]))
+	if _claims:
+		_claims = false
+		out.append(_event(Protocol.CLAIMS, [session.territory.claims_view()]))
+	if _squares_all:
+		_squares_all = false
+		_squares.clear()
+		out.append(_event(Protocol.SQUARES, [session.territory.squares_view(), true]))
+	elif not _squares.is_empty():
+		out.append(_event(Protocol.SQUARES, [_squares, false]))
+		_squares = []
+	var land := [session.territory.used(who.id), session.territory.budget(who.id)]
+	if land != _land:
+		_land = land
+		out.append(_event(Protocol.LAND, land))
 	if _knowledge:
 		_knowledge = false
 		out.append(_event(Protocol.KNOWLEDGE, [workshop.knowledge.to_dict()]))
@@ -306,9 +334,20 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 ## The teams of players `ids` changed: this player's own when among them (the PEOPLE
 ## entries say who is in it).
 func _on_team(ids: Array) -> void:
+	# A claim's name is its team's.
+	_claims = true
 	if ids.has(who.id):
 		_team = true
 		_invites = true
+
+
+func _on_claims() -> void:
+	_claims = true
+
+
+func _on_squares(list: Array) -> void:
+	if not _squares_all:
+		_squares.append_array(list)
 
 
 ## Player `to` was invited to a team.

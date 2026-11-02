@@ -221,6 +221,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.TEAM_CHAT:
 			if _fit(args, [TYPE_STRING]) and session.teams.team_of(who.id) != 0:
 				return _chat(args[0], true)
+		Protocol.LAND_PAINT:
+			if _fit(args, [TYPE_VECTOR2I, TYPE_BOOL]):
+				return session.territory.paint(who, args[0], args[1])
 		Protocol.REVIVE:
 			# Only the dead come back (where to is checked at stage С6).
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():

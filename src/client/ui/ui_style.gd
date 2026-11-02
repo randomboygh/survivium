@@ -174,6 +174,17 @@ const ICONS := {
 		"wwwwwwwww",
 		"wwwwwwwww",
 	],
+	"flag": [
+		".waaaa...",
+		".waaaaaa.",
+		".waaaaa..",
+		".waaaa...",
+		".w.......",
+		".w.......",
+		".w.......",
+		".w.......",
+		"www......",
+	],
 	"chat": [
 		".wwwwwww.",
 		"w.......w",

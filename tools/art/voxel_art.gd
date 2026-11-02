@@ -41,6 +41,8 @@ static func prop(kind: String) -> VoxelModel:
 			return anvil()
 		"drying_rack":
 			return drying_rack()
+		"post":
+			return post()
 	return null
 
 
@@ -271,6 +273,28 @@ static func anvil() -> VoxelModel:
 			for z in range(8 - w, 8 + w):
 				if y >= 10:
 					m.set_voxel(Vector3i(x, y, z), IRON * (1.35 if y == 11 else 1.0))
+	return m
+
+
+## A boundary post: a peeled pole on a heap of stones, a strip of red cloth tied near its top.
+static func post() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.62, 0.47, 0.3)
+	var dark := Color(0.42, 0.3, 0.18)
+	var stone := Color(0.52, 0.53, 0.55)
+	var cloth := Color(0.78, 0.2, 0.18)
+	for p: Vector3i in [Vector3i(5, 0, 6), Vector3i(6, 0, 9), Vector3i(9, 0, 5), Vector3i(10, 0, 9), Vector3i(8, 0, 10),
+			Vector3i(6, 1, 7), Vector3i(9, 1, 9), Vector3i(5, 0, 8), Vector3i(10, 0, 6)]:
+		m.set_voxel(p, stone if (p.x + p.z) % 3 != 0 else stone * 0.85)
+	for y in range(0, 26):
+		for x in range(7, 9):
+			for z in range(7, 9):
+				m.set_voxel(Vector3i(x, y, z), wood if (x + z + y / 4) % 2 == 0 else dark)
+	m.set_voxel(Vector3i(7, 26, 7), dark)
+	m.set_voxel(Vector3i(8, 26, 8), dark)
+	for i in 5:
+		m.set_voxel(Vector3i(9 + i, 22 - i / 2, 8), cloth if i % 2 == 0 else cloth * 0.85)
+		m.set_voxel(Vector3i(9 + i, 21 - i / 2, 8), cloth * 0.9)
 	return m
 
 

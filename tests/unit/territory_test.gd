@@ -6,11 +6,14 @@ extends "res://tests/unit/test_case.gd"
 const Teams := preload("res://src/shared/game/teams.gd")
 const PlayerLink := preload("res://src/server/player_link.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Territory := preload("res://src/shared/game/territory.gd")
 
 
 func run() -> void:
 	_test_teams()
 	_test_team_requests()
+	_test_land()
+	_test_land_requests()
 
 
 func _test_teams() -> void:
@@ -87,6 +90,104 @@ func _test_team_requests() -> void:
 		and s.teams.team_of(2) == 0, "the lead puts the other out")
 	for l in links:
 		l.leave()
+
+
+## The squares of a claim: painted next to its own within the radius, not on another's,
+## no more than the budget (a team's: the biggest and half of the others), cleared only
+## where the rest stays joined; the centre taken away takes the claim; the save keeps it.
+func _test_land() -> void:
+	var t := Territory.new()
+	t.rules = Rules.of({"territory_start": 4, "territory_per_day": 2, "territory_radius": 2, "territory_levels": 8})
+	t.teams = Teams.new()
+	var a := _Who.new(1)
+	var b := _Who.new(2)
+	_check(t.budget(1) == 4 and t.used(1) == 0, "a player starts with the squares of the rules")
+	var post := t.add_claim(1, {"cell": Vector3i(10, 5, 10)}, "Аня")
+	_check(t.squares.get(Vector2i(5, 5)) == post and t.used(1) == 1, "a post claims its own square")
+	_check(t.claim_at(Vector3i(11, 13, 11)).id == post and t.claim_at(Vector3i(11, 14, 11)).is_empty(),
+		"within the claim's levels of the centre only")
+	_check(not t.paint(a, Vector2i(7, 5), true), "a square not touching the claim is not painted")
+	_check(t.paint(a, Vector2i(6, 5), true) and t.paint(a, Vector2i(7, 5), true), "squares touching it are")
+	_check(not t.paint(a, Vector2i(8, 5), true), "not farther than the radius")
+	_check(not t.paint(b, Vector2i(5, 6), true), "nor by one of no team with the claim")
+	_check(t.paint(a, Vector2i(5, 6), true) and t.used(1) == 4, "up to the budget")
+	_check(not t.paint(a, Vector2i(4, 5), true) and a.nags.size() == 1, "and not over it, with a word")
+	_check(not t.paint(a, Vector2i(6, 5), false), "a square that joins others to the centre is not cleared")
+	_check(not t.paint(a, Vector2i(5, 5), false), "nor the centre's")
+	_check(t.paint(a, Vector2i(7, 5), false) and t.used(1) == 3, "an end one is")
+	_check(not t.can_claim(b, Vector3i(12, 5, 10)) and b.nags.size() == 1, "nobody else sets a post in the land")
+	t.played[2] = 3.0
+	_check(t.budget(2) == 10, "days lived add squares")
+	t.teams.invite(1, "Аня", 2, 0.0)
+	t.teams.accept(2, "Боря", 1, 0.0)
+	_check(t.budget(1) == 12 and t.budget(2) == 12, "a team holds the biggest budget and half of the other")
+	_check(t.paint(b, Vector2i(4, 5), true) and t.used(2) == 4, "a member paints the team's land")
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(t.to_dict()))
+	var back := Territory.new()
+	back.from_dict(saved)
+	_check(back.squares == t.squares and back.claims[post].count == 4 and back.played[2] == 3.0
+		and back.next_claim == t.next_claim, "the save keeps the claims through JSON")
+	var told: Array = []
+	t.squares_changed.connect(func(list: Array) -> void: told.append_array(list))
+	t.thing_gone(Vector3i(10, 5, 10))
+	_check(t.claims.is_empty() and t.squares.is_empty() and told.size() == 4, "the post taken away takes its squares")
+	back.teams = t.teams
+	var copy := Territory.new()
+	copy.take_claims(back.claims_view())
+	copy.take_squares(back.squares_view(), true)
+	_check(copy.squares == back.squares and copy.claims[post].count == 4 and copy.claims[post].name == "Команда Аня",
+		"a client's copy takes what the server tells, named by the team")
+
+
+## A boundary post set down from the bag on a server makes a claim; its owner is told
+## the land and paints a square by LAND_PAINT, another player is not let to.
+func _test_land_requests() -> void:
+	var w := WorldData.new(8, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var s := Session.new(w, null, Clock.new(), Rules.new(), Placed.new())
+	var a := PlayerLink.new(s)
+	a.who.id = 1
+	a.who.player_name = "Аня"
+	a.who.teleport(Vector3(8.5, 1.0, 8.5) * WorldData.CELL)
+	var b := PlayerLink.new(s)
+	b.who.id = 2
+	b.who.player_name = "Боря"
+	b.who.teleport(Vector3(20.5, 1.0, 20.5) * WorldData.CELL)
+	a.flush()
+	b.flush()
+	var post := Items.with_prop("post")
+	_check(post != "" and Items.get_item(post).claims, "a boundary post claims land")
+	a.who.inventory.add(post, 1)
+	_check(s.placed.put_from_bag(a.who, post, -1, 40) and s.territory.claims.size() == 1,
+		"a post set down makes a claim")
+	var claim: Dictionary = s.territory.claims.values()[0]
+	var out := _decoded(a.flush())
+	_check(out.any(func(e: Array) -> bool: return e[0] == Protocol.CLAIMS and e[1][0].size() == 1)
+		and out.any(func(e: Array) -> bool: return e[0] == Protocol.LAND and e[1] == [1, 64]),
+		"its owner is told the claim and the count: %s" % [out])
+	var next: Vector2i = claim.sq + Vector2i(1, 0)
+	_check(_ask(b, 1, Protocol.LAND_PAINT, [next, true]) == false, "another does not paint it")
+	_check(_ask(a, 1, Protocol.LAND_PAINT, [next, true]) == true and s.territory.squares.get(next) == claim.id,
+		"the owner does")
+	out = _decoded(b.flush())
+	_check(out.any(func(e: Array) -> bool: return e[0] == Protocol.SQUARES and e[1][0].has([next, claim.id])),
+		"and everyone is told the square")
+	_check(s.placed.take_up(a.who, s.placed.things[0]) and s.territory.claims.is_empty(), "the post taken up takes the claim")
+	a.leave()
+	b.leave()
+
+
+class _Who:
+	var id := 0
+	var nags: Array = []
+
+	func _init(i: int) -> void:
+		id = i
+
+	func nag(_key: String, text: String) -> void:
+		nags.append(text)
 
 
 func _ask(link, seq: int, kind: String, args: Array) -> Variant:
