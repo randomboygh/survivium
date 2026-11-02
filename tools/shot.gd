@@ -637,14 +637,27 @@ func _run() -> void:
 			ch.born = main.session.clock.day + main.session.clock.time_of_day - 2.4
 			ch.deaths = 1
 			ch.best_days = 1.2
+			if shot.get("fires", false):
+				# One's own fire and a teammate's (player 7, «Аня») next to the spawn's.
+				var camp = main.session.placed
+				var teams = main.session.teams
+				teams.seen(7, "Аня")
+				teams.invite(7, "Аня", 0, 0.0)
+				teams.accept(0, "Игрок", 7, 0.0)
+				for f: Array in [[7, Vector3(6.0, 0.0, 4.0)], [0, Vector3(-5.0, 0.0, 6.0)]]:
+					var spot: Vector3i = camp.spot_near(main.player.position + f[1])
+					if spot.y >= 0:
+						camp.put(camp.CAMPFIRE, spot, null, true, -1.0, f[0])
 			main.host.player.vitals.health = 0.0
 			main.host.player.vitals.satiety = 0.0
 			main.host.player.vitals.hurt_by = "hunger"
 			for i in 10:
 				await process_frame
 			if shot.get("revive", false):
+				# Beside the sack: the place is made a respawn point (the server takes no other).
 				var fell: Array = main.host.player.death.at
-				main.death_screen._revive(Vector3(fell[0] - 1.5, fell[1], fell[2] + 1.0))
+				main.host.player.home = Vector3(fell[0] - 1.5, fell[1], fell[2] + 1.0)
+				main.death_screen._revive(main.host.player.home)
 				for i in 30:
 					await process_frame
 		var setup: Control = null

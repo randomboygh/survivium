@@ -343,12 +343,13 @@ func _test_requests() -> void:
 		and events.any(func(e: Array) -> bool: return e[0] == Protocol.YOU and e[1].held_back == [at]),
 		"a thing thrown away lies in the chunk the event names, and the bag holds back from it")
 	events.clear()
+	var back := Vector3(5.0, 2.0, 5.0) * WorldData.CELL
+	a.home = back
 	a.die()
 	_check(a.is_dead(), "the character dies")
-	var back := Vector3(5.0, 2.0, 5.0) * WorldData.CELL
 	_check(net.request(Protocol.REVIVE, [back]).value == true and not a.is_dead() and a.position == back
 		and events.any(func(e: Array) -> bool: return e[0] == Protocol.TELEPORT and e[1] == [back]),
-		"and comes back by request where asked, the client told to put the body there")
+		"and comes back by request at its respawn point, the client told to put the body there")
 	events.clear()
 	a.nag("test", "Горячо!")
 	a.nag("test", "Горячо!")

@@ -315,20 +315,20 @@ func _run() -> void:
 	main.socket.leave()
 	_check(await _until(func() -> bool: return main.socket.ended and net.online() == 2), "the game's goodbye closes its connection")
 	var game_account = net.accounts.values().filter(func(a) -> bool: return a.id == 3)
-	_check(game_account.size() == 1 and game_account[0].linger == net.BYE_LINGER, "its character waits a short while")
-	game_account[0].left_at -= net.BYE_LINGER
+	_check(game_account.size() == 1 and game_account[0].linger == net.LINGER, "out of its land its character waits")
+	game_account[0].left_at -= net.LINGER
 	_check(await _until(func() -> bool: return server.session.players.size() == 2), "and then leaves the world")
 	_check(await _until(func() -> bool: return back.of(Protocol.PERSON_GONE).any(func(e: Array) -> bool: return e[1] == [3])),
 		"and the others are told it went")
 	root.remove_child(main)
 	main.free()
 
-	# A goodbye: the character waits a short while; the host's say, kick and stop.
+	# A goodbye: out of their land the character waits; the host's say, kick and stop.
 	borya.socket.leave()
 	_check(await _until(func() -> bool: return net.online() == 1), "a goodbye closes the connection")
 	var borya_account = net.accounts.values().filter(func(a) -> bool: return a.id == 2)
-	_check(borya_account.size() == 1 and borya_account[0].linger == net.BYE_LINGER, "after a goodbye the character waits less")
-	borya_account[0].left_at -= net.BYE_LINGER
+	_check(borya_account.size() == 1 and borya_account[0].linger == net.LINGER, "after a goodbye out of their land the character waits")
+	borya_account[0].left_at -= net.LINGER
 	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and so does Боря's")
 	server.command("say всем привет")
 	_check(await _until(func() -> bool: return back.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1].slice(0, 3) == [0, "Сервер", "всем привет"])),

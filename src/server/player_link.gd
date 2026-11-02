@@ -200,8 +200,11 @@ func flush() -> Array[PackedByteArray]:
 	if _you:
 		_you = false
 		_vitals = _vitals_now()
+		if who.is_dead():
+			# Where to come back is asked of the dead only (the death screen shows it).
+			who.find_respawns(session.placed, session.teams)
 		out.append(_event(Protocol.YOU, {"inventory": who.inventory.to_dict(), "vitals": _vitals, "state": who.to_dict(),
-			"home": who.home, "held_back": Array(who.held_back)}))
+			"home": who.home, "respawns": who.respawns, "held_back": Array(who.held_back)}))
 	elif _vitals_changed():
 		_vitals = _vitals_now()
 		out.append(_event(Protocol.VITALS, _vitals))
@@ -345,6 +348,9 @@ func _on_team(ids: Array) -> void:
 	if ids.has(who.id):
 		_team = true
 		_invites = true
+	# The dead may come back at other fires now (Character.find_respawns).
+	if who.is_dead():
+		_you = true
 
 
 func _on_claims() -> void:
@@ -466,12 +472,20 @@ func _on_knocked(dir: Vector2, speed: float, hop: float) -> void:
 func _on_placed(e: Dictionary) -> void:
 	_watch_chest(e)
 	_push(Protocol.PROP, [session.placed.record(e)])
+	_fire_moved(e)
+
+
+## A fire came or went: the dead are told where they may come back now.
+func _fire_moved(e: Dictionary) -> void:
+	if e.has("by") and who.is_dead():
+		_you = true
 
 
 func _on_removed(e: Dictionary) -> void:
 	if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 		e.items.changed.disconnect(_chest_call(e))
 	_push(Protocol.PROP_GONE, [e.cell])
+	_fire_moved(e)
 
 
 func _on_lit(e: Dictionary) -> void:

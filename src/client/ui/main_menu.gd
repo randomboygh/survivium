@@ -671,9 +671,11 @@ func _fill_page(page: String) -> void:
 			if on_server:
 				_add_button(_box, "server", "Вернуться на сервер", play.bind("multi"))
 				if not hosting:
+					# Out of one's land the character stays a while (Server.linger_of).
+					var home: bool = game.land.own(game.land.here())
 					_add_button(_box, "leave", "Отключиться", func() -> void:
 						game.leave_server()
-						game.restart.call_deferred(false))
+						game.restart.call_deferred(false), "уйдёт сразу" if home else "постоит 30 с")
 			if hosting:
 				_add_button(_box, "join", "Присоединиться", Callable(), "сервер")
 			else:
@@ -757,7 +759,7 @@ func _add_button(parent: Node, key: String, text: String, action: Callable, tag 
 	else:
 		b.disabled = true
 	if tag != "":
-		# What the disabled button waits for, at its right edge.
+		# What the button waits for or does, at its right edge.
 		var l := UiStyle.label(tag, Color(UiStyle.MUTED, 0.6))
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
