@@ -266,8 +266,9 @@ func _ready() -> void:
 		refresh())
 	sorts.add_child(_lock_button)
 	_manual_button = TabRow.icon_button(UiStyle.icon("swap"), "Сортировать вручную: тап по второй ячейке перекладывает", func() -> void:
+		# The chosen slot stays chosen: the next tap may move it.
 		_manual = not _manual
-		_let_go()
+		_confirming = false
 		refresh())
 	sorts.add_child(_manual_button)
 	var by := []
@@ -504,6 +505,8 @@ func open() -> void:
 func close() -> void:
 	visible = false
 	_let_go()
+	# Sorting by hand is for one look into the bag.
+	_manual = false
 	_chest_entry = {}
 	craft.at_station({})
 

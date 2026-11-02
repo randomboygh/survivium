@@ -108,6 +108,10 @@ var vitals: VitalsPanel
 var sleep: SleepScreen
 ## The button on the clock that lies down to sleep.
 var _sleep_button: Button
+## The room the clock's row keeps for «zz» over its right end, and the button's size,
+## the clock's height.
+var _sleep_room: Control
+const SLEEP_SIZE := Vector2(24, 18)
 ## The red frame and the numbers over the player when the body is hurt, healed or fed.
 var feedback: BodyFeedback
 var bag: InventoryWindow
@@ -212,11 +216,16 @@ func _ready() -> void:
 	row.add_child(_wind)
 	_clock = UiStyle.label()
 	row.add_child(_clock)
-	# A small button of its own, «zz».
+	# «zz» lies over the clock's right end, flush with its frame (see _align_clock): the
+	# row keeps room for it.
+	_sleep_room = Control.new()
+	_sleep_room.custom_minimum_size = Vector2(SLEEP_SIZE.x - 8, 0)
+	_sleep_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_sleep_room)
 	_sleep_button = TabRow.icon_button(UiStyle.icon("sleep"), "Лечь спать",
 		func() -> void: game.net.request(Protocol.SLEEP, [true]))
-	_sleep_button.custom_minimum_size = Vector2(24, 18)
-	row.add_child(_sleep_button)
+	_sleep_button.custom_minimum_size = SLEEP_SIZE
+	add_child(_sleep_button)
 	vitals = VitalsPanel.new()
 	_left.add_child(vitals)
 	vitals.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -291,7 +300,7 @@ func _ready() -> void:
 	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
 	pad.call()
 	# Held, a turn button turns the camera on smoothly (see CameraRig.hold_turn).
-	var turn_left := _icon_button(_camera, "turn_left", "Повернуть камеру влево (держать: плавно)", Callable())
+	var turn_left := _icon_button(_camera, "turn_left", "Повернуть мир влево (держать: плавно)", Callable())
 	_camera_reset = Button.new()
 	_camera_reset.focus_mode = Control.FOCUS_NONE
 	_camera_reset.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_MIDDLE.y)
@@ -305,8 +314,9 @@ func _ready() -> void:
 	tight.base_font = UiStyle.font()
 	tight.spacing_glyph = -1
 	_camera_label.add_theme_font_override("font", tight)
-	var turn_right := _icon_button(_camera, "turn_right", "Повернуть камеру вправо (держать: плавно)", Callable())
-	for side: Array in [[turn_left, 1], [turn_right, -1]]:
+	var turn_right := _icon_button(_camera, "turn_right", "Повернуть мир вправо (держать: плавно)", Callable())
+	# The arrow points the way the world turns under the camera (2026-11-02).
+	for side: Array in [[turn_left, -1], [turn_right, 1]]:
 		var dir: int = side[1]
 		side[0].button_down.connect(func() -> void: game.view.hold_turn(dir))
 		side[0].button_up.connect(func() -> void: game.view.release_turn(dir))
@@ -365,7 +375,7 @@ func _ready() -> void:
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
 	# In the clock's look, as wide as its line with two-digit slots and three-digit kilos.
-	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, 21)
+	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, SLEEP_SIZE.y)
 	_bag_meter.size = _bag_meter.custom_minimum_size
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_bag_meter.add_theme_stylebox_override(state, UiStyle.panel(Vector4(5, 4, 5, 4)))
@@ -726,6 +736,8 @@ func _align_clock() -> void:
 	if not is_equal_approx(_clock_panel.size.x, wide):
 		_clock_panel.size.x = wide
 	_clock_panel.position.x = _bar.position.x + _bar.size.x - wide
+	_sleep_button.size = Vector2(SLEEP_SIZE.x, _clock_panel.size.y)
+	_sleep_button.position = _clock_panel.position + Vector2(_clock_panel.size.x - SLEEP_SIZE.x, 0)
 
 
 ## The season, the day and the time, as the clock under the hotbar shows them.
@@ -1297,9 +1309,9 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## The tab on the hotbar, in the look of the clock under it: a bar of a division a slot
-## of the bag, as the skills' bars, those taken filled, and over it the weight of the
-## limit (red past it).
+## The tab on the hotbar, in the clock's frame: a bar of a division a slot of the bag,
+## all of one width, those taken filled (warmer the fuller the bag), and over it the
+## weight of the limit (red past it).
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
@@ -1308,18 +1320,22 @@ func _draw_bag_meter() -> void:
 		if s != null:
 			taken += 1
 	var n: int = maxi(inv.slots.size(), 1)
-	var r := Rect2(Vector2(3, 3), c.size - Vector2(6, 6))
-	c.draw_rect(r, UiStyle.EDGE)
-	var inner := r.grow(-1)
+	var inner := Rect2(Vector2(5, 4), c.size - Vector2(10, 8))
 	c.draw_rect(inner, UiStyle.WELL)
-	var step := inner.size.x / n
+	# Whole pixels a division, a pixel apart; what is left over is split at both ends.
+	var each := maxf(floorf((inner.size.x + 1.0) / n) - 1.0, 1.0)
+	var left := floorf((inner.size.x - (each + 1.0) * n + 1.0) * 0.5)
 	for i in mini(taken, n):
-		# Each division apart by a pixel of the well.
-		var x0 := inner.position.x + roundf(i * step)
-		var x1 := inner.position.x + roundf((i + 1) * step) - (1.0 if i < n - 1 else 0.0)
-		c.draw_rect(Rect2(x0, inner.position.y, maxf(x1 - x0, 1.0), inner.size.y), PersonPanel.BAR_FILL)
-	UiStyle.draw_weight(c, inner.grow_individual(-4, 0, -4, 0), inv.weight(), inv.weight_limit)
+		var x0 := inner.position.x + left + i * (each + 1.0)
+		c.draw_rect(Rect2(x0, inner.position.y, each, inner.size.y), bar_shade(float(i + 1) / n))
+	UiStyle.draw_weight(c, inner.grow_individual(-3, 0, -3, 0), inv.weight(), inv.weight_limit)
 	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
+
+
+## The fill of a division of the bag's bar at share `k` of the slots (0..1): the skills'
+## brown, a little warmer towards the last slots.
+static func bar_shade(k: float) -> Color:
+	return PersonPanel.BAR_FILL.lerp(Color("#9a5a2a"), clampf(k, 0.0, 1.0) * 0.8)
 
 
 func _draw_wind() -> void:
