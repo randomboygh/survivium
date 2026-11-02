@@ -22,7 +22,13 @@
   Сумка за спиной (`wear_on: back`, `bag_slots`) добавляет ячейки после `base`; снятая, уносит их вещи в себе
   (как забранный сундук, `contents`) и возвращает, когда её надевают снова. Надетое весит и сохраняется
   в `to_dict` (`gear`), при смерти остаётся на персонаже (`take_all` берёт только ячейки).
-- `src/shared/game/vitals.gd` — здоровье, сытость, выносливость (0..`MAX`), цена действий (`spend`, `can`).
+- `src/shared/game/vitals.gd` — здоровье, сытость, вода, выносливость (0..`MAX`), цена действий (`spend`, `can`).
+  Вода `water` убывает на `THIRST_PER_DAY` в игровые сутки (в жару в `THIRST_HOT` раз быстрее); ниже
+  `THIRSTY` — как голод (нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`), на нуле
+  ранит (`hurt_by` "thirst", «Вы умерли от жажды»). `drink(amount)`; `thirst` выкл — тестовый
+  переключатель «Жажда». Пьют у пресной воды пустой рукой (`WorldActions.drink`: кнопка действия лицом
+  к воде в `DRINK_REACH` или касание воды; `fresh_water` — озеро, река, болото, не море), пустой сосуд в
+  руке (`fills_to`) там же наполняется; полный (`drink`, `empties_to`) пьют как еду (`Character.eat`).
   Тепло тела `warmth` (0..`MAX`, удобно `COMFORT` 50) и промокание `wet` (0..1): `warm(days, feel, …)`
   тянет тепло к тому, что следует из ощущаемой температуры (между `COMFY_LOW` и `COMFY_HIGH` — удобно),
   ниже `COLD` нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`; ниже `FREEZING`
@@ -64,7 +70,7 @@
 персонажа на клиенте узнаёт о горении раз в `BURN_TELL` секунд и при догорании; рука на панели
 показывает остаток полоской (`HotbarSlot.fill`), сумка — временем.
 
-**Данные.** Предметы (`food`, `spoils`, `rots_to`, `warmth`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
+**Данные.** Предметы (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `warmth`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
 `core:human`; слои и работы фигуры — `content/core/sprites/player.yaml`, листы инструментов в руке —
 `sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character` (с серверного
 персонажа, `game.host.player`), `hands` (с клиента).
@@ -74,7 +80,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `changes`, `death`),
+**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `changes`, `death`), `actions_test.gd` (`drinking`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

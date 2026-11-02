@@ -21,6 +21,34 @@ const PALETTE := {
 }
 
 const PICTURES := {
+	"waterskin": [
+		"............",
+		".....tt.....",
+		".....nn.....",
+		"....nnnn....",
+		"...nnooo....",
+		"...nooo.....",
+		"..nnoo......",
+		"..noooo.....",
+		"..nnooooo...",
+		"...nnoooo...",
+		"....oooo....",
+		"............",
+	],
+	"waterskin_full": [
+		"............",
+		".....tt.....",
+		".....nn.....",
+		"....nnnn....",
+		"...nnnnno...",
+		"..nnNnnnoo..",
+		"..nNnnnnoo..",
+		"..nnnnnnoo..",
+		"..nnnnnnoo..",
+		"...nnnnoo...",
+		"....oooo....",
+		"............",
+	],
 	"fur_hat": [
 		"............",
 		"............",
@@ -1324,6 +1352,17 @@ const PICTURES := {
 		"..wrrrw..",
 		"..wrrrw..",
 		"...www...",
+		".........",
+	],
+	"water": [
+		".jjjjjj..",
+		".jZZZZjj.",
+		".jUzUUj.j",
+		".jUUUUj.j",
+		".jUUUUjj.",
+		".jUUUUj..",
+		".jUUUUj..",
+		"..jjjj...",
 		".........",
 	],
 	"drop": [

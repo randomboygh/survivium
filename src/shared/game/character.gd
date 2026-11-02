@@ -336,8 +336,9 @@ func give(id: String, n: int, worn := 0) -> int:
 	return got
 
 
-## Eats one item from bag slot `i`, or puts it on the wounds when it heals (a bandage);
-## false if it is neither, the character is full or not hurt.
+## Eats one item from bag slot `i`, drinks it (a full waterskin, which becomes its
+## `empties_to`), or puts it on the wounds when it heals (a bandage); false if it is
+## none of these, the character is full, not thirsty or not hurt.
 func eat(i: int) -> bool:
 	var s = inventory.slots[i]
 	if s == null:
@@ -349,6 +350,16 @@ func eat(i: int) -> bool:
 		inventory.take_slot(i, 1)
 		note("healed")
 		say("+%d здоровья" % roundi(Items.heal(s[0])))
+		return true
+	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
+		if not vitals.drink(Items.drink(s[0])):
+			nag("not_thirsty", "Пить не хочется")
+			return false
+		var empty := Items.get_item(s[0]).get("empties_to", "") as String
+		inventory.take_slot(i, 1)
+		if empty != "" and give(empty, 1) == 0:
+			nag("full", "Сумка полна")
+		note("drunk")
 		return true
 	if Items.food(s[0]) <= 0.0:
 		return false
@@ -485,6 +496,8 @@ static func cause_text(cause: String) -> Array:
 			return ["Вы сгорели", "в огне костра"]
 		"cold":
 			return ["Вы замёрзли", "ночь без огня и тёплой одежды"]
+		"thirst":
+			return ["Вы умерли", "от жажды"]
 	return ["Вы погибли", ""]
 
 

@@ -128,6 +128,8 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
 				"Свежесть: испортится за %s, в холоде и под крышей дольше" % days])
 		groups.append(["Еда", food])
+	if Items.drink(id) > 0.0:
+		groups.append(["Питьё", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id)), false, "Вода"]]])
 	if it.get("warmth", 0.0) > 0.0:
 		groups.append(["Одежда", [[ItemIcons.picture("thermo"), "+%d°" % roundi(it.warmth), false,
 			"Теплее на столько градусов, надетая; мокрая греет вполовину"]]])
