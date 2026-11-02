@@ -444,6 +444,14 @@ func _run() -> void:
 				# The client's copy of the bag takes it with the next frame.
 				await process_frame
 				await process_frame
+			if shot.has("worn"):
+				# The tool in the slot worn by so many swings: the panel's spanner shows.
+				var inv = main.host.player.inventory
+				var st = inv.slots[slot]
+				inv.slots[slot] = [st[0], st[1], shot.worn]
+				inv.changed.emit()
+				await process_frame
+				await process_frame
 			if slot >= 0:
 				main.hud.bag._tap(slot)
 			if shot.has("kind"):

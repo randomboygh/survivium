@@ -344,6 +344,8 @@ const SHOTS := {
 	# skills), a leather sling chosen: what it shoots, none in the bag.
 	"bag-skills": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "kit": true,
 		"hold": ["tools:stone_axe", "tools:wooden_bow"]},
+	# A worn tool chosen: the spanner by its name.
+	"bag-repair": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "kit": true, "slot": 6, "worn": 40},
 	# The same with nothing chosen: the panel at the bottom as tall.
 	"bag-none": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "kit": true, "slot": -1},
 	# A torch chosen in the bag: «взять | поставить» joined.

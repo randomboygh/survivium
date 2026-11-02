@@ -770,6 +770,18 @@ const ICONS := {
 		"...wwww...",
 		"...wwww...",
 	],
+	# Repair: a spanner.
+	"act_repair": [
+		"......ww..",
+		".....ww...",
+		".....ww..w",
+		"....wwwwww",
+		"...wwwwww.",
+		"..www.....",
+		".www......",
+		"www.......",
+		"ww........",
+	],
 	# Bandage: a cross.
 	"act_heal": [
 		"...www...",

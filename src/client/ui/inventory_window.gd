@@ -13,7 +13,7 @@ extends PanelContainer
 ## two or tops up a stack of the same item, and lets it go; a tap on the chosen one lets
 ## it go. The panel at the bottom keeps its height whether a stack is chosen or not: at
 ## its top the chosen stack's picture and name (its count only for more than one;
-## repair by the name) and at the top right sorting by hand and «по виду | по весу»
+## the spanner by the name repairs a worn tool) and at the top right sorting by hand and «по виду | по весу»
 ## (they sort the bag past the hotbar row and the chests shown); then what it is as
 ## named groups of small wells side by side (FactChips.item_groups: weight, food, the
 ## bag, the tool's work, what a weapon shoots, wear) and a line of buttons: on the left
@@ -241,7 +241,12 @@ func _ready() -> void:
 	_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_info.custom_minimum_size.x = 120
 	name_row.add_child(_info)
-	_repair = _button("Починить", func() -> void: game.net.request(Protocol.REPAIR, [_at]))
+	# Repair a worn tool (at a station that mends, with what it is mended with): a
+	# picture, by the sorting.
+	_repair = TabRow.icon_button(UiStyle.icon("act_repair"), "Починить: у станка для починки, тратит материалы", func() -> void:
+		game.net.request(Protocol.REPAIR, [_at]))
+	_repair.custom_minimum_size = Vector2(30, 24)
+	_repair.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	name_row.add_child(_repair)
 	# At the top right: sorting by hand, and by kind | by weight joined.
 	var sorts := HBoxContainer.new()
