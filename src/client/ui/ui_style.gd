@@ -25,6 +25,8 @@ const BUTTON_SHADE := Color("#2a1f16")
 const DARK_INK := Color("#1c140d")
 const COLD := Color("#7cc0f0")
 const DANGER := Color("#e0613f")
+## The player's team: its members' names over their heads and its lines in the chat.
+const TEAM := Color("#8fd16a")
 const DANGER_DARK := Color("#a8432a")
 const GOOD := Color("#8fcf6a")
 const GOOD_DARK := Color("#5e9443")

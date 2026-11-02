@@ -432,6 +432,19 @@ func _run() -> void:
 			await process_frame
 			for h in 2:
 				main.controls.put_in_hand(shot.hold[h], h)
+		if shot.has("team"):
+			_fake_team(main, shot.team)
+			# The figures take a few frames to come in.
+			for i in 10:
+				await process_frame
+			if shot.team == "person":
+				var screen: Vector2 = main.view.camera.unproject_position(main.others.people[3].figure.global_position)
+				main.hud.person.show_person(3, "Вова", screen * main.view.view_scale + main.view.container.global_position)
+			if shot.get("team_panel", false):
+				main.hud.toggle_menu()
+				main.hud.open_team()
+			for i in 3:
+				await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -724,6 +737,9 @@ func _run() -> void:
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
+		if shot.get("team_panel", false):
+			main.hud.toggle_menu()
+			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
 		if shot.get("bag", false) or shot.get("chest", false) or shot.get("chests", false) or shot.get("campfire", false) \
@@ -759,6 +775,22 @@ func _run() -> void:
 ## linen thread, cord and clay in the bag, linen cloth being woven, the craft tab at the loom.
 ## With `dry`, a drying rack to the north, hides, fat and meat in the bag, leather being
 ## tanned, the craft tab at the rack.
+## A team for the shots of teams: the player (number 1) leads «Лесные» with Боря,
+## who stands by them with Вова, not in it; `what` is "invite" (Гена's invitation),
+## "person" (Вова's card, tapped) or "" (the figures alone).
+func _fake_team(main: Node, what: String) -> void:
+	main.welcome["id"] = 1
+	main.welcome["name"] = "Аня"
+	main.team.take_team({"id": 1, "name": "Лесные", "lead": 1, "members": [[1, "Аня"], [2, "Боря"]]})
+	var at: Vector3 = main.player.position
+	var people := []
+	for p: Array in [[2, "Боря", Vector3(2.0, 0.0, 5.5), true], [3, "Вова", Vector3(-2.5, 0.0, 6.0), false]]:
+		var pos: Vector3 = at + p[2]
+		people.append([p[0], p[1], pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF, {}, p[3]])
+	main.others.take_people(people)
+	main.team.take_invites([[4, "Гена"]] if what == "invite" else [])
+
+
 func _craft(forge := false, weave := false, smith := false, dry := false) -> void:
 	var inv = main.host.player.inventory
 	for st in [["resources:fiber", 14], ["resources:branch", 16], ["resources:flint", 3], ["resources:log", 2], ["resources:clay", 6],

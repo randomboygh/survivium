@@ -491,6 +491,11 @@ const SHOTS := {
 	"turn-forest": {"time": 0.45, "season": 1, "forest": true, "turn": 4},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
 	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
+	# Teams (decision 50): a member's name in the team's colour, a tapped player's card,
+	# an invitation, the pause's window «Команда».
+	"team-person": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "person"},
+	"team-invite": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "invite"},
+	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
 	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
