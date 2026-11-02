@@ -868,6 +868,7 @@ func _process(delta: float) -> void:
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
+		player.asleep = character.vitals.asleep and not character.is_dead()
 		player.step(minf(delta, 0.05), jump)
 		character.update(delta)
 		workshop.update(delta)

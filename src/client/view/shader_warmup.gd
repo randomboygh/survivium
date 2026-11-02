@@ -7,7 +7,7 @@ extends RefCounted
 ## every mix of those lights, a frame each, and the shaders are built while the game
 ## starts rather than at the first dusk. Things that are not there yet at the start are
 ## drawn too: the particles (dust, rain, sparks) as one particle each, the lightning's
-## material on a face, and a line and a polygon of the interface (the wind's arrow, the
+## material on a face, a label over a figure, and a line and a polygon of the interface (the wind's arrow, the
 ## sound marks, the joystick), which the canvas builds its own shaders for.
 
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
@@ -60,6 +60,13 @@ func start() -> void:
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
+	# The labels over the figures ("zzZ" over the sleeper, the names of the others),
+	# shown only later.
+	if game.player != null and game.player.snore != null:
+		var label: Label3D = game.player.snore.duplicate()
+		label.visible = true
+		label.text = "z"
+		kinds["label"] = label
 	# On the world's own canvas: the interface is hidden behind the menu while the
 	# warm-up runs, and nothing under it is drawn.
 	var world_2d: World2D = game.get_viewport().find_world_2d()

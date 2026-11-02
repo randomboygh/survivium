@@ -400,15 +400,23 @@ func sleep(on: bool) -> bool:
 	return true
 
 
-## How fast sleep at `p` rests the body: ROOF_SLEEP under a roof, times the best bedding
-## in the bag (an item's `bedding`).
+## How fast sleep at `p` rests the body: ROOF_SLEEP under a roof, times the `bedding` of
+## the bed lain on (Placed.bed_under: a mat, a bedroll set down).
 func sleep_rate(p: Vector3) -> float:
 	var rate := ROOF_SLEEP if _roofed(p) else 1.0
-	var best := 1.0
-	for s in inventory.slots:
-		if s != null:
-			best = maxf(best, Items.get_item(s[0]).get("bedding", 1.0))
-	return rate * best
+	var bed: Dictionary = placed.bed_under(p) if placed != null else {}
+	if not bed.is_empty():
+		rate *= Items.get_item(bed.item).get("bedding", 1.0)
+	return rate
+
+
+## Lies down in bed `e` (Placed: a thing with `bedding`) to sleep: false, and says why, if
+## not sleepy; else the body is put on it (_came_back) and falls asleep.
+func lie_in(e: Dictionary) -> bool:
+	if not sleep(true):
+		return false
+	_came_back(placed.lying_spot(e))
+	return true
 
 
 ## Puts on what lies in bag slot `i` (see Inventory.wear); false, and says why, if not.

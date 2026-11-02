@@ -35,7 +35,11 @@
   (выносливость до `HUNGRY_CAP`, отдых медленнее), на нуле тело идёт медленно (`speed_factor`), не ранит.
   `sleep(on)` (уснуть можно ниже `SLEEP_BELOW`); во сне (`asleep`) бодрость растёт на `SLEEP_GAIN` ×
   `sleep_rate`, выносливость и лечение вдвое быстрее. `Character.sleep` (запрос `sleep`, не в воде),
-  `Character.sleep_rate` (крыша `ROOF_SLEEP`, лучшая постель в сумке — поле `bedding`); просыпается сам
+  `Character.sleep_rate` (крыша `ROOF_SLEEP`, × `bedding` постели, на которой лежат: `Placed.bed_under`).
+  Постель (`prop: bed`, предмет с `bedding`) ставят на землю, как станок; касание её — запрос `lie_in`
+  (`Character.lie_in`: уснуть и лечь на неё, `Placed.lying_spot`, клиенту — `TELEPORT`); в сумке она не
+  действует. На экране спящий лежит набок с закрытыми глазами (кадр `sleep` листа, `Figure._lay_down`),
+  над ним «zzZ» (`player.gd` `snore`); просыпается сам
   выспавшись днём, от раны или в воде. Пока спят все, ночь идёт в `Session.SLEEP_SPEED` раз быстрее.
   `fatigue` выкл — тестовый переключатель «Усталость».
   Вода `water` убывает на `THIRST_PER_DAY` в игровые сутки (в жару в `THIRST_HOT` раз быстрее); ниже
