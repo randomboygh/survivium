@@ -16,6 +16,7 @@ func run() -> void:
 	_test_land_requests()
 	_test_rights()
 	_test_rights_on_server()
+	_test_colors()
 
 
 func _test_teams() -> void:
@@ -246,8 +247,27 @@ func _test_rights_on_server() -> void:
 	_check(not s.placed.take_up(b.who, chest), "nor takes up a thing")
 	s.territory.set_rights(1, Territory.TEAM_DEFAULT, Territory.TEAM_DEFAULT)
 	_check(s.actions.dig(b.who, [Vector3i(13, 1, 12)] as Array[Vector3i], 0.5).size() > 0, "allowed, they dig")
+	_check(_ask(a, 2, Protocol.LAND_COLOR, [2]) == true and s.territory.color_of(1) == 2 and _ask(a, 3, Protocol.LAND_COLOR, ["red"]) != true,
+		"one picks the colour of one's land by a request")
 	a.leave()
 	b.leave()
+
+
+## The colour of one's land: picked by its owner, kept in the save and told to a client's copy.
+func _test_colors() -> void:
+	var t := Territory.new()
+	t.rules = Rules.new()
+	t.teams = Teams.new()
+	_check(t.color_of(1) == 0, "no colour picked is the first")
+	_check(t.set_color(1, 3) and not t.set_color(1, 3) and t.color_of(1) == 3, "the owner picks a colour, once for the same")
+	_check(not t.set_color(1, Territory.COLORS) and not t.set_color(1, -1) and t.color_of(1) == 3, "a colour out of the list is refused")
+	var back := Territory.new()
+	back.from_dict(JSON.parse_string(JSON.stringify(t.to_dict())))
+	_check(back.color_of(1) == 3, "the save keeps the colour through JSON")
+	t.claims[1] = {"id": 1, "center": Vector3i(0, 0, 0), "sq": Vector2i.ZERO, "by": 1, "name": "Аня", "count": 0}
+	var copy := Territory.new()
+	copy.take_claims(t.claims_view())
+	_check(copy.color_of(1) == 3, "a client's copy is told it")
 
 
 ## Steps the session with `link`'s player standing in the land, a step back: whether

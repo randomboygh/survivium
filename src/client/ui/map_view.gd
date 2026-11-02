@@ -479,11 +479,12 @@ func _draw_scale(at: Vector2) -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, UiStyle.MUTED)
 
 
-## Over the ground: the marks of things placed and the sacks as pictures, the markers
+## Over the ground: the land claimed, the marks of things placed and the sacks as pictures, the markers
 ## as flags, the player, the shade along the top and left of the sunken map and the
 ## north in its corner.
 func _draw_top(l: Control) -> void:
 	var rect := Rect2(Vector2.ZERO, l.size)
+	minimap.draw_land(l, rect, centre, zoom())
 	minimap.draw_marks(l, rect, centre, zoom(), true)
 	minimap.draw_markers(l, rect, centre, zoom(), true, editing)
 	if editing == -1:
