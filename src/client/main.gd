@@ -80,6 +80,8 @@ const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const Team := preload("res://src/client/game/team.gd")
+const Land := preload("res://src/client/game/land.gd")
+const LandView := preload("res://src/client/view/land_view.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
@@ -135,6 +137,8 @@ var gathering: Gathering
 var markers: Markers
 ## The player's team and the invitations to one, as the server tells them.
 var team := Team.new()
+## The land claimed and the painting of it, as the server tells them.
+var land := Land.new()
 ## The rules of play the playtest page sets (free building, tool wear, instant crafting).
 var rules: Rules
 ## The world being played and the rules run over it, once the world is made, on the
@@ -326,6 +330,8 @@ func _ready() -> void:
 	markers = Markers.new()
 	save.track("markers", markers)
 	team.game = self
+	land.game = self
+	team.changed.connect(land._changed)
 	view.build(self)
 	world_root = view.world_root
 	_build_ui()
@@ -870,6 +876,7 @@ func _process(delta: float) -> void:
 			controls.update(minf(delta, 0.05))
 			gathering.update(delta)
 		hands.update()
+		land.update()
 		t = perf.note("игрок", t)
 		_leave_footprints()
 		t = perf.note("ветер и следы", t)
@@ -1153,3 +1160,4 @@ func _build_scene() -> void:
 	cursor = CursorScript.new()
 	cursor.world = world
 	world_root.add_child(cursor)
+	world_root.add_child(LandView.new(self))

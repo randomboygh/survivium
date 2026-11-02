@@ -10,6 +10,13 @@ var free_build := false
 var tool_wear := false
 ## A crafting job takes no time (Workshop).
 var instant_craft := false
+## Territory (decision 15, 39): the squares a player may hold at first and more for each
+## game day lived, how far from its centre a claim reaches (squares), and on how many
+## levels above and below the centre it holds.
+var territory_start := 64
+var territory_per_day := 16
+var territory_radius := 24
+var territory_levels := 8
 
 
 ## Rules set from `d` (the keys of to_dict); what it leaves out keeps its default.
@@ -20,10 +27,16 @@ static func of(d: Dictionary):
 
 
 func to_dict() -> Dictionary:
-	return {"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft}
+	return {"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
+		"territory_start": territory_start, "territory_per_day": territory_per_day,
+		"territory_radius": territory_radius, "territory_levels": territory_levels}
 
 
 func from_dict(d: Dictionary) -> void:
 	free_build = bool(d.get("free_build", free_build))
 	tool_wear = bool(d.get("tool_wear", tool_wear))
 	instant_craft = bool(d.get("instant_craft", instant_craft))
+	territory_start = int(d.get("territory_start", territory_start))
+	territory_per_day = int(d.get("territory_per_day", territory_per_day))
+	territory_radius = int(d.get("territory_radius", territory_radius))
+	territory_levels = int(d.get("territory_levels", territory_levels))

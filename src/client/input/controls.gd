@@ -25,6 +25,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Territory := preload("res://src/shared/game/territory.gd")
 
 const CELL := WorldData.CELL
 ## The margin of the cut in the plane of the camera, as PLANE_MARGIN in common.gdshaderinc.
@@ -198,6 +199,9 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		if not person.is_empty():
 			game.hud.person.show_person(person[0], person[1], pos)
 			return
+	if game.land.painting:
+		_start_paint(button, pos)
+		return
 	var use := use_of()
 	var target: Dictionary = game.gathering.target_at(pos)
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
@@ -523,8 +527,30 @@ func _start_stroke(button: int, pos: Vector2, dig: bool) -> void:
 		_run_stroke()
 
 
+## A stroke of painting the land (Land.painting): the first square tapped says whether
+## the stroke paints (not the player's land yet) or clears (theirs); each square the
+## finger then goes over is painted or cleared alike.
+func _start_paint(button: int, pos: Vector2) -> void:
+	var hit := pick(pos)
+	if hit.is_empty():
+		return
+	var sq := Territory.square_of(hit.cell)
+	var claim: Dictionary = game.land.claim_of(sq)
+	_stroke = {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "paint": not game.land.own(claim),
+		"square": sq}
+	game.land.paint(sq, _stroke.paint)
+
+
 func _run_stroke() -> void:
 	_stroke.pending = false
+	if _stroke.has("paint"):
+		var hit := pick(_stroke.pos)
+		if not hit.is_empty():
+			var sq := Territory.square_of(hit.cell)
+			if sq != _stroke.square:
+				_stroke.square = sq
+				game.land.paint(sq, _stroke.paint)
+		return
 	if _stroke.dig:
 		var hit := pick(_stroke.pos)
 		if not hit.is_empty():
