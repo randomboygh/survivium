@@ -141,6 +141,9 @@ var _chests: Array = []
 ## The entries of _chests for the bags and chests lying in the bag, by slot: the item,
 ## the bag opened from it (Inventory.open), the slot as `cell` (how requests name it).
 var _packed := {}
+## The bag _packed was opened from, and whether it changed since.
+var _packed_of = null
+var _packed_dirty := true
 var _chest_entry := {}
 var _chests_seen := ""
 ## A _place waits for the end of the frame.
@@ -732,6 +735,10 @@ func _where(inv) -> Variant:
 	return _chest_entry.get("cell")
 
 
+func _bag_changed() -> void:
+	_packed_dirty = true
+
+
 ## Shows the bag and the chest as they are now.
 func refresh() -> void:
 	if not visible:
@@ -924,23 +931,33 @@ func refresh_state() -> void:
 	var seen := ""
 	for e in near:
 		seen += str(e.cell)
-	# Then the bags and chests lying in the bag, each opened as a chest of its own.
+	# Then the bags and chests lying in the bag, each opened as a chest of its own: opened
+	# again only when the bag changed (this runs every frame the window is open).
 	var inv = game.character.inventory
-	var packed := {}
-	for k in inv.slots.size():
-		var bag = inv.open(k)
-		if bag == null:
-			continue
-		var id: String = inv.slots[k][0]
-		var e: Dictionary = _packed.get(k, {})
-		if e.get("item", "") != id:
-			e = {"item": id, "items": bag, "cell": k, "packed": true}
-		else:
-			e.items.from_dict(bag.to_dict())
-		packed[k] = e
-		near.append(e)
-		seen += "%d%s" % [k, id]
-	_packed = packed
+	if _packed_of != inv:
+		if _packed_of != null and _packed_of.changed.is_connected(_bag_changed):
+			_packed_of.changed.disconnect(_bag_changed)
+		_packed_of = inv
+		inv.changed.connect(_bag_changed)
+		_packed_dirty = true
+	if _packed_dirty:
+		_packed_dirty = false
+		var packed := {}
+		for k in inv.slots.size():
+			var bag = inv.open(k)
+			if bag == null:
+				continue
+			var id: String = inv.slots[k][0]
+			var e: Dictionary = _packed.get(k, {})
+			if e.get("item", "") != id:
+				e = {"item": id, "items": bag, "cell": k, "packed": true}
+			else:
+				e.items.from_dict(bag.to_dict())
+			packed[k] = e
+		_packed = packed
+	for k: int in _packed:
+		near.append(_packed[k])
+		seen += "%d%s" % [k, _packed[k].item]
 	if seen != _chests_seen:
 		_chests_seen = seen
 		for e in _chests:
