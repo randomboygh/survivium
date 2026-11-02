@@ -408,7 +408,7 @@ func _test_station_flags() -> void:
 		and "_k:crate.at: `_k:crate` is no station" in said,
 		"a class is a lowercase word, flags are a thing's set down, a thing serves stations and is set down with a tool some item is; what stores is no station: %s" % said)
 	_check(Tools.of("_k:knife") == Tools.HAND and Items.tool_title("knife") == "нож" and Items.tool_title("axe") == "топор"
-		and Items.is_station("_k:rack") and not Items.is_station("_k:crate") and Items.most_storage() == 16,
+		and Items.is_station("_k:rack") and not Items.is_station("_k:crate") and Items.most_storage() == 40,
 		"a knife works in the world as bare hands; a class is named by the last word its items share")
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:

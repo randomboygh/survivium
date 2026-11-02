@@ -15,7 +15,7 @@ head/body/legs/feet и `warmth` — на сколько градусов в не
 content/tools/
   mod.yaml                      id: tools, название, версия, api
   axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ torch/ tar_torch/ lantern/
-  candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/
+  candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
                                 бандл на вещь:
     bundle.yaml                 название

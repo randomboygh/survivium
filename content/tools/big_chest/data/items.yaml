@@ -1,0 +1,11 @@
+# Предметы бандла «Большой сундук» мода «Инструменты и крафт»: сундук из тёмного дерева на 40
+# ячеек (storage), тяжелее простого; ставится на клетки 2×2, как сундук (prop: chest). Поля — как у
+# предметов основы (content/core/data/items.yaml).
+- id: big_chest
+  title: Большой сундук
+  weight: 14.0
+  stack: 1
+  icon: big_chest
+  model: big_chest
+  prop: chest
+  storage: 40

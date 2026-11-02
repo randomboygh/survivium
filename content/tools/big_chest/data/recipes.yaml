@@ -1,0 +1,8 @@
+# Рецепты бандла «Большой сундук»: на верстаке из досок и верёвки. at — станок (бандл верстака),
+# needs — что тратится; все поля рецепта — docs/DATA_MODEL.md.
+- id: big_chest
+  title: Большой сундук
+  makes: big_chest
+  needs: {materials:planks: 14, materials:cord: 2}
+  at: workbench
+  time: 16

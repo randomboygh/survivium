@@ -468,9 +468,10 @@ func _run() -> void:
 			main.hud.bag.refresh_state()
 			main.hud.bag._tap(0, main.hud.bag._chests.find(main.hud.bag._chest_entry))
 		if shot.get("chests", false):
-			main.host.player.inventory.add("tools:chest", 1)
+			var box: String = shot.get("box", "tools:chest")
+			main.host.player.inventory.add(box, 1)
 			main.player.facing = "e"
-			main.props.put_from_bag("tools:chest")
+			main.props.put_from_bag(box)
 			main.session.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")

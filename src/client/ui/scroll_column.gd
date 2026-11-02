@@ -1,13 +1,14 @@
 extends VBoxContainer
 ## A column of square buttons (the kinds of items, the stations near) that shows at most
-## SHOWN of them: past that, arrows above and below and a finger dragged along it move
+## `shown` of them (SHOWN, or as many as fit the height its owner gives, fit_height):
+## past that, arrows above and below and a finger dragged along it move
 ## the column a button at a time, as the hotbar's slots do. Its buttons are given with
 ## set_items and are children of `box`.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 
-## How many buttons show at once.
+## How many buttons show at once, unless the owner gives a height (fit_height).
 const SHOWN := 6
 ## The height of an arrow, in UI pixels.
 const ARROW := 12
@@ -16,6 +17,10 @@ const ARROW := 12
 var box: VBoxContainer
 var _up: Button
 var _down: Button
+## How many buttons show at once now.
+var shown := SHOWN
+## The height the column may take (see fit_height), 0 for no limit but SHOWN.
+var _room := 0.0
 ## The first button shown.
 var _first := 0
 ## The finger dragging the column (-1 for none) and where it was.
@@ -63,7 +68,7 @@ func clear_items() -> void:
 
 ## Moves the buttons shown `by` along; they stop at the ends.
 func scroll(by: int) -> void:
-	_first = clampi(_first + by, 0, maxi(0, _count() - SHOWN))
+	_first = clampi(_first + by, 0, maxi(0, _count() - shown))
 	_show()
 
 
@@ -71,15 +76,15 @@ func scroll(by: int) -> void:
 func reveal(i: int) -> void:
 	if i < _first:
 		_first = i
-	elif i >= _first + SHOWN:
-		_first = i - SHOWN + 1
+	elif i >= _first + shown:
+		_first = i - shown + 1
 	_show()
 
 
 ## Shows the buttons from the first in view, and the arrows when not all fit. Call after
 ## changing which buttons are visible.
 func refresh() -> void:
-	_first = clampi(_first, 0, maxi(0, _count() - SHOWN))
+	_first = clampi(_first, 0, maxi(0, _count() - shown))
 	_show()
 
 
@@ -100,17 +105,29 @@ func set_shown(c: Control, on: bool) -> void:
 		c.set_meta("hidden", true)
 
 
+## Shows as many buttons as fit `h` UI pixels of height (the arrows, when not all fit,
+## past it), SHOWN at the most.
+func fit_height(h: float) -> void:
+	_room = h
+	_show()
+
+
 func _show() -> void:
 	var wanted := _wanted()
-	var paged := wanted.size() > SHOWN
-	_first = clampi(_first, 0, maxi(0, wanted.size() - SHOWN))
+	if _room > 0.0:
+		var side: float = custom_minimum_size.x
+		var fits := floori((_room + 2.0) / (side + 2.0))
+		# The arrows, when they show, stand a little past the height.
+		shown = clampi(fits, 1, SHOWN)
+	var paged := wanted.size() > shown
+	_first = clampi(_first, 0, maxi(0, wanted.size() - shown))
 	for c in box.get_children():
 		var i := wanted.find(c)
-		c.visible = i >= 0 and (not paged or (i >= _first and i < _first + SHOWN))
+		c.visible = i >= 0 and (not paged or (i >= _first and i < _first + shown))
 	_up.visible = paged
 	_down.visible = paged
 	_up.disabled = _first <= 0
-	_down.disabled = _first >= wanted.size() - SHOWN
+	_down.disabled = _first >= wanted.size() - shown
 
 
 ## A finger dragged along the column moves it a button for each button it passes.
