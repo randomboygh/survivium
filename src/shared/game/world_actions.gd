@@ -90,6 +90,9 @@ var chops := {}
 ## The animals (Wildlife) blows land on; null where there are none (a client's copy of
 ## the rules), and then no blow lands.
 var wildlife
+## The land claimed (Territory): what a player may do in another's; none in tests that
+## have no claims.
+var territory
 
 
 func _init(w, c, r) -> void:
@@ -186,7 +189,7 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	if not Tools.can_chop(t):
 		who.nag("tool", "Дерево рубят топором")
 		return {}
-	if not _is_trunk(cell) or not who.act("chop"):
+	if not _is_trunk(cell) or not _may(who, cell, "harvest") or not who.act("chop"):
 		return {}
 	who.use_tool()
 	var col := Vector2i(cell.x, cell.z)
@@ -289,6 +292,7 @@ func dig_targets(who, order: Array[Vector3i], t: Dictionary, n := -1) -> Array[V
 ## Digs `cells` in one swing of `swing` seconds; what they give (their item, now and
 ## then their bonus) falls under them.
 func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
+	cells = _allowed(who, cells, "build")
 	if cells.is_empty() or not who.act("dig"):
 		return {}
 	var keys := {}
@@ -381,7 +385,10 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 ## What is cut falls on the cell, and the berries of ripe bushes on the grass cells
 ## `knock` (a scythe's arc) fall beside them. True if anything was cut.
 func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
-	if not who.act("cut"):
+	var asked := not cells.is_empty()
+	cells = _allowed(who, cells, "harvest")
+	knock = _allowed(who, knock, "harvest")
+	if asked and cells.is_empty() or not who.act("cut"):
 		return false
 	var keys := {}
 	for c in cells:
@@ -451,6 +458,8 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 	for cell in Tools.brush_shape(center, normal, who.brush()):
 		if not can_place(who, cell, top):
 			far = far or too_far(who, cell, Tools.PLACE_REACH)
+			continue
+		if not _may(who, cell, "build"):
 			continue
 		if not free and who.inventory.count(item) == 0:
 			who.nag("no_block", "В сумке нет: %s" % Items.title(item))
@@ -575,12 +584,30 @@ func strike(who, far := true) -> Dictionary:
 ## `carcass`) is left on the ground where it fell.
 func _wound(who, a, power: int) -> void:
 	var where: Vector3 = a.pos
+	if not _may(who, _cell_at(where), "hit_animals"):
+		return
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
 	if wildlife.hurt(a, power, who.position) and spec.carcass != "" and Items.has(spec.carcass):
 		var cell := _cell_at(where)
 		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
 		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		who.note("hunted")
+
+
+## Whether `who` may do `action` (Territory.ACTIONS) at `cell` (a word to them if not).
+func _may(who, cell: Vector3i, action: String) -> bool:
+	return territory == null or territory.may(who, cell, action)
+
+
+## The cells of `cells` where `who` may do `action`.
+func _allowed(who, cells: Array[Vector3i], action: String) -> Array[Vector3i]:
+	if territory == null:
+		return cells
+	var out: Array[Vector3i] = []
+	for c in cells:
+		if territory.may(who, c, action):
+			out.append(c)
+	return out
 
 
 static func _cell_at(p: Vector3) -> Vector3i:
@@ -980,9 +1007,13 @@ func gather(who, target: Dictionary) -> bool:
 		var from: Vector3 = who.position / CELL
 		if Vector2(col.x + 0.5 - from.x, col.y + 0.5 - from.z).length() > t.reach + TREE_SPREAD:
 			return false
+		if not _may(who, trunk_cell(who, col), "harvest"):
+			return false
 		return _from_tree(who, col)
 	var bush: Variant = target.get("bush")
 	if not bush is Vector3i or not world.bushes.has(bush) or too_far(who, bush, t.reach + 2):
+		return false
+	if not _may(who, bush, "harvest"):
 		return false
 	if Tools.can_gather(t):
 		return _from_bush(who, target.bush)
@@ -1366,6 +1397,8 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		return false
 	if not _can_plant(who, id, cell):
 		who.nag("plant", "Сюда не посадить")
+		return false
+	if not _may(who, cell, "build"):
 		return false
 	if not who.act("gather"):
 		return false

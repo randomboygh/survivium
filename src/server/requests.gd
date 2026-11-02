@@ -131,7 +131,7 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PROP_DESTROY:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
-				return not e.is_empty() and placed.destroy(e)
+				return not e.is_empty() and session.territory.may(who, e.cell, "build") and placed.destroy(e)
 		Protocol.CRAFT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]) and Crafting.BY_ID.has(args[0]):
 				return workshop.start(Crafting.get_recipe(args[0]), args[1])
@@ -224,6 +224,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.LAND_PAINT:
 			if _fit(args, [TYPE_VECTOR2I, TYPE_BOOL]):
 				return session.territory.paint(who, args[0], args[1])
+		Protocol.LAND_RIGHTS:
+			if _fit(args, [TYPE_INT, TYPE_INT]):
+				return session.territory.set_rights(who.id, args[0], args[1])
 		Protocol.REVIVE:
 			# Only the dead come back (where to is checked at stage С6).
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():
@@ -274,7 +277,9 @@ func _bag(where: Variant):
 		return _opened[where]
 	if where is Vector3i:
 		var e: Dictionary = _near(where)
-		return e.get("items") if not e.is_empty() else null
+		if e.is_empty() or not session.territory.may(who, e.cell, "chests"):
+			return null
+		return e.get("items")
 	return null
 
 

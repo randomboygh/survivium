@@ -358,6 +358,8 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	if spot == null:
 		who.nag("put", "Нужно ровное место 2×2 перед собой")
 		return false
+	if territory != null and not territory.may(who, spot, "build"):
+		return false
 	if item.claims and territory != null and not territory.can_claim(who, spot):
 		return false
 	if not who.act("place"):
@@ -378,6 +380,8 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 ## (its weight and theirs go to the bag); not a fire (see put_out and destroy). True if it
 ## was taken.
 func take_up(who, e: Dictionary) -> bool:
+	if territory != null and not territory.may(who, e.cell, "build"):
+		return false
 	if is_light(e):
 		return take_light(who, e)
 	if is_fire(e):
@@ -664,6 +668,8 @@ func put_light_from_bag(who, id: String, top: int) -> bool:
 	if not is_light_item(id) or who.inventory.count(id) < 1:
 		return false
 	var spot: Variant = light_spot(who, top)
+	if spot != null and territory != null and not territory.may(who, spot, "build"):
+		return false
 	if spot == null:
 		who.nag("put", "Некуда поставить: нужна свободная клетка на земле перед собой")
 		return false
