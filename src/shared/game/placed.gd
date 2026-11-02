@@ -33,8 +33,12 @@ const CELL := WorldData.CELL
 ## The campfire of the camp by the spawn of a new world (see Starts), the place to come
 ## back to after death.
 const CAMPFIRE := "core:campfire"
-## How close (in cells) a body standing by a burning campfire comes to be burnt.
+## How close (in cells) a body pushing into a burning campfire, or over it, comes to be
+## burnt.
 const SINGE := 0.02
+## The flames burn only the middle of a campfire's two by two cells: this far in from its
+## edge (cells), so a body may stand by it to warm.
+const FLAMES_IN := 0.5
 ## A fire burning under the open sky goes out after this many seconds of a heavy rain
 ## (of strength RAIN_HEAVY or more: a downpour, a storm; a light rain does not), and dries
 ## as fast once it stops.
@@ -304,10 +308,20 @@ func burns(p: Vector3) -> bool:
 	return not burning(p).is_empty()
 
 
-## The burning campfire a body with its feet at `p` (world units) touches, {} for none:
-## beside it within SINGE or on top of it. Asked also for where a body pushed
-## (Body.bumped), which a step stops short of the fire.
+## The burning campfire a body with its feet at `p` (world units) stands in the flames
+## of, {} for none: the middle of its cells (FLAMES_IN from the edge), or on top of
+## it; standing by its side warms (Warmth) without burning.
 func burning(p: Vector3) -> Dictionary:
+	return _fire_at(p, FLAMES_IN)
+
+
+## The burning campfire a body pushed into at `p` (Body.bumped, which a step stops
+## short of the fire), {} for none: walking into it burns, a little.
+func pushed_into(p: Vector3) -> Dictionary:
+	return _fire_at(p, -SINGE)
+
+
+func _fire_at(p: Vector3, inset: float) -> Dictionary:
 	var c := p / CELL
 	for e in things:
 		if not e.lit or not is_fire(e):
@@ -315,8 +329,8 @@ func burning(p: Vector3) -> Dictionary:
 		var at: Vector3i = e.cell
 		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:
 			continue
-		if c.x + Body.HALF_WIDTH + SINGE > at.x and c.x - Body.HALF_WIDTH - SINGE < at.x + 2 \
-				and c.z + Body.HALF_DEPTH + SINGE > at.z and c.z - Body.HALF_DEPTH - SINGE < at.z + 2:
+		if c.x + Body.HALF_WIDTH > at.x + inset and c.x - Body.HALF_WIDTH < at.x + 2 - inset \
+				and c.z + Body.HALF_DEPTH > at.z + inset and c.z - Body.HALF_DEPTH < at.z + 2 - inset:
 			return e
 	return {}
 

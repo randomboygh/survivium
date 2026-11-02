@@ -21,6 +21,8 @@
   weight: 0.2
   stack: 10
   food: 25
+  heal: 3
+  drink: 2
   model: flatbread
   icon: flatbread
   anim: eat

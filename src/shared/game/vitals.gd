@@ -41,7 +41,7 @@ const HUNGRY_CAP := 60.0
 const SWIM_COST := 5.0
 const DROWN := 8.0
 ## Health a touch of a burning campfire takes.
-const BURN := 5.0
+const BURN := 2.0
 ## Below this much stamina the body is tired and walks slower.
 const TIRED := 10.0
 const TIRED_PACE := 0.7

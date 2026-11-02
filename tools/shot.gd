@@ -503,6 +503,41 @@ func _run() -> void:
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0)
+			if shot.get("take_all", false):
+				# Things in the bag and more in the chest, then «Забрать всё».
+				for st in [["resources:stone", 7], ["resources:fiber", 5], ["tools:stone_axe", 1]]:
+					main.host.player.inventory.add(st[0], st[1])
+				for st in [["resources:branch", 9], ["resources:flint", 4], ["plants:raspberry", 30]]:
+					main.session.placed.chest_items.add(st[0], st[1])
+				for i in 4:
+					await process_frame
+				print("bag before: ", main.host.player.inventory.slots)
+				if shot.has("wear"):
+					main.hud.bag._lock = false
+					main.hud.bag._put_all_in_chest()
+					for i in 4:
+						await process_frame
+					print("bag put: ", main.host.player.inventory.slots)
+					main.hud.bag.sort("kind")
+					for i in 4:
+						await process_frame
+					print("bag sorted: ", main.host.player.inventory.slots)
+				main.hud.bag._take_all_from_chest()
+				for i in 4:
+					await process_frame
+				print("bag after: ", main.host.player.inventory.slots)
+				print("client bag after: ", main.character.inventory.slots)
+		if shot.get("packed", false):
+			# A bag and a chest with things lying in the bag: their grids under it, scrolled to.
+			var inv = main.host.player.inventory
+			inv.add("tools:leather_bag", 1, 0, {"slots": [["resources:flint", 6], ["plants:raspberry", 10], ["resources:fiber", 8]]})
+			inv.add("tools:chest", 1, 0, {"slots": [["resources:branch", 12], ["resources:stone", 9]]})
+			for i in 4:
+				await process_frame
+			main.hud.bag.refresh()
+			await process_frame
+			main.hud.bag._scroll.scroll_vertical = shot.get("scroll", 0)
+			await process_frame
 		if shot.get("campfire", false):
 			# A few branches to feed it with; the window opens at the client's copy of the fire.
 			main.host.player.inventory.add("resources:branch", 6)

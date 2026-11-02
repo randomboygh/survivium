@@ -352,7 +352,8 @@ func fire_strength(rec: Dictionary, share: float) -> void:
 	(rec.sparks as CPUParticles3D).emitting = k > 0.5
 	(rec.smoke as CPUParticles3D).scale_amount_max = k
 	var light: OmniLight3D = rec.fire.light
-	light.omni_range = 8.0 * lerpf(0.5, 1.0, k)
+	# Through the anchor, so a turn or tilt of the view keeps the short light short.
+	set_reach(light, 8.0 * lerpf(0.5, 1.0, k))
 	rec.fire.base = FIRE_ENERGY * lerpf(0.45, 1.0, k)
 
 
@@ -788,6 +789,15 @@ func anchor(light: OmniLight3D, p: Vector3) -> void:
 	_anchored.append([light, p, light.omni_range])
 	light.position = PixelView.shear(p)
 	light.omni_range = PixelView.light_range(light.omni_range)
+
+
+## Changes how far round its place anchored `light` lights (world units before
+## PixelView.light_range), now and when the view changes.
+func set_reach(light: OmniLight3D, reach: float) -> void:
+	for a: Array in _anchored:
+		if a[0] == light:
+			a[2] = reach
+	light.omni_range = PixelView.light_range(reach)
 
 
 ## Puts the anchored lights where the view now draws their places; forgets the freed.

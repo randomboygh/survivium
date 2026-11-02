@@ -127,6 +127,8 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 			var days := "%s сут." % str(snappedf(keeps, 0.1))
 			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
 				"Свежесть: испортится за %s, в холоде и под крышей дольше" % days])
+		if Items.heal(id) > 0.0:
+			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id)), false, "Здоровье"])
 		groups.append(["Еда", food])
 	if Items.drink(id) > 0.0:
 		groups.append(["Питьё", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id)), false, "Вода"]]])
