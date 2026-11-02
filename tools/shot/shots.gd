@@ -407,6 +407,8 @@ const SHOTS := {
 	# follow what it has left.
 	"fire-full": {"time": 0.9, "season": 1, "moon": 0.0, "place": "beach", "fuel": 1.0},
 	"fire-low": {"time": 0.9, "season": 1, "moon": 0.0, "place": "beach", "fuel": 0.05},
+	# Standing right by the spawn campfire, over its stones: only its logs stop a body.
+	"fire-close": {"time": 0.42, "season": 1, "touch": true, "fire_close": true},
 	# The spawn campfire opened: the craft tab with its buttons by the cross.
 	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
 	# The same workbench, kiln and chest with the window closed.

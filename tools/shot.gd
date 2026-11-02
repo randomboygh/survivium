@@ -9,6 +9,7 @@ extends SceneTree
 ## searched in cells (half a world unit); the player stands in world units.
 
 const Items := preload("res://src/shared/content/items.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 const Shots := preload("res://tools/shot/shots.gd")
 const Places := preload("res://tools/shot/places.gd")
 
@@ -425,7 +426,9 @@ func _run() -> void:
 			for e in main.placed.things:
 				if e.item == shot.bed[0]:
 					main.gathering.gather({"prop": e})
-			for i in 30:
+			# Long enough for the letters "z" over the sleeper to be in the air together.
+			var since := Time.get_ticks_msec()
+			while Time.get_ticks_msec() - since < 3500:
 				await process_frame
 		if shot.has("thirst"):
 			# A thirsty body: the water bar low and red.
@@ -584,6 +587,24 @@ func _run() -> void:
 			await process_frame
 			main.hud.bag._scroll.scroll_vertical = shot.get("scroll", 0)
 			await process_frame
+		if shot.get("fire_close", false):
+			# A campfire set down in the open, the player up against its logs from the west,
+			# over its stones, as close as its boxes (Placed.FIRE_BOXES) let a body come.
+			main.player.position = places.flat_near(main.world, main.player.position + Vector3(14.0, 0.0, 9.0))
+			for i in 3:
+				await process_frame
+			main.host.player.inventory.add(Placed.CAMPFIRE, 1)
+			main.player.facing = "e"
+			main.props.put_from_bag(Placed.CAMPFIRE)
+			for i in 3:
+				await process_frame
+			for e in main.placed.things:
+				if main.placed.is_fire(e) and e.cell.distance_to(Vector3i((main.player.position / CELL).floor())) < 4.0:
+					var mid: Vector3 = (Vector3(e.cell) + Vector3(1.0, 0.0, 1.0)) * CELL
+					main.player.position = Vector3(mid.x - (0.5 + 0.48) * CELL, mid.y, mid.z)
+					main.player.facing = "e"
+			for i in 10:
+				await process_frame
 		if shot.get("campfire", false):
 			# A few branches to feed it with; the window opens at the client's copy of the fire.
 			main.host.player.inventory.add("resources:branch", 6)

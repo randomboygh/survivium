@@ -81,13 +81,13 @@ const LYING_FORWARD := 0.8
 ## The seconds a letter "z" takes to rise and fade; SNORE_LETTERS are in the air at once.
 const SNORE_TIME := 2.7
 const SNORE_LETTERS := 3
-## The letter "z" small, larger and a capital: "o" its pale pixels, ringed in dark.
+## The letter "z" small, larger and largest: "o" its pale blue pixels, a dark line under it.
 const SNORE_SHAPES := [
-	["ooo", ".o.", "ooo"],
 	["oooo", "..o.", ".o..", "oooo"],
 	["ooooo", "...o.", "..o..", ".o...", "ooooo"],
+	["oooooo", "....o.", "...o..", "..o...", ".o....", "oooooo"],
 ]
-const SNORE_INK := Color(0.86, 0.92, 1.0)
+const SNORE_INK := Color(0.72, 0.84, 1.0)
 const SNORE_EDGE := Color(0.13, 0.14, 0.24)
 static var _snore_textures: Array[Texture2D] = []
 ## Where the flames of the lights held burn, in world units, one a hand that holds
@@ -364,10 +364,9 @@ static func snore_textures() -> Array[Texture2D]:
 				for x in n:
 					if shape[y][x] != "o":
 						continue
-					for dy in range(-1, 2):
-						for dx in range(-1, 2):
-							if img.get_pixel(x + 1 + dx, y + 1 + dy).a == 0.0:
-								img.set_pixel(x + 1 + dx, y + 1 + dy, SNORE_EDGE)
+					# A dark pixel under the bottom stroke only, so it reads over snow too.
+					if y == n - 1:
+						img.set_pixel(x + 1, y + 2, SNORE_EDGE)
 			for y in n:
 				for x in n:
 					if shape[y][x] == "o":
@@ -392,6 +391,6 @@ func _snore(at: Vector3) -> void:
 			continue
 		t = fposmod(t, 1.0)
 		z.texture = shapes[mini(int(t * shapes.size()), shapes.size() - 1)]
-		var aside := 0.3 + 0.6 * t + 0.12 * sin(t * TAU * 1.5)
-		z.position = PixelView.shear(at + side * aside * CELL + Vector3(0.0, (1.2 + 1.6 * t) * CELL, 0.0))
+		var aside := 0.4 + 2.0 * t + 0.2 * sin(t * TAU * 1.5)
+		z.position = PixelView.shear(at + side * aside * CELL + Vector3(0.0, (1.2 + 3.2 * t) * CELL, 0.0))
 		z.modulate.a = clampf(t / 0.15, 0.0, 1.0) * clampf((1.0 - t) / 0.3, 0.0, 1.0)
