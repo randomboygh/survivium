@@ -460,8 +460,12 @@ func _run() -> void:
 			main.hud.bag._kinds.pick("")
 			main.hud.bag._tap(0)
 		if shot.get("campfire", false):
-			for e in main.session.placed.things:
-				if main.session.placed.is_fire(e):
+			# A few branches to feed it with; the window opens at the client's copy of the fire.
+			main.host.player.inventory.add("resources:branch", 6)
+			await process_frame
+			await process_frame
+			for e in main.placed.things:
+				if main.placed.is_fire(e):
 					main.hud.open_prop(e)
 					break
 		if shot.get("craft", false):

@@ -1,0 +1,40 @@
+# Предметы бандла «Одежда из шкур» мода «Инструменты и крафт»: тёплая одежда, которую шьют иглой на
+# верстаке из шкур, кожи («Животные», «Материалы») и верёвки. wear_on — слот тела, warmth — на сколько
+# градусов теплее в ней (src/shared/game/warmth.gd; мокрая греет вполовину). Греет вдвое-втрое лучше
+# одежды из волокна (бандл «Одежда из волокна»).
+- id: fur_hat
+  title: Меховая шапка
+  description: Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.
+  era: core:bone_leather
+  weight: 0.4
+  stack: 1
+  icon: fur_hat
+  wear_on: head
+  warmth: 5
+- id: fur_coat
+  title: Шуба
+  description: Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.
+  era: core:bone_leather
+  weight: 2.0
+  stack: 1
+  icon: fur_coat
+  wear_on: body
+  warmth: 12
+- id: leather_trousers
+  title: Кожаные штаны
+  description: Штаны из выделанной кожи. Не продуваются ветром.
+  era: core:bone_leather
+  weight: 0.8
+  stack: 1
+  icon: leather_trousers
+  wear_on: legs
+  warmth: 5
+- id: fur_boots
+  title: Унты
+  description: Высокие сапоги из шкуры на кожаной подошве.
+  era: core:bone_leather
+  weight: 0.6
+  stack: 1
+  icon: fur_boots
+  wear_on: feet
+  warmth: 5
