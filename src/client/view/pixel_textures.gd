@@ -74,6 +74,14 @@ static var bark_material: PackedInt32Array = []
 const MOST_MATERIALS := 63
 
 
+## Drops what was made of the last bundles' materials (a scene started again may load
+## others, numbered otherwise): tint() builds the atlas again when next asked.
+static func forget() -> void:
+	atlas_image = null
+	tints = []
+	bark_material = []
+
+
 ## The atlas of the materials' textures, each read from its mod (Mat.texture_path: three
 ## tiles of TILE px side by side, the top, the sides and the underside) into tiles
 ## m * 3 + kind; magenta where a texture is missing or of another size (the validator

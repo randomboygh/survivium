@@ -94,6 +94,10 @@
 - В UV2.x меша — номер материала (6 бит, 63 — цвет вершины), а не плитки: плитку боков задаёт бит 1
   флага, низа — грань, смотрящая вниз (`MeshFaces.pack`); соседи в UV2.y — тоже материалы. Атлас —
   16×12 плиток (`ATLAS_COLUMNS`, `ATLAS_ROWS` в `common.gdshaderinc`, `PixelTextures.TILES`, `ROWS`).
+- Статические переменные переживают перезапуск сцены, а другой мир может грузить другие бандлы с другой
+  нумерацией материалов: `main._ready` после `Mods.activate` зовёт `PixelTextures.forget()` и
+  `MeshFaces.forget()`, а атлас строится до `RoofMap.prepare` и карты (тона биомов и цвета карты берутся
+  из средних цветов атласа; со старыми выходил фиолетовый песок).
 
 **Тесты.** `tests/unit/view_test.gd` (`pixel_view`, `sprite_sheet`, `tracks`, `hidden`, `camera_spin`),
 скриншоты `tools/shot.gd` (таблица `tools/shot/shots.gd`, места `tools/shot/places.gd`),

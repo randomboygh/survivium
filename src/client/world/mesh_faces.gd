@@ -108,6 +108,15 @@ static var _covers_lut := PackedByteArray()
 static var _curves := {}
 
 
+## Takes the materials of the bundles now loaded (Mods.activate): leaves are a role a
+## bundle may give, so their number may differ from the last scene's.
+static func forget() -> void:
+	AIR = Mat.AIR
+	WATER = Mat.WATER
+	LEAVES = Mat.LEAVES
+	_covers_lut = PackedByteArray()
+
+
 ## Per direction: corners in clockwise order seen from outside, and the normal.
 static func face_table() -> Array:
 	if not _faces.is_empty():

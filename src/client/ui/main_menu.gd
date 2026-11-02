@@ -378,8 +378,8 @@ func _ready() -> void:
 
 
 ## The loading card: the map around the start in a frame like the minimap's with the
-## seed over it, the tip right under it (as tall as the longest tip, the words from its
-## top, so neither moves as they change), and the strip with the cancel button at the bottom.
+## seed over it, the tip right under it (as tall as the longest tip, the words in its
+## middle, so the card keeps its size as they change), and the strip with the cancel button at the bottom.
 func _build_loading() -> void:
 	_loading = PanelContainer.new()
 	_loading.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -414,7 +414,7 @@ func _build_loading() -> void:
 	_tip = UiStyle.label("", UiStyle.MUTED)
 	_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tip.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_tip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	# As tall as the longest tip at the width it is shown, so the card keeps its size as
 	# they change.
 	var width := WIDTH - 2 * UiStyle.WELL_PAD
