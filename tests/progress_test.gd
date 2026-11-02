@@ -51,6 +51,9 @@ var checks := 0
 var failures := 0
 var swings := 0
 var trips := 0
+## Where each kind of thing sought by hand (grass for an item, branches, a tree) was last
+## found, a world point: gone back to before a trip further out (see _back_to).
+var _found := {}
 ## Where the stations stand; the player comes back here to make things.
 var camp := Vector3.ZERO
 ## The recipes in the order they become possible, and the ones made.
@@ -712,7 +715,10 @@ func _branch() -> bool:
 					return _fail("hands take nothing from %s at %s, the bag: %s" % ["a bush" if best.has("bush") else "a tree", at,
 						main.host.player.inventory.slots.filter(func(sl) -> bool: return sl != null).map(func(sl) -> String: return "%s ×%d" % sl)])
 			await process_frame
+			_found["branch"] = (Vector3(at) + Vector3(0.5, 1.0, 0.5)) * CELL
 			return true
+		if await _back_to("branch"):
+			continue
 		if not await _trip():
 			break
 	return _fail("no bush or tree with branches found")
@@ -796,7 +802,10 @@ func _fell(seed := "") -> bool:
 				# A tree by the water drops its logs into it: the next one, then.
 				print("a felled %s at %s left nothing wanted" % [Trees.SPECIES[w.trees.get(best, 0)].id if w.trees.has(best) else "tree", best])
 				continue
+			_found["tree " + seed] = Vector3(best.x + 0.5, feet.y, best.y + 0.5) * CELL
 			return true
+		if await _back_to("tree " + seed):
+			continue
 		if not await _trip():
 			break
 	return _fail("no tree found to fell")
@@ -836,7 +845,10 @@ func _mow(id: String, plant: String) -> bool:
 				return _fail("hands do not cut the grass at %s for %s" % [best, Items.title(id)])
 			await process_frame
 			await _pick_up((Vector3(best) + Vector3(0.5, 1.0, 0.5)) * CELL, 3)
+			_found["grass " + id] = (Vector3(best) + Vector3(0.5, 1.0, 0.5)) * CELL
 			return true
+		if await _back_to("grass " + id):
+			continue
 		if not await _trip():
 			break
 	return _fail("no grass found that gives %s" % Items.title(id))
@@ -1003,6 +1015,19 @@ func _stand_by(cell: Vector3i) -> void:
 				main.player.facing = SpriteSheet.direction_of(Vector2(-dx, -dz))
 				return
 	await _go((Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+
+
+## Goes back to where `key` (what was sought, see _found) was last found, when that lies
+## past the search around the player (the camp, where things are made, is mown and
+## felled bare first): true when it went, so the search is made there before a trip
+## further out. A place is gone back to once, till something is found there again.
+func _back_to(key: String) -> bool:
+	var at: Vector3 = _found.get(key, Vector3.INF)
+	_found.erase(key)
+	if at == Vector3.INF or Vector2(at.x - main.player.position.x, at.z - main.player.position.z).length() < SEARCH * CELL * 0.5:
+		return false
+	await _go(at)
+	return true
 
 
 ## Goes further out from the camp, along a spiral of chunks, and waits for the world
