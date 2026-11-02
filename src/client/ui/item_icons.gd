@@ -13,7 +13,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
 ## The interface's own pictures (see picture).
-const UI := ["hand", "sack", "heart", "food", "bolt", "weight"]
+const UI := ["hand", "sack", "heart", "food", "bolt", "weight", "thermo", "drop"]
 
 static var _cache := {}
 ## The images the pictures were made from, by their file (see image_of).

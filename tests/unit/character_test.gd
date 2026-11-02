@@ -9,6 +9,7 @@ func run() -> void:
 	_test_torch()
 	_test_spoil()
 	_test_vitals()
+	_test_warmth()
 	_test_changes()
 	_test_death()
 
@@ -212,6 +213,49 @@ func _test_torch() -> void:
 	_check(bag.slots[0] == ["tools:torch", 5], "torches stack by five")
 	bag.add("tools:torch", 1, 40)
 	_check(bag.slots[0] == ["tools:torch", 5] and bag.slots[1] == ["tools:torch", 1], "one burned by wear in an old save comes back whole")
+
+
+func _test_warmth() -> void:
+	const Warmth := preload("res://src/shared/game/warmth.gd")
+	var v := Vitals.new()
+	v.warm(1.0, 18.0)
+	_check(is_equal_approx(v.warmth, Vitals.COMFORT), "mild air keeps the body comfortable")
+	v.warm(1.0, -5.0)
+	_check(v.warmth < Vitals.COLD and v.health < Vitals.MAX and v.hurt_by == "cold", "a freezing night chills and then hurts")
+	_check(v.stamina_cap() < Vitals.MAX, "the cold lowers stamina")
+	var hp := v.health
+	v.step(0.0, 0.5, false)
+	_check(v.health <= hp, "a cold body does not heal")
+	v.warm(1.0, 20.0)
+	_check(v.warmth > Vitals.COLD, "warmth comes back by a fire")
+	v.warm(1.0, 40.0)
+	_check(v.warmth > Vitals.HOT and v.stamina_cap() <= Vitals.HOT_CAP, "heat tires")
+	var off := Vitals.new()
+	off.cold = false
+	off.warm(1.0, -30.0)
+	_check(off.warmth == Vitals.COMFORT and off.health == Vitals.MAX, "with the cold off the body feels nothing")
+	var w := Vitals.new()
+	w.warm(0.1, 15.0, 1.0)
+	_check(w.wet > 0.5, "rain wets")
+	w.warm(0.0, 15.0, 0.0, 0.0, true)
+	_check(w.wet == 1.0, "swimming soaks")
+	var by_fire := Vitals.new()
+	by_fire.wet = 1.0
+	w.warm(0.05, 15.0)
+	by_fire.warm(0.05, 30.0, 0.0, 0.0, false, false, 20.0)
+	_check(by_fire.wet < w.wet, "a fire dries faster than the air")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(v.to_dict())))
+	_check(is_equal_approx(copy.warmth, v.warmth), "warmth survives a save")
+	_check(Warmth.feel(0.0, 0.0, 10.0, 0.0, false, false) > Warmth.feel(0.0, 0.0, 10.0, 1.0, false, false),
+		"wet clothes warm less")
+	_check(Warmth.feel(0.0, 20.0, 0.0, 0.0, false, false) == 20.0, "a fire warms")
+	_check(Warmth.feel(30.0, 20.0, 10.0, 0.0, false, true) < 30.0, "water chills a swimmer")
+	_check(Warmth.clothes({"head": "tools:fiber_hat", "body": "tools:grass_cape"}) == 7.0, "clothes add their warmth")
+	var summer := Clock.new()
+	var winter := Clock.new()
+	winter.season = Clock.WINTER
+	_check(Warmth.air(null, winter, Vector3.ZERO) < Warmth.air(null, summer, Vector3.ZERO), "winter is colder")
 
 
 func _test_vitals() -> void:

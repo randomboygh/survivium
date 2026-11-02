@@ -1,0 +1,35 @@
+# Предметы бандла «Одежда из волокна» мода «Инструменты и крафт»: первая одежда, которую плетут
+# руками. wear_on — слот тела (head, body, legs, feet), warmth — на сколько градусов теплее в ней
+# (src/shared/game/warmth.gd; мокрая греет вполовину). Тёплая одежда из шкур придёт позже.
+- id: fiber_hat
+  title: Плетёная шапка
+  description: Шапка из сухой травы. Немного греет голову.
+  weight: 0.2
+  stack: 1
+  icon: fiber_hat
+  wear_on: head
+  warmth: 2
+- id: grass_cape
+  title: Травяная накидка
+  description: Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.
+  weight: 0.6
+  stack: 1
+  icon: grass_cape
+  wear_on: body
+  warmth: 5
+- id: leg_wraps
+  title: Обмотки
+  description: Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.
+  weight: 0.3
+  stack: 1
+  icon: leg_wraps
+  wear_on: legs
+  warmth: 2
+- id: bast_shoes
+  title: Лапти
+  description: Плетёная обувь из волокна на верёвочных завязках.
+  weight: 0.3
+  stack: 1
+  icon: bast_shoes
+  wear_on: feet
+  warmth: 2

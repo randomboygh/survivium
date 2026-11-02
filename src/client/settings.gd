@@ -167,6 +167,8 @@ var no_overload := false
 var instant_craft := false
 ## Playtest switch: satiety does not fall (Vitals.hunger off). Not saved.
 var no_hunger := false
+## Playtest switch: the body feels no cold or heat (Vitals.cold off). Not saved.
+var no_cold := false
 ## Playtest switch: the death screen also offers to come back where the character
 ## fell. Not saved.
 var revive_at_death := false
@@ -337,6 +339,7 @@ func apply() -> void:
 		if who != null:
 			who.inventory.heavy = not no_overload
 			who.vitals.hunger = not no_hunger
+			who.vitals.cold = not no_cold
 	Sound.set_volume("Music", values.music_volume)
 	Sound.set_volume("Sounds", values.sound_volume)
 	Sound.set_volume("Nature", values.nature_volume)
@@ -550,6 +553,11 @@ func set_no_overload(on: bool) -> void:
 
 func set_no_hunger(on: bool) -> void:
 	no_hunger = on
+	apply()
+
+
+func set_no_cold(on: bool) -> void:
+	no_cold = on
 	apply()
 
 
