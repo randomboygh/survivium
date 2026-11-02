@@ -4,7 +4,7 @@ extends RefCounted
 ## world saved in the game opens on the server and the other way round. The chunks the
 ## players changed (WorldData.unsaved) are written first, each in its place; then the
 ## snapshot: world.json (seed, settings, bundles, materials, the clock, the things
-## placed with what chests hold, the next player's number) and the record of each
+## placed with what chests hold, the teams, the next player's number) and the record of each
 ## player in the world, players/<hash of their key>.json (number, name, where the body
 ## is, the bag, the body's state, the character, what they know, their queue), all
 ## written beside their files first and then moved over them, world.json last, all in
@@ -158,5 +158,6 @@ func _world_meta(next_id: int) -> Dictionary:
 		"played": played,
 		"sky": session.clock.to_dict(),
 		"placed": session.placed.to_list(),
+		"teams": session.teams.to_dict(),
 		"next_player": next_id,
 	}

@@ -331,7 +331,7 @@ func _run() -> void:
 	borya_account[0].left_at -= net.BYE_LINGER
 	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and so does Боря's")
 	server.command("say всем привет")
-	_check(await _until(func() -> bool: return back.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == [0, "Сервер", "всем привет"])),
+	_check(await _until(func() -> bool: return back.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1].slice(0, 3) == [0, "Сервер", "всем привет"])),
 		"say reaches the players' chat from the server")
 	_check(server.command("kick Аня").contains("Аня"), "kick names the player")
 	_check(await _until(func() -> bool: return back.socket.ended) and back.socket.close_code == 4001
@@ -515,7 +515,7 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 	pa.teleport(spawn)
 	pb.teleport(spawn + Vector3(2.0, 0.0, 0.0))
 	var hi = a.socket.net.request(Protocol.CHAT, ["  привет  "])
-	var heard := func(bot: Bot, what: Array) -> bool: return bot.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == what)
+	var heard := func(bot: Bot, what: Array) -> bool: return bot.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1].slice(0, 3) == what)
 	var id_a: int = a.reply.value.id
 	_check(await _until(func() -> bool: return hi.done and heard.call(a, [id_a, "Хозяин", "привет"]) and heard.call(b, [id_a, "Хозяин", "привет"]))
 		and hi.value == true, "a line of chat is heard by the player near and by the speaker, trimmed")
@@ -525,6 +525,21 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 	_check(await _until(func() -> bool: return far.done and heard.call(a, [id_a, "Хозяин", "далеко"])), "the speaker hears their own line")
 	await _frames(10)
 	_check(not heard.call(b, [id_a, "Хозяин", "далеко"]), "a player beyond the chat's reach does not hear it")
+	# A team: one near is invited and accepts; a line to the team reaches them far away.
+	var id_b: int = b.reply.value.id
+	pb.teleport(spawn + Vector3(2.0, 0.0, 0.0))
+	var inv = a.socket.net.request(Protocol.TEAM_INVITE, [id_b])
+	_check(await _until(func() -> bool: return inv.done and b.of(Protocol.INVITES).any(func(e: Array) -> bool: return e[1][0] == [[id_a, "Хозяин"]]))
+		and inv.value == true, "a player near is invited to a team, and told so")
+	var yes = b.socket.net.request(Protocol.TEAM_ACCEPT, [id_a])
+	_check(await _until(func() -> bool: return yes.done and a.of(Protocol.TEAM).any(func(e: Array) -> bool: return not e[1][0].is_empty() and e[1][0].members.size() == 2)),
+		"accepts, and the team is told to its lead")
+	pb.teleport(spawn + Vector3(server.CHAT_RANGE + 5.0, 0.0, 0.0))
+	var ours = a.socket.net.request(Protocol.TEAM_CHAT, ["свои"])
+	_check(await _until(func() -> bool: return ours.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == [id_a, "Хозяин", "свои", true])),
+		"a line to the team is heard by a member far away")
+	var bye = b.socket.net.request(Protocol.TEAM_LEAVE, [])
+	_check(await _until(func() -> bool: return bye.done) and bye.value == true and server.session.teams.teams.is_empty(), "the member leaves, and the team of one is gone")
 	var cmd = b.socket.net.request(Protocol.CHAT, ["/who"])
 	_check(await _until(func() -> bool: return cmd.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).contains("хозяина"))),
 		"a command from a player who is not a host is refused in the chat")

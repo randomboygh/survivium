@@ -195,6 +195,8 @@ func _open_world() -> bool:
 	spawn = (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL
 	if had_save and meta.get("placed") is Array:
 		placed.from_list(meta.placed)
+	if had_save and meta.get("teams") is Dictionary:
+		session.teams.from_dict(meta.teams)
 	else:
 		placed.start_camp(spawn)
 		if gen.has_method("plan_things"):

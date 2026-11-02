@@ -79,6 +79,7 @@ const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
+const Team := preload("res://src/client/game/team.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
@@ -132,6 +133,8 @@ var character: CharacterScript
 var gathering: Gathering
 ## The markers the player set on the map.
 var markers: Markers
+## The player's team and the invitations to one, as the server tells them.
+var team := Team.new()
 ## The rules of play the playtest page sets (free building, tool wear, instant crafting).
 var rules: Rules
 ## The world being played and the rules run over it, once the world is made, on the
@@ -322,6 +325,7 @@ func _ready() -> void:
 	save.track("hands", controls)
 	markers = Markers.new()
 	save.track("markers", markers)
+	team.game = self
 	view.build(self)
 	world_root = view.world_root
 	_build_ui()

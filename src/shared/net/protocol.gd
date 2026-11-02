@@ -106,6 +106,17 @@ const REVIVE := "revive"
 ## players within the chat's reach, HEARD; a line that begins with "/" is a command,
 ## done for the server's hosts only, its answer coming back as HEARD from the server).
 const CHAT := "chat"
+## Teams (Teams, decision 50): invites the player numbered [id] (one in the world near
+## enough to hear the chat); accepts the invitation of [id]; turns down that of [id] (0:
+## all); leaves the team []; the lead puts out member [id]; the lead names the team
+## [name]; says a line to the team wherever its members are [text]. Each true when done.
+const TEAM_INVITE := "team_invite"
+const TEAM_ACCEPT := "team_accept"
+const TEAM_DECLINE := "team_decline"
+const TEAM_LEAVE := "team_leave"
+const TEAM_KICK := "team_kick"
+const TEAM_NAME := "team_name"
+const TEAM_CHAT := "team_chat"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -170,12 +181,18 @@ const STEP := "step"
 ## The other players in the zone, those that changed since last told (С3.3; 20 a second
 ## over a socket): [[id, name, position, facing step, hands, active hand, moving,
 ## swimming, on the ground, work kind, work length, work count, work at, what is worn
-## (Inventory.gear)], …].
+## (Inventory.gear), in the player's team], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"
-## A line of chat heard: [id of who said it (0 the server), their name, the text].
+## A line of chat heard: [id of who said it (0 the server), their name, the text, said
+## to the team].
 const HEARD := "heard"
+## The player's team (Teams.view): [{"id", "name", "lead", "members": [[id, name]…]}],
+## {} for none; on joining and when it changes.
+const TEAM := "team"
+## The invitations to a team waiting for the player: [[[id, name]…]]; when they change.
+const INVITES := "invites"
 ## A chunk of the world made, for the client's copy (С3.2; over a socket): [key, size,
 ## bytes], the record WorldGen.pack gives as var_to_bytes, zstd (`size` its length
 ## before); sent again when what the chunk shows changed (a bush picked, grass mown).

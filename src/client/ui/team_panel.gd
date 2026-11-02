@@ -1,0 +1,111 @@
+extends PanelContainer
+## The window «Команда» of the pause menu on a server (decision 50; plan/design/
+## territory-pvp.md): the team's name and members (the lead marked «старший», the
+## player «вы»; the lead's tap on a member puts them out), the invitations waiting with
+## «Принять» and «Отказаться», «Выйти из команды», how to call someone in, and «Назад»,
+## which goes back to the pause. It follows game.team as it changes. `game` is the Main
+## node; the HUD holds it and places it in the middle.
+
+const UiStyle := preload("res://src/client/ui/ui_style.gd")
+
+## The width of its buttons.
+const WIDTH := 200
+
+## «Назад» was pressed.
+signal closed
+
+var game
+var _box: VBoxContainer
+
+
+func _init(g) -> void:
+	game = g
+
+
+func _ready() -> void:
+	visible = false
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	_box = VBoxContainer.new()
+	_box.add_theme_constant_override("separation", 6)
+	add_child(_box)
+	game.team.changed.connect(_fill)
+
+
+func open() -> void:
+	visible = true
+	_fill()
+
+
+func close() -> void:
+	visible = false
+	closed.emit()
+
+
+func _fill() -> void:
+	if not visible:
+		return
+	for c in _box.get_children():
+		_box.remove_child(c)
+		c.queue_free()
+	var team = game.team
+	var me := int(game.welcome.get("id", -1))
+	var title := UiStyle.label(str(team.view.name) if team.has_team() else "Команда", UiStyle.ACCENT)
+	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_box.add_child(title)
+	for e: Array in team.invites:
+		_box.add_child(UiStyle.label("%s зовёт вас в команду" % e[1]))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		_box.add_child(row)
+		_button(row, "Принять", team.accept.bind(e[0]), "", WIDTH / 2 - 2)
+		_button(row, "Отказаться", team.decline.bind(e[0]), "", WIDTH / 2 - 2)
+	if team.has_team():
+		for m: Array in team.view.members:
+			var tags := []
+			if m[0] == me:
+				tags.append("вы")
+			if m[0] == team.view.lead:
+				tags.append("старший")
+			var kick := Callable()
+			if team.leads() and m[0] != me:
+				kick = team.kick.bind(m[0])
+				tags.append("исключить")
+			var b := _button(_box, str(m[1]), kick, ", ".join(tags))
+			b.add_theme_color_override("font_color", UiStyle.TEAM)
+			b.add_theme_color_override("font_disabled_color", UiStyle.TEAM)
+		_button(_box, "Выйти из команды", team.leave)
+	elif team.invites.is_empty():
+		_box.add_child(UiStyle.label("Вы не в команде", UiStyle.MUTED))
+	var hint := UiStyle.label("Чтобы позвать в команду, нажмите на игрока рядом", UiStyle.MUTED)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.add_child(hint)
+	_button(_box, "Назад", close)
+	reset_size()
+	var hud: Control = get_parent()
+	position = ((hud.size - size) * 0.5).floor()
+
+
+## A button of the window, `tag` at its right edge; one with no action is disabled.
+func _button(parent: Node, text: String, action: Callable, tag := "", width := WIDTH) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(width, 30)
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	if action.is_valid():
+		b.pressed.connect(action)
+	else:
+		b.disabled = true
+	if tag != "":
+		var l := UiStyle.label(tag, Color(UiStyle.MUTED, 0.8))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.set_anchors_preset(Control.PRESET_FULL_RECT)
+		l.offset_right = -8
+		l.offset_bottom = -2
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(l)
+	parent.add_child(b)
+	return b
