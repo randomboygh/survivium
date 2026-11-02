@@ -11,6 +11,7 @@ func run() -> void:
 	_test_vitals()
 	_test_warmth()
 	_test_thirst()
+	_test_sleep()
 	_test_changes()
 	_test_death()
 
@@ -293,6 +294,56 @@ func _test_thirst() -> void:
 		"a full waterskin is drunk and becomes empty")
 	_check(Tools.use_of("tools:waterskin_full") == "eat" and Items.get_item("tools:waterskin").fills_to == "tools:waterskin_full",
 		"a full waterskin is drunk from the hand, an empty one is filled")
+
+
+func _test_sleep() -> void:
+	var v := Vitals.new()
+	v.thirst = false
+	v.hunger = false
+	v.energy = 30.0
+	v.step(0.0, 10.0 / Vitals.TIRE_PER_DAY, false)
+	_check(is_equal_approx(v.energy, 20.0) and v.stamina_cap() < Vitals.MAX, "awake the body tires and sleepiness lowers stamina")
+	_check(v.sleep(true) == "" and v.asleep, "a sleepy body lies down")
+	v.step(0.0, 0.1, false)
+	_check(is_equal_approx(v.energy, 20.0 + Vitals.SLEEP_GAIN * 0.1), "asleep, energy comes back")
+	v.sleep_rate = 2.0
+	v.step(0.0, 0.1, false)
+	_check(is_equal_approx(v.energy, 20.0 + Vitals.SLEEP_GAIN * 0.3), "bedding rests faster")
+	v.sleep(false)
+	v.energy = Vitals.MAX
+	_check(v.sleep(true) == "rested" and not v.asleep, "a rested body does not sleep")
+	v.energy = 0.0
+	_check(v.speed_factor() < 1.0, "with no energy the body walks slowly")
+	var off := Vitals.new()
+	off.fatigue = false
+	off.thirst = false
+	off.step(0.0, 3.0, false)
+	_check(off.energy == 80.0, "with fatigue off energy stays")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(v.to_dict())))
+	_check(copy.energy == 0.0, "energy survives a save")
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var ch := Survivor.new()
+	ch.world = w
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
+	var plain := ch.sleep_rate(ch.at)
+	ch.give("tools:fur_bedroll", 1)
+	_check(is_equal_approx(ch.sleep_rate(ch.at), plain * 2.0), "the best bedding in the bag counts")
+	ch.vitals.energy = Vitals.MAX - 1.0
+	ch.vitals.asleep = true
+	ch.clock.time_of_day = 0.5
+	ch.update(1.0)
+	_check(not ch.vitals.asleep, "rested by day, the body wakes")
+	var s := Session.new(w, null, Clock.new(), Rules.new(), Placed.new())
+	s.players = [ch]
+	_check(s.sleep_speed() == 1.0, "awake players keep time")
+	ch.vitals.asleep = true
+	_check(s.sleep_speed() == Session.SLEEP_SPEED, "with everyone asleep the night goes by fast")
 
 
 func _test_vitals() -> void:

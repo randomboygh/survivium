@@ -2,8 +2,8 @@ extends PanelContainer
 ## The character's state in the top left corner, as tall as a button: health, satiety
 ## and stamina as short bars (the load is on the bag button), and beside them the body's
 ## warmth as a standing bar under a thermometer, full at Vitals.COMFORT, blue below
-## Vitals.COLD, red above Vitals.HOT, and its water under a mug (red when thirsty); a drop
-## beside them shows how wet the body is. Shown only while something changes noticeably or
+## Vitals.COLD, red above Vitals.HOT, its water under a mug and its energy under a moon (red
+## when thirsty, sleepy); a drop beside them shows how wet the body is. Shown only while something changes noticeably or
 ## is low (plan/design/ui.md: "indicator appears only on significant change or in a
 ## critical state"), or while pinned.
 
@@ -17,17 +17,19 @@ const ROW := 10
 const LINGER := 3.0
 const NOTICE := 4.0
 ## Below these the state is shown all the time.
-const LOW := {"health": 60.0, "satiety": Vitals.HUNGRY + 5.0, "stamina": 30.0, "water": Vitals.THIRSTY + 5.0}
+const LOW := {"health": 60.0, "satiety": Vitals.HUNGRY + 5.0, "stamina": 30.0, "water": Vitals.THIRSTY + 5.0, "energy": Vitals.SLEEPY + 5.0}
 const ROWS := [
 	["health", "heart", UiStyle.DANGER],
 	["satiety", "food", UiStyle.ACCENT],
 	["stamina", "bolt", UiStyle.GOOD],
 	["warmth", "thermo", UiStyle.INK],
 	["water", "water", UiStyle.COLD],
+	["energy", "sleep", UiStyle.MUTED],
 ]
 ## Where the warmth column starts (the water column follows it), and how wide their bars are.
 const WARM_X := 12 + 50 + 4
 const WATER_X := WARM_X + 10
+const ENERGY_X := WATER_X + 10
 const WARM_BAR := 5
 ## Wetter than this shows the drop, and keeps the panel up.
 const WET_SHOWN := 0.05
@@ -46,7 +48,7 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
 	_canvas = Control.new()
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_canvas.custom_minimum_size = Vector2(WATER_X + 9 + 9, ROW * 3 - 2)
+	_canvas.custom_minimum_size = Vector2(ENERGY_X + 9 + 9, ROW * 3 - 2)
 	_canvas.draw.connect(_draw_rows)
 	add_child(_canvas)
 	visible = false
@@ -81,6 +83,9 @@ func _draw_rows() -> void:
 	for r in ROWS:
 		if r[0] == "warmth":
 			_warmth_column()
+		elif r[0] == "energy":
+			_column(ENERGY_X, "sleep", _values.get("energy", Vitals.MAX) / Vitals.MAX,
+				UiStyle.DANGER if _values.get("energy", Vitals.MAX) < Vitals.SLEEPY else UiStyle.MUTED)
 		elif r[0] == "water":
 			_column(WATER_X, "water", _values.get("water", Vitals.MAX) / Vitals.MAX,
 				UiStyle.DANGER if _values.get("water", Vitals.MAX) < Vitals.THIRSTY else UiStyle.COLD)
@@ -101,7 +106,7 @@ func _warmth_column() -> void:
 	_column(WARM_X, "thermo", v / Vitals.COMFORT, color)
 	var wet: float = _values.get("wet", 0.0)
 	if wet > WET_SHOWN:
-		_canvas.draw_texture(ItemIcons.picture("drop"), Vector2(WATER_X + 10, 0), Color(1, 1, 1, lerpf(0.4, 1.0, wet)))
+		_canvas.draw_texture(ItemIcons.picture("drop"), Vector2(ENERGY_X + 10, 0), Color(1, 1, 1, lerpf(0.4, 1.0, wet)))
 
 
 ## A standing bar at `x` under picture `icon`, filled `share` from the bottom.

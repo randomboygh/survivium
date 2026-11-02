@@ -131,6 +131,9 @@ func _do(kind: String, args: Array) -> Variant:
 		Protocol.TAKE_OFF:
 			if _fit(args, [TYPE_STRING]):
 				return who.take_off(args[0])
+		Protocol.SLEEP:
+			if _fit(args, [TYPE_BOOL]):
+				return who.sleep(args[0])
 		Protocol.REPAIR:
 			if _fit(args, [TYPE_INT]) and _slot(who.inventory, args[0]):
 				return workshop.repair(args[0])

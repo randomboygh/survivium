@@ -167,6 +167,8 @@ var no_overload := false
 var instant_craft := false
 ## Playtest switch: satiety does not fall (Vitals.hunger off). Not saved.
 var no_hunger := false
+## Playtest switch: energy does not fall (Vitals.fatigue off). Not saved.
+var no_fatigue := false
 ## Playtest switch: water does not fall (Vitals.thirst off). Not saved.
 var no_thirst := false
 ## Playtest switch: the body feels no cold or heat (Vitals.cold off). Not saved.
@@ -343,6 +345,7 @@ func apply() -> void:
 			who.vitals.hunger = not no_hunger
 			who.vitals.cold = not no_cold
 			who.vitals.thirst = not no_thirst
+			who.vitals.fatigue = not no_fatigue
 	Sound.set_volume("Music", values.music_volume)
 	Sound.set_volume("Sounds", values.sound_volume)
 	Sound.set_volume("Nature", values.nature_volume)
@@ -556,6 +559,11 @@ func set_no_overload(on: bool) -> void:
 
 func set_no_hunger(on: bool) -> void:
 	no_hunger = on
+	apply()
+
+
+func set_no_fatigue(on: bool) -> void:
+	no_fatigue = on
 	apply()
 
 
