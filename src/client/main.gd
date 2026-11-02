@@ -60,6 +60,7 @@ const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
+const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const OthersScript := preload("res://src/client/view/others.gd")
@@ -299,6 +300,10 @@ func _ready() -> void:
 	else:
 		world_mods = settings.world_mods()
 	Mods.activate(world_mods)
+	# What the last scene worked out of its materials goes with them: this world's bundles
+	# may number them otherwise.
+	PixelTextures.forget()
+	MeshFaces.forget()
 	if join_url != "":
 		_connect()
 	rules = Rules.new()
@@ -533,12 +538,13 @@ func start_world() -> void:
 	StartTimes.spawn_ms = Time.get_ticks_msec() - t0
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, StartTimes.spawn_ms])
 	await _loading_stage("Карта и материалы…")
+	# The atlas first: the biome tints and the map take the materials' colours from it.
+	_build_materials()
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
 	if save.has_save:
 		hud.minimap.load_regions(save.store.read_maps())
-	_build_materials()
 	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
 	world = gen.world
 	# The server's clock and things placed; the save and the real weather go to them
@@ -614,10 +620,10 @@ func _join_world() -> void:
 		gen.material_map = Mat.remap(PackedStringArray(welcome.materials))
 	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, join_url, Time.get_ticks_msec() - t0])
 	await _loading_stage("Карта и материалы…")
+	_build_materials()
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
-	_build_materials()
 	await _loading_stage("Игрок и небо…")
 	world = gen.world
 	world_maker = gen

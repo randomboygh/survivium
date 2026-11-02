@@ -3,6 +3,7 @@ extends "res://tests/unit/test_case.gd"
 ## camera's smooth turn.
 
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
+const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 
 
 func run() -> void:
@@ -13,6 +14,7 @@ func run() -> void:
 	_test_sound()
 	_test_camera_spin()
 	_test_camera_drift()
+	_test_other_bundles()
 
 
 func _test_pixel_view() -> void:
@@ -427,3 +429,35 @@ func _test_camera_spin() -> void:
 	game.player.free()
 	PixelView.set_view(0.0, 0.0)
 	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]
+
+
+## A world of other bundles after this one (the scene started again: static vars stay):
+## once forgotten, the atlas's colours and the meshers' materials are the new numbering's,
+## so the biomes' tints of sand stay sand's and do not turn it purple (2026-11-02).
+func _test_other_bundles() -> void:
+	var before := Content.BUNDLES.duplicate()
+	var full: Array = Mods.resolve(Mods.all()).order
+	Mods.activate(full)
+	PixelTextures.forget()
+	var sand := Mat.index("resources:sand")
+	var own := PixelTextures.tint(sand)
+	# A set without one mod that comes before sand, so sand's number moves, when there is one.
+	var fewer: Array = full
+	for mod: String in Mods.available():
+		if mod == "core" or mod == "resources":
+			continue
+		var without: Array = Mods.resolve(full.filter(func(b: String) -> bool: return Mods.mod_of(b) != mod)).order
+		Mods.activate(without)
+		if Mat.index("resources:sand") >= 0 and Mat.index("resources:sand") != sand:
+			fewer = without
+			break
+	Mods.activate(fewer)
+	var moved := Mat.index("resources:sand")
+	PixelTextures.forget()
+	MeshFaces.forget()
+	_check(moved >= 0 and PixelTextures.tint(moved).is_equal_approx(own) and MeshFaces.LEAVES == Mat.LEAVES
+		and MeshFaces.WATER == Mat.WATER and MeshFaces.covers_table()[Mat.AIR] == 0,
+		"after other bundles sand keeps its colour at its new number (%d -> %d) and the meshers their materials" % [sand, moved])
+	Mods.activate(before)
+	PixelTextures.forget()
+	MeshFaces.forget()
