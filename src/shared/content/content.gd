@@ -163,6 +163,9 @@ const SCHEMAS := {
 		# Clothes: how many degrees warmer the body is in it (Warmth.clothes; half when wet).
 		"warmth": {"type": "float", "min": 0.0, "default": 0.0},
 		"bag_slots": {"type": "int", "min": 0, "default": 0},
+		# Bedding: kept in the bag, sleep rests this many times faster (the best one counts,
+		# Character.sleep_rate); 1 is none.
+		"bedding": {"type": "float", "min": 1.0, "default": 1.0},
 		# `special`: had in ways the content graph does not see (a quest, a trade), so it is
 		# no item without a source.
 		"source": {"type": "enum", "values": ["", "special"], "default": ""},

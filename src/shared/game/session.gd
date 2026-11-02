@@ -26,6 +26,8 @@ const CATCH_UP := 1.0
 ## screen shows (a phone held sideways shows about three chunks each way, and the
 ## tallest mountains a few more to the south).
 const ZONE := 5
+## How many times faster time goes while every player sleeps.
+const SLEEP_SPEED := 12.0
 ## Chunks this close to a player are made with the near budget (make_chunks), so the
 ## ground they walk onto is there before the far chunks.
 const NEAR := 4
@@ -106,6 +108,19 @@ func remove_player(who) -> void:
 	if i >= 0:
 		players.remove_at(i)
 		workshops.remove_at(i)
+
+
+## How many times faster time goes now: SLEEP_SPEED while every living player sleeps
+## (the night goes by), else 1. The runner scales the tick by it.
+func sleep_speed() -> float:
+	var any := false
+	for who in players:
+		if who.is_dead():
+			continue
+		if not who.vitals.asleep:
+			return 1.0
+		any = true
+	return SLEEP_SPEED if any else 1.0
 
 
 ## Lets the animals come into the world around the players (Wildlife.start); they step

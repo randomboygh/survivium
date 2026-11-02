@@ -319,13 +319,13 @@ static func _same_snap(old: Array, a) -> bool:
 ## Whether the body's state differs from the last told (no Array made a frame).
 func _vitals_changed() -> bool:
 	var v = who.vitals
-	return _vitals.size() != 8 or _vitals[0] != v.health or _vitals[1] != v.satiety or _vitals[2] != v.stamina \
+	return _vitals.size() != 10 or _vitals[8] != v.energy or _vitals[9] != v.asleep or _vitals[0] != v.health or _vitals[1] != v.satiety or _vitals[2] != v.stamina \
 		or _vitals[3] != v.hunger or _vitals[4] != v.hurt_by or _vitals[5] != v.warmth or _vitals[6] != v.wet or _vitals[7] != v.water
 
 
 func _vitals_now() -> Array:
 	var v = who.vitals
-	return [v.health, v.satiety, v.stamina, v.hunger, v.hurt_by, v.warmth, v.wet, v.water]
+	return [v.health, v.satiety, v.stamina, v.hunger, v.hurt_by, v.warmth, v.wet, v.water, v.energy, v.asleep]
 
 
 func _push(kind: String, args: Variant) -> void:

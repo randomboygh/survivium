@@ -22,6 +22,8 @@ const CELL := WorldData.CELL
 const NAG_INTERVAL := 3.0
 ## Health after coming back from death, as a share of full.
 const REVIVE_HEALTH := 0.5
+## How much faster sleep rests under a roof (see sleep_rate).
+const ROOF_SLEEP := 1.5
 ## Actions counted in this life's statistics when paid for, by the name they count as.
 const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
@@ -236,6 +238,9 @@ func update(delta: float) -> void:
 	_last_at = p
 	# The body runs in short steps, so a long frame drowns or heals as short ones would.
 	var share := inventory.load_share() if inventory.heavy else 0.0
+	var was := vitals.health
+	if vitals.asleep:
+		vitals.sleep_rate = sleep_rate(p)
 	var left := delta
 	while left > 0.0:
 		var d := minf(left, VITALS_STEP)
@@ -243,6 +248,13 @@ func update(delta: float) -> void:
 		left -= d
 	_spoil(p, clock.days(delta))
 	_warm(p, clock.days(delta))
+	if vitals.asleep:
+		if vitals.health < was - 0.5 or body.swimming:
+			vitals.sleep(false)
+			say("Вы проснулись")
+		elif vitals.energy >= vitals.MAX and clock.daylight() > 0.5:
+			vitals.sleep(false)
+			say("Вы выспались")
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	if body.jumped:
 		note("jumps")
@@ -369,6 +381,31 @@ func eat(i: int) -> bool:
 	inventory.take_slot(i, 1)
 	note("eaten")
 	return true
+
+
+## Lies down to sleep where the body is (`on`), or wakes; false, and says why, if not.
+## Asleep the body stays put, rests faster, and with every player asleep the night
+## goes by fast (Session.sleep_speed).
+func sleep(on: bool) -> bool:
+	if on and body.swimming:
+		nag("sleep", "В воде не уснуть")
+		return false
+	var why := vitals.sleep(on)
+	if why == "rested":
+		nag("sleep", "Спать не хочется")
+		return false
+	return true
+
+
+## How fast sleep at `p` rests the body: ROOF_SLEEP under a roof, times the best bedding
+## in the bag (an item's `bedding`).
+func sleep_rate(p: Vector3) -> float:
+	var rate := ROOF_SLEEP if _roofed(p) else 1.0
+	var best := 1.0
+	for s in inventory.slots:
+		if s != null:
+			best = maxf(best, Items.get_item(s[0]).get("bedding", 1.0))
+	return rate * best
 
 
 ## Puts on what lies in bag slot `i` (see Inventory.wear); false, and says why, if not.

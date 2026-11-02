@@ -42,6 +42,9 @@ func _process(delta: float) -> void:
 	var paused := pausable and is_inside_tree() and get_tree().paused
 	took_us.clear()
 	if not paused:
+		# While everyone sleeps the night goes by fast.
+		if playing:
+			delta *= session.sleep_speed()
 		var t := Time.get_ticks_usec()
 		session.step_clock(delta)
 		t = _took("clock", t)

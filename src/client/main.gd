@@ -852,8 +852,9 @@ func _process(delta: float) -> void:
 		# the server where it is (the tick takes it next frame).
 		if host != null:
 			host.flush(net)
-		# The player stands still behind the main menu, and lies dead behind the death screen.
-		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead()
+		# The player stands still behind the main menu, lies dead behind the death screen
+		# and asleep behind the sleep screen.
+		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead() and not character.vitals.asleep
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()

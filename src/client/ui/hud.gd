@@ -26,6 +26,8 @@ const Minimap := preload("res://src/client/ui/minimap.gd")
 const MapView := preload("res://src/client/ui/map_view.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
+const SleepScreen := preload("res://src/client/ui/sleep_screen.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
@@ -95,6 +97,10 @@ var _toasts: VBoxContainer
 var _toast_room := 200.0
 var perf: PanelContainer
 var vitals: VitalsPanel
+## The dimmed screen while the character sleeps (SleepScreen).
+var sleep: SleepScreen
+## The button on the clock that lies down to sleep.
+var _sleep_button: TextureButton
 ## The red frame and the numbers over the player when the body is hurt, healed or fed.
 var feedback: BodyFeedback
 var bag: InventoryWindow
@@ -190,6 +196,13 @@ func _ready() -> void:
 	row.add_child(_wind)
 	_clock = UiStyle.label()
 	row.add_child(_clock)
+	_sleep_button = TextureButton.new()
+	_sleep_button.texture_normal = UiStyle.icon("moon")
+	_sleep_button.stretch_mode = TextureButton.STRETCH_KEEP_CENTERED
+	_sleep_button.custom_minimum_size = Vector2(12, 10)
+	_sleep_button.tooltip_text = "Лечь спать"
+	_sleep_button.pressed.connect(func() -> void: game.net.request(Protocol.SLEEP, [true]))
+	row.add_child(_sleep_button)
 	vitals = VitalsPanel.new()
 	_left.add_child(vitals)
 	vitals.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -377,6 +390,8 @@ func _ready() -> void:
 	_loading_label.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	_loading.add_child(_loading_label)
 
+	sleep = SleepScreen.new(game)
+	add_child(sleep)
 	chat = ChatBox.new(game)
 	add_child(chat)
 	bag = InventoryWindow.new(game)
@@ -724,6 +739,9 @@ func update_state() -> void:
 	# The state stays in sight while the bag is open, by the food it may be eaten from.
 	vitals.pinned = bag.visible
 	vitals.update(game.character.vitals, get_process_delta_time())
+	sleep.update(get_process_delta_time())
+	# The moon is bright when the body would sleep.
+	_sleep_button.modulate = Color.WHITE if game.character.vitals.energy < game.character.vitals.SLEEP_BELOW else Color(1, 1, 1, 0.4)
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / game.CELL), floori(game.player.position.z / game.CELL)))
