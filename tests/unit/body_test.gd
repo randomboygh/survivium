@@ -225,7 +225,8 @@ func _test_steps() -> void:
 	var read := Placed.new()
 	read.read_footprints()
 	_check(read.footprints.get("chest") == chest and read.footprints.get("workbench") == bench
-		and not read.footprints.has("campfire"), "the things' boxes read from the mods' models are the models', and a fire is not solid")
+		and read.footprints.get("campfire") == Placed.FIRE_BOXES,
+		"the things' boxes read from the mods' models are the models', and a fire's only its logs in the middle")
 	_check(_walk_to_thing(false, 5.9).x < 4.7, "a chest is not walked through")
 	_check(_walk_to_thing(false, 7.3).x > 6.0, "the strip south of a chest's lock is walked along")
 	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")

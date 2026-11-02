@@ -233,6 +233,7 @@ func _test_placed() -> void:
 	_check(quick.start(axe) == 1, "another axe is started")
 	quick.update(0.01)
 	_check(who.inventory.count("tools:stone_axe") == 2, "with instant crafting it is made in a frame")
+	placed.read_footprints()
 	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
 	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "a campfire that burns is a station")
 	var cook := Survivor.new()
@@ -246,11 +247,12 @@ func _test_placed() -> void:
 	_check(cook.vitals.health == Vitals.MAX, "standing away from a campfire does not burn")
 	cook.body.move_input = Vector2(1.0, 0.0)
 	var nearest := 0.0
-	for i in 30:
+	for i in 90:
 		cook.at = cook.body.step(cook.at, 1.0 / 30.0, false)
 		cook.update(1.0 / 30.0)
 		nearest = maxf(nearest, cook.at.x / WorldData.CELL + Body.HALF_WIDTH)
-	_check(nearest <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
+	_check(nearest > 20.2 and nearest <= 20.5 + 0.001,
+		"a campfire is solid in its middle only: walking into it stops at its logs, over its stones")
 	_check(cook.vitals.health == Vitals.MAX, "and pushing against its side does not burn")
 	cook.body.move_input = Vector2.ZERO
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL

@@ -70,13 +70,26 @@ var torch: OmniLight3D
 var torch_lit := false
 ## The body sleeps (Vitals.asleep, set by Main each frame): it lies on its side (the
 ## `sleep` animation, see Figure), a little towards the viewer so it lies on what it
-## sleeps on rather than over its back half, with "zzZ" over it (`snore`).
+## sleeps on rather than over its back half, with little letters "z" rising over it
+## (`snore`, see _snore).
 var asleep := false
-var snore: Label3D
-## How far towards the viewer a sleeping body is drawn, in cells, and how often the
-## "zzZ" over it grows by a letter, in seconds.
+## The letters "z" over a sleeper: each rises from the head, drifting aside, small, then
+## larger, then a capital, and fades, one after another (as 💤).
+var snore: Array[Sprite3D] = []
+## How far towards the viewer a sleeping body is drawn, in cells.
 const LYING_FORWARD := 0.8
-const SNORE_STEP := 0.6
+## The seconds a letter "z" takes to rise and fade; SNORE_LETTERS are in the air at once.
+const SNORE_TIME := 2.7
+const SNORE_LETTERS := 3
+## The letter "z" small, larger and largest: "o" its pale blue pixels, a dark line under it.
+const SNORE_SHAPES := [
+	["oooo", "..o.", ".o..", "oooo"],
+	["ooooo", "...o.", "..o..", ".o...", "ooooo"],
+	["oooooo", "....o.", "...o..", "..o...", ".o....", "oooooo"],
+]
+const SNORE_INK := Color(0.72, 0.84, 1.0)
+const SNORE_EDGE := Color(0.13, 0.14, 0.24)
+static var _snore_textures: Array[Texture2D] = []
 ## Where the flames of the lights held burn, in world units, one a hand that holds
 ## one: the brightest pixel of what the hand holds in the frame shown
 ## (SpriteSheet.spots); empty when none shows.
@@ -123,19 +136,11 @@ func _ready() -> void:
 	torch.shadow_caster_mask = 0xFFFFF & ~(PixelView.LAYER_PLAYER | PixelView.LAYER_SUN_CASTER)
 	torch.top_level = true
 	add_child(torch)
-	snore = Label3D.new()
-	snore.font = UiStyle.font()
-	snore.font_size = 8
-	snore.outline_size = 4
-	snore.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
-	snore.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	snore.no_depth_test = true
-	snore.shaded = false
-	snore.render_priority = 2
-	snore.top_level = true
-	snore.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	snore.visible = false
-	add_child(snore)
+	for i in SNORE_LETTERS:
+		var z := snore_letter()
+		z.visible = false
+		snore.append(z)
+		add_child(z)
 
 
 static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
@@ -290,10 +295,7 @@ func place_sprite() -> void:
 	# The torch is held a little towards the viewer.
 	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, 1.2, -PixelView.up.y * 0.3))
 	_find_flame()
-	snore.visible = anim == "sleep"
-	if snore.visible:
-		snore.text = "zzZ".left(1 + int(anim_time / SNORE_STEP) % 3)
-		snore.position = PixelView.shear(drawn_at + Vector3(PixelView.right.x, 0.0, PixelView.right.y) * 0.5 * CELL + Vector3(0.0, 2.2 * CELL, 0.0))
+	_snore(drawn_at)
 
 
 ## Puts flames_at on the frame shown: the frame's spot is a pixel of the upright quad
@@ -333,3 +335,62 @@ func level() -> int:
 ## True if the body would overlap the cell.
 func overlaps_cell(cell: Vector3i) -> bool:
 	return Body.overlaps(position, cell)
+
+
+## A letter "z" over a sleeper (see snore): an upright picture a texel a screen pixel,
+## over everything, unlit.
+static func snore_letter() -> Sprite3D:
+	var z := Sprite3D.new()
+	z.texture = snore_textures()[0]
+	z.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
+	z.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	z.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	z.no_depth_test = true
+	z.shaded = false
+	z.render_priority = 2
+	z.top_level = true
+	z.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return z
+
+
+## The pictures of SNORE_SHAPES, made once.
+static func snore_textures() -> Array[Texture2D]:
+	if _snore_textures.is_empty():
+		for shape: Array in SNORE_SHAPES:
+			var n: int = shape.size()
+			var img := Image.create_empty(n + 2, n + 2, false, Image.FORMAT_RGBA8)
+			img.fill(Color(0, 0, 0, 0))
+			for y in n:
+				for x in n:
+					if shape[y][x] != "o":
+						continue
+					# A dark pixel under the bottom stroke only, so it reads over snow too.
+					if y == n - 1:
+						img.set_pixel(x + 1, y + 2, SNORE_EDGE)
+			for y in n:
+				for x in n:
+					if shape[y][x] == "o":
+						img.set_pixel(x + 1, y + 1, SNORE_INK)
+			_snore_textures.append(ImageTexture.create_from_image(img))
+	return _snore_textures
+
+
+## The letters "z" over the body drawn at `at` while it sleeps: each in its turn rises
+## from the head over SNORE_TIME, swaying aside, growing from a small "z" to a capital,
+## fading in and out.
+func _snore(at: Vector3) -> void:
+	var on := anim == "sleep"
+	var side := Vector3(PixelView.right.x, 0.0, PixelView.right.y)
+	var shapes := snore_textures()
+	for i in snore.size():
+		var z: Sprite3D = snore[i]
+		# The first letter at once, the next ones after it.
+		var t := anim_time / SNORE_TIME - float(i) / snore.size()
+		z.visible = on and t >= 0.0
+		if not z.visible:
+			continue
+		t = fposmod(t, 1.0)
+		z.texture = shapes[mini(int(t * shapes.size()), shapes.size() - 1)]
+		var aside := 0.4 + 2.0 * t + 0.2 * sin(t * TAU * 1.5)
+		z.position = PixelView.shear(at + side * aside * CELL + Vector3(0.0, (1.2 + 3.2 * t) * CELL, 0.0))
+		z.modulate.a = clampf(t / 0.15, 0.0, 1.0) * clampf((1.0 - t) / 0.3, 0.0, 1.0)

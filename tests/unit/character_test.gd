@@ -396,7 +396,10 @@ func _test_sleep() -> void:
 	var bed: Dictionary = beds.put("tools:fur_bedroll", Vector3i(8, 1, 8))
 	_check(Placed.is_bed(bed) and not Placed.is_bed(beds.put("tools:workbench", Vector3i(12, 1, 12))), "a bedroll set down is a bed")
 	ch.vitals.energy = Vitals.MAX
-	_check(not ch.lie_in(bed) and ch.back_at == Vector3.ZERO and not ch.vitals.asleep, "a rested body does not lie down")
+	_check(ch.lie_in(bed) and ch.back_at == Vector3.ZERO and not ch.vitals.asleep and not beds.things.has(bed)
+		and ch.inventory.count("tools:fur_bedroll") == 2, "a rested body does not lie down: it takes the bed up")
+	ch.inventory.remove("tools:fur_bedroll", 1)
+	bed = beds.put("tools:fur_bedroll", Vector3i(8, 1, 8))
 	ch.vitals.energy = 10.0
 	_check(ch.lie_in(bed) and ch.vitals.asleep, "a sleepy body lies down in the bed")
 	var spot := beds.lying_spot(bed)
@@ -404,6 +407,15 @@ func _test_sleep() -> void:
 		and is_equal_approx(spot.x, 9.0 * WorldData.CELL), "the body is put on top of the bed's middle")
 	_check(is_equal_approx(ch.sleep_rate(spot), plain * 2.0) and beds.bed_under(ch.at).is_empty(),
 		"lying in the bed rests by its bedding, not beside it")
+	ch.vitals.sleep(false)
+	ch.back_at = Vector3.ZERO
+	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
+	_check(ch.sleep(true) and ch.vitals.asleep and ch.back_at == spot, "the sleep button takes the body to a bed near")
+	ch.vitals.sleep(false)
+	ch.back_at = Vector3.ZERO
+	ch.at = Vector3(0.5, 1.0, 0.5) * WorldData.CELL
+	_check(ch.sleep(true) and ch.vitals.asleep and ch.back_at == Vector3.ZERO,
+		"a bed further than %d cells is left: the body sleeps where it is" % Survivor.BED_REACH)
 	ch.vitals.sleep(false)
 	ch.at = spot
 	ch.vitals.energy = Vitals.MAX - 1.0

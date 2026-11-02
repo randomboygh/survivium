@@ -169,17 +169,19 @@ func is_default() -> bool:
 
 
 ## The turn set, in whole degrees to the left of north, 0..315 (any while it turns
-## smoothly).
+## smoothly or drifts).
 func turn_degrees() -> int:
-	if _spinning:
+	if _spinning or _drifting:
 		return posmod(roundi(rad_to_deg(turn)), 360)
 	return posmod(turn_steps, TURNS) * 45
 
 
 ## A new view is set: the chunks get culling boxes that hold what they draw all the
-## way there (a box per step of the way), and the setting is kept.
+## way there (a box per step of the way), all round while it spins or drifts (a turn or
+## tilt asked mid-drift kept only the step's boxes, and the drift turned on past them:
+## things vanished), and the setting is kept.
 func _aim() -> void:
-	if _spinning:
+	if _spinning or _drifting:
 		_spin_boxes()
 	else:
 		var to := turn_steps * TURN_STEP

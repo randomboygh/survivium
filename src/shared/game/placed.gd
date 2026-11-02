@@ -93,20 +93,32 @@ var footprints := {}
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
 const CRATE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 1.0, 0.75))
+## The boxes of a fire: only the logs in its middle, a cell square across its four
+## cells, a cell high so no step climbs it; the ring of stones round them is walked
+## over, so a body comes right up to the flames to warm and cook.
+const FIRE_BOXES := [
+	AABB(Vector3(0.5, 0.0, 0.5), Vector3(0.5, 1.0, 0.5)),
+	AABB(Vector3(0.0, 0.0, 0.5), Vector3(0.5, 1.0, 0.5)),
+	AABB(Vector3(0.5, 0.0, 0.0), Vector3(0.5, 1.0, 0.5)),
+	AABB(Vector3(0.0, 0.0, 0.0), Vector3(0.5, 1.0, 0.5)),
+]
 
 
 ## Reads the solid boxes of every kind of thing placed from its model, so bodies go
 ## round the things as they are drawn: the model of the first item with that `prop`
 ## (its `model` PNG in its bundle, read as VoxelModel.from_image reads it, the slice's
-## corner at the cell's). A fire is not solid (it burns bodies instead); a kind without
-## a model gets the crate's boxes. Called once the mods are loaded, and again when they
+## corner at the cell's). A fire takes only its middle (FIRE_BOXES); a kind without a
+## model gets the crate's boxes. Called once the mods are loaded, and again when they
 ## are read anew.
 func read_footprints() -> void:
 	footprints = {}
 	for id in Items.IDS:
 		var rec := Items.get_item(id)
 		var kind: String = rec.get("prop", "none")
-		if kind == "none" or rec.get("fire", false) or footprints.has(kind):
+		if kind == "none" or footprints.has(kind):
+			continue
+		if rec.get("fire", false):
+			footprints[kind] = FIRE_BOXES
 			continue
 		var name: String = rec.get("model", "")
 		var path := Content.asset(rec, "models/%s.png" % name) if name != "" else ""
@@ -372,6 +384,23 @@ func bed_under(p: Vector3) -> Dictionary:
 				and c.y >= at.y - SINGE and c.y <= at.y + 1.0:
 			return e
 	return {}
+
+
+## The bed nearest to a body with its feet at `p` (world units) whose middle is within
+## `reach` cells of it across the ground and that stands on its level or one above or
+## below, {} for none.
+func nearest_bed(p: Vector3, reach: float) -> Dictionary:
+	var c := p / CELL
+	var best := {}
+	var best_d := reach
+	for e in things:
+		if not is_bed(e) or absf(float(e.cell.y) - c.y) > 1.0 + SINGE:
+			continue
+		var d := Vector2(e.cell.x + 1.0 - c.x, e.cell.z + 1.0 - c.z).length()
+		if d <= best_d:
+			best_d = d
+			best = e
+	return best
 
 
 ## Where a body lies in bed `e` (world units): over its middle, on top of it.

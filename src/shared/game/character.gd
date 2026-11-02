@@ -26,6 +26,8 @@ const REVIVE_HEALTH := 0.5
 const RESPAWNS_MAX := 4
 ## How much faster sleep rests under a roof (see sleep_rate).
 const ROOF_SLEEP := 1.5
+## How far (cells) a bed may stand for the sleep button to take the body to it.
+const BED_REACH := 8.0
 ## Actions counted in this life's statistics when paid for, by the name they count as.
 const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
@@ -391,10 +393,11 @@ func eat(i: int) -> bool:
 	return true
 
 
-## Lies down to sleep where the body is (`on`), or wakes; false, and says why, if not.
-## Asleep the body stays put, rests faster, and with every player asleep the night
+## Lies down to sleep (`on`), or wakes; false, and says why, if not. Off a bed, the body
+## goes to lie in the nearest one within BED_REACH cells (`to_bed`), else sleeps where it
+## is. Asleep the body stays put, rests faster, and with every player asleep the night
 ## goes by fast (Session.sleep_speed).
-func sleep(on: bool) -> bool:
+func sleep(on: bool, to_bed := true) -> bool:
 	if on and body.swimming:
 		nag("sleep", "В воде не уснуть")
 		return false
@@ -402,6 +405,10 @@ func sleep(on: bool) -> bool:
 	if why == "rested":
 		nag("sleep", "Спать не хочется")
 		return false
+	if on and to_bed and placed != null and placed.bed_under(position).is_empty():
+		var bed: Dictionary = placed.nearest_bed(position, BED_REACH)
+		if not bed.is_empty():
+			_came_back(placed.lying_spot(bed))
 	return true
 
 
@@ -415,10 +422,13 @@ func sleep_rate(p: Vector3) -> float:
 	return rate
 
 
-## Lies down in bed `e` (Placed: a thing with `bedding`) to sleep: false, and says why, if
-## not sleepy; else the body is put on it (_came_back) and falls asleep.
+## Lies down in bed `e` (Placed: a thing with `bedding`) to sleep: the body is put on it
+## (_came_back) and falls asleep. Not sleepy (Vitals.sleepy), the bed is taken up into the
+## bag instead (Placed.take_up). False if neither was done.
 func lie_in(e: Dictionary) -> bool:
-	if not sleep(true):
+	if not vitals.asleep and not vitals.sleepy():
+		return placed != null and placed.take_up(self, e)
+	if not sleep(true, false):
 		return false
 	_came_back(placed.lying_spot(e))
 	return true
