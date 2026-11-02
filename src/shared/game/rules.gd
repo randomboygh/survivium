@@ -17,6 +17,12 @@ var territory_start := 64
 var territory_per_day := 16
 var territory_radius := 24
 var territory_levels := 8
+## Abandoned land (plan/design/territory-pvp.md): hours of the world's running time with
+## nobody of the owner's team in a claim before it starts to decay, hours for each stage
+## more, and how it decays: "rights" (others may do more), "radius" (it shrinks) or "both".
+var territory_abandon_hours := 72.0
+var territory_decay_hours := 24.0
+var territory_decay := "both"
 
 
 ## Rules set from `d` (the keys of to_dict); what it leaves out keeps its default.
@@ -29,7 +35,9 @@ static func of(d: Dictionary):
 func to_dict() -> Dictionary:
 	return {"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
 		"territory_start": territory_start, "territory_per_day": territory_per_day,
-		"territory_radius": territory_radius, "territory_levels": territory_levels}
+		"territory_radius": territory_radius, "territory_levels": territory_levels,
+		"territory_abandon_hours": territory_abandon_hours, "territory_decay_hours": territory_decay_hours,
+		"territory_decay": territory_decay}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -40,3 +48,7 @@ func from_dict(d: Dictionary) -> void:
 	territory_per_day = int(d.get("territory_per_day", territory_per_day))
 	territory_radius = int(d.get("territory_radius", territory_radius))
 	territory_levels = int(d.get("territory_levels", territory_levels))
+	territory_abandon_hours = float(d.get("territory_abandon_hours", territory_abandon_hours))
+	territory_decay_hours = float(d.get("territory_decay_hours", territory_decay_hours))
+	var how := str(d.get("territory_decay", territory_decay))
+	territory_decay = how if how in ["rights", "radius", "both"] else territory_decay

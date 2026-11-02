@@ -18,6 +18,7 @@ func run() -> void:
 	_test_rights_on_server()
 	_test_colors()
 	_test_respawn()
+	_test_decay()
 
 
 func _test_teams() -> void:
@@ -213,6 +214,61 @@ func _test_rights() -> void:
 	_check(copy.rights_of(1) == t.rights_of(1), "a client's copy is told them")
 
 
+## A claim nobody of its team stands in decays after the rules' hours: the others may
+## do more, its farther squares go, and at last it is gone; one of the team coming back
+## gives it its protection again.
+func _test_decay() -> void:
+	var t := Territory.new()
+	t.rules = Rules.of({"territory_start": 100, "territory_radius": 6, "territory_abandon_hours": 1.0,
+		"territory_decay_hours": 1.0})
+	t.teams = Teams.new()
+	var a := _Who.new(1)
+	var id := t.add_claim(1, {"cell": Vector3i(10, 5, 10)}, "Аня")
+	for x in range(6, 12):
+		t.paint(a, Vector2i(x, 5), true)
+	_check(t.claims[id].count == 7, "a claim reaching six squares out")
+	a.position = Vector3(200.5, 5.0, 200.5) * WorldData.CELL
+	t.step(0.0, [a], 3599.0)
+	var claim: Dictionary = t.claims[id]
+	_check(claim.weak == 0 and claim.count == 7, "not before the hours of the rules")
+	t.step(0.0, [a], 2.0)
+	_check(claim.weak == 1 and t.allowed(claim, 2, "chests") and not t.allowed(claim, 2, "build"),
+		"then the others may walk and open")
+	_check(claim.count == 5 and not t.squares.has(Vector2i(10, 5)) and t.squares.has(Vector2i(9, 5)),
+		"and the farther third of its reach is let go")
+	var copy := Territory.new()
+	copy.take_claims(t.claims_view())
+	_check(copy.claims[id].weak == 1 and copy.allowed(copy.claims[id], 2, "chests"), "a client's copy is told")
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(t.to_dict()))
+	var back := Territory.new()
+	back.from_dict(saved)
+	_check(back.time == t.time and back.claims[id].weak == 1 and back.claims[id].seen == 0.0,
+		"the save keeps the time and the neglect through JSON")
+	a.position = Vector3(10.5, 5.0, 10.5) * WorldData.CELL
+	t.step(0.0, [a], 1.0)
+	_check(claim.weak == 0 and not t.allowed(claim, 2, "chests") and a.nags.size() == 1,
+		"one of the team coming back protects it again, with a word")
+	a.position = Vector3(200.5, 5.0, 200.5) * WorldData.CELL
+	t.step(0.0, [a], 3601.0)
+	t.step(0.0, [a], 3600.0)
+	_check(claim.weak == 2 and t.allowed(claim, 2, "build") and not t.allowed(claim, 2, "hit_players")
+		and claim.count == 2, "a stage more: the others may break, the claim keeps half its reach")
+	t.step(0.0, [a], 3600.0)
+	_check(t.claims.is_empty() and t.squares.is_empty(), "at last it is nobody's land")
+	var r := Territory.new()
+	r.rules = Rules.of({"territory_abandon_hours": 1.0, "territory_decay_hours": 1.0, "territory_decay": "rights"})
+	id = r.add_claim(1, {"cell": Vector3i(10, 5, 10)}, "Аня")
+	r.paint(a, Vector2i(6, 5), true)
+	r.step(0.0, [a], 3601.0)
+	_check(r.claims[id].weak == 1 and r.claims[id].count == 2, "by «rights» it keeps its squares")
+	var g := Territory.new()
+	g.rules = Rules.of({"territory_abandon_hours": 1.0, "territory_decay_hours": 1.0, "territory_decay": "radius"})
+	id = g.add_claim(1, {"cell": Vector3i(10, 5, 10)}, "Аня")
+	g.paint(a, Vector2i(6, 5), true)
+	g.step(0.0, [a], 3601.0)
+	_check(g.claims[id].weak == 0 and g.claims[id].count == 1, "by «radius» it only shrinks")
+
+
 ## On a server, in another's land: digging, cutting grass, taking up a thing, opening a
 ## chest and walking in are kept from one not allowed, and let when the owner allows.
 func _test_rights_on_server() -> void:
@@ -349,9 +405,13 @@ func _step_back(s, link) -> bool:
 class _Who:
 	var id := 0
 	var nags: Array = []
+	var position := Vector3.ZERO
 
 	func _init(i: int) -> void:
 		id = i
+
+	func is_dead() -> bool:
+		return false
 
 	func nag(_key: String, text: String) -> void:
 		nags.append(text)

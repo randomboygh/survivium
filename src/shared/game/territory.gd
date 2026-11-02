@@ -16,6 +16,14 @@ extends RefCounted
 ## world's save (to_dict, from_dict); a client keeps a copy fed by the server's events
 ## (take_claims, take_squares). Changes are told by `squares_changed` (the squares and
 ## the claim each now belongs to, 0 for none) and `claims_changed`.
+## A claim nobody of its owner's team has stood in for `territory_abandon_hours` of the
+## world's running time decays (plan/design/territory-pvp.md «Заброшенные территории»),
+## a stage each `territory_decay_hours` more (`step`, `_decay`): by Rules'
+## `territory_decay` its protection weakens (others may walk and open, then break and
+## harvest: DECAY_MASKS by the claim's `weak`), it shrinks to the nearer squares, or
+## both; after DECAY_STAGES stages it is nobody's land (the post stays, anyone may take
+## it). One of the team standing in it again gives it its protection back; squares lost
+## are painted again by hand.
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -33,6 +41,12 @@ const TEAM_DEFAULT := 255
 const OTHERS_DEFAULT := 1
 ## How many colours an owner may pick from for their land.
 const COLORS := 8
+## What the others may do besides the owner's rights in a claim weakened by `weak`
+## stages of neglect: nothing more; walk, open doors and chests; and build, break,
+## harvest and touch and hit the animals (hitting players stays the owner's to say).
+const DECAY_MASKS := [0, 1 | 4 | 8, 127]
+## The stage of neglect at which a claim is gone.
+const DECAY_STAGES := 3
 
 ## Squares changed: [[square, claim (0 none)]…].
 signal squares_changed(list: Array)
@@ -44,7 +58,9 @@ signal claims_changed
 var rules
 var teams
 ## The claims by number: {"id", "center": the north-west cell of the thing (Vector3i),
-## "sq": its square, "by": the player who set it, "count": its squares}.
+## "sq": its square, "by": the player who set it, "count": its squares, "seen": `time`
+## one of the team last stood in it, "stage": stages of neglect gone by, "weak": how far
+## its protection has weakened (DECAY_MASKS)}.
 var claims := {}
 ## The claim each square painted belongs to.
 var squares := {}
@@ -59,6 +75,8 @@ var colors := {}
 ## Where each player last stood on land they may walk on (see step_walk).
 var _walked := {}
 var next_claim := 1
+## Seconds the world has run (the server's ticks), by which claims are seen and decay.
+var time := 0.0
 
 
 ## The square of cell `c` (x and z).
@@ -126,7 +144,9 @@ func allowed(claim: Dictionary, id: int, action: String) -> bool:
 	if claim.is_empty() or claim.by == id:
 		return true
 	var r := rights_of(claim.by)
-	var mask: int = r[0] if teams != null and teams.together(claim.by, id) else r[1]
+	var mask: int = r[1] | DECAY_MASKS[clampi(int(claim.get("weak", 0)), 0, DECAY_MASKS.size() - 1)]
+	if teams != null and teams.together(claim.by, id):
+		mask = r[0]
 	return mask & (1 << ACTIONS.find(action)) != 0
 
 
@@ -208,7 +228,8 @@ func add_claim(by: int, e: Dictionary, name := "") -> int:
 	var id := next_claim
 	next_claim += 1
 	var cell: Vector3i = e.cell
-	claims[id] = {"id": id, "center": cell, "sq": square_of(cell), "by": by, "name": name, "count": 0}
+	claims[id] = {"id": id, "center": cell, "sq": square_of(cell), "by": by, "name": name, "count": 0,
+		"seen": time, "stage": 0, "weak": 0}
 	claims_changed.emit()
 	if not squares.has(square_of(cell)):
 		_assign([square_of(cell)], id)
@@ -225,13 +246,7 @@ func thing_removed(e: Dictionary) -> void:
 func thing_gone(cell: Vector3i) -> void:
 	for id: int in claims.keys():
 		if claims[id].center == cell:
-			var gone := []
-			for sq: Vector2i in squares:
-				if squares[sq] == id:
-					gone.append(sq)
-			_assign(gone, 0)
-			claims.erase(id)
-			claims_changed.emit()
+			_drop(id)
 
 
 ## `who` paints square `sq` (`on`) or clears it: true when done. Painted: next to a
@@ -262,20 +277,74 @@ func paint(who, sq: Vector2i, on: bool) -> bool:
 	return true
 
 
-## The days lived go by: each living player of `players` in the world adds `days`.
-func step(days: float, players: Array) -> void:
+## The days lived go by: each living player of `players` in the world adds `days`;
+## `seconds` of the world's running go by: a claim one of its team stands in is seen
+## (and protected again), one long unseen decays (`_decay`).
+func step(days: float, players: Array, seconds := 0.0) -> void:
+	time += seconds
 	for p in players:
 		if not p.is_dead():
 			var id := _id(p)
 			played[id] = float(played.get(id, 0.0)) + days
+			var claim := claim_at(_cell(p.position))
+			if with(claim, id):
+				claim.seen = time
+				if int(claim.get("weak", 0)) > 0:
+					claim.weak = 0
+					claim.stage = 0
+					p.nag("claim", "Территория снова под охраной")
+					claims_changed.emit()
+				else:
+					claim.stage = 0
+	if rules == null or seconds <= 0.0:
+		return
+	var abandon: float = rules.territory_abandon_hours * 3600.0
+	var each: float = maxf(rules.territory_decay_hours * 3600.0, 1.0)
+	for id: int in claims.keys():
+		var claim: Dictionary = claims[id]
+		var away: float = time - float(claim.get("seen", time))
+		if away < abandon:
+			continue
+		var due := int((away - abandon) / each) + 1
+		while claims.has(id) and int(claim.get("stage", 0)) < due:
+			_decay(id)
+
+
+## Claim `id` goes one stage further into neglect: by Rules' `territory_decay`
+## ("rights", "radius" or "both") its protection weakens, its farther squares are
+## let go (the claim keeps those within two thirds, then half, of its reach), or both;
+## at DECAY_STAGES it is gone.
+func _decay(id: int) -> void:
+	var claim: Dictionary = claims[id]
+	claim.stage = int(claim.get("stage", 0)) + 1
+	if claim.stage >= DECAY_STAGES:
+		_drop(id)
+		return
+	var how: String = rules.territory_decay
+	if how != "radius":
+		claim.weak = claim.stage
+	if how != "rights":
+		var reach := 0
+		for sq: Vector2i in squares:
+			if squares[sq] == id:
+				reach = maxi(reach, _dist(claim, sq))
+		var keep: int = reach * (DECAY_STAGES - claim.stage) / (DECAY_STAGES - claim.stage + 1)
+		var gone := []
+		for sq: Vector2i in squares:
+			if squares[sq] == id and _dist(claim, sq) > keep:
+				gone.append(sq)
+		_assign(gone, 0)
+		_assign(_cut_off(id), 0)
+	claims_changed.emit()
 
 
 ## What a client is told of the claims: [[id, centre, by, the claim's name (title_of),
-## its owner's rights, its owner's colour]…].
+## its owner's rights, its owner's colour, how far its protection has weakened]…].
 func claims_view() -> Array:
 	var out := []
 	for claim: Dictionary in claims.values():
-		out.append([claim.id, claim.center, claim.by, title_of(claim), rights_of(claim.by), color_of(claim.by)])
+		out.append([claim.id, claim.center, claim.by, title_of(claim), rights_of(claim.by), color_of(claim.by),
+			int(claim.get("weak", 0))])
 	return out
 
 
@@ -303,6 +372,8 @@ func take_claims(list: Array) -> void:
 				rights[e[2]] = e[4]
 			if e.size() > 5 and e[5] is int:
 				colors[e[2]] = e[5]
+			if e.size() > 6 and e[6] is int:
+				claims[e[0]].weak = clampi(e[6], 0, DECAY_MASKS.size() - 1)
 	claims_changed.emit()
 
 
@@ -324,7 +395,8 @@ func to_dict() -> Dictionary:
 	var list := []
 	for claim: Dictionary in claims.values():
 		list.append({"id": claim.id, "center": [claim.center.x, claim.center.y, claim.center.z], "by": claim.by,
-			"name": claim.get("name", "")})
+			"name": claim.get("name", ""), "seen": claim.get("seen", time), "stage": claim.get("stage", 0),
+			"weak": claim.get("weak", 0)})
 	var sq := []
 	for s: Vector2i in squares:
 		sq.append([s.x, s.y, squares[s]])
@@ -337,7 +409,8 @@ func to_dict() -> Dictionary:
 	var c := {}
 	for id: int in colors:
 		c[str(id)] = colors[id]
-	return {"claims": list, "squares": sq, "played": days, "rights": r, "colors": c, "next": next_claim}
+	return {"claims": list, "squares": sq, "played": days, "rights": r, "colors": c, "next": next_claim,
+		"time": time}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -345,12 +418,14 @@ func from_dict(d: Dictionary) -> void:
 	squares.clear()
 	played.clear()
 	next_claim = int(d.get("next", 1))
+	time = float(d.get("time", 0.0))
 	for e in d.get("claims", []):
 		if e is Dictionary and e.get("center") is Array and e.center.size() == 3:
 			var id := int(e.get("id", 0))
 			var cell := Vector3i(int(e.center[0]), int(e.center[1]), int(e.center[2]))
 			claims[id] = {"id": id, "center": cell, "sq": square_of(cell), "by": int(e.get("by", 0)),
-				"name": str(e.get("name", "")), "count": 0}
+				"name": str(e.get("name", "")), "count": 0, "seen": float(e.get("seen", time)),
+				"stage": int(e.get("stage", 0)), "weak": clampi(int(e.get("weak", 0)), 0, DECAY_MASKS.size() - 1)}
 			next_claim = maxi(next_claim, id + 1)
 	for e in d.get("squares", []):
 		if e is Array and e.size() == 3 and claims.has(int(e[2])):
@@ -391,7 +466,42 @@ func _levels() -> int:
 ## Square `sq` is within the radius of claim `claim`'s centre.
 func _within(claim: Dictionary, sq: Vector2i) -> bool:
 	var r: int = rules.territory_radius if rules != null else 24
-	return maxi(absi(sq.x - claim.sq.x), absi(sq.y - claim.sq.y)) <= r
+	return _dist(claim, sq) <= r
+
+
+## Square `sq`'s distance from claim `claim`'s centre, in squares (the radius's measure).
+static func _dist(claim: Dictionary, sq: Vector2i) -> int:
+	return maxi(absi(sq.x - claim.sq.x), absi(sq.y - claim.sq.y))
+
+
+## Claim `id` is gone with its squares.
+func _drop(id: int) -> void:
+	var gone := []
+	for sq: Vector2i in squares:
+		if squares[sq] == id:
+			gone.append(sq)
+	_assign(gone, 0)
+	claims.erase(id)
+	claims_changed.emit()
+
+
+## The squares of claim `id` no longer joined to its centre's.
+func _cut_off(id: int) -> Array:
+	var claim: Dictionary = claims[id]
+	var seen := {claim.sq: true}
+	var todo: Array[Vector2i] = [claim.sq]
+	while not todo.is_empty():
+		var at: Vector2i = todo.pop_back()
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n := at + d
+			if not seen.has(n) and squares.get(n, 0) == id:
+				seen[n] = true
+				todo.append(n)
+	var out := []
+	for sq: Vector2i in squares:
+		if squares[sq] == id and not seen.has(sq):
+			out.append(sq)
+	return out
 
 
 ## True when the squares of claim `id` but `sq` are all joined to its centre's.

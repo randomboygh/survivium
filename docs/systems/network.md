@@ -153,7 +153,8 @@
   завершает процесс сразу (движок не сообщает скрипту): теряется время с последнего сохранения, само
   сохранение цело; правильно — `stop`.
 - `src/server/config.gd` — настройки сервера: `user://server.cfg` (секции `server`: title, port 7777,
-  players 8, password, bind, autosave 10, save; `world`: folder, seed, настройки WorldGen, mods), поверх — аргументы
+  players 8, password, bind, autosave 10, save; `world`: folder, seed, настройки WorldGen, mods; `rules`: ключи
+  `Rules.to_dict` поверх значений по умолчанию, `Rules.of(config.rules)`, например `territory_decay`), поверх — аргументы
   (`--autosave <секунды>`, `--no-save` — мир не сохранять; С7: `tunnel`, `cloudflared` — `--tunnel`,
   `--no-tunnel`, `--cloudflared <файл>`)
   командной строки (`take_args`; `--config` читается первым); `world_path()` — папка сохранения:
