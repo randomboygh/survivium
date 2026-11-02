@@ -292,7 +292,9 @@ func _ready() -> void:
 	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
 	pad.call()
 	# Held, a turn button turns the camera on smoothly (see CameraRig.hold_turn).
-	var turn_left := _icon_button(_camera, "turn_left", "Повернуть мир влево (держать: плавно)", Callable())
+	# Each shows the arrow of the other side: the way the camera goes round, the world
+	# turning under it the other way (2026-11-02).
+	var turn_left := _icon_button(_camera, "turn_right", "Повернуть мир влево (держать: плавно)", Callable())
 	_camera_reset = Button.new()
 	_camera_reset.focus_mode = Control.FOCUS_NONE
 	_camera_reset.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_MIDDLE.y)
@@ -306,8 +308,7 @@ func _ready() -> void:
 	tight.base_font = UiStyle.font()
 	tight.spacing_glyph = -1
 	_camera_label.add_theme_font_override("font", tight)
-	var turn_right := _icon_button(_camera, "turn_right", "Повернуть мир вправо (держать: плавно)", Callable())
-	# The arrow points the way the world turns under the camera (2026-11-02).
+	var turn_right := _icon_button(_camera, "turn_left", "Повернуть мир вправо (держать: плавно)", Callable())
 	for side: Array in [[turn_left, -1], [turn_right, 1]]:
 		var dir: int = side[1]
 		side[0].button_down.connect(func() -> void: game.view.hold_turn(dir))
@@ -674,7 +675,23 @@ func refresh_counts() -> void:
 		_slots[i].inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])
 		_slots[i].key = str(i + 1)
 	_update_hands()
+	_fit_bag_meter()
 	_bag_meter.queue_redraw()
+
+
+## Makes the bag's tab as wide as a whole number of its equal divisions, a division a
+## slot (at least the room of its line), so the first starts right at its left end and
+## the last ends at its right; laid out again when that changes the width.
+func _fit_bag_meter() -> void:
+	var n: int = maxi(game.character.inventory.slots.size(), 1)
+	var room := UiStyle.load_width(40, 40)
+	var each := maxi(ceili((room + 1.0) / n) - 1, 1)
+	var w := float(n * (each + 1) - 1 + 10)
+	if _bag_meter.custom_minimum_size.x == w:
+		return
+	_bag_meter.custom_minimum_size.x = w
+	_bag_meter.size.x = w
+	_place()
 
 
 ## The top of the interface: the statistics over it when shown, under them the state
@@ -1300,11 +1317,11 @@ func _draw_bag_meter() -> void:
 	var n: int = maxi(inv.slots.size(), 1)
 	var inner := Rect2(Vector2(5, 4), c.size - Vector2(10, 8))
 	c.draw_rect(inner, UiStyle.WELL)
-	# Whole pixels a division, a pixel apart; what is left over is split at both ends.
+	# Whole pixels a division, a pixel apart, from the left end (_fit_bag_meter makes
+	# the tab as wide as they are).
 	var each := maxf(floorf((inner.size.x + 1.0) / n) - 1.0, 1.0)
-	var left := floorf((inner.size.x - (each + 1.0) * n + 1.0) * 0.5)
 	for i in mini(taken, n):
-		var x0 := inner.position.x + left + i * (each + 1.0)
+		var x0 := inner.position.x + i * (each + 1.0)
 		c.draw_rect(Rect2(x0, inner.position.y, each, inner.size.y), bar_shade(float(i + 1) / n))
 	UiStyle.draw_weight(c, inner.grow_individual(-3, 0, -3, 0), inv.weight(), inv.weight_limit)
 	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]

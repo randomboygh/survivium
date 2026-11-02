@@ -7,10 +7,13 @@ extends RefCounted
 ## every mix of those lights, a frame each, and the shaders are built while the game
 ## starts rather than at the first dusk. Things that are not there yet at the start are
 ## drawn too: the particles (dust, rain, sparks) as one particle each, the lightning's
-## material on a face, a label over a figure, and a line and a polygon of the interface (the wind's arrow, the
+## material on a face, a label and a letter "z" over a figure, and a line and a polygon of the interface (the wind's arrow, the
 ## sound marks, the joystick), which the canvas builds its own shaders for.
 
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
+const PlayerView := preload("res://src/client/view/player.gd")
+const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 ## The mixes of lights: [the sun, a light without a shadow (the torch, the far fires),
 ## a light with a shadow (the nearest fire)]. The sun goes out when its energy is 0, at
@@ -60,13 +63,20 @@ func start() -> void:
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
-	# The labels over the figures ("zzZ" over the sleeper, the names of the others),
-	# shown only later.
-	if game.player != null and game.player.snore != null:
-		var label: Label3D = game.player.snore.duplicate()
-		label.visible = true
-		label.text = "z"
-		kinds["label"] = label
+	# The names over the others and the letters "z" over a sleeper, shown only later.
+	var label := Label3D.new()
+	label.font = UiStyle.font()
+	label.outline_size = 4
+	label.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.shaded = false
+	label.render_priority = 2
+	label.text = "z"
+	kinds["label"] = label
+	var z: Sprite3D = PlayerView.snore_letter()
+	z.modulate.a = 0.5
+	kinds["snore"] = z
 	# On the world's own canvas: the interface is hidden behind the menu while the
 	# warm-up runs, and nothing under it is drawn.
 	var world_2d: World2D = game.get_viewport().find_world_2d()

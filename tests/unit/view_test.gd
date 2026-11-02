@@ -385,6 +385,14 @@ func _test_camera_drift() -> void:
 	for i in 90:
 		rig._glide(1.0 / 30.0)
 	_check(rig.turn > 0.1 and rig.turn < CameraRig.DRIFT_RATE * 3.1, "short of sleep it drifts round, slowly: %.3f" % rig.turn)
+	var all_round := ceili(TAU / CameraRig.BOX_STEP)
+	_check(PixelView.box_views.size() >= all_round, "drifting, the culling boxes hold the views all round")
+	rig.tilt_by(1)
+	rig.hold_turn(1)
+	rig.release_turn(1)
+	rig.look_at_player()
+	_check(PixelView.box_views.size() >= all_round, "and a tilt, a turn or a jump of the body mid-drift keeps them so")
+	rig.tilt_by(-1)
 	game.character.vitals.energy = Vitals.MAX
 	for i in 120:
 		rig._glide(1.0 / 30.0)

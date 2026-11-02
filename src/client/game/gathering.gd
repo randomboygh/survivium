@@ -99,7 +99,9 @@ func describe(target: Dictionary) -> String:
 		if e.items != null:
 			return "%s\nЛКМ открыть" % title
 		if Placed.is_bed(e):
-			return "%s\nЛКМ лечь спать" % title
+			# Not sleepy, a tap takes the bed up (Character.lie_in).
+			var v = game.character.vitals
+			return "%s\nЛКМ %s" % [title, "лечь спать" if v.asleep or v.sleepy() else "забрать"]
 		return "%s\nЛКМ крафт" % title
 	if target.has("drop"):
 		var d: Array = game.world.drops[target.drop[0]][target.drop[1]]
@@ -122,7 +124,7 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens (a bed is lain in to sleep, Protocol.LIE_IN), the rest is WorldActions.gather through the server. True if anything was done
+## opens (a bed is lain in to sleep, or taken up when not sleepy: Protocol.LIE_IN), the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_light(target.prop):

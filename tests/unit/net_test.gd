@@ -282,9 +282,14 @@ func _test_requests() -> void:
 	var bed := placed.put("tools:grass_mat", bed_cell)
 	var stood: Vector3 = a.position
 	a.vitals.energy = Vitals.MAX
-	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == false and a.position == stood and not a.vitals.asleep
-		and net.request(Protocol.LIE_IN, [Vector3i(bed_cell.x + 5, bed_cell.y, bed_cell.z)]).value == false,
-		"a rested player does not lie down, nor in a bed that is not there")
+	var mats: int = a.inventory.count("tools:grass_mat")
+	_check(net.request(Protocol.LIE_IN, [Vector3i(bed_cell.x + 5, bed_cell.y, bed_cell.z)]).value == false,
+		"no one lies down in a bed that is not there")
+	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == true and a.position == stood and not a.vitals.asleep
+		and not placed.things.has(bed) and a.inventory.count("tools:grass_mat") == mats + 1,
+		"a rested player tapping a mat takes it up instead of lying down")
+	a.inventory.remove("tools:grass_mat", 1)
+	bed = placed.put("tools:grass_mat", bed_cell)
 	a.vitals.energy = 10.0
 	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == true and a.vitals.asleep and a.position == placed.lying_spot(bed)
 		and events.any(func(e: Array) -> bool: return e[0] == Protocol.TELEPORT and e[1] == [placed.lying_spot(bed)]),

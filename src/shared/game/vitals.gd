@@ -226,10 +226,15 @@ func speed_factor() -> float:
 
 ## Lies down to sleep (`on`) or wakes; "" or why not ("rested": not sleepy enough).
 func sleep(on: bool) -> String:
-	if on and not asleep and energy >= SLEEP_BELOW:
+	if on and not asleep and not sleepy():
 		return "rested"
 	asleep = on
 	return ""
+
+
+## Whether the body may fall asleep: its energy under SLEEP_BELOW.
+func sleepy() -> bool:
+	return energy < SLEEP_BELOW
 
 
 func is_dead() -> bool:
