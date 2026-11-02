@@ -32,6 +32,7 @@ const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const FactChips := preload("res://src/client/ui/fact_chips.gd")
 
 const MARGIN := 8.0
 const GAP := 4.0
@@ -59,6 +60,9 @@ const DPAD_MIDDLE := Vector2(38, 30)
 const SAFE_ZONE := 8
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
+## How long a toast takes to come and to go, and how far it rises as it comes.
+const TOAST_FADE := 0.35
+const TOAST_RISE := 8.0
 const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
 var game
@@ -194,10 +198,18 @@ func _ready() -> void:
 	perf.visible = false
 	add_child(perf)
 	perf.resized.connect(_place_top)
+	# The toasts in a list of their own over the room it keeps under the state: the list
+	# slides up as the oldest fades away (see _scroll_toasts).
+	var toast_area := Control.new()
+	toast_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_left.add_child(toast_area)
 	_toasts = VBoxContainer.new()
 	_toasts.add_theme_constant_override("separation", 4)
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_left.add_child(_toasts)
+	toast_area.add_child(_toasts)
+	_toasts.minimum_size_changed.connect(func() -> void:
+		_toasts.reset_size()
+		toast_area.custom_minimum_size = _toasts.get_combined_minimum_size())
 
 	_top = HBoxContainer.new()
 	_top.add_theme_constant_override("separation", 6)
@@ -613,6 +625,8 @@ func refresh_counts() -> void:
 		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
 		_slots[i].number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		_slots[i].fill = game.character.inventory.freshness(i)
+		# A weapon with nothing in the bag to shoot shows inactive.
+		_slots[i].inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])
 		_slots[i].key = str(i + 1)
 	_update_hands()
 	_bag_meter.queue_redraw()
@@ -655,8 +669,8 @@ func _place_top() -> void:
 	var room := minf(_top.position.x, minimap.position.x - level) - 6 - MARGIN
 	if room != _toast_room:
 		_toast_room = room
-		for p: PanelContainer in _toasts.get_children():
-			_fit_toast(p)
+		for h: Control in _toasts.get_children():
+			_fit_toast(h.get_child(0))
 
 
 ## Keeps the clock's right edge on the hotbar's as its text and icons change width.
@@ -766,6 +780,7 @@ func _update_hands() -> void:
 			slot.number = "×%d" % n if n > 1 else ""
 		# A light burns down in the hand: the second hand holds the second one lit.
 		var k := 1 if h == 1 and c.hands[0] == id and n > 1 else 0
+		slot.inactive = FactChips.unarmed(game.character.inventory, id)
 		slot.fill = game.character.burn_left(id, k) if id != "" and n > 0 and Items.burns(id) > 0.0 else -1.0
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
@@ -805,20 +820,64 @@ func set_loading(text: String) -> void:
 	_loading.position = ((size - _loading.size) * 0.5).floor()
 
 
-## A short message under the clock that fades after a few seconds.
+## A short message under the state, in a list of the last MAX_TOASTS: it comes into the
+## end of the list out of nothing, rising a little; after TOAST_TIME, or when a newer one
+## would make the list too long, the oldest fades up and away and the rest move up.
 func toast(text: String) -> void:
-	var p := _panel(_toasts)
-	p.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# Each in a holder of its size, inside which it rises into place.
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_toasts.add_child(holder)
+	var p := _panel(holder)
 	p.add_child(UiStyle.label(text))
+	p.minimum_size_changed.connect(func() -> void:
+		p.reset_size()
+		holder.custom_minimum_size = p.get_combined_minimum_size())
 	_fit_toast(p)
-	while _toasts.get_child_count() > MAX_TOASTS:
-		var old := _toasts.get_child(0)
-		_toasts.remove_child(old)
-		old.queue_free()
-	var tw := p.create_tween()
-	tw.tween_interval(TOAST_TIME)
-	tw.tween_property(p, "modulate:a", 0.0, 0.5)
-	tw.tween_callback(p.queue_free)
+	p.reset_size()
+	holder.custom_minimum_size = p.get_combined_minimum_size()
+	holder.modulate.a = 0.0
+	p.position.y = TOAST_RISE
+	var come := holder.create_tween().set_parallel()
+	come.tween_property(holder, "modulate:a", 1.0, TOAST_FADE)
+	come.tween_property(p, "position:y", 0.0, TOAST_FADE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	holder.set_meta("tween", come)
+	var life := holder.create_tween()
+	life.tween_interval(TOAST_FADE + TOAST_TIME)
+	life.tween_callback(_toast_leave.bind(holder))
+	var shown := _toasts.get_children().filter(func(h: Node) -> bool: return not h.has_meta("leaving"))
+	while shown.size() > MAX_TOASTS:
+		_toast_leave(shown.pop_front())
+
+
+## Toast `holder` (see toast) fades away, the list sliding up by it as it goes.
+func _toast_leave(holder: Control) -> void:
+	if holder.has_meta("leaving"):
+		return
+	holder.set_meta("leaving", true)
+	var come: Tween = holder.get_meta("tween")
+	if come.is_valid():
+		come.kill()
+	var go := holder.create_tween()
+	go.tween_method(func(a: float) -> void:
+		holder.modulate.a = a
+		_scroll_toasts(), holder.modulate.a, 0.0, TOAST_FADE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	go.tween_callback(func() -> void:
+		_toasts.remove_child(holder)
+		holder.queue_free()
+		_scroll_toasts())
+
+
+## Moves the list of toasts up by the share of each toast leaving that has faded: the
+## whole of it as it is gone, when the list closes up under it.
+func _scroll_toasts() -> void:
+	var off := 0.0
+	var sep := _toasts.get_theme_constant("separation")
+	for h: Control in _toasts.get_children():
+		if h.has_meta("leaving"):
+			off += (h.size.y + sep) * (1.0 - h.modulate.a)
+	_toasts.position.y = -roundf(off)
 
 
 ## Wraps toast `p`'s text when it is wider than the room left of the buttons.

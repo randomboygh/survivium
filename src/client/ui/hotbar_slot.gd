@@ -2,7 +2,8 @@ extends Control
 ## One item cell of the hotbar, a hand or the bag: a sunken well with an icon, a tag in
 ## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
 ## a number (how many) in the bottom right, and a strip along the bottom for how much
-## of a light held is left to burn, how fresh food is, or how loaded the bag on the back is.
+## of a light held is left to burn, how fresh food is, or how loaded the bag on the back is;
+## the picture faint when the thing cannot be used now (`inactive`).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
@@ -10,6 +11,8 @@ signal pressed
 
 ## The colour of the slot's number (its key).
 const KEY_COLOR := Color("#7a6850")
+## The picture of a thing that cannot be used now.
+const INACTIVE := Color(0.55, 0.55, 0.55, 0.45)
 
 var texture: Texture2D:
 	set(v):
@@ -45,6 +48,13 @@ var selected := false:
 	set(v):
 		selected = v
 		queue_redraw()
+## A thing that cannot be used now (a weapon with nothing to shoot): its picture faint
+## and grey, the slot and its marks as they are.
+var inactive := false:
+	set(v):
+		if v != inactive:
+			inactive = v
+			queue_redraw()
 
 ## When set, a touch (or a click) picks the slot as the finger lifts over it, not as it
 ## lands (the hotbar and the lists that scroll, where a finger also drags the slots
@@ -103,7 +113,8 @@ func cancel_tap() -> void:
 func _draw() -> void:
 	draw_style_box(_box_selected if selected else _box, Rect2(Vector2.ZERO, size))
 	if texture != null:
-		draw_texture_rect(texture, Rect2(((size - icon_size) * 0.5).floor(), icon_size), false)
+		draw_texture_rect(texture, Rect2(((size - icon_size) * 0.5).floor(), icon_size), false,
+			INACTIVE if inactive else Color.WHITE)
 	var font := UiStyle.font()
 	var fs := UiStyle.FONT_SIZE
 	if fill >= 0.0:
