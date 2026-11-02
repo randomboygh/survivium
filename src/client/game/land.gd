@@ -2,13 +2,15 @@ extends RefCounted
 ## The land claimed, as the server tells it (Protocol.CLAIMS, SQUARES, LAND; the rules
 ## are src/shared/game/territory.gd): a copy of the claims and squares (`copy`, a
 ## Territory with no rules), how many squares the player and their team hold and may
-## hold, and the painting mode (`painting`: taps on the ground paint squares or clear
-## them, LAND_PAINT). Tells whose land the player stands on as they walk
-## (`entered`, from `update`). `game` is the Main node.
+## hold, and the painting mode (`painting`, turned on and off by a tap on one's own
+## boundary post: taps on the ground paint squares or clear them, LAND_PAINT). Tells
+## whose land the player stands on as they walk (`entered`, from `update`; `here`), and
+## the colour each owner picked (`color`, UiStyle.LAND_COLORS). `game` is the Main node.
 
 const Territory := preload("res://src/shared/game/territory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 ## Something changed: the claims, the squares, the count, the mode.
 signal changed
@@ -60,6 +62,36 @@ func own(claim: Dictionary) -> bool:
 func has_own() -> bool:
 	for claim: Dictionary in copy.claims.values():
 		if own(claim):
+			return true
+	return false
+
+
+## The claim the player stands in ({} for none).
+func here() -> Dictionary:
+	return copy.claims.get(_in, {}) if _in > 0 else {}
+
+
+## The colour of the land of claim `claim`'s owner (UiStyle.LAND_COLORS).
+func color(claim: Dictionary) -> Color:
+	return UiStyle.LAND_COLORS[clampi(copy.color_of(claim.get("by", 0)), 0, UiStyle.LAND_COLORS.size() - 1)]
+
+
+## The colour the player picked for their land, a number.
+func my_color() -> int:
+	return copy.color_of(me())
+
+
+## Picks colour `i` for the player's land, through the server.
+func set_color(i: int) -> void:
+	game.net.request(Protocol.LAND_COLOR, [i])
+
+
+## A tap on placed thing `e` that claims land (a boundary post): the owner's (or their
+## team's) turns painting on or off; true when it was theirs.
+func tap_post(e: Dictionary) -> bool:
+	for claim: Dictionary in copy.claims.values():
+		if claim.center == e.cell and own(claim):
+			set_painting(not painting)
 			return true
 	return false
 
@@ -117,6 +149,8 @@ func paint(sq: Vector2i, on: bool) -> void:
 
 ## Each frame: tells when the player's feet go into another claim.
 func update() -> void:
+	if painting and not has_own():
+		set_painting(false)
 	var p: Vector3 = game.player.position
 	var cell := Vector3i(floori(p.x / WorldData.CELL), game.player.level(), floori(p.z / WorldData.CELL))
 	var claim := copy.claim_at(cell)
@@ -126,6 +160,7 @@ func update() -> void:
 		_in = id
 		if not first or id != 0:
 			entered.emit(claim, own(claim))
+		changed.emit()
 
 
 func _changed() -> void:

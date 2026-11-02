@@ -227,6 +227,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.LAND_RIGHTS:
 			if _fit(args, [TYPE_INT, TYPE_INT]):
 				return session.territory.set_rights(who.id, args[0], args[1])
+		Protocol.LAND_COLOR:
+			if _fit(args, [TYPE_INT]):
+				return session.territory.set_color(who.id, args[0])
 		Protocol.REVIVE:
 			# Only the dead come back (where to is checked at stage С6).
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():

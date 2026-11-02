@@ -31,6 +31,8 @@ const TITLES := {"walk": "Ходить", "build": "Строить и ломат�
 ## By default the owner's team may do everything, the others only walk (decision 101).
 const TEAM_DEFAULT := 255
 const OTHERS_DEFAULT := 1
+## How many colours an owner may pick from for their land.
+const COLORS := 8
 
 ## Squares changed: [[square, claim (0 none)]…].
 signal squares_changed(list: Array)
@@ -51,6 +53,9 @@ var played := {}
 ## What each owner lets others do in all their claims: {player: [team mask, others
 ## mask]} (bits of ACTIONS); the defaults for one not in it.
 var rights := {}
+## The colour each owner picked for their land, a number in the clients' palette
+## (UiStyle.LAND_COLORS; 0 when none is picked).
+var colors := {}
 ## Where each player last stood on land they may walk on (see step_walk).
 var _walked := {}
 var next_claim := 1
@@ -91,6 +96,20 @@ func set_rights(id: int, team: int, others: int) -> bool:
 	if r == rights_of(id):
 		return false
 	rights[id] = r
+	claims_changed.emit()
+	return true
+
+
+## The colour owner `owner` picked for their land (0 for the first).
+func color_of(owner: int) -> int:
+	return int(colors.get(owner, 0))
+
+
+## Player `id` picks colour `color` (0..COLORS - 1) for their land; true when it changed.
+func set_color(id: int, color: int) -> bool:
+	if color < 0 or color >= COLORS or color == color_of(id):
+		return false
+	colors[id] = color
 	claims_changed.emit()
 	return true
 
@@ -246,11 +265,11 @@ func step(days: float, players: Array) -> void:
 
 
 ## What a client is told of the claims: [[id, centre, by, the claim's name (title_of),
-## its owner's rights]…].
+## its owner's rights, its owner's colour]…].
 func claims_view() -> Array:
 	var out := []
 	for claim: Dictionary in claims.values():
-		out.append([claim.id, claim.center, claim.by, title_of(claim), rights_of(claim.by)])
+		out.append([claim.id, claim.center, claim.by, title_of(claim), rights_of(claim.by), color_of(claim.by)])
 	return out
 
 
@@ -269,12 +288,15 @@ func take_claims(list: Array) -> void:
 		counts[squares[sq]] = int(counts.get(squares[sq], 0)) + 1
 	claims.clear()
 	rights.clear()
+	colors.clear()
 	for e in list:
 		if e is Array and e.size() >= 4 and e[0] is int and e[1] is Vector3i and e[2] is int:
 			claims[e[0]] = {"id": e[0], "center": e[1], "sq": square_of(e[1]), "by": e[2], "name": str(e[3]),
 				"count": int(counts.get(e[0], 0))}
 			if e.size() > 4 and e[4] is Array and e[4].size() == 2 and e[4][0] is int and e[4][1] is int:
 				rights[e[2]] = e[4]
+			if e.size() > 5 and e[5] is int:
+				colors[e[2]] = e[5]
 	claims_changed.emit()
 
 
@@ -306,7 +328,10 @@ func to_dict() -> Dictionary:
 	var r := {}
 	for id: int in rights:
 		r[str(id)] = rights[id]
-	return {"claims": list, "squares": sq, "played": days, "rights": r, "next": next_claim}
+	var c := {}
+	for id: int in colors:
+		c[str(id)] = colors[id]
+	return {"claims": list, "squares": sq, "played": days, "rights": r, "colors": c, "next": next_claim}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -332,6 +357,10 @@ func from_dict(d: Dictionary) -> void:
 	for k in r:
 		if r[k] is Array and r[k].size() == 2:
 			rights[int(k)] = [int(r[k][0]), int(r[k][1])]
+	colors.clear()
+	var c: Dictionary = d.get("colors", {})
+	for k in c:
+		colors[int(k)] = clampi(int(c[k]), 0, COLORS - 1)
 
 
 static func _id(who) -> int:

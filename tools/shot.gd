@@ -450,13 +450,14 @@ func _run() -> void:
 			for i in 6:
 				await process_frame
 			if shot.get("rights", false):
-				# Others may also gather the harvest here.
+				# Others may also gather the harvest here; the land in blue.
 				main.session.territory.set_rights(0, 255 & ~8, 1 | 16)
-				for i in 4:
+				main.session.territory.set_color(0, 1)
+				for i in 6:
 					await process_frame
-				main.hud.toggle_menu()
-				main.hud.open_rights()
-				for i in 10:
+				main.hud.toggle_bag()
+				main.hud.bag.show_tab("land")
+				for i in 6:
 					await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
@@ -750,13 +751,13 @@ func _run() -> void:
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
-		if shot.get("team_panel", false) or shot.get("rights", false):
+		if shot.get("team_panel", false):
 			main.hud.toggle_menu()
 			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
 		if shot.get("bag", false) or shot.get("chest", false) or shot.get("chests", false) or shot.get("campfire", false) \
-				or (shot.get("craft", false) and not shot.get("closed", false)):
+				or (shot.get("craft", false) and not shot.get("closed", false)) or shot.get("rights", false):
 			main.hud.toggle_bag()
 		if shot.get("craft", false):
 			while not main.host.workshop.queue.jobs.is_empty():
