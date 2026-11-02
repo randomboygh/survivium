@@ -168,7 +168,8 @@ const SNAP := "snap"
 const STEP := "step"
 ## The other players in the zone, those that changed since last told (С3.3; 20 a second
 ## over a socket): [[id, name, position, facing step, hands, active hand, moving,
-## swimming, on the ground, work kind, work length, work count, work at], …].
+## swimming, on the ground, work kind, work length, work count, work at, what is worn
+## (Inventory.gear)], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"

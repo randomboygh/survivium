@@ -804,7 +804,8 @@ func _update_hands() -> void:
 	for i in _slots.size():
 		var item: String = slots[i][0] if slots[i] != null else ""
 		_slots[i].selected = item != "" and c.held() == item
-		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else ""))
+		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else
+			("Н" if game.character.inventory.worn_on(i) != "" else "")))
 	_action.text = c.action_name()
 	# The picture of what the hand in use holds, bare hands for nothing.
 	var held: String = c.held()

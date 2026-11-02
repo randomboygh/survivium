@@ -126,6 +126,15 @@ func _test_sprite_sheet() -> void:
 	east.flip_x()
 	_check(east.get_data() == img.get_region(Rect2i(0, 6 * fh, fw, fh)).get_data(), "west is east mirrored when the hands are empty")
 	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2, fh - 2) != img.get_pixel(fw / 2, fh - 2), "without boots the feet are bare")
+	# Naked in a loincloth; clothes worn show between the naked layers, a bag does not.
+	var naked := Figure.dressed({})
+	_check(naked == ["body", "loincloth", "hair"], "the figure is naked in a loincloth with nothing worn")
+	var furs := Figure.dressed({"head": "tools:fur_hat", "body": "tools:fur_coat", "back": "tools:wicker_bag"})
+	_check(furs.size() == 5 and furs[2].ends_with("worn/fur_coat.png") and furs[3] == "hair" and furs[4].ends_with("worn/fur_hat.png"),
+		"a coat goes under the hair, a hat over it, a bag is not drawn: %s" % [furs])
+	var coat := Figure.sheet(furs).texture.get_image()
+	var bare := Figure.sheet(naked).texture.get_image()
+	_check(coat.get_pixel(fw / 2, fh - 8) != bare.get_pixel(fw / 2, fh - 8), "the coat shows on the body")
 	# The bare figure knows where its hands are; the one in use moves in the works.
 	var anchors: Array = Figure.anchors()
 	var works: Dictionary = Figure.data().works

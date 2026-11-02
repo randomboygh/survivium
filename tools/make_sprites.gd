@@ -2,7 +2,8 @@ extends SceneTree
 ## Draws the pictures of the player and of the tools held (tools/art/) and saves them as
 ## the mods' sprites, which the game reads: content/core/sprites/player/<layer>.png,
 ## player/hands.png and held/lump.png (what a hand shows of a thing without a sheet or an
-## icon) in core, held/<tool>.png in the bundle of the item that names the sprite. A picture painted over by hand is overwritten, so name
+## icon) in core, held/<tool>.png in the bundle of the item that names the sprite,
+## worn/<look>.png (clothes on the figure) in the bundle of the item of that look. A picture painted over by hand is overwritten, so name
 ## the pictures to make:
 ## godot --headless --path . --script res://tools/make_sprites.gd -- <picture ...> | --all
 
@@ -11,6 +12,19 @@ const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PlayerArt := preload("res://tools/art/player_art.gd")
 const ToolArt := preload("res://tools/art/tool_art.gd")
+
+## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)
+## and its light, middle and dark colour.
+const WORN := {
+	"fiber_hat": ["hat", "c4ac72", "94783e", "6e5a2c"],
+	"grass_cape": ["shirt", "8fb558", "78a048", "557a38"],
+	"leg_wraps": ["wraps", "c4ac72", "94783e", "6e5a2c"],
+	"bast_shoes": ["boots", "c4ac72", "94783e", "6e5a2c"],
+	"fur_hat": ["hat", "d8c9a8", "9a7448", "6b4a2f"],
+	"fur_coat": ["coat", "b48a5a", "9a7448", "6b4a2f"],
+	"leather_trousers": ["trousers", "e09a5a", "c0703a", "8a4e28"],
+	"fur_boots": ["tall_boots", "b48a5a", "9a7448", "6b4a2f"],
+}
 
 ## Tools and their work.
 const HELD := {
@@ -79,6 +93,9 @@ func _init() -> void:
 	var pictures := {}
 	for name in Figure.data().layers + [Figure.data().fists]:
 		pictures["player/" + name] = PlayerArt.layer(name)
+	for look in WORN:
+		var w: Array = WORN[look]
+		pictures[_worn_path(look)] = PlayerArt.painted(w[0], w.slice(1))
 	pictures["player/" + Figure.data().hands] = PlayerArt.marks()
 	for name in HELD:
 		pictures[_held_path(name)] = ToolArt.sheet(name, HELD[name])
@@ -99,6 +116,16 @@ func _init() -> void:
 
 
 ## Where the sheet of `sprite` goes: beside the item that holds it, or core's held/ when none does.
+## Where the picture of clothes `look` goes: sprites/worn/ of the bundle of the item
+## with that look.
+func _worn_path(look: String) -> String:
+	for item in Items.BY_ID.values():
+		if item.get("look", "") == look:
+			return Content.asset(item, "sprites/worn/%s.png" % look)
+	push_error("no item looks %s" % look)
+	return "res://%s.png" % look
+
+
 func _held_path(sprite: String) -> String:
 	for item in Items.BY_ID.values():
 		if item.sprite == sprite:

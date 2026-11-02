@@ -8,6 +8,7 @@
   stack: 1
   icon: fiber_hat
   wear_on: head
+  look: fiber_hat
   warmth: 2
 - id: grass_cape
   title: Травяная накидка
@@ -16,6 +17,7 @@
   stack: 1
   icon: grass_cape
   wear_on: body
+  look: grass_cape
   warmth: 5
 - id: leg_wraps
   title: Обмотки
@@ -24,6 +26,7 @@
   stack: 1
   icon: leg_wraps
   wear_on: legs
+  look: leg_wraps
   warmth: 2
 - id: bast_shoes
   title: Лапти
@@ -32,4 +35,5 @@
   stack: 1
   icon: bast_shoes
   wear_on: feet
+  look: bast_shoes
   warmth: 2
