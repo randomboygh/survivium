@@ -1,12 +1,15 @@
-# Предметы бандла «Постель» мода «Инструменты и крафт»: то, на чём спят. Лежит в сумке; во сне
-# бодрость возвращается в `bedding` раз быстрее (считается лучшая, src/shared/game/character.gd,
-# sleep_rate); под крышей — ещё в полтора раза.
+# Предметы бандла «Постель» мода «Инструменты и крафт»: то, на чём спят. Ставится на землю, как
+# станок (prop: bed, модель models/<model>.png); касание ложит в неё спать (Protocol.LIE_IN), и
+# бодрость возвращается в `bedding` раз быстрее (src/shared/game/character.gd, sleep_rate); под
+# крышей — ещё в полтора раза.
 - id: grass_mat
   title: Травяная подстилка
   description: Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.
   weight: 0.8
   stack: 1
   icon: grass_mat
+  model: grass_mat
+  prop: bed
   bedding: 1.5
 - id: fur_bedroll
   title: Меховой спальник
@@ -15,4 +18,6 @@
   weight: 2.0
   stack: 1
   icon: fur_bedroll
+  model: fur_bedroll
+  prop: bed
   bedding: 2.0

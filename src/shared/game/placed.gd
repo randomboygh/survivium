@@ -36,9 +36,10 @@ const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body pushing into a burning campfire, or over it, comes to be
 ## burnt.
 const SINGE := 0.02
-## The flames burn only the middle of a campfire's two by two cells: this far in from its
-## edge (cells), so a body may stand by it to warm.
-const FLAMES_IN := 0.5
+## The flames burn only the very middle of a campfire's two by two cells: a body whose
+## middle is within this many cells of the fire's (the middle two of the eight pixels a
+## cell is across on the screen), so a body may stand by it, or on its edge, to warm.
+const FLAMES_HALF := 1.0 / 8.0
 ## A fire burning under the open sky goes out after this many seconds of a heavy rain
 ## (of strength RAIN_HEAVY or more: a downpour, a storm; a light rain does not), and dries
 ## as fast once it stops.
@@ -312,19 +313,9 @@ func burns(p: Vector3) -> bool:
 
 
 ## The burning campfire a body with its feet at `p` (world units) stands in the flames
-## of, {} for none: the middle of its cells (FLAMES_IN from the edge), or on top of
-## it; standing by its side warms (Warmth) without burning.
+## of, {} for none: its middle over the fire's very middle (FLAMES_HALF), at the fire's
+## height or on top of it; standing by it or on its edge warms (Warmth) without burning.
 func burning(p: Vector3) -> Dictionary:
-	return _fire_at(p, FLAMES_IN)
-
-
-## The burning campfire a body pushed into at `p` (Body.bumped, which a step stops
-## short of the fire), {} for none: walking into it burns, a little.
-func pushed_into(p: Vector3) -> Dictionary:
-	return _fire_at(p, -SINGE)
-
-
-func _fire_at(p: Vector3, inset: float) -> Dictionary:
 	var c := p / CELL
 	for e in things:
 		if not e.lit or not is_fire(e):
@@ -332,10 +323,36 @@ func _fire_at(p: Vector3, inset: float) -> Dictionary:
 		var at: Vector3i = e.cell
 		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:
 			continue
-		if c.x + Body.HALF_WIDTH > at.x + inset and c.x - Body.HALF_WIDTH < at.x + 2 - inset \
-				and c.z + Body.HALF_DEPTH > at.z + inset and c.z - Body.HALF_DEPTH < at.z + 2 - inset:
+		if absf(c.x - (at.x + 1.0)) <= FLAMES_HALF and absf(c.z - (at.z + 1.0)) <= FLAMES_HALF:
 			return e
 	return {}
+
+
+
+
+## True for a bed (its item's `bedding`: a mat, a bedroll, slept in, see Character.sleep_rate).
+static func is_bed(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("bedding", 1.0) > 1.0
+
+
+## The bed a body with its feet at `p` (world units) lies on, {} for none: its feet over
+## the bed's two by two cells, no higher than a level above them.
+func bed_under(p: Vector3) -> Dictionary:
+	var c := p / CELL
+	for e in things:
+		var at: Vector3i = e.cell
+		if is_bed(e) and c.x >= at.x and c.x < at.x + 2 and c.z >= at.z and c.z < at.z + 2 \
+				and c.y >= at.y - SINGE and c.y <= at.y + 1.0:
+			return e
+	return {}
+
+
+## Where a body lies in bed `e` (world units): over its middle, on top of it.
+func lying_spot(e: Dictionary) -> Vector3:
+	var top := 0.0
+	for box: AABB in footprints.get(Items.get_item(e.item).prop, []):
+		top = maxf(top, box.end.y)
+	return (Vector3(e.cell) + Vector3(1.0, top, 1.0)) * CELL
 
 
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first

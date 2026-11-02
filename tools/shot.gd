@@ -410,6 +410,23 @@ func _run() -> void:
 			main.hud.vitals.pinned = true
 			for i in 4:
 				await process_frame
+		if shot.has("bed"):
+			# A mat (and a bedroll) set down in front, tapped: the player lies in it asleep.
+			main.player.position = places.flat_near(main.world, main.player.position + Vector3(14.0, 0.0, 9.0))
+			for i in 3:
+				await process_frame
+			for bed: String in shot.bed:
+				main.host.player.inventory.add(bed, 1)
+				main.player.facing = "e" if bed == shot.bed[0] else "s"
+				main.props.put_from_bag(bed)
+				for i in 3:
+					await process_frame
+			main.host.player.vitals.energy = 10.0
+			for e in main.placed.things:
+				if e.item == shot.bed[0]:
+					main.gathering.gather({"prop": e})
+			for i in 30:
+				await process_frame
 		if shot.has("thirst"):
 			# A thirsty body: the water bar low and red.
 			main.host.player.vitals.water = shot.thirst

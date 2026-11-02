@@ -63,6 +63,13 @@ animations:
   eat:
     frames: [36, 37, 38, 39]
     fps: 1.0
+  # Сон: кадр не рисуется, его собирает Figure из первого кадра стоя лицом на юг —
+  # повёрнутым набок, с закрытыми глазами (sleep_eyes — цвет глаз в body.png, lid — век).
+  sleep:
+    frames: [40]
+    fps: 1.0
+sleep_eyes: "2c2226"
+sleep_lid: "c08a69"
 works:
   chop:
     columns: [12, 13, 14, 15]

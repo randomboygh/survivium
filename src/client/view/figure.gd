@@ -133,6 +133,10 @@ static func anchors() -> Array:
 		for row in s.directions.size():
 			var cols := []
 			for col in s.columns:
+				if (col + 1) * s.frame_size.x > marks.get_width():
+					# A frame not drawn (the sleep one, see _lay_down) holds nothing.
+					cols.append({"right": {}, "left": {}})
+					continue
 				var frame := marks.get_region(Rect2i(Vector2i(col, row) * s.frame_size, s.frame_size))
 				var both := {"right": {}, "left": {}}
 				var used := frame.get_used_rect()
@@ -270,9 +274,43 @@ func step() -> bool:
 	_part += 1
 	if _part < parts * target.directions.size():
 		return false
+	_lay_down()
 	target.show(_img)
 	_img = null
 	return true
+
+
+## Puts the frame of the `sleep` animation (player.yaml) into every row: the first idle
+## frame facing south turned on its side, the head to the west, its eyes (the pixels of
+## colour `sleep_eyes` in the body's picture) closed with `sleep_lid`, lying on the
+## frame's bottom and as much in the middle of it as the figure stood.
+func _lay_down() -> void:
+	var d := data()
+	if not d.animations.has("sleep"):
+		return
+	var size := target.frame_size
+	var col: int = d.animations.sleep.frames[0]
+	var row := maxi(0, target.directions.find("s"))
+	var standing: Image = _img.get_region(Rect2i(Vector2i(0, row * size.y), size))
+	var eye := Color(str(d.get("sleep_eyes", "2c2226")))
+	var lid := Color(str(d.get("sleep_lid", "c08a69")))
+	var body: Image = layer(d.layers[0]).get_region(Rect2i(Vector2i(0, row * size.y), size))
+	var swap: bool = held.get("active", "right") == "left"
+	for y in size.y:
+		for x in size.x:
+			if body.get_pixel(x, y).is_equal_approx(eye):
+				var at := Vector2i(size.x - 1 - x if swap else x, y)
+				if standing.get_pixelv(at).is_equal_approx(eye):
+					standing.set_pixelv(at, lid)
+	var was: Rect2i = standing.get_used_rect()
+	var lying: Image = standing.duplicate()
+	lying.rotate_90(COUNTERCLOCKWISE)
+	var now: Rect2i = lying.get_used_rect()
+	var out := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	var to := Vector2i(was.get_center().x - now.size.x / 2, was.end.y - now.size.y)
+	out.blit_rect(lying, now, to)
+	for r in target.directions.size():
+		_img.blit_rect(out, Rect2i(Vector2i.ZERO, size), Vector2i(col * size.x, r * size.y))
 
 
 ## The brightest pixel of `picture`, the highest of equals.
