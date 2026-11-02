@@ -14,6 +14,8 @@ func run() -> void:
 	_test_team_requests()
 	_test_land()
 	_test_land_requests()
+	_test_rights()
+	_test_rights_on_server()
 
 
 func _test_teams() -> void:
@@ -177,6 +179,85 @@ func _test_land_requests() -> void:
 	_check(s.placed.take_up(a.who, s.placed.things[0]) and s.territory.claims.is_empty(), "the post taken up takes the claim")
 	a.leave()
 	b.leave()
+
+
+## What others may do in one's land: by default the team everything, the others only
+## walk; the owner sets it for each; the save and a client's copy keep it.
+func _test_rights() -> void:
+	var t := Territory.new()
+	t.rules = Rules.new()
+	t.teams = Teams.new()
+	var claim := {"id": 1, "by": 1, "name": "Аня"}
+	_check(t.allowed({}, 2, "build") and t.allowed(claim, 1, "build"), "out of every claim and in one's own all is allowed")
+	_check(t.allowed(claim, 2, "walk") and not t.allowed(claim, 2, "build") and not t.allowed(claim, 2, "harvest"),
+		"by default the others only walk")
+	t.teams.invite(1, "Аня", 2, 0.0)
+	t.teams.accept(2, "Боря", 1, 0.0)
+	_check(t.allowed(claim, 2, "build") and t.allowed(claim, 2, "chests") and not t.allowed(claim, 3, "chests"),
+		"the team may do everything")
+	var harvest := 1 << Territory.ACTIONS.find("harvest")
+	_check(t.set_rights(1, Territory.TEAM_DEFAULT & ~(1 << Territory.ACTIONS.find("chests")), 1 | harvest)
+		and not t.set_rights(1, Territory.TEAM_DEFAULT & ~(1 << Territory.ACTIONS.find("chests")), 1 | harvest),
+		"the owner sets the rights, once for the same")
+	_check(t.allowed(claim, 3, "harvest") and not t.allowed(claim, 3, "build") and not t.allowed(claim, 2, "chests"),
+		"and they hold for the others and the team")
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(t.to_dict()))
+	var back := Territory.new()
+	back.from_dict(saved)
+	_check(back.rights == t.rights, "the save keeps the rights through JSON")
+	t.claims[1] = {"id": 1, "center": Vector3i(0, 0, 0), "sq": Vector2i.ZERO, "by": 1, "name": "Аня", "count": 0}
+	var copy := Territory.new()
+	copy.take_claims(t.claims_view())
+	_check(copy.rights_of(1) == t.rights_of(1), "a client's copy is told them")
+
+
+## On a server, in another's land: digging, cutting grass, taking up a thing, opening a
+## chest and walking in are kept from one not allowed, and let when the owner allows.
+func _test_rights_on_server() -> void:
+	var w := WorldData.new(8, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var s := Session.new(w, null, Clock.new(), Rules.new(), Placed.new())
+	var a := PlayerLink.new(s)
+	a.who.id = 1
+	a.who.player_name = "Аня"
+	a.who.teleport(Vector3(10.5, 2.0, 10.5) * WorldData.CELL)
+	var b := PlayerLink.new(s)
+	b.who.id = 2
+	b.who.player_name = "Боря"
+	b.who.teleport(Vector3(30.5, 2.0, 30.5) * WorldData.CELL)
+	var id := s.territory.add_claim(1, {"cell": Vector3i(10, 2, 10)}, "Аня")
+	for dz in range(-3, 4):
+		for dx in range(-3, 4):
+			s.territory._assign([Vector2i(5 + dx, 5 + dz)], id)
+	var chest: Dictionary = s.placed.put("tools:chest", Vector3i(12, 2, 12))
+	_check(not _step_back(s, b) and s.territory.claim_at(Territory._cell(b.who.position)).get("id", 0) == id, "by default one may walk in another's land")
+	_check(s.territory.set_rights(1, Territory.TEAM_DEFAULT, 0) and _step_back(s, b), "with walking not allowed, one is put back out")
+	s.territory.set_rights(1, Territory.TEAM_DEFAULT, 1)
+	b.who.teleport(Vector3(13.5, 2.0, 13.5) * WorldData.CELL)
+	s.step_players(0.1)
+	_check(s.actions.dig(b.who, [Vector3i(13, 1, 12)] as Array[Vector3i], 0.5).is_empty() and w.get_cell(13, 1, 12) == Mat.DIRT,
+		"one not allowed digs nothing in it")
+	_check(s.actions.dig(a.who, [Vector3i(9, 1, 9)] as Array[Vector3i], 0.5).size() > 0 and w.get_cell(9, 1, 9) == Mat.AIR,
+		"its owner digs")
+	_check(_ask(b, 1, Protocol.BAG_ALL, [chest.cell, null, 0]) != true, "nor opens a chest")
+	_check(not s.placed.take_up(b.who, chest), "nor takes up a thing")
+	s.territory.set_rights(1, Territory.TEAM_DEFAULT, Territory.TEAM_DEFAULT)
+	_check(s.actions.dig(b.who, [Vector3i(13, 1, 12)] as Array[Vector3i], 0.5).size() > 0, "allowed, they dig")
+	a.leave()
+	b.leave()
+
+
+## Steps the session with `link`'s player standing in the land, a step back: whether
+## they were put back where they stood before.
+func _step_back(s, link) -> bool:
+	link.who.teleport(Vector3(30.5, 2.0, 30.5) * WorldData.CELL)
+	s.step_players(0.1)
+	link.who.teleport(Vector3(14.5, 2.0, 14.5) * WorldData.CELL)
+	s.step_players(0.1)
+	return link.who.position.distance_to(Vector3(30.5, 2.0, 30.5) * WorldData.CELL) < 1.0
 
 
 class _Who:

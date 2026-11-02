@@ -37,6 +37,7 @@ const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
 const TeamPanel := preload("res://src/client/ui/team_panel.gd")
+const RightsPanel := preload("res://src/client/ui/rights_panel.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -116,6 +117,8 @@ var chat: ChatBox
 var person: PersonCard
 ## The window «Команда» of the pause menu on a server.
 var team: TeamPanel
+## The window «Права на земле» of the pause menu on a server.
+var rights: RightsPanel
 var _chat_button: Button
 ## «Территория»: painting the land on and off (shown with a claim of one's own), the
 ## squares held and allowed on it while painting.
@@ -414,6 +417,12 @@ func _ready() -> void:
 	team = TeamPanel.new(game)
 	add_child(team)
 	team.closed.connect(func() -> void:
+		if get_tree().paused:
+			_menu.visible = true
+			_update_menu())
+	rights = RightsPanel.new(game)
+	add_child(rights)
+	rights.closed.connect(func() -> void:
 		if get_tree().paused:
 			_menu.visible = true
 			_update_menu())
@@ -1009,6 +1018,9 @@ func toggle_menu() -> void:
 	if team.visible:
 		team.close()
 		return
+	if rights.visible:
+		rights.close()
+		return
 	_menu.visible = not _menu.visible
 	_shade.visible = _menu.visible
 	# Over the hotbar and the touch buttons.
@@ -1051,7 +1063,9 @@ func _on_land_entered(claim: Dictionary, own: bool) -> void:
 	elif own:
 		toast("Своя территория")
 	else:
-		toast("Территория «%s»: здесь можно ходить" % claim.get("name", ""))
+		var may: Array = game.land.may_here(claim)
+		toast("Территория «%s»: %s" % [claim.get("name", ""),
+			"можно " + ", ".join(may) if not may.is_empty() else "ничего нельзя"])
 
 
 ## Opens the window «Команда» in place of the pause menu.
@@ -1060,6 +1074,14 @@ func open_team() -> void:
 	person.close()
 	team.move_to_front()
 	team.open()
+
+
+## Opens the window «Права на земле» in place of the pause menu.
+func open_rights() -> void:
+	_menu.visible = false
+	person.close()
+	rights.move_to_front()
+	rights.open()
 
 
 ## Opens the settings or the playtest page in place of the pause menu.
@@ -1116,6 +1138,7 @@ func _build_menu() -> void:
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
 	_menu_buttons["team"] = _add_menu_button(box, "Команда", open_team)
+	_menu_buttons["rights"] = _add_menu_button(box, "Права на земле", open_rights)
 	_menu_buttons["server"] = _add_menu_button(box, "Сервер", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 
@@ -1143,6 +1166,8 @@ func _update_menu() -> void:
 	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
 	# Teams are a server's (Main.welcome comes from one).
 	_menu_buttons["team"].visible = not game.welcome.is_empty()
+	# Whom to let in matters with others about: on a server, with land of one's own.
+	_menu_buttons["rights"].visible = not game.welcome.is_empty() and game.land.has_mine()
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 

@@ -9,15 +9,28 @@ extends RefCounted
 ## `territory_per_day` for each game day they have lived in the world (Rules; skills
 ## take this over later); a team holds its biggest member's and half of the others'
 ## together (decision 15). The centre taken away, the claim is gone with its squares.
+## In another's claim a player may do only what its owner lets their team or the others
+## do (`rights`, ACTIONS; `may`, asked by the rules that change the world, and
+## `step_walk`, which puts one back who may not walk there; the user's pick 3А).
 ## Players are named by their number (Player.id), their teams by Teams. Kept in the
 ## world's save (to_dict, from_dict); a client keeps a copy fed by the server's events
 ## (take_claims, take_squares). Changes are told by `squares_changed` (the squares and
 ## the claim each now belongs to, 0 for none) and `claims_changed`.
 
-const Items := preload("res://src/shared/content/items.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 
 ## Cells along each side of a square.
 const SQUARE := 2
+## What a player may do in another's land (the user's pick 3А): each a bit of the masks
+## of `rights`, in this order, with its words. Doors and touching animals are kept for
+## when there are doors and tame animals; hitting players is Т5's (PvP).
+const ACTIONS := ["walk", "build", "doors", "chests", "harvest", "animals", "hit_animals", "hit_players"]
+const TITLES := {"walk": "Ходить", "build": "Строить и ломать", "doors": "Открывать двери",
+	"chests": "Брать из сундуков", "harvest": "Собирать урожай", "animals": "Трогать зверей",
+	"hit_animals": "Бить зверей", "hit_players": "Бить игроков"}
+## By default the owner's team may do everything, the others only walk (decision 101).
+const TEAM_DEFAULT := 255
+const OTHERS_DEFAULT := 1
 
 ## Squares changed: [[square, claim (0 none)]…].
 signal squares_changed(list: Array)
@@ -35,6 +48,11 @@ var claims := {}
 var squares := {}
 ## Game days each player has lived in the world.
 var played := {}
+## What each owner lets others do in all their claims: {player: [team mask, others
+## mask]} (bits of ACTIONS); the defaults for one not in it.
+var rights := {}
+## Where each player last stood on land they may walk on (see step_walk).
+var _walked := {}
 var next_claim := 1
 
 
@@ -60,6 +78,65 @@ func with(claim: Dictionary, id: int) -> bool:
 	if claim.is_empty():
 		return false
 	return claim.by == id or (teams != null and teams.together(claim.by, id))
+
+
+## What owner `owner` lets others do: [team mask, others mask].
+func rights_of(owner: int) -> Array:
+	return rights.get(owner, [TEAM_DEFAULT, OTHERS_DEFAULT])
+
+
+## Player `id` sets what others may do in their land; true when it changed.
+func set_rights(id: int, team: int, others: int) -> bool:
+	var r := [clampi(team, 0, 255), clampi(others, 0, 255)]
+	if r == rights_of(id):
+		return false
+	rights[id] = r
+	claims_changed.emit()
+	return true
+
+
+## Whether player `id` may do `action` (one of ACTIONS) in claim `claim`: always out of
+## every claim and in their own; by the owner's rights for their team or the others.
+func allowed(claim: Dictionary, id: int, action: String) -> bool:
+	if claim.is_empty() or claim.by == id:
+		return true
+	var r := rights_of(claim.by)
+	var mask: int = r[0] if teams != null and teams.together(claim.by, id) else r[1]
+	return mask & (1 << ACTIONS.find(action)) != 0
+
+
+## Whether `who` may do `action` at cell `c`; false with a word to them.
+func may(who, c: Vector3i, action: String) -> bool:
+	var claim := claim_at(c)
+	if allowed(claim, _id(who), action):
+		return true
+	who.nag("claim", "Территория «%s»: здесь нельзя — %s" % [title_of(claim), TITLES[action].to_lower()])
+	return false
+
+
+## The players walk: one in a claim they may not walk in is put back where they last
+## stood on land they may (nothing when that is in such a claim too: the claim was made
+## round them).
+func step_walk(players: Array) -> void:
+	for p in players:
+		if p.is_dead():
+			continue
+		var id := _id(p)
+		var claim := claim_at(_cell(p.position))
+		if allowed(claim, id, "walk"):
+			_walked[id] = p.position
+			continue
+		var back: Variant = _walked.get(id)
+		if back != null and allowed(claim_at(_cell(back)), id, "walk"):
+			p.teleport(back)
+			p.nag("claim", "Территория «%s»: сюда нельзя" % title_of(claim))
+
+
+## The name of claim `claim`: its team's, or the one's who set it.
+func title_of(claim: Dictionary) -> String:
+	if teams != null and teams.team_of(claim.get("by", 0)) != 0:
+		return str(teams.teams[teams.team_of(claim.by)].name)
+	return str(claim.get("name", ""))
 
 
 ## The squares player `id` may hold: Rules' start and a share for each day lived;
@@ -164,21 +241,16 @@ func paint(who, sq: Vector2i, on: bool) -> bool:
 func step(days: float, players: Array) -> void:
 	for p in players:
 		if not p.is_dead():
-			var id: int = p.get("id") if p.get("id") != null else 0
+			var id := _id(p)
 			played[id] = float(played.get(id, 0.0)) + days
 
 
-## What a client is told of the claims: [[id, centre, by, the claim's name]…] (the
-## team's name, or the name of the one who set it).
+## What a client is told of the claims: [[id, centre, by, the claim's name (title_of),
+## its owner's rights]…].
 func claims_view() -> Array:
 	var out := []
 	for claim: Dictionary in claims.values():
-		var title := ""
-		if teams != null and teams.team_of(claim.by) != 0:
-			title = str(teams.teams[teams.team_of(claim.by)].name)
-		else:
-			title = str(claim.get("name", ""))
-		out.append([claim.id, claim.center, claim.by, title])
+		out.append([claim.id, claim.center, claim.by, title_of(claim), rights_of(claim.by)])
 	return out
 
 
@@ -196,10 +268,13 @@ func take_claims(list: Array) -> void:
 	for sq: Vector2i in squares:
 		counts[squares[sq]] = int(counts.get(squares[sq], 0)) + 1
 	claims.clear()
+	rights.clear()
 	for e in list:
-		if e is Array and e.size() == 4 and e[0] is int and e[1] is Vector3i and e[2] is int:
+		if e is Array and e.size() >= 4 and e[0] is int and e[1] is Vector3i and e[2] is int:
 			claims[e[0]] = {"id": e[0], "center": e[1], "sq": square_of(e[1]), "by": e[2], "name": str(e[3]),
 				"count": int(counts.get(e[0], 0))}
+			if e.size() > 4 and e[4] is Array and e[4].size() == 2 and e[4][0] is int and e[4][1] is int:
+				rights[e[2]] = e[4]
 	claims_changed.emit()
 
 
@@ -228,7 +303,10 @@ func to_dict() -> Dictionary:
 	var days := {}
 	for id: int in played:
 		days[str(id)] = played[id]
-	return {"claims": list, "squares": sq, "played": days, "next": next_claim}
+	var r := {}
+	for id: int in rights:
+		r[str(id)] = rights[id]
+	return {"claims": list, "squares": sq, "played": days, "rights": r, "next": next_claim}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -249,6 +327,20 @@ func from_dict(d: Dictionary) -> void:
 	var days: Dictionary = d.get("played", {})
 	for k in days:
 		played[int(k)] = float(days[k])
+	rights.clear()
+	var r: Dictionary = d.get("rights", {})
+	for k in r:
+		if r[k] is Array and r[k].size() == 2:
+			rights[int(k)] = [int(r[k][0]), int(r[k][1])]
+
+
+static func _id(who) -> int:
+	var id: Variant = who.get("id")
+	return id if id is int else 0
+
+
+static func _cell(p: Vector3) -> Vector3i:
+	return Vector3i(floori(p.x / WorldData.CELL), floori(p.y / WorldData.CELL + 0.01), floori(p.z / WorldData.CELL))
 
 
 func _own_budget(id: int) -> int:
