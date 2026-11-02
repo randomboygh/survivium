@@ -28,6 +28,9 @@ const TURN_RATE := 9.0
 ## radians a second, until it is let go and the view glides to the nearest step.
 const HOLD_TIME := 0.35
 const SPIN_RATE := PI / 2.0
+## Short of sleep (Vitals.SLEEPY), the view drifts round the player by itself, faster
+## the more tired, up to DRIFT_RATE radians a second (a whole turn in two minutes).
+const DRIFT_RATE := TAU / 120.0
 ## Seconds a shake lasts.
 const SHAKE_TIME := 0.3
 
@@ -62,6 +65,8 @@ var tilt := 0.0
 var _hold := 0
 var _held := 0.0
 var _spinning := false
+## The view drifting round the player by itself, the body short of sleep (see _drowse).
+var _drifting := false
 ## A shake of the picture (see shake): how far, in low-res pixels, and its seconds left.
 var _shake := 0.0
 var _shake_left := 0.0
@@ -214,26 +219,53 @@ func _spin_boxes() -> void:
 		game.chunks.refit_boxes()
 
 
+## How fast the view drifts round now, radians a second: 0 rested or asleep, up to
+## DRIFT_RATE with no energy left.
+func drift_rate() -> float:
+	var v = game.character.vitals if game.character != null else null
+	if v == null or v.asleep or not v.fatigue or v.energy >= v.SLEEPY:
+		return 0.0
+	return DRIFT_RATE * lerpf(0.2, 1.0, 1.0 - v.energy / v.SLEEPY)
+
+
+## Starts or stops the drift of a tired body: the culling boxes then hold the views all
+## round, as for a smooth turn; once rested the view glides to the nearest step.
+func _drowse(_delta: float) -> void:
+	var drift := drift_rate() > 0.0
+	if drift == _drifting:
+		return
+	_drifting = drift
+	if drift:
+		_spin_boxes()
+	elif not _spinning:
+		turn_steps = roundi(turn / TURN_STEP)
+		_aim()
+
+
 ## Glides the drawn view to the one set; once there, the culling boxes hold that view
 ## alone again.
 func _glide(delta: float) -> void:
+	_drowse(delta)
 	if _hold != 0 and not _spinning:
 		_held += delta
 		if _held >= HOLD_TIME:
 			_spin_start()
 	var to := turn_steps * TURN_STEP
 	var to_tilt := tilt_steps * TILT_STEP
-	if turn == to and tilt == to_tilt and not _spinning:
+	if turn == to and tilt == to_tilt and not _spinning and not _drifting:
 		return
 	var k := minf(1.0, delta * TURN_RATE)
-	if _spinning:
+	if _drifting and not _spinning:
+		turn += drift_rate() * delta
+		turn_steps = roundi(turn / TURN_STEP)
+	elif _spinning:
 		turn += _hold * SPIN_RATE * delta
 		# The step it is nearest to is the one set, for whoever reads it.
 		turn_steps = roundi(turn / TURN_STEP)
 	else:
 		turn = lerpf(turn, to, k)
 	tilt = lerpf(tilt, to_tilt, k)
-	if not _spinning and absf(turn - to) < 0.002 and absf(tilt - to_tilt) < 0.0005:
+	if not _spinning and not _drifting and absf(turn - to) < 0.002 and absf(tilt - to_tilt) < 0.0005:
 		turn = to
 		tilt = to_tilt
 		# The turn counts round from 0 again, as it was set.

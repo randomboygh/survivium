@@ -36,9 +36,10 @@ const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body pushing into a burning campfire, or over it, comes to be
 ## burnt.
 const SINGE := 0.02
-## The flames burn only the middle of a campfire's two by two cells: this far in from its
-## edge (cells), so a body may stand by it to warm.
-const FLAMES_IN := 0.5
+## The flames burn only the very middle of a campfire's two by two cells: a body whose
+## middle is within this many cells of the fire's (the middle two of the eight pixels a
+## cell is across on the screen), so a body may stand by it, or on its edge, to warm.
+const FLAMES_HALF := 1.0 / 8.0
 ## A fire burning under the open sky goes out after this many seconds of a heavy rain
 ## (of strength RAIN_HEAVY or more: a downpour, a storm; a light rain does not), and dries
 ## as fast once it stops.
@@ -312,19 +313,9 @@ func burns(p: Vector3) -> bool:
 
 
 ## The burning campfire a body with its feet at `p` (world units) stands in the flames
-## of, {} for none: the middle of its cells (FLAMES_IN from the edge), or on top of
-## it; standing by its side warms (Warmth) without burning.
+## of, {} for none: its middle over the fire's very middle (FLAMES_HALF), at the fire's
+## height or on top of it; standing by it or on its edge warms (Warmth) without burning.
 func burning(p: Vector3) -> Dictionary:
-	return _fire_at(p, FLAMES_IN)
-
-
-## The burning campfire a body pushed into at `p` (Body.bumped, which a step stops
-## short of the fire), {} for none: walking into it burns, a little.
-func pushed_into(p: Vector3) -> Dictionary:
-	return _fire_at(p, -SINGE)
-
-
-func _fire_at(p: Vector3, inset: float) -> Dictionary:
 	var c := p / CELL
 	for e in things:
 		if not e.lit or not is_fire(e):
@@ -332,10 +323,11 @@ func _fire_at(p: Vector3, inset: float) -> Dictionary:
 		var at: Vector3i = e.cell
 		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:
 			continue
-		if c.x + Body.HALF_WIDTH > at.x + inset and c.x - Body.HALF_WIDTH < at.x + 2 - inset \
-				and c.z + Body.HALF_DEPTH > at.z + inset and c.z - Body.HALF_DEPTH < at.z + 2 - inset:
+		if absf(c.x - (at.x + 1.0)) <= FLAMES_HALF and absf(c.z - (at.z + 1.0)) <= FLAMES_HALF:
 			return e
 	return {}
+
+
 
 
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first

@@ -12,6 +12,7 @@ func run() -> void:
 	_test_hidden()
 	_test_sound()
 	_test_camera_spin()
+	_test_camera_drift()
 
 
 func _test_pixel_view() -> void:
@@ -348,11 +349,35 @@ class _FakeSettings:
 		pass
 
 
+class _FakeCharacter:
+	var vitals := Vitals.new()
+
+
 class _FakeGame:
 	var settings := _FakeSettings.new()
 	var player := Node3D.new()
 	var chunks = null
 	var effects = null
+	var character := _FakeCharacter.new()
+
+
+## Short of sleep the view drifts round the player by itself; rested, it settles on a step.
+func _test_camera_drift() -> void:
+	var game := _FakeGame.new()
+	var rig = CameraRig.new(game)
+	rig.look_at_player()
+	game.character.vitals.energy = Vitals.MAX
+	for i in 30:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn == 0.0, "rested, the view stays as it was set")
+	game.character.vitals.energy = 0.0
+	for i in 90:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn > 0.1 and rig.turn < CameraRig.DRIFT_RATE * 3.1, "short of sleep it drifts round, slowly: %.3f" % rig.turn)
+	game.character.vitals.energy = Vitals.MAX
+	for i in 120:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn == posmod(rig.turn_steps, CameraRig.TURNS) * CameraRig.TURN_STEP, "rested again, it settles on a step: %.3f" % rig.turn)
 
 
 ## A turn button held turns the camera on smoothly; let go, it settles on the nearest step.
