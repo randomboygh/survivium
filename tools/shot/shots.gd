@@ -329,6 +329,9 @@ const SHOTS := {
 		"chill": [22.0, 0.7]},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
+	# Hide clothes worn, a fur coat chosen in the bag (its warmth).
+	"bag-furs": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
+		"wear": ["tools:fur_hat", "tools:fur_coat", "tools:leather_trousers", "tools:fur_boots"], "give": "tools:fur_coat"},
 	"bag-worn": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"wear": "tools:canvas_backpack", "person": "back"},
 	# «Выдать инструменты» pressed (Items.best_kit: the best tool of each class, a light,

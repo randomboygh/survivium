@@ -12,7 +12,7 @@ extends VBoxContainer
 ## row as wide: small cells for the jobs, the time left of the one chosen and the count
 ## over the first job's progress, the pause and «отменить | отменить все». Opened at a
 ## station, buttons in the window's head (by the cross, see station_buttons) take it
-## back into the bag; at a campfire, feed it one piece of fuel, put it out, light it again for a branch and destroy it once it is out. Works through Workshop.
+## back into the bag; at a campfire, put it out or light it again for a branch, feed it one piece of fuel (its charge drawn on that button) and destroy it once it is out. Works through Workshop.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
@@ -26,6 +26,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 
 const COLUMNS := 8
 ## The most cells of recipes made in one refresh (see refresh_now).
@@ -88,8 +89,11 @@ var _job_slots := []
 var _job_more: Label
 var _job_label: Label
 var _progress: ProgressBar
-## At a campfire: feed it (how long it burns on is told by its tooltip).
+## At a campfire, by the button that puts it out or lights it: feed it one piece of
+## fuel from the bag; a bar along its bottom shows how full the fire is (Placed.fuel_share),
+## its tooltip how long it burns on.
 var _feed: Button
+var _fuel_bar: Control
 ## The station the tab was opened at (a record of Props.placed), or {}.
 var _station := {}
 ## What the stations near were at the last refresh, to notice walking up to one.
@@ -116,13 +120,18 @@ func _ready() -> void:
 		game.net.request(Protocol.PROP_TAKE, [_station.cell]).then(_station_gone))
 	_fire = TabRow.icon_button(UiStyle.icon("put_out"), "Потушить", func() -> void:
 		game.net.request(Protocol.PROP_FIRE, [_station.cell, not _station.lit]).then(func(_v: Variant) -> void: refresh()))
-	_feed = TabRow.icon_button(UiStyle.icon("plus"), "Подложить топливо", func() -> void:
+	_feed = TabRow.icon_button(UiStyle.icon("feed"), "Подкинуть топливо", func() -> void:
 		game.net.request(Protocol.PROP_FIRE, [_station.cell, true]).then(func(_v: Variant) -> void: refresh()))
+	_fuel_bar = Control.new()
+	_fuel_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fuel_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fuel_bar.draw.connect(_draw_fuel)
+	_feed.add_child(_fuel_bar)
 	game.placed.lit_changed.connect(_on_fire)
 	game.placed.fuel_changed.connect(_on_fire)
 	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
 		game.net.request(Protocol.PROP_DESTROY, [_station.cell]).then(_station_gone))
-	for b in [_take_up, _feed, _fire, _destroy]:
+	for b in [_take_up, _fire, _feed, _destroy]:
 		b.custom_minimum_size = Vector2(30, 30)
 		station_buttons.add_child(b)
 
@@ -387,13 +396,29 @@ func _show_head() -> void:
 	_fire.visible = fire
 	_destroy.visible = fire and not _station.lit
 	var burns: bool = fire and Items.get_item(_station.item).fuel_max > 0.0
-	_feed.visible = burns and _station.lit
+	_feed.visible = burns
 	if burns:
-		var left := roundi(float(_station.get("fuel", 0.0)))
-		_feed.tooltip_text = "Подложить топливо (горит ещё %d:%02d)" % [left / 60, left % 60]
+		var left := roundi(float(_station.get("fuel", 0.0))) if _station.lit else 0
+		var room: bool = Items.get_item(_station.item).fuel_max - float(_station.get("fuel", 0.0)) >= Placed.FUEL_ROOM
+		var has := Items.fuel_in(game.character.inventory) != ""
+		_feed.disabled = not _station.lit or not room or not has
+		_feed.tooltip_text = ("Подкинуть топливо (горит ещё %d:%02d)" % [left / 60, left % 60] if _station.lit else "Костёр не горит") \
+			+ ("" if room or not _station.lit else ": полон") + ("" if has or not _station.lit else ": в сумке нет топлива")
+		_fuel_bar.queue_redraw()
 	if fire:
 		_fire.icon = UiStyle.icon("put_out" if _station.lit else "light")
 		_fire.tooltip_text = "Потушить костёр" if _station.lit else "Разжечь (ветка или другое топливо)"
+
+
+## The fire's charge along the bottom of the feed button.
+func _draw_fuel() -> void:
+	if _station.is_empty() or not Placed.is_fire(_station):
+		return
+	var share := Placed.fuel_share(_station) if _station.lit else 0.0
+	var r := Rect2(5, _fuel_bar.size.y - 6, _fuel_bar.size.x - 10, 3)
+	_fuel_bar.draw_rect(r, UiStyle.WELL)
+	var color := UiStyle.DANGER if share < 0.2 else UiStyle.ACCENT
+	_fuel_bar.draw_rect(Rect2(r.position, Vector2(roundf(r.size.x * share), r.size.y)), color)
 
 
 ## A campfire burned down, was fed or went out: the one the tab is open at shows it.
