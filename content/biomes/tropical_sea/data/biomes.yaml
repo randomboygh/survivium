@@ -7,6 +7,5 @@
   where: sea
   zone: tropic
   warmth: [0.72, 1.0]
-  fish: {animals:parrotfish: 0.6, animals:cod: 0.2}
   tints: {water: "#44c0c0", sand: "#e2d8ba"}
   color: "#2a94a6"

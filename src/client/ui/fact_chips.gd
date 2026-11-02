@@ -142,7 +142,11 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 			[UiStyle.icon("hammer"), "%.1f с" % it.swing, false, "Удар"],
 			[UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"]]])
 	var shoots: String = it.get("ammo", "")
-	if shoots != "":
+	if shoots != "" and it.get("tool", "") == "rod":
+		var tip := "Наживка: «%s», по одной на заброс; без неё клюёт редко" % Items.title(shoots)
+		var left := "нет" if ammo == 0 else (str(ammo) if ammo > 0 else "")
+		groups.append(["Наживка", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
+	elif shoots != "":
 		var tip := "Стреляет: «%s», по одному на выстрел" % Items.title(shoots)
 		if ammo == 0:
 			tip += "; в сумке нет — стрелять нечем"
@@ -171,8 +175,10 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 ## Whether weapon `id` shoots something (arrows, sling stones) that bag `inv` has none
 ## of: it shows inactive then.
 static func unarmed(inv, id: String) -> bool:
-	var shoots: String = Items.get_item(id).get("ammo", "") if id != "" else ""
-	return shoots != "" and inv.count(shoots) == 0
+	var it := Items.get_item(id) if id != "" else {}
+	var shoots: String = it.get("ammo", "")
+	# A rod casts without bait too (the fish only bite seldom).
+	return shoots != "" and it.get("tool", "") != "rod" and inv.count(shoots) == 0
 
 
 ## Seconds `t` as minutes and seconds, "6:00".

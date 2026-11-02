@@ -2,7 +2,7 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; HEARD, the chat; TEAM and INVITES, the
+## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE; HEARD, the chat; TEAM and INVITES, the
 ## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_FUEL, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
@@ -63,6 +63,8 @@ var _squares_all := true
 var _squares: Array = []
 var _land: Array = []
 var _fight: Array = []
+## The fishing line last told ([float, bite]).
+var _line: Array = [Vector3.INF, false]
 var _shop := true
 var _knowledge := true
 var _vitals: Array = []
@@ -155,6 +157,7 @@ func rejoin() -> void:
 	_squares.clear()
 	_land = []
 	_fight = []
+	_line = [Vector3.INF, false]
 	_shop = true
 	_knowledge = true
 	_all = true
@@ -228,6 +231,9 @@ func flush() -> Array[PackedByteArray]:
 	if land != _land:
 		_land = land
 		out.append(_event(Protocol.LAND, land))
+	if who.line != _line[0] or who.bite != _line[1]:
+		_line = [who.line, who.bite]
+		out.append(_event(Protocol.LINE, _line))
 	var fight: Array = session.fights.view(who.id)
 	if fight != _fight:
 		_fight = fight
@@ -327,7 +333,7 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 			continue
 		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
 			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate(),
-			session.teams.together(who.id, p.id)]
+			session.teams.together(who.id, p.id), p.line]
 		here[p.id] = true
 		if _people.get(p.id) != e:
 			_people[p.id] = e

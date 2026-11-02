@@ -847,6 +847,20 @@ const PICTURES := {
 		"............",
 		"............",
 	],
+	"bait": [
+		"............",
+		"............",
+		"....RRR.....",
+		"...R...R....",
+		"...R....RRr.",
+		"....RR....R.",
+		"......RR.r..",
+		"..rR....R...",
+		".R..RRRR....",
+		".tttBtttBtt.",
+		"BtBttBtBttBt",
+		"............",
+	],
 	"fishing_rod": [
 		"..........B.",
 		".........B..",
@@ -1447,6 +1461,7 @@ const PICTURES := {
 const RECOLOURED := {
 	"leather": ["hide", {"t": "n", "B": "o"}],
 	"pike": ["roach", {"s": "l", "S": "L", "f": "l"}],
+	"perch": ["roach", {"s": "l", "S": "Q", "f": "o"}],
 	"salmon": ["roach", {"s": "n", "S": "N", "f": "s"}],
 	"cod": ["roach", {"s": "v", "S": "V", "f": "v"}],
 	"parrotfish": ["roach", {"s": "y", "S": "Y", "f": "O"}],

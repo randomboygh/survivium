@@ -90,6 +90,8 @@ var chops := {}
 ## The animals (Wildlife) blows land on; null where there are none (a client's copy of
 ## the rules), and then no blow lands.
 var wildlife
+## The fishing lines cast (Fishing): a rod casts and pulls them.
+var fishing
 ## The land claimed (Territory): what a player may do in another's; none in tests that
 ## have no claims.
 var territory
@@ -833,42 +835,87 @@ func _fills(who) -> String:
 
 # --- Fishing ---------------------------------------------------------------------------
 
-## The share of casts something bites on, before the biome's shares say what; how long a
-## cast takes, in seconds; how fast a catch flies to the angler, in world units a second.
-const BITE := 0.4
+## How long a cast and a pull take, in seconds; how fast a catch flies to the angler, in
+## world units a second.
 const CAST_SWING := 0.9
+const PULL_SWING := 0.6
 const CATCH_SPEED := 8.0
 
 
-## Casts the rod in hand of `who` toward `aim` (ahead if not finite) into the nearest open
-## water within the rod's `range`: with chance BITE something of the biome `who` stands in
-## bites (Biomes.fish of fishing_biome) and goes into the bag, its flight to the angler in
-## `shot`. Nothing when there is no water there, or the biome has no fish.
+## The rod in hand of `who`: with no line in the water, casts it toward `aim` (ahead if
+## not finite) into the nearest open water within the rod's `range`, one of its `ammo`
+## from the bag on the hook (Fishing.cast; the reply's "line" is where the float lies);
+## with a line out, pulls it: a fish biting goes into the bag, its flight to the angler
+## in `shot` (Fishing.pull). Nothing on frozen water, or with no water there.
 func fish(who, aim := Vector3.INF) -> Dictionary:
+	if fishing == null:
+		return {"swing": IDLE_SWING}
+	if fishing.has_line(who):
+		return _pull(who)
 	var rod: Dictionary = who.tool()
 	var at: Vector3 = who.position
 	var dir := Vector2(who.facing_step()).normalized()
 	if aim.is_finite() and Vector2(aim.x - at.x, aim.z - at.z).length() > 0.05:
 		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
+	if world.water_frozen:
+		who.nag("fish", "Вода замёрзла: рыба подо льдом не клюёт")
+		return {"swing": IDLE_SWING}
 	var water := water_ahead(at, dir, maxi(2, rod.get("range", 0)))
 	if water == Vector3.INF:
 		who.nag("fish", "Удочку закидывают в воду: подойдите к ней")
 		return {"swing": IDLE_SWING}
-	var b := fishing_biome(at, water)
-	if Biomes.of(b).get("fish", {}).is_empty():
-		who.nag("fish", "Здесь рыба не водится")
-		return {"swing": IDLE_SWING}
 	if not who.act("swing"):
 		return {}
 	who.use_tool()
+	water = _cast_out(at, dir, water, maxi(2, rod.get("range", 0)))
+	# The float lies on the water's surface, not at the top of its cell.
+	water.y -= (1.0 - WorldData.WATER_TOP) * CELL
+	var item := Items.get_item(who.held())
+	fishing.cast(who, water, item.get("ammo", ""))
+	if fishing.fish_near(water) == null:
+		who.nag("no_fish", "Рядом с поплавком не видно рыбы")
+	elif item.get("ammo", "") != "" and fishing.lines[who].bait == "":
+		who.nag("bait", "Без наживки клюёт редко: нужна «%s»" % Items.title(item.ammo))
 	var done := _work(CAST_SWING, "", water)
-	var caught := Biomes.fish(b, randf()) if randf() < BITE else ""
-	if caught == "" or not Items.has(caught) or who.give(caught, 1) == 0:
-		who.nag("bite", "Не клюёт")
-		return done
-	who.note("fished")
-	var to := at + Vector3(0.0, 0.6, 0.0)
-	done.shot = [caught, water, to, water.distance_to(to) / CATCH_SPEED]
+	done.line = water
+	return done
+
+
+## How far past the shore a cast lays the float, in cells, where the water goes on.
+const CAST_OUT := 3.0
+
+
+## Where a cast from `at` along `dir` lands past `water`, the first open water ahead: up
+## to CAST_OUT cells on while the water goes on open at its level, within `reach` cells.
+func _cast_out(at: Vector3, dir: Vector2, water: Vector3, reach: int) -> Vector3:
+	var level := floori(water.y / CELL)
+	var best := water
+	for i in range(1, int(CAST_OUT * 2.0) + 1):
+		var p := Vector2(water.x, water.z) / CELL + dir * (i * 0.5)
+		if (p - Vector2(at.x, at.z) / CELL).length() > reach:
+			break
+		var bits: int = world.water_col(floori(p.x), floori(p.y))
+		if bits == 0 or WorldData.top_level(bits) + 1 != level or world.get_cell(floori(p.x), level, floori(p.y)) != Mat.AIR:
+			break
+		best = Vector3(p.x, level, p.y) * CELL
+	return best
+
+
+## Pulls the line of `who` out of the water (see fish).
+func _pull(who) -> Dictionary:
+	var r: Dictionary = fishing.pull(who)
+	var done := _work(PULL_SWING, "", r.from)
+	done.line = Vector3.INF
+	if r.caught != "":
+		who.note("fished")
+		var to: Vector3 = who.position + Vector3(0.0, 0.6, 0.0)
+		done.shot = [r.caught, r.from, to, r.from.distance_to(to) / CATCH_SPEED]
+	elif r.full:
+		who.nag("full", "Сумка полна: рыба ушла")
+	elif not r.bit:
+		who.nag("bite", "Не клюнуло")
+	else:
+		who.nag("bite", "Сорвалась")
 	return done
 
 
@@ -887,34 +934,6 @@ func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
 		if world.get_cell(x, top + 1, z) == Mat.AIR:
 			return Vector3(p.x, top + 1.0, p.y) * CELL
 	return Vector3.INF
-
-
-## Whose fish bite on a cast from world point `at` into the water at `water`: in a lake,
-## a river or the pools of a swamp the land's round it, the first biome other than the
-## sea and the plain beach from the angler back (the shore of a lake is often beach);
-## in the sea that of a beach of its own (a tropical one) the angler stands on, else the
-## sea's there (the tropical sea's in the tropics). Biomes.NONE without a layout of the land.
-func fishing_biome(at: Vector3, water: Vector3) -> int:
-	if wildlife == null or wildlife.gen == null:
-		return Biomes.NONE
-	var gen = wildlife.gen
-	var w: Dictionary = gen.lay_out(floori(water.x / CELL), floori(water.z / CELL), 1, 1)
-	var here := biome_under(at)
-	if not fresh_water(water):
-		if Biomes.where(here) == "beach" and here != Biomes.BEACH:
-			return here
-		var sea: int = w.biome[0]
-		return sea if Biomes.where(sea) == "sea" else _biome_or(Biomes.SEA, here)
-	var back := Vector2(at.x - water.x, at.z - water.z).normalized()
-	for k in [0, 4, 8, 16, 24]:
-		var b := biome_under(at + Vector3(back.x, 0.0, back.y) * k * CELL)
-		if b != Biomes.NONE and Biomes.where(b) != "sea" and b != Biomes.BEACH:
-			return b
-	return here
-
-
-static func _biome_or(b: int, other: int) -> int:
-	return b if b >= 0 else other
 
 
 ## The biome of the column under world point `at` by the layout of the land (Biomes.NONE

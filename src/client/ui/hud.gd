@@ -867,6 +867,8 @@ func _update_hands() -> void:
 		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else
 			("Н" if game.character.inventory.worn_on(i) != "" else "")))
 	_action.text = c.action_name()
+	# Pressed down while the fishing line is in the water.
+	_action.latch(game.character.line.is_finite())
 	# The picture of what the hand in use holds, bare hands for nothing.
 	var held: String = c.held()
 	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null

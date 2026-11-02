@@ -13,6 +13,7 @@ const SpriteShader := preload("res://shaders/sprite.gdshader")
 const XrayShader := preload("res://shaders/sprite_xray.gdshader")
 const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const FishingLine := preload("res://src/client/view/fishing_line.gd")
 
 const CELL := WorldData.CELL
 ## The body's height in cells (see Body).
@@ -90,6 +91,18 @@ const SNORE_SHAPES := [
 const SNORE_INK := Color(0.72, 0.84, 1.0)
 const SNORE_EDGE := Color(0.13, 0.14, 0.24)
 static var _snore_textures: Array[Texture2D] = []
+## The float of the figure's fishing line on the water (Character.line; INF none):
+## while it is out, the figure stands with the rod held out towards it (the strike of
+## its `slash`, ROD_OUT) and the line is drawn (FishingLine); `line_bite` while a fish
+## bites, the float pulled under.
+var line_at := Vector3.INF
+var line_bite := false
+var fishing_line: MeshInstance3D
+## The column of the `slash` work the rod is held out in, and where its tip is from the
+## feet: so far ahead towards the float and so high, in world units.
+const ROD_OUT := 2
+const ROD_AHEAD := 0.75
+const ROD_HIGH := 1.05
 ## Where the flames of the lights held burn, in world units, one a hand that holds
 ## one: the brightest pixel of what the hand holds in the frame shown
 ## (SpriteSheet.spots); empty when none shows.
@@ -136,6 +149,8 @@ func _ready() -> void:
 	torch.shadow_caster_mask = 0xFFFFF & ~(PixelView.LAYER_PLAYER | PixelView.LAYER_SUN_CASTER)
 	torch.top_level = true
 	add_child(torch)
+	fishing_line = FishingLine.new()
+	add_child(fishing_line)
 	for i in SNORE_LETTERS:
 		var z := snore_letter()
 		z.visible = false
@@ -234,6 +249,14 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 			anim_time = minf(_work_time / work_length, 0.999) * frames.size() / sheet.animations[work_kind].fps
 			return
 		work_kind = ""
+	if line_at.is_finite() and dir.length() <= 0.1 and not body.swimming and sheet.animations.has("slash"):
+		# The rod held out over the water, towards the float.
+		var to := Vector2(line_at.x - position.x, line_at.z - position.z)
+		if to.length() > 0.1 * CELL:
+			facing = SpriteSheet.direction_of(to)
+		anim = "slash"
+		anim_time = (ROD_OUT + 0.5) / sheet.animations.slash.fps
+		return
 	var next := "idle"
 	if body.swimming:
 		next = "swim"
@@ -296,6 +319,35 @@ func place_sprite() -> void:
 	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, 1.2, -PixelView.up.y * 0.3))
 	_find_flame()
 	_snore(drawn_at)
+	_show_line()
+
+
+## The fishing line from the tip of the rod held out to the float (see line_at).
+func _show_line() -> void:
+	if not line_at.is_finite():
+		if fishing_line.visible:
+			fishing_line.show_line(Vector3.ZERO, Vector3.INF, false)
+		return
+	fishing_line.show_line(_rod_tip(), line_at, line_bite)
+
+
+## Where the tip of the rod held out is, in world units: its pixel in the frame shown
+## (SpriteSheet.tips), else a guess ahead of the body towards the float.
+func _rod_tip() -> Vector3:
+	var f := sheet.frame_at(drawn_facing(), anim, anim_time)
+	var tip: Variant = sheet.tips.get(Vector2i(f.x, f.y))
+	if tip == null:
+		var to := Vector2(line_at.x - position.x, line_at.z - position.z)
+		var ahead := to.normalized() * minf(ROD_AHEAD, to.length())
+		return position + Vector3(ahead.x, ROD_HIGH, ahead.y)
+	var size := sheet.frame_size
+	var px := 1.0 / PixelView.PIXELS_PER_UNIT
+	var x: int = size.x - 1 - tip.x if f.z == 1 else tip.x
+	var across: float = (x + 0.5 - floorf(size.x / 2.0)) * px
+	var up: float = (size.y - tip.y - 0.5) * px / PixelView.slope
+	# A little towards the viewer, so the line starts in front of the figure.
+	return sprite.global_position + Vector3(PixelView.right.x * across, up, PixelView.right.y * across) \
+		- Vector3(PixelView.up.x, 0.0, PixelView.up.y) * 0.05
 
 
 ## Puts flames_at on the frame shown: the frame's spot is a pixel of the upright quad

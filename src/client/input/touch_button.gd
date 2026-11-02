@@ -11,6 +11,9 @@ const MOUSE := -2
 ## The touch index holding the button, MOUSE for a real mouse, or NONE.
 var _finger := NONE
 var _touch_ms := -100000
+## The button stays pressed down after it is let go (the action button while a fishing
+## line is out: the second press pulls it).
+var latched := false
 
 
 func _init() -> void:
@@ -47,5 +50,11 @@ func _notification(what: int) -> void:
 
 func _set_held(finger: int) -> void:
 	_finger = finger
-	set_pressed_no_signal(finger != NONE)
+	set_pressed_no_signal(finger != NONE or latched)
 	held.emit(finger != NONE)
+
+
+## Keeps the button pressed down, or lets it come up (see latched).
+func latch(on: bool) -> void:
+	latched = on
+	set_pressed_no_signal(_finger != NONE or latched)

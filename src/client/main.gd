@@ -875,6 +875,8 @@ func _process(delta: float) -> void:
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.asleep = character.vitals.asleep and not character.is_dead()
+		player.line_at = character.line
+		player.line_bite = character.bite
 		player.step(minf(delta, 0.05), jump)
 		character.update(delta)
 		workshop.update(delta)

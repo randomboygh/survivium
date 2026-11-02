@@ -165,6 +165,11 @@ var held_back: Array[Vector3] = []
 ## Where the sacks of this character's deaths lie, in world units, until they are
 ## taken back whole: the maps mark them.
 var sacks: Array[Vector3] = []
+## Where the float of the character's fishing line lies on the water, in world units,
+## INF while none is cast; `bite` while a fish bites at it (Fishing sets both on the
+## server; the client's copy is told them, Protocol.LINE).
+var line := Vector3.INF
+var bite := false
 ## Where the body is, in world units (see _where).
 var position: Vector3:
 	get:

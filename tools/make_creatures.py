@@ -293,6 +293,62 @@ def perch(f):
     return c
 
 
+def _fish(f, w, h, body, back, belly, fin, bars=(), whiskers=False, long_jaw=False, spots=None):
+    """A fish facing right in a w x h frame: an oval body darker along the back, a pale
+    belly, fins and a tail that beats (frames 1 and 2 bend it up and down)."""
+    c = Canvas(w, h)
+    top = 1
+    bottom = h - 2
+    c.ellipse(2, top, w - 2, bottom, body)
+    c.line(3, top, w - 4, top, back)
+    c.line(4, bottom, w - 5, bottom, belly)
+    for x in bars:
+        c.line(x, top, x, bottom - 1, back)
+    if spots:
+        for (x, y) in spots[0]:
+            c.dot(x, y, spots[1])
+    c.dot(w - 4, top + 1, DARK_EYE)
+    c.line(w // 2 - 1, 0, w // 2 + 1, 0, fin)  # dorsal fin
+    c.dot(w // 2, h - 1, fin)  # belly fin
+    if long_jaw:
+        c.dot(w - 1, top + 2, back)
+    if whiskers:
+        c.line(w - 2, bottom, w - 1, bottom + 1, back)
+    mid = (top + bottom) // 2
+    tail = {0: (0, mid - 1, 1, mid + 1), 1: (0, mid - 2, 1, mid), 2: (0, mid, 1, mid + 2)}[f]
+    c.rect(tail[0], tail[1], tail[2], tail[3], fin)
+    return c
+
+
+def roach(f):
+    return _fish(f, 10, 6, (176, 184, 192, 255), (96, 106, 118, 255), (226, 230, 232, 255), (196, 82, 60, 255))
+
+
+def pike(f):
+    return _fish(f, 15, 6, (110, 140, 76, 255), (64, 90, 50, 255), (196, 204, 150, 255), (90, 110, 60, 255),
+                 spots=([(5, 2), (8, 3), (11, 2), (6, 4)], (178, 196, 120, 255)), long_jaw=True)
+
+
+def salmon(f):
+    return _fish(f, 13, 6, (196, 120, 96, 255), (110, 116, 130, 255), (236, 206, 180, 255), (150, 96, 90, 255),
+                 spots=([(5, 2), (8, 2)], (60, 60, 70, 255)))
+
+
+def cod(f):
+    return _fish(f, 13, 7, (160, 136, 80, 255), (110, 92, 54, 255), (214, 200, 160, 255), (130, 108, 64, 255),
+                 spots=([(5, 2), (7, 3), (9, 2), (6, 4)], (110, 92, 54, 255)), whiskers=True)
+
+
+def parrotfish(f):
+    return _fish(f, 11, 7, (72, 196, 170, 255), (40, 140, 120, 255), (190, 246, 226, 255), (232, 120, 170, 255),
+                 bars=(5,))
+
+
+def catfish(f):
+    return _fish(f, 16, 6, (74, 70, 66, 255), (44, 42, 40, 255), (130, 132, 134, 255), (56, 54, 52, 255),
+                 whiskers=True)
+
+
 def frog(f):
     g = (96, 150, 58, 255)
     d = (60, 104, 44, 255)
@@ -411,7 +467,11 @@ SHEETS = {
     "rabbit": rabbit, "squirrel": squirrel, "cat": cat, "deer": deer, "wolf": wolf,
     "fox": fox, "boar": boar, "bear": bear, "hedgehog": hedgehog, "crow": crow, "owl": owl,
     "duck": duck, "butterfly": butterfly, "perch": perch, "frog": frog,
+    "roach": roach, "pike": pike, "salmon": salmon, "cod": cod, "parrotfish": parrotfish, "catfish": catfish,
 }
+# The bundle a sheet goes into when it is not the one named like it: the fish caught on a
+# rod live in the bundle «Рыба».
+BUNDLE = {"roach": "fish", "pike": "fish", "salmon": "fish", "cod": "fish", "parrotfish": "fish", "catfish": "fish"}
 
 
 def sheet(name):
@@ -431,7 +491,7 @@ def main():
     for name in SHEETS:
         if only and name not in only:
             continue
-        path = os.path.join(ROOT, name, "sprites", "creatures", "%s.png" % name)
+        path = os.path.join(ROOT, BUNDLE.get(name, name), "sprites", "creatures", "%s.png" % name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         sheet(name).save(path)
         print(path)

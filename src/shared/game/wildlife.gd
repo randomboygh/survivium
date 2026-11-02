@@ -181,6 +181,9 @@ class Animal:
 	var floor_y := 0.0
 	## Whether that floor is the water's (a swimmer swims there).
 	var floor_wet := false
+	## A fish lured by the float of a fishing line swims there and stays (Fishing sets
+	## and clears it); INF none.
+	var bait := Vector3.INF
 
 	## Off the ground, out of reach of those that walk.
 	func aloft() -> bool:
@@ -296,6 +299,12 @@ func _thin(kind: String, n: int) -> void:
 
 
 func _decide(a: Animal, spec: Dictionary) -> void:
+	if a.bait.is_finite():
+		# Lured by a float: nothing else matters to it until it has bitten or let go.
+		a.state = "bait"
+		a.idle = 0.0
+		a.target = Vector3(a.bait.x, a.pos.y, a.bait.z)
+		return
 	var sight: float = spec.sight
 	var threat_pos: Variant = null
 	var threat_d := INF
@@ -613,6 +622,8 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 		"wander":
 			# Flyers only hop about on the ground, or paddle about on the water.
 			speed *= (0.15 if spec.ashore else 0.1) if spec.flies else 0.3
+		"bait":
+			speed *= 0.4
 	if a.idle > 0.0 and a.state == "wander":
 		speed = 0.0
 	var to := Vector2(a.target.x - a.pos.x, a.target.z - a.pos.z)
@@ -826,6 +837,12 @@ func ground(x: float, z: float) -> float:
 	return world.ground_height(x / CELL, z / CELL) * CELL
 
 
+## Takes animal `a` out of the world (a fish pulled out on a line, Fishing).
+func take(a: Animal) -> void:
+	if not a.gone:
+		_remove(a)
+
+
 ## Height of the water surface at a world point, in world units; -INF where the
 ## column's top is not open (unfrozen) water.
 func water_top(x: float, z: float) -> float:
@@ -836,15 +853,40 @@ func water_top(x: float, z: float) -> float:
 	return (WorldData.top_level(world.water_col(cx, cz)) + WorldData.WATER_TOP) * CELL
 
 
+## Where frozen water has open water under its ice, at a world point: the bottom of the
+## ice (the top cell of the water frozen), in world units, where the water is two cells
+## deep at least; -INF elsewhere, and where the water is not frozen.
+func under_ice(x: float, z: float) -> float:
+	if not world.water_frozen:
+		return -INF
+	var cx := floori(x / CELL)
+	var cz := floori(z / CELL)
+	var bits: int = world.water_col(cx, cz)
+	if bits == 0:
+		return -INF
+	var top := WorldData.top_level(bits)
+	if top < 1 or world.surface_y(cx, cz) != top + 1 or world.get_cell(cx, top - 1, cz) != Mat.WATER:
+		return -INF
+	return top * CELL
+
+
+## Whether species `spec` swims under the ice of frozen water (a fish: one that swims
+## and neither flies nor comes ashore).
+static func under_ice_swimmer(spec: Dictionary) -> bool:
+	return spec.swims and not spec.flies and not spec.ashore
+
+
 ## Where an animal of species `spec` stands at a world point, in world units: the
 ## ground for a walker, DIP under the water surface for a swimmer (the ground out of
-## the water for one that comes ashore); 0 or below where it cannot be (water for the
-## one, land for the other).
+## the water for one that comes ashore), DIP under the ice for a fish in frozen water;
+## 0 or below where it cannot be (water for the one, land for the other).
 func _floor(spec: Dictionary, x: float, z: float) -> float:
 	if spec.swims:
 		var top := water_top(x, z)
 		if top == -INF and spec.ashore:
 			return ground(x, z)
+		if top == -INF and under_ice_swimmer(spec):
+			top = under_ice(x, z)
 		return top - DIP * CELL
 	return ground(x, z)
 
@@ -900,9 +942,10 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var y: int = world.surface_y(x, z)
 		if spec.swims:
-			# Open water, a cell deep at least.
-			if y != -1 or WorldData.top_level(world.water_col(x, z)) < 1 \
-					or world.get_cell(x, WorldData.top_level(world.water_col(x, z)) - 1, z) != Mat.WATER:
+			# Open water, a cell deep at least; a fish also under ice.
+			var top := WorldData.top_level(world.water_col(x, z))
+			var open := y == -1 or (under_ice_swimmer(spec) and under_ice((x + 0.5) * CELL, (z + 0.5) * CELL) > -INF)
+			if not open or top < 1 or world.get_cell(x, top - 1, z) != Mat.WATER:
 				continue
 		elif y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue

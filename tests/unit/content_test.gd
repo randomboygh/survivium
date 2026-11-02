@@ -275,10 +275,11 @@ func _test_mods() -> void:
 		and Mat.BEACH in Biomes.tree_grounds(beach, gen.grounds) and not Mat.BEACH in Biomes.tree_grounds(Biomes.BEACH, gen.grounds)
 		and Trees.SPECIES[Trees.index("plants:palm")].shape == "palm" and Trees.check().is_empty(),
 		"a relief biome with a window of its own stands for its relief where the window holds the climate; palms grow on its sand")
-	_check(Biomes.fish(Biomes.named("sea"), 0.5) == "animals:cod" and Biomes.fish(Biomes.named("tropical_beach"), 0.1) == "animals:parrotfish"
-		and Biomes.fish(Biomes.named("meadow"), 1.0) == "" and Biomes.fish(Biomes.named("meadow"), 0.1) == "animals:roach" and Biomes.fish(Biomes.NONE, 0.0) == ""
-		and Tools.can_fish(Items.get_item("tools:fishing_rod")) and not Tools.can_fish(Items.get_item("tools:stone_axe")),
-		"what bites is the biome's: shares of its fish, the rest of a cast nothing; a rod casts")
+	_check(AiRules.SPECIES["animals:cod"].catch == "animals:cod" and AiRules.SPECIES["animals:perch"].catch == "animals:perch"
+		and "biomes:sea" in AiRules.SPECIES["animals:cod"].biomes and AiRules.SPECIES["animals:duck"].catch == ""
+		and Tools.can_fish(Items.get_item("tools:fishing_rod")) and not Tools.can_fish(Items.get_item("tools:stone_axe"))
+		and Items.get_item("tools:fishing_rod").ammo == "tools:bait",
+		"a fish that swims is caught as an item of its own (cod in the sea), a duck not; a rod casts, bait on its hook")
 	_check(Biomes.tree(forest, 0.0) == Trees.index("plants:oak") and Biomes.tree(taiga, 0.0) == Trees.index("plants:spruce")
 		and Biomes.tree(forest, 0.85) == Trees.index("plants:spruce") and Biomes.tree(forest, 0.99) == Trees.index("plants:deadwood") and Biomes.tree(Biomes.named("desert"), 0.0) == -1
 		and Biomes.bush(taiga, 0.1) == Bushes.index("plants:blueberry") and Biomes.bush(taiga, 0.95) == Bushes.index("plants:shrub")
@@ -304,8 +305,9 @@ func _test_old_worlds() -> void:
 		and not Mods.additive("materials/copper") and not Mods.additive("plants/oak") and not Mods.additive("animals/wolf")
 		and not Mods.additive("core") and not Mods.additive("nothing"),
 		"a bundle of items, recipes, eras, starts and sounds only adds things to make; one with cells, trees or creatures does not")
-	# Bundles of things to make that came after world.json kept the bundles a world knew.
-	var since := ["animals/fish", "animals/game", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
+	# Bundles of things to make that came after world.json kept the bundles a world knew
+	# (the fish bundle has its fish swimming since, so it is no longer only things to make).
+	var since := ["animals/game", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
 		"plants/roasted_acorns", "tools/anvil", "tools/bloomery", "tools/bow", "tools/candle", "tools/composite_bow", "tools/drying_rack", "tools/fishing_rod", "tools/knife", "tools/leather_sling", "tools/needle", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch",
 		"tools/wicker_bag", "tools/leather_bag", "tools/canvas_backpack", "tools/fiber_clothes", "tools/hide_clothes", "tools/waterskin", "tools/bedding", "tools/big_chest", "tools/boundary_post"]
 	var adds := all.filter(func(b: String) -> bool: return Mods.additive(b) and not b in since)

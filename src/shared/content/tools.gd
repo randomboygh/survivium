@@ -136,7 +136,7 @@ static func can_chop(t: Dictionary) -> bool:
 	return t.tool == "axe"
 
 
-## Whether tool `t` casts into water for what bites there (Biomes.fish): a rod.
+## Whether tool `t` casts a line into water for the fish there to bite (Fishing): a rod.
 static func can_fish(t: Dictionary) -> bool:
 	return t.get("tool", "") == "rod"
 
