@@ -123,6 +123,9 @@ const LAND_PAINT := "land_paint"
 ## What others may do in the player's land [team mask, others mask] (Territory.ACTIONS
 ## bits); true when it changed.
 const LAND_RIGHTS := "land_rights"
+## The colour the player picks for their land [number, 0..Territory.COLORS - 1]; true
+## when it changed.
+const LAND_COLOR := "land_color"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -200,8 +203,8 @@ const TEAM := "team"
 ## The invitations to a team waiting for the player: [[[id, name]…]]; when they change.
 const INVITES := "invites"
 ## The claims of land (Territory.claims_view): [[[id, centre cell, by, name, the owner's
-## rights [team mask, others mask]]…]], all of them, on joining and when one is made or
-## gone, a team changes or an owner sets their rights.
+## rights [team mask, others mask], the owner's colour]…]], all of them, on joining and
+## when one is made or gone, a team changes or an owner sets their rights or colour.
 const CLAIMS := "claims"
 ## Squares of land changed: [[[square, claim (0 none)]…], all] (all: these are every
 ## square there is, on joining).

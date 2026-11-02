@@ -32,6 +32,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
+const LandPage := preload("res://src/client/ui/land_page.gd")
 const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
@@ -78,6 +79,10 @@ var game
 var slot := SLOT
 var _bag_tab: Button
 var _craft_tab: Button
+## The tab «Земля», shown while the player stands on land claimed (LandPage).
+var _land_tab: Button
+var land_page: LandPage
+var _tab := "bag"
 var _bag_page: VBoxContainer
 ## The character, and the box that holds it beside (or over) the bag and craft tabs.
 var person: PersonPanel
@@ -172,10 +177,14 @@ func _ready() -> void:
 	var head := HBoxContainer.new()
 	box.add_child(head)
 	# The tabs joined as one, a button tall, the one shown lit amber (TabRow.tabs).
-	var tabs_row := TabRow.tabs([["Инвентарь", "", show_tab.bind("bag")], ["Крафт", "", show_tab.bind("craft")]], 30)
+	var tabs_row := TabRow.tabs([["Инвентарь", "", show_tab.bind("bag")], ["Крафт", "", show_tab.bind("craft")],
+		["Земля", "", show_tab.bind("land")]], 30)
 	head.add_child(tabs_row)
 	_bag_tab = tabs_row.get_child(0)
 	_craft_tab = tabs_row.get_child(1)
+	_land_tab = tabs_row.get_child(2)
+	_land_tab.visible = false
+	game.land.changed.connect(_show_land_tab)
 	# The free room of the head keeps the cross on the right.
 	var room := Control.new()
 	room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -203,6 +212,10 @@ func _ready() -> void:
 	craft.on_layout = _place
 	craft.visible = false
 	tabs.add_child(craft)
+	land_page = LandPage.new(game)
+	land_page.on_layout = _place
+	land_page.visible = false
+	tabs.add_child(land_page)
 	head.add_child(craft.station_buttons)
 	var shut := TabRow.icon_button(UiStyle.icon("close"), "Закрыть", close)
 	shut.custom_minimum_size = Vector2(30, 30)
@@ -480,18 +493,35 @@ func _use_worn() -> void:
 
 ## Shows the bag ("bag") or the craft tab ("craft").
 func show_tab(tab: String) -> void:
+	if tab == "land" and not _land_tab.visible:
+		tab = "bag"
+	_tab = tab
 	_bag_page.visible = tab == "bag"
-	# On a tall screen the craft tab needs the height the character takes.
+	# On a tall screen the craft and land tabs need the height the character takes.
 	person.visible = tab == "bag" or not _stacked
 	# Off the bag tab the label stays, empty, to keep the cross on the right.
 	if tab != "bag":
 		_chest_buttons.visible = false
 	craft.visible = tab == "craft"
 	craft.station_buttons.visible = false
+	land_page.visible = tab == "land"
 	TabRow.light(_bag_tab, tab == "bag")
 	TabRow.light(_craft_tab, tab == "craft")
+	TabRow.light(_land_tab, tab == "land")
+	land_page.refresh()
 	refresh()
 	craft.refresh_now()
+
+
+## The tab «Земля» shows while the player stands on land claimed; leaving it, the window
+## goes back to the bag.
+func _show_land_tab() -> void:
+	var on: bool = not game.land.here().is_empty()
+	if _land_tab.visible == on:
+		return
+	_land_tab.visible = on
+	if not on and _tab == "land":
+		show_tab("bag")
 
 
 func open() -> void:
@@ -558,6 +588,7 @@ func fit(screen: Vector2) -> void:
 	_main.vertical = _stacked
 	person.visible = _bag_page.visible or not _stacked
 	_bag_page.custom_minimum_size.x = _width(slot)
+	land_page.custom_minimum_size.x = _width(slot)
 	# A wrapping label is measured at its least width: as wide as the panel it is in
 	# (less the buttons by it, see _fit_name).
 	_fit_name()
@@ -594,9 +625,15 @@ func _place() -> void:
 	_scroll.custom_minimum_size = Vector2(full.x + GAP + UiStyle.SCROLL_BAR, minf(full.y, most))
 	# As many kinds on the left as fit beside ROWS rows of slots (they scroll past that).
 	_kinds.fit_height(most)
+	if land_page.visible:
+		land_page.custom_minimum_size.y = land_page.full_height()
 	reset_size()
 	var over := size.y - (room.y - 2 * EDGE)
-	if craft.visible and over > 0.0:
+	if land_page.visible and over > 0.0:
+		# It scrolls in the room there is.
+		land_page.custom_minimum_size.y = maxf(90.0, land_page.full_height() - over)
+		reset_size()
+	elif craft.visible and over > 0.0:
 		craft.shrink_list(over)
 		reset_size()
 	elif _bag_page.visible and over > 0.0:

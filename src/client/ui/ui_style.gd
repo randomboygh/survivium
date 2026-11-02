@@ -27,6 +27,10 @@ const COLD := Color("#7cc0f0")
 const DANGER := Color("#e0613f")
 ## The player's team: its members' names over their heads and its lines in the chat.
 const TEAM := Color("#8fd16a")
+## The colours an owner picks from for their land (Territory.COLORS of them; the
+## borders on the ground and the maps, the buttons of the rights), the first by default.
+const LAND_COLORS := [Color("#8fd16a"), Color("#6aa8e0"), Color("#e8c55a"), Color("#e8894a"),
+	Color("#e0645a"), Color("#b07ae0"), Color("#5cd6c6"), Color("#ece4d2")]
 const DANGER_DARK := Color("#a8432a")
 const GOOD := Color("#8fcf6a")
 const GOOD_DARK := Color("#5e9443")
@@ -672,6 +676,14 @@ const ICONS := {
 		".w.....w.",
 		"..wwwww..",
 	],
+	"check": [
+		".......kk",
+		"......kk.",
+		"kk...kk..",
+		".kk.kk...",
+		"..kkk....",
+		"...k.....",
+	],
 	"close": [
 		"ww....ww",
 		"www..www",
@@ -1104,6 +1116,27 @@ static func button(state: String, accent := false, danger := false, good := fals
 		box.draw_center = false
 		box.modulate_color = Color(0, 0, 0, 0)
 	return box
+
+
+## A button's frame filled with `fill` (a land's colour on the rights' buttons), made
+## once for each colour and state.
+static func button_in(state: String, fill: Color) -> StyleBoxTexture:
+	var key := "%s:%s" % [fill.to_html(), state]
+	if not _tinted.has(key):
+		var f := fill.darkened(0.25) if state == "pressed" or state == "hover_pressed" else fill
+		_tinted[key] = _nine_patch(12, 4, "button", f, fill.darkened(0.35), Vector4(10, 6, 10, 8))
+	return _tinted[key]
+
+
+static var _tinted := {}
+
+
+## Paints button `b` in `fill` (see button_in), dark text on it.
+static func tint(b: Button, fill: Color) -> void:
+	for state: String in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		b.add_theme_stylebox_override(state, button_in(state, fill))
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, DARK_INK)
 
 
 ## The red and green frames of the window's buttons, made once.

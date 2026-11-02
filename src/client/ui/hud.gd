@@ -37,7 +37,6 @@ const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
 const TeamPanel := preload("res://src/client/ui/team_panel.gd")
-const RightsPanel := preload("res://src/client/ui/rights_panel.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -121,12 +120,7 @@ var chat: ChatBox
 var person: PersonCard
 ## The window «Команда» of the pause menu on a server.
 var team: TeamPanel
-## The window «Права на земле» of the pause menu on a server.
-var rights: RightsPanel
 var _chat_button: Button
-## «Территория»: painting the land on and off (shown with a claim of one's own), the
-## squares held and allowed on it while painting.
-var _land_button: Button
 var _bag_button: Button
 ## The tab on the hotbar with how many slots are taken and the load (a tap opens the
 ## bag).
@@ -255,8 +249,6 @@ func _ready() -> void:
 	_test_button.visible = game.settings.values.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
 	_chat_button.visible = game.join_url != ""
-	_land_button = _icon_button(_top, "flag", "Территория: закрасить участки", toggle_land)
-	_land_button.visible = false
 	game.land.changed.connect(_show_land)
 	game.land.entered.connect(_on_land_entered)
 	_bag_button = _icon_button(_top, "person", "Персонаж, сумка и крафт", toggle_bag)
@@ -334,6 +326,8 @@ func _ready() -> void:
 	map_view.game = game
 	add_child(map_view)
 	minimap.open_map.connect(map_view.open)
+	minimap.land = game.land
+	game.land.changed.connect(map_view.redraw)
 	minimap.painted.connect(map_view.redraw)
 	if game.markers != null:
 		minimap.markers = game.markers
@@ -427,12 +421,6 @@ func _ready() -> void:
 	team = TeamPanel.new(game)
 	add_child(team)
 	team.closed.connect(func() -> void:
-		if get_tree().paused:
-			_menu.visible = true
-			_update_menu())
-	rights = RightsPanel.new(game)
-	add_child(rights)
-	rights.closed.connect(func() -> void:
 		if get_tree().paused:
 			_menu.visible = true
 			_update_menu())
@@ -1004,6 +992,9 @@ func open_chest() -> void:
 ## Opens the bag at placed thing `e` (see Props.placed): a chest beside the bag, the
 ## craft tab at a station.
 func open_prop(e: Dictionary) -> void:
+	if Items.get_item(e.item).get("claims", false):
+		tap_post(e)
+		return
 	if not bag.visible:
 		toggle_bag()
 	if e.items != null:
@@ -1039,9 +1030,6 @@ func toggle_menu() -> void:
 	if team.visible:
 		team.close()
 		return
-	if rights.visible:
-		rights.close()
-		return
 	_menu.visible = not _menu.visible
 	_shade.visible = _menu.visible
 	# Over the hotbar and the touch buttons.
@@ -1055,26 +1043,26 @@ func toggle_menu() -> void:
 	_update_menu()
 
 
-## Painting the land on or off (Land.painting): taps on the ground then paint squares.
-func toggle_land() -> void:
+## A tap on boundary post `e`: one's own turns painting the land on or off (taps on the
+## ground then paint squares), another's says whose it is.
+func tap_post(e: Dictionary) -> void:
 	var land = game.land
-	land.set_painting(not land.painting)
+	if not land.tap_post(e):
+		var claim: Dictionary = land.copy.claim_at(e.cell)
+		toast("Межевой столб «%s»" % claim.get("name", "") if not claim.is_empty() else "Межевой столб")
+		return
 	if land.painting:
-		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой участок — чтобы стереть")
+		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой — чтобы стереть; на столб — чтобы закончить")
+	else:
+		toast("Разметка закончена")
 
 
+## While painting, how many squares are held and may be held, over the minimap.
 func _show_land() -> void:
 	var land = game.land
-	var shown: bool = land.has_own()
-	if not shown and land.painting:
-		land.set_painting(false)
-	_land_button.visible = shown
-	_land_button.text = "%d/%d" % [land.used, land.budget] if land.painting else ""
-	# Lit green while painting, dark text on it; a panel like its neighbours otherwise.
-	UiStyle.succeed(_land_button, land.painting)
-	if not land.painting:
-		_land_button.add_theme_stylebox_override("normal", UiStyle.panel())
-		_land_button.add_theme_stylebox_override("hover", UiStyle.panel())
+	minimap.set_note("%d/%d" % [land.used, land.budget] if land.painting else "", land.color(land.here()) if not land.here().is_empty() \
+		else UiStyle.LAND_COLORS[land.my_color()])
+	minimap.redraw()
 
 
 ## The player walked into a claim (or out of all): whose land it is.
@@ -1095,14 +1083,6 @@ func open_team() -> void:
 	person.close()
 	team.move_to_front()
 	team.open()
-
-
-## Opens the window «Права на земле» in place of the pause menu.
-func open_rights() -> void:
-	_menu.visible = false
-	person.close()
-	rights.move_to_front()
-	rights.open()
 
 
 ## Opens the settings or the playtest page in place of the pause menu.
@@ -1159,7 +1139,6 @@ func _build_menu() -> void:
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
 	_menu_buttons["team"] = _add_menu_button(box, "Команда", open_team)
-	_menu_buttons["rights"] = _add_menu_button(box, "Права на земле", open_rights)
 	_menu_buttons["server"] = _add_menu_button(box, "Сервер", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 
@@ -1187,8 +1166,6 @@ func _update_menu() -> void:
 	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
 	# Teams are a server's (Main.welcome comes from one).
 	_menu_buttons["team"].visible = not game.welcome.is_empty()
-	# Whom to let in matters with others about: on a server, with land of one's own.
-	_menu_buttons["rights"].visible = not game.welcome.is_empty() and game.land.has_mine()
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 

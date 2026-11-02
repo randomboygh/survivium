@@ -54,6 +54,11 @@ var regions := {}
 var unsaved := {}
 ## The player's markers (set by Hud), or null.
 var markers: Markers
+## The land claimed (Land, set by Hud), or null: the player's own drawn everywhere,
+## others' where the map is explored, each in its owner's colour (see draw_land).
+var land
+## A word over the map (the squares held while painting, see set_note).
+var _note: Label
 ## The player's column.
 var player_cell := Vector2i.ZERO
 ## The things placed and the sacks, [middle column, item id or Items.SACK] each (see
@@ -129,7 +134,23 @@ func _init() -> void:
 	_top = Layer.new(_draw_top)
 	_top.position = Vector2(FRAME, FRAME)
 	add_child(_top)
+	_note = UiStyle.label("")
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.add_theme_constant_override("outline_size", 4)
+	_note.add_theme_color_override("font_outline_color", UiStyle.DARK_INK)
+	_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_note.visible = false
+	add_child(_note)
 	set_side(side)
+
+
+## Shows `text` over the top of the map in `color` ("" hides it).
+func set_note(text: String, color: Color) -> void:
+	_note.text = text
+	_note.visible = text != ""
+	_note.add_theme_color_override("font_color", color)
+	_note.position = Vector2(FRAME, FRAME + 2)
+	_note.size = Vector2(side, 0)
 
 
 ## Makes the map `px` UI pixels on a side, without its frame.
@@ -353,6 +374,39 @@ func draw_ground(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float) 
 			canvas.draw_texture_rect_region(r.texture, shown, Rect2((shown.position - at) / zoom, shown.size / zoom))
 
 
+## Draws the land claimed over a map drawn as draw_ground does: each square of the
+## player's own (or their team's) land and of others' land on explored ground shaded
+## in its owner's colour, its edges brighter.
+func draw_land(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float) -> void:
+	if land == null or land.copy.squares.is_empty():
+		return
+	var squares: Dictionary = land.copy.squares
+	var claims: Dictionary = land.copy.claims
+	var px := maxf(1.0, zoom)
+	var own := {}
+	for sq: Vector2i in squares:
+		var id: int = squares[sq]
+		var claim: Dictionary = claims.get(id, {})
+		if claim.is_empty():
+			continue
+		var cell := Vector2(sq * 2)
+		var p := to_screen(cell, rect, centre, zoom)
+		var box := Rect2(p, Vector2(px, px))
+		if not rect.intersects(box):
+			continue
+		if not own.has(id):
+			own[id] = land.own(claim)
+		if not own[id] and not has_chunk(Vector2i(floori(cell.x / WorldData.CHUNK), floori(cell.y / WorldData.CHUNK))):
+			continue
+		var color: Color = land.color(claim)
+		var edge := false
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			if squares.get(sq + d, 0) != id:
+				edge = true
+				break
+		canvas.draw_rect(box.intersection(rect), Color(color, 0.95 if edge else 0.4))
+
+
 ## Draws the marks of the things placed and the sacks over a map drawn as draw_ground
 ## does, as pictures with `pictures`.
 func draw_marks(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, pictures := false) -> void:
@@ -438,6 +492,7 @@ func _draw() -> void:
 ## the player an amber dot outlined dark in the middle.
 func _draw_top(l: Control) -> void:
 	var inner := Rect2(Vector2.ZERO, l.size)
+	draw_land(l, inner, Vector2(player_cell), 1.0)
 	draw_marks(l, inner, Vector2(player_cell), 1.0)
 	draw_markers(l, inner, Vector2(player_cell), 1.0)
 	l.draw_rect(Rect2(CORNER, 0, side - 2 * CORNER, 1), UiStyle.WELL_SHADE)

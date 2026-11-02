@@ -1,15 +1,15 @@
 extends MeshInstance3D
 ## The borders of the land claimed (plan/design/territory-pvp.md, decision 101): thin
-## strips over the ground inside the edges of each claim's squares near the player, in
-## the team's colour (UiStyle.TEAM) round the player's own land, red round others'.
-## While the player paints (Land.painting) their own squares are shaded too, and the
-## borders brighter. Each corner lies on the ground there (within the claim's levels,
+## strips over the ground inside the edges of a claim's squares near the player, in its
+## owner's colour (Land.color, UiStyle.LAND_COLORS): the player's own land (and their
+## team's) only while they paint it (Land.painting, a tap on their post), its squares
+## shaded too; another's only while the player stands in it (Land.here; the user's
+## asks 2026-11-02). Each corner lies on the ground there (within the claim's levels,
 ## at the centre's height over water). Built again when the land
 ## changes or the player walks REBUILD squares off. `game` is the Main node.
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const LandShader := preload("res://shaders/land.gdshader")
 
 const CELL := WorldData.CELL
@@ -19,11 +19,10 @@ const REACH := 40
 const REBUILD := 8
 ## How high over the ground the lines run, in cells.
 const LIFT := 0.06
-const OTHERS := Color(0.88, 0.32, 0.26)
-## How wide a border is, in cells (it runs inside the claim's edge), and the shade over
-## each square of one's own while painting.
+## How wide a border is, in cells (it runs inside the claim's edge), and how strong the
+## shade over each square of one's own while painting.
 const WIDTH := 0.3
-const FILL := Color(1.0, 0.95, 0.62, 0.3)
+const FILL := 0.3
 const SIDES := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 
 var game
@@ -69,6 +68,7 @@ func _build(at: Vector2i) -> void:
 	var painting: bool = land.painting
 	var started := false
 	var mine := {}
+	var here: Dictionary = land.here()
 	for sq: Vector2i in squares:
 		if maxi(absi(sq.x - at.x), absi(sq.y - at.y)) > REACH:
 			continue
@@ -79,20 +79,22 @@ func _build(at: Vector2i) -> void:
 		if not mine.has(id):
 			mine[id] = land.own(claim)
 		var own: bool = mine[id]
+		if own and not painting or not own and here.get("id", 0) != id:
+			continue
 		if not started:
 			_lines.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 			started = true
-		if painting and own:
+		var color: Color = land.color(claim)
+		if own:
 			var a := Vector2(sq * Territory.SQUARE)
 			var s := float(Territory.SQUARE)
-			_quad([a, a + Vector2(s, 0.0), a + Vector2(s, s), a + Vector2(0.0, s)], claim, FILL)
-		var color := Color(UiStyle.TEAM, 0.95 if painting else 0.75) if own else Color(OTHERS, 0.8)
+			_quad([a, a + Vector2(s, 0.0), a + Vector2(s, s), a + Vector2(0.0, s)], claim, Color(color.lightened(0.4), FILL))
 		for d: Vector2i in SIDES:
 			if squares.get(sq + d, 0) == id:
 				continue
 			var ends := _edge(sq, d)
 			var inward := -Vector2(d) * WIDTH
-			_quad([ends[0], ends[1], ends[1] + inward, ends[0] + inward], claim, color)
+			_quad([ends[0], ends[1], ends[1] + inward, ends[0] + inward], claim, Color(color, 0.9))
 	if started:
 		_lines.surface_end()
 
