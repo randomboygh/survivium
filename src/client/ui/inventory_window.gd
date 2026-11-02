@@ -138,6 +138,9 @@ var _at := -1
 ## (of the stack chosen last in a chest, else the nearest), and what they were at the
 ## last look (to notice walking up to one or away).
 var _chests: Array = []
+## The entries of _chests for the bags and chests lying in the bag, by slot: the item,
+## the bag opened from it (Inventory.open), the slot as `cell` (how requests name it).
+var _packed := {}
 var _chest_entry := {}
 var _chests_seen := ""
 ## A _place waits for the end of the frame.
@@ -761,6 +764,8 @@ func refresh() -> void:
 		# The first row is the hotbar: its slots carry their numbers.
 		_slots[i].key = str(i + 1) if i < inv.HOTBAR else ""
 	_chest_buttons.visible = chest != null
+	# A chest set down is taken up; one in the bag is there already.
+	_chest_buttons.get_child(0).visible = chest != null and not _chest_entry.has("packed")
 	_into.visible = chest != null
 	if chest != null:
 		var out: bool = _from != null and _from != inv
@@ -775,7 +780,7 @@ func refresh() -> void:
 	for i in _chest_grids.size():
 		var g: Dictionary = _chest_grids[i]
 		_show_slots(_chests[i].items, g.cells)
-		g.grid.tooltip_text = "Сундук %d · %.1f кг" % [i + 1, _chests[i].items.weight()]
+		g.grid.tooltip_text = "%s · %.1f кг" % [Items.title(_chests[i].item), _chests[i].items.weight()]
 	TabRow.light(_manual_button, _manual)
 	_show_info(inv)
 	# The wide button (with a light's «поставить» joined) narrower on a narrow window
@@ -919,6 +924,23 @@ func refresh_state() -> void:
 	var seen := ""
 	for e in near:
 		seen += str(e.cell)
+	# Then the bags and chests lying in the bag, each opened as a chest of its own.
+	var inv = game.character.inventory
+	var packed := {}
+	for k in inv.slots.size():
+		var bag = inv.open(k)
+		if bag == null:
+			continue
+		var id: String = inv.slots[k][0]
+		var e: Dictionary = _packed.get(k, {})
+		if e.get("item", "") != id:
+			e = {"item": id, "items": bag, "cell": k, "packed": true}
+		else:
+			e.items.from_dict(bag.to_dict())
+		packed[k] = e
+		near.append(e)
+		seen += "%d%s" % [k, id]
+	_packed = packed
 	if seen != _chests_seen:
 		_chests_seen = seen
 		for e in _chests:
@@ -926,7 +948,9 @@ func refresh_state() -> void:
 				e.items.changed.disconnect(refresh)
 		_chests = near
 		for e in _chests:
-			e.items.changed.connect(refresh)
+			# A bag in the bag changes with it (and is refilled here, which would loop).
+			if not e.has("packed"):
+				e.items.changed.connect(refresh)
 		if not _chests.has(_chest_entry):
 			_show_chest(_chests[0] if not _chests.is_empty() else {})
 		_make_chest_grids()
@@ -935,7 +959,8 @@ func refresh_state() -> void:
 
 
 
-## A grid under the bag for each chest within reach, as many slots as it holds.
+## A grid under the bag for each chest within reach and each bag or chest lying in the
+## bag, as many slots as it holds.
 func _make_chest_grids() -> void:
 	for g: Dictionary in _chest_grids:
 		for n: Control in [g.line, g.grid]:
@@ -960,7 +985,7 @@ func _chest_line(e: Dictionary) -> Control:
 	for k in 3:
 		if k == 1:
 			var icon := TextureRect.new()
-			icon.texture = UiStyle.icon("chest")
+			icon.texture = UiStyle.icon("chest" if Items.bag_slots(e.item) <= 0 else "sack")
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			icon.mouse_filter = Control.MOUSE_FILTER_PASS

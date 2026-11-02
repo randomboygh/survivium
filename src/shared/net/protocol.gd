@@ -82,7 +82,8 @@ const CRAFT_PAUSE := "craft_pause"
 ## Mends the tool in a slot of the bag: [slot] (Workshop.repair).
 const REPAIR := "repair"
 ## Puts a stack into a slot of the bag or a chest: [from, i, to, j] (Inventory.put_into);
-## a bag or chest is null for the player's bag or the cell of the chest.
+## a bag or chest is null for the player's bag, the cell of the chest, or (an int) the slot of
+## the player's bag a bag or chest with things lies in (Inventory.open); so for the requests below.
 const BAG_PUT := "bag_put"
 ## Moves a stack from a bag or a chest into another: [from, i, to] (Inventory.move_slot).
 const BAG_MOVE := "bag_move"

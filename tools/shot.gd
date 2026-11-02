@@ -514,6 +514,17 @@ func _run() -> void:
 					await process_frame
 				print("bag after: ", main.host.player.inventory.slots)
 				print("client bag after: ", main.character.inventory.slots)
+		if shot.get("packed", false):
+			# A bag and a chest with things lying in the bag: their grids under it, scrolled to.
+			var inv = main.host.player.inventory
+			inv.add("tools:leather_bag", 1, 0, {"slots": [["resources:flint", 6], ["plants:raspberry", 10], ["resources:fiber", 8]]})
+			inv.add("tools:chest", 1, 0, {"slots": [["resources:branch", 12], ["resources:stone", 9]]})
+			for i in 4:
+				await process_frame
+			main.hud.bag.refresh()
+			await process_frame
+			main.hud.bag._scroll.scroll_vertical = shot.get("scroll", 0)
+			await process_frame
 		if shot.get("campfire", false):
 			# A few branches to feed it with; the window opens at the client's copy of the fire.
 			main.host.player.inventory.add("resources:branch", 6)

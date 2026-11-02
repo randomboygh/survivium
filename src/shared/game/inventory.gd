@@ -316,14 +316,15 @@ func move_slot(i: int, to) -> int:
 
 
 ## Moves what fits of slots `from` on into bag `to` (the window's «всё в сундук» skips
-## the hotbar row), but what is worn; returns how many things went.
-func move_all(to, from := 0) -> int:
+## the hotbar row), but what is worn and slot `keep` (the bag `to` is opened from, see
+## open); returns how many things went.
+func move_all(to, from := 0, keep := -1) -> int:
 	var n := 0
 	var worn := {}
 	for on: String in gear:
 		worn[worn_slot(on)] = true
 	for i in range(from, slots.size()):
-		if not worn.has(i) and i < slots.size():
+		if not worn.has(i) and i != keep and i < slots.size():
 			n += move_slot(i, to)
 	return n
 
@@ -446,9 +447,7 @@ func fullness(i: int) -> float:
 	var s = slots[i] if i >= 0 and i < slots.size() else null
 	if s == null:
 		return -1.0
-	var room: int = Items.bag_slots(s[0])
-	if room <= 0:
-		room = Items.get_item(s[0]).get("storage", 0)
+	var room := room_of(s[0])
 	if room <= 0:
 		return -1.0
 	var held: Array = slots.slice(base) if worn_slot("back") == i else (s[3].get("slots", []) if s.size() > 3 else [])
@@ -457,6 +456,42 @@ func fullness(i: int) -> float:
 		if h != null:
 			taken += 1
 	return clampf(float(taken) / room, 0.0, 1.0)
+
+
+## Slots a bag or a chest of item `id` holds: a bag's for the back (Items.bag_slots), a
+## chest's `storage`; 0 for a thing that holds nothing.
+static func room_of(id: String) -> int:
+	var n := Items.bag_slots(id)
+	return n if n > 0 else int(Items.get_item(id).get("storage", 0))
+
+
+## The bag or chest lying in slot `k` opened as a bag of its own, its slots filled from
+## the slot's contents, so things are put in and taken out as with a chest set down (it
+## takes no chest with things in it); null for a slot that holds no such thing, or the
+## bag worn on the back (its slots are this bag's past `base`). What it holds goes back
+## into the slot by close.
+func open(k: int):
+	var s = slots[k] if k >= 0 and k < slots.size() else null
+	if s == null or s[1] != 1 or k == worn_slot("back") or room_of(s[0]) <= 0:
+		return null
+	var bag = get_script().new(room_of(s[0]))
+	bag.nests = false
+	var packed: Variant = contents(k)
+	if packed is Dictionary:
+		bag.from_dict(packed)
+	return bag
+
+
+## Puts what bag `bag` (as open(k) gave it) holds back into the bag or chest of slot `k`.
+func close(k: int, bag) -> void:
+	var s = slots[k] if k >= 0 and k < slots.size() else null
+	if s == null or room_of(s[0]) <= 0:
+		return
+	var w := _worn(s)
+	var now: Array = [s[0], 1, w, bag.to_dict()] if not bag.is_empty() else ([s[0], 1, w] if w > 0 else [s[0], 1])
+	if str(now) != str(s):
+		slots[k] = now
+		changed.emit()
 
 
 ## How fresh the food in slot `i` is, 1 (fresh) .. 0 (about to spoil); -1 for what does

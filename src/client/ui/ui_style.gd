@@ -485,6 +485,16 @@ const ICONS := {
 		"wwwwwwwwwww",
 		".wwwwwwwww.",
 	],
+	"sack": [
+		"..m...m..",
+		"...m.m...",
+		"...mmm...",
+		".mmmmmmm.",
+		"mmmmmmmmm",
+		"mmmmmmmmm",
+		"mmmmmmmmm",
+		".mmmmmmm.",
+	],
 	"chest": [
 		".mmmmmmm.",
 		"mmmmmmmmm",

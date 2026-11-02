@@ -388,6 +388,8 @@ const SHOTS := {
 	"chests-take": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true, "take_all": true},
 	"chests-take-worn": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true, "take_all": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes", "tools:wicker_bag"]},
+	# A bag and a chest with things in the bag: each a grid under it, after the chest set down.
+	"chests-packed": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true, "packed": true, "scroll": 330},
 	"chests-big": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true, "box": "tools:big_chest"},
 	# A workbench, a kiln and a chest placed by the spawn, the craft tab open at the workbench
 	# with an axe being made and more queued.

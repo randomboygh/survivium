@@ -34,6 +34,8 @@ var last_seq := -1
 var last_reply: Array = []
 ## When the last lines of chat were said (seconds).
 var _chat_times: Array[float] = []
+## The bags and chests lying in the player's bag a request opened, by slot (see _bag).
+var _opened := {}
 
 
 func _init(s, w, shop) -> void:
@@ -54,8 +56,19 @@ func handle(msg: Array) -> Array:
 	return last_reply
 
 
-## Does request `kind` with `args` by the rules; what the rule gave back.
+## Does request `kind` with `args` by the rules; what the rule gave back. A bag or chest
+## lying in the player's bag that the request opened (see _bag) gets its things back.
 func _do(kind: String, args: Array) -> Variant:
+	_opened.clear()
+	var out: Variant = _rule(kind, args)
+	for k: int in _opened:
+		who.inventory.close(k, _opened[k])
+	_opened.clear()
+	return out
+
+
+## Does request `kind` with `args` by the rules; what the rule gave back.
+func _rule(kind: String, args: Array) -> Variant:
 	var actions = session.actions
 	var placed = session.placed
 	match kind:
@@ -142,19 +155,24 @@ func _do(kind: String, args: Array) -> Variant:
 				var from = _bag(args[0])
 				var to = _bag(args[2])
 				if from != null and to != null and _slot(from, args[1]) and _slot(to, args[3]):
+					# A bag opened from the player's bag does not itself move.
+					if from == who.inventory and _opened.has(args[1]) or to == who.inventory and _opened.has(args[3]):
+						return false
 					return from.put_into(args[1], to, args[3])
 		Protocol.BAG_MOVE:
 			if args.size() == 3 and args[1] is int:
 				var from = _bag(args[0])
 				var to = _bag(args[2])
 				if from != null and to != null and _slot(from, args[1]):
+					if from == who.inventory and _opened.has(args[1]):
+						return 0
 					return from.move_slot(args[1], to)
 		Protocol.BAG_ALL:
 			if args.size() == 3 and args[2] is int:
 				var from = _bag(args[0])
 				var to = _bag(args[1])
-				if from != null and to != null:
-					return from.move_all(to, args[2])
+				if from != null and to != null and from != to:
+					return from.move_all(to, args[2], args[1] if from == who.inventory and args[1] is int else -1)
 		Protocol.SORT:
 			if args.size() == 3 and args[1] is String and args[2] is int:
 				var where = _bag(args[0])
@@ -192,10 +210,19 @@ static func _slot(inv, i: int) -> bool:
 
 
 ## The bag `where` names: the player's for null, a chest's for the cell of the thing
-## that holds it; null for a cell with no such thing within reach.
+## that holds it, a bag or chest lying in the player's bag for its slot (opened, see
+## Inventory.open; its things go back after the request); null for a cell with no such
+## thing within reach, or a slot without one.
 func _bag(where: Variant):
 	if where == null:
 		return who.inventory
+	if where is int:
+		if not _opened.has(where):
+			var bag = who.inventory.open(where)
+			if bag == null:
+				return null
+			_opened[where] = bag
+		return _opened[where]
 	if where is Vector3i:
 		var e: Dictionary = _near(where)
 		return e.get("items") if not e.is_empty() else null
