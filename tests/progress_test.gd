@@ -292,6 +292,12 @@ func _craft_now(r: Dictionary, times: int) -> bool:
 				if await _obtain("resources:branch", 1):
 					await _go(camp)
 					main.session.placed.feed(main.host.player, e)
+					# The branch fed can be one the recipe needs (bone glue, CI 2026-11-02):
+					# get what is short again.
+					for id: String in needs:
+						if not await _obtain(id, r.needs[id] * times):
+							return false
+					await _go(camp)
 	var inv = main.host.player.inventory
 	var before: int = inv.count(r.makes)
 	var why: String = main.host.workshop.why_not(r)
