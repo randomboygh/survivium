@@ -85,6 +85,12 @@ func with(claim: Dictionary, id: int) -> bool:
 	return claim.by == id or (teams != null and teams.together(claim.by, id))
 
 
+## True when `who` stands in land of theirs or of their team: leaving the game there,
+## the character goes at once (Server.linger_of).
+func at_home(who) -> bool:
+	return with(claim_at(_cell(who.position)), _id(who))
+
+
 ## What owner `owner` lets others do: [team mask, others mask].
 func rights_of(owner: int) -> Array:
 	return rights.get(owner, [TEAM_DEFAULT, OTHERS_DEFAULT])

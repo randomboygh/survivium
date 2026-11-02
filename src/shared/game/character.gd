@@ -22,6 +22,8 @@ const CELL := WorldData.CELL
 const NAG_INTERVAL := 3.0
 ## Health after coming back from death, as a share of full.
 const REVIVE_HEALTH := 0.5
+## How many fires of the character and their team are offered to come back at.
+const RESPAWNS_MAX := 4
 ## How much faster sleep rests under a roof (see sleep_rate).
 const ROOF_SLEEP := 1.5
 ## Actions counted in this life's statistics when paid for, by the name they count as.
@@ -135,6 +137,9 @@ var view_right := Vector2(1.0, 0.0)
 ## Where the character comes back after death, in world units: beside the campfire
 ## (the spawn's, until fires are made), else where they first stood.
 var home := Vector3.ZERO
+## The other places to come back at, best first, as find_respawns found them on the
+## server (the client's copy is told them with the state): [[title, position]…].
+var respawns: Array = []
 ## The character's death while they lie dead, else empty: "cause" (Vitals.hurt_by),
 ## "day" and "time" (the clock), "at" (where they fell, world units), "sack" (where
 ## the sack lies, or null), "lost" ([id, count] of each stack the sack holds), "life"
@@ -504,10 +509,42 @@ func is_dead() -> bool:
 	return not death.is_empty()
 
 
-## The places the character may come back at, as [title, position in world units]:
-## the spawn's campfire for now (beds and the player's own fires later).
+## The places the character may come back at, best first, as [title, position in
+## world units]: the fires of theirs and of their team (respawns), then the spawn's
+## campfire (beds later).
 func respawn_points() -> Array:
-	return [["У костра старта", home]]
+	return respawns + [["У костра старта", home]]
+
+
+## Finds the fires the character may come back at (respawns) among the things of `camp`
+## (Placed) with the teams `teams` (Teams, null for none): the last one they made
+## themselves first, then the last of each member of their team, at most RESPAWNS_MAX;
+## a fire put out counts too. True when the list changed.
+func find_respawns(camp, teams) -> bool:
+	var me: Variant = get("id")
+	var id: int = me if me is int else 0
+	var out: Array = []
+	var seen := {}
+	var things: Array = camp.things
+	for i in range(things.size() - 1, -1, -1):
+		var e: Dictionary = things[i]
+		if not e.has("by") or seen.has(e.by) or not camp.is_fire(e):
+			continue
+		var by: int = e.by
+		if by != id and (teams == null or not teams.together(by, id)):
+			continue
+		seen[by] = true
+		var title := "У своего костра" if by == id else "У костра «%s»" % str(teams.names.get(by, "?"))
+		var at: Vector3 = camp.stand_by(e)
+		if by == id:
+			out.push_front([title, at])
+		else:
+			out.append([title, at])
+	out.resize(mini(out.size(), RESPAWNS_MAX))
+	if out == respawns:
+		return false
+	respawns = out
+	return true
 
 
 ## Brings the dead character back at `at` (world units) with part of their health.

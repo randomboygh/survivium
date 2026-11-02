@@ -4,7 +4,8 @@ extends RefCounted
 ## each player's messages to their link (PlayerLink) and sends the links' events after
 ## each tick (flush). A player whose connection is lost keeps their character in the
 ## world LINGER seconds, so a page reloaded comes back to it with the key the welcome
-## gave; one who says goodbye (BYE) a short while. The host's commands (command): who,
+## gave, and so a fight is not left by leaving the game; one who leaves standing in
+## their own or their team's land (Territory.at_home) is gone at once (linger_of). The host's commands (command): who,
 ## say, kick, stop, give, tp, ban, whitelist, op. A line of chat (Protocol.CHAT, С6) is
 ## heard by the players within CHAT_RANGE of who said it (HEARD), a line to the team
 ## (TEAM_CHAT) by its members wherever they are; one that begins with
@@ -22,10 +23,9 @@ const Config := preload("res://src/server/config.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Items := preload("res://src/shared/content/items.gd")
 
-## Seconds a character stays in the world after its connection is lost, and after a
-## goodbye.
+## Seconds a character stays in the world after its connection is lost or a goodbye,
+## out of their land (see linger_of).
 const LINGER := 30.0
-const BYE_LINGER := 5.0
 ## How far a line of chat is heard, in world units (sixty cells: about a screen and a half).
 const CHAT_RANGE := 30.0
 ## Seconds a connection has to say hello.
@@ -493,7 +493,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	var link: PlayerLink = peer.account.link
 	var msg := Protocol.decode(bytes)
 	if msg.size() == 2 and msg[0] == Protocol.BYE:
-		peer.account.linger = BYE_LINGER
+		peer.account.linger = linger_of(peer.account)
 		if open:
 			peer.close_after(1000, "пока")
 		return
@@ -609,7 +609,17 @@ func _dropped(peer: Peer) -> void:
 		return
 	a.peer = null
 	a.left_at = _now()
-	_say("%s (%d): связь потеряна, персонаж ждёт %d с" % [a.name, a.id, int(a.linger)])
+	a.linger = minf(a.linger, linger_of(a))
+	if a.linger > 0.0:
+		_say("%s (%d): связь потеряна, персонаж ждёт %d с" % [a.name, a.id, int(a.linger)])
+	else:
+		_say("%s (%d): вышел на своей земле" % [a.name, a.id])
+
+
+## Seconds the character of `a` stays in the world once they leave: none in their own
+## or their team's land, else LINGER (decision on leaving, plan/design/territory-pvp.md).
+func linger_of(a: Account) -> float:
+	return 0.0 if session.territory.at_home(a.link.who) else LINGER
 
 
 ## The character of `a` leaves the world, saved first (on stop the snapshot has it).

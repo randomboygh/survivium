@@ -17,6 +17,7 @@ func run() -> void:
 	_test_rights()
 	_test_rights_on_server()
 	_test_colors()
+	_test_respawn()
 
 
 func _test_teams() -> void:
@@ -268,6 +269,71 @@ func _test_colors() -> void:
 	var copy := Territory.new()
 	copy.take_claims(t.claims_view())
 	_check(copy.color_of(1) == 3, "a client's copy is told it")
+
+
+## Coming back at the team's fires: a fire put from the bag knows its maker (and the
+## save keeps it); the dead are told their own last fire first and their team's, not
+## another's; the server brings them back at one of those places only. Leaving in one's
+## own land the character goes at once.
+func _test_respawn() -> void:
+	var w := WorldData.new(8, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var s := Session.new(w, null, Clock.new(), Rules.new(), Placed.new())
+	var links: Array = []
+	for i in 3:
+		var link := PlayerLink.new(s)
+		link.who.id = i + 1
+		link.who.player_name = ["Аня", "Боря", "Вера"][i]
+		s.teams.seen(i + 1, link.who.player_name)
+		link.who.teleport(Vector3(10.5 + 12.0 * i, 1.0, 10.5) * WorldData.CELL)
+		link.flush()
+		links.append(link)
+	var a: PlayerLink = links[0]
+	var b: PlayerLink = links[1]
+	var c: PlayerLink = links[2]
+	s.teams.invite(1, "Аня", 2, 0.0)
+	s.teams.accept(2, "Боря", 1, 0.0)
+	var fire := Placed.CAMPFIRE
+	a.who.inventory.add(fire, 1)
+	_check(s.placed.put_from_bag(a.who, fire, -1, 40), "a fire is put from the bag")
+	var e: Dictionary = s.placed.things[-1]
+	_check(e.get("by") == 1 and Placed.record(e).get("by") == 1, "it knows who made it, and its record keeps it")
+	var back := Placed.new()
+	back.world = WorldData.new(8, Vector2i(48, 48))
+	back.from_list(JSON.parse_string(JSON.stringify(s.placed.to_list())))
+	_check(back.things.size() == 1 and back.things[0].get("by") == 1, "so does the save through JSON")
+	var by: Vector3 = s.placed.stand_by(e)
+	var cell := Vector3i((by / WorldData.CELL).floor())
+	_check(cell.y == 1 and not w.blockers.has(cell) and absi(cell.x - e.cell.x) <= 2 and absi(cell.z - e.cell.z) <= 2,
+		"one comes back beside it, on the ground (%s by %s)" % [cell, e.cell])
+	for link: PlayerLink in links:
+		link.who.die()
+	var told := {}
+	for link: PlayerLink in links:
+		for m: Array in _decoded(link.flush()):
+			if m[0] == Protocol.YOU:
+				told[link.who.id] = m[1].respawns
+	_check(told.get(1, []).size() == 1 and told[1][0][0] == "У своего костра", "its maker is told their own fire: %s" % [told.get(1)])
+	_check(told.get(2, []).size() == 1 and told[2][0][0] == "У костра «Аня»", "the team the maker's: %s" % [told.get(2)])
+	_check(told.get(3, [null]).is_empty() and c.who.respawn_points().size() == 1, "another player none: %s" % [told.get(3)])
+	_check(_ask(b, 1, Protocol.REVIVE, [by + Vector3(0.1, 0.0, 0.0)]) == true and not b.who.is_dead()
+		and b.who.position.distance_to(by) < 0.01, "the team comes back at it")
+	var far := Vector3(40.5, 1.0, 40.5) * WorldData.CELL
+	_check(_ask(c, 1, Protocol.REVIVE, [by]) == true and c.who.position.distance_to(c.who.home) < 0.01,
+		"another asking for it comes back at the start's fire")
+	_check(_ask(a, 1, Protocol.REVIVE, [far]) == true and a.who.position.distance_to(far) > 1.0,
+		"nobody comes back at a place of their own choosing")
+	var id := s.territory.add_claim(1, {"cell": Vector3i(10, 1, 10)}, "Аня")
+	s.territory._assign([Vector2i(5, 5), Vector2i(6, 5)], id)
+	a.who.teleport(Vector3(11.5, 1.0, 10.5) * WorldData.CELL)
+	b.who.teleport(Vector3(12.5, 1.0, 10.5) * WorldData.CELL)
+	c.who.teleport(Vector3(30.5, 1.0, 10.5) * WorldData.CELL)
+	_check(s.territory.at_home(a.who) and s.territory.at_home(b.who) and not s.territory.at_home(c.who),
+		"the owner and the team stand at home in the land, another out of it does not")
+	for link: PlayerLink in links:
+		link.leave()
 
 
 ## Steps the session with `link`'s player standing in the land, a step back: whether

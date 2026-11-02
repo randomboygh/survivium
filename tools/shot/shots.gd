@@ -468,6 +468,8 @@ const SHOTS := {
 	# The death screen: dead of hunger by the spawn with a few things in the bag.
 	"death": {"time": 0.42, "season": 1, "touch": true, "death": true},
 	"death-pc": {"time": 0.42, "season": 1, "death": true},
+	# Т4: come back at one's own fire or a teammate's.
+	"death-fires": {"time": 0.42, "season": 1, "touch": true, "death": true, "fires": true},
 	# Back after that death beside the sack, glowing where the character fell.
 	"sack": {"time": 0.42, "season": 1, "death": true, "revive": true},
 	"sack-night": {"time": 0.95, "season": 1, "death": true, "revive": true},

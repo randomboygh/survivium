@@ -29,7 +29,8 @@ func say(text: String) -> void:
 
 
 ## Takes the state a YOU event gives (see PlayerLink.flush): the bag, the body's state,
-## death and the life's statistics, home, where things were thrown.
+## death and the life's statistics, home and the other places to come back at, where
+## things were thrown.
 func take(d: Dictionary) -> void:
 	var was_dead := is_dead()
 	if d.get("vitals") is Array:
@@ -38,6 +39,11 @@ func take(d: Dictionary) -> void:
 		from_dict(d.state)
 	if d.get("home") is Vector3:
 		home = d.home
+	if d.get("respawns") is Array:
+		respawns.clear()
+		for r in d.respawns:
+			if r is Array and r.size() == 2 and r[0] is String and r[1] is Vector3:
+				respawns.append(r)
 	held_back.clear()
 	for p in d.get("held_back", []):
 		if p is Vector3:

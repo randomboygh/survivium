@@ -8,7 +8,7 @@
 
 **Файлы**
 - `src/shared/game/character.gd` — правила персонажа (`in_hands`, `act`, `give`, `eat`, `wear`, `take_off`, `throw_away`,
-  `die`, `revive`, `respawn_points`, `to_dict` / `from_dict`); сигнал `state_changed`.
+  `die`, `revive`, `respawn_points` (с `find_respawns`: свои и командные костры, `docs/systems/territory.md`), `to_dict` / `from_dict`); сигнал `state_changed`.
 - `src/shared/game/inventory.gd` — сумка: `SLOTS` 16 (`base`), первые `HOTBAR` 8 — панель внизу; стопки, вес
   (40 кг без замедления), сортировка, перенос в сундук, износ (`wear_tool`, `mend`); сигнал `changed`.
   Порча еды (`spoil(days, rate)`): у еды с `spoils` (игровые сутки) в третьем поле ячейки — насколько
