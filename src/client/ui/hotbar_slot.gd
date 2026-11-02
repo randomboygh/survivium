@@ -2,7 +2,7 @@ extends Control
 ## One item cell of the hotbar, a hand or the bag: a sunken well with an icon, a tag in
 ## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
 ## a number (how many) in the bottom right, and a strip along the bottom for how much
-## of a light held is left to burn, or how fresh food is.
+## of a light held is left to burn, how fresh food is, or how loaded the bag on the back is.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
@@ -36,13 +36,19 @@ var fill := -1.0:
 		if v != fill:
 			fill = v
 			queue_redraw()
+## The strip's colour; transparent for a light's (amber, red when nearly out).
+var fill_color := Color(0, 0, 0, 0):
+	set(v):
+		fill_color = v
+		queue_redraw()
 var selected := false:
 	set(v):
 		selected = v
 		queue_redraw()
 
-## When set, a touch picks the slot as the finger lifts over it, not as it lands (the
-## hotbar, where a finger also drags the slots along); cancel_tap() forgets the touch.
+## When set, a touch (or a click) picks the slot as the finger lifts over it, not as it
+## lands (the hotbar and the lists that scroll, where a finger also drags the slots
+## along); cancel_tap() forgets the touch.
 var on_release := false
 
 var _box: StyleBox
@@ -77,9 +83,16 @@ func _gui_input(event: InputEvent) -> void:
 			if Rect2(Vector2.ZERO, size).has_point(event.position):
 				pressed.emit()
 		accept_event()
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.device != InputEvent.DEVICE_ID_EMULATION and Time.get_ticks_msec() - _touch_ms > 1000:
-			pressed.emit()
+			if event.pressed and not on_release:
+				pressed.emit()
+			elif event.pressed:
+				_down = -2
+			elif _down == -2:
+				_down = -1
+				if Rect2(Vector2.ZERO, size).has_point(event.position):
+					pressed.emit()
 		accept_event()
 
 
@@ -97,7 +110,7 @@ func _draw() -> void:
 		var w := size.x - 8.0
 		var r := Rect2(4.0, size.y - 6.0, w, 2.0)
 		draw_rect(r.grow(1.0), UiStyle.EDGE)
-		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT)
+		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), fill_color if fill_color.a > 0.0 else (UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT))
 	if tag != "":
 		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":

@@ -379,16 +379,24 @@ func action_name() -> String:
 			return "Съесть"
 		"heal":
 			return "Перевязать"
-		"hand":
-			return "Собрать"
-	match tool_record().tool:
+	var item := Items.get_item(held()) if held() != "" else {}
+	match item.get("tool", "none"):
 		"axe":
 			return "Рубить"
 		"sword":
 			return "Бить"
 		"scythe":
 			return "Косить"
-	return "Копать"
+		"pickaxe", "shovel":
+			return "Копать"
+		"rod":
+			return "Удить"
+		"spear":
+			return "Метнуть"
+		"bow", "sling":
+			return "Стрелять"
+	# Bare hands, and what works as them (a knife, a needle, a torch, a stick).
+	return "Собрать"
 
 
 ## Eats one of the food in the hand in use from the bag, or puts on a bandage.

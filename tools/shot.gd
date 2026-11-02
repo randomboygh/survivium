@@ -436,7 +436,7 @@ func _run() -> void:
 				# The client's copy of the bag takes it with the next frame.
 				await process_frame
 				await process_frame
-			main.hud.bag._tap(slot, true)
+			main.hud.bag._tap(slot)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
@@ -448,7 +448,8 @@ func _run() -> void:
 			main.session.placed.chest_items.add("plants:raspberry", 12)
 			main.hud.open_chest()
 			main.hud.bag._kinds.pick("")
-			main.hud.bag._tap(0, false)
+			main.hud.bag.refresh_state()
+			main.hud.bag._tap(0, main.hud.bag._chests.find(main.hud.bag._chest_entry))
 		if shot.get("chests", false):
 			main.host.player.inventory.add("tools:chest", 1)
 			main.player.facing = "e"
@@ -457,7 +458,7 @@ func _run() -> void:
 			main.hud.toggle_bag()
 			main.hud.bag.show_tab("bag")
 			main.hud.bag._kinds.pick("")
-			main.hud.bag._tap(0, true)
+			main.hud.bag._tap(0)
 		if shot.get("campfire", false):
 			for e in main.session.placed.things:
 				if main.session.placed.is_fire(e):

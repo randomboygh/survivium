@@ -15,7 +15,7 @@ const GAP := 4
 ## The space between groups.
 const GROUP_GAP := 8
 ## Lines of groups the panel keeps room for, shown or not, so it keeps its height.
-const LINES := 2
+const LINES := 1
 
 var _line_height := 0.0
 

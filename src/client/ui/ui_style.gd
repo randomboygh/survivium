@@ -235,6 +235,15 @@ const ICONS := {
 		"mmmmmmmmm",
 		".mmmmmmm.",
 	],
+	"cells": [
+		"www.www",
+		"w.w.w.w",
+		"www.www",
+		".......",
+		"www.www",
+		"w.w.w.w",
+		"www.www",
+	],
 	"bag": [
 		"...www...",
 		"..w...w..",
@@ -684,35 +693,11 @@ const ICONS := {
 		".....rr.....",
 		".....rr.....",
 	],
-	"pick_dark": [
-		"...kkkkkk...",
-		"..kk.kk.kk..",
-		".kk..kk..kk.",
-		".k...kk...k.",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-		".....kk.....",
-	],
-	"place_dark": [
-		"....kk....",
-		"....kk....",
-		"..kkkkkk..",
-		"....kk....",
-		"....kk....",
-		"..........",
-		"kkkkkkkkkk",
-		"k........k",
-		"k........k",
-		"kkkkkkkkkk",
-	],
 }
 
 static var _font: FontFile
 static var _icons := {}
+static var _weight: Texture2D
 static var _centred := {}
 ## Images that textures were made from, by the texture's instance id (see remember).
 static var _images := {}
@@ -817,8 +802,8 @@ static func theme() -> Theme:
 	# A thin bar in a sunken groove for the lists that scroll.
 	var groove := StyleBoxFlat.new()
 	groove.bg_color = WELL
-	groove.content_margin_left = SCROLL_BAR / 2.0
-	groove.content_margin_right = SCROLL_BAR / 2.0
+	groove.content_margin_left = floorf(SCROLL_BAR / 2.0)
+	groove.content_margin_right = SCROLL_BAR - floorf(SCROLL_BAR / 2.0)
 	t.set_stylebox("scroll", "VScrollBar", groove)
 	t.set_stylebox("scroll_focus", "VScrollBar", groove)
 	for state in ["grabber", "grabber_highlight", "grabber_pressed"]:
@@ -826,6 +811,55 @@ static func theme() -> Theme:
 		grip.bg_color = MUTED if state == "grabber" else ACCENT
 		t.set_stylebox(state, "VScrollBar", grip)
 	return t
+
+
+## A bag's load as one line in `r` of `c`, in the look of the clock under the hotbar:
+## the slots' picture and the slots taken of all (amber when all are), a dot, the
+## weight's picture and the weight of the limit (red past it), centred down `r`; and
+## under it a thin strip of the weight against the limit, as a light's in a slot.
+static func draw_load(c: CanvasItem, r: Rect2, taken: int, slots: int, weight: float, limit: int) -> void:
+	var f := font()
+	var fs := FONT_SIZE
+	var y := floorf(r.position.y + (r.size.y - f.get_height(fs)) * 0.5) + f.get_ascent(fs)
+	var x := r.position.x
+	var cells := icon("cells")
+	var mid := r.position.y + r.size.y * 0.5
+	c.draw_texture(cells, Vector2(x, floorf(mid - cells.get_height() * 0.5)))
+	x += cells.get_width() + 4
+	var a := "%d / %d" % [taken, slots]
+	c.draw_string(f, Vector2(x, y), a, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ACCENT if taken >= slots else INK)
+	x += _text_width(a) + _text_width(" ")
+	c.draw_string(f, Vector2(x, y), "·", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
+	x += _text_width("· ")
+	var kg := _weight_icon()
+	if kg != null:
+		c.draw_texture(kg, Vector2(x, floorf(mid - kg.get_height() * 0.5)))
+		x += kg.get_width() + 4
+	var share := weight / float(maxi(limit, 1))
+	c.draw_string(f, Vector2(x, y), "%d / %d кг" % [roundi(weight), limit], HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+		DANGER if share > 1.0 else INK)
+
+
+## The width draw_load takes for `slots` slots and a limit of `limit` kg, the weight up
+## to ten times the limit.
+static func load_width(slots: int, limit: int) -> int:
+	var kg := _weight_icon()
+	return int(icon("cells").get_width() + 4 + _text_width("%d / %d · " % [slots, slots])
+		+ (kg.get_width() + 4 if kg != null else 0) + _text_width("%d / %d кг" % [limit * 10, limit]))
+
+
+static func _text_width(t: String) -> float:
+	return ceilf(font().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x)
+
+
+## The weight's picture (assets/ui/weight.png), as the bag's sorting by weight shows it.
+## Read once into a texture of its own, as ItemIcons reads pictures.
+static func _weight_icon() -> Texture2D:
+	if _weight == null and ResourceLoader.exists("res://assets/ui/weight.png"):
+		var img: Image = load("res://assets/ui/weight.png").get_image()
+		_weight = ImageTexture.create_from_image(img)
+		remember(_weight, img)
+	return _weight
 
 
 ## The room between a panel's edge and what it holds (left, top, right, bottom): its
@@ -837,7 +871,7 @@ const TIGHT := Vector4(6, 6, 6, 6)
 ## The room in a sunken well holding text (the bag's and the craft tab's panels).
 const WELL_PAD := 8
 ## The width of a scroll bar.
-const SCROLL_BAR := 6
+const SCROLL_BAR := 3
 
 
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.

@@ -57,8 +57,6 @@ const DPAD_MIDDLE := Vector2(38, 30)
 ## The room round the buttons and panels on the screen, in UI pixels, where a tap
 ## that just misses one does not reach the world (see covers).
 const SAFE_ZONE := 8
-## The tab on the hotbar with the bag's slots and load, in UI pixels.
-const METER_WIDTH := 108
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
 const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
@@ -323,10 +321,11 @@ func _ready() -> void:
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
-	_bag_meter.custom_minimum_size = Vector2(METER_WIDTH, 16)
+	# In the clock's look, as wide as its line with two-digit slots and three-digit kilos.
+	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, 19)
 	_bag_meter.size = _bag_meter.custom_minimum_size
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
-		_bag_meter.add_theme_stylebox_override(state, _bar_box())
+		_bag_meter.add_theme_stylebox_override(state, UiStyle.panel(Vector4(5, 4, 5, 4)))
 	_bag_meter.draw.connect(_draw_bag_meter)
 	_bag_meter.pressed.connect(toggle_bag)
 	add_child(_bag_meter)
@@ -337,6 +336,9 @@ func _ready() -> void:
 	_action.custom_minimum_size = Vector2(84, 84)
 	_action.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_action.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	# The picture of what the hand holds, at twice its pixels.
+	_action.expand_icon = true
+	_action.add_theme_constant_override("icon_max_width", 24)
 	_octagon_look(_action, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
 	_action.held.connect(func(on: bool) -> void: game.controls.action_held = on)
 	add_child(_action)
@@ -497,7 +499,7 @@ func _place() -> void:
 	_clock_panel.position.y = y + bh - 2
 	_align_clock()
 	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
-	_bag_meter.position = Vector2(x + bw - METER_WIDTH, y - _bag_meter.size.y + 2)
+	_bag_meter.position = Vector2(x + bw - _bag_meter.size.x, y - _bag_meter.size.y + 2)
 
 	_keys.reset_size()
 	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
@@ -771,7 +773,10 @@ func _update_hands() -> void:
 		_slots[i].selected = item != "" and c.held() == item
 		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else ""))
 	_action.text = c.action_name()
-	_action.icon = UiStyle.icon("place_dark" if c.use_of() in ["place", "plant", "sow", "prop"] else "pick_dark")
+	# The picture of what the hand in use holds, bare hands for nothing.
+	var held: String = c.held()
+	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null
+	_action.icon = pic if pic != null else ItemIcons.picture("hand")
 
 
 func refresh_hands() -> void:
@@ -1101,30 +1106,22 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## The tab on the hotbar: the bag, how many of its slots are taken (amber when all),
-## and a bar of the load against the limit (amber near it, red past it).
+## The tab on the hotbar, in the look of the clock under it: the slots taken of all and
+## the weight of the limit (UiStyle.draw_load), a thin strip of the load along its
+## bottom (amber near the limit, red past it).
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
-	var w := c.size.x
-	var icon := UiStyle.icon("bag")
-	c.draw_texture(icon, Vector2(5, 4))
 	var taken := 0
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	var text := "%d/%d" % [taken, inv.slots.size()]
-	var font := UiStyle.font()
-	var fs := UiStyle.FONT_SIZE
-	c.draw_string(font, Vector2(17, 4 + font.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
-		UiStyle.ACCENT if taken >= inv.slots.size() else UiStyle.INK)
+	UiStyle.draw_load(c, Rect2(Vector2(5, 3), c.size - Vector2(10, 8)), taken, inv.slots.size(), inv.weight(), inv.weight_limit)
 	var share: float = inv.load_share()
-	var bar := Rect2(61, 6, w - 66, 5)
-	c.draw_rect(bar.grow(1), UiStyle.EDGE)
-	c.draw_rect(bar, UiStyle.WELL)
-	c.draw_rect(Rect2(bar.position, Vector2(roundf(bar.size.x * clampf(share, 0.0, 1.0)), bar.size.y)),
+	var strip := Rect2(4, c.size.y - 5, c.size.x - 8, 1)
+	c.draw_rect(Rect2(strip.position, Vector2(roundf(strip.size.x * clampf(share, 0.0, 1.0)), 1)),
 		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
-	c.tooltip_text = "Сумка: %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
+	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 
 
 func _draw_wind() -> void:
