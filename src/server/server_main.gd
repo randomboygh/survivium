@@ -184,7 +184,7 @@ func _open_world() -> bool:
 		clock.from_dict(meta.sky)
 	var placed := Placed.new()
 	placed.read_footprints()
-	session = Session.new(gen.world, gen, clock, Rules.new(), placed)
+	session = Session.new(gen.world, gen, clock, Rules.of(config.rules), placed)
 	# The ground round the spawn, so the players start on it and the camp has a place.
 	var guess: Vector3i = gen.spawn_guess
 	var key := WorldData.chunk_key(guess.x, guess.z)

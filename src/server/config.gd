@@ -45,6 +45,9 @@ var save := true
 ## cloudflared to run ("" to look for it beside the game and on the PATH).
 var tunnel := false
 var cloudflared := ""
+## The rules of play over their defaults (the section [rules]: keys of Rules.to_dict,
+## such as territory_decay = "rights").
+var rules := {}
 
 
 ## Reads `path` (a ConfigFile); a file that is not there leaves the defaults.
@@ -69,6 +72,9 @@ func read(path := "") -> void:
 		settings[k] = int(cfg.get_value("world", k, settings[k]))
 	var m: Variant = cfg.get_value("world", "mods", mods)
 	mods = Array(m) if m is Array or m is PackedStringArray else mods
+	if cfg.has_section("rules"):
+		for k: String in cfg.get_section_keys("rules"):
+			rules[k] = cfg.get_value("rules", k)
 
 
 ## Writes the settings to `path`.
@@ -90,6 +96,8 @@ func write(path := "") -> bool:
 	for k: String in settings:
 		cfg.set_value("world", k, settings[k])
 	cfg.set_value("world", "mods", mods)
+	for k: String in rules:
+		cfg.set_value("rules", k, rules[k])
 	return cfg.save(path) == OK
 
 
