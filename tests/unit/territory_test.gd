@@ -7,6 +7,8 @@ const Teams := preload("res://src/shared/game/teams.gd")
 const PlayerLink := preload("res://src/server/player_link.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
+const Fights := preload("res://src/shared/game/fights.gd")
+const CharacterScript := preload("res://src/shared/game/character.gd")
 
 
 func run() -> void:
@@ -17,6 +19,7 @@ func run() -> void:
 	_test_rights()
 	_test_rights_on_server()
 	_test_colors()
+	_test_pvp()
 
 
 func _test_teams() -> void:
@@ -268,6 +271,89 @@ func _test_colors() -> void:
 	var copy := Territory.new()
 	copy.take_claims(t.claims_view())
 	_check(copy.color_of(1) == 3, "a client's copy is told it")
+
+
+## Players fighting players (Fights): a blow wounds and throws back, not one's team, not
+## a newcomer, not where the server or the land's owner forbids it; a fight holds one out
+## of land closed to fights; the save keeps the time played and who gave protection up.
+func _test_pvp() -> void:
+	var w := WorldData.new(8, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var rules := Rules.new()
+	var s := Session.new(w, null, Clock.new(), rules, Placed.new())
+	var a := PlayerLink.new(s)
+	a.who.id = 1
+	a.who.player_name = "Аня"
+	var b := PlayerLink.new(s)
+	b.who.id = 2
+	b.who.player_name = "Боря"
+	var face := func() -> void:
+		a.who.teleport(Vector3(20.5, 2.0, 20.5) * WorldData.CELL)
+		a.who.facing = Vector2i(1, 0)
+		b.who.teleport(a.who.position + Vector3(0.6, 0.0, 0.0))
+		a.who.vitals.stamina = a.who.vitals.MAX
+	face.call()
+	_check(s.fights.protection_left(2) > 0.0, "a newcomer is protected at first")
+	var blow: Dictionary = s.actions.strike(a.who)
+	_check(not blow.get("hit", false) and b.who.vitals.health == b.who.vitals.MAX, "a newcomer under protection is not hurt")
+	rules.newcomer_minutes = 0
+	face.call()
+	blow = s.actions.strike(a.who)
+	var hand: int = Tools.HAND.power
+	_check(blow.get("hit", false) and is_equal_approx(b.who.vitals.health, b.who.vitals.MAX - hand * rules.pvp_damage),
+		"a blow of the hand takes pvp_damage for each point of its power")
+	_check(b.who.vitals.hurt_by == "player:Аня" and CharacterScript.cause_text(b.who.vitals.hurt_by)[1].contains("Аня"),
+		"the one hit knows who hit them, also on death")
+	_check(s.fights.tag_left(1) > 0.0 and s.fights.tag_left(2) > 0.0, "both who fought are tagged")
+	var events := _decoded(b.flush()).map(func(e: Array) -> String: return str(e[0]))
+	_check(Protocol.KNOCK in events and Protocol.FIGHT in events, "the one hit is thrown back and told of the fight")
+	var health := b.who.vitals.health
+	a.who.hands = ["tools:stone_axe", ""]
+	face.call()
+	_check(not s.actions.strike(a.who).get("hit", false) and b.who.vitals.health == health, "a work tool does not hit a player beside")
+	a.who.hands = ["", ""]
+	s.teams.of[1] = 7
+	s.teams.of[2] = 7
+	face.call()
+	_check(not s.actions.strike(a.who).get("hit", false) and b.who.vitals.health == health, "one's team is not hurt")
+	s.teams.of.clear()
+	rules.pvp = "off"
+	face.call()
+	_check(not s.actions.strike(a.who).get("hit", false) and b.who.vitals.health == health, "with PvP off nobody is hurt")
+	rules.pvp = "land"
+	var id := s.territory.add_claim(3, {"cell": Vector3i(10, 2, 10)}, "Вера")
+	for dz in range(-3, 4):
+		for dx in range(-3, 4):
+			s.territory._assign([Vector2i(5 + dx, 5 + dz)], id)
+	a.who.teleport(Vector3(12.5, 2.0, 12.5) * WorldData.CELL)
+	b.who.teleport(a.who.position + Vector3(0.6, 0.0, 0.0))
+	_check(not s.actions.strike(a.who).get("hit", false) and b.who.vitals.health == health, "in land whose owner forbids it nobody is hurt")
+	rules.pvp = "all"
+	a.who.vitals.stamina = a.who.vitals.MAX
+	_check(s.actions.strike(a.who).get("hit", false) and b.who.vitals.health < health, "with PvP everywhere, also there")
+	rules.pvp = "land"
+	# A tagged player walking into land closed to fights is put back.
+	b.who.teleport(Vector3(30.5, 2.0, 30.5) * WorldData.CELL)
+	s.step_players(0.1)
+	b.who.teleport(Vector3(14.5, 2.0, 14.5) * WorldData.CELL)
+	s.step_players(0.1)
+	_check(b.who.position.distance_to(Vector3(30.5, 2.0, 30.5) * WorldData.CELL) < 1.0, "a fight holds one out of land closed to fights")
+	s.fights.tags.clear()
+	b.who.teleport(Vector3(14.5, 2.0, 14.5) * WorldData.CELL)
+	s.step_players(0.1)
+	_check(b.who.position.distance_to(Vector3(14.5, 2.0, 14.5) * WorldData.CELL) < 1.0, "the fight over, one walks in")
+	rules.newcomer_minutes = 120
+	_check(s.fights.protection_left(1) == 0.0, "who hit someone lost their protection")
+	_check(_ask(b, 1, Protocol.FIGHT_BRAVE, []) == true and s.fights.protection_left(2) == 0.0, "one gives one's protection up by a request")
+	var back := Fights.new()
+	back.rules = rules
+	back.from_dict(JSON.parse_string(JSON.stringify(s.fights.to_dict())))
+	_check(back.brave.has(1) and back.brave.has(2) and back.played.has(2), "the save keeps who gave protection up and the time played")
+	a.leave()
+	b.leave()
 
 
 ## Steps the session with `link`'s player standing in the land, a step back: whether

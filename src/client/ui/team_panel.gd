@@ -2,7 +2,8 @@ extends PanelContainer
 ## The window «Команда» of the pause menu on a server (decision 50; plan/design/
 ## territory-pvp.md): the team's name and members (the lead marked «старший», the
 ## player «вы»; the lead's tap on a member puts them out), the invitations waiting with
-## «Принять» and «Отказаться», «Выйти из команды», how to call someone in, and «Назад»,
+## «Принять» and «Отказаться», «Выйти из команды», how to call someone in, the server's
+## rule of fighting players and the newcomer's protection with «Снять защиту», and «Назад»,
 ## which goes back to the pause. It follows game.team as it changes. `game` is the Main
 ## node; the HUD holds it and places it in the middle.
 
@@ -10,6 +11,9 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 ## The width of its buttons.
 const WIDTH := 200
+
+## The server's rule of fighting players, in words (Fights.MODES).
+const PVP_TITLES := {"off": "выключен", "land": "по правам территорий", "all": "везде"}
 
 ## «Назад» was pressed.
 signal closed
@@ -81,6 +85,10 @@ func _fill() -> void:
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(hint)
+	_box.add_child(UiStyle.label("PvP: %s" % PVP_TITLES.get(team.pvp, team.pvp), UiStyle.MUTED))
+	if team.protected > 0 and team.pvp != "off":
+		_box.add_child(UiStyle.label("Защита новичка: ещё %d мин" % team.protected, UiStyle.MUTED))
+		_button(_box, "Снять защиту", team.give_up_protection)
 	_button(_box, "Назад", close)
 	reset_size()
 	var hud: Control = get_parent()

@@ -17,6 +17,14 @@ var territory_start := 64
 var territory_per_day := 16
 var territory_radius := 24
 var territory_levels := 8
+## Players fighting players (decision 15, Fights): where it is allowed ("off" nowhere,
+## "land" by the owners' rights, "all" everywhere), the health a blow takes for each
+## point of the weapon's power, how long a newcomer is protected (minutes played), and
+## how long a fight holds one out of land closed to fights (seconds).
+var pvp := "land"
+var pvp_damage := 5
+var newcomer_minutes := 120
+var fight_tag := 45.0
 
 
 ## Rules set from `d` (the keys of to_dict); what it leaves out keeps its default.
@@ -29,7 +37,8 @@ static func of(d: Dictionary):
 func to_dict() -> Dictionary:
 	return {"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
 		"territory_start": territory_start, "territory_per_day": territory_per_day,
-		"territory_radius": territory_radius, "territory_levels": territory_levels}
+		"territory_radius": territory_radius, "territory_levels": territory_levels,
+		"pvp": pvp, "pvp_damage": pvp_damage, "newcomer_minutes": newcomer_minutes, "fight_tag": fight_tag}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -40,3 +49,7 @@ func from_dict(d: Dictionary) -> void:
 	territory_per_day = int(d.get("territory_per_day", territory_per_day))
 	territory_radius = int(d.get("territory_radius", territory_radius))
 	territory_levels = int(d.get("territory_levels", territory_levels))
+	pvp = str(d.get("pvp", pvp))
+	pvp_damage = int(d.get("pvp_damage", pvp_damage))
+	newcomer_minutes = int(d.get("newcomer_minutes", newcomer_minutes))
+	fight_tag = float(d.get("fight_tag", fight_tag))

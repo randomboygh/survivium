@@ -12,6 +12,12 @@ signal changed
 var game
 var view := {}
 var invites: Array = []
+## Fighting, as the server tells it (Protocol.FIGHT; the rules are src/shared/game/
+## fights.gd): the server's mode ("off", "land", "all"), whole minutes of the player's
+## protection as a newcomer left, whole seconds of their fight left.
+var pvp := "land"
+var protected := 0
+var fight := 0
 
 
 func take_team(v: Dictionary) -> void:
@@ -22,6 +28,20 @@ func take_team(v: Dictionary) -> void:
 func take_invites(list: Array) -> void:
 	invites = list.filter(func(e: Variant) -> bool: return e is Array and e.size() == 2 and e[0] is int)
 	changed.emit()
+
+
+func take_fight(f: Array) -> void:
+	var was := [pvp, protected]
+	pvp = str(f[0])
+	protected = int(f[1])
+	fight = int(f[2])
+	if [pvp, protected] != was:
+		changed.emit()
+
+
+## Gives the protection as a newcomer up (Fights.give_up).
+func give_up_protection() -> void:
+	game.net.request(Protocol.FIGHT_BRAVE, [])
 
 
 ## True in a team.

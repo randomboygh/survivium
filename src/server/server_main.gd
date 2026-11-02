@@ -184,7 +184,9 @@ func _open_world() -> bool:
 		clock.from_dict(meta.sky)
 	var placed := Placed.new()
 	placed.read_footprints()
-	session = Session.new(gen.world, gen, clock, Rules.new(), placed)
+	var rules := Rules.new()
+	rules.pvp = config.pvp
+	session = Session.new(gen.world, gen, clock, rules, placed)
 	# The ground round the spawn, so the players start on it and the camp has a place.
 	var guess: Vector3i = gen.spawn_guess
 	var key := WorldData.chunk_key(guess.x, guess.z)
@@ -197,6 +199,8 @@ func _open_world() -> bool:
 		placed.from_list(meta.placed)
 	if had_save and meta.get("teams") is Dictionary:
 		session.teams.from_dict(meta.teams)
+	if had_save and meta.get("fights") is Dictionary:
+		session.fights.from_dict(meta.fights)
 	if had_save and meta.get("territory") is Dictionary:
 		session.territory.from_dict(meta.territory)
 	else:

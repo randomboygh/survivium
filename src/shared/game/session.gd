@@ -17,6 +17,7 @@ const Storms := preload("res://src/shared/game/storms.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Teams := preload("res://src/shared/game/teams.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
+const Fights := preload("res://src/shared/game/fights.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -57,6 +58,8 @@ var wildlife: Wildlife
 var teams := Teams.new()
 ## The land claimed (Territory).
 var territory := Territory.new()
+## Players fighting players: protection of newcomers and the fights' tags (Fights).
+var fights := Fights.new()
 ## The characters playing (Character) and the workshop of each (Workshop), in one
 ## order; the animals see the characters as people.
 var players: Array = []
@@ -93,6 +96,11 @@ func _init(w, g, c: Clock, r, p) -> void:
 	placed.removed.connect(territory.thing_removed)
 	actions = WorldActions.new(world, clock, rules)
 	actions.territory = territory
+	fights.rules = rules
+	fights.teams = teams
+	fights.territory = territory
+	actions.fights = fights
+	actions.people = players
 	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
 	# server's; a client's copy only shows the season.
 	clock.season_changed.connect(actions.on_season)
@@ -163,6 +171,7 @@ func step_players(delta: float) -> void:
 		players[i].update(d)
 		workshops[i].update(d)
 	territory.step_walk(players)
+	fights.step(d, players)
 
 
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step).

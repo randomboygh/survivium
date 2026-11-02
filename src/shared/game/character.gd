@@ -529,6 +529,9 @@ func _came_back(_at: Vector3) -> void:
 
 ## How the character died, for the death screen: a title and a line under it.
 static func cause_text(cause: String) -> Array:
+	if cause.begins_with("player:"):
+		var by := cause.substr(7)
+		return ["Вас убили", "игрок «%s»" % by if by != "" else "другой игрок"]
 	match cause:
 		"hunger":
 			return ["Вы умерли", "от голода"]

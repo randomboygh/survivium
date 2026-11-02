@@ -2,7 +2,8 @@ extends Control
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; on a computer): the
 ## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
 ## the world (one of the saved ones, ‹ › go through them, the one played last first),
-## the server's name, its port, a password, how many players it takes and «Доступ из
+## the server's name, its port, a password, how many players it takes, where players
+## may fight players («PvP»: выключен, по правам территорий, везде) and «Доступ из
 ## интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared); «Запустить
 ## сервер» starts the game again with the server made and joined (Main.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
@@ -31,6 +32,9 @@ const MARGIN := 8
 const LOG_SHOWN := 20
 const LOG_TALL := 5
 const REFRESH := 0.5
+## Where players may fight players (Config.pvp), and their words.
+const PVP_MODES := ["off", "land", "all"]
+const PVP_TITLES := ["выключен", "по территориям", "везде"]
 ## Players a server may be set to take.
 const PLAYER_COUNTS := [2, 4, 8, 16, 32]
 
@@ -47,6 +51,9 @@ var _world_label: Label
 var _title: LineEdit
 var _port: LineEdit
 var _password: LineEdit
+## Where players may fight players (Config.pvp): a place in PVP_MODES, and its label.
+var _pvp := 1
+var _pvp_label: Label
 var _tunnel: CheckButton
 ## The tunnel's state and its link's button while the server runs.
 var _tunnel_label: Label
@@ -128,6 +135,16 @@ func _build_setup() -> void:
 	row.add_child(_players_label)
 	var more := _arrow_button(row, "next")
 	more.pressed.connect(_step_players.bind(1))
+	_pvp = PVP_MODES.find(str(cfg.get_value("rules", "pvp", "land")))
+	row = _row("PvP")
+	_arrow_button(row, "prev").pressed.connect(_step_pvp.bind(-1))
+	_pvp_label = UiStyle.label()
+	_pvp_label.custom_minimum_size = Vector2(WIDTH - NAME_WIDTH - 2 * ARROW - 8, ROW_H)
+	_pvp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pvp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_pvp_label.clip_text = true
+	row.add_child(_pvp_label)
+	_arrow_button(row, "next").pressed.connect(_step_pvp.bind(1))
 	_tunnel = CheckButton.new()
 	_tunnel.text = "Доступ из интернета"
 	_tunnel.focus_mode = Control.FOCUS_NONE
@@ -149,6 +166,7 @@ func _build_setup() -> void:
 	_button("Назад", cancelled.emit)
 	_show_world()
 	_step_players(0)
+	_step_pvp(0)
 
 
 ## A row with `caption` on its left.
@@ -217,11 +235,16 @@ func _step_players(step: int) -> void:
 	_players_label.text = str(_players)
 
 
+func _step_pvp(step: int) -> void:
+	_pvp = posmod((_pvp if _pvp >= 0 else 1) + step, PVP_MODES.size())
+	_pvp_label.text = PVP_TITLES[_pvp]
+
+
 ## The settings as Config takes them, and the host's name; "" in "why" when they do.
 func settings() -> Dictionary:
 	var port := int(_port.text) if _port.text.is_valid_int() else 0
 	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": _players,
-		"password": _password.text, "tunnel": _tunnel.button_pressed, "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
+		"password": _password.text, "tunnel": _tunnel.button_pressed, "pvp": PVP_MODES[_pvp], "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
 	if _worlds.is_empty():
 		out.world = ""
 		out.seed_value = int(game.settings.values.world_seed)
