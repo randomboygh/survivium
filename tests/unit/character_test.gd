@@ -150,6 +150,15 @@ func _test_gear() -> void:
 	_check(inv.take_off("back") == "" and inv.slots.size() == Inventory.SLOTS and not inv.gear.has("back")
 		and inv.slots[1] == ["tools:leather_bag", 1] and inv.contents(0) != null and inv.count("resources:fiber") == 0,
 		"a bag taken off stays where it lies and takes its things with it")
+	# A backpack worn holding a bag that holds things: taken off, all of it weighs as before.
+	var pack := Inventory.new()
+	pack.add("tools:canvas_backpack", 1)
+	pack.wear(0)
+	pack.slots[Inventory.SLOTS + 3] = ["tools:wicker_bag", 1, 0, {"slots": [["resources:stone", 3], ["resources:fiber", 2]]}]
+	var kg := pack.weight()
+	_check(pack.take_off("back") == "" and pack.contents(0) != null and is_equal_approx(pack.weight(), kg)
+		and kg > Items.weight("tools:canvas_backpack") + 3.0 * Items.weight("resources:stone"),
+		"a bag taken off weighs as it did worn, with a bag in it and what that holds: %.2f, %.2f" % [kg, pack.weight()])
 	inv.wear(1)
 	inv.slots[Inventory.SLOTS + 4] = ["resources:stone", 2]
 	var chest := Inventory.new(4)

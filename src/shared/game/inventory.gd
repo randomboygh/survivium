@@ -656,10 +656,11 @@ static func stack_weight(s) -> float:
 	if s == null:
 		return 0.0
 	var w: float = Items.weight(s[0]) * s[1]
-	if s.size() > 3:
+	# What a bag or chest holds weighs with it, and what a bag in it holds too.
+	if s.size() > 3 and s[3] is Dictionary:
 		for held in s[3].get("slots", []):
 			if held is Array and held.size() >= 2:
-				w += Items.weight(held[0]) * float(held[1])
+				w += stack_weight(held)
 	return w
 
 

@@ -305,12 +305,10 @@ func _spoil(p: Vector3, days: float) -> void:
 	inventory.spoil(days, Inventory.spoil_rate(clock.season == clock.WINTER, roofed))
 
 
-## A burning campfire the body at `p` stands in or pushed against burns it and throws
-## it back, away from the fire's middle.
+## A burning campfire the body at `p` stands in the very middle of (Placed.burning)
+## burns it and throws it back, away from the fire's middle.
 func _touch_fire(p: Vector3) -> void:
 	var fire: Dictionary = placed.burning(p)
-	if fire.is_empty() and body.bumped.is_finite():
-		fire = placed.pushed_into(body.bumped)
 	if fire.is_empty():
 		return
 	vitals.burn()
