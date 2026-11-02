@@ -763,9 +763,18 @@ func _on_marks_changed(_e: Dictionary) -> void:
 	_marks_dirty = true
 
 
+## Seconds between updates of the clock's line, and the time left to the next.
+const CLOCK_EVERY := 0.25
+var _clock_left := 0.0
+
+
 func update_state() -> void:
 	var winter: bool = game.clock.season == game.clock.WINTER
-	_clock.text = clock_text()
+	# The clock's line (with the air's warmth) changes by the game's minute: a few times a second is enough.
+	_clock_left -= get_process_delta_time()
+	if _clock_left <= 0.0:
+		_clock_left = CLOCK_EVERY
+		_clock.text = clock_text()
 	# The state stays in sight while the bag is open, by the food it may be eaten from.
 	vitals.pinned = bag.visible
 	vitals.update(game.character.vitals, get_process_delta_time())
