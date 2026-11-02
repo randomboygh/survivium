@@ -337,6 +337,15 @@ const SHOTS := {
 	# A chest chosen in the bag: its wide button sets it down.
 	"bag-put": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"give": "tools:chest"},
+	# An axe and a bow held (no arrows: the bow shows inactive and adds nothing to the
+	# skills), a leather sling chosen: what it shoots, none in the bag.
+	"bag-skills": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "kit": true,
+		"hold": ["tools:stone_axe", "tools:wooden_bow"]},
+	# The same with nothing chosen: the panel at the bottom as tall.
+	"bag-none": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "kit": true, "slot": -1},
+	# A torch chosen in the bag: «взять | поставить» joined.
+	"bag-light": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
+		"give": "tools:torch"},
 	# A bush dug up chosen in the bag: its wide button plants it.
 	"bag-plant": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"give": "plants:raspberry_bush"},
