@@ -45,9 +45,16 @@ var save := true
 ## cloudflared to run ("" to look for it beside the game and on the PATH).
 var tunnel := false
 var cloudflared := ""
-## Where players may fight players (Rules.pvp): "off", "land" (by the owners' rights in
-## their land, everywhere else) or "all".
-var pvp := "land"
+## The rules of play over their defaults (the section [rules]: keys of Rules.to_dict,
+## such as territory_decay = "rights").
+var rules := {}
+## Where players may fight players (Rules.pvp, kept in `rules`): "off", "land" (by the
+## owners' rights in their land, everywhere else) or "all".
+var pvp: String:
+	get:
+		return _pvp(str(rules.get("pvp", "land")))
+	set(v):
+		rules["pvp"] = _pvp(v)
 
 
 ## Reads `path` (a ConfigFile); a file that is not there leaves the defaults.
@@ -66,13 +73,15 @@ func read(path := "") -> void:
 	save = bool(cfg.get_value("server", "save", save))
 	tunnel = bool(cfg.get_value("server", "tunnel", tunnel))
 	cloudflared = str(cfg.get_value("server", "cloudflared", cloudflared))
-	pvp = _pvp(str(cfg.get_value("rules", "pvp", pvp)))
 	world = str(cfg.get_value("world", "folder", world))
 	seed_value = int(cfg.get_value("world", "seed", seed_value))
 	for k: String in settings:
 		settings[k] = int(cfg.get_value("world", k, settings[k]))
 	var m: Variant = cfg.get_value("world", "mods", mods)
 	mods = Array(m) if m is Array or m is PackedStringArray else mods
+	if cfg.has_section("rules"):
+		for k: String in cfg.get_section_keys("rules"):
+			rules[k] = cfg.get_value("rules", k)
 
 
 ## Writes the settings to `path`.
@@ -89,12 +98,13 @@ func write(path := "") -> bool:
 	cfg.set_value("server", "save", save)
 	cfg.set_value("server", "tunnel", tunnel)
 	cfg.set_value("server", "cloudflared", cloudflared)
-	cfg.set_value("rules", "pvp", pvp)
 	cfg.set_value("world", "folder", world)
 	cfg.set_value("world", "seed", seed_value)
 	for k: String in settings:
 		cfg.set_value("world", k, settings[k])
 	cfg.set_value("world", "mods", mods)
+	for k: String in rules:
+		cfg.set_value("rules", k, rules[k])
 	return cfg.save(path) == OK
 
 

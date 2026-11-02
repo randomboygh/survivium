@@ -178,7 +178,7 @@ func step_players(delta: float) -> void:
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	placed.step(d, clock.WEATHERS[clock.weather].get("rain", 0.0))
-	territory.step(clock.days(d), players)
+	territory.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
 
 
