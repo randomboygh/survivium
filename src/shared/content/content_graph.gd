@@ -60,7 +60,7 @@ const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
 const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "drink", "fills_to", "heal", "fuel", "light", "wear_on"]
 ## The fields that make two items alike in what they do (see _twins).
 const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "area", "mows", "swing", "plant", "sow",
-	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils", "warmth", "drink"]
+	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils", "warmth", "drink", "bedding"]
 ## A depth past every real one.
 const FAR := 1 << 30
 ## The checks, each an error (true: the validator fails on it in the full set) or a warning.
@@ -590,7 +590,7 @@ static func _has_function(item: Dictionary) -> bool:
 		var v: Variant = item.get(f)
 		if v is String and v != "" and v != "none" or v is bool and v or (v is float or v is int) and v > 0:
 			return true
-	return false
+	return item.get("bedding", 1.0) > 1.0
 
 
 ## Stations no recipe or only one is made at, theirs or those of the stations they serve

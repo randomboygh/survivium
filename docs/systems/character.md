@@ -22,7 +22,14 @@
   Сумка за спиной (`wear_on: back`, `bag_slots`) добавляет ячейки после `base`; снятая, уносит их вещи в себе
   (как забранный сундук, `contents`) и возвращает, когда её надевают снова. Надетое весит и сохраняется
   в `to_dict` (`gear`), при смерти остаётся на персонаже (`take_all` берёт только ячейки).
-- `src/shared/game/vitals.gd` — здоровье, сытость, вода, выносливость (0..`MAX`), цена действий (`spend`, `can`).
+- `src/shared/game/vitals.gd` — здоровье, сытость, вода, бодрость, выносливость (0..`MAX`), цена действий (`spend`, `can`).
+  Бодрость `energy` убывает на `TIRE_PER_DAY` в игровые сутки бодрствования; ниже `SLEEPY` — как голод
+  (выносливость до `HUNGRY_CAP`, отдых медленнее), на нуле тело идёт медленно (`speed_factor`), не ранит.
+  `sleep(on)` (уснуть можно ниже `SLEEP_BELOW`); во сне (`asleep`) бодрость растёт на `SLEEP_GAIN` ×
+  `sleep_rate`, выносливость и лечение вдвое быстрее. `Character.sleep` (запрос `sleep`, не в воде),
+  `Character.sleep_rate` (крыша `ROOF_SLEEP`, лучшая постель в сумке — поле `bedding`); просыпается сам
+  выспавшись днём, от раны или в воде. Пока спят все, ночь идёт в `Session.SLEEP_SPEED` раз быстрее.
+  `fatigue` выкл — тестовый переключатель «Усталость».
   Вода `water` убывает на `THIRST_PER_DAY` в игровые сутки (в жару в `THIRST_HOT` раз быстрее); ниже
   `THIRSTY` — как голод (нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`), на нуле
   ранит (`hurt_by` "thirst", «Вы умерли от жажды»). `drink(amount)`; `thirst` выкл — тестовый
@@ -70,7 +77,7 @@
 персонажа на клиенте узнаёт о горении раз в `BURN_TELL` секунд и при догорании; рука на панели
 показывает остаток полоской (`HotbarSlot.fill`), сумка — временем.
 
-**Данные.** Предметы (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `warmth`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
+**Данные.** Предметы (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `bedding`, `warmth`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`); существо
 `core:human`; слои и работы фигуры — `content/core/sprites/player.yaml`, листы инструментов в руке —
 `sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character` (с серверного
 персонажа, `game.host.player`), `hands` (с клиента).
@@ -80,7 +87,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `changes`, `death`), `actions_test.gd` (`drinking`),
+**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`), `actions_test.gd` (`drinking`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

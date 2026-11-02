@@ -54,7 +54,7 @@ func take(d: Dictionary) -> void:
 
 ## Takes the body's state a VITALS event gives.
 func take_vitals(v: Array) -> void:
-	if v.size() != 8:
+	if v.size() != 10:
 		return
 	vitals.health = float(v[0])
 	vitals.satiety = float(v[1])
@@ -64,6 +64,8 @@ func take_vitals(v: Array) -> void:
 	vitals.warmth = float(v[5])
 	vitals.wet = float(v[6])
 	vitals.water = float(v[7])
+	vitals.energy = float(v[8])
+	vitals.asleep = bool(v[9])
 
 
 func _fell() -> void:

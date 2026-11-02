@@ -21,6 +21,34 @@ const PALETTE := {
 }
 
 const PICTURES := {
+	"grass_mat": [
+		"............",
+		"............",
+		"............",
+		"............",
+		"..VvVvVvVv..",
+		".VvVvVvVvVv.",
+		".tVvVtVvVtv.",
+		".vVvVvVvVvV.",
+		"..vvvvvvvv..",
+		"............",
+		"............",
+		"............",
+	],
+	"fur_bedroll": [
+		"............",
+		"............",
+		"............",
+		"..cVcVcVc...",
+		".tBtBtBtBtt.",
+		".BtBtBtBtBto",
+		".tBtBtBtBtBo",
+		".BtBtBtBtBto",
+		"..ttttttttt.",
+		"............",
+		"............",
+		"............",
+	],
 	"waterskin": [
 		"............",
 		".....tt.....",
@@ -1352,6 +1380,17 @@ const PICTURES := {
 		"..wrrrw..",
 		"..wrrrw..",
 		"...www...",
+		".........",
+	],
+	"sleep": [
+		"...mmmm..",
+		"..mmm....",
+		".mmm.....",
+		".mmm.....",
+		".mmm.....",
+		".mmm.....",
+		"..mmm....",
+		"...mmmm..",
 		".........",
 	],
 	"water": [

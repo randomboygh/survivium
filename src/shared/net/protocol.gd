@@ -97,6 +97,8 @@ const BAG_DESTROY := "bag_destroy"
 const WEAR := "wear"
 ## Takes off what is worn in a slot of the body: [slot name] (Character.take_off).
 const TAKE_OFF := "take_off"
+## Lies down to sleep or wakes: [on] (Character.sleep); true when done.
+const SLEEP := "sleep"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
 ## Says a line in the chat: [text]; true when it was said (the server hands it to the
@@ -123,7 +125,7 @@ const YOU := "you"
 ## What the player knows how to make changed: [Knowledge.to_dict()].
 const KNOWLEDGE := "knowledge"
 ## The body's state, every tick it changes: [health, satiety, stamina, hunger, hurt_by, warmth,
-## wet, water].
+## wet, water, energy, asleep].
 const VITALS := "vitals"
 ## The workshop: {"queue", "paused"}.
 const SHOP := "shop"

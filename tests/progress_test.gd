@@ -1034,10 +1034,11 @@ func _near_camp(x: int, z: int) -> bool:
 	return Vector2(x + 0.5, z + 0.5).distance_to(Vector2(camp.x, camp.z) / CELL) < 12.0
 
 
-## Tiredness, hunger and thirst are not tested here.
+## Tiredness, hunger, thirst and sleep are not tested here.
 func _rest() -> void:
 	var v = main.host.player.vitals
 	v.stamina = v.MAX
 	v.health = v.MAX
 	v.satiety = v.MAX
 	v.water = v.MAX
+	v.energy = v.MAX
