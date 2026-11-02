@@ -115,8 +115,9 @@ static func _well() -> PanelContainer:
 ## time of its swing and its reach, and how many swings it lasts; how far a light reaches
 ## and how long one burns (`burn_left` of it when one of them is lit, a share 0..1);
 ## how long food keeps and how fresh a stack is (`fresh` 0..1, below 0 for one made new).
+## What a weapon shoots, with `ammo` of it in the bag (-1: not counted, a recipe).
 ## Quality comes later.
-static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn_left := 1.0, fresh := -1.0) -> Array:
+static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1) -> Array:
 	var it := Items.get_item(id)
 	var groups := [["Вес", [[ItemIcons.picture("weight"), "%.1f кг" % (weight if weight >= 0.0 else Items.weight(id) * count), false, "Вес"]]]]
 	if Items.food(id) > 0.0:
@@ -138,6 +139,13 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 		groups.append(["Инструмент", [[UiStyle.icon("power"), str(it.power), false, "Сила"],
 			[UiStyle.icon("hammer"), "%.1f с" % it.swing, false, "Удар"],
 			[UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"]]])
+	var shoots: String = it.get("ammo", "")
+	if shoots != "":
+		var tip := "Стреляет: «%s», по одному на выстрел" % Items.title(shoots)
+		if ammo == 0:
+			tip += "; в сумке нет — стрелять нечем"
+		var left := "нет" if ammo == 0 else (str(ammo) if ammo > 0 else "")
+		groups.append(["Заряды", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
 	if it.get("light", 0.0) > 0.0:
 		var light := [[UiStyle.icon("sun"), str(snappedf(it.light, 0.1)), false, "Свет, клеток"]]
 		var burns: float = it.get("burns", 0.0)
@@ -156,6 +164,13 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], Workshop.condition(id, worn) < 0.25,
 				"Ресурс: ударов до поломки"]]])
 	return groups
+
+
+## Whether weapon `id` shoots something (arrows, sling stones) that bag `inv` has none
+## of: it shows inactive then.
+static func unarmed(inv, id: String) -> bool:
+	var shoots: String = Items.get_item(id).get("ammo", "") if id != "" else ""
+	return shoots != "" and inv.count(shoots) == 0
 
 
 ## Seconds `t` as minutes and seconds, "6:00".

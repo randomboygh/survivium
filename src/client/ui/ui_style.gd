@@ -707,6 +707,91 @@ const ICONS := {
 		".....rr.....",
 		".....rr.....",
 	],
+	# The wide button of the inventory window, one picture for each thing it does (drawn
+	# white, shown dark on the amber button).
+	# Take in hand: a hand closing round a grip.
+	"act_take": [
+		"..w.w.w...",
+		"..w.w.w.w.",
+		"..w.w.w.w.",
+		"w.wwwwwww.",
+		"wwwwwwwww.",
+		".wwwwwwww.",
+		".wwwwwwww.",
+		"..wwwwww..",
+		"...wwwww..",
+		"...wwwww..",
+	],
+	# Eat: an apple with a bite out of its side.
+	"act_eat": [
+		".....w....",
+		"....w.....",
+		"..www.ww..",
+		".wwwwwww..",
+		"wwwwwww...",
+		"wwwwww....",
+		"wwwwwww...",
+		"wwwwwwwww.",
+		".wwwwwww..",
+		"..ww.ww...",
+	],
+	# Set down: an arrow down onto the ground.
+	"act_place": [
+		"....ww....",
+		"....ww....",
+		"....ww....",
+		"..wwwwww..",
+		"...wwww...",
+		"....ww....",
+		"..........",
+		"wwwwwwwwww",
+		"w.w.w.w.w.",
+	],
+	# Plant: a sprout out of the ground.
+	"act_plant": [
+		".ww....ww.",
+		"wwww..wwww",
+		".www..www.",
+		"...wwww...",
+		"....ww....",
+		"....ww....",
+		"..........",
+		"wwwwwwwwww",
+		"w.w.w.w.w.",
+	],
+	# Put on: a shirt.
+	"act_wear": [
+		"..ww..ww..",
+		".wwwwwwww.",
+		"wwwwwwwwww",
+		"ww.wwww.ww",
+		"...wwww...",
+		"...wwww...",
+		"...wwww...",
+		"...wwww...",
+	],
+	# Repair: a spanner.
+	"act_repair": [
+		"......ww..",
+		".....ww...",
+		".....ww..w",
+		"....wwwwww",
+		"...wwwwww.",
+		"..www.....",
+		".www......",
+		"www.......",
+		"ww........",
+	],
+	# Bandage: a cross.
+	"act_heal": [
+		"...www...",
+		"...www...",
+		"wwwwwwwww",
+		"wwwwwwwww",
+		"wwwwwwwww",
+		"...www...",
+		"...www...",
+	],
 }
 
 static var _font: FontFile

@@ -417,6 +417,14 @@ func _run() -> void:
 			main.hud.vitals.pinned = true
 			for i in 4:
 				await process_frame
+		if shot.has("hold"):
+			# Things in the hands: [left, right].
+			for h in 2:
+				main.host.player.give(shot.hold[h], 1)
+			await process_frame
+			await process_frame
+			for h in 2:
+				main.controls.put_in_hand(shot.hold[h], h)
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -442,7 +450,16 @@ func _run() -> void:
 				# The client's copy of the bag takes it with the next frame.
 				await process_frame
 				await process_frame
-			main.hud.bag._tap(slot)
+			if shot.has("worn"):
+				# The tool in the slot worn by so many swings: the panel's spanner shows.
+				var inv = main.host.player.inventory
+				var st = inv.slots[slot]
+				inv.slots[slot] = [st[0], st[1], shot.worn]
+				inv.changed.emit()
+				await process_frame
+				await process_frame
+			if slot >= 0:
+				main.hud.bag._tap(slot)
 			if shot.has("kind"):
 				main.hud.bag._kinds.pick(shot.kind)
 			if shot.get("destroy", false):
