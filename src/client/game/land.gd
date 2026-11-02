@@ -48,8 +48,7 @@ func take_land(args: Array) -> void:
 func own(claim: Dictionary) -> bool:
 	if claim.is_empty():
 		return false
-	var me := int(game.welcome.get("id", 0))
-	if claim.by == me:
+	if claim.by == me():
 		return true
 	for m: Array in game.team.view.get("members", []):
 		if m[0] == claim.by:
@@ -63,6 +62,40 @@ func has_own() -> bool:
 		if own(claim):
 			return true
 	return false
+
+
+## The player's own number (0 in a game of one's own).
+func me() -> int:
+	return int(game.welcome.get("id", 0))
+
+
+## True when the player has set a claim themselves (their rights are theirs to set).
+func has_mine() -> bool:
+	for claim: Dictionary in copy.claims.values():
+		if claim.by == me():
+			return true
+	return false
+
+
+## What the player lets others do in their land: [team mask, others mask].
+func my_rights() -> Array:
+	return copy.rights_of(me())
+
+
+## Lets others do what masks `team` and `others` say (Territory.ACTIONS bits), through
+## the server.
+func set_rights(team: int, others: int) -> void:
+	game.net.request(Protocol.LAND_RIGHTS, [team, others])
+
+
+## The words of what the player may do in claim `claim` of another (Territory.TITLES,
+## from a small letter), [] for nothing.
+func may_here(claim: Dictionary) -> Array:
+	var out := []
+	for a: String in Territory.ACTIONS:
+		if copy.allowed(claim, me(), a):
+			out.append(Territory.TITLES[a].to_lower())
+	return out
 
 
 ## The claim at square `sq` ({} for none).

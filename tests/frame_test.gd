@@ -522,21 +522,25 @@ func _run() -> void:
 			hud.get_global_transform().origin.x + hud._level.position.x * hud.scale.x])
 	toast.queue_free()
 	# A list of toasts keeps the last three: a fourth comes in and the oldest fades up and
-	# away, the list closing up under it. The game's own word on a heavy bag (the player
-	# loaded by the digging before, things lying about) is kept out of it meanwhile.
-	var carried = main.host.player.inventory
-	var was_heavy: bool = carried.heavy
-	carried.heavy = false
-	for n in 4:
-		hud.toast("Подсказка %d" % n)
-	var faded := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - faded < int((hud.TOAST_FADE + 0.3) * 1000.0):
+	# away, the list closing up under it.
+	# The game may say something of its own meanwhile (the bag grown heavy, CI 2026-11-02):
+	# then the list is cleared and the toasts are said again, at most three times.
+	var left: Array = []
+	for attempt in 3:
+		for h in hud._toasts.get_children():
+			h.queue_free()
 		await process_frame
-	var left: Array = hud._toasts.get_children().filter(func(h: Node) -> bool: return not h.is_queued_for_deletion())
+		for n in 4:
+			hud.toast("Подсказка %d" % n)
+		var faded := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - faded < int((hud.TOAST_FADE + 0.3) * 1000.0):
+			await process_frame
+		left = hud._toasts.get_children().filter(func(h: Node) -> bool: return not h.is_queued_for_deletion())
+		if left.all(func(h: Node) -> bool: return h.get_child(0).get_child(0).text.begins_with("Подсказка")):
+			break
 	_check(left.size() == 3 and left[0].get_child(0).get_child(0).text == "Подсказка 1" and hud._toasts.position.y == 0.0
 		and left.all(func(h: Control) -> bool: return h.modulate.a == 1.0),
 		"a fourth toast pushes the oldest out: %s, the list at %.1f" % [left.map(func(h: Node) -> String: return h.get_child(0).get_child(0).text), hud._toasts.position.y])
-	carried.heavy = was_heavy
 	_check(hud.vitals.mouse_filter == Control.MOUSE_FILTER_STOP and hud._clock_panel.mouse_filter == Control.MOUSE_FILTER_STOP,
 		"a tap on the state or the clock does not reach the world")
 	# The statistics with their longest lines, two freezes told, do not wrap and stay low.

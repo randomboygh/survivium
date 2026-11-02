@@ -27,7 +27,7 @@
 кому дал `op`, и игрок, создавший сервер в игре — `Main._on_welcome` → `make_host`), ответ ей приходит
 в чат одному ему. Команды (Т1, [territory.md](territory.md)): запросы `team_*`, события `team`, `invites`,
 строка команде (`team_chat`) — всем её членам в мире; в `heard` четвёртое поле — «сказано команде», в `people`
-последнее — «в моей команде». Земля (Т2): запрос `land_paint`, события `claims`, `squares`, `land`. Не чаще `Requests.CHAT_LINES` 5 строк за `CHAT_WINDOW` 8 с, длина до `CHAT_MAX` 160.
+последнее — «в моей команде». Земля (Т2, Т3): запросы `land_paint`, `land_rights`, события `claims`, `squares`, `land`. Не чаще `Requests.CHAT_LINES` 5 строк за `CHAT_WINDOW` 8 с, длина до `CHAT_MAX` 160.
 
 **Файлы**
 - `src/shared/net/protocol.gd` — версия протокола, виды запросов с их аргументами (копать, ставить,

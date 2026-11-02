@@ -92,6 +92,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	placed.territory = territory
 	placed.removed.connect(territory.thing_removed)
 	actions = WorldActions.new(world, clock, rules)
+	actions.territory = territory
 	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
 	# server's; a client's copy only shows the season.
 	clock.season_changed.connect(actions.on_season)
@@ -161,6 +162,7 @@ func step_players(delta: float) -> void:
 	for i in players.size():
 		players[i].update(d)
 		workshops[i].update(d)
+	territory.step_walk(players)
 
 
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step).

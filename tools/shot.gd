@@ -449,6 +449,15 @@ func _run() -> void:
 			_fake_land(main, shot.land)
 			for i in 6:
 				await process_frame
+			if shot.get("rights", false):
+				# Others may also gather the harvest here.
+				main.session.territory.set_rights(0, 255 & ~8, 1 | 16)
+				for i in 4:
+					await process_frame
+				main.hud.toggle_menu()
+				main.hud.open_rights()
+				for i in 10:
+					await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -741,7 +750,7 @@ func _run() -> void:
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
-		if shot.get("team_panel", false):
+		if shot.get("team_panel", false) or shot.get("rights", false):
 			main.hud.toggle_menu()
 			main.hud.toggle_menu()
 		if shot.get("test", false):

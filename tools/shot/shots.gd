@@ -498,6 +498,7 @@ const SHOTS := {
 	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},
 	"land": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false},
 	"land-paint": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": true},
+	"land-rights": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false, "rights": true},
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
 	"ui-settings-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings"},
