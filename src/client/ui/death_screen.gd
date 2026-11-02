@@ -229,7 +229,8 @@ func _fill() -> void:
 		choices.append(["На месте смерти", Vector3(fell[0], fell[1], fell[2]) if fell.size() == 3 else points[0][1]])
 	for p: Array in choices:
 		var at: Vector3 = p[1]
-		var b := _button(_respawn, "Возродиться " + (p[0] as String).to_lower(), func() -> void: _revive(at))
+		var title: String = p[0]
+		var b := _button(_respawn, "Возродиться " + title.left(1).to_lower() + title.substr(1), func() -> void: _revive(at))
 		UiStyle.accent(b)
 		b.add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
 	var has_menu: bool = game.menu != null

@@ -78,7 +78,10 @@ var lights: Array = []
 ## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its two by two
 ## cells), "items": what a thing that stores holds (an Inventory, else null), "lit": false
 ## for a fire put out, and for a fire "fuel": the seconds it has left to burn, "wet": the
-## seconds it has stood in the rain}. Saved with the world (to_list).
+## seconds it has stood in the rain}, and "by": the number of the player who put it
+## from their bag (Player.id, 0 in a single game; none for the start's camp): a fire is a
+## place its maker and their team come back to after death (Character.find_respawns).
+## Saved with the world (to_list).
 var things: Array = []
 ## What the chest by the spawn holds (the first thing that stores placed).
 var chest_items = null
@@ -164,13 +167,35 @@ static func is_fire(e: Dictionary) -> bool:
 	return Items.get_item(e.item).get("fire", false)
 
 
+## The cells round a thing's two by two cells, from its north-west one, where a body
+## coming back to it is set: east first, as by the start's campfire.
+const BESIDE: Array[Vector3i] = [Vector3i(2, 0, 0), Vector3i(2, 0, 1), Vector3i(0, 0, 2), Vector3i(1, 0, 2),
+	Vector3i(-1, 0, 0), Vector3i(-1, 0, 1), Vector3i(0, 0, -1), Vector3i(1, 0, -1)]
+
+
+## Where a body stands beside thing `e` (world units): the first cell of BESIDE with air
+## for a body two cells tall on solid ground, else the first of them (the body climbs out).
+func stand_by(e: Dictionary) -> Vector3:
+	var c: Vector3i = e.cell
+	var spot: Vector3i = c + BESIDE[0]
+	for d: Vector3i in BESIDE:
+		var p: Vector3i = c + d
+		if world.get_cell(p.x, p.y, p.z) == Mat.AIR and world.get_cell(p.x, p.y + 1, p.z) == Mat.AIR \
+				and world.is_solid(p.x, p.y - 1, p.z) and not world.blockers.has(p):
+			spot = p
+			break
+	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## Places thing `item` (an item with a `prop`) with its north-west cell at `cell`;
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
 ## `fuel_start`).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0) -> Dictionary:
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null) -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire}
+	if by is int:
+		e.by = by
 	if rec.fire:
 		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
 		e.wet = 0.0
@@ -200,7 +225,7 @@ func from_list(list: Array) -> void:
 				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)))
 				continue
 			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
-				not d.get("out", false), float(d.get("fuel", -1.0)))
+				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null)
 
 
 ## The placed things as plain data for the save.
@@ -215,7 +240,7 @@ func to_list() -> Array:
 
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
-## seconds a fire has left}.
+## seconds a fire has left, "by" who put it from their bag}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -228,6 +253,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.out = true
 	if e.has("fuel"):
 		d.fuel = snappedf(e.fuel, 0.1)
+	if e.has("by"):
+		d.by = e.by
 	return d
 
 
@@ -386,7 +413,8 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 		for dx in 2:
 			_level_ground(spot + Vector3i(dx, -1, dz))
 			_remove_bush(spot + Vector3i(dx, 0, dz))
-	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null)
+	var by: Variant = who.get("id")
+	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0)
 	world.note_edit(spot.x, spot.z)
 	if item.claims and territory != null:
 		territory.add_claim(who.get("id") if who.get("id") != null else 0, e, str(who.get("player_name") if who.get("player_name") != null else ""))

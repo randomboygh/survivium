@@ -28,6 +28,8 @@ const CHAT_WINDOW := 8.0
 ## How near another player must be to be invited to a team, in world units (as far as
 ## the chat is heard, Server.CHAT_RANGE).
 const TEAM_REACH := 30.0
+## How near (world units) to where they fell a dead one asking to come back there must ask.
+const REVIVE_NEAR := 1.0
 
 ## The player said `text` in the chat (trimmed and cut; "/…" a command).
 signal chatted(text: String)
@@ -236,11 +238,27 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_INT]):
 				return session.territory.set_color(who.id, args[0])
 		Protocol.REVIVE:
-			# Only the dead come back (where to is checked at stage С6).
+			# Only the dead come back, at one of their places (the nearest to the one
+			# asked for: the fires are looked at anew), or where they fell when the
+			# test page lets them.
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():
-				who.revive(args[0])
+				who.revive(_revive_at(args[0]))
 				return true
 	return null
+
+
+## Where the dead `who` comes back when asking for `at`: the respawn point nearest to it,
+## or `at` itself when it is where they fell (the test page's «и где упали»).
+func _revive_at(at: Vector3) -> Vector3:
+	who.find_respawns(session.placed, session.teams)
+	var fell: Array = who.death.get("at", [])
+	if fell.size() == 3 and at.distance_to(Vector3(fell[0], fell[1], fell[2])) < REVIVE_NEAR:
+		return at
+	var best: Vector3 = who.home
+	for p: Array in who.respawn_points():
+		if at.distance_to(p[1]) < at.distance_to(best):
+			best = p[1]
+	return best
 
 
 ## True when `args` are of `types`, one each.
