@@ -183,7 +183,7 @@ func unhandled_input(event: InputEvent) -> void:
 
 
 ## A tap or a click at `pos` with hand `hand` (pressed with mouse `button`, which may
-## stay held): something to gather or open there first (a thing on the ground or set
+## stay held): another player there opens their card (PersonCard), else something to gather or open there first (a thing on the ground or set
 ## on it with any hand, a bush with a tool or bare hands), else what the hand's item is
 ## for (see Tools.use_of).
 func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
@@ -192,6 +192,12 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if touch and game.settings.debug_tips:
 		game.hud.show_tip(pos, _tip_text(pos), true)
 		_touch_tip_clock = TOUCH_TIP_TIME
+	if game.others != null and not game.others.people.is_empty():
+		var ray := _ray(pos)
+		var person: Array = game.others.person_at(ray[0] * CELL, ray[1])
+		if not person.is_empty():
+			game.hud.person.show_person(person[0], person[1], pos)
+			return
 	var use := use_of()
 	var target: Dictionary = game.gathering.target_at(pos)
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):

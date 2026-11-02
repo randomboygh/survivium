@@ -25,6 +25,8 @@ const KEPT := 4
 ## The name's letters in world pixels, and how high over the head it hangs (world units).
 const NAME_SIZE := 8
 const NAME_OVER := 0.4
+## How near a tap's ray passes a figure to pick it, in world units.
+const PICK_REACH := 0.4
 ## Seconds a line said shows over the head, and how wide it wraps (world pixels).
 const SAY_TIME := 6.0
 const SAY_WIDTH := 110
@@ -77,6 +79,27 @@ func speak(id: int, text: String) -> void:
 	one.line.text = text
 	one.line.visible = true
 	one.until = Time.get_ticks_msec() / 1000.0 + SAY_TIME
+
+
+## The player whose figure the view ray from `origin` along `dir` (world units) passes
+## nearest, within PICK_REACH of their body's middle line: [id, name], [] for none.
+func person_at(origin: Vector3, dir: Vector3) -> Array:
+	var best := PICK_REACH
+	var out := []
+	var d := dir.normalized()
+	for id in people:
+		var f = people[id].figure
+		var feet: Vector3 = f.position
+		# The ray's point nearest the line of the body, the body's point nearest it.
+		var best_here := INF
+		for k in 5:
+			var p := feet + Vector3(0.0, Body.HEIGHT * CELL * k / 4.0, 0.0)
+			var t := maxf(0.0, (p - origin).dot(d))
+			best_here = minf(best_here, (origin + d * t).distance_to(p))
+		if best_here < best:
+			best = best_here
+			out = [id, people[id].label.text]
+	return out
 
 
 func _make(at: Vector3) -> Dictionary:

@@ -4,7 +4,8 @@ extends VBoxContainer
 ## server's answers) in the bottom left corner, each fading after FADE seconds, and the
 ## field to say a line, opened by Enter or the chat button and closed by sending,
 ## Escape or the button again. While it is open all the recent lines show, the newest
-## at the bottom. A line that begins with "/" is a host's command; the server answers
+## at the bottom. One in a team chooses whom a line goes to by the button before the
+## field («Рядом» / «Команде»; Protocol.TEAM_CHAT). A line that begins with "/" is a host's command; the server answers
 ## it in the chat. `typing` keeps the keys from walking the character. `game` is the
 ## Main node; the HUD places the box (place).
 
@@ -27,6 +28,9 @@ var lines: Array[Dictionary] = []
 var _list: VBoxContainer
 var _row: PanelContainer
 var _field: LineEdit
+## Whom a line goes to: those near, or the team (shown only to one in a team).
+var _to_team := false
+var _whom: Button
 ## What the labels show (open, how many, of how many heard): they are made again when it changes.
 var _shown_key := ""
 ## Lines heard in all: the shown lines change with it even once KEPT are kept.
@@ -54,6 +58,15 @@ func _ready() -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 4)
 	_row.add_child(h)
+	_whom = Button.new()
+	_whom.focus_mode = Control.FOCUS_NONE
+	_whom.custom_minimum_size = Vector2(0, 26)
+	_whom.tooltip_text = "Кому сказать: тем, кто рядом, или своей команде"
+	_whom.pressed.connect(func() -> void:
+		_to_team = not _to_team
+		_show_whom()
+		_field.grab_focus())
+	h.add_child(_whom)
 	_field = LineEdit.new()
 	_field.placeholder_text = "Сказать рядом…"
 	_field.max_length = MAX
@@ -90,6 +103,7 @@ func toggle() -> void:
 
 
 func open() -> void:
+	_show_whom()
 	_row.visible = true
 	_field.grab_focus()
 	_refresh()
@@ -108,7 +122,20 @@ func submit() -> void:
 	close()
 	if text != "" and game.net != null:
 		print("chat: say %s" % text)
-		game.net.request(Protocol.CHAT, [text])
+		if _to_team and game.team.has_team() and not text.begins_with("/"):
+			game.team.say(text)
+		else:
+			game.net.request(Protocol.CHAT, [text])
+
+
+## The button of whom a line goes to, shown in a team only.
+func _show_whom() -> void:
+	var team: bool = game.team.has_team()
+	_to_team = _to_team and team
+	_whom.visible = team
+	_whom.text = "Команде" if _to_team else "Рядом"
+	_whom.add_theme_color_override("font_color", UiStyle.TEAM if _to_team else UiStyle.INK)
+	_field.placeholder_text = "Сказать команде…" if _to_team else "Сказать рядом…"
 
 
 ## A line heard: said by player `id` named `who` (0 the server, "" for its answer), to
