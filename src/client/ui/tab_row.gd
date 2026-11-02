@@ -27,6 +27,21 @@ static func split(parts: Array) -> HBoxContainer:
 	return row
 
 
+## The width of a window's wide button (as three small ones joined): the inventory's
+## action, the craft tab's «сделать».
+const WIDE := 3 * 30 - 2 + 4
+
+
+## A row of tabs: joined as one, as `split` joins buttons (their frames overlapping),
+## each `height` tall (the height of the window's other buttons), the one shown lit by
+## `light`. Every row of tabs is made so (inventory, settings, «Тестирование»).
+static func tabs(parts: Array, height: int) -> HBoxContainer:
+	var row := split(parts)
+	for b: Button in row.get_children():
+		b.custom_minimum_size.y = height
+	return row
+
+
 ## A block of buttons at the bottom right of a panel: a wide one (`wide`: [picture or
 ## text, tooltip, action], `width` across, as wide as the row) under the row `top`,
 ## joined to it (`joined`) or apart. The row is the first child, the wide one the second.

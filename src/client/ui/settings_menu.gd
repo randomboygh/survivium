@@ -64,7 +64,7 @@ const LISTS := ["marks", "all", "critical", "big", "small"]
 ## The room between the quality preset and the settings by hand, or the rows and a
 ## button.
 const GAP := 8
-const TAB_HEIGHT := 28
+const TAB_HEIGHT := 32
 ## The steps of the interface and the touch controls size.
 const SIZES := ["очень мелкий", "мелкий", "обычный", "крупнее", "крупный"]
 ## The minimap sizes (Minimap.SIDES).
@@ -126,8 +126,9 @@ func _ready() -> void:
 	_version = UiStyle.label("", UiStyle.MUTED)
 	_version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_version)
+	# The tabs joined as one, as tall as the window's buttons (TabRow.tabs).
 	_tabs = HBoxContainer.new()
-	_tabs.add_theme_constant_override("separation", 4)
+	_tabs.add_theme_constant_override("separation", -2)
 	_tabs.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_tabs)
 	# The rows scroll when the window is taller than a small screen with a big interface.

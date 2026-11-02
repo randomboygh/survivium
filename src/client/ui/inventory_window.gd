@@ -2,24 +2,28 @@ extends PanelContainer
 ## The inventory window (plan/design/ui.md, section 5): the character (PersonPanel: what
 ## is worn and held, the skills) beside the bag or the craft tab on a wide screen, over
 ## the bag on a tall one (hidden on the craft tab there); the tabs «Инвентарь» and
-## «Крафт» are small buttons as the settings' tabs. A tap on a slot of the figure
+## «Крафт» are joined as one, a button tall (TabRow.tabs). A tap on a slot of the figure
 ## works as a tap on a hand of the hotbar (the next tool) or takes off and puts on what
 ## is worn there (see _tap_person). The bag part is as wide whatever it shows: the bag's
 ## slots, ROWS rows of them showing (they scroll), with a column of tabs by kind of
-## item on the left (the other slots dim). The chests within reach stand under the bag
+## item on the left (the other slots dim; as many as fit beside the slots, the rest
+## scroll). The chests within reach stand under the bag
 ## in the same list; the head of the window has, by the cross, the button that takes the
 ## chest up. A tap picks a slot, a tap on another picks that one; with sorting by hand
 ## on, a tap on another slot (of the bag or a chest) moves the stack there, swaps the
 ## two or tops up a stack of the same item, and lets it go; a tap on the chosen one lets
 ## it go. The panel at the bottom keeps its height whether a stack is chosen or not: at
-## its top the chosen stack's picture and name (its count only for more than one) and at the top right sorting by hand and «по виду | по весу»
+## its top the chosen stack's picture and name (its count only for more than one) and
+## at the top right the lock of the hotbar row, sorting by hand and «по виду | по весу»
 ## (they sort the bag past the hotbar row and the chests shown); then what it is as
 ## named groups of small wells side by side (FactChips.item_groups: weight, food, the
 ## bag, the tool's work, what a weapon shoots, wear) and a line of buttons: on the left
 ## the wide amber one with a picture of what it does (take in hand, eat, set down,
 ## plant, put on...; for a light «взять | поставить», two thirds and one third), on the
-## right «в сундук | всё в сундук» with a chest shown, the spanner for a worn tool, throwing away one | all and the
-## bin (red at the first tap, it destroys at the second). A weapon with nothing in the
+## right, with a chest shown, the chosen stack into it (out of it when it lies there; it
+## stays chosen), all the bag into it (past the hotbar row while the lock is on) and,
+## when it holds something, all of it back; the spanner for a worn tool, throwing away
+## one | all and the bin (red at the first tap, it destroys at the second). A weapon with nothing in the
 ## bag to shoot shows inactive (HotbarSlot.inactive), its «Заряды» a red «нет». The craft
 ## tab (CraftPanel) has its own cells and panels; opened at a station it starts there.
 ## Opens over the running world, which goes on; taps inside it do not reach the world.
@@ -61,7 +65,7 @@ const CRAFT_SIDE := 300
 ## The gap between the character and the bag or craft tab.
 const GAP_MAIN := 6
 ## The width of the wide button of the panel at the bottom (as three small ones joined).
-const USE_WIDTH := 3 * 30 - 2 + 4
+const USE_WIDTH := TabRow.WIDE
 ## What the wide button does: its picture and tooltip.
 const USES := {
 	"take": ["act_take", "Взять в руку"], "eat": ["act_eat", "Съесть одну"], "drink": ["act_eat", "Выпить"], "heal": ["act_heal", "Перевязать раны"],
@@ -98,6 +102,11 @@ var _chest_grids := []
 ## Sorting by hand: a tap on a second slot moves the chosen stack there.
 var _manual := false
 var _manual_button: Button
+## The lock of the hotbar row: on, «всё в сундук» leaves the first row in the bag.
+var _lock := true
+var _lock_button: Button
+## «забрать всё из сундука», shown when the chest holds something.
+var _all_out: Button
 var _info: Label
 var _facts: FactChips
 ## «Взять» into the hand in use, «Съесть» for food, «Поставить» for what is set down,
@@ -156,13 +165,11 @@ func _ready() -> void:
 	add_child(box)
 	var head := HBoxContainer.new()
 	box.add_child(head)
-	# Tabs as those of the settings: small buttons, the one shown lit amber.
-	_bag_tab = TabRow.small_button("Инвентарь", show_tab.bind("bag"))
-	_craft_tab = TabRow.small_button("Крафт", show_tab.bind("craft"))
-	for t: Button in [_bag_tab, _craft_tab]:
-		t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(_bag_tab)
-	head.add_child(_craft_tab)
+	# The tabs joined as one, a button tall, the one shown lit amber (TabRow.tabs).
+	var tabs_row := TabRow.tabs([["Инвентарь", "", show_tab.bind("bag")], ["Крафт", "", show_tab.bind("craft")]], 30)
+	head.add_child(tabs_row)
+	_bag_tab = tabs_row.get_child(0)
+	_craft_tab = tabs_row.get_child(1)
 	# The free room of the head keeps the cross on the right.
 	var room := Control.new()
 	room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -246,6 +253,12 @@ func _ready() -> void:
 	sorts.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	name_row.add_child(sorts)
 	_sorts = sorts
+	# The lock: on, «всё в сундук» leaves the hotbar row in the bag; off, everything
+	# that fits goes.
+	_lock_button = TabRow.icon_button(UiStyle.icon("lock"), "", func() -> void:
+		_lock = not _lock
+		refresh())
+	sorts.add_child(_lock_button)
 	_manual_button = TabRow.icon_button(UiStyle.icon("swap"), "Сортировать вручную: тап по второй ячейке перекладывает", func() -> void:
 		_manual = not _manual
 		_let_go()
@@ -258,7 +271,7 @@ func _ready() -> void:
 	var sort_by := TabRow.split(by)
 	sorts.add_child(sort_by)
 	# As tall as the stack's picture by the name, so the row keeps its height.
-	for b in [_manual_button] + sort_by.get_children():
+	for b in [_lock_button, _manual_button] + sort_by.get_children():
 		b.custom_minimum_size = Vector2(30, 24)
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -314,11 +327,15 @@ func _ready() -> void:
 	_set_down.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_set_down.tooltip_text = "Поставить перед собой"
 	_left.add_child(_set_down)
+	# The chosen stack into the chest (out of it when it lies there); all the bag into
+	# it, and all of it back when it holds something.
 	_into = TabRow.split([
-		[UiStyle.icon("to_chest"), "Переложить в сундук", _put_in_chest],
-		[UiStyle.icon("to_chest_all"), "Переложить всё в сундук (без первого ряда)", _put_all_in_chest],
+		[UiStyle.icon("to_chest"), "Переложить в сундук", _move_chosen],
+		[UiStyle.icon("to_chest_all"), "", _put_all_in_chest],
+		[UiStyle.icon("from_chest_all"), "Забрать всё из сундука", _take_all_from_chest],
 	])
 	_to_chest = _into.get_child(0)
+	_all_out = _into.get_child(2)
 	_right.add_child(_into)
 	_throw = TabRow.split([
 		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.net.request(Protocol.THROW, [_at, 1])],
@@ -544,6 +561,8 @@ func _place() -> void:
 	# Up to ROWS whole rows; the rest scrolls (its bar a gap right of the slots).
 	var most := ROWS * row - 4
 	_scroll.custom_minimum_size = Vector2(full.x + GAP + UiStyle.SCROLL_BAR, minf(full.y, most))
+	# As many kinds on the left as fit beside ROWS rows of slots (they scroll past that).
+	_kinds.fit_height(most)
 	reset_size()
 	var over := size.y - (room.y - 2 * EDGE)
 	if craft.visible and over > 0.0:
@@ -586,33 +605,62 @@ func _tap(i: int, chest := -1) -> void:
 	refresh()
 
 
-## «Скинуть в сундук»: the chosen stack of the bag into the chest shown.
-func _put_in_chest() -> void:
+## The chosen stack into the chest shown, or out of it into the bag when it lies in a
+## chest; it stays chosen where it went (the button then moves it back).
+func _move_chosen() -> void:
 	var chest = _chest_entry.get("items")
 	var inv = game.character.inventory
-	if chest == null or _from != inv:
+	if chest == null or _from == null or _from.slots[_at] == null:
 		return
+	var from = _from
 	var at := _at
-	var r = game.net.request(Protocol.BAG_MOVE, [null, at, _chest_entry.cell])
-	if r.done and r.value is int and r.value == 0:
-		game.character.nag("chest", "Сундук с вещами в сундук не положить" if inv.contents(at) != null else "Сундук полон")
-	if inv.slots[at] == null:
-		_let_go()
-	refresh()
+	var to = chest if from == inv else inv
+	var id: String = from.slots[at][0]
+	var before: Array = to.slots.duplicate(true)
+	game.net.request(Protocol.BAG_MOVE, [_where(from), at, _where(to)]).then(func(v: Variant) -> void:
+		if v is int and v == 0:
+			game.character.nag("chest", ("Сундук с вещами в сундук не положить" if from.contents(at) != null else "Сундук полон") \
+				if to == chest else "В сумке нет места")
+		elif from.slots[at] == null:
+			# Chosen where the stack went: the first slot of it that changed.
+			var land := -1
+			for i in to.slots.size():
+				var t = to.slots[i]
+				if t != null and t[0] == id and (i >= before.size() or str(before[i]) != str(t)):
+					land = i
+					break
+			_let_go()
+			if land >= 0:
+				_from = to
+				_at = land
+		refresh())
 
 
-## «Скинуть всё в сундук»: the bag past the hotbar row into the chest shown.
+## «Всё в сундук»: the bag into the chest shown, past the hotbar row while the lock is on.
 func _put_all_in_chest() -> void:
 	var chest = _chest_entry.get("items")
 	var inv = game.character.inventory
 	if chest == null:
 		return
 	_let_go()
-	var had: bool = inv.slots.slice(Inventory.HOTBAR).any(func(s) -> bool: return s != null)
-	var r = game.net.request(Protocol.BAG_ALL, [null, _chest_entry.cell, Inventory.HOTBAR])
-	if r.done and r.value is int and r.value == 0 and had:
-		game.character.nag("chest", "Сундук полон")
-	refresh()
+	var first := Inventory.HOTBAR if _lock else 0
+	var had: bool = inv.slots.slice(first).any(func(s) -> bool: return s != null)
+	game.net.request(Protocol.BAG_ALL, [null, _chest_entry.cell, first]).then(func(v: Variant) -> void:
+		if v is int and v == 0 and had:
+			game.character.nag("chest", "Сундук полон")
+		refresh())
+
+
+## «Забрать всё из сундука»: what of the chest shown fits into the bag.
+func _take_all_from_chest() -> void:
+	var chest = _chest_entry.get("items")
+	if chest == null:
+		return
+	_let_go()
+	game.net.request(Protocol.BAG_ALL, [_chest_entry.cell, null, 0]).then(func(v: Variant) -> void:
+		if v is int and v == 0:
+			game.character.nag("chest", "В сумке нет места")
+		refresh())
 
 
 func _let_go() -> void:
@@ -691,7 +739,15 @@ func refresh() -> void:
 	_chest_buttons.visible = chest != null
 	_into.visible = chest != null
 	if chest != null:
-		_to_chest.disabled = _from != inv
+		var out: bool = _from != null and _from != inv
+		_to_chest.disabled = _from == null
+		_to_chest.icon = UiStyle.centred(UiStyle.icon("from_chest" if out else "to_chest"))
+		_to_chest.tooltip_text = "Забрать из сундука" if out else "Переложить в сундук"
+		_into.get_child(1).tooltip_text = "Переложить всё в сундук" + (" (без первого ряда: замок)" if _lock else "")
+		_all_out.visible = not chest.is_empty()
+	TabRow.light(_lock_button, _lock)
+	_lock_button.tooltip_text = "Замок первого ряда: «всё в сундук» его не трогает" if _lock \
+		else "Замок снят: «всё в сундук» перекладывает всё, что влезет"
 	for i in _chest_grids.size():
 		var g: Dictionary = _chest_grids[i]
 		_show_slots(_chests[i].items, g.cells)

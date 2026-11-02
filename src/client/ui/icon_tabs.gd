@@ -1,8 +1,9 @@
 extends VBoxContainer
 ## A column of small square tabs with pictures beside a window's cells (the kinds of
 ## items in the bag and the craft tab, the chests near): the chosen one lit amber, a
-## tooltip naming each. `picked` gives the key of the tab tapped. Past six tabs the
-## column scrolls as the hotbar does (ScrollColumn).
+## tooltip naming each. `picked` gives the key of the tab tapped. Past six tabs (or as
+## many as fit beside the cells, fit_height) the column scrolls as the hotbar does
+## (ScrollColumn).
 
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -28,6 +29,12 @@ func _init() -> void:
 	custom_minimum_size.x = SIDE
 	_column = ScrollColumn.new(SIDE)
 	add_child(_column)
+
+
+## Shows as many tabs as fit `h` UI pixels of height beside the cells, the rest
+## scrolling (ScrollColumn.fit_height).
+func fit_height(h: float) -> void:
+	_column.fit_height(h)
 
 
 ## Shows tabs `keys` with pictures `icons` and tooltips `tips` (key -> each); a chosen

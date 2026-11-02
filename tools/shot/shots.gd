@@ -384,6 +384,8 @@ const SHOTS := {
 	# A second chest set down beside the player: the bag button opens the bag with both
 	# chests listed under the bag.
 	"chests": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true},
+	# A big chest (40 slots) set down by the spawn's chest: both under the bag.
+	"chests-big": {"time": 0.42, "season": 1, "touch": true, "work": true, "chests": true, "box": "tools:big_chest"},
 	# A workbench, a kiln and a chest placed by the spawn, the craft tab open at the workbench
 	# with an axe being made and more queued.
 	"craft": {"time": 0.42, "season": 1, "touch": true, "craft": true},

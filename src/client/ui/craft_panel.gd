@@ -5,10 +5,10 @@ extends VBoxContainer
 ## now), the stations near as a column of pictures on the right (hands first, then the
 ## stations of the recipes known, the far ones dimmed). Under them two panels: the recipe
 ## chosen, as named groups of small wells laid side by side (see FactChips): «Материалы»
-## and «Не тратится» (have / need, short in red), the station or «Где» (hands), the tools
+## and «Не тратится» (have / need, short in red), «На чём» (the station or hands), the tools
 ## («нет» in red when missing), the time (the recipe's: no skills yet), what it makes
-## (weight, work, how long it lasts) and its by-products, then «×5 | MAX» and a wide
-## «сделать» in one line on the right; and under it, while it holds jobs, the queue, a
+## (weight, work, how long it lasts) and its by-products, then an amber «сделать» with
+## «×5» (five can be made) and «MAX» (more than one) joined, in one line on the left; and under it, while it holds jobs, the queue, a
 ## row as wide: small cells for the jobs, the time left of the one chosen and the count
 ## over the first job's progress, the pause and «отменить | отменить все». Opened at a
 ## station, buttons in the window's head (by the cross, see station_buttons) take it
@@ -75,6 +75,10 @@ var _icon: TextureRect
 var _title: Label
 var _facts: FactChips
 var _make: HBoxContainer
+## «сделать», «×5» and «MAX».
+var _make_one: Button
+var _make_five: Button
+var _make_most: Button
 ## The panel of the queue.
 var _queue_panel: Control
 ## The cells of jobs that fit the queue's row (see fit_width).
@@ -190,8 +194,10 @@ func _ready() -> void:
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_facts)
-	# One line: «Сделать» (the one most pressed, wide) joined to «×5 | MAX» on the left,
-	# the stations on the right (hands first, then those near, then the far ones dimmed).
+	# One line: «сделать» (amber, as wide as the inventory's action button) on the left,
+	# joined to «×5» when five can be made and «MAX» when more than one can (then
+	# «сделать» takes two thirds of its width and each of them a third); the stations on
+	# the right (hands first, then those near, then the far ones dimmed).
 	_make = HBoxContainer.new()
 	_make.add_theme_constant_override("separation", 4)
 	box.add_child(_make)
@@ -200,9 +206,17 @@ func _ready() -> void:
 		["×5", "Сделать пять", func() -> void: _start(5)],
 		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
 	])
-	make.get_child(0).custom_minimum_size = Vector2(2 * 41 - 2, 30)
-	for b in [make.get_child(1), make.get_child(2)]:
-		b.custom_minimum_size = Vector2(41, 30)
+	_make_one = make.get_child(0)
+	_make_five = make.get_child(1)
+	_make_most = make.get_child(2)
+	for b: Button in [_make_one, _make_five, _make_most]:
+		b.custom_minimum_size.y = 30
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.accent(_make_one)
+	# Its picture dark on the amber.
+	for c in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color", "icon_focus_color"]:
+		_make_one.add_theme_color_override(c, UiStyle.DARK_INK)
+	_make_one.add_theme_color_override("icon_disabled_color", Color(UiStyle.DARK_INK, 0.5))
 	_make.add_child(make)
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -274,7 +288,7 @@ func set_side(on: bool, w: int) -> void:
 func fit_width(w: int) -> void:
 	_title.custom_minimum_size.x = w - 2 * UiStyle.WELL_PAD - 30
 	# What «Сделать | ×5 | MAX» leaves of the line for the stations.
-	_stations_fit = maxi(1, (w - 2 * UiStyle.WELL_PAD - (4 * 41 - 6) - 8) / (IconTabs.SIDE + 2))
+	_stations_fit = maxi(1, (w - 2 * UiStyle.WELL_PAD - roundi(TabRow.WIDE * 4.0 / 3.0) - 8) / (IconTabs.SIDE + 2))
 	var room := w - 2 * UiStyle.WELL_PAD - QUEUE_INFO - QUEUE_BUTTONS - 3 * 6 - 16
 	_job_fit = maxi(1, room / (JOB_SLOT + 4))
 
@@ -496,11 +510,31 @@ func _show_details(near: Dictionary) -> void:
 	var made := []
 	for g: Array in FactChips.item_groups(r.makes, r.count):
 		made.append_array(g[1])
-	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["Станок" if r.at != "" else "Где", at],
+	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["На чём", at],
 		["Инструменты", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
 	var can := Crafting.why_not(r, inv, near) == ""
-	for b in _make.get_child(0).get_children():
-		b.disabled = not can
+	var times := _times(r, inv) if can else 0
+	_make_one.disabled = not can
+	_make_five.visible = times >= 5
+	_make_most.visible = times > 1
+	if _make_most.visible:
+		_make_one.custom_minimum_size.x = roundf(TabRow.WIDE * 2.0 / 3.0)
+		for b: Button in [_make_five, _make_most]:
+			b.custom_minimum_size.x = TabRow.WIDE - _make_one.custom_minimum_size.x + 2
+	else:
+		_make_one.custom_minimum_size.x = TabRow.WIDE
+
+
+## How many times recipe `r` can be made from what bag `inv` holds (its materials and
+## what it keeps), MOST at the most.
+static func _times(r: Dictionary, inv) -> int:
+	var n := MOST
+	for id in r.needs:
+		n = mini(n, inv.count(id) / int(r.needs[id]))
+	for id in r.keeps:
+		if inv.count(id) < int(r.keeps[id]):
+			n = 0
+	return n
 
 
 ## The panel of the queue: a cell for each job that fits, the one chosen named with
@@ -583,6 +617,8 @@ func _fit_list() -> bool:
 	if full > mini(_cap, ROWS * row - 4):
 		var rows := clampi((mini(_cap, ROWS * row - 4) + 4) / row, 1, ROWS)
 		h = rows * row - 4
+	# As many kinds on the left as fit beside ROWS rows of cells.
+	_tabs.fit_height(ROWS * row - 4)
 	if h == _scroll.custom_minimum_size.y:
 		return false
 	_scroll.custom_minimum_size.y = h
