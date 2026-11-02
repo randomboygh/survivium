@@ -93,6 +93,10 @@ var wildlife
 ## The land claimed (Territory): what a player may do in another's; none in tests that
 ## have no claims.
 var territory
+## Players fighting players (Fights) and the players in the world (Session.players), for
+## blows and shots at them; none in a copy.
+var fights
+var people: Array = []
 
 
 func _init(w, c, r) -> void:
@@ -557,15 +561,31 @@ func swing_air(who, at: Vector3) -> Dictionary:
 	return {"swing": IDLE_SWING}
 
 
-## A blow of the hand in use at the animal in front of `who` (Wildlife.in_front; only
-## one right by the body unless `far`), with the hand's power: the animal flees, or dies
-## and leaves its carcass (its species' `carcass`) on the ground where it fell. {} with
-## no animal there.
+## A blow of the hand in use, a weapon or the bare hand, at another player in front of
+## `who` whom they may hit (Fights), else at the animal in front (Wildlife.in_front; only one right by the body
+## unless `far`), with the hand's power: the player is wounded (Fights.strike); the animal
+## flees, or dies and leaves its carcass (its species' `carcass`) on the ground where it
+## fell. {} with no one there.
 func strike(who, far := true) -> Dictionary:
-	if wildlife == null:
-		return {}
 	var s: Vector2i = who.facing_step()
 	var at: Vector3 = who.position
+	# Only a weapon or a fist hits a player: one working with a tool beside another does not.
+	var weapon := Tools.weapon(who.held())
+	var fist: bool = weapon.is_empty() and who.tool().tool == "hand"
+	var other = _foe(who, Vector2(s), fights.STRIKE_REACH if far else STRIKE_CLOSE, fights.STRIKE_CONE) \
+		if fights != null and (fist or not weapon.is_empty()) else null
+	if other != null:
+		if not who.act("swing"):
+			return {}
+		var tool: Dictionary = weapon if not weapon.is_empty() else who.tool()
+		var landed: bool = fights.strike(who, other, tool.power, at)
+		if tool.tool != "hand":
+			who.use_tool()
+		var blow := _work(tool.swing, "", other.position + Vector3(0.0, 0.6, 0.0))
+		blow.hit = landed
+		return blow
+	if wildlife == null:
+		return {}
 	var a = wildlife.in_front(at, Vector2(s), wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
 	if a == null or not who.act("swing"):
 		return {}
@@ -610,6 +630,27 @@ func _allowed(who, cells: Array[Vector3i], action: String) -> Array[Vector3i]:
 	return out
 
 
+## How near another player counts as right by the body for a blow of a hand that does not
+## hunt (world units past their body).
+const STRIKE_CLOSE := 0.5
+
+
+## The other player in front of `who` (Fights.in_front along `dir`) whom `who` may hit; a
+## word to `who` (Fights.why_not) when the one there may not be hit; null for none.
+func _foe(who, dir: Vector2, reach: float, cone: float):
+	if fights == null or people.size() < 2:
+		return null
+	var other = fights.in_front(who, people, dir, reach, cone)
+	if other == null:
+		return null
+	var no: Dictionary = fights.why_not(who, other)
+	if no.is_empty():
+		return other
+	if not no.get("quiet", false):
+		who.nag("pvp", no.why)
+	return null
+
+
 static func _cell_at(p: Vector3) -> Vector3i:
 	return Vector3i(floori(p.x / CELL), floori(p.y / CELL + 0.01), floori(p.z / CELL))
 
@@ -643,7 +684,15 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
 	var reach: float = item.range * CELL
 	var a = wildlife.in_front(at, dir, reach, AIM_CONE) if wildlife != null else null
+	# Another player whom one may hit, nearer than the animal, takes the shot.
+	var foe = _foe(who, dir, reach, AIM_CONE)
+	if foe != null and a != null and Vector2(a.pos.x - at.x, a.pos.z - at.z).length() < Vector2(foe.position.x - at.x, foe.position.z - at.z).length():
+		foe = null
+	if foe != null:
+		a = null
 	var to: Vector3 = a.pos + Vector3(0.0, 0.3, 0.0) if a != null else from + Vector3(dir.x, 0.0, dir.y) * reach
+	if foe != null:
+		to = foe.position + Vector3(0.0, 0.6, 0.0)
 	# Along the way, the first solid cell stops it.
 	var steps := maxi(1, ceili(from.distance_to(to) / (CELL * 0.5)))
 	var end := to
@@ -652,6 +701,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 		if world.is_solid(c.x, c.y, c.z):
 			end = from.lerp(to, float(i - 1) / steps)
 			a = null
+			foe = null
 			break
 	# One out of the bag: a thrown weapon keeps its wear.
 	var data: Variant = 1
@@ -667,11 +717,12 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 		who.use_tool()
 	if a != null:
 		_wound(who, a, item.power)
+	var struck: bool = foe != null and fights.strike(who, foe, item.power, at)
 	var land := floor_under(_cell_at(end))
 	world.add_drop(ammo, land, randf() * TAU, data)
 	drops_changed.emit(WorldData.chunk_key(floori(land.x / CELL), floori(land.z / CELL)))
 	var done := _work(item.swing, "", end)
-	done.hit = a != null
+	done.hit = a != null or struck
 	done.shot = [ammo, from, land, from.distance_to(land) / SHOT_SPEED]
 	return done
 

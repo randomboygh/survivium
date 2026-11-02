@@ -62,6 +62,7 @@ var _claims := true
 var _squares_all := true
 var _squares: Array = []
 var _land: Array = []
+var _fight: Array = []
 var _shop := true
 var _knowledge := true
 var _vitals: Array = []
@@ -153,6 +154,7 @@ func rejoin() -> void:
 	_squares_all = true
 	_squares.clear()
 	_land = []
+	_fight = []
 	_shop = true
 	_knowledge = true
 	_all = true
@@ -226,6 +228,10 @@ func flush() -> Array[PackedByteArray]:
 	if land != _land:
 		_land = land
 		out.append(_event(Protocol.LAND, land))
+	var fight: Array = session.fights.view(who.id)
+	if fight != _fight:
+		_fight = fight
+		out.append(_event(Protocol.FIGHT, fight))
 	if _knowledge:
 		_knowledge = false
 		out.append(_event(Protocol.KNOWLEDGE, [workshop.knowledge.to_dict()]))

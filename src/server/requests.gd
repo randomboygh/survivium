@@ -237,6 +237,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.LAND_COLOR:
 			if _fit(args, [TYPE_INT]):
 				return session.territory.set_color(who.id, args[0])
+		Protocol.FIGHT_BRAVE:
+			if _fit(args, []):
+				return session.fights.give_up(who.id)
 		Protocol.REVIVE:
 			# Only the dead come back, at one of their places (the nearest to the one
 			# asked for: the fires are looked at anew), or where they fell when the

@@ -4,7 +4,7 @@ extends RefCounted
 ## server set up there starts from the terminal the same), then the user arguments of
 ## the command line over it: `godot --headless -- --server [--config <file>] [--port N]
 ## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]
-## [--autosave <seconds>] [--no-save] [--tunnel [--cloudflared <file>]]`. The
+## [--autosave <seconds>] [--no-save] [--pvp off|land|all] [--tunnel [--cloudflared <file>]]`. The
 ## world is a folder of the game's own saves (WorldStore.root: a name under it, or a
 ## path), or the world of `seed_value` and `settings` (a new one when it has no save).
 
@@ -48,6 +48,13 @@ var cloudflared := ""
 ## The rules of play over their defaults (the section [rules]: keys of Rules.to_dict,
 ## such as territory_decay = "rights").
 var rules := {}
+## Where players may fight players (Rules.pvp, kept in `rules`): "off", "land" (by the
+## owners' rights in their land, everywhere else) or "all".
+var pvp: String:
+	get:
+		return _pvp(str(rules.get("pvp", "land")))
+	set(v):
+		rules["pvp"] = _pvp(v)
 
 
 ## Reads `path` (a ConfigFile); a file that is not there leaves the defaults.
@@ -136,6 +143,9 @@ func take_args(args: PackedStringArray) -> void:
 			"--autosave":
 				autosave = maxf(1.0, float(next))
 				j += 1
+			"--pvp":
+				pvp = _pvp(next)
+				j += 1
 			"--no-save":
 				save = false
 			"--tunnel":
@@ -157,3 +167,8 @@ func world_path() -> String:
 	if world.contains("://") or world.begins_with("/"):
 		return world
 	return WorldStore.root + "/" + world
+
+
+## `m` if it is one of the modes of fighting (Rules.pvp), else "land".
+static func _pvp(m: String) -> String:
+	return m if m in ["off", "land", "all"] else "land"

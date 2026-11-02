@@ -88,7 +88,7 @@ var fatigue := true
 ## Whether the body feels the cold and the heat; a playtest switch turns it off (warmth
 ## stays at COMFORT, wetness still comes and goes).
 var cold := true
-## Why health went down last ("hunger", "thirst", "water", "fire", "cold"), for the
+## Why health went down last ("hunger", "thirst", "water", "fire", "cold", "player:<name>"), for the
 ## message on death.
 var hurt_by := ""
 var warmth := COMFORT
@@ -157,6 +157,12 @@ func warm(days: float, feel: float, rain := 0.0, snow := 0.0, swimming := false,
 ## The body touched a burning fire.
 func burn() -> void:
 	_hurt(BURN, "fire")
+
+
+## The body takes a wound of `amount` health (a blow of another player), `why` for the
+## message on death.
+func wound(amount: float, why: String) -> void:
+	_hurt(amount, why)
 
 
 func _hurt(amount: float, why: String) -> void:

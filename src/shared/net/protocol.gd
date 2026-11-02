@@ -129,6 +129,9 @@ const LAND_RIGHTS := "land_rights"
 ## The colour the player picks for their land [number, 0..Territory.COLORS - 1]; true
 ## when it changed.
 const LAND_COLOR := "land_color"
+## The player gives up their protection as a newcomer (Fights.give_up) []; true when
+## they had it.
+const FIGHT_BRAVE := "fight_brave"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -214,6 +217,9 @@ const CLAIMS := "claims"
 const SQUARES := "squares"
 ## The squares the player and their team hold and may hold: [used, budget]; when changed.
 const LAND := "land"
+## Fighting (Fights.view): [the server's mode "off" | "land" | "all", whole minutes of the
+## player's protection as a newcomer left, whole seconds of their fight left]; when changed.
+const FIGHT := "fight"
 ## A chunk of the world made, for the client's copy (С3.2; over a socket): [key, size,
 ## bytes], the record WorldGen.pack gives as var_to_bytes, zstd (`size` its length
 ## before); sent again when what the chunk shows changed (a bush picked, grass mown).
