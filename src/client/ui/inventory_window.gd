@@ -56,7 +56,7 @@ const COLUMNS := 8
 ## The rows of the bag's slots shown before they scroll (and half the next).
 const ROWS := 4
 ## The room between the bag's slots and a chest's, and between chests.
-const CHEST_GAP := 10
+const CHEST_GAP := 2
 const SLOT := 40
 const SLOT_SMALL := 36
 ## The width of the craft tab's column of the recipe and the queue beside the cells on
@@ -950,23 +950,24 @@ func _make_chest_grids() -> void:
 		_chest_grids.append({"grid": grid, "cells": cells, "line": line})
 
 
-## The strip between the bag and a chest (or two chests): a line with the chest's icon.
+## The strip between the bag and a chest (or two chests): a pale line with a chest's
+## schematic picture, drawn like the weight's on the load line.
 func _chest_line(e: Dictionary) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.tooltip_text = Items.title(e.item)
 	for k in 3:
 		if k == 1:
 			var icon := TextureRect.new()
-			icon.texture = ItemIcons.of_item(e.item)
-			icon.custom_minimum_size = Vector2(24, 24)
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.texture = UiStyle.icon("chest")
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			icon.tooltip_text = Items.title(e.item)
+			icon.mouse_filter = Control.MOUSE_FILTER_PASS
 			row.add_child(icon)
 			continue
 		var bar := ColorRect.new()
-		bar.color = UiStyle.ACCENT_DARK
+		bar.color = UiStyle.HIGHLIGHT
 		bar.custom_minimum_size = Vector2(0, 2)
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
