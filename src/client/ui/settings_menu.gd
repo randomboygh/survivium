@@ -45,7 +45,7 @@ const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
 const COLUMN_GAP := 16
 ## Room kept for the scroll bar on every page, so all of them are as wide: the bar and
 ## a gap on each side of the rows, so the bar never touches the arrows.
-const BAR_GAP := 6
+const BAR_GAP := UiStyle.BAR_GAP
 const BAR_ROOM := UiStyle.SCROLL_BAR + 2 * BAR_GAP
 const HOURS := ["ночь", "утро", "день", "вечер"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
@@ -141,11 +141,7 @@ func _ready() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# The rows keep their place whether the bar shows or not: a little room on the left,
 	# the bar's on the right.
-	var inset := MarginContainer.new()
-	inset.add_theme_constant_override("margin_left", BAR_GAP)
-	inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(inset)
-	inset.add_child(_list)
+	_scroll.add_child(UiStyle.inset(_list))
 	_legend = PanelContainer.new()
 	_legend.add_theme_stylebox_override("panel", UiStyle.field())
 	box.add_child(_legend)
@@ -384,6 +380,7 @@ func _section_rows(key: String) -> Array:
 				null,
 				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
 				{"action": "К месту последней смерти", "do": func() -> void: s.go_to_death()},
+				{"action": "Очистка территории", "do": func() -> void: s.clear_land(), "confirm": true},
 			]
 		"marks":
 			var marks := []

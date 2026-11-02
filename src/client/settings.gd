@@ -598,6 +598,16 @@ func set_shadow_map(i: int) -> void:
 ## biggest bag) into the bag, each thing the bag and the body lack, and puts the bag on
 ## when nothing is worn on the back yet. Single player only: a server far away gives
 ## nothing, and says so.
+## Takes back the land every player painted in this world, each post keeping only its
+## own square (Territory.clear_painted; the test page's «Очистка территории»).
+func clear_land() -> void:
+	if game.host == null:
+		game.character.say("Очистить территорию можно только в своём мире")
+		return
+	var n: int = game.session.territory.clear_painted()
+	game.hud.toast("Разметка убрана: %d участков" % n if n > 0 else "Разметки нет")
+
+
 func give_tools() -> void:
 	if game.host == null:
 		game.character.say("Выдать инструменты можно только в своём мире")

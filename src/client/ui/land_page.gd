@@ -1,13 +1,15 @@
 extends ScrollContainer
 ## The tab «Земля» of the inventory window (InventoryWindow), shown while the player
 ## stands on land claimed (Land.here; the user's asks 2026-11-02). On their own land:
-## the colour of their land (UiStyle.LAND_COLORS: the borders on the ground and the
-## maps, these buttons), what they let their team and the others do on all of it, a row
-## for each of Territory.ACTIONS with «можно» / «нельзя» for each, lit in that colour
-## (Land.set_rights, a tap turns one over at once), and «Забрать столб». On their
-## team's land the same rights, shown only; on another's, what the player may do there.
-## It scrolls when the screen is lower than it (InventoryWindow sets its height). `game`
-## is the Main node.
+## what they let their team and the others do on all of it, a row for each of
+## Territory.ACTIONS with «можно» / «нельзя» for each, lit in the land's colour
+## (Land.set_rights, a tap turns one over at once), and at the bottom the colour of
+## their land (UiStyle.LAND_COLORS: the borders on the ground and the maps, these
+## buttons); «Забрать столб» is a button in the window's head by the cross
+## (`head_buttons`, as a chest's or a station's). On their team's land the same rights,
+## shown only; on another's, its name and what the player may do there. It scrolls when
+## the screen is lower than it (InventoryWindow sets its height), its rows inset as the
+## settings' (UiStyle.inset). `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
@@ -23,6 +25,11 @@ var _shown := ""
 var _box: VBoxContainer
 ## Called when what it shows changed, to lay the window out again.
 var on_layout := Callable()
+## The buttons for the window's head (InventoryWindow puts them by the cross): «Забрать
+## столб» on one's own land.
+var head_buttons: HBoxContainer
+## The centre of the claim whose post «Забрать столб» takes.
+var _post := Vector3i.ZERO
 
 
 func _init(g) -> void:
@@ -31,12 +38,18 @@ func _init(g) -> void:
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", 4)
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_child(_box)
+	add_child(UiStyle.inset(_box))
+	head_buttons = HBoxContainer.new()
+	head_buttons.add_theme_constant_override("separation", 4)
+	head_buttons.visible = false
+	var take := TabRow.icon_button(UiStyle.icon("take"), "Забрать столб в сумку", func() -> void: _take_post(_post))
+	take.custom_minimum_size = Vector2(30, 30)
+	head_buttons.add_child(take)
 
 
 ## The height the page would take whole.
 func full_height() -> float:
-	return _box.get_combined_minimum_size().y
+	return get_child(0).get_combined_minimum_size().y
 
 
 func _ready() -> void:
@@ -50,6 +63,8 @@ func refresh() -> void:
 		return
 	var land = game.land
 	var claim: Dictionary = land.here()
+	head_buttons.visible = not claim.is_empty() and claim.by == land.me()
+	_post = claim.get("center", Vector3i.ZERO)
 	var key := str([claim.get("id", 0), claim.get("name", ""), land.copy.rights_of(claim.get("by", 0)),
 		land.copy.color_of(claim.get("by", 0)), land.own(claim), claim.get("weak", 0)])
 	if key == _shown:
@@ -64,18 +79,14 @@ func refresh() -> void:
 		return
 	var mine: bool = claim.by == land.me()
 	var color: Color = land.color(claim)
-	var title := UiStyle.label("Ваша земля" if mine else "Земля «%s»" % claim.name, color)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	_box.add_child(title)
 	if not land.own(claim):
+		_box.add_child(UiStyle.label("Земля «%s»" % claim.name, color))
 		var may: Array = land.may_here(claim)
 		if int(claim.get("weak", 0)) > 0:
 			_note("Земля заброшена: хозяева давно не заходили, охрана ослабла")
 		_note("Здесь можно: " + ", ".join(may) if not may.is_empty() else "Здесь ничего нельзя")
 		_laid()
 		return
-	if mine:
-		_colors(land.my_color())
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 4)
 	_box.add_child(head)
@@ -101,10 +112,8 @@ func refresh() -> void:
 			b.disabled = not mine
 			row.add_child(b)
 	if mine:
-		_note("Права и цвет — на всей вашей земле. Двери, ручные звери и бои игроков появятся позже.")
-		var take := TabRow.small_button("Забрать столб", _take_post.bind(claim.center))
-		take.custom_minimum_size = Vector2(0, 30)
-		_box.add_child(take)
+		_note("Права и цвет — на всей вашей земле. Двери и ручные звери появятся позже.")
+		_colors(land.my_color())
 	else:
 		_note("Права задаёт тот, кто поставил столб.")
 	_laid()
@@ -117,6 +126,10 @@ func _laid() -> void:
 
 ## The row of colours to pick from, the one picked framed.
 func _colors(picked: int) -> void:
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 6
+	_box.add_child(gap)
+	_box.add_child(UiStyle.label("Цвет земли", UiStyle.MUTED))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	_box.add_child(row)

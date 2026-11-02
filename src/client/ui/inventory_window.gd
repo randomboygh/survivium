@@ -1,8 +1,9 @@
 extends PanelContainer
 ## The inventory window (plan/design/ui.md, section 5): the character (PersonPanel: what
 ## is worn and held, the skills) beside the bag or the craft tab on a wide screen, over
-## the bag on a tall one (hidden on the craft tab there); the tabs «Инвентарь» and
-## «Крафт» are joined as one, a button tall (TabRow.tabs). A tap on a slot of the figure
+## the bag on a tall one (hidden on the craft tab there); the tabs «Инвентарь»,
+## «Крафт», «Земля» (LandPage, only on land claimed) and «Команда» (TeamPage, only on
+## a server) are joined as one, a button tall (TabRow.tabs). A tap on a slot of the figure
 ## works as a tap on a hand of the hotbar (the next tool) or takes off and puts on what
 ## is worn there (see _tap_person). The bag part is as wide whatever it shows: the bag's
 ## slots, ROWS rows of them showing (they scroll), with a column of tabs by kind of
@@ -33,6 +34,7 @@ const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const LandPage := preload("res://src/client/ui/land_page.gd")
+const TeamPage := preload("res://src/client/ui/team_page.gd")
 const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
@@ -82,6 +84,9 @@ var _craft_tab: Button
 ## The tab «Земля», shown while the player stands on land claimed (LandPage).
 var _land_tab: Button
 var land_page: LandPage
+## The tab «Команда», shown only on a server (TeamPage).
+var _team_tab: Button
+var team_page: TeamPage
 var _tab := "bag"
 var _bag_page: VBoxContainer
 ## The character, and the box that holds it beside (or over) the bag and craft tabs.
@@ -178,12 +183,14 @@ func _ready() -> void:
 	box.add_child(head)
 	# The tabs joined as one, a button tall, the one shown lit amber (TabRow.tabs).
 	var tabs_row := TabRow.tabs([["Инвентарь", "", show_tab.bind("bag")], ["Крафт", "", show_tab.bind("craft")],
-		["Земля", "", show_tab.bind("land")]], 30)
+		["Земля", "", show_tab.bind("land")], ["Команда", "", show_tab.bind("team")]], 30)
 	head.add_child(tabs_row)
 	_bag_tab = tabs_row.get_child(0)
 	_craft_tab = tabs_row.get_child(1)
 	_land_tab = tabs_row.get_child(2)
 	_land_tab.visible = false
+	_team_tab = tabs_row.get_child(3)
+	_team_tab.visible = false
 	game.land.changed.connect(_show_land_tab)
 	# The free room of the head keeps the cross on the right.
 	var room := Control.new()
@@ -216,7 +223,12 @@ func _ready() -> void:
 	land_page.on_layout = _place
 	land_page.visible = false
 	tabs.add_child(land_page)
+	team_page = TeamPage.new(game)
+	team_page.on_layout = _place
+	team_page.visible = false
+	tabs.add_child(team_page)
 	head.add_child(craft.station_buttons)
+	head.add_child(land_page.head_buttons)
 	var shut := TabRow.icon_button(UiStyle.icon("close"), "Закрыть", close)
 	shut.custom_minimum_size = Vector2(30, 30)
 	head.add_child(shut)
@@ -491,9 +503,11 @@ func _use_worn() -> void:
 	refresh()
 
 
-## Shows the bag ("bag") or the craft tab ("craft").
+## Shows the bag ("bag"), the craft tab ("craft"), the land's ("land") or the team's
+## ("team").
 func show_tab(tab: String) -> void:
-	if tab == "land" and not _land_tab.visible:
+	_show_team_tab()
+	if (tab == "land" and not _land_tab.visible) or (tab == "team" and not _team_tab.visible):
 		tab = "bag"
 	_tab = tab
 	_bag_page.visible = tab == "bag"
@@ -505,10 +519,14 @@ func show_tab(tab: String) -> void:
 	craft.visible = tab == "craft"
 	craft.station_buttons.visible = false
 	land_page.visible = tab == "land"
+	land_page.head_buttons.visible = false
+	team_page.visible = tab == "team"
 	TabRow.light(_bag_tab, tab == "bag")
 	TabRow.light(_craft_tab, tab == "craft")
 	TabRow.light(_land_tab, tab == "land")
+	TabRow.light(_team_tab, tab == "team")
 	land_page.refresh()
+	team_page.refresh()
 	refresh()
 	craft.refresh_now()
 
@@ -524,7 +542,15 @@ func _show_land_tab() -> void:
 		show_tab("bag")
 
 
+## The tab «Команда» shows only on a server (teams are a server's: Main.welcome).
+func _show_team_tab() -> void:
+	_team_tab.visible = not game.welcome.is_empty()
+
+
 func open() -> void:
+	_show_team_tab()
+	if _tab == "team" and not _team_tab.visible:
+		show_tab("bag")
 	visible = true
 	move_to_front()
 	_chests_seen = "-"
@@ -589,6 +615,7 @@ func fit(screen: Vector2) -> void:
 	person.visible = _bag_page.visible or not _stacked
 	_bag_page.custom_minimum_size.x = _width(slot)
 	land_page.custom_minimum_size.x = _width(slot)
+	team_page.custom_minimum_size.x = _width(slot)
 	# A wrapping label is measured at its least width: as wide as the panel it is in
 	# (less the buttons by it, see _fit_name).
 	_fit_name()
@@ -625,13 +652,14 @@ func _place() -> void:
 	_scroll.custom_minimum_size = Vector2(full.x + GAP + UiStyle.SCROLL_BAR, minf(full.y, most))
 	# As many kinds on the left as fit beside ROWS rows of slots (they scroll past that).
 	_kinds.fit_height(most)
-	if land_page.visible:
-		land_page.custom_minimum_size.y = land_page.full_height()
+	var page: ScrollContainer = land_page if land_page.visible else (team_page if team_page.visible else null)
+	if page != null:
+		page.custom_minimum_size.y = page.full_height()
 	reset_size()
 	var over := size.y - (room.y - 2 * EDGE)
-	if land_page.visible and over > 0.0:
+	if page != null and over > 0.0:
 		# It scrolls in the room there is.
-		land_page.custom_minimum_size.y = maxf(90.0, land_page.full_height() - over)
+		page.custom_minimum_size.y = maxf(90.0, page.full_height() - over)
 		reset_size()
 	elif craft.visible and over > 0.0:
 		craft.shrink_list(over)

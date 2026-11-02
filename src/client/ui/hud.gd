@@ -36,7 +36,6 @@ const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
-const TeamPanel := preload("res://src/client/ui/team_panel.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -118,8 +117,6 @@ var bag: InventoryWindow
 var chat: ChatBox
 ## The card of another player tapped, and of an invitation to a team.
 var person: PersonCard
-## The window «Команда» of the pause menu on a server.
-var team: TeamPanel
 var _chat_button: Button
 var _bag_button: Button
 ## The tab on the hotbar with how many slots are taken and the load (a tap opens the
@@ -251,6 +248,7 @@ func _ready() -> void:
 	_chat_button.visible = game.join_url != ""
 	game.land.changed.connect(_show_land)
 	game.land.entered.connect(_on_land_entered)
+	game.land.painting_toggled.connect(_on_painting_toggled)
 	_bag_button = _icon_button(_top, "person", "Персонаж, сумка и крафт", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
@@ -419,12 +417,6 @@ func _ready() -> void:
 	add_child(chat)
 	person = PersonCard.new(game)
 	add_child(person)
-	team = TeamPanel.new(game)
-	add_child(team)
-	team.closed.connect(func() -> void:
-		if get_tree().paused:
-			_menu.visible = true
-			_update_menu())
 	bag = InventoryWindow.new(game)
 	add_child(bag)
 	# However the window closes (the button, its cross, a key), the button follows it.
@@ -1044,9 +1036,6 @@ func toggle_menu() -> void:
 	if _settings != null and _settings.visible:
 		_settings.close()
 		return
-	if team.visible:
-		team.close()
-		return
 	_menu.visible = not _menu.visible
 	_shade.visible = _menu.visible
 	# Over the hotbar and the touch buttons.
@@ -1069,8 +1058,12 @@ func tap_post(e: Dictionary) -> void:
 		toast("Межевой столб «%s»" % claim.get("name", "") if not claim.is_empty() \
 			else "Межевой столб без земли: её забросили. Заберите столб и поставьте снова")
 		return
-	if land.painting:
-		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой — чтобы стереть; на столб — чтобы закончить")
+
+
+## Painting the land turned on or off (a tap on the post or its square, a post set down).
+func _on_painting_toggled(on: bool) -> void:
+	if on:
+		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой — чтобы стереть; на столб или его участок — чтобы закончить")
 	else:
 		toast("Разметка закончена")
 
@@ -1095,12 +1088,12 @@ func _on_land_entered(claim: Dictionary, own: bool) -> void:
 			"можно " + ", ".join(may) if not may.is_empty() else "ничего нельзя"])
 
 
-## Opens the window «Команда» in place of the pause menu.
+## Opens the inventory window on the tab «Команда» (on a server).
 func open_team() -> void:
-	_menu.visible = false
 	person.close()
-	team.move_to_front()
-	team.open()
+	if not bag.visible:
+		toggle_bag()
+	bag.show_tab("team")
 
 
 ## Opens the settings or the playtest page in place of the pause menu.
@@ -1156,7 +1149,6 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
-	_menu_buttons["team"] = _add_menu_button(box, "Команда", open_team)
 	_menu_buttons["server"] = _add_menu_button(box, "Сервер", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
 
@@ -1182,8 +1174,6 @@ func _update_menu() -> void:
 	_menu_buttons["test"].visible = game.settings.values.testing_unlocked
 	# The window of the server made here (Main.hosted), the world going on meanwhile.
 	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
-	# Teams are a server's (Main.welcome comes from one).
-	_menu_buttons["team"].visible = not game.welcome.is_empty()
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 

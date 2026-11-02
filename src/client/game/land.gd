@@ -17,6 +17,8 @@ signal changed
 ## The player walked into claim `claim` ({} out of every claim); `own` it is theirs or
 ## their team's.
 signal entered(claim: Dictionary, own: bool)
+## Painting was turned on (`on`) or off by the player's tap or their new post.
+signal painting_toggled(on: bool)
 
 var game
 var copy := Territory.new()
@@ -25,6 +27,9 @@ var budget := 0
 var painting := false
 ## The claim the player stood in last frame (its id, 0 for none).
 var _in := -1
+## Whether the server told the claims once (a claim of the player's told later is a post
+## they have just set down: painting starts with it).
+var _told := false
 
 
 func _init() -> void:
@@ -33,7 +38,16 @@ func _init() -> void:
 
 
 func take_claims(list: Array) -> void:
+	var had := {}
+	for id: int in copy.claims:
+		had[id] = true
 	copy.take_claims(list)
+	if _told:
+		for claim: Dictionary in copy.claims.values():
+			if not had.has(claim.id) and claim.by == me():
+				# A post just set down: its square is the player's already, the rest to paint.
+				toggle_painting(true)
+	_told = true
 
 
 func take_squares(list: Array, all: bool) -> void:
@@ -91,9 +105,23 @@ func set_color(i: int) -> void:
 func tap_post(e: Dictionary) -> bool:
 	for claim: Dictionary in copy.claims.values():
 		if claim.center == e.cell and own(claim):
-			set_painting(not painting)
+			toggle_painting(not painting)
 			return true
 	return false
+
+
+## Whether cell `cell` lies in the square of the post of a claim of the player's (or
+## their team's), within its levels: a tap there turns painting on or off, as a tap on
+## the post does.
+func is_post_square(cell: Vector3i) -> bool:
+	var claim := copy.claim_at(cell)
+	return own(claim) and claim.sq == Territory.square_of(cell)
+
+
+## Turns painting on or off as the player asked (painting_toggled tells the HUD).
+func toggle_painting(on: bool) -> void:
+	set_painting(on)
+	painting_toggled.emit(on)
 
 
 ## The player's own number (0 in a game of one's own).

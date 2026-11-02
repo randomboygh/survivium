@@ -505,6 +505,7 @@ const SHOTS := {
 	"land": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false},
 	"land-paint": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": true},
 	"land-rights": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false, "rights": true},
+	"land-colors": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false, "rights": true, "land_end": true},
 	"land-decay": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false, "decay": true},
 	"ui-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings"},
 	"ui-test": {"time": 0.45, "season": 1, "touch": true, "test": true},
@@ -515,6 +516,8 @@ const SHOTS := {
 	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
+	"ui-test-player-end": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player",
+		"menu_end": true},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	# The freezes' log and the playtest report, windows of the playtest page.
 	"ui-freezes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true},
