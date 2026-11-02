@@ -31,7 +31,7 @@ func _init() -> void:
 		if done.has(path):
 			continue
 		done[path] = true
-		var model = VoxelArt.prop(prop) if prop != "none" else VoxelArt.drop(name)
+		var model = VoxelArt.prop(prop, name) if prop != "none" else VoxelArt.drop(name)
 		if model == null:
 			print("no drawing for %s" % path)
 			continue

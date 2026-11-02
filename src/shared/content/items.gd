@@ -125,11 +125,12 @@ static func _shared_ending(titles: Array) -> String:
 	return text.left(1).to_lower() + text.substr(1)
 
 
-## Whether item `id` is a station: set down in the world (a `prop`), storing nothing and
-## claiming no land.
+## Whether item `id` is a station: set down in the world (a `prop`), storing nothing,
+## claiming no land and no bed (`bedding`, slept in).
 static func is_station(id: String) -> bool:
 	var item := get_item(id)
-	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0 and not item.get("claims", false)
+	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0 and not item.get("claims", false) \
+		and item.get("bedding", 1.0) <= 1.0
 
 
 ## The most slots a thing set down holds (`storage`), 0 when none stores.

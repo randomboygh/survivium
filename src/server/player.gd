@@ -144,8 +144,7 @@ func lay(kind: String, data: Variant) -> Vector3:
 
 
 func _came_back(to: Vector3) -> void:
-	at = to
-	moved.emit(to)
+	teleport(to)
 
 
 ## Puts the body at `to` (the playtest page, the save).
