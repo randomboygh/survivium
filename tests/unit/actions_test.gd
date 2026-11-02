@@ -9,6 +9,7 @@ func run() -> void:
 	_test_placed()
 	_test_start_camp()
 	_test_lights()
+	_test_drinking()
 	_test_station_flags()
 	_test_recipe_fields()
 
@@ -386,6 +387,33 @@ func _test_lights() -> void:
 	_check(placed.put_light_from_bag(who, id, 40), "set down again")
 	placed.step(lasts)
 	_check(placed.lights.is_empty() and who.inventory.count(id) == 1, "burned out, it is gone")
+
+
+## An empty hand drinks at the water in front, an empty waterskin is filled there, a
+## full one is not drunk by a body that is not thirsty.
+func _test_drinking() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.WATER if z <= 11 else Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var who := Survivor.new()
+	who.world = w
+	who.at = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	who.vitals.water = 30.0
+	var done := actions.act_in_front(who, 40)
+	_check(who.vitals.water == 30.0 + WorldActions.DRINK and done.get("stuff", -1) == Mat.WATER, "an empty hand drinks at the water in front")
+	who.vitals.water = Vitals.MAX
+	actions.act_in_front(who, 40)
+	_check(who.vitals.water == Vitals.MAX, "a body that is not thirsty does not drink")
+	who.give("tools:waterskin", 1)
+	who.hands = ["tools:waterskin", ""]
+	actions.act_in_front(who, 40)
+	_check(who.inventory.count("tools:waterskin_full") == 1 and who.inventory.count("tools:waterskin") == 0, "an empty waterskin is filled")
+	who.hands = ["", ""]
+	who.vitals.water = 30.0
+	_check(not actions.dig_at(who, Vector3i(10, 1, 11), Vector3i.UP).is_empty() and who.vitals.water > 30.0, "a tap on the water drinks too")
 
 
 func _test_station_flags() -> void:

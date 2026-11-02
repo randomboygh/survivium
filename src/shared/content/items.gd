@@ -204,6 +204,11 @@ static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
 
+## Water item `id` gives when drunk (Vitals.drink), 0 for what is no drink.
+static func drink(id: String) -> float:
+	return get_item(id).get("drink", 0.0)
+
+
 ## Game days item `id` keeps before it spoils (Inventory.spoil), 0 for what keeps.
 static func spoils(id: String) -> float:
 	return get_item(id).get("spoils", 0.0)

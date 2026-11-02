@@ -137,6 +137,12 @@ const SCHEMAS := {
 		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
 		"spoils": {"type": "float", "min": 0.0, "default": 0.0},
 		"rots_to": {"type": "ref:items", "default": "", "rel": "becomes"},
+		# Drink: `drink` water it gives when drunk (Vitals.drink); a vessel drunk from becomes
+		# `empties_to` (an empty waterskin); an empty one filled at fresh water becomes
+		# `fills_to` (WorldActions.drink).
+		"drink": {"type": "float", "min": 0.0, "default": 0.0},
+		"empties_to": {"type": "ref:items", "default": "", "rel": "becomes"},
+		"fills_to": {"type": "ref:items", "default": "", "rel": "becomes"},
 		# A fire (`fire`) burns on fuel: it holds at most `fuel_max` seconds of burning and
 		# a new one is set down with `fuel_start` of them; 0 burns for ever. Fuel (`fuel`)
 		# lights a fire and feeds it `fuel_time` seconds.

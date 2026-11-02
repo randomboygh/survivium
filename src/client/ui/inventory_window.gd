@@ -68,7 +68,7 @@ const GAP_MAIN := 6
 const USE_WIDTH := TabRow.WIDE
 ## What the wide button does: its picture and tooltip.
 const USES := {
-	"take": ["act_take", "Взять в руку"], "eat": ["act_eat", "Съесть одну"], "heal": ["act_heal", "Перевязать раны"],
+	"take": ["act_take", "Взять в руку"], "eat": ["act_eat", "Съесть одну"], "drink": ["act_eat", "Выпить"], "heal": ["act_heal", "Перевязать раны"],
 	"place": ["act_place", "Поставить рядом"], "plant": ["act_plant", "Посадить перед собой"],
 	"wear": ["act_wear", "Надеть на персонажа"], "off": ["take", "Снять в сумку"], "free": ["take", "Освободить руку"],
 }
@@ -302,7 +302,7 @@ func _ready() -> void:
 			game.net.request(Protocol.WEAR, [_at])
 			_let_go()
 			refresh()
-		elif Items.food(id) > 0.0 or Items.heal(id) > 0.0:
+		elif Items.food(id) > 0.0 or Items.drink(id) > 0.0 or Items.heal(id) > 0.0:
 			game.net.request(Protocol.EAT, [_at])
 		elif _plantable(id):
 			game.net.request(Protocol.PLANT, [id])
@@ -816,11 +816,12 @@ func _show_info(inv) -> void:
 	_set_down.visible = mine and Placed.is_light_item(s[0])
 	_fit_name()
 	var heals: bool = s != null and Items.heal(s[0]) > 0.0
-	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals
+	var drinks: bool = s != null and Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0
+	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals or drinks
 	var put: bool = s != null and _placeable(s[0])
 	var plant: bool = s != null and not food and _plantable(s[0])
 	var wear: bool = s != null and Items.wear_on(s[0]) != ""
-	_show_use("wear" if wear else ("heal" if heals else ("eat" if food else ("place" if put else ("plant" if plant else "take")))))
+	_show_use("wear" if wear else ("heal" if heals else (("drink" if drinks else "eat") if food else ("place" if put else ("plant" if plant else "take")))))
 	_use.disabled = not mine or not wear and not food and not put and not plant and game.controls.held() == s[0]
 	_throw.get_child(0).disabled = not mine
 	_throw.get_child(1).disabled = not mine or s[1] < 2

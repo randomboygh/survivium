@@ -96,7 +96,7 @@ static func use_of(id: String) -> String:
 		return "sow"
 	if item.prop != "none":
 		return "prop"
-	if item.food > 0.0:
+	if item.food > 0.0 or item.drink > 0.0:
 		return "eat"
 	if item.heal > 0.0:
 		return "heal"

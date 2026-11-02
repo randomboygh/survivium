@@ -10,6 +10,7 @@ func run() -> void:
 	_test_spoil()
 	_test_vitals()
 	_test_warmth()
+	_test_thirst()
 	_test_changes()
 	_test_death()
 
@@ -167,6 +168,8 @@ func _test_torch() -> void:
 	ch.clock = Clock.new()
 	ch.body = Body.new()
 	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
+	# Torches burn for longer than a body lasts without water.
+	ch.vitals.thirst = false
 	var d := Items.burns("tools:torch")
 	_check(Items.get_item("tools:torch").light > 0.0 and d > 0.0 and Items.get_item("tools:torch").durability == 0,
 		"a torch gives light and burns for a while, it does not wear")
@@ -258,8 +261,43 @@ func _test_warmth() -> void:
 	_check(Warmth.air(null, winter, Vector3.ZERO) < Warmth.air(null, summer, Vector3.ZERO), "winter is colder")
 
 
+func _test_thirst() -> void:
+	var v := Vitals.new()
+	v.water = 30.0
+	v.step(0.0, 20.0 / Vitals.THIRST_PER_DAY, false)
+	_check(is_equal_approx(v.water, 10.0) and v.stamina_cap() < Vitals.MAX, "thirst empties water and tires")
+	var hp := v.health
+	v.step(0.0, 0.5, false)
+	_check(v.water == 0.0 and v.health < hp and v.hurt_by == "thirst", "with no water health goes down")
+	_check(v.drink(40.0) and v.water == 40.0, "a drink fills water")
+	v.water = Vitals.MAX
+	_check(not v.drink(10.0), "a full body does not drink")
+	var off := Vitals.new()
+	off.thirst = false
+	off.step(0.0, 3.0, false)
+	_check(off.water == 80.0, "with thirst off water stays")
+	var hot := Vitals.new()
+	var mild := Vitals.new()
+	hot.warmth = Vitals.HOT + 5.0
+	hot.step(0.0, 0.1, false)
+	mild.step(0.0, 0.1, false)
+	_check(hot.water < mild.water, "heat makes thirstier")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(v.to_dict())))
+	_check(copy.water == Vitals.MAX, "water survives a save")
+	var w := Survivor.new()
+	w.vitals.water = 20.0
+	w.give("tools:waterskin_full", 1)
+	var at := w.inventory.slots.find_custom(func(st) -> bool: return st != null and st[0] == "tools:waterskin_full")
+	_check(w.eat(at) and w.vitals.water == 80.0 and w.inventory.count("tools:waterskin") == 1 and w.inventory.count("tools:waterskin_full") == 0,
+		"a full waterskin is drunk and becomes empty")
+	_check(Tools.use_of("tools:waterskin_full") == "eat" and Items.get_item("tools:waterskin").fills_to == "tools:waterskin_full",
+		"a full waterskin is drunk from the hand, an empty one is filled")
+
+
 func _test_vitals() -> void:
 	var v := Vitals.new()
+	v.thirst = false
 	v.satiety = 30.0
 	v.step(0.0, 20.0 / Vitals.HUNGER_PER_DAY, false)
 	_check(is_equal_approx(v.satiety, 10.0) and v.health == Vitals.MAX, "hunger empties satiety over game days")
