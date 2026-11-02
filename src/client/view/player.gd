@@ -12,6 +12,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
 const XrayShader := preload("res://shaders/sprite_xray.gdshader")
 const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
+const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 const CELL := WorldData.CELL
 ## The body's height in cells (see Body).
@@ -67,6 +68,15 @@ var underwater: MeshInstance3D
 var torch: OmniLight3D
 ## A thing held gives light (Character.light_held), set by sky.gd.
 var torch_lit := false
+## The body sleeps (Vitals.asleep, set by Main each frame): it lies on its side (the
+## `sleep` animation, see Figure), a little towards the viewer so it lies on what it
+## sleeps on rather than over its back half, with "zzZ" over it (`snore`).
+var asleep := false
+var snore: Label3D
+## How far towards the viewer a sleeping body is drawn, in cells, and how often the
+## "zzZ" over it grows by a letter, in seconds.
+const LYING_FORWARD := 0.8
+const SNORE_STEP := 0.6
 ## Where the flames of the lights held burn, in world units, one a hand that holds
 ## one: the brightest pixel of what the hand holds in the frame shown
 ## (SpriteSheet.spots); empty when none shows.
@@ -113,6 +123,19 @@ func _ready() -> void:
 	torch.shadow_caster_mask = 0xFFFFF & ~(PixelView.LAYER_PLAYER | PixelView.LAYER_SUN_CASTER)
 	torch.top_level = true
 	add_child(torch)
+	snore = Label3D.new()
+	snore.font = UiStyle.font()
+	snore.font_size = 8
+	snore.outline_size = 4
+	snore.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
+	snore.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	snore.no_depth_test = true
+	snore.shaded = false
+	snore.render_priority = 2
+	snore.top_level = true
+	snore.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	snore.visible = false
+	add_child(snore)
 
 
 static func sprite_material(shader: Shader, tex: Texture2D) -> ShaderMaterial:
@@ -188,6 +211,13 @@ func work(kind: String, seconds: float, at := Vector3.INF) -> void:
 ## pushed and walks, jumps, swims or stands, unless a work is playing; the walk goes as fast
 ## as the feet.
 func _animate(dir: Vector2, speed: float, delta: float) -> void:
+	if asleep:
+		work_kind = ""
+		if anim != "sleep":
+			anim = "sleep"
+			anim_time = 0.0
+		anim_time += delta
+		return
 	if dir.length() > 0.1:
 		facing = SpriteSheet.direction_of(dir)
 	if work_kind != "":
@@ -237,7 +267,10 @@ func place_sprite() -> void:
 		_sheets[_build_key] = _build.target
 		_use(_build.target)
 		_build = null
-	sprite.global_position = PixelView.snap(position)
+	var drawn_at := position
+	if anim == "sleep":
+		drawn_at -= Vector3(PixelView.up.x, 0.0, PixelView.up.y) * LYING_FORWARD * CELL
+	sprite.global_position = PixelView.snap(drawn_at)
 	if body.swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
 		# A swimmer bobs on the water by a pixel.
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT
@@ -257,6 +290,10 @@ func place_sprite() -> void:
 	# The torch is held a little towards the viewer.
 	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, 1.2, -PixelView.up.y * 0.3))
 	_find_flame()
+	snore.visible = anim == "sleep"
+	if snore.visible:
+		snore.text = "zzZ".left(1 + int(anim_time / SNORE_STEP) % 3)
+		snore.position = PixelView.shear(drawn_at + Vector3(PixelView.right.x, 0.0, PixelView.right.y) * 0.5 * CELL + Vector3(0.0, 2.2 * CELL, 0.0))
 
 
 ## Puts flames_at on the frame shown: the frame's spot is a pixel of the upright quad

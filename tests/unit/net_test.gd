@@ -278,6 +278,21 @@ func _test_requests() -> void:
 	_check(events.has([Protocol.PROP_GONE, [cell]]) and copy.things.is_empty() and copy.chest_items == null
 		and not w.blockers.has(cell), "and leaves the copy")
 	events.clear()
+	var bed_cell := Vector3i(a.feet().x + 1, a.feet().y, a.feet().z)
+	var bed := placed.put("tools:grass_mat", bed_cell)
+	var stood: Vector3 = a.position
+	a.vitals.energy = Vitals.MAX
+	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == false and a.position == stood and not a.vitals.asleep
+		and net.request(Protocol.LIE_IN, [Vector3i(bed_cell.x + 5, bed_cell.y, bed_cell.z)]).value == false,
+		"a rested player does not lie down, nor in a bed that is not there")
+	a.vitals.energy = 10.0
+	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == true and a.vitals.asleep and a.position == placed.lying_spot(bed)
+		and events.any(func(e: Array) -> bool: return e[0] == Protocol.TELEPORT and e[1] == [placed.lying_spot(bed)]),
+		"a sleepy player tapping a mat lies down on it asleep, and the client is told where")
+	a.vitals.sleep(false)
+	a.teleport(stood)
+	placed._remove(bed)
+	events.clear()
 	var fire_cell := Vector3i(12, 2, 12)
 	var fire := placed.put(Placed.CAMPFIRE, fire_cell)
 	placed.put_out(fire)

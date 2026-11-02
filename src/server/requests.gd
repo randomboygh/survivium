@@ -18,6 +18,7 @@ extends RefCounted
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 
 ## Letters a line of chat keeps at most; lines in a while at most.
 const CHAT_MAX := 160
@@ -157,6 +158,10 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.SLEEP:
 			if _fit(args, [TYPE_BOOL]):
 				return who.sleep(args[0])
+		Protocol.LIE_IN:
+			if _fit(args, [TYPE_VECTOR3I]):
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and Placed.is_bed(e) and who.lie_in(e)
 		Protocol.REPAIR:
 			if _fit(args, [TYPE_INT]) and _slot(who.inventory, args[0]):
 				return workshop.repair(args[0])

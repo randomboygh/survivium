@@ -108,7 +108,7 @@ func _test_sprite_sheet() -> void:
 	var cols := s.columns
 	var fw := s.frame_size.x
 	var fh := s.frame_size.y
-	_check(cols == 40 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four; 32 by 32 frames")
+	_check(cols == 41 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four, asleep; 32 by 32 frames")
 	_check(s.texture.get_width() == cols * fw and s.texture.get_height() == 8 * fh, "player sheet has eight directions")
 	var img := s.texture.get_image()
 	var drawn := 0
@@ -127,6 +127,17 @@ func _test_sprite_sheet() -> void:
 	east.flip_x()
 	_check(east.get_data() == img.get_region(Rect2i(0, 6 * fh, fw, fh)).get_data(), "west is east mirrored when the hands are empty")
 	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2, fh - 2) != img.get_pixel(fw / 2, fh - 2), "without boots the feet are bare")
+	var sleep := s.frame_at("s", "sleep", 0.0)
+	var lain: Rect2i = img.get_region(Rect2i(sleep.x * fw, sleep.y * fh, fw, fh)).get_used_rect()
+	var standing: Rect2i = img.get_region(Rect2i(0, 0, fw, fh)).get_used_rect()
+	_check(lain.size == Vector2i(standing.size.y, standing.size.x) and lain.end.y == standing.end.y,
+		"asleep the figure lies on its side on the frame's bottom: %s, %s" % [lain, standing])
+	var eyes := 0
+	for y in fh:
+		for x in fw:
+			if img.get_pixel(sleep.x * fw + x, y).is_equal_approx(Color("2c2226")):
+				eyes += 1
+	_check(eyes == 0 and s.frame_at("n", "sleep", 0.0).x == sleep.x, "asleep its eyes are closed, whichever way it faced")
 	# Naked in a loincloth; clothes worn show between the naked layers, a bag does not.
 	var naked := Figure.dressed({})
 	_check(naked == ["body", "loincloth", "hair"], "the figure is naked in a loincloth with nothing worn")

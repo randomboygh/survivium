@@ -357,6 +357,31 @@ func burning(p: Vector3) -> Dictionary:
 
 
 
+## True for a bed (its item's `bedding`: a mat, a bedroll, slept in, see Character.sleep_rate).
+static func is_bed(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("bedding", 1.0) > 1.0
+
+
+## The bed a body with its feet at `p` (world units) lies on, {} for none: its feet over
+## the bed's two by two cells, no higher than a level above them.
+func bed_under(p: Vector3) -> Dictionary:
+	var c := p / CELL
+	for e in things:
+		var at: Vector3i = e.cell
+		if is_bed(e) and c.x >= at.x and c.x < at.x + 2 and c.z >= at.z and c.z < at.z + 2 \
+				and c.y >= at.y - SINGE and c.y <= at.y + 1.0:
+			return e
+	return {}
+
+
+## Where a body lies in bed `e` (world units): over its middle, on top of it.
+func lying_spot(e: Dictionary) -> Vector3:
+	var top := 0.0
+	for box: AABB in footprints.get(Items.get_item(e.item).prop, []):
+		top = maxf(top, box.end.y)
+	return (Vector3(e.cell) + Vector3(1.0, top, 1.0)) * CELL
+
+
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first
 ## that holds it) on two by two free cells of level ground in front, at or below level
 ## `top`, with a tool of its `place_tool` class in the bag; a thing that stores brings back
