@@ -112,8 +112,8 @@ func burn_left(id: String, k := 0) -> float:
 
 ## A burning campfire touched throws the body back at this speed (cells a second) with
 ## this hop, and burns again no sooner than BURN_PAUSE seconds after.
-const BURN_KNOCK := 11.0
-const BURN_HOP := 7.0
+const BURN_KNOCK := 6.0
+const BURN_HOP := 4.0
 const BURN_PAUSE := 0.4
 
 signal state_changed
@@ -300,12 +300,12 @@ func _spoil(p: Vector3, days: float) -> void:
 	inventory.spoil(days, Inventory.spoil_rate(clock.season == clock.WINTER, roofed))
 
 
-## A burning campfire the body at `p` stands by or pushed against burns it and throws
+## A burning campfire the body at `p` stands in or pushed against burns it and throws
 ## it back, away from the fire's middle.
 func _touch_fire(p: Vector3) -> void:
 	var fire: Dictionary = placed.burning(p)
 	if fire.is_empty() and body.bumped.is_finite():
-		fire = placed.burning(body.bumped)
+		fire = placed.pushed_into(body.bumped)
 	if fire.is_empty():
 		return
 	vitals.burn()
@@ -355,7 +355,7 @@ func eat(i: int) -> bool:
 	var s = inventory.slots[i]
 	if s == null:
 		return false
-	if Items.heal(s[0]) > 0.0:
+	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		if not vitals.heal(Items.heal(s[0])):
 			nag("not_hurt", "Здоровье и так полное")
 			return false
@@ -378,6 +378,11 @@ func eat(i: int) -> bool:
 	if not vitals.eat(Items.food(s[0])):
 		nag("full_belly", "Больше не хочется")
 		return false
+	# Good food also heals a little and quenches thirst (its `heal` and `drink`).
+	if Items.heal(s[0]) > 0.0:
+		vitals.heal(Items.heal(s[0]))
+	if Items.drink(s[0]) > 0.0:
+		vitals.drink(Items.drink(s[0]))
 	inventory.take_slot(i, 1)
 	note("eaten")
 	return true

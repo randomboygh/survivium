@@ -56,7 +56,7 @@ const COLUMNS := 8
 ## The rows of the bag's slots shown before they scroll (and half the next).
 const ROWS := 4
 ## The room between the bag's slots and a chest's, and between chests.
-const CHEST_GAP := 10
+const CHEST_GAP := 2
 const SLOT := 40
 const SLOT_SMALL := 36
 ## The width of the craft tab's column of the recipe and the queue beside the cells on
@@ -138,6 +138,9 @@ var _at := -1
 ## (of the stack chosen last in a chest, else the nearest), and what they were at the
 ## last look (to notice walking up to one or away).
 var _chests: Array = []
+## The entries of _chests for the bags and chests lying in the bag, by slot: the item,
+## the bag opened from it (Inventory.open), the slot as `cell` (how requests name it).
+var _packed := {}
 var _chest_entry := {}
 var _chests_seen := ""
 ## A _place waits for the end of the frame.
@@ -406,28 +409,46 @@ func _grow_grid(grid: GridContainer, n: int, cells: Array, tap: Callable) -> voi
 
 
 ## A tap on slot `k` of the figure (see PersonPanel.picked), as a tap on a hand of the
-## hotbar: a hand becomes the hand in use, and a tap on the hand in use gives it the next
-## tool (or brush); a body slot takes off what is worn there, or puts on what the bag has
-## for it (the chosen thing if it fits, else the bag with the most slots for the back).
-## The slot is chosen then, for the panel at the bottom.
+## hotbar: the first tap chooses the slot (the panel at the bottom tells what is there),
+## the next changes what is worn there to the next thing of the bag for it, and after
+## the last takes it off (see _next_wear). With a thing for it chosen in the bag, the
+## tap puts that on at once. A hand becomes the hand in use, and a tap on the hand in
+## use gives it the next tool (or brush).
 func _tap_person(k: String) -> void:
 	_confirming = false
 	var inv = game.character.inventory
 	var chosen: int = _at if _from == inv and _from.slots[_at] != null and Items.wear_on(_from.slots[_at][0]) == k else -1
+	var again := _worn == k
 	_let_go()
 	_worn = k
 	if k.begins_with("hand"):
 		game.hud.tap_hand(int(k.right(1)))
-	elif (chosen < 0 or chosen == inv.worn_slot(k)) and inv.gear.get(k, "") != "":
-		game.net.request(Protocol.TAKE_OFF, [k])
-	else:
-		if chosen < 0:
-			chosen = _to_wear(inv, k)
-		if chosen >= 0:
-			game.net.request(Protocol.WEAR, [chosen])
+	elif chosen >= 0 and chosen != inv.worn_slot(k):
+		game.net.request(Protocol.WEAR, [chosen])
+	elif again or chosen >= 0:
+		var next := _next_wear(inv, k)
+		if next >= 0:
+			game.net.request(Protocol.WEAR, [next])
+		elif inv.gear.get(k, "") != "":
+			game.net.request(Protocol.TAKE_OFF, [k])
 		else:
 			game.character.nag("wear", "В сумке нечего надеть сюда")
 	refresh()
+
+
+## The slot of bag `inv` with the next thing to wear in body slot `k`: the first after
+## the one worn there that is another thing, -1 past the last (take off then). Nothing
+## worn: the first, the bag with the most slots for the back.
+static func _next_wear(inv, k: String) -> int:
+	var at: int = inv.worn_slot(k)
+	if at < 0 and inv.gear.get(k, "") == "":
+		return _to_wear(inv, k)
+	var worn: String = inv.gear.get(k, "")
+	for i in range(at + 1, inv.base if k == "back" else inv.slots.size()):
+		var s = inv.slots[i]
+		if s != null and Items.wear_on(s[0]) == k and s[0] != worn:
+			return i
+	return -1
 
 
 ## The slot of bag `inv` with a thing worn in body slot `k`, the bag with the most slots
@@ -674,10 +695,12 @@ func _let_go() -> void:
 	_confirming = false
 
 
-## Sorts the bag past the hotbar row and the chest shown, by `by` (see Inventory.SORTS).
+## Sorts the bag (past the hotbar row while the lock is on) and the chests shown, by
+## `by` (see Inventory.SORTS).
 func sort(by: String) -> void:
 	_let_go()
-	game.net.request(Protocol.SORT, [null, by, Inventory.HOTBAR])
+	# The lock keeps the hotbar row as it is; off, it is sorted too.
+	game.net.request(Protocol.SORT, [null, by, Inventory.HOTBAR if _lock else 0])
 	for e: Dictionary in _chests:
 		game.net.request(Protocol.SORT, [e.cell, by, 0])
 	refresh()
@@ -741,6 +764,8 @@ func refresh() -> void:
 		# The first row is the hotbar: its slots carry their numbers.
 		_slots[i].key = str(i + 1) if i < inv.HOTBAR else ""
 	_chest_buttons.visible = chest != null
+	# A chest set down is taken up; one in the bag is there already.
+	_chest_buttons.get_child(0).visible = chest != null and not _chest_entry.has("packed")
 	_into.visible = chest != null
 	if chest != null:
 		var out: bool = _from != null and _from != inv
@@ -750,12 +775,12 @@ func refresh() -> void:
 		_into.get_child(1).tooltip_text = "Переложить всё в сундук" + (" (без первого ряда: замок)" if _lock else "")
 		_all_out.visible = not chest.is_empty()
 	TabRow.light(_lock_button, _lock)
-	_lock_button.tooltip_text = "Замок первого ряда: «всё в сундук» его не трогает" if _lock \
-		else "Замок снят: «всё в сундук» перекладывает всё, что влезет"
+	_lock_button.tooltip_text = "Замок первого ряда: сортировка и «всё в сундук» его не трогают" if _lock \
+		else "Замок снят: первый ряд тоже сортируется, «всё в сундук» перекладывает всё, что влезет"
 	for i in _chest_grids.size():
 		var g: Dictionary = _chest_grids[i]
 		_show_slots(_chests[i].items, g.cells)
-		g.grid.tooltip_text = "Сундук %d · %.1f кг" % [i + 1, _chests[i].items.weight()]
+		g.grid.tooltip_text = "%s · %.1f кг" % [Items.title(_chests[i].item), _chests[i].items.weight()]
 	TabRow.light(_manual_button, _manual)
 	_show_info(inv)
 	# The wide button (with a light's «поставить» joined) narrower on a narrow window
@@ -786,6 +811,11 @@ func _show_slots(bag, cells: Array) -> void:
 		cell.tag = "Н" if bag == game.character.inventory and bag.worn_on(i) != "" else ""
 		cell.number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		cell.fill = bag.freshness(i)
+		# A bag or a chest: how full it is, as the bag's strip on the figure.
+		var full: float = bag.fullness(i)
+		cell.fill_color = UiStyle.ACCENT if full >= 0.0 else Color(0, 0, 0, 0)
+		if full >= 0.0:
+			cell.fill = full
 		# A weapon with nothing in the player's bag to shoot shows inactive.
 		cell.inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])
 		cell.selected = bag == _from and i == _at
@@ -821,7 +851,7 @@ func _show_info(inv) -> void:
 	_repair.visible = mine and inv.worn(_at) > 0
 	_set_down.visible = mine and Placed.is_light_item(s[0])
 	_fit_name()
-	var heals: bool = s != null and Items.heal(s[0]) > 0.0
+	var heals: bool = s != null and Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0
 	var drinks: bool = s != null and Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0
 	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals or drinks
 	var put: bool = s != null and _placeable(s[0])
@@ -844,12 +874,8 @@ func _show_worn(inv) -> void:
 	var id: String = game.controls.hands[int(_worn.right(1))] if hand else inv.gear.get(_worn, "")
 	var title: String = PersonPanel.TITLES[_worn]
 	if id != "":
-		var extra := ""
-		if _worn == "back":
-			extra = " · +%d ячеек" % Items.bag_slots(id)
-		elif not hand and Items.get_item(id).get("warmth", 0.0) > 0.0:
-			extra = " · +%d°" % roundi(Items.get_item(id).warmth)
-		_info.text = "%s: %s%s" % [title, Items.title(id), extra]
+		# What it adds (slots, warmth) is in the facts under the name.
+		_info.text = "%s: %s" % [title, Items.title(id)]
 		var h := int(_worn.right(1))
 		# A light in the second hand is the second one lit when the first holds one too.
 		var k := 1 if hand and h == 1 and game.controls.hands[0] == id and inv.count(id) > 1 else 0
@@ -898,6 +924,23 @@ func refresh_state() -> void:
 	var seen := ""
 	for e in near:
 		seen += str(e.cell)
+	# Then the bags and chests lying in the bag, each opened as a chest of its own.
+	var inv = game.character.inventory
+	var packed := {}
+	for k in inv.slots.size():
+		var bag = inv.open(k)
+		if bag == null:
+			continue
+		var id: String = inv.slots[k][0]
+		var e: Dictionary = _packed.get(k, {})
+		if e.get("item", "") != id:
+			e = {"item": id, "items": bag, "cell": k, "packed": true}
+		else:
+			e.items.from_dict(bag.to_dict())
+		packed[k] = e
+		near.append(e)
+		seen += "%d%s" % [k, id]
+	_packed = packed
 	if seen != _chests_seen:
 		_chests_seen = seen
 		for e in _chests:
@@ -905,7 +948,9 @@ func refresh_state() -> void:
 				e.items.changed.disconnect(refresh)
 		_chests = near
 		for e in _chests:
-			e.items.changed.connect(refresh)
+			# A bag in the bag changes with it (and is refilled here, which would loop).
+			if not e.has("packed"):
+				e.items.changed.connect(refresh)
 		if not _chests.has(_chest_entry):
 			_show_chest(_chests[0] if not _chests.is_empty() else {})
 		_make_chest_grids()
@@ -914,16 +959,46 @@ func refresh_state() -> void:
 
 
 
-## A grid under the bag for each chest within reach, as many slots as it holds.
+## A grid under the bag for each chest within reach and each bag or chest lying in the
+## bag, as many slots as it holds.
 func _make_chest_grids() -> void:
 	for g: Dictionary in _chest_grids:
-		_list.remove_child(g.grid)
-		g.grid.queue_free()
+		for n: Control in [g.line, g.grid]:
+			_list.remove_child(n)
+			n.queue_free()
 	_chest_grids.clear()
 	for i in _chests.size():
 		var cells := []
+		var line := _chest_line(_chests[i])
+		_list.add_child(line)
 		var grid := _slot_grid(_list, _chests[i].items.slots.size(), cells, _tap.bind(i))
-		_chest_grids.append({"grid": grid, "cells": cells})
+		_chest_grids.append({"grid": grid, "cells": cells, "line": line})
+
+
+## The strip between the bag and a chest (or two chests): a pale line with a chest's
+## schematic picture, drawn like the weight's on the load line.
+func _chest_line(e: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.tooltip_text = Items.title(e.item)
+	for k in 3:
+		if k == 1:
+			var icon := TextureRect.new()
+			icon.texture = UiStyle.icon("chest" if Items.bag_slots(e.item) <= 0 else "sack")
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.mouse_filter = Control.MOUSE_FILTER_PASS
+			row.add_child(icon)
+			continue
+		var bar := ColorRect.new()
+		bar.color = UiStyle.HIGHLIGHT
+		bar.custom_minimum_size = Vector2(0, 2)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(bar)
+	return row
 
 
 ## The slots of every chest shown.

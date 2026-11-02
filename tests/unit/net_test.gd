@@ -222,6 +222,27 @@ func _test_requests() -> void:
 	_check(net.request(Protocol.BAG_MOVE, [cell, 0, null]).value == 2 and a.inventory.count("resources:stone") == 2,
 		"and back")
 	_check(net.request(Protocol.BAG_MOVE, [null, 0, Vector3i(20, 2, 20)]).value == null, "a chest at an empty cell is nobody's")
+	# A bag lying in the bag is named by its slot: things go in and out of it there.
+	var inv = a.inventory
+	inv.add("tools:wicker_bag", 1)
+	var pack: int = inv.slots.find(["tools:wicker_bag", 1])
+	var rock: int = inv.slots.find(["resources:stone", 2])
+	var kg: float = inv.weight()
+	_check(net.request(Protocol.BAG_MOVE, [null, rock, pack]).value == 2 and inv.count("resources:stone") == 0
+		and inv.contents(pack) is Dictionary and inv.open(pack).count("resources:stone") == 2
+		and is_equal_approx(inv.weight(), kg),
+		"a stack goes into a bag lying in the bag, and weighs there: %s" % [inv.slots[pack]])
+	_check(net.request(Protocol.BAG_MOVE, [null, pack, pack]).value == 0 and net.request(Protocol.BAG_PUT, [pack, 0, null, pack]).value == false
+		and net.request(Protocol.BAG_MOVE, [null, pack, cell]).value == 0 and chest.count("tools:wicker_bag") == 0,
+		"a bag does not go into itself, nor a bag with things into a chest")
+	_check(net.request(Protocol.BAG_ALL, [pack, null, 0]).value == 2 and inv.count("resources:stone") == 2
+		and inv.slots[pack] == ["tools:wicker_bag", 1], "all out of it: the bag is empty again")
+	_check(net.request(Protocol.BAG_ALL, [null, pack, 0]).value >= 1 and inv.slots[pack] != null and inv.slots[pack][0] == "tools:wicker_bag"
+		and inv.open(pack).count("resources:stone") == 2, "all into it but itself")
+	_check(net.request(Protocol.BAG_MOVE, [null, 0, 99]).value == null and net.request(Protocol.SORT, [pack, "kind", 0]).value == true,
+		"a slot with no bag in it names none")
+	net.request(Protocol.BAG_ALL, [pack, null, 0])
+	inv.remove("tools:wicker_bag", 1)
 	# Out of the hand's reach (С6): a chest, a thing on the ground, a bush are as none.
 	var far_cell := Vector3i(28, 2, 28)
 	var far_chest = placed.put("tools:chest", far_cell).items

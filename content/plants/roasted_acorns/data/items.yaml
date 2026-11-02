@@ -6,6 +6,8 @@
   weight: 0.1
   stack: 20
   food: 15
+  heal: 2
+  drink: 2
   model: roasted_acorns
   icon: roasted_acorns
   anim: eat

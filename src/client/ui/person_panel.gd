@@ -171,9 +171,6 @@ func refresh() -> void:
 		c.key = ""
 		if worn != "":
 			c.texture = ItemIcons.of_item(worn)
-			if k == "back":
-				# In the top corner: the bottom one holds the strip of the load.
-				c.key = "+%d" % Items.bag_slots(worn)
 		elif k == "back":
 			# The bag the character always has.
 			c.texture = UiStyle.icon("bag")
