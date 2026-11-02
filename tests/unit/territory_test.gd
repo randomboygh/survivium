@@ -145,6 +145,8 @@ func _test_land() -> void:
 	copy.take_squares(back.squares_view(), true)
 	_check(copy.squares == back.squares and copy.claims[post].count == 4 and copy.claims[post].name == "Команда Аня",
 		"a client's copy takes what the server tells, named by the team")
+	_check(back.clear_painted() == 3 and back.squares.size() == 1 and back.squares.get(Vector2i(5, 5)) == post
+		and back.claims[post].count == 1 and back.used(1) == 1, "the test page's clearing leaves each post its own square")
 
 
 ## A boundary post set down from the bag on a server makes a claim; its owner is told
@@ -182,6 +184,21 @@ func _test_land_requests() -> void:
 	out = _decoded(b.flush())
 	_check(out.any(func(e: Array) -> bool: return e[0] == Protocol.SQUARES and e[1][0].has([next, claim.id])),
 		"and everyone is told the square")
+	# A game of one's own: the player joins before the save is read (Props.place), so
+	# the land read later is told them too, or their post is nobody's on the screen.
+	var saved: Dictionary = JSON.parse_string(JSON.stringify(s.territory.to_dict()))
+	var s2 := Session.new(w, null, Clock.new(), Rules.new(), Placed.new())
+	var c := PlayerLink.new(s2)
+	c.who.id = 1
+	c.flush()
+	s2.territory.from_dict(saved)
+	out = _decoded(c.flush())
+	var told_claims := out.any(func(e: Array) -> bool: return e[0] == Protocol.CLAIMS and e[1][0].size() == 1 and e[1][0][0][2] == 1)
+	var told_squares := out.any(func(e: Array) -> bool: return e[0] == Protocol.SQUARES and e[1][0].has([next, claim.id]))
+	var told_land := out.any(func(e: Array) -> bool: return e[0] == Protocol.LAND and e[1] == [2, 64])
+	_check(told_claims and told_squares and told_land,
+		"the land read from the save is told a player who joined before: %s" % [out])
+	c.leave()
 	_check(s.placed.take_up(a.who, s.placed.things[0]) and s.territory.claims.is_empty(), "the post taken up takes the claim")
 	a.leave()
 	b.leave()

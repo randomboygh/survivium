@@ -202,6 +202,12 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if game.land.painting:
 		_start_paint(button, pos)
 		return
+	if game.land.has_own():
+		# The square of one's own post starts painting, as the post does.
+		var hit := pick(pos)
+		if not hit.is_empty() and game.land.is_post_square(hit.cell):
+			game.land.toggle_painting(true)
+			return
 	var use := use_of()
 	var target: Dictionary = game.gathering.target_at(pos)
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
@@ -533,6 +539,10 @@ func _start_stroke(button: int, pos: Vector2, dig: bool) -> void:
 func _start_paint(button: int, pos: Vector2) -> void:
 	var hit := pick(pos)
 	if hit.is_empty():
+		return
+	if game.land.is_post_square(hit.cell):
+		# The square of one's own post: ends painting, as the post does.
+		game.land.toggle_painting(false)
 		return
 	var sq := Territory.square_of(hit.cell)
 	var claim: Dictionary = game.land.claim_of(sq)

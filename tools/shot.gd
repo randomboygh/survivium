@@ -388,6 +388,10 @@ func _run() -> void:
 				# The window keeps the section shown last: an earlier shot may have left another.
 				if shot.page in ["settings", "test"]:
 					main.hud.settings_menu().show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
+					if shot.get("menu_end", false):
+						# The bottom of the section.
+						await process_frame
+						main.hud.settings_menu()._scroll.scroll_vertical = 100000
 				# Buttons of the window tapped once, by their vars (a two-tap one turns red).
 				for b: String in shot.get("press", []):
 					(main.hud.settings_menu().get(b) as Button).pressed.emit()
@@ -461,7 +465,6 @@ func _run() -> void:
 				var screen: Vector2 = main.view.camera.unproject_position(main.others.people[3].figure.global_position)
 				main.hud.person.show_person(3, "Вова", screen * main.view.view_scale + main.view.container.global_position)
 			if shot.get("team_panel", false):
-				main.hud.toggle_menu()
 				main.hud.open_team()
 			for i in 3:
 				await process_frame
@@ -479,6 +482,11 @@ func _run() -> void:
 				main.hud.bag.show_tab("land")
 				for i in 6:
 					await process_frame
+				if shot.get("land_end", false):
+					# The bottom of the tab: the colours of the land.
+					main.hud.bag.land_page.scroll_vertical = 100000
+					for i in 3:
+						await process_frame
 			if shot.get("decay", false):
 				# The land is another's, left long ago: the next tick weakens it and lets
 				# its farther squares go; the player stands in it and looks at the tab.
@@ -817,13 +825,11 @@ func _run() -> void:
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
-		if shot.get("team_panel", false):
-			main.hud.toggle_menu()
-			main.hud.toggle_menu()
 		if shot.get("test", false):
 			main.hud.toggle_test()
 		if shot.get("bag", false) or shot.get("chest", false) or shot.get("chests", false) or shot.get("campfire", false) \
-				or (shot.get("craft", false) and not shot.get("closed", false)) or shot.get("rights", false):
+				or (shot.get("craft", false) and not shot.get("closed", false)) or shot.get("rights", false) \
+				or shot.get("team_panel", false):
 			main.hud.toggle_bag()
 		if shot.get("craft", false):
 			while not main.host.workshop.queue.jobs.is_empty():
