@@ -751,7 +751,7 @@ func _fake_team(main: Node, what: String) -> void:
 	var people := []
 	for p: Array in [[2, "Боря", Vector3(2.0, 0.0, 5.5), true], [3, "Вова", Vector3(-2.5, 0.0, 6.0), false]]:
 		var pos: Vector3 = at + p[2]
-		people.append([p[0], p[1], pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF, p[3]])
+		people.append([p[0], p[1], pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF, {}, p[3]])
 	main.others.take_people(people)
 	main.team.take_invites([[4, "Гена"]] if what == "invite" else [])
 
