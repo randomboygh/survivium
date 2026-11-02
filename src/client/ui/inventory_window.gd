@@ -12,14 +12,13 @@ extends PanelContainer
 ## on, a tap on another slot (of the bag or a chest) moves the stack there, swaps the
 ## two or tops up a stack of the same item, and lets it go; a tap on the chosen one lets
 ## it go. The panel at the bottom keeps its height whether a stack is chosen or not: at
-## its top the chosen stack's picture and name (its count only for more than one;
-## the spanner by the name repairs a worn tool) and at the top right sorting by hand and «по виду | по весу»
+## its top the chosen stack's picture and name (its count only for more than one) and at the top right sorting by hand and «по виду | по весу»
 ## (they sort the bag past the hotbar row and the chests shown); then what it is as
 ## named groups of small wells side by side (FactChips.item_groups: weight, food, the
 ## bag, the tool's work, what a weapon shoots, wear) and a line of buttons: on the left
 ## the wide amber one with a picture of what it does (take in hand, eat, set down,
 ## plant, put on...; for a light «взять | поставить», two thirds and one third), on the
-## right «в сундук | всё в сундук» with a chest shown, throwing away one | all and the
+## right «в сундук | всё в сундук» with a chest shown, the spanner for a worn tool, throwing away one | all and the
 ## bin (red at the first tap, it destroys at the second). A weapon with nothing in the
 ## bag to shoot shows inactive (HotbarSlot.inactive), its «Заряды» a red «нет». The craft
 ## tab (CraftPanel) has its own cells and panels; opened at a station it starts there.
@@ -241,13 +240,6 @@ func _ready() -> void:
 	_info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_info.custom_minimum_size.x = 120
 	name_row.add_child(_info)
-	# Repair a worn tool (at a station that mends, with what it is mended with): a
-	# picture, by the sorting.
-	_repair = TabRow.icon_button(UiStyle.icon("act_repair"), "Починить: у станка для починки, тратит материалы", func() -> void:
-		game.net.request(Protocol.REPAIR, [_at]))
-	_repair.custom_minimum_size = Vector2(30, 24)
-	_repair.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	name_row.add_child(_repair)
 	# At the top right: sorting by hand, and by kind | by weight joined.
 	var sorts := HBoxContainer.new()
 	sorts.add_theme_constant_override("separation", 4)
@@ -332,6 +324,11 @@ func _ready() -> void:
 		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.net.request(Protocol.THROW, [_at, 1])],
 		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.net.request(Protocol.THROW, [_at, 1 << 20])],
 	])
+	# Repair a worn tool (at a station that mends, with what it is mended with), before
+	# throwing away.
+	_repair = TabRow.icon_button(UiStyle.icon("act_repair"), "Починить: у станка для починки, тратит материалы", func() -> void:
+		game.net.request(Protocol.REPAIR, [_at]))
+	_right.add_child(_repair)
 	_right.add_child(_throw)
 	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
 		if _confirming:
@@ -340,7 +337,7 @@ func _ready() -> void:
 			_confirming = true
 			refresh())
 	_right.add_child(_destroy)
-	for b in _into.get_children() + _throw.get_children() + [_destroy]:
+	for b in _into.get_children() + _throw.get_children() + [_repair, _destroy]:
 		b.custom_minimum_size = Vector2(30, 30)
 	game.character.state_changed.connect(refresh)
 	show_tab("bag")
@@ -820,11 +817,9 @@ func _show_use(what: String) -> void:
 	_use.tooltip_text = USES[what][1]
 
 
-## The name wraps in what the buttons by it (repair, the sorting) leave.
+## The name wraps in what the sorting by it leaves.
 func _fit_name() -> void:
 	var room := _width(slot) - 2 * UiStyle.WELL_PAD - 24 - 6 - int(_sorts.get_combined_minimum_size().x) - 6
-	if _repair.visible:
-		room -= int(_repair.get_combined_minimum_size().x) + 6
 	_info.custom_minimum_size.x = maxi(room, 40)
 
 
