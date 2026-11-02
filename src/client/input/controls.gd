@@ -246,6 +246,10 @@ func update(delta: float) -> void:
 	_cooldown = maxf(0.0, _cooldown - delta)
 	_cursor_clock = maxf(0.0, _cursor_clock - delta)
 	_check_hands()
+	_label_clock -= delta
+	if _label_clock <= 0.0 and touch:
+		_label_clock = LABEL_TIME
+		game.hud.refresh_action()
 	if not _stroke.is_empty():
 		if _stroke.held and not Input.is_mouse_button_pressed(_stroke.button):
 			_stroke.held = false
@@ -382,7 +386,9 @@ func brush_record() -> Dictionary:
 	return Tools.BRUSHES[brush]
 
 
-## What the action button does with the hand in use, for its label.
+## What the action button does with the hand in use, for its label: what it would do in
+## front of the player now (WorldActions.front_kind: drink at the water, gather berries
+## with a torch in hand, dig once all round is gathered), else what the hand's tool is for.
 func action_name() -> String:
 	match use_of():
 		"place":
@@ -396,7 +402,27 @@ func action_name() -> String:
 		"heal":
 			return "Перевязать"
 	var item := Items.get_item(held()) if held() != "" else {}
-	match item.get("tool", "none"):
+	var tool: String = item.get("tool", "none")
+	var kind := ""
+	if game.actions != null and game.character != null:
+		kind = game.actions.front_kind(game.character)
+	match kind:
+		"drink":
+			return "Попить"
+		"fill":
+			return "Набрать воды"
+		"hit":
+			return "Бить"
+		"chop":
+			return "Рубить"
+		"gather":
+			return "Собрать"
+		"mow":
+			# Bare hands and what works as them pull the grass up; a blade cuts it.
+			return "Косить" if Tools.mows(Tools.of(held())) and tool != "none" else "Собрать"
+		"dig":
+			return "Копать"
+	match tool:
 		"axe":
 			return "Рубить"
 		"sword":
@@ -413,6 +439,12 @@ func action_name() -> String:
 			return "Стрелять"
 	# Bare hands, and what works as them (a knife, a needle, a torch, a stick).
 	return "Собрать"
+
+
+## The action button's label follows what is in front (action_name), this often in
+## seconds: front_kind looks round the player, too much for every frame on a phone.
+const LABEL_TIME := 0.25
+var _label_clock := 0.0
 
 
 ## Eats one of the food in the hand in use from the bag, or puts on a bandage.

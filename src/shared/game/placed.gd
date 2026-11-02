@@ -36,10 +36,10 @@ const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body pushing into a burning campfire, or over it, comes to be
 ## burnt.
 const SINGE := 0.02
-## The flames burn only the very middle of a campfire's two by two cells: a body whose
-## middle is within this many cells of the fire's (the middle two of the eight pixels a
-## cell is across on the screen), so a body may stand by it, or on its edge, to warm.
-const FLAMES_HALF := 1.0 / 8.0
+## The flames burn what touches the logs (FIRE_BOXES, half a cell each way of the fire's
+## middle): a body whose side comes within SINGE of them, walking into them or standing
+## on them, is burnt; one standing on the ring of stones round them warms (Warmth).
+const FLAMES_HALF := 0.5
 ## A fire burning under the open sky goes out after this many seconds of a heavy rain
 ## (of strength RAIN_HEAVY or more: a downpour, a storm; a light rain does not), and dries
 ## as fast once it stops.
@@ -351,9 +351,10 @@ func burns(p: Vector3) -> bool:
 	return not burning(p).is_empty()
 
 
-## The burning campfire a body with its feet at `p` (world units) stands in the flames
-## of, {} for none: its middle over the fire's very middle (FLAMES_HALF), at the fire's
-## height or on top of it; standing by it or on its edge warms (Warmth) without burning.
+## The burning campfire a body with its feet at `p` (world units) touches the flames
+## of, {} for none: its box against or over the logs (FLAMES_HALF, the same box bodies
+## stop at), at the fire's height or on top of it; standing on its stones warms (Warmth)
+## without burning.
 func burning(p: Vector3) -> Dictionary:
 	var c := p / CELL
 	for e in things:
@@ -362,7 +363,9 @@ func burning(p: Vector3) -> Dictionary:
 		var at: Vector3i = e.cell
 		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:
 			continue
-		if absf(c.x - (at.x + 1.0)) <= FLAMES_HALF and absf(c.z - (at.z + 1.0)) <= FLAMES_HALF:
+		var reach_x := FLAMES_HALF + Body.HALF_WIDTH + SINGE
+		var reach_z := FLAMES_HALF + Body.HALF_DEPTH + SINGE
+		if absf(c.x - (at.x + 1.0)) <= reach_x and absf(c.z - (at.z + 1.0)) <= reach_z:
 			return e
 	return {}
 

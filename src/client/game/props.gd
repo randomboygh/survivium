@@ -29,6 +29,9 @@ const FIT_MARGIN := 0.25
 ## Things lower than this (world units; the player is 1 tall) are low: the player's
 ## silhouette does not show behind them (see sprite_xray.gdshader).
 const LOW_HEIGHT := 0.75
+## Kinds of things placed (an item's `prop`) too thin for the sun's shadow map: a
+## boundary post's pole.
+const THIN_PROPS := ["post"]
 ## Seconds a thing taken from the ground takes to fly to the player.
 const FLY_TIME := 0.2
 
@@ -130,8 +133,13 @@ func _on_added(e: Dictionary) -> void:
 		_heat_later()
 		return
 	var node := MeshInstance3D.new()
-	node.mesh = _model(Items.get_item(e.item).prop).build_mesh()
+	var kind: String = Items.get_item(e.item).prop
+	node.mesh = _model(kind).build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
+	if kind in THIN_PROPS:
+		# A pole two voxels thin is under a texel of the sun's shadow map: its shadow
+		# came out a wide dark slab with a square flag, so it casts none.
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.scale = Vector3.ONE / 16.0
 	node.position = Vector3(e.cell) * CELL
 	_fit(node)

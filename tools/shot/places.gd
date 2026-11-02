@@ -159,6 +159,21 @@ func pick_moss(w, at: Vector3i) -> void:
 	main.actions.mow(main.host.player, cells)
 
 
+## Pulls the grass up with bare hands for fibre in an L of cells round `at` (its
+## column; the ground's top found), as gathering in a meadow does.
+func pick_fiber(w, at: Vector3i) -> void:
+	main.controls.put_in_hand("", -1, false)
+	var cells: Array[Vector3i] = []
+	for o: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(-1, 0),
+			Vector2i(1, -1)]:
+		var c := at + Vector3i(o.x, 0, o.y)
+		c.y = w.surface_y(c.x, c.z) - 1
+		for k in 2:
+			if main.actions.can_mow(c):
+				var one: Array[Vector3i] = [c]
+				main.actions.mow(main.host.player, one)
+
+
 ## Standing spot at the nearest place of a kind (see WorldGen.find_place):
 ## the chunks there are built first, then a dry spot by the water is picked.
 func place(w, what: String) -> Vector3:
