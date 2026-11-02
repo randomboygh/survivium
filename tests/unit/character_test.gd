@@ -150,6 +150,15 @@ func _test_gear() -> void:
 	_check(inv.take_off("back") == "" and inv.slots.size() == Inventory.SLOTS and not inv.gear.has("back")
 		and inv.slots[1] == ["tools:leather_bag", 1] and inv.contents(0) != null and inv.count("resources:fiber") == 0,
 		"a bag taken off stays where it lies and takes its things with it")
+	# A backpack worn holding a bag that holds things: taken off, all of it weighs as before.
+	var pack := Inventory.new()
+	pack.add("tools:canvas_backpack", 1)
+	pack.wear(0)
+	pack.slots[Inventory.SLOTS + 3] = ["tools:wicker_bag", 1, 0, {"slots": [["resources:stone", 3], ["resources:fiber", 2]]}]
+	var kg := pack.weight()
+	_check(pack.take_off("back") == "" and pack.contents(0) != null and is_equal_approx(pack.weight(), kg)
+		and kg > Items.weight("tools:canvas_backpack") + 3.0 * Items.weight("resources:stone"),
+		"a bag taken off weighs as it did worn, with a bag in it and what that holds: %.2f, %.2f" % [kg, pack.weight()])
 	inv.wear(1)
 	inv.slots[Inventory.SLOTS + 4] = ["resources:stone", 2]
 	var chest := Inventory.new(4)
@@ -379,7 +388,24 @@ func _test_sleep() -> void:
 	ch.at = Vector3(4.5, 1.0, 5.5) * WorldData.CELL
 	var plain := ch.sleep_rate(ch.at)
 	ch.give("tools:fur_bedroll", 1)
-	_check(is_equal_approx(ch.sleep_rate(ch.at), plain * 2.0), "the best bedding in the bag counts")
+	_check(is_equal_approx(ch.sleep_rate(ch.at), plain), "bedding in the bag does not count")
+	var beds := Placed.new()
+	beds.world = w
+	beds.read_footprints()
+	ch.placed = beds
+	var bed: Dictionary = beds.put("tools:fur_bedroll", Vector3i(8, 1, 8))
+	_check(Placed.is_bed(bed) and not Placed.is_bed(beds.put("tools:workbench", Vector3i(12, 1, 12))), "a bedroll set down is a bed")
+	ch.vitals.energy = Vitals.MAX
+	_check(not ch.lie_in(bed) and ch.back_at == Vector3.ZERO and not ch.vitals.asleep, "a rested body does not lie down")
+	ch.vitals.energy = 10.0
+	_check(ch.lie_in(bed) and ch.vitals.asleep, "a sleepy body lies down in the bed")
+	var spot := beds.lying_spot(bed)
+	_check(ch.back_at == spot and spot.y > 1.0 * WorldData.CELL and spot.y < 1.5 * WorldData.CELL
+		and is_equal_approx(spot.x, 9.0 * WorldData.CELL), "the body is put on top of the bed's middle")
+	_check(is_equal_approx(ch.sleep_rate(spot), plain * 2.0) and beds.bed_under(ch.at).is_empty(),
+		"lying in the bed rests by its bedding, not beside it")
+	ch.vitals.sleep(false)
+	ch.at = spot
 	ch.vitals.energy = Vitals.MAX - 1.0
 	ch.vitals.asleep = true
 	ch.clock.time_of_day = 0.5

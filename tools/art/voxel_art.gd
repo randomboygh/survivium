@@ -20,9 +20,12 @@ const PLATINUM := Color(0.66, 0.68, 0.71)
 
 
 ## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
-## world unit, the front to the south), null for none.
-static func prop(kind: String) -> VoxelModel:
+## world unit, the front to the south), null for none; `model` (the item's) tells apart
+## the things of one kind (the beds).
+static func prop(kind: String, model := "") -> VoxelModel:
 	match kind:
+		"bed":
+			return bed(model)
 		"workbench":
 			return workbench()
 		"kiln":
@@ -295,6 +298,32 @@ static func post() -> VoxelModel:
 	for i in 5:
 		m.set_voxel(Vector3i(9 + i, 22 - i / 2, 8), cloth if i % 2 == 0 else cloth * 0.85)
 		m.set_voxel(Vector3i(9 + i, 21 - i / 2, 8), cloth * 0.9)
+	return m
+
+
+## A bed lying east to west, the head to the west, low enough to step on: a mat of
+## dry grass tied with cord (grass_mat) or a bedroll of furs with a rolled-up head
+## (fur_bedroll).
+static func bed(model: String) -> VoxelModel:
+	var m := VoxelModel.new()
+	var fur := model == "fur_bedroll"
+	var main := Color(0.55, 0.4, 0.26) if fur else Color(0.74, 0.66, 0.36)
+	var dark := Color(0.38, 0.26, 0.16) if fur else Color(0.55, 0.47, 0.22)
+	var tie := Color(0.42, 0.33, 0.2)
+	for z in range(4, 12):
+		for x in range(1, 15):
+			var c := main if (x * 3 + z * 5) % 7 != 0 else dark
+			if not fur and (x == 4 or x == 11):
+				c = tie
+			if fur and (z == 4 or z == 11):
+				c = dark
+			m.set_voxel(Vector3i(x, 0, z), c)
+			if x > 1 and x < 14 and z > 4 and z < 11:
+				m.set_voxel(Vector3i(x, 1, z), c * (1.05 if (x + z) % 2 == 0 else 1.0))
+	# The head end: a pillow of grass, a roll of fur.
+	for z in range(5, 11):
+		for x in range(2, 5):
+			m.set_voxel(Vector3i(x, 2, z), (main * 1.12 if fur else main * 1.08) if (x + z) % 3 != 0 else main)
 	return m
 
 

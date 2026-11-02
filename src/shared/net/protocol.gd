@@ -100,6 +100,9 @@ const WEAR := "wear"
 const TAKE_OFF := "take_off"
 ## Lies down to sleep or wakes: [on] (Character.sleep); true when done.
 const SLEEP := "sleep"
+## Lies down in a bed set down (a mat, a bedroll) to sleep in it: [cell] (Character.lie_in);
+## true when asleep there.
+const LIE_IN := "lie_in"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
 ## Says a line in the chat: [text]; true when it was said (the server hands it to the

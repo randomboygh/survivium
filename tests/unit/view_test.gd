@@ -12,6 +12,7 @@ func run() -> void:
 	_test_hidden()
 	_test_sound()
 	_test_camera_spin()
+	_test_camera_drift()
 
 
 func _test_pixel_view() -> void:
@@ -107,7 +108,7 @@ func _test_sprite_sheet() -> void:
 	var cols := s.columns
 	var fw := s.frame_size.x
 	var fh := s.frame_size.y
-	_check(cols == 40 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four; 32 by 32 frames")
+	_check(cols == 41 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four, asleep; 32 by 32 frames")
 	_check(s.texture.get_width() == cols * fw and s.texture.get_height() == 8 * fh, "player sheet has eight directions")
 	var img := s.texture.get_image()
 	var drawn := 0
@@ -126,6 +127,17 @@ func _test_sprite_sheet() -> void:
 	east.flip_x()
 	_check(east.get_data() == img.get_region(Rect2i(0, 6 * fh, fw, fh)).get_data(), "west is east mirrored when the hands are empty")
 	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2, fh - 2) != img.get_pixel(fw / 2, fh - 2), "without boots the feet are bare")
+	var sleep := s.frame_at("s", "sleep", 0.0)
+	var lain: Rect2i = img.get_region(Rect2i(sleep.x * fw, sleep.y * fh, fw, fh)).get_used_rect()
+	var standing: Rect2i = img.get_region(Rect2i(0, 0, fw, fh)).get_used_rect()
+	_check(lain.size == Vector2i(standing.size.y, standing.size.x) and lain.end.y == standing.end.y,
+		"asleep the figure lies on its side on the frame's bottom: %s, %s" % [lain, standing])
+	var eyes := 0
+	for y in fh:
+		for x in fw:
+			if img.get_pixel(sleep.x * fw + x, y).is_equal_approx(Color("2c2226")):
+				eyes += 1
+	_check(eyes == 0 and s.frame_at("n", "sleep", 0.0).x == sleep.x, "asleep its eyes are closed, whichever way it faced")
 	# Naked in a loincloth; clothes worn show between the naked layers, a bag does not.
 	var naked := Figure.dressed({})
 	_check(naked == ["body", "loincloth", "hair"], "the figure is naked in a loincloth with nothing worn")
@@ -348,11 +360,35 @@ class _FakeSettings:
 		pass
 
 
+class _FakeCharacter:
+	var vitals := Vitals.new()
+
+
 class _FakeGame:
 	var settings := _FakeSettings.new()
 	var player := Node3D.new()
 	var chunks = null
 	var effects = null
+	var character := _FakeCharacter.new()
+
+
+## Short of sleep the view drifts round the player by itself; rested, it settles on a step.
+func _test_camera_drift() -> void:
+	var game := _FakeGame.new()
+	var rig = CameraRig.new(game)
+	rig.look_at_player()
+	game.character.vitals.energy = Vitals.MAX
+	for i in 30:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn == 0.0, "rested, the view stays as it was set")
+	game.character.vitals.energy = 0.0
+	for i in 90:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn > 0.1 and rig.turn < CameraRig.DRIFT_RATE * 3.1, "short of sleep it drifts round, slowly: %.3f" % rig.turn)
+	game.character.vitals.energy = Vitals.MAX
+	for i in 120:
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn == posmod(rig.turn_steps, CameraRig.TURNS) * CameraRig.TURN_STEP, "rested again, it settles on a step: %.3f" % rig.turn)
 
 
 ## A turn button held turns the camera on smoothly; let go, it settles on the nearest step.

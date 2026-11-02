@@ -196,7 +196,7 @@ func _test_world_actions() -> void:
 
 ## The rules of placed things and crafting run without the client: a workbench put
 ## down from the bag is solid and lets a stone axe be made near it, and a campfire is
-## solid, burns the one who walks into it, is put out, lit again for a branch and
+## solid, burns only the one in its very middle, is put out, lit again for a branch and
 ## destroyed.
 func _test_placed() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
@@ -246,24 +246,24 @@ func _test_placed() -> void:
 	_check(cook.vitals.health == Vitals.MAX, "standing away from a campfire does not burn")
 	cook.body.move_input = Vector2(1.0, 0.0)
 	var nearest := 0.0
-	var thrown := false
 	for i in 30:
 		cook.at = cook.body.step(cook.at, 1.0 / 30.0, false)
 		cook.update(1.0 / 30.0)
 		nearest = maxf(nearest, cook.at.x / WorldData.CELL + Body.HALF_WIDTH)
-		thrown = thrown or cook.body.shove.x < 0.0
 	_check(nearest <= 20.0 + 0.001, "a campfire is solid: walking into it stops at it")
-	_check(cook.vitals.health < Vitals.MAX and cook.vitals.health >= Vitals.MAX - Vitals.BURN * 3.0
-		and cook.vitals.hurt_by == "fire", "and pushing against it burns a little")
-	_check(thrown, "and throws the body back")
+	_check(cook.vitals.health == Vitals.MAX, "and pushing against its side does not burn")
 	cook.body.move_input = Vector2.ZERO
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
 	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
-	cook.at = Vector3(22.46, 2.0, 21.0) * WorldData.CELL
-	_check(not placed.burns(cook.at) and not placed.pushed_into(cook.at).is_empty(),
-		"standing close by its side warms, pushing into it burns")
-	cook.at = Vector3(Placed.center(fire).x, 3.0 * WorldData.CELL, Placed.center(fire).z)
-	_check(placed.burns(cook.at), "and standing on top of it")
+	var mid: Vector3 = Placed.center(fire)
+	cook.at = Vector3(mid.x + 0.3 * WorldData.CELL, 3.0 * WorldData.CELL, mid.z)
+	_check(not placed.burns(cook.at), "nor standing on top of it off its very middle")
+	cook.at = Vector3(mid.x + 0.1 * WorldData.CELL, 3.0 * WorldData.CELL, mid.z)
+	_check(placed.burns(cook.at), "the very middle of its flames burns")
+	var hurt := cook.vitals.health
+	cook.update(1.0 / 30.0)
+	_check(cook.vitals.health < hurt and cook.vitals.hurt_by == "fire" and cook.body.shove.length() > 0.0,
+		"a little, and throws the body back")
 	placed.put_out(fire)
 	_check(not placed.burns(cook.at) and w.blockers.has(fire.cell), "a campfire put out does not burn, and is still solid")
 	_check(not fire.lit and not placed.light(who, fire), "a campfire put out needs a branch to burn again")
