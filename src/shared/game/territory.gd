@@ -236,6 +236,18 @@ func add_claim(by: int, e: Dictionary, name := "") -> int:
 	return id
 
 
+## Takes back every square painted, of every player: each claim keeps only its post's
+## square (the test page's «Очистка территории»). How many squares went.
+func clear_painted() -> int:
+	var gone := []
+	for sq: Vector2i in squares:
+		var claim: Dictionary = claims.get(squares[sq], {})
+		if claim.is_empty() or claim.sq != sq:
+			gone.append(sq)
+	_assign(gone, 0)
+	return gone.size()
+
+
 ## Thing `e` was taken out of the world (Placed.removed): a claim it was the centre of
 ## is gone with its squares.
 func thing_removed(e: Dictionary) -> void:
@@ -442,6 +454,10 @@ func from_dict(d: Dictionary) -> void:
 	var c: Dictionary = d.get("colors", {})
 	for k in c:
 		colors[int(k)] = clampi(int(c[k]), 0, COLORS - 1)
+	# Whoever was told the land before (a player who joined before the save was read)
+	# hears it again.
+	claims_changed.emit()
+	squares_changed.emit(squares_view())
 
 
 static func _id(who) -> int:

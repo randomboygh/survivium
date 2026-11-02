@@ -676,13 +676,15 @@ const ICONS := {
 		".w.....w.",
 		"..wwwww..",
 	],
+	# Even across and down, so nothing is doubled to centre it (see _even), with a
+	# stroke two pixels wide all along.
 	"check": [
-		".......kk",
-		"......kk.",
-		"kk...kk..",
-		".kk.kk...",
-		"..kkk....",
-		"...k.....",
+		"........kk",
+		".......kk.",
+		"kk....kk..",
+		".kk..kk...",
+		"..kkkk....",
+		"...kk.....",
 	],
 	"close": [
 		"ww....ww",
@@ -1056,6 +1058,23 @@ const TIGHT := Vector4(6, 6, 6, 6)
 const WELL_PAD := 8
 ## The width of a scroll bar.
 const SCROLL_BAR := 3
+## The room between the rows of a window's scrolled list and its sides: a little on the
+## left, as much before the scroll bar on the right (the settings, the testing page, the
+## inventory's tabs «Земля» and «Команда»; the user's ask 2026-11-02: everywhere so).
+const BAR_GAP := 6
+
+
+## `content` in a box with BAR_GAP of room on its left and right, to put in a
+## ScrollContainer (its bar takes its own room right of that).
+static func inset(content: Control) -> MarginContainer:
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", BAR_GAP)
+	m.add_theme_constant_override("margin_right", BAR_GAP)
+	m.add_theme_constant_override("margin_top", 0)
+	m.add_theme_constant_override("margin_bottom", 0)
+	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m.add_child(content)
+	return m
 
 
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.

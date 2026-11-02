@@ -193,14 +193,14 @@ func _open_world() -> bool:
 			session.make_chunk(key + Vector2i(dx, dz))
 	var cell := WorldGen.find_spawn(gen.world, guess)
 	spawn = (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL
-	if had_save and meta.get("placed") is Array:
-		placed.from_list(meta.placed)
 	if had_save and meta.get("teams") is Dictionary:
 		session.teams.from_dict(meta.teams)
 	if had_save and meta.get("fights") is Dictionary:
 		session.fights.from_dict(meta.fights)
 	if had_save and meta.get("territory") is Dictionary:
 		session.territory.from_dict(meta.territory)
+	if had_save and meta.get("placed") is Array:
+		placed.from_list(meta.placed)
 	else:
 		placed.start_camp(spawn)
 		if gen.has_method("plan_things"):

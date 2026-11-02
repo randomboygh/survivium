@@ -1,69 +1,62 @@
-extends PanelContainer
-## The window «Команда» of the pause menu on a server (decision 50; plan/design/
-## territory-pvp.md): the team's name and members (the lead marked «старший», the
-## player «вы»; the lead's tap on a member puts them out), the invitations waiting with
-## «Принять» and «Отказаться», «Выйти из команды», how to call someone in, the server's
-## rule of fighting players and the newcomer's protection with «Снять защиту», and «Назад»,
-## which goes back to the pause. It follows game.team as it changes. `game` is the Main
-## node; the HUD holds it and places it in the middle.
+extends ScrollContainer
+## The tab «Команда» of the inventory window (InventoryWindow; decision 50, plan/design/
+## territory-pvp.md), shown only on a server, where teams are (Main.welcome; the user's
+## ask 2026-11-02 moved it there from the pause menu): the team's members (the lead
+## marked «старший», the player «вы»; the lead's tap on a member puts them out), the
+## invitations waiting with «Принять» and «Отказаться», «Выйти из команды», how to
+## call someone in, the server's rule of fighting players and the newcomer's protection
+## with «Снять защиту». No title: the tab names it. It follows game.team as it changes,
+## scrolls when the screen is lower than it (InventoryWindow sets its height), its rows
+## inset as the settings' (UiStyle.inset). `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
-## The width of its buttons.
+## The least width of its buttons.
 const WIDTH := 200
 
 ## The server's rule of fighting players, in words (Fights.MODES).
 const PVP_TITLES := {"off": "выключен", "land": "по правам территорий", "all": "везде"}
 
-## «Назад» was pressed.
-signal closed
-
 var game
 var _box: VBoxContainer
+## Called when what it shows changed, to lay the window out again.
+var on_layout := Callable()
 
 
 func _init(g) -> void:
 	game = g
+	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_box = VBoxContainer.new()
+	_box.add_theme_constant_override("separation", 6)
+	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(UiStyle.inset(_box))
 
 
 func _ready() -> void:
-	visible = false
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_box = VBoxContainer.new()
-	_box.add_theme_constant_override("separation", 6)
-	add_child(_box)
-	game.team.changed.connect(_fill)
+	game.team.changed.connect(refresh)
 
 
-func open() -> void:
-	visible = true
-	_fill()
+## The height the page would take whole.
+func full_height() -> float:
+	return get_child(0).get_combined_minimum_size().y
 
 
-func close() -> void:
-	visible = false
-	closed.emit()
-
-
-func _fill() -> void:
-	if not visible:
+## Builds the page again from game.team (when it is shown).
+func refresh() -> void:
+	if not is_visible_in_tree():
 		return
 	for c in _box.get_children():
 		_box.remove_child(c)
 		c.queue_free()
 	var team = game.team
 	var me := int(game.welcome.get("id", -1))
-	var title := UiStyle.label(str(team.view.name) if team.has_team() else "Команда", UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_box.add_child(title)
 	for e: Array in team.invites:
 		_box.add_child(UiStyle.label("%s зовёт вас в команду" % e[1]))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		_box.add_child(row)
-		_button(row, "Принять", team.accept.bind(e[0]), "", WIDTH / 2 - 2)
-		_button(row, "Отказаться", team.decline.bind(e[0]), "", WIDTH / 2 - 2)
+		_button(row, "Принять", team.accept.bind(e[0]), "", WIDTH / 2 - 2).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_button(row, "Отказаться", team.decline.bind(e[0]), "", WIDTH / 2 - 2).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if team.has_team():
 		for m: Array in team.view.members:
 			var tags := []
@@ -89,13 +82,11 @@ func _fill() -> void:
 	if team.protected > 0 and team.pvp != "off":
 		_box.add_child(UiStyle.label("Защита новичка: ещё %d мин" % team.protected, UiStyle.MUTED))
 		_button(_box, "Снять защиту", team.give_up_protection)
-	_button(_box, "Назад", close)
-	reset_size()
-	var hud: Control = get_parent()
-	position = ((hud.size - size) * 0.5).floor()
+	if on_layout.is_valid():
+		on_layout.call_deferred()
 
 
-## A button of the window, `tag` at its right edge; one with no action is disabled.
+## A button of the page, `tag` at its right edge; one with no action is disabled.
 func _button(parent: Node, text: String, action: Callable, tag := "", width := WIDTH) -> Button:
 	var b := Button.new()
 	b.text = text
