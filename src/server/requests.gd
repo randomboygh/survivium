@@ -9,7 +9,9 @@ extends RefCounted
 ## (WorldActions.within_hand) is as none, so a player moves things only where they
 ## stand (С6). Each request is done whole before the next of anyone, so a thing taken
 ## by two players at once goes to one. A line of chat (CHAT) is told on (`chatted`) to
-## the server, which hands it to those near; lines come no faster than CHAT_LINES in
+## the server, which hands it to those near, a line to the team (TEAM_CHAT,
+## `team_chatted`) to its members; the requests of teams go to the session's Teams;
+## lines come no faster than CHAT_LINES in
 ## CHAT_WINDOW seconds. The server makes one of these per player as they join; in single
 ## player LocalHost makes it.
 
@@ -22,8 +24,14 @@ const CHAT_MAX := 160
 const CHAT_LINES := 5
 const CHAT_WINDOW := 8.0
 
+## How near another player must be to be invited to a team, in world units (as far as
+## the chat is heard, Server.CHAT_RANGE).
+const TEAM_REACH := 30.0
+
 ## The player said `text` in the chat (trimmed and cut; "/…" a command).
 signal chatted(text: String)
+## The player said `text` to their team.
+signal team_chatted(text: String)
 
 var session
 ## The character playing (Character) and their workshop (Workshop).
@@ -169,6 +177,32 @@ func _do(kind: String, args: Array) -> Variant:
 		Protocol.CHAT:
 			if _fit(args, [TYPE_STRING]):
 				return _chat(args[0])
+		Protocol.TEAM_INVITE:
+			if _fit(args, [TYPE_INT]):
+				var other = _player(args[0])
+				if other == null or other.position.distance_to(who.position) > TEAM_REACH:
+					return false
+				if session.teams.team_of(other.id) != 0:
+					who.nag("team", "%s уже в команде" % other.player_name)
+					return false
+				return session.teams.invite(who.id, who.player_name, other.id, _now())
+		Protocol.TEAM_ACCEPT:
+			if _fit(args, [TYPE_INT]):
+				return session.teams.accept(who.id, who.player_name, args[0], _now())
+		Protocol.TEAM_DECLINE:
+			if _fit(args, [TYPE_INT]):
+				return session.teams.decline(who.id, args[0])
+		Protocol.TEAM_LEAVE:
+			return session.teams.leave(who.id)
+		Protocol.TEAM_KICK:
+			if _fit(args, [TYPE_INT]):
+				return session.teams.kick(who.id, args[0])
+		Protocol.TEAM_NAME:
+			if _fit(args, [TYPE_STRING]):
+				return session.teams.rename(who.id, args[0])
+		Protocol.TEAM_CHAT:
+			if _fit(args, [TYPE_STRING]) and session.teams.team_of(who.id) != 0:
+				return _chat(args[0], true)
 		Protocol.REVIVE:
 			# Only the dead come back (where to is checked at stage С6).
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():
@@ -191,6 +225,18 @@ static func _slot(inv, i: int) -> bool:
 	return i >= 0 and i < inv.slots.size()
 
 
+## The player numbered `id` in the world, alive, other than this one; null for none.
+func _player(id: int):
+	for p in session.players:
+		if p != who and p.get("id") == id and not p.is_dead():
+			return p
+	return null
+
+
+static func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
 ## The bag `where` names: the player's for null, a chest's for the cell of the thing
 ## that holds it; null for a cell with no such thing within reach.
 func _bag(where: Variant):
@@ -210,9 +256,9 @@ func _near(cell: Vector3i) -> Dictionary:
 	return e
 
 
-## A line of chat: trimmed and cut to CHAT_MAX, told to the server; false for an empty
-## one or one too soon after CHAT_LINES others.
-func _chat(text: String) -> bool:
+## A line of chat: trimmed and cut to CHAT_MAX, told to the server (to the team's
+## members with `team`); false for an empty one or one too soon after CHAT_LINES others.
+func _chat(text: String, team := false) -> bool:
 	var line := text.strip_edges().replace("\n", " ").replace("\r", " ").left(CHAT_MAX)
 	if line == "":
 		return false
@@ -223,5 +269,8 @@ func _chat(text: String) -> bool:
 		who.nag("chat", "Не так часто: подождите немного")
 		return false
 	_chat_times.append(now)
-	chatted.emit(line)
+	if team:
+		team_chatted.emit(line)
+	else:
+		chatted.emit(line)
 	return true

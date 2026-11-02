@@ -6,7 +6,8 @@ extends RefCounted
 ## world LINGER seconds, so a page reloaded comes back to it with the key the welcome
 ## gave; one who says goodbye (BYE) a short while. The host's commands (command): who,
 ## say, kick, stop, give, tp, ban, whitelist, op. A line of chat (Protocol.CHAT, С6) is
-## heard by the players within CHAT_RANGE of who said it (HEARD); one that begins with
+## heard by the players within CHAT_RANGE of who said it (HEARD), a line to the team
+## (TEAM_CHAT) by its members wherever they are; one that begins with
 ## "/" is a command, done for the server's hosts (`access.hosts`: the keys `op` gave,
 ## and the player who made the server in the game) and answered to them alone. Each message is one binary frame; the reply to HELLO goes before
 ## the events of joining (the client knows who it is before its copies fill), and the
@@ -306,6 +307,19 @@ func _on_chat(text: String, key: String) -> void:
 			b.link.hear(a.id, a.name, text)
 
 
+## Player `key` said `text` to their team: heard by its members in the world, wherever
+## they are.
+func _on_team_chat(text: String, key: String) -> void:
+	var a: Account = accounts.get(key)
+	if a == null:
+		return
+	_say("%s (%d) команде: %s" % [a.name, a.id, text])
+	for k in accounts:
+		var b: Account = accounts[k]
+		if session.teams.together(a.id, b.id):
+			b.link.hear(a.id, a.name, text, true)
+
+
 func _save_access() -> void:
 	if store != null:
 		store.write_access(access)
@@ -537,12 +551,14 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.who.player_name = a.name
 		a.link.who.check_moves = true
 		a.link.requests.chatted.connect(_on_chat.bind(a.key))
+		a.link.requests.team_chatted.connect(_on_team_chat.bind(a.key))
 		if record.is_empty():
 			a.link.who.start_bag()
 			a.link.who.teleport(world_info.spawn)
 		else:
 			ServerStore.restore(a.link, record)
 		a.link.who.find_home(session.placed)
+		session.teams.seen(a.id, a.name)
 		accounts[a.key] = a
 		if not wild:
 			wild = true

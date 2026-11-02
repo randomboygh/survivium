@@ -15,6 +15,7 @@ const Clock := preload("res://src/shared/game/clock.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Storms := preload("res://src/shared/game/storms.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
+const Teams := preload("res://src/shared/game/teams.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -51,6 +52,8 @@ var placed
 var actions: WorldActions
 var storms: Storms
 var wildlife: Wildlife
+## The teams of the world's players (Teams).
+var teams := Teams.new()
 ## The characters playing (Character) and the workshop of each (Workshop), in one
 ## order; the animals see the characters as people.
 var players: Array = []

@@ -4,7 +4,7 @@ extends RefCounted
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
 ## PROP_LIT, PROP_FUEL, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
-## players, `game.others`); HEARD (the chat, `game.hud.chat`, and the line over the
+## players, `game.others`); TEAM, INVITES (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
 ## the world and `game.actions`' signals), and the client's own event each frame: where
@@ -171,6 +171,13 @@ func _on_event(kind: String, args: Variant) -> void:
 			if args is Array and args.size() == 1 and args[0] is int:
 				game.others.take_gone(args[0])
 		Protocol.HEARD:
-			if args is Array and args.size() == 3 and args[0] is int:
-				game.hud.chat.hear(args[0], str(args[1]), str(args[2]))
-				game.others.speak(args[0], str(args[2]))
+			if args is Array and args.size() == 4 and args[0] is int:
+				game.hud.chat.hear(args[0], str(args[1]), str(args[2]), bool(args[3]))
+				if not args[3]:
+					game.others.speak(args[0], str(args[2]))
+		Protocol.TEAM:
+			if args is Array and args.size() == 1 and args[0] is Dictionary:
+				game.team.take_team(args[0])
+		Protocol.INVITES:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.team.take_invites(args[0])

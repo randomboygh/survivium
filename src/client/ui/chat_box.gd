@@ -111,11 +111,14 @@ func submit() -> void:
 		game.net.request(Protocol.CHAT, [text])
 
 
-## A line heard: said by player `id` named `who` (0 the server, "" for its answer).
-func hear(id: int, who: String, text: String) -> void:
+## A line heard: said by player `id` named `who` (0 the server, "" for its answer), to
+## the team when `team` (marked and coloured).
+func hear(id: int, who: String, text: String, team := false) -> void:
 	var own: bool = id != 0 and id == int(game.welcome.get("id", -1))
 	var line := text if who == "" else "%s: %s" % [who, text]
-	var color := UiStyle.MUTED if id == 0 else (UiStyle.ACCENT if own else UiStyle.INK)
+	if team:
+		line = "[команда] " + line
+	var color := UiStyle.MUTED if id == 0 else (UiStyle.TEAM if team else (UiStyle.ACCENT if own else UiStyle.INK))
 	lines.append({"text": line, "color": color, "at": _now()})
 	_heard += 1
 	while lines.size() > KEPT:

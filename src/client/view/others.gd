@@ -4,7 +4,8 @@ extends Node3D
 ## the works it does), drawn between the server's snapshots of it (Protocol.PEOPLE, 20
 ## a second over a socket) DELAY seconds behind them, so it walks smoothly, and its
 ## name over its head. One the server stops telling of (PERSON_GONE: out of the zone or
-## the world) goes. A line one says in the chat (HEARD) hangs over the name SAY_TIME
+## the world) goes; a member of the player's team has the name in the team's colour
+## (the entry's last field). A line one says in the chat (HEARD) hangs over the name SAY_TIME
 ## seconds. `game` is the Main node (its `hands` gives the looks of the things
 ## held).
 
@@ -42,7 +43,7 @@ var people := {}
 func take_people(list: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for e in list:
-		if not e is Array or not e.size() in [13, 14] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
+		if not e is Array or not e.size() in [13, 14, 15] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
 				or not e[4] is Array or e[4].size() != 2:
 			continue
 		var id: int = e[0]
@@ -55,6 +56,7 @@ func take_people(list: Array) -> void:
 			one.snaps.pop_front()
 		if one.label.text != str(e[1]):
 			one.label.text = str(e[1])
+		one.label.modulate = UiStyle.TEAM if e.size() > 14 and e[14] == true else Color.WHITE
 
 
 func take_gone(id: int) -> void:

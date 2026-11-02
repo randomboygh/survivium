@@ -2,7 +2,8 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; HEARD, the chat), of the things placed (PROPS, PROP,
+## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; HEARD, the chat; TEAM and INVITES, the
+## team), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_FUEL, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -53,6 +54,8 @@ var _cells := {}
 var _drops := {}
 
 var _you := true
+var _team := true
+var _invites := true
 var _shop := true
 var _knowledge := true
 var _vitals: Array = []
@@ -99,6 +102,8 @@ func _init(s) -> void:
 	actions.drops_changed.connect(_on_drops)
 	actions.looks_changed.connect(_on_looks)
 	actions.taken.connect(_on_taken)
+	session.teams.changed.connect(_on_team)
+	session.teams.invited.connect(_on_invited)
 
 
 ## Takes the player out of the session, and the link off the session's signals.
@@ -115,6 +120,8 @@ func leave() -> void:
 	actions.drops_changed.disconnect(_on_drops)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.taken.disconnect(_on_taken)
+	session.teams.changed.disconnect(_on_team)
+	session.teams.invited.disconnect(_on_invited)
 	for e: Dictionary in placed.things:
 		if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 			e.items.changed.disconnect(_chest_call(e))
@@ -130,6 +137,8 @@ func rejoin() -> void:
 	requests.last_seq = -1
 	requests.last_reply = []
 	_you = true
+	_team = true
+	_invites = true
 	_shop = true
 	_knowledge = true
 	_all = true
@@ -163,8 +172,8 @@ func handle_msg(msg: Array) -> Variant:
 
 ## A line of chat the player hears: said by player `id` named `name` (0 and "" the
 ## server).
-func hear(id: int, name: String, text: String) -> void:
-	_push(Protocol.HEARD, [id, name, text])
+func hear(id: int, name: String, text: String, team := false) -> void:
+	_push(Protocol.HEARD, [id, name, text, team])
 
 
 ## The events for the client since the last flush: the state noted as changed first,
@@ -180,6 +189,12 @@ func flush() -> Array[PackedByteArray]:
 	elif _vitals_changed():
 		_vitals = _vitals_now()
 		out.append(_event(Protocol.VITALS, _vitals))
+	if _team:
+		_team = false
+		out.append(_event(Protocol.TEAM, [session.teams.view(who.id)]))
+	if _invites:
+		_invites = false
+		out.append(_event(Protocol.INVITES, [session.teams.invites_of(who.id, Time.get_ticks_msec() / 1000.0)]))
 	if _knowledge:
 		_knowledge = false
 		out.append(_event(Protocol.KNOWLEDGE, [workshop.knowledge.to_dict()]))
@@ -274,7 +289,8 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > Session.ZONE:
 			continue
 		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
-			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate()]
+			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate(),
+			session.teams.together(who.id, p.id)]
 		here[p.id] = true
 		if _people.get(p.id) != e:
 			_people[p.id] = e
@@ -285,6 +301,20 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 			out.append(_event(Protocol.PERSON_GONE, [id]))
 	if not changed.is_empty():
 		out.append(_event(Protocol.PEOPLE, changed))
+
+
+## The teams of players `ids` changed: this player's own when among them (the PEOPLE
+## entries say who is in it).
+func _on_team(ids: Array) -> void:
+	if ids.has(who.id):
+		_team = true
+		_invites = true
+
+
+## Player `to` was invited to a team.
+func _on_invited(to: int, _from: int, _name: String) -> void:
+	if to == who.id:
+		_invites = true
 
 
 ## The CHUNK args of chunk `key`: its record, var_to_bytes and zstd.
