@@ -27,6 +27,10 @@ const MapView := preload("res://src/client/ui/map_view.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const SleepScreen := preload("res://src/client/ui/sleep_screen.gd")
+const PersonPanel := preload("res://src/client/ui/person_panel.gd")
+const Warmth := preload("res://src/shared/game/warmth.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
@@ -100,7 +104,7 @@ var vitals: VitalsPanel
 ## The dimmed screen while the character sleeps (SleepScreen).
 var sleep: SleepScreen
 ## The button on the clock that lies down to sleep.
-var _sleep_button: TextureButton
+var _sleep_button: Button
 ## The red frame and the numbers over the player when the body is hurt, healed or fed.
 var feedback: BodyFeedback
 var bag: InventoryWindow
@@ -196,12 +200,10 @@ func _ready() -> void:
 	row.add_child(_wind)
 	_clock = UiStyle.label()
 	row.add_child(_clock)
-	_sleep_button = TextureButton.new()
-	_sleep_button.texture_normal = UiStyle.icon("moon")
-	_sleep_button.stretch_mode = TextureButton.STRETCH_KEEP_CENTERED
-	_sleep_button.custom_minimum_size = Vector2(12, 10)
-	_sleep_button.tooltip_text = "Лечь спать"
-	_sleep_button.pressed.connect(func() -> void: game.net.request(Protocol.SLEEP, [true]))
+	# A small button of its own, «zz».
+	_sleep_button = TabRow.icon_button(UiStyle.icon("sleep"), "Лечь спать",
+		func() -> void: game.net.request(Protocol.SLEEP, [true]))
+	_sleep_button.custom_minimum_size = Vector2(24, 18)
 	row.add_child(_sleep_button)
 	vitals = VitalsPanel.new()
 	_left.add_child(vitals)
@@ -347,7 +349,7 @@ func _ready() -> void:
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
 	# In the clock's look, as wide as its line with two-digit slots and three-digit kilos.
-	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, 19)
+	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, 21)
 	_bag_meter.size = _bag_meter.custom_minimum_size
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_bag_meter.add_theme_stylebox_override(state, UiStyle.panel(Vector4(5, 4, 5, 4)))
@@ -700,7 +702,17 @@ func _align_clock() -> void:
 func clock_text() -> String:
 	var hours := int(game.clock.time_of_day * 24.0)
 	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
-	return "%s · д. %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], game.clock.day, hours, minutes]
+	return "%s · %d° · д. %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], roundi(air()), game.clock.day,
+		hours, minutes]
+
+
+## The air where the player stands, degrees (Warmth.air: biome, season, time, weather;
+## a roof keeps the weather off), without the fires and clothes.
+func air() -> float:
+	var p: Vector3 = game.player.position
+	var c := (p / WorldData.CELL).floor()
+	var roofed: bool = game.world != null and game.world.roof_level(int(c.x), int(c.z)) > int(c.y) + 1
+	return Warmth.air(game.world, game.clock, p, roofed)
 
 
 ## The things placed whose marks the minimap shows (see _update_marks), and whether
@@ -1184,9 +1196,9 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 	return b
 
 
-## The tab on the hotbar, in the look of the clock under it: the slots taken of all and
-## the weight of the limit (UiStyle.draw_load), a thin strip of the load along its
-## bottom (amber near the limit, red past it).
+## The tab on the hotbar, in the look of the clock under it: a bar of a division a slot
+## of the bag, as the skills' bars, those taken filled, and over it the weight of the
+## limit (red past it).
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
@@ -1194,11 +1206,18 @@ func _draw_bag_meter() -> void:
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	UiStyle.draw_load(c, Rect2(Vector2(5, 3), c.size - Vector2(10, 8)), taken, inv.slots.size(), inv.weight(), inv.weight_limit)
-	var share: float = inv.load_share()
-	var strip := Rect2(4, c.size.y - 5, c.size.x - 8, 1)
-	c.draw_rect(Rect2(strip.position, Vector2(roundf(strip.size.x * clampf(share, 0.0, 1.0)), 1)),
-		UiStyle.DANGER if share > 1.0 else (UiStyle.ACCENT if share > 0.9 else UiStyle.GOOD))
+	var n: int = maxi(inv.slots.size(), 1)
+	var r := Rect2(Vector2(3, 3), c.size - Vector2(6, 6))
+	c.draw_rect(r, UiStyle.EDGE)
+	var inner := r.grow(-1)
+	c.draw_rect(inner, UiStyle.WELL)
+	var step := inner.size.x / n
+	for i in mini(taken, n):
+		# Each division apart by a pixel of the well.
+		var x0 := inner.position.x + roundf(i * step)
+		var x1 := inner.position.x + roundf((i + 1) * step) - (1.0 if i < n - 1 else 0.0)
+		c.draw_rect(Rect2(x0, inner.position.y, maxf(x1 - x0, 1.0), inner.size.y), PersonPanel.BAR_FILL)
+	UiStyle.draw_weight(c, inner.grow_individual(-4, 0, -4, 0), inv.weight(), inv.weight_limit)
 	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 
 

@@ -33,6 +33,8 @@
   weight: 0.25
   stack: 20
   food: 30
+  heal: 5
+  drink: 5
   spoils: 4
   rots_to: core:rot
   model: roasted_meat
@@ -63,6 +65,7 @@
   weight: 0.12
   stack: 20
   food: 18
+  heal: 3
   model: jerky
   icon: jerky
   anim: eat

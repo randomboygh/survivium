@@ -336,13 +336,13 @@ const SORTS := {"kind": "по виду", "weight": "по весу"}
 ## Items.category, then the order of the data files) or heaviest stack first; stacks
 ## of one item are topped up first (a slot that keeps more than a count, a worn tool,
 ## moves whole) and the empty slots go last. The slots before `from` (the
-## hotbar row) and what is worn stay as they are.
+## hotbar row) and a bag worn on the back (which must stay out of its own slots) stay as
+## they are; worn clothes are sorted with the rest and stay worn.
 func sort(by: String, from := 0) -> void:
 	var counts := {}
 	var stacks := []
 	var pinned := {}
-	for on: String in gear:
-		pinned[worn_slot(on)] = true
+	pinned[worn_slot("back")] = true
 	for i in range(from, slots.size()):
 		var s = slots[i]
 		if s == null or pinned.has(i):
@@ -438,6 +438,25 @@ func worn(i: int) -> int:
 ## spoils.
 static func keeps_wear(id: String) -> bool:
 	return Items.get_item(id).get("durability", 0) > 0 or Items.spoils(id) > 0.0
+
+
+## How full the bag or chest in slot `i` is, 0..1, by its slots taken (a bag worn on
+## the back by the slots it adds); -1 for a thing that holds nothing.
+func fullness(i: int) -> float:
+	var s = slots[i] if i >= 0 and i < slots.size() else null
+	if s == null:
+		return -1.0
+	var room: int = Items.bag_slots(s[0])
+	if room <= 0:
+		room = Items.get_item(s[0]).get("storage", 0)
+	if room <= 0:
+		return -1.0
+	var held: Array = slots.slice(base) if worn_slot("back") == i else (s[3].get("slots", []) if s.size() > 3 else [])
+	var taken := 0
+	for h in held:
+		if h != null:
+			taken += 1
+	return clampf(float(taken) / room, 0.0, 1.0)
 
 
 ## How fresh the food in slot `i` is, 1 (fresh) .. 0 (about to spoil); -1 for what does

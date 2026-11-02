@@ -72,6 +72,8 @@
   weight: 0.3
   stack: 20
   food: 18
+  heal: 4
+  drink: 5
   spoils: 3
   rots_to: core:rot
   model: roasted_fish

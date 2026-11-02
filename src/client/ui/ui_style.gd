@@ -50,6 +50,17 @@ const ICONS := {
 		".y.....y.",
 		"....y....",
 	],
+	# Sleep: «zz», a small z over a big one.
+	"sleep": [
+		".....wwww",
+		".......w.",
+		"......w..",
+		"wwwww.www",
+		"...w.....",
+		"..w......",
+		".w.......",
+		"wwwww....",
+	],
 	"moon": [
 		"..wwww...",
 		".www.....",
@@ -949,31 +960,23 @@ static func theme() -> Theme:
 	return t
 
 
-## A bag's load as one line in `r` of `c`, in the look of the clock under the hotbar:
-## the slots' picture and the slots taken of all (amber when all are), a dot, the
-## weight's picture and the weight of the limit (red past it), centred down `r`; and
-## under it a thin strip of the weight against the limit, as a light's in a slot.
-static func draw_load(c: CanvasItem, r: Rect2, taken: int, slots: int, weight: float, limit: int) -> void:
+## The weight of the limit, `weight` of `limit` kg with the weight's picture, in `r`
+## (red past the limit).
+static func draw_weight(c: CanvasItem, r: Rect2, weight: float, limit: int) -> void:
 	var f := font()
 	var fs := FONT_SIZE
 	var y := floorf(r.position.y + (r.size.y - f.get_height(fs)) * 0.5) + f.get_ascent(fs)
-	var x := r.position.x
-	var cells := icon("cells")
 	var mid := r.position.y + r.size.y * 0.5
-	c.draw_texture(cells, Vector2(x, floorf(mid - cells.get_height() * 0.5)))
-	x += cells.get_width() + 4
-	var a := "%d / %d" % [taken, slots]
-	c.draw_string(f, Vector2(x, y), a, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ACCENT if taken >= slots else INK)
-	x += _text_width(a) + _text_width(" ")
-	c.draw_string(f, Vector2(x, y), "·", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
-	x += _text_width("· ")
+	var x := r.position.x
 	var kg := _weight_icon()
 	if kg != null:
 		c.draw_texture(kg, Vector2(x, floorf(mid - kg.get_height() * 0.5)))
 		x += kg.get_width() + 4
-	var share := weight / float(maxi(limit, 1))
-	c.draw_string(f, Vector2(x, y), "%d / %d кг" % [roundi(weight), limit], HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
-		DANGER if share > 1.0 else INK)
+	# A dark outline keeps it legible over the filled divisions.
+	var text := "%d / %d кг" % [roundi(weight), limit]
+	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+		c.draw_string(f, Vector2(x, y) + d, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, EDGE)
+	c.draw_string(f, Vector2(x, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, DANGER if weight > limit else INK)
 
 
 ## The width draw_load takes for `slots` slots and a limit of `limit` kg, the weight up

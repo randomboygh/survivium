@@ -11,6 +11,7 @@ func run() -> void:
 	_test_vitals()
 	_test_warmth()
 	_test_thirst()
+	_test_good_food()
 	_test_sleep()
 	_test_changes()
 	_test_death()
@@ -167,8 +168,9 @@ func _test_gear() -> void:
 	old.add("tools:grass_cape", 1)
 	old.wear(1)
 	old.sort("weight")
-	_check(old.worn_slot("body") == 1 and old.take_off("body") == "" and old.slots[1] == ["tools:grass_cape", 1],
-		"sorting leaves what is worn in place; taken off, it stays")
+	var cape: int = old.worn_slot("body")
+	_check(cape >= 0 and old.slots[cape] == ["tools:grass_cape", 1] and old.take_off("body") == "" and old.slots[cape] == ["tools:grass_cape", 1],
+		"sorting moves what is worn too, still worn; taken off, it stays where it lies")
 	var w := Survivor.new()
 	w.inventory.add("tools:canvas_backpack", 1)
 	w.inventory.add("tools:grass_cape", 1)
@@ -282,6 +284,28 @@ func _test_warmth() -> void:
 	var winter := Clock.new()
 	winter.season = Clock.WINTER
 	_check(Warmth.air(null, winter, Vector3.ZERO) < Warmth.air(null, summer, Vector3.ZERO), "winter is colder")
+
+
+## Good food (roasted meat) heals a little and quenches thirst besides filling; the
+## fullness of bags and chests in the bag.
+func _test_good_food() -> void:
+	var w := Survivor.new()
+	w.vitals.satiety = 20.0
+	w.vitals.water = 20.0
+	w.vitals.health = 50.0
+	w.inventory.add("animals:roasted_meat", 1)
+	_check(w.eat(0) and w.vitals.satiety > 20.0 and w.vitals.water > 20.0 and w.vitals.health > 50.0,
+		"roasted meat fills, heals and quenches thirst")
+	var inv := Inventory.new()
+	inv.add("tools:wicker_bag", 1)
+	inv.add("resources:stone", 1)
+	_check(inv.fullness(1) < 0.0 and inv.fullness(0) == 0.0, "a bag shows how full it is, a stone does not")
+	inv.wear(0)
+	inv.slots[Inventory.SLOTS + 1] = ["resources:fiber", 2]
+	inv.slots[Inventory.SLOTS + 5] = ["resources:fiber", 2]
+	_check(is_equal_approx(inv.fullness(0), 2.0 / 8.0), "the bag worn: its slots taken")
+	inv.take_off("back")
+	_check(is_equal_approx(inv.fullness(0), 2.0 / 8.0), "taken off, what it holds")
 
 
 func _test_thirst() -> void:

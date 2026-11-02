@@ -260,7 +260,8 @@ func _test_placed() -> void:
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
 	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
 	cook.at = Vector3(22.46, 2.0, 21.0) * WorldData.CELL
-	_check(placed.burns(cook.at), "standing close by its side burns")
+	_check(not placed.burns(cook.at) and not placed.pushed_into(cook.at).is_empty(),
+		"standing close by its side warms, pushing into it burns")
 	cook.at = Vector3(Placed.center(fire).x, 3.0 * WorldData.CELL, Placed.center(fire).z)
 	_check(placed.burns(cook.at), "and standing on top of it")
 	placed.put_out(fire)
