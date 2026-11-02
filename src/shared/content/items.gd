@@ -125,10 +125,11 @@ static func _shared_ending(titles: Array) -> String:
 	return text.left(1).to_lower() + text.substr(1)
 
 
-## Whether item `id` is a station: set down in the world (a `prop`) and storing nothing.
+## Whether item `id` is a station: set down in the world (a `prop`), storing nothing and
+## claiming no land.
 static func is_station(id: String) -> bool:
 	var item := get_item(id)
-	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0
+	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0 and not item.get("claims", false)
 
 
 ## The most slots a thing set down holds (`storage`), 0 when none stores.
@@ -271,7 +272,7 @@ static func check() -> PackedStringArray:
 		if place != "" and Mat.index(place) >= 0 and placed_by[Mat.index(place)] != id:
 			out.append("items: `%s` and `%s` both place `%s`" % [placed_by[Mat.index(place)], id, place])
 		if item.prop == "none":
-			for flag: String in ["storage", "fire", "repairs", "serves", "place_tool", "fuel_max", "fuel_start"]:
+			for flag: String in ["storage", "fire", "repairs", "serves", "place_tool", "claims", "fuel_max", "fuel_start"]:
 				if item[flag] != Content.schema("items")[flag].default:
 					out.append("items: `%s`.%s: only a thing set down in the world (a `prop`) has it" % [id, flag])
 		for s: String in item.serves:

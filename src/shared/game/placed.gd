@@ -67,6 +67,9 @@ signal fuel_changed(e: Dictionary)
 signal cell_changed(cell: Vector3i)
 
 var world
+## The land claimed (Territory): a thing that `claims` set down from a bag is a claim's
+## centre; null where nobody claims (a client's copy).
+var territory
 ## Each light set down: {"item": id, "cell": Vector3i (the cell it stands in), "burnt":
 ## seconds it has burned, "light": true, "items": null, "lit": true}. Saved with the
 ## things (to_list).
@@ -355,6 +358,8 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	if spot == null:
 		who.nag("put", "Нужно ровное место 2×2 перед собой")
 		return false
+	if item.claims and territory != null and not territory.can_claim(who, spot):
+		return false
 	if not who.act("place"):
 		return false
 	var taken: Array = inv.take_slot(slot, 1)
@@ -362,8 +367,10 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 		for dx in 2:
 			_level_ground(spot + Vector3i(dx, -1, dz))
 			_remove_bush(spot + Vector3i(dx, 0, dz))
-	put(item.id, spot, taken[3] if taken.size() > 3 else null)
+	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null)
 	world.note_edit(spot.x, spot.z)
+	if item.claims and territory != null:
+		territory.add_claim(who.get("id") if who.get("id") != null else 0, e, str(who.get("player_name") if who.get("player_name") != null else ""))
 	return true
 
 

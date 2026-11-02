@@ -117,6 +117,9 @@ const TEAM_LEAVE := "team_leave"
 const TEAM_KICK := "team_kick"
 const TEAM_NAME := "team_name"
 const TEAM_CHAT := "team_chat"
+## Territory (Territory, decision 15): paints a square of land for a claim of the
+## player's or their team's [square (Vector2i), on] or clears it (on false); true when done.
+const LAND_PAINT := "land_paint"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -193,6 +196,14 @@ const HEARD := "heard"
 const TEAM := "team"
 ## The invitations to a team waiting for the player: [[[id, name]…]]; when they change.
 const INVITES := "invites"
+## The claims of land (Territory.claims_view): [[[id, centre cell, by, name]…]], all of
+## them, on joining and when one is made or gone or a team changes.
+const CLAIMS := "claims"
+## Squares of land changed: [[[square, claim (0 none)]…], all] (all: these are every
+## square there is, on joining).
+const SQUARES := "squares"
+## The squares the player and their team hold and may hold: [used, budget]; when changed.
+const LAND := "land"
 ## A chunk of the world made, for the client's copy (С3.2; over a socket): [key, size,
 ## bytes], the record WorldGen.pack gives as var_to_bytes, zstd (`size` its length
 ## before); sent again when what the chunk shows changed (a bush picked, grass mown).

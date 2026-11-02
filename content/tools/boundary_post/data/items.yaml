@@ -1,0 +1,12 @@
+# Предметы бандла «Межевой столб» мода «Инструменты и крафт»: столб с лоскутом ставят на клетки 2×2,
+# и он становится центром территории своего хозяина и его команды (claims: true; закраска участков
+# вокруг — в режиме «Территория»). Поля — как у предметов основы (content/core/data/items.yaml).
+- id: boundary_post
+  title: Межевой столб
+  era: core:primitive
+  weight: 4.0
+  stack: 1
+  icon: boundary_post
+  model: boundary_post
+  prop: post
+  claims: true

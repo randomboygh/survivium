@@ -117,6 +117,9 @@ var person: PersonCard
 ## The window «Команда» of the pause menu on a server.
 var team: TeamPanel
 var _chat_button: Button
+## «Территория»: painting the land on and off (shown with a claim of one's own), the
+## squares held and allowed on it while painting.
+var _land_button: Button
 var _bag_button: Button
 ## The tab on the hotbar with how many slots are taken and the load (a tap opens the
 ## bag).
@@ -240,6 +243,10 @@ func _ready() -> void:
 	_test_button.visible = game.settings.values.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
 	_chat_button.visible = game.join_url != ""
+	_land_button = _icon_button(_top, "flag", "Территория: закрасить участки", toggle_land)
+	_land_button.visible = false
+	game.land.changed.connect(_show_land)
+	game.land.entered.connect(_on_land_entered)
 	_bag_button = _icon_button(_top, "person", "Персонаж, сумка и крафт", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
 
@@ -1013,6 +1020,38 @@ func toggle_menu() -> void:
 	if _menu.visible:
 		game.save.flush()
 	_update_menu()
+
+
+## Painting the land on or off (Land.painting): taps on the ground then paint squares.
+func toggle_land() -> void:
+	var land = game.land
+	land.set_painting(not land.painting)
+	if land.painting:
+		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой участок — чтобы стереть")
+
+
+func _show_land() -> void:
+	var land = game.land
+	var shown: bool = land.has_own()
+	if not shown and land.painting:
+		land.set_painting(false)
+	_land_button.visible = shown
+	_land_button.text = "%d/%d" % [land.used, land.budget] if land.painting else ""
+	# Lit green while painting, dark text on it; a panel like its neighbours otherwise.
+	UiStyle.succeed(_land_button, land.painting)
+	if not land.painting:
+		_land_button.add_theme_stylebox_override("normal", UiStyle.panel())
+		_land_button.add_theme_stylebox_override("hover", UiStyle.panel())
+
+
+## The player walked into a claim (or out of all): whose land it is.
+func _on_land_entered(claim: Dictionary, own: bool) -> void:
+	if claim.is_empty():
+		toast("Ничейная земля")
+	elif own:
+		toast("Своя территория")
+	else:
+		toast("Территория «%s»: здесь можно ходить" % claim.get("name", ""))
 
 
 ## Opens the window «Команда» in place of the pause menu.

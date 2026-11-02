@@ -197,6 +197,8 @@ func _open_world() -> bool:
 		placed.from_list(meta.placed)
 	if had_save and meta.get("teams") is Dictionary:
 		session.teams.from_dict(meta.teams)
+	if had_save and meta.get("territory") is Dictionary:
+		session.territory.from_dict(meta.territory)
 	else:
 		placed.start_camp(spawn)
 		if gen.has_method("plan_things"):

@@ -445,6 +445,10 @@ func _run() -> void:
 				main.hud.open_team()
 			for i in 3:
 				await process_frame
+		if shot.has("land"):
+			_fake_land(main, shot.land)
+			for i in 6:
+				await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
@@ -789,6 +793,29 @@ func _fake_team(main: Node, what: String) -> void:
 		people.append([p[0], p[1], pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF, {}, p[3]])
 	main.others.take_people(people)
 	main.team.take_invites([[4, "Гена"]] if what == "invite" else [])
+
+
+## Land for the shots of territory: a boundary post set down south of the player and
+## squares painted round it into a field with a lane out; `painting` turns the marking on.
+func _fake_land(main: Node, painting: bool) -> void:
+	var who = main.host.player
+	var post := Items.with_prop("post")
+	who.inventory.add(post, 1)
+	main.player.facing = "s"
+	main.props.put_from_bag(post)
+	var t = main.session.territory
+	if t.claims.is_empty():
+		push_warning("shot: the boundary post was not set down")
+		return
+	var claim: Dictionary = t.claims.values()[0]
+	var c: Vector2i = claim.sq
+	for ring in 4:
+		for dz in range(-ring, ring + 1):
+			for dx in range(-ring, ring + 1):
+				t.paint(who, c + Vector2i(dx, dz), true)
+	for i in 4:
+		t.paint(who, c + Vector2i(4 + i, 0), true)
+	main.land.set_painting(painting)
 
 
 func _craft(forge := false, weave := false, smith := false, dry := false) -> void:

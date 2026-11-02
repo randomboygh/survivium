@@ -16,6 +16,7 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Storms := preload("res://src/shared/game/storms.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Teams := preload("res://src/shared/game/teams.gd")
+const Territory := preload("res://src/shared/game/territory.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -54,6 +55,8 @@ var storms: Storms
 var wildlife: Wildlife
 ## The teams of the world's players (Teams).
 var teams := Teams.new()
+## The land claimed (Territory).
+var territory := Territory.new()
 ## The characters playing (Character) and the workshop of each (Workshop), in one
 ## order; the animals see the characters as people.
 var players: Array = []
@@ -84,6 +87,10 @@ func _init(w, g, c: Clock, r, p) -> void:
 	clock.world = world
 	clock.gen = gen
 	placed.world = world
+	territory.rules = rules
+	territory.teams = teams
+	placed.territory = territory
+	placed.removed.connect(territory.thing_removed)
 	actions = WorldActions.new(world, clock, rules)
 	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
 	# server's; a client's copy only shows the season.
@@ -160,6 +167,7 @@ func step_players(delta: float) -> void:
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	placed.step(d, clock.WEATHERS[clock.weather].get("rain", 0.0))
+	territory.step(clock.days(d), players)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
 
 
