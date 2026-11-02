@@ -123,7 +123,7 @@ const YOU := "you"
 ## What the player knows how to make changed: [Knowledge.to_dict()].
 const KNOWLEDGE := "knowledge"
 ## The body's state, every tick it changes: [health, satiety, stamina, hunger, hurt_by, warmth,
-## wet].
+## wet, water].
 const VITALS := "vitals"
 ## The workshop: {"queue", "paused"}.
 const SHOP := "shop"

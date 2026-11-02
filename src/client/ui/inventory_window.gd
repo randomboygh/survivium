@@ -268,7 +268,7 @@ func _ready() -> void:
 			game.net.request(Protocol.WEAR, [_at])
 			_let_go()
 			refresh()
-		elif Items.food(id) > 0.0 or Items.heal(id) > 0.0:
+		elif Items.food(id) > 0.0 or Items.drink(id) > 0.0 or Items.heal(id) > 0.0:
 			game.net.request(Protocol.EAT, [_at])
 		elif _plantable(id):
 			game.net.request(Protocol.PLANT, [id])
@@ -732,11 +732,13 @@ func _show_info(inv) -> void:
 			room -= int(b.get_combined_minimum_size().x) + 6
 	_info.custom_minimum_size.x = room - 30
 	var heals: bool = s != null and Items.heal(s[0]) > 0.0
-	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals
+	var drinks: bool = s != null and Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0
+	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals or drinks
 	var put: bool = s != null and _placeable(s[0])
 	var plant: bool = s != null and not food and _plantable(s[0])
 	var wear: bool = s != null and Items.wear_on(s[0]) != ""
-	_use.text = "Надеть" if wear else ("Перевязать" if heals else ("Съесть" if food else ("Поставить" if put else ("Посадить" if plant else "Взять"))))
+	var eat_word := "Выпить" if drinks else "Съесть"
+	_use.text = "Надеть" if wear else ("Перевязать" if heals else (eat_word if food else ("Поставить" if put else ("Посадить" if plant else "Взять"))))
 	_use.tooltip_text = "Надеть на персонажа" if wear else ("Перевязать раны" if heals else ("Съесть одну" if food else ("Поставить рядом" if put \
 		else ("Посадить перед собой" if plant else "Взять в руку"))))
 	_use.disabled = not mine or not wear and not food and not put and not plant and game.controls.held() == s[0]

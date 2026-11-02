@@ -1,0 +1,20 @@
+# Предметы бандла «Бурдюк» мода «Инструменты и крафт»: сосуд для воды. Пустой бурдюк, взятый в руку,
+# наполняют у пресной воды (озеро, река, болото; не море) — `fills_to`; полный выпивают из сумки или
+# руки — `drink` воды (src/shared/game/vitals.gd), и он снова пустой — `empties_to`.
+- id: waterskin
+  title: Бурдюк
+  description: Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить.
+  era: core:bone_leather
+  weight: 0.3
+  stack: 1
+  icon: waterskin
+  fills_to: waterskin_full
+- id: waterskin_full
+  title: Бурдюк с водой
+  description: Полный бурдюк. Утоляет жажду вдали от воды.
+  era: core:bone_leather
+  weight: 1.3
+  stack: 1
+  icon: waterskin_full
+  drink: 60
+  empties_to: waterskin

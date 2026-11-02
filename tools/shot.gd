@@ -403,6 +403,12 @@ func _run() -> void:
 			main.host.player.inventory.add("resources:stone", 40)
 			await process_frame
 			await process_frame
+		if shot.has("thirst"):
+			# A thirsty body: the water bar low and red.
+			main.host.player.vitals.water = shot.thirst
+			main.hud.vitals.pinned = true
+			for i in 4:
+				await process_frame
 		if shot.has("chill"):
 			# A body chilled and wet: the warmth bar low and blue, the drop by it.
 			var v = main.host.player.vitals

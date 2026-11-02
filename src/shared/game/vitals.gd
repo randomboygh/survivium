@@ -1,5 +1,5 @@
 extends RefCounted
-## The body's state: health, satiety and stamina, each 0..MAX (plan/design/character.md),
+## The body's state: health, satiety, water and stamina, each 0..MAX (plan/design/character.md),
 ## its warmth (0..MAX, COMFORT in between) and how wet it is (0..1).
 ## Survival is soft: hunger first lowers stamina and its recovery, and only a long
 ## neglect hurts (a day without food). Stamina pays for jumps, swimming and work and
@@ -17,6 +17,13 @@ const HUNGRY := 25.0
 const STARVE_PER_DAY := 100.0
 const WELL_FED := 50.0
 const HEAL_PER_DAY := 50.0
+## Water lost per game day (THIRST_HOT times that while hot), and what is left when
+## thirst starts to show: as hunger, a lower stamina cap and no healing; with none left
+## health goes down DRY_PER_DAY a game day.
+const THIRST_PER_DAY := 70.0
+const THIRST_HOT := 1.5
+const THIRSTY := 25.0
+const DRY_PER_DAY := 120.0
 ## Stamina back per second at rest, and its cap while hungry.
 const REST := 12.0
 const HUNGRY_CAP := 60.0
@@ -56,13 +63,17 @@ const COSTS := {"jump": 4.0, "dig": 3.0, "place": 1.0, "chop": 5.0, "cut": 1.0, 
 
 var health := MAX
 var satiety := 80.0
+var water := 80.0
 var stamina := MAX
-## Why health went down last ("hunger", "water", "fire", "cold"), for the message on death.
 ## Whether satiety falls with time; a playtest switch turns it off.
 var hunger := true
+## Whether water falls with time; a playtest switch turns it off.
+var thirst := true
 ## Whether the body feels the cold and the heat; a playtest switch turns it off (warmth
 ## stays at COMFORT, wetness still comes and goes).
 var cold := true
+## Why health went down last ("hunger", "thirst", "water", "fire", "cold"), for the
+## message on death.
 var hurt_by := ""
 var warmth := COMFORT
 var wet := 0.0
@@ -74,9 +85,13 @@ var wet := 0.0
 func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void:
 	if hunger:
 		satiety = maxf(0.0, satiety - HUNGER_PER_DAY * days)
+	if thirst:
+		water = maxf(0.0, water - THIRST_PER_DAY * days * (THIRST_HOT if warmth > HOT else 1.0))
 	if satiety <= 0.0:
 		_hurt(STARVE_PER_DAY * days, "hunger")
-	elif satiety > WELL_FED and warmth >= COLD:
+	if water <= 0.0:
+		_hurt(DRY_PER_DAY * days, "thirst")
+	elif satiety > WELL_FED and water >= THIRSTY and warmth >= COLD:
 		health = minf(MAX, health + HEAL_PER_DAY * days)
 	if swimming:
 		stamina = maxf(0.0, stamina - SWIM_COST * delta)
@@ -84,7 +99,7 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 			_hurt(DROWN * delta, "water")
 	else:
 		var rest := REST * delta
-		if satiety < HUNGRY or warmth < COLD:
+		if satiety < HUNGRY or water < THIRSTY or warmth < COLD:
 			rest *= 0.5
 		if load_factor > 1.0:
 			rest *= 0.5
@@ -128,11 +143,11 @@ func _hurt(amount: float, why: String) -> void:
 		hurt_by = why
 
 
-## The most stamina the body can have now: less while hungry or cold, a little less
-## while hot.
+## The most stamina the body can have now: less while hungry, thirsty or cold, a little
+## less while hot.
 func stamina_cap() -> float:
 	var cap := MAX
-	if satiety < HUNGRY or warmth < COLD:
+	if satiety < HUNGRY or water < THIRSTY or warmth < COLD:
 		cap = HUNGRY_CAP
 	elif warmth > HOT:
 		cap = HOT_CAP
@@ -160,6 +175,14 @@ func eat(food: float) -> bool:
 	return true
 
 
+## Drinks something worth `amount` water; false when not thirsty at all.
+func drink(amount: float) -> bool:
+	if water >= MAX - 0.5:
+		return false
+	water = minf(MAX, water + amount)
+	return true
+
+
 ## Puts back `amount` health (a bandage); false when not hurt.
 func heal(amount: float) -> bool:
 	if health >= MAX - 0.5:
@@ -182,18 +205,20 @@ func revive(share: float) -> void:
 	health = MAX * share
 	stamina = MAX
 	satiety = maxf(satiety, HUNGRY + 10.0)
+	water = maxf(water, THIRSTY + 10.0)
 	warmth = maxf(warmth, COMFORT)
 	wet = 0.0
 	hurt_by = ""
 
 
 func to_dict() -> Dictionary:
-	return {"health": health, "satiety": satiety, "stamina": stamina, "warmth": warmth, "wet": wet}
+	return {"health": health, "satiety": satiety, "water": water, "stamina": stamina, "warmth": warmth, "wet": wet}
 
 
 func from_dict(d: Dictionary) -> void:
 	health = clampf(float(d.get("health", MAX)), 1.0, MAX)
 	satiety = clampf(float(d.get("satiety", satiety)), 0.0, MAX)
+	water = clampf(float(d.get("water", water)), 0.0, MAX)
 	stamina = clampf(float(d.get("stamina", MAX)), 0.0, MAX)
 	warmth = clampf(float(d.get("warmth", COMFORT)), 0.0, MAX)
 	wet = clampf(float(d.get("wet", 0.0)), 0.0, 1.0)

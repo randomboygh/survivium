@@ -239,6 +239,10 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 		return shoot(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	if Tools.can_fish(who.tool()):
 		return fish(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+	if _drinks_with(who):
+		var bits: int = world.water_col(cell.x, cell.z)
+		if bits != 0 and cell.y <= WorldData.top_level(bits) + 1 and not too_far(who, cell, DRINK_REACH + 1):
+			return drink(who, Vector3(cell.x + 0.5, WorldData.top_level(bits) + 1.0, cell.z + 0.5) * CELL)
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cell.y == 0 or m == Mat.AIR:
 		return {}
@@ -504,6 +508,10 @@ func act_in_front(who, top: int) -> Dictionary:
 	var t: Dictionary = who.tool()
 	if Tools.can_fish(t):
 		return fish(who)
+	if _drinks_with(who):
+		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
+		if water.is_finite() and (who.vitals.water < who.vitals.MAX - DRINK * 0.5 or _fills(who) != ""):
+			return drink(who, water)
 	var arm := Tools.weapon(who.held())
 	# A spear, a sling or a bow shoots ahead; a sword or a knife goes for an animal in
 	# front first, any other hand for one right by the body.
@@ -641,6 +649,59 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 	return done
 
 
+# --- Drinking --------------------------------------------------------------------------
+
+## Water a gulp at fresh water gives, how long it takes, and how far off the water can be
+## (cells; a tap on it reaches one more).
+const DRINK := 25.0
+const DRINK_SWING := 0.8
+const DRINK_REACH := 2
+
+
+## Drinks from, or fills a vessel at, the water at world point `water`: an empty hand
+## drinks (Vitals.drink), an empty vessel in the hand (an item with `fills_to`) becomes
+## a full one. Only fresh water (fresh_water): the sea is salty.
+func drink(who, water: Vector3) -> Dictionary:
+	if not fresh_water(water):
+		who.nag("salty", "Морская вода солёная: пить её нельзя")
+		return {"swing": IDLE_SWING}
+	var full := _fills(who)
+	if full != "":
+		var empty: String = who.held()
+		if who.inventory.remove(empty, 1) != 1:
+			return {"swing": IDLE_SWING}
+		if who.give(full, 1) == 0:
+			who.give(empty, 1)
+			return {"swing": IDLE_SWING}
+		return _work(DRINK_SWING, "", water, Mat.WATER)
+	if not who.vitals.drink(DRINK):
+		who.nag("not_thirsty", "Пить не хочется")
+		return {"swing": IDLE_SWING}
+	who.note("drunk")
+	return _work(DRINK_SWING, "", water, Mat.WATER)
+
+
+## Whether the water at world point `water` is fresh: a lake, a river, the pools of a
+## swamp; not the sea. Fresh without a layout of the land (tests).
+func fresh_water(water: Vector3) -> bool:
+	if wildlife == null or wildlife.gen == null:
+		return true
+	var gen = wildlife.gen
+	var w: Dictionary = gen.lay_out(floori(water.x / CELL), floori(water.z / CELL), 1, 1)
+	return w.feature[0] == gen.LAKE or w.feature[0] == gen.RIVER or w.flags[0] & (gen.MARSH | gen.MIRE) != 0
+
+
+## Whether the hand in use of `who` drinks or fills at water: empty, or an empty vessel.
+func _drinks_with(who) -> bool:
+	return "vitals" in who and (who.held() == "" or _fills(who) != "")
+
+
+## What the vessel in the hand in use of `who` becomes filled, "" for none.
+func _fills(who) -> String:
+	var held: String = who.held()
+	return Items.get_item(held).get("fills_to", "") if held != "" else ""
+
+
 # --- Fishing ---------------------------------------------------------------------------
 
 ## The share of casts something bites on, before the biome's shares say what; how long a
@@ -710,8 +771,7 @@ func fishing_biome(at: Vector3, water: Vector3) -> int:
 	var gen = wildlife.gen
 	var w: Dictionary = gen.lay_out(floori(water.x / CELL), floori(water.z / CELL), 1, 1)
 	var here := biome_under(at)
-	var fresh: bool = w.feature[0] == gen.LAKE or w.feature[0] == gen.RIVER or w.flags[0] & (gen.MARSH | gen.MIRE) != 0
-	if not fresh:
+	if not fresh_water(water):
 		if Biomes.where(here) == "beach" and here != Biomes.BEACH:
 			return here
 		var sea: int = w.biome[0]

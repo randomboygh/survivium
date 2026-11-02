@@ -376,7 +376,7 @@ func action_name() -> String:
 		"prop":
 			return "Поставить"
 		"eat":
-			return "Съесть"
+			return "Выпить" if Items.food(held()) <= 0.0 else "Съесть"
 		"heal":
 			return "Перевязать"
 	var item := Items.get_item(held()) if held() != "" else {}
@@ -789,7 +789,7 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 		"prop":
 			return "поставить перед собой"
 		"eat":
-			return "съесть"
+			return "выпить" if Items.food(held(hand)) <= 0.0 else "съесть"
 		"heal":
 			return "перевязать"
 	var t := tool_record(hand)
