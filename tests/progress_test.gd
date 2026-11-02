@@ -43,6 +43,8 @@ const MAX_SWINGS := 6000
 const WANT_AHEAD := 4
 ## Trips further out when nothing wanted is near.
 const MAX_TRIPS := 16
+## Trips go out in rings this many wide, then start near the camp again (see _trip).
+const TRIP_RINGS := 24
 ## Slots of the bag here (see _run).
 const BAG := 24
 
@@ -1012,7 +1014,10 @@ func _trip() -> bool:
 	if trips > MAX_TRIPS * 6:
 		return false
 	var turn := trips * 2.4
-	var r := (2.0 + trips * 1.5) * CHUNK
+	# Farther each trip, but back near the camp every TRIP_RINGS: the trips of a long run
+	# (fiber for the bedding and the cloak, CI 2026-11-02) went on to the world's edge
+	# and found no grass there.
+	var r := (2.0 + (trips % TRIP_RINGS) * 1.5) * CHUNK
 	var col := Vector2i((Vector2(camp.x, camp.z) / CELL + Vector2(cos(turn), sin(turn)) * r).round())
 	await _go(Vector3(col.x + 0.5, main.world.size_y - 2, col.y + 0.5) * CELL)
 	var frames := 0
