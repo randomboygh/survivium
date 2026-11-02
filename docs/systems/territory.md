@@ -112,4 +112,4 @@
 одном сервере; участки, бюджет, связность, столб через `put_from_bag` и `land_paint`; права по умолчанию и
 заданные, сохранение, цвет земли и запрос `land_color`, копать, сундук, забрать вещь и ходить на чужой земле; костёр помнит, кто поставил, кому какие точки возрождения, `revive` только в них, `at_home`), `tests/server_test.gd`
 `_chat` (приглашение, согласие и строка команде через сокет).
-Снимки: `tools/shot.gd` `team-person`, `team-invite`, `team-panel`, `land`, `land-paint`, `land-rights`.
+Снимки: `tools/shot.gd` `team-person`, `team-invite`, `team-panel`, `land`, `land-paint`, `land-rights`, `death-fires`.
