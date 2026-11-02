@@ -51,7 +51,7 @@ func refresh() -> void:
 	var land = game.land
 	var claim: Dictionary = land.here()
 	var key := str([claim.get("id", 0), claim.get("name", ""), land.copy.rights_of(claim.get("by", 0)),
-		land.copy.color_of(claim.get("by", 0)), land.own(claim)])
+		land.copy.color_of(claim.get("by", 0)), land.own(claim), claim.get("weak", 0)])
 	if key == _shown:
 		return
 	_shown = key
@@ -69,6 +69,8 @@ func refresh() -> void:
 	_box.add_child(title)
 	if not land.own(claim):
 		var may: Array = land.may_here(claim)
+		if int(claim.get("weak", 0)) > 0:
+			_note("Земля заброшена: хозяева давно не заходили, охрана ослабла")
 		_note("Здесь можно: " + ", ".join(may) if not may.is_empty() else "Здесь ничего нельзя")
 		_laid()
 		return

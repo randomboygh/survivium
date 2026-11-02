@@ -1049,7 +1049,8 @@ func tap_post(e: Dictionary) -> void:
 	var land = game.land
 	if not land.tap_post(e):
 		var claim: Dictionary = land.copy.claim_at(e.cell)
-		toast("Межевой столб «%s»" % claim.get("name", "") if not claim.is_empty() else "Межевой столб")
+		toast("Межевой столб «%s»" % claim.get("name", "") if not claim.is_empty() \
+			else "Межевой столб без земли: её забросили. Заберите столб и поставьте снова")
 		return
 	if land.painting:
 		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой — чтобы стереть; на столб — чтобы закончить")
@@ -1073,7 +1074,7 @@ func _on_land_entered(claim: Dictionary, own: bool) -> void:
 		toast("Своя территория")
 	else:
 		var may: Array = game.land.may_here(claim)
-		toast("Территория «%s»: %s" % [claim.get("name", ""),
+		toast("Территория «%s»%s: %s" % [claim.get("name", ""), " заброшена" if int(claim.get("weak", 0)) > 0 else "",
 			"можно " + ", ".join(may) if not may.is_empty() else "ничего нельзя"])
 
 

@@ -476,6 +476,21 @@ func _run() -> void:
 				main.hud.bag.show_tab("land")
 				for i in 6:
 					await process_frame
+			if shot.get("decay", false):
+				# The land is another's, left long ago: the next tick weakens it and lets
+				# its farther squares go; the player stands in it and looks at the tab.
+				var t = main.session.territory
+				var claim: Dictionary = t.claims.values()[0]
+				claim.by = 7
+				claim.name = "Вова"
+				claim.seen = t.time - main.session.rules.territory_abandon_hours * 3600.0 - 1.0
+				for i in 10:
+					await process_frame
+				main.hud._on_land_entered(main.land.here(), false)
+				main.hud.toggle_bag()
+				main.hud.bag.show_tab("land")
+				for i in 6:
+					await process_frame
 		if shot.get("bag", false):
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
