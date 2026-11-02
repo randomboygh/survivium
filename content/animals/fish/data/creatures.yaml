@@ -10,11 +10,11 @@
   sight: 4
   human_wariness: 0.6
   active: any
-  count: 8
+  count: 5
   sprite: roach
   frames: 3
   swims: true
-  flock: [3, 5]
+  flock: [2, 4]
   catch: roach
   biomes: [biomes:alpine_meadow, biomes:beach, biomes:birch_grove, biomes:desert, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:jungle, biomes:maple_wood, biomes:meadow, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:red_rocks, biomes:rock, biomes:salt_flat, biomes:savanna, biomes:steppe, biomes:swamp, biomes:taiga]
 - id: pike
@@ -25,7 +25,7 @@
   sight: 5
   human_wariness: 0.6
   active: any
-  count: 3
+  count: 2
   sprite: pike
   frames: 3
   swims: true
@@ -39,7 +39,7 @@
   sight: 5
   human_wariness: 0.6
   active: any
-  count: 6
+  count: 4
   sprite: salmon
   frames: 3
   swims: true
@@ -54,11 +54,11 @@
   sight: 5
   human_wariness: 0.6
   active: any
-  count: 8
+  count: 5
   sprite: cod
   frames: 3
   swims: true
-  flock: [3, 5]
+  flock: [2, 4]
   catch: cod
   biomes: [biomes:sea, biomes:ice_waste, biomes:tropical_sea]
 - id: parrotfish
@@ -69,7 +69,7 @@
   sight: 4
   human_wariness: 0.6
   active: day
-  count: 6
+  count: 4
   sprite: parrotfish
   frames: 3
   swims: true
@@ -84,7 +84,7 @@
   sight: 4
   human_wariness: 0.5
   active: night
-  count: 3
+  count: 2
   sprite: catfish
   frames: 3
   swims: true
