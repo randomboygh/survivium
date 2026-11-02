@@ -550,6 +550,57 @@ func act_in_front(who, top: int) -> Dictionary:
 	return swing_air(who, Vector3.INF)
 
 
+## What the action button would do in front of `who` now (see act_in_front), changing
+## nothing, for its label: "place", "plant", "fish", "drink", "fill" (a vessel at the
+## water), "shoot", "hit" (a player or an animal there), "chop", "gather" (a tree or a
+## bush), "mow", "dig", or "" for a swing at the air.
+func front_kind(who) -> String:
+	match Tools.use_of(who.held()):
+		"place":
+			return "place"
+		"plant", "sow":
+			return "plant"
+	var t: Dictionary = who.tool()
+	if Tools.can_fish(t):
+		return "fish"
+	if _drinks_with(who):
+		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
+		if water.is_finite():
+			if _fills(who) != "":
+				return "fill"
+			if who.vitals.water < who.vitals.MAX - DRINK * 0.5:
+				return "drink"
+	var arm := Tools.weapon(who.held())
+	if Tools.shoots(arm):
+		return "shoot"
+	if _someone_in_front(who, Tools.hunts(arm)):
+		return "hit"
+	var work := front_choice(who)
+	if work.has("trunk"):
+		return "chop"
+	if work.has("tree") or work.has("bush"):
+		return "gather"
+	if work.has("mow"):
+		return "mow"
+	if work.has("dig"):
+		return "dig"
+	return ""
+
+
+## Whether a blow of `who` would land on a player they may hit or an animal in front
+## (see strike; only one right by the body unless `far`), without a word.
+func _someone_in_front(who, far: bool) -> bool:
+	var dir := Vector2(who.facing_step())
+	var weapon := Tools.weapon(who.held())
+	if fights != null and people.size() >= 2 and (not weapon.is_empty() or who.tool().tool == "hand"):
+		var other = fights.in_front(who, people, dir, fights.STRIKE_REACH if far else STRIKE_CLOSE, fights.STRIKE_CONE)
+		if other != null and fights.why_not(who, other).is_empty():
+			return true
+	if wildlife == null:
+		return false
+	return wildlife.in_front(who.position, dir, wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE) != null
+
+
 ## Nothing to work: the hand in use swings at the air (toward `at`, if finite), without
 ## a word and for less stamina.
 func swing_air(who, at: Vector3) -> Dictionary:

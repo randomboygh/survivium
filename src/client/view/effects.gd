@@ -266,8 +266,8 @@ func _torch_flame() -> CPUParticles3D:
 
 ## The light of a campfire burning in full, and how strongly one about to go out burns
 ## (see fire_strength).
-const FIRE_ENERGY := 1.8
-const FIRE_LOW := 0.3
+const FIRE_ENERGY := 2.1
+const FIRE_LOW := 0.2
 
 
 ## A campfire one world unit square with its north-west corner at `corner`: stones,
@@ -337,24 +337,35 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 
 
 ## How strongly campfire `rec` (see add_campfire) burns, from what it has left to burn
-## (`share` 0..1, Placed.fuel_share): a full one burns wide and high, sparks and lights
-## far; one running low is a few low flames, no sparks, a short light.
+## (`share` 0..1, Placed.fuel_share): a full one burns wide, high and bright with sparks
+## flying and lights far; one running low is a few low dim flames, no sparks, a short
+## light. The flames grow fast with the first fuel (the root of the share), so a fire
+## just lit or fed a little is already lively, and only the last minutes are dim.
 func fire_strength(rec: Dictionary, share: float) -> void:
 	if rec.fire == null:
 		return
-	var k := lerpf(FIRE_LOW, 1.0, clampf(share, 0.0, 1.0))
+	var k := lerpf(FIRE_LOW, 1.0, sqrt(clampf(share, 0.0, 1.0)))
 	var flames: CPUParticles3D = rec.flames
-	flames.emission_sphere_radius = 0.14 * k
-	flames.initial_velocity_min = 0.5 * k
-	flames.initial_velocity_max = 0.9 * k
-	flames.scale_amount_min = 0.5 * k
-	flames.scale_amount_max = lerpf(0.6, 1.25, k)
-	(rec.sparks as CPUParticles3D).emitting = k > 0.5
+	flames.emission_sphere_radius = lerpf(0.05, 0.2, k)
+	flames.initial_velocity_min = 0.7 * k
+	flames.initial_velocity_max = 1.5 * k
+	flames.scale_amount_min = 0.6 * k
+	flames.scale_amount_max = lerpf(0.55, 1.9, k)
+	_brightness(flames, lerpf(0.6, 1.3, k))
+	var sparks: CPUParticles3D = rec.sparks
+	sparks.emitting = k > 0.45
+	sparks.initial_velocity_max = lerpf(1.0, 2.0, k)
+	_brightness(sparks, lerpf(1.0, 1.6, k))
 	(rec.smoke as CPUParticles3D).scale_amount_max = k
 	var light: OmniLight3D = rec.fire.light
 	# Through the anchor, so a turn or tilt of the view keeps the short light short.
-	set_reach(light, 8.0 * lerpf(0.5, 1.0, k))
-	rec.fire.base = FIRE_ENERGY * lerpf(0.45, 1.0, k)
+	set_reach(light, 8.0 * lerpf(0.45, 1.1, k))
+	rec.fire.base = FIRE_ENERGY * lerpf(0.35, 1.0, k)
+
+
+## Sets how bright emitter `p` (made by _emitter) draws its particles.
+static func _brightness(p: CPUParticles3D, b: float) -> void:
+	((p.mesh as QuadMesh).material as ShaderMaterial).set_shader_parameter("brightness", b)
 
 
 ## A light set down with its flame at world point `at`, lighting `reach` world units
@@ -463,9 +474,16 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	sand.position = blizzard.position
 	gale.position = blizzard.position
 	leaves.position = Vector3(view.x, ground + 5.0, view.y + ground + 5.0)
-	_blow(rain, dir, 0.1 + 0.1 * wind, -1.0)
-	_blow(downpour, dir, 0.15 + 0.12 * wind, -1.0)
-	_blow(hail, dir, 0.1 + 0.1 * wind, -1.0)
+	# A strong wind drives the rain far sideways, the streaks leaning with it; the
+	# drops start upwind so they still fall over the view.
+	var gust := rain_lean(wind)
+	_blow(rain, dir, gust, -1.0)
+	_blow(downpour, dir, gust * 1.1, -1.0)
+	_blow(hail, dir, gust * 0.8, -1.0)
+	for p: CPUParticles3D in [rain, downpour]:
+		var lean := dir * gust * (1.1 if p == downpour else 1.0)
+		p.position -= Vector3(lean.x, 0.0, lean.y) * (top - ground) * 0.5
+		((p.mesh as QuadMesh).material as ShaderMaterial).set_shader_parameter("lean", lean)
 	_blow(snowfall, dir, 0.15 + 0.2 * wind, -1.0)
 	_blow(blizzard, dir, 1.0, -0.25)
 	_blow(sand, dir, 1.0, 0.05)
@@ -519,6 +537,16 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 			var energy: float = f.base * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.8, 1.1)
 			f.light.light_energy = energy * (shadow_energy if f.light.shadow_enabled else 1.0)
 		_light_lamps(view, daylight)
+
+
+## How far sideways rain falls in a wind of `wind` (Clock.storm_wind), in world units
+## along the wind for each one it falls: a little in a breeze, half again as far as it
+## falls in a storm, no farther than RAIN_LEAN_MAX.
+static func rain_lean(wind: float) -> float:
+	return minf(RAIN_LEAN_MAX, 0.1 + 0.08 * wind + 0.3 * wind * wind)
+
+
+const RAIN_LEAN_MAX := 1.4
 
 
 ## Points emitter `p` `down` (negative falls) and `side` along the wind `dir` (x east,

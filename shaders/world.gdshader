@@ -46,6 +46,9 @@ uniform int corner_shapes[63];
 // by main.gd: reading past the end draws garbage on some GPUs.
 uniform int material_bits[63];
 
+// How many texels into a top the grass beside it frays under snow (see the transitions).
+const float GRASS_FRAY = 5.0;
+
 // A face drawn in its vertex colour only (a voxel, a drift): material code NO_MATERIAL
 // in UV2, tile NONE.
 const int NO_MATERIAL = 63;
@@ -278,6 +281,13 @@ void fragment() {
 					}
 				}
 				if (near > CELL_TEXELS - reach) {
+					best = p;
+					pick = nt;
+				} else if (nc == GRASS && snow_amount > 0.05 && !slope
+						&& hash12(wt + vec2(float(e) * 13.0, 71.0)) < (near - CELL_TEXELS + GRASS_FRAY) / GRASS_FRAY * 0.85) {
+					// Under snow a patch of ground with its grass pulled up shows as a
+					// square of white amid the tufts: the turf beside frays into it in
+					// single texels, thinner farther in.
 					best = p;
 					pick = nt;
 				}

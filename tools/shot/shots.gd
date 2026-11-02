@@ -235,6 +235,10 @@ const SHOTS := {
 	"glow-night": {"time": 0.95, "season": 1, "moon": 0.0, "find": "plants:glow_mushrooms"},
 	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "plants:glow_mushrooms"},
 	# Moss on stone, a few tops of it picked: the moss left has a ragged edge.
+	# Grass pulled up for fibre in a winter meadow: the snow's edge round the patch.
+	"winter-fiber": {"time": 0.42, "season": 3, "find": "meadow", "pick_fiber": true},
+	"winter-fiber-early": {"time": 0.42, "season": 3, "find": "meadow", "pick_fiber": true, "snow": 0.5},
+	"winter-meadow-early": {"time": 0.42, "season": 3, "find": "meadow", "snow": 0.5},
 	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true},
 	# A patch of copper ore amid stone moss: the copper has a ragged edge, no moss on it.
 	"copper-moss": {"time": 0.42, "season": 1, "place": "mountain", "copper_moss": true},
@@ -503,6 +507,11 @@ const SHOTS := {
 	"team-invite": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "invite"},
 	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},
 	"land": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false},
+	# The boundary post close, its shadow on the grass in the afternoon sun.
+	# The action button's label by what is in front: water to drink with bare hands.
+	"label-drink": {"time": 0.45, "season": 1, "touch": true, "place": "lake", "face_water": true},
+	"post-close": {"time": 0.6, "season": 1, "find": "meadow", "land": false},
+	"post-snow": {"time": 0.36, "season": 3, "find": "meadow", "land": false},
 	"land-paint": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": true},
 	"land-rights": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false, "rights": true},
 	"land-colors": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false, "rights": true, "land_end": true},

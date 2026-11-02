@@ -91,6 +91,7 @@ func _test_front_choice() -> void:
 	var berries := Vector3i(30, 2, 28)
 	_check(actions.ripe(berries, Bushes.TYPES[Bushes.first(true)]) and actions.front_choice(who) == {"bush": berries},
 		"bare hands go for the berries before the branches of a nearer bush")
+	_check(actions.front_kind(who) == "gather", "and the action button says it gathers")
 	_check(WorldActions._rank(["plants:mushroom"]) < WorldActions._rank(["plants:acorn"])
 		and WorldActions._rank(["plants:acorn"]) < WorldActions._rank(["resources:fiber"])
 		and WorldActions._rank(["resources:branch"]) < WorldActions._rank([]), "food, then seeds, then the rest, then digging")
@@ -99,6 +100,7 @@ func _test_front_choice() -> void:
 	w.set_cell(30, 3, 29, Mat.DIRT)
 	w.set_cell(30, 2, 29, Mat.DIRT)
 	_check(actions.front_choice(who) == {"dig": [Vector3i(30, 3, 29)]}, "the action button digs at the head's level first")
+	_check(actions.front_kind(who) == "dig", "and says it digs once nothing is left to gather")
 	w.set_cell(30, 3, 29, Mat.AIR)
 	_check(actions.front_choice(who) == {"dig": [Vector3i(30, 2, 29)]}, "then at the waist")
 	w.set_cell(30, 2, 29, Mat.AIR)
@@ -253,15 +255,18 @@ func _test_placed() -> void:
 		nearest = maxf(nearest, cook.at.x / WorldData.CELL + Body.HALF_WIDTH)
 	_check(nearest > 20.2 and nearest <= 20.5 + 0.001,
 		"a campfire is solid in its middle only: walking into it stops at its logs, over its stones")
-	_check(cook.vitals.health == Vitals.MAX, "and pushing against its side does not burn")
+	_check(cook.vitals.health < Vitals.MAX and cook.vitals.hurt_by == "fire",
+		"and walking into its logs burns: the flames are as big as what stops the body")
+	cook.vitals.health = Vitals.MAX
+	cook._burn_wait = 0.0
 	cook.body.move_input = Vector2.ZERO
 	cook.at = Vector3(22.5, 2.0, 20.5) * WorldData.CELL
 	_check(not placed.burns(cook.at), "where one comes back by it (Character.find_home) does not burn")
 	var mid: Vector3 = Placed.center(fire)
-	cook.at = Vector3(mid.x + 0.3 * WorldData.CELL, 3.0 * WorldData.CELL, mid.z)
-	_check(not placed.burns(cook.at), "nor standing on top of it off its very middle")
-	cook.at = Vector3(mid.x + 0.1 * WorldData.CELL, 3.0 * WorldData.CELL, mid.z)
-	_check(placed.burns(cook.at), "the very middle of its flames burns")
+	cook.at = Vector3(mid.x + 1.05 * WorldData.CELL, 2.0 * WorldData.CELL, mid.z)
+	_check(not placed.burns(cook.at), "nor standing on its stones a step off the logs")
+	cook.at = Vector3(mid.x + 0.9 * WorldData.CELL, 3.0 * WorldData.CELL, mid.z)
+	_check(placed.burns(cook.at), "standing over the edge of its logs burns")
 	var hurt := cook.vitals.health
 	cook.update(1.0 / 30.0)
 	_check(cook.vitals.health < hurt and cook.vitals.hurt_by == "fire" and cook.body.shove.length() > 0.0,

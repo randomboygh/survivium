@@ -175,6 +175,8 @@ func _run() -> void:
 			if mossy != Vector3i.MIN:
 				main.player.position = (Vector3(mossy + Vector3i(0, 1, 3)) + Vector3(0.5, 0.0, 0.5)) * CELL
 				places.pick_moss(main.world, mossy)
+		if shot.get("pick_fiber", false):
+			places.pick_fiber(main.world, Vector3i((main.player.position / CELL).floor()) + Vector3i(0, 0, -3))
 		if shot.get("grove", false):
 			# Away from the campfire by the spawn, which melts the snow around it.
 			places.grove(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, -44))
@@ -221,13 +223,22 @@ func _run() -> void:
 				main.player.position = body.step(main.player.position, 1.0 / 60.0, false)
 			body.move_input = Vector2.ZERO
 			main.player.facing = shot.get("facing", "s")
+		if shot.get("face_water", false):
+			# Thirsty and turned to the water beside: the action button says «Попить».
+			main.host.player.vitals.water = 20.0
+			for way: String in ["s", "sw", "w", "nw", "n", "ne", "e", "se"]:
+				main.player.facing = way
+				var ahead: Vector3 = main.actions.water_ahead(main.player.position,
+					Vector2(main.character.facing_step()).normalized(), main.actions.DRINK_REACH)
+				if ahead.is_finite():
+					break
 		if shot.has("cut"):
 			main.chunks.manual_level = main.player.level() + int(shot.cut)
 			main.chunks.update_cut(0.0)
 		# Let snow, wetness, tints and particles settle.
 		for i in 90:
 			await process_frame
-			main.session.clock.snow = 1.0 if main.session.clock.season == 3 else 0.0
+			main.session.clock.snow = shot.get("snow", 1.0) if main.session.clock.season == 3 else 0.0
 			main.session.clock.settle_weather()
 			if shot.has("clouds"):
 				main.session.clock.clouds = shot.clouds

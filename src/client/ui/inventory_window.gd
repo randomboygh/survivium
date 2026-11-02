@@ -914,9 +914,9 @@ func _show_info(inv) -> void:
 	else:
 		var id: String = s[0]
 		# The count only for more than one.
-		_info.text = "%s%s%s%s" % [Items.title(id), " ×%d" % s[1] if s[1] > 1 else "",
-			" · с вещами" if _from.contents(_at) != null else "",
-			"" if mine else " · в сундуке"]
+		# Where it lies the window shows by itself: no «в сундуке» after the name.
+		_info.text = "%s%s%s" % [Items.title(id), " ×%d" % s[1] if s[1] > 1 else "",
+			" · с вещами" if _from.contents(_at) != null else ""]
 		var shoots: String = Items.get_item(id).get("ammo", "")
 		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
 			game.character.burn_left(id) if mine else 1.0, _from.freshness(_at), inv.count(shoots) if shoots != "" else -1))

@@ -877,6 +877,14 @@ func refresh_hands() -> void:
 	_update_hands()
 
 
+## The action button's label anew for what is in front of the player now
+## (Controls.action_name).
+func refresh_action() -> void:
+	var text: String = game.controls.action_name()
+	if _action.text != text:
+		_action.text = text
+
+
 ## A tap on hand `hand` of the hotbar.
 func tap_hand(hand: int) -> void:
 	var c = game.controls
