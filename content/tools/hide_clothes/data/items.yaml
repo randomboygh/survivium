@@ -10,6 +10,7 @@
   stack: 1
   icon: fur_hat
   wear_on: head
+  look: fur_hat
   warmth: 5
 - id: fur_coat
   title: Шуба
@@ -19,6 +20,7 @@
   stack: 1
   icon: fur_coat
   wear_on: body
+  look: fur_coat
   warmth: 12
 - id: leather_trousers
   title: Кожаные штаны
@@ -28,6 +30,7 @@
   stack: 1
   icon: leather_trousers
   wear_on: legs
+  look: leather_trousers
   warmth: 5
 - id: fur_boots
   title: Унты
@@ -37,4 +40,5 @@
   stack: 1
   icon: fur_boots
   wear_on: feet
+  look: fur_boots
   warmth: 5

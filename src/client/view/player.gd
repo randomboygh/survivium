@@ -38,8 +38,9 @@ var facing := "s"
 ## The animation playing and how long it has, in seconds of animation time.
 var anim := "idle"
 var anim_time := 0.0
-## Layers of the look (content/core/sprites/player.yaml `layers`): what is worn.
-var look: Array = ["body", "hair", "shirt", "trousers", "boots"]
+## Layers of the look, bottom up (see Figure): naked in a loincloth, then what is worn
+## (dress).
+var look: Array = Figure.dressed({})
 ## What the hands hold and which one is in use (see Figure).
 var held := {"left": {}, "right": {}, "active": "right"}
 ## The work playing (one of player.yaml `works`, "" none), how long it lasts and
@@ -129,6 +130,16 @@ func hold(left: Dictionary, right: Dictionary, active: String) -> void:
 		return
 	held = next
 	if sprite != null:
+		_redraw()
+
+
+## Shows the figure in look `worn` (Figure.dressed); the sheet is drawn again on a change.
+func dress(worn: Array) -> void:
+	if worn == look:
+		return
+	look = worn
+	if sprite != null:
+		Figure.prepare(look)
 		_redraw()
 
 

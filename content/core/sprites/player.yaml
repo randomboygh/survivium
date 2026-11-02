@@ -20,7 +20,12 @@
 # до стольких пикселей и повёрнутая по метке.
 frame: [32, 32]
 directions: [s, se, e, ne, n, sw, w, nw]
-layers: [body, shirt, trousers, boots, hair]
+layers: [body, loincloth, shirt, trousers, boots, hair]
+# naked — слои раздетого персонажа (снизу вверх); надетое ложится между ними по
+# своему месту (Figure.dressed): ноги, ступни, тело — под волосами, голова — поверх.
+# Одежда рисуется формой из player/shapes/<look>.png (три серых тона) в цветах вещи
+# (`look_colors` в её данных).
+naked: [body, loincloth, hair]
 fists: fists
 hands: hands
 outline: true

@@ -9,6 +9,7 @@ extends Node3D
 ## held).
 
 const PlayerScript := preload("res://src/client/view/player.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -32,7 +33,8 @@ var game
 var perf
 ## id -> {"figure": PlayerScript, "label": Label3D, "line": Label3D (what they said, "until"
 ## it goes), "snaps": [[time, entry], …],
-## "work_n": the last work count shown, "hands": the hands shown, "left|right|active"}
+## "work_n": the last work count shown, "hands": the hands shown, "left|right|active",
+## "gear": what is worn shown}
 var people := {}
 
 
@@ -40,7 +42,7 @@ var people := {}
 func take_people(list: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for e in list:
-		if not e is Array or e.size() != 13 or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
+		if not e is Array or not e.size() in [13, 14] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
 				or not e[4] is Array or e[4].size() != 2:
 			continue
 		var id: int = e[0]
@@ -91,7 +93,7 @@ func _make(at: Vector3) -> Dictionary:
 	line.width = SAY_WIDTH
 	line.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	line.visible = false
-	return {"figure": f, "label": label, "line": line, "until": 0.0, "snaps": [], "work_n": -1, "hands": ""}
+	return {"figure": f, "label": label, "line": line, "until": 0.0, "snaps": [], "work_n": -1, "hands": "", "gear": ""}
 
 
 func _label() -> Label3D:
@@ -141,6 +143,10 @@ func _process(delta: float) -> void:
 		if hands_key != one.hands:
 			one.hands = hands_key
 			f.hold(game.hands.look(str(e[4][0])), game.hands.look(str(e[4][1])), "left" if e[5] == 0 else "right")
+		# What they wear shows on them.
+		if e.size() > 13 and e[13] is Dictionary and str(e[13]) != one.gear:
+			one.gear = str(e[13])
+			f.dress(Figure.dressed(e[13]))
 		if e[11] != one.work_n:
 			one.work_n = e[11]
 			if str(e[9]) != "":

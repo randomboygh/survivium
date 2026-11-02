@@ -128,35 +128,57 @@ func _test_gear() -> void:
 	_check(Items.category("tools:wicker_bag") == "gear", "a thing worn is of its own kind")
 	inv.add("tools:wicker_bag", 1)
 	_check(inv.wear(1) == "empty" and inv.wear(0) == "" and inv.slots.size() == Inventory.SLOTS + 8
-		and inv.gear.back == "tools:wicker_bag" and inv.slots[0] == null, "a bag put on adds its slots")
-	_check(is_equal_approx(inv.weight(), Items.weight("tools:wicker_bag")), "what is worn weighs too")
+		and inv.gear.back == "tools:wicker_bag" and inv.slots[0] == ["tools:wicker_bag", 1] and inv.worn_on(0) == "back",
+		"a bag put on adds its slots and stays in its own")
+	_check(is_equal_approx(inv.weight(), Items.weight("tools:wicker_bag")), "what is worn weighs once")
 	inv.slots[Inventory.SLOTS + 2] = ["resources:fiber", 5]
 	var copy := Inventory.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
-	_check(copy.slots.size() == Inventory.SLOTS + 8 and copy.gear.back == "tools:wicker_bag"
+	_check(copy.slots.size() == Inventory.SLOTS + 8 and copy.gear.back == "tools:wicker_bag" and copy.worn_slot("back") == 0
 		and copy.slots[Inventory.SLOTS + 2] == ["resources:fiber", 5], "the bag worn and its slots survive a save")
 	inv.add("tools:leather_bag", 1)
-	_check(inv.wear(0) == "" and inv.slots.size() == Inventory.SLOTS + 16 and inv.gear.back == "tools:leather_bag"
-		and inv.slots[0][0] == "tools:wicker_bag" and inv.contents(0) != null and inv.count("resources:fiber") == 0,
-		"a new bag goes on in place of the old, which keeps what its slots held")
+	_check(inv.wear(1) == "" and inv.slots.size() == Inventory.SLOTS + 16 and inv.gear.back == "tools:leather_bag"
+		and inv.slots[0][0] == "tools:wicker_bag" and inv.contents(0) != null and inv.count("resources:fiber") == 0
+		and inv.worn_slot("back") == 1, "a new bag goes on in place of the old, which keeps what its slots held")
 	inv.slots[Inventory.SLOTS + 15] = ["tools:wicker_bag", 1]
 	_check(inv.wear(Inventory.SLOTS + 15) == "inside", "a bag is not put on from its own slots")
+	_check(not inv.put_into(1, inv, Inventory.SLOTS + 3) and inv.worn_slot("back") == 1, "the bag worn does not go into its own slots")
 	inv.slots[Inventory.SLOTS + 15] = null
 	_check(inv.wear(0) == "" and inv.gear.back == "tools:wicker_bag" and inv.slots[Inventory.SLOTS + 2] == ["resources:fiber", 5]
 		and inv.slots.size() == Inventory.SLOTS + 8, "a bag put on again brings back what it held")
 	_check(inv.take_off("back") == "" and inv.slots.size() == Inventory.SLOTS and not inv.gear.has("back")
-		and inv.slots[0] == ["tools:leather_bag", 1] and inv.contents(1) != null and inv.count("resources:fiber") == 0, "a bag taken off takes its things with it")
+		and inv.slots[1] == ["tools:leather_bag", 1] and inv.contents(0) != null and inv.count("resources:fiber") == 0,
+		"a bag taken off stays where it lies and takes its things with it")
+	inv.wear(1)
+	inv.slots[Inventory.SLOTS + 4] = ["resources:stone", 2]
+	var chest := Inventory.new(4)
+	_check(inv.move_slot(1, chest) == 1 and not inv.gear.has("back") and inv.slots.size() == Inventory.SLOTS
+		and chest.contents(0) != null and inv.count("resources:stone") == 0, "a bag worn put away comes off with its things")
 	var full := Inventory.new(1)
-	full.add("tools:wicker_bag", 1)
-	full.wear(0)
+	full.gear = {"back": "tools:wicker_bag"}
 	full.slots[0] = ["resources:stone", 1]
-	_check(full.take_off("back") == "full" and full.gear.has("back"), "a bag is not taken off with no free slot for it")
+	_check(full.apart() == ["back"] and full.take_off("back") == "full" and full.gear.has("back"),
+		"a bag of an old save worn apart is not taken off with no free slot for it")
+	var old := Inventory.new()
+	old.from_dict({"slots": [["resources:stone", 1]], "gear": {"body": "tools:grass_cape"}})
+	_check(old.slots[1] == ["tools:grass_cape", 1] and old.worn_on(1) == "body" and old.apart().is_empty(),
+		"a thing an old save wore apart goes back into the bag, worn")
+	_check(old.take_slot(1, 1) != null and not old.gear.has("body"), "a thing worn comes off when it leaves the bag")
+	old.add("tools:grass_cape", 1)
+	old.wear(1)
+	old.sort("weight")
+	_check(old.worn_slot("body") == 1 and old.take_off("body") == "" and old.slots[1] == ["tools:grass_cape", 1],
+		"sorting leaves what is worn in place; taken off, it stays")
 	var w := Survivor.new()
 	w.inventory.add("tools:canvas_backpack", 1)
-	_check(w.wear(0) and w.inventory.slots.size() == Inventory.SLOTS + 24, "the character puts a backpack on")
+	w.inventory.add("tools:grass_cape", 1)
+	_check(w.wear(0) and w.wear(1) and w.inventory.slots.size() == Inventory.SLOTS + 24, "the character puts a backpack and a cape on")
 	w.inventory.slots[30] = ["resources:fiber", 3]
-	w.inventory.take_all()
-	_check(w.inventory.gear.back == "tools:canvas_backpack" and w.inventory.is_empty(), "what is worn stays on through a death")
+	w.inventory.slots[5] = ["resources:stone", 3]
+	var lost := w.inventory.take_all()
+	_check(w.inventory.gear.back == "tools:canvas_backpack" and w.inventory.gear.body == "tools:grass_cape"
+		and lost.size() == 2 and w.inventory.count("resources:stone") == 0 and w.inventory.count("tools:grass_cape") == 1,
+		"what is worn stays on through a death")
 
 
 func _test_torch() -> void:

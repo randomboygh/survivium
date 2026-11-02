@@ -162,6 +162,9 @@ const SCHEMAS := {
 		"wear_on": {"type": "enum", "values": ["", "head", "body", "legs", "feet", "back"], "default": ""},
 		# Clothes: how many degrees warmer the body is in it (Warmth.clothes; half when wet).
 		"warmth": {"type": "float", "min": 0.0, "default": 0.0},
+		# Clothes on the figure: the picture sprites/worn/<look>.png of the bundle, laid
+		# over the body by where it is worn (Figure.dressed); none: not seen on it.
+		"look": {"type": "string", "default": ""},
 		"bag_slots": {"type": "int", "min": 0, "default": 0},
 		# Bedding: kept in the bag, sleep rests this many times faster (the best one counts,
 		# Character.sleep_rate); 1 is none.

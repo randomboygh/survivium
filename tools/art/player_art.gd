@@ -3,8 +3,8 @@ extends RefCounted
 ## of the sheet laid out in content/core/sprites/player.yaml; tools/make_sprites.gd
 ## saves them as the core mod's pictures (content/core/sprites/player/), which the game
 ## reads (Figure) and which can be painted over by hand from there. Layers: the body
-## (skin, face, the arms behind the body, skin under the clothes), shirt, trousers (with
-## the belt), boots, hair, the fists (the forearms and hands in front of the body, drawn
+## (skin, face, the arms behind the body, skin under the clothes), the loincloth,
+## shirt, trousers (with the belt), boots, hair, the shapes clothes are worn in (SHAPES), the fists (the forearms and hands in front of the body, drawn
 ## over what the hands hold) and the hands picture marking where each hand is. The hands
 ## are empty: what they hold has sheets of its own (ToolArt), turned the way the poses
 ## here say.
@@ -36,7 +36,19 @@ const INK := {
 	"K": ["3e2d21", "trousers"], "k": ["c9a65e", "trousers"],
 	"T": ["716049", "trousers"], "t": ["514538", "trousers"],
 	"B": ["5c402c", "boots"], "b": ["3b291d", "boots"], "O": ["7d5d42", "boots"],
+	"W": ["b39a72", "loincloth"], "w": ["8c7552", "loincloth"], "V": ["5e4a33", "loincloth"],
+	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
+	# the colours of the thing worn (see painted).
+	"1": ["c0c0c0", ""], "2": ["808080", ""], "3": ["404040", ""],
 }
+## The shapes clothes are worn in (see painted), in three greys: what the shirt,
+## trousers, boots and hair are drawn with, cut and joined. A coat goes down over the
+## hips, a hat is the top of the hair, wraps the lower legs, tall boots the boots and a
+## pixel of leg above.
+const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots"]
+## The tone of each letter of the clothes in a shape.
+const TONE := {"L": "1", "C": "2", "c": "3", "K": "3", "k": "1", "T": "2", "t": "3", "B": "2", "b": "3", "O": "1",
+	"J": "1", "H": "2", "D": "3"}
 ## Letters drawn darker skin under them in the body layer (the rest lighter skin).
 const SHADED := "cKtb"
 
@@ -463,6 +475,18 @@ static func anchors() -> Array:
 	return _anchors
 
 
+## The picture of clothes worn in shape `shape` (SHAPES): its light, middle and dark
+## tones in `colors` (html colours), as the game lays it over the figure (Figure.dressed).
+static func painted(shape: String, colors: Array) -> Image:
+	var img: Image = layer("shapes/" + shape).duplicate()
+	for y in img.get_height():
+		for x in img.get_width():
+			var p := img.get_pixel(x, y)
+			if p.a > 0.0:
+				img.set_pixel(x, y, Color.html(colors[0 if p.r > 0.6 else (1 if p.r > 0.4 else 2)]))
+	return img
+
+
 ## The hands picture: in each frame a pixel at each hand, red for the right one, blue
 ## for the left one, darker behind the body, its green the way what the hand holds
 ## points (see player.yaml).
@@ -584,7 +608,7 @@ static func _front(view: String, hand: String) -> bool:
 static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
 	var p := pose(dir, active, col)
 	var view: String = VIEW[dir]
-	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}}
+	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
 	var legs: Dictionary = LEGS["side" if view == "side" else "front"]
@@ -606,7 +630,53 @@ static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
 	for hand in ["left", "right"]:
 		if p[hand].front:
 			_arm(out, p[hand], view, hand, {}, true)
+	_loincloth(out, view)
+	_shapes(out, up)
 	return out
+
+
+## The loincloth the character is born in: the belt a cord, the hips cloth, and a flap
+## hanging in front between the legs (or at the side seen from the side).
+static func _loincloth(out: Dictionary, view: String) -> void:
+	var t: Dictionary = out.trousers
+	var flap := [4, 5] if view != "side" else [4]
+	for at: Vector2i in t:
+		var l: String = t[at]
+		if l in ["K", "k"]:
+			out.loincloth[at] = "V"
+		elif at.y == 11:
+			out.loincloth[at] = "W" if l == "T" else "w"
+		elif at.y == 12 and at.x in flap:
+			out.loincloth[at] = "w"
+
+
+## The shapes of clothes (SHAPES) of the frame, out of the letters of the clothes drawn.
+static func _shapes(out: Dictionary, up: Vector2i) -> void:
+	var t: Dictionary = out.trousers
+	var b: Dictionary = out.boots
+	var shapes := {}
+	for name: String in SHAPES:
+		shapes[name] = {}
+	for at: Vector2i in out.shirt:
+		shapes.shirt[at] = TONE[out.shirt[at]]
+		shapes.coat[at] = TONE[out.shirt[at]]
+	for at: Vector2i in t:
+		var tone: String = TONE[t[at]]
+		shapes.trousers[at] = tone
+		if at.y <= 12:
+			shapes.coat[at] = tone if t[at] != "k" else "2"
+		if at.y >= 12 and t[at] in ["T", "t"]:
+			shapes.wraps[at] = "3" if t[at] == "t" else ("1" if at.y % 2 == 0 else "2")
+		if b.has(at + Vector2i.DOWN) and t[at] in ["T", "t"]:
+			shapes.tall_boots[at] = tone
+	for at: Vector2i in b:
+		shapes.boots[at] = TONE[b[at]]
+		shapes.tall_boots[at] = TONE[b[at]]
+	for at: Vector2i in out.hair:
+		if at.y - up.y <= 3:
+			shapes.hat[at] = TONE[out.hair[at]]
+	for name: String in SHAPES:
+		out["shapes/" + name] = shapes[name]
 
 
 static func _stamp(parts: Array, rows: Array, y0: int, shift: Vector2i) -> void:

@@ -37,9 +37,12 @@ var weight_limit := WEIGHT_LIMIT
 ## Whether a chest with things in it may go in (not into another chest).
 var nests := true
 ## What is worn on the body, by slot (Items.wear_on: head, body, legs, feet, back):
-## the worn item's id. A bag on the back adds its Items.bag_slots after the `base`
-## slots the character always has; taken off, what those slots held goes into it,
-## as a chest taken up keeps its things.
+## the worn item's id. A worn thing stays in its slot of the bag, as a tool in a hand
+## does (see worn_slot); it comes off when it leaves the bag. A bag on the back adds
+## its Items.bag_slots after the `base` slots the character always has; taken off,
+## what those slots held goes into it, as a chest taken up keeps its things. A thing
+## an old save wore apart from the slots, with no free slot for it, stays worn apart
+## (see apart) until it is taken off.
 var gear := {}
 ## The slots of the bag without anything on the back.
 var base := SLOTS
@@ -59,9 +62,10 @@ func _init(n := SLOTS) -> void:
 const WEAR_SLOTS := ["head", "body", "legs", "feet", "back"]
 
 
-## Puts on what lies in slot `i` (an item with Items.wear_on); what was worn in that
-## slot goes into slot `i` in its place, a bag on the back with what its slots held.
-## A bag put on brings back what it was taken off with. Returns "" or why not.
+## Puts on what lies in slot `i` (an item with Items.wear_on); it stays in its slot,
+## and what was worn in that body slot comes off (a bag on the back takes what its
+## slots held with it). A bag put on brings back what it was taken off with. Returns
+## "" or why not.
 func wear(i: int) -> String:
 	var s = slots[i] if i >= 0 and i < slots.size() else null
 	if s == null:
@@ -72,11 +76,15 @@ func wear(i: int) -> String:
 	if on == "back" and i >= base:
 		# The bag's own slots go into it when it comes off.
 		return "inside"
+	if worn_slot(on) == i:
+		return ""
+	if gear.has(on):
+		var why := take_off(on)
+		if why != "":
+			return why
 	var packed: Variant = contents(i)
-	slots[i] = null
-	var old: String = gear.get(on, "")
-	if old != "":
-		slots[i] = _packed(old, _pack_back() if on == "back" else null)
+	if s.size() > 3:
+		slots[i] = [s[0], s[1]]
 	gear[on] = s[0]
 	if on == "back":
 		_unpack_back(packed)
@@ -84,21 +92,86 @@ func wear(i: int) -> String:
 	return ""
 
 
-## Takes off what is worn in slot `on` into the first free slot of the bag the
-## character always has; a bag on the back takes what its slots hold with it. Returns
-## "" or why not ("none", "full": no free slot).
+## Takes off what is worn in slot `on`: it stays where it lies in the bag, a bag on
+## the back with what its slots hold packed into it. A thing worn apart (see apart)
+## goes into the first free slot of the bag the character always has. Returns "" or
+## why not ("none", "full": no free slot for a thing worn apart).
 func take_off(on: String) -> String:
 	var id: String = gear.get(on, "")
 	if id == "":
 		return "none"
-	var free := slots.slice(0, base).find(null)
-	if free < 0:
-		return "full"
+	var at := worn_slot(on)
+	if at < 0:
+		at = slots.slice(0, base).find(null)
+		if at < 0:
+			return "full"
 	var packed: Variant = _pack_back() if on == "back" else null
 	gear.erase(on)
-	slots[free] = _packed(id, packed)
+	slots[at] = _packed(id, packed)
 	changed.emit()
 	return ""
+
+
+## The slot of the bag holding what is worn in body slot `on`: the first stack of it
+## (of the slots the character always has, for the back) that holds no things of its
+## own; -1 for nothing worn there, or a thing worn apart.
+func worn_slot(on: String) -> int:
+	var id: String = gear.get(on, "")
+	if id == "":
+		return -1
+	for i in (base if on == "back" else slots.size()):
+		var s = slots[i]
+		if s != null and s[0] == id and s.size() < 4:
+			return i
+	return -1
+
+
+## The body slot slot `i` of the bag is worn in, "" for none.
+func worn_on(i: int) -> String:
+	for on: String in gear:
+		if worn_slot(on) == i:
+			return on
+	return ""
+
+
+## Body slots whose thing is worn apart from the bag's slots (an old save with the bag
+## full): it weighs on its own and comes off into a free slot.
+func apart() -> Array:
+	return gear.keys().filter(func(on: String) -> bool: return worn_slot(on) < 0)
+
+
+## Before the whole stack of slot `i` leaves the bag: a bag worn on the back (its last
+## stack) comes off, with what its slots hold packed into it.
+func _leave(i: int) -> void:
+	if i < base and worn_slot("back") == i and _stacks_of(gear.back, base) == 1:
+		take_off("back")
+
+
+## Stacks of item `id` holding no things of their own in the first `n` slots.
+func _stacks_of(id: String, n: int) -> int:
+	var k := 0
+	for j in n:
+		if slots[j] != null and slots[j][0] == id and slots[j].size() < 4:
+			k += 1
+	return k
+
+
+## After things left the bag: what is worn and no longer in it comes off; `was` is
+## the worn slots before (see worn_on), so what was worn apart stays so.
+func _left(was: Dictionary) -> void:
+	for on: String in was:
+		# A bag on the back comes off by _leave, with its things; here only an empty one.
+		if gear.has(on) and worn_slot(on) < 0 and (on != "back" or slots.slice(base).all(func(h) -> bool: return h == null)):
+			gear.erase(on)
+
+
+## The body slots worn from a slot of the bag, as worn_slot gives them.
+func _worn_now() -> Dictionary:
+	var d := {}
+	for on: String in gear:
+		if worn_slot(on) >= 0:
+			d[on] = true
+	return d
 
 
 ## A slot holding worn item `id`, with things `packed` in it (to_dict data) or none.
@@ -184,16 +257,19 @@ func room_for(id: String) -> int:
 ## Takes up to `n` of item `id` out of the bag, from the last stacks first, never a
 ## chest with things in it; returns how many were taken.
 func remove(id: String, n: int) -> int:
+	var was := _worn_now()
+	var back := worn_slot("back")
 	var left := n
 	for i in range(slots.size() - 1, -1, -1):
 		var s = slots[i]
-		if left > 0 and s != null and s[0] == id and s.size() < 4:
+		if left > 0 and s != null and s[0] == id and s.size() < 4 and i != back:
 			var k := mini(left, s[1])
 			s[1] -= k
 			left -= k
 			if s[1] == 0:
 				slots[i] = null
 	if left < n:
+		_left(was)
 		changed.emit()
 	return n - left
 
@@ -202,13 +278,17 @@ func remove(id: String, n: int) -> int:
 ## [id, count, worn] for a worn tool, [id, 1, 0, contents] for a chest with things in
 ## it) or null.
 func take_slot(i: int, n: int):
-	var s = slots[i]
-	if s == null or n <= 0:
+	if slots[i] == null or n <= 0:
 		return null
+	var was := _worn_now()
+	if n >= slots[i][1]:
+		_leave(i)
+	var s = slots[i]
 	var k := mini(n, s[1])
 	s[1] -= k
 	if s[1] == 0:
 		slots[i] = null
+	_left(was)
 	changed.emit()
 	if s.size() > 3:
 		return [s[0], k, _worn(s), s[3]]
@@ -224,20 +304,27 @@ func contents(i: int) -> Variant:
 ## Moves as much of slot `i` as fits into bag `to` (keeping its wear and contents);
 ## returns how many.
 func move_slot(i: int, to) -> int:
-	var s = slots[i]
-	if s == null:
+	if slots[i] == null:
 		return 0
+	if worn_slot("back") == i and (not to.nests or to.slots.find(null) < 0):
+		return 0
+	_leave(i)
+	var s = slots[i]
 	var n: int = to.add(s[0], s[1], _worn(s), contents(i))
 	take_slot(i, n)
 	return n
 
 
 ## Moves what fits of slots `from` on into bag `to` (the window's «всё в сундук» skips
-## the hotbar row); returns how many things went.
+## the hotbar row), but what is worn; returns how many things went.
 func move_all(to, from := 0) -> int:
 	var n := 0
+	var worn := {}
+	for on: String in gear:
+		worn[worn_slot(on)] = true
 	for i in range(from, slots.size()):
-		n += move_slot(i, to)
+		if not worn.has(i) and i < slots.size():
+			n += move_slot(i, to)
 	return n
 
 
@@ -249,13 +336,16 @@ const SORTS := {"kind": "по виду", "weight": "по весу"}
 ## Items.category, then the order of the data files) or heaviest stack first; stacks
 ## of one item are topped up first (a slot that keeps more than a count, a worn tool,
 ## moves whole) and the empty slots go last. The slots before `from` (the
-## hotbar row) stay as they are.
+## hotbar row) and what is worn stay as they are.
 func sort(by: String, from := 0) -> void:
 	var counts := {}
 	var stacks := []
+	var pinned := {}
+	for on: String in gear:
+		pinned[worn_slot(on)] = true
 	for i in range(from, slots.size()):
 		var s = slots[i]
-		if s == null:
+		if s == null or pinned.has(i):
 			continue
 		# A worn tool (or anything else a slot keeps beside the count) stays whole.
 		if s.size() > 2:
@@ -289,9 +379,12 @@ func sort(by: String, from := 0) -> void:
 			return a[1] > b[1]
 		return _worn(a) < _worn(b))
 	var before := slots.slice(from)
+	var k := 0
 	for i in range(from, slots.size()):
-		var k := i - from
+		if pinned.has(i):
+			continue
 		slots[i] = stacks[k] if k < stacks.size() else null
+		k += 1
 	if slots.slice(from) != before:
 		changed.emit()
 
@@ -301,10 +394,21 @@ func sort(by: String, from := 0) -> void:
 ## chest with things in it does not go into a bag that does not take one (see
 ## nests); false then.
 func put_into(i: int, to, j: int) -> bool:
+	if slots[i] == null or (to == self and i == j):
+		return true
+	var back := worn_slot("back")
+	# The bag on the back does not go into its own slots.
+	if to == self and back >= 0 and (i == back and j >= base or j == back and i >= base):
+		return false
+	if to != self and (i == back and not to.nests or j == to.worn_slot("back") and not nests):
+		return false
+	var was := _worn_now()
+	var was_to: Dictionary = to._worn_now() if to != self else {}
+	if to != self:
+		_leave(i)
+		to._leave(j)
 	var a = slots[i]
 	var b = to.slots[j]
-	if a == null or (to == self and i == j):
-		return true
 	if (not to.nests and a.size() > 3) or (not nests and b != null and b.size() > 3):
 		return false
 	var room: int = Items.stack_size(a[0]) - b[1] if b != null and b[0] == a[0] and a.size() == 2 and b.size() == 2 else 0
@@ -317,8 +421,10 @@ func put_into(i: int, to, j: int) -> bool:
 	else:
 		to.slots[j] = a
 		slots[i] = b
+	_left(was)
 	changed.emit()
 	if to != self:
+		to._left(was_to)
 		to.changed.emit()
 	return true
 
@@ -452,11 +558,15 @@ func count(id: String) -> int:
 	return n
 
 
-## Every stack in the bag, and the bag emptied (what a death leaves in a sack).
+## Every stack in the bag but what is worn, and the bag emptied of it (what a death
+## leaves in a sack: the clothes stay on).
 func take_all() -> Array:
 	var out := []
+	var worn := {}
+	for on: String in gear:
+		worn[worn_slot(on)] = true
 	for i in slots.size():
-		if slots[i] != null:
+		if slots[i] != null and not worn.has(i):
 			out.append(slots[i])
 			slots[i] = null
 	if not out.is_empty():
@@ -471,10 +581,11 @@ func is_empty() -> bool:
 	return true
 
 
-## Weight of everything in the bag, kg, with what chests in it hold and what is worn.
+## Weight of everything in the bag, kg, with what chests in it hold and what is worn
+## apart from it.
 func weight() -> float:
 	var w := 0.0
-	for on: String in gear:
+	for on: String in apart():
 		w += Items.weight(gear[on])
 	for i in slots.size():
 		w += slot_weight(i)
@@ -546,4 +657,9 @@ func from_dict(d: Dictionary) -> void:
 				slots[i] = [id, 1, w, s[3]]
 			else:
 				slots[i] = [id, int(s[1]), w] if w > 0 else [id, int(s[1])]
+	# A save of when worn things left the bag: they go back into a free slot.
+	for on: String in apart():
+		var free := slots.slice(0, base).find(null)
+		if free >= 0:
+			slots[free] = [gear[on], 1]
 	changed.emit()

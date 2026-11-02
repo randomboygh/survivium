@@ -274,7 +274,7 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > Session.ZONE:
 			continue
 		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
-			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3]]
+			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate()]
 		here[p.id] = true
 		if _people.get(p.id) != e:
 			_people[p.id] = e

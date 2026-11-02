@@ -11,13 +11,16 @@ extends RefCounted
 ## part of a row at a time (step), so taking another thing in hand never takes a frame
 ## of its own.
 ##
-## `look` lists the worn layers. `held` is {"left": thing, "right": thing, "active":
+## `look` lists the layers drawn, bottom up: names of player.yaml `layers`, or the
+## paths of the pictures of clothes worn (see dressed). `held` is {"left": thing, "right": thing, "active":
 ## "left" or "right"}, a thing being {} for an empty hand, {"sprite": the path of its
 ## sheet, "anim": the work it is used with} or {"icon": the name it is kept by,
 ## "picture": its Image (null: a lump), "anim"}.
 
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const Content := preload("res://src/shared/content/content.gd")
 
 const SPRITES := "res://content/core/sprites"
 ## What a hand shows of a thing with neither a sheet nor an icon.
@@ -83,11 +86,40 @@ static func prepare(worn: Array) -> void:
 	anchors()
 
 
-## The picture of layer `name` of the figure.
+## The picture of layer `name` of the figure: a picture of player/, or the path of
+## one (clothes worn, see dressed).
 static func layer(name: String) -> Image:
 	if not _layers.has(name):
-		_layers[name] = _picture("%s/player/%s.png" % [SPRITES, name])
+		_layers[name] = _picture(name if name.begins_with("res://") else "%s/player/%s.png" % [SPRITES, name])
 	return _layers[name]
+
+
+## Where clothes go among the naked layers (player.yaml `naked`): the legs, feet and
+## body under the last of them (the hair), the head over it.
+const UNDER := ["legs", "feet", "body"]
+const OVER := ["head"]
+
+
+## The look of a figure wearing `gear` (Inventory.gear): the naked layers with the
+## clothes between them, each its item's `look` (sprites/worn/<look>.png of its
+## bundle); a thing without a look (a bag) shows nothing on the figure.
+static func dressed(gear: Dictionary) -> Array:
+	var naked: Array = data().get("naked", ["body", "hair"])
+	var out: Array = naked.slice(0, naked.size() - 1)
+	for on in UNDER:
+		out += _worn_layer(str(gear.get(on, "")))
+	out.append(naked[-1])
+	for on in OVER:
+		out += _worn_layer(str(gear.get(on, "")))
+	return out
+
+
+static func _worn_layer(id: String) -> Array:
+	var item := Items.get_item(id) if id != "" else {}
+	if item.get("look", "") == "":
+		return []
+	var path := Content.asset(item, "sprites/worn/%s.png" % item.look)
+	return [path] if ResourceLoader.exists(path) else []
 
 
 ## Where the hands are, by row and column of the sheet: {"right": hand, "left": hand},
@@ -274,9 +306,8 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 	var from := Rect2i(c0 * size.x, src * size.y, strip.get_width(), size.y)
 	_row_spots = {}
 	_put_things(strip, src, false, c0, c1)
-	for name in data().layers:
-		if look.has(name):
-			strip.blend_rect(layer(name), from, Vector2i.ZERO)
+	for name: String in look:
+		strip.blend_rect(layer(name), from, Vector2i.ZERO)
 	_put_things(strip, src, true, c0, c1)
 	strip.blend_rect(layer(data().fists), from, Vector2i.ZERO)
 	var whole := Rect2i(Vector2i.ZERO, strip.get_size())

@@ -7,6 +7,7 @@ extends RefCounted
 
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
 var game
@@ -25,10 +26,13 @@ func update() -> void:
 	var left: String = c.hands[0]
 	var right: String = c.hands[1]
 	var active := "left" if c.active == 0 else "right"
-	var key := "%s|%s|%s" % [left, right, active]
+	var gear: Dictionary = game.character.inventory.gear
+	var key := "%s|%s|%s|%s" % [left, right, active, gear]
 	if key == _shown:
 		return
 	_shown = key
+	# What is worn shows on the figure.
+	game.player.dress(Figure.dressed(gear))
 	game.player.hold(look(left), look(right), active)
 
 
