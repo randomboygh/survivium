@@ -659,7 +659,17 @@ func _fish(id: String) -> bool:
 			var water: Vector3 = main.session.actions.water_ahead(angler.position, spot[1], 5)
 			if water == Vector3.INF:
 				break
-			if fishing.fish_near(water) == null:
+			# Other fish by the float would come to it first: let only this kind be near.
+			var ours := false
+			for a in life.animals:
+				if a.gone or fishing.catch_of(a) == "" \
+						or Vector2(a.pos.x - water.x, a.pos.z - water.z).length() > fishing.LURE_REACH + 2.0 * CELL:
+					continue
+				if a.kind in kinds:
+					ours = true
+				else:
+					life.take(a)
+			if not ours:
 				var at := water + Vector3(spot[1].x, 0.0, spot[1].y) * 1.5
 				if life.water_top(at.x, at.z) == -INF:
 					at = water
