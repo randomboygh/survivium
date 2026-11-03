@@ -110,6 +110,9 @@ var opened_boxes := {}
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
 static var sizes := {}
+## The items that are seats (`seat` over 1) by id, with their `seat`: seat_near looks no
+## further when there are none, every body every step.
+static var seats := {}
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
 const CRATE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 1.0, 0.75))
@@ -134,9 +137,12 @@ func read_footprints() -> void:
 	footprints = {}
 	turned = {}
 	sizes = {}
+	seats = {}
 	for id in Items.IDS:
 		var rec := Items.get_item(id)
 		var kind: String = rec.get("prop", "none")
+		if rec.get("seat", 1.0) > 1.0:
+			seats[id] = rec.seat
 		if kind == "none" or footprints.has(kind):
 			continue
 		if rec.get("fire", false):
@@ -1021,10 +1027,12 @@ func spoil(days: float, winter: bool) -> void:
 ## seats round it: the best `seat` of a thing it stands on or within SEAT_REACH cells of,
 ## on its level; 1 for none.
 func seat_near(p: Vector3) -> float:
-	var c := p / CELL
 	var best := 1.0
+	if seats.is_empty():
+		return best
+	var c := p / CELL
 	for e in things:
-		var seat: float = Items.get_item(e.item).get("seat", 1.0)
+		var seat: float = seats.get(e.item, 1.0)
 		if seat <= best or absf(float(e.cell.y) - c.y) > 1.0:
 			continue
 		var n := size_of(e.item)
