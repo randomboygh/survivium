@@ -556,7 +556,7 @@ func _volume_row(name: String, key: String) -> Array:
 	for i in range(1, Sound.STEPS + 1):
 		steps.append("%d%%" % (100 * i / Sound.STEPS))
 	return [name, steps,
-		func() -> int: return s.values[name],
+		func() -> int: return s.values[key],
 		func(i: int) -> void: s.set_value(key, i)]
 
 
