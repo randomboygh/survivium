@@ -454,6 +454,14 @@ func _run() -> void:
 			var since := Time.get_ticks_msec()
 			while Time.get_ticks_msec() - since < 3500:
 				await process_frame
+		if shot.has("skills"):
+			# Skills learned: {role: level}, a little on the way to the next.
+			var reg = load("res://src/shared/content/skills.gd")
+			for role: String in shot.skills:
+				var sk: Dictionary = reg.of_role(role)
+				main.host.player.skills.gain(role, lerpf(reg.need(sk, shot.skills[role]), reg.need(sk, shot.skills[role] + 1), 0.4))
+			for i in 8:
+				await process_frame
 		if shot.has("thirst"):
 			# A thirsty body: the water bar low and red.
 			main.host.player.vitals.water = shot.thirst

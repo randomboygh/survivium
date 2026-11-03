@@ -329,6 +329,9 @@ const SHOTS := {
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
+	# Skills learned in the character window: levels, the way to the next, an axe's power in green.
+	"bag-levels": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "hold": ["", "tools:stone_axe"],
+		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
 	# A canvas backpack worn (24 more slots, scrolled where they do not fit), a wicker bag
 	# chosen in the bag: its wide button puts it on; then a tap on the backpack on the figure
