@@ -5,7 +5,9 @@ extends Node3D
 ## glinting in the shafts. Each tree near the player gets a few of each, placed from
 ## its column (the same every time); every tree whose light can reach the picture gets
 ## them, the nearest first, laid out again when the player has moved MOVE world units,
-## the sun or the camera has turned or the trees have changed; the shaders
+## the camera has turned or the trees have changed. Each tree's light is worked out
+## once for the sun's way (again when it has turned TURN), a few trees a frame within
+## WORK_US, so neither a walk in a wood nor the sun's turning takes a long frame; the shaders
 ## (sun_rays.gdshader) draw them. Sky tells how strong and what colour they are and
 ## where the sun is (see Sky._update_rays). `game` is the Main node.
 
@@ -37,8 +39,12 @@ const FLECKS := 8
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
 const CROWN_REACH := 8
-## Crowns remembered before the memory is cleared.
+## Crowns (and the light of trees) remembered before the memory is cleared.
 const MAX_CROWNS := 4096
+## Microseconds a frame spends at most on working out the trees' light; while it goes
+## on, the light worked out so far is laid out this often (ms).
+const WORK_US := 1000
+const SHOW_EVERY_MS := 250
 
 var game
 ## How strong the light is (0 none) and its colour, and the way to the sun.
@@ -57,6 +63,22 @@ var _laid_at := Vector3.INF
 var _laid_sun := Vector3.ZERO
 var _laid_trees := -1
 var _laid_view := []
+## The sun's turns so far (each over TURN) and its way at the last: the shafts' way
+## down, how far they lean sideways a unit down, and the shadows' way along the ground.
+var _sun_turns := 0
+var _down := Vector3.DOWN
+var _lean := Vector2.ZERO
+var _shadow := Vector2.ZERO
+## The light of each tree near, worked out for a turn of the sun: {column: see
+## _tree_light}.
+var _light := {}
+## The trunk columns near, nearest first, and the next whose light is to be checked.
+var _trees := []
+var _next := 0
+## Light was worked out since it was laid out last, and when that was (ms).
+var _worked := false
+var _shown_at := 0
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -134,19 +156,69 @@ func _process(_delta: float) -> void:
 		motes.emitting = on
 	if not on:
 		return
+	var t := Time.get_ticks_usec()
 	var down := _shaft_way()
 	for m in [_shaft_mat, _fleck_mat]:
 		m.set_shader_parameter("amount", amount)
 		m.set_shader_parameter("light_color", color)
 		m.set_shader_parameter("light_down", down)
+	if to_sun.dot(_laid_sun) <= 1.0 - TURN:
+		# The sun has turned: every tree's light is worked out anew, a few a frame, and
+		# laid out once all are (the old light stays until then).
+		_laid_sun = to_sun
+		_down = down
+		_lean = Vector2(down.x, down.z) / -down.y
+		_shadow = Vector2(-to_sun.x, -to_sun.z) / maxf(to_sun.y, 0.05)
+		_sun_turns += 1
+		_next = 0
 	var p: Vector3 = game.player.position
 	var near := _near(p)
 	var count := _tree_count(near)
 	var view := [PixelView.up, PixelView.squash, PixelView.slope, game.view.image_size]
-	if p.distance_to(_laid_at) < MOVE and to_sun.dot(_laid_sun) > 1.0 - TURN and count == _laid_trees and view == _laid_view:
-		return
-	_laid_view = view
-	_lay_out(p, near, count, down)
+	if p.distance_to(_laid_at) >= MOVE or count != _laid_trees or view != _laid_view:
+		_laid_at = p
+		_laid_trees = count
+		_laid_view = view
+		_trees = _trees_near(p, near)
+		_next = 0
+		_lay_out(p, near)
+	else:
+		_work_out(t)
+		if _worked and (_next >= _trees.size() or Time.get_ticks_msec() - _shown_at >= SHOW_EVERY_MS):
+			_lay_out(p, near)
+	if game.hud != null:
+		game.hud.perf.note("лучи", t)
+
+
+## Works out the light of the trees near whose light is not of the sun now, the
+## nearest first, until `budget` microseconds have gone since `t0`.
+func _work_out(t0: int, budget := WORK_US) -> void:
+	var w = game.world
+	while _next < _trees.size() and Time.get_ticks_usec() - t0 < budget:
+		var col: Vector2i = _trees[_next]
+		_next += 1
+		var had: Array = _light.get(col, [])
+		if not had.is_empty() and had[0] == _sun_turns:
+			continue
+		if _light.size() > MAX_CROWNS:
+			_light.clear()
+		_light[col] = _tree_light(w, col)
+		_worked = true
+
+
+## Works out the light of all the trees near at once and lays it out (the screenshots,
+## which take a picture before the game would have worked it all out); false when the
+## light is off.
+func finish() -> bool:
+	if not shafts.visible or game == null or game.player == null:
+		return false
+	var p: Vector3 = game.player.position
+	var near := _near(p)
+	_trees = _trees_near(p, near)
+	_next = 0
+	_work_out(Time.get_ticks_usec(), 1 << 40)
+	_lay_out(p, near)
+	return true
 
 
 ## The way the shafts run down: the sun's, but never leaning further than LEAN from
@@ -190,79 +262,114 @@ func _chunks(reach: float) -> Array:
 ## The trunk columns within the distance of `near`, nearest to the player first.
 func _trees_near(p: Vector3, near: Array) -> Array:
 	var reach: float = near[1]
-	var out := []
+	var cols := []
+	# Sorted as whole numbers: the distance squared (64ths of a unit) over the index.
+	var keys := PackedInt64Array()
 	for key: Vector2i in _chunks(reach):
 		for col: Vector2i in game.world.tree_chunks.get(key, {}):
-			if Vector2((col.x + 0.5) * CELL - p.x, (col.y + 0.5) * CELL - p.z).length() < reach:
-				out.append(col)
-	var at := Vector2(p.x, p.z)
-	out.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return at.distance_squared_to((Vector2(a) + Vector2.ONE * 0.5) * CELL) < at.distance_squared_to((Vector2(b) + Vector2.ONE * 0.5) * CELL))
+			var d := Vector2((col.x + 0.5) * CELL - p.x, (col.y + 0.5) * CELL - p.z).length_squared()
+			if d < reach * reach:
+				keys.append((int(d * 64.0) << 24) | cols.size())
+				cols.append(col)
+	keys.sort()
+	var out := []
+	out.resize(keys.size())
+	for i in keys.size():
+		out[i] = cols[keys[i] & 0xFFFFFF]
 	return out
 
 
-func _lay_out(p: Vector3, near: Array, count: int, down: Vector3) -> void:
-	_laid_at = p
-	_laid_sun = to_sun
-	_laid_trees = count
+## The light of the tree with its trunk in column `col` for the sun now, wherever the
+## picture is: [the sun's turn (_sun_turns), the shafts' tops, bottoms and looks, the
+## flecks' places and looks, two specks of dust a shaft]; [the turn] without a crown.
+func _tree_light(w, col: Vector2i) -> Array:
+	var crown := _crown(w, col)
+	if crown.x <= -INF:
+		return [_sun_turns]
+	var foot := crown.x
+	var tall := crown.y - foot
+	var r := crown.z
+	var mid := Vector2((col.x + 0.5) * CELL, (col.y + 0.5) * CELL)
+	var tops := PackedVector3Array()
+	var bottoms := PackedVector3Array()
+	var looks := PackedColorArray()
+	var spots := PackedVector3Array()
+	var spot_looks := PackedColorArray()
+	var dust := PackedVector3Array()
+	var rng := _rng
+	rng.seed = hash(col)
+	# Each shaft and fleck draws all its numbers first, so the rest of the tree's stay
+	# the same whether this one is there or not.
+	for i in SHAFTS:
+		var skip := rng.randf() < 0.3
+		# Just past the crown's edge, from high in it.
+		var a := rng.randf() * TAU
+		var at := mid + Vector2(cos(a), sin(a)) * r * rng.randf_range(0.95, 1.3)
+		var h := tall * rng.randf_range(0.6, 0.85)
+		var look := Color(rng.randf_range(0.35, 0.8), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
+		var motes_at := Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))
+		if skip:
+			continue
+		var top := Vector3(at.x, foot + h, at.y)
+		var ground := _ground(w, at + _lean * h)
+		if ground <= -INF or ground > top.y - 0.5:
+			continue
+		var length := (top.y - ground) / -_down.y
+		look.g = top.y - ground
+		tops.append(top)
+		bottoms.append(top + _down * length)
+		looks.append(look)
+		dust.append(top + _down * (motes_at.x * length))
+		dust.append(top + _down * (motes_at.y * length))
+	# The flecks in the crown's shadow on the ground.
+	var shade := mid + _shadow * (tall * 0.6)
+	for i in FLECKS:
+		var at := shade + Vector2.from_angle(rng.randf() * TAU) * r * sqrt(rng.randf()) * 0.85
+		var look := Color(rng.randf_range(0.15, 0.3), 0.0, rng.randf(), rng.randf_range(0.6, 1.0))
+		var ground := _ground(w, at)
+		if ground <= -INF:
+			continue
+		spots.append(Vector3(at.x, ground, at.y))
+		spot_looks.append(look)
+	return [_sun_turns, tops, bottoms, looks, spots, spot_looks, dust]
+
+
+## Lays the light of the trees near (as far as it is worked out) out in the picture
+## round the player at `p`: the shafts and flecks that show in it, the nearest trees'
+## first.
+func _lay_out(p: Vector3, near: Array) -> void:
+	_worked = false
+	_shown_at = Time.get_ticks_msec()
 	var picture: Rect2 = near[0]
-	var trees := _trees_near(p, near)
-	var w = game.world
 	var ns := 0
 	var nf := 0
 	var dust := PackedVector3Array()
 	var sm: MultiMesh = shafts.multimesh
 	var fm: MultiMesh = flecks.multimesh
-	# Where the ground is along a shaft from a height h over it, and the shadow.
-	var lean := Vector2(down.x, down.z) / -down.y
-	var shadow := Vector2(-to_sun.x, -to_sun.z) / maxf(to_sun.y, 0.05)
-	for col: Vector2i in trees:
-		var crown := _crown(w, col)
-		if crown.x <= -INF:
+	for col: Vector2i in _trees:
+		var light: Array = _light.get(col, [])
+		if light.size() < 7:
 			continue
-		var foot := crown.x
-		var tall := crown.y - foot
-		var r := crown.z
-		var mid := Vector2((col.x + 0.5) * CELL, (col.y + 0.5) * CELL)
-		var rng := RandomNumberGenerator.new()
-		rng.seed = hash(col)
-		# Each shaft and fleck draws all its numbers first, so the rest of the tree's
-		# stay the same whether this one is in the picture or not.
-		for i in SHAFTS:
-			var skip := rng.randf() < 0.3
-			# Just past the crown's edge, from high in it.
-			var a := rng.randf() * TAU
-			var at := mid + Vector2(cos(a), sin(a)) * r * rng.randf_range(0.95, 1.3)
-			var h := tall * rng.randf_range(0.6, 0.85)
-			var look := Color(rng.randf_range(0.35, 0.8), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
-			var motes_at := Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))
-			if skip or ns >= MAX_SHAFTS:
+		var tops: PackedVector3Array = light[1]
+		var bottoms: PackedVector3Array = light[2]
+		var looks: PackedColorArray = light[3]
+		var specks: PackedVector3Array = light[6]
+		for i in mini(tops.size(), MAX_SHAFTS - ns):
+			var top := tops[i]
+			if not picture.intersects(Rect2(PixelView.screen_plane(top), Vector2.ZERO).expand(PixelView.screen_plane(bottoms[i])).grow(1.0)):
 				continue
-			var top := Vector3(at.x, foot + h, at.y)
-			var ground := _ground(w, at + lean * h)
-			if ground <= -INF or ground > top.y - 0.5:
-				continue
-			var bottom := top + down * ((top.y - ground) / -down.y)
-			if not picture.intersects(Rect2(PixelView.screen_plane(top), Vector2.ZERO).expand(PixelView.screen_plane(bottom)).grow(1.0)):
-				continue
-			look.g = top.y - ground
 			sm.set_instance_transform(ns, Transform3D(Basis(), top))
-			sm.set_instance_color(ns, look)
+			sm.set_instance_color(ns, looks[i])
 			ns += 1
-			for t: float in [motes_at.x, motes_at.y]:
-				dust.append(top + down * (t * (top.y - ground) / -down.y))
-		# The flecks in the crown's shadow on the ground.
-		var shade := mid + shadow * (tall * 0.6)
-		for i in FLECKS:
-			var at := shade + Vector2.from_angle(rng.randf() * TAU) * r * sqrt(rng.randf()) * 0.85
-			var look := Color(rng.randf_range(0.15, 0.3), 0.0, rng.randf(), rng.randf_range(0.6, 1.0))
-			if nf >= MAX_FLECKS:
-				break
-			var ground := _ground(w, at)
-			if ground <= -INF or not picture.has_point(PixelView.screen_plane(Vector3(at.x, ground, at.y))):
+			dust.append(specks[i * 2])
+			dust.append(specks[i * 2 + 1])
+		var spots: PackedVector3Array = light[4]
+		var spot_looks: PackedColorArray = light[5]
+		for i in mini(spots.size(), MAX_FLECKS - nf):
+			if not picture.has_point(PixelView.screen_plane(spots[i])):
 				continue
-			fm.set_instance_transform(nf, Transform3D(Basis(), Vector3(at.x, ground, at.y)))
-			fm.set_instance_color(nf, look)
+			fm.set_instance_transform(nf, Transform3D(Basis(), spots[i]))
+			fm.set_instance_color(nf, spot_looks[i])
 			nf += 1
 	sm.visible_instance_count = ns
 	fm.visible_instance_count = nf

@@ -824,6 +824,8 @@ func _process(delta: float) -> void:
 		perf.add("игрок", took.get("players", 0))
 		perf.add("животные", took.get("wildlife", 0))
 		perf.add("ветер и следы", took.get("storms", 0))
+		# The world made round the players: within the chunks' budgets (see _world_made).
+		perf.add("мир", took.get("world", 0))
 	else:
 		t = perf.note("сеть", t)
 	chunks.paused = false

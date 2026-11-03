@@ -26,7 +26,7 @@ var near_us := BUDGET_US
 var far_us := BUDGET_US
 ## Microseconds the last frame spent making the world (take_spent gives them once),
 ## and what each step of the tick took, by step: "clock", "players", "wildlife",
-## "storms".
+## "storms", and "world" for the world made.
 var spent_us := 0
 var took_us := {}
 
@@ -60,6 +60,7 @@ func _process(delta: float) -> void:
 	session.make_chunks(near_us, far_us, Session.PAUSE_ZONE if paused else Session.ZONE)
 	session.forget_far()
 	spent_us += Time.get_ticks_usec() - t0
+	took_us["world"] = Time.get_ticks_usec() - t0
 
 
 func _took(step: String, since: int) -> int:

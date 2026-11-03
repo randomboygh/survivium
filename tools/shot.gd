@@ -815,6 +815,9 @@ func _run() -> void:
 			main.hud.visible = false
 			await process_frame
 			await process_frame
+		# The trees' light is worked out a few trees a frame in the game: all of it first.
+		if main.sun_rays != null and main.sun_rays.finish():
+			await process_frame
 		var img := root.get_texture().get_image()
 		main.hud.visible = true
 		print("player at ", main.player.position)
