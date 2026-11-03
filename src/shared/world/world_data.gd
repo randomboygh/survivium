@@ -717,15 +717,25 @@ func blocker_top(x: int, y: int, z: int) -> float:
 ## thing stands in another part of it.
 func blocker_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> float:
 	var c := Vector3i(x, y, z)
-	var box: AABB = blockers.get(c, AABB())
+	var box = blockers.get(c)
 	var base := 0.0
-	if not box.has_volume():
+	if box == null:
 		c.y -= 1
-		box = blockers.get(c, AABB())
+		box = blockers.get(c)
 		base = 1.0
-	if not box.has_volume() or ax >= box.end.x or bx <= box.position.x or az >= box.end.z or bz <= box.position.z:
+	if box == null:
 		return 0.0
-	return clampf(box.end.y - base, 0.0, 1.0)
+	if box is Array:
+		# The steps of stairs (see Placed.footprint): the highest under the part.
+		var top := 0.0
+		for b: AABB in box:
+			if ax < b.end.x and bx > b.position.x and az < b.end.z and bz > b.position.z:
+				top = maxf(top, clampf(b.end.y - base, 0.0, 1.0))
+		return top
+	var b: AABB = box
+	if not b.has_volume() or ax >= b.end.x or bx <= b.position.x or az >= b.end.z or bz <= b.position.z:
+		return 0.0
+	return clampf(b.end.y - base, 0.0, 1.0)
 
 
 ## True when the part ax..bx, az..bz (0..1) of the cell at (x, y, z) stands on its top:

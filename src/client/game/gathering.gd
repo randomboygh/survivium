@@ -94,7 +94,7 @@ func describe(target: Dictionary) -> String:
 	if target.has("prop"):
 		var e: Dictionary = target.prop
 		var title := Items.title(e.item)
-		if Placed.is_light(e):
+		if Placed.is_light(e) or Placed.is_steps(e):
 			return "%s\nЛКМ забрать" % title
 		if e.items != null:
 			return "%s\nЛКМ открыть" % title
@@ -124,10 +124,10 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens (a bed is lain in to sleep, or taken up when not sleepy: Protocol.LIE_IN), the rest is WorldActions.gather through the server. True if anything was done
+## opens (a light and stairs are taken up, a bed is lain in to sleep, or taken up when not sleepy: Protocol.LIE_IN), the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
-	if target.has("prop") and Placed.is_light(target.prop):
+	if target.has("prop") and (Placed.is_light(target.prop) or Placed.is_steps(target.prop)):
 		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
 		return taken.done and taken.value is bool and taken.value
 	if target.has("prop") and Placed.is_bed(target.prop):

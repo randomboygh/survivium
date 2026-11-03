@@ -82,7 +82,8 @@ var turf := {}
 var grows := Callable()
 ## Things standing on cells that bodies do not pass (placed chests and stations, see
 ## Props): cell -> the box (AABB) the thing takes in it, in cell units from the cell's
-## corner; a box higher than 1 fills the same part of the cell over it too.
+## corner, or an Array of boxes for the steps of stairs (Placed.footprint); a box higher
+## than 1 fills the same part of the cell over it too.
 var blockers := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world

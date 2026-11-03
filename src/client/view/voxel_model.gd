@@ -47,9 +47,10 @@ static func from_image(img: Image, centred: bool):
 
 
 ## The model as the image `from_image` reads (see there): slices of the smallest even
-## size that holds every voxel (16 at least).
+## size that holds every voxel (16 at least lying on the ground; placed on cells, a
+## whole number of cells of 8 voxels, see Placed.sizes).
 func to_image(centred: bool) -> Image:
-	var size := 16
+	var size := 16 if centred else 8
 	var top := 0
 	for p: Vector3i in voxels:
 		top = maxi(top, p.y + 1)
@@ -58,6 +59,8 @@ func to_image(centred: bool) -> Image:
 		else:
 			size = maxi(size, maxi(p.x, p.z) + 1)
 	size += size & 1
+	if not centred:
+		size = ceili(size / 8.0) * 8
 	var img := Image.create(size * maxi(top, 1), size, false, Image.FORMAT_RGBA8)
 	var shift := Vector3i(size / 2, 0, size / 2) if centred else Vector3i.ZERO
 	for p: Vector3i in voxels:

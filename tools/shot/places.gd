@@ -516,7 +516,7 @@ func hut(w, at: Vector3) -> Vector3:
 
 ## Short walls of every building material in a row on flat grass near `at`, each three
 ## cells long and three high on a floor of its own laid flush with the ground, the
-## player in front of them (the building stage, materials as cells).
+## player in front of them (the building stage, materials as cells), and stairs.
 func walls(w, at: Vector3) -> Vector3:
 	var spot := Vector3i((flat_near(w, at) / CELL).floor())
 	var names := ["core:stone", "materials:planks", "materials:brick", "materials:log_wall", "materials:wattle", "materials:cut_stone"]
@@ -530,10 +530,23 @@ func walls(w, at: Vector3) -> Vector3:
 				w.set_cell(x0 + dx, spot.y - 1, spot.z + dz, m)
 			for dy in 3:
 				w.set_cell(x0 + dx, spot.y + dy, spot.z - 4, m)
+	# A flight of stairs two wide west of them, three steps up to a landing of planks,
+	# planks under each, and a lone stairs turned to rise east before it.
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var x1 := spot.x - 15
+	for x in [x1, x1 + 1]:
+		for i in 3:
+			for y in range(spot.y, spot.y + i):
+				w.set_cell(x, y, spot.z - 1 - i, planks)
+			main.session.placed.put("tools:stairs", Vector3i(x, spot.y + i, spot.z - 1 - i))
+		for z in range(spot.z - 6, spot.z - 3):
+			for y in range(spot.y, spot.y + 3):
+				w.set_cell(x, y, z, planks)
+	main.session.placed.put("tools:stairs", Vector3i(x1 + 3, spot.y, spot.z), null, true, -1.0, null, 1)
 	for c: Vector3i in w.bushes.keys():
-		if absi(c.x - spot.x) <= 14 and c.z >= spot.z - 6 and c.z <= spot.z + 2:
+		if absi(c.x - spot.x) <= 16 and c.z >= spot.z - 7 and c.z <= spot.z + 2:
 			w.remove_bush(c)
-	for dx in range(-16, 17, 8):
+	for dx in range(-24, 17, 8):
 		main.chunks.on_cell_changed(spot + Vector3i(dx, 0, -2))
 	return (Vector3(spot) + Vector3(0.5, 0.0, 2.5)) * CELL
 

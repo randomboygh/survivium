@@ -46,6 +46,8 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return drying_rack()
 		"post":
 			return post()
+		"stairs":
+			return stairs()
 	return null
 
 
@@ -326,6 +328,28 @@ static func bed(model: String) -> VoxelModel:
 	for z in range(5, 11):
 		for x in range(2, 5):
 			m.set_voxel(Vector3i(x, 2, z), (main * 1.12 if fur else main * 1.08) if (x + z) % 3 != 0 else main)
+	return m
+
+
+## Stairs on one cell: two steps of planks, the low one to the front (south) half a
+## cell high, the high one behind it a whole cell, each tread a lighter nosing at its
+## front edge and plank seams along it, dark risers.
+static func stairs() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.64, 0.48, 0.31)
+	var riser := Color(0.46, 0.33, 0.2)
+	for z in 8:
+		var h := 8 if z < 4 else 4
+		for y in h:
+			for x in 8:
+				var c := riser
+				if y == h - 1:
+					c = wood * (1.12 if z == 0 or z == 4 else (0.9 if x % 4 == 3 else 1.0))
+				elif x == 0 or x == 7:
+					c = riser * 0.9
+				elif y % 2 == 1:
+					c = riser * 1.08
+				m.set_voxel(Vector3i(x, y, z), c)
 	return m
 
 

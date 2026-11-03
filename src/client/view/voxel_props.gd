@@ -14,7 +14,7 @@ const RES := VoxelModel.RES
 static var _read := {}
 
 
-## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
+## The model of a thing placed on cells by its item's `prop`, not turned (16 voxels a
 ## world unit, the front to the south, the file's pixels as voxel columns), a plain
 ## crate for a prop without a model file.
 static func prop(kind: String) -> VoxelModel:

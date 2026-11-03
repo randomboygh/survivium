@@ -199,12 +199,14 @@ class Who extends RefCounted:
 	var sacks: Array[Vector3] = []
 	var item := ""
 	var said: Array[String] = []
+	## Where it looks (see facing_step).
+	var facing := Vector2i(0, -1)
 
 	func feet() -> Vector3i:
 		return Vector3i((position / WorldData.CELL).floor())
 
 	func facing_step() -> Vector2i:
-		return Vector2i(0, -1)
+		return facing
 
 	func moving() -> bool:
 		return false

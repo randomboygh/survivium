@@ -581,8 +581,12 @@ func _map_blockers(w, m: Dictionary) -> void:
 		var y: int = cell.y - base
 		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP or y < 0 or y >= LEVELS:
 			continue
-		var box: AABB = w.blockers[cell]
-		if box.end.y < 0.5 or _under_campfire(cell):
+		var box = w.blockers[cell]
+		var high: float = box.end.y if box is AABB else 0.0
+		if box is Array:
+			for b: AABB in box:
+				high = maxf(high, b.end.y)
+		if high < 0.5 or _under_campfire(cell):
 			continue
 		var i: int = (y >> 3) * MAP * MAP + o.y * MAP + o.x
 		data[i] = data[i] | (1 << (y & 7))
