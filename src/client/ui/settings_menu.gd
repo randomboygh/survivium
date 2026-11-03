@@ -28,6 +28,7 @@ const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
+const CaveSphere := preload("res://src/client/view/cave_sphere.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -391,7 +392,17 @@ func _section_rows(key: String) -> Array:
 			var layers := func() -> bool: return s.values.cave_mode == 0
 			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
 			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
-			var rows := []
+			# The view in a sphere (CaveSphere), on while it is «сфера».
+			var round_view := func() -> bool: return s.values.cave_mode == 3
+			var rows := [
+				["Вид в пещере", ["слои", "срез уровней", "разрез по камере", "сфера"],
+					func() -> int: return s.values.cave_mode,
+					func(i: int) -> void: s.set_value("cave_mode", i)],
+				["Сфера: радиус", CaveSphere.RADII.map(func(v: int) -> String: return "%d кл." % v),
+					func() -> int: return s.values.sphere_radius,
+					func(i: int) -> void: s.set_value("sphere_radius", i), "", round_view],
+				null,
+			]
 			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
 			for r: Array in [["Высота линии", "layer_line", lines],
 					["Впереди: первые слои", "layer_front_first", counts],
@@ -491,7 +502,7 @@ func _section_rows(key: String) -> Array:
 				["Уровень и срез", ["выкл", "вкл"],
 					func() -> int: return int(s.values.level_buttons),
 					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
-				["Вид в пещере", ["слои", "срез уровней", "разрез по камере"],
+				["Вид в пещере", ["слои", "срез уровней", "разрез по камере", "сфера"],
 					func() -> int: return s.values.cave_mode,
 					func(i: int) -> void: s.set_value("cave_mode", i)],
 				["Кнопки камеры", ["выкл", "вкл"],

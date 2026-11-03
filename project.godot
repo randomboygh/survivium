@@ -96,6 +96,22 @@ layer_line={
 "type": "float",
 "value": 0.0
 }
+sphere_view={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+sphere_cell={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 4)
+}
+reach_map={
+"type": "sampler2D",
+"value": ""
+}
+reach_origin={
+"type": "vec3",
+"value": Vector3(0, -1000, 0)
+}
 layer_density={
 "type": "float",
 "value": 0.5

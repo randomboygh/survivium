@@ -32,6 +32,15 @@ global uniform float layer_density;
 // The level, from the player's feet, the quarter that thins out starts at (0 the feet,
 // 1 the waist, 2 the head, negative below the feet); the levels over it count from it.
 global uniform float layer_line;
+// The view in a sphere (setting «Вид в пещере» → «сфера», CaveSphere): x 1 while it is
+// on, yzw the middle of the player's body in world units.
+global uniform vec4 sphere_view;
+// xyz the cell of the player's feet, w the sphere's radius in world units.
+global uniform vec4 sphere_cell;
+// The open cells the player can reach round them (ReachMap), as solid_map: one texel
+// per column of 32 from reach_origin.xz, 32 bits for the levels from reach_origin.y.
+global uniform sampler2D reach_map : filter_nearest;
+global uniform vec3 reach_origin;
 global uniform sampler2D solid_map : filter_nearest;
 global uniform vec3 solid_origin;
 global uniform float snow_amount;
@@ -453,6 +462,43 @@ float layer_alpha(vec3 c) {
 	return min(layer_share(front, layer_fade.x, layer_fade.y), layer_share(above, layer_fade.z, layer_fade.w));
 }
 
+// Whether the cell `c` (whole cells) is open and reachable from the player (reach_map).
+bool reached_cell(vec3 c) {
+	vec3 d = c - reach_origin;
+	if (d.x < 0.0 || d.y < 0.0 || d.z < 0.0 || d.x >= 32.0 || d.y >= 32.0 || d.z >= 32.0) {
+		return false;
+	}
+	vec4 t = texelFetch(reach_map, ivec2(int(d.x), int(d.z)), 0);
+	int lv = int(d.y);
+	float byte = lv < 8 ? t.r : (lv < 16 ? t.g : (lv < 24 ? t.b : t.a));
+	return ((int(byte * 255.0 + 0.5) >> (lv % 8)) & 1) != 0;
+}
+
+// Whether `p` lies in what the view in a sphere opens: within the radius of the middle
+// of the player's body on the screen, and nearer the camera than the sphere's far half
+// (in the drawn, sheared space the camera looks straight down its y).
+bool in_sphere_view(vec3 p) {
+	vec3 s = shear(p) - shear(sphere_view.yzw);
+	float r2 = dot(s.xz, s.xz);
+	float big = sphere_cell.w * sphere_cell.w;
+	return r2 < big && s.y > -sqrt(big - r2);
+}
+
+// True where the view in a sphere leaves out a thing whose solid side is at `solid` and
+// open side at `open` (the same point for a thing that is not a face of the world):
+// within the sphere only what faces the cave the player stands in stays, and of that
+// what lies lower than `below` (a level: under the feet for a face, the feet's own
+// level for a thing standing on the floor) or behind the player up to their head.
+bool sphere_hides(vec3 solid, vec3 open, float below) {
+	if (!in_sphere_view(solid)) {
+		return false;
+	}
+	float level = floor(solid.y / CELL);
+	bool keep = reached_cell(floor(open / CELL))
+		&& (level < below || (before_player(solid) <= PLANE_MARGIN && level < sphere_cell.y + 1.5));
+	return !keep;
+}
+
 // True where the view in layers leaves out the texel `texel` (on the screen plane, so
 // the pattern stays put on the world) of a thing at `p`, a point inside its cell.
 bool layer_hides(vec3 p, vec2 texel) {
@@ -462,6 +508,9 @@ bool layer_hides(vec3 p, vec2 texel) {
 // True where the texel `texel` of a thing at `p` is not drawn because of the cut: the
 // ghost of the levels above it (cut_dither), or what the plane cuts away.
 bool cut_hides(vec3 p, vec2 texel) {
+	if (sphere_view.x > 0.5) {
+		return sphere_hides(p, p, sphere_cell.y + 0.5);
+	}
 	if (layer_view.x > 0.5) {
 		return layer_hides(p, texel);
 	}
@@ -481,6 +530,9 @@ bool above_cut(vec3 p) {
 // For what is too small to show as a ghost (plants, motes, sunlight): gone above the
 // cut, or what the plane cuts away.
 bool gone_above(vec3 p) {
+	if (sphere_view.x > 0.5) {
+		return sphere_hides(p, p, sphere_cell.y + 0.5);
+	}
 	if (layer_view.x > 0.5) {
 		return layer_hides(p, floor(screen_plane(p) * TEXELS));
 	}

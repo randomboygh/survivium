@@ -14,6 +14,8 @@ const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const SolidMap := preload("res://src/client/world/solid_map.gd")
+const ReachMap := preload("res://src/client/world/reach_map.gd")
+const CaveSphere := preload("res://src/client/view/cave_sphere.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -149,6 +151,10 @@ var _whole := false
 var cut_level := -1
 ## The solid cells round the player, for the cut in the plane of the camera.
 var solid := SolidMap.new()
+## The view in a sphere (setting «Вид в пещере» → «сфера»): the sphere and the map of
+## the cells reachable in it.
+var sphere := CaveSphere.new()
+var reach := ReachMap.new()
 var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
 var _surface_at := Vector3i(1 << 30, 0, 0)
@@ -621,6 +627,7 @@ static func _fit_box(n: GeometryInstance3D) -> void:
 func on_cell_changed(cell: Vector3i) -> void:
 	game.roof.touch(world, cell)
 	solid.touch(world, cell)
+	reach.touch(cell)
 	# The ground around the player may have risen or gone: look again.
 	sunk_at.y = -1000
 	if game.hud != null and game.hud.minimap != null:
@@ -723,8 +730,14 @@ func update_cut(delta: float) -> void:
 		# ravine running across the view, the near wall of a diagonal one, a hill.
 		if hidden_by >= 0:
 			target = mini(target, hidden_by - 1)
-	_update_layers(manual_level < 0 and target < world.size_y and layered(), at)
-	if layers_on:
+	var opened := manual_level < 0 and target < world.size_y
+	_update_layers(opened and layered(), at)
+	var in_sphere: bool = opened and game.settings.values.cave_mode == 3
+	var cells: int = game.settings.sphere_radius()
+	sphere.update(game.world_root, in_sphere, at, cells)
+	if in_sphere:
+		reach.update(world, at, cells)
+	if layers_on or in_sphere:
 		target = world.size_y
 	if target != cut_target:
 		cut_target = target
@@ -837,6 +850,11 @@ func _apply_cut() -> void:
 		for key in cap_levels:
 			cap_nodes[key].mesh = null
 		cap_levels.clear()
+
+
+## The view under a roof opens otherwise than by a cut: in layers or in a sphere.
+func open_view() -> bool:
+	return layers_on or sphere.on
 
 
 ## The view under a roof is in layers (setting «Вид в пещере» → «слои»).
