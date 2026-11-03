@@ -149,10 +149,19 @@ const SHOTS := {
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
-	# The same and another hidden place with the levels cut (setting «Вид в пещере»)
-	# instead of the default cut in the plane of the camera.
-	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 0}},
-	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 0}},
+	# The same and another hidden place with the levels cut and with the cut in the plane
+	# of the camera (setting «Вид в пещере») instead of the default layers.
+	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 1}},
+	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 1}},
+	# The deepest cave floor near the spawn of a world with many caves (world_caves 2 in
+	# settings.cfg) in the view in layers, dense, and in the plane cut.
+	"deep-cave": {"time": 0.45, "season": 1, "underground": true},
+	"deep-cave-dense": {"time": 0.45, "season": 1, "underground": true,
+		"settings": {"layer_density": 2, "layer_front_first": 2, "layer_above_first": 2, "layer_above_stretch": 4}},
+	"deep-cave-turn": {"time": 0.45, "season": 1, "underground": true, "turn": 1},
+	"deep-cave-plane": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 2}},
+	"underground-plane": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 2}},
+	"ground-cave-inside-plane": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 2}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).

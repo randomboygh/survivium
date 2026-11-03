@@ -4,6 +4,7 @@ extends "res://tests/unit/test_case.gd"
 
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
+const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 
 
 func run() -> void:
@@ -11,6 +12,7 @@ func run() -> void:
 	_test_sprite_sheet()
 	_test_tracks()
 	_test_hidden()
+	_test_cave_layers()
 	_test_sound()
 	_test_camera_spin()
 	_test_camera_drift()
@@ -300,6 +302,28 @@ func _test_hidden() -> void:
 
 ## The sounds load (loops looping), nothing sounds before the browser lets it, the
 ## hands' work sounds by what it strikes, and a piece of music stays in its range.
+## The view in layers: behind the player and below their head all stays; in front the
+## first slices keep the density, then fade out over the stretch; the levels over the
+## head the same; on a diagonal view a step along either axis is a slice.
+func _test_cave_layers() -> void:
+	var up := PixelView.up
+	PixelView.up = Vector2(0.0, -1.0)
+	var base := Vector3i(10, 20, 10)
+	var fade := Vector4i(1, 2, 1, 4)
+	var at := func(dx: int, dy: int, dz: int) -> float: return CaveLayers.share(base + Vector3i(dx, dy, dz), base, fade, 0.5)
+	_check(at.call(0, 0, -3) == 1.0 and at.call(0, 1, -1) == 1.0 and at.call(3, 0, 0) == 1.0,
+		"layers: behind and beside the player all stays")
+	_check(at.call(0, -1, 5) == 1.0, "layers: the floor in front stays")
+	_check(at.call(0, 0, 1) == 0.5 and at.call(0, 1, 2) == 0.25 and at.call(0, 0, 3) == 0.0,
+		"layers: slices in front fade out past the first")
+	_check(at.call(0, 2, -2) == 0.5 and at.call(0, 4, -2) == 0.25 and at.call(0, 6, -2) == 0.0,
+		"layers: levels over the head fade out past the first")
+	_check(at.call(0, 2, 2) == 0.25, "layers: the less of the two")
+	PixelView.up = Vector2(-1.0, -1.0).normalized()
+	_check(at.call(1, 0, 0) == 0.5 and at.call(1, 0, 1) == 0.25, "layers: a diagonal view slices diagonally")
+	PixelView.up = up
+
+
 func _test_sound() -> void:
 	for b: Array in SoundScript.BUSES:
 		var i := AudioServer.get_bus_index(b[0])

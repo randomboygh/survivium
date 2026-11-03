@@ -19,6 +19,16 @@ global uniform float cut_front;
 // The cells round the player that are solid (see SolidMap): one texel per column of a
 // SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
 // eight in each of r, g, b, a.
+// The view in layers (setting «Вид в пещере» → «слои», see ChunkStreamer.update_cut):
+// x 1 while it is on (under a roof, in a ravine, behind a hill), yzw the cell of the
+// player's feet in whole cells.
+global uniform vec4 layer_view;
+// How the layers fade: x how many slices in front of the player count as the first,
+// y over how many slices after them the rest fades out; z, w the same for the levels
+// over the player's head.
+global uniform vec4 layer_fade;
+// How much of a first layer is drawn, 0..1 (the rest is dithered away).
+global uniform float layer_density;
 global uniform sampler2D solid_map : filter_nearest;
 global uniform vec3 solid_origin;
 global uniform float snow_amount;
@@ -409,9 +419,43 @@ bool section_here(vec3 p) {
 	return solid_at(q + d * 0.02);
 }
 
+// How much of the `i`th layer (1 the nearest the player) is drawn, when the first
+// `first` are drawn by layer_density and the next `stretch` fade out evenly.
+float layer_share(float i, float first, float stretch) {
+	if (i < 0.5) {
+		return 1.0;
+	}
+	if (i < first + 0.5) {
+		return layer_density;
+	}
+	return layer_density * clamp(1.0 - (i - first) / max(stretch, 1.0), 0.0, 1.0);
+}
+
+// How much of the cell `c` (whole cells) the view in layers draws, 0..1. In front of
+// the player, at and above their feet, by vertical slices across the way the camera
+// looks (one cell thick, counted from the player's own slice toward the camera; on a
+// diagonal view a step along either axis is a slice); everywhere by the levels over
+// their head. The less of the two. Behind the player and below their head all stays.
+// Mirrored by CaveLayers.share for picking cells.
+float layer_alpha(vec3 c) {
+	vec3 d = c - layer_view.yzw;
+	vec2 way = -view_up / max(max(abs(view_up.x), abs(view_up.y)), 0.001);
+	float front = d.y > -0.5 ? floor(dot(d.xz, way) + 0.5) : 0.0;
+	return min(layer_share(front, layer_fade.x, layer_fade.y), layer_share(d.y - 1.0, layer_fade.z, layer_fade.w));
+}
+
+// True where the view in layers leaves out the texel `texel` (on the screen plane, so
+// the pattern stays put on the world) of a thing at `p`, a point inside its cell.
+bool layer_hides(vec3 p, vec2 texel) {
+	return layer_view.x > 0.5 && bayer4(texel) >= layer_alpha(floor(p / CELL));
+}
+
 // True where the texel `texel` of a thing at `p` is not drawn because of the cut: the
 // ghost of the levels above it (cut_dither), or what the plane cuts away.
 bool cut_hides(vec3 p, vec2 texel) {
+	if (layer_view.x > 0.5) {
+		return layer_hides(p, texel);
+	}
 	if (plane_on()) {
 		return plane_hides(p);
 	}
@@ -428,6 +472,9 @@ bool above_cut(vec3 p) {
 // For what is too small to show as a ghost (plants, motes, sunlight): gone above the
 // cut, or what the plane cuts away.
 bool gone_above(vec3 p) {
+	if (layer_view.x > 0.5) {
+		return layer_hides(p, floor(screen_plane(p) * TEXELS));
+	}
 	return plane_on() ? plane_hides(p) : p.y > cut_height + 0.01;
 }
 

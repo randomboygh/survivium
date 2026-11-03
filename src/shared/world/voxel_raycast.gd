@@ -4,7 +4,8 @@ extends RefCounted
 
 
 ## Returns {"cell": Vector3i, "normal": Vector3i} for the first solid cell, or {}.
-static func cast(w, origin: Vector3, dir: Vector3, max_dist: float, max_level: int) -> Dictionary:
+## A solid cell `skip` (given) says true for is passed through, as if it were air.
+static func cast(w, origin: Vector3, dir: Vector3, max_dist: float, max_level: int, skip := Callable()) -> Dictionary:
 	var x := floori(origin.x)
 	var y := floori(origin.y)
 	var z := floori(origin.z)
@@ -20,7 +21,8 @@ static func cast(w, origin: Vector3, dir: Vector3, max_dist: float, max_level: i
 	var normal := Vector3i.ZERO
 	var t := 0.0
 	while t <= max_dist:
-		if y <= max_level and w.in_bounds(x, y, z) and w.is_solid(x, y, z):
+		if y <= max_level and w.in_bounds(x, y, z) and w.is_solid(x, y, z) \
+				and not (skip.is_valid() and skip.call(Vector3i(x, y, z))):
 			return {"cell": Vector3i(x, y, z), "normal": normal}
 		if t_max_x < t_max_y and t_max_x < t_max_z:
 			x += step_x

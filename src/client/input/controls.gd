@@ -29,10 +29,13 @@ const Inventory := preload("res://src/shared/game/inventory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 
 const CELL := WorldData.CELL
 ## The margin of the cut in the plane of the camera, as PLANE_MARGIN in common.gdshaderinc.
 const PLANE_MARGIN := 0.25
+## In the view in layers, a cell drawn by less than this share is picked through.
+const PICK_SHARE := 0.5
 ## How often the hint under the mouse pointer is updated, in seconds.
 const TIP_INTERVAL := 0.1
 ## How long the cursor frame stays after a touch, in seconds.
@@ -541,6 +544,15 @@ func pick(screen_pos: Vector2) -> Dictionary:
 		# The plane hides only what is before it: behind the player all levels show.
 		ray[0] = _past_plane(ray[0], ray[1])
 		max_level = game.world.size_y - 1
+	var chunks = game.chunks
+	if chunks.layers_on:
+		# The view in layers: a cell mostly dithered away lets the finger through to
+		# what shows behind it.
+		var fade: Vector4i = game.settings.layer_fade()
+		var density: float = game.settings.layer_density()
+		var base: Vector3i = chunks.layer_base
+		var skip := func(c: Vector3i) -> bool: return CaveLayers.share(c, base, fade, density) < PICK_SHARE
+		return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level, skip)
 	return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level)
 
 
