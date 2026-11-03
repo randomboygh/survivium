@@ -205,9 +205,17 @@ var respawn_timer := 0.0
 var _daylight := 1.0
 ## What each kind is to each (see _sees), worked out from AiRules once.
 var _seen := {}
+## The kinds each kind looks for (see _cares), and the animals by kind (see _kin) with
+## the count of `animals` they were made for.
+var _caring := {}
+var _by_kind := {}
+var _kin_of := -1
 ## What the people were pushed by the animals they ran into (see _jostle), in world
 ## units, one for each of `people` (on the client, the player's body takes it).
 var pushes: Array[Vector3] = []
+## The animals that stepped in the last update, in their order: only those can have
+## moved since (the server's snapshots look at them, PlayerLink._snap).
+var moved: Array[Animal] = []
 ## The number the last animal got (Animal.id).
 var _next_id := 0
 
@@ -249,6 +257,7 @@ func update(delta: float) -> void:
 			elif count(kind) > want:
 				_thin(kind, count(kind) - want)
 	_daylight = clock.daylight()
+	moved.clear()
 	for a in animals.duplicate():
 		if a.gone:
 			continue
@@ -262,6 +271,7 @@ func update(delta: float) -> void:
 			# their own beats again, or they would all come to step in one frame.
 			a.wait = FAR_STEP - fmod(a.away - a.wait, FAR_STEP)
 		a.away = 0.0
+		moved.append(a)
 		var spec: Dictionary = AiRules.SPECIES[a.kind]
 		a.hunger = minf(1.0, a.hunger + dt * 0.012)
 		a.idle = maxf(0.0, a.idle - dt)
@@ -326,25 +336,30 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	var prey_d := INF
 	var lead := _lead(a)
 	var alarm: Variant = null
-	# Most others are nobody to it: those are passed by first, as there are many.
+	# Only the kinds that are something to it, and its own for a flock's alarm, are
+	# looked through (see _kin): most others are nobody to it, and there are many.
 	var sees := _sees(a.kind)
 	var sight2 := sight * sight
-	for o in animals:
-		var what: int = sees[o.kind]
-		if (what == NOBODY and (lead == null or o.state != "flee")) or o == a:
+	var by_kind := _kin()
+	for kind: String in _cares(a.kind):
+		var what: int = sees[kind]
+		if what == NOBODY and lead == null:
 			continue
-		var d2 := a.pos.distance_squared_to(o.pos)
-		if d2 > sight2:
-			continue
-		var d := sqrt(d2)
-		if d < threat_d and what == THREAT:
-			threat_pos = o.pos
-			threat_d = d
-		elif d < prey_d and what == FOOD and (spec.flies or not o.aloft()):
-			prey = o
-			prey_d = d
-		elif o.state == "flee" and lead != null and _lead(o) == lead and a.pos.distance_to(o.fear) < sight:
-			alarm = o.fear
+		for o: Animal in by_kind.get(kind, []):
+			if o == a or o.gone or (what == NOBODY and o.state != "flee"):
+				continue
+			var d2 := a.pos.distance_squared_to(o.pos)
+			if d2 > sight2:
+				continue
+			var d := sqrt(d2)
+			if d < threat_d and what == THREAT:
+				threat_pos = o.pos
+				threat_d = d
+			elif d < prey_d and what == FOOD and (spec.flies or not o.aloft()):
+				prey = o
+				prey_d = d
+			elif o.state == "flee" and lead != null and _lead(o) == lead and a.pos.distance_to(o.fear) < sight:
+				alarm = o.fear
 	# One of the flock fleeing frightens the rest.
 	if threat_pos == null and alarm != null:
 		threat_pos = alarm
@@ -465,6 +480,36 @@ func _sees(kind: String) -> Dictionary:
 			out[other] = THREAT if AiRules.is_threat(kind, other) else (FOOD if AiRules.is_food(kind, other) else NOBODY)
 		_seen[kind] = out
 	return out
+
+
+## The kinds kind `kind` looks for around it when it decides: those that are a threat or
+## food to it, and its own (a flock, whose fleeing ones frighten the rest), worked out once.
+func _cares(kind: String) -> Array:
+	var out: Variant = _caring.get(kind)
+	if out == null:
+		var sees := _sees(kind)
+		out = []
+		for other: String in sees:
+			if sees[other] != NOBODY or other == kind:
+				out.append(other)
+		_caring[kind] = out
+	return out
+
+
+## The animals by kind, in the order of `animals`, so a decision looks through its few
+## kinds, not every animal: kept by _add and _remove, made anew when the count of
+## `animals` is not the one they were made for (the tests change it themselves).
+func _kin() -> Dictionary:
+	if _kin_of != animals.size():
+		_by_kind.clear()
+		for o in animals:
+			var list: Variant = _by_kind.get(o.kind)
+			if list == null:
+				list = []
+				_by_kind[o.kind] = list
+			list.append(o)
+		_kin_of = animals.size()
+	return _by_kind
 
 
 ## The lead of `a`'s flock: itself when it leads, null for one that keeps alone.
@@ -892,7 +937,11 @@ func _floor(spec: Dictionary, x: float, z: float) -> float:
 
 
 func _remove(a: Animal) -> void:
+	var kept := _kin_of == animals.size()
 	animals.erase(a)
+	if kept:
+		_by_kind[a.kind].erase(a)
+		_kin_of = animals.size()
 	a.gone = true
 	# The first of its flock leads the rest from now on.
 	var next: Animal = null
@@ -986,6 +1035,9 @@ func _add(kind: String, pos: Vector3) -> Animal:
 		a.tint = rng.randi() % tints.size()
 	# Those far away take their steps in different frames.
 	a.away = rng.randf() * FAR_STEP
+	if _kin_of == animals.size():
+		_by_kind.get_or_add(kind, []).append(a)
+		_kin_of += 1
 	animals.append(a)
 	born.emit(a)
 	return a
@@ -997,24 +1049,37 @@ func _add(kind: String, pos: Vector3) -> Animal:
 ## units (Vector2; see Character.view_half)]. A screen not told (zero) is a circle of
 ## NEAR; a screen is taken as at most NEAR each way.
 func look_from(from: Array) -> void:
+	# The screens unpacked once: this runs for every animal every frame.
 	var near2 := NEAR * NEAR
+	var n := from.size()
+	var ats := PackedVector2Array()
+	var rights := PackedVector2Array()
+	var halves := PackedVector2Array()
+	for view: Array in from:
+		var at: Vector3 = view[0]
+		var half: Vector2 = view[2]
+		ats.append(Vector2(at.x, at.z))
+		rights.append(view[1])
+		# A screen not told is a circle (see below).
+		halves.append(Vector2.ZERO if half == Vector2.ZERO else Vector2(minf(half.x, NEAR), minf(half.y, NEAR)))
 	for a in animals:
-		a.near = false
-		for view: Array in from:
-			var at: Vector3 = view[0]
-			var dx := a.pos.x - at.x
-			var dz := a.pos.z - at.z
-			var half: Vector2 = view[2]
+		var near := false
+		var px := a.pos.x
+		var pz := a.pos.z
+		for i in n:
+			var dx := px - ats[i].x
+			var dz := pz - ats[i].y
+			var half := halves[i]
 			if half == Vector2.ZERO:
 				if dx * dx + dz * dz < near2:
-					a.near = true
+					near = true
 					break
 				continue
-			var right: Vector2 = view[1]
-			if absf(dx * right.x + dz * right.y) < minf(half.x, NEAR) \
-					and absf(dz * right.x - dx * right.y) < minf(half.y, NEAR):
-				a.near = true
+			var right := rights[i]
+			if absf(dx * right.x + dz * right.y) < half.x and absf(dz * right.x - dx * right.y) < half.y:
+				near = true
 				break
+		a.near = near
 
 
 ## A body's half width on the ground, in world units, by its mass.

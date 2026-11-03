@@ -12,7 +12,9 @@
   (что растёт), тропы; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` для сохранения.
 - `src/shared/world/world_data.gd` (наследует) — формы: `update_shapes` (склоны и углы по столбцу),
   поверхности склонов (`surface_patch`, `ground_height`), что встречает тело (`blocks_body`,
-  `blocks_part`, `ground_part`).
+  `blocks_part`, `ground_part`). `ground_height` спрашивают каждый шаг зверя и тела: он читает ячейки и
+  формы столбца прямо из чанка (правила `corner_fills`, `corner_cuts`, `slope_mask` те же) и смотрит
+  соседние столбцы только в треугольнике угла.
 - `src/shared/world/grass.gd` — что растёт на верху ячейки земли (ярусы травы, цветы, колосья, мох,
   растения модов `Plants`), облака-шум для теней.
 - `src/shared/world/voxel_raycast.gd` — луч по сетке ячеек (Amanatides & Woo), для выбора клетки.

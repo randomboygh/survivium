@@ -509,32 +509,44 @@ func _top(x: int, z: int) -> int:
 
 ## Height of the ground a walker stands on at (x, z), in cells: the top of the highest
 ## ground there, following slopes and cut or filled corners. -1 over open water.
+## Every animal step and body step asks it: the cells and shapes of the column are read
+## from its chunk directly (the rules of corner_fills, corner_cuts and slope_mask).
 func ground_height(x: float, z: float) -> float:
 	var cx := floori(x)
 	var cz := floori(z)
 	var fx := x - cx
 	var fz := z - cz
+	refresh_shapes()
+	var c := chunk_at(cx, cz)
+	if c == null:
+		return 0.0
+	var col := ((cz & MASK) << SHIFT) | (cx & MASK)
+	var top := top_level(~(c.air[col] | c.leaf[col]) & all_bits)
 	var k := corner_at(fx, fz)
-	# Only the corner triangle of the quarter the point is in can be cut or filled.
+	# Only the corner triangle of the quarter the point is in can be cut or filled; a
+	# filled corner needs ground beside it at its own level, so then nothing is to stand
+	# on above the highest cell of this column and of the three beside corner k.
 	var inside := in_corner(k, fx, fx, fz, fz)
-	# Nothing to stand on above the highest cell of this column and of the three
-	# beside corner k (a filled corner needs ground beside it at its own level).
 	var d: Vector2i = CORNER_DIRS[k]
-	var top := maxi(maxi(_top(cx, cz), _top(cx + d.x, cz)), maxi(_top(cx, cz + d.y), _top(cx + d.x, cz + d.y)))
+	if inside:
+		top = maxi(maxi(top, _top(cx + d.x, cz)), maxi(_top(cx, cz + d.y), _top(cx + d.x, cz + d.y)))
+	var cells := c.cells
+	var shapes := c.shapes
+	var corner := 1 << (k + 4)
 	for y in range(top, -1, -1):
-		var m := get_cell(cx, y, cz)
+		var i := (y << 8) | col
+		var m := cells[i]
 		if m == Mat.AIR or m == Mat.LEAVES or m == Mat.WATER:
-			if inside and corner_fill(cx, y, cz, k):
+			if inside and m != Mat.LEAVES and shapes[i] & corner:
 				return y + 1.0
 			if m == Mat.WATER:
 				return y + ice_top(cx, y, cz) if water_frozen else -1.0
 			continue
-		if inside and corner_cut(cx, y, cz, k):
-			var o: Vector2i = CORNER_DIRS[k]
-			if get_cell(cx + o.x, y, cz) == Mat.WATER and not water_frozen:
+		if inside and shapes[i] & corner:
+			if get_cell(cx + d.x, y, cz) == Mat.WATER and not water_frozen:
 				return -1.0
 			continue
-		if slope_mask(cx, y, cz) == FULL:
+		if shapes[i] & 15 == 0:
 			return y + 1.0
 		return y + surface_height(cx, y, cz, fx, fz)
 	return 0.0
