@@ -154,6 +154,9 @@ const SHOTS := {
 	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_view": 0}},
 	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_view": 0}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
+	# Walls and floors of every building material in a row (stone, planks, brick, log
+	# wall, wattle, cut stone).
+	"build-materials": {"time": 0.4, "season": 1, "walls": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.
 	"walk-into-east": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 0], "facing": "e"},

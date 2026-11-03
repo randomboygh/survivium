@@ -127,6 +127,8 @@ func _run() -> void:
 			main.player.position = places.hills(main.world, main.player.position)
 		if shot.get("hut", false):
 			main.player.position = places.hut(main.world, main.player.position)
+		if shot.get("walls", false):
+			main.player.position = places.walls(main.world, main.player.position)
 		if shot.get("underground", false):
 			main.player.position = Places.cave(main.world, main.player.position)
 		if shot.get("corners", false):
