@@ -325,6 +325,20 @@ func _test_requests() -> void:
 		and copy.at(door_cell).turn == 1, "and the copy is told, turned as it stands")
 	_check(net.request(Protocol.PROP_OPEN, [fire_cell]).value == false, "a fire is no door")
 	events.clear()
+	# A wall of the blueprint drawn through the server: the ghost is told, and built.
+	a.hands = ["materials:planks", ""]
+	a.active = 0
+	a.inventory.add("materials:planks", 4)
+	var g0 := Vector3i(a.feet().x - 3, a.feet().y, a.feet().z - 3)
+	_check(net.request(Protocol.PLAN, ["wall", g0, g0 + Vector3i(2, 0, 0), 1]).value == 3 and s.plans.cells.size() == 3,
+		"a wall of the blueprint is drawn on the server")
+	host.flush(net)
+	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.PLAN_CELLS and e[1][1] == "materials:planks" and e[1][0].size() == 3),
+		"and the ghost is told to the client")
+	_check(net.request(Protocol.PLAN, ["roof", g0, g0, 1]).value == null, "a shape of no known kind is refused")
+	s.plans.erase(s.actions, a, s.plans.cells.keys())
+	a.hands = ["", ""]
+	events.clear()
 	# An animal comes by the player, moves, and leaves.
 	var rabbit = s.wildlife._add("animals:rabbit", at + Vector3(0.2, 0.0, 0.0))
 	host.flush(net)

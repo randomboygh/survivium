@@ -4,7 +4,7 @@ extends RefCounted
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE; HEARD, the chat; TEAM and INVITES, the
 ## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
-## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the clock (CLOCK) and of the animals (ANIMAL,
+## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
 ## after each tick. Over a socket (send_world) the link also brings the client its copy
@@ -102,6 +102,7 @@ func _init(s) -> void:
 	placed.opened.connect(_on_opened)
 	for e: Dictionary in placed.things:
 		_watch_chest(e)
+	session.plans.changed.connect(_on_plan)
 	var wild = session.wildlife
 	wild.born.connect(_on_born)
 	wild.gone.connect(_on_gone)
@@ -137,6 +138,7 @@ func leave() -> void:
 	session.teams.invited.disconnect(_on_invited)
 	session.territory.claims_changed.disconnect(_on_claims)
 	session.territory.squares_changed.disconnect(_on_squares)
+	session.plans.changed.disconnect(_on_plan)
 	for e: Dictionary in placed.things:
 		if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 			e.items.changed.disconnect(_chest_call(e))
@@ -253,6 +255,7 @@ func flush() -> Array[PackedByteArray]:
 	if _all:
 		_all = false
 		out.append(_event(Protocol.PROPS, [session.placed.to_list()]))
+		out.append(_event(Protocol.PLANS, [session.plans.to_list()]))
 		for a in session.wildlife.animals:
 			out.append(_event(Protocol.ANIMAL, [a.id, a.kind, a.tint, a.pos]))
 		_snapped.clear()
@@ -502,6 +505,12 @@ func _on_lit(e: Dictionary) -> void:
 
 func _on_opened(e: Dictionary) -> void:
 	_push(Protocol.PROP_OPENED, [e.cell, e.open])
+
+
+## Ghost cells of the blueprint came or went (Plans.changed; none: all read anew, on loading).
+func _on_plan(cells: Array, item: String) -> void:
+	if not _all and not cells.is_empty():
+		_push(Protocol.PLAN_CELLS, [cells, item])
 
 
 func _on_fuel(e: Dictionary) -> void:

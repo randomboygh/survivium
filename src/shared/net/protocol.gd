@@ -71,6 +71,9 @@ const PROP_TAKE := "prop_take"
 const PROP_FIRE := "prop_fire"
 ## Opens a door or shuts it: [cell] (Placed.swing).
 const PROP_OPEN := "prop_open"
+## Draws a shape of the blueprint with the block held, or takes the ghost off it when it
+## starts on a ghost cell: [kind, from, to, height] (Plans.draw).
+const PLAN := "plan"
 ## Destroys a campfire put out: [cell] (Placed.destroy).
 const PROP_DESTROY := "prop_destroy"
 ## Starts a recipe some times at the workshop: [recipe id, n] (Workshop.start).
@@ -186,6 +189,10 @@ const PROP_LIT := "prop_lit"
 const PROP_OPENED := "prop_opened"
 ## What a campfire has left to burn: [cell, seconds] (Placed.fuel_changed).
 const PROP_FUEL := "prop_fuel"
+## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it).
+const PLANS := "plans"
+## Ghost cells of the blueprint came with a block, or went: [cells, item] ("" gone).
+const PLAN_CELLS := "plan_cells"
 ## What a thing that stores holds changed: [cell, Inventory.to_dict()].
 const CHEST := "chest"
 ## The time, the season and the weather: [Clock.snapshot()], on joining and then a few

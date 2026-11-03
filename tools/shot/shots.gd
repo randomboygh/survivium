@@ -157,6 +157,9 @@ const SHOTS := {
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).
 	"build-materials": {"time": 0.4, "season": 1, "walls": true},
+	# The blueprint: a room of planks half built (its lowest level up, the rest a ghost)
+	# with a floor's ghost inside, and a wall's ghost of brick beside it.
+	"build-plan": {"time": 0.4, "season": 1, "plan": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.
 	"walk-into-east": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 0], "facing": "e"},

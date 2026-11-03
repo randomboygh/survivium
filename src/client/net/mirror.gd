@@ -3,7 +3,7 @@ extends RefCounted
 ## player's character (the bag, the body's state, death) and workshop, the things placed
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
-## PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
+## PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); TEAM, INVITES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
@@ -149,6 +149,12 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.PROP_LIT:
 			if args is Array and args.size() == 2 and args[0] is Vector3i:
 				game.placed.take_lit(args[0], bool(args[1]))
+		Protocol.PLANS:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.plans.take_all(args[0])
+		Protocol.PLAN_CELLS:
+			if args is Array and args.size() == 2 and args[0] is Array and args[1] is String:
+				game.plans.take(args[0], args[1])
 		Protocol.PROP_OPENED:
 			if args is Array and args.size() == 2 and args[0] is Vector3i:
 				game.placed.take_open(args[0], bool(args[1]))

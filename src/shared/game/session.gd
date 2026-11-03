@@ -19,6 +19,7 @@ const Teams := preload("res://src/shared/game/teams.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Fights := preload("res://src/shared/game/fights.gd")
 const Fishing := preload("res://src/shared/game/fishing.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -61,6 +62,8 @@ var fishing := Fishing.new()
 var teams := Teams.new()
 ## The land claimed (Territory).
 var territory := Territory.new()
+## The blueprint's ghost cells (Plans).
+var plans := Plans.new()
 ## Players fighting players: protection of newcomers and the fights' tags (Fights).
 var fights := Fights.new()
 ## The characters playing (Character) and the workshop of each (Workshop), in one
@@ -104,6 +107,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	fights.territory = territory
 	actions.fights = fights
 	actions.people = players
+	actions.plans = plans
 	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
 	# server's; a client's copy only shows the season.
 	clock.season_changed.connect(actions.on_season)

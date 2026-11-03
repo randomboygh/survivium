@@ -3,7 +3,9 @@ extends RefCounted
 ## "Работа с ячейками"; plan/design/character.md, "Взаимодействие с миром"). Each hand
 ## holds any item of the bag or nothing (`hands`), and one of them is in use (`active`);
 ## a block is placed with the brush (Tools.BRUSHES: squares 1, 2 or 3 cells across, two
-## cells one above the other, a line). With a mouse the left button works with the left
+## cells one above the other, a line) or drawn as the blueprint's ghost (the brushes
+## «стена», «пол», «комната»: a stroke from corner to corner, Plans; `plan_height`
+## levels high), which the action button then builds. With a mouse the left button works with the left
 ## hand and the right button with the right one; a tap on a touch screen, the action
 ## button and F work with the hand in use. Both keep working while the button or finger
 ## is held: digging swings again at the cell under it as fast as the tool swings,
@@ -26,6 +28,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 
 const CELL := WorldData.CELL
 ## The margin of the cut in the plane of the camera, as PLANE_MARGIN in common.gdshaderinc.
@@ -54,13 +57,18 @@ var hands: Array[String] = ["", ""]
 var active := 0
 ## The right hand's brush, an index into Tools.BRUSHES.
 var brush := 0
+## How high the blueprint's walls and rooms are drawn, in levels (Plans.MIN_HEIGHT to
+## MAX_HEIGHT). Saved with the hands.
+var plan_height := 2
 ## Whether the action button is held, and whether it (or its key) was last frame: a rod
 ## acts once a press (a cast, then a pull), not again and again while held.
 var action_held := false
 var _action_was := false
 ## A button or finger held on the world: {"button", "hand", "dig", "pos", "held", "pending"
 ## (not worked yet), "normal", "first", "last" (the plane and the first and last cells
-## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}.
+## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}; a
+## stroke of the blueprint has "plan" (the shape's kind) and "erase" (it began on a ghost
+## cell) and draws when it ends.
 var _stroke := {}
 ## Seconds until the hands can swing again.
 var _cooldown := 0.0
@@ -78,7 +86,7 @@ func _init(g) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"hands": hands.duplicate(), "active": active, "brush": brush}
+	return {"hands": hands.duplicate(), "active": active, "brush": brush, "plan_height": plan_height}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -89,6 +97,7 @@ func from_dict(d: Dictionary) -> void:
 			hands[h] = id if id == "" or Items.has(id) else ""
 	active = clampi(int(d.get("active", 0)), 0, 1)
 	brush = clampi(int(d.get("brush", 0)), 0, Tools.BRUSHES.size() - 1)
+	plan_height = clampi(int(d.get("plan_height", 2)), Plans.MIN_HEIGHT, Plans.MAX_HEIGHT)
 
 
 ## Touch and mouse switch the layout: the joystick and action buttons show after a
@@ -222,7 +231,10 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		return
 	match use:
 		"place":
-			_start_stroke(button, pos, false)
+			if brush_record().has("plan"):
+				_start_plan(button, pos)
+			else:
+				_start_stroke(button, pos, false)
 		"plant", "sow":
 			var hit := pick(pos)
 			if not hit.is_empty() and _cooldown <= 0.0:
@@ -261,6 +273,8 @@ func update(delta: float) -> void:
 			_show_preview(_stroke.pos, _stroke.dig)
 			_cursor_clock = CURSOR_TIME
 		if not _stroke.held and not _stroke.pending:
+			if _stroke.has("plan"):
+				_end_plan()
 			_stroke = {}
 	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
 		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
@@ -396,7 +410,7 @@ func brush_record() -> Dictionary:
 func action_name() -> String:
 	match use_of():
 		"place":
-			return "Ставить"
+			return "Строить" if game.plans.builds(game.character) else "Ставить"
 		"plant", "sow":
 			return "Сажать"
 		"prop":
@@ -591,6 +605,11 @@ func _start_paint(button: int, pos: Vector2) -> void:
 
 func _run_stroke() -> void:
 	_stroke.pending = false
+	if _stroke.has("plan"):
+		var on: Variant = _on_plane(_stroke.pos, _stroke.first, Vector3i.UP)
+		if on != null:
+			_stroke.last = on
+		return
 	if _stroke.has("paint"):
 		var hit := pick(_stroke.pos)
 		if not hit.is_empty():
@@ -630,6 +649,88 @@ func _run_stroke() -> void:
 		var cell := Vector3i((Vector3(from) + Vector3(to - from) * (float(i) / steps)).round())
 		_stroke.last = cell
 		place_at(cell, _stroke.normal)
+
+
+## A stroke of the blueprint brush: from the ghost cell under `pos` (it takes that
+## ghost off), else from the cell over the ground tapped (the ground itself for a floor).
+func _start_plan(button: int, pos: Vector2) -> void:
+	var kind: String = brush_record().plan
+	var ghost: Variant = _ghost_at(pos)
+	var first: Vector3i
+	if ghost != null:
+		first = ghost
+	else:
+		var hit := pick(pos)
+		if hit.is_empty():
+			return
+		first = hit.cell if kind == "floor" else hit.cell + hit.normal
+	_stroke = {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "plan": kind,
+		"erase": ghost != null, "first": first, "last": first, "normal": Vector3i.UP}
+
+
+## The cells the blueprint stroke covers now (Plans.shape).
+func _plan_cells() -> Array[Vector3i]:
+	var p: Vector3 = game.player.position
+	return Plans.shape(_stroke.plan, _stroke.first, _stroke.last, plan_height, Vector2(p.x, p.z))
+
+
+## The blueprint stroke ended: the server draws its ghost, or takes it off.
+func _end_plan() -> void:
+	game.net.request(Protocol.PLAN, [_stroke.plan, _stroke.first, _stroke.last, plan_height])
+	game.cursor.show_cells([], true)
+
+
+## The nearest ghost cell of the blueprint under screen point `pos`, before the cell the
+## view meets there and not above the cut; null for none.
+func _ghost_at(pos: Vector2) -> Variant:
+	var cells: Dictionary = game.plans.cells
+	if cells.is_empty():
+		return null
+	var ray := _ray(pos)
+	var o: Vector3 = ray[0]
+	var d: Vector3 = ray[1]
+	var hit := pick(pos)
+	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
+	var best: Variant = null
+	var top: int = game.chunks.cut_level
+	for c: Vector3i in cells:
+		if c.y > top:
+			continue
+		var t := _enter(o, d, c)
+		if t < far:
+			far = t
+			best = c
+	return best
+
+
+## How far along ray `o`, `d` (in cells) it enters cell `c`; INF when it misses it.
+static func _enter(o: Vector3, d: Vector3, c: Vector3i) -> float:
+	var t0 := -INF
+	var t1 := INF
+	for axis in 3:
+		var lo := float(c[axis])
+		var hi := lo + 1.0
+		if absf(d[axis]) < 0.000001:
+			if o[axis] < lo or o[axis] > hi:
+				return INF
+			continue
+		var a := (lo - o[axis]) / d[axis]
+		var b := (hi - o[axis]) / d[axis]
+		t0 = maxf(t0, minf(a, b))
+		t1 = minf(t1, maxf(a, b))
+	return t0 if t0 <= t1 and t1 >= 0.0 else INF
+
+
+## Shows the blueprint stroke's shape: light to draw, red to take off or too big.
+func _show_plan() -> void:
+	var cells := _plan_cells()
+	game.cursor.show_cells(cells, not _stroke.erase and cells.size() <= Plans.MAX_SHAPE)
+
+
+## The height of the blueprint's walls one level up or down.
+func shift_plan_height(by: int) -> void:
+	plan_height = clampi(plan_height + by, Plans.MIN_HEIGHT, Plans.MAX_HEIGHT)
+	game.hud.refresh_hands()
 
 
 ## A placing stroke with the line brush keeps to the way it first moved from its first
@@ -726,6 +827,9 @@ func _front_preview() -> Array[Vector3i]:
 	var who = game.character
 	match use_of():
 		"place":
+			var ghost: Array[Vector3i] = game.plans.near(who)
+			if not ghost.is_empty():
+				return [ghost[0]]
 			for cell: Vector3i in actions.front_place_cells(who):
 				if _can_place(cell):
 					return [cell]
@@ -777,6 +881,9 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 		var cells: Array[Vector3i] = actions.dig_targets(who, Tools.area_cells(cell, hit.normal), t)
 		var ok: bool = Tools.can_dig(t, m) and near and cell.y > 0
 		game.cursor.show_cells(cells if ok else [cell], ok)
+		return
+	if _stroke.has("plan"):
+		_show_plan()
 		return
 	var normal: Vector3i = hit.normal
 	if not _stroke.is_empty() and _stroke.normal != null:

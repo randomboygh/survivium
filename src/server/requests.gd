@@ -135,6 +135,9 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.swing(who, e)
+		Protocol.PLAN:
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[0] in ["wall", "floor", "room"]:
+				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3])
 		Protocol.PROP_DESTROY:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])

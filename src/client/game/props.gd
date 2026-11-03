@@ -83,6 +83,8 @@ func place() -> void:
 	var placed = game.session.placed
 	if meta.get("territory") is Dictionary:
 		game.session.territory.from_dict(meta.territory)
+	if meta.get("plans") is Array:
+		game.session.plans.from_list(meta.plans)
 	if meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	elif meta.get("props") is Dictionary:
