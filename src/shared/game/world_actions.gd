@@ -469,6 +469,9 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 			_changed(c)
 		if rules.free_build:
 			continue
+		if not gives.is_empty() and _extra(who, "gather"):
+			var first: String = gives.keys()[0]
+			gives[first] += 1
 		var at: Vector3 = floor_under(c + Vector3i.UP)
 		for id in gives:
 			world.heap_drop(Items.get_item(id).get("id", id), at, gives[id], rng.randf() * TAU)
@@ -965,6 +968,9 @@ func _pull(who) -> Dictionary:
 	if r.caught != "":
 		who.note("fished")
 		_learn_each(who, "fish")
+		# A skilled angler now and then lands two.
+		if _extra(who, "fish"):
+			who.give(r.caught, 1)
 		var to: Vector3 = who.position + Vector3(0.0, 0.6, 0.0)
 		done.shot = [r.caught, r.from, to, r.from.distance_to(to) / CATCH_SPEED]
 	elif r.full:
@@ -1358,7 +1364,7 @@ func _take(who, d: Array, most := -1) -> Array:
 	var got: int = who.give(Items.get_item(d[0]).get("id", d[0]), n if most < 0 else mini(n, most), worn)
 	if got >= n:
 		return []
-	return [d[0], d[1], d[2], {"n": n - got, "worn": worn} if worn > 0 else n - got]
+	return [d[0], d[1], d[2], {"n": n - got, "worn": worn} if worn != 0 else n - got]
 
 
 ## How many items drop `d` is (see WorldData.drops): its count, or its "n" for a worn tool.
@@ -1374,7 +1380,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 	if ripe(cell, b):
 		if not who.act("gather"):
 			return false
-		if who.give(b.fruit, berry_count(cell, b)) == 0:
+		if who.give(b.fruit, berry_count(cell, b) + (1 if _extra(who, "gather") else 0)) == 0:
 			return false
 		world.bush_picked[cell] = true
 		world.note_bush(cell)
@@ -1478,7 +1484,7 @@ func _from_tree(who, col: Vector2i) -> bool:
 	if not who.act("gather"):
 		return false
 	var id: String = s.seed if seeds else s.twig
-	if who.give(id, 1) == 0:
+	if who.give(id, 2 if _extra(who, "gather") else 1) == 0:
 		return false
 	var map: Dictionary = world.tree_seeds if seeds else world.tree_twigs
 	map[col] = map.get(col, 0) + 1
@@ -1646,6 +1652,12 @@ static func _learn_each(who, role: String) -> void:
 	var sk = who.get("skills")
 	if sk != null:
 		sk.gain_each(role)
+
+
+## Whether the skill of work `role` of `who` gives one more this time (SkillSet.extra).
+static func _extra(who, role: String) -> bool:
+	var sk = who.get("skills")
+	return sk != null and sk.extra(role)
 
 
 ## The skill a tree or a bush worked with tool `t` teaches (see gather): an axe fells,

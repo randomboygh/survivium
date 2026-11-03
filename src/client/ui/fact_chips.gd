@@ -109,15 +109,19 @@ static func _well() -> PanelContainer:
 	return p
 
 
+## The wear item_groups is given for a thing made new (a recipe), not a stack in a bag.
+const NEW := -(1 << 30)
+
 ## The groups every item has, for `count` of item `id` worn by `worn` swings (a stack in
-## the bag) or made new (worn -1, a recipe): its weight (`weight` when it holds more,
+## the bag; below none for one made by a skilled hand, with swings to spare) or made new
+## (worn NEW, a recipe): its weight (`weight` when it holds more,
 ## a chest with things), what it feeds, how warm clothes keep, what a bag on the back adds, a tool's power, the
 ## time of its swing and its reach, and how many swings it lasts; how far a light reaches
 ## and how long one burns (`burn_left` of it when one of them is lit, a share 0..1);
 ## how long food keeps and how fresh a stack is (`fresh` 0..1, below 0 for one made new).
 ## What a weapon shoots, with `ammo` of it in the bag (-1: not counted, a recipe).
 ## Quality comes later.
-static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1) -> Array:
+static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1) -> Array:
 	var it := Items.get_item(id)
 	var groups := [["Вес", [[ItemIcons.picture("weight"), "%.1f кг" % (weight if weight >= 0.0 else Items.weight(id) * count), false, "Вес"]]]]
 	if Items.food(id) > 0.0:
@@ -163,12 +167,15 @@ static func item_groups(id: String, count: int, worn := -1, weight := -1.0, burn
 		groups.append(["Свет", light])
 	var d: int = it.get("durability", 0)
 	if d > 0:
-		if worn < 0:
+		if worn == NEW:
 			groups.append(["Ресурс", [[UiStyle.icon("shield"), str(d), false, "Ресурс: ударов до поломки"]]])
 		else:
 			var left := maxi(0, d - worn)
+			var tip := "Ресурс: ударов до поломки"
+			if worn < 0:
+				tip += "; сделано умелой рукой: прочнее на %d%%" % roundi(-worn * 100.0 / d)
 			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], Workshop.condition(id, worn) < 0.25,
-				"Ресурс: ударов до поломки"]]])
+				tip]]])
 	return groups
 
 

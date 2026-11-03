@@ -417,17 +417,25 @@ func _place(id: String) -> bool:
 	for r in [3, 6, 9]:
 		for d in [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, -1)]:
 			shifts.append(d * r)
-	for shift in shifts:
-		await _go(camp + shift * CELL)
-		for facing in SpriteSheet.COMPASS:
-			main.player.facing = facing
-			main.controls.put_in_hand(id, -1, false)
-			main.controls.act_in_front()
-			await process_frame
-			if _placed_count(id) > before:
-				set_down[id] = true
-				print("set down %s" % Items.title(id))
-				return true
+	# Twice: a round that finds no room may have met the view's cut still moving or
+	# the player out of breath after a long chain of work; a short rest, then again.
+	for attempt in 2:
+		if attempt > 0:
+			print("no room for %s yet: %s" % [Items.title(id), _camp_report()])
+			var until := Time.get_ticks_msec() + 4000
+			while Time.get_ticks_msec() < until:
+				await process_frame
+		for shift in shifts:
+			await _go(camp + shift * CELL)
+			for facing in SpriteSheet.COMPASS:
+				main.player.facing = facing
+				main.controls.put_in_hand(id, -1, false)
+				main.controls.act_in_front()
+				await process_frame
+				if _placed_count(id) > before:
+					set_down[id] = true
+					print("set down %s" % Items.title(id))
+					return true
 	return _fail("%s cannot be set down at the camp: %s" % [Items.title(id), _camp_report()])
 
 
@@ -441,6 +449,12 @@ func _camp_report() -> String:
 	var out := "cut %d (target %d, manual %d, ground %d, level %d, on ground %s, indoor %s, sunk %s rim %d, hidden by %d), feet %s, step %s, things %d" % [
 		ch.cut_level, ch.cut_target, ch.manual_level, ch.ground_level, main.player.level(), main.player.body.on_ground,
 		ch.indoor, ch.sunk, ch.sunk_rim, ch.hidden_by, feet, main.controls.step(), main.session.placed.things.size()]
+	var who = main.host.player
+	var now := Time.get_ticks_msec() / 1000.0
+	var said := []
+	for reason: String in who._nagged:
+		said.append("%s %.0f s ago" % [reason, now - who._nagged[reason]])
+	out += ", stamina %.1f, said: %s" % [who.vitals.stamina, ", ".join(said)]
 	var taken := {}
 	for e in main.session.placed.things:
 		for dz in 2:

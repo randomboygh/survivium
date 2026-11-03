@@ -80,6 +80,26 @@ func boost(role: String) -> float:
 	return 1.0 if s.is_empty() else 1.0 + s.speed * share_of(role)
 
 
+## The chance that work `role` gives one more of what it gives: the skill's `yield` at
+## the last level.
+func extra_chance(role: String) -> float:
+	var s := Skills.of_role(role)
+	return 0.0 if s.is_empty() else s.yield * share_of(role)
+
+
+## Whether work `role` gives one more this time (see extra_chance).
+func extra(role: String) -> bool:
+	var k := extra_chance(role)
+	return k > 0.0 and randf() < k
+
+
+## The swings more than its `durability` a thing that wears made by work `role` lasts:
+## the skill's `quality` share of it at the last level.
+func bonus_wear(role: String, durability: int) -> int:
+	var s := Skills.of_role(role)
+	return 0 if s.is_empty() else roundi(durability * s.quality * share_of(role))
+
+
 ## The sum of the levels of every skill (the land a player may hold, Territory.budget).
 func total() -> int:
 	var n := 0
