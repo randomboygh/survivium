@@ -716,12 +716,15 @@ func _fish(id: String) -> bool:
 			if water == Vector3.INF:
 				break
 			# Other fish by the float would come to it first: let only this kind be near.
+			# After a cast with no bite, those of this kind go too and one is put by the
+			# float: the one near may be in other water within reach (a pond beside), lured
+			# again and again and never coming.
 			var ours := false
-			for a in life.animals:
+			for a in life.animals.duplicate():
 				if a.gone or fishing.catch_of(a) == "" \
 						or Vector2(a.pos.x - water.x, a.pos.z - water.z).length() > fishing.LURE_REACH + 2.0 * CELL:
 					continue
-				if a.kind in kinds:
+				if a.kind in kinds and cast == 0:
 					ours = true
 				else:
 					life.take(a)
