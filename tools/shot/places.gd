@@ -8,6 +8,7 @@ extends RefCounted
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
@@ -557,6 +558,39 @@ func walls(w, at: Vector3) -> Vector3:
 	for dx in range(-32, 17, 8):
 		main.chunks.on_cell_changed(spot + Vector3i(dx, 0, -2))
 	return (Vector3(spot) + Vector3(-6.5, 0.0, 2.5)) * CELL
+
+
+## The blueprint on flat ground near `at` (Plans): a room of planks 7×6 three levels high
+## with its lowest level built, a floor's ghost inside, a brick wall's ghost to the east.
+## Returns where the player stands, south of the room.
+func plan(w, at: Vector3) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var plans = main.session.plans
+	var a := spot + Vector3i(-4, 0, -9)
+	var room := Plans.shape("room", a, a + Vector3i(6, 0, 5), 3, Vector2(spot.x, spot.z) * CELL)
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var ghost: Array = []
+	for c: Vector3i in room:
+		if c.y == a.y:
+			w.set_cell(c.x, c.y, c.z, planks)
+		else:
+			ghost.append(c)
+			plans.cells[c] = "materials:planks"
+	plans.changed.emit(ghost, "materials:planks")
+	var floor := Plans.shape("floor", a + Vector3i(1, -1, 1), a + Vector3i(5, -1, 4), 1)
+	for c: Vector3i in floor:
+		plans.cells[c] = "materials:planks"
+	plans.changed.emit(floor, "materials:planks")
+	var wall := Plans.shape("wall", a + Vector3i(9, 0, 0), a + Vector3i(9, 0, 5), 2)
+	for c: Vector3i in wall:
+		plans.cells[c] = "materials:brick"
+	plans.changed.emit(wall, "materials:brick")
+	for c: Vector3i in w.bushes.keys():
+		if absi(c.x - spot.x) <= 16 and absi(c.z - spot.z + 6) <= 10:
+			w.remove_bush(c)
+	for dx in range(-8, 17, 8):
+		main.chunks.on_cell_changed(a + Vector3i(dx, 0, 2))
+	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
 ## Blocks of stone round the campfire whose north-west cell is `fire`, kept in

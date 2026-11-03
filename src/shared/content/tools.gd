@@ -25,13 +25,18 @@ const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod"]
 const PLACE_REACH := 10
 ## Brushes of the hand that places: squares across the tapped face, two cells one on
 ## top of the other (a wall a body tall, or the opening of a passage), and a line (one
-## cell, the stroke kept straight along the way it first went).
+## cell, the stroke kept straight along the way it first went); then the blueprint's
+## (`plan`, a shape of Plans.shape: a stroke draws its ghost, the action button builds
+## it), which place one cell in front as 1×1 does.
 const BRUSHES := [
 	{"title": "1×1", "size": 1},
 	{"title": "2×2", "size": 2},
 	{"title": "3×3", "size": 3},
 	{"title": "1×2", "size": 1, "tall": true},
 	{"title": "линия", "size": 1, "line": true},
+	{"title": "стена", "size": 1, "plan": "wall"},
+	{"title": "пол", "size": 1, "plan": "floor"},
+	{"title": "комната", "size": 1, "plan": "room"},
 ]
 
 ## Bare hands, a tool record like an item's: grass, leaves, soft ground (`slow` times slower

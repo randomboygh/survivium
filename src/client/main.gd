@@ -83,6 +83,8 @@ const Markers := preload("res://src/client/game/markers.gd")
 const Team := preload("res://src/client/game/team.gd")
 const Land := preload("res://src/client/game/land.gd")
 const LandView := preload("res://src/client/view/land_view.gd")
+const PlanView := preload("res://src/client/view/plan_view.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
@@ -175,6 +177,8 @@ var workshop: RemoteWorkshop
 ## The client's copies of the things placed and the animals (the server's are
 ## `session.placed` and `session.wildlife`).
 var placed: RemotePlaced
+## The client's copy of the blueprint's ghost cells (the server's is `session.plans`).
+var plans := Plans.new()
 var wildlife: RemoteWildlife
 var hands: HandsScript
 var cursor: CursorScript
@@ -631,6 +635,7 @@ func _join_world() -> void:
 	# The rules are asked only what they read of the world (the cursor's preview, what
 	# a bush gives); what they would change comes from the server as events.
 	actions = WorldActions.new(world, clock, rules)
+	actions.plans = plans
 	_watch_actions()
 	gen.changed.connect(chunks.remesh_chunk)
 	freeze_log.watch()
@@ -1170,3 +1175,4 @@ func _build_scene() -> void:
 	cursor.world = world
 	world_root.add_child(cursor)
 	world_root.add_child(LandView.new(self))
+	world_root.add_child(PlanView.new(self))

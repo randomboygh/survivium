@@ -222,6 +222,7 @@ func _write_world() -> void:
 		"sky": game.session.clock.to_dict(),
 		"placed": game.session.placed.to_list(),
 		"territory": game.session.territory.to_dict(),
+		"plans": game.session.plans.to_list(),
 	}
 	var p: Vector3 = game.player.position
 	player_record = {"format": WorldStore.FORMAT, "position": [p.x, p.y, p.z]}

@@ -133,6 +133,8 @@ var _level_label: Button
 ## The arrows beside it, dimmed past the levels that may be looked at (see
 ## ChunkStreamer.view_range).
 var _level_up: Button
+## The blueprint's height buttons (shown while a wall or a room is drawn).
+var _plan_box: BoxContainer
 var _level_down: Button
 ## The camera buttons under the minimap: turn, tilt, and back to the default view
 ## (it shows the turn and the tilt).
@@ -346,6 +348,17 @@ func _ready() -> void:
 	_hand_left.tag = "Л"
 	_hand_right = _slot(bar_row, tap_hand.bind(1))
 	_hand_right.tag = "П"
+	# The blueprint's height (Controls.plan_height), up and down, while a wall or a room
+	# is drawn.
+	_plan_box = BoxContainer.new()
+	_plan_box.vertical = true
+	_plan_box.add_theme_constant_override("separation", 2)
+	bar_row.add_child(_plan_box)
+	var plan_up := _icon_button(_plan_box, "up", "Чертёж выше", func() -> void: game.controls.shift_plan_height(1))
+	var plan_down := _icon_button(_plan_box, "down", "Чертёж ниже", func() -> void: game.controls.shift_plan_height(-1))
+	for b in [plan_up, plan_down]:
+		b.custom_minimum_size = Vector2(28, (SLOT - 2) / 2)
+	_plan_box.visible = false
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
 	sep.custom_minimum_size = Vector2(4, 30)
@@ -854,12 +867,15 @@ func _update_hands() -> void:
 		var brush: Dictionary = c.brush_record()
 		if c.use_of(h) == "place":
 			slot.number = brush.title if brush.title != "1×1" else ""
+			if brush.get("plan", "floor") != "floor":
+				slot.number += " %d" % c.plan_height
 		else:
 			slot.number = "×%d" % n if n > 1 else ""
 		# A light burns down in the hand: the second hand holds the second one lit.
 		var k := 1 if h == 1 and c.hands[0] == id and n > 1 else 0
 		slot.inactive = FactChips.unarmed(game.character.inventory, id)
 		slot.fill = game.character.burn_left(id, k) if id != "" and n > 0 and Items.burns(id) > 0.0 else -1.0
+	_plan_box.visible = c.use_of() == "place" and c.brush_record().get("plan", "floor") != "floor"
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var item: String = slots[i][0] if slots[i] != null else ""

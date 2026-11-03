@@ -99,6 +99,8 @@ var territory
 ## blows and shots at them; none in a copy.
 var fights
 var people: Array = []
+## The blueprint's ghost cells (Plans): the action button with a block builds them.
+var plans
 
 
 func _init(w, c, r) -> void:
@@ -143,6 +145,17 @@ static func bushes_lose_ground(w, cell: Vector3i) -> void:
 	for c in [cell, cell + Vector3i.UP]:
 		if w.bushes.has(c):
 			w.remove_bush(c)
+
+
+## Puts `block` in `cell` (a block placed, a ghost cell of the blueprint built).
+func put_block(cell: Vector3i, block: int) -> void:
+	world.set_cell(cell.x, cell.y, cell.z, block)
+	_changed(cell)
+
+
+## What the hands did (_work), for the rules of other modules.
+func work(seconds: float, kind: String, at: Vector3, stuff := -1) -> Dictionary:
+	return _work(seconds, kind, at, stuff)
 
 
 func _changed(cell: Vector3i) -> void:
@@ -474,8 +487,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 			break
 		if not free:
 			who.inventory.remove(item, 1)
-		world.set_cell(cell.x, cell.y, cell.z, block)
-		_changed(cell)
+		put_block(cell, block)
 		placed += 1
 	if placed > 0:
 		var done := _work(PLACE_SWING, "reach", (Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
@@ -505,7 +517,8 @@ func can_place(who, cell: Vector3i, top: int) -> bool:
 # --- The action button ------------------------------------------------------------------
 
 ## The action button: works in front of `who` with the hand in use (placing nothing higher
-## than level `top`). A block is placed in front (filling a hole first), seeds and bushes
+## than level `top`). With a block in hand it builds the blueprint's ghost cells within
+## reach (Plans.build), else the block is placed in front (filling a hole first), seeds and bushes
 ## planted. A tool or bare hands first work the nearest tree or bush in front that they
 ## can do something to (see useful: an axe chops, hands gather, a sword knocks berries
 ## off, a shovel digs a bush out), then cut the grass in front (hands, sword, scythe),
@@ -515,6 +528,8 @@ func can_place(who, cell: Vector3i, top: int) -> bool:
 func act_in_front(who, top: int) -> Dictionary:
 	match Tools.use_of(who.held()):
 		"place":
+			if plans != null and plans.builds(who):
+				return plans.build(self, who, top)
 			return place_in_front(who, top)
 		"plant", "sow":
 			if plant(who, who.held()):
@@ -553,13 +568,13 @@ func act_in_front(who, top: int) -> Dictionary:
 
 
 ## What the action button would do in front of `who` now (see act_in_front), changing
-## nothing, for its label: "place", "plant", "fish", "drink", "fill" (a vessel at the
+## nothing, for its label: "build" (the blueprint), "place", "plant", "fish", "drink", "fill" (a vessel at the
 ## water), "shoot", "hit" (a player or an animal there), "chop", "gather" (a tree or a
 ## bush), "mow", "dig", or "" for a swing at the air.
 func front_kind(who) -> String:
 	match Tools.use_of(who.held()):
 		"place":
-			return "place"
+			return "build" if plans != null and plans.builds(who) else "place"
 		"plant", "sow":
 			return "plant"
 	var t: Dictionary = who.tool()
@@ -668,6 +683,10 @@ func _wound(who, a, power: int) -> void:
 
 
 ## Whether `who` may do `action` (Territory.ACTIONS) at `cell` (a word to them if not).
+func territory_allows(who, cell: Vector3i, action: String) -> bool:
+	return _may(who, cell, action)
+
+
 func _may(who, cell: Vector3i, action: String) -> bool:
 	return territory == null or territory.may(who, cell, action)
 
