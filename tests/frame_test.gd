@@ -215,11 +215,13 @@ func _run() -> void:
 	main.player.body.on_ground = false
 	await _scenario("landing in a cave", 100000, func(_i: int) -> bool:
 		return main.player.body.on_ground and clock >= 1.0)
-	_check(main.chunks.indoor and main.chunks.cut_level < w.size_y, "the view is cut in the cave")
+	# Cut, or in layers (the default «Вид в пещере»).
+	_check(main.chunks.indoor and (main.chunks.cut_level < w.size_y or main.chunks.layers_on), "the view is cut in the cave")
 	var cut: int = main.chunks.cut_level
+	var layered: Vector3i = main.chunks.layer_base
 	await _scenario("jumping in a cave", 100000, func(_i: int) -> bool:
 		main.controls.jump_held = fmod(clock, 0.8) < 0.1
-		if main.chunks.cut_level != cut:
+		if main.chunks.cut_level != cut or main.chunks.layer_base != layered:
 			flips += 1
 		return clock >= 4.0)
 	main.controls.jump_held = false
