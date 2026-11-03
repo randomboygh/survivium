@@ -80,6 +80,10 @@ var _all := true
 var _clock_sent := -1.0
 ## The last SNAP entry sent of each animal, by its id: one that did not move is not sent again.
 var _snapped := {}
+## The next snapshot looks at every animal (on joining), else at those that stepped and
+## those born since the last one (see _snap).
+var _snap_all := true
+var _born := []
 
 
 func _init(s) -> void:
@@ -276,6 +280,7 @@ func flush() -> Array[PackedByteArray]:
 		for a in session.wildlife.animals:
 			out.append(_event(Protocol.ANIMAL, [a.id, a.kind, a.tint, a.pos]))
 		_snapped.clear()
+		_snap_all = true
 	if send_world:
 		_world_events(out)
 	for key: Vector2i in _drops:
@@ -406,7 +411,15 @@ func _packed(key: Vector2i) -> Array:
 ## where they were last told to be.
 func _snap() -> Array:
 	var out := []
-	for a in session.wildlife.animals:
+	# Only those that stepped in the last tick (Wildlife.moved) and those born since can
+	# have moved: not every animal, every flush. After a full flush, all of them.
+	var wild = session.wildlife
+	var those: Array = wild.animals if _snap_all else wild.moved + _born
+	_snap_all = false
+	_born = []
+	for a in those:
+		if a.gone:
+			continue
 		var old: Variant = _snapped.get(a.id)
 		if old != null and (a.away != 0.0 or _same_snap(old, a)):
 			continue
@@ -552,6 +565,7 @@ func _on_chest(cell: Vector3i) -> void:
 
 
 func _on_born(a) -> void:
+	_born.append(a)
 	# On joining the next flush names every animal there is (the server lets them in
 	# with the first player): not twice.
 	if not _all:
