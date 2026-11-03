@@ -26,6 +26,8 @@ const FIREFLY_TRIES := 120
 ## their colour is the material's tint (PixelTextures.tint).
 const BURSTS := 4
 const BURST_BITS := 8
+## Stars of a skill's new level (see level_sparks).
+const LEVEL_STARS := 14
 ## The pixels of a star sparkle (see _star).
 const STAR := [
 	"..x..",
@@ -809,6 +811,30 @@ func sack_glow(at: Vector3) -> Node3D:
 	root.add_child(light)
 	anchor(light, at + Vector3(0.0, 0.5, 0.0))
 	return root
+
+
+## Gold stars rising round the feet `at` (world units) of one whose skill rose to a new
+## level (LevelUp): a burst of them, slow, gone in a couple of seconds.
+func level_sparks(at: Vector3) -> void:
+	if not enabled:
+		return
+	var p := _emitter(LEVEL_STARS, 1.8, Vector2(STAR.size(), STAR.size()) * PX, 1.5)
+	p.position = at + Vector3(0.0, 0.4, 0.0)
+	p.one_shot = true
+	p.explosiveness = 0.75
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.45
+	p.direction = Vector3.UP
+	p.spread = 25.0
+	p.initial_velocity_min = 0.8
+	p.initial_velocity_max = 1.6
+	p.gravity = Vector3(0.0, -0.3, 0.0)
+	p.color_ramp = _ramp([Color(1.0, 0.92, 0.55, 1.0), Color(1.0, 0.82, 0.35, 1.0), Color(1.0, 0.7, 0.25, 0.0)])
+	var mat: ShaderMaterial = (p.mesh as QuadMesh).material
+	mat.set_shader_parameter("sky_only", 0.0)
+	mat.set_shader_parameter("shape", _star())
+	p.finished.connect(p.queue_free)
+	p.emitting = true
 
 
 ## Puts omni `light` over world point `p` as the shaders draw it, lighting as far round

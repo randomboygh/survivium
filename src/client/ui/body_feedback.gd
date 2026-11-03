@@ -46,9 +46,10 @@ var _satiety := -1.0
 ## Change not shown yet and seconds since the last number, by kind.
 var _pending := {"hurt": 0.0, "heal": 0.0, "food": 0.0}
 var _since := {"hurt": EVERY, "heal": EVERY, "food": EVERY}
-## How strong the frame is now (0..1) and its colour.
+## How strong the frame is now (0..1), its colour and the seconds it fades in.
 var _frame := 0.0
 var _frame_color := UiStyle.DANGER
+var _fade := FADE
 ## The numbers rising: {"node": HBoxContainer, "age": seconds}.
 var _floats := []
 
@@ -84,9 +85,20 @@ func _process(delta: float) -> void:
 			_pending[k] = 0.0
 			_since[k] = 0.0
 	if _frame > 0.0:
-		_frame = maxf(0.0, _frame - delta / FADE)
+		_frame = maxf(0.0, _frame - delta / _fade)
 		queue_redraw()
 	_move_floats(delta)
+
+
+## The edges glow `color` and fade in `fade` seconds (a skill's new level, LevelUp),
+## unless a hurt reddens them now.
+func glow(color: Color, fade: float) -> void:
+	if _frame_color == UiStyle.DANGER and _frame > 0.15:
+		return
+	_frame_color = color
+	_frame = 1.0
+	_fade = fade
+	queue_redraw()
 
 
 ## Gathers `amount` of change of `kind`; a gain smaller than `least` in one frame is
@@ -109,6 +121,7 @@ func _show(kind: String, n: int) -> void:
 	if kind == "hurt" or _frame_color != UiStyle.DANGER or _frame < 0.15:
 		_frame_color = KINDS[kind][0]
 		_frame = maxf(_frame, strength)
+		_fade = FADE
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 2)

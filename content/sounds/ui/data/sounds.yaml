@@ -11,3 +11,6 @@
 - id: close
   title: Окно закрыто
   volume: 0.6
+- id: level_up
+  title: Новый уровень навыка
+  volume: 0.7

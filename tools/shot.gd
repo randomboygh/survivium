@@ -462,6 +462,13 @@ func _run() -> void:
 				main.host.player.skills.gain(role, lerpf(reg.need(sk, shot.skills[role]), reg.need(sk, shot.skills[role] + 1), 0.4))
 			for i in 8:
 				await process_frame
+		if shot.has("level_up"):
+			# A skill rose to a new level: the gold edges, the stars, the notice; caught mid-way.
+			var reg2 = load("res://src/shared/content/skills.gd")
+			main.character.skills.leveled.emit(reg2.of_role(shot.level_up).id, 3)
+			var since2 := Time.get_ticks_msec()
+			while Time.get_ticks_msec() - since2 < 450:
+				await process_frame
 		if shot.has("thirst"):
 			# A thirsty body: the water bar low and red.
 			main.host.player.vitals.water = shot.thirst
