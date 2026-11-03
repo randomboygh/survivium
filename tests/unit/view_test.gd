@@ -5,20 +5,7 @@ extends "res://tests/unit/test_case.gd"
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
-const ReachMap := preload("res://src/client/world/reach_map.gd")
-
-
-## Columns of open cells for ReachMap: two caves, levels 5 to 7, rock between.
-class TwoCaves:
-	func air_col(x: int, z: int) -> int:
-		var here := (x >= 12 and x <= 20) or (x >= 23 and x <= 25)
-		return 0b11100000 if here and z >= 12 and z <= 20 else 0
-
-	func water_col(_x: int, _z: int) -> int:
-		return 0
-
-	func leaf_col(_x: int, _z: int) -> int:
-		return 0
+const CaveSphere := preload("res://src/client/view/cave_sphere.gd")
 
 
 func run() -> void:
@@ -27,7 +14,7 @@ func run() -> void:
 	_test_tracks()
 	_test_hidden()
 	_test_cave_layers()
-	_test_reach_map()
+	_test_cave_sphere()
 	_test_sound()
 	_test_camera_spin()
 	_test_camera_drift()
@@ -343,16 +330,21 @@ func _test_cave_layers() -> void:
 	PixelView.up = up
 
 
-func _test_reach_map() -> void:
-	var reach := ReachMap.new()
-	var w := TwoCaves.new()
-	for i in 200:
-		reach.update(w, Vector3i(16, 5, 16), 8)
-	_check(reach.reached(Vector3i(16, 5, 16)) and reach.reached(Vector3i(12, 7, 20)),
-		"reach: the cave the player stands in is reached")
-	_check(not reach.reached(Vector3i(24, 6, 16)), "reach: a cave behind solid rock is not")
-	_check(not reach.reached(Vector3i(16, 8, 16)) and not reach.reached(Vector3i(21, 6, 16)),
-		"reach: rock is not")
+func _test_cave_sphere() -> void:
+	var up := PixelView.up
+	PixelView.up = Vector2(0.0, -1.0)
+	# The camera stands south and above: the way to it is (0, 1, 1) / sqrt 2.
+	var toward := CaveSphere.toward_camera()
+	_check(toward.is_equal_approx(Vector3(0.0, 1.0, 1.0).normalized()), "sphere: the way to the camera")
+	var body := Vector3(5.25, 10.5, 5.25)
+	var middle := body + toward * 2.0
+	var hides := func(c: Vector3i) -> bool: return CaveSphere.hides_at(c, middle, 4.0, body)
+	_check(hides.call(Vector3i(10, 22, 12)) and hides.call(Vector3i(10, 23, 11)),
+		"sphere: what is in front of the player within it goes")
+	_check(not hides.call(Vector3i(10, 19, 10)) and not hides.call(Vector3i(10, 21, 8)),
+		"sphere: the floor under the player and what is behind them stay")
+	_check(not hides.call(Vector3i(10, 40, 30)), "sphere: outside it all stays")
+	PixelView.up = up
 
 
 func _test_sound() -> void:
