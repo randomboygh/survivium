@@ -84,6 +84,8 @@ const SCHEMAS := {
 		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
 		"ground": {"type": "enum", "values": ["none", "soil", "sand", "rock"], "default": "none"},
 		"drains": {"type": "bool", "default": false},
+		# Texels the boundary of the material with another goes ragged over, both ways.
+		"fray": {"type": "int", "min": 0, "max": 7, "default": 0},
 		"layers": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"texture": {"type": "string", "default": ""},
 		"item": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},

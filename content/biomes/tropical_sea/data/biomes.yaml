@@ -7,5 +7,5 @@
   where: sea
   zone: tropic
   warmth: [0.72, 1.0]
-  tints: {water: "#44c0c0", sand: "#e2d8ba"}
+  tints: {water: "#44c0c0", sand: "#cac2a8"}
   color: "#2a94a6"

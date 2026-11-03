@@ -374,6 +374,13 @@ func _test_sleep() -> void:
 	off.thirst = false
 	off.step(0.0, 3.0, false)
 	_check(off.energy == 80.0, "with fatigue off energy stays")
+	var swimmer := Vitals.new()
+	swimmer.fatigue = false
+	var health_was := swimmer.health
+	var stamina_was := swimmer.stamina
+	swimmer.step(600.0, 0.0, true)
+	_check(swimmer.stamina == stamina_was and swimmer.health == health_was, "with fatigue off a swimmer neither tires nor drowns")
+	_check(swimmer.spend("dig") and swimmer.stamina == stamina_was, "with fatigue off work costs no stamina")
 	var copy := Vitals.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(v.to_dict())))
 	_check(copy.energy == 0.0, "energy survives a save")

@@ -136,6 +136,8 @@ const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
 const FAST_FORWARD := 100.0
 ## Playtest multipliers of the player's walking speed, for looking around the map.
 const PLAYER_SPEEDS := [1.0, 2.0, 4.0, 8.0]
+## Playtest multipliers of how fast the skills grow.
+const SKILL_RATES := [1.0, 2.0, 20.0, 200.0]
 
 var game
 ## Current values of the saved settings, by name (see DEFAULTS).
@@ -144,6 +146,8 @@ var values := {}
 var time_boost := 1.0
 ## Playtest switch: the player's speed multiplier. Not saved.
 var player_speed := 1.0
+## Playtest switch: how many times faster the skills grow (SkillSet.rate). Not saved.
+var skill_rate := 1.0
 ## Playtest switch: blocks are placed without taking them from the bag, and digging
 ## gives none. Not saved.
 var free_build := false
@@ -167,7 +171,7 @@ var no_overload := false
 var instant_craft := false
 ## Playtest switch: satiety does not fall (Vitals.hunger off). Not saved.
 var no_hunger := false
-## Playtest switch: energy does not fall (Vitals.fatigue off). Not saved.
+## Playtest switch: the body does not tire (Vitals.fatigue off: energy stays, work and swimming cost no stamina). Not saved.
 var no_fatigue := false
 ## Playtest switch: water does not fall (Vitals.thirst off). Not saved.
 var no_thirst := false
@@ -346,6 +350,7 @@ func apply() -> void:
 			who.vitals.cold = not no_cold
 			who.vitals.thirst = not no_thirst
 			who.vitals.fatigue = not no_fatigue
+			who.skills.rate = skill_rate
 	Sound.set_volume("Music", values.music_volume)
 	Sound.set_volume("Sounds", values.sound_volume)
 	Sound.set_volume("Nature", values.nature_volume)
@@ -516,6 +521,11 @@ func set_hour(hour: float) -> void:
 
 func set_time_boost(k: float) -> void:
 	time_boost = k
+	apply()
+
+
+func set_skill_rate(k: float) -> void:
+	skill_rate = k
 	apply()
 
 

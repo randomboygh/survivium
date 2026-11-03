@@ -255,8 +255,13 @@ func close() -> void:
 	_hide_popup()
 
 
-func zoom_by(d: int) -> void:
+## Zooms in (`d` 1) or out (-1); with `at` (a point of this control) the column under
+## it stays under it, as under the fingers of a pinch or the mouse wheel.
+func zoom_by(d: int, at: Variant = null) -> void:
+	var held: Vector2 = cell_at(at) if at is Vector2 else Vector2.ZERO
 	zoom_index = clampi(zoom_index + d, 0, ZOOMS.size() - 1)
+	if at is Vector2:
+		centre += held - cell_at(at)
 	_plus.disabled = zoom_index == ZOOMS.size() - 1
 	_minus.disabled = zoom_index == 0
 	_hide_popup()
@@ -321,6 +326,15 @@ func _gui_input(event: InputEvent) -> void:
 		_pinch = _spread()
 	elif event is InputEventScreenDrag:
 		_last_touch = Time.get_ticks_msec()
+		if not _fingers.has(event.index):
+			# A finger whose press the map never saw (it opened under it): it counts
+			# from here on, without a jump.
+			_fingers[event.index] = event.position
+			_moved = true
+			_pinch = _spread()
+			accept_event()
+			return
+		var middle := _middle()
 		_fingers[event.index] = event.position
 		if not _moved and event.position.distance_to(_press_at) > TAP_SLOP:
 			_moved = true
@@ -328,12 +342,15 @@ func _gui_input(event: InputEvent) -> void:
 		if _fingers.size() == 1 and _moved:
 			_pan(event.relative)
 		elif _fingers.size() == 2:
+			# The map follows the middle of the two fingers and zooms about it, so
+			# what lies under them stays there.
+			_pan(_middle() - middle)
 			var d := _spread()
 			if _pinch > 0.0 and d > _pinch * 1.35:
-				zoom_by(1)
+				zoom_by(1, _middle())
 				_pinch = d
 			elif _pinch > 0.0 and d < _pinch / 1.35:
-				zoom_by(-1)
+				zoom_by(-1, _middle())
 				_pinch = d
 	elif Time.get_ticks_msec() - _last_touch < TOUCH_MOUSE_MS:
 		pass
@@ -348,10 +365,10 @@ func _gui_input(event: InputEvent) -> void:
 					tap(event.position)
 			MOUSE_BUTTON_WHEEL_UP:
 				if event.pressed:
-					zoom_by(1)
+					zoom_by(1, event.position)
 			MOUSE_BUTTON_WHEEL_DOWN:
 				if event.pressed:
-					zoom_by(-1)
+					zoom_by(-1, event.position)
 	elif event is InputEventMouseMotion and _mouse_drag:
 		if not _moved and event.position.distance_to(_press_at) > TAP_SLOP:
 			_moved = true
@@ -359,6 +376,24 @@ func _gui_input(event: InputEvent) -> void:
 		if _moved:
 			_pan(event.relative)
 	accept_event()
+
+
+## A finger lifted anywhere leaves the map's count, also when it was lifted over
+## another control (else a finger long gone would still be half of the next pinch).
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and not event.pressed and _fingers.has(event.index):
+		_fingers.erase(event.index)
+		_pinch = _spread()
+
+
+## The middle of the fingers on the map (the first two), or of the one.
+func _middle() -> Vector2:
+	var p: Array = _fingers.values()
+	if p.is_empty():
+		return Vector2.ZERO
+	if p.size() == 1:
+		return p[0]
+	return ((p[0] as Vector2) + (p[1] as Vector2)) / 2.0
 
 
 ## Distance between the first two fingers on the map, 0 with fewer.

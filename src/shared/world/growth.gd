@@ -224,9 +224,9 @@ static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGe
 
 
 ## A palm: a tall bare trunk and on its top a tuft of fronds, each a line of points
-## going out from the top, level for the first and then a level of points lower for each
-## one further out, so they arch down; `crown` [length of a frond in points, fewest
-## fronds, most fronds]. The client draws the fronds over these points (Foliage._fronds).
+## going out level from the top, one flat round tier (no leaves hanging lower); `crown`
+## [length of a frond in points, fewest fronds, most fronds]. The client draws the fronds
+## over these points (Foliage._fronds).
 static func _palm(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
 	var trunk := maxi(3, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
 	var top := ((y + trunk) & ~1) + 2
@@ -240,7 +240,7 @@ static func _palm(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGen
 	for k in count:
 		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
 		for d in range(1, length + 1):
-			var p := Vector3i(x + 2 * roundi(cos(a) * d), top - 2 * maxi(0, d - 1), z + 2 * roundi(sin(a) * d))
+			var p := Vector3i(x + 2 * roundi(cos(a) * d), top, z + 2 * roundi(sin(a) * d))
 			if p.y - 1 > y + 1 and not have.has(p):
 				have[p] = true
 				points.append(p)
