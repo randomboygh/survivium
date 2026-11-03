@@ -55,6 +55,7 @@ const SOUNDS := {
 	"tab": ["sounds/ui", 1, false],
 	"open": ["sounds/ui", 1, false],
 	"close": ["sounds/ui", 1, false],
+	"level_up": ["sounds/ui", 1, false],
 	# Animals.
 	"rabbit": ["animals/rabbit", 2, false],
 	"squirrel": ["animals/squirrel", 2, false],
@@ -480,6 +481,17 @@ func _open(_v: int) -> PackedFloat32Array:
 func _close(_v: int) -> PackedFloat32Array:
 	var b := Synth.mix(_wood_hit(440.0, 0.025), _wood_hit(330.0, 0.025), 0.8, 0.06)
 	return Synth.normalize(b, 0.35)
+
+
+## A skill's new level: four soft bell notes rising (C, E, G, C), the last held.
+func _level_up(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(1.8)
+	var notes := [523.25, 659.25, 783.99, 1046.5]
+	for i in notes.size():
+		var n := Synth.tone(1.8 - i * 0.09, notes[i], [[1.0, 1.0, 1.4], [2.0, 0.3, 0.7], [3.0, 0.08, 0.4], [4.07, 0.04, 0.25]])
+		n = Synth.env(n, 0.004, 0.45 if i < notes.size() - 1 else 1.0)
+		b = Synth.mix(b, n, 0.8 if i < notes.size() - 1 else 1.0, i * 0.09)
+	return Synth.fade(Synth.normalize(b, 0.5), 0.002, 0.2)
 
 
 # --- Animals -----------------------------------------------------------------

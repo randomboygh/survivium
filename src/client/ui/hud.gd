@@ -33,6 +33,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
+const LevelUp := preload("res://src/client/ui/level_up.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
@@ -72,6 +73,8 @@ const TOAST_FADE := 0.35
 const TOAST_RISE := 8.0
 const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
 
+## The warm gold a notice's panel is tinted (see notice).
+const NOTICE_TINT := Color(1.0, 0.86, 0.55)
 var game
 var touch := false
 var portrait := false
@@ -184,6 +187,7 @@ func _ready() -> void:
 	# Under the rest of the interface.
 	feedback = BodyFeedback.new(game)
 	add_child(feedback)
+	add_child(LevelUp.new(game))
 
 	_left = VBoxContainer.new()
 	_left.add_theme_constant_override("separation", 6)
@@ -956,6 +960,19 @@ func toast(text: String) -> void:
 		_toast_leave(shown.pop_front())
 
 
+## A notice in the list of toasts (see toast) that stands out: a gold star by `title`
+## and a line `sub` under it, the panel warmed gold (a skill's new level, LevelUp).
+func notice(title: String, sub: String) -> void:
+	toast("★ " + title + "\n" + sub)
+	var holder: Control = _toasts.get_child(_toasts.get_child_count() - 1)
+	if holder.get_child_count() > 0:
+		var p: Control = holder.get_child(0)
+		p.self_modulate = NOTICE_TINT
+		var label := p.get_child(0) as Label
+		if label != null:
+			label.add_theme_color_override("font_color", UiStyle.ACCENT)
+
+
 ## Toast `holder` (see toast) fades away, the list sliding up by it as it goes.
 func _toast_leave(holder: Control) -> void:
 	if holder.has_meta("leaving"):
@@ -991,7 +1008,9 @@ func _fit_toast(p: PanelContainer) -> void:
 	var frame := p.get_theme_stylebox("panel").get_minimum_size().x
 	var room := floorf(_toast_room - frame)
 	var font := l.get_theme_font("font")
-	var wide := font.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, l.get_theme_font_size("font_size")).x
+	var wide := 0.0
+	for line: String in l.text.split("\n"):
+		wide = maxf(wide, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, l.get_theme_font_size("font_size")).x)
 	var wrap := wide + 1.0 > room
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
 	l.custom_minimum_size.x = room if wrap else 0.0
