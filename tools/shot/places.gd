@@ -543,12 +543,20 @@ func walls(w, at: Vector3) -> Vector3:
 			for y in range(spot.y, spot.y + 3):
 				w.set_cell(x, y, z, planks)
 	main.session.placed.put("tools:stairs", Vector3i(x1 + 3, spot.y, spot.z), null, true, -1.0, null, 1)
+	# West of the stairs a wall of planks with a door shut, one open and a window.
+	for x in range(x1 - 9, x1 - 1):
+		for y in 3:
+			var gap := (x == x1 - 7 or x == x1 - 4) and y < 2 or x == x1 - 2 and y == 1
+			w.set_cell(x, spot.y + y, spot.z - 4, Mat.AIR if gap else planks)
+	main.session.placed.put("tools:door", Vector3i(x1 - 7, spot.y, spot.z - 4))
+	main.session.placed.put("tools:door", Vector3i(x1 - 4, spot.y, spot.z - 4), null, true, -1.0, null, 0, true)
+	main.session.placed.put("tools:window", Vector3i(x1 - 2, spot.y + 1, spot.z - 4))
 	for c: Vector3i in w.bushes.keys():
-		if absi(c.x - spot.x) <= 16 and c.z >= spot.z - 7 and c.z <= spot.z + 2:
+		if absi(c.x - spot.x) <= 26 and c.z >= spot.z - 7 and c.z <= spot.z + 2:
 			w.remove_bush(c)
-	for dx in range(-24, 17, 8):
+	for dx in range(-32, 17, 8):
 		main.chunks.on_cell_changed(spot + Vector3i(dx, 0, -2))
-	return (Vector3(spot) + Vector3(0.5, 0.0, 2.5)) * CELL
+	return (Vector3(spot) + Vector3(-6.5, 0.0, 2.5)) * CELL
 
 
 ## Blocks of stone round the campfire whose north-west cell is `fire`, kept in

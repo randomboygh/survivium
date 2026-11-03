@@ -1,0 +1,7 @@
+# Окно собирают из доски и стекла («Материалы») на верстаке.
+- id: window
+  title: Окно
+  makes: window
+  needs: {materials:planks: 1, materials:glass: 2}
+  at: workbench
+  time: 4

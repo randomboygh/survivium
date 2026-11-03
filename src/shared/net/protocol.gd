@@ -69,6 +69,8 @@ const PROP_TAKE := "prop_take"
 ## Puts out a campfire, or lights it again or feeds it one piece of fuel: [cell, on]
 ## (Placed.put_out, Placed.feed).
 const PROP_FIRE := "prop_fire"
+## Opens a door or shuts it: [cell] (Placed.swing).
+const PROP_OPEN := "prop_open"
 ## Destroys a campfire put out: [cell] (Placed.destroy).
 const PROP_DESTROY := "prop_destroy"
 ## Starts a recipe some times at the workshop: [recipe id, n] (Workshop.start).
@@ -180,6 +182,8 @@ const PROP := "prop"
 const PROP_GONE := "prop_gone"
 ## A campfire was put out or lit: [cell, lit].
 const PROP_LIT := "prop_lit"
+## A door was opened or shut: [cell, open] (Placed.opened).
+const PROP_OPENED := "prop_opened"
 ## What a campfire has left to burn: [cell, seconds] (Placed.fuel_changed).
 const PROP_FUEL := "prop_fuel"
 ## What a thing that stores holds changed: [cell, Inventory.to_dict()].

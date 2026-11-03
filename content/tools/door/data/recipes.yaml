@@ -1,0 +1,7 @@
+# Дверь сбивают из досок («Материалы») на верстаке.
+- id: door
+  title: Дверь
+  makes: door
+  needs: {materials:planks: 4}
+  at: workbench
+  time: 5

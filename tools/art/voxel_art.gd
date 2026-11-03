@@ -48,6 +48,10 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return post()
 		"stairs":
 			return stairs()
+		"door":
+			return door()
+		"window":
+			return window()
 	return null
 
 
@@ -350,6 +354,41 @@ static func stairs() -> VoxelModel:
 				elif y % 2 == 1:
 					c = riser * 1.08
 				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A door on one cell, two cells tall: a leaf of upright planks shut along the north
+## edge of the cell (Placed.open_voxels swings it on the hinge at the north-west
+## corner), two dark ledges across it, a handle on its front (south) face.
+static func door() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.43, 0.27)
+	var dark := Color(0.38, 0.26, 0.15)
+	for y in 16:
+		for x in 8:
+			var c := wood * (0.88 if x % 3 == 2 else 1.0)
+			if x == 0 or x == 7 or y == 15:
+				c = wood * 0.8
+			m.set_voxel(Vector3i(x, y, 0), c * 0.92)
+			m.set_voxel(Vector3i(x, y, 1), dark if y == 3 or y == 12 else c)
+	m.set_voxel(Vector3i(6, 7, 2), Color(0.25, 0.22, 0.2))
+	return m
+
+
+## A window on one cell: a plank frame in the middle of the cell's depth with a cross
+## between four panes of pale greenish glass, a highlight in the upper corner of each.
+static func window() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.43, 0.27)
+	var glass := Color(0.62, 0.74, 0.74)
+	for y in 8:
+		for x in 8:
+			var frame := x == 0 or x == 7 or y == 0 or y == 7 or x == 4 or y == 4
+			var c := wood * (0.85 if y == 0 else 1.0) if frame else glass
+			if not frame and (x == 1 or x == 5) and (y == 6 or y == 3):
+				c = glass * 1.25
+			for z in [3, 4]:
+				m.set_voxel(Vector3i(x, y, z), c if frame or z == 4 else glass * 0.9)
 	return m
 
 
