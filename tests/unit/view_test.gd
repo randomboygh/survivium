@@ -325,6 +325,8 @@ func _test_cave_layers() -> void:
 		and CaveLayers.share(base + Vector3i(0, 2, 1), base, fade, 0.5, 2) == 0.5,
 		"layers: the line at the head keeps the legs whole")
 	_check(at.call(0, 2, 2) == 0.25, "layers: the less of the two")
+	_check(is_equal_approx(CaveLayers.layer_share(1, -2, 4, 0.5), 0.125) and CaveLayers.layer_share(2, -2, 4, 0.5) == 0.0,
+		"layers: first layers below 0 start the fade before the first")
 	PixelView.up = Vector2(-1.0, -1.0).normalized()
 	_check(at.call(1, 0, 0) == 0.5 and at.call(1, 0, 1) == 0.25, "layers: a diagonal view slices diagonally")
 	PixelView.up = up

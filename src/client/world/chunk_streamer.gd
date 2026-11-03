@@ -733,7 +733,9 @@ func update_cut(delta: float) -> void:
 	var settings = game.settings
 	sphere.update(game.world_root, in_sphere, player.position, settings.sphere_radius(),
 		settings.sphere_shift(), settings.values.sphere_debug == 1)
-	if in_sphere and not plane:
+	# The layers fill what they leave out with the rock's section, and the sphere draws
+	# the faces it opens, by the solid cells round the player too.
+	if (in_sphere or layers_on) and not plane:
 		solid.update(world, px, level, pz)
 	if layers_on or in_sphere:
 		target = world.size_y
@@ -868,6 +870,29 @@ func _update_layers(on: bool, at: Vector3i) -> void:
 	layer_base = at
 	RenderingServer.global_shader_parameter_set("layer_view",
 		Vector4(1.0 if on else 0.0, at.x, at.y, at.z))
+	if on:
+		RenderingServer.global_shader_parameter_set("layer_rock", float(_rock_round(at)))
+
+
+## The material most of the solid cells round the player's feet are of (turf counts
+## as the soil under it): the colour the layers fill the rock they leave out with
+## (layer_fills in common.gdshaderinc), as the GPU knows no cell's material.
+func _rock_round(at: Vector3i) -> int:
+	var counts := {}
+	for y in range(at.y - 2, at.y + 4):
+		for dz in range(-3, 4):
+			for dx in range(-3, 4):
+				var m: int = world.get_cell(at.x + dx, y, at.z + dz)
+				if Mat.is_solid(m):
+					m = Mat.DIRT if m == Mat.GRASS else m
+					counts[m] = counts.get(m, 0) + 1
+	var best := Mat.STONE
+	var most := 0
+	for m: int in counts:
+		if counts[m] > most:
+			best = m
+			most = counts[m]
+	return best
 
 
 ## The cut follows the player in the plane of the camera (setting «Вид в пещере»).

@@ -157,7 +157,9 @@ const SHOTS := {
 	# settings.cfg) in the view in layers, dense, and in the plane cut.
 	"deep-cave": {"time": 0.45, "season": 1, "underground": true},
 	"deep-cave-dense": {"time": 0.45, "season": 1, "underground": true,
-		"settings": {"layer_density": 2, "layer_front_first": 2, "layer_above_first": 2, "layer_above_stretch": 4}},
+		"settings": {"layer_density": 2, "layer_front_from": 6, "layer_above_from": 6, "layer_above_stretch": 4}},
+	"deep-cave-early": {"time": 0.45, "season": 1, "underground": true,
+		"settings": {"layer_front_from": 2, "layer_above_from": 2}},
 	"deep-cave-head": {"time": 0.45, "season": 1, "underground": true, "settings": {"layer_line": 12}},
 	"deep-cave-sphere": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 3}},
 	"deep-cave-sphere-debug": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 3, "sphere_debug": 1}},

@@ -202,8 +202,13 @@ void fragment() {
 	bool cut = sphere_view.x > 0.5
 		? sphere_hides_cell(floor(own / CELL))
 		: cut_hides(own, floor(screen_plane(world_pos) * TEXELS));
+	// Where the layers leave out a face with rock behind it, the rock's section shows.
+	bool fill = false;
 	if (!IN_SHADOW_PASS && !kept && cut) {
-		discard;
+		fill = layer_view.x > 0.5 && layer_fills(own, floor(screen_plane(world_pos) * TEXELS));
+		if (!fill) {
+			discard;
+		}
 	}
 	// A cap of the cut (dark, see build_cap), not a trunk's top in its crown, nor a
 	// voxel (its material code is NO_MATERIAL; see MeshFaces.pack).
@@ -520,8 +525,13 @@ void fragment() {
 #ifdef SECTION
 	inside = true;
 #endif
-	if (section && inside) {
+	if ((section && inside) || fill) {
 		vec2 st = floor(screen_plane(world_pos) * TEXELS);
+		if (fill) {
+			// The rock round the player, its side's texels where they show on screen.
+			int rock = int(layer_rock + 0.5);
+			col = tile_texel(rock * 3 + 1, ivec2(mod(st, TEXELS))) * biome_tint(rock, world_pos.xz);
+		}
 		ALBEDO = vec3(0.0);
 		EMISSION = (cut_cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
 		clouds = 0.0;

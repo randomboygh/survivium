@@ -10,9 +10,10 @@ extends RefCounted
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 
-## The test settings' steps: how many layers count as the first, over how many the
-## rest fades out, how much of a first layer is drawn.
-const FIRSTS := [0, 1, 2, 3, 4]
+## The test settings' steps: how many layers count as the first (below 0 the fade
+## starts that many layers before the first, so the first is already thinner), over
+## how many the rest fades out, how much of a first layer is drawn.
+const FIRSTS := [-4, -3, -2, -1, 0, 1, 2, 3, 4]
 const STRETCHES := [1, 2, 3, 4, 6, 8]
 const DENSITIES := [0.25, 0.5, 0.75, 1.0]
 ## Where the quarter that thins out starts, in levels from the player's feet.
