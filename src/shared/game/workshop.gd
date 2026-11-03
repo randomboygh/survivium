@@ -126,8 +126,8 @@ func cancel_all() -> void:
 func update(delta: float) -> void:
 	if paused:
 		return
-	# A job a frame when crafting is instant.
-	var work := 1e9 if rules.instant_craft else delta
+	# A job a frame when crafting is instant; the skill of its work makes it faster.
+	var work := 1e9 if rules.instant_craft else delta / _pace()
 	for job: Dictionary in queue.step(work, _can_work):
 		var r: Dictionary = job.recipe
 		var got := Crafting.outputs(r, job.n)
@@ -135,8 +135,30 @@ func update(delta: float) -> void:
 			_receive(id, got[id])
 		_wear_tools(r)
 		who.note("crafted", r.count)
+		var sk = who.get("skills")
+		if sk != null:
+			sk.gain_recipe(role_of(r), r.id, r.time)
 		who.say("Готово: %s" % r.title)
 		made.emit(r)
+
+
+## The skill (SkillSet role) recipe `r` is the work of: cooking on a fire, or the craft.
+static func role_of(r: Dictionary) -> String:
+	return "cook" if r.get("process", "craft") == "cook" else "craft"
+
+
+## The seconds recipe `r` takes `who` at the level of the skill of its work.
+func time_of(r: Dictionary) -> float:
+	var sk = who.get("skills")
+	return float(r.time) * (1.0 if sk == null else sk.pace(role_of(r)))
+
+
+## What is left of the time of the first job of the queue at the skill of its work.
+func _pace() -> float:
+	var sk = who.get("skills")
+	if sk == null or queue.jobs.is_empty():
+		return 1.0
+	return maxf(0.05, sk.pace(role_of(Crafting.get_recipe(queue.jobs[0].recipe))))
 
 
 ## What job `r` waits for to be worked on, named for the window: its station, a tool of a

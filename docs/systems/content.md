@@ -31,7 +31,8 @@
 - Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
   `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (старт нового
   мира: `Starts.START` — умения рук, сумка, лагерь; `check`), `eras.gd` (эпохи по порядку: `Eras.ERAS`, `rank`, `title`, `check` — две
-  эпохи одного порядка); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
+  эпохи одного порядка), `skills.gd` (навыки: `Skills.ALL` по порядку, `of_role`, `need`, `level_at`,
+  `progress`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
   данных; руки `HAND` собирает из полей `hand_*` старта в `refresh`): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`),
   работа в мире пяти классов `WORLD_KINDS` (любой другой класс там — руки), `holds(inv, класс)`,
   `held_of(inv, класс)`.

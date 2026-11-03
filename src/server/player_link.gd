@@ -2,7 +2,7 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE; HEARD, the chat; TEAM and INVITES, the
+## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE; HEARD, the chat; TEAM and INVITES, the
 ## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
@@ -27,6 +27,9 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 ## Chunks sent in one flush at most (each a few KB zstd).
 const CHUNKS_PER_FLUSH := 2
 
+## The points of the skills, growing with each swing, are told no more often than this
+## (seconds), and at once when a level rose.
+const SKILLS_EVERY := 1.0
 var session
 var who: Player
 var workshop: Workshop
@@ -67,6 +70,10 @@ var _fight: Array = []
 var _line: Array = [Vector3.INF, false]
 var _shop := true
 var _knowledge := true
+## The skills: changed since told (`_skills`), a level rose (`_skills_now`), when last told.
+var _skills := true
+var _skills_now := false
+var _skills_sent := -1.0
 var _vitals: Array = []
 ## On joining, every thing placed and every animal there is goes in one flush.
 var _all := true
@@ -88,6 +95,8 @@ func _init(s) -> void:
 	who.inventory.changed.connect(_mark_you)
 	who.state_changed.connect(_mark_you)
 	workshop.knowledge.learned.connect(_on_learned)
+	who.skills.changed.connect(_on_skills)
+	who.skills.leveled.connect(_on_leveled)
 	workshop.changed.connect(_mark_shop)
 	workshop.made.connect(_on_made)
 	who.said.connect(_on_said)
@@ -164,6 +173,8 @@ func rejoin() -> void:
 	_line = [Vector3.INF, false]
 	_shop = true
 	_knowledge = true
+	_skills = true
+	_skills_now = true
 	_all = true
 	_clock_sent = -1.0
 	_snap_sent = -1.0
@@ -245,6 +256,12 @@ func flush() -> Array[PackedByteArray]:
 	if _knowledge:
 		_knowledge = false
 		out.append(_event(Protocol.KNOWLEDGE, [workshop.knowledge.to_dict()]))
+	var now_s := Time.get_ticks_msec() / 1000.0
+	if _skills and (_skills_now or now_s - _skills_sent >= SKILLS_EVERY):
+		_skills = false
+		_skills_now = false
+		_skills_sent = now_s
+		out.append(_event(Protocol.SKILLS, [who.skills.to_dict()]))
 	if _shop:
 		_shop = false
 		out.append(_event(Protocol.SHOP, {"queue": workshop.queue.to_dict(), "paused": workshop.paused}))
@@ -548,3 +565,12 @@ func _on_gone(a) -> void:
 
 func _on_stepped(a, at: Vector3, dir: Vector2, left: bool, size: float) -> void:
 	_push(Protocol.STEP, [a.id, at, dir, left, size])
+
+
+func _on_skills() -> void:
+	_skills = true
+
+
+func _on_leveled(_id: String, _level: int) -> void:
+	_skills = true
+	_skills_now = true

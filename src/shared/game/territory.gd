@@ -6,8 +6,8 @@ extends RefCounted
 ## squares already painted, no farther than `territory_radius` squares from the centre,
 ## not on another's. A claim holds its squares on all levels within `territory_levels`
 ## of the centre's. How many squares a player may hold: `territory_start` and
-## `territory_per_day` for each game day they have lived in the world (Rules; skills
-## take this over later); a team holds its biggest member's and half of the others'
+## `territory_per_level` for each level of all their skills (Rules, decision 39: SkillSet.total,
+## kept in `skilled` as `step` sees the players); a team holds its biggest member's and half of the others'
 ## together (decision 15). The centre taken away, the claim is gone with its squares.
 ## In another's claim a player may do only what its owner lets their team or the others
 ## do (`rights`, ACTIONS; `may`, asked by the rules that change the world, and
@@ -53,7 +53,7 @@ signal squares_changed(list: Array)
 ## A claim was made or taken away.
 signal claims_changed
 
-## The rules (Rules: territory_start, territory_per_day, territory_radius,
+## The rules (Rules: territory_start, territory_per_level, territory_radius,
 ## territory_levels) and the teams (Teams); a copy on a client has neither.
 var rules
 var teams
@@ -66,6 +66,8 @@ var claims := {}
 var squares := {}
 ## Game days each player has lived in the world.
 var played := {}
+## The sum of the levels of each player's skills (SkillSet.total), as `step` last saw it.
+var skilled := {}
 ## What each owner lets others do in all their claims: {player: [team mask, others
 ## mask]} (bits of ACTIONS); the defaults for one not in it.
 var rights := {}
@@ -298,6 +300,9 @@ func step(days: float, players: Array, seconds := 0.0) -> void:
 		if not p.is_dead():
 			var id := _id(p)
 			played[id] = float(played.get(id, 0.0)) + days
+			var sk = p.get("skills")
+			if sk != null:
+				skilled[id] = sk.total()
 			var claim := claim_at(_cell(p.position))
 			if with(claim, id):
 				claim.seen = time
@@ -415,13 +420,16 @@ func to_dict() -> Dictionary:
 	var days := {}
 	for id: int in played:
 		days[str(id)] = played[id]
+	var lv := {}
+	for id: int in skilled:
+		lv[str(id)] = skilled[id]
 	var r := {}
 	for id: int in rights:
 		r[str(id)] = rights[id]
 	var c := {}
 	for id: int in colors:
 		c[str(id)] = colors[id]
-	return {"claims": list, "squares": sq, "played": days, "rights": r, "colors": c, "next": next_claim,
+	return {"claims": list, "squares": sq, "played": days, "skilled": lv, "rights": r, "colors": c, "next": next_claim,
 		"time": time}
 
 
@@ -429,6 +437,7 @@ func from_dict(d: Dictionary) -> void:
 	claims.clear()
 	squares.clear()
 	played.clear()
+	skilled.clear()
 	next_claim = int(d.get("next", 1))
 	time = float(d.get("time", 0.0))
 	for e in d.get("claims", []):
@@ -445,6 +454,9 @@ func from_dict(d: Dictionary) -> void:
 	var days: Dictionary = d.get("played", {})
 	for k in days:
 		played[int(k)] = float(days[k])
+	var lv: Dictionary = d.get("skilled", {})
+	for k in lv:
+		skilled[int(k)] = int(lv[k])
 	rights.clear()
 	var r: Dictionary = d.get("rights", {})
 	for k in r:
@@ -472,7 +484,7 @@ static func _cell(p: Vector3) -> Vector3i:
 func _own_budget(id: int) -> int:
 	if rules == null:
 		return 0
-	return rules.territory_start + rules.territory_per_day * int(played.get(id, 0.0))
+	return rules.territory_start + rules.territory_per_level * int(skilled.get(id, 0))
 
 
 func _levels() -> int:

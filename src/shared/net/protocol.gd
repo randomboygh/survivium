@@ -156,6 +156,9 @@ const INPUT_SIZE := 18
 const YOU := "you"
 ## What the player knows how to make changed: [Knowledge.to_dict()].
 const KNOWLEDGE := "knowledge"
+## The points of the player's skills changed: [SkillSet.to_dict()] (at most every
+## PlayerLink.SKILLS_EVERY seconds, at once when a level rose).
+const SKILLS := "skills"
 ## The body's state, every tick it changes: [health, satiety, stamina, hunger, hurt_by, warmth,
 ## wet, water, energy, asleep].
 const VITALS := "vitals"

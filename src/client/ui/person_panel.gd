@@ -3,15 +3,17 @@ extends PanelContainer
 ## what is worn where it is worn (body, legs, feet down the middle, the head's slot at the
 ## top left as the bag on the back is at the top right) and of the two hands under them,
 ## close together, a strip of the bag's load along the bottom of the back's slot; beside
-## them the skills, two columns of bars of SEGMENTS divisions in a panel of their own
-## (examples until skills come), what the things held and worn add to a skill (a tool's
-## power, SKILL_OF) as more divisions in another colour. A tap on a slot says which with
+## them the skills (Skills, the character's SkillSet), two columns of bars of a division
+## per level in a panel of their own, a thin line along the bottom for the way to the next
+## level, what the things held and worn add to a skill (a tool's power, ROLE_OF) as more
+## divisions in another colour. A tap on a slot says which with
 ## `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Skills := preload("res://src/shared/content/skills.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 
 signal picked(slot: String)
@@ -36,18 +38,16 @@ const SIDE := 132
 ## The room inside the panel's frame, and between the figure and the column.
 const PAD := 4
 const SEP := 6
-## A skill bar's height, its divisions, the fill of the skill's own and of what the
-## things held and worn add.
+## A skill bar's height, the fill of the skill's own levels, of what the things held and
+## worn add, and of the line of the way to the next level.
 const BAR := 14
-const SEGMENTS := 10
 const BAR_FILL := Color("#6b4a2f")
 const BONUS_FILL := Color("#4f7a37")
-## Skills shown until skills are made: [name, level in divisions].
-const SKILLS := [["Сбор", 4], ["Рубка", 3], ["Копание", 5], ["Стройка", 2], ["Ремесло", 3], ["Охота", 2], ["Плавание", 3]]
-## The skill a tool of each class helps (until skills are made): it adds its power.
-const SKILL_OF := {
-	"axe": "Рубка", "pickaxe": "Копание", "shovel": "Копание", "scythe": "Сбор", "knife": "Ремесло",
-	"needle": "Ремесло", "sword": "Охота", "spear": "Охота", "bow": "Охота", "sling": "Охота", "rod": "Охота",
+const NEXT_FILL := Color("#d9b45a")
+## The work (Skills role) a tool of each class helps: it adds its power to that skill.
+const ROLE_OF := {
+	"axe": "chop", "pickaxe": "dig", "shovel": "dig", "scythe": "gather", "knife": "craft",
+	"needle": "craft", "sword": "hunt", "spear": "hunt", "bow": "hunt", "sling": "hunt", "rod": "fish",
 }
 
 var game
@@ -60,7 +60,7 @@ var chosen := "":
 var _figure: Control
 var _cells := {}
 var _bars := []
-## What the things held and worn add to each skill: name -> [divisions, the thing's id].
+## What the things held and worn add to each skill: role -> [divisions, the thing's id].
 var _bonus := {}
 
 
@@ -97,31 +97,41 @@ func _ready() -> void:
 	bars.add_theme_constant_override("v_separation", 2)
 	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	skills.add_child(bars)
-	for sk: Array in SKILLS:
+	for sk: Dictionary in Skills.ALL:
 		var bar := Control.new()
 		bar.custom_minimum_size = Vector2(0, BAR)
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar.mouse_filter = Control.MOUSE_FILTER_PASS
-		bar.draw.connect(_draw_bar.bind(bar, sk[0], sk[1]))
+		bar.draw.connect(_draw_bar.bind(bar, sk))
 		bars.add_child(bar)
 		_bars.append(bar)
+	game.character.skills.changed.connect(_on_skills)
 	set_slot(slot)
 
 
-## Skill bar `bar`: its name `title` inside, `level` of its SEGMENTS divisions filled and
-## after them, in another colour, what the things held and worn add (see _bonus).
-func _draw_bar(bar: Control, title: String, level: int) -> void:
+## Skill bar `bar` of skill `sk`: its name inside, a division of its `levels` filled for
+## each level learned and after them, in another colour, what the things held and worn
+## add (see _bonus); along the bottom a line of the way to the next level.
+func _draw_bar(bar: Control, sk: Dictionary) -> void:
+	var skills = game.character.skills
+	var level: int = skills.level(sk.id)
+	var segments: int = sk.levels
 	var r := Rect2(Vector2.ZERO, bar.size)
 	bar.draw_rect(r, UiStyle.EDGE)
 	var inner := r.grow(-1)
 	bar.draw_rect(inner, UiStyle.WELL)
-	var add: int = _bonus.get(title, [0])[0]
-	var step := inner.size.x / SEGMENTS
-	for i in mini(level + add, SEGMENTS):
+	var add: int = _bonus.get(sk.role, [0])[0]
+	var step := inner.size.x / segments
+	for i in mini(level + add, segments):
 		# Each division apart by a pixel of the well.
 		var x0 := inner.position.x + roundf(i * step)
-		var x1 := inner.position.x + roundf((i + 1) * step) - (1.0 if i < SEGMENTS - 1 else 0.0)
+		var x1 := inner.position.x + roundf((i + 1) * step) - (1.0 if i < segments - 1 else 0.0)
 		bar.draw_rect(Rect2(x0, inner.position.y, x1 - x0, inner.size.y), BAR_FILL if i < level else BONUS_FILL)
+	if level < segments:
+		var w := roundf(inner.size.x * skills.progress(sk.id))
+		if w > 0.0:
+			bar.draw_rect(Rect2(inner.position.x, inner.end.y - 1.0, w, 1.0), NEXT_FILL)
+	var title: String = sk.title
 	var font := UiStyle.font()
 	var fs := UiStyle.FONT_SIZE
 	var y := floorf((r.size.y - font.get_height(fs)) * 0.5) + font.get_ascent(fs)
@@ -197,8 +207,15 @@ func refresh() -> void:
 	_show_skills(inv)
 
 
+## The skills changed: the bars drawn again with their tooltips.
+func _on_skills() -> void:
+	if _figure != null and is_inside_tree():
+		_show_skills(game.character.inventory)
+
+
 ## What the things in the hands and worn add to the skills: the most of each skill, a
-## tool's power (a weapon with nothing to shoot adds nothing); the bars drawn again.
+## tool's power (a weapon with nothing to shoot adds nothing); the bars drawn again, each
+## with its level, the way to the next, how much faster its work is and what adds to it.
 func _show_skills(inv) -> void:
 	_bonus.clear()
 	var things: Array = [game.controls.hands[0], game.controls.hands[1]] + inv.gear.values()
@@ -206,13 +223,24 @@ func _show_skills(inv) -> void:
 		if id == "" or FactChips.unarmed(inv, id):
 			continue
 		var it := Items.get_item(id)
-		var skill: String = SKILL_OF.get(it.get("tool", "none"), "")
+		var role: String = ROLE_OF.get(it.get("tool", "none"), "")
 		var add: int = it.get("power", 0)
-		if skill != "" and add > _bonus.get(skill, [0])[0]:
-			_bonus[skill] = [add, id]
-	for i in _bars.size():
-		var sk: Array = SKILLS[i]
-		var b: Array = _bonus.get(sk[0], [0, ""])
-		_bars[i].tooltip_text = "%s: %d%s (пока для примера: навыков в игре ещё нет)" % [sk[0], sk[1],
-			" + %d от «%s»" % [b[0], Items.title(b[1])] if b[0] > 0 else ""]
+		if role != "" and add > _bonus.get(role, [0])[0]:
+			_bonus[role] = [add, id]
+	var skills = game.character.skills
+	for i in mini(_bars.size(), Skills.ALL.size()):
+		var sk: Dictionary = Skills.ALL[i]
+		var b: Array = _bonus.get(sk.role, [0, ""])
+		var level: int = skills.level(sk.id)
+		var text := "%s: уровень %d из %d" % [sk.title, level, sk.levels]
+		if level < sk.levels:
+			text += ", до следующего %d%%" % floori(skills.progress(sk.id) * 100.0)
+		var faster := roundi(sk.speed * level * 100.0 / sk.levels)
+		if faster > 0:
+			text += "\n%s на %d%%" % ["Плывёт быстрее" if sk.role == "swim" else "Работа быстрее", faster]
+		if b[0] > 0:
+			text += "\n+%d от «%s»" % [b[0], Items.title(b[1])]
+		if sk.get("description", "") != "":
+			text += "\n" + sk.description
+		_bars[i].tooltip_text = text
 		_bars[i].queue_redraw()

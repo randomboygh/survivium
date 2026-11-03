@@ -78,9 +78,26 @@
 - `src/client/view/figure.gd` — лист кадров игрока из `content/core/sprites/` по `player.yaml` (слои,
   метки кистей `hands.png`, лист на каждый инструмент в руке или иконка предмета), строится по части ряда
   за кадр; `hands.gd` — что в руках видно на спрайте; `sprite_sheet.gd` — лист кадров по данным.
-- `src/client/ui/person_panel.gd` — персонаж в окне инвентаря (слоты надетого и рук, ячейки, навыки
-  пока для примера, `SKILLS`); `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — экран смерти,
+- `src/client/ui/person_panel.gd` — персонаж в окне инвентаря (слоты надетого и рук, ячейки, полосы
+  навыков); `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — экран смерти,
   полоски сил, отклик экрана на урон, вибрация телефона.
+
+**Навыки** (решение 164). Девять навыков — данные мода (`content/core/data/skills.yaml`, вид `skills`,
+реестр `src/shared/content/skills.gd`): Сбор, Рубка, Копание, Ремесло, Стройка, Готовка, Охота, Рыбалка,
+Плавание; движок спрашивает навык по роли работы (`Skills.of_role`). Что выучил персонаж — `SkillSet`
+(`src/shared/game/skill_set.gd`, `Character.skills`): очки по id навыка, 10 уровней, первый за `first`
+(180) очков, каждый следующий в `growth` (1,6) раза дороже. Очки — секунды полезной работы: правило отдаёт
+взмах, который что-то сделал (`WorldActions.skilled`: копание, рубка, покос и сбор, стройка, удар по зверю),
+рецепт по его времени (`Workshop`, `gain_recipe`: тот же рецепт подряд даёт всё меньше, `REPEAT_FADE`),
+плавание по времени в пути (`Character.update`), целую вещь по `each` (добытый зверь, пойманная рыба).
+Выкопать блок, поставленный игроком, и поставить снова там, где такой выкопан, опыта не дают
+(`WorldActions._built`, `_undone`, не в сохранении). Уровень ускоряет работу: время взмаха и рецепта
+× `pace` (до 1 − `speed` на последнем), скорость в воде × `boost` (`Body.swim_scale`). Сумма уровней
+даёт запас клеток территории (`Territory.skilled`, `docs/systems/territory.md`). Хранится частью `skills`
+сохранения игрока; клиенту сервер шлёт `Protocol.SKILLS` не чаще `PlayerLink.SKILLS_EVERY` и сразу при
+новом уровне, копия на клиенте (`SkillSet.take`) говорит `leveled`. Окно персонажа (`person_panel.gd`)
+рисует полосу на навык: деление на уровень, зелёным прибавку от инструмента в руках, тонкой линией путь до
+следующего; подсказка — уровень, ускорение, описание. Время в окне крафта — с навыком (`Workshop.time_of`).
 
 **Свет в руке.** Факел, свеча, фонарь (предмет с `light`) — расходуемое, как еда: в сумке стопка целых,
 взятый в руку горит `burns` секунд (`Character.burning`: сколько сгорело у каждого зажжённого, в
@@ -102,7 +119,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`), `actions_test.gd` (`drinking`),
+**Тесты.** `tests/unit/skills_test.gd` (уровни, опыт за работу, крафт, земля), `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`), `actions_test.gd` (`drinking`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

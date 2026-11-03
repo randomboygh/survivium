@@ -21,6 +21,7 @@ const Biomes := preload("res://src/shared/content/biomes.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Eras := preload("res://src/shared/content/eras.gd")
+const Skills := preload("res://src/shared/content/skills.gd")
 
 ## Mods of older saves and settings that live on as bundles of another mod (the old sounds
 ## mod held the notes too).
@@ -31,7 +32,7 @@ const SPLITS := [[2, "plants"], [3, "tools"], [4, "sounds"], [4, "music"], [5, "
 	[7, "materials"], [8, "biomes"]]
 ## The kinds of records a bundle may hold to join a world saved without it (`additive`):
 ## things to make and their sounds, nothing that changes the land or the numbers of its cells.
-const ADDITIVE := ["items", "recipes", "eras", "starts", "sounds"]
+const ADDITIVE := ["items", "recipes", "eras", "starts", "sounds", "skills"]
 ## The bundles that may join a world (`additive`) there were before world.json kept the
 ## bundles a world knew (`known`): a world saved before knew them all, the torch only
 ## from `content` 9 on.
@@ -97,6 +98,7 @@ static func _refresh_registries() -> void:
 	Starts.refresh()
 	Tools.refresh()
 	Eras.refresh()
+	Skills.refresh()
 
 
 ## `bundle` with everything it cannot do without, in load order, out of `all` (every

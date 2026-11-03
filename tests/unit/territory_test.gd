@@ -105,7 +105,7 @@ func _test_team_requests() -> void:
 ## where the rest stays joined; the centre taken away takes the claim; the save keeps it.
 func _test_land() -> void:
 	var t := Territory.new()
-	t.rules = Rules.of({"territory_start": 4, "territory_per_day": 2, "territory_radius": 2, "territory_levels": 8})
+	t.rules = Rules.of({"territory_start": 4, "territory_per_level": 2, "territory_radius": 2, "territory_levels": 8})
 	t.teams = Teams.new()
 	var a := _Who.new(1)
 	var b := _Who.new(2)
@@ -124,8 +124,8 @@ func _test_land() -> void:
 	_check(not t.paint(a, Vector2i(5, 5), false), "nor the centre's")
 	_check(t.paint(a, Vector2i(7, 5), false) and t.used(1) == 3, "an end one is")
 	_check(not t.can_claim(b, Vector3i(12, 5, 10)) and b.nags.size() == 1, "nobody else sets a post in the land")
-	t.played[2] = 3.0
-	_check(t.budget(2) == 10, "days lived add squares")
+	t.skilled[2] = 3
+	_check(t.budget(2) == 10, "the levels of the skills add squares")
 	t.teams.invite(1, "Аня", 2, 0.0)
 	t.teams.accept(2, "Боря", 1, 0.0)
 	_check(t.budget(1) == 12 and t.budget(2) == 12, "a team holds the biggest budget and half of the other")
@@ -133,7 +133,7 @@ func _test_land() -> void:
 	var saved: Dictionary = JSON.parse_string(JSON.stringify(t.to_dict()))
 	var back := Territory.new()
 	back.from_dict(saved)
-	_check(back.squares == t.squares and back.claims[post].count == 4 and back.played[2] == 3.0
+	_check(back.squares == t.squares and back.claims[post].count == 4 and back.skilled[2] == 3
 		and back.next_claim == t.next_claim, "the save keeps the claims through JSON")
 	var told: Array = []
 	t.squares_changed.connect(func(list: Array) -> void: told.append_array(list))

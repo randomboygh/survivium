@@ -2,7 +2,7 @@ extends RefCounted
 ## The client's copies of what the server holds (plan/architecture/server.md): the
 ## player's character (the bag, the body's state, death) and workshop, the things placed
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
-## KNOWLEDGE, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
+## KNOWLEDGE, SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
 ## PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); TEAM, INVITES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); over a socket the world too:
@@ -22,6 +22,8 @@ const CELL := WorldData.CELL
 var game
 ## The last INPUT sent: the next goes only when something changed.
 var _last: Array = []
+## Whether the skills were told before: the first SKILLS event raises no level.
+var _skills_told := false
 ## World units past the screen's edge an animal still counts as looked at (it moves
 ## every frame, so one walking in is already on its way; see Wildlife.look_from).
 const SEEN_MARGIN := 4.0
@@ -82,6 +84,10 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.KNOWLEDGE:
 			if args is Array and args.size() == 1 and args[0] is Dictionary:
 				game.workshop.take_knowledge(args[0])
+		Protocol.SKILLS:
+			if args is Array and args.size() == 1 and args[0] is Dictionary:
+				who.skills.take(args[0], _skills_told)
+				_skills_told = true
 		Protocol.VITALS:
 			if args is Array:
 				who.take_vitals(args)

@@ -14,7 +14,7 @@ var instant_craft := false
 ## game day lived, how far from its centre a claim reaches (squares), and on how many
 ## levels above and below the centre it holds.
 var territory_start := 64
-var territory_per_day := 16
+var territory_per_level := 8
 var territory_radius := 24
 var territory_levels := 8
 ## Players fighting players (decision 15, Fights): where it is allowed ("off" nowhere,
@@ -42,7 +42,7 @@ static func of(d: Dictionary):
 
 func to_dict() -> Dictionary:
 	return {"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
-		"territory_start": territory_start, "territory_per_day": territory_per_day,
+		"territory_start": territory_start, "territory_per_level": territory_per_level,
 		"territory_radius": territory_radius, "territory_levels": territory_levels,
 		"pvp": pvp, "pvp_damage": pvp_damage, "newcomer_minutes": newcomer_minutes, "fight_tag": fight_tag,
 		"territory_abandon_hours": territory_abandon_hours, "territory_decay_hours": territory_decay_hours,
@@ -54,7 +54,7 @@ func from_dict(d: Dictionary) -> void:
 	tool_wear = bool(d.get("tool_wear", tool_wear))
 	instant_craft = bool(d.get("instant_craft", instant_craft))
 	territory_start = int(d.get("territory_start", territory_start))
-	territory_per_day = int(d.get("territory_per_day", territory_per_day))
+	territory_per_level = int(d.get("territory_per_level", territory_per_level))
 	territory_radius = int(d.get("territory_radius", territory_radius))
 	territory_levels = int(d.get("territory_levels", territory_levels))
 	pvp = str(d.get("pvp", pvp))

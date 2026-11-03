@@ -86,6 +86,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 | `biomes` | `biomes.gd` | окно климата или рельеф, зона, верх, доли пород и кустов, шансы, песчаные бури, цвет карты | 15 |
 | `starts` | `starts.gd` | старт нового мира: умения рук (`hand_power`, `hand_area`, `hand_swing`, `hand_reach`, `hand_mows`, `hand_slow`: `Tools.HAND`), сумка (`bag`) и лагерь у точки появления (`camp`: вещи с `prop` и сдвиг в клетках); движок берёт `core:default`, бандлы дописывают патчем (сундук) | 1 |
 | `eras` | `eras.gd` | эпохи прогресса (в `core`): порядок (`order`), до какой глубины ждать вещи эпохи (`depth`); метка, которую проверяет граф, в игре ничего не запрещает | 4 |
+| `skills` | `skills.gd` | навыки (решение 164): какая работа их растит и ускоряет (`role`: gather, chop, dig, craft, build, cook, hunt, fish, swim; движок спрашивает по роли), порядок в окне, уровни (`levels`), очки на первый (`first`) и рост цены (`growth`), ускорение на последнем уровне (`speed`), очки за целую вещь (`each`: зверь, рыба) | 9 |
 | `sounds` | `content.gd`, `sound.gd` | звук по имени: варианты, громкость, петля | — |
 
 ## Зависимости бандлов
@@ -143,7 +144,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 были при сохранении: дополняющий бандл, которого мир не знал, войдёт в него, `Mods.of_world`), `content`
 (метка версии контента, сейчас 9), `materials` (id в порядке номеров), `levels`, `created`, `saved`, `played`, `sky`
 (часы), `placed` (вещи на клетках). `players/<имя>.json`: `position` и части модулей (`inventory`,
-`vitals`, `character`, `knowledge`, `crafting`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
+`vitals`, `character`, `knowledge`, `crafting`, `skills`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
 карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving.md).
 
 **Подробнее.** `plan/architecture/modding.md` (устройство модов; история шагов — `plan/history/modding.md`), README модов.

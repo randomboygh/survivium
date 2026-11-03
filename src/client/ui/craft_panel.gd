@@ -6,7 +6,7 @@ extends VBoxContainer
 ## stations of the recipes known, the far ones dimmed). Under them two panels: the recipe
 ## chosen, as named groups of small wells laid side by side (see FactChips): «Материалы»
 ## and «Не тратится» (have / need, short in red), «На чём» (the station or hands), the tools
-## («нет» in red when missing), the time (the recipe's: no skills yet), what it makes
+## («нет» in red when missing), the time (at the character's skill), what it makes
 ## (weight, work, how long it lasts) and its by-products, then an amber «сделать» with
 ## «×5» (five can be made) and «MAX» (more than one) joined, in one line on the left; and under it, while it holds jobs, the queue, a
 ## row as wide: small cells for the jobs, the time left of the one chosen and the count
@@ -500,8 +500,10 @@ func _show_details(near: Dictionary) -> void:
 		var name := Items.tool_title(kind)
 		tools.append([ItemIcons.of_tool(kind), "" if has else "нет", not has,
 			name.left(1).to_upper() + name.substr(1) + (": износ %d за изделие" % r.wear if r.wear > 0 else "")])
-	# The time of the recipe; with skills it will be the time at the character's skill.
-	var time := [[UiStyle.icon("clock"), "%d с" % roundi(r.time), false, "Время изготовления"]]
+	# The time of the recipe at the character's skill of its work.
+	var secs: float = game.workshop.time_of(r)
+	var time := [[UiStyle.icon("clock"), "%d с" % roundi(secs), false, "Время изготовления" +
+		(" (без навыка %d с)" % roundi(r.time) if roundi(secs) < roundi(r.time) else "")]]
 	var also := []
 	for e: Dictionary in r.also:
 		var share := roundi(e.chance * 100.0)
@@ -583,7 +585,7 @@ func _show_queue() -> void:
 		text = "ждёт"
 		name += ", ждёт: %s" % _where(r)
 	else:
-		text = "%d с" % ceili(jobs[0].left)
+		text = "%d с" % ceili(jobs[0].left * game.workshop.time_of(r) / maxf(0.001, float(r.get("time", 1.0))))
 	_job_label.text = text
 	_job_label.tooltip_text = name
 	for i in n:
