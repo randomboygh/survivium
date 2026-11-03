@@ -209,7 +209,8 @@ func _unpack_back(packed: Variant) -> void:
 ## `contents` goes in alone, into a slot of its own.
 func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
 	# Only what wears or spoils keeps its wear (a torch of an old save burned by wear is whole).
-	if worn > 0 and not keeps_wear(id):
+	# A thing made by a skilled hand starts with swings to spare: below none (Workshop).
+	if worn != 0 and not keeps_wear(id):
 		worn = 0
 	var spoils := Items.spoils(id) > 0.0
 	if contents is Dictionary:
@@ -235,7 +236,7 @@ func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
 	for i in slots.size():
 		if left > 0 and slots[i] == null:
 			var k := mini(left, size)
-			slots[i] = [id, k, worn] if worn > 0 else [id, k]
+			slots[i] = [id, k, worn] if worn != 0 else [id, k]
 			left -= k
 	if left < n:
 		changed.emit()
@@ -292,7 +293,7 @@ func take_slot(i: int, n: int):
 	changed.emit()
 	if s.size() > 3:
 		return [s[0], k, _worn(s), s[3]]
-	return [s[0], k, s[2]] if _worn(s) > 0 else [s[0], k]
+	return [s[0], k, s[2]] if _worn(s) != 0 else [s[0], k]
 
 
 ## What the chest in slot `i` holds (as to_dict() gives it), or null.
@@ -711,7 +712,7 @@ func from_dict(d: Dictionary) -> void:
 			if s.size() == 4 and s[3] is Dictionary:
 				slots[i] = [id, 1, w, s[3]]
 			else:
-				slots[i] = [id, int(s[1]), w] if w > 0 else [id, int(s[1])]
+				slots[i] = [id, int(s[1]), w] if w != 0 else [id, int(s[1])]
 	# A save of when worn things left the bag: they go back into a free slot.
 	for on: String in apart():
 		var free := slots.slice(0, base).find(null)

@@ -12,6 +12,9 @@ const HUMAN := "core:human"
 ## diet, speed, sight, human_wariness, active, count, sprite, frames, flies, swims,
 ## flock, roost, likes, biomes.
 static var SPECIES := {}
+## The items some species leaves as its carcass when killed (id -> true): what cutting up
+## a beast takes (Workshop.yield_role).
+static var CARCASSES := {}
 
 
 static func _static_init() -> void:
@@ -20,8 +23,11 @@ static func _static_init() -> void:
 
 static func refresh() -> void:
 	SPECIES = {}
+	CARCASSES = {}
 	for r in Content.records("creatures"):
 		SPECIES[r.id] = r
+		if r.get("carcass", "") != "":
+			CARCASSES[r.carcass] = true
 
 
 ## What is wrong with the loaded creatures for the engine, if anything.

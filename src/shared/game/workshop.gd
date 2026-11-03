@@ -15,6 +15,7 @@ const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Knowledge := preload("res://src/shared/game/knowledge.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 
 ## How far from the character a station works, in world units (as far as a placed
 ## thing is used, see Gathering.REACH).
@@ -131,11 +132,18 @@ func update(delta: float) -> void:
 	for job: Dictionary in queue.step(work, _can_work):
 		var r: Dictionary = job.recipe
 		var got := Crafting.outputs(r, job.n)
+		var sk = who.get("skills")
+		if sk != null:
+			# A skilled hand makes one more now and then (cooking, butchering), and makes
+			# what wears last longer (the craft): it starts with swings to spare.
+			var more := yield_role(r)
+			if more != "" and sk.extra(more):
+				got[r.makes] = got.get(r.makes, 0) + 1
 		for id: String in got:
-			_receive(id, got[id])
+			var d: int = Items.get_item(id).get("durability", 0)
+			_receive(id, got[id], -sk.bonus_wear(role_of(r), d) if sk != null and d > 0 else 0)
 		_wear_tools(r)
 		who.note("crafted", r.count)
-		var sk = who.get("skills")
 		if sk != null:
 			sk.gain_recipe(role_of(r), r.id, r.time)
 		who.say("Готово: %s" % r.title)
@@ -145,6 +153,17 @@ func update(delta: float) -> void:
 ## The skill (SkillSet role) recipe `r` is the work of: cooking on a fire, or the craft.
 static func role_of(r: Dictionary) -> String:
 	return "cook" if r.get("process", "craft") == "cook" else "craft"
+
+
+## The skill whose level gives one more of what recipe `r` makes now and then: cooking
+## for what is cooked, hunting for cutting up a beast's carcass; "" for none.
+static func yield_role(r: Dictionary) -> String:
+	if r.get("process", "craft") == "cook":
+		return "cook"
+	for id: String in r.get("needs", {}):
+		if AiRules.CARCASSES.has(id):
+			return "hunt"
+	return ""
 
 
 ## The seconds recipe `r` takes `who` at the level of the skill of its work.
@@ -185,8 +204,8 @@ func waiting() -> bool:
 
 
 ## Puts `n` of item `id` into the bag; what does not fit goes on the ground at the feet.
-func _receive(id: String, n: int) -> void:
-	var got: int = who.give(id, n)
+func _receive(id: String, n: int, worn := 0) -> void:
+	var got: int = who.give(id, n, worn) if worn != 0 else who.give(id, n)
 	if got < n:
 		who.lay(id, n - got)
 

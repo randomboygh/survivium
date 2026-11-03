@@ -14,6 +14,7 @@ func run() -> void:
 	_test_work()
 	_test_craft()
 	_test_land()
+	_test_yield_quality()
 
 
 func _test_levels() -> void:
@@ -119,6 +120,31 @@ func _test_land() -> void:
 	who.skills.gain("fish", Skills.need(Skills.of_role("fish"), 1))
 	t.step(0.0, [who])
 	_check(t.budget(7) == 4 + 2 * 3, "each level of the skills adds land")
+
+
+func _test_yield_quality() -> void:
+	var s := SkillSet.new()
+	_check(s.extra_chance("gather") == 0.0 and not s.extra("gather") and s.bonus_wear("craft", 100) == 0,
+		"no skill: no more than the work gives, things last their time")
+	var craft := Skills.of_role("craft")
+	s.gain("craft", Skills.need(craft, craft.levels))
+	s.gain("gather", Skills.need(Skills.of_role("gather"), 10))
+	_check(s.bonus_wear("craft", 100) == roundi(100 * craft.quality) and is_equal_approx(s.extra_chance("gather"),
+		Skills.of_role("gather").yield), "the last level: things last longer, now and then one more")
+	_check(Workshop.yield_role({"process": "cook", "needs": {}}) == "cook"
+		and Workshop.yield_role({"process": "craft", "needs": {"animals:carcass": 1}}) == "hunt"
+		and Workshop.yield_role({"process": "craft", "needs": {"resources:stone": 1}}) == "",
+		"cooking and cutting up a carcass may give one more")
+	# A tool made by a skilled hand starts with swings to spare; wearing it spends them first.
+	var inv := Inventory.new()
+	inv.add("tools:stone_axe", 1, -5)
+	var d: int = Items.get_item("tools:stone_axe").durability
+	_check(inv.worn(0) == -5, "a tool made by a skilled hand keeps its swings to spare")
+	inv.wear_tool("tools:stone_axe", d)
+	_check(inv.worn(0) == -4 and inv.count("tools:stone_axe") == 1, "a swing spends one of them")
+	var back := Inventory.new()
+	back.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
+	_check(back.worn(0) == -4, "the save keeps them")
 
 
 class Numbered extends Survivor:

@@ -334,6 +334,10 @@ const SHOTS := {
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
 	# A skill's new level: gold edges, stars rising round the player, the notice in the corner.
 	"level-up": {"time": 0.42, "season": 1, "clearing": true, "level_up": "chop"},
+	# A stone axe made by a skilled hand (decision 164, 4А): its swings to spare shown on
+	# the wear chip, "сделано умелой рукой: прочнее на N%" in its tip.
+	"bag-skilled": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
+		"give": "tools:stone_axe", "worn": -30},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
 	# A canvas backpack worn (24 more slots, scrolled where they do not fit), a wicker bag
 	# chosen in the bag: its wide button puts it on; then a tap on the backpack on the figure

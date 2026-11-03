@@ -238,6 +238,12 @@ func _show_skills(inv) -> void:
 		var faster := roundi(sk.speed * level * 100.0 / sk.levels)
 		if faster > 0:
 			text += "\n%s на %d%%" % ["Плывёт быстрее" if sk.role == "swim" else "Работа быстрее", faster]
+		var more := roundi(sk.yield * level * 100.0 / sk.levels)
+		if more > 0:
+			text += "\nЕщё одна штука: шанс %d%%" % more
+		var lasts := roundi(sk.quality * level * 100.0 / sk.levels)
+		if lasts > 0:
+			text += "\nВещи прочнее на %d%%" % lasts
 		if b[0] > 0:
 			text += "\n+%d от «%s»" % [b[0], Items.title(b[1])]
 		if sk.get("description", "") != "":
