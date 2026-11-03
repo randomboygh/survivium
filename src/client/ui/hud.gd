@@ -76,6 +76,8 @@ const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — 
 ## The warm gold a notice's panel is tinted (see notice).
 const NOTICE_TINT := Color(1.0, 0.86, 0.55)
 var game
+## A refresh of the hotbar is asked for this frame (see _counts_later).
+var _counts_due := false
 var touch := false
 var portrait := false
 ## The interface and the touch controls size settings, indices into UI_SIZES and
@@ -438,7 +440,7 @@ func _ready() -> void:
 	add_child(bag)
 	# However the window closes (the button, its cross, a key), the button follows it.
 	bag.visibility_changed.connect(_on_bag_shown)
-	game.character.state_changed.connect(refresh_counts)
+	game.character.state_changed.connect(_counts_later)
 
 	_build_menu()
 	_update_hands()
@@ -671,9 +673,19 @@ func set_block_icons(atlas: Texture2D, tile: int, tiles: int) -> void:
 	refresh_counts()
 
 
+## The character's state changed: the hotbar is shown anew at the end of the frame,
+## once however many events of the server changed it (a craft finished tells the bag,
+## the queue and a line at once).
+func _counts_later() -> void:
+	if not _counts_due:
+		_counts_due = true
+		refresh_counts.call_deferred()
+
+
 ## Shows the bag's first row on the hotbar: each item with how many there are and its
 ## number (its key with a keyboard, as in the bag); then the hands and the bag button.
 func refresh_counts() -> void:
+	_counts_due = false
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var s = slots[i]

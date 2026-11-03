@@ -16,6 +16,9 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const UI := ["hand", "sack", "heart", "food", "bolt", "weight", "thermo", "drop", "water", "sleep"]
 
 static var _cache := {}
+## Where each item's picture lies, by its bundle, mod and icon (see icon_path): looking
+## for the file costs a check of the disk each time, and the hotbar asks on every change.
+static var _paths := {}
 ## The images the pictures were made from, by their file (see image_of).
 static var _images := {}
 static var _atlas: Texture2D
@@ -33,7 +36,10 @@ static func use_atlas(atlas: Texture2D, tile: int, tiles: int) -> void:
 
 ## Where item `item` keeps its picture `icon`: in its bundle (see Content.asset).
 static func icon_path(item: Dictionary) -> String:
-	return Content.asset(item, "icons/%s.png" % item.icon)
+	var key := "%s|%s|%s" % [item.get("bundle", ""), item.get("mod", ""), item.icon]
+	if not _paths.has(key):
+		_paths[key] = Content.asset(item, "icons/%s.png" % item.icon)
+	return _paths[key]
 
 
 ## Where the interface's picture `name` is.
