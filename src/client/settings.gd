@@ -16,6 +16,7 @@ const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Music := preload("res://src/client/audio/music.gd")
+const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 
 const PATH := "user://settings.cfg"
@@ -69,11 +70,24 @@ const DEFAULTS := {
 	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
 	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-LOWER..STEEPER).
 	# How a cave (or a ravine, or a hill over the player) is shown (see ChunkStreamer
-	# update_cut): 0 the levels above the player cut off, a dim ghost of them left, the
-	# ones below darker; 1 cut in the plane of the camera: behind the player all stays,
-	# in front of them what stands above their feet goes, the rock cut open in dots
-	# (the shader global cut_front, plane_hides in common.gdshaderinc).
-	"cave_view": 1,
+	# update_cut): 0 in layers, what stands in front of the player and over their head
+	# dithered away more with each layer (CaveLayers, layer_alpha in
+	# common.gdshaderinc); 1 the levels above the player cut off, a dim ghost of them
+	# left, the ones below darker; 2 cut in the plane of the camera: behind the player
+	# all stays, in front of them what stands above their feet goes, the rock cut open
+	# in dots (the shader global cut_front, plane_hides). The key replaced «cave_view»
+	# (0 levels, 1 plane), so everyone starts with the layers.
+	"cave_mode": 0,
+	# The layers (test settings «Пещеры», indices of CaveLayers.FIRSTS, STRETCHES,
+	# DENSITIES): how many slices in front of the player and levels over their head
+	# count as the first, over how many the rest fades out, how much of a first is drawn.
+	"layer_front_first": 1,
+	"layer_front_stretch": 2,
+	"layer_above_first": 1,
+	"layer_above_stretch": 2,
+	"layer_density": 1,
+	# Where the quarter that thins out starts (CaveLayers.LINES, index 10 = the feet).
+	"layer_line": 10,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
@@ -119,7 +133,10 @@ static func _index_limits() -> Dictionary:
 	var volumes := Sound.STEPS + 1
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
-		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "cave_view": 2,
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "cave_mode": 3,
+		"layer_front_first": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
+		"layer_above_first": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
+		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
 		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
 
 
@@ -314,6 +331,21 @@ func pixel_size() -> float:
 	return PIXEL_SIZES[values.pixel_scale]
 
 
+## The layers' steps in cells (see CaveLayers): front first, front stretch, above
+## first, above stretch.
+func layer_fade() -> Vector4i:
+	return Vector4i(CaveLayers.FIRSTS[values.layer_front_first], CaveLayers.STRETCHES[values.layer_front_stretch],
+		CaveLayers.FIRSTS[values.layer_above_first], CaveLayers.STRETCHES[values.layer_above_stretch])
+
+
+func layer_density() -> float:
+	return CaveLayers.DENSITIES[values.layer_density]
+
+
+func layer_line() -> int:
+	return CaveLayers.LINES[values.layer_line]
+
+
 ## Pushes every setting into the modules. Safe to call before the world is built: what
 ## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
@@ -359,7 +391,10 @@ func apply() -> void:
 	# Sixteen-bit depth, as the engine's own default map.
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
 	game.controls.show_help = values.show_help
-	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_view == 1 else 0.0)
+	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_mode == 2 else 0.0)
+	RenderingServer.global_shader_parameter_set("layer_fade", Vector4(layer_fade()))
+	RenderingServer.global_shader_parameter_set("layer_density", layer_density())
+	RenderingServer.global_shader_parameter_set("layer_line", float(layer_line()))
 	var view = game.view
 	if view != null and view.target_height != PixelView.TARGET_HEIGHT / pixel_size():
 		view.target_height = PixelView.TARGET_HEIGHT / pixel_size()

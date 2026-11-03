@@ -27,6 +27,7 @@ const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -54,7 +55,7 @@ const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолу
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
 	"settings": [["game", "Игра"], ["interface", "Интерфейс"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
-	"test": [["world", "Мир"], ["player", "Игрок"], ["marks", "Маркеры"], ["debug", "Отладка"]],
+	"test": [["world", "Мир"], ["player", "Игрок"], ["caves", "Пещеры"], ["marks", "Маркеры"], ["debug", "Отладка"]],
 	"freezes": [["all", "Все"], ["critical", "от 200"], ["big", "100–200"], ["small", "50–100"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
@@ -385,6 +386,25 @@ func _section_rows(key: String) -> Array:
 				{"action": "К месту последней смерти", "do": func() -> void: s.go_to_death()},
 				{"action": "Очистка территории", "do": func() -> void: s.clear_land(), "confirm": true},
 			]
+		"caves":
+			# The view in layers (CaveLayers), on while «Вид в пещере» is «слои».
+			var layers := func() -> bool: return s.values.cave_mode == 0
+			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
+			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
+			var rows := []
+			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
+			for r: Array in [["Высота линии", "layer_line", lines],
+					["Впереди: первые слои", "layer_front_first", counts],
+					["Впереди: растяжение", "layer_front_stretch", stretches],
+					["Сверху: первые слои", "layer_above_first", counts],
+					["Сверху: растяжение", "layer_above_stretch", stretches],
+					["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(func(v: float) -> String: return "%d%%" % roundi(v * 100.0))]]:
+				var setting: String = r[1]
+				rows.append([r[0], r[2],
+					func() -> int: return s.values[setting],
+					func(i: int) -> void: s.set_value(setting, i), "", layers])
+			rows.append({"note": "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв. Работает, когда «Вид в пещере» — «слои»."})
+			return rows
 		"marks":
 			var marks := []
 			for p: Array in game.character.respawn_points():
@@ -471,9 +491,9 @@ func _section_rows(key: String) -> Array:
 				["Уровень и срез", ["выкл", "вкл"],
 					func() -> int: return int(s.values.level_buttons),
 					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
-				["Вид в пещере", ["срез уровней", "разрез по камере"],
-					func() -> int: return s.values.cave_view,
-					func(i: int) -> void: s.set_value("cave_view", i)],
+				["Вид в пещере", ["слои", "срез уровней", "разрез по камере"],
+					func() -> int: return s.values.cave_mode,
+					func(i: int) -> void: s.set_value("cave_mode", i)],
 				["Кнопки камеры", ["выкл", "вкл"],
 					func() -> int: return int(s.values.camera_buttons),
 					func(i: int) -> void: s.set_value("camera_buttons", i == 1)],

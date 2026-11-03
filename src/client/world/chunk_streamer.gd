@@ -159,6 +159,11 @@ var cut_clock := 0.0
 ## The level the player last stood on: a jump does not move the cut.
 var ground_level := 0
 var indoor := false
+## The view in layers is on (setting «Вид в пещере» → «слои»): where the automatic cut
+## would cut the view, nothing is cut and the shaders dither away what stands in front
+## of the player and over their head instead (CaveLayers), from the cell layer_base.
+var layers_on := false
+var layer_base := Vector3i.ZERO
 ## The player stands well below the ground around (see SUNK_SIDES), and where that
 ## was last worked out: Vector3i(x, level, z); the level of the lowest rim around.
 var sunk := false
@@ -718,6 +723,9 @@ func update_cut(delta: float) -> void:
 		# ravine running across the view, the near wall of a diagonal one, a hill.
 		if hidden_by >= 0:
 			target = mini(target, hidden_by - 1)
+	_update_layers(manual_level < 0 and target < world.size_y and layered(), at)
+	if layers_on:
+		target = world.size_y
 	if target != cut_target:
 		cut_target = target
 		cut_clock = 0.0
@@ -831,9 +839,24 @@ func _apply_cut() -> void:
 		cap_levels.clear()
 
 
+## The view under a roof is in layers (setting «Вид в пещере» → «слои»).
+func layered() -> bool:
+	return game.settings.values.cave_mode == 0
+
+
+## Turns the view in layers on or off, from the player's feet in cell `at`.
+func _update_layers(on: bool, at: Vector3i) -> void:
+	if on == layers_on and (not on or at == layer_base):
+		return
+	layers_on = on
+	layer_base = at
+	RenderingServer.global_shader_parameter_set("layer_view",
+		Vector4(1.0 if on else 0.0, at.x, at.y, at.z))
+
+
 ## The cut follows the player in the plane of the camera (setting «Вид в пещере»).
 func plane_cut() -> bool:
-	return game.settings.values.cave_view == 1 and manual_level < 0
+	return game.settings.values.cave_mode == 2 and manual_level < 0
 
 
 ## The level the caps of the cut lie on, -1 for none: the cut's own, or in the plane of

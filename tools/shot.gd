@@ -363,7 +363,8 @@ func _run() -> void:
 			await process_frame
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
-		for k in ["minimap_size", "level_buttons", "camera_buttons", "cave_view"]:
+		for k in ["minimap_size", "level_buttons", "camera_buttons", "cave_mode", "layer_front_first",
+				"layer_front_stretch", "layer_above_first", "layer_above_stretch", "layer_density", "layer_line"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame
