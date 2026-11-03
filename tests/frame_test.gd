@@ -36,6 +36,7 @@ const STALLS_PER_FRAMES := 250
 const IDLE_SHARE := 20.0
 const NIGHT_SHARE := 16.0
 const NIGHT := "idle at night by the campfire"
+const IDLE := "idle"
 
 var main: Node
 var checks := 0
@@ -52,6 +53,12 @@ var clock := 0.0
 ## Each scenario's name, frame times and the budgeted part of each, judged once the
 ## idle frame of the finished map is known.
 var runs: Array = []
+## The chunk cost measured just before each idle scenario, by its name (see _chunk_cost).
+var unit := {}
+## The game's parts of the idle scenarios' frames, microseconds in all, by scenario and part.
+var parts_us := {}
+## The chunk round the spawn, whose neighbours _chunk_cost builds.
+var spawn_chunk := Vector2i.ZERO
 
 
 func _initialize() -> void:
@@ -86,22 +93,10 @@ func _run() -> void:
 		"the loading screen tells what is being built: %s" % [told.keys()])
 	var w = main.world
 	var home := Vector2i((Vector2(main.player.position.x, main.player.position.z) / (CHUNK * CELL)).floor())
-	# What a whole chunk costs on this machine, the mean over the chunks around the
-	# spawn (a meadow chunk is a few milliseconds, a forest one several times that):
-	# the unit the limits are set in.
-	# The median of three passes: one pass on a shared runner swings by a tenth or more,
-	# and every limit below moves with it.
-	var passes: Array[float] = []
+	spawn_chunk = home
+	# What a whole chunk costs on this machine (see _chunk_cost).
+	chunk_ms = _chunk_cost(home)
 	var t := 0
-	for pass_i in 3:
-		t = Time.get_ticks_usec()
-		for dz in range(-1, 2):
-			for dx in range(-1, 2):
-				ChunkMesher.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
-				Foliage.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
-		passes.append((Time.get_ticks_usec() - t) / 9000.0)
-	passes.sort()
-	chunk_ms = passes[1]
 	print("a chunk costs %.1f ms here" % chunk_ms)
 
 	# The smallest step a job takes must stay far below a chunk, or the budgets
@@ -164,8 +159,11 @@ func _run() -> void:
 	_check(not far_before and far_built.call(), "the chunks farther round are built while the game is paused, and stay")
 	_check(paused_worst / 1000.0 < streamer.LOAD_MAX_US / 1000.0 + chunk_ms / 4.0, "building while paused keeps to its budget")
 
-	# Standing still on the finished map.
-	await _scenario("idle", 120, func(_i: int) -> bool: return false)
+	# Standing still on the finished map. The chunk it is judged by is measured again
+	# just before: a shared runner's speed drifts over the minutes of the test, and the
+	# idle frame and its unit must be taken on the same machine.
+	unit[IDLE] = _chunk_cost(home)
+	await _scenario(IDLE, 120, func(_i: int) -> bool: return false)
 
 	# Digging a ring around the feet and the ground under the nearest bush, then
 	# filling it all back, a cell every tenth frame: each edit remeshes the chunk and
@@ -445,6 +443,7 @@ func _run() -> void:
 	_check(real_fires.size() == 1 and real_fires[0].light.shadow_caster_mask == PixelView.LAYER_PLAYER
 		and main.fire_shadows.enabled and not main.player.torch.shadow_enabled,
 		"mixed fire shadows: the fire's real shadow is the player's, the rest drawn")
+	unit[NIGHT] = _chunk_cost(spawn_chunk)
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
 	main.settings.values.fire_shadows = fire_setting
 	main.settings.apply()
@@ -734,21 +733,24 @@ func _run() -> void:
 	# chunks on the map and the machine, not with the game's work.
 	var idle_ms := 0.0
 	for r in runs:
-		if r[0] == "idle":
+		if r[0] == IDLE:
 			idle_ms = _mean(r[1])
 	var step_limit: float = (ChunkStreamer.EDIT_BUDGET_US + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
 	var free_limit: float = idle_ms + 2.0 + 0.25 * chunk_ms
 	print("a frame may spend %.1f ms in the budgeted loops and %.1f ms outside them (an idle frame is %.1f ms)" % [
 		step_limit, free_limit, idle_ms])
 	for r in runs:
-		if r[0] == "idle" or r[0] == NIGHT:
+		if r[0] == IDLE or r[0] == NIGHT:
 			# At night the fire's light, its sparks and the night sounds come on top of an
-			# idle frame: a share of a chunk more.
-			var share: float = IDLE_SHARE if r[0] == "idle" else NIGHT_SHARE
-			var outside: float = _mean(r[1]) - _mean(r[2])
-			print("%s: %.2f ms a frame past the budgets (limit %.2f)" % [r[0], outside, chunk_ms / share])
-			_check(outside < chunk_ms / share, "%s: a frame takes under 1/%d of a chunk past the budgets (%.2f ms of %.2f)" % [
-				r[0], share, outside, chunk_ms / share])
+			# idle frame: a share of a chunk more. The median frame: what runs every frame
+			# moves it, a stall of the machine in a few of them does not.
+			var share: float = IDLE_SHARE if r[0] == IDLE else NIGHT_SHARE
+			var outside: float = _median_outside(r[1], r[2])
+			var limit: float = unit[r[0]] / share
+			print("%s: %.2f ms a frame past the budgets (limit %.2f, a chunk %.1f ms just before); the game's parts: %s" % [
+				r[0], outside, limit, unit[r[0]], _parts_text(parts_us.get(r[0], {}), r[1].size())])
+			_check(outside < limit, "%s: a frame takes under 1/%d of a chunk past the budgets (%.2f ms of %.2f)" % [
+				r[0], share, outside, limit])
 	for r in runs:
 		var frames: PackedFloat32Array = r[1]
 		var steps: PackedFloat32Array = r[2]
@@ -789,6 +791,13 @@ func _scenario(what: String, frames: int, act: Callable) -> void:
 		clock += root.get_process_delta_time()
 		times.append((Time.get_ticks_usec() - t) / 1000.0)
 		steps.append((main.chunks.budget_us - b) / 1000.0)
+		if what == IDLE or what == NIGHT:
+			# What the game's parts took in the frame (the statistics' parts, see
+			# PerfPanel.note), for the idle checks' message.
+			var parts: Dictionary = parts_us.get_or_add(what, {})
+			var work: Dictionary = main.hud.perf._work
+			for part: String in work:
+				parts[part] = parts.get(part, 0) + work[part]
 	runs.append([what, times, steps])
 
 
@@ -799,6 +808,48 @@ func _key(code: Key, pressed: bool) -> void:
 	ev.keycode = code
 	ev.pressed = pressed
 	Input.parse_input_event(ev)
+
+
+## What a whole chunk costs on this machine now, the mean over the nine chunks round
+## `home` (a meadow chunk is a few milliseconds, a forest one several times that): the unit
+## the limits are set in. The median of three passes: one pass on a shared runner swings by
+## a tenth or more, and every limit moves with it.
+func _chunk_cost(home: Vector2i) -> float:
+	var w = main.world
+	var passes: Array[float] = []
+	for pass_i in 3:
+		var t := Time.get_ticks_usec()
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				ChunkMesher.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
+				Foliage.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
+		passes.append((Time.get_ticks_usec() - t) / 9000.0)
+	passes.sort()
+	return passes[1]
+
+
+## The game's parts of a scenario's frames as "игрок 0.21, небо 0.10 …", ms a frame, the
+## biggest first; the rest of a frame is the engine's.
+func _parts_text(parts: Dictionary, frames: int) -> String:
+	var keys: Array = parts.keys()
+	keys.sort_custom(func(a: String, b: String) -> bool: return parts[a] > parts[b])
+	var out := []
+	var total := 0.0
+	for k: String in keys:
+		total += parts[k] / 1000.0 / maxi(frames, 1)
+		out.append("%s %.2f" % [k, parts[k] / 1000.0 / maxi(frames, 1)])
+	return "%.2f in all (%s)" % [total, ", ".join(out)]
+
+
+## The median of a scenario's frames less their budgeted part, in milliseconds.
+func _median_outside(frames: PackedFloat32Array, steps: PackedFloat32Array) -> float:
+	var outside: Array[float] = []
+	for i in frames.size():
+		outside.append(frames[i] - steps[i])
+	if outside.is_empty():
+		return 0.0
+	outside.sort()
+	return outside[outside.size() / 2]
 
 
 func _mean(times: PackedFloat32Array) -> float:

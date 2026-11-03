@@ -6,3 +6,4 @@ node_modules/
 build_info.json
 content_cache.bin
 __pycache__/
+logs/

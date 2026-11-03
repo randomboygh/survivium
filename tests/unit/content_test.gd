@@ -15,6 +15,7 @@ func run() -> void:
 	_test_items()
 	_test_tools()
 	_test_crafting()
+	_test_recipe_mistakes()
 	_test_layers()
 
 
@@ -725,6 +726,40 @@ func _test_crafting() -> void:
 
 
 ## The world model and the rules under src/shared are what the server will run, so
+## What the validator (tools/validate.gd) says of the mistakes a recipe can hold, each by the
+## recipe's id and field: a count of none, a share over one, a negative time, an amount that
+## is not whole, a station that is no station, wear with no tool, a class of tool no item is,
+## a by-product nobody knows.
+func _test_recipe_mistakes() -> void:
+	var before := Content.BUNDLES.duplicate()
+	var mod := "res://content/_rbad"
+	_write_file(mod + "/mod.yaml", "id: _rbad\ntitle: Ошибки рецептов\nversion: \"1\"\napi: 1\n")
+	_write_file(mod + "/data/items.yaml", "- {id: twig, title: Прут, weight: 0.1, stack: 20}\n")
+	_write_file(mod + "/data/recipes.yaml", "- {id: none, title: a, makes: twig, count: 0, needs: {twig: 1}}\n"
+		+ "- {id: share, title: b, makes: twig, needs: {twig: 1}, also: [{item: twig, chance: 2}]}\n"
+		+ "- {id: slow, title: c, makes: twig, needs: {twig: 1}, time: -1}\n"
+		+ "- {id: half, title: d, makes: twig, needs: {twig: 1.5}}\n"
+		+ "- {id: bench, title: e, makes: twig, needs: {twig: 1}, at: twig}\n"
+		+ "- {id: worn, title: f, makes: twig, needs: {twig: 1}, wear: 2}\n"
+		+ "- {id: saw, title: g, makes: twig, needs: {twig: 1}, tools: [saw]}\n"
+		+ "- {id: ghost, title: h, makes: twig, needs: {twig: 1}, also: [{item: nothing_here}]}\n")
+	Content.refresh()
+	var problems := Mods.activate(before + ["_rbad"])
+	problems.append_array(Crafting.check())
+	problems.append_array(preload("res://src/shared/content/content_graph.gd").new().errors)
+	var said := "\n".join(problems)
+	var missing := []
+	for what in ["none.count", "share.also", "slow.time", "half.needs", "bench.at", "worn.wear", "`_rbad:saw`.tools: no item is a `saw`", "`_rbad:nothing_here`"]:
+		if not what in said:
+			missing.append(what)
+	_check(missing.is_empty(), "the validator names the recipe and field of each mistake (not said: %s): %s" % [missing, said])
+	Mods.activate(before)
+	_remove(mod)
+	Content.refresh()
+	Mods.rescan()
+	_check(Content.problems.is_empty(), "the full set loads clean again after the broken recipes")
+
+
 ## nothing there may load a script from src/client. Inside it the layers go one way:
 ## the content loads neither the world nor the rules, the world not the rules.
 func _test_layers() -> void:

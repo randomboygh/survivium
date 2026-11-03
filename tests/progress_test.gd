@@ -7,7 +7,7 @@ extends SceneTree
 ## make (Controls, Gathering, WorldActions, Placed, Workshop). It fails on the first
 ## thing it cannot get or make and says why, so a change to tools, materials, stations
 ## or recipes that cuts the way is caught in CI. Run:
-## timeout 600 godot --headless --path . --script res://tests/progress_test.gd
+## timeout 1200 godot --headless --path . --script res://tests/progress_test.gd [-- --part hunting|other]
 ##
 ## The animals are hunted the same way: the player is carried up to one and strikes it with
 ## the action button until it falls, then takes its carcass. Fish are caught with a rod from
@@ -45,6 +45,10 @@ const WANT_AHEAD := 4
 const MAX_TRIPS := 16
 ## Slots of the bag here (see _run).
 const BAG := 24
+## The parts the recipes can be made in, side by side (see _part).
+const PARTS := ["hunting", "other"]
+## Frames a wait by the clock lasts at least: a loaded runner's frame can take seconds.
+const WAIT_FRAMES := 30
 
 var main: Node
 var checks := 0
@@ -58,6 +62,8 @@ var _found := {}
 var camp := Vector3.ZERO
 ## The recipes in the order they become possible, and the ones made.
 var order: Array = []
+## The recipes of `order` this run sets out to make (see _part); what they need is made too.
+var targets: Array = []
 var made := {}
 ## The placed things the player set down (the camp starts with a chest and a campfire).
 var set_down := {}
@@ -67,6 +73,8 @@ var seeking := {}
 var crafting: Array[Dictionary] = []
 ## What the world gives (see _raw).
 var raw := {}
+## The part of the recipes made, "" for all (see _part).
+var part := ""
 
 
 func _initialize() -> void:
@@ -113,13 +121,16 @@ func _run() -> void:
 	raw = _raw()
 	order = _order()
 	_check(order.size() == Crafting.RECIPES.size(), "every recipe can be made from what the world gives")
-	for r: Dictionary in order:
+	targets = _part(order)
+	if targets.size() < order.size():
+		print("part %s: %d of %d recipes and what they need" % [part, targets.size(), order.size()])
+	for r: Dictionary in targets:
 		if not made.has(r.id) and not await _craft(r, 1):
 			break
-	for r: Dictionary in Crafting.RECIPES:
+	for r: Dictionary in targets:
 		_check(made.has(r.id), "made: %s" % r.title)
 	var props := {}
-	for r: Dictionary in Crafting.RECIPES:
+	for r: Dictionary in targets:
 		if Items.get_item(r.makes).get("prop", "none") != "none":
 			props[r.makes] = true
 	for id in props:
@@ -130,6 +141,30 @@ func _run() -> void:
 
 
 # --- The plan ---------------------------------------------------------------------------
+
+## The recipes of `all` this run makes: all of them, or with `-- --part hunting` those
+## that need what only a beast gives (its carcass, and so hides, fur, bones, tallow) and
+## with `-- --part other` the rest. Each part makes what its recipes need, the camp, the
+## stations and the tools, from an empty bag in a new world; the two together make every
+## recipe, side by side on two machines in CI (`progress` job), in half the time.
+func _part(all: Array) -> Array:
+	var args := OS.get_cmdline_user_args()
+	var i := args.find("--part")
+	part = args[i + 1] if i >= 0 and i + 1 < args.size() else ""
+	if part == "":
+		return all
+	if not part in PARTS:
+		_fail("--part is one of %s, not `%s`" % [PARTS, part])
+		return []
+	var beasts := {}
+	for k: String in AiRules.SPECIES:
+		var spec: Dictionary = AiRules.SPECIES[k]
+		if k != AiRules.HUMAN and spec.get("carcass", "") != "":
+			beasts[spec.carcass] = true
+	return all.filter(func(r: Dictionary) -> bool:
+		var needs := {r.makes: true}
+		_needs_of(r, needs)
+		return needs.keys().any(func(id: String) -> bool: return beasts.has(id)) == (part == "hunting"))
 
 ## What the world gives a player (the content graph, src/shared/content/content_graph.gd,
 ## finds the same and which tool each takes): what cells, the plants on them, trees and
@@ -195,7 +230,7 @@ func _wanted(id: String) -> bool:
 	for r: Dictionary in crafting:
 		_needs_of(r, needed)
 	var ahead := 0
-	for r: Dictionary in order:
+	for r: Dictionary in targets:
 		if ahead >= WANT_AHEAD:
 			break
 		if not made.has(r.id):
@@ -214,7 +249,7 @@ func _wanted(id: String) -> bool:
 	# A sword, a knife and the like only while a recipe being made or not made yet asks for
 	# one (a carcass cut up again for its hide): the bag has room for the tools that get
 	# things from the world.
-	if not kind in ["axe", "pickaxe", "shovel", "scythe", "rod"] and not (crafting + order).any(func(r: Dictionary) -> bool:
+	if not kind in ["axe", "pickaxe", "shovel", "scythe", "rod"] and not (crafting + targets).any(func(r: Dictionary) -> bool:
 			return (not made.has(r.id) or r in crafting) and kind in r.tools):
 		return false
 	var slots: Array = main.host.player.inventory.slots
@@ -423,7 +458,9 @@ func _place(id: String) -> bool:
 		if attempt > 0:
 			print("no room for %s yet: %s" % [Items.title(id), _camp_report()])
 			var until := Time.get_ticks_msec() + 4000
-			while Time.get_ticks_msec() < until:
+			var frames := 0
+			while Time.get_ticks_msec() < until or frames < WAIT_FRAMES:
+				frames += 1
 				await process_frame
 		for shift in shifts:
 			await _go(camp + shift * CELL)
@@ -573,8 +610,12 @@ func _hunt(id: String) -> bool:
 			# The client's world gets the drop from the host a few frames later: wait
 			# by the clock, not by frames.
 			var fell: Vector3 = prey.pos
+			# By the clock and by frames both: on a loaded runner a frame of streaming
+			# can take two seconds, and three seconds would then be a frame or two.
 			var until := Time.get_ticks_msec() + 3000
-			while Time.get_ticks_msec() < until:
+			var frames := 0
+			while Time.get_ticks_msec() < until or frames < WAIT_FRAMES:
+				frames += 1
 				await _pick_up(main.player.position, 4)
 				if inv.count(id) <= before:
 					await _pick_up(fell, 4)
@@ -589,8 +630,9 @@ func _hunt(id: String) -> bool:
 					print("hunted %s: %s" % [AiRules.SPECIES[prey.kind].title, Items.title(id)])
 					return true
 				await process_frame
-			return _fail("%s fell, but its %s is not on the ground or the bag is full (%d slots free)" % [AiRules.SPECIES[prey.kind].title, Items.title(id),
-				inv.slots.count(null)])
+			return _fail("%s fell at %s, but its %s is not on the ground or the bag is full (%d slots free); nearest %s on the client %s, on the host %s, after %d frames" % [
+				AiRules.SPECIES[prey.kind].title, fell, Items.title(id), inv.slots.count(null), Items.title(id), _drop_near(id, fell),
+				_drop_near(id, fell, main.session.world), frames])
 	return _fail("%s cannot be hunted down: %s at %s, the player at %s" % [Items.title(id), prey.kind if prey != null else "none",
 		prey.pos if prey != null else Vector3.ZERO, main.host.player.position])
 
@@ -1000,12 +1042,14 @@ func _tool_recipe_for(mats: Array[int]) -> String:
 ## with a tap as the game does; returns how many were taken.
 ## Where the nearest thing `id` lies on the ground in the chunks round `at`, measured
 ## across the ground (any height), or INF for none.
-func _drop_near(id: String, at: Vector3) -> Vector3:
+func _drop_near(id: String, at: Vector3, world = null) -> Vector3:
+	if world == null:
+		world = main.world
 	var best := Vector3.INF
 	var home := WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL))
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
-			for d: Array in main.world.drops.get(home + Vector2i(dx, dz), []):
+			for d: Array in world.drops.get(home + Vector2i(dx, dz), []):
 				var p: Vector3 = d[1]
 				if Items.get_item(d[0]).get("id", d[0]) == id and (best == Vector3.INF
 						or Vector2(p.x - at.x, p.z - at.z).length() < Vector2(best.x - at.x, best.z - at.z).length()):

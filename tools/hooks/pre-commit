@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# The checks of seconds before a commit: tools/lint.py and the docs' paths and code index
+# (tools/doc_index.py --check). Not on by default; turn it on for this clone with
+#     git config core.hooksPath tools/hooks
+# and skip it once with `git commit --no-verify`. CI runs the same in its `lint` job.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+python3 tools/lint.py
+python3 tools/doc_index.py --check

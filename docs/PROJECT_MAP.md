@@ -26,10 +26,10 @@ src/client/              картинка, ввод и звук этого ус�
 shaders/                 3D-шейдеры (общий common.gdshaderinc), цветокор, карта, интерфейс
 content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/; common/ общие ассеты
 assets/                  шрифт, заставка, значки интерфейса (ui/), иконки web-страницы (web/, без импорта)
-tests/                   headless-тесты (run_tests + unit/, save, progress, frame, server), проверка в браузере, run_all.sh
-tools/                   валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/
+tests/                   headless-тесты (run_tests + unit/, save, progress, frame, server), проверка в браузере, run_all.sh (все проверки)
+tools/                   линт (lint.py), компиляция всех скриптов (parse_check.gd), хук pre-commit (hooks/), валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/
 .github/                 CI (workflows/build.yml), установка Godot (actions/godot), шаблон PR
-docs/                    эта документация (audit/ — отчёты аудитов, planning/ — план рефакторинга)
+docs/                    эта документация (audit/ — отчёты аудитов, planning/ — планы, testing/ — как проверять и CI)
 ```
 
 Подробно по слоям и связям: [ARCHITECTURE.md](ARCHITECTURE.md); по системам: [SYSTEMS.md](SYSTEMS.md).
@@ -62,7 +62,7 @@ docs/                    эта документация (audit/ — отчёт�
 | Числа и записи контента | YAML мода и схема в `content.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL.md)) |
 | Новое существо, растение, инструмент, биом | папка-бандл в своём моде (`content/animals/<имя>/` …), см. README мода |
 | 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
-| Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd` |
+| Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)) |
 | Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
 | Картинка интерфейса | `assets/ui/` |
 | Документ о коде | `docs/` (система — `docs/systems/`) |
