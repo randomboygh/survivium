@@ -32,6 +32,9 @@ global uniform float layer_density;
 // The level, from the player's feet, the quarter that thins out starts at (0 the feet,
 // 1 the waist, 2 the head, negative below the feet); the levels over it count from it.
 global uniform float layer_line;
+// The material the layers fill the rock they leave out with: the one most of the solid
+// cells round the player are of (ChunkStreamer._rock_round).
+global uniform float layer_rock;
 // The view in a sphere (setting «Вид в пещере» → «сфера», CaveSphere): x 1 while it is
 // on, yzw the sphere's middle in world units, on the line from the player to the camera.
 global uniform vec4 sphere_view;
@@ -461,6 +464,51 @@ float layer_alpha(vec3 c) {
 // The way from the world toward the camera, of length 1.
 vec3 toward_camera() {
 	return normalize(unshear_dir(vec3(0.0, 1.0, 0.0)));
+}
+
+// The most cells the view in layers looks through behind a face it leaves out (from
+// the top of solid_map at most: about two a level down to the player and on).
+const int LAYER_FILL_STEPS = 48;
+
+// In the view in layers, whether the texel `texel` of a face the layers leave out, at
+// `p` a hair inside its solid cell, is to be drawn as the rock's section instead: the
+// line of sight goes on through solid cells the layers leave out at this texel too
+// (solid_map) until it comes to a solid cell they keep, which has no face there, so
+// the background would show. Where it comes to an open cell first, what lies beyond
+// shows, and the face goes.
+bool layer_fills(vec3 p, vec2 texel) {
+	vec3 way = -toward_camera();
+	float dither = bayer4(texel);
+	// Above solid_map all counts as solid and left out: start where the line comes into it.
+	float top = (solid_origin.y + 32.0) * CELL;
+	if (p.y > top) {
+		p += way * ((p.y - top) / -way.y + 0.001);
+	}
+	vec3 c = floor(p / CELL);
+	vec3 step_by = sign(way);
+	vec3 safe = vec3(abs(way.x) < 1e-5 ? 1e-5 : way.x, abs(way.y) < 1e-5 ? 1e-5 : way.y, abs(way.z) < 1e-5 ? 1e-5 : way.z);
+	vec3 delta = abs(CELL / safe);
+	vec3 next = ((c + max(step_by, vec3(0.0))) * CELL - p) / safe;
+	next = vec3(abs(way.x) < 1e-5 ? 1e9 : next.x, abs(way.y) < 1e-5 ? 1e9 : next.y, abs(way.z) < 1e-5 ? 1e9 : next.z);
+	for (int i = 0; i < LAYER_FILL_STEPS; i++) {
+		if (next.x < next.y && next.x < next.z) {
+			next.x += delta.x;
+			c.x += step_by.x;
+		} else if (next.y < next.z) {
+			next.y += delta.y;
+			c.y += step_by.y;
+		} else {
+			next.z += delta.z;
+			c.z += step_by.z;
+		}
+		if (!solid_at((c + 0.5) * CELL)) {
+			return false;
+		}
+		if (dither < layer_alpha(c)) {
+			return true;
+		}
+	}
+	return true;
 }
 
 // Whether `p` lies in what the view in a sphere leaves out: inside the sphere and

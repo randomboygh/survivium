@@ -96,6 +96,10 @@ layer_line={
 "type": "float",
 "value": 0.0
 }
+layer_rock={
+"type": "float",
+"value": 0.0
+}
 sphere_view={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)

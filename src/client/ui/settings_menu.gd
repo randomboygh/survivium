@@ -411,9 +411,9 @@ func _section_rows(key: String) -> Array:
 			]
 			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
 			for r: Array in [["Высота линии", "layer_line", lines],
-					["Впереди: первые слои", "layer_front_first", counts],
+					["Впереди: первые слои", "layer_front_from", counts],
 					["Впереди: растяжение", "layer_front_stretch", stretches],
-					["Сверху: первые слои", "layer_above_first", counts],
+					["Сверху: первые слои", "layer_above_from", counts],
 					["Сверху: растяжение", "layer_above_stretch", stretches],
 					["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(func(v: float) -> String: return "%d%%" % roundi(v * 100.0))]]:
 				var setting: String = r[1]

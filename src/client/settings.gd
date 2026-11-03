@@ -85,9 +85,10 @@ const DEFAULTS := {
 	# The layers (test settings «Пещеры», indices of CaveLayers.FIRSTS, STRETCHES,
 	# DENSITIES): how many slices in front of the player and levels over their head
 	# count as the first, over how many the rest fades out, how much of a first is drawn.
-	"layer_front_first": 1,
+	# The keys of the first ones replaced «layer_*_first» when they took values below 0.
+	"layer_front_from": 5,
 	"layer_front_stretch": 2,
-	"layer_above_first": 1,
+	"layer_above_from": 5,
 	"layer_above_stretch": 2,
 	"layer_density": 1,
 	# Where the quarter that thins out starts (CaveLayers.LINES, index 10 = the feet).
@@ -144,8 +145,8 @@ static func _index_limits() -> Dictionary:
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
 		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "cave_mode": 4,
-		"layer_front_first": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
-		"layer_above_first": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
+		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
+		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(), "sphere_radius": CaveSphere.RADII.size(),
 		"sphere_shift": CaveSphere.SHIFTS.size(), "sphere_debug": 2,
 		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
@@ -242,6 +243,12 @@ func load() -> void:
 	# Before five sizes the interface had three, the normal one first.
 	if not cfg.has_section_key("game", "ui_size") and cfg.has_section_key("game", "ui_scale"):
 		values.ui_size = clampi(int(cfg.get_value("game", "ui_scale", 0)) + 2, 0, 4)
+	# Before the first layers took values below 0 (CaveLayers.FIRSTS from -4) they
+	# counted from 0 under other keys.
+	for side in ["front", "above"]:
+		var old := "layer_%s_first" % side
+		if not cfg.has_section_key("game", "layer_%s_from" % side) and cfg.has_section_key("game", old):
+			values["layer_%s_from" % side] = clampi(int(cfg.get_value("game", old, 1)) + 4, 0, CaveLayers.FIRSTS.size() - 1)
 	# Before five steps the pixel had three, the normal one first, then 1.5 and 2.
 	if not cfg.has_section_key("game", "pixel_scale") and cfg.has_section_key("game", "pixel_size"):
 		values.pixel_scale = 2 if int(cfg.get_value("game", "pixel_size", 0)) == 0 else 4
@@ -345,8 +352,8 @@ func pixel_size() -> float:
 ## The layers' steps in cells (see CaveLayers): front first, front stretch, above
 ## first, above stretch.
 func layer_fade() -> Vector4i:
-	return Vector4i(CaveLayers.FIRSTS[values.layer_front_first], CaveLayers.STRETCHES[values.layer_front_stretch],
-		CaveLayers.FIRSTS[values.layer_above_first], CaveLayers.STRETCHES[values.layer_above_stretch])
+	return Vector4i(CaveLayers.FIRSTS[values.layer_front_from], CaveLayers.STRETCHES[values.layer_front_stretch],
+		CaveLayers.FIRSTS[values.layer_above_from], CaveLayers.STRETCHES[values.layer_above_stretch])
 
 
 func layer_density() -> float:
