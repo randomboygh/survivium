@@ -1,0 +1,6 @@
+# Плетень плетут руками из веток («Ресурсы», бандл «Дерево»).
+- id: wattle
+  title: Плетень
+  makes: wattle
+  needs: {resources:branch: 4}
+  time: 3

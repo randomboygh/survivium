@@ -69,11 +69,12 @@ func _test_content() -> void:
 		"core content satisfies the engine")
 	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Mat.NAMES[Mat.GRASS] == "Трава", "materials get their indices")
 	var planks := Mat.index("materials:planks")
-	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("materials:brick"), Mat.BEACH, Mat.BANK, Mat.LOG],
+	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("materials:brick"), Mat.BEACH, Mat.BANK, Mat.LOG,
+			Mat.index("materials:log_wall"), Mat.index("materials:wattle"), Mat.index("materials:cut_stone")],
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 25
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 28
 		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore"),
 			Mat.index("materials:gold_ore"), Mat.index("materials:platinum_ore"), Mat.index("materials:silver_ore")])
 		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.3, -1) == Mat.ORE and Mat.vein_at(0.5, -1) == Mat.index("materials:iron_ore")
@@ -152,7 +153,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 18 and Mods.bundles("plants").size() == 38
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 17 and Mods.bundles("tools").size() == 35 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 35 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):

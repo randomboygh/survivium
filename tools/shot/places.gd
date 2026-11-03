@@ -514,6 +514,30 @@ func hut(w, at: Vector3) -> Vector3:
 	return (Vector3(best) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## Short walls of every building material in a row on flat grass near `at`, each three
+## cells long and three high on a floor of its own laid flush with the ground, the
+## player in front of them (the building stage, materials as cells).
+func walls(w, at: Vector3) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var names := ["core:stone", "materials:planks", "materials:brick", "materials:log_wall", "materials:wattle", "materials:cut_stone"]
+	for i in names.size():
+		var m: int = Mat.index(names[i])
+		if m <= 0:
+			continue
+		var x0 := spot.x - 11 + i * 4
+		for dx in 3:
+			for dz in range(-3, 0):
+				w.set_cell(x0 + dx, spot.y - 1, spot.z + dz, m)
+			for dy in 3:
+				w.set_cell(x0 + dx, spot.y + dy, spot.z - 4, m)
+	for c: Vector3i in w.bushes.keys():
+		if absi(c.x - spot.x) <= 14 and c.z >= spot.z - 6 and c.z <= spot.z + 2:
+			w.remove_bush(c)
+	for dx in range(-16, 17, 8):
+		main.chunks.on_cell_changed(spot + Vector3i(dx, 0, -2))
+	return (Vector3(spot) + Vector3(0.5, 0.0, 2.5)) * CELL
+
+
 ## Blocks of stone round the campfire whose north-west cell is `fire`, kept in
 ## wall_cells to be taken away again: a wall two high to the south-west, a low wall to
 ## the south-east, a pillar three high to the north-east and a lone block to the

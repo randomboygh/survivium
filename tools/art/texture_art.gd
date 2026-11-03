@@ -16,7 +16,8 @@ const GRASS := Color(0.4, 0.54, 0.25)
 ## The texture named `name` (the bare id of the material), or null for one not drawn here.
 static func picture(name: String) -> Image:
 	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "iron_ore", "scree", "brick", "snow", "peat", "salt", "ice",
-			"silver_ore", "gold_ore", "platinum_ore", "silver_block", "gold_block", "platinum_block"]:
+			"silver_ore", "gold_ore", "platinum_ore", "silver_block", "gold_block", "platinum_block",
+			"log_wall", "wattle", "cut_stone"]:
 		return null
 	var img := Image.create_empty(TILE * KINDS, TILE, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -160,6 +161,12 @@ static func _texel(name: String, kind: int, px: int, py: int, rng: RandomNumberG
 			var row := py / 4
 			var mortar := py % 4 == 3 or (px + (row % 2) * 4) % 8 == 7
 			return _vary(Color(0.74, 0.7, 0.64) if mortar else Color(0.58, 0.32, 0.25), rng, 0.04)
+		"log_wall":
+			return _log_wall(kind, px, py, rng)
+		"wattle":
+			return _wattle(kind, px, py, rng)
+		"cut_stone":
+			return _cut_stone(kind, px, py, rng)
 	return Color.MAGENTA
 
 
@@ -220,3 +227,62 @@ static func _plate(px: int, py: int) -> int:
 					best = d
 					plate = i
 	return plate
+
+
+## Log wall (сруб): on the sides logs lying across, four texels thick, lit along the top
+## and dark in the seam under it; on the top and underside the hewn wood along the logs.
+static func _log_wall(kind: int, px: int, py: int, rng: RandomNumberGenerator) -> Color:
+	var wood := Color(0.56, 0.4, 0.26)
+	if kind != 1:
+		var seam := px % 4 == 3
+		var grain := (py * 3 + px * 7) % 11 == 0
+		return _vary(wood * (0.7 if seam else (0.9 if grain else 1.05)), rng, 0.03)
+	var ly := py % 4
+	var course := py / 4
+	var k: float = [1.12, 1.0, 0.92, 0.62][ly]
+	if ly != 3 and (px * 5 + course * 3) % 13 == 0:
+		k *= 0.88
+	return _vary(wood * k, rng, 0.03)
+
+
+## Wattle (плетень): twigs woven over and under upright stakes, light where a twig comes
+## over a stake and dark in the gaps between the rows; the top shows the stakes' ends
+## along a row of twigs.
+static func _wattle(kind: int, px: int, py: int, rng: RandomNumberGenerator) -> Color:
+	var twig := Color(0.55, 0.43, 0.28)
+	var gap := Color(0.3, 0.23, 0.16)
+	if kind != 1:
+		var stake := px % 4 == 1 and py % 4 == 1
+		if stake:
+			return _vary(Color(0.66, 0.54, 0.38), rng, 0.03)
+		return _vary(twig * (0.75 if py % 2 == 0 else 1.0), rng, 0.05)
+	var row := py / 3
+	var ly := py % 3
+	if px % 4 == 0:
+		# A stake: the twig of this row passes in front of it or behind.
+		return _vary(Color(0.47, 0.36, 0.24) if (row + px / 4) % 2 == 0 else twig * 1.15, rng, 0.03)
+	if ly == 2 or (py == 15):
+		return _vary(gap, rng, 0.08)
+	var bulge := 1.1 if ly == 0 else 0.92
+	return _vary(twig * bulge, rng, 0.05)
+
+
+## Cut stone (тёсаный камень): ashlar blocks eight by four texels in running bond,
+## a lit rim on top and left and a joint of pale mortar; the top is slabs of eight by eight.
+static func _cut_stone(kind: int, px: int, py: int, rng: RandomNumberGenerator) -> Color:
+	var base := Color(0.6, 0.6, 0.58)
+	var mortar := Color(0.45, 0.44, 0.42)
+	var lx: int
+	var ly: int
+	var h := 4 if kind == 1 else 8
+	var row := py / h
+	lx = (px + (row % 2) * 4) % 8 if kind == 1 else px % 8
+	ly = py % h
+	if lx == 7 or ly == h - 1:
+		return _vary(mortar, rng, 0.03)
+	var k := 1.1 if lx == 0 or ly == 0 else 1.0
+	var block := (px + (row % 2) * 4) / 8 + row * 3
+	k *= [1.0, 0.96, 1.03, 0.98][block % 4]
+	if rng.randf() < 0.04:
+		k *= 0.9
+	return _vary(base * k, rng, 0.02)

@@ -1,0 +1,8 @@
+# Плетень как ячейка: разбирается руками и возвращает себя. Поля — как у материалов основы.
+- id: wattle
+  title: Плетень
+  hotbar: 9
+  item: wattle
+  dig: hand
+  step: step_wood
+  hit: rustle

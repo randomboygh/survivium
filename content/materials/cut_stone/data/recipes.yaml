@@ -1,0 +1,9 @@
+# Камень («Ресурсы») обтёсывают киркой на верстаке («Инструменты»).
+- id: cut_stone
+  title: Тёсаный камень
+  makes: cut_stone
+  needs: {resources:stone: 2}
+  at: tools:workbench
+  tools: [pickaxe]
+  process: refine
+  time: 4

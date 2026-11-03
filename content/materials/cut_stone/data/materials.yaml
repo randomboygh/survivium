@@ -1,0 +1,9 @@
+# Тёсаный камень как ячейка: бьётся киркой, твёрдый, как кирпич, возвращает себя. Поля — как у
+# материалов основы.
+- id: cut_stone
+  title: Тёсаный камень
+  hotbar: 10
+  item: cut_stone
+  hardness: 2
+  step: step_stone
+  hit: hit_stone
