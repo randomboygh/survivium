@@ -3,7 +3,7 @@ extends SceneTree
 ## Run: godot --headless --path . --script res://tests/run_tests.gd [-- topic ...]
 ## Names as arguments run only those files, e.g. `-- body shapes`.
 
-const FILES := ["generation", "mesher", "body", "shapes", "view", "actions", "clock", "wildlife", "store", "content", "graph", "bundle_system", "character", "session", "net", "territory", "plans", "skills"]
+const FILES := ["generation", "mesher", "body", "shapes", "view", "actions", "clock", "wildlife", "store", "content", "graph", "bundle_system", "character", "session", "net", "territory", "plans", "skills", "properties"]
 
 
 ## Counts the runtime errors of scripts: one aborts the function it is in and the test
@@ -44,9 +44,12 @@ func _init() -> void:
 			continue
 		var tests = file.new()
 		var errors_before := errors.count
+		var started := Time.get_ticks_msec()
 		tests.run()
 		checks += tests.checks
 		failures += tests.failures
+		# What each file costs, so a slow one is seen (docs/testing/TEST_COVERAGE.md).
+		print("%s: %d checks, %d failed, %.1f s" % [name, tests.checks, tests.failures, (Time.get_ticks_msec() - started) / 1000.0])
 		if errors.count > errors_before:
 			printerr("FAIL: tests/unit/%s_test.gd hit %d script errors (see SCRIPT ERROR above)" % [name, errors.count - errors_before])
 			failures += errors.count - errors_before

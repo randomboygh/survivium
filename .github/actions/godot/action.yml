@@ -1,27 +1,40 @@
 name: Godot
-description: Puts Godot and its web, Windows and Linux export templates in place (cached) and imports the project.
+description: Puts Godot and its web, Windows and Linux export templates in place (cached, checked against the release's SHA-512 sums) and imports the project.
+inputs:
+  templates:
+    description: Whether the export templates are wanted (the test jobs do without them).
+    default: "true"
 runs:
   using: composite
   steps:
     - name: Cache Godot
       id: cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/godot
-        key: godot-${{ env.GODOT_VERSION }}-web-pc
+        key: godot-${{ env.GODOT_VERSION }}-web-pc-${{ hashFiles('.github/actions/godot/SHA512-SUMS') }}
 
+    # The files are checked against the sums of the release (SHA512-SUMS.txt on its page),
+    # kept in SHA512-SUMS next to this file: a new Godot version needs its two lines there.
     - name: Download Godot and the export templates
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        sums="$GITHUB_ACTION_PATH/SHA512-SUMS"
         mkdir -p ~/godot && cd ~/godot
         base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
-        curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-        unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm godot.zip
-        curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-        unzip -q templates.tpz 'templates/web_*' 'templates/windows_*' 'templates/linux_*' 'templates/version.txt' && rm templates.tpz
+        engine="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+        templates="Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+        grep -q " $engine\$" "$sums" && grep -q " $templates\$" "$sums" \
+          || { echo "::error::no SHA-512 sums for Godot $GODOT_VERSION in .github/actions/godot/SHA512-SUMS"; exit 1; }
+        curl -fsSL --retry 3 -o "$engine" "$base/$engine"
+        curl -fsSL --retry 3 -o "$templates" "$base/$templates"
+        grep -E " ($engine|$templates)\$" "$sums" | sha512sum -c -
+        unzip -q "$engine" && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm "$engine"
+        unzip -q "$templates" 'templates/web_*' 'templates/windows_*' 'templates/linux_*' 'templates/version.txt' && rm "$templates"
 
     - name: Install export templates
+      if: inputs.templates == 'true'
       shell: bash
       run: |
         dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
@@ -29,4 +42,4 @@ runs:
 
     - name: Import project
       shell: bash
-      run: ~/godot/godot --headless --path . --import
+      run: timeout 300 ~/godot/godot --headless --path . --import

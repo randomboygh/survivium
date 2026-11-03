@@ -28,7 +28,7 @@ src/shared/        the world and the rules of play the server will run: content/
 src/client/        drawing, input, sound, UI and saving on this device: world/ view/ input/ game/ audio/ ui/
 content/<mod>/     the mods' data and assets, a folder per bundle
 shaders/ assets/   3D shaders (common.gdshaderinc), interface pictures, fonts, web icons
-tests/ tools/      headless tests and the browser smoke test; validator, screenshots, benches, asset makers
+tests/ tools/      headless tests and the browser smoke test; lint, validator, screenshots, benches, asset makers
 ```
 
 ## How to work on a task
@@ -100,26 +100,39 @@ docs); a PR that does several things has a line for each.
 ## Checks before every push
 
 ```
+python3 tools/lint.py
+python3 tools/doc_index.py --check
 godot --headless --path . --import
+godot --headless --path . --script res://tools/parse_check.gd
 godot --headless --path . --script res://tools/validate.gd
 godot --headless --path . --script res://tools/content_report.gd -- --check
 godot --headless --path . --script res://tests/run_tests.gd
 timeout 300 godot --headless --path . --script res://tests/save_test.gd
-timeout 1200 godot --headless --path . --script res://tests/progress_test.gd
+timeout 1200 godot --headless --path . --script res://tests/progress_test.gd -- --part hunting
+timeout 1200 godot --headless --path . --script res://tests/progress_test.gd -- --part other
 timeout 600 godot --headless --path . --script res://tests/frame_test.gd
 timeout 300 godot --headless --path . --script res://tests/server_test.gd
-python3 tools/doc_index.py --check
 ```
 
-`tests/run_all.sh` runs the godot ones after `--import`: the first six side by side, each with its own
-`user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times (`GODOT=path` if
-`godot` is not on PATH; names as arguments run only those). `frame_test` timings are noisy on a busy
-machine: rerun it alone before blaming code. Run `progress_test` after any change to tools, materials,
-stations, recipes or what the hands do. Run `--import` again after pulling new assets, or HUD scripts
-fail with null errors that look like code bugs. Wrap headless runs in `timeout`: a runtime error in an
-awaiting script leaves Godot running. `--check-only --script res://x.gd` only parses. CI
-(`.github/workflows/build.yml`) runs the same plus the web export and the browser smoke test; details,
-screenshots and the other tools: `docs/systems/testing.md`.
+`tests/run_all.sh` runs the godot ones after `--import`: all but `frame_test` side by side, each with
+its own `user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times
+(`GODOT=path` if `godot` is not on PATH; names as arguments run only those: `parse validate report
+run_tests save_test progress_hunting progress_other progress_test server_test frame_test`; `LOGS=dir`
+keeps the logs). `frame_test` timings are noisy on a busy machine (this cloud container is too slow
+and noisy for it: CI judges): rerun it alone before blaming code. Run `--import` again after pulling
+new assets, or HUD scripts fail with null errors that look like code bugs. Wrap headless runs in
+`timeout`: a runtime error in an awaiting script leaves Godot running. `--check-only --script
+res://x.gd` only parses one script. `git config core.hooksPath tools/hooks` runs the first two before
+each commit.
+
+Which tests a change needs (CI runs all of them anyway): UI only — lint, parse, `run_tests`,
+screenshots; content data, recipes, stations, tools, materials, what the hands do — add
+`validate`, `report` (regenerate without `--check`), `progress_hunting progress_other`; world,
+generator, chunks, meshes, anything every frame — `run_tests -- generation mesher shapes store` and
+`frame_test`; saves — `save_test`; network, server, protocol — `run_tests -- net session` and
+`server_test`. Table and how to add a test: `docs/testing/TESTING_GUIDE.md`; CI jobs, what blocks a
+merge, logs: `docs/testing/CI_PIPELINE.md` (`.github/workflows/build.yml`); flaky checks and why:
+`docs/testing/TEST_COVERAGE.md`.
 
 ## Gotchas
 
