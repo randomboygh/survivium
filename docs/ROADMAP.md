@@ -5,12 +5,12 @@
 ## Утверждённые планы (библиотека)
 
 - `plan/mvp.md` — этапы: этап 0 закрыт, идёт этап 1 (MVP); порядок работ и состояние по областям.
-  Раздел «Состояние на 2026-10-24» — снимок на ту дату: что сделано после (PR #159–#235: бандлы, биомы,
-  новые звери и растения, рельеф, свет), смотрите в журнале решений `plan/README.md` и в
+  Состояние по областям сверено 2026-11-03 (PR до #333); что есть в коде сейчас — также
   [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 - `plan/backlog.md` — единственный список задач по областям (GitHub Issues не ведутся).
-- Идёт сервер (решение 153, `plan/architecture/server.md`: этапы С1–С7; С1 — сеанс мира,
-  [systems/session.md](systems/session.md)).
+- Сервер построен (решение 153, `plan/architecture/server.md`: этапы С1–С7, PR #249–#263), на нём
+  территория и команды (Т1–Т6, PR #317–#329, [systems/territory.md](systems/territory.md)); огонь, еда и
+  выживание — PR #307–#314 ([systems/character.md](systems/character.md)).
 - Система бандлов по ТЗ `bundles.md` (решение 152) построена: правила и состояние восьми этапов —
   [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), план этапов с файлами и рисками —
   `plan/architecture/bundle-system.md`.

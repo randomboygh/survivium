@@ -29,11 +29,11 @@
 
 | Система | Где замысел | Что в коде |
 |---|---|---|
-| Сервер, сеть, многопользовательская игра | `plan/architecture/server.md` (решение 153, этапы С1–С7), `networking.md`, `overview.md`, `plan/mvp.md` (этап 1) | сеанс мира с тиком и узел сервера под корнем дерева, генерация по заказу сеанса (С1, С2.3, [systems/session.md](systems/session.md)), протокол запросов через сервер в игре и копии персонажа, мастерской, вещей, часов и зверей на клиенте (С2.1–С2.2б), headless-сервер из терминала с входом по имени и ключу через WebSocket (С3.1), мир через сокет готовыми чанками и вход игры по `--join` / `?server=` (С3.2), другие игроки на экране и проверка движения сервером (С3.3), сборки Windows и Linux (С3.4), сохранение мира и игроков на сервере (С4, [systems/network.md](systems/network.md)), меню «Одиночная игра» / «Мультиплеер» и экран «Присоединиться» (С5.1, [systems/ui.md](systems/ui.md)), окно «Создать сервер» на ПК со своим сервером в процессе игры (С5.2), команды хозяина give / tp / ban / whitelist (С5.3) есть; проверки предметов и чата нет (С6), туннеля нет (С7) |
-| Территории и PvP | `plan/design/territory-pvp.md` | команды, участки земли, права и защита, PvP есть (Т1–Т3, Т5, [systems/territory.md](systems/territory.md)); ветшание нет |
+| Сервер, сеть, многопользовательская игра | `plan/architecture/server.md` (решение 153, этапы С1–С7), `plan/mvp.md` (этап 1) | этапы С1–С7 сделаны ([systems/session.md](systems/session.md), [systems/network.md](systems/network.md)); нет докачки модов с сервера (после MVP, решение 153) и сервера в браузере для других игроков |
+| Территории и PvP | `plan/design/territory-pvp.md` | команды, участки земли, права и защита, возрождение у костров команды, PvP, упадок заброшенной земли есть (Т1–Т6, [systems/territory.md](systems/territory.md)); ветшания построек вне территории и союзов нет |
 | Строительство предметами (стены, двери, крыши) | `plan/design/mvp-design.md` | только ячейки: копать и ставить блоки (`world_actions.gd`) |
 | Редактор контента | `plan/design/editor.md`, `plan/architecture/editor.md` | нет; схемы `content.gd` — его будущая основа |
 | NPC | `plan/design/npc.md` (отложено) | нет |
 | Скрипты модов | `plan/architecture/modding.md` | только данные и ассеты |
 | Android-сборка | `plan/architecture/deployment.md` | нет пресета экспорта |
-| Температура, жажда, навыки | `plan/design/character.md` | нет |
+| Навыки | `plan/design/character.md` | нет: в окне персонажа заглушки (`PersonPanel.SKILL_OF`); температура, жажда, сон сделаны ([systems/character.md](systems/character.md)) |
