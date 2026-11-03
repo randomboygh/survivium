@@ -43,6 +43,8 @@ const CAMPFIRE := "core:campfire"
 ## How close (in cells) a body pushing into a burning campfire, or over it, comes to be
 ## burnt.
 const SINGE := 0.02
+## How near a seat a body still gets its rest (Placed.seat_near), in cells.
+const SEAT_REACH := 0.6
 ## The flames burn what touches the logs (FIRE_BOXES, half a cell each way of the fire's
 ## middle): a body whose side comes within SINGE of them, walking into them or standing
 ## on them, is burnt; one standing on the ring of stones round them warms (Warmth).
@@ -108,6 +110,9 @@ var opened_boxes := {}
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
 static var sizes := {}
+## The items that are seats (`seat` over 1) by id, with their `seat`: seat_near looks no
+## further when there are none, every body every step.
+static var seats := {}
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
 const CRATE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 1.0, 0.75))
@@ -132,9 +137,12 @@ func read_footprints() -> void:
 	footprints = {}
 	turned = {}
 	sizes = {}
+	seats = {}
 	for id in Items.IDS:
 		var rec := Items.get_item(id)
 		var kind: String = rec.get("prop", "none")
+		if rec.get("seat", 1.0) > 1.0:
+			seats[id] = rec.seat
 		if kind == "none" or footprints.has(kind):
 			continue
 		if rec.get("fire", false):
@@ -557,10 +565,12 @@ static func is_steps(e: Dictionary) -> bool:
 	return not is_light(e) and Items.get_item(e.item).get("steps", false)
 
 
-## True for a part of a building taken up at a tap: stairs and a window.
+## True for a part of a building taken up at a tap: stairs, a window, furniture that
+## stores nothing (a table, a stool, a rug).
 static func is_part(e: Dictionary) -> bool:
 	var item := Items.get_item(e.item)
-	return not is_light(e) and (item.get("steps", false) or item.get("window", false))
+	return not is_light(e) and (item.get("steps", false) or item.get("window", false)
+		or item.get("furniture", false) and item.get("storage", 0) == 0)
 
 
 ## True for a bed (its item's `bedding`: a mat, a bedroll, slept in, see Character.sleep_rate).
@@ -1010,7 +1020,27 @@ func spoil(days: float, winter: bool) -> void:
 		if e.items != null:
 			var c: Vector3i = e.cell
 			var roofed: bool = world.chunk_at(c.x, c.z) != null and world.roof_level(c.x, c.z) > c.y
-			e.items.spoil(days, Inventory.spoil_rate(winter, roofed))
+			e.items.spoil(days, Inventory.spoil_rate(winter, roofed) * Items.get_item(e.item).get("keeps", 1.0))
+
+
+## How much faster a body with its feet at `p` (world units) gets its stamina back by the
+## seats round it: the best `seat` of a thing it stands on or within SEAT_REACH cells of,
+## on its level; 1 for none.
+func seat_near(p: Vector3) -> float:
+	var best := 1.0
+	if seats.is_empty():
+		return best
+	var c := p / CELL
+	for e in things:
+		var seat: float = seats.get(e.item, 1.0)
+		if seat <= best or absf(float(e.cell.y) - c.y) > 1.0:
+			continue
+		var n := size_of(e.item)
+		var dx := maxf(maxf(e.cell.x - c.x, c.x - (e.cell.x + n)), 0.0)
+		var dz := maxf(maxf(e.cell.z - c.z, c.z - (e.cell.z + n)), 0.0)
+		if dx <= SEAT_REACH and dz <= SEAT_REACH:
+			best = seat
+	return best
 
 
 func _burn_fire(e: Dictionary, delta: float, rain: float) -> void:

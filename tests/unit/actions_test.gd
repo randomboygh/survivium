@@ -12,6 +12,7 @@ func run() -> void:
 	_test_drinking()
 	_test_station_flags()
 	_test_recipe_fields()
+	_test_furniture()
 
 
 func _test_felling() -> void:
@@ -618,3 +619,48 @@ func _test_recipe_fields() -> void:
 	Content.refresh()
 	Mods.rescan()
 	_check(Content.problems.is_empty() and Crafting.check().is_empty(), "the full set loads clean again")
+
+
+## Furniture (decision 163, 7А): its size by its model, turned, no station; a stool rests
+## a body by it, a barrel keeps food longer, a cupboard stores, a rug is walked over.
+func _test_furniture() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	for id in ["tools:table", "tools:stool", "tools:wooden_bed", "tools:cupboard", "tools:barrel", "tools:rug"]:
+		_check(not Items.is_station(id), "%s is no station" % id)
+	_check(Placed.size_of("tools:table") == 2 and Placed.size_of("tools:stool") == 1 and Placed.size_of("tools:cupboard") == 1
+		and Placed.size_of("tools:rug") == 2 and Placed.size_of("tools:wooden_bed") == 2, "furniture takes the cells of its model")
+	var stool := placed.put("tools:stool", Vector3i(10, 1, 10))
+	_check(Placed.is_part(stool) and is_equal_approx(w.blocker_top(10, 1, 10), 0.5), "a stool is half a cell high, taken up at a tap")
+	_check(placed.seat_near(Vector3(11.3, 1.0, 10.5) * WorldData.CELL) == 2.0 and placed.seat_near(Vector3(13.5, 1.0, 10.5) * WorldData.CELL) == 1.0,
+		"by a stool the body rests twice as fast, a few cells off it does not")
+	var v := Vitals.new()
+	v.stamina = 10.0
+	v.rest_rate = 2.0
+	var calm := Vitals.new()
+	calm.stamina = 10.0
+	v.step(1.0, 0.0, false)
+	calm.step(1.0, 0.0, false)
+	_check(v.stamina - 10.0 > (calm.stamina - 10.0) * 1.9, "stamina comes back faster at the seat's rate")
+	var rug := placed.put("tools:rug", Vector3i(20, 1, 20))
+	_check(w.blocker_top(20, 1, 20) <= 0.2 and Placed.is_part(rug), "a rug lies flat, walked over")
+	var cupboard := placed.put("tools:cupboard", Vector3i(30, 1, 30))
+	_check(cupboard.items != null and cupboard.items.slots.size() == 24 and not Placed.is_part(cupboard)
+		and w.blocker_top(30, 2, 30) > 0.5, "a cupboard two cells tall stores more than a chest")
+	var barrel := placed.put("tools:barrel", Vector3i(34, 1, 30))
+	var chest := placed.put("tools:chest", Vector3i(36, 1, 30))
+	var food := ""
+	for id in Items.IDS:
+		if Items.get_item(id).get("spoils", 0.0) > 0.0:
+			food = id
+			break
+	barrel.items.add(food, 1)
+	chest.items.add(food, 1)
+	placed.spoil(Items.get_item(food).spoils * 1.5, false)
+	_check(barrel.items.count(food) == 1 and chest.items.count(food) == 0,
+		"food in a barrel keeps when the same in a chest has gone off: %s" % food)

@@ -24,8 +24,10 @@ const PLATINUM := Color(0.66, 0.68, 0.71)
 ## the things of one kind (the beds).
 static func prop(kind: String, model := "") -> VoxelModel:
 	match kind:
-		"bed":
+		"bed", "bedroll":
 			return bed(model)
+		"wooden_bed":
+			return wooden_bed()
 		"workbench":
 			return workbench()
 		"kiln":
@@ -52,6 +54,16 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return door()
 		"window":
 			return window()
+		"table":
+			return table()
+		"stool":
+			return stool()
+		"cupboard":
+			return cupboard()
+		"barrel":
+			return barrel()
+		"rug":
+			return rug()
 	return null
 
 
@@ -389,6 +401,140 @@ static func window() -> VoxelModel:
 				c = glass * 1.25
 			for z in [3, 4]:
 				m.set_voxel(Vector3i(x, y, z), c if frame or z == 4 else glass * 0.9)
+	return m
+
+
+## A table on two by two cells: a top of planks running east to west with dark seams
+## and a lighter edge, on four square legs, three quarters of a cell high.
+static func table() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.64, 0.47, 0.29)
+	var dark := Color(0.42, 0.29, 0.17)
+	for z in range(1, 15):
+		for x in range(1, 15):
+			var c := wood * (0.88 if z % 4 == 0 else 1.0)
+			if x == 1 or x == 14 or z == 1 or z == 14:
+				c = wood * 1.1
+			m.set_voxel(Vector3i(x, 5, z), c)
+			if x == 1 or x == 14 or z == 1 or z == 14:
+				m.set_voxel(Vector3i(x, 4, z), dark)
+	for p: Vector2i in [Vector2i(2, 2), Vector2i(12, 2), Vector2i(2, 12), Vector2i(12, 12)]:
+		for y in 4:
+			for dx in 2:
+				for dz in 2:
+					m.set_voxel(Vector3i(p.x + dx, y, p.y + dz), dark if dx == 0 else wood * 0.8)
+	return m
+
+
+## A stool on one cell: a square seat of planks half a cell high on four legs, a rung
+## between the front ones.
+static func stool() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.66, 0.49, 0.3)
+	var dark := Color(0.42, 0.29, 0.17)
+	for z in range(1, 7):
+		for x in range(1, 7):
+			m.set_voxel(Vector3i(x, 3, z), wood * (1.1 if x == 1 or z == 6 else (0.9 if x == 4 else 1.0)))
+	for p: Vector2i in [Vector2i(1, 1), Vector2i(6, 1), Vector2i(1, 6), Vector2i(6, 6)]:
+		for y in 3:
+			m.set_voxel(Vector3i(p.x, y, p.y), dark)
+	for x in range(2, 6):
+		m.set_voxel(Vector3i(x, 1, 6), dark * 1.1)
+	return m
+
+
+## A wooden bed on two by two cells, the head to the west: a plank frame with a high
+## headboard, a pale canvas mattress, a pillow and a blanket over the foot half; low
+## enough at the sides to lie down on.
+static func wooden_bed() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.43, 0.26)
+	var dark := Color(0.4, 0.27, 0.15)
+	var canvas := Color(0.86, 0.82, 0.7)
+	var blanket := Color(0.62, 0.25, 0.2)
+	for z in range(2, 14):
+		for x in range(0, 16):
+			var edge := x == 0 or x == 15 or z == 2 or z == 13
+			m.set_voxel(Vector3i(x, 0, z), dark if edge else wood * 0.8)
+			m.set_voxel(Vector3i(x, 1, z), wood if edge else canvas * 0.92)
+			if not edge:
+				var top := canvas
+				if x >= 8:
+					top = blanket * (0.85 if z == 3 or z == 12 else (1.08 if (x + z) % 5 == 0 else 1.0))
+				m.set_voxel(Vector3i(x, 2, z), top)
+	for z in range(4, 12):
+		for x in range(2, 5):
+			m.set_voxel(Vector3i(x, 3, z), canvas * (1.08 if (x + z) % 3 else 1.0))
+	for z in range(2, 14):
+		for y in range(2, 6):
+			m.set_voxel(Vector3i(0, y, z), wood * (1.1 if y == 5 else (0.9 if z % 3 == 0 else 1.0)))
+	return m
+
+
+## A cupboard on one cell, two cells tall: a plank case with two doors on its front
+## (south), a dark gap between them, two knobs, a cornice on top.
+static func cupboard() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.58, 0.41, 0.25)
+	var dark := Color(0.36, 0.24, 0.14)
+	for y in 15:
+		for z in range(1, 7):
+			for x in range(0, 8):
+				var c := wood * 0.85
+				if z == 6:
+					c = wood * (0.92 if y % 5 == 4 else 1.0)
+					if x == 0 or x == 7 or y == 0 or y == 14:
+						c = dark
+					elif x == 3 or x == 4:
+						c = dark * 1.2 if x == 3 else wood * 0.95
+				m.set_voxel(Vector3i(x, y, z), c)
+	for x in range(0, 8):
+		for z in range(0, 8):
+			m.set_voxel(Vector3i(x, 15, z), wood * 1.12 if z >= 1 else dark)
+	m.set_voxel(Vector3i(2, 7, 7), Color(0.25, 0.22, 0.2))
+	m.set_voxel(Vector3i(5, 7, 7), Color(0.25, 0.22, 0.2))
+	return m
+
+
+## A barrel on one cell: round staves, wider in the middle, two dark hoops, a lid of
+## planks on top.
+static func barrel() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.42, 0.24)
+	var hoop := Color(0.3, 0.26, 0.22)
+	for y in 7:
+		var r := 3.4 if y >= 2 and y <= 4 else 3.0
+		for z in 8:
+			for x in 8:
+				var d := Vector2(x + 0.5 - 4.0, z + 0.5 - 4.0).length()
+				if d > r:
+					continue
+				var c := wood * (0.86 if (x + z * 3) % 4 == 0 else 1.0)
+				if y == 1 or y == 5:
+					c = hoop
+				if y == 6:
+					c = wood * (1.12 if x % 3 != 0 else 0.9)
+				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A woven rug on two by two cells, one voxel thick: a red field with a pale border
+## and stripes, a fringe at the ends.
+static func rug() -> VoxelModel:
+	var m := VoxelModel.new()
+	var red := Color(0.66, 0.24, 0.2)
+	var pale := Color(0.86, 0.78, 0.58)
+	var blue := Color(0.28, 0.36, 0.52)
+	for z in range(2, 14):
+		for x in range(1, 15):
+			var c := red
+			if x == 1 or x == 14 or z == 2 or z == 13:
+				c = pale
+			elif z == 4 or z == 11:
+				c = blue
+			elif (x + z) % 6 == 0 and z > 4 and z < 11:
+				c = pale * 0.95
+			m.set_voxel(Vector3i(x, 0, z), c)
 	return m
 
 

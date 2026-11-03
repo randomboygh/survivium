@@ -79,6 +79,8 @@ var stamina := MAX
 ## Asleep: energy comes back at `sleep_rate` (Character sets it: a roof, bedding).
 var asleep := false
 var sleep_rate := 1.0
+## Awake and still, stamina comes back at `rest_rate` (Character sets it: a seat).
+var rest_rate := 1.0
 ## Whether satiety falls with time; a playtest switch turns it off.
 var hunger := true
 ## Whether water falls with time; a playtest switch turns it off.
@@ -123,6 +125,8 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 			rest *= 0.5
 		if asleep:
 			rest *= 2.0
+		else:
+			rest *= rest_rate
 		if load_factor > 1.0:
 			rest *= 0.5
 		stamina = minf(stamina_cap(), stamina + rest)

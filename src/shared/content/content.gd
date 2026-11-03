@@ -146,6 +146,13 @@ const SCHEMAS := {
 		"door": {"type": "bool", "default": false},
 		# A window: set into a wall, solid, taken up at a tap (as stairs are), no station.
 		"window": {"type": "bool", "default": false},
+		# Furniture (decision 163, 7А): set down turned to face who sets it, no station; a
+		# tap takes it up unless it stores. `seat`: a body standing still on it or by it
+		# gets its stamina back this many times faster (Placed.seat_near); `keeps`: what it
+		# stores goes off at this share of the pace (a barrel; Placed.spoil).
+		"furniture": {"type": "bool", "default": false},
+		"seat": {"type": "float", "min": 1.0, "default": 1.0},
+		"keeps": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		# Food that spoils: it keeps this many game days (slower in the cold, see
 		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
 		"spoils": {"type": "float", "min": 0.0, "default": 0.0},

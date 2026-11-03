@@ -1,5 +1,5 @@
 # Предметы бандла «Постель» мода «Инструменты и крафт»: то, на чём спят. Ставится на землю, как
-# станок (prop: bed, модель models/<model>.png); касание ложит в неё спать (Protocol.LIE_IN), и
+# станок (prop — свой класс у каждой постели: по нему ищется модель models/<model>.png); касание ложит в неё спать (Protocol.LIE_IN), и
 # бодрость возвращается в `bedding` раз быстрее (src/shared/game/character.gd, sleep_rate); под
 # крышей — ещё в полтора раза.
 - id: grass_mat
@@ -19,5 +19,5 @@
   stack: 1
   icon: fur_bedroll
   model: fur_bedroll
-  prop: bed
+  prop: bedroll
   bedding: 2.0

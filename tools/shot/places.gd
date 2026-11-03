@@ -560,6 +560,39 @@ func walls(w, at: Vector3) -> Vector3:
 	return (Vector3(spot) + Vector3(-6.5, 0.0, 2.5)) * CELL
 
 
+## Furniture on a floor of planks 10×7 on flat ground near `at`, low walls of planks on
+## its west and north sides: a table with a stool each side, a bed, a cupboard and a
+## barrel by the north wall, a rug in the middle. Returns where the player stands.
+func furniture(w, at: Vector3) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var a := spot + Vector3i(-5, 0, -9)
+	for x in range(a.x, a.x + 10):
+		for z in range(a.z, a.z + 7):
+			w.set_cell(x, a.y - 1, z, planks)
+			for y in range(a.y, a.y + 3):
+				if w.get_cell(x, y, z) != Mat.AIR:
+					w.set_cell(x, y, z, Mat.AIR)
+	for x in range(a.x - 1, a.x + 10):
+		w.set_cell(x, a.y, a.z - 1, planks)
+	for z in range(a.z - 1, a.z + 7):
+		w.set_cell(a.x - 1, a.y, z, planks)
+	var p = main.session.placed
+	p.put("tools:wooden_bed", a + Vector3i(0, 0, 0))
+	p.put("tools:cupboard", a + Vector3i(3, 0, 0))
+	p.put("tools:barrel", a + Vector3i(4, 0, 0))
+	p.put("tools:table", a + Vector3i(6, 0, 2))
+	p.put("tools:stool", a + Vector3i(5, 0, 2), null, true, -1.0, null, 3)
+	p.put("tools:stool", a + Vector3i(8, 0, 3), null, true, -1.0, null, 1)
+	p.put("tools:rug", a + Vector3i(2, 0, 3))
+	for c: Vector3i in w.bushes.keys():
+		if absi(c.x - spot.x) <= 16 and absi(c.z - spot.z + 6) <= 10:
+			w.remove_bush(c)
+	for dx in range(-8, 17, 8):
+		main.chunks.on_cell_changed(a + Vector3i(dx, 0, 2))
+	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## The blueprint on flat ground near `at` (Plans): a room of planks 7×6 three levels high
 ## with its lowest level built, a floor's ghost inside, a brick wall's ghost to the east.
 ## Returns where the player stands, south of the room.

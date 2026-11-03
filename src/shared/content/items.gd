@@ -131,7 +131,7 @@ static func is_station(id: String) -> bool:
 	var item := get_item(id)
 	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0 and not item.get("claims", false) \
 		and item.get("bedding", 1.0) <= 1.0 and not item.get("steps", false) \
-		and not item.get("door", false) and not item.get("window", false)
+		and not item.get("door", false) and not item.get("window", false) and not item.get("furniture", false)
 
 
 ## The most slots a thing set down holds (`storage`), 0 when none stores.
