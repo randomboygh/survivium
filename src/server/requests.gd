@@ -131,6 +131,10 @@ func _rule(kind: String, args: Array) -> Variant:
 					return placed.feed(who, e)
 				placed.put_out(e)
 				return true
+		Protocol.PROP_OPEN:
+			if _fit(args, [TYPE_VECTOR3I]):
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and placed.swing(who, e)
 		Protocol.PROP_DESTROY:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])

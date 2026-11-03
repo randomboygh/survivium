@@ -140,6 +140,12 @@ const SCHEMAS := {
 		# Stairs: the thing is solid by the steps of its model (a box for each quarter of a
 		# cell), so a body walks up them; set down also over air, as blocks are.
 		"steps": {"type": "bool", "default": false},
+		# A door: a tap opens and shuts it (Placed.swing; Territory's "doors"); its model is
+		# the leaf shut along the north edge of its square, it swings open on the hinge at
+		# the north-west corner.
+		"door": {"type": "bool", "default": false},
+		# A window: set into a wall, solid, taken up at a tap (as stairs are), no station.
+		"window": {"type": "bool", "default": false},
 		# Food that spoils: it keeps this many game days (slower in the cold, see
 		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
 		"spoils": {"type": "float", "min": 0.0, "default": 0.0},

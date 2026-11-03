@@ -229,6 +229,30 @@ func _test_stairs_placed() -> void:
 	_check(placed.put_from_bag(who, "tools:chest", -1, 40) and placed.things[-1].turn == 1
 		and Placed.record(placed.things[-1]).turn == 1 and placed.cells_of(placed.things[-1]).size() == 4,
 		"a chest set down looking east is turned to face west, and keeps its turn in the save")
+	# A door in a gap two cells tall, set down looking north: shut, its leaf along the
+	# north edge; a tap opens it to stand along the west edge, another shuts it.
+	for y in range(1, 4):
+		for x in [29, 31]:
+			w.set_cell(x, y, 20, Mat.STONE)
+	w.set_cell(30, 3, 20, Mat.STONE)
+	who.facing = Vector2i(0, -1)
+	who.position = Vector3(30.5, 1.0, 21.5) * WorldData.CELL
+	who.inventory.add("tools:door", 1)
+	_check(placed.put_from_bag(who, "tools:door", -1, 40), "a door is set into a gap two cells tall")
+	var door: Dictionary = placed.things[-1]
+	_check(door.cell == Vector3i(30, 1, 20) and Placed.is_door(door) and not door.open
+		and w.blocker_part(30, 1, 20, 0.0, 1.0, 0.0, 0.2) > 0.0 and w.blocker_part(30, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0
+		and is_equal_approx(w.blocker_part(30, 1, 20, 0.0, 1.0, 0.5, 1.0), 0.0),
+		"shut, it closes the gap along its north edge, two cells high: %s" % [door])
+	_check(placed.swing(who, door) and door.open and Placed.record(door).open
+		and is_equal_approx(w.blocker_part(30, 1, 20, 0.5, 1.0, 0.0, 1.0), 0.0) and w.blocker_part(30, 1, 20, 0.0, 0.2, 0.0, 1.0) > 0.0,
+		"a tap opens it: the leaf stands along the west edge and the gap is walked through")
+	who.position = Vector3(30.5, 1.0, 20.5) * WorldData.CELL
+	_check(placed.swing(who, door) and not door.open, "and shuts it again")
+	who.inventory.add("tools:window", 1)
+	who.position = Vector3(30.5, 1.0, 22.5) * WorldData.CELL
+	_check(placed.put_from_bag(who, "tools:window", -1, 40) and placed.things[-1].cell != door.cell and Placed.is_part(placed.things[-1]),
+		"a window is set down too, and taken up at a tap")
 
 
 ## The rules of placed things and crafting run without the client: a workbench put

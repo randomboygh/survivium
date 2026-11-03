@@ -66,6 +66,7 @@ func watch(placed) -> void:
 	placed.removed.connect(_on_removed)
 	placed.lit_changed.connect(_on_lit_changed)
 	placed.fuel_changed.connect(_on_fuel_changed)
+	placed.opened.connect(_on_opened)
 
 
 ## Puts the placed things into the world as the save had them, or the camp of the start
@@ -114,16 +115,18 @@ func put_light(id: String) -> bool:
 	return r.done and r.value is bool and r.value
 
 
-func _model(kind: String, turn := 0):
-	var key := "%s/%d" % [kind, turn]
+func _model(kind: String, turn := 0, open := false):
+	var key := "%s/%d/%s" % [kind, turn, open]
 	if not _models.has(key):
 		var m = VoxelProps.prop(kind)
-		if turn != 0:
-			# Turned about the middle of its square, as Placed turns its solid parts.
+		if turn != 0 or open:
+			# Turned about the middle of its square (a door swung on its hinge first), as
+			# Placed turns its solid parts.
 			var side: int = Placed.sizes.get(kind, 2) * 8
 			var turned = m.get_script().new()
 			for p: Vector3i in m.voxels:
-				var q: Vector3i = Placed.turn_voxels([p], side, turn)[0]
+				var q: Vector3i = Placed.open_voxels([p])[0] if open else p
+				q = Placed.turn_voxels([q], side, turn)[0]
 				turned.set_voxel(q, m.voxels[p], m.foliage.has(p))
 			m = turned
 		_models[key] = m
@@ -144,7 +147,7 @@ func _on_added(e: Dictionary) -> void:
 		return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
-	node.mesh = _model(kind, e.get("turn", 0)).build_mesh()
+	node.mesh = _model(kind, e.get("turn", 0), e.get("open", false)).build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	if kind in THIN_PROPS:
 		# A pole two voxels thin is under a texel of the sun's shadow map: its shadow
@@ -155,6 +158,14 @@ func _on_added(e: Dictionary) -> void:
 	_fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
+
+
+## Door `e` swung: drawn anew, open or shut.
+func _on_opened(e: Dictionary) -> void:
+	if _nodes.has(e.cell):
+		_nodes[e.cell].queue_free()
+		_nodes.erase(e.cell)
+	_on_added(e)
 
 
 func _on_removed(e: Dictionary) -> void:

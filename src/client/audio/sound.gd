@@ -150,6 +150,7 @@ func build(world_root: Node3D) -> void:
 	game.workshop.made.connect(_on_made)
 	game.placed.added.connect(_on_placed)
 	game.placed.lit_changed.connect(_on_lit)
+	game.placed.opened.connect(_on_opened)
 	for w: Control in [game.hud.bag, game.hud.map_view]:
 		w.visibility_changed.connect(_on_window.bind(w))
 
@@ -359,6 +360,10 @@ func _on_placed(e: Dictionary) -> void:
 func _on_lit(e: Dictionary) -> void:
 	if e.lit:
 		play("ignite", Placed.center(e))
+
+
+func _on_opened(e: Dictionary) -> void:
+	play("knock", Placed.center(e))
 
 
 func _on_window(w: Control) -> void:

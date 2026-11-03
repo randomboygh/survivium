@@ -71,6 +71,8 @@ signal lit_changed(e: Dictionary)
 ## What campfire `e` has left to burn (its `fuel`) changed: it was fed, or another
 ## FUEL_TELL seconds of it burned.
 signal fuel_changed(e: Dictionary)
+## Door `e` was opened or shut (its `open`).
+signal opened(e: Dictionary)
 ## A cell under a thing was levelled or a bush there taken away: its chunks change.
 signal cell_changed(cell: Vector3i)
 
@@ -101,6 +103,8 @@ var chest_items = null
 var footprints := {}
 ## The same for each turn: kind -> [turn 0, 1, 2, 3].
 var turned := {}
+## The boxes of a door open, for each turn: kind -> [turn 0, 1, 2, 3] (see open_voxels).
+var opened_boxes := {}
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
 static var sizes := {}
@@ -150,6 +154,12 @@ func read_footprints() -> void:
 				all.append(footprint(turn_voxels(voxels, n * 8, t), n, rec.get("steps", false)))
 			footprints[kind] = all[0]
 			turned[kind] = all
+			if rec.get("door", false):
+				var swung := open_voxels(voxels)
+				var open := []
+				for t in 4:
+					open.append(footprint(turn_voxels(swung, n * 8, t), n))
+				opened_boxes[kind] = open
 		else:
 			footprints[kind] = [CRATE_BOX, CRATE_BOX, CRATE_BOX, CRATE_BOX]
 			turned[kind] = [footprints[kind], footprints[kind], footprints[kind], footprints[kind]]
@@ -173,6 +183,16 @@ static func turn_voxels(voxels, side: int, turn: int) -> Array[Vector3i]:
 	return out
 
 
+## Voxels `voxels` of a door's model swung open: its leaf, standing along the north
+## edge of its square when shut, turned on the hinge at its north-west corner to stand
+## along the west edge (x and z swap).
+static func open_voxels(voxels) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for p: Vector3i in voxels:
+		out.append(Vector3i(p.z, p.y, p.x))
+	return out
+
+
 ## The turn of a thing set down by one looking along `step` (a facing step): its front
 ## to them.
 static func turn_facing(step: Vector2i) -> int:
@@ -181,13 +201,31 @@ static func turn_facing(step: Vector2i) -> int:
 	return 2 if step.y > 0 else 0
 
 
-## The boxes of thing `e` in each cell of its square (see footprints), by its turn.
+## The boxes of thing `e` in each cell of its square (see footprints), by its turn, a
+## door's by whether it is open.
 func boxes_of(e: Dictionary) -> Array:
 	var kind: String = Items.get_item(e.item).prop
+	if e.get("open", false) and opened_boxes.has(kind):
+		return opened_boxes[kind][e.get("turn", 0)]
 	if turned.has(kind):
 		return turned[kind][e.get("turn", 0)]
 	var whole := AABB(Vector3.ZERO, Vector3.ONE)
 	return [whole, whole, whole, whole]
+
+
+## Makes the cells thing `e` fills solid by its boxes (WorldData.blockers).
+func _block(e: Dictionary) -> void:
+	var boxes := boxes_of(e)
+	var n := size_of(e.item)
+	for i in boxes.size():
+		if boxes[i] is Array or boxes[i].has_volume():
+			world.blockers[e.cell + Vector3i(i % n, 0, i / n)] = boxes[i]
+
+
+## Lets go of the cells thing `e` fills.
+func _unblock(e: Dictionary) -> void:
+	for c: Vector3i in cells_of(e):
+		world.blockers.erase(c)
 
 
 ## The cells thing `e` fills (its boxes there), from its north-west cell.
@@ -316,19 +354,17 @@ func stand_by(e: Dictionary) -> Vector3:
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
 ## `fuel_start`).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0) -> Dictionary:
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false) -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire, "turn": posmod(turn, 4)}
+	if rec.get("door", false):
+		e.open = open
 	if by is int:
 		e.by = by
 	if rec.fire:
 		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
 		e.wet = 0.0
-	var boxes := boxes_of(e)
-	var n := size_of(item)
-	for i in boxes.size():
-		if boxes[i] is Array or boxes[i].has_volume():
-			world.blockers[cell + Vector3i(i % n, 0, i / n)] = boxes[i]
+	_block(e)
 	if rec.storage > 0:
 		e.items = Inventory.new(rec.storage)
 		e.items.nests = false
@@ -351,7 +387,7 @@ func from_list(list: Array) -> void:
 				continue
 			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
-				int(d.get("turn", 0)))
+				int(d.get("turn", 0)), bool(d.get("open", false)))
 
 
 ## The placed things as plain data for the save.
@@ -366,7 +402,8 @@ func to_list() -> Array:
 
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
-## seconds a fire has left, "by" who put it from their bag, "turn" when it is turned}.
+## seconds a fire has left, "by" who put it from their bag, "turn" when it is turned,
+## "open" for a door open}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -383,6 +420,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.by = e.by
 	if e.get("turn", 0) != 0:
 		d.turn = e.turn
+	if e.get("open", false):
+		d.open = true
 	return d
 
 
@@ -487,9 +526,41 @@ func burning(p: Vector3) -> Dictionary:
 	return {}
 
 
+## True for a door (an item with `door`): a tap opens and shuts it (see swing).
+static func is_door(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("door", false)
+
+
+## `who` opens door `e` or shuts it, where the land lets them open doors (Territory); a
+## door is not shut on a body in its way. True if it swung.
+func swing(who, e: Dictionary) -> bool:
+	if not is_door(e) or territory != null and not territory.may(who, e.cell, "doors"):
+		return false
+	var closing: bool = e.open
+	_unblock(e)
+	e.open = not e.open
+	if closing:
+		for c: Vector3i in cells_of(e):
+			if who.overlaps_cell(c) or who.overlaps_cell(c + Vector3i(0, 1, 0)):
+				e.open = true
+				break
+	_block(e)
+	if e.open == closing:
+		return false
+	opened.emit(e)
+	world.note_edit(e.cell.x, e.cell.z)
+	return true
+
+
 ## True for stairs (an item with `steps`): taken up at a tap, as a light is.
 static func is_steps(e: Dictionary) -> bool:
 	return not is_light(e) and Items.get_item(e.item).get("steps", false)
+
+
+## True for a part of a building taken up at a tap: stairs and a window.
+static func is_part(e: Dictionary) -> bool:
+	var item := Items.get_item(e.item)
+	return not is_light(e) and (item.get("steps", false) or item.get("window", false))
 
 
 ## True for a bed (its item's `bedding`: a mat, a bedroll, slept in, see Character.sleep_rate).
@@ -559,7 +630,11 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	var n := size_of(item.id)
 	var offsets := cells_of(probe)
 	var steps: bool = item.get("steps", false)
-	var spot: Variant = _spot_in_front(who, top, n, offsets, steps)
+	var high := 1
+	for box in boxes_of(probe):
+		for b: AABB in (box if box is Array else [box]):
+			high = maxi(high, ceili(b.end.y - 0.01))
+	var spot: Variant = _spot_in_front(who, top, n, offsets, steps, high)
 	if spot == null:
 		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if not steps else "Перед собой нет места для ступеней")
 		return false
@@ -711,8 +786,7 @@ func _forget(e: Dictionary) -> void:
 		lights.erase(e)
 		removed.emit(e)
 		return
-	for c: Vector3i in cells_of(e):
-		world.blockers.erase(c)
+	_unblock(e)
 	if e.items == chest_items:
 		chest_items = null
 	things.erase(e)
@@ -723,7 +797,7 @@ func _forget(e: Dictionary) -> void:
 ## can be placed (see _fits; `offsets` the cells it fills from there, `steps` for stairs),
 ## the nearest to a cell beyond its middle ahead, at the feet's level or a cell below or
 ## above; null if none.
-func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps := false) -> Variant:
+func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps := false, high := 1) -> Variant:
 	if offsets.is_empty():
 		for dz in n:
 			for dx in n:
@@ -742,15 +816,16 @@ func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps 
 	for c in corners.slice(0, 6):
 		for dy in [0, -1, 1]:
 			var corner := Vector3i(c.x, feet.y + dy, c.y)
-			if _fits(who, corner, top, offsets, steps):
+			if _fits(who, corner, top, offsets, steps, high):
 				return corner
 	return null
 
 
 ## Whether the cells `offsets` from `corner` (two by two when none are given) are free
 ## (no cell, no other thing or light, not `who`), at or below level `top`, and stand on
-## solid ground; stairs (`steps`) may stand on air, as blocks are laid.
-func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false) -> bool:
+## solid ground, with air over them for a thing `high` cells tall (a door); stairs
+## (`steps`) may stand on air, as blocks are laid.
+func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false, high := 1) -> bool:
 	if offsets.is_empty():
 		offsets = [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1)]
 	for o: Vector3i in offsets:
@@ -758,6 +833,9 @@ func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps
 		if world.get_cell(c.x, c.y, c.z) != Mat.AIR or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
 				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty():
 			return false
+		for k in range(1, high):
+			if world.get_cell(c.x, c.y + k, c.z) != Mat.AIR or world.blockers.has(c + Vector3i(0, k, 0)):
+				return false
 	return true
 
 

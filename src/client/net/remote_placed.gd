@@ -1,6 +1,6 @@
 extends "res://src/shared/game/placed.gd"
 ## The client's copy of the things placed on cells (Placed), fed by the server's events
-## (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, PROP_FUEL, CHEST; Mirror): the same records and the
+## (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; Mirror): the same records and the
 ## same signals, so what draws the things (Props), looks for them (Gathering, the
 ## inventory window, the craft panel, the map) and listens to them (sounds, the freeze
 ## log) sees no difference. It changes nothing in the world by itself: a thing is
@@ -35,6 +35,17 @@ func take_lit(cell: Vector3i, lit: bool) -> void:
 	if not e.is_empty() and e.lit != lit:
 		e.lit = lit
 		lit_changed.emit(e)
+
+
+## The door at `cell` was opened or shut (`open`): its solid parts with it.
+func take_open(cell: Vector3i, open: bool) -> void:
+	var e := at(cell)
+	if e.is_empty() or not is_door(e) or e.open == open:
+		return
+	_unblock(e)
+	e.open = open
+	_block(e)
+	opened.emit(e)
 
 
 ## The campfire at `cell` has `fuel` seconds left to burn. Between the server's word

@@ -314,6 +314,17 @@ func _test_requests() -> void:
 	_check(events.has([Protocol.PROP_FUEL, [fire_cell, fire.fuel]]) and is_equal_approx(copy.at(fire_cell).fuel, fire.fuel)
 		and copy.at(fire_cell).lit, "a fire lit again and burning down is told to the copy with what it has left")
 	events.clear()
+	# A door by the player is opened through the server, and the copy opens it too.
+	var door_cell := Vector3i(a.feet().x + 1, a.feet().y, a.feet().z + 1)
+	placed.put("tools:door", door_cell, null, true, -1.0, null, 1)
+	host.flush(net)
+	_check(net.request(Protocol.PROP_OPEN, [door_cell]).value == true and placed.at(door_cell).open,
+		"a tap on a door opens it")
+	host.flush(net)
+	_check(events.has([Protocol.PROP_OPENED, [door_cell, true]]) and copy.at(door_cell).open
+		and copy.at(door_cell).turn == 1, "and the copy is told, turned as it stands")
+	_check(net.request(Protocol.PROP_OPEN, [fire_cell]).value == false, "a fire is no door")
+	events.clear()
 	# An animal comes by the player, moves, and leaves.
 	var rabbit = s.wildlife._add("animals:rabbit", at + Vector3(0.2, 0.0, 0.0))
 	host.flush(net)
@@ -392,6 +403,8 @@ func _feed(kind: String, args: Variant, copy: RemotePlaced, clock: RemoteClock, 
 			copy.take_gone(args[0])
 		Protocol.PROP_LIT:
 			copy.take_lit(args[0], args[1])
+		Protocol.PROP_OPENED:
+			copy.take_open(args[0], args[1])
 		Protocol.PROP_FUEL:
 			copy.take_fuel(args[0], args[1])
 		Protocol.CHEST:
