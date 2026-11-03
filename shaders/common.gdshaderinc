@@ -431,16 +431,20 @@ float layer_share(float i, float first, float stretch) {
 	return layer_density * clamp(1.0 - (i - first) / max(stretch, 1.0), 0.0, 1.0);
 }
 
-// How much of the cell `c` (whole cells) the view in layers draws, 0..1. In front of
-// the player, at and above their feet, by vertical slices across the way the camera
-// looks (one cell thick, counted from the player's own slice toward the camera; on a
-// diagonal view a step along either axis is a slice); everywhere by the levels over
-// their head. The less of the two. Behind the player and below their head all stays.
+// How much of the cell `c` (whole cells) the view in layers draws, 0..1. Seen from
+// the side, only the quarter in front of the player and at and above their feet
+// thins out: by vertical slices across the way the camera looks (one cell thick,
+// counted from the player's own slice toward the camera; on a diagonal view a step
+// along either axis is a slice) and by the levels over their head, the less of the
+// two. Behind the player (the ceiling over them too) and below their feet all stays.
 // Mirrored by CaveLayers.share for picking cells.
 float layer_alpha(vec3 c) {
 	vec3 d = c - layer_view.yzw;
 	vec2 way = -view_up / max(max(abs(view_up.x), abs(view_up.y)), 0.001);
 	float front = d.y > -0.5 ? floor(dot(d.xz, way) + 0.5) : 0.0;
+	if (front < 0.5) {
+		return 1.0;
+	}
 	return min(layer_share(front, layer_fade.x, layer_fade.y), layer_share(d.y - 1.0, layer_fade.z, layer_fade.w));
 }
 

@@ -302,7 +302,7 @@ func _test_hidden() -> void:
 
 ## The sounds load (loops looping), nothing sounds before the browser lets it, the
 ## hands' work sounds by what it strikes, and a piece of music stays in its range.
-## The view in layers: behind the player and below their head all stays; in front the
+## The view in layers: behind the player and below their feet all stays; in front the
 ## first slices keep the density, then fade out over the stretch; the levels over the
 ## head the same; on a diagonal view a step along either axis is a slice.
 func _test_cave_layers() -> void:
@@ -316,8 +316,9 @@ func _test_cave_layers() -> void:
 	_check(at.call(0, -1, 5) == 1.0, "layers: the floor in front stays")
 	_check(at.call(0, 0, 1) == 0.5 and at.call(0, 1, 2) == 0.25 and at.call(0, 0, 3) == 0.0,
 		"layers: slices in front fade out past the first")
-	_check(at.call(0, 2, -2) == 0.5 and at.call(0, 4, -2) == 0.25 and at.call(0, 6, -2) == 0.0,
-		"layers: levels over the head fade out past the first")
+	_check(at.call(0, 2, -2) == 1.0 and at.call(0, 9, 0) == 1.0, "layers: over the player and behind all stays")
+	_check(at.call(0, 2, 1) == 0.5 and at.call(0, 4, 1) == 0.25 and at.call(0, 6, 1) == 0.0,
+		"layers: levels in front over the head fade out past the first")
 	_check(at.call(0, 2, 2) == 0.25, "layers: the less of the two")
 	PixelView.up = Vector2(-1.0, -1.0).normalized()
 	_check(at.call(1, 0, 0) == 0.5 and at.call(1, 0, 1) == 0.25, "layers: a diagonal view slices diagonally")

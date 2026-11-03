@@ -1,9 +1,9 @@
 extends RefCounted
 ## The view in layers (setting «Вид в пещере» → «слои»): under a roof, in a ravine or
-## behind a hill, what stands in front of the player and over their head is dithered
-## away layer by layer instead of cut off. In front of the player (at and above their
-## feet) by vertical slices one cell thick across the way the camera looks, over them by
-## levels; the first layers keep a share of their texels (density), the next ones fewer
+## behind a hill, what stands in front of the player at and above their feet (the one
+## quarter of a side view) is dithered away layer by layer instead of cut off, by
+## vertical slices one cell thick across the way the camera looks and by levels over
+## their head, the less of the two; behind them all stays. The first layers keep a share of their texels (density), the next ones fewer
 ## and fewer until none. The shaders do it (layer_alpha in common.gdshaderinc, globals
 ## layer_view, layer_fade, layer_density, set by ChunkStreamer.update_cut); this mirrors
 ## it for picking cells (Controls.pick passes through what is mostly gone).
@@ -33,4 +33,7 @@ static func share(cell: Vector3i, base: Vector3i, fade: Vector4i, density: float
 	var up := PixelView.up
 	var way := -up / maxf(maxf(absf(up.x), absf(up.y)), 0.001)
 	var front := roundi(d.x * way.x + d.z * way.y) if d.y >= 0 else 0
+	# Only the quarter in front of the player and at or above their feet thins out.
+	if front < 1:
+		return 1.0
 	return minf(layer_share(front, fade.x, fade.y, density), layer_share(d.y - 1, fade.z, fade.w, density))
