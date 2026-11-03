@@ -29,6 +29,9 @@ global uniform vec4 layer_view;
 global uniform vec4 layer_fade;
 // How much of a first layer is drawn, 0..1 (the rest is dithered away).
 global uniform float layer_density;
+// The level, from the player's feet, the quarter that thins out starts at (0 the feet,
+// 1 the waist, 2 the head, negative below the feet); the levels over it count from it.
+global uniform float layer_line;
 global uniform sampler2D solid_map : filter_nearest;
 global uniform vec3 solid_origin;
 global uniform float snow_amount;
@@ -432,20 +435,22 @@ float layer_share(float i, float first, float stretch) {
 }
 
 // How much of the cell `c` (whole cells) the view in layers draws, 0..1. Seen from
-// the side, only the quarter in front of the player and at and above their feet
-// thins out: by vertical slices across the way the camera looks (one cell thick,
-// counted from the player's own slice toward the camera; on a diagonal view a step
-// along either axis is a slice) and by the levels over their head, the less of the
-// two. Behind the player (the ceiling over them too) and below their feet all stays.
+// the side, only the quarter in front of the player and at and above the line
+// (layer_line levels over their feet) thins out: by vertical slices across the way the
+// camera looks (one cell thick, counted from the player's own slice toward the camera;
+// on a diagonal view a step along either axis is a slice) and by the levels from the
+// line up (the line's own level the first), the less of the two. Behind the player
+// (the ceiling over them too) and below the line all stays.
 // Mirrored by CaveLayers.share for picking cells.
 float layer_alpha(vec3 c) {
 	vec3 d = c - layer_view.yzw;
 	vec2 way = -view_up / max(max(abs(view_up.x), abs(view_up.y)), 0.001);
-	float front = d.y > -0.5 ? floor(dot(d.xz, way) + 0.5) : 0.0;
-	if (front < 0.5) {
+	float above = d.y - layer_line + 1.0;
+	float front = floor(dot(d.xz, way) + 0.5);
+	if (front < 0.5 || above < 0.5) {
 		return 1.0;
 	}
-	return min(layer_share(front, layer_fade.x, layer_fade.y), layer_share(d.y - 1.0, layer_fade.z, layer_fade.w));
+	return min(layer_share(front, layer_fade.x, layer_fade.y), layer_share(above, layer_fade.z, layer_fade.w));
 }
 
 // True where the view in layers leaves out the texel `texel` (on the screen plane, so

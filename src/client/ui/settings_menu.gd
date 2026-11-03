@@ -389,7 +389,9 @@ func _section_rows(key: String) -> Array:
 			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
 			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
 			var rows := []
-			for r: Array in [["Впереди: первые слои", "layer_front_first", counts],
+			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
+			for r: Array in [["Высота линии", "layer_line", lines],
+					["Впереди: первые слои", "layer_front_first", counts],
 					["Впереди: растяжение", "layer_front_stretch", stretches],
 					["Сверху: первые слои", "layer_above_first", counts],
 					["Сверху: растяжение", "layer_above_stretch", stretches],
@@ -398,7 +400,7 @@ func _section_rows(key: String) -> Array:
 				rows.append([r[0], r[2],
 					func() -> int: return s.values[setting],
 					func(i: int) -> void: s.set_value(setting, i), "", layers])
-			rows.append({"note": "Прозрачным становится только то, что перед игроком на уровне ног и выше. Срезы впереди — вертикальные слои по клетке, уровни сверху — над головой игрока, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв. Работает, когда «Вид в пещере» — «слои»."})
+			rows.append({"note": "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв. Работает, когда «Вид в пещере» — «слои»."})
 			return rows
 		"marks":
 			var marks := []

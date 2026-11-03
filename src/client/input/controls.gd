@@ -551,7 +551,8 @@ func pick(screen_pos: Vector2) -> Dictionary:
 		var fade: Vector4i = game.settings.layer_fade()
 		var density: float = game.settings.layer_density()
 		var base: Vector3i = chunks.layer_base
-		var skip := func(c: Vector3i) -> bool: return CaveLayers.share(c, base, fade, density) < PICK_SHARE
+		var line: int = game.settings.layer_line()
+		var skip := func(c: Vector3i) -> bool: return CaveLayers.share(c, base, fade, density, line) < PICK_SHARE
 		return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level, skip)
 	return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level)
 

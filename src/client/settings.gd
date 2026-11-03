@@ -86,6 +86,8 @@ const DEFAULTS := {
 	"layer_above_first": 1,
 	"layer_above_stretch": 2,
 	"layer_density": 1,
+	# Where the quarter that thins out starts (CaveLayers.LINES, index 10 = the feet).
+	"layer_line": 10,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
@@ -134,7 +136,7 @@ static func _index_limits() -> Dictionary:
 		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "cave_mode": 3,
 		"layer_front_first": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_first": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
-		"layer_density": CaveLayers.DENSITIES.size(),
+		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
 		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
 
 
@@ -336,6 +338,10 @@ func layer_density() -> float:
 	return CaveLayers.DENSITIES[values.layer_density]
 
 
+func layer_line() -> int:
+	return CaveLayers.LINES[values.layer_line]
+
+
 ## Pushes every setting into the modules. Safe to call before the world is built: what
 ## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
@@ -383,6 +389,7 @@ func apply() -> void:
 	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_mode == 2 else 0.0)
 	RenderingServer.global_shader_parameter_set("layer_fade", Vector4(layer_fade()))
 	RenderingServer.global_shader_parameter_set("layer_density", layer_density())
+	RenderingServer.global_shader_parameter_set("layer_line", float(layer_line()))
 	var view = game.view
 	if view != null and view.target_height != PixelView.TARGET_HEIGHT / pixel_size():
 		view.target_height = PixelView.TARGET_HEIGHT / pixel_size()

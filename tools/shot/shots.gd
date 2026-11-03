@@ -158,6 +158,7 @@ const SHOTS := {
 	"deep-cave": {"time": 0.45, "season": 1, "underground": true},
 	"deep-cave-dense": {"time": 0.45, "season": 1, "underground": true,
 		"settings": {"layer_density": 2, "layer_front_first": 2, "layer_above_first": 2, "layer_above_stretch": 4}},
+	"deep-cave-head": {"time": 0.45, "season": 1, "underground": true, "settings": {"layer_line": 12}},
 	"deep-cave-turn": {"time": 0.45, "season": 1, "underground": true, "turn": 1},
 	"deep-cave-plane": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 2}},
 	"underground-plane": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 2}},

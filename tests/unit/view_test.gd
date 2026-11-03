@@ -313,12 +313,15 @@ func _test_cave_layers() -> void:
 	var at := func(dx: int, dy: int, dz: int) -> float: return CaveLayers.share(base + Vector3i(dx, dy, dz), base, fade, 0.5)
 	_check(at.call(0, 0, -3) == 1.0 and at.call(0, 1, -1) == 1.0 and at.call(3, 0, 0) == 1.0,
 		"layers: behind and beside the player all stays")
-	_check(at.call(0, -1, 5) == 1.0, "layers: the floor in front stays")
+	_check(at.call(0, -1, 5) == 1.0, "layers: the floor in front stays (the line at the feet)")
 	_check(at.call(0, 0, 1) == 0.5 and at.call(0, 1, 2) == 0.25 and at.call(0, 0, 3) == 0.0,
 		"layers: slices in front fade out past the first")
 	_check(at.call(0, 2, -2) == 1.0 and at.call(0, 9, 0) == 1.0, "layers: over the player and behind all stays")
-	_check(at.call(0, 2, 1) == 0.5 and at.call(0, 4, 1) == 0.25 and at.call(0, 6, 1) == 0.0,
-		"layers: levels in front over the head fade out past the first")
+	_check(at.call(0, 0, 1) == 0.5 and at.call(0, 2, 1) == 0.25 and at.call(0, 4, 1) == 0.0,
+		"layers: levels in front fade out up from the line past the first")
+	_check(CaveLayers.share(base + Vector3i(0, 1, 1), base, fade, 0.5, 2) == 1.0
+		and CaveLayers.share(base + Vector3i(0, 2, 1), base, fade, 0.5, 2) == 0.5,
+		"layers: the line at the head keeps the legs whole")
 	_check(at.call(0, 2, 2) == 0.25, "layers: the less of the two")
 	PixelView.up = Vector2(-1.0, -1.0).normalized()
 	_check(at.call(1, 0, 0) == 0.5 and at.call(1, 0, 1) == 0.25, "layers: a diagonal view slices diagonally")

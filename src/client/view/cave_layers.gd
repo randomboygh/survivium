@@ -15,6 +15,8 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const FIRSTS := [0, 1, 2, 3, 4]
 const STRETCHES := [1, 2, 3, 4, 6, 8]
 const DENSITIES := [0.25, 0.5, 0.75, 1.0]
+## Where the quarter that thins out starts, in levels from the player's feet.
+const LINES := [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 
 ## How much of the `i`th layer is drawn (as layer_share in common.gdshaderinc).
@@ -28,12 +30,14 @@ static func layer_share(i: int, first: int, stretch: int, density: float) -> flo
 
 ## How much of `cell` is drawn with the player's feet in cell `base`, by `fade`
 ## (front first, front stretch, above first, above stretch) and `density`.
-static func share(cell: Vector3i, base: Vector3i, fade: Vector4i, density: float) -> float:
+## The quarter starts `line` levels over the feet (CaveLayers.LINES).
+static func share(cell: Vector3i, base: Vector3i, fade: Vector4i, density: float, line := 0) -> float:
 	var d := cell - base
 	var up := PixelView.up
 	var way := -up / maxf(maxf(absf(up.x), absf(up.y)), 0.001)
-	var front := roundi(d.x * way.x + d.z * way.y) if d.y >= 0 else 0
-	# Only the quarter in front of the player and at or above their feet thins out.
-	if front < 1:
+	var front := roundi(d.x * way.x + d.z * way.y)
+	var above := d.y - line + 1
+	# Only the quarter in front of the player and at or above the line thins out.
+	if front < 1 or above < 1:
 		return 1.0
-	return minf(layer_share(front, fade.x, fade.y, density), layer_share(d.y - 1, fade.z, fade.w, density))
+	return minf(layer_share(front, fade.x, fade.y, density), layer_share(above, fade.z, fade.w, density))
