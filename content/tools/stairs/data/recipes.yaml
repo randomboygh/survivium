@@ -1,0 +1,7 @@
+# Лестницу сколачивают из досок («Материалы») на верстаке.
+- id: stairs
+  title: Лестница
+  makes: stairs
+  needs: {materials:planks: 2}
+  at: workbench
+  time: 3

@@ -227,6 +227,17 @@ func _test_steps() -> void:
 	_check(read.footprints.get("chest") == chest and read.footprints.get("workbench") == bench
 		and read.footprints.get("campfire") == Placed.FIRE_BOXES,
 		"the things' boxes read from the mods' models are the models', and a fire's only its logs in the middle")
+	var steps := Placed.footprint(VoxelProps.prop("stairs").voxels, 1, true)
+	_check(steps.size() == 1 and steps[0] is Array and steps[0].size() == 4 and read.sizes.get("stairs") == 1
+		and is_equal_approx(steps[0][0].end.y, 1.0) and is_equal_approx(steps[0][3].end.y, 0.5),
+		"stairs take one cell, solid by their steps: the back half whole, the front half half a cell")
+	var turned_steps: Array = read.turned.get("stairs", [])
+	_check(turned_steps.size() == 4 and is_equal_approx(turned_steps[1][0][0].end.y, 0.5) and is_equal_approx(turned_steps[1][0][1].end.y, 1.0)
+		and Placed.turn_facing(Vector2i(0, -1)) == 0 and Placed.turn_facing(Vector2i(1, 0)) == 1 and Placed.turn_facing(Vector2i(0, 1)) == 2
+		and Placed.turn_facing(Vector2i(-1, 1)) == 2 and Placed.turn_facing(Vector2i(-1, 0)) == 3,
+		"a thing turned a quarter faces west: the stairs' low step to the west, and set down to face who put it")
+	var flight := _climb_stairs()
+	_check(flight.y > 3.9 and flight.z < 1.6, "a flight of stairs is walked up without a jump, a level a cell: %s" % [flight])
 	_check(_walk_to_thing(false, 5.9).x < 4.7, "a chest is not walked through")
 	_check(_walk_to_thing(false, 7.3).x > 6.0, "the strip south of a chest's lock is walked along")
 	_check(_walk_to_thing(false, 4.85).x > 6.0, "the strip north of a chest's back is walked along")
@@ -291,6 +302,34 @@ func _drop_by_block(z: float) -> float:
 	var y: float = player.position.y / WorldData.CELL
 	player.free()
 	return y
+
+
+## Walks north up a flight of four stairs (each a level higher and a cell further north,
+## from z 6 to 3) from the ground at z 8; returns where the feet end up after 2 s, in
+## cells.
+func _climb_stairs() -> Vector3:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for cz in 16:
+		for cx in 16:
+			w.set_cell(cx, 0, cz, Mat.STONE)
+	var steps := Placed.footprint(VoxelProps.prop("stairs").voxels, 1, true)
+	for i in 4:
+		for x in range(3, 6):
+			w.blockers[Vector3i(x, 1 + i, 6 - i)] = steps[0]
+		# A landing at the top.
+		for x in range(3, 6):
+			for z in range(0, 3):
+				w.set_cell(x, 4, z, Mat.STONE)
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(4.5, 1.0, 8.5) * WorldData.CELL
+	player.body.on_ground = true
+	player.body.move_input = Vector2(0, -1)
+	for i in 120:
+		player.step(1.0 / 60.0, false)
+	var p: Vector3 = player.position / WorldData.CELL
+	player.free()
+	return p
 
 
 ## Walks east at `z` past a chest standing on cells x 5..6, z 5..6 (see

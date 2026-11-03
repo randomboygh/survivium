@@ -1,5 +1,5 @@
 extends RefCounted
-## Things standing on two by two cells that are not cells (an item's `prop`): chests
+## Things standing on cells that are not cells (an item's `prop`): chests
 ## with what they hold, workbenches, kilns and campfires, placed from the bag, and the
 ## camp a new world starts with next to the spawn (Starts: a campfire, a chest). What a
 ## thing does goes by its item's flags, not its class: `storage` (it holds things, a
@@ -12,6 +12,13 @@ extends RefCounted
 ## they have burned, or in a downpour under the open sky; put out, it keeps what it has
 ## left. The rules take the one acting as `who` (see WorldActions) and tell what changed through signals: the
 ## client draws the things (Props) and rebuilds the chunks.
+##
+## A thing takes the square of cells its model's slices cover (`sizes`: two by two for a
+## slice of 16 voxels, one cell for 8) and is turned to face the one who set it down
+## (`turn`, quarters clockwise seen from above: 0 its front to the south, 1 west, 2
+## north, 3 east); only the cells its voxels fill are solid and taken. A thing whose item
+## has `steps` (stairs) is solid by the steps of its model, a quarter of a cell each, so
+## a body walks up them.
 ##
 ## Lights (an item with `light` and no `prop`: a torch, a candle, a lantern) are set down
 ## on one cell of their own (`lights`, see put_light_from_bag): not solid, they burn out
@@ -75,8 +82,8 @@ var territory
 ## seconds it has burned, "light": true, "items": null, "lit": true}. Saved with the
 ## things (to_list).
 var lights: Array = []
-## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its two by two
-## cells), "items": what a thing that stores holds (an Inventory, else null), "lit": false
+## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its square of
+## cells), "turn": quarters it is turned (see sizes), "items": what a thing that stores holds (an Inventory, else null), "lit": false
 ## for a fire put out, and for a fire "fuel": the seconds it has left to burn, "wet": the
 ## seconds it has stood in the rain}, and "by": the number of the player who put it
 ## from their bag (Player.id, 0 in a single game; none for the start's camp): a fire is a
@@ -85,11 +92,18 @@ var lights: Array = []
 var things: Array = []
 ## What the chest by the spawn holds (the first thing that stores placed).
 var chest_items = null
-## The solid boxes of a thing of a prop kind in each of its cells (see
-## WorldData.blockers): kind -> [north-west, north-east, south-west, south-east], each
-## in cell units from that cell's corner, with no size where the cell stays empty. The
-## shapes are the models' (read_footprints); a kind not given fills its four cells.
+## The solid boxes of a thing of a prop kind, not turned, in each of its cells (see
+## WorldData.blockers): kind -> one per cell of its square, row by row from the
+## north-west ([north-west, north-east, south-west, south-east] for two by two), each in
+## cell units from that cell's corner, with no size where the cell stays empty, or for a
+## thing with `steps` an Array of the boxes of its steps. The shapes are the models'
+## (read_footprints); a kind not given fills its four cells.
 var footprints := {}
+## The same for each turn: kind -> [turn 0, 1, 2, 3].
+var turned := {}
+## The cells a side of the square a thing of a prop kind takes (see read_footprints):
+## kind -> n; 2 for a kind not read.
+static var sizes := {}
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
 const CRATE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 1.0, 0.75))
@@ -112,6 +126,8 @@ const FIRE_BOXES := [
 ## are read anew.
 func read_footprints() -> void:
 	footprints = {}
+	turned = {}
+	sizes = {}
 	for id in Items.IDS:
 		var rec := Items.get_item(id)
 		var kind: String = rec.get("prop", "none")
@@ -119,19 +135,81 @@ func read_footprints() -> void:
 			continue
 		if rec.get("fire", false):
 			footprints[kind] = FIRE_BOXES
+			turned[kind] = [FIRE_BOXES, FIRE_BOXES, FIRE_BOXES, FIRE_BOXES]
+			sizes[kind] = 2
 			continue
 		var name: String = rec.get("model", "")
 		var path := Content.asset(rec, "models/%s.png" % name) if name != "" else ""
 		if path != "" and ResourceLoader.exists(path):
-			footprints[kind] = footprint_of_image(load(path).get_image())
+			var img: Image = load(path).get_image()
+			var n := maxi(1, ceili(img.get_height() / 8.0))
+			var voxels := voxels_of_image(img)
+			sizes[kind] = n
+			var all := []
+			for t in 4:
+				all.append(footprint(turn_voxels(voxels, n * 8, t), n, rec.get("steps", false)))
+			footprints[kind] = all[0]
+			turned[kind] = all
 		else:
 			footprints[kind] = [CRATE_BOX, CRATE_BOX, CRATE_BOX, CRATE_BOX]
+			turned[kind] = [footprints[kind], footprints[kind], footprints[kind], footprints[kind]]
+			sizes[kind] = 2
+
+
+## The cells a side of the square thing `item` (an item id with a `prop`) takes.
+static func size_of(item: String) -> int:
+	return sizes.get(Items.get_item(item).get("prop", "none"), 2)
+
+
+## Voxels `voxels` of a model on a square `side` voxels across turned `turn` quarters
+## clockwise seen from above (see sizes), in the same square.
+static func turn_voxels(voxels, side: int, turn: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for p: Vector3i in voxels:
+		var q := p
+		for i in posmod(turn, 4):
+			q = Vector3i(side - 1 - q.z, q.y, q.x)
+		out.append(q)
+	return out
+
+
+## The turn of a thing set down by one looking along `step` (a facing step): its front
+## to them.
+static func turn_facing(step: Vector2i) -> int:
+	if absi(step.x) > absi(step.y):
+		return 1 if step.x > 0 else 3
+	return 2 if step.y > 0 else 0
+
+
+## The boxes of thing `e` in each cell of its square (see footprints), by its turn.
+func boxes_of(e: Dictionary) -> Array:
+	var kind: String = Items.get_item(e.item).prop
+	if turned.has(kind):
+		return turned[kind][e.get("turn", 0)]
+	var whole := AABB(Vector3.ZERO, Vector3.ONE)
+	return [whole, whole, whole, whole]
+
+
+## The cells thing `e` fills (its boxes there), from its north-west cell.
+func cells_of(e: Dictionary) -> Array[Vector3i]:
+	var n := size_of(e.item)
+	var boxes := boxes_of(e)
+	var out: Array[Vector3i] = []
+	for i in boxes.size():
+		if boxes[i] is Array or boxes[i].has_volume():
+			out.append(e.cell + Vector3i(i % n, 0, i / n))
+	return out
 
 
 ## The boxes of the model in `img`, a row of square slices (the image's height wide),
 ## one per level from the ground up, a pixel of any alpha the voxel at its x and z (z
 ## down the slice), the slice's corner at the thing's north-west cell.
-static func footprint_of_image(img: Image) -> Array[AABB]:
+static func footprint_of_image(img: Image) -> Array:
+	return footprint(voxels_of_image(img), maxi(1, ceili(img.get_height() / 8.0)))
+
+
+## The voxels of the model in `img` (see footprint_of_image).
+static func voxels_of_image(img: Image) -> Array[Vector3i]:
 	var voxels: Array[Vector3i] = []
 	var size := img.get_height()
 	if size > 0 and img.get_width() % size == 0:
@@ -140,38 +218,63 @@ static func footprint_of_image(img: Image) -> Array[AABB]:
 				for x in size:
 					if img.get_pixel(y * size + x, z).a > 0.0:
 						voxels.append(Vector3i(x, y, z))
-	return footprint(voxels)
+	return voxels
 
 
-## The boxes a thing on 2x2 cells of the voxels `voxels` (Vector3i each, an Array or the
-## keys of a Dictionary, 8 voxels a cell, from the north-west cell's corner) takes in
-## each of its cells, for WorldData.blockers: [north-west, north-east, south-west,
-## south-east], each in cell units from that cell's corner, with no size where it leaves
-## the cell empty. A layer much smaller than the one under it (a flint lying on a
-## workbench) is left out of the box's top, so it does not lift the player off the planks.
-static func footprint(voxels) -> Array[AABB]:
-	var lo: Array[Vector3i] = []
-	var hi: Array[Vector3i] = []
-	var layers: Array[Dictionary] = []
-	for i in 4:
-		lo.append(Vector3i(8, 0, 8))
-		hi.append(Vector3i.ZERO)
-		layers.append({})
+## The boxes a thing on `n` by `n` cells of the voxels `voxels` (Vector3i each, an Array
+## or the keys of a Dictionary, 8 voxels a cell, from the north-west cell's corner) takes
+## in each of its cells, for WorldData.blockers: row by row from the north-west
+## ([north-west, north-east, south-west, south-east] for two by two), each in cell units
+## from that cell's corner, with no size where it leaves the cell empty. A layer much
+## smaller than the one under it (a flint lying on a workbench) is left out of the box's
+## top, so it does not lift the player off the planks. With `steps` a cell's box is an
+## Array of a box for each quarter of it the voxels fill, as high as they stand there:
+## the steps of stairs that a body walks up.
+static func footprint(voxels, n := 2, steps := false) -> Array:
+	var per := 4 if steps else 1
+	var parts := []
+	for i in n * n * per:
+		parts.append([])
 	for p: Vector3i in voxels:
-		var i := (p.z >> 3) * 2 + (p.x >> 3)
-		var q := Vector3i(p.x & 7, 0, p.z & 7)
-		lo[i] = lo[i].min(q)
-		hi[i] = hi[i].max(q + Vector3i(1, 0, 1))
-		layers[i][p.y] = layers[i].get(p.y, 0) + 1
-	var out: Array[AABB] = []
-	for i in 4:
-		var size := (hi[i] - lo[i]).max(Vector3i.ZERO)
-		var top := 0
-		for y: int in layers[i]:
-			if y + 1 > top and layers[i][y] * 4 >= layers[i].get(y - 1, 0):
-				top = y + 1
-		out.append(AABB(Vector3(lo[i].x, 0, lo[i].z) / 8.0, Vector3(size.x, top, size.z) / 8.0) if size.x > 0 else AABB())
+		if p.x < 0 or p.z < 0 or p.x >= n * 8 or p.z >= n * 8:
+			continue
+		var i := ((p.z >> 3) * n + (p.x >> 3)) * per
+		if steps:
+			i += ((p.z >> 2) & 1) * 2 + ((p.x >> 2) & 1)
+		parts[i].append(p)
+	var out := []
+	for i in n * n:
+		if not steps:
+			out.append(_box_of(parts[i]))
+			continue
+		var boxes: Array[AABB] = []
+		for k in 4:
+			var box := _box_of(parts[i * 4 + k])
+			if box.has_volume():
+				boxes.append(box)
+		out.append(boxes if not boxes.is_empty() else AABB())
 	return out
+
+
+## The box of voxels `voxels` all in one cell, in cell units from its corner (see
+## footprint); no size for none.
+static func _box_of(voxels: Array) -> AABB:
+	if voxels.is_empty():
+		return AABB()
+	var lo := Vector3i(8, 0, 8)
+	var hi := Vector3i.ZERO
+	var layers := {}
+	for p: Vector3i in voxels:
+		var q := Vector3i(p.x & 7, 0, p.z & 7)
+		lo = lo.min(q)
+		hi = hi.max(q + Vector3i(1, 0, 1))
+		layers[p.y] = layers.get(p.y, 0) + 1
+	var size := (hi - lo).max(Vector3i.ZERO)
+	var top := 0
+	for y: int in layers:
+		if y + 1 > top and layers[y] * 4 >= layers.get(y - 1, 0):
+			top = y + 1
+	return AABB(Vector3(lo.x, 0, lo.z) / 8.0, Vector3(size.x, top, size.z) / 8.0)
 
 
 ## True for a fire (its item's `fire`: what burns, see put_out and light).
@@ -179,18 +282,28 @@ static func is_fire(e: Dictionary) -> bool:
 	return Items.get_item(e.item).get("fire", false)
 
 
-## The cells round a thing's two by two cells, from its north-west one, where a body
-## coming back to it is set: east first, as by the start's campfire.
-const BESIDE: Array[Vector3i] = [Vector3i(2, 0, 0), Vector3i(2, 0, 1), Vector3i(0, 0, 2), Vector3i(1, 0, 2),
-	Vector3i(-1, 0, 0), Vector3i(-1, 0, 1), Vector3i(0, 0, -1), Vector3i(1, 0, -1)]
+## The cells round a thing's square of `n` by `n` cells, from its north-west one, where
+## a body coming back to it is set: east first, as by the start's campfire.
+static func beside(n: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for z in n:
+		out.append(Vector3i(n, 0, z))
+	for x in n:
+		out.append(Vector3i(x, 0, n))
+	for z in n:
+		out.append(Vector3i(-1, 0, z))
+	for x in n:
+		out.append(Vector3i(x, 0, -1))
+	return out
 
 
-## Where a body stands beside thing `e` (world units): the first cell of BESIDE with air
+## Where a body stands beside thing `e` (world units): the first cell of `beside` with air
 ## for a body two cells tall on solid ground, else the first of them (the body climbs out).
 func stand_by(e: Dictionary) -> Vector3:
 	var c: Vector3i = e.cell
-	var spot: Vector3i = c + BESIDE[0]
-	for d: Vector3i in BESIDE:
+	var around := beside(size_of(e.item))
+	var spot: Vector3i = c + around[0]
+	for d: Vector3i in around:
 		var p: Vector3i = c + d
 		if world.get_cell(p.x, p.y, p.z) == Mat.AIR and world.get_cell(p.x, p.y + 1, p.z) == Mat.AIR \
 				and world.is_solid(p.x, p.y - 1, p.z) and not world.blockers.has(p):
@@ -203,19 +316,19 @@ func stand_by(e: Dictionary) -> Vector3:
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
 ## `fuel_start`).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null) -> Dictionary:
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0) -> Dictionary:
 	var rec := Items.get_item(item)
-	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire}
+	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire, "turn": posmod(turn, 4)}
 	if by is int:
 		e.by = by
 	if rec.fire:
 		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
 		e.wet = 0.0
-	var whole := AABB(Vector3.ZERO, Vector3.ONE)
-	var boxes: Array = footprints.get(rec.prop, [whole, whole, whole, whole])
-	for i in 4:
-		if boxes[i].has_volume():
-			world.blockers[cell + Vector3i(i & 1, 0, i >> 1)] = boxes[i]
+	var boxes := boxes_of(e)
+	var n := size_of(item)
+	for i in boxes.size():
+		if boxes[i] is Array or boxes[i].has_volume():
+			world.blockers[cell + Vector3i(i % n, 0, i / n)] = boxes[i]
 	if rec.storage > 0:
 		e.items = Inventory.new(rec.storage)
 		e.items.nests = false
@@ -237,7 +350,8 @@ func from_list(list: Array) -> void:
 				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)))
 				continue
 			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
-				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null)
+				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
+				int(d.get("turn", 0)))
 
 
 ## The placed things as plain data for the save.
@@ -252,7 +366,7 @@ func to_list() -> Array:
 
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
-## seconds a fire has left, "by" who put it from their bag}.
+## seconds a fire has left, "by" who put it from their bag, "turn" when it is turned}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -267,6 +381,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.fuel = snappedf(e.fuel, 0.1)
 	if e.has("by"):
 		d.by = e.by
+	if e.get("turn", 0) != 0:
+		d.turn = e.turn
 	return d
 
 
@@ -330,7 +446,8 @@ func at(cell: Vector3i) -> Dictionary:
 static func center(e: Dictionary) -> Vector3:
 	if is_light(e):
 		return (Vector3(e.cell) + Vector3(0.5, 0.5, 0.5)) * CELL
-	return (Vector3(e.cell) + Vector3(1.0, 0.5, 1.0)) * CELL
+	var half := size_of(e.item) * 0.5
+	return (Vector3(e.cell) + Vector3(half, 0.5, half)) * CELL
 
 
 ## The stations (things that store nothing; a fire while it burns) within `reach` world
@@ -370,6 +487,9 @@ func burning(p: Vector3) -> Dictionary:
 	return {}
 
 
+## True for stairs (an item with `steps`): taken up at a tap, as a light is.
+static func is_steps(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("steps", false)
 
 
 ## True for a bed (its item's `bedding`: a mat, a bedroll, slept in, see Character.sleep_rate).
@@ -378,12 +498,13 @@ static func is_bed(e: Dictionary) -> bool:
 
 
 ## The bed a body with its feet at `p` (world units) lies on, {} for none: its feet over
-## the bed's two by two cells, no higher than a level above them.
+## the bed's square of cells, no higher than a level above them.
 func bed_under(p: Vector3) -> Dictionary:
 	var c := p / CELL
 	for e in things:
 		var at: Vector3i = e.cell
-		if is_bed(e) and c.x >= at.x and c.x < at.x + 2 and c.z >= at.z and c.z < at.z + 2 \
+		var n := size_of(e.item)
+		if is_bed(e) and c.x >= at.x and c.x < at.x + n and c.z >= at.z and c.z < at.z + n \
 				and c.y >= at.y - SINGE and c.y <= at.y + 1.0:
 			return e
 	return {}
@@ -399,7 +520,8 @@ func nearest_bed(p: Vector3, reach: float) -> Dictionary:
 	for e in things:
 		if not is_bed(e) or absf(float(e.cell.y) - c.y) > 1.0 + SINGE:
 			continue
-		var d := Vector2(e.cell.x + 1.0 - c.x, e.cell.z + 1.0 - c.z).length()
+		var half := size_of(e.item) * 0.5
+		var d := Vector2(e.cell.x + half - c.x, e.cell.z + half - c.z).length()
 		if d <= best_d:
 			best_d = d
 			best = e
@@ -409,14 +531,16 @@ func nearest_bed(p: Vector3, reach: float) -> Dictionary:
 ## Where a body lies in bed `e` (world units): over its middle, on top of it.
 func lying_spot(e: Dictionary) -> Vector3:
 	var top := 0.0
-	for box: AABB in footprints.get(Items.get_item(e.item).prop, []):
-		top = maxf(top, box.end.y)
-	return (Vector3(e.cell) + Vector3(1.0, top, 1.0)) * CELL
+	for box in boxes_of(e):
+		for b: AABB in (box if box is Array else [box]):
+			top = maxf(top, b.end.y)
+	var half := size_of(e.item) * 0.5
+	return (Vector3(e.cell) + Vector3(half, top, half)) * CELL
 
 
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first
-## that holds it) on two by two free cells of level ground in front, at or below level
-## `top`, with a tool of its `place_tool` class in the bag; a thing that stores brings back
+## that holds it) on free cells of level ground in front (its square, see sizes; stairs
+## also over air), turned to face `who`, at or below level `top`, with a tool of its `place_tool` class in the bag; a thing that stores brings back
 ## what it held. True if it was placed.
 func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	var item := Items.get_item(id)
@@ -430,9 +554,14 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
 		who.nag("put", "Чтобы поставить, нужен инструмент: %s" % Items.tool_title(item.place_tool))
 		return false
-	var spot: Variant = _spot_in_front(who, top)
+	var turn := turn_facing(who.facing_step())
+	var probe := {"item": item.id, "cell": Vector3i.ZERO, "turn": turn}
+	var n := size_of(item.id)
+	var offsets := cells_of(probe)
+	var steps: bool = item.get("steps", false)
+	var spot: Variant = _spot_in_front(who, top, n, offsets, steps)
 	if spot == null:
-		who.nag("put", "Нужно ровное место 2×2 перед собой")
+		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if not steps else "Перед собой нет места для ступеней")
 		return false
 	if territory != null and not territory.may(who, spot, "build"):
 		return false
@@ -441,12 +570,12 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	if not who.act("place"):
 		return false
 	var taken: Array = inv.take_slot(slot, 1)
-	for dz in 2:
-		for dx in 2:
-			_level_ground(spot + Vector3i(dx, -1, dz))
-			_remove_bush(spot + Vector3i(dx, 0, dz))
+	for o: Vector3i in offsets:
+		if world.is_solid(spot.x + o.x, spot.y - 1, spot.z + o.z):
+			_level_ground(spot + o + Vector3i(0, -1, 0))
+		_remove_bush(spot + o)
 	var by: Variant = who.get("id")
-	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0)
+	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0, turn)
 	world.note_edit(spot.x, spot.z)
 	if item.claims and territory != null:
 		territory.add_claim(who.get("id") if who.get("id") != null else 0, e, str(who.get("player_name") if who.get("player_name") != null else ""))
@@ -582,52 +711,52 @@ func _forget(e: Dictionary) -> void:
 		lights.erase(e)
 		removed.emit(e)
 		return
-	for dz in 2:
-		for dx in 2:
-			world.blockers.erase(e.cell + Vector3i(dx, 0, dz))
+	for c: Vector3i in cells_of(e):
+		world.blockers.erase(c)
 	if e.items == chest_items:
 		chest_items = null
 	things.erase(e)
 	removed.emit(e)
 
 
-## The north-west cell of two by two cells in front of `who` where a thing can be
-## placed (see _fits), the nearest to two cells ahead, at the feet's level or a cell
-## below or above; null if none.
-func _spot_in_front(who, top: int) -> Variant:
+## The north-west cell of a thing's square of `n` by `n` cells in front of `who` where it
+## can be placed (see _fits; `offsets` the cells it fills from there, `steps` for stairs),
+## the nearest to a cell beyond its middle ahead, at the feet's level or a cell below or
+## above; null if none.
+func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps := false) -> Variant:
+	if offsets.is_empty():
+		for dz in n:
+			for dx in n:
+				offsets.append(Vector3i(dx, 0, dz))
 	var feet: Vector3i = who.feet()
 	var s: Vector2i = who.facing_step()
-	var aim := Vector2(feet.x + 0.5 + s.x * 2.0, feet.z + 0.5 + s.y * 2.0)
+	var ahead := n * 0.5 + 1.0
+	var aim := Vector2(feet.x + 0.5 + s.x * ahead, feet.z + 0.5 + s.y * ahead)
+	var half := n * 0.5
 	var corners: Array[Vector2i] = []
-	for dz in range(-3, 3):
-		for dx in range(-3, 3):
+	for dz in range(-n - 1, 3):
+		for dx in range(-n - 1, 3):
 			corners.append(Vector2i(feet.x + dx, feet.z + dz))
 	corners.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return (Vector2(a) + Vector2.ONE).distance_squared_to(aim) < (Vector2(b) + Vector2.ONE).distance_squared_to(aim))
+		return (Vector2(a) + Vector2(half, half)).distance_squared_to(aim) < (Vector2(b) + Vector2(half, half)).distance_squared_to(aim))
 	for c in corners.slice(0, 6):
 		for dy in [0, -1, 1]:
 			var corner := Vector3i(c.x, feet.y + dy, c.y)
-			if _fits(who, corner, top):
+			if _fits(who, corner, top, offsets, steps):
 				return corner
 	return null
 
 
-## Whether the two by two cells from `corner` are free (no cell, no other thing, not
-## `who`), at or below level `top`, and stand on solid ground.
-func _fits(who, corner: Vector3i, top: int) -> bool:
-	for dz in 2:
-		for dx in 2:
-			var c := corner + Vector3i(dx, 0, dz)
-			if world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z) \
-					or who.overlaps_cell(c) or c.y > top:
-				return false
-	for e in things:
-		var o: Vector3i = e.cell
-		if o.y == corner.y and absi(o.x - corner.x) < 2 and absi(o.z - corner.z) < 2:
-			return false
-	for e in lights:
-		var o: Vector3i = e.cell
-		if o.y == corner.y and o.x - corner.x in [0, 1] and o.z - corner.z in [0, 1]:
+## Whether the cells `offsets` from `corner` (two by two when none are given) are free
+## (no cell, no other thing or light, not `who`), at or below level `top`, and stand on
+## solid ground; stairs (`steps`) may stand on air, as blocks are laid.
+func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false) -> bool:
+	if offsets.is_empty():
+		offsets = [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1)]
+	for o: Vector3i in offsets:
+		var c := corner + o
+		if world.get_cell(c.x, c.y, c.z) != Mat.AIR or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
+				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty():
 			return false
 	return true
 
@@ -684,7 +813,7 @@ func _remove_bush(cell: Vector3i) -> void:
 # --- Lights set down --------------------------------------------------------------------
 
 ## True for item `id` that is set down as a light on a cell of its own: it gives light
-## (`light`) and is no thing of two by two cells (`prop`).
+## (`light`) and is no thing placed on cells (`prop`).
 static func is_light_item(id: String) -> bool:
 	var item := Items.get_item(id)
 	return item.get("light", 0.0) > 0.0 and item.get("prop", "none") == "none"
@@ -731,10 +860,6 @@ func _light_fits(who, cell: Vector3i, top: int) -> bool:
 		return false
 	if who.overlaps_cell(cell) or world.blockers.has(cell) or not light_at(cell).is_empty():
 		return false
-	for e in things:
-		var o: Vector3i = e.cell
-		if o.y == cell.y and cell.x - o.x in [0, 1] and cell.z - o.z in [0, 1]:
-			return false
 	return true
 
 

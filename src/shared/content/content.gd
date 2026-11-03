@@ -121,7 +121,8 @@ const SCHEMAS := {
 		"range": {"type": "int", "min": 0, "default": 0},
 		"ammo": {"type": "ref:items", "default": "", "rel": "consumes"},
 		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "repaired_with", "via": "repair"},
-		# Set down on two by two cells, a thing of this class (its model, its solid parts); a
+		# Set down on cells (the square its model's slices cover: 16 voxels two by two, 8 one
+		# cell; turned to face who set it), a thing of this class (its model, its solid parts); a
 		# station unless it stores. What it does besides is in its flags: `storage` slots it
 		# holds things in, `fire` it burns (put out, lit again with fuel, it burns a body),
 		# `repairs` tools are mended at it, `serves` the stations it stands in for (their
@@ -136,6 +137,9 @@ const SCHEMAS := {
 		# A thing set down that claims land: the centre of a territory of who set it and
 		# their team (Territory, decision 15).
 		"claims": {"type": "bool", "default": false},
+		# Stairs: the thing is solid by the steps of its model (a box for each quarter of a
+		# cell), so a body walks up them; set down also over air, as blocks are.
+		"steps": {"type": "bool", "default": false},
 		# Food that spoils: it keeps this many game days (slower in the cold, see
 		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
 		"spoils": {"type": "float", "min": 0.0, "default": 0.0},

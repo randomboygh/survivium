@@ -14,7 +14,7 @@ extends Node
 ## and player). The rules live in src/shared, run by the world's Session (its steps go
 ## between the frame's own work): Clock (time of day, seasons and weather), Character
 ## (the bag, health, satiety, stamina, death), WorldActions (what the hands do to the
-## world), Placed (the things placed on two by two cells), Workshop (recipes known, the
+## world), Placed (the things placed on cells), Workshop (recipes known, the
 ## crafting queue, tool wear), Wildlife and Storms, under the Rules of play. The session
 ## runs on the server inside the game (LocalHost); what the views draw are the client's
 ## copies (`character`, `workshop`, `placed`, `clock`, `wildlife`), fed by the server's

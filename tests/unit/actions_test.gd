@@ -196,6 +196,41 @@ func _test_world_actions() -> void:
 	_check(not picker.can_mow(mossy, Tools.of("")), "and there is no more to pick there")
 
 
+## Stairs (a thing of one cell with `steps`) are set down in the cell in front, turned
+## to rise away from the one who set them, solid by their steps; the next goes over air
+## a level higher, and taking one up frees its cell; a chest set down looking east faces
+## west and takes its turned cells.
+func _test_stairs_placed() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var who := Who.new()
+	who.position = Vector3(10.5, 1.0, 12.5) * WorldData.CELL
+	who.inventory.add("tools:stairs", 3)
+	_check(placed.put_from_bag(who, "tools:stairs", -1, 40), "stairs are set down from the bag")
+	var first: Dictionary = placed.things[-1]
+	_check(first.cell == Vector3i(10, 1, 11) and first.turn == 0 and w.blockers.get(first.cell) is Array
+		and is_equal_approx(w.blocker_part(10, 1, 11, 0.0, 1.0, 0.6, 1.0), 0.5) and is_equal_approx(w.blocker_top(10, 1, 11), 1.0),
+		"in the cell in front, rising away to the north: the near step half a cell, the far one whole: %s" % [first])
+	who.position = Vector3(10.5, 2.0, 11.5) * WorldData.CELL
+	_check(placed.put_from_bag(who, "tools:stairs", -1, 40) and placed.things[-1].cell == Vector3i(10, 2, 10),
+		"standing on them, the next stairs go a level up over air")
+	who.position = Vector3(20.5, 1.0, 20.5) * WorldData.CELL
+	who.facing = Vector2i(1, 0)
+	_check(placed.put_from_bag(who, "tools:stairs", -1, 40) and placed.things[-1].turn == 1 and placed.things[-1].cell == Vector3i(21, 1, 20)
+		and is_equal_approx(w.blocker_part(21, 1, 20, 0.0, 0.4, 0.0, 1.0), 0.5),
+		"looking east, the stairs rise to the east, their low step to the west")
+	_check(placed.take_up(who, placed.things[-1]) and not w.blockers.has(Vector3i(21, 1, 20)), "taken up, their cell is free")
+	who.inventory.add("tools:chest", 1)
+	_check(placed.put_from_bag(who, "tools:chest", -1, 40) and placed.things[-1].turn == 1
+		and Placed.record(placed.things[-1]).turn == 1 and placed.cells_of(placed.things[-1]).size() == 4,
+		"a chest set down looking east is turned to face west, and keeps its turn in the save")
+
+
 ## The rules of placed things and crafting run without the client: a workbench put
 ## down from the bag is solid and lets a stone axe be made near it, and a campfire is
 ## solid, burns only the one in its very middle, is put out, lit again for a branch and

@@ -114,10 +114,20 @@ func put_light(id: String) -> bool:
 	return r.done and r.value is bool and r.value
 
 
-func _model(kind: String):
-	if not _models.has(kind):
-		_models[kind] = VoxelProps.prop(kind)
-	return _models[kind]
+func _model(kind: String, turn := 0):
+	var key := "%s/%d" % [kind, turn]
+	if not _models.has(key):
+		var m = VoxelProps.prop(kind)
+		if turn != 0:
+			# Turned about the middle of its square, as Placed turns its solid parts.
+			var side: int = Placed.sizes.get(kind, 2) * 8
+			var turned = m.get_script().new()
+			for p: Vector3i in m.voxels:
+				var q: Vector3i = Placed.turn_voxels([p], side, turn)[0]
+				turned.set_voxel(q, m.voxels[p], m.foliage.has(p))
+			m = turned
+		_models[key] = m
+	return _models[key]
 
 
 func _on_added(e: Dictionary) -> void:
@@ -134,7 +144,7 @@ func _on_added(e: Dictionary) -> void:
 		return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
-	node.mesh = _model(kind).build_mesh()
+	node.mesh = _model(kind, e.get("turn", 0)).build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	if kind in THIN_PROPS:
 		# A pole two voxels thin is under a texel of the sun's shadow map: its shadow
