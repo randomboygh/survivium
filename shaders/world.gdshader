@@ -61,6 +61,8 @@ const int PRIORITY_MASK = 15;
 const int DRAINS = 16;
 const int GROUND_SHIFT = 5;
 const int TRUNK = 128;
+// Texels a boundary with a material that frays goes ragged over (3 bits, see Mat.FRAY_SHIFT).
+const int FRAY_SHIFT = 8;
 // Cells of a trunk over its foot it takes to clear in full round the player.
 const float TRUNK_RISE = 3.0;
 const int GROUND_SOIL = 1;
@@ -262,7 +264,24 @@ void fragment() {
 			int own = best;
 			for (int e = 0; e < 4; e++) {
 				int nc = (n >> (6 * e)) & 63;
-				if (nc == NO_MATERIAL || own == 0) {
+				if (nc == NO_MATERIAL) {
+					continue;
+				}
+				// A boundary with a material that frays (salt) goes ragged both ways: the
+				// texels of the other side reach in up to `fray` texels, in lumps of two
+				// and single ones, thinner farther in, whoever lies over whom.
+				int fray = max((material_bits[tile / 3] >> FRAY_SHIFT) & 7, (material_bits[nc] >> FRAY_SHIFT) & 7);
+				// (A plain top's word of no neighbours, NO_TILES, reads back as 2^24 and
+				// so as air in every lane: air is never a neighbour's top.)
+				if (fray > 0 && nc != tile / 3 && nc != 0 && !cap && dist[e] < fray) {
+					float lump = hash12(floor(wt * 0.5) + vec2(float(e) * 7.0, 211.0)) * 0.6
+						+ hash12(wt + vec2(97.0, float(e) * 5.0)) * 0.4;
+					if (lump < (1.0 - float(dist[e]) / float(fray)) * 0.6) {
+						pick = nc * 3;
+						continue;
+					}
+				}
+				if (own == 0) {
 					continue;
 				}
 				int nt = nc * 3;

@@ -635,51 +635,56 @@ static func _strands(job: Job, at: Vector2i, middle: Vector2, r: float, y_from: 
 
 
 ## The fronds of a palm whose trunk stands on column `at`, its crown points `levels`
-## (see _crown_levels, Growth._palm): a tuft of bundles on the top point and a line of
-## branches out along each frond, from the top through each of its points and on a little
-## past the last, sinking as it goes.
+## (see _crown_levels, Growth._palm): one flat round tier on the top of the trunk, as a
+## spruce's tier (_spruce) but alone, so no leaf hangs in the air below the crown. An
+## outer ring of large branches as many as the fronds, each with its darker copy a cell
+## lower (the shade of the tier), lying out to the farthest point and sinking a little
+## at the rim; an inner ring of middle ones between them, a dark tuft at the trunk that
+## fills the middle and a tuft on the top.
 static func _fronds(job: Job, at: Vector2i, levels: Dictionary, base: Color, row: int, rng: RandomNumberGenerator) -> void:
-	row = PixelTextures.NEEDLE_ROW + 2
 	var top: int = levels.keys().max()
-	var hub := Vector3(at.x + 0.5, top + 1.0, at.y + 0.5)
-	var dark := base * DEEP * DEEP
+	var axis := Vector3(at.x + 0.5, 0.0, at.y + 0.5) * CELL
+	var mid := axis + Vector3(0.0, (top + 0.5) * CELL, 0.0)
+	var dark := base * DEEP
 	dark.a = base.a
+	var shade := dark * DEEP
+	shade.a = base.a
 	rng.seed = hash(Vector3i(at.x, top, at.y))
-	# The tuft over the trunk.
-	for k in 3:
-		var a := TAU * k / 3.0 + rng.randf() * 0.5
-		var off := Vector3(cos(a), 0.0, sin(a)) * 0.4
-		_card(job.clumps, PixelView.snap((hub + off) * CELL), (off * 2.0 + Vector3.UP).normalized() * FLAT, base, row, rng)
-		job.nc += 1
-	# Each frond's points, outward from the trunk: the farthest point on a line gives
-	# the frond, the nearer ones on it its bend.
-	var fronds := {}
+	# How far the fronds reach (the farthest point, in cells) and how many there are
+	# (the ways out the points lie).
+	var reach := 0.0
+	var ways := {}
 	for y: int in levels:
 		for p: Vector2i in levels[y]:
-			var d := p - at
-			if d == Vector2i.ZERO:
+			var d := Vector2(p - at)
+			if d == Vector2.ZERO:
 				continue
-			var dir := Vector2(d).normalized()
-			var key := Vector2i(roundi(dir.x * 8.0), roundi(dir.y * 8.0))
-			if not fronds.has(key) or Vector2(d).length() > fronds[key].x:
-				fronds[key] = Vector3(Vector2(d).length(), y, 0.0)
-	# Each frond is drawn as spruce branches (leaves.gdshader turns them the way the card
-	# points on the screen): a large one near the trunk, a middle one and a small one at
-	# the tip, sinking as the square of the way out and darker toward the tip.
-	var rows := [PixelTextures.LARGE_BRANCH_ROW, PixelTextures.NEEDLE_ROW, PixelTextures.SMALL_BRANCH_ROW]
-	for key: Vector2i in fronds:
-		var far: float = fronds[key].x
-		var low: float = fronds[key].y
-		var out := Vector3(key.x, 0.0, key.y).normalized()
-		var length := far + 1.0
-		var drop := (top - low + 1.0) * pow(length / far, 2.0) if far > 0.0 else 0.0
-		for k in 3:
-			var t := (k + 0.8) / 3.0
-			var step := length * t
-			var c := hub + out * step * 0.8 - Vector3.UP * drop * t * t
-			var n := (out + Vector3.UP * (0.45 - 0.6 * t)).normalized() * (FLAT + step * CELL)
-			_card(job.clumps, PixelView.snap(c * CELL), n, base.lerp(dark, 0.3 * t), rows[k], rng)
+			reach = maxf(reach, d.length())
+			ways[Vector2i(roundi(d.normalized().x * 4.0), roundi(d.normalized().y * 4.0))] = true
+	reach = clampf(reach, 2.0, 7.0) + 0.5
+	var count := clampi(ways.size(), 5, 9)
+	# The dark middle, under the branches, so the trunk's top never shows through.
+	_card(job.clumps, PixelView.snap(mid - Vector3(0.0, CELL * 0.5, 0.0)), Vector3.UP * FLAT, shade, PixelTextures.NEEDLE_ROW + 2, rng)
+	job.nc += 1
+	var turn := rng.randf() * TAU
+	for i in count + count:
+		var outer := i < count
+		var a: float = turn + TAU * ((i if outer else i - count + 0.5) + rng.randf_range(-0.15, 0.15)) / count
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var spread := reach * CELL * (rng.randf_range(0.6, 0.75) if outer else rng.randf_range(0.3, 0.4))
+		# The rim sinks a little, as a frond bends under its own weight.
+		var c := mid + out * spread - Vector3(0.0, CELL * (0.6 if outer else 0.2), 0.0)
+		# The length beyond FLAT says how far out from the trunk (leaves.gdshader).
+		var n := (out + Vector3.UP * (0.3 if outer else 0.5)).normalized() * (FLAT + spread)
+		var r: int = PixelTextures.LARGE_BRANCH_ROW if outer else PixelTextures.NEEDLE_ROW
+		_card(job.clumps, PixelView.snap(c), n, base, r, rng)
+		job.nc += 1
+		if outer:
+			_card(job.clumps, PixelView.snap(c - Vector3(2.0 * PX, CELL, 0.0)), n, dark, r + DEEP_ROW, rng)
 			job.nc += 1
+	# The tuft on the top.
+	_card(job.clumps, PixelView.snap(mid + Vector3(0.0, CELL * 0.5, 0.0)), Vector3.UP * FLAT, base, PixelTextures.NEEDLE_ROW + 2, rng)
+	job.nc += 1
 
 
 ## Whether the bundles of a layer of cells `cells` lie all round the spot `q` (in cells).

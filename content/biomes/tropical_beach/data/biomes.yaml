@@ -20,5 +20,5 @@
   trees: {plants:palm: 1.0}
   tree_chance: 0.07
   trees_on: [sand, clay]
-  tints: {sand: "#e6dcbe", water: "#4cc6bc"}
+  tints: {sand: "#cec6ac", water: "#4cc6bc"}
   color: "#eadfae"

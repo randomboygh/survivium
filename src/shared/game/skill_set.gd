@@ -21,6 +21,8 @@ signal changed
 ## Skill `id` rose to `level` (on the server as it is earned, on a client as it is told).
 signal leveled(id: String, level: int)
 
+## What every gain is multiplied by: 1, more only as a playtest switch (Settings).
+var rate := 1.0
 ## Points by skill id, and the level they make (asked every frame, so kept: see _level).
 var points := {}
 var _levels := {}
@@ -114,7 +116,7 @@ func gain(role: String, amount: float) -> void:
 	if s.is_empty() or amount <= 0.0:
 		return
 	var was := level(s.id)
-	points[s.id] = points_of(s.id) + amount
+	points[s.id] = points_of(s.id) + amount * rate
 	_level(s.id)
 	changed.emit()
 	var now := level(s.id)
