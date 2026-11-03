@@ -381,6 +381,7 @@ func _on_button(b: BaseButton) -> void:
 
 
 func _process(delta: float) -> void:
+	var t := Time.get_ticks_usec()
 	_time += delta
 	if unlocked and not _to_load.is_empty():
 		for i in mini(LOADS_PER_FRAME, _to_load.size()):
@@ -411,6 +412,8 @@ func _process(delta: float) -> void:
 	for list: Dictionary in [_loops, _spots]:
 		for id in list:
 			_fade(list[id], k)
+	if game.hud != null and game.hud.perf != null:
+		game.hud.perf.note("звук", t)
 
 
 ## Takes loop `l` (see _loops) a step `k` of the way to its level.
