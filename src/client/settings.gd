@@ -76,8 +76,9 @@ const DEFAULTS := {
 	# common.gdshaderinc); 1 the levels above the player cut off, a dim ghost of them
 	# left, the ones below darker; 2 cut in the plane of the camera: behind the player
 	# all stays, in front of them what stands above their feet goes, the rock cut open
-	# in dots (the shader global cut_front, plane_hides); 3 a sphere round the player
-	# opened, the section of the rock on its far half (CaveSphere, sphere_hides). The
+	# in dots (the shader global cut_front, plane_hides); 3 what is in front of the
+	# player within a sphere on the line to the camera left out (CaveSphere,
+	# sphere_hides). The
 	# key replaced «cave_view»
 	# (0 levels, 1 plane), so everyone starts with the layers.
 	"cave_mode": 0,
@@ -93,6 +94,10 @@ const DEFAULTS := {
 	"layer_line": 10,
 	# The radius of the view in a sphere (cave_mode 3), an index of CaveSphere.RADII.
 	"sphere_radius": 6,
+	# How far the sphere stands from the player toward the camera, an index of
+	# CaveSphere.SHIFTS; and whether the sphere itself is shown, for a test.
+	"sphere_shift": 5,
+	"sphere_debug": 0,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
@@ -142,6 +147,7 @@ static func _index_limits() -> Dictionary:
 		"layer_front_first": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_first": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(), "sphere_radius": CaveSphere.RADII.size(),
+		"sphere_shift": CaveSphere.SHIFTS.size(), "sphere_debug": 2,
 		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
 
 
@@ -350,6 +356,11 @@ func layer_density() -> float:
 ## The radius of the view in a sphere, in cells.
 func sphere_radius() -> int:
 	return CaveSphere.RADII[values.sphere_radius]
+
+
+## How far the view's sphere stands from the player toward the camera, in cells.
+func sphere_shift() -> int:
+	return CaveSphere.SHIFTS[values.sphere_shift]
 
 
 func layer_line() -> int:

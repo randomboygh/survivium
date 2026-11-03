@@ -56,8 +56,9 @@ func start() -> void:
 	_collect(game.view.world_root, kinds)
 	# What may not be around yet: the ground's, water's and the low things' material on a
 	# face like the chunks have, and the cut in the plane of the camera (a pass of the
-	# ground's that is on only with that setting), and the rock's section on the sphere of
-	# the cave view (CaveSphere), made only in a cave.
+	# ground's that is on only with that setting), and the faces the sphere of the cave
+	# view opens (CaveSphere), made only in a cave. The sphere shown for a test is not
+	# warmed: a test may stutter.
 	var sphere_mat := ShaderMaterial.new()
 	sphere_mat.shader = SphereShader
 	for mat: Material in [game.world_mat, game.section_mat, game.low_mat, game.water_mat, sphere_mat]:

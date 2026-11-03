@@ -200,7 +200,7 @@ void fragment() {
 	// A face counts as the cell it closes (see layer_alpha): a hair inside it.
 	vec3 own = layer_view.x > 0.5 || sphere_view.x > 0.5 ? world_pos - world_normal * 0.01 : world_pos;
 	bool cut = sphere_view.x > 0.5
-		? sphere_hides(own, world_pos + world_normal * 0.01, sphere_cell.y - 0.5)
+		? sphere_hides_cell(floor(own / CELL))
 		: cut_hides(own, floor(screen_plane(world_pos) * TEXELS));
 	if (!IN_SHADOW_PASS && !kept && cut) {
 		discard;

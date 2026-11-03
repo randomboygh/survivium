@@ -401,6 +401,12 @@ func _section_rows(key: String) -> Array:
 				["Сфера: радиус", CaveSphere.RADII.map(func(v: int) -> String: return "%d кл." % v),
 					func() -> int: return s.values.sphere_radius,
 					func(i: int) -> void: s.set_value("sphere_radius", i), "", round_view],
+				["Сфера: к камере", CaveSphere.SHIFTS.map(func(v: int) -> String: return "%d кл." % v),
+					func() -> int: return s.values.sphere_shift,
+					func(i: int) -> void: s.set_value("sphere_shift", i), "", round_view],
+				["Сфера: показать", ["нет", "да"],
+					func() -> int: return s.values.sphere_debug,
+					func(i: int) -> void: s.set_value("sphere_debug", i), "", round_view],
 				null,
 			]
 			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
