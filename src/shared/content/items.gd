@@ -29,6 +29,8 @@ static var dug: PackedStringArray = []
 static var placed_by: PackedStringArray = []
 ## The name of each tool class the items have, for hints (see tool_title).
 static var TOOL_TITLES := {}
+## The first loaded item of each category (see of_category), found when first asked.
+static var _first_of := {}
 
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
@@ -44,6 +46,7 @@ static func _static_init() -> void:
 static func refresh() -> void:
 	BY_ID = {}
 	IDS = []
+	_first_of = {}
 	for r in Content.records("items"):
 		BY_ID[r.id] = r
 		IDS.append(r.id)
@@ -168,10 +171,13 @@ static func best_kit() -> PackedStringArray:
 
 ## The id of the first item of `category` (see category), "" for none.
 static func of_category(category: String) -> String:
-	for id in IDS:
-		if category(id) == category:
-			return id
-	return ""
+	if not _first_of.has(category):
+		_first_of[category] = ""
+		for id in IDS:
+			if category(id) == category:
+				_first_of[category] = id
+				break
+	return _first_of[category]
 
 
 static func _first(field: String, value: String) -> String:

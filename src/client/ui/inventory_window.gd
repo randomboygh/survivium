@@ -154,6 +154,8 @@ var _packed := {}
 ## The bag _packed was opened from, and whether it changed since.
 var _packed_of = null
 var _packed_dirty := true
+## A refresh is asked for this frame (see _refresh_later).
+var _refresh_due := false
 var _chest_entry := {}
 var _chests_seen := ""
 ## A _place waits for the end of the frame.
@@ -392,7 +394,7 @@ func _ready() -> void:
 	_right.add_child(_destroy)
 	for b in _into.get_children() + _throw.get_children() + [_repair, _destroy]:
 		b.custom_minimum_size = Vector2(30, 30)
-	game.character.state_changed.connect(refresh)
+	game.character.state_changed.connect(_refresh_later)
 	show_tab("bag")
 
 
@@ -807,8 +809,17 @@ func _bag_changed() -> void:
 	_packed_dirty = true
 
 
+## The bag, the state or a chest changed: the window is shown anew at the end of the
+## frame, once however many of the server's events changed it.
+func _refresh_later() -> void:
+	if not _refresh_due:
+		_refresh_due = true
+		refresh.call_deferred()
+
+
 ## Shows the bag and the chest as they are now.
 func refresh() -> void:
+	_refresh_due = false
 	if not visible:
 		return
 	refresh_state()
@@ -1029,13 +1040,13 @@ func refresh_state() -> void:
 	if seen != _chests_seen:
 		_chests_seen = seen
 		for e in _chests:
-			if e.items.changed.is_connected(refresh):
-				e.items.changed.disconnect(refresh)
+			if e.items.changed.is_connected(_refresh_later):
+				e.items.changed.disconnect(_refresh_later)
 		_chests = near
 		for e in _chests:
 			# A bag in the bag changes with it (and is refilled here, which would loop).
 			if not e.has("packed"):
-				e.items.changed.connect(refresh)
+				e.items.changed.connect(_refresh_later)
 		if not _chests.has(_chest_entry):
 			_show_chest(_chests[0] if not _chests.is_empty() else {})
 		_make_chest_grids()
