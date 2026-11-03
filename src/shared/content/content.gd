@@ -206,6 +206,9 @@ const SCHEMAS := {
 		# body leaves (a carcass to butcher).
 		"health": {"type": "int", "min": 0, "default": 0},
 		"carcass": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "hunt"},
+		# Fishing: what a swimmer becomes in the bag when it is pulled out on a rod's line
+		# (WorldActions.fish, Fishing); "" none bites.
+		"catch": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "fish"},
 	},
 	"trees": {
 		"leaves": {"type": "enum", "values": ["broad", "needles"]},
@@ -266,9 +269,6 @@ const SCHEMAS := {
 		"trees_on": {"type": "list", "of": "enum", "values": ["dirt", "stone", "sand", "clay", "snow", "peat", "salt"], "default": []},
 		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}, "rel": "spawns"},
 		"bush_sparsity": {"type": "int", "min": 0, "default": 0},
-		# What bites in the water by this biome, caught with a rod from its shore: shares of
-		# the items (the rest of a cast catches nothing).
-		"fish": {"type": "shares", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "fish"},
 		"spawn": {"type": "bool", "default": false},
 		"sandstorms": {"type": "bool", "default": false},
 		"color": {"type": "color"},

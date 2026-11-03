@@ -177,6 +177,8 @@ static func drop(model: String) -> VoxelModel:
 			return _coconut()
 		"roach":
 			return _fish(Color(0.55, 0.58, 0.6), Color(0.78, 0.8, 0.8), Color(0.6, 0.25, 0.18))
+		"perch":
+			return _fish(Color(0.42, 0.52, 0.26), Color(0.78, 0.74, 0.36), Color(0.82, 0.4, 0.22))
 		"pike":
 			return _fish(Color(0.34, 0.46, 0.24), Color(0.62, 0.68, 0.42), Color(0.3, 0.38, 0.2))
 		"salmon":

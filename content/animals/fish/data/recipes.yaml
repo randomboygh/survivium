@@ -41,3 +41,10 @@
   at: core:campfire
   process: cook
   time: 3
+- id: roasted_fish_from_perch
+  title: Жареная рыба
+  makes: roasted_fish
+  needs: {perch: 1, resources:branch: 1}
+  at: core:campfire
+  process: cook
+  time: 3

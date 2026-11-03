@@ -155,10 +155,8 @@ func _raw() -> Dictionary:
 		var spec: Dictionary = AiRules.SPECIES[kind]
 		if kind != AiRules.HUMAN and spec.health > 0 and spec.carcass != "" and Items.has(spec.carcass):
 			have[spec.carcass] = true
-	for b: Dictionary in Biomes.RECORDS:
-		for id: String in b.fish:
-			if Items.has(id):
-				have[id] = true
+		if kind != AiRules.HUMAN and spec.swims and spec.get("catch", "") != "" and Items.has(spec.catch):
+			have[spec.catch] = true
 	return have
 
 
@@ -506,8 +504,8 @@ func _gather(id: String) -> bool:
 	for kind: String in AiRules.SPECIES:
 		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("carcass", "") == id:
 			return await _hunt(id)
-	for b: Dictionary in Biomes.RECORDS:
-		if b.fish.has(id):
+	for kind: String in AiRules.SPECIES:
+		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("catch", "") == id:
 			return await _fish(id)
 	return _fail("no way known to get %s from the world" % Items.title(id))
 
@@ -583,15 +581,25 @@ func _hunt(id: String) -> bool:
 		prey.pos if prey != null else Vector3.ZERO, main.host.player.position])
 
 
-## Fish `id`: from the layout of the land round the camp, the nearest shore where it bites
-## (WorldActions.fishing_biome from a land column beside water), the player carried there
-## and the rod cast into the water with the action button until it bites.
+## Fish `id`: from the layout of the land round the camp, the nearest shore by water of a
+## biome where a fish that is caught as it lives, the player carried there, bait on the
+## hook, and the rod cast into the water with the action button; once a fish bites at
+## the float the button pulls it out. A fish is let into the water by the float when none
+## of its kind swims near: how animals come is not what is tested here.
 func _fish(id: String) -> bool:
 	if _tool_of_kind("rod") == "" and not await _get_tool("rod"):
 		return false
+	var kinds: Array = AiRules.SPECIES.keys().filter(func(k: String) -> bool:
+		return k != AiRules.HUMAN and AiRules.SPECIES[k].swims and AiRules.SPECIES[k].get("catch", "") == id)
+	if kinds.is_empty():
+		return _fail("no fish is caught as %s" % Items.title(id))
+	var spec: Dictionary = AiRules.SPECIES[kinds[0]]
+	var bait: String = Items.get_item(_tool_of_kind("rod")).get("ammo", "")
 	var inv = main.host.player.inventory
+	if bait != "" and inv.count(bait) == 0 and not await _obtain(bait, 2):
+		return false
 	var before: int = inv.count(id)
-	var actions = main.session.actions
+	var life = main.session.wildlife
 	const STEP := 4
 	const N := 400
 	var x0 := floori(camp.x / CELL) - N * STEP / 2
@@ -606,29 +614,26 @@ func _fish(id: String) -> bool:
 			var k := j / N + d.y
 			if i >= 0 and i < N and k >= 0 and k < N and lay.water[k * N + i] >= 0:
 				var land := Vector2i(x0 + (j % N) * STEP, z0 + (j / N) * STEP)
-				shores.append([Vector2(land).distance_to(Vector2(camp.x, camp.z) / CELL), land, d])
+				# Water of the fish's own biomes first; any other after (the fish let in).
+				var far := 0.0 if _lives_in(spec, lay.biome[k * N + i]) else 1e9
+				shores.append([far + Vector2(land).distance_to(Vector2(camp.x, camp.z) / CELL), land, d, far == 0.0])
 				break
 	shores.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	var tried := 0
 	for s: Array in shores:
 		var land: Vector2i = s[1]
-		var d: Vector2i = s[2]
-		var at := Vector3(land.x + 0.5, 0.0, land.y + 0.5) * CELL
-		var water := at + Vector3(d.x, 0.0, d.y) * STEP * CELL
-		if not Biomes.of(actions.fishing_biome(at, water)).fish.has(id):
-			continue
 		tried += 1
 		if tried > 4:
 			break
 		# Carried there, the chunks made, then a dry cell with water ahead in reach.
-		await _go(Vector3(at.x, main.world.size_y - 2, at.z))
+		await _go(Vector3((land.x + 0.5) * CELL, main.world.size_y - 2, (land.y + 0.5) * CELL))
 		var frames := 0
 		while frames < 4000:
 			await process_frame
 			frames += 1
 			if frames > 5 and main.gen.stages.get(WorldData.chunk_key(land.x, land.y), 0) >= WorldGen.SHAPED and main.chunks.map_done:
 				break
-		var spot := _shore_near(land, id)
+		var spot := _shore_near(land, spec if s[3] else {})
 		if spot.is_empty():
 			print("no shore near %s for %s" % [land, Items.title(id)])
 			continue
@@ -647,22 +652,47 @@ func _fish(id: String) -> bool:
 		await process_frame
 		await process_frame
 		main.controls.put_in_hand(_tool_of_kind("rod"), -1, false)
-		for cast in 120:
+		var angler = main.host.player
+		var fishing = main.session.fishing
+		for cast in 12:
 			_rest()
+			var water: Vector3 = main.session.actions.water_ahead(angler.position, spot[1], 5)
+			if water == Vector3.INF:
+				break
+			if fishing.fish_near(water) == null:
+				var at := water + Vector3(spot[1].x, 0.0, spot[1].y) * 1.5
+				if life.water_top(at.x, at.z) == -INF:
+					at = water
+				at.y = life.water_top(at.x, at.z) - life.DIP * CELL
+				life._add(kinds[0], at)
 			swings += 1
+			main.controls.act_in_front()
+			await process_frame
+			await process_frame
+			if not fishing.has_line(angler):
+				continue
+			var t0 := Time.get_ticks_msec()
+			while not angler.bite and fishing.has_line(angler) and Time.get_ticks_msec() - t0 < 40000:
+				await process_frame
 			main.controls.act_in_front()
 			await process_frame
 			await process_frame
 			if inv.count(id) > before:
 				print("fished %s at %s after %d casts" % [Items.title(id), spot[0], cast + 1])
 				return true
-		print("no bite in 120 casts at %s for %s" % [spot[0], Items.title(id)])
-	return _fail("no shore found where %s bites (%d tried)" % [Items.title(id), tried])
+		print("no catch in 12 casts at %s for %s" % [spot[0], Items.title(id)])
+	return _fail("no shore found where %s is caught (%d tried)" % [Items.title(id), tried])
+
+
+## Whether a species of `spec` lives in biome `b` (any, without `biomes`, or `spec` empty).
+static func _lives_in(spec: Dictionary, b: int) -> bool:
+	return spec.get("biomes", []).is_empty() or (b >= 0 and b < Biomes.IDS.size() and Biomes.IDS[b] in spec.biomes)
 
 
 ## A dry standing spot within 16 cells of `col` with open water a few cells ahead in one of
-## the four ways where `id` bites: [world point, way], [] for none.
-func _shore_near(col: Vector2i, id: String) -> Array:
+## the four ways, of a biome fish of `spec` live in (any, `spec` empty): [world point,
+## way], [] for none.
+func _shore_near(col: Vector2i, spec: Dictionary) -> Array:
 	var w = main.world
 	var actions = main.session.actions
 	for r in range(0, 17):
@@ -680,7 +710,7 @@ func _shore_near(col: Vector2i, id: String) -> Array:
 				var at := (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
 				for way: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
 					var water: Vector3 = actions.water_ahead(at, way, 5)
-					if water != Vector3.INF and Biomes.of(actions.fishing_biome(at, water)).fish.has(id):
+					if water != Vector3.INF and _lives_in(spec, main.gen.biome_of(floori(water.x / CELL), floori(water.z / CELL))):
 						return [at, way]
 	return []
 

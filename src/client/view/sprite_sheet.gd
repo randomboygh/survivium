@@ -28,6 +28,9 @@ var columns := 1
 ## Where the lights held burn in each frame they show in: {Vector2i(column, row): their
 ## pixels in the frame, one a hand} (see Figure).
 var spots := {}
+## Where the tip of a rod held is, by frame (Vector2i(column, row)): the pixel of it
+## farthest from the hand (see Figure), for the fishing line to hang from.
+var tips := {}
 ## Images filled with OUTLINE, by size.
 static var _dark := {}
 

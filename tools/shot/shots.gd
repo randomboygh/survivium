@@ -450,7 +450,14 @@ const SHOTS := {
 	# A rod in hand on the shore of a lake and the fish it catches lying on the ground.
 	"fishing": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:fishing_rod", "facing": "s", "work": "slash", "strike": true},
 		"drops": ["tools:fishing_rod", "animals:roach", "animals:pike", "animals:salmon", "animals:cod", "animals:parrotfish",
-			"animals:catfish", "animals:roasted_fish"]},
+			"animals:catfish", "animals:perch", "animals:roasted_fish", "tools:bait"]},
+	# The rod cast from the shore of a lake: the arm held out, the line and the float on the
+	# water, a roach swimming up to it; then the roach biting, the float pulled under. On
+	# the phone's layout, the action button stays pressed down and says what it does next.
+	"fishing-cast": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:fishing_rod", "facing": "s", "stay": true},
+		"cast": "wait"},
+	"fishing-bite": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:fishing_rod", "facing": "s", "stay": true},
+		"cast": "bite"},
 	# A drying rack set down by the workbench and kiln, closed, a composite bow in hand, the
 	# things of leather and bone lying in front; and the rack open, leather being tanned.
 	"leather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "dry": true,

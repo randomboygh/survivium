@@ -16,10 +16,10 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| Изготовление (`craft`) | 83 | руки, Верстак, Наковальня, Гончарный круг |
+| Изготовление (`craft`) | 84 | руки, Верстак, Наковальня, Гончарный круг |
 | Переработка (`refine`) | 8 | руки, Сушилка, Ткацкий станок, Верстак |
 | Плавка и обжиг (`smelt`) | 15 | Горн, Сыродутная печь, Печь для обжига |
-| Готовка (`cook`) | 11 | Костёр, Печь для обжига |
+| Готовка (`cook`) | 12 | Костёр, Печь для обжига |
 
 ## Изготовление (`craft`)
 
@@ -33,6 +33,7 @@
 | Обмотки `tools:leg_wraps` | Обмотки ×1 | Волокно ×5, Верёвка ×1 | — | руки | — | 5 с | 2 | 1. Примитивные инструменты | — |
 | Лапти `tools:bast_shoes` | Лапти ×1 | Волокно ×4, Верёвка ×2 | — | руки | — | 5 с | 2 | 1. Примитивные инструменты | — |
 | Удочка `tools:fishing_rod` | Удочка ×1 | Ветка ×2, Верёвка ×2, Кремень ×1 | — | руки | — | 4 с | 2 | 1. Примитивные инструменты | — |
+| Наживка `tools:bait` | Наживка ×4 | Земля ×1 | — | руки | — | 2 с | 1 | 0. Выживание без инструментов | — |
 | Праща `tools:cord_sling` | Праща ×1 | Верёвка ×2, Волокно ×2 | — | руки | — | 4 с | 2 | 1. Примитивные инструменты | — |
 | Камешки `tools:sling_stone` | Камешки ×8 | Камень ×1 | — | руки | — | 2 с | 1 | 0. Выживание без инструментов | — |
 | Факел `tools:torch` | Факел ×1 | Ветка ×1, Волокно ×2 | — | руки | — | 2 с | 1 | 0. Выживание без инструментов | — |
@@ -147,12 +148,13 @@
 | Рецепт | Делает | Тратит | В сумке | Станок | Инструменты | Время | Глубина | Эпоха | Альтернативы |
 |---|---|---|---|---|---|---|---|---|---|
 | Жареные грибы `plants:fried_mushrooms` | Жареные грибы ×1 | Гриб ×4 | — | Костёр | — | 4 с | 1 | 0. Выживание без инструментов | — |
-| Жареная рыба `animals:roasted_fish_from_roach` | Жареная рыба ×1 | Плотва ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish` |
-| Жареная рыба `animals:roasted_fish_from_pike` | Жареная рыба ×1 | Щука ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish` |
-| Жареная рыба `animals:roasted_fish_from_salmon` | Жареная рыба ×1 | Лосось ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish` |
-| Жареная рыба `animals:roasted_fish_from_cod` | Жареная рыба ×1 | Треска ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish` |
-| Жареная рыба `animals:roasted_fish_from_parrotfish` | Жареная рыба ×1 | Рыба-попугай ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_catfish` |
-| Жареная рыба `animals:roasted_fish_from_catfish` | Жареная рыба ×1 | Сом ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish` |
+| Жареная рыба `animals:roasted_fish_from_roach` | Жареная рыба ×1 | Плотва ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish`, Жареная рыба `animals:roasted_fish_from_perch` |
+| Жареная рыба `animals:roasted_fish_from_pike` | Жареная рыба ×1 | Щука ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish`, Жареная рыба `animals:roasted_fish_from_perch` |
+| Жареная рыба `animals:roasted_fish_from_salmon` | Жареная рыба ×1 | Лосось ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish`, Жареная рыба `animals:roasted_fish_from_perch` |
+| Жареная рыба `animals:roasted_fish_from_cod` | Жареная рыба ×1 | Треска ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish`, Жареная рыба `animals:roasted_fish_from_perch` |
+| Жареная рыба `animals:roasted_fish_from_parrotfish` | Жареная рыба ×1 | Рыба-попугай ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_catfish`, Жареная рыба `animals:roasted_fish_from_perch` |
+| Жареная рыба `animals:roasted_fish_from_catfish` | Жареная рыба ×1 | Сом ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_perch` |
+| Жареная рыба `animals:roasted_fish_from_perch` | Жареная рыба ×1 | Окунь ×1, Ветка ×1 | — | Костёр | — | 3 с | 3 | 1. Примитивные инструменты | Жареная рыба `animals:roasted_fish_from_roach`, Жареная рыба `animals:roasted_fish_from_pike`, Жареная рыба `animals:roasted_fish_from_salmon`, Жареная рыба `animals:roasted_fish_from_cod`, Жареная рыба `animals:roasted_fish_from_parrotfish`, Жареная рыба `animals:roasted_fish_from_catfish` |
 | Жареное мясо `animals:roasted_meat` | Жареное мясо ×1 | Сырое мясо ×1, Ветка ×1 | — | Костёр | — | 4 с | 2 | 0. Выживание без инструментов | — |
 | Лепёшка `plants:flatbread` | Лепёшка ×1 | Мука ×2 | — | Печь для обжига | — | 5 с | 4 | 3. Керамика и ранняя металлургия | — |
 | Костный клей `materials:bone_glue` | Костный клей ×1 | Кость ×3, Ветка ×1 | Глиняный горшок ×1 | Костёр | — | 6 с | 8 | 3. Керамика и ранняя металлургия | — |

@@ -1,0 +1,92 @@
+# Рыба бандла «Рыба»: живёт в открытой воде (swims) чуть под поверхностью, стайкой, только в своих биомах (biomes:
+# под озером, рекой или бочагом лежит биом суши вокруг, в море — sea или tropical_sea). Зимой плавает подо льдом.
+# catch — во что рыба превращается в сумке, когда её вытащили удочкой: к поплавку подплывает настоящая рыба
+# из воды рядом, и пойманная уходит из водоёма. Поля те же, что у всех существ (content/core/data/creatures.yaml).
+- id: roach
+  title: Плотва
+  mass: 0.3
+  diet: [plants]
+  speed: 2.5
+  sight: 4
+  human_wariness: 0.6
+  active: any
+  count: 5
+  sprite: roach
+  frames: 3
+  swims: true
+  flock: [2, 4]
+  catch: roach
+  biomes: [biomes:alpine_meadow, biomes:beach, biomes:birch_grove, biomes:desert, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:jungle, biomes:maple_wood, biomes:meadow, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:red_rocks, biomes:rock, biomes:salt_flat, biomes:savanna, biomes:steppe, biomes:swamp, biomes:taiga]
+- id: pike
+  title: Щука
+  mass: 1.2
+  diet: [plants]
+  speed: 3.5
+  sight: 5
+  human_wariness: 0.6
+  active: any
+  count: 2
+  sprite: pike
+  frames: 3
+  swims: true
+  catch: pike
+  biomes: [biomes:alpine_meadow, biomes:birch_grove, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:glacier, biomes:maple_wood, biomes:meadow, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:rock, biomes:steppe, biomes:stony_tundra, biomes:swamp, biomes:taiga, biomes:tundra]
+- id: salmon
+  title: Лосось
+  mass: 1.0
+  diet: [plants]
+  speed: 3.5
+  sight: 5
+  human_wariness: 0.6
+  active: any
+  count: 4
+  sprite: salmon
+  frames: 3
+  swims: true
+  flock: [2, 4]
+  catch: salmon
+  biomes: [biomes:alpine_meadow, biomes:glacier, biomes:ice_waste, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:rock, biomes:stony_tundra, biomes:taiga, biomes:tundra]
+- id: cod
+  title: Треска
+  mass: 0.9
+  diet: [plants]
+  speed: 3.0
+  sight: 5
+  human_wariness: 0.6
+  active: any
+  count: 5
+  sprite: cod
+  frames: 3
+  swims: true
+  flock: [2, 4]
+  catch: cod
+  biomes: [biomes:sea, biomes:ice_waste, biomes:tropical_sea]
+- id: parrotfish
+  title: Рыба-попугай
+  mass: 0.7
+  diet: [plants]
+  speed: 2.5
+  sight: 4
+  human_wariness: 0.6
+  active: day
+  count: 4
+  sprite: parrotfish
+  frames: 3
+  swims: true
+  flock: [2, 4]
+  catch: parrotfish
+  biomes: [biomes:mangrove, biomes:tropical_sea]
+- id: catfish
+  title: Сом
+  mass: 1.6
+  diet: [plants]
+  speed: 1.5
+  sight: 4
+  human_wariness: 0.5
+  active: night
+  count: 2
+  sprite: catfish
+  frames: 3
+  swims: true
+  catch: catfish
+  biomes: [biomes:birch_grove, biomes:desert, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:jungle, biomes:mangrove, biomes:maple_wood, biomes:meadow, biomes:red_rocks, biomes:salt_flat, biomes:savanna, biomes:steppe, biomes:swamp]

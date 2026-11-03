@@ -104,6 +104,7 @@ func _test_wildlife() -> void:
 	_check(wolf.moving, "a walking animal walks its picture")
 	_test_birds(w, person)
 	_test_swimmers(w)
+	_test_fishing(w)
 	_test_climbers(w, person)
 	_test_biomes(w)
 	_test_shore(w)
@@ -225,6 +226,83 @@ func _test_swimmers(w: WorldData) -> void:
 			if w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) != Mat.WATER:
 				fishes = -100
 	_check(fishes == AiRules.SPECIES["animals:perch"].count, "perches come into the water (%d)" % fishes)
+	for z in range(pz, pz + side):
+		for x in range(px, px + side):
+			w.set_cell(x, 3, z, Mat.AIR)
+			w.set_cell(x, 4, z, Mat.AIR)
+			w.set_cell(x, 5, z, Mat.GRASS)
+
+
+## Fishing (Fishing, WorldActions.fish): a rod cast from the shore of a pond lays its float
+## on the water with bait on the hook; a fish in the pond comes to it and bites, and the
+## second press takes that very fish out of the water into the bag. Pulled before a bite,
+## the bait comes back; walking off reels the line in; frozen water takes no cast, and
+## its fish swim under the ice.
+func _test_fishing(w: WorldData) -> void:
+	const Fishing := preload("res://src/shared/game/fishing.gd")
+	var px := 20
+	var pz := 20
+	var side := 16
+	for z in range(pz, pz + side):
+		for x in range(px, px + side):
+			w.set_cell(x, 3, z, Mat.DIRT)
+			w.set_cell(x, 4, z, Mat.WATER)
+			w.set_cell(x, 5, z, Mat.WATER)
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var who := Who.new()
+	who.item = "tools:fishing_rod"
+	who.inventory.add("tools:bait", 2)
+	# On the shore south of the pond, facing north over it.
+	who.position = Vector3(px + 8.5, 6.0, pz + side + 0.5) * WorldData.CELL
+	life.people = [who]
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	actions.wildlife = life
+	var fishing := Fishing.new()
+	fishing.world = w
+	fishing.wildlife = life
+	fishing.rng.seed = 3
+	actions.fishing = fishing
+	var top := (5.0 + WorldData.WATER_TOP) * WorldData.CELL
+	var fish := _animal(life, "animals:roach", Vector3(px + 8.5, top - Wildlife.DIP * WorldData.CELL, pz + side - 8.0) * WorldData.CELL)
+	var done := actions.fish(who)
+	_check(who.line.is_finite() and done.get("line", Vector3.INF) == who.line and fishing.has_line(who)
+		and who.inventory.count("tools:bait") == 1 and is_equal_approx(who.line.y, top) and not "Рядом с поплавком не видно рыбы" in who.said,
+		"a rod cast from the shore lays the float on the water, bait on the hook (%v)" % who.line)
+	var t := 0.0
+	while not who.bite and t < 30.0:
+		fishing.step(0.05)
+		life.update(0.05)
+		t += 0.05
+	var at := Vector2(fish.pos.x - who.line.x, fish.pos.z - who.line.z).length()
+	_check(who.bite and at <= Fishing.BITE_NEAR, "the fish of the pond swims to the float and bites (%.1f s, %.2f away)" % [t, at])
+	done = actions.fish(who)
+	_check(who.inventory.count("animals:roach") == 1 and fish.gone and not life.animals.has(fish) and not who.line.is_finite()
+		and not who.bite and done.has("shot") and done.shot[0] == "animals:roach",
+		"the second press takes that very fish out of the water into the bag")
+	actions.fish(who)
+	fishing.step(0.05)
+	actions.fish(who)
+	_check(who.inventory.count("tools:bait") == 1 and not fishing.has_line(who) and "Не клюнуло" in who.said,
+		"pulled before a bite, the line comes out empty and the bait back into the bag")
+	actions.fish(who)
+	who.position += Vector3(2.0, 0.0, 0.0)
+	fishing.step(0.05)
+	_check(not fishing.has_line(who) and not who.line.is_finite() and who.inventory.count("tools:bait") == 1,
+		"walking off reels the line in, the bait back")
+	who.position -= Vector3(2.0, 0.0, 0.0)
+	w.water_frozen = true
+	done = actions.fish(who)
+	var under := life.under_ice(px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0)
+	var roach: Dictionary = AiRules.SPECIES["animals:roach"]
+	_check(not fishing.has_line(who) and "Вода замёрзла: рыба подо льдом не клюёт" in who.said
+		and is_equal_approx(under, 5.0 * WorldData.CELL)
+		and life._floor(roach, px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0) < under
+		and life.water_top(px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0) == -INF,
+		"frozen water takes no cast; its fish swim under the ice")
+	w.water_frozen = false
 	for z in range(pz, pz + side):
 		for x in range(px, px + side):
 			w.set_cell(x, 3, z, Mat.AIR)

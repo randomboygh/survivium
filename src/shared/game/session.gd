@@ -18,6 +18,7 @@ const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Teams := preload("res://src/shared/game/teams.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Fights := preload("res://src/shared/game/fights.gd")
+const Fishing := preload("res://src/shared/game/fishing.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -54,6 +55,8 @@ var placed
 var actions: WorldActions
 var storms: Storms
 var wildlife: Wildlife
+## The fishing lines cast (Fishing).
+var fishing := Fishing.new()
 ## The teams of the world's players (Teams).
 var teams := Teams.new()
 ## The land claimed (Territory).
@@ -111,6 +114,9 @@ func _init(w, g, c: Clock, r, p) -> void:
 	wildlife.clock = clock
 	wildlife.people = players
 	actions.wildlife = wildlife
+	fishing.world = world
+	fishing.wildlife = wildlife
+	actions.fishing = fishing
 
 
 ## Brings `who` (Character) into the world with their `workshop` (Workshop).
@@ -124,6 +130,7 @@ func add_player(who, workshop) -> void:
 
 func remove_player(who) -> void:
 	var i := players.find(who)
+	fishing.lines.erase(who)
 	if i >= 0:
 		players.remove_at(i)
 		workshops.remove_at(i)
@@ -174,10 +181,12 @@ func step_players(delta: float) -> void:
 	fights.step(d, players)
 
 
-## The lights set down and the campfires burn, the rain falling on the fires (Placed.step).
+## The lights set down and the campfires burn, the rain falling on the fires (Placed.step);
+## the fishing lines in the water (Fishing.step).
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	placed.step(d, clock.WEATHERS[clock.weather].get("rain", 0.0))
+	fishing.step(d)
 	territory.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
 

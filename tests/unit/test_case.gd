@@ -190,7 +190,11 @@ class Survivor extends "res://src/shared/game/character.gd":
 
 class Who extends RefCounted:
 	var inventory := Inventory.new()
+	var vitals := Vitals.new()
 	var position := Vector3.ZERO
+	## The fishing line's float and a bite at it (Fishing).
+	var line := Vector3.INF
+	var bite := false
 	var held_back: Array[Vector3] = []
 	var sacks: Array[Vector3] = []
 	var item := ""
@@ -219,6 +223,9 @@ class Who extends RefCounted:
 
 	func act(_action: String) -> bool:
 		return true
+
+	func is_dead() -> bool:
+		return false
 
 	func give(id: String, n: int, worn := 0) -> int:
 		return inventory.add(id, n, worn)

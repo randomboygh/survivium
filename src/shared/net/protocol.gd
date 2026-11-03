@@ -163,6 +163,9 @@ const MADE := "made"
 ## Things lying on the ground changed in a chunk: [key] over the loop (the world is one
 ## object), [key, list] over a socket (the things as WorldData.drops keeps them).
 const DROPS := "drops"
+## The player's fishing line, when it changed: [where its float lies (INF: none in the
+## water), a fish bites at it] (Character.line, bite; Fishing).
+const LINE := "line"
 ## The body is put at a point (coming back to life, the playtest page): [at].
 const TELEPORT := "teleport"
 ## The body is thrown (a burning campfire): [dir, speed, hop] (Body.knock).
@@ -196,7 +199,8 @@ const STEP := "step"
 ## The other players in the zone, those that changed since last told (С3.3; 20 a second
 ## over a socket): [[id, name, position, facing step, hands, active hand, moving,
 ## swimming, on the ground, work kind, work length, work count, work at, what is worn
-## (Inventory.gear), in the player's team], …].
+## (Inventory.gear), in the player's team, where the float of their fishing line lies (INF
+## none)], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"

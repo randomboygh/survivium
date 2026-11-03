@@ -20,6 +20,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const CELL := 0.5
 const TEST_SAVES := "user://shot_ground"
 
@@ -292,6 +293,8 @@ func _run() -> void:
 				await process_frame
 		if shot.has("hands"):
 			await _hands(shot.hands)
+		if shot.has("cast"):
+			await _cast(shot.cast == "bite")
 		if shot.get("wall", "") is String and shot.get("wall", "") == "north":
 			# Right behind the player where they stand now.
 			places.wall(main.world, Vector3i((main.player.position / CELL).floor()), true)
@@ -996,6 +999,54 @@ func _hands(h: Dictionary) -> void:
 			main.player._work_time = 600.0
 	await process_frame
 	await process_frame
+
+
+## The rod in hand cast into the water nearest ahead of the player (the four ways tried),
+## a roach let into the water by the float: swimming up to it, or biting at it (`bite`).
+func _cast(bite: bool) -> void:
+	var who = main.host.player
+	var actions = main.session.actions
+	var at: Vector3 = main.player.position
+	var water := Vector3.INF
+	var way := Vector2(0, 1)
+	for d: Vector2 in [Vector2(0, 1), Vector2(1, 0), Vector2(-1, 0), Vector2(0, -1)]:
+		water = actions.water_ahead(at, d, 6)
+		if water != Vector3.INF:
+			way = d
+			break
+	if water == Vector3.INF:
+		print("no water ahead to cast into at %v" % at)
+		return
+	main.player.facing = SpriteSheet.direction_of(way)
+	await process_frame
+	await process_frame
+	who.inventory.add("tools:bait", 4)
+	if main.session.fishing.has_line(who):
+		main.session.fishing.pull(who)
+	var life = main.session.wildlife
+	main.controls._cooldown = 0.0
+	actions.fish(who, water)
+	var line: Vector3 = who.line
+	if not line.is_finite():
+		print("the rod was not cast at %v" % water)
+		return
+	# Swimming up from farther out, or at the float.
+	var spot: Vector3 = line + Vector3(way.x, 0.0, way.y) * (0.0 if bite else 1.0) + Vector3(way.y, 0.0, way.x) * (0.0 if bite else 0.6)
+	spot.y = life.water_top(spot.x, spot.z) - life.DIP * CELL
+	var fish = life._add("animals:roach", spot)
+	fish.think = 1000.0
+	# No other fish lured to the float meanwhile.
+	main.session.fishing.lines[who].wait = 1000.0
+	if bite:
+		var l = main.session.fishing.lines[who]
+		l.fish = fish
+		l.bite = 1000.0
+		fish.bait = line
+		who.bite = true
+	else:
+		fish.facing = -signf(way.x) if way.x != 0.0 else 1.0
+	for i in 10:
+		await process_frame
 
 
 ## By the spawn: a floor painted, a pit dug, berries knocked down, the tools taken but

@@ -38,14 +38,15 @@ func update() -> void:
 
 ## The look of item `id` in a hand (see Figure), {} for an empty hand: the sheet of its
 ## `sprite` in its mod, or its icon (the tile of the block it places), and the work it
-## is used with (`anim`); a thing that gives light (a torch) says so (`light`).
+## is used with (`anim`); a thing that gives light (a torch) says so (`light`), a rod
+## that a fishing line hangs from its tip (`tip`).
 func look(id: String) -> Dictionary:
 	var item := Items.get_item(id)
 	if item.is_empty():
 		return {}
 	if item.sprite != "":
 		return {"sprite": Content.asset(item, "sprites/held/%s.png" % item.sprite), "anim": item.anim,
-				"light": item.get("light", 0.0) > 0.0}
+				"light": item.get("light", 0.0) > 0.0, "tip": item.get("tool", "") == "rod"}
 	if not _pictures.has(id):
 		_pictures[id] = ItemIcons.image_of(id)
 	return {"icon": id, "picture": _pictures[id], "anim": item.anim}

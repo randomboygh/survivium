@@ -54,8 +54,10 @@ var hands: Array[String] = ["", ""]
 var active := 0
 ## The right hand's brush, an index into Tools.BRUSHES.
 var brush := 0
-## Whether the action button is held.
+## Whether the action button is held, and whether it (or its key) was last frame: a rod
+## acts once a press (a cast, then a pull), not again and again while held.
 var action_held := false
+var _action_was := false
 ## A button or finger held on the world: {"button", "hand", "dig", "pos", "held", "pending"
 ## (not worked yet), "normal", "first", "last" (the plane and the first and last cells
 ## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}.
@@ -261,7 +263,8 @@ func update(delta: float) -> void:
 		if not _stroke.held and not _stroke.pending:
 			_stroke = {}
 	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
-		var acted := _cooldown <= 0.0
+		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
+		_action_was = true
 		if acted:
 			act_in_front()
 		var key := [game.character.feet(), game.character.facing_step(), held()]
@@ -271,6 +274,7 @@ func update(delta: float) -> void:
 		_cursor_clock = CURSOR_TIME
 	else:
 		_preview_for = []
+		_action_was = false
 	if touch and _cursor_clock <= 0.0:
 		game.cursor.show_cells([], true)
 
@@ -432,7 +436,9 @@ func action_name() -> String:
 		"pickaxe", "shovel":
 			return "Копать"
 		"rod":
-			return "Удить"
+			if game.character.bite:
+				return "Подсечь"
+			return "Смотать" if game.character.line.is_finite() else "Закинуть"
 		"spear":
 			return "Метнуть"
 		"bow", "sling":
@@ -594,9 +600,13 @@ func _run_stroke() -> void:
 				game.land.paint(sq, _stroke.paint)
 		return
 	if _stroke.dig:
+		# A rod casts or pulls once a tap, however long it is held.
+		if _stroke.get("once", false):
+			return
 		var hit := pick(_stroke.pos)
 		if not hit.is_empty():
 			dig_at(hit.cell, hit.normal)
+			_stroke.once = Tools.can_fish(tool_record())
 		return
 	if _stroke.normal == null:
 		var hit := pick(_stroke.pos)

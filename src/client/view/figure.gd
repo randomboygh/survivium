@@ -55,6 +55,10 @@ var _turns := {}
 ## Where the lights held burn in the frames of the row being put together, by column:
 ## an array of pixels, one a hand.
 var _row_spots := {}
+## Where the tip of a rod held is in the frames of the row being put together, by column.
+var _row_tips := {}
+## The pixel of each frame of a rod held farthest from the hand, by "path|column|row|flipped".
+static var _far := {}
 
 
 func _init(worn: Array, hands: Dictionary) -> void:
@@ -327,6 +331,20 @@ static func _brightest(picture: Image) -> Vector2i:
 	return best
 
 
+## The drawn pixel of `picture` farthest from `from`.
+static func _farthest(picture: Image, from: Vector2i) -> Vector2i:
+	var best := from
+	var most := -1
+	for y in picture.get_height():
+		for x in picture.get_width():
+			if picture.get_pixel(x, y).a > 0.5:
+				var d := (Vector2i(x, y) - from).length_squared()
+				if d > most:
+					most = d
+					best = Vector2i(x, y)
+	return best
+
+
 static func _other(hand: String) -> String:
 	return "left" if hand == "right" else "right"
 
@@ -343,6 +361,7 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 	strip.fill(Color(0, 0, 0, 0))
 	var from := Rect2i(c0 * size.x, src * size.y, strip.get_width(), size.y)
 	_row_spots = {}
+	_row_tips = {}
 	_put_things(strip, src, false, c0, c1)
 	for name: String in look:
 		strip.blend_rect(layer(name), from, Vector2i.ZERO)
@@ -362,6 +381,9 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 		for spot: Vector2i in _row_spots[col]:
 			spots.append(Vector2i(size.x - 1 - spot.x, spot.y) if swap else spot)
 		target.spots[Vector2i(col, row)] = spots
+	for col: int in _row_tips:
+		var tip: Vector2i = _row_tips[col]
+		target.tips[Vector2i(col, row)] = Vector2i(size.x - 1 - tip.x, tip.y) if swap else tip
 	_img.blit_rect(strip, whole, Vector2i(c0 * size.x, row * size.y))
 
 
@@ -414,6 +436,14 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 			var dst := Rect2i(at, pic.get_size()).intersection(frame)
 			if dst.has_area():
 				strip.blend_rect(pic, Rect2i(dst.position - at, dst.size), dst.position)
+			# A fishing line hangs from the tip of a rod: its pixel farthest from the hand.
+			if thing.get("tip", false) and not _turns.has(hand):
+				var key := "%s|%d|%d|%s" % [thing.sprite, pic_col, trow_of, right]
+				if not _far.has(key):
+					_far[key] = _farthest(pic, hold)
+				var tip: Vector2i = at + _far[key] - frame.position + Vector2i.ONE
+				if Rect2i(Vector2i.ZERO, size).has_point(tip):
+					_row_tips[col] = tip
 			# A light burns at the brightest pixel of what gives it.
 			if thing.get("light", false) and not _turns.has(hand):
 				var key := "%s|%d|%d|%s" % [thing.sprite, pic_col, trow_of, right]

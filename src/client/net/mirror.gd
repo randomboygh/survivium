@@ -124,6 +124,12 @@ func _on_event(kind: String, args: Variant) -> void:
 			if args is Array and args.size() == 1 and args[0] is Vector3:
 				who.teleport(args[0])
 				game.player.visible = not who.is_dead()
+		Protocol.LINE:
+			if args is Array and args.size() == 2 and args[0] is Vector3:
+				who.line = args[0]
+				who.bite = bool(args[1])
+				# The action button and its label follow the line.
+				who.state_changed.emit()
 		Protocol.KNOCK:
 			if args is Array and args.size() == 3 and args[0] is Vector2:
 				game.player.body.knock(args[0], float(args[1]), float(args[2]))
