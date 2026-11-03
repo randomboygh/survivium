@@ -1,0 +1,38 @@
+# Мебель делают из досок («Материалы») на верстаке; обручи бочки — из верёвки, тюфяк кровати и
+# половик — из ткани (половик ткут на станке).
+- id: table
+  title: Стол
+  makes: table
+  needs: {materials:planks: 4}
+  at: workbench
+  time: 6
+- id: stool
+  title: Табурет
+  makes: stool
+  needs: {materials:planks: 2}
+  at: workbench
+  time: 3
+- id: wooden_bed
+  title: Кровать
+  makes: wooden_bed
+  needs: {materials:planks: 6, materials:cloth: 2}
+  at: workbench
+  time: 8
+- id: cupboard
+  title: Шкаф
+  makes: cupboard
+  needs: {materials:planks: 6}
+  at: workbench
+  time: 8
+- id: barrel
+  title: Бочка
+  makes: barrel
+  needs: {materials:planks: 4, materials:cord: 2}
+  at: workbench
+  time: 6
+- id: rug
+  title: Половик
+  makes: rug
+  needs: {materials:cloth: 2}
+  at: loom
+  time: 5

@@ -160,6 +160,8 @@ const SHOTS := {
 	# The blueprint: a room of planks half built (its lowest level up, the rest a ghost)
 	# with a floor's ghost inside, and a wall's ghost of brick beside it.
 	"build-plan": {"time": 0.4, "season": 1, "plan": true},
+	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.
+	"build-furniture": {"time": 0.4, "season": 1, "furniture": true},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.
 	"walk-into-east": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 0], "facing": "e"},

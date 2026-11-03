@@ -1,0 +1,65 @@
+# Предметы бандла «Мебель» мода «Инструменты и крафт» (решение 163, 7А): ставятся лицом к игроку,
+# как станки (prop — класс модели, models/<model>.png; клетки — по срезу модели, кратно 8 px), но
+# станком не считаются (furniture). Касание забирает то, что ничего не хранит. Табурет: стоящий на нём
+# или рядом без движения восстанавливает выносливость в `seat` раз быстрее. Кровать — постель
+# (bedding). Шкаф и бочка хранят (storage), в бочке еда портится в `keeps` раза медленнее.
+# Поля — как у предметов основы (content/core/data/items.yaml).
+- id: table
+  title: Стол
+  description: Дощатый стол на четырёх ножках, на две клетки.
+  weight: 8.0
+  stack: 1
+  icon: table
+  model: table
+  prop: table
+  furniture: true
+- id: stool
+  title: Табурет
+  description: Посиди рядом — силы возвращаются вдвое быстрее.
+  weight: 2.0
+  stack: 4
+  icon: stool
+  model: stool
+  prop: stool
+  furniture: true
+  seat: 2.0
+- id: wooden_bed
+  title: Кровать
+  description: Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки.
+  weight: 12.0
+  stack: 1
+  icon: wooden_bed
+  model: wooden_bed
+  prop: wooden_bed
+  furniture: true
+  bedding: 2.5
+- id: cupboard
+  title: Шкаф
+  description: Высокий шкаф из досок, хранит больше сундука.
+  weight: 14.0
+  stack: 1
+  icon: cupboard
+  model: cupboard
+  prop: cupboard
+  furniture: true
+  storage: 24
+- id: barrel
+  title: Бочка
+  description: Бочка в обручах. Еда в ней портится вдвое медленнее.
+  weight: 6.0
+  stack: 1
+  icon: barrel
+  model: barrel
+  prop: barrel
+  furniture: true
+  storage: 8
+  keeps: 0.5
+- id: rug
+  title: Половик
+  description: Тканый половик для пола, на две клетки.
+  weight: 1.5
+  stack: 4
+  icon: rug
+  model: rug
+  prop: rug
+  furniture: true

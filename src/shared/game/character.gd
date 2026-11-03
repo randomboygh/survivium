@@ -33,6 +33,9 @@ const COUNTED := {"dig": "dug", "place": "built"}
 ## A step longer than this (world units) is a jump of the body to another place, not
 ## a walk.
 const STRIDE_MAX := 3.0
+## A body that moved less than this (world units) since the last update stands still: a seat
+## by it rests it (Placed.seat_near).
+const STILL := 0.01
 ## What the two hands hold, "" for an empty one; the owner fills it in.
 func in_hands() -> Array:
 	return []
@@ -253,6 +256,7 @@ func update(delta: float) -> void:
 	var was := vitals.health
 	if vitals.asleep:
 		vitals.sleep_rate = sleep_rate(p)
+	vitals.rest_rate = placed.seat_near(p) if placed != null and stride < STILL else 1.0
 	var left := delta
 	while left > 0.0:
 		var d := minf(left, VITALS_STEP)
