@@ -634,11 +634,15 @@ func on_cell_changed(cell: Vector3i) -> void:
 		for dx in range(-3, 4):
 			keys[WorldData.chunk_key(cell.x + dx, cell.z + dz)] = true
 	if job_mesh != null and keys.has(job_key):
-		# The chunk being built changed under the job: start it over.
-		_drop_job()
 		if job_edit:
+			# The chunk being rebuilt for an edit changed again: the job goes on and
+			# shows the earlier edit, and the chunk is rebuilt once more after it. Were
+			# it started over, digging faster than a rebuild takes (a phone) would
+			# never show the ground changing.
 			keys[job_key] = true
 		else:
+			# A chunk being streamed: start it over as an edit.
+			_drop_job()
 			has_target = true
 	var queue := {}
 	if chunk_nodes.has(home):
@@ -657,10 +661,9 @@ func on_cell_changed(cell: Vector3i) -> void:
 func remesh_chunk(key: Vector2i) -> void:
 	if not chunk_nodes.has(key):
 		return
-	if job_mesh != null and job_key == key:
+	if job_mesh != null and job_key == key and not job_edit:
 		_drop_job()
-		if not job_edit:
-			has_target = true
+		has_target = true
 	dirty_chunks[key] = true
 
 

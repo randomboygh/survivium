@@ -108,7 +108,8 @@
   `MESA_SHADER_DUMP_PATH=dir` (с `MESA_SHADER_CACHE_DISABLE=true`) под xvfb пишет каждый собранный шейдер.
 - `instance uniform` в web-сборке читается как 0.
 - `world.gdshader` читает `material_bits[]` и `corner_shapes[]` по материалу (`Mat.shader_bits`, ставит
-  `main.gd`); размер — константа шейдера (63 = `PixelTextures.MOST_MATERIALS`), поднимать вместе с атласом.
+  `main.gd`: приоритет, `DRAINS`, вид пятен, `TRUNK`, с бита 8 — `fray`, на сколько текселей стык с
+  материалом рвётся в обе стороны клочьями, как у соли); размер — константа шейдера (63 = `PixelTextures.MOST_MATERIALS`), поднимать вместе с атласом.
 - В UV2.x меша — номер материала (6 бит, 63 — цвет вершины), а не плитки: плитку боков задаёт бит 1
   флага, низа — грань, смотрящая вниз (`MeshFaces.pack`); соседи в UV2.y — тоже материалы. Атлас —
   16×12 плиток (`ATLAS_COLUMNS`, `ATLAS_ROWS` в `common.gdshaderinc`, `PixelTextures.TILES`, `ROWS`).

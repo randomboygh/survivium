@@ -85,7 +85,8 @@ var rest_rate := 1.0
 var hunger := true
 ## Whether water falls with time; a playtest switch turns it off.
 var thirst := true
-## Whether energy falls with time; a playtest switch turns it off.
+## Whether the body tires: energy falls with time, stamina pays for work and swimming. A
+## playtest switch turns it off: then nothing tires and nobody drowns.
 var fatigue := true
 ## Whether the body feels the cold and the heat; a playtest switch turns it off (warmth
 ## stays at COMFORT, wetness still comes and goes).
@@ -115,7 +116,7 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 		_hurt(DRY_PER_DAY * days, "thirst")
 	elif satiety > WELL_FED and water >= THIRSTY and warmth >= COLD:
 		health = minf(MAX, health + HEAL_PER_DAY * days * (2.0 if asleep else 1.0))
-	if swimming:
+	if swimming and fatigue:
 		stamina = maxf(0.0, stamina - SWIM_COST * delta)
 		if stamina <= 0.0:
 			_hurt(DROWN * delta, "water")
@@ -188,6 +189,8 @@ func stamina_cap() -> float:
 
 ## Pays for `action` (see COSTS) if there is stamina enough; false when too tired.
 func spend(action: String) -> bool:
+	if not fatigue:
+		return true
 	var cost: float = COSTS.get(action, 0.0)
 	if stamina < cost:
 		return false
@@ -196,7 +199,7 @@ func spend(action: String) -> bool:
 
 
 func can(action: String) -> bool:
-	return stamina >= COSTS.get(action, 0.0)
+	return not fatigue or stamina >= COSTS.get(action, 0.0)
 
 
 ## Eats something worth `food` satiety; false when already full.

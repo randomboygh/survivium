@@ -9,6 +9,7 @@
   priority: 3
   ground: sand
   drains: true
+  fray: 6
   item: salt
   dig: shovel
   step: step_sand

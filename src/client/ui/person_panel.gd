@@ -5,7 +5,8 @@ extends PanelContainer
 ## close together, a strip of the bag's load along the bottom of the back's slot; beside
 ## them the skills (Skills, the character's SkillSet), two columns of bars of a division
 ## per level in a panel of their own, a thin line along the bottom for the way to the next
-## level, what the things held and worn add to a skill (a tool's power, ROLE_OF) as more
+## level, what the things held and worn add to a skill (a tool's power over
+## POWER_PER_LEVEL, ROLE_OF) as more
 ## divisions in another colour. A tap on a slot says which with
 ## `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
@@ -44,6 +45,9 @@ const BAR := 14
 const BAR_FILL := Color("#6b4a2f")
 const BONUS_FILL := Color("#4f7a37")
 const NEXT_FILL := Color("#d9b45a")
+## A tool adds a division to the skill it helps for every this much of its power (power
+## 1..8 adds 1..3 of the ten): a good tool helps, but less than learning the work.
+const POWER_PER_LEVEL := 3
 ## The work (Skills role) a tool of each class helps: it adds its power to that skill.
 const ROLE_OF := {
 	"axe": "chop", "pickaxe": "dig", "shovel": "dig", "scythe": "gather", "knife": "craft",
@@ -214,7 +218,7 @@ func _on_skills() -> void:
 
 
 ## What the things in the hands and worn add to the skills: the most of each skill, a
-## tool's power (a weapon with nothing to shoot adds nothing); the bars drawn again, each
+## tool's power over POWER_PER_LEVEL (a weapon with nothing to shoot adds nothing); the bars drawn again, each
 ## with its level, the way to the next, how much faster its work is and what adds to it.
 func _show_skills(inv) -> void:
 	_bonus.clear()
@@ -224,7 +228,7 @@ func _show_skills(inv) -> void:
 			continue
 		var it := Items.get_item(id)
 		var role: String = ROLE_OF.get(it.get("tool", "none"), "")
-		var add: int = it.get("power", 0)
+		var add := ceili(int(it.get("power", 0)) / float(POWER_PER_LEVEL))
 		if role != "" and add > _bonus.get(role, [0])[0]:
 			_bonus[role] = [add, id]
 	var skills = game.character.skills
