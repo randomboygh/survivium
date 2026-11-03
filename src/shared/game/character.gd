@@ -16,6 +16,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
+const SkillSet := preload("res://src/shared/game/skill_set.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -133,6 +134,8 @@ var body
 var placed
 var inventory := Inventory.new()
 var vitals := Vitals.new()
+## What the character has learned by doing (SkillSet), kept with the player.
+var skills := SkillSet.new()
 ## The screen of the character's player, as their client told it (zero: not told):
 ## half its width and height in world units, the width along `view_right` over the
 ## ground (the way the camera is turned), the height across it. The animals someone
@@ -272,6 +275,10 @@ func update(delta: float) -> void:
 			vitals.sleep(false)
 			say("Вы выспались")
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
+	body.swim_scale = skills.boost("swim")
+	# Swimming somewhere is the work of the skill of swimming.
+	if body.swimming and stride > STILL and stride < STRIDE_MAX:
+		skills.gain("swim", delta)
 	if body.jumped:
 		note("jumps")
 		if not body.air_jumps:

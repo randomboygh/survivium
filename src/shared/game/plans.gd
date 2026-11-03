@@ -229,10 +229,11 @@ func build(actions, who, top: int) -> Dictionary:
 			var back: String = Mat.RECORDS[m].item
 			if back != "" and not free:
 				who.inventory.add(back, 1)
-		actions.put_block(c, block)
+		var fresh: bool = actions.build_cell(c, block)
 		cells.erase(c)
 		changed.emit([c], "")
-		var done: Dictionary = actions.work(BUILD_SWING, "reach", (Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
+		var done: Dictionary = actions.work(actions.skilled(who, "build", BUILD_SWING, 1.0 if fresh else 0.0), "reach",
+			(Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
 		done.placed = 1
 		return done
 	if missing != "":

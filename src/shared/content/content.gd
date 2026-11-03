@@ -2,7 +2,7 @@ extends RefCounted
 ## Mods, their bundles and their data files. A mod is a folder under `content/` with
 ## `mod.yaml`; what it adds comes in bundles, a folder per thing (`content/animals/wolf/`
 ## with `bundle.yaml`), each with its own `data/<kind>.yaml` (materials, items, creatures,
-## trees, bushes, recipes, plants, sounds, starts, eras) and its pictures, models, textures and sounds
+## trees, bushes, recipes, plants, sounds, starts, eras, skills) and its pictures, models, textures and sounds
 ## beside them (`sprites/`, `models/`, `icons/`, `textures/`, `sounds/`: a sound's files are
 ## `<name>.wav`, or `<name>_1.wav` ... for its variants; what a bundle lacks is looked for in
 ## the mod's `common/`, see `asset`). A mod without bundle folders is one bundle with its
@@ -40,7 +40,7 @@ extends RefCounted
 ## record is to the one it names) and, where an action makes it, which (`via`, ACTIONS),
 ## for the content graph.
 ## The registries (materials.gd, items.gd, ai_rules.gd, trees.gd, bushes.gd, biomes.gd,
-## crafting.gd, plants.gd, starts.gd, eras.gd, tools.gd) read their kind with
+## crafting.gd, plants.gd, starts.gd, eras.gd, skills.gd, tools.gd) read their kind with
 ## `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.SPECIES` or `AiRules.SPECIES` as before.
 
@@ -343,6 +343,21 @@ const SCHEMAS := {
 	"eras": {
 		"order": {"type": "int", "min": 0},
 		"depth": {"type": "int", "min": 0, "default": 0},
+	},
+	# The skills (Skills, decision 164): what kind of work each grows from and speeds up
+	# (`role`, the engine asks by it), its place in the window (`order`), its levels and the
+	# points of work the first one takes, each next `growth` times more, how much faster
+	# the work is at the last level (`speed`: the share of time saved, or of pace added
+	# swimming), and the points a whole thing gives where the work has no time of its own
+	# (`each`: a beast killed, a fish caught).
+	"skills": {
+		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim"]},
+		"order": {"type": "int", "min": 0, "default": 0},
+		"levels": {"type": "int", "min": 1, "max": 20, "default": 10},
+		"first": {"type": "float", "min": 1.0, "default": 180.0},
+		"growth": {"type": "float", "min": 1.0, "max": 4.0, "default": 1.6},
+		"speed": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.3},
+		"each": {"type": "float", "min": 0.0, "default": 0.0},
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",

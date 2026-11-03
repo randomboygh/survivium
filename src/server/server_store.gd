@@ -21,7 +21,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 
 const PLAYERS := "players"
 ## The parts of a player's record, as the game's save names them (save_game.gd).
-const SECTIONS := ["inventory", "vitals", "character", "knowledge", "crafting"]
+const SECTIONS := ["inventory", "vitals", "character", "knowledge", "crafting", "skills"]
 
 var store: WorldStore
 var session
@@ -125,7 +125,7 @@ static func record_of(a) -> Dictionary:
 	return {"format": WorldStore.FORMAT, "id": a.id, "name": a.name, "position": [p.x, p.y, p.z],
 		"inventory": who.inventory.to_dict(), "vitals": who.vitals.to_dict(), "character": who.to_dict(),
 		"knowledge": a.link.workshop.knowledge.to_dict(), "crafting": a.link.workshop.queue.to_dict(),
-		"saved": Time.get_datetime_string_from_system()}
+		"skills": who.skills.to_dict(), "saved": Time.get_datetime_string_from_system()}
 
 
 ## Puts the character of `record` into the new link's player: the bag, the body, what
@@ -133,7 +133,7 @@ static func record_of(a) -> Dictionary:
 static func restore(link, record: Dictionary) -> void:
 	var who = link.who
 	var parts := {"inventory": who.inventory, "vitals": who.vitals, "character": who,
-		"knowledge": link.workshop.knowledge, "crafting": link.workshop.queue}
+		"knowledge": link.workshop.knowledge, "crafting": link.workshop.queue, "skills": who.skills}
 	for name: String in SECTIONS:
 		if record.get(name) is Dictionary:
 			parts[name].from_dict(record[name])

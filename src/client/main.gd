@@ -571,6 +571,7 @@ func start_world() -> void:
 	save.track("character", host.player)
 	save.track("knowledge", host.workshop.knowledge)
 	save.track("crafting", host.workshop.queue)
+	save.track("skills", host.player.skills)
 	host.workshop.settle()
 	actions = session.actions
 	storms = session.storms
@@ -879,6 +880,7 @@ func _process(delta: float) -> void:
 		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
+		player.body.swim_scale = character.skills.boost("swim")
 		player.asleep = character.vitals.asleep and not character.is_dead()
 		player.line_at = character.line
 		player.line_bite = character.bite

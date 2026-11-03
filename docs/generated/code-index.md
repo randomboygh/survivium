@@ -171,6 +171,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/content/materials.gd`: Cell materials, read from `content/*/data/materials.yaml` (see Content).
 - `src/shared/content/mods.gd`: The set of bundles the game plays with.
 - `src/shared/content/plants.gd`: Plants on grass: what each gives when the layer of grass it grows on is cut (see the material's `mow`).
+- `src/shared/content/skills.gd`: The skills, read from `content/*/data/skills.yaml` (see Content; decision 164): each grows from one kind of work (`role`: gather, chop, dig, craft, build, cook, hunt, fish, swim) and makes it faster.
 - `src/shared/content/starts.gd`: How a new world starts, read from `content/*/data/starts.yaml` (see Content): what bare hands do (`hand_*`, Tools.HAND), what the bag of a new character holds and the camp by the spawn, each thing of…
 - `src/shared/content/tools.gd`: Tools and what they can do to cells: a material says what digs it (its `dig`) and how hard it is (`hardness`), a tool item says what it is (`tool`), its power, how many cells a swing takes (`area`),…
 - `src/shared/content/trees.gd`: Tree species: what a tree looks like is data here, where it grows is up to the world generator (per biome).
@@ -192,6 +193,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/game/real_weather.gd`: The weather of the real world, when the setting asks for it: finds roughly where the device is by its IP address, asks Open-Meteo for the weather there now every REFRESH seconds and pins the clock's…
 - `src/shared/game/rules.gd`: The rules of play the server decides for everyone in the world (plan/architecture/server.md): the switches the rules read.
 - `src/shared/game/session.gd`: A world being played (plan/architecture/server.md): the world, the rules of play over it and the characters in it, run by a tick.
+- `src/shared/game/skill_set.gd`: What a character has learned by doing (plan/design/character.md «Навыки», decision 164): the points of each skill (Skills), grown only by useful work.
 - `src/shared/game/storms.gd`: What a strong wind does to the plants around a place (plan/design/time-seasons.md): it breaks branches off the trees, which lie on the ground under them, a little downwind, and knocks the ripe…
 - `src/shared/game/teams.gd`: The teams of a world (plan/design/territory-pvp.md, decision 50): a player is in one team at most; one joins by an invitation of a member, and leaves when they wish.
 - `src/shared/game/territory.gd`: The land claimed in a world (plan/design/territory-pvp.md, decision 15; the user's picks 2026-11-02: 1А, 2А): a thing that `claims` (a boundary post), set down by a player, is the centre of a claim…
@@ -242,6 +244,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/plans_test.gd`: The blueprint (Plans): its shapes, drawing and taking off the ghost, building it cell by cell from the bag with the action button, and its save.
 - `tests/unit/session_test.gd`: The session of a world (the server's tick): the rules of play, and a tick that runs the clock, every character with their workshop, the animals around all the players and the wind around each of them.
 - `tests/unit/shapes_test.gd`: The shapes of natural ground (slopes and corners) against the rules written out one cell at a time.
+- `tests/unit/skills_test.gd`: The skills (decision 164): the levels the points make, what a level does to the time of the work, the points useful work gives (and work undone does not), the recipe made over and over, the save, a…
 - `tests/unit/store_test.gd`: Saving and loading a world and its chunks.
 - `tests/unit/territory_test.gd`: Teams and territory (plan/design/territory-pvp.md): who is in a team, how one joins, leaves and is put out, what the save keeps, and the requests of two players on one server.
 - `tests/unit/test_case.gd`: What every unit test file under tests/unit/ extends: the scripts under test as consts, `_check`, and the helpers more than one file needs.

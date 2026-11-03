@@ -21,7 +21,7 @@ func _on_bag_changed() -> void:
 func update(delta: float) -> void:
 	if paused or queue.jobs.is_empty() or waiting():
 		return
-	queue.jobs[0].left = maxf(float(queue.jobs[0].left) - delta, 0.0)
+	queue.jobs[0].left = maxf(float(queue.jobs[0].left) - delta / _pace(), 0.0)
 
 
 ## Takes the queue and the pause from a SHOP event's `d` (the queue tells `changed`).

@@ -83,6 +83,8 @@ var move_input := Vector2.ZERO
 var speed_scale := 1.0
 ## What the load and tiredness leave of the pace (see Character).
 var load_scale := 1.0
+## What the skill of swimming multiplies the pace in water by (see Character).
+var swim_scale := 1.0
 ## What the weather leaves of the pace (see weather_pace), set each step.
 var weather_scale := 1.0
 ## Playtest switch: a press of jump in the air jumps again, to climb out of a deep
@@ -259,7 +261,7 @@ static func overlaps(at: Vector3, cell: Vector3i) -> bool:
 
 ## The pace with the feet `depth` cells under the water surface, of a bog if `mire`.
 func _pace(depth: float, mire := false) -> float:
-	var k := SWIM if swimming else (MIRE if mire and depth > 0.0 else (WADE if depth > 0.3 else 1.0))
+	var k := SWIM * swim_scale if swimming else (MIRE if mire and depth > 0.0 else (WADE if depth > 0.3 else 1.0))
 	return SPEED * speed_scale * load_scale * weather_scale * k
 
 

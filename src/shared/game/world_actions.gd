@@ -103,6 +103,13 @@ var people: Array = []
 var plans
 
 
+## The cells players built, and those of them dug out again: digging a block a player
+## built teaches nothing, nor building again where one was dug (the same block put and
+## dug over and over is no useful work). Not kept in the save.
+var _built := {}
+var _undone := {}
+
+
 func _init(w, c, r) -> void:
 	world = w
 	clock = c
@@ -151,6 +158,24 @@ static func bushes_lose_ground(w, cell: Vector3i) -> void:
 func put_block(cell: Vector3i, block: int) -> void:
 	world.set_cell(cell.x, cell.y, cell.z, block)
 	_changed(cell)
+
+
+## Puts `block` into `cell` as a player builds it; true when it is new work for the skill
+## of building: not where a block a player built was dug out (see _built).
+func build_cell(cell: Vector3i, block: int) -> bool:
+	put_block(cell, block)
+	_built[cell] = true
+	return not _undone.has(cell)
+
+
+## The seconds a work of `role` (SkillSet) by `who` takes that would take `seconds` with no
+## skill; `learn` of them go to the skill as points (0 for work that taught nothing).
+func skilled(who, role: String, seconds: float, learn := 1.0) -> float:
+	var sk = who.get("skills")
+	if sk == null:
+		return seconds
+	sk.gain(role, seconds * learn)
+	return seconds * sk.pace(role)
 
 
 ## What the hands did (_work), for the rules of other modules.
@@ -214,7 +239,7 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	var col := Vector2i(cell.x, cell.z)
 	var s: Dictionary = Trees.SPECIES[world.trees[col]]
 	chops[col] = chops.get(col, 0) + maxi(1, t.power)
-	var done := _work(Tools.swing_time(t, Mat.LOG), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
+	var done := _work(skilled(who, "chop", Tools.swing_time(t, Mat.LOG)), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
 	if chops[col] < s.hits:
 		who.say("%s: осталось ударов %d" % [s.title, ceili((s.hits - chops[col]) / float(maxi(1, t.power)))])
 		return done
@@ -278,7 +303,7 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 			return chop(who, trunk_cell(who, tree))
 		if Tools.can_gather(t):
 			if gather(who, {"tree": tree}):
-				return _work(t.swing, "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LEAVES)
+				return _work(skilled(who, "gather", t.swing), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LEAVES)
 			return {}
 		if m == Mat.LOG:
 			who.nag("tool", "Дерево рубят топором")
@@ -316,8 +341,14 @@ func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
 		return {}
 	var keys := {}
 	var first: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
+	var fresh := 0
 	for c in cells:
 		var was: int = world.get_cell(c.x, c.y, c.z)
+		if _built.has(c):
+			_built.erase(c)
+			_undone[c] = true
+		else:
+			fresh += 1
 		world.set_cell(c.x, c.y, c.z, Mat.AIR)
 		_changed(c)
 		if rules.free_build:
@@ -330,7 +361,8 @@ func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		drops_changed.emit(key)
-	var done := _work(swing, "", (Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL, first)
+	var done := _work(skilled(who, "dig", swing, float(fresh) / cells.size()), "",
+		(Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL, first)
 	who.use_tool()
 	return done
 
@@ -392,7 +424,8 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	var was: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
 	if not mow(who, cells, arc):
 		return {}
-	var done := _work(t.swing, "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
+	var done := _work(skilled(who, "gather", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL,
+		Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
 	who.use_tool()
 	return done
 
@@ -473,6 +506,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 		return {}
 	var free: bool = rules.free_build
 	var placed := 0
+	var fresh := 0
 	var far := false
 	for cell in Tools.brush_shape(center, normal, who.brush()):
 		if not can_place(who, cell, top):
@@ -487,10 +521,12 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 			break
 		if not free:
 			who.inventory.remove(item, 1)
-		put_block(cell, block)
+		if build_cell(cell, block):
+			fresh += 1
 		placed += 1
 	if placed > 0:
-		var done := _work(PLACE_SWING, "reach", (Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
+		var done := _work(skilled(who, "build", PLACE_SWING, float(fresh) / placed), "reach",
+			(Vector3(center) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
 		done.placed = placed
 		return done
 	if far:
@@ -557,7 +593,7 @@ func act_in_front(who, top: int) -> Dictionary:
 		if gather(who, work):
 			var at: Vector3 = Vector3(work.bush) + Vector3(0.5, 0.4, 0.5) if work.has("bush") \
 				else Vector3(trunk_cell(who, work.tree)) + Vector3(0.5, 0.5, 0.5)
-			return _work(t.swing, "", at * CELL, Mat.LEAVES)
+			return _work(skilled(who, _gather_role(t), t.swing), "", at * CELL, Mat.LEAVES)
 		return {"swing": IDLE_SWING}
 	if work.has("mow"):
 		return mow_swing(who, work.mow)
@@ -663,7 +699,7 @@ func strike(who, far := true) -> Dictionary:
 	_wound(who, a, t.power)
 	if t.tool != "hand":
 		who.use_tool()
-	var done := _work(t.swing, "", where + Vector3(0.0, 0.3, 0.0))
+	var done := _work(skilled(who, "hunt", t.swing), "", where + Vector3(0.0, 0.3, 0.0))
 	done.hit = true
 	return done
 
@@ -680,6 +716,7 @@ func _wound(who, a, power: int) -> void:
 		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
 		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		who.note("hunted")
+		_learn_each(who, "hunt")
 
 
 ## Whether `who` may do `action` (Territory.ACTIONS) at `cell` (a word to them if not).
@@ -927,6 +964,7 @@ func _pull(who) -> Dictionary:
 	done.line = Vector3.INF
 	if r.caught != "":
 		who.note("fished")
+		_learn_each(who, "fish")
 		var to: Vector3 = who.position + Vector3(0.0, 0.6, 0.0)
 		done.shot = [r.caught, r.from, to, r.from.distance_to(to) / CATCH_SPEED]
 	elif r.full:
@@ -1600,3 +1638,23 @@ func on_season(season: int) -> void:
 				keys[key] = true
 	for key in keys:
 		looks_changed.emit(key)
+
+
+## The points of a whole thing done (a beast killed, a fish caught) to the skill of work
+## `role` of `who`.
+static func _learn_each(who, role: String) -> void:
+	var sk = who.get("skills")
+	if sk != null:
+		sk.gain_each(role)
+
+
+## The skill a tree or a bush worked with tool `t` teaches (see gather): an axe fells,
+## a shovel digs out, hands and the rest gather.
+static func _gather_role(t: Dictionary) -> String:
+	if Tools.can_gather(t):
+		return "gather"
+	if Tools.can_chop(t):
+		return "chop"
+	if Tools.can_dig_out(t):
+		return "dig"
+	return "gather"
