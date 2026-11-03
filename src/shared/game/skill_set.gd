@@ -21,8 +21,9 @@ signal changed
 ## Skill `id` rose to `level` (on the server as it is earned, on a client as it is told).
 signal leveled(id: String, level: int)
 
-## Points by skill id.
+## Points by skill id, and the level they make (asked every frame, so kept: see _level).
 var points := {}
+var _levels := {}
 ## The last recipe made and how many times in a row, for REPEAT_FADE.
 var _recipe := ""
 var _repeat := 0
@@ -35,8 +36,17 @@ func points_of(id: String) -> float:
 
 ## The level of skill `id` (0 for a skill not loaded).
 func level(id: String) -> int:
+	return _levels.get(id, 0)
+
+
+## Works out the level of skill `id` from its points again.
+func _level(id: String) -> void:
 	var s: Dictionary = Skills.BY_ID.get(id, {})
-	return 0 if s.is_empty() else Skills.level_at(s, points_of(id))
+	var n := 0 if s.is_empty() else Skills.level_at(s, points_of(id))
+	if n > 0:
+		_levels[id] = n
+	else:
+		_levels.erase(id)
 
 
 ## The level of the skill of work `role`.
@@ -73,8 +83,8 @@ func boost(role: String) -> float:
 ## The sum of the levels of every skill (the land a player may hold, Territory.budget).
 func total() -> int:
 	var n := 0
-	for s: Dictionary in Skills.ALL:
-		n += level(s.id)
+	for id: String in _levels:
+		n += _levels[id]
 	return n
 
 
@@ -85,6 +95,7 @@ func gain(role: String, amount: float) -> void:
 		return
 	var was := level(s.id)
 	points[s.id] = points_of(s.id) + amount
+	_level(s.id)
 	changed.emit()
 	var now := level(s.id)
 	if now > was:
@@ -134,4 +145,7 @@ func from_dict(d: Dictionary) -> void:
 		for k: Variant in p:
 			if (p[k] is float or p[k] is int) and p[k] > 0:
 				points[str(k)] = float(p[k])
+	_levels = {}
+	for id: String in points:
+		_level(id)
 	changed.emit()
