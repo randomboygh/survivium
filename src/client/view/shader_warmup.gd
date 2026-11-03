@@ -14,6 +14,7 @@ const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerView := preload("res://src/client/view/player.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const SphereShader := preload("res://shaders/cave_sphere.gdshader")
 
 ## The mixes of lights: [the sun, a light without a shadow (the torch, the far fires),
 ## a light with a shadow (the nearest fire)]. The sun goes out when its energy is 0, at
@@ -55,8 +56,11 @@ func start() -> void:
 	_collect(game.view.world_root, kinds)
 	# What may not be around yet: the ground's, water's and the low things' material on a
 	# face like the chunks have, and the cut in the plane of the camera (a pass of the
-	# ground's that is on only with that setting).
-	for mat: Material in [game.world_mat, game.section_mat, game.low_mat, game.water_mat]:
+	# ground's that is on only with that setting), and the rock's section on the sphere of
+	# the cave view (CaveSphere), made only in a cave.
+	var sphere_mat := ShaderMaterial.new()
+	sphere_mat.shader = SphereShader
+	for mat: Material in [game.world_mat, game.section_mat, game.low_mat, game.water_mat, sphere_mat]:
 		var face := MeshInstance3D.new()
 		face.mesh = _face()
 		face.material_override = mat

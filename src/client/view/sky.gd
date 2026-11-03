@@ -156,7 +156,7 @@ func _update_light(delta: float) -> void:
 	sky_light = clampf(daylight + 0.45 * moonlight * night, 0.0, 1.0) * (1.0 - 0.35 * overcast)
 	# Levels far below the player fade into the background outdoors and into darkness
 	# under a roof (see depth_fade in common.gdshaderinc).
-	var cut_on: bool = game.chunks.cut_level < game.world.size_y or game.chunks.layers_on
+	var cut_on: bool = game.chunks.cut_level < game.world.size_y or game.chunks.open_view()
 	var haze := (Color(0.02, 0.02, 0.03) if cut_on else env.background_color).srgb_to_linear()
 	RenderingServer.global_shader_parameter_set("depth_haze", Vector3(haze.r, haze.g, haze.b))
 	# Rock the cut in the plane of the camera opens past the map of solid cells, with no
@@ -164,7 +164,7 @@ func _update_light(delta: float) -> void:
 	if cut_on and game.chunks.manual_level < 0 and game.settings.values.cave_mode == 2:
 		env.background_color = Color(0.09, 0.085, 0.1)
 	# So does the rock the view in layers thins out under a roof: nothing is drawn inside it.
-	if game.chunks.layers_on and game.chunks.indoor:
+	if game.chunks.open_view() and game.chunks.indoor:
 		env.background_color = Color(0.09, 0.085, 0.1)
 	if game.player != null:
 		_update_torch(delta)

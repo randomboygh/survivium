@@ -554,6 +554,11 @@ func pick(screen_pos: Vector2) -> Dictionary:
 		var line: int = game.settings.layer_line()
 		var skip := func(c: Vector3i) -> bool: return CaveLayers.share(c, base, fade, density, line) < PICK_SHARE
 		return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level, skip)
+	if chunks.sphere.on:
+		# The view in a sphere: what it opens lets the finger through.
+		var body: Vector3 = game.player.position + Vector3(0.0, 0.5, 0.0)
+		var hidden := func(c: Vector3i) -> bool: return chunks.sphere.hides(c, body)
+		return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level, hidden)
 	return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level)
 
 
