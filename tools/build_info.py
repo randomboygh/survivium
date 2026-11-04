@@ -3,8 +3,8 @@
 CI runs it before the web export. The version is <stage>.<PR>: the stage comes from
 application/config/version in project.godot (bumped by hand when an MVP stage closes),
 the PR is the last one merged into main, so "0.1.67" is the build with PR #67 in it.
-A pull request build is that number plus "+pr<N>". The changes are the lines
-"Что нового [вид]: ..." from the descriptions of the last merged PRs, newest first; a PR
+A pull request build is that number plus "+pr<N>". The changes are the last ENTRIES lines
+"Что нового [вид]: ..." from the descriptions of the merged PRs, newest first; a PR
 may have several, and a line without a kind is something new (see KINDS).
 
     python3 tools/build_info.py [out.json]   (GITHUB_TOKEN, GITHUB_REPOSITORY, HEAD_SHA from CI)
@@ -18,7 +18,8 @@ import subprocess
 import sys
 import urllib.request
 
-ENTRIES = 15  # PRs with a line
+ENTRIES = 500  # lines of «Что нового», the newest
+PAGES = 10  # of 100 closed PRs at most, read until ENTRIES lines are found
 LINE = re.compile(r"^\s*(?:\*\*)?Что нового\s*(?:\[([^\]]*)\])?\s*:(?:\*\*)?\s*(.+?)\s*$", re.MULTILINE)
 # The kind written in a line -> the kind the client draws an icon for.
 KINDS = {
@@ -47,13 +48,21 @@ def stage() -> str:
 
 
 def merged_prs(repo: str, token: str) -> list:
-    url = f"https://api.github.com/repos/{repo}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=100"
-    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        prs = json.load(r)
-    prs = [p for p in prs if p.get("merged_at")]
+    """The PRs merged into main, the last merged first: up to PAGES pages of the closed
+    ones, the last updated first, which holds the last merged."""
+    prs = []
+    for page in range(1, PAGES + 1):
+        url = (f"https://api.github.com/repos/{repo}/pulls?state=closed&base=main&sort=updated&direction=desc"
+               f"&per_page=100&page={page}")
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            got = json.load(r)
+        prs += [p for p in got if p.get("merged_at")]
+        if len(got) < 100 or sum(len(LINE.findall(p.get("body") or "")) for p in prs) >= ENTRIES:
+            break
     prs.sort(key=lambda p: p["merged_at"], reverse=True)
     return prs
+
 
 
 def main() -> None:
@@ -72,21 +81,19 @@ def main() -> None:
         prs = merged_prs(repo, token)
         if prs:
             info["version"] = "%s.%d" % (stage(), prs[0]["number"])
-        shown = 0
         for p in prs:
-            lines = LINE.findall(p.get("body") or "")
-            for tag, text in lines:
+            for tag, text in LINE.findall(p.get("body") or ""):
                 info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "merged": p["merged_at"],
                                         "kind": kind(tag), "text": text})
-            shown += 1 if lines else 0
-            if shown == ENTRIES:
-                break
+        del info["changes"][ENTRIES:]
         ref = os.environ.get("GITHUB_REF", "")
         m = re.match(r"refs/pull/(\d+)/", ref)
         if m:
             info["version"] += "+pr" + m.group(1)
     with open(out, "w", encoding="utf-8") as f:
-        json.dump(info, f, ensure_ascii=False, indent=1)
+        # One change a line: 500 of them stay small to download.
+        f.write(json.dumps({k: v for k, v in info.items() if k != "changes"}, ensure_ascii=False)[:-1])
+        f.write(', "changes": [\n' + ",\n".join(json.dumps(c, ensure_ascii=False) for c in info["changes"]) + "]}\n")
     print("build %s (%s), %d changes" % (info["version"], commit, len(info["changes"])))
 
 

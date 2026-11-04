@@ -11,7 +11,8 @@ extends PanelContainer
 ## for what is done once (into the test world, the tools into the bag, to a marker set
 ## on the map: Маркеры lists them with their colour and column). The playtest page also
 ## shows the version of the build and opens the list of recent changes ("changes" page,
-## its legend of kinds above the buttons), no taller than the settings and scrolling,
+## its legend of kinds above the buttons; the main menu opens it too), no taller than the
+## settings and scrolling, made CHANGES_STEP changes at a time as it is scrolled down,
 ## and from «Отладка» the log of freezes ("freezes" page, FreezeLog): a tab for each
 ## band of their length, the worst first after all of them; and what a playtest report
 ## needs to be played again ("report" page: the world, the place, the time, the weather,
@@ -42,6 +43,9 @@ const CONFIRM_WAIT := 4.0
 const CHANGE_KINDS := {
 	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "оптимизировано", "inside": "ядро",
 }
+## How many changes the changes page makes at once: the first ones when it opens, the
+## next when it is scrolled near their end (the build holds 500, tools/build_info.py).
+const CHANGES_STEP := 40
 ## A row across, and the room between two columns of rows (see fit).
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
 const COLUMN_GAP := 16
@@ -93,6 +97,11 @@ var _clear: Button
 var _copy: Button
 var _share: Button
 var _shown_text := ""
+## Where «Назад» goes from the changes, freezes and report pages: a page, or "" to close.
+var _back_to := "test"
+## The changes of the changes page not made yet (see CHANGES_STEP), and the PR made last.
+var _changes_left := []
+var _changes_pr := -1
 var _scroll: ScrollContainer
 var _list: VBoxContainer
 ## The kinds of change and their icons, under the changes.
@@ -144,6 +153,7 @@ func _ready() -> void:
 	# The rows keep their place whether the bar shows or not: a little room on the left,
 	# the bar's on the right.
 	_scroll.add_child(UiStyle.inset(_list))
+	_scroll.get_v_scroll_bar().value_changed.connect(_on_scrolled)
 	_legend = PanelContainer.new()
 	_legend.add_theme_stylebox_override("panel", UiStyle.field())
 	box.add_child(_legend)
@@ -167,7 +177,7 @@ func _ready() -> void:
 	_changes.focus_mode = Control.FOCUS_NONE
 	_changes.custom_minimum_size = Vector2(0, 32)
 	_changes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_changes.pressed.connect(open.bind("changes"))
+	_changes.pressed.connect(open.bind("changes", "test"))
 	buttons.add_child(_changes)
 	_copy = Button.new()
 	_copy.text = "Скопировать"
@@ -199,8 +209,12 @@ func _ready() -> void:
 	buttons.add_child(_back)
 
 
-func open(which: String) -> void:
+## Opens page `which`; from the changes, freezes and report pages «Назад» goes to page
+## `back`, or closes the window when it is "".
+func open(which: String, back := "test") -> void:
 	page = which
+	if which in ["changes", "freezes", "report"]:
+		_back_to = back
 	_fill()
 
 
@@ -628,7 +642,8 @@ static func build_info() -> Dictionary:
 	return info
 
 
-## "Назад": the changes go back to the playtest page, the other pages close.
+## "Назад": the changes, freezes and report pages go back to where they were opened
+## from (see open), the other pages close.
 ## The first tap on «По умолчанию» asks, the second resets.
 func _reset_pressed() -> void:
 	if not _asking_reset:
@@ -645,8 +660,8 @@ func _ask_reset(on: bool) -> void:
 
 
 func _go_back() -> void:
-	if page in ["changes", "freezes", "report"]:
-		open("test")
+	if page in ["changes", "freezes", "report"] and _back_to != "":
+		open(_back_to)
 	else:
 		close()
 
@@ -755,12 +770,28 @@ func _add_changes(changes: Array) -> void:
 	if changes.is_empty():
 		_list.add_child(_paragraph("Список изменений появится в сборке с сайта.", UiStyle.MUTED))
 		return
-	var pr := -1
-	for c in changes:
-		if int(c.pr) != pr:
-			pr = int(c.pr)
-			_list.add_child(_paragraph("#%d · %s" % [pr, merged_at(c)], UiStyle.ACCENT))
+	_changes_left = changes.duplicate()
+	_changes_pr = -1
+	_more_changes()
+
+
+## The next CHANGES_STEP changes at the end of the changes page.
+func _more_changes() -> void:
+	for c: Dictionary in _changes_left.slice(0, CHANGES_STEP):
+		if int(c.pr) != _changes_pr:
+			_changes_pr = int(c.pr)
+			_list.add_child(_paragraph("#%d · %s" % [_changes_pr, merged_at(c)], UiStyle.ACCENT))
 		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, content_width()))
+	_changes_left = _changes_left.slice(CHANGES_STEP)
+
+
+## Scrolled within a screen of the end of the changes made: the next ones.
+func _on_scrolled(value: float) -> void:
+	if page != "changes" or _changes_left.is_empty():
+		return
+	var bar := _scroll.get_v_scroll_bar()
+	if value + bar.page >= bar.max_value - _scroll.size.y:
+		_more_changes()
 
 
 ## The freezes of band `key` (FreezeLog.BANDS) under an ordinary frame, a wrapped

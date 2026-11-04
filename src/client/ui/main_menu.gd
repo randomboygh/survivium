@@ -3,7 +3,7 @@ extends Control
 ## экраны»): the first screen, over a painted landscape coloured for the time of day of
 ## the device's clock (stars only at night). No world is made behind it: the world is
 ## loaded only once the player picks one. Its first page: «Одиночная игра»,
-## «Мультиплеер», «Редактор», «Настройки», «Выход»; the first two open pages of their
+## «Мультиплеер», «Редактор», «Что нового», «Настройки», «Выход»; the first two open pages of their
 ## own in the same panel, with «Назад» at the bottom.
 ## «Одиночная игра»: "Играть" ("Продолжить" once the world has a save) loads the world
 ## played last, "Новый мир" opens WorldSetup over the menu and loads the world asked for,
@@ -18,7 +18,8 @@ extends Control
 ## first. While a server made here runs, its button is «Сервер работает», and what
 ## would load other bundles under it (single player, joining another server,
 ## disconnecting) waits until it is stopped.
-## «Настройки» opens the settings page. The editor is not there yet, so its button is
+## «Что нового» opens the list of the recent changes of the build (SettingsMenu's
+## "changes" page, «Назад» back to the menu). «Настройки» opens the settings page. The editor is not there yet, so its button is
 ## disabled, and "Выход" is disabled in the browser.
 ## The loading screen takes the place of the menu while the world loads: the map around
 ## the start painted in as its chunks are made, the seed over it, a tip under it, and at
@@ -648,6 +649,7 @@ func _fill_page(page: String) -> void:
 				_add_button(_box, "single", "Одиночная игра", _fill_page.bind("single"))
 			_add_button(_box, "multi", "Мультиплеер", _fill_page.bind("multi"))
 			_add_button(_box, "editor", "Редактор", Callable(), "скоро")
+			_add_button(_box, "changes", "Что нового", _open_changes)
 			_add_button(_box, "settings", "Настройки", _open_settings)
 			if OS.has_feature("web"):
 				_add_button(_box, "quit", "Выход", Callable(), "вкладка")
@@ -972,6 +974,13 @@ func _close_setup() -> void:
 func _open_settings() -> void:
 	_column.visible = false
 	settings_menu().open("settings")
+	_settings.fit(_screen.size)
+
+
+## «Что нового» over the menu; «Назад» closes it.
+func _open_changes() -> void:
+	_column.visible = false
+	settings_menu().open("changes", "")
 	_settings.fit(_screen.size)
 
 
