@@ -584,16 +584,10 @@ bool above_cut(vec3 p) {
 	return cut_hides(p, floor(screen_plane(p) * TEXELS));
 }
 
-// For what is too small to show as a ghost (plants, motes, sunlight): gone above the
-// cut, or what the plane cuts away.
+// For plants, motes and sunlight: above the cut they stay as a ghost like the ground
+// they stand on (the user's pick, 2026-11-04: the cut takes nothing off the surface).
 bool gone_above(vec3 p) {
-	if (sphere_view.x > 0.5) {
-		return sphere_hides(p);
-	}
-	if (layer_view.x > 0.5) {
-		return layer_hides(p, floor(screen_plane(p) * TEXELS));
-	}
-	return plane_on() ? plane_hides(p) : p.y > cut_height + 0.01;
+	return above_cut(p);
 }
 
 // The window round the player in crowns and trunks nearer the viewer, and the thinner
@@ -650,9 +644,8 @@ float low_through(vec2 texel, vec3 p) {
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
 // player's feet (below the picked level, when one is picked by hand) fade one even step
 // per level (depth_steps.x, the most .y; sharper in a cave under the cut of levels), so a
-// pit or a drop shows its depth; levels above the feet get lighter the same way
-// (depth_steps.z, .w; returned below 0); what shows above the cut is a dim ghost,
-// dimmer higher up.
+// pit or a drop shows its depth; what shows above the cut is a dim ghost, dimmer
+// higher up.
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
 		if (plane_on()) {
@@ -666,12 +659,7 @@ float depth_fade(float y) {
 		return clamp(0.35 + 0.03 * above, 0.0, 0.7);
 	}
 	float below = floor((view_height - y) / CELL + 0.01) - 1.0;
-	if (below >= 0.0) {
-		return min(below * depth_steps.x, depth_steps.y);
-	}
-	// Above the feet lighter, a level at a time (below 0: see veil).
-	float up = floor((y - view_height) / CELL - 0.01);
-	return -min(max(up, 0.0) * depth_steps.z, depth_steps.w);
+	return clamp(below * depth_steps.x, 0.0, depth_steps.y);
 }
 
 // The column `col` (whole cells x, z): r the roof (see roof_level), g the crown, b the
@@ -738,14 +726,11 @@ float fog_at(vec3 p) {
 // it and the crowns stay clear.
 // rgb is the colour given off in place, a how much of the thing's own colour gives way.
 vec4 veil(vec3 p, float fade) {
-	// A fade below 0 lightens: the thing's own colour counts for more (a below 0).
-	float lift = max(-fade, 0.0);
-	fade = max(fade, 0.0);
 	if (fog <= 0.0) {
-		return vec4(depth_haze * fade, 1.0 - (1.0 - fade) * (1.0 + lift));
+		return vec4(depth_haze * fade, fade);
 	}
 	float m = min(fog_at(p), 0.85);
-	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m) * (1.0 + lift));
+	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,

@@ -170,6 +170,8 @@ var sunk_at := Vector3i(0, -1000, 0)
 ## The lowest level of earth between the camera and the player's body, -1 for none
 ## (see _hiding_level); worked out with sunk.
 var hidden_by := -1
+## Earth hides the player, but nothing rises behind them: a hill, left whole.
+var hill := false
 ## The view hidden_by was worked out for (up and slope, see _hiding_level).
 var _hidden_view := Vector3.ZERO
 
@@ -674,8 +676,8 @@ func update_cut(_delta: float) -> void:
 	else:
 		# A jump does not move the cut, but a climb by jumps in the air (a playtest
 		# switch) takes it along a level behind the feet, so the view leaves a cave
-		# with the player instead of on landing.
-		ground_level = maxi(ground_level, player.level() - 1)
+		# with the player instead of on landing; a fall takes it down with the feet.
+		ground_level = clampi(ground_level, player.level() - 1, player.level())
 	# The player stands on `level` and is two cells tall.
 	var level := ground_level
 	var px := floori(player.position.x / CELL)
@@ -698,8 +700,10 @@ func update_cut(_delta: float) -> void:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
 		hidden_by = _hiding_level(px, level, pz)
+		hill = hidden_by >= 0 and not _rises_behind(px, level, pz)
 	elif _hidden_view != Vector3(PixelView.up.x, PixelView.up.y, PixelView.slope):
 		hidden_by = _hiding_level(px, level, pz)
+		hill = hidden_by >= 0 and not _rises_behind(px, level, pz)
 	var target: int = world.size_y
 	if manual_level >= 0:
 		# Walking away from the levels looked at brings the view back within reach.
@@ -716,9 +720,11 @@ func update_cut(_delta: float) -> void:
 	else:
 		if sunk:
 			target = sunk_rim
-		# Whatever stands between the camera and the player goes, from any side: a
-		# ravine running across the view, the near wall of a diagonal one, a hill.
-		if hidden_by >= 0:
+		# Earth between the camera and the player goes where the player stands in a
+		# dip: a ravine running across the view, the near wall of a diagonal one. A
+		# hill or a mountain the player climbs from the far side stays whole (the
+		# player shows through it), as nothing rises behind them.
+		if hidden_by >= 0 and not hill:
 			target = mini(target, hidden_by - 1)
 	_update_depth()
 	var opened := manual_level < 0 and target < world.size_y
@@ -786,6 +792,22 @@ func _hiding_level(x: int, level: int, z: int) -> int:
 	return -1
 
 
+## Whether earth rises over the head of a player standing on `level` in column (x, z)
+## within SUNK_REACH cells behind them, away from the camera: the far side of a dip.
+## Where none does, what hides the player is a hill they stand behind.
+func _rises_behind(x: int, level: int, z: int) -> bool:
+	var up := PixelView.up
+	var body := Vector2(x + 0.5, z + 0.5)
+	var y := level + 2
+	if y >= world.size_y:
+		return false
+	for r in range(1, SUNK_REACH + 1):
+		var c := body + up * r
+		if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
+			return true
+	return false
+
+
 func shift_cut(d: int) -> void:
 	if world == null:
 		return
@@ -851,21 +873,19 @@ func layered() -> bool:
 
 
 ## How the levels over the cut fade (shader global cut_fade) and how much darker each
-## level under the player's feet and lighter each above it gets (depth_steps: under,
-## the most under, above, the most above): sharper in a cave under the cut of levels,
-## by the test setting, sharper under the feet with a level picked by hand.
+## level under the player's feet gets (depth_steps: a level, the most): sharper in a
+## cave under the cut of levels, by the test setting, and with a level picked by hand.
 func _update_depth() -> void:
 	var settings = game.settings
 	var fade: Vector4 = settings.cut_fade()
 	if fade != _cut_fade:
 		_cut_fade = fade
 		RenderingServer.global_shader_parameter_set("cut_fade", fade)
-	var steps := Vector4(0.04, 0.5, 0.04, 0.5)
+	var steps := Vector4(0.04, 0.5, 0.0, 0.0)
 	if manual_level >= 0:
-		steps = Vector4(0.08, 0.6, 0.04, 0.5)
+		steps = Vector4(0.08, 0.6, 0.0, 0.0)
 	elif indoor and settings.values.cave_mode == 1:
-		var d: float = settings.cut_depth()
-		steps = Vector4(d, 0.8, d, 0.6)
+		steps = Vector4(settings.cut_depth(), 0.8, 0.0, 0.0)
 	if steps != _depth_steps:
 		_depth_steps = steps
 		RenderingServer.global_shader_parameter_set("depth_steps", steps)

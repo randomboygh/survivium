@@ -106,7 +106,7 @@ cut_fade={
 }
 depth_steps={
 "type": "vec4",
-"value": Vector4(0.04, 0.5, 0.04, 0.5)
+"value": Vector4(0.04, 0.5, 0, 0)
 }
 sphere_view={
 "type": "vec4",
