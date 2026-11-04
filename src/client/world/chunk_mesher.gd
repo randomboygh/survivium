@@ -624,7 +624,7 @@ static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int,
 
 
 ## Dark tops of solid cells on `level` that are covered by solid cells above:
-## what you see in the cut when looking into a mountain. Cut corners stay open, and
+## what you see in the cut when looking into a mountain. Cut and deep corners stay open, and
 ## fills sliced by the cut show as dark triangles. Rows of whole tops of the same
 ## material are merged. Covers the cells x0..x0+size, z0..z0+size (a chunk from the
 ## origin by default), so the game can rebuild the cap chunk by chunk.
@@ -659,7 +659,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 				cells = c.cells
 				shapes = c.shapes
 				open = c.air[col] | c.water[col] | c.leaf[col]
-				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16:
+				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16 and shapes[i] & 15 == 0:
 					tile = cells[i] * 3
 			# (A run is marked by its tile: x may be negative.)
 			if tile != run_tile and run_tile >= 0:
@@ -683,8 +683,13 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)
 			if open & both == 0:
 				var cuts: int = (shapes[i] | shapes[i + layer]) >> 4
-				# Slopes keep the straight cut.
-				var shape: int = 0 if shapes[i] & 15 != 0 else Mat.corner_shape[cells[i]]
+				# A cell the slope above goes on down into at a corner (a deep corner,
+				# kept in its shape's low bits) has that slope's surface under the
+				# cap's height round the corner: no cap, or it shows over the slope as
+				# dark triangles.
+				if shapes[i] & 15 != 0:
+					continue
+				var shape: int = Mat.corner_shape[cells[i]]
 				for q in 4:
 					_piece(buf, base, 1.0, q, CUT if cuts & (1 << q) else QUARTER, Vector3.UP, dark, packed, shape)
 			elif open & bit and shapes[i] >= 16 and cells[i] != LEAVES:

@@ -179,9 +179,10 @@ func _update_light(delta: float) -> void:
 func _update_torch(delta: float) -> void:
 	var player = game.player
 	# Deep under the sea's surface the sky's light does not reach (sea_bright in
-	# common.gdshaderinc): there the light comes on as at night.
-	var lit_here := sky_light * _sea_bright(player.position.y + WorldData.CELL)
-	var dark := 1.0 if game.chunks.indoor else clampf((0.55 - lit_here) * 4.0, 0.0, 1.0)
+	# common.gdshaderinc): where it is dimmer there than at dusk the light burns in full,
+	# as under a roof, however deep (the shaders undo the depth's darkening for it).
+	var deep := sky_light * _sea_bright(player.position.y + WorldData.CELL) < 0.55
+	var dark := 1.0 if game.chunks.indoor or deep else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
 	dark *= 1.0 - game.effects.torch_off(player.position)
 	var held: String = game.character.light_held() if game.character != null else ""
 	player.torch_lit = held != ""
