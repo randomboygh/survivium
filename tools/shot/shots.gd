@@ -683,6 +683,7 @@ const SHOTS := {
 	"ground-behind-hill": {"time": 0.42, "season": 1, "at": [14, -48]},
 	# Diagonal corners of slopes behind the player (behind a hill) and over them (under a roof).
 	"ground-diagonals-behind": {"time": 0.42, "season": 1, "at": [47, -57], "y": 18, "settings": {"cave_mode": 1}},
+	"ground-diagonals-hill": {"time": 0.42, "season": 1, "at": [14, -47], "y": 23, "settings": {"cave_mode": 1}},
 	"ground-diagonals-roof": {"time": 0.42, "season": 1, "at": [43, -53], "y": 19, "settings": {"cave_mode": 1}},
 	# Deep in the star cave, under its upper point.
 	"ground-star-deep": {"time": 0.42, "season": 1, "at": [23, -75], "y": 17, "settings": {"cave_mode": 1}},
