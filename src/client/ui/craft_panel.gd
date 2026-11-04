@@ -405,10 +405,12 @@ func _show_head() -> void:
 	if not station_buttons.visible:
 		return
 	var fire: bool = game.placed.is_fire(_station)
-	_take_up.visible = not fire
+	# A fireplace put out is taken up whole; a campfire put out is only taken apart.
+	var hearth := Placed.is_hearth(_station)
+	_take_up.visible = not fire or hearth and not _station.lit
 	_take_up.tooltip_text = "Забрать в сумку: %s" % Items.title(_station.item)
 	_fire.visible = fire
-	_destroy.visible = fire and not _station.lit
+	_destroy.visible = fire and not _station.lit and not hearth
 	var burns: bool = fire and Items.get_item(_station.item).fuel_max > 0.0
 	_feed.visible = burns
 	if burns:
@@ -416,12 +418,12 @@ func _show_head() -> void:
 		var room: bool = Items.get_item(_station.item).fuel_max - float(_station.get("fuel", 0.0)) >= Placed.FUEL_ROOM
 		var has := Items.fuel_in(game.character.inventory) != ""
 		_feed.disabled = not _station.lit or not room or not has
-		_feed.tooltip_text = ("Подкинуть топливо (горит ещё %d:%02d)" % [left / 60, left % 60] if _station.lit else "Костёр не горит") \
+		_feed.tooltip_text = ("Подкинуть топливо (горит ещё %d:%02d)" % [left / 60, left % 60] if _station.lit else "Огонь не горит") \
 			+ ("" if room or not _station.lit else ": полон") + ("" if has or not _station.lit else ": в сумке нет топлива")
 		_fuel_bar.queue_redraw()
 	if fire:
 		_fire.icon = UiStyle.icon("put_out" if _station.lit else "light")
-		_fire.tooltip_text = "Потушить костёр" if _station.lit else "Разжечь (ветка или другое топливо)"
+		_fire.tooltip_text = "Потушить огонь" if _station.lit else "Разжечь (ветка или другое топливо)"
 
 
 ## The fire's charge along the bottom of the feed button.

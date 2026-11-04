@@ -123,16 +123,28 @@ const HOUSE := Rect2i(64, -58, 14, 10)
 const HOUSE_STOREY := 4
 const HOUSE_DOOR := Vector2i(70, -49)
 const HOUSE_STAIRS := Vector2i(65, -51)
-## The windows of each floor: [x, z, turn] in the walls (turn 1 in the walls along z).
+## The windows of a cell of the upper floor: [x, z, turn] in the walls (turn 1 in the walls
+## along z), two cells over the floor.
 const HOUSE_WINDOWS := [[66, -49, 0], [74, -49, 0], [67, -58, 0], [70, -58, 0], [74, -58, 0],
 	[64, -54, 1], [77, -54, 1]]
+## The doors and windows of every size on the ground floor, each in a gap of its size:
+## [item, x, z (its first wall cell, the west or the north one), turn, level over the
+## floor, cells along the wall, cells high]; the turn 0 in the walls along x, 1 along z
+## (the thing's north-west cell then as many cells west as it is wide, less one: it
+## stands in the east column of its square, see Placed.turn_voxels).
+const HOUSE_OPENINGS := [["tools:door_2x3", HOUSE_DOOR.x, HOUSE_DOOR.y, 0, 1, 2, 3],
+	["tools:window_2x2", 66, -49, 0, 1, 2, 2], ["tools:window_3x2", 73, -49, 0, 1, 3, 2],
+	["tools:window_1x2", 67, -58, 0, 1, 1, 2], ["tools:window_1x2", 75, -58, 0, 1, 1, 2],
+	["tools:window_2x1", 64, -56, 1, 2, 2, 1], ["tools:door", 77, -55, 1, 1, 1, 2],
+	["tools:door_2x2", 77, -53, 1, 1, 2, 2]]
 ## What stands on each floor: [item, x, z, turn, floor] (see Placed.put); lights on a
 ## cell of their own (Placed.put_light).
 const HOUSE_THINGS := [["tools:table", 72, -55, 0, 0], ["tools:stool", 71, -55, 1, 0], ["tools:stool", 74, -54, 3, 0],
 	["tools:barrel", 76, -57, 0, 0], ["tools:cupboard", 76, -51, 1, 0], ["tools:rug", 68, -53, 0, 0],
 	["tools:lantern", 67, -57, 0, 0], ["tools:lantern", 74, -50, 0, 0],
 	["tools:wooden_bed", 74, -57, 0, 1], ["tools:cupboard", 76, -52, 1, 1], ["tools:rug", 70, -54, 0, 1],
-	["tools:stool", 72, -57, 0, 1], ["tools:barrel", 67, -57, 0, 1], ["tools:door", HOUSE_DOOR.x, HOUSE_DOOR.y, 0, 0],
+	["tools:stool", 72, -57, 0, 1], ["tools:barrel", 67, -57, 0, 1],
+	["tools:fireplace", 70, -57, 0, 0], ["tools:wide_cupboard", 73, -57, 0, 0],
 	["tools:lantern", 68, -50, 0, 1], ["tools:lantern", 73, -51, 0, 1]]
 ## The descents: down a level each DESCENT_STEP cells along, DESCENT_WIDE cells across and
 ## DESCENT_HIGH of air over each step, first DESCENT_MOUTH cells along on the meadow's
@@ -764,9 +776,15 @@ func _house(x: int, z: int, out: Array) -> void:
 			if not wall:
 				continue
 			for y in range(f + 1, f + HOUSE_STOREY):
-				var open := i == 0 and Vector2i(x, z) == HOUSE_DOOR and y < f + 3
-				for w: Array in HOUSE_WINDOWS:
-					open = open or (x == w[0] and z == w[1] and y == f + 2)
+				var open := false
+				if i == 0:
+					for o: Array in HOUSE_OPENINGS:
+						var along: int = x - o[1] if o[3] == 0 else z - o[2]
+						open = open or (x == o[1] if o[3] == 1 else z == o[2]) and along >= 0 and along < o[5] \
+							and y >= f + o[4] and y < f + o[4] + o[6]
+				else:
+					for w: Array in HOUSE_WINDOWS:
+						open = open or (x == w[0] and z == w[1] and y == f + 2)
 				if not open:
 					out.append([y, y, brick, 0])
 	# The roof: from over the upper walls, a cell out round them, in a cell a level from
@@ -879,7 +897,8 @@ func plan_drops() -> Array:
 	return out
 
 
-## The things placed in the test world (Placed.put_plan): [item, north-west cell, turn]; in
+## The things placed in the test world (Placed.put_plan): [item, north-west cell, turn, the
+## seconds a fire has to burn when it has fuel]; in
 ## the camp chests, workbenches and kilns on a row, then a row of campfires, lit; in the
 ## house (HOUSE_THINGS) the door, the windows, the stairs, furniture and lanterns.
 func plan_things() -> Array:
@@ -892,15 +911,19 @@ func plan_things() -> Array:
 		out.append(["core:campfire", Vector3i(x, ground + 1, CAMP.position.y + 15)])
 	# The house: its door, windows, stairs, furniture and lanterns.
 	var things: Array = HOUSE_THINGS.duplicate()
-	for f in 2:
-		for w: Array in HOUSE_WINDOWS:
-			things.append(["tools:window", w[0], w[1], w[2], f, 2])
+	for w: Array in HOUSE_WINDOWS:
+		things.append(["tools:window", w[0], w[1], w[2], 1, 2])
+	for o: Array in HOUSE_OPENINGS:
+		var west: int = o[1] - (o[5] - 1 if o[3] == 1 else 0)
+		things.append([o[0], west, o[2], o[3], 0, o[4]])
 	for s in HOUSE_STOREY:
 		things.append(["tools:stairs", HOUSE_STAIRS.x, HOUSE_STAIRS.y - s, 0, 0, 1 + s])
 	for t: Array in things:
 		if Items.has(t[0]):
 			var y: int = ground + t[4] * HOUSE_STOREY + (t[5] if t.size() > 5 else 1)
-			out.append([t[0], Vector3i(t[1], y, t[2]), t[3]])
+			# The fireplace burns, full of fuel.
+			var fuel: float = Items.get_item(t[0]).get("fuel_max", 0.0)
+			out.append([t[0], Vector3i(t[1], y, t[2]), t[3]] + ([fuel] if fuel > 0.0 else []))
 	return out
 
 

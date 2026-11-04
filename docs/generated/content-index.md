@@ -21,20 +21,20 @@
 - `plants` Растения: `plants/acacia` Акация, `plants/apple` Яблоня, `plants/banana` Банан, `plants/birch` Берёза, `plants/bird_cherry` Черёмуха, `plants/blueberry` Черника, `plants/ceiba` Сейба, `plants/cherry` Вишня, `plants/cranberry` Клюква, `plants/currant` Смородина, `plants/deadwood` Сухое дерево, `plants/ears` Колоски, `plants/fern` Папоротник, `plants/fir` Пихта, `plants/flax` Лён, `plants/grass` Травы, `plants/larch` Лиственница, `plants/linden` Липа, `plants/mangrove` Мангр, `plants/maple` Клён, `plants/monstera` Монстера, `plants/moss` Мох, `plants/mushrooms` Грибы, `plants/nettle` Крапива, `plants/oak` Дуб, `plants/palm` Пальма, `plants/pine` Сосна, `plants/poplar` Тополь, `plants/raspberry` Малина, `plants/red_maple` Клён красный, `plants/reeds` Тростник, `plants/roasted_acorns` Жареные жёлуди, `plants/rosehip` Шиповник, `plants/rowan` Рябина, `plants/shrub` Куст, `plants/spruce` Ель, `plants/willow` Ива, `plants/wood` Древесина
 - `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/salt` Соль, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
-- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fiber_clothes` Одежда из волокна, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hide_clothes` Одежда из шкур, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
+- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hide_clothes` Одежда из шкур, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
 
-## Предметы (`items`, 177)
+## Предметы (`items`, 185)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 13 | ок |
+| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 14 | ок |
 | `core:rot` | Гниль | Материалы |  | `core` | 0. Выживание без инструментов | 0 / 21 | предупреждения: 1 |
-| `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 4 | ок |
+| `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 5 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
 | `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 6 | ок |
 | `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 1 / 2 | ок |
 | `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 15 | ок |
-| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 49 | ок |
+| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 56 | ок |
 | `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0. Выживание без инструментов | 1 / 1 | предупреждения: 1 |
 | `plants:blueberry_bush` | Кустик черники | Посадки |  | `plants/blueberry` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0. Выживание без инструментов | 1 / 1 | ок |
@@ -59,8 +59,8 @@
 | `resources:ice` | Лёд | Блоки |  | `resources/snow` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `resources:dirt` | Земля | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
 | `resources:sand` | Песок | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
-| `resources:clay` | Глина | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 7 | ок |
-| `resources:stone` | Камень | Блоки |  | `resources/stone` | 0. Выживание без инструментов | 1 / 8 | ок |
+| `resources:clay` | Глина | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 8 | ок |
+| `resources:stone` | Камень | Блоки |  | `resources/stone` | 0. Выживание без инструментов | 1 / 9 | ок |
 | `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 17 | ок |
 | `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 56 | ок |
 | `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1. Примитивные инструменты | 1 / 27 | ок |
@@ -92,7 +92,7 @@
 | `tools:sling_stone` | Камешки | Материалы | Круглые камешки для пращи. | `tools/sling` | 0. Выживание без инструментов | 0 / 3 | ок |
 | `tools:torch` | Факел | Свет |  | `tools/torch` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `tools:wicker_bag` | Плетёная котомка | Одежда и сумки | Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек. | `tools/wicker_bag` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 1 / 50 | ок |
+| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 1 / 58 | ок |
 | `materials:cut_stone` | Тёсаный камень | Блоки | Ровные каменные блоки для прочных стен и пола. | `materials/cut_stone` | 1. Примитивные инструменты | 1 / 2 | ок |
 | `tools:big_chest` | Большой сундук | Станки |  | `tools/big_chest` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:bloomery` | Сыродутная печь | Станки |  | `tools/bloomery` | 5. Железо | 1 / 3 | ок |
@@ -100,6 +100,8 @@
 | `tools:arrow` | Стрела | Материалы | Древко с кремнёвым наконечником. После выстрела её можно подобрать. | `tools/bow` | 1. Примитивные инструменты | 0 / 4 | ок |
 | `tools:chest` | Сундук | Станки |  | `tools/chest` | 1. Примитивные инструменты | 0 / 2 | ок |
 | `tools:door` | Дверь | Станки | Створка из досок для проёма в стене. Касание открывает и закрывает. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
+| `tools:door_2x2` | Дверь 2×2 | Станки | Двустворчатая дверь из досок, на две клетки в ширину и две в высоту. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
+| `tools:door_2x3` | Дверь 2×3 | Станки | Высокая двустворчатая дверь, на две клетки в ширину и три в высоту. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:drying_rack` | Сушилка | Станки | Рама из веток. На ней выделывают шкуры и вялят мясо. | `tools/drying_rack` | 2. Дерево, кости и кожа | 1 / 3 | ок |
 | `animals:small_carcass` | Тушка | Материалы | Мелкий зверь или птица. Разделывается руками. | `animals/game` | 0. Выживание без инструментов | 0 / 9 | ок |
 | `animals:carcass` | Туша | Материалы | Крупный зверь. Разделать её можно только ножом. | `animals/game` | 0. Выживание без инструментов | 0 / 5 | ок |
@@ -114,8 +116,9 @@
 | `tools:fur_bedroll` | Меховой спальник | Станки | Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее. | `tools/bedding` | 2. Дерево, кости и кожа | 1 / 1 | ок |
 | `tools:tallow_candle` | Сальная свеча | Свет | Фитиль в жиру. Светит слабее факела, но горит дольше. | `tools/candle` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:canvas_backpack` | Холщовый рюкзак | Одежда и сумки | Рюкзак из ткани с кожаными лямками и клапаном. Надетый за спину, даёт ещё 24 ячейки. | `tools/canvas_backpack` | 2. Дерево, кости и кожа | 0 / 1 | ок |
+| `tools:fireplace` | Камин | Станки | Кирпичный очаг для дома. Греет как костёр, горит на топливе, на нём можно готовить. | `tools/fireplace` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
 | `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 1 / 9 | ок |
-| `materials:glass` | Стекло | Материалы | Мутноватое зелёное стекло из песка. Идёт на фонарь. | `materials/glass` | 3. Керамика и ранняя металлургия | 0 / 3 | ок |
+| `materials:glass` | Стекло | Материалы | Мутноватое зелёное стекло из песка. Идёт на фонарь. | `materials/glass` | 3. Керамика и ранняя металлургия | 0 / 7 | ок |
 | `materials:iron_ore` | Железная руда | Материалы | Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка. | `materials/iron` | 4. Бронза | 0 / 2 | ок |
 | `materials:iron_bloom` | Крица | Материалы | Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка. | `materials/iron` | 5. Железо | 1 / 2 | ок |
 | `materials:iron_bar` | Железный слиток | Материалы | Тёмный прочный металл. Из него наковальня и железные инструменты. | `materials/iron` | 5. Железо | 1 / 17 | ок |
@@ -148,6 +151,7 @@
 | `tools:stool` | Табурет | Станки | Посиди рядом — силы возвращаются вдвое быстрее. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:wooden_bed` | Кровать | Станки | Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки. | `tools/furniture` | 2. Дерево, кости и кожа | 0 / 1 | ок |
 | `tools:cupboard` | Шкаф | Станки | Высокий шкаф из досок, хранит больше сундука. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
+| `tools:wide_cupboard` | Широкий шкаф | Станки | Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:barrel` | Бочка | Станки | Бочка в обручах. Еда в ней портится вдвое медленнее. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:rug` | Половик | Станки | Тканый половик для пола, на две клетки. | `tools/furniture` | 2. Дерево, кости и кожа | 0 / 1 | ок |
 | `tools:bone_needle` | Костяная игла | Инструменты | Шьёт кожу. Лежит в сумке, пока шьёшь. | `tools/needle` | 1. Примитивные инструменты | 0 / 1 | ок |
@@ -204,8 +208,12 @@
 | `tools:waterskin` | Бурдюк | Материалы | Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить. | `tools/waterskin` | 2. Дерево, кости и кожа | 2 / 2 | ок |
 | `tools:waterskin_full` | Бурдюк с водой | Материалы | Полный бурдюк. Утоляет жажду вдали от воды. | `tools/waterskin` | 2. Дерево, кости и кожа | 2 / 1 | ок |
 | `tools:window` | Окно | Станки | Рама со стеклом для проёма в стене. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `tools:window_1x2` | Окно 1×2 | Станки | Высокое окно со стеклом, на клетку в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `tools:window_2x1` | Окно 2×1 | Станки | Широкое окно со стеклом, на две клетки в ширину и одну в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `tools:window_2x2` | Окно 2×2 | Станки | Большое окно со стеклом, на две клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `tools:window_3x2` | Окно 3×2 | Станки | Окно во всю стену, на три клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 131)
+## Рецепты (`recipes`, 139)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -241,6 +249,8 @@
 | `tools:arrow` | Стрелы | Материалы |  | `tools/bow` | 1. Примитивные инструменты | 5 / 0 | ок |
 | `tools:chest` | Сундук | Станки |  | `tools/chest` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:door` | Дверь | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
+| `tools:door_2x2` | Дверь 2×2 | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
+| `tools:door_2x3` | Дверь 2×3 | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:drying_rack` | Сушилка | Станки |  | `tools/drying_rack` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `animals:raw_meat_from_small_carcass` | Разделать тушку | Еда |  | `animals/game` | 0. Выживание без инструментов | 4 / 0 | ок |
 | `animals:raw_meat_from_carcass` | Разделать тушу | Еда |  | `animals/game` | 1. Примитивные инструменты | 5 / 0 | ок |
@@ -251,6 +261,7 @@
 | `tools:fur_bedroll` | Меховой спальник | Станки |  | `tools/bedding` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:tallow_candle` | Сальная свеча | Свет |  | `tools/candle` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:canvas_backpack` | Холщовый рюкзак | Одежда и сумки |  | `tools/canvas_backpack` | 2. Дерево, кости и кожа | 4 / 0 | ок |
+| `tools:fireplace` | Камин | Станки |  | `tools/fireplace` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
 | `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
 | `tools:copper_bar` | Медный слиток | Материалы |  | `tools/forge` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 | `materials:glass` | Стекло | Материалы |  | `materials/glass` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
@@ -283,6 +294,7 @@
 | `tools:stool` | Табурет | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:wooden_bed` | Кровать | Станки |  | `tools/furniture` | 2. Дерево, кости и кожа | 4 / 0 | ок |
 | `tools:cupboard` | Шкаф | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
+| `tools:wide_cupboard` | Широкий шкаф | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
 | `tools:barrel` | Бочка | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `tools:rug` | Половик | Станки |  | `tools/furniture` | 2. Дерево, кости и кожа | 3 / 0 | ок |
 | `tools:bone_needle` | Костяная игла | Инструменты |  | `tools/needle` | 1. Примитивные инструменты | 2 / 0 | ок |
@@ -340,6 +352,10 @@
 | `tools:tar_torch` | Смоляной факел | Свет |  | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 | `tools:waterskin` | Бурдюк | Материалы |  | `tools/waterskin` | 2. Дерево, кости и кожа | 3 / 0 | ок |
 | `tools:window` | Окно | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:window_1x2` | Окно 1×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:window_2x1` | Окно 2×1 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:window_2x2` | Окно 2×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:window_3x2` | Окно 3×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 
 ## Материалы ячеек (`materials`, 28)
 

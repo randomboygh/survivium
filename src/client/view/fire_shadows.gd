@@ -612,7 +612,7 @@ func _fires() -> Dictionary:
 		_campfires_known = true
 		_campfires = {}
 		for e: Dictionary in game.placed.things:
-			if Placed.is_fire(e):
+			if Placed.is_fire(e) and not Placed.is_hearth(e):
 				_campfires[e.cell] = (Vector3(e.cell) + Vector3(1.0, 0.0, 1.0)) * CELL
 	return _campfires
 

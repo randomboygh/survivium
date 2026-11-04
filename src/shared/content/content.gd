@@ -166,8 +166,9 @@ const SCHEMAS := {
 		"empties_to": {"type": "ref:items", "default": "", "rel": "becomes"},
 		"fills_to": {"type": "ref:items", "default": "", "rel": "becomes"},
 		# A fire (`fire`) burns on fuel: it holds at most `fuel_max` seconds of burning and
-		# a new one is set down with `fuel_start` of them; 0 burns for ever. Fuel (`fuel`)
-		# lights a fire and feeds it `fuel_time` seconds.
+		# a new one is set down with `fuel_start` of them (`fuel_max` 0 burns for ever;
+		# `fuel_start` 0 is set down cold, a fireplace). Fuel (`fuel`) lights a fire and
+		# feeds it `fuel_time` seconds.
 		"fuel_max": {"type": "float", "min": 0.0, "default": 0.0},
 		"fuel_start": {"type": "float", "min": 0.0, "default": 0.0},
 		"fuel": {"type": "bool", "default": false},

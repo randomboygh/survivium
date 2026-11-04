@@ -5,3 +5,15 @@
   needs: {materials:planks: 4}
   at: workbench
   time: 5
+- id: door_2x2
+  title: Дверь 2×2
+  makes: door_2x2
+  needs: {materials:planks: 8}
+  at: workbench
+  time: 8
+- id: door_2x3
+  title: Дверь 2×3
+  makes: door_2x3
+  needs: {materials:planks: 12}
+  at: workbench
+  time: 10

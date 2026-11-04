@@ -20,6 +20,8 @@ content/tools/
   axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ torch/ tar_torch/ lantern/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
+  stairs/ door/ window/ furniture/ fireplace/   строительство: лестница, двери 1×2, 2×2, 2×3, окна 1×1, 1×2, 2×1, 2×2, 3×2,
+                                мебель (стол, табурет, кровать, шкаф, широкий шкаф, бочка, половик), камин
                                 бандл на вещь:
     bundle.yaml                 название
     data/items.yaml             предмет(ы): инструмент (tool, power, swing, reach, durability, repair) или станок (prop)
