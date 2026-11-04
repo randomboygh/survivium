@@ -388,39 +388,53 @@ func _section_rows(key: String) -> Array:
 				{"action": "Очистка территории", "do": func() -> void: s.clear_land(), "confirm": true},
 			]
 		"caves":
-			# The view in layers (CaveLayers), on while «Вид в пещере» is «слои».
-			var layers := func() -> bool: return s.values.cave_mode == 0
+			# Only the settings of the view chosen show, so the page fits a phone; choosing
+			# another builds the page again.
+			var mode: int = s.values.cave_mode
 			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
 			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
-			# The view in a sphere (CaveSphere), on while it is «сфера».
-			var round_view := func() -> bool: return s.values.cave_mode == 3
+			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
+			var percents := func(v: float) -> String: return "%d%%" % roundi(v * 100.0)
 			var rows := [
 				["Вид в пещере", ["слои", "срез уровней", "разрез по камере", "сфера"],
 					func() -> int: return s.values.cave_mode,
-					func(i: int) -> void: s.set_value("cave_mode", i)],
-				["Сфера: радиус", CaveSphere.RADII.map(func(v: int) -> String: return "%d кл." % v),
-					func() -> int: return s.values.sphere_radius,
-					func(i: int) -> void: s.set_value("sphere_radius", i), "", round_view],
-				["Сфера: к камере", CaveSphere.SHIFTS.map(func(v: int) -> String: return "%d кл." % v),
-					func() -> int: return s.values.sphere_shift,
-					func(i: int) -> void: s.set_value("sphere_shift", i), "", round_view],
-				["Сфера: показать", ["нет", "да"],
-					func() -> int: return s.values.sphere_debug,
-					func(i: int) -> void: s.set_value("sphere_debug", i), "", round_view],
+					func(i: int) -> void:
+						s.set_value("cave_mode", i)
+						_fill.call_deferred()],
 				null,
 			]
-			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
-			for r: Array in [["Высота линии", "layer_line", lines],
+			var settings := []
+			var note := ""
+			if mode == 0:
+				# The view in layers (CaveLayers).
+				settings = [["Высота линии", "layer_line", lines],
 					["Впереди: первые слои", "layer_front_from", counts],
 					["Впереди: растяжение", "layer_front_stretch", stretches],
 					["Сверху: первые слои", "layer_above_from", counts],
 					["Сверху: растяжение", "layer_above_stretch", stretches],
-					["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(func(v: float) -> String: return "%d%%" % roundi(v * 100.0))]]:
+					["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(percents)]]
+				note = "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв."
+			elif mode == 1:
+				# The cut of levels.
+				settings = [["Сразу на новом уровне", "cut_instant", ["нет", "да"]],
+					["Высота среза", "cut_line", lines],
+					["Первые уровни", "cut_from", counts],
+					["Растяжение", "cut_stretch", stretches],
+					["Плотность первых", "cut_density", CaveLayers.DENSITIES.map(percents)],
+					["Глубина в пещере", "cut_depth", CaveLayers.DEPTH_STEPS.map(percents)]]
+				note = "В пещере всё, что не ниже высоты среза (0 — ноги, +2 — над головой), тает дизерингом и темнеет: первые уровни рисуются с плотностью первых, следующие тают за «растяжение». За игроком остаются стены и пол. В пещере каждый уровень ниже ног темнее, выше ног светлее на «глубину в пещере»."
+			elif mode == 3:
+				# The view in a sphere (CaveSphere).
+				settings = [["Радиус", "sphere_radius", CaveSphere.RADII.map(func(v: int) -> String: return "%d кл." % v)],
+					["К камере", "sphere_shift", CaveSphere.SHIFTS.map(func(v: int) -> String: return "%d кл." % v)],
+					["Показать сферу", "sphere_debug", ["нет", "да"]]]
+			for r: Array in settings:
 				var setting: String = r[1]
 				rows.append([r[0], r[2],
 					func() -> int: return s.values[setting],
-					func(i: int) -> void: s.set_value(setting, i), "", layers])
-			rows.append({"note": "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв. Работает, когда «Вид в пещере» — «слои»."})
+					func(i: int) -> void: s.set_value(setting, i)])
+			if note != "":
+				rows.append({"note": note})
 			return rows
 		"marks":
 			var marks := []

@@ -16,6 +16,13 @@ global uniform float cut_ghost;
 // follows the player, what stands in front of them above their feet goes and the rest
 // is drawn whole (see plane_hides).
 global uniform float cut_front;
+// How the levels over an automatic cut fade (test settings «Пещеры» → «Срез: …»): x how
+// many count as the first, y over how many the rest fades out, z how much of a first one
+// is drawn (see cut_share).
+global uniform vec4 cut_fade;
+// How much darker each level under the view's height gets and lighter each above it
+// (see depth_fade): x a level under, y the most, z a level above, w the most.
+global uniform vec4 depth_steps;
 // The cells round the player that are solid (see SolidMap): one texel per column of a
 // SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
 // eight in each of r, g, b, a.
@@ -352,12 +359,21 @@ int corner_distance(ivec2 t, int k, int shape) {
 	return int(floor(float(mid) - r + 0.5));
 }
 
-// Levels above a cut under a roof stay faintly visible instead of vanishing, so a cave
-// or a room shows how much lies above it and how tall the trees around are: the four
-// levels over the cut keep every other texel, the next four every fourth, the four
-// after that every eighth, and the rest is gone. A level picked by hand grades
-// faster, one step per level, so a pit or a cave shows how many levels deep it is:
-// the level above the picked one keeps every other texel, the next every fourth,
+// How much of the `i`th level over an automatic cut (1 the first) is drawn: the
+// first cut_fade.x keep cut_fade.z of their texels, the next cut_fade.y fewer and
+// fewer until none. Below 0 first ones, the fade starts that many levels earlier.
+float cut_share(float i) {
+	if (i < cut_fade.x + 0.5) {
+		return cut_fade.z;
+	}
+	return cut_fade.z * clamp(1.0 - (i - cut_fade.x) / max(cut_fade.y, 1.0), 0.0, 1.0);
+}
+
+// Levels above a cut stay faintly visible instead of vanishing, so a cave or a room
+// shows how much lies above it and how tall the trees around are: dithered away more
+// with each level by cut_share (and darker, see depth_fade). A level picked by hand
+// grades faster, one step per level, so a pit or a cave shows how many levels deep it
+// is: the level above the picked one keeps every other texel, the next every fourth,
 // then every eighth and sixteenth, and the fifth is gone. Texels are counted on the
 // screen plane, so the pattern stays put on the world as the view moves; the player
 // always shows through. True where the texel of height `y` at `texel` is left out.
@@ -371,8 +387,10 @@ bool cut_dither(float y, vec2 texel) {
 		return true;
 	}
 	float above = floor((y - cut_height) / CELL - 0.01);
-	float band = cut_ghost < 0.5 ? above : floor(above / 4.0);
-	return band > (cut_ghost < 0.5 ? 3.5 : 2.5) || bayer4(texel) >= 0.5 / exp2(band);
+	if (cut_ghost > 0.5) {
+		return bayer4(texel) >= cut_share(above + 1.0);
+	}
+	return above > 3.5 || bayer4(texel) >= 0.5 / exp2(above);
 }
 
 // The cut in the plane of the camera is on: the setting, and the cut follows the
@@ -630,18 +648,30 @@ float low_through(vec2 texel, vec3 p) {
 }
 
 // How much of the colour at height `y` gives way to `depth_haze`: levels below the
-// player's feet (below the picked level, when one is picked by hand, then in bigger
-// steps) fade one even step per level, so a pit or a drop shows its depth, and what
-// shows above the cut is a dim ghost, dimmer higher up.
+// player's feet (below the picked level, when one is picked by hand) fade one even step
+// per level (depth_steps.x, the most .y; sharper in a cave under the cut of levels), so a
+// pit or a drop shows its depth; levels above the feet get lighter the same way
+// (depth_steps.z, .w; returned below 0); what shows above the cut is a dim ghost,
+// dimmer higher up.
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
 		if (plane_on()) {
 			return 0.0;
 		}
-		return clamp(0.35 + 0.03 * floor((y - cut_height) / CELL - 0.01), 0.0, 0.7);
+		float above = floor((y - cut_height) / CELL - 0.01);
+		if (cut_ghost > 0.5) {
+			// The fainter a level over the cut, the darker.
+			return clamp(0.3 + 0.6 * (1.0 - cut_share(above + 1.0) / max(cut_fade.z, 0.01)), 0.0, 0.9);
+		}
+		return clamp(0.35 + 0.03 * above, 0.0, 0.7);
 	}
 	float below = floor((view_height - y) / CELL + 0.01) - 1.0;
-	return cut_ghost < 0.5 ? clamp(below * 0.08, 0.0, 0.6) : clamp(below * 0.04, 0.0, 0.5);
+	if (below >= 0.0) {
+		return min(below * depth_steps.x, depth_steps.y);
+	}
+	// Above the feet lighter, a level at a time (below 0: see veil).
+	float up = floor((y - view_height) / CELL - 0.01);
+	return -min(max(up, 0.0) * depth_steps.z, depth_steps.w);
 }
 
 // The column `col` (whole cells x, z): r the roof (see roof_level), g the crown, b the
@@ -708,11 +738,14 @@ float fog_at(vec3 p) {
 // it and the crowns stay clear.
 // rgb is the colour given off in place, a how much of the thing's own colour gives way.
 vec4 veil(vec3 p, float fade) {
+	// A fade below 0 lightens: the thing's own colour counts for more (a below 0).
+	float lift = max(-fade, 0.0);
+	fade = max(fade, 0.0);
 	if (fog <= 0.0) {
-		return vec4(depth_haze * fade, fade);
+		return vec4(depth_haze * fade, 1.0 - (1.0 - fade) * (1.0 + lift));
 	}
 	float m = min(fog_at(p), 0.85);
-	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
+	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m) * (1.0 + lift));
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,
