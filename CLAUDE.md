@@ -178,5 +178,7 @@ Each in one line; the system's context doc has the detail.
   down and 1 s after the last touch.
 - `tools/shot.gd` and `tools/profile.gd` save `user://settings.cfg`; the scene tests read their own
   `user://test_settings.cfg` (`Settings.path`), so a tool no longer changes what they play.
+- Headless runs never compile shaders: a shader error (a varying named like a uniform or a local)
+  shows only in a real render (`xvfb-run … --rendering-driver opengl3`) or the browser smoke test.
 - A runtime error in a test aborts only its function: `run_tests` counts each as a failure and
   `run_all.sh` fails any log with `SCRIPT ERROR`.

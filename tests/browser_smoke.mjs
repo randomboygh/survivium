@@ -2,7 +2,7 @@
 // as a phone in landscape whose toolbar hides the bottom of the page, and as a phone
 // held upright opening a link to a server. Plays a little in the first two, joins in the
 // third, prints the browser console and a screenshot of each as base64, and fails on
-// script errors or touch controls outside the visible screen. Software WebGL
+// script or shader errors or touch controls outside the visible screen. Software WebGL
 // draws a frame in a second or more and every input event waits for one, so the test sends
 // as few events as it can.
 // Run from the repo root after exporting to build/web and serving it on port 8060:
@@ -40,7 +40,7 @@ async function open(name, options, init, tapDpr) {
     const text = m.text();
     log.push(text);
     console.log(`[${name} console.${m.type()}] ${text}`);
-    if (/SCRIPT ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`${name}: ${text}`);
+    if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`${name}: ${text}`);
   });
   page.on('pageerror', (e) => {
     console.log(`[${name} pageerror] ${e.message}`);
@@ -243,7 +243,7 @@ if (runs('upright')) {
     const text = m.text();
     log.push(text);
     console.log(`[upright console.${m.type()}] ${text}`);
-    if (/SCRIPT ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`upright: ${text}`);
+    if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`upright: ${text}`);
   });
   page.on('pageerror', (e) => errors.push(`upright: ${e.message}`));
   await page.goto(`${URL}?server=127.0.0.1:9`);
