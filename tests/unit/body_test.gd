@@ -437,17 +437,17 @@ func _test_ground() -> void:
 	# top of its mound down through its upper point, walled with brick where the upward
 	# tetrahedron bounds it and with stone under the downward one's upper face.
 	var star: Vector2i = TestGround.STAR
-	var mid: int = g - TestGround.STAR_DROP
-	var r := int(TestGround.STAR_R)
-	gen.generate_area(Vector2i((star.x - 16) >> 4, (star.y - 16) >> 4), Vector2i((star.x + 16) >> 4, (star.y + 16) >> 4))
+	var mid: int = gen.star_mid
+	var r := int(gen.star_r)
+	gen.generate_area(Vector2i((star.x - 26) >> 4, (star.y - 26) >> 4), Vector2i((star.x + 26) >> 4, (star.y + 26) >> 4))
 	var open_shaft := true
-	for y in range(mid - r, mid + r + 3):
+	for y in range(mid - r, gen.size_y):
 		open_shaft = open_shaft and w.get_cell(star.x, y, star.y) == Mat.AIR
-	_check(open_shaft and w.get_cell(star.x, mid - r - 1, star.y) == Mat.STONE,
-		"the star cave is hollow from the top of its mound down to its lower point")
-	_check(w.surface_y(star.x + 4, star.y) == g + 4 and w.get_cell(star.x - 8, mid + 4, star.y) == Mat.STONE
-		and w.get_cell(star.x - 6, mid + 4, star.y) == Mat.AIR and w.get_cell(star.x - 7, mid - 5, star.y) == Mat.index("materials:brick")
-		and w.get_cell(star.x - 2, mid - 7, star.y) == Mat.AIR and w.get_cell(star.x - 4, mid - 7, star.y) != Mat.AIR,
+	_check(r >= 20 and open_shaft and w.get_cell(star.x, mid - r - 1, star.y) == Mat.STONE,
+		"the star cave is as high as the world and hollow from the top of its mound down to its lower point")
+	_check(w.surface_y(star.x + 4, star.y) == mid + r - 2 and w.get_cell(star.x - 9, mid, star.y) == Mat.STONE
+		and w.get_cell(star.x - 8, mid, star.y) == Mat.AIR and w.get_cell(star.x - 10, mid - 8, star.y) == Mat.index("materials:brick")
+		and w.get_cell(star.x - 5, mid - 8, star.y) == Mat.AIR and w.get_cell(star.x - 6, mid - 8, star.y) == Mat.STONE,
 		"the star cave has its points, brick and stone walls and a mound over it")
 	# The relief ground: the lone cell of grass rises a cell, the ring's hollow does not,
 	# the cliff steps one cell then two; the row of stone is stone.
