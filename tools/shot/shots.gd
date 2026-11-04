@@ -55,6 +55,7 @@ const SHOTS := {
 	"dim-trees": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1},
 	# The torch held the other way and walking east: the flame stays at the hand.
 	"torch-east": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "e", "right": true}},
+	"torch-meadow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "s"}},
 	"torch-meadow": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "facing": "s"}},
 	# The torch by a wall to the north: lit from the foot of the wall up.
 	"torch-wall": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "wall": "north", "hands": {"tool": "tools:torch", "facing": "s"}},
@@ -687,6 +688,8 @@ const SHOTS := {
 	"ground-diagonals-behind": {"time": 0.42, "season": 1, "at": [47, -57], "y": 18, "settings": {"cave_mode": 1}},
 	"ground-diagonals-hill": {"time": 0.42, "season": 1, "at": [14, -47], "y": 23, "settings": {"cave_mode": 1}},
 	# A lantern by day in a cave 19 levels under the sea: it lights as on the surface at night.
+	# The same lantern almost burned out: dimmer (Sky.charge_gain).
+	"ground-lantern-burnt": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "settings": {"cave_mode": 1}, "burnt": 0.9, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
 	"ground-lantern-deep": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "settings": {"cave_mode": 1}, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
 	"ground-diagonals-roof": {"time": 0.42, "season": 1, "at": [43, -53], "y": 19, "settings": {"cave_mode": 1}},
 	# Deep in the star cave, under its upper point.

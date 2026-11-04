@@ -35,6 +35,12 @@ const STALLS_PER_FRAMES := 250
 ## took 70 % of the frame until 2026-10-21).
 const IDLE_SHARE := 20.0
 const NIGHT_SHARE := 16.0
+## ...but never less than this, in ms: GitHub's runners come in two speeds (a chunk
+## 14-17 ms or 21-25 ms) while an idle frame costs about the same on both (0.9-1.0 ms
+## on 2026-11-04), so a share of a fast runner's chunk failed main half the time. The
+## floors are the slow runner's shares, a third above the frames measured then.
+const IDLE_FLOOR := 1.25
+const NIGHT_FLOOR := 1.55
 const NIGHT := "idle at night by the campfire"
 const IDLE := "idle"
 
@@ -746,10 +752,10 @@ func _run() -> void:
 			# moves it, a stall of the machine in a few of them does not.
 			var share: float = IDLE_SHARE if r[0] == IDLE else NIGHT_SHARE
 			var outside: float = _median_outside(r[1], r[2])
-			var limit: float = unit[r[0]] / share
+			var limit: float = maxf(unit[r[0]] / share, IDLE_FLOOR if r[0] == IDLE else NIGHT_FLOOR)
 			print("%s: %.2f ms a frame past the budgets (limit %.2f, a chunk %.1f ms just before); the game's parts: %s" % [
 				r[0], outside, limit, unit[r[0]], _parts_text(parts_us.get(r[0], {}), r[1].size())])
-			_check(outside < limit, "%s: a frame takes under 1/%d of a chunk past the budgets (%.2f ms of %.2f)" % [
+			_check(outside < limit, "%s: a frame takes under 1/%d of a chunk (or the floor) past the budgets (%.2f ms of %.2f)" % [
 				r[0], share, outside, limit])
 	for r in runs:
 		var frames: PackedFloat32Array = r[1]

@@ -28,6 +28,16 @@ const GLOW_ENERGY := 0.3
 const GLOW_RANGE := 1.5
 ## Two torches, one in each hand, light this much farther than one.
 const TWO_TORCHES := 1.4
+## Torches, fires and lights set down burn brighter the darker it is round them (see
+## lamp_gain): by day a fire at Effects.DAY_LAMP of its light and a torch not at all, up to full
+## light as the light round them falls from DUSK_LIGHT to FULL_LIGHT (dusk), and on up to
+## DARK_GAIN times that in full darkness (a moonless night, the depths of a cave).
+const DUSK_LIGHT := 0.55
+const FULL_LIGHT := 0.3
+const DARK_GAIN := 2.0
+## A torch or a light set down burns down dimmer as it burns out: a nearly burned one at
+## this share of a new one's light (see charge_gain).
+const BURNT_GAIN := 0.4
 ## A swimmer holds the torch low over the water: its light reaches this share as far.
 const SWIMMING_TORCH := 0.5
 ## How far, in degrees, the sun or the moon goes past the border of its eighth of the
@@ -178,11 +188,8 @@ func _update_light(delta: float) -> void:
 ## cells beside them.
 func _update_torch(delta: float) -> void:
 	var player = game.player
-	# Deep under the sea's surface the sky's light does not reach (sea_bright in
-	# common.gdshaderinc): where it is dimmer there than at dusk the light burns in full,
-	# as under a roof, however deep (the shaders undo the depth's darkening for it).
-	var deep := sky_light * _sea_bright(player.position.y + WorldData.CELL) < 0.55
-	var dark := 1.0 if game.chunks.indoor or deep else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
+	# The darker round the player, the brighter: at night, deeper in a cave (lamp_gain).
+	var dark := lamp_gain(player.position.y + WorldData.CELL, game.chunks.indoor)
 	dark *= 1.0 - game.effects.torch_off(player.position)
 	var held: String = game.character.light_held() if game.character != null else ""
 	player.torch_lit = held != ""
@@ -203,10 +210,31 @@ func _update_torch(delta: float) -> void:
 		if _flicker_clock <= 0.0:
 			_flicker_clock = 0.09
 			_flicker = rng.randf_range(0.88, 1.05)
-		energy = TORCH_ENERGY * _flicker
+		energy = TORCH_ENERGY * _flicker * charge_gain(game.character.burn_left(held))
 	if not is_equal_approx(player.torch.omni_range, reach):
 		player.torch.omni_range = reach
 	player.torch.light_energy = energy * dark * (game.effects.shadow_energy if shadows else 1.0)
+
+
+## How bright a torch, a fire or a light set down at height `y` burns, a share of its
+## light at dusk: the darker round it, the brighter. The light round it is the sky's
+## (sky_light) darkened by the depth under the sea's surface as the shaders darken the
+## colours (sea_bright, taken to linear as the renderer does, so a cave dims it about as
+## much as it looks); under a roof (`roofed`) it is at most dusk's. By day it is
+## `day` (0 for a torch, Effects.DAY_LAMP for fires), at dusk 1, in full darkness DARK_GAIN.
+func lamp_gain(y: float, roofed: bool, day := 0.0) -> float:
+	var around := sky_light * pow(_sea_bright(y), 2.2)
+	if roofed:
+		around = minf(around, FULL_LIGHT)
+	if around >= FULL_LIGHT:
+		return lerpf(day, 1.0, clampf((DUSK_LIGHT - around) / (DUSK_LIGHT - FULL_LIGHT), 0.0, 1.0))
+	return lerpf(DARK_GAIN, 1.0, around / FULL_LIGHT)
+
+
+## How bright a torch or a light set down burns with `left` (0..1) of it still to burn:
+## dimmer as it burns down, BURNT_GAIN of a new one's light at the end.
+static func charge_gain(left: float) -> float:
+	return lerpf(BURNT_GAIN, 1.0, sqrt(clampf(left, 0.0, 1.0)))
 
 
 ## How much of the sun's and the sky's light comes down to height `y`, as the shaders
