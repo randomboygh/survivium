@@ -12,7 +12,7 @@ extends "res://src/shared/world/world_gen.gd"
 ##   pits       x -8..8,    z -44..-26  a pit 4 deep, a shaft 12 deep
 ##   cave       x 12..44,   z -46..-24  a stone hill 12 high, a tunnel from the south
 ##                                      into a hall, a dirt floor
-##   star       x 14..42,   z -86..-58  a cave shaped as a stellated octahedron (STAR_*):
+##   star       x 4..52,    z -96..-48  a cave shaped as a stellated octahedron (STAR_*):
 ##                                      two tetrahedra through each other, one pointing up,
 ##                                      one down, hollow; walls of brick where the upward one
 ##                                      bounds it, of stone where the downward one does; its
@@ -88,14 +88,12 @@ const BIOME_Z := 100
 const BIOME_POOL := 4
 const POND_DEPTHS := [1, 2, 3, 5]
 const HILL := 12
-## The star cave: its middle column, how far its middle lies under the meadow's top, the
-## reach of its points from the middle (cells; the two tetrahedra share the middle, the
-## upward one's point straight over it, the downward one's straight under it) and how
-## thick its walls of brick and stone are. A grassy mound rises over it a cell a cell,
-## its top a cell over the upper point, the shaft down to the point STAR_SHAFT wide.
+## The star cave: its middle column and how thick its walls of brick and stone are; how
+## big it is follows the height of the world (star_mid, star_r). A grassy mound rises over
+## it a cell a cell, its top a cell over the upper point, and covers the walls everywhere
+## (the downward tetrahedron's upper corners stand out of it as shoulders); the shaft
+## down to the point is STAR_SHAFT wide.
 const STAR := Vector2i(28, -72)
-const STAR_DROP := 6
-const STAR_R := 12.0
 const STAR_WALL := 1.5
 const STAR_SHAFT := 1.0
 ## Directions to the points of the upward tetrahedron (its point up, one corner of its
@@ -178,11 +176,19 @@ var plot_biomes: Array = []
 var meadow := Biomes.NONE
 var rock := Biomes.NONE
 var water := Biomes.NONE
+## The star cave as big as the world's height lets it: the middle halfway up, the points
+## (the two tetrahedra share the middle, the upward one's point straight over it, the
+## downward one's straight under it) star_r cells out, a wall and the mound's top still
+## under the top of the world and the lower point's wall over its bottom.
+var star_mid := 24
+var star_r := 21.0
 
 
 func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
 	super(SEED, sy, {})
 	ground = sea + 2
+	star_mid = size_y / 2
+	star_r = float(size_y / 2 - 3)
 	# WorldGen._init picked the spawn before the ground's level was known.
 	spawn_guess = _pick_spawn()
 	# A static func, so the world holds no reference back to its maker.
@@ -569,36 +575,44 @@ static func _plot_pool(at: Vector2i) -> bool:
 	return at.x >= from and at.x < from + BIOME_POOL and at.y >= from and at.y < from + BIOME_POOL
 
 
-## How many cells the mound over the star cave rises at column x, z (0 off it).
+## How many cells the mound over the star cave rises at column x, z (0 off it): a cone
+## a cell a cell from a cell over the upper point, and never under the cave's walls.
 func star_mound(x: int, z: int) -> int:
-	var top := STAR_R - STAR_DROP + 1.0
-	return maxi(0, int(top - Vector2(x - STAR.x, z - STAR.y).length() + 0.5))
+	var reach := int(star_r + STAR_WALL) + 1
+	var tip := star_mid + int(star_r)
+	var cone := int(tip + 1.5 - Vector2(x - STAR.x, z - STAR.y).length())
+	if absi(x - STAR.x) <= reach and absi(z - STAR.y) <= reach:
+		for y in range(tip - 2, cone, -1):
+			var o := star_outside(x, y, z)
+			if minf(o.x, o.y) <= STAR_WALL:
+				cone = y + 1
+				break
+	return maxi(0, cone - ground)
 
 
 ## How far cell x, y, z lies outside the tetrahedra of the star cave, in cells (0 or
 ## less inside): [outside the upward one, outside the downward one].
 func star_outside(x: int, y: int, z: int) -> Vector2:
-	var p := Vector3(x - STAR.x, y - (ground - STAR_DROP), z - STAR.y)
+	var p := Vector3(x - STAR.x, y - star_mid, z - STAR.y)
 	var up := -INF
 	var down := -INF
 	for v: Vector3 in STAR_POINTS:
 		var d := v.dot(p)
-		up = maxf(up, -d - STAR_R / 3.0)
-		down = maxf(down, d - STAR_R / 3.0)
+		up = maxf(up, -d - star_r / 3.0)
+		down = maxf(down, d - star_r / 3.0)
 	return Vector2(up, down)
 
 
 ## The star cave in column x, z, written over the plain fill: air inside, walls of
 ## brick and stone round it, the shaft from the mound's top down to the upper point.
 func _star(x: int, z: int, out: Array) -> void:
-	var reach := int(STAR_R + STAR_WALL) + 1
+	var reach := int(star_r + STAR_WALL) + 1
 	if absi(x - STAR.x) > reach or absi(z - STAR.y) > reach:
 		return
-	var middle := ground - STAR_DROP
 	var shaft := Vector2(x - STAR.x, z - STAR.y).length() <= STAR_SHAFT
-	var tip := middle + int(STAR_R)
+	var tip := star_mid + int(star_r)
 	var top := ground + star_mound(x, z)
-	for y in range(maxi(1, middle - int(STAR_R + STAR_WALL) - 1), tip + 3):
+	for y in range(maxi(1, star_mid - int(star_r + STAR_WALL) - 1), mini(tip + 3, size_y)):
 		var o := star_outside(x, y, z)
 		var d := minf(o.x, o.y)
 		if d <= 0.0 or (shaft and y > tip - 4):
