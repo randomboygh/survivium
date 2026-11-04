@@ -178,7 +178,10 @@ func _update_light(delta: float) -> void:
 ## cells beside them.
 func _update_torch(delta: float) -> void:
 	var player = game.player
-	var dark := 1.0 if game.chunks.indoor else clampf((0.55 - sky_light) * 4.0, 0.0, 1.0)
+	# Deep under the sea's surface the sky's light does not reach (sea_bright in
+	# common.gdshaderinc): there the light comes on as at night.
+	var lit_here := sky_light * _sea_bright(player.position.y + WorldData.CELL)
+	var dark := 1.0 if game.chunks.indoor else clampf((0.55 - lit_here) * 4.0, 0.0, 1.0)
 	dark *= 1.0 - game.effects.torch_off(player.position)
 	var held: String = game.character.light_held() if game.character != null else ""
 	player.torch_lit = held != ""
@@ -203,6 +206,14 @@ func _update_torch(delta: float) -> void:
 	if not is_equal_approx(player.torch.omni_range, reach):
 		player.torch.omni_range = reach
 	player.torch.light_energy = energy * dark * (game.effects.shadow_energy if shadows else 1.0)
+
+
+## How much of the sun's and the sky's light comes down to height `y`, as the shaders
+## darken it (sea_bright in common.gdshaderinc): less by the test setting «Затемнение за
+## уровень» each level under the sea's surface.
+func _sea_bright(y: float) -> float:
+	var below := floorf(((game.world.sea_level + 1) * WorldData.CELL - y) / WorldData.CELL + 0.01)
+	return 1.0 - clampf(below * game.settings.cut_depth(), 0.0, 1.0)
 
 
 ## Points the sun (or the moon) from `azimuth` degrees (0 = south, negative = east)
