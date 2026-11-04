@@ -699,17 +699,31 @@ const SHOTS := {
 	"ground-clay-relief": {"time": 0.42, "season": 1, "at": [-40, 74]},
 	"ground-hut": {"time": 0.42, "season": 1, "at": [54, 7]},
 	"ground-pond": {"time": 0.42, "season": 1, "at": [-30, 12]},
-	# The plant garden south-east of the spawn: trees, bushes and ground plants in pens.
-	"ground-plants-west": {"time": 0.42, "season": 1, "at": [12, 26]},
-	"ground-plants-east": {"time": 0.42, "season": 1, "at": [44, 26]},
-	# The cherry's pen (pale pink blossom) and the bird cherry's (white) in spring and in summer.
-	"ground-cherry-spring": {"time": 0.42, "season": 0, "at": [17, 19]},
-	"ground-cherry-summer": {"time": 0.42, "season": 1, "at": [17, 19]},
+	# The plant garden east of the field of ears: trees, bushes and ground plants in pens.
+	"ground-plants-west": {"time": 0.42, "season": 1, "at": [180, -28]},
+	"ground-plants-east": {"time": 0.42, "season": 1, "at": [228, -28]},
+	# The bird cherry's pen (white blossom) and the cherry's (pale pink) in spring and in summer.
+	"ground-cherry-spring": {"time": 0.42, "season": 0, "at": [219, -60]},
+	"ground-cherry-summer": {"time": 0.42, "season": 1, "at": [219, -60]},
 	# The garden's trees up close, west to east, and in autumn and winter.
-	"ground-garden-1": {"time": 0.42, "season": 1, "at": [22, 6]},
-	"ground-garden-2": {"time": 0.42, "season": 1, "at": [60, 6]},
-	"ground-garden-autumn": {"time": 0.42, "season": 2, "at": [60, 6]},
-	"ground-garden-winter": {"time": 0.42, "season": 3, "at": [60, 6]},
+	"ground-garden-1": {"time": 0.42, "season": 1, "at": [179, -60]},
+	"ground-garden-2": {"time": 0.42, "season": 1, "at": [227, -60]},
+	"ground-garden-autumn": {"time": 0.42, "season": 2, "at": [227, -60]},
+	"ground-garden-winter": {"time": 0.42, "season": 3, "at": [227, -60]},
+	# The house of brick (TestGround.HOUSE): from the south, both floors inside, at night.
+	"ground-house": {"time": 0.42, "season": 1, "at": [70, -43]},
+	"ground-house-inside": {"time": 0.42, "season": 1, "at": [70, -52], "y": 23},
+	"ground-house-upper": {"time": 0.42, "season": 1, "at": [70, -52], "y": 27},
+	"ground-house-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [70, -52], "y": 23},
+	# The descents (TestGround.DESCENT, DESCENT45): the mouths, a step down inside, the bottom.
+	"ground-descent": {"time": 0.42, "season": 1, "at": [-120, -38]},
+	"ground-descent-inside": {"time": 0.42, "season": 1, "at": [-143, -55], "y": 18},
+	"ground-descent-bottom": {"time": 0.42, "season": 1, "at": [-236, -55], "y": 1},
+	"ground-descent45": {"time": 0.42, "season": 1, "at": [-110, -12]},
+	"ground-descent45-inside": {"time": 0.42, "season": 1, "at": [-138, 1], "y": 18},
+	# The beach (TestGround.BEACH) going down into the sea.
+	"ground-beach": {"time": 0.42, "season": 1, "at": [-125, 112]},
+	"ground-beach-deep": {"time": 0.42, "season": 1, "at": [-150, 112], "y": 21},
 	# The biome plots south of the relief ground, five in a row from x -70 (TestGround.BIOME_*):
 	# the first row's birch grove and desert, forest and meadow, pine wood; the second
 	# row's steppe and taiga, tundra, swamp and beach.
@@ -725,7 +739,7 @@ const SHOTS := {
 	# Swimming in the deep end of the pond and in the deep corner of the swamp's pond.
 	"ground-swim": {"time": 0.42, "season": 1, "at": [-20, 26], "y": 18},
 	"ground-swim-swamp": {"time": 0.42, "season": 1, "at": [22, 142], "y": 21},
-	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 4]},
+	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 9]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
