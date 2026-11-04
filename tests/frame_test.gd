@@ -208,7 +208,7 @@ func _run() -> void:
 	main.chunks.manual_level = -1
 
 	# Jumping in a cave: the view stays cut at the floor level the whole time. The
-	# player lands first, and the automatic cut follows the floor after CUT_DELAY.
+	# player lands first, and the automatic cut follows the floor at once.
 	main.player.position = ShotPlaces.cave(w, main.player.position)
 	main.player.body.on_ground = false
 	await _scenario("landing in a cave", 100000, func(_i: int) -> bool:

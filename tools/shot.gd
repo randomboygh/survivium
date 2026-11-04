@@ -365,7 +365,7 @@ func _run() -> void:
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "cave_mode", "layer_front_from",
 				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "sphere_radius",
-				"sphere_shift", "sphere_debug", "cut_instant", "cut_line", "cut_from", "cut_stretch", "cut_density", "cut_depth"]:
+				"sphere_shift", "sphere_debug", "cut_line", "cut_from", "cut_stretch", "cut_density", "cut_depth"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame

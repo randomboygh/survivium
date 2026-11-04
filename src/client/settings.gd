@@ -95,13 +95,10 @@ const DEFAULTS := {
 	"layer_line": 10,
 	# The radius of the view in a sphere (cave_mode 3), an index of CaveSphere.RADII.
 	"sphere_radius": 6,
-	# The cut of levels (cave_mode 1, test settings «Пещеры»): whether in a cave it
-	# follows each change of level at once (1) or after CUT_DELAY (0); the level it
-	# starts at, an index of CaveLayers.LINES from the feet (+2, over the head, as
+	# The cut of levels (cave_mode 1, test settings «Пещеры»): the level it starts at, an index of CaveLayers.LINES from the feet (+2, over the head, as
 	# before); how the levels over it fade: the first ones, their stretch and density
 	# (indices of CaveLayers.FIRSTS, STRETCHES, DENSITIES); how much darker each level
 	# under the feet in a cave gets and lighter each above (CaveLayers.DEPTH_STEPS).
-	"cut_instant": 1,
 	"cut_line": 12,
 	"cut_from": 8,
 	"cut_stretch": 5,
@@ -161,7 +158,7 @@ static func _index_limits() -> Dictionary:
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(), "sphere_radius": CaveSphere.RADII.size(),
 		"sphere_shift": CaveSphere.SHIFTS.size(), "sphere_debug": 2,
-		"cut_instant": 2, "cut_line": CaveLayers.LINES.size(), "cut_from": CaveLayers.FIRSTS.size(),
+		"cut_line": CaveLayers.LINES.size(), "cut_from": CaveLayers.FIRSTS.size(),
 		"cut_stretch": CaveLayers.STRETCHES.size(), "cut_density": CaveLayers.DENSITIES.size(),
 		"cut_depth": CaveLayers.DEPTH_STEPS.size(),
 		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
