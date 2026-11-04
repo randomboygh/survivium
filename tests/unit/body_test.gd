@@ -446,9 +446,9 @@ func _test_ground() -> void:
 	_check(r >= 20 and open_shaft and w.get_cell(star.x, mid - r - 1, star.y) == Mat.STONE,
 		"the star cave is as high as the world and hollow from the top of its mound down to its lower point")
 	_check(w.surface_y(star.x + 4, star.y) == mid + r - 2 and w.get_cell(star.x - 9, mid, star.y) == Mat.STONE
-		and w.get_cell(star.x - 8, mid, star.y) == Mat.AIR and w.get_cell(star.x - 10, mid - 8, star.y) == Mat.index("materials:brick")
+		and w.get_cell(star.x - 8, mid, star.y) == Mat.AIR and w.get_cell(star.x - 10, mid - 8, star.y) == Mat.DIRT
 		and w.get_cell(star.x - 5, mid - 8, star.y) == Mat.AIR and w.get_cell(star.x - 6, mid - 8, star.y) == Mat.STONE,
-		"the star cave has its points, brick and stone walls and a mound over it")
+		"the star cave has its points, walls of dirt and stone and a mound over it")
 	# The relief ground: the lone cell of grass rises a cell, the ring's hollow does not,
 	# the cliff steps one cell then two; the row of stone is stone.
 	var rx: int = TestGround.RELIEF_X

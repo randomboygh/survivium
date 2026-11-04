@@ -14,7 +14,7 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      into a hall, a dirt floor
 ##   star       x 4..52,    z -96..-48  a cave shaped as a stellated octahedron (STAR_*):
 ##                                      two tetrahedra through each other, one pointing up,
-##                                      one down, hollow; walls of brick where the upward one
+##                                      one down, hollow; walls of dirt where the upward one
 ##                                      bounds it, of stone where the downward one does; its
 ##                                      upper point opens on the top of a grassy mound
 ##   bushes     x 62..96,   z -9..2     rows of raspberries, blueberries, shrubs and
@@ -88,7 +88,7 @@ const BIOME_Z := 100
 const BIOME_POOL := 4
 const POND_DEPTHS := [1, 2, 3, 5]
 const HILL := 12
-## The star cave: its middle column and how thick its walls of brick and stone are; how
+## The star cave: its middle column and how thick its walls of dirt and stone are; how
 ## big it is follows the height of the world (star_mid, star_r). A grassy mound rises over
 ## it a cell a cell, its top a cell over the upper point, and covers the walls everywhere
 ## (the downward tetrahedron's upper corners stand out of it as shoulders); the shaft
@@ -604,7 +604,7 @@ func star_outside(x: int, y: int, z: int) -> Vector2:
 
 
 ## The star cave in column x, z, written over the plain fill: air inside, walls of
-## brick and stone round it, the shaft from the mound's top down to the upper point.
+## dirt and stone round it, the shaft from the mound's top down to the upper point.
 func _star(x: int, z: int, out: Array) -> void:
 	var reach := int(star_r + STAR_WALL) + 1
 	if absi(x - STAR.x) > reach or absi(z - STAR.y) > reach:
@@ -618,7 +618,7 @@ func _star(x: int, z: int, out: Array) -> void:
 		if d <= 0.0 or (shaft and y > tip - 4):
 			out.append([y, y, Mat.AIR, WorldData.WILD])
 		elif d <= STAR_WALL and y < top:
-			out.append([y, y, _block("brick"), 0] if o.x < o.y else [y, y, Mat.STONE, WorldData.WILD])
+			out.append([y, y, Mat.DIRT if o.x < o.y else Mat.STONE, WorldData.WILD])
 
 
 ## What column x, z has over its plain fill: [from y, to y (inclusive), material,
