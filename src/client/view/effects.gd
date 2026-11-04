@@ -11,6 +11,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Items := preload("res://src/shared/content/items.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -61,6 +62,8 @@ const SHADOW_SKY := 0.5
 ## How many of the lights set down light the world at once (see lamps), how bright.
 const LAMP_LIGHTS := 6
 const LAMP_ENERGY := 1.3
+## By day fires and lights set down burn at this share of their light (Sky.lamp_gain).
+const DAY_LAMP := 0.15
 ## Flames of lights set down farther than this from the view (screen-plane units) stop:
 ## off the screen, their particles would still cost the phone's processor.
 const LAMP_FLAME_REACH := 24.0
@@ -372,8 +375,9 @@ static func _brightness(p: CPUParticles3D, b: float) -> void:
 
 ## A light set down with its flame at world point `at`, lighting `reach` world units
 ## round (an item's `light`): a small flame and a flickering light. Returns its record
-## for remove_lamp.
-func add_lamp(at: Vector3, reach: float) -> Dictionary:
+## for remove_lamp. `placed` is its record in Placed.lights: the less of it is left to
+## burn, the dimmer (Sky.charge_gain).
+func add_lamp(at: Vector3, reach: float, placed := {}) -> Dictionary:
 	var flame := _torch_flame()
 	flame.position = at
 	flame.emitting = true
@@ -385,7 +389,7 @@ func add_lamp(at: Vector3, reach: float) -> Dictionary:
 	light.visible = false
 	add_child(light)
 	anchor(light, at)
-	var rec := {"light": light, "flame": flame, "at": at}
+	var rec := {"light": light, "flame": flame, "at": at, "placed": placed}
 	lamps.append(rec)
 	return rec
 
@@ -399,8 +403,9 @@ func remove_lamp(rec: Dictionary) -> void:
 
 ## The LAMP_LIGHTS lights set down nearest the screen-plane point `view` light the world,
 ## flickering, dimmer by day; the rest are dark but for their flames, and those far off
-## the screen not even those.
-func _light_lamps(view: Vector2, daylight: float) -> void:
+## the screen not even those. Brighter the darker round them (Sky.lamp_gain), dimmer as
+## they burn down (Sky.charge_gain).
+func _light_lamps(view: Vector2, sky) -> void:
 	if lamps.is_empty():
 		return
 	var near: Array = lamps
@@ -419,7 +424,12 @@ func _light_lamps(view: Vector2, daylight: float) -> void:
 		if light.visible != on:
 			light.visible = on
 		if on:
-			light.light_energy = LAMP_ENERGY * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.85, 1.05)
+			var e: Dictionary = rec.placed
+			var left := 1.0
+			if not e.is_empty() and Items.burns(e.item) > 0.0:
+				left = 1.0 - float(e.burnt) / Items.burns(e.item)
+			light.light_energy = LAMP_ENERGY * sky.lamp_gain(rec.at.y, _roofed(rec.at), DAY_LAMP) \
+					* sky.charge_gain(left) * rng.randf_range(0.85, 1.05)
 
 
 ## Puts out campfire `rec` (see add_campfire): the flames, smoke and light go, its warmth
@@ -533,12 +543,25 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	flicker_clock += delta
 	if flicker_clock > 0.09:
 		flicker_clock = 0.0
-		# Fires matter at night; by day they only warm the ground a little.
+		# Fires matter at night, the more the darker round them (Sky.lamp_gain); by day
+		# they only warm the ground a little.
 		pick_shadow_fires(view)
 		for f in fires:
-			var energy: float = f.base * lerpf(1.0, 0.15, daylight) * rng.randf_range(0.8, 1.1)
-			f.light.light_energy = energy * (shadow_energy if f.light.shadow_enabled else 1.0)
-		_light_lamps(view, daylight)
+			f.light.light_energy = fire_energy(f, sky) * rng.randf_range(0.8, 1.1)
+		_light_lamps(view, sky)
+
+
+## How bright fire `f` (see add_campfire) burns now, without its flicker: by its fuel
+## (`base`), brighter the darker round it (Sky.lamp_gain), less with a shadow
+## (shadow_energy).
+func fire_energy(f: Dictionary, sky) -> float:
+	return f.base * sky.lamp_gain(f.at.y + 0.6, _roofed(f.at), DAY_LAMP) \
+			* (shadow_energy if f.light.shadow_enabled else 1.0)
+
+
+## True when a roof stands over world point `at` (WorldCells.roof_level).
+func _roofed(at: Vector3) -> bool:
+	return world != null and world.roof_level(floori(at.x / CELL), floori(at.z / CELL)) > floori(at.y / CELL)
 
 
 ## How far sideways rain falls in a wind of `wind` (Clock.storm_wind), in world units

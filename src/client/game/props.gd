@@ -199,7 +199,7 @@ func _add_lamp(e: Dictionary) -> void:
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
 	var top := mesh.get_aabb().end.y / 16.0
-	_lamps[e.cell] = game.effects.add_lamp(node.position + Vector3(0.0, top + 0.03, 0.0), float(item.get("light", 0.0)))
+	_lamps[e.cell] = game.effects.add_lamp(node.position + Vector3(0.0, top + 0.03, 0.0), float(item.get("light", 0.0)), e)
 
 
 func _on_lit_changed(e: Dictionary) -> void:

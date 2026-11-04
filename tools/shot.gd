@@ -278,8 +278,7 @@ func _run() -> void:
 			_place_zoo(shot.zoo == "water")
 		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
 		for f: Dictionary in main.effects.fires:
-			f.light.light_energy = f.base * lerpf(1.0, 0.15, main.sky.daylight) \
-					* (main.effects.shadow_energy if f.light.shadow_enabled else 1.0)
+			f.light.light_energy = main.effects.fire_energy(f, main.sky)
 		if shot.has("put_fire"):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:
@@ -301,6 +300,11 @@ func _run() -> void:
 				await process_frame
 		if shot.has("hands"):
 			await _hands(shot.hands)
+			if shot.has("burnt"):
+				# The light in hand burned this share of its time (Character.burning).
+				var held: String = main.character.light_held()
+				for who in [main.character, main.host.player]:
+					who.burning[held] = [Items.burns(held) * float(shot.burnt)]
 		if shot.has("cast"):
 			await _cast(shot.cast == "bite")
 		if shot.get("wall", "") is String and shot.get("wall", "") == "north":
