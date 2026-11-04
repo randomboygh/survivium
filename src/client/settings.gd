@@ -97,8 +97,8 @@ const DEFAULTS := {
 	"sphere_radius": 6,
 	# The cut of levels (cave_mode 1, test settings «Пещеры»): the level it starts at, an index of CaveLayers.LINES from the feet (+2, over the head, as
 	# before); how the levels over it fade: the first ones, their stretch and density
-	# (indices of CaveLayers.FIRSTS, STRETCHES, DENSITIES); how much darker each level
-	# under the feet in a cave gets and lighter each above (CaveLayers.DEPTH_STEPS).
+	# (indices of CaveLayers.FIRSTS, STRETCHES, DENSITIES). For the whole world, how
+	# much darker each level under the sea's surface gets (CaveLayers.DEPTH_STEPS, 12 %).
 	"cut_line": 12,
 	"cut_from": 8,
 	"cut_stretch": 5,
@@ -397,7 +397,7 @@ func cut_line() -> int:
 	return CaveLayers.LINES[values.cut_line]
 
 
-## How much darker a level under the feet in a cave gets under the cut of levels.
+## How much darker each level under the sea's surface gets, down to black.
 func cut_depth() -> float:
 	return CaveLayers.DEPTH_STEPS[values.cut_depth]
 

@@ -77,6 +77,8 @@ varying vec3 world_pos;
 varying vec3 world_normal;
 varying flat vec2 packed;
 varying float clouds;
+// The share of the sun's and the sky's light that comes down this deep (sea_bright).
+varying float deep;
 
 // How big the snowdrifts are: full in deep snow, sinking and shrinking to nothing as
 // the snow cover thins, so they melt away in spring instead of vanishing at once.
@@ -171,7 +173,7 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 // only what lies between the camera and the player (the rock above, the near walls,
 // whose faces turn their backs to the camera) goes. Under a roof only the walls of
 // covered space count, so the hill's own face over a cave does not hide the cave; out
-// in the open only open ones, and none under a crown, so trunks go with their crowns.
+// in the open only open ones, crowns and trunks too (kept_behind in common).
 bool back_wall(vec3 p, vec3 n) {
 	// Walls turned to the camera, and floors (tops) too.
 	bool floor_top = n.y > 0.5;
@@ -184,7 +186,7 @@ bool back_wall(vec3 p, vec3 n) {
 	if (roofed(player_pos.xz, player_pos.y + 2.0 * CELL)) {
 		return roofed(front, p.y);
 	}
-	return !roofed(front, p.y) && !under_crown(front);
+	return !roofed(front, p.y);
 }
 
 void fragment() {
@@ -515,7 +517,8 @@ void fragment() {
 		}
 	}
 	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
-	ALBEDO = col * (1.0 - veiled.a);
+	deep = sea_bright(world_pos.y);
+	ALBEDO = col * (1.0 - veiled.a) * deep;
 	EMISSION = veiled.rgb;
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
@@ -554,5 +557,5 @@ void light() {
 			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), world_pos, world_normal)) {
 		lit = vec3(0.0);
 	}
-	DIFFUSE_LIGHT += lit;
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit / deep;
 }

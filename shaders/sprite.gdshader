@@ -32,6 +32,8 @@ varying float shade;
 
 varying vec3 world_pos;
 varying float clouds;
+// The share of the sun's and the sky's light that comes down this deep (sea_bright).
+varying float deep;
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
@@ -91,9 +93,10 @@ void fragment() {
 	} else if (c.a < 0.5) {
 		discard;
 	}
-	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	vec4 veiled = veil(world_pos, depth_fade(kept_behind(world_pos) ? cut_height : world_pos.y));
 	// The cool light of the night is what a drawn shadow leaves (fire_shadow.gdshader).
-	ALBEDO = c.rgb * vec3(shade, mix(shade, 1.0, 0.06), mix(shade, 1.0, 0.2)) * (1.0 - veiled.a);
+	deep = sea_bright(world_pos.y);
+	ALBEDO = c.rgb * vec3(shade, mix(shade, 1.0, 0.06), mix(shade, 1.0, 0.2)) * (1.0 - veiled.a) * deep;
 	EMISSION = veiled.rgb;
 	// Lit as if facing up and toward the viewer, on both sides (mirrored sprites
 	// show their back face).
@@ -117,5 +120,5 @@ void light() {
 		}
 	}
 	DIFFUSE_LIGHT += toon_light(LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT, LIGHT, LIGHT_COLOR, ATTENUATION,
-		LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch);
+		LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch) / (LIGHT_IS_DIRECTIONAL ? 1.0 : deep);
 }

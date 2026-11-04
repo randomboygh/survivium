@@ -43,6 +43,8 @@ varying float shore_under;
 varying flat int kind;
 varying float murk_here;
 varying float clouds;
+// The share of the sun's and the sky's light that comes down this deep (sea_bright).
+varying float deep;
 // 1 under the open sky, where nothing casts a shadow on the surface (see light()).
 varying float open_sky;
 // 2 on a waterfall's sheet, 1 on the foam where it lands, 0 elsewhere.
@@ -230,7 +232,8 @@ void fragment() {
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
-	ALBEDO = col * (1.0 - veiled.a);
+	deep = sea_bright(world_pos.y);
+	ALBEDO = col * (1.0 - veiled.a) * deep;
 	EMISSION = veiled.rgb;
 	ALPHA = mix(alpha, 1.0, ice_amount);
 	ROUGHNESS = 1.0;
@@ -245,5 +248,5 @@ void light() {
 	// cave stays in the dark of what covers it; clouds shade it anyway.
 	float shade = LIGHT_IS_DIRECTIONAL && open_sky > 0.5 ? 1.0 : ATTENUATION;
 	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
-		light_stretch(INV_VIEW_MATRIX, LIGHT));
+		light_stretch(INV_VIEW_MATRIX, LIGHT)) / (LIGHT_IS_DIRECTIONAL ? 1.0 : deep);
 }

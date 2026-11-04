@@ -172,6 +172,8 @@ var sunk_at := Vector3i(0, -1000, 0)
 var hidden_by := -1
 ## Earth hides the player, but nothing rises behind them: a hill, left whole.
 var hill := false
+## The earth hidden_by found stands as a sheer wall (see _sheer_below).
+var _hide_steep := false
 ## The view hidden_by was worked out for (up and slope, see _hiding_level).
 var _hidden_view := Vector3.ZERO
 
@@ -185,6 +187,8 @@ func _init(g) -> void:
 func prepare(g: WorldGen) -> void:
 	gen = g
 	world = g.world
+	# Under the sea's surface the light of the sun and the sky fades (sea_bright).
+	RenderingServer.global_shader_parameter_set("sea_top", (world.sea_level + 1) * CELL)
 	gen.made.connect(_on_generated)
 	ground_level = game.player.level()
 	_list_pending()
@@ -700,10 +704,10 @@ func update_cut(_delta: float) -> void:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
 		hidden_by = _hiding_level(px, level, pz)
-		hill = hidden_by >= 0 and not _rises_behind(px, level, pz)
+		hill = hidden_by >= 0 and not _hide_steep and not _rises_behind(px, level, pz)
 	elif _hidden_view != Vector3(PixelView.up.x, PixelView.up.y, PixelView.slope):
 		hidden_by = _hiding_level(px, level, pz)
-		hill = hidden_by >= 0 and not _rises_behind(px, level, pz)
+		hill = hidden_by >= 0 and not _hide_steep and not _rises_behind(px, level, pz)
 	var target: int = world.size_y
 	if manual_level >= 0:
 		# Walking away from the levels looked at brings the view back within reach.
@@ -721,9 +725,10 @@ func update_cut(_delta: float) -> void:
 		if sunk:
 			target = sunk_rim
 		# Earth between the camera and the player goes where the player stands in a
-		# dip: a ravine running across the view, the near wall of a diagonal one. A
-		# hill or a mountain the player climbs from the far side stays whole (the
-		# player shows through it), as nothing rises behind them.
+		# dip (a ravine running across the view, the near wall of a diagonal one) or
+		# behind a sheer wall (a block, a hut, a ledge). A hill or a mountain the
+		# player climbs from the far side, its slope coming down to their feet, stays
+		# whole (the player shows through it).
 		if hidden_by >= 0 and not hill:
 			target = mini(target, hidden_by - 1)
 	_update_depth()
@@ -788,8 +793,19 @@ func _hiding_level(x: int, level: int, z: int) -> int:
 		var ahead := body - up * PixelView.slope * (y - level)
 		for c: Vector2 in [ahead + up, ahead]:
 			if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
+				_hide_steep = _sheer_below(c + up, y)
 				return y
 	return -1
+
+
+## Whether the two cells under level `y` in the column at `c` are open: the earth
+## found over them stands as a sheer wall to the player's side (a hill of the test
+## world, a hut, a ledge), not as a slope coming down to the player's feet.
+func _sheer_below(c: Vector2, y: int) -> bool:
+	for k in [1, 2]:
+		if y - k < 0 or Mat.is_roof(world.get_cell(floori(c.x), y - k, floori(c.y))):
+			return false
+	return true
 
 
 ## Whether earth rises over the head of a player standing on `level` in column (x, z)
@@ -873,19 +889,14 @@ func layered() -> bool:
 
 
 ## How the levels over the cut fade (shader global cut_fade) and how much darker each
-## level under the player's feet gets (depth_steps: a level, the most): sharper in a
-## cave under the cut of levels, by the test setting, and with a level picked by hand.
+## level under the sea's surface gets (depth_steps.x, the test setting, see sea_bright).
 func _update_depth() -> void:
 	var settings = game.settings
 	var fade: Vector4 = settings.cut_fade()
 	if fade != _cut_fade:
 		_cut_fade = fade
 		RenderingServer.global_shader_parameter_set("cut_fade", fade)
-	var steps := Vector4(0.04, 0.5, 0.0, 0.0)
-	if manual_level >= 0:
-		steps = Vector4(0.08, 0.6, 0.0, 0.0)
-	elif indoor and settings.values.cave_mode == 1:
-		steps = Vector4(settings.cut_depth(), 0.8, 0.0, 0.0)
+	var steps := Vector4(settings.cut_depth(), 0.0, 0.0, 0.0)
 	if steps != _depth_steps:
 		_depth_steps = steps
 		RenderingServer.global_shader_parameter_set("depth_steps", steps)
@@ -968,6 +979,9 @@ func update_caps() -> void:
 		if not cap_nodes.has(key):
 			var node := MeshInstance3D.new()
 			node.material_override = game.world_mat
+			# The rock the cap closes casts its own shadow: a cap's, a hair off it,
+			# fell on the player jumping by the cut.
+			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
 		game.hud.perf.mark("срез")
