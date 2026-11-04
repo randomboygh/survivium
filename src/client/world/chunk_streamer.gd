@@ -112,6 +112,9 @@ var cap_levels := {}
 ## object) shows its caps at once instead of building them again chunk by chunk, which
 ## left holes flickering over the cut. A chunk's go when it is meshed again or freed.
 var cap_cache := {}
+## The level every chunk in range has its cap built for, -1 while some are still to
+## build: update_caps does nothing more until a chunk or the cut changes.
+var _caps_ready := -1
 var cap_order: Array[Vector2i] = []
 var cap_home := Vector2i(-1000000, 0)
 ## Chunks that changed since they were last meshed, and the chunk being built now
@@ -554,11 +557,13 @@ func _free_chunk(key: Vector2i) -> void:
 		cap_nodes.erase(key)
 		cap_levels.erase(key)
 	cap_cache.erase(key)
+	_caps_ready = -1
 
 
 func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 	cap_levels.erase(key)
 	cap_cache.erase(key)
+	_caps_ready = -1
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = game.world_mat
@@ -886,6 +891,7 @@ func _apply_cut() -> void:
 		for key in cap_levels:
 			cap_nodes[key].visible = false
 		cap_levels.clear()
+		_caps_ready = -1
 
 
 ## The view under a roof opens otherwise than by a cut: in layers or in a sphere.
@@ -977,6 +983,7 @@ func update_caps() -> void:
 	var home := _player_chunk()
 	if home != cap_home:
 		cap_home = home
+		_caps_ready = -1
 		cap_order.clear()
 		for cz in range(home.y - CAP_RANGE, home.y + CAP_RANGE + 1):
 			for cx in range(home.x - CAP_RANGE, home.x + CAP_RANGE + 1):
@@ -992,9 +999,10 @@ func update_caps() -> void:
 			if maxi(absi(key.x - home.x), absi(key.y - home.y)) > CAP_RANGE:
 				cap_cache.erase(key)
 	var want: int = cap_level()
-	if want < 0:
+	if want < 0 or want == _caps_ready:
 		return
 	var t0 := Time.get_ticks_usec()
+	var all_built := true
 	# The caps already built for this level show at once, all of them.
 	for key in cap_order:
 		if cap_levels.get(key, -1) != want and cap_cache.has(key) and cap_cache[key].has(want) \
@@ -1020,5 +1028,8 @@ func update_caps() -> void:
 		cap_cache[key] = kept
 		_show_cap(key, want, mesh)
 		if Time.get_ticks_usec() - t0 > CAP_BUDGET_US:
+			all_built = false
 			break
+	if all_built:
+		_caps_ready = want
 	budget_us += Time.get_ticks_usec() - t0
