@@ -560,6 +560,52 @@ func walls(w, at: Vector3) -> Vector3:
 	return (Vector3(spot) + Vector3(-6.5, 0.0, 2.5)) * CELL
 
 
+## Doors and windows of every size in a brick wall on flat ground near `at`, from the
+## west: a door 2×3, a door 2×2 open, a door 1×2, windows 1×2, 2×1, 2×2 and 3×2; before
+## its east end a fireplace burning, a wide cupboard, a barrel and a cupboard. Returns
+## where the player stands: in the middle, or by the cupboards with `by_storage`.
+func openings(w, at: Vector3, by_storage := false) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
+	var x0 := spot.x - 15
+	var z := spot.z - 4
+	# [item, first x, cells wide, from level, cells high, open]
+	var gaps := [["tools:door_2x3", 0, 2, 0, 3, false], ["tools:door_2x2", 3, 2, 0, 2, true], ["tools:door", 6, 1, 0, 2, false],
+		["tools:window_1x2", 8, 1, 1, 2, false], ["tools:window_2x1", 10, 2, 2, 1, false],
+		["tools:window_2x2", 13, 2, 1, 2, false], ["tools:window_3x2", 16, 3, 1, 2, false]]
+	for x in range(x0 - 1, x0 + 31):
+		for dz in range(-3, 4):
+			for y in range(spot.y, spot.y + 5):
+				if w.get_cell(x, y, z + dz) != Mat.AIR:
+					w.set_cell(x, y, z + dz, Mat.AIR)
+		if x > x0 + 20:
+			continue
+		for y in 4:
+			var gap := false
+			for g: Array in gaps:
+				gap = gap or x >= x0 + g[1] and x < x0 + g[1] + g[2] and y >= g[3] and y < g[3] + g[4]
+			if not gap:
+				w.set_cell(x, spot.y + y, z, brick)
+	var p = main.session.placed
+	for g: Array in gaps:
+		p.put(g[0], Vector3i(x0 + g[1], spot.y + g[3], z), null, true, -1.0, null, 0, g[5])
+	for x in range(x0 + 21, x0 + 31):
+		for y in 3:
+			w.set_cell(x, spot.y + y, z, brick)
+	p.put("tools:fireplace", Vector3i(x0 + 21, spot.y, z + 1), null, true, 2400.0)
+	p.put("tools:wide_cupboard", Vector3i(x0 + 24, spot.y, z + 1))
+	p.put("tools:barrel", Vector3i(x0 + 26, spot.y, z + 1))
+	p.put("tools:cupboard", Vector3i(x0 + 27, spot.y, z + 1))
+	for c: Vector3i in w.bushes.keys():
+		if c.x >= x0 - 2 and c.x <= x0 + 32 and absi(c.z - z) <= 4:
+			w.remove_bush(c)
+	for dx in range(-16, 33, 8):
+		main.chunks.on_cell_changed(Vector3i(x0 + dx, spot.y, z))
+	if by_storage:
+		return (Vector3(x0 + 25, spot.y, z + 3) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return (Vector3(x0 + 15, spot.y, z + 5) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## Furniture on a floor of planks 10×7 on flat ground near `at`, low walls of planks on
 ## its west and north sides: a table with a stool each side, a bed, a cupboard and a
 ## barrel by the north wall, a rug in the middle. Returns where the player stands.

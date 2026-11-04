@@ -11,3 +11,23 @@
   model: door
   prop: door
   door: true
+# Двустворчатые двери на две клетки в ширину (размер — ширина × высота в клетках): касание
+# открывает обе створки, каждая поворачивается внутрь на своей петле, к западному и восточному краю.
+- id: door_2x2
+  title: Дверь 2×2
+  description: Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.
+  weight: 8.0
+  stack: 2
+  icon: door_2x2
+  model: door_2x2
+  prop: door_2x2
+  door: true
+- id: door_2x3
+  title: Дверь 2×3
+  description: Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.
+  weight: 12.0
+  stack: 2
+  icon: door_2x3
+  model: door_2x3
+  prop: door_2x3
+  door: true

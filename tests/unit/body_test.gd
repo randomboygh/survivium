@@ -562,15 +562,19 @@ func _test_ground_sites(gen) -> void:
 	_check(w.get_cell(h.position.x, g + 1, -54 + 1) == brick and w.get_cell(h.position.x, g + 2 + storey, -54 + 1) == brick
 		and w.get_cell(70, g, -54) == planks and w.get_cell(70, g + storey, -54) == planks
 		and w.get_cell(door.x, g + 1, door.y) == Mat.AIR and w.get_cell(door.x, g + 2, door.y) == Mat.AIR
-		and w.get_cell(door.x, g + 3, door.y) == brick and w.get_cell(66, g + 2, -49) == Mat.AIR
+		and w.get_cell(door.x, g + 3, door.y) == Mat.AIR and w.get_cell(door.x + 1, g + 3, door.y) == Mat.AIR
+		and w.get_cell(door.x + 2, g + 1, door.y) == brick and w.get_cell(66, g + 2, -49) == Mat.AIR
+		and w.get_cell(66, g + 3, -49) == brick
 		and w.get_cell(TestGround.HOUSE_STAIRS.x, g + storey, TestGround.HOUSE_STAIRS.y) == Mat.AIR
 		and w.get_cell(70, g + 2 * storey, -54) == planks and w.get_cell(70, g + 2 * storey + 5, -54) == planks
 		and w.get_cell(70, g + 2 * storey + 5, -56) == Mat.AIR,
 		"the house of the test world has walls, two floors, a door, windows, a stair hole and a roof")
 	var things: Array = gen.plan_things().map(func(t: Array) -> String: return t[0])
-	_check(things.count("tools:window") == 2 * TestGround.HOUSE_WINDOWS.size() and things.count("tools:stairs") == storey
-		and things.has("tools:door") and things.has("tools:wooden_bed") and things.count("tools:lantern") == 4,
-		"the house of the test world has its windows, stairs, door, furniture and lanterns")
+	_check(things.count("tools:window") == TestGround.HOUSE_WINDOWS.size() and things.count("tools:stairs") == storey
+		and things.has("tools:door") and things.has("tools:door_2x3") and things.count("tools:window_1x2") == 2
+		and things.has("tools:window_3x2") and things.has("tools:fireplace") and things.has("tools:wide_cupboard")
+		and things.has("tools:wooden_bed") and things.count("tools:lantern") == 4,
+		"the house of the test world has its windows and doors of every size, stairs, a fireplace, furniture and lanterns")
 	# The straight descent: the entrance on the meadow's level, ten high, under its
 	# mound; a level lower each five cells; the bottom level at its end.
 	var d: Vector2 = TestGround.DESCENT

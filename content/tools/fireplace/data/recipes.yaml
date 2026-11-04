@@ -1,0 +1,7 @@
+# Камин кладут из кирпича («Материалы») и камня на глине, на верстаке.
+- id: fireplace
+  title: Камин
+  makes: fireplace
+  needs: {materials:brick: 8, resources:stone: 4, resources:clay: 2}
+  at: workbench
+  time: 10

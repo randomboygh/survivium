@@ -129,6 +129,8 @@ func _run() -> void:
 			main.player.position = places.hut(main.world, main.player.position)
 		if shot.get("walls", false):
 			main.player.position = places.walls(main.world, main.player.position)
+		if shot.has("openings"):
+			main.player.position = places.openings(main.world, main.player.position, shot.openings == "storage")
 		if shot.get("furniture", false):
 			main.player.position = places.furniture(main.world, main.player.position)
 		if shot.get("plan", false):
@@ -582,6 +584,24 @@ func _run() -> void:
 				main.hud.bag._destroy.pressed.emit()
 			if shot.has("person"):
 				main.hud.bag._tap_person(shot.person)
+		if shot.get("openings", "") == "storage":
+			# The storage by the player, a few things in each, their strips in the bag's list.
+			for e: Dictionary in main.session.placed.things:
+				if e.items != null:
+					e.items.add("resources:log", 2)
+					e.items.add("plants:apple", 5)
+			main.hud.bag._kinds.pick("")
+			main.hud.bag.refresh_state()
+			for i in 4:
+				await process_frame
+			var grids: Array = main.hud.bag._chest_grids
+			print("storage shown: ", main.hud.bag._chests.map(func(e: Dictionary) -> String: return e.item))
+			# From the strip of the `storage_at`th (the second: the camp's chest by the spawn may come first).
+			if not grids.is_empty():
+				var k: int = mini(shot.get("storage_at", 1), grids.size() - 1)
+				main.hud.bag._scroll.scroll_vertical = int(grids[k].line.position.y) - 4
+			for i in 4:
+				await process_frame
 		if shot.get("chest", false):
 			main.session.placed.chest_items.add("resources:log", 3)
 			main.session.placed.chest_items.add("plants:raspberry", 12)

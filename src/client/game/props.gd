@@ -127,7 +127,7 @@ func _model(kind: String, turn := 0, open := false):
 			var side: int = Placed.sizes.get(kind, 2) * 8
 			var turned = m.get_script().new()
 			for p: Vector3i in m.voxels:
-				var q: Vector3i = Placed.open_voxels([p])[0] if open else p
+				var q: Vector3i = Placed.open_voxels([p], side)[0] if open else p
 				q = Placed.turn_voxels([q], side, turn)[0]
 				turned.set_voxel(q, m.voxels[p], m.foliage.has(p))
 			m = turned
@@ -140,13 +140,12 @@ func _on_added(e: Dictionary) -> void:
 		_add_lamp(e)
 		return
 	if Placed.is_fire(e):
-		_fires[e.cell] = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat)
+		_add_fire(e)
 		if not e.lit:
 			game.effects.put_out(_fires[e.cell])
-		else:
-			game.effects.fire_strength(_fires[e.cell], Placed.fuel_share(e))
 		_heat_later()
-		return
+		if not Placed.is_hearth(e):
+			return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
 	node.mesh = _model(kind, e.get("turn", 0), e.get("open", false)).build_mesh()
@@ -205,11 +204,20 @@ func _add_lamp(e: Dictionary) -> void:
 func _on_lit_changed(e: Dictionary) -> void:
 	if e.lit:
 		game.effects.remove_campfire(_fires[e.cell])
-		_fires[e.cell] = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat)
-		game.effects.fire_strength(_fires[e.cell], Placed.fuel_share(e))
+		_add_fire(e)
 	else:
 		game.effects.put_out(_fires[e.cell])
 	_heat_later()
+
+
+## The flames of fire `e` (Effects.add_campfire): a campfire with its ring of stones, a
+## fireplace's in the middle of its hearth, low over its floor.
+func _add_fire(e: Dictionary) -> void:
+	var hearth := Vector3.INF
+	if Placed.is_hearth(e):
+		hearth = Placed.center(e) + Vector3(0.0, 0.15 - 0.5 * CELL, 0.0)
+	_fires[e.cell] = game.effects.add_campfire(Vector3(e.cell) * CELL, game.low_mat, hearth)
+	game.effects.fire_strength(_fires[e.cell], Placed.fuel_share(e))
 
 
 ## A campfire was fed or burned down a little: its flames and light follow what it has

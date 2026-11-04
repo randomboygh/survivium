@@ -43,6 +43,16 @@
   prop: cupboard
   furniture: true
   storage: 24
+- id: wide_cupboard
+  title: Широкий шкаф
+  description: Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука.
+  weight: 24.0
+  stack: 1
+  icon: wide_cupboard
+  model: wide_cupboard
+  prop: wide_cupboard
+  furniture: true
+  storage: 48
 - id: barrel
   title: Бочка
   description: Бочка в обручах. Еда в ней портится вдвое медленнее.

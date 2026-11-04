@@ -1,6 +1,8 @@
 extends "res://tests/unit/test_case.gd"
 ## What the hands do to the world: felling, digging and building, the action in front, placed things.
 
+const Warmth := preload("res://src/shared/game/warmth.gd")
+
 
 func run() -> void:
 	_test_felling()
@@ -13,6 +15,7 @@ func run() -> void:
 	_test_station_flags()
 	_test_recipe_fields()
 	_test_furniture()
+	_test_openings()
 
 
 func _test_felling() -> void:
@@ -504,7 +507,7 @@ func _test_station_flags() -> void:
 		and "_k:crate.at: `_k:crate` is no station" in said,
 		"a class is a lowercase word, flags are a thing's set down, a thing serves stations and is set down with a tool some item is; what stores is no station: %s" % said)
 	_check(Tools.of("_k:knife") == Tools.HAND and Items.tool_title("knife") == "нож" and Items.tool_title("axe") == "топор"
-		and Items.is_station("_k:rack") and not Items.is_station("_k:crate") and Items.most_storage() == 40,
+		and Items.is_station("_k:rack") and not Items.is_station("_k:crate") and Items.most_storage() == 48,
 		"a knife works in the world as bare hands; a class is named by the last word its items share")
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:
@@ -664,3 +667,64 @@ func _test_furniture() -> void:
 	placed.spoil(Items.get_item(food).spoils * 1.5, false)
 	_check(barrel.items.count(food) == 1 and chest.items.count(food) == 0,
 		"food in a barrel keeps when the same in a chest has gone off: %s" % food)
+
+
+## Doors and windows of other sizes are set into gaps of their size, a double door swings
+## both its leaves; a wide cupboard stores; a fireplace is set down cold, lit for fuel,
+## warms, burns nobody pressing against it, cooks what a campfire does and is taken up
+## only put out.
+func _test_openings() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	_check(Placed.size_of("tools:door_2x3") == 2 and Placed.size_of("tools:door_2x2") == 2 and Placed.size_of("tools:window_3x2") == 3
+		and Placed.size_of("tools:window_1x2") == 1 and Placed.size_of("tools:window_2x1") == 2 and Placed.size_of("tools:window_2x2") == 2
+		and Placed.size_of("tools:fireplace") == 2 and Placed.size_of("tools:wide_cupboard") == 2, "the new things take the cells of their models")
+	# A wall along x at z 20, three high: a gap two wide and three high at x 14..15, one
+	# three wide and two high at x 18..20.
+	for x in range(10, 24):
+		for y in range(1, 4):
+			var door_gap := x >= 14 and x <= 15
+			var window_gap := x >= 18 and x <= 20 and y <= 2
+			if not door_gap and not window_gap:
+				w.set_cell(x, y, 20, Mat.STONE)
+	var who := Who.new()
+	who.facing = Vector2i(0, -1)
+	who.position = Vector3(14.9, 1.0, 21.5) * WorldData.CELL
+	who.inventory.add("tools:door_2x3", 1)
+	_check(placed.put_from_bag(who, "tools:door_2x3", -1, 40), "a double door is set into a gap of its size")
+	var door: Dictionary = placed.things[-1]
+	_check(door.cell == Vector3i(14, 1, 20) and placed.cells_of(door).size() == 2
+		and w.blocker_part(14, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0 and w.blocker_part(15, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0
+		and placed.cells_of(door).size() == 2 and w.blockers.get(door.cell).end.y > 2.5
+		and is_equal_approx(w.blocker_part(14, 1, 20, 0.0, 1.0, 0.5, 1.0), 0.0),
+		"shut, it closes both cells along their north edge, its leaves three high: %s" % [door])
+	_check(placed.swing(who, door) and door.open
+		and is_equal_approx(w.blocker_part(14, 1, 20, 0.5, 1.0, 0.0, 1.0), 0.0) and w.blocker_part(14, 1, 20, 0.0, 0.2, 0.0, 1.0) > 0.0
+		and is_equal_approx(w.blocker_part(15, 1, 20, 0.0, 0.5, 0.0, 1.0), 0.0) and w.blocker_part(15, 1, 20, 0.8, 1.0, 0.0, 1.0) > 0.0,
+		"a tap opens both leaves, one to the west edge, one to the east, and the gap is walked through")
+	_check(Placed.center(door).is_equal_approx(Vector3(15.0, 1.5, 20.5) * WorldData.CELL), "it is tapped in the middle of its cells")
+	who.position = Vector3(19.5, 1.0, 21.5) * WorldData.CELL
+	who.inventory.add("tools:window_3x2", 1)
+	_check(placed.put_from_bag(who, "tools:window_3x2", -1, 40) and placed.things[-1].cell == Vector3i(18, 1, 20)
+		and placed.cells_of(placed.things[-1]).size() == 3 and Placed.is_part(placed.things[-1]),
+		"a window three wide is set into its gap, taken up at a tap: %s" % [placed.things[-1]])
+	var wide := placed.put("tools:wide_cupboard", Vector3i(30, 1, 10))
+	_check(wide.items != null and wide.items.slots.size() == 48 and placed.cells_of(wide).size() == 2
+		and w.blocker_top(30, 2, 10) > 0.5, "a wide cupboard two by two stores the most")
+	var fire := placed.put("tools:fireplace", Vector3i(30, 1, 30))
+	_check(not fire.lit and Placed.is_fire(fire) and Placed.is_hearth(fire) and placed.cells_of(fire).size() == 2,
+		"a fireplace is set down cold, on the two cells of its row")
+	who.inventory.add("resources:branch", 1)
+	_check(placed.light(who, fire) and fire.lit and fire.fuel > 0.0, "it is lit for a branch and burns on it")
+	var front := Placed.center(fire) + Vector3(0.0, -0.5, 1.0) * WorldData.CELL
+	_check(Warmth.fire_heat(placed, front) > 0.0 and placed.burning(front + Vector3(0.0, 0.0, -0.45) * WorldData.CELL).is_empty(),
+		"it warms the one before it and burns nobody pressing against it")
+	_check(placed.stations_near(Placed.center(fire), 1.0).has(Placed.CAMPFIRE), "what is cooked at a campfire is cooked at it")
+	_check(not placed.take_up(who, fire) and not placed.destroy(fire), "burning, it is not taken up")
+	placed.put_out(fire)
+	_check(placed.take_up(who, fire) and who.inventory.count("tools:fireplace") == 1, "put out, it is taken up whole")

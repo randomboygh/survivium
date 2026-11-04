@@ -182,6 +182,13 @@ const SHOTS := {
 	"build-plan": {"time": 0.4, "season": 1, "plan": true},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.
 	"build-furniture": {"time": 0.4, "season": 1, "furniture": true},
+	# Doors and windows of every size in a brick wall, a fireplace burning, a wide cupboard
+	# (places.openings): by day, at dusk, and the bag by the cupboards and the barrel.
+	"build-openings": {"time": 0.4, "season": 1, "openings": "wall"},
+	"build-openings-dusk": {"time": 0.8, "season": 1, "moon": 0.0, "openings": "wall"},
+	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
+	"build-openings-bag-barrel": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2},
+	"build-openings-bag-cupboard": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 3},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.
 	"walk-into-east": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 0], "facing": "e"},
@@ -719,6 +726,8 @@ const SHOTS := {
 	"ground-house-inside": {"time": 0.42, "season": 1, "at": [70, -52], "y": 23},
 	"ground-house-upper": {"time": 0.42, "season": 1, "at": [70, -52], "y": 27},
 	"ground-house-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [70, -52], "y": 23},
+	# Its east wall from outside, turned: the double door 2×2 and the door 1×2.
+	"ground-house-east": {"time": 0.42, "season": 1, "at": [80, -53], "turn": 1},
 	# The descents (TestGround.DESCENT, DESCENT45): the mouths, a step down inside, the bottom.
 	"ground-descent": {"time": 0.42, "season": 1, "at": [-120, -38]},
 	"ground-descent-inside": {"time": 0.42, "season": 1, "at": [-143, -55], "y": 18},

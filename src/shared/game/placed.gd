@@ -110,6 +110,11 @@ var opened_boxes := {}
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
 static var sizes := {}
+## The middle of the cells a thing of a prop kind fills, shut, for each turn, in cells from
+## the north-west corner of its square across the ground: kind -> [Vector2 for turn 0, 1,
+## 2, 3] (see center: a window three cells wide in the north row of its square is tapped
+## and heard there, not in the square's middle); the square's middle for a kind not read.
+static var middles := {}
 ## The items that are seats (`seat` over 1) by id, with their `seat`: seat_near looks no
 ## further when there are none, every body every step.
 static var seats := {}
@@ -137,6 +142,7 @@ func read_footprints() -> void:
 	footprints = {}
 	turned = {}
 	sizes = {}
+	middles = {}
 	seats = {}
 	for id in Items.IDS:
 		var rec := Items.get_item(id)
@@ -145,7 +151,7 @@ func read_footprints() -> void:
 			seats[id] = rec.seat
 		if kind == "none" or footprints.has(kind):
 			continue
-		if rec.get("fire", false):
+		if rec.get("fire", false) and rec.get("model", "") == "":
 			footprints[kind] = FIRE_BOXES
 			turned[kind] = [FIRE_BOXES, FIRE_BOXES, FIRE_BOXES, FIRE_BOXES]
 			sizes[kind] = 2
@@ -162,8 +168,12 @@ func read_footprints() -> void:
 				all.append(footprint(turn_voxels(voxels, n * 8, t), n, rec.get("steps", false)))
 			footprints[kind] = all[0]
 			turned[kind] = all
+			var mids := []
+			for t in 4:
+				mids.append(_middle(all[t], n))
+			middles[kind] = mids
 			if rec.get("door", false):
-				var swung := open_voxels(voxels)
+				var swung := open_voxels(voxels, n * 8)
 				var open := []
 				for t in 4:
 					open.append(footprint(turn_voxels(swung, n * 8, t), n))
@@ -191,14 +201,31 @@ static func turn_voxels(voxels, side: int, turn: int) -> Array[Vector3i]:
 	return out
 
 
-## Voxels `voxels` of a door's model swung open: its leaf, standing along the north
-## edge of its square when shut, turned on the hinge at its north-west corner to stand
-## along the west edge (x and z swap).
-static func open_voxels(voxels) -> Array[Vector3i]:
+## Voxels `voxels` of a door's model on a square `side` voxels across swung open: its
+## leaf, standing along the north edge of its square when shut, turned on the hinge at
+## its north-west corner to stand along the west edge (x and z swap). A door two cells
+## wide or more has two leaves, each half its width: the west one swings so, the east one
+## on the hinge at the north-east corner to stand along the east edge.
+static func open_voxels(voxels, side := 8) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	for p: Vector3i in voxels:
-		out.append(Vector3i(p.z, p.y, p.x))
+		if side >= 16 and p.x >= side / 2:
+			out.append(Vector3i(side - 1 - p.z, p.y, side - 1 - p.x))
+		else:
+			out.append(Vector3i(p.z, p.y, p.x))
 	return out
+
+
+## The middle of the cells boxes `boxes` (one per cell of a square `n` across, see
+## footprint) fill, in cells from the square's north-west corner across the ground.
+static func _middle(boxes: Array, n: int) -> Vector2:
+	var sum := Vector2.ZERO
+	var count := 0
+	for i in boxes.size():
+		if boxes[i] is Array or boxes[i].has_volume():
+			sum += Vector2(i % n, i / n) + Vector2(0.5, 0.5)
+			count += 1
+	return sum / count if count > 0 else Vector2(n, n) * 0.5
 
 
 ## The turn of a thing set down by one looking along `step` (a facing step): its front
@@ -328,6 +355,15 @@ static func is_fire(e: Dictionary) -> bool:
 	return Items.get_item(e.item).get("fire", false)
 
 
+## True for a fire in a hearth of its own (a fire whose item has a `model`: a fireplace):
+## solid by its model, its flames inside it burn nobody, and put out it is taken up
+## whole as the other things are (see take_up); a campfire is drawn by the client and
+## only destroyed.
+static func is_hearth(e: Dictionary) -> bool:
+	var item := Items.get_item(e.item)
+	return item.get("fire", false) and item.get("model", "") != ""
+
+
 ## The cells round a thing's square of `n` by `n` cells, from its north-west one, where
 ## a body coming back to it is set: east first, as by the start's campfire.
 static func beside(n: int) -> Array[Vector3i]:
@@ -372,6 +408,9 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 	if rec.fire:
 		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
 		e.wet = 0.0
+		# One with nothing to burn (a fireplace set down, its `fuel_start` 0) stands cold.
+		if e.fuel <= 0.0 and rec.fuel_max > 0.0:
+			e.lit = false
 	_block(e)
 	if rec.storage > 0:
 		e.items = Inventory.new(rec.storage)
@@ -386,12 +425,13 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 
 
 ## Places what a world's plan sets down (TestGround.plan_things): [item, north-west cell,
-## turn (0 when left out)], a light on its cell (see put_light).
+## turn (0 when left out), the seconds a fire has to burn (its `fuel_start` when left
+## out)], a light on its cell (see put_light).
 func put_plan(t: Array) -> void:
 	if is_light_item(t[0]):
 		put_light(t[0], t[1])
 	else:
-		put(t[0], t[1], null, true, -1.0, null, t[2] if t.size() > 2 else 0)
+		put(t[0], t[1], null, true, float(t[3]) if t.size() > 3 else -1.0, null, t[2] if t.size() > 2 else 0)
 
 
 ## Puts back the things of a save (see to_list).
@@ -498,12 +538,16 @@ func at(cell: Vector3i) -> Dictionary:
 	return {}
 
 
-## The middle of placed thing `e` in world units.
+## The middle of placed thing `e` in world units: of the cells it fills (see middles), half
+## a cell up; for a fire, where its flames burn.
 static func center(e: Dictionary) -> Vector3:
 	if is_light(e):
 		return (Vector3(e.cell) + Vector3(0.5, 0.5, 0.5)) * CELL
-	var half := size_of(e.item) * 0.5
-	return (Vector3(e.cell) + Vector3(half, 0.5, half)) * CELL
+	var kind: String = Items.get_item(e.item).get("prop", "none")
+	var mid: Vector2 = Vector2.ONE * size_of(e.item) * 0.5
+	if middles.has(kind):
+		mid = middles[kind][e.get("turn", 0)]
+	return (Vector3(e.cell) + Vector3(mid.x, 0.5, mid.y)) * CELL
 
 
 ## The stations (things that store nothing; a fire while it burns) within `reach` world
@@ -531,7 +575,7 @@ func burns(p: Vector3) -> bool:
 func burning(p: Vector3) -> Dictionary:
 	var c := p / CELL
 	for e in things:
-		if not e.lit or not is_fire(e):
+		if not e.lit or not is_fire(e) or is_hearth(e):
 			continue
 		var at: Vector3i = e.cell
 		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:
@@ -677,15 +721,18 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 
 
 ## `who` takes placed thing `e` back into the bag, a thing that stores with what it holds
-## (its weight and theirs go to the bag); not a fire (see put_out and destroy). True if it
-## was taken.
+## (its weight and theirs go to the bag); not a campfire (see put_out and destroy), and a
+## fireplace only put out (is_hearth). True if it was taken.
 func take_up(who, e: Dictionary) -> bool:
 	if territory != null and not territory.may(who, e.cell, "build"):
 		return false
 	if is_light(e):
 		return take_light(who, e)
-	if is_fire(e):
+	if is_fire(e) and not is_hearth(e):
 		who.nag("take", "%s не унести: его можно потушить и разобрать" % Items.title(e.item))
+		return false
+	if is_fire(e) and e.lit:
+		who.nag("take", "%s горит: сначала потушите" % Items.title(e.item))
 		return false
 	var inv = who.inventory
 	var full: bool = e.items != null and not e.items.is_empty()
@@ -778,16 +825,16 @@ func _in_rain(e: Dictionary) -> bool:
 	var c: Vector3i = e.cell
 	if world.chunk_at(c.x, c.z) == null:
 		return false
-	for dz in 2:
-		for dx in 2:
-			if world.roof_level(c.x + dx, c.z + dz) < c.y:
-				return true
+	for k: Vector3i in cells_of(e):
+		if world.roof_level(k.x, k.z) < c.y:
+			return true
 	return false
 
 
-## Destroys campfire `e` that has been put out: nothing is left of it.
+## Destroys campfire `e` that has been put out: nothing is left of it (a fireplace is
+## taken up instead, see take_up).
 func destroy(e: Dictionary) -> bool:
-	if not is_fire(e) or e.lit:
+	if not is_fire(e) or e.lit or is_hearth(e):
 		return false
 	_remove(e)
 	return true
@@ -823,15 +870,27 @@ func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps 
 				offsets.append(Vector3i(dx, 0, dz))
 	var feet: Vector3i = who.feet()
 	var s: Vector2i = who.facing_step()
-	var ahead := n * 0.5 + 1.0
+	# The cells it fills are aimed at, not its square: a door or a window two or three
+	# cells wide fills only a row of it, set into a wall a step ahead.
+	var mid := Vector2.ZERO
+	var lo := Vector2i(n, n)
+	var hi := Vector2i(-1, -1)
+	for o: Vector3i in offsets:
+		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
+		lo = lo.min(Vector2i(o.x, o.z))
+		hi = hi.max(Vector2i(o.x, o.z))
+	mid /= offsets.size()
+	# Aimed at the cells right in front: their middle as deep ahead as half of them, and a
+	# half cell more from the feet's middle.
+	var deep := (hi.x - lo.x + 1) if s.x != 0 else (hi.y - lo.y + 1)
+	var ahead := deep * 0.5 + 0.5
 	var aim := Vector2(feet.x + 0.5 + s.x * ahead, feet.z + 0.5 + s.y * ahead)
-	var half := n * 0.5
 	var corners: Array[Vector2i] = []
 	for dz in range(-n - 1, 3):
 		for dx in range(-n - 1, 3):
 			corners.append(Vector2i(feet.x + dx, feet.z + dz))
 	corners.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return (Vector2(a) + Vector2(half, half)).distance_squared_to(aim) < (Vector2(b) + Vector2(half, half)).distance_squared_to(aim))
+		return (Vector2(a) + mid).distance_squared_to(aim) < (Vector2(b) + mid).distance_squared_to(aim))
 	for c in corners.slice(0, 6):
 		for dy in [0, -1, 1]:
 			var corner := Vector3i(c.x, feet.y + dy, c.y)

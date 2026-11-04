@@ -24,6 +24,12 @@
   needs: {materials:planks: 6}
   at: workbench
   time: 8
+- id: wide_cupboard
+  title: Широкий шкаф
+  makes: wide_cupboard
+  needs: {materials:planks: 10}
+  at: workbench
+  time: 12
 - id: barrel
   title: Бочка
   makes: barrel

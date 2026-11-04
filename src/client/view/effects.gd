@@ -274,18 +274,25 @@ const FIRE_LOW := 0.2
 
 ## A campfire one world unit square with its north-west corner at `corner`: stones,
 ## logs, flames, sparks, smoke and a flickering light, the model drawn with `material`.
-## Returns its record for put_out and remove_campfire: {"model", "parts" (what burns),
-## "fire" (its entry in fires, null once put out)}.
-func add_campfire(corner: Vector3, material: Material) -> Dictionary:
-	var model := MeshInstance3D.new()
-	model.mesh = _campfire_model().build_mesh()
-	model.material_override = material
-	model.scale = Vector3.ONE / 16.0
-	model.position = corner
-	# 24 world units in the model's 1/16 scale, against the shear of the view.
-	model.extra_cull_margin = 24.0 * 16.0
-	add_child(model)
+## Returns its record for put_out and remove_campfire: {"model" (null in a hearth),
+## "parts" (what burns), "fire" (its entry in fires, null once put out)}. With `hearth`
+## (a world point) the fire burns there in a hearth drawn by its owner (a fireplace,
+## Placed.is_hearth): no stones nor logs of its own, low flames that stay inside, no
+## smoke (it goes up the chimney).
+func add_campfire(corner: Vector3, material: Material, hearth := Vector3.INF) -> Dictionary:
+	var model: MeshInstance3D = null
 	var c := corner + Vector3(0.5, 0.15, 0.5)
+	if hearth.is_finite():
+		c = hearth
+	else:
+		model = MeshInstance3D.new()
+		model.mesh = _campfire_model().build_mesh()
+		model.material_override = material
+		model.scale = Vector3.ONE / 16.0
+		model.position = corner
+		# 24 world units in the model's 1/16 scale, against the shear of the view.
+		model.extra_cull_margin = 24.0 * 16.0
+		add_child(model)
 
 	var flames := _emitter(36, 0.7, Vector2(2.0 * PX, 2.0 * PX), 1.0)
 	flames.local_coords = false
@@ -324,6 +331,10 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	smoke.color_ramp = _ramp([Color(0.5, 0.5, 0.52, 0.0), Color(0.55, 0.55, 0.58, 0.45), Color(0.6, 0.6, 0.62, 0.0)])
 	smoke.emitting = true
 
+	if model == null:
+		flames.lifetime = 0.35
+		smoke.emitting = false
+		sparks.lifetime = 0.5
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.47, 0.18)
 	light.omni_range = 8.0
@@ -335,7 +346,7 @@ func add_campfire(corner: Vector3, material: Material) -> Dictionary:
 	var fire := {"light": light, "base": FIRE_ENERGY, "unit": Vector3i(c.floor()), "at": c}
 	fires.append(fire)
 	return {"model": model, "parts": [flames, sparks, smoke, light], "fire": fire, "flames": flames, "sparks": sparks,
-		"smoke": smoke}
+		"smoke": smoke, "lift": 1.0 if model != null else 0.5}
 
 
 ## How strongly campfire `rec` (see add_campfire) burns, from what it has left to burn
@@ -349,8 +360,10 @@ func fire_strength(rec: Dictionary, share: float) -> void:
 	var k := lerpf(FIRE_LOW, 1.0, sqrt(clampf(share, 0.0, 1.0)))
 	var flames: CPUParticles3D = rec.flames
 	flames.emission_sphere_radius = lerpf(0.05, 0.2, k)
-	flames.initial_velocity_min = 0.7 * k
-	flames.initial_velocity_max = 1.5 * k
+	# A hearth's flames rise half as fast, staying under its mantel.
+	var lift: float = rec.get("lift", 1.0)
+	flames.initial_velocity_min = 0.7 * k * lift
+	flames.initial_velocity_max = 1.5 * k * lift
 	flames.scale_amount_min = 0.6 * k
 	flames.scale_amount_max = lerpf(0.55, 1.9, k)
 	_brightness(flames, lerpf(0.6, 1.3, k))
@@ -430,13 +443,15 @@ func put_out(rec: Dictionary) -> void:
 	rec.parts = []
 	fires.erase(rec.fire)
 	rec.fire = null
-	(rec.model as MeshInstance3D).mesh = _campfire_model(false).build_mesh()
+	if rec.model != null:
+		(rec.model as MeshInstance3D).mesh = _campfire_model(false).build_mesh()
 
 
 ## Takes campfire `rec` (see add_campfire) out of the world.
 func remove_campfire(rec: Dictionary) -> void:
 	put_out(rec)
-	rec.model.queue_free()
+	if rec.model != null:
+		rec.model.queue_free()
 
 
 ## Warmth around the fires for the shaders (heat_map, see common.gdshaderinc): one

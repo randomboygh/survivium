@@ -23,6 +23,12 @@ const PLATINUM := Color(0.66, 0.68, 0.71)
 ## world unit, the front to the south), null for none; `model` (the item's) tells apart
 ## the things of one kind (the beds).
 static func prop(kind: String, model := "") -> VoxelModel:
+	# Doors and windows of other sizes: `door_2x3` is two cells wide, three tall.
+	var sized := kind.split("_")
+	if sized.size() == 2 and sized[0] in ["door", "window"] and sized[1].contains("x"):
+		var w := sized[1].get_slice("x", 0).to_int()
+		var h := sized[1].get_slice("x", 1).to_int()
+		return door(w, h) if sized[0] == "door" else window(w, h)
 	match kind:
 		"bed", "bedroll":
 			return bed(model)
@@ -60,6 +66,10 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return stool()
 		"cupboard":
 			return cupboard()
+		"wide_cupboard":
+			return wide_cupboard()
+		"fireplace":
+			return fireplace()
 		"barrel":
 			return barrel()
 		"rug":
@@ -369,35 +379,48 @@ static func stairs() -> VoxelModel:
 	return m
 
 
-## A door on one cell, two cells tall: a leaf of upright planks shut along the north
-## edge of the cell (Placed.open_voxels swings it on the hinge at the north-west
-## corner), two dark ledges across it, a handle on its front (south) face.
-static func door() -> VoxelModel:
+## A door `w` cells wide (a leaf a cell wide each), `h` cells tall: leaves of upright
+## planks shut along the north edge of its cells (Placed.open_voxels swings the west one
+## on the hinge at the north-west corner, the east one at the north-east), dark ledges
+## across them near the top and the bottom (and in the middle of a tall one), a handle on
+## the front (south) face of each by the middle.
+static func door(w := 1, h := 2) -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.6, 0.43, 0.27)
 	var dark := Color(0.38, 0.26, 0.15)
-	for y in 16:
-		for x in 8:
-			var c := wood * (0.88 if x % 3 == 2 else 1.0)
-			if x == 0 or x == 7 or y == 15:
-				c = wood * 0.8
-			m.set_voxel(Vector3i(x, y, 0), c * 0.92)
-			m.set_voxel(Vector3i(x, y, 1), dark if y == 3 or y == 12 else c)
-	m.set_voxel(Vector3i(6, 7, 2), Color(0.25, 0.22, 0.2))
+	var top := 8 * h
+	var ledges := [3, top - 4]
+	if h >= 3:
+		ledges.append(top / 2 - 1)
+	for i in w:
+		for y in top:
+			for lx in 8:
+				var x := i * 8 + lx
+				var c := wood * (0.88 if lx % 3 == 2 else 1.0)
+				if lx == 0 or lx == 7 or y == top - 1:
+					c = wood * 0.8
+				m.set_voxel(Vector3i(x, y, 0), c * 0.92)
+				m.set_voxel(Vector3i(x, y, 1), dark if y in ledges else c)
+		# The handle by the middle of the doorway: the single leaf's on its east side.
+		var hx := i * 8 + (1 if w > 1 and i == w - 1 else 6)
+		m.set_voxel(Vector3i(hx, 7, 2), Color(0.25, 0.22, 0.2))
 	return m
 
 
-## A window on one cell: a plank frame in the middle of the cell's depth with a cross
-## between four panes of pale greenish glass, a highlight in the upper corner of each.
-static func window() -> VoxelModel:
+## A window `w` cells wide, `h` tall: in each cell a plank frame in the middle of the
+## cell's depth with a cross between four panes of pale greenish glass, a highlight in the
+## upper corner of each; the sill of the lowest row darker.
+static func window(w := 1, h := 1) -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.6, 0.43, 0.27)
 	var glass := Color(0.62, 0.74, 0.74)
-	for y in 8:
-		for x in 8:
-			var frame := x == 0 or x == 7 or y == 0 or y == 7 or x == 4 or y == 4
+	for y in 8 * h:
+		for x in 8 * w:
+			var lx := x % 8
+			var ly := y % 8
+			var frame := lx == 0 or lx == 7 or ly == 0 or ly == 7 or lx == 4 or ly == 4
 			var c := wood * (0.85 if y == 0 else 1.0) if frame else glass
-			if not frame and (x == 1 or x == 5) and (y == 6 or y == 3):
+			if not frame and (lx == 1 or lx == 5) and (ly == 6 or ly == 3):
 				c = glass * 1.25
 			for z in [3, 4]:
 				m.set_voxel(Vector3i(x, y, z), c if frame or z == 4 else glass * 0.9)
@@ -493,6 +516,69 @@ static func cupboard() -> VoxelModel:
 			m.set_voxel(Vector3i(x, 15, z), wood * 1.12 if z >= 1 else dark)
 	m.set_voxel(Vector3i(2, 7, 7), Color(0.25, 0.22, 0.2))
 	m.set_voxel(Vector3i(5, 7, 7), Color(0.25, 0.22, 0.2))
+	return m
+
+
+## A wide cupboard on two cells, two cells tall: a plank case with four doors on its
+## front (south), two above a shelf and two below it, dark gaps between them, a knob on
+## each by the middle, a cornice on top.
+static func wide_cupboard() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.58, 0.41, 0.25)
+	var dark := Color(0.36, 0.24, 0.14)
+	var knob := Color(0.25, 0.22, 0.2)
+	for y in 15:
+		for z in range(1, 7):
+			for x in 16:
+				var c := wood * 0.85
+				if z == 6:
+					c = wood * (0.92 if y % 5 == 4 else 1.0)
+					if x == 0 or x == 15 or y == 0 or y == 14 or y == 7:
+						c = dark
+					elif x == 7 or x == 8 or x == 3 or x == 12:
+						c = dark * 1.2 if x == 7 or x == 3 else wood * 0.95
+				m.set_voxel(Vector3i(x, y, z), c)
+	for x in 16:
+		for z in 8:
+			m.set_voxel(Vector3i(x, 15, z), wood * 1.12 if z >= 1 else dark)
+	for x in [2, 5, 10, 13]:
+		m.set_voxel(Vector3i(x, 4, 7), knob)
+		m.set_voxel(Vector3i(x, 10, 7), knob)
+	return m
+
+
+## A fireplace on two cells, a cell tall and deep: a hearth of brick walls on the west, the
+## east and the back (north), a mantel shelf of stone over its mouth, a floor of dark
+## stone with two logs on it; Effects draws its flames (Placed.is_hearth).
+static func fireplace() -> VoxelModel:
+	var m := VoxelModel.new()
+	var brick := Color(0.66, 0.33, 0.24)
+	var mortar := Color(0.74, 0.68, 0.6)
+	var stone := Color(0.6, 0.6, 0.62)
+	var soot := Color(0.16, 0.13, 0.12)
+	var log_color := Color(0.4, 0.27, 0.17)
+	for y in 8:
+		for z in 8:
+			for x in 16:
+				var mouth := x >= 3 and x <= 12 and z >= 2 and y <= 5
+				if mouth and y > 0:
+					continue
+				var c := brick * (0.9 if (x + z) % 3 == 0 else 1.0)
+				# Courses of brick, the joints staggered a course to a course.
+				if y % 2 == 1 or (x + (y / 2) * 2) % 4 == 0 and z == 7:
+					c = mortar if z == 7 or x == 0 or x == 15 else brick * 0.85
+				if y >= 6:
+					c = stone * (1.1 if y == 7 and z == 7 else (0.9 if x % 4 == 0 else 1.0))
+				if mouth:
+					c = soot * (1.3 if (x + z) % 2 == 0 else 1.0)
+				elif x >= 3 and x <= 12 and z == 1 and y <= 5:
+					c = soot
+				m.set_voxel(Vector3i(x, y, z), c)
+	for x in range(4, 12):
+		m.set_voxel(Vector3i(x, 1, 4), log_color * (0.8 if x % 3 == 0 else 1.0))
+		m.set_voxel(Vector3i(x, 1, 5), log_color * 0.9)
+	for x in range(5, 11):
+		m.set_voxel(Vector3i(x, 2, 4), log_color * (1.1 if x % 2 == 0 else 0.95))
 	return m
 
 
