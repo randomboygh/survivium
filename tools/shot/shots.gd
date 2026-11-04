@@ -677,6 +677,8 @@ const SHOTS := {
 	"ground-star-inside-levels": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17, "settings": {"cave_mode": 1}},
 	"ground-star-inside-plane": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17, "settings": {"cave_mode": 2}},
 	"ground-star-bottom": {"time": 0.42, "season": 1, "at": [28, -72], "y": 3},
+	# Up the far side of the mound over the star cave: the mound stays whole.
+	"ground-star-back": {"time": 0.42, "season": 1, "at": [28, -79]},
 	"ground-forest": {"time": 0.42, "season": 1, "at": [-30, 2]},
 	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
 	# The clay: its top in the strip of materials, its walls on the row of relief.

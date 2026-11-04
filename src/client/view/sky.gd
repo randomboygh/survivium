@@ -159,12 +159,12 @@ func _update_light(delta: float) -> void:
 	var cut_on: bool = game.chunks.cut_level < game.world.size_y or game.chunks.open_view()
 	var haze := (Color(0.02, 0.02, 0.03) if cut_on else env.background_color).srgb_to_linear()
 	RenderingServer.global_shader_parameter_set("depth_haze", Vector3(haze.r, haze.g, haze.b))
-	# Rock the cut in the plane of the camera opens past the map of solid cells, with no
-	# face behind it, shows the background: as dark as its section.
-	if cut_on and game.chunks.manual_level < 0 and game.settings.values.cave_mode == 2:
-		env.background_color = Color(0.09, 0.085, 0.1)
-	# So does the rock the view in layers thins out under a roof: nothing is drawn inside it.
-	if game.chunks.open_view() and game.chunks.indoor:
+	# Under any cut the background shows only through rock opened with no face behind
+	# it: past the map of solid cells in the cut in the plane of the camera, inside the
+	# rock the layers thin out, and for a frame or two where the caps of a new cut level
+	# are still being built. It is as dark as the rock's section, not the sky's blue,
+	# which flickered in stripes on a walk through a cave.
+	if cut_on:
 		env.background_color = Color(0.09, 0.085, 0.1)
 	if game.player != null:
 		_update_torch(delta)
