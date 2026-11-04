@@ -681,6 +681,11 @@ const SHOTS := {
 	"ground-star-back": {"time": 0.42, "season": 1, "at": [28, -79]},
 	# Behind the stone hill, the steps, the hut and in the star cave's shaft: the cut is on.
 	"ground-behind-hill": {"time": 0.42, "season": 1, "at": [14, -48]},
+	# Diagonal corners of slopes behind the player (behind a hill) and over them (under a roof).
+	"ground-diagonals-behind": {"time": 0.42, "season": 1, "at": [47, -57], "y": 18, "settings": {"cave_mode": 1}},
+	"ground-diagonals-roof": {"time": 0.42, "season": 1, "at": [43, -53], "y": 19, "settings": {"cave_mode": 1}},
+	# Deep in the star cave, under its upper point.
+	"ground-star-deep": {"time": 0.42, "season": 1, "at": [23, -75], "y": 17, "settings": {"cave_mode": 1}},
 	"ground-behind-steps": {"time": 0.42, "season": 1, "at": [-14, -45]},
 	"ground-behind-hut": {"time": 0.42, "season": 1, "at": [52, -5]},
 	"ground-star-shaft": {"time": 0.42, "season": 1, "at": [28, -73], "y": 25},

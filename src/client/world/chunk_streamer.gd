@@ -48,6 +48,8 @@ const CAP_RANGE := 5
 ## so what does not fit waits for the next frame. The session's generation (before the
 ## frame, see gen_budgets) comes out of the same budget: run_jobs takes what it spent.
 const CAP_BUDGET_US := 3000
+## How many levels of caps a chunk keeps built (see cap_cache).
+const CAP_KEPT := 4
 const EDIT_BUDGET_US := 9000
 ## Microseconds a frame for building the near chunks behind the main menu (load_steps):
 ## the menu keeps moving while the world is made, a little slower than at once. Where
@@ -105,6 +107,11 @@ var focus := Vector3.INF
 ## for, and the chunks within CAP_RANGE of the player, nearest first.
 var cap_nodes := {}
 var cap_levels := {}
+## The caps built lately, by chunk and then by level (at most CAP_KEPT levels a chunk):
+## a cut that comes back to a level (the player stepping in and out behind a big
+## object) shows its caps at once instead of building them again chunk by chunk, which
+## left holes flickering over the cut. A chunk's go when it is meshed again or freed.
+var cap_cache := {}
 var cap_order: Array[Vector2i] = []
 var cap_home := Vector2i(-1000000, 0)
 ## Chunks that changed since they were last meshed, and the chunk being built now
@@ -546,10 +553,12 @@ func _free_chunk(key: Vector2i) -> void:
 		cap_nodes[key].queue_free()
 		cap_nodes.erase(key)
 		cap_levels.erase(key)
+	cap_cache.erase(key)
 
 
 func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 	cap_levels.erase(key)
+	cap_cache.erase(key)
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = game.world_mat
@@ -687,7 +696,8 @@ func update_cut(_delta: float) -> void:
 	var px := floori(player.position.x / CELL)
 	var pz := floori(player.position.z / CELL)
 	indoor = false
-	for y in range(level + 2, mini(level + 18, world.size_y)):
+	# Any roof over the head, however high (the vault of a tall cave).
+	for y in range(level + 2, world.size_y):
 		if Mat.is_roof(world.get_cell(px, y, pz)):
 			indoor = true
 			break
@@ -874,7 +884,7 @@ func _apply_cut() -> void:
 	# The caps follow in update_caps, nearest chunk first; with no cut they go at once.
 	if cut_level >= world.size_y - 1:
 		for key in cap_levels:
-			cap_nodes[key].mesh = null
+			cap_nodes[key].visible = false
 		cap_levels.clear()
 
 
@@ -949,6 +959,15 @@ func cap_level() -> int:
 	return maxi(ground_level - 1, 0) if plane_cut() else cut_level
 
 
+## Shows `mesh`, the cap of chunk `key` at `level`.
+func _show_cap(key: Vector2i, level: int, mesh: Mesh) -> void:
+	var node: MeshInstance3D = cap_nodes[key]
+	node.mesh = mesh
+	node.visible = true
+	_fit_box(node)
+	cap_levels[key] = level
+
+
 ## Brings the caps of the chunks around the player to the current cut, nearest first,
 ## a few a frame. The cap of a chunk is rebuilt when the cut moves or the chunk is
 ## edited (its entry in cap_levels goes); chunks out of range lose theirs.
@@ -969,10 +988,18 @@ func update_caps() -> void:
 			if maxi(absi(key.x - home.x), absi(key.y - home.y)) > CAP_RANGE:
 				cap_nodes[key].mesh = null
 				cap_levels.erase(key)
+		for key in cap_cache.keys():
+			if maxi(absi(key.x - home.x), absi(key.y - home.y)) > CAP_RANGE:
+				cap_cache.erase(key)
 	var want: int = cap_level()
 	if want < 0:
 		return
 	var t0 := Time.get_ticks_usec()
+	# The caps already built for this level show at once, all of them.
+	for key in cap_order:
+		if cap_levels.get(key, -1) != want and cap_cache.has(key) and cap_cache[key].has(want) \
+				and chunk_nodes.has(key) and cap_nodes.has(key):
+			_show_cap(key, want, cap_cache[key][want])
 	for key in cap_order:
 		if cap_levels.get(key, -1) == want or not chunk_nodes.has(key):
 			continue
@@ -985,9 +1012,13 @@ func update_caps() -> void:
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
 		game.hud.perf.mark("срез")
-		cap_nodes[key].mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
-		_fit_box(cap_nodes[key])
-		cap_levels[key] = want
+		var mesh: Mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
+		var kept: Dictionary = cap_cache.get(key, {})
+		if kept.size() >= CAP_KEPT:
+			kept.erase(kept.keys()[0])
+		kept[want] = mesh
+		cap_cache[key] = kept
+		_show_cap(key, want, mesh)
 		if Time.get_ticks_usec() - t0 > CAP_BUDGET_US:
 			break
 	budget_us += Time.get_ticks_usec() - t0

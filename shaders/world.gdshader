@@ -166,6 +166,26 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 	return c;
 }
 
+// Where on the roof map a face at `p` (normal `n`, flags `flag`, a top or not) looks for
+// what covers it, x and z the column and y the height: a wall the column it faces (a
+// diagonal one too, whose middle lies in its own column), a top its own column, a
+// sloping top from the top of its cell (it may go down into the cell below, a deep
+// corner), and ground in the cut corner of a wall, which lies in the wall's column, the
+// column beyond the corner, open to the sky like it.
+vec3 open_probe(vec3 p, vec3 n, int flag, bool top) {
+	if (!top) {
+		vec2 xz = p.xz + n.xz * CELL * 0.75;
+		return vec3(xz.x, p.y, xz.y);
+	}
+	if ((flag & 72) == 72) {
+		int k = (flag >> 4) & 3;
+		vec2 out_dir = vec2(k == 1 || k == 2 ? 1.0 : -1.0, k >= 2 ? 1.0 : -1.0);
+		vec2 xz = (floor(p.xz / CELL) + 0.5 + out_dir) * CELL;
+		return vec3(xz.x, p.y, xz.y);
+	}
+	return vec3(p.x, p.y + ((flag & 4) != 0 ? CELL : 0.0), p.z);
+}
+
 // A wall the camera looks at from behind the player, of the space they are in, stays
 // whole above the automatic cut, and the floors behind the player with them: in a
 // cave or a room the far walls stand up to the
@@ -173,20 +193,20 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 // only what lies between the camera and the player (the rock above, the near walls,
 // whose faces turn their backs to the camera) goes. Under a roof only the walls of
 // covered space count, so the hill's own face over a cave does not hide the cave; out
-// in the open only open ones, crowns and trunks too (kept_behind in common).
-bool back_wall(vec3 p, vec3 n) {
-	// Walls turned to the camera, and floors (tops) too.
-	bool floor_top = n.y > 0.5;
+// in the open only open ones, crowns and trunks too (kept_behind in common). A face
+// counts by the column it is open to (open_probe), so the diagonal corners of slopes
+// go with the blocks round them.
+bool back_wall(vec3 p, vec3 n, int flag, bool top) {
 	if (cut_ghost < 0.5 || cut_front > 0.5 || p.y <= cut_height + 0.01 || n.y < -0.5
-			|| (!floor_top && dot(n.xz, view_up) > -0.3)
+			|| (!top && dot(n.xz, view_up) > -0.3)
 			|| dot(p.xz - player_pos.xz, view_up) <= 0.0) {
 		return false;
 	}
-	vec2 front = floor_top ? p.xz : p.xz + n.xz * CELL * 0.5;
+	vec3 at = open_probe(p, n, flag, top);
 	if (roofed(player_pos.xz, player_pos.y + 2.0 * CELL)) {
-		return roofed(front, p.y);
+		return roofed(at.xz, at.y);
 	}
-	return !roofed(front, p.y);
+	return !roofed(at.xz, at.y);
 }
 
 void fragment() {
@@ -201,7 +221,9 @@ void fragment() {
 		discard;
 	}
 #endif
-	bool kept = back_wall(world_pos, world_normal);
+	int flags = int(packed.x + 0.5) / 16384;
+	bool kept = back_wall(world_pos, world_normal, flags,
+		world_normal.y > 0.5 || (flags == 4 && (int(packed.x + 0.5) % 64) != NO_MATERIAL));
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
 	// A face counts as the cell it closes (see layer_alpha): a hair inside it.
 	vec3 own = layer_view.x > 0.5 || sphere_view.x > 0.5 ? world_pos - world_normal * 0.01 : world_pos;
@@ -422,14 +444,10 @@ void fragment() {
 	// of a cell under a roof, an overhang or a cave ceiling.
 	// A slope's top may go down into the cell below its own (a deep corner): that is
 	// still its own open surface, not ground under it.
-	bool roof = roofed(world_pos.xz, world_pos.y + ((flag & 4) != 0 && top ? CELL : 0.0));
 	// Ground in a cut corner of a wall lies in the wall's column, under it on the roof
-	// map, but open to the sky like the column beyond the corner.
-	if (roof && top && (flag & 72) == 72) {
-		int k = (flag >> 4) & 3;
-		vec2 out_dir = vec2(k == 1 || k == 2 ? 1.0 : -1.0, k >= 2 ? 1.0 : -1.0);
-		roof = roofed((floor(world_pos.xz / CELL) + 0.5 + out_dir) * CELL, world_pos.y);
-	}
+	// map, but open to the sky like the column beyond the corner (open_probe).
+	vec3 probe = top ? open_probe(world_pos, world_normal, flag, true) : world_pos;
+	bool roof = roofed(probe.xz, probe.y);
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	// No snow on the top of a trunk inside its crown (a dark cap, see TrunkMesher).
 	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;
