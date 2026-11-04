@@ -169,15 +169,21 @@ static func yield_role(r: Dictionary) -> String:
 ## The seconds recipe `r` takes `who` at the level of the skill of its work.
 func time_of(r: Dictionary) -> float:
 	var sk = who.get("skills")
-	return float(r.time) * (1.0 if sk == null else sk.pace(role_of(r)))
+	return float(r.time) * (1.0 if sk == null else sk.pace(role_of(r))) / _haste()
 
 
 ## What is left of the time of the first job of the queue at the skill of its work.
 func _pace() -> float:
 	var sk = who.get("skills")
 	if sk == null or queue.jobs.is_empty():
-		return 1.0
-	return maxf(0.05, sk.pace(role_of(Crafting.get_recipe(queue.jobs[0].recipe))))
+		return 1.0 / _haste()
+	return maxf(0.05, sk.pace(role_of(Crafting.get_recipe(queue.jobs[0].recipe)))) / _haste()
+
+
+## The playtest multiplier of the pace of work of `who` (Character.haste), 1 for none.
+func _haste() -> float:
+	var h = who.get("haste")
+	return 1.0 if h == null else maxf(1.0, h)
 
 
 ## What job `r` waits for to be worked on, named for the window: its station, a tool of a

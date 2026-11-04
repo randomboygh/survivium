@@ -226,7 +226,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	var target: Dictionary = game.gathering.target_at(pos)
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
 		if _cooldown <= 0.0 and game.gathering.gather(target):
-			_cooldown = tool_record().swing
+			_cooldown = _hasted(tool_record().swing)
 			game.player.work("", _cooldown, target.at)
 			if target.has("bush") or target.has("tree"):
 				game.effects.burst(target.at, Mat.LEAVES, _cooldown * STRIKE)
@@ -478,7 +478,7 @@ func _eat_held() -> void:
 	for i in slots.size():
 		if slots[i] != null and slots[i][0] == held():
 			game.net.request(Protocol.EAT, [i]).then(_ate)
-			_cooldown = 0.5
+			_cooldown = _hasted(0.5)
 			game.player.work("", _cooldown)
 			return
 	game.character.nag("no_food", "В сумке нет: %s" % Items.title(held()))
@@ -766,6 +766,12 @@ func _on_line(cell: Vector3i) -> Vector3i:
 	return out
 
 
+## `seconds` of a swing the client times itself, at the playtest pace of work
+## (Character.haste; the server's replies come at it already, see Requests._do).
+func _hasted(seconds: float) -> float:
+	return seconds / maxf(1.0, game.character.haste)
+
+
 ## Takes on what a rule of WorldActions did with the hands: the wait until they swing
 ## again and the work the body plays. True if it did anything.
 func _did(done: Variant) -> bool:
@@ -828,8 +834,8 @@ func _did_front(done: Variant) -> void:
 ## The item in hand was planted at `cell` (or not: `done` false).
 func _planted(done: Variant, cell: Vector3i) -> void:
 	if done is bool and done:
-		_cooldown = WorldActions.FRONT_PLACE_SWING
-		game.player.work("reach", WorldActions.FRONT_PLACE_SWING, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+		_cooldown = _hasted(WorldActions.FRONT_PLACE_SWING)
+		game.player.work("reach", _cooldown, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 
 
 ## Something was eaten (or not: `done` false).

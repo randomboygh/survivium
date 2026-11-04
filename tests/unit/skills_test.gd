@@ -106,6 +106,15 @@ func _test_craft() -> void:
 	_check(shop.time_of(r) < r.time and shop.queue.jobs.size() == 1, "a skilled hand takes less time")
 	shop.update(r.time * (1.0 - craft.speed) + 0.01)
 	_check(shop.queue.jobs.is_empty(), "and makes it in that time")
+	var skilled := shop.time_of(r)
+	who.haste = 4.0
+	_check(is_equal_approx(shop.time_of(r) * 4.0, skilled), "the playtest pace of work ×4 makes it four times faster")
+	for id: String in r.needs:
+		who.give(id, r.needs[id])
+	_check(shop.start(r, 1) == 1, "one more is queued")
+	shop.update(skilled / 4.0 + 0.01)
+	_check(shop.queue.jobs.is_empty(), "and the queue works it in that time")
+	who.haste = 1.0
 	_check(Workshop.role_of({"process": "cook"}) == "cook" and Workshop.role_of({"process": "smelt"}) == "craft",
 		"cooking teaches cooking, the rest the craft")
 

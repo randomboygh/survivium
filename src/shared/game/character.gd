@@ -136,6 +136,9 @@ var inventory := Inventory.new()
 var vitals := Vitals.new()
 ## What the character has learned by doing (SkillSet), kept with the player.
 var skills := SkillSet.new()
+## Playtest multiplier of the pace of work («Скорость игрока», as Body.speed_scale is of
+## walking): swings, crafts and the like take 1/haste of their time.
+var haste := 1.0
 ## The screen of the character's player, as their client told it (zero: not told):
 ## half its width and height in world units, the width along `view_right` over the
 ## ground (the way the camera is turned), the height across it. The animals someone

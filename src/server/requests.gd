@@ -68,10 +68,15 @@ func handle(msg: Array) -> Array:
 
 
 ## Does request `kind` with `args` by the rules; what the rule gave back. A bag or chest
-## lying in the player's bag that the request opened (see _bag) gets its things back.
+## lying in the player's bag that the request opened (see _bag) gets its things back. A
+## swing of the hands comes back shorter at the playtest pace of work (Character.haste).
 func _do(kind: String, args: Array) -> Variant:
 	_opened.clear()
 	var out: Variant = _rule(kind, args)
+	if out is Dictionary and out.has("swing") and who.haste != 1.0:
+		out.swing /= who.haste
+		if out.has("time"):
+			out.time /= who.haste
 	for k: int in _opened:
 		who.inventory.close(k, _opened[k])
 	_opened.clear()

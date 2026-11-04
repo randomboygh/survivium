@@ -173,6 +173,13 @@ func _test_requests() -> void:
 	var r = net.request(Protocol.DIG, [Vector3i(8, 1, 7), Vector3i.UP])
 	_check(r.done and r.value is Dictionary and r.value.has("swing") and w.get_cell(8, 1, 7) == Mat.AIR,
 		"a dig request over the loop is done at once and answered with what the rule gave")
+	a.haste = 4.0
+	a.vitals.stamina = a.vitals.MAX
+	var fast = net.request(Protocol.DIG, [Vector3i(9, 1, 7), Vector3i.UP])
+	a.haste = 1.0
+	_check(fast.value is Dictionary and fast.value.has("time") and is_equal_approx(fast.value.swing * 4.0, r.value.swing)
+		and is_equal_approx(fast.value.time * 4.0, r.value.time),
+		"at the playtest pace of work ×4 the swing comes back four times shorter: %s" % [fast.value])
 	var seen: Array = []
 	r.then(func(v: Variant) -> void: seen.append(v))
 	_check(seen.size() == 1 and seen[0] == r.value, "a callback given after the reply runs at once")
