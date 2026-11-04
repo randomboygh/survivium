@@ -641,6 +641,7 @@ const SHOTS := {
 	"ui-main-menu-egg": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 22.0, "egg": true},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
+	"ui-main-menu-changes": {"time": 0.42, "season": 1, "touch": true, "main_menu": "changes"},
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
 	# The pages «Одиночная игра» and «Мультиплеер» («Создать сервер» tapped on a phone),
 	# and «Присоединиться» over a few servers made up for it, then saying why joining failed.

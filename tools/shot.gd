@@ -763,6 +763,9 @@ func _run() -> void:
 				main.menu._new_world()
 				for i in 120:
 					await process_frame
+			if shot.main_menu == "changes":
+				main.menu._open_changes()
+				await process_frame
 			if shot.main_menu == "worlds":
 				_fake_saves()
 				main.menu._open_worlds()
