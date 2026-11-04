@@ -55,8 +55,8 @@ varying flat float snow_here;
 varying flat float sky;
 varying flat int kind;
 varying float clouds;
-// The share of the sun's and the sky's light that comes down this deep (sea_bright).
-varying float sun_part;
+// How much brighter a torch or a fire lights this than sea_bright left its colour (sea_undo).
+varying vec3 lamp_gain;
 // How far a spore is through its rise, 0..1.
 varying flat float life;
 
@@ -202,8 +202,12 @@ void fragment() {
 	}
 	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
 	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(kept_behind(root) ? cut_height : root.y));
-	sun_part = sea_bright(root.y);
-	ALBEDO = col * (1.0 - veiled.a) * sun_part;
+	// The share of the sun's and the sky's light that comes down this deep; light()
+	// undoes it for torches and fires (lamp_gain).
+	float sun_part = sea_bright(root.y);
+	vec3 lit_col = col * (1.0 - veiled.a);
+	ALBEDO = lit_col * sun_part;
+	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb;
 	if (kind == GLOW) {
 		// The caps (green well above red) glow at night, breathing slowly.
@@ -240,5 +244,5 @@ void light() {
 	if (spot >= 0 && lit != vec3(0.0) && light_blocked(spot, root + vec3(0.0, 0.1, 0.0))) {
 		lit = vec3(0.0);
 	}
-	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit / sun_part;
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit * lamp_gain;
 }

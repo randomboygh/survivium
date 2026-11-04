@@ -689,6 +689,18 @@ func trench(w, at: Vector3i) -> Vector3:
 	return Vector3(at.x + 0.5, at.y - 4, at.z + 0.5) * CELL
 
 
+## Hollows a room seven cells across and two high in the rock with its floor at `at`
+## (kept in wall_cells to be filled again): a cave round the player.
+func room(w, at: Vector3i) -> void:
+	for z in range(at.z - 3, at.z + 4):
+		for x in range(at.x - 3, at.x + 4):
+			for y in range(at.y, at.y + 2):
+				wall_cells.append([Vector3i(x, y, z), w.get_cell(x, y, z), w.is_natural(x, y, z)])
+				w.set_cell(x, y, z, Mat.AIR)
+	wall_changed(Vector3i(at.x, at.y, at.z))
+	main.roof.build(w)
+
+
 func wall_changed(at: Vector3i) -> void:
 	for x in range(at.x - 8, at.x + 9, 8):
 		for dz in [-2, 2]:
