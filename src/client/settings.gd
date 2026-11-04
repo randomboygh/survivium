@@ -439,6 +439,7 @@ func apply() -> void:
 			who.vitals.thirst = not no_thirst
 			who.vitals.fatigue = not no_fatigue
 			who.skills.rate = skill_rate
+			who.haste = player_speed
 	Sound.set_volume("Music", values.music_volume)
 	Sound.set_volume("Sounds", values.sound_volume)
 	Sound.set_volume("Nature", values.nature_volume)
