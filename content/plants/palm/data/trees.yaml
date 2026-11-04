@@ -12,7 +12,7 @@
   taper: 0.12
   crook: 4
   roots: [0, 1]
-  crown: [3, 6, 8]
+  crown: [2, 6, 8]
   tints: ["#6e9a3a", "#78a242", "#679236"]
   bare: 0.0
   seed: coconut
