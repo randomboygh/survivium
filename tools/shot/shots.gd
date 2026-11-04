@@ -331,6 +331,7 @@ const SHOTS := {
 	# the east so its shaded side shows: its shape and light alone.
 	"spruce-alone": {"time": 0.33, "season": 1, "specimen": ["plants:spruce"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
 	# A spruce, a fir and a larch side by side, the same way.
+	"palm-alone": {"time": 0.33, "season": 1, "specimen": ["plants:palm"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
 	"conifers-alone": {"time": 0.33, "season": 1, "specimen": ["plants:fir", "plants:spruce", "plants:larch"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
 	"linden-alone": {"time": 0.33, "season": 1, "specimen": ["plants:linden"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
 	"broad-alone": {"time": 0.33, "season": 1, "specimen": ["plants:oak", "plants:linden", "plants:birch"], "weather": "clear", "clouds": 0.0, "rays": false, "fog": false, "hud": false},
