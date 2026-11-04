@@ -17,17 +17,30 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      one down, hollow; walls of dirt where the upward one
 ##                                      bounds it, of stone where the downward one does; its
 ##                                      upper point opens on the top of a grassy mound
-##   bushes     x 62..96,   z -9..2     rows of raspberries, blueberries, shrubs and
-##                                      mixed, two cells apart, in the open
-##   forest     x -46..-14, z -10..10   rows of oaks and spruces, rows of bushes
+##   bushes     x 62..96,   z -9..5     rows of raspberries, blueberries, shrubs and
+##                                      mixed, three cells apart, in the open
+##   forest     x -46..-12, z -10..10   rows of oaks and spruces 8 cells apart, rows of bushes
 ##   materials  x 16..48,   z -10..10   strips of every top, 4 cells deep
 ##   hut        x 50..58,   z -4..4     plank walls with a door, a stone roof
 ##   pond       x -44..-14, z 14..38    water 1, 2, 3 and 5 cells deep over sand
-##   plants     x -7..99,   z 13..40    every loaded plant alone in a pen of its own walled with
+##   plants     x 147..259, z -71..-10  every loaded plant alone in a pen of its own walled with
 ##                                      a cell of brick, west to east in load order: the trees
-##                                      (pens of 7 cells, GARDEN_TREE; a row wraps at GARDEN_EAST), the bushes (5 cells) south
+##                                      (pens of 15 cells, GARDEN_TREE, so no crown reaches the next;
+##                                      a row wraps at GARDEN_EAST), the bushes (7 cells) south
 ##                                      of them, the ground plants (4 cells) south of those,
 ##                                      nothing else growing in the pens
+##   house      x 63..78,   z -59..-48  a house of brick on two floors (HOUSE): plank floors, a
+##                                      door, windows, stairs up through a hole in the upper
+##                                      floor, furniture and lanterns on both, a stepped roof
+##   descent    x -241..-112, z -73..-38  a cave going down in steps of 5 cells along, 1 down
+##                                      (DESCENT), 10 wide and 10 high, from an entrance of
+##                                      10 by 10 by 10 in the east face of a grassy mound
+##                                      down to the bottom level of the world
+##   descent45  x -214..-104, z -36..80  the same turned 45°, going down to the south-west
+##                                      (DESCENT45 its mouth, facing north-east)
+##   beach      x -231..-112, z 88..135  a wide gentle beach of sand going down westward into
+##                                      the sea (BEACH), the water deeper a cell every 4 cells
+##                                      down to the bottom level
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
 ##   combos     x -108..203, z -472..-97  every shape of COMBO_SHAPES on every top of COMBO_ROWS
@@ -64,19 +77,20 @@ const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
 const GROUNDS := ["Ступени", "Ямы", "Пещера", "Звёздная пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Растения", "Рельеф", "Биомы",
-	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь", "Сочетания"]
+	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь", "Сочетания", "Дом", "Спуск", "Спуск под 45°", "Пляж"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 ## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
 ## its inner side of cells plus a wall (a row's stride), the walls a cell high. A tree's
-## pen is 7 cells, so its trunk in the middle stands on odd x and z as trunks must.
-const GARDEN_X := -7
-const GARDEN_Z := 13
-const GARDEN_TREE := 7
-const GARDEN_BUSH := 5
+## pen is 15 cells (no crown reaches the next, nor hides the row north of it seen at 3/4), so its trunk in the middle stands on
+## odd x and z as trunks must.
+const GARDEN_X := 147
+const GARDEN_Z := -71
+const GARDEN_TREE := 15
+const GARDEN_BUSH := 7
 const GARDEN_PLANT := 4
-## The garden's rows end before the field of ears and the grove (x 100..).
-const GARDEN_EAST := 100
+## The garden's rows end here: seven pens of trees in a row.
+const GARDEN_EAST := 260
 ## The biome plots: BIOME_PLOT cells square, BIOME_GAP cells of meadow between them,
 ## BIOME_PER_ROW in a row east from BIOME_X, the rows south from BIOME_Z. The pool of a
 ## plot is BIOME_POOL cells square in its south-east corner, BIOME_GAP from the edges.
@@ -100,6 +114,45 @@ const STAR_SHAFT := 1.0
 ## base south); the downward one's are these turned over.
 const STAR_POINTS := [Vector3(0.0, 1.0, 0.0), Vector3(0.0, -1.0 / 3.0, 0.9428090),
 	Vector3(0.8164966, -1.0 / 3.0, -0.4714045), Vector3(-0.8164966, -1.0 / 3.0, -0.4714045)]
+## The house: its outer walls (a cell of brick) round floors of planks, each floor
+## HOUSE_STOREY cells from floor to floor, the walls HOUSE_STOREY - 1 high between; the
+## door in the middle of the south wall; a roof of planks over it, stepping in a cell a
+## level from the long sides to a ridge along x. The stairs run north along the west
+## wall up through a hole in the upper floor.
+const HOUSE := Rect2i(64, -58, 14, 10)
+const HOUSE_STOREY := 4
+const HOUSE_DOOR := Vector2i(70, -49)
+const HOUSE_STAIRS := Vector2i(65, -51)
+## The windows of each floor: [x, z, turn] in the walls (turn 1 in the walls along z).
+const HOUSE_WINDOWS := [[66, -49, 0], [74, -49, 0], [67, -58, 0], [70, -58, 0], [74, -58, 0],
+	[64, -54, 1], [77, -54, 1]]
+## What stands on each floor: [item, x, z, turn, floor] (see Placed.put); lights on a
+## cell of their own (Placed.put_light).
+const HOUSE_THINGS := [["tools:table", 72, -55, 0, 0], ["tools:stool", 71, -55, 1, 0], ["tools:stool", 74, -54, 3, 0],
+	["tools:barrel", 76, -57, 0, 0], ["tools:cupboard", 76, -51, 1, 0], ["tools:rug", 68, -53, 0, 0],
+	["tools:lantern", 67, -57, 0, 0], ["tools:lantern", 74, -50, 0, 0],
+	["tools:wooden_bed", 74, -57, 0, 1], ["tools:cupboard", 76, -52, 1, 1], ["tools:rug", 70, -54, 0, 1],
+	["tools:stool", 72, -57, 0, 1], ["tools:barrel", 67, -57, 0, 1], ["tools:door", HOUSE_DOOR.x, HOUSE_DOOR.y, 0, 0],
+	["tools:lantern", 68, -50, 0, 1], ["tools:lantern", 73, -51, 0, 1]]
+## The descents: down a level each DESCENT_STEP cells along, DESCENT_WIDE cells across and
+## DESCENT_HIGH of air over each step, first DESCENT_MOUTH cells along on the meadow's
+## level (the entrance), the last DESCENT_MOUTH cells on the bottom one. Under the
+## open sky a grassy mound covers them, its top over the roof, its sides going down a cell
+## a cell. The straight one: its mouth the middle of its east face at DESCENT, going west;
+## the one turned 45°: its mouth's middle at DESCENT45, going south-west.
+const DESCENT := Vector2(-112.0, -55.0)
+const DESCENT45 := Vector2(-117.0, -20.0)
+const DESCENT_STEP := 5
+const DESCENT_WIDE := 10
+const DESCENT_HIGH := 10
+const DESCENT_MOUTH := 10
+## The beach: its east edge on the meadow, its north edge and width; the sand goes down a
+## level every BEACH_DRY cells to the water's line, then the bottom a level every
+## BEACH_WET cells down to the bottom of the world, then stays there BEACH_FLAT cells.
+const BEACH := Vector3i(-112, 88, 48)
+const BEACH_DRY := 10
+const BEACH_WET := 4
+const BEACH_FLAT := 10
 ## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
 ## RELIEF_STRIDE apart (see relief_rise): a lone cell, a square, an L (inner corner), a
 ## ring round a hollow, a pit, a stepped pyramid, a diagonal stair, a two-cell cliff
@@ -315,6 +368,13 @@ func column(x: int, z: int) -> Array:
 	var mound := star_mound(x, z)
 	if mound > 0:
 		return [g + mound, -1, Mat.GRASS, meadow, false]
+	# The descents' mounds, the beach.
+	var lift := maxi(descent_mound(x, z, false), descent_mound(x, z, true))
+	if lift > 0:
+		return [g + lift, -1, Mat.GRASS, meadow, false]
+	var shore := beach_column(x, z)
+	if not shore.is_empty():
+		return shore
 	# The pond: deeper to the east.
 	if x >= -44 and x < -14 and z >= 14 and z < 38:
 		var d: int = POND_DEPTHS[mini((x + 44) / 8, POND_DEPTHS.size() - 1)]
@@ -621,6 +681,102 @@ func _star(x: int, z: int, out: Array) -> void:
 			out.append([y, y, Mat.DIRT if o.x < o.y else Mat.STONE, WorldData.WILD])
 
 
+## Where column x, z lies along and across descent `turned` (the 45° one when true),
+## from the middle of its mouth, in cells: Vector2(along, across).
+static func descent_at(x: int, z: int, turned: bool) -> Vector2:
+	var p := Vector2(x + 0.5, z + 0.5)
+	if not turned:
+		return Vector2(DESCENT.x - p.x, p.y - DESCENT.y)
+	p -= DESCENT45
+	return Vector2((p.y - p.x) * sqrt(0.5), (p.x + p.y) * sqrt(0.5))
+
+
+## The level of the floor of a descent `along` cells from its mouth: the meadow's top
+## at the entrance, a level lower each DESCENT_STEP cells, then the bottom (level 0);
+## -1 off it.
+func descent_floor(along: float) -> int:
+	if along < 0.0:
+		return -1
+	if along < DESCENT_MOUTH:
+		return ground
+	var down := 1 + int((along - DESCENT_MOUTH) / DESCENT_STEP)
+	if ground - down > 0:
+		return ground - down
+	return 0 if along < DESCENT_MOUTH + ground * DESCENT_STEP + DESCENT_MOUTH else -1
+
+
+## How many cells the mound over descent `turned` rises over the meadow at column x, z
+## (0 off it): a cell over its roof (a wall a cell thick on each side), then down a cell
+## a cell to the sides.
+func descent_mound(x: int, z: int, turned: bool) -> int:
+	var at := descent_at(x, z, turned)
+	var f := descent_floor(at.x)
+	if f < 0:
+		return 0
+	var side := maxf(0.0, absf(at.y) - DESCENT_WIDE * 0.5 - 1.0)
+	return maxi(0, f + DESCENT_HIGH + 1 - int(ceilf(side)) - ground)
+
+
+## Column x, z of the beach (see column), [] off it.
+func beach_column(x: int, z: int) -> Array:
+	var w := BEACH.x - x
+	if w < 0 or z < BEACH.y or z >= BEACH.y + BEACH.z:
+		return []
+	var g := ground
+	var dry := (g - sea + 1) * BEACH_DRY
+	if w < dry:
+		return [g - w / BEACH_DRY, -1, beach, plot_biomes[plot_biomes.size() - 1], false]
+	var h := sea - 1 - (w - dry) / BEACH_WET
+	if h < 0 and w >= dry + sea * BEACH_WET + BEACH_FLAT:
+		return []
+	return [maxi(h, 0), sea, beach, water, false]
+
+
+## The descents in column x, z, written over the plain fill: a floor of stone that keeps
+## its edges sheer (the steps stay blocks), DESCENT_HIGH cells of air over it.
+func _descents(x: int, z: int, out: Array) -> void:
+	for turned: bool in [false, true]:
+		var at := descent_at(x, z, turned)
+		var f := descent_floor(at.x)
+		if f < 0 or absf(at.y) >= DESCENT_WIDE * 0.5:
+			continue
+		out.append([f, f, Mat.STONE, WorldData.WILD | WorldData.SHEER])
+		out.append([f + 1, f + DESCENT_HIGH, Mat.AIR, WorldData.WILD])
+
+
+## The house in column x, z (see HOUSE): floors, walls with their openings, the roof.
+func _house(x: int, z: int, out: Array) -> void:
+	var r := HOUSE
+	if x < r.position.x - 1 or x > r.end.x or z < r.position.y - 1 or z > r.end.y:
+		return
+	var g := ground
+	var brick := _block("brick")
+	var planks := _block("planks")
+	var inside := r.has_point(Vector2i(x, z))
+	var wall := inside and (x == r.position.x or x == r.end.x - 1 or z == r.position.y or z == r.end.y - 1)
+	var floors := 2
+	if inside:
+		for i in floors:
+			var f := g + i * HOUSE_STOREY
+			var hole := i > 0 and x == HOUSE_STAIRS.x and z <= HOUSE_STAIRS.y and z > HOUSE_STAIRS.y - HOUSE_STOREY
+			if not hole:
+				out.append([f, f, brick if wall else planks, 0])
+			if not wall:
+				continue
+			for y in range(f + 1, f + HOUSE_STOREY):
+				var open := i == 0 and Vector2i(x, z) == HOUSE_DOOR and y < f + 3
+				for w: Array in HOUSE_WINDOWS:
+					open = open or (x == w[0] and z == w[1] and y == f + 2)
+				if not open:
+					out.append([y, y, brick, 0])
+	# The roof: from over the upper walls, a cell out round them, in a cell a level from
+	# the north and the south.
+	var base := g + floors * HOUSE_STOREY
+	for k in (r.size.y + 2) / 2:
+		if z >= r.position.y - 1 + k and z <= r.end.y - k:
+			out.append([base + k, base + k, planks, 0])
+
+
 ## What column x, z has over its plain fill: [from y, to y (inclusive), material,
 ## natural flags] each, written in order.
 func extras(x: int, z: int) -> Array:
@@ -633,6 +789,8 @@ func extras(x: int, z: int) -> Array:
 		out.append([g, g, Mat.DIRT, WorldData.WILD])
 		out.append([g + 1, g + (4 if hall else 2), Mat.AIR, WorldData.WILD])
 	_star(x, z, out)
+	_descents(x, z, out)
+	_house(x, z, out)
 	# The water of the swamp plot is murky, the bog's murkier.
 	var plot := plot_at(x, z)
 	if plot >= 0 and plot_biomes[plot] == Biomes.SWAMP:
@@ -681,10 +839,11 @@ func plan_trees() -> Array:
 		spruce = oak
 	if oak < 0:
 		return out
-	for x in range(-45, -30, 4):
+	# Far enough apart for no crown to reach the next one.
+	for x in range(-45, -30, 8):
 		out.append([x, -7, oak])
 		out.append([x, 7, oak])
-	for x in range(-27, -14, 4):
+	for x in range(-29, -12, 8):
 		out.append([x, -7, spruce])
 		out.append([x, 7, spruce])
 	# A tree of each species in the middle of its pen of the plant garden.
@@ -692,9 +851,9 @@ func plan_trees() -> Array:
 		var m := garden_middle(0, i)
 		out.append([m.x, m.y, i])
 	# Oaks along the north edge of the field of ears, the grove in rows.
-	for x in range(101, 132, 6):
+	for x in range(101, 132, 8):
 		out.append([x, -11, oak])
-		for z in range(17, 38, 6):
+		for z in range(17, 38, 8):
 			out.append([x, z, spruce if x >= 122 else oak])
 	return out
 
@@ -720,8 +879,9 @@ func plan_drops() -> Array:
 	return out
 
 
-## The things placed in the camp: [item, north-west cell], chests, workbenches and
-## kilns on a row, then a row of campfires, lit.
+## The things placed in the test world (Placed.put_plan): [item, north-west cell, turn]; in
+## the camp chests, workbenches and kilns on a row, then a row of campfires, lit; in the
+## house (HOUSE_THINGS) the door, the windows, the stairs, furniture and lanterns.
 func plan_things() -> Array:
 	var out := []
 	var i := 0
@@ -730,6 +890,17 @@ func plan_things() -> Array:
 		i += 1
 	for x in range(CAMP.position.x, CAMP.end.x - 1, 4):
 		out.append(["core:campfire", Vector3i(x, ground + 1, CAMP.position.y + 15)])
+	# The house: its door, windows, stairs, furniture and lanterns.
+	var things: Array = HOUSE_THINGS.duplicate()
+	for f in 2:
+		for w: Array in HOUSE_WINDOWS:
+			things.append(["tools:window", w[0], w[1], w[2], f, 2])
+	for s in HOUSE_STOREY:
+		things.append(["tools:stairs", HOUSE_STAIRS.x, HOUSE_STAIRS.y - s, 0, 0, 1 + s])
+	for t: Array in things:
+		if Items.has(t[0]):
+			var y: int = ground + t[4] * HOUSE_STOREY + (t[5] if t.size() > 5 else 1)
+			out.append([t[0], Vector3i(t[1], y, t[2]), t[3]])
 	return out
 
 
@@ -750,18 +921,18 @@ func plan_bushes() -> Array:
 	if raspberry < 0:
 		return out
 	for row in 4:
-		for x in range(63, 95, 2):
-			var kind: int = kinds[row] if row < 3 else kinds[posmod(x, 3)]
-			out.append([x, -8 + row * 3, kind])
+		for x in range(63, 96, 3):
+			var kind: int = kinds[row] if row < 3 else kinds[posmod(x / 3, 3)]
+			out.append([x, -8 + row * 4, kind])
 	# A bush of each type in the middle of its pen of the plant garden.
 	for i in Bushes.TYPES.size():
 		var m := garden_middle(1, i)
 		out.append([m.x, m.y, i])
-	for x in range(-45, -32, 3):
+	for x in range(-45, -32, 4):
 		out.append([x, 0, raspberry])
-	for x in range(-30, -20, 3):
+	for x in range(-29, -20, 4):
 		out.append([x, 0, blueberry])
-	for x in range(-18, -14, 3):
+	for x in range(-17, -12, 4):
 		out.append([x, 0, shrub])
 	return out
 

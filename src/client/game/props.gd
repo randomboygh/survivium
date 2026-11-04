@@ -99,7 +99,7 @@ func place() -> void:
 		# The camp of the test world (TestGround.plan_things), for FPS and freezes.
 		if game.gen.has_method("plan_things"):
 			for t: Array in game.gen.plan_things():
-				placed.put(t[0], t[1])
+				placed.put_plan(t)
 	_heat_later()
 
 

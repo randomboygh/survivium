@@ -207,7 +207,7 @@ func _open_world() -> bool:
 		placed.start_camp(spawn)
 		if gen.has_method("plan_things"):
 			for t: Array in gen.plan_things():
-				placed.put(t[0], t[1])
+				placed.put_plan(t)
 	runner = Runner.new(session)
 	runner.pausable = false
 	runner.playing = true

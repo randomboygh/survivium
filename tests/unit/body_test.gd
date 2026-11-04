@@ -382,12 +382,16 @@ func _test_ground() -> void:
 	# The chunks of the area and the ring round it, which is planted for the area's shapes.
 	_check(w.trees.size() == gen.plan_trees().filter(func(t: Array) -> bool: return t[0] < 80 and t[1] < 64).size(),
 		"every tree of the plan grows")
-	# The plant garden: every species, bush type and ground plant in a walled pen of
-	# its own, the ground plant alone in its pen.
+	# The plant garden (east of the field of ears): every species, bush type and ground
+	# plant in a walled pen of its own, the ground plant alone in its pen.
+	var rows: Array = TestGround.garden_rows()
+	var last: Array = rows[rows.size() - 1]
+	gen.generate_area(WorldData.chunk_key(TestGround.GARDEN_X, TestGround.GARDEN_Z),
+		WorldData.chunk_key(TestGround.GARDEN_EAST, last[2] + last[0] + 1) + Vector2i.ONE)
 	var garden := true
 	for i in Trees.SPECIES.size():
 		var m: Vector2i = TestGround.garden_middle(0, i)
-		garden = garden and (m.x >= 80 or w.trees.get(m, -1) == i)
+		garden = garden and w.trees.get(m, -1) == i
 	var ids: Array = Plants.BY_ID.keys()
 	for i in ids.size():
 		var m: Vector2i = TestGround.garden_middle(2, i)
@@ -396,14 +400,21 @@ func _test_ground() -> void:
 			garden = garden and not grown.is_empty() and grown.all(func(id: String) -> bool: return id == ids[i])
 		garden = garden and w.get_cell(m.x - 2, g + 1, m.y) == Mat.index("materials:brick")
 	_check(garden, "the plant garden of the test world has every plant alone in its pen")
-	# The bush garden lies east, beyond the area above.
-	gen.generate_area(Vector2i(3, -1), Vector2i(8, 2))
-	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
 	var bushes_penned := true
 	for i in Bushes.TYPES.size():
 		var m: Vector2i = TestGround.garden_middle(1, i)
 		bushes_penned = bushes_penned and w.bushes.get(Vector3i(m.x, g + 1, m.y), -1) == i
 	_check(bushes_penned, "every type of bush grows in its pen of the plant garden")
+	# No two trees of the garden are closer than a pen.
+	var apart := true
+	for i in Trees.SPECIES.size() - 1:
+		var a: Vector2i = TestGround.garden_middle(0, i)
+		var b: Vector2i = TestGround.garden_middle(0, i + 1)
+		apart = apart and maxi(absi(a.x - b.x), absi(a.y - b.y)) > TestGround.GARDEN_TREE
+	_check(apart, "the trees of the plant garden stand a pen apart")
+	# The bush garden lies east, beyond the area above.
+	gen.generate_area(Vector2i(3, -1), Vector2i(8, 2))
+	_check(w.bushes.size() == gen.plan_bushes().size(), "every bush of the plan grows")
 	# The stream falls from terrace to terrace into its pool (it lies east of the grove);
 	# the field and the grove grow what the plan sets, whatever the noises say.
 	gen.generate_area(Vector2i(8, 1), Vector2i(11, 2))
@@ -521,6 +532,7 @@ func _test_ground() -> void:
 		"the swamp plot has pools and a pond running into a bog, all at one level")
 	_check(w.get_cell(fo.x + 17, g, fo.y + 17) == Mat.WATER and w.get_cell(fo.x + 17, g - 1, fo.y + 17) == Mat.BANK
 		and w.get_cell(fo.x + 15, g, fo.y + 17) == Mat.GRASS, "a biome plot has a pool in its corner")
+	_test_ground_sites(gen)
 	var other := TestGround.new()
 	var keys: Array[Vector2i] = []
 	for cz in range(-4, 3):
@@ -535,6 +547,56 @@ func _test_ground() -> void:
 	_check(_same(other.world, w, keys) and other.world.trees == near,
 		"the test world is the same made in another order")
 	_check(WorldStore.world_dir(TestGround.SEED, {}).ends_with("/test"), "the test world is saved apart")
+
+
+## The house, the descents and the beach of the test world.
+func _test_ground_sites(gen) -> void:
+	var w: WorldData = gen.world
+	var g: int = gen.ground
+	var brick := Mat.index("materials:brick")
+	var planks := Mat.index("materials:planks")
+	var h: Rect2i = TestGround.HOUSE
+	gen.generate_area(WorldData.chunk_key(h.position.x - 1, h.position.y - 1), WorldData.chunk_key(h.end.x, h.end.y) + Vector2i.ONE)
+	var door: Vector2i = TestGround.HOUSE_DOOR
+	var storey: int = TestGround.HOUSE_STOREY
+	_check(w.get_cell(h.position.x, g + 1, -54 + 1) == brick and w.get_cell(h.position.x, g + 2 + storey, -54 + 1) == brick
+		and w.get_cell(70, g, -54) == planks and w.get_cell(70, g + storey, -54) == planks
+		and w.get_cell(door.x, g + 1, door.y) == Mat.AIR and w.get_cell(door.x, g + 2, door.y) == Mat.AIR
+		and w.get_cell(door.x, g + 3, door.y) == brick and w.get_cell(66, g + 2, -49) == Mat.AIR
+		and w.get_cell(TestGround.HOUSE_STAIRS.x, g + storey, TestGround.HOUSE_STAIRS.y) == Mat.AIR
+		and w.get_cell(70, g + 2 * storey, -54) == planks and w.get_cell(70, g + 2 * storey + 5, -54) == planks
+		and w.get_cell(70, g + 2 * storey + 5, -56) == Mat.AIR,
+		"the house of the test world has walls, two floors, a door, windows, a stair hole and a roof")
+	var things: Array = gen.plan_things().map(func(t: Array) -> String: return t[0])
+	_check(things.count("tools:window") == 2 * TestGround.HOUSE_WINDOWS.size() and things.count("tools:stairs") == storey
+		and things.has("tools:door") and things.has("tools:wooden_bed") and things.count("tools:lantern") == 4,
+		"the house of the test world has its windows, stairs, door, furniture and lanterns")
+	# The straight descent: the entrance on the meadow's level, ten high, under its
+	# mound; a level lower each five cells; the bottom level at its end.
+	var d: Vector2 = TestGround.DESCENT
+	var x0 := int(d.x) - 1
+	var z := int(d.y)
+	gen.generate_area(WorldData.chunk_key(x0 - 20, z - 20), WorldData.chunk_key(x0, z + 20) + Vector2i.ONE)
+	_check(w.get_cell(x0 - 5, g, z) == Mat.STONE and w.get_cell(x0 - 5, g + 1, z) == Mat.AIR
+		and w.get_cell(x0 - 5, g + 10, z) == Mat.AIR and w.get_cell(x0 - 5, g + 11, z) == Mat.GRASS
+		and w.get_cell(x0 - 5, g + 1, z - 5) == Mat.AIR and w.get_cell(x0 - 5, g + 1, z - 6) != Mat.AIR
+		and w.get_cell(x0 - 12, g - 1, z) == Mat.STONE and w.get_cell(x0 - 12, g, z) == Mat.AIR
+		and w.get_cell(x0 - 17, g - 2, z) == Mat.STONE and w.get_cell(x0 - 17, g - 1, z) == Mat.AIR,
+		"the straight descent has its entrance and steps of 5 by 1")
+	var end := x0 - TestGround.DESCENT_MOUTH - g * TestGround.DESCENT_STEP - 3
+	gen.generate_area(WorldData.chunk_key(end - 1, z), WorldData.chunk_key(end + 1, z) + Vector2i.ONE)
+	_check(w.get_cell(end, 0, z) == Mat.STONE and w.get_cell(end, 1, z) == Mat.AIR and w.get_cell(end, 10, z) == Mat.AIR
+		and w.get_cell(end, 11, z) != Mat.AIR, "the straight descent goes down to the bottom of the world")
+	# The beach: dry sand down to the water's line, then deeper to the bottom.
+	var b: Vector3i = TestGround.BEACH
+	var bz := b.y + b.z / 2
+	gen.generate_area(WorldData.chunk_key(b.x - 40, bz), WorldData.chunk_key(b.x, bz) + Vector2i.ONE)
+	gen.generate_area(WorldData.chunk_key(b.x - 115, bz), WorldData.chunk_key(b.x - 100, bz) + Vector2i.ONE)
+	var sea: int = w.sea_level
+	_check(w.get_cell(b.x - 2, g, bz) == Mat.BEACH and w.get_cell(b.x - 25, sea, bz) == Mat.BEACH
+		and w.get_cell(b.x - 35, sea, bz) == Mat.WATER and w.get_cell(b.x - 35, sea - 1, bz) == Mat.WATER
+		and w.get_cell(b.x - 112, 1, bz) == Mat.WATER and w.get_cell(b.x - 112, 0, bz) == Mat.BEACH,
+		"the beach of the test world runs gently into water as deep as the world")
 
 
 ## Presses jump again and again for 5 s at the bottom of a pit four cells deep and one
