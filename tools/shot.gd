@@ -222,6 +222,8 @@ func _run() -> void:
 			main.roof.build(main.world)
 		if shot.get("trench", false):
 			main.player.position = places.trench(main.world, Vector3i((main.player.position / CELL).floor()))
+		if shot.get("room", false):
+			places.room(main.world, Vector3i((main.player.position / CELL).floor()))
 		if shot.has("walk_into"):
 			# The player walks into what stands that way (x east, y south) until it stops them.
 			var body = main.player.body
@@ -763,6 +765,9 @@ func _run() -> void:
 				main.menu._new_world()
 				for i in 120:
 					await process_frame
+			if shot.main_menu == "changes":
+				main.menu._open_changes()
+				await process_frame
 			if shot.main_menu == "worlds":
 				_fake_saves()
 				main.menu._open_worlds()

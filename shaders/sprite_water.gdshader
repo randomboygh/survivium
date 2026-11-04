@@ -17,8 +17,8 @@ uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
 
 varying vec3 world_pos;
 varying float clouds;
-// The share of the sun's and the sky's light that comes down this deep (sea_bright).
-varying float sun_part;
+// How much brighter a torch or a fire lights this than sea_bright left its colour (sea_undo).
+varying vec3 lamp_gain;
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
@@ -45,8 +45,12 @@ void fragment() {
 	vec3 water = mix(shallow, deep, 0.35 + 0.4 * t);
 	vec3 col = mix(c.rgb, water, 0.45 + 0.2 * t);
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
-	sun_part = sea_bright(world_pos.y);
-	ALBEDO = col * (1.0 - veiled.a) * sun_part;
+	// The share of the sun's and the sky's light that comes down this deep; light()
+	// undoes it for torches and fires (lamp_gain).
+	float sun_part = sea_bright(world_pos.y);
+	vec3 lit_col = col * (1.0 - veiled.a);
+	ALBEDO = lit_col * sun_part;
+	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb;
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);
 	ALPHA = 1.0;
@@ -59,5 +63,5 @@ void light() {
 	// A sprite stands up in the drawn world, not in the world (stand_tall): its light
 	// rings go by the drawn way to the light, only the range undone (light_reach).
 	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
-		light_reach) / (LIGHT_IS_DIRECTIONAL ? 1.0 : sun_part);
+		light_reach) * (LIGHT_IS_DIRECTIONAL ? vec3(1.0) : lamp_gain);
 }

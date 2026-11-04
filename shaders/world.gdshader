@@ -77,8 +77,8 @@ varying vec3 world_pos;
 varying vec3 world_normal;
 varying flat vec2 packed;
 varying float clouds;
-// The share of the sun's and the sky's light that comes down this deep (sea_bright).
-varying float sun_part;
+// How much brighter a torch or a fire lights this than sea_bright left its colour (sea_undo).
+varying vec3 lamp_gain;
 
 // How big the snowdrifts are: full in deep snow, sinking and shrinking to nothing as
 // the snow cover thins, so they melt away in spring instead of vanishing at once.
@@ -535,8 +535,12 @@ void fragment() {
 		}
 	}
 	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
-	sun_part = sea_bright(world_pos.y);
-	ALBEDO = col * (1.0 - veiled.a) * sun_part;
+	// The share of the sun's and the sky's light that comes down this deep; light()
+	// undoes it for torches and fires (lamp_gain).
+	float sun_part = sea_bright(world_pos.y);
+	vec3 lit_col = col * (1.0 - veiled.a);
+	ALBEDO = lit_col * sun_part;
+	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb;
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
@@ -575,5 +579,5 @@ void light() {
 			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), world_pos, world_normal)) {
 		lit = vec3(0.0);
 	}
-	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit / sun_part;
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit * lamp_gain;
 }

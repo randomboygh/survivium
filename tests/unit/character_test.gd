@@ -487,6 +487,21 @@ func _test_changes() -> void:
 		Time.get_unix_time_from_datetime_string("2026-10-23T18:32:05") + bias * 60, true).left(16)
 	_check(shown == want and shown.length() == 16, "a change shows the date and time it was merged")
 	_check(menu.merged_at({"date": "2026-10-22"}) == "2026-10-22", "an older build shows the date alone")
+	# The page makes its changes a step at a time as it is scrolled, not all 500 at once.
+	var page: Control = menu.new(null)
+	page._ready()
+	var many := []
+	for i in 2 * menu.CHANGES_STEP + 5:
+		many.append({"pr": 500 - i / 3, "date": "2026-11-04", "kind": "new", "text": "change %d" % i})
+	page.page = "changes"
+	page._add_changes(many)
+	var made := func() -> int: return page._list.get_children().filter(func(c: Node) -> bool: return c is HBoxContainer).size()
+	_check(made.call() == menu.CHANGES_STEP and page._changes_left.size() == menu.CHANGES_STEP + 5,
+		"the changes page makes the first step of changes")
+	page._more_changes()
+	page._more_changes()
+	_check(made.call() == many.size() and page._changes_left.is_empty(), "scrolling makes the rest, a step at a time")
+	page.free()
 
 
 ## A character dies without the client: the bag goes into a sack on the ground where
