@@ -385,6 +385,15 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 	return e
 
 
+## Places what a world's plan sets down (TestGround.plan_things): [item, north-west cell,
+## turn (0 when left out)], a light on its cell (see put_light).
+func put_plan(t: Array) -> void:
+	if is_light_item(t[0]):
+		put_light(t[0], t[1])
+	else:
+		put(t[0], t[1], null, true, -1.0, null, t[2] if t.size() > 2 else 0)
+
+
 ## Puts back the things of a save (see to_list).
 func from_list(list: Array) -> void:
 	for d in list:
@@ -1008,7 +1017,10 @@ func step(delta: float, rain := 0.0) -> void:
 		var c: Vector3i = e.cell
 		if lasts > 0.0 and e.burnt >= lasts:
 			_remove(e)
-		elif world.chunk_at(c.x, c.z) != null and (world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z)):
+			continue
+		# Only a chunk made whole is asked: one still being generated reads air under it.
+		var chunk = world.chunk_at(c.x, c.z)
+		if chunk != null and chunk.final and (world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z)):
 			_remove(e)
 
 
