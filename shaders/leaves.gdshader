@@ -67,6 +67,8 @@ varying vec3 center;
 varying flat vec4 custom;
 varying vec4 tint;
 varying float clouds;
+// The share of the sun's and the sky's light that comes down this deep (sea_bright).
+varying float deep;
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
@@ -189,7 +191,7 @@ void fragment() {
 	// sway or offset, so the dithers of the cards lying one over another leave out the
 	// same pixels instead of filling each other's gaps.
 	vec2 texel = light_texel(light_xz);
-	if (m.a < 0.5 || cut_hides(center, texel)) {
+	if (m.a < 0.5 || (!kept_behind(center) && cut_hides(center, texel))) {
 		discard;
 	}
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters
@@ -258,8 +260,9 @@ void fragment() {
 		col *= mix(mix(vec3(0.7), vec3(0.6, 0.62, 0.86), hue_shift), vec3(1.0), smoothstep(-0.35, 0.15, sun_side));
 	}
 	col *= 1.0 - 0.25 * wetness;
-	vec4 veiled = veil(center, depth_fade(center.y));
-	ALBEDO = col * (1.0 - veiled.a);
+	vec4 veiled = veil(center, depth_fade(kept_behind(center) ? cut_height : center.y));
+	deep = sea_bright(center.y);
+	ALBEDO = col * (1.0 - veiled.a) * deep;
 	EMISSION = veiled.rgb;
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	ROUGHNESS = 1.0;
@@ -285,6 +288,6 @@ void light() {
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
 		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz),
-			light_stretch(INV_VIEW_MATRIX, LIGHT));
+			light_stretch(INV_VIEW_MATRIX, LIGHT)) / deep;
 	}
 }

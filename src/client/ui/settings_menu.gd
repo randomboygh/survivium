@@ -401,6 +401,10 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void:
 						s.set_value("cave_mode", i)
 						_fill.call_deferred()],
+				# For the whole world: how much darker each level under the sea gets.
+				["Затемнение за уровень", CaveLayers.DEPTH_STEPS.map(percents),
+					func() -> int: return s.values.cut_depth,
+					func(i: int) -> void: s.set_value("cut_depth", i)],
 				null,
 			]
 			var settings := []
@@ -419,9 +423,8 @@ func _section_rows(key: String) -> Array:
 				settings = [["Высота среза", "cut_line", lines],
 					["Первые уровни", "cut_from", counts],
 					["Растяжение", "cut_stretch", stretches],
-					["Плотность первых", "cut_density", CaveLayers.DENSITIES.map(percents)],
-					["Глубина в пещере", "cut_depth", CaveLayers.DEPTH_STEPS.map(percents)]]
-				note = "В пещере всё, что не ниже высоты среза (0 — ноги, +2 — над головой), тает дизерингом и темнеет: первые уровни рисуются с плотностью первых, следующие тают за «растяжение». За игроком остаются стены и пол. В пещере каждый уровень ниже ног темнее на «глубину в пещере»."
+					["Плотность первых", "cut_density", CaveLayers.DENSITIES.map(percents)]]
+				note = "В пещере всё, что не ниже высоты среза (0 — ноги, +2 — над головой), тает дизерингом и темнеет: первые уровни рисуются с плотностью первых, следующие тают за «растяжение». За игроком остаются стены и пол."
 			elif mode == 3:
 				# The view in a sphere (CaveSphere).
 				settings = [["Радиус", "sphere_radius", CaveSphere.RADII.map(func(v: int) -> String: return "%d кл." % v)],

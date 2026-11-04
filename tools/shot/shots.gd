@@ -679,6 +679,13 @@ const SHOTS := {
 	"ground-star-bottom": {"time": 0.42, "season": 1, "at": [28, -72], "y": 3},
 	# Up the far side of the mound over the star cave: the mound stays whole.
 	"ground-star-back": {"time": 0.42, "season": 1, "at": [28, -79]},
+	# Behind the stone hill, the steps, the hut and in the star cave's shaft: the cut is on.
+	"ground-behind-hill": {"time": 0.42, "season": 1, "at": [14, -48]},
+	"ground-behind-steps": {"time": 0.42, "season": 1, "at": [-14, -45]},
+	"ground-behind-hut": {"time": 0.42, "season": 1, "at": [52, -5]},
+	"ground-star-shaft": {"time": 0.42, "season": 1, "at": [28, -73], "y": 25},
+	# In the pit, under the sea's surface: darker by the levels.
+	"ground-pit": {"time": 0.42, "season": 1, "at": [-5, -38]},
 	"ground-forest": {"time": 0.42, "season": 1, "at": [-30, 2]},
 	"ground-materials": {"time": 0.42, "season": 1, "at": [32, 12]},
 	# The clay: its top in the strip of materials, its walls on the row of relief.

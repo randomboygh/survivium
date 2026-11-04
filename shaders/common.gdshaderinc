@@ -20,9 +20,11 @@ global uniform float cut_front;
 // many count as the first, y over how many the rest fades out, z how much of a first one
 // is drawn (see cut_share).
 global uniform vec4 cut_fade;
-// How much darker each level under the view's height gets and lighter each above it
-// (see depth_fade): x a level under, y the most, z a level above, w the most.
+// How much darker each level under the sea's surface gets (see sea_bright): x a level
+// (the test setting «Затемнение за уровень», 12 %); y, z, w unused.
 global uniform vec4 depth_steps;
+// The height of the sea's surface: the top of its highest water cells.
+global uniform float sea_top;
 // The cells round the player that are solid (see SolidMap): one texel per column of a
 // SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
 // eight in each of r, g, b, a.
@@ -82,9 +84,7 @@ global uniform sampler2D biome_map : filter_nearest, repeat_enable;
 global uniform sampler2D biome_tints : filter_nearest;
 // The world has no edge: the heat and roof maps repeat every wrap_size world units.
 global uniform vec2 wrap_size;
-// Height of the ground the player last stood on, and what the levels far below it
-// fade into (the background outdoors, darkness in a cave or a room), see depth_fade.
-global uniform float view_height;
+// What the ghost of the levels over the cut fades into, see depth_fade.
 global uniform vec3 depth_haze;
 // Fog lying on the ground (see Sky._update_fog): how thick it is (0 none), how deep
 // above the ground in the low places, its colour, how far its banks have drifted with
@@ -328,11 +328,6 @@ vec3 biome_tint(int mat, vec2 xz) {
 	return f.r + f.g + f.b > 0.0 ? f * 4.0 : vec3(1.0);
 }
 
-// True when the column at `xz` lies under a tree's crown.
-bool under_crown(vec2 xz) {
-	return texture(roof_map, (floor(xz / CELL) + 0.5) * CELL / wrap_size).g > 0.5;
-}
-
 // True at height `y` under a roof, an overhang or a cave ceiling: below the bottom of
 // the column's highest covering cell. The faces of that cell itself, its ramps and
 // walls included, lie within its span and are not under it.
@@ -369,6 +364,12 @@ float cut_share(float i) {
 	return cut_fade.z * clamp(1.0 - (i - cut_fade.x) / max(cut_fade.y, 1.0), 0.0, 1.0);
 }
 
+// The clear window round the player in the ghost over the cut: whole within WINDOW_IN
+// world units of the middle of their body on the screen, thinning out by dither to
+// WINDOW_OUT.
+const float WINDOW_IN = 1.25;
+const float WINDOW_OUT = 2.25;
+
 // Levels above a cut stay faintly visible instead of vanishing, so a cave or a room
 // shows how much lies above it and how tall the trees around are: dithered away more
 // with each level by cut_share (and darker, see depth_fade). A level picked by hand
@@ -381,16 +382,14 @@ bool cut_dither(float y, vec2 texel) {
 	if (y <= cut_height + 0.01) {
 		return false;
 	}
-	// The ghost leaves a clear window around the player.
+	// The ghost leaves a clear window around the player, its rim dithered away.
 	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
-	if (length((texel + 0.5) / TEXELS - body) < 1.75) {
-		return true;
-	}
+	float rim = clamp((length((texel + 0.5) / TEXELS - body) - WINDOW_IN) / (WINDOW_OUT - WINDOW_IN), 0.0, 1.0);
 	float above = floor((y - cut_height) / CELL - 0.01);
 	if (cut_ghost > 0.5) {
-		return bayer4(texel) >= cut_share(above + 1.0);
+		return bayer4(texel) >= cut_share(above + 1.0) * rim;
 	}
-	return above > 3.5 || bayer4(texel) >= 0.5 / exp2(above);
+	return above > 3.5 || bayer4(texel) >= 0.5 / exp2(above) * rim;
 }
 
 // The cut in the plane of the camera is on: the setting, and the cut follows the
@@ -580,8 +579,22 @@ bool cut_hides(vec3 p, vec2 texel) {
 	return cut_dither(p.y, texel);
 }
 
+// A thing standing at `p` (an animal, a plant, a crown) behind the player above the
+// automatic cut, where the walls and floors stay whole (back_wall in world.gdshader):
+// it stays too, whole and in its own colour.
+bool kept_behind(vec3 p) {
+	if (cut_ghost < 0.5 || cut_front > 0.5 || p.y <= cut_height + 0.01
+			|| dot(p.xz - player_pos.xz, view_up) <= 0.0) {
+		return false;
+	}
+	if (roofed(player_pos.xz, player_pos.y + 2.0 * CELL)) {
+		return roofed(p.xz, p.y);
+	}
+	return !roofed(p.xz, p.y);
+}
+
 bool above_cut(vec3 p) {
-	return cut_hides(p, floor(screen_plane(p) * TEXELS));
+	return !kept_behind(p) && cut_hides(p, floor(screen_plane(p) * TEXELS));
 }
 
 // For plants, motes and sunlight: above the cut they stay as a ghost like the ground
@@ -641,11 +654,9 @@ float low_through(vec2 texel, vec3 p) {
 		* clamp((before - LOW_FRONT) / LOW_FRONT, 0.0, 1.0);
 }
 
-// How much of the colour at height `y` gives way to `depth_haze`: levels below the
-// player's feet (below the picked level, when one is picked by hand) fade one even step
-// per level (depth_steps.x, the most .y; sharper in a cave under the cut of levels), so a
-// pit or a drop shows its depth; what shows above the cut is a dim ghost, dimmer
-// higher up.
+// How much of the colour at height `y` gives way to `depth_haze`: what shows above the
+// cut is a dim ghost, dimmer higher up; below it nothing (the depth darkens by the
+// sea's surface instead, see sea_bright).
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
 		if (plane_on()) {
@@ -658,8 +669,17 @@ float depth_fade(float y) {
 		}
 		return clamp(0.35 + 0.03 * above, 0.0, 0.7);
 	}
-	float below = floor((view_height - y) / CELL + 0.01) - 1.0;
-	return clamp(below * depth_steps.x, 0.0, depth_steps.y);
+	return 0.0;
+}
+
+// How much of the light of the sun and the sky reaches height `y`: under the sea's
+// surface less by depth_steps.x a level, down to none, in caves and in the sea's
+// depths alike, so down there only torches and fires show anything. A thing's colour
+// is darkened by it and the light of torches and fires undone by it (lit / bright in
+// light()); never 0, so that stays finite.
+float sea_bright(float y) {
+	float below = floor((sea_top - y) / CELL + 0.01);
+	return max(1.0 - clamp(below * depth_steps.x, 0.0, 1.0), 1.0 / 256.0);
 }
 
 // The column `col` (whole cells x, z): r the roof (see roof_level), g the crown, b the

@@ -380,12 +380,6 @@ func update(delta: float) -> void:
 	container.position = container.position.round()
 	player.place_sprite()
 	RenderingServer.global_shader_parameter_set("player_pos", player.position)
-	# The levels below fade from the player's feet, or from a level picked by hand.
-	var manual_level: int = game.chunks.manual_level
-	if manual_level >= 0:
-		RenderingServer.global_shader_parameter_set("view_height", (manual_level + 1) * CELL)
-	elif player.body.on_ground or player.body.swimming:
-		RenderingServer.global_shader_parameter_set("view_height", player.level() * CELL)
 
 
 ## Shakes the picture by up to `pixels` low-res pixels for a moment, fading.
