@@ -675,11 +675,25 @@ float depth_fade(float y) {
 // How much of the light of the sun and the sky reaches height `y`: under the sea's
 // surface less by depth_steps.x a level, down to none, in caves and in the sea's
 // depths alike, so down there only torches and fires show anything. A thing's colour
-// is darkened by it and the light of torches and fires undone by it (lit / bright in
+// is darkened by it and the light of torches and fires undone by it (sea_undo in
 // light()); never 0, so that stays finite.
 float sea_bright(float y) {
 	float below = floor((sea_top - y) / CELL + 0.01);
 	return max(1.0 - clamp(below * depth_steps.x, 0.0, 1.0), 1.0 / 256.0);
+}
+
+// How much a torch's or a fire's light must be raised to light a colour `col` darkened
+// by sea_bright's `bright` as brightly as `col` itself: the GL Compatibility renderer
+// takes ALBEDO as sRGB and makes it linear (Godot's srgb_to_linear, this polynomial)
+// before the light multiplies it, so the darkened colour is darker there than by
+// `bright` (at 1/256 a hundred times darker still).
+vec3 sea_undo(vec3 col, float bright) {
+	if (bright >= 1.0) {
+		return vec3(1.0);
+	}
+	vec3 dark = col * bright;
+	vec3 lin = col * (col * (col * 0.305306011 + 0.682171111) + 0.012522878);
+	return lin / max(dark * (dark * (dark * 0.305306011 + 0.682171111) + 0.012522878), vec3(1e-9));
 }
 
 // The column `col` (whole cells x, z): r the roof (see roof_level), g the crown, b the

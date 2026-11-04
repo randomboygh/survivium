@@ -67,8 +67,8 @@ varying vec3 center;
 varying flat vec4 custom;
 varying vec4 tint;
 varying float clouds;
-// The share of the sun's and the sky's light that comes down this deep (sea_bright).
-varying float sun_part;
+// How much brighter a torch or a fire lights this than sea_bright left its colour (sea_undo).
+varying vec3 lamp_gain;
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
@@ -261,8 +261,12 @@ void fragment() {
 	}
 	col *= 1.0 - 0.25 * wetness;
 	vec4 veiled = veil(center, depth_fade(kept_behind(center) ? cut_height : center.y));
-	sun_part = sea_bright(center.y);
-	ALBEDO = col * (1.0 - veiled.a) * sun_part;
+	// The share of the sun's and the sky's light that comes down this deep; light()
+	// undoes it for torches and fires (lamp_gain).
+	float sun_part = sea_bright(center.y);
+	vec3 lit_col = col * (1.0 - veiled.a);
+	ALBEDO = lit_col * sun_part;
+	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb;
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	ROUGHNESS = 1.0;
@@ -288,6 +292,6 @@ void light() {
 		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
 	} else {
 		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz),
-			light_stretch(INV_VIEW_MATRIX, LIGHT)) / sun_part;
+			light_stretch(INV_VIEW_MATRIX, LIGHT)) * lamp_gain;
 	}
 }

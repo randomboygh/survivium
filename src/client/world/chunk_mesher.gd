@@ -623,11 +623,18 @@ static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int,
 			Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILES)))
 
 
+## How far under the cut the caps lie, in cells: a slope going down beside a cap meets
+## it at its edge, and a cap at the very height pokes through the slope there in dark
+## lines a pixel wide, along a diagonal corner most of all.
+const CAP_SINK := 0.01
+
+
 ## Dark tops of solid cells on `level` that are covered by solid cells above:
 ## what you see in the cut when looking into a mountain. Cut and deep corners stay open, and
 ## fills sliced by the cut show as dark triangles. Rows of whole tops of the same
 ## material are merged. Covers the cells x0..x0+size, z0..z0+size (a chunk from the
-## origin by default), so the game can rebuild the cap chunk by chunk.
+## origin by default), so the game can rebuild the cap chunk by chunk. The caps sit
+## CAP_SINK under the cells' tops.
 static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> ArrayMesh:
 	if level < 0 or level >= w.size_y - 1:
 		return null
@@ -663,7 +670,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 					tile = cells[i] * 3
 			# (A run is marked by its tile: x may be negative.)
 			if tile != run_tile and run_tile >= 0:
-				var base := Vector3(run_x, level, z)
+				var base := Vector3(run_x, level - CAP_SINK, z)
 				var pts := []
 				var uvs := []
 				for v: Vector3 in corners:
@@ -679,7 +686,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 			run_tile = -1
 			if c == null:
 				continue
-			var base := Vector3(x, level, z)
+			var base := Vector3(x, level - CAP_SINK, z)
 			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)
 			if open & both == 0:
 				var cuts: int = (shapes[i] | shapes[i + layer]) >> 4

@@ -222,6 +222,8 @@ func _run() -> void:
 			main.roof.build(main.world)
 		if shot.get("trench", false):
 			main.player.position = places.trench(main.world, Vector3i((main.player.position / CELL).floor()))
+		if shot.get("room", false):
+			places.room(main.world, Vector3i((main.player.position / CELL).floor()))
 		if shot.has("walk_into"):
 			# The player walks into what stands that way (x east, y south) until it stops them.
 			var body = main.player.body

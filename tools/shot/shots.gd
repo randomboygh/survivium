@@ -684,6 +684,8 @@ const SHOTS := {
 	# Diagonal corners of slopes behind the player (behind a hill) and over them (under a roof).
 	"ground-diagonals-behind": {"time": 0.42, "season": 1, "at": [47, -57], "y": 18, "settings": {"cave_mode": 1}},
 	"ground-diagonals-hill": {"time": 0.42, "season": 1, "at": [14, -47], "y": 23, "settings": {"cave_mode": 1}},
+	# A lantern by day in a cave 19 levels under the sea: it lights as on the surface at night.
+	"ground-lantern-deep": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "settings": {"cave_mode": 1}, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
 	"ground-diagonals-roof": {"time": 0.42, "season": 1, "at": [43, -53], "y": 19, "settings": {"cave_mode": 1}},
 	# Deep in the star cave, under its upper point.
 	"ground-star-deep": {"time": 0.42, "season": 1, "at": [23, -75], "y": 17, "settings": {"cave_mode": 1}},
