@@ -29,7 +29,7 @@
   (`trunk_box`, `height`, `fit`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`. Рубка — правило
   игры: `src/shared/game/felling.gd` (`fell`), см. [interaction.md](interaction.md).
 - `src/shared/world/test_ground.gd` — тестовый мир (открывается со страницы «Тестирование»): площадки
-  рельефа, биомов, растений, «Лагерь»; подменяет `WorldGen` при `TestGround.SEED`.
+  рельефа, биомов, растений, «Лагерь», «Звёздная пещера» (`TestGround.STAR_*`); подменяет `WorldGen` при `TestGround.SEED`.
 
 **Интерфейс.** `WorldGen.new(seed, 48, options)`, `lay_out(x0, z0, w, h, step)`,
 `find_place(what, near)`, `column_color(lay, j)` (карты), `start(key, stage)` / `step(job, n)`,

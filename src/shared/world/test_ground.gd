@@ -12,6 +12,11 @@ extends "res://src/shared/world/world_gen.gd"
 ##   pits       x -8..8,    z -44..-26  a pit 4 deep, a shaft 12 deep
 ##   cave       x 12..44,   z -46..-24  a stone hill 12 high, a tunnel from the south
 ##                                      into a hall, a dirt floor
+##   star       x 14..42,   z -86..-58  a cave shaped as a stellated octahedron (STAR_*):
+##                                      two tetrahedra through each other, one pointing up,
+##                                      one down, hollow; walls of brick where the upward one
+##                                      bounds it, of stone where the downward one does; its
+##                                      upper point opens on the top of a grassy mound
 ##   bushes     x 62..96,   z -9..2     rows of raspberries, blueberries, shrubs and
 ##                                      mixed, two cells apart, in the open
 ##   forest     x -46..-14, z -10..10   rows of oaks and spruces, rows of bushes
@@ -58,7 +63,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
-const GROUNDS := ["Ступени", "Ямы", "Пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Растения", "Рельеф", "Биомы",
+const GROUNDS := ["Ступени", "Ямы", "Пещера", "Звёздная пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Растения", "Рельеф", "Биомы",
 	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь", "Сочетания"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
@@ -83,6 +88,20 @@ const BIOME_Z := 100
 const BIOME_POOL := 4
 const POND_DEPTHS := [1, 2, 3, 5]
 const HILL := 12
+## The star cave: its middle column, how far its middle lies under the meadow's top, the
+## reach of its points from the middle (cells; the two tetrahedra share the middle, the
+## upward one's point straight over it, the downward one's straight under it) and how
+## thick its walls of brick and stone are. A grassy mound rises over it a cell a cell,
+## its top a cell over the upper point, the shaft down to the point STAR_SHAFT wide.
+const STAR := Vector2i(28, -72)
+const STAR_DROP := 6
+const STAR_R := 12.0
+const STAR_WALL := 1.5
+const STAR_SHAFT := 1.0
+## Directions to the points of the upward tetrahedron (its point up, one corner of its
+## base south); the downward one's are these turned over.
+const STAR_POINTS := [Vector3(0.0, 1.0, 0.0), Vector3(0.0, -1.0 / 3.0, 0.9428090),
+	Vector3(0.8164966, -1.0 / 3.0, -0.4714045), Vector3(-0.8164966, -1.0 / 3.0, -0.4714045)]
 ## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
 ## RELIEF_STRIDE apart (see relief_rise): a lone cell, a square, an L (inner corner), a
 ## ring round a hollow, a pit, a stepped pyramid, a diagonal stair, a two-cell cliff
@@ -286,6 +305,10 @@ func column(x: int, z: int) -> Array:
 	# The cave's hill.
 	if x >= 12 and x < 44 and z >= -46 and z < -24:
 		return [g + HILL, -1, Mat.STONE, rock, true]
+	# The mound over the star cave.
+	var mound := star_mound(x, z)
+	if mound > 0:
+		return [g + mound, -1, Mat.GRASS, meadow, false]
 	# The pond: deeper to the east.
 	if x >= -44 and x < -14 and z >= 14 and z < 38:
 		var d: int = POND_DEPTHS[mini((x + 44) / 8, POND_DEPTHS.size() - 1)]
@@ -546,6 +569,44 @@ static func _plot_pool(at: Vector2i) -> bool:
 	return at.x >= from and at.x < from + BIOME_POOL and at.y >= from and at.y < from + BIOME_POOL
 
 
+## How many cells the mound over the star cave rises at column x, z (0 off it).
+func star_mound(x: int, z: int) -> int:
+	var top := STAR_R - STAR_DROP + 1.0
+	return maxi(0, int(top - Vector2(x - STAR.x, z - STAR.y).length() + 0.5))
+
+
+## How far cell x, y, z lies outside the tetrahedra of the star cave, in cells (0 or
+## less inside): [outside the upward one, outside the downward one].
+func star_outside(x: int, y: int, z: int) -> Vector2:
+	var p := Vector3(x - STAR.x, y - (ground - STAR_DROP), z - STAR.y)
+	var up := -INF
+	var down := -INF
+	for v: Vector3 in STAR_POINTS:
+		var d := v.dot(p)
+		up = maxf(up, -d - STAR_R / 3.0)
+		down = maxf(down, d - STAR_R / 3.0)
+	return Vector2(up, down)
+
+
+## The star cave in column x, z, written over the plain fill: air inside, walls of
+## brick and stone round it, the shaft from the mound's top down to the upper point.
+func _star(x: int, z: int, out: Array) -> void:
+	var reach := int(STAR_R + STAR_WALL) + 1
+	if absi(x - STAR.x) > reach or absi(z - STAR.y) > reach:
+		return
+	var middle := ground - STAR_DROP
+	var shaft := Vector2(x - STAR.x, z - STAR.y).length() <= STAR_SHAFT
+	var tip := middle + int(STAR_R)
+	var top := ground + star_mound(x, z)
+	for y in range(maxi(1, middle - int(STAR_R + STAR_WALL) - 1), tip + 3):
+		var o := star_outside(x, y, z)
+		var d := minf(o.x, o.y)
+		if d <= 0.0 or (shaft and y > tip - 4):
+			out.append([y, y, Mat.AIR, WorldData.WILD])
+		elif d <= STAR_WALL and y < top:
+			out.append([y, y, _block("brick"), 0] if o.x < o.y else [y, y, Mat.STONE, WorldData.WILD])
+
+
 ## What column x, z has over its plain fill: [from y, to y (inclusive), material,
 ## natural flags] each, written in order.
 func extras(x: int, z: int) -> Array:
@@ -557,6 +618,7 @@ func extras(x: int, z: int) -> Array:
 	if tunnel or hall:
 		out.append([g, g, Mat.DIRT, WorldData.WILD])
 		out.append([g + 1, g + (4 if hall else 2), Mat.AIR, WorldData.WILD])
+	_star(x, z, out)
 	# The water of the swamp plot is murky, the bog's murkier.
 	var plot := plot_at(x, z)
 	if plot >= 0 and plot_biomes[plot] == Biomes.SWAMP:
