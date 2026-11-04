@@ -58,13 +58,6 @@ const LOAD_MAX_US := 100000
 const STREAM_BUDGET_US := 3000
 ## Chunks whose meshes are freed in one frame at most.
 const UNLOADS_PER_FRAME := 2
-## How long the automatic cut must agree before the view follows it, so stepping
-## under the rim of a roof does not flip the view back and forth.
-const CUT_DELAY := 0.2
-## How long the view waits before it closes again over the player walking out from
-## behind earth that hid them: along a bumpy hill or wall the cover comes and goes
-## column by column, and the trees and bushes cut with it flickered.
-const UNHIDE_DELAY := 0.8
 ## How many levels above and below the player's the level buttons may look; from deep
 ## in a pit, up to the surface over it (see view_range).
 const VIEW_REACH := 4
@@ -159,9 +152,8 @@ var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
 var _surface_at := Vector3i(1 << 30, 0, 0)
 var _surface := 0
-## The cut the player's position asks for, and how long it has asked for it.
+## The cut the player's position asks for; the view follows it at once.
 var cut_target := -1
-var cut_clock := 0.0
 ## The level the player last stood on: a jump does not move the cut.
 var ground_level := 0
 var indoor := false
@@ -178,8 +170,6 @@ var sunk_at := Vector3i(0, -1000, 0)
 ## The lowest level of earth between the camera and the player's body, -1 for none
 ## (see _hiding_level); worked out with sunk.
 var hidden_by := -1
-## True while the cut in force is the one earth hiding the player asked for.
-var cut_hides := false
 ## The view hidden_by was worked out for (up and slope, see _hiding_level).
 var _hidden_view := Vector3.ZERO
 
@@ -675,7 +665,7 @@ func remesh_chunk(key: Vector2i) -> void:
 
 # --- Level cutaway -----------------------------------------------------------
 
-func update_cut(delta: float) -> void:
+func update_cut(_delta: float) -> void:
 	var player = game.player
 	if world == null or player == null:
 		return
@@ -743,22 +733,13 @@ func update_cut(delta: float) -> void:
 		solid.update(world, px, level, pz)
 	if layers_on or in_sphere:
 		target = world.size_y
-	if target != cut_target:
-		cut_target = target
-		cut_clock = 0.0
+	cut_target = target
 	if target == cut_level:
 		return
-	# A chosen level applies at once; the automatic one once it has held for a moment,
-	# longer when the view closes over a player who was hidden.
-	cut_clock += delta
-	var wait := UNHIDE_DELAY if cut_hides and target > cut_level else CUT_DELAY
-	if indoor and manual_level < 0 and game.settings.values.cave_mode == 1 and game.settings.values.cut_instant == 1:
-		# The test setting: in a cave the cut of levels follows each level at once.
-		wait = 0.0
-	if cut_level < 0 or manual_level >= 0 or cut_clock >= wait:
-		cut_level = target
-		cut_hides = manual_level < 0 and not indoor and hidden_by >= 0 and target == hidden_by - 1
-		_apply_cut()
+	# No delay, chosen or automatic: the view follows each change of level and the
+	# player stepping out from under a roof at once (the user's pick, 2026-11-04).
+	cut_level = target
+	_apply_cut()
 
 
 ## How many of the eight compass directions from column (x, z) meet earth SUNK_RISE
