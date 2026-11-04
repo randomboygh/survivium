@@ -9,6 +9,7 @@ func run() -> void:
 	_test_front_choice()
 	_test_world_actions()
 	_test_placed()
+	_test_stairs_placed()
 	_test_start_camp()
 	_test_lights()
 	_test_drinking()
@@ -248,9 +249,12 @@ func _test_stairs_placed() -> void:
 		and w.blocker_part(30, 1, 20, 0.0, 1.0, 0.0, 0.2) > 0.0 and w.blocker_part(30, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0
 		and is_equal_approx(w.blocker_part(30, 1, 20, 0.0, 1.0, 0.5, 1.0), 0.0),
 		"shut, it closes the gap along its north edge, two cells high: %s" % [door])
-	_check(placed.swing(who, door) and door.open and Placed.record(door).open
-		and is_equal_approx(w.blocker_part(30, 1, 20, 0.5, 1.0, 0.0, 1.0), 0.0) and w.blocker_part(30, 1, 20, 0.0, 0.2, 0.0, 1.0) > 0.0,
-		"a tap opens it: the leaf stands along the west edge and the gap is walked through")
+	_check(not _walks_north(w, Vector3(30.5, 1.0, 21.5), 19.5), "shut, a body walking north stops at it")
+	who.position = Vector3(30.5, 1.0, 20.5) * WorldData.CELL
+	_check(placed.swing(who, door) and door.open and Placed.record(door).open and not w.blockers.has(door.cell),
+		"a tap opens it even standing in the doorway: open, it is solid nowhere")
+	_check(_walks_north(w, Vector3(30.5, 1.0, 20.5), 19.5) and _walks_north(w, Vector3(30.5, 1.0, 21.5), 19.5),
+		"from the doorway and from before it, a body walks through")
 	who.position = Vector3(30.5, 1.0, 20.5) * WorldData.CELL
 	_check(placed.swing(who, door) and not door.open, "and shuts it again")
 	who.inventory.add("tools:window", 1)
@@ -703,10 +707,13 @@ func _test_openings() -> void:
 		and placed.cells_of(door).size() == 2 and w.blockers.get(door.cell).end.y > 2.5
 		and is_equal_approx(w.blocker_part(14, 1, 20, 0.0, 1.0, 0.5, 1.0), 0.0),
 		"shut, it closes both cells along their north edge, its leaves three high: %s" % [door])
-	_check(placed.swing(who, door) and door.open
-		and is_equal_approx(w.blocker_part(14, 1, 20, 0.5, 1.0, 0.0, 1.0), 0.0) and w.blocker_part(14, 1, 20, 0.0, 0.2, 0.0, 1.0) > 0.0
-		and is_equal_approx(w.blocker_part(15, 1, 20, 0.0, 0.5, 0.0, 1.0), 0.0) and w.blocker_part(15, 1, 20, 0.8, 1.0, 0.0, 1.0) > 0.0,
-		"a tap opens both leaves, one to the west edge, one to the east, and the gap is walked through")
+	_check(not _walks_north(w, Vector3(15.0, 1.0, 21.5), 19.5), "shut, a body walking north stops at it")
+	_check(placed.swing(who, door) and door.open and not w.blockers.has(Vector3i(14, 1, 20)) and not w.blockers.has(Vector3i(15, 1, 20))
+		and _walks_north(w, Vector3(15.0, 1.0, 21.5), 19.5) and _walks_north(w, Vector3(14.5, 1.0, 21.5), 19.5),
+		"a tap opens both leaves and the gap is walked through, in the middle and off it")
+	_check(not placed.put_from_bag(_with(who, "tools:stool"), "tools:stool", -1, 40) or placed.things[-1].cell.z != 20,
+		"nothing is set down in an open doorway")
+	who.position = Vector3(15.0, 1.0, 22.5) * WorldData.CELL
 	_check(Placed.center(door).is_equal_approx(Vector3(15.0, 1.5, 20.5) * WorldData.CELL), "it is tapped in the middle of its cells")
 	who.position = Vector3(19.5, 1.0, 21.5) * WorldData.CELL
 	who.inventory.add("tools:window_3x2", 1)
@@ -728,3 +735,22 @@ func _test_openings() -> void:
 	_check(not placed.take_up(who, fire) and not placed.destroy(fire), "burning, it is not taken up")
 	placed.put_out(fire)
 	_check(placed.take_up(who, fire) and who.inventory.count("tools:fireplace") == 1, "put out, it is taken up whole")
+
+
+## True when a body standing at `from` (in cells) walking north for two seconds gets north
+## of z `past`.
+func _walks_north(w: WorldData, from: Vector3, past: float) -> bool:
+	var body := Body.new()
+	body.world = w
+	body.on_ground = true
+	body.move_input = Vector2(0.0, -1.0)
+	var at := from * WorldData.CELL
+	for i in 120:
+		at = body.step(at, 1.0 / 60.0, false)
+	return at.z / WorldData.CELL < past
+
+
+## `who` with one more `id` in the bag.
+func _with(who, id: String):
+	who.inventory.add(id, 1)
+	return who

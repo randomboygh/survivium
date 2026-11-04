@@ -105,7 +105,8 @@ var chest_items = null
 var footprints := {}
 ## The same for each turn: kind -> [turn 0, 1, 2, 3].
 var turned := {}
-## The boxes of a door open, for each turn: kind -> [turn 0, 1, 2, 3] (see open_voxels).
+## The boxes of a door open, for each turn: kind -> [turn 0, 1, 2, 3]: none, an open door
+## is drawn swung back (open_voxels) but bodies pass it.
 var opened_boxes := {}
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
@@ -173,11 +174,12 @@ func read_footprints() -> void:
 				mids.append(_middle(all[t], n))
 			middles[kind] = mids
 			if rec.get("door", false):
-				var swung := open_voxels(voxels, n * 8)
-				var open := []
-				for t in 4:
-					open.append(footprint(turn_voxels(swung, n * 8, t), n))
-				opened_boxes[kind] = open
+				# An open door is solid nowhere: its leaf, swung back, would take a quarter of
+				# a doorway a body only just fits through, and swing into the body opening it.
+				var none := []
+				for i in n * n:
+					none.append(AABB())
+				opened_boxes[kind] = [none, none, none, none]
 		else:
 			footprints[kind] = [CRATE_BOX, CRATE_BOX, CRATE_BOX, CRATE_BOX]
 			turned[kind] = [footprints[kind], footprints[kind], footprints[kind], footprints[kind]]
@@ -909,12 +911,25 @@ func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps
 	for o: Vector3i in offsets:
 		var c := corner + o
 		if world.get_cell(c.x, c.y, c.z) != Mat.AIR or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
-				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty():
+				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty() \
+				or _in_open_door(c):
 			return false
 		for k in range(1, high):
 			if world.get_cell(c.x, c.y + k, c.z) != Mat.AIR or world.blockers.has(c + Vector3i(0, k, 0)):
 				return false
 	return true
+
+
+## True when cell `c` is one of those a door standing open fills when shut (it frees them
+## while open, see opened_boxes): nothing is set down in a doorway.
+func _in_open_door(c: Vector3i) -> bool:
+	for e: Dictionary in things:
+		if e.get("open", false) and e.cell.y == c.y:
+			var shut := e.duplicate()
+			shut.open = false
+			if cells_of(shut).has(c):
+				return true
+	return false
 
 
 ## The north-west cell of two by two free cells on ground at one level near the world
