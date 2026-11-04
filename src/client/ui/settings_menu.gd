@@ -421,6 +421,20 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return s.values[setting],
 					func(i: int) -> void: s.set_value(setting, i), "", layers])
 			rows.append({"note": "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв. Работает, когда «Вид в пещере» — «слои»."})
+			# The cut of levels, on while it is «срез уровней».
+			var levels := func() -> bool: return s.values.cave_mode == 1
+			rows.append(null)
+			for r: Array in [["Срез: сразу на новом уровне", "cut_instant", ["нет", "да"]],
+					["Срез: высота", "cut_line", lines],
+					["Срез: первые уровни", "cut_from", counts],
+					["Срез: растяжение", "cut_stretch", stretches],
+					["Срез: плотность первых", "cut_density", CaveLayers.DENSITIES.map(func(v: float) -> String: return "%d%%" % roundi(v * 100.0))],
+					["Срез: глубина в пещере", "cut_depth", CaveLayers.DEPTH_STEPS.map(func(v: float) -> String: return "%d%%" % roundi(v * 100.0))]]:
+				var setting: String = r[1]
+				rows.append([r[0], r[2],
+					func() -> int: return s.values[setting],
+					func(i: int) -> void: s.set_value(setting, i), "", levels])
+			rows.append({"note": "Срез уровней: в пещере всё, что не ниже высоты среза (0 — ноги, +2 — над головой), тает дизерингом и темнеет: первые уровни рисуются с плотностью первых, следующие тают за «растяжение». За игроком остаются стены и пол. В пещере каждый уровень ниже ног темнее, выше ног светлее на «глубину в пещере»."})
 			return rows
 		"marks":
 			var marks := []

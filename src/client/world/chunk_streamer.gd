@@ -153,6 +153,8 @@ var solid := SolidMap.new()
 ## The view in a sphere (setting «Вид в пещере» → «сфера»); it draws the faces it opens
 ## by `solid`.
 var sphere := CaveSphere.new()
+var _cut_fade := Vector4(-1.0, 0.0, 0.0, 0.0)
+var _depth_steps := Vector4.ZERO
 var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
 var _surface_at := Vector3i(1 << 30, 0, 0)
@@ -719,7 +721,8 @@ func update_cut(delta: float) -> void:
 	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
-		target = level + 1
+		# Over the head, or the test setting's level in the cut of levels.
+		target = level + 1 if game.settings.values.cave_mode != 1 else maxi(level + game.settings.cut_line() - 1, 0)
 	else:
 		if sunk:
 			target = sunk_rim
@@ -727,6 +730,7 @@ func update_cut(delta: float) -> void:
 		# ravine running across the view, the near wall of a diagonal one, a hill.
 		if hidden_by >= 0:
 			target = mini(target, hidden_by - 1)
+	_update_depth()
 	var opened := manual_level < 0 and target < world.size_y
 	_update_layers(opened and layered(), at)
 	var in_sphere: bool = opened and game.settings.values.cave_mode == 3
@@ -748,6 +752,9 @@ func update_cut(delta: float) -> void:
 	# longer when the view closes over a player who was hidden.
 	cut_clock += delta
 	var wait := UNHIDE_DELAY if cut_hides and target > cut_level else CUT_DELAY
+	if indoor and manual_level < 0 and game.settings.values.cave_mode == 1 and game.settings.values.cut_instant == 1:
+		# The test setting: in a cave the cut of levels follows each level at once.
+		wait = 0.0
 	if cut_level < 0 or manual_level >= 0 or cut_clock >= wait:
 		cut_level = target
 		cut_hides = manual_level < 0 and not indoor and hidden_by >= 0 and target == hidden_by - 1
@@ -860,6 +867,27 @@ func open_view() -> bool:
 ## The view under a roof is in layers (setting «Вид в пещере» → «слои»).
 func layered() -> bool:
 	return game.settings.values.cave_mode == 0
+
+
+## How the levels over the cut fade (shader global cut_fade) and how much darker each
+## level under the player's feet and lighter each above it gets (depth_steps: under,
+## the most under, above, the most above): sharper in a cave under the cut of levels,
+## by the test setting, sharper under the feet with a level picked by hand.
+func _update_depth() -> void:
+	var settings = game.settings
+	var fade: Vector4 = settings.cut_fade()
+	if fade != _cut_fade:
+		_cut_fade = fade
+		RenderingServer.global_shader_parameter_set("cut_fade", fade)
+	var steps := Vector4(0.04, 0.5, 0.04, 0.5)
+	if manual_level >= 0:
+		steps = Vector4(0.08, 0.6, 0.04, 0.5)
+	elif indoor and settings.values.cave_mode == 1:
+		var d: float = settings.cut_depth()
+		steps = Vector4(d, 0.8, d, 0.6)
+	if steps != _depth_steps:
+		_depth_steps = steps
+		RenderingServer.global_shader_parameter_set("depth_steps", steps)
 
 
 ## Turns the view in layers on or off, from the player's feet in cell `at`.

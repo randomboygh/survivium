@@ -152,6 +152,7 @@ const SHOTS := {
 	# The same and another hidden place with the levels cut and with the cut in the plane
 	# of the camera (setting «Вид в пещере») instead of the default layers.
 	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 1}},
+	"deep-cave-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 1}},
 	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 1}},
 	# The deepest cave floor near the spawn of a world with many caves (world_caves 2 in
 	# settings.cfg) in the view in layers, dense, and in the plane cut.
@@ -673,6 +674,7 @@ const SHOTS := {
 	# (the floor of the upward tetrahedron's base), at its lower point, with the plane cut.
 	"ground-star": {"time": 0.42, "season": 1, "at": [30, -64]},
 	"ground-star-inside": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17},
+	"ground-star-inside-levels": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17, "settings": {"cave_mode": 1}},
 	"ground-star-inside-plane": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17, "settings": {"cave_mode": 2}},
 	"ground-star-bottom": {"time": 0.42, "season": 1, "at": [28, -72], "y": 3},
 	"ground-forest": {"time": 0.42, "season": 1, "at": [-30, 2]},
