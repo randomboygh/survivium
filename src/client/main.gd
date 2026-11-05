@@ -33,7 +33,6 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
-const RealWeather := preload("res://src/shared/game/real_weather.gd")
 const Controls := preload("res://src/client/input/controls.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const Props := preload("res://src/client/game/props.gd")
@@ -129,8 +128,6 @@ var chunks: ChunkStreamer
 var sky: SkyScript
 ## The client's copy of the clock (the server's is `session.clock`).
 var clock: RemoteClock
-## The real world's weather pinned on the clock, when the setting asks (settings.gd).
-var real_weather: RealWeather
 var controls: Controls
 var view: CameraRig
 var props: Props
@@ -317,8 +314,6 @@ func _ready() -> void:
 	sky = SkyScript.new(self)
 	clock = RemoteClock.new()
 	clock.season_changed.connect(sky.on_season)
-	real_weather = RealWeather.new()
-	add_child(real_weather)
 	props = Props.new(self)
 	placed = RemotePlaced.new()
 	placed.read_footprints()
@@ -551,11 +546,10 @@ func start_world() -> void:
 		hud.minimap.load_regions(save.store.read_maps())
 	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
 	world = gen.world
-	# The server's clock and things placed; the save and the real weather go to them
-	# (the saves move to the server at С4).
+	# The server's clock and things placed; the save goes to them, and the real weather
+	# of the server inside the game (LocalHost.real_weather).
 	var world_clock := Clock.new()
 	save.restore_clock(world_clock)
-	real_weather.clock = world_clock
 	var world_placed := Placed.new()
 	world_placed.read_footprints()
 	world_placed.cell_changed.connect(chunks.on_cell_changed)

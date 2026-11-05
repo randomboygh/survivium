@@ -16,6 +16,7 @@ extends RefCounted
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const PlayerLink := preload("res://src/server/player_link.gd")
 const Runner := preload("res://src/server/runner.gd")
+const RealWeather := preload("res://src/server/real_weather.gd")
 const Connection := preload("res://src/client/net/connection.gd")
 ## The server made from the menu: compiled only when one is made.
 const SERVER_MAIN := "res://src/server/server_main.gd"
@@ -23,6 +24,9 @@ const SERVER_MAIN := "res://src/server/server_main.gd"
 var session
 var link: PlayerLink
 var runner: Runner
+## The weather of the real world pinned on the session's clock while the game's setting
+## asks (Settings.apply); with the loop only.
+var real_weather: RealWeather
 ## The player's character and workshop on the server.
 var player
 var workshop
@@ -35,6 +39,9 @@ func _init(s, tree_root: Node = null) -> void:
 	if tree_root != null:
 		runner = Runner.new(s)
 		tree_root.add_child(runner)
+		real_weather = RealWeather.new()
+		real_weather.clock = s.clock
+		runner.add_child(real_weather)
 
 
 ## The server the menu makes (С5.2) with the settings `values` (Config's: title, port,
@@ -65,6 +72,7 @@ func stop() -> void:
 	runner.set_process(false)
 	runner.queue_free()
 	runner = null
+	real_weather = null
 
 
 ## The player joins the server; the client's connection to it.

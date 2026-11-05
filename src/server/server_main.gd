@@ -2,9 +2,10 @@ extends Node
 ## The server run from the terminal (plan/architecture/server.md, С3): the root of
 ## scenes/server.tscn, which main.gd changes to on `--server` before building anything
 ## of the client (`godot --headless --path . -- --server [--port N] [--world <folder>]
-## [--seed N] [--players N] [--password <word>] [--config <file>] [--tunnel]`, see
-## Config; with `--tunnel` it runs cloudflared beside it and logs the address friends
-## join from the internet, Tunnel, С7). It opens
+## [--seed N] [--players N] [--password <word>] [--config <file>] [--tunnel]
+## [--real-weather]`, see Config; with `--tunnel` it runs cloudflared beside it and logs
+## the address friends join from the internet, Tunnel, С7; with `--real-weather` the
+## world's weather is the real one where the server is, RealWeather). It opens
 ## the world the way the game does (a save under user://saves: the bundles it was made
 ## with, its materials, clock and things; else a new world of the seed and settings),
 ## makes the ground round the spawn and the camp there in a new world, lets the animals
@@ -25,6 +26,7 @@ const Server := preload("res://src/server/server.gd")
 const Runner := preload("res://src/server/runner.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
 const Tunnel := preload("res://src/server/tunnel.gd")
+const RealWeather := preload("res://src/server/real_weather.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
@@ -78,6 +80,9 @@ var failed := ""
 var log_lines: Array[String] = []
 ## The tunnel from the internet (С7), null without `tunnel` in the settings.
 var tunnel: Tunnel
+## The weather of the real world on the world's clock, null without `real_weather` in
+## the settings.
+var real_weather: RealWeather
 var _started := false
 var _stop_at := -1.0
 var _meta := {}
@@ -127,6 +132,13 @@ func start() -> bool:
 		", вход по паролю" if config.password != "" else ""])
 	if config.tunnel:
 		open_tunnel()
+	if config.real_weather:
+		real_weather = RealWeather.new()
+		real_weather.clock = session.clock
+		real_weather.report = say
+		real_weather.enabled = true
+		add_child(real_weather)
+		say("погода с улицы: узнаю, где сервер…")
 	return true
 
 
