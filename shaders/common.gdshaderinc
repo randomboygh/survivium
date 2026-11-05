@@ -8,27 +8,15 @@
 // cutaway, snow and texel maths. Godot renders shadow maps with the same vertex
 // function, so casters and receivers are sheared alike.
 
+// The cut of the levels the player picked by hand to look at those below (the level
+// buttons); 1000 for none. Under a roof the view opens in layers instead (layer_view).
 global uniform float cut_height;
-// 1 when the cut follows the player under a roof and what lies above shows as a ghost,
-// 0 when the player moved the cut by hand to look at the levels below.
-global uniform float cut_ghost;
-// 1 for the cut in the plane of the camera (setting «Вид в пещере»): while the cut
-// follows the player, what stands in front of them above their feet goes and the rest
-// is drawn whole (see plane_hides).
-global uniform float cut_front;
-// How the levels over an automatic cut fade (test settings «Пещеры» → «Срез: …»): x how
-// many count as the first, y over how many the rest fades out, z how much of a first one
-// is drawn (see cut_share).
-global uniform vec4 cut_fade;
 // How much darker each level under the sea's surface gets (see sea_bright): x a level
 // (the test setting «Затемнение за уровень», 12 %); y, z, w unused.
 global uniform vec4 depth_steps;
 // The height of the sea's surface: the top of its highest water cells.
 global uniform float sea_top;
-// The cells round the player that are solid (see SolidMap): one texel per column of a
-// SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
-// eight in each of r, g, b, a.
-// The view in layers (setting «Вид в пещере» → «слои», see ChunkStreamer.update_cut):
+// The view in layers (see ChunkStreamer.update_cut):
 // x 1 while it is on (under a roof, in a ravine, behind a hill), yzw the cell of the
 // player's feet in whole cells.
 global uniform vec4 layer_view;
@@ -44,11 +32,9 @@ global uniform float layer_line;
 // The material the layers fill the rock they leave out with: the one most of the solid
 // cells round the player are of (ChunkStreamer._rock_round).
 global uniform float layer_rock;
-// The view in a sphere (setting «Вид в пещере» → «сфера», CaveSphere): x 1 while it is
-// on, yzw the sphere's middle in world units, on the line from the player to the camera.
-global uniform vec4 sphere_view;
-// xyz the middle of the player's body in world units, w the sphere's radius.
-global uniform vec4 sphere_body;
+// The cells round the player that are solid (see SolidMap): one texel per column of a
+// SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
+// eight in each of r, g, b, a.
 global uniform sampler2D solid_map : filter_nearest;
 global uniform vec3 solid_origin;
 global uniform float snow_amount;
@@ -354,27 +340,15 @@ int corner_distance(ivec2 t, int k, int shape) {
 	return int(floor(float(mid) - r + 0.5));
 }
 
-// How much of the `i`th level over an automatic cut (1 the first) is drawn: the
-// first cut_fade.x keep cut_fade.z of their texels, the next cut_fade.y fewer and
-// fewer until none. Below 0 first ones, the fade starts that many levels earlier.
-float cut_share(float i) {
-	if (i < cut_fade.x + 0.5) {
-		return cut_fade.z;
-	}
-	return cut_fade.z * clamp(1.0 - (i - cut_fade.x) / max(cut_fade.y, 1.0), 0.0, 1.0);
-}
-
 // The clear window round the player in the ghost over the cut: whole within WINDOW_IN
 // world units of the middle of their body on the screen, thinning out by dither to
 // WINDOW_OUT.
 const float WINDOW_IN = 1.25;
 const float WINDOW_OUT = 2.25;
 
-// Levels above a cut stay faintly visible instead of vanishing, so a cave or a room
-// shows how much lies above it and how tall the trees around are: dithered away more
-// with each level by cut_share (and darker, see depth_fade). A level picked by hand
-// grades faster, one step per level, so a pit or a cave shows how many levels deep it
-// is: the level above the picked one keeps every other texel, the next every fourth,
+// Levels above a cut picked by hand stay faintly visible instead of vanishing (and
+// darker, see depth_fade), one step per level, so a pit or a cave shows how many levels
+// deep it is: the level above the picked one keeps every other texel, the next every fourth,
 // then every eighth and sixteenth, and the fifth is gone. Texels are counted on the
 // screen plane, so the pattern stays put on the world as the view moves; the player
 // always shows through. True where the texel of height `y` at `texel` is left out.
@@ -386,36 +360,7 @@ bool cut_dither(float y, vec2 texel) {
 	vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
 	float rim = clamp((length((texel + 0.5) / TEXELS - body) - WINDOW_IN) / (WINDOW_OUT - WINDOW_IN), 0.0, 1.0);
 	float above = floor((y - cut_height) / CELL - 0.01);
-	if (cut_ghost > 0.5) {
-		return bayer4(texel) >= cut_share(above + 1.0) * rim;
-	}
 	return above > 3.5 || bayer4(texel) >= 0.5 / exp2(above) * rim;
-}
-
-// The cut in the plane of the camera is on: the setting, and the cut follows the
-// player (not a level picked by hand).
-bool plane_on() {
-	return cut_front > 0.5 && cut_ghost > 0.5 && cut_height < 999.0;
-}
-
-// How much nearer the camera than the middle of the player's body a thing must be to
-// count as in front: the rock straight over the head goes, the wall behind stays.
-const float PLANE_MARGIN = 0.25;
-
-// How far nearer the camera than the plane through the middle of the player's body,
-// across the way the camera looks, `p` is, in world units along the image's up.
-float before_player(vec3 p) {
-	vec3 body = player_pos + vec3(0.0, 0.5, 0.0);
-	float toward = view_slope / view_squash;
-	return p.y - dot(p.xz, view_up) * toward - (body.y - dot(body.xz, view_up) * toward);
-}
-
-// In the cut in the plane of the camera, true where `p` is cut away: in front of the
-// plane and above the player's feet. Behind the player everything stays, from the
-// floor far below to the top of the hill; in front the walls and the rock over them go,
-// and the floor stays.
-bool plane_hides(vec3 p) {
-	return before_player(p) > PLANE_MARGIN && p.y > player_pos.y + 0.05;
 }
 
 // Whether the cell holding `p` is solid by solid_map; true outside it.
@@ -428,23 +373,6 @@ bool solid_at(vec3 p) {
 	int lv = int(c.y);
 	float byte = lv < 8 ? t.r : (lv < 16 ? t.g : (lv < 24 ? t.b : t.a));
 	return ((int(byte * 255.0 + 0.5) >> (lv % 8)) & 1) != 0;
-}
-
-// Whether the section of the cut may show at `p`, a point behind what it hides: the
-// line of sight through `p` leaves what is cut away (through the plane, or through the
-// level of the feet where the plane runs lower) inside rock, so the rock in front was
-// cut open there. A seam between two faces of the world lets the line of sight
-// through to the inside of the rock too, and must not show it.
-bool section_here(vec3 p) {
-	float toward = view_slope / view_squash;
-	vec3 d = unshear_dir(vec3(0.0, 1.0, 0.0));
-	float rate = d.y - dot(d.xz, view_up) * toward;
-	vec3 q = p + d * ((PLANE_MARGIN - before_player(p)) / rate);
-	float feet = player_pos.y + 0.05;
-	if (q.y < feet) {
-		q = p + d * ((feet - p.y) / d.y);
-	}
-	return solid_at(q + d * 0.02);
 }
 
 // How much of the `i`th layer (1 the nearest the player) is drawn, when the first
@@ -528,33 +456,6 @@ bool layer_fills(vec3 p, vec2 texel) {
 	return true;
 }
 
-// Whether `p` lies in what the view in a sphere leaves out: inside the sphere and
-// nearer the camera than the plane across the way it looks through the middle of the
-// player's body (by more than PLANE_MARGIN), so the floor under them and what stands
-// behind them stay.
-bool sphere_hides(vec3 p) {
-	vec3 d = p - sphere_view.yzw;
-	return dot(d, d) < sphere_body.w * sphere_body.w
-		&& dot(p - sphere_body.xyz, toward_camera()) > PLANE_MARGIN;
-}
-
-// The same for the whole cell `c` (in cells): by its middle.
-bool sphere_hides_cell(vec3 c) {
-	return sphere_hides((c + 0.5) * CELL);
-}
-
-// Whether cell `c` (in cells) is solid by solid_map; false outside it.
-bool solid_cell(vec3 c) {
-	c -= solid_origin;
-	if (c.x < 0.0 || c.z < 0.0 || c.x >= 64.0 || c.z >= 64.0 || c.y < 0.0 || c.y >= 32.0) {
-		return false;
-	}
-	vec4 t = texelFetch(solid_map, ivec2(int(c.x), int(c.z)), 0);
-	int lv = int(c.y);
-	float byte = lv < 8 ? t.r : (lv < 16 ? t.g : (lv < 24 ? t.b : t.a));
-	return ((int(byte * 255.0 + 0.5) >> (lv % 8)) & 1) != 0;
-}
-
 // True where the view in layers leaves out the texel `texel` (on the screen plane, so
 // the pattern stays put on the world) of a thing at `p`, a point inside its cell.
 bool layer_hides(vec3 p, vec2 texel) {
@@ -562,16 +463,11 @@ bool layer_hides(vec3 p, vec2 texel) {
 }
 
 // True where the texel `texel` of a thing at `p` is not drawn because of the cut: the
-// ghost of the levels above it (cut_dither), or what the plane cuts away.
+// layers in front of the player and over their head (layer_hides), or the ghost of the
+// levels above a cut picked by hand (cut_dither).
 bool cut_hides(vec3 p, vec2 texel) {
-	if (sphere_view.x > 0.5) {
-		return sphere_hides(p);
-	}
 	if (layer_view.x > 0.5) {
 		return layer_hides(p, texel);
-	}
-	if (plane_on()) {
-		return plane_hides(p);
 	}
 	if (p.y <= cut_height + 0.01) {
 		return false;
@@ -579,22 +475,8 @@ bool cut_hides(vec3 p, vec2 texel) {
 	return cut_dither(p.y, texel);
 }
 
-// A thing standing at `p` (an animal, a plant, a crown) behind the player above the
-// automatic cut, where the walls and floors stay whole (back_wall in world.gdshader):
-// it stays too, whole and in its own colour.
-bool kept_behind(vec3 p) {
-	if (cut_ghost < 0.5 || cut_front > 0.5 || p.y <= cut_height + 0.01
-			|| dot(p.xz - player_pos.xz, view_up) <= 0.0) {
-		return false;
-	}
-	if (roofed(player_pos.xz, player_pos.y + 2.0 * CELL)) {
-		return roofed(p.xz, p.y);
-	}
-	return !roofed(p.xz, p.y);
-}
-
 bool above_cut(vec3 p) {
-	return !kept_behind(p) && cut_hides(p, floor(screen_plane(p) * TEXELS));
+	return cut_hides(p, floor(screen_plane(p) * TEXELS));
 }
 
 // For plants, motes and sunlight: above the cut they stay as a ghost like the ground
@@ -659,14 +541,7 @@ float low_through(vec2 texel, vec3 p) {
 // sea's surface instead, see sea_bright).
 float depth_fade(float y) {
 	if (y > cut_height + 0.01) {
-		if (plane_on()) {
-			return 0.0;
-		}
 		float above = floor((y - cut_height) / CELL - 0.01);
-		if (cut_ghost > 0.5) {
-			// The fainter a level over the cut, the darker.
-			return clamp(0.3 + 0.6 * (1.0 - cut_share(above + 1.0) / max(cut_fade.z, 0.01)), 0.0, 0.9);
-		}
 		return clamp(0.35 + 0.03 * above, 0.0, 0.7);
 	}
 	return 0.0;

@@ -201,7 +201,7 @@ void fragment() {
 		col = m.rgb * grass_tint * custom.y;
 	}
 	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
-	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(kept_behind(root) ? cut_height : root.y));
+	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(root.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
 	float sun_part = sea_bright(root.y);

@@ -150,30 +150,15 @@ const SHOTS := {
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
-	# The same and another hidden place with the levels cut and with the cut in the plane
-	# of the camera (setting «Вид в пещере») instead of the default layers.
-	"underground-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 1}},
-	"deep-cave-levels": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 1}},
-	"ground-cave-inside-levels": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 1}},
 	# The deepest cave floor near the spawn of a world with many caves (world_caves 2 in
-	# settings.cfg) in the view in layers, dense, and in the plane cut.
+	# settings.cfg) in the view in layers, dense, early, from the head.
 	"deep-cave": {"time": 0.45, "season": 1, "underground": true},
 	"deep-cave-dense": {"time": 0.45, "season": 1, "underground": true,
 		"settings": {"layer_density": 2, "layer_front_from": 6, "layer_above_from": 6, "layer_above_stretch": 4}},
 	"deep-cave-early": {"time": 0.45, "season": 1, "underground": true,
 		"settings": {"layer_front_from": 2, "layer_above_from": 2}},
 	"deep-cave-head": {"time": 0.45, "season": 1, "underground": true, "settings": {"layer_line": 12}},
-	"deep-cave-sphere": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 3}},
-	"deep-cave-sphere-debug": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 3, "sphere_debug": 1}},
-	"deep-cave-sphere-near": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 3, "sphere_shift": 2}},
-	"deep-cave-sphere-far": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 3, "sphere_shift": 12, "sphere_debug": 1}},
-	"deep-cave-sphere-turn": {"time": 0.45, "season": 1, "underground": true, "turn": 1, "settings": {"cave_mode": 3}},
 	"deep-cave-turn": {"time": 0.45, "season": 1, "underground": true, "turn": 1},
-	"deep-cave-plane": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 2}},
-	"underground-plane": {"time": 0.45, "season": 1, "underground": true, "settings": {"cave_mode": 2}},
-	"ground-cave-inside-sphere": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 3}},
-	"ground-cave-inside-sphere-debug": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 3, "sphere_debug": 1}},
-	"ground-cave-inside-plane": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23, "settings": {"cave_mode": 2}},
 	"hut": {"time": 0.42, "season": 1, "hut": true},
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).
@@ -359,7 +344,6 @@ const SHOTS := {
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
 	# Skills learned in the character window: levels, the way to the next, an axe's power in green.
-	"bag-levels": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "hold": ["", "tools:stone_axe"],
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
 	# A skill's new level: gold edges, stars rising round the player, the notice in the corner.
 	"level-up": {"time": 0.42, "season": 1, "clearing": true, "level_up": "chop"},
@@ -681,26 +665,24 @@ const SHOTS := {
 	"ground-cave": {"time": 0.42, "season": 1, "at": [27, -20]},
 	"ground-cave-inside": {"time": 0.42, "season": 1, "at": [27, -38], "y": 23},
 	# The star cave (TestGround.STAR): its mound with the hole at the top, on its west ledge
-	# (the floor of the upward tetrahedron's base), at its lower point, with the plane cut.
+	# (the floor of the upward tetrahedron's base), at its lower point.
 	"ground-star": {"time": 0.42, "season": 1, "at": [30, -64]},
 	"ground-star-inside": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17},
-	"ground-star-inside-levels": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17, "settings": {"cave_mode": 1}},
-	"ground-star-inside-plane": {"time": 0.42, "season": 1, "at": [22, -72], "y": 17, "settings": {"cave_mode": 2}},
 	"ground-star-bottom": {"time": 0.42, "season": 1, "at": [28, -72], "y": 3},
 	# Up the far side of the mound over the star cave: the mound stays whole.
 	"ground-star-back": {"time": 0.42, "season": 1, "at": [28, -79]},
 	# Behind the stone hill, the steps, the hut and in the star cave's shaft: the cut is on.
 	"ground-behind-hill": {"time": 0.42, "season": 1, "at": [14, -48]},
 	# Diagonal corners of slopes behind the player (behind a hill) and over them (under a roof).
-	"ground-diagonals-behind": {"time": 0.42, "season": 1, "at": [47, -57], "y": 18, "settings": {"cave_mode": 1}},
-	"ground-diagonals-hill": {"time": 0.42, "season": 1, "at": [14, -47], "y": 23, "settings": {"cave_mode": 1}},
+	"ground-diagonals-behind": {"time": 0.42, "season": 1, "at": [47, -57], "y": 18},
+	"ground-diagonals-hill": {"time": 0.42, "season": 1, "at": [14, -47], "y": 23},
 	# A lantern by day in a cave 19 levels under the sea: it lights as on the surface at night.
 	# The same lantern almost burned out: dimmer (Sky.charge_gain).
-	"ground-lantern-burnt": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "settings": {"cave_mode": 1}, "burnt": 0.9, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
-	"ground-lantern-deep": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "settings": {"cave_mode": 1}, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
-	"ground-diagonals-roof": {"time": 0.42, "season": 1, "at": [43, -53], "y": 19, "settings": {"cave_mode": 1}},
+	"ground-lantern-burnt": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "burnt": 0.9, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
+	"ground-lantern-deep": {"time": 0.42, "season": 1, "at": [3, -39], "y": 1, "room": true, "hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
+	"ground-diagonals-roof": {"time": 0.42, "season": 1, "at": [43, -53], "y": 19},
 	# Deep in the star cave, under its upper point.
-	"ground-star-deep": {"time": 0.42, "season": 1, "at": [23, -75], "y": 17, "settings": {"cave_mode": 1}},
+	"ground-star-deep": {"time": 0.42, "season": 1, "at": [23, -75], "y": 17},
 	"ground-behind-steps": {"time": 0.42, "season": 1, "at": [-14, -45]},
 	"ground-behind-hut": {"time": 0.42, "season": 1, "at": [52, -5]},
 	"ground-star-shaft": {"time": 0.42, "season": 1, "at": [28, -73], "y": 25},

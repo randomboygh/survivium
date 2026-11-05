@@ -191,7 +191,7 @@ void fragment() {
 	// sway or offset, so the dithers of the cards lying one over another leave out the
 	// same pixels instead of filling each other's gaps.
 	vec2 texel = light_texel(light_xz);
-	if (m.a < 0.5 || (!kept_behind(center) && cut_hides(center, texel))) {
+	if (m.a < 0.5 || cut_hides(center, texel)) {
 		discard;
 	}
 	// Leaves fall cluster by cluster, and single leaves of the remaining clusters
@@ -260,7 +260,7 @@ void fragment() {
 		col *= mix(mix(vec3(0.7), vec3(0.6, 0.62, 0.86), hue_shift), vec3(1.0), smoothstep(-0.35, 0.15, sun_side));
 	}
 	col *= 1.0 - 0.25 * wetness;
-	vec4 veiled = veil(center, depth_fade(kept_behind(center) ? cut_height : center.y));
+	vec4 veiled = veil(center, depth_fade(center.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
 	float sun_part = sea_bright(center.y);
