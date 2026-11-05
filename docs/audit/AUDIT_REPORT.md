@@ -1,6 +1,7 @@
 # Аудит проекта перед бандлами (этап 0)
 
-Статус: ACTIVE. Задание: `audition.md` в корне библиотеки проекта. Аудит 2026-10-30, ветка
+Статус: ARCHIVED — снимок на 2026-10-30: история и причины решений, не инструкция (пути, числа и
+«нет»/«будет» — того дня; код как он есть — [INDEX.md](../INDEX.md)). Задание: `audition.md` в корне библиотеки проекта. Аудит 2026-10-30, ветка
 `claude/project-thread-t9hsax` от `main` 4c6de65 (PR #234 и #235 слиты). Отчёт по очистке:
 [CLEANUP_REPORT.md](CLEANUP_REPORT.md). Готовность к бандлам:
 [../specifications/BUNDLE_SYSTEM_READINESS.md](../specifications/BUNDLE_SYSTEM_READINESS.md).

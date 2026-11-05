@@ -8,16 +8,19 @@
 
 **Файлы**
 - `src/shared/world/world_store.gd` — файлы мира под `user://saves` (в браузере — IndexedDB): папка на
-  мир (`world_dir(seed, options)`), `world.json` (зерно, настройки, моды, уровни, часы, вещи),
+  мир (`world_dir(seed, options)`), `world.json` (зерно, настройки, моды, уровни, часы, вещи, участки
+  `territory`, чертежи `plans`; поля — [../DATA_MODEL.md](../DATA_MODEL.md), «Сохранения»),
   `players/<имя>.json` (место и части модулей), `chunks/<cx>_<cz>.bin` (изменённый чанк:
   `WorldGen.pack`, `store_var`, zstd), `map/<rx>_<rz>.bin` (регион карты), `current.json` (с какого
   мира начинать). Файл пишется рядом и переносится поверх: прерванная запись оставляет старый целым.
   `FORMAT` 1; `list_worlds`, `erase`.
 - `src/client/save_game.gd` — когда писать: раз в `INTERVAL` (30 с) по нескольку чанков за кадр, и сразу
   при меню, потере фокуса, выходе; что писать, отдают общие системы (`to_dict` / `to_list`: часы, вещи,
-  персонаж, сумка); модули регистрируют части игрока `save.track(имя, объект)`. Выбор мира
+  персонаж, сумка, навыки, участки, чертежи); модули регистрируют части игрока `save.track(имя, объект)`. Выбор мира
   (`choose_world`, `switch_world`), восстановление (`restore_player`, `restore_clock`). Выключен в тестах
   и инструментах (`enabled`).
+- `src/server/server_store.gd` — то же для сервера без окна: пишет мир каждые 10 с и на `stop`, с командами,
+  боями и игроками по их ключам ([network.md](network.md)).
 - `src/shared/content/mods.gd` — `of_world(meta)`: бандлы сохранённого мира по его `world.json` (общий код:
   тем же откроет миры сервер).
 

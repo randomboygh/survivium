@@ -14,45 +14,83 @@
 
 ## Документы
 
-| Документ | О чём | Когда открывать |
-|---|---|---|
-| [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | что за игра, состояние, движок, ограничения | впервые в проекте |
-| [PROJECT_MAP.md](PROJECT_MAP.md) | дерево каталогов, ключевые файлы, куда класть новое, что не читать | найти место файла |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | слои, точки входа, модули `Main`, сигналы, работа по кадрам, правила зависимостей | менять связи систем, добавлять систему |
-| [SYSTEMS.md](SYSTEMS.md) | каталог систем: файлы, контекст, тесты; чего ещё нет | любая задача |
-| [systems/](systems/) | контекст системы: назначение, файлы, интерфейсы, данные, подводные камни, тесты | перед правкой системы |
-| [DATA_MODEL.md](DATA_MODEL.md) | моды, бандлы, схемы, id, роли, реестры, сохранения | данные, контент, моды |
-| [DEPENDENCIES.md](DEPENDENCIES.md) | граф слоёв и папок, узлы с многими зависимыми | что сломается от правки |
-| [DECISIONS.md](DECISIONS.md) | архитектурные решения с причинами и номерами журнала | прежде чем менять принцип |
-| [ROADMAP.md](ROADMAP.md) | где этапы и бэклог; технический долг из аудита | планировать работу |
-| [generated/code-index.md](generated/code-index.md) | каждый скрипт с первой строкой его описания (генератор) | найти файл по смыслу |
-| [generated/content-index.md](generated/content-index.md) | реестр сущностей: моды, бандлы и каждая запись с категорией, бандлом, заменами и патчами, эпохой, числом связей и итогом проверки (`tools/content_report.gd`) | найти запись или бандл |
-| [generated/content-graph.md](generated/content-graph.md) | граф контента: старт, предметы по глубине, откуда и куда каждый, общие ресурсы, чем что добывается, станки, цепочки, карта эпох с ветками прогресса, схема рецептов | что из чего и чем, что держится на ресурсе, в какой эпохе что появляется |
-| [generated/content-recipes.md](generated/content-recipes.md) | реестр рецептов по процессам: что делает и что побочно, что тратит и что держит в сумке, станок и те, что его заменяют, инструменты и износ, время, глубина, эпоха, альтернативы | баланс рецептов, где что делают |
-| [generated/content-checks.md](generated/content-checks.md) | что нашли проверки контента: каждая проверка, что значит и как исправить, найденное | тупики, двойники, ошибки графа |
-| [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | аудит этапа 0: состояние, находки, что почищено | история реорганизации |
-| [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md), [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md), [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md) | технический аудит кода этапа 4 (131 находка по системам), план рефакторинга, что сделано, замеры до и после | технический долг кода, прежде чем чинить систему |
-| [testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md), [testing/TEST_COVERAGE.md](testing/TEST_COVERAGE.md), [testing/CI_PIPELINE.md](testing/CI_PIPELINE.md) | как проверять изменения по уровням и что запускать для какой системы; что покрыто чем, нестабильные проверки; задания CI, что блокирует, логи, безопасность | перед проверкой изменения, когда CI красный |
-| [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md), [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md) | аудит тестов и CI этапа 5, план, итог с замерами | история и дальнейшие шаги тестов и CI |
-| [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md) | система игровых бандлов по ТЗ: понятия, связи, рецепты, станки, граф, эпохи, этапы и их состояние | менять виды контента, рецепты, станки, инструменты |
-| [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | готовность к работе над бандлами (этап 0) и ответы на её вопросы | история решения 152 |
+Статусы: **ACTIVE** — описывает код как он есть, по нему работают; **DONE** — выполненный план этапа, его
+открытые хвосты помечены в тексте; **ARCHIVED** — отчёт или снимок на свою дату: история и причины
+решений, не инструкция (пути и числа там — того дня). Сгенерированные файлы руками не правятся.
 
-Рядом с кодом: `README.md` в корне (по-русски: что есть в игре, как запустить) и README каждого мода
-(`content/<мод>/README.md`: как устроен мод и как добавить в него своё).
+**Общее**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [`../CLAUDE.md`](../CLAUDE.md) | коротко о проекте, правила кода, порядок работы, проверки, подводные камни | ACTIVE | всем, перед любой задачей |
+| [`../README.md`](../README.md) | что есть в игре, как играть, свой сервер, как устроена разработка (по-русски) | ACTIVE | игроку и новому разработчику |
+| [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | что за игра, что сделано и чего нет, движок, ограничения | ACTIVE | впервые в проекте |
+| [PROJECT_MAP.md](PROJECT_MAP.md) | дерево каталогов, ключевые файлы, куда класть новое, что не читать | ACTIVE | найти место файла |
+
+**Архитектура и решения**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | слои, точки входа, модули `Main`, сеанс и сервер, сигналы, работа по кадрам, как расширять | ACTIVE | менять связи систем, добавлять систему |
+| [DEPENDENCIES.md](DEPENDENCIES.md) | граф слоёв и папок, узлы с многими зависимыми, кто кому передан во время игры | ACTIVE | что сломается от правки |
+| [DECISIONS.md](DECISIONS.md) | архитектурные решения с причинами и номерами журнала `plan/README.md` | ACTIVE | прежде чем менять принцип |
+| [ROADMAP.md](ROADMAP.md) | где этапы и бэклог; технический долг Т1–Т11 и его состояние; отчёты этапов | ACTIVE | планировать работу |
+| [generated/code-index.md](generated/code-index.md) | каждый скрипт с первой строкой его описания, какие папки какие грузят (`tools/doc_index.py`) | генерируется | найти файл по смыслу |
+
+**Игровые системы**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [SYSTEMS.md](SYSTEMS.md) | каталог систем: главные файлы, контекст, тесты; чего ещё нет | ACTIVE | любая задача: найти свою систему |
+| [systems/](systems/) | контекст каждой системы (18 файлов): назначение, файлы, интерфейсы, данные, подводные камни, тесты | ACTIVE | перед правкой системы — только её файл |
+
+**Модель данных, бандлы, рецепты и производство**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [DATA_MODEL.md](DATA_MODEL.md) | моды, бандлы, виды записей и их число, id, роли, ассеты, номера материалов, сохранения | ACTIVE | данные, контент, моды |
+| [systems/content.md](systems/content.md) | код загрузчика и реестров, граф контента, как добавить поле и вид | ACTIVE | менять загрузчик, схему, реестр |
+| [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md) | система игровых бандлов (решение 152): понятия, id и имена, виды, связи, рецепты, станки, инструменты, эпохи, граф и проверки, что добавляется без кода | ACTIVE | менять виды контента, рецепты, станки, инструменты |
+| [systems/crafting.md](systems/crafting.md) | крафт, очередь, станки флагами, вещи на клетках (двери, окна, лестницы, мебель, камин) | ACTIVE | рецепты и станки в игре |
+| `content/<мод>/README.md` | как устроен мод и как добавить в него своё (примеры YAML) | ACTIVE | добавить запись или бандл |
+| [generated/content-index.md](generated/content-index.md) | реестр сущностей: моды, бандлы и каждая запись с категорией, бандлом, заменами и патчами, эпохой, числом связей и итогом проверки | генерируется (`tools/content_report.gd`) | найти запись или бандл |
+| [generated/content-graph.md](generated/content-graph.md) | граф контента: старт, предметы по глубине, откуда и куда каждый, общие ресурсы, чем что добывается, станки, цепочки, карта эпох, схема рецептов | генерируется | что из чего и чем, в какой эпохе |
+| [generated/content-recipes.md](generated/content-recipes.md) | реестр рецептов по процессам: изделие и побочное, что тратит и что держит, станок, инструменты и износ, время, глубина, эпоха, альтернативы | генерируется | баланс рецептов, производственные цепочки |
+| [generated/content-checks.md](generated/content-checks.md) | что нашли проверки контента: каждая проверка, что значит и как исправить, найденное | генерируется | тупики, двойники, ошибки графа |
+
+**Тестирование и CI/CD**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md) | как проверять изменение по уровням, что запускать для какой системы, как добавить тест | ACTIVE | перед пушем |
+| [testing/TEST_COVERAGE.md](testing/TEST_COVERAGE.md) | что покрыто чем, что только руками, нестабильные проверки и почему | ACTIVE | прежде чем винить код за красный тест |
+| [testing/CI_PIPELINE.md](testing/CI_PIPELINE.md) | задания CI, что блокирует, логи, публикация, безопасность, что делать при красном CI | ACTIVE | когда CI красный, при правке `build.yml` |
+| [systems/testing.md](systems/testing.md) | тесты, инструменты `tools/`, CI и версии с «Что нового» | ACTIVE | инструменты и версии |
+
+**Аудит, отчёты и планы этапов (история)**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md) | этап 6 (2026-11-05): аудит документации, что исправлено, расхождения и вопросы | ACTIVE до решения открытых вопросов | что осталось несверенным |
+| [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md), [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md) | этап 5 (2026-11-03): аудит тестов и CI, план (раздел «Дальше» — открытые задачи), итог с замерами | ARCHIVED; план — DONE | история и дальнейшие шаги тестов и CI |
+| [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md), [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md), [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md) | этап 4 (2026-11-01): 131 находка по системам, план рефакторинга (что ждёт решения пользователя), что сделано, замеры | ARCHIVED; план и отчёты — DONE | технический долг кода, прежде чем чинить систему |
+| [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | этап 0 (2026-10-30): состояние, находки, что почищено | ARCHIVED | история реорганизации |
+| [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | готовность к системе бандлов (этап 0) и ответы на её вопросы | ARCHIVED | история решения 152 |
+
 
 ## Библиотека проекта (`plan/`)
 
 | Что | Где |
 |---|---|
-| Оглавление и журнал решений (№ 1–151 и дальше) | `plan/README.md` |
+| Оглавление и журнал решений (№ 1–167) | `plan/README.md` |
 | Этапы MVP и их состояние | `plan/mvp.md` |
 | Бэклог (единственный список задач, GitHub Issues не ведутся) | `plan/backlog.md` |
 | Геймдизайн по темам | `plan/design/*.md` |
-| Подробности реализации: рендер, производительность, моды | `plan/architecture/rendering.md`, `performance.md`, `modding.md` |
-| Замыслы, ещё не сделанные: сервер, сеть, редактор, территории | `plan/architecture/networking.md`, `editor.md`, `deployment.md`, `plan/design/territory-pvp.md` |
+| Подробности реализации: рендер, производительность, моды, сервер | `plan/architecture/rendering.md`, `performance.md`, `modding.md`, `server.md` (сервер построен, этапы С1–С7) |
+| Замыслы, ещё не сделанные: редактор, сборки и хостинг (кроме Pages и ПК) | `plan/architecture/editor.md` (PROPOSED), `deployment.md` (PROPOSED); ранний замысел сети `networking.md` — DEPRECATED, заменён `server.md` |
 | История закрытых тем (варианты, раунды, старые замеры, выполненные планы) | `plan/history/*.md` |
 | Скриншоты по темам (оглавление в README) | `survivium-builds/` |
-| ТЗ этапа 0 и системы бандлов | `audition.md`, `bundles.md` (корень библиотеки) |
+| ТЗ этапов: 0 (аудит), система бандлов, 4 (рефакторинг), 5 (тесты и CI), 6 (документация) | `audition.md`, `bundles.md`, `refactoring.md`, `testing_ci.md`, `documentation_audit.md` (корень библиотеки) |
 | План системы бандлов: анализ ТЗ, аудит данных, этапы с файлами и рисками | `plan/architecture/bundle-system.md` |
 
 Статусы документов библиотеки (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) стоят строкой

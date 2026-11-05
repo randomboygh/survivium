@@ -1,6 +1,7 @@
 # Аудит тестирования и CI (этап 5, этап A)
 
-Статус: ACTIVE, 2026-11-03. Задание: `testing_ci.md` в библиотеке проекта. План по итогам —
+Статус: ARCHIVED — снимок на 2026-11-03: история и причины решений, не инструкция (пути, числа и
+«нет»/«будет» — того дня; код как он есть — [INDEX.md](../INDEX.md)). Задание: `testing_ci.md` в библиотеке проекта. План по итогам —
 [../planning/TESTING_CI_ROADMAP.md](../planning/TESTING_CI_ROADMAP.md), итог —
 [TESTING_CI_REPORT.md](TESTING_CI_REPORT.md).
 

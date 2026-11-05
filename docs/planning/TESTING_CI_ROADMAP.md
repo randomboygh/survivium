@@ -1,6 +1,6 @@
 # План: тестирование и CI (этап 5)
 
-Статус: ACTIVE, 2026-11-03. Основание — [../audit/TESTING_CI_AUDIT.md](../audit/TESTING_CI_AUDIT.md);
+Статус: DONE (этапы A–I сделаны 2026-11-03, PR #346); раздел «Дальше» — открытые задачи. Основание — [../audit/TESTING_CI_AUDIT.md](../audit/TESTING_CI_AUDIT.md);
 итог — [../audit/TESTING_CI_REPORT.md](../audit/TESTING_CI_REPORT.md).
 
 Принципы: инфраструктура остаётся своей (GitHub Actions, headless Godot, `run_all.sh`), новых

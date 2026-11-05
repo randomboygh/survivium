@@ -44,10 +44,11 @@
   (шейдер рамки-курсора).
 
 - `src/client/game/gathering.gd` — что собирает касание и подсказка к нему, подбор рядом с игроком.
-- `src/client/game/character.gd` — клиентский `who` (тело, руки, сумка, сообщения).
+- `src/client/game/character.gd` — копия персонажа на клиенте; `who` для того, что клиент читает у правил
+  сам (рамка-курсор, подсказки). Правила над миром идут на сервере, там `who` — `src/server/player.gd`.
 - `src/client/game/props.gd` — лежащее на земле и его полёт в сумку (подключён к сигналам).
 
-**Контракт `who`.** `inventory`, `position`, `held_back`, `feet()`, `facing_step()`, `moving()`,
+**Контракт `who`** (общий `src/shared/game/character.gd` и его наследники). `inventory`, `position`, `held_back`, `feet()`, `facing_step()`, `moving()`,
 `overlaps_cell(cell)`, `held()`, `tool()`, `brush()`, `act(action)` (платит выносливостью, false — нет
 сил), `give(id, n, worn)`, `use_tool()` (износ), `nag(reason, text)`, `say(text)`, `note(stat, n)` (статистика жизни),
 `is_dead()`, `sacks` (где лежат мешки после смерти). Взмах, который что-то
@@ -62,7 +63,8 @@
 `controls.input` считает движение мыши мышью, только когда нет пальца и прошло больше 1 с после
 касания. Джойстик и `TouchButton` следят за своим индексом касания, чтобы работали два пальца.
 
-**Тесты.** `tests/unit/actions_test.gd` (`felling`, `front_choice`, `world_actions`, `placed`),
+**Тесты.** `tests/unit/actions_test.gd` (`felling`, `front_choice`, `world_actions`, `stairs_placed`, `placed`,
+`start_camp`, `lights`, `drinking`, `furniture`, `openings`),
 `tests/unit/plans_test.gd` (формы чертежа, стройка по клеткам из сумки, стирание, сохранение),
 `tests/unit/content_test.gd` (`tools`), `tests/progress_test.gd` (весь путь игры от голых рук до всех
 рецептов через те же вызовы). После правки инструментов, материалов, станков, рецептов или рук —
