@@ -344,6 +344,7 @@ const SHOTS := {
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
 	# Skills learned in the character window: levels, the way to the next, an axe's power in green.
+	"bag-levels": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "hold": ["", "tools:stone_axe"],
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
 	# A skill's new level: gold edges, stars rising round the player, the notice in the corner.
 	"level-up": {"time": 0.42, "season": 1, "clearing": true, "level_up": "chop"},
