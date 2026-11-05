@@ -1,7 +1,7 @@
 # Архитектура
 
-Статус: ACTIVE, описывает код `main` на 2026-10-30. Здесь только то, что есть; замыслы (сервер, сеть,
-редактор) — в библиотеке, `plan/architecture/`.
+Статус: ACTIVE, сверено с кодом `main` 2026-11-05 (PR #372). Здесь только то, что есть; замыслы
+(редактор, скрипты модов, Android) — в библиотеке, `plan/architecture/`.
 
 ## Слои
 
@@ -54,10 +54,11 @@ graph TD
 | Вход | Что запускает |
 |---|---|
 | `scenes/main.tscn` (главная сцена в `project.godot`) | `src/client/main.gd` — игра |
+| `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network.md)) |
 | `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
 | `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
 | `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
-| `.github/workflows/build.yml` | CI: тесты, тест фризов, web-экспорт, проверка в Chrome, публикация на Pages |
+| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
 
 Тесты и инструменты запускают ту же сцену: создают `main.tscn`, ставят `main.skip_setup = true`
 (без меню «Новый мир») и при необходимости `save_root` (свои сохранения).
@@ -69,7 +70,8 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 (`game.world`, `game.clock`, `game.settings`). Общие (shared) модули Main не знают: им передают только
 нужное (`Workshop.new(character, placed, rules)`). Правила над миром держит сеанс
 (`src/shared/game/session.gd`): он делает `WorldActions`, `Storms` и `Wildlife`, принимает персонажей и
-делает тик, который сервер будет звать 20 раз в секунду, и заказывает мир (генерация вокруг игроков в
+делает тик (каждый кадр узла сервера: в игре — кадр клиента, у сервера без окна — до 60 раз в секунду,
+`FPS` в `src/server/server_main.gd`), и заказывает мир (генерация вокруг игроков в
 бюджете, забывание дальних чанков); его крутит узел сервера `src/server/runner.gd` под корнем дерева,
 раньше Main в каждом кадре ([systems/session.md](systems/session.md)). Сеанс крутится на сервере внутри
 игры; виды клиента читают
@@ -96,13 +98,15 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
   руки, сумка, сообщения игроку) и спрашивает у него только нужное.
 - Что изменилось, правило сообщает сигналами, клиент подключает к ним свои виды:
   `WorldActions.cell_changed` / `looks_changed` / `drops_changed` / `taken` → чанки и вещи на земле;
-  `Placed.added` / `removed` / `lit_changed` / `cell_changed` → `props.gd`, огни, чанки;
+  `Placed.added` / `removed` / `lit_changed` / `fuel_changed` / `cell_changed` → `props.gd`, огни, чанки;
   `Wildlife.born` / `gone` / `stepped` → `creatures.gd`, следы, голоса; `Inventory.changed`,
-  `Workshop.changed` / `made`, `Knowledge.learned`, `Clock.season_changed`, `Character.state_changed`
+  `Workshop.changed` / `made`, `Knowledge.learned`, `SkillSet.leveled`, `Clock.season_changed`,
+  `Character.state_changed`
   → интерфейс и звук. На сервере к ним подключён `player_link.gd`, который шлёт события клиенту; копии
   на клиенте (`src/client/net/remote_*.gd`) отдают видам те же сигналы.
 - Правила, которые хозяин задаёт всем (свободная стройка, износ, мгновенный крафт), правила читают из
-  общего объекта `rules.gd`; на клиенте его заполняет `settings.gd`, сервер заполнит из конфига.
+  общего объекта `rules.gd`; в одиночной игре его заполняет `settings.gd`, у сервера — раздел `[rules]`
+  его конфига (`src/server/config.gd`).
 - Сигнал подключается методом, а не лямбдой с `self`: лямбда держит объект, и RefCounted не
   освобождается (см. `src/shared/game/character.gd`).
 
@@ -137,7 +141,10 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
    Правило, которое идёт во времени (для всех игроков), — шаг сеанса (`session.gd`), не `_process`.
 2. Правило — в `src/shared/game/`; его вид и ввод — в `src/client/`; связь — сигналами правила.
 3. Новые числа контента — поле схемы в `src/shared/content/content.gd` и YAML мода, не константа.
-4. Новая роль (вид станка, инструмента, растения) пока требует кода: роли — закрытые списки в схеме.
+4. Новый станок или класс инструмента — только данные: `items.prop` и `items.tool` — открытые классы,
+   что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
+   работа в мире есть только у шести классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
+   `materials.role`, `biomes.where`, `biomes.zone`) новым значением требуют кода.
 5. Работа размером с чанк — задание по частям в бюджете `chunk_streamer.gd`.
 6. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
 

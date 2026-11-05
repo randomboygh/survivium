@@ -1,9 +1,10 @@
 # Survivium: notes for contributors
 
 A meditative survival sandbox: a procedural world of levels in 3D pixel art seen at 3/4, played in
-the browser (later Android, and multiplayer through an authoritative server that does not exist
-yet). Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are
-loaded with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.
+the browser and on PC (Windows, Linux; Android later), with multiplayer through an authoritative
+server that is the same executable (decision 153; single player runs it in the same process).
+Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are loaded
+with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.
 User-facing text, the README and the docs in `docs/` are in Russian; code, comments, commits and PRs
 are in English.
 
@@ -15,7 +16,9 @@ are in English.
   `docs/DECISIONS.md`. Every script with its description: `docs/generated/code-index.md`; every
   mod, bundle and record, with its links: `docs/generated/content-index.md`; what comes of what, how
   deep and in which era, every recipe, and what the content checks found: `content-graph.md`,
-  `content-recipes.md`, `content-checks.md` there.
+  `content-recipes.md`, `content-checks.md` there. How to test a change and what CI runs:
+  `docs/testing/`. `docs/audit/` and `docs/planning/` hold dated stage reports and plans: history,
+  not instructions.
 - Design, the decision log, the MVP stages and the backlog live outside the repo, in the Claude
   project's library, `plan/` (`plan/README.md` index and decisions, `plan/mvp.md`, `plan/backlog.md`,
   `plan/design/`, `plan/architecture/` for rendering, performance and modding in depth); screenshots
@@ -23,9 +26,12 @@ are in English.
 
 ```
 scenes/main.tscn   the one scene: Main with src/client/main.gd, which builds the modules and runs the frame
-src/shared/        the world and the rules of play the server will run: content/ (mod loader, registries),
-                   world/ (cells, shapes, layout and generator, files on disk), game/ (rules)
+src/shared/        the world and the rules of play the server runs: content/ (mod loader, registries),
+                   world/ (cells, shapes, layout and generator, files on disk), game/ (rules, the session),
+                   net/ (protocol)
+src/server/        the server: its tick node, the player's character, requests, sockets, saving, tunnel
 src/client/        drawing, input, sound, UI and saving on this device: world/ view/ input/ game/ audio/ ui/
+                   net/ (connection, the server inside the game, copies of the server's state)
 content/<mod>/     the mods' data and assets, a folder per bundle
 shaders/ assets/   3D shaders (common.gdshaderinc), interface pictures, fonts, web icons
 tests/ tools/      headless tests and the browser smoke test; lint, validator, screenshots, benches, asset makers
@@ -54,8 +60,9 @@ tests/ tools/      headless tests and the browser smoke test; lint, validator, s
   (`run_tests.gd` fails otherwise); inside it, `content/` loads nothing else, `world/` and `net/` only
   `content/`; `src/server/` loads only `src/shared/`; the client loads `src/server/` only from
   `src/client/net/local_host.gd` (tested too).
-- A rule takes the one acting as `who` (on the client `src/client/game/character.gd`: the body, the
-  hands, the bag) and tells what it changed through signals the client's views connect to
+- A rule takes the one acting as `who` (on the server `src/server/player.gd`, which extends
+  `src/shared/game/character.gd`: the body, the hands, the bag; `src/client/game/character.gd` is the
+  client's copy of it) and tells what it changed through signals the client's views connect to
   (`world_actions.gd`, `placed.gd`, `wildlife.gd`).
 - `main.gd` only builds the scene and runs the frame; client modules get the Main node as `game`. New
   state goes into the module it belongs to; a new system is a new module. The rules over the world are
@@ -168,7 +175,8 @@ Each in one line; the system's context doc has the detail.
   compiles shaders mid-game (100 ms+ on a phone).
 - The material atlas holds 63 materials and barks together (`PixelTextures.MOST_MATERIALS`,
   `material_bits[63]` in `world.gdshader`): the mesh packs the material in 6 bits, the sides' tile as
-  flag bit 1, the underside's by a face looking down (`MeshFaces.pack`); 28 are used.
+  flag bit 1, the underside's by a face looking down (`MeshFaces.pack`); 36 are used (28 materials and
+  8 barks).
 - Material numbers follow the load order: a world's bundle set must not change; old saves go through
   `Mat.remap`.
 - Audio buses live in `default_bus_layout.tres` (a bus added later is silent on the web);

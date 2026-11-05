@@ -1,6 +1,7 @@
 # Итог: тестирование и CI (этап 5)
 
-Статус: ACTIVE, 2026-11-03. Аудит — [TESTING_CI_AUDIT.md](TESTING_CI_AUDIT.md), план —
+Статус: ARCHIVED — снимок на 2026-11-03: история и причины решений, не инструкция (пути, числа и
+«нет»/«будет» — того дня; код как он есть — [INDEX.md](../INDEX.md)). Аудит — [TESTING_CI_AUDIT.md](TESTING_CI_AUDIT.md), план —
 [../planning/TESTING_CI_ROADMAP.md](../planning/TESTING_CI_ROADMAP.md), PR #346.
 
 ## Что создано и изменено

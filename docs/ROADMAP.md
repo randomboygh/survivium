@@ -5,12 +5,13 @@
 ## Утверждённые планы (библиотека)
 
 - `plan/mvp.md` — этапы: этап 0 закрыт, идёт этап 1 (MVP); порядок работ и состояние по областям.
-  Состояние по областям сверено 2026-11-03 (PR до #333); что есть в коде сейчас — также
+  Состояние по областям сверено 2026-11-05 (PR до #372); что есть в коде сейчас — также
   [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 - `plan/backlog.md` — единственный список задач по областям (GitHub Issues не ведутся).
 - Сервер построен (решение 153, `plan/architecture/server.md`: этапы С1–С7, PR #249–#263), на нём
   территория и команды (Т1–Т6, PR #317–#329, [systems/territory.md](systems/territory.md)); огонь, еда и
-  выживание — PR #307–#314 ([systems/character.md](systems/character.md)).
+  выживание — PR #307–#314 ([systems/character.md](systems/character.md)); строительство (решение 163,
+  PR #335–#339, #371, #372) и навыки (решение 164, PR #340–#342) — задачи 7 и 6 этапа 1.
 - Система бандлов по ТЗ `bundles.md` (решение 152) построена: правила и состояние восьми этапов —
   [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), план этапов с файлами и рисками —
   `plan/architecture/bundle-system.md`.
@@ -21,6 +22,12 @@
 пользователя — [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md). Сделано (шаги 1–6,
 PR #289–#293): что исправлено и что осталось — [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md),
 замеры — [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md).
+
+Тестирование и CI (этап 5, 2026-11-03, PR #346): аудит — [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md),
+план и что осталось — [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), итог —
+[audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md). Аудит документации (этап 6, 2026-11-05):
+[audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), что исправлено и что осталось —
+[audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md).
 
 ## Технический долг и ограничения, найденные аудитом этапа 0 (предложения, не утверждены)
 
@@ -33,7 +40,7 @@ PR #289–#293): что исправлено и что осталось — [aud
 | Т5 | Голоса зверей синтезирует таблица в `tools/make_sounds.gd` | бандл не приносит рецепт голоса, только `.wav` | оставить или вынести рецепты звуков в данные бандла |
 | Т6 | Погода, календарь, шумы генератора и рельеф — константы кода | не меняются модом | в плане MVP «виды погоды как данные»; генератор — позже |
 | Т7 | Слои внутри `src/shared/` (content → world → game) тестом не проверяются | случайная обратная ссылка пройдёт CI | сделано: `_test_layers` проверяет и слои внутри (этап 2 системы бандлов) |
-| Т8 | `src/shared/game/real_weather.gd` — HTTP-сервис устройства в общей папке | спорное место для сервера | решено (№ 153): погоду с улицы спрашивает сервер; переезд в `src/server/` на этапе С3 |
-| Т9 | Крупные файлы: `world_actions.gd`, `land_layout.gd`, `hud.gd`, `foliage.gd`, `settings_menu.gd` (≈1000–1130 строк) | решение 145 оставило их цельными | делить, только если вырастут |
-| Т10 | Нет юнит-тестов интерфейса, Android-экспорта, серверной сборки | — | по плану MVP |
-| Т11 | `frame_test` в медленном контейнере проваливает «idle» на 4–25 % и «idle at night by the campfire» на 30–140 % (на main тоже); в CI ночь у костра раз провалилась на быстром раннере (PR #243: 0.69 мс из 0.62, повтор — 0.45) | проверка шумит, ночная сильнее | не трогать предел; при сомнении перезапуск отдельно и CI (один повтор упавшей задачи) |
+| Т8 | `src/shared/game/real_weather.gd` — HTTP-сервис устройства в общей папке | спорное место для сервера | решено (№ 153): погоду с улицы спрашивает сервер; **не сделано** (2026-11-05): узел по-прежнему в `src/shared/game/`, его создаёт клиентский `main.gd`, сервер без окна погоду с улицы не спрашивает |
+| Т9 | Крупные файлы: на 2026-10-30 `world_actions.gd`, `land_layout.gd`, `hud.gd`, `foliage.gd`, `settings_menu.gd` (≈1000–1130 строк); на 2026-11-05 выросли `world_actions.gd` (1672), `main_menu.gd` (1523), `content.gd` (1490), `hud.gd` (1397), `ui_style.gd` (1315), `land_layout.gd` (1190), `wildlife.gd` (1184), `main.gd` (1182) | решение 145 оставило их цельными | делить, только если вырастут: они выросли, деление — изменение структуры, ждёт выбора пользователя (вопрос в [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md)) |
+| Т10 | Нет юнит-тестов интерфейса и Android-экспорта (сервер проверяет `tests/server_test.gd`, сборки ПК делает CI) | — | по плану MVP |
+| Т11 | `frame_test` в медленном контейнере проваливает «idle» на 4–25 % и «idle at night by the campfire» на 30–140 % (на main тоже); в CI ночь у костра раз провалилась на быстром раннере (PR #243: 0.69 мс из 0.62, повтор — 0.45) | проверка шумит, ночная сильнее | с PR #346 простой судится по доле чанка, мерянного рядом, с PR #370 — не строже `IDLE_FLOOR` 1,25 мс и `NIGHT_FLOOR` 1,55 мс (выбор пользователя); при сомнении перезапуск отдельно и CI (один повтор упавшей задачи), [testing/TEST_COVERAGE.md](testing/TEST_COVERAGE.md) |

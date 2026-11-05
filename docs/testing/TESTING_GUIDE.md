@@ -34,6 +34,8 @@ godot --headless --path . --import
 | только интерфейс (`src/client/ui/`, HUD) | 1, 2, `run_tests` | скриншоты (`tools/shot.gd`) |
 | данные мода, рецепты, станки, инструменты, материалы | 1, 2 (`validate`, `report` — после правки запустить `tools/content_report.gd` без `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
 | руки, сбор, крафт, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
+| стройка: чертёж, двери, окна, лестницы, мебель (`plans.gd`, флаги вещей в `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, скриншоты `build-*` |
+| шейдеры, свет, вид в пещере (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; скриншоты под xvfb или `smoke` в CI: headless шейдеры не компилирует |
 | генератор, мир, чанки, меши, стример | 1, 2, `run_tests -- generation mesher shapes store` | `frame_test` (один, без других процессов), `save_test` |
 | сохранения (`save_game.gd`, `world_store.gd`) | 1, 2, `run_tests -- store` | `save_test` |
 | сеть, сервер, протокол | 1, 2, `run_tests -- net session` | `server_test` |
