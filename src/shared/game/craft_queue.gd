@@ -98,7 +98,7 @@ func from_dict(d: Dictionary) -> void:
 				n = serial
 				serial += 1
 			var job := {"recipe": Crafting.canon(j.recipe), "left": float(j.get("left", 0.0)), "n": n}
-			var took := _stacks(j.get("took"))
+			var took: Variant = _stacks(j.get("took"))
 			if took != null:
 				job.took = took
 			jobs.append(job)

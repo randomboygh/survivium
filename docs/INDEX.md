@@ -67,10 +67,21 @@
 | [testing/CI_PIPELINE.md](testing/CI_PIPELINE.md) | задания CI, что блокирует, логи, публикация, безопасность, что делать при красном CI | ACTIVE | когда CI красный, при правке `build.yml` |
 | [systems/testing.md](systems/testing.md) | тесты, инструменты `tools/`, CI и версии с «Что нового» | ACTIVE | инструменты и версии |
 
+**Безопасность**
+
+| Документ | Назначение | Статус | Кому и когда |
+|---|---|---|---|
+| [security/THREAT_MODEL.md](security/THREAT_MODEL.md) | активы, кто нападает, границы доверия, точки входа, классы атак | ACTIVE | менять протокол, сервер, правила, которые зовут запросы |
+| [security/NETWORK_SECURITY.md](security/NETWORK_SECURITY.md) | лимиты транспорта, приветствие, что сервер проверяет у каждого запроса и у тела | ACTIVE | новый запрос, новое поле `input` |
+| [security/COMMAND_PERMISSIONS.md](security/COMMAND_PERMISSIONS.md) | роли, таблица команд и прав, как добавить команду | ACTIVE | новая команда хозяина |
+| [security/ANTI_CHEAT.md](security/ANTI_CHEAT.md) | что замечается, уровни реакции, журнал безопасности, допуски | ACTIVE | менять проверки, разбирать журнал |
+| [security/SECURITY_TESTING.md](security/SECURITY_TESTING.md) | тесты безопасности, сценарии ТЗ и где они, как добавить | ACTIVE | проверить защиту, добавить регрессию |
+
 **Аудит, отчёты и планы этапов (история)**
 
 | Документ | Назначение | Статус | Кому и когда |
 |---|---|---|---|
+| [audit/SECURITY_AUDIT.md](audit/SECURITY_AUDIT.md), [audit/SECURITY_REMEDIATION_REPORT.md](audit/SECURITY_REMEDIATION_REPORT.md) | этап 7 (2026-11-06): аудит безопасности, 22 находки, исправления, тесты, остаточные риски | ARCHIVED | история защиты сервера, что осталось |
 | [audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md) | этап 6 (2026-11-05): аудит документации, что исправлено, расхождения и вопросы | ACTIVE до решения открытых вопросов | что осталось несверенным |
 | [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md), [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md) | этап 5 (2026-11-03): аудит тестов и CI, план (раздел «Дальше» — открытые задачи), итог с замерами | ARCHIVED; план — DONE | история и дальнейшие шаги тестов и CI |
 | [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md), [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md), [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md) | этап 4 (2026-11-01): 131 находка по системам, план рефакторинга (что ждёт решения пользователя), что сделано, замеры | ARCHIVED; план и отчёты — DONE | технический долг кода, прежде чем чинить систему |
