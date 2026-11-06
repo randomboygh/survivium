@@ -735,6 +735,23 @@ func _test_openings() -> void:
 	_check(not placed.take_up(who, fire) and not placed.destroy(fire), "burning, it is not taken up")
 	placed.put_out(fire)
 	_check(placed.take_up(who, fire) and who.inventory.count("tools:fireplace") == 1, "put out, it is taken up whole")
+	# The build mode: a door tapped into a wall with no gap cuts its opening, the blocks
+	# falling as if dug; a stool set down where tapped.
+	who.position = Vector3(11.5, 1.0, 22.5) * WorldData.CELL
+	who.inventory.add("tools:door", 1)
+	var before := 0
+	for k in w.drops:
+		before += w.drops[k].size()
+	_check(placed.put_at(who, "tools:door", Vector3i(11, 1, 20), 40) and placed.things[-1].item == "tools:door"
+		and w.get_cell(11, 1, 20) == Mat.AIR and w.get_cell(11, 2, 20) == Mat.AIR and w.get_cell(11, 3, 20) == Mat.STONE
+		and who.inventory.count("tools:door") == 0, "a door tapped into a wall cuts its opening: %s" % [placed.things[-1]])
+	var after := 0
+	for k in w.drops:
+		after += w.drops[k].size()
+	_check(after > before, "and the blocks taken out lie on the ground")
+	_check(not placed.put_at(_with(who, "tools:stool"), "tools:stool", Vector3i(40, 1, 40), 40), "nothing is set down out of reach")
+	_check(placed.put_at(who, "tools:stool", Vector3i(12, 1, 23), 40) and placed.things[-1].item == "tools:stool"
+		and placed.cells_of(placed.things[-1]).has(Vector3i(12, 1, 23)), "a stool is set down where tapped")
 
 
 ## True when a body standing at `from` (in cells) walking north for two seconds gets north

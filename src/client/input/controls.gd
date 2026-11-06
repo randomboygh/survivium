@@ -2,15 +2,13 @@ extends RefCounted
 ## Input: keys, mouse and touch, and what they ask of the world (plan/design/ui.md,
 ## "Работа с ячейками"; plan/design/character.md, "Взаимодействие с миром"). Each hand
 ## holds any item of the bag or nothing (`hands`), and one of them is in use (`active`);
-## a block is placed with the brush (Tools.BRUSHES: squares 1, 2 or 3 cells across, two
-## cells one above the other, a line) or drawn as the blueprint's ghost (the brushes
-## «стена», «пол», «комната»: a stroke from corner to corner, Plans; `plan_height`
-## levels high), which the action button then builds. With a mouse the left button works with the left
+## blocks and parts of a house are built only in the build mode (BuildMode, `game.build`),
+## whose strokes draw the blueprint's ghost and whose action button builds it; this
+## keeps those strokes as it keeps the others. With a mouse the left button works with the left
 ## hand and the right button with the right one; a tap on a touch screen, the action
 ## button and F work with the hand in use. Both keep working while the button or finger
-## is held: digging swings again at the cell under it as fast as the tool swings,
-## placing paints the brush along the plane the stroke began in (a floor, a wall), every
-## cell on the way. What the hands do to the world (dig, chop, mow, gather, place, plant,
+## is held: digging swings again at the cell under it as fast as the tool swings. What
+## the hands do to the world (dig, chop, mow, gather, plant,
 ## the action button's work in front) is decided by the rules in WorldActions; here the
 ## swing waits and plays, a workbench or a campfire is set down (Props) and food eaten
 ## (Character). Also opening the bag, moving the cut and the playtest keys. Touch and
@@ -28,7 +26,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
-const Plans := preload("res://src/shared/game/plans.gd")
+const BuildMode := preload("res://src/client/input/build_mode.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 
 const CELL := WorldData.CELL
@@ -56,11 +54,9 @@ var fingers := {}
 ## item), and the hand in use (0 left, 1 right). Saved with the player.
 var hands: Array[String] = ["", ""]
 var active := 0
-## The right hand's brush, an index into Tools.BRUSHES.
+## The brush of Tools.BRUSHES the server places blocks with (WorldActions.place_at): the
+## first, one cell; the client places none itself any more (BuildMode).
 var brush := 0
-## How high the blueprint's walls and rooms are drawn, in levels (Plans.MIN_HEIGHT to
-## MAX_HEIGHT). Saved with the hands.
-var plan_height := 2
 ## Whether the action button is held, and whether it (or its key) was last frame: a rod
 ## acts once a press (a cast, then a pull), not again and again while held.
 var action_held := false
@@ -68,8 +64,8 @@ var _action_was := false
 ## A button or finger held on the world: {"button", "hand", "dig", "pos", "held", "pending"
 ## (not worked yet), "normal", "first", "last" (the plane and the first and last cells
 ## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}; a
-## stroke of the blueprint has "plan" (the shape's kind) and "erase" (it began on a ghost
-## cell) and draws when it ends.
+## stroke of the build mode's blueprint has "plan" (the shape's kind, BuildMode.start_stroke)
+## and draws when it ends.
 var _stroke := {}
 ## Seconds until the hands can swing again.
 var _cooldown := 0.0
@@ -86,8 +82,11 @@ func _init(g) -> void:
 	show_help = not touch
 
 
+## What the hands hold, kept with the player: in the build mode what they held before it.
 func to_dict() -> Dictionary:
-	return {"hands": hands.duplicate(), "active": active, "brush": brush, "plan_height": plan_height}
+	if game.build != null and game.build.on:
+		return game.build.saved_hands()
+	return {"hands": hands.duplicate(), "active": active}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -97,8 +96,6 @@ func from_dict(d: Dictionary) -> void:
 			var id: Variant = Items.canon(held_ids[h]) if held_ids[h] is String else ""
 			hands[h] = id if id == "" or Items.has(id) else ""
 	active = clampi(int(d.get("active", 0)), 0, 1)
-	brush = clampi(int(d.get("brush", 0)), 0, Tools.BRUSHES.size() - 1)
-	plan_height = clampi(int(d.get("plan_height", 2)), Plans.MIN_HEIGHT, Plans.MAX_HEIGHT)
 
 
 ## Touch and mouse switch the layout: the joystick and action buttons show after a
@@ -159,8 +156,9 @@ func unhandled_input(event: InputEvent) -> void:
 				game.hud.toggle_bag()
 			KEY_V:
 				cycle_tool()
-			KEY_C:
-				cycle_brush()
+			KEY_B:
+				if game.build.on:
+					game.build.leave()
 			KEY_Z:
 				if game.session != null:
 					game.session.clock.next_season()
@@ -214,6 +212,11 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if game.land.painting:
 		_start_paint(button, pos)
 		return
+	if game.build.on:
+		_stroke = game.build.start_stroke(button, pos)
+		if touch and not _stroke.is_empty():
+			game.build.show_stroke(_stroke)
+		return
 	if game.land.has_own():
 		# The square of one's own post starts painting, as the post does.
 		var hit := pick(pos)
@@ -232,16 +235,15 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		return
 	match use:
 		"place":
-			if brush_record().has("plan"):
-				_start_plan(button, pos)
-			else:
-				_start_stroke(button, pos, false)
+			# Built only in the build mode.
+			game.build.enter(held())
 		"plant", "sow":
 			var hit := pick(pos)
 			if not hit.is_empty() and _cooldown <= 0.0:
 				game.net.request(Protocol.PLANT_AT, [held(), hit.cell]).then(_planted.bind(hit.cell))
 		"prop":
-			game.props.put_from_bag(held())
+			# Set down only in the build mode.
+			game.build.enter(held())
 		"eat", "heal":
 			_eat_held()
 		_:
@@ -261,6 +263,7 @@ func update(delta: float) -> void:
 	_cooldown = maxf(0.0, _cooldown - delta)
 	_cursor_clock = maxf(0.0, _cursor_clock - delta)
 	_check_hands()
+	game.build.update(delta)
 	_label_clock -= delta
 	if _label_clock <= 0.0 and touch:
 		_label_clock = LABEL_TIME
@@ -275,8 +278,14 @@ func update(delta: float) -> void:
 			_cursor_clock = CURSOR_TIME
 		if not _stroke.held and not _stroke.pending:
 			if _stroke.has("plan"):
-				_end_plan()
+				game.build.end_stroke(_stroke)
 			_stroke = {}
+	elif game.build.on:
+		# The action button of the build mode is pressed once: it builds until the last cell.
+		var down: bool = action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing())
+		if down and not _action_was:
+			game.build.toggle_auto()
+		_action_was = down
 	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
 		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
 		_action_was = true
@@ -349,7 +358,11 @@ func hold(id: String) -> void:
 ## use; an empty slot empties the hand.
 func select_slot(i: int) -> void:
 	var s = game.character.inventory.slots[i]
-	put_in_hand(s[0] if s != null else "", -1, false)
+	var id: String = s[0] if s != null else ""
+	if BuildMode.builds_with(id):
+		game.build.enter(id)
+		return
+	put_in_hand(id, -1, false)
 
 
 ## The hotbar slot holding what the hand in use holds, -1 for none.
@@ -393,14 +406,7 @@ func _kept_in_hand(id: String) -> bool:
 	return Items.get_item(id).get("tool", "none") != "none" or Items.get_item(id).get("light", 0.0) > 0.0
 
 
-## The next brush for placing blocks.
-func cycle_brush() -> void:
-	brush = (brush + 1) % Tools.BRUSHES.size()
-	game.hud.refresh_hands()
-	game.hud.toast("Кисть: %s" % brush_record().title)
-
-
-## The brush blocks are placed with (one of Tools.BRUSHES).
+## The brush the server places blocks with (one of Tools.BRUSHES).
 func brush_record() -> Dictionary:
 	return Tools.BRUSHES[brush]
 
@@ -409,9 +415,11 @@ func brush_record() -> Dictionary:
 ## front of the player now (WorldActions.front_kind: drink at the water, gather berries
 ## with a torch in hand, dig once all round is gathered), else what the hand's tool is for.
 func action_name() -> String:
+	if game.build.on:
+		return "Стоп" if game.build.auto else "Строить"
 	match use_of():
 		"place":
-			return "Строить" if game.plans.builds(game.character) else "Ставить"
+			return "Строить"
 		"plant", "sow":
 			return "Сажать"
 		"prop":
@@ -639,38 +647,25 @@ func _run_stroke() -> void:
 		place_at(cell, _stroke.normal)
 
 
-## A stroke of the blueprint brush: from the ghost cell under `pos` (it takes that
-## ghost off), else from the cell over the ground tapped (the ground itself for a floor).
-func _start_plan(button: int, pos: Vector2) -> void:
-	var kind: String = brush_record().plan
-	var ghost: Variant = _ghost_at(pos)
-	var first: Vector3i
-	if ghost != null:
-		first = ghost
-	else:
-		var hit := pick(pos)
-		if hit.is_empty():
-			return
-		first = hit.cell if kind == "floor" else hit.cell + hit.normal
-	_stroke = {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "plan": kind,
-		"erase": ghost != null, "first": first, "last": first, "normal": Vector3i.UP}
+## Drops the stroke held, if any (the build mode coming or going).
+func cancel_stroke() -> void:
+	_stroke = {}
+	if game.cursor != null:
+		game.cursor.show_cells([], true)
 
 
-## The cells the blueprint stroke covers now (Plans.shape).
-func _plan_cells() -> Array[Vector3i]:
-	var p: Vector3 = game.player.position
-	return Plans.shape(_stroke.plan, _stroke.first, _stroke.last, plan_height, Vector2(p.x, p.z))
-
-
-## The blueprint stroke ended: the server draws its ghost, or takes it off.
-func _end_plan() -> void:
-	game.net.request(Protocol.PLAN, [_stroke.plan, _stroke.first, _stroke.last, plan_height])
-	game.cursor.show_cells([], true)
+## The build mode's action button, down: builds one ghost cell near the player (the
+## server picks it, Plans.build), at the pace of the hands.
+func build_step() -> void:
+	if _cooldown > 0.0:
+		return
+	_cooldown = WorldActions.IDLE_SWING
+	game.net.request(Protocol.BUILD, []).then(_did_front)
 
 
 ## The nearest ghost cell of the blueprint under screen point `pos`, before the cell the
 ## view meets there and not above the cut; null for none.
-func _ghost_at(pos: Vector2) -> Variant:
+func ghost_at(pos: Vector2) -> Variant:
 	var cells: Dictionary = game.plans.cells
 	if cells.is_empty():
 		return null
@@ -707,18 +702,6 @@ static func _enter(o: Vector3, d: Vector3, c: Vector3i) -> float:
 		t0 = maxf(t0, minf(a, b))
 		t1 = minf(t1, maxf(a, b))
 	return t0 if t0 <= t1 and t1 >= 0.0 else INF
-
-
-## Shows the blueprint stroke's shape: light to draw, red to take off or too big.
-func _show_plan() -> void:
-	var cells := _plan_cells()
-	game.cursor.show_cells(cells, not _stroke.erase and cells.size() <= Plans.MAX_SHAPE)
-
-
-## The height of the blueprint's walls one level up or down.
-func shift_plan_height(by: int) -> void:
-	plan_height = clampi(plan_height + by, Plans.MIN_HEIGHT, Plans.MAX_HEIGHT)
-	game.hud.refresh_hands()
 
 
 ## A placing stroke with the line brush keeps to the way it first moved from its first
@@ -794,7 +777,7 @@ func _can_place(cell: Vector3i) -> bool:
 func act_in_front() -> void:
 	match use_of():
 		"prop":
-			game.props.put_from_bag(held())
+			game.build.enter(held())
 			_cooldown = 0.5
 			return
 		"eat", "heal":
@@ -861,9 +844,16 @@ func _front_preview() -> Array[Vector3i]:
 ## Frames what a tap at `screen_pos` would work on: the cells to dig, cut or fill, red
 ## when nothing can be done there.
 func _show_preview(screen_pos: Vector2, dig: bool) -> void:
+	if _stroke.has("plan"):
+		game.build.show_stroke(_stroke)
+		return
 	var hit := pick(screen_pos)
 	if hit.is_empty():
 		game.cursor.show_cells([], true)
+		return
+	if game.build.on:
+		# Where a stroke would begin.
+		game.cursor.show_boxes([game.build.start_cell(hit)], [])
 		return
 	var actions = game.actions
 	var who = game.character
@@ -885,9 +875,6 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 		var cells: Array[Vector3i] = actions.dig_targets(who, Tools.area_cells(cell, hit.normal), t)
 		var ok: bool = Tools.can_dig(t, m) and near and cell.y > 0
 		game.cursor.show_cells(cells if ok else [cell], ok)
-		return
-	if _stroke.has("plan"):
-		_show_plan()
 		return
 	var normal: Vector3i = hit.normal
 	if not _stroke.is_empty() and _stroke.normal != null:

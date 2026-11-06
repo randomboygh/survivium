@@ -94,16 +94,19 @@ func describe(target: Dictionary) -> String:
 	if target.has("prop"):
 		var e: Dictionary = target.prop
 		var title := Items.title(e.item)
-		if Placed.is_light(e) or Placed.is_part(e):
+		if game.build.on and Items.is_interior(e.item):
 			return "%s\nЛКМ забрать" % title
+		if Placed.is_light(e):
+			return "%s\nЛКМ забрать" % title
+		if Placed.is_part(e):
+			return "%s\nзабрать — в режиме строительства" % title
 		if Placed.is_door(e):
 			return "%s\nЛКМ %s" % [title, "закрыть" if e.get("open", false) else "открыть"]
 		if e.items != null:
 			return "%s\nЛКМ открыть" % title
 		if Placed.is_bed(e):
-			# Not sleepy, a tap takes the bed up (Character.lie_in).
 			var v = game.character.vitals
-			return "%s\nЛКМ %s" % [title, "лечь спать" if v.asleep or v.sleepy() else "забрать"]
+			return "%s\nЛКМ %s" % [title, "лечь спать" if v.asleep or v.sleepy() else "спать не хочется"]
 		return "%s\nЛКМ крафт" % title
 	if target.has("drop"):
 		var d: Array = game.world.drops[target.drop[0]][target.drop[1]]
@@ -126,13 +129,17 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens (a door swings, a light, stairs and a window are taken up, a bed is lain in to sleep, or taken up when not sleepy: Protocol.LIE_IN), the rest is WorldActions.gather through the server. True if anything was done
+## opens (a door swings, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_door(target.prop):
 		var swung = game.net.request(Protocol.PROP_OPEN, [target.prop.cell])
 		return swung.done and swung.value is bool and swung.value
-	if target.has("prop") and (Placed.is_light(target.prop) or Placed.is_part(target.prop)):
+	if target.has("prop") and Placed.is_part(target.prop):
+		# Parts of a house are taken up only in the build mode.
+		game.character.nag("take", "Забрать можно в режиме строительства")
+		return false
+	if target.has("prop") and Placed.is_light(target.prop):
 		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
 		return taken.done and taken.value is bool and taken.value
 	if target.has("prop") and Placed.is_bed(target.prop):

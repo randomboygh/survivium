@@ -10,6 +10,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const CursorShader := preload("res://shaders/cursor.gdshader")
+const PlanView := preload("res://src/client/view/plan_view.gd")
 
 const CELL := WorldData.CELL
 ## Lines run half a pixel inside the cell's edges, through the middle of its border
@@ -30,6 +31,8 @@ var _ok := true
 func _init() -> void:
 	mesh = _lines
 	_material.shader = CursorShader
+	# Over the blueprint's ghost (PlanView), which uses the same shader.
+	_material.render_priority = 1
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	extra_cull_margin = 16.0
@@ -50,8 +53,9 @@ func show_cells(cells: Array, ok: bool) -> void:
 	visible = not cells.is_empty()
 	if cells.is_empty():
 		return
-	_material.set_shader_parameter("color", Color(UiStyle.INK, 0.9) if ok else Color(UiStyle.DANGER, 0.9))
+	_material.set_shader_parameter("color", Color(1, 1, 1, 0.9))
 	_lines.surface_begin(Mesh.PRIMITIVE_LINES)
+	_lines.surface_set_color(UiStyle.INK if ok else UiStyle.DANGER)
 	for f: Array in faces:
 		var c: Vector3i = f[0]
 		var a := Vector3(c) * CELL + Vector3(INSET, INSET, INSET)
@@ -92,3 +96,31 @@ static func _side() -> Vector2i:
 	if absf(toward.y) >= absf(toward.x) - 0.01:
 		return Vector2i(0, 1 if toward.y > 0.0 else -1)
 	return Vector2i(1 if toward.x > 0.0 else -1, 0)
+
+
+## Frames whole cells, every edge of them that shows (those deep inside a group left
+## out, as the blueprint's ghost is drawn): `good` light, `bad` red, and the outline of
+## the box `box` red (what a stroke takes the ghost off). The build mode's strokes.
+func show_boxes(good: Array, bad: Array, box: Array = []) -> void:
+	var key := [good, bad, box]
+	if _shown == key:
+		return
+	_shown = key
+	_lines.clear_surfaces()
+	visible = not (good.is_empty() and bad.is_empty() and box.is_empty())
+	if not visible:
+		return
+	_material.set_shader_parameter("color", Color(1, 1, 1, 0.9))
+	_lines.surface_begin(Mesh.PRIMITIVE_LINES)
+	for part: Array in [[good, UiStyle.INK], [bad, UiStyle.DANGER], [box, UiStyle.DANGER]]:
+		var cells := {}
+		for c: Vector3i in part[0]:
+			cells[c] = true
+		_lines.surface_set_color(part[1])
+		for c: Vector3i in cells:
+			for e: Array in PlanView.EDGES:
+				if PlanView.hidden_edge(cells, c, e[0], e[1]):
+					continue
+				_lines.surface_add_vertex(PlanView.corner(c, e[0]))
+				_lines.surface_add_vertex(PlanView.corner(c, e[1]))
+	_lines.surface_end()

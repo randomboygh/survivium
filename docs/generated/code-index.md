@@ -44,6 +44,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## src/client/input
 
+- `src/client/input/build_mode.gd`: The build mode: building is done here only (thread «Сделать отдельный режим строительства», 2026-11-06).
 - `src/client/input/controls.gd`: Input: keys, mouse and touch, and what they ask of the world (plan/design/ui.md, "Работа с ячейками"; plan/design/character.md, "Взаимодействие с миром").
 - `src/client/input/cursor.gd`: The cursor frame: one-pixel lines round one square of each cell a tap, a click or the action button would work on (plan/design/ui.md, "рамка-курсор"), light when it can be done, red when not (too…
 - `src/client/input/touch_button.gd`: A button that works under any finger, not only the first one: Godot turns only the first touch into mouse clicks, which a plain Button needs, so jumping while the other thumb holds the joystick would…
@@ -74,6 +75,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## src/client/ui
 
 - `src/client/ui/body_feedback.gd`: How the screen answers what happens to the body (plan/design/ui.md, section 4): a hurt reddens the edges of the screen, shakes the camera the more the bigger it is (unless the setting «Тряска экрана»…
+- `src/client/ui/build_bar.gd`: The build mode's bar (BuildMode), in the hotbar's place while the mode is on: on top the panel of the mode (the shape: line, plane, square, cube; how high and how thick the walls are, a tap each…
 - `src/client/ui/chat_box.gd`: The chat on a server (plan/architecture/server.md, С6; plan/design/ui.md «Сообщения»): the last lines heard (Protocol.HEARD: the players within the chat's reach, the server's answers) in the bottom…
 - `src/client/ui/craft_panel.gd`: The craft tab of the bag window (plan/design/ui.md, section 5), as wide as the bag tab: a column of tabs by kind of item on the left, the recipes known as cells sorted by kind (Items.CATEGORIES:…
 - `src/client/ui/death_screen.gd`: The death screen (plan/design/ui.md, "Смерть"): shown over the darkened world while the character lies dead (Character.death), and again whenever the player comes back into a world they left dead.
@@ -208,7 +210,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/game/inventory.gd`: A bag of item stacks: a number of slots (more with a bag worn on the back, see gear), each empty or holding one item id up to its stack size, and the weight of it all (plan/design/character.md).
 - `src/shared/game/knowledge.gd`: What a character knows (plan/design/crafting.md, "Открытие рецептов"): the items that have been in the bag, and so the recipes made of them.
 - `src/shared/game/placed.gd`: Things standing on cells that are not cells (an item's `prop`): chests with what they hold, workbenches, kilns and campfires, placed from the bag, and the camp a new world starts with next to the…
-- `src/shared/game/plans.gd`: The blueprint (decision 163, 5А/6А): cells marked to be built, each with the block (an item that places a material) that goes there.
+- `src/shared/game/plans.gd`: The blueprint (decision 163, build mode): cells marked to be built, each with the block (an item that places a material) that goes there.
 - `src/shared/game/rules.gd`: The rules of play the server decides for everyone in the world (plan/architecture/server.md): the switches the rules read.
 - `src/shared/game/session.gd`: A world being played (plan/architecture/server.md): the world, the rules of play over it and the characters in it, run by a tick.
 - `src/shared/game/skill_set.gd`: What a character has learned by doing (plan/design/character.md «Навыки», decision 164): the points of each skill (Skills), grown only by useful work.

@@ -692,24 +692,98 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 		who.nag("put", "Чтобы поставить, нужен инструмент: %s" % Items.tool_title(item.place_tool))
 		return false
 	var turn := turn_facing(who.facing_step())
-	var probe := {"item": item.id, "cell": Vector3i.ZERO, "turn": turn}
+	var shape := _shape_of(item.id, turn)
 	var n := size_of(item.id)
-	var offsets := cells_of(probe)
 	var steps: bool = item.get("steps", false)
+	var spot: Variant = _spot_in_front(who, top, n, shape.offsets, steps, shape.high)
+	if spot == null:
+		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if not steps else "Перед собой нет места для ступеней")
+		return false
+	return _set_down(who, item, slot, spot, turn, shape.offsets)
+
+
+## The cells thing `item` turned `turn` fills from its north-west cell ({"offsets"}) and
+## how many levels high it stands ({"high"}).
+func _shape_of(item: String, turn: int) -> Dictionary:
+	var probe := {"item": item, "cell": Vector3i.ZERO, "turn": turn}
 	var high := 1
 	for box in boxes_of(probe):
 		for b: AABB in (box if box is Array else [box]):
 			high = maxi(high, ceili(b.end.y - 0.01))
-	var spot: Variant = _spot_in_front(who, top, n, offsets, steps, high)
-	if spot == null:
-		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if not steps else "Перед собой нет места для ступеней")
+	return {"offsets": cells_of(probe), "high": high}
+
+
+## The build mode (Протокол PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
+## `aim` (the cell tapped, within the reach of placing), its front to them: on the free
+## cells nearest it at that level (or one up or down). A door or a window cuts its
+## opening into a wall: the blocks put there (not natural ground) where it goes are taken
+## out and fall as if dug. True if it was set down.
+func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
+	var item := Items.get_item(id)
+	if item.get("prop", "none") == "none":
 		return false
+	var slot: int = -1
+	var inv = who.inventory
+	for i in inv.slots.size():
+		if slot < 0 and inv.slots[i] != null and inv.slots[i][0] == item.id:
+			slot = i
+	if slot < 0:
+		who.nag("put", "В сумке нет: %s" % Items.title(id))
+		return false
+	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
+		who.nag("put", "Чтобы поставить, нужен инструмент: %s" % Items.tool_title(item.place_tool))
+		return false
+	var p: Vector3 = who.position / CELL
+	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
+		who.nag("put", "Слишком далеко")
+		return false
+	var turn := turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
+	var shape := _shape_of(item.id, turn)
+	var n := size_of(item.id)
+	var steps: bool = item.get("steps", false)
+	var cuts: bool = item.get("door", false) or item.get("window", false)
+	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, steps, shape.high, cuts)
+	if spot == null:
+		who.nag("put", "Здесь нет места: %s" % Items.title(id))
+		return false
+	var opening: Array[Vector3i] = []
+	if cuts:
+		for o: Vector3i in shape.offsets:
+			for k in shape.high:
+				var c: Vector3i = spot + o + Vector3i(0, k, 0)
+				if territory != null and not territory.may(who, c, "build"):
+					return false
+				opening.append(c)
+	return _set_down(who, item, slot, spot, turn, shape.offsets, opening)
+
+
+## Takes the block put in cell `c` out for an opening: it falls on the ground there as if dug.
+func _cut(c: Vector3i) -> void:
+	var m: int = world.get_cell(c.x, c.y, c.z)
+	if m == Mat.AIR or m == Mat.WATER:
+		return
+	var back: String = Mat.RECORDS[m].item
+	world.set_cell(c.x, c.y, c.z, Mat.AIR)
+	world.note_edit(c.x, c.z)
+	if back != "":
+		world.heap_drop(back, (Vector3(c) + Vector3(0.5, 0.0, 0.5)) * CELL, 1)
+	cell_changed.emit(c)
+
+
+## Sets thing `item` from bag slot `slot` of `who` down at north-west cell `spot`, turned
+## `turn`, filling `offsets` from it, the blocks of `opening` taken out first (a door, a
+## window): the land's rights, the hands' stamina, the ground under it levelled. True if
+## it was set down.
+func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offsets: Array, opening: Array[Vector3i] = []) -> bool:
+	var inv = who.inventory
 	if territory != null and not territory.may(who, spot, "build"):
 		return false
 	if item.claims and territory != null and not territory.can_claim(who, spot):
 		return false
 	if not who.act("place"):
 		return false
+	for c in opening:
+		_cut(c)
 	var taken: Array = inv.take_slot(slot, 1)
 	for o: Vector3i in offsets:
 		if world.is_solid(spot.x + o.x, spot.y - 1, spot.z + o.z):
@@ -888,16 +962,29 @@ func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps 
 	var deep := (hi.x - lo.x + 1) if s.x != 0 else (hi.y - lo.y + 1)
 	var ahead := deep * 0.5 + 0.5
 	var aim := Vector2(feet.x + 0.5 + s.x * ahead, feet.z + 0.5 + s.y * ahead)
+	return _spot_at(who, aim, feet.y, top, n, offsets, steps, high)
+
+
+## The north-west cell of the free spot for a thing filling `offsets` (see
+## _spot_in_front) whose filled cells' middle is nearest column point `aim` (cells), at
+## level `level`, one down or one up; `cuts`: blocks put there may be taken out for it
+## (a door, a window, see put_at). Null for none.
+func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Vector3i], steps: bool, high: int, cuts := false) -> Variant:
+	var mid := Vector2.ZERO
+	for o: Vector3i in offsets:
+		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
+	mid /= maxi(offsets.size(), 1)
+	var base := Vector2i(floori(aim.x), floori(aim.y))
 	var corners: Array[Vector2i] = []
 	for dz in range(-n - 1, 3):
 		for dx in range(-n - 1, 3):
-			corners.append(Vector2i(feet.x + dx, feet.z + dz))
+			corners.append(base + Vector2i(dx, dz))
 	corners.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 		return (Vector2(a) + mid).distance_squared_to(aim) < (Vector2(b) + mid).distance_squared_to(aim))
 	for c in corners.slice(0, 6):
 		for dy in [0, -1, 1]:
-			var corner := Vector3i(c.x, feet.y + dy, c.y)
-			if _fits(who, corner, top, offsets, steps, high):
+			var corner := Vector3i(c.x, level + dy, c.y)
+			if _fits(who, corner, top, offsets, steps, high, cuts):
 				return corner
 	return null
 
@@ -906,19 +993,25 @@ func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps 
 ## (no cell, no other thing or light, not `who`), at or below level `top`, and stand on
 ## solid ground, with air over them for a thing `high` cells tall (a door); stairs
 ## (`steps`) may stand on air, as blocks are laid.
-func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false, high := 1) -> bool:
+func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false, high := 1, cuts := false) -> bool:
 	if offsets.is_empty():
 		offsets = [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1)]
 	for o: Vector3i in offsets:
 		var c := corner + o
-		if world.get_cell(c.x, c.y, c.z) != Mat.AIR or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
+		if not _open(c, cuts) or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
 				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty() \
 				or _in_open_door(c):
 			return false
 		for k in range(1, high):
-			if world.get_cell(c.x, c.y + k, c.z) != Mat.AIR or world.blockers.has(c + Vector3i(0, k, 0)):
+			if not _open(c + Vector3i(0, k, 0), cuts) or world.blockers.has(c + Vector3i(0, k, 0)):
 				return false
 	return true
+
+
+## Whether cell `c` is air, or (`cuts`) a block put there that an opening takes out.
+func _open(c: Vector3i, cuts: bool) -> bool:
+	var m: int = world.get_cell(c.x, c.y, c.z)
+	return m == Mat.AIR or cuts and m != Mat.WATER and not world.is_natural(c.x, c.y, c.z)
 
 
 ## True when cell `c` is one of those a door standing open fills when shut (it frees them

@@ -19,6 +19,7 @@ const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
+const BuildBar := preload("res://src/client/ui/build_bar.gd")
 const MARGIN := 8.0
 const GAP := 4.0
 const SLOT := 40
@@ -88,7 +89,8 @@ var _level_label: Button
 ## ChunkStreamer.view_range).
 var _level_up: Button
 ## The blueprint's height buttons (shown while a wall or a room is drawn).
-var _plan_box: BoxContainer
+## The build mode's bar, in the hotbar's place while the mode is on (BuildBar).
+var build_bar: BuildBar
 var _level_down: Button
 ## The camera buttons under the minimap: turn, tilt, and back to the default view
 ## (it shows the turn and the tilt).

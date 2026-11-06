@@ -99,10 +99,14 @@ func _test_requests() -> void:
 		if r[1] is Dictionary and not r[1].is_empty():
 			done += 1
 	_check(done >= 1 and done < 15, "forty swings asked at once: only those the time allows are done (%d)" % done)
-	var r2: Array = req.handle(Protocol.request(Protocol.PLAN, 100, ["floor", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1]))
+	var r2: Array = req.handle(Protocol.request(Protocol.PLAN, 100, ["plane", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1, 1, false]))
 	_check(r2[1] == 0, "a blueprint of corners far apart is refused at once, not made")
 	var r3: Array = req.handle(Protocol.request(Protocol.SORT, 101, [null, "kind", -16]))
 	_check(r3[1] == true, "a sort from a slot counted from the end is done as from the first")
+	var r4: Array = req.handle(Protocol.request(Protocol.PLAN, 104, ["plane", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1, 1, true]))
+	_check(r4[1] == 0, "and so is taking the ghost off such a box")
+	_check(req.handle(Protocol.request(Protocol.PLAN, 105, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, 1]))[1] == null,
+		"a blueprint whose «erase» is no bool is refused")
 
 
 ## A bag counted from its end is the same bag, not twice the things.
@@ -149,10 +153,14 @@ static func _filled(r: Dictionary):
 
 func _test_plans() -> void:
 	var t0 := Time.get_ticks_msec()
-	_check(Plans.shape("floor", Vector3i(-100000, 0, -100000), Vector3i(100000, 0, 100000), 1).is_empty()
-		and Plans.shape("room", Vector3i(0, 0, 0), Vector3i(1 << 30, 0, 5), 4).is_empty()
+	_check(Plans.shape("plane", Vector3i(-100000, 0, -100000), Vector3i(100000, 0, 100000), 1).is_empty()
+		and Plans.shape("square", Vector3i(0, 0, 0), Vector3i(1 << 30, 0, 5), 4).is_empty()
+		and Plans.shape("cube", Vector3i(0, 0, 0), Vector3i(1 << 30, 0, 1 << 30), 4, Vector2.INF, 1 << 20).is_empty()
+		and Plans.erase_box("line", Vector3i(0, 0, 0), Vector3i(1 << 30, 0, 0), 4).is_empty()
 		and Time.get_ticks_msec() - t0 < 100, "a shape too big is not made at all")
-	_check(Plans.shape("wall", Vector3i(0, 0, 0), Vector3i(9, 0, 0), 2).size() == 20, "one of a fair size is")
+	_check(Plans.shape("line", Vector3i(0, 0, 0), Vector3i(9, 0, 0), 2).size() == 20, "one of a fair size is")
+	_check(Plans.shape("line", Vector3i(0, 0, 0), Vector3i(9, 0, 0), 99, Vector2.INF, 99).size() == 10 * Plans.MAX_HEIGHT * Plans.MAX_THICK,
+		"its height and thickness are kept in bounds")
 
 
 ## The server's door (Server._refusal): no keys or passwords needed for a socket.

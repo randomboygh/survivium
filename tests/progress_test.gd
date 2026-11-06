@@ -466,8 +466,9 @@ func _place(id: String) -> bool:
 			await _go(camp + shift * CELL)
 			for facing in SpriteSheet.COMPASS:
 				main.player.facing = facing
-				main.controls.put_in_hand(id, -1, false)
-				main.controls.act_in_front()
+				# Set down in front as the bag's old button did (the build mode sets things down
+				# where tapped, by the same rules).
+				main.props.put_from_bag(id)
 				await process_frame
 				if _placed_count(id) > before:
 					set_down[id] = true

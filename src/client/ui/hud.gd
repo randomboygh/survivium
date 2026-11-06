@@ -198,22 +198,11 @@ func _ready() -> void:
 	_bar.add_child(bar_row)
 	_bar_row = bar_row
 	# A tap on a hand makes it the hand in use; on the hand in use it changes what it
-	# holds: the next brush for a block, else the next tool.
+	# holds: the next tool.
 	_hand_left = _slot(bar_row, tap_hand.bind(0))
 	_hand_left.tag = "Л"
 	_hand_right = _slot(bar_row, tap_hand.bind(1))
 	_hand_right.tag = "П"
-	# The blueprint's height (Controls.plan_height), up and down, while a wall or a room
-	# is drawn.
-	_plan_box = BoxContainer.new()
-	_plan_box.vertical = true
-	_plan_box.add_theme_constant_override("separation", 2)
-	bar_row.add_child(_plan_box)
-	var plan_up := _icon_button(_plan_box, "up", "Чертёж выше", func() -> void: game.controls.shift_plan_height(1))
-	var plan_down := _icon_button(_plan_box, "down", "Чертёж ниже", func() -> void: game.controls.shift_plan_height(-1))
-	for b in [plan_up, plan_down]:
-		b.custom_minimum_size = Vector2(28, (SLOT - 2) / 2)
-	_plan_box.visible = false
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
 	sep.custom_minimum_size = Vector2(4, 30)
@@ -243,6 +232,9 @@ func _ready() -> void:
 	_bag_meter.draw.connect(_draw_bag_meter)
 	_bag_meter.pressed.connect(toggle_bag)
 	add_child(_bag_meter)
+	build_bar = BuildBar.new(game)
+	build_bar.visible = false
+	add_child(build_bar)
 
 	stick = TouchStick.new()
 	add_child(stick)

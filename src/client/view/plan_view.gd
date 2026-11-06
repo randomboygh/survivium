@@ -71,13 +71,13 @@ func _build(at: Vector3i) -> void:
 		if maxi(maxi(absi(c.x - at.x), absi(c.z - at.z)), absi(c.y - at.y)) > REACH:
 			continue
 		for e: Array in EDGES:
-			if _hidden(cells, c, e[0], e[1]):
+			if hidden_edge(cells, c, e[0], e[1]):
 				continue
 			if not started:
 				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
 				started = true
-			_lines.surface_add_vertex(_corner(c, e[0]))
-			_lines.surface_add_vertex(_corner(c, e[1]))
+			_lines.surface_add_vertex(corner(c, e[0]))
+			_lines.surface_add_vertex(corner(c, e[1]))
 	if started:
 		_lines.surface_end()
 	visible = started
@@ -85,7 +85,7 @@ func _build(at: Vector3i) -> void:
 
 ## Whether the edge from corner `a` to corner `b` of ghost cell `c` lies inside the
 ## ghost: the two cells beside `c` across it are ghost cells too.
-static func _hidden(cells: Dictionary, c: Vector3i, a: Vector3i, b: Vector3i) -> bool:
+static func hidden_edge(cells: Dictionary, c: Vector3i, a: Vector3i, b: Vector3i) -> bool:
 	var along := 0 if a.x != b.x else (1 if a.y != b.y else 2)
 	for axis in 3:
 		if axis == along:
@@ -97,7 +97,8 @@ static func _hidden(cells: Dictionary, c: Vector3i, a: Vector3i, b: Vector3i) ->
 	return true
 
 
-func _corner(c: Vector3i, k: Vector3i) -> Vector3:
+## The corner `k` (0/1 per axis) of cell `c`, a line's inset inside it, in world units.
+static func corner(c: Vector3i, k: Vector3i) -> Vector3:
 	var p := Vector3(c) * CELL
 	for axis in 3:
 		p[axis] += CELL - INSET if k[axis] == 1 else INSET

@@ -445,11 +445,12 @@ func sleep_rate(p: Vector3) -> float:
 
 
 ## Lies down in bed `e` (Placed: a thing with `bedding`) to sleep: the body is put on it
-## (_came_back) and falls asleep. Not sleepy (Vitals.sleepy), the bed is taken up into the
-## bag instead (Placed.take_up). False if neither was done.
+## (_came_back) and falls asleep; not sleepy (Vitals.sleepy), it is told so (a bed is
+## taken up only in the build mode). False if it did not lie down.
 func lie_in(e: Dictionary) -> bool:
 	if not vitals.asleep and not vitals.sleepy():
-		return placed != null and placed.take_up(self, e)
+		nag("sleep", "Спать пока не хочется")
+		return false
 	if not sleep(true, false):
 		return false
 	_came_back(placed.lying_spot(e))
