@@ -135,6 +135,8 @@ func _run() -> void:
 			main.player.position = places.furniture(main.world, main.player.position)
 		if shot.get("plan", false):
 			main.player.position = places.plan(main.world, main.player.position)
+		if shot.get("forms", false):
+			main.player.position = places.forms(main.world, main.player.position, shot.get("only", 0))
 		if shot.get("underground", false):
 			main.player.position = Places.cave(main.world, main.player.position)
 		if shot.get("corners", false):
@@ -725,6 +727,7 @@ func _run() -> void:
 			main.build.kind = shot.get("kind", "line")
 			main.build.height = shot.get("height", 2)
 			main.build.thick = shot.get("thick", 1)
+			main.build.form = shot.get("form", 0)
 			main.build.enter("materials:planks")
 			main.build.set_erasing(shot.build_mode == "erase")
 			var feet := Vector3i((main.player.position / CELL).floor())

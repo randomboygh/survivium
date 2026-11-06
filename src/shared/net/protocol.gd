@@ -79,7 +79,8 @@ const PROP_FIRE := "prop_fire"
 ## Opens a door or shuts it: [cell] (Placed.swing).
 const PROP_OPEN := "prop_open"
 ## Draws a shape of the blueprint with the block held, or takes the ghost off the box
-## round it: [kind, from, to, height, thickness, erase] (Plans.draw).
+## round it: [kind, from, to, height, thickness, erase, form] (Plans.draw; the form of
+## the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward).
 const PLAN := "plan"
 ## Takes the blueprint's ghost off every cell near the player: [] (Plans.clear).
 const PLAN_CLEAR := "plan_clear"
@@ -206,7 +207,8 @@ const PROP_OPENED := "prop_opened"
 const PROP_FUEL := "prop_fuel"
 ## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it).
 const PLANS := "plans"
-## Ghost cells of the blueprint came with a block, or went: [cells, item] ("" gone).
+## Ghost cells of the blueprint came with a block, or went: [cells, item ("" gone), the
+## forms of the cells that came (Plans.forms_of)].
 const PLAN_CELLS := "plan_cells"
 ## What a thing that stores holds changed: [cell, Inventory.to_dict()].
 const CHEST := "chest"
@@ -256,7 +258,8 @@ const FIGHT := "fight"
 const CHUNK := "chunk"
 ## The client may drop a chunk far from its body: [key].
 const FORGET := "forget"
-## Cells of the world changed (dug, built, cut): [[cell, material], …].
+## Cells of the world changed (dug, built, cut): [[cell, material | form << 8], …] (the
+## form of a built slope or stairs, WorldData.forms).
 const CELLS := "cells"
 ## Something was taken from the world by anyone, for the picture of it flying to the
 ## bag: [id, from] (WorldActions.taken).

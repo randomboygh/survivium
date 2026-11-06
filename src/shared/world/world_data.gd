@@ -546,10 +546,39 @@ func ground_height(x: float, z: float) -> float:
 			if get_cell(cx + d.x, y, cz) == Mat.WATER and not water_frozen:
 				return -1.0
 			continue
+		if not forms.is_empty():
+			var f := form_at(cx, y, cz)
+			if f != FORM_CUBE:
+				return y + form_top(f, fx, fx, fz, fz)
 		if shapes[i] & 15 == 0:
 			return y + 1.0
 		return y + surface_height(cx, y, cz, fx, fz)
 	return 0.0
+
+
+## Height above its level of the top of a built block of form `f` (see forms) under the
+## part ax..bx, az..bz (0..1) of its cell, the highest point there: a ramp rises
+## straight from its low side to the side it faces, stairs are two steps half a level
+## each, a cube and an upturned ramp are flat on top.
+static func form_top(f: int, ax: float, bx: float, az: float, bz: float) -> float:
+	var kind := f & 3
+	if kind == FORM_CUBE or kind == FORM_UPPER:
+		return 1.0
+	# How far toward the high side the part reaches, 0..1.
+	var t := 0.0
+	match f >> 2 & 3:
+		0:
+			t = 1.0 - az
+		1:
+			t = bx
+		2:
+			t = bz
+		_:
+			t = 1.0 - ax
+	t = clampf(t, 0.0, 1.0)
+	if kind == FORM_RAMP:
+		return t
+	return 1.0 if t > 0.5 else 0.5
 
 
 ## The corner (NW, NE, SE, SW as 0..3) of the quarter of a cell that (fx, fz) is in.

@@ -9,6 +9,7 @@ const PLANKS := "materials:planks"
 func run() -> void:
 	_test_shapes()
 	_test_build()
+	_test_forms()
 
 
 func _test_shapes() -> void:
@@ -101,3 +102,45 @@ func _test_build() -> void:
 	_check(sorted.hanging.size() == 3, "a wall over open air hangs")
 	_check(plans.draw(actions, who, "plane", Vector3i(29, 1, 12), Vector3i(31, 1, 12), 1) == 2 and not plans.cells.has(Vector3i(30, 1, 12)),
 		"and the blocked cells are not drawn")
+
+
+## Slopes and stairs (WorldData.forms): drawn as a form of the ghost, built so, saved
+## with the chunk, walked up, and a cube again once the cell changes.
+func _test_forms() -> void:
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(10.5, 2.0, 10.5) * WorldData.CELL
+	who.item = PLANKS
+	who.inventory.add(PLANKS, 10)
+	var ramp := WorldData.FORM_RAMP | 1 << 2
+	_check(plans.draw(actions, who, "line", Vector3i(12, 2, 9), Vector3i(12, 2, 10), 1, 1, false, ramp) == 2
+		and plans.forms.get(Vector3i(12, 2, 9)) == ramp, "a ramp's ghost keeps its form")
+	var copy := Plans.new()
+	copy.from_list(plans.to_list())
+	_check(copy.forms == plans.forms, "and the form is saved with the ghost")
+	for i in 2:
+		actions.act_in_front(who, 2)
+	_check(plans.cells.is_empty() and plans.forms.is_empty() and w.form_at(12, 2, 9) == ramp and w.form_at(12, 2, 10) == ramp,
+		"the ramps are built so")
+	_check(is_equal_approx(w.ground_height(12.0, 9.5), 2.0) and is_equal_approx(w.ground_height(12.75, 9.5), 2.75),
+		"the ground rises along the ramp to the side it faces: %s, %s" % [w.ground_height(12.0, 9.5), w.ground_height(12.75, 9.5)])
+	_check(is_equal_approx(WorldData.form_top(WorldData.FORM_STAIRS, 0.0, 1.0, 0.6, 1.0), 0.5)
+		and is_equal_approx(WorldData.form_top(WorldData.FORM_STAIRS, 0.0, 1.0, 0.0, 0.4), 1.0),
+		"stairs are two steps rising north")
+	var packed := w.pack_chunk(Vector2i.ZERO)
+	var again := WorldData.new(40, Vector2i(16, 16))
+	again.unpack_chunk(packed)
+	_check(again.form_at(12, 2, 9) == ramp and again.form_chunks.size() == 1, "the forms are saved with the chunk")
+	again.remove_chunk(Vector2i.ZERO)
+	_check(again.forms.is_empty(), "and forgotten with it")
+	w.set_cell(12, 2, 9, Mat.AIR)
+	_check(w.form_at(12, 2, 9) == WorldData.FORM_CUBE and w.forms.size() == 1, "a cell dug out forgets its form")
+	w.set_form(12, 2, 9, ramp)
+	_check(w.forms.size() == 1, "air takes no form")

@@ -9,6 +9,7 @@ extends MeshInstance3D
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const CursorShader := preload("res://shaders/cursor.gdshader")
+const Forms := preload("res://src/client/world/form_mesher.gd")
 
 const CELL := WorldData.CELL
 ## Cells round the player whose ghost is drawn, and how far they walk before it is
@@ -26,6 +27,17 @@ const EDGES := [
 	[Vector3i(0, 0, 0), Vector3i(0, 0, 1)], [Vector3i(1, 0, 0), Vector3i(1, 0, 1)],
 	[Vector3i(0, 1, 0), Vector3i(0, 1, 1)], [Vector3i(1, 1, 0), Vector3i(1, 1, 1)],
 ]
+
+## The lines that show the form of a ghost cell that is not a cube (Plans.forms), for
+## the form rising north (see Forms.turn): a ramp's diagonal on both sides, an upturned
+## ramp's, the steps of stairs.
+const FORM_LINES := {
+	WorldData.FORM_RAMP: [[Vector3(0, 1, 0), Vector3(0, 0, 1)], [Vector3(1, 1, 0), Vector3(1, 0, 1)]],
+	WorldData.FORM_UPPER: [[Vector3(0, 0, 0), Vector3(0, 1, 1)], [Vector3(1, 0, 0), Vector3(1, 1, 1)]],
+	WorldData.FORM_STAIRS: [[Vector3(0, 0.5, 1), Vector3(0, 0.5, 0.5)], [Vector3(0, 0.5, 0.5), Vector3(0, 1, 0.5)],
+		[Vector3(1, 0.5, 1), Vector3(1, 0.5, 0.5)], [Vector3(1, 0.5, 0.5), Vector3(1, 1, 0.5)],
+		[Vector3(0, 1, 0.5), Vector3(1, 1, 0.5)], [Vector3(0, 0.5, 0.5), Vector3(1, 0.5, 0.5)]],
+}
 
 var game
 var _lines := ImmediateMesh.new()
@@ -78,6 +90,13 @@ func _build(at: Vector3i) -> void:
 				started = true
 			_lines.surface_add_vertex(corner(c, e[0]))
 			_lines.surface_add_vertex(corner(c, e[1]))
+		var form: int = game.plans.forms.get(c, 0)
+		for e: Array in FORM_LINES.get(form & 3, []):
+			if not started:
+				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
+				started = true
+			_lines.surface_add_vertex(point(c, Forms.turn(e[0], form >> 2 & 3)))
+			_lines.surface_add_vertex(point(c, Forms.turn(e[1], form >> 2 & 3)))
 	if started:
 		_lines.surface_end()
 	visible = started
@@ -95,6 +114,14 @@ static func hidden_edge(cells: Dictionary, c: Vector3i, a: Vector3i, b: Vector3i
 		if not cells.has(c + d):
 			return false
 	return true
+
+
+## Point `v` (0..1 per axis) of cell `c`, kept a line's inset inside it, in world units.
+static func point(c: Vector3i, v: Vector3) -> Vector3:
+	var p := Vector3(c) * CELL
+	for axis in 3:
+		p[axis] += lerpf(INSET, CELL - INSET, v[axis])
+	return p
 
 
 ## The corner `k` (0/1 per axis) of cell `c`, a line's inset inside it, in world units.

@@ -99,14 +99,16 @@ func _test_requests() -> void:
 		if r[1] is Dictionary and not r[1].is_empty():
 			done += 1
 	_check(done >= 1 and done < 15, "forty swings asked at once: only those the time allows are done (%d)" % done)
-	var r2: Array = req.handle(Protocol.request(Protocol.PLAN, 100, ["plane", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1, 1, false]))
+	var r2: Array = req.handle(Protocol.request(Protocol.PLAN, 100, ["plane", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1, 1, false, 0]))
 	_check(r2[1] == 0, "a blueprint of corners far apart is refused at once, not made")
 	var r3: Array = req.handle(Protocol.request(Protocol.SORT, 101, [null, "kind", -16]))
 	_check(r3[1] == true, "a sort from a slot counted from the end is done as from the first")
-	var r4: Array = req.handle(Protocol.request(Protocol.PLAN, 104, ["plane", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1, 1, true]))
+	var r4: Array = req.handle(Protocol.request(Protocol.PLAN, 104, ["plane", Vector3i(-1000000000, 2, -1000000000), Vector3i(1000000000, 2, 1000000000), 1, 1, true, 0]))
 	_check(r4[1] == 0, "and so is taking the ghost off such a box")
-	_check(req.handle(Protocol.request(Protocol.PLAN, 105, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, 1]))[1] == null,
+	_check(req.handle(Protocol.request(Protocol.PLAN, 105, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, 1, 0]))[1] == null,
 		"a blueprint whose «erase» is no bool is refused")
+	_check(req.handle(Protocol.request(Protocol.PLAN, 106, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 99]))[1] == null,
+		"and one of a form out of bounds")
 
 
 ## A bag counted from its end is the same bag, not twice the things.

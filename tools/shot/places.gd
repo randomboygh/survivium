@@ -632,9 +632,9 @@ func furniture(w, at: Vector3) -> Vector3:
 	p.put("tools:stool", a + Vector3i(8, 0, 3), null, true, -1.0, null, 1)
 	p.put("tools:rug", a + Vector3i(2, 0, 3))
 	for c: Vector3i in w.bushes.keys():
-		if absi(c.x - spot.x) <= 16 and absi(c.z - spot.z + 6) <= 10:
+		if c.x - spot.x >= -20 and c.x - spot.x <= 16 and absi(c.z - spot.z + 6) <= 10:
 			w.remove_bush(c)
-	for dx in range(-8, 17, 8):
+	for dx in range(-16, 17, 8):
 		main.chunks.on_cell_changed(a + Vector3i(dx, 0, 2))
 	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
 
@@ -664,11 +664,77 @@ func plan(w, at: Vector3) -> Vector3:
 	for c: Vector3i in wall:
 		plans.cells[c] = "materials:brick"
 	plans.changed.emit(wall, "materials:brick")
+	# The forms of built blocks (WorldData.forms) west of the room: a flight of stairs
+	# rising east on stone, ramps rising north, upturned ramps over a plank wall, and the
+	# ghost of a flight of ramps.
+	var stone := Mat.STONE
+	for i in 3:
+		for z in range(1, 4):
+			var c := a + Vector3i(-12 + i, i, z)
+			for y in range(a.y, c.y):
+				w.set_cell(c.x, y, c.z, stone)
+			w.set_cell(c.x, c.y, c.z, planks)
+			w.set_form(c.x, c.y, c.z, WorldData.FORM_STAIRS | 1 << 2)
+	for x in range(-12, -9):
+		var c := a + Vector3i(x, 0, 5)
+		w.set_cell(c.x, c.y, c.z, stone)
+		w.set_form(c.x, c.y, c.z, WorldData.FORM_RAMP)
+		for y in 2:
+			w.set_cell(c.x, c.y + y, c.z + 2, planks)
+		w.set_cell(c.x, c.y + 2, c.z + 1, planks)
+		w.set_form(c.x, c.y + 2, c.z + 1, WorldData.FORM_UPPER | 2 << 2)
+	var ramps: Array = []
+	for i in 3:
+		var c := a + Vector3i(-7, i, -2 + i)
+		ramps.append(c)
+		plans.cells[c] = "materials:planks"
+		plans.forms[c] = WorldData.FORM_RAMP | 2 << 2
+	plans.changed.emit(ramps, "materials:planks")
 	for c: Vector3i in w.bushes.keys():
-		if absi(c.x - spot.x) <= 16 and absi(c.z - spot.z + 6) <= 10:
+		if c.x - spot.x >= -20 and c.x - spot.x <= 16 and absi(c.z - spot.z + 6) <= 10:
 			w.remove_bush(c)
-	for dx in range(-8, 17, 8):
+	for dx in range(-16, 17, 8):
 		main.chunks.on_cell_changed(a + Vector3i(dx, 0, 2))
+	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## The forms of built blocks (WorldData.forms) on flat ground near `at`: a row of
+## stairs, of ramps and of upturned ramps (over a stone each), each facing north, east,
+## south and west, and a flight of stairs and one of ramps going up north. Returns where
+## the player stands, south of them.
+func forms(w, at: Vector3, only := 0) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var stone := Mat.STONE
+	for c: Vector3i in w.bushes.keys():
+		if absi(c.x - spot.x) <= 14 and absi(c.z - spot.z + 6) <= 10:
+			w.remove_bush(c)
+	# A stone floor under them, so no grass hides them.
+	for z in range(-12, 0):
+		for x in range(-10, 9):
+			w.set_cell(spot.x + x, spot.y - 1, spot.z + z, stone)
+	var kinds := [WorldData.FORM_STAIRS, WorldData.FORM_RAMP, WorldData.FORM_UPPER]
+	if only != 0:
+		kinds = [only]
+	for r in kinds.size():
+		for side in 4:
+			var c := spot + Vector3i(-8 + 2 * side, 0, -10 + 3 * r)
+			if kinds[r] == WorldData.FORM_UPPER:
+				w.set_cell(c.x, c.y, c.z, stone)
+				c.y += 1
+			w.set_cell(c.x, c.y, c.z, planks)
+			w.set_form(c.x, c.y, c.z, kinds[r] | side << 2)
+	for f in (2 if only == 0 else 0):
+		for i in 3:
+			for x in 2:
+				var c := spot + Vector3i(2 + 3 * f + x, i, -4 - i)
+				for y in range(spot.y, c.y):
+					w.set_cell(c.x, y, c.z, stone)
+				w.set_cell(c.x, c.y, c.z, planks if f == 0 else stone)
+				w.set_form(c.x, c.y, c.z, WorldData.FORM_STAIRS if f == 0 else WorldData.FORM_RAMP)
+	for dx in range(-16, 17, 8):
+		for dz in [-8, 0]:
+			main.chunks.on_cell_changed(spot + Vector3i(dx, 0, dz))
 	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
