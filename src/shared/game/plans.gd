@@ -21,6 +21,10 @@ const CELL := WorldData.CELL
 ## Cells one shape may have at most, and the ghost cells in the world at most.
 const MAX_SHAPE := 400
 const MAX_CELLS := 4000
+## How far (cells, across the ground and up or down) from the one drawing a shape's
+## corners may lie: about the screen the shape is drawn on, so nobody draws ghosts far
+## off where they cannot see.
+const PLAN_REACH := 64
 ## How high a wall or a room is drawn, in levels.
 const MIN_HEIGHT := 1
 const MAX_HEIGHT := 4
@@ -39,6 +43,9 @@ var cells := {}
 ## the side nearest `near` (a column, world units; INF for none). In no order.
 static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
+	# Counted before it is made: corners far apart would make millions of cells.
+	if too_big(kind, a, b, height):
+		return out
 	height = clampi(height, MIN_HEIGHT, MAX_HEIGHT)
 	var lo := Vector2i(mini(a.x, b.x), mini(a.z, b.z))
 	var hi := Vector2i(maxi(a.x, b.x), maxi(a.z, b.z))
@@ -68,6 +75,28 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 							continue
 						out.append(Vector3i(x, a.y + y, z))
 	return out
+
+
+## Whether shape `kind` from `a` to `b`, `height` levels high, would have more than
+## MAX_SHAPE cells (counted from its corners, not made).
+static func too_big(kind: String, a: Vector3i, b: Vector3i, height: int) -> bool:
+	var w := absi(b.x - a.x) + 1
+	var d := absi(b.z - a.z) + 1
+	var h := clampi(height, MIN_HEIGHT, MAX_HEIGHT)
+	match kind:
+		"wall":
+			return maxi(w, d) * h > MAX_SHAPE
+		"floor":
+			return w > MAX_SHAPE or d > MAX_SHAPE or w * d > MAX_SHAPE
+		"room":
+			return (w + d) * 2 * h > MAX_SHAPE + 4 * h
+	return true
+
+
+## Whether cell `c` is near enough to `who` for a shape's corner (PLAN_REACH).
+static func within_reach(who, c: Vector3i) -> bool:
+	var p: Vector3 = who.position / CELL
+	return Vector2(c.x + 0.5 - p.x, c.z + 0.5 - p.z).length() <= PLAN_REACH and absf(c.y - p.y) <= PLAN_REACH
 
 
 ## The column of a room's door gap: the middle of its side nearest `near` (world units),
@@ -101,6 +130,11 @@ static func _door_gap(lo: Vector2i, hi: Vector2i, near: Vector2) -> Vector2i:
 ## plans: passed, not kept, so the two make no cycle). Returns how many cells changed.
 func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int) -> int:
 	var item: String = who.held()
+	if too_big(kind, a, b, height):
+		who.nag("plan_big", "Слишком большой чертёж")
+		return 0
+	if not within_reach(who, a) or not within_reach(who, b):
+		return 0
 	if cells.has(a):
 		return erase(actions, who, shape(kind, a, b, height))
 	var block := Mat.index(Items.get_item(item).get("place", ""))

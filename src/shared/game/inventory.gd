@@ -256,8 +256,10 @@ func room_for(id: String) -> int:
 
 
 ## Takes up to `n` of item `id` out of the bag, from the last stacks first, never a
-## chest with things in it; returns how many were taken.
-func remove(id: String, n: int) -> int:
+## chest with things in it; returns how many were taken. With `took` (an Array) each
+## part taken is noted in it as [id, count, worn], so what wears or spoils can be given
+## back as it was (a craft cancelled, CraftQueue).
+func remove(id: String, n: int, took: Variant = null) -> int:
 	var was := _worn_now()
 	var back := worn_slot("back")
 	var left := n
@@ -265,6 +267,8 @@ func remove(id: String, n: int) -> int:
 		var s = slots[i]
 		if left > 0 and s != null and s[0] == id and s.size() < 4 and i != back:
 			var k := mini(left, s[1])
+			if took is Array and k > 0:
+				took.append([id, k, _worn(s)])
 			s[1] -= k
 			left -= k
 			if s[1] == 0:
@@ -279,7 +283,7 @@ func remove(id: String, n: int) -> int:
 ## [id, count, worn] for a worn tool, [id, 1, 0, contents] for a chest with things in
 ## it) or null.
 func take_slot(i: int, n: int):
-	if slots[i] == null or n <= 0:
+	if i < 0 or i >= slots.size() or slots[i] == null or n <= 0:
 		return null
 	var was := _worn_now()
 	if n >= slots[i][1]:
@@ -298,14 +302,14 @@ func take_slot(i: int, n: int):
 
 ## What the chest in slot `i` holds (as to_dict() gives it), or null.
 func contents(i: int) -> Variant:
-	var s = slots[i]
+	var s = slots[i] if i >= 0 and i < slots.size() else null
 	return s[3] if s != null and s.size() > 3 else null
 
 
 ## Moves as much of slot `i` as fits into bag `to` (keeping its wear and contents);
 ## returns how many.
 func move_slot(i: int, to) -> int:
-	if slots[i] == null:
+	if i < 0 or i >= slots.size() or slots[i] == null:
 		return 0
 	if worn_slot("back") == i and (not to.nests or to.slots.find(null) < 0):
 		return 0
@@ -320,6 +324,8 @@ func move_slot(i: int, to) -> int:
 ## the hotbar row), but what is worn and slot `keep` (the bag `to` is opened from, see
 ## open); returns how many things went.
 func move_all(to, from := 0, keep := -1) -> int:
+	# A slot counted from the end (a negative number) is the same slot twice: never.
+	from = clampi(from, 0, slots.size())
 	var n := 0
 	var worn := {}
 	for on: String in gear:
@@ -341,6 +347,8 @@ const SORTS := {"kind": "по виду", "weight": "по весу"}
 ## hotbar row) and a bag worn on the back (which must stay out of its own slots) stay as
 ## they are; worn clothes are sorted with the rest and stay worn.
 func sort(by: String, from := 0) -> void:
+	# A slot counted from the end (a negative number) would be counted twice: never.
+	from = clampi(from, 0, slots.size())
 	var counts := {}
 	var stacks := []
 	var pinned := {}
@@ -396,6 +404,8 @@ func sort(by: String, from := 0) -> void:
 ## chest with things in it does not go into a bag that does not take one (see
 ## nests); false then.
 func put_into(i: int, to, j: int) -> bool:
+	if i < 0 or i >= slots.size() or j < 0 or j >= to.slots.size():
+		return false
 	if slots[i] == null or (to == self and i == j):
 		return true
 	var back := worn_slot("back")

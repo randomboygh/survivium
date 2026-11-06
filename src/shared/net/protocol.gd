@@ -38,6 +38,10 @@ const WHY_NAME := "name"
 ## The host blocked the player, or lets in only the names on the server's list.
 const WHY_BANNED := "banned"
 const WHY_LIST := "list"
+## Another player in the world goes by that name, or it is one only the server goes by.
+const WHY_TAKEN := "taken"
+## Too many tries in a short while (a wrong password, new players): come back later.
+const WHY_WAIT := "wait"
 
 ## The requests, each with its args. The rules they reach are in src/shared/game/; what
 ## each gives back is what that rule returns (Requests._do).
@@ -268,6 +272,30 @@ static func request(kind: String, seq: int, args: Array) -> Array:
 ## The reply to request `seq`.
 static func reply(seq: int, value: Variant) -> Array:
 	return [seq, value]
+
+
+## Text a player typed (a name, a line of chat, a team's name), made safe to show and to
+## log: control characters (a new line too) become spaces, the marks that turn text
+## around or hide it go, runs of spaces are one, the ends trimmed, at most `most` letters.
+static func clean_text(text: String, most: int) -> String:
+	var src := text.left(most * 4)
+	var out := ""
+	var space := false
+	for i in src.length():
+		var c := src.unicode_at(i)
+		if c < 32 or c == 127 or c == 0x2028 or c == 0x2029 or (c >= 0x80 and c < 0xA0) or c == 0x3000:
+			c = 32
+		elif c == 0xAD or c == 0x180E or (c >= 0x200B and c <= 0x200F) or (c >= 0x202A and c <= 0x202E) \
+				or (c >= 0x2060 and c <= 0x206F) or c == 0xFEFF or (c >= 0xFFF9 and c <= 0xFFFB):
+			continue
+		if c == 32:
+			space = true
+			continue
+		if space and out != "":
+			out += " "
+		space = false
+		out += char(c)
+	return out.left(most)
 
 
 ## A message as bytes for the wire.

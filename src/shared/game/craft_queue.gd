@@ -7,13 +7,17 @@ extends RefCounted
 ## player.
 
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 ## Jobs can be queued up to this many at a time.
 const MAX_JOBS := 20
 
 signal changed
 
-## Each job: {"recipe": id, "left": seconds of work left, "n": its serial}.
+## Each job: {"recipe": id, "left": seconds of work left, "n": its serial, "took": the
+## stacks its materials were taken as, [id, count, worn] each, so a cancel gives back a
+## worn tool worn and food as old as it was, not new ones (a job of an older save has
+## none: its recipe's materials come back)}.
 var jobs: Array = []
 ## The serial of the next job queued.
 var serial := 0
@@ -22,22 +26,26 @@ var serial := 0
 ## Queues recipe `r`, taking its materials from bag `inv`; false when they are missing
 ## or the queue is full.
 func add(r: Dictionary, inv) -> bool:
-	if jobs.size() >= MAX_JOBS or not Crafting.take(r, inv):
+	var took := []
+	if jobs.size() >= MAX_JOBS or not Crafting.take(r, inv, took):
 		return false
-	jobs.append({"recipe": r.id, "left": float(r.time), "n": serial})
+	jobs.append({"recipe": r.id, "left": float(r.time), "n": serial, "took": took})
 	serial += 1
 	changed.emit()
 	return true
 
 
-## Cancels job `i`; returns its materials ([id, count] stacks) for the caller to put
-## back into the bag.
+## Cancels job `i`; returns its materials ([id, count] or [id, count, worn] stacks, as
+## they were taken) for the caller to put back into the bag.
 func cancel(i: int) -> Array:
 	if i < 0 or i >= jobs.size():
 		return []
 	var r := Crafting.get_recipe(jobs[i].recipe)
+	var took: Variant = jobs[i].get("took")
 	jobs.remove_at(i)
 	changed.emit()
+	if took is Array:
+		return took.duplicate(true)
 	var out := []
 	for id in r.get("needs", {}):
 		out.append([id, r.needs[id]])
@@ -89,5 +97,25 @@ func from_dict(d: Dictionary) -> void:
 			if n < 0:
 				n = serial
 				serial += 1
-			jobs.append({"recipe": Crafting.canon(j.recipe), "left": float(j.get("left", 0.0)), "n": n})
+			var job := {"recipe": Crafting.canon(j.recipe), "left": float(j.get("left", 0.0)), "n": n}
+			var took: Variant = _stacks(j.get("took"))
+			if took != null:
+				job.took = took
+			jobs.append(job)
 	changed.emit()
+
+
+## The stacks a saved job's materials were taken as (see jobs), each [id, count, worn] of
+## an item there is; null for none saved or of another shape (the recipe's are given back).
+static func _stacks(v: Variant) -> Variant:
+	if not v is Array:
+		return null
+	var out := []
+	for s in v:
+		if not (s is Array and s.size() == 3 and s[0] is String and (s[1] is int or s[1] is float)
+				and (s[2] is int or s[2] is float)):
+			return null
+		var id := Items.canon(s[0])
+		if Items.has(id) and int(s[1]) > 0:
+			out.append([id, int(s[1]), int(s[2])])
+	return out

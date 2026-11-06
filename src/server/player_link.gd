@@ -203,7 +203,7 @@ func handle(bytes: PackedByteArray) -> Variant:
 func handle_msg(msg: Array) -> Variant:
 	if msg.size() == 3:
 		return Protocol.encode(requests.handle(msg))
-	if msg.size() == 2 and msg[0] == Protocol.INPUT and msg[1] is Array:
+	if msg.size() == 2 and msg[0] is String and msg[0] == Protocol.INPUT and msg[1] is Array:
 		who.take_input(msg[1])
 	return null
 

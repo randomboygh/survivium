@@ -376,6 +376,11 @@ func _water_surface(p: Vector3) -> float:
 	return y + (WorldData.WATER_TOP if world.get_cell(x, y + 1, z) == Mat.AIR else 1.0)
 
 
+## True if the body standing at `at` (world units) would be inside something solid.
+func blocked(at: Vector3) -> bool:
+	return _collides(at / CELL)
+
+
 func _collides(p: Vector3) -> bool:
 	var x0 := floori(p.x - HALF_WIDTH)
 	var x1 := floori(p.x + HALF_WIDTH)

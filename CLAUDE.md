@@ -64,6 +64,11 @@ tests/ tools/      headless tests and the browser smoke test; lint, validator, s
   `src/shared/game/character.gd`: the body, the hands, the bag; `src/client/game/character.gd` is the
   client's copy of it) and tells what it changed through signals the client's views connect to
   (`world_actions.gd`, `placed.gd`, `wildlife.gd`).
+- The server trusts nothing a socket sends (`docs/security/`): a new request checks its args' types and
+  bounds (slots, sizes, corners), reach and land rights, and goes into `Requests.PACED` if it takes the
+  hands' time; a new `input` field is derived or clamped on the server; a new command gets its role in
+  `Server.COMMANDS`; text a player typed goes through `Protocol.clean_text`. Each fix gets a check in
+  `tests/unit/security_test.gd` or `server_test.gd` `_security`.
 - `main.gd` only builds the scene and runs the frame; client modules get the Main node as `game`. New
   state goes into the module it belongs to; a new system is a new module. The rules over the world are
   run by the session (`src/shared/game/session.gd`, the server's tick): a rule that goes on in time is a

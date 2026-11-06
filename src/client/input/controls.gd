@@ -764,6 +764,7 @@ func _did(done: Variant) -> bool:
 ## Works at `cell`, tapped on its face `normal`, with the hand in use (see
 ## WorldActions.dig_at). True if anything was done.
 func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
+	_wait_reply()
 	var r = game.net.request(Protocol.DIG, [cell, normal]).then(_did)
 	return r.done and r.value is Dictionary and not r.value.is_empty()
 
@@ -771,8 +772,17 @@ func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
 ## Places the block in the hand in use with the brush around `center`, across face
 ## `normal`, below the cut (see WorldActions.place_at). Returns how many were placed.
 func place_at(center: Vector3i, normal: Vector3i) -> int:
+	_wait_reply()
 	var r = game.net.request(Protocol.PLACE, [center, normal, game.chunks.cut_level]).then(_did)
 	return r.value.get("placed", 0) if r.done and r.value is Dictionary else 0
+
+
+## Over a socket the reply with the swing's wait comes later: until it does, a held
+## stroke waits as long as it takes to try again, rather than asking every frame (the
+## server would refuse those anyway, Requests.paced). Over the loop the reply sets it at once.
+func _wait_reply() -> void:
+	if game.socket != null:
+		_cooldown = maxf(_cooldown, WorldActions.IDLE_SWING)
 
 
 func _can_place(cell: Vector3i) -> bool:

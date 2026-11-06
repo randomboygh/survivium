@@ -485,7 +485,9 @@ func _on_welcome(v: Variant) -> void:
 		join_error = {Protocol.WHY_VERSION: "Версия игры другая — обновите страницу",
 			Protocol.WHY_PASSWORD: "Неверный пароль", Protocol.WHY_FULL: "Сервер полон",
 			Protocol.WHY_NAME: "Нужно имя", Protocol.WHY_BANNED: "Хозяин сервера заблокировал вас",
-			Protocol.WHY_LIST: "Сервер пускает только своих: попросите хозяина добавить ваше имя"}.get(why, "Сервер не пустил")
+			Protocol.WHY_LIST: "Сервер пускает только своих: попросите хозяина добавить ваше имя",
+			Protocol.WHY_TAKEN: "Это имя уже занято — выберите другое",
+			Protocol.WHY_WAIT: "Слишком много попыток — подождите минуту"}.get(why, "Сервер не пустил")
 		return
 	if not v.get("seed") is int or not v.get("settings") is Dictionary or not v.get("mods") is Array \
 			or not v.get("materials") is Array or not v.get("at") is Vector3:

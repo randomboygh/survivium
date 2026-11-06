@@ -34,8 +34,40 @@ const HELLO_WAIT := 10.0
 const SNAP_EVERY := 0.1
 ## Seconds between the other players' snapshots to a player (PlayerLink.people_every).
 const PEOPLE_EVERY := 0.05
-## Bytes a frame may hold each way (the chunks of С3.2 are large).
+## Bytes a frame may hold going out (the chunks of С3.2 are large), and coming in (a
+## client sends only small messages: a bigger one is not taken).
 const BUFFER := 4 << 20
+const INBOUND := 256 << 10
+## Connections that have not said hello yet, at most, and from one address at most (all
+## of a tunnel's come from this machine: only the first counts for them).
+const PENDING_MAX := 16
+const PENDING_PER_ADDRESS := 4
+## Messages a connection may send a second, and in a burst: more are not read, and one
+## that keeps sending past it (FLOOD_KICK seconds' worth refused) is put out.
+const MSG_RATE := 300.0
+const MSG_BURST := 600.0
+const FLOOD_KICK := 3.0
+## Wrong passwords from one address in PASSWORD_WINDOW seconds before a new player from
+## it waits that long (one with a key the server knows comes in all the same); new
+## players (no key the server knows) in NEW_WINDOW seconds at most.
+const PASSWORD_TRIES := 8
+const PASSWORD_WINDOW := 60.0
+const NEW_PLAYERS := 10
+const NEW_WINDOW := 60.0
+## Names only the server goes by (lower case): a player may not take them.
+const RESERVED_NAMES := ["сервер", "server", "admin", "админ", "система", "system"]
+## What may give a command (command): a host (`op`), an owner (the player who made the
+## server in the game) and the terminal or the host's window, each able to do all the
+## one before can; and the commands each needs (COMMANDS, the one place they are named).
+enum { ROLE_PLAYER, ROLE_HOST, ROLE_OWNER, ROLE_CONSOLE }
+const COMMANDS := {"who": ROLE_HOST, "say": ROLE_HOST, "kick": ROLE_HOST, "give": ROLE_HOST,
+	"tp": ROLE_HOST, "ban": ROLE_HOST, "unban": ROLE_HOST, "bans": ROLE_HOST, "whitelist": ROLE_HOST,
+	"hosts": ROLE_HOST, "help": ROLE_HOST, "?": ROLE_HOST, "security": ROLE_HOST,
+	"op": ROLE_OWNER, "deop": ROLE_OWNER, "stop": ROLE_OWNER}
+## Lines the security log keeps (security), and seconds between two lines of one kind
+## about one player (the others are counted into the next).
+const SECURITY_KEPT := 500
+const SECURITY_EVERY := 10.0
 ## Letters a name may have.
 const NAME_MAX := 24
 ## The codes a connection is closed with: 1000 the client's own goodbye, 1001 the
@@ -45,6 +77,8 @@ const CLOSE_STOP := 1001
 const CLOSE_REFUSED := 4000
 const CLOSE_KICKED := 4001
 const CLOSE_ELSEWHERE := 4002
+## 4003: put out for sending far more than a client does.
+const CLOSE_FLOOD := 4003
 
 ## Polls a close waits after the last message sent, so the message goes first: a close
 ## frame goes before the data queued (wslay sends control frames first).
@@ -61,6 +95,11 @@ class Peer extends RefCounted:
 	var close_code := 0
 	var close_reason := ""
 	var close_in := 0
+	## Messages it may still send now (MSG_RATE), when that was counted, and how many
+	## past it were not read lately.
+	var tokens := MSG_BURST
+	var tokens_at := -1.0
+	var refused := 0.0
 
 	## Closes the socket after what was sent went out.
 	func close_after(code: int, reason: String) -> void:
@@ -105,7 +144,18 @@ var lines: Array[String] = []
 ## (with the name each had), the names blocked (lower case), whether only the names on
 ## the list are let in, the list (lower case), and the keys of the hosts (who may give
 ## commands in the chat) with the name each had.
-var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": [], "hosts": {}}
+## The owners (keys → names) may also op and deop and stop the server (COMMANDS); the
+## names on the list come in with the key they first came with (`listed_keys`, name →
+## key), so nobody else gets in by typing a name on it.
+var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": [], "hosts": {},
+	"owners": {}, "listed_keys": {}}
+## What looked wrong, newest last ({"at", "id", "name", "what", "detail", "level"}), and
+## when each kind about each player was last written (SECURITY_EVERY) with how many since.
+var security_log: Array = []
+var _flag_at := {}
+## Wrong passwords by address: the times of the last ones; the times new players came.
+var _wrong := {}
+var _new_at: Array[float] = []
 
 
 func _init(s, cfg: Config, info: Dictionary) -> void:
@@ -129,10 +179,14 @@ func poll() -> void:
 		var peer := Peer.new()
 		var stream := tcp.take_connection()
 		peer.address = stream.get_connected_host()
+		if _pending() >= PENDING_MAX or _pending(peer.address) >= PENDING_PER_ADDRESS:
+			stream.disconnect_from_host()
+			flag(null, "connections", "слишком много входов без приветствия с " + peer.address, 1)
+			continue
 		peer.ws = WebSocketPeer.new()
-		peer.ws.inbound_buffer_size = BUFFER
+		peer.ws.inbound_buffer_size = INBOUND
 		peer.ws.outbound_buffer_size = BUFFER
-		peer.ws.max_queued_packets = 4096
+		peer.ws.max_queued_packets = 1024
 		peer.since = now
 		if peer.ws.accept_stream(stream) == OK:
 			peers.append(peer)
@@ -142,7 +196,9 @@ func poll() -> void:
 		var state := ws.get_ready_state()
 		# What came before a close (a goodbye) is read still.
 		while ws.get_available_packet_count() > 0:
-			_take(peer, ws.get_packet())
+			var bytes := ws.get_packet()
+			if _within_rate(peer, now):
+				_take(peer, bytes)
 		if peer.close_code != 0 and state == WebSocketPeer.STATE_OPEN:
 			peer.close_in -= 1
 			if peer.close_in <= 0:
@@ -192,13 +248,19 @@ func online() -> int:
 	return n
 
 
-## Does the host's command `line` (who, say, kick, stop, help); the words to print.
-func command(line: String) -> String:
+## Does the host's command `line` (who, say, kick, stop, help) for one of `role` (the
+## terminal's by default; a player's by role_of, looked at anew each time); the words to
+## print. A command the role may not give is refused as an unknown one is not done.
+func command(line: String, role := ROLE_CONSOLE) -> String:
 	# "/give …" as in a chat, or "give …".
 	var parts := line.strip_edges().trim_prefix("/").split(" ", false, 1)
 	if parts.is_empty():
 		return ""
 	var rest := parts[1].strip_edges() if parts.size() > 1 else ""
+	if not COMMANDS.has(parts[0]):
+		return "неизвестная команда «%s»; help — список" % parts[0].left(32)
+	if role < COMMANDS[parts[0]]:
+		return "«%s» — только для владельца сервера" % parts[0]
 	match parts[0]:
 		"who":
 			var out: Array[String] = ["Игроков на связи: %d из %d" % [online(), config.max_players]]
@@ -238,7 +300,9 @@ func command(line: String) -> String:
 			var a := _find(rest)
 			if a == null:
 				return "op <кто> — дать команды в чате; нет такого игрока: " + rest
-			make_host(a.key)
+			access.hosts[a.key] = a.name
+			_save_access()
+			flag(a, "role", "дан хозяин (op)", 1)
 			a.link.hear(0, "", "Вы хозяин сервера: команды в чате через «/», /help — список")
 			return "хозяин: " + a.name
 		"deop":
@@ -247,17 +311,28 @@ func command(line: String) -> String:
 				if str(access.hosts[key]).to_lower() == low or str(key) == rest:
 					access.hosts.erase(key)
 					_save_access()
+					flag(accounts.get(key), "role", "снят хозяин (deop): " + rest, 1)
 					return "больше не хозяин: " + rest
 			return "не хозяин: " + rest
 		"hosts":
-			return "хозяева: " + (", ".join(access.hosts.values()) if not access.hosts.is_empty() else "только терминал")
+			var names: Array = access.owners.values().map(func(n) -> String: return "%s (владелец)" % n) + access.hosts.values()
+			return "хозяева: " + (", ".join(names) if not names.is_empty() else "только терминал")
+		"security":
+			var shown: Array = security_log.slice(-20)
+			if rest != "":
+				shown = security_log.filter(func(e: Dictionary) -> bool: return e.what == rest or e.name == rest).slice(-20)
+			var out: Array[String] = ["журнал безопасности: %d записей" % security_log.size()]
+			for e: Dictionary in shown:
+				out.append("  %s" % _security_line(e))
+			return "\n".join(out)
 		"help", "?":
 			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
 				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
 				"ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих",
-				"op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/»",
+				"op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)",
+				"security [вид или имя] — что выглядело подозрительно",
 				"<кто> — имя или номер игрока (who)"])
-	return "неизвестная команда «%s»; help — список" % parts[0]
+	return ""
 
 
 ## Loads who may come in from the world's save (the server's scene, at start).
@@ -265,7 +340,7 @@ func load_access() -> void:
 	if store == null:
 		return
 	var d: Dictionary = store.read_access()
-	for k in ["banned_keys", "hosts"]:
+	for k in ["banned_keys", "hosts", "owners", "listed_keys"]:
 		if d.get(k) is Dictionary:
 			access[k] = d[k]
 	for k in ["banned_names", "listed"]:
@@ -274,15 +349,25 @@ func load_access() -> void:
 	access.listed_only = d.get("listed_only") == true
 
 
-## The player of `key` may give commands in the chat (the server's own player, `op`).
+## The player of `key` owns the server: they made it in the game (Main._on_welcome).
 func make_host(key: String) -> void:
 	var a: Account = accounts.get(key)
-	access.hosts[key] = a.name if a != null else str(access.hosts.get(key, ""))
+	access.owners[key] = a.name if a != null else str(access.owners.get(key, ""))
 	_save_access()
 
 
 func is_host(key: String) -> bool:
-	return access.hosts.has(key)
+	return role_of(key) >= ROLE_HOST
+
+
+## What the player of `key` may command (COMMANDS), by the server's lists, never by
+## anything the client says.
+func role_of(key: String) -> int:
+	if access.owners.has(key):
+		return ROLE_OWNER
+	if access.hosts.has(key):
+		return ROLE_HOST
+	return ROLE_PLAYER
 
 
 ## Player `key` said `text`: a command for a host (answered to them), else a line heard
@@ -293,10 +378,11 @@ func _on_chat(text: String, key: String) -> void:
 		return
 	if text.begins_with("/"):
 		if not is_host(key):
+			flag(a, "command", "команда без прав: " + text.left(40), 1)
 			a.link.hear(0, "", "Команды через «/» — только для хозяина сервера")
 			return
 		_say("%s (%d): %s" % [a.name, a.id, text])
-		for line in command(text).split("\n"):
+		for line in command(text, role_of(key)).split("\n"):
 			a.link.hear(0, "", line)
 		return
 	_say("%s (%d): %s" % [a.name, a.id, text])
@@ -339,6 +425,7 @@ func _give(rest: String) -> String:
 	if id == "":
 		return "нет такого предмета: " + args[1]
 	var got: int = a.link.who.give(id, n)
+	flag(a, "give", "выдано командой: %d × %s" % [got, id], 0)
 	return "выдано %s: %d × %s" % [a.name, got, Items.title(id)]
 
 
@@ -430,6 +517,7 @@ func _whitelist(rest: String) -> String:
 			for a: Account in players():
 				if not access.listed.has(a.name.to_lower()):
 					access.listed.append(a.name.to_lower())
+				access.listed_keys[a.name.to_lower()] = a.key
 		"off":
 			access.listed_only = false
 		"add":
@@ -439,6 +527,7 @@ func _whitelist(rest: String) -> String:
 				access.listed.append(name)
 		"remove":
 			access.listed.erase(name)
+			access.listed_keys.erase(name)
 		"":
 			pass
 		_:
@@ -449,10 +538,11 @@ func _whitelist(rest: String) -> String:
 
 
 ## Puts `a` out with `why` (words for the player) and takes the character out of the world.
-func kick(a: Account, why: String) -> void:
+func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
+	flag(a, "kick", why, 2)
 	if a.peer != null:
 		a.peer.ws.put_packet(Protocol.encode(Protocol.event(Protocol.KICK, [why])))
-		a.peer.close_after(CLOSE_KICKED, why)
+		a.peer.close_after(code, why)
 		a.peer.account = null
 		a.peer = null
 	_forget(a)
@@ -487,11 +577,15 @@ func done() -> bool:
 func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	var open := peer.ws.get_ready_state() == WebSocketPeer.STATE_OPEN
 	if peer.account == null:
-		if open:
+		# One refused, kicked or gone elsewhere says nothing more.
+		if open and peer.close_code == 0:
 			_hello(peer, bytes)
 		return
 	var link: PlayerLink = peer.account.link
 	var msg := Protocol.decode(bytes)
+	if msg.is_empty() or not msg[0] is String:
+		flag(peer.account, "malformed", "не сообщение (%d байт)" % bytes.size(), 1)
+		return
 	if msg.size() == 2 and msg[0] == Protocol.BYE:
 		peer.account.linger = linger_of(peer.account)
 		if open:
@@ -507,19 +601,22 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 ## The first message must be a HELLO request; the player is let in or refused.
 func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	var msg := Protocol.decode(bytes)
-	if msg.size() != 3 or msg[0] != Protocol.HELLO or not msg[1] is int or not msg[2] is Array:
+	if msg.size() != 3 or not msg[0] is String or msg[0] != Protocol.HELLO or not msg[1] is int or not msg[2] is Array:
 		peer.ws.close(CLOSE_REFUSED, "hello first")
 		return
 	var seq: int = msg[1]
 	var args: Array = msg[2]
-	var why := _refusal(args)
+	var why := _refusal(args, peer.address)
 	if why != "":
-		_say("%s: отказ (%s) с %s" % [str(args[2]) if args.size() > 2 else "?", why, peer.address])
+		var who_said := Protocol.clean_text(str(args[2]), NAME_MAX) if args.size() > 2 else "?"
+		_say("%s: отказ (%s) с %s" % [who_said, why, peer.address])
+		if why in [Protocol.WHY_PASSWORD, Protocol.WHY_WAIT, Protocol.WHY_BANNED, Protocol.WHY_LIST]:
+			flag(null, "login", "%s: отказ (%s) с %s" % [who_said, why, peer.address], 1)
 		peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": why})))
 		peer.close_after(CLOSE_REFUSED, why)
 		return
-	var name := str(args[2]).strip_edges().left(NAME_MAX)
-	var key := str(args[3])
+	var name := Protocol.clean_text(args[2], NAME_MAX)
+	var key: String = args[3]
 	var a: Account = accounts.get(key)
 	if a != null:
 		if a.peer != null:
@@ -538,6 +635,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		if record.is_empty():
 			a.id = next_id
 			a.key = Crypto.new().generate_random_bytes(16).hex_encode()
+			_new_at.append(_now())
 		else:
 			a.id = int(record.id)
 			a.key = key
@@ -550,6 +648,8 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.who.id = a.id
 		a.link.who.player_name = a.name
 		a.link.who.check_moves = true
+		a.link.requests.paced = true
+		a.link.requests.flagged.connect(_on_flagged.bind(a.key))
 		a.link.requests.chatted.connect(_on_chat.bind(a.key))
 		a.link.requests.team_chatted.connect(_on_team_chat.bind(a.key))
 		if record.is_empty():
@@ -569,6 +669,10 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	a.left_at = -1.0
 	a.linger = LINGER
 	peer.account = a
+	if access.listed.has(name.to_lower()) and not access.listed_keys.has(name.to_lower()):
+		# A name on the list is the first key's that comes with it.
+		access.listed_keys[name.to_lower()] = a.key
+		_save_access()
 	var welcome := {"ok": true, "id": a.id, "key": a.key, "name": a.name, "at": a.link.who.position,
 		"title": config.title}
 	welcome.merge(world_info)
@@ -577,25 +681,123 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		peer.ws.put_packet(b)
 
 
-## Why the HELLO with `args` is refused, "" when it is not.
-func _refusal(args: Array) -> String:
+## Why the HELLO with `args` from `address` is refused, "" when it is not.
+func _refusal(args: Array, address := "") -> String:
 	if args.size() != 5 or not args[0] is int or not args[1] is String or not args[2] is String \
-			or not args[3] is String or not args[4] is String:
+			or not args[3] is String or not args[4] is String or args[3].length() > 64:
 		return Protocol.WHY_VERSION
 	if args[0] != Protocol.VERSION or args[1] != Protocol.build_version():
 		return Protocol.WHY_VERSION
-	if str(args[2]).strip_edges() == "":
+	var name := Protocol.clean_text(args[2], NAME_MAX)
+	if name == "":
 		return Protocol.WHY_NAME
-	if config.password != "" and args[4] != config.password:
+	var now := _now()
+	# A player the server knows (by the key it gave) is never held up by others' tries:
+	# behind a tunnel everyone comes from this machine.
+	var known: bool = accounts.has(args[3]) or store != null and args[3] != "" and not store.read_player(args[3]).is_empty()
+	var wrong: Array = _wrong.get(address, []).filter(func(t: float) -> bool: return now - t < PASSWORD_WINDOW)
+	_wrong[address] = wrong
+	if wrong.size() >= PASSWORD_TRIES and not known:
+		return Protocol.WHY_WAIT
+	if config.password != "" and not _same(args[4], config.password):
+		wrong.append(now)
 		return Protocol.WHY_PASSWORD
-	var low := str(args[2]).strip_edges().left(NAME_MAX).to_lower()
+	if wrong.is_empty():
+		_wrong.erase(address)
+	var low := name.to_lower()
 	if access.banned_keys.has(args[3]) or access.banned_names.has(low):
 		return Protocol.WHY_BANNED
-	if access.listed_only and not access.listed.has(low):
+	if access.listed_only and (not access.listed.has(low)
+			or access.listed_keys.has(low) and access.listed_keys[low] != args[3]):
 		return Protocol.WHY_LIST
+	if low in RESERVED_NAMES:
+		return Protocol.WHY_TAKEN
+	for key in accounts:
+		if key != args[3] and accounts[key].name.to_lower() == low:
+			return Protocol.WHY_TAKEN
 	if not accounts.has(args[3]) and accounts.size() >= config.max_players:
 		return Protocol.WHY_FULL
+	if not known:
+		while not _new_at.is_empty() and now - _new_at[0] > NEW_WINDOW:
+			_new_at.pop_front()
+		if _new_at.size() >= NEW_PLAYERS:
+			return Protocol.WHY_WAIT
 	return ""
+
+
+## Whether two words are the same, compared in a time that does not tell how much of
+## them matched.
+static func _same(a: String, b: String) -> bool:
+	var x := a.sha256_buffer()
+	var y := b.sha256_buffer()
+	var d := 0
+	for i in x.size():
+		d |= x[i] ^ y[i]
+	return d == 0
+
+
+## Connections that have not said hello (from `address`; "" any, and all of this
+## machine's count as one address only if it is another).
+func _pending(address := "") -> int:
+	var n := 0
+	for p in peers:
+		if p.account == null and p.close_code == 0 and (address == "" or p.address == address):
+			n += 1
+	return n
+
+
+## Whether one more message of `peer` may be read now (MSG_RATE); one that keeps sending
+## past it is put out.
+func _within_rate(peer: Peer, now: float) -> bool:
+	if peer.tokens_at >= 0.0:
+		var dt := now - peer.tokens_at
+		peer.tokens = minf(MSG_BURST, peer.tokens + dt * MSG_RATE)
+		peer.refused = maxf(0.0, peer.refused - dt * MSG_RATE)
+	peer.tokens_at = now
+	if peer.tokens >= 1.0:
+		peer.tokens -= 1.0
+		return true
+	peer.refused += 1.0
+	if peer.refused > FLOOD_KICK * MSG_RATE and peer.close_code == 0:
+		flag(peer.account, "flood", "слишком много сообщений: отключён", 2)
+		if peer.account != null:
+			kick(peer.account, "слишком много сообщений", CLOSE_FLOOD)
+		else:
+			peer.close_after(CLOSE_FLOOD, "слишком много сообщений")
+	elif int(peer.refused) % int(MSG_RATE) == 1:
+		flag(peer.account, "flood", "сообщения чаще %d в секунду не читаются" % int(MSG_RATE), 1)
+	return false
+
+
+## Notes in the security log that something looked wrong (`what` its kind, `detail` in
+## words, `level` 0 a note, 1 a warning, 2 what put one out) with player `a` (null: a
+## connection not let in); a line for the terminal, at most one of a kind about one
+## player in SECURITY_EVERY seconds (the others counted into it). Nothing secret is
+## written: no keys, no passwords.
+func flag(a: Account, what: String, detail: String, level := 1) -> void:
+	var now := _now()
+	var e := {"at": Time.get_datetime_string_from_system(), "id": a.id if a != null else 0,
+		"name": a.name if a != null else "", "what": what, "detail": detail, "level": level}
+	security_log.append(e)
+	while security_log.size() > SECURITY_KEPT:
+		security_log.pop_front()
+	var k := "%d:%s" % [e.id, what]
+	var last: Array = _flag_at.get(k, [-INF, 0])
+	if level < 2 and now - last[0] < SECURITY_EVERY:
+		_flag_at[k] = [last[0], last[1] + 1]
+		return
+	_flag_at[k] = [now, 0]
+	_say("безопасность: " + _security_line(e) + (" (и ещё %d)" % last[1] if last[1] > 0 else ""))
+
+
+static func _security_line(e: Dictionary) -> String:
+	return "%s [%s] %s%s: %s" % [e.at, ["заметка", "внимание", "меры"][clampi(e.level, 0, 2)], e.what,
+		" — %s (%d)" % [e.name, e.id] if e.id != 0 else "", e.detail]
+
+
+## A request of the player of `key` looked wrong (Requests.flagged).
+func _on_flagged(what: String, detail: String, key: String) -> void:
+	flag(accounts.get(key), what, detail, 1)
 
 
 ## The connection `peer` is closed: its player waits for them to come back.
