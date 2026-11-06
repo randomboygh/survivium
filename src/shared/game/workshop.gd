@@ -29,7 +29,7 @@ var who
 ## The placed things (Placed), for the stations near.
 var placed
 ## The rules of play (Rules): `tool_wear` turns tool wear on, `instant_craft` makes a
-## job take no time.
+## job take no time, `free_items` lets give_free give any recipe's thing.
 var rules
 var queue := CraftQueue.new()
 var knowledge := Knowledge.new()
@@ -91,6 +91,15 @@ func stations() -> Dictionary:
 ## The recipes the character knows, in the order of the data files.
 func recipes() -> Array:
 	return knowledge.recipes()
+
+
+## Gives what recipe `r` makes into the bag for nothing, known or not, with no materials,
+## station or tools, while the rules allow it (playtest «Бесплатные предметы»); returns
+## how many went into the bag (0 when not allowed or the bag is full).
+func give_free(r: Dictionary) -> int:
+	if not rules.free_items or r.is_empty() or not Crafting.possible(r):
+		return 0
+	return who.give(r.makes, r.count)
 
 
 ## Why recipe `r` cannot be started now; "" when it can.

@@ -3,7 +3,7 @@ extends "res://tests/unit/test_case.gd"
 ## what the bag has, the feet and the body are the server's, claims sent faster go no
 ## farther, the hands' work is paced, a bag counted from its end does not grow, a craft
 ## cancelled gives back what it took as it was, a blueprint of huge corners is not made,
-## text typed is made safe, and the server's door: reserved and taken names, the list's
+## text typed is made safe, free items only when the rules allow them, and the server's door: reserved and taken names, the list's
 ## names bound to their keys, wrong passwords, and who may give which command.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -109,6 +109,13 @@ func _test_requests() -> void:
 		"a blueprint whose «erase» is no bool is refused")
 	_check(req.handle(Protocol.request(Protocol.PLAN, 106, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 99]))[1] == null,
 		"and one of a form out of bounds")
+	var free := ["tools:torch"]
+	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 107, free))[1] == 0 and a.inventory.count("tools:torch") == 0,
+		"a recipe's thing is not given for nothing while the rules do not allow it")
+	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 108, [7]))[1] == null, "nor for a recipe id that is no text")
+	p[0].rules.free_items = true
+	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 109, free))[1] == 1 and a.inventory.count("tools:torch") == 1,
+		"with «Бесплатные предметы» on it is")
 
 
 ## A bag counted from its end is the same bag, not twice the things.

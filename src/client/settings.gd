@@ -79,13 +79,16 @@ const DEFAULTS := {
 	# DENSITIES): how many slices in front of the player and levels over their head
 	# count as the first, over how many the rest fades out, how much of a first is drawn.
 	# The keys of the first ones replaced «layer_*_first» when they took values below 0.
-	"layer_front_from": 5,
-	"layer_front_stretch": 2,
-	"layer_above_from": 5,
-	"layer_above_stretch": 2,
-	"layer_density": 1,
-	# Where the quarter that thins out starts (CaveLayers.LINES, index 10 = the feet).
-	"layer_line": 10,
+	# The defaults (the user's pick, 2026-11-06): in front the first 2 over a stretch of
+	# 2, above -2 over 4, the first ones drawn whole.
+	"layer_front_from": 6,
+	"layer_front_stretch": 1,
+	"layer_above_from": 2,
+	"layer_above_stretch": 3,
+	"layer_density": 3,
+	# Where the quarter that thins out starts (CaveLayers.LINES, index 10 = the feet;
+	# by default two levels over them).
+	"layer_line": 12,
 	# For the whole world (test settings «Пещеры»), how much darker each level under the
 	# sea's surface gets (CaveLayers.DEPTH_STEPS, 12 %).
 	"cut_depth": 2,
@@ -188,6 +191,9 @@ var free_view := false
 var no_overload := false
 ## Playtest switch: crafting takes no time (Workshop: a job a frame). Not saved.
 var instant_craft := false
+## Playtest switch: the craft tab shows every recipe, and «получить» gives the chosen
+## one's thing for nothing (Rules.free_items, Workshop.give_free). Not saved.
+var free_items := false
 ## Playtest switch: satiety does not fall (Vitals.hunger off). Not saved.
 var no_hunger := false
 ## Playtest switch: the body does not tire (Vitals.fatigue off: energy stays, work and swimming cost no stamina). Not saved.
@@ -366,6 +372,7 @@ func apply() -> void:
 		game.rules.free_build = free_build
 		game.rules.tool_wear = tool_wear
 		game.rules.instant_craft = instant_craft
+		game.rules.free_items = free_items
 	if game.session != null:
 		game.session.clock.time_speed = time_speed() * time_boost
 		game.session.clock.real_time = values.real_time
@@ -607,6 +614,11 @@ func set_tool_wear(on: bool) -> void:
 
 func set_instant_craft(on: bool) -> void:
 	instant_craft = on
+	apply()
+
+
+func set_free_items(on: bool) -> void:
+	free_items = on
 	apply()
 
 

@@ -69,6 +69,12 @@ var underwater: MeshInstance3D
 var torch: OmniLight3D
 ## A thing held gives light (Character.light_held), set by sky.gd.
 var torch_lit := false
+## How high over the feet the light is, in world units: at the flame of what the hands
+## hold (flames_at), else at the hands, never over HAND_TOP, so in a house two cells
+## tall (a wall's door) it burns under the roof, not in it.
+var torch_height := HAND_HEIGHT
+const HAND_HEIGHT := 0.55
+const HAND_TOP := 0.75
 ## The body sleeps (Vitals.asleep, set by Main each frame): it lies on its side (the
 ## `sleep` animation, see Figure), a little towards the viewer so it lies on what it
 ## sleeps on rather than over its back half, with little letters "z" rising over it
@@ -283,7 +289,7 @@ func step(delta: float, jump: bool) -> void:
 	position = body.step(position, delta, jump)
 
 
-## Puts the sprite on the body, snapped to whole pixels, and the torch above it (lights
+## Puts the sprite on the body, snapped to whole pixels, and the torch in its hand (lights
 ## live where the shaders draw, so its position is sheared); first a step of building
 ## a new sheet if one is being built.
 func place_sprite() -> void:
@@ -315,9 +321,15 @@ func place_sprite() -> void:
 	underwater.material_override.set_shader_parameter("shallow", tint[0])
 	underwater.material_override.set_shader_parameter("deep", tint[1])
 	underwater.visible = line > -1000.0 and not body.in_bog
-	# The torch is held a little towards the viewer.
-	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, 1.2, -PixelView.up.y * 0.3))
 	_find_flame()
+	# The torch is held a little towards the viewer, at the flame's height.
+	torch_height = HAND_HEIGHT
+	if not flames_at.is_empty():
+		var top := 0.0
+		for f: Vector3 in flames_at:
+			top += f.y - sprite.global_position.y
+		torch_height = clampf(top / flames_at.size(), 0.3, HAND_TOP)
+	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, torch_height, -PixelView.up.y * 0.3))
 	_snore(drawn_at)
 	_show_line()
 

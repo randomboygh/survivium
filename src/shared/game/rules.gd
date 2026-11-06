@@ -10,6 +10,9 @@ var free_build := false
 var tool_wear := false
 ## A crafting job takes no time (Workshop).
 var instant_craft := false
+## Any recipe's thing is given for nothing (Workshop.give_free): the craft tab shows
+## every recipe with a «получить» button (playtest switch «Бесплатные предметы»).
+var free_items := false
 ## Territory (decision 15, 39): the squares a player may hold at first and more for each
 ## game day lived, how far from its centre a claim reaches (squares), and on how many
 ## levels above and below the centre it holds.
@@ -42,6 +45,7 @@ static func of(d: Dictionary):
 
 func to_dict() -> Dictionary:
 	return {"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
+		"free_items": free_items,
 		"territory_start": territory_start, "territory_per_level": territory_per_level,
 		"territory_radius": territory_radius, "territory_levels": territory_levels,
 		"pvp": pvp, "pvp_damage": pvp_damage, "newcomer_minutes": newcomer_minutes, "fight_tag": fight_tag,
@@ -53,6 +57,7 @@ func from_dict(d: Dictionary) -> void:
 	free_build = bool(d.get("free_build", free_build))
 	tool_wear = bool(d.get("tool_wear", tool_wear))
 	instant_craft = bool(d.get("instant_craft", instant_craft))
+	free_items = bool(d.get("free_items", free_items))
 	territory_start = int(d.get("territory_start", territory_start))
 	territory_per_level = int(d.get("territory_per_level", territory_per_level))
 	territory_radius = int(d.get("territory_radius", territory_radius))
