@@ -27,10 +27,10 @@ const MAX_TRUNKS := 4096
 ## Fires within this many world units of the player (and their light's range) throw
 ## shadows: as far as a wide screen shows.
 const VIEW_REACH := 32.0
-## World units a fire's light stands above its ground, and the torch's above the feet
-## and to the south of them (see Effects.add_campfire and Player.place_sprite).
+## World units a fire's light stands above its ground, and the torch's ahead of the feet
+## (see Effects.add_campfire and Player.place_sprite; how high the torch is held is
+## Player.torch_height).
 const FIRE_HEIGHT := 0.6
-const TORCH_HEIGHT := 1.2
 const TORCH_AHEAD := 0.3
 ## Widths of the shadows at their foot, world units.
 const PLAYER_WIDTH := 0.4
@@ -321,7 +321,7 @@ func _lights() -> Array:
 	if torch.light_energy > 0.01 and game.player.torch_lit:
 		# In a jump the torch goes up with the hand, its ground stays where it was.
 		out.append({"id": TORCH_ID, "at": _player_feet() + Vector3(-PixelView.up.x, 0.0, -PixelView.up.y) * TORCH_AHEAD,
-			"height": TORCH_HEIGHT + p.y - _ground_y,
+			"height": game.player.torch_height + p.y - _ground_y,
 			"range": torch.omni_range / PixelView.light_reach, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
 			"torch": true, "real": false})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))

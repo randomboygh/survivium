@@ -704,6 +704,13 @@ func _run() -> void:
 					main.host.workshop.knowledge._known[r.id] = true
 					main.workshop.knowledge._known[r.id] = true
 				main.hud.bag.craft.refresh_now()
+			if shot.get("free", false):
+				# The playtest's free items: every recipe, «получить» on the one chosen.
+				main.settings.set_free_items(true)
+				main.hud.bag.craft._choose(shot.get("recipe", "tools:lantern"))
+				# The cells of the recipes come a few a frame.
+				for i in 240:
+					await process_frame
 			if shot.get("closed", false):
 				main.hud.toggle_bag()
 			if shot.has("on"):
@@ -928,6 +935,8 @@ func _run() -> void:
 				or (shot.get("craft", false) and not shot.get("closed", false)) or shot.get("rights", false) \
 				or shot.get("team_panel", false):
 			main.hud.toggle_bag()
+		if shot.get("free", false):
+			main.settings.set_free_items(false)
 		if shot.get("craft", false):
 			while not main.host.workshop.queue.jobs.is_empty():
 				main.host.workshop.queue.cancel(0)
