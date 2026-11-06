@@ -22,9 +22,8 @@ const ARROW_PORTRAIT := 18
 const COLUMNS_PORTRAIT := 8
 const GAP := 4
 const ARROW := 28
-## The panel's buttons and the tabs, one button tall; the height and thickness narrower.
+## The panel's buttons, one button tall and at least as wide.
 const BUTTON := 30
-const SIZE_MARGIN := 1
 ## How long the clear button waits for its second tap, ms.
 const CONFIRM_MS := 3000
 const SHAPES := {"line": ["build_line", "Линия: стена"], "plane": ["build_plane", "Плоскость: пол"],
@@ -135,20 +134,41 @@ func _row() -> HBoxContainer:
 	return r
 
 
-## A button showing a picture and a number, a tap going round the number.
+## A button showing a picture and a number side by side in its middle, a tap going round
+## the number (`_number` sets it).
 func _cycle(icon: String, tip: String, action: Callable) -> Button:
 	var b := TabRow.small_button("", action)
-	b.icon = UiStyle.centred(UiStyle.icon(icon))
 	b.tooltip_text = tip
-	b.add_theme_constant_override("h_separation", 1)
-	# Narrower than the others: thin margins at the sides.
-	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-		var box: StyleBox = b.get_theme_stylebox(state).duplicate()
-		box.content_margin_left = SIZE_MARGIN
-		box.content_margin_right = SIZE_MARGIN
-		b.add_theme_stylebox_override(state, box)
 	b.custom_minimum_size = Vector2(BUTTON, BUTTON)
+	# Over the button's inner area, as the other buttons' pictures are (its frame's margins).
+	var box := HBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_top = 4
+	box.offset_bottom = -6
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 2)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(box)
+	var pic := TextureRect.new()
+	pic.texture = UiStyle.centred(UiStyle.icon(icon))
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(pic)
+	var number := Label.new()
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.add_theme_color_override("font_color", UiStyle.INK)
+	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(number)
 	return b
+
+
+## Sets the number of a `_cycle` button and whether it can be tapped.
+func _number(b: Button, n: int, off: bool) -> void:
+	var box: HBoxContainer = b.get_child(0)
+	(box.get_child(1) as Label).text = str(n)
+	b.disabled = off
+	box.modulate.a = 0.4 if off else 1.0
+	b.custom_minimum_size.x = maxf(BUTTON, box.get_combined_minimum_size().x + 8)
 
 
 func _arrow(parent: Node, icon: String, tip: String, action: Callable) -> Button:
@@ -239,10 +259,8 @@ func refresh() -> void:
 	_form.tooltip_text = FORMS[b.form][1] + " (нажать — следующая форма)"
 	_turn.disabled = b.form == 0
 	# The height means nothing for a plane: a plane is one level (as thick as chosen, down).
-	_height.text = str(b.height)
-	_height.disabled = b.kind in ["plane", "flatten"]
-	_thick.disabled = b.kind == "flatten"
-	_thick.text = str(b.thick)
+	_number(_height, b.height, b.kind in ["plane", "flatten"])
+	_number(_thick, b.thick, b.kind == "flatten")
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
 	_mode.tooltip_text = "Стирать чертёж (нажать — рисовать)" if b.erasing else "Рисовать чертёж (нажать — стирать)"
 	TabRow.light(_mode, b.erasing, b.erasing)
