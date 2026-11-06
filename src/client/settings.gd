@@ -17,7 +17,6 @@ const Hud := preload("res://src/client/ui/hud.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Music := preload("res://src/client/audio/music.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
-const CaveSphere := preload("res://src/client/view/cave_sphere.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 
 const PATH := "user://settings.cfg"
@@ -71,18 +70,11 @@ const DEFAULTS := {
 	"camera_buttons": true,
 	# The camera, in steps from the default view: turned left by CameraRig.TURN_STEP
 	# each (0..7), tilted steeper by CameraRig.TILT_STEP each (-LOWER..STEEPER).
-	# How a cave (or a ravine, or a hill over the player) is shown (see ChunkStreamer
-	# update_cut): 0 in layers, what stands in front of the player and over their head
-	# dithered away more with each layer (CaveLayers, layer_alpha in
-	# common.gdshaderinc); 1 the levels above the player cut off, a dim ghost of them
-	# left, the ones below darker; 2 cut in the plane of the camera: behind the player
-	# all stays, in front of them what stands above their feet goes, the rock cut open
-	# in dots (the shader global cut_front, plane_hides); 3 what is in front of the
-	# player within a sphere on the line to the camera left out (CaveSphere,
-	# sphere_hides). The
-	# key replaced «cave_view»
-	# (0 levels, 1 plane), so everyone starts with the layers.
-	"cave_mode": 0,
+	# A cave (or a ravine, or a hill over the player) is shown in layers (see
+	# ChunkStreamer update_cut): what stands in front of the player and over their head
+	# dithered away more with each layer (CaveLayers, layer_alpha in common.gdshaderinc).
+	# The other views, chosen by «cave_mode» (and «cave_view» before it), are gone
+	# (decision 168): the keys are no longer read, so everyone has the layers.
 	# The layers (test settings «Пещеры», indices of CaveLayers.FIRSTS, STRETCHES,
 	# DENSITIES): how many slices in front of the player and levels over their head
 	# count as the first, over how many the rest fades out, how much of a first is drawn.
@@ -94,21 +86,9 @@ const DEFAULTS := {
 	"layer_density": 1,
 	# Where the quarter that thins out starts (CaveLayers.LINES, index 10 = the feet).
 	"layer_line": 10,
-	# The radius of the view in a sphere (cave_mode 3), an index of CaveSphere.RADII.
-	"sphere_radius": 6,
-	# The cut of levels (cave_mode 1, test settings «Пещеры»): the level it starts at, an index of CaveLayers.LINES from the feet (+2, over the head, as
-	# before); how the levels over it fade: the first ones, their stretch and density
-	# (indices of CaveLayers.FIRSTS, STRETCHES, DENSITIES). For the whole world, how
-	# much darker each level under the sea's surface gets (CaveLayers.DEPTH_STEPS, 12 %).
-	"cut_line": 12,
-	"cut_from": 8,
-	"cut_stretch": 5,
-	"cut_density": 1,
+	# For the whole world (test settings «Пещеры»), how much darker each level under the
+	# sea's surface gets (CaveLayers.DEPTH_STEPS, 12 %).
 	"cut_depth": 2,
-	# How far the sphere stands from the player toward the camera, an index of
-	# CaveSphere.SHIFTS; and whether the sphere itself is shown, for a test.
-	"sphere_shift": 5,
-	"sphere_debug": 0,
 	"camera_turn": 0,
 	"camera_tilt": 0,
 	# Which things lying near the player fly into the bag by themselves (see Gathering):
@@ -154,13 +134,10 @@ static func _index_limits() -> Dictionary:
 	var volumes := Sound.STEPS + 1
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
-		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "cave_mode": 4,
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4,
 		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
-		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(), "sphere_radius": CaveSphere.RADII.size(),
-		"sphere_shift": CaveSphere.SHIFTS.size(), "sphere_debug": 2,
-		"cut_line": CaveLayers.LINES.size(), "cut_from": CaveLayers.FIRSTS.size(),
-		"cut_stretch": CaveLayers.STRETCHES.size(), "cut_density": CaveLayers.DENSITIES.size(),
+		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
 		"cut_depth": CaveLayers.DEPTH_STEPS.size(),
 		"music_volume": volumes, "sound_volume": volumes, "nature_volume": volumes, "ui_volume": volumes}
 
@@ -373,29 +350,8 @@ func layer_density() -> float:
 	return CaveLayers.DENSITIES[values.layer_density]
 
 
-## The radius of the view in a sphere, in cells.
-func sphere_radius() -> int:
-	return CaveSphere.RADII[values.sphere_radius]
-
-
-## How far the view's sphere stands from the player toward the camera, in cells.
-func sphere_shift() -> int:
-	return CaveSphere.SHIFTS[values.sphere_shift]
-
-
 func layer_line() -> int:
 	return CaveLayers.LINES[values.layer_line]
-
-
-## How the levels over the cut of levels fade: (first ones, stretch, density, 0).
-func cut_fade() -> Vector4:
-	return Vector4(CaveLayers.FIRSTS[values.cut_from], CaveLayers.STRETCHES[values.cut_stretch],
-		CaveLayers.DENSITIES[values.cut_density], 0.0)
-
-
-## The level the cut of levels starts at in a cave, from the player's feet.
-func cut_line() -> int:
-	return CaveLayers.LINES[values.cut_line]
 
 
 ## How much darker each level under the sea's surface gets, down to black.
@@ -449,7 +405,6 @@ func apply() -> void:
 	# Sixteen-bit depth, as the engine's own default map.
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_MAPS[shadow_map], true)
 	game.controls.show_help = values.show_help
-	RenderingServer.global_shader_parameter_set("cut_front", 1.0 if values.cave_mode == 2 else 0.0)
 	RenderingServer.global_shader_parameter_set("layer_fade", Vector4(layer_fade()))
 	RenderingServer.global_shader_parameter_set("layer_density", layer_density())
 	RenderingServer.global_shader_parameter_set("layer_line", float(layer_line()))

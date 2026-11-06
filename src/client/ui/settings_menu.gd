@@ -29,7 +29,6 @@ const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
-const CaveSphere := preload("res://src/client/view/cave_sphere.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -402,55 +401,31 @@ func _section_rows(key: String) -> Array:
 				{"action": "Очистка территории", "do": func() -> void: s.clear_land(), "confirm": true},
 			]
 		"caves":
-			# Only the settings of the view chosen show, so the page fits a phone; choosing
-			# another builds the page again.
-			var mode: int = s.values.cave_mode
 			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
 			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
 			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
 			var percents := func(v: float) -> String: return "%d%%" % roundi(v * 100.0)
 			var rows := [
-				["Вид в пещере", ["слои", "срез уровней", "разрез по камере", "сфера"],
-					func() -> int: return s.values.cave_mode,
-					func(i: int) -> void:
-						s.set_value("cave_mode", i)
-						_fill.call_deferred()],
 				# For the whole world: how much darker each level under the sea gets.
 				["Затемнение за уровень", CaveLayers.DEPTH_STEPS.map(percents),
 					func() -> int: return s.values.cut_depth,
 					func(i: int) -> void: s.set_value("cut_depth", i)],
 				null,
 			]
-			var settings := []
-			var note := ""
-			if mode == 0:
-				# The view in layers (CaveLayers).
-				settings = [["Высота линии", "layer_line", lines],
-					["Впереди: первые слои", "layer_front_from", counts],
-					["Впереди: растяжение", "layer_front_stretch", stretches],
-					["Сверху: первые слои", "layer_above_from", counts],
-					["Сверху: растяжение", "layer_above_stretch", stretches],
-					["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(percents)]]
-				note = "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв."
-			elif mode == 1:
-				# The cut of levels.
-				settings = [["Высота среза", "cut_line", lines],
-					["Первые уровни", "cut_from", counts],
-					["Растяжение", "cut_stretch", stretches],
-					["Плотность первых", "cut_density", CaveLayers.DENSITIES.map(percents)]]
-				note = "В пещере всё, что не ниже высоты среза (0 — ноги, +2 — над головой), тает дизерингом и темнеет: первые уровни рисуются с плотностью первых, следующие тают за «растяжение». За игроком остаются стены и пол."
-			elif mode == 3:
-				# The view in a sphere (CaveSphere).
-				settings = [["Радиус", "sphere_radius", CaveSphere.RADII.map(func(v: int) -> String: return "%d кл." % v)],
-					["К камере", "sphere_shift", CaveSphere.SHIFTS.map(func(v: int) -> String: return "%d кл." % v)],
-					["Показать сферу", "sphere_debug", ["нет", "да"]]]
+			# The view in layers (CaveLayers).
+			var settings := [["Высота линии", "layer_line", lines],
+				["Впереди: первые слои", "layer_front_from", counts],
+				["Впереди: растяжение", "layer_front_stretch", stretches],
+				["Сверху: первые слои", "layer_above_from", counts],
+				["Сверху: растяжение", "layer_above_stretch", stretches],
+				["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(percents)]]
+			var note := "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв."
 			for r: Array in settings:
 				var setting: String = r[1]
 				rows.append([r[0], r[2],
 					func() -> int: return s.values[setting],
 					func(i: int) -> void: s.set_value(setting, i)])
-			if note != "":
-				rows.append({"note": note})
+			rows.append({"note": note})
 			return rows
 		"marks":
 			var marks := []
@@ -540,9 +515,6 @@ func _section_rows(key: String) -> Array:
 				["Уровень и срез", ["выкл", "вкл"],
 					func() -> int: return int(s.values.level_buttons),
 					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
-				["Вид в пещере", ["слои", "срез уровней", "разрез по камере", "сфера"],
-					func() -> int: return s.values.cave_mode,
-					func(i: int) -> void: s.set_value("cave_mode", i)],
 				["Кнопки камеры", ["выкл", "вкл"],
 					func() -> int: return int(s.values.camera_buttons),
 					func(i: int) -> void: s.set_value("camera_buttons", i == 1)],

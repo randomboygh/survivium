@@ -1,8 +1,7 @@
 extends RefCounted
-## Which cells round the player are solid, for the cut in the plane of the camera
-## (setting «Вид в пещере»): the shaders draw its section only where the plane truly
-## passes through rock (section_here in common.gdshaderinc), since a seam between two
-## faces of the world lets the line of sight through to the inside of the rock too.
+## Which cells round the player are solid, for the view in layers: the shaders fill
+## the rock it leaves out with the rock's section (layer_fills in common.gdshaderinc),
+## where the line of sight goes on through rock to a cell the layers keep.
 ## One texel per column of a SIZE square: 32 bits, eight in each of r, g, b, a, for the
 ## levels from the base up; the shader global solid_origin = (x, base, z) of its corner.
 ## Made again round the player a few rows a frame once they near its edge (the old one
