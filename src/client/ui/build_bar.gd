@@ -1,11 +1,11 @@
 extends VBoxContainer
 ## The build mode's bar (BuildMode), in the hotbar's place while the mode is on: on top
-## the panel of the mode, one button each going round its choices: the shape (line,
-## plane, square, cube) with flattening beside it, the form (a block, the slopes, stairs)
-## with its turn, how high and how thick the walls are (1–4), drawing or taking off the
-## blueprint, taking all of it off near (a second tap to confirm) and leaving the mode;
-## under it the palette's filters («Всё», «Материалы», «Интерьер») as a row of tabs, and
-## the palette itself: the bag's blocks and things in one row as the hotbar's slots
+## the panel of the mode in one row: the palette's filters («Всё», «Материалы»,
+## «Интерьер») as picture tabs, then one button each going round its choices: the shape
+## (line, plane, square, cube, flattening), the form (a block, the slopes, stairs) with
+## its turn, how high and how thick the walls are (1–4), drawing or taking off the
+## blueprint joined with taking all of it off near (a second tap to confirm), and leaving
+## the mode; under it the palette: the bag's blocks and things in one row as the hotbar's slots
 ## (no hands), arrows on its sides scrolling it when they do not all fit (eight cells at
 ## most on a portrait screen, smaller ones). The chosen one is in the hand in use.
 ## `game` is the Main node.
@@ -25,11 +25,12 @@ const GAP := 4
 const ARROW := 28
 ## The panel's buttons and the tabs, one button tall; the height and thickness narrower.
 const BUTTON := 30
-const SIZE_BUTTON := 34
+const SIZE_MARGIN := 2
 ## How long the clear button waits for its second tap, ms.
 const CONFIRM_MS := 3000
 const SHAPES := {"line": ["build_line", "Линия: стена"], "plane": ["build_plane", "Плоскость: пол"],
-	"square": ["build_square", "Квадрат: стены вокруг"], "cube": ["build_cube", "Куб: пол, стены и потолок"]}
+	"square": ["build_square", "Квадрат: стены вокруг"], "cube": ["build_cube", "Куб: пол, стены и потолок"],
+	"flatten": ["build_flatten", "Выровнять землю: срезать выше, засыпать ямы землёй из сумки"]}
 const FORMS := [["form_cube", "Блок: целый"], ["form_ramp", "Скос снизу"], ["form_upper", "Скос сверху"],
 	["form_stairs", "Ступени"]]
 const FILTER_TITLES := {"all": "Всё", "blocks": "Материалы", "interior": "Интерьер"}
@@ -37,10 +38,8 @@ const FILTER_TITLES := {"all": "Всё", "blocks": "Материалы", "interi
 var game
 var _rows: VBoxContainer
 var _row2: HBoxContainer
-var _shapes: HBoxContainer
 var _forms: HBoxContainer
 var _shape: Button
-var _flatten: Button
 var _form: Button
 var _turn: Button
 var _height: Button
@@ -77,14 +76,14 @@ func _init(g) -> void:
 	_rows.add_child(_row2)
 	var panel := _row()
 	_rows.add_child(panel)
-	_shapes = TabRow.split([
-		[UiStyle.icon("build_line"), "", func() -> void: game.build.next_kind()],
-		[UiStyle.icon("build_flatten"), "Выровнять землю: срезать выше, засыпать ямы землёй из сумки",
-			func() -> void: game.build.set_kind("flatten")],
-	])
-	_shape = _shapes.get_child(0)
-	_flatten = _shapes.get_child(1)
-	panel.add_child(_shapes)
+	var parts := []
+	for k: String in FILTER_TITLES:
+		var key := k
+		parts.append([UiStyle.icon("all"), FILTER_TITLES[k], func() -> void: game.build.set_filter(key)])
+	_filters = TabRow.tabs(parts, BUTTON)
+	panel.add_child(_filters)
+	_shape = TabRow.icon_button(UiStyle.icon("build_line"), "", func() -> void: game.build.next_kind())
+	panel.add_child(_shape)
 	_forms = TabRow.split([
 		[UiStyle.icon("form_cube"), "", func() -> void: game.build.next_form()],
 		[UiStyle.icon("turn_right"), "Повернуть скос или ступени (Y)", func() -> void: game.build.turn()],
@@ -98,24 +97,17 @@ func _init(g) -> void:
 	sizes.add_child(_height)
 	sizes.add_child(_thick)
 	panel.add_child(sizes)
-	_mode = TabRow.icon_button(UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing))
-	panel.add_child(_mode)
-	var ends := TabRow.split([
+	var marks := TabRow.split([
+		[UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing)],
 		[UiStyle.icon("trash"), "Убрать все чертежи рядом (нажать дважды)", _tap_clear],
-		[UiStyle.icon("close"), "Выйти из режима строительства (B)", func() -> void: game.build.leave()],
 	])
-	_clear = ends.get_child(0)
-	panel.add_child(ends)
-	for b: Button in [_shape, _flatten, _form, _turn, _mode, _clear, ends.get_child(1)]:
+	_mode = marks.get_child(0)
+	_clear = marks.get_child(1)
+	panel.add_child(marks)
+	var leave := TabRow.icon_button(UiStyle.icon("close"), "Выйти из режима строительства (B)", func() -> void: game.build.leave())
+	panel.add_child(leave)
+	for b: Button in _filters.get_children() + [_shape, _form, _turn, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
-	# The filters over the palette, at its left end, a row of tabs.
-	var parts := []
-	for k: String in FILTER_TITLES:
-		var key := k
-		parts.append([FILTER_TITLES[k], FILTER_TITLES[k], func() -> void: game.build.set_filter(key)])
-	_filters = TabRow.tabs(parts, BUTTON - 4)
-	_filters.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	add_child(_filters)
 	_palette = PanelContainer.new()
 	_palette.mouse_filter = Control.MOUSE_FILTER_STOP
 	var box := UiStyle.panel()
@@ -164,7 +156,13 @@ func _cycle(icon: String, tip: String, action: Callable) -> Button:
 	b.icon = UiStyle.centred(UiStyle.icon(icon))
 	b.tooltip_text = tip
 	b.add_theme_constant_override("h_separation", 1)
-	b.custom_minimum_size = Vector2(SIZE_BUTTON, BUTTON)
+	# Narrower than the others: thin margins at the sides.
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var box: StyleBox = b.get_theme_stylebox(state).duplicate()
+		box.content_margin_left = SIZE_MARGIN
+		box.content_margin_right = SIZE_MARGIN
+		b.add_theme_stylebox_override(state, box)
+	b.custom_minimum_size = Vector2(0, BUTTON)
 	return b
 
 
@@ -229,7 +227,7 @@ func fit(width: float, portrait := false) -> void:
 		_forms.get_parent().remove_child(_forms)
 		home.add_child(_forms)
 		if home == one:
-			home.move_child(_forms, 1)
+			home.move_child(_forms, 2)
 	_row2.visible = two
 	refresh()
 
@@ -247,11 +245,9 @@ func _refresh_later() -> void:
 func refresh() -> void:
 	_due = false
 	var b = game.build
-	var shape: Array = SHAPES.get(b.shape, SHAPES["line"])
+	var shape: Array = SHAPES.get(b.kind, SHAPES["line"])
 	_shape.icon = UiStyle.centred(UiStyle.icon(shape[0]))
 	_shape.tooltip_text = shape[1] + " (нажать — следующая фигура)"
-	TabRow.light(_shape, b.kind != "flatten")
-	TabRow.light(_flatten, b.kind == "flatten")
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form][0]))
 	_form.tooltip_text = FORMS[b.form][1] + " (нажать — следующая форма)"
 	_turn.disabled = b.form == 0
