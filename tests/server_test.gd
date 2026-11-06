@@ -104,6 +104,15 @@ func _input_at(b: Bot, at: Vector3) -> void:
 	b.socket.net.send(Protocol.INPUT, input)
 
 
+## Polls the sockets for `seconds`.
+func _wait(seconds: float) -> void:
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < seconds * 1000.0:
+		for s in sockets:
+			s.poll()
+		await process_frame
+
+
 ## Polls the sockets for `n` frames.
 func _frames(n: int) -> void:
 	for i in n:
@@ -304,10 +313,25 @@ func _run() -> void:
 		# A walk at the body's pace is taken as told.
 		leaps = borya.of(Protocol.TELEPORT).size()
 		var walked: Vector3 = server.session.players[1].position
+		# Along flat ground (a claim inside a slope is not taken), at six cells a second,
+		# under the body's eight: the server runs its body for the time that passed, never
+		# more, whatever the frame rate.
+		var land = server.session.world
+		var flat := Vector3.ZERO
+		for d: Vector3 in [Vector3(0.0, 0.0, 0.3), Vector3(0.0, 0.0, -0.3), Vector3(0.3, 0.0, 0.0), Vector3(-0.3, 0.0, 0.0)]:
+			var level := true
+			for i in range(1, 12):
+				var c: Vector3 = walked / WorldData.CELL + d * i
+				level = level and absf(land.ground_height(c.x, c.z) - walked.y / WorldData.CELL) < 0.01 \
+					and not server.session.players[1].body.blocked(c * WorldData.CELL)
+			if level:
+				flat = d
+				break
+		_check(flat != Vector3.ZERO, "there is flat open ground beside the body to walk on")
 		for i in 10:
-			walked += Vector3(0.0, 0.0, 0.3 * WorldData.CELL)
+			walked += flat * WorldData.CELL
 			_input_at(borya, walked)
-			await _frames(1)
+			await _wait(0.05)
 		_check(server.session.players[1].position == walked and borya.of(Protocol.TELEPORT).size() == leaps,
 			"a walk at the body's pace is taken as told (%s vs %s)" % [server.session.players[1].position, walked])
 		_check(fixes.count(Protocol.TELEPORT) == 0, "the game's own body is not put back")
@@ -461,6 +485,7 @@ func _hosted() -> void:
 	var pair: Array = await _commands(node, host)
 	await _chat(node, pair[0], pair[1])
 	await _trades(node, pair[0], pair[1])
+	await _security(node)
 	var said := [false]
 	node.stopped.connect(func() -> void: said[0] = true)
 	node.command("stop")
@@ -628,6 +653,41 @@ func _trades(node: Node, a: Bot, b: Bot) -> void:
 		"the player comes back")
 	var told: Dictionary = again.of(Protocol.YOU)[0][1].inventory if again.of(Protocol.YOU).size() > 0 else {}
 	_check(told == lost_who.inventory.to_dict() and total.call() == 10, "to the bag as the server keeps it, the stones %d in all" % total.call())
+
+
+## The server's guard over a socket (stage 7, docs/security/): a name in the world or the
+## server's own is not taken, a connection sending far more than a client does is put
+## out (4003) and noted in the log, a host made by op may not stop the server.
+func _security(node: Node) -> void:
+	var server = node.server
+	var twin := _bot("Чужой", "", "", PORT + 1)
+	var fake := _bot("сервер", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return twin.reply.done and fake.reply.done)
+		and twin.reply.value.get("why") == Protocol.WHY_TAKEN and fake.reply.value.get("why") == Protocol.WHY_TAKEN,
+		"a name in the world, or the server's own, is not taken: %s, %s" % [twin.reply.value, fake.reply.value])
+	var loud := _bot("Шумный", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return loud.reply.done) and loud.reply.value.get("ok") == true, "a third player comes in")
+	var noise := Protocol.encode(Protocol.event("noise", []))
+	for i in 8:
+		if loud.socket.ended:
+			break
+		for j in 900:
+			loud.socket.ws.put_packet(noise)
+		await _frames(1)
+	_check(await _until(func() -> bool: return loud.socket.ended) and loud.socket.close_code == server.CLOSE_FLOOD,
+		"a connection that floods the server is put out (code %d)" % loud.socket.close_code)
+	_check(node.log_lines.any(func(l: String) -> bool: return l.contains("безопасность") and l.contains("flood")),
+		"and the security log says why")
+	var quiet := _bot("Тихий", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return quiet.reply.done) and quiet.reply.value.get("ok") == true, "another comes in")
+	node.command("op Тихий")
+	var stop = quiet.socket.net.request(Protocol.CHAT, ["/stop"])
+	_check(await _until(func() -> bool: return stop.done and quiet.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).contains("владельца")))
+		and server.listening and not server.stopping, "a host made by op may not stop the server: the owner's command")
+	node.command("deop Тихий")
+	var line = quiet.socket.net.request(Protocol.CHAT, ["раз\nдва\u202E"])
+	_check(await _until(func() -> bool: return line.done and quiet.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][2] == "раз два")),
+		"a line of chat comes out on one line, its hidden marks gone")
 
 
 static func _unique(a: Array) -> Array:

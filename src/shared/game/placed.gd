@@ -685,7 +685,8 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 		for i in inv.slots.size():
 			if slot < 0 and inv.slots[i] != null and inv.slots[i][0] == item.get("id", ""):
 				slot = i
-	if item.get("prop", "none") == "none" or slot < 0 or inv.slots[slot] == null or inv.slots[slot][0] != item.id:
+	if item.get("prop", "none") == "none" or slot < 0 or slot >= inv.slots.size() or inv.slots[slot] == null \
+			or inv.slots[slot][0] != item.id:
 		return false
 	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
 		who.nag("put", "Чтобы поставить, нужен инструмент: %s" % Items.tool_title(item.place_tool))

@@ -38,7 +38,7 @@ godot --headless --path . --import
 | шейдеры, свет, вид в пещере (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; скриншоты под xvfb или `smoke` в CI: headless шейдеры не компилирует |
 | генератор, мир, чанки, меши, стример | 1, 2, `run_tests -- generation mesher shapes store` | `frame_test` (один, без других процессов), `save_test` |
 | сохранения (`save_game.gd`, `world_store.gd`) | 1, 2, `run_tests -- store` | `save_test` |
-| сеть, сервер, протокол | 1, 2, `run_tests -- net session` | `server_test` |
+| сеть, сервер, протокол, права, анти-чит | 1, 2, `run_tests -- net session security` | `server_test` ([../security/SECURITY_TESTING.md](../security/SECURITY_TESTING.md)) |
 | звери, погода, часы, территории, навыки | 1, 2, `run_tests -- wildlife clock territory skills` | `progress_*` для охоты |
 | что идёт каждый кадр (свет, огни, тени, звери на экране) | 1, 2, `run_tests` | `frame_test` |
 | CI, `tests/run_all.sh`, `tools/*.py` | 1 | прогон в CI |

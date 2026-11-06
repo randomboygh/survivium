@@ -110,12 +110,13 @@ static func amounts_text(amounts: Dictionary) -> String:
 
 
 ## Takes the materials of recipe `r` out of bag `inv` (what it keeps stays); false (and
-## nothing taken) when something is missing.
-static func take(r: Dictionary, inv) -> bool:
+## nothing taken) when something is missing. With `took` (an Array) the stacks taken are
+## noted in it as Inventory.remove notes them, with their wear and age.
+static func take(r: Dictionary, inv, took: Variant = null) -> bool:
 	if not missing(r, inv).is_empty():
 		return false
 	for id in r.needs:
-		inv.remove(id, r.needs[id])
+		inv.remove(id, r.needs[id], took)
 	return true
 
 
