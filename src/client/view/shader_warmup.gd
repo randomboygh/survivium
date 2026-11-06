@@ -215,11 +215,13 @@ func _collect(node: Node, kinds: Dictionary) -> void:
 				for s in mi.get_surface_override_material_count():
 					copy.set_surface_override_material(s, mi.get_surface_override_material(s))
 				copy.cast_shadow = mi.cast_shadow
+				copy.layers = mi.layers
 				kinds[key] = copy
 		elif child is MultiMeshInstance3D and child.multimesh != null and child.multimesh.mesh != null:
 			var mmi: MultiMeshInstance3D = child
 			var mm := mmi.multimesh
-			var key := ["multimesh", mmi.material_override, mm.mesh, mm.use_colors, mm.use_custom_data, mm.transform_format]
+			var key := ["multimesh", mmi.material_override, mm.mesh, mm.use_colors, mm.use_custom_data, mm.transform_format,
+				mmi.layers]
 			if not kinds.has(key):
 				var copy := MultiMeshInstance3D.new()
 				var one := MultiMesh.new()
@@ -233,12 +235,13 @@ func _collect(node: Node, kinds: Dictionary) -> void:
 				copy.multimesh = one
 				copy.material_override = mmi.material_override
 				copy.cast_shadow = mmi.cast_shadow
+				copy.layers = mmi.layers
 				kinds[key] = copy
 		elif child is CPUParticles3D and child.mesh != null:
 			# Drawn as instances of its mesh once it emits: one particle, there from the start.
 			var cp: CPUParticles3D = child
 			var key := ["particles", cp.mesh, cp.mesh.surface_get_material(0) if cp.mesh.get_surface_count() > 0 else null,
-				cp.cast_shadow]
+				cp.cast_shadow, cp.layers]
 			if not kinds.has(key):
 				var copy := CPUParticles3D.new()
 				copy.mesh = cp.mesh
@@ -248,13 +251,14 @@ func _collect(node: Node, kinds: Dictionary) -> void:
 				copy.preprocess = 1.0
 				copy.local_coords = cp.local_coords
 				copy.cast_shadow = cp.cast_shadow
+				copy.layers = cp.layers
 				copy.emitting = true
 				kinds[key] = copy
 		_collect(child, kinds)
 
 
 func _key(mi: MeshInstance3D) -> Array:
-	var key := ["mesh", mi.material_override, mi.mesh.get_surface_count()]
+	var key := ["mesh", mi.material_override, mi.mesh.get_surface_count(), mi.layers]
 	for s in mi.mesh.get_surface_count():
 		key.append(mi.get_active_material(s))
 		key.append(mi.mesh.surface_get_format(s) if mi.mesh is ArrayMesh else 0)

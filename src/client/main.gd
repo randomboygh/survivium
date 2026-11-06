@@ -87,6 +87,7 @@ const PlanView := preload("res://src/client/view/plan_view.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -282,6 +283,9 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/server.tscn")
 		return
 	start_ms = Time.get_ticks_msec()
+	# The unshaded things out of the fires' light, so fewer shaders are built (PixelView.unlit).
+	if not get_tree().node_added.is_connected(PixelView.unlit):
+		get_tree().node_added.connect(PixelView.unlit)
 	StartTimes.begin()
 	StartTimes.compiled_ms = _compiled_ms
 	if not host_ask.is_empty():
