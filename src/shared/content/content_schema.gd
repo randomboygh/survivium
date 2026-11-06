@@ -300,8 +300,8 @@ const SCHEMAS := {
 	# The skills (Skills, decision 164): what kind of work each grows from and speeds up
 	# (`role`, the engine asks by it), its place in the window (`order`), its levels and the
 	# points of work the first one takes, each next `growth` times more, how much faster
-	# the work is at the last level (`speed`: the share of time saved, or of pace added
-	# swimming), the points a whole thing gives where the work has no time of its own
+	# the work is at the last level (`speed`: the share of pace added, 1 = twice as fast),
+	# the points a whole thing gives where the work has no time of its own
 	# (`each`: a beast killed, a fish caught), the chance at the last level of one more of
 	# what the work gives (`yield`) and how much longer a thing made lasts (`quality`: a
 	# share of its `durability` more).
@@ -311,7 +311,7 @@ const SCHEMAS := {
 		"levels": {"type": "int", "min": 1, "max": 20, "default": 10},
 		"first": {"type": "float", "min": 1.0, "default": 180.0},
 		"growth": {"type": "float", "min": 1.0, "max": 4.0, "default": 1.6},
-		"speed": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.3},
+		"speed": {"type": "float", "min": 0.0, "max": 4.0, "default": 1.0},
 		"each": {"type": "float", "min": 0.0, "default": 0.0},
 		"yield": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"quality": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},

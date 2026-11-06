@@ -22,6 +22,10 @@ const PersonCard := preload("res://src/client/ui/person_card.gd")
 const MARGIN := 8.0
 const GAP := 4.0
 const SLOT := 40
+## The bag's tab on the hotbar: each slot of the bag a division of this many pixels, the
+## free ones of this colour (see _fit_bag_meter).
+const BAG_DIVISION := 6
+const FREE_DIVISION := Color("#3a2c20")
 ## The warm gold a notice's panel is tinted (see notice).
 const NOTICE_TINT := Color(1.0, 0.86, 0.55)
 var game
@@ -229,8 +233,9 @@ func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
 
 
 ## The tab on the hotbar, in the clock's frame: a bar of a division a slot of the bag,
-## all of one width, those taken filled (warmer the fuller the bag), and over it the
-## weight of the limit (red past it).
+## all of BAG_DIVISION pixels whatever the bag (more of them for a bigger one), those
+## taken filled (warmer the fuller the bag), the free ones a little lighter than the
+## well, and over it the weight of the limit (red past it).
 func _draw_bag_meter() -> void:
 	var inv = game.character.inventory
 	var c: Control = _bag_meter
@@ -241,12 +246,11 @@ func _draw_bag_meter() -> void:
 	var n: int = maxi(inv.slots.size(), 1)
 	var inner := Rect2(Vector2(5, 4), c.size - Vector2(10, 8))
 	c.draw_rect(inner, UiStyle.WELL)
-	# Whole pixels a division, a pixel apart, from the left end (_fit_bag_meter makes
-	# the tab as wide as they are).
-	var each := maxf(floorf((inner.size.x + 1.0) / n) - 1.0, 1.0)
-	for i in mini(taken, n):
-		var x0 := inner.position.x + i * (each + 1.0)
-		c.draw_rect(Rect2(x0, inner.position.y, each, inner.size.y), bar_shade(float(i + 1) / n))
+	# From the left end, a pixel apart (_fit_bag_meter makes the tab as wide as they are).
+	for i in n:
+		var x0 := inner.position.x + i * (BAG_DIVISION + 1.0)
+		var fill: Color = bar_shade(float(i + 1) / n) if i < taken else FREE_DIVISION
+		c.draw_rect(Rect2(x0, inner.position.y, BAG_DIVISION, inner.size.y), fill)
 	UiStyle.draw_weight(c, inner.grow_individual(-3, 0, -3, 0), inv.weight(), inv.weight_limit)
 	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
 

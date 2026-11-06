@@ -341,6 +341,10 @@ const SHOTS := {
 	# berries picked; then the bag open on a touch screen and with a mouse.
 	"gather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"bag": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true},
+	# The bag's tab on the hotbar with a canvas backpack worn: 40 divisions of the same
+	# width as the 16 of the bag alone («gather»), a longer tab.
+	"gather-backpack": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true,
+		"wear": "tools:canvas_backpack"},
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
 	# Skills learned in the character window: levels, the way to the next, an axe's power in green.

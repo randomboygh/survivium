@@ -255,14 +255,14 @@ func refresh_counts() -> void:
 	_bag_meter.queue_redraw()
 
 
-## Makes the bag's tab as wide as a whole number of its equal divisions, a division a
-## slot (at least the room of its line), so the first starts right at its left end and
-## the last ends at its right; laid out again when that changes the width.
+## Makes the bag's tab as wide as its divisions, a division of BAG_DIVISION pixels and
+## a pixel between a slot (at least the room of its line of the weight), so a bigger bag
+## has more of the same divisions and a longer tab; laid out again when that changes the
+## width.
 func _fit_bag_meter() -> void:
-	var n: int = maxi(game.character.inventory.slots.size(), 1)
-	var room := UiStyle.load_width(40, 40)
-	var each := maxi(ceili((room + 1.0) / n) - 1, 1)
-	var w := float(n * (each + 1) - 1 + 10)
+	var inv = game.character.inventory
+	var n: int = maxi(inv.slots.size(), 1)
+	var w := float(maxi(n * (BAG_DIVISION + 1) - 1, UiStyle.weight_width(inv.weight_limit) + 6) + 10)
 	if _bag_meter.custom_minimum_size.x == w:
 		return
 	_bag_meter.custom_minimum_size.x = w

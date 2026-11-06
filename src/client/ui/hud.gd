@@ -235,8 +235,8 @@ func _ready() -> void:
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
-	# In the clock's look, as wide as its line with two-digit slots and three-digit kilos.
-	_bag_meter.custom_minimum_size = Vector2(UiStyle.load_width(40, 40) + 10, SLEEP_SIZE.y)
+	# In the clock's look; as wide as its divisions (_fit_bag_meter).
+	_bag_meter.custom_minimum_size = Vector2(UiStyle.weight_width(40) + 16, SLEEP_SIZE.y)
 	_bag_meter.size = _bag_meter.custom_minimum_size
 	for state in ["normal", "hover", "pressed", "hover_pressed"]:
 		_bag_meter.add_theme_stylebox_override(state, UiStyle.panel(Vector4(5, 4, 5, 4)))
