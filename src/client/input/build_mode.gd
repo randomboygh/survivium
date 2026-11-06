@@ -23,6 +23,8 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 ## The palette's filters: everything, blocks (Tools.use_of "place"), parts of a house
 ## (Items.is_interior).
 const FILTERS := ["all", "blocks", "interior"]
+## The shapes the shape button goes round (Plans.KINDS but flattening).
+const SHAPES := ["line", "plane", "square", "cube"]
 ## How often the auto build looks whether the bag still holds a block for the
 ## blueprint, in seconds (the ghost may have thousands of cells).
 const CHECK_TIME := 0.25
@@ -35,6 +37,9 @@ var on := false
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
 var kind := "line"
+## The last shape of the four drawn (line, plane, square, cube): the shape button goes
+## back to it from flattening.
+var shape := "line"
 var height := 2
 var thick := 1
 ## The form of the blocks drawn (WorldData.FORM_*: a cube, a ramp, an upturned ramp,
@@ -66,6 +71,7 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	var k: Variant = d.get("kind")
 	kind = k if k is String and k in Plans.KINDS else "line"
+	shape = kind if kind in SHAPES else "line"
 	height = clampi(int(d.get("height", 2)), Plans.MIN_HEIGHT, Plans.MAX_HEIGHT)
 	thick = clampi(int(d.get("thick", 1)), Plans.MIN_THICK, Plans.MAX_THICK)
 	var f: Variant = d.get("filter")
@@ -112,6 +118,8 @@ func enter(id: String) -> void:
 		on = true
 		erasing = false
 		auto = false
+		# The bar shows no filters for now: the palette holds everything.
+		filter = "all"
 		c.cancel_stroke()
 		game.hud.show_build(true)
 	choose(id)
@@ -150,7 +158,20 @@ func chosen() -> String:
 func set_kind(k: String) -> void:
 	if k in Plans.KINDS:
 		kind = k
+		if k in SHAPES:
+			shape = k
 		changed.emit()
+
+
+## The shape button: the next of the four shapes round, or back to the last one from
+## flattening.
+func next_kind() -> void:
+	set_kind(shape if kind not in SHAPES else SHAPES[(SHAPES.find(kind) + 1) % SHAPES.size()])
+
+
+## The form button: the next form round (a cube, a ramp, an upturned ramp, stairs).
+func next_form() -> void:
+	set_form((form + 1) % 4)
 
 
 ## The form of the blocks drawn (a WorldData.FORM_*).

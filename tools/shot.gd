@@ -731,7 +731,7 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 			main.build.filter = shot.get("filter", "all")
-			main.build.kind = shot.get("kind", "line")
+			main.build.set_kind(shot.get("kind", "line"))
 			main.build.height = shot.get("height", 2)
 			main.build.thick = shot.get("thick", 1)
 			main.build.form = shot.get("form", 0)
