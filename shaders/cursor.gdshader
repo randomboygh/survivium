@@ -18,6 +18,7 @@ void fragment() {
 	if (above_cut(world_pos)) {
 		discard;
 	}
-	ALBEDO = color.rgb;
-	ALPHA = color.a;
+	// The lines' own colour (the cursor's light and red ones), white where none is given.
+	ALBEDO = color.rgb * COLOR.rgb;
+	ALPHA = color.a * COLOR.a;
 }

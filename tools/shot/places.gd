@@ -646,7 +646,7 @@ func plan(w, at: Vector3) -> Vector3:
 	var spot := Vector3i((flat_near(w, at) / CELL).floor())
 	var plans = main.session.plans
 	var a := spot + Vector3i(-4, 0, -9)
-	var room := Plans.shape("room", a, a + Vector3i(6, 0, 5), 3, Vector2(spot.x, spot.z) * CELL)
+	var room := Plans.shape("square", a, a + Vector3i(6, 0, 5), 3, Vector2(spot.x, spot.z) * CELL)
 	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
 	var ghost: Array = []
 	for c: Vector3i in room:
@@ -656,11 +656,11 @@ func plan(w, at: Vector3) -> Vector3:
 			ghost.append(c)
 			plans.cells[c] = "materials:planks"
 	plans.changed.emit(ghost, "materials:planks")
-	var floor := Plans.shape("floor", a + Vector3i(1, -1, 1), a + Vector3i(5, -1, 4), 1)
+	var floor := Plans.shape("plane", a + Vector3i(1, -1, 1), a + Vector3i(5, -1, 4), 1)
 	for c: Vector3i in floor:
 		plans.cells[c] = "materials:planks"
 	plans.changed.emit(floor, "materials:planks")
-	var wall := Plans.shape("wall", a + Vector3i(9, 0, 0), a + Vector3i(9, 0, 5), 2)
+	var wall := Plans.shape("line", a + Vector3i(9, 0, 0), a + Vector3i(9, 0, 5), 2)
 	for c: Vector3i in wall:
 		plans.cells[c] = "materials:brick"
 	plans.changed.emit(wall, "materials:brick")

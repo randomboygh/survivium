@@ -70,14 +70,22 @@ const PROP_PUT := "prop_put"
 const LIGHT_PUT := "light_put"
 ## Takes a thing placed, or a light set down, back into the bag: [cell] (Placed.take_up).
 const PROP_TAKE := "prop_take"
+## The build mode sets a thing from the bag down at the cell tapped: [item id, cell]
+## (Placed.put_at; a door or a window cuts its opening into a wall).
+const PROP_PUT_AT := "prop_put_at"
 ## Puts out a campfire, or lights it again or feeds it one piece of fuel: [cell, on]
 ## (Placed.put_out, Placed.feed).
 const PROP_FIRE := "prop_fire"
 ## Opens a door or shuts it: [cell] (Placed.swing).
 const PROP_OPEN := "prop_open"
-## Draws a shape of the blueprint with the block held, or takes the ghost off it when it
-## starts on a ghost cell: [kind, from, to, height] (Plans.draw).
+## Draws a shape of the blueprint with the block held, or takes the ghost off the box
+## round it: [kind, from, to, height, thickness, erase] (Plans.draw).
 const PLAN := "plan"
+## Takes the blueprint's ghost off every cell near the player: [] (Plans.clear).
+const PLAN_CLEAR := "plan_clear"
+## The build mode's action button: builds one ghost cell of the blueprint near the player,
+## whatever the hand holds: [] (Plans.build).
+const BUILD := "build"
 ## Destroys a campfire put out: [cell] (Placed.destroy).
 const PROP_DESTROY := "prop_destroy"
 ## Starts a recipe some times at the workshop: [recipe id, n] (Workshop.start).

@@ -38,7 +38,7 @@ func act_in_front(who, top: int) -> Dictionary:
 	match Tools.use_of(who.held()):
 		"place":
 			if plans != null and plans.builds(who):
-				return plans.build(self, who, top)
+				return plans.build(self, who)
 			return place_in_front(who, top)
 		"plant", "sow":
 			if plant(who, who.held()):

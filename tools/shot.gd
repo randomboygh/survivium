@@ -710,6 +710,32 @@ func _run() -> void:
 						main.player.position = (Vector3(e.cell) + shot.on[1]) * main.CELL
 				for i in 30:
 					await process_frame
+		if shot.has("build_mode"):
+			# The build mode with blocks and parts of a house in the bag, planks chosen, and
+			# a stroke held: drawing a wall over the ghost's room, or taking the ghost off.
+			var inv = main.host.player.inventory
+			for st in [["materials:planks", 60], ["materials:brick", 40], ["materials:log_wall", 30], ["materials:cut_stone", 30],
+					["materials:wattle", 20], ["materials:glass", 12], ["tools:door", 2], ["tools:window", 3], ["tools:wooden_bed", 1],
+					["tools:chest", 1], ["tools:table", 1], ["tools:stool", 2], ["tools:fireplace", 1], ["tools:stairs", 2]]:
+				if Items.has(st[0]):
+					inv.add(st[0], st[1])
+			for i in 3:
+				await process_frame
+			main.build.filter = shot.get("filter", "all")
+			main.build.kind = shot.get("kind", "line")
+			main.build.height = shot.get("height", 2)
+			main.build.thick = shot.get("thick", 1)
+			main.build.enter("materials:planks")
+			main.build.set_erasing(shot.build_mode == "erase")
+			var feet := Vector3i((main.player.position / CELL).floor())
+			var s := {"plan": main.build.kind, "first": feet + Vector3i(-6, 0, -9), "last": feet + Vector3i(-6, 0, -1)}
+			if shot.build_mode == "erase":
+				s = {"plan": "line", "first": feet + Vector3i(-5, 0, -9), "last": feet + Vector3i(0, 0, -9)}
+			elif main.build.kind in ["plane", "cube"]:
+				s = {"plan": main.build.kind, "first": feet + Vector3i(2, -1, -3), "last": feet + Vector3i(6, -1, 1)}
+			for i in 3:
+				await process_frame
+			main.build.show_stroke(s)
 		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
 				or shot.get("craft", false) or shot.get("chests", false) or shot.get("campfire", false):
 			# The window settles its height a frame after it opens (see InventoryWindow.refresh).

@@ -403,10 +403,8 @@ func _test_sleep() -> void:
 	var bed: Dictionary = beds.put("tools:fur_bedroll", Vector3i(8, 1, 8))
 	_check(Placed.is_bed(bed) and not Placed.is_bed(beds.put("tools:workbench", Vector3i(12, 1, 12))), "a bedroll set down is a bed")
 	ch.vitals.energy = Vitals.MAX
-	_check(ch.lie_in(bed) and ch.back_at == Vector3.ZERO and not ch.vitals.asleep and not beds.things.has(bed)
-		and ch.inventory.count("tools:fur_bedroll") == 2, "a rested body does not lie down: it takes the bed up")
-	ch.inventory.remove("tools:fur_bedroll", 1)
-	bed = beds.put("tools:fur_bedroll", Vector3i(8, 1, 8))
+	_check(not ch.lie_in(bed) and ch.back_at == Vector3.ZERO and not ch.vitals.asleep and beds.things.has(bed),
+		"a rested body does not lie down, and the bed stays (taken up in the build mode)")
 	ch.vitals.energy = 10.0
 	_check(ch.lie_in(bed) and ch.vitals.asleep, "a sleepy body lies down in the bed")
 	var spot := beds.lying_spot(bed)

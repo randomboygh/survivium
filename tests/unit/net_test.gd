@@ -292,11 +292,9 @@ func _test_requests() -> void:
 	var mats: int = a.inventory.count("tools:grass_mat")
 	_check(net.request(Protocol.LIE_IN, [Vector3i(bed_cell.x + 5, bed_cell.y, bed_cell.z)]).value == false,
 		"no one lies down in a bed that is not there")
-	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == true and a.position == stood and not a.vitals.asleep
-		and not placed.things.has(bed) and a.inventory.count("tools:grass_mat") == mats + 1,
-		"a rested player tapping a mat takes it up instead of lying down")
-	a.inventory.remove("tools:grass_mat", 1)
-	bed = placed.put("tools:grass_mat", bed_cell)
+	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == false and a.position == stood and not a.vitals.asleep
+		and placed.things.has(bed) and a.inventory.count("tools:grass_mat") == mats,
+		"a rested player tapping a mat does not lie down, nor takes it (that is the build mode's)")
 	a.vitals.energy = 10.0
 	_check(net.request(Protocol.LIE_IN, [bed_cell]).value == true and a.vitals.asleep and a.position == placed.lying_spot(bed)
 		and events.any(func(e: Array) -> bool: return e[0] == Protocol.TELEPORT and e[1] == [placed.lying_spot(bed)]),
@@ -337,13 +335,14 @@ func _test_requests() -> void:
 	a.active = 0
 	a.inventory.add("materials:planks", 4)
 	var g0 := Vector3i(a.feet().x - 3, a.feet().y, a.feet().z - 3)
-	_check(net.request(Protocol.PLAN, ["wall", g0, g0 + Vector3i(2, 0, 0), 1]).value == 3 and s.plans.cells.size() == 3,
+	_check(net.request(Protocol.PLAN, ["line", g0, g0 + Vector3i(2, 0, 0), 1, 1, false]).value == 3 and s.plans.cells.size() == 3,
 		"a wall of the blueprint is drawn on the server")
 	host.flush(net)
 	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.PLAN_CELLS and e[1][1] == "materials:planks" and e[1][0].size() == 3),
 		"and the ghost is told to the client")
-	_check(net.request(Protocol.PLAN, ["roof", g0, g0, 1]).value == null, "a shape of no known kind is refused")
-	s.plans.erase(s.actions, a, s.plans.cells.keys())
+	_check(net.request(Protocol.PLAN, ["roof", g0, g0, 1, 1, false]).value == null, "a shape of no known kind is refused")
+	_check(net.request(Protocol.BUILD, []).value is Dictionary, "the build mode's button builds through the server")
+	_check(net.request(Protocol.PLAN_CLEAR, []).value >= 2 and s.plans.cells.is_empty(), "and the ghost near is cleared")
 	a.hands = ["", ""]
 	events.clear()
 	# An animal comes by the player, moves, and leaves.

@@ -102,9 +102,23 @@ func _place() -> void:
 		_visible_slots = clampi(floori((room - 2 * (28 + GAP)) / (SLOT + GAP)), 1, 4 if portrait else _slots.size())
 	_first = clampi(_first, 0, _slots.size() - _visible_slots)
 	_show_page()
-	_bar.reset_size()
-	var bw := _bar.size.x
-	var bh := _bar.size.y
+	# The build mode's bar in the hotbar's place: as wide as the room for it.
+	var bar: Control = _shown_bar()
+	if bar == build_bar:
+		# Between the stick and the buttons when six columns fit there, else across the
+		# screen over them.
+		var across := w - 2 * MARGIN
+		if touch and not portrait:
+			var between: float = (_jump.position.x - 8) - (stick.position.x + stick_size.x + 8)
+			if between >= build_bar.width_for(6):
+				across = between
+			else:
+				# Over the buttons: short of the minimap's column on the right.
+				across = minf(across, _right_column() - 8 - MARGIN)
+		build_bar.fit(across, portrait)
+	bar.reset_size()
+	var bw := bar.size.x
+	var bh := bar.size.y
 	var x := floorf((w - bw) * 0.5)
 	var y := bottom - bh
 	if touch:
@@ -114,15 +128,19 @@ func _place() -> void:
 			x = clampf(x, free_left, free_right - bw)
 		else:
 			y = minf(stick.position.y, _jump.position.y) - 8 - bh
+			if bar == build_bar and not portrait:
+				x = maxf(MARGIN, minf(x, _right_column() - 8 - bw))
 	# The clock under the hotbar's right end, overlapping its outline.
 	_clock_panel.reset_size()
 	var clock_room := _clock_panel.size.y - 2
 	y -= clock_room
-	_bar.position = Vector2(x, y)
+	bar.position = Vector2(x, y)
 	_clock_panel.position.y = y + bh - 2
 	_align_clock()
-	# The tab sits on the hotbar's frame at its right end, overlapping its outline.
+	# The tab sits on the hotbar's frame at its right end, overlapping its outline; the
+	# build mode's palette counts the blocks itself.
 	_bag_meter.position = Vector2(x + bw - _bag_meter.size.x, y - _bag_meter.size.y + 2)
+	_bag_meter.visible = bar != build_bar
 
 	_keys.reset_size()
 	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
@@ -277,6 +295,16 @@ func _fit_bag_meter() -> void:
 ## left of the buttons when PerfPanel.WIDTH fits there (a wide screen); else they go
 ## across the whole top and everything moves down under them (a phone held upright).
 ## Their width stays as it is while their numbers change.
+## The left edge of the column of the minimap, its level buttons and the camera cross.
+func _right_column() -> float:
+	var x: float = minimap.position.x
+	if _level.visible:
+		x = minf(x, _level.position.x)
+	if _camera.visible:
+		x = minf(x, _camera.position.x)
+	return x
+
+
 func _place_top() -> void:
 	var w := size.x
 	_top.reset_size()
@@ -316,9 +344,25 @@ func _align_clock() -> void:
 	var wide := _clock_panel.get_combined_minimum_size().x
 	if not is_equal_approx(_clock_panel.size.x, wide):
 		_clock_panel.size.x = wide
-	_clock_panel.position.x = _bar.position.x + _bar.size.x - wide
+	var bar: Control = _shown_bar()
+	_clock_panel.position.x = bar.position.x + bar.size.x - wide
 	_sleep_button.size = Vector2(SLEEP_SIZE.x, _clock_panel.size.y)
 	_sleep_button.position = _clock_panel.position + Vector2(_clock_panel.size.x - SLEEP_SIZE.x, 0)
+
+
+## The bar shown at the bottom: the hotbar, or the build mode's bar.
+func _shown_bar() -> Control:
+	return build_bar if build_bar != null and build_bar.visible else _bar
+
+
+## The build mode came or went: its bar in the hotbar's place, or the hotbar back.
+func show_build(on: bool) -> void:
+	build_bar.visible = on
+	_bar.visible = not on
+	if on:
+		build_bar.refresh()
+	_place()
+	_update_hands()
 
 
 ## Shows what each hand holds and marks the hand in use and the blocks in the hands;
@@ -333,18 +377,11 @@ func _update_hands() -> void:
 		slot.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand")
 		var n: int = game.character.inventory.count(id) if id != "" else 0
 		slot.modulate = Color(1, 1, 1, 0.5) if id != "" and n == 0 and not (free and c.use_of(h) == "place") else Color.WHITE
-		var brush: Dictionary = c.brush_record()
-		if c.use_of(h) == "place":
-			slot.number = brush.title if brush.title != "1×1" else ""
-			if brush.get("plan", "floor") != "floor":
-				slot.number += " %d" % c.plan_height
-		else:
-			slot.number = "×%d" % n if n > 1 else ""
+		slot.number = "×%d" % n if n > 1 else ""
 		# A light burns down in the hand: the second hand holds the second one lit.
 		var k := 1 if h == 1 and c.hands[0] == id and n > 1 else 0
 		slot.inactive = FactChips.unarmed(game.character.inventory, id)
 		slot.fill = game.character.burn_left(id, k) if id != "" and n > 0 and Items.burns(id) > 0.0 else -1.0
-	_plan_box.visible = c.use_of() == "place" and c.brush_record().get("plan", "floor") != "floor"
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var item: String = slots[i][0] if slots[i] != null else ""
@@ -352,8 +389,8 @@ func _update_hands() -> void:
 		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else
 			("Н" if game.character.inventory.worn_on(i) != "" else "")))
 	_action.text = c.action_name()
-	# Pressed down while the fishing line is in the water.
-	_action.latch(game.character.line.is_finite())
+	# Pressed down while the fishing line is in the water, or while the build mode builds.
+	_action.latch(game.character.line.is_finite() or game.build.auto)
 	# The picture of what the hand in use holds, bare hands for nothing.
 	var held: String = c.held()
 	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null
@@ -377,8 +414,6 @@ func tap_hand(hand: int) -> void:
 	var c = game.controls
 	if c.active != hand:
 		c.set_active(hand)
-	elif c.use_of() == "place":
-		c.cycle_brush()
 	else:
 		c.cycle_tool()
 

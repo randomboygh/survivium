@@ -166,6 +166,14 @@ const SHOTS := {
 	# The blueprint: a room of planks half built (its lowest level up, the rest a ghost)
 	# with a floor's ghost inside, and a wall's ghost of brick beside it.
 	"build-plan": {"time": 0.4, "season": 1, "plan": true},
+	# The build mode (BuildMode): the palette in the hotbar's place, the panel over it, a
+	# wall's stroke over the ghost (red where it would go inside blocks), taking the ghost
+	# off, a box on the ground, the interior filter.
+	"build-mode": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw"},
+	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
+	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube", "height": 2},
+	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},
+	"build-mode-touch": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "touch": true},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.
 	"build-furniture": {"time": 0.4, "season": 1, "furniture": true},
 	# Doors and windows of every size in a brick wall, a fireplace burning, a wide cupboard

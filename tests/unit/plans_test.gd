@@ -12,21 +12,30 @@ func run() -> void:
 
 
 func _test_shapes() -> void:
-	var wall := Plans.shape("wall", Vector3i(2, 1, 3), Vector3i(6, 1, 4), 2)
+	var wall := Plans.shape("line", Vector3i(2, 1, 3), Vector3i(6, 1, 4), 2)
 	_check(wall.size() == 10 and wall.has(Vector3i(6, 2, 3)) and not wall.has(Vector3i(6, 1, 4)),
 		"a wall goes along the way the stroke went farthest, two levels high: %s" % [wall])
-	_check(Plans.shape("wall", Vector3i(0, 1, 0), Vector3i(0, 1, 0), 9).size() == Plans.MAX_HEIGHT,
+	_check(Plans.shape("line", Vector3i(0, 1, 0), Vector3i(0, 1, 0), 9).size() == Plans.MAX_HEIGHT,
 		"a wall is at most four levels high")
-	var floor := Plans.shape("floor", Vector3i(5, 1, 5), Vector3i(3, 1, 6), 3)
-	_check(floor.size() == 6 and floor.has(Vector3i(3, 1, 6)), "a floor is the rectangle, one level")
-	# A room 5×5 cells, the one drawing south of it: the door's gap in the middle of the
-	# south side, two levels of it.
-	var room := Plans.shape("room", Vector3i(0, 1, 0), Vector3i(4, 1, 4), 3, Vector2(2.5, 9.0) * WorldData.CELL)
-	_check(room.size() == 16 * 3 - 2 and not room.has(Vector3i(2, 1, 4)) and not room.has(Vector3i(2, 2, 4))
-		and room.has(Vector3i(2, 3, 4)) and not room.has(Vector3i(2, 1, 2)),
-		"a room is walls round the rectangle with a door's gap on the side nearest: %d" % room.size())
-	var east := Plans.shape("room", Vector3i(0, 1, 0), Vector3i(4, 1, 4), 2, Vector2(12.0, 2.5) * WorldData.CELL)
-	_check(not east.has(Vector3i(4, 1, 2)) and east.has(Vector3i(2, 1, 4)), "standing east, the gap is in the east side")
+	var thick := Plans.shape("line", Vector3i(2, 1, 3), Vector3i(6, 1, 3), 1, Vector2(4.5, 9.0) * WorldData.CELL, 2)
+	_check(thick.size() == 10 and thick.has(Vector3i(4, 1, 2)) and not thick.has(Vector3i(4, 1, 4)),
+		"a wall two cells thick grows away from the one drawing it")
+	var floor := Plans.shape("plane", Vector3i(5, 1, 5), Vector3i(3, 1, 6), 3)
+	_check(floor.size() == 6 and floor.has(Vector3i(3, 1, 6)), "a plane is the rectangle, one level, whatever the height")
+	var deep := Plans.shape("plane", Vector3i(5, 2, 5), Vector3i(3, 2, 6), 1, Vector2.INF, 2)
+	_check(deep.size() == 12 and deep.has(Vector3i(3, 1, 6)), "a thicker plane goes down")
+	var square := Plans.shape("square", Vector3i(0, 1, 0), Vector3i(4, 1, 4), 3)
+	_check(square.size() == 16 * 3 and square.has(Vector3i(2, 1, 4)) and not square.has(Vector3i(2, 1, 2)),
+		"a square is walls round the rectangle, no gap: %d" % square.size())
+	_check(Plans.shape("square", Vector3i(0, 1, 0), Vector3i(4, 1, 4), 1, Vector2.INF, 2).size() == 24,
+		"walls two cells thick grow inward")
+	var cube := Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2)
+	_check(cube.size() == 16 + 16 + 12 * 2 and cube.has(Vector3i(1, 1, 1)) and cube.has(Vector3i(1, 4, 1))
+		and cube.has(Vector3i(0, 3, 2)) and not cube.has(Vector3i(1, 2, 1)),
+		"a cube is a floor, walls on it and a ceiling over them: %d" % cube.size())
+	_check(Plans.erase_box("line", Vector3i(0, 1, 0), Vector3i(3, 1, 0), 2, Vector2(1.0, 9.0) * WorldData.CELL, 2).size() == 16,
+		"the ghost is taken off the box round the shape")
+	_check(Plans.shape("roof", Vector3i.ZERO, Vector3i.ONE, 1).is_empty(), "a shape of no known kind has no cells")
 
 
 func _test_build() -> void:
@@ -40,12 +49,12 @@ func _test_build() -> void:
 	actions.plans = plans
 	var who := Who.new()
 	who.position = Vector3(10.5, 2.0, 10.5) * WorldData.CELL
-	_check(plans.draw(actions, who, "wall", Vector3i(12, 2, 8), Vector3i(12, 2, 12), 2) == 0 and plans.cells.is_empty(),
+	_check(plans.draw(actions, who, "line", Vector3i(12, 2, 8), Vector3i(12, 2, 12), 2) == 0 and plans.cells.is_empty(),
 		"no ghost is drawn without a block in hand")
 	who.item = PLANKS
-	_check(plans.draw(actions, who, "wall", Vector3i(12, 2, 8), Vector3i(12, 2, 12), 2) == 10 and plans.cells.get(Vector3i(12, 3, 8)) == PLANKS,
+	_check(plans.draw(actions, who, "line", Vector3i(12, 2, 8), Vector3i(12, 2, 12), 2) == 10 and plans.cells.get(Vector3i(12, 3, 8)) == PLANKS,
 		"a wall's ghost is drawn with the block in hand")
-	_check(plans.draw(actions, who, "floor", Vector3i(8, 1, 9), Vector3i(9, 1, 10), 1) == 4,
+	_check(plans.draw(actions, who, "plane", Vector3i(8, 1, 9), Vector3i(9, 1, 10), 1) == 4,
 		"a floor's ghost goes on the ground")
 	_check(actions.front_kind(who) == "build", "the action button builds with a block in hand by the ghost")
 	var swing := actions.act_in_front(who, 40)
@@ -55,7 +64,9 @@ func _test_build() -> void:
 	var built: Array[Vector3i] = []
 	for i in 14:
 		var before: Dictionary = plans.cells.duplicate()
-		swing = actions.act_in_front(who, 40)
+		# The level cut under the wall's top (inside a house: under its ceiling) does not
+		# keep it from being built.
+		swing = actions.act_in_front(who, 2)
 		if not swing.has("placed"):
 			break
 		for c: Vector3i in before:
@@ -69,11 +80,24 @@ func _test_build() -> void:
 	for i in range(1, built.size()):
 		lowest = lowest and built[i].y >= built[i - 1].y
 	_check(lowest and w.get_cell(12, 3, 12) == Mat.index("materials:planks"), "lower cells before higher, the wall stands")
-	# Drawn again from a ghost cell, the shape takes the ghost off.
-	plans.draw(actions, who, "wall", Vector3i(20, 2, 8), Vector3i(24, 2, 8), 1)
-	_check(plans.draw(actions, who, "wall", Vector3i(22, 2, 8), Vector3i(24, 2, 8), 1) == 3 and plans.cells.size() == 2,
-		"a stroke that starts on the ghost takes it off")
+	# Erasing, a stroke takes the ghost off.
+	plans.draw(actions, who, "line", Vector3i(20, 2, 8), Vector3i(24, 2, 8), 1)
+	_check(plans.draw(actions, who, "line", Vector3i(22, 2, 8), Vector3i(24, 2, 8), 1, 1, true) == 3 and plans.cells.size() == 2,
+		"an erasing stroke takes the ghost off")
 	var copy := Plans.new()
 	copy.from_list(plans.to_list())
 	_check(copy.cells == plans.cells, "the ghost is saved and read back")
-	_check(plans.draw(actions, who, "floor", Vector3i(0, 1, 0), Vector3i(30, 1, 30), 1) == 0, "a shape too big is not drawn")
+	_check(plans.draw(actions, who, "plane", Vector3i(0, 1, 0), Vector3i(40, 1, 40), 1) == 0, "a shape too big is not drawn")
+	_check(plans.clear(actions, who) == 2 and plans.cells.is_empty(), "the ghost near is cleared at once")
+	# Uneven ground: a floor is not drawn under a bump, a wall over a dip is told.
+	w.set_cell(30, 2, 12, Mat.DIRT)
+	var block := Mat.index("materials:planks")
+	var sorted: Dictionary = plans.sort(actions, who, "plane", Vector3i(29, 1, 12),
+		Plans.shape("plane", Vector3i(29, 1, 12), Vector3i(31, 1, 12), 1), block)
+	_check(sorted.fit.size() == 2 and sorted.blocked == [Vector3i(30, 1, 12)], "a floor's cell under a bump is blocked: %s" % [sorted])
+	sorted = plans.sort(actions, who, "line", Vector3i(29, 2, 12), Plans.shape("line", Vector3i(29, 2, 12), Vector3i(31, 2, 12), 2), block)
+	_check(sorted.blocked == [Vector3i(30, 2, 12)] and sorted.hanging.is_empty(), "a wall's cell inside the bump is blocked")
+	sorted = plans.sort(actions, who, "line", Vector3i(29, 3, 14), Plans.shape("line", Vector3i(29, 3, 14), Vector3i(31, 3, 14), 1), block)
+	_check(sorted.hanging.size() == 3, "a wall over open air hangs")
+	_check(plans.draw(actions, who, "plane", Vector3i(29, 1, 12), Vector3i(31, 1, 12), 1) == 2 and not plans.cells.has(Vector3i(30, 1, 12)),
+		"and the blocked cells are not drawn")

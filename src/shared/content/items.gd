@@ -137,6 +137,13 @@ static func is_station(id: String) -> bool:
 		and not item.get("door", false) and not item.get("window", false) and not item.get("furniture", false)
 
 
+## Whether item `id` is set down in the build mode (the palette's «Интерьер», decision of
+## 2026-11-06): every thing set down (a `prop`): doors, windows, stairs, furniture, beds,
+## chests, stations, the campfire, a fireplace, a boundary post. Taken up there too.
+static func is_interior(id: String) -> bool:
+	return get_item(id).get("prop", "none") != "none"
+
+
 ## The most slots a thing set down holds (`storage`), 0 when none stores.
 static func most_storage() -> int:
 	var most := 0

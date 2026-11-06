@@ -23,6 +23,7 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 
 ## Letters a line of chat keeps at most; lines in a while at most.
 const CHAT_MAX := 160
@@ -37,7 +38,7 @@ const REVIVE_NEAR := 1.0
 ## The requests whose work takes the hands' time (see `paced`), and the seconds of it a
 ## player may be ahead of the clock (a quick finger along a stroke, a reply late).
 const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
-	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.LIGHT_PUT]
+	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.LIGHT_PUT, Protocol.BUILD]
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
@@ -159,6 +160,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PROP_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT, TYPE_INT]):
 				return placed.put_from_bag(who, args[0], args[1], args[2])
+		Protocol.PROP_PUT_AT:
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I]):
+				return placed.put_at(who, args[0], args[1], session.world.size_y)
 		Protocol.LIGHT_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]):
 				return placed.put_light_from_bag(who, args[0], args[1])
@@ -183,8 +187,14 @@ func _rule(kind: String, args: Array) -> Variant:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.swing(who, e)
 		Protocol.PLAN:
-			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[0] in ["wall", "floor", "room"]:
-				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3])
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL]) and args[0] in Plans.KINDS:
+				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5])
+		Protocol.BUILD:
+			if _fit(args, []):
+				return session.plans.build(actions, who)
+		Protocol.PLAN_CLEAR:
+			if _fit(args, []):
+				return session.plans.clear(actions, who)
 		Protocol.PROP_DESTROY:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])

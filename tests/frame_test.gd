@@ -259,6 +259,8 @@ func _run() -> void:
 	var slot0 = inv.slots[0]
 	c.select_slot(0)
 	_check(slot0 != null and c.held() == slot0[0], "a hotbar slot is the bag's first row")
+	# A block or a thing to set down there enters the build mode: out of it again.
+	main.build.leave()
 	await _portrait_hotbar()
 	c.put_in_hand("resources:stone")
 	c.brush = 2
