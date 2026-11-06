@@ -122,7 +122,10 @@ var sun_rays
 var tracks
 var roof: RoofMap
 var hud
-## The hidden view that builds the night's shaders as the game starts (see shader_warmup.gd).
+## The hidden view that builds the shaders before they are needed (see shader_warmup.gd):
+## `shaders` for the whole game, `warmup` the same while it builds them ahead, behind the
+## loading screen.
+var shaders: ShaderWarmup
 var warmup: ShaderWarmup
 var chunks: ChunkStreamer
 var sky: SkyScript
@@ -849,8 +852,9 @@ func _process(delta: float) -> void:
 				host.runner.playing = true
 			player.visible = not character.is_dead()
 			ready_to_play = true
-			warmup = ShaderWarmup.new(self)
-			warmup.start()
+			shaders = ShaderWarmup.new(self)
+			shaders.start()
+			warmup = shaders
 			StartTimes.chunks_ms = world_maker.gen_us / 1000
 			StartTimes.mesh_ms = chunks.mesh_us / 1000
 			StartTimes.mark("world")
@@ -920,6 +924,8 @@ func _process(delta: float) -> void:
 	elif warmup != null and menu == null:
 		# Only without a menu (tests, tools): the loading screen says it itself.
 		hud.set_loading("%s…" % loading_phase())
+	elif shaders != null:
+		shaders.update()
 	freeze_log.update()
 	t = perf.note("камера", t)
 	if ready_to_play:

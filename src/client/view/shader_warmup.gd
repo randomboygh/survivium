@@ -1,50 +1,109 @@
 extends RefCounted
 ## The first time a thing is drawn under lights it was not drawn under before (the
-## torch at dusk, the shadow of the nearest fire),
-## the renderer builds the shaders for it, and on a phone that stops the game for 100 ms
-## or more (2026-10-24; under software GL the first night took 10 s). So when the world
-## is ready, a small view no one sees draws one of each kind of thing in the world under
-## every mix of those lights, a frame each, and the shaders are built while the game
-## starts rather than at the first dusk. Things that are not there yet at the start are
-## drawn too: the particles (dust, rain, sparks) as one particle each, the lightning's
-## material on a face, a label and a letter "z" over a figure, and a line and a polygon of the interface (the wind's arrow, the
-## sound marks, the joystick), which the canvas builds its own shaders for.
+## torch at dusk, the shadow of the nearest fire), the renderer builds the shaders for
+## it, and on a phone that stops the game for 100 ms or more (2026-10-24; under software
+## GL the first night took 10 s). So a small view no one sees draws one of each kind of
+## thing in the world under each mix of those lights, and the shaders are built before
+## they are needed. Things that are not there yet at the start are drawn too: the
+## particles (dust, rain, sparks) as one particle each, the lightning's material on a
+## face, a label and a letter "z" over a figure, and a line and a polygon of the
+## interface (the wind's arrow, the sound marks, the joystick), which the canvas builds
+## its own shaders for.
+##
+## Ahead, behind the loading screen (step, a mix a frame, every kind at once): the day's
+## mixes, and the night's too when the world starts at dusk or at night. The night's are
+## those with a fire's shadow, drawn only when it is dark and the fire shadows setting
+## gives a real one (Effects.shadows); with it off they are never built. Later, in the
+## game (update): what the moment may soon need and was not built yet, a kind at a time
+## so each stop is short (most 0.3-0.5 s, a few 1-2 s under software GL): the night's
+## mixes slowly by day while the player stands, faster once evening comes; the day's
+## anew when the sun's shadow is switched in the settings. On a phone the whole warm-up
+## ahead took 50 s (2026-11-06).
 
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerView := preload("res://src/client/view/player.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Effects := preload("res://src/client/view/effects.gd")
 
 ## The mixes of lights: [a light without a shadow (the torch, the far fires), a light
-## with a shadow (the nearest fire)], all under the sun. The sun alone (the land beyond
-## the torch's glow) was once left to the first frames of the game, but the world is not
-## drawn behind the menu, so it came mid-game (six shaders of up to 370 ms on a phone,
-## 2026-11-01). The sun is never out: at dusk and on a moonless night its energy is 0,
-## but the renderer still draws with it and picks the same shaders (measured 2026-11-06:
-## the four mixes without it built nothing new when it was dimmed to 0, and were a
-## quarter of the warm-up when it was hidden).
-const MIXES := [[true, true], [false, true], [true, false], [false, false]]
+## with a shadow (the nearest fire)], all under the sun with its shadow as the settings
+## have it. The sun alone (the land beyond the torch's glow) was once left to the first
+## frames of the game, but the world is not drawn behind the menu, so it came mid-game
+## (six shaders of up to 370 ms on a phone, 2026-11-01). The sun is never out: at dusk
+## and on a moonless night its energy is 0, but the renderer still draws with it and
+## picks the same shaders (measured 2026-11-06: the four mixes without it built nothing
+## new when it was dimmed to 0, and were a quarter of the warm-up when it was hidden).
+const DAY := [[true, false], [false, false]]
+const NIGHT := [[true, true], [false, true]]
 ## How far apart the copies stand, in world units, and the lights' reach over them all.
 const SPACING := 4.0
 const REACH := 64.0
+## How much lighter than Effects.SHADOW_SKY the sky is when evening comes: the night's
+## mixes are then built ahead at the start, and in the game at the EVENING_PACE.
+const EVENING := 0.35
+## In the game, ms between two kinds drawn: by day, and once evening has come (or the
+## settings asked for a mix not built yet).
+const DAY_PACE := 2500
+const EVENING_PACE := 400
 
 var game
 var viewport: SubViewport
 var sun: DirectionalLight3D
 var lamp: OmniLight3D
 var fire: OmniLight3D
-var frames := 0
+## The copies, one of each kind, in the hidden view.
+var copies: Array[GeometryInstance3D] = []
 ## The interface's line and polygon, drawn on the world's canvas with no colour.
 var canvas: RID
+## The mixes built, by [the sun's shadow, lamp, fire's shadow].
+var done := {}
+## Ahead: the mixes left to draw, a frame each; how many there were.
+var ahead: Array = []
+var ahead_total := 0
+## The frame start() ran in: the first mix is drawn at its end, so step() then waits.
+var start_frame := -1
+## Later: the mix being built a kind at a time, the next kind, when the last was drawn.
+var mix_later: Array = []
+var next_kind := 0
+var drawn_at := 0
 
 
 func _init(g) -> void:
 	game = g
 
 
+## The mixes the game may need: the day's always, the night's when a fire can cast a
+## real shadow (Effects.shadows); with `soon` only those the sky may need soon, the
+## night's once it is dark or getting dark (EVENING).
+func wanted(soon: bool) -> Array:
+	var shadow: bool = game.sky.sun.shadow_enabled
+	var mixes: Array = []
+	for m: Array in DAY:
+		mixes.append([shadow, m[0], m[1]])
+	if game.effects.shadows and (not soon or _evening()):
+		for m: Array in NIGHT:
+			mixes.append([shadow, m[0], m[1]])
+	return mixes
+
+
+func _evening() -> bool:
+	return game.sky.sun_light < Effects.SHADOW_SKY + EVENING
+
+
+## Starts the warm-up ahead, when the world is ready: the mixes the moment needs.
+func start() -> void:
+	ahead = wanted(true)
+	ahead_total = ahead.size()
+	start_frame = Engine.get_process_frames()
+	_build()
+	_mix(ahead[0])
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
+
 ## Builds the hidden view in a world of its own, with a copy of one thing of each kind
 ## found under the main view (the same mesh and material, so the same shaders).
-func start() -> void:
+func _build() -> void:
 	viewport = SubViewport.new()
 	viewport.size = Vector2i(64, 64)
 	viewport.own_world_3d = true
@@ -88,10 +147,12 @@ func start() -> void:
 			PackedColorArray([clear, clear, clear]))
 	var side := ceili(sqrt(kinds.size()))
 	var i := 0
+	copies.clear()
 	for copy: GeometryInstance3D in kinds.values():
 		copy.extra_cull_margin = 16384.0
 		viewport.add_child(copy)
 		copy.position = Vector3((i % side) * SPACING, 0.0, (i / side) * SPACING)
+		copies.append(copy)
 		i += 1
 	var middle := Vector3(side, 0.0, side) * SPACING * 0.5
 	var camera := Camera3D.new()
@@ -110,7 +171,6 @@ func start() -> void:
 	sun.look_at_from_position(middle + Vector3(1.0, 10.0, 1.0), middle)
 	lamp = _light(middle + Vector3(-2.0, 3.0, 0.0), false)
 	fire = _light(middle + Vector3(2.0, 3.0, 0.0), true)
-	_mix(0)
 
 
 ## A unit face on the ground, like the chunks' cells have.
@@ -131,10 +191,10 @@ func _light(at: Vector3, shadow: bool) -> OmniLight3D:
 	return light
 
 
-func _mix(i: int) -> void:
-	var m: Array = MIXES[i]
-	lamp.visible = m[0]
-	fire.visible = m[1]
+func _mix(m: Array) -> void:
+	sun.shadow_enabled = m[0]
+	lamp.visible = m[1]
+	fire.visible = m[2]
 
 
 ## A copy of each thing under `node` that differs from the ones in `kinds` in what
@@ -201,18 +261,74 @@ func _key(mi: MeshInstance3D) -> Array:
 	return key
 
 
-## How far the warm-up has gone, 0 to 1 (the loading screen's strip).
+## How far the warm-up ahead has gone, 0 to 1 (the loading screen's strip).
 func progress() -> float:
-	return clampf(float(frames) / MIXES.size(), 0.0, 1.0)
+	return clampf(1.0 - float(ahead.size()) / maxi(ahead_total, 1), 0.0, 1.0)
 
 
-## Called every frame; true once every mix was drawn and the hidden view is gone.
+## Called every frame of the warm-up ahead; true once every mix it had was drawn (the
+## hidden view then waits, empty, for what is built later, see update).
 func step() -> bool:
-	frames += 1
-	if frames < MIXES.size():
-		_mix(frames)
+	# Called in the frame start() ran in too, before its mix was drawn (until 2026-11-06
+	# the first mix was never drawn).
+	if Engine.get_process_frames() == start_frame:
 		return false
-	viewport.queue_free()
+	done[ahead.pop_front()] = true
+	if not ahead.is_empty():
+		_mix(ahead[0])
+		return false
+	for copy in copies:
+		copy.visible = false
+	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	return true
+
+
+## Called every frame of the game: builds a kind at a time of the mixes the game may
+## need and were not built yet (see wanted), and lets the hidden view go once all are.
+func update() -> void:
+	if mix_later.is_empty():
+		for m: Array in wanted(false):
+			if not done.has(m):
+				mix_later = m
+				next_kind = 0
+				break
+		if mix_later.is_empty():
+			_free()
+			return
+	# The night's slowly by day, and only while the player stands (some kinds stop the
+	# game for a second or two on slow devices); at dusk, or the day's (the sun's shadow
+	# switched), faster and whatever the player does.
+	var now := Time.get_ticks_msec()
+	var by_day: bool = mix_later[2] and not _evening()
+	if by_day and game.player.body.move_input != Vector2.ZERO:
+		return
+	if now - drawn_at < (DAY_PACE if by_day else EVENING_PACE):
+		return
+	drawn_at = now
+	if viewport == null:
+		_build()
+		for copy in copies:
+			copy.visible = false
+		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if next_kind > 0:
+		copies[next_kind - 1].visible = false
+	if next_kind >= copies.size():
+		done[mix_later] = true
+		mix_later = []
+		return
+	_mix(mix_later)
+	copies[next_kind].visible = true
+	next_kind += 1
+	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	game.hud.perf.mark("прогрев")
+
+
+## Lets the hidden view go.
+func _free() -> void:
+	if viewport != null:
+		viewport.queue_free()
+		viewport = null
+	copies.clear()
 	if canvas.is_valid():
 		RenderingServer.free_rid(canvas)
-	return true
+		canvas = RID()
