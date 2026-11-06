@@ -28,10 +28,16 @@ const ARROW := 28
 const BUTTON := 30
 const SHAPES := [["build_line", "line", "Линия: стена"], ["build_plane", "plane", "Плоскость: пол"],
 	["build_square", "square", "Квадрат: стены вокруг"], ["build_cube", "cube", "Куб: пол, стены и потолок"]]
+const FORMS := [["form_cube", "Блок: целый"], ["form_ramp", "Скос снизу"], ["form_upper", "Скос сверху"],
+	["form_stairs", "Ступени"]]
 const FILTER_TITLES := {"all": "Всё", "blocks": "Материалы", "interior": "Интерьер"}
 
 var game
 var _shapes: HBoxContainer
+var _forms: HBoxContainer
+var _rows: VBoxContainer
+var _row2: HBoxContainer
+var _turn: Button
 var _modes: HBoxContainer
 var _height: Button
 var _thick: Button
@@ -53,10 +59,16 @@ func _init(g) -> void:
 	game = g
 	add_theme_constant_override("separation", 4)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var panel := HBoxContainer.new()
-	panel.add_theme_constant_override("separation", 6)
-	panel.alignment = BoxContainer.ALIGNMENT_CENTER
-	add_child(panel)
+	# The groups of buttons in a row; on a narrow screen the forms go to a second row
+	# over it (fit).
+	_rows = VBoxContainer.new()
+	_rows.add_theme_constant_override("separation", 4)
+	_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_rows)
+	_row2 = _row()
+	_rows.add_child(_row2)
+	var panel := _row()
+	_rows.add_child(panel)
 	var parts := []
 	for s: Array in SHAPES:
 		var k: String = s[1]
@@ -65,6 +77,14 @@ func _init(g) -> void:
 	panel.add_child(_shapes)
 	_height = _cycle("build_height", "Высота стен", func() -> void: game.build.next_height())
 	_thick = _cycle("build_thick", "Толщина стен", func() -> void: game.build.next_thick())
+	var form_parts := []
+	for i in FORMS.size():
+		var k := i
+		form_parts.append([UiStyle.icon(FORMS[i][0]), FORMS[i][1], func() -> void: game.build.set_form(k)])
+	_forms = TabRow.split(form_parts)
+	_turn = TabRow.icon_button(UiStyle.icon("turn_right"), "Повернуть скос или ступени (Y)", func() -> void: game.build.turn())
+	_forms.add_child(_turn)
+	panel.add_child(_forms)
 	var sizes := TabRow.split([])
 	sizes.add_child(_height)
 	sizes.add_child(_thick)
@@ -79,7 +99,7 @@ func _init(g) -> void:
 		[UiStyle.icon("close"), "Выйти из режима строительства (B)", func() -> void: game.build.leave()],
 	])
 	panel.add_child(ends)
-	for row: HBoxContainer in [_shapes, _modes, ends]:
+	for row: HBoxContainer in [_shapes, _forms, _modes, ends]:
 		for b: Button in row.get_children():
 			b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 	_palette = PanelContainer.new()
@@ -125,6 +145,14 @@ func _set_filters() -> void:
 	_filters.set_tabs(FILTER_TITLES.keys(), icons, FILTER_TITLES)
 
 
+func _row() -> HBoxContainer:
+	var r := HBoxContainer.new()
+	r.add_theme_constant_override("separation", 6)
+	r.alignment = BoxContainer.ALIGNMENT_CENTER
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+
 ## A button showing a picture and a number, a tap going round the number.
 func _cycle(icon: String, tip: String, action: Callable) -> Button:
 	var b := TabRow.small_button("", action)
@@ -167,6 +195,19 @@ func fit(width: float, portrait := false) -> void:
 		_columns = mini(_columns, COLUMNS_PORTRAIT)
 	# All three filters shown, none scrolled: the palette a little taller than its rows
 	# on a portrait screen.
+	# The forms in the row of the other buttons when they all fit across, else over it.
+	var one: HBoxContainer = _rows.get_child(1)
+	var across := 0.0
+	for g: Control in one.get_children() + _row2.get_children():
+		across += g.get_combined_minimum_size().x + 6
+	var two := across - 6 > width
+	var home: HBoxContainer = _row2 if two else one
+	if _forms.get_parent() != home:
+		_forms.get_parent().remove_child(_forms)
+		home.add_child(_forms)
+		if home == one:
+			home.move_child(_forms, 1)
+	_row2.visible = two
 	_filters.fit_height(maxf(ROWS * side + GAP, FILTER_TITLES.size() * (IconTabs.SIDE + 2) - 2))
 	refresh()
 
@@ -186,6 +227,9 @@ func refresh() -> void:
 	var b = game.build
 	for i in SHAPES.size():
 		TabRow.light(_shapes.get_child(i), b.kind == SHAPES[i][1])
+	for i in FORMS.size():
+		TabRow.light(_forms.get_child(i), b.form == i)
+	_turn.disabled = b.form == 0
 	# The height means nothing for a plane: a plane is one level (as thick as chosen, down).
 	_height.text = str(b.height)
 	_height.disabled = b.kind == "plane"

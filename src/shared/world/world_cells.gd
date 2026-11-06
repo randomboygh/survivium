@@ -55,6 +55,20 @@ const SHEER := 2
 const BOG := 4
 const SWAMP := 8
 
+## The forms of built blocks that are not whole cubes (the build mode's slopes and
+## stairs, thread «Сделать отдельный режим строительства»), by cell: FORM_* in bits 0..1,
+## the side the block rises toward (0 north -z, 1 east +x, 2 south +z, 3 west -x) in
+## bits 2..3. A cube has no entry; any change of the cell (set_cell) makes it a cube
+## again. Kept by chunk in `form_chunks` too, so a dropped chunk forgets its own.
+var forms := {}
+var form_chunks := {}
+## A whole cube; a ramp rising toward its side (solid under the diagonal); the same
+## upside down (solid over it: the underside of a roof); two steps rising toward it.
+const FORM_CUBE := 0
+const FORM_RAMP := 1
+const FORM_UPPER := 2
+const FORM_STAIRS := 3
+
 ## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z),
 ## and the trunks by chunk, so a dropped chunk forgets its trees without a search.
 var trees := {}
@@ -227,6 +241,9 @@ func remove_chunk(key: Vector2i) -> void:
 		tree_twigs.erase(t)
 		tree_seeds.erase(t)
 	tree_chunks.erase(key)
+	for cell: Vector3i in form_chunks.get(key, {}):
+		forms.erase(cell)
+	form_chunks.erase(key)
 	drops.erase(key)
 	turf.erase(key)
 	unsaved.erase(key)
@@ -269,6 +286,8 @@ func set_cell(x: int, y: int, z: int, m: int) -> void:
 	c.leaf[col] = c.leaf[col] & ~bit | (bit if m == Mat.LEAVES else 0)
 	c.logs[col] = c.logs[col] & ~bit | (bit if m == Mat.LOG else 0)
 	c.wild[col] &= ~bit
+	if not forms.is_empty() and forms.has(Vector3i(x, y, z)):
+		_drop_form(c.key, Vector3i(x, y, z))
 	if turf.has(c.key):
 		turf[c.key].erase(Vector3i(x, y, z))
 	_touch(c, x, z)
@@ -285,6 +304,42 @@ func set_material(x: int, y: int, z: int, m: int) -> void:
 		return
 	c.cells[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] = m
 	_touch(c, x, z)
+
+
+## The form of the block in cell x, y, z (see forms), FORM_CUBE for a cube or no block.
+func form_at(x: int, y: int, z: int) -> int:
+	if forms.is_empty():
+		return FORM_CUBE
+	return forms.get(Vector3i(x, y, z), FORM_CUBE)
+
+
+## Gives the block in cell x, y, z form `f` (see forms); only a block that hides what is
+## behind it takes one.
+func set_form(x: int, y: int, z: int, f: int) -> void:
+	var c := chunk_at(x, z)
+	if c == null or y < 0 or y >= size_y:
+		return
+	var cell := Vector3i(x, y, z)
+	f &= 15
+	var m := get_cell(x, y, z)
+	if f & 3 == FORM_CUBE or m == Mat.AIR or m == Mat.WATER or m == Mat.LEAVES:
+		if forms.has(cell):
+			_drop_form(c.key, cell)
+			_touch(c, x, z)
+		return
+	forms[cell] = f
+	if not form_chunks.has(c.key):
+		form_chunks[c.key] = {}
+	form_chunks[c.key][cell] = true
+	_touch(c, x, z)
+
+
+func _drop_form(key: Vector2i, cell: Vector3i) -> void:
+	forms.erase(cell)
+	var of: Dictionary = form_chunks.get(key, {})
+	of.erase(cell)
+	if of.is_empty():
+		form_chunks.erase(key)
 
 
 func set_natural(x: int, y: int, z: int, on: bool) -> void:
@@ -714,7 +769,16 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		bush_lists[name] = list
 	return {"key": key, "levels": size_y, "cells": c.cells, "natural": c.natural, "shapes": c.shapes,
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
-		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(), "drops": drops.get(key, []).duplicate(true)}
+		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(), "drops": drops.get(key, []).duplicate(true),
+		"forms": _forms_of(key)}
+
+
+## The forms of the blocks of chunk `key` (see forms): [[cell, form], …].
+func _forms_of(key: Vector2i) -> Array:
+	var out := []
+	for cell: Vector3i in form_chunks.get(key, {}):
+		out.append([cell, forms[cell]])
+	return out
 
 
 ## True when `d` is a chunk packed by pack_chunk for a world of this height.
@@ -754,6 +818,12 @@ func unpack_chunk(d: Dictionary) -> bool:
 		_last = c
 	for t: Array in d.get("trees", []):
 		add_tree(t[0].x, t[0].y, t[1])
+	var built: Variant = d.get("forms")
+	if built is Array:
+		for f in built:
+			if f is Array and f.size() == 2 and f[0] is Vector3i and f[1] is int \
+					and chunk_key(f[0].x, f[0].z) == key:
+				set_form(f[0].x, f[0].y, f[0].z, f[1])
 	var records: Dictionary = d.get("tree_records", {})
 	for name: String in TREE_MAPS:
 		var map: Dictionary = get(name)

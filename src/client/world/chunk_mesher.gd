@@ -13,6 +13,7 @@ extends "res://src/client/world/mesh_faces.gd"
 const Slopes := preload("res://src/client/world/slope_mesher.gd")
 const Water := preload("res://src/client/world/water_mesher.gd")
 const Trunks := preload("res://src/client/world/trunk_mesher.gd")
+const Forms := preload("res://src/client/world/form_mesher.gd")
 
 ## Per direction: [corners, uvs, normal] of a whole cell face.
 static var _cell_faces: Array = []
@@ -44,6 +45,10 @@ class Job extends RefCounted:
 	var plain_j := 0
 	var water_j := 0
 	var cands: PackedInt64Array
+	## The forms of the built blocks that are not cubes (WorldData.forms) in the padded
+	## grid, by index, and the steps to a cell's neighbours in DIRS order.
+	var forms := {}
+	var offsets: PackedInt32Array
 	## Steps of copying the cells before the columns (see PREP_STEPS); 0 once done.
 	var prep := PREP_STEPS
 
@@ -89,6 +94,7 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	job.nb = PackedByteArray()
 	job.nb.resize(6)
 	job.side_offsets = PackedInt32Array([1, -1, 0, 0, job.dz, -job.dz])
+	job.offsets = PackedInt32Array([1, -1, job.dy, -job.dy, job.dz, -job.dz])
 	# Plain tops (no edges, corners or transitions) and plain water wait here to be
 	# merged into rows.
 	job.plain = PackedInt32Array()
@@ -119,6 +125,7 @@ static func _prepare(job: Job, i: int) -> void:
 			job.sh.append_array(w.padded(true, 0, x0, z0, x1, z1, half))
 		1:
 			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
+			_take_forms(job)
 
 
 ## Builds the next `columns` columns of cells of the chunk (a column is all levels of
@@ -179,6 +186,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 	var plain := job.plain
 	var water_plain := job.water_plain
 	var cands := job.cands
+	var forms := job.forms
+	var offsets := job.offsets
 	# The stone tops whose moss was picked (WorldData.turf "").
 	var picked: Dictionary = w.turf.get(WorldData.chunk_key(x, z), {})
 	var j := (z - z0) * (x1 - x0) + (x - x0)
@@ -207,6 +216,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		nb[4] = c[i + dz]
 		nb[5] = c[i - dz]
 		var base := Vector3(x, y, z)
+		if not forms.is_empty() and forms.has(i):
+			Forms.form_faces(solid, c, cov, forms, offsets, i, base, m, forms[i])
+			continue
+		var by_form := not forms.is_empty() and _by_form(forms, offsets, i)
 		if m == WATER:
 			var fills := sh[i] >> 4
 			var foam := fills << 8
@@ -252,7 +265,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			var bare: bool = m == Mat.STONE and not picked.is_empty() and picked.get(Vector3i(x, y, z), null) == ""
 			# Most tops lie under open sky amid the same flat ground: no sides, no
 			# edges, no transitions.
-			if cuts == 0 and not bare and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
+			if cuts == 0 and not bare and not by_form and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
 					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
 					and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
 					and not cov[c[i + dy - dz]]:
@@ -260,7 +273,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				continue
 			for d in 6:
 				var n := nb[d]
-				if cov[n] and sh[i + side_offsets[d]] & 15 == 0:
+				if cov[n] and sh[i + side_offsets[d]] & 15 == 0 \
+						and not (by_form and forms.has(i + offsets[d]) and not Forms.covers_side(forms[i + offsets[d]], d ^ 1)):
 					# The ground under a thin trunk still shows around it.
 					if not (d == FACE_TOP and n == Mat.LOG and Trunks.trunk_at(w, x, y + 1, z)):
 						continue
@@ -312,6 +326,42 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
 					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy])
 	return true
+
+
+## Whether a neighbour of padded cell `i` is a built block of a form (see Forms).
+static func _by_form(forms: Dictionary, offsets: PackedInt32Array, i: int) -> bool:
+	for d in 6:
+		if forms.has(i + offsets[d]):
+			return true
+	return false
+
+
+## Takes the forms of the built blocks in the padded grid of the job (WorldData.forms)
+## and makes them and the cells beside them candidates for faces.
+static func _take_forms(job: Job) -> void:
+	var w = job.w
+	if w.forms.is_empty():
+		return
+	var x0 := job.x0 - PAD
+	var z0 := job.z0 - PAD
+	var x1 := job.x1 + PAD
+	var z1 := job.z1 + PAD
+	var keys := {}
+	for x in [x0, job.x0, x1 - 1]:
+		for z in [z0, job.z0, z1 - 1]:
+			keys[WorldData.chunk_key(x, z)] = true
+	var sx := job.x1 - job.x0
+	for key: Vector2i in keys:
+		for cell: Vector3i in w.form_chunks.get(key, {}):
+			if cell.x < x0 or cell.x >= x1 or cell.z < z0 or cell.z >= z1:
+				continue
+			job.forms[(cell.y + 1) * job.dy + (cell.z - z0) * job.dz + cell.x - x0] = w.forms[cell]
+			for o: Vector3i in [Vector3i.ZERO, Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0), Vector3i(0, -1, 0),
+					Vector3i(0, 0, 1), Vector3i(0, 0, -1)]:
+				var n := cell + o
+				if n.x < job.x0 or n.x >= job.x1 or n.z < job.z0 or n.z >= job.z1 or n.y < 0 or n.y >= w.size_y:
+					continue
+				job.cands[(n.z - job.z0) * sx + n.x - job.x0] |= 1 << n.y
 
 
 ## Making the meshes takes longer than a column, so ChunkStreamer makes them one a

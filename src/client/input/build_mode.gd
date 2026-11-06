@@ -37,6 +37,12 @@ var on := false
 var kind := "line"
 var height := 2
 var thick := 1
+## The form of the blocks drawn (WorldData.FORM_*: a cube, a ramp, an upturned ramp,
+## stairs), and the quarter turns from the way they rise by themselves: away from the
+## player, so a ramp or stairs drawn ahead go up from where they stand. Kept with the
+## player.
+var form := 0
+var turns := 0
 ## Whether a stroke takes the ghost off instead of drawing it.
 var erasing := false
 ## The palette's filter, one of FILTERS. Kept with the player.
@@ -54,7 +60,7 @@ func _init(g) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"kind": kind, "height": height, "thick": thick, "filter": filter}
+	return {"kind": kind, "height": height, "thick": thick, "filter": filter, "form": form, "turns": turns}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -64,6 +70,8 @@ func from_dict(d: Dictionary) -> void:
 	thick = clampi(int(d.get("thick", 1)), Plans.MIN_THICK, Plans.MAX_THICK)
 	var f: Variant = d.get("filter")
 	filter = f if f is String and f in FILTERS else "all"
+	form = clampi(int(d.get("form", 0)), 0, 3)
+	turns = clampi(int(d.get("turns", 0)), 0, 3)
 
 
 ## Whether item `id` is built with in the build mode: a block, or a part of a house.
@@ -143,6 +151,31 @@ func set_kind(k: String) -> void:
 	if k in Plans.KINDS:
 		kind = k
 		changed.emit()
+
+
+## The form of the blocks drawn (a WorldData.FORM_*).
+func set_form(f: int) -> void:
+	form = clampi(f, 0, 3)
+	changed.emit()
+
+
+## Turns the slopes and stairs drawn a quarter more.
+func turn() -> void:
+	turns = (turns + 1) % 4
+	changed.emit()
+
+
+## The form of the blocks of a stroke from `first` (WorldData.forms): the form chosen,
+## rising toward the side of the shape away from the player, turned `turns` more.
+func form_of(first: Vector3i, last: Vector3i) -> int:
+	if form == 0:
+		return 0
+	var p: Vector3 = game.player.position / Plans.CELL
+	var mid := (Vector2(first.x, first.z) + Vector2(last.x, last.z)) * 0.5 + Vector2(0.5, 0.5)
+	var d := mid - Vector2(p.x, p.z)
+	# North (-z) 0, east 1, south 2, west 3.
+	var side := (1 if d.x > 0.0 else 3) if absf(d.x) > absf(d.y) else (2 if d.y > 0.0 else 0)
+	return form | ((side + turns) % 4) << 2
 
 
 func set_filter(f: String) -> void:
@@ -311,7 +344,7 @@ func end_stroke(s: Dictionary) -> void:
 			game.hud.toast("Внутри блоков чертёж не рисуется")
 		elif not sorted.hanging.is_empty():
 			game.hud.toast("Неровная поверхность: под красными клетками пусто")
-	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing])
+	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last)])
 
 
 func _sorted(s: Dictionary, cells: Array[Vector3i]) -> Dictionary:

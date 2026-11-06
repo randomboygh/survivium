@@ -159,6 +159,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_B:
 				if game.build.on:
 					game.build.leave()
+			KEY_Y:
+				if game.build.on:
+					game.build.turn()
 			KEY_Z:
 				if game.session != null:
 					game.session.clock.next_season()

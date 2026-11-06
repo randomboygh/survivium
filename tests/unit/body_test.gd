@@ -236,6 +236,10 @@ func _test_steps() -> void:
 		and Placed.turn_facing(Vector2i(0, -1)) == 0 and Placed.turn_facing(Vector2i(1, 0)) == 1 and Placed.turn_facing(Vector2i(0, 1)) == 2
 		and Placed.turn_facing(Vector2i(-1, 1)) == 2 and Placed.turn_facing(Vector2i(-1, 0)) == 3,
 		"a thing turned a quarter faces west: the stairs' low step to the west, and set down to face who put it")
+	for form in [WorldData.FORM_STAIRS, WorldData.FORM_RAMP]:
+		var built := _climb_forms(form)
+		_check(built.y > 3.9 and built.z < 2.6, "a flight of built %s facing north is walked up: %s"
+			% ["stairs" if form == WorldData.FORM_STAIRS else "ramps", built])
 	var flight := _climb_stairs()
 	_check(flight.y > 3.9 and flight.z < 1.6, "a flight of stairs is walked up without a jump, a level a cell: %s" % [flight])
 	_check(_walk_to_thing(false, 5.9).x < 4.7, "a chest is not walked through")
@@ -320,6 +324,35 @@ func _climb_stairs() -> Vector3:
 		for x in range(3, 6):
 			for z in range(0, 3):
 				w.set_cell(x, 4, z, Mat.STONE)
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(4.5, 1.0, 8.5) * WorldData.CELL
+	player.body.on_ground = true
+	player.body.move_input = Vector2(0, -1)
+	for i in 120:
+		player.step(1.0 / 60.0, false)
+	var p: Vector3 = player.position / WorldData.CELL
+	player.free()
+	return p
+
+
+## Walks north up a flight of built blocks of `form` rising north (WorldData.forms), a
+## level a cell on stone under them, onto a landing; where the feet end up, in cells.
+func _climb_forms(form: int) -> Vector3:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for cz in 16:
+		for cx in 16:
+			w.set_cell(cx, 0, cz, Mat.STONE)
+	for i in 4:
+		for x in range(3, 6):
+			for y in range(1, 1 + i):
+				w.set_cell(x, y, 6 - i, Mat.STONE)
+			w.set_cell(x, 1 + i, 6 - i, Mat.STONE)
+			w.set_form(x, 1 + i, 6 - i, form)
+	for x in range(3, 6):
+		for z in range(0, 3):
+			for y in range(1, 4):
+				w.set_cell(x, y, z, Mat.STONE)
 	var player = PlayerScript.new()
 	player.body.world = w
 	player.position = Vector3(4.5, 1.0, 8.5) * WorldData.CELL

@@ -88,10 +88,13 @@ func put_block(cell: Vector3i, block: int) -> void:
 	_changed(cell)
 
 
-## Puts `block` into `cell` as a player builds it; true when it is new work for the skill
-## of building: not where a block a player built was dug out (see _built).
-func build_cell(cell: Vector3i, block: int) -> bool:
-	put_block(cell, block)
+## Puts `block` into `cell` as a player builds it, of `form` (WorldData.forms: a slope or
+## stairs; 0 a cube); true when it is new work for the skill of building: not where a
+## block a player built was dug out (see _built).
+func build_cell(cell: Vector3i, block: int, form := 0) -> bool:
+	world.set_cell(cell.x, cell.y, cell.z, block)
+	world.set_form(cell.x, cell.y, cell.z, form)
+	_changed(cell)
 	_built[cell] = true
 	return not _undone.has(cell)
 

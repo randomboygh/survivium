@@ -309,7 +309,9 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 	var cells := []
 	for cell: Vector3i in _cells:
 		if _sent.has(WorldData.chunk_key(cell.x, cell.z)):
-			cells.append([cell, session.world.get_cell(cell.x, cell.y, cell.z)])
+			# The material, and the form of a built block over it (WorldData.forms).
+			var w = session.world
+			cells.append([cell, w.get_cell(cell.x, cell.y, cell.z) | w.form_at(cell.x, cell.y, cell.z) << 8])
 	_cells.clear()
 	if not cells.is_empty():
 		out.append(_event(Protocol.CELLS, cells))
@@ -540,7 +542,7 @@ func _on_opened(e: Dictionary) -> void:
 ## Ghost cells of the blueprint came or went (Plans.changed; none: all read anew, on loading).
 func _on_plan(cells: Array, item: String) -> void:
 	if not _all and not cells.is_empty():
-		_push(Protocol.PLAN_CELLS, [cells, item])
+		_push(Protocol.PLAN_CELLS, [cells, item, session.plans.forms_of(cells) if item != "" else []])
 
 
 func _on_fuel(e: Dictionary) -> void:

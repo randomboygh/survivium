@@ -38,6 +38,9 @@ signal changed(cells: Array, item: String)
 
 ## The ghost cells: Vector3i → the item id of the block that goes there.
 var cells := {}
+## The form of the block that goes in a ghost cell when it is not a cube (a slope,
+## stairs: WorldData.forms), by cell.
+var forms := {}
 
 
 ## The kinds of shape (the build mode's panel): a wall along a line, a floor in a
@@ -157,7 +160,8 @@ static func within_reach(who, c: Vector3i) -> bool:
 ## and a block could go (fits: in the world, not this block already, open air or water,
 ## a floor's ground), by the rules over the world `actions` (WorldActions, which holds
 ## the plans: passed, not kept, so the two make no cycle). Returns how many cells changed.
-func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thick := 1, erase_it := false) -> int:
+func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thick := 1, erase_it := false,
+		form := 0) -> int:
 	var item: String = who.held()
 	if too_big(kind, a, b, height, thick):
 		who.nag("plan_big", "Слишком большой чертёж")
@@ -178,8 +182,13 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 			who.nag("plan_full", "Слишком много чертежей")
 			break
 		added.append(c)
+	form &= 15
 	for c: Vector3i in added:
 		cells[c] = item
+		if form & 3 != 0:
+			forms[c] = form
+		else:
+			forms.erase(c)
 	if not added.is_empty():
 		changed.emit(added, item)
 	return added.size()
@@ -245,6 +254,7 @@ func erase(actions, who, of: Array) -> int:
 	for c: Vector3i in of:
 		if cells.has(c) and (actions == null or actions.territory_allows(who, c, "build")):
 			cells.erase(c)
+			forms.erase(c)
 			gone.append(c)
 	if not gone.is_empty():
 		changed.emit(gone, "")
@@ -319,8 +329,10 @@ func build(actions, who) -> Dictionary:
 		var item: String = cells[c]
 		var block := Mat.index(Items.get_item(item).get("place", ""))
 		var m: int = w.get_cell(c.x, c.y, c.z)
+		var form: int = forms.get(c, 0)
 		if block < 0 or m == block:
 			cells.erase(c)
+			forms.erase(c)
 			changed.emit([c], "")
 			continue
 		var ground := _soft(m)
@@ -338,8 +350,9 @@ func build(actions, who) -> Dictionary:
 			var back: String = Mat.RECORDS[m].item
 			if back != "" and not free:
 				who.inventory.add(back, 1)
-		var fresh: bool = actions.build_cell(c, block)
+		var fresh: bool = actions.build_cell(c, block, form)
 		cells.erase(c)
+		forms.erase(c)
 		changed.emit([c], "")
 		var done: Dictionary = actions.work(actions.skilled(who, "build", BUILD_SWING, 1.0 if fresh else 0.0), "reach",
 			(Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
@@ -352,34 +365,52 @@ func build(actions, who) -> Dictionary:
 	return {"swing": actions.IDLE_SWING}
 
 
-## The ghost cells for the save and for a client joining: [[cell, item], …].
+## The ghost cells for the save and for a client joining: [[cell, item], …], with the
+## form third where it is not a cube.
 func to_list() -> Array:
 	var out: Array = []
 	for c: Vector3i in cells:
-		out.append([c, cells[c]])
+		out.append([c, cells[c], forms[c]] if forms.has(c) else [c, cells[c]])
+	return out
+
+
+## The forms of ghost cells `list` (0 a cube), for the client's copy (take).
+func forms_of(list: Array) -> Array:
+	var out: Array = []
+	for c in list:
+		out.append(forms.get(c, 0))
 	return out
 
 
 ## The ghost cells of a save (to_list); those of blocks no longer known are left out.
 func from_list(list: Array) -> void:
 	cells.clear()
+	forms.clear()
 	for e in list:
-		if e is Array and e.size() == 2 and e[0] is Vector3i and e[1] is String:
+		if e is Array and e.size() in [2, 3] and e[0] is Vector3i and e[1] is String:
 			var item: String = Items.canon(e[1])
 			if Mat.index(Items.get_item(item).get("place", "")) >= 0:
 				cells[e[0]] = item
+				if e.size() == 3 and e[2] is int and e[2] & 3 != 0:
+					forms[e[0]] = e[2] & 15
 	changed.emit([], "")
 
 
-## The client's copy: ghost cells came (`item`) or went ("").
-func take(list: Array, item: String) -> void:
+## The client's copy: ghost cells came (`item`, of `of`: their forms in the same order,
+## forms_of) or went ("").
+func take(list: Array, item: String, of := []) -> void:
 	var got: Array = []
-	for c in list:
+	for k in list.size():
+		var c: Variant = list[k]
 		if c is Vector3i:
+			forms.erase(c)
 			if item == "":
 				cells.erase(c)
 			else:
 				cells[c] = item
+				var f: Variant = of[k] if k < of.size() else 0
+				if f is int and f & 3 != 0:
+					forms[c] = f & 15
 			got.append(c)
 	changed.emit(got, item)
 

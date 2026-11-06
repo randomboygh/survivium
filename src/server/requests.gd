@@ -187,8 +187,9 @@ func _rule(kind: String, args: Array) -> Variant:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.swing(who, e)
 		Protocol.PLAN:
-			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL]) and args[0] in Plans.KINDS:
-				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5])
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]) \
+					and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 16:
+				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
 		Protocol.BUILD:
 			if _fit(args, []):
 				return session.plans.build(actions, who)

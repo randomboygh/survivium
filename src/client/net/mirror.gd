@@ -121,7 +121,8 @@ func _on_event(kind: String, args: Variant) -> void:
 					if c is Array and c.size() == 2 and c[0] is Vector3i and c[1] is int:
 						var cell: Vector3i = c[0]
 						if game.world.has_chunk(WorldData.chunk_key(cell.x, cell.z)):
-							game.world.set_cell(cell.x, cell.y, cell.z, c[1])
+							game.world.set_cell(cell.x, cell.y, cell.z, c[1] & 255)
+							game.world.set_form(cell.x, cell.y, cell.z, c[1] >> 8 & 15)
 							game.actions.cell_changed.emit(cell)
 		Protocol.TAKEN:
 			if args is Array and args.size() == 2 and args[0] is String and args[1] is Vector3 and game.host == null:
@@ -159,8 +160,8 @@ func _on_event(kind: String, args: Variant) -> void:
 			if args is Array and args.size() == 1 and args[0] is Array:
 				game.plans.take_all(args[0])
 		Protocol.PLAN_CELLS:
-			if args is Array and args.size() == 2 and args[0] is Array and args[1] is String:
-				game.plans.take(args[0], args[1])
+			if args is Array and args.size() == 3 and args[0] is Array and args[1] is String and args[2] is Array:
+				game.plans.take(args[0], args[1], args[2])
 		Protocol.PROP_OPENED:
 			if args is Array and args.size() == 2 and args[0] is Vector3i:
 				game.placed.take_open(args[0], bool(args[1]))

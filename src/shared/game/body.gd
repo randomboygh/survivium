@@ -435,6 +435,11 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 		var thing: float = world.blocker_part(x, y, z, f.position.x, f.end.x, f.position.y, f.end.y)
 		if thing > 0.0:
 			return thing
+	if not world.forms.is_empty():
+		var form: int = world.form_at(x, y, z)
+		if form != WorldData.FORM_CUBE:
+			var g := _footprint(x, z, p)
+			return WorldData.form_top(form, g.position.x, g.end.x, g.position.y, g.end.y)
 	var m: int = world.get_cell(x, y, z)
 	if m == Mat.WATER:
 		return world.ice_top(x, y, z)
