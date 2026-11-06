@@ -5,7 +5,8 @@ extends Node
 ## split between modules that each hold their own state and get `self` as `game`:
 ## ChunkStreamer (chunk meshes, streaming, the level cut), Sky (the light, colour grade
 ## and weather drawn for the clock), Controls (keys, mouse, touch and the edits they
-## make), BuildMode (the build mode: its palette, shapes and blueprint), CameraRig (the pixel-perfect view and the camera), Props (the chests,
+## make), BuildMode (the build mode: its palette, shapes and blueprint), FarmMode (the
+## farming mode: its palette and the marks of work on the ground), CameraRig (the pixel-perfect view and the camera), Props (the chests,
 ## workbenches, kilns and campfires drawn, the things on the ground), Character (the
 ## player's character on this device; DeathScreen shows a death), Gathering (what a tap
 ## gathers, things taken up by themselves), Hands (what the player is drawn holding),
@@ -35,6 +36,7 @@ const SkyScript := preload("res://src/client/view/sky.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const Controls := preload("res://src/client/input/controls.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
+const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const Props := preload("res://src/client/game/props.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
@@ -136,6 +138,8 @@ var clock: RemoteClock
 var controls: Controls
 ## The build mode (palette, shapes, the blueprint's strokes and its building).
 var build: BuildMode
+## The farming mode (its palette, the marks of the work on the ground and their work).
+var farm: FarmMode
 var view: CameraRig
 var props: Props
 var character: CharacterScript
@@ -293,6 +297,7 @@ func _ready() -> void:
 	_read_join()
 	controls = Controls.new(self)
 	build = BuildMode.new(self)
+	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
 	settings.load()
 	sound = SoundScript.new(self)
@@ -340,6 +345,7 @@ func _ready() -> void:
 		mirror.watch(net)
 	save.track("hands", controls)
 	save.track("build", build)
+	save.track("farm", farm)
 	markers = Markers.new()
 	save.track("markers", markers)
 	team.game = self

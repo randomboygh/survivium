@@ -4,12 +4,15 @@ extends MeshInstance3D
 ## inside the ghost left out. Drawn
 ## with the cursor's shader (over everything, hidden above the level cut). Built again
 ## when the ghost changes or the player walks REBUILD cells off. `game` is the Main node,
-## its `plans` the client's copy.
+## its `plans` the client's copy. The farming mode's marks (Plans.is_mark) are drawn
+## flat on the ground they mark, a square round its top in the colour of the work and
+## its sign inside: furrows to till, a sprout to sow, a drop to water, a cross to reap.
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const CursorShader := preload("res://shaders/cursor.gdshader")
 const Forms := preload("res://src/client/world/form_mesher.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 
 const CELL := WorldData.CELL
 ## Cells round the player whose ghost is drawn, and how far they walk before it is
@@ -39,6 +42,21 @@ const FORM_LINES := {
 		[Vector3(0, 1, 0.5), Vector3(1, 1, 0.5)], [Vector3(0, 0.5, 0.5), Vector3(1, 0.5, 0.5)]],
 }
 
+## The colours of the farming marks by work (a mark to sow is any other value).
+const MARK_COLORS := {Plans.TILL: Color("#d9a866"), Plans.WATER: Color("#5fb4ff"), Plans.REAP: Color("#f6d27a")}
+const SOW_COLOR := UiStyle.GOOD
+## The sign of each work inside its square, lines between points of the top (x, z 0..1).
+const MARK_SIGNS := {
+	Plans.TILL: [[Vector2(0.3, 0.2), Vector2(0.3, 0.8)], [Vector2(0.5, 0.2), Vector2(0.5, 0.8)],
+		[Vector2(0.7, 0.2), Vector2(0.7, 0.8)]],
+	Plans.WATER: [[Vector2(0.5, 0.25), Vector2(0.3, 0.6)], [Vector2(0.5, 0.25), Vector2(0.7, 0.6)],
+		[Vector2(0.3, 0.6), Vector2(0.5, 0.75)], [Vector2(0.7, 0.6), Vector2(0.5, 0.75)]],
+	Plans.REAP: [[Vector2(0.25, 0.25), Vector2(0.75, 0.75)], [Vector2(0.75, 0.25), Vector2(0.25, 0.75)]],
+	"": [[Vector2(0.5, 0.25), Vector2(0.5, 0.75)], [Vector2(0.25, 0.5), Vector2(0.75, 0.5)]],
+}
+## The square of a mark, inside the top of its cell (0..1).
+const MARK_SQUARE := [Vector2(0.1, 0.1), Vector2(0.9, 0.1), Vector2(0.9, 0.9), Vector2(0.1, 0.9)]
+
 var game
 var _lines := ImmediateMesh.new()
 var _material := ShaderMaterial.new()
@@ -50,7 +68,7 @@ func _init(g) -> void:
 	game = g
 	mesh = _lines
 	_material.shader = CursorShader
-	_material.set_shader_parameter("color", Color(UiStyle.COLD, 0.75))
+	_material.set_shader_parameter("color", Color(1, 1, 1, 0.75))
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	extra_cull_margin = 16.0
@@ -79,11 +97,22 @@ func _build(at: Vector3i) -> void:
 	_lines.clear_surfaces()
 	var cells: Dictionary = game.plans.cells
 	var started := false
+	var blueprint := {}
+	for c: Vector3i in cells:
+		if not Plans.is_mark(cells[c]):
+			blueprint[c] = true
 	for c: Vector3i in cells:
 		if maxi(maxi(absi(c.x - at.x), absi(c.z - at.z)), absi(c.y - at.y)) > REACH:
 			continue
+		if not started:
+			_lines.surface_begin(Mesh.PRIMITIVE_LINES)
+			started = true
+		if not blueprint.has(c):
+			_mark(c, cells[c])
+			continue
+		_lines.surface_set_color(UiStyle.COLD)
 		for e: Array in EDGES:
-			if hidden_edge(cells, c, e[0], e[1]):
+			if hidden_edge(blueprint, c, e[0], e[1]):
 				continue
 			if not started:
 				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -108,6 +137,22 @@ func _build(at: Vector3i) -> void:
 	if started:
 		_lines.surface_end()
 	visible = started
+
+
+## Draws farming mark `v` on ground cell `c`: its square round the top and its sign.
+func _mark(c: Vector3i, v: String) -> void:
+	_lines.surface_set_color(MARK_COLORS.get(v, SOW_COLOR))
+	for i in 4:
+		_lines.surface_add_vertex(_top(c, MARK_SQUARE[i]))
+		_lines.surface_add_vertex(_top(c, MARK_SQUARE[(i + 1) % 4]))
+	for e: Array in MARK_SIGNS.get(v, MARK_SIGNS[""]):
+		_lines.surface_add_vertex(_top(c, e[0]))
+		_lines.surface_add_vertex(_top(c, e[1]))
+
+
+## Point `p` (x, z 0..1) of the top of cell `c`, a hair over it, in world units.
+static func _top(c: Vector3i, p: Vector2) -> Vector3:
+	return Vector3(c.x + p.x, c.y + 1, c.z + p.y) * CELL + Vector3(0, INSET, 0)
 
 
 ## Whether the edge from corner `a` to corner `b` of ghost cell `c` lies inside the

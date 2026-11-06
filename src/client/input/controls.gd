@@ -27,6 +27,8 @@ const Inventory := preload("res://src/shared/game/inventory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
+const FarmMode := preload("res://src/client/input/farm_mode.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 
 const CELL := WorldData.CELL
@@ -86,6 +88,8 @@ func _init(g) -> void:
 func to_dict() -> Dictionary:
 	if game.build != null and game.build.on:
 		return game.build.saved_hands()
+	if game.farm != null and game.farm.on:
+		return game.farm.saved_hands()
 	return {"hands": hands.duplicate(), "active": active}
 
 
@@ -157,11 +161,10 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_V:
 				cycle_tool()
 			KEY_B:
-				if game.build.on:
-					game.build.leave()
+				mode().leave()
 			KEY_Y:
-				if game.build.on:
-					game.build.turn()
+				if mode().on:
+					mode().turn()
 			KEY_Z:
 				if game.session != null:
 					game.session.clock.next_season()
@@ -215,10 +218,10 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if game.land.painting:
 		_start_paint(button, pos)
 		return
-	if game.build.on:
-		_stroke = game.build.start_stroke(button, pos)
+	if mode().on:
+		_stroke = mode().start_stroke(button, pos)
 		if touch and not _stroke.is_empty():
-			game.build.show_stroke(_stroke)
+			mode().show_stroke(_stroke)
 		return
 	if game.land.has_own():
 		# The square of one's own post starts painting, as the post does.
@@ -241,9 +244,8 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 			# Built only in the build mode.
 			game.build.enter(held())
 		"plant", "sow":
-			var hit := pick(pos)
-			if not hit.is_empty() and _cooldown <= 0.0:
-				game.net.request(Protocol.PLANT_AT, [held(), hit.cell]).then(_planted.bind(hit.cell))
+			# Sown and planted only in the farming mode.
+			game.farm.enter(held())
 		"prop":
 			# Set down only in the build mode.
 			game.build.enter(held())
@@ -267,6 +269,7 @@ func update(delta: float) -> void:
 	_cursor_clock = maxf(0.0, _cursor_clock - delta)
 	_check_hands()
 	game.build.update(delta)
+	game.farm.update(delta)
 	_label_clock -= delta
 	if _label_clock <= 0.0 and touch:
 		_label_clock = LABEL_TIME
@@ -281,13 +284,14 @@ func update(delta: float) -> void:
 			_cursor_clock = CURSOR_TIME
 		if not _stroke.held and not _stroke.pending:
 			if _stroke.has("plan"):
-				game.build.end_stroke(_stroke)
+				mode().end_stroke(_stroke)
 			_stroke = {}
-	elif game.build.on:
-		# The action button of the build mode is pressed once: it builds until the last cell.
+	elif mode().on:
+		# The action button of the build or the farming mode is pressed once: it works
+		# until the last cell.
 		var down: bool = action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing())
 		if down and not _action_was:
-			game.build.toggle_auto()
+			mode().toggle_auto()
 		_action_was = down
 	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
 		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
@@ -365,6 +369,9 @@ func select_slot(i: int) -> void:
 	if BuildMode.builds_with(id):
 		game.build.enter(id)
 		return
+	if FarmMode.sows(id):
+		game.farm.enter(id)
+		return
 	put_in_hand(id, -1, false)
 
 
@@ -420,6 +427,8 @@ func brush_record() -> Dictionary:
 func action_name() -> String:
 	if game.build.on:
 		return "Стоп" if game.build.auto else "Строить"
+	if game.farm.on:
+		return "Стоп" if game.farm.auto else "Работать"
 	match use_of():
 		"place":
 			return "Строить"
@@ -678,6 +687,28 @@ func build_step() -> void:
 	game.net.request(Protocol.BUILD, []).then(_did_front)
 
 
+## The farming mode's action button, down: does the work of one mark near the player
+## (the server picks it, Plans.farm), at the pace of the hands; stops when nothing near
+## can be done now.
+func farm_step() -> void:
+	if _cooldown > 0.0:
+		return
+	_cooldown = WorldActions.IDLE_SWING
+	game.net.request(Protocol.FARM_WORK, []).then(_did_farm)
+
+
+func _did_farm(done: Variant) -> void:
+	if done is Dictionary and done.get("idle", false):
+		game.farm.stop()
+	_did_front(done)
+
+
+## The mode the world's taps draw in: the farming mode when it is on, else the build
+## mode (on or not).
+func mode():
+	return game.farm if game.farm != null and game.farm.on else game.build
+
+
 ## The nearest ghost cell of the blueprint under screen point `pos`, before the cell the
 ## view meets there and not above the cut; null for none.
 func ghost_at(pos: Vector2) -> Variant:
@@ -692,7 +723,7 @@ func ghost_at(pos: Vector2) -> Variant:
 	var best: Variant = null
 	var top: int = game.chunks.cut_level
 	for c: Vector3i in cells:
-		if c.y > top:
+		if c.y > top or Plans.is_mark(cells[c]):
 			continue
 		var t := _enter(o, d, c)
 		if t < far:
@@ -795,6 +826,10 @@ func act_in_front() -> void:
 			game.build.enter(held())
 			_cooldown = 0.5
 			return
+		"plant", "sow":
+			game.farm.enter(held())
+			_cooldown = 0.5
+			return
 		"eat", "heal":
 			_eat_held()
 			return
@@ -808,13 +843,6 @@ func _did_front(done: Variant) -> void:
 	if not _did(done):
 		# Too tired to swing: try again a little later, not every frame.
 		_cooldown = WorldActions.IDLE_SWING
-
-
-## The item in hand was planted at `cell` (or not: `done` false).
-func _planted(done: Variant, cell: Vector3i) -> void:
-	if done is bool and done:
-		_cooldown = _hasted(WorldActions.FRONT_PLACE_SWING)
-		game.player.work("reach", _cooldown, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 
 
 ## Something was eaten (or not: `done` false).
@@ -860,15 +888,15 @@ func _front_preview() -> Array[Vector3i]:
 ## when nothing can be done there.
 func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 	if _stroke.has("plan"):
-		game.build.show_stroke(_stroke)
+		mode().show_stroke(_stroke)
 		return
 	var hit := pick(screen_pos)
 	if hit.is_empty():
 		game.cursor.show_cells([], true)
 		return
-	if game.build.on:
+	if mode().on:
 		# Where a stroke would begin.
-		game.cursor.show_boxes([game.build.start_cell(hit)], [])
+		game.cursor.show_boxes([mode().start_cell(hit)], [])
 		return
 	var actions = game.actions
 	var who = game.character
