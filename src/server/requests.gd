@@ -12,8 +12,12 @@ extends RefCounted
 ## the server, which hands it to those near, a line to the team (TEAM_CHAT,
 ## `team_chatted`) to its members; the requests of teams go to the session's Teams;
 ## lines come no faster than CHAT_LINES in
-## CHAT_WINDOW seconds. The server makes one of these per player as they join; in single
-## player LocalHost makes it.
+## CHAT_WINDOW seconds. Over a socket (`paced`) the work of the hands is paced as the
+## client paces it: each request of PACED adds the seconds its swing takes, and one that
+## comes while more than WORK_AHEAD seconds of them are still owed is refused (what a
+## client claims or how fast it sends does not make work go faster). What looks wrong is
+## told (`flagged`) for the server's log. The server makes one of these per player as
+## they join; in single player LocalHost makes it.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
@@ -30,11 +34,20 @@ const CHAT_WINDOW := 8.0
 const TEAM_REACH := 30.0
 ## How near (world units) to where they fell a dead one asking to come back there must ask.
 const REVIVE_NEAR := 1.0
+## The requests whose work takes the hands' time (see `paced`), and the seconds of it a
+## player may be ahead of the clock (a quick finger along a stroke, a reply late).
+const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
+	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.LIGHT_PUT]
+const WORK_AHEAD := 2.0
+## The seconds a paced request that tells no swing costs (one set down, one sown).
+const WORK_STEP := 0.25
 
 ## The player said `text` in the chat (trimmed and cut; "/…" a command).
 signal chatted(text: String)
 ## The player said `text` to their team.
 signal team_chatted(text: String)
+## Something the player asked looked wrong (`what`: "pace", "malformed"), for the server's log.
+signal flagged(what: String, detail: String)
 
 var session
 ## The character playing (Character) and their workshop (Workshop).
@@ -47,6 +60,11 @@ var last_reply: Array = []
 var _chat_times: Array[float] = []
 ## The bags and chests lying in the player's bag a request opened, by slot (see _bag).
 var _opened := {}
+## Whether the hands' work is paced (over a socket, see above), the seconds of it owed
+## and when they were last counted.
+var paced := false
+var _owed := 0.0
+var _owed_at := -1.0
 
 
 func _init(s, w, shop) -> void:
@@ -72,15 +90,36 @@ func handle(msg: Array) -> Array:
 ## swing of the hands comes back shorter at the playtest pace of work (Character.haste).
 func _do(kind: String, args: Array) -> Variant:
 	_opened.clear()
+	var timed := paced and kind in PACED
+	if timed and _ahead() > WORK_AHEAD:
+		flagged.emit("pace", "%s: %.1f с работы вперёд" % [kind, _owed])
+		return {} if kind in [Protocol.DIG, Protocol.PLACE, Protocol.FRONT] else false
+	var tool_swing: float = who.tool().get("swing", WORK_STEP) if kind == Protocol.GATHER else WORK_STEP
 	var out: Variant = _rule(kind, args)
+	if out == null:
+		flagged.emit("malformed", kind)
 	if out is Dictionary and out.has("swing") and who.haste != 1.0:
 		out.swing /= who.haste
 		if out.has("time"):
 			out.time /= who.haste
+	if timed:
+		if out is Dictionary and out.has("swing"):
+			_owed += maxf(0.0, float(out.swing))
+		elif out is bool and out:
+			_owed += tool_swing / maxf(1.0, who.haste)
 	for k: int in _opened:
 		who.inventory.close(k, _opened[k])
 	_opened.clear()
 	return out
+
+
+## The seconds of the hands' work still owed now (see `paced`).
+func _ahead() -> float:
+	var now := _now()
+	if _owed_at >= 0.0:
+		_owed = maxf(0.0, _owed - (now - _owed_at))
+	_owed_at = now
+	return _owed
 
 
 ## Does request `kind` with `args` by the rules; what the rule gave back.
@@ -134,6 +173,9 @@ func _rule(kind: String, args: Array) -> Variant:
 					return false
 				if args[1]:
 					return placed.feed(who, e)
+				# Feeding helps anyone's fire; putting one out in a claim is the builders'.
+				if not session.territory.may(who, e.cell, "build"):
+					return false
 				placed.put_out(e)
 				return true
 		Protocol.PROP_OPEN:
@@ -236,7 +278,7 @@ func _rule(kind: String, args: Array) -> Variant:
 				return session.teams.kick(who.id, args[0])
 		Protocol.TEAM_NAME:
 			if _fit(args, [TYPE_STRING]):
-				return session.teams.rename(who.id, args[0])
+				return session.teams.rename(who.id, Protocol.clean_text(args[0], 24))
 		Protocol.TEAM_CHAT:
 			if _fit(args, [TYPE_STRING]) and session.teams.team_of(who.id) != 0:
 				return _chat(args[0], true)
@@ -332,10 +374,10 @@ func _near(cell: Vector3i) -> Dictionary:
 	return e
 
 
-## A line of chat: trimmed and cut to CHAT_MAX, told to the server (to the team's
+## A line of chat: made safe and cut to CHAT_MAX (Protocol.clean_text), told to the server (to the team's
 ## members with `team`); false for an empty one or one too soon after CHAT_LINES others.
 func _chat(text: String, team := false) -> bool:
-	var line := text.strip_edges().replace("\n", " ").replace("\r", " ").left(CHAT_MAX)
+	var line := Protocol.clean_text(text, CHAT_MAX)
 	if line == "":
 		return false
 	var now := Time.get_ticks_msec() / 1000.0

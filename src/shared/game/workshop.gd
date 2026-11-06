@@ -112,7 +112,7 @@ func start(r: Dictionary, times := 1) -> int:
 ## Cancels job `i` of the queue; its materials go back into the bag (or on the ground).
 func cancel(i: int) -> void:
 	for s in queue.cancel(i):
-		_receive(s[0], s[1])
+		_receive(s[0], s[1], s[2] if s.size() > 2 else 0)
 	if queue.jobs.is_empty():
 		paused = false
 
@@ -213,7 +213,7 @@ func waiting() -> bool:
 func _receive(id: String, n: int, worn := 0) -> void:
 	var got: int = who.give(id, n, worn) if worn != 0 else who.give(id, n)
 	if got < n:
-		who.lay(id, n - got)
+		who.lay(id, {"n": n - got, "worn": worn} if worn != 0 else n - got)
 
 
 # --- Wear -------------------------------------------------------------------------

@@ -30,11 +30,23 @@ signal tool_used
 const MOVE_TOLERANCE := 2.5
 const STRIKES := 10
 const CLAIM_GAP_MAX := 0.5
+## How fast (cells a second) and how far at most (cells) the server's body is drawn
+## towards the claims it took but did not reach itself (the two bodies part a little on
+## ice, at corners, in a crowd): so a client that keeps claiming more than its legs give
+## gains no more than this, however many claims it sends (a claim is run for the time
+## since the last one, never for more than passed).
+const CATCH_UP := 2.0
+const CATCH_UP_MAX := 2.5
+## Half the screen a client may say it has, at most (world units; Wildlife.NEAR is 28).
+const VIEW_MAX := 64.0
 
 ## The player's number and name on the server (the account's), told to the others.
 var id := 0
 var player_name := ""
-## Over a socket the body told is checked (see above); over the loop it is taken as is.
+## Over a socket the body told is checked (see above), and so are the hands (only what
+## the bag holds is held, see in_hands), the feet (the cell of the body taken), the way
+## the body faces (one of 8 steps) and the playtest's air jumps (none); over the loop it
+## is all taken as is (one process: the player is the server's own).
 var check_moves := false
 ## Where the body is, in world units, and the cell its feet are in.
 var at := Vector3.ZERO
@@ -50,6 +62,12 @@ var on_ground := true
 var work: Array = ["", 0.0, 0, Vector3.INF]
 var _claim_at := -1.0
 var _strikes := 0
+## Where the server's own body is (world units; INF: not run yet, at `at`), and the
+## cells it may still be drawn towards the claims (CATCH_UP).
+var _sim := Vector3.INF
+var _credit := CATCH_UP_MAX
+## Claims refused since joining (for the server's log of what looks wrong).
+var refused_moves := 0
 
 
 ## The server's stand-in for the client's body: what the rules read of it comes with
@@ -84,49 +102,84 @@ func take_input(args: Array) -> void:
 		# A malformed INPUT is left out whole, before any of it is taken.
 		return
 	var claim: Vector3 = args[0]
+	if check_moves and not (claim.is_finite() and args[11].is_finite() and args[12].is_finite()):
+		return
 	feet_cell = args[1]
 	facing = args[2]
+	if check_moves:
+		facing = facing.clamp(-Vector2i.ONE, Vector2i.ONE)
 	hands = [str(args[3][0]), str(args[3][1])]
 	active = clampi(args[4], 0, 1)
 	brush_i = clampi(args[5], 0, Tools.BRUSHES.size() - 1)
 	is_moving = bool(args[6])
 	body.swimming = bool(args[7])
 	body.jumped = bool(args[8])
-	body.air_jumps = bool(args[9])
-	body.bumped = args[10] if args[10] is Vector3 else Vector3.INF
+	# The playtest's jumps in the air are the server's own player's only.
+	body.air_jumps = bool(args[9]) and not check_moves
+	body.bumped = args[10] if args[10] is Vector3 and args[10].is_finite() else Vector3.INF
 	view_right = args[11].normalized() if args[11].length_squared() > 0.5 else Vector2(1.0, 0.0)
-	view_half = args[12].abs()
+	view_half = args[12].abs().min(Vector2(VIEW_MAX, VIEW_MAX)) if check_moves else args[12].abs()
 	on_ground = bool(args[13])
-	work = [str(args[14]), float(args[15]), args[16], args[17] if args[17] is Vector3 else Vector3.INF]
+	var length: float = float(args[15])
+	work = [str(args[14]).left(32), length if is_finite(length) else 0.0, args[16],
+		args[17] if args[17] is Vector3 and args[17].is_finite() else Vector3.INF]
 	if check_moves and body.world != null:
 		_take_claim(claim, bool(args[8]))
+		# The feet are where the body taken is, whatever the client says.
+		feet_cell = Vector3i(floori(at.x / CELL), BodyScript.level_at(at), floori(at.z / CELL))
 	else:
 		at = claim
 
 
-## Runs the server's body from `at` towards `claim` for the time since the last claim
-## (3А) and takes the claim if the body got near it; else the body's place is the
-## player's, and after STRIKES such claims the client is told to come there.
+## Runs the server's body from where it is towards `claim` for the time since the last
+## claim (3А, never more than passed: claims sent faster go no farther) and takes the
+## claim if the body got near it and the claim is not inside a wall; the body is then
+## drawn towards it by what CATCH_UP has left. Else the body's place is the player's,
+## and after STRIKES such claims the client is told to come there.
 func _take_claim(claim: Vector3, jumped_told: bool) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	var dt := clampf(now - _claim_at, 1.0 / 60.0, CLAIM_GAP_MAX) if _claim_at >= 0.0 else 1.0 / 60.0
+	var dt := clampf(now - _claim_at, 0.0, CLAIM_GAP_MAX) if _claim_at >= 0.0 else 1.0 / 60.0
 	_claim_at = now
-	var to := Vector2(claim.x - at.x, claim.z - at.z) / CELL
-	var reach: float = body.speed_at(at) * dt
+	if not _sim.is_finite():
+		_sim = at
+	_credit = minf(CATCH_UP_MAX * CELL, _credit + CATCH_UP * CELL * dt)
+	var to := Vector2(claim.x - _sim.x, claim.z - _sim.z) / CELL
+	var reach: float = body.speed_at(_sim) * dt
 	body.move_input = (to / reach).limit_length(1.0) if reach > 0.0 else Vector2.ZERO
-	var jump: bool = jumped_told or (claim.y > at.y + 0.01 * CELL and body.on_ground)
-	var got: Vector3 = body.step(at, dt, jump)
+	var jump: bool = jumped_told or (claim.y > _sim.y + 0.01 * CELL and body.on_ground)
+	var got: Vector3 = body.step(_sim, dt, jump) if dt > 0.0 else _sim
 	# The jumps counted and paid for are the client's (Character.update).
 	body.jumped = jumped_told
-	if got.distance_to(claim) <= MOVE_TOLERANCE * CELL:
+	var err := got.distance_to(claim)
+	if err <= MOVE_TOLERANCE * CELL and not body.blocked(claim):
 		at = claim
+		var pull := minf(err, _credit)
+		_credit -= pull
+		_sim = got.move_toward(claim, pull)
 		_strikes = 0
 		return
+	_sim = got
 	at = got
 	_strikes += 1
+	refused_moves += 1
 	if _strikes >= STRIKES:
 		_strikes = 0
 		moved.emit(at)
+
+
+## The things in the hands that the bag holds (over a socket the client's word is not
+## enough: a tool it does not have works as bare hands); one the bag holds one of is in
+## the hand in use only, as on the client (Controls._check_hands).
+func in_hands() -> Array:
+	if not check_moves:
+		return hands
+	var out := [hands[0], hands[1]]
+	for h in 2:
+		if out[h] != "" and inventory.count(out[h]) == 0:
+			out[h] = ""
+	if out[0] != "" and out[0] == out[1] and inventory.count(out[0]) < 2:
+		out[1 - active] = ""
+	return out
 
 
 func _where() -> Vector3:
@@ -150,6 +203,7 @@ func _came_back(to: Vector3) -> void:
 ## Puts the body at `to` (the playtest page, the save).
 func teleport(to: Vector3) -> void:
 	at = to
+	_sim = to
 	_strikes = 0
 	_claim_at = -1.0
 	body.velocity_y = 0.0
@@ -175,11 +229,7 @@ func overlaps_cell(cell: Vector3i) -> bool:
 
 
 func held() -> String:
-	return hands[active]
-
-
-func in_hands() -> Array:
-	return hands
+	return in_hands()[active]
 
 
 func tool() -> Dictionary:
