@@ -4,7 +4,8 @@ extends Control
 ## the world (one of the saved ones, ‹ › go through them, the one played last first),
 ## the server's name, its port, a password, how many players it takes, where players
 ## may fight players («PvP»: выключен, по правам территорий, везде) and «Доступ из
-## интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared); «Запустить
+## интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared), «Погода с улицы»
+## (the real weather where the computer is, RealWeather); «Запустить
 ## сервер» starts the game again with the server made and joined (Main.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
@@ -55,6 +56,8 @@ var _password: LineEdit
 var _pvp := 1
 var _pvp_label: Label
 var _tunnel: CheckButton
+## The world's weather is the real one where the computer is (Config.real_weather).
+var _weather: CheckButton
 ## The tunnel's state and its link's button while the server runs.
 var _tunnel_label: Label
 var _tunnel_copy: Button
@@ -151,6 +154,13 @@ func _build_setup() -> void:
 	_tunnel.button_pressed = bool(cfg.get_value("server", "tunnel", false))
 	_tunnel.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	_box.add_child(_tunnel)
+	_weather = CheckButton.new()
+	_weather.text = "Погода с улицы"
+	_weather.tooltip_text = "Погода в мире — настоящая, там, где этот компьютер"
+	_weather.focus_mode = Control.FOCUS_NONE
+	_weather.button_pressed = bool(cfg.get_value("server", "real_weather", false))
+	_weather.custom_minimum_size = Vector2(WIDTH, ROW_H)
+	_box.add_child(_weather)
 	var note := UiStyle.label("Игроки из домашней сети входят по адресу этого компьютера; "
 		+ "из интернета — через туннель Cloudflare: нужна программа cloudflared рядом с игрой, "
 		+ "аккаунт и роутер не нужны, адрес новый при каждом запуске.", UiStyle.MUTED)
@@ -244,7 +254,7 @@ func _step_pvp(step: int) -> void:
 func settings() -> Dictionary:
 	var port := int(_port.text) if _port.text.is_valid_int() else 0
 	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": _players,
-		"password": _password.text, "tunnel": _tunnel.button_pressed, "pvp": PVP_MODES[_pvp], "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
+		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": _weather.button_pressed, "pvp": PVP_MODES[_pvp], "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
 	if _worlds.is_empty():
 		out.world = ""
 		out.seed_value = int(game.settings.values.world_seed)

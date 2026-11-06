@@ -414,6 +414,9 @@ func _hosted() -> void:
 	var named := Config.new()
 	named.take_args(PackedStringArray(["--cloudflared", "/opt/cf"]))
 	_check(args.tunnel and args.cloudflared == "" and named.tunnel and named.cloudflared == "/opt/cf", "--tunnel and --cloudflared turn the tunnel on")
+	var weather := Config.new()
+	weather.take_args(PackedStringArray(["--real-weather"]))
+	_check(weather.real_weather and not args.real_weather, "--real-weather asks for the weather of the street")
 	var fake := ""
 	if not OS.has_feature("windows"):
 		fake = ProjectSettings.globalize_path("user://fake_cloudflared")
@@ -424,8 +427,13 @@ func _hosted() -> void:
 		OS.execute("chmod", ["+x", fake])
 	var values := {"title": "Дача", "port": PORT + 1, "max_players": 4, "password": "", "world": "",
 		"seed_value": 6, "settings": {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 0, "relief": 1},
-		"tunnel": fake != "", "cloudflared": fake}
+		"tunnel": fake != "", "cloudflared": fake, "real_weather": true}
 	var node: Node = LocalHost.host(values, root)
+	# The weather of the street is the server's (decision 168): on its world clock, which
+	# the players' copies follow; off at once, so the test does not wait on the network.
+	_check(node.real_weather != null and node.real_weather.enabled and node.real_weather.clock == node.session.clock,
+		"a server set to the real weather asks for it itself, for the world's clock")
+	node.real_weather.enabled = false
 	_check(node.failed == "" and node.server.listening and node.hosted and node.config.title == "Дача"
 		and node.config.max_players == 4, "a server made in the game starts at once: %s" % node.failed)
 	await process_frame
@@ -433,7 +441,7 @@ func _hosted() -> void:
 		"it lives under the tree's root and goes on while the game is paused")
 	var cfg := ConfigFile.new()
 	_check(cfg.load(Config.file) == OK and cfg.get_value("server", "title") == "Дача"
-		and cfg.get_value("server", "port") == PORT + 1, "its settings are written for the server from the terminal")
+		and cfg.get_value("server", "port") == PORT + 1 and cfg.get_value("server", "real_weather") == true, "its settings are written for the server from the terminal")
 	if fake != "":
 		_check(await _until(func() -> bool: return node.tunnel != null and node.tunnel.url != "")
 			and node.tunnel.url == "wss://quiet-river-test.trycloudflare.com"

@@ -4,7 +4,8 @@ extends RefCounted
 ## server set up there starts from the terminal the same), then the user arguments of
 ## the command line over it: `godot --headless -- --server [--config <file>] [--port N]
 ## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]
-## [--autosave <seconds>] [--no-save] [--pvp off|land|all] [--tunnel [--cloudflared <file>]]`. The
+## [--autosave <seconds>] [--no-save] [--pvp off|land|all] [--tunnel [--cloudflared <file>]]
+## [--real-weather]`. The
 ## world is a folder of the game's own saves (WorldStore.root: a name under it, or a
 ## path), or the world of `seed_value` and `settings` (a new one when it has no save).
 
@@ -45,6 +46,8 @@ var save := true
 ## cloudflared to run ("" to look for it beside the game and on the PATH).
 var tunnel := false
 var cloudflared := ""
+## The weather is the real one where the server is (RealWeather).
+var real_weather := false
 ## The rules of play over their defaults (the section [rules]: keys of Rules.to_dict,
 ## such as territory_decay = "rights").
 var rules := {}
@@ -73,6 +76,7 @@ func read(path := "") -> void:
 	save = bool(cfg.get_value("server", "save", save))
 	tunnel = bool(cfg.get_value("server", "tunnel", tunnel))
 	cloudflared = str(cfg.get_value("server", "cloudflared", cloudflared))
+	real_weather = bool(cfg.get_value("server", "real_weather", real_weather))
 	world = str(cfg.get_value("world", "folder", world))
 	seed_value = int(cfg.get_value("world", "seed", seed_value))
 	for k: String in settings:
@@ -98,6 +102,7 @@ func write(path := "") -> bool:
 	cfg.set_value("server", "save", save)
 	cfg.set_value("server", "tunnel", tunnel)
 	cfg.set_value("server", "cloudflared", cloudflared)
+	cfg.set_value("server", "real_weather", real_weather)
 	cfg.set_value("world", "folder", world)
 	cfg.set_value("world", "seed", seed_value)
 	for k: String in settings:
@@ -152,6 +157,10 @@ func take_args(args: PackedStringArray) -> void:
 				tunnel = true
 			"--no-tunnel":
 				tunnel = false
+			"--real-weather":
+				real_weather = true
+			"--no-real-weather":
+				real_weather = false
 			"--cloudflared":
 				cloudflared = next
 				tunnel = true

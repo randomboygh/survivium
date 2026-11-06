@@ -1,9 +1,12 @@
 extends Node
-## The weather of the real world, when the setting asks for it: finds roughly where the
-## device is by its IP address, asks Open-Meteo for the weather there now every
-## REFRESH seconds and pins the clock's weather and wind to it (Clock.set_real_weather).
-## Without the network, or when it is off, the clock's own weather goes on. On a server
-## it will run the same, for everyone.
+## The weather of the real world, a service of the server (decision 153, 168): finds
+## roughly where the server is by its IP address, asks Open-Meteo for the weather there
+## now every REFRESH seconds and pins the world clock's weather and wind to it
+## (Clock.set_real_weather); the players get it with the clock's snapshots. Without the
+## network, or when it is off, the clock's own weather goes on. A server from the
+## terminal or the menu runs it when its settings ask (Config.real_weather, ServerMain);
+## the server inside the game, for single player, when the game's setting does
+## (LocalHost.real_weather), so there it is the weather where the device is.
 
 const IP_SERVICES := ["https://ipapi.co/json/", "https://ipwho.is/"]
 const FORECAST := "https://api.open-meteo.com/v1/forecast?latitude=%.2f&longitude=%.2f&current=weather_code,wind_speed_10m,wind_direction_10m&wind_speed_unit=ms"
@@ -24,8 +27,10 @@ var enabled := false:
 ## Where the weather is taken: a place name and its latitude and longitude, found once.
 var place := ""
 var at := Vector2.INF
-## What the last answer said, for the settings page: "" until there is one.
+## What the last answer said: "" until there is one.
 var status := ""
+## Where the lines of what it found go (the server's log); print when not given.
+var report := Callable()
 var _http: HTTPRequest
 var _ip_try := 0
 var _wait := 0.0
@@ -82,11 +87,20 @@ func apply(data: Dictionary) -> bool:
 	clock.set_real_weather(int(now.weather_code), float(now.get("wind_speed_10m", 0.0)),
 		float(now.get("wind_direction_10m", 0.0)))
 	status = "%s, %s" % [place if place != "" else "рядом", clock.WEATHERS[clock.weather].name.to_lower()]
-	print("real weather: %s (code %d)" % [status, int(now.weather_code)])
+	_say("погода с улицы: %s (код %d)" % [status, int(now.weather_code)])
 	return true
 
 
 ## No answer: the last real weather stays (or the clock's own goes on) until the
 ## next try.
 func _failed() -> void:
+	if status != "нет связи":
+		_say("погода с улицы: нет связи, повторю через %d с" % int(RETRY))
 	status = "нет связи"
+
+
+func _say(line: String) -> void:
+	if report.is_valid():
+		report.call(line)
+	else:
+		print(line)

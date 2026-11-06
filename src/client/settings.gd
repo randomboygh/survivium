@@ -41,7 +41,8 @@ const DEFAULTS := {
 	"real_time": false,
 	# The season follows the device's calendar (Clock.real_season).
 	"real_season": false,
-	# The weather is the real one where the device is (RealWeather).
+	# The weather is the real one where the device is: the server inside the game asks
+	# for it (LocalHost.real_weather); a server far away has its own setting.
 	"real_weather": false,
 	"shadows": true,
 	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
@@ -369,8 +370,8 @@ func apply() -> void:
 		game.session.clock.time_speed = time_speed() * time_boost
 		game.session.clock.real_time = values.real_time
 		game.session.clock.real_season = values.real_season
-	if game.real_weather != null:
-		game.real_weather.enabled = values.real_weather
+	if game.host != null and game.host.real_weather != null:
+		game.host.real_weather.enabled = values.real_weather
 	var sky = game.sky
 	if sky != null and sky.sun != null:
 		sky.sun.shadow_enabled = values.shadows
