@@ -24,6 +24,15 @@ const CAMERA_HEIGHT := 48.0
 const LAYER_SUN_CASTER := 4
 ## The player's sprite, which the torch in the player's hand does not shade.
 const LAYER_PLAYER := 8
+## What is drawn unshaded (particles, the cursor, the fishing line, tracks, labels...),
+## put there by `unlit` as it enters the tree. The fires and torches (omni lights) leave
+## it out (LIT_BY_FIRES): light does not change how it looks, but the renderer builds
+## its shaders anew for each mix of the lights that reach it, and they were a fifth of
+## the shaders built ahead (2026-11-06, see ShaderWarmup).
+const LAYER_UNLIT := 16
+## The layers the fires and torches light: not the unshaded things, nor the shadow
+## discs under crowns (unshaded too, which cast only from the sun).
+const LIT_BY_FIRES := 0xFFFFF & ~(LAYER_UNLIT | LAYER_SUN_CASTER)
 ## Direction of view rays in the unsheared world in the default view: down and north
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
@@ -227,3 +236,64 @@ static func sprite_mesh(width: int, height: int) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
+
+
+## Whether each shader is unshaded, by its code's render modes.
+static var _unshaded := {}
+
+
+## Puts a thing drawn unshaded on LAYER_UNLIT and makes a fire's or a torch's light leave
+## those out (LIT_BY_FIRES), as each enters the tree (SceneTree.node_added). Only what
+## is on the first layer alone and casts no shadow moves: the layers also pick which
+## light a thing casts its shadow from (shadow_caster_mask), and a light leaves out the
+## shadows of what it does not light.
+static func unlit(node: Node) -> void:
+	if node is OmniLight3D:
+		(node as OmniLight3D).light_cull_mask = LIT_BY_FIRES
+	elif node is GeometryInstance3D and (node as GeometryInstance3D).layers == 1 \
+			and (node as GeometryInstance3D).cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF \
+			and _drawn_unshaded(node):
+		(node as GeometryInstance3D).layers = LAYER_UNLIT
+
+
+static func _drawn_unshaded(g: GeometryInstance3D) -> bool:
+	if g is SpriteBase3D:
+		return not (g as SpriteBase3D).shaded
+	if g is Label3D:
+		return not (g as Label3D).shaded
+	var mats: Array[Material] = [g.material_override]
+	if mats[0] == null:
+		mats.clear()
+		var mesh: Mesh = null
+		if g is MeshInstance3D:
+			var mi := g as MeshInstance3D
+			mesh = mi.mesh
+			if mesh != null:
+				for i in mesh.get_surface_count():
+					mats.append(mi.get_active_material(i))
+		elif g is MultiMeshInstance3D:
+			var mm := (g as MultiMeshInstance3D).multimesh
+			mesh = mm.mesh if mm != null else null
+		elif g is CPUParticles3D:
+			mesh = (g as CPUParticles3D).mesh
+		if mats.is_empty() and mesh != null:
+			for i in mesh.get_surface_count():
+				mats.append(mesh.surface_get_material(i))
+	if mats.is_empty():
+		return false
+	for m in mats:
+		if not _material_unshaded(m):
+			return false
+	return true
+
+
+static func _material_unshaded(m: Material) -> bool:
+	if m is BaseMaterial3D:
+		return (m as BaseMaterial3D).shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED
+	if m is ShaderMaterial and (m as ShaderMaterial).shader != null:
+		var shader := (m as ShaderMaterial).shader
+		if not _unshaded.has(shader):
+			var modes := RegEx.create_from_string("render_mode([^;]*);").search(shader.code)
+			_unshaded[shader] = modes != null and "unshaded" in modes.get_string(1)
+		return _unshaded[shader]
+	return false
