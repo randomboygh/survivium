@@ -104,11 +104,6 @@ void vertex() {
 	packed = UV2;
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
-#ifdef SECTION
-	// A hair farther from the camera than the faces in front, so the inside of the
-	// rock never wins over them at their edges.
-	VERTEX.y -= 0.02;
-#endif
 }
 
 vec3 tile_texel(int tile, ivec2 t) {
@@ -186,64 +181,18 @@ vec3 open_probe(vec3 p, vec3 n, int flag, bool top) {
 	return vec3(p.x, p.y + ((flag & 4) != 0 ? CELL : 0.0), p.z);
 }
 
-// A wall the camera looks at from behind the player, of the space they are in, stays
-// whole above the automatic cut, and the floors behind the player with them: in a
-// cave or a room the far walls stand up to the
-// ceiling, out in a ravine or behind a hill the slope beyond stands up to its top, and
-// only what lies between the camera and the player (the rock above, the near walls,
-// whose faces turn their backs to the camera) goes. Under a roof only the walls of
-// covered space count, so the hill's own face over a cave does not hide the cave; out
-// in the open only open ones, crowns and trunks too (kept_behind in common). A face
-// counts by the column it is open to (open_probe), so the diagonal corners of slopes
-// go with the blocks round them.
-bool back_wall(vec3 p, vec3 n, int flag, bool top) {
-	if (cut_ghost < 0.5 || cut_front > 0.5 || p.y <= cut_height + 0.01 || n.y < -0.5
-			|| (!top && dot(n.xz, view_up) > -0.3)
-			|| dot(p.xz - player_pos.xz, view_up) <= 0.0) {
-		return false;
-	}
-	vec3 at = open_probe(p, n, flag, top);
-	if (roofed(player_pos.xz, player_pos.y + 2.0 * CELL)) {
-		return roofed(at.xz, at.y);
-	}
-	return !roofed(at.xz, at.y);
-}
-
 void fragment() {
-	// The cut in the plane of the camera (see plane_hides). Its section, the inside of
-	// the rock it cuts open, is drawn by a second pass of this shader with SECTION
-	// defined that draws the back faces (Main.section_mat, on while the setting is),
-	// and by the caps of the cut, which lie at the player's feet then (see
-	// ChunkStreamer.cap_level): both only where the plane truly cuts rock.
-	bool section = plane_on();
-#ifdef SECTION
-	if (IN_SHADOW_PASS || !section || plane_hides(world_pos) || !section_here(world_pos)) {
-		discard;
-	}
-#endif
-	int flags = int(packed.x + 0.5) / 16384;
-	bool kept = back_wall(world_pos, world_normal, flags,
-		world_normal.y > 0.5 || (flags == 4 && (int(packed.x + 0.5) % 64) != NO_MATERIAL));
 	// Cut levels still cast their shadows, so caves and rooms stay in the dark.
 	// A face counts as the cell it closes (see layer_alpha): a hair inside it.
-	vec3 own = layer_view.x > 0.5 || sphere_view.x > 0.5 ? world_pos - world_normal * 0.01 : world_pos;
-	bool cut = sphere_view.x > 0.5
-		? sphere_hides_cell(floor(own / CELL))
-		: cut_hides(own, floor(screen_plane(world_pos) * TEXELS));
+	vec3 own = layer_view.x > 0.5 ? world_pos - world_normal * 0.01 : world_pos;
+	bool cut = cut_hides(own, floor(screen_plane(world_pos) * TEXELS));
 	// Where the layers leave out a face with rock behind it, the rock's section shows.
 	bool fill = false;
-	if (!IN_SHADOW_PASS && !kept && cut) {
+	if (!IN_SHADOW_PASS && cut) {
 		fill = layer_view.x > 0.5 && layer_fills(own, floor(screen_plane(world_pos) * TEXELS));
 		if (!fill) {
 			discard;
 		}
-	}
-	// A cap of the cut (dark, see build_cap), not a trunk's top in its crown, nor a
-	// voxel (its material code is NO_MATERIAL; see MeshFaces.pack).
-	int cap_code = int(packed.x + 0.5) % 64;
-	bool cut_cap = cap_code != NO_MATERIAL && COLOR.r < 0.5 && (material_bits[cap_code] & TRUNK) == 0;
-	if (section && cut_cap && !IN_SHADOW_PASS && !section_here(world_pos)) {
-		discard;
 	}
 	if (is_drift(packed.x, UV)) {
 		// The shrinking footprint of a melting drift, with a dithered rim.
@@ -408,8 +357,7 @@ void fragment() {
 		if (code == 1 && dist[e] == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dist[e] == 0) {
-			// In the plane cut the walls stand whole and in the dark: softer lines.
-			col *= top ? 0.45 : (section ? 0.85 : 0.6);
+			col *= top ? 0.45 : 0.6;
 		} else if (code == 2 && top && dist[e] == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dist[e] <= 1) {
@@ -431,7 +379,7 @@ void fragment() {
 		if (code == 1 && dd == 0) {
 			col = col * vec3(1.22, 1.2, 1.1) + vec3(0.025);
 		} else if (code == 2 && dd == 0) {
-			col *= section && !top ? 0.85 : 0.45;
+			col *= 0.45;
 		} else if (code == 2 && dd == 1) {
 			col = col * vec3(1.16, 1.14, 1.06) + vec3(0.02);
 		} else if (code == 3 && dd <= 1) {
@@ -534,7 +482,7 @@ void fragment() {
 			col *= 0.78;
 		}
 	}
-	vec4 veiled = veil(world_pos, depth_fade(kept ? cut_height : world_pos.y));
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
 	float sun_part = sea_bright(world_pos.y);
@@ -548,21 +496,14 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
-	// The section, in dots of the material's colour, a little darker, unlit (a cap's
-	// colour carries its dark shade, 0.4, undone here).
-	bool inside = cut_cap;
-#ifdef SECTION
-	inside = true;
-#endif
-	if ((section && inside) || fill) {
+	// The rock's section the layers fill in, in dots of the colour of the rock round the
+	// player (its side's texels where they show on screen), a little darker, unlit.
+	if (fill) {
 		vec2 st = floor(screen_plane(world_pos) * TEXELS);
-		if (fill) {
-			// The rock round the player, its side's texels where they show on screen.
-			int rock = int(layer_rock + 0.5);
-			col = tile_texel(rock * 3 + 1, ivec2(mod(st, TEXELS))) * biome_tint(rock, world_pos.xz);
-		}
+		int rock = int(layer_rock + 0.5);
+		col = tile_texel(rock * 3 + 1, ivec2(mod(st, TEXELS))) * biome_tint(rock, world_pos.xz);
 		ALBEDO = vec3(0.0);
-		EMISSION = (cut_cap ? col * 2.5 : col) * (bayer4(st) < 0.5 ? 0.62 : 0.3);
+		EMISSION = col * (bayer4(st) < 0.5 ? 0.62 : 0.3);
 		clouds = 0.0;
 	}
 }

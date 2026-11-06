@@ -14,7 +14,6 @@ const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const SolidMap := preload("res://src/client/world/solid_map.gd")
-const CaveSphere := preload("res://src/client/view/cave_sphere.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -151,12 +150,8 @@ var work_us := {}
 var _whole := false
 
 var cut_level := -1
-## The solid cells round the player, for the cut in the plane of the camera.
+## The solid cells round the player, for the rock the view in layers fills in.
 var solid := SolidMap.new()
-## The view in a sphere (setting «Вид в пещере» → «сфера»); it draws the faces it opens
-## by `solid`.
-var sphere := CaveSphere.new()
-var _cut_fade := Vector4(-1.0, 0.0, 0.0, 0.0)
 var _depth_steps := Vector4.ZERO
 var manual_level := -1
 ## The column whose surface was found last, and that surface (see view_range).
@@ -167,7 +162,7 @@ var cut_target := -1
 ## The level the player last stood on: a jump does not move the cut.
 var ground_level := 0
 var indoor := false
-## The view in layers is on (setting «Вид в пещере» → «слои»): where the automatic cut
+## The view in layers is on: where the automatic cut
 ## would cut the view, nothing is cut and the shaders dither away what stands in front
 ## of the player and over their head instead (CaveLayers), from the cell layer_base.
 var layers_on := false
@@ -707,14 +702,7 @@ func update_cut(_delta: float) -> void:
 			indoor = true
 			break
 	var at := Vector3i(px, level, pz)
-	# The section of the cut in the plane of the camera is a second pass over the whole
-	# world: only while that cut is on.
-	var plane := plane_cut() and cut_level < world.size_y - 1
 	solid.flush()
-	if plane:
-		solid.update(world, px, level, pz)
-	if game.world_mat != null and (game.world_mat.next_pass != null) != plane:
-		game.world_mat.next_pass = game.section_mat if plane else null
 	if at != sunk_at:
 		sunk_at = at
 		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
@@ -734,8 +722,8 @@ func update_cut(_delta: float) -> void:
 	if manual_level >= 0:
 		target = manual_level
 	elif indoor:
-		# Over the head, or the test setting's level in the cut of levels.
-		target = level + 1 if game.settings.values.cave_mode != 1 else maxi(level + game.settings.cut_line() - 1, 0)
+		# Over the head.
+		target = level + 1
 	else:
 		if sunk:
 			target = sunk_rim
@@ -748,16 +736,11 @@ func update_cut(_delta: float) -> void:
 			target = mini(target, hidden_by - 1)
 	_update_depth()
 	var opened := manual_level < 0 and target < world.size_y
-	_update_layers(opened and layered(), at)
-	var in_sphere: bool = opened and game.settings.values.cave_mode == 3
-	var settings = game.settings
-	sphere.update(game.world_root, in_sphere, player.position, settings.sphere_radius(),
-		settings.sphere_shift(), settings.values.sphere_debug == 1)
-	# The layers fill what they leave out with the rock's section, and the sphere draws
-	# the faces it opens, by the solid cells round the player too.
-	if (in_sphere or layers_on) and not plane:
+	# Where the automatic cut would cut the view, the layers open it instead and fill
+	# what they leave out with the rock's section, by the solid cells round the player.
+	_update_layers(opened, at)
+	if layers_on:
 		solid.update(world, px, level, pz)
-	if layers_on or in_sphere:
 		target = world.size_y
 	cut_target = target
 	if target == cut_level:
@@ -885,7 +868,6 @@ func reset_view_level() -> void:
 func _apply_cut() -> void:
 	var h := 1000.0 if cut_level >= world.size_y else (cut_level + 1) * CELL
 	RenderingServer.global_shader_parameter_set("cut_height", h)
-	RenderingServer.global_shader_parameter_set("cut_ghost", 1.0 if manual_level < 0 else 0.0)
 	# The caps follow in update_caps, nearest chunk first; with no cut they go at once.
 	if cut_level >= world.size_y - 1:
 		for key in cap_levels:
@@ -894,25 +876,10 @@ func _apply_cut() -> void:
 		_caps_ready = -1
 
 
-## The view under a roof opens otherwise than by a cut: in layers or in a sphere.
-func open_view() -> bool:
-	return layers_on or sphere.on
-
-
-## The view under a roof is in layers (setting «Вид в пещере» → «слои»).
-func layered() -> bool:
-	return game.settings.values.cave_mode == 0
-
-
-## How the levels over the cut fade (shader global cut_fade) and how much darker each
-## level under the sea's surface gets (depth_steps.x, the test setting, see sea_bright).
+## How much darker each level under the sea's surface gets (depth_steps.x, the test
+## setting, see sea_bright).
 func _update_depth() -> void:
-	var settings = game.settings
-	var fade: Vector4 = settings.cut_fade()
-	if fade != _cut_fade:
-		_cut_fade = fade
-		RenderingServer.global_shader_parameter_set("cut_fade", fade)
-	var steps := Vector4(settings.cut_depth(), 0.0, 0.0, 0.0)
+	var steps := Vector4(game.settings.cut_depth(), 0.0, 0.0, 0.0)
 	if steps != _depth_steps:
 		_depth_steps = steps
 		RenderingServer.global_shader_parameter_set("depth_steps", steps)
@@ -951,18 +918,11 @@ func _rock_round(at: Vector3i) -> int:
 	return best
 
 
-## The cut follows the player in the plane of the camera (setting «Вид в пещере»).
-func plane_cut() -> bool:
-	return game.settings.values.cave_mode == 2 and manual_level < 0
-
-
-## The level the caps of the cut lie on, -1 for none: the cut's own, or in the plane of
-## the camera the one under the player's feet, so they close the rock it cuts open down
-## to the floor (shown only where the plane cuts rock, see world.gdshader).
+## The level the caps of the cut lie on, -1 for none.
 func cap_level() -> int:
 	if cut_level >= world.size_y - 1:
 		return -1
-	return maxi(ground_level - 1, 0) if plane_cut() else cut_level
+	return cut_level
 
 
 ## Shows `mesh`, the cap of chunk `key` at `level`.

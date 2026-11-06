@@ -76,14 +76,6 @@ player_pos={
 "type": "vec3",
 "value": Vector3(0, 0, 0)
 }
-cut_ghost={
-"type": "float",
-"value": 1.0
-}
-cut_front={
-"type": "float",
-"value": 0.0
-}
 layer_view={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
@@ -100,21 +92,9 @@ layer_rock={
 "type": "float",
 "value": 0.0
 }
-cut_fade={
-"type": "vec4",
-"value": Vector4(4, 8, 0.5, 0)
-}
 depth_steps={
 "type": "vec4",
 "value": Vector4(0.12, 0, 0, 0)
-}
-sphere_view={
-"type": "vec4",
-"value": Vector4(0, 0, 0, 0)
-}
-sphere_body={
-"type": "vec4",
-"value": Vector4(0, 0, 0, 4)
 }
 layer_density={
 "type": "float",

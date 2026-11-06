@@ -93,7 +93,7 @@ void fragment() {
 	} else if (c.a < 0.5) {
 		discard;
 	}
-	vec4 veiled = veil(world_pos, depth_fade(kept_behind(world_pos) ? cut_height : world_pos.y));
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	// The cool light of the night is what a drawn shadow leaves (fire_shadow.gdshader).
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
