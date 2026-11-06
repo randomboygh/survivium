@@ -173,6 +173,7 @@ const SHOTS := {
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube", "height": 2},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},
+	"build-mode-touch": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "touch": true},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.
 	"build-furniture": {"time": 0.4, "season": 1, "furniture": true},
 	# Doors and windows of every size in a brick wall, a fireplace burning, a wide cupboard

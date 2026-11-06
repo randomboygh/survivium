@@ -2,19 +2,26 @@ extends VBoxContainer
 ## The build mode's bar (BuildMode), in the hotbar's place while the mode is on: on top
 ## the panel of the mode (the shape: line, plane, square, cube; how high and how thick
 ## the walls are, a tap each going round 1–4; drawing or taking off the blueprint; taking
-## all of it off near; leaving the mode), under it the palette's filters («Всё»,
-## «Материалы», «Интерьер», joined as tabs) and the palette: the bag's blocks and parts
-## of a house across the width, two rows when there are enough, arrows scrolling it a
-## column at a time when they do not all fit. The chosen one is in the hand in use; the
-## hands themselves are not shown. `game` is the Main node.
+## all of it off near; leaving the mode), under it the palette: its filters («Всё»,
+## «Материалы», «Интерьер») as a column of picture tabs on its left, as the bag's kinds
+## (IconTabs), then the bag's blocks and things in two rows across the width (eight
+## columns on a portrait screen, smaller cells), arrows scrolling it a column at a time
+## when they do not all fit. The chosen one is in the hand in use; the hands themselves
+## are not shown. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
+const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 
 const SLOT := 40
+## A portrait screen's cells and arrows, so eight columns fit its width.
+const SLOT_PORTRAIT := 34
+const ARROW_PORTRAIT := 18
+const COLUMNS_PORTRAIT := 8
+const ROWS := 2
 const GAP := 4
 const ARROW := 28
 ## The panel's buttons and the tabs, one button tall.
@@ -28,7 +35,7 @@ var _shapes: HBoxContainer
 var _modes: HBoxContainer
 var _height: Button
 var _thick: Button
-var _filters: HBoxContainer
+var _filters: IconTabs
 var _palette: PanelContainer
 var _grid: GridContainer
 var _prev: Button
@@ -38,7 +45,8 @@ var _slots: Array = []
 var _items: Array[String] = []
 var _first := 0
 var _columns := 8
-var _rows := 1
+## The side of a cell now (SLOT, or SLOT_PORTRAIT on a portrait screen).
+var _side := SLOT
 
 
 func _init(g) -> void:
@@ -74,32 +82,47 @@ func _init(g) -> void:
 	for row: HBoxContainer in [_shapes, _modes, ends]:
 		for b: Button in row.get_children():
 			b.custom_minimum_size = Vector2(BUTTON, BUTTON)
-	_filters = TabRow.tabs([], BUTTON)
-	for f: String in FILTER_TITLES:
-		var b := TabRow.small_button(FILTER_TITLES[f], func() -> void: game.build.set_filter(f))
-		b.custom_minimum_size.y = BUTTON
-		_filters.add_child(b)
-	_filters.alignment = BoxContainer.ALIGNMENT_CENTER
-	add_child(_filters)
 	_palette = PanelContainer.new()
 	_palette.mouse_filter = Control.MOUSE_FILTER_STOP
 	var box := UiStyle.panel()
 	for side in ["left", "top", "right", "bottom"]:
 		box.set("content_margin_" + side, 4)
 	_palette.add_theme_stylebox_override("panel", box)
-	_palette.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# As wide as the bar: the clock under it keeps to its right end.
+	_palette.size_flags_horizontal = Control.SIZE_FILL
 	add_child(_palette)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", GAP)
 	_palette.add_child(row)
+	_filters = IconTabs.new()
+	_filters.picked.connect(func(k: String) -> void: game.build.set_filter(k))
+	row.add_child(_filters)
+	var room := Control.new()
+	room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(room)
 	_prev = _arrow(row, "prev", "Предыдущие", func() -> void: _scroll(-1))
 	_grid = GridContainer.new()
 	_grid.add_theme_constant_override("h_separation", GAP)
 	_grid.add_theme_constant_override("v_separation", GAP)
 	row.add_child(_grid)
 	_next = _arrow(row, "next", "Следующие", func() -> void: _scroll(1))
+	var room_end := Control.new()
+	room_end.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	room_end.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(room_end)
+	_set_filters()
 	game.build.changed.connect(refresh)
 	game.character.state_changed.connect(_refresh_later)
+
+
+## The filters' tabs: the blocks' one shows the first block loaded, so it is set again
+## until the content is there.
+func _set_filters() -> void:
+	var block := Items.of_category("blocks")
+	var icons := {"all": UiStyle.icon("all"), "blocks": ItemIcons.of_item(block) if block != "" else UiStyle.icon("build_line"),
+		"interior": UiStyle.icon("chest")}
+	_filters.set_tabs(FILTER_TITLES.keys(), icons, FILTER_TITLES)
 
 
 ## A button showing a picture and a number, a tap going round the number.
@@ -119,10 +142,32 @@ func _arrow(parent: Node, icon: String, tip: String, action: Callable) -> Button
 	return b
 
 
-## Lays the palette out for `width` UI px: as many columns as fit, two rows when the
-## items fill more than one.
-func fit(width: float) -> void:
-	_columns = maxi(1, floori((width - 8 - 2 * (ARROW + GAP) + GAP) / (SLOT + GAP)))
+## The width the palette takes with `columns` columns of the big cells.
+static func width_for(columns: int) -> float:
+	return 8 + IconTabs.SIDE + GAP + 2 * (ARROW + GAP) + columns * (SLOT + GAP) - GAP
+
+
+## Lays the palette out for `width` UI px: as many columns as fit beside the filters
+## and the arrows, eight of smaller cells on a portrait screen (`portrait`).
+func fit(width: float, portrait := false) -> void:
+	var side := SLOT_PORTRAIT if portrait else SLOT
+	var arrow := ARROW_PORTRAIT if portrait else ARROW
+	if side != _side:
+		_side = side
+		# Out of the grid at once: its size is measured in this frame.
+		for s in _slots:
+			_grid.remove_child(s)
+			s.queue_free()
+		_slots.clear()
+	_prev.custom_minimum_size = Vector2(arrow, side)
+	_next.custom_minimum_size = Vector2(arrow, side)
+	var fixed := 8 + IconTabs.SIDE + GAP + 2 * (arrow + GAP)
+	_columns = maxi(1, floori((width - fixed + GAP) / (side + GAP)))
+	if portrait:
+		_columns = mini(_columns, COLUMNS_PORTRAIT)
+	# All three filters shown, none scrolled: the palette a little taller than its rows
+	# on a portrait screen.
+	_filters.fit_height(maxf(ROWS * side + GAP, FILTER_TITLES.size() * (IconTabs.SIDE + 2) - 2))
 	refresh()
 
 
@@ -147,19 +192,17 @@ func refresh() -> void:
 	_thick.text = str(b.thick)
 	TabRow.light(_modes.get_child(0), not b.erasing)
 	TabRow.light(_modes.get_child(1), b.erasing, b.erasing)
-	var keys := FILTER_TITLES.keys()
-	for i in keys.size():
-		TabRow.light(_filters.get_child(i), b.filter == keys[i])
+	_set_filters()
+	_filters.select(b.filter)
 	_items = b.palette()
-	var cols := _columns
-	_rows = 2 if _items.size() > cols else 1
-	var total_cols := ceili(float(_items.size()) / _rows) if _rows > 0 else 0
-	var shown_cols := mini(cols, maxi(total_cols, 1))
+	# Always two rows and every column of the width, empty cells where the bag has less.
+	var total_cols := ceili(float(_items.size()) / ROWS)
+	var shown_cols := _columns
 	_first = clampi(_first, 0, maxi(0, total_cols - shown_cols))
 	_grid.columns = shown_cols
-	var n := shown_cols * _rows
+	var n := shown_cols * ROWS
 	while _slots.size() < n:
-		var s = HotbarSlot.new(SLOT)
+		var s = HotbarSlot.new(_side)
 		s.on_release = true
 		var k := _slots.size()
 		s.pressed.connect(func() -> void: _tap(k))
@@ -175,7 +218,7 @@ func refresh() -> void:
 		# Column by column: the first row, then the second, of each column shown.
 		var col := _first + i % shown_cols
 		var row := i / shown_cols
-		var at := col * _rows + row
+		var at := col * ROWS + row
 		var id: String = _items[at] if at < _items.size() else ""
 		s.texture = ItemIcons.of_item(id) if id != "" else null
 		var count: int = inv.count(id) if id != "" else 0
@@ -188,16 +231,13 @@ func refresh() -> void:
 	_prev.disabled = _first <= 0
 	_next.disabled = _first >= total_cols - shown_cols
 	if _items.is_empty():
-		_slots[0].visible = true
-		_slots[0].texture = null
-		_slots[0].number = ""
-		_slots[0].tooltip_text = "Нечего строить: нет блоков" if b.filter != "interior" else "Нечего строить: нет вещей для дома"
+		_slots[0].tooltip_text = "Нечего строить: нет блоков" if b.filter != "interior" else "Нечего строить: нет вещей"
 
 
 ## Slot `k` shown was tapped: its item into the hand.
 func _tap(k: int) -> void:
 	var shown_cols: int = _grid.columns
-	var at: int = (_first + k % shown_cols) * _rows + k / shown_cols
+	var at: int = (_first + k % shown_cols) * ROWS + k / shown_cols
 	if at < _items.size():
 		game.build.choose(_items[at])
 

@@ -105,10 +105,17 @@ func _place() -> void:
 	# The build mode's bar in the hotbar's place: as wide as the room for it.
 	var bar: Control = _shown_bar()
 	if bar == build_bar:
+		# Between the stick and the buttons when six columns fit there, else across the
+		# screen over them.
 		var across := w - 2 * MARGIN
 		if touch and not portrait:
-			across = (_jump.position.x - 8) - (stick.position.x + stick_size.x + 8)
-		build_bar.fit(across)
+			var between: float = (_jump.position.x - 8) - (stick.position.x + stick_size.x + 8)
+			if between >= build_bar.width_for(6):
+				across = between
+			else:
+				# Over the buttons: short of the minimap's column on the right.
+				across = minf(across, _right_column() - 8 - MARGIN)
+		build_bar.fit(across, portrait)
 	bar.reset_size()
 	var bw := bar.size.x
 	var bh := bar.size.y
@@ -121,6 +128,8 @@ func _place() -> void:
 			x = clampf(x, free_left, free_right - bw)
 		else:
 			y = minf(stick.position.y, _jump.position.y) - 8 - bh
+			if bar == build_bar and not portrait:
+				x = maxf(MARGIN, minf(x, _right_column() - 8 - bw))
 	# The clock under the hotbar's right end, overlapping its outline.
 	_clock_panel.reset_size()
 	var clock_room := _clock_panel.size.y - 2
@@ -286,6 +295,16 @@ func _fit_bag_meter() -> void:
 ## left of the buttons when PerfPanel.WIDTH fits there (a wide screen); else they go
 ## across the whole top and everything moves down under them (a phone held upright).
 ## Their width stays as it is while their numbers change.
+## The left edge of the column of the minimap, its level buttons and the camera cross.
+func _right_column() -> float:
+	var x: float = minimap.position.x
+	if _level.visible:
+		x = minf(x, _level.position.x)
+	if _camera.visible:
+		x = minf(x, _camera.position.x)
+	return x
+
+
 func _place_top() -> void:
 	var w := size.x
 	_top.reset_size()
