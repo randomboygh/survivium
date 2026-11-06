@@ -1,6 +1,6 @@
 extends RefCounted
 ## The first time a thing is drawn under lights it was not drawn under before (the
-## torch at dusk, the shadow of the nearest fire, a moonless night with no sun at all),
+## torch at dusk, the shadow of the nearest fire),
 ## the renderer builds the shaders for it, and on a phone that stops the game for 100 ms
 ## or more (2026-10-24; under software GL the first night took 10 s). So when the world
 ## is ready, a small view no one sees draws one of each kind of thing in the world under
@@ -15,15 +15,15 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerView := preload("res://src/client/view/player.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
-## The mixes of lights: [the sun, a light without a shadow (the torch, the far fires),
-## a light with a shadow (the nearest fire)]. The sun goes out when its energy is 0, at
-## dusk and on a moonless night. All eight: the sun alone (the land beyond the torch's
-## glow) was left to the first frames of the game, but the world is not drawn behind
-## the menu, so it came mid-game (six shaders of up to 370 ms on a phone, 2026-11-01).
-const MIXES := [
-	[true, true, true], [true, false, true], [true, true, false], [true, false, false],
-	[false, true, true], [false, false, true], [false, true, false], [false, false, false],
-]
+## The mixes of lights: [a light without a shadow (the torch, the far fires), a light
+## with a shadow (the nearest fire)], all under the sun. The sun alone (the land beyond
+## the torch's glow) was once left to the first frames of the game, but the world is not
+## drawn behind the menu, so it came mid-game (six shaders of up to 370 ms on a phone,
+## 2026-11-01). The sun is never out: at dusk and on a moonless night its energy is 0,
+## but the renderer still draws with it and picks the same shaders (measured 2026-11-06:
+## the four mixes without it built nothing new when it was dimmed to 0, and were a
+## quarter of the warm-up when it was hidden).
+const MIXES := [[true, true], [false, true], [true, false], [false, false]]
 ## How far apart the copies stand, in world units, and the lights' reach over them all.
 const SPACING := 4.0
 const REACH := 64.0
@@ -133,9 +133,8 @@ func _light(at: Vector3, shadow: bool) -> OmniLight3D:
 
 func _mix(i: int) -> void:
 	var m: Array = MIXES[i]
-	sun.visible = m[0]
-	lamp.visible = m[1]
-	fire.visible = m[2]
+	lamp.visible = m[0]
+	fire.visible = m[1]
 
 
 ## A copy of each thing under `node` that differs from the ones in `kinds` in what
