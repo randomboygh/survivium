@@ -91,6 +91,9 @@ const BUILD := "build"
 const PROP_DESTROY := "prop_destroy"
 ## Starts a recipe some times at the workshop: [recipe id, n] (Workshop.start).
 const CRAFT := "craft"
+## Gives what a recipe makes for nothing, while the rules allow it (playtest
+## «Бесплатные предметы»): [recipe id] (Workshop.give_free).
+const CRAFT_FREE := "craft_free"
 ## Cancels a job of the queue: [i] (Workshop.cancel).
 const CRAFT_CANCEL := "craft_cancel"
 ## Cancels every job (Workshop.cancel_all).

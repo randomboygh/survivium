@@ -452,6 +452,7 @@ const SHOTS := {
 	# before any recipe is known: no queue then.
 	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:stone_scythe"},
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
+	"craft-free": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true, "free": true},
 	# The craft tab with nothing queued: no queue panel under the recipe.
 	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
 	# The spawn campfire at night full of fuel, and nearly burned down: its flames and light
@@ -730,6 +731,9 @@ const SHOTS := {
 	"ground-house-inside": {"time": 0.42, "season": 1, "at": [70, -52], "y": 23},
 	"ground-house-upper": {"time": 0.42, "season": 1, "at": [70, -52], "y": 27},
 	"ground-house-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [70, -52], "y": 23},
+	# A lantern held in the low house at night: it burns in the hand, under the roof.
+	"ground-house-lantern": {"time": 0.95, "season": 1, "moon": 0.0, "at": [70, -52], "y": 23,
+		"hands": {"tool": "tools:lantern", "facing": "s", "stay": true}},
 	# Its east wall from outside, turned: the double door 2×2 and the door 1×2.
 	"ground-house-east": {"time": 0.42, "season": 1, "at": [80, -53], "turn": 1},
 	# The descents (TestGround.DESCENT, DESCENT45): the mouths, a step down inside, the bottom.

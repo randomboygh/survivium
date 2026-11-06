@@ -30,7 +30,7 @@
   4) от всех зон (`WorldGen.forget`, изменённые остаются), очередь строится при сдвиге зоны; `gen_us`,
   `work_us` / `take_work()` по видам («terrain», «saved», «trees», «shapes»); `stages_left(reach)` —
   сколько стадий ещё делать (прогресс загрузки).
-- `src/shared/game/rules.gd` — правила игры: `free_build`, `tool_wear`, `instant_craft`; `of(dict)`,
+- `src/shared/game/rules.gd` — правила игры: `free_build`, `tool_wear`, `instant_craft`, `free_items`; `of(dict)`,
   `to_dict` / `from_dict`. На клиенте их ставит страница «Тестирование» (`Settings.apply`), сервер возьмёт
   из конфига.
 - `src/server/runner.gd` — узел сервера («ServerRunner», `PROCESS_MODE_ALWAYS`, `process_priority` −10:

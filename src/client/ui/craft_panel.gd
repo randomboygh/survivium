@@ -73,6 +73,9 @@ var _bottom: VBoxContainer
 var _details: PanelContainer
 var _icon: TextureRect
 var _title: Label
+## «Получить» in the recipe's top right corner, while the playtest switch «Бесплатные
+## предметы» is on (Rules.free_items): what the recipe makes, for nothing.
+var _get: Button
 var _facts: FactChips
 var _make: HBoxContainer
 ## «сделать», «×5» and «MAX».
@@ -191,6 +194,10 @@ func _ready() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.custom_minimum_size.x = 100
 	top.add_child(_title)
+	_get = TabRow.icon_button(UiStyle.icon("gift"), "Получить бесплатно", _get_free)
+	_get.custom_minimum_size = Vector2(30, 30)
+	_get.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	top.add_child(_get)
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_facts)
@@ -313,7 +320,7 @@ func refresh_now() -> void:
 		return
 	var shop = game.workshop
 	var inv = game.character.inventory
-	var known: Array = _by_kind(shop.recipes())
+	var known: Array = _by_kind(_all_recipes() if _free() else shop.recipes())
 	var stations: Dictionary = shop.stations()
 	_stations_seen = str(stations.keys())
 	if not _station.is_empty() and not game.placed.things.has(_station):
@@ -360,6 +367,14 @@ func refresh_now() -> void:
 		cell.modulate = Color.WHITE if Crafting.why_not(r, inv, stations) == "" else Color(1, 1, 1, 0.45)
 		if cell.visible:
 			shown.append(r.id)
+	# Cells of recipes no longer listed (the playtest's free items turned off) hide.
+	if _cells.size() > known.size():
+		var listed := {}
+		for r: Dictionary in known:
+			listed[r.id] = true
+		for id: String in _cells:
+			if not listed.has(id):
+				_cells[id].visible = false
 	if not shown.has(_chosen):
 		_chosen = shown[0] if not shown.is_empty() else ""
 	for id in _cells:
@@ -381,6 +396,29 @@ static func _by_kind(known: Array) -> Array:
 		keyed.append([order.find(Items.category(known[i].makes)), i, known[i]])
 	keyed.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0] or a[0] == b[0] and a[1] < b[1])
 	return keyed.map(func(k: Array) -> Dictionary: return k[2])
+
+
+## Whether the playtest switch «Бесплатные предметы» is on.
+func _free() -> bool:
+	return game.rules != null and game.rules.free_items
+
+
+## Every recipe this world can make (Crafting.possible), known or not.
+static func _all_recipes() -> Array:
+	return Crafting.RECIPES.filter(func(r: Dictionary) -> bool: return Crafting.possible(r))
+
+
+## «Получить»: the server gives what the recipe chosen makes; the button lights green
+## for a moment when it came.
+func _get_free() -> void:
+	var b := _get
+	game.net.request(Protocol.CRAFT_FREE, [_chosen]).then(func(got: Variant) -> void:
+		if not is_instance_valid(b) or not (got is int and got > 0):
+			return
+		UiStyle.succeed(b, true)
+		b.get_tree().create_timer(0.6).timeout.connect(func() -> void:
+			if is_instance_valid(b):
+				UiStyle.succeed(b, false)))
 
 
 func _choose(id: String) -> void:
@@ -483,6 +521,7 @@ func _show_details(near: Dictionary) -> void:
 	var inv = game.character.inventory
 	_icon.texture = ItemIcons.of_item(r.makes)
 	_title.text = "%s%s" % [r.title, " ×%d" % r.count if r.count > 1 else ""]
+	_get.visible = _free()
 	var needs := []
 	for id in r.needs:
 		var have: int = inv.count(id)
