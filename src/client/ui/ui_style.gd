@@ -729,6 +729,15 @@ const ICONS := {
 		"w.....ww..",
 		"wwwwwww...",
 	],
+	# Flattening: ground cut level, a hollow filled.
+	"build_flatten": [
+		"...ww.....",
+		"..wmmw....",
+		"wwwwwwwwww",
+		"wmmmm..mmw",
+		"wmmmmwwmmw",
+		"wwwwwwwwww",
+	],
 	# The forms of the blocks (BuildBar): a whole block, a ramp, an upturned ramp,
 	# stairs, seen from the side, rising to the right.
 	"form_cube": [

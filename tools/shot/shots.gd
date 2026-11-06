@@ -175,6 +175,7 @@ const SHOTS := {
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},
 	"build-forms": {"time": 0.4, "season": 1, "forms": true, "hud": false, "turn": 1, "offset": Vector3(0, 0, -3)},
 	"build-forms-turned": {"time": 0.4, "season": 1, "forms": true, "hud": false, "turn": 3, "offset": Vector3(0, 0, -3)},
+	"build-mode-flatten": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "flatten"},
 	"build-mode-forms": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "form": 3},
 	"build-mode-touch": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "touch": true},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.

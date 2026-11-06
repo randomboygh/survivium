@@ -250,6 +250,8 @@ func _has_blocks() -> bool:
 	var seen := {}
 	for c: Vector3i in game.plans.cells:
 		var item: String = game.plans.cells[c]
+		if item == Plans.CUT:
+			return true
 		if not seen.has(item):
 			seen[item] = true
 			if inv.count(item) > 0:
@@ -293,7 +295,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 ## The cell a stroke begins at on the cell `hit` (VoxelRaycast.cast): the ground cell for a
 ## plane or a box, the cell over it for the walls and for taking the ghost off.
 func start_cell(hit: Dictionary) -> Vector3i:
-	if kind in ["plane", "cube"] and not erasing:
+	if kind in ["plane", "cube", "flatten"] and not erasing:
 		return hit.cell
 	return hit.cell + hit.normal
 
@@ -321,6 +323,10 @@ func show_stroke(s: Dictionary) -> void:
 				gone.append(c)
 		game.cursor.show_boxes([], gone, cells)
 		return
+	if kind == "flatten":
+		# The level the ground is brought to.
+		game.cursor.show_boxes(cells, [])
+		return
 	var sorted := _sorted(s, cells)
 	var bad: Array[Vector3i] = []
 	bad.assign(sorted.blocked + sorted.hanging)
@@ -334,7 +340,7 @@ func show_stroke(s: Dictionary) -> void:
 ## The stroke ended: the server draws its ghost or takes it off; uneven ground is told.
 func end_stroke(s: Dictionary) -> void:
 	game.cursor.show_cells([], true)
-	if not erasing:
+	if not erasing and s.plan != "flatten":
 		var cells := stroke_cells(s)
 		if cells.is_empty():
 			game.character.nag("plan_big", "Слишком большой чертёж")

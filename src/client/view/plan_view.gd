@@ -90,6 +90,14 @@ func _build(at: Vector3i) -> void:
 				started = true
 			_lines.surface_add_vertex(corner(c, e[0]))
 			_lines.surface_add_vertex(corner(c, e[1]))
+		if cells[c] == "-":
+			# Ground to dig out (Plans.CUT): a cross over its top.
+			if not started:
+				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
+				started = true
+			for e: Array in [[Vector3(0, 1, 0), Vector3(1, 1, 1)], [Vector3(1, 1, 0), Vector3(0, 1, 1)]]:
+				_lines.surface_add_vertex(point(c, e[0]))
+				_lines.surface_add_vertex(point(c, e[1]))
 		var form: int = game.plans.forms.get(c, 0)
 		for e: Array in FORM_LINES.get(form & 3, []):
 			if not started:

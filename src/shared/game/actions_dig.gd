@@ -63,8 +63,9 @@ func dig_targets(who, order: Array[Vector3i], t: Dictionary, n := -1) -> Array[V
 
 
 ## Digs `cells` in one swing of `swing` seconds; what they give (their item, now and
-## then their bonus) falls under them.
-func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
+## then their bonus) falls under them. The tool in hand wears, or tool `wear` of the bag
+## when given (flattening digs with the best tool there, Plans.best_tool).
+func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dictionary:
 	cells = _allowed(who, cells, "build")
 	if cells.is_empty() or not who.act("dig"):
 		return {}
@@ -92,7 +93,11 @@ func dig(who, cells: Array[Vector3i], swing: float) -> Dictionary:
 		drops_changed.emit(key)
 	var done := _work(skilled(who, "dig", swing, float(fresh) / cells.size()), "",
 		(Vector3(cells[0]) + Vector3(0.5, 0.5, 0.5)) * CELL, first)
-	who.use_tool()
+	if wear == null:
+		who.use_tool()
+	elif wear is String and wear != "" and rules.tool_wear \
+			and who.inventory.wear_tool(wear, Items.get_item(wear).get("durability", 0)):
+		who.say("Сломалось: %s" % Items.title(wear))
 	return done
 
 

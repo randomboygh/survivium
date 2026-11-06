@@ -10,6 +10,7 @@ func run() -> void:
 	_test_shapes()
 	_test_build()
 	_test_forms()
+	_test_flatten()
 
 
 func _test_shapes() -> void:
@@ -144,3 +145,50 @@ func _test_forms() -> void:
 	_check(w.form_at(12, 2, 9) == WorldData.FORM_CUBE and w.forms.size() == 1, "a cell dug out forgets its form")
 	w.set_form(12, 2, 9, ramp)
 	_check(w.forms.size() == 1, "air takes no form")
+
+
+## Flattening (the build mode's «выровнять»): the natural ground over the level is dug
+## out with the best tool in the bag, the holes under it filled with soil from the bag;
+## what players built stays.
+func _test_flatten() -> void:
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+			w.set_natural(x, 1, z, true)
+	# A bump of two levels, a hole of one, a built block on the ground.
+	for y in [2, 3]:
+		w.set_cell(12, y, 10, Mat.DIRT)
+		w.set_natural(12, y, 10, true)
+	w.set_cell(13, 1, 10, Mat.AIR)
+	w.set_cell(11, 2, 11, Mat.STONE)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(10.5, 2.0, 10.5) * WorldData.CELL
+	var n := plans.draw(actions, who, "flatten", Vector3i(10, 1, 9), Vector3i(13, 1, 11), 1)
+	var soil: String = Mat.RECORDS[Mat.DIRT].item
+	_check(n == 3 and plans.cells.get(Vector3i(12, 2, 10)) == Plans.CUT and plans.cells.get(Vector3i(12, 3, 10)) == Plans.CUT
+		and plans.cells.get(Vector3i(13, 1, 10)) == soil and not plans.cells.has(Vector3i(11, 2, 11)),
+		"the bump is marked to dig, the hole to fill, the built block left: %s" % [plans.cells])
+	var copy := Plans.new()
+	copy.from_list(plans.to_list())
+	_check(copy.cells == plans.cells, "and it is saved")
+	var done := plans.build(actions, who)
+	_check(done.has("swing") and w.get_cell(12, 3, 10) == Mat.AIR and w.get_cell(12, 2, 10) == Mat.DIRT,
+		"the top of the bump is dug first")
+	plans.build(actions, who)
+	_check(w.get_cell(12, 2, 10) == Mat.AIR and plans.cells.size() == 1, "then the rest of it")
+	plans.build(actions, who)
+	_check(w.get_cell(13, 1, 10) == Mat.AIR and who.said.any(func(t: String) -> bool: return t.contains("В сумке нет")),
+		"with no soil in the bag the hole waits")
+	who.inventory.add(soil, 1)
+	plans.build(actions, who)
+	_check(w.get_cell(13, 1, 10) == Mat.DIRT and plans.cells.is_empty() and who.inventory.count(soil) == 0,
+		"and is filled with soil from the bag")
+	_check(Plans.best_tool(who, Mat.DIRT) == "", "bare hands dig soil when the bag has no shovel")
+	who.inventory.add("tools:wooden_shovel", 1)
+	_check(Plans.best_tool(who, Mat.DIRT) == "tools:wooden_shovel", "a shovel in the bag digs it faster")
+	_check(Plans.best_tool(who, Mat.STONE) == null, "nothing in the bag digs stone")

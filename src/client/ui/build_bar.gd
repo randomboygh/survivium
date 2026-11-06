@@ -27,7 +27,8 @@ const ARROW := 28
 ## The panel's buttons and the tabs, one button tall.
 const BUTTON := 30
 const SHAPES := [["build_line", "line", "Линия: стена"], ["build_plane", "plane", "Плоскость: пол"],
-	["build_square", "square", "Квадрат: стены вокруг"], ["build_cube", "cube", "Куб: пол, стены и потолок"]]
+	["build_square", "square", "Квадрат: стены вокруг"], ["build_cube", "cube", "Куб: пол, стены и потолок"],
+	["build_flatten", "flatten", "Выровнять землю: срезать выше, засыпать ямы землёй из сумки"]]
 const FORMS := [["form_cube", "Блок: целый"], ["form_ramp", "Скос снизу"], ["form_upper", "Скос сверху"],
 	["form_stairs", "Ступени"]]
 const FILTER_TITLES := {"all": "Всё", "blocks": "Материалы", "interior": "Интерьер"}
@@ -232,7 +233,8 @@ func refresh() -> void:
 	_turn.disabled = b.form == 0
 	# The height means nothing for a plane: a plane is one level (as thick as chosen, down).
 	_height.text = str(b.height)
-	_height.disabled = b.kind == "plane"
+	_height.disabled = b.kind in ["plane", "flatten"]
+	_thick.disabled = b.kind == "flatten"
 	_thick.text = str(b.thick)
 	TabRow.light(_modes.get_child(0), not b.erasing)
 	TabRow.light(_modes.get_child(1), b.erasing, b.erasing)
