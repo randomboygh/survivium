@@ -734,7 +734,7 @@ func _run() -> void:
 			var s := {"plan": main.build.kind, "first": feet + Vector3i(-6, 0, -9), "last": feet + Vector3i(-6, 0, -1)}
 			if shot.build_mode == "erase":
 				s = {"plan": "line", "first": feet + Vector3i(-5, 0, -9), "last": feet + Vector3i(0, 0, -9)}
-			elif main.build.kind in ["plane", "cube"]:
+			elif main.build.kind in ["plane", "cube", "flatten"]:
 				s = {"plan": main.build.kind, "first": feet + Vector3i(2, -1, -3), "last": feet + Vector3i(6, -1, 1)}
 			for i in 3:
 				await process_frame

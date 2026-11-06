@@ -45,7 +45,14 @@ var forms := {}
 
 ## The kinds of shape (the build mode's panel): a wall along a line, a floor in a
 ## plane, walls round a square, a box with walls, a floor and a ceiling.
-const KINDS := ["line", "plane", "square", "cube"]
+const KINDS := ["line", "plane", "square", "cube", "flatten"]
+## The ghost of a cell to dig out (flattening): in `cells` in place of a block's item.
+const CUT := "-"
+## How far over and under the level a flattening reaches, in levels, and how many
+## columns it may take at most.
+const FLAT_UP := 8
+const FLAT_DOWN := 4
+const MAX_FLAT := 400
 
 
 ## The cells of shape `kind` (one of KINDS) from cell `a` to cell `b` (the level of
@@ -65,6 +72,10 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 	var lo := Vector2i(mini(a.x, b.x), mini(a.z, b.z))
 	var hi := Vector2i(maxi(a.x, b.x), maxi(a.z, b.z))
 	match kind:
+		"flatten":
+			for x in range(lo.x, hi.x + 1):
+				for z in range(lo.y, hi.y + 1):
+					out.append(Vector3i(x, a.y, z))
 		"line":
 			var d := b - a
 			var along_x := absi(d.x) >= absi(d.z)
@@ -119,6 +130,9 @@ static func erase_box(kind: String, a: Vector3i, b: Vector3i, height: int, near 
 	for c in cells:
 		lo = lo.min(c)
 		hi = hi.max(c)
+	if kind == "flatten":
+		lo.y -= FLAT_DOWN - 1
+		hi.y += FLAT_UP
 	for x in range(lo.x, hi.x + 1):
 		for z in range(lo.z, hi.z + 1):
 			for y in range(lo.y, hi.y + 1):
@@ -142,6 +156,8 @@ static func too_big(kind: String, a: Vector3i, b: Vector3i, height: int, thick :
 			return maxi(w, d) * h * t > MAX_SHAPE
 		"plane":
 			return w * d * t > MAX_SHAPE
+		"flatten":
+			return w * d > MAX_FLAT
 		"square":
 			return ring * h > MAX_SHAPE
 		"cube":
@@ -171,6 +187,8 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	var p: Vector3 = who.position
 	if erase_it:
 		return erase(actions, who, erase_box(kind, a, b, height, Vector2(p.x, p.z), thick))
+	if kind == "flatten":
+		return _flatten(actions, who, a, b)
 	var block := Mat.index(Items.get_item(item).get("place", ""))
 	if block < 0:
 		who.nag("plan_block", "Выберите блок для чертежа")
@@ -192,6 +210,72 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	if not added.is_empty():
 		changed.emit(added, item)
 	return added.size()
+
+
+## Flattening (the build mode's «выровнять») the rectangle from `a` to `b` to the top of
+## the level of `a`: the natural ground over it (FLAT_UP levels) becomes ghost cells to
+## dig out (CUT), the holes in it down to solid ground (FLAT_DOWN levels) ghost cells of
+## soil (the item dirt gives) to fill, where `who` may build. Trees are left standing,
+## and so is what players built. How many cells changed.
+func _flatten(actions, who, a: Vector3i, b: Vector3i) -> int:
+	if actions == null:
+		return 0
+	var w = actions.world
+	var soil: String = Mat.RECORDS[Mat.DIRT].item
+	var cut: Array = []
+	var fill: Array = []
+	for c: Vector3i in shape("flatten", a, b, 1):
+		for y in range(c.y + 1, mini(c.y + 1 + FLAT_UP, w.size_y)):
+			var up := Vector3i(c.x, y, c.z)
+			var m: int = w.get_cell(up.x, up.y, up.z)
+			if m == Mat.AIR or m == Mat.WATER or m == Mat.LEAVES or not w.is_natural(up.x, up.y, up.z) \
+					or actions.tree_of(up) != null or cells.has(up):
+				continue
+			if actions.territory_allows(who, up, "build"):
+				cut.append(up)
+		for y in range(c.y, maxi(c.y - FLAT_DOWN, 0), -1):
+			var down := Vector3i(c.x, y, c.z)
+			var m: int = w.get_cell(down.x, down.y, down.z)
+			if m != Mat.AIR and m != Mat.WATER:
+				break
+			if not cells.has(down) and actions.territory_allows(who, down, "build"):
+				fill.append(down)
+	var room := MAX_CELLS - cells.size()
+	if cut.size() + fill.size() > room:
+		who.nag("plan_full", "Слишком много чертежей")
+		cut = cut.slice(0, room)
+		fill = fill.slice(0, maxi(0, room - cut.size()))
+	for c: Vector3i in cut:
+		cells[c] = CUT
+		forms.erase(c)
+	for c: Vector3i in fill:
+		cells[c] = soil
+		forms.erase(c)
+	if not cut.is_empty():
+		changed.emit(cut, CUT)
+	if not fill.is_empty():
+		changed.emit(fill, soil)
+	if cut.is_empty() and fill.is_empty():
+		who.nag("plan_flat", "Здесь уже ровно")
+	return cut.size() + fill.size()
+
+
+## The tool in the bag of `who` that digs material `m` fastest (its item, "" for bare
+## hands), or null when nothing there digs it.
+static func best_tool(who, m: int) -> Variant:
+	var best: Variant = null
+	var time := INF
+	if Tools.can_dig(Tools.of(""), m):
+		best = ""
+		time = Tools.swing_time(Tools.of(""), m)
+	for s in who.inventory.slots:
+		if s == null or not Tools.is_tool_item(s[0]):
+			continue
+		var t := Tools.of(s[0])
+		if Tools.can_dig(t, m) and Tools.swing_time(t, m) < time:
+			best = s[0]
+			time = Tools.swing_time(t, m)
+	return best
 
 
 ## The cells `all` of shape `kind` drawn from `a` with `block` (see shape), sorted:
@@ -318,15 +402,27 @@ func build(actions, who) -> Dictionary:
 	var ready: Array[Vector3i] = []
 	for c in near(who):
 		var item: String = cells[c]
+		if item == CUT:
+			ready.append(c)
+			continue
 		if not free and who.inventory.count(item) == 0:
 			missing = item if missing == "" else missing
 			continue
 		ready.append(c)
-	# The block in hand first.
+	# What is to be dug out first, from the top; then the block in hand first.
 	ready.sort_custom(func(x: Vector3i, y: Vector3i) -> bool:
+		if (cells[x] == CUT) != (cells[y] == CUT):
+			return cells[x] == CUT
+		if cells[x] == CUT:
+			return x.y > y.y
 		return cells[x] == held and cells[y] != held)
 	for c in ready:
 		var item: String = cells[c]
+		if item == CUT:
+			var dug := _dig_out(actions, who, c)
+			if dug.is_empty():
+				continue
+			return dug
 		var block := Mat.index(Items.get_item(item).get("place", ""))
 		var m: int = w.get_cell(c.x, c.y, c.z)
 		var form: int = forms.get(c, 0)
@@ -365,6 +461,31 @@ func build(actions, who) -> Dictionary:
 	return {"swing": actions.IDLE_SWING}
 
 
+## Digs ghost cell `c` to be dug out (CUT) with the tool of the bag of `who` that digs
+## it fastest; the work done, {} when it could not be dug (no tool for it, not allowed),
+## {"swing"} when the hands are busy.
+func _dig_out(actions, who, c: Vector3i) -> Dictionary:
+	var w = actions.world
+	var m: int = w.get_cell(c.x, c.y, c.z)
+	if m == Mat.AIR or m == Mat.WATER or actions.tree_of(c) != null:
+		cells.erase(c)
+		changed.emit([c], "")
+		return {}
+	var tool: Variant = best_tool(who, m)
+	if tool == null:
+		who.nag("tool", Tools.why_not(Tools.of(who.held()), m))
+		return {}
+	if not actions.territory_allows(who, c, "build"):
+		return {}
+	var swing := Tools.swing_time(Tools.of(tool), m)
+	var done: Dictionary = actions.dig(who, [c] as Array[Vector3i], swing, tool)
+	if done.is_empty():
+		return {"swing": actions.IDLE_SWING}
+	cells.erase(c)
+	changed.emit([c], "")
+	return done
+
+
 ## The ghost cells for the save and for a client joining: [[cell, item], …], with the
 ## form third where it is not a cube.
 func to_list() -> Array:
@@ -388,8 +509,8 @@ func from_list(list: Array) -> void:
 	forms.clear()
 	for e in list:
 		if e is Array and e.size() in [2, 3] and e[0] is Vector3i and e[1] is String:
-			var item: String = Items.canon(e[1])
-			if Mat.index(Items.get_item(item).get("place", "")) >= 0:
+			var item: String = Items.canon(e[1]) if e[1] != CUT else CUT
+			if item == CUT or Mat.index(Items.get_item(item).get("place", "")) >= 0:
 				cells[e[0]] = item
 				if e.size() == 3 and e[2] is int and e[2] & 3 != 0:
 					forms[e[0]] = e[2] & 15
