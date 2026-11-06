@@ -21,9 +21,9 @@
 - `plants` Растения: `plants/acacia` Акация, `plants/apple` Яблоня, `plants/banana` Банан, `plants/birch` Берёза, `plants/bird_cherry` Черёмуха, `plants/blueberry` Черника, `plants/ceiba` Сейба, `plants/cherry` Вишня, `plants/cranberry` Клюква, `plants/currant` Смородина, `plants/deadwood` Сухое дерево, `plants/ears` Колоски, `plants/fern` Папоротник, `plants/fir` Пихта, `plants/flax` Лён, `plants/grass` Травы, `plants/larch` Лиственница, `plants/linden` Липа, `plants/mangrove` Мангр, `plants/maple` Клён, `plants/monstera` Монстера, `plants/moss` Мох, `plants/mushrooms` Грибы, `plants/nettle` Крапива, `plants/oak` Дуб, `plants/palm` Пальма, `plants/pine` Сосна, `plants/poplar` Тополь, `plants/raspberry` Малина, `plants/red_maple` Клён красный, `plants/reeds` Тростник, `plants/roasted_acorns` Жареные жёлуди, `plants/rosehip` Шиповник, `plants/rowan` Рябина, `plants/shrub` Куст, `plants/spruce` Ель, `plants/willow` Ива, `plants/wood` Древесина
 - `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/salt` Соль, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
-- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hide_clothes` Одежда из шкур, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
+- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hide_clothes` Одежда из шкур, `tools/hoe` Тяпка, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sickle` Серп, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/watering_can` Лейка, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
 
-## Предметы (`items`, 185)
+## Предметы (`items`, 193)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -33,8 +33,8 @@
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
 | `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 6 | ок |
 | `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 1 / 2 | ок |
-| `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 15 | ок |
-| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 55 | ок |
+| `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 19 | ок |
+| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 58 | ок |
 | `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0. Выживание без инструментов | 1 / 1 | предупреждения: 1 |
 | `plants:blueberry_bush` | Кустик черники | Посадки |  | `plants/blueberry` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0. Выживание без инструментов | 1 / 1 | ок |
@@ -50,19 +50,19 @@
 | `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0. Выживание без инструментов | 0 / 22 | ок |
-| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 40 | ок |
+| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 45 | ок |
 | `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
 | `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `resources:peat` | Торф | Блоки |  | `resources/peat` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:salt` | Соль | Блоки |  | `resources/salt` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:snow` | Снег | Блоки |  | `resources/snow` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:ice` | Лёд | Блоки |  | `resources/snow` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `resources:dirt` | Земля | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
+| `resources:dirt` | Земля | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 5 | ок |
 | `resources:sand` | Песок | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
 | `resources:clay` | Глина | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 8 | ок |
 | `resources:stone` | Камень | Блоки |  | `resources/stone` | 0. Выживание без инструментов | 1 / 9 | ок |
-| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 17 | ок |
-| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 56 | ок |
+| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 21 | ок |
+| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 60 | ок |
 | `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1. Примитивные инструменты | 1 / 27 | ок |
 | `animals:roach` | Плотва | Еда | Мелкая речная рыба. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
 | `animals:pike` | Щука | Еда | Хищница тихих заводей. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
@@ -93,7 +93,7 @@
 | `tools:stairs` | Лестница | Станки | Старая лестница из досок. Теперь ступени строят из любого блока в режиме строительства. | `tools/stairs` | 0. Выживание без инструментов | 0 / 0 | ок |
 | `tools:torch` | Факел | Свет |  | `tools/torch` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `tools:wicker_bag` | Плетёная котомка | Одежда и сумки | Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек. | `tools/wicker_bag` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 1 / 57 | ок |
+| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 1 / 60 | ок |
 | `materials:cut_stone` | Тёсаный камень | Блоки | Ровные каменные блоки для прочных стен и пола. | `materials/cut_stone` | 1. Примитивные инструменты | 1 / 2 | ок |
 | `tools:big_chest` | Большой сундук | Станки |  | `tools/big_chest` | 1. Примитивные инструменты | 0 / 1 | ок |
 | `tools:bloomery` | Сыродутная печь | Станки |  | `tools/bloomery` | 5. Железо | 1 / 3 | ок |
@@ -122,10 +122,10 @@
 | `materials:glass` | Стекло | Материалы | Мутноватое зелёное стекло из песка. Идёт на фонарь. | `materials/glass` | 3. Керамика и ранняя металлургия | 0 / 7 | ок |
 | `materials:iron_ore` | Железная руда | Материалы | Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка. | `materials/iron` | 4. Бронза | 0 / 2 | ок |
 | `materials:iron_bloom` | Крица | Материалы | Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка. | `materials/iron` | 5. Железо | 1 / 2 | ок |
-| `materials:iron_bar` | Железный слиток | Материалы | Тёмный прочный металл. Из него наковальня и железные инструменты. | `materials/iron` | 5. Железо | 1 / 17 | ок |
+| `materials:iron_bar` | Железный слиток | Материалы | Тёмный прочный металл. Из него наковальня и железные инструменты. | `materials/iron` | 5. Железо | 1 / 21 | ок |
 | `materials:tin_ore` | Оловянная руда | Материалы | Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка. | `materials/tin` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
 | `materials:tin_bar` | Слиток олова | Материалы | Мягкий серебристый металл. С медью даёт бронзу. | `materials/tin` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
-| `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 1 / 17 | ок |
+| `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 1 / 19 | ок |
 | `materials:gold_ore` | Золотая руда | Материалы | Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка. | `materials/gold` | 4. Бронза | 0 / 2 | ок |
 | `materials:gold_bar` | Золотой слиток | Материалы | Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки. | `materials/gold` | 4. Бронза | 0 / 2 | ок |
 | `materials:gold_block` | Золотой блок | Блоки | Блестящий жёлтый блок для построек. | `materials/gold` | 5. Железо | 1 / 2 | ок |
@@ -139,8 +139,11 @@
 | `tools:fur_coat` | Шуба | Одежда и сумки | Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
 | `tools:leather_trousers` | Кожаные штаны | Одежда и сумки | Штаны из выделанной кожи. Не продуваются ветром. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
 | `tools:fur_boots` | Унты | Одежда и сумки | Высокие сапоги из шкуры на кожаной подошве. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
+| `tools:stone_hoe` | Каменная тяпка | Инструменты | Вскапывает траву и землю в грядку, на которую сеют. | `tools/hoe` | 1. Примитивные инструменты | 2 / 1 | ок |
+| `tools:copper_hoe` | Медная тяпка | Инструменты | Вскапывает две клетки за взмах. | `tools/hoe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
+| `tools:iron_hoe` | Железная тяпка | Инструменты | Вскапывает три клетки за взмах. | `tools/hoe` | 5. Железо | 1 / 1 | ок |
 | `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 1 / 7 | ок |
-| `plants:grain` | Зерно | Посадки |  | `plants/ears` | 0. Выживание без инструментов | 2 / 2 | ок |
+| `plants:grain` | Зерно | Посадки |  | `plants/ears` | 0. Выживание без инструментов | 1 / 3 | ок |
 | `plants:flour` | Мука | Материалы |  | `plants/ears` | 0. Выживание без инструментов | 0 / 2 | ок |
 | `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 | `tools:leather_bag` | Кожаная сумка | Одежда и сумки | Сшитая из кожи сумка с ремнём через плечо. Надетая за спину, даёт ещё 16 ячеек. | `tools/leather_bag` | 2. Дерево, кости и кожа | 0 / 1 | ок |
@@ -195,6 +198,9 @@
 | `tools:bronze_shovel` | Бронзовая лопата | Инструменты |  | `tools/shovel` | 4. Бронза | 1 / 1 | ок |
 | `tools:iron_shovel` | Железная лопата | Инструменты |  | `tools/shovel` | 5. Железо | 1 / 1 | ок |
 | `tools:steel_shovel` | Стальная лопата | Инструменты |  | `tools/shovel` | 6. Сталь | 1 / 1 | ок |
+| `tools:stone_sickle` | Каменный серп | Инструменты | Жнёт спелый урожай с грядок, по три клетки за взмах. | `tools/sickle` | 1. Примитивные инструменты | 2 / 1 | ок |
+| `tools:copper_sickle` | Медный серп | Инструменты | Жнёт спелый урожай с грядок, по четыре клетки за взмах. | `tools/sickle` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
+| `tools:iron_sickle` | Железный серп | Инструменты | Жнёт спелый урожай с грядок, по пять клеток за взмах. | `tools/sickle` | 5. Железо | 1 / 1 | ок |
 | `tools:flint_spear` | Кремнёвое копьё | Инструменты | Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова. | `tools/spear` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `tools:bronze_spear` | Бронзовое копьё | Инструменты |  | `tools/spear` | 4. Бронза | 1 / 1 | ок |
 | `tools:iron_spear` | Железное копьё | Инструменты |  | `tools/spear` | 5. Железо | 1 / 1 | ок |
@@ -205,6 +211,8 @@
 | `tools:iron_sword` | Железный меч | Инструменты |  | `tools/sword` | 5. Железо | 1 / 1 | ок |
 | `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 1 / 1 | ок |
 | `tools:tar_torch` | Смоляной факел | Свет | Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше. | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `tools:watering_can` | Лейка | Материалы | Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить. | `tools/watering_can` | 1. Примитивные инструменты | 1 / 2 | ок |
+| `tools:watering_can_full` | Лейка с водой | Инструменты | Поливает грядки. Воды хватает на десять клеток. | `tools/watering_can` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `tools:waterskin` | Бурдюк | Материалы | Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить. | `tools/waterskin` | 2. Дерево, кости и кожа | 2 / 2 | ок |
 | `tools:waterskin_full` | Бурдюк с водой | Материалы | Полный бурдюк. Утоляет жажду вдали от воды. | `tools/waterskin` | 2. Дерево, кости и кожа | 2 / 1 | ок |
 | `tools:window` | Окно | Станки | Рама со стеклом для проёма в стене. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
@@ -213,7 +221,7 @@
 | `tools:window_2x2` | Окно 2×2 | Станки | Большое окно со стеклом, на две клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 | `tools:window_3x2` | Окно 3×2 | Станки | Окно во всю стену, на три клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 138)
+## Рецепты (`recipes`, 145)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -279,6 +287,9 @@
 | `tools:fur_coat` | Шуба | Одежда и сумки |  | `tools/hide_clothes` | 2. Дерево, кости и кожа | 5 / 0 | ок |
 | `tools:leather_trousers` | Кожаные штаны | Одежда и сумки |  | `tools/hide_clothes` | 2. Дерево, кости и кожа | 4 / 0 | ок |
 | `tools:fur_boots` | Унты | Одежда и сумки |  | `tools/hide_clothes` | 2. Дерево, кости и кожа | 5 / 0 | ок |
+| `tools:stone_hoe` | Каменная тяпка | Инструменты |  | `tools/hoe` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:copper_hoe` | Медная тяпка | Инструменты |  | `tools/hoe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:iron_hoe` | Железная тяпка | Инструменты |  | `tools/hoe` | 5. Железо | 4 / 0 | ок |
 | `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `tools:brick` | Кирпич | Блоки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
 | `tools:charcoal` | Уголь | Материалы |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
@@ -339,6 +350,9 @@
 | `tools:bronze_shovel` | Бронзовая лопата | Инструменты |  | `tools/shovel` | 4. Бронза | 4 / 0 | ок |
 | `tools:iron_shovel` | Железная лопата | Инструменты |  | `tools/shovel` | 5. Железо | 4 / 0 | ок |
 | `tools:steel_shovel` | Стальная лопата | Инструменты |  | `tools/shovel` | 6. Сталь | 4 / 0 | ок |
+| `tools:stone_sickle` | Каменный серп | Инструменты |  | `tools/sickle` | 1. Примитивные инструменты | 4 / 0 | ок |
+| `tools:copper_sickle` | Медный серп | Инструменты |  | `tools/sickle` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:iron_sickle` | Железный серп | Инструменты |  | `tools/sickle` | 5. Железо | 4 / 0 | ок |
 | `tools:flint_spear` | Кремнёвое копьё | Инструменты |  | `tools/spear` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `tools:bronze_spear` | Бронзовое копьё | Инструменты |  | `tools/spear` | 4. Бронза | 4 / 0 | ок |
 | `tools:iron_spear` | Железное копьё | Инструменты |  | `tools/spear` | 5. Железо | 4 / 0 | ок |
@@ -349,6 +363,7 @@
 | `tools:iron_sword` | Железный меч | Инструменты |  | `tools/sword` | 5. Железо | 4 / 0 | ок |
 | `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 4 / 0 | ок |
 | `tools:tar_torch` | Смоляной факел | Свет |  | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `tools:watering_can` | Лейка | Материалы |  | `tools/watering_can` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `tools:waterskin` | Бурдюк | Материалы |  | `tools/waterskin` | 2. Дерево, кости и кожа | 3 / 0 | ок |
 | `tools:window` | Окно | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 | `tools:window_1x2` | Окно 1×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
@@ -356,12 +371,12 @@
 | `tools:window_2x2` | Окно 2×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 | `tools:window_3x2` | Окно 3×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
 
-## Материалы ячеек (`materials`, 28)
+## Материалы ячеек (`materials`, 30)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
 | `core:air` | Воздух |  |  | `core` | 0 / 0 | ок |
-| `core:grass` | Трава |  |  | `core` | 4 / 2 | ок |
+| `core:grass` | Трава |  |  | `core` | 4 / 1 | ок |
 | `core:dirt` | Земля |  |  | `core` | 2 / 2 | ок |
 | `core:stone` | Камень |  |  | `core` | 1 / 1 | ок |
 | `core:water` | Вода |  |  | `core` | 0 / 0 | ок |
@@ -374,6 +389,8 @@
 | `resources:ice` | Лёд | ice |  | `resources/snow` | 1 / 1 | ок |
 | `resources:sand` | Песок | beach |  | `resources/soil` | 2 / 1 | ок |
 | `resources:clay` | Глина | bank |  | `resources/soil` | 1 / 1 | ок |
+| `resources:bed` | Грядка | bed |  | `resources/soil` | 1 / 0 | ок |
+| `resources:bed_wet` | Мокрая грядка | bed_wet |  | `resources/soil` | 1 / 0 | ок |
 | `resources:scree` | Осыпь | scree |  | `resources/stone` | 2 / 0 | ок |
 | `materials:log_wall` | Сруб |  |  | `materials/log_wall` | 1 / 1 | ок |
 | `materials:wattle` | Плетень |  |  | `materials/wattle` | 1 / 1 | ок |
@@ -425,7 +442,7 @@
 | `plants:shrub` | Куст |  |  | `plants/shrub` | 2 / 21 | ок |
 | `plants:banana` | Банан |  |  | `plants/banana` | 3 / 2 | ок |
 
-## Растения (`plants`, 14)
+## Растения (`plants`, 15)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -441,7 +458,8 @@
 | `plants:nettle` | Крапива | custom |  | `plants/nettle` | 1 / 0 | ок |
 | `plants:reeds` | Тростник | reeds |  | `plants/reeds` | 1 / 0 | ок |
 | `plants:moss` | Мох | moss |  | `plants/moss` | 1 / 0 | ок |
-| `plants:ears` | Колоски | ears |  | `plants/ears` | 1 / 3 | ок |
+| `plants:ears` | Колоски | ears |  | `plants/ears` | 1 / 2 | ок |
+| `plants:wheat` | Пшеница | crop |  | `plants/ears` | 1 / 1 | ок |
 | `plants:flax` | Лён | custom |  | `plants/flax` | 4 / 0 | ок |
 
 ## Существа (`creatures`, 23)
@@ -584,7 +602,7 @@
 | `tools:mow` | Покос |  |  | `tools/scythe` | 0 / 0 | ок |
 | `tools:swish` | Взмах |  |  | `tools/sword` | 0 / 0 | ок |
 
-## skills (`skills`, 9)
+## skills (`skills`, 10)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -597,3 +615,4 @@
 | `core:hunting` | Охота |  | Звери оружием и руками. Быстрее бьёт, при разделке туши иногда выходит больше мяса. | `core` | 0 / 0 | ок |
 | `core:fishing` | Рыбалка |  | Рыба на удочку. Иногда вытаскивает две. | `core` | 0 / 0 | ок |
 | `core:swimming` | Плавание |  | Растёт, пока плывёшь. Быстрее плывёт (потом и на плотах, лодках). | `core` | 0 / 0 | ок |
+| `core:farming` | Земледелие |  | Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше. | `core` | 0 / 0 | ок |

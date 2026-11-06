@@ -269,7 +269,7 @@ static func category(id: String) -> String:
 		return "food"
 	if item.get("heal", 0.0) > 0.0:
 		return "heal"
-	if item.get("plant", "") != "" or item.get("sow", "") != "":
+	if item.get("plant", "") != "" or item.get("sow", "") != "" or item.get("crop", "") != "":
 		return "plants"
 	if item.get("place", "") != "":
 		return "blocks"

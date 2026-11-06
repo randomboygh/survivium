@@ -1,8 +1,9 @@
-extends "res://src/shared/game/actions_build.gd"
+extends "res://src/shared/game/actions_farm.gd"
 ## What a character's hands do to the world (plan/design/character.md, "Взаимодействие с
 ## миром"): digging cells, cutting the grass, chopping and felling trees, placing blocks,
 ## the action button's work in front of the body, taking things off the ground, berries
-## and branches off bushes and trees, planting, and the spring that gives them back. What
+## and branches off bushes and trees, planting, farming (beds, sowing, watering,
+## reaping, the growth of crops), and the spring that gives them back. What
 ## each tool can do is Tools; these are the rules the server will run.
 ##
 ## `who` is the one acting (Character on the client) and gives: `inventory` (Inventory),
@@ -30,7 +31,8 @@ var plans
 ## reach (Plans.build), else the block is placed in front (filling a hole first), seeds and bushes
 ## planted. A tool or bare hands first work the nearest tree or bush in front that they
 ## can do something to (see useful: an axe chops, hands gather, a sword knocks berries
-## off, a shovel digs a bush out), then cut the grass in front (hands, sword, scythe),
+## off, a shovel digs a bush out) after the farming work in front (a hoe tills, a can
+## waters, a ripe crop is reaped: front_farm), then cut the grass in front (hands, sword, scythe),
 ## then dig one cell, in the order of Tools.front_cells (round the body, the one it faces
 ## first); with none of that the hand
 ## swings at the air. Setting down a placed thing and eating are not this module's.
@@ -59,6 +61,9 @@ func act_in_front(who, top: int) -> Dictionary:
 	var blow := strike(who, Tools.hunts(arm))
 	if not blow.is_empty():
 		return blow
+	var farm := farm_in_front(who)
+	if not farm.is_empty():
+		return farm
 	var work := front_choice(who)
 	if work.has("trunk"):
 		return chop(who, work.trunk)
@@ -78,8 +83,9 @@ func act_in_front(who, top: int) -> Dictionary:
 
 ## What the action button would do in front of `who` now (see act_in_front), changing
 ## nothing, for its label: "build" (the blueprint), "place", "plant", "fish", "drink", "fill" (a vessel at the
-## water), "shoot", "hit" (a player or an animal there), "chop", "gather" (a tree or a
-## bush), "mow", "dig", or "" for a swing at the air.
+## water), "shoot", "hit" (a player or an animal there), "till", "water", "reap" (farming,
+## front_farm), "chop", "gather" (a tree or a bush), "mow", "dig", or "" for a swing at
+## the air.
 func front_kind(who) -> String:
 	match Tools.use_of(who.held()):
 		"place":
@@ -101,6 +107,9 @@ func front_kind(who) -> String:
 		return "shoot"
 	if _someone_in_front(who, Tools.hunts(arm)):
 		return "hit"
+	var farm: Variant = front_farm(who)
+	if farm != null:
+		return farm[0]
 	var work := front_choice(who)
 	if work.has("trunk"):
 		return "chop"

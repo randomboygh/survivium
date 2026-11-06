@@ -668,6 +668,8 @@ const SHOTS := {
 	# `at` (cells). Named "ground-*", they switch the run to the test world.
 	"ground-spawn": {"time": 0.42, "season": 1, "at": [0, 0]},
 	"ground-steps": {"time": 0.42, "season": 1, "at": [-28, -24]},
+	# The farm: dry beds, wet beds, wheat at each stage of its growth; a hoe in hand.
+	"ground-farm": {"time": 0.42, "season": 1, "at": [69, 29], "hold": ["", "tools:stone_hoe"]},
 	# In the trench between the loose and the stone ledges of 3 and 5 cells: the cut hides
 	# them, their rounded corners cut.
 	# A torch at night among the steps: the drawn shadows of the slopes and cut corners.

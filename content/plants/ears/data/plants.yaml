@@ -10,3 +10,16 @@
   kind: ears
   title: Колоски
   gives: {grain: 2}
+# Пшеница — посев (kind crop, grows field): растёт только там, где зерно посеяли на грядку, и
+# только на мокрой, весной, летом и осенью; grow_days — сколько дней роста до спелости (картинки
+# sprites/plants/wheat.png, кадр на стадию: росток, всходы, зелёный колос, спелый); зимой
+# погибает. mown — спелую можно скосить косой, не только собрать руками или серпом.
+- id: wheat
+  kind: crop
+  title: Пшеница
+  sprite: wheat
+  frames: 4
+  grows: field
+  grow_days: 4
+  mown: true
+  gives: {grain: 4}

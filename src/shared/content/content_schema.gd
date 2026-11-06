@@ -28,7 +28,7 @@ const SCHEMAS := {
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
-		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ice", "ore", "trunk", "crown"], "default": "none"},
+		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ice", "ore", "trunk", "crown", "bed", "bed_wet"], "default": "none"},
 		# An ore's share of the veins in the rock, against the other ores' (role ore).
 		"veins": {"type": "float", "min": 0.0, "default": 1.0},
 		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
@@ -306,7 +306,7 @@ const SCHEMAS := {
 	# what the work gives (`yield`) and how much longer a thing made lasts (`quality`: a
 	# share of its `durability` more).
 	"skills": {
-		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim"]},
+		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim", "farm"]},
 		"order": {"type": "int", "min": 0, "default": 0},
 		"levels": {"type": "int", "min": 1, "max": 20, "default": 10},
 		"first": {"type": "float", "min": 1.0, "default": 180.0},
@@ -318,14 +318,19 @@ const SCHEMAS := {
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
-			"mushrooms", "glow_mushrooms", "custom"]},
+			"mushrooms", "glow_mushrooms", "custom", "crop"]},
 		"gives": {"type": "amounts", "of": "ref:items", "soft": true, "rel": "drops", "via": "mow"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		"pick": {"type": "bool", "default": false},
 		"winter": {"type": "bool", "default": true},
 		"sprite": {"type": "string", "default": ""},
 		"frames": {"type": "int", "min": 1, "default": 1},
-		"grows": {"type": "enum", "values": ["meadow", "shade", "bank"], "default": "meadow"},
+		"grows": {"type": "enum", "values": ["meadow", "shade", "bank", "field"], "default": "meadow"},
+		# A crop (kind crop, sown on a bed from an item with `crop`): the days it grows in
+		# the warm seasons on a wet bed until it is ripe (its last frame), and whether a
+		# scythe cuts it (grain, flax), not only hands and a sickle.
+		"grow_days": {"type": "float", "min": 0.0, "default": 0.0},
+		"mown": {"type": "bool", "default": false},
 		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
 		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		# Only in these biomes (none: anywhere its `grows` says).

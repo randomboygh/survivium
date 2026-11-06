@@ -29,3 +29,22 @@
   dig: shovel
   step: step_dirt
   hit: dig
+# Грядка — земля, вскопанная тяпкой (role bed); политая или под дождём она сутки мокрая и темнее
+# (role bed_wet), и только на мокрой растёт посеянное (src/shared/game/actions_farm.gd). Выкопанная
+# лопатой даёт землю, посеянное на ней пропадает.
+- id: bed
+  title: Грядка
+  role: bed
+  priority: 5
+  item: dirt
+  dig: shovel
+  step: step_dirt
+  hit: dig
+- id: bed_wet
+  title: Мокрая грядка
+  role: bed_wet
+  priority: 5
+  item: dirt
+  dig: shovel
+  step: step_dirt
+  hit: dig

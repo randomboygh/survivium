@@ -1,0 +1,24 @@
+# Предметы бандла «Лейка» мода «Инструменты и крафт». Пустую лейку, взятую в руку, наполняют у
+# пресной воды (fills_to), как бурдюк; полной (tool: can) поливают грядки: политая грядка сутки
+# мокрая, и на ней растёт посеянное (src/shared/game/actions_farm.gd). durability — сколько
+# клеток полить одной водой; опустев, лейка снова пустая (empties_to).
+- id: watering_can
+  title: Лейка
+  description: Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить.
+  weight: 0.8
+  stack: 1
+  icon: watering_can
+  fills_to: watering_can_full
+- id: watering_can_full
+  title: Лейка с водой
+  description: Поливает грядки. Воды хватает на десять клеток.
+  weight: 2.8
+  stack: 1
+  icon: watering_can_full
+  tool: can
+  anim: dig
+  area: 1
+  swing: 0.6
+  reach: 8
+  durability: 10
+  empties_to: watering_can

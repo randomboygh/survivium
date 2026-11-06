@@ -198,6 +198,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/game/actions_base.gd`: The first part of the rules of the hands (world_actions.gd, which says what `who` gives and what a swing returns): the state they work on, the signals that tell the views what changed, and the…
 - `src/shared/game/actions_build.gd`: The rules of the hands, part six (world_actions.gd): placing blocks and planting seeds and bushes.
 - `src/shared/game/actions_dig.gd`: The rules of the hands, part five (world_actions.gd): what a tap on a cell does with the hand in use (dig_at), digging cells, and cutting the grass.
+- `src/shared/game/actions_farm.gd`: The rules of the hands, part seven (world_actions.gd): farming (thread «Сделать режим земледелия», 2026-11-06).
 - `src/shared/game/actions_fight.gd`: The rules of the hands, part three (world_actions.gd): a swing at the air, a blow at a player or an animal in front, and a shot of the weapon in hand.
 - `src/shared/game/actions_gather.gd`: The rules of the hands, part two (world_actions.gd): trees (the trunk a cell belongs to, chopping and felling), gathering berries and branches off bushes and trees, digging a bush out, and taking the…
 - `src/shared/game/actions_water.gd`: The rules of the hands, part four (world_actions.gd): drinking and filling a vessel at the water, fishing with a rod, and the water and the biome ahead of the body.
@@ -258,6 +259,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/character_test.gd`: The character: the bag, tool wear, vitals, the change log and death.
 - `tests/unit/clock_test.gd`: Time of day, seasons, the moon and the weather.
 - `tests/unit/content_test.gd`: The data: yaml, the schemas, mods and patches, items, tools, recipes, and the layer rule.
+- `tests/unit/farming_test.gd`: Farming (WorldActions part actions_farm.gd): a hoe tills a bed, grain is sown on it, a can waters it, rain wets the open beds, wheat grows only wet and in the warm seasons, dies in winter, is reaped…
 - `tests/unit/generation_test.gd`: The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
 - `tests/unit/graph_test.gd`: The content graph (src/shared/content/content_graph.gd): the full set comes to every item and recipe from the start by the rules of the hands; on bundles made for the test it finds each dead end of…
 - `tests/unit/mesher_test.gd`: The chunk meshes: cells, slopes and cut caps.

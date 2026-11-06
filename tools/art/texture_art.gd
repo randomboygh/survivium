@@ -17,7 +17,7 @@ const GRASS := Color(0.4, 0.54, 0.25)
 static func picture(name: String) -> Image:
 	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "iron_ore", "scree", "brick", "snow", "peat", "salt", "ice",
 			"silver_ore", "gold_ore", "platinum_ore", "silver_block", "gold_block", "platinum_block",
-			"log_wall", "wattle", "cut_stone"]:
+			"log_wall", "wattle", "cut_stone", "bed", "bed_wet"]:
 		return null
 	var img := Image.create_empty(TILE * KINDS, TILE, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -45,6 +45,9 @@ static func _texel(name: String, kind: int, px: int, py: int, rng: RandomNumberG
 			return _dirt(px, py, rng)
 		"dirt":
 			return _dirt(px, py, rng)
+		"bed", "bed_wet":
+			var c := _bed(kind, px, py, rng)
+			return Color(c.r * 0.68, c.g * 0.7, c.b * 0.78) if name == "bed_wet" else c
 		"stone":
 			if kind == 1:
 				# Strata on walls.
@@ -175,6 +178,20 @@ static func _dirt(px: int, py: int, rng: RandomNumberGenerator) -> Color:
 	if r < 0.06:
 		return _vary(Color(0.6, 0.52, 0.42), rng, 0.03)
 	return _vary(DIRT * (0.88 if r > 0.9 else 1.0), rng, 0.03)
+
+
+## A bed: on the top ridges of loose soil across the tile, a texel of light on each and
+## a furrow of shade between; on the sides the loose soil a few texels deep over the dirt.
+static func _bed(kind: int, px: int, py: int, rng: RandomNumberGenerator) -> Color:
+	if kind == 0:
+		var row := py % 4
+		var k: float = [1.12, 1.0, 0.82, 0.7][row]
+		if rng.randf() < 0.08:
+			k *= 0.9
+		return _vary(DIRT * k, rng, 0.03)
+	if kind == 1 and py < 3:
+		return _vary(DIRT * (1.08 if (px + py) % 3 == 0 else 0.95), rng, 0.04)
+	return _dirt(px, py, rng)
 
 
 const CLAY := Color(0.6, 0.47, 0.4)

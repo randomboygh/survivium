@@ -60,8 +60,9 @@ def bark(name, dark, light, marks=None, seed=1, file=None):
     print(path)
 
 
-def sprite(name, frames):
-    """`frames`: list of 24 rows of 8 chars each (top row first), chars mapped by `PAL`."""
+def sprite(name, frames, bundle=None):
+    """`frames`: list of 24 rows of 8 chars each (top row first), chars mapped by `PAL`;
+    saved in the bundle of that name (`bundle`, else `name`)."""
     img = Image.new("RGBA", (8 * len(frames), 24), (0, 0, 0, 0))
     for f, rows in enumerate(frames):
         assert len(rows) == 24, name
@@ -70,7 +71,7 @@ def sprite(name, frames):
             for x, ch in enumerate(row):
                 if ch != ".":
                     img.putpixel((f * 8 + x, y), PAL[ch])
-    path = os.path.join(ROOT, name, "sprites", "plants", "%s.png" % name)
+    path = os.path.join(ROOT, bundle or name, "sprites", "plants", "%s.png" % name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
     print(path)
@@ -90,6 +91,11 @@ PAL = {
     "f": (88, 128, 60, 255),  # flax stalk
     "u": (96, 120, 220, 255),  # flax flower
     "U": (150, 170, 240, 255),
+    "w": (96, 140, 56, 255),  # wheat blade
+    "W": (136, 172, 76, 255),  # its lit side
+    "e": (206, 168, 72, 255),  # ripe wheat
+    "E": (238, 206, 112, 255),  # its shine
+    "o": (156, 120, 52, 255),  # ripe stalk
     "m": (30, 88, 40, 255),  # monstera leaf
     "M": (64, 136, 58, 255),  # its lit side
 }
@@ -136,6 +142,35 @@ FLAX = [
         "........", "........", "...U....", "..UuU.U.", "...f.UuU", "...f..f.",
         "...f..f.", "...f.f..", "U..f.f..", "uU.f.f..", ".f..ff..", ".f..ff..",
         "..f.f...", "..f.f...", "..f.f...", "...ff...", "...ff...", "...ff...",
+    ],
+]
+
+# Wheat sown on a bed (crop of the ears bundle), a frame a stage: a sprout, young blades,
+# green ears, ripe golden ears.
+WHEAT = [
+    [
+        "........", "........", "........", "........", "........", "........",
+        "........", "........", "........", "........", "........", "........",
+        "........", "........", "........", "........", "........", "........",
+        "........", "...W....", "..Ww.W..", "..w.ww..", "...ww...", "...w....",
+    ],
+    [
+        "........", "........", "........", "........", "........", "........",
+        "........", "........", "........", "........", "........", "........",
+        "........", ".W....W.", ".w..W.w.", "..w.w.w.", "..wWw.w.", "W.w.ww..",
+        "w..ww.W.", ".w.w.ww.", "..www.w.", "...wwW..", "...ww...", "...w....",
+    ],
+    [
+        "........", "........", "........", "........", "........", "..W.....",
+        "..WW..W.", "..Ww.WW.", "..W..Ww.", "..w..W..", "..w..w..", ".Ww..w.W",
+        ".w.w.w.w", "..w.w.w.", "W.w.w.w.", "w..ww.w.", ".w.w.w..", "..w.ww..",
+        "..w.w...", "...ww...", "..www...", "...ww...", "...ww...", "...w....",
+    ],
+    [
+        "........", "........", "........", "..E.....", "..eE..E.", "..Ee.eE.",
+        "..eE.Ee.", "..e..eE.", "..o..e..", "..o..o..", "E.o..o..", "eEo..o.E",
+        "Ee.o.o.e", ".o.o.o.o", "..o.o.o.", "..o.o.o.", "..o.oo..", "..o.o...",
+        "..oo....", "...oo...", "..ooo...", "...oo...", "...oo...", "...o....",
     ],
 ]
 
@@ -263,6 +298,10 @@ NEW_BARKS = [
 
 
 def main():
+    import sys
+    if sys.argv[1:] == ["wheat"]:
+        sprite("wheat", WHEAT, "ears")
+        return
     bark("birch", (210, 206, 196), (246, 244, 238), marks=((48, 40, 36), 14), seed=3)
     bark("pine", (120, 66, 38), (196, 120, 70), seed=4)
     bark("willow", (86, 78, 66), (150, 140, 118), seed=5)
@@ -275,6 +314,7 @@ def main():
     sprite("cranberry", CRANBERRY)
     sprite("flax", FLAX)
     sprite("monstera", MONSTERA)
+    sprite("wheat", WHEAT, "ears")
     berry_icon("apple", "apple", (196, 44, 40, 255), (236, 120, 100, 255), cluster=False)
     berry_icon("rowan", "rowan", (220, 90, 30, 255), (240, 150, 80, 255))
     berry_icon("currant", "currant", (40, 28, 52, 255), (110, 80, 130, 255))

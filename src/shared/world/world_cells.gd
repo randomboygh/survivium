@@ -91,6 +91,11 @@ var tree_seeds := {}
 ## "" for grass cut short (its tall plants gone until spring, see Gathering.mow), or the
 ## id of the crop sown there (see Plants; Foliage draws it). Saved with the chunk.
 var turf := {}
+## The beds (tilled ground, Mat.BED and Mat.BED_WET) by chunk (Vector2i) and then by
+## the bed's cell: [crop, grown, wet_until]: the id of the crop growing on it (Plants of
+## kind crop, "" for none), the days it has grown, and the time (Clock.now) until which
+## it stays wet. Saved with the chunk; a bed dug or filled loses its record (set_cell).
+var fields := {}
 ## A world laid out by hand can set what grows on its grass in place of the noises: a
 ## static func (x, z) -> one of Grass.GROW_* or 0 (the noises decide), see TestGround.
 var grows := Callable()
@@ -246,6 +251,7 @@ func remove_chunk(key: Vector2i) -> void:
 	form_chunks.erase(key)
 	drops.erase(key)
 	turf.erase(key)
+	fields.erase(key)
 	unsaved.erase(key)
 
 
@@ -290,6 +296,10 @@ func set_cell(x: int, y: int, z: int, m: int) -> void:
 		_drop_form(c.key, Vector3i(x, y, z))
 	if turf.has(c.key):
 		turf[c.key].erase(Vector3i(x, y, z))
+	if fields.has(c.key):
+		fields[c.key].erase(Vector3i(x, y, z))
+		if fields[c.key].is_empty():
+			fields.erase(c.key)
 	_touch(c, x, z)
 
 
@@ -651,6 +661,27 @@ func set_turf(cell: Vector3i, what: Variant) -> void:
 	note_edit(cell.x, cell.z)
 
 
+## The record of bed `cell` (see fields), null for none.
+func field_at(cell: Vector3i) -> Variant:
+	var key := Vector2i(cell.x >> SHIFT, cell.z >> SHIFT)
+	return fields[key].get(cell) if fields.has(key) else null
+
+
+## Sets the record of bed `cell` (see fields; null takes it off).
+func set_field(cell: Vector3i, record: Variant) -> void:
+	var key := Vector2i(cell.x >> SHIFT, cell.z >> SHIFT)
+	if record == null:
+		if fields.has(key):
+			fields[key].erase(cell)
+			if fields[key].is_empty():
+				fields.erase(key)
+	else:
+		if not fields.has(key):
+			fields[key] = {}
+		fields[key][cell] = record
+	note_edit(cell.x, cell.z)
+
+
 func remove_bush(cell: Vector3i) -> void:
 	note_edit(cell.x, cell.z)
 	bushes.erase(cell)
@@ -769,7 +800,8 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		bush_lists[name] = list
 	return {"key": key, "levels": size_y, "cells": c.cells, "natural": c.natural, "shapes": c.shapes,
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
-		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(), "drops": drops.get(key, []).duplicate(true),
+		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(),
+		"fields": fields.get(key, {}).duplicate(true), "drops": drops.get(key, []).duplicate(true),
 		"forms": _forms_of(key)}
 
 
@@ -846,6 +878,15 @@ func unpack_chunk(d: Dictionary) -> bool:
 			var what: Variant = grown[cell]
 			sown[cell] = Content.canon("plants", what) if what is String and what != "" else what
 		turf[key] = sown
+	var beds: Variant = d.get("fields")
+	if beds is Dictionary and not beds.is_empty():
+		var kept := {}
+		for cell in beds:
+			var f: Variant = beds[cell]
+			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and f.size() == 3 and f[0] is String:
+				kept[cell] = [Content.canon("plants", f[0]) if f[0] != "" else "", float(f[1]), float(f[2])]
+		if not kept.is_empty():
+			fields[key] = kept
 	var on_ground: Array = d.get("drops", [])
 	if not on_ground.is_empty():
 		for drop in on_ground:

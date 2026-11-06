@@ -12,9 +12,11 @@ const Content := preload("res://src/shared/content/content.gd")
 ## sprites/plants/) and says where it grows (`grows`: on open grass, in the shade of
 ## crowns or on the banks), how much of that ground it covers and whether in clumps;
 ## any number of those grow side by side (CUSTOM, each with its frames after the last).
+## A crop (kind `crop`, grows `field`) is drawn the same way, a frame a stage of its
+## growth, the last one ripe; it grows only where it was sown on a bed (WorldData.fields).
 const KINDS := {"TUFT": "tuft", "TALL": "tall_grass", "FLOWERS": "flowers", "HERBS": "herbs",
 	"EARS": "ears", "REEDS": "reeds", "MOSS": "moss", "MUSHROOMS": "mushrooms", "GLOW": "glow_mushrooms",
-	"CUSTOM": "custom"}
+	"CUSTOM": "custom", "CROP": "crop"}
 
 static var TUFT := ""
 static var TALL := ""
@@ -48,7 +50,7 @@ static func refresh() -> void:
 	for r in Content.records("plants"):
 		BY_ID[r.id] = r
 		BY_KIND[r.kind] = r.id
-		if r.kind == KINDS.CUSTOM:
+		if r.kind == KINDS.CUSTOM or r.kind == KINDS.CROP:
 			var c: Dictionary = r.duplicate()
 			c.first = frames
 			frames += r.frames
@@ -86,6 +88,39 @@ static func custom_of(frame: int) -> String:
 		if frame < c.first + c.frames:
 			return c.id
 	return ""
+
+
+## Whether plant `id` is a crop (sown on a bed, see WorldData.fields).
+static func is_crop(id: String) -> bool:
+	return kind_of(id) == KINDS.CROP
+
+
+## The custom record (CUSTOM, with its `first` frame) of plant `id`, {} for none.
+static func custom(id: String) -> Dictionary:
+	for c in CUSTOM:
+		if c.id == id:
+			return c
+	return {}
+
+
+## The stage (frame, 0 a sprout .. frames - 1 ripe) of crop `id` that has grown `grown`
+## days.
+static func stage(id: String, grown: float) -> int:
+	var c: Dictionary = BY_ID.get(id, {})
+	if c.is_empty():
+		return 0
+	var last: int = c.frames - 1
+	if last <= 0:
+		return 0
+	if c.grow_days <= 0.0 or grown >= c.grow_days:
+		return last
+	return mini(last - 1, floori(grown / c.grow_days * last))
+
+
+## Whether crop `id` grown `grown` days is ripe.
+static func ripe(id: String, grown: float) -> bool:
+	var c: Dictionary = BY_ID.get(id, {})
+	return not c.is_empty() and grown >= c.grow_days
 
 
 ## The path of the picture of custom plant `c` (a record of CUSTOM).

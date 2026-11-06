@@ -18,7 +18,16 @@
   хозяин земли) ← `actions_gather.gd` (деревья: `chop`, `fell`; сбор с кустов и деревьев, подбор с земли,
   сигналы `looks_changed`, `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`, `shoot`) ←
   `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig`, `mow`) ←
-  `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `world_actions.gd` (кнопка действия
+  `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `actions_farm.gd` (земледелие: `farm_at` — касание
+  тяпкой вскапывает траву или землю в грядку `Mat.BED`, касание полной лейкой поливает грядку (`Mat.BED_WET` на
+  `WET_DAYS`, лейка — инструмент класса `can`, её поливы — `durability`, опустев — `empties_to`), спелый посев
+  жнут руки и серп (`area` клеток), коса — только `mown`; руки грядку не копают, лопата — копает, посев
+  пропадает; `plant_at` для предмета с `crop` сеет на пустую грядку, не зимой; `front_farm` / `farm_in_front` —
+  то же кнопкой действия, `front_kind` «till», «water», «reap»; `step_fields` / `grow_fields` — шаг сеанса
+  раз в `FIELD_TICK`: дождь `Clock.rain` ≥ `RAIN_WETS` мочит грядки под открытым небом, мокрая высыхает через
+  сутки, посев на мокрой растёт в тёплые сезоны (`grow_days` дней до спелости), зимой и под блоком гибнет;
+  стадия — кадр картинки, её смена шлёт `looks_changed`; опыт — навык «Земледелие», роль `farm`)
+  ← `world_actions.gd` (кнопка действия
   `act_in_front` / `front_kind` / `front_choice`, `on_season`). Новое правило рук — в часть своей темы;
   если оно зовёт более позднюю часть — в ту часть или ниже по цепочке.
 - `src/shared/game/plans.gd` — чертёж (решение 163, режим строительства 2026-11-06): клетки-призраки с
@@ -90,7 +99,10 @@
 `is_dead()`, `sacks` (где лежат мешки после смерти). Взмах, который что-то
 сделал, возвращает `{"swing", "work", "time", "at"}`, пустой — `{}` или только `{"swing"}`.
 
-**Данные.** Предметы с `tool`, `power`, `area`, `reach`, `swing`, `mows`, `durability`, `repair`,
+**Данные.** Земледелие: материалы ролей `bed` / `bed_wet` (бандл `resources/soil`), предметы с `crop` (зерно),
+растения вида `crop` (`grows: field`, `grow_days`, `mown`, кадры стадий; пшеница — бандл `plants/ears`), тяпка
+(`tools/hoe`, класс `hoe`), серп (`tools/sickle`, класс `sickle`), лейка (`tools/watering_can`, класс `can`);
+грядки — `WorldData.fields`. Предметы с `tool`, `power`, `area`, `reach`, `swing`, `mows`, `durability`, `repair`,
 `anim`, `hands` (вид `items`); материалы с `dig`, `hardness`, `item`, `bonus`, `mow`, `mow_gives`
 (вид `materials`); деревья и кусты — что дают (`log`, `twig`, `seed`, `fruit`). Стройка берёт блоки из
 сумки (бесплатно — переключатель «Тестирования»).
@@ -99,7 +111,8 @@
 `controls.input` считает движение мыши мышью, только когда нет пальца и прошло больше 1 с после
 касания. Джойстик и `TouchButton` следят за своим индексом касания, чтобы работали два пальца.
 
-**Тесты.** `tests/unit/actions_test.gd` (`felling`, `front_choice`, `world_actions`, `stairs_placed`, `placed`,
+**Тесты.** `tests/unit/farming_test.gd` (грядка, посев, полив, дождь, рост, зима, жатва, сохранение),
+`tests/unit/actions_test.gd` (`felling`, `front_choice`, `world_actions`, `stairs_placed`, `placed`,
 `start_camp`, `lights`, `drinking`, `furniture`, `openings`),
 `tests/unit/plans_test.gd` (формы чертежа, стройка по клеткам из сумки, стирание, сохранение),
 `tests/unit/content_test.gd` (`tools`), `tests/progress_test.gd` (весь путь игры от голых рук до всех

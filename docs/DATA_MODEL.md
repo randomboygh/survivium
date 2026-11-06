@@ -112,7 +112,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 камень), топливо — по `fuel` (`Items.fuel_in`), что даёт дерево или куст — по `log`, `twig`, `seed`,
 `fruit`. По id код называет только записи ядра (`Mat.GRASS`, `Placed.CAMPFIRE`). `items.tool` и
 `items.prop` — открытые классы (тип `word`: мод заводит свой; работу в мире движок знает у шести классов
-`Tools.WORLD_KINDS`, что делает вещь на 2×2 — по её флагам); закрыты схемой `plants.kind` (10 видов),
+`Tools.WORLD_KINDS`, что делает вещь на 2×2 — по её флагам); закрыты схемой `plants.kind` (11 видов, с посевом `crop`),
 `materials.role` (10), `biomes.where` (climate и 7 рельефов), `biomes.zone` (7 зон), `skills.role` (9 работ).
 
 ## Ассеты по соглашению

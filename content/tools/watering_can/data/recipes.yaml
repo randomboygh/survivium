@@ -1,0 +1,7 @@
+# Рецепт бандла «Лейка»: доски и верёвку («Материалы») собирают на верстаке.
+- id: watering_can
+  title: Лейка
+  makes: watering_can
+  needs: {materials:planks: 3, materials:cord: 1}
+  at: workbench
+  time: 5

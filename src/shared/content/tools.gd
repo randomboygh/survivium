@@ -20,7 +20,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 
 ## The classes of tools whose work in the world the engine knows (see can_dig and the rest).
-const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod"]
+const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod", "hoe", "sickle", "can"]
 ## How far blocks, plants and seeds are placed from the body, in cells.
 const PLACE_REACH := 10
 ## Brushes of the hand that places: squares across the tapped face, two cells one on
@@ -97,7 +97,7 @@ static func use_of(id: String) -> String:
 		return "place"
 	if item.plant != "":
 		return "plant"
-	if item.sow != "":
+	if item.sow != "" or item.crop != "":
 		return "sow"
 	if item.prop != "none":
 		return "prop"
@@ -175,6 +175,28 @@ static func shoots(t: Dictionary) -> bool:
 ## Whether tool `t` knocks the ripe berries off a bush onto the ground: a sword or a scythe.
 static func can_knock(t: Dictionary) -> bool:
 	return t.tool in ["sword", "scythe"]
+
+
+## Whether tool `t` tills the ground into a bed (Mat.BED): a hoe.
+static func can_till(t: Dictionary) -> bool:
+	return t.get("tool", "") == "hoe"
+
+
+## Whether tool `t` waters a bed: a watering can with water in it (its uses are its
+## `durability`; an empty can is no tool, it fills at water by `fills_to`).
+static func can_water(t: Dictionary) -> bool:
+	return t.get("tool", "") == "can"
+
+
+## Whether tool `t` reaps ripe crop `crop` (Plants of kind crop): bare hands and a sickle
+## any, a scythe what it cuts (the crop's `mown`: grain, flax).
+static func can_reap(t: Dictionary, crop: Dictionary) -> bool:
+	match t.get("tool", ""):
+		"hand", "sickle":
+			return true
+		"scythe":
+			return crop.get("mown", false)
+	return false
 
 
 ## Whether `t` gathers seeds, twigs and berries off trees and bushes into the bag: bare hands.

@@ -60,3 +60,9 @@
   role: swim
   order: 8
   speed: 1.0
+- id: farming
+  title: Земледелие
+  description: Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше.
+  role: farm
+  order: 9
+  yield: 0.6

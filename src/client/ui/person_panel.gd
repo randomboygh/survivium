@@ -52,6 +52,7 @@ const POWER_PER_LEVEL := 3
 const ROLE_OF := {
 	"axe": "chop", "pickaxe": "dig", "shovel": "dig", "scythe": "gather", "knife": "craft",
 	"needle": "craft", "sword": "hunt", "spear": "hunt", "bow": "hunt", "sling": "hunt", "rod": "fish",
+	"hoe": "farm", "sickle": "farm",
 }
 
 var game

@@ -30,6 +30,7 @@ const RENAMED := {
 ## fills.
 const ROLES := {
 	"beach": "BEACH", "bank": "BANK", "scree": "SCREE", "snow": "SNOW", "peat": "PEAT", "salt": "SALT", "ice": "ICE", "ore": "ORE", "trunk": "LOG", "crown": "LEAVES",
+	"bed": "BED", "bed_wet": "BED_WET",
 }
 ## Bits of `shader_bits`, one word per material for world.gdshader: the priority at a
 ## boundary (low 4 bits), DRAINS (no puddles), and the kind of patches on open ground
@@ -59,6 +60,9 @@ static var ICE := -1
 static var ORE := -1
 static var LOG := -1
 static var LEAVES := -1
+## Tilled ground (a bed, WorldData.fields), dry and wet.
+static var BED := -1
+static var BED_WET := -1
 static var COUNT := 0
 ## What each material becomes mown (its `mow`, an index), -1 for none (Tools.mown).
 static var mow_to: PackedInt32Array = []
@@ -132,6 +136,8 @@ static func refresh() -> void:
 	ORE = -1
 	LOG = -1
 	LEAVES = -1
+	BED = -1
+	BED_WET = -1
 	ORES = []
 	ORE_SUMS = []
 	for i in COUNT:
@@ -153,6 +159,8 @@ static func refresh() -> void:
 			ORE = i if role == "ore" and ORE < 0 else ORE
 			LOG = i if role == "trunk" else LOG
 			LEAVES = i if role == "crown" else LEAVES
+			BED = i if role == "bed" else BED
+			BED_WET = i if role == "bed_wet" else BED_WET
 
 
 ## The ore of the vein a share `pick` (0..1) of the way through the ores' `veins`, or
@@ -225,6 +233,11 @@ static func is_solid(m: int) -> bool:
 ## Solid cells that count as a roof for the level cutaway (tree trunks and crowns do not).
 static func is_roof(m: int) -> bool:
 	return flags[m] & ROOF != 0
+
+
+## Whether `m` is a bed, dry or wet (see BED).
+static func is_bed(m: int) -> bool:
+	return m >= 0 and (m == BED or m == BED_WET)
 
 
 ## Loose ground that lies as a slope where it steps down one level (see WorldData.slope_mask).

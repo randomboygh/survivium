@@ -75,7 +75,7 @@ func _test_content() -> void:
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 28
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 30
 		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore"),
 			Mat.index("materials:gold_ore"), Mat.index("materials:platinum_ore"), Mat.index("materials:silver_ore")])
 		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.3, -1) == Mat.ORE and Mat.vein_at(0.5, -1) == Mat.index("materials:iron_ore")
@@ -154,7 +154,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 18 and Mods.bundles("plants").size() == 38
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 40 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 43 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
@@ -311,7 +311,8 @@ func _test_old_worlds() -> void:
 	# (the fish bundle has its fish swimming since, so it is no longer only things to make).
 	var since := ["animals/game", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
 		"plants/roasted_acorns", "tools/anvil", "tools/bloomery", "tools/bow", "tools/candle", "tools/composite_bow", "tools/drying_rack", "tools/fishing_rod", "tools/knife", "tools/leather_sling", "tools/needle", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch",
-		"tools/wicker_bag", "tools/leather_bag", "tools/canvas_backpack", "tools/fiber_clothes", "tools/hide_clothes", "tools/waterskin", "tools/bedding", "tools/big_chest", "tools/boundary_post", "tools/stairs", "tools/door", "tools/window", "tools/furniture", "tools/fireplace"]
+		"tools/wicker_bag", "tools/leather_bag", "tools/canvas_backpack", "tools/fiber_clothes", "tools/hide_clothes", "tools/waterskin", "tools/bedding", "tools/big_chest", "tools/boundary_post", "tools/stairs", "tools/door", "tools/window", "tools/furniture", "tools/fireplace",
+		"tools/hoe", "tools/sickle", "tools/watering_can"]
 	var adds := all.filter(func(b: String) -> bool: return Mods.additive(b) and not b in since)
 	_check(adds == Mods.OLD_ADDITIVE and since.all(func(b: String) -> bool: return Mods.additive(b)),
 		"OLD_ADDITIVE lists the bundles that only add things to make, but those that came later: %s" % [adds])
@@ -615,7 +616,8 @@ func _test_tools() -> void:
 	var rng := RandomNumberGenerator.new()
 	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("plants:grain", 0) == 4,
 		"ears give grain")
-	_check(Tools.use_of("plants:grain") == "sow" and Items.get_item("plants:grain").crop == Plants.EARS, "grain is sown into ears")
+	_check(Tools.use_of("plants:grain") == "sow" and Items.get_item("plants:grain").crop == "plants:wheat" and Plants.is_crop("plants:wheat"),
+		"grain is sown on a bed into wheat")
 	_check(Plants.harvest(["core:nothing"], rng).is_empty(), "an unknown plant gives nothing")
 	_check(Trees.SPECIES[Trees.first(Trees.BROAD)].twigs > 0 and Trees.SPECIES[Trees.first(Trees.BROAD)].seeds > 0, "a standing oak gives branches and acorns by hand")
 	var wall := Tools.area_cells(f, Vector3i(-1, 0, 0))
