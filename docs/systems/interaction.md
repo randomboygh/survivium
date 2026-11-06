@@ -11,7 +11,16 @@
   семена ложатся по линии падения (`Felling.fell`, его зовёт `chop`).
 - `src/shared/game/world_actions.gd` — правила рук: `dig` / `dig_at`, `place_at` / `can_place`, `chop`,
   `fell`, `mow` / `mow_swing`, `act_in_front`, `place_in_front`, `swing_air`, сбор с кустов и деревьев,
-  весеннее восстановление. Сигналы: `cell_changed`, `looks_changed`, `drops_changed`, `taken`.
+  весеннее восстановление. Сигналы: `cell_changed`, `looks_changed`, `drops_changed`, `taken`. Один скрипт,
+  разделённый по темам цепочкой наследования (решение 168, как 145): каждая часть расширяет предыдущую и
+  зовёт только своё и предыдущих, снаружи знают только `world_actions.gd`:
+  `actions_base.gd` (состояние, сигнал `cell_changed`, досягаемость, `skilled`, `build_cell`, что позволяет
+  хозяин земли) ← `actions_gather.gd` (деревья: `chop`, `fell`; сбор с кустов и деревьев, подбор с земли,
+  сигналы `looks_changed`, `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`, `shoot`) ←
+  `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig`, `mow`) ←
+  `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `world_actions.gd` (кнопка действия
+  `act_in_front` / `front_kind` / `front_choice`, `on_season`). Новое правило рук — в часть своей темы;
+  если оно зовёт более позднюю часть — в ту часть или ниже по цепочке.
 - `src/shared/game/plans.gd` — чертёж (решение 163, 5А/6А): клетки-призраки с блоком каждой
   (`cells`), формы `shape` («стена» — линия по главному направлению мазка высотой 1–4, «пол» —
   прямоугольник на месте верхней клетки земли вровень с ней, «комната» — стены по прямоугольнику с

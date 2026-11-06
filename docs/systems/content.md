@@ -8,10 +8,18 @@
 контент.
 
 **Файлы**
-- `src/shared/content/content.gd` — `SCHEMAS` всех видов, общие поля `COMMON`, словарь связей `RELATIONS` и
-  действий `ACTIONS`, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; поиск модов и бандлов, `resolve` (порядок и выпавшие
-  бандлы), загрузка, замены (`replaces`) и патчи, проверка ссылок (и внутри `entries`), предупреждения об
-  именах, `refs` / `target` / `named` (поля-ссылки вида и что запись по ним называет), `asset`, `sound_files`.
+- `src/shared/content/content.gd` — данные модов; один скрипт, разделённый по темам цепочкой наследования
+  (решение 168, как 145): каждая часть расширяет предыдущую и зовёт только своё и предыдущих, снаружи
+  знают только `content.gd` (`Content.records`, `Content.SCHEMAS` — всё через него).
+  - `content_schema.gd` — `SCHEMAS` всех видов, общие поля `COMMON`, словарь связей `RELATIONS` и действий
+    `ACTIONS`, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; `schema`, `refs` / `target` / `named` (поля-ссылки вида и что
+    запись по ним называет), `qualify`.
+  - `content_fields.gd` — чтение YAML-файла (из кэша сборки `PARSED` или разбором), проверка полей записи
+    по схеме и перевод в типы движка (`_check_fields`, `_convert`), `problems`.
+  - `content_mods.gd` — моды и бандлы на диске, прочитанные один раз (`universe`, `_scan`), `resolve`
+    (порядок и выпавшие бандлы), `closure`, `deps`, `BUNDLES`, `loaded`, `dropped`.
+  - `content.gd` — загрузка набора (`load_all`), замены (`replaces`) и патчи, проверка ссылок (и внутри
+    `entries`), предупреждения об именах, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
 - `src/shared/content/yaml.gd` — свой разбор той части YAML, что нужна данным (ключи с `:` внутри,
   `{core:fiber: 1}`).
 - `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan`, `expand` (старые списки),

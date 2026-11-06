@@ -74,7 +74,7 @@ tests/ tools/      headless tests and the browser smoke test; lint, validator, s
   run by the session (`src/shared/game/session.gd`, the server's tick): a rule that goes on in time is a
   step of the session, which `main.gd` calls, not code in `_process` (`docs/systems/session.md`).
 - Content is data: numbers that describe content go into the YAML of a mod and the schema in
-  `src/shared/content/content.gd`, not into constants. The engine asks for content by role, never by
+  `src/shared/content/content_schema.gd`, not into constants. The engine asks for content by role, never by
   id (`Items.with_prop`, `Plants.of_kind`, `Mat.of_role`, `Biomes.tree`); the only ids code names are
   core's (`Mat.GRASS`, `Placed.CAMPFIRE`). Details: `docs/DATA_MODEL.md`.
 - Nothing map-sized or chunk-sized runs in one frame: chunks are generated a row at a time and meshed
@@ -159,6 +159,8 @@ Each in one line; the system's context doc has the detail.
   it with `-- --join ws://host:port [--name X]`, from the menu by «Мультиплеер» → «Присоединиться»
   (`?server=ws://host:port` in the browser opens that screen filled in). The server
   saves every 10 s and on `stop` (`src/server/server_store.gd`); Ctrl+C kills Godot at once, no hook.
+- Big scripts are chains of parts by topic (decisions 145, 168; `world_actions.gd` ← `actions_*.gd`, `content_*`,
+  `menu_*`, `hud_*`): a part calls only itself and earlier parts (else a parse error); callers preload the last.
 - A lambda that uses `self`, connected to a signal of something the object holds, makes a cycle a
   RefCounted is never freed from: connect a method (`src/shared/game/character.gd`).
 - `var i := expr` with a Variant `expr` is a parse error: type it. `typed_array = expr if c else []`
