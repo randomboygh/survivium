@@ -16,10 +16,15 @@
 - `src/client/net/remote_clock.gd` — копия часов на клиенте (`game.clock`): снимки сервера раз в 0,25 с
   (событие `clock`, [network.md](network.md)), между ними ведёт только время суток (`advance`); сезон первого снимка берёт молча (без тоста
   при загрузке), следующие смены сезона показывает `Sky.on_season`. Часы
-  мира — `game.session.clock`: в них пишут сохранение, настоящая погода и страница «Тестирование».
-- `src/shared/game/real_weather.gd` — узел с `HTTPRequest`: место по IP (ipapi.co, ipwho.is), погода
-  Open-Meteo, `apply(data)` → `clock.set_real_weather`. Сетевой сервис устройства в общей папке — место
-  спорное (см. аудит).
+  мира — `game.session.clock`: в них пишут сохранение, погода с улицы (сервер) и страница «Тестирование».
+- `src/server/real_weather.gd` — служба сервера (решения 153, 168): узел с `HTTPRequest`, место сервера
+  по IP (ipapi.co, ipwho.is), погода Open-Meteo раз в 30 мин (`REFRESH`, после неудачи через 2 мин),
+  `apply(data)` → `clock.set_real_weather` на часах мира; игроки получают её со снимками часов.
+  Строки «погода с улицы: …» — в журнал сервера (`report`). Кто его заводит: сервер из терминала или из
+  меню при `Config.real_weather` (`--real-weather`, `[server] real_weather`, галочка «Погода с улицы» в
+  «Создать сервер»; `server_main.gd`); сервер внутри игры (`LocalHost.real_weather`, узел под
+  `ServerRunner`) — по настройке игры «Погода: как в жизни» (`Settings.apply`), то есть погода там, где
+  устройство. У игрока на чужом сервере эта настройка блёклая: погоду решает хозяин.
 - `src/shared/game/storms.gd` — что делает сильный ветер: по чанку вокруг места за такт (`TICK` 0,25 с;
   `step_around(delta, места)` — игроки по очереди, `last_at`; зовёт сеанс мира),
   правила — `WorldActions.blow_branch` / `blow_berries`.

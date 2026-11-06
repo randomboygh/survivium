@@ -478,9 +478,11 @@ func _section_rows(key: String) -> Array:
 				["Сезон", ["игровой", "как в жизни"],
 					func() -> int: return int(s.values.real_season),
 					func(i: int) -> void: s.set_value("real_season", i == 1)],
+				# A server far away has its own (Config.real_weather): faded there.
 				["Погода", ["игровая", "как в жизни"],
 					func() -> int: return int(s.values.real_weather),
-					func(i: int) -> void: s.set_value("real_weather", i == 1)],
+					func(i: int) -> void: s.set_value("real_weather", i == 1), "",
+					func() -> bool: return game.join_url == ""],
 				["Автоподбор", ["всё", "что есть", "еду", "ничего"],
 					func() -> int: return s.values.pickup,
 					func(i: int) -> void: s.set_value("pickup", i)],

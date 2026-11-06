@@ -124,7 +124,7 @@
   `lines`, сцена печатает их со временем.
 - `src/server/server_main.gd` — корень `scenes/server.tscn`, сервер из терминала: `godot --headless
   --path . -- --server [--port N] [--world <папка>] [--seed N] [--players N] [--password <слово>]
-  [--config <файл>] [--tunnel]` (из сборки для ПК — `Survivium.console.exe --headless -- --server` в Windows,
+  [--config <файл>] [--tunnel] [--real-weather]` (из сборки для ПК — `Survivium.console.exe --headless -- --server` в Windows,
   обёртка показывает журнал в терминале, или `./Survivium.x86_64 --headless -- --server` в Linux;
   сборки — релиз `pc-latest`, [testing.md](testing.md)); `main.gd` по `--server` первым делом уходит в
   эту сцену по пути строкой (`change_scene_to_file`, отложенно: в `_ready` дерево занято), не построив
@@ -158,7 +158,8 @@
   players 8, password, bind, autosave 10, save; `world`: folder, seed, настройки WorldGen, mods; `rules`: ключи
   `Rules.to_dict` поверх значений по умолчанию, `Rules.of(config.rules)`, например `territory_decay`), поверх — аргументы
   (`--autosave <секунды>`, `--no-save` — мир не сохранять; С7: `tunnel`, `cloudflared` — `--tunnel`,
-  `--no-tunnel`, `--cloudflared <файл>`)
+  `--no-tunnel`, `--cloudflared <файл>`; `real_weather` — `--real-weather`, `--no-real-weather`: погода с
+  улицы там, где сервер, `src/server/real_weather.gd`, [time-weather.md](time-weather.md))
   командной строки (`take_args`; `--config` читается первым); `world_path()` — папка сохранения:
   имя под `WorldStore.root`, путь или папка сида и настроек (`WorldStore.world_dir`). Окно «Создать
   сервер» (С5) пишет тот же файл.
@@ -198,7 +199,8 @@
   играет сама игра (`Main.join_url`) и входят боты `server_test`.
 - `src/client/net/local_host.gd` — сервер внутри игры: единственное место, где клиент грузит
   `src/server/`; `LocalHost.new(session, get_tree().root)` ставит узел сервера `src/server/runner.gd`
-  под корень дерева (без корня — тесты — узла нет, сеанс шагает тест), `stop()` снимает его с дерева и
+  под корень дерева и под ним `real_weather` (`src/server/real_weather.gd` на часах сеанса, включает
+  `Settings.apply` по настройке «Погода»; без корня — тесты — узлов нет, сеанс шагает тест), `stop()` снимает его с дерева и
   освобождает (Main зовёт в `_exit_tree`); `join()` делает `PlayerLink` в сеансе и
   даёт `Connection`; `deliver(bytes)` проводит сообщение через линк и возвращает события и ответ;
   `flush(net)` после тика; `player` и `workshop` — серверные объекты, к которым до С4/С5 напрямую ходят
@@ -259,8 +261,8 @@
   `_world_made()` — восстановление присланных чанков в бюджете стримера вместо `runner.take_spent()`;
   `_exit_tree` — `socket.leave()`. Строка «Сервер» показывает адрес.
 - `src/client/main.gd` — копии `clock`, `placed`, `wildlife` в `_ready`; серверные часы и вещи
-  (`Clock.new()`, `Placed.new()`) в `start_world` только для сеанса (сохранение и настоящая погода пишут
-  в них), `host` (с узлом сервера), `net`, `mirror` там же, первый `host.flush(net)` в конце
+  (`Clock.new()`, `Placed.new()`) в `start_world` только для сеанса (в них пишут сохранение и погода с улицы
+  сервера внутри игры), `host` (с узлом сервера), `net`, `mirror` там же, первый `host.flush(net)` в конце
   `start_world` (копии полны до меню); сохранение следит за серверными объектами
   (`save.track(host.player…)`, `session.clock.to_dict()`, `session.placed.to_list()`); в кадре: узел
   сервера сделал тик до Main → `clock.advance` → небо … `host.flush(net)` (события тика) →
