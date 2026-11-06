@@ -39,12 +39,12 @@ docs/                    эта документация (audit/ — отчёт�
 | Файл | Почему важен |
 |---|---|
 | `src/client/main.gd` | собирает сцену и все модули, ведёт кадр; модули получают Main как `game` |
-| `src/shared/content/content.gd` | схемы всех видов данных, загрузка бандлов, зависимости, патчи |
+| `src/shared/content/content.gd` | данные модов: схемы всех видов (`content_schema.gd`), чтение и проверка полей (`content_fields.gd`), моды и бандлы на диске, зависимости (`content_mods.gd`), загрузка набора и патчи |
 | `src/shared/content/materials.gd`, `items.gd` | самые используемые реестры (больше 40 зависимых файлов, `python3 tools/doc_index.py uses <путь>`) |
 | `src/shared/world/world_data.gd` | мир, его ячейки и формы (больше 50 зависимых) |
 | `src/shared/world/world_gen.gd` | генератор по стадиям и заданиям |
 | `src/client/world/chunk_streamer.gd` | что и когда строится в кадре: бюджеты, срез уровней |
-| `src/shared/game/world_actions.gd` | всё, что руки делают с миром |
+| `src/shared/game/world_actions.gd` | всё, что руки делают с миром (части по темам — `actions_*.gd`, см. [systems/interaction.md](systems/interaction.md)) |
 | `src/shared/game/session.gd` | сеанс мира: правила над миром, игроки, тик (то, что крутит сервер) |
 | `src/shared/net/protocol.gd` | протокол: виды запросов клиента к правилам и сообщения в байты |
 | `src/client/save_game.gd` | когда и что сохраняется (переводы старых сохранений — `world_store.gd`) |
@@ -59,7 +59,7 @@ docs/                    эта документация (audit/ — отчёт�
 | Новый запрос клиента к правилу | вид и аргументы в `src/shared/net/protocol.gd`, ветка в `src/server/requests.gd`, вызов `game.net.request` на клиенте ([systems/network.md](systems/network.md)) |
 | Как это показать, спросить, озвучить | папка слоя в `src/client/` |
 | Новая система | новый модуль-скрипт; Main создаёт его и передаёт себя как `game`; строка в [SYSTEMS.md](SYSTEMS.md) |
-| Числа и записи контента | YAML мода и схема в `content.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL.md)) |
+| Числа и записи контента | YAML мода и схема в `content_schema.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL.md)) |
 | Новое существо, растение, инструмент, биом | папка-бандл в своём моде (`content/animals/<имя>/` …), см. README мода |
 | 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
 | Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)) |

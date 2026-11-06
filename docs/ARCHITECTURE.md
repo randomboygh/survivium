@@ -140,7 +140,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 1. Новая система — новый модуль в папке своего слоя; Main создаёт его и, если нужно, вызывает в кадре.
    Правило, которое идёт во времени (для всех игроков), — шаг сеанса (`session.gd`), не `_process`.
 2. Правило — в `src/shared/game/`; его вид и ввод — в `src/client/`; связь — сигналами правила.
-3. Новые числа контента — поле схемы в `src/shared/content/content.gd` и YAML мода, не константа.
+3. Новые числа контента — поле схемы в `src/shared/content/content_schema.gd` и YAML мода, не константа.
 4. Новый станок или класс инструмента — только данные: `items.prop` и `items.tool` — открытые классы,
    что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
    работа в мире есть только у шести классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,

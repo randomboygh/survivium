@@ -50,7 +50,7 @@ content/<мод>/common/             ассеты, общие для бандл�
   `needs+: {materials:cord: 1}`) добавляет к списку или количествам, в том числе к значению по умолчанию
   незаписанного поля. Патч записи выключенного бандла пропускается.
 - Смысл полей описан комментарием в начале каждого YAML и схемой `SCHEMAS` в
-  `src/shared/content/content.gd` (типы `bool`, `int`, `float`, `string`, `word` — строчное слово, открытый
+  `src/shared/content/content_schema.gd` (часть `content.gd`; типы `bool`, `int`, `float`, `string`, `word` — строчное слово, открытый
   класс: `tool` предмета, `prop` станка, мод может завести свой, `color`, `vec3`, `enum`, `list`,
   `ref:<вид>`, `sound`, `amounts`, `shares`, `colors` — цвета по именам ключей `keys`, `entries` — список словарей со своими полями `fields`, каждый
   проверяется как запись: `camp: [{item: campfire, at: [-4, 4]}]`; `default`, `min` / `max`, `soft`). У каждого поля-ссылки
