@@ -1063,12 +1063,11 @@ static func draw_weight(c: CanvasItem, r: Rect2, weight: float, limit: int) -> v
 	c.draw_string(f, Vector2(x, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, DANGER if weight > limit else INK)
 
 
-## The width draw_load takes for `slots` slots and a limit of `limit` kg, the weight up
-## to ten times the limit.
-static func load_width(slots: int, limit: int) -> int:
+## The width draw_weight takes for a limit of `limit` kg, the weight up to ten times
+## the limit.
+static func weight_width(limit: int) -> int:
 	var kg := _weight_icon()
-	return int(icon("cells").get_width() + 4 + _text_width("%d / %d · " % [slots, slots])
-		+ (kg.get_width() + 4 if kg != null else 0) + _text_width("%d / %d кг" % [limit * 10, limit]))
+	return int((kg.get_width() + 4 if kg != null else 0) + _text_width("%d / %d кг" % [limit * 10, limit]))
 
 
 static func _text_width(t: String) -> float:

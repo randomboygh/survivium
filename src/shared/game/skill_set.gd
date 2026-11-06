@@ -5,7 +5,7 @@ extends RefCounted
 ## built or struck a beast, the time swimming), a whole thing to `gain_each` (a beast
 ## killed, a fish caught) and a recipe made to `gain_recipe`, which gives less for the same
 ## recipe made again and again (REPEAT_FADE, REPEAT_LEAST). A skill makes its work faster:
-## `pace` is what is left of a work's time, `boost` what the pace is multiplied by. Kept
+## `boost` is how many times as fast the work goes, `pace` what is left of its time. Kept
 ## with the player (to_dict, from_dict); a client's copy is told the points by the server
 ## (Protocol.SKILLS, `take`), and `leveled` says which skill rose to which level.
 
@@ -69,11 +69,10 @@ func share_of(role: String) -> float:
 	return 0.0 if s.is_empty() else float(level(s.id)) / s.levels
 
 
-## What is left of the time of work `role` at the skill's level: 1 at none, 1 - `speed`
-## at the last.
+## What is left of the time of work `role` at the skill's level: 1 at none, 1 / (1 +
+## `speed`) at the last (the work goes `boost` times as fast).
 func pace(role: String) -> float:
-	var s := Skills.of_role(role)
-	return 1.0 if s.is_empty() else 1.0 - s.speed * share_of(role)
+	return 1.0 / boost(role)
 
 
 ## What the pace of work `role` is multiplied by: 1 at none, 1 + `speed` at the last.

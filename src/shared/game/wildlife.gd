@@ -2,8 +2,10 @@ extends RefCounted
 ## The animals of the world. Each one only knows its species properties; who is food
 ## or a threat comes from AiRules. Animals wander, graze, rest outside their active
 ## hours (by the daylight of the Clock), flee from threats (the people among them) and
-## hunt when hungry; the eaten are gone and new ones come in their place around the
-## people. The client draws them (Creatures) as they come, go and walk.
+## hunt when hungry. Each kind lives at its `count` in the square around each of the
+## people, less where little of it is its biomes, spread over the ground made there;
+## the eaten and those left far behind are gone and new ones come in their place out
+## of sight (_populate). The client draws them (Creatures) as they come, go and walk.
 ## The other properties shape the rest the same way for every species: those that come
 ## in a `flock` follow its first (the lead) and take fright together; those that like
 ## some plants seek them out; those that fly hop about on the ground, now and then fly
@@ -30,12 +32,27 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 
-const RESPAWN_EVERY := 15.0
+## Every this many seconds the animals around the people are counted again (see
+## _populate).
+const RESPAWN_EVERY := 5.0
 const CELL := WorldData.CELL
 ## Animals walk slopes and hop up a sheer step of one cell, not of two.
 const MAX_STEP := 0.55
-## Animals appear within this many cells of the people, where the world is made.
+## Animals appear within this many cells of the people, where the world is made
+## (Session.ZONE chunks), each way; ROAM is the same in world units: the square around
+## each of the people where its species' `count` live. Past LEAVE of every one of the
+## people they go away (before Session.DROP forgets the ground under them).
 const SPAWN_REACH := 80
+const ROAM := SPAWN_REACH * CELL
+const LEAVE := ROAM * 1.5
+## Places tried for one animal to come.
+const SPAWN_TRIES := 40
+## How near the people no animal comes at the start (world units), so they do not all
+## stand around the spawn; later they come past a screen (NEAR).
+const START_AWAY := 8.0
+## The biomes around each of the people are looked at on a grid of this many points
+## each way (see _biome_share).
+const BIOME_SAMPLES := 6
 ## Animals no one looks at (`near` off) move and think in steps of FAR_STEP seconds
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
@@ -197,7 +214,7 @@ var gen
 ## The clock, for the daylight that sets who is active.
 var clock
 ## Those the animals see as people (threats to the wary, see AiRules.HUMAN): anything
-## with a `position` in world units. Animals appear around any of them (see _someone).
+## with a `position` in world units. Animals live around each of them (see _populate).
 var people := []
 var animals: Array[Animal] = []
 var rng := RandomNumberGenerator.new()
@@ -223,14 +240,95 @@ var _next_id := 0
 ## Lets the animals of every species come into the world around the people.
 func start(seed_value: int) -> void:
 	rng.seed = seed_value
-	for kind in AiRules.SPECIES:
-		if kind == AiRules.HUMAN:
+	_populate(false)
+
+
+## Keeps each kind as many around each of the people as its `count` (see wanted) on
+## the share of the ground around them that is its biomes (see _biome_share): those
+## short come on the ground made there (more as more of it is made), those over go
+## away where no one looks, and those past LEAVE of every one of the people go away
+## too, so the animals are spread over the world the people walk, not left where they
+## first were. The new ones keep `away` from the people (START_AWAY at the start, past
+## a screen later).
+func _populate(later: bool) -> void:
+	if people.is_empty():
+		return
+	if later:
+		_leave()
+	for who in people:
+		var around: Vector3 = who.position
+		var biomes := _biomes_around(around)
+		for kind in AiRules.SPECIES:
+			if kind == AiRules.HUMAN:
+				continue
+			var want := roundi(wanted(kind) * _biome_share(kind, biomes))
+			var have := _count_near(kind, around)
+			if have > want and later:
+				_thin(kind, have - want, around)
+				continue
+			# A try for each one short: a place on ground not made yet is a try spent,
+			# so they come spread over the square as its ground is made, not crowded
+			# on the first made.
+			for i in want - have:
+				if have >= want:
+					break
+				var n := animals.size()
+				_spawn_group(kind, want - have, around, NEAR if later else START_AWAY)
+				have += animals.size() - n
+
+
+## The animals of `kind` within ROAM of `around` (on the ground: in cells, each way).
+func _count_near(kind: String, around: Vector3) -> int:
+	var n := 0
+	for a in animals:
+		if a.kind == kind and _within(a.pos, around, ROAM):
+			n += 1
+	return n
+
+
+static func _within(p: Vector3, around: Vector3, reach: float) -> bool:
+	return absf(p.x - around.x) <= reach and absf(p.z - around.z) <= reach
+
+
+## Takes out the animals past LEAVE of every one of the people that no one looks at:
+## they went off into the world no one is in.
+func _leave() -> void:
+	for a in animals.duplicate():
+		if a.near:
 			continue
-		var want := wanted(kind)
-		for i in want:
-			if count(kind) >= want:
+		var kept := false
+		for who in people:
+			if _within(a.pos, who.position, LEAVE):
+				kept = true
 				break
-			_spawn_group(kind, want - count(kind), false)
+		if not kept:
+			_remove(a)
+
+
+## The biomes at BIOME_SAMPLES × BIOME_SAMPLES points over the square of ROAM around
+## `around` (the layout tells them without the ground made); empty without a layout.
+func _biomes_around(around: Vector3) -> Array:
+	var out := []
+	if gen == null:
+		return out
+	for j in BIOME_SAMPLES:
+		for i in BIOME_SAMPLES:
+			var k := (Vector2(i, j) + Vector2(0.5, 0.5)) / BIOME_SAMPLES * 2.0 - Vector2.ONE
+			out.append(gen.biome_of(floori((around.x + k.x * ROAM) / CELL), floori((around.z + k.y * ROAM) / CELL)))
+	return out
+
+
+## The share of `biomes` (see _biomes_around) that are the biomes of `kind`: 1 for a
+## kind of any biome or without a layout.
+func _biome_share(kind: String, biomes: Array) -> float:
+	var spec: Dictionary = AiRules.SPECIES[kind]
+	if spec.biomes.is_empty() or biomes.is_empty():
+		return 1.0
+	var n := 0
+	for b: int in biomes:
+		if b != Biomes.NONE and Biomes.IDS[b] in spec.biomes:
+			n += 1
+	return float(n) / biomes.size()
 
 
 func count(kind: String) -> int:
@@ -248,14 +346,7 @@ func update(delta: float) -> void:
 	respawn_timer += delta
 	if respawn_timer > RESPAWN_EVERY:
 		respawn_timer = 0.0
-		for kind in AiRules.SPECIES:
-			if kind == AiRules.HUMAN:
-				continue
-			var want := wanted(kind)
-			if count(kind) < want:
-				_spawn_group(kind, want - count(kind), true)
-			elif count(kind) > want:
-				_thin(kind, count(kind) - want)
+		_populate(true)
 	_daylight = clock.daylight()
 	moved.clear()
 	for a in animals.duplicate():
@@ -298,12 +389,13 @@ func wanted(kind: String) -> int:
 	return floori(spec.count * maxf(clock.wet, clock.puddles) + 0.5)
 
 
-## Takes up to `n` of `kind` out of the world, those no one looks at (they hid away).
-func _thin(kind: String, n: int) -> void:
+## Takes up to `n` of `kind` within ROAM of `around` out of the world, those no one
+## looks at (they hid away).
+func _thin(kind: String, n: int, around: Vector3) -> void:
 	for a in animals.duplicate():
 		if n <= 0:
 			return
-		if a.kind == kind and not a.near:
+		if a.kind == kind and not a.near and _within(a.pos, around, ROAM):
 			_remove(a)
 			n -= 1
 
@@ -955,10 +1047,10 @@ func _remove(a: Animal) -> void:
 	gone.emit(a)
 
 
-## Brings a group of `kind` into the world: one alone, or a flock of the species'
-## size (at most `most`) around its lead.
-func _spawn_group(kind: String, most: int, away_from_people: bool) -> void:
-	var lead := _spawn(kind, away_from_people)
+## Brings a group of `kind` into the world around `around`: one alone, or a flock of
+## the species' size (at most `most`) around its lead, at least `away` from the people.
+func _spawn_group(kind: String, most: int, around: Vector3, away: float) -> void:
+	var lead := _spawn(kind, around, away)
 	if lead == null:
 		return
 	var flock: Array = AiRules.SPECIES[kind].flock
@@ -976,19 +1068,20 @@ func _spawn_group(kind: String, most: int, away_from_people: bool) -> void:
 		a.spot = spot
 
 
-func _spawn(kind: String, away_from_people: bool) -> Animal:
-	# Within the ground made around one of the people (on the client the player, see
-	# ChunkStreamer.LOAD_RANGE); none come while nobody is in the world (a server
-	# waiting for players).
-	if people.is_empty():
-		return null
-	var around: Vector3 = _someone().position
+## One of `kind` on a place of its own within ROAM of `around`, at least `away` from
+## every one of the people, or null when none of the places tried will do. Only on
+## the ground made (around the people, see Session.ZONE): the first place tried on
+## ground not made yet ends the try, so at the start, with only the ground near the
+## spawn made, most do not come yet and the rest come as the ground around is made.
+func _spawn(kind: String, around: Vector3, away: float) -> Animal:
 	var px := floori(around.x / CELL)
 	var pz := floori(around.z / CELL)
 	var spec: Dictionary = AiRules.SPECIES[kind]
-	for attempt in 40:
+	for attempt in SPAWN_TRIES:
 		var x := px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
 		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
+		if world.chunk_at(x, z) == null:
+			return null
 		var y: int = world.surface_y(x, z)
 		if spec.swims:
 			# Open water, a cell deep at least; a fish also under ice.
@@ -998,23 +1091,26 @@ func _spawn(kind: String, away_from_people: bool) -> Animal:
 				continue
 		elif y <= world.sea_level or y >= world.size_y or world.get_cell(x, y - 1, z) != Mat.GRASS:
 			continue
+		var pos := Vector3(x + 0.5, 0.0, z + 0.5) * CELL
+		if _near_people(pos, away):
+			continue
 		# The biome last: the cheap tests above leave most places out first.
 		if not spec.biomes.is_empty() and gen != null:
 			var b: int = gen.biome_of(x, z)
 			if b == Biomes.NONE or not Biomes.IDS[b] in spec.biomes:
 				continue
-		var pos := Vector3(x + 0.5, 0.0, z + 0.5) * CELL
 		pos.y = _floor(spec, pos.x, pos.z)
-		if away_from_people and pos.distance_to(around) < 20.0:
-			continue
 		return _add(kind, pos)
 	return null
 
 
-## One of the people for the animals to come around: the only one, else any; the roll is
-## spared with one, so a world played alone keeps its animals.
-func _someone():
-	return people[0] if people.size() == 1 else people[rng.randi() % people.size()]
+## Whether `pos` is within `away` of any of the people (on the ground).
+func _near_people(pos: Vector3, away: float) -> bool:
+	for who in people:
+		var d: Vector3 = who.position - pos
+		if Vector2(d.x, d.z).length() < away:
+			return true
+	return false
 
 
 func _add(kind: String, pos: Vector3) -> Animal:

@@ -61,6 +61,7 @@ func _test_wildlife() -> void:
 				all += AiRules.SPECIES[kind].count
 		_check(life.animals.size() == all and born[0] == all, "as many animals come as their species say")
 	_check(made[0] == made[1], "the same seed brings the same animals to the same places")
+	_test_spread(w, person)
 
 	var life := Wildlife.new()
 	life.world = w
@@ -111,6 +112,40 @@ func _test_wildlife() -> void:
 	_test_jostle(w)
 	_test_looked(w)
 	_test_hunting(w)
+
+
+## The animals spread over the square around the person, none at their feet; left far
+## behind, they go away, and new ones come out of sight where the person is.
+func _test_spread(w: WorldData, person: Who) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.people = [person]
+	life.start(3)
+	var nearest := INF
+	var farthest := 0.0
+	for a in life.animals:
+		var d := Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length()
+		nearest = minf(nearest, d)
+		farthest = maxf(farthest, d)
+	_check(nearest >= Wildlife.START_AWAY and farthest > Wildlife.ROAM * 0.6,
+		"the animals come spread around the person, none at their feet (%.1f..%.1f)" % [nearest, farthest])
+	var all := life.animals.size()
+	for a in life.animals:
+		a.near = false
+	var gone := Who.new()
+	gone.position = Vector3(1000.0, 6.0, 1000.0)
+	life.people = [gone]
+	life._populate(true)
+	_check(life.animals.is_empty(), "the person gone far away, the animals left behind go too")
+	life.people = [person]
+	life._populate(true)
+	var close := 0
+	for a in life.animals:
+		if Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length() < Wildlife.NEAR:
+			close += 1
+	_check(life.animals.size() == all and close == 0, "back again, as many come, out of sight (%d of %d, %d close)"
+		% [life.animals.size(), all, close])
 
 
 ## A walker that roosts in trees (the squirrel bundle) runs up a tree near it from a
@@ -169,7 +204,7 @@ func _test_biomes(w: WorldData) -> void:
 	life.world = w
 	life.clock = Clock.new()
 	var person := Who.new()
-	person.position = Vector3(40.0, 6.0, 40.0) * WorldData.CELL
+	person.position = Vector3(88.0, 6.0, 88.0) * WorldData.CELL
 	life.people = [person]
 	var lay := OneBiome.new()
 	life.gen = lay
@@ -217,7 +252,8 @@ func _test_swimmers(w: WorldData) -> void:
 		"a perch swims to the shore and no further (%v)" % fish.pos)
 	life.animals.clear()
 	life.people = [Who.new()]
-	life.people[0].position = at
+	# In the middle of the world, so all the square they come on is made.
+	life.people[0].position = Vector3(88.0, 6.0, 88.0) * WorldData.CELL
 	life.start(5)
 	var fishes := 0
 	for a in life.animals:
@@ -403,7 +439,8 @@ func _test_shore(w: WorldData) -> void:
 	life.clock = Clock.new()
 	life.clock.time_of_day = 0.5
 	life.people = [Who.new()]
-	life.people[0].position = Vector3(150.0, 6.0, 150.0) * WorldData.CELL
+	# Out of its sight, within Wildlife.LEAVE (or it goes away).
+	life.people[0].position = Vector3(100.0, 6.0, 100.0) * WorldData.CELL
 	var pond := Rect2(px, pz, side, side)
 	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
 	life.rng.seed = 7
