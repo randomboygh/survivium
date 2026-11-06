@@ -54,12 +54,18 @@ func _test_wildlife() -> void:
 		life.born.connect(func(_a: Wildlife.Animal) -> void: born[0] += 1)
 		life.start(7)
 		made.append(life.animals.map(func(a: Wildlife.Animal) -> String: return "%s %v" % [a.kind, a.pos]))
-		# The swimmers find no water here (see _test_swimmers).
-		var all := 0
+		# The swimmers find no water here (see _test_swimmers). Each chunk made has its
+		# share of a kind's count: about that many on the whole world, the fractions rolled.
+		var all := 0.0
 		for kind in AiRules.SPECIES:
 			if kind != AiRules.HUMAN and not AiRules.SPECIES[kind].swims:
-				all += AiRules.SPECIES[kind].count
-		_check(life.animals.size() == all and born[0] == all, "as many animals come as their species say")
+				all += AiRules.SPECIES[kind].count * 121.0 / Wildlife.ROAM_CHUNKS
+		var chunks := {}
+		for a in life.animals:
+			chunks[Vector2i(floori(a.pos.x / WorldData.CELL), floori(a.pos.z / WorldData.CELL)) / WorldData.CHUNK] = true
+		_check(life.animals.size() > all * 0.6 and life.animals.size() < all * 1.6 and born[0] == life.animals.size()
+			and chunks.size() > 40, "the animals of the chunks made come all over them (%d of about %d, on %d chunks)"
+			% [life.animals.size(), roundi(all), chunks.size()])
 	_check(made[0] == made[1], "the same seed brings the same animals to the same places")
 	_test_spread(w, person)
 
@@ -114,8 +120,9 @@ func _test_wildlife() -> void:
 	_test_hunting(w)
 
 
-## The animals spread over the square around the person, none at their feet; left far
-## behind, they go away, and new ones come out of sight where the person is.
+## The animals of the chunks made come none at the person's feet; those on ground
+## forgotten go with it, and its chunk gets them again when made again; the eaten are
+## made up for out of sight.
 func _test_spread(w: WorldData, person: Who) -> void:
 	var life := Wildlife.new()
 	life.world = w
@@ -123,29 +130,35 @@ func _test_spread(w: WorldData, person: Who) -> void:
 	life.people = [person]
 	life.start(3)
 	var nearest := INF
-	var farthest := 0.0
 	for a in life.animals:
-		var d := Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length()
-		nearest = minf(nearest, d)
-		farthest = maxf(farthest, d)
-	_check(nearest >= Wildlife.START_AWAY and farthest > Wildlife.ROAM * 0.6,
-		"the animals come spread around the person, none at their feet (%.1f..%.1f)" % [nearest, farthest])
+		nearest = minf(nearest, Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length())
+	_check(nearest >= Wildlife.START_AWAY - Wildlife.FLOCK_REACH * 1.5, "none come at the person's feet (%.1f)" % nearest)
 	var all := life.animals.size()
 	for a in life.animals:
 		a.near = false
-	var gone := Who.new()
-	gone.position = Vector3(1000.0, 6.0, 1000.0)
-	life.people = [gone]
-	life._populate(true)
-	_check(life.animals.is_empty(), "the person gone far away, the animals left behind go too")
-	life.people = [person]
-	life._populate(true)
+	var one: Wildlife.Animal = life.animals[0]
+	var key := Vector2i(floori(one.pos.x / WorldData.CELL), floori(one.pos.z / WorldData.CELL)) / WorldData.CHUNK
+	var on_it := 0
+	for a in life.animals:
+		if Vector2i(floori(a.pos.x / WorldData.CELL), floori(a.pos.z / WorldData.CELL)) / WorldData.CHUNK == key:
+			on_it += 1
+	var kept: WorldData.Chunk = w.chunks[key]
+	w.chunks.erase(key)
+	life._leave()
+	life._settle_new()
+	_check(life.animals.size() == all - on_it and one.gone and not life._settled.has(key),
+		"the animals of a chunk forgotten go with it (%d of %d)" % [on_it, all])
+	w.chunks[key] = kept
+	life._settle_new()
+	_check(life._settled.has(key), "and it gets its own again when made again")
+	life.animals.clear()
+	life._refill()
 	var close := 0
 	for a in life.animals:
 		if Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length() < Wildlife.NEAR:
 			close += 1
-	_check(life.animals.size() == all and close == 0, "back again, as many come, out of sight (%d of %d, %d close)"
-		% [life.animals.size(), all, close])
+	_check(life.animals.size() > 20 and close == 0, "the eaten are made up for out of sight (%d, %d close)"
+		% [life.animals.size(), close])
 
 
 ## A walker that roosts in trees (the squirrel bundle) runs up a tree near it from a
@@ -175,6 +188,8 @@ func _test_climbers(w: WorldData, person: Who) -> void:
 	_check(squirrel.perched and squirrel.state == "flee" and is_equal_approx(squirrel.pos.y, 8 * WorldData.CELL)
 		and life.animals.has(squirrel), "a squirrel runs up a tree from a person, out of a cat's reach")
 	life.people = [Who.new()]
+	# Off the world, so no chunk around them brings animals of its own.
+	life.people[0].position = Vector3(-1000.0, 6.0, -1000.0)
 	life.animals.erase(cat)
 	for i in 40:
 		life.update(0.05)
@@ -213,9 +228,9 @@ func _test_biomes(w: WorldData) -> void:
 	var wolves := life.count("animals:wolf")
 	lay.biome = Biomes.index("biomes:meadow")
 	life.animals.clear()
+	life._settled.clear()
 	life.start(2)
-	_check(wolves == AiRules.SPECIES["animals:wolf"].count and life.count("animals:wolf") == 0
-		and life.count("animals:rabbit") == AiRules.SPECIES["animals:rabbit"].count,
+	_check(wolves > 0 and life.count("animals:wolf") == 0 and life.count("animals:rabbit") > 0,
 		"wolves come to a forest and not a meadow, rabbits to a meadow (%d, %d)" % [wolves, life.count("animals:wolf")])
 
 
@@ -254,6 +269,7 @@ func _test_swimmers(w: WorldData) -> void:
 	life.people = [Who.new()]
 	# In the middle of the world, so all the square they come on is made.
 	life.people[0].position = Vector3(88.0, 6.0, 88.0) * WorldData.CELL
+	life._settled.clear()
 	life.start(5)
 	var fishes := 0
 	for a in life.animals:
@@ -261,7 +277,7 @@ func _test_swimmers(w: WorldData) -> void:
 			fishes += 1
 			if w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) != Mat.WATER:
 				fishes = -100
-	_check(fishes == AiRules.SPECIES["animals:perch"].count, "perches come into the water (%d)" % fishes)
+	_check(fishes > 0, "perches come into the water (%d)" % fishes)
 	for z in range(pz, pz + side):
 		for x in range(px, px + side):
 			w.set_cell(x, 3, z, Mat.AIR)
@@ -356,7 +372,7 @@ func _test_birds(w: WorldData, person: Who) -> void:
 	life.clock.time_of_day = 0.5
 	life.people = [person]
 	life.start(3)
-	var flocked: bool = life.count("animals:sparrow") == AiRules.SPECIES["animals:sparrow"].count
+	var flocked: bool = life.count("animals:sparrow") > 0
 	var leads := 0
 	for a in life.animals:
 		if a.kind != "animals:sparrow":
@@ -365,7 +381,8 @@ func _test_birds(w: WorldData, person: Who) -> void:
 			leads += 1
 		elif a.lead.kind != a.kind or a.pos.distance_to(a.lead.pos) > Wildlife.FLOCK_REACH * 2.0:
 			flocked = false
-	_check(flocked and leads >= 2 and leads <= 5, "sparrows come in flocks (%d)" % leads)
+	_check(flocked and leads >= 1 and life.count("animals:sparrow") >= leads * 3, "sparrows come in flocks (%d, %d)"
+		% [leads, life.count("animals:sparrow")])
 
 	life.animals.clear()
 	var at := person.position + Vector3(2.0, 0.0, 0.0)

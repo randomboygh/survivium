@@ -2,10 +2,11 @@ extends RefCounted
 ## The animals of the world. Each one only knows its species properties; who is food
 ## or a threat comes from AiRules. Animals wander, graze, rest outside their active
 ## hours (by the daylight of the Clock), flee from threats (the people among them) and
-## hunt when hungry. Each kind lives at its `count` in the square around each of the
-## people, less where little of it is its biomes, spread over the ground made there;
-## the eaten and those left far behind are gone and new ones come in their place out
-## of sight (_populate). The client draws them (Creatures) as they come, go and walk.
+## hunt when hungry. They belong to the land: each chunk, once made, gets its own
+## animals (_populate_chunk), as many of a kind as its `count` for each square of ROAM, on the
+## share of the chunk that is its biomes; they stay as long as their ground is kept and
+## are gone with it, and the eaten come back out of sight (_refill). The client draws
+## them (Creatures) as they come, go and walk.
 ## The other properties shape the rest the same way for every species: those that come
 ## in a `flock` follow its first (the lead) and take fright together; those that like
 ## some plants seek them out; those that fly hop about on the ground, now and then fly
@@ -32,27 +33,29 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 
-## Every this many seconds the animals around the people are counted again (see
-## _populate).
-const RESPAWN_EVERY := 5.0
+## Every this many seconds the chunks made since get their animals (_populate_chunk) and
+## those whose ground is forgotten go (_leave); every RESPAWN_EVERY the eaten are
+## made up for (_refill).
+const SETTLE_EVERY := 1.0
+const RESPAWN_EVERY := 15.0
 const CELL := WorldData.CELL
 ## Animals walk slopes and hop up a sheer step of one cell, not of two.
 const MAX_STEP := 0.55
-## Animals appear within this many cells of the people, where the world is made
-## (Session.ZONE chunks), each way; ROAM is the same in world units: the square around
-## each of the people where its species' `count` live. Past LEAVE of every one of the
-## people they go away (before Session.DROP forgets the ground under them).
+## The square around each of the people where the eaten are made up for, in cells each
+## way, and in world units (ROAM); the chunks within it are looked at for new ones made.
+## A kind's `count` lives on each such square (ROAM_CHUNKS chunks).
 const SPAWN_REACH := 80
 const ROAM := SPAWN_REACH * CELL
-const LEAVE := ROAM * 1.5
+const ROAM_CHUNKS := float(SPAWN_REACH * 2 * SPAWN_REACH * 2) / (WorldData.CHUNK * WorldData.CHUNK)
 ## Places tried for one animal to come.
 const SPAWN_TRIES := 40
-## How near the people no animal comes at the start (world units), so they do not all
-## stand around the spawn; later they come past a screen (NEAR).
+## How near the people no animal comes when its chunk is made (world units); those that
+## make up for the eaten come past a screen (NEAR).
 const START_AWAY := 8.0
-## The biomes around each of the people are looked at on a grid of this many points
-## each way (see _biome_share).
-const BIOME_SAMPLES := 6
+## The biomes of a chunk are looked at on a grid of this many points each way.
+const BIOME_SAMPLES := 2
+## The eaten are made up for only while a kind is short by more than this.
+const REFILL_SLACK := 1.0
 ## Animals no one looks at (`near` off) move and think in steps of FAR_STEP seconds
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
@@ -214,11 +217,15 @@ var gen
 ## The clock, for the daylight that sets who is active.
 var clock
 ## Those the animals see as people (threats to the wary, see AiRules.HUMAN): anything
-## with a `position` in world units. Animals live around each of them (see _populate).
+## with a `position` in world units. The chunks around them get their animals (see _settle_new).
 var people := []
 var animals: Array[Animal] = []
 var rng := RandomNumberGenerator.new()
 var respawn_timer := 0.0
+var _settle_timer := 0.0
+## The chunks that got their animals: for each, by kind, its share of a kind's `count`
+## (its share of ROAM_CHUNKS times the share of it that is the kind's biomes).
+var _settled := {}
 var _daylight := 1.0
 ## What each kind is to each (see _sees), worked out from AiRules once.
 var _seen := {}
@@ -237,44 +244,113 @@ var moved: Array[Animal] = []
 var _next_id := 0
 
 
-## Lets the animals of every species come into the world around the people.
+## Gives the chunks made so far their animals; more come as more is made.
 func start(seed_value: int) -> void:
 	rng.seed = seed_value
-	_populate(false)
+	_settle_new()
 
 
-## Keeps each kind as many around each of the people as its `count` (see wanted) on
-## the share of the ground around them that is its biomes (see _biome_share): those
-## short come on the ground made there (more as more of it is made), those over go
-## away where no one looks, and those past LEAVE of every one of the people go away
-## too, so the animals are spread over the world the people walk, not left where they
-## first were. The new ones keep `away` from the people (START_AWAY at the start, past
-## a screen later).
-func _populate(later: bool) -> void:
-	if people.is_empty():
-		return
-	if later:
-		_leave()
+## Whether chunk `key` is made to the end (its trees too), so its animals can come.
+func _made(key: Vector2i) -> bool:
+	if gen != null and "stages" in gen:
+		return gen.stages.get(key, 0) >= gen.SHAPED
+	return world.chunks.has(key)
+
+
+## Gives each chunk made within ROAM of the people that has none yet its animals
+## (_populate_chunk), and forgets the chunks no longer kept (their animals went with them, see
+## _leave), so a chunk made again gets them again.
+func _settle_new() -> void:
+	for key: Vector2i in _settled.keys():
+		if not world.chunks.has(key):
+			_settled.erase(key)
+	var r := ceili(float(SPAWN_REACH) / WorldData.CHUNK)
+	for who in people:
+		var c := Vector2i(floori(who.position.x / CELL), floori(who.position.z / CELL)) / WorldData.CHUNK
+		for kz in range(c.y - r, c.y + r + 1):
+			for kx in range(c.x - r, c.x + r + 1):
+				var key := Vector2i(kx, kz)
+				if not _settled.has(key) and _made(key):
+					_populate_chunk(key)
+
+
+## The animals of chunk `key`: of each kind as many as its `count` (wanted) on the
+## chunk's share of it (_share), the fraction rolled, in flocks of its size, anywhere
+## on the chunk where it lives, not at the people's feet (START_AWAY).
+func _populate_chunk(key: Vector2i) -> void:
+	var biomes := _chunk_biomes(key)
+	var shares := {}
+	_settled[key] = shares
+	var cells := Rect2i(key * WorldData.CHUNK, Vector2i(WorldData.CHUNK, WorldData.CHUNK))
+	for kind in AiRules.SPECIES:
+		if kind == AiRules.HUMAN:
+			continue
+		var share := _biome_share(kind, biomes) / ROAM_CHUNKS
+		if share <= 0.0:
+			continue
+		shares[kind] = share
+		var flock: Array = AiRules.SPECIES[kind].flock
+		var groups := wanted(kind) * share / maxf(1.0, (flock[0] + flock[1]) * 0.5)
+		var n := floori(groups) + (1 if rng.randf() < groups - floorf(groups) else 0)
+		for i in n:
+			_spawn_group(kind, 1 << 20, cells, START_AWAY)
+
+
+## The biomes at BIOME_SAMPLES × BIOME_SAMPLES points of chunk `key`; empty without a
+## layout.
+func _chunk_biomes(key: Vector2i) -> Array:
+	var out := []
+	if gen == null:
+		return out
+	var step := WorldData.CHUNK / BIOME_SAMPLES
+	for j in BIOME_SAMPLES:
+		for i in BIOME_SAMPLES:
+			out.append(gen.biome_of(key.x * WorldData.CHUNK + i * step + step / 2, key.y * WorldData.CHUNK + j * step + step / 2))
+	return out
+
+
+## The share of `biomes` (see _chunk_biomes) that are the biomes of `kind`: 1 for a
+## kind of any biome or without a layout.
+func _biome_share(kind: String, biomes: Array) -> float:
+	var spec: Dictionary = AiRules.SPECIES[kind]
+	if spec.biomes.is_empty() or biomes.is_empty():
+		return 1.0
+	var n := 0
+	for b: int in biomes:
+		if b != Biomes.NONE and Biomes.IDS[b] in spec.biomes:
+			n += 1
+	return float(n) / biomes.size()
+
+
+## Makes up for the eaten around each of the people: a kind short of what the chunks
+## settled within ROAM hold of it (their shares of its `count`, so fewer while the
+## puddles dry for one that comes after rain) by more than REFILL_SLACK gets new ones
+## out of sight on the ground made there; one over by as much loses those no one sees.
+func _refill() -> void:
 	for who in people:
 		var around: Vector3 = who.position
-		var biomes := _biomes_around(around)
-		for kind in AiRules.SPECIES:
-			if kind == AiRules.HUMAN:
-				continue
-			var want := roundi(wanted(kind) * _biome_share(kind, biomes))
+		var c := Vector2i(floori(around.x / CELL), floori(around.z / CELL))
+		var lo := (c - Vector2i(SPAWN_REACH, SPAWN_REACH)) / WorldData.CHUNK
+		var hi := (c + Vector2i(SPAWN_REACH, SPAWN_REACH)) / WorldData.CHUNK
+		var shares := {}
+		for key: Vector2i in _settled:
+			if key.x >= lo.x and key.x <= hi.x and key.y >= lo.y and key.y <= hi.y:
+				var of: Dictionary = _settled[key]
+				for kind: String in of:
+					shares[kind] = shares.get(kind, 0.0) + of[kind]
+		var cells := Rect2i(c - Vector2i(SPAWN_REACH, SPAWN_REACH), Vector2i(SPAWN_REACH, SPAWN_REACH) * 2 + Vector2i.ONE)
+		for kind: String in shares:
+			var want: float = wanted(kind) * shares[kind]
 			var have := _count_near(kind, around)
-			if have > want and later:
-				_thin(kind, have - want, around)
+			if have > want + REFILL_SLACK:
+				_thin(kind, have - ceili(want), around)
 				continue
-			# A try for each one short: a place on ground not made yet is a try spent,
-			# so they come spread over the square as its ground is made, not crowded
-			# on the first made.
-			for i in want - have:
-				if have >= want:
-					break
+			for i in floori(want - REFILL_SLACK) - have:
 				var n := animals.size()
-				_spawn_group(kind, want - have, around, NEAR if later else START_AWAY)
+				_spawn_group(kind, floori(want) - have, cells, NEAR)
 				have += animals.size() - n
+				if have >= floori(want):
+					break
 
 
 ## The animals of `kind` within ROAM of `around` (on the ground: in cells, each way).
@@ -290,45 +366,12 @@ static func _within(p: Vector3, around: Vector3, reach: float) -> bool:
 	return absf(p.x - around.x) <= reach and absf(p.z - around.z) <= reach
 
 
-## Takes out the animals past LEAVE of every one of the people that no one looks at:
-## they went off into the world no one is in.
+## Takes out the animals no one looks at whose ground is no longer kept (forgotten far
+## from the people, Session.DROP): they went with it, and come again with it.
 func _leave() -> void:
 	for a in animals.duplicate():
-		if a.near:
-			continue
-		var kept := false
-		for who in people:
-			if _within(a.pos, who.position, LEAVE):
-				kept = true
-				break
-		if not kept:
+		if not a.near and world.chunk_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) == null:
 			_remove(a)
-
-
-## The biomes at BIOME_SAMPLES × BIOME_SAMPLES points over the square of ROAM around
-## `around` (the layout tells them without the ground made); empty without a layout.
-func _biomes_around(around: Vector3) -> Array:
-	var out := []
-	if gen == null:
-		return out
-	for j in BIOME_SAMPLES:
-		for i in BIOME_SAMPLES:
-			var k := (Vector2(i, j) + Vector2(0.5, 0.5)) / BIOME_SAMPLES * 2.0 - Vector2.ONE
-			out.append(gen.biome_of(floori((around.x + k.x * ROAM) / CELL), floori((around.z + k.y * ROAM) / CELL)))
-	return out
-
-
-## The share of `biomes` (see _biomes_around) that are the biomes of `kind`: 1 for a
-## kind of any biome or without a layout.
-func _biome_share(kind: String, biomes: Array) -> float:
-	var spec: Dictionary = AiRules.SPECIES[kind]
-	if spec.biomes.is_empty() or biomes.is_empty():
-		return 1.0
-	var n := 0
-	for b: int in biomes:
-		if b != Biomes.NONE and Biomes.IDS[b] in spec.biomes:
-			n += 1
-	return float(n) / biomes.size()
 
 
 func count(kind: String) -> int:
@@ -346,7 +389,12 @@ func update(delta: float) -> void:
 	respawn_timer += delta
 	if respawn_timer > RESPAWN_EVERY:
 		respawn_timer = 0.0
-		_populate(true)
+		_refill()
+	_settle_timer += delta
+	if _settle_timer > SETTLE_EVERY:
+		_settle_timer = 0.0
+		_leave()
+		_settle_new()
 	_daylight = clock.daylight()
 	moved.clear()
 	for a in animals.duplicate():
@@ -1047,10 +1095,10 @@ func _remove(a: Animal) -> void:
 	gone.emit(a)
 
 
-## Brings a group of `kind` into the world around `around`: one alone, or a flock of
-## the species' size (at most `most`) around its lead, at least `away` from the people.
-func _spawn_group(kind: String, most: int, around: Vector3, away: float) -> void:
-	var lead := _spawn(kind, around, away)
+## Brings a group of `kind` into the world on `cells`: one alone, or a flock of the
+## species' size (at most `most`) around its lead, at least `away` from the people.
+func _spawn_group(kind: String, most: int, cells: Rect2i, away: float) -> void:
+	var lead := _spawn(kind, cells, away)
 	if lead == null:
 		return
 	var flock: Array = AiRules.SPECIES[kind].flock
@@ -1068,18 +1116,14 @@ func _spawn_group(kind: String, most: int, around: Vector3, away: float) -> void
 		a.spot = spot
 
 
-## One of `kind` on a place of its own within ROAM of `around`, at least `away` from
-## every one of the people, or null when none of the places tried will do. Only on
-## the ground made (around the people, see Session.ZONE): the first place tried on
-## ground not made yet ends the try, so at the start, with only the ground near the
-## spawn made, most do not come yet and the rest come as the ground around is made.
-func _spawn(kind: String, around: Vector3, away: float) -> Animal:
-	var px := floori(around.x / CELL)
-	var pz := floori(around.z / CELL)
+## One of `kind` on a place of its own on `cells`, at least `away` from every one of
+## the people, or null when none of the places tried will do. Only on the ground made:
+## the first place tried on ground not made yet ends the try.
+func _spawn(kind: String, cells: Rect2i, away: float) -> Animal:
 	var spec: Dictionary = AiRules.SPECIES[kind]
 	for attempt in SPAWN_TRIES:
-		var x := px + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
-		var z := pz + rng.randi_range(-SPAWN_REACH, SPAWN_REACH)
+		var x := cells.position.x + rng.randi_range(0, cells.size.x - 1)
+		var z := cells.position.y + rng.randi_range(0, cells.size.y - 1)
 		if world.chunk_at(x, z) == null:
 			return null
 		var y: int = world.surface_y(x, z)
