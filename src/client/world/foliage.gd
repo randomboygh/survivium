@@ -16,6 +16,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Ground plants (see Grass, PixelTextures.build_plants and grass.gdshader): the size
 ## of their cards.
@@ -57,6 +58,8 @@ const TIER_UP := 0.8
 const TIER_DOWN := -0.35
 ## Bushes are made of smaller clusters, this many pixels across (see Bushes).
 const BUSH_CLUMP := 12
+## Where the plants of a crop stand across its bed, in parts of the cell (two rows of two).
+const CROP_ROWS := [0.3, 0.72]
 const BUSH_DISC := 0.9
 const SHADOW_DISC := 1.6
 ## One pixel and one cell in world units.
@@ -205,6 +208,21 @@ static func step(job: Job, columns: int) -> bool:
 	return job.z >= job.z1 and job.tree >= job.trunks.size()
 
 
+## The crop growing on bed x, y, z (WorldData.fields record `f`), added to `grass` as the
+## frame of its stage (Plants.stage) in two rows of two across the bed; how many cards.
+static func _crop(grass: PackedFloat32Array, x: int, y: int, z: int, f: Array, rng: RandomNumberGenerator) -> int:
+	var c: Dictionary = Plants.custom(f[0]) if f[0] != "" else {}
+	if c.is_empty():
+		return 0
+	var kind: int = Grass.CUSTOM + c.first + Plants.stage(f[0], f[1])
+	for fz in CROP_ROWS:
+		for fx in CROP_ROWS:
+			var jx := rng.randf_range(-0.06, 0.06)
+			put(grass, Vector3(x + fx + jx, y + 1.0, z + fz) * CELL)
+			grass.append_array([float(kind), rng.randf_range(0.92, 1.06), rng.randf(), 0.0])
+	return CROP_ROWS.size() * CROP_ROWS.size()
+
+
 static func _column(job: Job, x: int, z: int) -> void:
 	var w = job.w
 	var ch: WorldData.Chunk = w.chunk_at(x, z)
@@ -220,6 +238,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var trunks := job.trunks
 	var col := WorldData.col_of(x, z)
 	var turf: Dictionary = w.turf.get(ch.key, {})
+	var beds: Dictionary = w.fields.get(ch.key, {})
 	var air: int = ch.air[col]
 	# Ground with air above.
 	var tops: int = ~(air | ch.water[col] | ch.leaf[col]) & w.all_bits & ((air >> 1) | w.top_bit)
@@ -229,6 +248,10 @@ static func _column(job: Job, x: int, z: int) -> void:
 		var y := WorldData.level_of(bit)
 		var i := y * layer + col
 		var m := cells[i]
+		if not beds.is_empty() and beds.has(Vector3i(x, y, z)):
+			rng.seed = hash(Vector3i(x, y, z))
+			job.ng += _crop(grass, x, y, z, beds[Vector3i(x, y, z)], rng)
+			continue
 		if not Mat.can_slope(m):
 			continue
 		rng.seed = hash(Vector3i(x, y, z))

@@ -452,6 +452,12 @@ func action_name() -> String:
 			return "Косить" if Tools.mows(Tools.of(held())) and tool != "none" else "Собрать"
 		"dig":
 			return "Копать"
+		"till":
+			return "Вскопать"
+		"water":
+			return "Полить"
+		"reap":
+			return "Жать"
 	match tool:
 		"axe":
 			return "Рубить"
@@ -461,6 +467,12 @@ func action_name() -> String:
 			return "Косить"
 		"pickaxe", "shovel":
 			return "Копать"
+		"hoe":
+			return "Вскопать"
+		"can":
+			return "Полить"
+		"sickle":
+			return "Жать"
 		"rod":
 			if game.character.bite:
 				return "Подсечь"

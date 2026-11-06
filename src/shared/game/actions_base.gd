@@ -7,7 +7,7 @@ extends RefCounted
 ##
 ## The rules are one script split by topic (decision 168, as decision 145): actions_base.gd
 ## <- actions_gather.gd <- actions_fight.gd <- actions_water.gd <- actions_dig.gd <-
-## actions_build.gd <- world_actions.gd; each part extends the one before and calls only
+## actions_build.gd <- actions_farm.gd <- world_actions.gd; each part extends the one before and calls only
 ## what it or an earlier part defines, and callers know only world_actions.gd.
 
 const Tools := preload("res://src/shared/content/tools.gd")

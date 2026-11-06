@@ -62,6 +62,8 @@ extends "res://src/shared/world/world_gen.gd"
 ##   grove      x 100..131, z 14..37    oaks and spruces over moss, then mushrooms, then
 ##                                      glowing mushrooms, west to east (GROVE_FLOOR)
 ##   mountain   x 98..142,  z 42..86    a peak of scree and stone up into the snow
+##   farm       x 64..75,   z 16..27    rows of beds a row of grass apart (FARM): dry, wet,
+##                                      then the first loaded crop at each stage of its growth
 ##   camp       x 60..91,   z -30..-13  for FPS and freezes: things lying on every cell
 ##                                      (CAMP_DROPS), death's sacks, a row of chests,
 ##                                      workbenches and kilns, a row of lit campfires
@@ -80,6 +82,9 @@ const GROUNDS := ["Ступени", "Ямы", "Пещера", "Звёздная 
 	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь", "Сочетания", "Дом", "Спуск", "Спуск под 45°", "Пляж"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
+## The farm: beds in rows along x, a row of grass between them (see farm_bed).
+const FARM := Rect2i(64, 16, 12, 12)
+
 ## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
 ## its inner side of cells plus a wall (a row's stride), the walls a cell high. A tree's
 ## pen is 15 cells (no crown reaches the next, nor hides the row north of it seen at 3/4), so its trunk in the middle stands on
@@ -1026,6 +1031,13 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 			for y in range(e[0], e[1] + 1):
 				c.cells[y * layer + col] = e[2]
 				c.natural[y * layer + col] = e[3]
+		var bed: Array = farm_bed(key.x * CHUNK + lx, z)
+		if not bed.is_empty():
+			c.cells[ground * layer + col] = bed[0]
+			c.natural[ground * layer + col] = 0
+			if not world.fields.has(key):
+				world.fields[key] = {}
+			world.fields[key][Vector3i(key.x * CHUNK + lx, ground, z)] = bed[1]
 		for y in size_y:
 			var m: int = c.cells[y * layer + col]
 			if m == Mat.AIR:
@@ -1037,6 +1049,27 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		c.air[col] = air_bits
 		c.water[col] = water_bits
 		c.wild[col] = wild_bits
+
+
+## The bed of the farm on column x, z (FARM): [its material, its record of
+## WorldData.fields], [] for none. The first row dry and empty, the second wet, then
+## the first loaded crop at each stage, on wet beds (they stay wet: they grow on).
+func farm_bed(x: int, z: int) -> Array:
+	var at := Vector2i(x, z) - FARM.position
+	if Mat.BED < 0 or not FARM.has_point(Vector2i(x, z)) or at.y % 2 == 1:
+		return []
+	var row := at.y / 2
+	if row == 0:
+		return [Mat.BED, ["", 0.0, 0.0]]
+	var crop := {}
+	for c in Plants.CUSTOM:
+		if c.kind == Plants.KINDS.CROP:
+			crop = c
+			break
+	var stage := row - 2
+	if row == 1 or crop.is_empty() or stage >= crop.frames:
+		return [Mat.BED_WET, ["", 0.0, 1.0e9]]
+	return [Mat.BED_WET, [crop.id, crop.grow_days * (stage + 0.01) / maxf(1.0, crop.frames - 1), 1.0e9]]
 
 
 ## True when chunk `key` has cells of the biome plots.

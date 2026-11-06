@@ -9,7 +9,8 @@
 - `src/shared/world/world_cells.gd` — ячейки в `Chunk` по ключу (`chunk_at`, `chunk_key`; для
   отрицательных координат `>>` и `&`); отсутствующий чанк читается как воздух (ниже 0 — камень) и не
   пускает тела. На ячейках: деревья, кусты, `blockers` (твёрдые части вещей), `drops` (лежащее), `grows`
-  (что растёт), тропы; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` для сохранения.
+  (что растёт), грядки `fields` (чанк → клетка грядки → [посев, дней роста, мокрая до]; `field_at` /
+  `set_field`; `set_cell` снимает запись, сохраняются в `pack_chunk` «fields»), тропы; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` для сохранения.
 - `src/shared/world/world_data.gd` (наследует) — формы: `update_shapes` (склоны и углы по столбцу),
   поверхности склонов (`surface_patch`, `ground_height`), что встречает тело (`blocks_body`,
   `blocks_part`, `ground_part`). `ground_height` спрашивают каждый шаг зверя и тела: он читает ячейки и

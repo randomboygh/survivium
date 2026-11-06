@@ -241,6 +241,9 @@ static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: A
 			"bank":
 				if not by_water:
 					continue
+			"field":
+				# A crop grows only where it was sown (WorldData.fields).
+				continue
 		if not c.biomes.is_empty():
 			var b: int = w.biome_at(x, z)
 			if b >= Biomes.IDS.size() or not Biomes.IDS[b] in c.biomes:
@@ -311,7 +314,7 @@ static func _one_plant(i: int, out: Array[int], rng: RandomNumberGenerator) -> v
 		"glow_mushrooms":
 			first = GLOW
 			count = 1
-		"custom":
+		"custom", "crop":
 			for c in Plants.CUSTOM:
 				if c.id == r.id:
 					first = CUSTOM + c.first

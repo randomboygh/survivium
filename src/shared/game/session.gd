@@ -186,10 +186,13 @@ func step_players(delta: float) -> void:
 
 
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step);
+## the beds get wet and dry, their crops grow (WorldActions.step_fields);
 ## the fishing lines in the water (Fishing.step).
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
-	placed.step(d, clock.WEATHERS[clock.weather].get("rain", 0.0))
+	var rain: float = clock.WEATHERS[clock.weather].get("rain", 0.0)
+	placed.step(d, rain)
+	actions.step_fields(delta, clock.rain)
 	fishing.step(d)
 	territory.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)

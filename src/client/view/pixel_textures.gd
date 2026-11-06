@@ -14,10 +14,12 @@ const TILE := 16
 const TILES := 16
 const ROWS := 12
 const TUFT := 8
-## Ground plants: PLANTS variants, each PLANT_W x PLANT_H px (see build_plants).
+## Ground plants: PLANTS variants, each PLANT_W x PLANT_H px (see build_plants); the
+## last, the halo (Grass.HALO), is drawn without the texture and stays blank, and the
+## mods' own plants follow it from Grass.CUSTOM.
 const PLANT_W := 8
 const PLANT_H := 24
-const PLANTS := 29
+const PLANTS := 30
 ## Leaf cluster cards of trees: every card is CLUMP px square, the bunch of leaves in it
 ## one of CLUMP_SIZES across. The texture has a row per size of broad-leaf bunch, then a
 ## row per size of needle sprig (from NEEDLE_ROW), then bare branches (BRANCH_ROW).
