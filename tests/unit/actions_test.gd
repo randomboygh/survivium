@@ -145,6 +145,20 @@ func _test_world_actions() -> void:
 	_check(not swing.is_empty() and w.get_cell(10, 1, 10) == Mat.AIR and dirt >= 1 and changed.has(Vector3i(10, 1, 10)),
 		"a shovel digs dirt, which falls on the ground")
 	_check(actions.dig_at(who, Vector3i(10, 0, 10), Vector3i.UP).is_empty(), "the bottom level is not dug")
+	# Free building (a playtest switch) only spares the bag's blocks: what is dug still
+	# falls, to fly into the bag (it gave nothing, 2026-11-07, and looked like pickup broken).
+	actions.rules.free_build = true
+	var before := 0
+	for key in w.drops:
+		for d: Array in w.drops[key]:
+			before += WorldActions.count(d) if d[0] == "resources:dirt" else 0
+	actions.dig_at(who, Vector3i(9, 1, 10), Vector3i.UP)
+	var after := 0
+	for key in w.drops:
+		for d: Array in w.drops[key]:
+			after += WorldActions.count(d) if d[0] == "resources:dirt" else 0
+	actions.rules.free_build = false
+	_check(w.get_cell(9, 1, 10) == Mat.AIR and after > before, "with free building digging still gives what it digs")
 	who.item = "tools:wooden_sword"
 	_check(not actions.dig_at(who, Vector3i(11, 1, 10), Vector3i.UP).is_empty() and w.get_cell(11, 1, 10) == Mat.DIRT,
 		"a sword swings at the ground it cannot dig")

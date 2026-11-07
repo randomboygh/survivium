@@ -25,8 +25,8 @@ signal cell_changed(cell: Vector3i)
 var world
 ## The clock: `season` (0 spring .. 3 winter) and `day`.
 var clock
-## The rules of play (Rules): `free_build` (building takes nothing from the bag, digging
-## gives nothing).
+## The rules of play (Rules): `free_build` (building takes nothing from the bag; digging
+## gives as ever).
 var rules
 ## The land claimed (Territory): what a player may do in another's; none in tests that
 ## have no claims.

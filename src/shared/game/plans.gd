@@ -460,7 +460,8 @@ func build(actions, who) -> Dictionary:
 			who.inventory.remove(item, 1)
 		if ground:
 			var back: String = Mat.RECORDS[m].item
-			if back != "" and not free:
+			# The ground taken out is dug, so it is given back even when building is free.
+			if back != "":
 				who.inventory.add(back, 1)
 		var fresh: bool = actions.build_cell(c, block, form)
 		cells.erase(c)

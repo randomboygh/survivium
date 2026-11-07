@@ -170,8 +170,8 @@ var time_boost := 1.0
 var player_speed := 1.0
 ## Playtest switch: how many times faster the skills grow (SkillSet.rate). Not saved.
 var skill_rate := 1.0
-## Playtest switch: blocks are placed without taking them from the bag, and digging
-## gives none. Not saved.
+## Playtest switch: blocks are placed without taking them from the bag (digging still
+## gives what it digs). Not saved.
 var free_build := false
 ## Playtest: the stone and wooden tools the game has before crafting, into the bag.
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
