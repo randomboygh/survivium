@@ -13,9 +13,10 @@
   active: day
   count: 18
   sprite: sparrow
-  frames: 6
-  walk: 3
-  views: 3
+  frames: 9
+  walk: 4
+  hop: 2
+  views: 5
   flies: true
   flock: [4, 8]
   roost: trees
