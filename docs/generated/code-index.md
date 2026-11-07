@@ -301,6 +301,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/creature_kit.py`: The kit tools/make_creatures.py draws the animals with: pictures written as text (a character a pixel, each character a colour region and a body part), shaded by their shape and outlined in the…
 - `tools/doc_index.py`: Writes the index docs/ keeps of what the code holds, and checks the docs against the repository:
 - `tools/lint.py`: Fast checks of the repository that need no Godot, a second or two (CI's `lint` job):
+- `tools/make_birds.py`: Draws the sheets of the crow, the owl and the duck, content/animals/<bird>/sprites/creatures/.
 - `tools/make_creatures.py`: Draws the animals' pictures: content/animals/<bundle>/sprites/creatures/<sprite>.png.
 - `tools/make_icon.py`: Draws the game's icon, 32 x 32 pixels, in the style of chunky pixel icons: a dark outline round every part, three or four hard tones lit from the upper left.
 - `tools/make_icons.gd`: Draws the pictures of the items (tools/art/icon_art.gd) and saves them in the mod of each item that names one as its `icon`, content/<mod>/icons/<icon>.png, and the interface's small pictures…

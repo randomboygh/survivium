@@ -1,6 +1,7 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# sprites/creatures/<sprite>.png этого бандла (рисует tools/make_birds.py):
+# пять видов, кадры: сидит, взмах крыла ×4, два кадра покоя, прыжок ×2; голоса (calls, alarm) — его sounds.yaml.
 # И летает, и плавает (flies, swims), выходит на берег (ashore): плавает и бродит у воды, от угрозы
 # отплывает, а взлетает, только если она близко, и перелетает невысоко и недалеко (flight).
 - id: duck
@@ -13,9 +14,10 @@
   active: day
   count: 6
   sprite: duck
-  frames: 6
-  walk: 3
-  views: 3
+  frames: 9
+  walk: 4
+  hop: 2
+  views: 5
   flies: true
   swims: true
   ashore: true

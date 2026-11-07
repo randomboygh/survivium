@@ -1,6 +1,7 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
+# sprites/creatures/<sprite>.png этого бандла (рисует tools/make_birds.py):
+# пять видов, кадры: сидит, взмах крыла ×4, два кадра покоя, прыжок ×2; голоса (calls, alarm) — его sounds.yaml.
 # Всеядная птица стаей: ест и мелочь (воробьёв, лягушек, бабочек), и колоски; ночует на деревьях.
 - id: crow
   title: Ворона
@@ -12,9 +13,10 @@
   active: day
   count: 7
   sprite: crow
-  frames: 6
-  walk: 3
-  views: 3
+  frames: 9
+  walk: 4
+  hop: 2
+  views: 5
   flies: true
   flock: [3, 6]
   roost: trees
