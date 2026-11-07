@@ -51,6 +51,8 @@ const HOP_STEP := 0.36
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
 ## its steps) and its idle frame.
 class Look:
+	var animal
+	var sprite: MeshInstance3D
 	var view := SIDE
 	## 1 facing right on the screen, -1 left (the side view mirrored).
 	var side := 0.0
@@ -73,6 +75,8 @@ var perf
 var looks := {}
 var _sprites := {}
 var _looks := {}
+## The Looks of all the animals drawn, walked every frame (no lookups by animal).
+var _shown: Array[Look] = []
 ## sprite -> where its culling box was fitted, and the views it was fitted for.
 var _fitted := {}
 var _views: Array = []
@@ -128,11 +132,11 @@ func _process(delta: float) -> void:
 		_fitted.clear()
 		for a in wildlife.animals:
 			_fit(a, _sprites[a])
-	for a in wildlife.animals:
-		var sprite: MeshInstance3D = _sprites[a]
-		var look: Look = _looks[a]
+	for look in _shown:
+		var a = look.animal
 		if a.fresh:
 			a.fresh = false
+			var sprite := look.sprite
 			sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
 			if _fitted.get(sprite) != sprite.position:
 				_fit(a, sprite)
@@ -144,11 +148,11 @@ func _process(delta: float) -> void:
 		var shown: int = look.view * looks[a.kind][3] + frame
 		if shown != a.frame:
 			a.frame = shown
-			sprite.material_override = _mats(a)[shown]
+			look.sprite.material_override = _mats(a)[shown]
 		var sx := look.side if look.view == SIDE else 1.0
 		if sx != look.flip:
 			look.flip = sx
-			sprite.scale.x = sx
+			look.sprite.scale.x = sx
 	if perf != null:
 		perf.note("животные", t)
 
@@ -266,10 +270,13 @@ func _on_born(a) -> void:
 	add_child(sprite)
 	_sprites[a] = sprite
 	var look := Look.new()
+	look.animal = a
+	look.sprite = sprite
 	look.last = a.pos
 	look.side = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
 	look.change_at = Time.get_ticks_msec() * 0.001 + _rng.randf_range(0.0, IDLE_GAP.y)
 	_looks[a] = look
+	_shown.append(look)
 	look.flip = look.side
 	sprite.scale.x = look.side
 	_fit(a, sprite)
@@ -279,6 +286,7 @@ func _on_gone(a) -> void:
 	_fitted.erase(_sprites[a])
 	_sprites[a].queue_free()
 	_sprites.erase(a)
+	_shown.erase(_looks[a])
 	_looks.erase(a)
 
 
