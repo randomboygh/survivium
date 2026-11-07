@@ -134,7 +134,7 @@ func _process(delta: float) -> void:
 		elif not (a.flying or a.moving or a.hop > 0.0) and now < look.change_at:
 			continue
 		var frame := _frame(a, look, beat, now)
-		var shown := look.view * looks[a.kind][3] + frame
+		var shown: int = look.view * looks[a.kind][3] + frame
 		if shown != a.frame:
 			a.frame = shown
 			sprite.material_override = _mats(a)[shown]
@@ -193,7 +193,7 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 	else:
 		var pick := _rng.randi_range(0, idles - 1)
 		look.idle = 1 + walk + pick
-		var hold := IDLE_LONG if pick == idles - 1 and idles > 1 and not spec.flies else IDLE_HOLD
+		var hold: Vector2 = IDLE_LONG if pick == idles - 1 and idles > 1 and not spec.flies else IDLE_HOLD
 		look.change_at = now + _rng.randf_range(hold.x, hold.y)
 	return look.idle
 
