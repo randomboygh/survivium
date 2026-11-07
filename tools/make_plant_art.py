@@ -96,6 +96,18 @@ PAL = {
     "e": (206, 168, 72, 255),  # ripe wheat
     "E": (238, 206, 112, 255),  # its shine
     "o": (156, 120, 52, 255),  # ripe stalk
+    "t": (64, 124, 56, 255),  # turnip leaf
+    "T": (110, 166, 78, 255),  # its lit side
+    "p": (150, 70, 140, 255),  # turnip root
+    "P": (234, 222, 206, 255),  # its pale part
+    "l": (78, 146, 58, 255),  # carrot leaf
+    "L": (130, 190, 84, 255),  # its lit side
+    "a": (222, 112, 28, 255),  # carrot
+    "A": (250, 160, 64, 255),  # its shine
+    "v": (84, 144, 66, 255),  # pea vine
+    "V": (134, 190, 92, 255),  # its lit side
+    "q": (150, 200, 96, 255),  # pea pod
+    "Q": (244, 244, 232, 255),  # pea flower
     "m": (30, 88, 40, 255),  # monstera leaf
     "M": (64, 136, 58, 255),  # its lit side
 }
@@ -173,6 +185,108 @@ WHEAT = [
         "..oo....", "...oo...", "..ooo...", "...oo...", "...oo...", "...o....",
     ],
 ]
+
+def low(*rows):
+    """A frame of the rows given, set on the ground (padded on top to 24 rows)."""
+    return ["........"] * (24 - len(rows)) + list(rows)
+
+
+# The crops sown on a bed (turnip, carrot, peas, flax bundles), a frame a stage: a sprout,
+# young leaves, grown, ripe.
+TURNIP = [
+    low("..t.t...", "...t....", "...t...."),
+    low(".T...T..", ".tT.Tt..", "..tTt...", "...tt...", "...t...."),
+    low("T.....T.", "tT.T.Tt.", ".tTtTt..", "..tTt.T.", "T.ttt.t.", "tTt.tTt.", ".ttttt..", "...tt...", "...t...."),
+    low("T.....T.", "tT.T.Tt.", ".tTtTt..", "..tTt.T.", "T.ttt.t.", "tTt.tTt.", ".ttttt..", "..tttt..",
+        ".pPPpp..", ".PPPpp..", "..Ppp..."),
+]
+
+CARROT = [
+    low("..l.l...", "...l....", "...l...."),
+    low(".L.l.L..", "..lll...", "L..l..l.", ".l.l.L..", "..lll...", "...l...."),
+    low("..L..l..", ".l.L.l.L", "l..lll..", ".L.l.l.l", "..l.L.l.", "l..lll..", ".l.l.L..", "..lll..l",
+        "...l.l..", "...ll...", "...l...."),
+    low("..L..l..", ".l.L.l.L", "l..lll..", ".L.l.l.l", "..l.L.l.", "l..lll..", ".l.l.L..", "..lll..l",
+        "...l.l..", "..lll...", "..AaA...", "..aAa...", "...a...."),
+]
+
+PEAS = [
+    low("...v....", "..vv....", "...v...."),
+    low("..V.....", ".vVv....", "..v.V...", "..vvV...", "...v....", "..vv....", "...v...."),
+    low("...V....", "..vVQ...", ".v.v.V..", "..vVv...", ".Q.v.vV.", "..vvV...", "V..v..v.", "vV.vvVv.",
+        "..vv.v..", ".v.v....", "...vv...", "...v....", "..vv....", "...v...."),
+    low("...V....", "..vVq...", ".v.vqV..", "..vVv...", ".q.v.vV.", ".qvvVq..", "V..v..q.", "vV.vvVv.",
+        "..vv.v..", ".vqv....", "..qvv...", "...v....", "..vv....", "...v...."),
+]
+
+SOWN_FLAX = [
+    low("..f.f...", "...f....", "...f...."),
+    low(".f..f...", "..f.f.f.", "..f.ff..", "...ff...", "...f....", "...f...."),
+    low("..U..u..", ".uUu.U..", "..f..f.U", "..f.f.uf", ".Uf.f.f.", "uf..f.f.", ".f.ff.f.", "..ff.f..",
+        "..f.ff..", "..ff.f..", "...ff...", "...f...."),
+    low("..E..e..", ".eEe.E..", "..o..o.E", "..o.o.eo", ".Eo.o.o.", "eo..o.o.", ".o.oo.o.", "..oo.o..",
+        "..o.oo..", "..oo.o..", "...oo...", "...o...."),
+]
+
+CROP_ICONS = {
+    "turnip": ["............", "....t.t.....", ".....tt.....", ".....t......", "...PPPPP....", "..PPPPPPP...",
+               "..PPPPPPP...", "..pPPPPPp...", "...ppppp....", "....ppp.....", ".....p......", "............"],
+    "carrot": ["............", "........l.l.", ".........ll.", "......AAal..", ".....AAaa...", "....AAaa....",
+               "...Aaaa.....", "..Aaaa......", "..aaa.......", ".aa.........", "............", "............"],
+    "peas": ["............", "............", "........v...", ".......vv...", "...qqqqqq...", "..qVqVqVq...",
+             "..qqqqqqq...", "...qqqqq....", "............", "............", "............", "............"],
+}
+
+
+def seeds(name, bundle, colour):
+    """The seeds of a crop: the grass bundle's seeds icon and model in colour `colour`."""
+    for kind in ("icons", "models"):
+        src = Image.open(os.path.join(ROOT, "grass", kind, "seeds.png")).convert("RGBA")
+        out = Image.new("RGBA", src.size, (0, 0, 0, 0))
+        for y in range(src.height):
+            for x in range(src.width):
+                r, g, b, a = src.getpixel((x, y))
+                if a:
+                    k = (r * 3 + g * 6 + b) / 2550.0
+                    out.putpixel((x, y), lerp(tuple(c * 0.55 for c in colour), colour, k))
+        path = os.path.join(ROOT, bundle, kind, "%s.png" % name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        out.save(path)
+        print(path)
+
+
+def carrot_model(bundle):
+    """A carrot lying on its side: an orange wedge with a green top, two slices high."""
+    img = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+    for level in range(2):
+        for i in range(8):
+            x, y = 3 + i, 11 - i
+            w = 2 if i > 1 else 1
+            for dx in range(w if level == 0 else max(1, w - 1)):
+                img.putpixel((level * 16 + x + dx, y), PAL["A" if level else "a"])
+        img.putpixel((level * 16 + 11, 3), PAL["L"])
+        img.putpixel((level * 16 + 12, 3), PAL["l"])
+        img.putpixel((level * 16 + 12, 2), PAL["l"])
+    path = os.path.join(ROOT, bundle, "models", "carrot.png")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+    print(path)
+
+
+def crops():
+    sprite("turnip", TURNIP)
+    sprite("carrot", CARROT)
+    sprite("peas", PEAS)
+    sprite("sown_flax", SOWN_FLAX, "flax")
+    for name, rows in CROP_ICONS.items():
+        icon(name, name, rows, PAL)
+    seeds("turnip_seeds", "turnip", (120, 70, 90))
+    seeds("carrot_seeds", "carrot", (170, 130, 80))
+    seeds("flax_seeds", "flax", (170, 120, 60))
+    berry_model("turnip", "turnip", PAL["p"], PAL["P"], size=4)
+    berry_model("peas", "peas", PAL["q"], PAL["V"], size=2)
+    carrot_model("carrot")
+
 
 # Monstera: two or three broad leaves split to the rib on short stalks, the jungle's
 # undergrowth.
@@ -302,6 +416,9 @@ def main():
     if sys.argv[1:] == ["wheat"]:
         sprite("wheat", WHEAT, "ears")
         return
+    if sys.argv[1:] == ["crops"]:
+        crops()
+        return
     bark("birch", (210, 206, 196), (246, 244, 238), marks=((48, 40, 36), 14), seed=3)
     bark("pine", (120, 66, 38), (196, 120, 70), seed=4)
     bark("willow", (86, 78, 66), (150, 140, 118), seed=5)
@@ -315,6 +432,7 @@ def main():
     sprite("flax", FLAX)
     sprite("monstera", MONSTERA)
     sprite("wheat", WHEAT, "ears")
+    crops()
     berry_icon("apple", "apple", (196, 44, 40, 255), (236, 120, 100, 255), cluster=False)
     berry_icon("rowan", "rowan", (220, 90, 30, 255), (240, 150, 80, 255))
     berry_icon("currant", "currant", (40, 28, 52, 255), (110, 80, 130, 255))

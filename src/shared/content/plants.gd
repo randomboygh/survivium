@@ -29,7 +29,7 @@ static var MUSHROOMS := ""
 static var GLOW := ""
 
 ## Id -> record from `content/*/data/plants.yaml` (see Content): id, title, kind, gives
-## (item id -> how many), chance, pick (picked by hand rather than cut, for the hint).
+## (item id -> how many), chance, finds (item id -> the chance of one besides), pick (picked by hand rather than cut, for the hint).
 static var BY_ID := {}
 ## kind -> the id of the last loaded plant of that kind.
 static var BY_KIND := {}
@@ -138,13 +138,17 @@ static func check() -> PackedStringArray:
 
 
 ## What cutting plants `ids` (one id per plant) gives, item id -> how many, rolled with
-## `rng`.
+## `rng`: its `gives` by its `chance`, and one of each item it `finds` by that item's own.
 static func harvest(ids: Array, rng: RandomNumberGenerator) -> Dictionary:
 	var out := {}
 	for id in ids:
 		var p: Dictionary = BY_ID.get(id, {})
-		if p.is_empty() or rng.randf() >= p.chance:
+		if p.is_empty():
 			continue
-		for item in p.gives:
-			out[item] = out.get(item, 0) + p.gives[item]
+		if rng.randf() < p.chance:
+			for item in p.gives:
+				out[item] = out.get(item, 0) + p.gives[item]
+		for item in p.get("finds", {}):
+			if rng.randf() < p.finds[item]:
+				out[item] = out.get(item, 0) + 1
 	return out

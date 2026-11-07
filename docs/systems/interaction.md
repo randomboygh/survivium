@@ -125,7 +125,9 @@
 сделал, возвращает `{"swing", "work", "time", "at"}`, пустой — `{}` или только `{"swing"}`.
 
 **Данные.** Земледелие: материалы ролей `bed` / `bed_wet` (бандл `resources/soil`), предметы с `crop` (зерно),
-растения вида `crop` (`grows: field`, `grow_days`, `mown`, кадры стадий; пшеница — бандл `plants/ears`), тяпка
+растения вида `crop` (`grows: field`, `grow_days`, `mown`, кадры стадий; пшеница — бандл `plants/ears`, репа,
+морковь, горох — `plants/turnip`, `plants/carrot`, `plants/peas`, посевной лён — `plants/flax`; их семена находят,
+срезая дикие растения: поле `finds`, `Plants.harvest`), тяпка
 (`tools/hoe`, класс `hoe`), серп (`tools/sickle`, класс `sickle`), лейка (`tools/watering_can`, класс `can`);
 грядки — `WorldData.fields`. Предметы с `tool`, `power`, `area`, `reach`, `swing`, `mows`, `durability`, `repair`,
 `anim`, `hands` (вид `items`); материалы с `dig`, `hardness`, `item`, `bonus`, `mow`, `mow_gives`

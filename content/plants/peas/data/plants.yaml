@@ -1,0 +1,14 @@
+# Горох — посев (kind crop, grows field): вьётся на мокрой грядке весной, летом и осенью
+# grow_days дней, кадр на стадию (sprites/plants/peas.png: росток, плети, цветы, стручки);
+# его собирают руками или серпом. Горошины иногда находят, срезая цветы (патч `finds`).
+- id: peas
+  kind: crop
+  title: Горох
+  sprite: peas
+  frames: 4
+  grows: field
+  grow_days: 3
+  gives: {peas: 6}
+- id: flowers
+  patch: true
+  finds+: {peas: 0.04}

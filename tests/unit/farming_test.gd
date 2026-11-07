@@ -15,6 +15,7 @@ func run() -> void:
 	_test_till_sow_water()
 	_test_growth()
 	_test_reap()
+	_test_crops()
 	_test_save()
 	_test_marks()
 
@@ -166,6 +167,37 @@ func _test_reap() -> void:
 		and actions.crop_on(row[3]) == "", "a scythe cuts ripe wheat (it is `mown`)")
 	_check(not Tools.can_reap(Tools.of("tools:stone_scythe"), {"mown": false}) and Tools.can_reap(Tools.HAND, {"mown": false}),
 		"a scythe does not cut a crop that is not `mown`, hands do")
+
+
+## Turnip, carrot, peas and flax are sown like grain, grow on a wet bed and give their
+## crop and seeds back.
+func _test_crops() -> void:
+	var setup := _world()
+	var w: WorldData = setup[0]
+	var clock: Clock = setup[1]
+	var actions: WorldActions = setup[2]
+	var who: Who = setup[3]
+	var seeds := ["plants:turnip_seeds", "plants:carrot_seeds", "plants:peas", "plants:flax_seeds"]
+	var gives := ["plants:turnip", "plants:carrot", "plants:peas", "plants:flax_stalks"]
+	who.item = "tools:stone_hoe"
+	var beds: Array[Vector3i] = []
+	for i in seeds.size():
+		var bed := Vector3i(8 + i, 1, 12)
+		beds.append(bed)
+		actions.dig_at(who, bed, Vector3i.UP)
+		who.inventory.add(seeds[i], 1)
+		_check(actions.plant_at(who, seeds[i], bed) and actions.crop_on(bed) == Items.get_item(seeds[i]).crop,
+			"%s is sown on a bed" % seeds[i])
+		actions.wet(bed, clock.now() + 1000.0)
+	actions.grow_fields(10.0, 0.0)
+	who.item = ""
+	for i in seeds.size():
+		actions.dig_at(who, beds[i], Vector3i.UP)
+		var got := 0
+		for key: Vector2i in w.drops:
+			for d: Array in w.drops[key]:
+				got += d[3] if d[0] == gives[i] else 0
+		_check(actions.crop_on(beds[i]) == "" and got > 0, "ripe %s is reaped by hand: %d %s" % [seeds[i], got, gives[i]])
 
 
 func _test_save() -> void:
