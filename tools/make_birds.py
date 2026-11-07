@@ -2,12 +2,11 @@
 
 Drawn by hand in the sparrow's style (tools/make_sparrow.py, 2026-11-07): an outline in
 the bird's darkest colour round the whole bird, broad wings in flight. Each species has
-a canvas, a palette, its standing art in five views and a level flying body seen from
+a canvas, a palette, its standing art in three views and a level flying body seen from
 the side; the wings are shared templates moved to its shoulder.
 
-Rows (creatures.yaml `views: 5`): the side (E, facing right), the front (S), the back
-(N), the front three-quarter (SE) and the back three-quarter (NE); the game mirrors
-them for the other three ways. Columns (`frames: 9`, `walk: 4`, `hop: 2`): sitting, the
+Rows (creatures.yaml `views: 3`): the side (E, facing right; the game mirrors it for
+left), the front (S) and the back (N). Columns (`frames: 9`, `walk: 4`, `hop: 2`): sitting, the
 wing beat (up, level, down, rising), two idle frames (feeding; the owl blinks and looks
 down), and the hop on the ground (crouched, in the air; the duck waddles instead).
 
@@ -113,11 +112,8 @@ class Bird:
         left = shift(FRONT_WINGS[i], *self.front_off)
         if view == "E":
             layers = [body, side]
-        elif view in ("S", "N"):
-            layers = [left, self.mirror(left), body]
         else:
-            far = {k: ("w" if ch in "WY" else "D") for k, ch in shift(self.mirror(left), -1, 0).items()}
-            layers = [far, body, shift(side, 0, 1)]
+            layers = [left, self.mirror(left), body]
         return self.render([shift(layer, 0, BEAT_BOB[i]) for layer in layers])
 
     def frames(self, view):
@@ -137,7 +133,7 @@ class Bird:
             out += [self.render([self.posed(view, crouch=True)]), self.render([self.posed(view, bob=-2)])]
         return out
 
-    def sheet(self, order=("E", "S", "N", "SE", "NE")):
+    def sheet(self, order=("E", "S", "N")):
         rows = [self.frames(v) for v in order]
         im = Image.new("RGBA", (self.W * len(rows[0]), self.H * len(rows)), (0, 0, 0, 0))
         for j, r in enumerate(rows):
@@ -163,14 +159,6 @@ CROW = Bird("crow", 18, 15, 17, {
           8: ".......KKKK.......", 9: "......kKKKKk......", 10: ".....kKKKKKKk.....",
           11: ".....KKDKKDKK.....", 12: ".....DKKDDKKD.....", 13: "......DDTTDD......",
           14: ".......LTTL......."},
-    "SE": {5: "...........kKK....", 6: "..........kKKKKB..", 7: "..........KEKKBB..",
-           8: ".........kKKKK....", 9: "......kkKKKKKK....", 10: "....kKKKKKKKKK....",
-           11: "..TKKKKKKKKKK.....", 12: ".TTDKKKKKKKK......", 13: "......DDDDD.......",
-           14: "......L..L........"},
-    "NE": {5: "...........kKK....", 6: "..........kKKKKB..", 7: "..........KKKKB...",
-           8: ".........kKKKK....", 9: "......kkKKKKKK....", 10: "...kKKKKKKKKKK....",
-           11: ".TTKKDKKKDKKK.....", 12: "TTTDKKDKKDKK......", 13: ".T....DDDD........",
-           14: "......L..L........"},
 }, {6: "............kKK...", 7: "...........kKKKKB.", 8: ".TT.......KKKEKBB.",
     9: "TTTTKKKKKKKKKK....", 10: ".TTKKKKKKKKKK.....", 11: ".....DDDDDDD......"},
     [{7: ".T................", 8: ".TTkk.............", 9: "..TKKKkkKK........",
@@ -206,14 +194,6 @@ OWL = Bird("owl", 16, 17, 15, {
           8: "....AAAAAAAA....", 9: "....aAAAAAAa....", 10: "....AADAADAA....", 11: "....AAAAAAAA....",
           12: "....AADAADAA....", 13: "....DAAAAAAD....", 14: ".....DATTAD.....", 15: "......TTTT......",
           16: "......L..L......"},
-    "SE": {4: ".....t....t.....", 5: ".....aAAAAAa....", 6: ".....AFFFFFF....", 7: ".....AFGEFGE....",
-           8: ".....AFFFBFF....", 9: "....aAAFFFFa....", 10: "....AAaaaaa.....", 11: "....AADaaDa.....",
-           12: "...DAAaaaaa.....", 13: "...DAAaDDaa.....", 14: "...TDAAaaA......", 15: "...TT.DDD.......",
-           16: "......L.L......."},
-    "NE": {4: ".....t....t.....", 5: ".....aAAAAAa....", 6: ".....AAAAAAF....", 7: ".....AADAAFF....",
-           8: ".....AAAAAFB....", 9: "....aAAAAAa.....", 10: "....AADAADA.....", 11: "....AAAAAAA.....",
-           12: "...DAADAADA.....", 13: "...DAAAAAAA.....", 14: "...TDAAAAD......", 15: "...TT.DDD.......",
-           16: "......L.L......."},
 }, {7: "...........t....", 8: "........aAAAt...", 9: ".TT....aAAFFF...", 10: "TTTAAAAAAFGEF...",
     11: ".TTAAADAAAFFB...", 12: "...DaaaaaaA.....", 13: ".....DDDD......."},
     [], head_rows=8, side_off=(-1, 1), front_off=(-1, 1), idles=owl_idles)
@@ -235,14 +215,6 @@ DUCK = Bird("duck", 19, 16, 17, {
     "N": {5: "......gGGg.......", 6: ".....gGGGGg......", 7: ".....GGGGGG......", 8: "......GGGG.......",
           9: "......QQQQ.......", 10: "....aAAAAAAa.....", 11: "...aAAAAAAAAa....", 12: "...ASAAAAAASA....",
           13: "...AAAAAAAAAA....", 14: "....DATTTTAD.....", 15: ".....L.TT.L......"},
-    "SE": {5: "............gGG....", 6: "...........gGGGGB..", 7: "...........GEGGBBB.",
-           8: "............GGG....", 9: "............QQQ....", 10: "......aaaaaCCCC....",
-           11: "....aAAAAAACCCCC...", 12: "...TAASAAAAACCC....", 13: "..TTDAAAAAAACC.....",
-           14: ".....DDDDDDDD......", 15: ".......L..L........"},
-    "NE": {5: "............gGG....", 6: "...........gGGGGB..", 7: "...........GGGGBB..",
-           8: "............GGG....", 9: "............QQ.....", 10: "....aaaaaaaaAA.....",
-           11: "..TAAAASAAAAAA.....", 12: ".TTAAAASSAAAAA.....", 13: "..TDAAAAAAAAA......",
-           14: "....DDDDDDDDD......", 15: "......L..L........."},
 }, {7: "..............gGG..", 8: ".TT..........gGGGBB", 9: "TTTaaaaaaaaQQGGEGB.",
     10: ".TTAAAAAAAACCC.....", 11: "...DAAAAAACC.......", 12: ".....DDDDDD........"},
     [{9: ".T.................", 10: ".TTaaaaaaa.........", 11: "..TAAAAAAACCC......",

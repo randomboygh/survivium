@@ -343,62 +343,6 @@ W....................
     return [walker(v, 23, 17) for v in (side, front, back)]
 
 
-# --- Rabbit ------------------------------------------------------------------------
-
-def rabbit():
-    fur = ramp("#a8865e", "#3a2618")
-    light = ramp("#e4d2b4", "#5a4630")
-    ear = ramp("#d89a92", "#5a3028")
-    nose = flat("#c06a6a")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "a": (fur, "head", None),
-        "i": (ear, "head", MID), "l": (light, "body", None), "m": (light, "head", None),
-        "W": (light, "tail", HIGH), "e": (EYE, "head", None), "n": (nose, "head", None),
-    }
-    side = View("""
-.......aa....
-......aia....
-......aih....
-.......hhhh..
-......hhhehh.
-..ooooohhhhhn
-.ooooooohhmm.
-Wooooooooo...
-Woooooooooo..
-.ollllloooo..
-""", L, legs=[(2, 9, "B", False, fur, fur, 2), (8, 9, "A", False, fur, fur),
-              (4, 9, "A", True, fur, light, 2), (9, 9, "B", True, fur, light)],
-                idles=[{"head": (0, -1)}, {"head": (1, 1)}])
-    front = View("""
-..a...a..
-..ai.ia..
-..ai.ia..
-..hhhhh..
-.hhhhhhh.
-.hehhheh.
-.hhmnmhh.
-..mmmmm..
-.oollloo.
-.ooollooo
-..oo..oo.
-""", L, legs=[(2, 9, "A", True, fur, light), (6, 9, "B", True, fur, light)],
-                 idles=[{"head": (0, -1)}, {"head": (0, 1)}], ox=3, straight=True)
-    back = View("""
-..a...a..
-..aa.aa..
-..aa.aa..
-..hhhhh..
-.hhhhhhh.
-.hhhhhhh.
-.hhhhhhh.
-..hhhhh..
-.ooooooo.
-.oooWWooo
-..ooWWoo.
-""", L, legs=[(2, 9, "A", True, fur, fur), (6, 9, "B", True, fur, fur)],
-                idles=[{"head": (0, -1)}, {"head": (0, 1)}], ox=3, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 15, 13) for v in (side, front, back)]
-
 
 # --- Squirrel ----------------------------------------------------------------------
 
@@ -617,7 +561,7 @@ uu.k.uu
 
 
 SHEETS = {
-    "fox": fox, "boar": boar, "deer": deer, "bear": bear, "wolf": wolf, "rabbit": rabbit,
+    "fox": fox, "boar": boar, "deer": deer, "bear": bear, "wolf": wolf,
     "squirrel": squirrel, "cat": cat, "hedgehog": hedgehog,
     "butterfly": butterfly,
 }

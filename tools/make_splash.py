@@ -23,7 +23,7 @@ OUTLINE = 4
 # from the side) and where it sits from the left of the name.
 BIRD_PX = 3
 BIRD_FRAMES = 9
-BIRD_VIEWS = 5
+BIRD_VIEWS = 3
 BIRD_X = 10
 ACCENT = (0xE9, 0xB4, 0x4C, 255)
 EDGE = (0x0F, 0x0A, 0x06, 255)

@@ -4,9 +4,8 @@ Drawn by hand after a 16 px sparrow the user made (2026-11-07): a slate outline 
 the whole bird, a chestnut back, a peach breast, a yellow wing bar; broad wings in
 flight. Frames 14x11, the bird about 11x8 standing (the game's size).
 
-Rows (creatures.yaml `views: 5`): the side (E, facing right), the front (S), the back
-(N), the front three-quarter (SE) and the back three-quarter (NE); the game mirrors
-them for the other three ways. Columns (`frames: 9`, `walk: 4`, `hop: 2`): sitting, the
+Rows (creatures.yaml `views: 3`): the side (E, facing right; the game mirrors it for
+left), the front (S) and the back (N). Columns (`frames: 9`, `walk: 4`, `hop: 2`): sitting, the
 wing beat (up, level, down, rising), two idle frames (pecking), and the hop on the
 ground (crouched, in the air).
 
@@ -44,15 +43,6 @@ STAND = {
         9: "....RpPpR.....",
         10: ".....L.L......",
     }),
-    "SE": art({
-        4: ".......cC.....",
-        5: "......cCCC....",
-        6: "......HHEHB...",
-        7: "...RRYKHHH....",
-        8: "..TRYYPPPP....",
-        9: "...RRpPPP.....",
-        10: ".....L.L......",
-    }),
     "E": art({
         4: ".......cC.....",
         5: "......cCCC....",
@@ -60,15 +50,6 @@ STAND = {
         7: "...RRYRHHP....",
         8: "..TRYYRPPP....",
         9: ".T.DRRpPP.....",
-        10: ".....L.L......",
-    }),
-    "NE": art({
-        4: ".......cC.....",
-        5: "......cCCC....",
-        6: "......CCCEB...",
-        7: "...RRDRCHH....",
-        8: "..TRYDRRRR....",
-        9: ".TTRRRRRR.....",
         10: ".....L.L......",
     }),
     "N": art({
@@ -109,22 +90,6 @@ FLY = {
         8: "....RRRRR.....",
         9: "....TTTTT.....",
     }),
-    "SE": art({
-        4: ".......cC.....",
-        5: "......cCCC....",
-        6: "......HHEHB...",
-        7: ".T.RRYKHHH....",
-        8: "TTRRYYPPPP....",
-        9: ".T.RRpPPP.....",
-    }),
-    "NE": art({
-        4: ".......cC.....",
-        5: "......cCCC....",
-        6: "......CCCEB...",
-        7: ".T.RRDRCHH....",
-        8: "TTRRYDRRRR....",
-        9: ".T.RRRRRR.....",
-    }),
 }
 
 # The near wing seen from the side: up, level (spread at us), down, rising.
@@ -145,7 +110,7 @@ FRONT_WINGS = [
 ]
 BEAT_BOB = [0, -1, 0, -1]
 
-# Pecking, seen from the side (and from the three-quarter views): the tail tips up, the
+# Pecking, seen from the side: the tail tips up, the
 # head goes down in front of the breast, then the beak to the ground.
 PECK_SIDE = [
     art({
@@ -173,10 +138,6 @@ def mirror(px):
 
 def shift(px, dx, dy):
     return {(x + dx, y + dy): ch for (x, y), ch in px.items()}
-
-
-def darker(px):
-    return {k: ("w" if ch in "WY" else "D") for k, ch in px.items()}
 
 
 def hexc(s):
@@ -222,10 +183,8 @@ def flight(view, i):
     body = FLY[view]
     if view == "E":
         layers = [body, SIDE_WINGS[i]]
-    elif view in ("S", "N"):
-        layers = [FRONT_WINGS[i], mirror(FRONT_WINGS[i]), body]
     else:
-        layers = [darker(shift(mirror(FRONT_WINGS[i]), -1, 0)), body, shift(SIDE_WINGS[i], 0, 1)]
+        layers = [FRONT_WINGS[i], mirror(FRONT_WINGS[i]), body]
     return render([shift(layer, 0, BEAT_BOB[i]) for layer in layers])
 
 
@@ -243,7 +202,7 @@ def frames(view):
     return out
 
 
-ORDER = ["E", "S", "N", "SE", "NE"]
+ORDER = ["E", "S", "N"]
 PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content", "animals", "sparrow",
                     "sprites", "creatures", "sparrow.png")
 
