@@ -75,7 +75,8 @@
 `sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади),
 в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
-(присел, в воздухе), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
+(присел, в воздухе); летающий без `hop` (бабочка, `Wildlife.sits_still`) по земле не ходит и не толкается:
+либо летит, либо сидит на месте и медленно хлопает крыльями (`SIT_FLAP_RATE`); остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
 воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`). `creatures.gd` выбирает сторону по движению на экране
 (`TURN_BIAS`), шаг — по пройденному
 пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
