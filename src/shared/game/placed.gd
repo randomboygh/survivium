@@ -37,6 +37,8 @@ const Body := preload("res://src/shared/game/body.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 
 const CELL := WorldData.CELL
+## No level is cut from (`_open`): the thing goes on air only.
+const NO_CUT := 1 << 30
 ## The campfire of the camp by the spawn of a new world (see Starts), the place to come
 ## back to after death.
 const CAMPFIRE := "core:campfire"
@@ -742,7 +744,9 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 	var n := size_of(item.id)
 	var steps: bool = item.get("steps", false)
 	var cuts: bool = item.get("door", false) or item.get("window", false)
-	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, steps, shape.high, cuts)
+	# An opening is cut from the level of their feet up: never into the floor they stand on.
+	var cut_from: int = floori(p.y + 0.25) if cuts else NO_CUT
+	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, steps, shape.high, cut_from)
 	if spot == null:
 		who.nag("put", "Здесь нет места: %s" % Items.title(id))
 		return false
@@ -967,9 +971,9 @@ func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps 
 
 ## The north-west cell of the free spot for a thing filling `offsets` (see
 ## _spot_in_front) whose filled cells' middle is nearest column point `aim` (cells), at
-## level `level`, one down or one up; `cuts`: blocks put there may be taken out for it
-## (a door, a window, see put_at). Null for none.
-func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Vector3i], steps: bool, high: int, cuts := false) -> Variant:
+## level `level`, one down or one up; blocks put there at level `cut_from` or higher may
+## be taken out for it (a door, a window, see put_at). Null for none.
+func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Vector3i], steps: bool, high: int, cut_from := NO_CUT) -> Variant:
 	var mid := Vector2.ZERO
 	for o: Vector3i in offsets:
 		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
@@ -984,7 +988,7 @@ func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Ve
 	for c in corners.slice(0, 6):
 		for dy in [0, -1, 1]:
 			var corner := Vector3i(c.x, level + dy, c.y)
-			if _fits(who, corner, top, offsets, steps, high, cuts):
+			if _fits(who, corner, top, offsets, steps, high, cut_from):
 				return corner
 	return null
 
@@ -993,25 +997,26 @@ func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Ve
 ## (no cell, no other thing or light, not `who`), at or below level `top`, and stand on
 ## solid ground, with air over them for a thing `high` cells tall (a door); stairs
 ## (`steps`) may stand on air, as blocks are laid.
-func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false, high := 1, cuts := false) -> bool:
+func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false, high := 1, cut_from := NO_CUT) -> bool:
 	if offsets.is_empty():
 		offsets = [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1)]
 	for o: Vector3i in offsets:
 		var c := corner + o
-		if not _open(c, cuts) or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
+		if not _open(c, cut_from) or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
 				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty() \
 				or _in_open_door(c):
 			return false
 		for k in range(1, high):
-			if not _open(c + Vector3i(0, k, 0), cuts) or world.blockers.has(c + Vector3i(0, k, 0)):
+			if not _open(c + Vector3i(0, k, 0), cut_from) or world.blockers.has(c + Vector3i(0, k, 0)):
 				return false
 	return true
 
 
-## Whether cell `c` is air, or (`cuts`) a block put there that an opening takes out.
-func _open(c: Vector3i, cuts: bool) -> bool:
+## Whether cell `c` is air, or a block put there that an opening takes out (at level
+## `cut_from` or higher: an opening is cut into walls, not into the floor under it).
+func _open(c: Vector3i, cut_from: int) -> bool:
 	var m: int = world.get_cell(c.x, c.y, c.z)
-	return m == Mat.AIR or cuts and m != Mat.WATER and not world.is_natural(c.x, c.y, c.z)
+	return m == Mat.AIR or c.y >= cut_from and m != Mat.WATER and not world.is_natural(c.x, c.y, c.z)
 
 
 ## True when cell `c` is one of those a door standing open fills when shut (it frees them

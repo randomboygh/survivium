@@ -20,6 +20,7 @@ const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const ShotPlaces := preload("res://tools/shot/places.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const CELL := 0.5
@@ -399,6 +400,8 @@ func _run() -> void:
 	main.hud.toggle_bag()
 	var bench: Vector3i = main.session.placed.cell_of("tools:workbench")
 	_check(main.world.blocks_body(bench.x, bench.y, bench.z), "a workbench is solid")
+	# After the crafting: the things it puts in the bag teach recipes, a longer craft tab.
+	await _portrait_palette()
 
 	# The chest by the spawn taken up with a stone in it, and set down again with it.
 	main.session.placed.chest_items.add("resources:stone", 1)
@@ -865,6 +868,63 @@ func _mean(times: PackedFloat32Array) -> float:
 	for ms in times:
 		total += ms
 	return total / maxi(times.size(), 1)
+
+
+## The build mode's palette is made as the hotbar (thread «Исправить дверь и палитру
+## строительства», 2026-11-07): its cells as big, on a portrait screen as many as the
+## hotbar's slots and hands, arrows when more do not fit, a finger dragging them along.
+func _portrait_palette() -> void:
+	var hud = main.hud
+	var was := Rect2(hud.position, hud.size * hud.scale)
+	var inv = main.host.player.inventory
+	# Room in the bag past its first row, given back as it was at the end.
+	var bag_before: Array = inv.slots.duplicate()
+	for i in range(inv.HOTBAR, inv.slots.size()):
+		inv.slots[i] = null
+	for id in ["materials:planks", "materials:brick", "materials:log_wall", "materials:cut_stone", "materials:wattle",
+			"materials:glass", "tools:door", "tools:window", "tools:stool", "tools:table"]:
+		if Items.has(id) and inv.count(id) == 0:
+			inv.add(id, 1)
+	for i in 3:
+		await process_frame
+	main.build.enter("materials:planks")
+	hud.fit(Rect2(0, 0, 1200, 2608))
+	await process_frame
+	await process_frame
+	var bar = hud.build_bar
+	_check(bar._columns == bar.COLUMNS_PORTRAIT and bar._slots[0].size.y == hud.SLOT and bar._prev.visible
+		and bar._prev.size.x == hud._prev_button.size.x, "the palette's cells and arrows are the hotbar's (%d cells of %s)"
+		% [bar._columns, bar._slots[0].size] + " %s" % [bar._items])
+	var slot = bar._slots[1]
+	var at: Vector2 = slot.get_global_transform_with_canvas() * (slot.size * 0.5)
+	var held: String = main.build.chosen()
+	var touch := InputEventScreenTouch.new()
+	touch.index = 3
+	touch.position = at
+	touch.pressed = true
+	bar._input(touch)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 3
+	drag.position = at - Vector2((hud.SLOT + hud.GAP) * hud.scale.x * 2.3, 0.0)
+	bar._input(drag)
+	touch.pressed = false
+	touch.position = drag.position
+	bar._input(touch)
+	_check(bar._first == 2 and main.build.chosen() == held, "a finger dragged along the palette scrolls it two cells")
+	# The action button stays down while the mode builds and comes up as it stops (it
+	# stuck down until the bag next changed).
+	# (With no blueprint the mode lets go at its next frame: the hud is asked at once.)
+	main.build.auto = true
+	hud.update_state()
+	var down: bool = hud._action.button_pressed and hud._action.text == "Стоп"
+	main.build.auto = false
+	hud.update_state()
+	_check(down and not hud._action.button_pressed and hud._action.text == "Строить",
+		"the action button comes up when the build stops (%s %s %s)" % [down, hud._action.button_pressed, hud._action.text])
+	main.build.leave()
+	inv.slots = bag_before
+	hud.fit(was)
+	await process_frame
 
 
 ## A portrait phone screen shows four hotbar slots between two arrows, which move them

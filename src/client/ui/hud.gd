@@ -366,6 +366,11 @@ func update_state() -> void:
 	if _clock_left <= 0.0:
 		_clock_left = CLOCK_EVERY
 		_clock.text = clock_text()
+	# The action button comes up (and says «Строить» again) as soon as the build or the
+	# farming mode stops working, or the fishing line is out of the water, not at the bag's
+	# next change.
+	if _action.latched != _action_latched():
+		_update_hands()
 	# The state stays in sight while the bag is open, by the food it may be eaten from.
 	vitals.pinned = bag.visible
 	vitals.update(game.character.vitals, get_process_delta_time())

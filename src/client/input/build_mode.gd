@@ -2,8 +2,8 @@ extends RefCounted
 ## The build mode: building is done here only (thread «Сделать отдельный режим
 ## строительства», 2026-11-06). It is entered from the bag with a block or a part of a
 ## house chosen (InventoryWindow's «Строить», or a block's slot on the hotbar), and the
-## hotbar turns into the palette of what the bag holds to build with (BuildBar), filtered
-## by «Всё» / «Материалы» / «Интерьер». The hand in use holds what is chosen on the
+## hotbar turns into the palette of what the bag holds to build with (BuildBar; its
+## filters «Всё» / «Материалы» / «Интерьер» are not shown for now). The hand in use holds what is chosen on the
 ## palette, the other hand keeps what it held (a torch stays lit). A stroke on the world
 ## draws the blueprint's shape (Plans.KINDS: line, plane, square, cube; walls `height`
 ## levels high and `thick` cells thick) with the block chosen, or takes the ghost off
@@ -300,11 +300,12 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 	if hit.is_empty():
 		return {}
 	if Tools.use_of(chosen()) != "place" and not erasing:
-		# A thing is set down at once where tapped (a door or a window into the wall tapped).
+		# A thing is set down at once where tapped (a door or a window into the side of a
+		# wall tapped; on the top of a floor it stands on it, never cut into it).
 		var item := Items.get_item(chosen())
 		var cell: Vector3i = hit.cell
 		var into_wall: bool = (item.get("door", false) or item.get("window", false)) \
-			and not game.world.is_natural(cell.x, cell.y, cell.z)
+			and hit.normal.y == 0 and not game.world.is_natural(cell.x, cell.y, cell.z)
 		game.net.request(Protocol.PROP_PUT_AT, [chosen(), cell if into_wall else cell + hit.normal])
 		return {}
 	var first := start_cell(hit)
