@@ -161,8 +161,6 @@ func till(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 		world.set_cell(c.x, c.y, c.z, Mat.BED)
 		world.set_field(c, ["", 0.0, 0.0])
 		_changed(c)
-		if rules.free_build:
-			continue
 		var own: Dictionary = Mat.RECORDS[was].mow_gives
 		for id in own:
 			world.heap_drop(Items.get_item(id).get("id", id), floor_under(c + Vector3i.UP), own[id], randf() * TAU)
@@ -445,7 +443,7 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 		var gives := Plants.harvest([f[0]], rng)
 		world.set_field(c, ["", 0.0, f[2]])
 		keys[WorldData.chunk_key(c.x, c.z)] = true
-		if rules.free_build or gives.is_empty():
+		if gives.is_empty():
 			continue
 		if _extra(who, "farm"):
 			var first: String = gives.keys()[0]

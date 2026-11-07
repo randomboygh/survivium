@@ -81,8 +81,6 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 			fresh += 1
 		world.set_cell(c.x, c.y, c.z, Mat.AIR)
 		_changed(c)
-		if rules.free_build:
-			continue
 		var at := floor_under(c)
 		var rec: Dictionary = Mat.RECORDS[was]
 		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
@@ -201,8 +199,6 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 			world.set_turf(c, null)
 			world.set_material(c.x, c.y, c.z, to)
 			_changed(c)
-		if rules.free_build:
-			continue
 		if not gives.is_empty() and _extra(who, "gather"):
 			var first: String = gives.keys()[0]
 			gives[first] += 1

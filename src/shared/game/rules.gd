@@ -4,7 +4,8 @@ extends RefCounted
 ## the «Тестирование» page sets them (Settings.apply); a server will take them from its
 ## config. The rules read them as they stand, so a change holds at once.
 
-## Building takes nothing from the bag and digging gives nothing (WorldActions).
+## Building takes nothing from the bag (WorldActions, Plans); digging, mowing and reaping
+## still give what they give, as without it.
 var free_build := false
 ## Tools wear with use and crafting (Workshop, decision 105).
 var tool_wear := false
