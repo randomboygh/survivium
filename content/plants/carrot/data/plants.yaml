@@ -1,0 +1,15 @@
+# Морковь — посев (kind crop, grows field): растёт на мокрой грядке весной, летом и осенью
+# grow_days дней, кадр на стадию (sprites/plants/carrot.png: росток, перистые листья, ботва,
+# спелая с оранжевой головкой); её собирают руками или серпом. Семена моркови иногда находят,
+# срезая травы (патч `finds`).
+- id: carrot
+  kind: crop
+  title: Морковь
+  sprite: carrot
+  frames: 4
+  grows: field
+  grow_days: 4
+  gives: {carrot: 3, carrot_seeds: 2}
+- id: herbs
+  patch: true
+  finds+: {carrot_seeds: 0.04}
