@@ -12,7 +12,9 @@
   active: any
   count: 5
   sprite: roach
-  frames: 3
+  frames: 6
+  walk: 4
+  views: 3
   swims: true
   flock: [2, 4]
   catch: roach
@@ -27,7 +29,9 @@
   active: any
   count: 2
   sprite: pike
-  frames: 3
+  frames: 6
+  walk: 4
+  views: 3
   swims: true
   catch: pike
   biomes: [biomes:alpine_meadow, biomes:birch_grove, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:glacier, biomes:maple_wood, biomes:meadow, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:rock, biomes:steppe, biomes:stony_tundra, biomes:swamp, biomes:taiga, biomes:tundra]
@@ -41,7 +45,9 @@
   active: any
   count: 4
   sprite: salmon
-  frames: 3
+  frames: 6
+  walk: 4
+  views: 3
   swims: true
   flock: [2, 4]
   catch: salmon
@@ -56,7 +62,9 @@
   active: any
   count: 5
   sprite: cod
-  frames: 3
+  frames: 6
+  walk: 4
+  views: 3
   swims: true
   flock: [2, 4]
   catch: cod
@@ -71,7 +79,9 @@
   active: day
   count: 4
   sprite: parrotfish
-  frames: 3
+  frames: 6
+  walk: 4
+  views: 3
   swims: true
   flock: [2, 4]
   catch: parrotfish
@@ -86,7 +96,9 @@
   active: night
   count: 2
   sprite: catfish
-  frames: 3
+  frames: 6
+  walk: 4
+  views: 3
   swims: true
   catch: catfish
   biomes: [biomes:birch_grove, biomes:desert, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:jungle, biomes:mangrove, biomes:maple_wood, biomes:meadow, biomes:red_rocks, biomes:salt_flat, biomes:savanna, biomes:steppe, biomes:swamp]

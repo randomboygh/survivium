@@ -14,7 +14,9 @@
   count: 4
   sprite: boar
   biomes: [biomes:forest, biomes:swamp]
-  frames: 3
+  frames: 7
+  walk: 4
+  views: 3
   flock: [2, 4]
   likes: [plants:mushrooms]
   calls: boar

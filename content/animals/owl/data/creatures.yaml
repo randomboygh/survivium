@@ -14,7 +14,9 @@
   count: 3
   sprite: owl
   biomes: [biomes:forest, biomes:taiga]
-  frames: 3
+  frames: 6
+  walk: 3
+  views: 3
   flies: true
   roost: trees
   calls: owl

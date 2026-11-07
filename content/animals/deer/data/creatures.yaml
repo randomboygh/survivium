@@ -12,7 +12,9 @@
   active: day
   count: 8
   sprite: deer
-  frames: 3
+  frames: 7
+  walk: 4
+  views: 3
   flock: [3, 5]
   likes: [plants:tuft, plants:tall_grass]
   biomes: [biomes:meadow, biomes:forest, biomes:taiga]

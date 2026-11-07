@@ -209,7 +209,7 @@ func _check_models() -> PackedStringArray:
 	return out
 
 
-## Each species' picture is there, a row of as many frames as it says.
+## Each species' picture is there, as many frames wide and views tall as it says.
 func _check_creature_pictures() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for id in AiRules.SPECIES:
@@ -221,4 +221,6 @@ func _check_creature_pictures() -> PackedStringArray:
 			out.append("creatures: `%s`: no picture %s" % [id, path])
 		elif load(path).get_width() % spec.frames != 0:
 			out.append("creatures: `%s`: %s is not %d frames wide" % [id, path.get_file(), spec.frames])
+		elif load(path).get_height() % spec.views != 0:
+			out.append("creatures: `%s`: %s is not %d views tall" % [id, path.get_file(), spec.views])
 	return out

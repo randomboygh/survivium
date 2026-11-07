@@ -12,7 +12,9 @@
   active: any
   count: 4
   sprite: cat
-  frames: 3
+  frames: 7
+  walk: 4
+  views: 3
   biomes: [biomes:forest, biomes:meadow]
   calls: cat
   alarm: cat

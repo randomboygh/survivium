@@ -13,7 +13,9 @@
   active: any
   count: 4
   sprite: frog
-  frames: 3
+  frames: 5
+  walk: 2
+  views: 3
   swims: true
   ashore: true
   hops: true

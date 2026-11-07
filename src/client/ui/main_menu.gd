@@ -102,6 +102,8 @@ func _ready() -> void:
 	if AiRules.SPECIES.has(SPARROW):
 		_sparrow_picture = Creatures.picture(AiRules.SPECIES[SPARROW])
 		_sparrow_frames = AiRules.SPECIES[SPARROW].frames
+		_sparrow_walk = Creatures.walk_frames(AiRules.SPECIES[SPARROW])
+		_sparrow_views = AiRules.SPECIES[SPARROW].views
 	title.add_child(_sparrow)
 	_sparrow_hit = Control.new()
 	_sparrow_hit.mouse_filter = Control.MOUSE_FILTER_STOP
