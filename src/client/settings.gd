@@ -176,9 +176,9 @@ var free_build := false
 ## Playtest: the stone and wooden tools the game has before crafting, into the bag.
 ## Playtest switch: jumps in the air too and for free, to climb out of deep caves. Not saved.
 var air_jumps := false
-## Playtest switch: tools wear with use and break (decision 105: only in the «суровый»
-## preset, which does not exist yet). Not saved.
-var tool_wear := false
+## Playtest switch: tools wear with use and break (decision 105; on by default since the
+## balance pass, docs/balance/GAME_BALANCE_DESIGN.md; off to play without). Not saved.
+var tool_wear := true
 ## Playtest switch: the hint under the pointer (on a touch screen, at a tap, for a few
 ## seconds) tells what the cell is and why the hand in use does or does not work it. Not
 ## saved.

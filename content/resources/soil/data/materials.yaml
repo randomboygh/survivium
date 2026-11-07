@@ -27,6 +27,7 @@
   hotbar: 6
   item: clay
   dig: shovel
+  toughness: 2
   step: step_dirt
   hit: dig
 # Грядка — земля, вскопанная тяпкой (role bed); политая или под дождём она сутки мокрая и темнее

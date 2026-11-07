@@ -7,5 +7,6 @@
   priority: 2
   item: iron_ore
   hardness: 4
+  toughness: 8
   step: step_stone
   hit: hit_stone

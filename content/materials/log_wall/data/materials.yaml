@@ -4,5 +4,6 @@
   hotbar: 8
   item: log_wall
   dig: axe
+  toughness: 4
   step: step_wood
   hit: chop

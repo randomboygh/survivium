@@ -153,7 +153,7 @@ func can_till(cell: Vector3i) -> bool:
 ## when it is cut.
 func till(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 	cells = _allowed(who, cells, "build")
-	if cells.is_empty() or not who.act("dig"):
+	if cells.is_empty() or not who.act("dig", "farm"):
 		return {}
 	var keys := {}
 	for c in cells:
@@ -240,7 +240,7 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		else:
 			who.nag("plant", "Сеют на пустую грядку: вскопайте её тяпкой")
 		return false
-	if not _may(who, cell, "build") or not who.act("gather"):
+	if not _may(who, cell, "build") or not who.act("gather", "farm"):
 		return false
 	sow(who, item, cell)
 	return true
@@ -386,7 +386,7 @@ func can_water(cell: Vector3i) -> bool:
 ## its `empties_to`.
 func water(who, cells: Array[Vector3i], with := "") -> Dictionary:
 	cells = _allowed(who, cells, "build")
-	if cells.is_empty() or not who.act("gather"):
+	if cells.is_empty() or not who.act("gather", "farm"):
 		return {}
 	var can: String = who.held() if with == "" else with
 	var item := Items.get_item(can)
@@ -433,7 +433,7 @@ func can_reap(cell: Vector3i, t: Dictionary) -> bool:
 ## the skill), lying on the bed; the bed stays, empty.
 func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 	cells = _allowed(who, cells, "harvest")
-	if cells.is_empty() or not who.act("cut"):
+	if cells.is_empty() or not who.act("cut", "farm"):
 		return {}
 	var keys := {}
 	for c in cells:

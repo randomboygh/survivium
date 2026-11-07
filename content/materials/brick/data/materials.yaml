@@ -4,5 +4,6 @@
   hotbar: 4
   item: brick
   hardness: 2
+  toughness: 3
   step: step_stone
   hit: hit_stone

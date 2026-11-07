@@ -17,7 +17,7 @@
   power: 2
   swing: 0.6
   reach: 9
-  durability: 120
+  durability: 360
   repair: {resources:flint: 1, materials:cord: 1}
 - id: copper_axe
   title: Медный топор
@@ -29,9 +29,9 @@
   sprite: copper_axe
   anim: chop
   power: 3
-  swing: 0.45
+  swing: 0.5
   reach: 9
-  durability: 300
+  durability: 900
   repair: {materials:copper_bar: 1}
 - id: bronze_axe
   title: Бронзовый топор
@@ -43,9 +43,9 @@
   sprite: bronze_axe
   anim: chop
   power: 4
-  swing: 0.4
+  swing: 0.45
   reach: 9
-  durability: 500
+  durability: 1500
   repair: {materials:bronze_bar: 1}
 - id: iron_axe
   title: Железный топор
@@ -59,7 +59,7 @@
   power: 5
   swing: 0.4
   reach: 9
-  durability: 800
+  durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_axe
   title: Стальной топор
@@ -71,7 +71,7 @@
   sprite: steel_axe
   anim: chop
   power: 6
-  swing: 0.4
+  swing: 0.36
   reach: 9
-  durability: 1200
+  durability: 3600
   repair: {materials:steel_bar: 1}

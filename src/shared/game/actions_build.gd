@@ -29,7 +29,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 		if not free and who.inventory.count(item) == 0:
 			who.nag("no_block", "В сумке нет: %s" % Items.title(item))
 			break
-		if not who.act("place"):
+		if not who.act("place", "build"):
 			break
 		if not free:
 			who.inventory.remove(item, 1)
@@ -101,7 +101,7 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		return false
 	if not _may(who, cell, "build"):
 		return false
-	if not who.act("gather"):
+	if not who.act("gather", "farm"):
 		return false
 	who.inventory.remove(item.id, 1)
 	if item.plant != "":

@@ -350,10 +350,11 @@ func can_jump() -> bool:
 	return vitals.can("jump") and not inventory.overloaded()
 
 
-## Pays the stamina for `action` (see Vitals.COSTS); says so and returns false when the
-## character is too tired.
-func act(action: String) -> bool:
-	if vitals.spend(action):
+## Pays the stamina for `action` (see Vitals.COSTS), less of it by the skill of work
+## `role` (SkillSet.effort) when given; says so and returns false when the character is
+## too tired.
+func act(action: String, role := "") -> bool:
+	if vitals.spend(action, skills.effort(role) if role != "" else 1.0):
 		if COUNTED.has(action):
 			note(COUNTED[action])
 		return true

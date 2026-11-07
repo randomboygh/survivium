@@ -4,5 +4,6 @@
   hotbar: 3
   item: planks
   dig: axe
+  toughness: 3
   step: step_wood
   hit: knock

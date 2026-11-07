@@ -13,7 +13,7 @@
   area: 1
   swing: 0.5
   reach: 8
-  durability: 120
+  durability: 360
   repair: {resources:flint: 1, materials:cord: 1}
 - id: copper_hoe
   title: Медная тяпка
@@ -27,7 +27,7 @@
   area: 2
   swing: 0.4
   reach: 8
-  durability: 300
+  durability: 900
   repair: {materials:copper_bar: 1}
 - id: iron_hoe
   title: Железная тяпка
@@ -41,5 +41,5 @@
   area: 3
   swing: 0.35
   reach: 8
-  durability: 800
+  durability: 2400
   repair: {materials:iron_bar: 1}

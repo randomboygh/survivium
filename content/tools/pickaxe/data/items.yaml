@@ -17,7 +17,7 @@
   power: 2
   swing: 0.55
   reach: 10
-  durability: 150
+  durability: 450
   repair: {resources:flint: 1, materials:cord: 1}
 - id: wooden_pickaxe
   title: Деревянная кирка
@@ -31,7 +31,7 @@
   power: 2
   swing: 0.8
   reach: 10
-  durability: 30
+  durability: 90
   repair: {materials:planks: 1}
 - id: copper_pickaxe
   title: Медная кирка
@@ -43,9 +43,9 @@
   sprite: copper_pickaxe
   anim: chop
   power: 3
-  swing: 0.4
+  swing: 0.45
   reach: 10
-  durability: 350
+  durability: 1050
   repair: {materials:copper_bar: 1}
 - id: bronze_pickaxe
   title: Бронзовая кирка
@@ -57,9 +57,9 @@
   sprite: bronze_pickaxe
   anim: chop
   power: 4
-  swing: 0.36
+  swing: 0.4
   reach: 10
-  durability: 550
+  durability: 1650
   repair: {materials:bronze_bar: 1}
 - id: iron_pickaxe
   title: Железная кирка
@@ -73,7 +73,7 @@
   power: 5
   swing: 0.36
   reach: 10
-  durability: 800
+  durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_pickaxe
   title: Стальная кирка
@@ -85,7 +85,7 @@
   sprite: steel_pickaxe
   anim: chop
   power: 6
-  swing: 0.36
+  swing: 0.32
   reach: 10
-  durability: 1200
+  durability: 3600
   repair: {materials:steel_bar: 1}

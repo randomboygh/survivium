@@ -256,6 +256,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## tests/unit
 
 - `tests/unit/actions_test.gd`: What the hands do to the world: felling, digging and building, the action in front, placed things.
+- `tests/unit/balance_test.gd`: The limits the game's balance keeps within (docs/balance/GAME_BALANCE_DESIGN.md, section «Автоматические проверки»), read off the data of the mods and the rules' own formulas, so a tool, a tree, a…
 - `tests/unit/body_test.gd`: The body on the cells: raycast, walking, water and bogs, slopes, steps, the test ground, pits.
 - `tests/unit/bundle_system_test.gd`: The acceptance of the bundle system (docs/specifications/BUNDLE_SYSTEM.md, section 15): what the TZ (bundles.md) wants added without touching the engine, written as data alone in a mod of the test's…
 - `tests/unit/character_test.gd`: The character: the bag, tool wear, vitals, the change log and death.
@@ -288,6 +289,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## tools
 
+- `tools/balance_report.gd`: Writes docs/balance/GAME_BALANCE_TABLES.md, the tables of the game's balance, from the data of every mod as the game loads it and by the same formulas the rules use (Tools.swing_time, Tools.hits_to,…
 - `tools/bench_content.gd`: Times the mods' data, the part of the start of the game they cost: reading every file under content/ (Content.read_ms), loading the set of every bundle (Content.load_ms), the registries (Mods.rescan)…
 - `tools/bench_edit.gd`: Times what a single edit, a cut-level change and a roof touch cost, as the game does them, so freezes can be chased without a phone: godot --headless --path . --script res://tools/bench_edit.gd
 - `tools/bench_gen.gd`: Times generating a world: finding the spawn, then each stage of the chunks around it, then a square of `size` chunks at once. godot --headless --path . --script res://tools/bench_gen.gd [size]

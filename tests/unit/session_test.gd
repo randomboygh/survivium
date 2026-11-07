@@ -12,7 +12,7 @@ func run() -> void:
 
 func _test_rules() -> void:
 	var r = Rules.of({"free_build": true, "instant_craft": true})
-	_check(r.free_build and not r.tool_wear and r.instant_craft, "rules come from a dictionary, the rest by default")
+	_check(r.free_build and r.tool_wear and r.instant_craft, "rules come from a dictionary, the rest by default (wear is on)")
 	var again = Rules.new()
 	again.from_dict(r.to_dict())
 	_check(again.to_dict() == r.to_dict(), "rules go through to_dict and back")

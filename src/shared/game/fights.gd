@@ -136,7 +136,7 @@ func strike(who, other, power: int, from: Vector3) -> bool:
 	var b := _id(other)
 	if give_up(a):
 		who.nag("pvp_brave", "Вы напали: защита новичка снята")
-	var damage := float(maxi(1, power)) * float(rules.pvp_damage if rules != null else 5)
+	var damage := float(maxi(1, power)) * float(rules.pvp_damage if rules != null else 4)
 	var name := str(who.get("player_name")) if who.get("player_name") != null else ""
 	other.vitals.wound(damage, "player:" + name)
 	var away := Vector2(other.position.x - from.x, other.position.z - from.z)

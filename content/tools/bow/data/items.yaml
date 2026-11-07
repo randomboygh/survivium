@@ -17,7 +17,7 @@
   reach: 4
   range: 30
   ammo: arrow
-  durability: 250
+  durability: 750
   repair: {materials:cord: 1}
 - id: arrow
   title: Стрела

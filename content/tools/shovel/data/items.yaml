@@ -17,7 +17,7 @@
   power: 1
   swing: 0.25
   reach: 10
-  durability: 100
+  durability: 300
   repair: {materials:planks: 1}
 - id: copper_shovel
   title: Медная лопата
@@ -29,9 +29,9 @@
   sprite: copper_shovel
   anim: dig
   power: 2
-  swing: 0.18
+  swing: 0.2
   reach: 10
-  durability: 300
+  durability: 900
   repair: {materials:copper_bar: 1}
 - id: bronze_shovel
   title: Бронзовая лопата
@@ -43,9 +43,9 @@
   sprite: bronze_shovel
   anim: dig
   power: 2
-  swing: 0.16
+  swing: 0.18
   reach: 10
-  durability: 500
+  durability: 1500
   repair: {materials:bronze_bar: 1}
 - id: iron_shovel
   title: Железная лопата
@@ -59,7 +59,7 @@
   power: 3
   swing: 0.16
   reach: 10
-  durability: 800
+  durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_shovel
   title: Стальная лопата
@@ -71,7 +71,7 @@
   sprite: steel_shovel
   anim: dig
   power: 4
-  swing: 0.16
+  swing: 0.14
   reach: 10
-  durability: 1200
+  durability: 3600
   repair: {materials:steel_bar: 1}

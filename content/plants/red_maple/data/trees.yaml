@@ -15,5 +15,5 @@
   bare: 1.0
   log: resources:log
   twig: resources:branch
-  hits: 5
+  hits: 20
   twigs: 4

@@ -18,6 +18,6 @@
   seed: coconut
   log: resources:log
   twig: resources:branch
-  hits: 4
+  hits: 16
   twigs: 2
   seeds: 3

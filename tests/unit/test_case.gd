@@ -223,7 +223,7 @@ class Who extends RefCounted:
 	func brush() -> Dictionary:
 		return Tools.BRUSHES[0]
 
-	func act(_action: String) -> bool:
+	func act(_action: String, _role := "") -> bool:
 		return true
 
 	func is_dead() -> bool:

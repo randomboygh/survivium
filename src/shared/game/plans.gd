@@ -454,7 +454,7 @@ func build(actions, who) -> Dictionary:
 			continue
 		if not actions.territory_allows(who, c, "build"):
 			continue
-		if not who.act("place"):
+		if not who.act("place", "build"):
 			return {"swing": actions.IDLE_SWING}
 		if not free:
 			who.inventory.remove(item, 1)

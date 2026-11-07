@@ -16,5 +16,5 @@
   reach: 4
   range: 36
   ammo: arrow
-  durability: 450
+  durability: 1350
   repair: {materials:bone_glue: 1}
