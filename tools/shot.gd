@@ -131,6 +131,9 @@ func _run() -> void:
 			main.player.position = places.walls(main.world, main.player.position)
 		if shot.has("openings"):
 			main.player.position = places.openings(main.world, main.player.position, shot.openings == "storage")
+		if shot.has("lit_room"):
+			main.player.position = places.lit_room(main.world, main.player.position, shot.lit_room == "open",
+				shot.get("lamps", false), shot.get("door_first", false))
 		if shot.get("furniture", false):
 			main.player.position = places.furniture(main.world, main.player.position)
 		if shot.get("plan", false):
@@ -923,6 +926,12 @@ func _run() -> void:
 			main.hud.visible = false
 			await process_frame
 			await process_frame
+		if not main.effects.lamps.is_empty():
+			# The lights set down light the world (their flicker clock is stopped above),
+			# and the drawn fire shadows make their maps, a few rows a frame.
+			main.effects._light_lamps(PixelView.screen_plane(main.player.position), main.sky)
+			for i in 30:
+				await process_frame
 		# The trees' light is worked out a few trees a frame in the game: all of it first.
 		if main.sun_rays != null and main.sun_rays.finish():
 			await process_frame

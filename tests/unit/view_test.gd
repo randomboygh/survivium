@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
+const FireShadows := preload("res://src/client/view/fire_shadows.gd")
 
 
 func run() -> void:
@@ -17,6 +18,7 @@ func run() -> void:
 	_test_camera_spin()
 	_test_camera_drift()
 	_test_other_bundles()
+	_test_light_maps()
 
 
 func _test_pixel_view() -> void:
@@ -491,3 +493,31 @@ func _test_other_bundles() -> void:
 	Mods.activate(before)
 	PixelTextures.forget()
 	MeshFaces.forget()
+
+
+## The maps the drawn fire shadows look up (FireShadows._map_blockers): a shut door keeps
+## the light out up its whole height, a window lets it through, an open door too.
+func _test_light_maps() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var door: Dictionary = placed.put("tools:door", Vector3i(10, 4, 10))
+	placed.put("tools:window_1x2", Vector3i(14, 5, 10))
+	_check(not Placed.lets_light(door) and Placed.lets_light(placed.things[-1]), "a window lets the light through, a door not")
+	var shadows = FireShadows.new()
+	shadows.game = {"placed": placed}
+	var m := {"origin": Vector2i(0, 0), "level": 4, "data": PackedByteArray()}
+	m.data.resize(FireShadows.MAP * FireShadows.MAP_ROWS_TALL)
+	shadows._map_blockers(w, m)
+	var solid := func(c: Vector3i) -> bool:
+		var y: int = c.y - (m.level - FireShadows.BELOW)
+		return m.data[(y >> 3) * FireShadows.MAP * FireShadows.MAP + c.z * FireShadows.MAP + c.x] & (1 << (y & 7)) != 0
+	_check(solid.call(Vector3i(10, 4, 10)) and solid.call(Vector3i(10, 5, 10)) and not solid.call(Vector3i(10, 6, 10)),
+		"a shut door two cells tall keeps the light out of both")
+	_check(not solid.call(Vector3i(14, 5, 10)) and not solid.call(Vector3i(14, 6, 10)), "a window lets it through")
+	placed.swing(null, door)
+	m.data.fill(0)
+	shadows._map_blockers(w, m)
+	_check(door.open and not solid.call(Vector3i(10, 4, 10)), "an open door lets it through")
+	shadows.free()
