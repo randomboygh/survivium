@@ -20,6 +20,7 @@ extends PanelContainer
 ## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
 const Markers := preload("res://src/client/game/markers.gd")
@@ -152,6 +153,7 @@ func _ready() -> void:
 	# The rows keep their place whether the bar shows or not: a little room on the left,
 	# the bar's on the right.
 	_scroll.add_child(UiStyle.inset(_list))
+	DragScroll.attach(_scroll)
 	_scroll.get_v_scroll_bar().value_changed.connect(_on_scrolled)
 	_legend = PanelContainer.new()
 	_legend.add_theme_stylebox_override("panel", UiStyle.field())

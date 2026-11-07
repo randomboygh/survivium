@@ -10,6 +10,7 @@ extends ScrollContainer
 ## inset as the settings' (UiStyle.inset). `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 
 ## The least width of its buttons.
 const WIDTH := 200
@@ -30,6 +31,7 @@ func _init(g) -> void:
 	_box.add_theme_constant_override("separation", 6)
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(UiStyle.inset(_box))
+	DragScroll.attach(self)
 
 
 func _ready() -> void:
