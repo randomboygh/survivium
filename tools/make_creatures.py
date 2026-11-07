@@ -19,72 +19,6 @@ EYE = flat("#1c1214")
 GLINT = flat("#f4efe6")
 
 
-# --- Fox ---------------------------------------------------------------------------
-
-def fox():
-    fur = ramp("#d8662a", "#4a1e16")
-    tail = ramp("#c85a26", "#4a1e16")
-    white = ramp("#efe6d6", "#5a3a30")
-    dark = ramp("#4a2c26", "#24120e")
-    nose = flat("#2a1a1a")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "t": (tail, "tail", None),
-        "W": (white, "tail", None), "w": (white, "body", None), "m": (white, "head", None),
-        "e": (EYE, "head", None), "n": (nose, "head", None), "d": (dark, "head", None),
-        "T": (tail, "tail", OUTLINE),
-    }
-    side = View("""
-..............d..d..
-.............hh.hh..
-.............hhhhh..
-............hhhhehh.
-............hhhhhmmn
-.....ooooooooohmmm..
-..tttoooooooooomw...
-.ttttooooooooowww...
-tttt.oooooooooww....
-WWt...oooooooow.....
-WW..................
-""", L, legs=[(5, 9, "B", False, fur, dark), (11, 9, "A", False, fur, dark),
-              (7, 9, "A", True, fur, dark), (13, 9, "B", True, fur, dark)],
-                idles=[{"tail": (0, -1)}, {"head": (1, 2)}])
-    front = View("""
-..d.......d..
-.dhh.....hhd.
-.hhhhhhhhhhh.
-.hhhhhhhhhhh.
-.hhehhhhhehh.
-.mmhhhhhhhmm.
-..mmmmnmmmm..
-...mmmmmmm...
-..oowwwwwoo..
-.ooowwwwwooo.
-.oooowwwoooo.
-..ooo...ooo..
-""", L, legs=[(3, 10, "B", False, fur, dark), (9, 10, "A", False, fur, dark),
-              (4, 11, "A", True, white, dark), (8, 11, "B", True, white, dark)],
-                 idles=[{"head": (1, 0)}, {"head": (0, 2)}], ox=4, straight=True)
-    back = View("""
-..d.......d..
-.ddh.....hdd.
-.dhhhhhhhhhd.
-.hhhhhhhhhhh.
-.hhhhhhhhhhh.
-..hhhhhhhhh..
-...hhhhhhh...
-..oooooooooo.
-.oooooTttTooo
-.ooooTtttToo.
-.ooooTtttToo.
-..oooTtttTo..
-.....TtttT...
-.....WWWWW...
-......WWW....
-""", L, legs=[(4, 10, "A", True, fur, dark), (9, 10, "B", True, fur, dark)],
-                idles=[{"tail": (1, 0)}, {"head": (0, 1)}], ox=4, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 22, 16) for v in (side, front, back)]
-
-
 # --- Boar --------------------------------------------------------------------------
 
 def boar():
@@ -508,7 +442,7 @@ uu.k.uu
 
 
 SHEETS = {
-    "fox": fox, "boar": boar, "deer": deer, "bear": bear, "wolf": wolf,
+    "boar": boar, "deer": deer, "bear": bear, "wolf": wolf,
     "cat": cat, "hedgehog": hedgehog,
     "butterfly": butterfly,
 }
