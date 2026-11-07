@@ -12,6 +12,7 @@ extends ScrollContainer
 ## settings' (UiStyle.inset). `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -39,6 +40,7 @@ func _init(g) -> void:
 	_box.add_theme_constant_override("separation", 4)
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(UiStyle.inset(_box))
+	DragScroll.attach(self)
 	head_buttons = HBoxContainer.new()
 	head_buttons.add_theme_constant_override("separation", 4)
 	head_buttons.visible = false

@@ -8,6 +8,7 @@ extends Control
 ## Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
@@ -53,6 +54,8 @@ func _ready() -> void:
 	_rows.add_theme_constant_override("separation", 4)
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_rows)
+	# A finger dragged over the world buttons scrolls them too.
+	DragScroll.attach(_scroll)
 	var back := Button.new()
 	back.text = "Назад"
 	back.focus_mode = Control.FOCUS_NONE
