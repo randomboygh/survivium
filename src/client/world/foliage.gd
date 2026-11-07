@@ -209,12 +209,17 @@ static func step(job: Job, columns: int) -> bool:
 
 
 ## The crop growing on bed x, y, z (WorldData.fields record `f`), added to `grass` as the
-## frame of its stage (Plants.stage) in two rows of two across the bed; how many cards.
+## frame of its stage (Plants.stage) in two rows of two across the bed, a sapling one in
+## the middle of its cell; how many cards.
 static func _crop(grass: PackedFloat32Array, x: int, y: int, z: int, f: Array, rng: RandomNumberGenerator) -> int:
 	var c: Dictionary = Plants.custom(f[0]) if f[0] != "" else {}
 	if c.is_empty():
 		return 0
 	var kind: int = Grass.CUSTOM + c.first + Plants.stage(f[0], f[1])
+	if c.kind == Plants.KINDS.SAPLING:
+		put(grass, Vector3(x + 0.5, y + 1.0, z + 0.5) * CELL)
+		grass.append_array([float(kind), 1.0, rng.randf(), 0.0])
+		return 1
 	for fz in CROP_ROWS:
 		for fx in CROP_ROWS:
 			var jx := rng.randf_range(-0.06, 0.06)

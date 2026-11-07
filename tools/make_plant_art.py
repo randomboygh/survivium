@@ -228,6 +228,22 @@ SOWN_FLAX = [
         "..o.oo..", "..oo.o..", "...oo...", "...o...."),
 ]
 
+# The saplings grown from a tree's seed (oak, spruce bundles), a frame a stage: a sprout,
+# a shoot, a young tree.
+OAK_SAPLING = [
+    low("..g.G...", "...s....", "...s...."),
+    low(".gG.Gg..", "..gsg...", "...s.G..", "..gs....", "...s....", "...s...."),
+    low("...GG...", "..GgGG..", ".GgGgGg.", "gGgGgGgG", ".gGgGgg.", "..gsGg..", "...s....", "...s....",
+        "...s....", "..ss...."),
+]
+
+SPRUCE_SAPLING = [
+    low("...g....", "..gdg...", "...s...."),
+    low("...g....", "..gdg...", ".gdgdg..", "..gdg...", ".gdgdg..", "...s....", "...s...."),
+    low("...G....", "..gGg...", "..gdg...", ".gdGdg..", "..gdg...", ".gdgdg..", "gdgGgdg.", "..gdg...",
+        ".gdgdgd.", "gdgdgdgd", "...s....", "...s...."),
+]
+
 CROP_ICONS = {
     "turnip": ["............", "....t.t.....", ".....tt.....", ".....t......", "...PPPPP....", "..PPPPPPP...",
                "..PPPPPPP...", "..pPPPPPp...", "...ppppp....", "....ppp.....", ".....p......", "............"],
@@ -278,6 +294,8 @@ def crops():
     sprite("carrot", CARROT)
     sprite("peas", PEAS)
     sprite("sown_flax", SOWN_FLAX, "flax")
+    sprite("oak_sapling", OAK_SAPLING, "oak")
+    sprite("spruce_sapling", SPRUCE_SAPLING, "spruce")
     for name, rows in CROP_ICONS.items():
         icon(name, name, rows, PAL)
     seeds("turnip_seeds", "turnip", (120, 70, 90))
@@ -415,6 +433,10 @@ def main():
     import sys
     if sys.argv[1:] == ["wheat"]:
         sprite("wheat", WHEAT, "ears")
+        return
+    if sys.argv[1:] == ["saplings"]:
+        sprite("oak_sapling", OAK_SAPLING, "oak")
+        sprite("spruce_sapling", SPRUCE_SAPLING, "spruce")
         return
     if sys.argv[1:] == ["crops"]:
         crops()
