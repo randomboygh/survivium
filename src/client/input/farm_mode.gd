@@ -3,7 +3,7 @@ extends RefCounted
 ## mode (BuildMode): it is entered from the bag with seeds, a bush, a hoe, a watering can
 ## with water or a sickle chosen (InventoryWindow's «Огород»), or a slot of seeds or a
 ## bush on the hotbar, and the hotbar turns into the palette of what the bag holds to
-## sow and plant (FarmBar), filtered by «Всё» / «Семена» / «Кусты». The bar picks the
+## sow and plant (FarmBar; its filters «Всё» / «Семена» / «Кусты» are not shown for now). The bar picks the
 ## work (Plans.WORKS: till, sow, water, reap) and the shape of a stroke (a line, or a
 ## filled square); a stroke on the ground marks the work on the top ground cell of each
 ## column (Plans.mark), or takes the marks off (`erasing`). The action button pressed
@@ -122,6 +122,8 @@ func enter(id: String) -> void:
 		on = true
 		erasing = false
 		auto = false
+		# The bar shows no filters for now: the palette holds everything.
+		filter = "all"
 		c.cancel_stroke()
 		game.hud.show_farm(true)
 	if sows(id):

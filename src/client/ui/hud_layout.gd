@@ -346,7 +346,9 @@ func _align_clock() -> void:
 	if not is_equal_approx(_clock_panel.size.x, wide):
 		_clock_panel.size.x = wide
 	var bar: Control = _shown_bar()
-	_clock_panel.position.x = bar.position.x + bar.size.x - wide
+	# A mode's bar: under its palette's right end, where the hotbar's would be.
+	var right: float = bar.size.x if bar == _bar else (bar as BuildBar).right_edge()
+	_clock_panel.position.x = bar.position.x + right - wide
 	_sleep_button.size = Vector2(SLEEP_SIZE.x, _clock_panel.size.y)
 	_sleep_button.position = _clock_panel.position + Vector2(_clock_panel.size.x - SLEEP_SIZE.x, 0)
 

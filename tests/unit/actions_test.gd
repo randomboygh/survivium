@@ -749,6 +749,17 @@ func _test_openings() -> void:
 	for k in w.drops:
 		after += w.drops[k].size()
 	_check(after > before, "and the blocks taken out lie on the ground")
+	# A door aimed at the floor of a house it stands on (the bug of 2026-11-07: it sank
+	# into the floor, cut as a wall's blocks are) stands on the floor.
+	for z in range(36, 43):
+		for x in range(30, 37):
+			w.set_cell(x, 1, z, Mat.STONE)
+	who.position = Vector3(33.5, 2.0, 40.5) * WorldData.CELL
+	who.inventory.add("tools:door", 1)
+	_check(placed.put_at(who, "tools:door", Vector3i(33, 1, 38), 40) and placed.things[-1].item == "tools:door"
+		and placed.things[-1].cell.y == 2 and w.get_cell(33, 1, 38) == Mat.STONE,
+		"a door aimed at the floor stands on it, the floor whole: %s" % [placed.things[-1]])
+	who.position = Vector3(11.5, 1.0, 22.5) * WorldData.CELL
 	_check(not placed.put_at(_with(who, "tools:stool"), "tools:stool", Vector3i(40, 1, 40), 40), "nothing is set down out of reach")
 	_check(placed.put_at(who, "tools:stool", Vector3i(12, 1, 23), 40) and placed.things[-1].item == "tools:stool"
 		and placed.cells_of(placed.things[-1]).has(Vector3i(12, 1, 23)), "a stool is set down where tapped")
