@@ -27,9 +27,11 @@ const MAX_CELLS := 4000
 ## corners may lie: about the screen the shape is drawn on, so nobody draws ghosts far
 ## off where they cannot see.
 const PLAN_REACH := 64
-## How high a wall or a room is drawn, in levels.
+## How high a wall, a floor or a room (with its floor and ceiling) is drawn, in levels;
+## a room is at least a floor, one level of walls and a ceiling.
 const MIN_HEIGHT := 1
-const MAX_HEIGHT := 4
+const MAX_HEIGHT := 6
+const MIN_ROOM := 3
 ## How thick a wall (and how deep a floor) is drawn, in cells.
 const MIN_THICK := 1
 const MAX_THICK := 4
@@ -61,10 +63,11 @@ const MAX_FLAT := 400
 ## The cells of shape `kind` (one of KINDS) from cell `a` to cell `b` (the level of
 ## `a`): «line» a wall along the way the stroke went farthest, `height` levels high and
 ## `thick` cells thick (the rows past the first on the side away from `near`, a column
-## in world units; INF: toward +x or +z); «plane» the rectangle, `thick` levels deep
-## from the level of `a` down (a floor takes the place of the top ground cell); «square»
-## walls round the rectangle, `height` high and `thick` thick inward; «cube» a floor on
-## the level of `a`, walls on it `height` high and a ceiling over them. In no order.
+## in world units; INF: toward +x or +z); «plane» the rectangle, `height` levels from the
+## level of `a` up (a floor laid on the ground, as walls are); «square» walls round the
+## rectangle, `height` high and `thick` thick inward; «cube» `height` levels in all
+## (MIN_ROOM at least): a floor on the level of `a`, walls on it and a ceiling over them.
+## In no order.
 static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	# Counted before it is made: corners far apart would make millions of cells.
@@ -97,8 +100,8 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 		"plane":
 			for x in range(lo.x, hi.x + 1):
 				for z in range(lo.y, hi.y + 1):
-					for t in thick:
-						out.append(Vector3i(x, a.y - t, z))
+					for y in height:
+						out.append(Vector3i(x, a.y + y, z))
 		"square":
 			for x in range(lo.x, hi.x + 1):
 				for z in range(lo.y, hi.y + 1):
@@ -106,12 +109,13 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 						for y in height:
 							out.append(Vector3i(x, a.y + y, z))
 		"cube":
+			var walls := maxi(height, MIN_ROOM) - 2
 			for x in range(lo.x, hi.x + 1):
 				for z in range(lo.y, hi.y + 1):
 					out.append(Vector3i(x, a.y, z))
-					out.append(Vector3i(x, a.y + height + 1, z))
+					out.append(Vector3i(x, a.y + walls + 1, z))
 					if _in_ring(x, z, lo, hi, thick):
-						for y in height:
+						for y in walls:
 							out.append(Vector3i(x, a.y + 1 + y, z))
 	return out
 
@@ -158,13 +162,13 @@ static func too_big(kind: String, a: Vector3i, b: Vector3i, height: int, thick :
 		"line":
 			return maxi(w, d) * h * t > MAX_SHAPE
 		"plane":
-			return w * d * t > MAX_SHAPE
+			return w * d * h > MAX_SHAPE
 		"flatten":
 			return w * d > MAX_FLAT
 		"square":
 			return ring * h > MAX_SHAPE
 		"cube":
-			return 2 * w * d + ring * h > MAX_SHAPE
+			return 2 * w * d + ring * (maxi(h, MIN_ROOM) - 2) > MAX_SHAPE
 	return true
 
 
@@ -325,10 +329,10 @@ func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: 
 	return out
 
 
-## Whether cell `c` of shape `kind` drawn from `a` is a floor's: it takes the place of
-## the ground there (a plane, the bottom of a box).
+## Whether cell `c` of shape `kind` drawn from `a` is a floor's lowest level: it may take
+## the place of a bump of soft ground there (a plane, the bottom of a box).
 static func is_floor(kind: String, a: Vector3i, c: Vector3i) -> bool:
-	return kind == "plane" or kind == "cube" and c.y == a.y
+	return kind in ["plane", "cube"] and c.y == a.y
 
 
 ## Takes every ghost cell off within PLAN_REACH of `who` where they may build (the

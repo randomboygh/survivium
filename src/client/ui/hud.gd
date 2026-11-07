@@ -242,13 +242,22 @@ func _ready() -> void:
 	stick = TouchStick.new()
 	add_child(stick)
 	_action = TouchButton.new()
-	_action.custom_minimum_size = Vector2(84, 84)
+	_action.custom_minimum_size = Vector2(88, 88)
+	# Always the same size: words wrap onto more lines inside it (clipped past its edge,
+	# never widening or heightening it); its words come close to its sides, so the
+	# longest one (80 px: «Перевязать») fits whole on a line.
+	_action.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_action.clip_text = true
 	_action.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_action.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	# The picture of what the hand holds, at twice its pixels.
 	_action.expand_icon = true
 	_action.add_theme_constant_override("icon_max_width", 24)
 	_octagon_look(_action, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
+	for state in ["normal", "hover", "disabled", "pressed", "hover_pressed"]:
+		var box: StyleBox = _action.get_theme_stylebox(state)
+		box.content_margin_left = 4
+		box.content_margin_right = 4
 	_action.held.connect(func(on: bool) -> void: game.controls.action_held = on)
 	add_child(_action)
 	_jump = TouchButton.new()

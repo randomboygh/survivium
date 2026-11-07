@@ -7,6 +7,8 @@ extends MeshInstance3D
 ## its `plans` the client's copy. The farming mode's marks (Plans.is_mark) are drawn
 ## flat on the ground they mark, a square round its top in the colour of the work and
 ## its sign inside: furrows to till, a sprout to sow, a drop to water, a cross to reap.
+## The blueprint shows only in the build mode, the marks only in the farming mode
+## (2026-11-07: hidden out of them).
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -62,6 +64,8 @@ var _lines := ImmediateMesh.new()
 var _material := ShaderMaterial.new()
 var _dirty := true
 var _built_at := Vector3i(1 << 30, 0, 0)
+## Which of the two modes were on when it was built (bit 0 building, bit 1 farming).
+var _modes := 0
 
 
 func _init(g) -> void:
@@ -86,6 +90,10 @@ func _process(_delta: float) -> void:
 	if game.player == null:
 		return
 	var at := Vector3i((game.player.position / CELL).floor())
+	var modes := (1 if game.build != null and game.build.on else 0) | (2 if game.farm != null and game.farm.on else 0)
+	if modes != _modes:
+		_modes = modes
+		_dirty = true
 	if not _dirty and maxi(maxi(absi(at.x - _built_at.x), absi(at.z - _built_at.z)), absi(at.y - _built_at.y)) < REBUILD:
 		return
 	_dirty = false
@@ -101,7 +109,11 @@ func _build(at: Vector3i) -> void:
 	for c: Vector3i in cells:
 		if not Plans.is_mark(cells[c]):
 			blueprint[c] = true
+	var building := _modes & 1 != 0
+	var farming := _modes & 2 != 0
 	for c: Vector3i in cells:
+		if not (building if blueprint.has(c) else farming):
+			continue
 		if maxi(maxi(absi(c.x - at.x), absi(c.z - at.z)), absi(c.y - at.y)) > REACH:
 			continue
 		if not started:
