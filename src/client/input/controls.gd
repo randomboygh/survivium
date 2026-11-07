@@ -426,7 +426,7 @@ func brush_record() -> Dictionary:
 ## with a torch in hand, dig once all round is gathered), else what the hand's tool is for.
 func action_name() -> String:
 	if game.build.on:
-		return "Стоп" if game.build.auto else "Строить"
+		return "Стоп" if game.build.auto else ("Выровнять" if game.build.kind == "flatten" else "Строить")
 	if game.farm.on:
 		return "Стоп" if game.farm.auto else "Работать"
 	match use_of():

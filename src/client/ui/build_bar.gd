@@ -120,7 +120,7 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_form = _forms.get_child(0)
 	_turn = _forms.get_child(1)
 	panel.add_child(_forms)
-	_height = _cycle("build_height", "Высота стен", func() -> void: game.build.next_height())
+	_height = _cycle("build_height", "Высота", func() -> void: game.build.next_height())
 	_thick = _cycle("build_thick", "Толщина стен", func() -> void: game.build.next_thick())
 	var sizes := TabRow.split([])
 	sizes.add_child(_height)
@@ -282,9 +282,11 @@ func _show_panel() -> void:
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form][0]))
 	_form.tooltip_text = FORMS[b.form][1] + " (нажать — следующая форма)"
 	_turn.disabled = b.form == 0
-	# The height means nothing for a plane: a plane is one level (as thick as chosen, down).
-	_number(_height, b.height, b.kind in ["plane", "flatten"])
-	_number(_thick, b.thick, b.kind == "flatten")
+	# A plane is as many levels as its height and has no walls to thicken.
+	_number(_height, b.height, b.kind == "flatten")
+	_number(_thick, b.thick, b.kind in ["plane", "flatten"])
+	_height.tooltip_text = "Высота: пол %s, стены %s, куб %s (с полом и потолком)" % [
+		b.heights.plane, b.heights.line, b.heights.cube]
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
 	_mode.tooltip_text = "Стирать чертёж (нажать — рисовать)" if b.erasing else "Рисовать чертёж (нажать — стирать)"
 	TabRow.light(_mode, b.erasing, b.erasing)

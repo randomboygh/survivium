@@ -919,8 +919,24 @@ func _portrait_palette() -> void:
 	var down: bool = hud._action.button_pressed and hud._action.text == "Стоп"
 	main.build.auto = false
 	hud.update_state()
+	# The action button keeps its size whatever it says (a long word wraps inside it).
+	var was_text: String = hud._action.text
+	var sizes: Array = []
+	for t in ["Стоп", "Выровнять", "Набрать воды", "Перевязать"]:
+		hud._action.text = t
+		sizes.append(hud._action.get_combined_minimum_size())
+	hud._action.text = was_text
+	_check(sizes.all(func(v: Vector2) -> bool: return v == hud._action.custom_minimum_size),
+		"the action button is the same size whatever it says: %s" % [sizes])
 	_check(down and not hud._action.button_pressed and hud._action.text == "Строить",
 		"the action button comes up when the build stops (%s %s %s)" % [down, hud._action.button_pressed, hud._action.text])
+	# Each shape keeps its own height: a floor one, walls three, a room five.
+	var hs: Array = []
+	for k in ["plane", "line", "square", "cube"]:
+		main.build.set_kind(k)
+		hs.append(main.build.height)
+	main.build.set_kind("line")
+	_check(hs == [1, 3, 3, 5], "the shapes begin one, three, three and five high: %s" % [hs])
 	main.build.leave()
 	inv.slots = bag_before
 	hud.fit(was)

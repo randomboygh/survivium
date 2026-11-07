@@ -25,6 +25,8 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const FILTERS := ["all", "blocks", "interior"]
 ## The shapes the shape button goes round (Plans.KINDS but flattening).
 const SHAPES := ["line", "plane", "square", "cube"]
+## The heights the shapes begin with.
+const DEFAULT_HEIGHTS := {"line": 3, "plane": 1, "square": 3, "cube": 5}
 ## How often the auto build looks whether the bag still holds a block for the
 ## blueprint, in seconds (the ghost may have thousands of cells).
 const CHECK_TIME := 0.25
@@ -40,8 +42,12 @@ var kind := "line"
 ## The last shape of the four drawn (line, plane, square, cube): the shape button goes
 ## back to it from flattening.
 var shape := "line"
-var height := 2
+## The height of the shape drawn now: the one kept for its kind in `heights`.
+var height := 3
 var thick := 1
+## The height kept for each shape (levels): a floor one, walls three, a room five (a
+## floor, three levels of walls, a ceiling). Kept with the player.
+var heights := DEFAULT_HEIGHTS.duplicate()
 ## The form of the blocks drawn (WorldData.FORM_*: a cube, a ramp, an upturned ramp,
 ## stairs), and the quarter turns from the way they rise by themselves: away from the
 ## player, so a ramp or stairs drawn ahead go up from where they stand. Kept with the
@@ -65,14 +71,21 @@ func _init(g) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"kind": kind, "height": height, "thick": thick, "filter": filter, "form": form, "turns": turns}
+	return {"kind": kind, "heights": heights.duplicate(), "thick": thick, "filter": filter, "form": form, "turns": turns}
 
 
 func from_dict(d: Dictionary) -> void:
 	var k: Variant = d.get("kind")
 	kind = k if k is String and k in Plans.KINDS else "line"
 	shape = kind if kind in SHAPES else "line"
-	height = clampi(int(d.get("height", 2)), Plans.MIN_HEIGHT, Plans.MAX_HEIGHT)
+	# Kept per shape since 2026-11-07 (one "height" before: the shapes begin anew).
+	heights = DEFAULT_HEIGHTS.duplicate()
+	var hs: Variant = d.get("heights")
+	if hs is Dictionary:
+		for sh in SHAPES:
+			if hs.has(sh):
+				heights[sh] = clampi(int(hs[sh]), lowest(sh), Plans.MAX_HEIGHT)
+	height = heights[shape]
 	thick = clampi(int(d.get("thick", 1)), Plans.MIN_THICK, Plans.MAX_THICK)
 	var f: Variant = d.get("filter")
 	filter = f if f is String and f in FILTERS else "all"
@@ -162,7 +175,13 @@ func set_kind(k: String) -> void:
 		kind = k
 		if k in SHAPES:
 			shape = k
+			height = heights[k]
 		changed.emit()
+
+
+## The lowest height of shape `k`: a room has a floor, walls and a ceiling.
+static func lowest(k: String) -> int:
+	return Plans.MIN_ROOM if k == "cube" else Plans.MIN_HEIGHT
 
 
 ## The shape button: the next of the four shapes round, or back to the last one from
@@ -207,9 +226,15 @@ func set_filter(f: String) -> void:
 		changed.emit()
 
 
-## The walls one level higher, round from the highest to the lowest.
+## The shape one level higher, round from the highest to the lowest; kept for the shape.
 func next_height() -> void:
-	height = Plans.MIN_HEIGHT + (height - Plans.MIN_HEIGHT + 1) % (Plans.MAX_HEIGHT - Plans.MIN_HEIGHT + 1)
+	var low := lowest(shape)
+	set_height(low + (height - low + 1) % (Plans.MAX_HEIGHT - low + 1))
+
+
+func set_height(h: int) -> void:
+	height = clampi(h, lowest(shape), Plans.MAX_HEIGHT)
+	heights[shape] = height
 	changed.emit()
 
 
@@ -318,10 +343,11 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		"first": first, "last": first, "normal": Vector3i.UP}
 
 
-## The cell a stroke begins at on the cell `hit` (VoxelRaycast.cast): the ground cell for a
-## plane or a box, the cell over it for the walls and for taking the ghost off.
+## The cell a stroke begins at on the cell `hit` (VoxelRaycast.cast): the cell over the
+## surface tapped (walls, floors and rooms stand on it, as the ghost taken off), the
+## ground cell itself for flattening.
 func start_cell(hit: Dictionary) -> Vector3i:
-	if kind in ["plane", "cube", "flatten"] and not erasing:
+	if kind == "flatten" and not erasing:
 		return hit.cell
 	return hit.cell + hit.normal
 

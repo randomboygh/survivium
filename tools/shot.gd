@@ -735,7 +735,8 @@ func _run() -> void:
 				await process_frame
 			main.build.filter = shot.get("filter", "all")
 			main.build.set_kind(shot.get("kind", "line"))
-			main.build.height = shot.get("height", 2)
+			if shot.has("height"):
+				main.build.set_height(shot.height)
 			main.build.thick = shot.get("thick", 1)
 			main.build.form = shot.get("form", 0)
 			main.build.enter("materials:planks")
@@ -745,7 +746,9 @@ func _run() -> void:
 			if shot.build_mode == "erase":
 				s = {"plan": "line", "first": feet + Vector3i(-5, 0, -9), "last": feet + Vector3i(0, 0, -9)}
 			elif main.build.kind in ["plane", "cube", "flatten"]:
-				s = {"plan": main.build.kind, "first": feet + Vector3i(2, -1, -3), "last": feet + Vector3i(6, -1, 1)}
+				# On the ground (a floor or a room stand on it), or the ground itself flattened.
+				var y := -1 if main.build.kind == "flatten" else 0
+				s = {"plan": main.build.kind, "first": feet + Vector3i(2, y, -3), "last": feet + Vector3i(6, y, 1)}
 			for i in 3:
 				await process_frame
 			main.build.show_stroke(s)
