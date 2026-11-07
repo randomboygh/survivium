@@ -18,23 +18,26 @@ func _test_shapes() -> void:
 	_check(wall.size() == 10 and wall.has(Vector3i(6, 2, 3)) and not wall.has(Vector3i(6, 1, 4)),
 		"a wall goes along the way the stroke went farthest, two levels high: %s" % [wall])
 	_check(Plans.shape("line", Vector3i(0, 1, 0), Vector3i(0, 1, 0), 9).size() == Plans.MAX_HEIGHT,
-		"a wall is at most four levels high")
+		"a wall is at most MAX_HEIGHT levels high")
 	var thick := Plans.shape("line", Vector3i(2, 1, 3), Vector3i(6, 1, 3), 1, Vector2(4.5, 9.0) * WorldData.CELL, 2)
 	_check(thick.size() == 10 and thick.has(Vector3i(4, 1, 2)) and not thick.has(Vector3i(4, 1, 4)),
 		"a wall two cells thick grows away from the one drawing it")
-	var floor := Plans.shape("plane", Vector3i(5, 1, 5), Vector3i(3, 1, 6), 3)
-	_check(floor.size() == 6 and floor.has(Vector3i(3, 1, 6)), "a plane is the rectangle, one level, whatever the height")
-	var deep := Plans.shape("plane", Vector3i(5, 2, 5), Vector3i(3, 2, 6), 1, Vector2.INF, 2)
-	_check(deep.size() == 12 and deep.has(Vector3i(3, 1, 6)), "a thicker plane goes down")
+	var floor := Plans.shape("plane", Vector3i(5, 1, 5), Vector3i(3, 1, 6), 1, Vector2.INF, 3)
+	_check(floor.size() == 6 and floor.has(Vector3i(3, 1, 6)), "a plane one high is the rectangle, one level, whatever the thickness")
+	var deep := Plans.shape("plane", Vector3i(5, 2, 5), Vector3i(3, 2, 6), 2)
+	_check(deep.size() == 12 and deep.has(Vector3i(3, 3, 6)) and not deep.has(Vector3i(3, 1, 6)),
+		"a higher plane goes up from the level it is laid on (2026-11-07: on the ground, as walls)")
 	var square := Plans.shape("square", Vector3i(0, 1, 0), Vector3i(4, 1, 4), 3)
 	_check(square.size() == 16 * 3 and square.has(Vector3i(2, 1, 4)) and not square.has(Vector3i(2, 1, 2)),
 		"a square is walls round the rectangle, no gap: %d" % square.size())
 	_check(Plans.shape("square", Vector3i(0, 1, 0), Vector3i(4, 1, 4), 1, Vector2.INF, 2).size() == 24,
 		"walls two cells thick grow inward")
-	var cube := Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2)
+	var cube := Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4)
 	_check(cube.size() == 16 + 16 + 12 * 2 and cube.has(Vector3i(1, 1, 1)) and cube.has(Vector3i(1, 4, 1))
-		and cube.has(Vector3i(0, 3, 2)) and not cube.has(Vector3i(1, 2, 1)),
-		"a cube is a floor, walls on it and a ceiling over them: %d" % cube.size())
+		and cube.has(Vector3i(0, 3, 2)) and not cube.has(Vector3i(1, 2, 1)) and not cube.has(Vector3i(1, 5, 1)),
+		"a cube four high is a floor, two levels of walls on it and a ceiling over them: %d" % cube.size())
+	_check(Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 1).size() == 16 + 16 + 12,
+		"a cube is at least a floor, one level of walls and a ceiling")
 	_check(Plans.erase_box("line", Vector3i(0, 1, 0), Vector3i(3, 1, 0), 2, Vector2(1.0, 9.0) * WorldData.CELL, 2).size() == 16,
 		"the ghost is taken off the box round the shape")
 	_check(Plans.shape("roof", Vector3i.ZERO, Vector3i.ONE, 1).is_empty(), "a shape of no known kind has no cells")
