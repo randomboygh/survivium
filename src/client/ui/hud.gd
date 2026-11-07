@@ -100,7 +100,7 @@ func _ready() -> void:
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
-	_test_button.visible = game.settings.values.testing_unlocked
+	_test_button.visible = game.settings.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
 	_chat_button.visible = game.join_url != ""
 	game.land.changed.connect(_show_land)

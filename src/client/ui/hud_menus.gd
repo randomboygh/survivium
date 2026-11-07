@@ -186,8 +186,8 @@ func _update_menu() -> void:
 		return
 	# Tests and tools play without the main menu.
 	_menu_buttons["main"].visible = game.menu != null
-	# Found by the easter egg of the main menu (Settings «testing_unlocked»).
-	_menu_buttons["test"].visible = game.settings.values.testing_unlocked
+	# Found by the easter egg of the main menu (Settings.testing_unlocked, not saved).
+	_menu_buttons["test"].visible = game.settings.testing_unlocked
 	# The window of the server made here (Main.hosted), the world going on meanwhile.
 	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
 	_menu.reset_size()
