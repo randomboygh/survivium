@@ -19,67 +19,7 @@ EYE = flat("#1c1214")
 GLINT = flat("#f4efe6")
 
 
-# --- Boar --------------------------------------------------------------------------
-
-def boar():
-    fur = ramp("#6e5444", "#2a1a16")
-    mane = ramp("#3e2e28", "#1c1210")
-    snout = ramp("#b88878", "#3a2420")
-    tusk = ramp("#ece2c8", "#4a3a2e")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "m": (mane, "body", None),
-        "M": (mane, "head", None), "s": (snout, "head", None), "n": (snout, "head", DARK),
-        "T": (tusk, "head", MID), "e": (EYE, "head", None), "t": (mane, "tail", None),
-    }
-    side = View("""
-.....m.m.m.m.........
-....mmmmmmmmmm.M.....
-..ommmmmmmmmmMhh.....
-.ooooooooooooohhh....
-tooooooooooooohhehh..
-.oooooooooooooohhhhh.
-.ooooooooooooooohhhsn
-.ooooooooooooo..hhss.
-..oooooooooooo...T...
-...ooooooooooo.......
-""", L, legs=[(3, 9, "B", False, fur, mane), (12, 9, "A", False, fur, mane),
-              (5, 9, "A", True, fur, mane), (14, 9, "B", True, fur, mane)],
-                idles=[{"tail": (0, -1)}, {"head": (1, 2)}])
-    front = View("""
-......m......
-....mmmmm....
-..MoMMMMMoM..
-..hhhhhhhhh..
-.hhehhhhhehh.
-.hhhhhhhhhhh.
-..hhhsssshh..
-..ohsnssnsho.
-.ooTssssssTo.
-.ooohssssooo.
-.oooohhhoooo.
-..ooo...ooo..
-""", L, legs=[(3, 10, "B", False, fur, mane), (9, 10, "A", False, fur, mane),
-              (4, 11, "A", True, fur, mane), (8, 11, "B", True, fur, mane)],
-                 idles=[{"head": (1, 0)}, {"head": (0, 1)}], ox=4, straight=True)
-    back = View("""
-......m......
-....mmmmm....
-..M.mmmmm.M..
-..hmmmmmmmh..
-.oooommmoooo.
-.ooooomoooooo
-.oooooooooooo
-.oooooooooooo
-.oooooooooooo
-..ooooooooooo
-..oooootooo..
-......t......
-""", L, legs=[(3, 10, "A", True, fur, mane), (9, 10, "B", True, fur, mane)],
-                idles=[{"tail": (1, 0)}, {"head": (0, 1)}], ox=4, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 23, 15) for v in (side, front, back)]
-
-
-# --- Duck --------------------------------------------------------------------------
+# --- Bear --------------------------------------------------------------------------
 
 def bear():
     fur = ramp("#7a5638", "#2a1810")
@@ -372,7 +312,7 @@ uu.k.uu
 
 
 SHEETS = {
-    "boar": boar, "bear": bear, "wolf": wolf,
+    "bear": bear, "wolf": wolf,
     "cat": cat, "hedgehog": hedgehog,
     "butterfly": butterfly,
 }

@@ -11,7 +11,8 @@ extends Node3D
 ## it covers, two steps a round, or of a flyer's wing beat in the air; one that hops shows
 ## the second while in a leap (legs stretched) and the third as it takes off and lands;
 ## a flyer with `hop` frames (the last ones) hops with them as it goes about on the
-## ground; the frames left are idle ones (a tail flicked, the head bent down) shown now
+## ground, and `attack` frames after those its attack (not shown yet: no animal attacks);
+## the frames left are idle ones (a tail flicked, the head bent down) shown now
 ## and then while it stands. Which
 ## view and which way is worked out here from how it moved on the screen: the server
 ## sends only where it is. A species with `tints` has its picture multiplied by one of
@@ -71,7 +72,7 @@ var tracks
 var perf
 ## kind -> [mesh, materials: for each of its tints (one, white, for none) one a view and
 ## frame (view * frames + frame), the size of the body its first frame shows (world
-## units, see body_size), frames a row, frames of its walk, views]
+## units, see body_size), frames a row, frames of its walk, views, hop frames, attack frames]
 var looks := {}
 var _sprites := {}
 var _looks := {}
@@ -104,7 +105,8 @@ func watch(w) -> void:
 					mats.append(m)
 			variants.append(mats)
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height() / views), variants,
-			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), frames - 1 - walk_frames(spec))]
+			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), frames - 1 - walk_frames(spec)),
+			mini(spec.get("attack", 0), frames - 1 - walk_frames(spec))]
 	wildlife = w
 	for a in w.animals:
 		_on_born(a)
@@ -192,12 +194,13 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		look.idle = 0
 		return 1 if a.hop > 0.2 and a.hop < 0.8 else 2
 	var hop: int = looks[a.kind][6]
+	var attack: int = looks[a.kind][7]
 	if a.moving and hop > 0 and spec.flies:
 		# Hopping about on the ground: crouched, up (the last frames), sitting.
 		look.idle = 0
 		look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
 		var at := int(look.walked / HOP_STEP * (hop + 1)) % (hop + 1)
-		return 0 if at == hop else frames - hop + at
+		return 0 if at == hop else frames - attack - hop + at
 	if a.moving and walk > 0 and not spec.flies:
 		# Two steps a round of the walk, however many frames it has.
 		look.idle = 0
@@ -205,7 +208,7 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		var size: float = clampf(0.5 + spec.mass / 80.0, 0.5, 1.0)
 		var step := 0.25 + 0.3 * size
 		return 1 + int(look.walked / step * maxf(walk / 2.0, 1.0)) % walk
-	var idles := frames - 1 - walk - hop
+	var idles := frames - 1 - walk - hop - attack
 	if idles <= 0 or now < look.change_at:
 		return look.idle
 	if look.idle != 0:
