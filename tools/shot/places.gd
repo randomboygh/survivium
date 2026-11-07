@@ -606,6 +606,53 @@ func openings(w, at: Vector3, by_storage := false) -> Vector3:
 	return (Vector3(x0 + 15, spot.y, z + 5) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## A shut room of brick 9×9 inside, three levels high under a roof, on flat ground near
+## `at`: in its east wall from the north a window 1×2, a door 1×2 (open with `open_door`)
+## and a window 2×2 (the door first, where the low morning sun lands in view, with
+## `door_first`), so the sun shines in through the windows and not the shut door; with
+## `lamps` a lantern stands outside before each of them. Returns where the player
+## stands: inside, by the west wall.
+func lit_room(w, at: Vector3, open_door := false, lamps := false, door_first := false) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
+	var a := spot + Vector3i(-4, 0, -4)
+	var east := a.x + 9
+	# [item, first z, cells wide, from level, cells high]
+	var gaps := [["tools:window_1x2", 1, 1, 1, 2], ["tools:door", 4, 1, 0, 2], ["tools:window_2x2", 7, 2, 1, 2]]
+	if door_first:
+		gaps = [["tools:door", 1, 1, 0, 2], ["tools:window_1x2", 4, 1, 1, 2], ["tools:window_2x2", 7, 2, 1, 2]]
+	# Clear of trees far to the east and the south, where the morning sun comes from.
+	for x in range(a.x - 4, a.x + 30):
+		for z in range(a.z - 4, a.z + 30):
+			for y in range(a.y, a.y + 24):
+				var inside := x >= a.x - 1 and x <= east and z >= a.z - 1 and z <= a.z + 9
+				var wall := x == a.x - 1 or x == east or z == a.z - 1 or z == a.z + 9
+				var m := Mat.AIR
+				# The roof stops short of the east wall: the low sun comes in under its eave.
+				if inside and y == a.y + 3 and x < east:
+					m = brick
+				elif inside and wall and y < a.y + 3:
+					m = brick
+					for g: Array in gaps:
+						if x == east and z >= a.z + g[1] and z < a.z + g[1] + g[2] and y - a.y >= g[3] and y - a.y < g[3] + g[4]:
+							m = Mat.AIR
+				if w.get_cell(x, y, z) != m:
+					w.set_cell(x, y, z, m)
+	var p = main.session.placed
+	for g: Array in gaps:
+		# Turned a quarter back, the square's west column (its cells) stands in the wall.
+		p.put(g[0], Vector3i(east, a.y + g[3], a.z + g[1]), null, true, -1.0, null, 3, open_door and g[0] == "tools:door")
+		if lamps:
+			p.put_light("tools:lantern", Vector3i(east + 1, a.y, a.z + g[1]))
+	for c: Vector3i in w.bushes.keys():
+		if c.x >= a.x - 6 and c.x <= a.x + 32 and c.z >= a.z - 6 and c.z <= a.z + 32:
+			w.remove_bush(c)
+	for dx in range(-8, 33, 8):
+		for dz in range(-8, 33, 8):
+			main.chunks.on_cell_changed(a + Vector3i(dx, 0, dz))
+	return (Vector3(a.x + 2, a.y, a.z + 4) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## Furniture on a floor of planks 10×7 on flat ground near `at`, low walls of planks on
 ## its west and north sides: a table with a stool each side, a bed, a cupboard and a
 ## barrel by the north wall, a rug in the middle. Returns where the player stands.

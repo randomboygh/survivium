@@ -154,6 +154,9 @@ func _on_added(e: Dictionary) -> void:
 		# A pole two voxels thin is under a texel of the sun's shadow map: its shadow
 		# came out a wide dark slab with a square flag, so it casts none.
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	elif Placed.lets_light(e):
+		# Glass: the sun, the moon and the fires shine through a window into the room.
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.scale = Vector3.ONE / 16.0
 	node.position = Vector3(e.cell) * CELL
 	_fit(node)

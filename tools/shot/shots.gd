@@ -187,6 +187,15 @@ const SHOTS := {
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
 	"build-openings-bag-barrel": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2},
 	"build-openings-bag-cupboard": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 3},
+	# A shut brick room, a door and two windows in its east wall (places.lit_room): the
+	# morning sun and lanterns outside at night shine in through the windows always and
+	# through the door only open.
+	"light-room": {"time": 0.3, "clock": 0.3, "season": 1, "lit_room": "shut"},
+	"light-room-door": {"time": 0.3, "clock": 0.3, "season": 1, "lit_room": "shut", "door_first": true},
+	"light-room-door-open": {"time": 0.3, "clock": 0.3, "season": 1, "lit_room": "open", "door_first": true},
+	"light-room-night": {"time": 0.95, "season": 1, "moon": 0.0, "lit_room": "shut", "lamps": true},
+	"light-room-night-open": {"time": 0.95, "season": 1, "moon": 0.0, "lit_room": "open", "lamps": true},
+	"light-room-night-real": {"time": 0.95, "season": 1, "moon": 0.0, "lit_room": "shut", "lamps": true, "fire_shadows": 2},
 	# The player pressed against the walls of the hut, east, west, north and south, and
 	# with the camera turned a quarter: the sprite stays out of the wall.
 	"walk-into-east": {"time": 0.42, "season": 1, "hut": true, "walk_into": [1, 0], "facing": "e"},

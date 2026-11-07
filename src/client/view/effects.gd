@@ -555,6 +555,9 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	var opacity := clampf((SHADOW_SKY - sky.sun_light) / 0.08, 0.0, 1.0)
 	for f in fires:
 		f.light.shadow_opacity = opacity
+	# The lights set down cast no real shadow; the drawn ones (FireShadows) go by it too.
+	for rec: Dictionary in lamps:
+		rec.light.shadow_opacity = opacity
 	flicker_clock += delta
 	if flicker_clock > 0.09:
 		flicker_clock = 0.0

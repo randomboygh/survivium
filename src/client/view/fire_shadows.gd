@@ -49,6 +49,8 @@ const MAX_SPREAD := 5.0
 const SHADE_EVERY := 4
 ## The torch's id among the lights, a unit no fire stands on (fires go by their unit).
 const TORCH_ID := Vector3i(0, -1048576, 0)
+## Added to a light set down's cell for its id among the lights: apart from the fires' units.
+const LAMP_ID := Vector3i(0, 2097152, 0)
 ## The light of a dark night and of the full moon as a share of a fire's brightest ring
 ## (fire_shadow.gdshader).
 const NIGHT_LIGHT := Vector2(0.14, 0.6)
@@ -148,6 +150,7 @@ func _ready() -> void:
 		game.placed.cell_changed.connect(_on_cell_changed)
 		game.placed.added.connect(_on_placed)
 		game.placed.removed.connect(_on_placed)
+		game.placed.opened.connect(_on_placed)
 
 
 ## A unit quad on the ground: x across from -0.5 to 0.5, z along from 0 to 1.
@@ -304,8 +307,8 @@ func _show_spots(lights: Array) -> void:
 
 
 ## The lights that throw shadows, the nearest to the player first: {"id": the fire's
-## unit or TORCH_ID, "at": ground under the light, "height", "range", "strength" 0..1,
-## "torch": bool, "real": it throws a real shadow, "index": its place among the
+## unit, a light set down's cell + LAMP_ID or TORCH_ID, "at": ground under the light,
+## "height", "range", "strength" 0..1, "torch": bool, "real": it throws a real shadow, "index": its place among the
 ## lights the shader knows (MAX_LIGHTS for none)}.
 func _lights() -> Array:
 	var out := []
@@ -317,6 +320,18 @@ func _lights() -> Array:
 		if p.distance_to(f.at) < r + VIEW_REACH:
 			out.append({"id": f.unit, "at": f.at, "height": FIRE_HEIGHT, "range": r,
 				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
+	# The lights set down (lanterns, candles) that light the world now (Effects.LAMP_LIGHTS):
+	# walls and shut doors keep their light out as they keep the fires'.
+	for rec: Dictionary in effects.lamps:
+		var lamp: OmniLight3D = rec.light
+		var e: Dictionary = rec.placed
+		if not lamp.visible or lamp.light_energy <= 0.01 or e.is_empty():
+			continue
+		var r := lamp.omni_range / PixelView.light_reach
+		if p.distance_to(rec.at) < r + VIEW_REACH:
+			var ground := Vector3(rec.at.x, e.cell.y * CELL, rec.at.z)
+			out.append({"id": e.cell + LAMP_ID, "at": ground, "height": rec.at.y - ground.y, "range": r,
+				"strength": lamp.shadow_opacity, "torch": false, "real": false})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01 and game.player.torch_lit:
 		# In a jump the torch goes up with the hand, its ground stays where it was.
@@ -571,15 +586,21 @@ static func _window(bits: int, base: int) -> int:
 	return ((bits >> base) if base >= 0 else (bits << -base)) & ((1 << LEVELS) - 1)
 
 
-## Marks the cells of map `m` that the things placed (chests, stations) stand in as
-## solid; campfires have wedges of their own.
+## Marks the cells of map `m` that the things placed (chests, stations, shut doors) stand
+## in as solid, as many levels up as they stand (a door two or three cells high); campfires
+## have wedges of their own, and windows (an item with `window`) let the light through.
 func _map_blockers(w, m: Dictionary) -> void:
 	var data: PackedByteArray = m.data
 	var base: int = m.level - BELOW
+	var glass := {}
+	if game != null and game.placed != null:
+		for e: Dictionary in game.placed.things:
+			if Placed.lets_light(e):
+				for c: Vector3i in game.placed.cells_of(e):
+					glass[c] = true
 	for cell: Vector3i in w.blockers:
 		var o: Vector2i = Vector2i(cell.x, cell.z) - m.origin
-		var y: int = cell.y - base
-		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP or y < 0 or y >= LEVELS:
+		if o.x < 0 or o.y < 0 or o.x >= MAP or o.y >= MAP or glass.has(cell):
 			continue
 		var box = w.blockers[cell]
 		var high: float = box.end.y if box is AABB else 0.0
@@ -588,8 +609,13 @@ func _map_blockers(w, m: Dictionary) -> void:
 				high = maxf(high, b.end.y)
 		if high < 0.5 or _under_campfire(cell):
 			continue
-		var i: int = (y >> 3) * MAP * MAP + o.y * MAP + o.x
-		data[i] = data[i] | (1 << (y & 7))
+		# A level counts as filled when the thing stands over half of it.
+		for k in maxi(1, roundi(high)):
+			var y: int = cell.y + k - base
+			if y < 0 or y >= LEVELS:
+				continue
+			var i: int = (y >> 3) * MAP * MAP + o.y * MAP + o.x
+			data[i] = data[i] | (1 << (y & 7))
 
 
 ## A cell changed: the maps over it are made anew.
@@ -603,7 +629,13 @@ func _on_cell_changed(cell: Vector3i) -> void:
 
 func _on_placed(e: Dictionary) -> void:
 	_campfires_known = false
-	_on_cell_changed(e.cell)
+	# Every cell it fills, up its height: a map may hold one and not its north-west one.
+	var cells: Array[Vector3i] = [e.cell]
+	if not Placed.is_light(e):
+		cells.append_array(game.placed.cells_of(e))
+	for c: Vector3i in cells:
+		for k in 3:
+			_on_cell_changed(c + Vector3i(0, k, 0))
 
 
 ## The campfires placed (see _campfires).
