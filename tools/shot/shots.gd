@@ -682,6 +682,11 @@ const SHOTS := {
 	"ground-farm": {"time": 0.42, "season": 1, "at": [69, 29], "hold": ["", "tools:stone_hoe"]},
 	# The saplings east of the farm (TestGround.SAPLINGS): oak and spruce, each stage.
 	"ground-saplings": {"time": 0.42, "season": 1, "at": [81, 30]},
+	# The last oak and spruce saplings grown into young trees.
+	"ground-sapling-young": {"time": 0.42, "season": 1, "at": [81, 30], "sapling_tree": "young"},
+	# The last oak sapling grown into a tree, then felled: its crown's shadow goes with it.
+	"ground-sapling-tree": {"time": 0.42, "season": 1, "at": [81, 30], "sapling_tree": "grown"},
+	"ground-sapling-felled": {"time": 0.42, "season": 1, "at": [81, 30], "sapling_tree": "felled"},
 	# The farming mode (FarmMode): the palette of seeds and bushes, the panel, marks of
 	# every work, a square stroke to sow held.
 	"ground-farm-mode": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw"},

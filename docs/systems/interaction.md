@@ -136,8 +136,10 @@
 морковь, горох — `plants/turnip`, `plants/carrot`, `plants/peas`, посевной лён — `plants/flax`; их семена находят,
 срезая дикие растения: поле `finds`, `Plants.harvest`), ростки вида `sapling` (`tree` — порода, в которую вырастает;
 жёлудь и шишка — их `crop`): сажаются на открытую землю на решётке деревьев (нечётные x, z, `sapling_spot`, `can_root`:
-не ближе `SAPLING_GAP` к дереву или ростку), растут в тёплые сезоны без полива, выросший становится деревом
-(`grow_tree`, `Growth.place`), если над ним есть место; тяпка
+не ближе `SAPLING_GAP` к дереву или ростку), растут в тёплые сезоны без полива: росток и побег (кадры), с доли
+`young` срока — маленькое деревце (`grow_young`, `Growth.place_young`; срубленное даёт только ветки: `young_tree`,
+`Felling.fell(…, young)`), выросший становится деревом (`grow_tree`: деревце убирает `Felling.clear`, потом
+`Growth.place`), если над ним есть место; тяпка
 (`tools/hoe`, класс `hoe`), серп (`tools/sickle`, класс `sickle`), лейка (`tools/watering_can`, класс `can`);
 грядки — `WorldData.fields`. Предметы с `tool`, `power`, `area`, `reach`, `swing`, `mows`, `durability`, `repair`,
 `anim`, `hands` (вид `items`); материалы с `dig`, `hardness`, `item`, `bonus`, `mow`, `mow_gives`

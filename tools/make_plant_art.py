@@ -229,16 +229,14 @@ SOWN_FLAX = [
 ]
 
 # The saplings grown from a tree's seed (oak, spruce bundles), a frame a stage: a sprout,
-# a shoot, a young tree.
+# a shoot (a young tree, then the tree, are voxels: Growth).
 OAK_SAPLING = [
-    low("..g.G...", "...s....", "...s...."),
-    low(".gG.Gg..", "..gsg...", "...s.G..", "..gs....", "...s....", "...s...."),
+    low("..g..G..", ".gGg.Gg.", "..gsgG..", "...s....", "...s....", "...s...."),
     low("...GG...", "..GgGG..", ".GgGgGg.", "gGgGgGgG", ".gGgGgg.", "..gsGg..", "...s....", "...s....",
         "...s....", "..ss...."),
 ]
 
 SPRUCE_SAPLING = [
-    low("...g....", "..gdg...", "...s...."),
     low("...g....", "..gdg...", ".gdgdg..", "..gdg...", ".gdgdg..", "...s....", "...s...."),
     low("...G....", "..gGg...", "..gdg...", ".gdGdg..", "..gdg...", ".gdgdg..", "gdgGgdg.", "..gdg...",
         ".gdgdgd.", "gdgdgdgd", "...s....", "...s...."),

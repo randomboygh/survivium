@@ -222,23 +222,58 @@ func _test_saplings() -> void:
 	_check(actions.plantable(acorn, Vector3i(15, 1, 13)) and not actions.plantable(acorn, Vector3i(14, 1, 13)),
 		"the farming mode marks a tree's seed only on the lattice")
 	var days: float = Plants.BY_ID[sapling].grow_days
+	var young_days: float = days * Plants.BY_ID[sapling].young
+	var root := Vector3i(11, 1, 13)
 	clock.season = Clock.WINTER
 	actions.grow_fields(days, 0.0)
-	_check(actions.crop_on(Vector3i(11, 1, 13)) == sapling and actions.growth(Vector3i(11, 1, 13)) == 0.0,
-		"a sapling waits out the winter")
+	_check(actions.crop_on(root) == sapling and actions.growth(root) == 0.0, "a sapling waits out the winter")
 	clock.season = 1
-	actions.grow_fields(days * 0.5, 0.0)
-	_check(actions.growth(Vector3i(11, 1, 13)) > 0.4 and w.get_cell(11, 1, 13) == Mat.GRASS, "a sapling grows unwatered on grass")
+	actions.grow_fields(young_days * 0.6, 0.0)
+	_check(actions.growth(root) > 0.0 and w.get_cell(11, 1, 13) == Mat.GRASS and w.get_cell(11, 2, 13) == Mat.AIR
+		and Plants.stage(sapling, w.field_at(root)[1]) == 1, "a sapling grows unwatered on grass, a sprout then a shoot")
+	actions.grow_fields(young_days * 0.5, 0.0)
+	actions.grow_fields(0.01, 0.0)
+	_check(w.trees.has(Vector2i(11, 13)) and w.get_cell(11, 2, 13) == Mat.LOG and w.field_at(root)[2] == 1.0
+		and actions.young_tree(Vector3i(11, 2, 13)), "then it is a young tree")
+	var low := 0
+	for y in range(2, 16):
+		low = y if w.get_cell(11, y, 13) == Mat.LEAVES else low
+	_check(low > 0 and low <= 6, "a young tree is small: leaves up to level %d" % low)
 	actions.grow_fields(days, 0.0)
-	actions.grow_fields(0.1, 0.0)
-	_check(actions.crop_on(Vector3i(11, 1, 13)) == "" and w.trees.has(Vector2i(11, 13)) and w.get_cell(11, 2, 13) == Mat.LOG,
-		"grown, the sapling becomes an oak")
+	actions.grow_fields(0.01, 0.0)
+	_check(actions.crop_on(root) == "" and w.trees.has(Vector2i(11, 13)) and w.get_cell(11, 2, 13) == Mat.LOG
+		and _top_leaf(w, 11, 13) > low, "grown, the sapling becomes an oak, taller than the young tree")
 	_check(not actions.plant_at(who, acorn, Vector3i(12, 1, 14)), "nothing is planted beside a tree")
+	# A young tree is felled for branches only, and its sapling goes with it.
+	who.position = Vector3(6.5, 2.0, 19.5) * WorldData.CELL
+	_check(actions.plant_at(who, acorn, Vector3i(4, 1, 20)), "a second acorn is planted")
+	var at := Vector3i(5, 1, 21)
+	actions.grow_fields(young_days * 1.1, 0.0)
+	actions.grow_fields(0.01, 0.0)
+	_check(actions.young_tree(at + Vector3i.UP), "a second sapling is a young tree")
+	actions.fell(who, at + Vector3i.UP)
+	var logs := 0
+	var twigs := 0
+	var species: Dictionary = Trees.SPECIES[Trees.index(Plants.BY_ID[sapling].tree)]
+	for key: Vector2i in w.drops:
+		for d: Array in w.drops[key]:
+			logs += 1 if d[0] == species.log else 0
+			twigs += 1 if d[0] == species.twig else 0
+	_check(logs == 0 and twigs > 0 and w.field_at(at) == null and w.get_cell(5, 2, 21) == Mat.AIR,
+		"a felled young tree gives branches (%d), no logs (%d)" % [twigs, logs])
+	who.position = Vector3(6.5, 2.0, 6.5) * WorldData.CELL
 	actions.plant_at(who, acorn, Vector3i(4, 1, 4))
 	w.set_cell(5, 3, 5, Mat.STONE)
 	actions.grow_fields(days * 2.0, 0.0)
 	actions.grow_fields(0.1, 0.0)
 	_check(actions.crop_on(Vector3i(5, 1, 5)) == sapling and not w.trees.has(Vector2i(5, 5)), "a sapling with no room over it waits")
+
+
+func _top_leaf(w: WorldData, x: int, z: int) -> int:
+	var top := 0
+	for y in w.size_y:
+		top = y if w.get_cell(x, y, z) == Mat.LEAVES else top
+	return top
 
 
 func _test_save() -> void:

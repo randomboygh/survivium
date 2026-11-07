@@ -1,12 +1,14 @@
 # Росток ели (kind sapling, как росток дуба «Дуба»): шишку сажают на открытую землю через клетку
-# от других деревьев; растёт весной, летом и осенью grow_days дней, кадр на стадию
-# (sprites/plants/spruce_sapling.png), и выросший становится елью, если над ним есть место.
+# от других деревьев; растёт весной, летом и осенью grow_days дней: росток и побег (кадры
+# sprites/plants/spruce_sapling.png), с доли `young` — маленькая ёлочка (её можно срубить на
+# ветки), а выросший становится елью, если над ним есть место.
 - id: spruce_sapling
   kind: sapling
   title: Росток ели
   sprite: spruce_sapling
-  frames: 3
+  frames: 2
   grows: field
-  grow_days: 6
+  grow_days: 12
+  young: 0.4
   tree: spruce
   gives: {cone: 1}

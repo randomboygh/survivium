@@ -18,6 +18,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
+const TestGround := preload("res://src/shared/world/test_ground.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
@@ -752,6 +754,34 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 			main.build.show_stroke(s)
+		if shot.has("sapling_tree"):
+			# The oak sapling at its last stage east of the farm (TestGround.SAPLINGS) grown
+			# by the server into a young tree ("young") or a tree ("grown", "felled"), and
+			# then, for "felled", felled.
+			var sa = main.session.actions
+			var cell := Vector3i(TestGround.SAPLINGS.position.x, 0, TestGround.SAPLINGS.position.y + 4)
+			for i in 120:
+				var y: int = main.session.world.surface_y(cell.x, cell.z) - 1
+				if y > 0 and main.session.world.field_at(Vector3i(cell.x, y, cell.z)) != null:
+					cell.y = y
+					break
+				await process_frame
+			var f: Array = main.session.world.field_at(cell)
+			if shot.sapling_tree == "young":
+				# Both saplings' last stages: the oak and, 4 cells east, the spruce.
+				for c in [cell, cell + Vector3i(4, 0, 0)]:
+					var g: Array = main.session.world.field_at(c)
+					g[1] = Plants.BY_ID[g[0]].grow_days * Plants.BY_ID[g[0]].young
+					sa.grow_young(c)
+			else:
+				f[1] = Plants.BY_ID[f[0]].grow_days
+				sa.grow_tree(cell)
+			for i in 150:
+				await process_frame
+			if shot.sapling_tree == "felled":
+				sa.fell(main.host.player, cell + Vector3i.UP)
+			for i in 30:
+				await process_frame
 		if shot.has("farm_mode"):
 			# The farming mode by the test world's farm: seeds, a bush, a hoe, a can of water
 			# and a sickle in the bag, marks of every work drawn by the server (to till and

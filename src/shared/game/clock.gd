@@ -14,7 +14,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const DAY_LENGTH := 240.0
 ## Seconds in a day of the real world, the day's length when the clock follows it.
 const REAL_DAY := 86400.0
-const DAYS_PER_SEASON := 2.0
+## Days in a season (the user's pick, 2026-11-07: two weeks; a crop ripens within one).
+const DAYS_PER_SEASON := 14.0
 const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
 const SPRING := 0
 const AUTUMN := 2
