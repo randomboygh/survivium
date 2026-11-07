@@ -9,5 +9,6 @@
   stack: 50
   model: cone
   icon: cone
+  crop: spruce_sapling
   fuel: true
   fuel_time: 120

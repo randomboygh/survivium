@@ -50,7 +50,7 @@ const LINKS := {
 	"recipes.makes": "made", "recipes.also.item": "also", "recipes.needs": "needs", "recipes.keeps": "needs",
 	"recipes.at": "station",
 	"starts.bag": "start", "starts.camp.item": "camp",
-	"plants.gives": "gives", "plants.finds": "gives",
+	"plants.gives": "gives", "plants.finds": "gives", "plants.tree": "grows",
 	"items.era": "era",
 }
 ## The links by which a record uses an item (see uses).

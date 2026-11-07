@@ -82,10 +82,10 @@
 | `plants:apple` | Яблоко | Еда |  | `plants/apple` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `plants:banana` | Банан | Еда |  | `plants/banana` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `plants:banana_bush` | Куст банана | Посадки |  | `plants/banana` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:acorn` | Жёлудь | Материалы |  | `plants/oak` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `plants:acorn` | Жёлудь | Посадки |  | `plants/oak` | 0. Выживание без инструментов | 1 / 3 | ок |
 | `plants:coconut` | Кокос | Еда |  | `plants/palm` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:cone` | Шишка | Материалы |  | `plants/spruce` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `plants:cone` | Шишка | Посадки |  | `plants/spruce` | 0. Выживание без инструментов | 1 / 3 | ок |
 | `tools:boundary_post` | Межевой столб | Станки |  | `tools/boundary_post` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `tools:fiber_hat` | Плетёная шапка | Одежда и сумки | Шапка из сухой травы. Немного греет голову. | `tools/fiber_clothes` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `tools:grass_cape` | Травяная накидка | Одежда и сумки | Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды. | `tools/fiber_clothes` | 1. Примитивные инструменты | 0 / 1 | ок |
@@ -428,13 +428,13 @@
 | `plants:linden` | Липа | broad |  | `plants/linden` | 2 / 3 | ок |
 | `plants:mangrove` | Мангр | broad |  | `plants/mangrove` | 2 / 1 | ок |
 | `plants:maple` | Клён | broad |  | `plants/maple` | 2 / 2 | ок |
-| `plants:oak` | Дуб | broad |  | `plants/oak` | 3 / 9 | ок |
+| `plants:oak` | Дуб | broad |  | `plants/oak` | 3 / 10 | ок |
 | `plants:palm` | Пальма | broad |  | `plants/palm` | 3 / 3 | ок |
 | `plants:pine` | Сосна | needles |  | `plants/pine` | 3 / 3 | ок |
 | `plants:poplar` | Тополь | broad |  | `plants/poplar` | 2 / 3 | ок |
 | `plants:red_maple` | Клён красный | broad |  | `plants/red_maple` | 2 / 1 | ок |
 | `plants:rowan` | Рябина | broad |  | `plants/rowan` | 3 / 4 | ок |
-| `plants:spruce` | Ель | needles |  | `plants/spruce` | 3 / 4 | ок |
+| `plants:spruce` | Ель | needles |  | `plants/spruce` | 3 / 5 | ок |
 | `plants:willow` | Ива | broad |  | `plants/willow` | 2 / 2 | ок |
 
 ## Кусты (`bushes`, 6)
@@ -448,7 +448,7 @@
 | `plants:shrub` | Куст |  |  | `plants/shrub` | 2 / 21 | ок |
 | `plants:banana` | Банан |  |  | `plants/banana` | 3 / 2 | ок |
 
-## Растения (`plants`, 19)
+## Растения (`plants`, 21)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -467,6 +467,8 @@
 | `plants:reeds` | Тростник | reeds |  | `plants/reeds` | 1 / 0 | ок |
 | `plants:turnip` | Репа | crop |  | `plants/turnip` | 2 / 1 | ок |
 | `plants:moss` | Мох | moss |  | `plants/moss` | 1 / 0 | ок |
+| `plants:oak_sapling` | Росток дуба | sapling |  | `plants/oak` | 2 / 1 | ок |
+| `plants:spruce_sapling` | Росток ели | sapling |  | `plants/spruce` | 2 / 1 | ок |
 | `plants:ears` | Колоски | ears |  | `plants/ears` | 1 / 2 | ок |
 | `plants:wheat` | Пшеница | crop |  | `plants/ears` | 1 / 1 | ок |
 | `plants:flax` | Лён | custom |  | `plants/flax` | 5 / 0 | ок |

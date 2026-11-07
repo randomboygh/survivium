@@ -16,6 +16,7 @@ func run() -> void:
 	_test_growth()
 	_test_reap()
 	_test_crops()
+	_test_saplings()
 	_test_save()
 	_test_marks()
 
@@ -198,6 +199,46 @@ func _test_crops() -> void:
 			for d: Array in w.drops[key]:
 				got += d[3] if d[0] == gives[i] else 0
 		_check(actions.crop_on(beds[i]) == "" and got > 0, "ripe %s is reaped by hand: %d %s" % [seeds[i], got, gives[i]])
+
+
+## An acorn is planted on open ground on the trees' lattice, away from other trees; the
+## sapling grows wet or dry, waits out the winter, and grown becomes an oak.
+func _test_saplings() -> void:
+	var setup := _world()
+	var w: WorldData = setup[0]
+	var clock: Clock = setup[1]
+	var actions: WorldActions = setup[2]
+	var who: Who = setup[3]
+	var acorn := "plants:acorn"
+	var sapling: String = Items.get_item(acorn).get("crop", "")
+	_check(Plants.is_sapling(sapling) and Plants.is_sown(sapling) and not Plants.is_crop(sapling)
+		and Plants.is_sapling(Items.get_item("plants:cone").get("crop", "")), "an acorn and a cone grow into saplings")
+	_check(actions.sapling_spot(Vector3i(10, 1, 12)) == Vector3i(11, 1, 13), "a seed takes root on the trees' lattice")
+	who.inventory.add(acorn, 3)
+	who.item = acorn
+	_check(actions.plant_at(who, acorn, Vector3i(10, 1, 12)) and actions.crop_on(Vector3i(11, 1, 13)) == sapling
+		and who.inventory.count(acorn) == 2, "an acorn is planted on grass")
+	_check(not actions.plant_at(who, acorn, Vector3i(12, 1, 12)), "not beside another sapling")
+	_check(actions.plantable(acorn, Vector3i(15, 1, 13)) and not actions.plantable(acorn, Vector3i(14, 1, 13)),
+		"the farming mode marks a tree's seed only on the lattice")
+	var days: float = Plants.BY_ID[sapling].grow_days
+	clock.season = Clock.WINTER
+	actions.grow_fields(days, 0.0)
+	_check(actions.crop_on(Vector3i(11, 1, 13)) == sapling and actions.growth(Vector3i(11, 1, 13)) == 0.0,
+		"a sapling waits out the winter")
+	clock.season = 1
+	actions.grow_fields(days * 0.5, 0.0)
+	_check(actions.growth(Vector3i(11, 1, 13)) > 0.4 and w.get_cell(11, 1, 13) == Mat.GRASS, "a sapling grows unwatered on grass")
+	actions.grow_fields(days, 0.0)
+	actions.grow_fields(0.1, 0.0)
+	_check(actions.crop_on(Vector3i(11, 1, 13)) == "" and w.trees.has(Vector2i(11, 13)) and w.get_cell(11, 2, 13) == Mat.LOG,
+		"grown, the sapling becomes an oak")
+	_check(not actions.plant_at(who, acorn, Vector3i(12, 1, 14)), "nothing is planted beside a tree")
+	actions.plant_at(who, acorn, Vector3i(4, 1, 4))
+	w.set_cell(5, 3, 5, Mat.STONE)
+	actions.grow_fields(days * 2.0, 0.0)
+	actions.grow_fields(0.1, 0.0)
+	_check(actions.crop_on(Vector3i(5, 1, 5)) == sapling and not w.trees.has(Vector2i(5, 5)), "a sapling with no room over it waits")
 
 
 func _test_save() -> void:

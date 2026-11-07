@@ -318,7 +318,7 @@ const SCHEMAS := {
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
-			"mushrooms", "glow_mushrooms", "custom", "crop"]},
+			"mushrooms", "glow_mushrooms", "custom", "crop", "sapling"]},
 		"gives": {"type": "amounts", "of": "ref:items", "soft": true, "rel": "drops", "via": "mow"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		# Items found now and then besides (wild seeds in the grass): item -> the chance
@@ -334,6 +334,9 @@ const SCHEMAS := {
 		# scythe cuts it (grain, flax), not only hands and a sickle.
 		"grow_days": {"type": "float", "min": 0.0, "default": 0.0},
 		"mown": {"type": "bool", "default": false},
+		# A sapling (kind sapling, planted from an item with `crop` on open ground): the tree
+		# it becomes when it has grown its `grow_days`.
+		"tree": {"type": "ref:trees", "soft": true, "default": "", "rel": "grows_into", "via": "sow"},
 		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
 		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		# Only in these biomes (none: anywhere its `grows` says).

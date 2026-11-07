@@ -7,7 +7,10 @@ extends "res://src/shared/game/actions_build.gd"
 ## and dies in winter (grow_fields, a step of the session); a ripe crop is reaped by bare
 ## hands and a sickle, by a scythe when it is cut by one (`mown`), and gives what its
 ## `gives` says. The bed's crop, growth and wetness are WorldData.fields; the work
-## teaches the skill of farming (role "farm").
+## teaches the skill of farming (role "farm"). A tree's seed (an item whose `crop` is a
+## plant of kind sapling) is planted on open ground on the trees' lattice (odd x and z,
+## away from other trees); the sapling grows in the warm seasons, wet or dry, and grown
+## becomes its tree (Growth.place) where there is room for one.
 
 ## How long a bed stays wet after watering or rain, in days.
 const WET_DAYS := 1.0
@@ -18,6 +21,9 @@ const FIELD_TICK := 1.0
 ## Seconds a sowing and a watering take with no skill.
 const SOW_SWING := 0.3
 const WATER_SWING := 0.6
+## A sapling is planted no nearer than this to another tree or sapling, in cells (the
+## crowns' lattice: trunks on odd columns).
+const SAPLING_GAP := 2
 
 var _field_clock := 0.0
 
@@ -205,6 +211,8 @@ func ripe_at(cell: Vector3i) -> bool:
 ## Whether crop item `item` (a record with `crop`) can be sown on `cell`: a bed with no
 ## crop and air over it, not in winter.
 func can_sow(item: Dictionary, cell: Vector3i) -> bool:
+	if Plants.is_sapling(item.get("crop", "")):
+		return can_root(cell) and clock.season != WINTER
 	if not Plants.is_crop(item.get("crop", "")) or not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
 		return false
 	var up := cell + Vector3i.UP
@@ -215,8 +223,13 @@ func can_sow(item: Dictionary, cell: Vector3i) -> bool:
 ## Plants item `id` on `cell` (see ActionsBuild.plant_at): a crop's seeds go on a bed (sow).
 func plant_at(who, id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
-	if not Plants.is_crop(item.get("crop", "")):
+	if not Plants.is_sown(item.get("crop", "")):
 		return super(who, id, cell)
+	var sapling := Plants.is_sapling(item.crop)
+	if sapling:
+		var spot: Variant = sapling_spot(cell)
+		if spot != null:
+			cell = spot
 	if who.inventory.count(item.id) == 0:
 		who.nag("no_seed", "В сумке нет: %s" % Items.title(id))
 		return false
@@ -224,7 +237,10 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		who.nag("winter", "Зимой не сеют: дождитесь весны")
 		return false
 	if too_far(who, cell, Tools.PLACE_REACH) or not can_sow(item, cell):
-		who.nag("plant", "Сеют на пустую грядку: вскопайте её тяпкой")
+		if sapling:
+			who.nag("plant", "Сюда не посадить: дереву нужна открытая земля подальше от других деревьев")
+		else:
+			who.nag("plant", "Сеют на пустую грядку: вскопайте её тяпкой")
 		return false
 	if not _may(who, cell, "build") or not who.act("gather"):
 		return false
@@ -235,8 +251,8 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 ## Sows crop item `item` from the bag of `who` on bed `cell` (can_sow holds).
 func sow(who, item: Dictionary, cell: Vector3i) -> void:
 	who.inventory.remove(item.id, 1)
-	var f: Array = world.field_at(cell)
-	world.set_field(cell, [item.crop, 0.0, f[2]])
+	var f: Variant = world.field_at(cell)
+	world.set_field(cell, [item.crop, 0.0, f[2] if f != null else 0.0])
 	skilled(who, "farm", SOW_SWING)
 	looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 
@@ -244,6 +260,9 @@ func sow(who, item: Dictionary, cell: Vector3i) -> void:
 ## Whether a crop of `id` sown in front of `who` would go on a bed there (see plant_spot).
 func _can_plant(who, id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
+	if Plants.is_sapling(item.get("crop", "")):
+		var spot: Variant = sapling_spot(cell)
+		return spot != null and not too_far(who, spot, Tools.PLACE_REACH) and can_sow(item, spot)
 	if Plants.is_crop(item.get("crop", "")):
 		return not too_far(who, cell, Tools.PLACE_REACH) and can_sow(item, cell)
 	return super(who, id, cell)
@@ -258,6 +277,8 @@ func plantable(id: String, cell: Vector3i) -> bool:
 	if item.is_empty() or not world.in_bounds(cell.x, cell.y, cell.z):
 		return false
 	var up := cell + Vector3i.UP
+	if Plants.is_sapling(item.get("crop", "")):
+		return cell.x & 1 == 1 and cell.z & 1 == 1 and can_root(cell)
 	if Plants.is_crop(item.get("crop", "")):
 		if can_till(cell):
 			return true
@@ -270,6 +291,88 @@ func plantable(id: String, cell: Vector3i) -> bool:
 	var grows := Mat.index(item.sow)
 	return grows >= 0 and Tools.mown(grows) == world.get_cell(cell.x, cell.y, cell.z) \
 		and world.get_cell(up.x, up.y, up.z) == Mat.AIR and not world.bushes.has(up)
+
+
+# --- Saplings -----------------------------------------------------------------------------
+
+
+## The ground cell a tree's seed planted on `cell` takes root on: the cell of the trees'
+## lattice (odd x and z) in the 2x2 cells round it, on its ground within a cell up or
+## down; null for none.
+func sapling_spot(cell: Vector3i) -> Variant:
+	for dy in [0, -1, 1]:
+		var c := Vector3i(cell.x | 1, cell.y + dy, cell.z | 1)
+		if world.in_bounds(c.x, c.y, c.z) and world.in_bounds(c.x, c.y + 1, c.z) \
+				and _ground_roots(world.get_cell(c.x, c.y, c.z)) and world.get_cell(c.x, c.y + 1, c.z) == Mat.AIR:
+			return c
+	return null
+
+
+## Whether a sapling can take root on ground cell `cell`: on the trees' lattice, grass,
+## bare ground or an empty bed with air over it, no bush, and no tree or sapling near.
+func can_root(cell: Vector3i) -> bool:
+	if cell.x & 1 == 0 or cell.z & 1 == 0 or not world.in_bounds(cell.x, cell.y + 1, cell.z):
+		return false
+	var up := cell + Vector3i.UP
+	if not _ground_roots(world.get_cell(cell.x, cell.y, cell.z)) or world.get_cell(up.x, up.y, up.z) != Mat.AIR \
+			or world.bushes.has(up) or crop_on(cell) != "":
+		return false
+	for dz in range(-SAPLING_GAP, SAPLING_GAP + 1):
+		for dx in range(-SAPLING_GAP, SAPLING_GAP + 1):
+			if world.trees.has(Vector2i(cell.x + dx, cell.z + dz)):
+				return false
+	return not _sapling_near(cell)
+
+
+## Whether ground of material `m` lets a sapling root: grass, bare ground, a bed.
+func _ground_roots(m: int) -> bool:
+	return m == Mat.GRASS or m == Mat.DIRT or Mat.is_bed(m)
+
+
+## Whether a sapling grows within SAPLING_GAP columns of `cell`.
+func _sapling_near(cell: Vector3i) -> bool:
+	var keys := {}
+	for dz in [-SAPLING_GAP, SAPLING_GAP]:
+		for dx in [-SAPLING_GAP, SAPLING_GAP]:
+			keys[WorldData.chunk_key(cell.x + dx, cell.z + dz)] = true
+	for key: Vector2i in keys:
+		for c: Vector3i in world.fields.get(key, {}):
+			if absi(c.x - cell.x) <= SAPLING_GAP and absi(c.z - cell.z) <= SAPLING_GAP and absi(c.y - cell.y) <= 4 \
+					and Plants.is_sapling(world.fields[key][c][0]):
+				return true
+	return false
+
+
+## The grown sapling on ground cell `cell` becomes its tree where there is room for one
+## over it (Growth.fit), true when it did; else it waits.
+func grow_tree(cell: Vector3i) -> bool:
+	var f: Variant = world.field_at(cell)
+	if f == null or not Plants.is_sapling(f[0]):
+		return false
+	var species := Trees.index(Plants.BY_ID[f[0]].tree)
+	if species < 0:
+		return false
+	var room := 0
+	var y := cell.y + 1
+	while y < world.size_y and world.get_cell(cell.x, y, cell.z) == Mat.AIR:
+		room += 1
+		y += 1
+	var scale := Growth.fit(species, room)
+	if scale <= 0.0:
+		return false
+	world.set_field(cell, null)
+	if Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+		world.set_material(cell.x, cell.y, cell.z, Mat.DIRT)
+		cell_changed.emit(cell)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(cell)
+	Growth.place(world, cell.x, cell.y + 1, cell.z, species, rng, scale)
+	var reach := Growth.TREE_REACH
+	for kz in range((cell.z - reach) >> WorldData.SHIFT, ((cell.z + reach) >> WorldData.SHIFT) + 1):
+		for kx in range((cell.x - reach) >> WorldData.SHIFT, ((cell.x + reach) >> WorldData.SHIFT) + 1):
+			world.note_edit(kx << WorldData.SHIFT, kz << WorldData.SHIFT)
+			looks_changed.emit(Vector2i(kx, kz))
+	return true
 
 
 # --- Watering -----------------------------------------------------------------------------
@@ -380,11 +483,26 @@ func step_fields(seconds: float, rain: float) -> void:
 func grow_fields(days: float, rain: float) -> void:
 	var now: float = clock.now()
 	var winter: bool = clock.season == WINTER
+	var grown: Array[Vector3i] = []
 	for key: Vector2i in world.fields.keys():
 		var beds: Dictionary = world.fields[key]
 		var looks := false
 		for cell: Vector3i in beds.keys():
 			var f: Array = beds[cell]
+			if f[0] != "" and Plants.is_sapling(f[0]):
+				# A sapling: in the warm seasons it grows, wet or dry; it waits out the winter.
+				var above := cell + Vector3i.UP
+				if not _ground_roots(world.get_cell(cell.x, cell.y, cell.z)) \
+						or world.get_cell(above.x, above.y, above.z) != Mat.AIR:
+					world.set_field(cell, null)
+					looks = true
+				elif Plants.ripe(f[0], f[1]):
+					grown.append(cell)
+				elif not winter:
+					var was := Plants.stage(f[0], f[1])
+					f[1] += days
+					looks = looks or Plants.stage(f[0], f[1]) != was
+				continue
 			if not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
 				world.set_field(cell, null)
 				looks = looks or f[0] != ""
@@ -410,3 +528,5 @@ func grow_fields(days: float, rain: float) -> void:
 		world.note_edit(key.x << WorldData.SHIFT, key.y << WorldData.SHIFT)
 		if looks:
 			looks_changed.emit(key)
+	for cell in grown:
+		grow_tree(cell)

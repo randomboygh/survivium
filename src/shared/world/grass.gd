@@ -314,7 +314,7 @@ static func _one_plant(i: int, out: Array[int], rng: RandomNumberGenerator) -> v
 		"glow_mushrooms":
 			first = GLOW
 			count = 1
-		"custom", "crop":
+		"custom", "crop", "sapling":
 			for c in Plants.CUSTOM:
 				if c.id == r.id:
 					first = CUSTOM + c.first
