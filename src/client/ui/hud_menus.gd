@@ -199,7 +199,7 @@ func _update_menu() -> void:
 ## the world (no digging, no «Слишком далеко»).
 func covers(screen_pos: Vector2) -> bool:
 	var room := SAFE_ZONE * scale.x
-	for c: Control in [_top, _level, minimap, _camera, _bar, build_bar, _bag_meter, _clock_panel, vitals, stick, _action, _jump]:
+	for c: Control in [_top, _level, minimap, _camera, _bar, build_bar, farm_bar, _bag_meter, _clock_panel, vitals, stick, _action, _jump]:
 		if c != null and c.is_visible_in_tree() and c.get_global_rect().grow(room).has_point(screen_pos):
 			return true
 	return false

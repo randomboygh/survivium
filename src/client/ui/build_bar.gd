@@ -7,7 +7,8 @@ extends VBoxContainer
 ## the mode; under it the palette: the bag's blocks and things in one row as the hotbar's slots
 ## (no hands), arrows on its sides scrolling it when they do not all fit (eight cells at
 ## most on a portrait screen, smaller ones). The chosen one is in the hand in use.
-## `game` is the Main node.
+## `game` is the Main node, `mode` the mode the bar is of (BuildMode; FarmBar, which
+## extends it, is the farming mode's bar with its own panel).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
@@ -32,6 +33,7 @@ const FORMS := [["form_cube", "Блок: целый"], ["form_ramp", "Скос �
 	["form_stairs", "Ступени"]]
 
 var game
+var mode
 var _rows: VBoxContainer
 var _row2: HBoxContainer
 var _forms: HBoxContainer
@@ -58,8 +60,9 @@ var _side := SLOT
 var _clear_at := 0
 
 
-func _init(g) -> void:
+func _init(g, m = null) -> void:
 	game = g
+	mode = m if m != null else g.build
 	add_theme_constant_override("separation", 4)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The groups of buttons in a row; on a narrow screen the forms go to a second row
@@ -72,6 +75,31 @@ func _init(g) -> void:
 	_rows.add_child(_row2)
 	var panel := _row()
 	_rows.add_child(panel)
+	_make_panel(panel)
+	_palette = PanelContainer.new()
+	_palette.mouse_filter = Control.MOUSE_FILTER_STOP
+	var box := UiStyle.panel()
+	for side in ["left", "top", "right", "bottom"]:
+		box.set("content_margin_" + side, 4)
+	_palette.add_theme_stylebox_override("panel", box)
+	# As wide as the bar: the clock under it keeps to its right end.
+	_palette.size_flags_horizontal = Control.SIZE_FILL
+	add_child(_palette)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", GAP)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_palette.add_child(row)
+	_prev = _arrow(row, "prev", "Предыдущие", func() -> void: _scroll(-1))
+	_grid = HBoxContainer.new()
+	_grid.add_theme_constant_override("separation", GAP)
+	row.add_child(_grid)
+	_next = _arrow(row, "next", "Следующие", func() -> void: _scroll(1))
+	mode.changed.connect(refresh)
+	game.character.state_changed.connect(_refresh_later)
+
+
+## The mode's buttons in row `panel`.
+func _make_panel(panel: HBoxContainer) -> void:
 	var shapes := TabRow.split([
 		[UiStyle.icon("build_line"), "", func() -> void: game.build.next_kind()],
 		[UiStyle.icon("build_flatten"), "Выровнять землю: срезать выше, засыпать ямы землёй из сумки",
@@ -104,26 +132,6 @@ func _init(g) -> void:
 	panel.add_child(leave)
 	for b: Button in [_shape, _flatten, _form, _turn, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
-	_palette = PanelContainer.new()
-	_palette.mouse_filter = Control.MOUSE_FILTER_STOP
-	var box := UiStyle.panel()
-	for side in ["left", "top", "right", "bottom"]:
-		box.set("content_margin_" + side, 4)
-	_palette.add_theme_stylebox_override("panel", box)
-	# As wide as the bar: the clock under it keeps to its right end.
-	_palette.size_flags_horizontal = Control.SIZE_FILL
-	add_child(_palette)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", GAP)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_palette.add_child(row)
-	_prev = _arrow(row, "prev", "Предыдущие", func() -> void: _scroll(-1))
-	_grid = HBoxContainer.new()
-	_grid.add_theme_constant_override("separation", GAP)
-	row.add_child(_grid)
-	_next = _arrow(row, "next", "Следующие", func() -> void: _scroll(1))
-	game.build.changed.connect(refresh)
-	game.character.state_changed.connect(_refresh_later)
 
 
 func _row() -> HBoxContainer:
@@ -184,12 +192,17 @@ func _arrow(parent: Node, icon: String, tip: String, action: Callable) -> Button
 func _tap_clear() -> void:
 	if _clear_at > 0 and Time.get_ticks_msec() - _clear_at < CONFIRM_MS:
 		_clear_at = 0
-		game.build.clear()
+		mode.clear()
 		return
 	_clear_at = Time.get_ticks_msec()
-	game.hud.toast("Нажмите ещё раз, чтобы убрать все чертежи рядом")
+	game.hud.toast(_clear_ask())
 	refresh()
 	get_tree().create_timer(CONFIRM_MS / 1000.0).timeout.connect(_clear_timeout)
+
+
+## What the clear button asks on its first tap.
+func _clear_ask() -> String:
+	return "Нажмите ещё раз, чтобы убрать все чертежи рядом"
 
 
 func _clear_timeout() -> void:
@@ -228,13 +241,19 @@ func fit(width: float, portrait := false) -> void:
 		across += g.get_combined_minimum_size().x + 6
 	var two := across - 6 > width
 	var home: HBoxContainer = _row2 if two else one
-	if _forms.get_parent() != home:
-		_forms.get_parent().remove_child(_forms)
-		home.add_child(_forms)
+	var wide := _wide_group()
+	if wide != null and wide.get_parent() != home:
+		wide.get_parent().remove_child(wide)
+		home.add_child(wide)
 		if home == one:
-			home.move_child(_forms, 1)
+			home.move_child(wide, 1)
 	_row2.visible = two
 	refresh()
+
+
+## The forms' buttons (moved to a second row on a narrow screen by fit), null for none.
+func _wide_group() -> Control:
+	return _forms
 
 
 var _due := false
@@ -249,6 +268,12 @@ func _refresh_later() -> void:
 ## Shows the mode's state and the palette anew.
 func refresh() -> void:
 	_due = false
+	_show_panel()
+	_show_palette()
+
+
+## Shows the mode's buttons anew.
+func _show_panel() -> void:
 	var b = game.build
 	var shape: Array = SHAPES.get(b.shape, SHAPES["line"])
 	_shape.icon = UiStyle.centred(UiStyle.icon(shape[0]))
@@ -266,6 +291,11 @@ func refresh() -> void:
 	TabRow.light(_mode, b.erasing, b.erasing)
 	var confirming := _clear_at > 0 and Time.get_ticks_msec() - _clear_at < CONFIRM_MS
 	TabRow.light(_clear, confirming, confirming)
+
+
+## Shows the palette anew: the mode's items, the chosen one marked.
+func _show_palette() -> void:
+	var b = mode
 	_items = b.palette()
 	# Every cell of the width, empty ones where the bag has less.
 	var shown := _columns
@@ -297,14 +327,19 @@ func refresh() -> void:
 	_prev.disabled = _first <= 0
 	_next.disabled = _first >= _items.size() - shown
 	if _items.is_empty():
-		_slots[0].tooltip_text = "Нечего строить: нет блоков" if b.filter != "interior" else "Нечего строить: нет вещей"
+		_slots[0].tooltip_text = _nothing()
+
+
+## The tip of the empty palette.
+func _nothing() -> String:
+	return "Нечего строить: нет блоков" if mode.filter != "interior" else "Нечего строить: нет вещей"
 
 
 ## Slot `k` shown was tapped: its item into the hand.
 func _tap(k: int) -> void:
 	var at := _first + k
 	if at < _items.size():
-		game.build.choose(_items[at])
+		mode.choose(_items[at])
 
 
 ## The arrows: a cell at a time, as the hotbar's.

@@ -142,9 +142,10 @@ func can_till(cell: Vector3i) -> bool:
 		and world.blocker_top(cell.x, cell.y, cell.z) <= 0.0 and tree_of(cell) == null
 
 
-## Tills `cells` into beds in one swing of the hoe in hand: grass gives its fibre (its
-## `mow_gives`) as when it is cut.
-func till(who, cells: Array[Vector3i]) -> Dictionary:
+## Tills `cells` into beds in one swing of the hoe in hand (or hoe item `tool` of the
+## bag: the farming mode's marks, FarmMarks): grass gives its fibre (its `mow_gives`) as
+## when it is cut.
+func till(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 	cells = _allowed(who, cells, "build")
 	if cells.is_empty() or not who.act("dig"):
 		return {}
@@ -162,10 +163,19 @@ func till(who, cells: Array[Vector3i]) -> Dictionary:
 			keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		drops_changed.emit(key)
-	var t: Dictionary = who.tool()
+	var t: Dictionary = who.tool() if tool == null else Tools.of(tool)
 	var done := _work(skilled(who, "farm", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.DIRT)
-	who.use_tool()
+	_wear(who, tool)
 	return done
+
+
+## Wears the hand's tool (`tool` null) or tool item `tool` of the bag by one swing.
+func _wear(who, tool: Variant) -> void:
+	if tool == null:
+		who.use_tool()
+	elif tool is String and tool != "" and rules.tool_wear \
+			and who.inventory.wear_tool(tool, Items.get_item(tool).get("durability", 0)):
+		who.say("Сломалось: %s" % Items.title(tool))
 
 
 # --- Sowing -------------------------------------------------------------------------------
@@ -239,6 +249,29 @@ func _can_plant(who, id: String, cell: Vector3i) -> bool:
 	return super(who, id, cell)
 
 
+## Whether item `id` could be planted on ground cell `cell` some day, wherever the one
+## planting stands (the farming mode's marks): a crop's seeds on an empty bed or on
+## ground a hoe tills first, a bush on ground it fits, seeds of grass on the bare ground
+## they grow on.
+func plantable(id: String, cell: Vector3i) -> bool:
+	var item := Items.get_item(id)
+	if item.is_empty() or not world.in_bounds(cell.x, cell.y, cell.z):
+		return false
+	var up := cell + Vector3i.UP
+	if Plants.is_crop(item.get("crop", "")):
+		if can_till(cell):
+			return true
+		return Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)) and crop_on(cell) == "" \
+			and world.get_cell(up.x, up.y, up.z) == Mat.AIR
+	if item.get("plant", "") != "":
+		return Bushes.index(item.plant) >= 0 and Growth.bush_fits(world, up.x, up.y, up.z) and not world.bushes.has(up)
+	if item.get("sow", "") == "":
+		return false
+	var grows := Mat.index(item.sow)
+	return grows >= 0 and Tools.mown(grows) == world.get_cell(cell.x, cell.y, cell.z) \
+		and world.get_cell(up.x, up.y, up.z) == Mat.AIR and not world.bushes.has(up)
+
+
 # --- Watering -----------------------------------------------------------------------------
 
 
@@ -247,13 +280,14 @@ func can_water(cell: Vector3i) -> bool:
 	return Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z))
 
 
-## Waters beds `cells` with the can in hand: each stays wet WET_DAYS; each takes one of
-## the can's uses (its wear), and an emptied can becomes its `empties_to`.
-func water(who, cells: Array[Vector3i]) -> Dictionary:
+## Waters beds `cells` with the can in hand (or can item `with` of the bag): each stays
+## wet WET_DAYS; each takes one of the can's uses (its wear), and an emptied can becomes
+## its `empties_to`.
+func water(who, cells: Array[Vector3i], with := "") -> Dictionary:
 	cells = _allowed(who, cells, "build")
 	if cells.is_empty() or not who.act("gather"):
 		return {}
-	var can: String = who.held()
+	var can: String = who.held() if with == "" else with
 	var item := Items.get_item(can)
 	if who.inventory.count(can) == 0:
 		return {}
@@ -293,9 +327,10 @@ func can_reap(cell: Vector3i, t: Dictionary) -> bool:
 	return ripe_at(cell) and Tools.can_reap(t, Plants.BY_ID.get(crop_on(cell), {}))
 
 
-## Reaps the ripe crops on beds `cells` in one swing of the hand in use: each gives its
-## `gives` (now and then one more with the skill), lying on the bed; the bed stays, empty.
-func reap(who, cells: Array[Vector3i]) -> Dictionary:
+## Reaps the ripe crops on beds `cells` in one swing of the hand in use (or tool item
+## `tool` of the bag, "" bare hands): each gives its `gives` (now and then one more with
+## the skill), lying on the bed; the bed stays, empty.
+func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 	cells = _allowed(who, cells, "harvest")
 	if cells.is_empty() or not who.act("cut"):
 		return {}
@@ -317,10 +352,10 @@ func reap(who, cells: Array[Vector3i]) -> Dictionary:
 	for key in keys:
 		looks_changed.emit(key)
 		drops_changed.emit(key)
-	var t: Dictionary = who.tool()
+	var t: Dictionary = who.tool() if tool == null else Tools.of(tool)
 	var done := _work(skilled(who, "farm", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.GRASS)
 	if t.tool != "hand":
-		who.use_tool()
+		_wear(who, tool)
 	return done
 
 

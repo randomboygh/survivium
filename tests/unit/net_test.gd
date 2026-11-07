@@ -347,6 +347,11 @@ func _test_requests() -> void:
 	_check(net.request(Protocol.PLAN, ["roof", g0, g0, 1, 1, false, 0]).value == null, "a shape of no known kind is refused")
 	_check(net.request(Protocol.BUILD, []).value is Dictionary, "the build mode's button builds through the server")
 	_check(net.request(Protocol.PLAN_CLEAR, []).value >= 2 and s.plans.cells.is_empty(), "and the ghost near is cleared")
+	_check(net.request(Protocol.FARM, ["dig", g0, g0, false, false]).value == null, "a farming work of no known kind is refused")
+	_check(net.request(Protocol.FARM, ["till", g0, g0 + Vector3i(2, 0, 0), false, false]).value is int,
+		"the farming mode's marks are drawn through the server")
+	_check(net.request(Protocol.FARM_WORK, []).value is Dictionary, "and its button works them through the server")
+	_check(net.request(Protocol.FARM_CLEAR, []).value is int, "and they are cleared near")
 	a.hands = ["", ""]
 	events.clear()
 	# An animal comes by the player, moves, and leaves.

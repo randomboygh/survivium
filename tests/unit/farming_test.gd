@@ -2,7 +2,10 @@ extends "res://tests/unit/test_case.gd"
 ## Farming (WorldActions part actions_farm.gd): a hoe tills a bed, grain is sown on it,
 ## a can waters it, rain wets the open beds, wheat grows only wet and in the warm
 ## seasons, dies in winter, is reaped ripe by hands, a sickle or a scythe; the beds'
-## records survive a chunk's save.
+## records survive a chunk's save; the farming mode's marks (Plans.mark, Plans.farm) are
+## drawn on the ground and worked with the tools of the bag.
+
+const Plans := preload("res://src/shared/game/plans.gd")
 
 const WHEAT := "plants:wheat"
 const GRAIN := "plants:grain"
@@ -13,6 +16,7 @@ func run() -> void:
 	_test_growth()
 	_test_reap()
 	_test_save()
+	_test_marks()
 
 
 ## A small flat world of grass on stone, its clock in summer, and one standing in it.
@@ -185,3 +189,80 @@ func _test_save() -> void:
 	var c: Dictionary = Plants.custom(WHEAT)
 	_check(Foliage._crop(cards, bed.x, bed.y, bed.z, [WHEAT, 99.0, 0.0], rng) == 4 and not c.is_empty()
 		and int(cards[12]) == Grass.CUSTOM + c.first + c.frames - 1, "a crop is drawn as four plants of its stage's frame")
+
+
+## Works the farming marks of `plans` near `who` until none can be, at most `n` times.
+func _work_marks(plans, actions, who, n: int) -> void:
+	for i in n:
+		if plans.farm(actions, who).get("idle", false):
+			return
+
+
+func _test_marks() -> void:
+	var setup := _world()
+	var w: WorldData = setup[0]
+	var clock: Clock = setup[1]
+	var actions: WorldActions = setup[2]
+	var who: Who = setup[3]
+	var plans := Plans.new()
+	_check(Plans.is_mark(Plans.TILL) and Plans.is_mark(GRAIN) and not Plans.is_mark("materials:planks")
+		and not Plans.is_mark(Plans.CUT), "the farming marks are told apart from the blueprint's ghost")
+	# Tilling a line: tapped on the air over the ground, the ground of each column is marked.
+	_check(plans.mark(actions, who, "till", Vector3i(8, 2, 9), Vector3i(12, 2, 10), false) == 5
+		and plans.cells.get(Vector3i(8, 1, 9)) == Plans.TILL and plans.cells.get(Vector3i(12, 1, 9)) == Plans.TILL,
+		"a line of marks to till lies on the ground along the way the stroke went farthest")
+	_check(plans.near(who).is_empty() and plans.near(who, true).size() == 5, "the marks are no ghost to build")
+	var done := plans.farm(actions, who)
+	_check(done.get("idle", false) and plans.cells.size() == 5 and who.said[-1].contains("тяпк"),
+		"with no hoe in the bag nothing is tilled, and it is said")
+	who.inventory.add("tools:stone_hoe", 1)
+	_work_marks(plans, actions, who, 10)
+	var beds := 0
+	for x in range(8, 13):
+		beds += 1 if w.get_cell(x, 1, 9) == Mat.BED else 0
+	_check(beds == 5 and plans.cells.is_empty(), "the button tills the marks with the hoe of the bag, and they go")
+	# Sowing a square: the ground is tilled first, then sown.
+	who.inventory.add(GRAIN, 10)
+	who.item = GRAIN
+	_check(plans.mark(actions, who, "sow", Vector3i(8, 1, 12), Vector3i(9, 1, 13), true) == 4, "a square of marks to sow")
+	_work_marks(plans, actions, who, 20)
+	var sown := 0
+	for c in [Vector3i(8, 1, 12), Vector3i(9, 1, 12), Vector3i(8, 1, 13), Vector3i(9, 1, 13)]:
+		sown += 1 if actions.crop_on(c) == WHEAT else 0
+	_check(sown == 4 and plans.cells.is_empty() and who.inventory.count(GRAIN) == 6,
+		"the square is tilled and sown with the grain of the bag: %d" % sown)
+	# Watering it.
+	who.item = ""
+	_check(plans.mark(actions, who, "water", Vector3i(8, 1, 12), Vector3i(9, 1, 13), true) == 4, "marks to water the beds")
+	_check(plans.mark(actions, who, "water", Vector3i(14, 1, 14), Vector3i(15, 1, 14), false) == 0, "but not the grass")
+	who.inventory.add("tools:watering_can_full", 1)
+	_work_marks(plans, actions, who, 10)
+	_check(w.get_cell(8, 1, 12) == Mat.BED_WET and w.get_cell(9, 1, 13) == Mat.BED_WET and plans.cells.is_empty(),
+		"the can of the bag waters the marked beds")
+	# Reaping: green wheat waits, ripe is reaped.
+	_check(plans.mark(actions, who, "reap", Vector3i(8, 1, 12), Vector3i(9, 1, 13), true) == 4, "marks to reap")
+	_check(plans.farm(actions, who).get("idle", false) and plans.cells.size() == 4 and who.said[-1].contains("не созрело"),
+		"green wheat is not reaped: the marks wait")
+	actions.grow_fields(Plants.BY_ID[WHEAT].grow_days, 0.0)
+	_work_marks(plans, actions, who, 10)
+	_check(actions.crop_on(Vector3i(8, 1, 12)) == "" and actions.crop_on(Vector3i(9, 1, 13)) == "" and plans.cells.is_empty(),
+		"ripe wheat is reaped by hand with no sickle in the bag")
+	# Winter: the seeds wait.
+	clock.season = Clock.WINTER
+	plans.mark(actions, who, "sow", Vector3i(8, 1, 9), Vector3i(8, 1, 9), false)
+	who.item = GRAIN
+	plans.mark(actions, who, "sow", Vector3i(8, 1, 9), Vector3i(8, 1, 9), false)
+	_check(plans.farm(actions, who).get("idle", false) and plans.cells.size() == 1 and who.said[-1].contains("Зимой"),
+		"nothing is sown in winter: the mark waits")
+	clock.season = 1
+	# Taking off: a stroke, or all near; the blueprint's ghost stays.
+	plans.cells[Vector3i(10, 3, 10)] = "materials:planks"
+	_check(plans.mark(actions, who, "sow", Vector3i(8, 1, 9), Vector3i(8, 1, 9), false, true) == 1
+		and not plans.cells.has(Vector3i(8, 1, 9)), "a stroke takes the marks off")
+	plans.mark(actions, who, "till", Vector3i(14, 1, 15), Vector3i(16, 1, 15), false)
+	_check(plans.clear(actions, who, true) == 3 and plans.cells.size() == 1, "all the marks near go, the blueprint stays")
+	_check(plans.clear(actions, who) == 1 and plans.cells.is_empty(), "and the blueprint goes by itself")
+	var list := plans.to_list()
+	plans.mark(actions, who, "till", Vector3i(14, 1, 15), Vector3i(16, 1, 15), false)
+	plans.from_list(plans.to_list())
+	_check(list.is_empty() and plans.cells.size() == 3, "the marks are saved with the blueprint")

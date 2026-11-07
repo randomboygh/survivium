@@ -87,6 +87,15 @@ const PLAN_CLEAR := "plan_clear"
 ## The build mode's action button: builds one ghost cell of the blueprint near the player,
 ## whatever the hand holds: [] (Plans.build).
 const BUILD := "build"
+## The farming mode (FarmMode): draws the marks of a work (Plans.WORKS; to sow what
+## the hand holds) on the ground of a line or a filled square, or takes the marks off
+## its columns: [work, from, to, square, erase] (Plans.mark).
+const FARM := "farm"
+## The farming mode's action button: does the work of one mark near the player with
+## the tools of the bag: [] (Plans.farm).
+const FARM_WORK := "farm_work"
+## Takes the farming marks off every cell near the player: [] (Plans.clear).
+const FARM_CLEAR := "farm_clear"
 ## Destroys a campfire put out: [cell] (Placed.destroy).
 const PROP_DESTROY := "prop_destroy"
 ## Starts a recipe some times at the workshop: [recipe id, n] (Workshop.start).

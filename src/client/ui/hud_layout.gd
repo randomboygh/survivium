@@ -102,20 +102,21 @@ func _place() -> void:
 		_visible_slots = clampi(floori((room - 2 * (28 + GAP)) / (SLOT + GAP)), 1, 4 if portrait else _slots.size())
 	_first = clampi(_first, 0, _slots.size() - _visible_slots)
 	_show_page()
-	# The build mode's bar in the hotbar's place: as wide as the room for it.
+	# The build or the farming mode's bar in the hotbar's place: as wide as the room for it.
 	var bar: Control = _shown_bar()
-	if bar == build_bar:
+	var mode_bar: BuildBar = bar if bar != _bar else null
+	if mode_bar != null:
 		# Between the stick and the buttons when six columns fit there, else across the
 		# screen over them.
 		var across := w - 2 * MARGIN
 		if touch and not portrait:
 			var between: float = (_jump.position.x - 8) - (stick.position.x + stick_size.x + 8)
-			if between >= build_bar.width_for(6):
+			if between >= mode_bar.width_for(6):
 				across = between
 			else:
 				# Over the buttons: short of the minimap's column on the right.
 				across = minf(across, _right_column() - 8 - MARGIN)
-		build_bar.fit(across, portrait)
+		mode_bar.fit(across, portrait)
 	bar.reset_size()
 	var bw := bar.size.x
 	var bh := bar.size.y
@@ -128,7 +129,7 @@ func _place() -> void:
 			x = clampf(x, free_left, free_right - bw)
 		else:
 			y = minf(stick.position.y, _jump.position.y) - 8 - bh
-			if bar == build_bar and not portrait:
+			if mode_bar != null and not portrait:
 				x = maxf(MARGIN, minf(x, _right_column() - 8 - bw))
 	# The clock under the hotbar's right end, overlapping its outline.
 	_clock_panel.reset_size()
@@ -140,7 +141,7 @@ func _place() -> void:
 	# The tab sits on the hotbar's frame at its right end, overlapping its outline; the
 	# build mode's palette counts the blocks itself.
 	_bag_meter.position = Vector2(x + bw - _bag_meter.size.x, y - _bag_meter.size.y + 2)
-	_bag_meter.visible = bar != build_bar
+	_bag_meter.visible = mode_bar == null
 
 	_keys.reset_size()
 	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
@@ -350,17 +351,31 @@ func _align_clock() -> void:
 	_sleep_button.position = _clock_panel.position + Vector2(_clock_panel.size.x - SLEEP_SIZE.x, 0)
 
 
-## The bar shown at the bottom: the hotbar, or the build mode's bar.
+## The bar shown at the bottom: the hotbar, or the build or the farming mode's bar.
 func _shown_bar() -> Control:
-	return build_bar if build_bar != null and build_bar.visible else _bar
+	if build_bar != null and build_bar.visible:
+		return build_bar
+	if farm_bar != null and farm_bar.visible:
+		return farm_bar
+	return _bar
 
 
 ## The build mode came or went: its bar in the hotbar's place, or the hotbar back.
 func show_build(on: bool) -> void:
 	build_bar.visible = on
-	_bar.visible = not on
+	_bar.visible = not on and not farm_bar.visible
 	if on:
 		build_bar.refresh()
+	_place()
+	_update_hands()
+
+
+## The farming mode came or went: its bar in the hotbar's place, or the hotbar back.
+func show_farm(on: bool) -> void:
+	farm_bar.visible = on
+	_bar.visible = not on and not build_bar.visible
+	if on:
+		farm_bar.refresh()
 	_place()
 	_update_hands()
 
@@ -390,7 +405,7 @@ func _update_hands() -> void:
 			("Н" if game.character.inventory.worn_on(i) != "" else "")))
 	_action.text = c.action_name()
 	# Pressed down while the fishing line is in the water, or while the build mode builds.
-	_action.latch(game.character.line.is_finite() or game.build.auto)
+	_action.latch(game.character.line.is_finite() or game.build.auto or game.farm.auto)
 	# The picture of what the hand in use holds, bare hands for nothing.
 	var held: String = c.held()
 	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null

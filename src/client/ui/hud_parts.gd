@@ -20,6 +20,7 @@ const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
 const BuildBar := preload("res://src/client/ui/build_bar.gd")
+const FarmBar := preload("res://src/client/ui/farm_bar.gd")
 const MARGIN := 8.0
 const GAP := 4.0
 const SLOT := 40
@@ -95,6 +96,8 @@ var _level_up: Button
 ## The blueprint's height buttons (shown while a wall or a room is drawn).
 ## The build mode's bar, in the hotbar's place while the mode is on (BuildBar).
 var build_bar: BuildBar
+## The farming mode's bar, in the hotbar's place while that mode is on (FarmBar).
+var farm_bar: FarmBar
 var _level_down: Button
 ## The camera buttons under the minimap: turn, tilt, and back to the default view
 ## (it shows the turn and the tilt).

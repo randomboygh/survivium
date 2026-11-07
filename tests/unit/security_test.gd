@@ -116,6 +116,13 @@ func _test_requests() -> void:
 	p[0].rules.free_items = true
 	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 109, free))[1] == 1 and a.inventory.count("tools:torch") == 1,
 		"with «Бесплатные предметы» on it is")
+	_check(req.handle(Protocol.request(Protocol.FARM, 110, ["till", Vector3i(-1000000000, 2, 0), Vector3i(1000000000, 2, 0), true, false]))[1] == 0,
+		"farming marks of corners far apart are refused at once, not made")
+	_check(req.handle(Protocol.request(Protocol.FARM, 111, ["till", Vector3i.ZERO, Vector3i.ZERO, 1, false]))[1] == null,
+		"and marks whose «square» is no bool")
+	_check(req.handle(Protocol.request(Protocol.FARM, 112, ["build", Vector3i.ZERO, Vector3i.ZERO, false, false]))[1] == null,
+		"and marks of no known work")
+	_check(req.PACED.has(Protocol.FARM_WORK), "the farming mode's work takes the hands' time")
 
 
 ## A bag counted from its end is the same bag, not twice the things.

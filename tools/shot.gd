@@ -746,6 +746,48 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 			main.build.show_stroke(s)
+		if shot.has("farm_mode"):
+			# The farming mode by the test world's farm: seeds, a bush, a hoe, a can of water
+			# and a sickle in the bag, marks of every work drawn by the server (to till and
+			# sow on the grass west, to water the dry beds, to reap the ripe row), and a
+			# stroke of the work chosen held over the grass.
+			var who = main.host.player
+			var inv = who.inventory
+			for st in [["plants:grain", 30], ["plants:raspberry_bush", 2], ["plants:currant_bush", 2], ["plants:grass_seeds", 8],
+					["tools:stone_hoe", 1], ["tools:watering_can_full", 1], ["tools:copper_sickle", 1]]:
+				if Items.has(st[0]):
+					inv.add(st[0], st[1])
+			for i in 3:
+				await process_frame
+			var plans = main.session.plans
+			var sa = main.session.actions
+			# On the ground, once its chunk is made.
+			var col := Vector2i((main.player.position / CELL).floor().x, (main.player.position / CELL).floor().z)
+			for i in 60:
+				if main.world.surface_y(col.x, col.y) > 0:
+					break
+				await process_frame
+			main.player.position.y = main.world.surface_y(col.x, col.y) * CELL
+			who.position = main.player.position
+			var feet := Vector3i((main.player.position / CELL).floor())
+			plans.mark(sa, who, "till", feet + Vector3i(-9, 0, 1), feet + Vector3i(-4, 0, 1), false)
+			who.hands = ["plants:grain", ""]
+			who.active = 0
+			plans.mark(sa, who, "sow", feet + Vector3i(-9, 0, 3), feet + Vector3i(-6, 0, 5), true)
+			who.hands = ["", ""]
+			plans.mark(sa, who, "water", Vector3i(64, feet.y, 16), Vector3i(75, feet.y, 18), true)
+			plans.mark(sa, who, "reap", Vector3i(64, feet.y, 26), Vector3i(75, feet.y, 26), false)
+			for i in 3:
+				await process_frame
+			main.farm.filter = shot.get("filter", "all")
+			main.farm.shape = shot.get("shape", "square")
+			main.farm.enter("plants:grain")
+			if shot.has("work"):
+				main.farm.set_work(shot.work)
+			main.farm.set_erasing(shot.farm_mode == "erase")
+			for i in 3:
+				await process_frame
+			main.farm.show_stroke({"plan": "farm", "first": feet + Vector3i(-3, 0, 3), "last": feet + Vector3i(-1, 0, 6)})
 		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
 				or shot.get("craft", false) or shot.get("chests", false) or shot.get("campfire", false):
 			# The window settles its height a frame after it opens (see InventoryWindow.refresh).

@@ -235,6 +235,9 @@ func _ready() -> void:
 	build_bar = BuildBar.new(game)
 	build_bar.visible = false
 	add_child(build_bar)
+	farm_bar = FarmBar.new(game)
+	farm_bar.visible = false
+	add_child(farm_bar)
 
 	stick = TouchStick.new()
 	add_child(stick)

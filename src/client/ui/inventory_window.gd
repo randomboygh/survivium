@@ -45,6 +45,7 @@ const PersonPanel := preload("res://src/client/ui/person_panel.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
+const FarmMode := preload("res://src/client/input/farm_mode.gd")
 
 ## Room kept between the window and the edges of the screen, in UI pixels.
 const EDGE := 4
@@ -74,7 +75,8 @@ const USE_WIDTH := TabRow.WIDE
 const USES := {
 	"take": ["act_take", "Взять в руку"], "eat": ["act_eat", "Съесть одну"], "drink": ["act_eat", "Выпить"], "heal": ["act_heal", "Перевязать раны"],
 	"place": ["act_place", "Поставить рядом"], "plant": ["act_plant", "Посадить перед собой"],
-	"wear": ["act_wear", "Надеть на персонажа"], "build": ["hammer", "Строить: режим строительства"], "off": ["take", "Снять"], "free": ["take", "Освободить руку"],
+	"wear": ["act_wear", "Надеть на персонажа"], "build": ["hammer", "Строить: режим строительства"],
+	"farm": ["act_plant", "Огород: режим земледелия"], "off": ["take", "Снять"], "free": ["take", "Освободить руку"],
 }
 
 var game
@@ -343,6 +345,9 @@ func _ready() -> void:
 			refresh()
 		elif Items.food(id) > 0.0 or Items.drink(id) > 0.0 or Items.heal(id) > 0.0:
 			game.net.request(Protocol.EAT, [_at])
+		elif FarmMode.farms_with(id):
+			close()
+			game.farm.enter(id)
 		elif _plantable(id):
 			game.net.request(Protocol.PLANT, [id])
 		elif BuildMode.builds_with(id):
@@ -946,11 +951,13 @@ func _show_info(inv) -> void:
 	var food: bool = s != null and Items.food(s[0]) > 0.0 or heals or drinks
 	var build: bool = s != null and BuildMode.builds_with(s[0])
 	var put: bool = s != null and _placeable(s[0]) and not build
-	var plant: bool = s != null and not food and _plantable(s[0])
+	var farm: bool = s != null and not food and FarmMode.farms_with(s[0])
+	var plant: bool = s != null and not food and _plantable(s[0]) and not farm
 	var wear: bool = s != null and Items.wear_on(s[0]) != ""
 	var off: bool = mine and inv.worn_on(_at) != ""
-	_show_use("off" if off else "wear" if wear else ("heal" if heals else (("drink" if drinks else "eat") if food else ("build" if build else ("place" if put else ("plant" if plant else "take"))))))
-	_use.disabled = not mine or not wear and not food and not put and not plant and not build and game.controls.held() == s[0]
+	_show_use("off" if off else "wear" if wear else ("heal" if heals else (("drink" if drinks else "eat") if food else ("build" if build else ("farm" if farm else ("place" if put else ("plant" if plant else "take")))))))
+	_use.disabled = not mine or not wear and not food and not put and not plant and not build and not farm \
+		and game.controls.held() == s[0]
 	_throw.get_child(0).disabled = not mine
 	_throw.get_child(1).disabled = not mine or s[1] < 2
 	_destroy.disabled = s == null

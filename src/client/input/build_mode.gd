@@ -111,6 +111,8 @@ func saved_hands() -> Dictionary:
 
 ## Enters the mode with item `id` chosen (or chooses it, already in it).
 func enter(id: String) -> void:
+	if game.farm != null and game.farm.on:
+		game.farm.leave()
 	if not on:
 		var c = game.controls
 		_saved_hands = [c.hands[0], c.hands[1]]
@@ -233,7 +235,7 @@ func clear() -> void:
 func toggle_auto() -> void:
 	if auto:
 		auto = false
-	elif game.plans.cells.is_empty():
+	elif game.plans.cells.is_empty() or game.plans.cells.size() == game.farm.marks():
 		game.character.nag("plan_none", "Нет чертежа: нарисуйте его на земле")
 	elif not _has_blocks():
 		game.character.nag("no_block", "В сумке нет блоков для чертежа")
@@ -250,7 +252,7 @@ func update(delta: float) -> void:
 	_check_clock -= delta
 	if _check_clock <= 0.0:
 		_check_clock = CHECK_TIME
-		if game.plans.cells.is_empty():
+		if game.plans.cells.size() == game.farm.marks():
 			auto = false
 			game.hud.toast("Чертёж построен")
 			changed.emit()
@@ -273,6 +275,8 @@ func _has_blocks() -> bool:
 		var item: String = game.plans.cells[c]
 		if item == Plans.CUT:
 			return true
+		if Plans.is_mark(item):
+			continue
 		if not seen.has(item):
 			seen[item] = true
 			if inv.count(item) > 0:
