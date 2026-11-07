@@ -263,7 +263,6 @@ func _run() -> void:
 	# A block or a thing to set down there enters the build mode: out of it again.
 	main.build.leave()
 	await _portrait_hotbar()
-	await _portrait_palette()
 	c.put_in_hand("resources:stone")
 	c.brush = 2
 	var stone_before: int = inv.count("resources:stone")
@@ -401,6 +400,8 @@ func _run() -> void:
 	main.hud.toggle_bag()
 	var bench: Vector3i = main.session.placed.cell_of("tools:workbench")
 	_check(main.world.blocks_body(bench.x, bench.y, bench.z), "a workbench is solid")
+	# After the crafting: the things it puts in the bag teach recipes, a longer craft tab.
+	await _portrait_palette()
 
 	# The chest by the spawn taken up with a stone in it, and set down again with it.
 	main.session.placed.chest_items.add("resources:stone", 1)
@@ -876,11 +877,14 @@ func _portrait_palette() -> void:
 	var hud = main.hud
 	var was := Rect2(hud.position, hud.size * hud.scale)
 	var inv = main.host.player.inventory
-	var given: Array[String] = []
+	# Room in the bag past its first row, given back as it was at the end.
+	var bag_before: Array = inv.slots.duplicate()
+	for i in range(inv.HOTBAR, inv.slots.size()):
+		inv.slots[i] = null
 	for id in ["materials:planks", "materials:brick", "materials:log_wall", "materials:cut_stone", "materials:wattle",
 			"materials:glass", "tools:door", "tools:window", "tools:stool", "tools:table"]:
-		if Items.has(id) and inv.count(id) == 0 and inv.add(id, 1) == 1:
-			given.append(id)
+		if Items.has(id) and inv.count(id) == 0:
+			inv.add(id, 1)
 	for i in 3:
 		await process_frame
 	main.build.enter("materials:planks")
@@ -890,7 +894,7 @@ func _portrait_palette() -> void:
 	var bar = hud.build_bar
 	_check(bar._columns == bar.COLUMNS_PORTRAIT and bar._slots[0].size.y == hud.SLOT and bar._prev.visible
 		and bar._prev.size.x == hud._prev_button.size.x, "the palette's cells and arrows are the hotbar's (%d cells of %s)"
-		% [bar._columns, bar._slots[0].size])
+		% [bar._columns, bar._slots[0].size] + " %s" % [bar._items])
 	var slot = bar._slots[1]
 	var at: Vector2 = slot.get_global_transform_with_canvas() * (slot.size * 0.5)
 	var held: String = main.build.chosen()
@@ -918,8 +922,7 @@ func _portrait_palette() -> void:
 	_check(down and not hud._action.button_pressed and hud._action.text == "Строить",
 		"the action button comes up when the build stops (%s %s %s)" % [down, hud._action.button_pressed, hud._action.text])
 	main.build.leave()
-	for id in given:
-		inv.remove(id, 1)
+	inv.slots = bag_before
 	hud.fit(was)
 	await process_frame
 
