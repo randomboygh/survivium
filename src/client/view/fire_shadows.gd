@@ -214,7 +214,9 @@ func _player_feet() -> Vector3:
 
 
 ## Puts the shadows the fires' lights throw from tree trunks first, unless they are
-## there already from the last frame; returns the next free instance.
+## there already from the last frame (the same lights, and the same trees standing:
+## a felled one stays noted, its column without logs or with a stump's); returns the
+## next free instance.
 func _fire_trunks(lights: Array) -> int:
 	var w = game.world
 	var key := ""
@@ -222,11 +224,15 @@ func _fire_trunks(lights: Array) -> int:
 		if l.torch:
 			continue
 		var trees := 0
+		var logs := 0
 		var k := _chunks_lit(l)
 		for kz in range(k.position.y, k.end.y + 1):
 			for kx in range(k.position.x, k.end.x + 1):
-				trees += w.tree_chunks.get(Vector2i(kx, kz), {}).size()
-		key += "%s %.2f %d %d;" % [l.at, l.strength, l.index, trees]
+				var cols: Dictionary = w.tree_chunks.get(Vector2i(kx, kz), {})
+				trees += cols.size()
+				for col: Vector2i in cols:
+					logs = (logs * 31 + w.log_col(col.x, col.y)) & 0x3fffffff
+		key += "%s %.2f %d %d %d;" % [l.at, l.strength, l.index, trees, logs]
 	if key == _trunks_for:
 		return _trunks_count
 	var n := 0
@@ -396,13 +402,14 @@ func _girth(foot: Vector3) -> float:
 
 
 ## The trunks of chunk `key` seen from a light at `at`: [their feet (see _base), how
-## wide each is (_girth)], kept while the chunk's trees stay the same.
+## wide each is (_girth)], kept while the chunk's trees stay the same and each trunk
+## still stands (a felled tree stays noted: its stump, or nothing, is left).
 func _trunks(key: Vector2i, at: Vector3) -> Array:
 	var w = game.world
 	var trees: Dictionary = w.tree_chunks.get(key, {})
 	var id := Vector3i(key.x, key.y, floori(at.y / CELL))
 	var known: Array = _chunk_feet.get(id, [])
-	if not known.is_empty() and known[0] == trees.size():
+	if not known.is_empty() and known[0] == trees.size() and _standing(w, known[1][0]):
 		return known[1]
 	var feet := PackedVector3Array()
 	var girths := PackedFloat64Array()
@@ -419,14 +426,23 @@ func _trunks(key: Vector2i, at: Vector3) -> Array:
 	return trunks
 
 
+## Whether the trunks with feet `feet` still stand: a log at each foot.
+func _standing(w, feet: PackedVector3Array) -> bool:
+	for foot in feet:
+		if w.get_cell(floori(foot.x / CELL), floori(foot.y / CELL), floori(foot.z / CELL)) != Mat.LOG:
+			return false
+	return true
+
+
 ## Height of the foot of the trunk in column `col` near the light at `at`, or -INF.
 func _base(w, col: Vector2i, at: Vector3) -> float:
 	var y0 := floori(at.y / CELL)
 	if _trunk_base.has(col):
 		var known: Vector2 = _trunk_base[col]
-		# A trunk found stays where it is; one not found is looked for again from
-		# another level.
-		if known.x > -INF or known.y == y0:
+		# A trunk found stays where it is while it stands (felled, it is looked for
+		# again); one not found is looked for again from another level.
+		var stands: bool = known.x > -INF and w.get_cell(col.x, floori(known.x / CELL), col.y) == Mat.LOG
+		if stands or (known.x == -INF and known.y == y0):
 			return known.x
 	if _trunk_base.size() > MAX_TRUNKS:
 		_trunk_base.clear()

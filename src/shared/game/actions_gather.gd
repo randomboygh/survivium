@@ -101,6 +101,17 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	return done
 
 
+## Whether the trunk holding `cell` is a young tree (a planted sapling grown small, see
+## ActionsFarm): felled, it gives only branches. None in this part.
+func young_tree(_cell: Vector3i) -> bool:
+	return false
+
+
+## A young tree whose trunk held `cell` was felled (see young_tree). Nothing in this part.
+func felled_young(_cell: Vector3i) -> void:
+	pass
+
+
 ## Fells the tree whose trunk holds `cell`, away from `who`; false if it is no trunk of
 ## a tree.
 func fell(who, cell: Vector3i) -> bool:
@@ -110,13 +121,16 @@ func fell(who, cell: Vector3i) -> bool:
 	for key in world.drops:
 		before[key] = world.drops[key].size()
 	var tree: int = world.trees.get(Vector2i(cell.x, cell.z), -1)
-	var gone: Array[Vector3i] = Felling.fell(world, cell, away)
+	var young := young_tree(cell)
+	var gone: Array[Vector3i] = Felling.fell(world, cell, away, young)
 	if gone.is_empty():
 		return false
 	who.note("trees")
 	# A skilled chopper now and then gets one log more, by the stump (the skill's `yield`).
 	var species: Dictionary = Trees.SPECIES[tree] if tree >= 0 else {}
-	if species.get("log", "") != "" and _extra(who, "chop"):
+	if young:
+		felled_young(cell)
+	elif species.get("log", "") != "" and _extra(who, "chop"):
 		world.heap_drop(species.log, floor_under(cell), 1, randf() * TAU)
 	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
 	# map and the minimap.

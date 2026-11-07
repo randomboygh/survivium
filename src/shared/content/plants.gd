@@ -127,8 +127,16 @@ static func stage(id: String, grown: float) -> int:
 	if c.grow_days <= 0.0 or grown >= c.grow_days:
 		return last
 	if c.kind == KINDS.SAPLING:
-		return mini(last, floori(grown / c.grow_days * c.frames))
+		var span: float = c.grow_days * (c.young if c.young > 0.0 else 1.0)
+		return mini(last, floori(grown / span * c.frames))
 	return mini(last - 1, floori(grown / c.grow_days * last))
+
+
+## Whether sapling `id` grown `grown` days is a young tree by now (its `young` share of
+## its `grow_days`; never when it has no young stage).
+static func young(id: String, grown: float) -> bool:
+	var c: Dictionary = BY_ID.get(id, {})
+	return not c.is_empty() and c.get("young", 0.0) > 0.0 and grown >= c.grow_days * c.young
 
 
 ## Whether crop `id` grown `grown` days is ripe.

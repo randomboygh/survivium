@@ -24,6 +24,8 @@ const WATER_SWING := 0.6
 ## A sapling is planted no nearer than this to another tree or sapling, in cells (the
 ## crowns' lattice: trunks on odd columns).
 const SAPLING_GAP := 2
+## Cells of air a young tree (Growth.place_young) needs over its ground.
+const YOUNG_HEIGHT := 8
 
 var _field_clock := 0.0
 
@@ -341,36 +343,98 @@ func _sapling_near(cell: Vector3i) -> bool:
 	return false
 
 
-## The grown sapling on ground cell `cell` becomes its tree where there is room for one
-## over it (Growth.fit), true when it did; else it waits.
+## The sapling on ground cell `cell` grown its `young` share (Plants.young) becomes a
+## young tree, the smallest of its species (Growth.place_young) that can be felled for
+## branches, where there is room for it; true when it did, else it waits.
+func grow_young(cell: Vector3i) -> bool:
+	var f: Variant = world.field_at(cell)
+	if f == null or not Plants.is_sapling(f[0]):
+		return false
+	var p: Dictionary = Plants.BY_ID[f[0]]
+	var species := Trees.index(p.tree)
+	if species < 0 or _room(cell) < YOUNG_HEIGHT:
+		return false
+	_place_tree(cell, species, 0.0)
+	world.set_field(cell, [f[0], f[1], 1.0])
+	return true
+
+
+## The grown sapling on ground cell `cell` becomes its tree (the young one it was, if
+## any, gone first) where there is room for one over it (Growth.fit), true when it did;
+## else it waits.
 func grow_tree(cell: Vector3i) -> bool:
 	var f: Variant = world.field_at(cell)
 	if f == null or not Plants.is_sapling(f[0]):
 		return false
-	var species := Trees.index(Plants.BY_ID[f[0]].tree)
+	var p: Dictionary = Plants.BY_ID[f[0]]
+	var species := Trees.index(p.tree)
 	if species < 0:
 		return false
-	var room := 0
-	var y := cell.y + 1
-	while y < world.size_y and world.get_cell(cell.x, y, cell.z) == Mat.AIR:
-		room += 1
-		y += 1
-	var scale := Growth.fit(species, room)
+	var young: Array[Vector3i] = []
+	if f[2] >= 1.0:
+		young = Felling.clear(world, cell + Vector3i.UP)
+	var scale := Growth.fit(species, _room(cell))
 	if scale <= 0.0:
+		if not young.is_empty():
+			_place_tree(cell, species, 0.0)
 		return false
 	world.set_field(cell, null)
 	if Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
 		world.set_material(cell.x, cell.y, cell.z, Mat.DIRT)
 		cell_changed.emit(cell)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(cell)
-	Growth.place(world, cell.x, cell.y + 1, cell.z, species, rng, scale)
+	_place_tree(cell, species, scale)
+	return true
+
+
+## How many cells of air stand over ground cell `cell`.
+func _room(cell: Vector3i) -> int:
+	var room := 0
+	var y := cell.y + 1
+	while y < world.size_y and world.get_cell(cell.x, y, cell.z) == Mat.AIR:
+		room += 1
+		y += 1
+	return room
+
+
+## Grows a tree of `species` at `scale` on ground cell `cell` (Growth.place, the same
+## shape each time for the cell; a young one at scale 0, Growth.place_young) and sends
+## the chunks round it again.
+func _place_tree(cell: Vector3i, species: int, scale: float) -> void:
+	if scale <= 0.0:
+		Growth.place_young(world, cell.x, cell.y + 1, cell.z, species)
+	else:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(cell)
+		Growth.place(world, cell.x, cell.y + 1, cell.z, species, rng, scale)
 	var reach := Growth.TREE_REACH
 	for kz in range((cell.z - reach) >> WorldData.SHIFT, ((cell.z + reach) >> WorldData.SHIFT) + 1):
 		for kx in range((cell.x - reach) >> WorldData.SHIFT, ((cell.x + reach) >> WorldData.SHIFT) + 1):
 			world.note_edit(kx << WorldData.SHIFT, kz << WorldData.SHIFT)
 			looks_changed.emit(Vector2i(kx, kz))
-	return true
+
+
+## The ground cell under the young tree whose trunk is in column x, z (a sapling's record
+## with its third field 1), null for none.
+func _young_ground(x: int, z: int) -> Variant:
+	for c: Vector3i in world.fields.get(WorldData.chunk_key(x, z), {}):
+		if c.x == x and c.z == z:
+			var f: Array = world.fields[WorldData.chunk_key(x, z)][c]
+			if Plants.is_sapling(f[0]) and f[2] >= 1.0:
+				return c
+	return null
+
+
+## A young tree (see grow_young) is felled for branches, not logs.
+func young_tree(cell: Vector3i) -> bool:
+	return _young_ground(cell.x, cell.z) != null
+
+
+## A felled young tree is gone: its sapling's record with it.
+func felled_young(cell: Vector3i) -> void:
+	var at: Variant = _young_ground(cell.x, cell.z)
+	if at != null:
+		world.set_field(at, null)
+		looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 
 
 # --- Watering -----------------------------------------------------------------------------
@@ -488,18 +552,23 @@ func grow_fields(days: float, rain: float) -> void:
 		for cell: Vector3i in beds.keys():
 			var f: Array = beds[cell]
 			if f[0] != "" and Plants.is_sapling(f[0]):
-				# A sapling: in the warm seasons it grows, wet or dry; it waits out the winter.
+				# A sapling: in the warm seasons it grows, wet or dry; it waits out the
+				# winter. A sprout and a shoot (its frames), then a young tree (its third
+				# field 1), then grown its tree.
 				var above := cell + Vector3i.UP
-				if not _ground_roots(world.get_cell(cell.x, cell.y, cell.z)) \
-						or world.get_cell(above.x, above.y, above.z) != Mat.AIR:
+				var young: bool = f[2] >= 1.0
+				var lost: bool = world.get_cell(above.x, above.y, above.z) != (Mat.LOG if young else Mat.AIR)
+				if lost or not _ground_roots(world.get_cell(cell.x, cell.y, cell.z)):
 					world.set_field(cell, null)
 					looks = true
 				elif Plants.ripe(f[0], f[1]):
 					grown.append(cell)
+				elif not young and Plants.young(f[0], f[1]):
+					grown.append(cell)
 				elif not winter:
 					var was := Plants.stage(f[0], f[1])
 					f[1] += days
-					looks = looks or Plants.stage(f[0], f[1]) != was
+					looks = looks or (not young and Plants.stage(f[0], f[1]) != was)
 				continue
 			if not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
 				world.set_field(cell, null)
@@ -527,4 +596,8 @@ func grow_fields(days: float, rain: float) -> void:
 		if looks:
 			looks_changed.emit(key)
 	for cell in grown:
-		grow_tree(cell)
+		var f: Array = world.field_at(cell)
+		if f[2] < 1.0 and not Plants.ripe(f[0], f[1]):
+			grow_young(cell)
+		else:
+			grow_tree(cell)

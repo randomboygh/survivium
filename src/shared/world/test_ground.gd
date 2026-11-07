@@ -1096,7 +1096,8 @@ func _sapling(x: int, z: int) -> Array:
 	var stage := at.y / 4
 	if stage >= s.frames:
 		return []
-	return [Mat.GRASS, [s.id, s.grow_days * (stage + 0.01) / maxf(1.0, s.frames), 0.0]]
+	var span: float = s.grow_days * (s.young if s.young > 0.0 else 1.0)
+	return [Mat.GRASS, [s.id, span * (stage + 0.01) / maxf(1.0, s.frames), 0.0]]
 
 
 ## True when chunk `key` has cells of the biome plots.

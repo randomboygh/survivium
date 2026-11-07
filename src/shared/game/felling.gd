@@ -11,19 +11,42 @@ const Growth := preload("res://src/shared/world/growth.gd")
 ## go, with the leaves of the crown above it (the leaves whose nearest trunk this one
 ## is), and the tree falls toward `away` (x, z), lying on the ground as logs along
 ## that line and branches and seeds where its crown lands (see WorldData.add_drop).
-## What stays below the cut is a stump, still noted as the tree. Returns the cells
-## made air, the cut first; empty when `cut` is no log of a noted tree.
-static func fell(w, cut: Vector3i, away: Vector2) -> Array[Vector3i]:
+## What stays below the cut is a stump, still noted as the tree. A `young` tree (a
+## sapling grown small, see WorldActions.grow_fields) leaves only branches. Returns the
+## cells made air, the cut first; empty when `cut` is no log of a noted tree.
+static func fell(w, cut: Vector3i, away: Vector2, young := false) -> Array[Vector3i]:
+	var at := Vector2i(cut.x, cut.z)
+	if not w.trees.has(at) or w.get_cell(cut.x, cut.y, cut.z) != Mat.LOG:
+		var none: Array[Vector3i] = []
+		return none
+	var s: Dictionary = Trees.SPECIES[w.trees[at]]
+	var logs := 0
+	while w.get_cell(cut.x, cut.y + logs, cut.z) == Mat.LOG:
+		logs += 1
+	var gone := clear(w, cut)
+	var leaves := gone.size() - logs
+	# The things fall on the ground as it is now.
+	if young:
+		s = s.duplicate()
+		s.log = ""
+		s.seed = ""
+		leaves = maxi(leaves, 120)
+	_drops(w, cut, away, s, logs, leaves)
+	return gone
+
+
+## Takes away the tree whose trunk holds the log cell `cut`, as fell does but leaving
+## nothing on the ground: that log and the trunk above it, and the leaves of its crown.
+## Returns the cells made air, the trunk first; empty when `cut` is no log of a noted tree.
+static func clear(w, cut: Vector3i) -> Array[Vector3i]:
 	var gone: Array[Vector3i] = []
 	var at := Vector2i(cut.x, cut.z)
 	if not w.trees.has(at) or w.get_cell(cut.x, cut.y, cut.z) != Mat.LOG:
 		return gone
-	var s: Dictionary = Trees.SPECIES[w.trees[at]]
 	var y := cut.y
 	while w.get_cell(cut.x, y, cut.z) == Mat.LOG:
 		gone.append(Vector3i(cut.x, y, cut.z))
 		y += 1
-	var logs := gone.size()
 	# Trunks around, to leave the leaves of neighbouring crowns alone.
 	var reach := Growth.TREE_REACH + 1
 	var others: Array[Vector2i] = []
@@ -32,7 +55,6 @@ static func fell(w, cut: Vector3i, away: Vector2) -> Array[Vector3i]:
 			if w.trees.has(Vector2i(tx, tz)) and Vector2i(tx, tz) != at:
 				others.append(Vector2i(tx, tz))
 	var above: int = w.all_bits & ~((1 << cut.y) - 1)
-	var leaves := 0
 	for z in range(cut.z - reach, cut.z + reach + 1):
 		for x in range(cut.x - reach, cut.x + reach + 1):
 			var bits: int = w.leaf_col(x, z) & above
@@ -42,12 +64,9 @@ static func fell(w, cut: Vector3i, away: Vector2) -> Array[Vector3i]:
 				var bit := bits & -bits
 				bits ^= bit
 				gone.append(Vector3i(x, w.level_of(bit), z))
-				leaves += 1
 	for c in gone:
 		w.set_cell(c.x, c.y, c.z, Mat.AIR)
-	# The things fall on the ground as it is now.
 	w.refresh_shapes()
-	_drops(w, cut, away, s, logs, leaves)
 	return gone
 
 

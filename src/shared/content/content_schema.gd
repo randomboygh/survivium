@@ -351,6 +351,9 @@ const SCHEMAS := {
 		# A sapling (kind sapling, planted from an item with `crop` on open ground): the tree
 		# it becomes when it has grown its `grow_days`.
 		"tree": {"type": "ref:trees", "soft": true, "default": "", "rel": "grows_into", "via": "sow"},
+		# The share of its `grow_days` after which a sapling is a young tree (0: never),
+		# the smallest of its species (Growth.place_young), felled for branches.
+		"young": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
 		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		# Only in these biomes (none: anywhere its `grows` says).

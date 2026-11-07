@@ -73,6 +73,22 @@ static func place(w, x: int, y: int, z: int, species: int, rng: RandomNumberGene
 	fill(w, crown, 0, crown.size())
 
 
+## Grows a young tree of `species` with its trunk on cell x, y, z (as `place`): a short
+## trunk under a crown of one point (two, one over the other, for a tree of tiers or a
+## cone), the smallest tree the crowns' lattice draws. Returns how many cells high it is.
+static func place_young(w, x: int, y: int, z: int, species: int) -> int:
+	var s: Dictionary = Trees.SPECIES[species]
+	w.add_tree(x, z, species)
+	var first := ((y + 1) & ~1) + 2
+	for i in range(y, first):
+		w.set_cell(x, i, z, Mat.LOG)
+	var points: Array[Vector3i] = [Vector3i(x, first, z)]
+	if s.tiers or s.shape == "cone":
+		points.append(Vector3i(x, first + 2, z))
+	fill(w, points, 0, points.size())
+	return points[-1].y + 2 - y
+
+
 ## Notes the tree and grows its trunk, as `place` does, and gives the points of its
 ## crown for `fill`: the world generator fills a big crown over several steps.
 static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> Array[Vector3i]:
