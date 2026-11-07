@@ -10,6 +10,7 @@ extends Control
 ## middle. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 
@@ -108,6 +109,7 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_list)
+	DragScroll.attach(_scroll)
 	_build_rows()
 	_set_focus(1)
 	var start := Button.new()
