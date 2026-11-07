@@ -33,9 +33,6 @@ const PIXEL_SIZES := [0.75, 0.875, 1.0, 1.25, 1.5]
 const FPS_LIMITS := [0, 30, 60]
 ## The settings that are saved, with their defaults.
 const DEFAULTS := {
-	# The «Тестирование» buttons (the flask on the screen, the pause menu's row) are there:
-	# the easter egg of the main menu opens them (ten taps on the sparrow of the name).
-	"testing_unlocked": false,
 	"time_speed": 1,
 	# The time of day follows the device's clock (Clock.real_time).
 	"real_time": false,
@@ -164,6 +161,11 @@ const SKILL_RATES := [1.0, 2.0, 20.0, 200.0]
 var game
 ## Current values of the saved settings, by name (see DEFAULTS).
 var values := {}
+## The «Тестирование» buttons (the flask on the screen, the pause menu's row) are there:
+## the easter egg of the main menu opens them (ten taps on the sparrow of the name).
+## Not saved: every start of the game has them hidden again (an old «testing_unlocked»
+## key of settings.cfg is no longer read, and the next save drops it).
+var testing_unlocked := false
 ## Playtest switch: how many times faster the clock runs (0 stops it). Not saved.
 var time_boost := 1.0
 ## Playtest switch: the player's speed multiplier. Not saved.
@@ -430,11 +432,10 @@ func apply() -> void:
 		hud.show_keys(values.show_help)
 
 
-## Puts every setting back as it comes, all but the world the setup screen makes and
-## the «Тестирование» buttons once found.
+## Puts every setting back as it comes, all but the world the setup screen makes.
 func reset() -> void:
 	for k in DEFAULTS:
-		if not k.begins_with("world_") and k != "testing_unlocked":
+		if not k.begins_with("world_"):
 			values[k] = DEFAULTS[k]
 	apply()
 	save()
