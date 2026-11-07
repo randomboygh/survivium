@@ -25,9 +25,10 @@ func _test_rules() -> void:
 	who.position = Vector3(8.5, 2.0, 8.5) * WorldData.CELL
 	var free := WorldActions.new(w, Clock.new(), r)
 	free.dig_at(who, Vector3i(8, 1, 7), Vector3i.UP)
-	_check(w.get_cell(8, 1, 7) == Mat.AIR and w.drops.is_empty(), "under free building a block dug gives nothing")
+	_check(w.get_cell(8, 1, 7) == Mat.AIR and not w.drops.is_empty(), "under free building a block dug still gives what it is")
+	w.drops.clear()
 	WorldActions.new(w, Clock.new(), Rules.new()).dig_at(who, Vector3i(8, 1, 9), Vector3i.UP)
-	_check(w.get_cell(8, 1, 9) == Mat.AIR and not w.drops.is_empty(), "by the default rules it does")
+	_check(w.get_cell(8, 1, 9) == Mat.AIR and not w.drops.is_empty(), "as by the default rules")
 
 
 ## Two characters far apart play in one session: a tick runs the clock, both of them
