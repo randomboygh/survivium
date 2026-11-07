@@ -6,11 +6,13 @@ const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const FireShadows := preload("res://src/client/view/fire_shadows.gd")
+const Creatures := preload("res://src/client/game/creatures.gd")
 
 
 func run() -> void:
 	_test_pixel_view()
 	_test_sprite_sheet()
+	_test_creature_views()
 	_test_tracks()
 	_test_hidden()
 	_test_cave_layers()
@@ -253,6 +255,18 @@ func _test_sprite_sheet() -> void:
 
 
 ## Footprints: stone takes them only under a roof (the dust of a cave floor).
+func _test_creature_views() -> void:
+	var C := Creatures
+	_check(C._turned(C.SIDE, Vector2(1, 0.1)) == C.SIDE, "of five views, going along the screen shows the side")
+	_check(C._turned(C.SIDE, Vector2(1, 1)) == C.FRONT_TURNED, "going down the screen aslant shows the front three-quarter view")
+	_check(C._turned(C.SIDE, Vector2(-1, -1)) == C.BACK_TURNED, "going up the screen aslant shows the back three-quarter view")
+	_check(C._turned(C.FRONT_TURNED, Vector2(0.1, 1)) == C.FRONT and C._turned(C.SIDE, Vector2(0, -1)) == C.BACK,
+		"going straight down or up shows the front or the back")
+	_check(C._turned(C.SIDE, Vector2(1, 0.48)) == C.SIDE and C._turned(C.FRONT_TURNED, Vector2(1, 0.38)) == C.FRONT_TURNED,
+		"near a border an animal keeps its view")
+	_check(C._turned(C.FRONT_TURNED, Vector2(1, -1)) == C.BACK_TURNED, "turning from coming at the camera to going away changes the view")
+
+
 func _test_tracks() -> void:
 	var w := WorldData.new(8, Vector2i(4, 4))
 	for z in 4:

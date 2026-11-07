@@ -122,7 +122,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 | Текстура материала | `textures/<id>.png` (кора — `textures/<bark>.png`) | 48×16: верх, бока, низ | `PixelTextures`, `Mat.texture_path` |
 | Модель вещи | `models/<model>.png` | ряд квадратных срезов по уровню, альфа 128 — лист | `VoxelModel.from_image` |
 | Иконка предмета | `icons/<icon>.png` | 12×12 | `ItemIcons` |
-| Спрайт существа | `sprites/creatures/<sprite>.png` | ряд на сторону (`views`), в ряду `frames` кадров (`walk` из них — шаг) | `creatures.gd` |
+| Спрайт существа | `sprites/creatures/<sprite>.png` | ряд на сторону (`views`: 1, 3 или 5), в ряду `frames` кадров (`walk` из них — шаг, последние `hop` — прыжки летающего по земле) | `creatures.gd` |
 | Спрайт растения | `sprites/plants/<sprite>.png` | кадры 8×24 | `Foliage`, `Plants` |
 | Предмет в руке | `sprites/held/<sprite>.png` | кадр ношения + по кадру работы | `Figure` |
 | Звук | `sounds/<имя>.wav` или `<имя>_N.wav` | wav | `Sound` |

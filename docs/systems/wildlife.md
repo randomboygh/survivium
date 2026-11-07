@@ -70,12 +70,15 @@
 пишут в `main.session.wildlife`.
 
 **Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,
-`sprite`, `frames`, `walk`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
+`sprite`, `frames`, `walk`, `hop`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
 `likes`, `biomes`, `calls`, `alarm`) в бандлах `content/animals/<зверь>/`; картинка —
-`sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: сбоку, спереди, сзади), в ряду `frames`
-кадров — стоит, `walk` кадров шага или взмахов, остальные — покоя (рисует `tools/make_creatures.py` с
-`tools/creature_kit.py`). `creatures.gd` выбирает сторону по движению на экране (`TURN_BIAS`), шаг —
-по пройденному пути, кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
+`sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади;
+5 — ещё спереди и сзади вполоборота, идя вниз и вверх по экрану вправо), в ряду `frames`
+кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
+(присел, в воздухе), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
+воробья — `tools/make_sparrow.py`). `creatures.gd` выбирает сторону по движению на экране
+(`TURN_BIAS`; из пяти — по углу, `TURNED_FROM`, `TURNED_TO`, `HYSTERESIS`), шаг — по пройденному
+пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
 Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.
 
 **Ограничения.** Ходок не достаёт пловца и наоборот, летун достаёт обоих. Биом столбца берётся из

@@ -6,11 +6,14 @@ extends Node3D
 ## their sprites are put again only when the server moved them (Animal.fresh). A
 ## species' picture is its mod's sprites/creatures/<sprite>.png: a row a view (`views`:
 ## the side, facing right, mirrored for left; the front, as it comes at the camera; the
-## back, as it goes away), each of `frames` frames: the first the animal at rest, then
-## `walk` frames of its walk (or swim) played by the way it covers, two steps a round,
-## or of a flyer's wing beat in the air; one that hops shows the second while in a leap
-## (legs stretched) and the third as it takes off and lands; the frames left are idle
-## ones (a tail flicked, the head bent down) shown now and then while it stands. Which
+## back, as it goes away; with 5, the front and back three-quarter views too, going down
+## and up the screen to the right, mirrored for the left), each of `frames` frames: the
+## first the animal at rest, then `walk` frames of its walk (or swim) played by the way
+## it covers, two steps a round, or of a flyer's wing beat in the air; one that hops shows
+## the second while in a leap (legs stretched) and the third as it takes off and lands;
+## a flyer with `hop` frames (the last ones) hops with them as it goes about on the
+## ground; the frames left are idle ones (a tail flicked, the head bent down) shown now
+## and then while it stands. Which
 ## view and which way is worked out here from how it moved on the screen: the server
 ## sends only where it is. A species with `tints` has its picture multiplied by one of
 ## them for each animal.
@@ -38,17 +41,27 @@ const JUMP := 3.0
 const IDLE_GAP := Vector2(2.0, 6.0)
 const IDLE_HOLD := Vector2(0.4, 0.9)
 const IDLE_LONG := Vector2(1.5, 3.5)
-## Rows of a picture: the side, the front, the back.
+## Rows of a picture: the side, the front, the back, the front and back three-quarters.
 const SIDE := 0
 const FRONT := 1
 const BACK := 2
+const FRONT_TURNED := 3
+const BACK_TURNED := 4
+## Of five views, how far (degrees) a move on the screen must go from the horizontal to
+## show the three-quarter view, and from it to show the front or back; between the two
+## sides of a border by HYSTERESIS degrees the animal keeps its view.
+const TURNED_FROM := 22.5
+const TURNED_TO := 67.5
+const HYSTERESIS := 8.0
+## World units a flyer goes on the ground a round of its hop (crouched, up, sitting).
+const HOP_STEP := 0.36
 
 
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
 ## its steps) and its idle frame.
 class Look:
 	var view := SIDE
-	## 1 facing right on the screen, -1 left (the side view mirrored).
+	## 1 facing right on the screen, -1 left (the side and three-quarter views mirrored).
 	var side := 0.0
 	var last := Vector3.ZERO
 	var walked := 0.0
@@ -94,7 +107,7 @@ func watch(w) -> void:
 					mats.append(m)
 			variants.append(mats)
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height() / views), variants,
-			body_size(tex, frames, views), frames, walk_frames(spec), views]
+			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), frames - 1 - walk_frames(spec))]
 	wildlife = w
 	for a in w.animals:
 		_on_born(a)
@@ -138,7 +151,7 @@ func _process(delta: float) -> void:
 		if shown != a.frame:
 			a.frame = shown
 			sprite.material_override = _mats(a)[shown]
-		sprite.scale.x = look.side if look.view == SIDE else 1.0
+		sprite.scale.x = 1.0 if look.view == FRONT or look.view == BACK else look.side
 	if perf != null:
 		perf.note("животные", t)
 
@@ -156,7 +169,9 @@ func _went(a, look: Look, flip: float) -> void:
 		look.walked += moved
 	var s := PixelView.screen_dir(d)
 	var views: int = looks[a.kind][5]
-	if views >= 2 and absf(s.y) > absf(s.x) * TURN_BIAS:
+	if views >= 5:
+		look.view = _turned(look.view, s)
+	elif views >= 2 and absf(s.y) > absf(s.x) * TURN_BIAS:
 		look.view = FRONT if s.y > 0.0 or views < 3 else BACK
 	elif absf(s.x) > absf(s.y) * TURN_BIAS or views < 2:
 		look.view = SIDE
@@ -164,6 +179,26 @@ func _went(a, look: Look, flip: float) -> void:
 		look.side = signf(s.x)
 	elif look.side == 0.0:
 		look.side = a.facing * flip
+
+
+## Of five views, the one a move `s` on the screen shows (down the screen is +y, at the
+## camera), from the view `now` it shows (kept near a border).
+static func _turned(now: int, s: Vector2) -> int:
+	var angle := rad_to_deg(atan2(absf(s.y), absf(s.x)))
+	var toward := s.y > 0.0
+	var band := Vector2(0.0, TURNED_FROM)
+	if now == FRONT_TURNED or now == BACK_TURNED:
+		band = Vector2(TURNED_FROM, TURNED_TO)
+	elif now == FRONT or now == BACK:
+		band = Vector2(TURNED_TO, 90.0)
+	var same_way := now == SIDE or (now == FRONT or now == FRONT_TURNED) == toward
+	if same_way and angle >= band.x - HYSTERESIS and angle <= band.y + HYSTERESIS:
+		return now
+	if angle < TURNED_FROM:
+		return SIDE
+	if angle < TURNED_TO:
+		return FRONT_TURNED if toward else BACK_TURNED
+	return FRONT if toward else BACK
 
 
 ## The frame of its row animal `a` shows now.
@@ -177,6 +212,13 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 	if a.hop > 0.0 and walk > 1:
 		look.idle = 0
 		return 1 if a.hop > 0.2 and a.hop < 0.8 else 2
+	var hop: int = looks[a.kind][6]
+	if a.moving and hop > 0 and spec.flies:
+		# Hopping about on the ground: crouched, up (the last frames), sitting.
+		look.idle = 0
+		look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
+		var at := int(look.walked / HOP_STEP * (hop + 1)) % (hop + 1)
+		return 0 if at == hop else frames - hop + at
 	if a.moving and walk > 0 and not spec.flies:
 		# Two steps a round of the walk, however many frames it has.
 		look.idle = 0
@@ -184,7 +226,7 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		var size: float = clampf(0.5 + spec.mass / 80.0, 0.5, 1.0)
 		var step := 0.25 + 0.3 * size
 		return 1 + int(look.walked / step * maxf(walk / 2.0, 1.0)) % walk
-	var idles := frames - 1 - walk
+	var idles := frames - 1 - walk - hop
 	if idles <= 0 or now < look.change_at:
 		return look.idle
 	if look.idle != 0:
