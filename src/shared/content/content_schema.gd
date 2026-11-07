@@ -164,11 +164,14 @@ const SCHEMAS := {
 		"frames": {"type": "int", "min": 1, "default": 1},
 		# Of the frames after the first, how many are its walk, swim or wing beat (-1: all);
 		# the last `hop` ones a flyer's hop on the ground (crouched, in the air); the rest
-		# are idle ones played now and then as it stands. Rows of the picture: 1 the side
-		# alone, 3 the side, the front (coming at the camera) and the back.
+		# are idle ones played now and then as it stands; the last `attack` ones (after the
+		# hop) its attack, kept out of the idles until the game has an attack to show them
+		# by. Rows of the picture: 1 the side alone, 3 the side, the front (coming at the
+		# camera) and the back.
 		"walk": {"type": "int", "min": -1, "default": -1},
 		"views": {"type": "int", "min": 1, "max": 3, "default": 1},
 		"hop": {"type": "int", "min": 0, "default": 0},
+		"attack": {"type": "int", "min": 0, "default": 0},
 		"flies": {"type": "bool", "default": false},
 		"swims": {"type": "bool", "default": false},
 		"ashore": {"type": "bool", "default": false},
