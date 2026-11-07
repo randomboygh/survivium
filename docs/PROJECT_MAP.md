@@ -76,7 +76,7 @@ docs/                    эта документация (audit/ — отчёт�
 
 - `.godot/`, `*.import`, `*.uid`, `build/`, `build_info.json`: кеши и сборка, не в git.
 - `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: бинарные ассеты; их делают `tools/make_*`.
-- `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_sparrow.py`, `tools/make_birds.py`, `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_rabbit.py`, `tools/make_squirrel.py`: рисовалки ассетов, большие таблицы пикселей.
+- `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_sparrow.py`, `tools/make_birds.py`, `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_rabbit.py`, `tools/make_squirrel.py`, `tools/make_fox.py`, `tools/make_deer.py`: рисовалки ассетов, большие таблицы пикселей.
 - `src/shared/world/test_ground.gd`: площадки тестового мира, нужен только для них.
 - `tools/shot/places.gd`, `tools/shot/shots.gd`: места и таблица скриншотов.
 - `assets/fonts/PressStart2P.ttf`, `assets/fonts/OFL.txt`: шрифт и лицензия.
