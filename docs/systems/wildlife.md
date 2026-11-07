@@ -76,7 +76,7 @@
 5 — ещё спереди и сзади вполоборота, идя вниз и вверх по экрану вправо), в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
 (присел, в воздухе), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
-воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`). `creatures.gd` выбирает сторону по движению на экране
+воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`). `creatures.gd` выбирает сторону по движению на экране
 (`TURN_BIAS`; из пяти — по углу, `TURNED_FROM`, `TURNED_TO`, `HYSTERESIS`), шаг — по пройденному
 пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
 Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.
