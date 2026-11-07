@@ -58,6 +58,8 @@ class Look:
 	var walked := 0.0
 	var idle := 0
 	var change_at := 0.0
+	## The sprite's scale.x last put (0 before the first): set only when it changes.
+	var flip := 0.0
 
 
 var wildlife
@@ -135,14 +137,18 @@ func _process(delta: float) -> void:
 			if _fitted.get(sprite) != sprite.position:
 				_fit(a, sprite)
 			_went(a, look, flip)
-		elif not (a.flying or a.moving or a.hop > 0.0) and now < look.change_at:
+		elif not (a.flying or a.hop > 0.0) and now < look.change_at:
+			# Its walk goes by the way it covered, which changes only when it is fresh.
 			continue
 		var frame := _frame(a, look, beat, now)
 		var shown: int = look.view * looks[a.kind][3] + frame
 		if shown != a.frame:
 			a.frame = shown
 			sprite.material_override = _mats(a)[shown]
-		sprite.scale.x = look.side if look.view == SIDE else 1.0
+		var sx := look.side if look.view == SIDE else 1.0
+		if sx != look.flip:
+			look.flip = sx
+			sprite.scale.x = sx
 	if perf != null:
 		perf.note("животные", t)
 
@@ -264,6 +270,7 @@ func _on_born(a) -> void:
 	look.side = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
 	look.change_at = Time.get_ticks_msec() * 0.001 + _rng.randf_range(0.0, IDLE_GAP.y)
 	_looks[a] = look
+	look.flip = look.side
 	sprite.scale.x = look.side
 	_fit(a, sprite)
 
