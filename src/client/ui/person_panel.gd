@@ -5,15 +5,18 @@ extends PanelContainer
 ## close together, a strip of the bag's load along the bottom of the back's slot; beside
 ## them the skills (Skills, the character's SkillSet), two columns of bars of a division
 ## per level in a panel of their own, a thin line along the bottom for the way to the next
-## level, what the things held and worn add to a skill (a tool's power over
-## POWER_PER_LEVEL, ROLE_OF) as more
-## divisions in another colour. A tap on a slot says which with
-## `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
+## level. The bar shows the skill alone: what the tool in hand does is its own power
+## (the item's chips, FactChips), not divisions of the skill, so the two are never mixed
+## (docs/balance/GAME_BALANCE_DESIGN.md, «Отображение»); the tooltip tells what the level
+## does to the work (faster, cheaper in stamina, one more now and then, a harder blow,
+## longer-lasting things) and which held tool the skill paces. A tap on a slot says which
+## with `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 const Skills := preload("res://src/shared/content/skills.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 
@@ -43,18 +46,7 @@ const SEP := 6
 ## worn add, and of the line of the way to the next level.
 const BAR := 14
 const BAR_FILL := Color("#6b4a2f")
-const BONUS_FILL := Color("#4f7a37")
 const NEXT_FILL := Color("#d9b45a")
-## A tool adds a division to the skill it helps for every this much of its power (power
-## 1..8 adds 1..3 of the ten): a good tool helps, but less than learning the work.
-const POWER_PER_LEVEL := 3
-## The work (Skills role) a tool of each class helps: it adds its power to that skill.
-const ROLE_OF := {
-	"axe": "chop", "pickaxe": "dig", "shovel": "dig", "scythe": "gather", "knife": "craft",
-	"needle": "craft", "sword": "hunt", "spear": "hunt", "bow": "hunt", "sling": "hunt", "rod": "fish",
-	"hoe": "farm", "sickle": "farm",
-}
-
 var game
 var slot := 40
 ## The slot chosen in the window ("" for none), lit.
@@ -65,8 +57,8 @@ var chosen := "":
 var _figure: Control
 var _cells := {}
 var _bars := []
-## What the things held and worn add to each skill: role -> [divisions, the thing's id].
-var _bonus := {}
+## The tool held of each skill's work: role -> the thing's id (named in the tooltip).
+var _tool := {}
 
 
 func _init(g) -> void:
@@ -115,8 +107,7 @@ func _ready() -> void:
 
 
 ## Skill bar `bar` of skill `sk`: its name inside, a division of its `levels` filled for
-## each level learned and after them, in another colour, what the things held and worn
-## add (see _bonus); along the bottom a line of the way to the next level.
+## each level learned; along the bottom a line of the way to the next level.
 func _draw_bar(bar: Control, sk: Dictionary) -> void:
 	var skills = game.character.skills
 	var level: int = skills.level(sk.id)
@@ -125,13 +116,12 @@ func _draw_bar(bar: Control, sk: Dictionary) -> void:
 	bar.draw_rect(r, UiStyle.EDGE)
 	var inner := r.grow(-1)
 	bar.draw_rect(inner, UiStyle.WELL)
-	var add: int = _bonus.get(sk.role, [0])[0]
 	var step := inner.size.x / segments
-	for i in mini(level + add, segments):
+	for i in mini(level, segments):
 		# Each division apart by a pixel of the well.
 		var x0 := inner.position.x + roundf(i * step)
 		var x1 := inner.position.x + roundf((i + 1) * step) - (1.0 if i < segments - 1 else 0.0)
-		bar.draw_rect(Rect2(x0, inner.position.y, x1 - x0, inner.size.y), BAR_FILL if i < level else BONUS_FILL)
+		bar.draw_rect(Rect2(x0, inner.position.y, x1 - x0, inner.size.y), BAR_FILL)
 	if level < segments:
 		var w := roundf(inner.size.x * skills.progress(sk.id))
 		if w > 0.0:
@@ -218,39 +208,44 @@ func _on_skills() -> void:
 		_show_skills(game.character.inventory)
 
 
-## What the things in the hands and worn add to the skills: the most of each skill, a
-## tool's power over POWER_PER_LEVEL (a weapon with nothing to shoot adds nothing); the bars drawn again, each
-## with its level, the way to the next, how much faster its work is and what adds to it.
+## The bars drawn again, each with its level, the way to the next and what the level does
+## to the work (SkillSet: pace, effort, extra, blow, bonus_wear), and the tool in hand
+## the skill paces, named.
 func _show_skills(inv) -> void:
-	_bonus.clear()
-	var things: Array = [game.controls.hands[0], game.controls.hands[1]] + inv.gear.values()
-	for id: String in things:
+	_tool.clear()
+	for id: String in [game.controls.hands[0], game.controls.hands[1]]:
 		if id == "" or FactChips.unarmed(inv, id):
 			continue
-		var it := Items.get_item(id)
-		var role: String = ROLE_OF.get(it.get("tool", "none"), "")
-		var add := ceili(int(it.get("power", 0)) / float(POWER_PER_LEVEL))
-		if role != "" and add > _bonus.get(role, [0])[0]:
-			_bonus[role] = [add, id]
+		var role := Tools.role_of(id)
+		if role != "" and not _tool.has(role):
+			_tool[role] = id
 	var skills = game.character.skills
 	for i in mini(_bars.size(), Skills.ALL.size()):
 		var sk: Dictionary = Skills.ALL[i]
-		var b: Array = _bonus.get(sk.role, [0, ""])
 		var level: int = skills.level(sk.id)
 		var text := "%s: уровень %d из %d" % [sk.title, level, sk.levels]
 		if level < sk.levels:
 			text += ", до следующего %d%%" % floori(skills.progress(sk.id) * 100.0)
-		var faster := roundi(sk.speed * level * 100.0 / sk.levels)
+		var faster := roundi((skills.boost(sk.role) - 1.0) * 100.0)
 		if faster > 0:
 			text += "\n%s на %d%%" % ["Плывёт быстрее" if sk.role == "swim" else "Работа быстрее", faster]
-		var more := roundi(sk.yield * level * 100.0 / sk.levels)
+		var cheaper := roundi((1.0 - skills.effort(sk.role)) * 100.0)
+		if cheaper > 0:
+			text += "\nСил на взмах меньше на %d%%" % cheaper
+		var more := roundi(skills.extra_chance(sk.role) * 100.0)
 		if more > 0:
 			text += "\nЕщё одна штука: шанс %d%%" % more
+		var harder := roundi(sk.might * level * 100.0 / sk.levels)
+		if harder > 0:
+			text += "\nУдар сильнее на %d%%" % harder
 		var lasts := roundi(sk.quality * level * 100.0 / sk.levels)
 		if lasts > 0:
 			text += "\nВещи прочнее на %d%%" % lasts
-		if b[0] > 0:
-			text += "\n+%d от «%s»" % [b[0], Items.title(b[1])]
+		var spared := roundi(skills.care_chance(sk.role) * 100.0)
+		if spared > 0:
+			text += "\nИнструмент не изнашивается: шанс %d%%" % spared
+		if _tool.has(sk.role):
+			text += "\nВ руке: «%s»" % Items.title(_tool[sk.role])
 		if sk.get("description", "") != "":
 			text += "\n" + sk.description
 		_bars[i].tooltip_text = text

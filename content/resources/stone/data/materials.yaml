@@ -9,6 +9,7 @@
   priority: 2
   item: stone
   dig: shovel
+  toughness: 2
   bonus: flint
   bonus_chance: 0.2
   step: step_stone

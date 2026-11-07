@@ -51,12 +51,15 @@ func strike(who, far := true) -> Dictionary:
 	if wildlife == null:
 		return {}
 	var a = wildlife.in_front(at, Vector2(s), wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
-	if a == null or not who.act("swing"):
+	if a == null or not who.act("swing", "hunt"):
 		return {}
 	var arm := Tools.weapon(who.held())
 	var t: Dictionary = arm if not arm.is_empty() else who.tool()
 	var where: Vector3 = a.pos
-	_wound(who, a, t.power)
+	# The weapon decides the blow; the skill of hunting adds its `might` to it (SkillSet.blow),
+	# paces the swing and spares the stamina. A blow at a player (strike above) is the
+	# weapon's alone: Fights.strike.
+	_wound(who, a, _blow(who, "hunt", t.power))
 	if t.tool != "hand":
 		who.use_tool()
 	var done := _work(skilled(who, "hunt", t.swing), "", where + Vector3(0.0, 0.3, 0.0))
@@ -123,7 +126,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 	if who.inventory.count(ammo) == 0:
 		who.nag("ammo", "Нечем стрелять: нужно «%s»" % Items.title(ammo))
 		return {"swing": IDLE_SWING}
-	if not who.act("swing"):
+	if not who.act("swing", "hunt"):
 		return {}
 	var at: Vector3 = who.position
 	var from := at + Vector3(0.0, 0.6, 0.0)
@@ -165,7 +168,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 		who.inventory.remove(ammo, 1)
 		who.use_tool()
 	if a != null:
-		_wound(who, a, item.power)
+		_wound(who, a, _blow(who, "hunt", item.power))
 	var struck: bool = foe != null and fights.strike(who, foe, item.power, at)
 	var land := floor_under(_cell_at(end))
 	world.add_drop(ammo, land, randf() * TAU, data)

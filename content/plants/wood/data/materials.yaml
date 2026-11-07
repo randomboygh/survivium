@@ -9,6 +9,7 @@
   hotbar: 7
   item: resources:log
   dig: axe
+  toughness: 4
   step: step_wood
   hit: chop
 - id: leaves

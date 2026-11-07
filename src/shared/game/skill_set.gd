@@ -101,6 +101,35 @@ func bonus_wear(role: String, durability: int) -> int:
 	return 0 if s.is_empty() else roundi(durability * s.quality * share_of(role))
 
 
+## What the stamina a work of `role` costs is multiplied by: 1 at no skill, 1 - `effort`
+## at the last level (the skilled hand spends less on each swing).
+func effort(role: String) -> float:
+	var s := Skills.of_role(role)
+	return 1.0 if s.is_empty() else 1.0 - s.effort * share_of(role)
+
+
+## The blow a tool of `power` deals at work `role`: the power, more by the skill's `might`
+## share of it at the last level (hunting), rounded; at least 1. The tool decides the blow,
+## the skill adds to it only where the skill says so.
+func blow(role: String, power: int) -> int:
+	var s := Skills.of_role(role)
+	var p: float = float(power) if s.is_empty() else power * (1.0 + s.might * share_of(role))
+	return maxi(1, roundi(p))
+
+
+## The chance a swing of work `role` does not wear the tool: the skill's `care` at the
+## last level.
+func care_chance(role: String) -> float:
+	var s := Skills.of_role(role)
+	return 0.0 if s.is_empty() else s.care * share_of(role)
+
+
+## Whether the tool is spared its wear this swing (see care_chance).
+func spares(role: String) -> bool:
+	var k := care_chance(role)
+	return k > 0.0 and randf() < k
+
+
 ## The sum of the levels of every skill (the land a player may hold, Territory.budget).
 func total() -> int:
 	var n := 0

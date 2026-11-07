@@ -68,8 +68,15 @@ const SNOW_WETS := 0.25
 const DRY := 4.0
 const DRY_ROOF := 8.0
 const DRY_FIRE := 30.0
-## What the actions cost.
+## What the actions cost (a skilled hand pays less of it: `spend` takes the share).
 const COSTS := {"jump": 4.0, "dig": 3.0, "place": 1.0, "chop": 5.0, "cut": 1.0, "gather": 1.0, "pick_up": 0.5, "swing": 0.5}
+## After paying for a work worth at least WORK_COST the body is busy for BUSY seconds and
+## rests at WORK_REST of its pace: stamina is spent on work, not on time. A hand that
+## swings a tool whose cost a second is more than REST × WORK_REST tires, one that swings
+## slower does not (docs/balance/GAME_BALANCE_DESIGN.md, «Выносливость»).
+const WORK_COST := 1.0
+const BUSY := 1.0
+const WORK_REST := 0.6
 
 var health := MAX
 var satiety := 80.0
@@ -96,6 +103,8 @@ var cold := true
 var hurt_by := ""
 var warmth := COMFORT
 var wet := 0.0
+## Seconds the body is still busy with the last paid work (see WORK_REST).
+var busy := 0.0
 
 
 ## Runs the body for `delta` real seconds in which `days` of game time passed.
@@ -122,6 +131,9 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 			_hurt(DROWN * delta, "water")
 	else:
 		var rest := REST * delta
+		if busy > 0.0:
+			busy = maxf(0.0, busy - delta)
+			rest *= WORK_REST
 		if satiety < HUNGRY or water < THIRSTY or warmth < COLD or energy < SLEEPY:
 			rest *= 0.5
 		if asleep:
@@ -187,19 +199,27 @@ func stamina_cap() -> float:
 	return cap
 
 
-## Pays for `action` (see COSTS) if there is stamina enough; false when too tired.
-func spend(action: String) -> bool:
+## Pays for `action` (see COSTS, `share` of it: SkillSet.effort of the skilled) if there
+## is stamina enough; false when too tired. A work worth WORK_COST keeps the body busy.
+func spend(action: String, share := 1.0) -> bool:
 	if not fatigue:
 		return true
-	var cost: float = COSTS.get(action, 0.0)
+	var cost := cost_of(action, share)
 	if stamina < cost:
 		return false
 	stamina -= cost
+	if COSTS.get(action, 0.0) >= WORK_COST:
+		busy = BUSY
 	return true
 
 
-func can(action: String) -> bool:
-	return not fatigue or stamina >= COSTS.get(action, 0.0)
+## What `action` costs at `share` of its price (see spend).
+static func cost_of(action: String, share := 1.0) -> float:
+	return float(COSTS.get(action, 0.0)) * clampf(share, 0.0, 1.0)
+
+
+func can(action: String, share := 1.0) -> bool:
+	return not fatigue or stamina >= cost_of(action, share)
 
 
 ## Eats something worth `food` satiety; false when already full.

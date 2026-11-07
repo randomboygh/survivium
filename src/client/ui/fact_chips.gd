@@ -10,6 +10,10 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 
 const GAP := 4
 ## The space between groups.
@@ -142,8 +146,8 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 	if Items.bag_slots(id) > 0:
 		groups.append(["Сумка", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "Ячеек, надетая за спину"]]])
 	if it.get("tool", "none") != "none":
-		groups.append(["Инструмент", [[UiStyle.icon("power"), str(it.power), false, "Сила"],
-			[UiStyle.icon("hammer"), "%.1f с" % it.swing, false, "Удар"],
+		groups.append(["Инструмент", [[UiStyle.icon("power"), str(it.power), false, power_hint(it)],
+			[UiStyle.icon("hammer"), "%.1f с" % it.swing, false, "Удар, секунд (навык ускоряет)"],
 			[UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"]]])
 	var shoots: String = it.get("ammo", "")
 	if shoots != "" and it.get("tool", "") == "rod":
@@ -177,6 +181,38 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], Workshop.condition(id, worn) < 0.25,
 				tip]]])
 	return groups
+
+
+## What the power of tool record `it` means, with the thing of its class the player meets
+## most as the example (the first broad-leaved tree for an axe, stone for a pickaxe, the
+## largest animal that can be hit for a weapon), by the same formulas the rules use
+## (Tools.hits_to, Tools.swing_time): the chip tells the player what the number does.
+static func power_hint(it: Dictionary) -> String:
+	var p: int = it.get("power", 0)
+	match it.get("tool", "none"):
+		"axe":
+			if not Trees.SPECIES.is_empty():
+				var s: Dictionary = Trees.SPECIES[Trees.first(Trees.BROAD)]
+				return "Сила удара: столько прочности снимает удар. %s (прочность %d): %d ударов" % [s.title, s.hits, Tools.hits_to(s.hits, p)]
+		"pickaxe", "shovel":
+			var m: int = Mat.STONE if it.tool == "pickaxe" else Mat.DIRT
+			var t := Tools.toughness(m)
+			var hardest := t
+			for i in Mat.COUNT:
+				if Tools.can_dig(it, i) and Tools.toughness(i) > hardest:
+					hardest = Tools.toughness(i)
+			return "Сила: ячейка прочнее силы копается дольше. %s (прочность %d): удар %.1f с; самое твёрдое по силам — прочность %d" % [
+				Mat.NAMES[m], roundi(t), Tools.swing_time(it, m), roundi(hardest)]
+		"sword", "knife", "spear", "sling", "bow":
+			var big := {}
+			for kind in AiRules.SPECIES:
+				var a: Dictionary = AiRules.SPECIES[kind]
+				if a.health > 0 and (big.is_empty() or a.health > big.health):
+					big = a
+			if not big.is_empty():
+				return "Сила удара: столько здоровья снимает удар по зверю. %s (здоровье %d): %d ударов; по игроку — столько же на единицу урона сервера" % [
+					big.title, big.health, Tools.hits_to(big.health, p)]
+	return "Сила удара"
 
 
 ## Whether weapon `id` shoots something (arrows, sling stones) that bag `inv` has none

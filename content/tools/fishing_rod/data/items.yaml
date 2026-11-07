@@ -17,7 +17,7 @@
   reach: 4
   range: 6
   ammo: bait
-  durability: 80
+  durability: 240
   repair: {materials:cord: 1}
 - id: bait
   title: Наживка

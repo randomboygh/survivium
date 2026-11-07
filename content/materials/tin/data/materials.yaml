@@ -8,5 +8,6 @@
   priority: 2
   item: tin_ore
   hardness: 3
+  toughness: 5
   step: step_stone
   hit: hit_stone

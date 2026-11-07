@@ -10,5 +10,6 @@
   ground: soil
   item: peat
   dig: shovel
+  toughness: 2
   step: step_dirt
   hit: dig

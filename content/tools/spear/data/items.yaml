@@ -16,7 +16,7 @@
   swing: 0.7
   reach: 4
   range: 14
-  durability: 40
+  durability: 120
   repair: {resources:flint: 1}
 - id: bronze_spear
   title: Бронзовое копьё
@@ -31,7 +31,7 @@
   swing: 0.7
   reach: 4
   range: 14
-  durability: 120
+  durability: 360
   repair: {materials:bronze_bar: 1}
 - id: iron_spear
   title: Железное копьё
@@ -46,5 +46,5 @@
   swing: 0.7
   reach: 4
   range: 14
-  durability: 250
+  durability: 750
   repair: {materials:iron_bar: 1}

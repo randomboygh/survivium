@@ -6,5 +6,6 @@
   priority: 2
   item: copper_ore
   hardness: 2
+  toughness: 4
   step: step_stone
   hit: hit_stone

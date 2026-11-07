@@ -19,6 +19,6 @@
   seed: cone
   log: resources:log
   twig: resources:branch
-  hits: 5
+  hits: 20
   twigs: 3
   seeds: 2

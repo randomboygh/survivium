@@ -16,5 +16,5 @@
   reach: 4
   range: 24
   ammo: sling_stone
-  durability: 300
+  durability: 900
   repair: {materials:leather: 1}

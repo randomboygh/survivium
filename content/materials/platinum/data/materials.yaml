@@ -8,11 +8,13 @@
   priority: 2
   item: platinum_ore
   hardness: 4
+  toughness: 8
   step: step_stone
   hit: hit_stone
 - id: platinum_block
   title: Платиновый блок
   item: platinum_block
   hardness: 3
+  toughness: 6
   step: step_stone
   hit: hit_stone

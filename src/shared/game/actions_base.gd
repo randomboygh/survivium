@@ -156,6 +156,13 @@ static func _extra(who, role: String) -> bool:
 	return sk != null and sk.extra(role)
 
 
+## The blow a tool of `power` deals in the hands of `who` at work `role`: the power,
+## more only where the skill says so (SkillSet.blow: hunting's `might`).
+static func _blow(who, role: String, power: int) -> int:
+	var sk = who.get("skills")
+	return maxi(1, power) if sk == null else sk.blow(role, power)
+
+
 ## The skill a tree or a bush worked with tool `t` teaches (see gather): an axe fells,
 ## a shovel digs out, hands and the rest gather.
 static func _gather_role(t: Dictionary) -> String:

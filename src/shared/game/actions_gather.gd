@@ -83,15 +83,18 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	if not Tools.can_chop(t):
 		who.nag("tool", "Дерево рубят топором")
 		return {}
-	if not _is_trunk(cell) or not _may(who, cell, "harvest") or not who.act("chop"):
+	if not _is_trunk(cell) or not _may(who, cell, "harvest") or not who.act("chop", "chop"):
 		return {}
 	who.use_tool()
 	var col := Vector2i(cell.x, cell.z)
 	var s: Dictionary = Trees.SPECIES[world.trees[col]]
-	chops[col] = chops.get(col, 0) + maxi(1, t.power)
-	var done := _work(skilled(who, "chop", Tools.swing_time(t, Mat.LOG)), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
+	# The axe decides the blow (its power against the tree's `hits`); the skill of chopping
+	# paces the swing, spares the stamina and now and then leaves one log more (fell).
+	var blow := _blow(who, "chop", t.power)
+	chops[col] = chops.get(col, 0) + blow
+	var done := _work(skilled(who, "chop", t.swing), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
 	if chops[col] < s.hits:
-		who.say("%s: осталось ударов %d" % [s.title, ceili((s.hits - chops[col]) / float(maxi(1, t.power)))])
+		who.say("%s: осталось ударов %d" % [s.title, Tools.hits_to(s.hits - chops[col], blow)])
 		return done
 	chops.erase(col)
 	fell(who, cell)
@@ -106,10 +109,15 @@ func fell(who, cell: Vector3i) -> bool:
 	var before := {}
 	for key in world.drops:
 		before[key] = world.drops[key].size()
+	var tree: int = world.trees.get(Vector2i(cell.x, cell.z), -1)
 	var gone: Array[Vector3i] = Felling.fell(world, cell, away)
 	if gone.is_empty():
 		return false
 	who.note("trees")
+	# A skilled chopper now and then gets one log more, by the stump (the skill's `yield`).
+	var species: Dictionary = Trees.SPECIES[tree] if tree >= 0 else {}
+	if species.get("log", "") != "" and _extra(who, "chop"):
+		world.heap_drop(species.log, floor_under(cell), 1, randf() * TAU)
 	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
 	# map and the minimap.
 	var cols := {}
@@ -333,7 +341,7 @@ static func count(d: Array) -> int:
 func _from_bush(who, cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
 	if ripe(cell, b):
-		if not who.act("gather"):
+		if not who.act("gather", "gather"):
 			return false
 		if who.give(b.fruit, berry_count(cell, b) + (1 if _extra(who, "gather") else 0)) == 0:
 			return false
@@ -347,7 +355,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 	if twigs_left(cell, b) <= 0:
 		who.nag("bush", "На кусте больше ничего нет до весны")
 		return false
-	if not who.act("gather"):
+	if not who.act("gather", "gather"):
 		return false
 	if who.give(b.twig, 1) == 0:
 		return false
@@ -362,7 +370,7 @@ func _knock_berries(who, cell: Vector3i) -> bool:
 	if not ripe(cell, b):
 		who.nag("bush", "Ягод на кусте нет" if b.fruit != "" else "%s без ягод" % b.title)
 		return false
-	if not who.act("cut"):
+	if not who.act("cut", "gather"):
 		return false
 	blow_berries(cell)
 	return true
@@ -386,7 +394,7 @@ func blow_berries(cell: Vector3i) -> bool:
 ## An axe fells a bush: it is gone, and the twigs it had left this year lie beside it.
 func _fell_bush(who, cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
-	if not who.act("chop"):
+	if not who.act("chop", "chop"):
 		return false
 	var n := maxi(1, twigs_left(cell, b))
 	_remove_bush(cell)
@@ -398,7 +406,7 @@ func _fell_bush(who, cell: Vector3i) -> bool:
 ## A shovel digs the bush out whole: it lies on the ground as an item to plant again.
 func _dig_out(who, cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
-	if not who.act("dig"):
+	if not who.act("dig", "dig"):
 		return false
 	_remove_bush(cell)
 	if b.item != "":
@@ -436,7 +444,7 @@ func _from_tree(who, col: Vector2i) -> bool:
 	if not seeds and _tree_twigs_left(col, s) <= 0:
 		who.nag("tree", "%s: больше ничего до весны" % s.title)
 		return false
-	if not who.act("gather"):
+	if not who.act("gather", "gather"):
 		return false
 	var id: String = s.seed if seeds else s.twig
 	if who.give(id, 2 if _extra(who, "gather") else 1) == 0:

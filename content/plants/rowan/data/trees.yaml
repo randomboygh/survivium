@@ -18,6 +18,6 @@
   seed: rowan
   log: resources:log
   twig: resources:branch
-  hits: 3
+  hits: 12
   twigs: 3
   seeds: 4

@@ -37,6 +37,7 @@
 | Протокол и сервер | К | `net_test`, `session_test`, `server_test` (113 проверок), слои в `content_test` | вход, отказы, обрыв, проверка движения, хозяин; есть |
 | Руки и мир | В | `actions_test` (11), `plans_test`, `farming_test`, `progress_test` | каждое действие рук — проверка; есть |
 | Персонаж, силы, навыки, тело | В | `character_test`, `body_test` (7), `skills_test` (5) | есть |
+| Баланс: инструменты × прочность × навыки, звери, PvP, выносливость, кривая опыта, еда | В | `balance_test` (9; пределы с причинами, `docs/balance/GAME_BALANCE_DESIGN.md`), таблицы `tools/balance_report.gd` | есть |
 | Звери, рыбалка | В | `wildlife_test` (12), `progress_test` (охота на каждого зверя с тушей, рыба каждого вида) | есть |
 | Территории, PvP | В | `territory_test` (10), `server_test` | есть |
 | Чанки на экране, бюджеты кадра | В | `mesher_test`, `frame_test` | ничего размером с чанк в одном кадре; есть |

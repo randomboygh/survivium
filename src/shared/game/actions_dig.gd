@@ -67,7 +67,7 @@ func dig_targets(who, order: Array[Vector3i], t: Dictionary, n := -1) -> Array[V
 ## when given (flattening digs with the best tool there, Plans.best_tool).
 func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dictionary:
 	cells = _allowed(who, cells, "build")
-	if cells.is_empty() or not who.act("dig"):
+	if cells.is_empty() or not who.act("dig", "dig"):
 		return {}
 	var keys := {}
 	var first: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
@@ -172,7 +172,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 	var asked := not cells.is_empty()
 	cells = _allowed(who, cells, "harvest")
 	knock = _allowed(who, knock, "harvest")
-	if asked and cells.is_empty() or not who.act("cut"):
+	if asked and cells.is_empty() or not who.act("cut", "gather"):
 		return false
 	var keys := {}
 	for c in cells:

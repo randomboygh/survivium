@@ -7,8 +7,9 @@ extends RefCounted
 ## Building takes nothing from the bag (WorldActions, Plans); digging, mowing and reaping
 ## still give what they give, as without it.
 var free_build := false
-## Tools wear with use and crafting (Workshop, decision 105).
-var tool_wear := false
+## Tools wear with use and crafting (Workshop, decision 105; on by default since the balance
+## pass of 2026-11-07, docs/balance/GAME_BALANCE_DESIGN.md: a stone axe lasts about 30 trees).
+var tool_wear := true
 ## A crafting job takes no time (Workshop).
 var instant_craft := false
 ## Any recipe's thing is given for nothing (Workshop.give_free): the craft tab shows
@@ -26,7 +27,7 @@ var territory_levels := 8
 ## point of the weapon's power, how long a newcomer is protected (minutes played), and
 ## how long a fight holds one out of land closed to fights (seconds).
 var pvp := "land"
-var pvp_damage := 5
+var pvp_damage := 4
 var newcomer_minutes := 120
 var fight_tag := 45.0
 ## Abandoned land (plan/design/territory-pvp.md): hours of the world's running time with

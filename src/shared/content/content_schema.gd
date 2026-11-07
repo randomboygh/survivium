@@ -41,6 +41,9 @@ const SCHEMAS := {
 		"item": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},
 		"dig": {"type": "enum", "values": ["hand", "shovel", "pickaxe", "axe", "none"], "default": "pickaxe"},
 		"hardness": {"type": "int", "min": 0, "default": 1},
+		# The work a cell takes to break: a swing of a tool whose power is less takes
+		# toughness / power times its time (Tools.swing_time); 0 means as hard as `hardness`.
+		"toughness": {"type": "float", "min": 0.0, "default": 0.0},
 		"bonus": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"mow": {"type": "ref:materials", "default": "", "rel": "becomes", "via": "mow"},
@@ -303,18 +306,24 @@ const SCHEMAS := {
 	# the work is at the last level (`speed`: the share of pace added, 1 = twice as fast),
 	# the points a whole thing gives where the work has no time of its own
 	# (`each`: a beast killed, a fish caught), the chance at the last level of one more of
-	# what the work gives (`yield`) and how much longer a thing made lasts (`quality`: a
-	# share of its `durability` more).
+	# what the work gives (`yield`), how much longer a thing made lasts (`quality`: a
+	# share of its `durability` more), how much less stamina the work costs at the last
+	# level (`effort`, a share of the cost), how much more a blow of the work does
+	# (`might`, a share of the tool's power: hunting) and the chance a swing does not
+	# wear the tool (`care`). docs/balance/GAME_BALANCE_DESIGN.md has the formulas.
 	"skills": {
 		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim", "farm"]},
 		"order": {"type": "int", "min": 0, "default": 0},
 		"levels": {"type": "int", "min": 1, "max": 20, "default": 10},
-		"first": {"type": "float", "min": 1.0, "default": 180.0},
-		"growth": {"type": "float", "min": 1.0, "max": 4.0, "default": 1.6},
+		"first": {"type": "float", "min": 1.0, "default": 120.0},
+		"growth": {"type": "float", "min": 1.0, "max": 4.0, "default": 1.45},
 		"speed": {"type": "float", "min": 0.0, "max": 4.0, "default": 1.0},
 		"each": {"type": "float", "min": 0.0, "default": 0.0},
 		"yield": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"quality": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},
+		"effort": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.4},
+		"might": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},
+		"care": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.5},
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",

@@ -19,6 +19,6 @@
   seed: apple
   log: resources:log
   twig: resources:branch
-  hits: 4
+  hits: 16
   twigs: 3
   seeds: 5

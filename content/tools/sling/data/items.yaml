@@ -17,7 +17,7 @@
   reach: 4
   range: 20
   ammo: sling_stone
-  durability: 150
+  durability: 450
   repair: {materials:cord: 1}
 - id: sling_stone
   title: Камешки

@@ -233,6 +233,10 @@ func use_tool() -> void:
 	var id: String = who.held()
 	if not (Tools.is_tool_item(id) or not Tools.weapon(id).is_empty()) or not rules.tool_wear:
 		return
+	# A skilled hand spares the tool now and then (the skill's `care`).
+	var sk = who.get("skills")
+	if sk != null and sk.spares(Tools.role_of(id)):
+		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
 		who.say("Сломалось: %s" % Items.title(id))
 
@@ -242,11 +246,14 @@ func use_tool() -> void:
 func _wear_tools(r: Dictionary) -> void:
 	if r.wear <= 0 or not rules.tool_wear:
 		return
+	var sk = who.get("skills")
 	for kind: String in r.tools:
 		var id := Tools.held_of(who.inventory, kind)
 		if id == "":
 			continue
 		for i: int in r.wear:
+			if sk != null and sk.spares(role_of(r)):
+				continue
 			if who.inventory.wear_tool(id, Items.get_item(id).durability):
 				who.say("Сломалось: %s" % Items.title(id))
 				break

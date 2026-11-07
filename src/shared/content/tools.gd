@@ -219,11 +219,45 @@ static func why_not(t: Dictionary, m: int) -> String:
 	return ""
 
 
-## Seconds a swing of tool `t` at material `m` takes: hands are slow in the ground (not
-## when they cut grass).
+## Seconds a swing of tool `t` at a cell of material `m` takes: its `swing`, longer by
+## the share of the cell's toughness its power lacks (`toughness` / `power`, never
+## shorter: a tool stronger than the cell swings at its own pace), and hands are slow in
+## the ground (not when they cut grass). The one formula of digging and chopping cells
+## (docs/balance/GAME_BALANCE_DESIGN.md): the tool decides how much work a swing does,
+## the skill (SkillSet.pace) how fast the hand swings.
 static func swing_time(t: Dictionary, m: int) -> float:
 	var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
-	return t.swing * (t.slow if slow else 1.0)
+	return t.swing * (t.slow if slow else 1.0) * maxf(1.0, toughness(m) / float(maxi(1, t.power)))
+
+
+## The work a cell of material `m` takes to break: its `toughness`, or its `hardness`
+## when none is written.
+static func toughness(m: int) -> float:
+	var rec: Dictionary = Mat.RECORDS[m]
+	return rec.toughness if rec.toughness > 0.0 else float(rec.hardness)
+
+
+## How many blows of `power` break something of `toughness` (a tree's `hits`, an
+## animal's `health`): at least one.
+static func hits_to(toughness: float, power: int) -> int:
+	return maxi(1, ceili(toughness / float(maxi(1, power)) - 0.0001))
+
+
+## The work (a Skills role) a tool of each class is used for: the skill that paces its
+## swings, spares its wear and shows it in the window. One map for the rules and the
+## interface, so what the skill does and what the player is told agree.
+const ROLE_OF := {
+	"hand": "", "axe": "chop", "pickaxe": "dig", "shovel": "dig", "scythe": "gather", "knife": "hunt",
+	"needle": "craft", "sword": "hunt", "spear": "hunt", "bow": "hunt", "sling": "hunt", "rod": "fish",
+	"hoe": "farm", "sickle": "farm", "can": "farm",
+}
+
+
+## The work (a Skills role) item `id` is a tool of ("" for none, or for bare hands).
+static func role_of(id: String) -> String:
+	if id == "":
+		return ""
+	return ROLE_OF.get(Items.get_item(id).get("tool", "none"), "")
 
 
 ## The column step (x, z) for a direction the body faces, snapped to 8 ways.

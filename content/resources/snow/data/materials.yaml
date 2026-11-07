@@ -24,5 +24,6 @@
   drains: true
   item: ice
   dig: pickaxe
+  toughness: 2
   step: step_snow
   hit: dig

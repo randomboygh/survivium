@@ -8,11 +8,13 @@
   priority: 2
   item: silver_ore
   hardness: 4
+  toughness: 8
   step: step_stone
   hit: hit_stone
 - id: silver_block
   title: Серебряный блок
   item: silver_block
   hardness: 3
+  toughness: 6
   step: step_stone
   hit: hit_stone
