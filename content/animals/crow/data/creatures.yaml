@@ -12,7 +12,9 @@
   active: day
   count: 7
   sprite: crow
-  frames: 3
+  frames: 6
+  walk: 3
+  views: 3
   flies: true
   flock: [3, 6]
   roost: trees

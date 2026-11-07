@@ -13,7 +13,9 @@
   active: day
   count: 6
   sprite: duck
-  frames: 3
+  frames: 6
+  walk: 3
+  views: 3
   flies: true
   swims: true
   ashore: true

@@ -12,7 +12,9 @@
   active: day
   count: 10
   sprite: squirrel
-  frames: 3
+  frames: 7
+  walk: 4
+  views: 3
   roost: trees
   biomes: [biomes:forest, biomes:taiga, biomes:meadow]
   calls: squirrel

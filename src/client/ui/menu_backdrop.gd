@@ -86,6 +86,10 @@ var _title: Label
 var _sparrow: Control
 var _sparrow_picture: Texture2D
 var _sparrow_frames := 1
+## Of its frames, how many beat its wings (after the first); rows of its picture (the
+## side is the first).
+var _sparrow_walk := 0
+var _sparrow_views := 1
 var _bird_x := 40.0
 var _bird_dir := 1.0
 var _bird_do := "sit"
@@ -251,7 +255,7 @@ func _move_sparrow(delta: float) -> void:
 func _sparrow_size() -> Vector2:
 	if _sparrow_picture == null:
 		return Vector2.ZERO
-	return Vector2(_sparrow_picture.get_width() / _sparrow_frames, _sparrow_picture.get_height()) * BIRD_PX
+	return Vector2(_sparrow_picture.get_width() / _sparrow_frames, _sparrow_picture.get_height() / _sparrow_views) * BIRD_PX
 
 
 ## Where the sparrow is drawn in the name's UI px (its frame's rect), and its frame:
@@ -266,15 +270,15 @@ func _bird_place() -> Array:
 	if _bird_do == "hop":
 		var t := clampf(1.0 - _bird_left / HOP_TIME, 0.0, 1.0)
 		lift = floorf(HOP_HIGH * 4.0 * t * (1.0 - t))
-		if _sparrow_frames > 1:
-			frame = 1 + int(t * 3.0) % (_sparrow_frames - 1)
+		if _sparrow_walk > 0:
+			frame = 1 + int(t * 3.0) % _sparrow_walk
 	elif _bird_do == "fly":
 		var t := clampf(1.0 - _bird_left / FLY_TIME, 0.0, 1.0)
 		var ease := 1.0 - (1.0 - t) * (1.0 - t)
 		x = lerpf(-_title.position.x - size.x - 10.0, _bird_x, ease)
 		lift = floorf((1.0 - ease) * 90.0)
-		if _sparrow_frames > 1 and t < 0.96:
-			frame = 1 + int(_time * 14.0) % (_sparrow_frames - 1)
+		if _sparrow_walk > 0 and t < 0.96:
+			frame = 1 + int(_time * 14.0) % _sparrow_walk
 	return [Rect2(Vector2(floorf(x), top - size.y - lift), size), frame]
 
 
@@ -297,7 +301,11 @@ func _draw_sparrow() -> void:
 	else:
 		_sparrow.draw_set_transform(at + Vector2(cell.x * BIRD_PX, 0.0), 0.0, Vector2(-BIRD_PX, BIRD_PX))
 	var x0 := frame * cell.x
-	if _bird_do == "peck":
+	if _bird_do == "peck" and _sparrow_frames > 1 + _sparrow_walk:
+		# Its first idle frame is the peck.
+		x0 = (1 + _sparrow_walk) * cell.x
+		_sparrow.draw_texture_rect_region(_sparrow_picture, Rect2(0, 0, cell.x, cell.y), Rect2(x0, 0, cell.x, cell.y))
+	elif _bird_do == "peck":
 		# The tail and the body stay, the head goes a pixel down.
 		_sparrow.draw_texture_rect_region(_sparrow_picture, Rect2(0, 0, SPARROW_HEAD, cell.y),
 			Rect2(x0, 0, SPARROW_HEAD, cell.y))

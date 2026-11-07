@@ -14,7 +14,9 @@
   count: 4
   sprite: hedgehog
   biomes: [biomes:meadow, biomes:forest]
-  frames: 3
+  frames: 7
+  walk: 4
+  views: 3
   calls: hedgehog
   health: 3
   carcass: small_carcass

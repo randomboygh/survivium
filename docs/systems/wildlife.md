@@ -70,13 +70,16 @@
 пишут в `main.session.wildlife`.
 
 **Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,
-`sprite`, `frames`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
+`sprite`, `frames`, `walk`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
 `likes`, `biomes`, `calls`, `alarm`) в бандлах `content/animals/<зверь>/`; картинка —
-`sprites/creatures/<sprite>.png` бандла, ряд из `frames` кадров (новые рисует `tools/make_creatures.py`).
+`sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: сбоку, спереди, сзади), в ряду `frames`
+кадров — стоит, `walk` кадров шага или взмахов, остальные — покоя (рисует `tools/make_creatures.py` с
+`tools/creature_kit.py`). `creatures.gd` выбирает сторону по движению на экране (`TURN_BIAS`), шаг —
+по пройденному пути, кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
 Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.
 
 **Ограничения.** Ходок не достаёт пловца и наоборот, летун достаёт обоих. Биом столбца берётся из
-`gen.lay_out`. У ходоков один кадр стояния; ныряния нет. Голоса бандл приносит готовыми `.wav`
+`gen.lay_out`. Ныряния нет; сторона зверя у клиента выводится из его движения, сервер её не знает. Голоса бандл приносит готовыми `.wav`
 (синтез — таблица в `tools/make_sounds.gd`).
 
 **Тесты.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`, `fishing`,

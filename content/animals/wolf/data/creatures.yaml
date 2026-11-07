@@ -12,7 +12,9 @@
   active: night
   count: 4
   sprite: wolf
-  frames: 3
+  frames: 7
+  walk: 4
+  views: 3
   flock: [2, 3]
   biomes: [biomes:taiga, biomes:forest, biomes:tundra]
   calls: wolf_howl

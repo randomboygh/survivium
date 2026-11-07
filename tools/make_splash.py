@@ -18,10 +18,12 @@ TEXT = "SURVIVIUM"
 SIZE = 32
 # Half of the menu's outline_size 8: Godot draws it around the glyph both ways.
 OUTLINE = 4
-# A pixel of the sparrow, as on the menu (MainMenu.BIRD_PX), its frames and where it
-# sits from the left of the name.
+# A pixel of the sparrow, as on the menu (MainMenu.BIRD_PX), its frames a row and rows
+# (creatures.yaml `frames`, `views`; the first frame of the first row is it sitting, seen
+# from the side) and where it sits from the left of the name.
 BIRD_PX = 3
-BIRD_FRAMES = 3
+BIRD_FRAMES = 6
+BIRD_VIEWS = 3
 BIRD_X = 10
 ACCENT = (0xE9, 0xB4, 0x4C, 255)
 EDGE = (0x0F, 0x0A, 0x06, 255)
@@ -35,7 +37,7 @@ def main() -> None:
     font = ImageFont.truetype(FONT, SIZE)
     left, top, right, bottom = font.getbbox(TEXT)
     sheet = Image.open(SPARROW).convert("RGBA")
-    frame = sheet.crop((0, 0, sheet.width // BIRD_FRAMES, sheet.height))
+    frame = sheet.crop((0, 0, sheet.width // BIRD_FRAMES, sheet.height // BIRD_VIEWS))
     bird = frame.resize((frame.width * BIRD_PX, frame.height * BIRD_PX), Image.NEAREST)
     text_w = right - left + 2 * OUTLINE
     text_h = bottom - top + 2 * OUTLINE
