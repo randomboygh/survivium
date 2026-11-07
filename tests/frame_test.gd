@@ -907,6 +907,16 @@ func _portrait_palette() -> void:
 	touch.position = drag.position
 	bar._input(touch)
 	_check(bar._first == 2 and main.build.chosen() == held, "a finger dragged along the palette scrolls it two cells")
+	# The action button stays down while the mode builds and comes up as it stops (it
+	# stuck down until the bag next changed).
+	# (With no blueprint the mode lets go at its next frame: the hud is asked at once.)
+	main.build.auto = true
+	hud.update_state()
+	var down: bool = hud._action.button_pressed and hud._action.text == "Стоп"
+	main.build.auto = false
+	hud.update_state()
+	_check(down and not hud._action.button_pressed and hud._action.text == "Строить",
+		"the action button comes up when the build stops (%s %s %s)" % [down, hud._action.button_pressed, hud._action.text])
 	main.build.leave()
 	for id in given:
 		inv.remove(id, 1)

@@ -407,11 +407,17 @@ func _update_hands() -> void:
 			("Н" if game.character.inventory.worn_on(i) != "" else "")))
 	_action.text = c.action_name()
 	# Pressed down while the fishing line is in the water, or while the build mode builds.
-	_action.latch(game.character.line.is_finite() or game.build.auto or game.farm.auto)
+	_action.latch(_action_latched())
 	# The picture of what the hand in use holds, bare hands for nothing.
 	var held: String = c.held()
 	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null
 	_action.icon = pic if pic != null else ItemIcons.picture("hand")
+
+
+## Whether the action button stays pressed down: the fishing line is in the water, or
+## the build or the farming mode works.
+func _action_latched() -> bool:
+	return game.character.line.is_finite() or game.build.auto or game.farm.auto
 
 
 func refresh_hands() -> void:
