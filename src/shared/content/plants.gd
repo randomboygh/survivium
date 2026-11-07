@@ -14,9 +14,11 @@ const Content := preload("res://src/shared/content/content.gd")
 ## any number of those grow side by side (CUSTOM, each with its frames after the last).
 ## A crop (kind `crop`, grows `field`) is drawn the same way, a frame a stage of its
 ## growth, the last one ripe; it grows only where it was sown on a bed (WorldData.fields).
+## A sapling (kind `sapling`) is planted from a tree's seed on open ground, drawn a frame a
+## stage the same way, and grown it becomes its `tree` (a species of Trees).
 const KINDS := {"TUFT": "tuft", "TALL": "tall_grass", "FLOWERS": "flowers", "HERBS": "herbs",
 	"EARS": "ears", "REEDS": "reeds", "MOSS": "moss", "MUSHROOMS": "mushrooms", "GLOW": "glow_mushrooms",
-	"CUSTOM": "custom", "CROP": "crop"}
+	"CUSTOM": "custom", "CROP": "crop", "SAPLING": "sapling"}
 
 static var TUFT := ""
 static var TALL := ""
@@ -50,7 +52,7 @@ static func refresh() -> void:
 	for r in Content.records("plants"):
 		BY_ID[r.id] = r
 		BY_KIND[r.kind] = r.id
-		if r.kind == KINDS.CUSTOM or r.kind == KINDS.CROP:
+		if r.kind in [KINDS.CUSTOM, KINDS.CROP, KINDS.SAPLING]:
 			var c: Dictionary = r.duplicate()
 			c.first = frames
 			frames += r.frames
@@ -95,6 +97,16 @@ static func is_crop(id: String) -> bool:
 	return kind_of(id) == KINDS.CROP
 
 
+## Whether plant `id` is a sapling (planted from a tree's seed, grows into its `tree`).
+static func is_sapling(id: String) -> bool:
+	return kind_of(id) == KINDS.SAPLING
+
+
+## Whether plant `id` grows from what is sown or planted (a crop or a sapling: an item's `crop`).
+static func is_sown(id: String) -> bool:
+	return is_crop(id) or is_sapling(id)
+
+
 ## The custom record (CUSTOM, with its `first` frame) of plant `id`, {} for none.
 static func custom(id: String) -> Dictionary:
 	for c in CUSTOM:
@@ -104,7 +116,7 @@ static func custom(id: String) -> Dictionary:
 
 
 ## The stage (frame, 0 a sprout .. frames - 1 ripe) of crop `id` that has grown `grown`
-## days.
+## days; a sapling shows its last frame before it is grown (grown, it is a tree).
 static func stage(id: String, grown: float) -> int:
 	var c: Dictionary = BY_ID.get(id, {})
 	if c.is_empty():
@@ -114,6 +126,8 @@ static func stage(id: String, grown: float) -> int:
 		return 0
 	if c.grow_days <= 0.0 or grown >= c.grow_days:
 		return last
+	if c.kind == KINDS.SAPLING:
+		return mini(last, floori(grown / c.grow_days * c.frames))
 	return mini(last - 1, floori(grown / c.grow_days * last))
 
 

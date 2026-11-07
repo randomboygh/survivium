@@ -670,6 +670,8 @@ const SHOTS := {
 	"ground-steps": {"time": 0.42, "season": 1, "at": [-28, -24]},
 	# The farm: dry beds, wet beds, each crop (wheat, turnip, carrot, peas, flax) at each stage; a hoe in hand.
 	"ground-farm": {"time": 0.42, "season": 1, "at": [69, 29], "hold": ["", "tools:stone_hoe"]},
+	# The saplings east of the farm (TestGround.SAPLINGS): oak and spruce, each stage.
+	"ground-saplings": {"time": 0.42, "season": 1, "at": [81, 30]},
 	# The farming mode (FarmMode): the palette of seeds and bushes, the panel, marks of
 	# every work, a square stroke to sow held.
 	"ground-farm-mode": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw"},

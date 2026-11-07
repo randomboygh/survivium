@@ -63,7 +63,9 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      glowing mushrooms, west to east (GROVE_FLOOR)
 ##   mountain   x 98..142,  z 42..86    a peak of scree and stone up into the snow
 ##   farm       x 64..75,   z 16..27    rows of beds a row of grass apart (FARM): dry, wet,
-##                                      then each loaded crop (two columns each) at each stage
+##                                      then each loaded crop (two columns each) at each stage;
+##                                      east of it, x 77.., the saplings, one a column every 4
+##                                      cells, their stages north to south (SAPLINGS)
 ##   camp       x 60..91,   z -30..-13  for FPS and freezes: things lying on every cell
 ##                                      (CAMP_DROPS), death's sacks, a row of chests,
 ##                                      workbenches and kilns, a row of lit campfires
@@ -84,6 +86,8 @@ const GROUNDS := ["Ступени", "Ямы", "Пещера", "Звёздная 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 ## The farm: beds in rows along x, a row of grass between them (see farm_bed).
 const FARM := Rect2i(64, 16, 12, 12)
+## The saplings east of the farm (see farm_bed): a sapling a column, a stage a row.
+const SAPLINGS := Rect2i(77, 17, 12, 12)
 
 ## The plant garden: rows of pens from GARDEN_X, the trees' from GARDEN_Z, each pen
 ## its inner side of cells plus a wall (a row's stride), the walls a cell high. A tree's
@@ -1056,6 +1060,8 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 ## the loaded crops two columns each (the last takes the rest) at each stage, on wet beds
 ## (they stay wet: they grow on).
 func farm_bed(x: int, z: int) -> Array:
+	if SAPLINGS.has_point(Vector2i(x, z)):
+		return _sapling(x, z)
 	var at := Vector2i(x, z) - FARM.position
 	if Mat.BED < 0 or not FARM.has_point(Vector2i(x, z)) or at.y % 2 == 1:
 		return []
@@ -1071,6 +1077,26 @@ func farm_bed(x: int, z: int) -> Array:
 	if row == 1 or crop.is_empty() or stage >= crop.frames:
 		return [Mat.BED_WET, ["", 0.0, 1.0e9]]
 	return [Mat.BED_WET, [crop.id, crop.grow_days * (stage + 0.01) / maxf(1.0, crop.frames - 1), 1.0e9]]
+
+
+## The sapling on grass x, z east of the farm (SAPLINGS): [grass, its record of
+## WorldData.fields], [] for none: the loaded saplings a column every 4 cells, their
+## stages a row every 4 cells.
+func _sapling(x: int, z: int) -> Array:
+	var at := Vector2i(x, z) - SAPLINGS.position
+	if at.x % 4 != 0 or at.y % 4 != 0:
+		return []
+	var saplings := []
+	for c in Plants.CUSTOM:
+		if c.kind == Plants.KINDS.SAPLING:
+			saplings.append(c)
+	if at.x / 4 >= saplings.size():
+		return []
+	var s: Dictionary = saplings[at.x / 4]
+	var stage := at.y / 4
+	if stage >= s.frames:
+		return []
+	return [Mat.GRASS, [s.id, s.grow_days * (stage + 0.01) / maxf(1.0, s.frames), 0.0]]
 
 
 ## True when chunk `key` has cells of the biome plots.
