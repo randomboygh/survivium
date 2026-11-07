@@ -321,6 +321,9 @@ const SCHEMAS := {
 			"mushrooms", "glow_mushrooms", "custom", "crop"]},
 		"gives": {"type": "amounts", "of": "ref:items", "soft": true, "rel": "drops", "via": "mow"},
 		"chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
+		# Items found now and then besides (wild seeds in the grass): item -> the chance
+		# (0..1) one of it drops with each plant cut, rolled apart from `chance`.
+		"finds": {"type": "shares", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "mow"},
 		"pick": {"type": "bool", "default": false},
 		"winter": {"type": "bool", "default": true},
 		"sprite": {"type": "string", "default": ""},

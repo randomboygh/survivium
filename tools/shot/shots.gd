@@ -668,7 +668,7 @@ const SHOTS := {
 	# `at` (cells). Named "ground-*", they switch the run to the test world.
 	"ground-spawn": {"time": 0.42, "season": 1, "at": [0, 0]},
 	"ground-steps": {"time": 0.42, "season": 1, "at": [-28, -24]},
-	# The farm: dry beds, wet beds, wheat at each stage of its growth; a hoe in hand.
+	# The farm: dry beds, wet beds, each crop (wheat, turnip, carrot, peas, flax) at each stage; a hoe in hand.
 	"ground-farm": {"time": 0.42, "season": 1, "at": [69, 29], "hold": ["", "tools:stone_hoe"]},
 	# The farming mode (FarmMode): the palette of seeds and bushes, the panel, marks of
 	# every work, a square stroke to sow held.

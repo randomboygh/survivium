@@ -1,0 +1,15 @@
+# Репа — посев (kind crop, grows field, как пшеница «Колосков»): растёт на мокрой грядке
+# весной, летом и осенью grow_days дней, кадр на стадию (sprites/plants/turnip.png: росток,
+# листья, ботва, спелая с корнеплодом); её собирают руками или серпом. Семена репы иногда
+# находят, срезая высокую траву (патч `finds` — предмет и вероятность одного за растение).
+- id: turnip
+  kind: crop
+  title: Репа
+  sprite: turnip
+  frames: 4
+  grows: field
+  grow_days: 5
+  gives: {turnip: 2, turnip_seeds: 2}
+- id: tall_grass
+  patch: true
+  finds+: {turnip_seeds: 0.03}

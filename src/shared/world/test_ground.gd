@@ -63,7 +63,7 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      glowing mushrooms, west to east (GROVE_FLOOR)
 ##   mountain   x 98..142,  z 42..86    a peak of scree and stone up into the snow
 ##   farm       x 64..75,   z 16..27    rows of beds a row of grass apart (FARM): dry, wet,
-##                                      then the first loaded crop at each stage of its growth
+##                                      then each loaded crop (two columns each) at each stage
 ##   camp       x 60..91,   z -30..-13  for FPS and freezes: things lying on every cell
 ##                                      (CAMP_DROPS), death's sacks, a row of chests,
 ##                                      workbenches and kilns, a row of lit campfires
@@ -1053,7 +1053,8 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 
 ## The bed of the farm on column x, z (FARM): [its material, its record of
 ## WorldData.fields], [] for none. The first row dry and empty, the second wet, then
-## the first loaded crop at each stage, on wet beds (they stay wet: they grow on).
+## the loaded crops two columns each (the last takes the rest) at each stage, on wet beds
+## (they stay wet: they grow on).
 func farm_bed(x: int, z: int) -> Array:
 	var at := Vector2i(x, z) - FARM.position
 	if Mat.BED < 0 or not FARM.has_point(Vector2i(x, z)) or at.y % 2 == 1:
@@ -1061,11 +1062,11 @@ func farm_bed(x: int, z: int) -> Array:
 	var row := at.y / 2
 	if row == 0:
 		return [Mat.BED, ["", 0.0, 0.0]]
-	var crop := {}
+	var crops := []
 	for c in Plants.CUSTOM:
 		if c.kind == Plants.KINDS.CROP:
-			crop = c
-			break
+			crops.append(c)
+	var crop: Dictionary = {} if crops.is_empty() else crops[mini(at.x / 2, crops.size() - 1)]
 	var stage := row - 2
 	if row == 1 or crop.is_empty() or stage >= crop.frames:
 		return [Mat.BED_WET, ["", 0.0, 1.0e9]]

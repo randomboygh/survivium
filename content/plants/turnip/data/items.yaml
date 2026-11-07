@@ -1,0 +1,21 @@
+# Предметы бандла «Репа»: семена (их иногда находят, срезая высокую траву; crop — посев, который
+# из них вырастает на грядке) и сама репа. Поля — как у предметов основы (content/core/data/items.yaml).
+- id: turnip_seeds
+  title: Семена репы
+  description: Мелкие тёмные семена. Посейте их на грядку весной.
+  weight: 0.01
+  stack: 50
+  model: turnip_seeds
+  icon: turnip_seeds
+  crop: turnip
+- id: turnip
+  title: Репа
+  description: Круглый сладковатый корнеплод. Лежит долго.
+  weight: 0.2
+  stack: 20
+  food: 10
+  spoils: 24
+  rots_to: core:rot
+  model: turnip
+  icon: turnip
+  anim: eat
