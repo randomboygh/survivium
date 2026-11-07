@@ -6,9 +6,8 @@ outline in the fish's own darkest hue round it, a darker back, a light stripe un
 a pale belly. Each fish is a body w x h pixels (tail and all) on a canvas a pixel
 larger every way.
 
-Rows (creatures.yaml `views: 5`): the side (E, facing right), head on (S), from behind
-(N), the front three-quarter (SE) and the back three-quarter (NE), foreshortened; the
-game mirrors them for the other three ways. Columns (`frames: 6`, `walk: 4`): still,
+Rows (creatures.yaml `views: 3`): the side (E, facing right; the game mirrors it for
+left), head on (S) and from behind (N). Columns (`frames: 6`, `walk: 4`): still,
 four of the tail beating, one of the fins stirring.
 
     python3 tools/make_fish.py [perch roach ...]
@@ -60,38 +59,32 @@ class Fish:
                 px[(x, y)] = ch
         return px
 
-    def side(self, tail_dy=0, fin_dx=0, scale=1.0, away=False):
+    def side(self, tail_dy=0, fin_dx=0):
         w, h = self.w, self.h
         top, bottom = 2, h - 1
-        length = max(5, round((w - 2) * scale))
         x1 = self.W - 2
-        x0 = x1 - length + 1
-        px = self.body(x0, x1, top, bottom, back_rows=2 if away else 1)
-        if scale == 1.0:
-            for x in self.bars:
-                for y in range(top + 1, bottom):
-                    if px.get((x + 1, y)) in ("o", "h", "l"):
-                        px[(x + 1, y)] = "b"
-            for x, y in self.spots:
-                if (x + 1, y + 1) in px:
-                    px[(x + 1, y + 1)] = "s"
+        x0 = x1 - (w - 2) + 1
+        px = self.body(x0, x1, top, bottom)
+        for x in self.bars:
+            for y in range(top + 1, bottom):
+                if px.get((x + 1, y)) in ("o", "h", "l"):
+                    px[(x + 1, y)] = "b"
+        for x, y in self.spots:
+            if (x + 1, y + 1) in px:
+                px[(x + 1, y + 1)] = "s"
         mid = (x0 + x1) // 2
         for x in range(mid - 1, mid + 2):
             px[(x, top - 1)] = "t"
-        if not away:
-            px[(mid + fin_dx, bottom + 1)] = "t"
+        px[(mid + fin_dx, bottom + 1)] = "t"
         my = (top + bottom + 1) // 2
         for y in range(my - 1, my + 2):
             px[(x0 - 1, y + tail_dy)] = "t"
         px[(x0 - 2, my - 1 + tail_dy)] = px[(x0 - 2, my + 1 + tail_dy)] = "t"
-        if not away:
-            px[(x1 - 1, top + 1)] = "e"
-            if self.long_jaw:
-                px[(x1 + 1, top + 2)] = "k"
-            if self.whiskers:
-                px[(x1 - 1, bottom + 1)] = "k"
-        else:
-            px[(x1 - 1, top + 1)] = "e"
+        px[(x1 - 1, top + 1)] = "e"
+        if self.long_jaw:
+            px[(x1 + 1, top + 2)] = "k"
+        if self.whiskers:
+            px[(x1 - 1, bottom + 1)] = "k"
         return px
 
     def head_on(self, back=False, fin_dy=0, tail_dx=0):
@@ -150,17 +143,13 @@ class Fish:
         beat = [0, -1, 0, 1]
         if view == "E":
             return [self.side()] + [self.side(tail_dy=d) for d in beat] + [self.side(fin_dx=1)]
-        if view in ("SE", "NE"):
-            s, a = 0.62, view == "NE"
-            return [self.side(scale=s, away=a)] + [self.side(tail_dy=d, scale=s, away=a) for d in beat] + \
-                [self.side(fin_dx=1, scale=s, away=a)]
         back = view == "N"
         sway = [0, -1, 0, 1]
         if back:
             return [self.head_on(True)] + [self.head_on(True, tail_dx=d) for d in sway] + [self.head_on(True, fin_dy=-1)]
         return [self.head_on()] + [self.head_on(fin_dy=d) for d in sway] + [self.head_on(fin_dy=-1)]
 
-    def sheet(self, order=("E", "S", "N", "SE", "NE")):
+    def sheet(self, order=("E", "S", "N")):
         rows = [[self.render(p) for p in self.frames(v)] for v in order]
         im = Image.new("RGBA", (self.W * 6, self.H * len(order)), (0, 0, 0, 0))
         for j, r in enumerate(rows):

@@ -16,7 +16,7 @@
   frames: 9
   walk: 4
   hop: 2
-  views: 5
+  views: 3
   flies: true
   flock: [4, 8]
   roost: trees

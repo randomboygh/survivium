@@ -3,9 +3,8 @@
 Drawn by hand in the sparrow's style (tools/make_sparrow.py, 2026-11-07): a dark outline
 round the whole frog, a lime back, a cream belly, gold eyes. Frames 14x10.
 
-Rows (creatures.yaml `views: 5`): the side (E, facing right), the front (S), the back
-(N), the front three-quarter (SE) and the back three-quarter (NE); the game mirrors
-them for the other three ways. Columns (`frames: 5`, `walk: 2`): sitting, the leap
+Rows (creatures.yaml `views: 3`): the side (E, facing right; the game mirrors it for
+left), the front (S) and the back (N). Columns (`frames: 5`, `walk: 2`): sitting, the leap
 (stretched out; also its swim), crouched (taking off and landing), and two idle frames:
 a blink and the throat puffed.
 
@@ -55,24 +54,6 @@ SIT = {
         8: "HHGGDDGGDDGGHH",
         9: "LLHHGG..GGHHLL",
     }),
-    "SE": art({
-        3: ".......gg.g...",
-        4: "......gEKgEg..",
-        5: "...DDGGGGGGGg.",
-        6: "..DSDGGGGGGGGg",
-        7: ".HDGGGMMMMMMg.",
-        8: "HHHGGPPPPPPP..",
-        9: "LLHL.LPPpL....",
-    }),
-    "NE": art({
-        3: ".......gg.g...",
-        4: "......gEEgEg..",
-        5: "...DDGGGGGGg..",
-        6: "..DSDDGGSGGGg.",
-        7: ".HDDSGGDGGGG..",
-        8: "HHHDGGGGGGG...",
-        9: "LLHL..LGGL....",
-    }),
 }
 
 LEAP = {
@@ -107,16 +88,9 @@ LEAP = {
         9: "...LL....LL...",
     }),
 }
-LEAP["SE"] = dict(LEAP["E"])
-LEAP["SE"][(9, 1)] = "g"
-LEAP["SE"][(9, 2)] = "E"
-LEAP["NE"] = {k: {"P": "G", "p": "D", "M": "G", "K": "E"}.get(ch, ch) for k, ch in LEAP["E"].items()}
-LEAP["NE"][(9, 1)] = "g"
-LEAP["NE"][(9, 2)] = "E"
 
 SAC = {
     "E": art({8: "..........QQ..", 9: "..........QQ.."}),
-    "SE": art({8: "...........QQ.", 9: "..........QQ.."}),
     "S": art({8: ".....QQQQ.....", 9: ".....QQQQ....."}),
 }
 
@@ -163,7 +137,7 @@ def frames(view):
             render([sit, SAC.get(view, {})])]
 
 
-ORDER = ["E", "S", "N", "SE", "NE"]
+ORDER = ["E", "S", "N"]
 
 
 def sheet():

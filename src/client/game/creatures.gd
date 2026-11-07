@@ -6,8 +6,7 @@ extends Node3D
 ## their sprites are put again only when the server moved them (Animal.fresh). A
 ## species' picture is its mod's sprites/creatures/<sprite>.png: a row a view (`views`:
 ## the side, facing right, mirrored for left; the front, as it comes at the camera; the
-## back, as it goes away; with 5, the front and back three-quarter views too, going down
-## and up the screen to the right, mirrored for the left), each of `frames` frames: the
+## back, as it goes away), each of `frames` frames: the
 ## first the animal at rest, then `walk` frames of its walk (or swim) played by the way
 ## it covers, two steps a round, or of a flyer's wing beat in the air; one that hops shows
 ## the second while in a leap (legs stretched) and the third as it takes off and lands;
@@ -41,18 +40,10 @@ const JUMP := 3.0
 const IDLE_GAP := Vector2(2.0, 6.0)
 const IDLE_HOLD := Vector2(0.4, 0.9)
 const IDLE_LONG := Vector2(1.5, 3.5)
-## Rows of a picture: the side, the front, the back, the front and back three-quarters.
+## Rows of a picture: the side, the front, the back.
 const SIDE := 0
 const FRONT := 1
 const BACK := 2
-const FRONT_TURNED := 3
-const BACK_TURNED := 4
-## Of five views, how far (degrees) a move on the screen must go from the horizontal to
-## show the three-quarter view, and from it to show the front or back; between the two
-## sides of a border by HYSTERESIS degrees the animal keeps its view.
-const TURNED_FROM := 22.5
-const TURNED_TO := 67.5
-const HYSTERESIS := 8.0
 ## World units a flyer goes on the ground a round of its hop (crouched, up, sitting).
 const HOP_STEP := 0.36
 
@@ -60,13 +51,17 @@ const HOP_STEP := 0.36
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
 ## its steps) and its idle frame.
 class Look:
+	var animal
+	var sprite: MeshInstance3D
 	var view := SIDE
-	## 1 facing right on the screen, -1 left (the side and three-quarter views mirrored).
+	## 1 facing right on the screen, -1 left (the side view mirrored).
 	var side := 0.0
 	var last := Vector3.ZERO
 	var walked := 0.0
 	var idle := 0
 	var change_at := 0.0
+	## The sprite's scale.x last put (0 before the first): set only when it changes.
+	var flip := 0.0
 
 
 var wildlife
@@ -80,6 +75,8 @@ var perf
 var looks := {}
 var _sprites := {}
 var _looks := {}
+## The Looks of all the animals drawn, walked every frame (no lookups by animal).
+var _shown: Array[Look] = []
 ## sprite -> where its culling box was fitted, and the views it was fitted for.
 var _fitted := {}
 var _views: Array = []
@@ -135,23 +132,27 @@ func _process(delta: float) -> void:
 		_fitted.clear()
 		for a in wildlife.animals:
 			_fit(a, _sprites[a])
-	for a in wildlife.animals:
-		var sprite: MeshInstance3D = _sprites[a]
-		var look: Look = _looks[a]
+	for look in _shown:
+		var a = look.animal
 		if a.fresh:
 			a.fresh = false
+			var sprite := look.sprite
 			sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
 			if _fitted.get(sprite) != sprite.position:
 				_fit(a, sprite)
 			_went(a, look, flip)
-		elif not (a.flying or a.moving or a.hop > 0.0) and now < look.change_at:
+		elif not (a.flying or a.hop > 0.0) and now < look.change_at:
+			# Its walk goes by the way it covered, which changes only when it is fresh.
 			continue
 		var frame := _frame(a, look, beat, now)
 		var shown: int = look.view * looks[a.kind][3] + frame
 		if shown != a.frame:
 			a.frame = shown
-			sprite.material_override = _mats(a)[shown]
-		sprite.scale.x = 1.0 if look.view == FRONT or look.view == BACK else look.side
+			look.sprite.material_override = _mats(a)[shown]
+		var sx := look.side if look.view == SIDE else 1.0
+		if sx != look.flip:
+			look.flip = sx
+			look.sprite.scale.x = sx
 	if perf != null:
 		perf.note("животные", t)
 
@@ -169,9 +170,7 @@ func _went(a, look: Look, flip: float) -> void:
 		look.walked += moved
 	var s := PixelView.screen_dir(d)
 	var views: int = looks[a.kind][5]
-	if views >= 5:
-		look.view = _turned(look.view, s)
-	elif views >= 2 and absf(s.y) > absf(s.x) * TURN_BIAS:
+	if views >= 2 and absf(s.y) > absf(s.x) * TURN_BIAS:
 		look.view = FRONT if s.y > 0.0 or views < 3 else BACK
 	elif absf(s.x) > absf(s.y) * TURN_BIAS or views < 2:
 		look.view = SIDE
@@ -179,26 +178,6 @@ func _went(a, look: Look, flip: float) -> void:
 		look.side = signf(s.x)
 	elif look.side == 0.0:
 		look.side = a.facing * flip
-
-
-## Of five views, the one a move `s` on the screen shows (down the screen is +y, at the
-## camera), from the view `now` it shows (kept near a border).
-static func _turned(now: int, s: Vector2) -> int:
-	var angle := rad_to_deg(atan2(absf(s.y), absf(s.x)))
-	var toward := s.y > 0.0
-	var band := Vector2(0.0, TURNED_FROM)
-	if now == FRONT_TURNED or now == BACK_TURNED:
-		band = Vector2(TURNED_FROM, TURNED_TO)
-	elif now == FRONT or now == BACK:
-		band = Vector2(TURNED_TO, 90.0)
-	var same_way := now == SIDE or (now == FRONT or now == FRONT_TURNED) == toward
-	if same_way and angle >= band.x - HYSTERESIS and angle <= band.y + HYSTERESIS:
-		return now
-	if angle < TURNED_FROM:
-		return SIDE
-	if angle < TURNED_TO:
-		return FRONT_TURNED if toward else BACK_TURNED
-	return FRONT if toward else BACK
 
 
 ## The frame of its row animal `a` shows now.
@@ -291,10 +270,14 @@ func _on_born(a) -> void:
 	add_child(sprite)
 	_sprites[a] = sprite
 	var look := Look.new()
+	look.animal = a
+	look.sprite = sprite
 	look.last = a.pos
 	look.side = a.facing * (1.0 if PixelView.right.x >= 0.0 else -1.0)
 	look.change_at = Time.get_ticks_msec() * 0.001 + _rng.randf_range(0.0, IDLE_GAP.y)
 	_looks[a] = look
+	_shown.append(look)
+	look.flip = look.side
 	sprite.scale.x = look.side
 	_fit(a, sprite)
 
@@ -303,6 +286,7 @@ func _on_gone(a) -> void:
 	_fitted.erase(_sprites[a])
 	_sprites[a].queue_free()
 	_sprites.erase(a)
+	_shown.erase(_looks[a])
 	_looks.erase(a)
 
 

@@ -343,115 +343,6 @@ W....................
     return [walker(v, 23, 17) for v in (side, front, back)]
 
 
-# --- Rabbit ------------------------------------------------------------------------
-
-def rabbit():
-    fur = ramp("#a8865e", "#3a2618")
-    light = ramp("#e4d2b4", "#5a4630")
-    ear = ramp("#d89a92", "#5a3028")
-    nose = flat("#c06a6a")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "a": (fur, "head", None),
-        "i": (ear, "head", MID), "l": (light, "body", None), "m": (light, "head", None),
-        "W": (light, "tail", HIGH), "e": (EYE, "head", None), "n": (nose, "head", None),
-    }
-    side = View("""
-.......aa....
-......aia....
-......aih....
-.......hhhh..
-......hhhehh.
-..ooooohhhhhn
-.ooooooohhmm.
-Wooooooooo...
-Woooooooooo..
-.ollllloooo..
-""", L, legs=[(2, 9, "B", False, fur, fur, 2), (8, 9, "A", False, fur, fur),
-              (4, 9, "A", True, fur, light, 2), (9, 9, "B", True, fur, light)],
-                idles=[{"head": (0, -1)}, {"head": (1, 1)}])
-    front = View("""
-..a...a..
-..ai.ia..
-..ai.ia..
-..hhhhh..
-.hhhhhhh.
-.hehhheh.
-.hhmnmhh.
-..mmmmm..
-.oollloo.
-.ooollooo
-..oo..oo.
-""", L, legs=[(2, 9, "A", True, fur, light), (6, 9, "B", True, fur, light)],
-                 idles=[{"head": (0, -1)}, {"head": (0, 1)}], ox=3, straight=True)
-    back = View("""
-..a...a..
-..aa.aa..
-..aa.aa..
-..hhhhh..
-.hhhhhhh.
-.hhhhhhh.
-.hhhhhhh.
-..hhhhh..
-.ooooooo.
-.oooWWooo
-..ooWWoo.
-""", L, legs=[(2, 9, "A", True, fur, fur), (6, 9, "B", True, fur, fur)],
-                idles=[{"head": (0, -1)}, {"head": (0, 1)}], ox=3, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 15, 13) for v in (side, front, back)]
-
-
-# --- Squirrel ----------------------------------------------------------------------
-
-def squirrel():
-    fur = ramp("#c0602c", "#3e1a0c")
-    tail = ramp("#d0743a", "#3e1a0c")
-    light = ramp("#ecd6b0", "#5a3a20")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "t": (tail, "tail", None),
-        "T": (tail, "tail", LIGHT), "l": (light, "body", None), "m": (light, "head", None),
-        "e": (EYE, "head", None), "n": (EYE, "head", None),
-    }
-    side = View("""
-.ttt.....h.h
-ttTtt...hhhh
-tTttt..hhheh
-tTtt...hhhhn
-ttt...oohhm.
-.tt..oooolm.
-..ttoooooll.
-...tooooooo.
-....oooool..
-""", L, legs=[(4, 8, "B", False, fur, fur, 2), (8, 8, "A", False, fur, fur),
-              (5, 8, "A", True, fur, fur, 2), (9, 8, "B", True, fur, fur)],
-                idles=[{"tail": (0, -1)}, {"head": (0, 1)}])
-    front = View("""
-.h...h..tt.
-.hhhhh.tTtt
-hhhhhhhtTtt
-hehhhehtttt
-hhhnhhh.ttt
-.mmmmm..tt.
-.ollllo.tt.
-oolllloott.
-.oolllooo..
-.oo...oo...
-""", L, legs=[(1, 8, "A", True, fur, fur), (5, 8, "B", True, fur, fur)],
-                 idles=[{"tail": (0, -1)}, {"head": (0, 1)}], ox=2, straight=True)
-    back = View("""
-.h...h.....
-.hhhhh.....
-hhhhhhh....
-hhhhhhh....
-hhhhhhh....
-.ttttt.....
-ttTTttt....
-tTtttttt...
-tttttttt...
-.oo...oo...
-""", L, legs=[(1, 8, "A", True, fur, fur), (5, 8, "B", True, fur, fur)],
-                idles=[{"tail": (1, 0)}, {"head": (0, 1)}], ox=2, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 14, 13) for v in (side, front, back)]
-
 
 # --- Cat ---------------------------------------------------------------------------
 
@@ -617,8 +508,8 @@ uu.k.uu
 
 
 SHEETS = {
-    "fox": fox, "boar": boar, "deer": deer, "bear": bear, "wolf": wolf, "rabbit": rabbit,
-    "squirrel": squirrel, "cat": cat, "hedgehog": hedgehog,
+    "fox": fox, "boar": boar, "deer": deer, "bear": bear, "wolf": wolf,
+    "cat": cat, "hedgehog": hedgehog,
     "butterfly": butterfly,
 }
 
