@@ -192,6 +192,8 @@ func _raw() -> Dictionary:
 			have[spec.carcass] = true
 		if kind != AiRules.HUMAN and spec.swims and spec.get("catch", "") != "" and Items.has(spec.catch):
 			have[spec.catch] = true
+		if kind != AiRules.HUMAN and spec.get("wool", "") != "" and Items.has(spec.wool):
+			have[spec.wool] = true
 	return have
 
 
@@ -559,6 +561,13 @@ func _gather(id: String) -> bool:
 	for kind: String in AiRules.SPECIES:
 		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("catch", "") == id:
 			return await _fish(id)
+	for kind: String in AiRules.SPECIES:
+		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("wool", "") == id:
+			# Shorn off a tame animal (tests/unit/wildlife_test.gd tames and shears one):
+			# here it is given, the run is about what is made of it.
+			print("given %s ×8 (shorn off a tame %s)" % [Items.title(id), AiRules.SPECIES[kind].title])
+			main.host.player.give(id, 8)
+			return true
 	return _fail("no way known to get %s from the world" % Items.title(id))
 
 

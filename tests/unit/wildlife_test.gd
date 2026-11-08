@@ -779,7 +779,7 @@ func _test_taming(w: WorldData) -> void:
 	who.position.y = life.ground(who.position.x, who.position.z)
 	for i in 160:
 		life.update(0.05)
-	_check(hare.pos.distance_to(who.position) < 2.0, "a tame hare follows its owner (%.1f away)" % hare.pos.distance_to(who.position))
+	_check(hare.pos.distance_to(who.position) <= Wildlife.TAME_ROAM + 0.3, "a tame hare follows its owner, staying near (%.1f away)" % hare.pos.distance_to(who.position))
 	# Tell it to stay, with an empty hand.
 	who.item = ""
 	hare.pos = who.position + Vector3(0.0, 0.0, -0.8)
