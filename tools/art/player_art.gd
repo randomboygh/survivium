@@ -220,7 +220,9 @@ const SHOULDER := {
 ## the body bobs down. A swimmer's strokes go over the water, which comes up to its
 ## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn. Afloat in a
 ## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
-## and pull the oars in (Boats swings the oars in time, ROW_PERIOD).
+## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). The gestures
+## (Gestures): a wave over the head, a nod ("bob"), a shake of the body side to side
+## ("lean"), a hand pointing out, beckoning, a bow, clapping in front.
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[1, 10], [8, 10]]}],
@@ -239,6 +241,28 @@ const MOVES := {
 			{"hands": [[0, 6], [9, 5]]},
 			{"hands": [[0, 7], [9, 3]], "legs": "right"},
 			{"hands": [[0, 5], [9, 6]]},
+		],
+		"wave": [
+			{"hands": [[0, 2], [8, 10]]},
+			{"hands": [[-1, 3], [8, 10]]},
+		],
+		"nod": [{"hands": [[1, 10], [8, 10]], "bob": 1}],
+		"shake": [
+			{"hands": [[1, 10], [8, 10]], "lean": -1},
+			{"hands": [[1, 10], [8, 10]], "lean": 1},
+		],
+		"point": [{"hands": [[-2, 7], [8, 10]]}],
+		"beckon": [
+			{"hands": [[-1, 6], [8, 10]]},
+			{"hands": [[1, 8], [8, 10]]},
+		],
+		"bow": [
+			{"hands": [[1, 10], [8, 10]], "bob": 1},
+			{"hands": [[2, 10], [7, 10]], "bob": 2},
+		],
+		"clap": [
+			{"hands": [[3, 7], [6, 7]]},
+			{"hands": [[4, 7], [5, 7]]},
 		],
 		"sit": [{"hands": [[1, 9], [8, 9]], "legs": "sit", "bob": 3}],
 		"row": [
@@ -266,6 +290,28 @@ const MOVES := {
 			{"hands": [[2, 6], [9, 4]], "legs": "far"},
 			{"hands": [[5, 3], [7, 7]]},
 		],
+		"wave": [
+			{"hands": [[6, 2], [3, 10]]},
+			{"hands": [[7, 3], [3, 10]]},
+		],
+		"nod": [{"hands": [[4, 10], [3, 10]], "bob": 1}],
+		"shake": [
+			{"hands": [[4, 10], [3, 10]], "lean": -1},
+			{"hands": [[4, 10], [3, 10]], "lean": 1},
+		],
+		"point": [{"hands": [[9, 7], [3, 10]]}],
+		"beckon": [
+			{"hands": [[8, 6], [3, 10]]},
+			{"hands": [[6, 8], [3, 10]]},
+		],
+		"bow": [
+			{"hands": [[5, 10], [4, 10]], "lean": 1, "bob": 1},
+			{"hands": [[6, 10], [5, 10]], "lean": 2, "bob": 1},
+		],
+		"clap": [
+			{"hands": [[8, 7], [6, 7]]},
+			{"hands": [[7, 7], [6, 8]]},
+		],
 		"sit": [{"hands": [[6, 8], [5, 8]], "legs": "sit", "bob": 3}],
 		"row": [
 			{"hands": [[8, 7], [7, 7]], "legs": "sit", "bob": 3},
@@ -291,6 +337,28 @@ const MOVES := {
 			{"hands": [[9, 6], [0, 5]]},
 			{"hands": [[9, 7], [0, 3]], "legs": "right"},
 			{"hands": [[9, 5], [0, 6]]},
+		],
+		"wave": [
+			{"hands": [[9, 2], [1, 10]]},
+			{"hands": [[10, 3], [1, 10]]},
+		],
+		"nod": [{"hands": [[8, 10], [1, 10]], "bob": 1}],
+		"shake": [
+			{"hands": [[8, 10], [1, 10]], "lean": -1},
+			{"hands": [[8, 10], [1, 10]], "lean": 1},
+		],
+		"point": [{"hands": [[11, 7], [1, 10]]}],
+		"beckon": [
+			{"hands": [[10, 6], [1, 10]]},
+			{"hands": [[8, 8], [1, 10]]},
+		],
+		"bow": [
+			{"hands": [[8, 10], [1, 10]], "bob": 1},
+			{"hands": [[7, 10], [2, 10]], "bob": 2},
+		],
+		"clap": [
+			{"hands": [[6, 7], [3, 7]]},
+			{"hands": [[5, 7], [4, 7]]},
 		],
 		"sit": [{"hands": [[8, 9], [1, 9]], "legs": "sit", "bob": 3}],
 		"row": [
@@ -583,7 +651,7 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var move: Dictionary = moves.idle[0]
 	if moves.has(c[0]):
 		move = moves[c[0]][mini(c[1], moves[c[0]].size() - 1)]
-	var p := {"bob": move.get("bob", 0), "lean": 0, "legs": move.get("legs", "stand"), "eyes": "open"}
+	var p := {"bob": move.get("bob", 0), "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
 	if c[0] == "idle" and c[1] == 1:
 		p.eyes = "shut"
 	for i in 2:

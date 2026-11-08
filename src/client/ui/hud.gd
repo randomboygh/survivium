@@ -21,7 +21,6 @@ const TouchButton := preload("res://src/client/input/touch_button.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
-const Protocol := preload("res://src/shared/net/protocol.gd")
 const LevelUp := preload("res://src/client/ui/level_up.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
@@ -103,6 +102,7 @@ func _ready() -> void:
 	_test_button.visible = game.settings.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
 	_chat_button.visible = game.join_url != ""
+	_gesture_button = _icon_button(_top, "gesture", "Жесты (C)", toggle_gestures)
 	game.land.changed.connect(_show_land)
 	game.land.entered.connect(_on_land_entered)
 	game.land.painting_toggled.connect(_on_painting_toggled)
@@ -314,6 +314,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				toggle_stats()
 				game.print_debug()
 				get_viewport().set_input_as_handled()
+			KEY_C:
+				if not bag.visible:
+					toggle_gestures()
+					get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_KP_ENTER:
 				if _chat_button.visible and not bag.visible:
 					chat.open()

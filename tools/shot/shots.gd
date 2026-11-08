@@ -204,6 +204,10 @@ const SHOTS := {
 	# over them; and the window a tap on the sign opens.
 	"signs": {"time": 0.4, "season": 1, "signs": "posts"},
 	"signs-board": {"time": 0.4, "season": 1, "signs": "board"},
+	# Gestures (decision 183): the player waving, its icon over the head; the wheel.
+	"gesture-wave": {"time": 0.4, "season": 1, "signs": "none", "gesture": "wave"},
+	"gesture-clap": {"time": 0.4, "season": 1, "signs": "none", "gesture": "clap"},
+	"gesture-wheel": {"time": 0.4, "season": 1, "signs": "none", "gesture_wheel": true},
 	"signs-window": {"time": 0.4, "season": 1, "signs": "posts", "sign_window": true},
 	"build-openings-dusk": {"time": 0.8, "season": 1, "moon": 0.0, "openings": "wall"},
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},

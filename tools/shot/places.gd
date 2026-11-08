@@ -676,7 +676,7 @@ func fences(w, at: Vector3) -> Vector3:
 ## Signs near `at` on flat ground (decision 183): a board on a brick wall to the north, a
 ## sign written south-west of it and a signpost south-east of that pointing on; the
 ## sign's cell is kept in sign_cell. Returns where the player stands: by the board when
-## `near` is "board", else between the sign and the signpost (their text is read within
+## `near` is "board", on the cleared ground with no signs when "none", else between the sign and the signpost (their text is read within
 ## Placed.SIGN_READ cells).
 func signs(w, at: Vector3, near := "posts") -> Vector3:
 	var spot := Vector3i((flat_near(w, at) / CELL).floor())
@@ -693,6 +693,11 @@ func signs(w, at: Vector3, near := "posts") -> Vector3:
 	for x in range(spot.x - 3, spot.x + 4):
 		for dy in 3:
 			w.set_cell(x, y + dy, spot.z - 7, brick)
+	if near == "none":
+		for dx in range(-8, 9, 8):
+			for dz in [-8, 0]:
+				main.chunks.on_cell_changed(Vector3i(spot.x + dx, y, spot.z + dz))
+		return (Vector3(spot) + Vector3(0.5, 0.0, -2.5)) * CELL
 	p.put("tools:notice_board", Vector3i(spot.x, y, spot.z - 6), null, true, -1.0, null, 0, false,
 		"Правила лагеря:\nне рубить у ручья\nкостёр тушить на ночь\nсундук общий")
 	sign_cell = Vector3i(spot.x - 2, y, spot.z - 1)

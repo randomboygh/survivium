@@ -75,6 +75,29 @@ animations:
   row:
     frames: [42, 43, 44, 45]
     fps: 4.0
+  # Жесты (решение 183, src/shared/game/gestures.gd): помахать, кивнуть «да», покачаться «нет»,
+  # указать, позвать «сюда», поклон, хлопать; «сесть» — кадр sit. Играют по кругу, пока жест идёт.
+  wave:
+    frames: [46, 47]
+    fps: 4.0
+  nod:
+    frames: [0, 48]
+    fps: 3.0
+  shake:
+    frames: [49, 50]
+    fps: 4.0
+  point:
+    frames: [51]
+    fps: 1.0
+  beckon:
+    frames: [52, 53]
+    fps: 3.0
+  bow:
+    frames: [54, 55, 55, 55, 54, 0, 0, 0]
+    fps: 3.0
+  clap:
+    frames: [56, 57]
+    fps: 6.0
 sleep_eyes: "2c2226"
 sleep_lid: "c08a69"
 works:

@@ -37,6 +37,27 @@ func open_sign(e: Dictionary) -> void:
 	add_child(sign_window)
 
 
+## Opens the wheel of gestures, or closes it when open.
+func toggle_gestures() -> void:
+	if gesture_wheel != null:
+		gesture_wheel.close()
+		return
+	gesture_wheel = GestureWheel.new(game)
+	gesture_wheel.chosen.connect(make_gesture)
+	gesture_wheel.closed.connect(func() -> void:
+		gesture_wheel = null
+		_gesture_button.modulate = Color.WHITE)
+	add_child(gesture_wheel)
+	_gesture_button.modulate = UiStyle.ACCENT
+
+
+## The player makes gesture `name` (Gestures.LIST): their figure at once, the others
+## through the server (Protocol.GESTURE).
+func make_gesture(name: String) -> void:
+	game.player.set_gesture(name)
+	game.net.request(Protocol.GESTURE, [name])
+
+
 ## Opens or closes the bag over the running game.
 func toggle_bag() -> void:
 	bag.toggle()
