@@ -15,7 +15,8 @@ const Content := preload("res://src/shared/content/content.gd")
 ## A crop (kind `crop`, grows `field`) is drawn the same way, a frame a stage of its
 ## growth, the last one ripe; it grows only where it was sown on a bed (WorldData.fields).
 ## A sapling (kind `sapling`) is planted from a tree's seed on open ground, drawn a frame a
-## stage the same way, and grown it becomes its `tree` (a species of Trees).
+## stage the same way, and grown it becomes its `tree` (a species of Trees). A frame may be
+## `across` columns wide, drawn as that many cards side by side.
 const KINDS := {"TUFT": "tuft", "TALL": "tall_grass", "FLOWERS": "flowers", "HERBS": "herbs",
 	"EARS": "ears", "REEDS": "reeds", "MOSS": "moss", "MUSHROOMS": "mushrooms", "GLOW": "glow_mushrooms",
 	"CUSTOM": "custom", "CROP": "crop", "SAPLING": "sapling"}
@@ -55,7 +56,7 @@ static func refresh() -> void:
 		if r.kind in [KINDS.CUSTOM, KINDS.CROP, KINDS.SAPLING]:
 			var c: Dictionary = r.duplicate()
 			c.first = frames
-			frames += r.frames
+			frames += columns(r)
 			CUSTOM.append(c)
 	TUFT = of_kind(KINDS.TUFT)
 	TALL = of_kind(KINDS.TALL)
@@ -81,13 +82,19 @@ static func kind_of(id: String) -> String:
 ## How many frames the custom plants have together (the columns after the engine's
 ## own in the plant texture).
 static func custom_frames() -> int:
-	return 0 if CUSTOM.is_empty() else CUSTOM[-1].first + CUSTOM[-1].frames
+	return 0 if CUSTOM.is_empty() else CUSTOM[-1].first + columns(CUSTOM[-1])
+
+
+## How many columns of PixelTextures.PLANT_W px the sprite of custom plant `c` has: its
+## frames, each `across` wide.
+static func columns(c: Dictionary) -> int:
+	return c.frames * c.get("across", 1)
 
 
 ## The custom plant whose frame `frame` (among all custom frames) is, "" past the end.
 static func custom_of(frame: int) -> String:
 	for c in CUSTOM:
-		if frame < c.first + c.frames:
+		if frame < c.first + columns(c):
 			return c.id
 	return ""
 

@@ -191,7 +191,7 @@ static func build_plants() -> ImageTexture:
 			continue
 		var tex: Texture2D = load(path)
 		var pic := tex.get_image() if tex != null else null
-		if pic == null or pic.get_width() != PLANT_W * c.frames or pic.get_height() != PLANT_H:
+		if pic == null or pic.get_width() != PLANT_W * Plants.columns(c) or pic.get_height() != PLANT_H:
 			continue
 		pic.convert(Image.FORMAT_RGBA8)
 		img.blit_rect(pic, Rect2i(0, 0, pic.get_width(), PLANT_H), Vector2i(PLANT_W * (PLANTS + c.first), 0))

@@ -17,6 +17,7 @@ func run() -> void:
 	_test_reap()
 	_test_crops()
 	_test_saplings()
+	_test_water_keeps()
 	_test_save()
 	_test_marks()
 
@@ -267,6 +268,34 @@ func _test_saplings() -> void:
 	actions.grow_fields(days * 2.0, 0.0)
 	actions.grow_fields(0.1, 0.0)
 	_check(actions.crop_on(Vector3i(5, 1, 5)) == sapling and not w.trees.has(Vector2i(5, 5)), "a sapling with no room over it waits")
+
+
+## Watering a bed keeps what grows there: a sown crop and a sapling planted on a bed
+## (whose record keeps its own third field: the young tree's flag, not the wetness).
+func _test_water_keeps() -> void:
+	var setup := _world()
+	var w: WorldData = setup[0]
+	var actions: WorldActions = setup[2]
+	var who: Who = setup[3]
+	who.item = "tools:iron_hoe"
+	for x in range(9, 14):
+		actions.dig_at(who, Vector3i(x, 1, 11), Vector3i.UP)
+	who.inventory.add(GRAIN, 1)
+	who.inventory.add("plants:acorn", 1)
+	var crop := Vector3i(10, 1, 11)
+	var root := Vector3i(11, 1, 11)
+	_check(actions.plant_at(who, GRAIN, crop) and actions.plant_at(who, "plants:acorn", root)
+		and Plants.is_sapling(actions.crop_on(root)), "wheat is sown and an acorn planted on beds")
+	who.inventory.add("tools:watering_can_full", 1)
+	who.item = "tools:watering_can_full"
+	actions.water(who, [crop, root] as Array[Vector3i])
+	actions.grow_fields(0.1, 0.0)
+	actions.grow_fields(0.1, 0.0)
+	_check(actions.crop_on(crop) == WHEAT and w.get_cell(crop.x, crop.y, crop.z) == Mat.BED_WET
+		and not actions.can_water(root) and w.get_cell(root.x, root.y, root.z) == Mat.BED,
+		"watered wheat stays: %s" % [w.field_at(crop)])
+	_check(Plants.is_sapling(actions.crop_on(root)) and w.field_at(root)[2] < 1.0 and not w.trees.has(Vector2i(11, 11)),
+		"a watered sapling stays a sapling: %s" % [w.field_at(root)])
 
 
 func _top_leaf(w: WorldData, x: int, z: int) -> int:

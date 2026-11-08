@@ -349,6 +349,9 @@ const SCHEMAS := {
 		"winter": {"type": "bool", "default": true},
 		"sprite": {"type": "string", "default": ""},
 		"frames": {"type": "int", "min": 1, "default": 1},
+		# How many cards side by side draw one frame (a sapling wider than a crop): the
+		# sprite's frames are each `across` columns of PLANT_W px, left to right.
+		"across": {"type": "int", "min": 1, "max": 4, "default": 1},
 		"grows": {"type": "enum", "values": ["meadow", "shade", "bank", "field"], "default": "meadow"},
 		# A crop (kind crop, sown on a bed from an item with `crop`): the days it grows in
 		# the warm seasons on a wet bed until it is ripe (its last frame), and whether a
