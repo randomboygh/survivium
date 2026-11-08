@@ -43,7 +43,7 @@ const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
 	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.ammo": "use",
 	"items.serves": "serves", "items.rots_to": "rots", "items.empties_to": "empties", "items.fills_to": "fills",
-	"creatures.likes": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives",
+	"creatures.likes": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives", "creatures.wool": "gives", "creatures.tame_food": "use",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
 	"biomes.trees": "grows", "biomes.bushes": "grows",
@@ -71,7 +71,7 @@ const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "ne
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
 	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
-	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "serves": "stood in for by", "spoil": "spoiled from",
+	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "shear": "shorn from", "serves": "stood in for by", "spoil": "spoiled from",
 	"empty": "emptied from", "fill": "filled from"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an

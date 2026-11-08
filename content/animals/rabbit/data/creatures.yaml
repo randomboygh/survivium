@@ -1,7 +1,10 @@
 # Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
 # выводится из массы и рациона общими правилами, а не записано. Картинка вида —
 # sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
-# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
+# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml. Приручение:
+# tame_food — чем кормят с руки (от держащего её не убегает), tame_feeds — сколько раз, wool — что
+# ручной даёт ножом раз в wool_days суток, breed_days — раз во сколько суток пара ручных, оставленных
+# вместе и кормленных за сутки, приносит зайчонка, пока их там меньше herd.
 - id: rabbit
   title: Заяц
   mass: 2
@@ -20,3 +23,9 @@
   alarm: rabbit
   health: 4
   carcass: small_carcass
+  tame_food: [plants:carrot, plants:turnip]
+  tame_feeds: 3
+  wool: rabbit_fluff
+  wool_days: 2
+  breed_days: 4
+  herd: 8

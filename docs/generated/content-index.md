@@ -14,7 +14,7 @@
 ## Моды и бандлы
 
 - `core` Основа
-- `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fish` Рыба, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк
+- `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fish` Рыба, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк, `animals/wool` Пух
 - `biomes` Биомы: `biomes/alpine_meadow` Альпийский луг, `biomes/beach` Берег, `biomes/birch_grove` Берёзовая роща, `biomes/desert` Пустыня, `biomes/floodplain` Пойма, `biomes/forest` Лес, `biomes/forest_steppe` Лесостепь, `biomes/glacier` Ледник, `biomes/ice_waste` Ледяная пустошь, `biomes/jungle` Джунгли, `biomes/mangrove` Мангровые заросли, `biomes/maple_wood` Кленовник, `biomes/meadow` Луг, `biomes/peat_bog` Торфяное болото, `biomes/pine_wood` Бор, `biomes/plateau` Плато, `biomes/red_rocks` Красные скалы, `biomes/rock` Скалы, `biomes/salt_flat` Солончак, `biomes/savanna` Саванна, `biomes/sea` Море, `biomes/steppe` Степь, `biomes/stony_tundra` Каменистая тундра, `biomes/swamp` Болото, `biomes/taiga` Тайга, `biomes/tropical_beach` Тропический берег, `biomes/tropical_sea` Тропическое море, `biomes/tundra` Тундра
 - `materials` Материалы: `materials/bone_glue` Костный клей, `materials/brick` Кирпич, `materials/bronze` Бронза, `materials/charcoal` Уголь, `materials/cloth` Ткань, `materials/copper` Медь, `materials/cord` Верёвка, `materials/cut_stone` Тёсаный камень, `materials/glass` Стекло, `materials/gold` Золото, `materials/iron` Железо, `materials/leather` Кожа, `materials/log_wall` Сруб, `materials/planks` Доски, `materials/platinum` Платина, `materials/silver` Серебро, `materials/steel` Сталь, `materials/tar` Смола, `materials/tin` Олово, `materials/wattle` Плетень
 - `music` Музыка
@@ -23,7 +23,7 @@
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
 - `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hide_clothes` Одежда из шкур, `tools/hoe` Тяпка, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sickle` Серп, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/watering_can` Лейка, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
 
-## Предметы (`items`, 200)
+## Предметы (`items`, 202)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -31,7 +31,7 @@
 | `core:rot` | Гниль | Материалы |  | `core` | 0. Выживание без инструментов | 0 / 23 | предупреждения: 1 |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 5 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
-| `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 6 | ок |
+| `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 7 | ок |
 | `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 1 / 2 | ок |
 | `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 19 | ок |
 | `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 58 | ок |
@@ -42,7 +42,7 @@
 | `plants:currant_bush` | Куст смородины | Посадки |  | `plants/currant` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:grass_seeds` | Семена трав | Посадки |  | `plants/grass` | 0. Выживание без инструментов | 1 / 2 | ок |
 | `plants:carrot_seeds` | Семена моркови | Посадки | Мелкие ребристые семена. Посейте их на грядку весной. | `plants/carrot` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:carrot` | Морковь | Еда | Сладкий оранжевый корнеплод. | `plants/carrot` | 0. Выживание без инструментов | 1 / 1 | ок |
+| `plants:carrot` | Морковь | Еда | Сладкий оранжевый корнеплод. | `plants/carrot` | 0. Выживание без инструментов | 1 / 2 | ок |
 | `plants:mushroom` | Гриб | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 1 / 2 | ок |
 | `plants:glow_mushroom` | Светящийся гриб | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 1 / 1 | ок |
@@ -53,7 +53,7 @@
 | `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1. Примитивные инструменты | 1 / 1 | ок |
 | `plants:turnip_seeds` | Семена репы | Посадки | Мелкие тёмные семена. Посейте их на грядку весной. | `plants/turnip` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:turnip` | Репа | Еда | Круглый сладковатый корнеплод. Лежит долго. | `plants/turnip` | 0. Выживание без инструментов | 1 / 1 | ок |
+| `plants:turnip` | Репа | Еда | Круглый сладковатый корнеплод. Лежит долго. | `plants/turnip` | 0. Выживание без инструментов | 1 / 2 | ок |
 | `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0. Выживание без инструментов | 0 / 22 | ок |
 | `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 45 | ок |
 | `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 3 | ок |
@@ -154,7 +154,9 @@
 | `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 | `tools:leather_bag` | Кожаная сумка | Одежда и сумки | Сшитая из кожи сумка с ремнём через плечо. Надетая за спину, даёт ещё 16 ячеек. | `tools/leather_bag` | 2. Дерево, кости и кожа | 0 / 1 | ок |
 | `tools:leather_sling` | Кожаная праща | Инструменты | Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной. | `tools/leather_sling` | 2. Дерево, кости и кожа | 2 / 1 | ок |
-| `tools:loom` | Ткацкий станок | Станки |  | `tools/loom` | 2. Дерево, кости и кожа | 1 / 4 | ок |
+| `tools:loom` | Ткацкий станок | Станки |  | `tools/loom` | 2. Дерево, кости и кожа | 1 / 5 | ок |
+| `animals:rabbit_fluff` | Заячий пух | Материалы | Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу. | `animals/wool` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `animals:wool_yarn` | Пушистая пряжа | Материалы | Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань. | `animals/wool` | 0. Выживание без инструментов | 0 / 2 | ок |
 | `plants:flax_seeds` | Семена льна | Посадки | Гладкие блестящие семена. Посейте их на грядку весной. | `plants/flax` | 0. Выживание без инструментов | 1 / 2 | ок |
 | `plants:flax_stalks` | Стебли льна | Материалы | Срезанный дикий лён. Из него прядут льняную нить. | `plants/flax` | 0. Выживание без инструментов | 0 / 3 | ок |
 | `plants:linen_thread` | Льняная нить | Материалы | Тонкая прочная нить. На ткацком станке из неё ткут ткань. | `plants/flax` | 0. Выживание без инструментов | 0 / 2 | ок |
@@ -228,7 +230,7 @@
 | `tools:window_2x2` | Окно 2×2 | Станки | Большое окно со стеклом, на две клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 | `tools:window_3x2` | Окно 3×2 | Станки | Окно во всю стену, на три клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 146)
+## Рецепты (`recipes`, 148)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -307,6 +309,8 @@
 | `tools:leather_sling` | Кожаная праща | Инструменты |  | `tools/leather_sling` | 2. Дерево, кости и кожа | 3 / 0 | ок |
 | `tools:loom` | Ткацкий станок | Станки |  | `tools/loom` | 1. Примитивные инструменты | 5 / 0 | ок |
 | `tools:cloth_from_cord` | Грубая ткань | Материалы |  | `tools/loom` | 2. Дерево, кости и кожа | 3 / 0 | ок |
+| `animals:wool_yarn` | Пушистая пряжа | Материалы |  | `animals/wool` | 0. Выживание без инструментов | 2 / 0 | ок |
+| `animals:cloth_from_wool_yarn` | Ткань из пряжи | Материалы |  | `animals/wool` | 2. Дерево, кости и кожа | 3 / 0 | ок |
 | `plants:linen_thread` | Льняная нить | Материалы |  | `plants/flax` | 0. Выживание без инструментов | 2 / 0 | ок |
 | `plants:cloth` | Льняная ткань | Материалы |  | `plants/flax` | 2. Дерево, кости и кожа | 3 / 0 | ок |
 | `tools:table` | Стол | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
@@ -493,7 +497,7 @@
 | `animals:hedgehog` | Ёж |  |  | `animals/hedgehog`; патчи: `biomes/birch_grove` | 4 / 0 | ок |
 | `animals:owl` | Сова |  |  | `animals/owl`; патчи: `biomes/birch_grove`, `biomes/pine_wood` | 5 / 0 | ок |
 | `animals:perch` | Окунь |  |  | `animals/perch` | 1 / 0 | ок |
-| `animals:rabbit` | Заяц |  |  | `animals/rabbit`; патчи: `biomes/birch_grove`, `biomes/steppe` | 7 / 0 | ок |
+| `animals:rabbit` | Заяц |  |  | `animals/rabbit`; патчи: `biomes/birch_grove`, `biomes/steppe` | 10 / 0 | ок |
 | `animals:sparrow` | Воробей |  |  | `animals/sparrow` | 1 / 0 | ок |
 | `animals:squirrel` | Белка |  |  | `animals/squirrel`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
 | `animals:wolf` | Волк |  |  | `animals/wolf`; патчи: `biomes/pine_wood` | 5 / 0 | ок |

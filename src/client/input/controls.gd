@@ -467,6 +467,14 @@ func action_name() -> String:
 			return "Полить"
 		"reap":
 			return "Жать"
+		"feed":
+			return "Покормить"
+		"shear":
+			return "Стричь"
+		"stay":
+			return "Оставить"
+		"follow":
+			return "Позвать"
 	match tool:
 		"axe":
 			return "Рубить"

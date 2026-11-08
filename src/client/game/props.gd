@@ -92,6 +92,8 @@ func place() -> void:
 		game.session.territory.from_dict(meta.territory)
 	if meta.get("plans") is Array:
 		game.session.plans.from_list(meta.plans)
+	if meta.get("tame") is Array:
+		game.session.wildlife.add_tamed(meta.tame)
 	if meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	elif meta.get("props") is Dictionary:

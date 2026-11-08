@@ -152,7 +152,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 18 and Mods.bundles("plants").size() == 41
+		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 41
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 43 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -171,7 +171,7 @@ func _test_mods() -> void:
 		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s" % [ears])
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
-	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 18), Растения" and Mods.summary(["core"]) == "только основа"
+	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 19), Растения" and Mods.summary(["core"]) == "только основа"
 		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 41)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
@@ -309,7 +309,7 @@ func _test_old_worlds() -> void:
 		"a bundle of items, recipes, eras, starts and sounds only adds things to make; one with cells, trees or creatures does not")
 	# Bundles of things to make that came after world.json kept the bundles a world knew
 	# (the fish bundle has its fish swimming since, so it is no longer only things to make).
-	var since := ["animals/game", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
+	var since := ["animals/game", "animals/wool", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
 		"plants/roasted_acorns", "tools/anvil", "tools/bloomery", "tools/bow", "tools/candle", "tools/composite_bow", "tools/drying_rack", "tools/fishing_rod", "tools/knife", "tools/leather_sling", "tools/needle", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch",
 		"tools/wicker_bag", "tools/leather_bag", "tools/canvas_backpack", "tools/fiber_clothes", "tools/hide_clothes", "tools/waterskin", "tools/bedding", "tools/big_chest", "tools/boundary_post", "tools/stairs", "tools/door", "tools/window", "tools/furniture", "tools/fireplace",
 		"tools/hoe", "tools/sickle", "tools/watering_can"]

@@ -57,6 +57,13 @@
   единицы; убегающий держится в `FIRE_WARY` раза дальше): зверь в этом круге бежит от огня, как от угрозы, и не
   выбирает место для прогулки внутри него. Голодная (`BOLD_HUNGER`) стая мясоедов зимой подходит к свету в руке,
   но не к костру. Рыбе (`fire_wariness: 0`) огонь безразличен. `Wildlife.placed` даёт сеанс.
+- Ручные (`ActionsTame`, решение 178): у `Animal` хозяин `owner` (`Player.id`, −1 — дикий), место `stay`
+  (INF — идёт за хозяином), `fed`, `fed_at`, `shorn_at`. Вид с `tame_food` не бежит от человека с этой едой
+  в руке. Ручной не боится людей, бежит только от зверей-угроз и огня, иначе `_keep_by_owner`: держится в
+  `TAME_FOLLOW` от хозяина (`owner_of`) или бродит в `TAME_ROAM` от места; без хозяина в игре остаётся. Его не
+  уводят `_leave`, `_thin`, не считает `_count_near`; на забытой земле он ждёт. `tamed_list` / `add_tamed` —
+  сохранение (поле «tame» мира, только числа для JSON; до `start` ждут в `_kept_tame`), `breed` — детёныш.
+  Клиентам ручной не отличается от дикого (подписи кнопки — только в одиночной игре).
 - Подо льдом: рыба (плавает, не летает и не выходит на берег, `under_ice_swimmer`) в замёрзшей воде глубиной
   от двух клеток плавает под льдом (`under_ice`), появляется там же; утка и лягушка — нет.
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
@@ -76,7 +83,7 @@
 
 **Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `fire_wariness`, `active`, `count`,
 `sprite`, `frames`, `walk`, `hop`, `attack`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
-`likes`, `biomes`, `calls`, `alarm`) в бандлах `content/animals/<зверь>/`; картинка —
+`likes`, `biomes`, `calls`, `alarm`, приручение: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`) в бандлах `content/animals/<зверь>/`; картинка —
 `sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади),
 в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
@@ -92,7 +99,7 @@
 (синтез — таблица в `tools/make_sounds.gd`).
 
 **Тесты.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`, `fishing`,
-`birds`, `shore`, `jostle`, `hunting`, `fire`; стая ждёт тактов мышления, а не порядка случайных чисел).
+`birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`; стая ждёт тактов мышления, а не порядка случайных чисел).
 
 **Подробнее.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — замысел движка поведения
 (формулы помечены как черновик, в коде проще).

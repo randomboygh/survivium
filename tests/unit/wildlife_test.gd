@@ -119,6 +119,7 @@ func _test_wildlife() -> void:
 	_test_looked(w)
 	_test_hunting(w)
 	_test_fire(w)
+	_test_taming(w)
 
 
 ## The animals of the chunks made come none at the person's feet; those on ground
@@ -733,3 +734,96 @@ func _test_fire(w: WorldData) -> void:
 	_check(life._fire_near(wolf, wolves) != null, "but not up to a campfire")
 	var fish := _animal(life, "animals:perch", middle + Vector3(1.0, 0.0, 0.0))
 	_check(life._fire_near(fish, AiRules.SPECIES["animals:perch"]) == null, "a fish does not care about fire")
+
+
+class Owner extends Who:
+	var id := 5
+
+
+## Taming by hand (ActionsTame): a hare does not flee from one holding a carrot, is fed
+## from the hand three times and is then theirs, follows them, stays when told, is shorn
+## with a knife once its wool has grown, has young with another fed tame one staying
+## beside it, is not struck by another, and is kept in a save.
+func _test_taming(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var who := Owner.new()
+	who.position = Vector3(60.0, 6.0, 60.0) * WorldData.CELL
+	who.position.y = life.ground(who.position.x, who.position.z)
+	life.people = [who]
+	var actions := WorldActions.new(w, life.clock, Rules.new())
+	actions.wildlife = life
+	var kind := "animals:rabbit"
+	var spec: Dictionary = AiRules.SPECIES[kind]
+	var at := who.position + Vector3(0.0, 0.0, -0.8)
+	at.y = life.ground(at.x, at.z)
+	var hare := _animal(life, kind, at)
+	hare.health = spec.health
+	who.item = "plants:carrot"
+	who.inventory.add("plants:carrot", 5)
+	var fled := false
+	for i in 10:
+		life.update(0.05)
+		fled = fled or hare.state == "flee"
+	_check(not fled, "a hare does not run from one holding a carrot")
+	hare.pos = at
+	_check(actions.front_kind(who) == "feed", "the action button feeds it")
+	for i in spec.tame_feeds:
+		hare.pos = at
+		actions.act_in_front(who, 100)
+	_check(hare.owner == 5 and who.inventory.count("plants:carrot") == 5 - spec.tame_feeds,
+		"fed %d times from the hand, it is tame: owner %d" % [spec.tame_feeds, hare.owner])
+	who.position += Vector3(4.0, 0.0, 0.0)
+	who.position.y = life.ground(who.position.x, who.position.z)
+	for i in 160:
+		life.update(0.05)
+	_check(hare.pos.distance_to(who.position) < 2.0, "a tame hare follows its owner (%.1f away)" % hare.pos.distance_to(who.position))
+	# Tell it to stay, with an empty hand.
+	who.item = ""
+	hare.pos = who.position + Vector3(0.0, 0.0, -0.8)
+	_check(actions.front_kind(who) == "stay", "an empty hand tells a tame one to stay")
+	actions.act_in_front(who, 100)
+	_check(hare.stay.is_finite(), "it stays")
+	# Shear it once its wool has grown.
+	who.item = "tools:flint_knife"
+	who.inventory.add("tools:flint_knife", 1)
+	hare.shorn_at = life.clock.now() - spec.wool_days - 0.1
+	_check(actions.front_kind(who) == "shear", "a knife shears a tame hare's grown wool")
+	actions.act_in_front(who, 100)
+	_check(who.inventory.count(spec.wool) == 1 and not actions.wool_ready(hare), "a tuft of fluff into the bag")
+	_check(actions.front_kind(who) != "shear", "then it grows again")
+	# Another's tame hare is not struck.
+	var stranger := Who.new()
+	stranger.position = who.position
+	stranger.item = "tools:flint_knife"
+	stranger.facing = who.facing
+	var health := hare.health
+	actions.strike(stranger)
+	_check(hare.health == health and not hare.gone, "another does not strike one's tame hare")
+	# A pair staying together, fed within a day, has a young one.
+	var mate := _animal(life, kind, hare.stay + Vector3(0.5, 0.0, 0.0))
+	mate.owner = 5
+	mate.stay = mate.pos
+	hare.fed_at = life.clock.now()
+	mate.fed_at = life.clock.now()
+	var before := life.animals.size()
+	actions.step_herds(WorldActions.HERD_EVERY)
+	_check(life.animals.size() == before + 1 and life.animals[-1].owner == 5 and life.animals[-1].stay.is_finite(),
+		"a fed pair staying together has a young one, also tame")
+	actions.step_herds(WorldActions.HERD_EVERY)
+	_check(life.animals.size() == before + 1, "not again before its breed_days")
+	# Kept in a save: what tamed_list writes, through JSON, comes back.
+	var saved: Variant = JSON.parse_string(JSON.stringify(life.tamed_list()))
+	var again := Wildlife.new()
+	again.world = w
+	again.clock = Clock.new()
+	again.add_tamed(saved)
+	_check(again.animals.is_empty(), "the tame ones of a save wait for the animals to start")
+	again.start(1)
+	var tame := again.animals.filter(func(a: Wildlife.Animal) -> bool: return a.owner == 5)
+	_check(tame.size() == 3 and tame[0].stay.is_finite(), "the tame ones come back from a save: %d" % tame.size())
+	# The tame ones do not go with the wild when their land is forgotten or the kind thinned.
+	life._thin(kind, 100, hare.pos)
+	_check(not hare.gone, "a tame hare is not thinned out")

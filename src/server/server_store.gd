@@ -162,5 +162,6 @@ func _world_meta(next_id: int) -> Dictionary:
 		"territory": session.territory.to_dict(),
 		"plans": session.plans.to_list(),
 		"fights": session.fights.to_dict(),
+		"tame": session.wildlife.tamed_list(),
 		"next_player": next_id,
 	}

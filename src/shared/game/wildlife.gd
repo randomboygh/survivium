@@ -206,6 +206,14 @@ class Animal:
 	## A fish lured by the float of a fishing line swims there and stays (Fishing sets
 	## and clears it); INF none.
 	var bait := Vector3.INF
+	## Tamed (Taming): the number of its owner (Player.id), -1 for a wild one; where it
+	## was told to stay (INF: it follows its owner); how many times a wild one was fed by
+	## hand, when it last ate from a hand and when it was last shorn (days of the Clock).
+	var owner := -1
+	var stay := Vector3.INF
+	var fed := 0
+	var fed_at := -INF
+	var shorn_at := 0.0
 
 	## Off the ground, out of reach of those that walk.
 	func aloft() -> bool:
@@ -251,11 +259,17 @@ var _next_id := 0
 ## true for a light in a hand], and the seconds until it is looked for again.
 var _fires: Array = []
 var _fire_timer := 0.0
+## Whether start ran, and the tamed animals of a save waiting for it (see add_tamed).
+var _started := false
+var _kept_tame: Array = []
 
 
 ## Gives the chunks made so far their animals; more come as more is made.
 func start(seed_value: int) -> void:
 	rng.seed = seed_value
+	_started = true
+	add_tamed(_kept_tame)
+	_kept_tame = []
 	_settle_new()
 
 
@@ -366,7 +380,7 @@ func _refill() -> void:
 func _count_near(kind: String, around: Vector3) -> int:
 	var n := 0
 	for a in animals:
-		if a.kind == kind and _within(a.pos, around, ROAM):
+		if a.kind == kind and a.owner < 0 and _within(a.pos, around, ROAM):
 			n += 1
 	return n
 
@@ -379,7 +393,7 @@ static func _within(p: Vector3, around: Vector3, reach: float) -> bool:
 ## from the people, Session.DROP): they went with it, and come again with it.
 func _leave() -> void:
 	for a in animals.duplicate():
-		if not a.near and world.chunk_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) == null:
+		if not a.near and a.owner < 0 and world.chunk_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) == null:
 			_remove(a)
 
 
@@ -414,6 +428,9 @@ func update(delta: float) -> void:
 		if a.gone:
 			continue
 		var dt := delta
+		if a.owner >= 0 and not a.near and world.chunk_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) == null:
+			# A tamed one waits where its land was forgotten until it is made again.
+			continue
 		if not a.near:
 			a.away += delta
 			if a.away < a.wait:
@@ -456,7 +473,7 @@ func _thin(kind: String, n: int, around: Vector3) -> void:
 	for a in animals.duplicate():
 		if n <= 0:
 			return
-		if a.kind == kind and not a.near and _within(a.pos, around, ROAM):
+		if a.kind == kind and not a.near and a.owner < 0 and _within(a.pos, around, ROAM):
 			_remove(a)
 			n -= 1
 
@@ -471,11 +488,14 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	var sight: float = spec.sight
 	var threat_pos: Variant = null
 	var threat_d := INF
-	if AiRules.is_threat(a.kind, AiRules.HUMAN):
+	if a.owner < 0 and AiRules.is_threat(a.kind, AiRules.HUMAN):
 		# A person within 0.6 of its sight startles it; once fleeing it stays wary until
-		# they are out of sight, so it does not wander back at the edge of its fear.
+		# they are out of sight, so it does not wander back at the edge of its fear. One
+		# that is tamed by hand does not flee from a person holding its food.
 		var wary := sight if a.state == "flee" else sight * 0.6
 		for who in people:
+			if not spec.tame_food.is_empty() and a.hurt <= 0.0 and who.has_method("held") and who.held() in spec.tame_food:
+				continue
 			var at: Vector3 = who.position
 			var d := a.pos.distance_to(at)
 			if d < wary and d < threat_d:
@@ -549,6 +569,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 				return
 		# As far as the land or the water goes (see _move).
 		a.target = a.pos + away.normalized() * 6.0
+		return
+	if a.owner >= 0:
+		_keep_by_owner(a)
 		return
 	if not AiRules.is_active(a.kind, _daylight):
 		# Flyers sleep in the crowns, near their lead, climbers up a tree near; one
@@ -624,6 +647,110 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			# It does not wander up to a fire: it stays where it is a while instead.
 			a.target = a.pos
 			a.idle = rng.randf_range(LINGER.x, LINGER.y)
+
+
+# --- Tamed -------------------------------------------------------------------------
+
+
+## How near its owner a tamed one following keeps, and how far from where it was told to
+## stay it wanders, in world units.
+const TAME_FOLLOW := 1.2
+const TAME_ROAM := 2.5
+
+
+## A tamed animal safe from threats: it follows its owner (one of the people with its
+## number), or wanders a little round where it was told to stay; with its owner not
+## here it stays where it is.
+func _keep_by_owner(a: Animal) -> void:
+	a.state = "wander"
+	if a.idle > 0.0:
+		return
+	if a.stay.is_finite():
+		if a.pos.distance_to(a.target) < 0.3 or a.target.distance_to(a.stay) > TAME_ROAM:
+			if rng.randf() < 0.4:
+				a.idle = rng.randf_range(LINGER.x, LINGER.y)
+				return
+			a.target = a.stay + Vector3(rng.randf_range(-TAME_ROAM, TAME_ROAM), 0.0, rng.randf_range(-TAME_ROAM, TAME_ROAM))
+		return
+	var owner: Variant = owner_of(a)
+	if owner == null:
+		a.stay = a.pos
+		a.target = a.pos
+		return
+	var at: Vector3 = owner.position
+	if Vector2(at.x - a.pos.x, at.z - a.pos.z).length() > TAME_FOLLOW:
+		var off := Vector2(a.pos.x - at.x, a.pos.z - at.z).normalized() * TAME_FOLLOW * 0.7
+		a.target = Vector3(at.x + off.x, a.pos.y, at.z + off.y)
+	else:
+		a.target = a.pos
+
+
+## The one of the people who owns tamed animal `a` (their `id`), null when they are not
+## here.
+func owner_of(a: Animal) -> Variant:
+	for who in people:
+		if int(who.get("id") if "id" in who else 0) == a.owner:
+			return who
+	return null
+
+
+## The tamed animals as plain data for a save (JSON: numbers only): {kind, at: [x, y, z],
+## tint, owner, stay: [x, y, z] or null (it follows), fed: when it last ate from a hand,
+## shorn: when it was last shorn}.
+func tamed_list() -> Array:
+	var out := []
+	for a in animals:
+		if a.owner >= 0:
+			out.append({"kind": a.kind, "at": [a.pos.x, a.pos.y, a.pos.z], "tint": a.tint, "owner": a.owner,
+				"stay": [a.stay.x, a.stay.y, a.stay.z] if a.stay.is_finite() else null,
+				"fed": maxf(a.fed_at, -1.0), "shorn": a.shorn_at})
+	return out
+
+
+## Brings back the tamed animals of a save (see tamed_list) once the animals start; ones
+## of a kind no longer loaded are left out.
+func add_tamed(list: Array) -> void:
+	if not _started:
+		_kept_tame.append_array(list)
+		return
+	for t in list:
+		if not t is Dictionary or not t.get("kind") is String or not AiRules.SPECIES.has(t.kind):
+			continue
+		var at: Variant = _vector(t.get("at"))
+		if at == null:
+			continue
+		var a := _add(t.kind, at)
+		var tints: Array = AiRules.SPECIES[t.kind].tints
+		a.tint = clampi(int(t.get("tint", 0)), 0, maxi(0, tints.size() - 1))
+		a.owner = maxi(0, int(t.get("owner", 0)))
+		var stay: Variant = _vector(t.get("stay"))
+		a.stay = stay if stay != null else Vector3.INF
+		a.fed_at = float(t.get("fed", -1.0))
+		a.shorn_at = float(t.get("shorn", 0.0))
+
+
+## A Vector3 of a list of three numbers read from a save, null for anything else.
+static func _vector(v: Variant) -> Variant:
+	if not v is Array or v.size() != 3:
+		return null
+	for n in v:
+		if not (n is float or n is int) or not is_finite(float(n)):
+			return null
+	return Vector3(v[0], v[1], v[2])
+
+
+## A young one of tamed animal `a` beside it, its owner's and staying where `a` stays.
+func breed(a: Animal) -> Animal:
+	var pos := a.pos + Vector3(rng.randf_range(-0.5, 0.5), 0.0, rng.randf_range(-0.5, 0.5))
+	pos.y = _floor(AiRules.SPECIES[a.kind], pos.x, pos.z)
+	if pos.y <= 0.0:
+		pos = a.pos
+	var young := _add(a.kind, pos)
+	young.owner = a.owner
+	young.stay = a.stay
+	young.tint = a.tint
+	young.shorn_at = clock.now() if clock != null else 0.0
+	return young
 
 
 # --- Fire ---------------------------------------------------------------------------
