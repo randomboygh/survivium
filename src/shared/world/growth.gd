@@ -331,6 +331,17 @@ static func bush_fits(w, x: int, y: int, z: int) -> bool:
 		and w.slope_mask(x, y - 1, z) == w.FULL
 
 
+## True when the ground round cell x, y, z is nowhere lower than under it: the
+## generator grows bushes only there, since one on a lone bump or at the brink of a
+## drop stands over the open air beside it and looks hung there as the camera turns.
+static func bush_level(w, x: int, y: int, z: int) -> bool:
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			if (dx != 0 or dz != 0) and w.surface_y(x + dx, z + dz) < y:
+				return false
+	return true
+
+
 ## Grows a bush of `type` (a Bushes index) in cell x, y, z (the first cell above the ground).
 static func place_bush(w, x: int, y: int, z: int, type: int) -> void:
 	w.add_bush(Vector3i(x, y, z), type)

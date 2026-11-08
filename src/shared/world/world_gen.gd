@@ -598,7 +598,7 @@ func _reshape_edges(key: Vector2i) -> void:
 
 
 ## Bushes of the chunk by biome: a hash of each cell against the biome's sparsity, on
-## level grass in the open; which bush, the biome says by its shares (Biomes.bush).
+## level grass in the open with no drop beside (Growth.bush_level); which bush, the biome says by its shares (Biomes.bush).
 func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 	var biome: PackedByteArray = lay.biome
 	var x0: int = lay.x0
@@ -614,7 +614,7 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 			if _hash(x, z, 4) % sparsity != 0:
 				continue
 			var y: int = world.surface_y(x, z)
-			if not Growth.bush_fits(world, x, y, z):
+			if not Growth.bush_fits(world, x, y, z) or not Growth.bush_level(world, x, y, z):
 				continue
 			var type := Biomes.bush(biome[j], _chance(x, z, 5))
 			if type >= 0:

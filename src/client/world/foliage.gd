@@ -846,16 +846,18 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 		out.drifts = Drifts.build(w, job.x0, job.z0, job.x1 - job.x0)
 		return
 	var cells: Array[Vector3i] = w.bushes_in(job.x0, job.z0)
-	out.bushes = bushes(cells, w.bushes, w.bush_picked)
+	out.bushes = bushes(cells, w.bushes, w.bush_picked, w)
 	var s := BUSH_DISC / SHADOW_DISC
 	for cell in cells:
-		# The disc lies as high as the middle of the bush, so its shadow starts at its
-		# foot and the bush stands on the ground instead of hanging over its shadow.
+		# The disc is as high as the middle of the bush and faces the light (see
+		# leaf_shadow.gdshader), so its shadow starts at its foot at any height of the sun
+		# and the bush stands on the ground instead of hanging over its shadow.
 		var type: int = w.bushes.get(cell, 0)
 		var rise: float = Bushes.TYPES[type].rise if type < Bushes.TYPES.size() else 0.5
-		var p := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, rise, 0.0)
+		var p := bush_foot(w, cell) + Vector3(0.0, rise, 0.0)
 		job.shadows.append_array([s, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, s, p.z])
-		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 0.0, 0.0, 0.0])
+		# Its second number marks a bush's disc (leaf_shadow.gdshader turns it to the light).
+		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 1.0, 0.0, 0.0])
 		job.ns += 1
 	out.grass = [job.ng, job.grass]
 	out.clumps = [job.nc, job.clumps]
@@ -865,8 +867,9 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 ## Leaf clusters of berry bushes standing on the given cells: [count, buffer] like
 ## crowns, lit as one low dome per bush. `types` notes the type of each by its cell
 ## (see Bushes); a bush in `picked` shows no berries. Bushes go bare in winter like
-## some trees.
-static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}) -> Array:
+## some trees. With the world `w` each stands on the ground under its middle (see
+## bush_foot), else on the floor of its cell.
+static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}, w = null) -> Array:
 	var buf := PackedFloat32Array()
 	var rng := RandomNumberGenerator.new()
 	var count := 0
@@ -879,6 +882,7 @@ static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}) -> A
 		var cards: int = b.cards
 		var berries: float = 0.0 if picked.has(cell) else b.berry_cards
 		rng.seed = hash(cell)
+		var foot := bush_foot(w, cell) if w != null else (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL
 		for k in cards:
 			# Clusters around the middle, the first one on top, the others in a ring
 			# and up its height.
@@ -886,7 +890,7 @@ static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}) -> A
 			var o := Vector3(cos(a) * spread.x, rng.randf_range(-0.3, 1.0) * spread.y, sin(a) * spread.z)
 			if k == 0:
 				o = Vector3(0.0, spread.y + 0.12, 0.0)
-			put(buf, PixelView.snap((Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL + Vector3(0.0, b.rise, 0.0) + o))
+			put(buf, PixelView.snap(foot + Vector3(0.0, b.rise, 0.0) + o))
 			var tint: Color = b.tint
 			buf.append_array([tint.r, tint.g, tint.b, bush_kind(type)])
 			var n := (o + Vector3(0.0, 0.25, 0.0)).normalized()
@@ -899,8 +903,17 @@ static func bushes(cells: Array[Vector3i], types: Dictionary, picked := {}) -> A
 	return [count, buf]
 
 
-## What a bush of `type` does over the year, in the alpha of its colour: below 0.5 for
-## every bush, which also names the type for its berries (see leaves.gdshader).
+## Where the bush in `cell` stands, in world units: the middle of its cell on the
+## ground there. Ground dug away beside it leaves a slope under it (or a cut corner),
+## lower than the floor of its cell: the bush stands down on it, not over the air.
+static func bush_foot(w, cell: Vector3i) -> Vector3:
+	var h: float = w.ground_height(cell.x + 0.5, cell.z + 0.5)
+	var y := h if h >= cell.y - 1 and h < cell.y else float(cell.y)
+	return Vector3(cell.x + 0.5, y, cell.z + 0.5) * CELL
+
+
+## What a bush of `type` does over the year, in the alpha of its colour, which also
+## names the type for its berries (see leaves.gdshader).
 static func bush_kind(type: int) -> float:
 	return 0.1 * (type + 1)
 

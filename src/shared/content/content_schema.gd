@@ -163,7 +163,8 @@ const SCHEMAS := {
 		"sprite": {"type": "string", "default": ""},
 		"frames": {"type": "int", "min": 1, "default": 1},
 		# Of the frames after the first, how many are its walk, swim or wing beat (-1: all);
-		# the last `hop` ones a flyer's hop on the ground (crouched, in the air); the rest
+		# the last `hop` ones a flyer's hop on the ground (crouched, in the air; a flyer with
+		# none, a butterfly, never goes about on the ground: Wildlife.sits_still); the rest
 		# are idle ones played now and then as it stands; the last `attack` ones (after the
 		# hop) its attack, kept out of the idles until the game has an attack to show them
 		# by. Rows of the picture: 1 the side alone, 3 the side, the front (coming at the
