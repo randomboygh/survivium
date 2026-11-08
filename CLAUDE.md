@@ -188,7 +188,7 @@ Each in one line; the system's context doc has the detail.
 - Material numbers follow the load order: a world's bundle set must not change; old saves go through
   `Mat.remap`.
 - Audio buses live in `default_bus_layout.tres` (a bus added later is silent on the web);
-  `tools/web_patch.py` patches the web audio loop: re-check it on an engine upgrade.
+  `tools/web_patch.py` patches the web audio loop and the garbage the engine makes each frame (time, names): re-check it on an engine upgrade.
 - A JS snippet run from GDScript must be strict and must not touch `arguments` in a wrapper with named
   params: that makes an object per call.
 - Web touch also arrives as mouse motion: `controls.input` treats it as a mouse only with no finger

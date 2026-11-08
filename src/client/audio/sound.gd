@@ -39,6 +39,8 @@ const MIN_GAP := 0.05
 ## wide), and up to how far it is as loud as it is.
 const HEAR_RANGE := 22.0
 const FULL_RANGE := 3.0
+## The least change of a loop's volume written to its player while it fades, in dB.
+const VOLUME_STEP_DB := 0.3
 ## How fast a loop goes to the level asked for: the share of the way gone in a second.
 const FADE_RATE := 1.5
 ## A level this low is silent: the loop is stopped.
@@ -429,7 +431,11 @@ func _fade(l: Dictionary, k: float) -> void:
 		if p.playing:
 			p.stop()
 		return
-	p.volume_db = linear_to_db(l.level * l.gain)
+	# Written only when it changes audibly: in the browser each write sends the voice's
+	# volumes to the page, a string and arrays for its garbage collector.
+	var db := linear_to_db(l.level * l.gain)
+	if absf(p.volume_db - db) > VOLUME_STEP_DB or l.level == want:
+		p.volume_db = db
 	if not p.playing and not mute:
 		# A loop starts somewhere in the middle, so two of the same do not beat together.
 		p.play(randf() * maxf(p.stream.get_length() - 0.1, 0.0))
