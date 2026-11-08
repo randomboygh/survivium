@@ -168,9 +168,15 @@ func _run() -> void:
 	_check(not far_before and far_built.call(), "the chunks farther round are built while the game is paused, and stay")
 	_check(paused_worst / 1000.0 < streamer.LOAD_MAX_US / 1000.0 + chunk_ms / 4.0, "building while paused keeps to its budget")
 
-	# Standing still on the finished map. The chunk it is judged by is measured again
+	# Standing still on the finished map. The chunks around the player built before it
+	# came are built again to keep their jobs (ChunkStreamer.keep_queue) first: part of
+	# finishing the map, not of an idle frame. The chunk it is judged by is measured again
 	# just before: a shared runner's speed drifts over the minutes of the test, and the
 	# idle frame and its unit must be taken on the same machine.
+	var kept_from := Time.get_ticks_msec()
+	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_from < 20000:
+		await process_frame
+	_check(streamer.keep_queue.is_empty() and not streamer.job_keep, "the chunks around the player keep their jobs once the map is built")
 	unit[IDLE] = _chunk_cost(home)
 	await _scenario(IDLE, 120, func(_i: int) -> bool: return false)
 
@@ -481,6 +487,9 @@ func _run() -> void:
 	_check(real_fires.size() == 1 and real_fires[0].light.shadow_caster_mask == PixelView.LAYER_PLAYER
 		and main.fire_shadows.enabled and not main.player.torch.shadow_enabled,
 		"mixed fire shadows: the fire's real shadow is the player's, the rest drawn")
+	var kept_at := Time.get_ticks_msec()
+	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_at < 20000:
+		await process_frame
 	unit[NIGHT] = _chunk_cost(spawn_chunk)
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
 	main.settings.values.fire_shadows = fire_setting
