@@ -45,7 +45,7 @@ var people := {}
 func take_people(list: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for e in list:
-		if not e is Array or not e.size() in [13, 14, 15, 16, 17] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
+		if not e is Array or not e.size() in [13, 14, 15, 16, 17, 18] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
 				or not e[4] is Array or e[4].size() != 2:
 			continue
 		var id: int = e[0]
@@ -108,6 +108,8 @@ func _make(at: Vector3) -> Dictionary:
 	add_child(f)
 	# The silhouette behind walls, the stencil and the torch are the player's own.
 	f.xray.visible = false
+	# The icon of a gesture over the name.
+	f.gesture_icon_high = NAME_OVER + float(NAME_SIZE + 4) / PixelView.PIXELS_PER_UNIT
 	f.sprite.layers = 1
 	# Its light stays dark (Sky lights only the player's): hidden, the renderer skips it.
 	f.torch.visible = false
@@ -177,6 +179,8 @@ func _process(delta: float) -> void:
 		# The vessel they sit in, afloat.
 		f.riding = str(e[16]) if e.size() > 16 and e[16] is String else ""
 		f.rowing = f.riding != "" and game.boats.rower_at(at)
+		# The gesture they make, its icon over them.
+		f.set_gesture(str(e[17]) if e.size() > 17 and e[17] is String else "")
 		if e[11] != one.work_n:
 			one.work_n = e[11]
 			if str(e[9]) != "":

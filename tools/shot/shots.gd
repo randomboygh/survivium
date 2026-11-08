@@ -204,6 +204,10 @@ const SHOTS := {
 	# over them; and the window a tap on the sign opens.
 	"signs": {"time": 0.4, "season": 1, "signs": "posts"},
 	"signs-board": {"time": 0.4, "season": 1, "signs": "board"},
+	# Gestures (decision 183): the player waving, its icon over the head; the wheel.
+	"gesture-wave": {"time": 0.4, "season": 1, "signs": "none", "gesture": "wave"},
+	"gesture-clap": {"time": 0.4, "season": 1, "signs": "none", "gesture": "clap"},
+	"gesture-wheel": {"time": 0.4, "season": 1, "signs": "none", "gesture_wheel": true, "settings": {"solo_social": true}},
 	"signs-window": {"time": 0.4, "season": 1, "signs": "posts", "sign_window": true},
 	"build-openings-dusk": {"time": 0.8, "season": 1, "moon": 0.0, "openings": "wall"},
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
@@ -655,6 +659,7 @@ const SHOTS := {
 	# The interface section of the settings, and the corner of the HUD by its settings:
 	# the minimap small or large, the level and camera buttons hidden.
 	"ui-settings-interface": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "interface"},
+	"ui-settings-interface-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings", "section": "interface"},
 	"ui-minimap-small": {"time": 0.45, "season": 1, "touch": true, "settings": {"minimap_size": 0}},
 	"ui-minimap-large": {"time": 0.45, "season": 1, "touch": true, "settings": {"minimap_size": 2}},
 	"ui-corner-hidden": {"time": 0.45, "season": 1, "touch": true, "settings": {"level_buttons": false, "camera_buttons": false}},

@@ -12,6 +12,7 @@ const Server := preload("res://src/server/server.gd")
 const Config := preload("res://src/server/config.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const Requests := preload("res://src/server/requests.gd")
+const Gestures := preload("res://src/shared/game/gestures.gd")
 
 
 func run() -> void:
@@ -142,6 +143,16 @@ func _test_requests() -> void:
 	_check(req._rule(Protocol.SIGN_WRITE, [far_sign.cell, "далеко"]) == false and req._rule(Protocol.SIGN_TURN, [far_sign.cell]) == false,
 		"a sign out of reach is neither written nor turned")
 	_check(req.PACED.has(Protocol.SIGN_WRITE) and req.PACED.has(Protocol.SIGN_TURN), "writing and turning take the hands' time")
+	_check(req._rule(Protocol.GESTURE, ["dance_forever"]) == false and a.gesture == "" and req._rule(Protocol.GESTURE, [3]) == null,
+		"no gesture of a name that is none, or of no name")
+	var now := Time.get_ticks_msec() / 1000.0
+	_check(req._rule(Protocol.GESTURE, ["wave"]) == true and Gestures.now_of(a, now) == "wave", "a wave is made and lasts")
+	_check(Gestures.now_of(a, now + 10.0) == "", "and is over after its time")
+	req._rule(Protocol.GESTURE, ["sit"])
+	_check(Gestures.now_of(a, now + 1000.0) == "sit", "one sits until they move")
+	a.is_moving = true
+	_check(Gestures.now_of(a, now) == "", "moving ends a gesture")
+	a.is_moving = false
 
 
 ## A bag counted from its end is the same bag, not twice the things.

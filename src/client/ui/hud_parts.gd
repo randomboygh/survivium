@@ -19,6 +19,8 @@ const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const SignWindow := preload("res://src/client/ui/sign_window.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
+const GestureWheel := preload("res://src/client/ui/gesture_wheel.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
 const BuildBar := preload("res://src/client/ui/build_bar.gd")
 const FarmBar := preload("res://src/client/ui/farm_bar.gd")
@@ -78,6 +80,9 @@ var bag: InventoryWindow
 var chat: ChatBox
 ## The window of a sign tapped (SignWindow), null while none is open.
 var sign_window: Control = null
+## The wheel of gestures (GestureWheel), null while closed, and its button.
+var gesture_wheel: Control = null
+var _gesture_button: Button
 ## The card of another player tapped, and of an invitation to a team.
 var person: PersonCard
 var _chat_button: Button

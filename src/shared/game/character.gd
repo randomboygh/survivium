@@ -184,6 +184,9 @@ var bite := false
 ## The vessel the character sits in afloat (Vessels): its item (one with `vessel`) and
 ## id ("" and 0 on foot), and the seat (0 rows it, 1 is carried). Kept in the save.
 var riding := ""
+## The gesture being made (Gestures.LIST name, "" none) and until when (seconds, Gestures.make).
+var gesture := ""
+var gesture_until := 0.0
 var vessel := 0
 var seat := 0
 ## The current of the river where the body is (Currents), in cells a second: set on

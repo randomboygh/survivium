@@ -87,6 +87,8 @@ const PROP_OPEN := "prop_open"
 const SIGN_WRITE := "sign_write"
 ## Turns a sign a quarter: [cell] (Placed.turn_sign).
 const SIGN_TURN := "sign_turn"
+## Makes a gesture: [name] (Gestures.LIST; "" stops the one going, Gestures.make).
+const GESTURE := "gesture"
 ## Draws a shape of the blueprint with the block held, or takes the ghost off the box
 ## round it: [kind, from, to, height, thickness, erase, form] (Plans.draw; the form of
 ## the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward).
@@ -257,7 +259,7 @@ const STEP := "step"
 ## over a socket): [[id, name, position, facing step, hands, active hand, moving,
 ## swimming, on the ground, work kind, work length, work count, work at, what is worn
 ## (Inventory.gear), in the player's team, where the float of their fishing line lies (INF
-## none), the vessel they sit in ("" none)], …].
+## none), the vessel they sit in ("" none), the gesture they make ("" none, Gestures)], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"

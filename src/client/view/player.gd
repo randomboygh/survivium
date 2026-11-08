@@ -15,6 +15,7 @@ const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const FishingLine := preload("res://src/client/view/fishing_line.gd")
 const Boats := preload("res://src/client/view/boats.gd")
+const Gestures := preload("res://src/shared/game/gestures.gd")
 
 const CELL := WorldData.CELL
 ## The body's height in cells (see Body).
@@ -104,6 +105,14 @@ const SNORE_SHAPES := [
 const SNORE_INK := Color(0.72, 0.84, 1.0)
 const SNORE_EDGE := Color(0.13, 0.14, 0.24)
 static var _snore_textures: Array[Texture2D] = []
+## The gesture the figure makes (Gestures.LIST name, "" none; set_gesture): it plays its
+## animation standing still, its icon over the head for Gestures.ICON_TIME seconds.
+var gesture := ""
+var _gesture_from := 0.0
+var gesture_icon: Sprite3D
+## How high over the head the icon of a gesture hangs, world units: just over it, over
+## the name of another player (Others).
+var gesture_icon_high := 0.3
 ## The float of the figure's fishing line on the water (Character.line; INF none):
 ## while it is out, the figure stands with the rod held out towards it (the strike of
 ## its `slash`, ROD_OUT) and the line is drawn (FishingLine); `line_bite` while a fish
@@ -169,6 +178,9 @@ func _ready() -> void:
 	add_child(torch)
 	fishing_line = FishingLine.new()
 	add_child(fishing_line)
+	gesture_icon = snore_letter()
+	gesture_icon.visible = false
+	add_child(gesture_icon)
 	for i in SNORE_LETTERS:
 		var z := snore_letter()
 		z.visible = false
@@ -234,6 +246,8 @@ func work(kind: String, seconds: float, at := Vector3.INF) -> void:
 			kind = "reach"
 	if work_kind != "" and _work_time < work_length * 0.5:
 		return
+	# Working ends a gesture.
+	gesture = ""
 	work_kind = kind
 	work_length = maxf(seconds, MIN_WORK)
 	_work_time = 0.0
@@ -267,6 +281,17 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 			anim_time = minf(_work_time / work_length, 0.999) * frames.size() / sheet.animations[work_kind].fps
 			return
 		work_kind = ""
+	if gesture != "":
+		if dir.length() > 0.1 or body.swimming or riding != "":
+			gesture = ""
+		else:
+			var g := Gestures.of(gesture)
+			if not g.is_empty() and sheet.animations.has(g.anim):
+				if anim != g.anim:
+					anim = g.anim
+					anim_time = 0.0
+				anim_time += delta
+				return
 	if line_at.is_finite() and dir.length() <= 0.1 and not body.swimming and sheet.animations.has("slash"):
 		# The rod held out over the water, towards the float.
 		var to := Vector2(line_at.x - position.x, line_at.z - position.z)
@@ -358,7 +383,29 @@ func place_sprite() -> void:
 		torch_side = clampf(side / flames_at.size(), -HAND_SIDE, HAND_SIDE)
 	torch.global_position = PixelView.shear(position + torch_offset())
 	_snore(drawn_at)
+	_show_gesture(drawn_at)
 	_show_line()
+
+
+## Starts gesture `name` (Gestures.LIST, "" stops it); the same one going goes on.
+func set_gesture(name: String) -> void:
+	if name == gesture:
+		return
+	gesture = name
+	_gesture_from = Time.get_ticks_msec() / 1000.0
+	anim_time = 0.0
+
+
+## The icon of the gesture going over the head of the body drawn at `at`, its first
+## Gestures.ICON_TIME seconds, fading out at the end.
+func _show_gesture(at: Vector3) -> void:
+	var t := Time.get_ticks_msec() / 1000.0 - _gesture_from
+	gesture_icon.visible = gesture != "" and t < Gestures.ICON_TIME
+	if not gesture_icon.visible:
+		return
+	gesture_icon.texture = UiStyle.icon("g_" + gesture)
+	gesture_icon.modulate.a = clampf((Gestures.ICON_TIME - t) / 0.4, 0.0, 1.0)
+	gesture_icon.position = PixelView.shear(at + Vector3(0.0, HEIGHT * CELL + gesture_icon_high, 0.0))
 
 
 ## Where the light round the player is from their feet (unsheared): ahead towards the

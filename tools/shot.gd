@@ -434,7 +434,7 @@ func _run() -> void:
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",
-				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth"]:
+				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame
@@ -892,6 +892,14 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 			main.farm.show_stroke({"plan": "farm", "first": feet + Vector3i(-3, 0, 3), "last": feet + Vector3i(-1, 0, 6)})
+		if shot.has("gesture"):
+			main.hud.make_gesture(shot.gesture)
+			for i in 6:
+				await process_frame
+		if shot.get("gesture_wheel", false):
+			main.hud.toggle_gestures()
+			for i in 3:
+				await process_frame
 		if shot.get("sign_window", false):
 			for i in 3:
 				await process_frame
@@ -1099,6 +1107,9 @@ func _run() -> void:
 			main.hud.toggle_bag()
 		if main.hud.sign_window != null:
 			main.hud.sign_window.close()
+		if main.hud.gesture_wheel != null:
+			main.hud.gesture_wheel.close()
+		main.player.set_gesture("")
 		if shot.get("free", false):
 			main.settings.set_free_items(false)
 		if shot.get("craft", false):

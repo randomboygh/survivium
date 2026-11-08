@@ -24,6 +24,7 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const Gestures := preload("res://src/shared/game/gestures.gd")
 
 ## The longest text a sign is sent to be written (Placed.sign_text cuts it to the sign's).
 const SIGN_MAX := 600
@@ -199,6 +200,9 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_STRING]) and args[1].length() <= SIGN_MAX:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.write(who, e, args[1])
+		Protocol.GESTURE:
+			if _fit(args, [TYPE_STRING]):
+				return Gestures.make(who, args[0], _now())
 		Protocol.SIGN_TURN:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])

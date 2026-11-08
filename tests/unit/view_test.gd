@@ -116,7 +116,7 @@ func _test_sprite_sheet() -> void:
 	var cols := s.columns
 	var fw := s.frame_size.x
 	var fh := s.frame_size.y
-	_check(cols == 46 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four, asleep, sitting, rowing; 32 by 32 frames")
+	_check(cols == 58 and fw == 32 and fh == 32, "player sheet: standing, walking, jumping, swimming, seven works of four, asleep, sitting, rowing, twelve of gestures; 32 by 32 frames")
 	_check(s.texture.get_width() == cols * fw and s.texture.get_height() == 8 * fh, "player sheet has eight directions")
 	var img := s.texture.get_image()
 	var drawn := 0

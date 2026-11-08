@@ -23,6 +23,7 @@ const Requests := preload("res://src/server/requests.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Vessels := preload("res://src/shared/game/vessels.gd")
+const Gestures := preload("res://src/shared/game/gestures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -368,6 +369,7 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 	var home := WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
 	var here := {}
 	var changed := []
+	var now := Time.get_ticks_msec() / 1000.0
 	for p in session.players:
 		if p == who or p.get("player_name") == null or p.is_dead():
 			continue
@@ -377,7 +379,7 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 			continue
 		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
 			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate(),
-			session.teams.together(who.id, p.id), p.line, p.riding]
+			session.teams.together(who.id, p.id), p.line, p.riding, Gestures.now_of(p, now)]
 		here[p.id] = true
 		if _people.get(p.id) != e:
 			_people[p.id] = e

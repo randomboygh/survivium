@@ -526,6 +526,9 @@ func _section_rows(key: String) -> Array:
 				["Кнопки камеры", ["выкл", "вкл"],
 					func() -> int: return int(s.values.camera_buttons),
 					func(i: int) -> void: s.set_value("camera_buttons", i == 1)],
+				["Чат и жесты", ["в сети", "всегда"],
+					func() -> int: return int(s.values.solo_social),
+					func(i: int) -> void: s.set_value("solo_social", i == 1)],
 			])
 			if s.can_fullscreen():
 				rows.append(["Полный экран", ["выкл", "вкл"],

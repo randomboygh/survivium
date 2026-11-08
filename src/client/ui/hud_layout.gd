@@ -452,4 +452,26 @@ func show_keys(on: bool) -> void:
 	_keys.visible = on and not touch and not bag.visible
 
 
+## True when the chat and the gestures show: on a server always, in single player when
+## the setting «Чат и жесты» says so (`solo`).
+func social(solo: bool) -> bool:
+	return game.join_url != "" or solo
+
+
+## Shows or hides the chat and gesture buttons as the setting `solo` asks; hidden, an
+## open chat or wheel closes.
+func show_social(solo: bool) -> void:
+	var on := social(solo)
+	if _chat_button.visible == on:
+		return
+	_chat_button.visible = on
+	_gesture_button.visible = on
+	if not on:
+		if chat != null:
+			chat.close()
+		if gesture_wheel != null:
+			gesture_wheel.close()
+	_place()
+
+
 # --- Statistics and menu ---------------------------------------------------------
