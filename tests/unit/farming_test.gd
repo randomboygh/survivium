@@ -413,15 +413,17 @@ class AllClaimed extends RefCounted:
 		return {"id": 1}
 
 
-## Nature on its own once a year (ActionsNature): bare natural ground beside grass grows
-## over, a bush and a grown tree spread their kind near them (a wild seed of a species
-## with no sapling of its own sprouts as one alike and grows into its own), nothing on
-## claimed land; a chunk works a spring once, and keeps the count with it in a save.
+## Nature on its own over the warm days (ActionsNature): bare natural ground beside grass
+## grows over, a bush and a grown tree spread their kind near them (a wild seed of a
+## species with no sapling of its own sprouts as one alike and grows into its own), on
+## claimed land too; a chunk works each warm day once, catches up the days it missed,
+## and keeps the count with it in a save.
 func _test_nature() -> void:
 	var setup := _world()
 	var w: WorldData = setup[0]
 	var clock: Clock = setup[1]
 	var actions: WorldActions = setup[2]
+	actions.territory = AllClaimed.new()
 	var key := Vector2i(0, 0)
 	var bare := Vector3i(6, 1, 6)
 	w.set_cell(bare.x, bare.y, bare.z, Mat.DIRT)
@@ -435,42 +437,53 @@ func _test_nature() -> void:
 	Growth.place(w, 9, 2, 3, birch, rng, 0.6)
 	_check(actions.sapling_of("plants:oak") == "plants:oak_sapling" and actions.sapling_of("plants:birch") != ""
 		and actions.sapling_of("plants:spruce") == "plants:spruce_sapling", "a tree with no sapling of its own sprouts as one alike")
-	var claimed := WorldActions.new(w, clock, Rules.new())
-	claimed.territory = AllClaimed.new()
-	for row in WorldData.CHUNK:
-		claimed.regrow_row(key, row)
-	_check(w.get_cell(bare.x, bare.y, bare.z) == Mat.DIRT, "nothing grows back on claimed land")
+	_check(is_equal_approx(WorldActions.chance_over(0.6, 1.0), 0.6) and WorldActions.chance_over(0.6, 1.0 / 42.0) < 0.03
+		and is_equal_approx(1.0 - pow(1.0 - WorldActions.chance_over(0.6, 0.5), 2.0), 0.6), "a year's chance is shared out over its days")
 	var bushes := w.bushes.size()
 	var wild := []
-	for year in 12:
-		clock.springs += 1
+	# Thirty years of warm days, a day at a time.
+	for d in int(WorldActions.WARM_DAYS) * 30:
+		clock.warm_days += 1
 		for row in WorldData.CHUNK:
-			actions.regrow_row(key, row)
+			actions.regrow_row(key, row, 1.0 / WorldActions.WARM_DAYS)
 	for c: Vector3i in w.fields.get(key, {}):
 		wild.append(w.fields[key][c])
-	_check(w.get_cell(bare.x, bare.y, bare.z) == Mat.GRASS, "bare natural ground beside grass grows over")
+	_check(w.get_cell(bare.x, bare.y, bare.z) == Mat.GRASS, "bare natural ground beside grass grows over, on claimed land too")
 	_check(w.get_cell(placed_dirt.x, placed_dirt.y, placed_dirt.z) == Mat.DIRT, "dirt the player laid stays")
 	_check(w.bushes.size() > bushes, "a bush puts new ones of its kind beside it (%d to %d)" % [bushes, w.bushes.size()])
 	_check(not wild.is_empty() and wild[0].size() == 4 and wild[0][3] == "plants:birch" and Plants.is_sapling(wild[0][0])
 		and WorldActions.sapling_tree(wild[0]) == birch, "a birch sows a wild sapling of its own species: %s" % [wild])
-	# The year of a chunk: worked once a spring, the count kept in its save.
+	# The days of a chunk: worked once a warm day, the count kept in its save.
 	var c = w.chunks[key]
 	c.final = true
-	c.spring = -1
-	clock.springs = 20
-	clock.season = 0
+	c.grown = -1
+	clock.warm_days = 20
 	for i in 40:
 		actions.step_nature(WorldActions.NATURE_EVERY)
-	_check(c.spring == 20, "a chunk first seen starts from the spring now")
-	clock.springs = 21
+	_check(c.grown == 20, "a chunk first seen starts from today")
+	clock.warm_days = 25
+	actions.step_nature(WorldActions.NATURE_EVERY)
+	actions.step_nature(WorldActions.NATURE_EVERY)
+	_check(c.grown == 25 and is_equal_approx(actions._nature_share, 5.0 / WorldActions.WARM_DAYS), "a chunk five warm days behind works them at once")
 	for i in 3 * WorldData.CHUNK:
 		actions.step_nature(WorldActions.NATURE_EVERY)
-	_check(c.spring == 21, "a chunk a spring behind works it")
+	clock.warm_days = 25 + 1000
+	actions.step_nature(WorldActions.NATURE_EVERY)
+	actions.step_nature(WorldActions.NATURE_EVERY)
+	_check(is_equal_approx(actions._nature_share, 1.0), "long away, a chunk catches up a year at most")
 	var packed := w.pack_chunk(key)
 	var again := WorldData.new(16, Vector2i(32, 32))
-	_check(again.unpack_chunk(packed) and again.chunks[key].spring == 21 and again.fields.get(key, {}).size() == w.fields[key].size(),
-		"the spring count and the wild saplings' species are saved with the chunk")
+	_check(again.unpack_chunk(packed) and again.chunks[key].grown == 1025 and again.fields.get(key, {}).size() == w.fields.get(key, {}).size(),
+		"the warm days grown and the wild saplings' species are saved with the chunk")
 	var saved := clock.to_dict()
 	var clock2 := Clock.new()
 	clock2.from_dict(saved)
-	_check(clock2.springs == 21, "the clock keeps its count of springs")
+	_check(clock2.warm_days == 1025, "the clock keeps its count of warm days")
+	var days := Clock.new()
+	days.time_speed = 1.0
+	days.season = Clock.WINTER
+	days._pass_time(Clock.DAY_LENGTH * 1.01)
+	_check(days.warm_days == 0, "a winter day is not a warm day")
+	days.season = 1
+	days._pass_time(Clock.DAY_LENGTH)
+	_check(days.warm_days == 1, "a summer day is")

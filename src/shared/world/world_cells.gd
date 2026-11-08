@@ -173,9 +173,9 @@ class Chunk extends RefCounted:
 	## Done by the generator: its later stages of the chunks around write nothing here
 	## (see WorldGen).
 	var final := false
-	## The springs of the clock (Clock.springs) it has grown back for (ActionsNature), -1
-	## not known yet.
-	var spring := -1
+	## The days out of winter of the clock (Clock.warm_days) it has grown for
+	## (ActionsNature), -1 not known yet.
+	var grown := -1
 
 
 ## A world of `sy` levels. For tests and tools, `area` makes empty chunks over the
@@ -806,7 +806,7 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
 		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(),
 		"fields": fields.get(key, {}).duplicate(true), "drops": drops.get(key, []).duplicate(true),
-		"forms": _forms_of(key), "spring": c.spring}
+		"forms": _forms_of(key), "grown": c.grown}
 
 
 ## The forms of the blocks of chunk `key` (see forms): [[cell, form], …].
@@ -849,8 +849,8 @@ func unpack_chunk(d: Dictionary) -> bool:
 		c.biome.fill(NO_BIOME)
 	c.edited = true
 	c.final = true
-	var spring: Variant = d.get("spring", -1)
-	c.spring = int(spring) if spring is int or spring is float else -1
+	var warm: Variant = d.get("grown", -1)
+	c.grown = int(warm) if warm is int or warm is float else -1
 	chunks[key] = c
 	if key == _last_key:
 		_last = c
