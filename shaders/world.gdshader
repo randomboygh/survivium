@@ -241,7 +241,11 @@ void fragment() {
 	if (tile != NONE) {
 		if (top) {
 			// The neighbour with the higher priority spills 1..3 texels over the edge.
-			int n = int(packed.y + 0.5);
+			// The word runs up to 2^24, where a float holds whole numbers only: adding a
+			// half to an odd one rounds it up to the even one past it, which read the
+			// north neighbour as the next material (clay's as a bed's, whose furrows
+			// spilled over clay in dashes). It is whole already: round() keeps it.
+			int n = int(round(packed.y));
 			int best = material_bits[tile / 3] & PRIORITY_MASK;
 			// On a slope the edges with the same neighbour add up, so it grows over the
 			// slope as a whole: round a corner between two edges along the diagonal,
@@ -258,8 +262,7 @@ void fragment() {
 				// texels of the other side reach in up to `fray` texels, in lumps of two
 				// and single ones, thinner farther in, whoever lies over whom.
 				int fray = max((material_bits[tile / 3] >> FRAY_SHIFT) & 7, (material_bits[nc] >> FRAY_SHIFT) & 7);
-				// (A plain top's word of no neighbours, NO_TILES, reads back as 2^24 and
-				// so as air in every lane: air is never a neighbour's top.)
+				// (Air is never a neighbour's top.)
 				if (fray > 0 && nc != tile / 3 && nc != 0 && !cap && dist[e] < fray) {
 					float lump = hash12(floor(wt * 0.5) + vec2(float(e) * 7.0, 211.0)) * 0.6
 						+ hash12(wt + vec2(97.0, float(e) * 5.0)) * 0.4;
