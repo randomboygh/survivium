@@ -16,6 +16,7 @@ func run() -> void:
 	_test_content()
 	_test_launch_sail_ashore()
 	_test_launch_from_bag()
+	_test_rowing_feel()
 	_test_two_aboard()
 	_test_oars_and_save()
 	_test_ice_and_death()
@@ -112,7 +113,8 @@ func _test_launch_sail_ashore() -> void:
 	ch.at = p
 	actions.step_boats(0.1, [ch])
 	var v: Dictionary = actions.vessels.of(ch.vessel)
-	_check(v.at == p and absf(v.turn - PI / 2.0) < 0.01, "the raft goes where its rower goes, turned that way")
+	_check(v.at == p and absf(v.turn - body.heading) < 0.01 and absf(body.heading) < 0.01,
+		"the raft goes where its rower goes, pointing the way it was last rowed (south)")
 	_check(actions.boat_kind(ch) == "ashore", "the bank in front: the rower can step ashore")
 	actions.boat(ch)
 	_check(ch.riding == "" and ch.vessel == 0 and is_equal_approx(ch.at.y / WorldData.CELL, 3.0)
@@ -165,6 +167,40 @@ func _test_launch_from_bag() -> void:
 	var before := told.n
 	actions.boat(ch)
 	_check(ch.riding == "" and told.n > before, "stepping ashore is told at once")
+
+
+## A vessel speeds up rowed, coasts on let go, turns gradually and carves its turn; an
+## overloaded bag slows it, less than it slows walking.
+func _test_rowing_feel() -> void:
+	var w := _lake()
+	var b := Body.new()
+	b.world = w
+	b.vessel = WorldActions.vessel_of(BOAT)
+	b.heading = PI / 2.0
+	var pace := Body.SPEED * b.vessel
+	var p := Vector3(5.5, 2.0 + WorldData.WATER_TOP - Body.DECK, 8.5) * WorldData.CELL
+	p = _went(b, p, Vector2(1.0, 0.0), 0.3)
+	_check(b.afloat and b.glide.x > 0.0 and b.glide.x < pace * 0.5, "it picks up speed gradually: %.2f of %.2f" % [b.glide.x, pace])
+	p = _went(b, p, Vector2(1.0, 0.0), 1.5)
+	_check(b.glide.x > pace * 0.95, "and soon goes at its pace: %.2f" % b.glide.x)
+	p = _went(b, p, Vector2.ZERO, 0.5)
+	_check(b.glide.x > pace * 0.5, "let go, it coasts on: %.2f" % b.glide.x)
+	p = _went(b, p, Vector2.ZERO, 3.0)
+	_check(b.glide.length() < 0.01, "then comes to rest")
+	b.heading = PI / 2.0
+	b.glide = Vector2(pace, 0.0)
+	p = Vector3(5.5, p.y / WorldData.CELL, 4.5) * WorldData.CELL
+	_went(b, p, Vector2(0.0, 1.0), 0.25)
+	_check(b.heading < PI / 2.0 - 0.2 and b.heading > 0.5, "it turns towards the stick gradually: %.2f" % b.heading)
+	_check(absf(b.glide.angle_to(Vector2(sin(b.heading), cos(b.heading)))) < 0.3, "and goes the way it points, not sliding sideways")
+	var ch := _rower(w, BOAT)
+	ch.give(OARS, 1)
+	ch.riding = BOAT
+	var light := ch.vessel_pace()
+	ch.give("resources:stone", ceili(Inventory.WEIGHT_LIMIT * 1.25 / Items.weight("resources:stone")))
+	var slow := ch.inventory.speed_factor()
+	_check(slow < 1.0 and ch.vessel_pace() < light and ch.vessel_pace() > light * slow,
+		"overloaded it goes slower, less so than on foot: %.2f of %.2f (walking %.2f)" % [ch.vessel_pace(), light, slow])
 
 
 func _test_two_aboard() -> void:
@@ -296,13 +332,16 @@ func _test_currents() -> void:
 	raft.world = w
 	raft.vessel = WorldActions.vessel_of(RAFT)
 	raft.flow = Vector2(-3.0, 0.0)
-	var up_raft := _went(raft, deck, Vector2(1.0, 0.0), 0.5).x - deck.x
+	raft.heading = PI / 2.0
+	var up_raft := _went(raft, deck, Vector2(1.0, 0.0), 2.0).x - deck.x
 	var boat := Body.new()
 	boat.world = w
 	boat.vessel = WorldActions.vessel_of(BOAT)
 	boat.flow = Vector2(-3.0, 0.0)
-	var up_boat := _went(boat, deck, Vector2(1.0, 0.0), 0.5).x - deck.x
+	boat.heading = PI / 2.0
+	var up_boat := _went(boat, deck, Vector2(1.0, 0.0), 2.0).x - deck.x
 	boat.vessel = WorldActions.vessel_of(BOAT) * ch.OARLESS
+	boat.glide = Vector2.ZERO
 	var up_bare := _went(boat, deck + Vector3(4.0, 0.0, 0.0) * WorldData.CELL, Vector2(1.0, 0.0), 0.5).x - deck.x - 4.0 * WorldData.CELL
 	_check(up_raft > 0.0 and up_boat > up_raft * 2.0 and up_bare < 0.0,
 		"upstream a raft rows slowly, a boat with oars well, one without is carried back: %.2f, %.2f, %.2f"

@@ -1568,8 +1568,8 @@ static func _raft() -> VoxelModel:
 
 
 ## A plank boat along its length (z, front to the south): a pointed bow and stern, sides
-## four voxels high round a dark floor of planks, nearly a cell wide and over two cells
-## long, two seats across (the rower's in the middle, the one carried behind)
+## four voxels high round a dark floor of planks, a cell wide and over two cells long,
+## a pointed bow and a square stern (its corners cut), two seats across (the rower's in the middle, the one carried behind)
 ## and an oarlock on each side by the rower.
 static func _boat() -> VoxelModel:
 	var m := VoxelModel.new()
@@ -1579,11 +1579,13 @@ static func _boat() -> VoxelModel:
 	var inside := Color(0.3, 0.21, 0.14)
 	var rim := Color(0.68, 0.52, 0.32)
 	for z in range(-18, 18):
-		# Half its width at this z: full in the middle, narrowing to the ends.
-		var end := mini(z + 18, 17 - z)
-		var w := 7 if end >= 7 else end + 1
+		# Half its width at this z: full from the stern, narrowing to the bow.
+		var bow := 17 - z
+		var w := 8 if bow >= 8 else bow + 1
+		if z == -18:
+			w = 7
 		for x in range(-w, w):
-			var edge := x == -w or x == w - 1 or end == 0
+			var edge := x == -w or x == w - 1 or bow == 0 or z == -18
 			for y in 5:
 				if y == 0:
 					m.set_voxel(Vector3i(x, y, z), hull)
@@ -1593,10 +1595,10 @@ static func _boat() -> VoxelModel:
 					m.set_voxel(Vector3i(x, y, z), inside if (z + 18) % 3 != 0 else plank)
 	# The seats across: the rower's in the middle, the one carried behind (to the north).
 	for z: int in [0, 1, -10, -9]:
-		for x in range(-6, 6):
+		for x in range(-7, 7):
 			m.set_voxel(Vector3i(x, 3, z), rim * 0.95)
 	# The oarlocks on the rims by the rower.
-	for x: int in [-7, 6]:
+	for x: int in [-8, 7]:
 		m.set_voxel(Vector3i(x, 5, 1), Color(0.25, 0.22, 0.2))
 	return m
 

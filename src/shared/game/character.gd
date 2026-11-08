@@ -190,6 +190,9 @@ var seat := 0
 var flow := Vector2.ZERO
 ## A boat rowed without its `oars` in the bag goes at this share of its pace.
 const OARLESS := 0.2
+## How much of the slowing of an overloaded bag (Inventory.speed_factor) a vessel feels:
+## the water carries the rest.
+const LOAD_AFLOAT := 0.5
 ## Where the body is, in world units (see _where).
 var position: Vector3:
 	get:
@@ -713,13 +716,14 @@ func forget_fall() -> void:
 
 
 ## The share of the walking pace the vessel ridden goes at (Body.vessel): the item's
-## `vessel`, OARLESS of it when the one rowing has not its `oars` in the bag; 0 on foot.
+## `vessel`, OARLESS of it when the one rowing has not its `oars` in the bag, slower by
+## LOAD_AFLOAT of what an overloaded bag takes off walking; 0 on foot.
 func vessel_pace() -> float:
 	if riding == "" or not Items.has(riding):
 		return 0.0
 	var it := Items.get_item(riding)
 	var oars: String = it.get("oars", "")
-	var pace := float(it.get("vessel", 0.0))
+	var pace := float(it.get("vessel", 0.0)) * (1.0 - (1.0 - inventory.speed_factor()) * LOAD_AFLOAT)
 	return pace * OARLESS if seat == 0 and oars != "" and inventory.count(oars) == 0 else pace
 
 

@@ -77,6 +77,15 @@ const AIR_DRIFT := 2.5
 ## deck), and the hull reaches this far round the middle (cells): all of it on water.
 const DECK := 0.0
 const HULL := 0.45
+## A vessel under way (see _sail): it takes about SAIL_SPEED_UP seconds to reach its pace
+## rowed, coasts on when the rowing stops, losing SAIL_DRAG of its pace a second, turns
+## at most SAIL_TURN radians a second towards the way pushed (rowing on only as far as
+## it points that way), and its keel kills the slide sideways at SAIL_KEEL of its pace a
+## second, so it carves its turns.
+const SAIL_SPEED_UP := 1.5
+const SAIL_DRAG := 0.45
+const SAIL_TURN := 1.6
+const SAIL_KEEL := 3.0
 ## A shove (see knock) dies away this fast, in cells a second per second.
 const SHOVE_DRAG := 30.0
 
@@ -101,6 +110,9 @@ var air_jumps := false
 var vessel := 0.0
 ## Whether the last step kept the body afloat on its vessel.
 var afloat := false
+## Afloat: the way its vessel points, radians (0 south, as Vessels' `turn`); set by
+## whoever seats the body, turned by the stick (see _sail).
+var heading := 0.0
 ## Whether the last step started a jump.
 var jumped := false
 ## Whether jump was held in the last step: an air jump needs a fresh press.
@@ -298,16 +310,44 @@ func _sail(p: Vector3, delta: float) -> Vector3:
 	water_level = surface
 	murk = world.murk(floori(p.x), floori(surface - 0.1), floori(p.z))
 	in_bog = false
-	var dir := move_input.limit_length(1.0)
-	glide = dir * _sail_pace()
+	_row(move_input.limit_length(1.0), delta)
 	var push := glide + shove + flow
 	shove = shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
-	for d: Vector3 in [Vector3(push.x * delta, 0.0, 0.0), Vector3(0.0, 0.0, push.y * delta)]:
-		var q := p + d
+	for axis in 2:
+		var q := p + (Vector3(push.x * delta, 0.0, 0.0) if axis == 0 else Vector3(0.0, 0.0, push.y * delta))
 		if absf(_hull_surface(q) - surface) < 0.01 and not _collides(q + Vector3(0.0, 0.05, 0.0)):
 			p = q
+		elif axis == 0 and glide.x * push.x > 0.0:
+			# The bank or a rock stops the hull going that way (not one the river pushes
+			# against it while it rows away).
+			glide.x = 0.0
+		elif axis == 1 and glide.y * push.y > 0.0:
+			glide.y = 0.0
 	nudge = Vector2.ZERO
 	return p
+
+
+## Rows the vessel for `delta` seconds with the stick at `dir`: turns the heading towards
+## it, speeds up along the heading as far as it points that way, coasts and slows when
+## let go, and the keel takes away the slide sideways (see SAIL_SPEED_UP).
+func _row(dir: Vector2, delta: float) -> void:
+	var pace := _sail_pace()
+	var want := 0.0
+	if dir.length() > 0.1:
+		var off := wrapf(atan2(dir.x, dir.y) - heading, -PI, PI)
+		var turn := clampf(off, -SAIL_TURN * delta, SAIL_TURN * delta)
+		heading = wrapf(heading + turn, -PI, PI)
+		want = pace * dir.length() * maxf(0.0, cos(off - turn))
+	var ahead := Vector2(sin(heading), cos(heading))
+	var across := Vector2(ahead.y, -ahead.x)
+	var along := glide.dot(ahead)
+	var aside := glide.dot(across)
+	if along < want:
+		along = move_toward(along, want, pace / SAIL_SPEED_UP * delta)
+	else:
+		along = move_toward(along, want, pace * SAIL_DRAG * delta)
+	aside = move_toward(aside, 0.0, pace * SAIL_KEEL * delta)
+	glide = ahead * along + across * aside
 
 
 ## Shoves the body along `dir` (x east, y south) at `speed` cells a second, with a

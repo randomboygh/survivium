@@ -342,6 +342,16 @@ func air() -> float:
 
 ## Gives the minimap the marks of the things placed and the sacks only when something
 ## was placed or taken or a sack moved, not every frame.
+## Whether the vessels marked last (_vessels_seen) are the same and in the same cells.
+func _same_cells(vessels: Array) -> bool:
+	for i in vessels.size():
+		var a: Vector3 = vessels[i][1] / WorldData.CELL
+		var b: Vector3 = _vessels_seen[i][1] / WorldData.CELL
+		if vessels[i][0] != _vessels_seen[i][0] or floori(a.x) != floori(b.x) or floori(a.z) != floori(b.z):
+			return false
+	return true
+
+
 func _update_marks() -> void:
 	if _marks_of != game.placed:
 		if _marks_of != null:
@@ -352,11 +362,18 @@ func _update_marks() -> void:
 		_marks_of.removed.connect(_on_marks_changed)
 		_marks_dirty = true
 	var sacks: Array[Vector3] = game.character.sacks
-	if not _marks_dirty and sacks == _sacks_seen:
+	# The rafts and boats on the water, but the one the player sits in.
+	var vessels := []
+	if game.boats != null:
+		for id: int in game.boats.vessels:
+			if id != game.character.vessel:
+				vessels.append([game.boats.vessels[id].item, game.boats.vessels[id].at])
+	if not _marks_dirty and sacks == _sacks_seen and vessels.size() == _vessels_seen.size() and _same_cells(vessels):
 		return
-	minimap.set_marks(game.placed.things, sacks)
+	minimap.set_marks(game.placed.things, sacks, vessels)
 	_marks_dirty = false
 	_sacks_seen = sacks.duplicate()
+	_vessels_seen = vessels
 
 
 func _on_marks_changed(_e: Dictionary) -> void:
