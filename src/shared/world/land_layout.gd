@@ -150,6 +150,12 @@ const DELTA_SLOPE := 0.001
 ## into a slope, ending in a chamber over bigger caves (see _tunnels).
 const TUNNEL_GRID := 48
 const TUNNEL_LEN := 26
+## Columns over which the ground beside water above its land falls back to it (see
+## _banks); no more than MARGIN, or windows would raise their edges differently.
+const BANK_SLOPE := 3
+## A lake keeps this many cells (by the coast distance) from the sea: between them lies
+## a strip of low shore, so a lake never opens into the shallows deeper than they are.
+const LAKE_SHORE := 16.0
 
 var world_seed: int
 var settings: Dictionary
@@ -747,7 +753,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		else:
 			# Lakes over the high spots of the lake noise in the plains, with gentle
 			# shores.
-			var in_lake := lake[j]
+			var in_lake := minf(lake[j], coast[j] - LAKE_SHORE)
 			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0:
 				if in_lake > 0.0:
 					height = mini(mini(height, sea - 1 - mini(4, int(in_lake / 3.0))), channel)
@@ -970,24 +976,42 @@ func _entrances(lay: Dictionary) -> void:
 
 
 ## Water above the sea must not stand beside open air: the ground beside water rises
-## to its level. Caves keep away from water on their own (see _fill_row).
+## to its level, and the ground beyond falls from it a level a column, up to
+## BANK_SLOPE columns out, so a bank raised over its land (where a river above a rapid
+## runs past land laid out below it) is a slope, not a wall one column thick. Within
+## MARGIN columns of a chunk's edge the window sees all the water that raises it, so
+## every window raises the same. Caves keep away from water on their own (see _fill_row).
 func _banks(lay: Dictionary) -> void:
 	var heights: PackedInt32Array = lay.heights
 	var water: PackedInt32Array = lay.water
 	var w: int = lay.w
 	var h: int = lay.h
-	var raised := PackedInt32Array()
-	raised.resize(heights.size())
-	for lz in range(1, h - 1):
-		for lx in range(1, w - 1):
-			var j := lz * w + lx
-			if water[j] >= 0:
-				continue
-			var hh := heights[j]
-			hh = maxi(hh, maxi(maxi(water[j - 1], water[j + 1]), maxi(water[j - w], water[j + w])))
-			raised[j] = hh - heights[j]
+	# How high each column must be: water lends its level plus one, so the column next
+	# to it must reach the level and each one further a level less.
+	var need := PackedInt32Array()
+	need.resize(heights.size())
+	need.fill(-100000)
+	var top := -1
 	for j in heights.size():
-		heights[j] += raised[j]
+		if water[j] >= 0:
+			need[j] = water[j] + 1
+			top = maxi(top, water[j])
+	if top < 0:
+		return
+	# Ground lies at the sea or above, so water a level over it raises only its banks.
+	var passes := clampi(top - sea, 1, BANK_SLOPE)
+	for p in passes:
+		var next := need.duplicate()
+		for lz in range(1, h - 1):
+			for lx in range(1, w - 1):
+				var j := lz * w + lx
+				if water[j] >= 0:
+					continue
+				next[j] = maxi(need[j], maxi(maxi(need[j - 1], need[j + 1]), maxi(need[j - w], need[j + w])) - 1)
+		need = next
+	for j in heights.size():
+		if water[j] < 0:
+			heights[j] = maxi(heights[j], need[j])
 
 
 ## Caves in the sides of mountains (see TUNNEL_GRID): a gallery ADIT cells high and

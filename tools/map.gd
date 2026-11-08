@@ -1,8 +1,8 @@
 extends SceneTree
 ## Draws the land around the spawn from above to check the generator:
 ## godot --headless --path . --script res://tools/map.gd -- <file.png> [cells] [step] [seed] [place] [settings]
-## (`place`: centre on the nearest place of a kind instead, see WorldGen.find_place, "-"
-## for the spawn; `settings`: WorldGen settings other than the defaults, "relief=1,climate=1").
+## (`place`: centre on the nearest place of a kind instead, see WorldGen.find_place, "x,z"
+## on that column, "-" for the spawn; `settings`: WorldGen settings other than the defaults, "relief=1,climate=1").
 ## With step 1 (the default for up to 512 cells) the chunks are generated and drawn a
 ## pixel per column: ground coloured by its top and shaded by height, a light rim where
 ## it drops (cliffs), a red tint over caves, tree crowns dark green, water darker with
@@ -32,7 +32,9 @@ func _initialize() -> void:
 			options[kv.get_slice("=", 0)] = int(kv.get_slice("=", 1))
 	var gen := WorldGen.new(seed_value, 48, options)
 	var at: Vector3i = gen.spawn_guess
-	if args.size() > 4 and args[4] != "-":
+	if args.size() > 4 and args[4].contains(","):
+		at = Vector3i(int(args[4].get_slice(",", 0)), 0, int(args[4].get_slice(",", 1)))
+	elif args.size() > 4 and args[4] != "-":
 		var p := gen.find_place(args[4], Vector2i(at.x, at.z))
 		at = Vector3i(p.x, 0, p.y)
 	var x0 := at.x - cells / 2

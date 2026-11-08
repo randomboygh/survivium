@@ -106,6 +106,42 @@ func _test_generation() -> void:
 				if mouth.heights[j + dj] > mouth.heights[j]:
 					steps += 1
 	_check(meets > 0 and steps * 4 < meets, "rivers flow into lakes without a step (%d of %d higher)" % [steps, meets])
+	# A lake by the sea keeps a shore between them: it never opens into the shallows
+	# with its floor deeper than theirs (seed 105 has one by its spawn).
+	var bay := WorldGen.new(105, 48, {"relief": 1, "climate": 1, "caves": 0}).lay_out(280, -92, 128, 128)
+	_check(_cut_lakes(bay) == 0, "no lake opens into the sea below its shallows (%d edges)" % _cut_lakes(bay))
+	# Where a river above a rapid runs past land laid out below it, its bank slopes
+	# down from the water instead of standing as a wall one column thick (seed 100).
+	var falls := WorldGen.new(100, 48, {"relief": 1, "climate": 1, "caves": 0}).lay_out(-307, -193, 96, 96)
+	_check(_bank_walls(falls) == 0, "no one-column walls along rivers (%d)" % _bank_walls(falls))
+
+
+## Edges where a lake column meets the sea with its floor two levels or more below it.
+func _cut_lakes(lay: Dictionary) -> int:
+	var w: int = lay.w
+	var out := 0
+	for j in range(w, lay.feature.size() - w):
+		if lay.feature[j] != WorldGen.LAKE or j % w == 0 or j % w == w - 1:
+			continue
+		for dj: int in [-1, 1, -w, w]:
+			if lay.feature[j + dj] == WorldGen.OCEAN and lay.heights[j + dj] - lay.heights[j] >= 2:
+				out += 1
+	return out
+
+
+## Dry columns at the level of the river beside them with the ground across two levels
+## or more below: a wall one column thick.
+func _bank_walls(lay: Dictionary) -> int:
+	var w: int = lay.w
+	var out := 0
+	for j in range(w, lay.feature.size() - w):
+		if lay.water[j] >= 0 or j % w == 0 or j % w == w - 1:
+			continue
+		for dj: int in [-1, 1, -w, w]:
+			if lay.feature[j - dj] == WorldGen.RIVER and lay.water[j - dj] == lay.heights[j] \
+					and lay.water[j + dj] < 0 and lay.heights[j] - lay.heights[j + dj] >= 2:
+				out += 1
+	return out
 
 
 ## Cells of water above the sea in the chunks `keys` with air under them, or air beside
