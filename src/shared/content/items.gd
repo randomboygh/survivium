@@ -9,6 +9,8 @@ const Mat := preload("res://src/shared/content/materials.gd")
 
 ## What lies on the ground where someone died: a sack with their things, not an item.
 const SACK := "sack"
+## The quality (1..100) of a thing nothing has said otherwise of (Inventory.quality).
+const NORMAL_QUALITY := 50
 ## Ids of items and recipes a save from before 2026-10-25 (`content` below 7) may hold, by
 ## what they are called now: the base items went to the resources and materials mods.
 const RENAMED := {

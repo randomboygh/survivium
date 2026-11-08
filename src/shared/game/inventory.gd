@@ -28,7 +28,7 @@ const SPOIL_STEP := 0.005
 const TELL_AGE := 500
 ## Quality of a thing, MIN_QUALITY..MAX_QUALITY (plan/design/crafting.md, «Качество»):
 ## NORMAL is what a thing of an older save, or one nothing has said otherwise of, has.
-const NORMAL := 50
+const NORMAL := Items.NORMAL_QUALITY
 const MIN_QUALITY := 1
 const MAX_QUALITY := 100
 
