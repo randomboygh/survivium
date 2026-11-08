@@ -18,7 +18,8 @@ const MARGIN := 1
 ## Height of the camera above the world; it must be above the highest level.
 const CAMERA_HEIGHT := 48.0
 ## Render layers that pick which lights a thing casts its shadow from (each light's
-## shadow_caster_mask); everything else is on layer 1 and casts from every light.
+## shadow_caster_mask); everything else is on layer 1 (the ground on LAYER_GROUND) and
+## casts from every light.
 ## The shadow discs under crowns and bushes cast only from the sun and the moon: from
 ## a fire below a crown they would throw the crown's shadow upward.
 const LAYER_SUN_CASTER := 4
@@ -33,6 +34,15 @@ const LAYER_UNLIT := 16
 ## The layers the fires and torches light: not the unshaded things, nor the shadow
 ## discs under crowns (unshaded too, which cast only from the sun).
 const LIT_BY_FIRES := 0xFFFFF & ~(LAYER_UNLIT | LAYER_SUN_CASTER)
+## The ground and the walls of the world (the chunks' meshes and the caps of the view in
+## layers): all a fire or a torch with a real shadow lights itself, the rest it lights
+## through its twin, a light without a shadow in the same place (see real_shadow). A light
+## with a shadow lights what it reaches in a pass of its own, and the renderer builds that
+## pass's shaders for each kind of thing anew (some 50 on a phone at 150-600 ms each
+## stopped the game at dusk, 2026-11-08); for the ground alone they are a few.
+const LAYER_GROUND := 32
+const LIT_BY_SHADOW := LAYER_GROUND
+const LIT_BY_TWIN := LIT_BY_FIRES & ~LAYER_GROUND
 ## Direction of view rays in the unsheared world in the default view: down and north
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
@@ -249,11 +259,47 @@ static var _unshaded := {}
 ## shadows of what it does not light.
 static func unlit(node: Node) -> void:
 	if node is OmniLight3D:
-		(node as OmniLight3D).light_cull_mask = LIT_BY_FIRES
+		# Only a light that does not pick its layers yet (see real_shadow).
+		if (node as OmniLight3D).light_cull_mask == 0xFFFFFFFF:
+			(node as OmniLight3D).light_cull_mask = LIT_BY_FIRES
 	elif node is GeometryInstance3D and (node as GeometryInstance3D).layers == 1 \
 			and (node as GeometryInstance3D).cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF \
 			and _drawn_unshaded(node):
 		(node as GeometryInstance3D).layers = LAYER_UNLIT
+
+
+## Gives `light` (a fire's or a torch's) a real shadow or takes it away. With one it lights
+## the ground alone (LIT_BY_SHADOW) and its twin, a child light without a shadow, the rest
+## (LIT_BY_TWIN); twin_follow keeps the twin as bright and as far-reaching.
+static func real_shadow(light: OmniLight3D, on: bool) -> void:
+	if light.shadow_enabled != on:
+		light.shadow_enabled = on
+	var mask := LIT_BY_SHADOW if on else LIT_BY_FIRES
+	if light.light_cull_mask != mask:
+		light.light_cull_mask = mask
+	var twin := light.get_node_or_null(^"Twin") as OmniLight3D
+	if twin == null and on:
+		twin = OmniLight3D.new()
+		twin.name = "Twin"
+		twin.shadow_enabled = false
+		twin.light_cull_mask = LIT_BY_TWIN
+		light.add_child(twin)
+	if twin != null and twin.visible != on:
+		twin.visible = on
+	if on:
+		twin_follow(light, light.light_energy)
+
+
+## The twin of `light` (see real_shadow) burns at `energy`, as far and in the colour of it.
+static func twin_follow(light: OmniLight3D, energy: float) -> void:
+	var twin := light.get_node_or_null(^"Twin") as OmniLight3D
+	if twin == null:
+		return
+	twin.light_energy = energy
+	if twin.omni_range != light.omni_range:
+		twin.omni_range = light.omni_range
+	twin.omni_attenuation = light.omni_attenuation
+	twin.light_color = light.light_color
 
 
 static func _drawn_unshaded(g: GeometryInstance3D) -> bool:

@@ -288,6 +288,8 @@ func _run() -> void:
 		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = main.effects.fire_energy(f, main.sky)
+			if f.light.shadow_enabled:
+				PixelView.twin_follow(f.light, f.light.light_energy / main.effects.shadow_energy)
 		if shot.has("put_fire"):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:

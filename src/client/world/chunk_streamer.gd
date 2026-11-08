@@ -679,6 +679,8 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = game.world_mat
+		# A fire's real shadow falls on the ground and the walls alone (PixelView.LAYER_GROUND).
+		solid.layers = PixelView.LAYER_GROUND
 		var water := MeshInstance3D.new()
 		water.material_override = game.water_mat
 		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -1091,6 +1093,7 @@ func update_caps() -> void:
 			# The rock the cap closes casts its own shadow: a cap's, a hair off it,
 			# fell on the player jumping by the cut.
 			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			node.layers = PixelView.LAYER_GROUND
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
 		game.hud.perf.mark("срез")
