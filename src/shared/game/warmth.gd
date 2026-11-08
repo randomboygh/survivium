@@ -10,6 +10,7 @@ extends RefCounted
 
 const Biomes := preload("res://src/shared/content/biomes.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 ## The air over a biome of warmth 0 and 1 (the middle of its warmth window), at midday
@@ -76,11 +77,13 @@ static func fire_heat(placed, p: Vector3) -> float:
 	return best
 
 
-## The warmth of the clothes worn (Inventory.gear, each item's `warmth`).
-static func clothes(gear: Dictionary) -> float:
+## The warmth of the clothes worn (Inventory.gear, each item's `warmth`), by their
+## quality (`quality`: body slot -> its quality, Quality.lasts; normal for one not in it).
+static func clothes(gear: Dictionary, quality := {}) -> float:
 	var out := 0.0
 	for on: String in gear:
-		out += Items.get_item(gear[on]).get("warmth", 0.0)
+		var q: int = quality.get(on, Items.NORMAL_QUALITY)
+		out += Items.get_item(gear[on]).get("warmth", 0.0) * Quality.lasts(q)
 	return out
 
 

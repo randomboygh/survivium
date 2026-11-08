@@ -445,6 +445,17 @@ const ICONS := {
 		"......aa....",
 		".wwwwwwwwww.",
 	],
+	"star": [
+		".....y.....",
+		".....y.....",
+		"....yyy....",
+		"yyyyyyyyyyy",
+		".yyyyyyyyy.",
+		"..yyyyyyy..",
+		"..yyyyyyy..",
+		".yyyy.yyyy.",
+		".yy.....yy.",
+	],
 	"hammer": [
 		"..wwwwwwww..",
 		".wwwwwwwwww.",

@@ -233,8 +233,9 @@ func held() -> String:
 	return in_hands()[active]
 
 
+## The record of the tool in the hand in use, its swing by its quality (Quality).
 func tool() -> Dictionary:
-	return Tools.of(held())
+	return Quality.tool_record(Tools.of(held()), inventory.tool_quality(held()) if held() != "" else Quality.NORMAL)
 
 
 func brush() -> Dictionary:

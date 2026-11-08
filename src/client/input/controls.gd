@@ -15,6 +15,7 @@ extends RefCounted
 ## mouse switch the interface layout. `game` is the Main node that owns the scene.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 const VoxelRaycast := preload("res://src/shared/world/voxel_raycast.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -334,7 +335,9 @@ func held(hand := -1) -> String:
 ## The record of what hand `hand` holds as a tool (see Tools.of): bare hands for
 ## anything that is no tool.
 func tool_record(hand := -1) -> Dictionary:
-	return Tools.of(held(hand))
+	var id := held(hand)
+	var who = game.get("character")
+	return Quality.tool_record(Tools.of(id), who.inventory.tool_quality(id) if id != "" and who != null else Quality.NORMAL)
 
 
 ## What the item in hand `hand` is used for (see Tools.use_of).

@@ -13,6 +13,7 @@
   model: fireplace
   prop: fireplace
   fire: true
+  quality_cap: 90
   scares: 3.0
   fuel_max: 2400
   fuel_start: 0

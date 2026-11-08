@@ -4,6 +4,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
+const Items := preload("res://src/shared/content/items.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
 
 
@@ -13,8 +14,9 @@ const Growth := preload("res://src/shared/world/growth.gd")
 ## that line and branches and seeds where its crown lands (see WorldData.add_drop).
 ## What stays below the cut is a stump, still noted as the tree. A `young` tree (a
 ## sapling grown small, see WorldActions.grow_fields) leaves only branches. Returns the
-## cells made air, the cut first; empty when `cut` is no log of a noted tree.
-static func fell(w, cut: Vector3i, away: Vector2, young := false) -> Array[Vector3i]:
+## cells made air, the cut first; empty when `cut` is no log of a noted tree. What lies
+## is of quality `q` (Quality.by_hand_of: the axe and the chopper's skill).
+static func fell(w, cut: Vector3i, away: Vector2, young := false, q := Items.NORMAL_QUALITY) -> Array[Vector3i]:
 	var at := Vector2i(cut.x, cut.z)
 	if not w.trees.has(at) or w.get_cell(cut.x, cut.y, cut.z) != Mat.LOG:
 		var none: Array[Vector3i] = []
@@ -31,7 +33,7 @@ static func fell(w, cut: Vector3i, away: Vector2, young := false) -> Array[Vecto
 		s.log = ""
 		s.seed = ""
 		leaves = maxi(leaves, 120)
-	_drops(w, cut, away, s, logs, leaves)
+	_drops(w, cut, away, s, logs, leaves, q)
 	return gone
 
 
@@ -85,7 +87,7 @@ static func _nearest(c: Vector2i, at: Vector2i, others: Array[Vector2i]) -> bool
 ## each when the species names one): a log for every two cells of trunk, end to end from
 ## the stump toward `away`, and twigs and seeds where the crown lands, more of them for a
 ## larger crown.
-static func _drops(w, cut: Vector3i, away: Vector2, s: Dictionary, logs: int, leaves: int) -> void:
+static func _drops(w, cut: Vector3i, away: Vector2, s: Dictionary, logs: int, leaves: int, q: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(cut)
 	var dir := away.normalized() if away.length() > 0.01 else Vector2.from_angle(rng.randf() * TAU)
@@ -94,24 +96,24 @@ static func _drops(w, cut: Vector3i, away: Vector2, s: Dictionary, logs: int, le
 	var along := atan2(dir.y, dir.x)
 	for i in (maxi(1, (logs + 1) / 2) if s.log != "" else 0):
 		var p := base + dir * (2.0 + i * 1.8) + side * rng.randf_range(-0.4, 0.4)
-		_drop(w, s.log, p, along + rng.randf_range(-0.3, 0.3))
+		_drop(w, s.log, p, along + rng.randf_range(-0.3, 0.3), q)
 	if leaves == 0:
 		return
 	var crown: float = 2.0 * s.crown[0]
 	var land := base + dir * (logs + crown)
 	for i in (clampi(leaves / 60, 2, 8) if s.twig != "" else 0):
 		var p := land + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * crown
-		_drop(w, s.twig, p, rng.randf() * TAU)
+		_drop(w, s.twig, p, rng.randf() * TAU, q)
 	if s.seed != "":
 		for i in rng.randi_range(2, 4):
 			var p := land + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * crown * 0.8
-			_drop(w, s.seed, p, rng.randf() * TAU)
+			_drop(w, s.seed, p, rng.randf() * TAU, q)
 
 
 ## One thing of `kind` lying on the ground at column point `p` (in cells), turned by
-## `angle`; none over open water.
-static func _drop(w, kind: String, p: Vector2, angle: float) -> void:
+## `angle`, of quality `q`; none over open water.
+static func _drop(w, kind: String, p: Vector2, angle: float, q: int) -> void:
 	var h: float = w.ground_height(p.x, p.y)
 	if h < 0.0:
 		return
-	w.add_drop(kind, Vector3(p.x, h, p.y) * w.CELL, angle)
+	w.add_drop(kind, Vector3(p.x, h, p.y) * w.CELL, angle, w.heap_data(1, q))

@@ -3,6 +3,7 @@ extends Control
 ## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
 ## a number (how many) in the bottom right, and a strip along the bottom for how much
 ## of a light held is left to burn, how fresh food is, or how loaded the bag on the back is;
+## a dot in the bottom left corner coloured by the grade of the thing's quality (Quality);
 ## the picture faint when the thing cannot be used now (`inactive`).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -44,6 +45,15 @@ var fill_color := Color(0, 0, 0, 0):
 	set(v):
 		fill_color = v
 		queue_redraw()
+## The grade of the quality of the thing in the slot (Quality.grade), drawn as a dot of
+## GRADE_COLORS; below 0 none.
+var grade := -1:
+	set(v):
+		if v != grade:
+			grade = v
+			queue_redraw()
+## Poor, plain, normal, good, excellent.
+const GRADE_COLORS := [Color("#7d7468"), Color("#d8cfc0"), Color("#7fcf6a"), Color("#6aaef0"), Color("#f2c14e")]
 var selected := false:
 	set(v):
 		selected = v
@@ -122,6 +132,10 @@ func _draw() -> void:
 		var r := Rect2(4.0, size.y - 6.0, w, 2.0)
 		draw_rect(r.grow(1.0), UiStyle.EDGE)
 		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), fill_color if fill_color.a > 0.0 else (UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT))
+	if grade >= 0 and texture != null:
+		var at := Vector2(4.0, size.y - (10.0 if fill >= 0.0 else 7.0))
+		draw_rect(Rect2(at - Vector2.ONE, Vector2(5, 5)), UiStyle.EDGE)
+		draw_rect(Rect2(at, Vector2(3, 3)), GRADE_COLORS[clampi(grade, 0, GRADE_COLORS.size() - 1)])
 	if tag != "":
 		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":

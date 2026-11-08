@@ -124,9 +124,10 @@ func tend(who) -> Dictionary:
 			if not who.act("gather", "hunt"):
 				return {}
 			a.shorn_at = clock.now()
-			var n: int = who.give(spec.wool, 1)
+			var q := _got(who, "hunt")
+			var n: int = who.give(spec.wool, 1, 0, q)
 			if n < 1:
-				world.heap_drop(spec.wool, who.position, 1, 0.0)
+				world.heap_drop(spec.wool, who.position, 1, 0.0, q)
 				drops_changed.emit(WorldData.chunk_key(floori(who.position.x / CELL), floori(who.position.z / CELL)))
 			who.use_tool()
 		"stay":

@@ -94,11 +94,11 @@ func extra(role: String) -> bool:
 	return k > 0.0 and randf() < k
 
 
-## The swings more than its `durability` a thing that wears made by work `role` lasts:
-## the skill's `quality` share of it at the last level.
-func bonus_wear(role: String, durability: int) -> int:
+## The quality the skill of work `role` adds at its last level (its `quality`): to what
+## the work gets from the world, or to the most a thing made can be (Quality).
+func quality_most(role: String) -> float:
 	var s := Skills.of_role(role)
-	return 0 if s.is_empty() else roundi(durability * s.quality * share_of(role))
+	return 0.0 if s.is_empty() else float(s.quality)
 
 
 ## What the stamina a work of `role` costs is multiplied by: 1 at no skill, 1 - `effort`

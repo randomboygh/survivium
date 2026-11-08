@@ -137,13 +137,15 @@ func _test_land() -> void:
 
 func _test_yield_quality() -> void:
 	var s := SkillSet.new()
-	_check(s.extra_chance("gather") == 0.0 and not s.extra("gather") and s.bonus_wear("craft", 100) == 0,
-		"no skill: no more than the work gives, things last their time")
+	_check(s.extra_chance("gather") == 0.0 and not s.extra("gather")
+		and Quality.skill_cap(s.share_of("craft"), s.quality_most("craft")) == Quality.UNSKILLED_MOST,
+		"no skill: no more than the work gives, things made no better than plain")
 	var craft := Skills.of_role("craft")
 	s.gain("craft", Skills.need(craft, craft.levels))
 	s.gain("gather", Skills.need(Skills.of_role("gather"), 10))
-	_check(s.bonus_wear("craft", 100) == roundi(100 * craft.quality) and is_equal_approx(s.extra_chance("gather"),
-		Skills.of_role("gather").yield), "the last level: things last longer, now and then one more")
+	_check(Quality.skill_cap(s.share_of("craft"), s.quality_most("craft")) == Quality.MAX
+		and is_equal_approx(s.extra_chance("gather"), Skills.of_role("gather").yield),
+		"the last level: things made as good as their materials, now and then one more")
 	_check(Workshop.yield_role({"process": "cook", "needs": {}}) == "cook"
 		and Workshop.yield_role({"process": "craft", "needs": {"animals:carcass": 1}}) == "hunt"
 		and Workshop.yield_role({"process": "craft", "needs": {"resources:stone": 1}}) == "",

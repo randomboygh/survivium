@@ -38,6 +38,7 @@ const TeamPage := preload("res://src/client/ui/team_page.gd")
 const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 const CraftPanel := preload("res://src/client/ui/craft_panel.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -914,6 +915,7 @@ func _show_slots(bag, cells: Array) -> void:
 		cell.tag = "Н" if bag == game.character.inventory and bag.worn_on(i) != "" else ""
 		cell.number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		cell.fill = bag.freshness(i)
+		cell.grade = Quality.grade(Inventory.quality(s)) if s != null else -1
 		# A bag or a chest: how full it is, as the bag's strip on the figure.
 		var full: float = bag.fullness(i)
 		cell.fill_color = UiStyle.ACCENT if full >= 0.0 else Color(0, 0, 0, 0)
@@ -947,7 +949,8 @@ func _show_info(inv) -> void:
 			" · с вещами" if _from.contents(_at) != null else ""]
 		var shoots: String = Items.get_item(id).get("ammo", "")
 		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
-			game.character.burn_left(id) if mine else 1.0, _from.freshness(_at), inv.count(shoots) if shoots != "" else -1))
+			game.character.burn_left(id) if mine else 1.0, _from.freshness(_at), inv.count(shoots) if shoots != "" else -1,
+			_from.quality_at(_at)))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
 	_icon.texture = ItemIcons.of_item(s[0]) if s != null else null
 	_icon.visible = _icon.texture != null
@@ -989,7 +992,9 @@ func _show_worn(inv) -> void:
 		var h := int(_worn.right(1))
 		# A light in the second hand is the second one lit when the first holds one too.
 		var k := 1 if hand and h == 1 and game.controls.hands[0] == id and inv.count(id) > 1 else 0
-		_facts.show_groups(FactChips.item_groups(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0))
+		var q: int = inv.tool_quality(id) if hand else inv.quality_at(inv.worn_slot(_worn))
+		_facts.show_groups(FactChips.item_groups(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0,
+			-1.0, -1, q))
 	elif _worn == "back":
 		_info.text = "Сумка: %d ячеек, всегда с собой. Надень котомку, сумку или рюкзак — станет больше" % inv.base
 		_facts.show_groups([])

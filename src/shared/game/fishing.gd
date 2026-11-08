@@ -14,6 +14,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 
 const CELL := WorldData.CELL
 ## Seconds between the rolls for a fish to come to the float, and the chance of one with
@@ -91,7 +92,7 @@ func pull(who) -> Dictionary:
 	var fish = line.fish
 	if line.bite > 0.0 and fish != null and not fish.gone:
 		var catch := catch_of(fish)
-		if catch != "" and who.give(catch, 1) > 0:
+		if catch != "" and who.give(catch, 1, 0, Quality.by_hand_of(who, "fish")) > 0:
 			out.caught = catch
 			wildlife.take(fish)
 			return out

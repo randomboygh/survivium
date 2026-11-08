@@ -248,11 +248,17 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 	return true
 
 
-## Sows crop item `item` from the bag of `who` on bed `cell` (can_sow holds).
+## Sows crop item `item` from the bag of `who` on bed `cell` (can_sow holds): the bed
+## keeps the seed's quality, the crop's comes of it (Quality.crop).
 func sow(who, item: Dictionary, cell: Vector3i) -> void:
-	who.inventory.remove(item.id, 1)
+	var took := []
+	who.inventory.remove(item.id, 1, took)
+	var q := Quality.of_materials(took)
 	var f: Variant = world.field_at(cell)
-	world.set_field(cell, [item.crop, 0.0, f[2] if f != null else 0.0])
+	var record := [item.crop, 0.0, f[2] if f != null else 0.0]
+	if q != Quality.NORMAL and not Plants.is_sapling(item.crop):
+		record.append_array(["", q])
+	world.set_field(cell, record)
 	skilled(who, "farm", SOW_SWING)
 	looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 
@@ -483,7 +489,9 @@ func wet(cell: Vector3i, until: float) -> void:
 		f = ["", 0.0, 0.0]
 	elif Plants.is_sapling(f[0]):
 		return
-	world.set_field(cell, [f[0], f[1], maxf(f[2], until)])
+	var g: Array = f.duplicate()
+	g[2] = maxf(f[2], until)
+	world.set_field(cell, g)
 	_look_wet(cell, true)
 
 
@@ -496,6 +504,16 @@ func _look_wet(cell: Vector3i, wet_now: bool) -> void:
 
 
 # --- Reaping ------------------------------------------------------------------------------
+
+
+## The quality of what bed record `f` gives reaped by `who`: about its seed's (`roll`
+## -1..1 puts it off, Quality.crop), a little better by the farmer's skill, so the best
+## seeds kept and sown again make better crops.
+static func crop_quality(who, f: Array, roll: float) -> int:
+	var seed_q: int = int(f[4]) if f.size() > 4 else Quality.NORMAL
+	var sk = who.get("skills")
+	var nudge: float = 0.0 if sk == null else Quality.FARM_NUDGE * sk.share_of("farm")
+	return Quality.crop(roundi(seed_q + nudge), roll)
 
 
 ## Whether tool `t` can reap the crop on bed `cell`: one is there, ripe, and `t` cuts it.
@@ -516,6 +534,7 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([c, clock.day])
 		var gives := Plants.harvest([f[0]], rng)
+		var q := crop_quality(who, f, rng.randf_range(-1.0, 1.0))
 		world.set_field(c, ["", 0.0, f[2]])
 		keys[WorldData.chunk_key(c.x, c.z)] = true
 		if gives.is_empty():
@@ -524,7 +543,7 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 			var first: String = gives.keys()[0]
 			gives[first] += 1
 		for id in gives:
-			world.heap_drop(Items.get_item(id).get("id", id), floor_under(c + Vector3i.UP), gives[id], rng.randf() * TAU)
+			world.heap_drop(Items.get_item(id).get("id", id), floor_under(c + Vector3i.UP), gives[id], rng.randf() * TAU, q)
 	for key in keys:
 		looks_changed.emit(key)
 		drops_changed.emit(key)

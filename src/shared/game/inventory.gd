@@ -10,6 +10,7 @@ extends RefCounted
 ## the same bag.
 
 const Items := preload("res://src/shared/content/items.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 
 ## Slots of a bag without a backpack, and the weight carried at full pace (kg).
 const SLOTS := 16
@@ -162,6 +163,14 @@ func worn_slot(on: String) -> int:
 		if s != null and s[0] == id and held(s) == null:
 			return i
 	return -1
+
+
+## The quality of what is worn, by body slot (normal for a thing worn apart).
+func gear_quality() -> Dictionary:
+	var d := {}
+	for on: String in gear:
+		d[on] = quality_at(worn_slot(on))
+	return d
 
 
 ## The body slot slot `i` of the bag is worn in, "" for none.
@@ -599,34 +608,30 @@ static func _worn(s: Array) -> int:
 	return s[2] if s.size() > 2 else 0
 
 
-## One swing of tool `id` that lasts `durability` swings: the most worn such tool in
-## the bag wears (past the first `skip` of them); true when it broke and is gone. One
+## One swing of tool `id` that lasts `durability` swings at the normal quality (more or
+## fewer at its own, Quality.durability): the most worn such tool in the bag wears (past
+## the first `skip` of them); true when it broke and is gone. One
 ## worn out of a stack goes to a slot of its own, so the worn ones lie
 ## apart from the new; with no slot free the stack keeps the wear of the one in use.
 func wear_tool(id: String, durability: int, skip := 0) -> bool:
 	if durability <= 0:
 		return false
-	var at := []
-	for i in slots.size():
-		if slots[i] != null and slots[i][0] == id:
-			at.append(i)
-	at.sort_custom(func(a: int, b: int) -> bool:
-		return _worn(slots[a]) > _worn(slots[b]) or _worn(slots[a]) == _worn(slots[b]) and a < b)
-	for i: int in at:
+	for i: int in _wear_order(id):
 		var s: Array = slots[i]
 		if skip >= s[1]:
 			skip -= s[1]
 			continue
 		var w := _worn(s) + 1
 		var q := quality(s)
+		var lasts := Quality.durability(durability, q)
 		var free := slots.find(null)
 		if s[1] > 1 and free >= 0:
 			slots[i] = stack(id, s[1] - 1, _worn(s), null, q)
-			if w >= durability:
+			if w >= lasts:
 				changed.emit()
 				return true
 			slots[free] = stack(id, 1, w, null, q)
-		elif w >= durability:
+		elif w >= lasts:
 			take_slot(i, 1)
 			if slots[i] != null:
 				slots[i] = stack(id, slots[i][1], 0, null, q)
@@ -636,6 +641,23 @@ func wear_tool(id: String, durability: int, skip := 0) -> bool:
 		changed.emit()
 		return false
 	return false
+
+
+## The order wear_tool wears the stacks of `id` in: the most worn first.
+func _wear_order(id: String) -> Array:
+	var at := []
+	for i in slots.size():
+		if slots[i] != null and slots[i][0] == id:
+			at.append(i)
+	at.sort_custom(func(a: int, b: int) -> bool:
+		return _worn(slots[a]) > _worn(slots[b]) or _worn(slots[a]) == _worn(slots[b]) and a < b)
+	return at
+
+
+## The quality of tool `id` in use: of the stack that wears first (see wear_tool).
+func tool_quality(id: String) -> int:
+	var at := _wear_order(id)
+	return NORMAL if at.is_empty() else quality(slots[at[0]])
 
 
 ## The tool in slot `i` is as good as new.

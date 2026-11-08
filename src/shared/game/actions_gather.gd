@@ -122,7 +122,8 @@ func fell(who, cell: Vector3i) -> bool:
 		before[key] = world.drops[key].size()
 	var tree: int = world.trees.get(Vector2i(cell.x, cell.z), -1)
 	var young := young_tree(cell)
-	var gone: Array[Vector3i] = Felling.fell(world, cell, away, young)
+	var q := _got(who, "chop")
+	var gone: Array[Vector3i] = Felling.fell(world, cell, away, young, q)
 	if gone.is_empty():
 		return false
 	who.note("trees")
@@ -131,7 +132,7 @@ func fell(who, cell: Vector3i) -> bool:
 	if young:
 		felled_young(cell)
 	elif species.get("log", "") != "" and _extra(who, "chop"):
-		world.heap_drop(species.log, floor_under(cell), 1, randf() * TAU)
+		world.heap_drop(species.log, floor_under(cell), 1, randf() * TAU, q)
 	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
 	# map and the minimap.
 	var cols := {}
@@ -381,7 +382,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 	if ripe(cell, b):
 		if not who.act("gather", "gather"):
 			return false
-		if who.give(b.fruit, berry_count(cell, b) + (1 if _extra(who, "gather") else 0)) == 0:
+		if who.give(b.fruit, berry_count(cell, b) + (1 if _extra(who, "gather") else 0), 0, _got(who, "gather")) == 0:
 			return false
 		world.bush_picked[cell] = true
 		world.note_bush(cell)
@@ -395,7 +396,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 		return false
 	if not who.act("gather", "gather"):
 		return false
-	if who.give(b.twig, 1) == 0:
+	if who.give(b.twig, 1, 0, _got(who, "gather")) == 0:
 		return false
 	world.bush_twigs[cell] = world.bush_twigs.get(cell, 0) + 1
 	world.note_bush(cell)
@@ -437,7 +438,7 @@ func _fell_bush(who, cell: Vector3i) -> bool:
 	var n := maxi(1, twigs_left(cell, b))
 	_remove_bush(cell)
 	if b.twig != "":
-		_scatter(cell, b.twig, n)
+		_scatter(cell, b.twig, n, _got(who, "chop"))
 	return true
 
 
@@ -448,7 +449,7 @@ func _dig_out(who, cell: Vector3i) -> bool:
 		return false
 	_remove_bush(cell)
 	if b.item != "":
-		_scatter(cell, b.item, 1)
+		_scatter(cell, b.item, 1, _got(who, "dig"))
 	return true
 
 
@@ -459,13 +460,13 @@ func _remove_bush(cell: Vector3i) -> void:
 	_changed(cell)
 
 
-## Lays `n` items `id` on the ground around the bush in `cell`.
-func _scatter(cell: Vector3i, id: String, n: int) -> void:
+## Lays `n` items `id` of quality `q` on the ground around the bush in `cell`.
+func _scatter(cell: Vector3i, id: String, n: int, q := Quality.NORMAL) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([cell, id, clock.day, n])
 	var at := (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * CELL
 	var p := at + Vector3(rng.randf_range(-SCATTER, SCATTER), 0.0, rng.randf_range(-SCATTER, SCATTER))
-	world.heap_drop(id, Vector3(p.x, at.y, p.z), n, rng.randf() * TAU)
+	world.heap_drop(id, Vector3(p.x, at.y, p.z), n, rng.randf() * TAU, q)
 	drops_changed.emit(WorldData.chunk_key(floori(p.x / CELL), floori(p.z / CELL)))
 
 
@@ -485,7 +486,7 @@ func _from_tree(who, col: Vector2i) -> bool:
 	if not who.act("gather", "gather"):
 		return false
 	var id: String = s.seed if seeds else s.twig
-	if who.give(id, 2 if _extra(who, "gather") else 1) == 0:
+	if who.give(id, 2 if _extra(who, "gather") else 1, 0, _got(who, "gather")) == 0:
 		return false
 	var map: Dictionary = world.tree_seeds if seeds else world.tree_twigs
 	map[col] = map.get(col, 0) + 1

@@ -7,6 +7,7 @@ extends "res://src/client/ui/hud_messages.gd"
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 ## UI height the scale aims for on the shorter side of the screen: on a phone exactly,
 ## so its windows fit any phone as they do the reference one (1200 px wide at ×3).
 const TARGET_SIDE := 400.0
@@ -266,6 +267,7 @@ func refresh_counts() -> void:
 		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
 		_slots[i].number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		_slots[i].fill = game.character.inventory.freshness(i)
+		_slots[i].grade = Quality.grade(game.character.inventory.quality_at(i)) if s != null else -1
 		# A weapon with nothing in the bag to shoot shows inactive.
 		_slots[i].inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])
 		_slots[i].key = str(i + 1)

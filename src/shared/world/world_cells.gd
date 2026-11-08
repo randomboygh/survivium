@@ -94,7 +94,9 @@ var turf := {}
 ## The beds (tilled ground, Mat.BED and Mat.BED_WET) by chunk (Vector2i) and then by
 ## the bed's cell: [crop, grown, wet_until]: the id of the crop growing on it (Plants of
 ## kind crop, "" for none), the days it has grown, and the time (Clock.now) until which
-## it stays wet. Saved with the chunk; a bed dug or filled loses its record (set_cell).
+## it stays wet; a sapling's has a fourth, its tree species, and a crop of a quality
+## other than the normal a fifth, the quality of its seed ("" in the fourth). Saved with
+## the chunk; a bed dug or filled loses its record (set_cell).
 var fields := {}
 ## A world laid out by hand can set what grows on its grass in place of the noises: a
 ## static func (x, z) -> one of Grass.GROW_* or 0 (the noises decide), see TestGround.
@@ -898,11 +900,13 @@ func unpack_chunk(d: Dictionary) -> bool:
 		var kept := {}
 		for cell in beds:
 			var f: Variant = beds[cell]
-			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and (f.size() == 3 or f.size() == 4 and f[3] is String) \
-					and f[0] is String:
+			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and (f.size() == 3 or f.size() >= 4 and f[3] is String) \
+					and (f.size() < 5 or f.size() == 5 and (f[4] is int or f[4] is float)) and f[0] is String:
 				kept[cell] = [Content.canon("plants", f[0]) if f[0] != "" else "", float(f[1]), float(f[2])]
-				if f.size() == 4:
+				if f.size() >= 4:
 					kept[cell].append(f[3])
+				if f.size() == 5:
+					kept[cell].append(clampi(int(f[4]), 1, 100))
 		if not kept.is_empty():
 			fields[key] = kept
 	var on_ground: Array = d.get("drops", [])

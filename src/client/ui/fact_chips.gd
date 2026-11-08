@@ -10,6 +10,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -124,30 +125,35 @@ const NEW := -(1 << 30)
 ## and how long one burns (`burn_left` of it when one of them is lit, a share 0..1);
 ## how long food keeps and how fresh a stack is (`fresh` 0..1, below 0 for one made new).
 ## What a weapon shoots, with `ammo` of it in the bag (-1: not counted, a recipe).
-## Quality comes later.
-static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1) -> Array:
+## The stack's quality `q` (below 0 for a recipe: not shown) and what it does to food,
+## warmth, a tool's swing and its swings (Quality).
+static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1, q := -1) -> Array:
 	var it := Items.get_item(id)
+	var k := Quality.lasts(q) if q >= 0 else 1.0
 	var groups := [["Вес", [[ItemIcons.picture("weight"), "%.1f кг" % (weight if weight >= 0.0 else Items.weight(id) * count), false, "Вес"]]]]
+	if q >= 0:
+		groups.append(["Качество", [[UiStyle.icon("star"), "%d" % q, q < Quality.GRADES[0][0],
+			"Качество: %s (%d из %d). Влияет на прочность и скорость инструмента, тепло одежды, сытость еды" % [Quality.grade_name(q), q, Quality.MAX]]]])
 	if Items.food(id) > 0.0:
-		var food := [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id)), false, "Сытость"]]
+		var food := [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id) * k), false, "Сытость"]]
 		var keeps := Items.spoils(id)
 		if keeps > 0.0:
 			var days := "%s сут." % str(snappedf(keeps, 0.1))
 			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
 				"Свежесть: испортится за %s, в холоде и под крышей дольше" % days])
 		if Items.heal(id) > 0.0:
-			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id)), false, "Здоровье"])
+			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id) * k), false, "Здоровье"])
 		groups.append(["Еда", food])
 	if Items.drink(id) > 0.0:
-		groups.append(["Питьё", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id)), false, "Вода"]]])
+		groups.append(["Питьё", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id) * k), false, "Вода"]]])
 	if it.get("warmth", 0.0) > 0.0:
-		groups.append(["Одежда", [[ItemIcons.picture("thermo"), "+%d°" % roundi(it.warmth), false,
+		groups.append(["Одежда", [[ItemIcons.picture("thermo"), "+%d°" % roundi(it.warmth * k), false,
 			"Теплее на столько градусов, надетая; мокрая греет вполовину"]]])
 	if Items.bag_slots(id) > 0:
 		groups.append(["Сумка", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "Ячеек, надетая за спину"]]])
 	if it.get("tool", "none") != "none":
 		groups.append(["Инструмент", [[UiStyle.icon("power"), str(it.power), false, power_hint(it)],
-			[UiStyle.icon("hammer"), "%.1f с" % it.swing, false, "Удар, секунд (навык ускоряет)"],
+			[UiStyle.icon("hammer"), "%.1f с" % (it.swing / (Quality.faster(q) if q >= 0 else 1.0)), false, "Удар, секунд (навык ускоряет)"],
 			[UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"]]])
 	var shoots: String = it.get("ammo", "")
 	if shoots != "" and it.get("tool", "") == "rod":
@@ -169,7 +175,7 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 				text = "%s/%s" % [_minutes(burns * burn_left), text]
 			light.append([UiStyle.icon("light"), text, burn_left < 0.25, "Горит одна, мин:с"])
 		groups.append(["Свет", light])
-	var d: int = it.get("durability", 0)
+	var d: int = Quality.durability(it.get("durability", 0), q) if q >= 0 else it.get("durability", 0)
 	if d > 0:
 		if worn == NEW:
 			groups.append(["Ресурс", [[UiStyle.icon("shield"), str(d), false, "Ресурс: ударов до поломки"]]])
@@ -177,8 +183,8 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 			var left := maxi(0, d - worn)
 			var tip := "Ресурс: ударов до поломки"
 			if worn < 0:
-				tip += "; сделано умелой рукой: прочнее на %d%%" % roundi(-worn * 100.0 / d)
-			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], Workshop.condition(id, worn) < 0.25,
+				tip += "; запас ударов умелой руки: %d" % -worn
+			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], float(left) / d < 0.25,
 				tip]]])
 	return groups
 
