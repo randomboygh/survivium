@@ -538,9 +538,10 @@ func jump() -> bool:
 	return (Input.is_physical_key_pressed(KEY_SPACE) and not _typing()) or jump_held
 
 
-## The chat's field has the keys: they do not walk, jump or work.
+## The chat's field or a sign's has the keys: they do not walk, jump or work.
 func _typing() -> bool:
-	return game.hud != null and game.hud.chat != null and game.hud.chat.typing
+	return game.hud != null and (game.hud.chat != null and game.hud.chat.typing
+		or game.hud.sign_window != null and game.hud.sign_window.typing())
 
 
 func read_move() -> Vector2:

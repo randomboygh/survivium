@@ -83,6 +83,10 @@ const PROP_PUT_AT := "prop_put_at"
 const PROP_FIRE := "prop_fire"
 ## Opens a door or shuts it: [cell] (Placed.swing).
 const PROP_OPEN := "prop_open"
+## Writes on a sign: [cell, text] (lines joined by "\n", Placed.write).
+const SIGN_WRITE := "sign_write"
+## Turns a sign a quarter: [cell] (Placed.turn_sign).
+const SIGN_TURN := "sign_turn"
 ## Draws a shape of the blueprint with the block held, or takes the ghost off the box
 ## round it: [kind, from, to, height, thickness, erase, form] (Plans.draw; the form of
 ## the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward).

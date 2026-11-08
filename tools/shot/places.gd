@@ -29,6 +29,8 @@ var main: Node
 var wall_cells: Array = []
 ## The campfire a shot put out, to be lit again after it.
 var out_fire := {}
+## The cell of the sign written in front of the player (signs).
+var sign_cell := Vector3i.ZERO
 
 
 func flat_near(w, p: Vector3) -> Vector3:
@@ -669,6 +671,42 @@ func fences(w, at: Vector3) -> Vector3:
 		for dz in [-8, 0]:
 			main.chunks.on_cell_changed(Vector3i(spot.x + dx, y, spot.z + dz))
 	return (Vector3(spot) + Vector3(0.5, 0.0, 1.5)) * CELL
+
+
+## Signs near `at` on flat ground (decision 183): a board on a brick wall to the north, a
+## sign written south-west of it and a signpost south-east of that pointing on; the
+## sign's cell is kept in sign_cell. Returns where the player stands: by the board when
+## `near` is "board", else between the sign and the signpost (their text is read within
+## Placed.SIGN_READ cells).
+func signs(w, at: Vector3, near := "posts") -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
+	var p = main.session.placed
+	var y := spot.y
+	for x in range(spot.x - 8, spot.x + 9):
+		for z in range(spot.z - 10, spot.z + 6):
+			for dy in 6:
+				if w.get_cell(x, y + dy, z) != Mat.AIR:
+					w.set_cell(x, y + dy, z, Mat.AIR)
+			if w.get_cell(x, y - 1, z) == Mat.GRASS:
+				w.set_cell(x, y - 1, z, Mat.DIRT)
+	for x in range(spot.x - 3, spot.x + 4):
+		for dy in 3:
+			w.set_cell(x, y + dy, spot.z - 7, brick)
+	p.put("tools:notice_board", Vector3i(spot.x, y, spot.z - 6), null, true, -1.0, null, 0, false,
+		"Правила лагеря:\nне рубить у ручья\nкостёр тушить на ночь\nсундук общий")
+	sign_cell = Vector3i(spot.x - 2, y, spot.z - 1)
+	p.put("tools:sign", sign_cell, null, true, -1.0, null, 0, false, "Лагерь «Ручей»\nдобро пожаловать")
+	p.put("tools:signpost", Vector3i(spot.x + 2, y, spot.z + 2), null, true, -1.0, null, 0, false, "К озеру\n120 шагов")
+	for c: Vector3i in w.bushes.keys():
+		if c.x >= spot.x - 9 and c.x <= spot.x + 9 and c.z >= spot.z - 11 and c.z <= spot.z + 6:
+			w.remove_bush(c)
+	for dx in range(-8, 9, 8):
+		for dz in [-8, 0]:
+			main.chunks.on_cell_changed(Vector3i(spot.x + dx, y, spot.z + dz))
+	if near == "board":
+		return (Vector3(spot) + Vector3(0.5, 0.0, -3.5)) * CELL
+	return (Vector3(spot) + Vector3(0.5, 0.0, 1.0)) * CELL
 
 
 ## A shut room of brick 9×9 inside, three levels high under a roof, on flat ground near

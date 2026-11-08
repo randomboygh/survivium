@@ -88,6 +88,12 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return trap()
 		"rug":
 			return rug()
+		"sign":
+			return sign_board()
+		"signpost":
+			return signpost()
+		"notice_board":
+			return notice_board()
 	return null
 
 
@@ -578,6 +584,71 @@ static func stool() -> VoxelModel:
 			m.set_voxel(Vector3i(p.x, y, p.y), dark)
 	for x in range(2, 6):
 		m.set_voxel(Vector3i(x, 1, 6), dark * 1.1)
+	return m
+
+
+## A sign on one cell: a board of two planks across the cell, facing south, on a short
+## stake in the middle, a darker rim round the board.
+static func sign_board() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.7, 0.53, 0.33)
+	var dark := Color(0.42, 0.29, 0.17)
+	for y in 4:
+		for x in [3, 4]:
+			m.set_voxel(Vector3i(x, y, 4), dark if x == 3 else dark * 1.15)
+	for y in range(3, 8):
+		for x in 8:
+			var rim := x == 0 or x == 7 or y == 3 or y == 7
+			m.set_voxel(Vector3i(x, y, 5), dark * 1.2 if rim else wood * (0.92 if y == 5 else 1.0))
+	return m
+
+
+## A signpost on one cell: a pole a cell and a half high in the middle with a board
+## shaped as an arrow pointing east (to the right seen from the south, its front), a
+## tip of two steps.
+static func signpost() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.72, 0.55, 0.34)
+	var dark := Color(0.42, 0.29, 0.17)
+	for y in 12:
+		for x in [3, 4]:
+			for z in [3, 4]:
+				m.set_voxel(Vector3i(x, y, z), dark if (x + z) % 2 == 0 else dark * 1.15)
+	for y in range(7, 11):
+		for x in range(0, 6):
+			var rim := y == 7 or y == 10 or x == 0
+			m.set_voxel(Vector3i(x, y, 5), dark * 1.2 if rim else wood)
+	# The arrow's tip: the board's two middle rows a voxel on, then one.
+	for y in [8, 9]:
+		m.set_voxel(Vector3i(6, y, 5), dark * 1.2)
+	for y in [7, 10]:
+		m.set_voxel(Vector3i(5, y, 5), dark * 1.2)
+	m.set_voxel(Vector3i(7, 8, 5), dark * 1.2)
+	m.set_voxel(Vector3i(7, 9, 5), dark * 1.2)
+	m.set_voxel(Vector3i(6, 8, 5), wood)
+	m.set_voxel(Vector3i(6, 9, 5), wood)
+	return m
+
+
+## A board hung on a wall: against the back (north) of its cell, a plank frame round a
+## pale board with three notes pinned on it, from a voxel over the floor to the top.
+static func notice_board() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.62, 0.45, 0.27)
+	var dark := Color(0.4, 0.27, 0.15)
+	var board := Color(0.78, 0.66, 0.46)
+	var paper := Color(0.92, 0.9, 0.82)
+	for y in range(1, 8):
+		for x in 8:
+			var frame := x == 0 or x == 7 or y == 1 or y == 7
+			m.set_voxel(Vector3i(x, y, 0), dark)
+			m.set_voxel(Vector3i(x, y, 1), wood * (1.1 if y == 7 else 1.0) if frame else board)
+	for p: Vector2i in [Vector2i(1, 5), Vector2i(2, 5), Vector2i(1, 4), Vector2i(2, 4), Vector2i(4, 6), Vector2i(5, 6),
+			Vector2i(4, 5), Vector2i(5, 5), Vector2i(3, 3), Vector2i(4, 3), Vector2i(5, 3), Vector2i(3, 2), Vector2i(4, 2), Vector2i(5, 2)]:
+		m.set_voxel(Vector3i(p.x, p.y, 2), paper * (0.94 if p.y % 2 == 0 else 1.0))
+	m.set_voxel(Vector3i(1, 5, 2), Color(0.75, 0.22, 0.2))
+	m.set_voxel(Vector3i(4, 6, 2), Color(0.25, 0.4, 0.7))
+	m.set_voxel(Vector3i(4, 3, 2), Color(0.75, 0.22, 0.2))
 	return m
 
 

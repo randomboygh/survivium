@@ -1,0 +1,39 @@
+# Предметы бандла «Таблички» мода «Инструменты и крафт» (решение 183): на табличке пишут текст
+# (`sign_lines` строк по `sign_width` знаков), его видно крупно над ней в 3 клетках, касание открывает
+# окно с текстом. Писать и поворачивать может тот, кто может строить на этой земле. Табличка и
+# указатель стоят на земле и поворачиваются касанием в окне; доска вешается на стену (`wall`): спиной
+# к твёрдой клетке рядом. Поля — как у предметов основы (content/core/data/items.yaml).
+- id: sign
+  title: Табличка
+  description: Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.
+  weight: 1.0
+  stack: 10
+  icon: sign
+  model: sign
+  prop: sign
+  furniture: true
+  sign_lines: 3
+  sign_width: 20
+- id: signpost
+  title: Указатель
+  description: Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.
+  weight: 1.5
+  stack: 10
+  icon: signpost
+  model: signpost
+  prop: signpost
+  furniture: true
+  sign_lines: 2
+  sign_width: 16
+- id: notice_board
+  title: Доска на стену
+  description: Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.
+  weight: 3.0
+  stack: 5
+  icon: notice_board
+  model: notice_board
+  prop: notice_board
+  furniture: true
+  wall: true
+  sign_lines: 6
+  sign_width: 24
