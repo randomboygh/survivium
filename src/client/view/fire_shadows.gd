@@ -398,7 +398,8 @@ func _girth(foot: Vector3) -> float:
 	var species: int = game.world.trees.get(col, -1)
 	if species < 0 or species >= Trees.SPECIES.size():
 		return TRUNK_WIDTH
-	return TRUNK_WIDTH * Growth.trunk_box(species, col, 0).size.x / 6.0
+	var young := Growth.young_at(game.world, col.x, floori(foot.y / CELL), col.y)
+	return TRUNK_WIDTH * Growth.trunk_box(species, col, 0, young).size.x / 6.0
 
 
 ## The trunks of chunk `key` seen from a light at `at`: [their feet (see _base), how

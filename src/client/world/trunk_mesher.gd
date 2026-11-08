@@ -33,7 +33,8 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 	var k := 0
 	while k < 64 and w.get_cell(x, y - k - 1, z) == Mat.LOG:
 		k += 1
-	var box := PILLAR if species < 0 else Growth.trunk_box(species, col, k)
+	var young := species >= 0 and Growth.young_at(w, x, y - k, z)
+	var box := PILLAR if species < 0 else Growth.trunk_box(species, col, k, young)
 	var color := Color(1, 1, 1) if species < 0 else _bark_tone(col)
 	if species >= 0:
 		# Which cell of the trunk this is for world.gdshader, which clears a tree's trunk
@@ -55,9 +56,10 @@ static func trunk_faces(buf, w, x: int, y: int, z: int, nb: PackedByteArray, bas
 	if nb[2] == Mat.LOG:
 		top = CAP_NONE
 		if species >= 0:
-			up = Growth.trunk_box(species, col, k + 1)
+			up = Growth.trunk_box(species, col, k + 1, young)
 	var bottom := not _covers(nb[3]) and nb[3] != Mat.LOG
-	if k > 0 or species < 0:
+	# A young tree's thin stem goes straight into the ground, with no flare or roots.
+	if k > 0 or species < 0 or young:
 		_bark(buf, base, box, up, 0, 8, top, bottom, m, color, shade)
 		return
 	# The foot flares out two texels each way, then the roots.
