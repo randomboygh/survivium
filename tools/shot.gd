@@ -853,6 +853,12 @@ func _run() -> void:
 					var spot: Vector3i = camp.spot_near(main.player.position + f[1])
 					if spot.y >= 0:
 						camp.put(camp.CAMPFIRE, spot, null, true, -1.0, f[0])
+			if shot.get("own_bed", false):
+				# One's own bed a little way off: the first place to come back at.
+				var beds = main.session.placed
+				var at: Vector3i = beds.spot_near(main.player.position + Vector3(-6.0, 0.0, -4.0))
+				if at.y >= 0:
+					beds.put("tools:fur_bedroll", at, null, true, -1.0, 0)
 			main.host.player.vitals.health = 0.0
 			main.host.player.vitals.satiety = 0.0
 			main.host.player.vitals.hurt_by = "hunger"

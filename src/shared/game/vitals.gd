@@ -42,6 +42,10 @@ const SWIM_COST := 5.0
 const DROWN := 8.0
 ## Health a touch of a burning campfire takes.
 const BURN := 2.0
+## A fall from more than FALL_SAFE levels hurts FALL_PER_LEVEL health for each level past
+## them (Character._fall); water shallower than a level under the landing halves it.
+const FALL_SAFE := 4.0
+const FALL_PER_LEVEL := 15.0
 ## Below this much stamina the body is tired and walks slower.
 const TIRED := 10.0
 const TIRED_PACE := 0.7
@@ -83,6 +87,10 @@ var satiety := 80.0
 var water := 80.0
 var energy := 80.0
 var stamina := MAX
+## Health still to come back from a poultice (an item with `heal` and `heal_time`), and
+## how much of it a second: it heals whatever the hunger or the cold (see mend).
+var mending := 0.0
+var mend_rate := 0.0
 ## Asleep: energy comes back at `sleep_rate` (Character sets it: a roof, bedding).
 var asleep := false
 var sleep_rate := 1.0
@@ -98,7 +106,7 @@ var fatigue := true
 ## Whether the body feels the cold and the heat; a playtest switch turns it off (warmth
 ## stays at COMFORT, wetness still comes and goes).
 var cold := true
-## Why health went down last ("hunger", "thirst", "water", "fire", "cold", "player:<name>"), for the
+## Why health went down last ("hunger", "thirst", "water", "fire", "cold", "fall", "player:<name>"), for the
 ## message on death.
 var hurt_by := ""
 var warmth := COMFORT
@@ -125,6 +133,12 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 		_hurt(DRY_PER_DAY * days, "thirst")
 	elif satiety > WELL_FED and water >= THIRSTY and warmth >= COLD:
 		health = minf(MAX, health + HEAL_PER_DAY * days * (2.0 if asleep else 1.0))
+	if mending > 0.0:
+		var got := minf(mending, mend_rate * delta)
+		mending -= got
+		health = minf(MAX, health + got)
+		if health >= MAX:
+			mending = 0.0
 	if swimming and fatigue:
 		stamina = maxf(0.0, stamina - SWIM_COST * delta)
 		if stamina <= 0.0:
@@ -246,6 +260,24 @@ func heal(amount: float) -> bool:
 	return true
 
 
+## Starts giving back `amount` health over `seconds` (a poultice); false when not hurt
+## or while one is still at work.
+func mend(amount: float, seconds: float) -> bool:
+	if health >= MAX - 0.5 or mending > 0.0 or amount <= 0.0:
+		return false
+	mending = amount
+	mend_rate = amount / maxf(seconds, 0.001)
+	return true
+
+
+## A fall of `levels` levels hurts past FALL_SAFE, half as much into shallow water
+## (`soft`); returns the health it took.
+func fall(levels: float, soft := false) -> float:
+	var hurt := maxf(0.0, levels - FALL_SAFE) * FALL_PER_LEVEL * (0.5 if soft else 1.0)
+	_hurt(hurt, "fall")
+	return hurt
+
+
 ## The pace the body allows: slower when tired or with no energy left.
 func speed_factor() -> float:
 	return TIRED_PACE if stamina < TIRED or energy <= 0.0 else 1.0
@@ -278,11 +310,13 @@ func revive(share: float) -> void:
 	asleep = false
 	warmth = maxf(warmth, COMFORT)
 	wet = 0.0
+	mending = 0.0
 	hurt_by = ""
 
 
 func to_dict() -> Dictionary:
-	return {"health": health, "satiety": satiety, "water": water, "energy": energy, "stamina": stamina, "warmth": warmth, "wet": wet}
+	return {"health": health, "satiety": satiety, "water": water, "energy": energy, "stamina": stamina, "warmth": warmth, "wet": wet,
+		"mending": mending, "mend_rate": mend_rate}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -293,3 +327,5 @@ func from_dict(d: Dictionary) -> void:
 	stamina = clampf(float(d.get("stamina", MAX)), 0.0, MAX)
 	warmth = clampf(float(d.get("warmth", COMFORT)), 0.0, MAX)
 	wet = clampf(float(d.get("wet", 0.0)), 0.0, 1.0)
+	mending = clampf(float(d.get("mending", 0.0)), 0.0, MAX)
+	mend_rate = maxf(0.0, float(d.get("mend_rate", 0.0)))

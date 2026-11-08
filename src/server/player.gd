@@ -190,8 +190,8 @@ func say(text: String) -> void:
 	said.emit(text)
 
 
-func lay(kind: String, data: Variant) -> Vector3:
-	var p := super.lay(kind, data)
+func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
+	var p := super.lay(kind, data, until)
 	laid.emit(WorldData.chunk_key(floori(p.x / CELL), floori(p.z / CELL)))
 	return p
 
@@ -207,6 +207,7 @@ func teleport(to: Vector3) -> void:
 	_strikes = 0
 	_claim_at = -1.0
 	body.velocity_y = 0.0
+	forget_fall()
 	moved.emit(to)
 
 

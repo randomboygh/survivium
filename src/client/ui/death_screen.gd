@@ -191,6 +191,12 @@ func update() -> void:
 			_fit()
 
 
+## «2 суток», «1 сутки», «5 суток» for `days` game days.
+static func _days_text(days: float) -> String:
+	var n := maxi(1, roundi(days))
+	return "%d %s" % [n, "сутки" if n % 10 == 1 and n % 100 != 11 else "суток"]
+
+
 ## Puts the death of the character on the screen.
 func _fill() -> void:
 	var character = game.character
@@ -219,7 +225,8 @@ func _fill() -> void:
 		_note.text = "Ничего: сумка была пуста"
 	else:
 		_sack.text = "Мешок с вещами %s" % _where(death.get("sack"), points[0])
-		_note.text = "Он светится и ждёт там, где вы упали, пока его не заберут"
+		var days := float(death.get("sack_days", CharacterScript.SACK_DAYS))
+		_note.text = "Он светится и ждёт там, где вы упали, %s, потом пропадёт" % _days_text(days)
 	for c in _respawn.get_children():
 		c.queue_free()
 		_respawn.remove_child(c)

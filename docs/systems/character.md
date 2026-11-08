@@ -9,7 +9,19 @@
 
 **Файлы**
 - `src/shared/game/character.gd` — правила персонажа (`in_hands`, `act`, `give`, `eat`, `wear`, `take_off`, `throw_away`,
-  `die`, `revive`, `respawn_points` (с `find_respawns`: свои и командные костры, `docs/systems/territory.md`), `to_dict` / `from_dict`); сигнал `state_changed`.
+  `die`, `revive`, `respawn_points` (с `find_respawns`: последняя своя кровать — возрождение лёжа в ней, `Placed.lying_spot`, — затем свои и командные костры, `docs/systems/territory.md`), `to_dict` / `from_dict`); сигнал `state_changed`.
+  Мешок смерти лежит `SACK_DAYS` (2) игровых суток: пятое поле его записи в `WorldData.drops` — день
+  (`Clock.now`), когда он пропадёт; `WorldActions.expire_sacks` (шаг сеанса раз в `Session.SACK_CHECK` с)
+  убирает его с вещами из загруженных чанков (в забытом чанке — когда тот загрузится), а `sack_ends`
+  персонажа (рядом с `sacks`, в сохранении; у старых мешков — навсегда) снимают метку с карт и без чанка
+  (`_forget_old_sacks`, `forget_sack`). Мешок, забранный не целиком, свой день сохраняет. Экран смерти пишет,
+  сколько он пролежит (`death.sack_days`).
+  Урон от падения (`_fall` в `update`): высота считается от уровня, где ноги последний раз стояли
+  (`Body.standing` — у мира по месту, которое прислал клиент, а не по его слову; прыжок не добавляет),
+  больше `Vitals.FALL_SAFE` (4) уровней — `FALL_PER_LEVEL` за каждый сверх (`Vitals.fall`, `hurt_by`
+  "fall", «Вы разбились»); вода под местом приземления в 2 клетки и глубже гасит падение, в одну — вдвое
+  (`Body.water_under`). Скачок вниз быстрее любого падения (телепорт), «прыжки в воздухе» теста и
+  `forget_fall` (возрождение, `Player.teleport`) начинают счёт заново.
 - `src/shared/game/inventory.gd` — сумка: `SLOTS` 16 (`base`), первые `HOTBAR` 8 — панель внизу; стопки, вес
   (40 кг без замедления), сортировка, перенос в сундук, износ (`wear_tool`, `mend`); сигнал `changed`.
   Порча еды (`spoil(days, rate)`): у еды с `spoils` (игровые сутки) в третьем поле ячейки — насколько
@@ -44,6 +56,9 @@
   выспавшись днём, от раны или в воде. Пока спят все, ночь идёт в `Session.SLEEP_SPEED` раз быстрее.
   `fatigue` выкл — тестовый переключатель «Усталость»: энергия не убывает, работа и плавание не тратят
   силы (`spend`, `can`), утонуть нельзя.
+  Припарка (`heal` с `heal_time`, «Растения» бандл `plants/moss`: мох и бинт у костра): `Vitals.mend`
+  возвращает её здоровье понемногу за `heal_time` секунд (`mending`, `mend_rate`, в сохранении) — и
+  голодному, и замёрзшему; вторая не кладётся, пока лечит первая. Бинт (`heal` без `heal_time`) лечит сразу.
   Вода `water` убывает на `THIRST_PER_DAY` в игровые сутки (в жару в `THIRST_HOT` раз быстрее); ниже
   `THIRSTY` — как голод (нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`), на нуле
   ранит (`hurt_by` "thirst", «Вы умерли от жажды»). `drink(amount)`; `thirst` выкл — тестовый
@@ -129,7 +144,7 @@
 Выносливость (`Vitals`): работа ценой от `WORK_COST` делает тело занятым на `BUSY` секунд, отдых в это время — `WORK_REST` от
 `REST`: силы тратятся на работу, не на время (стальной топор утомляет за 15 с подряд, каменный — за 88, руки в земле — никогда).
 
-**Данные.** Предметы (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `bedding`, `warmth`, `heal`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`; у еды `heal` и `drink` — сверх сытости: жареное немного лечит и поит, `Character.eat`); существо
+**Данные.** Предметы (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `bedding`, `warmth`, `heal`, `heal_time`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`; у еды `heal` и `drink` — сверх сытости: жареное немного лечит и поит, `Character.eat`); существо
 `core:human`; одежда на фигуре — `Figure.dressed(gear)`: голые слои `player.yaml` `naked` (тело,
 набедренная повязка, волосы), между ними картинки надетого `sprites/worn/<look>.png` бандла вещи (поле
 `look`): ноги, обувь, тело под волосами, голова поверх; рисует их `tools/make_sprites.gd` (`WORN`: форма
@@ -142,7 +157,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/skills_test.gd` (уровни, опыт за работу, крафт, земля), `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`), `actions_test.gd` (`drinking`),
+**Тесты.** `tests/unit/skills_test.gd` (уровни, опыт за работу, крафт, земля), `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`, `fall`, `sack_ends`, `bed_respawn`, `poultice`), `actions_test.gd` (`drinking`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

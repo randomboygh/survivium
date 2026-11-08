@@ -23,11 +23,11 @@
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
 - `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hide_clothes` Одежда из шкур, `tools/hoe` Тяпка, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sickle` Серп, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/watering_can` Лейка, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
 
-## Предметы (`items`, 199)
+## Предметы (`items`, 200)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 14 | ок |
+| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 15 | ок |
 | `core:rot` | Гниль | Материалы |  | `core` | 0. Выживание без инструментов | 0 / 23 | предупреждения: 1 |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 5 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
@@ -56,8 +56,9 @@
 | `plants:turnip` | Репа | Еда | Круглый сладковатый корнеплод. Лежит долго. | `plants/turnip` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0. Выживание без инструментов | 0 / 22 | ок |
 | `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 45 | ок |
-| `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
+| `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 3 | ок |
+| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
+| `plants:poultice` | Припарка | Лечение | Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему. | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
 | `resources:peat` | Торф | Блоки |  | `resources/peat` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:salt` | Соль | Блоки |  | `resources/salt` | 0. Выживание без инструментов | 1 / 1 | ок |
 | `resources:snow` | Снег | Блоки |  | `resources/snow` | 0. Выживание без инструментов | 1 / 1 | ок |
@@ -227,13 +228,14 @@
 | `tools:window_2x2` | Окно 2×2 | Станки | Большое окно со стеклом, на две клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 | `tools:window_3x2` | Окно 3×2 | Станки | Окно во всю стену, на три клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 145)
+## Рецепты (`recipes`, 146)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
 | `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 3 / 0 | ок |
 | `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 0. Выживание без инструментов | 2 / 0 | ок |
 | `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 3 / 0 | ок |
+| `plants:poultice` | Припарка | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 4 / 0 | ок |
 | `resources:campfire` | Костёр | Станки |  | `resources/wood` | 0. Выживание без инструментов | 3 / 0 | ок |
 | `animals:roasted_fish_from_roach` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
 | `animals:roasted_fish_from_pike` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |

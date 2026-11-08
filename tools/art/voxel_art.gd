@@ -201,6 +201,8 @@ static func drop(model: String) -> VoxelModel:
 			return _moss()
 		"bandage":
 			return _bandage()
+		"poultice":
+			return _poultice()
 		"coconut":
 			return _coconut()
 		"roach":
@@ -1310,6 +1312,19 @@ static func _bandage() -> VoxelModel:
 				m.set_voxel(Vector3i(x, y, z), cloth * (0.85 if x == -2 or x == 1 else 1.0))
 	m.set_voxel(Vector3i(2, 0, 0), cloth * 0.9)
 	m.set_voxel(Vector3i(3, 0, 0), cloth * 0.9)
+	return m
+
+
+## A poultice: a flat pad of cloth with green moss showing on top.
+static func _poultice() -> VoxelModel:
+	var m := VoxelModel.new()
+	var cloth := Color(0.9, 0.87, 0.78)
+	var moss := Color(0.3, 0.46, 0.18)
+	for x in range(-2, 2):
+		for z in range(-2, 2):
+			m.set_voxel(Vector3i(x, 0, z), cloth * (0.85 if (x + z) % 2 == 0 else 1.0))
+			var edge := x == -2 or x == 1 or z == -2 or z == 1
+			m.set_voxel(Vector3i(x, 1, z), cloth * 0.92 if edge else moss * (1.2 if (x * 3 + z) % 2 == 0 else 1.0))
 	return m
 
 

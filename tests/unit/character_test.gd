@@ -15,6 +15,10 @@ func run() -> void:
 	_test_sleep()
 	_test_changes()
 	_test_death()
+	_test_fall()
+	_test_sack_ends()
+	_test_bed_respawn()
+	_test_poultice()
 
 
 func _test_inventory() -> void:
@@ -615,3 +619,180 @@ func _test_spoil() -> void:
 	var tiny := Inventory.new()
 	tiny.add(meat, 1)
 	_check(not tiny.spoil(Inventory.SPOIL_STEP * 0.5) and tiny.freshness(0) == 1.0, "a moment is gathered, not put on at once")
+
+
+## A fall past Vitals.FALL_SAFE levels hurts by its height from the ground last stood on,
+## a jump does not add to it, deep water takes it all and shallow water half, and a
+## teleport or a new life starts the count again.
+func _test_fall() -> void:
+	var w := WorldData.new(16, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	for y in range(1, 9):
+		w.set_cell(2, y, 2, Mat.STONE)
+	w.set_cell(12, 1, 12, Mat.WATER)
+	for y in range(1, 3):
+		w.set_cell(12, y, 2, Mat.WATER)
+	var ch := Survivor.new()
+	ch.world = w
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.body.world = w
+	var drop := func(from: Vector3, to: Vector3) -> float:
+		ch.vitals.health = Vitals.MAX
+		ch.forget_fall()
+		ch.at = from * WorldData.CELL
+		ch.update(0.05)
+		# Off the edge and over in short steps, then down a level a step, as a body
+		# falls (not a teleport).
+		var over := Vector3(to.x, from.y, to.z)
+		for k in range(1, 21):
+			ch.at = from.lerp(over, k / 20.0) * WorldData.CELL
+			ch.update(0.05)
+		var y := from.y
+		while y > to.y:
+			y = maxf(to.y, y - 1.0)
+			ch.at = Vector3(to.x, y, to.z) * WorldData.CELL
+			ch.update(0.05)
+		ch.update(0.05)
+		return Vitals.MAX - ch.vitals.health
+	_check(drop.call(Vector3(2.5, 5.0, 2.5), Vector3(4.5, 1.0, 4.5)) == 0.0, "a fall of 4 levels does not hurt")
+	var hurt: float = drop.call(Vector3(2.5, 9.0, 2.5), Vector3(4.5, 1.0, 4.5))
+	_check(absf(hurt - (8.0 - Vitals.FALL_SAFE) * Vitals.FALL_PER_LEVEL) < 0.5 and ch.vitals.hurt_by == "fall",
+		"a fall of 8 levels hurts for the 4 past the safe 4 (%.0f)" % hurt)
+	_check(drop.call(Vector3(2.5, 9.0, 2.5), Vector3(12.5, 1.0, 2.5)) == 0.0, "deep water takes the whole fall")
+	var soft: float = drop.call(Vector3(2.5, 9.0, 2.5), Vector3(12.5, 1.0, 12.5))
+	_check(absf(soft - hurt * 0.5) < 0.5, "shallow water takes half of it (%.0f)" % soft)
+	ch.vitals.health = Vitals.MAX
+	ch.forget_fall()
+	ch.at = Vector3(2.5, 9.0, 2.5) * WorldData.CELL
+	ch.update(0.05)
+	ch.at = Vector3(4.5, 1.0, 4.5) * WorldData.CELL
+	ch.update(0.05)
+	_check(ch.vitals.health == Vitals.MAX, "a teleport down is no fall")
+	ch.at = Vector3(4.5, 1.0, 4.5) * WorldData.CELL
+	ch.update(0.05)
+	ch.at = Vector3(4.5, 2.4, 4.5) * WorldData.CELL
+	ch.update(0.05)
+	ch.at = Vector3(4.5, 1.0, 4.5) * WorldData.CELL
+	ch.update(0.05)
+	_check(ch.vitals.health == Vitals.MAX, "a jump on flat ground is no fall")
+	ch.vitals.health = 10.0
+	ch.forget_fall()
+	ch.at = Vector3(2.5, 9.0, 2.5) * WorldData.CELL
+	ch.update(0.05)
+	for y in range(8, 0, -1):
+		ch.at = Vector3(4.5, float(y), 4.5) * WorldData.CELL
+		ch.update(0.05)
+	_check(ch.is_dead() and ch.death.cause == "fall" and Survivor.cause_text("fall")[0] == "Вы разбились",
+		"a long fall kills, and the death screen says so")
+
+
+## A death's sack lies Character.SACK_DAYS game days and is then gone from the ground
+## and from the maps; its day is kept in the save and stays when part of it is taken.
+func _test_sack_ends() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var ch := Survivor.new()
+	ch.world = w
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.at = Vector3(5.5, 1.0, 5.5) * WorldData.CELL
+	ch.give("resources:branch", 3)
+	ch.vitals.satiety = 0.0
+	ch.vitals.health = 0.0
+	ch.update(0.1)
+	var key := WorldData.chunk_key(5, 5)
+	var sack: Array = w.drops[key][0]
+	var start: float = ch.clock.now()
+	_check(sack[0] == Items.SACK and sack.size() == 5 and is_equal_approx(sack[4], start + Survivor.SACK_DAYS)
+		and ch.sack_ends.size() == 1, "a death's sack knows the day it is gone")
+	_check(ch.death.sack_days == Survivor.SACK_DAYS, "the death screen is told how long it lies")
+	var again := Survivor.new()
+	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
+	_check(again.sack_ends.size() == 1 and is_equal_approx(again.sack_ends[0], ch.sack_ends[0]), "the day is kept in the save")
+	var old := Survivor.new()
+	old.from_dict({"sacks": [[1.0, 2.0, 3.0]]})
+	_check(old.sacks.size() == 1 and old.sack_ends == [INF], "a sack of an old save stays")
+	var acts := WorldActions.new(w, ch.clock, Rules.new())
+	acts.expire_sacks(start + 1.0, [ch])
+	_check(w.drops.get(key, []).has(sack) and ch.sacks.size() == 1, "after a day the sack still lies")
+	ch.revive(Vector3(5.5, 1.0, 5.5) * WorldData.CELL)
+	for i in 40:
+		if ch.inventory.room_for("resources:branch") == 0:
+			break
+		ch.inventory.add("resources:stone", 20)
+	ch.inventory.add("resources:branch", Items.get_item("resources:branch").stack - 1)
+	ch.at = sack[1]
+	acts.pick_up_near(ch)
+	var rest: Array = w.drops.get(key, [[""]])[0]
+	_check(ch.sacks.size() == 1 and rest[0] == Items.SACK and rest.size() == 5 and rest[4] == sack[4],
+		"a sack taken in part keeps its day")
+	var changed := []
+	acts.drops_changed.connect(func(k: Vector2i) -> void: changed.append(k))
+	acts.expire_sacks(start + Survivor.SACK_DAYS + 0.01, [ch])
+	_check(w.drops.get(key, []).is_empty() and ch.sacks.is_empty() and ch.sack_ends.is_empty() and changed == [key],
+		"after two days the sack is gone, and the maps forget it")
+	var other := Survivor.new()
+	other.clock = ch.clock
+	other.sacks.append(Vector3.ONE)
+	other.sack_ends.append(start)
+	other.vitals.health = Vitals.MAX
+	other.world = w
+	other.body = Body.new()
+	other._forget_old_sacks()
+	_check(other.sacks.is_empty(), "a sack in a chunk not made is forgotten by the maps on its day too")
+
+
+## Coming back after death: at the last bed the character set down, lying in it, before
+## their fire and the spawn's campfire; a bed of someone else is not theirs.
+func _test_bed_respawn() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var camp := Placed.new()
+	camp.world = w
+	camp.read_footprints()
+	var ch := Survivor.new()
+	ch.world = w
+	ch.placed = camp
+	ch.home = Vector3(1.0, 1.0, 1.0)
+	camp.put("core:campfire", Vector3i(2, 1, 2), null, true, -1.0, 0)
+	camp.put("tools:fur_bedroll", Vector3i(10, 1, 10), null, true, -1.0, 7)
+	ch.find_respawns(camp, null)
+	_check(ch.respawn_points()[0][0] == "У своего костра", "with no bed of their own they come back at their fire")
+	var bed: Dictionary = camp.put("tools:fur_bedroll", Vector3i(8, 1, 8), null, true, -1.0, 0)
+	_check(ch.find_respawns(camp, null) and ch.respawn_points()[0][0] == "У своей кровати"
+		and ch.respawn_points()[0][1] == camp.lying_spot(bed) and ch.respawn_points()[1][0] == "У своего костра"
+		and ch.respawn_points().back()[0] == "У костра старта", "their bed comes first, lying in it")
+
+
+## A poultice gives its health back over its time, even hungry, one at a time; a bandage
+## at once.
+func _test_poultice() -> void:
+	_check(Items.has("plants:poultice") and Items.heal_time("plants:poultice") > 0.0 and Items.heal_time("plants:bandage") == 0.0,
+		"the poultice heals over time, the bandage at once")
+	var ch := Survivor.new()
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.vitals.health = 20.0
+	ch.vitals.satiety = 0.0
+	ch.vitals.hunger = false
+	ch.give("plants:poultice", 2)
+	var slot := ch.inventory.slots.find(ch.inventory.slots.filter(func(s: Variant) -> bool: return s != null)[0])
+	_check(ch.eat(slot) and ch.inventory.count("plants:poultice") == 1 and ch.vitals.health == 20.0,
+		"a poultice put on does not heal at once")
+	_check(not ch.eat(slot) and ch.inventory.count("plants:poultice") == 1, "a second waits for the first to finish")
+	var heal := Items.heal("plants:poultice")
+	var t := Items.heal_time("plants:poultice")
+	ch.vitals.step(t * 0.5, 0.0, false)
+	_check(absf(ch.vitals.health - (20.0 + heal * 0.5)) < 0.5, "half its time gives half its health back, hungry too")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(ch.vitals.to_dict())))
+	_check(is_equal_approx(copy.mending, ch.vitals.mending), "what a poultice has left is kept in the save")
+	ch.vitals.step(t, 0.0, false)
+	_check(absf(ch.vitals.health - (20.0 + heal)) < 0.5 and ch.vitals.mending == 0.0, "and then it is done")

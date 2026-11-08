@@ -5,3 +5,9 @@
   makes: bandage
   needs: {moss: 2, resources:fiber: 2}
   time: 3
+- id: poultice
+  title: Припарка
+  makes: poultice
+  needs: {moss: 3, bandage: 1}
+  at: core:campfire
+  time: 4

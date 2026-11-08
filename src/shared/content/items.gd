@@ -251,6 +251,11 @@ static func heal(id: String) -> float:
 	return get_item(id).get("heal", 0.0)
 
 
+## Seconds over which item `id` gives its `heal` back (a poultice), 0 for at once.
+static func heal_time(id: String) -> float:
+	return get_item(id).get("heal_time", 0.0)
+
+
 ## The kind of item `id` (a key of CATEGORIES): something worn, a tool, a light, a thing set down in the world,
 ## food, something planted or sown, a block, else a material. The one place that
 ## decides it, so a `category` field of the data can take over here when items need
