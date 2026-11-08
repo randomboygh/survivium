@@ -251,7 +251,7 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 				world.take_drop(key, i)
 				var rest := _take(who, d, most)
 				if not rest.is_empty():
-					world.add_drop(rest[0], rest[1], rest[2], rest[3])
+					world.add_drop(rest[0], rest[1], rest[2], rest[3], rest[4] if rest.size() > 4 else -1.0)
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
 					taken.emit(d[0], d[1], who)
 				took = true
@@ -273,10 +273,32 @@ static func _wanted(inv, id: String, mode: int) -> bool:
 ## The sack at `at` was taken whole by `who`: if it was theirs, their maps no longer
 ## mark it.
 static func _forget_sack(who, at: Vector3) -> void:
+	if who.has_method("forget_sack"):
+		who.forget_sack(at)
+		return
 	var sacks: Array[Vector3] = who.sacks
 	for i in range(sacks.size() - 1, -1, -1):
 		if sacks[i].distance_to(at) < 0.01:
 			sacks.remove_at(i)
+
+
+## The sacks of deaths whose day (the fifth of a drop, Character.SACK_DAYS) is past by
+## `now` (Clock.now) are gone from the ground with what they hold, in the chunks the
+## world holds (one forgotten keeps its sack until it is made again); the maps of
+## `players` no longer mark them.
+func expire_sacks(now: float, players: Array) -> void:
+	for key: Vector2i in world.drops.keys():
+		var list: Array = world.drops[key]
+		var gone := false
+		for i in range(list.size() - 1, -1, -1):
+			var d: Array = list[i]
+			if d[0] == Items.SACK and d.size() > 4 and (d[4] is float or d[4] is int) and d[4] <= now:
+				world.take_drop(key, i)
+				for who in players:
+					_forget_sack(who, d[1])
+				gone = true
+		if gone:
+			drops_changed.emit(key)
 
 
 ## How many of `id` the bag `inv` can take before its weight passes its limit.
@@ -318,7 +340,7 @@ func pick_up(who, key: Vector2i, i: int) -> bool:
 		if not rest.is_empty():
 			left.append(rest)
 	for d: Array in left:
-		world.add_drop(d[0], d[1], d[2], d[3])
+		world.add_drop(d[0], d[1], d[2], d[3], d[4] if d.size() > 4 else -1.0)
 	drops_changed.emit(key)
 	return took
 
@@ -335,7 +357,7 @@ func _take(who, d: Array, most := -1) -> Array:
 		who.say("Вещи из мешка забраны" if rest.is_empty() else "Забрано не всё: сумка полна")
 		if rest.is_empty():
 			_forget_sack(who, d[1])
-		return [] if rest.is_empty() else [d[0], d[1], d[2], rest]
+		return [] if rest.is_empty() else [d[0], d[1], d[2], rest] + d.slice(4)
 	var n := count(d)
 	var worn: int = d[3].get("worn", 0) if d.size() > 3 and d[3] is Dictionary else 0
 	var got: int = who.give(Items.get_item(d[0]).get("id", d[0]), n if most < 0 else mini(n, most), worn)

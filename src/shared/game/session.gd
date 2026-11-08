@@ -44,6 +44,9 @@ const PAUSE_ZONE := ZONE + 2
 const DROP := ZONE + 4
 ## Chunks forgotten in one call of forget_far at most.
 const DROPS_PER_CALL := 4
+## Seconds between looks for the sacks of deaths whose time is up (expire_sacks).
+const SACK_CHECK := 2.0
+var _sack_wait := 0.0
 
 var world
 ## The layout of the land (WorldGen), for the biomes; null when any ground will do.
@@ -187,7 +190,8 @@ func step_players(delta: float) -> void:
 
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step);
 ## the beds get wet and dry, their crops grow (WorldActions.step_fields);
-## the fishing lines in the water (Fishing.step).
+## the fishing lines in the water (Fishing.step); the sacks of deaths are gone after
+## Character.SACK_DAYS (WorldActions.expire_sacks).
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	var rain: float = clock.WEATHERS[clock.weather].get("rain", 0.0)
@@ -196,6 +200,10 @@ func step_things(delta: float) -> void:
 	fishing.step(d)
 	territory.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
+	_sack_wait -= d
+	if _sack_wait <= 0.0:
+		_sack_wait = SACK_CHECK
+		actions.expire_sacks(clock.now(), players)
 
 
 ## The animals: those on a player's screen move every step, the rest now and then

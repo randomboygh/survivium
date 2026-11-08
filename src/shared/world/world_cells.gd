@@ -108,8 +108,9 @@ var blockers := {}
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
 ## see Items) or Items.SACK; `data` is how many items for an item ({"n", "worn"} for a
-## worn tool, see Inventory), the stacks ([[id, count]...]) for a sack. A chunk with any
-## is kept as an edited one.
+## worn tool, see Inventory), the stacks ([[id, count]...]) for a sack. A sack of a death
+## has a fifth: the game day (Clock.now) it is gone (WorldActions.expire_sacks). A chunk
+## with any is kept as an edited one.
 var drops := {}
 ## Columns walked over in the snow: the time (Clock.now) a body last left each one,
 ## by Vector2i(x, z), so a trail is easier to walk (see Body). Not saved: snow
@@ -578,8 +579,8 @@ func add_bush(cell: Vector3i, type: int) -> void:
 
 
 ## Lays a thing of `kind` on the ground at `pos` (world units), turned by `angle`;
-## `data` is how many (see drops).
-func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1) -> void:
+## `data` is how many (see drops); `until`, when not below 0, the day it is gone.
+func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1, until := -1.0) -> void:
 	var x := floori(pos.x / CELL)
 	var z := floori(pos.z / CELL)
 	var c := chunk_at(x, z)
@@ -589,7 +590,7 @@ func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1) -> vo
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if not drops.has(key):
 		drops[key] = []
-	drops[key].append([kind, pos, angle, data])
+	drops[key].append([kind, pos, angle, data] if until < 0.0 else [kind, pos, angle, data, until])
 
 
 ## Lays `n` items `kind` at `pos` like add_drop, onto a heap of the same kind lying

@@ -28,6 +28,8 @@ const JUMP_SPEED := 11.3
 const MAX_FALL := 30.0
 ## Cells below the feet a falling body counts as on the ground already (see step).
 const LAND_EPS := 0.002
+## How far under the feet `standing` looks for ground, in cells.
+const STAND_PROBE := 0.1
 ## Walking into a wall with the middle of the body this close to the middle of a gap of
 ## one cell beside it slides the body sideways into line with the gap.
 const ASSIST := 0.35
@@ -374,6 +376,31 @@ func _water_surface(p: Vector3) -> float:
 	while world.get_cell(x, y + 1, z) == Mat.WATER:
 		y += 1
 	return y + (WorldData.WATER_TOP if world.get_cell(x, y + 1, z) == Mat.AIR else 1.0)
+
+
+## True if the body with its feet at `at` (world units) stands on something: a hair
+## lower it would be inside it (Character._fall asks it of where the client says it is).
+## A chunk not made yet under any part of it holds the body up without being ground:
+## that is not standing.
+func standing(at: Vector3) -> bool:
+	var p := at / CELL
+	for z in [floori(p.z - HALF_DEPTH), floori(p.z + HALF_DEPTH)]:
+		for x in [floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH)]:
+			if world.chunk_at(x, z) == null:
+				return false
+	return _collides(Vector3(p.x, p.y - STAND_PROBE, p.z))
+
+
+## How many cells of water are at and under the feet at `at` (world units): 0 out of
+## water, at most `most`.
+func water_under(at: Vector3, most := 2) -> int:
+	var x := floori(at.x / CELL)
+	var y := floori(at.y / CELL + 0.001)
+	var z := floori(at.z / CELL)
+	var n := 0
+	while n < most and world.get_cell(x, y - n, z) == Mat.WATER:
+		n += 1
+	return n
 
 
 ## True if the body standing at `at` (world units) would be inside something solid.

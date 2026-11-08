@@ -56,6 +56,7 @@ const SCHEMAS := {
 		"stack": {"type": "int", "min": 1},
 		"food": {"type": "float", "min": 0.0, "default": 0.0},
 		"heal": {"type": "float", "min": 0.0, "default": 0.0},
+		"heal_time": {"type": "float", "min": 0.0, "default": 0.0},
 		"place": {"type": "ref:materials", "default": "", "rel": "builds", "via": "place"},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},

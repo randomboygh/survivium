@@ -196,6 +196,17 @@ const BURN_WARN := 20.0
 const BURN_TELL := 5.0
 ## Seconds of one step of the body (Vitals.step) within a longer frame.
 const VITALS_STEP := 0.05
+## Game days a death's sack lies before it is gone with what it holds (plan/design/
+## character.md «Смерть»: 2 days, about 80 minutes).
+const SACK_DAYS := 2.0
+## When each of `sacks` is gone, in game days (Clock.now), in the same order; INF for a
+## sack of an old save (it stays).
+var sack_ends: Array[float] = []
+## The level (cells) the feet last stood on, for the height of a fall (_fall); -INF
+## before the body has stood anywhere since it came (a new life, a teleport).
+var _ground_y := -INF
+## Where the feet were at the last update, in cells; INF before the first.
+var _prev_y := INF
 
 
 func _init() -> void:
@@ -290,8 +301,65 @@ func update(delta: float) -> void:
 	if placed != null and _burn_wait <= 0.0:
 		_touch_fire(p)
 	_burn_light(delta)
+	_fall(p, delta, stride >= STRIDE_MAX)
+	_forget_old_sacks()
 	if vitals.is_dead():
 		die()
+
+
+## A body that lands more than Vitals.FALL_SAFE levels below where it last stood is hurt
+## (Vitals.fall): measured from the ground, not from the top of a jump; deep water under
+## the landing takes the whole fall, shallow water half. What the body stands on is
+## asked of the world at the place the client told (Body.standing), not of the client's
+## word. A drop faster than any fall or a step longer than any stride (`leapt`: a
+## teleport, the test page's «перейти») or the playtest's jumps in the air start the
+## count again.
+func _fall(p: Vector3, delta: float, leapt := false) -> void:
+	if body == null or body.world == null:
+		return
+	var y := p.y / CELL
+	var prev := _prev_y
+	_prev_y = y
+	if leapt or body.air_jumps or not is_finite(prev) or prev - y > body.MAX_FALL * delta + 1.0:
+		_ground_y = -INF
+	var water: int = body.water_under(p)
+	if water == 0 and not body.standing(p):
+		return
+	var levels := _ground_y - y
+	_ground_y = y
+	if levels <= vitals.FALL_SAFE or water >= 2:
+		return
+	var hurt: float = vitals.fall(levels, water == 1)
+	if hurt > 0.0:
+		note("falls")
+		say("Падение с высоты: −%d здоровья" % roundi(hurt))
+
+
+## The sacks whose SACK_DAYS have passed are no longer marked on the maps (the world
+## takes them off the ground where it holds their chunk, WorldActions.expire_sacks).
+func _forget_old_sacks() -> void:
+	if clock == null or sacks.is_empty():
+		return
+	var now: float = clock.now()
+	var gone := false
+	for i in range(sacks.size() - 1, -1, -1):
+		if i < sack_ends.size() and sack_ends[i] <= now:
+			sacks.remove_at(i)
+			sack_ends.remove_at(i)
+			gone = true
+	if gone:
+		state_changed.emit()
+
+
+## The sack lying at `at` is gone (taken back whole, or its time is up): the maps no
+## longer mark it.
+func forget_sack(at: Vector3) -> void:
+	for i in range(sacks.size() - 1, -1, -1):
+		if sacks[i].distance_to(at) < 0.01:
+			sacks.remove_at(i)
+			if i < sack_ends.size():
+				sack_ends.remove_at(i)
+			state_changed.emit()
 
 
 ## The body warms or cools towards what the air feels like where it stands (Warmth):
@@ -383,6 +451,17 @@ func eat(i: int) -> bool:
 	var s = inventory.slots[i]
 	if s == null:
 		return false
+	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0 and Items.heal_time(s[0]) > 0.0:
+		if vitals.mending > 0.0:
+			nag("mending", "Припарка ещё лечит")
+			return false
+		if not vitals.mend(Items.heal(s[0]), Items.heal_time(s[0])):
+			nag("not_hurt", "Здоровье и так полное")
+			return false
+		inventory.take_slot(i, 1)
+		note("healed")
+		say("+%d здоровья за %d с" % [roundi(Items.heal(s[0])), roundi(Items.heal_time(s[0]))])
+		return true
 	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		if not vitals.heal(Items.heal(s[0])):
 			nag("not_hurt", "Здоровье и так полное")
@@ -501,11 +580,12 @@ func throw_away(i: int, n: int) -> void:
 
 ## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
 ## sack's stacks, or {"n", "worn"} for a worn tool) at the feet; returns where.
-func lay(kind: String, data: Variant) -> Vector3:
+## A sack lies until `until` (game days, Clock.now; below 0: for ever).
+func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
 	var p := position
 	var h: float = world.ground_height(p.x / CELL, p.z / CELL)
 	var at := Vector3(p.x, h * CELL if h >= 0.0 else p.y, p.z)
-	world.add_drop(kind, at, randf() * TAU, data)
+	world.add_drop(kind, at, randf() * TAU, data, until)
 	return at
 
 
@@ -516,8 +596,10 @@ func die() -> void:
 	var stacks := inventory.take_all()
 	var sack: Variant = null
 	if not stacks.is_empty():
-		sack = lay(Items.SACK, stacks)
+		var ends: float = clock.now() + SACK_DAYS
+		sack = lay(Items.SACK, stacks, ends)
 		sacks.append(sack)
+		sack_ends.append(ends)
 	var lived := maxf(0.0, _now() - born) if born >= 0.0 else 0.0
 	deaths += 1
 	fell_at = at
@@ -532,6 +614,7 @@ func die() -> void:
 		"time": clock.time_of_day,
 		"at": [at.x, at.y, at.z],
 		"sack": [sack.x, sack.y, sack.z] if sack is Vector3 else null,
+		"sack_days": SACK_DAYS,
 		"lost": stacks.map(func(st: Array) -> Array: return [st[0], st[1]]),
 	}
 	body.velocity_y = 0.0
@@ -550,24 +633,28 @@ func is_dead() -> bool:
 
 
 ## The places the character may come back at, best first, as [title, position in
-## world units]: the fires of theirs and of their team (respawns), then the spawn's
-## campfire (beds later).
+## world units]: their bed, the fires of theirs and of their team (respawns), then the
+## spawn's campfire.
 func respawn_points() -> Array:
 	return respawns + [["У костра старта", home]]
 
 
-## Finds the fires the character may come back at (respawns) among the things of `camp`
-## (Placed) with the teams `teams` (Teams, null for none): the last one they made
-## themselves first, then the last of each member of their team, at most RESPAWNS_MAX;
-## a fire put out counts too. True when the list changed.
+## Finds the places the character may come back at (respawns) among the things of `camp`
+## (Placed) with the teams `teams` (Teams, null for none): the last bed they set down
+## first (they come back lying in it), then the last fire they made themselves, then
+## the last of each member of their team, at most RESPAWNS_MAX; a fire put out counts
+## too. True when the list changed.
 func find_respawns(camp, teams) -> bool:
 	var me: Variant = get("id")
 	var id: int = me if me is int else 0
 	var out: Array = []
 	var seen := {}
 	var things: Array = camp.things
+	var bed: Array = []
 	for i in range(things.size() - 1, -1, -1):
 		var e: Dictionary = things[i]
+		if bed.is_empty() and e.get("by") == id and camp.is_bed(e):
+			bed = ["У своей кровати", camp.lying_spot(e)]
 		if not e.has("by") or seen.has(e.by) or not camp.is_fire(e):
 			continue
 		var by: int = e.by
@@ -580,6 +667,8 @@ func find_respawns(camp, teams) -> bool:
 			out.push_front([title, at])
 		else:
 			out.append([title, at])
+	if not bed.is_empty():
+		out.push_front(bed)
 	out.resize(mini(out.size(), RESPAWNS_MAX))
 	if out == respawns:
 		return false
@@ -593,10 +682,18 @@ func revive(at: Vector3) -> void:
 	life = {}
 	born = _now()
 	_last_at = Vector3.INF
+	forget_fall()
 	vitals.revive(REVIVE_HEALTH)
 	body.velocity_y = 0.0
 	_came_back(at)
 	state_changed.emit()
+
+
+## The body was put somewhere (coming back, a teleport): a fall counts from where it
+## next stands.
+func forget_fall() -> void:
+	_ground_y = -INF
+	_prev_y = INF
 
 
 ## The owner's part of coming back: puts the body at `at`.
@@ -620,6 +717,8 @@ static func cause_text(cause: String) -> Array:
 			return ["Вы замёрзли", "ночь без огня и тёплой одежды"]
 		"thirst":
 			return ["Вы умерли", "от жажды"]
+		"fall":
+			return ["Вы разбились", "упали с большой высоты"]
 	return ["Вы погибли", ""]
 
 
@@ -627,6 +726,7 @@ static func cause_text(cause: String) -> Array:
 func to_dict() -> Dictionary:
 	return {"death": death.duplicate(true), "life": life.duplicate(), "born": born, "deaths": deaths,
 		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z]),
+		"sack_ends": Array(sack_ends).map(func(t: float) -> Variant: return t if is_finite(t) else null),
 		"fell_at": [fell_at.x, fell_at.y, fell_at.z] if fell_at.is_finite() else null,
 		"burning": burning.duplicate(true)}
 
@@ -650,9 +750,15 @@ func from_dict(d: Dictionary) -> void:
 	var fell: Variant = d.get("fell_at")
 	fell_at = Vector3(fell[0], fell[1], fell[2]) if fell is Array and fell.size() == 3 else Vector3.INF
 	sacks.clear()
-	for p: Variant in d.get("sacks", []):
+	sack_ends.clear()
+	var ends: Variant = d.get("sack_ends", [])
+	var saved_sacks: Variant = d.get("sacks", [])
+	for k in (saved_sacks.size() if saved_sacks is Array else 0):
+		var p: Variant = saved_sacks[k]
 		if p is Array and p.size() == 3:
 			sacks.append(Vector3(float(p[0]), float(p[1]), float(p[2])))
+			var t: Variant = ends[k] if ends is Array and k < ends.size() else null
+			sack_ends.append(float(t) if t is float or t is int else INF)
 	var saved: Variant = d.get("death")
 	death = {}
 	if saved is Dictionary and not saved.is_empty():
