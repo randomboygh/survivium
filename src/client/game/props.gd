@@ -257,9 +257,10 @@ func _update_heat() -> void:
 ## glows (Effects.sack_glow).
 func show_drops(key: Vector2i) -> void:
 	var count: int = game.world.drops.get(key, []).size()
-	# More things than drawn, while a chunk round is still being rebuilt for a change:
-	# drawn when it is (drops_rebuilt), so the logs of a felled tree appear as the tree
-	# goes. Fewer (taken up) are drawn at once.
+	# More things than drawn, while a chunk round whose own cells changed is still to be
+	# rebuilt (ChunkStreamer.edited, the chunks of a felled tree): drawn when it is
+	# (drops_rebuilt), so the logs appear as the tree goes. Fewer (taken up) are drawn
+	# at once.
 	if count > _drops_shown.get(key, 0) and game.chunks.chunk_nodes.has(key) and _rebuilding_near(key):
 		var since: int = _drops_held.get(key, Time.get_ticks_msec())
 		if Time.get_ticks_msec() - since < DROPS_HOLD_MS:
@@ -341,13 +342,14 @@ func drops_rebuilt() -> void:
 		show_drops(key)
 
 
-## Whether chunk `key` or one beside it waits to be rebuilt for a change, or is being.
+## Whether chunk `key` or one beside it had its own cells changed and waits to be
+## rebuilt, or is being (ChunkStreamer.edited); a chunk rebuilt only because it is near
+## the change does not count.
 func _rebuilding_near(key: Vector2i) -> bool:
-	var chunks = game.chunks
+	var edited: Dictionary = game.chunks.edited
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
-			var k := key + Vector2i(dx, dz)
-			if chunks.dirty_chunks.has(k) or chunks.job_mesh != null and chunks.job_edit and chunks.job_key == k:
+			if edited.has(key + Vector2i(dx, dz)):
 				return true
 	return false
 
