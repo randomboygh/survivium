@@ -45,7 +45,6 @@ uniform int corner_shapes[63];
 // bark: a tree's trunk clears round the player). One entry for every material, filled
 // by main.gd: reading past the end draws garbage on some GPUs.
 uniform int material_bits[63];
-const int SLOPE_DEBUG = 2;
 
 // The colour of the rock's section the layers fill in (see the end of fragment()).
 const vec3 SECTION = vec3(0.15, 0.14, 0.135);
@@ -278,8 +277,13 @@ void fragment() {
 	// Texels are looked up a 32nd of a texel off the world position: on a diagonal wall
 	// the middles of the pixels fall right on the texels' edges, and the least rounding
 	// error (a phone's GPU) flips them from one texel to the next as the view moves.
-	// SLOPE_DEBUG
-	bool slanted = SLOPE_DEBUG > 0 && (flag & ~1) == 4 && tile != NONE;
+	// The ground's patterns (patches, specks, tints, snow) are laid by `gp`: the world
+	// position, on a slope moved up the picture by its height over the level line
+	// below it (`band`). A slope turned to the camera covers 2-3 times the screen rows
+	// of its footprint: laid by x and z its patterns stretched into streaks; laid this
+	// way they keep a pixel a texel like a flat top, and jump back at each level line,
+	// where the shade at the foot of the level (below) hides the seam.
+	bool slanted = (flag & ~1) == 4 && tile != NONE;
 	float band = world_pos.y - floor(world_pos.y / CELL + 0.002) * CELL;
 	vec3 gp = world_pos;
 	if (slanted) {
@@ -457,6 +461,7 @@ void fragment() {
 	float snow_here = roof || crowned ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
 	if (slanted) {
+		// On a slope the specks go by the texels of its patterns (gp) and its level.
 		texel = vec3(wt.x, floor(world_pos.y / CELL + 0.002), wt.y);
 	}
 	float h = hash12(texel.xz + texel.y * 17.0);
@@ -506,21 +511,11 @@ void fragment() {
 	if (snow > 0.0) {
 		col = mix(col, snow_color(gp.xz, wt), snow);
 	}
-	if (slanted && SLOPE_DEBUG >= 2) {
-		float px = max(abs(dFdy(world_pos.y)), abs(dFdx(world_pos.y))) + 1e-5;
-		float rows = (CELL - band) / px;
-		vec2 st = light_texel(light_xz);
-		if (SLOPE_DEBUG == 2 && rows <= 1.0) {
-			col *= 0.8;
-		} else if (SLOPE_DEBUG == 3) {
-			float dark = 1.0 - band / CELL;
-			col *= bayer4(st) < dark * 0.9 - 0.15 ? 0.88 : 1.0;
-		} else if (SLOPE_DEBUG == 4 && (rows <= 1.0 || (rows <= 3.0 && mod(st.x, 4.0) < 1.0))) {
-			col *= 0.8;
-		}
-	}
-	if (SLOPE_DEBUG == 9) {
-		col = mix(col, (flag & 4) != 0 ? vec3(1.0, 0.0, 0.0) : ((flag & 1) != 0 ? vec3(0.0, 0.0, 1.0) : (top ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 1.0, 0.0))), 0.5);
+	if (slanted) {
+		// The height of a slope shows as levels: each one shades darker toward its foot
+		// in an ordered dither, so a tall slope reads as steps, not one smooth smear.
+		float foot = 1.0 - band / CELL;
+		col *= bayer4(light_texel(light_xz)) < foot * 0.9 - 0.15 ? 0.88 : 1.0;
 	}
 	if (tile == NONE) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.

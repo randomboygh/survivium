@@ -1123,3 +1123,26 @@ func lone_trees(w, at: Vector3) -> Vector3:
 				best_n = n
 				best = Vector3(x + 0.5, y, z + 0.5)
 	return best * CELL
+
+
+## A spot near `at` (world units) by the tallest slope turned to the camera within 60
+## cells: the ground going down southward a level a cell at most, 5 cells along.
+func steep(w, at: Vector3) -> Vector3:
+	var c0 := Vector2i(int(at.x / CELL), int(at.z / CELL))
+	var best := -1
+	var spot := c0
+	for dz in range(-60, 60):
+		for dx in range(-60, 60):
+			var x := c0.x + dx
+			var z := c0.y + dz
+			var ok := true
+			for k in 4:
+				var d: int = w.surface_y(x, z - 2 + k) - w.surface_y(x, z - 1 + k)
+				ok = ok and d >= 0 and d <= 1
+			var drop: int = w.surface_y(x, z - 2) - w.surface_y(x, z + 2)
+			if ok and drop > best:
+				best = drop
+				spot = Vector2i(x, z)
+	main.player.position = Vector3(spot.x + 0.5, w.surface_y(spot.x, spot.y) + 1, spot.y + 0.5) * CELL
+	main.chunks.build_around()
+	return main.player.position

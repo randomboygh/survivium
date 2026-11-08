@@ -259,6 +259,8 @@ const SHOTS := {
 	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
+	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,
+	# each level shaded toward its foot (see world.gdshader, `gp`).
 	"steep-beach": {"time": 0.42, "season": 1, "place": "beach", "steep": true},
 	"steep-tropical": {"time": 0.42, "season": 1, "place": "tropical_beach", "steep": true},
 	"lake-morning": {"time": 0.36, "season": 1, "place": "lake"},
