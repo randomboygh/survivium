@@ -108,6 +108,8 @@ var real_time := false
 var real_season := false
 var season := 1
 var season_clock := 0.0
+## How many springs have begun since the world began (the year of nature, ActionsNature).
+var springs := 0
 ## Index in WEATHERS of the weather now.
 var weather := CLEAR
 ## The weather changes by itself; the playtest page can pin one.
@@ -280,6 +282,7 @@ func _begin_season(s: int) -> void:
 	season_clock = 0.0
 	if season == SPRING:
 		leaf_fall = 0.0
+		springs += 1
 	season_changed.emit(season)
 
 
@@ -417,7 +420,8 @@ func _change_weather(delta: float, at: Vector3) -> void:
 
 ## The time of the clock as plain data for the save.
 func to_dict() -> Dictionary:
-	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock, "leaf_fall": leaf_fall}
+	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock, "leaf_fall": leaf_fall,
+		"springs": springs}
 
 
 ## Puts back the time of a save (see to_dict).
@@ -427,6 +431,7 @@ func from_dict(d: Dictionary) -> void:
 	season = posmod(int(d.get("season", season)), 4)
 	season_clock = d.get("season_clock", season_clock)
 	leaf_fall = clampf(d.get("leaf_fall", 0.0), 0.0, 1.0)
+	springs = maxi(0, int(d.get("springs", springs)))
 
 
 ## The names of the fields a snapshot carries, in its order (see snapshot).

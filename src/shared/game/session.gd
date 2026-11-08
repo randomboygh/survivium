@@ -190,7 +190,8 @@ func step_players(delta: float) -> void:
 
 
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step);
-## the beds get wet and dry, their crops grow (WorldActions.step_fields);
+## the beds get wet and dry, their crops grow (WorldActions.step_fields); nature grows
+## back once a year, a row of a chunk at a time (WorldActions.step_nature);
 ## the fishing lines in the water (Fishing.step); the sacks of deaths are gone after
 ## Character.SACK_DAYS (WorldActions.expire_sacks).
 func step_things(delta: float) -> void:
@@ -198,6 +199,7 @@ func step_things(delta: float) -> void:
 	var rain: float = clock.WEATHERS[clock.weather].get("rain", 0.0)
 	placed.step(d, rain)
 	actions.step_fields(delta, clock.rain)
+	actions.step_nature(d)
 	fishing.step(d)
 	territory.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
