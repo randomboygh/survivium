@@ -57,6 +57,9 @@ const EDIT_BUDGET_US := 9000
 const LOAD_BUDGET_US := 14000
 const LOAD_MAX_US := 100000
 const STREAM_BUDGET_US := 3000
+## Chunks this near the player's keep what their meshes and plants were built from (see
+## `kept`), so an edit there rebuilds only the columns around it (ChunkMesher.patch).
+const KEEP_CHUNKS := 1
 ## Chunks whose meshes are freed in one frame at most.
 const UNLOADS_PER_FRAME := 2
 ## How many levels above and below the player's the level buttons may look; from deep
@@ -124,6 +127,22 @@ var dirty_chunks := {}
 ## tree), not only a neighbour's: they go before the others, and things fallen near
 ## them wait for them to be drawn (Props.show_drops).
 var edited := {}
+## The columns of each of them to build again (Rect2i in cells; the whole chunk for a
+## change of how it looks with no cell changed).
+var dirty_rects := {}
+## The finished mesh and plant jobs of the chunks within KEEP_CHUNKS of the player
+## ([ChunkMesher.Job, Foliage.Job] by key), which an edit patches; the chunks near that
+## were built before the player came, in the order to build them again, for idle frames;
+## and the player's chunk they were listed around.
+var kept := {}
+var keep_queue: Array[Vector2i] = []
+var kept_home := Vector2i(-1000000, 0)
+## The kept jobs the job being built patches ([] for a whole chunk), and whether it builds
+## a chunk only to keep its jobs (it gives way to edits).
+var job_old := []
+var job_keep := false
+## How many edits were built by patching kept jobs (tests).
+var patches := 0
 var job_key := Vector2i.ZERO
 var job_edit := false
 var job_budget := 0
@@ -315,12 +334,20 @@ func build_chunk(key: Vector2i) -> void:
 	game.world_maker.make_chunk(key)
 	_whole = false
 	var t0 := Time.get_ticks_usec()
-	var meshes: Array = ChunkMesher.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
-	var plants: Dictionary = Foliage.build_chunk(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
+	var jm := ChunkMesher.start(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
+	while not ChunkMesher.step(jm, 1 << 30):
+		pass
+	var meshes: Array = ChunkMesher.finish(jm)
+	var jp := Foliage.start(world, key.x * CHUNK, key.y * CHUNK, CHUNK)
+	while not Foliage.step(jp, 1 << 30):
+		pass
+	var plants: Dictionary = Foliage.finish(jp)
 	mesh_us += Time.get_ticks_usec() - t0
 	_note_work("meshes", Time.get_ticks_usec() - t0)
 	dirty_chunks.erase(key)
+	dirty_rects.erase(key)
 	edited.erase(key)
+	_keep(key, jm, jp)
 	_apply_chunk(key, meshes, plants)
 
 
@@ -411,6 +438,7 @@ func _finish_part() -> bool:
 	elif i < ChunkMesher.FINISH_PARTS + Foliage.FINISH_PARTS:
 		Foliage.finish_part(job_plants, i - ChunkMesher.FINISH_PARTS, job_plant_parts)
 	else:
+		_keep(job_key, job_mesh, job_plants)
 		_apply_chunk(job_key, job_meshes, job_plant_parts)
 		_drop_job()
 		if job_edit and not dirty_chunks.has(job_key):
@@ -426,9 +454,45 @@ func _finish_part() -> bool:
 func _drop_job() -> void:
 	job_mesh = null
 	job_plants = null
+	job_old = []
+	job_keep = false
 	job_part = -1
 	job_meshes = []
 	job_plant_parts = {}
+
+
+## Keeps the finished jobs of chunk `key` for patching if it is within KEEP_CHUNKS of the
+## player, forgets them if not.
+func _keep(key: Vector2i, jm: ChunkMesher.Job, jp: Foliage.Job) -> void:
+	var home := _player_chunk() if game.player != null else kept_home
+	if maxi(absi(key.x - home.x), absi(key.y - home.y)) > KEEP_CHUNKS:
+		kept.erase(key)
+		return
+	ChunkMesher.keep(jm)
+	kept[key] = [jm, jp]
+	keep_queue.erase(key)
+
+
+## Once the player is in another chunk: forgets the kept jobs of the chunks now far, and
+## lists the chunks now near with none to build again when nothing else is to be built,
+## the player's first.
+func _keep_around() -> void:
+	if game.player == null:
+		return
+	var home := _player_chunk()
+	if home == kept_home:
+		return
+	kept_home = home
+	for key: Vector2i in kept.keys():
+		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > KEEP_CHUNKS:
+			kept.erase(key)
+	keep_queue.clear()
+	for r in KEEP_CHUNKS + 1:
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				var key := home + Vector2i(dx, dz)
+				if maxi(absi(dx), absi(dz)) == r and chunk_nodes.has(key) and not kept.has(key):
+					keep_queue.append(key)
 
 
 ## Builds chunks a step at a time within the frame's budget: edited chunks first (the
@@ -447,6 +511,7 @@ func run_jobs(spent := 0) -> void:
 		if not job_edit and (job_mesh != null or has_target):
 			job_budget = load_budget
 	_list_pending()
+	_keep_around()
 	var worked := false
 	if not paint_queue.is_empty():
 		var tp := Time.get_ticks_usec()
@@ -457,7 +522,12 @@ func run_jobs(spent := 0) -> void:
 		var t1 := Time.get_ticks_usec()
 		if t1 - t0 >= job_budget and worked:
 			break
+		if job_keep and not dirty_chunks.is_empty():
+			# A chunk built only to keep its jobs gives way to an edit; listed again.
+			keep_queue.append(job_key)
+			_drop_job()
 		if job_mesh == null:
+			var rect := Rect2i()
 			if not dirty_chunks.is_empty():
 				if has_target and not dirty_chunks.has(job_key):
 					# A chunk being streamed whose job an edit dropped: back into the
@@ -465,6 +535,8 @@ func run_jobs(spent := 0) -> void:
 					pending_chunks.append(job_key)
 				job_key = dirty_chunks.keys()[0]
 				dirty_chunks.erase(job_key)
+				rect = dirty_rects.get(job_key, Rect2i())
+				dirty_rects.erase(job_key)
 				job_edit = true
 				job_budget = EDIT_BUDGET_US
 				has_target = false
@@ -484,15 +556,45 @@ func run_jobs(spent := 0) -> void:
 					pending_chunks.append(job_key)
 					has_target = false
 					break
+			elif game.ready_to_play and not paused and not keep_queue.is_empty():
+				# Nothing else to build: a chunk near the player built before it came,
+				# again, to keep its jobs, at the stream budget.
+				job_key = keep_queue.pop_front()
+				if not chunk_nodes.has(job_key) or kept.has(job_key):
+					continue
+				job_edit = false
+				job_keep = true
+				job_budget = STREAM_BUDGET_US
 			else:
 				break
-			job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
-			job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
+			var whole := Rect2i(job_key * CHUNK, Vector2i(CHUNK, CHUNK))
+			if job_edit and kept.has(job_key) and rect.has_area() and rect != whole:
+				# Only the columns around the change, put into the chunk's kept meshes
+				# and plants once built (ChunkMesher.patch).
+				job_old = kept[job_key]
+				job_mesh = ChunkMesher.start_rect(world, rect.position.x, rect.position.y, rect.end.x, rect.end.y, true)
+				job_plants = Foliage.start_part(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK,
+					Foliage.part_columns(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK, rect))
+			else:
+				job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
+				job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
 		var done := false
 		if job_part < 0:
 			while not done and (Time.get_ticks_usec() - t0 < job_budget or not worked):
 				done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
 				worked = true
+				if done and not job_old.is_empty():
+					# The columns around the change are built: into the kept meshes, then
+					# (a step later, each costs a few columns) into the kept plants, then
+					# the shadows of the chunk's trees again (Foliage.step).
+					if job_old.size() == 2:
+						job_mesh = ChunkMesher.patch(job_old[0], job_mesh)
+						job_old = [job_old[1]]
+					else:
+						job_plants = Foliage.patch(job_old[0], job_plants)
+						job_old = []
+						patches += 1
+					done = false
 			budget_us += Time.get_ticks_usec() - t1
 			_note_work("meshes", Time.get_ticks_usec() - t1)
 			if not done:
@@ -527,7 +629,9 @@ func unload_chunk(key: Vector2i) -> void:
 		has_target = false
 	pending_chunks.erase(key)
 	dirty_chunks.erase(key)
+	dirty_rects.erase(key)
 	edited.erase(key)
+	kept.erase(key)
 	if not chunk_nodes.has(key):
 		return
 	_free_chunk(key)
@@ -557,7 +661,9 @@ func _free_chunk(key: Vector2i) -> void:
 	chunk_nodes.erase(key)
 	game.props.hide_drops(key)
 	dirty_chunks.erase(key)
+	dirty_rects.erase(key)
 	edited.erase(key)
+	kept.erase(key)
 	if cap_nodes.has(key):
 		cap_nodes[key].queue_free()
 		cap_nodes.erase(key)
@@ -653,11 +759,20 @@ func on_cell_changed(cell: Vector3i) -> void:
 	# rebuilt yet (the other columns of a felled tree), the neighbours after (see
 	# run_jobs): a tree near a chunk's corner goes as soon as its own chunks are drawn,
 	# not after the three around too.
+	# A cell up in the air (a crown's) changes only the columns beside it
+	# (ChunkMesher.reach).
 	var home := WorldData.chunk_key(cell.x, cell.z)
+	var r := ChunkMesher.reach(world, cell)
 	var keys := {}
-	for dz in range(-3, 4):
-		for dx in range(-3, 4):
+	for dz in range(-r, r + 1):
+		for dx in range(-r, r + 1):
 			keys[WorldData.chunk_key(cell.x + dx, cell.z + dz)] = true
+	# Within each chunk only those columns are built again (see run_jobs), if it was kept.
+	var around := Rect2i(cell.x - r, cell.z - r, 2 * r + 1, 2 * r + 1)
+	for key: Vector2i in keys:
+		if chunk_nodes.has(key):
+			var part := around.intersection(Rect2i(key * CHUNK, Vector2i(CHUNK, CHUNK)))
+			dirty_rects[key] = dirty_rects[key].merge(part) if dirty_rects.has(key) else part
 	if job_mesh != null and keys.has(job_key):
 		if job_edit:
 			# The chunk being rebuilt for an edit changed again: the job goes on and
@@ -666,9 +781,11 @@ func on_cell_changed(cell: Vector3i) -> void:
 			# never show the ground changing.
 			keys[job_key] = true
 		else:
-			# A chunk being streamed: start it over as an edit.
+			# A chunk being streamed: start it over as an edit (one built only to keep
+			# its jobs is built whole for the edit).
+			if not job_keep:
+				has_target = true
 			_drop_job()
-			has_target = true
 	var queue := {}
 	if chunk_nodes.has(home):
 		queue[home] = true
@@ -691,9 +808,11 @@ func remesh_chunk(key: Vector2i) -> void:
 	if not chunk_nodes.has(key):
 		return
 	if job_mesh != null and job_key == key and not job_edit:
+		if not job_keep:
+			has_target = true
 		_drop_job()
-		has_target = true
 	dirty_chunks[key] = true
+	dirty_rects[key] = Rect2i(key * CHUNK, Vector2i(CHUNK, CHUNK))
 
 
 # --- Level cutaway -----------------------------------------------------------

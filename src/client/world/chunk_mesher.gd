@@ -51,6 +51,11 @@ class Job extends RefCounted:
 	var offsets: PackedInt32Array
 	## Steps of copying the cells before the columns (see PREP_STEPS); 0 once done.
 	var prep := PREP_STEPS
+	## Where the buffers stood as each column was done, in the order of the columns:
+	## solid vertices, solid indices, water vertices, water indices (see `patch`).
+	var ends := PackedInt32Array()
+	## Columns for `patch` only: the plain tops are left as keys, not drawn.
+	var part := false
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once:
@@ -74,17 +79,22 @@ const PREP_STEPS := 5
 ## Begins building the meshes of a chunk; `step` then copies its cells and builds a
 ## few columns at a time.
 static func start(w, x0: int, z0: int, size: int) -> Job:
+	return start_rect(w, x0, z0, x0 + size, z0 + size)
+
+
+## Like `start`, for the columns x0..x1, z0..z1 (ends exclusive); `part` for a piece of a
+## chunk that `patch` puts into the chunk's meshes.
+static func start_rect(w, x0: int, z0: int, x1: int, z1: int, part := false) -> Job:
 	var job := Job.new()
 	job.w = w
 	job.x0 = x0
 	job.z0 = z0
 	job.z = z0
 	job.x = x0
+	job.part = part
 	job.faces = face_table()
 	job.solid = MeshBuffers.new()
 	job.water = MeshBuffers.new()
-	var x1 := x0 + size
-	var z1 := z0 + size
 	job.x1 = x1
 	job.z1 = z1
 	job.cov = covers_table()
@@ -140,6 +150,8 @@ static func step(job: Job, columns: int) -> bool:
 		columns -= 1
 		if not _column(job, job.x, job.z):
 			continue
+		job.ends.append_array([job.solid.verts.size(), job.solid.indices.size(), job.water.verts.size(),
+			job.water.indices.size()])
 		job.x += 1
 		if job.x >= job.x1:
 			job.x = job.x0
@@ -149,6 +161,8 @@ static func step(job: Job, columns: int) -> bool:
 				job.water_plain.sort()
 	# Then the plain tops, PLAIN_RUNS merged quads per column (a chunk of open ground
 	# has over a thousand).
+	if job.part:
+		return job.z >= job.z1
 	while columns > 0 and job.z >= job.z1 and (job.plain_j < job.plain.size() or job.water_j < job.water_plain.size()):
 		if job.plain_j < job.plain.size():
 			job.plain_j = _plain_rows(job.solid, job.plain, job.x0, job.z0, false, job.plain_j, PLAIN_RUNS)
@@ -367,6 +381,121 @@ static func _take_forms(job: Job) -> void:
 ## Making the meshes takes longer than a column, so ChunkStreamer makes them one a
 ## frame: part 0 is the solid mesh, part 1 the water.
 const FINISH_PARTS := 2
+
+
+## The job of a whole chunk built before (`old`, its columns and plain tops kept) with
+## the columns of `part` (start_rect with `part`, its columns built since the cells
+## changed) put in place of its own: what building the whole chunk again would make,
+## in the same order, for a few columns' work. The columns are copied over in runs,
+## their indices moved by where the run lands; the plain tops are merged again.
+static func patch(old: Job, part: Job) -> Job:
+	var job := Job.new()
+	job.w = old.w
+	job.x0 = old.x0
+	job.z0 = old.z0
+	job.x1 = old.x1
+	job.z1 = old.z1
+	job.x = old.x0
+	job.z = old.z1
+	job.prep = 0
+	job.solid = MeshBuffers.new()
+	job.water = MeshBuffers.new()
+	job.ends.resize(old.ends.size())
+	var sx := old.x1 - old.x0
+	var px := part.x1 - part.x0
+	var n := old.ends.size() / 4
+	# Runs of columns that lie one after another in the job they come from: [from part,
+	# first column there, last column there, first column in the chunk].
+	var runs := []
+	var j := 0
+	while j < n:
+		var x := old.x0 + j % sx
+		var z := old.z0 + j / sx
+		var inside := x >= part.x0 and x < part.x1 and z >= part.z0 and z < part.z1
+		var at := (z - part.z0) * px + x - part.x0 if inside else j
+		if not runs.is_empty() and runs[-1][0] == inside and runs[-1][2] == at - 1:
+			runs[-1][2] = at
+		else:
+			runs.append([inside, at, at, j])
+		j += 1
+	for k in [0, 2]:
+		var out = job.solid if k == 0 else job.water
+		for run: Array in runs:
+			var from: Job = part if run[0] else old
+			var buf = from.solid if k == 0 else from.water
+			var e := from.ends
+			var a: int = run[1]
+			var b: int = run[2]
+			var va := e[(a - 1) * 4 + k] if a > 0 else 0
+			var ia := e[(a - 1) * 4 + k + 1] if a > 0 else 0
+			var vb := e[b * 4 + k]
+			var ib := e[b * 4 + k + 1]
+			var shift: int = out.verts.size() - va
+			var ishift: int = out.indices.size() - ia
+			if vb > va:
+				out.verts.append_array(buf.verts.slice(va, vb))
+				out.normals.append_array(buf.normals.slice(va, vb))
+				out.uvs.append_array(buf.uvs.slice(va, vb))
+				out.uv2s.append_array(buf.uv2s.slice(va, vb))
+				out.colors.append_array(buf.colors.slice(va, vb))
+				var idx: PackedInt32Array = buf.indices.slice(ia, ib)
+				if shift != 0:
+					for q in idx.size():
+						idx[q] += shift
+				out.indices.append_array(idx)
+			for c in range(a, b + 1):
+				var to: int = run[3] + c - a
+				job.ends[to * 4 + k] = e[c * 4 + k] + shift
+				job.ends[to * 4 + k + 1] = e[c * 4 + k + 1] + ishift
+	job.plain = _merged_keys(old.plain, part.plain, old, part)
+	job.water_plain = _merged_keys(old.water_plain, part.water_plain, old, part)
+	_plain_rows(job.solid, job.plain, job.x0, job.z0)
+	_plain_rows(job.water, job.water_plain, job.x0, job.z0, true)
+	job.plain_j = job.plain.size()
+	job.water_j = job.water_plain.size()
+	return job
+
+
+## The plain tops (or plain water) of `old` outside the columns of `part`, with those
+## of `part`, as keys of `old`'s corner, sorted (see _plain_rows).
+static func _merged_keys(keys: PackedInt32Array, more: PackedInt32Array, old: Job, part: Job) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var lx0 := part.x0 - old.x0
+	var lz0 := part.z0 - old.z0
+	var lx1 := part.x1 - old.x0
+	var lz1 := part.z1 - old.z0
+	for key in keys:
+		var lx := key & 63
+		var lz := key >> 6 & 63
+		if lx < lx0 or lx >= lx1 or lz < lz0 or lz >= lz1:
+			out.append(key)
+	for key in more:
+		out.append((key & ~4095) | ((key >> 6 & 63) + lz0) << 6 | ((key & 63) + lx0))
+	out.sort()
+	return out
+
+
+## How many columns around a changed `cell` the meshes and plants may change: three
+## where ground is near it (shapes of ground follow their neighbours, slopes the shapes
+## beside them), one for a cell up in the air (leaves and logs of a crown): its faces
+## and the edges and tops beside it.
+static func reach(w, cell: Vector3i) -> int:
+	for dy in range(-1, 2):
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var m: int = w.get_cell(cell.x + dx, cell.y + dy, cell.z + dz)
+				if m != AIR and m != WATER and m != LEAVES and m != Mat.LOG:
+					return 3
+	return 1
+
+
+## Lets go of what a finished job no longer needs once its meshes are made, keeping
+## what `patch` takes from it.
+static func keep(job: Job) -> void:
+	job.c = PackedByteArray()
+	job.sh = PackedByteArray()
+	job.cands = PackedInt64Array()
+	job.forms = {}
 
 
 ## The meshes once every column is built: [solid, water], null where empty.
