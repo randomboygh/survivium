@@ -137,6 +137,8 @@ func _run() -> void:
 			main.player.position = places.openings(main.world, main.player.position, shot.openings == "storage")
 		if shot.get("fences", false):
 			main.player.position = places.fences(main.world, main.player.position)
+		if shot.has("signs"):
+			main.player.position = places.signs(main.world, main.player.position, shot.signs)
 		if shot.has("lit_room"):
 			main.player.position = places.lit_room(main.world, main.player.position, shot.lit_room == "open",
 				shot.get("lamps", false), shot.get("door_first", false))
@@ -890,6 +892,10 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 			main.farm.show_stroke({"plan": "farm", "first": feet + Vector3i(-3, 0, 3), "last": feet + Vector3i(-1, 0, 6)})
+		if shot.get("sign_window", false):
+			for i in 3:
+				await process_frame
+			main.hud.open_sign(main.placed.at(places.sign_cell))
 		if shot.get("test", false) or shot.get("menu", false) or shot.get("bag", false) or shot.get("chest", false) \
 				or shot.get("craft", false) or shot.get("chests", false) or shot.get("campfire", false):
 			# The window settles its height a frame after it opens (see InventoryWindow.refresh).
@@ -1091,6 +1097,8 @@ func _run() -> void:
 				or (shot.get("craft", false) and not shot.get("closed", false)) or shot.get("rights", false) \
 				or shot.get("team_panel", false):
 			main.hud.toggle_bag()
+		if main.hud.sign_window != null:
+			main.hud.sign_window.close()
 		if shot.get("free", false):
 			main.settings.set_free_items(false)
 		if shot.get("craft", false):

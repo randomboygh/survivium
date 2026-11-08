@@ -66,6 +66,7 @@ const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const OthersScript := preload("res://src/client/view/others.gd")
+const SignLabelsScript := preload("res://src/client/view/sign_labels.gd")
 const BoatsScript := preload("res://src/client/view/boats.gd")
 const CreaturesScript := preload("res://src/client/game/creatures.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
@@ -120,6 +121,8 @@ var player
 var creatures
 ## The other players on the screen (С3.3).
 var others
+## The text of the signs near, over them (SignLabels).
+var sign_labels
 ## The rafts and boats on the water (Boats).
 var boats
 var effects
@@ -1199,6 +1202,10 @@ func _build_scene() -> void:
 	others.game = self
 	others.perf = hud.perf
 	world_root.add_child(others)
+	sign_labels = SignLabelsScript.new()
+	sign_labels.game = self
+	world_root.add_child(sign_labels)
+	sign_labels.watch(placed)
 	boats = BoatsScript.new()
 	boats.game = self
 	world_root.add_child(boats)

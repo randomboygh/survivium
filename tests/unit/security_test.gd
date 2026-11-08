@@ -11,6 +11,7 @@ const LocalHost := preload("res://src/client/net/local_host.gd")
 const Server := preload("res://src/server/server.gd")
 const Config := preload("res://src/server/config.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const Requests := preload("res://src/server/requests.gd")
 
 
 func run() -> void:
@@ -132,6 +133,15 @@ func _test_requests() -> void:
 	# (The rule itself: the hands may still owe work from the requests above.)
 	_check(req._rule(Protocol.VESSEL_LAUNCH, [7]) == null and req.PACED.has(Protocol.VESSEL_LAUNCH),
 		"nor for an id that is no text; a launch takes the hands' time")
+	var sign: Dictionary = p[0].placed.put("tools:sign", Vector3i(9, 2, 8))
+	_check(req._rule(Protocol.SIGN_WRITE, [sign.cell, "x".repeat(Requests.SIGN_MAX + 1)]) == null
+		and req._rule(Protocol.SIGN_WRITE, [sign.cell, 7]) == null, "a sign is not written with text too long or no text")
+	_check(req._rule(Protocol.SIGN_WRITE, [sign.cell, "Привет\u202e\n" + "y".repeat(40)]) == true
+		and p[0].placed.at(sign.cell).text == "Привет\n" + "y".repeat(20), "what is written is made safe and cut to the sign")
+	var far_sign: Dictionary = p[0].placed.put("tools:sign", Vector3i(28, 2, 28))
+	_check(req._rule(Protocol.SIGN_WRITE, [far_sign.cell, "далеко"]) == false and req._rule(Protocol.SIGN_TURN, [far_sign.cell]) == false,
+		"a sign out of reach is neither written nor turned")
+	_check(req.PACED.has(Protocol.SIGN_WRITE) and req.PACED.has(Protocol.SIGN_TURN), "writing and turning take the hands' time")
 
 
 ## A bag counted from its end is the same bag, not twice the things.

@@ -28,6 +28,15 @@ func open_prop(e: Dictionary) -> void:
 		bag.show_station(e)
 
 
+## Opens the window of sign `e` (Placed.is_sign): its text to read or write.
+func open_sign(e: Dictionary) -> void:
+	if sign_window != null:
+		sign_window.close()
+	sign_window = SignWindow.new(game, e)
+	sign_window.closed.connect(func() -> void: sign_window = null)
+	add_child(sign_window)
+
+
 ## Opens or closes the bag over the running game.
 func toggle_bag() -> void:
 	bag.toggle()

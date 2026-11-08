@@ -27,6 +27,11 @@ extends RefCounted
 ## lies in a floor, solid shut, its lid swung up open. A ladder (`ladder`) is not solid:
 ## its cells are WorldData.ladders, where a body climbs (Body).
 ##
+## A sign (an item with `sign_lines`, decision 183) holds text (`text`, lines joined by
+## "\n") whoever may build there writes (write) and those near read over it (SignLabels);
+## one hung on a wall (`wall`, ON_WALL) rests by a solid cell beside it, its back to that
+## cell; one on a post is turned a quarter at a time (turn_sign).
+##
 ## Lights (an item with `light` and no `prop`: a torch, a candle, a lantern) are set down
 ## on one cell of their own (`lights`, see put_light_from_bag): not solid, they burn out
 ## their Items.burns seconds where they stand (step) and are gone, as in a hand (also when
@@ -42,6 +47,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const CELL := WorldData.CELL
 ## No level is cut from (`_open`): the thing goes on air only.
@@ -80,11 +86,15 @@ const FENCE_TOP := 2.0
 const SIDES: Array[Vector3i] = [Vector3i(0, 0, -1), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 0)]
 ## How a thing set down rests (see _fits): on solid ground; anywhere, over air too, as
 ## blocks are laid (stairs); on the ground or on a ladder under it (a ladder); in a floor,
-## a solid cell beside it (a hatch).
+## a solid cell beside it (a hatch); against a wall, a solid cell beside it at its level
+## (a sign hung on a wall, turned its back to it, see wall_turn).
 const ON_GROUND := 0
 const ANYWHERE := 1
 const ON_LADDER := 2
 const IN_FLOOR := 3
+const ON_WALL := 4
+## How near (cells, from the sign's middle) the text of a sign is shown over it.
+const SIGN_READ := 3.0
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)
@@ -114,7 +124,8 @@ var lights: Array = []
 ## cells), "turn": quarters it is turned (see sizes), "items": what a thing that stores holds (an Inventory, else null), "lit": false
 ## for a fire put out, and for a fire "fuel": the seconds it has left to burn, "wet": the
 ## seconds it has stood in the rain}, and "by": the number of the player who put it
-## from their bag (Player.id, 0 in a single game; none for the start's camp): a fire is a
+## from their bag (Player.id, 0 in a single game; none for the start's camp), "text": what a
+## sign says (see write); a fire is a
 ## place its maker and their team come back to after death (Character.find_respawns).
 ## Saved with the world (to_list).
 var things: Array = []
@@ -293,6 +304,8 @@ static func rest_of(id: String) -> int:
 		return ON_LADDER
 	if item.get("hatch", false):
 		return IN_FLOOR
+	if item.get("wall", false):
+		return ON_WALL
 	return ON_GROUND
 
 
@@ -541,9 +554,11 @@ func stand_by(e: Dictionary) -> Vector3:
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
 ## `fuel_start`).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false) -> Dictionary:
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "") -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire, "turn": posmod(turn, 4)}
+	if rec.get("sign_lines", 0) > 0:
+		e.text = sign_text(item, text)
 	if rec.get("door", false):
 		e.open = open
 	if by is int:
@@ -593,7 +608,7 @@ func from_list(list: Array) -> void:
 				continue
 			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
-				int(d.get("turn", 0)), bool(d.get("open", false)))
+				int(d.get("turn", 0)), bool(d.get("open", false)), str(d.get("text", "")))
 
 
 ## The placed things as plain data for the save.
@@ -609,7 +624,7 @@ func to_list() -> Array:
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
 ## seconds a fire has left, "by" who put it from their bag, "turn" when it is turned,
-## "open" for a door open}.
+## "open" for a door open, "text" for a sign written}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -628,6 +643,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.turn = e.turn
 	if e.get("open", false):
 		d.open = true
+	if e.get("text", "") != "":
+		d.text = e.text
 	return d
 
 
@@ -782,6 +799,71 @@ static func is_part(e: Dictionary) -> bool:
 		or item.get("furniture", false) and item.get("storage", 0) == 0)
 
 
+## True for a sign (an item with `sign_lines`): its text is written at a tap (write).
+static func is_sign(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("sign_lines", 0) > 0
+
+
+## Text `text` as sign `item` holds it: each line a player typed made safe
+## (Protocol.clean_text's rules: no control or hiding marks) and cut to its `sign_width`
+## letters, at most `sign_lines` lines, the empty lines at the end dropped.
+static func sign_text(item: String, text: String) -> String:
+	var rec := Items.get_item(item)
+	var most: int = rec.get("sign_lines", 0)
+	var width: int = rec.get("sign_width", 20)
+	var lines: Array[String] = []
+	for line in text.left(most * (width * 4 + 1)).split("\n"):
+		if lines.size() >= most:
+			break
+		lines.append(Protocol.clean_text(line, width))
+	while not lines.is_empty() and lines[-1] == "":
+		lines.pop_back()
+	return "\n".join(lines)
+
+
+## The turn of a thing hung on a wall at `cell` (ON_WALL): `turn` (facing who set it down)
+## when the cell behind it is solid, else the first turn with a solid cell behind (SIDES,
+## the back of turn `t` toward SIDES[t]: its front faces away from the wall).
+func wall_turn(cell: Vector3i, turn: int) -> int:
+	for k in 4:
+		var t := (turn + k) % 4
+		var back: Vector3i = cell + SIDES[t]
+		if world.is_solid(back.x, back.y, back.z):
+			return t
+	return turn
+
+
+## `who` writes `text` on sign `e` (lines joined by "\n", see sign_text), where the land
+## lets them build: the sign is set down anew with it, so every copy hears of it as of a
+## thing placed (removed, added). True if it was written.
+func write(who, e: Dictionary, text: String) -> bool:
+	if not is_sign(e) or territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	var clean := sign_text(e.item, text)
+	if clean == e.get("text", ""):
+		return true
+	_renew(e, e.turn, clean)
+	return true
+
+
+## `who` turns sign `e` a quarter clockwise seen from above (a signpost's arrow points
+## another way), where the land lets them build; one hung on a wall is not turned. True
+## if it turned.
+func turn_sign(who, e: Dictionary) -> bool:
+	if not is_sign(e) or Items.get_item(e.item).get("wall", false) \
+			or territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	_renew(e, e.turn + 1, e.get("text", ""))
+	return true
+
+
+## Sets thing `e` down anew where it stands, turned `turn`, saying `text` (a sign changed).
+func _renew(e: Dictionary, turn: int, text: String) -> void:
+	_forget(e)
+	put(e.item, e.cell, null, e.lit, e.get("fuel", -1.0), e.get("by"), turn, e.get("open", false), text)
+	world.note_edit(e.cell.x, e.cell.z)
+
+
 ## True for a bed (its item's `bedding`: a mat, a bedroll, slept in, see Character.sleep_rate).
 static func is_bed(e: Dictionary) -> bool:
 	return not is_light(e) and Items.get_item(e.item).get("bedding", 1.0) > 1.0
@@ -851,8 +933,10 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	var rest := rest_of(item.id)
 	var spot: Variant = _spot_in_front(who, top, n, shape.offsets, rest, shape.high)
 	if spot == null:
-		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if rest != ANYWHERE else "Перед собой нет места для ступеней")
+		who.nag("put", "Перед собой нет стены" if rest == ON_WALL else "Нужно ровное место %d×%d перед собой" % [n, n] if rest != ANYWHERE else "Перед собой нет места для ступеней")
 		return false
+	if rest == ON_WALL:
+		turn = wall_turn(spot, turn)
 	return _set_down(who, item, slot, spot, turn, shape.offsets)
 
 
@@ -923,6 +1007,8 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 					who.nag("full", "Сумка полна")
 					return false
 				_remove(f)
+	if rest == ON_WALL:
+		turn = wall_turn(spot, turn)
 	var opening: Array[Vector3i] = []
 	if cuts:
 		for o: Vector3i in shape.offsets:
@@ -1209,7 +1295,7 @@ func _rests(c: Vector3i, rest: int) -> bool:
 			return true
 		ON_LADDER:
 			return world.is_solid(c.x, c.y - 1, c.z) or world.ladders.has(c + Vector3i.DOWN)
-		IN_FLOOR:
+		IN_FLOOR, ON_WALL:
 			for d: Vector3i in SIDES:
 				if world.is_solid(c.x + d.x, c.y, c.z + d.z):
 					return true
