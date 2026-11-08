@@ -35,9 +35,10 @@ func _init(g) -> void:
 
 
 ## The thing to gather nearest the screen point, or {}: {"drop": [chunk key, index]},
-## {"bush": cell} or {"prop": a record of Props.placed}, with "at" its position in world
-## units. Bushes are within the reach of the tool in hand, things on the ground and
-## placed things within REACH.
+## {"bush": cell}, {"prop": a record of Props.placed} or {"vessel": id} (a raft or a boat
+## no one sits in, Boats), with "at" its position in world units. Bushes are within the
+## reach of the tool in hand, things on the ground, placed things and vessels within
+## REACH (ActionsBoat.TAKE_REACH).
 func target_at(screen_pos: Vector2) -> Dictionary:
 	if not game.ready_to_play:
 		return {}
@@ -59,6 +60,16 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 				prop_d = d
 				best_d = d
 				best = {"prop": e, "at": at}
+	# A vessel is big too; one being sat in is not taken.
+	if game.character.vessel == 0:
+		for id in game.boats.vessels:
+			var at: Vector3 = game.boats.vessels[id].at
+			if at.distance_to(game.player.position) <= WorldActions.TAKE_REACH and not _sat_in(id):
+				var d := _screen_distance(at, vp_pos)
+				if d < prop_d:
+					prop_d = d
+					best_d = d
+					best = {"vessel": id, "at": at}
 	var home := WorldData.chunk_key(floori(player_pos.x / CELL), floori(player_pos.z / CELL))
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
@@ -79,6 +90,15 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 					best_d = d
 					best = {"bush": cell, "at": at}
 	return best
+
+
+## True when someone (another player, as their PEOPLE entry says) sits near vessel `id`.
+func _sat_in(id: int) -> bool:
+	var at: Vector3 = game.boats.vessels[id].at
+	for one in game.others.people.values():
+		if one.figure.riding != "" and one.figure.position.distance_to(at) < CELL:
+			return true
+	return false
 
 
 ## Distance on the world image between world point `p` and image point `vp_pos`.
@@ -108,6 +128,8 @@ func describe(target: Dictionary) -> String:
 			var v = game.character.vitals
 			return "%s\nЛКМ %s" % [title, "лечь спать" if v.asleep or v.sleepy() else "спать не хочется"]
 		return "%s\nЛКМ крафт" % title
+	if target.has("vessel"):
+		return "%s\nЛКМ поднять в сумку" % Items.title(game.boats.vessels[target.vessel].item)
 	if target.has("drop"):
 		var d: Array = game.world.drops[target.drop[0]][target.drop[1]]
 		if d[0] == Items.SACK:
@@ -148,6 +170,9 @@ func gather(target: Dictionary) -> bool:
 	if target.has("prop"):
 		game.hud.open_prop(target.prop)
 		return true
+	if target.has("vessel"):
+		var lifted = game.net.request(Protocol.VESSEL_TAKE, [target.vessel])
+		return lifted.done and lifted.value is bool and lifted.value
 	var r = game.net.request(Protocol.GATHER, [target])
 	return r.done and r.value is bool and r.value
 

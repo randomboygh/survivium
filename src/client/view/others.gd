@@ -45,7 +45,7 @@ var people := {}
 func take_people(list: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for e in list:
-		if not e is Array or not e.size() in [13, 14, 15, 16] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
+		if not e is Array or not e.size() in [13, 14, 15, 16, 17] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
 				or not e[4] is Array or e[4].size() != 2:
 			continue
 		var id: int = e[0]
@@ -174,6 +174,8 @@ func _process(delta: float) -> void:
 			f.dress(Figure.dressed(e[13]))
 		# Their fishing line in the water, its float where the server says.
 		f.line_at = e[15] if e.size() > 15 and e[15] is Vector3 else Vector3.INF
+		# The vessel they sit in, afloat.
+		f.riding = str(e[16]) if e.size() > 16 and e[16] is String else ""
 		if e[11] != one.work_n:
 			one.work_n = e[11]
 			if str(e[9]) != "":

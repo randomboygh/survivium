@@ -179,6 +179,18 @@ func _run() -> void:
 		main.chunks.build_around()
 		if shot.has("water"):
 			main.player.position = places.in_water(main.world, main.player.position, shot.water)
+		# Afloat in a vessel (Character.riding): launched where the player is; the body
+		# rises onto the water in its first step.
+		if shot.has("ride"):
+			var hp = main.host.player
+			hp.teleport(main.player.position)
+			var turn := 0.6
+			var v: Dictionary = main.session.actions.vessels.launch(shot.ride, main.player.position, turn)
+			hp.riding = shot.ride
+			hp.vessel = v.id
+			hp.seat = 0
+			main.character.riding = shot.ride
+			main.character.vessel = v.id
 		if shot.has("find"):
 			main.player.position = places.find(main.world, main.player.position, shot.find)
 		if shot.get("copper_moss", false):

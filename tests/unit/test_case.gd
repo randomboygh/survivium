@@ -201,6 +201,10 @@ class Who extends RefCounted:
 	var said: Array[String] = []
 	## Where it looks (see facing_step).
 	var facing := Vector2i(0, -1)
+	## The vessel it sits in (ActionsBoat): its item, id and seat.
+	var riding := ""
+	var vessel := 0
+	var seat := 0
 
 	func feet() -> Vector3i:
 		return Vector3i((position / WorldData.CELL).floor())
@@ -246,3 +250,6 @@ class Who extends RefCounted:
 
 	func say(text: String) -> void:
 		said.append(text)
+
+	func move_to(at: Vector3) -> void:
+		position = at

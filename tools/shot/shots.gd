@@ -299,6 +299,8 @@ const SHOTS := {
 	"wade": {"time": 0.42, "season": 1, "water": 1},
 	"swim": {"time": 0.42, "season": 1, "water": 2},
 	"ice": {"time": 0.45, "season": 3, "water": 2},
+	"raft": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:raft"},
+	"boat": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat"},
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},

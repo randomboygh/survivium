@@ -145,6 +145,9 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_INT, TYPE_BOOL]):
 				actions.pick_up_near(who, args[0], args[1])
 				return true
+		Protocol.VESSEL_TAKE:
+			if _fit(args, [TYPE_INT]):
+				return actions.take_vessel(who, args[0])
 		Protocol.PLANT:
 			if _fit(args, [TYPE_STRING]):
 				return actions.plant(who, args[0])

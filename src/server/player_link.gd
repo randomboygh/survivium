@@ -4,7 +4,8 @@ extends RefCounted
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE; HEARD, the chat; TEAM and INVITES, the
 ## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
-## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the clock (CLOCK) and of the animals (ANIMAL,
+## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
+## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
 ## after each tick. Over a socket (send_world) the link also brings the client its copy
@@ -21,6 +22,7 @@ const Player := preload("res://src/server/player.gd")
 const Requests := preload("res://src/server/requests.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
 const Session := preload("res://src/shared/game/session.gd")
+const Vessels := preload("res://src/shared/game/vessels.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 
@@ -126,6 +128,8 @@ func _init(s) -> void:
 	actions.drops_changed.connect(_on_drops)
 	actions.looks_changed.connect(_on_looks)
 	actions.taken.connect(_on_taken)
+	actions.vessels.changed.connect(_on_vessel)
+	actions.vessels.gone.connect(_on_vessel_gone)
 	session.teams.changed.connect(_on_team)
 	session.teams.invited.connect(_on_invited)
 	session.territory.claims_changed.connect(_on_claims)
@@ -147,6 +151,8 @@ func leave() -> void:
 	actions.drops_changed.disconnect(_on_drops)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.taken.disconnect(_on_taken)
+	actions.vessels.changed.disconnect(_on_vessel)
+	actions.vessels.gone.disconnect(_on_vessel_gone)
 	session.teams.changed.disconnect(_on_team)
 	session.teams.invited.disconnect(_on_invited)
 	session.territory.claims_changed.disconnect(_on_claims)
@@ -277,6 +283,7 @@ func flush() -> Array[PackedByteArray]:
 		_all = false
 		out.append(_event(Protocol.PROPS, [session.placed.to_list()]))
 		out.append(_event(Protocol.PLANS, [session.plans.to_list()]))
+		out.append(_event(Protocol.VESSELS, [session.actions.vessels.records()]))
 		for a in session.wildlife.animals:
 			out.append(_event(Protocol.ANIMAL, [a.id, a.kind, a.tint, a.pos]))
 		_snapped.clear()
@@ -362,7 +369,7 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 			continue
 		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
 			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate(),
-			session.teams.together(who.id, p.id), p.line]
+			session.teams.together(who.id, p.id), p.line, p.riding]
 		here[p.id] = true
 		if _people.get(p.id) != e:
 			_people[p.id] = e
@@ -506,6 +513,14 @@ func _on_taken(id: String, from: Vector3, by: Object) -> void:
 
 func _on_moved(at: Vector3) -> void:
 	_push(Protocol.TELEPORT, [at])
+
+
+func _on_vessel(v: Dictionary) -> void:
+	_push(Protocol.VESSEL, Vessels.record(v))
+
+
+func _on_vessel_gone(id: int) -> void:
+	_push(Protocol.VESSEL_GONE, [id])
 
 
 func _on_knocked(dir: Vector2, speed: float, hop: float) -> void:
