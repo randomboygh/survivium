@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/platinum/bundle.yaml
+"Платина": "Platinum"
+
+# content/materials/platinum/data/items.yaml
+"Платиновая руда": "Platinum ore"
+"Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка.": "A dark heavy rock with grey grains of platinum. A bronze pickaxe mines it."
+"Платиновый слиток": "Platinum ingot"
+"Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки.": "A heavy metal that is hard to melt: the forge smelts it long, with double charcoal. Ingots are put together into platinum blocks."
+"Платиновый блок": "Platinum block"
+"Тяжёлый серо-белый блок для построек.": "A heavy grey-white block for buildings."

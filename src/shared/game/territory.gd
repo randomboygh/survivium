@@ -26,6 +26,7 @@ extends RefCounted
 ## are painted again by hand.
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Cells along each side of a square.
 const SQUARE := 2
@@ -157,7 +158,7 @@ func may(who, c: Vector3i, action: String) -> bool:
 	var claim := claim_at(c)
 	if allowed(claim, _id(who), action):
 		return true
-	who.nag("claim", "Территория «%s»: здесь нельзя — %s" % [title_of(claim), TITLES[action].to_lower()])
+	who.nag("claim", Lang.line("Территория «%s»: здесь нельзя — %s", [title_of(claim), TITLES[action].to_lower()]))
 	return false
 
 
@@ -176,7 +177,7 @@ func step_walk(players: Array) -> void:
 		var back: Variant = _walked.get(id)
 		if back != null and allowed(claim_at(_cell(back)), id, "walk"):
 			p.teleport(back)
-			p.nag("claim", "Территория «%s»: сюда нельзя" % title_of(claim))
+			p.nag("claim", Lang.line("Территория «%s»: сюда нельзя", [title_of(claim)]))
 
 
 ## The name of claim `claim`: its team's, or the one's who set it.
@@ -219,7 +220,7 @@ func can_claim(who, c: Vector3i) -> bool:
 		# Its own square is painted already: the claim takes no more.
 		return true
 	if used(who.id) >= budget(who.id):
-		who.nag("claim", "Участков не осталось: %d из %d" % [used(who.id), budget(who.id)])
+		who.nag("claim", Lang.line("Участков не осталось: %d из %d", [used(who.id), budget(who.id)]))
 		return false
 	return true
 
@@ -280,7 +281,7 @@ func paint(who, sq: Vector2i, on: bool) -> bool:
 		if to == 0:
 			return false
 		if used(who.id) >= budget(who.id):
-			who.nag("claim", "Участков не осталось: %d из %d" % [used(who.id), budget(who.id)])
+			who.nag("claim", Lang.line("Участков не осталось: %d из %d", [used(who.id), budget(who.id)]))
 			return false
 		_assign([sq], to)
 		return true

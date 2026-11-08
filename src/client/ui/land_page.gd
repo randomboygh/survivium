@@ -16,6 +16,7 @@ const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The width of each button of the rights; the names take the rest.
 const CELL_WIDTH := 84
@@ -82,11 +83,11 @@ func refresh() -> void:
 	var mine: bool = claim.by == land.me()
 	var color: Color = land.color(claim)
 	if not land.own(claim):
-		_box.add_child(UiStyle.label("Земля «%s»" % claim.name, color))
+		_box.add_child(UiStyle.label(Lang.f("Земля «%s»", [claim.name]), color))
 		var may: Array = land.may_here(claim)
 		if int(claim.get("weak", 0)) > 0:
 			_note("Земля заброшена: хозяева давно не заходили, охрана ослабла")
-		_note("Здесь можно: " + ", ".join(may) if not may.is_empty() else "Здесь ничего нельзя")
+		_note(Lang.f("Здесь можно: %s", [", ".join(may.map(Lang.t))]) if not may.is_empty() else "Здесь ничего нельзя")
 		_laid()
 		return
 	var head := HBoxContainer.new()

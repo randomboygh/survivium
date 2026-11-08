@@ -4,6 +4,7 @@ extends "res://src/shared/game/actions_dig.gd"
 
 ## Seconds between two placings of a stroke, and of the action button (slower, so a
 ## bridge grows a cell at a time while walking).
+
 const PLACE_SWING := 0.1
 const FRONT_PLACE_SWING := 0.25
 
@@ -27,7 +28,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 		if not _may(who, cell, "build"):
 			continue
 		if not free and who.inventory.count(item) == 0:
-			who.nag("no_block", "В сумке нет: %s" % Items.title(item))
+			who.nag("no_block", Lang.line("В сумке нет: %s", [Items.title(item)]))
 			break
 		if not who.act("place", "build"):
 			break
@@ -95,7 +96,7 @@ func plant_spot(who, id: String) -> Variant:
 func plant_at(who, id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
 	if item.is_empty() or who.inventory.count(item.id) == 0:
-		who.nag("no_seed", "В сумке нет: %s" % Items.title(id))
+		who.nag("no_seed", Lang.line("В сумке нет: %s", [Items.title(id)]))
 		return false
 	if not _can_plant(who, id, cell):
 		who.nag("plant", "Сюда не посадить")

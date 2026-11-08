@@ -48,10 +48,10 @@ func _show_panel() -> void:
 	var f = mode
 	var w: Array = WORKS[f.work]
 	_work.icon = UiStyle.centred(UiStyle.icon(w[0]))
-	_work.tooltip_text = w[1] + " (нажать — следующая работа)"
+	_work.tooltip_text = Lang.f("%s (нажать — следующая работа)", [w[1]])
 	var s: Array = FARM_SHAPES[f.shape]
 	_farm_shape.icon = UiStyle.centred(UiStyle.icon(s[0]))
-	_farm_shape.tooltip_text = s[1] + " (нажать — другая фигура)"
+	_farm_shape.tooltip_text = Lang.f("%s (нажать — другая фигура)", [s[1]])
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if f.erasing else "build_draw"))
 	_mode.tooltip_text = "Стирать разметку (нажать — рисовать)" if f.erasing else "Рисовать разметку (нажать — стирать)"
 	TabRow.light(_mode, f.erasing, f.erasing)

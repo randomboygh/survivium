@@ -389,7 +389,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 		looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		return true
 	if b.twig == "":
-		who.nag("bush", "%s: взять с него нечего" % b.title)
+		who.nag("bush", Lang.line("%s: взять с него нечего", [b.title]))
 		return false
 	if twigs_left(cell, b) <= 0:
 		who.nag("bush", "На кусте больше ничего нет до весны")
@@ -407,7 +407,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 func _knock_berries(who, cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
 	if not ripe(cell, b):
-		who.nag("bush", "Ягод на кусте нет" if b.fruit != "" else "%s без ягод" % b.title)
+		who.nag("bush", "Ягод на кусте нет" if b.fruit != "" else Lang.line("%s без ягод", [b.title]))
 		return false
 	if not who.act("cut", "gather"):
 		return false
@@ -478,10 +478,10 @@ func _from_tree(who, col: Vector2i) -> bool:
 	var s: Dictionary = Trees.SPECIES[world.trees[col]]
 	var seeds := _tree_seeds_left(col, s) > 0
 	if not seeds and s.twig == "":
-		who.nag("tree", "%s: взять с него нечего" % s.title)
+		who.nag("tree", Lang.line("%s: взять с него нечего", [s.title]))
 		return false
 	if not seeds and _tree_twigs_left(col, s) <= 0:
-		who.nag("tree", "%s: больше ничего до весны" % s.title)
+		who.nag("tree", Lang.line("%s: больше ничего до весны", [s.title]))
 		return false
 	if not who.act("gather", "gather"):
 		return false

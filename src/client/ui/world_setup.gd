@@ -13,6 +13,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const NAME_WIDTH := 112
 ## The names of the mods are longer than the settings' and have the room the map leaves.
@@ -93,7 +94,7 @@ func _ready() -> void:
 	_map.texture = _texture
 	_map.custom_minimum_size = Vector2(MAP, MAP)
 	_map.stretch_mode = TextureRect.STRETCH_KEEP
-	_map.tooltip_text = "Земля вокруг места старта, %d клеток в ширину" % (MAP * MAP_STEP)
+	_map.tooltip_text = Lang.f("Земля вокруг места старта, %d клеток в ширину", [(MAP * MAP_STEP)])
 	frame.add_child(_map)
 	var marker := Control.new()
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -181,7 +182,7 @@ func _mod_rows(s) -> void:
 			_add_row(Mods.mod_title(mod), ["выкл", "вкл"],
 				func() -> int: return 1 if lit == mine.size() else 0,
 				func(i: int) -> void: s.set_world_mod(m, i == 1), MOD_NAME_WIDTH,
-				"%d из %d" % [lit, mine.size()] if lit > 0 and lit < mine.size() else "",
+				Lang.f("%d из %d", [lit, mine.size()]) if lit > 0 and lit < mine.size() else "",
 				_show_page.bind("mod:" + mod) if mine.size() > 1 else Callable())
 		return
 	var mod := _page.trim_prefix("mod:")
@@ -191,7 +192,7 @@ func _mod_rows(s) -> void:
 	bundles.sort_custom(func(a: String, b: String) -> bool: return Mods.title(a).naturalnocasecmp_to(Mods.title(b)) < 0)
 	for bundle: String in bundles:
 		var b := bundle
-		_add_row(Mods.title(bundle), ["выкл", "вкл"],
+		_add_row(Lang.t(Mods.title(bundle)), ["выкл", "вкл"],
 			func() -> int: return 1 if b in on else 0,
 			func(i: int) -> void: s.set_world_mod(b, i == 1), MOD_NAME_WIDTH)
 		_why_line(Mods.why(bundle, state.dropped))
@@ -204,7 +205,7 @@ func _why_line(chain: Array) -> void:
 		return
 	var parts: PackedStringArray = []
 	for need: String in chain:
-		parts.append(("нужен «%s»" if parts.is_empty() else "а ему «%s»") % Mods.title(need))
+		parts.append(Lang.f("нужен «%s»" if parts.is_empty() else "а ему «%s»", [Mods.title(need)]))
 	var label := UiStyle.label(", ".join(parts), UiStyle.MUTED)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Indented, and further from the next row than from its own.
@@ -323,7 +324,7 @@ func _mods_row() -> void:
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var all: int = Mods.all().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
 	var on: int = game.settings.world_mods().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
-	value.text = "%d из %d" % [on, all] if on < all else "все"
+	value.text = Lang.f("%d из %d", [on, all]) if on < all else "все"
 	row.add_child(value)
 	var b := Button.new()
 	b.icon = UiStyle.icon("next")

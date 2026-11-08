@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fiber_clothes/bundle.yaml
+"Одежда из волокна": "Fiber clothes"
+
+# content/tools/fiber_clothes/data/items.yaml
+"Плетёная шапка": "Woven hat"
+"Шапка из сухой травы. Немного греет голову.": "A hat of dry grass. Warms the head a little."
+"Травяная накидка": "Grass cape"
+"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "A cape of tightly woven fiber on a cord. The warmest of the grass clothes."
+"Обмотки": "Leg wraps"
+"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Strips of fiber wound round the legs and tied with cord."
+"Лапти": "Bast shoes"
+"Плетёная обувь из волокна на верёвочных завязках.": "Woven fiber shoes with cord ties."

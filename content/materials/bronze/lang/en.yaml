@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/bronze/bundle.yaml
+"Бронза": "Bronze"
+
+# content/materials/bronze/data/items.yaml
+"Сырой тигель": "Raw crucible"
+"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "A thick-walled bowl of clay with sand. It still has to be fired in a kiln."
+"Тигель": "Crucible"
+"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "A fired bowl for smelting. Copper and tin are alloyed in it; it isn't used up."
+"Бронзовый слиток": "Bronze ingot"
+"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Copper with tin: harder than copper. Bronze makes tools that can mine iron ore."

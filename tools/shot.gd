@@ -13,6 +13,7 @@ const Placed := preload("res://src/shared/game/placed.gd")
 const Shots := preload("res://tools/shot/shots.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Places := preload("res://tools/shot/places.gd")
+const SettingsScript := preload("res://src/client/settings.gd")
 
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -39,6 +40,13 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	phone = "--phone" in args
 	args.erase("--phone")
+	# `--lang en`: the shots in that language (else Russian, as the game is written).
+	SettingsScript.language_override = "ru"
+	var at := args.find("--lang")
+	if at >= 0 and at + 1 < args.size():
+		SettingsScript.language_override = args[at + 1]
+		args.remove_at(at + 1)
+		args.remove_at(at)
 	if args.size() > 0:
 		out_dir = args[0]
 	names = args.slice(1) if args.size() > 1 else Shots.SHOTS.keys()

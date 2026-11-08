@@ -24,6 +24,7 @@ const GestureWheel := preload("res://src/client/ui/gesture_wheel.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
 const BuildBar := preload("res://src/client/ui/build_bar.gd")
 const FarmBar := preload("res://src/client/ui/farm_bar.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const MARGIN := 8.0
 const GAP := 4.0
 const SLOT := 40
@@ -267,7 +268,7 @@ func _draw_bag_meter() -> void:
 		var fill: Color = bar_shade(float(i + 1) / n) if i < taken else FREE_DIVISION
 		c.draw_rect(Rect2(x0, inner.position.y, BAG_DIVISION, inner.size.y), fill)
 	UiStyle.draw_weight(c, inner.grow_individual(-3, 0, -3, 0), inv.weight(), inv.weight_limit)
-	c.tooltip_text = "Сумка: занято %d из %d ячеек, %.1f из %d кг" % [taken, inv.slots.size(), inv.weight(), inv.weight_limit]
+	c.tooltip_text = Lang.f("Сумка: занято %d из %d ячеек, %.1f из %d кг", [taken, inv.slots.size(), inv.weight(), inv.weight_limit])
 
 
 ## The fill of a division of the bag's bar at share `k` of the slots (0..1): the skills'

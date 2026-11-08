@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/sounds/nature/bundle.yaml
+"Природа": "Nature"
+
+# content/sounds/nature/data/sounds.yaml
+"Ветер": "Wind"
+"Дождь": "Rain"
+"Град": "Hail"
+"Метель": "Blizzard"
+"Вода": "Water"
+"Костёр": "Campfire"
+"Сверчки": "Crickets"
+"Гром": "Thunder"

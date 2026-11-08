@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fence/bundle.yaml
+"Забор": "Fence"
+
+# content/tools/fence/data/items.yaml
+"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "A section of a pole fence. Built in build mode as a line, like a wall, and joins its neighbours by itself."
+"Калитка": "Wicket"
+"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "A pole leaf in a fence line, one cell wide. A tap opens and closes it."
+"Ворота": "Gate"
+"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Two pole leaves in a fence line, two cells wide. A tap opens both."

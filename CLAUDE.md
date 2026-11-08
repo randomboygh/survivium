@@ -115,6 +115,7 @@ docs); a PR that does several things has a line for each.
 ```
 python3 tools/lint.py
 python3 tools/doc_index.py --check
+python3 tools/lang_check.py --strict en
 godot --headless --path . --import
 godot --headless --path . --script res://tools/parse_check.gd
 godot --headless --path . --script res://tools/validate.gd
@@ -166,6 +167,9 @@ Each in one line; the system's context doc has the detail.
 - `var i := expr` with a Variant `expr` is a parse error: type it. `typed_array = expr if c else []`
   is a runtime error that silently aborts the function. A self-typed return (`-> VoxelModel`) without
   `class_name` is a parse error that hangs the `make_*` tools: `--check-only` first.
+- Text is in Russian and the phrase is its own key: a new phrase or record needs its English in
+  `lang/en.yaml` beside it (`python3 tools/lang_check.py --write en`); the server sends `Lang.line(template,
+  values)`, the client formats with `Lang.f`, never `template % values` or glued pieces (`docs/systems/lang.md`).
 - Never use -1 as "none" for world coordinates: negative ones are real.
 - Tests of time-based behaviour wait by `Time.get_ticks_msec`, not frames. A per-frame flag computed
   before a state-changing update is stale in that frame.

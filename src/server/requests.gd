@@ -25,6 +25,7 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The longest text a sign is sent to be written (Placed.sign_text cuts it to the sign's).
 const SIGN_MAX := 600
@@ -306,7 +307,7 @@ func _rule(kind: String, args: Array) -> Variant:
 				if other == null or other.position.distance_to(who.position) > TEAM_REACH:
 					return false
 				if session.teams.team_of(other.id) != 0:
-					who.nag("team", "%s уже в команде" % other.player_name)
+					who.nag("team", Lang.line("%s уже в команде", [other.player_name]))
 					return false
 				return session.teams.invite(who.id, who.player_name, other.id, _now())
 		Protocol.TEAM_ACCEPT:

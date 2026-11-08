@@ -232,7 +232,7 @@ func _launch(who, item: String, at: Vector3, dir: Vector2) -> bool:
 	var it := Items.get_item(item)
 	var oars: String = it.get("oars", "")
 	if oars != "" and who.inventory.count(oars) == 0:
-		who.say("%s на воде, но без вёсел она едва движется" % it.title)
+		who.say(Lang.line("%s на воде, но без вёсел она едва движется", [it.title]))
 	return true
 
 

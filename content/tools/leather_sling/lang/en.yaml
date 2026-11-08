@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/leather_sling/bundle.yaml
+"Кожаная праща": "Leather sling"
+
+# content/tools/leather_sling/data/items.yaml
+"Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной.": "Leather straps and a pouch. Throws pebbles farther and harder than the cord one."

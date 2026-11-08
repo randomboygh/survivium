@@ -7,6 +7,7 @@ extends "res://src/client/ui/menu_backdrop.gd"
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const WIDTH := 216
 const BUTTON_H := 30
 ## The loading screen's map: the sides tried in turn until the card fits the screen (as
@@ -237,7 +238,7 @@ func _strip_words(on: Control, color: Color, shift := Vector2.ZERO) -> void:
 	var gap := 4.0
 	var y := floorf((_strip.size.y - 2.0 * line - gap) * 0.5) + f.get_ascent(UiStyle.FONT_SIZE)
 	var inside := _strip.size.x - 2 * STRIP_PAD
-	on.draw_string(f, Vector2(STRIP_PAD, y) + shift, _strip_top, HORIZONTAL_ALIGNMENT_LEFT, inside,
+	on.draw_string(f, Vector2(STRIP_PAD, y) + shift, Lang.t(_strip_top), HORIZONTAL_ALIGNMENT_LEFT, inside,
 		UiStyle.FONT_SIZE, color, TextServer.JUSTIFICATION_NONE)
 	y += line + gap
 	on.draw_string(f, Vector2(STRIP_PAD, y) + shift, _strip_left, HORIZONTAL_ALIGNMENT_LEFT, inside,
@@ -310,7 +311,7 @@ func _update_strip(delta: float) -> void:
 			_progress = 1.0
 	var seconds := (Time.get_ticks_msec() - _load_at) / 1000.0 if _load_at >= 0 else 0.0
 	var top := _phase_shown
-	var left := "%d с" % floori(seconds)
+	var left := Lang.f("%d с", [floori(seconds)])
 	var right := "%d%%" % floori(100.0 * _progress)
 	var fill := Vector2(floorf((_strip.size.x - 2) * _progress), _strip.size.y - 2)
 	if top == _strip_top and left == _strip_left and right == _strip_right and fill == _strip_fill.size:

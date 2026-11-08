@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/gold/bundle.yaml
+"Золото": "Gold"
+
+# content/materials/gold/data/items.yaml
+"Золотая руда": "Gold ore"
+"Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.": "Quartz with yellow veins of gold. A bronze pickaxe mines it."
+"Золотой слиток": "Gold ingot"
+"Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.": "A heavy, soft yellow metal. Ingots are put together into gold blocks."
+"Золотой блок": "Gold block"
+"Блестящий жёлтый блок для построек.": "A shiny yellow block for buildings."

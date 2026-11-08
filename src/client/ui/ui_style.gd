@@ -4,6 +4,8 @@ extends RefCounted
 ## size is in UI pixels; the UI root is scaled by a whole number so one UI pixel is
 ## one pixel of the world.
 
+const Lang := preload("res://src/shared/content/lang.gd")
+
 const FONT_PATH := "res://assets/fonts/PressStart2P.ttf"
 ## Press Start 2P is drawn on an 8x8 grid, so at 8 px one pixel of a letter is one UI
 ## pixel and the letters stay sharp (finer pixel fonts lose rows at their small size).
@@ -1384,7 +1386,7 @@ static func draw_weight(c: CanvasItem, r: Rect2, weight: float, limit: int) -> v
 		c.draw_texture(kg, Vector2(x, floorf(mid - kg.get_height() * 0.5)))
 		x += kg.get_width() + 4
 	# A dark outline keeps it legible over the filled divisions.
-	var text := "%d / %d кг" % [roundi(weight), limit]
+	var text := Lang.f("%d / %d кг", [roundi(weight), limit])
 	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
 		c.draw_string(f, Vector2(x, y) + d, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, EDGE)
 	c.draw_string(f, Vector2(x, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, DANGER if weight > limit else INK)
@@ -1394,7 +1396,7 @@ static func draw_weight(c: CanvasItem, r: Rect2, weight: float, limit: int) -> v
 ## the limit.
 static func weight_width(limit: int) -> int:
 	var kg := _weight_icon()
-	return int((kg.get_width() + 4 if kg != null else 0) + _text_width("%d / %d кг" % [limit * 10, limit]))
+	return int((kg.get_width() + 4 if kg != null else 0) + _text_width(Lang.f("%d / %d кг", [limit * 10, limit])))
 
 
 static func _text_width(t: String) -> float:

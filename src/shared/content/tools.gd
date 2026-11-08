@@ -18,6 +18,7 @@ extends RefCounted
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The classes of tools whose work in the world the engine knows (see can_dig and the rest).
 const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod", "hoe", "sickle", "can"]
@@ -217,11 +218,11 @@ static func why_not(t: Dictionary, m: int) -> String:
 	var rec: Dictionary = Mat.RECORDS[m]
 	match rec.dig:
 		"pickaxe":
-			return "Нужна кирка покрепче" if t.tool == "pickaxe" else "%s: нужна кирка" % rec.title
+			return "Нужна кирка покрепче" if t.tool == "pickaxe" else Lang.line("%s: нужна кирка", [rec.title])
 		"axe":
-			return "%s: нужен топор" % rec.title
+			return Lang.line("%s: нужен топор", [rec.title])
 		"shovel":
-			return "%s: копают руками, лопатой или киркой" % rec.title
+			return Lang.line("%s: копают руками, лопатой или киркой", [rec.title])
 	return ""
 
 

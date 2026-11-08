@@ -4,6 +4,7 @@ extends "res://src/client/ui/hud_layout.gd"
 ## land and the team, the settings and «Тестирование», leaving for the main menu.
 
 ## The settings and the playtest page, compiled and made when first opened (settings_menu).
+
 const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
 
 
@@ -101,7 +102,7 @@ func tap_post(e: Dictionary) -> void:
 	var land = game.land
 	if not land.tap_post(e):
 		var claim: Dictionary = land.copy.claim_at(e.cell)
-		toast("Межевой столб «%s»" % claim.get("name", "") if not claim.is_empty() \
+		toast(Lang.f("Межевой столб «%s»", [claim.get("name", "")]) if not claim.is_empty() \
 			else "Межевой столб без земли: её забросили. Заберите столб и поставьте снова")
 		return
 
@@ -130,8 +131,8 @@ func _on_land_entered(claim: Dictionary, own: bool) -> void:
 		toast("Своя территория")
 	else:
 		var may: Array = game.land.may_here(claim)
-		toast("Территория «%s»%s: %s" % [claim.get("name", ""), " заброшена" if int(claim.get("weak", 0)) > 0 else "",
-			"можно " + ", ".join(may) if not may.is_empty() else "ничего нельзя"])
+		toast(Lang.f("Территория «%s»%s: %s", [claim.get("name", ""), " заброшена" if int(claim.get("weak", 0)) > 0 else "",
+			Lang.f("можно %s", [", ".join(may.map(Lang.t))]) if not may.is_empty() else "ничего нельзя"]))
 
 
 ## Opens the inventory window on the tab «Команда» (on a server).

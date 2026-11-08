@@ -126,6 +126,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 | Спрайт растения | `sprites/plants/<sprite>.png` | кадры 8×24 | `Foliage`, `Plants` |
 | Предмет в руке | `sprites/held/<sprite>.png` | кадр ношения + по кадру работы | `Figure` |
 | Звук | `sounds/<имя>.wav` или `<имя>_N.wav` | wav | `Sound` |
+| Перевод | `lang/<код>.yaml` (и `content/<мод>/lang/`) | словарь «русская фраза: перевод» | `Lang` ([systems/lang.md](systems/lang.md)) |
 | Игрок | `content/core/sprites/player/*.png`, `player.yaml`, `hands.png` | слои | `Figure` |
 | Одежда на фигуре | `sprites/worn/<look>.png` | слой листа игрока | `Figure.dressed` |
 

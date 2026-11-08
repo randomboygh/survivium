@@ -98,7 +98,7 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 	if fishing.fish_near(water) == null:
 		who.nag("no_fish", "Рядом с поплавком не видно рыбы")
 	elif item.get("ammo", "") != "" and fishing.lines[who].bait == "":
-		who.nag("bait", "Без наживки клюёт редко: нужна «%s»" % Items.title(item.ammo))
+		who.nag("bait", Lang.line("Без наживки клюёт редко: нужна «%s»", [Items.title(item.ammo)]))
 	var done := _work(CAST_SWING, "", water)
 	done.line = water
 	return done

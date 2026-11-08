@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bedding/bundle.yaml
+"Постель": "Bedding"
+
+# content/tools/bedding/data/items.yaml
+"Травяная подстилка": "Grass bedding"
+"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "An armful of dry grass tied with cord. Sleeping on it is better than on bare ground."
+"Меховой спальник": "Fur sleeping bag"
+"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Hides sewn into a bag. You sleep twice as fast in it."

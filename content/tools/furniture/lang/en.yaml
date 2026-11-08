@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/furniture/bundle.yaml
+"Мебель": "Furniture"
+
+# content/tools/furniture/data/items.yaml
+"Стол": "Table"
+"Дощатый стол на четырёх ножках, на две клетки.": "A plank table on four legs, two cells long."
+"Табурет": "Stool"
+"Посиди рядом — силы возвращаются вдвое быстрее.": "Sit nearby — strength comes back twice as fast."
+"Кровать": "Bed"
+"Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки.": "A wooden bed with a canvas mattress. Sleep on it restores more than any bedding."
+"Шкаф": "Cupboard"
+"Высокий шкаф из досок, хранит больше сундука.": "A tall plank cupboard; holds more than a chest."
+"Широкий шкаф": "Wide cupboard"
+"Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука.": "A cupboard two cells wide and two high, with four doors. Holds more than a big chest."
+"Бочка": "Barrel"
+"Бочка в обручах. Еда в ней портится вдвое медленнее.": "A hooped barrel. Food in it spoils half as fast."
+"Половик": "Rug"
+"Тканый половик для пола, на две клетки.": "A woven floor rug, two cells long."

@@ -1,0 +1,39 @@
+extends "res://tests/unit/test_case.gd"
+## The languages (Lang, decision 183): the server's lines with values put together in the
+## reader's language, English read from the lang files, every phrase of the game in it.
+
+
+func run() -> void:
+	_test_lines()
+	_test_english()
+
+
+## A line keeps its template and values apart and is put together where it is shown.
+func _test_lines() -> void:
+	var l := Lang.line("Сломалось: %s (%d)", ["Каменный топор", 3])
+	_check(l.begins_with(Lang.LINE) and Lang.t(l) == "Сломалось: Каменный топор (3)", "a line put together as written")
+	_check(Lang.line("Готово") == "Готово", "a phrase without values stays a phrase")
+	var nested := Lang.line("%s, %s", [Lang.line("%s (%d из %d)", ["Животные", 1, 19]), "Растения"])
+	_check(Lang.t(nested) == "Животные (1 из 19), Растения", "a line inside a line")
+	_check(Lang.t(Lang.LINE + "Object(Node,\"name\":\"x\")") == Lang.LINE + "Object(Node,\"name\":\"x\")",
+		"a line that is not JSON is shown as it came and makes nothing")
+	_check(Lang.f("%d мин", [5]) == "5 мин", "a template of the client's with values")
+
+
+## English: the files read, every phrase of the code and the content in them, the
+## TranslationServer turning phrases and lines into it; Russian back as written.
+func _test_english() -> void:
+	var en := Lang.phrases("en")
+	_check(en.get("Волк", "") == "Wolf" and en.get("Сломалось: %s", "") == "Broke: %s", "English is read from core's and the bundles' files")
+	Lang.use("en")
+	_check(TranslationServer.get_locale() == "en" and tr("Настройки") == "Settings", "the TranslationServer speaks English")
+	_check(Lang.t(Lang.line("Сломалось: %s", ["Каменный топор"])) == "Broke: Stone axe"
+		and TranslationServer.translate(Lang.line("Сломалось: %s", ["Каменный топор"])) == "Broke: Stone axe",
+		"a line in English, its value too, by Lang.t and by the server of translations")
+	_check(Lang.f("%s · %d° · д. %d · %02d:%02d", ["Лето", 21, 3, 10, 5]) == "Summer · 21° · d. 3 · 10:05", "the clock in English")
+	Lang.use("de")
+	_check(Lang.code == "en", "a language not listed is English")
+	Lang.use("ru")
+	_check(tr("Настройки") == "Настройки" and Lang.t(Lang.line("Сломалось: %s", ["Нож"])) == "Сломалось: Нож", "Russian as written")
+	Lang.drop()
+	_check(Lang.of_device() in Lang.LANGS.map(func(l: Array) -> String: return l[0]), "a new player gets a language of the list")

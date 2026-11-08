@@ -61,6 +61,7 @@ const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
@@ -308,6 +309,7 @@ func _ready() -> void:
 	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
 	settings.load()
+	settings.use_language()
 	sound = SoundScript.new(self)
 	add_child(sound)
 	save = SaveGame.new(self)
@@ -531,9 +533,9 @@ func _on_socket_closed(code: int, reason: String) -> void:
 		return
 	if join_error == "" and welcome.is_empty():
 		# A browser says nothing of a server that is not there but a code without words.
-		join_error = "Сервер не отвечает" if code < 0 or reason == "" else "Сервер закрыл вход: " + reason
+		join_error = "Сервер не отвечает" if code < 0 or reason == "" else Lang.f("Сервер закрыл вход: %s", [reason])
 	elif join_error == "":
-		join_error = "Связь с сервером потеряна" if code < 0 else ("Сервер: " + reason if reason != "" else "Сервер закрыл связь")
+		join_error = "Связь с сервером потеряна" if code < 0 else (Lang.f("Сервер: %s", [reason]) if reason != "" else "Сервер закрыл связь")
 		if hud != null:
 			hud.set_loading(join_error)
 		if menu != null:
@@ -816,6 +818,7 @@ func _world_made() -> int:
 
 ## The server's loop is stopped with the scene.
 func _exit_tree() -> void:
+	Lang.drop()
 	if host != null and host.runner != null:
 		host.stop()
 	if socket != null:

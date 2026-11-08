@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"Тяпка": "Hoe"
+
+# content/tools/hoe/data/items.yaml
+"Каменная тяпка": "Stone hoe"
+"Вскапывает траву и землю в грядку, на которую сеют.": "Tills grass and earth into a bed for sowing."
+"Медная тяпка": "Copper hoe"
+"Вскапывает две клетки за взмах.": "Tills two cells per swing."
+"Железная тяпка": "Iron hoe"
+"Вскапывает три клетки за взмах.": "Tills three cells per swing."

@@ -12,6 +12,7 @@ const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const ROW_WIDTH := 170
 const ROW_H := 36
@@ -86,12 +87,12 @@ func _fill() -> void:
 		row.add_theme_constant_override("separation", 4)
 		_rows.add_child(row)
 		var pick := Button.new()
-		pick.text = "зерно %d\n%s · день %d" % [w.seed, _kind(w.settings), w.day]
+		pick.text = Lang.f("зерно %d\n%s · день %d", [w.seed, _kind(w.settings), w.day])
 		if w.seed == WorldStore.TEST_SEED:
-			pick.text = "Тестовый мир\nплощадки · день %d" % w.day
-		pick.tooltip_text = "Сохранён %s, в игре %d мин" % [w.saved.replace("T", " "), int(w.played / 60.0)]
+			pick.text = Lang.f("Тестовый мир\nплощадки · день %d", [w.day])
+		pick.tooltip_text = Lang.f("Сохранён %s, в игре %d мин", [w.saved.replace("T", " "), int(w.played / 60.0)])
 		if not w.mods.is_empty():
-			pick.tooltip_text += "\nМоды: %s" % Mods.summary(Mods.expand(w.mods))
+			pick.tooltip_text += Lang.f("\nМоды: %s", [Mods.summary(Mods.expand(w.mods))])
 		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		pick.custom_minimum_size = Vector2(ROW_WIDTH, ROW_H)

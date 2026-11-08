@@ -4,6 +4,7 @@ extends RefCounted
 ## and lists them in `run`; run_tests.gd runs the files and adds up the counts.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
@@ -246,11 +247,12 @@ class Who extends RefCounted:
 	func lay(_kind: String, _data: Variant) -> Vector3:
 		return position
 
+	# What was said as the player reads it (a Lang.line put together, in the source language).
 	func nag(_reason: String, text: String) -> void:
-		said.append(text)
+		said.append(Lang.t(text))
 
 	func say(text: String) -> void:
-		said.append(text)
+		said.append(Lang.t(text))
 
 	func move_to(at: Vector3) -> void:
 		position = at

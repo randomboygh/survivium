@@ -11,6 +11,7 @@ extends VBoxContainer
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Lines kept, lines shown while closed, seconds a line shows, and its fading at the end.
 const KEPT := 30
@@ -142,9 +143,12 @@ func _show_whom() -> void:
 ## the team when `team` (marked and coloured).
 func hear(id: int, who: String, text: String, team := false) -> void:
 	var own: bool = id != 0 and id == int(game.welcome.get("id", -1))
+	# The server's own lines are phrases of the game; the players' are as they wrote them.
+	if id == 0:
+		text = Lang.t(text)
 	var line := text if who == "" else "%s: %s" % [who, text]
 	if team:
-		line = "[команда] " + line
+		line = tr("[команда] ") + line
 	var color := UiStyle.MUTED if id == 0 else (UiStyle.TEAM if team else (UiStyle.ACCENT if own else UiStyle.INK))
 	lines.append({"text": line, "color": color, "at": _now()})
 	_heard += 1
@@ -185,6 +189,8 @@ func _refresh() -> void:
 			c.queue_free()
 		for l: Dictionary in shown:
 			var label := UiStyle.label(l.text, l.color)
+			# Players' words as written (the server's are put into the language as heard).
+			label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			label.custom_minimum_size.x = custom_minimum_size.x
 			label.add_theme_constant_override("outline_size", 4)

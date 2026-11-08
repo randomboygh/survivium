@@ -12,6 +12,7 @@ extends Control
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Markers := preload("res://src/client/game/markers.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## UI pixels per map pixel (a map pixel is two by two cells); below one the map
 ## shrinks, so a long walk fits on the screen; the closest parts the marks of things
@@ -287,7 +288,7 @@ func _update_info() -> void:
 	var where := "X %d · Y %d" % [c.x, c.y]
 	var clock := ""
 	if game != null and game.player != null:
-		where += " · ур. %d" % game.player.level()
+		where += Lang.f(" · ур. %d", [game.player.level()])
 		clock = game.hud.clock_text()
 	if where != _where.text or clock != _clock.text:
 		_where.text = where
@@ -429,7 +430,7 @@ func _show_popup(i: int) -> void:
 	editing = i
 	var cell := _new_cell if i < 0 else (markers.list[i].cell as Vector2i)
 	var away := Vector2(cell).distance_to(Vector2(minimap.player_cell))
-	_popup_info.text = "X %d · Y %d · %d кл. от вас" % [cell.x, cell.y, roundi(away)]
+	_popup_info.text = Lang.f("X %d · Y %d · %d кл. от вас", [cell.x, cell.y, roundi(away)])
 	for j in _swatches.size():
 		var lit: bool = i >= 0 and markers.list[i].color == j
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
@@ -510,7 +511,7 @@ func _draw_scale(at: Vector2) -> void:
 	draw_rect(Rect2(at.x, y, w + 2, 4), UiStyle.EDGE)
 	draw_rect(Rect2(at.x + 1, y + 1, w, 2), UiStyle.INK)
 	draw_rect(Rect2(at.x + 1, y + 1, floorf(w * 0.5), 2), UiStyle.MUTED)
-	draw_string(UiStyle.font(), Vector2(at.x + w + 8, at.y + UiStyle.FONT_SIZE), "%d кл." % cells,
+	draw_string(UiStyle.font(), Vector2(at.x + w + 8, at.y + UiStyle.FONT_SIZE), Lang.f("%d кл.", [cells]),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, UiStyle.MUTED)
 
 
@@ -540,5 +541,5 @@ func _draw_top(l: Control) -> void:
 	var mid := plate.position.x + 7
 	for i in 4:
 		l.draw_rect(Rect2(mid - i - 1, plate.position.y + 3 + i, 2 * i + 2, 1), UiStyle.ACCENT)
-	l.draw_string(UiStyle.font(), Vector2(plate.position.x + 3, plate.end.y - 3), "С",
+	l.draw_string(UiStyle.font(), Vector2(plate.position.x + 3, plate.end.y - 3), Lang.t("С"),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, UiStyle.INK)

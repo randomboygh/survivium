@@ -475,7 +475,7 @@ func _test_respawn() -> void:
 			if m[0] == Protocol.YOU:
 				told[link.who.id] = m[1].respawns
 	_check(told.get(1, []).size() == 1 and told[1][0][0] == "У своего костра", "its maker is told their own fire: %s" % [told.get(1)])
-	_check(told.get(2, []).size() == 1 and told[2][0][0] == "У костра «Аня»", "the team the maker's: %s" % [told.get(2)])
+	_check(told.get(2, []).size() == 1 and Lang.t(told[2][0][0]) == "У костра «Аня»", "the team the maker's: %s" % [told.get(2)])
 	_check(told.get(3, [null]).is_empty() and c.who.respawn_points().size() == 1, "another player none: %s" % [told.get(3)])
 	_check(_ask(b, 1, Protocol.REVIVE, [by + Vector3(0.1, 0.0, 0.0)]) == true and not b.who.is_dead()
 		and b.who.position.distance_to(by) < 0.01, "the team comes back at it")

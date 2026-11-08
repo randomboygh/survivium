@@ -96,7 +96,7 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 		who.use_tool()
 	elif wear is String and wear != "" and rules.tool_wear \
 			and who.inventory.wear_tool(wear, Items.get_item(wear).get("durability", 0)):
-		who.say("Сломалось: %s" % Items.title(wear))
+		who.say(Lang.line("Сломалось: %s", [Items.title(wear)]))
 	return done
 
 

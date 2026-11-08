@@ -12,6 +12,7 @@ extends RefCounted
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Records in the order of the data files, and by id.
 static var RECIPES: Array = []
@@ -91,13 +92,13 @@ static func lacks_tool(r: Dictionary, inv) -> String:
 ## (`stations`: station item id -> true), for the window; "" when it can.
 static func why_not(r: Dictionary, inv, stations: Dictionary) -> String:
 	if r.at != "" and not stations.has(r.at):
-		return "Нужен станок: %s" % Items.title(r.at)
+		return Lang.line("Нужен станок: %s", [Items.title(r.at)])
 	var kind := lacks_tool(r, inv)
 	if kind != "":
-		return "Нужен инструмент: %s" % Items.tool_title(kind)
+		return Lang.line("Нужен инструмент: %s", [Items.tool_title(kind)])
 	var short := missing(r, inv)
 	if not short.is_empty():
-		return "Не хватает: %s" % amounts_text(short)
+		return Lang.line("Не хватает: %s", [amounts_text(short)])
 	return ""
 
 
