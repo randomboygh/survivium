@@ -57,6 +57,9 @@ const GATHER := "gather"
 const PICKUP := "pickup"
 ## Takes a raft or a boat no one sits in back up into the bag: [vessel id] (take_vessel).
 const VESSEL_TAKE := "vessel_take"
+## Launches a raft or a boat from the bag on the water near and sits in it: [item id]
+## (launch_from_bag; the inventory's button).
+const VESSEL_LAUNCH := "vessel_launch"
 ## Plants or sows the item held in front: [id] (plant).
 const PLANT := "plant"
 ## Plants or sows at the cell tapped: [id, cell] (plant_at).

@@ -901,6 +901,7 @@ func _process(delta: float) -> void:
 		player.body.vessel = character.vessel_pace()
 		player.body.flow = character.flow
 		player.riding = character.riding
+		player.rowing = character.seat == 0
 		player.asleep = character.vitals.asleep and not character.is_dead()
 		player.line_at = character.line
 		player.line_bite = character.bite

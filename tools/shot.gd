@@ -397,7 +397,8 @@ func _run() -> void:
 				main.props.show_drops(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
 		if shot.has("keys"):
 			# Holds the keys while the shot is taken, so the walk animation shows.
-			main.player.position = places.flat_near(main.world, main.player.position)
+			if not shot.has("ride"):
+				main.player.position = places.flat_near(main.world, main.player.position)
 			_hold(shot.keys, true)
 			for i in 12:
 				await process_frame
