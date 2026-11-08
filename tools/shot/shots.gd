@@ -33,6 +33,13 @@ const SHOTS := {
 	"fire-18-spring": {"time": 0.75, "clock": 0.75, "season": 0, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-18-summer": {"time": 0.75, "clock": 0.75, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-18-winter": {"time": 0.75, "clock": 0.75, "season": 3, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	# On a meadow, a campfire set down west of the player and a chest east: the player's
+	# shadow falls east over the grass onto the chest. The fire's real shadow lights the
+	# ground alone, its twin the grass and the chest.
+	"fire-shadow-props": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 3,
+		"put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
+	"fire-shadow-props-real": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 2,
+		"put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
 	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1, "hands": {"tool": "tools:torch", "facing": "s"}},

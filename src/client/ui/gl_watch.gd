@@ -63,7 +63,7 @@ const SCRIPT := """
 	// shader shares, which it reads as global_shader_uniforms[m_name]), and the defines
 	// of the variant that tell what it is drawn for (the shadow pass, many instances,
 	// which lights are off, the mesh's attributes), without the ones every program has.
-	var DROP = /^(APPLY_TONEMAPPING|MATERIAL_UNIFORMS_USED|VERTEX_CODE_USED|FRAGMENT_CODE_USED|LIGHT_CODE_USED|VERTEX_WORLD_COORDS_USED|DISABLE_REFLECTION_PROBE|DISABLE_LIGHTMAP|BASE_PASS|SPECULAR_SCHLICK_GGX|SHADOW_MODE_PCF_5|NORMAL_USED|UV_USED)$/;
+	var DROP = /^(APPLY_TONEMAPPING|MATERIAL_UNIFORMS_USED|VERTEX_CODE_USED|FRAGMENT_CODE_USED|LIGHT_CODE_USED|VERTEX_WORLD_COORDS_USED|DISABLE_REFLECTION_PROBE|DISABLE_LIGHTMAP|SPECULAR_SCHLICK_GGX|SHADOW_MODE_PCF_5|NORMAL_USED|UV_USED)$/;
 	function describe(gl, prog) {
 		var shaders = gl.getAttachedShaders(prog) || [];
 		var defs = [], names = [];

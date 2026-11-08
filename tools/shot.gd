@@ -299,13 +299,22 @@ func _run() -> void:
 			_place_zoo(shot.zoo == "water")
 		if shot.get("trap", false):
 			_place_trap()
-		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
-		for f: Dictionary in main.effects.fires:
-			f.light.light_energy = main.effects.fire_energy(f, main.sky)
 		if shot.has("put_fire"):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:
 				added_fires.append(main.session.placed.put(main.session.placed.CAMPFIRE, spot, null))
+		# Things set down round the player: [item, offset in cells].
+		for put: Array in shot.get("put", []):
+			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(put[1][0], 0.0, put[1][1]) * main.CELL)
+			if spot.y >= 0:
+				added_fires.append(main.session.placed.put(put[0], spot, null))
+		for i in 3:
+			await process_frame
+		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
+		for f: Dictionary in main.effects.fires:
+			f.light.light_energy = main.effects.fire_energy(f, main.sky)
+			if f.light.shadow_enabled:
+				PixelView.twin_follow(f.light, f.light.light_energy / main.effects.shadow_energy)
 		for at: Array in shot.get("sacks", []):
 			main.host.player.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
