@@ -46,9 +46,8 @@ var fill_color := Color(0, 0, 0, 0):
 	set(v):
 		fill_color = v
 		queue_redraw()
-## The grade of the quality of the thing in the slot (Quality.grade), a faint radial tint
-## of GRADE_TINTS over the well, under the icon: empty in a wide middle, rising near the
-## well's edge; below 0 none.
+## The grade of the quality of the thing in the slot (Quality.grade), a faint inner glow
+## of GRADE_TINTS from the well's sides toward its middle, under the icon; below 0 none.
 var grade := -1:
 	set(v):
 		if v != grade:
@@ -58,9 +57,10 @@ var grade := -1:
 ## edges (the better, the more the edges glow).
 const GRADE_TINTS := [[Color(0.85, 0.35, 0.25), 0.10], [Color(0.6, 0.6, 0.6), 0.06],
 	[Color(1.0, 0.95, 0.8), 0.07], [Color(0.45, 0.85, 0.4), 0.20], [Color(0.95, 0.75, 0.3), 0.30]]
-## The share of the radius left empty in the middle before the tint starts rising.
-const TINT_HOLLOW := 0.6
-## The tints as radial gradients, made once.
+## How deep the glow reaches from a side, as a share of half the well (it fades out smoothly).
+const GLOW_DEPTH := 0.7
+## The glows' textures, made once (GLOW_SIDE pixels square).
+const GLOW_SIDE := 48
 static var _tints := []
 ## The well's frame, which the tint stays inside.
 const TINT_INSET := 3.0
@@ -126,22 +126,20 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
-## The radial tint of grade `g`: nothing in the middle, rising to its edge colour.
+## The inner glow of grade `g`: its edge colour at the sides, fading smoothly toward the
+## middle by the distance to the nearest side.
 static func _tint(g: int) -> Texture2D:
 	if _tints.is_empty():
+		var half := GLOW_SIDE * 0.5
 		for t: Array in GRADE_TINTS:
 			var c: Color = t[0]
-			var grad := Gradient.new()
-			grad.offsets = PackedFloat32Array([0.0, TINT_HOLLOW, 1.0])
-			grad.colors = PackedColorArray([Color(c, 0.0), Color(c, 0.0), Color(c, t[1])])
-			var tex := GradientTexture2D.new()
-			tex.gradient = grad
-			tex.fill = GradientTexture2D.FILL_RADIAL
-			tex.fill_from = Vector2(0.5, 0.5)
-			tex.fill_to = Vector2(0.5, 0.0)
-			tex.width = 32
-			tex.height = 32
-			_tints.append(tex)
+			var img := Image.create(GLOW_SIDE, GLOW_SIDE, false, Image.FORMAT_RGBA8)
+			for y in GLOW_SIDE:
+				for x in GLOW_SIDE:
+					var side := minf(minf(x + 0.5, GLOW_SIDE - x - 0.5), minf(y + 0.5, GLOW_SIDE - y - 0.5))
+					var k := 1.0 - smoothstep(0.0, 1.0, side / (half * GLOW_DEPTH))
+					img.set_pixel(x, y, Color(c, float(t[1]) * k * k))
+			_tints.append(ImageTexture.create_from_image(img))
 	return _tints[g]
 
 
