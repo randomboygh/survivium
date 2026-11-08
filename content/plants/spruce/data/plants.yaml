@@ -6,6 +6,7 @@
   kind: sapling
   title: Росток ели
   sprite: spruce_sapling
+  across: 2
   frames: 2
   grows: field
   grow_days: 12

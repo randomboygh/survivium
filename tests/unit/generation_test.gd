@@ -439,10 +439,10 @@ func _test_custom_plants() -> void:
 	var ordered := true
 	for c in Plants.CUSTOM:
 		ordered = ordered and c.first == frames and Grass.plant_of(Grass.CUSTOM + c.first) == c.id \
-			and Grass.plant_of(Grass.CUSTOM + c.first + c.frames - 1) == c.id
-		frames += c.frames
+			and Grass.plant_of(Grass.CUSTOM + c.first + Plants.columns(c) - 1) == c.id
+		frames += Plants.columns(c)
 	_check(Plants.CUSTOM.size() >= 3 and ordered and Plants.custom_frames() == frames and Grass.plant_of(Grass.CUSTOM + frames) == "",
-		"custom plants take the kinds after the engine's, a kind per frame")
+		"custom plants take the kinds after the engine's, a kind per column of a frame")
 	var by_where := {}
 	for c in Plants.CUSTOM:
 		if not by_where.has(c.grows):

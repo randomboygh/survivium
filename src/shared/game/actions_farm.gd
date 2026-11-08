@@ -440,9 +440,10 @@ func felled_young(cell: Vector3i) -> void:
 # --- Watering -----------------------------------------------------------------------------
 
 
-## Whether bed `cell` can be watered: a bed with no rain cover needed, any bed.
+## Whether bed `cell` can be watered: any bed but one a sapling grows on (a sapling needs
+## no water, and the third field of its record is the young tree's flag, not wetness).
 func can_water(cell: Vector3i) -> bool:
-	return Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z))
+	return Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)) and not Plants.is_sapling(crop_on(cell))
 
 
 ## Waters beds `cells` with the can in hand (or can item `with` of the bag): each stays
@@ -472,6 +473,8 @@ func wet(cell: Vector3i, until: float) -> void:
 	var f: Variant = world.field_at(cell)
 	if f == null:
 		f = ["", 0.0, 0.0]
+	elif Plants.is_sapling(f[0]):
+		return
 	world.set_field(cell, [f[0], f[1], maxf(f[2], until)])
 	_look_wet(cell, true)
 
@@ -557,6 +560,8 @@ func grow_fields(days: float, rain: float) -> void:
 				# field 1), then grown its tree.
 				var above := cell + Vector3i.UP
 				var young: bool = f[2] >= 1.0
+				if Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+					_look_wet(cell, false)
 				var lost: bool = world.get_cell(above.x, above.y, above.z) != (Mat.LOG if young else Mat.AIR)
 				if lost or not _ground_roots(world.get_cell(cell.x, cell.y, cell.z)):
 					world.set_field(cell, null)

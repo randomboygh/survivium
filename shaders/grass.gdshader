@@ -79,6 +79,9 @@ void vertex() {
 	custom = INSTANCE_CUSTOM.xyz;
 	kind = kind_of(int(custom.x + 0.5));
 	root = VERTEX - vec3((UV.x - 0.5) * WIDTH, (1.0 - UV.y) * HEIGHT, 0.0) * (kind == HALO ? HALO_SCALE : 1.0);
+	// A plant drawn as cards side by side (a sapling, Plants `across`): each stands on the
+	// plant's root, shifted aside, so all face the view and sway as one picture.
+	VERTEX.x += INSTANCE_CUSTOM.w;
 	// The quad is as tall as the tall grass; the other plants fill two thirds of it, so
 	// their tips bend as far as tall tips do.
 	float tip = (1.0 - UV.y) * (kind == TALL ? 1.0 : 1.5);
