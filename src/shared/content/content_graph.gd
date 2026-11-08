@@ -43,7 +43,7 @@ const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
 	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.ammo": "use", "items.oars": "use",
 	"items.serves": "serves", "items.rots_to": "rots", "items.empties_to": "empties", "items.fills_to": "fills",
-	"creatures.likes": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives", "creatures.wool": "gives", "creatures.tame_food": "use",
+	"creatures.likes": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives", "creatures.wool": "gives", "creatures.trapped": "gives", "creatures.tame_food": "use",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
 	"biomes.trees": "grows", "biomes.bushes": "grows",
@@ -57,10 +57,10 @@ const LINKS := {
 const USED_BY := ["consumes", "requires", "requires_station", "repaired_with"]
 ## The fields that say what an item is for besides being used up: an item with none of
 ## them set that no recipe needs and nothing mends with is a dead end.
-const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "drink", "fills_to", "heal", "fuel", "light", "wear_on", "vessel"]
+const FUNCTIONS := ["tool", "prop", "place", "plant", "sow", "crop", "food", "drink", "fills_to", "heal", "fuel", "light", "wear_on", "vessel", "trap", "alive"]
 ## The fields that make two items alike in what they do (see _twins).
 const ALIKE := ["weight", "stack", "food", "heal", "place", "tool", "power", "area", "mows", "swing", "plant", "sow",
-	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils", "warmth", "drink", "bedding", "vessel", "oars"]
+	"crop", "reach", "durability", "repair", "prop", "fuel", "light", "burns", "wear_on", "bag_slots", "spoils", "warmth", "drink", "bedding", "vessel", "oars", "trap", "alive"]
 ## A depth past every real one.
 const FAR := 1 << 30
 ## The checks, each an error (true: the validator fails on it in the full set) or a warning.
@@ -71,7 +71,7 @@ const CHECKS := {"no_source": true, "never_had": true, "no_tool_item": true, "ne
 const TOLD := {"world": "the world", "start": "the start", "special": "a special source", "craft": "made",
 	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
-	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "shear": "shorn from", "serves": "stood in for by", "spoil": "spoiled from",
+	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "shear": "shorn from", "trap": "trapped from", "serves": "stood in for by", "spoil": "spoiled from",
 	"empty": "emptied from", "fill": "filled from"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
