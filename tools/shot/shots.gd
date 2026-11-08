@@ -721,6 +721,10 @@ const SHOTS := {
 	# A torch at night among the steps: the drawn shadows of the slopes and cut corners.
 	"ground-steps-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-28, -24], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	# A lantern in a pit a cell deep: the ground round its rim, the lantern hardly over it,
+	# gets rings closing in, not a flat disc cut off sharp (bug 2026-11-08).
+	"ground-lantern-pit": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-22, -35], "pit": 1,
+		"hands": {"tool": "tools:fishing_rod", "other": "tools:lantern", "facing": "n"}},
 	"ground-stair-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [3, 45], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
 	"ground-pyramid-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-8, 49], "fire_shadows": 1,
