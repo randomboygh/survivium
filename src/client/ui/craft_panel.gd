@@ -5,8 +5,8 @@ extends VBoxContainer
 ## now), the stations near as a column of pictures on the right (hands first, then the
 ## stations of the recipes known, the far ones dimmed). Under them two panels: the recipe
 ## chosen, as named groups of small wells laid side by side (see FactChips): «Материалы»
-## and «Не тратится» (have / need, short in red), «На чём» (the station or hands), the tools
-## («нет» in red when missing), the time (at the character's skill), what it makes
+## and «Не тратится» (have / need, short in red), «На чём» (the station or hands), «Чем» (the tools,
+## «нет» in red when missing), the time (at the character's skill), what it makes
 ## (weight, work, how long it lasts) and its by-products, then an amber «сделать» with
 ## «×5» (five can be made) and «MAX» (more than one) joined, in one line on the left; and under it, while it holds jobs, the queue, a
 ## row as wide: small cells for the jobs, the time left of the one chosen and the count
@@ -77,6 +77,8 @@ var _title: Label
 ## предметы» is on (Rules.free_items): what the recipe makes, for nothing.
 var _get: Button
 var _facts: FactChips
+## The width the recipe's name may take beside its picture (see fit_width).
+var _title_room := 100
 var _make: HBoxContainer
 ## «сделать», «×5» and «MAX».
 var _make_one: Button
@@ -290,10 +292,17 @@ func set_side(on: bool, w: int) -> void:
 	fit_width(w)
 
 
+## The recipe's name takes what its line leaves: less the playtest's «получить» beside
+## it when that shows, or the button widens the window past the bag's (#386).
+func _fit_title() -> void:
+	_title.custom_minimum_size.x = _title_room - (6 + int(_get.custom_minimum_size.x) if _get.visible else 0)
+
+
 ## The tab is `w` UI pixels wide: the recipe's name is measured at its panel's width
 ## (a wrapping label is laid out at its least width).
 func fit_width(w: int) -> void:
-	_title.custom_minimum_size.x = w - 2 * UiStyle.WELL_PAD - 30
+	_title_room = w - 2 * UiStyle.WELL_PAD - 30
+	_fit_title()
 	# What «Сделать | ×5 | MAX» leaves of the line for the stations.
 	_stations_fit = maxi(1, (w - 2 * UiStyle.WELL_PAD - roundi(TabRow.WIDE * 4.0 / 3.0) - 8) / (IconTabs.SIDE + 2))
 	var room := w - 2 * UiStyle.WELL_PAD - QUEUE_INFO - QUEUE_BUTTONS - 3 * 6 - 16
@@ -522,6 +531,7 @@ func _show_details(near: Dictionary) -> void:
 	_icon.texture = ItemIcons.of_item(r.makes)
 	_title.text = "%s%s" % [r.title, " ×%d" % r.count if r.count > 1 else ""]
 	_get.visible = _free()
+	_fit_title()
 	var needs := []
 	for id in r.needs:
 		var have: int = inv.count(id)
@@ -554,7 +564,7 @@ func _show_details(near: Dictionary) -> void:
 	for g: Array in FactChips.item_groups(r.makes, r.count):
 		made.append_array(g[1])
 	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["На чём", at],
-		["Инструменты", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
+		["Чем", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
 	var can := Crafting.why_not(r, inv, near) == ""
 	var times := _times(r, inv) if can else 0
 	_make_one.disabled = not can

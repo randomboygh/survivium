@@ -487,6 +487,7 @@ const SHOTS := {
 	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:stone_scythe"},
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
 	"craft-free": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true, "free": true},
+	"craft-free-tools": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true, "free": true, "recipe": "materials:log_wall"},
 	# The craft tab with nothing queued: no queue panel under the recipe.
 	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
 	# The spawn campfire at night full of fuel, and nearly burned down: its flames and light
