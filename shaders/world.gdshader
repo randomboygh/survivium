@@ -277,7 +277,19 @@ void fragment() {
 	// Texels are looked up a 32nd of a texel off the world position: on a diagonal wall
 	// the middles of the pixels fall right on the texels' edges, and the least rounding
 	// error (a phone's GPU) flips them from one texel to the next as the view moves.
-	vec3 tp = world_pos + vec3(1.0 / (32.0 * TEXELS));
+	// The ground's patterns (patches, specks, tints, snow) are laid by `gp`: the world
+	// position, on a slope moved up the picture by its height over the level line
+	// below it (`band`). A slope turned to the camera covers 2-3 times the screen rows
+	// of its footprint: laid by x and z its patterns stretched into streaks; laid this
+	// way they keep a pixel a texel like a flat top, and jump back at each level line,
+	// where the shade at the foot of the level (below) hides the seam.
+	bool slanted = (flag & ~1) == 4 && tile != NONE;
+	float band = world_pos.y - floor(world_pos.y / CELL + 0.002) * CELL;
+	vec3 gp = world_pos;
+	if (slanted) {
+		gp.xz += view_up * (view_slope / view_squash * band);
+	}
+	vec3 tp = gp + vec3(1.0 / (32.0 * TEXELS));
 	vec2 wt = floor(tp.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
 	// The tile drawn here: this face's, or a neighbour's spilling over the edge.
@@ -360,19 +372,19 @@ void fragment() {
 			tm = ivec2(mod(floor(screen_plane(world_pos) * TEXELS), TEXELS));
 		}
 		// A cap of the cut shows the inside of the cells it cuts: soil, not turf.
-		if (top && pick == GRASS * 3 && (cap || bare_ground(world_pos.xz) > 0.5)) {
+		if (top && pick == GRASS * 3 && (cap || bare_ground(gp.xz) > 0.5)) {
 			pick = DIRT * 3;
 		}
 		col *= tile_texel(pick, tm);
 		// The biome's colour of the ground (see biome_tint); the sides of turf are mostly
 		// the soil under it and keep their colour.
 		if (pick % 3 == 0 || pick / 3 != GRASS) {
-			col *= biome_tint(pick / 3, world_pos.xz);
+			col *= biome_tint(pick / 3, gp.xz);
 		}
 		if (pick == GRASS * 3) {
-			col *= grass_tint * grass_variation(world_pos.xz);
+			col *= grass_tint * grass_variation(gp.xz);
 		} else if (top && pick % 3 == 0 && !cap) {
-			col *= ground_variety(pick / 3, world_pos.xz, wt);
+			col *= ground_variety(pick / 3, gp.xz, wt);
 		}
 	} else if ((flag & 1) != 0) {
 		col *= foliage_tint;
@@ -448,6 +460,10 @@ void fragment() {
 	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;
 	float snow_here = roof || crowned ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
+	if (slanted) {
+		// On a slope the specks go by the texels of its patterns (gp) and its level.
+		texel = vec3(wt.x, floor(world_pos.y / CELL + 0.002), wt.y);
+	}
 	float h = hash12(texel.xz + texel.y * 17.0);
 	// Moss on the tops of stone in damp patches, not by a fire nor where it was
 	// picked (see Grass.stone_moss); a picked top keeps a ragged edge of it, 0..2
@@ -464,7 +480,7 @@ void fragment() {
 			moss = moss || ((around >> e) & 1) == 0 && float(in_cell[e]) < reach;
 		}
 	}
-	if (top && pick == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(world_pos.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
+	if (top && pick == 3 * 3 && !cap && moss && warm < 0.5 && ground_patch(gp.xz + 7.0, 21.0) > 0.66 + (h - 0.5) * 0.1) {
 		col = mix(col, vec3(0.3, 0.44, 0.2) * (0.88 + 0.24 * h), 0.9);
 	}
 	// Leaves fallen under the crowns as the trees lose them: single texels of brown,
@@ -473,7 +489,7 @@ void fragment() {
 	// the crown rather than fill the squares of the columns it covers.
 	if (top && !cap && tile != NONE && leaf_litter > 0.0) {
 		float l = hash12(texel.xz + 41.0);
-		float heap = ground_patch(world_pos.xz, 11.0);
+		float heap = ground_patch(gp.xz, 11.0);
 		float cover = texture(roof_map_soft, (texel.xz + 0.5) / TEXELS / wrap_size).g;
 		float edge = smoothstep(0.2, 0.7, cover + (hash12(texel.xz + 59.0) - 0.5) * 0.35 + (heap - 0.5) * 0.4);
 		if (l < leaf_litter * (0.15 + 0.5 * heap) * edge) {
@@ -486,14 +502,20 @@ void fragment() {
 	if (snow_here <= 0.0) {
 		// No snow: skip the snow patterns.
 	} else if (top) {
-		float swept = step(ground_patch(world_pos.xz, 5.0) + (h - 0.5) * 0.05, 0.07);
+		float swept = step(ground_patch(gp.xz, 5.0) + (h - 0.5) * 0.05, 0.07);
 		snow = step(h, snow_here * 1.15 - 0.05) * (1.0 - swept);
 	} else if ((flag & 2) != 0) {
 		float fringe = snow_here * (0.24 + 0.24 * h);
 		snow = step(1.0 - fringe, fract(world_pos.y / CELL)) * step(0.3, snow_here);
 	}
 	if (snow > 0.0) {
-		col = mix(col, snow_color(world_pos.xz, wt), snow);
+		col = mix(col, snow_color(gp.xz, wt), snow);
+	}
+	if (slanted) {
+		// The height of a slope shows as levels: each one shades darker toward its foot
+		// in an ordered dither, so a tall slope reads as steps, not one smooth smear.
+		float foot = 1.0 - band / CELL;
+		col *= bayer4(light_texel(light_xz)) < foot * 0.9 - 0.15 ? 0.88 : 1.0;
 	}
 	if (tile == NONE) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.

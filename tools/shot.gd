@@ -154,6 +154,8 @@ func _run() -> void:
 			main.player.position = places.forest(main.world, main.player.position)
 		if shot.has("place"):
 			main.player.position = places.place(main.world, shot.place)
+		if shot.has("steep"):
+			main.player.position = places.steep(main.world, main.player.position)
 		if shot.has("at"):
 			var at := Vector2i(shot.at[0], shot.at[1])
 			main.player.position = Vector3(at.x + 0.5, main.world.size_y - 1, at.y + 0.5) * CELL
