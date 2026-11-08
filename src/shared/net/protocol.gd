@@ -201,6 +201,9 @@ const DROPS := "drops"
 ## The player's fishing line, when it changed: [where its float lies (INF: none in the
 ## water), a fish bites at it] (Character.line, bite; Fishing).
 const LINE := "line"
+## The current of the river where the player's body is, when it changed: [cells a
+## second, x east and y south] (Character.flow, Currents).
+const FLOW := "flow"
 ## The body is put at a point (coming back to life, the playtest page): [at].
 const TELEPORT := "teleport"
 ## The body is thrown (a burning campfire): [dir, speed, hop] (Body.knock).

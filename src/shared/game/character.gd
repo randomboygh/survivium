@@ -184,6 +184,9 @@ var bite := false
 var riding := ""
 var vessel := 0
 var seat := 0
+## The current of the river where the body is (Currents), in cells a second: set on
+## the server's (Session), told to the client's copy (Protocol.FLOW); Body.flow.
+var flow := Vector2.ZERO
 ## A boat rowed without its `oars` in the bag goes at this share of its pace.
 const OARLESS := 0.2
 ## Where the body is, in world units (see _where).

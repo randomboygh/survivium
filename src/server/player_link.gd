@@ -2,7 +2,7 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE; HEARD, the chat; TEAM and INVITES, the
+## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; TEAM and INVITES, the
 ## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
 ## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
@@ -70,6 +70,10 @@ var _land: Array = []
 var _fight: Array = []
 ## The fishing line last told ([float, bite]).
 var _line: Array = [Vector3.INF, false]
+var _flow := Vector2.ZERO
+## How much the current where the player is changes before it is told again (cells a
+## second).
+const FLOW_TOLD := 0.05
 var _shop := true
 var _knowledge := true
 ## The skills: changed since told (`_skills`), a level rose (`_skills_now`), when last told.
@@ -181,6 +185,7 @@ func rejoin() -> void:
 	_land = []
 	_fight = []
 	_line = [Vector3.INF, false]
+	_flow = Vector2.ZERO
 	_shop = true
 	_knowledge = true
 	_skills = true
@@ -259,6 +264,9 @@ func flush() -> Array[PackedByteArray]:
 	if who.line != _line[0] or who.bite != _line[1]:
 		_line = [who.line, who.bite]
 		out.append(_event(Protocol.LINE, _line))
+	if who.flow.distance_to(_flow) > FLOW_TOLD:
+		_flow = who.flow
+		out.append(_event(Protocol.FLOW, [_flow]))
 	var fight: Array = session.fights.view(who.id)
 	if fight != _fight:
 		_fight = fight
