@@ -42,6 +42,8 @@ static func check() -> PackedStringArray:
 			out.append("creatures: `%s` walks in %d frames of %d" % [id, SPECIES[id].walk, SPECIES[id].frames])
 		if id != HUMAN and SPECIES[id].hop > 0 and maxi(SPECIES[id].walk, 0) + SPECIES[id].hop >= SPECIES[id].frames:
 			out.append("creatures: `%s` hops in %d frames, after its walk, of %d" % [id, SPECIES[id].hop, SPECIES[id].frames])
+		if id != HUMAN and SPECIES[id].attack > 0 and maxi(SPECIES[id].walk, 0) + SPECIES[id].hop + SPECIES[id].attack >= SPECIES[id].frames:
+			out.append("creatures: `%s` has %d attack frames, after its walk and hop, of %d" % [id, SPECIES[id].attack, SPECIES[id].frames])
 		if SPECIES[id].flock[0] > SPECIES[id].flock[1]:
 			out.append("creatures: `%s`: flock [from, to] has from above to" % id)
 	return out
