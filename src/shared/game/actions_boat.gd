@@ -91,8 +91,8 @@ func boat_kind(who) -> String:
 ## Where a vessel launched by `who` floats (the rower's feet, world units): the middle
 ## of the first column of open water ahead (LAUNCH_REACH) that holds the whole hull,
 ## with its surface within LAUNCH_DROP of the feet; INF for none.
-func launch_spot(who) -> Vector3:
-	var dir := _way(who)
+func launch_spot(who, way := Vector2.ZERO) -> Vector3:
+	var dir := way.normalized() if way != Vector2.ZERO else _way(who)
 	if dir == Vector2.ZERO:
 		return Vector3.INF
 	var p: Vector3 = who.position / CELL
@@ -118,6 +118,33 @@ func launch_spot(who) -> Vector3:
 				and vessels.near(at, CELL).is_empty():
 			return at
 	return Vector3.INF
+
+
+## Where `who` can launch a vessel from the bag (the inventory's button): the water in
+## front first, else the nearest way round of the eight; [spot, way] or [] for none.
+func launch_near(who) -> Array:
+	var ways: Array[Vector2] = [_way(who)]
+	for i in 8:
+		ways.append(Vector2.from_angle(i * PI / 4.0))
+	for w: Vector2 in ways:
+		if w == Vector2.ZERO:
+			continue
+		var at := launch_spot(who, w)
+		if at.is_finite():
+			return [at, w.normalized()]
+	return []
+
+
+## Launches vessel `item` from `who`'s bag on the water nearest (launch_near) and sits
+## them in it; false when it cannot be (none in the bag, no water near, already afloat).
+func launch_from_bag(who, item: String) -> bool:
+	if vessel_of(item) <= 0.0 or vessel_id(who) != 0 or who.is_dead() or who.inventory.count(item) < 1:
+		return false
+	var near := launch_near(who)
+	if near.is_empty():
+		return false
+	_launch(who, item, near[0], near[1])
+	return true
 
 
 ## The vessel in front of `who` (a cell ahead, within BOARD_REACH) with a seat free that
@@ -181,15 +208,8 @@ func boat(who) -> Dictionary:
 		"launch":
 			var item: String = who.held()
 			var at := launch_spot(who)
-			if who.inventory.remove(item, 1) < 1:
+			if not _launch(who, item, at, _way(who)):
 				return {}
-			var dir := _way(who)
-			var v: Dictionary = vessels.launch(item, at, atan2(dir.x, dir.y))
-			_sit(who, v, 0)
-			var it := Items.get_item(item)
-			var oars: String = it.get("oars", "")
-			if oars != "" and who.inventory.count(oars) == 0:
-				who.say("%s на воде, но без вёсел она едва движется" % it.title)
 			return _work(BOAT_SWING, "", at)
 		"board":
 			var v := boarded(who)
@@ -202,12 +222,34 @@ func boat(who) -> Dictionary:
 	return {}
 
 
+## Puts vessel `item` out of `who`'s bag on the water at `at`, turned along `dir`, and
+## sits them in it to row; false when the bag has none.
+func _launch(who, item: String, at: Vector3, dir: Vector2) -> bool:
+	if who.inventory.remove(item, 1) < 1:
+		return false
+	var v: Dictionary = vessels.launch(item, at, atan2(dir.x, dir.y))
+	_sit(who, v, 0)
+	var it := Items.get_item(item)
+	var oars: String = it.get("oars", "")
+	if oars != "" and who.inventory.count(oars) == 0:
+		who.say("%s на воде, но без вёсел она едва движется" % it.title)
+	return true
+
+
 ## Sits `who` in vessel `v` on seat `seat`, their body where that seat is.
 func _sit(who, v: Dictionary, seat: int) -> void:
 	who.riding = v.item
 	who.vessel = v.id
 	who.seat = seat
 	who.move_to(seat_at(v, seat))
+	_told(who)
+
+
+## Tells the client of `who` at once that the vessel they sit in changed (Character.riding,
+## vessel and seat come in their state): else they would row on over the ground.
+static func _told(who) -> void:
+	if who.has_signal("state_changed"):
+		who.state_changed.emit()
 
 
 ## Where the feet of the one on seat `seat` of vessel `v` are (world units).
@@ -229,9 +271,11 @@ func leave_boat(who, at: Vector3) -> void:
 	who.vessel = 0
 	who.seat = 0
 	who.move_to(at)
+	_told(who)
 	if rowed and not v.is_empty():
 		for p in riders(id):
 			p.seat = 0
+			_told(p)
 			p.say("Теперь гребёте вы")
 			break
 
@@ -283,8 +327,12 @@ func step_boats(seconds: float, players: Array) -> void:
 			who.riding = ""
 			who.vessel = 0
 			who.seat = 0
+			_told(who)
 			continue
+		var was: int = who.seat
 		who.seat = 1 if 0 in taken else (0 if who.seat == 0 or taken.has(1) else who.seat)
+		if who.seat != was:
+			_told(who)
 		taken.append(who.seat)
 		if not _probe().floats(v.at):
 			leave_boat(who, _shore_near(who.position))
@@ -292,6 +340,7 @@ func step_boats(seconds: float, players: Array) -> void:
 		if not 0 in seats[id]:
 			for p in riders(id):
 				p.seat = 0
+				_told(p)
 				break
 
 

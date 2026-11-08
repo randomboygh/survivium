@@ -33,6 +33,15 @@ const SHOTS := {
 	"fire-18-spring": {"time": 0.75, "clock": 0.75, "season": 0, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-18-summer": {"time": 0.75, "clock": 0.75, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
 	"fire-18-winter": {"time": 0.75, "clock": 0.75, "season": 3, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 3},
+	# On a meadow, a campfire set down west of the player and a chest east: the player's
+	# shadow falls east over the grass onto the chest. The fire's real shadow lights the
+	# ground alone, its twin the grass and the chest.
+	"fire-shadow-props": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 3,
+		"put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
+	"fire-shadow-props-ground": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 3,
+		"shadow_on_things": false, "put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
+	"fire-shadow-props-real": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 2,
+		"put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
 	# The torch among lone trees on a dark night: shadows of the trunks, drawn and real.
 	"torch-shadows": {"time": 0.95, "season": 1, "moon": 0.0, "trees": true, "fire_shadows": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
@@ -309,6 +318,9 @@ const SHOTS := {
 	"ice": {"time": 0.45, "season": 3, "water": 2},
 	"raft": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:raft"},
 	"boat": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat"},
+	# Rowing the boat south: the rower's stroke and the oars swung in time.
+	"boat-row": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_S]},
+	"boat-row-e": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_D]},
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
 	"grove-winter": {"time": 0.45, "season": 3, "grove": true},
@@ -718,6 +730,10 @@ const SHOTS := {
 	# A torch at night among the steps: the drawn shadows of the slopes and cut corners.
 	"ground-steps-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-28, -24], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	# A lantern in a pit a cell deep: the ground round its rim, the lantern hardly over it,
+	# gets rings closing in, not a flat disc cut off sharp (bug 2026-11-08).
+	"ground-lantern-pit": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-22, -35], "pit": 1,
+		"hands": {"tool": "tools:fishing_rod", "other": "tools:lantern", "facing": "n"}},
 	"ground-stair-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [3, 45], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
 	"ground-pyramid-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-8, 49], "fire_shadows": 1,

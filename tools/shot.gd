@@ -115,6 +115,7 @@ func _run() -> void:
 		RenderingServer.directional_soft_shadow_filter_set_quality(shot.get("shadow_filter",
 			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality")))
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
+		main.settings.values.shadow_on_things = shot.get("shadow_on_things", main.settings.DEFAULTS.shadow_on_things)
 		main.settings.values.sun_rays = shot.get("rays", true)
 		main.settings.values.fog = shot.get("fog", true)
 		main.session.clock.morning_fog_pin = shot.get("morning_fog", 0)
@@ -301,13 +302,22 @@ func _run() -> void:
 			await _place_shadow_zoo(shot.shadow_zoo)
 		if shot.get("trap", false):
 			_place_trap()
-		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
-		for f: Dictionary in main.effects.fires:
-			f.light.light_energy = main.effects.fire_energy(f, main.sky)
 		if shot.has("put_fire"):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:
 				added_fires.append(main.session.placed.put(main.session.placed.CAMPFIRE, spot, null))
+		# Things set down round the player: [item, offset in cells].
+		for put: Array in shot.get("put", []):
+			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(put[1][0], 0.0, put[1][1]) * main.CELL)
+			if spot.y >= 0:
+				added_fires.append(main.session.placed.put(put[0], spot, null))
+		for i in 3:
+			await process_frame
+		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
+		for f: Dictionary in main.effects.fires:
+			f.light.light_energy = main.effects.fire_energy(f, main.sky)
+			if f.light.shadow_enabled:
+				PixelView.twin_follow(f.light, f.light.light_energy / main.effects.shadow_energy)
 		for at: Array in shot.get("sacks", []):
 			main.host.player.sacks.append(main.player.position + Vector3(at[0], 0.0, at[1]) * main.CELL)
 		await process_frame
@@ -332,6 +342,10 @@ func _run() -> void:
 					who.burning[held] = [Items.burns(held) * float(shot.burnt)]
 		if shot.has("cast"):
 			await _cast(shot.cast == "bite")
+		if shot.has("pit"):
+			places.pit_round(main.world, Vector3i((main.player.position / CELL).floor()), int(shot.pit))
+			for i in 30:
+				await process_frame
 		if shot.get("wall", "") is String and shot.get("wall", "") == "north":
 			# Right behind the player where they stand now.
 			places.wall(main.world, Vector3i((main.player.position / CELL).floor()), true)
@@ -385,7 +399,8 @@ func _run() -> void:
 				main.props.show_drops(WorldData.chunk_key(floori(at.x / CELL), floori(at.z / CELL)))
 		if shot.has("keys"):
 			# Holds the keys while the shot is taken, so the walk animation shows.
-			main.player.position = places.flat_near(main.world, main.player.position)
+			if not shot.has("ride"):
+				main.player.position = places.flat_near(main.world, main.player.position)
 			_hold(shot.keys, true)
 			for i in 12:
 				await process_frame

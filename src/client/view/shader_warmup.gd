@@ -10,15 +10,13 @@ extends RefCounted
 ## interface (the wind's arrow, the sound marks, the joystick), which the canvas builds
 ## its own shaders for.
 ##
-## Ahead, behind the loading screen (step, a mix a frame, every kind at once): the day's
-## mixes, and the night's too when the world starts at dusk or at night. The night's are
-## those with a fire's shadow, drawn only when it is dark and the fire shadows setting
-## gives a real one (Effects.shadows); with it off they are never built. Later, in the
-## game (update): what the moment may soon need and was not built yet, a kind at a time
-## so each stop is short (most 0.3-0.5 s, a few 1-2 s under software GL): the night's
-## mixes slowly by day while the player stands, faster once evening comes; the day's
-## anew when the sun's shadow is switched in the settings. On a phone the whole warm-up
-## ahead took 50 s (2026-11-06).
+## Ahead, behind the loading screen (step, a mix a frame, every kind at once): every mix
+## the settings may need, the fire's shadow too. Since 2026-11-08 a light with a real
+## shadow lights only the ground (PixelView.real_shadow), so the shadow's mixes build a
+## few shaders more, not as many again as the day's: until then they were left to the
+## game (dozens of stops of 150-1150 ms on a phone at dusk, or when a torch lit a cave).
+## Later, in the game (update): a mix the settings asked for that was not built yet (the
+## sun's shadow or the fires' switched), a kind at a time so each stop is short.
 
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
@@ -26,26 +24,22 @@ const PlayerView := preload("res://src/client/view/player.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 
-## The mixes of lights: [a light without a shadow (the torch, the far fires), a light
-## with a shadow (the nearest fire)], all under the sun with its shadow as the settings
-## have it. The sun alone (the land beyond the torch's glow) was once left to the first
-## frames of the game, but the world is not drawn behind the menu, so it came mid-game
-## (six shaders of up to 370 ms on a phone, 2026-11-01). The sun is never out: at dusk
-## and on a moonless night its energy is 0, but the renderer still draws with it and
-## picks the same shaders (measured 2026-11-06: the four mixes without it built nothing
-## new when it was dimmed to 0, and were a quarter of the warm-up when it was hidden).
-const DAY := [[true, false], [false, false]]
-const NIGHT := [[true, true], [false, true]]
+## The mixes of lights: [the sun's shadow, a light without a shadow (the torch, the far
+## fires), the layers the nearest fire's real shadow falls from (0 without one), whether
+## that shadow lights the things too (PixelView.shadow_on_things)], all
+## under the sun as the settings have it. The sun alone (the land beyond the torch's glow)
+## was once left to the first frames of the game, but the world is not drawn behind the
+## menu, so it came mid-game (six shaders of up to 370 ms on a phone, 2026-11-01). The sun
+## is never out: at dusk and on a moonless night its energy is 0, but the renderer still
+## draws with it and picks the same shaders (measured 2026-11-06: the mixes without it
+## built nothing new when it was dimmed to 0, and were a quarter of the warm-up when it
+## was hidden). The layers the shadow falls from pick which things' shadow shaders are
+## built: the player's alone with the fire shadows setting on "mixed".
 ## How far apart the copies stand, in world units, and the lights' reach over them all.
 const SPACING := 4.0
 const REACH := 64.0
-## How much lighter than Effects.SHADOW_SKY the sky is when evening comes: the night's
-## mixes are then built ahead at the start, and in the game at the EVENING_PACE.
-const EVENING := 0.35
-## In the game, ms between two kinds drawn: by day, and once evening has come (or the
-## settings asked for a mix not built yet).
-const DAY_PACE := 2500
-const EVENING_PACE := 400
+## In the game, ms between two kinds drawn.
+const PACE := 400
 
 var game
 var viewport: SubViewport
@@ -56,7 +50,7 @@ var fire: OmniLight3D
 var copies: Array[GeometryInstance3D] = []
 ## The interface's line and polygon, drawn on the world's canvas with no colour.
 var canvas: RID
-## The mixes built, by [the sun's shadow, lamp, fire's shadow].
+## The mixes built (see wanted).
 var done := {}
 ## Ahead: the mixes left to draw, a frame each; how many there were.
 var ahead: Array = []
@@ -73,27 +67,23 @@ func _init(g) -> void:
 	game = g
 
 
-## The mixes the game may need: the day's always, the night's when a fire can cast a
-## real shadow (Effects.shadows); with `soon` only those the sky may need soon, the
-## night's once it is dark or getting dark (EVENING).
-func wanted(soon: bool) -> Array:
+## The mixes the settings need: without the fires' light, with the torch's or a far
+## fire's, and with the nearest fire's real shadow too where the fire shadows setting
+## gives one (Effects.shadows).
+func wanted() -> Array:
 	var shadow: bool = game.sky.sun.shadow_enabled
-	var mixes: Array = []
-	for m: Array in DAY:
-		mixes.append([shadow, m[0], m[1]])
-	if game.effects.shadows and (not soon or _evening()):
-		for m: Array in NIGHT:
-			mixes.append([shadow, m[0], m[1]])
+	var mixes: Array = [[shadow, true, 0, false], [shadow, false, 0, false]]
+	if game.effects.shadows:
+		var casters: int = PixelView.LAYER_PLAYER if game.effects.player_only else Effects.FIRE_CASTERS
+		var things: bool = PixelView.shadow_on_things
+		mixes.append([shadow, true, casters, things])
+		mixes.append([shadow, false, casters, things])
 	return mixes
-
-
-func _evening() -> bool:
-	return game.sky.sun_light < Effects.SHADOW_SKY + EVENING
 
 
 ## Starts the warm-up ahead, when the world is ready: the mixes the moment needs.
 func start() -> void:
-	ahead = wanted(true)
+	ahead = wanted()
 	ahead_total = ahead.size()
 	start_frame = Engine.get_process_frames()
 	_build()
@@ -114,13 +104,29 @@ func _build() -> void:
 	_collect(game.view.world_root, kinds)
 	# What may not be around yet: the ground's, water's and the low things' material on a
 	# face like the chunks have.
-	for mat: Material in [game.world_mat, game.low_mat, game.water_mat]:
+	# The ground's material is on the props too, where no fire's shadow falls.
+	# The things' too, on their own layer (PixelView.LAYER_THINGS), where a fire's real
+	# shadow falls with «Тень на вещах».
+	for m: Array in [[game.world_mat, PixelView.LAYER_GROUND], [game.world_mat, 1], [game.low_mat, 1],
+			[game.water_mat, 1], [game.world_mat, PixelView.LAYER_THINGS], [game.low_mat, PixelView.LAYER_THINGS]]:
 		var face := MeshInstance3D.new()
 		face.mesh = _face()
-		face.material_override = mat
+		face.material_override = m[0]
+		face.layers = m[1]
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
+	# An animal, which may not be around yet: the player's figure on the animals' layer
+	# (the same shader and the same kind of mesh).
+	var figure: MeshInstance3D = game.player.sprite if game.player != null and "sprite" in game.player else null
+	if figure != null and figure.mesh != null:
+		var animal := MeshInstance3D.new()
+		animal.mesh = figure.mesh
+		animal.material_override = figure.material_override
+		animal.layers = PixelView.LAYER_THINGS
+		var key := _key(animal)
+		if not kinds.has(key):
+			kinds[key] = animal
 	# The names over the others and the letters "z" over a sleeper, shown only later.
 	var label := Label3D.new()
 	label.font = UiStyle.font()
@@ -169,8 +175,9 @@ func _build() -> void:
 	sun.directional_shadow_mode = game.sky.sun.directional_shadow_mode
 	viewport.add_child(sun)
 	sun.look_at_from_position(middle + Vector3(1.0, 10.0, 1.0), middle)
-	lamp = _light(middle + Vector3(-2.0, 3.0, 0.0), false)
-	fire = _light(middle + Vector3(2.0, 3.0, 0.0), true)
+	lamp = _light(middle + Vector3(-2.0, 3.0, 0.0))
+	fire = _light(middle + Vector3(2.0, 3.0, 0.0))
+	PixelView.real_shadow(fire, true)
 
 
 ## A unit face on the ground, like the chunks' cells have.
@@ -181,11 +188,10 @@ static func _face() -> ArrayMesh:
 	return b.to_mesh()
 
 
-func _light(at: Vector3, shadow: bool) -> OmniLight3D:
+func _light(at: Vector3) -> OmniLight3D:
 	var light := OmniLight3D.new()
 	light.omni_range = REACH
 	light.omni_attenuation = 0.0
-	light.shadow_enabled = shadow
 	viewport.add_child(light)
 	light.position = at
 	return light
@@ -194,7 +200,12 @@ func _light(at: Vector3, shadow: bool) -> OmniLight3D:
 func _mix(m: Array) -> void:
 	sun.shadow_enabled = m[0]
 	lamp.visible = m[1]
-	fire.visible = m[2]
+	fire.visible = m[2] != 0
+	if m[2] != 0 and fire.shadow_caster_mask != m[2]:
+		fire.shadow_caster_mask = m[2]
+	# What the shadow lights (the mix asks for the setting as it is now).
+	if m[2] != 0:
+		PixelView.real_shadow(fire, true)
 
 
 ## A copy of each thing under `node` that differs from the ones in `kinds` in what
@@ -287,11 +298,11 @@ func step() -> bool:
 	return true
 
 
-## Called every frame of the game: builds a kind at a time of the mixes the game may
+## Called every frame of the game: builds a kind at a time of the mixes the settings
 ## need and were not built yet (see wanted), and lets the hidden view go once all are.
 func update() -> void:
 	if mix_later.is_empty():
-		for m: Array in wanted(false):
+		for m: Array in wanted():
 			if not done.has(m):
 				mix_later = m
 				next_kind = 0
@@ -299,14 +310,8 @@ func update() -> void:
 		if mix_later.is_empty():
 			_free()
 			return
-	# The night's slowly by day, and only while the player stands (some kinds stop the
-	# game for a second or two on slow devices); at dusk, or the day's (the sun's shadow
-	# switched), faster and whatever the player does.
 	var now := Time.get_ticks_msec()
-	var by_day: bool = mix_later[2] and not _evening()
-	if by_day and game.player.body.move_input != Vector2.ZERO:
-		return
-	if now - drawn_at < (DAY_PACE if by_day else EVENING_PACE):
+	if now - drawn_at < PACE:
 		return
 	drawn_at = now
 	if viewport == null:

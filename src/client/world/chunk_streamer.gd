@@ -74,14 +74,8 @@ const FORGETS_PER_FRAME := 4
 ## How many levels above and below the player's the level buttons may look; from deep
 ## in a pit, up to the surface over it (see view_range).
 const VIEW_REACH := 4
-## The player is down in a ravine, a pit or a cave mouth when earth (not trunks or
-## leaves) stands SUNK_RISE levels above the feet within SUNK_REACH cells on at
-## least SUNK_SIDES of the eight compass directions: then the view is cut at the
-## lowest rim around, so the walls and the ground beyond stay whole and only the
-## trees and hills above it show as a ghost.
-const SUNK_REACH := 6
-const SUNK_RISE := 3
-const SUNK_SIDES := 5
+## Cells behind the player searched for earth rising over the head (see _rises_behind).
+const RISE_REACH := 6
 ## Levels above the feet searched for earth that hides the player from the camera.
 const HIDE_REACH := 16
 const COMPASS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
@@ -207,13 +201,10 @@ var indoor := false
 ## of the player and over their head instead (CaveLayers), from the cell layer_base.
 var layers_on := false
 var layer_base := Vector3i.ZERO
-## The player stands well below the ground around (see SUNK_SIDES), and where that
-## was last worked out: Vector3i(x, level, z); the level of the lowest rim around.
-var sunk := false
-var sunk_rim := 0
-var sunk_at := Vector3i(0, -1000, 0)
+## Where the earth that hides the player was last worked out: Vector3i(x, level, z).
+var hidden_at := Vector3i(0, -1000, 0)
 ## The lowest level of earth between the camera and the player's body, -1 for none
-## (see _hiding_level); worked out with sunk.
+## (see _hiding_level); worked out where the player stands.
 var hidden_by := -1
 ## Earth hides the player, but nothing rises behind them: a hill, left whole.
 var hill := false
@@ -753,11 +744,15 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = game.world_mat
+		# A fire's real shadow falls on the ground and the walls alone (PixelView.LAYER_GROUND).
+		solid.layers = PixelView.LAYER_GROUND
 		var water := MeshInstance3D.new()
 		water.material_override = game.water_mat
 		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var tufts := Foliage.multimesh(game.grass_mesh, game.grass_mat, false, true)
 		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# The player's shadow from a fire lies over the grass too.
+		tufts.layers = PixelView.LAYER_GROUND
 		var crowns := Foliage.multimesh(game.clump_mesh, game.leaves_mat, true, true)
 		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var shade := Foliage.multimesh(game.disc_mesh, game.leaf_shadow_mat, false, true)
@@ -824,7 +819,7 @@ func on_cell_changed(cell: Vector3i) -> void:
 	game.roof.touch(world, cell)
 	solid.touch(world, cell)
 	# The ground around the player may have risen or gone: look again.
-	sunk_at.y = -1000
+	hidden_at.y = -1000
 	if game.hud != null and game.hud.minimap != null:
 		game.hud.minimap.touch(world, cell)
 	# Slopes and corners look at the neighbours, edges of a top at theirs, and the
@@ -917,9 +912,8 @@ func update_cut(_delta: float) -> void:
 			break
 	var at := Vector3i(px, level, pz)
 	solid.flush()
-	if at != sunk_at:
-		sunk_at = at
-		sunk = not indoor and _walled_sides(px, level, pz) >= SUNK_SIDES
+	if at != hidden_at:
+		hidden_at = at
 		hidden_by = _hiding_level(px, level, pz)
 		hill = hidden_by >= 0 and not _hide_steep and not _rises_behind(px, level, pz)
 	elif _hidden_view != Vector3(PixelView.up.x, PixelView.up.y, PixelView.slope):
@@ -938,16 +932,14 @@ func update_cut(_delta: float) -> void:
 	elif indoor:
 		# Over the head.
 		target = level + 1
-	else:
-		if sunk:
-			target = sunk_rim
+	elif hidden_by >= 0 and not hill:
 		# Earth between the camera and the player goes where the player stands in a
-		# dip (a ravine running across the view, the near wall of a diagonal one) or
-		# behind a sheer wall (a block, a hut, a ledge). A hill or a mountain the
-		# player climbs from the far side, its slope coming down to their feet, stays
-		# whole (the player shows through it).
-		if hidden_by >= 0 and not hill:
-			target = mini(target, hidden_by - 1)
+		# dip (a ravine running across the view, the near wall of a diagonal one, a
+		# pit) or behind a sheer wall (a block, a hut, a ledge). A hill or a mountain
+		# the player climbs from the far side, its slope coming down to their feet,
+		# stays whole (the player shows through it). Walls round the player that hide
+		# nothing (a ravine running along the view) open nothing either.
+		target = hidden_by - 1
 	_update_depth()
 	var opened := manual_level < 0 and target < world.size_y
 	# Where the automatic cut would cut the view, the layers open it instead and fill
@@ -963,30 +955,6 @@ func update_cut(_delta: float) -> void:
 	# player stepping out from under a roof at once (the user's pick, 2026-11-04).
 	cut_level = target
 	_apply_cut()
-
-
-## How many of the eight compass directions from column (x, z) meet earth SUNK_RISE
-## levels above `level` within SUNK_REACH cells; sunk_rim becomes the top of the
-## lowest of the walls met.
-func _walled_sides(x: int, level: int, z: int) -> int:
-	var y := level + SUNK_RISE
-	if y >= world.size_y:
-		return 0
-	var sides := 0
-	sunk_rim = world.size_y - 1
-	for d in COMPASS:
-		for r in range(1, SUNK_REACH + 1):
-			var cx := x + d.x * r
-			var cz := z + d.y * r
-			if Mat.is_roof(world.get_cell(cx, y, cz)):
-				sides += 1
-				# The top of the earth in that column, from the level met upward.
-				var top := y
-				while top + 1 < world.size_y and Mat.is_roof(world.get_cell(cx, top + 1, cz)):
-					top += 1
-				sunk_rim = mini(sunk_rim, top)
-				break
-	return sides
 
 
 ## The lowest level of earth (not trunks or leaves) that covers most of the body of a
@@ -1021,7 +989,7 @@ func _sheer_below(c: Vector2, y: int) -> bool:
 
 
 ## Whether earth rises over the head of a player standing on `level` in column (x, z)
-## within SUNK_REACH cells behind them, away from the camera: the far side of a dip.
+## within RISE_REACH cells behind them, away from the camera: the far side of a dip.
 ## Where none does, what hides the player is a hill they stand behind.
 func _rises_behind(x: int, level: int, z: int) -> bool:
 	var up := PixelView.up
@@ -1029,7 +997,7 @@ func _rises_behind(x: int, level: int, z: int) -> bool:
 	var y := level + 2
 	if y >= world.size_y:
 		return false
-	for r in range(1, SUNK_REACH + 1):
+	for r in range(1, RISE_REACH + 1):
 		var c := body + up * r
 		if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
 			return true
@@ -1168,6 +1136,7 @@ func update_caps() -> void:
 			# The rock the cap closes casts its own shadow: a cap's, a hair off it,
 			# fell on the player jumping by the cut.
 			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			node.layers = PixelView.LAYER_GROUND
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
 		game.hud.perf.mark("срез")

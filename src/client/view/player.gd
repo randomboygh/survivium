@@ -14,6 +14,7 @@ const XrayShader := preload("res://shaders/sprite_xray.gdshader")
 const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const FishingLine := preload("res://src/client/view/fishing_line.gd")
+const Boats := preload("res://src/client/view/boats.gd")
 
 const CELL := WorldData.CELL
 ## The body's height in cells (see Body).
@@ -75,6 +76,12 @@ var torch_lit := false
 var torch_height := HAND_HEIGHT
 const HAND_HEIGHT := 0.55
 const HAND_TOP := 0.75
+## How far to the side of the body the light is, in world units along PixelView.right:
+## at the flame of what the hands hold, never farther than HAND_SIDE.
+var torch_side := 0.0
+const HAND_SIDE := 0.5
+## How far ahead of the feet, towards the viewer, the light is held.
+const TORCH_AHEAD := 0.3
 ## The body sleeps (Vitals.asleep, set by Main each frame): it lies on its side (the
 ## `sleep` animation, see Figure), a little towards the viewer so it lies on what it
 ## sleeps on rather than over its back half, with little letters "z" rising over it
@@ -116,6 +123,8 @@ var flames_at: Array = []
 ## The vessel the body sits in (Character.riding; others' from PEOPLE), "" none: afloat it
 ## sits still in it, drawn whole over the water (the vessel is the Boats view's).
 var riding := ""
+## Whether it sits at the oars (the rower, ActionsBoat seat 0), not carried behind.
+var rowing := true
 
 
 func _ready() -> void:
@@ -267,10 +276,16 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 		anim_time = (ROD_OUT + 0.5) / sheet.animations.slash.fps
 		return
 	var next := "idle"
-	if riding != "":
-		# Afloat the body sits still in its vessel.
-		pass
-	elif body.swimming:
+	if riding != "" and sheet.animations.has("row"):
+		# Afloat the body sits in its vessel; its rower rows while it goes, in time with
+		# the oars (Boats.stroke), the one carried sits still.
+		anim = "sit"
+		anim_time = 0.0
+		if rowing and dir.length() > 0.1:
+			anim = "row"
+			anim_time = Boats.stroke() * sheet.animations.row.frames.size() / sheet.animations.row.fps
+		return
+	if body.swimming:
 		next = "swim"
 	elif not body.on_ground:
 		next = "jump"
@@ -328,16 +343,29 @@ func place_sprite() -> void:
 	underwater.material_override.set_shader_parameter("deep", tint[1])
 	underwater.visible = line > -1000.0 and not body.in_bog
 	_find_flame()
-	# The torch is held a little towards the viewer, at the flame's height.
+	# The torch is held a little towards the viewer, at the flame: as high and as far to
+	# the side as the hand that holds it (two lights, between them), not in the middle of
+	# the body, where its rings looked like a light of the head's own.
 	torch_height = HAND_HEIGHT
+	torch_side = 0.0
 	if not flames_at.is_empty():
 		var top := 0.0
+		var side := 0.0
 		for f: Vector3 in flames_at:
 			top += f.y - sprite.global_position.y
+			side += Vector2(f.x - sprite.global_position.x, f.z - sprite.global_position.z).dot(PixelView.right)
 		torch_height = clampf(top / flames_at.size(), 0.3, HAND_TOP)
-	torch.global_position = PixelView.shear(position + Vector3(-PixelView.up.x * 0.3, torch_height, -PixelView.up.y * 0.3))
+		torch_side = clampf(side / flames_at.size(), -HAND_SIDE, HAND_SIDE)
+	torch.global_position = PixelView.shear(position + torch_offset())
 	_snore(drawn_at)
 	_show_line()
+
+
+## Where the light round the player is from their feet (unsheared): ahead towards the
+## viewer, to the side of the hand that holds it, at its height.
+func torch_offset() -> Vector3:
+	var ahead := Vector3(-PixelView.up.x, 0.0, -PixelView.up.y) * TORCH_AHEAD
+	return ahead + Vector3(PixelView.right.x, 0.0, PixelView.right.y) * torch_side + Vector3(0.0, torch_height, 0.0)
 
 
 ## The fishing line from the tip of the rod held out to the float (see line_at).

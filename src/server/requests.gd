@@ -39,7 +39,7 @@ const REVIVE_NEAR := 1.0
 ## player may be ahead of the clock (a quick finger along a stroke, a reply late).
 const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
 	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.LIGHT_PUT, Protocol.BUILD,
-	Protocol.FARM_WORK]
+	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH]
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
@@ -148,6 +148,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.VESSEL_TAKE:
 			if _fit(args, [TYPE_INT]):
 				return actions.take_vessel(who, args[0])
+		Protocol.VESSEL_LAUNCH:
+			if _fit(args, [TYPE_STRING]):
+				return actions.launch_from_bag(who, args[0])
 		Protocol.PLANT:
 			if _fit(args, [TYPE_STRING]):
 				return actions.plant(who, args[0])

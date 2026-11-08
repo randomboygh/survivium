@@ -319,6 +319,8 @@ func _on_born(a) -> void:
 	var sprite := MeshInstance3D.new()
 	sprite.mesh = looks[a.kind][0]
 	sprite.material_override = _mats(a)[0]
+	# The player's real shadow from a fire falls on it with «Тень на вещах» (PixelView.LAYER_THINGS).
+	sprite.layers = PixelView.LAYER_THINGS
 	sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
 	add_child(sprite)
 	_sprites[a] = sprite

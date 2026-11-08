@@ -565,7 +565,11 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 		# they only warm the ground a little.
 		pick_shadow_fires(view)
 		for f in fires:
-			f.light.light_energy = fire_energy(f, sky) * rng.randf_range(0.8, 1.1)
+			var energy := fire_energy(f, sky) * rng.randf_range(0.8, 1.1)
+			f.light.light_energy = energy
+			if f.light.shadow_enabled:
+				# The twin lights the rest as a fire without a shadow does.
+				PixelView.twin_follow(f.light, energy / shadow_energy)
 		_light_lamps(view, sky)
 
 
@@ -639,7 +643,7 @@ func pick_shadow_fires(view: Vector2) -> void:
 	# Written only on a change: each write marks the light's cube shadow dirty.
 	for f in fires:
 		if f.light.shadow_enabled != (f == best):
-			f.light.shadow_enabled = f == best
+			PixelView.real_shadow(f.light, f == best)
 	if best != null:
 		var mask: int = PixelView.LAYER_PLAYER if player_only else FIRE_CASTERS
 		if best.light.shadow_caster_mask != mask:

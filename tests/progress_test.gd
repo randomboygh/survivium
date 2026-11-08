@@ -488,9 +488,9 @@ func _camp_report() -> String:
 	var w = main.world
 	var feet: Vector3i = main.controls.feet()
 	var ch = main.chunks
-	var out := "cut %d (target %d, manual %d, ground %d, level %d, on ground %s, indoor %s, sunk %s rim %d, hidden by %d), feet %s, step %s, things %d" % [
+	var out := "cut %d (target %d, manual %d, ground %d, level %d, on ground %s, indoor %s, hidden by %d), feet %s, step %s, things %d" % [
 		ch.cut_level, ch.cut_target, ch.manual_level, ch.ground_level, main.player.level(), main.player.body.on_ground,
-		ch.indoor, ch.sunk, ch.sunk_rim, ch.hidden_by, feet, main.controls.step(), main.session.placed.things.size()]
+		ch.indoor, ch.hidden_by, feet, main.controls.step(), main.session.placed.things.size()]
 	var who = main.host.player
 	var now := Time.get_ticks_msec() / 1000.0
 	var said := []

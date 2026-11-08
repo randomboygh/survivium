@@ -176,6 +176,7 @@ func _process(delta: float) -> void:
 		f.line_at = e[15] if e.size() > 15 and e[15] is Vector3 else Vector3.INF
 		# The vessel they sit in, afloat.
 		f.riding = str(e[16]) if e.size() > 16 and e[16] is String else ""
+		f.rowing = f.riding != "" and game.boats.rower_at(at)
 		if e[11] != one.work_n:
 			one.work_n = e[11]
 			if str(e[9]) != "":

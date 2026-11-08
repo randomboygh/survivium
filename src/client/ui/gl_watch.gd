@@ -63,7 +63,7 @@ const SCRIPT := """
 	// shader shares, which it reads as global_shader_uniforms[m_name]), and the defines
 	// of the variant that tell what it is drawn for (the shadow pass, many instances,
 	// which lights are off, the mesh's attributes), without the ones every program has.
-	var DROP = /^(APPLY_TONEMAPPING|MATERIAL_UNIFORMS_USED|VERTEX_CODE_USED|FRAGMENT_CODE_USED|LIGHT_CODE_USED|VERTEX_WORLD_COORDS_USED|DISABLE_REFLECTION_PROBE|DISABLE_LIGHTMAP|BASE_PASS|SPECULAR_SCHLICK_GGX|SHADOW_MODE_PCF_5|NORMAL_USED|UV_USED)$/;
+	var DROP = /^(APPLY_TONEMAPPING|MATERIAL_UNIFORMS_USED|VERTEX_CODE_USED|FRAGMENT_CODE_USED|LIGHT_CODE_USED|VERTEX_WORLD_COORDS_USED|DISABLE_REFLECTION_PROBE|DISABLE_LIGHTMAP|SPECULAR_SCHLICK_GGX|SHADOW_MODE_PCF_5|NORMAL_USED|UV_USED)$/;
 	function describe(gl, prog) {
 		var shaders = gl.getAttachedShaders(prog) || [];
 		var defs = [], names = [];
@@ -93,7 +93,11 @@ const SCRIPT := """
 		var size = sizes[name];
 		var link = name === 'linkProgram';
 		p[name] = function (a, b, c, d, e, g, h, i, j, k, l, m) {
-			var n = arguments.length;
+			// How many it was called with, without `arguments` (an object at every call):
+			// WebGL treats arguments left undefined at the end as not given.
+			var n = m !== undefined ? 12 : l !== undefined ? 11 : k !== undefined ? 10 : j !== undefined ? 9
+				: i !== undefined ? 8 : h !== undefined ? 7 : g !== undefined ? 6 : e !== undefined ? 5
+				: d !== undefined ? 4 : c !== undefined ? 3 : b !== undefined ? 2 : a !== undefined ? 1 : 0;
 			var t = performance.now();
 			var r = call(f, this, n, a, b, c, d, e, g, h, i, j, k, l, m);
 			t = performance.now() - t;

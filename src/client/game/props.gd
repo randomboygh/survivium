@@ -170,6 +170,7 @@ func _on_added(e: Dictionary) -> void:
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.scale = Vector3.ONE / 16.0
 	node.position = Vector3(e.cell) * CELL
+	node.layers = PixelView.LAYER_THINGS
 	_fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
@@ -208,6 +209,7 @@ func _add_lamp(e: Dictionary) -> void:
 	node.material_override = game.low_mat
 	node.scale = Vector3.ONE / 16.0
 	node.position = (Vector3(e.cell) + Vector3(0.5, 0.0, 0.5)) * CELL
+	node.layers = PixelView.LAYER_THINGS
 	_fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
@@ -304,6 +306,7 @@ func show_drops(key: Vector2i) -> void:
 		var node := MeshInstance3D.new()
 		node.mesh = mesh
 		node.material_override = game.low_mat
+		node.layers = PixelView.LAYER_THINGS
 		_fit(node)
 		game.world_root.add_child(node)
 		nodes.append(node)

@@ -199,7 +199,7 @@ func _update_torch(delta: float) -> void:
 	# The shadow and the range are set only when they change: each write re-pairs the
 	# light and marks its cube shadow dirty, redrawn then (the energy is free).
 	if player.torch.shadow_enabled != shadows:
-		player.torch.shadow_enabled = shadows
+		PixelView.real_shadow(player.torch, shadows)
 	var energy := GLOW_ENERGY
 	var reach := PixelView.light_range(GLOW_RANGE)
 	if player.torch_lit:
@@ -214,6 +214,8 @@ func _update_torch(delta: float) -> void:
 	if not is_equal_approx(player.torch.omni_range, reach):
 		player.torch.omni_range = reach
 	player.torch.light_energy = energy * dark * (game.effects.shadow_energy if shadows else 1.0)
+	if shadows:
+		PixelView.twin_follow(player.torch, energy * dark)
 
 
 ## How bright a torch, a fire or a light set down at height `y` burns, a share of its

@@ -68,6 +68,13 @@ animations:
   sleep:
     frames: [40]
     fps: 1.0
+  # Сидя на плоту или в лодке (ноги вперёд, тело ниже) и гребля: руки тянут вёсла от себя к себе.
+  sit:
+    frames: [41]
+    fps: 1.0
+  row:
+    frames: [42, 43, 44, 45]
+    fps: 4.0
 sleep_eyes: "2c2226"
 sleep_lid: "c08a69"
 works:

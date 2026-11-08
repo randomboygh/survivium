@@ -127,6 +127,11 @@ func _test_requests() -> void:
 	_check(req.handle(Protocol.request(Protocol.VESSEL_TAKE, 113, [far.id]))[1] == false and a.inventory.count("tools:raft") == 0,
 		"a raft out of reach is not taken up")
 	_check(req.handle(Protocol.request(Protocol.VESSEL_TAKE, 114, ["1"]))[1] == null, "nor one by a number that is no number")
+	_check(req.handle(Protocol.request(Protocol.VESSEL_LAUNCH, 115, ["tools:raft"]))[1] == false and a.vessel == 0,
+		"no raft launched from a bag that has none")
+	# (The rule itself: the hands may still owe work from the requests above.)
+	_check(req._rule(Protocol.VESSEL_LAUNCH, [7]) == null and req.PACED.has(Protocol.VESSEL_LAUNCH),
+		"nor for an id that is no text; a launch takes the hands' time")
 
 
 ## A bag counted from its end is the same bag, not twice the things.

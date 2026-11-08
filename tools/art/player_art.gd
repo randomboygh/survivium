@@ -161,6 +161,12 @@ const LEGS := {
 			"..BBbBBb..",
 			"..........",
 		],
+		"sit": [
+			"..........",
+			"..........",
+			"..........",
+			"..TTtTTt..",
+		],
 	},
 	"side": {
 		"stand": [
@@ -193,6 +199,12 @@ const LEGS := {
 			"..bbBBO...",
 			"..........",
 		],
+		"sit": [
+			"..........",
+			"..........",
+			"..........",
+			"...tTTTTB.",
+		],
 	},
 }
 
@@ -206,7 +218,9 @@ const SHOULDER := {
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
 ## the body bobs down. A swimmer's strokes go over the water, which comes up to its
-## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn.
+## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn. Afloat in a
+## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
+## and pull the oars in (Boats swings the oars in time, ROW_PERIOD).
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[1, 10], [8, 10]]}],
@@ -225,6 +239,13 @@ const MOVES := {
 			{"hands": [[0, 6], [9, 5]]},
 			{"hands": [[0, 7], [9, 3]], "legs": "right"},
 			{"hands": [[0, 5], [9, 6]]},
+		],
+		"sit": [{"hands": [[1, 9], [8, 9]], "legs": "sit", "bob": 3}],
+		"row": [
+			{"hands": [[0, 6], [9, 6]], "legs": "sit", "bob": 3},
+			{"hands": [[0, 8], [9, 8]], "legs": "sit", "bob": 3},
+			{"hands": [[1, 9], [8, 9]], "legs": "sit", "bob": 3},
+			{"hands": [[0, 8], [9, 8]], "legs": "sit", "bob": 3},
 		],
 	},
 	"side": {
@@ -245,6 +266,13 @@ const MOVES := {
 			{"hands": [[2, 6], [9, 4]], "legs": "far"},
 			{"hands": [[5, 3], [7, 7]]},
 		],
+		"sit": [{"hands": [[6, 8], [5, 8]], "legs": "sit", "bob": 3}],
+		"row": [
+			{"hands": [[8, 7], [7, 7]], "legs": "sit", "bob": 3},
+			{"hands": [[6, 8], [5, 8]], "legs": "sit", "bob": 3},
+			{"hands": [[3, 7], [2, 7]], "legs": "sit", "bob": 3},
+			{"hands": [[5, 7], [4, 7]], "legs": "sit", "bob": 3},
+		],
 	},
 	"back": {
 		"idle": [{"hands": [[8, 10], [1, 10]]}],
@@ -263,6 +291,13 @@ const MOVES := {
 			{"hands": [[9, 6], [0, 5]]},
 			{"hands": [[9, 7], [0, 3]], "legs": "right"},
 			{"hands": [[9, 5], [0, 6]]},
+		],
+		"sit": [{"hands": [[8, 9], [1, 9]], "legs": "sit", "bob": 3}],
+		"row": [
+			{"hands": [[9, 6], [0, 6]], "legs": "sit", "bob": 3},
+			{"hands": [[9, 8], [0, 8]], "legs": "sit", "bob": 3},
+			{"hands": [[8, 9], [1, 9]], "legs": "sit", "bob": 3},
+			{"hands": [[9, 8], [0, 8]], "legs": "sit", "bob": 3},
 		],
 	},
 }

@@ -76,7 +76,7 @@ const USES := {
 	"take": ["act_take", "Взять в руку"], "eat": ["act_eat", "Съесть одну"], "drink": ["act_eat", "Выпить"], "heal": ["act_heal", "Перевязать раны"],
 	"place": ["act_place", "Поставить рядом"], "plant": ["act_plant", "Посадить перед собой"],
 	"wear": ["act_wear", "Надеть на персонажа"], "build": ["hammer", "Строить: режим строительства"],
-	"farm": ["act_plant", "Огород: режим земледелия"], "off": ["take", "Снять"], "free": ["take", "Освободить руку"],
+	"farm": ["act_plant", "Огород: режим земледелия"], "launch": ["act_place", "Спустить на воду"], "off": ["take", "Снять"], "free": ["take", "Освободить руку"],
 }
 
 var game
@@ -348,6 +348,9 @@ func _ready() -> void:
 		elif FarmMode.farms_with(id):
 			close()
 			game.farm.enter(id)
+		elif _launchable(id):
+			game.net.request(Protocol.VESSEL_LAUNCH, [id])
+			close()
 		elif _plantable(id):
 			game.net.request(Protocol.PLANT, [id])
 		elif BuildMode.builds_with(id):
@@ -411,6 +414,11 @@ func _ready() -> void:
 ## it in hand.
 static func _plantable(id: String) -> bool:
 	return Items.get_item(id).get("plant", "") != ""
+
+
+## Whether `id` is a raft or a boat, launched by the wide button (see refresh).
+func _launchable(id: String) -> bool:
+	return game.actions != null and game.actions.vessel_of(id) > 0.0
 
 
 ## A thing set down on the ground (a chest, a station, a campfire): its wide button
@@ -955,9 +963,13 @@ func _show_info(inv) -> void:
 	var plant: bool = s != null and not food and _plantable(s[0]) and not farm
 	var wear: bool = s != null and Items.wear_on(s[0]) != ""
 	var off: bool = mine and inv.worn_on(_at) != ""
-	_show_use("off" if off else "wear" if wear else ("heal" if heals else (("drink" if drinks else "eat") if food else ("build" if build else ("farm" if farm else ("place" if put else ("plant" if plant else "take")))))))
-	_use.disabled = not mine or not wear and not food and not put and not plant and not build and not farm \
+	var vessel: bool = s != null and _launchable(s[0])
+	_show_use("off" if off else "wear" if wear else ("launch" if vessel else ("heal" if heals else (("drink" if drinks else "eat") if food else ("build" if build else ("farm" if farm else ("place" if put else ("plant" if plant else "take"))))))))
+	_use.disabled = not mine or not wear and not food and not put and not plant and not build and not farm and not vessel \
 		and game.controls.held() == s[0]
+	if vessel and mine:
+		# A raft or a boat goes on the water near, and only where there is some.
+		_use.disabled = game.character.vessel != 0 or game.actions.launch_near(game.character).is_empty()
 	_throw.get_child(0).disabled = not mine
 	_throw.get_child(1).disabled = not mine or s[1] < 2
 	_destroy.disabled = s == null
