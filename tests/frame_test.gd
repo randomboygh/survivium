@@ -205,7 +205,7 @@ func _run() -> void:
 			w.set_cell(c.x, c.y, c.z, before[i / 10])
 			main.chunks.on_cell_changed(c)
 		return false)
-	_check(main.chunks.dirty_chunks.is_empty() and main.chunks.job_mesh == null, "edits are all built")
+	_check(main.chunks.dirty_chunks.is_empty() and (main.chunks.job_mesh == null or main.chunks.job_keep), "edits are all built")
 	_check(w.bushes.size() == bushes_before - 1 and not w.bushes.has(bush), "the bush dug under is gone")
 
 	# The cut moving up and down four times a second, as when walking in and out of
@@ -289,6 +289,8 @@ func _run() -> void:
 	c._cooldown = 0.0
 	c.dig_at(first_dug, Vector3i.UP)
 	var held: bool = w.drops.get(dug_key, []).size() > lying and main.props._drops_shown.get(dug_key, 0) == lying
+	var patches_before: int = main.chunks.patches
+	var kept: bool = main.chunks.kept.has(dug_key)
 	# The dug cell's own chunk goes first, before its neighbours (ChunkStreamer.edited).
 	var queued: Array = main.chunks.dirty_chunks.keys()
 	_check(main.chunks.edited.has(dug_key) and not queued.is_empty() and queued[0] == dug_key,
@@ -299,6 +301,8 @@ func _run() -> void:
 	await process_frame
 	_check(held and main.props._drops_shown.get(dug_key, 0) == w.drops.get(dug_key, []).size(),
 		"what is dug is drawn on the ground when the chunk is drawn dug, not before")
+	_check(kept and main.chunks.patches > patches_before,
+		"the chunk at the player's feet keeps its jobs and a dig rebuilds only the columns around it")
 	main.settings.values.pickup = picks
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < laid.size():

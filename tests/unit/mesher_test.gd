@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_mesher()
 	_test_cap()
+	_test_patch()
 
 
 func _test_mesher() -> void:
@@ -127,3 +128,115 @@ static func _shader_tile(packed: float, normal: Vector3) -> int:
 	if code == ChunkMesher.NO_MATERIAL:
 		return -1
 	return code * 3 + (1 if flag & 1 != 0 else (2 if normal.y < -0.5 else 0))
+
+
+## A chunk rebuilt only where its cells changed (ChunkMesher.patch, Foliage.patch, as
+## ChunkStreamer does after an edit) is what building it whole again makes, buffer for
+## buffer: after a tree is felled in a forest, and after a top is dug in its clearing.
+func _test_patch() -> void:
+	for place in ["forest", "taiga", "jungle"]:
+		_patch_place(place)
+
+
+func _patch_place(place: String) -> void:
+	var gen := WorldGen.new(42)
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var at: Vector2i = gen.find_place(place, near)
+	var key := WorldData.chunk_key(at.x, at.y)
+	for dz in range(-2, 3):
+		for dx in range(-2, 3):
+			_ensure_stage(gen, key + Vector2i(dx, dz), WorldGen.SHAPED)
+	var w: WorldData = gen.world
+	var x0 := key.x * 16
+	var z0 := key.y * 16
+	var built := _built(w, key, Rect2i())
+	# Every tree standing in the chunk or beside it, one after another, each patched into
+	# the chunk as patched after the one before.
+	var trunks: Array[Vector2i] = []
+	for col: Vector2i in w.trees:
+		if col.x >= x0 - 4 and col.x < x0 + 20 and col.y >= z0 - 4 and col.y < z0 + 20 and w.log_col(col.x, col.y) != 0:
+			trunks.append(col)
+	_check(trunks.size() >= 2, "the %s chunk has trees around (%d)" % [place, trunks.size()])
+	var all_same := true
+	for trunk in trunks:
+		var logs := w.log_col(trunk.x, trunk.y)
+		var gone: Array[Vector3i] = Felling.fell(w, Vector3i(trunk.x, WorldData.level_of(logs & -logs), trunk.y), Vector2(1, 0))
+		# The client hears of each column once, at its lowest cell (WorldActions.fell).
+		var lowest := {}
+		for c in gone:
+			if not lowest.has(Vector2i(c.x, c.z)) or c.y < lowest[Vector2i(c.x, c.z)].y:
+				lowest[Vector2i(c.x, c.z)] = c
+		var cells: Array[Vector3i] = []
+		cells.assign(lowest.values())
+		var patched := _patch_matches(w, key, built, cells)
+		if patched.is_empty():
+			continue
+		all_same = all_same and patched[2] == ""
+		if patched[2] != "":
+			printerr("  felled %s in the %s: %s" % [trunk, place, patched[2]])
+		built = patched
+	_check(all_same, "%s: each of %d trees felled, the chunk patched where it changed is what building it whole again makes" % [place, trunks.size()])
+	# A top dug where nothing grows above it.
+	var dug := Vector3i(1 << 20, 0, 0)
+	for z in range(z0 + 2, z0 + 14):
+		for x in range(x0 + 2, x0 + 14):
+			var y := w.surface_y(x, z)
+			if dug.x == 1 << 20 and y > 1 and w.get_cell(x, y - 1, z) != Mat.AIR and w.leaf_col(x, z) == 0 and w.log_col(x, z) == 0:
+				dug = Vector3i(x, y - 1, z)
+	if dug.x != 1 << 20:
+		w.set_cell(dug.x, dug.y, dug.z, Mat.AIR)
+		var patched := _patch_matches(w, key, built, [dug] as Array[Vector3i])
+		_check(not patched.is_empty() and patched[2] == "", "%s: a dug top patched into the chunk: %s" % [place, patched[2] if not patched.is_empty() else "nothing to patch"])
+
+
+## The mesh and plant jobs of chunk `key`, built whole (an empty `rect`) or only the
+## columns of `rect` (as parts), and finished: [mesh job, plant job, meshes, plants].
+func _built(w: WorldData, key: Vector2i, rect: Rect2i) -> Array:
+	var part := rect.has_area()
+	var jp: Foliage.Job
+	if part:
+		jp = Foliage.start_part(w, key.x * 16, key.y * 16, 16, Foliage.part_columns(w, key.x * 16, key.y * 16, 16, rect))
+	else:
+		rect = Rect2i(key * 16, Vector2i(16, 16))
+		jp = Foliage.start(w, key.x * 16, key.y * 16, 16)
+	var jm := ChunkMesher.start_rect(w, rect.position.x, rect.position.y, rect.end.x, rect.end.y, part)
+	while not (ChunkMesher.step(jm, 1 << 20) and Foliage.step(jp, 1 << 20)):
+		pass
+	return [jm, jp]
+
+
+## Patches `built` for `cells` changed and compares it with the chunk built whole again:
+## [mesh job, plant job, "" or what differs], [] if no cell is near the chunk.
+func _patch_matches(w: WorldData, key: Vector2i, built: Array, cells: Array[Vector3i]) -> Array:
+	var whole := Rect2i(key * 16, Vector2i(16, 16))
+	var rect := Rect2i()
+	for c in cells:
+		var reach := ChunkMesher.reach(w, c)
+		var r := Rect2i(c.x - reach, c.z - reach, 2 * reach + 1, 2 * reach + 1).intersection(whole)
+		if r.has_area():
+			rect = r if not rect.has_area() else rect.merge(r)
+	if not rect.has_area():
+		return []
+	var part := _built(w, key, rect)
+	var jm := ChunkMesher.patch(built[0], part[0])
+	var jp := Foliage.patch(built[1], part[1])
+	while not (ChunkMesher.step(jm, 1 << 20) and Foliage.step(jp, 1 << 20)):
+		pass
+	var fresh := _built(w, key, Rect2i())
+	var diff := ""
+	for k in 2:
+		var a = jm.solid if k == 0 else jm.water
+		var b = fresh[0].solid if k == 0 else fresh[0].water
+		if not (a.verts == b.verts and a.normals == b.normals and a.uvs == b.uvs and a.uv2s == b.uv2s
+				and a.colors == b.colors and a.indices == b.indices):
+			diff += "%s mesh in %s (%d vertices, whole %d); " % ["solid" if k == 0 else "water", rect, a.verts.size(), b.verts.size()]
+	if jm.ends != fresh[0].ends:
+		diff += "mesh ends; "
+	var fp: Foliage.Job = fresh[1]
+	if not (jp.grass == fp.grass and jp.ends == fp.ends and jp.ng == fp.ng):
+		diff += "grass (%d, whole %d); " % [jp.ng, fp.ng]
+	if not (jp.clumps == fp.clumps and jp.nc == fp.nc):
+		diff += "leaf cards in %s (%d, whole %d); " % [rect, jp.nc, fp.nc]
+	if not (jp.shadows == fp.shadows and jp.ns == fp.ns):
+		diff += "shadows (%d, whole %d); " % [jp.ns, fp.ns]
+	return [jm, jp, diff]

@@ -155,6 +155,15 @@ class Job extends RefCounted:
 	## how many trunks have cast their shadow.
 	var wide: Array
 	var tree := 0
+	## Where the buffers stood as each column was done, in the order of the columns:
+	## grass, clumps and shadows, their sizes and then their counts (see `patch`).
+	var ends := PackedInt32Array()
+	## Columns for `patch` only: no shadows of whole trees.
+	var part := false
+	## The columns of a part (see start_part), as indices into the chunk's columns in
+	## order, and how many are built.
+	var cols := PackedInt32Array()
+	var col_i := 0
 
 
 ## The plants of the cells x0..x0+size, z0..z0+size, all at once: {"grass", "clumps",
@@ -172,6 +181,37 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Dictionary:
 
 ## Begins building the plants of a chunk; `step` then does a few columns at a time.
 static func start(w, x0: int, z0: int, size: int) -> Job:
+	return start_rect(w, x0, z0, x0 + size, z0 + size)
+
+
+## Begins building only the columns `cols` of the chunk of `size` at x0, z0 (indices of
+## its columns row by row, ascending), for `patch` to put into the chunk's plants.
+static func start_part(w, x0: int, z0: int, size: int, cols: PackedInt32Array) -> Job:
+	var job := start(w, x0, z0, size)
+	job.part = true
+	job.cols = cols
+	return job
+
+
+## The columns of the chunk of `size` at x0, z0 whose plants may change when the cells
+## of `rect` change: those in it, and the trunks of the trees whose crowns may reach it
+## (a crown is drawn whole from its trunk's column, see _spruce, _broad); for start_part.
+static func part_columns(w, x0: int, z0: int, size: int, rect: Rect2i) -> PackedInt32Array:
+	var cols := {}
+	for z in range(rect.position.y, rect.end.y):
+		for x in range(rect.position.x, rect.end.x):
+			cols[(z - z0) * size + x - x0] = true
+	for t: Array in _trunks_near(w, rect.position.x, rect.position.y, rect.end.x, rect.end.y):
+		var at: Vector2i = t[0]
+		if at.x >= x0 and at.x < x0 + size and at.y >= z0 and at.y < z0 + size:
+			cols[(at.y - z0) * size + at.x - x0] = true
+	var out := PackedInt32Array(cols.keys())
+	out.sort()
+	return out
+
+
+## Like `start`, for the columns x0..x1, z0..z1 (ends exclusive).
+static func start_rect(w, x0: int, z0: int, x1: int, z1: int) -> Job:
 	w.refresh_shapes()
 	var job := Job.new()
 	job.w = w
@@ -179,8 +219,8 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 	job.z0 = z0
 	job.z = z0
 	job.x = x0
-	job.x1 = x0 + size
-	job.z1 = z0 + size
+	job.x1 = x1
+	job.z1 = z1
 	job.trunks = _trunks_near(w, x0, z0, job.x1, job.z1)
 	job.wide = _trunks_near(w, x0 - TREE_REACH, z0 - TREE_REACH, job.x1 + TREE_REACH, job.z1 + TREE_REACH)
 	return job
@@ -190,8 +230,18 @@ static func start(w, x0: int, z0: int, size: int) -> Job:
 ## tree per column (a forest chunk has dozens, each as costly as a few columns).
 ## Returns true once every column is built and every tree has its shadow.
 static func step(job: Job, columns: int) -> bool:
+	if job.part:
+		var sx := job.x1 - job.x0
+		while columns > 0 and job.col_i < job.cols.size():
+			var j := job.cols[job.col_i]
+			_column(job, job.x0 + j % sx, job.z0 + j / sx)
+			job.ends.append_array([job.grass.size(), job.clumps.size(), job.shadows.size(), job.ng, job.nc, job.ns])
+			job.col_i += 1
+			columns -= 1
+		return job.col_i >= job.cols.size()
 	while columns > 0 and job.z < job.z1:
 		_column(job, job.x, job.z)
+		job.ends.append_array([job.grass.size(), job.clumps.size(), job.shadows.size(), job.ng, job.nc, job.ns])
 		columns -= 1
 		job.x += 1
 		if job.x >= job.x1:
@@ -435,6 +485,60 @@ static func _column(job: Job, x: int, z: int) -> void:
 			put(shadows, mid)
 			shadows.append_array([base.a, 0.0, 0.0, 0.0])
 			job.ns += 1
+
+## The job of a whole chunk built before (`old`) with the columns of `part` (start_part,
+## built since the cells changed) put in place of its own, as
+## ChunkMesher.patch does; `step` then casts the shadows of the chunk's trees again.
+static func patch(old: Job, part: Job) -> Job:
+	var job := start_rect(old.w, old.x0, old.z0, old.x1, old.z1)
+	job.z = job.z1
+	job.ends.resize(old.ends.size())
+	var n := old.ends.size() / 6
+	var where := {}
+	for i in part.cols.size():
+		where[part.cols[i]] = i
+	# Runs of columns that lie one after another in the job they come from, copied
+	# whole: [from part, first column there, last column there, first column in the chunk].
+	var runs := []
+	for j in n:
+		var inside := where.has(j)
+		var at: int = where[j] if inside else j
+		if not runs.is_empty() and runs[-1][0] == inside and runs[-1][2] == at - 1:
+			runs[-1][2] = at
+		else:
+			runs.append([inside, at, at, j])
+	for k in 3:
+		var buf := PackedFloat32Array()
+		var count := 0
+		for run: Array in runs:
+			var from: Job = part if run[0] else old
+			var e := from.ends
+			var a: int = run[1]
+			var b: int = run[2]
+			var va := e[(a - 1) * 6 + k] if a > 0 else 0
+			var ca := e[(a - 1) * 6 + k + 3] if a > 0 else 0
+			var vb := e[b * 6 + k]
+			var shift := buf.size() - va
+			var cshift := count - ca
+			if vb > va:
+				var src: PackedFloat32Array = from.grass if k == 0 else (from.clumps if k == 1 else from.shadows)
+				buf.append_array(src.slice(va, vb))
+			count += e[b * 6 + k + 3] - ca
+			for c in range(a, b + 1):
+				var to: int = run[3] + c - a
+				job.ends[to * 6 + k] = e[c * 6 + k] + shift
+				job.ends[to * 6 + k + 3] = e[c * 6 + k + 3] + cshift
+		if k == 0:
+			job.grass = buf
+			job.ng = count
+		elif k == 1:
+			job.clumps = buf
+			job.nc = count
+		else:
+			job.shadows = buf
+			job.ns = count
+	return job
+
 
 ## A cone of tiers drawn as SLYNYRD builds a conifer: round the trunk, on every level of
 ## its crown, branches lying flat and pointing away from it (the shader turns each the

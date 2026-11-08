@@ -12,6 +12,14 @@
   (`WorldGen.needed` пуст; иначе чанк возвращается в очередь и ждёт кадр); правки строятся первыми (новая правка в чанке, который уже перестраивается для
   правки, не начинает его заново: стройка доходит до конца, чанк встаёт в очередь ещё раз — иначе при
   частом копании на телефоне рельеф не обновлялся);
+  **частичная перестройка**: чанки в `KEEP_CHUNKS` (1) от игрока хранят законченные задания меша и растений
+  (`kept`; чанки, построенные до прихода игрока, перестраиваются заново в простое, `keep_queue`, в бюджете
+  стрима и уступая правкам); правка в таком чанке строит только столбцы вокруг изменённых клеток
+  (`dirty_rects`; на сколько вокруг — `ChunkMesher.reach`: 3 у земли, 1 для клеток в воздухе, кроны и
+  ствола выше земли) и вклеивает их в сохранённое (`ChunkMesher.patch`, затем шагом позже
+  `Foliage.patch` — растения строят ещё и стволы деревьев, чья крона может дотянуться до участка,
+  `Foliage.part_columns`), тени деревьев чанка считаются заново; `remesh_chunk` строит чанк целиком.
+  Результат совпадает с полной перестройкой буфер в буфер (`mesher_test` `_test_patch`);
   дальше `UNLOAD_RANGE` (8) меши освобождаются (ячейки дальше `Session.DROP` забывает сеанс). Генерация
   сеанса идёт до кадра клиента в бюджетах, которые даёт `gen_budgets()` (загрузка и пауза —
   `load_budget`, иначе `EDIT_BUDGET_US` рядом с игроком и `STREAM_BUDGET_US` дальше), и
@@ -39,7 +47,8 @@
 **Интерфейс.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
 `take_work()`, `set_focus(at)`,
 `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`, `remesh_chunk(key)`;
-`ChunkMesher.start` / `step` / `finish`, `Foliage.start` / `step` / `finish`.
+`ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`, `Foliage.start` / `start_part` /
+`part_columns` / `step` / `finish` / `patch`.
 
 **Зависит от.** `Session` (зоны, бюджеты, `make_chunk`, `forget_far`), `WorldGen` (`needed`, `made`),
 `WorldData` (ячейки, формы), `PixelView` (сдвиг и коробки отсечения), `PixelTextures` (атлас, кора), реестры материалов, деревьев, кустов, растений.
@@ -63,7 +72,8 @@ GDScript. `tests/frame_test.gd` проверяет это по сценария�
 - Рендерер Compatibility освещает объект не больше чем `max_lights_per_object` (32) огнями: меш
   чанка — один объект, за пределом соседние чанки освещены разными огнями.
 
-**Тесты.** `tests/unit/mesher_test.gd` (`mesher`, `cap`), `tests/frame_test.gd`,
+**Тесты.** `tests/unit/mesher_test.gd` (`mesher`, `cap`, `patch`: деревья в лесу, тайге и джунглях
+срублены по одному, вскопанная клетка — склейка равна полной перестройке), `tests/frame_test.gd`,
 `tools/bench_mesh.gd`, `tools/bench_edit.gd`, `tools/bench_turn.gd`, `tools/profile.gd`.
 
 **Подробнее.** `plan/architecture/performance.md`, `plan/architecture/rendering.md`.
