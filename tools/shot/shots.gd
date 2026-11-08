@@ -259,6 +259,10 @@ const SHOTS := {
 	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
+	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,
+	# each level shaded toward its foot (see world.gdshader, `gp`).
+	"steep-beach": {"time": 0.42, "season": 1, "place": "beach", "steep": true},
+	"steep-tropical": {"time": 0.42, "season": 1, "place": "tropical_beach", "steep": true},
 	"lake-morning": {"time": 0.36, "season": 1, "place": "lake"},
 	"beach-morning": {"time": 0.33, "season": 1, "place": "beach"},
 	"slopes-winter-morning": {"time": 0.33, "season": 3, "slopes": true},
@@ -319,7 +323,7 @@ const SHOTS := {
 	"raft": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:raft"},
 	"boat": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat"},
 	# Rowing the boat south: the rower's stroke and the oars swung in time.
-	"boat-row": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_S]},
+	"boat-row": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_S], "key_frames": 50},
 	"boat-row-e": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_D]},
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},
@@ -487,6 +491,7 @@ const SHOTS := {
 	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:stone_scythe"},
 	"craft-unknown": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true},
 	"craft-free": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true, "free": true},
+	"craft-free-tools": {"time": 0.42, "season": 1, "touch": true, "craft": true, "unknown": true, "free": true, "recipe": "materials:log_wall"},
 	# The craft tab with nothing queued: no queue panel under the recipe.
 	"craft-idle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "idle": true},
 	# The spawn campfire at night full of fuel, and nearly burned down: its flames and light

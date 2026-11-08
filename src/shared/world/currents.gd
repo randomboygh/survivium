@@ -12,7 +12,7 @@ const LandLayout := preload("res://src/shared/world/land_layout.gd")
 
 ## How fast a river runs in its middle, in cells a second, and the share of that at a
 ## bank, BANK cells from the middle or more.
-const SPEED := 3.0
+const SPEED := 2.0
 const AT_BANK := 0.5
 const BANK := 6.0
 ## How far up and down the river the way to its mouth is looked for, in cells.

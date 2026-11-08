@@ -17,6 +17,7 @@ func run() -> void:
 	_test_launch_sail_ashore()
 	_test_launch_from_bag()
 	_test_rowing_feel()
+	_test_wind_and_bump()
 	_test_two_aboard()
 	_test_oars_and_save()
 	_test_ice_and_death()
@@ -201,6 +202,45 @@ func _test_rowing_feel() -> void:
 	var slow := ch.inventory.speed_factor()
 	_check(slow < 1.0 and ch.vessel_pace() < light and ch.vessel_pace() > light * slow,
 		"overloaded it goes slower, less so than on foot: %.2f of %.2f (walking %.2f)" % [ch.vessel_pace(), light, slow])
+
+
+## The wind drives a raft along it, a boat less, a breeze a little; a hull rowed fast into
+## the bank bumps back off it and tells how hard, one coming slowly just stops.
+func _test_wind_and_bump() -> void:
+	var w := _lake()
+	var clock := Clock.new()
+	var deck := Vector3(10.5, 2.0 + WorldData.WATER_TOP - Body.DECK, 8.5) * WorldData.CELL
+	var drift := {}
+	for item: String in [RAFT, BOAT]:
+		for wind: float in [0.0, Body.WIND_FELT * 0.5, Body.WIND_FULL]:
+			clock.storm_wind = wind
+			var b := Body.new()
+			b.world = w
+			b.clock = clock
+			b.vessel = WorldActions.vessel_of(item)
+			b.windage = float(Items.get_item(item).windage)
+			drift["%s %s" % [item, wind]] = _went(b, deck, Vector2.ZERO, 1.0).distance_to(deck) / WorldData.CELL
+	var still: float = drift["%s %s" % [RAFT, 0.0]]
+	var breeze: float = drift["%s %s" % [RAFT, Body.WIND_FELT * 0.5]]
+	var gale: float = drift["%s %s" % [RAFT, Body.WIND_FULL]]
+	var boat: float = drift["%s %s" % [BOAT, Body.WIND_FULL]]
+	_check(still < 0.001 and breeze > 0.05 and gale > breeze * 2.0 and boat > 0.0 and boat < gale * 0.6,
+		"the wind drives a raft, a breeze a little, a boat less: %s" % drift)
+	var b := Body.new()
+	b.world = w
+	b.vessel = WorldActions.vessel_of(BOAT)
+	b.heading = PI / 2.0
+	var p := _went(b, Vector3(14.5, deck.y / WorldData.CELL, 8.5) * WorldData.CELL, Vector2(1.0, 0.0), 3.0)
+	_check(b.bump > Body.SAIL_BUMP, "rowed fast into the bank, the boat bumps: %.2f" % b.bump)
+	b.bump = 0.0
+	b.move_input = Vector2.ZERO
+	b.glide = Vector2(Body.SAIL_BUMP * 2.0, 0.0)
+	b.step(p, 0.05, false)
+	_check(b.bump > 0.0 and b.glide.x < 0.0, "and bounces back off it: %s" % b.glide)
+	b.bump = 0.0
+	b.glide = Vector2(Body.SAIL_BUMP * 0.5, 0.0)
+	b.step(p, 0.05, false)
+	_check(b.bump == 0.0 and b.glide.x <= 0.0, "drifting slowly into it, it just stops")
 
 
 func _test_two_aboard() -> void:

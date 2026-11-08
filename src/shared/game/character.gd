@@ -306,6 +306,7 @@ func update(delta: float) -> void:
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	body.swim_scale = skills.boost("swim")
 	body.vessel = vessel_pace()
+	body.windage = windage()
 	# Swimming somewhere, or rowing, is the work of the skill of swimming.
 	if (body.swimming or riding != "") and stride > STILL and stride < STRIDE_MAX:
 		skills.gain("swim", delta)
@@ -718,6 +719,11 @@ func revive(at: Vector3) -> void:
 func forget_fall() -> void:
 	_ground_y = -INF
 	_prev_y = INF
+
+
+## How much the wind takes the vessel ridden (its item's `windage`, Body.windage); 0 on foot.
+func windage() -> float:
+	return float(Items.get_item(riding).get("windage", 0.0)) if riding != "" and Items.has(riding) else 0.0
 
 
 ## The share of the walking pace the vessel ridden goes at (Body.vessel): the item's

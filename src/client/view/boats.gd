@@ -13,6 +13,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const ActionsBoat := preload("res://src/shared/game/actions_boat.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
 
 const CELL := WorldData.CELL
 ## The model of a vessel sits this far under the feet of those in it (world units): its
@@ -35,6 +36,11 @@ const OAR_REST := 0.3
 ## a body sits to be its rower (world units).
 const GOING := 0.25
 const AT_OARS := 0.3
+## How far behind its middle a vessel's wake starts (cells), where along an oar its blade
+## splashes (voxels from the oarlock), and how loud the oars plash (Sound.play).
+const STERN := 1.3
+const OAR_BLADE := 12.0
+const OAR_PLASH := 0.35
 
 var game
 ## By vessel id: {"node": MeshInstance3D, "item", "at", "turn"} as last told.
@@ -83,7 +89,8 @@ func take(r: Array) -> void:
 		node.layers = PixelView.LAYER_THINGS
 		_fit(node)
 		add_child(node)
-		one = {"node": node, "oars": _oars(node, r[1]), "going": false}
+		one = {"node": node, "oars": _oars(node, r[1]), "stroke": 0.0,
+			"wake": game.effects.wake() if game.effects != null else null}
 		vessels[r[0]] = one
 	one.item = r[1]
 	one.at = r[2]
@@ -96,6 +103,8 @@ func take_gone(id: int) -> void:
 		return
 	vessels.erase(id)
 	one.node.queue_free()
+	if one.wake != null:
+		one.wake.queue_free()
 
 
 ## The vessel whose hull the view ray from `origin` along `dir` (world units) passes
@@ -144,11 +153,35 @@ func _process(delta: float) -> void:
 		node.position = node.position.lerp(at - Vector3(0.0, SINK, 0.0), k)
 		node.rotation.y = lerp_angle(node.rotation.y, turn, k)
 		_fit(node)
+		var going: bool = (node.position - was).length() > GOING * delta
+		if id == mine:
+			going = Vector2(game.player.body.glide).length() > GOING
+		if one.wake != null:
+			# The wake trails from the stern while it goes.
+			# (On the water, not under it where the model's bottom is.)
+			one.wake.position = node.position + Vector3(0.0, 2.0 * SINK, 0.0) \
+				+ Vector3(sin(node.rotation.y), 0.0, cos(node.rotation.y)) * -STERN * CELL
+			one.wake.emitting = going
 		if not one.oars.is_empty():
-			var going: bool = (node.position - was).length() > GOING * delta
+			var rowed := going
 			if id == mine:
-				going = game.character.seat == 0 and Vector2(game.player.body.glide).length() > 0.1
-			_swing(one.oars, going)
+				# The player rows while pushing the stick, not while it coasts on.
+				rowed = game.character.seat == 0 and game.player.body.move_input.length() > 0.1
+			_swing(one.oars, rowed)
+			var t := stroke()
+			if rowed and t < one.stroke:
+				_dip(one, node)
+			one.stroke = t
+
+
+## The blades of vessel `one`'s oars catch the water (each stroke): a splash at each
+## and the plash of them, heard near.
+func _dip(one: Dictionary, node: MeshInstance3D) -> void:
+	for pivot: Node3D in one.oars:
+		var blade: Vector3 = pivot.global_transform * Vector3(OAR_BLADE, 0.0, 0.0)
+		if game.effects != null:
+			game.effects.burst(blade, Mat.WATER)
+	game.sound.play("swim", node.position, OAR_PLASH)
 
 
 ## The two oars of a vessel of `item` that names `oars`, at its oarlocks (the ends of its
