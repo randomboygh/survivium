@@ -408,6 +408,8 @@ func _finish_part() -> bool:
 	else:
 		_apply_chunk(job_key, job_meshes, job_plant_parts)
 		_drop_job()
+		# Things fallen that waited for the ground to change on screen (a felled tree).
+		game.props.drops_rebuilt()
 		return true
 	job_part += 1
 	return false

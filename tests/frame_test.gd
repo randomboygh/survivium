@@ -23,6 +23,8 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 const CELL := 0.5
 const CHUNK := 16
 ## Frames over a limit allowed in a scenario, one plus one per this many frames: a
@@ -277,6 +279,23 @@ func _run() -> void:
 	# Rested, whatever the jumps and climbs before (which depend on the cave and the
 	# trees found) left of the stamina digging costs.
 	main.host.player.vitals.stamina = main.host.player.vitals.stamina_cap()
+	# What falls is drawn as the ground it came from is drawn changed (a felled tree's
+	# logs as it goes): not while the chunk waits to be rebuilt.
+	var picks: int = main.settings.values.pickup
+	main.settings.values.pickup = WorldActions.PICKUP_NONE
+	var first_dug: Vector3i = laid.pop_front()
+	var dug_key := WorldData.chunk_key(first_dug.x, first_dug.z)
+	var lying: int = w.drops.get(dug_key, []).size()
+	c._cooldown = 0.0
+	c.dig_at(first_dug, Vector3i.UP)
+	var held: bool = w.drops.get(dug_key, []).size() > lying and main.props._drops_shown.get(dug_key, 0) == lying
+	var waited_from := Time.get_ticks_msec()
+	while main.props._rebuilding_near(dug_key) and Time.get_ticks_msec() - waited_from < 10000:
+		await process_frame
+	await process_frame
+	_check(held and main.props._drops_shown.get(dug_key, 0) == w.drops.get(dug_key, []).size(),
+		"what is dug is drawn on the ground when the chunk is drawn dug, not before")
+	main.settings.values.pickup = picks
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < laid.size():
 			c._cooldown = 0.0
