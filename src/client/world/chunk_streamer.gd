@@ -686,6 +686,8 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var tufts := Foliage.multimesh(game.grass_mesh, game.grass_mat, false, true)
 		tufts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# The player's shadow from a fire lies over the grass too.
+		tufts.layers = PixelView.LAYER_GROUND
 		var crowns := Foliage.multimesh(game.clump_mesh, game.leaves_mat, true, true)
 		crowns.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var shade := Foliage.multimesh(game.disc_mesh, game.leaf_shadow_mat, false, true)

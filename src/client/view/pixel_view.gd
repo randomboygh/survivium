@@ -35,7 +35,7 @@ const LAYER_UNLIT := 16
 ## discs under crowns (unshaded too, which cast only from the sun).
 const LIT_BY_FIRES := 0xFFFFF & ~(LAYER_UNLIT | LAYER_SUN_CASTER)
 ## The ground and the walls of the world (the chunks' meshes and the caps of the view in
-## layers): all a fire or a torch with a real shadow lights itself, the rest it lights
+## layers) and the grass on it: all a fire or a torch with a real shadow lights itself, the rest it lights
 ## through its twin, a light without a shadow in the same place (see real_shadow). A light
 ## with a shadow lights what it reaches in a pass of its own, and the renderer builds that
 ## pass's shaders for each kind of thing anew (some 50 on a phone at 150-600 ms each
