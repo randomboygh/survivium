@@ -9,6 +9,7 @@
   speed: 2.5
   sight: 4
   human_wariness: 0.6
+  fire_wariness: 0.0
   active: any
   count: 5
   sprite: roach
@@ -26,6 +27,7 @@
   speed: 3.5
   sight: 5
   human_wariness: 0.6
+  fire_wariness: 0.0
   active: any
   count: 2
   sprite: pike
@@ -42,6 +44,7 @@
   speed: 3.5
   sight: 5
   human_wariness: 0.6
+  fire_wariness: 0.0
   active: any
   count: 4
   sprite: salmon
@@ -59,6 +62,7 @@
   speed: 3.0
   sight: 5
   human_wariness: 0.6
+  fire_wariness: 0.0
   active: any
   count: 5
   sprite: cod
@@ -76,6 +80,7 @@
   speed: 2.5
   sight: 4
   human_wariness: 0.6
+  fire_wariness: 0.0
   active: day
   count: 4
   sprite: parrotfish
@@ -93,6 +98,7 @@
   speed: 1.5
   sight: 4
   human_wariness: 0.5
+  fire_wariness: 0.0
   active: night
   count: 2
   sprite: catfish

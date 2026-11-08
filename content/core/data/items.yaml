@@ -47,6 +47,7 @@
   icon: campfire
   prop: campfire
   fire: true
+  scares: 5.0
   fuel_max: 2400
   fuel_start: 600
 # Гниль — во что превращается испорченная еда (поле rots_to у еды, spoils — сколько игровых

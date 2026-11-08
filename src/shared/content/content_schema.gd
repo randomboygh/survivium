@@ -131,6 +131,9 @@ const SCHEMAS := {
 		"anim": {"type": "string", "default": "reach"},
 		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},
 		"light": {"type": "float", "min": 0.0, "default": 0.0},
+		# Burning (a fire, a light set down or in a hand), it keeps the animals that fear fire
+		# this many world units off (Wildlife._find_fires).
+		"scares": {"type": "float", "min": 0.0, "default": 0.0},
 		# A light is used up as it burns: once lit in a hand, one of the stack burns this
 		# many seconds and is gone (Character.burning); 0 burns for ever.
 		"burns": {"type": "float", "min": 0.0, "default": 0.0},
@@ -159,6 +162,8 @@ const SCHEMAS := {
 		"speed": {"type": "float", "min": 0.0},
 		"sight": {"type": "float", "min": 0.0},
 		"human_wariness": {"type": "float", "min": 0.0, "max": 1.0},
+		# 0.5 and more: kept off by fires and lights (an item's `scares`); fish do not care.
+		"fire_wariness": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 		"active": {"type": "enum", "values": ["day", "night", "any"]},
 		"count": {"type": "int", "min": 0, "default": 0},
 		"sprite": {"type": "string", "default": ""},

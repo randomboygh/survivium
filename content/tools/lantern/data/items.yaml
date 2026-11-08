@@ -10,4 +10,5 @@
   model: lantern
   icon: lantern
   light: 7.0
+  scares: 2.5
   burns: 3600
