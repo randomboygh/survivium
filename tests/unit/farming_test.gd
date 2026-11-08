@@ -159,7 +159,7 @@ func _test_reap() -> void:
 	var grain := 0
 	for key: Vector2i in w.drops:
 		for d: Array in w.drops[key]:
-			grain += d[3] if d[0] == GRAIN else 0
+			grain += WorldActions.count(d) if d[0] == GRAIN else 0
 	_check(done.has("swing") and actions.crop_on(row[0]) == "" and Mat.is_bed(w.get_cell(9, 1, 8)) and grain >= 4,
 		"hands reap ripe wheat: grain on the bed, the bed left empty (%d grain)" % grain)
 	who.item = "tools:copper_sickle"
@@ -199,7 +199,7 @@ func _test_crops() -> void:
 		var got := 0
 		for key: Vector2i in w.drops:
 			for d: Array in w.drops[key]:
-				got += d[3] if d[0] == gives[i] else 0
+				got += WorldActions.count(d) if d[0] == gives[i] else 0
 		_check(actions.crop_on(beds[i]) == "" and got > 0, "ripe %s is reaped by hand: %d %s" % [seeds[i], got, gives[i]])
 
 

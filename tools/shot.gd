@@ -11,6 +11,7 @@ extends SceneTree
 const Items := preload("res://src/shared/content/items.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Shots := preload("res://tools/shot/shots.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 const Places := preload("res://tools/shot/places.gd")
 
 
@@ -617,6 +618,19 @@ func _run() -> void:
 					inv.slots[i] = [ages[i][0], ages[i][1], ages[i][2]] if ages[i][2] > 0 else [ages[i][0], ages[i][1]]
 				inv.changed.emit()
 				slot = 1
+			if shot.get("quality", false):
+				# Things of each grade of quality, the best axe chosen.
+				var inv = main.host.player.inventory
+				inv.take_all()
+				var things := [["tools:copper_axe", 1, 92], ["resources:log", 6, 15], ["resources:stone", 14, 38],
+					["materials:planks", 8, 55], ["plants:raspberry", 9, 72], ["animals:roasted_meat", 2, 88],
+					["tools:wooden_pickaxe", 1, 30], ["resources:fiber", 12, 50]]
+				for i in things.size():
+					inv.slots[i] = Inventory.stack(things[i][0], things[i][1], 0, null, things[i][2])
+				inv.changed.emit()
+				slot = 0
+				await process_frame
+				await process_frame
 			if shot.has("give"):
 				main.host.player.give(shot.give, 1)
 				for i in main.host.player.inventory.slots.size():

@@ -288,14 +288,14 @@ func _skills() -> Array:
 	var out: Array = ["## Навыки: уровни и их цена", "",
 		"Очки — секунды полезной работы без навыка (взмах, который что-то сделал; время рецепта, тот же подряд — меньше;",
 		"целая вещь — `each`). Первый уровень — `first` очков, каждый следующий в `growth` раза дороже. Что даёт уровень — доля",
-		"уровней от предела навыка: темп (×), дешевле по силам, шанс лишней штуки, удар сильнее, вещи прочнее, бережность к инструменту.", ""]
-	out.append("| Навык | Работа | Уровней | first | growth | Очков до 1 / 5 / 10 | Часов работы до 5 / 10 | На последнем: темп | силы | лишняя | удар | прочнее | бережность |")
+		"уровней от предела навыка: темп (×), дешевле по силам, шанс лишней штуки, удар сильнее, очки качества (добытому или потолку сделанного), бережность к инструменту.", ""]
+	out.append("| Навык | Работа | Уровней | first | growth | Очков до 1 / 5 / 10 | Часов работы до 5 / 10 | На последнем: темп | силы | лишняя | удар | качество | бережность |")
 	out.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for sk: Dictionary in Skills.ALL:
-		out.append("| %s | %s | %d | %d | %s | %d / %d / %d | %s / %s | ×%s | −%d%% | %d%% | +%d%% | +%d%% | %d%% |" % [sk.title, sk.role, sk.levels,
+		out.append("| %s | %s | %d | %d | %s | %d / %d / %d | %s / %s | ×%s | −%d%% | %d%% | +%d%% | +%d | %d%% |" % [sk.title, sk.role, sk.levels,
 			roundi(sk.first), _f(sk.growth, 2), roundi(Skills.need(sk, 1)), roundi(Skills.need(sk, 5)), roundi(Skills.need(sk, sk.levels)),
 			_f(Skills.need(sk, 5) / 3600.0, 2), _f(Skills.need(sk, sk.levels) / 3600.0, 2), _f(1.0 + sk.speed, 2), roundi(sk.effort * 100.0),
-			roundi(sk.yield * 100.0), roundi(sk.might * 100.0), roundi(sk.quality * 100.0), roundi(sk.care * 100.0)])
+			roundi(sk.yield * 100.0), roundi(sk.might * 100.0), roundi(sk.quality), roundi(sk.care * 100.0)])
 	out.append("")
 	var chop := Skills.of_role("chop")
 	out.append("### Кривая одного навыка (%s)" % chop.title)

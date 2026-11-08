@@ -18,6 +18,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const SkillSet := preload("res://src/shared/game/skill_set.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -380,7 +381,7 @@ func forget_sack(at: Vector3) -> void:
 func _warm(p: Vector3, days: float) -> void:
 	var roofed := _roofed(p)
 	var fire := Warmth.fire_heat(placed, p)
-	var feel := Warmth.feel(Warmth.air(world, clock, p, roofed), fire, Warmth.clothes(inventory.gear), vitals.wet,
+	var feel := Warmth.feel(Warmth.air(world, clock, p, roofed), fire, Warmth.clothes(inventory.gear, inventory.gear_quality()), vitals.wet,
 		roofed, body.swimming)
 	var rain := 0.0
 	var snow := 0.0
@@ -442,10 +443,10 @@ func act(action: String, role := "") -> bool:
 	return false
 
 
-## Puts `n` of item `id` (a tool worn by `worn` swings) into the bag and says what
-## came in; returns how many fit.
-func give(id: String, n: int, worn := 0) -> int:
-	var got := inventory.add(id, n, worn)
+## Puts `n` of item `id` (a tool worn by `worn` swings) of quality `q` into the bag and
+## says what came in; returns how many fit.
+func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
+	var got := inventory.add(id, n, worn, null, q)
 	note("got", got)
 	if got > 0:
 		say("+%d %s" % [got, Items.title(id)])
@@ -463,27 +464,30 @@ func eat(i: int) -> bool:
 	var s = inventory.slots[i]
 	if s == null:
 		return false
+	# Better food fills, heals and quenches more (Quality.lasts).
+	var k := Quality.lasts(Inventory.quality(s))
+	var heal := Items.heal(s[0]) * k
 	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0 and Items.heal_time(s[0]) > 0.0:
 		if vitals.mending > 0.0:
 			nag("mending", "Припарка ещё лечит")
 			return false
-		if not vitals.mend(Items.heal(s[0]), Items.heal_time(s[0])):
+		if not vitals.mend(heal, Items.heal_time(s[0])):
 			nag("not_hurt", "Здоровье и так полное")
 			return false
 		inventory.take_slot(i, 1)
 		note("healed")
-		say("+%d здоровья за %d с" % [roundi(Items.heal(s[0])), roundi(Items.heal_time(s[0]))])
+		say("+%d здоровья за %d с" % [roundi(heal), roundi(Items.heal_time(s[0]))])
 		return true
 	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
-		if not vitals.heal(Items.heal(s[0])):
+		if not vitals.heal(heal):
 			nag("not_hurt", "Здоровье и так полное")
 			return false
 		inventory.take_slot(i, 1)
 		note("healed")
-		say("+%d здоровья" % roundi(Items.heal(s[0])))
+		say("+%d здоровья" % roundi(heal))
 		return true
 	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
-		if not vitals.drink(Items.drink(s[0])):
+		if not vitals.drink(Items.drink(s[0]) * k):
 			nag("not_thirsty", "Пить не хочется")
 			return false
 		var empty := Items.get_item(s[0]).get("empties_to", "") as String
@@ -494,14 +498,14 @@ func eat(i: int) -> bool:
 		return true
 	if Items.food(s[0]) <= 0.0:
 		return false
-	if not vitals.eat(Items.food(s[0])):
+	if not vitals.eat(Items.food(s[0]) * k):
 		nag("full_belly", "Больше не хочется")
 		return false
 	# Good food also heals a little and quenches thirst (its `heal` and `drink`).
 	if Items.heal(s[0]) > 0.0:
-		vitals.heal(Items.heal(s[0]))
+		vitals.heal(heal)
 	if Items.drink(s[0]) > 0.0:
-		vitals.drink(Items.drink(s[0]))
+		vitals.drink(Items.drink(s[0]) * k)
 	inventory.take_slot(i, 1)
 	note("eaten")
 	return true
@@ -587,11 +591,12 @@ func throw_away(i: int, n: int) -> void:
 	if taken == null:
 		return
 	held_back.append(position)
-	lay(taken[0], {"n": taken[1], "worn": taken[2]} if taken.size() > 2 else taken[1])
+	lay(taken[0], Inventory.drop_data(taken))
 
 
 ## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
-## sack's stacks, or {"n", "worn"} for a worn tool) at the feet; returns where.
+## sack's stacks, or {"n", "worn", "q"} for a worn tool or things of a quality, see
+## Inventory.drop_data) at the feet; returns where.
 ## A sack lies until `until` (game days, Clock.now; below 0: for ever).
 func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
 	var p := position

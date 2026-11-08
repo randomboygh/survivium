@@ -16,6 +16,8 @@ const Knowledge := preload("res://src/shared/game/knowledge.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 
 ## How far from the character a station works, in world units (as far as a placed
 ## thing is used, see Gathering.REACH).
@@ -121,7 +123,7 @@ func start(r: Dictionary, times := 1) -> int:
 ## Cancels job `i` of the queue; its materials go back into the bag (or on the ground).
 func cancel(i: int) -> void:
 	for s in queue.cancel(i):
-		_receive(s[0], s[1], s[2] if s.size() > 2 else 0)
+		_receive(s[0], s[1], s[2] if s.size() > 2 else 0, int(s[3]) if s.size() > 3 else Quality.NORMAL)
 	if queue.jobs.is_empty():
 		paused = false
 
@@ -143,20 +145,39 @@ func update(delta: float) -> void:
 		var got := Crafting.outputs(r, job.n)
 		var sk = who.get("skills")
 		if sk != null:
-			# A skilled hand makes one more now and then (cooking, butchering), and makes
-			# what wears last longer (the craft): it starts with swings to spare.
+			# A skilled hand makes one more now and then (cooking, butchering).
 			var more := yield_role(r)
 			if more != "" and sk.extra(more):
 				got[r.makes] = got.get(r.makes, 0) + 1
+		# What is made is as good as its materials, no better than the hand, the station
+		# and the recipe allow.
+		var q := Quality.made(r, job.took, quality_cap(r))
 		for id: String in got:
-			var d: int = Items.get_item(id).get("durability", 0)
-			_receive(id, got[id], -sk.bonus_wear(role_of(r), d) if sk != null and d > 0 else 0)
+			_receive(id, got[id], 0, q)
 		_wear_tools(r)
 		who.note("crafted", r.count)
 		if sk != null:
 			sk.gain_recipe(role_of(r), r.id, r.time)
 		who.say("Готово: %s" % r.title)
 		made.emit(r)
+
+
+## The most what recipe `r` makes can be at the skill of its work (Quality.skill_cap)
+## and at the best station near that makes it (its `quality_cap`: a campfire cooks
+## plainer than a fireplace).
+func quality_cap(r: Dictionary) -> int:
+	var cap := Quality.MAX
+	var sk = who.get("skills")
+	if sk != null:
+		cap = Quality.skill_cap(sk.share_of(role_of(r)), sk.quality_most(role_of(r)))
+	if r.get("at", "") != "":
+		var best := 0
+		for id: String in stations():
+			var it := Items.get_item(id)
+			if id == r.at or r.at in it.get("serves", []):
+				best = maxi(best, int(it.get("quality_cap", Quality.MAX)))
+		cap = mini(cap, best if best > 0 else int(Items.get_item(r.at).get("quality_cap", Quality.MAX)))
+	return cap
 
 
 ## The skill (SkillSet role) recipe `r` is the work of: cooking on a fire, or the craft.
@@ -218,11 +239,12 @@ func waiting() -> bool:
 	return not queue.jobs.is_empty() and not _can_work(Crafting.get_recipe(queue.jobs[0].recipe))
 
 
-## Puts `n` of item `id` into the bag; what does not fit goes on the ground at the feet.
-func _receive(id: String, n: int, worn := 0) -> void:
-	var got: int = who.give(id, n, worn) if worn != 0 else who.give(id, n)
+## Puts `n` of item `id` worn by `worn` of quality `q` into the bag; what does not fit
+## goes on the ground at the feet.
+func _receive(id: String, n: int, worn := 0, q := Quality.NORMAL) -> void:
+	var got: int = who.give(id, n, worn, q)
 	if got < n:
-		who.lay(id, {"n": n - got, "worn": worn} if worn != 0 else n - got)
+		who.lay(id, Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q)))
 
 
 # --- Wear -------------------------------------------------------------------------
@@ -259,9 +281,9 @@ func _wear_tools(r: Dictionary) -> void:
 				break
 
 
-## How much of tool `id` worn by `worn` swings is left, 0..1 (1 for no wear).
-static func condition(id: String, worn: int) -> float:
-	var d: int = Items.get_item(id).get("durability", 0)
+## How much of tool `id` worn by `worn` swings of quality `q` is left, 0..1 (1 for no wear).
+static func condition(id: String, worn: int, q := Quality.NORMAL) -> float:
+	var d: int = Quality.durability(Items.get_item(id).get("durability", 0), q)
 	return 1.0 if d <= 0 else clampf(1.0 - float(worn) / d, 0.0, 1.0)
 
 

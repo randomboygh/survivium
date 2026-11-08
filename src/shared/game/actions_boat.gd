@@ -391,7 +391,8 @@ func step_drift(seconds: float, players: Array) -> void:
 		var list: Array = world.drops.get(key, [])
 		for i in range(list.size() - 1, -1, -1):
 			var d: Array = list[i]
-			if not d[3] is int or d.size() > 4:
+			# Things lying loose drift (a heap of a quality too), not a sack or a worn tool.
+			if not (d[3] is int or d[3] is Dictionary and not d[3].has("worn")) or d.size() > 4:
 				continue
 			var p: Vector3 = d[1]
 			var x := floori(p.x / CELL)

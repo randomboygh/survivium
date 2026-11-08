@@ -8,6 +8,7 @@ extends RefCounted
 
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 
 ## Jobs can be queued up to this many at a time.
 const MAX_JOBS := 20
@@ -15,9 +16,10 @@ const MAX_JOBS := 20
 signal changed
 
 ## Each job: {"recipe": id, "left": seconds of work left, "n": its serial, "took": the
-## stacks its materials were taken as, [id, count, worn] each, so a cancel gives back a
-## worn tool worn and food as old as it was, not new ones (a job of an older save has
-## none: its recipe's materials come back)}.
+## stacks its materials were taken as, [id, count, worn, quality] each, so a cancel gives
+## back a worn tool worn and food as old as it was, not new ones, and what is made gets
+## the quality of its materials (a job of an older save has none: its recipe's materials
+## come back, of the normal quality)}.
 var jobs: Array = []
 ## The serial of the next job queued.
 var serial := 0
@@ -35,8 +37,8 @@ func add(r: Dictionary, inv) -> bool:
 	return true
 
 
-## Cancels job `i`; returns its materials ([id, count] or [id, count, worn] stacks, as
-## they were taken) for the caller to put back into the bag.
+## Cancels job `i`; returns its materials ([id, count] or [id, count, worn, quality]
+## stacks, as they were taken) for the caller to put back into the bag.
 func cancel(i: int) -> Array:
 	if i < 0 or i >= jobs.size():
 		return []
@@ -54,7 +56,8 @@ func cancel(i: int) -> Array:
 
 ## Works `delta` seconds on the first job if `can_work` (a Callable taking the recipe)
 ## allows; returns the jobs finished, {"recipe": the recipe, "n": the job's serial} each
-## (usually none, at most one a call).
+## and "took" (its materials as taken, see jobs; [] for none known) each (usually none,
+## at most one a call).
 func step(delta: float, can_work: Callable) -> Array:
 	if jobs.is_empty():
 		return []
@@ -70,7 +73,7 @@ func step(delta: float, can_work: Callable) -> Array:
 		return []
 	var job: Dictionary = jobs.pop_front()
 	changed.emit()
-	return [{"recipe": r, "n": job.n}]
+	return [{"recipe": r, "n": job.n, "took": job.get("took", [])}]
 
 
 ## How far the first job has come, 0..1.
@@ -105,17 +108,18 @@ func from_dict(d: Dictionary) -> void:
 	changed.emit()
 
 
-## The stacks a saved job's materials were taken as (see jobs), each [id, count, worn] of
-## an item there is; null for none saved or of another shape (the recipe's are given back).
+## The stacks a saved job's materials were taken as (see jobs), each [id, count, worn,
+## quality] of an item there is (a save of before quality: normal); null for none saved
+## or of another shape (the recipe's are given back).
 static func _stacks(v: Variant) -> Variant:
 	if not v is Array:
 		return null
 	var out := []
 	for s in v:
-		if not (s is Array and s.size() == 3 and s[0] is String and (s[1] is int or s[1] is float)
-				and (s[2] is int or s[2] is float)):
+		if not (s is Array and s.size() in [3, 4] and s[0] is String and (s[1] is int or s[1] is float)
+				and (s[2] is int or s[2] is float) and (s.size() == 3 or s[3] is int or s[3] is float)):
 			return null
 		var id := Items.canon(s[0])
 		if Items.has(id) and int(s[1]) > 0:
-			out.append([id, int(s[1]), int(s[2])])
+			out.append([id, int(s[1]), int(s[2]), clampi(int(s[3]), Inventory.MIN_QUALITY, Inventory.MAX_QUALITY) if s.size() == 4 else Inventory.NORMAL])
 	return out

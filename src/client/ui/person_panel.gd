@@ -19,6 +19,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Skills := preload("res://src/shared/content/skills.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 
 signal picked(slot: String)
 
@@ -209,7 +210,7 @@ func _on_skills() -> void:
 
 
 ## The bars drawn again, each with its level, the way to the next and what the level does
-## to the work (SkillSet: pace, effort, extra, blow, bonus_wear), and the tool in hand
+## to the work (SkillSet: pace, effort, extra, blow, quality_most), and the tool in hand
 ## the skill paces, named.
 func _show_skills(inv) -> void:
 	_tool.clear()
@@ -238,9 +239,11 @@ func _show_skills(inv) -> void:
 		var harder := roundi(sk.might * level * 100.0 / sk.levels)
 		if harder > 0:
 			text += "\nУдар сильнее на %d%%" % harder
-		var lasts := roundi(sk.quality * level * 100.0 / sk.levels)
-		if lasts > 0:
-			text += "\nВещи прочнее на %d%%" % lasts
+		var better := roundi(skills.quality_most(sk.role) * skills.share_of(sk.role))
+		if sk.role in Quality.GETS and better > 0:
+			text += "\nКачество добытого +%d" % better
+		elif sk.role in Quality.MAKES:
+			text += "\nКачество сделанного до %d" % Quality.skill_cap(skills.share_of(sk.role), skills.quality_most(sk.role))
 		var spared := roundi(skills.care_chance(sk.role) * 100.0)
 		if spared > 0:
 			text += "\nИнструмент не изнашивается: шанс %d%%" % spared

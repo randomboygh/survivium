@@ -34,6 +34,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 const Storms := preload("res://src/shared/game/storms.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Workshop := preload("res://src/shared/game/workshop.gd")
@@ -233,8 +234,8 @@ class Who extends RefCounted:
 	func is_dead() -> bool:
 		return false
 
-	func give(id: String, n: int, worn := 0) -> int:
-		return inventory.add(id, n, worn)
+	func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
+		return inventory.add(id, n, worn, null, q)
 
 	func note(_stat: String, _n: float = 1.0) -> void:
 		pass

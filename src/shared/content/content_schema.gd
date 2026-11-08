@@ -88,6 +88,8 @@ const SCHEMAS := {
 		"storage": {"type": "int", "min": 0, "default": 0},
 		"fire": {"type": "bool", "default": false},
 		"repairs": {"type": "bool", "default": false},
+		# The best quality (1..100) a thing made at this station can be (Quality.made).
+		"quality_cap": {"type": "int", "min": 1, "max": 100, "default": 100},
 		"serves": {"type": "list", "of": "ref:items", "default": [], "rel": "serves"},
 		"place_tool": {"type": "word", "default": "none"},
 		# A thing set down that claims land: the centre of a territory of who set it and
@@ -314,6 +316,8 @@ const SCHEMAS := {
 		"wear": {"type": "int", "min": 0, "default": 0},
 		"process": {"type": "enum", "values": ["craft", "refine", "smelt", "cook"], "default": "craft"},
 		"time": {"type": "float", "min": 0.0, "default": 2.0},
+		# The best quality (1..100) what it makes can be, whatever its materials (Quality.made).
+		"quality_cap": {"type": "int", "min": 1, "max": 100, "default": 100},
 	},
 	"sounds": {
 		"variants": {"type": "int", "min": 1, "default": 1},
@@ -350,8 +354,8 @@ const SCHEMAS := {
 	# the work is at the last level (`speed`: the share of pace added, 1 = twice as fast),
 	# the points a whole thing gives where the work has no time of its own
 	# (`each`: a beast killed, a fish caught), the chance at the last level of one more of
-	# what the work gives (`yield`), how much longer a thing made lasts (`quality`: a
-	# share of its `durability` more), how much less stamina the work costs at the last
+	# what the work gives (`yield`), the quality it adds at the last level to what the
+	# work gets or to the most a thing made can be (`quality`, points of 1..100, Quality), how much less stamina the work costs at the last
 	# level (`effort`, a share of the cost), how much more a blow of the work does
 	# (`might`, a share of the tool's power: hunting) and the chance a swing does not
 	# wear the tool (`care`). docs/balance/GAME_BALANCE_DESIGN.md has the formulas.
@@ -364,7 +368,7 @@ const SCHEMAS := {
 		"speed": {"type": "float", "min": 0.0, "max": 4.0, "default": 1.0},
 		"each": {"type": "float", "min": 0.0, "default": 0.0},
 		"yield": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
-		"quality": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},
+		"quality": {"type": "float", "min": 0.0, "max": 100.0, "default": 30.0},
 		"effort": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.4},
 		"might": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},
 		"care": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.5},

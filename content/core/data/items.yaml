@@ -42,6 +42,7 @@
 - id: campfire
   title: Костёр
   era: primitive
+  quality_cap: 70
   weight: 3.0
   stack: 5
   icon: campfire

@@ -3,7 +3,7 @@ extends SceneTree
 ## Run: godot --headless --path . --script res://tests/run_tests.gd [-- topic ...]
 ## Names as arguments run only those files, e.g. `-- body shapes`.
 
-const FILES := ["generation", "mesher", "body", "shapes", "view", "actions", "clock", "wildlife", "store", "content", "graph", "bundle_system", "character", "session", "net", "security", "territory", "plans", "skills", "farming", "boat", "properties", "balance"]
+const FILES := ["generation", "mesher", "body", "shapes", "view", "actions", "clock", "wildlife", "store", "content", "graph", "bundle_system", "character", "session", "net", "security", "territory", "plans", "skills", "quality", "farming", "boat", "properties", "balance"]
 
 
 ## Counts the runtime errors of scripts: one aborts the function it is in and the test

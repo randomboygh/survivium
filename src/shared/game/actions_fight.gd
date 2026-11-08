@@ -79,7 +79,7 @@ func _wound(who, a, power: int) -> void:
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
 	if wildlife.hurt(a, power, who.position, who) and spec.carcass != "" and Items.has(spec.carcass):
 		var cell := _cell_at(where)
-		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
+		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU, _got(who, "hunt"))
 		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		who.note("hunted")
 		_learn_each(who, "hunt")
@@ -165,7 +165,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 			var slot = who.inventory.slots[i]
 			if slot != null and slot[0] == ammo:
 				var taken = who.inventory.take_slot(i, 1)
-				data = {"n": 1, "worn": taken[2]} if taken.size() > 2 else 1
+				data = Inventory.drop_data(taken)
 				break
 	else:
 		who.inventory.remove(ammo, 1)

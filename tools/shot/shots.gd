@@ -391,6 +391,8 @@ const SHOTS := {
 		"wear": "tools:canvas_backpack"},
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
+	# Quality: a dot of its grade on each cell, «Качество» of the axe chosen, its swings and swing by it.
+	"bag-quality": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "quality": true},
 	# Skills learned in the character window: levels, the way to the next, an axe's power in green.
 	"bag-levels": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "hold": ["", "tools:stone_axe"],
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},

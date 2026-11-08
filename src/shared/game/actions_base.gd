@@ -12,6 +12,8 @@ extends RefCounted
 
 const Tools := preload("res://src/shared/content/tools.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
+const Quality := preload("res://src/shared/game/quality.gd")
 const CELL := WorldData.CELL
 ## How far from the body a thing on the ground or a placed thing is taken or used, in
 ## world units (ten cells, as Tools.PLACE_REACH; Gathering.REACH), and what the rules
@@ -161,6 +163,12 @@ static func _extra(who, role: String) -> bool:
 static func _blow(who, role: String, power: int) -> int:
 	var sk = who.get("skills")
 	return maxi(1, power) if sk == null else sk.blow(role, power)
+
+
+## The quality of what `who` gets from the world by work `role` now (Quality.by_hand_of:
+## the tool in hand and the skill).
+static func _got(who, role: String) -> int:
+	return Quality.by_hand_of(who, role)
 
 
 ## The skill a tree or a bush worked with tool `t` teaches (see gather): an axe fells,

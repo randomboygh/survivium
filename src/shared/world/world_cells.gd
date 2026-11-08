@@ -94,7 +94,9 @@ var turf := {}
 ## The beds (tilled ground, Mat.BED and Mat.BED_WET) by chunk (Vector2i) and then by
 ## the bed's cell: [crop, grown, wet_until]: the id of the crop growing on it (Plants of
 ## kind crop, "" for none), the days it has grown, and the time (Clock.now) until which
-## it stays wet. Saved with the chunk; a bed dug or filled loses its record (set_cell).
+## it stays wet; a sapling's has a fourth, its tree species, and a crop of a quality
+## other than the normal a fifth, the quality of its seed ("" in the fourth). Saved with
+## the chunk; a bed dug or filled loses its record (set_cell).
 var fields := {}
 ## A world laid out by hand can set what grows on its grass in place of the noises: a
 ## static func (x, z) -> one of Grass.GROW_* or 0 (the noises decide), see TestGround.
@@ -107,8 +109,8 @@ var blockers := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
-## see Items) or Items.SACK; `data` is how many items for an item ({"n", "worn"} for a
-## worn tool, see Inventory), the stacks ([[id, count]...]) for a sack. A sack of a death
+## see Items) or Items.SACK; `data` is how many items for an item ({"n", "worn", "q"} for a
+## worn tool or things of a quality other than the normal, see Inventory.drop_data), the stacks ([[id, count]...]) for a sack. A sack of a death
 ## has a fifth: the game day (Clock.now) it is gone (WorldActions.expire_sacks). A chunk
 ## with any is kept as an edited one.
 var drops := {}
@@ -596,16 +598,25 @@ func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1, until
 	drops[key].append([kind, pos, angle, data] if until < 0.0 else [kind, pos, angle, data, until])
 
 
-## Lays `n` items `kind` at `pos` like add_drop, onto a heap of the same kind lying
-## within HEAP of it if there is one (what a swing digs out piles up, not one per cell).
-func heap_drop(kind: String, pos: Vector3, n: int, angle := 0.0) -> void:
+## Lays `n` items `kind` of quality `q` at `pos` like add_drop, onto a heap of the same
+## kind lying within HEAP of it if there is one (what a swing digs out piles up, not one
+## per cell), at the quality of the two together.
+func heap_drop(kind: String, pos: Vector3, n: int, angle := 0.0, q := Items.NORMAL_QUALITY) -> void:
 	var key := Vector2i(floori(pos.x / CELL) >> SHIFT, floori(pos.z / CELL) >> SHIFT)
 	for d: Array in drops.get(key, []):
-		if d[0] == kind and d[3] is int and d[1].distance_to(pos) <= HEAP:
-			d[3] += n
+		if d[0] == kind and d.size() == 4 and d[1].distance_to(pos) <= HEAP \
+				and (d[3] is int or d[3] is Dictionary and int(d[3].get("worn", 0)) == 0):
+			var had: int = d[3] if d[3] is int else int(d[3].get("n", 1))
+			var was: int = Items.NORMAL_QUALITY if d[3] is int else int(d[3].get("q", Items.NORMAL_QUALITY))
+			d[3] = heap_data(had + n, roundi(float(was * had + q * n) / float(had + n)))
 			note_edit(floori(pos.x / CELL), floori(pos.z / CELL))
 			return
-	add_drop(kind, pos, angle, n)
+	add_drop(kind, pos, angle, heap_data(n, q))
+
+
+## The data of `n` things of quality `q` lying on the ground (see drops).
+static func heap_data(n: int, q: int) -> Variant:
+	return n if q == Items.NORMAL_QUALITY else {"n": n, "q": q}
 
 
 ## Takes thing `i` of chunk `key` off the ground and returns it (see drops).
@@ -889,11 +900,13 @@ func unpack_chunk(d: Dictionary) -> bool:
 		var kept := {}
 		for cell in beds:
 			var f: Variant = beds[cell]
-			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and (f.size() == 3 or f.size() == 4 and f[3] is String) \
-					and f[0] is String:
+			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and (f.size() == 3 or f.size() >= 4 and f[3] is String) \
+					and (f.size() < 5 or f.size() == 5 and (f[4] is int or f[4] is float)) and f[0] is String:
 				kept[cell] = [Content.canon("plants", f[0]) if f[0] != "" else "", float(f[1]), float(f[2])]
-				if f.size() == 4:
+				if f.size() >= 4:
 					kept[cell].append(f[3])
+				if f.size() == 5:
+					kept[cell].append(clampi(int(f[4]), 1, 100))
 		if not kept.is_empty():
 			fields[key] = kept
 	var on_ground: Array = d.get("drops", [])

@@ -72,6 +72,7 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 	var keys := {}
 	var first: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
 	var fresh := 0
+	var q := _got(who, "dig")
 	for c in cells:
 		var was: int = world.get_cell(c.x, c.y, c.z)
 		if _built.has(c):
@@ -85,7 +86,7 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 		var rec: Dictionary = Mat.RECORDS[was]
 		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
 			if id != "":
-				world.heap_drop(id, at, 1, randf() * TAU)
+				world.heap_drop(id, at, 1, randf() * TAU, q)
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		drops_changed.emit(key)
@@ -175,6 +176,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 	if asked and cells.is_empty() or not who.act("cut", "gather"):
 		return false
 	var keys := {}
+	var q := _got(who, "gather")
 	for c in cells:
 		var m: int = world.get_cell(c.x, c.y, c.z)
 		var to := Tools.mown(m)
@@ -204,7 +206,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 			gives[first] += 1
 		var at: Vector3 = floor_under(c + Vector3i.UP)
 		for id in gives:
-			world.heap_drop(Items.get_item(id).get("id", id), at, gives[id], rng.randf() * TAU)
+			world.heap_drop(Items.get_item(id).get("id", id), at, gives[id], rng.randf() * TAU, q)
 		keys[WorldData.chunk_key(c.x, c.z)] = true
 	for c in knock:
 		var at := c + Vector3i.UP
@@ -217,7 +219,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		rng.seed = hash([at, clock.day])
 		var p := (Vector3(at) + Vector3(0.5, 0.0, 0.5)) * CELL
 		world.heap_drop(b.fruit, p + Vector3(rng.randf_range(-SCATTER, SCATTER), 0.0, rng.randf_range(-SCATTER, SCATTER)),
-			berry_count(at, b), rng.randf() * TAU)
+			berry_count(at, b), rng.randf() * TAU, q)
 		world.bush_picked[at] = true
 		world.note_bush(at)
 		looks_changed.emit(WorldData.chunk_key(at.x, at.z))
