@@ -123,6 +123,10 @@ func _test_requests() -> void:
 	_check(req.handle(Protocol.request(Protocol.FARM, 112, ["build", Vector3i.ZERO, Vector3i.ZERO, false, false]))[1] == null,
 		"and marks of no known work")
 	_check(req.PACED.has(Protocol.FARM_WORK), "the farming mode's work takes the hands' time")
+	var far: Dictionary = p[0].actions.vessels.launch("tools:raft", a.position + Vector3(40.0, 0.0, 0.0), 0.0)
+	_check(req.handle(Protocol.request(Protocol.VESSEL_TAKE, 113, [far.id]))[1] == false and a.inventory.count("tools:raft") == 0,
+		"a raft out of reach is not taken up")
+	_check(req.handle(Protocol.request(Protocol.VESSEL_TAKE, 114, ["1"]))[1] == null, "nor one by a number that is no number")
 
 
 ## A bag counted from its end is the same bag, not twice the things.

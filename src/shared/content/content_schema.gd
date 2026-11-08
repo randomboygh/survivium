@@ -134,6 +134,10 @@ const SCHEMAS := {
 		# Burning (a fire, a light set down or in a hand), it keeps the animals that fear fire
 		# this many world units off (Wildlife._find_fires).
 		"scares": {"type": "float", "min": 0.0, "default": 0.0},
+		# A vessel (Vessels): launched on water from the bag, it carries one at this share of
+		# the walking pace; `oars` — the item that must be in the bag to row it ("" none).
+		"vessel": {"type": "float", "min": 0.0, "default": 0.0},
+		"oars": {"type": "ref:items", "soft": true, "default": "", "rel": "requires"},
 		# A light is used up as it burns: once lit in a hand, one of the stack burns this
 		# many seconds and is gone (Character.burning); 0 burns for ever.
 		"burns": {"type": "float", "min": 0.0, "default": 0.0},

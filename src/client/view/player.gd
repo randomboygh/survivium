@@ -113,6 +113,9 @@ const ROD_HIGH := 1.05
 ## one: the brightest pixel of what the hand holds in the frame shown
 ## (SpriteSheet.spots); empty when none shows.
 var flames_at: Array = []
+## The vessel the body sits in (Character.riding; others' from PEOPLE), "" none: afloat it
+## sits still in it, drawn whole over the water (the vessel is the Boats view's).
+var riding := ""
 
 
 func _ready() -> void:
@@ -264,7 +267,10 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 		anim_time = (ROD_OUT + 0.5) / sheet.animations.slash.fps
 		return
 	var next := "idle"
-	if body.swimming:
+	if riding != "":
+		# Afloat the body sits still in its vessel.
+		pass
+	elif body.swimming:
 		next = "swim"
 	elif not body.on_ground:
 		next = "jump"
@@ -308,7 +314,7 @@ func place_sprite() -> void:
 	if body.swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
 		# A swimmer bobs on the water by a pixel.
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT
-	var line: float = body.water_level * CELL if body.water_level > -INF else -1000.0
+	var line: float = body.water_level * CELL if body.water_level > -INF and riding == "" else -1000.0
 	var frame := sheet.frame_uv(drawn_facing(), anim, anim_time)
 	for layer in [sprite, xray, underwater]:
 		layer.global_position = sprite.global_position

@@ -237,6 +237,12 @@ static func drop(model: String) -> VoxelModel:
 			return _skein(Color(0.82, 0.83, 0.86))
 		"rabbit_fluff":
 			return _fluff(Color(0.86, 0.85, 0.82))
+		"raft":
+			return _raft()
+		"boat":
+			return _boat()
+		"oars":
+			return _oars()
 		"cloth":
 			return _cloth()
 		"tar":
@@ -1497,6 +1503,69 @@ static func _fluff(c: Color) -> VoxelModel:
 		for z in range(-1, 2):
 			if absi(x) + absi(z) <= 1:
 				m.set_voxel(Vector3i(x, 1, z), c * 1.05)
+	return m
+
+
+## A raft of logs side by side along its length (z, front to the south), tied across
+## with cord: a cell and a quarter wide, two cells long, two voxels thick.
+static func _raft() -> VoxelModel:
+	var m := VoxelModel.new()
+	var bark := Color(0.42, 0.29, 0.18)
+	var wood := Color(0.6, 0.45, 0.28)
+	var cord := Color(0.8, 0.72, 0.52)
+	for x in range(-5, 5):
+		var log_i := floori((x + 5) / 2.0)
+		for z in range(-8, 8):
+			var c := wood if (x + 5) % 2 == 0 else bark
+			if z == -8 or z == 7:
+				c = Color(0.72, 0.58, 0.38)
+			if absi(z) == 4 or z == -5 or z == 4:
+				c = cord
+			m.set_voxel(Vector3i(x, 0, z), bark * 0.8)
+			m.set_voxel(Vector3i(x, 1, z), c * (0.92 if log_i % 2 == 0 else 1.0))
+	return m
+
+
+## A plank boat along its length (z, front to the south): a pointed bow and stern, sides
+## two voxels high round a dark inside, about a cell wide and two and a half long.
+static func _boat() -> VoxelModel:
+	var m := VoxelModel.new()
+	var hull := Color(0.45, 0.31, 0.19)
+	var side := Color(0.58, 0.42, 0.26)
+	var inside := Color(0.3, 0.21, 0.14)
+	var rim := Color(0.68, 0.52, 0.32)
+	for z in range(-10, 10):
+		# Half its width at this z: full in the middle, narrowing to the ends.
+		var w := 4
+		var end := mini(z + 10, 9 - z)
+		if end < 4:
+			w = end + 1
+		for x in range(-w, w):
+			m.set_voxel(Vector3i(x, 0, z), hull)
+			var edge := x == -w or x == w - 1 or end == 0
+			for y in range(1, 3):
+				if edge:
+					m.set_voxel(Vector3i(x, y, z), rim if y == 2 else side)
+				elif y == 1:
+					m.set_voxel(Vector3i(x, y, z), inside)
+	# A seat across the middle.
+	for x in range(-3, 3):
+		m.set_voxel(Vector3i(x, 2, 0), rim)
+	return m
+
+
+## Two oars lying side by side: long shafts, flat blades at one end.
+static func _oars() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.66, 0.5, 0.31)
+	var blade := Color(0.56, 0.41, 0.24)
+	for k in [-2, 2]:
+		for z in range(-7, 7):
+			m.set_voxel(Vector3i(k, 0, z), wood)
+		for z in range(3, 8):
+			m.set_voxel(Vector3i(k - 1, 0, z), blade)
+			m.set_voxel(Vector3i(k + 1, 0, z), blade)
+			m.set_voxel(Vector3i(k, 0, z), blade)
 	return m
 
 

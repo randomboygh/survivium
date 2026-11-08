@@ -66,6 +66,7 @@ const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const OthersScript := preload("res://src/client/view/others.gd")
+const BoatsScript := preload("res://src/client/view/boats.gd")
 const CreaturesScript := preload("res://src/client/game/creatures.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
@@ -119,6 +120,8 @@ var player
 var creatures
 ## The other players on the screen (С3.3).
 var others
+## The rafts and boats on the water (Boats).
+var boats
 var effects
 var fire_shadows
 ## Shafts of sunlight among the trees, flecks of sun and dust in them (SunRays).
@@ -895,9 +898,15 @@ func _process(delta: float) -> void:
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.body.swim_scale = character.skills.boost("swim")
+		player.body.vessel = character.vessel_pace()
+		player.riding = character.riding
 		player.asleep = character.vitals.asleep and not character.is_dead()
 		player.line_at = character.line
 		player.line_bite = character.bite
+		if character.vessel != 0 and character.seat == 1 and boats.vessels.has(character.vessel):
+			# Carried in someone's vessel: the body sits where its seat is.
+			player.body.move_input = Vector2.ZERO
+			player.position = WorldActions.seat_at(boats.vessels[character.vessel], 1)
 		player.step(minf(delta, 0.05), jump)
 		character.update(delta)
 		workshop.update(delta)
@@ -1165,6 +1174,9 @@ func _build_scene() -> void:
 	others.game = self
 	others.perf = hud.perf
 	world_root.add_child(others)
+	boats = BoatsScript.new()
+	boats.game = self
+	world_root.add_child(boats)
 	player.perf = hud.perf
 
 	effects = EffectsScript.new()

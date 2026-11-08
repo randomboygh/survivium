@@ -174,6 +174,15 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.CLOCK:
 			if args is Array and args.size() == 1 and args[0] is Array:
 				game.clock.from_snapshot(args[0])
+		Protocol.VESSELS:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.boats.take_all(args[0])
+		Protocol.VESSEL:
+			if args is Array:
+				game.boats.take(args)
+		Protocol.VESSEL_GONE:
+			if args is Array and args.size() == 1 and args[0] is int:
+				game.boats.take_gone(args[0])
 		Protocol.ANIMAL:
 			if args is Array:
 				game.wildlife.take_born(args)

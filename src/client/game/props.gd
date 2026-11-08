@@ -94,6 +94,8 @@ func place() -> void:
 		game.session.plans.from_list(meta.plans)
 	if meta.get("tame") is Array:
 		game.session.wildlife.add_tamed(meta.tame)
+	if meta.get("vessels") is Array:
+		game.session.actions.vessels.from_list(meta.vessels)
 	if meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	elif meta.get("props") is Dictionary:

@@ -179,6 +179,13 @@ var sacks: Array[Vector3] = []
 ## server; the client's copy is told them, Protocol.LINE).
 var line := Vector3.INF
 var bite := false
+## The vessel the character sits in afloat (Vessels): its item (one with `vessel`) and
+## id ("" and 0 on foot), and the seat (0 rows it, 1 is carried). Kept in the save.
+var riding := ""
+var vessel := 0
+var seat := 0
+## A boat rowed without its `oars` in the bag goes at this share of its pace.
+const OARLESS := 0.2
 ## Where the body is, in world units (see _where).
 var position: Vector3:
 	get:
@@ -290,8 +297,9 @@ func update(delta: float) -> void:
 			say("Вы выспались")
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	body.swim_scale = skills.boost("swim")
-	# Swimming somewhere is the work of the skill of swimming.
-	if body.swimming and stride > STILL and stride < STRIDE_MAX:
+	body.vessel = vessel_pace()
+	# Swimming somewhere, or rowing, is the work of the skill of swimming.
+	if (body.swimming or riding != "") and stride > STILL and stride < STRIDE_MAX:
 		skills.gain("swim", delta)
 	if body.jumped:
 		note("jumps")
@@ -593,6 +601,10 @@ func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
 ## character lies dead until revive().
 func die() -> void:
 	var at := position
+	# The vessel ridden stays where it floats.
+	riding = ""
+	vessel = 0
+	seat = 0
 	var stacks := inventory.take_all()
 	var sack: Variant = null
 	if not stacks.is_empty():
@@ -696,6 +708,22 @@ func forget_fall() -> void:
 	_prev_y = INF
 
 
+## The share of the walking pace the vessel ridden goes at (Body.vessel): the item's
+## `vessel`, OARLESS of it when the one rowing has not its `oars` in the bag; 0 on foot.
+func vessel_pace() -> float:
+	if riding == "" or not Items.has(riding):
+		return 0.0
+	var it := Items.get_item(riding)
+	var oars: String = it.get("oars", "")
+	var pace := float(it.get("vessel", 0.0))
+	return pace * OARLESS if seat == 0 and oars != "" and inventory.count(oars) == 0 else pace
+
+
+## Puts the body at `at` (world units; a vessel launched or left, ActionsBoat).
+func move_to(at: Vector3) -> void:
+	_came_back(at)
+
+
 ## The owner's part of coming back: puts the body at `at`.
 func _came_back(_at: Vector3) -> void:
 	pass
@@ -728,7 +756,7 @@ func to_dict() -> Dictionary:
 		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z]),
 		"sack_ends": Array(sack_ends).map(func(t: float) -> Variant: return t if is_finite(t) else null),
 		"fell_at": [fell_at.x, fell_at.y, fell_at.z] if fell_at.is_finite() else null,
-		"burning": burning.duplicate(true)}
+		"burning": burning.duplicate(true), "riding": riding, "vessel": vessel, "seat": seat}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -745,6 +773,12 @@ func from_dict(d: Dictionary) -> void:
 			var id := Items.canon(str(k))
 			if Items.has(id) and lit[k] is Array:
 				burning[Items.get_item(id).id] = Array(lit[k]).map(func(t: Variant) -> float: return float(t))
+	riding = str(d.get("riding", ""))
+	if riding != "":
+		riding = Items.canon(riding)
+		riding = riding if Items.has(riding) else ""
+	vessel = int(d.get("vessel", 0)) if riding != "" else 0
+	seat = clampi(int(d.get("seat", 0)), 0, 1) if riding != "" else 0
 	deaths = int(d.get("deaths", 0))
 	best_days = float(d.get("best_days", 0.0))
 	var fell: Variant = d.get("fell_at")
