@@ -182,8 +182,8 @@ const SCHEMAS := {
 		# the last `hop` ones a flyer's hop on the ground (crouched, in the air; a flyer with
 		# none, a butterfly, never goes about on the ground: Wildlife.sits_still); the rest
 		# are idle ones played now and then as it stands; the last `attack` ones (after the
-		# hop) its attack, kept out of the idles until the game has an attack to show them
-		# by. Rows of the picture: 1 the side alone, 3 the side, the front (coming at the
+		# hop) its attack (shown as it leaps to bite, Wildlife._fight_step), kept out of
+		# the idles. Rows of the picture: 1 the side alone, 3 the side, the front (coming at the
 		# camera) and the back.
 		"walk": {"type": "int", "min": -1, "default": -1},
 		"views": {"type": "int", "min": 1, "max": 3, "default": 1},
@@ -206,6 +206,10 @@ const SCHEMAS := {
 		# body leaves (a carcass to butcher).
 		"health": {"type": "int", "min": 0, "default": 0},
 		"carcass": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "hunt"},
+		# Attacks (Wildlife._fights): the health a bite takes from a person (0: it never goes
+		# for the people). One that does not fear people keeps its ground and fights back
+		# when hit; a meat eater hunts a person when hungry and its flock is strong enough.
+		"bite": {"type": "float", "min": 0.0, "default": 0.0},
 		# Taming by hand (Taming): the foods it eats from a hand (it does not flee from one who
 		# holds them), how many feedings make it tame, the wool a knife shears off a tame one
 		# every `wool_days` days, a young one every `breed_days` days from two tame ones that

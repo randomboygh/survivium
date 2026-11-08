@@ -17,6 +17,7 @@ const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const SkillSet := preload("res://src/shared/game/skill_set.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -737,6 +738,9 @@ static func cause_text(cause: String) -> Array:
 	if cause.begins_with("player:"):
 		var by := cause.substr(7)
 		return ["Вас убили", "игрок «%s»" % by if by != "" else "другой игрок"]
+	if cause.begins_with("animal:"):
+		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
+		return ["Вас загрыз зверь", str(spec.get("title", "")).to_lower()]
 	match cause:
 		"hunger":
 			return ["Вы умерли", "от голода"]

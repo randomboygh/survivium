@@ -67,7 +67,7 @@ func update(delta: float) -> void:
 
 
 ## Animal `a`, `delta` seconds since it was last listened to: an alarm when it starts
-## to flee or hunt, now and then its call.
+## to flee or hunt, warns one off or goes for them (a growl), now and then its call.
 func _listen(a, delta: float, daylight: float, ear: Vector3) -> void:
 	var spec: Dictionary = AiRules.SPECIES.get(a.kind, {})
 	if spec.is_empty() or a.gone:
@@ -77,7 +77,7 @@ func _listen(a, delta: float, daylight: float, ear: Vector3) -> void:
 	var reach: float = FAR_REACH if _danger(spec) else game.sound.HEAR_RANGE
 	if a.pos.distance_squared_to(ear) > reach * reach:
 		return
-	if a.state != was and a.state in ["flee", "hunt"] and spec.alarm != "" and _time >= float(_quiet.get(a, 0.0)):
+	if a.state != was and a.state in ["flee", "hunt", "warn", "charge"] and spec.alarm != "" and _time >= float(_quiet.get(a, 0.0)):
 		_quiet[a] = _time + ALARM_AGAIN
 		_say(spec.alarm, a.pos, spec)
 		return

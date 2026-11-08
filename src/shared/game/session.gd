@@ -121,6 +121,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	wildlife.gen = gen
 	wildlife.clock = clock
 	wildlife.placed = placed
+	wildlife.rules = rules
 	wildlife.people = players
 	actions.wildlife = wildlife
 	actions.currents = Currents.new(gen) if gen != null else null

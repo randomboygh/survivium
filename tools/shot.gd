@@ -354,6 +354,23 @@ func _run() -> void:
 				main.props.fly_shot([shot.flight, from, at + Vector3(0.0, 0.3, 0.0), 12.0])
 				for i in 30:
 					await process_frame
+		if shot.has("beasts"):
+			# Animals [kind, east, south, state] of the player, standing still in that state
+			# (a warning, a bite) and turned toward the player.
+			var life = main.session.wildlife
+			for c in life.animals:
+				c.pos = main.player.position + Vector3(60.0, 0.0, 60.0)
+				c.target = c.pos
+				c.think = 100.0
+			for b: Array in shot.beasts:
+				var at: Vector3 = main.player.position + Vector3(b[1], 0.0, b[2]) * CELL
+				at.y = life.ground(at.x, at.z)
+				var one = life._add(b[0], at)
+				one.think = 100.0
+				one.facing = -signf(b[1])
+				one.state = b[3]
+			for i in 10:
+				await process_frame
 		if shot.has("drops"):
 			# Things lying in a row in front of the player, not picked up (WorldActions.PICKUP_NONE).
 			main.settings.set_value("pickup", 3)

@@ -65,6 +65,21 @@
   сохранение (поле «tame» мира, только числа для JSON; до `start` ждут в `_kept_tame`), `breed` — детёныш,
   `release` — ручной из живоловки, выпущенный из руки.
   Клиентам ручной не отличается от дикого (подписи кнопки — только в одиночной игре).
+- Нападения (`_fights`, `_fight_step`, решение 178 п. 3; правила общие, виды отличаются свойствами): на людей
+  идёт только вид с `bite` (здоровья за укус) — кабан, медведь, волк. Кто людей не боится (`human_wariness` < 0,5)
+  держит место: к подошедшему ближе `CLOSE` своего зрения встаёт и рычит (`warn`, `WARN` с, крик `alarm`, кадр
+  атаки, игроку «… угрожает: отойдите»), если тот не ушёл — бросается (`charge`); ударенный им отбивается
+  (`_fights_back`, пока здоровья больше половины), иначе бежит. Мясоед охотится на человека (`hunting`), когда
+  бодрствует и очень голоден (`BOLD_HUNGER`), а его стая в зрении сильнее человека (`_strong_enough`: массы
+  стаи, зимой ×`WINTER_BOLD`, как добыча — `AiRules.PREY_RATIO`, против массы человека ×`PERSON_WITS`, меньше по
+  ранам, ×`ARMED` с оружием в руке): три волка зимой идут на раненого, на здорового нет, летом проходят мимо.
+  Вплотную (`BITE_REACH` за обоими телами) зверь прыгает (`bite`, `BITE_TIME`, кадры атаки) и кусает, если человек
+  ещё рядом: `Vitals.wound(bite, "animal:<вид>")` (на экране смерти «Вас загрыз зверь»), толчок `Body.knock`,
+  «… нападает!», сигнал `bit`; следующий укус через `BITE_EVERY`. Защищающийся отстаёт после `DEFEND_BITES`
+  укусов или `DEFEND_RAGE` с, охотник — когда добыча мертва, недоступна или ярость (`HUNT_RAGE`, заново с каждым
+  укусом) прошла; после этого `CALM` с не трогает людей. Огонь (`_fire_near`) обрывает нападение; в воде, в лодке
+  (`riding`) и выше ступени человек недоступен; ручные не нападают. Правило `Rules.animal_attacks` (переключатель
+  «Нападения зверей» на «Тестировании») выключает всё.
 - Подо льдом: рыба (плавает, не летает и не выходит на берег, `under_ice_swimmer`) в замёрзшей воде глубиной
   от двух клеток плавает под льдом (`under_ice`), появляется там же; утка и лягушка — нет.
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
@@ -82,14 +97,14 @@
 `creatures.gd`, `voices.gd`, следы, `fire_shadows.gd` (тени зверей у огня); тесты и `tools/shot.gd`
 пишут в `main.session.wildlife`.
 
-**Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `fire_wariness`, `active`, `count`,
+**Данные.** Вид `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `fire_wariness`, `active`, `count`,
 `sprite`, `frames`, `walk`, `hop`, `attack`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
 `likes`, `biomes`, `calls`, `alarm`, приручение: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — живой предмет из живоловки) в бандлах `content/animals/<зверь>/`; картинка —
 `sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади),
 в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
 (присел, в воздухе; летающий без `hop` — бабочка, `Wildlife.sits_still` — по земле не ходит и не толкается:
-либо летит, либо сидит на месте со сложенными крыльями и изредка, каждая в своё время, хлопает ими (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), за ними `attack` — нападение (пока не показываются: звери не нападают), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
+либо летит, либо сидит на месте со сложенными крыльями и изредка, каждая в своё время, хлопает ими (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), за ними `attack` — нападение (рывок к укусу, первый — пока зверь предупреждает), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
 воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`, волка — `tools/make_wolf.py`, дикую кошку — `tools/make_cat.py`, ежа — `tools/make_hedgehog.py`). `creatures.gd` выбирает сторону по движению на экране
 (`TURN_BIAS`), шаг — по пройденному
 пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
@@ -100,7 +115,7 @@
 (синтез — таблица в `tools/make_sounds.gd`).
 
 **Тесты.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`, `fishing`,
-`birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`; стая ждёт тактов мышления, а не порядка случайных чисел).
+`birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`, `attacks`; стая ждёт тактов мышления, а не порядка случайных чисел).
 
 **Подробнее.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — замысел движка поведения
 (формулы помечены как черновик, в коде проще).

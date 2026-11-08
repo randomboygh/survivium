@@ -507,6 +507,10 @@ const SHOTS := {
 		"hands": {"tool": "tools:iron_knife", "facing": "e", "work": "slash", "strike": true},
 		"drops": ["animals:small_carcass", "animals:carcass", "animals:raw_meat", "animals:roasted_meat", "animals:hide", "animals:bone",
 			"animals:fat", "tools:flint_knife", "tools:bronze_knife", "tools:steel_knife"]},
+	# Beasts going for the player (Wildlife._fights): a boar growling a warning, a wolf and
+	# a bear at their bite (the last attack frame).
+	"beasts": {"time": 0.42, "season": 1, "clearing": true, "hands": {"tool": "tools:iron_spear", "facing": "e"},
+		"beasts": [["animals:boar", -3, 1, "warn"], ["animals:wolf", 2, 0, "bite"], ["animals:bear", 1, -3, "bite"]]},
 	# A bow drawn at a deer, an arrow halfway to it, and the spears, the sling and its
 	# stones, the bow and arrows lying on the ground.
 	"ranged": {"time": 0.42, "season": 1, "clearing": true, "prey": ["animals:deer", 10, -1], "flight": "tools:arrow",
