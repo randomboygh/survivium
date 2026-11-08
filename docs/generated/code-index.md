@@ -198,7 +198,6 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## src/shared/game
 
 - `src/shared/game/actions_base.gd`: The first part of the rules of the hands (world_actions.gd, which says what `who` gives and what a swing returns): the state they work on, the signals that tell the views what changed, and the…
-- `src/shared/game/actions_boat.gd`: Rafts and boats (plan/backlog.md, answer 4А; decision 178).
 - `src/shared/game/actions_build.gd`: The rules of the hands, part six (world_actions.gd): placing blocks and planting seeds and bushes.
 - `src/shared/game/actions_dig.gd`: The rules of the hands, part five (world_actions.gd): what a tap on a cell does with the hand in use (dig_at), digging cells, and cutting the grass.
 - `src/shared/game/actions_farm.gd`: The rules of the hands, part seven (world_actions.gd): farming (thread «Сделать режим земледелия», 2026-11-06).
@@ -260,7 +259,6 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 - `tests/unit/actions_test.gd`: What the hands do to the world: felling, digging and building, the action in front, placed things.
 - `tests/unit/balance_test.gd`: The limits the game's balance keeps within (docs/balance/GAME_BALANCE_DESIGN.md, section «Автоматические проверки»), read off the data of the mods and the rules' own formulas, so a tool, a tree, a…
-- `tests/unit/boat_test.gd`: Rafts and boats (WorldActions part actions_boat.gd, Body.vessel): a vessel in the hand is launched on the water in front and ridden, afloat it keeps to the water at its pace, it puts its rider ashore…
 - `tests/unit/body_test.gd`: The body on the cells: raycast, walking, water and bogs, slopes, steps, the test ground, pits.
 - `tests/unit/bundle_system_test.gd`: The acceptance of the bundle system (docs/specifications/BUNDLE_SYSTEM.md, section 15): what the TZ (bundles.md) wants added without touching the engine, written as data alone in a mod of the test's…
 - `tests/unit/character_test.gd`: The character: the bag, tool wear, vitals, the change log and death.
