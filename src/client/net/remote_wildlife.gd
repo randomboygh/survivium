@@ -45,11 +45,6 @@ var _by_id := {}
 var minds := {}
 
 
-## The animal of number `id`, null for none.
-func by_id(id: int) -> Animal:
-	return _by_id.get(id)
-
-
 ## What the animals near have in mind (Protocol.MINDS): the entries of Wildlife.mind.
 func take_minds(list: Array) -> void:
 	minds = {}
