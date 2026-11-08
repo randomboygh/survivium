@@ -93,8 +93,8 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	var blow := _blow(who, "chop", t.power)
 	chops[col] = chops.get(col, 0) + blow
 	var done := _work(skilled(who, "chop", t.swing), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
+	# No word on the hits left (the user's ask, 2026-11-08): the tree shows it falling.
 	if chops[col] < s.hits:
-		who.say("%s: осталось ударов %d" % [s.title, Tools.hits_to(s.hits - chops[col], blow)])
 		return done
 	chops.erase(col)
 	fell(who, cell)
