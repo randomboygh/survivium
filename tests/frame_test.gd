@@ -800,7 +800,8 @@ func _run() -> void:
 	for r in runs:
 		if r[0] == IDLE:
 			idle_ms = _mean(r[1])
-	var step_limit: float = (ChunkStreamer.EDIT_BUDGET_US + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
+	# A chunk on the screen with no ground yet raises the budget (ChunkStreamer.lagging).
+	var step_limit: float = (maxi(ChunkStreamer.EDIT_BUDGET_US, ChunkStreamer.LAG_BUDGET_US) + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
 	var free_limit: float = idle_ms + 2.0 + 0.25 * chunk_ms
 	print("a frame may spend %.1f ms in the budgeted loops and %.1f ms outside them (an idle frame is %.1f ms)" % [
 		step_limit, free_limit, idle_ms])
