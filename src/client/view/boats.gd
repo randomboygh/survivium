@@ -135,9 +135,7 @@ func _process(delta: float) -> void:
 			var p: Vector3 = game.player.position
 			if game.character.seat == 0:
 				at = p
-				var way := Vector2(game.player.body.glide)
-				if way.length() > 0.1:
-					one.turn = atan2(way.x, way.y)
+				one.turn = game.player.body.heading
 				turn = one.turn
 			else:
 				at = p + Vector3(sin(turn), 0.0, cos(turn)) * ActionsBoat.BACK_SEAT * CELL

@@ -296,14 +296,18 @@ func flush() -> bool:
 
 
 ## Marks the things placed (Props.placed: "item", "cell" the north-west of its two
-## by two cells) and the sacks at `sacks` (world units) when they changed.
-func set_marks(placed: Array, sacks: Array[Vector3] = []) -> void:
+## by two cells), the rafts and boats on the water (`vessels`: [item, where in world
+## units]…) and the sacks at `sacks` (world units) when they changed. Vessels and sacks
+## are kept at the edge when beyond it (a third entry `true`), to be found again.
+func set_marks(placed: Array, sacks: Array[Vector3] = [], vessels: Array = []) -> void:
 	var now := []
 	for e: Dictionary in placed:
 		var c: Vector3i = e.cell
 		now.append([Vector2i(c.x + 1, c.z + 1), e.item])
+	for v: Array in vessels:
+		now.append([Vector2i(floori(v[1].x / WorldData.CELL), floori(v[1].z / WorldData.CELL)), v[0], true])
 	for p in sacks:
-		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK])
+		now.append([Vector2i(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL)), Items.SACK, true])
 	if now != marks:
 		marks = now
 		_top.queue_redraw()
@@ -427,7 +431,7 @@ func draw_marks(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, p
 		var box := Rect2(p - Vector2(2, 2), Vector2(5, 5))
 		if pictures:
 			box = Rect2(p - (tex.get_size() * 0.5).floor() - Vector2(1, 1), tex.get_size() + Vector2(2, 2))
-		if sack and not rect.encloses(box):
+		if m.size() > 2 and not rect.encloses(box):
 			box.position = box.position.clamp(rect.position, rect.end - box.size)
 		if not rect.encloses(box):
 			continue

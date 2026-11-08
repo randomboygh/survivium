@@ -81,7 +81,7 @@ static func _way(who) -> Vector2:
 func boat_kind(who) -> String:
 	if vessel_id(who) != 0:
 		return "ashore" if ashore_spot(who).is_finite() else ""
-	if vessel_of(who.held()) > 0.0 and launch_spot(who).is_finite():
+	if vessel_of(who.held()) > 0.0 and who.inventory.count(who.held()) > 0 and launch_spot(who).is_finite():
 		return "launch"
 	if not boarded(who).is_empty():
 		return "board"
@@ -242,7 +242,15 @@ func _sit(who, v: Dictionary, seat: int) -> void:
 	who.vessel = v.id
 	who.seat = seat
 	who.move_to(seat_at(v, seat))
+	_set_off(who, v)
 	_told(who)
+
+
+## The body of `who` sits still in vessel `v`, pointing its way (Body.heading).
+static func _set_off(who, v: Dictionary) -> void:
+	if who.body != null:
+		who.body.heading = v.turn
+		who.body.glide = Vector2.ZERO
 
 
 ## Tells the client of `who` at once that the vessel they sit in changed (Character.riding,
@@ -275,6 +283,7 @@ func leave_boat(who, at: Vector3) -> void:
 	if rowed and not v.is_empty():
 		for p in riders(id):
 			p.seat = 0
+			_set_off(p, v)
 			_told(p)
 			p.say("Теперь гребёте вы")
 			break
@@ -308,9 +317,9 @@ func step_boats(seconds: float, players: Array) -> void:
 	for v: Dictionary in vessels.list.values():
 		var aboard := riders(v.id)
 		if not aboard.is_empty() and aboard[0].seat == 0:
-			var p: Vector3 = aboard[0].position
-			var went := Vector2(p.x - v.at.x, p.z - v.at.z)
-			vessels.move(v, p, atan2(went.x, went.y) if went.length() > 0.02 else v.turn)
+			# It goes where its rower goes, pointing the way they row it (Body.heading).
+			var rower = aboard[0]
+			vessels.move(v, rower.position, rower.body.heading if rower.body != null else v.turn)
 	_boats_wait -= seconds
 	if _boats_wait > 0.0:
 		return
@@ -340,6 +349,8 @@ func step_boats(seconds: float, players: Array) -> void:
 		if not 0 in seats[id]:
 			for p in riders(id):
 				p.seat = 0
+				if not vessels.of(id).is_empty():
+					_set_off(p, vessels.of(id))
 				_told(p)
 				break
 

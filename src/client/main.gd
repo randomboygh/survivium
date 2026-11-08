@@ -255,6 +255,8 @@ var _work_shown := ""
 var _work_since := 0
 ## When each kind of work was last named (msec).
 var _work_named := {}
+## The vessel and seat the player's body was last set off in (see _set_off).
+var _seated := Vector2i.ZERO
 ## Stages of generation the near chunks needed when the loading began (see loading_progress).
 var _stages_total := 0
 ## Set before a restart for another world: the scene that comes up goes straight in.
@@ -818,6 +820,21 @@ func _exit_tree() -> void:
 		socket.poll()
 
 
+## Points the player's body the way its vessel points when it takes the oars (boarded,
+## launched or handed them), at rest (Body.heading, glide; the server does the same in
+## ActionsBoat._set_off); waits for the vessel to be told of.
+func _set_off() -> void:
+	var seated := Vector2i(character.vessel, character.seat)
+	if seated == _seated:
+		return
+	if character.vessel != 0 and character.seat == 0:
+		if not boats.vessels.has(character.vessel):
+			return
+		player.body.heading = boats.vessels[character.vessel].turn
+		player.body.glide = Vector2.ZERO
+	_seated = seated
+
+
 func _process(delta: float) -> void:
 	# The frame before is over: the statistics take its time and what its parts took.
 	var perf = hud.perf
@@ -902,6 +919,7 @@ func _process(delta: float) -> void:
 		player.body.flow = character.flow
 		player.riding = character.riding
 		player.rowing = character.seat == 0
+		_set_off()
 		player.asleep = character.vitals.asleep and not character.is_dead()
 		player.line_at = character.line
 		player.line_bite = character.bite

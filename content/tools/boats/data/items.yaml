@@ -11,7 +11,7 @@
   stack: 1
   icon: raft
   model: raft
-  vessel: 0.7
+  vessel: 0.4
 - id: boat
   title: Лодка
   description: Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.
@@ -20,7 +20,7 @@
   stack: 1
   icon: boat
   model: boat
-  vessel: 1.4
+  vessel: 0.8
   oars: oars
 - id: oars
   title: Вёсла

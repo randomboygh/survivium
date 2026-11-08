@@ -145,6 +145,8 @@ var _menu_buttons := {}
 var _marks_of: Object = null
 var _marks_dirty := true
 var _sacks_seen: Array[Vector3] = []
+## The vessels last marked on the map: [item, where]… (see _update_marks).
+var _vessels_seen: Array = []
 
 
 func _panel(parent: Node) -> PanelContainer:
