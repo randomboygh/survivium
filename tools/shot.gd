@@ -154,6 +154,28 @@ func _run() -> void:
 			main.player.position = places.forest(main.world, main.player.position)
 		if shot.has("place"):
 			main.player.position = places.place(main.world, shot.place)
+		if shot.has("steep"):
+			var c0 := Vector2i(int(main.player.position.x / CELL), int(main.player.position.z / CELL))
+			var best := -1
+			var bat := c0
+			for dz in range(-60, 60):
+				for dx in range(-60, 60):
+					var x := c0.x + dx
+					var z := c0.y + dz
+					var hs := []
+					for k in 5:
+						hs.append(main.world.surface_y(x, z - 2 + k))
+					var ok := true
+					for k in 4:
+						if hs[k] - hs[k + 1] < 0 or hs[k] - hs[k + 1] > 1:
+							ok = false
+					var d: int = hs[0] - hs[4]
+					if ok and d > best and main.world.surface_y(x, z) > 20:
+						best = d
+						bat = Vector2i(x, z)
+			print("STEEP ", best, " at ", bat, " y ", main.world.surface_y(bat.x, bat.y))
+			main.player.position = Vector3(bat.x + 0.5, main.world.surface_y(bat.x, bat.y) + 1, bat.y + 0.5) * CELL
+			main.chunks.build_around()
 		if shot.has("at"):
 			var at := Vector2i(shot.at[0], shot.at[1])
 			main.player.position = Vector3(at.x + 0.5, main.world.size_y - 1, at.y + 0.5) * CELL
