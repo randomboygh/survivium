@@ -297,6 +297,8 @@ func _run() -> void:
 			_place_birds()
 		if shot.has("zoo"):
 			_place_zoo(shot.zoo == "water")
+		if shot.get("trap", false):
+			_place_trap()
 		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
 		for f: Dictionary in main.effects.fires:
 			f.light.light_energy = main.effects.fire_energy(f, main.sky)
@@ -1381,6 +1383,41 @@ func _place_zoo(water: bool) -> void:
 		c.moving = true
 		c.left = i % 2 == 0
 		i += 1
+	main.creatures._process(0.0)
+	main.creatures.set_process(false)
+
+
+## A trap two cells north-east of the player with a carrot in it and a hare walking up to
+## it, another trap beside it with a hare caught (the shot puts a caught hare in the hand).
+func _place_trap() -> void:
+	var life = main.session.wildlife
+	var p: Vector3 = main.player.position
+	for c in life.animals:
+		c.pos = p + Vector3(60.0, 0.0, 60.0)
+		c.target = c.pos
+		c.think = 100.0
+	var gx := floori(p.x / CELL) + 1
+	var gz := floori(p.z / CELL) - 2
+	var cell := Vector3i(gx, floori(life.ground((gx + 0.5) * CELL, (gz + 0.5) * CELL) / CELL + 0.01), gz)
+	# Bare earth round the traps, so the grass hides nothing.
+	for dz in range(-2, 5):
+		for dx in range(-5, 4):
+			var x := gx + dx
+			var z := gz + dz
+			var y := floori(life.ground((x + 0.5) * CELL, (z + 0.5) * CELL) / CELL + 0.01) - 1
+			if main.world.get_cell(x, y, z) == main.Mat.GRASS:
+				main.world.set_cell(x, y, z, main.Mat.DIRT)
+	for dx in range(-8, 9, 8):
+		main.chunks.on_cell_changed(cell + Vector3i(dx, -1, 0))
+	var trap: Dictionary = main.session.placed.put("tools:trap", cell)
+	trap.items.add("plants:carrot", 1)
+	var full: Dictionary = main.session.placed.put("tools:trap", cell + Vector3i(-3, 0, 0))
+	full.items.add("tools:live_rabbit", 1)
+	var at := (Vector3(cell) + Vector3(2.4, 0.0, 0.7)) * CELL
+	var hare = life._add("animals:rabbit", Vector3(at.x, life.ground(at.x, at.z), at.z))
+	hare.think = 100.0
+	hare.facing = -1.0
+	hare.moving = true
 	main.creatures._process(0.0)
 	main.creatures.set_process(false)
 

@@ -632,9 +632,15 @@ static func trap() -> VoxelModel:
 				var edge_x := x == 1 or x == 6
 				var edge_z := z == 1 or z == 6
 				var corner := edge_x and edge_z
-				if y == 0 or y == 4:
-					# The floor and the roof: sticks across, a pole round the edge.
+				if y == 0:
+					# The floor: sticks across, a pole round the edge.
 					m.set_voxel(Vector3i(x, y, z), pole if edge_x or edge_z else stick * (0.9 if x % 2 == 0 else 1.0))
+				elif y == 4:
+					# The roof: a pole round the edge, sticks across with gaps to see the bait.
+					if edge_x or edge_z:
+						m.set_voxel(Vector3i(x, y, z), pole)
+					elif x % 2 == 1:
+						m.set_voxel(Vector3i(x, y, z), stick)
 				elif corner:
 					m.set_voxel(Vector3i(x, y, z), pole)
 				elif (edge_x and z % 2 == 1) or (z == 1 and x % 2 == 1):
