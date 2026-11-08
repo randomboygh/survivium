@@ -115,6 +115,12 @@ func watch(w) -> void:
 					var m := PlayerScript.sprite_material(SpriteShader, tex)
 					m.set_shader_parameter("frame_uv", Vector4(float(f) / frames, float(v) / views, 1.0 / frames, 1.0 / views))
 					m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
+					if spec.flies and f >= 1 and f <= walk_frames(spec):
+						# A wing beat in the air: its shadow is the front's frame laid flat, a bird
+						# seen from above (sprite.gdshader flat_shadow), not its profile turned to the sun.
+						var front := FRONT if views > FRONT else v
+						m.set_shader_parameter("flat_shadow", 2.0 if v == SIDE and views > FRONT else 1.0)
+						m.set_shader_parameter("shadow_uv", Vector4(float(f) / frames, float(front) / views, 1.0 / frames, 1.0 / views))
 					mats.append(m)
 			variants.append(mats)
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height() / views), variants,
