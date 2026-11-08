@@ -1,4 +1,4 @@
-extends "res://src/shared/game/actions_farm.gd"
+extends "res://src/shared/game/actions_nature.gd"
 ## What a character's hands do to the world (plan/design/character.md, "Взаимодействие с
 ## миром"): digging cells, cutting the grass, chopping and felling trees, placing blocks,
 ## the action button's work in front of the body, taking things off the ground, berries

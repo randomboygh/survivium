@@ -173,6 +173,9 @@ class Chunk extends RefCounted:
 	## Done by the generator: its later stages of the chunks around write nothing here
 	## (see WorldGen).
 	var final := false
+	## The springs of the clock (Clock.springs) it has grown back for (ActionsNature), -1
+	## not known yet.
+	var spring := -1
 
 
 ## A world of `sy` levels. For tests and tools, `area` makes empty chunks over the
@@ -803,7 +806,7 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
 		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(),
 		"fields": fields.get(key, {}).duplicate(true), "drops": drops.get(key, []).duplicate(true),
-		"forms": _forms_of(key)}
+		"forms": _forms_of(key), "spring": c.spring}
 
 
 ## The forms of the blocks of chunk `key` (see forms): [[cell, form], …].
@@ -846,6 +849,8 @@ func unpack_chunk(d: Dictionary) -> bool:
 		c.biome.fill(NO_BIOME)
 	c.edited = true
 	c.final = true
+	var spring: Variant = d.get("spring", -1)
+	c.spring = int(spring) if spring is int or spring is float else -1
 	chunks[key] = c
 	if key == _last_key:
 		_last = c
@@ -884,8 +889,11 @@ func unpack_chunk(d: Dictionary) -> bool:
 		var kept := {}
 		for cell in beds:
 			var f: Variant = beds[cell]
-			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and f.size() == 3 and f[0] is String:
+			if cell is Vector3i and chunk_key(cell.x, cell.z) == key and f is Array and (f.size() == 3 or f.size() == 4 and f[3] is String) \
+					and f[0] is String:
 				kept[cell] = [Content.canon("plants", f[0]) if f[0] != "" else "", float(f[1]), float(f[2])]
+				if f.size() == 4:
+					kept[cell].append(f[3])
 		if not kept.is_empty():
 			fields[key] = kept
 	var on_ground: Array = d.get("drops", [])

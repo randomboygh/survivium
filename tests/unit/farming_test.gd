@@ -17,6 +17,7 @@ func run() -> void:
 	_test_reap()
 	_test_crops()
 	_test_saplings()
+	_test_nature()
 	_test_water_keeps()
 	_test_save()
 	_test_marks()
@@ -403,3 +404,71 @@ func _test_marks() -> void:
 	plans.mark(actions, who, "till", Vector3i(14, 1, 15), Vector3i(16, 1, 15), false)
 	plans.from_list(plans.to_list())
 	_check(list.is_empty() and plans.cells.size() == 3, "the marks are saved with the blueprint")
+
+
+class AllClaimed extends RefCounted:
+	func claim_at(_c: Vector3i) -> Dictionary:
+		return {"id": 1}
+
+
+## Nature on its own once a year (ActionsNature): bare natural ground beside grass grows
+## over, a bush and a grown tree spread their kind near them (a wild seed of a species
+## with no sapling of its own sprouts as one alike and grows into its own), nothing on
+## claimed land; a chunk works a spring once, and keeps the count with it in a save.
+func _test_nature() -> void:
+	var setup := _world()
+	var w: WorldData = setup[0]
+	var clock: Clock = setup[1]
+	var actions: WorldActions = setup[2]
+	var key := Vector2i(0, 0)
+	var bare := Vector3i(6, 1, 6)
+	w.set_cell(bare.x, bare.y, bare.z, Mat.DIRT)
+	w.set_natural(bare.x, bare.y, bare.z, true)
+	var placed_dirt := Vector3i(3, 1, 3)
+	w.set_cell(placed_dirt.x, placed_dirt.y, placed_dirt.z, Mat.DIRT)
+	var bush_at := Vector3i(8, 2, 8)
+	Growth.place_bush(w, bush_at.x, bush_at.y, bush_at.z, 0)
+	var birch := Trees.index("plants:birch")
+	var rng := RandomNumberGenerator.new()
+	Growth.place(w, 9, 2, 3, birch, rng, 0.6)
+	_check(actions.sapling_of("plants:oak") == "plants:oak_sapling" and actions.sapling_of("plants:birch") != ""
+		and actions.sapling_of("plants:spruce") == "plants:spruce_sapling", "a tree with no sapling of its own sprouts as one alike")
+	var claimed := WorldActions.new(w, clock, Rules.new())
+	claimed.territory = AllClaimed.new()
+	for row in WorldData.CHUNK:
+		claimed.regrow_row(key, row)
+	_check(w.get_cell(bare.x, bare.y, bare.z) == Mat.DIRT, "nothing grows back on claimed land")
+	var bushes := w.bushes.size()
+	var wild := []
+	for year in 12:
+		clock.springs += 1
+		for row in WorldData.CHUNK:
+			actions.regrow_row(key, row)
+	for c: Vector3i in w.fields.get(key, {}):
+		wild.append(w.fields[key][c])
+	_check(w.get_cell(bare.x, bare.y, bare.z) == Mat.GRASS, "bare natural ground beside grass grows over")
+	_check(w.get_cell(placed_dirt.x, placed_dirt.y, placed_dirt.z) == Mat.DIRT, "dirt the player laid stays")
+	_check(w.bushes.size() > bushes, "a bush puts new ones of its kind beside it (%d to %d)" % [bushes, w.bushes.size()])
+	_check(not wild.is_empty() and wild[0].size() == 4 and wild[0][3] == "plants:birch" and Plants.is_sapling(wild[0][0])
+		and WorldActions.sapling_tree(wild[0]) == birch, "a birch sows a wild sapling of its own species: %s" % [wild])
+	# The year of a chunk: worked once a spring, the count kept in its save.
+	var c = w.chunks[key]
+	c.final = true
+	c.spring = -1
+	clock.springs = 20
+	clock.season = 0
+	for i in 40:
+		actions.step_nature(WorldActions.NATURE_EVERY)
+	_check(c.spring == 20, "a chunk first seen starts from the spring now")
+	clock.springs = 21
+	for i in 3 * WorldData.CHUNK:
+		actions.step_nature(WorldActions.NATURE_EVERY)
+	_check(c.spring == 21, "a chunk a spring behind works it")
+	var packed := w.pack_chunk(key)
+	var again := WorldData.new(16, Vector2i(32, 32))
+	_check(again.unpack_chunk(packed) and again.chunks[key].spring == 21 and again.fields.get(key, {}).size() == w.fields[key].size(),
+		"the spring count and the wild saplings' species are saved with the chunk")
+	var saved := clock.to_dict()
+	var clock2 := Clock.new()
+	clock2.from_dict(saved)
+	_check(clock2.springs == 21, "the clock keeps its count of springs")

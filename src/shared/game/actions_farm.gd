@@ -350,13 +350,22 @@ func grow_young(cell: Vector3i) -> bool:
 	var f: Variant = world.field_at(cell)
 	if f == null or not Plants.is_sapling(f[0]):
 		return false
-	var p: Dictionary = Plants.BY_ID[f[0]]
-	var species := Trees.index(p.tree)
+	var species := sapling_tree(f)
 	if species < 0 or _room(cell) < YOUNG_HEIGHT:
 		return false
 	_place_tree(cell, species, 0.0)
-	world.set_field(cell, [f[0], f[1], 1.0])
+	var young: Array = f.duplicate()
+	young[2] = 1.0
+	world.set_field(cell, young)
 	return true
+
+
+## The species (Trees) sapling record `f` grows into: its fourth field (a wild seed's tree,
+## ActionsNature), else its plant's `tree`; -1 for none.
+static func sapling_tree(f: Array) -> int:
+	if f.size() > 3 and f[3] is String:
+		return Trees.index(f[3])
+	return Trees.index(Plants.BY_ID.get(f[0], {}).get("tree", ""))
 
 
 ## The grown sapling on ground cell `cell` becomes its tree (the young one it was, if
@@ -366,8 +375,7 @@ func grow_tree(cell: Vector3i) -> bool:
 	var f: Variant = world.field_at(cell)
 	if f == null or not Plants.is_sapling(f[0]):
 		return false
-	var p: Dictionary = Plants.BY_ID[f[0]]
-	var species := Trees.index(p.tree)
+	var species := sapling_tree(f)
 	if species < 0:
 		return false
 	var young: Array[Vector3i] = []
