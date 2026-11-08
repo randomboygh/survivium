@@ -48,6 +48,10 @@ const DEFAULTS := {
 	# player alone and the rest drawn (Effects.player_only; 74 FPS on the phone by a
 	# campfire against 83 drawn and 63 real).
 	"fire_shadows": 3,
+	# A fire's or the torch's real shadow falls on the things set down and the animals
+	# too, not on the ground alone (PixelView.shadow_on_things): a few shaders more to
+	# build while loading.
+	"shadow_on_things": true,
 	"effects": true,
 	# Sunlight among the trees in clear weather and after rain: shafts, flecks, dust (SunRays).
 	"sun_rays": true,
@@ -145,9 +149,12 @@ static func _index_limits() -> Dictionary:
 ## Graphics quality presets, from the lightest to draw: the graphics settings each sets.
 ## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
 const QUALITIES := [
-	{"pixel_scale": 4, "shadows": false, "fire_shadows": 0, "effects": false, "sun_rays": false, "fog": false},
-	{"pixel_scale": 2, "shadows": true, "fire_shadows": 1, "effects": true, "sun_rays": false, "fog": true},
-	{"pixel_scale": 2, "shadows": true, "fire_shadows": 3, "effects": true, "sun_rays": true, "fog": true},
+	{"pixel_scale": 4, "shadows": false, "fire_shadows": 0, "shadow_on_things": false, "effects": false, "sun_rays": false,
+		"fog": false},
+	{"pixel_scale": 2, "shadows": true, "fire_shadows": 1, "shadow_on_things": false, "effects": true, "sun_rays": false,
+		"fog": true},
+	{"pixel_scale": 2, "shadows": true, "fire_shadows": 3, "shadow_on_things": true, "effects": true, "sun_rays": true,
+		"fog": true},
 ]
 ## Playtest clock: stopped, normal, or faster on top of the time speed setting.
 const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
@@ -395,6 +402,18 @@ func apply() -> void:
 		game.effects.enabled = values.effects
 		game.effects.shadows = values.shadows and values.fire_shadows >= 2
 		game.effects.player_only = values.fire_shadows == 3
+	if PixelView.shadow_on_things != values.shadow_on_things:
+		PixelView.shadow_on_things = values.shadow_on_things
+		# The lights casting a real shadow now light what the setting asks.
+		var lights: Array = []
+		if game.effects != null:
+			for f in game.effects.fires:
+				lights.append(f.light)
+		if game.player != null and "torch" in game.player:
+			lights.append(game.player.torch)
+		for light in lights:
+			if light is OmniLight3D and light.shadow_enabled:
+				PixelView.real_shadow(light, true)
 	if game.fire_shadows != null:
 		game.fire_shadows.enabled = values.shadows and values.fire_shadows in [1, 3]
 	if game.player != null:

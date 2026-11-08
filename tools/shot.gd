@@ -115,6 +115,7 @@ func _run() -> void:
 		RenderingServer.directional_soft_shadow_filter_set_quality(shot.get("shadow_filter",
 			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality")))
 		main.settings.values.fire_shadows = shot.get("fire_shadows", main.settings.DEFAULTS.fire_shadows)
+		main.settings.values.shadow_on_things = shot.get("shadow_on_things", main.settings.DEFAULTS.shadow_on_things)
 		main.settings.values.sun_rays = shot.get("rays", true)
 		main.settings.values.fog = shot.get("fog", true)
 		main.session.clock.morning_fog_pin = shot.get("morning_fog", 0)

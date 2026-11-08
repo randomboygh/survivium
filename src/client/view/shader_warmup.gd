@@ -25,7 +25,8 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 
 ## The mixes of lights: [the sun's shadow, a light without a shadow (the torch, the far
-## fires), the layers the nearest fire's real shadow falls from (0 without one)], all
+## fires), the layers the nearest fire's real shadow falls from (0 without one), whether
+## that shadow lights the things too (PixelView.shadow_on_things)], all
 ## under the sun as the settings have it. The sun alone (the land beyond the torch's glow)
 ## was once left to the first frames of the game, but the world is not drawn behind the
 ## menu, so it came mid-game (six shaders of up to 370 ms on a phone, 2026-11-01). The sun
@@ -71,11 +72,12 @@ func _init(g) -> void:
 ## gives one (Effects.shadows).
 func wanted() -> Array:
 	var shadow: bool = game.sky.sun.shadow_enabled
-	var mixes: Array = [[shadow, true, 0], [shadow, false, 0]]
+	var mixes: Array = [[shadow, true, 0, false], [shadow, false, 0, false]]
 	if game.effects.shadows:
 		var casters: int = PixelView.LAYER_PLAYER if game.effects.player_only else Effects.FIRE_CASTERS
-		mixes.append([shadow, true, casters])
-		mixes.append([shadow, false, casters])
+		var things: bool = PixelView.shadow_on_things
+		mixes.append([shadow, true, casters, things])
+		mixes.append([shadow, false, casters, things])
 	return mixes
 
 
@@ -103,8 +105,10 @@ func _build() -> void:
 	# What may not be around yet: the ground's, water's and the low things' material on a
 	# face like the chunks have.
 	# The ground's material is on the props too, where no fire's shadow falls.
+	# The things' too, on their own layer (PixelView.LAYER_THINGS), where a fire's real
+	# shadow falls with «Тень на вещах».
 	for m: Array in [[game.world_mat, PixelView.LAYER_GROUND], [game.world_mat, 1], [game.low_mat, 1],
-			[game.water_mat, 1]]:
+			[game.water_mat, 1], [game.world_mat, PixelView.LAYER_THINGS], [game.low_mat, PixelView.LAYER_THINGS]]:
 		var face := MeshInstance3D.new()
 		face.mesh = _face()
 		face.material_override = m[0]
@@ -112,6 +116,17 @@ func _build() -> void:
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
+	# An animal, which may not be around yet: the player's figure on the animals' layer
+	# (the same shader and the same kind of mesh).
+	var figure: MeshInstance3D = game.player.sprite if game.player != null and "sprite" in game.player else null
+	if figure != null and figure.mesh != null:
+		var animal := MeshInstance3D.new()
+		animal.mesh = figure.mesh
+		animal.material_override = figure.material_override
+		animal.layers = PixelView.LAYER_THINGS
+		var key := _key(animal)
+		if not kinds.has(key):
+			kinds[key] = animal
 	# The names over the others and the letters "z" over a sleeper, shown only later.
 	var label := Label3D.new()
 	label.font = UiStyle.font()
@@ -188,6 +203,9 @@ func _mix(m: Array) -> void:
 	fire.visible = m[2] != 0
 	if m[2] != 0 and fire.shadow_caster_mask != m[2]:
 		fire.shadow_caster_mask = m[2]
+	# What the shadow lights (the mix asks for the setting as it is now).
+	if m[2] != 0:
+		PixelView.real_shadow(fire, true)
 
 
 ## A copy of each thing under `node` that differs from the ones in `kinds` in what

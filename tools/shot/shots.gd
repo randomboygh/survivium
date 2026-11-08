@@ -38,6 +38,8 @@ const SHOTS := {
 	# ground alone, its twin the grass and the chest.
 	"fire-shadow-props": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 3,
 		"put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
+	"fire-shadow-props-ground": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 3,
+		"shadow_on_things": false, "put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
 	"fire-shadow-props-real": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "fire_shadows": 2,
 		"put_fire": [-3.0, 0.0], "put": [["tools:chest", [4.0, 0.0]]]},
 	"fire-shadows-real": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 2},
