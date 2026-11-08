@@ -3,7 +3,8 @@ extends Control
 ## the top left corner (which hand holds it: Л, П or Л+П), its key in the top right and
 ## a number (how many) in the bottom right, and a strip along the bottom for how much
 ## of a light held is left to burn, how fresh food is, or how loaded the bag on the back is;
-## the well faintly tinted by the grade of the thing's quality (Quality);
+## the well faintly tinted by the grade of the thing's quality, stronger toward its edges
+## the better the thing (Quality);
 ## the picture faint when the thing cannot be used now (`inactive`).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -45,16 +46,19 @@ var fill_color := Color(0, 0, 0, 0):
 	set(v):
 		fill_color = v
 		queue_redraw()
-## The grade of the quality of the thing in the slot (Quality.grade), a faint tint of
-## GRADE_TINTS over the well (barely off an empty one); below 0 none.
+## The grade of the quality of the thing in the slot (Quality.grade), a faint radial tint
+## of GRADE_TINTS over the well (barely off an empty one in the middle); below 0 none.
 var grade := -1:
 	set(v):
 		if v != grade:
 			grade = v
 			queue_redraw()
-## Poor, plain, normal, good, excellent: a colour and how much of it lies over the well.
-const GRADE_TINTS := [Color(0.85, 0.35, 0.25, 0.10), Color(0.6, 0.6, 0.6, 0.06), Color(0, 0, 0, 0),
-	Color(0.45, 0.85, 0.4, 0.09), Color(0.95, 0.75, 0.3, 0.11)]
+## Poor, plain, normal, good, excellent: a colour, how much of it lies over the middle of
+## the well and how much at its edges (the better, the more the edges glow).
+const GRADE_TINTS := [[Color(0.85, 0.35, 0.25), 0.07, 0.10], [Color(0.6, 0.6, 0.6), 0.03, 0.06],
+	[Color(1.0, 0.95, 0.8), 0.0, 0.07], [Color(0.45, 0.85, 0.4), 0.04, 0.20], [Color(0.95, 0.75, 0.3), 0.05, 0.30]]
+## The tints as radial gradients, made once.
+static var _tints := []
 ## The well's frame, which the tint stays inside.
 const TINT_INSET := 3.0
 var selected := false:
@@ -119,6 +123,25 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
+## The radial tint of grade `g`: its middle colour fading out to its edge colour.
+static func _tint(g: int) -> Texture2D:
+	if _tints.is_empty():
+		for t: Array in GRADE_TINTS:
+			var c: Color = t[0]
+			var grad := Gradient.new()
+			grad.set_color(0, Color(c, t[1]))
+			grad.set_color(1, Color(c, t[2]))
+			var tex := GradientTexture2D.new()
+			tex.gradient = grad
+			tex.fill = GradientTexture2D.FILL_RADIAL
+			tex.fill_from = Vector2(0.5, 0.5)
+			tex.fill_to = Vector2(0.5, 0.0)
+			tex.width = 32
+			tex.height = 32
+			_tints.append(tex)
+	return _tints[g]
+
+
 func cancel_tap() -> void:
 	_down = -1
 
@@ -126,9 +149,8 @@ func cancel_tap() -> void:
 func _draw() -> void:
 	draw_style_box(_box_selected if selected else _box, Rect2(Vector2.ZERO, size))
 	if grade >= 0 and texture != null:
-		var tint: Color = GRADE_TINTS[clampi(grade, 0, GRADE_TINTS.size() - 1)]
-		if tint.a > 0.0:
-			draw_rect(Rect2(Vector2.ONE * TINT_INSET, size - Vector2.ONE * TINT_INSET * 2.0), tint)
+		draw_texture_rect(_tint(clampi(grade, 0, GRADE_TINTS.size() - 1)),
+			Rect2(Vector2.ONE * TINT_INSET, size - Vector2.ONE * TINT_INSET * 2.0), false)
 	if texture != null:
 		draw_texture_rect(texture, Rect2(((size - icon_size) * 0.5).floor(), icon_size), false,
 			INACTIVE if inactive else Color.WHITE)
