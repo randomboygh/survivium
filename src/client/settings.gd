@@ -196,6 +196,9 @@ var instant_craft := false
 ## Playtest switch: the craft tab shows every recipe, and «получить» gives the chosen
 ## one's thing for nothing (Rules.free_items, Workshop.give_free). Not saved.
 var free_items := false
+## Playtest switch: the animals that bite go for the people (Rules.animal_attacks,
+## Wildlife._fights). Not saved.
+var animal_attacks := true
 ## Playtest switch: satiety does not fall (Vitals.hunger off). Not saved.
 var no_hunger := false
 ## Playtest switch: the body does not tire (Vitals.fatigue off: energy stays, work and swimming cost no stamina). Not saved.
@@ -375,6 +378,7 @@ func apply() -> void:
 		game.rules.tool_wear = tool_wear
 		game.rules.instant_craft = instant_craft
 		game.rules.free_items = free_items
+		game.rules.animal_attacks = animal_attacks
 	if game.session != null:
 		game.session.clock.time_speed = time_speed() * time_boost
 		game.session.clock.real_time = values.real_time
@@ -615,6 +619,11 @@ func set_tool_wear(on: bool) -> void:
 
 func set_instant_craft(on: bool) -> void:
 	instant_craft = on
+	apply()
+
+
+func set_animal_attacks(on: bool) -> void:
+	animal_attacks = on
 	apply()
 
 

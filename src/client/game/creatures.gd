@@ -11,7 +11,8 @@ extends Node3D
 ## it covers, two steps a round, or of a flyer's wing beat in the air; one that hops shows
 ## the second while in a leap (legs stretched) and the third as it takes off and lands;
 ## a flyer with `hop` frames (the last ones) hops with them as it goes about on the
-## ground (one with none, a butterfly, sits still, slowly beating its wings), and `attack` frames after those its attack (not shown yet: no animal attacks);
+## ground (one with none, a butterfly, sits still, slowly beating its wings), and `attack` frames after those its attack
+## (as it leaps to bite, the first while it warns one off, see Wildlife._fights);
 ## the frames left are idle ones (a tail flicked, the head bent down) shown now
 ## and then while it stands. Which
 ## view and which way is worked out here from how it moved on the screen: the server
@@ -53,6 +54,8 @@ const FRONT := 1
 const BACK := 2
 ## World units a flyer goes on the ground a round of its hop (crouched, up, sitting).
 const HOP_STEP := 0.36
+## Seconds each attack frame of a bite shows (Wildlife.BITE_TIME over three frames).
+const BITE_FRAME := 0.13
 
 
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
@@ -71,6 +74,8 @@ class Look:
 	var flutter_end := 0.0
 	## The sprite's scale.x last put (0 before the first): set only when it changes.
 	var flip := 0.0
+	## When its bite began to be drawn (-1: it does not bite now).
+	var bite_at := -1.0
 
 
 var wildlife
@@ -220,6 +225,20 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		look.change_at = now + _rng.randf_range(SIT_GAP.x, SIT_GAP.y)
 		return 0
 	var attack: int = looks[a.kind][7]
+	if attack > 0 and a.state == "bite":
+		# The leap to bite: its attack frames one after another, the
+		# last held till it is done (Wildlife.BITE_TIME).
+		look.idle = 0
+		if look.bite_at < 0.0:
+			look.bite_at = now
+		look.change_at = now
+		return frames - attack + mini(int((now - look.bite_at) / BITE_FRAME), attack - 1)
+	look.bite_at = -1.0
+	if attack > 0 and a.state == "warn":
+		# Warning one off: crouched, its first attack frame.
+		look.idle = 0
+		look.change_at = now
+		return frames - attack
 	if a.moving and hop > 0 and spec.flies:
 		# Hopping about on the ground: crouched, up (the last frames), sitting.
 		look.idle = 0
