@@ -93,7 +93,11 @@ const SCRIPT := """
 		var size = sizes[name];
 		var link = name === 'linkProgram';
 		p[name] = function (a, b, c, d, e, g, h, i, j, k, l, m) {
-			var n = arguments.length;
+			// How many it was called with, without `arguments` (an object at every call):
+			// WebGL treats arguments left undefined at the end as not given.
+			var n = m !== undefined ? 12 : l !== undefined ? 11 : k !== undefined ? 10 : j !== undefined ? 9
+				: i !== undefined ? 8 : h !== undefined ? 7 : g !== undefined ? 6 : e !== undefined ? 5
+				: d !== undefined ? 4 : c !== undefined ? 3 : b !== undefined ? 2 : a !== undefined ? 1 : 0;
 			var t = performance.now();
 			var r = call(f, this, n, a, b, c, d, e, g, h, i, j, k, l, m);
 			t = performance.now() - t;
