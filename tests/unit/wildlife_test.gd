@@ -746,6 +746,14 @@ class Owner extends Who:
 	var id := 5
 
 
+## No wild animals come to `life`'s chunks while a test runs it: a fox settled there at
+## random would frighten the test's hare away (the tame flee from threats too).
+func _alone(life: Wildlife) -> void:
+	for key: Vector2i in life.world.chunks:
+		life._settled[key] = true
+	life.respawn_timer = -INF
+
+
 ## Taming by hand (ActionsTame): a hare does not flee from one holding a carrot, is fed
 ## from the hand three times and is then theirs, follows them, stays when told, is shorn
 ## with a knife once its wool has grown, has young with another fed tame one staying
@@ -753,6 +761,7 @@ class Owner extends Who:
 func _test_taming(w: WorldData) -> void:
 	var life := Wildlife.new()
 	life.world = w
+	_alone(life)
 	life.clock = Clock.new()
 	life.clock.time_of_day = 0.5
 	var who := Owner.new()
@@ -841,6 +850,7 @@ func _test_taming(w: WorldData) -> void:
 func _test_trap(w: WorldData) -> void:
 	var life := Wildlife.new()
 	life.world = w
+	_alone(life)
 	life.clock = Clock.new()
 	life.clock.time_of_day = 0.5
 	var placed := Placed.new()
