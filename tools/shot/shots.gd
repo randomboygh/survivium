@@ -483,6 +483,8 @@ const SHOTS := {
 	"weave": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "weave": true,
 		"drops": ["plants:flax_stalks", "plants:linen_thread", "materials:cloth", "materials:tar", "materials:glass", "tools:raw_pot", "tools:pot", "tools:lantern", "tools:tar_torch", "plants:roasted_acorns"]},
 	"craft-loom": {"time": 0.42, "season": 1, "touch": true, "craft": true, "weave": true, "recipe": "plants:cloth"},
+	# Logs and branches lying on the ground, as a felled tree leaves them.
+	"logs": {"time": 0.42, "season": 1, "clearing": true, "drops": ["resources:log", "resources:log", "resources:branch", "resources:log", "resources:branch", "resources:log"]},
 	# A copper pickaxe at its strike, and copper tools lying on the ground.
 	"hands-copper": {"time": 0.42, "season": 1, "hands": {"tool": "tools:copper_pickaxe", "facing": "e", "work": "chop", "strike": true},
 		"drops": ["tools:copper_axe", "tools:copper_sword", "tools:copper_scythe", "tools:copper_shovel", "materials:copper_bar", "materials:charcoal"]},
@@ -660,8 +662,12 @@ const SHOTS := {
 	"ui-main-menu-night": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 23.5},
 	"ui-main-menu-single-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "single", "painted": true,
 		"menu_hour": 15.0},
-	# The easter egg: ten taps on the sparrow of the name blow it up in a salute.
-	"ui-main-menu-egg": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 22.0, "egg": true},
+	# The easter egg: ten taps on the sparrow of the name burst it into feathers, caught
+	# as they fly apart and later as they drift down.
+	"ui-main-menu-egg": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 22.0, "egg": true,
+		"egg_ms": 400},
+	"ui-main-menu-egg-fall": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 13.0,
+		"egg": true, "egg_ms": 2200},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-changes": {"time": 0.42, "season": 1, "touch": true, "main_menu": "changes"},

@@ -787,20 +787,25 @@ static func chest() -> VoxelModel:
 	return m
 
 
-## A log a cell and a half long along x, its cut ends light with a dark ring.
+## A log almost two cells long along x and thick (6 voxels across, rounded), its cut ends
+## light with darker rings.
 static func _log() -> VoxelModel:
 	var m := VoxelModel.new()
 	var bark := Color(0.27, 0.19, 0.13)
 	var wood := Color(0.6, 0.46, 0.3)
-	for x in range(-6, 6):
-		for y in range(0, 4):
-			for z in range(-2, 2):
+	for x in range(-7, 7):
+		for y in range(0, 6):
+			for z in range(-3, 3):
 				# Rounded: the corners of the cross-section are left out.
-				if (y == 0 or y == 3) and (z == -2 or z == 1):
+				var dy := absf(y - 2.5)
+				var dz := absf(z + 0.5)
+				if dy + dz > 3.5:
 					continue
-				var c := bark * (0.85 if (x * 3 + z) % 5 == 0 else 1.0) * (1.1 if y == 3 else 1.0)
-				if x == -6 or x == 5:
-					c = wood if (y == 1 or y == 2) and (z == -1 or z == 0) else wood * 0.8
+				var c := bark * (0.85 if (x * 3 + z + y) % 5 == 0 else 1.0) * (1.1 if y >= 4 else 1.0)
+				if x == -7 or x == 6:
+					# The cut: light heartwood, a darker ring, bark round it.
+					var r := maxf(dy, dz)
+					c = wood if r < 1.0 else (wood * 0.8 if r < 2.0 else wood * 0.9)
 				m.set_voxel(Vector3i(x, y, z), c)
 	return m
 

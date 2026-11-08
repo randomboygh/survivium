@@ -2,11 +2,13 @@ extends Control
 ## The first part of the main menu (main_menu.gd): the painted landscape behind it,
 ## its sky coloured for the hour of the device's clock (the sun or the moon, the stars at
 ## night, a flock passing), and the sparrow on the menu's name that hops about, flies off,
-## and after enough taps blows up in a salute of rockets.
+## and after enough taps bursts into feathers that drift down.
 ##
 ## The menu is one script split by topic (decision 168, as decision 145): menu_backdrop.gd
 ## <- menu_loading.gd <- menu_pages.gd <- main_menu.gd; each part extends the one before and
 ## calls only what it or an earlier part defines, and callers know only main_menu.gd.
+
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 ## The two-line «Продолжить» of «Одиночная игра», as tall as a row of «Загрузить мир».
 const PLAY_H := 42
@@ -53,16 +55,20 @@ const HOP_STEP := 16.0
 ## One pixel of the sparrow in UI px, so it stands a little lower than the capitals.
 const BIRD_PX := 3
 ## The easter egg: taps on the sparrow in a row (each within TAP_GAP seconds) that blow
-## it up, the rockets of the salute, their colours and the feathers', the seconds the
-## sparrow is away and the seconds it takes to fly back in.
+## it up, the feathers it bursts into, their colours (the vane's, a quill is the lightest)
+## and the fluff of down among them, the seconds the sparrow is away and the seconds it
+## takes to fly back in.
 const TAPS_TO_BLOW := 10
 const TAP_GAP := 2.5
-const ROCKETS := 7
-## How fast a rising rocket slows (UI px/s²).
-const ROCKET_FALL := 60.0
-const SALUTE := [Color("#e9b44c"), Color("#e0613f"), Color("#8fcf6a"), Color("#7cc0f0"), Color("#f08cc8"),
-	Color("#fff3c4")]
-const FEATHERS := [Color("#6b4a2e"), Color("#8f6a44"), Color("#c9a77c"), Color("#3a2a1c"), Color("#e8d8bc")]
+const FEATHER_COUNT := 26
+const DOWN_COUNT := 30
+const FEATHERS := [Color("#6b4a2e"), Color("#8f6a44"), Color("#c9a77c"), Color("#3a2a1c"), Color("#a0784c")]
+const QUILL := Color("#efe3c8")
+const DOWN := [Color("#e8d8bc"), Color("#f4ecdc"), Color("#c9a77c")]
+## Milliseconds of the light buzz of each tap on the sparrow, and of the strong one when
+## it bursts (Vibration, as the setting «Вибрация» allows).
+const TAP_BUZZ_MS := 14
+const BLOW_BUZZ_MS := 260
 const BIRD_AWAY := 12.0
 const FLY_TIME := 1.8
 ## The hour the painted sky shows, -1 for the device's clock (a shot sets it).
@@ -97,14 +103,14 @@ var _bird_left := 1.0
 var _bird_from := 40.0
 var _bird_to := 40.0
 ## The easter egg (see _explode): what takes the taps on the sparrow, the taps so far
-## and the seconds left to the next, the layer the salute is drawn on, its rockets and
-## sparks, the flash where the sparrow was, the seconds the name shakes and where the
-## name stands still.
+## and the seconds left to the next, the layer the burst is drawn on, its feathers and
+## specks of down, the flash where the sparrow was, the seconds the name shakes and where
+## the name stands still.
 var _sparrow_hit: Control
 var _taps := 0
 var _tap_clock := 0.0
 var _fx: Control
-var _rockets: Array = []
+var _feathers: Array = []
 var _sparks: Array = []
 var _flash := {}
 var _shake := 0.0
@@ -328,8 +334,10 @@ func _on_sparrow_input(event: InputEvent) -> void:
 	_tap_clock = TAP_GAP
 	game.sound.play("click", Vector3.INF, 0.7, 1.0 + 0.09 * _taps, "UI")
 	if _taps >= TAPS_TO_BLOW:
+		Vibration.buzz(game, BLOW_BUZZ_MS)
 		_explode()
 		return
+	Vibration.buzz(game, TAP_BUZZ_MS)
 	if _bird_do != "hop":
 		_bird_do = "hop"
 		_bird_from = _bird_x
@@ -337,9 +345,9 @@ func _on_sparrow_input(event: InputEvent) -> void:
 		_bird_left = HOP_TIME
 
 
-## The easter egg: the sparrow bursts into feathers with a flash, the name shakes, and
-## a salute of pixel rockets goes up over it, each bursting into sparks of its colour
-## that fall and twinkle out; the sparrow comes back later (see _move_sparrow).
+## The easter egg: the sparrow bursts into feathers with a flash and the name shakes;
+## the feathers fly apart, then drift down rocking side to side and turning, among
+## specks of down, and fade out; the sparrow comes back later (see _move_sparrow).
 func _explode() -> void:
 	_taps = 0
 	print("easter egg: the sparrow blew up")
@@ -350,59 +358,48 @@ func _explode() -> void:
 	var at := _title.position + r.get_center()
 	_bird_do = "gone"
 	_bird_left = BIRD_AWAY
-	_shake = 0.7
+	_shake = 0.6
 	_flash = {"p": at, "t": 0.0}
-	game.sound.play("thunder", Vector3.INF, 0.7, 2.2, "UI")
-	for i in 46:
+	game.sound.play("thunder", Vector3.INF, 0.6, 2.6, "UI")
+	for i in FEATHER_COUNT:
+		var a := TAU * (i + randf() * 0.8) / FEATHER_COUNT
+		var v := Vector2(cos(a), sin(a) * 0.8) * randf_range(70.0, 190.0) + Vector2(0, -50)
+		_feathers.append({"p": at + Vector2(cos(a), sin(a)) * 4.0, "v": v, "t": 0.0, "life": randf_range(2.6, 4.2),
+			"c": FEATHERS[randi() % FEATHERS.size()], "len": randi_range(3, 6), "wide": randf() < 0.6,
+			"a": a + randf_range(-0.6, 0.6), "spin": randf_range(-9.0, 9.0), "fall": randf_range(16.0, 30.0),
+			"rock": randf_range(5.0, 12.0), "beat": randf_range(2.2, 3.6), "ph": randf() * TAU, "x": 0.0})
+	for i in DOWN_COUNT:
 		var a := randf() * TAU
-		var v := Vector2(cos(a), sin(a)) * randf_range(40.0, 150.0) + Vector2(0, -40)
-		_sparks.append({"p": at, "v": v, "t": 0.0, "life": randf_range(0.8, 1.6),
-			"c": FEATHERS[randi() % FEATHERS.size()], "s": 2.0 if i % 3 == 0 else 1.0, "drag": 2.2, "fall": 60.0})
-	# Each rocket goes up from under the name and bursts around it, on the screen however
-	# near its top the name stands.
-	var name := Rect2(_title.position, _title.size)
-	for i in ROCKETS:
-		var x := name.position.x + name.size.x * randf_range(0.0, 1.0)
-		var from := Vector2(x, name.end.y + 110.0)
-		var burst := Vector2(x + randf_range(-30.0, 30.0), name.position.y + randf_range(-4.0, name.size.y + 50.0))
-		var fuse := randf_range(0.6, 0.8)
-		var v := (burst - from) / fuse - Vector2(0.0, 0.5 * ROCKET_FALL * fuse)
-		_rockets.append({"p": from, "v": v, "wait": i * 0.28 + randf() * 0.1, "fuse": fuse,
-			"c": SALUTE[randi() % SALUTE.size()]})
+		var v := Vector2(cos(a), sin(a)) * randf_range(20.0, 120.0) + Vector2(0, -30)
+		_sparks.append({"p": at, "v": v, "t": 0.0, "life": randf_range(1.2, 2.6),
+			"c": DOWN[randi() % DOWN.size()], "s": 2.0 if i % 4 == 0 else 1.0, "drag": 2.6, "fall": 14.0})
 
 
-## Moves the salute's rockets and sparks (UI px, seconds) and draws them again.
+## Moves the feathers and the down (UI px, seconds) and draws them again.
 func _update_fx(delta: float) -> void:
-	if _sparks.is_empty() and _rockets.is_empty() and _shake <= 0.0 and _flash.is_empty():
+	if _sparks.is_empty() and _feathers.is_empty() and _shake <= 0.0 and _flash.is_empty():
 		return
 	_shake = maxf(_shake - delta, 0.0)
 	if not _flash.is_empty():
 		_flash.t += delta
 		if _flash.t > 0.25:
 			_flash = {}
-	for k in range(_rockets.size() - 1, -1, -1):
-		var r: Dictionary = _rockets[k]
-		if r.wait > 0.0:
-			r.wait -= delta
-			if r.wait <= 0.0:
-				game.sound.play("ignite", Vector3.INF, 0.35, 1.6, "UI")
+	for k in range(_feathers.size() - 1, -1, -1):
+		var f: Dictionary = _feathers[k]
+		f.t += delta
+		if f.t >= f.life:
+			_feathers.remove_at(k)
 			continue
-		r.p += r.v * delta
-		r.v.y += ROCKET_FALL * delta
-		r.fuse -= delta
-		# A trail of fading sparks behind it.
-		_sparks.append({"p": r.p, "v": Vector2(randf_range(-8, 8), randf_range(10, 30)), "t": 0.0, "life": 0.35,
-			"c": Color("#ffe9a8"), "s": 1.0, "drag": 1.0, "fall": 20.0})
-		if r.fuse <= 0.0:
-			game.sound.play("thunder", Vector3.INF, 0.45, randf_range(2.4, 3.2), "UI")
-			var n := 56
-			for i in n:
-				var a := TAU * i / n + randf() * 0.1
-				var speed := randf_range(90.0, 150.0)
-				_sparks.append({"p": r.p, "v": Vector2(cos(a), sin(a)) * speed, "t": 0.0, "life": randf_range(1.1, 1.7),
-					"c": r.c if i % 4 else Color.WHITE, "s": 3.0 if i % 5 == 0 else 2.0, "drag": 1.4, "fall": 45.0,
-					"twinkle": true})
-			_rockets.remove_at(k)
+		# Thrown out fast, the air soon holds a feather to a slow fall, rocking it side to
+		# side and tilting it with each swing; its spin dies down.
+		f.v.x *= maxf(0.0, 1.0 - 3.2 * delta)
+		f.v.y = move_toward(f.v.y * maxf(0.0, 1.0 - 2.4 * delta), f.fall, 90.0 * delta)
+		f.p += f.v * delta
+		var settle := minf(f.t / 0.8, 1.0)
+		var swing := sin(f.t * f.beat + f.ph)
+		f.x = swing * f.rock * settle
+		f.spin *= maxf(0.0, 1.0 - 2.5 * delta)
+		f.a += (f.spin + cos(f.t * f.beat + f.ph) * 1.6 * settle) * delta
 	for k in range(_sparks.size() - 1, -1, -1):
 		var p: Dictionary = _sparks[k]
 		p.t += delta
@@ -424,16 +421,31 @@ func _draw_fx() -> void:
 		var k: float = 1.0 - _flash.t / 0.25
 		var r: float = 6.0 + 40.0 * _flash.t / 0.25
 		_fx_ring(_flash.p, r, Color(1.0, 0.97, 0.85, k))
-	for r: Dictionary in _rockets:
-		if r.wait <= 0.0:
-			_fx.draw_rect(Rect2(r.p.floor(), Vector2(2, 2)), Color("#fff3c4"))
 	for p: Dictionary in _sparks:
-		var a: float = 1.0 - p.t / p.life
-		if p.get("twinkle", false) and p.t > p.life * 0.5 and int(p.t * 20.0 + p.p.x) % 3 == 0:
-			continue
 		var c: Color = p.c
-		c.a = clampf(a * 1.5, 0.0, 1.0)
+		c.a = clampf((1.0 - p.t / p.life) * 1.5, 0.0, 1.0)
 		_fx.draw_rect(Rect2(p.p.floor(), Vector2.ONE * p.s), c)
+	for f: Dictionary in _feathers:
+		_draw_feather(f)
+
+
+## A feather in whole 2 px cells along its tilt: a light quill at its foot, the vane
+## after it, a cell wider in the middle when it is a broad one; it fades at the end.
+func _draw_feather(f: Dictionary) -> void:
+	var fade: float = clampf((f.life - f.t) / 0.8, 0.0, 1.0)
+	var along := Vector2(cos(f.a), sin(f.a))
+	var side := Vector2(-along.y, along.x)
+	var n: int = f.len
+	var mid: Vector2 = f.p + Vector2(f.x, 0.0)
+	for i in n:
+		var at := mid + along * 2.0 * (i - (n - 1) * 0.5)
+		var c: Color = QUILL if i == 0 else f.c
+		c.a = fade
+		_fx.draw_rect(Rect2(at.floor(), Vector2(2, 2)), c)
+		if f.wide and i > 0 and i < n - 1:
+			var v: Color = f.c.darkened(0.15)
+			v.a = fade
+			_fx.draw_rect(Rect2((at + side * 2.0).floor(), Vector2(2, 2)), v)
 
 
 ## A ring of whole pixels of radius `r` around `at`.
