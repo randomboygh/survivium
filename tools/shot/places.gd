@@ -606,6 +606,71 @@ func openings(w, at: Vector3, by_storage := false) -> Vector3:
 	return (Vector3(x0 + 15, spot.y, z + 5) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## Fences and the rest of stage 1's building near `at`, on flat ground: a pen of fence
+## 8×6 with a wicket open in its south side and a gate shut in its east side; west of it a
+## brick wall with the big gates 3×3, the west ones shut; east of it a wall four high with
+## a ladder up it, and a deck of planks on it with a hatch open and a wide one shut.
+## Returns where the player stands: south of the pen.
+func fences(w, at: Vector3) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var p = main.session.placed
+	var y := spot.y
+	for x in range(spot.x - 16, spot.x + 18):
+		for z in range(spot.z - 12, spot.z + 4):
+			for dy in 8:
+				if w.get_cell(x, y + dy, z) != Mat.AIR:
+					w.set_cell(x, y + dy, z, Mat.AIR)
+	# The pen: x -4..3, z -9..-4, on trodden bare ground (tall grass hid the fence).
+	var a := Vector2i(spot.x - 4, spot.z - 9)
+	var b := Vector2i(spot.x + 3, spot.z - 4)
+	for x in range(a.x - 2, b.x + 3):
+		for z in range(a.y - 2, b.y + 4):
+			if w.get_cell(x, y - 1, z) == Mat.GRASS:
+				w.set_cell(x, y - 1, z, Mat.DIRT)
+	for x in range(a.x, b.x + 1):
+		for z in range(a.y, b.y + 1):
+			if x != a.x and x != b.x and z != a.y and z != b.y:
+				continue
+			if z == b.y and x == spot.x - 1 or x == b.x and (z == a.y + 2 or z == a.y + 3):
+				continue
+			p.put("tools:fence", Vector3i(x, y, z), null, true, -1.0, null, 0 if z == a.y or z == b.y else 1)
+	p.put("tools:wicket", Vector3i(spot.x - 1, y, b.y), null, true, -1.0, null, 0, true)
+	p.put("tools:gate", Vector3i(b.x - 1, y, a.y + 2), null, true, -1.0, null, 3)
+	# The barn wall to the west with the big gates.
+	var wx := spot.x - 15
+	for x in range(wx, wx + 8):
+		for dy in 4:
+			var gap := x >= wx + 2 and x < wx + 5 and dy < 3
+			if not gap:
+				w.set_cell(x, y + dy, spot.z - 6, brick)
+	p.put("tools:door_3x3", Vector3i(wx + 2, y, spot.z - 6))
+	# The wall to the east, four high, a deck of planks on it to the north, a ladder up it.
+	var ex := spot.x + 8
+	for x in range(ex, ex + 7):
+		for z in range(spot.z - 9, spot.z - 4):
+			for dy in 4:
+				var edge := z == spot.z - 5 or x == ex or x == ex + 6 or z == spot.z - 9
+				if edge or dy == 3:
+					w.set_cell(x, y + dy, z, planks if dy == 3 else brick)
+	p.put("tools:hatch", Vector3i(ex + 2, y + 3, spot.z - 7), null, true, -1.0, null, 0, true)
+	w.set_cell(ex + 2, y + 3, spot.z - 7, Mat.AIR)
+	for c: Vector3i in [Vector3i(ex + 4, y + 3, spot.z - 8), Vector3i(ex + 5, y + 3, spot.z - 8),
+			Vector3i(ex + 4, y + 3, spot.z - 7), Vector3i(ex + 5, y + 3, spot.z - 7)]:
+		w.set_cell(c.x, c.y, c.z, Mat.AIR)
+	p.put("tools:hatch_2x2", Vector3i(ex + 4, y + 3, spot.z - 8))
+	for dy in 4:
+		p.put("tools:ladder", Vector3i(ex + 3, y + dy, spot.z - 4))
+	for c: Vector3i in w.bushes.keys():
+		if c.x >= spot.x - 17 and c.x <= spot.x + 18 and c.z >= spot.z - 12 and c.z <= spot.z + 4:
+			w.remove_bush(c)
+	for dx in range(-16, 25, 8):
+		for dz in [-8, 0]:
+			main.chunks.on_cell_changed(Vector3i(spot.x + dx, y, spot.z + dz))
+	return (Vector3(spot) + Vector3(0.5, 0.0, 1.5)) * CELL
+
+
 ## A shut room of brick 9×9 inside, three levels high under a roof, on flat ground near
 ## `at`: in its east wall from the north a window 1×2, a door 1×2 (open with `open_door`)
 ## and a window 2×2 (the door first, where the low morning sun lands in view, with

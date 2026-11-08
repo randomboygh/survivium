@@ -146,7 +146,11 @@ func _take_claim(claim: Vector3, jumped_told: bool) -> void:
 	var to := Vector2(claim.x - _sim.x, claim.z - _sim.z) / CELL
 	var reach: float = body.speed_at(_sim) * dt
 	body.move_input = (to / reach).limit_length(1.0) if reach > 0.0 else Vector2.ZERO
-	var jump: bool = jumped_told or (claim.y > _sim.y + 0.01 * CELL and body.on_ground)
+	# On a ladder the body climbs toward the height claimed, as fast as it climbs.
+	var on_ladder: bool = body.on_ladder(_sim)
+	var rise: float = BodyScript.CLIMB_SPEED * body.speed_scale * body.load_scale * dt
+	body.climb = clampf((claim.y - _sim.y) / CELL / rise, -1.0, 1.0) if on_ladder and rise > 0.0 else NAN
+	var jump: bool = jumped_told or (claim.y > _sim.y + 0.01 * CELL and body.on_ground and not on_ladder)
 	var got: Vector3 = body.step(_sim, dt, jump) if dt > 0.0 else _sim
 	# The jumps counted and paid for are the client's (Character.update).
 	body.jumped = jumped_told

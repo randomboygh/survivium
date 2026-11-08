@@ -20,6 +20,13 @@ extends RefCounted
 ## has `steps` (stairs) is solid by the steps of its model, a quarter of a cell each, so
 ## a body walks up them.
 ##
+## A fence (an item with `fence`, stage 1 building) stands in the middle of its cell and
+## joins the fences, wickets and gates beside it on its level with rails (`join`, see
+## joins), solid up to FENCE_TOP, over any jump; a wicket or a gate is a door with
+## `fence`, its leaf in the middle of its cells and as high. A hatch (`hatch` with `door`)
+## lies in a floor, solid shut, its lid swung up open. A ladder (`ladder`) is not solid:
+## its cells are WorldData.ladders, where a body climbs (Body).
+##
 ## Lights (an item with `light` and no `prop`: a torch, a candle, a lantern) are set down
 ## on one cell of their own (`lights`, see put_light_from_bag): not solid, they burn out
 ## their Items.burns seconds where they stand (step) and are gone, as in a hand (also when
@@ -65,6 +72,19 @@ const FUEL_TELL := 10.0
 ## spot is taken, and how many levels above or below the spawn it may stand (see camp_spot).
 const CAMP_REACH := 12
 const CAMP_RISE := 3
+## How high a fence, a wicket or a gate is solid, in cells over its floor: over the
+## jump of a body (Body.JUMP_SPEED, about 1.45 cells), so nothing jumps it.
+const FENCE_TOP := 2.0
+## The steps to the sides a fence joins, by the bit of `join` (1 << i): north, east,
+## south, west, as Placed.turn_voxels turns the north rail of its model.
+const SIDES: Array[Vector3i] = [Vector3i(0, 0, -1), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 0)]
+## How a thing set down rests (see _fits): on solid ground; anywhere, over air too, as
+## blocks are laid (stairs); on the ground or on a ladder under it (a ladder); in a floor,
+## a solid cell beside it (a hatch).
+const ON_GROUND := 0
+const ANYWHERE := 1
+const ON_LADDER := 2
+const IN_FLOOR := 3
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)
@@ -79,6 +99,8 @@ signal fuel_changed(e: Dictionary)
 signal opened(e: Dictionary)
 ## A cell under a thing was levelled or a bush there taken away: its chunks change.
 signal cell_changed(cell: Vector3i)
+## Fence `e` joins its neighbours anew (its `join` changed): drawn again.
+signal joined(e: Dictionary)
 
 var world
 ## The land claimed (Territory): a thing that `claims` set down from a bag is a claim's
@@ -110,6 +132,10 @@ var turned := {}
 ## The boxes of a door open, for each turn: kind -> [turn 0, 1, 2, 3]: none, an open door
 ## is drawn swung back (open_voxels) but bodies pass it.
 var opened_boxes := {}
+## The fences, wickets and gates by each cell they fill: what a fence joins (joins).
+var _fences := {}
+## While a wicket or a gate is being set down (put_at): the fences in its way may go.
+var _swap_fences := false
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
 static var sizes := {}
@@ -168,7 +194,10 @@ func read_footprints() -> void:
 			sizes[kind] = n
 			var all := []
 			for t in 4:
-				all.append(footprint(turn_voxels(voxels, n * 8, t), n, rec.get("steps", false)))
+				var boxes := footprint(turn_voxels(voxels, n * 8, t), n, rec.get("steps", false))
+				if rec.get("fence", false):
+					boxes = _fenced(boxes)
+				all.append(boxes)
 			footprints[kind] = all[0]
 			turned[kind] = all
 			var mids := []
@@ -186,6 +215,85 @@ func read_footprints() -> void:
 			footprints[kind] = [CRATE_BOX, CRATE_BOX, CRATE_BOX, CRATE_BOX]
 			turned[kind] = [footprints[kind], footprints[kind], footprints[kind], footprints[kind]]
 			sizes[kind] = 2
+
+
+## Boxes `boxes` (one per cell, see footprint) raised to FENCE_TOP: a fence's or a gate's.
+static func _fenced(boxes: Array) -> Array:
+	var out := []
+	for b in boxes:
+		if b is AABB and b.has_volume():
+			b = AABB(b.position, Vector3(b.size.x, FENCE_TOP, b.size.z))
+		out.append(b)
+	return out
+
+
+## The solid boxes of a fence joining the sides of bits `join` (see SIDES): its post in
+## the middle and a rail to each side joined, FENCE_TOP high, in cell units.
+static func fence_boxes(join: int) -> Array:
+	var lo := 3.0 / 8.0
+	var hi := 5.0 / 8.0
+	var out: Array[AABB] = [AABB(Vector3(lo, 0.0, lo), Vector3(hi - lo, FENCE_TOP, hi - lo))]
+	if join & 1:
+		out.append(AABB(Vector3(lo, 0.0, 0.0), Vector3(hi - lo, FENCE_TOP, hi)))
+	if join & 2:
+		out.append(AABB(Vector3(lo, 0.0, lo), Vector3(1.0 - lo, FENCE_TOP, hi - lo)))
+	if join & 4:
+		out.append(AABB(Vector3(lo, 0.0, lo), Vector3(hi - lo, FENCE_TOP, 1.0 - lo)))
+	if join & 8:
+		out.append(AABB(Vector3(0.0, 0.0, lo), Vector3(hi, FENCE_TOP, hi - lo)))
+	return out
+
+
+## The sides fence `e` joins (bits of SIDES): each beside it on its level where a fence, a
+## wicket or a gate stands; one alone has rails both ways across its front (along the
+## line it was set down in).
+func joins(e: Dictionary) -> int:
+	var join := 0
+	for i in 4:
+		if _fences.has(e.cell + SIDES[i]):
+			join |= 1 << i
+	if join == 0:
+		join = 10 if e.get("turn", 0) % 2 == 0 else 5
+	return join
+
+
+## The fences beside `cell` join their sides anew (one came or went there).
+func _rejoin_around(cell: Vector3i) -> void:
+	for d: Vector3i in SIDES:
+		var n: Dictionary = _fences.get(cell + d, {})
+		if n.is_empty() or not is_fence(n) or n.cell != cell + d:
+			continue
+		var join := joins(n)
+		if join == n.get("join", -1):
+			continue
+		n.join = join
+		world.blockers[n.cell] = boxes_of(n)[0]
+		joined.emit(n)
+
+
+## True for a fence (an item with `fence` that is no door): it joins those beside it.
+static func is_fence(e: Dictionary) -> bool:
+	if is_light(e):
+		return false
+	var item := Items.get_item(e.item)
+	return item.get("fence", false) and not item.get("door", false)
+
+
+## True for a ladder (an item with `ladder`): not solid, climbed (WorldData.ladders).
+static func is_ladder(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("ladder", false)
+
+
+## How item `id` rests when set down (ON_GROUND, ANYWHERE, ON_LADDER, IN_FLOOR).
+static func rest_of(id: String) -> int:
+	var item := Items.get_item(id)
+	if item.get("steps", false):
+		return ANYWHERE
+	if item.get("ladder", false):
+		return ON_LADDER
+	if item.get("hatch", false):
+		return IN_FLOOR
+	return ON_GROUND
 
 
 ## The cells a side of the square thing `item` (an item id with a `prop`) takes.
@@ -220,6 +328,26 @@ static func open_voxels(voxels, side := 8) -> Array[Vector3i]:
 	return out
 
 
+## Voxels `voxels` of the model of a door of item `id` on a square `side` voxels across
+## swung open (see open_voxels): a wicket's or a gate's leaf (`fence`), shut in the middle
+## of the depth of its cells, turned on the hinge at its outer end out to the south, into
+## the cell before it (open, it is solid nowhere); a hatch's lid (`hatch`), lying at the
+## top of its cell, stood up on the hinge at its north edge into the cell over it.
+static func swung_voxels(id: String, voxels, side := 8) -> Array[Vector3i]:
+	var item := Items.get_item(id)
+	if not item.get("fence", false) and not item.get("hatch", false):
+		return open_voxels(voxels, side)
+	var out: Array[Vector3i] = []
+	for p: Vector3i in voxels:
+		if item.get("hatch", false):
+			out.append(Vector3i(p.x, 8 + p.z, 7 - p.y))
+		elif side >= 16 and p.x >= side / 2:
+			out.append(Vector3i(side - 1 - (p.z - 3), p.y, 4 + (side - 1 - p.x)))
+		else:
+			out.append(Vector3i(p.z - 3, p.y, 4 + p.x))
+	return out
+
+
 ## The middle of the cells boxes `boxes` (one per cell of a square `n` across, see
 ## footprint) fill, in cells from the square's north-west corner across the ground.
 static func _middle(boxes: Array, n: int) -> Vector2:
@@ -244,6 +372,8 @@ static func turn_facing(step: Vector2i) -> int:
 ## door's by whether it is open.
 func boxes_of(e: Dictionary) -> Array:
 	var kind: String = Items.get_item(e.item).prop
+	if e.has("join"):
+		return [fence_boxes(e.join)]
 	if e.get("open", false) and opened_boxes.has(kind):
 		return opened_boxes[kind][e.get("turn", 0)]
 	if turned.has(kind):
@@ -252,8 +382,14 @@ func boxes_of(e: Dictionary) -> Array:
 	return [whole, whole, whole, whole]
 
 
-## Makes the cells thing `e` fills solid by its boxes (WorldData.blockers).
+## Makes the cells thing `e` fills solid by its boxes (WorldData.blockers); a ladder's
+## are climbed instead (WorldData.ladders: its turn by cell), a fence's join those beside.
 func _block(e: Dictionary) -> void:
+	if is_ladder(e):
+		world.ladders[e.cell] = e.get("turn", 0)
+		return
+	if is_fence(e):
+		e.join = joins(e)
 	var boxes := boxes_of(e)
 	var n := size_of(e.item)
 	for i in boxes.size():
@@ -263,6 +399,9 @@ func _block(e: Dictionary) -> void:
 
 ## Lets go of the cells thing `e` fills.
 func _unblock(e: Dictionary) -> void:
+	if is_ladder(e):
+		world.ladders.erase(e.cell)
+		return
 	for c: Vector3i in cells_of(e):
 		world.blockers.erase(c)
 
@@ -424,6 +563,12 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		if chest_items == null:
 			chest_items = e.items
 	things.append(e)
+	if rec.get("fence", false):
+		for c: Vector3i in cells_of(e):
+			_fences[c] = e
+		_rejoin_around(e.cell)
+		for c: Vector3i in cells_of(e):
+			_rejoin_around(c)
 	added.emit(e)
 	return e
 
@@ -628,11 +773,12 @@ static func lets_light(e: Dictionary) -> bool:
 	return not is_light(e) and Items.get_item(e.item).get("window", false)
 
 
-## True for a part of a building taken up at a tap: stairs, a window, furniture that
-## stores nothing (a table, a stool, a rug).
+## True for a part of a building taken up at a tap (in the build mode): stairs, a window,
+## a fence, a ladder, furniture that stores nothing (a table, a stool, a rug).
 static func is_part(e: Dictionary) -> bool:
 	var item := Items.get_item(e.item)
 	return not is_light(e) and (item.get("steps", false) or item.get("window", false)
+		or item.get("ladder", false) or item.get("fence", false) and not item.get("door", false)
 		or item.get("furniture", false) and item.get("storage", 0) == 0)
 
 
@@ -702,10 +848,10 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	var turn := turn_facing(who.facing_step())
 	var shape := _shape_of(item.id, turn)
 	var n := size_of(item.id)
-	var steps: bool = item.get("steps", false)
-	var spot: Variant = _spot_in_front(who, top, n, shape.offsets, steps, shape.high)
+	var rest := rest_of(item.id)
+	var spot: Variant = _spot_in_front(who, top, n, shape.offsets, rest, shape.high)
 	if spot == null:
-		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if not steps else "Перед собой нет места для ступеней")
+		who.nag("put", "Нужно ровное место %d×%d перед собой" % [n, n] if rest != ANYWHERE else "Перед собой нет места для ступеней")
 		return false
 	return _set_down(who, item, slot, spot, turn, shape.offsets)
 
@@ -746,16 +892,37 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 		who.nag("put", "Слишком далеко")
 		return false
 	var turn := turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
+	var rest := rest_of(item.id)
+	if rest == ON_LADDER:
+		# A ladder goes on with the one under it, turned as it is.
+		for dy in [1, 2]:
+			if world.ladders.has(aim - Vector3i(0, dy, 0)) and not world.ladders.has(aim - Vector3i(0, dy - 1, 0)):
+				turn = world.ladders[aim - Vector3i(0, dy, 0)]
 	var shape := _shape_of(item.id, turn)
 	var n := size_of(item.id)
-	var steps: bool = item.get("steps", false)
 	var cuts: bool = item.get("door", false) or item.get("window", false)
-	# An opening is cut from the level of their feet up: never into the floor they stand on.
+	# An opening is cut from the level of their feet up: never into the floor they stand on;
+	# a hatch's into the floor or the ceiling tapped.
 	var cut_from: int = floori(p.y + 0.25) if cuts else NO_CUT
-	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, steps, shape.high, cut_from)
+	if rest == IN_FLOOR:
+		cut_from = aim.y
+	_swap_fences = item.get("door", false) and item.get("fence", false)
+	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, rest, shape.high, cut_from)
+	_swap_fences = false
 	if spot == null:
 		who.nag("put", "Здесь нет места: %s" % Items.title(id))
 		return false
+	if item.get("door", false) and item.get("fence", false):
+		# A wicket or a gate set into a fence: the segments where it goes back into the bag.
+		for o: Vector3i in shape.offsets:
+			var f: Dictionary = _fences.get(spot + o, {})
+			if not f.is_empty() and is_fence(f):
+				if territory != null and not territory.may(who, f.cell, "build"):
+					return false
+				if who.give(f.item, 1) < 1:
+					who.nag("full", "Сумка полна")
+					return false
+				_remove(f)
 	var opening: Array[Vector3i] = []
 	if cuts:
 		for o: Vector3i in shape.offsets:
@@ -943,14 +1110,22 @@ func _forget(e: Dictionary) -> void:
 	if e.items == chest_items:
 		chest_items = null
 	things.erase(e)
+	var fenced: Array[Vector3i] = []
+	if Items.get_item(e.item).get("fence", false):
+		for c: Vector3i in _fences.keys():
+			if _fences[c] == e:
+				_fences.erase(c)
+				fenced.append(c)
 	removed.emit(e)
+	for c in fenced:
+		_rejoin_around(c)
 
 
 ## The north-west cell of a thing's square of `n` by `n` cells in front of `who` where it
 ## can be placed (see _fits; `offsets` the cells it fills from there, `steps` for stairs),
 ## the nearest to a cell beyond its middle ahead, at the feet's level or a cell below or
 ## above; null if none.
-func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps := false, high := 1) -> Variant:
+func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], rest := ON_GROUND, high := 1) -> Variant:
 	if offsets.is_empty():
 		for dz in n:
 			for dx in n:
@@ -972,14 +1147,14 @@ func _spot_in_front(who, top: int, n := 2, offsets: Array[Vector3i] = [], steps 
 	var deep := (hi.x - lo.x + 1) if s.x != 0 else (hi.y - lo.y + 1)
 	var ahead := deep * 0.5 + 0.5
 	var aim := Vector2(feet.x + 0.5 + s.x * ahead, feet.z + 0.5 + s.y * ahead)
-	return _spot_at(who, aim, feet.y, top, n, offsets, steps, high)
+	return _spot_at(who, aim, feet.y, top, n, offsets, rest, high)
 
 
 ## The north-west cell of the free spot for a thing filling `offsets` (see
 ## _spot_in_front) whose filled cells' middle is nearest column point `aim` (cells), at
 ## level `level`, one down or one up; blocks put there at level `cut_from` or higher may
 ## be taken out for it (a door, a window, see put_at). Null for none.
-func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Vector3i], steps: bool, high: int, cut_from := NO_CUT) -> Variant:
+func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Vector3i], rest: int, high: int, cut_from := NO_CUT) -> Variant:
 	var mid := Vector2.ZERO
 	for o: Vector3i in offsets:
 		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
@@ -991,31 +1166,55 @@ func _spot_at(who, aim: Vector2, level: int, top: int, n: int, offsets: Array[Ve
 			corners.append(base + Vector2i(dx, dz))
 	corners.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 		return (Vector2(a) + mid).distance_squared_to(aim) < (Vector2(b) + mid).distance_squared_to(aim))
+	# A hatch goes only into the floor or the ceiling tapped.
+	var levels: Array = [0] if rest == IN_FLOOR else [0, -1, 1]
 	for c in corners.slice(0, 6):
-		for dy in [0, -1, 1]:
+		for dy: int in levels:
 			var corner := Vector3i(c.x, level + dy, c.y)
-			if _fits(who, corner, top, offsets, steps, high, cut_from):
+			if _fits(who, corner, top, offsets, rest, high, cut_from):
 				return corner
 	return null
 
 
 ## Whether the cells `offsets` from `corner` (two by two when none are given) are free
-## (no cell, no other thing or light, not `who`), at or below level `top`, and stand on
-## solid ground, with air over them for a thing `high` cells tall (a door); stairs
-## (`steps`) may stand on air, as blocks are laid.
-func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], steps := false, high := 1, cut_from := NO_CUT) -> bool:
+## (no cell, no other thing, ladder or light, not `who`), at or below level `top`, and rest
+## as `rest` says (ON_GROUND on solid ground, see ON_GROUND), with air over them for a
+## thing `high` cells tall (a door); stairs may stand on air, as blocks are laid.
+func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], rest := ON_GROUND, high := 1, cut_from := NO_CUT) -> bool:
 	if offsets.is_empty():
 		offsets = [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1)]
 	for o: Vector3i in offsets:
 		var c := corner + o
-		if not _open(c, cut_from) or not steps and not world.is_solid(c.x, c.y - 1, c.z) \
-				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) or not light_at(c).is_empty() \
-				or _in_open_door(c):
+		if not _open(c, cut_from) or not _rests(c, rest) \
+				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) and not _swappable(c) or world.ladders.has(c) \
+				or not light_at(c).is_empty() or _in_open_door(c):
 			return false
 		for k in range(1, high):
 			if not _open(c + Vector3i(0, k, 0), cut_from) or world.blockers.has(c + Vector3i(0, k, 0)):
 				return false
 	return true
+
+
+## Whether the thing in cell `c` is a fence a wicket or a gate set down now takes the
+## place of (see put_at).
+func _swappable(c: Vector3i) -> bool:
+	return _swap_fences and _fences.has(c) and is_fence(_fences[c])
+
+
+## Whether a thing resting as `rest` (ON_GROUND…) can stand in cell `c`: on solid ground
+## (for a ladder on a ladder too), anywhere, or in a floor (a solid cell beside it).
+func _rests(c: Vector3i, rest: int) -> bool:
+	match rest:
+		ANYWHERE:
+			return true
+		ON_LADDER:
+			return world.is_solid(c.x, c.y - 1, c.z) or world.ladders.has(c + Vector3i.DOWN)
+		IN_FLOOR:
+			for d: Vector3i in SIDES:
+				if world.is_solid(c.x + d.x, c.y, c.z + d.z):
+					return true
+			return false
+	return world.is_solid(c.x, c.y - 1, c.z)
 
 
 ## Whether cell `c` is air, or a block put there that an opening takes out (at level
@@ -1134,7 +1333,7 @@ func light_spot(who, top: int) -> Variant:
 func _light_fits(who, cell: Vector3i, top: int) -> bool:
 	if cell.y > top or world.get_cell(cell.x, cell.y, cell.z) != Mat.AIR or not world.is_solid(cell.x, cell.y - 1, cell.z):
 		return false
-	if who.overlaps_cell(cell) or world.blockers.has(cell) or not light_at(cell).is_empty():
+	if who.overlaps_cell(cell) or world.blockers.has(cell) or world.ladders.has(cell) or not light_at(cell).is_empty():
 		return false
 	return true
 

@@ -131,7 +131,7 @@ func _run() -> void:
 		_check(made.has(r.id), "made: %s" % r.title)
 	var props := {}
 	for r: Dictionary in targets:
-		if Items.get_item(r.makes).get("prop", "none") != "none":
+		if Items.get_item(r.makes).get("prop", "none") != "none" and not Items.get_item(r.makes).get("hatch", false):
 			props[r.makes] = true
 	for id in props:
 		_check(set_down.has(id), "set down: %s" % Items.title(id))
@@ -366,7 +366,9 @@ func _craft_now(r: Dictionary, times: int) -> bool:
 			"waits for its station" if main.host.workshop.waiting() else "the bag is full?"])
 	made[r.id] = true
 	print("made %s ×%d" % [r.title, got])
-	if Items.get_item(r.makes).get("prop", "none") != "none" and not await _place(r.makes):
+	# A hatch goes into a floor of blocks (tests/unit/fences_test.gd), not on the camp's ground.
+	if Items.get_item(r.makes).get("prop", "none") != "none" and not Items.get_item(r.makes).get("hatch", false) \
+			and not await _place(r.makes):
 		return false
 	_tidy()
 	return true

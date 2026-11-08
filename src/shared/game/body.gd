@@ -37,6 +37,13 @@ const ASSIST := 0.35
 ## a sheer step of a whole cell is not walked up or down.
 const STEP_UP := 0.5
 const STEP_DOWN := 0.6
+## On a ladder (WorldData.ladders) a body climbs this fast, in cells a second, and holds
+## on this far over the top of its highest segment, in cells: over the floor a hatch's
+## hole cuts or by the top of a wall, where a step (STEP_UP) takes it off.
+const CLIMB_SPEED := 4.0
+const CLIMB_OVER := 0.6
+## A jump off a ladder lets go of ladders for this long, in seconds.
+const LET_GO := 0.4
 ## A swimmer floats with the feet this deep under the surface, so water up to one
 ## cell deep is waded and deeper water is swum.
 const SWIM_DEPTH := 0.9
@@ -126,6 +133,14 @@ var windage := 0.0
 ## Afloat: how fast the hull hit the bank or a rock in the last step (cells a second),
 ## 0 for none; whoever reads it (the sound of steps) clears it.
 var bump := 0.0
+## Climbing a ladder: how fast up (1) or down (-1) the owner wants the body to go; NAN
+## for the stick's way (toward the ladder up, away from it down). The server sets it
+## from where the client says the body went (Player).
+var climb := NAN
+## Whether the last step had the body on a ladder.
+var climbing := false
+## Seconds left the body lets go of ladders after a jump off one.
+var _let_go := 0.0
 ## Whether the last step started a jump.
 var jumped := false
 ## Whether jump was held in the last step: an air jump needs a fresh press.
@@ -182,6 +197,13 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	afloat = vessel > 0.0 and floats(at)
 	if afloat:
 		return _sail(p, delta) * CELL
+	_let_go = maxf(0.0, _let_go - delta)
+	var rung := ladder_turn(at) if _let_go <= 0.0 else -1
+	climbing = false
+	if rung >= 0:
+		var held: Variant = _climb(p, delta, rung, jump)
+		if held != null:
+			return held * CELL
 	# The ground under the body changed (a cell dug beside it reshaped the slopes) and
 	# it is in the ground now: up onto it, so it is not stuck there.
 	if _collides(p):
@@ -275,6 +297,81 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		p.y = ny
 		on_ground = false
 	return p * CELL
+
+
+## The turn of the ladder the body with its feet at `at` (world units) is on (see
+## WorldData.ladders), -1 for none: a ladder in the column under its middle, in the cell of
+## the feet, or in the one under them while the feet are less than CLIMB_OVER over it.
+func ladder_turn(at: Vector3) -> int:
+	if world == null or world.ladders.is_empty():
+		return -1
+	var p := at / CELL
+	var c := Vector3i(floori(p.x), floori(p.y + 0.001), floori(p.z))
+	if world.ladders.has(c):
+		return world.ladders[c]
+	if p.y - c.y < CLIMB_OVER and world.ladders.has(c + Vector3i.DOWN):
+		return world.ladders[c + Vector3i.DOWN]
+	return -1
+
+
+## True when the body with its feet at `at` (world units) is on a ladder: it does not fall
+## there (Character._fall counts no fall from it).
+func on_ladder(at: Vector3) -> bool:
+	return ladder_turn(at) >= 0
+
+
+## A step of the body at `p` (cells) on the ladder turned `turn`: no gravity, the stick
+## toward the ladder (its back, where it leans) up and away from it down, sideways along
+## the ground; over its top segment toward it the body also moves on, so a step takes it
+## over the edge. At the foot on solid ground the stick away walks off, and a jump lets go
+## (LET_GO). Null when the body is not held by the ladder this step (it walks).
+func _climb(p: Vector3, delta: float, turn: int, jump: bool) -> Variant:
+	var back := Vector2([Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)][turn])
+	var dir := move_input.limit_length(1.0)
+	var along := dir.dot(back)
+	var wish := clampf(climb, -1.0, 1.0) if is_finite(climb) else along
+	if jump and not _jump_was:
+		_let_go = LET_GO
+		on_ground = true
+		return null
+	var grounded := _collides(Vector3(p.x, p.y - STAND_PROBE, p.z))
+	if grounded and wish <= 0.0:
+		return null
+	climbing = true
+	on_ground = true
+	velocity_y = 0.0
+	swimming = false
+	water_depth = 0.0
+	water_level = -INF
+	jumped = false
+	_jump_was = jump
+	bumped = Vector3.INF
+	var speed := CLIMB_SPEED * speed_scale * load_scale
+	# Sideways along the ladder; on toward it only over its top, where a step takes the
+	# body off it (a ladder with no wall behind is not walked off the back of).
+	var side := dir - back * along
+	var over: bool = not world.ladders.has(Vector3i(floori(p.x), floori(p.y + 0.001), floori(p.z)))
+	var flat := side + (back * along if along > 0.0 and over else Vector2.ZERO)
+	glide = flat * SPEED * speed_scale * load_scale * 0.5
+	p = _try_move(p, Vector3(glide.x * delta, 0.0, 0.0), -INF)
+	p = _try_move(p, Vector3(0.0, 0.0, glide.y * delta), -INF)
+	if wish != 0.0:
+		var ny := p.y + wish * speed * delta
+		var q := Vector3(p.x, ny, p.z)
+		if wish > 0.0 and ladder_turn(q * CELL) < 0:
+			# The top: held at the most its highest segment reaches.
+			var base := floorf(p.y + 0.001)
+			var cell := Vector3i(floori(p.x), int(base), floori(p.z))
+			var top := base if world.ladders.has(cell) else base - 1.0
+			ny = maxf(p.y, minf(ny, top + 1.0 + CLIMB_OVER - 0.001))
+			q.y = ny
+		if not _collides(q):
+			p.y = ny
+		elif wish < 0.0:
+			var ground := _ground_top(p, ny - LAND_EPS, p.y)
+			if ground > -INF:
+				p.y = ground
+	return p
 
 
 ## True when a vessel under the body at `at` (world units) floats: open water, not

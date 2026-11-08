@@ -197,6 +197,9 @@ const SHOTS := {
 	# Doors and windows of every size in a brick wall, a fireplace burning, a wide cupboard
 	# (places.openings): by day, at dusk, and the bag by the cupboards and the barrel.
 	"build-openings": {"time": 0.4, "season": 1, "openings": "wall"},
+	# Stage 1 building (places.fences): a pen of fence with a wicket and a gate, the big
+	# gates in a barn wall, a ladder up a wall onto a deck with hatches.
+	"build-fences": {"time": 0.4, "season": 1, "fences": true},
 	"build-openings-dusk": {"time": 0.8, "season": 1, "moon": 0.0, "openings": "wall"},
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
 	"build-openings-bag-barrel": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2},

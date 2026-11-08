@@ -22,6 +22,8 @@ extends "res://src/shared/game/actions_boat.gd"
 ## wait. What changes in the world is told through the signals, for the views (the
 ## chunks, the things on the ground) and later the network.
 
+const Plans := preload("res://src/shared/game/plans.gd")
+
 ## The blueprint's ghost cells (Plans): the action button with a block builds them.
 var plans
 
@@ -37,6 +39,8 @@ var plans
 ## first); with none of that the hand
 ## swings at the air. Setting down a placed thing and eating are not this module's.
 func act_in_front(who, top: int) -> Dictionary:
+	if plans != null and Plans.is_fence(who.held()) and plans.builds(who):
+		return plans.build(self, who)
 	match Tools.use_of(who.held()):
 		"place":
 			if plans != null and plans.builds(who):
@@ -93,6 +97,8 @@ func act_in_front(who, top: int) -> Dictionary:
 ## front_farm), "chop", "gather" (a tree or a bush), "mow", "dig", or "" for a swing at
 ## the air.
 func front_kind(who) -> String:
+	if plans != null and Plans.is_fence(who.held()) and plans.builds(who):
+		return "build"
 	match Tools.use_of(who.held()):
 		"place":
 			return "build" if plans != null and plans.builds(who) else "place"

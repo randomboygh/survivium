@@ -44,6 +44,9 @@ const RESPAWN_EVERY := 15.0
 const CELL := WorldData.CELL
 ## Animals walk slopes and hop up a sheer step of one cell, not of two.
 const MAX_STEP := 0.55
+## How near (cells) to a fence or a shut gate an animal comes (see _fenced): about half its
+## body, so a fast one does not slip through the rails between two steps.
+const FENCE_GAP := 0.25
 ## The square around each of the people where the eaten are made up for, in cells each
 ## way, and in world units (ROAM); the chunks within it are looked at for new ones made.
 ## A kind's `count` lives on each such square (ROAM_CHUNKS chunks).
@@ -1590,11 +1593,30 @@ func _floor(spec: Dictionary, x: float, z: float) -> float:
 	if spec.swims:
 		var top := water_top(x, z)
 		if top == -INF and spec.ashore:
-			return ground(x, z)
+			return _fenced(ground(x, z), x, z)
 		if top == -INF and under_ice_swimmer(spec):
 			top = under_ice(x, z)
 		return top - DIP * CELL
-	return ground(x, z)
+	return _fenced(ground(x, z), x, z)
+
+
+## The floor `y` (world units) at world point x, z, or one far over it where a thing
+## over a cell and a half high stands there (a fence, a gate shut, a door: Placed, WorldData.blockers),
+## within FENCE_GAP cells of the point: no step goes up it, so a fence keeps the animals in
+## a pen and out of a yard. Lower things (a chest, a campfire) are walked through, as before.
+func _fenced(y: float, x: float, z: float) -> float:
+	if world.blockers.is_empty() or y <= 0.0:
+		return y
+	var px := x / CELL
+	var pz := z / CELL
+	var cx := floori(px)
+	var cz := floori(pz)
+	var fx := px - cx
+	var fz := pz - cz
+	# Over a cell and a half high: it stands into the cell over its own (WorldData.blocker_part).
+	if world.blocker_part(cx, floori(y / CELL + 0.01) + 1, cz, fx - FENCE_GAP, fx + FENCE_GAP, fz - FENCE_GAP, fz + FENCE_GAP) > 0.5:
+		return y + 4.0 * CELL
+	return y
 
 
 func _remove(a: Animal) -> void:

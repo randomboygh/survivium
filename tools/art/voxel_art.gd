@@ -25,9 +25,11 @@ const PLATINUM := Color(0.66, 0.68, 0.71)
 static func prop(kind: String, model := "") -> VoxelModel:
 	# Doors and windows of other sizes: `door_2x3` is two cells wide, three tall.
 	var sized := kind.split("_")
-	if sized.size() == 2 and sized[0] in ["door", "window"] and sized[1].contains("x"):
+	if sized.size() == 2 and sized[0] in ["door", "window", "hatch"] and sized[1].contains("x"):
 		var w := sized[1].get_slice("x", 0).to_int()
 		var h := sized[1].get_slice("x", 1).to_int()
+		if sized[0] == "hatch":
+			return hatch(w)
 		return door(w, h) if sized[0] == "door" else window(w, h)
 	match kind:
 		"bed", "bedroll":
@@ -58,6 +60,16 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return stairs()
 		"door":
 			return door()
+		"fence":
+			return fence()
+		"wicket":
+			return wicket(1)
+		"gate":
+			return wicket(2)
+		"hatch":
+			return hatch()
+		"ladder":
+			return ladder()
 		"window":
 			return window()
 		"table":
@@ -395,7 +407,7 @@ static func stairs() -> VoxelModel:
 	return m
 
 
-## A door `w` cells wide (a leaf a cell wide each), `h` cells tall: leaves of upright
+## A door `w` cells wide (one leaf a cell wide, or two leaves of half its width each), `h` cells tall: leaves of upright
 ## planks shut along the north edge of its cells (Placed.open_voxels swings the west one
 ## on the hinge at the north-west corner, the east one at the north-east), dark ledges
 ## across them near the top and the bottom (and in the middle of a tall one), a handle on
@@ -408,18 +420,105 @@ static func door(w := 1, h := 2) -> VoxelModel:
 	var ledges := [3, top - 4]
 	if h >= 3:
 		ledges.append(top / 2 - 1)
-	for i in w:
+	var leaf := 8 if w == 1 else 4 * w
+	for i in (1 if w == 1 else 2):
 		for y in top:
-			for lx in 8:
-				var x := i * 8 + lx
+			for lx in leaf:
+				var x := i * leaf + lx
 				var c := wood * (0.88 if lx % 3 == 2 else 1.0)
-				if lx == 0 or lx == 7 or y == top - 1:
+				if lx == 0 or lx == leaf - 1 or y == top - 1:
 					c = wood * 0.8
 				m.set_voxel(Vector3i(x, y, 0), c * 0.92)
 				m.set_voxel(Vector3i(x, y, 1), dark if y in ledges else c)
 		# The handle by the middle of the doorway: the single leaf's on its east side.
-		var hx := i * 8 + (1 if w > 1 and i == w - 1 else 6)
+		var hx := i * leaf + (1 if w > 1 and i == 1 else leaf - 2)
 		m.set_voxel(Vector3i(hx, 7, 2), Color(0.25, 0.22, 0.2))
+	return m
+
+
+## A fence segment on one cell: a post of a pole in the middle, a cell and a half high
+## with a darker cut top, and two rails of poles from it to the north edge (the model of
+## one side; Props draws a rail to each side it joins, Placed.joins), lighter on top.
+static func fence() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.55, 0.41, 0.27)
+	var bark := Color(0.4, 0.29, 0.19)
+	for y in 12:
+		for dx in 2:
+			for dz in 2:
+				var c := (wood if dx == 1 else bark) * (0.92 if y % 4 == 1 else 1.0)
+				if y == 11:
+					c = Color(0.72, 0.58, 0.4)
+				m.set_voxel(Vector3i(3 + dx, y, 3 + dz), c)
+	for y in [4, 9]:
+		for z in 3:
+			for dx in 2:
+				m.set_voxel(Vector3i(3 + dx, y, z), wood * (1.1 if dx == 1 else 0.9) * (0.94 if z == 1 else 1.0))
+	return m
+
+
+## A wicket (`w` 1) or a gate (`w` 2: two leaves, a cell wide each) of poles in the
+## middle of the depth of its cells, a cell and a half high, as the fence's rails: in
+## each leaf two upright stiles, three rails across and a brace from the lower corner by
+## the hinge up to the other (Placed.open_voxels swings the west leaf on the hinge at its
+## west end, the east one at its east end).
+static func wicket(w := 1) -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.57, 0.43, 0.28)
+	var dark := Color(0.4, 0.29, 0.19)
+	for i in w:
+		for y in 11:
+			for lx in 8:
+				var x := i * 8 + lx
+				var stile := lx == 0 or lx == 7
+				var rail := y == 1 or y == 5 or y == 9
+				# The brace climbs from the hinge's foot to the far top.
+				var hinge_side := lx if i == 0 else 7 - lx
+				var brace := absi(y - 1 - hinge_side) == 0 and y >= 1 and y <= 9
+				if not (stile or rail or brace):
+					continue
+				var c := dark if stile else wood
+				if brace and not stile and not rail:
+					c = wood * 0.85
+				if y == 10 and stile:
+					c = Color(0.72, 0.58, 0.4)
+				for z in [3, 4]:
+					m.set_voxel(Vector3i(x, y, z), c * (0.92 if z == 3 else 1.0))
+	return m
+
+
+## A hatch on one cell: a lid of planks two voxels thick at the top of its cell (the
+## floor's top), seams running north to south, a darker frame, an iron ring by the
+## south edge (Placed.open_voxels swings it up on the hinge at its north edge).
+static func hatch(w := 1) -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.44, 0.28)
+	var dark := Color(0.4, 0.28, 0.17)
+	var side := 8 * w
+	for z in side:
+		for x in side:
+			var c := wood * (0.86 if x % 3 == 2 else 1.0)
+			if x == 0 or x == side - 1 or z == 0 or z == side - 1 or w > 1 and z == side / 2:
+				c = dark
+			m.set_voxel(Vector3i(x, 7, z), c)
+			m.set_voxel(Vector3i(x, 6, z), dark * 0.9)
+	m.set_voxel(Vector3i(side / 2 - 1, 7, side - 3), Color(0.22, 0.21, 0.2))
+	m.set_voxel(Vector3i(side / 2, 7, side - 3), Color(0.3, 0.29, 0.28))
+	return m
+
+
+## A ladder segment a cell high against the back (north) of its cell: two poles by its
+## sides and two rungs across, every four voxels, so segments stacked make one ladder.
+static func ladder() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.45, 0.29)
+	var dark := Color(0.42, 0.3, 0.19)
+	for y in 8:
+		for x in [1, 6]:
+			m.set_voxel(Vector3i(x, y, 1), dark if x == 1 else wood)
+	for y in [2, 6]:
+		for x in range(2, 6):
+			m.set_voxel(Vector3i(x, y, 1), wood * (1.12 if x % 2 == 0 else 1.0))
 	return m
 
 

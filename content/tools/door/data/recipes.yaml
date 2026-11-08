@@ -17,3 +17,9 @@
   needs: {materials:planks: 12}
   at: workbench
   time: 10
+- id: door_3x3
+  title: Ворота 3×3
+  makes: door_3x3
+  needs: {materials:planks: 18}
+  at: workbench
+  time: 14

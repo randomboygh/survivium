@@ -53,7 +53,8 @@ func can_place(who, cell: Vector3i, top: int) -> bool:
 	if not world.in_bounds(cell.x, cell.y, cell.z) or cell.y > top or too_far(who, cell, Tools.PLACE_REACH):
 		return false
 	var cur: int = world.get_cell(cell.x, cell.y, cell.z)
-	if cur != Mat.AIR and cur != Mat.WATER or who.overlaps_cell(cell) or world.blocker_top(cell.x, cell.y, cell.z) > 0.0:
+	if cur != Mat.AIR and cur != Mat.WATER or who.overlaps_cell(cell) or world.blocker_top(cell.x, cell.y, cell.z) > 0.0 \
+			or world.ladders.has(cell):
 		return false
 	for d in [Vector3i.DOWN, Vector3i.UP, Vector3i.LEFT, Vector3i.RIGHT, Vector3i.FORWARD, Vector3i.BACK]:
 		var n: Vector3i = cell + d

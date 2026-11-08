@@ -135,6 +135,8 @@ func _run() -> void:
 			main.player.position = places.walls(main.world, main.player.position)
 		if shot.has("openings"):
 			main.player.position = places.openings(main.world, main.player.position, shot.openings == "storage")
+		if shot.get("fences", false):
+			main.player.position = places.fences(main.world, main.player.position)
 		if shot.has("lit_room"):
 			main.player.position = places.lit_room(main.world, main.player.position, shot.lit_room == "open",
 				shot.get("lamps", false), shot.get("door_first", false))

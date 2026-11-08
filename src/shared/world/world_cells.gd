@@ -106,6 +106,10 @@ var grows := Callable()
 ## corner, or an Array of boxes for the steps of stairs (Placed.footprint); a box higher
 ## than 1 fills the same part of the cell over it too.
 var blockers := {}
+## Ladders set down (Placed): cell -> the ladder's turn (Placed.turn_facing: its back, the
+## side it leans on, away from its front). Not solid: a body in a ladder's cell climbs
+## (Body.climbing).
+var ladders := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
