@@ -9,6 +9,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Tiers of lobes of an umbrella crown (pine), see _lobed.
 const UMBRELLA_TIERS := 3
@@ -20,17 +21,27 @@ const LOWEST_POINT := 3
 const INSET := 0.72
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := 8
+## How thick the stem of a young tree (place_young) is, in texels.
+const YOUNG_GIRTH := 2
+
+
+## Whether the trunk whose foot is the log at x, `foot`, z is a young tree's: its sapling's
+## record on the ground under it says so (WorldData.fields: a sapling, third field 1).
+static func young_at(w, x: int, foot: int, z: int) -> bool:
+	var f: Variant = w.field_at(Vector3i(x, foot - 1, z))
+	return f != null and f[2] >= 1.0 and Plants.is_sapling(f[0])
 
 
 ## The trunk of the tree of `species` in column `col`, `k` cells above its foot, in
 ## texels (8 to a cell) of its cell seen from above: x west to east, y north to south.
 ## Each tree has its own girth within the species' range, thins by its taper going up
 ## and may wander a texel or two east or west on the way (crook); a thick one is wider
-## than its cell.
-static func trunk_box(species: int, col: Vector2i, k: int) -> Rect2i:
+## than its cell. A young tree grown from a sapling (`young`, see young_at) has a stem
+## YOUNG_GIRTH texels thick, whatever its species.
+static func trunk_box(species: int, col: Vector2i, k: int, young := false) -> Rect2i:
 	var s: Dictionary = Trees.SPECIES[species]
 	var g: int = s.girth[0] + posmod(hash(col), s.girth[1] - s.girth[0] + 1)
-	var width := maxi(4, g - floori(k * s.taper))
+	var width := YOUNG_GIRTH if young else maxi(4, g - floori(k * s.taper))
 	var lean := 0
 	var crook: int = s.crook
 	for i in (k if crook > 0 else 0):

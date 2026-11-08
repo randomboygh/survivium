@@ -158,7 +158,7 @@
 не ближе `SAPLING_GAP` к дереву или ростку), растут в тёплые сезоны без полива (лейка грядку с ростком не поливает:
 третье поле его записи — признак деревца, не сырость; `can_water`, `wet`): росток и побег (кадры шириной `across`
 карточек, `foliage._crop` ставит их на один корень со сдвигом в 4-м поле: `grass.gdshader`), с доли
-`young` срока — маленькое деревце (`grow_young`, `Growth.place_young`; срубленное даёт только ветки: `young_tree`,
+`young` срока — маленькое деревце (`grow_young`, `Growth.place_young`; ствол тонкий, `Growth.YOUNG_GIRTH`, по записи ростка под ним: `Growth.young_at`; срубленное даёт только ветки: `young_tree`,
 `Felling.fell(…, young)`), выросший становится деревом (`grow_tree`: деревце убирает `Felling.clear`, потом
 `Growth.place`), если над ним есть место; тяпка
 (`tools/hoe`, класс `hoe`), серп (`tools/sickle`, класс `sickle`), лейка (`tools/watering_can`, класс `can`);

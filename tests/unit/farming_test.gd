@@ -237,6 +237,8 @@ func _test_saplings() -> void:
 	actions.grow_fields(0.01, 0.0)
 	_check(w.trees.has(Vector2i(11, 13)) and w.get_cell(11, 2, 13) == Mat.LOG and w.field_at(root)[2] == 1.0
 		and actions.young_tree(Vector3i(11, 2, 13)), "then it is a young tree")
+	_check(Growth.young_at(w, 11, 2, 13) and Growth.trunk_box(w.trees[Vector2i(11, 13)], Vector2i(11, 13), 0, true).size.x
+		== Growth.YOUNG_GIRTH and not Growth.young_at(w, 11, 3, 13), "a young tree has a thin stem")
 	var low := 0
 	for y in range(2, 16):
 		low = y if w.get_cell(11, y, 13) == Mat.LEAVES else low
