@@ -67,6 +67,10 @@ const KEEP_CHUNKS := LOAD_RANGE
 const REFILL_CHUNKS := 1
 ## Chunks whose meshes are freed in one frame at most.
 const UNLOADS_PER_FRAME := 2
+## Kept jobs of chunks now far let go of in one frame at most: after a long way (a
+## teleport, a fall into a cave) all of them are far, and freeing 121 at once took 5 ms
+## and more outside the budgets (frame_test, 2026-11-08).
+const FORGETS_PER_FRAME := 4
 ## How many levels above and below the player's the level buttons may look; from deep
 ## in a pit, up to the surface over it (see view_range).
 const VIEW_REACH := 4
@@ -141,6 +145,9 @@ var dirty_rects := {}
 ## and the player's chunk they were listed around.
 var kept := {}
 var keep_queue: Array[Vector2i] = []
+## The kept chunks found far when the player came to another chunk, to let go of a few
+## a frame (FORGETS_PER_FRAME).
+var forget_queue: Array[Vector2i] = []
 var kept_home := Vector2i(-1000000, 0)
 ## The kept jobs the job being built patches ([] for a whole chunk), and whether it builds
 ## a chunk only to keep its jobs (it gives way to edits).
@@ -527,9 +534,10 @@ func _keep_around() -> void:
 	if home == kept_home:
 		return
 	kept_home = home
+	forget_queue.clear()
 	for key: Vector2i in kept.keys():
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > KEEP_CHUNKS:
-			kept.erase(key)
+			forget_queue.append(key)
 	keep_queue.clear()
 	for r in REFILL_CHUNKS + 1:
 		for dz in range(-r, r + 1):
@@ -672,7 +680,18 @@ func run_jobs(spent := 0) -> void:
 				print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), game.world_maker.gen_us / 1000, mesh_us / 1000])
 	mesh_us += Time.get_ticks_usec() - t0 - spent
 	_unload_some()
+	_forget_some()
 	_jobs_end = Time.get_ticks_usec()
+
+
+## Lets go of the kept jobs of a few chunks now far (see forget_queue).
+func _forget_some() -> void:
+	var n := 0
+	while not forget_queue.is_empty() and n < FORGETS_PER_FRAME:
+		var key: Vector2i = forget_queue.pop_back()
+		if maxi(absi(key.x - kept_home.x), absi(key.y - kept_home.y)) > KEEP_CHUNKS and kept.has(key):
+			kept.erase(key)
+			n += 1
 
 
 ## Frees the meshes of chunk `key` now (the server told the client to forget it).
