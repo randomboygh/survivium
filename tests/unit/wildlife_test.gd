@@ -526,6 +526,30 @@ func _test_jostle(w: WorldData) -> void:
 	bear.think = 100.0
 	life.update(0.05)
 	_check(life.pushes[0].x < -0.1, "a bear pushes a person back (%v)" % life.pushes[0])
+	_test_butterflies(life, at)
+
+
+## A butterfly (a flyer with no hop frames) either flies or sits still where it landed:
+## it does not hop about on the ground nor get shoved by the one beside it.
+func _test_butterflies(life: Wildlife, at: Vector3) -> void:
+	life.animals.clear()
+	var one := _animal(life, "animals:butterfly", at)
+	var two := _animal(life, "animals:butterfly", at + Vector3(0.02, 0.0, 0.0))
+	var still := true
+	var flew := false
+	for i in 200:
+		life.update(0.05)
+		for a: Wildlife.Animal in [one, two]:
+			if a.flying:
+				flew = true
+			elif not flew and a.pos.distance_to(a.target) > 0.001:
+				still = false
+		if flew:
+			break
+	_check(Wildlife.sits_still(AiRules.SPECIES["animals:butterfly"]) and not Wildlife.sits_still(AiRules.SPECIES["animals:sparrow"]),
+		"a butterfly sits still, a sparrow hops about")
+	_check(still and (flew or one.pos.distance_to(at) < 0.001 and two.pos.distance_to(at) < 0.03),
+		"butterflies on the ground sit where they landed until they fly (%.3f)" % one.pos.distance_to(at))
 
 
 ## A blow lands on the animal in front of the one who strikes, not on one behind; a hit

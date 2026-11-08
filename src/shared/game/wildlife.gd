@@ -579,7 +579,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			_take_off(a, spec, a.pos, spec.flight * CELL)
 			return
 		if not spec.ashore:
-			if not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
+			if not a.perched and not sits_still(spec) and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
 				# Hops about and pecks.
 				a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 			return
@@ -670,7 +670,7 @@ func _follow(a: Animal, spec: Dictionary, lead: Animal) -> void:
 			_lift_off(a)
 			return
 		if not spec.ashore:
-			if not a.perched and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
+			if not a.perched and not sits_still(spec) and a.pos.distance_to(a.target) < 0.1 and rng.randf() < 0.3:
 				a.target = a.pos + Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
 			return
 	if a.idle > 0.0:
@@ -689,6 +689,13 @@ func _take_off(a: Animal, spec: Dictionary, around: Vector3, reach: float) -> vo
 		return
 	a.target = to
 	_lift_off(a)
+
+
+## True for a flyer with no frames to hop on the ground (`hop` 0, a butterfly): it
+## either flies or sits still where it landed, beating its wings (see Creatures); it
+## neither hops about nor is shoved by those near it.
+static func sits_still(spec: Dictionary) -> bool:
+	return spec.flies and int(spec.get("hop", 0)) <= 0
 
 
 ## Flyer `a` goes up into the air from where it is (it climbs away from there).
@@ -796,7 +803,7 @@ func _looked(a: Animal, x: float, z: float) -> bool:
 ## way ends at water, and a swimmer whose way ends at land, stops.
 func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	a.moving = false
-	if a.perched:
+	if a.perched or sits_still(spec):
 		a.vel = Vector2.ZERO
 		return
 	var speed: float = spec.speed
@@ -1236,7 +1243,7 @@ func _jostle() -> void:
 	pushes.fill(Vector3.ZERO)
 	var low: Array[Animal] = []
 	for a in animals:
-		if a.near and not a.aloft() and not a.gone:
+		if a.near and not a.aloft() and not a.gone and not sits_still(AiRules.SPECIES[a.kind]):
 			low.append(a)
 	if low.is_empty():
 		return

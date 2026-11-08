@@ -358,8 +358,9 @@ func _test_bushes() -> void:
 	var on_grass := true
 	for at: Vector3i in w.bushes:
 		kinds[w.bushes[at]] = true
-		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR
-	_check(on_grass, "bushes stand in air on grass")
+		on_grass = on_grass and w.get_cell(at.x, at.y - 1, at.z) == Mat.GRASS and w.get_cell(at.x, at.y, at.z) == Mat.AIR \
+			and Growth.bush_level(w, at.x, at.y, at.z)
+	_check(on_grass, "bushes stand in air on grass, with no drop beside them (none hangs over the air)")
 	_check(_named("bushes", Bushes.TYPES, ["biomes:taiga", "biomes:forest"]).all(func(k: int) -> bool: return kinds.has(k))
 		and kinds.keys().all(func(k: int) -> bool: return k in _named("bushes", Bushes.TYPES, Biomes.IDS)),
 		"the generator grows every type of bush the taiga and the forest name, and only types some biome names: %s" % [kinds.keys()])

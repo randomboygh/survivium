@@ -11,7 +11,7 @@ extends Node3D
 ## it covers, two steps a round, or of a flyer's wing beat in the air; one that hops shows
 ## the second while in a leap (legs stretched) and the third as it takes off and lands;
 ## a flyer with `hop` frames (the last ones) hops with them as it goes about on the
-## ground, and `attack` frames after those its attack (not shown yet: no animal attacks);
+## ground (one with none, a butterfly, sits still, slowly beating its wings), and `attack` frames after those its attack (not shown yet: no animal attacks);
 ## the frames left are idle ones (a tail flicked, the head bent down) shown now
 ## and then while it stands. Which
 ## view and which way is worked out here from how it moved on the screen: the server
@@ -26,6 +26,8 @@ const SpriteShader := preload("res://shaders/sprite.gdshader")
 
 ## Frames of a wing beat a second.
 const FLAP_RATE := 12.0
+## Frames a second of the slow wing beat of a flyer sitting still (see Wildlife.sits_still).
+const SIT_FLAP_RATE := 2.5
 ## World units round a sprite's culling box for what the shaders move a little (the
 ## half pixel snap); the box is also widened by half the sprite's width, where the
 ## shadow pass turns the quad to face the light.
@@ -194,6 +196,11 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		look.idle = 0
 		return 1 if a.hop > 0.2 and a.hop < 0.8 else 2
 	var hop: int = looks[a.kind][6]
+	if spec.flies and spec.get("hop", 0) <= 0 and walk > 0:
+		# A flyer that does not hop (a butterfly) sits still and slowly opens and shuts
+		# its wings: at rest, then the first beat.
+		look.idle = 0
+		return 0 if (int(now * SIT_FLAP_RATE) + a.get_instance_id()) % 2 == 0 else 1
 	var attack: int = looks[a.kind][7]
 	if a.moving and hop > 0 and spec.flies:
 		# Hopping about on the ground: crouched, up (the last frames), sitting.
