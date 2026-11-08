@@ -52,7 +52,7 @@ const vec3 SECTION = vec3(0.15, 0.14, 0.135);
 // cuts, thinning out in a dither into SECTION (see section_rim).
 const float SECTION_RIM = 6.0;
 // How bright that material is there: the section is unlit.
-const float SECTION_RIM_BRIGHT = 1.0;
+const float SECTION_RIM_BRIGHT = 0.65;
 
 // How many texels into a top the grass beside it frays under snow (see the transitions).
 const float GRASS_FRAY = 5.0;
