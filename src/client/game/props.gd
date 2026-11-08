@@ -53,6 +53,13 @@ var _lamps := {}
 ## Meshes of the lights standing, by item.
 var _standing := {}
 var _heat_queued := false
+## Things newly fallen in a chunk wait to be drawn while the ground they came from is
+## still drawn whole (a felled tree's chunk not yet rebuilt): they show as the tree goes.
+## The chunks waiting, with when they began to; how many things each chunk shows.
+var _drops_held := {}
+var _drops_shown := {}
+## The longest things newly fallen wait for their chunk to be rebuilt, ms.
+const DROPS_HOLD_MS := 4000
 
 
 func _init(g) -> void:
@@ -249,9 +256,20 @@ func _update_heat() -> void:
 ## shadow, some 600 calls round a busy camp on the phone (2026-10-24). A death's sack
 ## glows (Effects.sack_glow).
 func show_drops(key: Vector2i) -> void:
+	var count: int = game.world.drops.get(key, []).size()
+	# More things than drawn, while a chunk round is still being rebuilt for a change:
+	# drawn when it is (drops_rebuilt), so the logs of a felled tree appear as the tree
+	# goes. Fewer (taken up) are drawn at once.
+	if count > _drops_shown.get(key, 0) and game.chunks.chunk_nodes.has(key) and _rebuilding_near(key):
+		var since: int = _drops_held.get(key, Time.get_ticks_msec())
+		if Time.get_ticks_msec() - since < DROPS_HOLD_MS:
+			_drops_held[key] = since
+			return
+	_drops_held.erase(key)
 	hide_drops(key)
 	if not game.chunks.chunk_nodes.has(key):
 		return
+	_drops_shown[key] = count
 	var nodes := []
 	var parts := [PackedVector3Array(), PackedVector3Array(), PackedVector2Array(),
 		PackedVector2Array(), PackedColorArray()]
@@ -314,6 +332,24 @@ func hide_drops(key: Vector2i) -> void:
 	for node: Node in drop_nodes.get(key, []):
 		node.queue_free()
 	drop_nodes.erase(key)
+	_drops_shown.erase(key)
+
+
+## A chunk's new mesh is shown (ChunkStreamer): the things that waited for it are drawn.
+func drops_rebuilt() -> void:
+	for key: Vector2i in _drops_held.keys():
+		show_drops(key)
+
+
+## Whether chunk `key` or one beside it waits to be rebuilt for a change, or is being.
+func _rebuilding_near(key: Vector2i) -> bool:
+	var chunks = game.chunks
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var k := key + Vector2i(dx, dz)
+			if chunks.dirty_chunks.has(k) or chunks.job_mesh != null and chunks.job_edit and chunks.job_key == k:
+				return true
+	return false
 
 
 ## The vertices of the model of a thing of `kind` on the ground, one triangle after
