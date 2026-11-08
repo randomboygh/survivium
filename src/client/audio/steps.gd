@@ -46,6 +46,10 @@ func update(delta: float) -> void:
 	var sound = game.sound
 	if body.jumped:
 		sound.play("jump", p)
+	if body.bump > 0.0:
+		# The hull ran into the bank or a rock: a knock as hard as it went.
+		sound.play("knock", p, clampf(body.bump / (Body.SPEED * 0.8), 0.4, 1.0))
+		body.bump = 0.0
 	var in_water: bool = body.water_depth > 0.0
 	if body.on_ground and not _was_on_ground and _fall > LAND_SPEED:
 		var hard := clampf((_fall - LAND_SPEED) / (Body.MAX_FALL - LAND_SPEED), 0.0, 1.0)

@@ -319,7 +319,7 @@ const SHOTS := {
 	"raft": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:raft"},
 	"boat": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat"},
 	# Rowing the boat south: the rower's stroke and the oars swung in time.
-	"boat-row": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_S]},
+	"boat-row": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_S], "key_frames": 50},
 	"boat-row-e": {"time": 0.42, "season": 1, "place": "lake", "water": 2, "ride": "tools:boat", "keys": [KEY_D]},
 	"grove": {"time": 0.42, "season": 1, "grove": true},
 	"grove-autumn": {"time": 0.42, "season": 2, "grove": true},

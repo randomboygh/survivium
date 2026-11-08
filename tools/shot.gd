@@ -403,7 +403,7 @@ func _run() -> void:
 			if not shot.has("ride"):
 				main.player.position = places.flat_near(main.world, main.player.position)
 			_hold(shot.keys, true)
-			for i in 12:
+			for i in int(shot.get("key_frames", 12)):
 				await process_frame
 		# Messages fade after a few seconds, longer than the settling above takes here.
 		if shot.has("burst"):

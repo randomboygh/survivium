@@ -86,6 +86,14 @@ const SAIL_SPEED_UP := 1.5
 const SAIL_DRAG := 0.45
 const SAIL_TURN := 1.6
 const SAIL_KEEL := 3.0
+## A full wind (see WIND_FELT) pushes a vessel along it this many cells a second times its
+## `windage` (a raft high and flat, a boat less), a third of it a breeze under that.
+const SAIL_WIND := 1.6
+const SAIL_BREEZE := 0.33
+## A hull that runs into the bank or a rock faster than this (cells a second) bumps: it
+## bounces back by SAIL_BOUNCE of its speed, and `bump` tells how hard.
+const SAIL_BUMP := 1.5
+const SAIL_BOUNCE := 0.3
 ## A shove (see knock) dies away this fast, in cells a second per second.
 const SHOVE_DRAG := 30.0
 
@@ -113,6 +121,11 @@ var afloat := false
 ## Afloat: the way its vessel points, radians (0 south, as Vessels' `turn`); set by
 ## whoever seats the body, turned by the stick (see _sail).
 var heading := 0.0
+## Afloat: how much the wind takes the vessel (its item's `windage`), set by its owner.
+var windage := 0.0
+## Afloat: how fast the hull hit the bank or a rock in the last step (cells a second),
+## 0 for none; whoever reads it (the sound of steps) clears it.
+var bump := 0.0
 ## Whether the last step started a jump.
 var jumped := false
 ## Whether jump was held in the last step: an air jump needs a fresh press.
@@ -311,7 +324,7 @@ func _sail(p: Vector3, delta: float) -> Vector3:
 	murk = world.murk(floori(p.x), floori(surface - 0.1), floori(p.z))
 	in_bog = false
 	_row(move_input.limit_length(1.0), delta)
-	var push := glide + shove + flow
+	var push := glide + shove + flow + _sail_wind()
 	shove = shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
 	for axis in 2:
 		var q := p + (Vector3(push.x * delta, 0.0, 0.0) if axis == 0 else Vector3(0.0, 0.0, push.y * delta))
@@ -319,12 +332,32 @@ func _sail(p: Vector3, delta: float) -> Vector3:
 			p = q
 		elif axis == 0 and glide.x * push.x > 0.0:
 			# The bank or a rock stops the hull going that way (not one the river pushes
-			# against it while it rows away).
-			glide.x = 0.0
+			# against it while it rows away); a fast one bumps back off it.
+			glide.x = _hit(glide.x)
 		elif axis == 1 and glide.y * push.y > 0.0:
-			glide.y = 0.0
+			glide.y = _hit(glide.y)
 	nudge = Vector2.ZERO
 	return p
+
+
+## The speed `v` (cells a second, along one axis) of a hull that ran into something
+## after it: nothing, or bounced back by SAIL_BOUNCE when it went faster than SAIL_BUMP
+## (`bump` tells how fast).
+func _hit(v: float) -> float:
+	if absf(v) < SAIL_BUMP:
+		return 0.0
+	bump = maxf(bump, absf(v))
+	return -v * SAIL_BOUNCE
+
+
+## How the wind pushes the vessel afloat, cells a second (x east, y south): by its
+## `windage`, along the wind, SAIL_BREEZE of it in a breeze, all of it in a full wind.
+func _sail_wind() -> Vector2:
+	if clock == null or windage <= 0.0 or clock.storm_wind <= 0.0:
+		return Vector2.ZERO
+	var wind := SAIL_BREEZE * clampf(clock.storm_wind / WIND_FELT, 0.0, 1.0) \
+		+ (1.0 - SAIL_BREEZE) * clampf((clock.storm_wind - WIND_FELT) / (WIND_FULL - WIND_FELT), 0.0, 1.0)
+	return clock.wind_dir() * (SAIL_WIND * windage * wind)
 
 
 ## Rows the vessel for `delta` seconds with the stick at `dir`: turns the heading towards

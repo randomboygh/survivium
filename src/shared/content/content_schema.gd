@@ -139,6 +139,7 @@ const SCHEMAS := {
 		# A vessel (Vessels): launched on water from the bag, it carries one at this share of
 		# the walking pace; `oars` — the item that must be in the bag to row it ("" none).
 		"vessel": {"type": "float", "min": 0.0, "default": 0.0},
+		"windage": {"type": "float", "min": 0.0, "default": 0.0},
 		"oars": {"type": "ref:items", "soft": true, "default": "", "rel": "requires"},
 		# A trap (ActionsTame.step_traps): set down with bait in it, it lures from this many
 		# cells the animals that eat that bait from a hand and have a `trapped` item.
