@@ -27,6 +27,8 @@ const FIREFLY_TRIES := 120
 ## their colour is the material's tint (PixelTextures.tint).
 const BURSTS := 4
 const BURST_BITS := 8
+## The specks a vessel's wake (wake) keeps in the water at once.
+const WAKE_BITS := 28
 ## Stars of a skill's new level (see level_sparks).
 const LEVEL_STARS := 14
 ## The pixels of a star sparkle (see _star).
@@ -719,6 +721,26 @@ func _burst_now(at: Vector3, m: int) -> void:
 	p.color_ramp = _ramp([c.lightened(0.15), c, c.darkened(0.25)])
 	p.position = at
 	p.restart()
+
+
+## A wake to trail behind a vessel (Boats): pale spray thrown up a little where it was,
+## settling back slowly, emitting while `emitting` is set; null with the effects off.
+func wake() -> CPUParticles3D:
+	if not enabled:
+		return null
+	var e := _emitter(WAKE_BITS, 1.5, Vector2(PX, PX), 1.0)
+	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	e.emission_sphere_radius = 0.2
+	e.direction = Vector3.UP
+	e.spread = 60.0
+	e.initial_velocity_min = 0.25
+	e.initial_velocity_max = 0.5
+	e.gravity = Vector3(0.0, -0.6, 0.0)
+	e.scale_amount_min = 1.0
+	e.scale_amount_max = 2.0
+	(e.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
+	e.color_ramp = _ramp([Color(0.95, 0.98, 1.0), Color(0.82, 0.92, 0.97), Color(0.7, 0.84, 0.92)])
+	return e
 
 
 ## Picks where the fireflies come out around screen-plane point `view` (see update)
