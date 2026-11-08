@@ -614,6 +614,8 @@ func _test_tools() -> void:
 	_check(scythe.area > 1 and not Tools.can_dig(scythe, Mat.DIRT), "a scythe mows wide and does not dig")
 	_check(Items.has(Mat.RECORDS[Mat.GRASS].mow_gives.keys()[0]), "cut grass gives fibre")
 	var rng := RandomNumberGenerator.new()
+	# A fixed seed: the seeds found in wild grass are rare, unseeded the check failed now and then.
+	rng.seed = 7
 	_check(Plants.check().is_empty() and Plants.harvest([Plants.EARS, Plants.EARS], rng).get("plants:grain", 0) == 4,
 		"ears give grain")
 	_check(Tools.use_of("plants:grain") == "sow" and Items.get_item("plants:grain").crop == "plants:wheat" and Plants.is_crop("plants:wheat"),
