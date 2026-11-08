@@ -149,7 +149,7 @@ func _run() -> void:
 	var far_built := func() -> bool:
 		for cz in range(paused_home.y - streamer.PAUSE_RANGE, paused_home.y + streamer.PAUSE_RANGE + 1):
 			for cx in range(paused_home.x - streamer.PAUSE_RANGE, paused_home.x + streamer.PAUSE_RANGE + 1):
-				if not streamer.chunk_nodes.has(Vector2i(cx, cz)):
+				if not streamer.chunk_nodes.has(Vector2i(cx, cz)) or streamer.bare.has(Vector2i(cx, cz)):
 					return false
 		return true
 	var far_before: bool = far_built.call()
@@ -316,16 +316,20 @@ func _run() -> void:
 	while main.props._rebuilding_near(dug_key) and Time.get_ticks_msec() - waited_from < 10000:
 		await process_frame
 		set_aside = set_aside or not streamer.stashed.is_empty() and streamer.stashed[0] == far_key
-	_check(streaming and set_aside and not streamer.chunk_nodes.has(far_key),
+	# Not finished (it may show its ground already, ChunkStreamer.bare).
+	_check(streaming and set_aside and (not streamer.chunk_nodes.has(far_key) or streamer.bare.has(far_key)),
 		"an edit sets a chunk being streamed aside instead of waiting for it")
 	await process_frame
 	_check(held and main.props._drops_shown.get(dug_key, 0) == w.drops.get(dug_key, []).size(),
 		"what is dug is drawn on the ground when the chunk is drawn dug, not before")
 	_check(kept and main.chunks.patches > patches_before,
 		"the chunk at the player's feet keeps its jobs and a dig rebuilds only the columns around it")
-	while not streamer.chunk_nodes.has(far_key) and Time.get_ticks_msec() - waited_from < 20000:
+	# Its ground shows first (ChunkStreamer.bare), its plants after: wait for both.
+	while not (streamer.chunk_nodes.has(far_key) and not streamer.bare.has(far_key)) \
+			and Time.get_ticks_msec() - waited_from < 20000:
 		await process_frame
-	_check(streamer.chunk_nodes.has(far_key) and streamer.stashed.is_empty() and streamer.kept.has(far_key),
+	_check(streamer.chunk_nodes.has(far_key) and not streamer.bare.has(far_key) and streamer.stashed.is_empty()
+		and streamer.kept.has(far_key),
 		"the chunk set aside is built after the edit, and keeps its jobs")
 	main.settings.values.pickup = picks
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
@@ -800,7 +804,8 @@ func _run() -> void:
 	for r in runs:
 		if r[0] == IDLE:
 			idle_ms = _mean(r[1])
-	var step_limit: float = (ChunkStreamer.EDIT_BUDGET_US + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
+	# A chunk on the screen with no ground yet raises the budget (ChunkStreamer.lagging).
+	var step_limit: float = (maxi(ChunkStreamer.EDIT_BUDGET_US, ChunkStreamer.LAG_BUDGET_US) + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
 	var free_limit: float = idle_ms + 2.0 + 0.25 * chunk_ms
 	print("a frame may spend %.1f ms in the budgeted loops and %.1f ms outside them (an idle frame is %.1f ms)" % [
 		step_limit, free_limit, idle_ms])

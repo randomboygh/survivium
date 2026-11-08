@@ -43,6 +43,11 @@ const PAUSE_ZONE := ZONE + 2
 ## Beyond this many chunks from every player the generator forgets chunks nobody
 ## changed. A chunk ZONE away needs the terrain of chunks two farther, which must stay.
 const DROP := ZONE + 4
+## Seconds of a player's way ahead the chunks are made for first (see _next_needed):
+## the rings of chunks to make go round where the player will be, not where it is.
+const LOOK_AHEAD := 1.5
+## How many chunks ahead that may be at most, each way.
+const LEAD_MOST := 3
 ## Chunks forgotten in one call of forget_far at most.
 const DROPS_PER_CALL := 4
 ## Seconds between looks for the sacks of deaths whose time is up (expire_sacks).
@@ -83,6 +88,10 @@ var _gen_job: WorldGen.Job
 var _zones: Array[Vector2i] = []
 var _zone_reach := 0
 var _all_made := false
+## Each player's last place (cells x, z), when (msec) and its way ahead (cells), and the
+## chunks ahead of each zone (zone → offset in chunks), see _update_leads.
+var _motion := {}
+var _leads := {}
 ## Chunks beyond DROP of every zone, listed when the zones move (see forget_far).
 var _drop_queue: Array[Vector2i] = []
 ## Time spent generating, and on each kind of work since take_work last read it
@@ -142,6 +151,7 @@ func add_player(who, workshop) -> void:
 func remove_player(who) -> void:
 	var i := players.find(who)
 	fishing.lines.erase(who)
+	_motion.erase(who)
 	if i >= 0:
 		players.remove_at(i)
 		workshops.remove_at(i)
@@ -291,6 +301,30 @@ func _look(reach: int) -> void:
 			_drop_queue.append(key)
 
 
+## Follows each living player's way: where it will be in LOOK_AHEAD seconds, in
+## chunks from its own (at most LEAD_MOST each way), half of it, so the chunks
+## between come first too; a jump of more than a chunk (a teleport) starts over.
+func _update_leads() -> void:
+	_leads.clear()
+	var now := Time.get_ticks_msec()
+	for who in players:
+		if who.is_dead():
+			continue
+		var at := Vector2(who.position.x, who.position.z) / WorldData.CELL
+		var m: Array = _motion.get(who, [at, now, Vector2.ZERO])
+		var dt := (now - int(m[1])) / 1000.0
+		var ahead: Vector2 = m[2]
+		if dt > 1.0 or at.distance_to(m[0]) > WorldData.CHUNK:
+			ahead = Vector2.ZERO
+		elif dt > 0.0:
+			ahead = ahead.lerp((at - m[0]) / dt * LOOK_AHEAD, 1.0 - exp(-dt * 4.0))
+		_motion[who] = [at, now, ahead]
+		var lead := Vector2i((ahead * 0.5 / WorldData.CHUNK).round()).clampi(-LEAD_MOST, LEAD_MOST)
+		if lead != Vector2i.ZERO:
+			var z := WorldData.chunk_key(floori(who.position.x / WorldData.CELL), floori(who.position.z / WorldData.CELL))
+			_leads[z] = lead
+
+
 ## Chunks from `key` to the nearest zone (Chebyshev); far when there is none.
 func _distance(key: Vector2i) -> int:
 	var best := 1 << 30
@@ -305,14 +339,21 @@ func _distance(key: Vector2i) -> int:
 func _next_needed(reach: int) -> Array:
 	if _all_made or gen == null:
 		return []
-	for r in range(0, reach + 1):
+	var most := 0
+	for lead: Vector2i in _leads.values():
+		most = maxi(most, maxi(absi(lead.x), absi(lead.y)))
+	for r in range(0, reach + most + 1):
 		for z in _zones:
-			# The ring at r, in the order of a square's rows: a whole row at its top and
-			# bottom, its two ends between.
+			# The ring at r round where the player is going, in the order of a square's
+			# rows: a whole row at its top and bottom, its two ends between; only the
+			# chunks within `reach` of the zone.
+			var c: Vector2i = z + _leads.get(z, Vector2i.ZERO)
 			for dz in range(-r, r + 1):
 				var step := 1 if absi(dz) == r else maxi(2 * r, 1)
 				for dx in range(-r, r + 1, step):
-					var key := Vector2i(z.x + dx, z.y + dz)
+					var key := Vector2i(c.x + dx, c.y + dz)
+					if maxi(absi(key.x - z.x), absi(key.y - z.y)) > reach:
+						continue
 					if gen.stage_of(key) < WorldGen.SHAPED:
 						return gen.needed(key)
 	for z in _zones:
@@ -332,6 +373,7 @@ func _next_needed(reach: int) -> Array:
 func make_chunks(near_us: int, far_us: int, reach := ZONE) -> int:
 	var t0 := Time.get_ticks_usec()
 	_look(reach)
+	_update_leads()
 	var worked := false
 	while true:
 		if _gen_job == null:

@@ -18,6 +18,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Session := preload("res://src/shared/game/session.gd")
+const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
 
 ## Chunk size in cells.
 const CHUNK := WorldData.CHUNK
@@ -57,6 +58,15 @@ const EDIT_BUDGET_US := 9000
 const LOAD_BUDGET_US := 14000
 const LOAD_MAX_US := 100000
 const STREAM_BUDGET_US := 3000
+## While a chunk on screen has no ground yet (the player outran the building: running,
+## a fast playtest speed, a boat down a river), building it and making it may take this
+## much of a frame: the frame rate drops a while, and less of the world is missing.
+const LAG_BUDGET_US := 16000
+## Seconds of the player's way ahead the chunks are built for: the chunks on the screen
+## seen from there and from the player come first (see _screen_score).
+const LOOK_AHEAD := 1.5
+## How far ahead (world units) the look may go at most: three chunks.
+const LEAD_MOST := 24.0
 ## Chunks this near the player's keep what their meshes and plants were built from (see
 ## `kept`), so an edit there rebuilds only the columns around it (ChunkMesher.patch):
 ## every chunk streamed in, so the first tree felled at a new place does not wait for
@@ -163,6 +173,21 @@ var job_plants: Foliage.Job
 ## Once the columns of the chunk are built: the part being finished (see run_jobs; -1
 ## while the columns are still being built) and what the parts made so far.
 var job_part := -1
+## The chunk being built is new on screen: its ground and water are shown as soon as
+## they are built, and its plants (Foliage) are built after (job_part -2, see
+## _finish_part). A chunk of `bare` has its ground and waits for its plants.
+var job_ground := false
+var bare := {}
+## Where the player is going: world units (x, z) ahead of it, LOOK_AHEAD seconds of its
+## way, smoothed (see _track_motion).
+var lead := Vector2.ZERO
+var _last_at := Vector2.INF
+var _last_ms := 0
+## A chunk on the screen has no ground yet (see _check_lag): building gets LAG_BUDGET_US.
+var lagging := false
+## The haze over the edge of what is built (the «Дымка на краю» setting), null when off.
+var haze: EdgeHaze
+var haze_on := false
 var job_meshes := []
 var job_plant_parts := {}
 ## Chunks just made whose columns the roof map (part 0) and the minimap (part 1)
@@ -303,7 +328,7 @@ func _list_pending() -> void:
 	for cz in range(home.y - reach, home.y + reach + 1):
 		for cx in range(home.x - reach, home.x + reach + 1):
 			var key := Vector2i(cx, cz)
-			if not chunk_nodes.has(key) and not (has_target and key == job_key):
+			if (not chunk_nodes.has(key) or bare.has(key)) and not (has_target and key == job_key):
 				pending_chunks.append(key)
 	unload_queue.clear()
 	if focus.is_finite():
@@ -317,20 +342,89 @@ func _list_pending() -> void:
 		map_done = false
 
 
-## The pending chunk nearest to the player (or the focus).
+## The pending chunk to build next: the one nearest to the screen seen from the player
+## and from where it is going (lead), so what is on the screen ahead comes first and
+## what is behind and to the sides off the screen last; around the focus, the nearest.
 func next_chunk() -> Vector2i:
 	var at := _load_chunk()
 	var best := 0
-	var best_d := 1 << 30
+	var best_d := INF
+	var half := _screen_half()
+	var here := _at()
 	for i in pending_chunks.size():
 		var k := pending_chunks[i]
-		var d := maxi(absi(k.x - at.x), absi(k.y - at.y))
+		var d: float
+		if focus.is_finite():
+			d = maxi(absi(k.x - at.x), absi(k.y - at.y))
+		else:
+			d = _screen_score(k, here, half) + _screen_score(k, here + lead, half)
 		if d < best_d:
 			best_d = d
 			best = i
-			if d <= 1:
-				break
 	return pending_chunks.pop_at(best)
+
+
+## The player's place on the ground plane (world units x, z).
+func _at() -> Vector2:
+	return Vector2(game.player.position.x, game.player.position.z)
+
+
+## Half the width and the height of the world the camera shows, in world units (along
+## PixelView.right and up).
+func _screen_half() -> Vector2:
+	var view = game.view
+	if view == null or view.camera == null:
+		return Vector2(32.0, 18.0)
+	var size: float = view.camera.size
+	return Vector2(size * view.image_size.x / maxf(1.0, view.image_size.y), size) * 0.5
+
+
+## How far chunk `key` lies outside the screen seen from `from` (world units x, z), in
+## screens: 0 or less where some of it is on the screen. The ground is taken as level
+## with the player's (the shear of heights moves it a little up the image).
+static func _screen_score(key: Vector2i, from: Vector2, half: Vector2) -> float:
+	var d := (Vector2(key) + Vector2(0.5, 0.5)) * (CHUNK * CELL) - from
+	# Half a chunk's diagonal: a chunk partly on the screen counts.
+	var r := CHUNK * CELL * 0.71
+	return maxf((absf(d.dot(PixelView.right)) - r) / half.x, (absf(d.dot(PixelView.up)) - r) / half.y)
+
+
+## Follows the player's way (lead): its speed over the last frames, LOOK_AHEAD seconds
+## of it; a jump of more than a chunk in a frame (a teleport, the respawn) starts over.
+func _track_motion() -> void:
+	if game.player == null:
+		return
+	var now := Time.get_ticks_msec()
+	var at := _at()
+	var dt := (now - _last_ms) / 1000.0
+	if not _last_at.is_finite() or dt > 1.0 or at.distance_to(_last_at) > CHUNK * CELL:
+		lead = Vector2.ZERO
+	elif dt > 0.0:
+		var want := ((at - _last_at) / dt * LOOK_AHEAD).limit_length(LEAD_MOST)
+		lead = lead.lerp(want, 1.0 - exp(-dt * 4.0))
+	_last_at = at
+	_last_ms = now
+
+
+## Whether a chunk on the screen has no ground yet (pending, or being built new).
+func _check_lag() -> void:
+	lagging = false
+	if not game.ready_to_play or paused or focus.is_finite() or game.player == null:
+		return
+	var half := _screen_half()
+	var here := _at()
+	if (has_target or job_mesh != null) and not job_edit and not chunk_nodes.has(job_key) \
+			and _screen_score(job_key, here, half) <= 0.0:
+		lagging = true
+		return
+	if not stashed.is_empty() and not chunk_nodes.has(stashed[0]) \
+			and _screen_score(stashed[0], here, half) <= 0.0:
+		lagging = true
+		return
+	for k in pending_chunks:
+		if not chunk_nodes.has(k) and _screen_score(k, here, half) <= 0.0:
+			lagging = true
+			return
 
 
 # --- Building ----------------------------------------------------------------
@@ -403,7 +497,8 @@ func take_work() -> Dictionary:
 func gen_budgets() -> Vector2i:
 	if not game.ready_to_play or paused:
 		return Vector2i(load_budget, load_budget)
-	return Vector2i(EDIT_BUDGET_US, 0 if not dirty_chunks.is_empty() else STREAM_BUDGET_US)
+	var near := LAG_BUDGET_US if lagging else EDIT_BUDGET_US
+	return Vector2i(near, 0 if not dirty_chunks.is_empty() else STREAM_BUDGET_US)
 
 
 ## A chunk reached a stage (WorldGen.made): once it is SHAPED its columns are final,
@@ -440,16 +535,29 @@ func _paint(item: Vector3i) -> void:
 
 
 ## Does part `job_part` of finishing the chunk being built (the meshes, the plants,
-## then handing them to the renderer); true after the last.
+## then handing them to the renderer); true after the last. A chunk new on screen
+## (job_ground) shows its ground and water after the meshes' parts, then builds its
+## plants (job_part -2, see run_jobs) and finishes them.
 func _finish_part() -> bool:
 	var i := job_part
+	var plants_from := ChunkMesher.FINISH_PARTS + (1 if job_ground else 0)
 	if i < ChunkMesher.FINISH_PARTS:
 		job_meshes.append(ChunkMesher.finish_part(job_mesh, i))
-	elif i < ChunkMesher.FINISH_PARTS + Foliage.FINISH_PARTS:
-		Foliage.finish_part(job_plants, i - ChunkMesher.FINISH_PARTS, job_plant_parts)
+	elif job_ground and i == ChunkMesher.FINISH_PARTS:
+		_chunk_nodes(job_key)
+		_apply_ground(job_key, job_meshes)
+		bare[job_key] = true
+		job_part = -2
+		return false
+	elif i < plants_from + Foliage.FINISH_PARTS:
+		Foliage.finish_part(job_plants, i - plants_from, job_plant_parts)
 	else:
 		_keep(job_key, job_mesh, job_plants)
-		_apply_chunk(job_key, job_meshes, job_plant_parts)
+		if job_ground:
+			_apply_plants(job_key, job_plant_parts)
+		else:
+			_apply_chunk(job_key, job_meshes, job_plant_parts)
+		bare.erase(job_key)
 		_drop_job()
 		if job_edit and not dirty_chunks.has(job_key):
 			edited.erase(job_key)
@@ -466,6 +574,7 @@ func _drop_job() -> void:
 	job_plants = null
 	job_old = []
 	job_keep = false
+	job_ground = false
 	job_part = -1
 	job_meshes = []
 	job_plant_parts = {}
@@ -473,7 +582,7 @@ func _drop_job() -> void:
 
 ## Sets the chunk being streamed aside for the edits (see stashed).
 func _stash_job() -> void:
-	stashed = [job_key, job_mesh, job_plants, job_part, job_meshes, job_plant_parts, job_keep, job_budget]
+	stashed = [job_key, job_mesh, job_plants, job_part, job_meshes, job_plant_parts, job_keep, job_budget, job_ground]
 	has_target = false
 	_drop_job()
 
@@ -488,6 +597,7 @@ func _unstash_job() -> void:
 	job_plant_parts = stashed[5]
 	job_keep = stashed[6]
 	job_budget = stashed[7]
+	job_ground = stashed[8]
 	job_edit = false
 	has_target = not job_keep
 	stashed = []
@@ -555,6 +665,8 @@ func run_jobs(spent := 0) -> void:
 			job_budget = load_budget
 	_list_pending()
 	_keep_around()
+	_track_motion()
+	_check_lag()
 	if not dirty_chunks.is_empty() and game.ready_to_play and not paused:
 		# Edits wait: the frame has their budget, whatever was built before (a far chunk
 		# at the stream budget, which the making of the world could use up before a
@@ -600,6 +712,8 @@ func run_jobs(spent := 0) -> void:
 				var at := _load_chunk()
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
+				if lagging and _screen_score(job_key, _at(), _screen_half()) <= 0.0:
+					job_budget = LAG_BUDGET_US
 				if not game.ready_to_play or paused:
 					job_budget = load_budget
 				if not gen.needed(job_key).is_empty():
@@ -630,10 +744,17 @@ func run_jobs(spent := 0) -> void:
 			else:
 				job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
 				job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
+				# Not on screen yet: the ground first, the plants after.
+				job_ground = not job_edit and not job_keep and not chunk_nodes.has(job_key)
 		var done := false
 		if job_part < 0:
 			while not done and (Time.get_ticks_usec() - t0 < job_budget or not worked):
-				done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
+				if job_part == -2:
+					done = Foliage.step(job_plants, 1)
+				elif job_ground:
+					done = ChunkMesher.step(job_mesh, 1)
+				else:
+					done = ChunkMesher.step(job_mesh, 1) and Foliage.step(job_plants, 1)
 				worked = true
 				if done and not job_old.is_empty():
 					# The columns around the change are built: into the kept meshes, then
@@ -651,7 +772,7 @@ func run_jobs(spent := 0) -> void:
 			_note_work("meshes", Time.get_ticks_usec() - t1)
 			if not done:
 				break
-			job_part = 0
+			job_part = ChunkMesher.FINISH_PARTS + 1 if job_part == -2 else 0
 			continue
 		# Loading behind the menu or the pause, the parts go on while the budget lasts.
 		if worked and not job_edit and game.ready_to_play and not paused:
@@ -672,7 +793,28 @@ func run_jobs(spent := 0) -> void:
 	mesh_us += Time.get_ticks_usec() - t0 - spent
 	_unload_some()
 	_forget_some()
+	_update_haze()
 	_jobs_end = Time.get_ticks_usec()
+
+
+## Turns the haze over the edge of what is built on or off («Дымка на краю»); it is
+## made with the first frame of play.
+func set_haze(on: bool) -> void:
+	haze_on = on
+	if not on and haze != null:
+		haze.free_node()
+		haze = null
+
+
+## Lays the haze over the chunks on the screen with no ground yet.
+func _update_haze() -> void:
+	if not haze_on or game.player == null or not game.ready_to_play:
+		return
+	if haze == null:
+		haze = EdgeHaze.new(game)
+	var tp := Time.get_ticks_usec()
+	haze.update(chunk_nodes, _at(), _screen_half(), game.player.position.y)
+	budget_us += Time.get_ticks_usec() - tp
 
 
 ## Lets go of the kept jobs of a few chunks now far (see forget_queue).
@@ -720,9 +862,14 @@ func _unload_some() -> void:
 
 ## Frees the nodes of shown chunk `key`: its meshes, its drops and its cap.
 func _free_chunk(key: Vector2i) -> void:
+	if (job_mesh != null or has_target) and job_key == key and not job_edit:
+		# Its ground shown, its plants still being built (job_ground).
+		_drop_job()
+		has_target = false
 	for node: Node in chunk_nodes[key]:
 		node.queue_free()
 	chunk_nodes.erase(key)
+	bare.erase(key)
 	_unstash(key)
 	game.props.hide_drops(key)
 	dirty_chunks.erase(key)
@@ -738,9 +885,13 @@ func _free_chunk(key: Vector2i) -> void:
 
 
 func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
-	cap_levels.erase(key)
-	cap_cache.erase(key)
-	_caps_ready = -1
+	_chunk_nodes(key)
+	_apply_ground(key, meshes)
+	_apply_plants(key, plants)
+
+
+## Makes the nodes of chunk `key` if it has none yet.
+func _chunk_nodes(key: Vector2i) -> void:
 	if not chunk_nodes.has(key):
 		var solid := MeshInstance3D.new()
 		solid.material_override = game.world_mat
@@ -771,18 +922,32 @@ func _apply_chunk(key: Vector2i, meshes: Array, plants: Dictionary) -> void:
 		# What lies on the ground of a chunk from the save.
 		if world.drops.has(key) and not game.props.drop_nodes.has(key):
 			game.props.show_drops(key)
+
+
+## Shows the ground and the water of chunk `key`.
+func _apply_ground(key: Vector2i, meshes: Array) -> void:
+	cap_levels.erase(key)
+	cap_cache.erase(key)
+	_caps_ready = -1
 	var nodes: Array = chunk_nodes[key]
 	game.hud.perf.mark("сетка")
 	nodes[0].mesh = meshes[0]
 	nodes[1].mesh = meshes[1]
+	_fit_box(nodes[0])
+	_fit_box(nodes[1])
+
+
+## Shows the plants of chunk `key` (grass, crowns, their shadows, bushes, drifts).
+func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
+	var nodes: Array = chunk_nodes[key]
 	for i in range(2, PARTS.size()):
 		var part: Array = plants[PARTS[i]]
 		var mm: MultiMesh = nodes[i].multimesh
 		mm.instance_count = part[0]
 		if part[0] > 0:
 			mm.buffer = part[1]
-	for n: GeometryInstance3D in nodes:
-		_fit_box(n)
+	for i in range(2, nodes.size()):
+		_fit_box(nodes[i])
 
 
 ## Fits the culling boxes of every chunk shown to the views the camera may show next

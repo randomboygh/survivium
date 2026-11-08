@@ -8,6 +8,7 @@ func run() -> void:
 	_test_rules()
 	_test_session()
 	_test_making()
+	_test_lead()
 
 
 func _test_rules() -> void:
@@ -165,3 +166,27 @@ func _test_making() -> void:
 	s.remove_player(a)
 	s.make_chunks(2000, 500, 1)
 	_check(s.zones().is_empty() and s._all_made and s._gen_job == null, "with no player there is nothing to make")
+
+
+## A player on the move has the chunks ahead made first: the rings of chunks to make go
+## round where they will be (Session._update_leads), still within reach of their own.
+func _test_lead() -> void:
+	var gen := WorldGen.new(42, 40)
+	var s := Session.new(gen.world, gen, Clock.new(), Rules.new(), Placed.new())
+	var a := Survivor.new()
+	a.body = Body.new()
+	a.at = Vector3(8.0, 20.0, 8.0) * WorldData.CELL
+	s.add_player(a, Workshop.new(a, s.placed, s.rules))
+	var east := Vector2i(1, 0)
+	var calls := 0
+	while gen.stage_of(east) < WorldGen.SHAPED and calls < 100000:
+		# Walking east at 24 cells a second, as far as the session can tell.
+		s._motion[a] = [Vector2(8.0 - 12.0, 8.0), Time.get_ticks_msec() - 500, Vector2.ZERO]
+		s.make_chunks(2000, 2000, 2)
+		calls += 1
+	_check(s._leads.get(Vector2i.ZERO, Vector2i.ZERO) == east, "a player going east looks a chunk ahead (%s)" % s._leads)
+	_check(gen.stage_of(east) == WorldGen.SHAPED and gen.stage_of(Vector2i(-1, 0)) < WorldGen.SHAPED,
+		"the chunk ahead is made before the one behind")
+	s._motion.clear()
+	s._update_leads()
+	_check(s._leads.is_empty(), "a player standing looks nowhere ahead")

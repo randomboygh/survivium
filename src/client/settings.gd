@@ -57,6 +57,9 @@ const DEFAULTS := {
 	"sun_rays": true,
 	# Fog drawn on the ground, deep in the low places (Sky._update_fog); off, a plain haze.
 	"fog": true,
+	# A haze over the chunks on the screen not built yet and the edge of the ones built
+	# (ChunkStreamer.set_haze, EdgeHaze), instead of the empty background.
+	"edge_haze": false,
 	"pixel_scale": 2,
 	"fps_limit": 0,
 	# The interface and the touch controls size, «очень мелкий» to «крупный» (see
@@ -398,6 +401,8 @@ func apply() -> void:
 	if sky != null:
 		sky.rays_on = values.sun_rays
 		sky.fog_on = values.fog
+	if game.chunks != null:
+		game.chunks.set_haze(values.edge_haze)
 	if game.effects != null:
 		game.effects.enabled = values.effects
 		game.effects.shadows = values.shadows and values.fire_shadows >= 2
