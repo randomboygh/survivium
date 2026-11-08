@@ -7,6 +7,9 @@ render_mode world_vertex_coords, cull_disabled, unshaded;
 
 #include "res://shaders/common.gdshaderinc"
 
+// The disc mesh's side (Foliage.SHADOW_DISC).
+const float DISC_SIZE = 1.6;
+
 varying vec3 world_pos;
 varying flat float kind;
 varying flat float scale;
@@ -16,7 +19,19 @@ void vertex() {
 	kind = INSTANCE_CUSTOM.x;
 	// Discs of whole crowns are scaled up; their ragged edge stays as wide on the ground.
 	scale = min(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[2].xyz));
-	VERTEX = shear(VERTEX);
+	if (kind < 0.5) {
+		// A bush's disc (low, as high as the middle of the bush) faces the light: lying
+		// flat it would cast its shadow off its foot when the sun is low, the bush seen
+		// hanging over the ground. Upright to the light, its shadow starts under the bush
+		// and stretches away with the evening as a bush's does. The shadow pass sees the
+		// world from the light, so the view's axes are the light's.
+		vec3 center = MODEL_MATRIX[3].xyz;
+		vec2 o = (UV - 0.5) * length(MODEL_MATRIX[0].xyz) * DISC_SIZE;
+		VERTEX = shear(center) + INV_VIEW_MATRIX[0].xyz * o.x - INV_VIEW_MATRIX[1].xyz * o.y;
+		world_pos = center + vec3(o.x, 0.0, o.y);
+	} else {
+		VERTEX = shear(VERTEX);
+	}
 }
 
 void fragment() {

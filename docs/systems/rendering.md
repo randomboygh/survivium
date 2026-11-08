@@ -40,7 +40,8 @@
   среза породы, которым слои заполняют убранное; `plan_view.gd` — призрак чертежа ([interaction.md](interaction.md)); `land_view.gd` — границы
   участков ([territory.md](territory.md)).
 - `shaders/` — `common.gdshaderinc` (сдвиг, свет, крыша, срез, слои, общие функции), `world`, `water`, `grass`,
-  `leaves`, `leaf_shadow`, `sprite`, `sprite_water`, `sprite_xray`, `particle`, `track`, `fire_shadow`,
+  `leaves`, `leaf_shadow` (диски тени крон лежат плашмя, диск куста повёрнут к свету, чтобы его тень на закате
+  начиналась у куста), `sprite`, `sprite_water`, `sprite_xray`, `particle`, `track`, `fire_shadow`,
   `sun_rays`, `grade` (цветокор), `map_ground` (карта), `cursor` (и призрак чертежа), `land` (границы
   участков).
 - `project.godot`, раздел `[shader_globals]`: глобальные параметры, которые меняет код (`cut_height`,
