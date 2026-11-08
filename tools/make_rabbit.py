@@ -38,7 +38,7 @@ SIT = {
         ".....FHHHHF...",
         "..HHHSHHHHHF..",
         ".HHHHHSHHEeHF.",
-        "FHFFFFFSHHEEHN",
+        "FHFFFFFSHEEHFN",
         "WFFFFFFFSHHBB.",
         ".SFFFSFFSSBB..",
         "..SSSSSSSBBB..",
