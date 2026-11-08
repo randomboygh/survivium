@@ -59,7 +59,7 @@ content/animals/
   кадров — прыжки по земле (присел, в воздухе); с одним кадром зверь не анимирован.
   Их можно перерисовать в любом редакторе; размер любой. Воробей нарисован `tools/make_sparrow.py`, ворона, сова и утка — `tools/make_birds.py`,
   лягушка — `tools/make_frog.py`, рыбы — `tools/make_fish.py`
-  (тёмный контур вокруг всего зверя; утка прыгает вперевалку), заяц — `tools/make_rabbit.py`, белка — `tools/make_squirrel.py`, лиса — `tools/make_fox.py`, олень — `tools/make_deer.py`, кабан — `tools/make_boar.py`, медведь — `tools/make_bear.py`, остальные звери —
+  (тёмный контур вокруг всего зверя; утка прыгает вперевалку), заяц — `tools/make_rabbit.py`, белка — `tools/make_squirrel.py`, лиса — `tools/make_fox.py`, олень — `tools/make_deer.py`, кабан — `tools/make_boar.py`, медведь — `tools/make_bear.py`, волк — `tools/make_wolf.py`, остальные звери —
   `tools/make_creatures.py`: картинка записана там текстом, пиксель — буква, а тени, свет и контур
   в тёмном оттенке своего цвета кладёт `tools/creature_kit.py`.
   Чего в папке бандла нет, игра ищет в `common/` мода.

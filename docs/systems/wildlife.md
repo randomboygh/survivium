@@ -76,7 +76,7 @@
 в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
 (присел, в воздухе), за ними `attack` — нападение (пока не показываются: звери не нападают), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
-воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`). `creatures.gd` выбирает сторону по движению на экране
+воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`, волка — `tools/make_wolf.py`). `creatures.gd` выбирает сторону по движению на экране
 (`TURN_BIAS`), шаг — по пройденному
 пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
 Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.
