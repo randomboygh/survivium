@@ -47,7 +47,7 @@ uniform int corner_shapes[63];
 uniform int material_bits[63];
 
 // The colour of the rock's section the layers fill in (see the end of fragment()).
-const vec3 SECTION = vec3(0.075, 0.07, 0.068);
+const vec3 SECTION = vec3(0.15, 0.14, 0.135);
 
 // How many texels into a top the grass beside it frays under snow (see the transitions).
 const float GRASS_FRAY = 5.0;
