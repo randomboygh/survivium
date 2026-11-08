@@ -271,6 +271,10 @@ const SHOTS := {
 	# One of every species that walks or flies in rows on a meadow, walking; every
 	# swimmer in the water of a lake.
 	"animals": {"time": 0.42, "season": 1, "find": "meadow", "zoo": "land"},
+	# A trap with a carrot and a hare coming to it, another with a hare caught, a caught
+	# hare in the hand.
+	"trap": {"time": 0.42, "season": 1, "find": "meadow", "trap": true,
+		"hands": {"tool": "tools:live_rabbit", "facing": "n", "stay": true}},
 	"animals-water": {"time": 0.42, "season": 1, "place": "lake", "zoo": "water"},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "plants:mushrooms"},

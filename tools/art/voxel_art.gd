@@ -72,6 +72,8 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return fireplace()
 		"barrel":
 			return barrel()
+		"trap":
+			return trap()
 		"rug":
 			return rug()
 	return null
@@ -239,6 +241,8 @@ static func drop(model: String) -> VoxelModel:
 			return _fluff(Color(0.86, 0.85, 0.82))
 		"raft":
 			return _raft()
+		"live_rabbit":
+			return _live_rabbit()
 		"boat":
 			return _boat()
 		"oars":
@@ -613,6 +617,43 @@ static func barrel() -> VoxelModel:
 				if y == 6:
 					c = wood * (1.12 if x % 3 != 0 else 0.9)
 				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A trap on one cell: a cage of peeled sticks on a frame of darker poles, its door at the
+## front (south) raised on a trigger, a carrot inside for bait.
+static func trap() -> VoxelModel:
+	var m := VoxelModel.new()
+	var pole := Color(0.4, 0.28, 0.17)
+	var stick := Color(0.66, 0.52, 0.33)
+	for y in 5:
+		for z in range(1, 7):
+			for x in range(1, 7):
+				var edge_x := x == 1 or x == 6
+				var edge_z := z == 1 or z == 6
+				var corner := edge_x and edge_z
+				if y == 0:
+					# The floor: sticks across, a pole round the edge.
+					m.set_voxel(Vector3i(x, y, z), pole if edge_x or edge_z else stick * (0.9 if x % 2 == 0 else 1.0))
+				elif y == 4:
+					# The roof: a pole round the edge, sticks across with gaps to see the bait.
+					if edge_x or edge_z:
+						m.set_voxel(Vector3i(x, y, z), pole)
+					elif x % 2 == 1:
+						m.set_voxel(Vector3i(x, y, z), stick)
+				elif corner:
+					m.set_voxel(Vector3i(x, y, z), pole)
+				elif (edge_x and z % 2 == 1) or (z == 1 and x % 2 == 1):
+					# The walls: a stick every other voxel, the front left open for the door.
+					m.set_voxel(Vector3i(x, y, z), stick)
+	# The door raised over the front opening, held up on its trigger stick.
+	for x in range(2, 6):
+		m.set_voxel(Vector3i(x, 5, 6), stick)
+	m.set_voxel(Vector3i(3, 5, 5), pole)
+	# The bait: a carrot lying inside.
+	m.set_voxel(Vector3i(3, 1, 3), Color(0.92, 0.5, 0.16))
+	m.set_voxel(Vector3i(4, 1, 3), Color(0.92, 0.5, 0.16))
+	m.set_voxel(Vector3i(5, 1, 3), Color(0.35, 0.62, 0.25))
 	return m
 
 
@@ -1551,6 +1592,28 @@ static func _boat() -> VoxelModel:
 	# A seat across the middle.
 	for x in range(-3, 3):
 		m.set_voxel(Vector3i(x, 2, 0), rim)
+	return m
+
+
+## A rabbit sitting, its ears up, a white tail: a live one caught in a trap.
+static func _live_rabbit() -> VoxelModel:
+	var m := VoxelModel.new()
+	var fur := Color(0.62, 0.55, 0.46)
+	for y in 3:
+		for z in range(-3, 3):
+			for x in range(-2, 2):
+				if y == 2 and (z < -1 or absi(x * 2 + 1) > 1):
+					continue
+				m.set_voxel(Vector3i(x, y, z), fur * (0.9 if y == 0 else 1.0))
+	# The head at the front, its ears and eyes.
+	for x in range(-1, 1):
+		m.set_voxel(Vector3i(x, 2, 2), fur)
+		m.set_voxel(Vector3i(x, 3, 2), fur)
+		m.set_voxel(Vector3i(x, 4, 1), fur * 1.1)
+		m.set_voxel(Vector3i(x, 5, 1), fur * 1.1)
+	m.set_voxel(Vector3i(-1, 3, 3), Color(0.1, 0.08, 0.07))
+	m.set_voxel(Vector3i(0, 3, 3), Color(0.1, 0.08, 0.07))
+	m.set_voxel(Vector3i(0, 1, -4), Color(0.92, 0.92, 0.9))
 	return m
 
 

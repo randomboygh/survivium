@@ -475,6 +475,8 @@ func action_name() -> String:
 			return "Оставить"
 		"follow":
 			return "Позвать"
+		"release":
+			return "Выпустить"
 		"launch":
 			return "На воду"
 		"board":

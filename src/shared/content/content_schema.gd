@@ -138,6 +138,12 @@ const SCHEMAS := {
 		# the walking pace; `oars` — the item that must be in the bag to row it ("" none).
 		"vessel": {"type": "float", "min": 0.0, "default": 0.0},
 		"oars": {"type": "ref:items", "soft": true, "default": "", "rel": "requires"},
+		# A trap (ActionsTame.step_traps): set down with bait in it, it lures from this many
+		# cells the animals that eat that bait from a hand and have a `trapped` item.
+		"trap": {"type": "float", "min": 0.0, "default": 0.0},
+		# A live animal caught in a trap (a creature's `trapped`): let out by the action
+		# button, tame.
+		"alive": {"type": "bool", "default": false},
 		# A light is used up as it burns: once lit in a hand, one of the stack burns this
 		# many seconds and is gone (Character.burning); 0 burns for ever.
 		"burns": {"type": "float", "min": 0.0, "default": 0.0},
@@ -211,6 +217,8 @@ const SCHEMAS := {
 		"wool_days": {"type": "float", "min": 0.1, "default": 2.0},
 		"breed_days": {"type": "float", "min": 0.1, "default": 4.0},
 		"herd": {"type": "int", "min": 2, "default": 8},
+		# The live animal a baited trap turns it into (ActionsTame.step_traps), "" none.
+		"trapped": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "trap"},
 		# Fishing: what a swimmer becomes in the bag when it is pulled out on a rod's line
 		# (WorldActions.fish, Fishing); "" none bites.
 		"catch": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "fish"},
@@ -417,7 +425,7 @@ const RELATIONS := {
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
-const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt", "fish", "shear"]
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt", "fish", "shear", "trap"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
 ## reports and search (they decide nothing in the engine), which of the record's numbers
 ## are provisional, still to be balanced, and the ids it had before (`was`), so a save

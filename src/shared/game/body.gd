@@ -119,6 +119,10 @@ var water_level := -INF
 ## The velocity on the ground plane in cells a second (x east, y south); on ice it
 ## lags behind the wish.
 var glide := Vector2.ZERO
+## The current of the river the body is in (Currents), in cells a second (x east, y
+## south), set by its owner: it carries a body afloat, and one in the water by the
+## share of SWIM_DEPTH it is under.
+var flow := Vector2.ZERO
 ## A shove the body got (see knock), in cells a second (x east, y south): it carries
 ## the body whatever the stick says and dies away by SHOVE_DRAG.
 var shove := Vector2.ZERO
@@ -183,6 +187,8 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	p = _try_move(p, Vector3(glide.x * delta, 0.0, 0.0), reach)
 	p = _try_move(p, Vector3(0.0, 0.0, glide.y * delta), reach)
 	var drift := air_drift(p)
+	if flow != Vector2.ZERO and water_depth > 0.0:
+		drift += flow * clampf(water_depth / SWIM_DEPTH, 0.0, 1.0)
 	if drift != Vector2.ZERO:
 		p = _try_move(p, Vector3(drift.x * delta, 0.0, 0.0), reach)
 		p = _try_move(p, Vector3(0.0, 0.0, drift.y * delta), reach)
@@ -294,7 +300,7 @@ func _sail(p: Vector3, delta: float) -> Vector3:
 	in_bog = false
 	var dir := move_input.limit_length(1.0)
 	glide = dir * _sail_pace()
-	var push := glide + shove
+	var push := glide + shove + flow
 	shove = shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
 	for d: Vector3 in [Vector3(push.x * delta, 0.0, 0.0), Vector3(0.0, 0.0, push.y * delta)]:
 		var q := p + d

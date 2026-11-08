@@ -154,7 +154,7 @@ func _test_mods() -> void:
 	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
 		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 41
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 44 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 45 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
@@ -312,7 +312,7 @@ func _test_old_worlds() -> void:
 	var since := ["animals/game", "animals/wool", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
 		"plants/roasted_acorns", "tools/anvil", "tools/bloomery", "tools/bow", "tools/candle", "tools/composite_bow", "tools/drying_rack", "tools/fishing_rod", "tools/knife", "tools/leather_sling", "tools/needle", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch",
 		"tools/wicker_bag", "tools/leather_bag", "tools/canvas_backpack", "tools/fiber_clothes", "tools/hide_clothes", "tools/waterskin", "tools/bedding", "tools/big_chest", "tools/boundary_post", "tools/stairs", "tools/door", "tools/window", "tools/furniture", "tools/fireplace",
-		"tools/hoe", "tools/sickle", "tools/watering_can", "tools/boats"]
+		"tools/hoe", "tools/sickle", "tools/watering_can", "tools/boats", "tools/trap"]
 	var adds := all.filter(func(b: String) -> bool: return Mods.additive(b) and not b in since)
 	_check(adds == Mods.OLD_ADDITIVE and since.all(func(b: String) -> bool: return Mods.additive(b)),
 		"OLD_ADDITIVE lists the bundles that only add things to make, but those that came later: %s" % [adds])

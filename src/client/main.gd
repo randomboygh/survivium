@@ -899,6 +899,7 @@ func _process(delta: float) -> void:
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.body.swim_scale = character.skills.boost("swim")
 		player.body.vessel = character.vessel_pace()
+		player.body.flow = character.flow
 		player.riding = character.riding
 		player.asleep = character.vitals.asleep and not character.is_dead()
 		player.line_at = character.line

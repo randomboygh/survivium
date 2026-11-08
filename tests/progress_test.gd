@@ -194,6 +194,8 @@ func _raw() -> Dictionary:
 			have[spec.catch] = true
 		if kind != AiRules.HUMAN and spec.get("wool", "") != "" and Items.has(spec.wool):
 			have[spec.wool] = true
+		if kind != AiRules.HUMAN and spec.get("trapped", "") != "" and Items.has(spec.trapped):
+			have[spec.trapped] = true
 	return have
 
 
@@ -567,6 +569,11 @@ func _gather(id: String) -> bool:
 			# here it is given, the run is about what is made of it.
 			print("given %s ×8 (shorn off a tame %s)" % [Items.title(id), AiRules.SPECIES[kind].title])
 			main.host.player.give(id, 8)
+			return true
+		if kind != AiRules.HUMAN and AiRules.SPECIES[kind].get("trapped", "") == id:
+			# Caught in a baited trap (tests/unit/wildlife_test.gd catches one): given here.
+			print("given %s (caught in a trap)" % Items.title(id))
+			main.host.player.give(id, 1)
 			return true
 	return _fail("no way known to get %s from the world" % Items.title(id))
 

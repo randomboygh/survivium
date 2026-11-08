@@ -753,6 +753,23 @@ func breed(a: Animal) -> Animal:
 	return young
 
 
+## A tame one of `kind` let out at `at` (world units; a catch of a trap, ActionsTame),
+## owner `owner`'s and following them: on the ground there, or at `at` itself where the
+## ground is more than a cell and a half off it.
+func release(kind: String, at: Vector3, owner: int) -> Animal:
+	var spec: Dictionary = AiRules.SPECIES[kind]
+	var pos := at
+	var y := _floor(spec, at.x, at.z)
+	if y > 0.0 and absf(y - at.y) <= 1.5 * CELL:
+		pos.y = y
+	var a := _add(kind, pos)
+	a.owner = owner
+	a.stay = Vector3.INF
+	a.fed = spec.tame_feeds
+	a.shorn_at = clock.now() if clock != null else 0.0
+	return a
+
+
 # --- Fire ---------------------------------------------------------------------------
 
 

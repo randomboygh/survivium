@@ -120,6 +120,7 @@ func _test_wildlife() -> void:
 	_test_hunting(w)
 	_test_fire(w)
 	_test_taming(w)
+	_test_trap(w)
 
 
 ## The animals of the chunks made come none at the person's feet; those on ground
@@ -827,3 +828,67 @@ func _test_taming(w: WorldData) -> void:
 	# The tame ones do not go with the wild when their land is forgotten or the kind thinned.
 	life._thin(kind, 100, hare.pos)
 	_check(not hare.gone, "a tame hare is not thinned out")
+
+
+## Taming with a trap (ActionsTame.step_traps): a trap with a carrot in it lures a wild
+## hare within its reach, which walks in, eats the carrot and sits in it as a live hare;
+## taken into the bag and held, the action button lets it out tame. No bait, no hare.
+func _test_trap(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var placed := Placed.new()
+	placed.world = w
+	life.placed = placed
+	var who := Owner.new()
+	who.position = Vector3(40.0, 6.0, 40.0) * WorldData.CELL
+	who.position.y = life.ground(who.position.x, who.position.z)
+	life.people = []
+	var actions := WorldActions.new(w, life.clock, Rules.new())
+	actions.wildlife = life
+	var kind := "animals:rabbit"
+	var cell := Vector3i(floori(who.position.x / WorldData.CELL) + 2, floori(who.position.y / WorldData.CELL + 0.01), floori(who.position.z / WorldData.CELL))
+	var trap := placed.put("tools:trap", cell)
+	var mid := Placed.center(trap)
+	var at := mid + Vector3(4.0, 0.0, 0.0) * WorldData.CELL
+	at.y = life.ground(at.x, at.z)
+	var hare := _animal(life, kind, at)
+	for i in 20:
+		actions.step_traps(WorldActions.TRAP_EVERY)
+	_check(not hare.bait.is_finite(), "an empty trap lures nobody")
+	trap.items.add("plants:carrot", 2)
+	var lured := false
+	for i in 40:
+		actions.step_traps(WorldActions.TRAP_EVERY)
+		if hare.bait.is_finite():
+			lured = true
+			break
+	_check(lured, "a carrot in the trap lures a wild hare within its reach")
+	var t0 := Time.get_ticks_msec()
+	for i in 1200:
+		life.update(0.05)
+		if i % 40 == 39:
+			actions.step_traps(WorldActions.TRAP_EVERY)
+		if hare.gone:
+			break
+	_check(hare.gone and trap.items.count("tools:live_rabbit") == 1 and trap.items.count("plants:carrot") == 1,
+		"the hare walks in, eats a carrot and sits in the trap: gone %s, %d live, %d carrots (%.1f from the trap, %d ms)"
+			% [hare.gone, trap.items.count("tools:live_rabbit"), trap.items.count("plants:carrot"),
+			Vector2(hare.pos.x - mid.x, hare.pos.z - mid.z).length() / WorldData.CELL, Time.get_ticks_msec() - t0])
+	var other := _animal(life, kind, at)
+	for i in 40:
+		actions.step_traps(WorldActions.TRAP_EVERY)
+	_check(not other.bait.is_finite(), "a trap with a hare in it lures no other")
+	_check(WorldActions.released_kind("tools:live_rabbit") == kind and WorldActions.released_kind("plants:carrot") == "",
+		"a live hare is let out as a hare")
+	trap.items.remove("tools:live_rabbit", 1)
+	who.inventory.add("tools:live_rabbit", 1)
+	who.item = "tools:live_rabbit"
+	_check(actions.front_kind(who) == "release", "a live hare in the hand is let out by the action button")
+	var before := life.animals.size()
+	actions.act_in_front(who, 100)
+	var out: Wildlife.Animal = life.animals[-1]
+	_check(life.animals.size() == before + 1 and out.kind == kind and out.owner == 5 and not out.stay.is_finite()
+		and who.inventory.count("tools:live_rabbit") == 0, "let out, it is tame and follows its owner")
+

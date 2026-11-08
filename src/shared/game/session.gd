@@ -22,6 +22,7 @@ const Fishing := preload("res://src/shared/game/fishing.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Currents := preload("res://src/shared/world/currents.gd")
 
 ## Seconds of one long frame the characters, workshops and lights catch up on at most: a
 ## slow phone's frame (5 FPS) counts in full, while a pause (the tab hidden, a freeze of
@@ -122,6 +123,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	wildlife.placed = placed
 	wildlife.people = players
 	actions.wildlife = wildlife
+	actions.currents = Currents.new(gen) if gen != null else null
 	fishing.world = world
 	fishing.wildlife = wildlife
 	actions.fishing = fishing
@@ -192,8 +194,10 @@ func step_players(delta: float) -> void:
 ## The lights set down and the campfires burn, the rain falling on the fires (Placed.step);
 ## the beds get wet and dry, their crops grow (WorldActions.step_fields); nature grows
 ## back once a year, a row of a chunk at a time (WorldActions.step_nature); the tame
-## herds have their young (WorldActions.step_herds); a rider whose vessel no longer
-## floats is put ashore (WorldActions.step_boats);
+## herds have their young (WorldActions.step_herds) and the baited traps catch
+## (WorldActions.step_traps); a rider whose vessel no longer
+## floats is put ashore and the rivers carry the bodies and the things in them
+## (WorldActions.step_boats, Currents);
 ## the fishing lines in the water (Fishing.step); the sacks of deaths are gone after
 ## Character.SACK_DAYS (WorldActions.expire_sacks).
 func step_things(delta: float) -> void:
@@ -203,6 +207,7 @@ func step_things(delta: float) -> void:
 	actions.step_fields(delta, clock.rain)
 	actions.step_nature(d)
 	actions.step_herds(d)
+	actions.step_traps(d)
 	actions.step_boats(d, players)
 	fishing.step(d)
 	territory.step(clock.days(d), players, d)

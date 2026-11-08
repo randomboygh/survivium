@@ -9,6 +9,7 @@ const RAFT := "tools:raft"
 const BOAT := "tools:boat"
 const OARS := "tools:oars"
 const Vessels := preload("res://src/shared/game/vessels.gd")
+const Currents := preload("res://src/shared/world/currents.gd")
 
 
 func run() -> void:
@@ -17,6 +18,7 @@ func run() -> void:
 	_test_two_aboard()
 	_test_oars_and_save()
 	_test_ice_and_death()
+	_test_currents()
 
 
 ## A character who looks where it is told and is put where a rule puts it.
@@ -192,3 +194,108 @@ func _test_ice_and_death() -> void:
 	ch.death = {}
 	actions.step_boats(1.0, [ch])
 	_check(ch.vessel == 0 and ch.riding == "", "one in a vessel that is gone is in the water")
+
+
+## A river running one way at `speed` cells a second everywhere (for Currents).
+class Stream:
+	var v := Vector2.ZERO
+
+	func _init(to: Vector2) -> void:
+		v = to
+
+	func at(_x: int, _z: int) -> Vector2:
+		return v
+
+	func at_point(_p: Vector3, _cell: float) -> Vector2:
+		return v
+
+
+## Where `body` gets from `from` in `seconds` with the stick at `stick`.
+func _went(body: Body, from: Vector3, stick: Vector2, seconds: float) -> Vector3:
+	body.move_input = stick
+	var p := from
+	for i in int(seconds / 0.05):
+		p = body.step(p, 0.05, false)
+	return p
+
+
+func _test_currents() -> void:
+	# A world laid out has rivers that run, and the sea and dry land stand still.
+	var gen := WorldGen.new(12345)
+	var flows := Currents.new(gen)
+	var river: Vector2i = gen.find_place("river", Vector2i.ZERO)
+	var v := flows.at(river.x, river.y)
+	_check(v.length() >= Currents.SPEED * Currents.AT_BANK - 0.01 and v.length() <= Currents.SPEED + 0.01,
+		"a river runs: %s at %s" % [v, river])
+	_check(flows.at(river.x, river.y) == v and Currents.new().at(river.x, river.y) == Vector2.ZERO,
+		"the same each time asked; no layout, no current")
+	var far := gen.lay_out(river.x + 200, river.y + 200, 1, 1)
+	_check(far.feature[0] == WorldGen.RIVER or flows.at(river.x + 200, river.y + 200) == Vector2.ZERO, "off a river the water stands")
+	# The current carries a swimmer and a vessel; a raft rows up it slowly, a boat with oars well.
+	var w := _lake()
+	var ch := _rower(w, RAFT)
+	var actions := _actions(w, [ch])
+	actions.currents = Stream.new(Vector2(-3.0, 0.0))
+	var swim := Body.new()
+	swim.world = w
+	swim.flow = Vector2(2.0, 0.0)
+	var start := Vector3(8.5, 1.0, 8.5) * WorldData.CELL
+	var p := _went(swim, start, Vector2.ZERO, 1.0)
+	_check(p.x - start.x > 1.5 * WorldData.CELL, "a swimmer is carried along: %.2f cells" % ((p.x - start.x) / WorldData.CELL))
+	var dry := Body.new()
+	dry.world = w
+	dry.flow = Vector2(2.0, 0.0)
+	var bank := Vector3(1.5, 3.0, 8.5) * WorldData.CELL
+	_check(_went(dry, bank, Vector2.ZERO, 0.5).distance_to(bank) < 0.01, "on dry ground nothing carries the body")
+	actions.boat(ch)
+	actions.step_boats(0.1, [ch])
+	_check(ch.flow == Vector2(-3.0, 0.0) and ch.body.flow == ch.flow, "afloat, the rower feels the river: %s" % ch.flow)
+	var deck := ch.at
+	var raft := Body.new()
+	raft.world = w
+	raft.vessel = WorldActions.vessel_of(RAFT)
+	raft.flow = Vector2(-3.0, 0.0)
+	var up_raft := _went(raft, deck, Vector2(1.0, 0.0), 0.5).x - deck.x
+	var boat := Body.new()
+	boat.world = w
+	boat.vessel = WorldActions.vessel_of(BOAT)
+	boat.flow = Vector2(-3.0, 0.0)
+	var up_boat := _went(boat, deck, Vector2(1.0, 0.0), 0.5).x - deck.x
+	boat.vessel = WorldActions.vessel_of(BOAT) * ch.OARLESS
+	var up_bare := _went(boat, deck + Vector3(4.0, 0.0, 0.0) * WorldData.CELL, Vector2(1.0, 0.0), 0.5).x - deck.x - 4.0 * WorldData.CELL
+	_check(up_raft > 0.0 and up_boat > up_raft * 2.0 and up_bare < 0.0,
+		"upstream a raft rows slowly, a boat with oars well, one without is carried back: %.2f, %.2f, %.2f"
+			% [up_raft / WorldData.CELL, up_boat / WorldData.CELL, up_bare / WorldData.CELL])
+	ch.at = Vector3(1.5, 3.0, 8.5) * WorldData.CELL
+	ch.vessel = 0
+	ch.riding = ""
+	ch.body.vessel = 0.0
+	ch.body.afloat = false
+	ch.body.water_depth = 0.0
+	actions.step_boats(0.1, [ch])
+	_check(ch.flow == Vector2.ZERO, "ashore, no current")
+	# The things lying in the river's water drift; on the bank, and against it, they stay.
+	ch.at = Vector3(8.5, 3.0, 8.5) * WorldData.CELL
+	actions.currents = Stream.new(Vector2(2.0, 0.0))
+	w.add_drop("resources:stone", Vector3(8.5, 1.0, 8.5) * WorldData.CELL, 0.0, 3)
+	w.add_drop("resources:stone", Vector3(2.5, 3.0, 8.5) * WorldData.CELL, 0.0, 1)
+	w.add_drop("resources:stone", Vector3(17.7, 1.0, 6.5) * WorldData.CELL, 0.0, 2)
+	var told := []
+	actions.drops_changed.connect(func(k: Vector2i) -> void: told.append(k))
+	actions.step_drift(WorldActions.DRIFT_EVERY, [ch])
+	var at := {}
+	for key: Vector2i in w.drops:
+		for d: Array in w.drops[key]:
+			at[d[3]] = d[1] / WorldData.CELL
+	_check(is_equal_approx(at[3].x, 9.5) and is_equal_approx(at[3].y, 1.0), "a heap in the river drifts a cell downstream: %s" % at[3])
+	_check(at[1] == Vector3(2.5, 3.0, 8.5) and is_equal_approx(at[2].x, 17.7), "on the bank and against it nothing drifts: %s, %s" % [at[1], at[2]])
+	_check(not told.is_empty(), "the clients are told")
+	w.water_frozen = true
+	actions.step_drift(WorldActions.DRIFT_EVERY, [ch])
+	var still := Vector3.INF
+	for key: Vector2i in w.drops:
+		for d: Array in w.drops[key]:
+			if d[3] == 3:
+				still = d[1] / WorldData.CELL
+	_check(is_equal_approx(still.x, 9.5), "ice holds them")
+

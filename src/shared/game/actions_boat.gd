@@ -10,6 +10,9 @@ extends "res://src/shared/game/actions_tame.gd"
 ## leaving hands the oars to the one carried); a tap on a moored vessel no one sits in
 ## takes it back up into the bag (take_vessel). Water freezing under a vessel puts its
 ## riders on the nearest shore (step_boats); a death leaves the vessel where it floats.
+## A river's current (Currents, answer 5А) carries a body in its water or afloat
+## (Character.flow, Body.flow: a raft rows up it slowly, a boat with oars well), and the
+## things lying in its water near the players (step_drift).
 
 const Body := preload("res://src/shared/game/body.gd")
 const VesselsScript := preload("res://src/shared/game/vessels.gd")
@@ -30,8 +33,12 @@ const ASHORE_AHEAD := [1.0, 1.5]
 const ASHORE_ROUND := 3
 ## Seconds of the hands a launch, a boarding or a step ashore takes.
 const BOAT_SWING := 0.5
-## Seconds between two looks at whether the vessels still float (step_boats).
+## Seconds between two looks at whether the vessels still float (step_boats), and
+## between two moves of the things the rivers carry (step_drift).
 const BOATS_EVERY := 0.5
+const DRIFT_EVERY := 0.5
+## The things lying in a river this many chunks round a player drift.
+const DRIFT_CHUNKS := 1
 
 ## The vessels on the water (Vessels), the session's.
 var vessels = VesselsScript.new()
@@ -39,6 +46,9 @@ var vessels = VesselsScript.new()
 ## world's), made when first asked for.
 var _probe_body = null
 var _boats_wait := 0.0
+var _drift_wait := 0.0
+## The currents of the rivers (Currents), null where none run (a client's copy).
+var currents = null
 
 
 ## The share of the walking pace vessel item `id` goes at, 0 for a thing that is no vessel.
@@ -248,6 +258,9 @@ func take_vessel(who, id: int) -> bool:
 ## rower gone hands the vessel to the one carried; a vessel gone, or too many aboard,
 ## leaves them in the water).
 func step_boats(seconds: float, players: Array) -> void:
+	for who in players:
+		_feel_flow(who)
+	step_drift(seconds, players)
 	for v: Dictionary in vessels.list.values():
 		var aboard := riders(v.id)
 		if not aboard.is_empty() and aboard[0].seat == 0:
@@ -293,3 +306,68 @@ func _shore_near(at: Vector3) -> Vector3:
 			if spot.is_finite() and (not best.is_finite() or spot.distance_to(at) < best.distance_to(at)):
 				best = spot
 	return best if best.is_finite() else at
+
+
+## Sets the current `who` feels (Character.flow and their body's): the river's where
+## their body is in the water or afloat, none elsewhere.
+func _feel_flow(who) -> void:
+	var f := Vector2.ZERO
+	var body = who.get("body")
+	if currents != null and body != null and not who.is_dead() and not world.water_frozen \
+			and (vessel_id(who) != 0 or body.afloat or body.water_depth > 0.0):
+		f = currents.at_point(who.position, CELL)
+	who.flow = f
+	if body != null:
+		body.flow = f
+
+
+## The things lying in a river's water within DRIFT_CHUNKS of a player, every
+## DRIFT_EVERY: each heap is carried along by the current at its column, as far as the
+## water goes, and lies on the bottom where it comes to (frozen water holds them).
+func step_drift(seconds: float, players: Array) -> void:
+	_drift_wait -= seconds
+	if _drift_wait > 0.0:
+		return
+	_drift_wait = DRIFT_EVERY
+	if currents == null or world.water_frozen:
+		return
+	var keys := {}
+	for who in players:
+		var c := WorldData.chunk_key(floori(who.position.x / CELL), floori(who.position.z / CELL))
+		for dz in range(-DRIFT_CHUNKS, DRIFT_CHUNKS + 1):
+			for dx in range(-DRIFT_CHUNKS, DRIFT_CHUNKS + 1):
+				keys[c + Vector2i(dx, dz)] = true
+	var moves := []
+	for key: Vector2i in keys:
+		var list: Array = world.drops.get(key, [])
+		for i in range(list.size() - 1, -1, -1):
+			var d: Array = list[i]
+			if not d[3] is int or d.size() > 4:
+				continue
+			var p: Vector3 = d[1]
+			var x := floori(p.x / CELL)
+			var z := floori(p.z / CELL)
+			if world.water_col(x, z) == 0:
+				continue
+			var v: Vector2 = currents.at(x, z)
+			if v == Vector2.ZERO:
+				continue
+			var to := p + Vector3(v.x, 0.0, v.y) * DRIFT_EVERY * CELL
+			var nx := floori(to.x / CELL)
+			var nz := floori(to.z / CELL)
+			if world.water_col(nx, nz) == 0:
+				continue
+			var lie := floor_under(Vector3i(nx, floori(p.y / CELL + 0.01) + 1, nz))
+			if absf(lie.y - p.y) > CELL * 1.01:
+				continue
+			moves.append([key, i, Vector3(to.x, lie.y, to.z)])
+	var changed := {}
+	for m: Array in moves:
+		var key: Vector2i = m[0]
+		var d: Array = world.take_drop(key, m[1])
+		world.add_drop(d[0], m[2], d[2], d[3])
+		changed[key] = true
+		changed[WorldData.chunk_key(floori(m[2].x / CELL), floori(m[2].z / CELL))] = true
+	for key: Vector2i in changed:
+		drops_changed.emit(key)
+
