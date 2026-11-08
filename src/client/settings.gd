@@ -64,6 +64,9 @@ const DEFAULTS := {
 	"ui_size": 2,
 	"control_size": 2,
 	"show_help": true,
+	# The chat and the gestures in single player too (Hud.show_social); on a server
+	# they always show.
+	"solo_social": false,
 	# The corner of the screen (see Hud._place_top): the minimap small, as it comes or
 	# large (Minimap.SIDES), the level buttons beside it and the camera cross under it.
 	"minimap_size": 1,
@@ -453,6 +456,7 @@ func apply() -> void:
 				view.layout_ui(view.safe_rect)
 		hud.set_corner(values.minimap_size, values.level_buttons, values.camera_buttons)
 		hud.show_keys(values.show_help)
+		hud.show_social(values.solo_social)
 
 
 ## Puts every setting back as it comes, all but the world the setup screen makes.

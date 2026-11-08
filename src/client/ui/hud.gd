@@ -101,8 +101,9 @@ func _ready() -> void:
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
 	_test_button.visible = game.settings.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
-	_chat_button.visible = game.join_url != ""
 	_gesture_button = _icon_button(_top, "gesture", "Жесты (C)", toggle_gestures)
+	_chat_button.visible = social(game.settings.values.solo_social)
+	_gesture_button.visible = _chat_button.visible
 	game.land.changed.connect(_show_land)
 	game.land.entered.connect(_on_land_entered)
 	game.land.painting_toggled.connect(_on_painting_toggled)
@@ -315,7 +316,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				game.print_debug()
 				get_viewport().set_input_as_handled()
 			KEY_C:
-				if not bag.visible:
+				if _gesture_button.visible and not bag.visible:
 					toggle_gestures()
 					get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_KP_ENTER:
