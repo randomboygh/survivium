@@ -292,6 +292,16 @@ func _run() -> void:
 	var first_dug: Vector3i = laid.pop_front()
 	var dug_key := WorldData.chunk_key(first_dug.x, first_dug.z)
 	var lying: int = w.drops.get(dug_key, []).size()
+	# A far chunk being streamed is set aside for the edit, not waited for
+	# (ChunkStreamer.stashed): a felled tree stood for seconds on a phone at a new place.
+	var far_key: Vector2i = WorldData.chunk_key(first_dug.x, first_dug.z) + Vector2i(ChunkStreamer.LOAD_RANGE - 1, 0)
+	streamer.unload_chunk(far_key)
+	streamer.load_home = Vector2i(-1000000, 0)
+	var stream_from := Time.get_ticks_msec()
+	while not (streamer.job_mesh != null and not streamer.job_edit and streamer.job_key == far_key) \
+			and Time.get_ticks_msec() - stream_from < 10000:
+		await process_frame
+	var streaming: bool = streamer.job_mesh != null and streamer.job_key == far_key
 	c._cooldown = 0.0
 	c.dig_at(first_dug, Vector3i.UP)
 	var held: bool = w.drops.get(dug_key, []).size() > lying and main.props._drops_shown.get(dug_key, 0) == lying
@@ -301,14 +311,22 @@ func _run() -> void:
 	var queued: Array = main.chunks.dirty_chunks.keys()
 	_check(main.chunks.edited.has(dug_key) and not queued.is_empty() and queued[0] == dug_key,
 		"the chunk of a dug cell is rebuilt before the chunks beside it (queue %s, chunk %s)" % [queued, dug_key])
+	var set_aside := false
 	var waited_from := Time.get_ticks_msec()
 	while main.props._rebuilding_near(dug_key) and Time.get_ticks_msec() - waited_from < 10000:
 		await process_frame
+		set_aside = set_aside or not streamer.stashed.is_empty() and streamer.stashed[0] == far_key
+	_check(streaming and set_aside and not streamer.chunk_nodes.has(far_key),
+		"an edit sets a chunk being streamed aside instead of waiting for it")
 	await process_frame
 	_check(held and main.props._drops_shown.get(dug_key, 0) == w.drops.get(dug_key, []).size(),
 		"what is dug is drawn on the ground when the chunk is drawn dug, not before")
 	_check(kept and main.chunks.patches > patches_before,
 		"the chunk at the player's feet keeps its jobs and a dig rebuilds only the columns around it")
+	while not streamer.chunk_nodes.has(far_key) and Time.get_ticks_msec() - waited_from < 20000:
+		await process_frame
+	_check(streamer.chunk_nodes.has(far_key) and streamer.stashed.is_empty() and streamer.kept.has(far_key),
+		"the chunk set aside is built after the edit, and keeps its jobs")
 	main.settings.values.pickup = picks
 	await _scenario("digging with tools", laid.size() * 10 + 60, func(i: int) -> bool:
 		if i % 10 == 0 and i / 10 < laid.size():

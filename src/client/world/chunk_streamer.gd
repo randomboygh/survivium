@@ -58,8 +58,13 @@ const LOAD_BUDGET_US := 14000
 const LOAD_MAX_US := 100000
 const STREAM_BUDGET_US := 3000
 ## Chunks this near the player's keep what their meshes and plants were built from (see
-## `kept`), so an edit there rebuilds only the columns around it (ChunkMesher.patch).
-const KEEP_CHUNKS := 1
+## `kept`), so an edit there rebuilds only the columns around it (ChunkMesher.patch):
+## every chunk streamed in, so the first tree felled at a new place does not wait for
+## whole chunks (a few seconds on a phone). About 0.25 MB a chunk, some 30 MB in all.
+const KEEP_CHUNKS := LOAD_RANGE
+## Chunks this near the player's that keep nothing (built while it was far, in the ring
+## beyond KEEP_CHUNKS that stays drawn) are built again in idle frames to keep it.
+const REFILL_CHUNKS := 1
 ## Chunks whose meshes are freed in one frame at most.
 const UNLOADS_PER_FRAME := 2
 ## How many levels above and below the player's the level buttons may look; from deep
@@ -131,8 +136,8 @@ var edited := {}
 ## change of how it looks with no cell changed).
 var dirty_rects := {}
 ## The finished mesh and plant jobs of the chunks within KEEP_CHUNKS of the player
-## ([ChunkMesher.Job, Foliage.Job] by key), which an edit patches; the chunks near that
-## were built before the player came, in the order to build them again, for idle frames;
+## ([ChunkMesher.Job, Foliage.Job] by key), which an edit patches; the chunks within
+## REFILL_CHUNKS with none, in the order to build them again, for idle frames;
 ## and the player's chunk they were listed around.
 var kept := {}
 var keep_queue: Array[Vector2i] = []
@@ -143,6 +148,11 @@ var job_old := []
 var job_keep := false
 ## How many edits were built by patching kept jobs (tests).
 var patches := 0
+## A chunk being streamed (or built to keep its jobs) set aside for an edit, to go on
+## where it stopped once the edits are built: [key, mesh job, plant job, part, meshes,
+## plant parts, keep, budget], [] for none. Before 2026-11-08 the edit waited for it:
+## a far chunk at the stream budget kept a felled tree standing for seconds on a phone.
+var stashed := []
 var job_key := Vector2i.ZERO
 var job_edit := false
 var job_budget := 0
@@ -357,6 +367,7 @@ func build_chunk(key: Vector2i) -> void:
 func build_around() -> void:
 	load_home = Vector2i(-1000000, 0)
 	has_target = false
+	stashed = []
 	_drop_job()
 	while not paint_queue.is_empty():
 		_paint(paint_queue.pop_front())
@@ -390,10 +401,11 @@ func take_work() -> Dictionary:
 ## The budgets for the session's generation next frame (Runner.near_us, far_us):
 ## loading or paused, the loading budget; playing, the edit budget for the chunks
 ## near the player and the stream budget for the rest, as for the meshes.
+## While edits wait, the far chunks take a step a frame: the edits get the frame.
 func gen_budgets() -> Vector2i:
 	if not game.ready_to_play or paused:
 		return Vector2i(load_budget, load_budget)
-	return Vector2i(EDIT_BUDGET_US, STREAM_BUDGET_US)
+	return Vector2i(EDIT_BUDGET_US, 0 if not dirty_chunks.is_empty() else STREAM_BUDGET_US)
 
 
 ## A chunk reached a stage (WorldGen.made): once it is SHAPED its columns are final,
@@ -461,6 +473,38 @@ func _drop_job() -> void:
 	job_plant_parts = {}
 
 
+## Sets the chunk being streamed aside for the edits (see stashed).
+func _stash_job() -> void:
+	stashed = [job_key, job_mesh, job_plants, job_part, job_meshes, job_plant_parts, job_keep, job_budget]
+	has_target = false
+	_drop_job()
+
+
+## Takes the chunk set aside back up where it stopped.
+func _unstash_job() -> void:
+	job_key = stashed[0]
+	job_mesh = stashed[1]
+	job_plants = stashed[2]
+	job_part = stashed[3]
+	job_meshes = stashed[4]
+	job_plant_parts = stashed[5]
+	job_keep = stashed[6]
+	job_budget = stashed[7]
+	job_edit = false
+	has_target = not job_keep
+	stashed = []
+
+
+## Forgets the chunk set aside if it is `key` (its cells changed, or it went): a chunk
+## being streamed is listed again, one built to keep its jobs is rebuilt for the edit.
+func _unstash(key: Vector2i) -> void:
+	if stashed.is_empty() or stashed[0] != key:
+		return
+	if not stashed[6]:
+		pending_chunks.append(key)
+	stashed = []
+
+
 ## Keeps the finished jobs of chunk `key` for patching if it is within KEEP_CHUNKS of the
 ## player, forgets them if not.
 func _keep(key: Vector2i, jm: ChunkMesher.Job, jp: Foliage.Job) -> void:
@@ -487,7 +531,7 @@ func _keep_around() -> void:
 		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > KEEP_CHUNKS:
 			kept.erase(key)
 	keep_queue.clear()
-	for r in KEEP_CHUNKS + 1:
+	for r in REFILL_CHUNKS + 1:
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				var key := home + Vector2i(dx, dz)
@@ -512,6 +556,11 @@ func run_jobs(spent := 0) -> void:
 			job_budget = load_budget
 	_list_pending()
 	_keep_around()
+	if not dirty_chunks.is_empty() and game.ready_to_play and not paused:
+		# Edits wait: the frame has their budget, whatever was built before (a far chunk
+		# at the stream budget, which the making of the world could use up before a
+		# single step of the edits, 2026-11-08).
+		job_budget = EDIT_BUDGET_US
 	var worked := false
 	if not paint_queue.is_empty():
 		var tp := Time.get_ticks_usec()
@@ -522,10 +571,10 @@ func run_jobs(spent := 0) -> void:
 		var t1 := Time.get_ticks_usec()
 		if t1 - t0 >= job_budget and worked:
 			break
-		if job_keep and not dirty_chunks.is_empty():
-			# A chunk built only to keep its jobs gives way to an edit; listed again.
-			keep_queue.append(job_key)
-			_drop_job()
+		if job_mesh != null and not job_edit and not dirty_chunks.is_empty() and stashed.is_empty() \
+				and game.ready_to_play:
+			# A chunk being streamed, or built to keep its jobs, waits for the edits.
+			_stash_job()
 		if job_mesh == null:
 			var rect := Rect2i()
 			if not dirty_chunks.is_empty():
@@ -540,6 +589,10 @@ func run_jobs(spent := 0) -> void:
 				job_edit = true
 				job_budget = EDIT_BUDGET_US
 				has_target = false
+			elif not stashed.is_empty():
+				# The chunk set aside for the edits, where it stopped.
+				_unstash_job()
+				continue
 			elif (game.ready_to_play or load_steps) and (has_target or not pending_chunks.is_empty()):
 				if not has_target:
 					job_key = next_chunk()
@@ -627,6 +680,7 @@ func unload_chunk(key: Vector2i) -> void:
 	if (job_mesh != null or has_target) and job_key == key:
 		_drop_job()
 		has_target = false
+	_unstash(key)
 	pending_chunks.erase(key)
 	dirty_chunks.erase(key)
 	dirty_rects.erase(key)
@@ -659,6 +713,7 @@ func _free_chunk(key: Vector2i) -> void:
 	for node: Node in chunk_nodes[key]:
 		node.queue_free()
 	chunk_nodes.erase(key)
+	_unstash(key)
 	game.props.hide_drops(key)
 	dirty_chunks.erase(key)
 	dirty_rects.erase(key)
@@ -786,6 +841,8 @@ func on_cell_changed(cell: Vector3i) -> void:
 			if not job_keep:
 				has_target = true
 			_drop_job()
+	if not stashed.is_empty() and keys.has(stashed[0]):
+		_unstash(stashed[0])
 	var queue := {}
 	if chunk_nodes.has(home):
 		queue[home] = true
@@ -811,6 +868,7 @@ func remesh_chunk(key: Vector2i) -> void:
 		if not job_keep:
 			has_target = true
 		_drop_job()
+	_unstash(key)
 	dirty_chunks[key] = true
 	dirty_rects[key] = Rect2i(key * CHUNK, Vector2i(CHUNK, CHUNK))
 
