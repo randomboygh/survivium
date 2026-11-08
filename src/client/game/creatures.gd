@@ -189,7 +189,10 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
 	if a.flying and walk > 0:
 		look.idle = 0
-		return 1 + (int(beat) + a.get_instance_id()) % walk
+		# posmod: an instance id may be negative, and % of a negative number is negative,
+		# which picked frames off the end of the sheet (another view's), so a flyer seemed
+		# to spin in the air.
+		return 1 + posmod(int(beat) + a.get_instance_id(), walk)
 	if a.hop > 0.0 and walk > 1:
 		look.idle = 0
 		return 1 if a.hop > 0.2 and a.hop < 0.8 else 2
