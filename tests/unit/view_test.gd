@@ -6,6 +6,7 @@ const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const FireShadows := preload("res://src/client/view/fire_shadows.gd")
+const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
 
 
 func run() -> void:
@@ -19,6 +20,7 @@ func run() -> void:
 	_test_camera_drift()
 	_test_other_bundles()
 	_test_light_maps()
+	_test_edge_haze()
 
 
 func _test_pixel_view() -> void:
@@ -521,3 +523,24 @@ func _test_light_maps() -> void:
 	shadows._map_blockers(w, m)
 	_check(door.open and not solid.call(Vector3i(10, 4, 10)), "an open door lets it through")
 	shadows.free()
+
+
+## The haze over the chunks not built (EdgeHaze): a chunk alone gets its quad, a strip
+## fading out on each side and a corner at each corner; two side by side have no strip
+## between them; the strips go from opaque at the chunk to clear.
+func _test_edge_haze() -> void:
+	var one := EdgeHaze.build_mesh([Vector2i(0, 0)] as Array[Vector2i], 1.0)
+	var n := one.surface_get_array_len(0)
+	_check(n == 9 * 6, "a chunk alone: its quad, four strips and four corners (%d vertices)" % n)
+	var two := EdgeHaze.build_mesh([Vector2i(0, 0), Vector2i(1, 0)] as Array[Vector2i], 1.0)
+	_check(two.surface_get_array_len(0) == 2 * (1 + 3 + 2) * 6, "two side by side: no strip and no corners between them")
+	var arrays := one.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+	var ok := true
+	for i in verts.size():
+		var v := verts[i]
+		var inside := v.x >= 0.0 and v.x <= 8.0 and v.z >= 0.0 and v.z <= 8.0
+		if (colors[i].a == 1.0) != inside or v.y != 1.0:
+			ok = false
+	_check(ok, "opaque on the chunk, clear at the far edge of the strips, at the height asked")
