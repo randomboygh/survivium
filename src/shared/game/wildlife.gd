@@ -32,6 +32,8 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 
 ## Every this many seconds the chunks made since get their animals (_populate_chunk) and
 ## those whose ground is forgotten go (_leave); every RESPAWN_EVERY the eaten are
@@ -211,6 +213,9 @@ class Animal:
 
 
 var world
+## The things placed (Placed): its burning fires and lights set down keep the animals off
+## (see _find_fires); null for none.
+var placed
 ## The layout of the land (LandLayout: `lay_out`), for the biome of a column, where
 ## species keep to their biomes; null when any ground will do.
 var gen
@@ -242,6 +247,10 @@ var pushes: Array[Vector3] = []
 var moved: Array[Animal] = []
 ## The number the last animal got (Animal.id).
 var _next_id := 0
+## What keeps the animals off now (see _find_fires): [middle, reach in world units,
+## true for a light in a hand], and the seconds until it is looked for again.
+var _fires: Array = []
+var _fire_timer := 0.0
 
 
 ## Gives the chunks made so far their animals; more come as more is made.
@@ -396,6 +405,10 @@ func update(delta: float) -> void:
 		_leave()
 		_settle_new()
 	_daylight = clock.daylight()
+	_fire_timer -= delta
+	if _fire_timer <= 0.0:
+		_fire_timer = FIRE_EVERY
+		_find_fires()
 	moved.clear()
 	for a in animals.duplicate():
 		if a.gone:
@@ -468,6 +481,10 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if d < wary and d < threat_d:
 				threat_pos = at
 				threat_d = d
+	var fire: Variant = _fire_near(a, spec)
+	if fire != null and a.pos.distance_to(fire) < threat_d:
+		threat_pos = fire
+		threat_d = a.pos.distance_to(fire)
 	if a.hurt > 0.0:
 		# A hit one flees from where it was hit, whether it fears people or not.
 		threat_pos = a.hurt_from
@@ -603,6 +620,65 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		# walker's thinking), else it wanders.
 		var to: Variant = null if spec.likes.is_empty() or rng.randf() > GRAZE_CHANCE else _place(spec, a.pos, 6.0, false, 4)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
+		if _fire_near(a, spec, a.target) != null:
+			# It does not wander up to a fire: it stays where it is a while instead.
+			a.target = a.pos
+			a.idle = rng.randf_range(LINGER.x, LINGER.y)
+
+
+# --- Fire ---------------------------------------------------------------------------
+
+
+## How often the fires that keep the animals off are looked for again, in seconds.
+const FIRE_EVERY := 0.5
+## A fleeing animal keeps this much farther from a fire than it lets itself come.
+const FIRE_WARY := 1.3
+## A meat eater of a flock this hungry in winter is not kept off by a light in a hand,
+## only by a fire set down (plan/design/creatures-ai.md: a hungry pack may come).
+const BOLD_HUNGER := 0.7
+
+
+## Notes what keeps the animals off (see _fires): the fires burning and the lights set
+## down, by the `scares` of their items, and the lights the people hold, by the farthest
+## `scares` of those.
+func _find_fires() -> void:
+	_fires.clear()
+	if placed != null:
+		for e: Dictionary in placed.things + placed.lights:
+			var reach: float = Items.get_item(e.item).get("scares", 0.0)
+			if reach > 0.0 and e.get("lit", false):
+				_fires.append([Placed.center(e), reach, false])
+	for who in people:
+		if not who.has_method("lights_held"):
+			continue
+		var reach := 0.0
+		for id: String in who.lights_held():
+			reach = maxf(reach, Items.get_item(id).get("scares", 0.0))
+		if reach > 0.0:
+			_fires.append([who.position + Vector3(0.0, Body.HEIGHT * CELL * 0.5, 0.0), reach, true])
+
+
+## The fire that keeps animal `a` (of species `spec`) off at `at` (its own place by
+## default), null for none: the nearest whose reach `at` is within (farther once it
+## flees, FIRE_WARY), when it fears fire (`fire_wariness` 0.5 or more). A hungry flock of
+## meat eaters in winter comes near a light in a hand (BOLD_HUNGER).
+func _fire_near(a: Animal, spec: Dictionary, at: Variant = null) -> Variant:
+	if _fires.is_empty() or spec.get("fire_wariness", 1.0) < 0.5:
+		return null
+	var p: Vector3 = a.pos if at == null else at
+	var bold: bool = a.hunger > BOLD_HUNGER and spec.flock[1] > 1 and "meat" in spec.diet \
+			and clock != null and clock.season == clock.WINTER
+	var wary := FIRE_WARY if a.state == "flee" else 1.0
+	var best: Variant = null
+	var best_d := INF
+	for f: Array in _fires:
+		if f[2] and bold:
+			continue
+		var d := p.distance_to(f[0])
+		if d < f[1] * wary and d < best_d:
+			best = f[0]
+			best_d = d
+	return best
 
 
 const NOBODY := 0

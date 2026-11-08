@@ -9,4 +9,5 @@
   model: tallow_candle
   icon: tallow_candle
   light: 4.5
+  scares: 1.5
   burns: 1800

@@ -118,6 +118,7 @@ func _test_wildlife() -> void:
 	_test_jostle(w)
 	_test_looked(w)
 	_test_hunting(w)
+	_test_fire(w)
 
 
 ## The animals of the chunks made come none at the person's feet; those on ground
@@ -675,3 +676,60 @@ func _test_looked(w: WorldData) -> void:
 	_check(far.near and not farther.near, "a screen told too wide is taken as at most NEAR each way")
 	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(10.0, 5.0)], [Vector3(30.0, 1.0, 10.0), Vector2(1.0, 0.0), Vector2(5.0, 12.0)]])
 	_check(east.near and farther.near and not far.near, "a second player's screen shows the deer by them too")
+
+
+class Torchbearer extends RefCounted:
+	var position := Vector3.ZERO
+	var held: Array = []
+
+	func lights_held() -> Array:
+		return held
+
+
+## A burning campfire keeps the animals that fear fire off, and they do not wander up to
+## it; put out, it keeps nobody off. A torch in a hand scares even one that does not fear
+## people, but not a hungry pack of meat eaters in winter; fish do not care about fire.
+func _test_fire(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	life.people = [Who.new()]
+	var placed := Placed.new()
+	var cell := Vector3i(40, 6, 40)
+	var fire := {"item": "core:campfire", "cell": cell, "items": null, "lit": true, "turn": 0}
+	placed.things.append(fire)
+	life.placed = placed
+	var middle := Placed.center(fire)
+	var at := middle + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var deer := _animal(life, "animals:deer", at)
+	for i in 40:
+		life.update(0.05)
+	_check(deer.pos.distance_to(middle) > 4.0 and deer.pos.x > at.x, "a deer runs from a burning campfire (%.1f away)" % deer.pos.distance_to(middle))
+	var spec: Dictionary = AiRules.SPECIES["animals:deer"]
+	deer.state = "wander"
+	_check(life._fire_near(deer, spec, middle + Vector3(1.0, 0.0, 0.0)) != null, "a deer does not wander up to the fire")
+	fire.lit = false
+	life._find_fires()
+	_check(life._fire_near(deer, spec, middle + Vector3(1.0, 0.0, 0.0)) == null, "a fire put out keeps nobody off")
+
+	var bearer := Torchbearer.new()
+	bearer.position = middle
+	bearer.held = ["tools:torch"]
+	life.people = [bearer]
+	life._find_fires()
+	var bear := _animal(life, "animals:bear", middle + Vector3(1.5, 0.0, 0.0))
+	_check(not AiRules.is_threat("animals:bear", AiRules.HUMAN) and life._fire_near(bear, AiRules.SPECIES["animals:bear"]) != null,
+		"a bear that does not fear people fears a torch in a hand")
+	var wolf := _animal(life, "animals:wolf", middle + Vector3(1.5, 0.0, 0.0))
+	var wolves: Dictionary = AiRules.SPECIES["animals:wolf"]
+	_check(life._fire_near(wolf, wolves) != null, "a wolf keeps off a torch")
+	wolf.hunger = 1.0
+	life.clock.season = Clock.WINTER
+	_check(life._fire_near(wolf, wolves) == null, "a hungry pack in winter comes up to a torch")
+	fire.lit = true
+	life._find_fires()
+	_check(life._fire_near(wolf, wolves) != null, "but not up to a campfire")
+	var fish := _animal(life, "animals:perch", middle + Vector3(1.0, 0.0, 0.0))
+	_check(life._fire_near(fish, AiRules.SPECIES["animals:perch"]) == null, "a fish does not care about fire")

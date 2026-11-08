@@ -13,6 +13,7 @@
   model: fireplace
   prop: fireplace
   fire: true
+  scares: 3.0
   fuel_max: 2400
   fuel_start: 0
   serves: [core:campfire]

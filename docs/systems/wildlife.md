@@ -52,6 +52,11 @@
   `PEOPLE`; кнопка действия остаётся нажатой («Смотать», при поклёве «Подсечь»), фигура держит удочку
   вытянутой (кадр удара `slash`), `src/client/view/fishing_line.gd` рисует леску от кончика удочки
   (`SpriteSheet.tips`) и поплавок, ныряющий при поклёве (`shaders/fishing_line.gdshader`).
+- Огонь (`_find_fires` раз в `FIRE_EVERY` 0,5 с, `_fire_near`): горящие костры и камины, поставленные
+  светильники и свет в руках людей держат зверей с `fire_wariness` от 0,5 на `scares` своего предмета (мировые
+  единицы; убегающий держится в `FIRE_WARY` раза дальше): зверь в этом круге бежит от огня, как от угрозы, и не
+  выбирает место для прогулки внутри него. Голодная (`BOLD_HUNGER`) стая мясоедов зимой подходит к свету в руке,
+  но не к костру. Рыбе (`fire_wariness: 0`) огонь безразличен. `Wildlife.placed` даёт сеанс.
 - Подо льдом: рыба (плавает, не летает и не выходит на берег, `under_ice_swimmer`) в замёрзшей воде глубиной
   от двух клеток плавает под льдом (`under_ice`), появляется там же; утка и лягушка — нет.
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
@@ -69,7 +74,7 @@
 `creatures.gd`, `voices.gd`, следы, `fire_shadows.gd` (тени зверей у огня); тесты и `tools/shot.gd`
 пишут в `main.session.wildlife`.
 
-**Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `active`, `count`,
+**Данные.** Вид `creatures` (`health`, `carcass`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `fire_wariness`, `active`, `count`,
 `sprite`, `frames`, `walk`, `hop`, `attack`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
 `likes`, `biomes`, `calls`, `alarm`) в бандлах `content/animals/<зверь>/`; картинка —
 `sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади),
@@ -87,7 +92,7 @@
 (синтез — таблица в `tools/make_sounds.gd`).
 
 **Тесты.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`, `fishing`,
-`birds`, `shore`, `jostle`, `hunting`; стая ждёт тактов мышления, а не порядка случайных чисел).
+`birds`, `shore`, `jostle`, `hunting`, `fire`; стая ждёт тактов мышления, а не порядка случайных чисел).
 
 **Подробнее.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — замысел движка поведения
 (формулы помечены как черновик, в коде проще).

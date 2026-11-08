@@ -119,6 +119,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	wildlife.world = world
 	wildlife.gen = gen
 	wildlife.clock = clock
+	wildlife.placed = placed
 	wildlife.people = players
 	actions.wildlife = wildlife
 	fishing.world = world

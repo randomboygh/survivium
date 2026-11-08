@@ -11,6 +11,7 @@
   speed: 3.0
   sight: 6
   human_wariness: 0.6
+  fire_wariness: 0.0
   active: any
   count: 8
   sprite: perch
