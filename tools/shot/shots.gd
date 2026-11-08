@@ -200,6 +200,11 @@ const SHOTS := {
 	# Stage 1 building (places.fences): a pen of fence with a wicket and a gate, the big
 	# gates in a barn wall, a ladder up a wall onto a deck with hatches.
 	"build-fences": {"time": 0.4, "season": 1, "fences": true},
+	# Signs (decision 183, places.signs): a sign, a signpost and a board on a wall, their text
+	# over them; and the window a tap on the sign opens.
+	"signs": {"time": 0.4, "season": 1, "signs": "posts"},
+	"signs-board": {"time": 0.4, "season": 1, "signs": "board"},
+	"signs-window": {"time": 0.4, "season": 1, "signs": "posts", "sign_window": true},
 	"build-openings-dusk": {"time": 0.8, "season": 1, "moon": 0.0, "openings": "wall"},
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
 	"build-openings-bag-barrel": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2},

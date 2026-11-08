@@ -18,6 +18,7 @@ const PersonPanel := preload("res://src/client/ui/person_panel.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
+const SignWindow := preload("res://src/client/ui/sign_window.gd")
 const PersonCard := preload("res://src/client/ui/person_card.gd")
 const BuildBar := preload("res://src/client/ui/build_bar.gd")
 const FarmBar := preload("res://src/client/ui/farm_bar.gd")
@@ -75,6 +76,8 @@ var feedback: BodyFeedback
 var bag: InventoryWindow
 ## The chat on a server (hidden in single player), and its button.
 var chat: ChatBox
+## The window of a sign tapped (SignWindow), null while none is open.
+var sign_window: Control = null
 ## The card of another player tapped, and of an invitation to a team.
 var person: PersonCard
 var _chat_button: Button

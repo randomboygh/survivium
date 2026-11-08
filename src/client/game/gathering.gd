@@ -118,6 +118,8 @@ func describe(target: Dictionary) -> String:
 			return "%s\nЛКМ забрать" % title
 		if Placed.is_light(e):
 			return "%s\nЛКМ забрать" % title
+		if Placed.is_sign(e):
+			return "%s\nЛКМ прочитать" % title
 		if Placed.is_part(e):
 			return "%s\nзабрать — в режиме строительства" % title
 		if Placed.is_door(e):
@@ -151,12 +153,15 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens (a door swings, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
+## opens (a door swings, a sign shows its text, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_door(target.prop):
 		var swung = game.net.request(Protocol.PROP_OPEN, [target.prop.cell])
 		return swung.done and swung.value is bool and swung.value
+	if target.has("prop") and Placed.is_sign(target.prop):
+		game.hud.open_sign(target.prop)
+		return true
 	if target.has("prop") and Placed.is_part(target.prop):
 		# Parts of a house are taken up only in the build mode.
 		game.character.nag("take", "Забрать можно в режиме строительства")

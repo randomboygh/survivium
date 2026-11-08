@@ -124,6 +124,13 @@ const SCHEMAS := {
 		"furniture": {"type": "bool", "default": false},
 		"seat": {"type": "float", "min": 1.0, "default": 1.0},
 		"keeps": {"type": "float", "min": 0.0, "max": 1.0, "default": 1.0},
+		# A sign (stage 1, decision 183): text of `sign_lines` lines, `sign_width` letters each at
+		# most, written by whoever may build there (Placed.write) and shown over it to those
+		# within Placed.SIGN_READ cells. `wall`: hung on a wall, its back to a solid cell beside
+		# it (Placed.ON_WALL); a sign not on a wall is turned a quarter at a time (Placed.turn_sign).
+		"sign_lines": {"type": "int", "min": 0, "max": 8, "default": 0},
+		"sign_width": {"type": "int", "min": 1, "max": 32, "default": 20},
+		"wall": {"type": "bool", "default": false},
 		# Food that spoils: it keeps this many game days (slower in the cold, see
 		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
 		"spoils": {"type": "float", "min": 0.0, "default": 0.0},

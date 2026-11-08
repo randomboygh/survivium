@@ -25,6 +25,8 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 
+## The longest text a sign is sent to be written (Placed.sign_text cuts it to the sign's).
+const SIGN_MAX := 600
 ## Letters a line of chat keeps at most; lines in a while at most.
 const CHAT_MAX := 160
 const CHAT_LINES := 5
@@ -39,7 +41,7 @@ const REVIVE_NEAR := 1.0
 ## player may be ahead of the clock (a quick finger along a stroke, a reply late).
 const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
 	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.LIGHT_PUT, Protocol.BUILD,
-	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH]
+	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN]
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
@@ -193,6 +195,14 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.swing(who, e)
+		Protocol.SIGN_WRITE:
+			if _fit(args, [TYPE_VECTOR3I, TYPE_STRING]) and args[1].length() <= SIGN_MAX:
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and placed.write(who, e, args[1])
+		Protocol.SIGN_TURN:
+			if _fit(args, [TYPE_VECTOR3I]):
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and placed.turn_sign(who, e)
 		Protocol.PLAN:
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]) \
 					and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 16:
