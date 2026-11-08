@@ -213,6 +213,8 @@ func _open_world() -> bool:
 		session.territory.from_dict(meta.territory)
 	if had_save and meta.get("plans") is Array:
 		session.plans.from_list(meta.plans)
+	if had_save and meta.get("tame") is Array:
+		session.wildlife.add_tamed(meta.tame)
 	if had_save and meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	else:

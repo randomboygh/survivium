@@ -167,6 +167,12 @@ static func hunts(t: Dictionary) -> bool:
 	return t.get("tool", "") in ["sword", "knife"]
 
 
+## Whether item record `t` (the item held, not Tools.of: a knife is no tool of the world)
+## shears a tame animal's wool (ActionsTame): a knife.
+static func shears(t: Dictionary) -> bool:
+	return t.get("tool", "") == "knife"
+
+
 ## Whether item record `t` shoots or is thrown (it has a `range`): a spear, a sling, a bow.
 static func shoots(t: Dictionary) -> bool:
 	return t.get("range", 0) > 0

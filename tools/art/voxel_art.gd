@@ -233,6 +233,10 @@ static func drop(model: String) -> VoxelModel:
 			return _flax()
 		"linen_thread":
 			return _skein(Color(0.88, 0.84, 0.72))
+		"wool_yarn":
+			return _skein(Color(0.82, 0.83, 0.86))
+		"rabbit_fluff":
+			return _fluff(Color(0.86, 0.85, 0.82))
 		"cloth":
 			return _cloth()
 		"tar":
@@ -1479,6 +1483,20 @@ static func _skein(c: Color) -> VoxelModel:
 			m.set_voxel(Vector3i(x, 0, z), c * (0.85 if x % 2 == 0 else 1.0))
 	for x in range(-1, 2):
 		m.set_voxel(Vector3i(x, 1, 0), c * 1.05)
+	return m
+
+
+## A soft tuft of fur, round and low.
+static func _fluff(c: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-2, 3):
+		for z in range(-2, 3):
+			if absi(x) + absi(z) <= 3:
+				m.set_voxel(Vector3i(x, 0, z), c * (0.9 if (x + z) % 2 == 0 else 1.0))
+	for x in range(-1, 2):
+		for z in range(-1, 2):
+			if absi(x) + absi(z) <= 1:
+				m.set_voxel(Vector3i(x, 1, z), c * 1.05)
 	return m
 
 

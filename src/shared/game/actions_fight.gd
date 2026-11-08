@@ -73,6 +73,9 @@ func _wound(who, a, power: int) -> void:
 	var where: Vector3 = a.pos
 	if not _may(who, _cell_at(where), "hit_animals"):
 		return
+	if a.owner >= 0 and a.owner != (int(who.get("id")) if "id" in who else 0):
+		# Another's tame animal (ActionsTame).
+		return
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
 	if wildlife.hurt(a, power, who.position) and spec.carcass != "" and Items.has(spec.carcass):
 		var cell := _cell_at(where)

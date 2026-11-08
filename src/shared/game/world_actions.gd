@@ -1,4 +1,4 @@
-extends "res://src/shared/game/actions_nature.gd"
+extends "res://src/shared/game/actions_tame.gd"
 ## What a character's hands do to the world (plan/design/character.md, "Взаимодействие с
 ## миром"): digging cells, cutting the grass, chopping and felling trees, placing blocks,
 ## the action button's work in front of the body, taking things off the ground, berries
@@ -53,6 +53,9 @@ func act_in_front(who, top: int) -> Dictionary:
 		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
 		if water.is_finite() and (who.vitals.water < who.vitals.MAX - DRINK * 0.5 or _fills(who) != ""):
 			return drink(who, water)
+	var tending := tend(who)
+	if not tending.is_empty():
+		return tending
 	var arm := Tools.weapon(who.held())
 	# A spear, a sling or a bow shoots ahead; a sword or a knife goes for an animal in
 	# front first, any other hand for one right by the body.
@@ -102,6 +105,9 @@ func front_kind(who) -> String:
 				return "fill"
 			if who.vitals.water < who.vitals.MAX - DRINK * 0.5:
 				return "drink"
+	var tending := tend_kind(who)
+	if tending != "":
+		return tending
 	var arm := Tools.weapon(who.held())
 	if Tools.shoots(arm):
 		return "shoot"

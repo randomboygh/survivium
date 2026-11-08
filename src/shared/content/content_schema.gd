@@ -196,6 +196,17 @@ const SCHEMAS := {
 		# body leaves (a carcass to butcher).
 		"health": {"type": "int", "min": 0, "default": 0},
 		"carcass": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "hunt"},
+		# Taming by hand (Taming): the foods it eats from a hand (it does not flee from one who
+		# holds them), how many feedings make it tame, the wool a knife shears off a tame one
+		# every `wool_days` days, a young one every `breed_days` days from two tame ones that
+		# stay together and ate from a hand within a day, while fewer than `herd` tame ones of
+		# the kind live there.
+		"tame_food": {"type": "list", "of": "ref:items", "soft": true, "default": [], "rel": "feeds_on"},
+		"tame_feeds": {"type": "int", "min": 1, "default": 3},
+		"wool": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "shear"},
+		"wool_days": {"type": "float", "min": 0.1, "default": 2.0},
+		"breed_days": {"type": "float", "min": 0.1, "default": 4.0},
+		"herd": {"type": "int", "min": 2, "default": 8},
 		# Fishing: what a swimmer becomes in the bag when it is pulled out on a rod's line
 		# (WorldActions.fish, Fishing); "" none bites.
 		"catch": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "fish"},
@@ -402,7 +413,7 @@ const RELATIONS := {
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
-const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt", "fish"]
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt", "fish", "shear"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
 ## reports and search (they decide nothing in the engine), which of the record's numbers
 ## are provisional, still to be balanced, and the ids it had before (`was`), so a save
