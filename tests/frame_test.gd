@@ -289,6 +289,10 @@ func _run() -> void:
 	c._cooldown = 0.0
 	c.dig_at(first_dug, Vector3i.UP)
 	var held: bool = w.drops.get(dug_key, []).size() > lying and main.props._drops_shown.get(dug_key, 0) == lying
+	# The dug cell's own chunk goes first, before its neighbours (ChunkStreamer.edited).
+	var queued: Array = main.chunks.dirty_chunks.keys()
+	_check(main.chunks.edited.has(dug_key) and not queued.is_empty() and queued[0] == dug_key,
+		"the chunk of a dug cell is rebuilt before the chunks beside it (queue %s, chunk %s)" % [queued, dug_key])
 	var waited_from := Time.get_ticks_msec()
 	while main.props._rebuilding_near(dug_key) and Time.get_ticks_msec() - waited_from < 10000:
 		await process_frame

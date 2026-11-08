@@ -120,6 +120,10 @@ var cap_home := Vector2i(-1000000, 0)
 ## (see run_jobs): its key, whether it is an edit, its budget, and its mesh and plant
 ## jobs (none while the session is still making the chunk).
 var dirty_chunks := {}
+## The chunks among them whose own cells changed (the column of a dug cell, of a felled
+## tree), not only a neighbour's: they go before the others, and things fallen near
+## them wait for them to be drawn (Props.show_drops).
+var edited := {}
 var job_key := Vector2i.ZERO
 var job_edit := false
 var job_budget := 0
@@ -316,6 +320,7 @@ func build_chunk(key: Vector2i) -> void:
 	mesh_us += Time.get_ticks_usec() - t0
 	_note_work("meshes", Time.get_ticks_usec() - t0)
 	dirty_chunks.erase(key)
+	edited.erase(key)
 	_apply_chunk(key, meshes, plants)
 
 
@@ -408,6 +413,8 @@ func _finish_part() -> bool:
 	else:
 		_apply_chunk(job_key, job_meshes, job_plant_parts)
 		_drop_job()
+		if job_edit and not dirty_chunks.has(job_key):
+			edited.erase(job_key)
 		# Things fallen that waited for the ground to change on screen (a felled tree).
 		game.props.drops_rebuilt()
 		return true
@@ -520,6 +527,7 @@ func unload_chunk(key: Vector2i) -> void:
 		has_target = false
 	pending_chunks.erase(key)
 	dirty_chunks.erase(key)
+	edited.erase(key)
 	if not chunk_nodes.has(key):
 		return
 	_free_chunk(key)
@@ -549,6 +557,7 @@ func _free_chunk(key: Vector2i) -> void:
 	chunk_nodes.erase(key)
 	game.props.hide_drops(key)
 	dirty_chunks.erase(key)
+	edited.erase(key)
 	if cap_nodes.has(key):
 		cap_nodes[key].queue_free()
 		cap_nodes.erase(key)
@@ -640,7 +649,10 @@ func on_cell_changed(cell: Vector3i) -> void:
 		game.hud.minimap.touch(world, cell)
 	# Slopes and corners look at the neighbours, edges of a top at theirs, and the
 	# surface of a slope at the slopes beside it (three columns in all). The chunk of
-	# the cell goes first in the queue, its neighbours after (see run_jobs).
+	# the cell goes first in the queue, then the chunks of the earlier changes not
+	# rebuilt yet (the other columns of a felled tree), the neighbours after (see
+	# run_jobs): a tree near a chunk's corner goes as soon as its own chunks are drawn,
+	# not after the three around too.
 	var home := WorldData.chunk_key(cell.x, cell.z)
 	var keys := {}
 	for dz in range(-3, 4):
@@ -660,6 +672,10 @@ func on_cell_changed(cell: Vector3i) -> void:
 	var queue := {}
 	if chunk_nodes.has(home):
 		queue[home] = true
+		edited[home] = true
+	for key in dirty_chunks:
+		if edited.has(key):
+			queue[key] = true
 	for key in keys:
 		if chunk_nodes.has(key):
 			queue[key] = true
