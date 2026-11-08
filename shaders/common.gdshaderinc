@@ -29,9 +29,6 @@ global uniform float layer_density;
 // The level, from the player's feet, the quarter that thins out starts at (0 the feet,
 // 1 the waist, 2 the head, negative below the feet); the levels over it count from it.
 global uniform float layer_line;
-// The material the layers fill the rock they leave out with: the one most of the solid
-// cells round the player are of (ChunkStreamer._rock_round).
-global uniform float layer_rock;
 // The cells round the player that are solid (see SolidMap): one texel per column of a
 // SolidMap.SIZE square from solid_origin.xz, 32 bits for the levels from solid_origin.y,
 // eight in each of r, g, b, a.
