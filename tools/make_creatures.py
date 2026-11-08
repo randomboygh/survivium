@@ -19,63 +19,6 @@ EYE = flat("#1c1214")
 GLINT = flat("#f4efe6")
 
 
-# --- Cat ---------------------------------------------------------------------------
-
-def cat():
-    fur = ramp("#8c8a96", "#26242e")
-    stripe = ramp("#5a5866", "#1e1c26")
-    light = ramp("#d8d4d8", "#4a4650")
-    green = flat("#a8d048")
-    nose = flat("#d08a8a")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "s": (stripe, "body", None),
-        "S": (stripe, "head", None), "t": (stripe, "tail", None), "m": (light, "head", None),
-        "l": (light, "body", None), "e": (green, "head", None), "n": (nose, "head", None),
-    }
-    side = View("""
-t...........h..h.
-t...........hhhh.
-.t.........hhhhhh
-.t.........hhhehh
-..t.oooooooShhhmn
-...tosososooommm.
-...ooooooooooo...
-...ooooooooooo...
-....olllllloo....
-""", L, legs=[(4, 8, "B", False, fur, fur), (10, 8, "A", False, fur, fur),
-              (5, 8, "A", True, fur, light), (11, 8, "B", True, fur, light)],
-                idles=[{"tail": (1, 0)}, {"head": (0, 1)}])
-    front = View("""
-.h.....h.
-.hh...hh.
-.hhhhhhh.
-hhShShShh
-hhehhhehh
-hhhmnmhhh
-.hmmmmmh.
-..ollllo.
-.ooolllooo
-.oo...oo.
-""", L, legs=[(2, 8, "A", True, fur, light), (6, 8, "B", True, fur, light)],
-                 idles=[{"head": (1, 0)}, {"head": (0, 1)}], ox=4, straight=True)
-    back = View("""
-.h.....h.
-.hh...hh.
-.hhhhhhh.
-hhShShShh
-hhhhhhhhh
-hhhhhhhhh
-.hhhhhhh.
-..sssss..
-.osososo.
-.ooootoo.
-.oo..toot
-......tt.
-""", L, legs=[(2, 9, "A", True, fur, fur), (6, 9, "B", True, fur, fur)],
-                idles=[{"tail": (1, -1)}, {"head": (0, 1)}], ox=4, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 19, 14) for v in (side, front, back)]
-
-
 # --- Hedgehog ----------------------------------------------------------------------
 
 def hedgehog():
@@ -183,7 +126,7 @@ uu.k.uu
 
 
 SHEETS = {
-    "cat": cat, "hedgehog": hedgehog,
+    "hedgehog": hedgehog,
     "butterfly": butterfly,
 }
 

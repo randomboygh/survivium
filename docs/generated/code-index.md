@@ -304,6 +304,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/make_bear.py`: Draws the bear's sheet, content/animals/bear/sprites/creatures/bear.png.
 - `tools/make_birds.py`: Draws the sheets of the crow, the owl and the duck, content/animals/<bird>/sprites/creatures/.
 - `tools/make_boar.py`: Draws the boar's sheet, content/animals/boar/sprites/creatures/boar.png.
+- `tools/make_cat.py`: Draws the wild cat's sheet, content/animals/cat/sprites/creatures/cat.png.
 - `tools/make_creatures.py`: Draws the animals' pictures: content/animals/<bundle>/sprites/creatures/<sprite>.png.
 - `tools/make_deer.py`: Draws the deer's sheet, content/animals/deer/sprites/creatures/deer.png.
 - `tools/make_fish.py`: Draws the fish's sheets: content/animals/perch/sprites/creatures/perch.png and the fish of the bundle «Рыба», content/animals/fish/sprites/creatures/<fish>.png.
