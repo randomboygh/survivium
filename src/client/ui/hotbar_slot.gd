@@ -46,22 +46,24 @@ var fill_color := Color(0, 0, 0, 0):
 	set(v):
 		fill_color = v
 		queue_redraw()
-## The grade of the quality of the thing in the slot (Quality.grade), a faint round spot
-## of GRADE_TINTS under the icon, like a background (stronger toward its rim); below 0 none.
+## The grade of the quality of the thing in the slot (Quality.grade), a faint radial tint
+## of GRADE_TINTS over the well, under the icon: empty in a wide middle, rising near the
+## well's edge; below 0 none.
 var grade := -1:
 	set(v):
 		if v != grade:
 			grade = v
 			queue_redraw()
-## Poor, plain, normal, good, excellent: a colour, how much of it lies over the middle of
-## the spot and how much at its rim (the better, the more the rim glows).
-const GRADE_TINTS := [[Color(0.85, 0.35, 0.25), 0.04, 0.07], [Color(0.6, 0.6, 0.6), 0.02, 0.04],
-	[Color(1.0, 0.95, 0.8), 0.0, 0.05], [Color(0.45, 0.85, 0.4), 0.03, 0.14], [Color(0.95, 0.75, 0.3), 0.04, 0.21]]
+## Poor, plain, normal, good, excellent: a colour and how much of it lies at the well's
+## edges (the better, the more the edges glow).
+const GRADE_TINTS := [[Color(0.85, 0.35, 0.25), 0.10], [Color(0.6, 0.6, 0.6), 0.06],
+	[Color(1.0, 0.95, 0.8), 0.07], [Color(0.45, 0.85, 0.4), 0.20], [Color(0.95, 0.75, 0.3), 0.30]]
+## The share of the radius left empty in the middle before the tint starts rising.
+const TINT_HOLLOW := 0.6
 ## The tints as radial gradients, made once.
 static var _tints := []
-## The spot's size as a share of the icon's, and where its rim starts to fade out (of its radius).
-const TINT_SCALE := 1.25
-const TINT_RIM := 0.8
+## The well's frame, which the tint stays inside.
+const TINT_INSET := 3.0
 var selected := false:
 	set(v):
 		selected = v
@@ -124,21 +126,21 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
-## The round spot of grade `g`: its middle colour, its rim colour, then nothing.
+## The radial tint of grade `g`: nothing in the middle, rising to its edge colour.
 static func _tint(g: int) -> Texture2D:
 	if _tints.is_empty():
 		for t: Array in GRADE_TINTS:
 			var c: Color = t[0]
 			var grad := Gradient.new()
-			grad.offsets = PackedFloat32Array([0.0, TINT_RIM, 1.0])
-			grad.colors = PackedColorArray([Color(c, t[1]), Color(c, t[2]), Color(c, 0.0)])
+			grad.offsets = PackedFloat32Array([0.0, TINT_HOLLOW, 1.0])
+			grad.colors = PackedColorArray([Color(c, 0.0), Color(c, 0.0), Color(c, t[1])])
 			var tex := GradientTexture2D.new()
 			tex.gradient = grad
 			tex.fill = GradientTexture2D.FILL_RADIAL
 			tex.fill_from = Vector2(0.5, 0.5)
 			tex.fill_to = Vector2(0.5, 0.0)
-			tex.width = 64
-			tex.height = 64
+			tex.width = 32
+			tex.height = 32
 			_tints.append(tex)
 	return _tints[g]
 
@@ -150,9 +152,8 @@ func cancel_tap() -> void:
 func _draw() -> void:
 	draw_style_box(_box_selected if selected else _box, Rect2(Vector2.ZERO, size))
 	if grade >= 0 and texture != null:
-		var side := minf(minf(size.x, size.y) - 4.0, maxf(icon_size.x, icon_size.y) * TINT_SCALE)
 		draw_texture_rect(_tint(clampi(grade, 0, GRADE_TINTS.size() - 1)),
-			Rect2(((size - Vector2(side, side)) * 0.5).floor(), Vector2(side, side)), false)
+			Rect2(Vector2.ONE * TINT_INSET, size - Vector2.ONE * TINT_INSET * 2.0), false)
 	if texture != null:
 		draw_texture_rect(texture, Rect2(((size - icon_size) * 0.5).floor(), icon_size), false,
 			INACTIVE if inactive else Color.WHITE)
