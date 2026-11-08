@@ -12,8 +12,9 @@
   active: night
   count: 4
   sprite: wolf
-  frames: 7
+  frames: 10
   walk: 4
+  attack: 3
   views: 3
   flock: [2, 3]
   biomes: [biomes:taiga, biomes:forest, biomes:tundra]
