@@ -318,20 +318,35 @@ func _has_blocks() -> bool:
 ## floor takes the place of the top ground cell), from the cell over it for the walls.
 func start_stroke(button: int, pos: Vector2) -> Dictionary:
 	var target: Dictionary = game.gathering.target_at(pos)
+	var item := Items.get_item(chosen())
+	if target.has("prop") and not erasing and item.get("ladder", false) and Placed.is_ladder(target.prop):
+		# A ladder tapped with a ladder goes on up from its top.
+		var top: Vector3i = target.prop.cell
+		while game.world.ladders.has(top + Vector3i.UP):
+			top += Vector3i.UP
+		game.net.request(Protocol.PROP_PUT_AT, [chosen(), top + Vector3i.UP])
+		return {}
+	if target.has("prop") and not erasing and item.get("door", false) and item.get("fence", false) \
+			and Placed.is_fence(target.prop):
+		# A wicket or a gate tapped onto a fence takes the place of its segments.
+		game.net.request(Protocol.PROP_PUT_AT, [chosen(), target.prop.cell])
+		return {}
 	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item):
 		game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
 		return {}
 	var hit: Dictionary = game.controls.pick(pos)
 	if hit.is_empty():
 		return {}
-	if Tools.use_of(chosen()) != "place" and not erasing:
+	if not Plans.drawn_with(chosen()) and not erasing:
 		# A thing is set down at once where tapped (a door or a window into the side of a
-		# wall tapped; on the top of a floor it stands on it, never cut into it).
-		var item := Items.get_item(chosen())
+		# wall tapped; on the top of a floor it stands on it, never cut into it; a hatch into
+		# the floor or the ceiling of blocks tapped).
 		var cell: Vector3i = hit.cell
-		var into_wall: bool = (item.get("door", false) or item.get("window", false)) \
-			and hit.normal.y == 0 and not game.world.is_natural(cell.x, cell.y, cell.z)
-		game.net.request(Protocol.PROP_PUT_AT, [chosen(), cell if into_wall else cell + hit.normal])
+		var built: bool = not game.world.is_natural(cell.x, cell.y, cell.z)
+		var into_wall: bool = (item.get("door", false) or item.get("window", false)) and not item.get("hatch", false) \
+			and hit.normal.y == 0 and built
+		var into_floor: bool = item.get("hatch", false) and hit.normal.y != 0 and built
+		game.net.request(Protocol.PROP_PUT_AT, [chosen(), cell if into_wall or into_floor else cell + hit.normal])
 		return {}
 	var first := start_cell(hit)
 	if erasing:
@@ -357,6 +372,9 @@ func stroke_cells(s: Dictionary) -> Array[Vector3i]:
 	var p: Vector3 = game.player.position
 	if erasing:
 		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick)
+	if Plans.is_fence(chosen()):
+		# A fence: one segment high and thick (Plans.draw).
+		return Plans.shape(s.plan, s.first, s.last, 1, Vector2(p.x, p.z), 1) if s.plan in ["line", "square"] else []
 	return Plans.shape(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick)
 
 

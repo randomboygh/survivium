@@ -131,12 +131,14 @@ static func _shared_ending(titles: Array) -> String:
 
 
 ## Whether item `id` is a station: set down in the world (a `prop`), storing nothing,
-## claiming no land, no bed (`bedding`, slept in), no stairs (`steps`), door or window.
+## claiming no land, no bed (`bedding`, slept in), no stairs (`steps`), door, window,
+## fence or ladder.
 static func is_station(id: String) -> bool:
 	var item := get_item(id)
 	return item.get("prop", "none") != "none" and item.get("storage", 0) == 0 and not item.get("claims", false) \
 		and item.get("bedding", 1.0) <= 1.0 and not item.get("steps", false) \
-		and not item.get("door", false) and not item.get("window", false) and not item.get("furniture", false)
+		and not item.get("door", false) and not item.get("window", false) and not item.get("furniture", false) \
+		and not item.get("fence", false) and not item.get("ladder", false)
 
 
 ## Whether item `id` is set down in the build mode (the palette's «Интерьер», decision of

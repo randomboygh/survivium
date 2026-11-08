@@ -60,6 +60,18 @@ const FLAT_DOWN := 4
 const MAX_FLAT := 400
 
 
+## Whether item `id` is drawn as a blueprint in the build mode: a block (a `place`
+## tool), or a fence, built segment by segment like a wall.
+static func drawn_with(id: String) -> bool:
+	return id != "" and (Tools.use_of(id) == "place" or is_fence(id))
+
+
+## Whether item `id` is a fence (`fence`, not a wicket or a gate, which are doors).
+static func is_fence(id: String) -> bool:
+	var item := Items.get_item(id)
+	return item.get("fence", false) and not item.get("door", false)
+
+
 ## The cells of shape `kind` (one of KINDS) from cell `a` to cell `b` (the level of
 ## `a`): «line» a wall along the way the stroke went farthest, `height` levels high and
 ## `thick` cells thick (the rows past the first on the side away from `near`, a column
@@ -202,7 +214,15 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	if kind == "flatten":
 		return _flatten(actions, who, a, b)
 	var block := Mat.index(Items.get_item(item).get("place", ""))
-	if block < 0:
+	if block < 0 and is_fence(item):
+		# A fence is one segment high and thick, along a line or round a square.
+		if kind not in ["line", "square"]:
+			who.nag("plan_fence", "Забор рисуется линией или квадратом")
+			return 0
+		height = 1
+		thick = 1
+		form = 0
+	elif block < 0:
 		who.nag("plan_block", "Выберите блок для чертежа")
 		return 0
 	var sorted := sort(actions, who, kind, a, shape(kind, a, b, height, Vector2(p.x, p.z), thick), block)
@@ -367,8 +387,11 @@ func fits(actions, c: Vector3i, block: int, floor: bool) -> bool:
 	if not w.in_bounds(c.x, c.y, c.z) or c.y < 1:
 		return false
 	var m: int = w.get_cell(c.x, c.y, c.z)
-	if m == block:
+	if m == block or w.blockers.has(c) or w.ladders.has(c):
 		return false
+	if block < 0:
+		# A fence: in the air on the ground.
+		return m == Mat.AIR
 	return m == Mat.AIR or m == Mat.WATER or floor and _soft(m)
 
 
@@ -401,7 +424,7 @@ func near(who, farm := false) -> Array[Vector3i]:
 ## Whether the action button of `who` builds now: a block in hand and a ghost cell within
 ## reach.
 func builds(who) -> bool:
-	return Tools.use_of(who.held()) == "place" and not near(who).is_empty()
+	return drawn_with(who.held()) and not near(who).is_empty()
 
 
 ## The action button builds one ghost cell within reach of `who` (near: the lowest, the
@@ -442,6 +465,11 @@ func build(actions, who) -> Dictionary:
 		var block := Mat.index(Items.get_item(item).get("place", ""))
 		var m: int = w.get_cell(c.x, c.y, c.z)
 		var form: int = forms.get(c, 0)
+		if block < 0 and is_fence(item):
+			var fenced := _put_fence(actions, who, c, item, free)
+			if fenced.is_empty():
+				continue
+			return fenced
 		if block < 0 or m == block:
 			cells.erase(c)
 			forms.erase(c)
@@ -476,6 +504,34 @@ func build(actions, who) -> Dictionary:
 	else:
 		who.nag("plan_wait", "Чертёж: сначала то, на чём стоять")
 	return {"swing": actions.IDLE_SWING}
+
+
+## Sets fence `item` from the bag of `who` (none when building is `free`) down in ghost
+## cell `c` (Placed.put, facing them) when it stands there: air on solid ground, nothing
+## else there, clear of them, where they may build. The work done, {} when it cannot go
+## there yet, {"swing"} when the hands are busy.
+func _put_fence(actions, who, c: Vector3i, item: String, free: bool) -> Dictionary:
+	var w = actions.world
+	var placed = who.get("placed")
+	if placed == null or w.get_cell(c.x, c.y, c.z) != Mat.AIR or not w.is_solid(c.x, c.y - 1, c.z) \
+			or w.blockers.has(c) or w.ladders.has(c) or who.overlaps_cell(c) or who.overlaps_cell(c + Vector3i.UP):
+		return {}
+	if not actions.territory_allows(who, c, "build"):
+		return {}
+	if not who.act("place", "build"):
+		return {"swing": actions.IDLE_SWING}
+	if not free:
+		who.inventory.remove(item, 1)
+	var by: Variant = who.get("id")
+	placed.put(item, c, null, true, -1.0, by if by is int else 0, placed.turn_facing(who.facing_step()))
+	w.note_edit(c.x, c.z)
+	cells.erase(c)
+	forms.erase(c)
+	changed.emit([c], "")
+	var done: Dictionary = actions.work(actions.skilled(who, "build", BUILD_SWING, 1.0), "reach",
+		(Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, -1)
+	done.placed = 1
+	return done
 
 
 ## Digs ghost cell `c` to be dug out (CUT) with the tool of the bag of `who` that digs

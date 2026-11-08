@@ -104,6 +104,19 @@ const SCHEMAS := {
 		"door": {"type": "bool", "default": false},
 		# A window: set into a wall, solid, taken up at a tap (as stairs are), no station.
 		"window": {"type": "bool", "default": false},
+		# A fence (stage 1, building): its model is a post with a rail toward the north; set
+		# down it joins the fences, wickets and gates beside it on its level with rails
+		# (Placed.joins) and is solid up to Placed.FENCE_TOP, over a jump, so animals too stay
+		# in a pen; built in the build mode by line like a wall (Plans). With `door`: a wicket
+		# or a gate, its leaf in the middle of the cell like the rails.
+		"fence": {"type": "bool", "default": false},
+		# A hatch (with `door`): a lid set into a floor or a ceiling, solid shut, swung up open
+		# on the hinge at its north edge (Placed.open_voxels).
+		"hatch": {"type": "bool", "default": false},
+		# A ladder: a segment a cell high against the back of its cell, not solid; a body in
+		# its cell climbs (Body: no fall, the stick to it up, away down). Set down on the
+		# ground or on a ladder under it.
+		"ladder": {"type": "bool", "default": false},
 		# Furniture (decision 163, 7А): set down turned to face who sets it, no station; a
 		# tap takes it up unless it stores. `seat`: a body standing still on it or by it
 		# gets its stamina back this many times faster (Placed.seat_near); `keeps`: what it

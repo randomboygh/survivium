@@ -328,7 +328,7 @@ func update(delta: float) -> void:
 ## (Vitals.fall): measured from the ground, not from the top of a jump; deep water under
 ## the landing takes the whole fall, shallow water half. What the body stands on is
 ## asked of the world at the place the client told (Body.standing), not of the client's
-## word. A drop faster than any fall or a step longer than any stride (`leapt`: a
+## word; on a ladder the body falls nowhere (Body.on_ladder). A drop faster than any fall or a step longer than any stride (`leapt`: a
 ## teleport, the test page's «перейти») or the playtest's jumps in the air start the
 ## count again.
 func _fall(p: Vector3, delta: float, leapt := false) -> void:
@@ -339,6 +339,10 @@ func _fall(p: Vector3, delta: float, leapt := false) -> void:
 	_prev_y = y
 	if leapt or body.air_jumps or not is_finite(prev) or prev - y > body.MAX_FALL * delta + 1.0:
 		_ground_y = -INF
+	if body.on_ladder(p):
+		# Held by a ladder: no fall from there, the next counts from it.
+		_ground_y = y
+		return
 	var water: int = body.water_under(p)
 	if water == 0 and not body.standing(p):
 		return
