@@ -15,6 +15,7 @@ const Currents := preload("res://src/shared/world/currents.gd")
 func run() -> void:
 	_test_content()
 	_test_launch_sail_ashore()
+	_test_launch_from_bag()
 	_test_two_aboard()
 	_test_oars_and_save()
 	_test_ice_and_death()
@@ -124,6 +125,46 @@ func _test_launch_sail_ashore() -> void:
 	_check(actions.take_vessel(ch, v.id) and ch.inventory.count(RAFT) == 1 and actions.vessels.list.is_empty(),
 		"a moored raft is taken back up into the bag")
 	_check(not actions.take_vessel(ch, v.id), "and only once")
+
+
+## Counts what a character tells of its state (Character.state_changed).
+class Told extends RefCounted:
+	var n := 0
+
+	func count() -> void:
+		n += 1
+
+
+## The bag's button launches a vessel on the water nearest round the character, whichever
+## way it faces, and tells the client at once that it sits in it, and again ashore.
+func _test_launch_from_bag() -> void:
+	var w := _lake()
+	var ch := _rower(w, RAFT)
+	ch.hands = ["", ""]
+	var actions := _actions(w, [ch])
+	var told := Told.new()
+	ch.state_changed.connect(told.count)
+	ch.facing = Vector2i(0, 1)
+	var near := actions.launch_near(ch)
+	_check(near.size() == 2 and near[1] == Vector2(1, 0), "the water is found to the east, though it faces south: %s" % [near])
+	_check(not actions.launch_from_bag(ch, OARS), "oars are not launched")
+	_check(actions.launch_from_bag(ch, RAFT) and ch.riding == RAFT and ch.seat == 0 and ch.inventory.count(RAFT) == 0,
+		"the raft in the bag is launched and boarded")
+	_check(told.n > 0, "the client is told it sits afloat")
+	_check(not actions.launch_from_bag(ch, RAFT), "not twice")
+	var dry := _rower(w, BOAT)
+	dry.at = Vector3(0.5, 3.0, 8.5) * WorldData.CELL
+	dry.hands = ["", ""]
+	actions.people = [ch, dry]
+	_check(actions.launch_near(dry).is_empty() and not actions.launch_from_bag(dry, BOAT) and dry.inventory.count(BOAT) == 1,
+		"no water near: nothing launched, the boat stays in the bag")
+	# Ashore again: told at once, so the client stops drawing it in the raft.
+	ch.at = Vector3(17.5, 2.0 + WorldData.WATER_TOP - Body.DECK, 8.5) * WorldData.CELL
+	actions.step_boats(0.1, [ch])
+	ch.facing = Vector2i(1, 0)
+	var before := told.n
+	actions.boat(ch)
+	_check(ch.riding == "" and told.n > before, "stepping ashore is told at once")
 
 
 func _test_two_aboard() -> void:

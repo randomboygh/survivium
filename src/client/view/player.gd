@@ -14,6 +14,7 @@ const XrayShader := preload("res://shaders/sprite_xray.gdshader")
 const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const FishingLine := preload("res://src/client/view/fishing_line.gd")
+const Boats := preload("res://src/client/view/boats.gd")
 
 const CELL := WorldData.CELL
 ## The body's height in cells (see Body).
@@ -122,6 +123,8 @@ var flames_at: Array = []
 ## The vessel the body sits in (Character.riding; others' from PEOPLE), "" none: afloat it
 ## sits still in it, drawn whole over the water (the vessel is the Boats view's).
 var riding := ""
+## Whether it sits at the oars (the rower, ActionsBoat seat 0), not carried behind.
+var rowing := true
 
 
 func _ready() -> void:
@@ -273,10 +276,16 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 		anim_time = (ROD_OUT + 0.5) / sheet.animations.slash.fps
 		return
 	var next := "idle"
-	if riding != "":
-		# Afloat the body sits still in its vessel.
-		pass
-	elif body.swimming:
+	if riding != "" and sheet.animations.has("row"):
+		# Afloat the body sits in its vessel; its rower rows while it goes, in time with
+		# the oars (Boats.stroke), the one carried sits still.
+		anim = "sit"
+		anim_time = 0.0
+		if rowing and dir.length() > 0.1:
+			anim = "row"
+			anim_time = Boats.stroke() * sheet.animations.row.frames.size() / sheet.animations.row.fps
+		return
+	if body.swimming:
 		next = "swim"
 	elif not body.on_ground:
 		next = "jump"
