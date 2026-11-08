@@ -96,6 +96,10 @@ const SHOTS := {
 	# An animal in the player's shadow by day, in the morning and at sunrise.
 	"animal-shadow": {"time": 0.36, "season": 1, "animal": Vector3(-0.55, 0.0, -0.45)},
 	"animal-shadow-sunrise": {"time": 0.27, "season": 1, "animal": Vector3(-0.9, 0.0, 0.3)},
+	"animal-shadows": {"time": 0.32, "season": 1, "place": "beach", "sun_steps": 0, "shadow_filter": 0,
+		"shadow_zoo": [["animals:sparrow", 1, 0.8, 0], ["animals:sparrow", 3, 0.8, 1], ["animals:crow", 2, 0.8, 0],
+			["animals:owl", 1, 0.8, 1], ["animals:duck", 3, 0.8, 0], ["animals:bear", 0, 0.0, 0], ["animals:wolf", 2, 0.0, 0],
+			["animals:deer", 0, 0.0, 1], ["animals:rabbit", 2, 0.0, 0], ["animals:butterfly", 1, 0.5, 0]]},
 	"animal-shadow-trees": {"time": 0.45, "season": 1, "trees": true, "animal": Vector3(-1.0, 0.0, -0.6)},
 	# The torch by the same blocks, the fire put out.
 	"torch-blocks": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(-3.0, 0.0, 3.4), "fire_blocks": true,

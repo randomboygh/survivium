@@ -21,6 +21,14 @@ uniform float water_line = -1000.0;
 uniform vec3 ripple = vec3(0.85, 0.93, 0.92);
 // 1 while the sprite swims: the ripple splashes wider.
 uniform float splash = 0.0;
+// 1 for a wing beat of a flyer in the air: its shadow is cast by the frame of the
+// front row (wings spread) laid flat at the middle of its height, as a bird seen from
+// above, not by the upright picture turned to the light, which stretched the profile
+// with a wing up into a long blot far bigger than the bird. 2 when the picture shown
+// is its side: the frame then lies across, the wings across the way it flies.
+uniform float flat_shadow = 0.0;
+// The frame the flat shadow is cast by (frame_uv's row of the front view).
+uniform vec4 shadow_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // A colour the picture is multiplied by: one of a species' tints (butterflies of many
 // colours), white for none.
 uniform vec3 tint = vec3(1.0);
@@ -42,15 +50,28 @@ varying vec3 drawn;
 
 void vertex() {
 	if (IN_SHADOW_PASS) {
-		// A flat sprite seen from the side throws a strip of a shadow: for the shadow
-		// it turns about its middle to face the light (the light's camera), as if the
-		// body were as wide every way. In the sheared space the shadow is cast in.
 		vec3 foot = MODEL_MATRIX[3].xyz;
-		vec2 to = PROJECTION_MATRIX[3][3] > 0.5 ? INV_VIEW_MATRIX[2].xz
-			: INV_VIEW_MATRIX[3].xz - shear(foot + vec3(0.0, 0.5, 0.0)).xz;
-		if (dot(to, to) > 1e-6) {
-			vec2 side = normalize(vec2(to.y, -to.x));
-			VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
+		if (flat_shadow > 0.5) {
+			// Laid flat at the middle of its height, the picture's up along the way
+			// away from the camera, or for the side, along the way it flies (the side
+			// is mirrored for left, scale.x < 0) with the wings across it.
+			float mid = float(textureSize(sprite_texture, 0).y) * shadow_uv.w / TEXELS * 0.5;
+			float across = VERTEX.x - foot.x;
+			float along = VERTEX.y - foot.y - mid;
+			vec2 right = vec2(-view_up.y, view_up.x);
+			vec2 off = flat_shadow > 1.5 ? view_up * across + right * sign(MODEL_MATRIX[0].x) * along
+				: right * across + view_up * along;
+			VERTEX = vec3(foot.x + off.x, foot.y + mid, foot.z + off.y);
+		} else {
+			// A flat sprite seen from the side throws a strip of a shadow: for the shadow
+			// it turns about its middle to face the light (the light's camera), as if the
+			// body were as wide every way. In the sheared space the shadow is cast in.
+			vec2 to = PROJECTION_MATRIX[3][3] > 0.5 ? INV_VIEW_MATRIX[2].xz
+				: INV_VIEW_MATRIX[3].xz - shear(foot + vec3(0.0, 0.5, 0.0)).xz;
+			if (dot(to, to) > 1e-6) {
+				vec2 side = normalize(vec2(to.y, -to.x));
+				VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
+			}
 		}
 	} else {
 		// Upright: turned to the camera about its origin.
@@ -64,7 +85,8 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 uv = frame_uv.xy + UV * frame_uv.zw;
+	vec4 shown = IN_SHADOW_PASS && flat_shadow > 0.5 ? shadow_uv : frame_uv;
+	vec2 uv = shown.xy + UV * shown.zw;
 	vec4 c = texture(sprite_texture, uv);
 	c.rgb *= tint;
 	// The player stays whole whatever level is cut; everyone else goes with their level.

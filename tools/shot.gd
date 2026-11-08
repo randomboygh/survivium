@@ -297,6 +297,8 @@ func _run() -> void:
 			_place_birds()
 		if shot.has("zoo"):
 			_place_zoo(shot.zoo == "water")
+		if shot.has("shadow_zoo"):
+			await _place_shadow_zoo(shot.shadow_zoo)
 		if shot.get("trap", false):
 			_place_trap()
 		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))
@@ -1402,6 +1404,39 @@ func _place_zoo(water: bool) -> void:
 		i += 1
 	main.creatures._process(0.0)
 	main.creatures.set_process(false)
+
+
+## Animals `kinds` ([species, frame, height above the ground, view]) in a row before
+## the player, far enough apart for their sun shadows, each held in that frame (a flyer
+## in the air when its height is above 0), for checking the shadows match the drawings.
+func _place_shadow_zoo(kinds: Array) -> void:
+	var life = main.session.wildlife
+	var p: Vector3 = main.player.position
+	for c in life.animals:
+		c.pos = p + Vector3(60.0, 0.0, 60.0)
+		c.target = c.pos
+		c.think = 100.0
+	var put := []
+	for i in kinds.size():
+		var k: Array = kinds[i]
+		var at := p + Vector3(-5.0 + (i % 5) * 2.5, 0.0, -2.0 + (i / 5) * 3.0)
+		at.y = life.ground(at.x, at.z) + k[2]
+		var c = life._add(k[0], at)
+		c.think = 100.0
+		c.facing = 1.0
+		c.flying = k[2] > 0.0
+		put.append(c)
+	# The drawn animals are the client's copies: held in their frames once they come.
+	for f in 30:
+		await process_frame
+	main.creatures.set_process(false)
+	for look in main.creatures._shown:
+		for i in put.size():
+			var c = put[i]
+			if look.animal.kind == c.kind and Vector2(look.animal.pos.x - c.pos.x, look.animal.pos.z - c.pos.z).length() < 0.3:
+				var shown: int = kinds[i][3] * main.creatures.looks[c.kind][3] + kinds[i][1]
+				look.sprite.material_override = main.creatures._mats(look.animal)[shown]
+				look.sprite.position = PixelView.snap(c.pos)
 
 
 ## A trap two cells north-east of the player with a carrot in it and a hare walking up to

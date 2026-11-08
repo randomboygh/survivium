@@ -108,6 +108,9 @@
 воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`, волка — `tools/make_wolf.py`, дикую кошку — `tools/make_cat.py`, ежа — `tools/make_hedgehog.py`). `creatures.gd` выбирает сторону по движению на экране
 (`TURN_BIAS`), шаг — по пройденному
 пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
+Тень от солнца спрайт отбрасывает своим кадром, повернувшись к свету (`sprite.gdshader`); у летящего (кадры взмахов
+летающего) тень — кадр того же взмаха из ряда «спереди», положенный плашмя на середине высоты, крыльями поперёк
+пути (`flat_shadow`, `shadow_uv`): птица сверху, а не профиль, вытянутый солнцем. Проверка — снимок `animal-shadows`.
 Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.
 
 **Ограничения.** Ходок не достаёт пловца и наоборот, летун достаёт обоих. Биом столбца берётся из
