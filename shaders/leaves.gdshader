@@ -98,7 +98,8 @@ void vertex() {
 	} else if (custom.w < 0.0) {
 		away = -view_up * SPRIG_AHEAD;
 		custom.w = -custom.w;
-	} else if (tint.a >= 0.5 && mod(floor(custom.w), 32.0) >= 16.0) {
+	} else if (!LOW_PLANT && tint.a >= 0.5 && mod(floor(custom.w), 32.0) >= 16.0) {
+		// Not a bush's: pushed back, its picture would hang over the shadow at its foot.
 		away = view_up * DEEP_BEHIND;
 	}
 	center.xz += away;
@@ -199,7 +200,10 @@ void fragment() {
 	float leaf = m.r;
 	bool berry = m.a < 0.75;
 	bool edge = !berry && m.a < 0.9;
-	if (!branches && (hash13(floor(center)) > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
+	// A bush (LOW_PLANT) keeps or drops its leaves as a whole, by the column of the world
+	// it stands in, as its shadow does (leaf_shadow.gdshader).
+	float fall = LOW_PLANT ? hash13(vec3(floor(center.x), 0.0, floor(center.z))) : hash13(floor(center));
+	if (!branches && (fall > amount || fract(leaf * 13.7 + phase) > 0.6 + 0.4 * amount)) {
 		discard;
 	}
 	// See-through around the player when the clump is nearer the viewer than them.

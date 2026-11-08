@@ -856,7 +856,8 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 		var rise: float = Bushes.TYPES[type].rise if type < Bushes.TYPES.size() else 0.5
 		var p := bush_foot(w, cell) + Vector3(0.0, rise, 0.0)
 		job.shadows.append_array([s, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, s, p.z])
-		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 0.0, 0.0, 0.0])
+		# Its second number marks a bush's disc (leaf_shadow.gdshader turns it to the light).
+		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 1.0, 0.0, 0.0])
 		job.ns += 1
 	out.grass = [job.ng, job.grass]
 	out.clumps = [job.nc, job.clumps]
@@ -911,8 +912,8 @@ static func bush_foot(w, cell: Vector3i) -> Vector3:
 	return Vector3(cell.x + 0.5, y, cell.z + 0.5) * CELL
 
 
-## What a bush of `type` does over the year, in the alpha of its colour: below 0.5 for
-## every bush, which also names the type for its berries (see leaves.gdshader).
+## What a bush of `type` does over the year, in the alpha of its colour, which also
+## names the type for its berries (see leaves.gdshader).
 static func bush_kind(type: int) -> float:
 	return 0.1 * (type + 1)
 
