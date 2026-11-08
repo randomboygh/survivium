@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/pickaxe/bundle.yaml
+"Кирка": "Picareta"
+
+# content/tools/pickaxe/data/items.yaml
+"Каменная кирка": "Picareta de pedra"
+"Деревянная кирка": "Picareta de madeira"
+"Медная кирка": "Picareta de cobre"
+"Бронзовая кирка": "Picareta de bronze"
+"Железная кирка": "Picareta de ferro"
+"Стальная кирка": "Picareta de aço"

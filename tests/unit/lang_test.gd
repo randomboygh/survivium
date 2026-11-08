@@ -31,8 +31,15 @@ func _test_english() -> void:
 		and TranslationServer.translate(Lang.line("Сломалось: %s", ["Каменный топор"])) == "Broke: Stone axe",
 		"a line in English, its value too, by Lang.t and by the server of translations")
 	_check(Lang.f("%s · %d° · д. %d · %02d:%02d", ["Лето", 21, 3, 10, 5]) == "Summer · 21° · d. 3 · 10:05", "the clock in English")
-	Lang.use("de")
+	Lang.use("xx")
 	_check(Lang.code == "en", "a language not listed is English")
+	for l in Lang.LANGS:
+		Lang.use(l[0])
+		_check(Lang.code == l[0] and (tr("Настройки") == "Настройки") == (l[0] == Lang.SOURCE),
+			"%s says «Настройки» in its own words" % l[0])
+	Lang.use("de")
+	_check(tr("Настройки") == "Einstellungen" and Lang.t(Lang.line("Сломалось: %s", ["Каменный топор"])) == "Kaputt: Steinaxt",
+		"a line in German, its value too")
 	Lang.use("ru")
 	_check(tr("Настройки") == "Настройки" and Lang.t(Lang.line("Сломалось: %s", ["Нож"])) == "Сломалось: Нож", "Russian as written")
 	Lang.drop()

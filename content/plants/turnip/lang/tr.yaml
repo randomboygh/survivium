@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/turnip/bundle.yaml
+"Репа": "Şalgam"
+
+# content/plants/turnip/data/items.yaml
+"Семена репы": "Şalgam tohumu"
+"Мелкие тёмные семена. Посейте их на грядку весной.": "Küçük, koyu tohumlar. İlkbaharda bir tarha ek."
+"Круглый сладковатый корнеплод. Лежит долго.": "Yuvarlak, tatlımsı bir kök. Uzun süre dayanır."

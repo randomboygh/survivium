@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/tin/bundle.yaml
+"Олово": "Estaño"
+
+# content/materials/tin/data/items.yaml
+"Оловянная руда": "Mineral de estaño"
+"Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.": "Un mineral oscuro y pesado con granos claros. Lo extrae un pico de cobre."
+"Слиток олова": "Lingote de estaño"
+"Мягкий серебристый металл. С медью даёт бронзу.": "Un metal plateado y blando. Con cobre da bronce."

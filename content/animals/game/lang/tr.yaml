@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"Добыча": "Av"
+
+# content/animals/game/data/items.yaml
+"Тушка": "Küçük leş"
+"Мелкий зверь или птица. Разделывается руками.": "Küçük bir hayvan ya da kuş. Elle parçalanır."
+"Туша": "Leş"
+"Крупный зверь. Разделать её можно только ножом.": "Büyük bir hayvan. Ancak bıçakla parçalanır."
+"Сырое мясо": "Çiğ et"
+"Есть можно, но жареное сытнее.": "Yenir, ama kızarmışı daha doyurucu."
+"Жареное мясо": "Kızarmış et"
+"Мясо, зажаренное на костре. Очень сытное.": "Kamp ateşinde kızartılmış et. Çok doyurucu."
+"Шкура": "Post"
+"Сырая шкура зверя.": "Bir hayvanın ham postu."
+"Кость": "Kemik"
+"Жир": "Yağ"
+"Вяленое мясо": "Kurutulmuş et"
+"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Kurutma rafında kurutulmuş et. Hafif ve doyurucu, ateş gerekmez."
+
+# content/animals/game/data/recipes.yaml
+"Разделать тушку": "Küçük leşi parçala"
+"Разделать тушу": "Leşi parçala"

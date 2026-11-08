@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"Добыча": "Wild"
+
+# content/animals/game/data/items.yaml
+"Тушка": "Kleiner Kadaver"
+"Мелкий зверь или птица. Разделывается руками.": "Ein kleines Tier oder ein Vogel. Wird von Hand zerlegt."
+"Туша": "Kadaver"
+"Крупный зверь. Разделать её можно только ножом.": "Ein großes Tier. Es lässt sich nur mit einem Messer zerlegen."
+"Сырое мясо": "Rohes Fleisch"
+"Есть можно, но жареное сытнее.": "Essbar, aber gebraten sättigt es mehr."
+"Жареное мясо": "Gebratenes Fleisch"
+"Мясо, зажаренное на костре. Очень сытное.": "Am Lagerfeuer gebratenes Fleisch. Sehr sättigend."
+"Шкура": "Fell"
+"Сырая шкура зверя.": "Das rohe Fell eines Tieres."
+"Кость": "Knochen"
+"Жир": "Fett"
+"Вяленое мясо": "Dörrfleisch"
+"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Auf dem Trockengestell gedörrtes Fleisch. Leicht und sättigend, ohne Feuer."
+
+# content/animals/game/data/recipes.yaml
+"Разделать тушку": "Kleinen Kadaver zerlegen"
+"Разделать тушу": "Kadaver zerlegen"

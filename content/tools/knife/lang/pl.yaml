@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Nóż"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Krzemienny nóż"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Ostry odłamek krzemienia z rękojeścią. Rozbiera tusze i bije zwierzęta."
+"Медный нож": "Miedziany nóż"
+"Бронзовый нож": "Brązowy nóż"
+"Железный нож": "Żelazny nóż"
+"Стальной нож": "Stalowy nóż"

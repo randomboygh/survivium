@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/wood/bundle.yaml
+"Древесина": "Legno"
+
+# content/plants/wood/data/materials.yaml
+"Бревно": "Tronco"
+"Листва": "Fogliame"
+
+# content/plants/wood/data/sounds.yaml
+"Удар по дереву": "Colpo sul legno"
+"Шорох листьев": "Fruscio di foglie"
+"Шаг по дереву": "Passo sul legno"

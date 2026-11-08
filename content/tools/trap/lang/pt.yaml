@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/trap/bundle.yaml
+"Живоловка": "Armadilha viva"
+
+# content/tools/trap/data/items.yaml
+"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Uma gaiola de galhos com porta de disparo. Ponha dentro uma cenoura ou um nabo, e uma lebre entrará sozinha."
+"Пойманный заяц": "Lebre capturada"
+"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Uma lebre viva de uma armadilha. Pegue-a na mão e use a ação para soltá-la: já está mansa e vai segui-lo."

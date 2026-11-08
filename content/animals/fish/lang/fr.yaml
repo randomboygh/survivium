@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"Рыба": "Poisson"
+
+# content/animals/fish/data/creatures.yaml
+"Плотва": "Gardon"
+"Щука": "Brochet"
+"Лосось": "Saumon"
+"Треска": "Morue"
+"Рыба-попугай": "Poisson-perroquet"
+"Сом": "Silure"
+
+# content/animals/fish/data/items.yaml
+"Мелкая речная рыба. Её жарят на костре.": "Un petit poisson de rivière. On le grille sur un feu de camp."
+"Хищница тихих заводей. Её жарят на костре.": "Un prédateur des eaux calmes. On le grille sur un feu de camp."
+"Рыба холодных северных рек. Её жарят на костре.": "Un poisson des rivières froides du nord. On le grille sur un feu de camp."
+"Морская рыба холодного берега. Её жарят на костре.": "Un poisson de mer de la côte froide. On le grille sur un feu de camp."
+"Пёстрая рыба тёплого моря. Её жарят на костре.": "Un poisson coloré de la mer chaude. On le grille sur un feu de camp."
+"Большая рыба тёплых болот и рек. Её жарят на костре.": "Un gros poisson des marais et rivières chauds. On le grille sur un feu de camp."
+"Окунь": "Perche"
+"Полосатая рыба рек и озёр. Его жарят на костре.": "Un poisson rayé des rivières et des lacs. On le grille sur un feu de camp."
+"Жареная рыба": "Poisson grillé"
+"Рыба, зажаренная на костре. Сытная.": "Poisson grillé sur un feu de camp. Nourrissant."

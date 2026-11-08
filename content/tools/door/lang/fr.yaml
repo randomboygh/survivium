@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/door/bundle.yaml
+"Дверь": "Porte"
+
+# content/tools/door/data/items.yaml
+"Створка из досок для проёма в стене. Касание открывает и закрывает.": "Un battant de planches pour une ouverture dans le mur. Un toucher l'ouvre et la ferme."
+"Дверь 2×2": "Porte 2×2"
+"Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.": "Une double porte en planches, de deux cases de large et deux de haut."
+"Дверь 2×3": "Porte 2×3"
+"Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.": "Une haute double porte, de deux cases de large et trois de haut."
+"Ворота 3×3": "Portail 3×3"
+"Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту.": "Un grand portail double en planches pour une ouverture dans le mur, de trois cases de large et trois de haut."

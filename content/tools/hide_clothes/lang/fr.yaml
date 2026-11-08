@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hide_clothes/bundle.yaml
+"Одежда из шкур": "Vêtements de peau"
+
+# content/tools/hide_clothes/data/items.yaml
+"Меховая шапка": "Bonnet de fourrure"
+"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Un bonnet de peau, fourrure à l'intérieur. Garde la tête au chaud dans le gel."
+"Шуба": "Manteau de fourrure"
+"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Un long vêtement de peaux, fourrure à l'intérieur. Avec lui, une nuit d'hiver ne fait pas peur."
+"Кожаные штаны": "Pantalon de cuir"
+"Штаны из выделанной кожи. Не продуваются ветром.": "Un pantalon de cuir tanné. Le vent ne le traverse pas."
+"Унты": "Bottes de fourrure"
+"Высокие сапоги из шкуры на кожаной подошве.": "Hautes bottes de peau à semelle de cuir."

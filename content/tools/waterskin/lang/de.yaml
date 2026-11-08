@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/waterskin/bundle.yaml
+"Бурдюк": "Wasserschlauch"
+
+# content/tools/waterskin/data/items.yaml
+"Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Ein Lederbeutel für Wasser. Nimm ihn in die Hand und berühre Süßwasser, um ihn zu füllen."
+"Бурдюк с водой": "Wasserschlauch mit Wasser"
+"Полный бурдюк. Утоляет жажду вдали от воды.": "Ein voller Wasserschlauch. Stillt den Durst fern vom Wasser."

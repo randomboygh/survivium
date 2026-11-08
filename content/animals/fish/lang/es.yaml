@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"Рыба": "Pez"
+
+# content/animals/fish/data/creatures.yaml
+"Плотва": "Rutilo"
+"Щука": "Lucio"
+"Лосось": "Salmón"
+"Треска": "Bacalao"
+"Рыба-попугай": "Pez loro"
+"Сом": "Siluro"
+
+# content/animals/fish/data/items.yaml
+"Мелкая речная рыба. Её жарят на костре.": "Un pequeño pez de río. Se asa en una hoguera."
+"Хищница тихих заводей. Её жарят на костре.": "Un depredador de aguas tranquilas. Se asa en una hoguera."
+"Рыба холодных северных рек. Её жарят на костре.": "Un pez de fríos ríos del norte. Se asa en una hoguera."
+"Морская рыба холодного берега. Её жарят на костре.": "Un pez marino de la costa fría. Se asa en una hoguera."
+"Пёстрая рыба тёплого моря. Её жарят на костре.": "Un pez colorido del mar cálido. Se asa en una hoguera."
+"Большая рыба тёплых болот и рек. Её жарят на костре.": "Un gran pez de pantanos y ríos cálidos. Se asa en una hoguera."
+"Окунь": "Perca"
+"Полосатая рыба рек и озёр. Его жарят на костре.": "Un pez rayado de ríos y lagos. Se asa en una hoguera."
+"Жареная рыба": "Pescado asado"
+"Рыба, зажаренная на костре. Сытная.": "Pescado asado en una hoguera. Sacia."

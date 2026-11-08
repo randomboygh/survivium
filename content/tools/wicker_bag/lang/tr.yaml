@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/wicker_bag/bundle.yaml
+"Плетёная котомка": "Örgü heybe"
+
+# content/tools/wicker_bag/data/items.yaml
+"Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек.": "İp kayışlı, liften bir heybe. Sırtta taşınınca 8 yuva daha verir."

@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hatch/bundle.yaml
+"Люк": "Klapa"
+
+# content/tools/hatch/data/items.yaml
+"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Pokrywa z desek na otwór w podłodze lub suficie. Dotknięcie otwiera ją i zamyka."
+"Люк 2×2": "Klapa 2×2"
+"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Szeroka pokrywa z desek na otwór w podłodze, szeroka na dwa pola i głęboka na dwa."

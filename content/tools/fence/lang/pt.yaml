@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fence/bundle.yaml
+"Забор": "Cerca"
+
+# content/tools/fence/data/items.yaml
+"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Um trecho de cerca de varas. Constrói-se no modo construção como uma linha, igual a uma parede, e se une sozinho aos vizinhos."
+"Калитка": "Portinhola"
+"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Uma folha de varas na linha da cerca, de uma célula. Um toque a abre e a fecha."
+"Ворота": "Porteira"
+"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Duas folhas de varas na linha da cerca, com duas células de largura. Um toque abre as duas."

@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/trap/bundle.yaml
+"Живоловка": "Lebendfalle"
+
+# content/tools/trap/data/items.yaml
+"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Ein Käfig aus Ästen mit Falltür. Leg eine Karotte oder eine Rübe hinein, und ein Hase kommt von selbst hinein."
+"Пойманный заяц": "Gefangener Hase"
+"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Ein lebender Hase aus einer Falle. Nimm ihn in die Hand und drück die Aktion, um ihn freizulassen: er ist schon zahm und folgt dir."

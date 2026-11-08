@@ -479,7 +479,7 @@ func _section_rows(key: String) -> Array:
 		"game":
 			return [
 				["Язык", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
-					func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(s.values.language)),
+					func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(Lang.code)),
 					func(i: int) -> void:
 						s.set_language(Lang.LANGS[i][0])
 						_fill.call_deferred()],

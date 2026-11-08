@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/carrot/bundle.yaml
+"Морковь": "Havuç"
+
+# content/plants/carrot/data/items.yaml
+"Семена моркови": "Havuç tohumu"
+"Мелкие ребристые семена. Посейте их на грядку весной.": "Küçük, oluklu tohumlar. İlkbaharda bir tarha ek."
+"Сладкий оранжевый корнеплод.": "Tatlı, turuncu bir kök."

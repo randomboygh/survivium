@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sickle/bundle.yaml
+"Серп": "Foice"
+
+# content/tools/sickle/data/items.yaml
+"Каменный серп": "Foice de pedra"
+"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Colhe a safra madura dos canteiros, três células por golpe."
+"Медный серп": "Foice de cobre"
+"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Colhe a safra madura dos canteiros, quatro células por golpe."
+"Железный серп": "Foice de ferro"
+"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Colhe a safra madura dos canteiros, cinco células por golpe."

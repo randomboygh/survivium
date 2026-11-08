@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bedding/bundle.yaml
+"Постель": "Giaciglio"
+
+# content/tools/bedding/data/items.yaml
+"Травяная подстилка": "Giaciglio d'erba"
+"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "Un fascio d'erba secca legato con una corda. Dormirci è meglio che sulla nuda terra."
+"Меховой спальник": "Sacco a pelo di pelliccia"
+"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Pelli cucite a forma di sacco. Ci si riposa due volte più in fretta."

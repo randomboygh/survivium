@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/window/bundle.yaml
+"Окно": "Janela"
+
+# content/tools/window/data/items.yaml
+"Рама со стеклом для проёма в стене.": "Um caixilho com vidro para um vão na parede."
+"Окно 1×2": "Janela 1×2"
+"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "Uma janela alta com vidro, com uma célula de largura e duas de altura."
+"Окно 2×1": "Janela 2×1"
+"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "Uma janela larga com vidro, com duas células de largura e uma de altura."
+"Окно 2×2": "Janela 2×2"
+"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "Uma janela grande com vidro, com duas células de largura e duas de altura."
+"Окно 3×2": "Janela 3×2"
+"Окно во всю стену, на три клетки в ширину и две в высоту.": "Uma janela de parede a parede, com três células de largura e duas de altura."

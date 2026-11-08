@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hatch/bundle.yaml
+"Люк": "Trappe"
+
+# content/tools/hatch/data/items.yaml
+"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Un couvercle de planches pour un trou dans le sol ou le plafond. Un toucher l'ouvre et la ferme."
+"Люк 2×2": "Trappe 2×2"
+"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Un large couvercle de planches pour un trou dans le sol, de deux cases de large et deux de profondeur."

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Faca"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Faca de sílex"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Uma lasca afiada de sílex com cabo. Destrincha carcaças e golpeia animais."
+"Медный нож": "Faca de cobre"
+"Бронзовый нож": "Faca de bronze"
+"Железный нож": "Faca de ferro"
+"Стальной нож": "Faca de aço"

@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/tin/bundle.yaml
+"Олово": "Cyna"
+
+# content/materials/tin/data/items.yaml
+"Оловянная руда": "Ruda cyny"
+"Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.": "Ciemna ciężka ruda z jasnymi ziarenkami. Wydobywa ją miedziany kilof."
+"Слиток олова": "Sztabka cyny"
+"Мягкий серебристый металл. С медью даёт бронзу.": "Miękki srebrzysty metal. Z miedzią daje brąz."

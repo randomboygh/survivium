@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/waterskin/bundle.yaml
+"Бурдюк": "Odre"
+
+# content/tools/waterskin/data/items.yaml
+"Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Um saco de couro para água. Pegue-o na mão e toque água doce para enchê-lo."
+"Бурдюк с водой": "Odre com água"
+"Полный бурдюк. Утоляет жажду вдали от воды.": "Um odre cheio. Mata a sede longe da água."

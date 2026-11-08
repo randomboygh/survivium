@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bedding/bundle.yaml
+"Постель": "Posłanie"
+
+# content/tools/bedding/data/items.yaml
+"Травяная подстилка": "Posłanie z trawy"
+"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "Naręcze suchej trawy związane sznurkiem. Śpi się na nim lepiej niż na gołej ziemi."
+"Меховой спальник": "Futrzany śpiwór"
+"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Skóry zszyte w worek. Odpoczywa się w nim dwa razy szybciej."

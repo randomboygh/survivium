@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sickle/bundle.yaml
+"Серп": "Faucille"
+
+# content/tools/sickle/data/items.yaml
+"Каменный серп": "Faucille de pierre"
+"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Moissonne la récolte mûre des plates-bandes, trois cases par coup."
+"Медный серп": "Faucille de cuivre"
+"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Moissonne la récolte mûre des plates-bandes, quatre cases par coup."
+"Железный серп": "Faucille de fer"
+"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Moissonne la récolte mûre des plates-bandes, cinq cases par coup."

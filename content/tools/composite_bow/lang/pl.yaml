@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/composite_bow/bundle.yaml
+"Составной лук": "Łuk kompozytowy"
+
+# content/tools/composite_bow/data/items.yaml
+"Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее.": "Drewniany łuk wzmocniony kością i owinięty skórą. Strzela dalej i mocniej."
+
+# content/tools/composite_bow/data/recipes.yaml
+"Стрелы с костяным наконечником": "Strzały z kościanym grotem"

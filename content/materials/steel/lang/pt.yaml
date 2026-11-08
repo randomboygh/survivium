@@ -1,0 +1,9 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/steel/bundle.yaml
+"Сталь": "Aço"
+
+# content/materials/steel/data/items.yaml
+"Стальной слиток": "Lingote de aço"
+"Железо, напитанное углём: твёрже и упруже. Из стали — лучшие инструменты.": "Ferro embebido em carbono: mais duro e elástico. Do aço saem as melhores ferramentas."

@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hatch/bundle.yaml
+"Люк": "Botola"
+
+# content/tools/hatch/data/items.yaml
+"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Un coperchio di assi per un buco nel pavimento o nel soffitto. Un tocco lo apre e lo chiude."
+"Люк 2×2": "Botola 2×2"
+"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Un largo coperchio di assi per un buco nel pavimento, largo due celle e profondo due."

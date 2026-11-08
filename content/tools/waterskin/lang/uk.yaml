@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/waterskin/bundle.yaml
+"Бурдюк": "Бурдюк"
+
+# content/tools/waterskin/data/items.yaml
+"Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Шкіряний мішок для води. Візьміть його в руку й торкніться прісної води, щоб наповнити."
+"Бурдюк с водой": "Бурдюк з водою"
+"Полный бурдюк. Утоляет жажду вдали от воды.": "Повний бурдюк. Тамує спрагу далеко від води."

@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/lantern/bundle.yaml
+"Фонарь": "Ліхтар"
+
+# content/tools/lantern/data/items.yaml
+"Стекло в медной оправе, внутри горит смола. Светит дальше факела и горит намного дольше.": "Скло в мідній рамці, а всередині горить смола. Світить далі за смолоскип і горить набагато довше."

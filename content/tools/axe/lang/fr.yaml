@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/axe/bundle.yaml
+"Топор": "Hache"
+
+# content/tools/axe/data/items.yaml
+"Каменный топор": "Hache de pierre"
+"Медный топор": "Hache de cuivre"
+"Бронзовый топор": "Hache de bronze"
+"Железный топор": "Hache de fer"
+"Стальной топор": "Hache d'acier"
+
+# content/tools/axe/data/recipes.yaml
+"Доски": "Planches"

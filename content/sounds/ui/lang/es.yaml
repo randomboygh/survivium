@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/sounds/ui/bundle.yaml
+"Интерфейс": "Interfaz"
+
+# content/sounds/ui/data/sounds.yaml
+"Кнопка": "Botón"
+"Вкладка": "Pestaña"
+"Окно открыто": "Ventana abierta"
+"Окно закрыто": "Ventana cerrada"
+"Новый уровень навыка": "Nuevo nivel de habilidad"

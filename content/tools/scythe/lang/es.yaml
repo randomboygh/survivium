@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/scythe/bundle.yaml
+"Коса": "Guadaña"
+
+# content/tools/scythe/data/items.yaml
+"Каменная коса": "Guadaña de piedra"
+"Деревянная коса": "Guadaña de madera"
+"Медная коса": "Guadaña de cobre"
+"Бронзовая коса": "Guadaña de bronce"
+"Железная коса": "Guadaña de hierro"
+"Стальная коса": "Guadaña de acero"
+
+# content/tools/scythe/data/sounds.yaml
+"Покос": "Siega"

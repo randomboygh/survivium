@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Couteau"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Couteau de silex"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Un éclat de silex tranchant emmanché. Dépèce les carcasses et frappe les animaux."
+"Медный нож": "Couteau de cuivre"
+"Бронзовый нож": "Couteau de bronze"
+"Железный нож": "Couteau de fer"
+"Стальной нож": "Couteau d'acier"

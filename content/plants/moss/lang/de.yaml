@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/moss/bundle.yaml
+"Мох": "Moos"
+
+# content/plants/moss/data/items.yaml
+"Бинт": "Verband"
+"Припарка": "Umschlag"
+"Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему.": "Warmes Moos in einem Verband. Heilt nicht sofort, sondern nach und nach, doppelt so viel wie ein Verband, auch hungrig und durchgefroren."

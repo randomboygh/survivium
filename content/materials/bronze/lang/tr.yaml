@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/bronze/bundle.yaml
+"Бронза": "Bronz"
+
+# content/materials/bronze/data/items.yaml
+"Сырой тигель": "Ham pota"
+"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Kil ve kumdan kalın duvarlı bir kâse. Daha fırında pişirilmesi gerek."
+"Тигель": "Pota"
+"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Eritmek için pişmiş bir kâse. İçinde bakır ve kalay alaşım yapılır; kendisi harcanmaz."
+"Бронзовый слиток": "Bronz külçe"
+"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Kalaylı bakır: bakırdan sert. Bronzdan demir cevheri kazabilen aletler yapılır."

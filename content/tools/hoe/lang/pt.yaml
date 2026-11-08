@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"Тяпка": "Enxada"
+
+# content/tools/hoe/data/items.yaml
+"Каменная тяпка": "Enxada de pedra"
+"Вскапывает траву и землю в грядку, на которую сеют.": "Lavra capim e terra num canteiro para semear."
+"Медная тяпка": "Enxada de cobre"
+"Вскапывает две клетки за взмах.": "Lavra duas células por golpe."
+"Железная тяпка": "Enxada de ferro"
+"Вскапывает три клетки за взмах.": "Lavra três células por golpe."

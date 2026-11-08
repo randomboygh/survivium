@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sickle/bundle.yaml
+"Серп": "Hoz"
+
+# content/tools/sickle/data/items.yaml
+"Каменный серп": "Hoz de piedra"
+"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Siega la cosecha madura de los bancales, tres celdas por golpe."
+"Медный серп": "Hoz de cobre"
+"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Siega la cosecha madura de los bancales, cuatro celdas por golpe."
+"Железный серп": "Hoz de hierro"
+"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Siega la cosecha madura de los bancales, cinco celdas por golpe."

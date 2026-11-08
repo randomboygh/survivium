@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/bronze/bundle.yaml
+"Бронза": "Bronce"
+
+# content/materials/bronze/data/items.yaml
+"Сырой тигель": "Crisol crudo"
+"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Un cuenco de paredes gruesas de arcilla y arena. Aún hay que cocerlo en el horno."
+"Тигель": "Crisol"
+"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Un cuenco cocido para fundir. En él se alean cobre y estaño; no se gasta."
+"Бронзовый слиток": "Lingote de bronce"
+"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Cobre con estaño: más duro que el cobre. Con bronce se hacen herramientas que extraen mineral de hierro."

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/iron/bundle.yaml
+"Железо": "Eisen"
+
+# content/materials/iron/data/items.yaml
+"Железная руда": "Eisenerz"
+"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Ein schweres rostbraunes Erz. Eine Bronzespitzhacke baut es ab."
+"Крица": "Luppe"
+"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Ein poröser Klumpen aus Eisen und Schlacke aus dem Rennofen. Die Esse macht daraus zwei Barren."
+"Железный слиток": "Eisenbarren"
+"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Ein dunkles, festes Metall. Daraus Amboss und Eisenwerkzeuge."

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/silver/bundle.yaml
+"Серебро": "Silber"
+
+# content/materials/silver/data/items.yaml
+"Серебряная руда": "Silbererz"
+"Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.": "Ein graues Gestein mit weißen Flittern von gediegenem Silber. Eine Bronzespitzhacke baut es ab."
+"Серебряный слиток": "Silberbarren"
+"Мягкий белый металл. Из слитков складывают серебряные блоки.": "Ein weiches weißes Metall. Barren werden zu Silberblöcken."
+"Серебряный блок": "Silberblock"
+"Гладкий светлый металлический блок для построек.": "Ein glatter heller Metallblock zum Bauen."

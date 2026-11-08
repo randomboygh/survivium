@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fiber_clothes/bundle.yaml
+"Одежда из волокна": "Ropa de fibra"
+
+# content/tools/fiber_clothes/data/items.yaml
+"Плетёная шапка": "Sombrero trenzado"
+"Шапка из сухой травы. Немного греет голову.": "Un sombrero de hierba seca. Abriga un poco la cabeza."
+"Травяная накидка": "Capa de hierba"
+"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Una capa de fibra bien trenzada con una cuerda. La que más abriga de la ropa de hierba."
+"Обмотки": "Polainas"
+"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Tiras de fibra enrolladas en las piernas y atadas con cuerda."
+"Лапти": "Alpargatas"
+"Плетёная обувь из волокна на верёвочных завязках.": "Calzado trenzado de fibra con cordones de cuerda."

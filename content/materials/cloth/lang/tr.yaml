@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/cloth/bundle.yaml
+"Ткань": "Kumaş"
+
+# content/materials/cloth/data/items.yaml
+"Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду.": "Dokuma tezgâhından bez. Sargı ve meşaleye, sonra giysiye gider."

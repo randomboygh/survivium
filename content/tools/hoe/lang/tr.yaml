@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"Тяпка": "Çapa"
+
+# content/tools/hoe/data/items.yaml
+"Каменная тяпка": "Taş çapa"
+"Вскапывает траву и землю в грядку, на которую сеют.": "Otu ve toprağı ekim için tarha çevirir."
+"Медная тяпка": "Bakır çapa"
+"Вскапывает две клетки за взмах.": "Vuruş başına iki hücre beller."
+"Железная тяпка": "Demir çapa"
+"Вскапывает три клетки за взмах.": "Vuruş başına üç hücre beller."

@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ladder/bundle.yaml
+"Приставная лестница": "Échelle"
+
+# content/tools/ladder/data/items.yaml
+"Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз.": "Une section d'échelle d'une case de haut. Elle s'appuie au mur, section sur section ; on y monte et on en descend."

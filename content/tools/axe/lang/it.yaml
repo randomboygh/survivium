@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/axe/bundle.yaml
+"Топор": "Ascia"
+
+# content/tools/axe/data/items.yaml
+"Каменный топор": "Ascia di pietra"
+"Медный топор": "Ascia di rame"
+"Бронзовый топор": "Ascia di bronzo"
+"Железный топор": "Ascia di ferro"
+"Стальной топор": "Ascia d'acciaio"
+
+# content/tools/axe/data/recipes.yaml
+"Доски": "Assi"
