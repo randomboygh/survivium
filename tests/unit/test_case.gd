@@ -233,8 +233,8 @@ class Who extends RefCounted:
 	func is_dead() -> bool:
 		return false
 
-	func give(id: String, n: int, worn := 0) -> int:
-		return inventory.add(id, n, worn)
+	func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
+		return inventory.add(id, n, worn, null, q)
 
 	func note(_stat: String, _n: float = 1.0) -> void:
 		pass

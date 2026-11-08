@@ -165,7 +165,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 			var slot = who.inventory.slots[i]
 			if slot != null and slot[0] == ammo:
 				var taken = who.inventory.take_slot(i, 1)
-				data = {"n": 1, "worn": taken[2]} if taken.size() > 2 else 1
+				data = Inventory.drop_data(taken)
 				break
 	else:
 		who.inventory.remove(ammo, 1)

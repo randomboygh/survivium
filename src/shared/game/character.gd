@@ -442,10 +442,10 @@ func act(action: String, role := "") -> bool:
 	return false
 
 
-## Puts `n` of item `id` (a tool worn by `worn` swings) into the bag and says what
-## came in; returns how many fit.
-func give(id: String, n: int, worn := 0) -> int:
-	var got := inventory.add(id, n, worn)
+## Puts `n` of item `id` (a tool worn by `worn` swings) of quality `q` into the bag and
+## says what came in; returns how many fit.
+func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
+	var got := inventory.add(id, n, worn, null, q)
 	note("got", got)
 	if got > 0:
 		say("+%d %s" % [got, Items.title(id)])
@@ -587,11 +587,12 @@ func throw_away(i: int, n: int) -> void:
 	if taken == null:
 		return
 	held_back.append(position)
-	lay(taken[0], {"n": taken[1], "worn": taken[2]} if taken.size() > 2 else taken[1])
+	lay(taken[0], Inventory.drop_data(taken))
 
 
 ## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
-## sack's stacks, or {"n", "worn"} for a worn tool) at the feet; returns where.
+## sack's stacks, or {"n", "worn", "q"} for a worn tool or things of a quality, see
+## Inventory.drop_data) at the feet; returns where.
 ## A sack lies until `until` (game days, Clock.now; below 0: for ever).
 func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
 	var p := position

@@ -162,7 +162,7 @@ func _test_craft_cancel() -> void:
 	var q := CraftQueue.new()
 	_check(q.add(r, inv) and inv.count("tools:wooden_bow") == 0, "the materials go into the job")
 	var back := q.cancel(0)
-	_check(back.has(["tools:wooden_bow", 1, 7]), "and come back as they were, the bow as worn: %s" % [back])
+	_check(back.has(["tools:wooden_bow", 1, 7, Inventory.NORMAL]), "and come back as they were, the bow as worn: %s" % [back])
 	var saved := CraftQueue.new()
 	q.add(r, _filled(r))
 	saved.from_dict(q.to_dict())

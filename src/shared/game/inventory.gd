@@ -26,12 +26,19 @@ const ROTTEN := 10000
 ## only now and then, and is told (changed) when it crosses a TELL_AGE of its age.
 const SPOIL_STEP := 0.005
 const TELL_AGE := 500
+## Quality of a thing, MIN_QUALITY..MAX_QUALITY (plan/design/crafting.md, «Качество»):
+## NORMAL is what a thing of an older save, or one nothing has said otherwise of, has.
+const NORMAL := 50
+const MIN_QUALITY := 1
+const MAX_QUALITY := 100
 
 signal changed
 
 ## Each slot: [id, count], [id, count, worn] for a tool that has taken `worn` swings or
 ## food that has gone off by `worn` (of ROTTEN), [id, 1, 0, contents] for a chest with
-## things in it, or null for an empty one.
+## things in it, [id, count, worn, contents or null, quality] for things of a quality
+## other than NORMAL (see quality, held), or null for an empty one. Stacks of one item
+## join whatever their quality, at the quality of the two together.
 var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
 ## Whether a chest with things in it may go in (not into another chest).
@@ -56,6 +63,37 @@ var _spoil_carry := 0.0
 func _init(n := SLOTS) -> void:
 	base = n
 	slots.resize(n)
+
+
+## The quality of stack `s` (a slot's array, or null: NORMAL).
+static func quality(s) -> int:
+	return int(s[4]) if s != null and s.size() > 4 else NORMAL
+
+
+## What the bag or chest of stack `s` holds (to_dict data), or null.
+static func held(s) -> Variant:
+	return s[3] if s != null and s.size() > 3 and s[3] is Dictionary else null
+
+
+## The shortest slot array for `n` of item `id` worn by `worn`, holding `contents` (or
+## null) and of quality `q`.
+static func stack(id: String, n: int, worn := 0, contents: Variant = null, q := NORMAL) -> Array:
+	q = clampi(q, MIN_QUALITY, MAX_QUALITY)
+	if q != NORMAL:
+		return [id, n, worn, contents if contents is Dictionary else null, q]
+	if contents is Dictionary:
+		return [id, n, worn, contents]
+	return [id, n, worn] if worn != 0 else [id, n]
+
+
+## The quality of slot `i` (NORMAL for an empty one).
+func quality_at(i: int) -> int:
+	return quality(slots[i]) if i >= 0 and i < slots.size() else NORMAL
+
+
+## The quality of `n` and `k` things of qualities `a` and `b` together.
+static func blend(a: int, n: int, b: int, k: int) -> int:
+	return a if n + k <= 0 else roundi(float(a * n + b * k) / float(n + k))
 
 
 ## The body's slots things are worn in, in the order the window shows them.
@@ -83,8 +121,8 @@ func wear(i: int) -> String:
 		if why != "":
 			return why
 	var packed: Variant = contents(i)
-	if s.size() > 3:
-		slots[i] = [s[0], s[1]]
+	if held(s) != null:
+		slots[i] = stack(s[0], s[1], 0, null, quality(s))
 	gear[on] = s[0]
 	if on == "back":
 		_unpack_back(packed)
@@ -107,7 +145,7 @@ func take_off(on: String) -> String:
 			return "full"
 	var packed: Variant = _pack_back() if on == "back" else null
 	gear.erase(on)
-	slots[at] = _packed(id, packed)
+	slots[at] = _packed(id, packed, quality(slots[at]))
 	changed.emit()
 	return ""
 
@@ -121,7 +159,7 @@ func worn_slot(on: String) -> int:
 		return -1
 	for i in (base if on == "back" else slots.size()):
 		var s = slots[i]
-		if s != null and s[0] == id and s.size() < 4:
+		if s != null and s[0] == id and held(s) == null:
 			return i
 	return -1
 
@@ -151,7 +189,7 @@ func _leave(i: int) -> void:
 func _stacks_of(id: String, n: int) -> int:
 	var k := 0
 	for j in n:
-		if slots[j] != null and slots[j][0] == id and slots[j].size() < 4:
+		if slots[j] != null and slots[j][0] == id and held(slots[j]) == null:
 			k += 1
 	return k
 
@@ -175,8 +213,8 @@ func _worn_now() -> Dictionary:
 
 
 ## A slot holding worn item `id`, with things `packed` in it (to_dict data) or none.
-static func _packed(id: String, packed: Variant) -> Array:
-	return [id, 1, 0, packed] if packed is Dictionary else [id, 1]
+static func _packed(id: String, packed: Variant, q := NORMAL) -> Array:
+	return stack(id, 1, 0, packed, q)
 
 
 ## Empties the slots past `base` and gives what they held (to_dict data), null when
@@ -200,14 +238,14 @@ func _unpack_back(packed: Variant) -> void:
 		var h = held[j]
 		if h is Array and h.size() >= 2 and h[0] is String and Items.has(Items.canon(h[0])) and int(h[1]) > 0:
 			var id: String = Items.get_item(Items.canon(h[0])).id
-			var w: int = int(h[2]) if h.size() >= 3 else 0
-			slots[base + j] = [id, 1, w, h[3]] if h.size() == 4 and h[3] is Dictionary else ([id, int(h[1]), w] if w > 0 else [id, int(h[1])])
+			slots[base + j] = _read(id, h)
 
 
-## Puts up to `n` of item `id` (worn by `worn` swings) into the bag, topping up stacks
-## first; returns how many went in (fewer when the slots are full). A chest with
-## `contents` goes in alone, into a slot of its own.
-func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
+## Puts up to `n` of item `id` (worn by `worn` swings) of quality `q` into the bag,
+## topping up stacks first (their quality joins, see blend); returns how many went in
+## (fewer when the slots are full). A chest with `contents` goes in alone, into a slot
+## of its own.
+func add(id: String, n: int, worn := 0, contents: Variant = null, q := NORMAL) -> int:
 	# Only what wears or spoils keeps its wear (a torch of an old save burned by wear is whole).
 	# A thing made by a skilled hand starts with swings to spare: below none (Workshop).
 	if worn != 0 and not keeps_wear(id):
@@ -217,26 +255,22 @@ func add(id: String, n: int, worn := 0, contents: Variant = null) -> int:
 		var free := slots.find(null)
 		if not nests or free < 0 or n < 1:
 			return 0
-		slots[free] = [id, 1, worn, contents]
+		slots[free] = stack(id, 1, worn, contents, q)
 		changed.emit()
 		return 1
 	var left := n
 	var size := Items.stack_size(id)
-	for s in slots:
-		if left > 0 and s != null and s[0] == id and s[1] < size and (spoils or _worn(s) == worn) and s.size() < 4:
+	for i in slots.size():
+		var s = slots[i]
+		if left > 0 and s != null and s[0] == id and s[1] < size and (spoils or _worn(s) == worn) and held(s) == null:
 			var k := mini(left, size - s[1])
-			if spoils:
-				var age := roundi(float(_worn(s) * s[1] + worn * k) / float(s[1] + k))
-				if s.size() > 2:
-					s[2] = age
-				elif age > 0:
-					s.append(age)
-			s[1] += k
+			var age := roundi(float(_worn(s) * s[1] + worn * k) / float(s[1] + k)) if spoils else _worn(s)
+			slots[i] = stack(id, s[1] + k, age, null, blend(quality(s), s[1], q, k))
 			left -= k
 	for i in slots.size():
 		if left > 0 and slots[i] == null:
 			var k := mini(left, size)
-			slots[i] = [id, k, worn] if worn != 0 else [id, k]
+			slots[i] = stack(id, k, worn, null, q)
 			left -= k
 	if left < n:
 		changed.emit()
@@ -257,18 +291,19 @@ func room_for(id: String) -> int:
 
 ## Takes up to `n` of item `id` out of the bag, from the last stacks first, never a
 ## chest with things in it; returns how many were taken. With `took` (an Array) each
-## part taken is noted in it as [id, count, worn], so what wears or spoils can be given
-## back as it was (a craft cancelled, CraftQueue).
+## part taken is noted in it as [id, count, worn, quality], so what wears or spoils can be
+## given back as it was (a craft cancelled, CraftQueue), and what is made of it gets its
+## quality (Workshop).
 func remove(id: String, n: int, took: Variant = null) -> int:
 	var was := _worn_now()
 	var back := worn_slot("back")
 	var left := n
 	for i in range(slots.size() - 1, -1, -1):
 		var s = slots[i]
-		if left > 0 and s != null and s[0] == id and s.size() < 4 and i != back:
+		if left > 0 and s != null and s[0] == id and held(s) == null and i != back:
 			var k := mini(left, s[1])
 			if took is Array and k > 0:
-				took.append([id, k, _worn(s)])
+				took.append([id, k, _worn(s), quality(s)])
 			s[1] -= k
 			left -= k
 			if s[1] == 0:
@@ -279,9 +314,8 @@ func remove(id: String, n: int, took: Variant = null) -> int:
 	return n - left
 
 
-## Takes up to `n` items out of slot `i`; returns the stack taken ([id, count],
-## [id, count, worn] for a worn tool, [id, 1, 0, contents] for a chest with things in
-## it) or null.
+## Takes up to `n` items out of slot `i`; returns the stack taken (a slot array, see
+## slots) or null.
 func take_slot(i: int, n: int):
 	if i < 0 or i >= slots.size() or slots[i] == null or n <= 0:
 		return null
@@ -295,15 +329,12 @@ func take_slot(i: int, n: int):
 		slots[i] = null
 	_left(was)
 	changed.emit()
-	if s.size() > 3:
-		return [s[0], k, _worn(s), s[3]]
-	return [s[0], k, s[2]] if _worn(s) != 0 else [s[0], k]
+	return stack(s[0], k, _worn(s), held(s), quality(s))
 
 
 ## What the chest in slot `i` holds (as to_dict() gives it), or null.
 func contents(i: int) -> Variant:
-	var s = slots[i] if i >= 0 and i < slots.size() else null
-	return s[3] if s != null and s.size() > 3 else null
+	return held(slots[i]) if i >= 0 and i < slots.size() else null
 
 
 ## Moves as much of slot `i` as fits into bag `to` (keeping its wear and contents);
@@ -315,7 +346,7 @@ func move_slot(i: int, to) -> int:
 		return 0
 	_leave(i)
 	var s = slots[i]
-	var n: int = to.add(s[0], s[1], _worn(s), contents(i))
+	var n: int = to.add(s[0], s[1], _worn(s), contents(i), quality(s))
 	take_slot(i, n)
 	return n
 
@@ -350,6 +381,7 @@ func sort(by: String, from := 0) -> void:
 	# A slot counted from the end (a negative number) would be counted twice: never.
 	from = clampi(from, 0, slots.size())
 	var counts := {}
+	var qualities := {}
 	var stacks := []
 	var pinned := {}
 	pinned[worn_slot("back")] = true
@@ -357,16 +389,18 @@ func sort(by: String, from := 0) -> void:
 		var s = slots[i]
 		if s == null or pinned.has(i):
 			continue
-		# A worn tool (or anything else a slot keeps beside the count) stays whole.
-		if s.size() > 2:
+		# A worn tool (or a chest with things, or food going off) stays whole.
+		if _worn(s) != 0 or held(s) != null:
 			stacks.append(s)
 		else:
-			counts[s[0]] = counts.get(s[0], 0) + s[1]
+			var had: int = counts.get(s[0], 0)
+			qualities[s[0]] = blend(qualities.get(s[0], NORMAL), had, quality(s), s[1])
+			counts[s[0]] = had + s[1]
 	for id in counts:
 		var size := Items.stack_size(id)
 		var left: int = counts[id]
 		while left > 0:
-			stacks.append([id, mini(left, size)])
+			stacks.append(stack(id, mini(left, size), 0, null, qualities[id]))
 			left -= size
 	var order := Items.CATEGORIES.keys()
 	stacks.sort_custom(func(a: Array, b: Array) -> bool:
@@ -421,15 +455,14 @@ func put_into(i: int, to, j: int) -> bool:
 		to._leave(j)
 	var a = slots[i]
 	var b = to.slots[j]
-	if (not to.nests and a.size() > 3) or (not nests and b != null and b.size() > 3):
+	if (not to.nests and held(a) != null) or (not nests and held(b) != null):
 		return false
-	var room: int = Items.stack_size(a[0]) - b[1] if b != null and b[0] == a[0] and a.size() == 2 and b.size() == 2 else 0
+	var plain := func(x) -> bool: return x != null and _worn(x) == 0 and held(x) == null
+	var room: int = Items.stack_size(a[0]) - b[1] if b != null and b[0] == a[0] and plain.call(a) and plain.call(b) else 0
 	if room > 0:
 		var k := mini(a[1], room)
-		b[1] += k
-		a[1] -= k
-		if a[1] == 0:
-			slots[i] = null
+		to.slots[j] = stack(b[0], b[1] + k, 0, null, blend(quality(b), b[1], quality(a), k))
+		slots[i] = stack(a[0], a[1] - k, 0, null, quality(a)) if a[1] > k else null
 	else:
 		to.slots[j] = a
 		slots[i] = b
@@ -461,9 +494,9 @@ func fullness(i: int) -> float:
 	var room := room_of(s[0])
 	if room <= 0:
 		return -1.0
-	var held: Array = slots.slice(base) if worn_slot("back") == i else (s[3].get("slots", []) if s.size() > 3 else [])
+	var inside: Array = slots.slice(base) if worn_slot("back") == i else (held(s).get("slots", []) if held(s) != null else [])
 	var taken := 0
-	for h in held:
+	for h in inside:
 		if h != null:
 			taken += 1
 	return clampf(float(taken) / room, 0.0, 1.0)
@@ -498,8 +531,7 @@ func close(k: int, bag) -> void:
 	var s = slots[k] if k >= 0 and k < slots.size() else null
 	if s == null or room_of(s[0]) <= 0:
 		return
-	var w := _worn(s)
-	var now: Array = [s[0], 1, w, bag.to_dict()] if not bag.is_empty() else ([s[0], 1, w] if w > 0 else [s[0], 1])
+	var now: Array = stack(s[0], 1, _worn(s), bag.to_dict() if not bag.is_empty() else null, quality(s))
 	if str(now) != str(s):
 		slots[k] = now
 		changed.emit()
@@ -539,7 +571,7 @@ func spoil(days: float, rate := 1.0) -> bool:
 	var rotten := []
 	for i in slots.size():
 		var s = slots[i]
-		if s == null or s.size() > 3:
+		if s == null or held(s) != null:
 			continue
 		var lasts := Items.spoils(s[0])
 		if lasts <= 0.0:
@@ -548,10 +580,8 @@ func spoil(days: float, rate := 1.0) -> bool:
 		var age := mini(ROTTEN, was + maxi(1, roundi(step / lasts * ROTTEN)))
 		if age >= ROTTEN:
 			rotten.append([i, s[0], s[1]])
-		elif s.size() > 2:
-			s[2] = age
 		else:
-			s.append(age)
+			slots[i] = stack(s[0], s[1], age, null, quality(s))
 		told = told or age / TELL_AGE != was / TELL_AGE
 	for r: Array in rotten:
 		slots[r[0]] = null
@@ -588,20 +618,21 @@ func wear_tool(id: String, durability: int, skip := 0) -> bool:
 			skip -= s[1]
 			continue
 		var w := _worn(s) + 1
+		var q := quality(s)
 		var free := slots.find(null)
 		if s[1] > 1 and free >= 0:
-			slots[i] = [id, s[1] - 1]
+			slots[i] = stack(id, s[1] - 1, _worn(s), null, q)
 			if w >= durability:
 				changed.emit()
 				return true
-			slots[free] = [id, 1, w]
+			slots[free] = stack(id, 1, w, null, q)
 		elif w >= durability:
 			take_slot(i, 1)
 			if slots[i] != null:
-				slots[i] = [id, slots[i][1]]
+				slots[i] = stack(id, slots[i][1], 0, null, q)
 			return true
 		else:
-			slots[i] = [id, s[1], w]
+			slots[i] = stack(id, s[1], w, null, q)
 		changed.emit()
 		return false
 	return false
@@ -611,7 +642,7 @@ func wear_tool(id: String, durability: int, skip := 0) -> bool:
 func mend(i: int) -> void:
 	var s = slots[i]
 	if s != null and _worn(s) > 0:
-		slots[i] = [s[0], s[1]]
+		slots[i] = stack(s[0], s[1], 0, null, quality(s))
 		changed.emit()
 
 
@@ -668,10 +699,10 @@ static func stack_weight(s) -> float:
 		return 0.0
 	var w: float = Items.weight(s[0]) * s[1]
 	# What a bag or chest holds weighs with it, and what a bag in it holds too.
-	if s.size() > 3 and s[3] is Dictionary:
-		for held in s[3].get("slots", []):
-			if held is Array and held.size() >= 2:
-				w += stack_weight(held)
+	if held(s) != null:
+		for h in s[3].get("slots", []):
+			if h is Array and h.size() >= 2:
+				w += stack_weight(h)
 	return w
 
 
@@ -691,6 +722,30 @@ func speed_factor() -> float:
 
 func overloaded() -> bool:
 	return heavy and load_share() > 1.0
+
+
+## What `s[1]` things of stack `s` lying on the ground are (WorldData.drops data): their
+## count, or {"n", "worn", "q"} for a worn tool or things of a quality other than NORMAL.
+static func drop_data(s: Array) -> Variant:
+	var w := _worn(s)
+	var q := quality(s)
+	if w == 0 and q == NORMAL:
+		return s[1]
+	var d := {"n": s[1]}
+	if w != 0:
+		d.worn = w
+	if q != NORMAL:
+		d.q = q
+	return d
+
+
+## Slot array `s` of a save (or of to_dict data) for item `id`, as the bag keeps it:
+## what neither wears nor spoils keeps no wear, a chest with things is one.
+static func _read(id: String, s: Array) -> Array:
+	var w: int = int(s[2]) if s.size() >= 3 and (s[2] is int or s[2] is float) and keeps_wear(id) else 0
+	var inside: Variant = s[3] if s.size() >= 4 and s[3] is Dictionary else null
+	var q: int = int(s[4]) if s.size() >= 5 and (s[4] is int or s[4] is float) else NORMAL
+	return stack(id, 1 if inside != null else int(s[1]), w, inside, q)
 
 
 ## The bag as plain data for a save or the network: {"slots": [[id, count] or null...]},
@@ -716,13 +771,8 @@ func from_dict(d: Dictionary) -> void:
 	var saved: Array = d.get("slots", [])
 	for i in mini(saved.size(), slots.size()):
 		var s = saved[i]
-		if s is Array and s.size() in [2, 3, 4] and s[0] is String and Items.has(Items.canon(s[0])) and int(s[1]) > 0:
-			var id: String = Items.get_item(Items.canon(s[0])).id
-			var w: int = int(s[2]) if s.size() >= 3 and keeps_wear(id) else 0
-			if s.size() == 4 and s[3] is Dictionary:
-				slots[i] = [id, 1, w, s[3]]
-			else:
-				slots[i] = [id, int(s[1]), w] if w != 0 else [id, int(s[1])]
+		if s is Array and s.size() in [2, 3, 4, 5] and s[0] is String and Items.has(Items.canon(s[0])) and int(s[1]) > 0:
+			slots[i] = _read(Items.get_item(Items.canon(s[0])).id, s)
 	# A save of when worn things left the bag: they go back into a free slot.
 	for on: String in apart():
 		var free := slots.slice(0, base).find(null)

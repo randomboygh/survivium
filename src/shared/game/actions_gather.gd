@@ -351,7 +351,7 @@ func _take(who, d: Array, most := -1) -> Array:
 	if d[0] == Items.SACK:
 		var rest := []
 		for s: Array in d[3]:
-			var got: int = who.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0, s[3] if s.size() > 3 else null)
+			var got: int = who.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0, Inventory.held(s), Inventory.quality(s))
 			if got < s[1]:
 				rest.append([s[0], s[1] - got] + s.slice(2))
 		who.say("Вещи из мешка забраны" if rest.is_empty() else "Забрано не всё: сумка полна")
@@ -360,10 +360,12 @@ func _take(who, d: Array, most := -1) -> Array:
 		return [] if rest.is_empty() else [d[0], d[1], d[2], rest] + d.slice(4)
 	var n := count(d)
 	var worn: int = d[3].get("worn", 0) if d.size() > 3 and d[3] is Dictionary else 0
-	var got: int = who.give(Items.get_item(d[0]).get("id", d[0]), n if most < 0 else mini(n, most), worn)
+	var q: int = clampi(int(d[3].get("q", Inventory.NORMAL)), Inventory.MIN_QUALITY, Inventory.MAX_QUALITY) if d.size() > 3 and d[3] is Dictionary else Inventory.NORMAL
+	var id: String = Items.get_item(d[0]).get("id", d[0])
+	var got: int = who.give(id, n if most < 0 else mini(n, most), worn, q)
 	if got >= n:
 		return []
-	return [d[0], d[1], d[2], {"n": n - got, "worn": worn} if worn != 0 else n - got]
+	return [d[0], d[1], d[2], Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q))]
 
 
 ## How many items drop `d` is (see WorldData.drops): its count, or its "n" for a worn tool.
