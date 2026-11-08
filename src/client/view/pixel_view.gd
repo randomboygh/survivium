@@ -42,7 +42,13 @@ const LIT_BY_FIRES := 0xFFFFF & ~(LAYER_UNLIT | LAYER_SUN_CASTER)
 ## stopped the game at dusk, 2026-11-08); for the ground alone they are a few.
 const LAYER_GROUND := 32
 const LIT_BY_SHADOW := LAYER_GROUND
-const LIT_BY_TWIN := LIT_BY_FIRES & ~LAYER_GROUND
+## The things set on the ground (chests, workbenches, lamps, what lies there) and the
+## animals: lit by a real shadow too while the setting «Тень на вещах» is on
+## (shadow_on_things), so the player's shadow falls on them; that builds their shaders
+## of the shadow's pass as well, a few more, behind the loading screen (ShaderWarmup).
+const LAYER_THINGS := 64
+## Whether a fire's or a torch's real shadow lights LAYER_THINGS (Settings: «Тень на вещах»).
+static var shadow_on_things := true
 ## Direction of view rays in the unsheared world in the default view: down and north
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
@@ -269,12 +275,13 @@ static func unlit(node: Node) -> void:
 
 
 ## Gives `light` (a fire's or a torch's) a real shadow or takes it away. With one it lights
-## the ground alone (LIT_BY_SHADOW) and its twin, a child light without a shadow, the rest
-## (LIT_BY_TWIN); twin_follow keeps the twin as bright and as far-reaching.
+## the ground alone (and the things with shadow_on_things, see lit_by_shadow) and its twin,
+## a child light without a shadow, the rest; twin_follow keeps the twin as bright and as far-reaching.
 static func real_shadow(light: OmniLight3D, on: bool) -> void:
 	if light.shadow_enabled != on:
 		light.shadow_enabled = on
-	var mask := LIT_BY_SHADOW if on else LIT_BY_FIRES
+	var lit := lit_by_shadow(shadow_on_things)
+	var mask := lit if on else LIT_BY_FIRES
 	if light.light_cull_mask != mask:
 		light.light_cull_mask = mask
 	var twin := light.get_node_or_null(^"Twin") as OmniLight3D
@@ -282,12 +289,18 @@ static func real_shadow(light: OmniLight3D, on: bool) -> void:
 		twin = OmniLight3D.new()
 		twin.name = "Twin"
 		twin.shadow_enabled = false
-		twin.light_cull_mask = LIT_BY_TWIN
 		light.add_child(twin)
 	if twin != null and twin.visible != on:
 		twin.visible = on
+	if twin != null and twin.light_cull_mask != LIT_BY_FIRES & ~lit:
+		twin.light_cull_mask = LIT_BY_FIRES & ~lit
 	if on:
 		twin_follow(light, light.light_energy)
+
+
+## The layers a real shadow lights: the ground, and the things with `things`.
+static func lit_by_shadow(things: bool) -> int:
+	return LIT_BY_SHADOW | (LAYER_THINGS if things else 0)
 
 
 ## The twin of `light` (see real_shadow) burns at `energy`, as far and in the colour of it.

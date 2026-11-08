@@ -47,6 +47,7 @@ func take(r: Array) -> void:
 		node.scale = Vector3.ONE / 16.0
 		node.position = r[2] - Vector3(0.0, SINK, 0.0)
 		node.rotation.y = float(r[3])
+		node.layers = PixelView.LAYER_THINGS
 		_fit(node)
 		add_child(node)
 		one = {"node": node}
