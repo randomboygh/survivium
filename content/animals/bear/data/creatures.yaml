@@ -14,8 +14,9 @@
   count: 2
   sprite: bear
   biomes: [biomes:forest, biomes:taiga]
-  frames: 7
+  frames: 10
   walk: 4
+  attack: 3
   views: 3
   likes: [plants:mushrooms]
   calls: bear
