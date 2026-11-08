@@ -942,14 +942,18 @@ func _process(delta: float) -> void:
 	# come after it, still behind the landscape (MainMenu._settle).
 	var unseen := (not ready_to_play or warmup != null) and menu != null and menu.hides_world()
 	view.viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED if unseen else SubViewport.UPDATE_WHEN_VISIBLE
-	if warmup != null and warmup.step():
-		warmup = null
-		hud.perf.warmed_up()
-		hud.set_loading("")
-	elif warmup != null and menu == null:
-		# Only without a menu (tests, tools): the loading screen says it itself.
-		hud.set_loading("%s…" % loading_phase())
+	if warmup != null:
+		if warmup.step():
+			warmup = null
+			hud.perf.warmed_up()
+			hud.set_loading("")
+		elif menu == null:
+			# Only without a menu (tests, tools): the loading screen says it itself.
+			hud.set_loading("%s…" % loading_phase())
 	elif shaders != null:
+		# Not while the warm-up ahead runs: with the menu open it did, drew its kinds a
+		# mix at a time in the same view and left it drawn once, so in the browser only
+		# the first mix was built ahead and the rest came in the game (2026-11-08).
 		shaders.update()
 	freeze_log.update()
 	t = perf.note("камера", t)
