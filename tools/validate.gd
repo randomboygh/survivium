@@ -183,8 +183,8 @@ func _check_textures() -> PackedStringArray:
 		var path := Plants.sprite_path(c)
 		if not ResourceLoader.exists(path):
 			out.append("plants: `%s`: no picture %s" % [c.id, path])
-		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.PLANT_W * c.frames, PixelTextures.PLANT_H):
-			out.append("plants: `%s`: %s is not %d frames of %dx%d px" % [c.id, path.get_file(), c.frames, PixelTextures.PLANT_W, PixelTextures.PLANT_H])
+		elif Vector2i(load(path).get_size()) != Vector2i(PixelTextures.PLANT_W * Plants.columns(c), PixelTextures.PLANT_H):
+			out.append("plants: `%s`: %s is not %d columns of %dx%d px" % [c.id, path.get_file(), Plants.columns(c), PixelTextures.PLANT_W, PixelTextures.PLANT_H])
 	return out
 
 

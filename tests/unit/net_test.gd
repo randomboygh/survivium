@@ -15,6 +15,7 @@ const RemoteClock := preload("res://src/client/net/remote_clock.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
+const Mirror := preload("res://src/client/net/mirror.gd")
 
 
 func run() -> void:
@@ -22,6 +23,21 @@ func run() -> void:
 	_test_requests()
 	_test_server_list()
 	_test_remote_workshop()
+	_test_cells()
+
+
+## A cell the server changed, on the client's copy of the world: a bed watered keeps its
+## crop; ground dug out loses it.
+func _test_cells() -> void:
+	var w := WorldData.new(16, Vector2i(16, 16))
+	var bed := Vector3i(4, 1, 4)
+	w.set_cell(bed.x, bed.y, bed.z, Mat.BED)
+	w.set_field(bed, ["plants:wheat", 1.0, 0.0])
+	Mirror.take_cell(w, bed, Mat.BED_WET)
+	_check(w.get_cell(bed.x, bed.y, bed.z) == Mat.BED_WET and w.field_at(bed) == ["plants:wheat", 1.0, 0.0],
+		"a bed watered on the server keeps its crop on the client: %s" % [w.field_at(bed)])
+	Mirror.take_cell(w, bed, Mat.AIR)
+	_check(w.field_at(bed) == null, "a bed dug out loses it")
 
 
 ## The client's copy of the workshop counts the first job down between the server's

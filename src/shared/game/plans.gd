@@ -579,8 +579,7 @@ static func mark_fits(actions, work: String, item: String, c: Vector3i) -> bool:
 		"sow":
 			return actions.plantable(item, c)
 		"water":
-			var m: int = actions.world.get_cell(c.x, c.y, c.z)
-			return Mat.is_bed(m)
+			return actions.can_water(c)
 		"reap":
 			var m: int = actions.world.get_cell(c.x, c.y, c.z)
 			return Mat.is_bed(m) and actions.crop_on(c) != ""
@@ -694,7 +693,7 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 				return null
 			return _till(actions, who, c, v, mine)
 		WATER:
-			if not bed:
+			if not actions.can_water(c):
 				_drop([c])
 				return null
 			var can := _best(who, func(t: Dictionary) -> bool: return Tools.can_water(t))

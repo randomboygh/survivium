@@ -60,17 +60,19 @@ def bark(name, dark, light, marks=None, seed=1, file=None):
     print(path)
 
 
-def sprite(name, frames, bundle=None):
-    """`frames`: list of 24 rows of 8 chars each (top row first), chars mapped by `PAL`;
-    saved in the bundle of that name (`bundle`, else `name`)."""
-    img = Image.new("RGBA", (8 * len(frames), 24), (0, 0, 0, 0))
+def sprite(name, frames, bundle=None, across=1):
+    """`frames`: list of 24 rows of 8 chars each (top row first; 8 * `across` for a plant
+    drawn as `across` cards side by side), chars mapped by `PAL`; saved in the bundle of
+    that name (`bundle`, else `name`)."""
+    w = 8 * across
+    img = Image.new("RGBA", (w * len(frames), 24), (0, 0, 0, 0))
     for f, rows in enumerate(frames):
         assert len(rows) == 24, name
         for y, row in enumerate(rows):
-            assert len(row) == 8, (name, y)
+            assert len(row) == w, (name, y)
             for x, ch in enumerate(row):
                 if ch != ".":
-                    img.putpixel((f * 8 + x, y), PAL[ch])
+                    img.putpixel((f * w + x, y), PAL[ch])
     path = os.path.join(ROOT, bundle or name, "sprites", "plants", "%s.png" % name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
@@ -228,18 +230,92 @@ SOWN_FLAX = [
         "..o.oo..", "..oo.o..", "...oo...", "...o...."),
 ]
 
-# The saplings grown from a tree's seed (oak, spruce bundles), a frame a stage: a sprout,
-# a shoot (a young tree, then the tree, are voxels: Growth).
+# The saplings grown from a tree's seed (oak, spruce bundles), a frame a stage, two cards
+# wide (plants `across: 2`), the stem between them: a sprout, a shoot (a young tree, then
+# the tree, are voxels: Growth).
+def low16(*rows):
+    """A 16 px wide frame of the rows given, set on the ground (padded on top to 24 rows)."""
+    return ["." * 16] * (24 - len(rows)) + list(rows)
+
+
 OAK_SAPLING = [
-    low("..g..G..", ".gGg.Gg.", "..gsgG..", "...s....", "...s....", "...s...."),
-    low("...GG...", "..GgGG..", ".GgGgGg.", "gGgGgGgG", ".gGgGgg.", "..gsGg..", "...s....", "...s....",
-        "...s....", "..ss...."),
+    low16(
+        "......GG........",
+        ".....GgGG.......",
+        ".....dGgGG..GG..",
+        "......dgG..GgGG.",
+        ".......s..GgGgG.",
+        "..GG...s.dgGgd..",
+        ".GgGG..s.sdd....",
+        ".dGgGG.ss.......",
+        "..dgGds.s.......",
+        "...dd..ss.......",
+        ".......s........",
+        ".......ss.......",
+        "......sss.......",
+    ),
+    low16(
+        "......GG.GG.....",
+        "....GGgGGgGGG...",
+        "...GgGgGgGgGGG..",
+        "..GgGgdgGgGgGgG.",
+        ".GgGdgGgdGgGgGgG",
+        ".gGgGgdgGgdgGgG.",
+        "GgdgGgGgdgGgGdgG",
+        "gGgGdgGgGgGdgGg.",
+        ".dgGgdgsgGgGgdg.",
+        "..dgdg.sgdgGgd..",
+        "...dd.sgs.dgd...",
+        "......ss..dd....",
+        ".......s........",
+        ".......ss.......",
+        ".......s........",
+        ".......ss.......",
+        ".......ss.......",
+        "......sss.......",
+    ),
 ]
 
 SPRUCE_SAPLING = [
-    low("...g....", "..gdg...", ".gdgdg..", "..gdg...", ".gdgdg..", "...s....", "...s...."),
-    low("...G....", "..gGg...", "..gdg...", ".gdGdg..", "..gdg...", ".gdgdg..", "gdgGgdg.", "..gdg...",
-        ".gdgdgd.", "gdgdgdgd", "...s....", "...s...."),
+    low16(
+        ".......G........",
+        "......gGg.......",
+        ".....gdGdg......",
+        "......gGg.......",
+        ".....gdGdg......",
+        "....gdgGgdg.....",
+        "......gGg.......",
+        ".....gdgdgg.....",
+        "....gdgGgdgd....",
+        "...gd.ddsd.dg...",
+        ".......s........",
+        ".......s........",
+        "......sss.......",
+    ),
+    low16(
+        ".......G........",
+        "......gGg.......",
+        ".....gdGdg......",
+        "......gGg.......",
+        ".....gdGgdg.....",
+        "....gdgGdgdg....",
+        "......gGg.......",
+        ".....gdGdgd.....",
+        "....gdgGgdgd....",
+        "...gdgdGdgdgd...",
+        ".....gdGgdg.....",
+        "....gdgGgdgdg...",
+        "...gdgdGgdgdgd..",
+        "..gdgdgGdgdgdgd.",
+        "....gdgsgdgd....",
+        "...gdgdGgdgdgd..",
+        "..gdgdgGgdgdgdg.",
+        ".gdgdgdsdgdgdgdg",
+        "...d.d.ss.d.d...",
+        ".......ss.......",
+        ".......ss.......",
+        "......ssss......",
+    ),
 ]
 
 CROP_ICONS = {
@@ -292,8 +368,8 @@ def crops():
     sprite("carrot", CARROT)
     sprite("peas", PEAS)
     sprite("sown_flax", SOWN_FLAX, "flax")
-    sprite("oak_sapling", OAK_SAPLING, "oak")
-    sprite("spruce_sapling", SPRUCE_SAPLING, "spruce")
+    sprite("oak_sapling", OAK_SAPLING, "oak", 2)
+    sprite("spruce_sapling", SPRUCE_SAPLING, "spruce", 2)
     for name, rows in CROP_ICONS.items():
         icon(name, name, rows, PAL)
     seeds("turnip_seeds", "turnip", (120, 70, 90))
@@ -433,8 +509,8 @@ def main():
         sprite("wheat", WHEAT, "ears")
         return
     if sys.argv[1:] == ["saplings"]:
-        sprite("oak_sapling", OAK_SAPLING, "oak")
-        sprite("spruce_sapling", SPRUCE_SAPLING, "spruce")
+        sprite("oak_sapling", OAK_SAPLING, "oak", 2)
+        sprite("spruce_sapling", SPRUCE_SAPLING, "spruce", 2)
         return
     if sys.argv[1:] == ["crops"]:
         crops()

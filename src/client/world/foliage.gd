@@ -210,16 +210,20 @@ static func step(job: Job, columns: int) -> bool:
 
 ## The crop growing on bed x, y, z (WorldData.fields record `f`), added to `grass` as the
 ## frame of its stage (Plants.stage) in two rows of two across the bed, a sapling one in
-## the middle of its cell; how many cards.
+## the middle of its cell (a frame `across` columns wide is that many cards on one root,
+## each shifted aside by the 4th custom float: grass.gdshader); how many cards.
 static func _crop(grass: PackedFloat32Array, x: int, y: int, z: int, f: Array, rng: RandomNumberGenerator) -> int:
 	var c: Dictionary = Plants.custom(f[0]) if f[0] != "" else {}
 	if c.is_empty():
 		return 0
-	var kind: int = Grass.CUSTOM + c.first + Plants.stage(f[0], f[1])
+	var across: int = c.get("across", 1)
+	var kind: int = Grass.CUSTOM + c.first + Plants.stage(f[0], f[1]) * across
 	if c.kind == Plants.KINDS.SAPLING:
-		put(grass, Vector3(x + 0.5, y + 1.0, z + 0.5) * CELL)
-		grass.append_array([float(kind), 1.0, rng.randf(), 0.0])
-		return 1
+		var phase := rng.randf()
+		for i in across:
+			put(grass, Vector3(x + 0.5, y + 1.0, z + 0.5) * CELL)
+			grass.append_array([float(kind + i), 1.0, phase, (i - (across - 1) * 0.5) * PLANT_W])
+		return across
 	for fz in CROP_ROWS:
 		for fx in CROP_ROWS:
 			var jx := rng.randf_range(-0.06, 0.06)

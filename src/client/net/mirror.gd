@@ -14,6 +14,7 @@ extends RefCounted
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 
@@ -121,8 +122,7 @@ func _on_event(kind: String, args: Variant) -> void:
 					if c is Array and c.size() == 2 and c[0] is Vector3i and c[1] is int:
 						var cell: Vector3i = c[0]
 						if game.world.has_chunk(WorldData.chunk_key(cell.x, cell.z)):
-							game.world.set_cell(cell.x, cell.y, cell.z, c[1] & 255)
-							game.world.set_form(cell.x, cell.y, cell.z, c[1] >> 8 & 15)
+							take_cell(game.world, cell, c[1])
 							game.actions.cell_changed.emit(cell)
 		Protocol.TAKEN:
 			if args is Array and args.size() == 2 and args[0] is String and args[1] is Vector3 and game.host == null:
@@ -215,3 +215,14 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.FIGHT:
 			if args is Array and args.size() == 3:
 				game.team.take_fight(args)
+
+
+## Cell `cell` of the copy of the world `w` as the server sent it (`v`: material, form
+## << 8). A bed watered or dried keeps its crop: set_cell would forget it, and the
+## crop would vanish here until its chunk came again.
+static func take_cell(w, cell: Vector3i, v: int) -> void:
+	var bed: Variant = w.field_at(cell)
+	w.set_cell(cell.x, cell.y, cell.z, v & 255)
+	if bed != null and Mat.is_bed(v & 255):
+		w.set_field(cell, bed)
+	w.set_form(cell.x, cell.y, cell.z, v >> 8 & 15)
