@@ -133,9 +133,9 @@ func _draw() -> void:
 		draw_rect(r.grow(1.0), UiStyle.EDGE)
 		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), fill_color if fill_color.a > 0.0 else (UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT))
 	if grade >= 0 and texture != null:
-		var at := Vector2(4.0, size.y - (10.0 if fill >= 0.0 else 7.0))
-		draw_rect(Rect2(at - Vector2.ONE, Vector2(5, 5)), UiStyle.EDGE)
-		draw_rect(Rect2(at, Vector2(3, 3)), GRADE_COLORS[clampi(grade, 0, GRADE_COLORS.size() - 1)])
+		var at := Vector2(4.0, size.y - (12.0 if fill >= 0.0 else 9.0))
+		draw_rect(Rect2(at - Vector2.ONE, Vector2(6, 6)), UiStyle.EDGE)
+		draw_rect(Rect2(at, Vector2(4, 4)), GRADE_COLORS[clampi(grade, 0, GRADE_COLORS.size() - 1)])
 	if tag != "":
 		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":
