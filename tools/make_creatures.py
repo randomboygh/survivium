@@ -19,68 +19,6 @@ EYE = flat("#1c1214")
 GLINT = flat("#f4efe6")
 
 
-# --- Bear --------------------------------------------------------------------------
-
-def bear():
-    fur = ramp("#7a5638", "#2a1810")
-    muzzle = ramp("#b8946a", "#3a2614")
-    paw = ramp("#4e3424", "#1e120c")
-    nose = flat("#1e1410")
-    L = {
-        "o": (fur, "body", None), "h": (fur, "head", None), "m": (muzzle, "head", None),
-        "e": (EYE, "head", None), "n": (nose, "head", None), "t": (fur, "tail", None),
-    }
-    side = View("""
-..................h..h..
-.......ooooooo...hhhhhh.
-....ooooooooooo.hhhhhhh.
-..ooooooooooooooohhhhehh
-.oooooooooooooooohhhhhmm
-toooooooooooooooohhhmmmn
-.ooooooooooooooooohhmmm.
-.oooooooooooooooooo.....
-.oooooooooooooooooo.....
-..oooooooooooooooo......
-..ooooooooooooooo.......
-""", L, legs=[(2, 9, "B", False, fur, paw, 2), (13, 9, "A", False, fur, paw, 2),
-              (5, 9, "A", True, fur, paw, 2), (15, 9, "B", True, fur, paw, 2)],
-                idles=[{"head": (0, -1)}, {"head": (1, 2)}])
-    front = View("""
-...hh.......hh...
-...hhhhhhhhhhh...
-...hhhhhhhhhhh...
-..hhhhhhhhhhhhh..
-..hhhehhhhhehhh..
-..hhhhhmmmhhhhh..
-...hhhmmnmmhhh...
-.oooohhmmmhhoooo.
-.ooooohhhhhooooo.
-ooooooooooooooooo
-ooooooooooooooooo
-.ooooooooooooooo.
-..oooo.....oooo..
-""", L, legs=[(2, 11, "B", False, fur, paw, 2), (13, 11, "A", False, fur, paw, 2),
-              (4, 11, "A", True, fur, paw, 2), (11, 11, "B", True, fur, paw, 2)],
-                 idles=[{"head": (1, 0)}, {"head": (0, 2)}], ox=4, straight=True)
-    back = View("""
-...hh.......hh...
-...hhhhhhhhhhh...
-...hhhhhhhhhhh...
-..hhhhhhhhhhhhh..
-..hhhhhhhhhhhhh..
-...hhhhhhhhhhh...
-....ooooooooo....
-.ooooooooooooooo.
-ooooooooooooooooo
-ooooooooooooooooo
-ooooooooooooooooo
-.ooooooootooooooo
-..oooo.....oooo..
-""", L, legs=[(3, 11, "A", True, fur, paw, 2), (12, 11, "B", True, fur, paw, 2)],
-                idles=[{"tail": (0, -1)}, {"head": (0, 2)}], ox=4, order=("head", "body", "tail"), straight=True)
-    return [walker(v, 26, 17) for v in (side, front, back)]
-
-
 # --- Wolf --------------------------------------------------------------------------
 
 def wolf():
@@ -312,7 +250,7 @@ uu.k.uu
 
 
 SHEETS = {
-    "bear": bear, "wolf": wolf,
+    "wolf": wolf,
     "cat": cat, "hedgehog": hedgehog,
     "butterfly": butterfly,
 }
