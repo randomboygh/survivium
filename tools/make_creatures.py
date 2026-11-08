@@ -19,47 +19,6 @@ EYE = flat("#1c1214")
 GLINT = flat("#f4efe6")
 
 
-# --- Hedgehog ----------------------------------------------------------------------
-
-def hedgehog():
-    spine = ramp("#6e5a4c", "#22180e")
-    tip = ramp("#b8a488", "#3a2a1c")
-    face = ramp("#c8a482", "#4a3020")
-    L = {
-        "q": (spine, "body", None), "Q": (tip, "body", MID), "h": (face, "head", None),
-        "e": (EYE, "head", None), "n": (EYE, "head", None),
-    }
-    side = View("""
-...Q.Q.Q.....
-.QqQqQqQq....
-QqqQqqQqqhh..
-qQqqQqqQhhhe.
-qqqqqqqqhhhhn
-.qqqqqqqhhh..
-""", L, legs=[(2, 5, "B", False, face, face), (8, 5, "A", False, face, face),
-              (3, 5, "A", True, face, face), (9, 5, "B", True, face, face)],
-                idles=[{"head": (0, 1)}, {"head": (1, 1)}])
-    front = View("""
-.Q.Q.Q.Q.
-QqQqQqQqQ
-qQqhhhqQq
-qqhehehqq
-qqhhnhhqq
-.qhhhhhq.
-""", L, legs=[(2, 5, "A", True, face, face), (6, 5, "B", True, face, face)],
-                 idles=[{"head": (0, 1)}, {"head": (0, 1)}], ox=3, straight=True)
-    back = View("""
-.Q.Q.Q.Q.
-QqQqQqQqQ
-qQqQqQqQq
-QqQqQqQqQ
-qqQqqqQqq
-.qqqqqqq.
-""", L, legs=[(2, 5, "A", True, face, face), (6, 5, "B", True, face, face)],
-                idles=[{}, {}], ox=3, straight=True)
-    return [walker(v, 15, 8) for v in (side, front, back)]
-
-
 # --- Birds -------------------------------------------------------------------------
 # Each part is drawn where it sits in the frame (rows from the top), so a frame is its
 # parts laid over each other (creature_kit.flyer).
@@ -126,7 +85,6 @@ uu.k.uu
 
 
 SHEETS = {
-    "hedgehog": hedgehog,
     "butterfly": butterfly,
 }
 

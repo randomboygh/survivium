@@ -2,7 +2,8 @@
 
 Drawn by hand (2026-11-07) after a pixel-art rabbit the user showed: a dark brown outline
 round the whole hare, sandy fur lighter on the back, a cream belly and white scut, long
-ears with a pink inner, a round head with a large eye and its glint. Frames 16x15.
+ears with a pink inner, a round head with a large eye and its glint. Frames 14x13 (made a little smaller
+on 2026-11-08 at the user's ask; it was 16x15).
 
 Rows (creatures.yaml `views: 3`): the side (facing right; the game mirrors it for left),
 the front and the back. Columns (`frames: 7`, `walk: 4`): sitting, the bound (gathered,
@@ -20,7 +21,7 @@ from PIL import Image
 
 PAL = {"O": "#3c2618", "F": "#d4a474", "H": "#eccb98", "S": "#b07c50", "B": "#f4e6c8",
        "I": "#c2645a", "i": "#e4a090", "E": "#1a0e08", "e": "#ffffff", "N": "#b4605a", "W": "#f6eee0"}
-W, H = 16, 15
+W, H = 14, 13
 TOP = 2  # room above the sitting hare for its ears in a leap
 
 
@@ -30,59 +31,52 @@ def art(rows):
 
 SIT = {
     "E": art([
-        "....FFi.........",
-        ".....FIi........",
-        "......FIF.......",
-        ".......FIF......",
-        "........FIHHF...",
-        "........FHHHHF..",
-        "...HHHHSHHHHHHF.",
-        "..HHHHHHSHHEeHF.",
-        ".FHHFFFFSHHEEHFN",
-        "FHFFFFFFFSHHFBB.",
-        "WFFFFFFFFFSBBB..",
-        ".SFFFSFFFSSBB...",
-        "..SSSSSSSSBBB...",
+        "..FFi.........",
+        "...FIi........",
+        "....FIF.......",
+        ".....FIHHF....",
+        ".....FHHHHF...",
+        "..HHHSHHHHHF..",
+        ".HHHHHSHHEeHF.",
+        "FHFFFFFSHHEEHN",
+        "WFFFFFFFSHHBB.",
+        ".SFFFSFFSSBB..",
+        "..SSSSSSSBBB..",
     ]),
     "S": art([
-        "...Fi......iF...",
-        "...FIF....FIF...",
-        "....FIF..FIF....",
-        ".....FIFFIF.....",
-        ".....FHHHHF.....",
-        "....FHHHHHHF....",
-        "....FEeHHeEF....",
-        "....FEEHHEEF....",
-        "....SHHNNHHS....",
-        "...SFFBBBBFFS...",
-        "...SFFBBBBFFS...",
-        "...SSFBBBBFSS...",
-        "....SSB..BSS....",
+        "...Fi....iF...",
+        "...FIF..FIF...",
+        "....FIFFIF....",
+        "....FHHHHF....",
+        "...FHHHHHHF...",
+        "...FEeHHeEF...",
+        "...FEEHHEEF...",
+        "...SHHNNHHS...",
+        "..SFFBBBBFFS..",
+        "..SSFBBBBFSS..",
+        "...SSB..BSS...",
     ]),
     "N": art([
-        "...FF......FF...",
-        "...FHF....FHF...",
-        "....FHF..FHF....",
-        ".....FHFFHF.....",
-        ".....FHHHHF.....",
-        "....FHHHHHHF....",
-        "....FHHHHHHF....",
-        "....SFHHHHFS....",
-        "...SFFHHHHFFS...",
-        "...SFFFFFFFFS...",
-        "...SFFFWWFFFS...",
-        "...SSFWWWWFSS...",
-        "....SSSSSSSS....",
+        "...FF....FF...",
+        "...FHF..FHF...",
+        "....FHFFHF....",
+        "....FHHHHF....",
+        "...FHHHHHHF...",
+        "...FHHHHHHF...",
+        "...SFHHHHFS...",
+        "..SFFHHHHFFS..",
+        "..SFFFWWFFFS..",
+        "..SSFWWWWFSS..",
+        "...SSSSSSSS...",
     ]),
 }
 # The ears pricked straight up, for the side view's alert frame.
-EARS_UP = art(["........FiF.....", "........FIF.....", "........FIF.....", "........FIF.....",
-               "........FIH....."])
+EARS_UP = art(["......FiF.....", "......FIF.....", "......FIF.....", "......FIH....."])
 
 
 def is_head(view, x, y):
     y -= TOP
-    return (x >= 8 and y <= 9) or y <= 4 if view == "E" else y <= 8
+    return (x >= 7 and y <= 8) or y <= 3 if view == "E" else y <= 7
 
 
 def move(px, f):
@@ -106,12 +100,12 @@ def frames(view):
         push.update({(1, g): "F", (0, g): "S", (2, g - 1): "S"})
         out.append(push)
         air = move(sit, lambda x, y: (x, y - 2))
-        air.update({(12, g - 2): "B", (13, g - 2): "B", (1, g - 2): "F", (0, g - 2): "S"})
+        air.update({(10, g - 2): "B", (11, g - 2): "B", (1, g - 2): "F", (0, g - 2): "S"})
         out.append(air)
-        land = move(tilt(sit, -1, 9), lambda x, y: (x, y - 1))
-        land.update({(11, g): "B", (12, g): "B"})
+        land = move(tilt(sit, -1, 8), lambda x, y: (x, y - 1))
+        land.update({(9, g): "B", (10, g): "B"})
         out.append(land)
-        alert = {k: v for k, v in sit.items() if not (k[1] <= 4 + TOP and v in "FIi" and k[0] < 9)}
+        alert = {k: v for k, v in sit.items() if not (k[1] <= 3 + TOP and v in "FIi" and k[0] < 8)}
         alert.update(EARS_UP)
         out.append(alert)
         out.append(body | move(head, lambda x, y: (x + 1, y + 2)))
