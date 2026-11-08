@@ -88,10 +88,6 @@ layer_line={
 "type": "float",
 "value": 0.0
 }
-layer_rock={
-"type": "float",
-"value": 0.0
-}
 depth_steps={
 "type": "vec4",
 "value": Vector4(0.12, 0, 0, 0)

@@ -46,6 +46,14 @@ uniform int corner_shapes[63];
 // by main.gd: reading past the end draws garbage on some GPUs.
 uniform int material_bits[63];
 
+// The colour of the rock's section the layers fill in (see the end of fragment()).
+const vec3 SECTION = vec3(0.15, 0.14, 0.135);
+// How many texels in from its edges the section shows the material of the cell it
+// cuts, thinning out in a dither into SECTION (see section_rim).
+const float SECTION_RIM = 6.0;
+// How bright that material is there: the section is unlit.
+const float SECTION_RIM_BRIGHT = 1.0;
+
 // How many texels into a top the grass beside it frays under snow (see the transitions).
 const float GRASS_FRAY = 5.0;
 
@@ -92,6 +100,42 @@ bool is_drift(float packed_tile, vec2 uv) {
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
+
+// Whether the rock's section ends at the cell beside, `q` the same point of its face a
+// hair inside it: the cell is open, or the layers keep it (its own face shows), or the
+// line of sight from there comes to an open cell (layer_fills: a hollow shows there).
+bool section_ends(vec3 q, vec2 texel) {
+	return !solid_at(q) || layer_alpha(floor(q / CELL)) >= 1.0 || !layer_fills(q, texel);
+}
+
+// Texels from the point `p` of a face looking along `n` that the layers fill in as the
+// rock's section to the nearest edge of its cell where the section ends (section_ends),
+// 99 for none or a face not along an axis (a slope, a diagonal wall). Edges farther
+// than SECTION_RIM are not looked at (each look follows a line of sight).
+float section_rim(vec3 p, vec3 n, vec2 texel) {
+	vec3 an = abs(n);
+	if (max(an.x, max(an.y, an.z)) < 0.9) {
+		return 99.0;
+	}
+	vec3 u = an.x > 0.9 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 v = an.y > 0.9 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+	vec3 inside = p / CELL - n * 0.01;
+	vec3 cell = floor(inside);
+	vec2 t = floor(vec2(dot(inside - cell, u), dot(inside - cell, v)) * CELL_TEXELS);
+	vec3 q = p - n * 0.01;
+	vec4 d = vec4(t.x, CELL_TEXELS - 1.0 - t.x, t.y, CELL_TEXELS - 1.0 - t.y);
+	vec3 side[4] = vec3[](-u, u, -v, v);
+	// The nearer edge of each pair first: once one is found the farther needs no look.
+	int order[4] = int[](t.x < d.y ? 0 : 1, t.x < d.y ? 1 : 0, t.y < d.w ? 2 : 3, t.y < d.w ? 3 : 2);
+	float best = 99.0;
+	for (int k = 0; k < 4; k++) {
+		int e = order[k];
+		if (d[e] < min(best, SECTION_RIM) && section_ends(q + side[e] * CELL, texel)) {
+			best = d[e];
+		}
+	}
+	return best;
+}
 
 void vertex() {
 	if (is_drift(UV2.x, UV)) {
@@ -499,14 +543,15 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
-	// The rock's section the layers fill in, in dots of the colour of the rock round the
-	// player (its side's texels where they show on screen), a little darker, unlit.
+	// The rock's section the layers fill in: one plain dark colour, whatever the rock,
+	// unlit; a little lighter than the background (Sky), so open space behind still shows.
+	// Along the edges where it ends the cut cell's own material shows, thinning out in a
+	// dither over SECTION_RIM texels.
 	if (fill) {
 		vec2 st = floor(screen_plane(world_pos) * TEXELS);
-		int rock = int(layer_rock + 0.5);
-		col = tile_texel(rock * 3 + 1, ivec2(mod(st, TEXELS))) * biome_tint(rock, world_pos.xz);
+		float share = 1.0 - (section_rim(world_pos, world_normal, st) + 0.5) / (SECTION_RIM + 0.5);
 		ALBEDO = vec3(0.0);
-		EMISSION = col * (bayer4(st) < 0.5 ? 0.62 : 0.3);
+		EMISSION = bayer4(st) < share ? col * SECTION_RIM_BRIGHT : SECTION;
 		clouds = 0.0;
 	}
 }
