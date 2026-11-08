@@ -700,6 +700,9 @@ const SHOTS := {
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
 	"ground-pyramid-torch": {"time": 0.95, "season": 1, "moon": 0.0, "at": [-8, 49], "fire_shadows": 1,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s", "stay": true}},
+	# The clay row of the combinations ground at the cliff and the ridge: no dashes of
+	# another material spilled along the cells' north edges.
+	"ground-clay-ridge": {"time": 0.72, "season": 1, "at": [-10, -176]},
 	"ground-steps-cut": {"time": 0.42, "season": 1, "at": [-22, -35]},
 	"ground-steps-cut-n": {"time": 0.42, "season": 1, "at": [-18, -35]},
 	"ground-pits": {"time": 0.42, "season": 1, "at": [0, -32]},

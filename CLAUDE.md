@@ -171,7 +171,8 @@ Each in one line; the system's context doc has the detail.
   before a state-changing update is stale in that frame.
 - Godot front faces wind clockwise; a hand-built mesh wound counter-clockwise is inside out.
 - MultiMesh instance data is half float on GLES3/web: new per-instance data goes in COLOR. Vertex
-  COLOR is 8-bit. Packed float words stay below 2^23. `instance uniform` reads 0 in the web build.
+  COLOR is 8-bit. Packed float words stay below 2^23, or are read with `round()`, never `+ 0.5`
+  (UV2.y of the world mesh reaches 2^24: `+ 0.5` turned an odd material into the next). `instance uniform` reads 0 in the web build.
 - Phone GPUs flip pixels on texel edges and geometry lines: bias, overlap (`ChunkMesher.EPS`), no walls
   under 1 px; headless shows none of it (`docs/systems/rendering.md`).
 - Nodes scaled 1/16 (voxel models) need `extra_cull_margin` × 16 or the shear culls them.
