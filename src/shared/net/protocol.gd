@@ -55,6 +55,8 @@ const FRONT := "front"
 const GATHER := "gather"
 ## Takes the things lying near the feet: [mode, past_limit] (pick_up_near).
 const PICKUP := "pickup"
+## Takes a raft or a boat no one sits in back up into the bag: [vessel id] (take_vessel).
+const VESSEL_TAKE := "vessel_take"
 ## Plants or sows the item held in front: [id] (plant).
 const PLANT := "plant"
 ## Plants or sows at the cell tapped: [id, cell] (plant_at).
@@ -199,6 +201,9 @@ const DROPS := "drops"
 ## The player's fishing line, when it changed: [where its float lies (INF: none in the
 ## water), a fish bites at it] (Character.line, bite; Fishing).
 const LINE := "line"
+## The current of the river where the player's body is, when it changed: [cells a
+## second, x east and y south] (Character.flow, Currents).
+const FLOW := "flow"
 ## The body is put at a point (coming back to life, the playtest page): [at].
 const TELEPORT := "teleport"
 ## The body is thrown (a burning campfire): [dir, speed, hop] (Body.knock).
@@ -227,6 +232,11 @@ const CHEST := "chest"
 ## The time, the season and the weather: [Clock.snapshot()], on joining and then a few
 ## times a second (the client's copy runs the time of day between them).
 const CLOCK := "clock"
+## All the rafts and boats on the water, on joining: [[[id, item, position, turn]…]]
+## (Vessels.record); one launched or moved: [id, item, position, turn]; one taken up: [id].
+const VESSELS := "vessels"
+const VESSEL := "vessel"
+const VESSEL_GONE := "vessel_gone"
 ## An animal came into the world: [id, kind, tint, position].
 const ANIMAL := "animal"
 ## An animal left the world: [id].
@@ -240,7 +250,7 @@ const STEP := "step"
 ## over a socket): [[id, name, position, facing step, hands, active hand, moving,
 ## swimming, on the ground, work kind, work length, work count, work at, what is worn
 ## (Inventory.gear), in the player's team, where the float of their fishing line lies (INF
-## none)], …].
+## none), the vessel they sit in ("" none)], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"

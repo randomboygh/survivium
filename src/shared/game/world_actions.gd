@@ -1,4 +1,4 @@
-extends "res://src/shared/game/actions_tame.gd"
+extends "res://src/shared/game/actions_boat.gd"
 ## What a character's hands do to the world (plan/design/character.md, "Взаимодействие с
 ## миром"): digging cells, cutting the grass, chopping and felling trees, placing blocks,
 ## the action button's work in front of the body, taking things off the ground, berries
@@ -46,6 +46,9 @@ func act_in_front(who, top: int) -> Dictionary:
 			if plant(who, who.held()):
 				return _work(FRONT_PLACE_SWING, "reach", Vector3.INF)
 			return {"swing": IDLE_SWING}
+	var afloat := boat(who)
+	if not afloat.is_empty():
+		return afloat
 	var t: Dictionary = who.tool()
 	if Tools.can_fish(t):
 		return fish(who)
@@ -95,6 +98,9 @@ func front_kind(who) -> String:
 			return "build" if plans != null and plans.builds(who) else "place"
 		"plant", "sow":
 			return "plant"
+	var afloat := boat_kind(who)
+	if afloat != "":
+		return afloat
 	var t: Dictionary = who.tool()
 	if Tools.can_fish(t):
 		return "fish"

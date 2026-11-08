@@ -179,6 +179,18 @@ func _run() -> void:
 		main.chunks.build_around()
 		if shot.has("water"):
 			main.player.position = places.in_water(main.world, main.player.position, shot.water)
+		# Afloat in a vessel (Character.riding): launched where the player is; the body
+		# rises onto the water in its first step.
+		if shot.has("ride"):
+			var hp = main.host.player
+			hp.teleport(main.player.position)
+			var turn := 0.6
+			var v: Dictionary = main.session.actions.vessels.launch(shot.ride, main.player.position, turn)
+			hp.riding = shot.ride
+			hp.vessel = v.id
+			hp.seat = 0
+			main.character.riding = shot.ride
+			main.character.vessel = v.id
 		if shot.has("find"):
 			main.player.position = places.find(main.world, main.player.position, shot.find)
 		if shot.get("copper_moss", false):
@@ -285,6 +297,8 @@ func _run() -> void:
 			_place_birds()
 		if shot.has("zoo"):
 			_place_zoo(shot.zoo == "water")
+		if shot.get("trap", false):
+			_place_trap()
 		if shot.has("put_fire"):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:
@@ -349,6 +363,23 @@ func _run() -> void:
 				main.props.fly_shot([shot.flight, from, at + Vector3(0.0, 0.3, 0.0), 12.0])
 				for i in 30:
 					await process_frame
+		if shot.has("beasts"):
+			# Animals [kind, east, south, state] of the player, standing still in that state
+			# (a warning, a bite) and turned toward the player.
+			var life = main.session.wildlife
+			for c in life.animals:
+				c.pos = main.player.position + Vector3(60.0, 0.0, 60.0)
+				c.target = c.pos
+				c.think = 100.0
+			for b: Array in shot.beasts:
+				var at: Vector3 = main.player.position + Vector3(b[1], 0.0, b[2]) * CELL
+				at.y = life.ground(at.x, at.z)
+				var one = life._add(b[0], at)
+				one.think = 100.0
+				one.facing = -signf(b[1])
+				one.state = b[3]
+			for i in 10:
+				await process_frame
 		if shot.has("drops"):
 			# Things lying in a row in front of the player, not picked up (WorldActions.PICKUP_NONE).
 			main.settings.set_value("pickup", 3)
@@ -1378,6 +1409,41 @@ func _place_zoo(water: bool) -> void:
 		c.moving = true
 		c.left = i % 2 == 0
 		i += 1
+	main.creatures._process(0.0)
+	main.creatures.set_process(false)
+
+
+## A trap two cells north-east of the player with a carrot in it and a hare walking up to
+## it, another trap beside it with a hare caught (the shot puts a caught hare in the hand).
+func _place_trap() -> void:
+	var life = main.session.wildlife
+	var p: Vector3 = main.player.position
+	for c in life.animals:
+		c.pos = p + Vector3(60.0, 0.0, 60.0)
+		c.target = c.pos
+		c.think = 100.0
+	var gx := floori(p.x / CELL) + 1
+	var gz := floori(p.z / CELL) - 2
+	var cell := Vector3i(gx, floori(life.ground((gx + 0.5) * CELL, (gz + 0.5) * CELL) / CELL + 0.01), gz)
+	# Bare earth round the traps, so the grass hides nothing.
+	for dz in range(-2, 5):
+		for dx in range(-5, 4):
+			var x := gx + dx
+			var z := gz + dz
+			var y := floori(life.ground((x + 0.5) * CELL, (z + 0.5) * CELL) / CELL + 0.01) - 1
+			if main.world.get_cell(x, y, z) == main.Mat.GRASS:
+				main.world.set_cell(x, y, z, main.Mat.DIRT)
+	for dx in range(-8, 9, 8):
+		main.chunks.on_cell_changed(cell + Vector3i(dx, -1, 0))
+	var trap: Dictionary = main.session.placed.put("tools:trap", cell)
+	trap.items.add("plants:carrot", 1)
+	var full: Dictionary = main.session.placed.put("tools:trap", cell + Vector3i(-3, 0, 0))
+	full.items.add("tools:live_rabbit", 1)
+	var at := (Vector3(cell) + Vector3(2.4, 0.0, 0.7)) * CELL
+	var hare = life._add("animals:rabbit", Vector3(at.x, life.ground(at.x, at.z), at.z))
+	hare.think = 100.0
+	hare.facing = -1.0
+	hare.moving = true
 	main.creatures._process(0.0)
 	main.creatures.set_process(false)
 

@@ -77,7 +77,7 @@ func _wound(who, a, power: int) -> void:
 		# Another's tame animal (ActionsTame).
 		return
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
-	if wildlife.hurt(a, power, who.position) and spec.carcass != "" and Items.has(spec.carcass):
+	if wildlife.hurt(a, power, who.position, who) and spec.carcass != "" and Items.has(spec.carcass):
 		var cell := _cell_at(where)
 		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU)
 		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))

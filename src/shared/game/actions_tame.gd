@@ -9,6 +9,15 @@ extends "res://src/shared/game/actions_nature.gd"
 ## a day have a young one every `breed_days` days, while fewer than `herd` live there
 ## (step_herds). Only the owner feeds, shears, calls or strikes a tame one (ActionsFight);
 ## a knife with no wool to shear strikes it, as a weapon does.
+##
+## Taming with a trap (decision 178, answer 3В): a thing set down whose item has `trap`
+## holds bait like a chest; every TRAP_EVERY seconds a wild animal within its `trap`
+## cells that eats that bait from a hand and has a `trapped` item may come to it
+## (TRAP_LURE; Animal.bait), and once there eats one bait and sits in the trap as that
+## item (step_traps), taken out into the bag like anything a chest holds. Held, the action
+## button lets it out in front, tame and its holder's (release).
+
+const PlacedScript := preload("res://src/shared/game/placed.gd")
 
 ## How far in front the animal fed or tended may be, in world units.
 const TEND_REACH := 1.4
@@ -19,9 +28,21 @@ const HERD_REACH := 4.0
 ## Seconds between two looks at the herds.
 const HERD_EVERY := 5.0
 
+## Seconds between two looks at the traps; the chance at each that an animal in reach
+## comes to one with bait; how near its middle (world units, across the ground) one that
+## came is caught, and the seconds it has to get there before it wanders off.
+const TRAP_EVERY := 2.0
+const TRAP_LURE := 0.3
+const TRAP_NEAR := 1.0 * CELL
+const TRAP_COME := 40.0
+
 ## Which of each owner's tame ones last had a young one, by animal id: when (days).
 var _bred := {}
 var _herd_wait := 0.0
+## The animals coming to a trap, by the trap's cell: {"a": the animal, "t": seconds}.
+var _lured := {}
+var _trap_wait := 0.0
+var _trap_rng := RandomNumberGenerator.new()
 
 
 ## The number `who` is known by as an owner (Player.id; 0 for one without).
@@ -48,8 +69,10 @@ func tended(who):
 
 
 ## What the action button does to the animal in front (see tended): "feed", "shear",
-## "stay", "follow", or "" for nothing.
+## "stay", "follow", "release" (a live animal in the hand), or "" for nothing.
 func tend_kind(who) -> String:
+	if released_kind(who.held()) != "":
+		return "release"
 	var a = tended(who)
 	if a == null:
 		return ""
@@ -73,6 +96,8 @@ func wool_ready(a) -> bool:
 ## to stay or follow. The swing done, {} for nothing.
 func tend(who) -> Dictionary:
 	var kind := tend_kind(who)
+	if kind == "release":
+		return release(who)
 	if kind == "":
 		return {}
 	var a = tended(who)
@@ -147,3 +172,129 @@ func step_herds(seconds: float) -> void:
 		var young = wildlife.breed(a)
 		_bred[young.id] = now
 
+
+
+## The kind of animal live item `id` is (a creature's `trapped`), "" for none.
+static func released_kind(id: String) -> String:
+	if id == "" or not Items.has(id) or not Items.get_item(id).get("alive", false):
+		return ""
+	for kind in AiRules.SPECIES:
+		if AiRules.SPECIES[kind].get("trapped", "") == id:
+			return kind
+	return ""
+
+
+## Lets the live animal `who` holds out a cell in front, tame and theirs. The swing done,
+## {} for nothing.
+func release(who) -> Dictionary:
+	var item: String = who.held()
+	var kind := released_kind(item)
+	if kind == "" or wildlife == null or who.is_dead():
+		return {}
+	var dir := Vector2(who.facing_step())
+	dir = dir.normalized() if dir != Vector2.ZERO else Vector2(0.0, 1.0)
+	var at: Vector3 = who.position + Vector3(dir.x, 0.0, dir.y) * CELL
+	if world.get_cell(floori(at.x / CELL), floori(at.y / CELL + 0.25), floori(at.z / CELL)) != Mat.AIR:
+		at = who.position
+	if who.inventory.remove(item, 1) < 1:
+		return {}
+	var a = wildlife.release(kind, at, owner_id(who))
+	who.say("%s теперь ваш и ходит за вами" % AiRules.SPECIES[kind].title)
+	return _work(TEND_SWING, "", a.pos + Vector3(0.0, 0.2, 0.0))
+
+
+## The kinds the bait in trap `e` lures (their `trapped` set, one of their `tame_food`
+## in it), by kind: the bait.
+static func _trap_baits(e: Dictionary) -> Dictionary:
+	var out := {}
+	for kind in AiRules.SPECIES:
+		var spec: Dictionary = AiRules.SPECIES[kind]
+		var caught: String = spec.get("trapped", "")
+		if caught == "" or not Items.has(caught):
+			continue
+		for food: String in spec.get("tame_food", []):
+			if e.items.count(food) > 0:
+				out[kind] = food
+				break
+	return out
+
+
+## Whether trap `e` holds a live animal already.
+static func _trap_full(e: Dictionary) -> bool:
+	for kind in AiRules.SPECIES:
+		var caught: String = AiRules.SPECIES[kind].get("trapped", "")
+		if caught != "" and e.items.count(caught) > 0:
+			return true
+	return false
+
+
+## The traps over `seconds` of play, looked at every TRAP_EVERY (see the top): an animal
+## that smells the bait comes, and one that came is caught; one that does not get there
+## in TRAP_COME seconds, or whose trap is gone, emptied of bait or full, goes its way.
+func step_traps(seconds: float) -> void:
+	_trap_wait -= seconds
+	if _trap_wait > 0.0 or wildlife == null or wildlife.placed == null:
+		return
+	_trap_wait = TRAP_EVERY
+	var traps := {}
+	for e: Dictionary in wildlife.placed.things:
+		if e.items != null and float(Items.get_item(e.item).get("trap", 0.0)) > 0.0:
+			traps[e.cell] = e
+	for cell in _lured.keys():
+		var lure: Dictionary = _lured[cell]
+		var a = lure.a
+		var e: Dictionary = traps.get(cell, {})
+		lure.t += TRAP_EVERY
+		if e.is_empty() or a.gone or a.owner >= 0 or a.hurt > 0.0 or _trap_full(e) or not _trap_baits(e).has(a.kind):
+			_let_go_trap(cell)
+			continue
+		var mid := PlacedScript.center(e)
+		if Vector2(a.pos.x - mid.x, a.pos.z - mid.z).length() <= TRAP_NEAR:
+			_catch(e, a)
+			_lured.erase(cell)
+		elif lure.t > TRAP_COME:
+			_let_go_trap(cell)
+	for cell in traps:
+		var e: Dictionary = traps[cell]
+		if _lured.has(cell) or _trap_full(e) or _trap_rng.randf() >= TRAP_LURE:
+			continue
+		var baits := _trap_baits(e)
+		if baits.is_empty():
+			continue
+		var mid := PlacedScript.center(e)
+		var reach: float = float(Items.get_item(e.item).trap) * CELL
+		var best = null
+		var best_d := reach
+		for a in wildlife.animals:
+			if a.gone or a.owner >= 0 or a.hurt > 0.0 or a.bait.is_finite() or a.aloft() or not baits.has(a.kind):
+				continue
+			var d := Vector2(a.pos.x - mid.x, a.pos.z - mid.z).length()
+			if d < best_d:
+				best = a
+				best_d = d
+		if best != null:
+			best.bait = Vector3(mid.x, best.pos.y, mid.z)
+			best.think = 0.0
+			_lured[cell] = {"a": best, "t": 0.0}
+
+
+## Animal `a` caught in trap `e`: it eats a bait and sits in it as its `trapped` item.
+func _catch(e: Dictionary, a) -> void:
+	var spec: Dictionary = AiRules.SPECIES[a.kind]
+	var bait: String = _trap_baits(e).get(a.kind, "")
+	a.bait = Vector3.INF
+	if bait == "" or e.items.remove(bait, 1) < 1:
+		return
+	if e.items.add(spec.trapped, 1) < 1:
+		e.items.add(bait, 1)
+		return
+	wildlife.take(a)
+
+
+## The animal coming to the trap at `cell` turns away.
+func _let_go_trap(cell: Vector3i) -> void:
+	var a = _lured[cell].a
+	_lured.erase(cell)
+	if not a.gone:
+		a.bait = Vector3.INF
+		a.think = 0.0

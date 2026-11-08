@@ -10,8 +10,8 @@ Rows (creatures.yaml `views: 3`): the side (facing right; the game mirrors it fo
 the front and the back. Columns (`frames: 10`, `walk: 4`, `attack: 3`): standing, a
 four-frame trot (diagonal pairs reach and lift in turn), two idle frames (a tail flick and
 rooting with the snout at the ground), and the attack: crouched with the head low, the
-lunge, the tusks tossed up. No animal attacks yet, so the game keeps the last three out of
-the idles.
+lunge, the tusks tossed up, shown as it leaps to bite (the first one while it growls a
+warning; Wildlife._fights), never among the idles.
 
 Pictures are text: a character a pixel, each a colour of PAL; an outline goes round the
 fill. `render` refuses a frame where a pixel has no room for its outline (nothing is cut).

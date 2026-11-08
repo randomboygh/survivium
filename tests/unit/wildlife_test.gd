@@ -120,6 +120,8 @@ func _test_wildlife() -> void:
 	_test_hunting(w)
 	_test_fire(w)
 	_test_taming(w)
+	_test_trap(w)
+	_test_attacks(w)
 
 
 ## The animals of the chunks made come none at the person's feet; those on ground
@@ -460,6 +462,10 @@ func _test_shore(w: WorldData) -> void:
 	life.people = [Who.new()]
 	# Out of its sight, within Wildlife.LEAVE (or it goes away).
 	life.people[0].position = Vector3(100.0, 6.0, 100.0) * WorldData.CELL
+	# The duck's way is one draw of the seeded numbers, which the beasts that come round the
+	# person take too: none of them goes for the person here, so the draw stays the same.
+	life.rules = Rules.new()
+	life.rules.animal_attacks = false
 	var pond := Rect2(px, pz, side, side)
 	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
 	life.rng.seed = 7
@@ -827,3 +833,159 @@ func _test_taming(w: WorldData) -> void:
 	# The tame ones do not go with the wild when their land is forgotten or the kind thinned.
 	life._thin(kind, 100, hare.pos)
 	_check(not hare.gone, "a tame hare is not thinned out")
+
+
+## Taming with a trap (ActionsTame.step_traps): a trap with a carrot in it lures a wild
+## hare within its reach, which walks in, eats the carrot and sits in it as a live hare;
+## taken into the bag and held, the action button lets it out tame. No bait, no hare.
+func _test_trap(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var placed := Placed.new()
+	placed.world = w
+	life.placed = placed
+	var who := Owner.new()
+	who.position = Vector3(40.0, 6.0, 40.0) * WorldData.CELL
+	who.position.y = life.ground(who.position.x, who.position.z)
+	life.people = []
+	var actions := WorldActions.new(w, life.clock, Rules.new())
+	actions.wildlife = life
+	var kind := "animals:rabbit"
+	var cell := Vector3i(floori(who.position.x / WorldData.CELL) + 2, floori(who.position.y / WorldData.CELL + 0.01), floori(who.position.z / WorldData.CELL))
+	var trap := placed.put("tools:trap", cell)
+	var mid := Placed.center(trap)
+	var at := mid + Vector3(4.0, 0.0, 0.0) * WorldData.CELL
+	at.y = life.ground(at.x, at.z)
+	var hare := _animal(life, kind, at)
+	for i in 20:
+		actions.step_traps(WorldActions.TRAP_EVERY)
+	_check(not hare.bait.is_finite(), "an empty trap lures nobody")
+	trap.items.add("plants:carrot", 2)
+	var lured := false
+	for i in 40:
+		actions.step_traps(WorldActions.TRAP_EVERY)
+		if hare.bait.is_finite():
+			lured = true
+			break
+	_check(lured, "a carrot in the trap lures a wild hare within its reach")
+	var t0 := Time.get_ticks_msec()
+	for i in 1200:
+		life.update(0.05)
+		if i % 40 == 39:
+			actions.step_traps(WorldActions.TRAP_EVERY)
+		if hare.gone:
+			break
+	_check(hare.gone and trap.items.count("tools:live_rabbit") == 1 and trap.items.count("plants:carrot") == 1,
+		"the hare walks in, eats a carrot and sits in the trap: gone %s, %d live, %d carrots (%.1f from the trap, %d ms)"
+			% [hare.gone, trap.items.count("tools:live_rabbit"), trap.items.count("plants:carrot"),
+			Vector2(hare.pos.x - mid.x, hare.pos.z - mid.z).length() / WorldData.CELL, Time.get_ticks_msec() - t0])
+	var other := _animal(life, kind, at)
+	for i in 40:
+		actions.step_traps(WorldActions.TRAP_EVERY)
+	_check(not other.bait.is_finite(), "a trap with a hare in it lures no other")
+	_check(WorldActions.released_kind("tools:live_rabbit") == kind and WorldActions.released_kind("plants:carrot") == "",
+		"a live hare is let out as a hare")
+	trap.items.remove("tools:live_rabbit", 1)
+	who.inventory.add("tools:live_rabbit", 1)
+	who.item = "tools:live_rabbit"
+	_check(actions.front_kind(who) == "release", "a live hare in the hand is let out by the action button")
+	var before := life.animals.size()
+	actions.act_in_front(who, 100)
+	var out: Wildlife.Animal = life.animals[-1]
+	_check(life.animals.size() == before + 1 and out.kind == kind and out.owner == 5 and not out.stay.is_finite()
+		and who.inventory.count("tools:live_rabbit") == 0, "let out, it is tame and follows its owner")
+
+
+
+## Attacks (Wildlife._fights): a boar growls at one who comes close, goes for them if
+## they stay, bites twice and is done; a bear hit fights back where a deer runs; a hungry
+## pack of wolves at night passes a healthy person by in summer but hunts a wounded one in
+## winter, and gives up on one in a boat; with the rules' attacks off no one is bitten.
+func _test_attacks(w: WorldData) -> void:
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var rules := Rules.new()
+	life.rules = rules
+	var who := Who.new()
+	who.position = Vector3(60.0, 6.0, 60.0) * WorldData.CELL
+	who.position.y = life.ground(who.position.x, who.position.z)
+	life.people = [who]
+	var bitten := []
+	life.bit.connect(func(a: Wildlife.Animal, _who) -> void: bitten.append(a))
+	var spec: Dictionary = AiRules.SPECIES["animals:boar"]
+	var at := who.position + Vector3(1.5, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var boar := _animal(life, "animals:boar", at)
+	boar.health = spec.health
+	life.update(0.05)
+	_check(boar.state == "warn" and who.said.back().begins_with("Кабан угрожает"), "a boar growls at one who comes close (%s)" % boar.state)
+	var start := Time.get_ticks_msec()
+	var seen := {}
+	while Time.get_ticks_msec() - start < 20000 and bitten.size() < 2:
+		life.update(0.05)
+		seen[boar.state] = true
+	_check(seen.has("charge") and seen.has("bite") and bitten.size() == 2
+		and is_equal_approx(who.vitals.health, Vitals.MAX - 2.0 * spec.bite) and who.said.back() == "Кабан нападает!",
+		"it goes for them, leaps and bites twice (health %.0f)" % who.vitals.health)
+	_check(boar.foe == null and boar.calm > 0.0 and boar.state != "charge", "then it is done and lets them be")
+	for i in 40:
+		life.update(0.05)
+	_check(bitten.size() == 2, "and bites no more while calm")
+
+	life.animals.clear()
+	var bear := _animal(life, "animals:bear", who.position + Vector3(4.0, 0.0, 0.0))
+	bear.health = AiRules.SPECIES["animals:bear"].health
+	life.hurt(bear, 1, who.position, who)
+	_check(bear.state == "charge" and bear.foe == who and bear.hurt == 0.0, "a bear hit goes for the one who hit it")
+	bear.health = 10
+	life.hurt(bear, 1, who.position, who)
+	_check(bear.foe == null and bear.hurt > 0.0, "but runs once badly hurt")
+	var deer := _animal(life, "animals:deer", who.position + Vector3(0.0, 0.0, 4.0))
+	deer.health = AiRules.SPECIES["animals:deer"].health
+	life.hurt(deer, 1, who.position, who)
+	_check(deer.foe == null and deer.hurt > 0.0, "a deer hit runs (it does not bite)")
+
+	life.animals.clear()
+	who.vitals.health = Vitals.MAX
+	life.clock.time_of_day = 0.0
+	life.clock.season = 1
+	var pack: Array[Wildlife.Animal] = []
+	for i in 3:
+		var p := who.position + Vector3(6.0, 0.0, float(i) - 1.0)
+		p.y = life.ground(p.x, p.z)
+		var wolf := _animal(life, "animals:wolf", p)
+		wolf.lead = pack[0] if i > 0 else null
+		wolf.hunger = 1.0
+		wolf.health = AiRules.SPECIES["animals:wolf"].health
+		pack.append(wolf)
+	life.update(0.05)
+	_check(pack[0].state != "charge", "a hungry pack of three passes a healthy person by in summer (%s)" % pack[0].state)
+	life.clock.season = Clock.WINTER
+	who.vitals.health = 40.0
+	for wolf in pack:
+		wolf.hunger = 1.0
+		wolf.think = 0.0
+		wolf.calm = 0.0
+	life.update(0.05)
+	_check(pack[0].state == "charge" and pack[0].hunting and pack[2].foe == who, "but hunts a wounded one in winter")
+	who.riding = "boats:raft"
+	for wolf in pack:
+		wolf.think = 0.0
+	life.update(0.05)
+	_check(pack[0].foe == null and pack[0].state != "charge", "it gives up on one in a boat")
+	who.riding = ""
+	life.clock.season = 1
+
+	life.animals.clear()
+	life.clock.time_of_day = 0.5
+	rules.animal_attacks = false
+	boar = _animal(life, "animals:boar", at)
+	boar.health = spec.health
+	for i in 20:
+		life.update(0.05)
+	_check(boar.state != "warn" and boar.foe == null, "with the attacks off a boar lets people be (%s)" % boar.state)
+	_check(Survivor.cause_text("animal:animals:wolf") == ["Вас загрыз зверь", "волк"], "death by a wolf is told")

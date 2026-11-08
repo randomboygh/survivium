@@ -73,6 +73,10 @@ const WEATHER_FLOOR := 0.5
 ## A full wind carries a body in the air this many cells a second along it (a jump in
 ## a blizzard lands about a cell downwind).
 const AIR_DRIFT := 2.5
+## Afloat on a vessel (see `vessel`) the feet are this far under the water surface (the
+## deck), and the hull reaches this far round the middle (cells): all of it on water.
+const DECK := 0.0
+const HULL := 0.45
 ## A shove (see knock) dies away this fast, in cells a second per second.
 const SHOVE_DRAG := 30.0
 
@@ -92,6 +96,11 @@ var weather_scale := 1.0
 ## Playtest switch: a press of jump in the air jumps again, to climb out of a deep
 ## pit by pressing it over and over.
 var air_jumps := false
+## Riding a vessel (Character.riding): the share of the walking pace it goes at on
+## water, 0 on foot. Afloat the body keeps to the water's surface and to water (see _sail).
+var vessel := 0.0
+## Whether the last step kept the body afloat on its vessel.
+var afloat := false
 ## Whether the last step started a jump.
 var jumped := false
 ## Whether jump was held in the last step: an air jump needs a fresh press.
@@ -110,6 +119,10 @@ var water_level := -INF
 ## The velocity on the ground plane in cells a second (x east, y south); on ice it
 ## lags behind the wish.
 var glide := Vector2.ZERO
+## The current of the river the body is in (Currents), in cells a second (x east, y
+## south), set by its owner: it carries a body afloat, and one in the water by the
+## share of SWIM_DEPTH it is under.
+var flow := Vector2.ZERO
 ## A shove the body got (see knock), in cells a second (x east, y south): it carries
 ## the body whatever the stick says and dies away by SHOVE_DRAG.
 var shove := Vector2.ZERO
@@ -129,6 +142,8 @@ var _col := Vector2i(1 << 30, 0)
 ## water, and slower still swimming.
 func speed_at(at: Vector3) -> float:
 	var p := at / CELL
+	if vessel > 0.0 and floats(at):
+		return _sail_pace()
 	var surface := _water_surface(p)
 	if surface == -INF or world.water_frozen:
 		return _pace(0.0)
@@ -139,6 +154,9 @@ func speed_at(at: Vector3) -> float:
 ## jumping when `jump` is held; returns where it is then.
 func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var p := at / CELL
+	afloat = vessel > 0.0 and floats(at)
+	if afloat:
+		return _sail(p, delta) * CELL
 	# The ground under the body changed (a cell dug beside it reshaped the slopes) and
 	# it is in the ground now: up onto it, so it is not stuck there.
 	if _collides(p):
@@ -169,6 +187,8 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	p = _try_move(p, Vector3(glide.x * delta, 0.0, 0.0), reach)
 	p = _try_move(p, Vector3(0.0, 0.0, glide.y * delta), reach)
 	var drift := air_drift(p)
+	if flow != Vector2.ZERO and water_depth > 0.0:
+		drift += flow * clampf(water_depth / SWIM_DEPTH, 0.0, 1.0)
 	if drift != Vector2.ZERO:
 		p = _try_move(p, Vector3(drift.x * delta, 0.0, 0.0), reach)
 		p = _try_move(p, Vector3(0.0, 0.0, drift.y * delta), reach)
@@ -230,6 +250,64 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		p.y = ny
 		on_ground = false
 	return p * CELL
+
+
+## True when a vessel under the body at `at` (world units) floats: open water, not
+## frozen, under the whole hull (HULL round the middle), at one level.
+func floats(at: Vector3) -> bool:
+	return is_finite(_hull_surface(at / CELL))
+
+
+## The water surface under the whole hull of a vessel at `p` (cells), INF where some of
+## it is not on open water at the level of its middle's.
+func _hull_surface(p: Vector3) -> float:
+	if world.water_frozen:
+		return INF
+	# The surface is looked for from a little over the feet: a vessel's are under it.
+	var probe := Vector3(p.x, p.y + 0.05, p.z)
+	var surface := _water_surface(probe)
+	if surface == -INF:
+		return INF
+	for c: Vector2 in [Vector2(-HULL, -HULL), Vector2(HULL, -HULL), Vector2(-HULL, HULL), Vector2(HULL, HULL)]:
+		var s := _water_surface(probe + Vector3(c.x, 0.0, c.y))
+		if absf(s - surface) > 0.01:
+			return INF
+	return surface
+
+
+## The pace afloat, cells a second: the vessel's share of walking, the skill of swimming
+## (rowing) and the playtest's speed; the load is the vessel's to carry.
+func _sail_pace() -> float:
+	return SPEED * speed_scale * swim_scale * vessel
+
+
+## A step afloat (see `vessel`): along the stick on water only, the feet on the deck at
+## DECK under the surface; a move that would take any of the hull off the water or into
+## something solid is not made.
+func _sail(p: Vector3, delta: float) -> Vector3:
+	var surface := _hull_surface(p)
+	swimming = false
+	on_ground = false
+	velocity_y = 0.0
+	jumped = false
+	_jump_was = false
+	bumped = Vector3.INF
+	weather_scale = 1.0
+	p.y = surface - DECK
+	water_depth = DECK
+	water_level = surface
+	murk = world.murk(floori(p.x), floori(surface - 0.1), floori(p.z))
+	in_bog = false
+	var dir := move_input.limit_length(1.0)
+	glide = dir * _sail_pace()
+	var push := glide + shove + flow
+	shove = shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
+	for d: Vector3 in [Vector3(push.x * delta, 0.0, 0.0), Vector3(0.0, 0.0, push.y * delta)]:
+		var q := p + d
+		if absf(_hull_surface(q) - surface) < 0.01 and not _collides(q + Vector3(0.0, 0.05, 0.0)):
+			p = q
+	nudge = Vector2.ZERO
+	return p
 
 
 ## Shoves the body along `dir` (x east, y south) at `speed` cells a second, with a

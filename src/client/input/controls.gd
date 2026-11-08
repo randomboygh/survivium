@@ -475,6 +475,14 @@ func action_name() -> String:
 			return "Оставить"
 		"follow":
 			return "Позвать"
+		"release":
+			return "Выпустить"
+		"launch":
+			return "На воду"
+		"board":
+			return "Сесть"
+		"ashore":
+			return "На берег"
 	match tool:
 		"axe":
 			return "Рубить"

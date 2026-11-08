@@ -137,6 +137,9 @@ func _on_event(kind: String, args: Variant) -> void:
 				who.bite = bool(args[1])
 				# The action button and its label follow the line.
 				who.state_changed.emit()
+		Protocol.FLOW:
+			if args is Array and args.size() == 1 and args[0] is Vector2 and args[0].is_finite():
+				who.flow = args[0].limit_length(10.0)
 		Protocol.KNOCK:
 			if args is Array and args.size() == 3 and args[0] is Vector2:
 				game.player.body.knock(args[0], float(args[1]), float(args[2]))
@@ -174,6 +177,15 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.CLOCK:
 			if args is Array and args.size() == 1 and args[0] is Array:
 				game.clock.from_snapshot(args[0])
+		Protocol.VESSELS:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.boats.take_all(args[0])
+		Protocol.VESSEL:
+			if args is Array:
+				game.boats.take(args)
+		Protocol.VESSEL_GONE:
+			if args is Array and args.size() == 1 and args[0] is int:
+				game.boats.take_gone(args[0])
 		Protocol.ANIMAL:
 			if args is Array:
 				game.wildlife.take_born(args)

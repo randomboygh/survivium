@@ -24,6 +24,8 @@ content/tools/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
   hoe/ sickle/ watering_can/    земледелие: тяпка, серп, лейка
+  boats/                        плот (руками из брёвен и верёвки) и лодка с вёслами (на верстаке): `vessel`, `oars`
+  trap/                         живоловка (руками из веток и верёвки): приманка в ней зовёт зверя (`trap`), пойманный — живой предмет (`alive`)
   stairs/ door/ window/ furniture/ fireplace/   строительство: лестница, двери 1×2, 2×2, 2×3, окна 1×1, 1×2, 2×1, 2×2, 3×2,
                                 мебель (стол, табурет, кровать, шкаф, широкий шкаф, бочка, половик), камин
                                 бандл на вещь:
