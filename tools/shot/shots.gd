@@ -658,8 +658,12 @@ const SHOTS := {
 	"ui-main-menu-night": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 23.5},
 	"ui-main-menu-single-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "single", "painted": true,
 		"menu_hour": 15.0},
-	# The easter egg: ten taps on the sparrow of the name blow it up in a salute.
-	"ui-main-menu-egg": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 22.0, "egg": true},
+	# The easter egg: ten taps on the sparrow of the name burst it into feathers, caught
+	# as they fly apart and later as they drift down.
+	"ui-main-menu-egg": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 22.0, "egg": true,
+		"egg_ms": 400},
+	"ui-main-menu-egg-fall": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 13.0,
+		"egg": true, "egg_ms": 2200},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-changes": {"time": 0.42, "season": 1, "touch": true, "main_menu": "changes"},
