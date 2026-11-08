@@ -895,29 +895,6 @@ func _update_layers(on: bool, at: Vector3i) -> void:
 	layer_base = at
 	RenderingServer.global_shader_parameter_set("layer_view",
 		Vector4(1.0 if on else 0.0, at.x, at.y, at.z))
-	if on:
-		RenderingServer.global_shader_parameter_set("layer_rock", float(_rock_round(at)))
-
-
-## The material most of the solid cells round the player's feet are of (turf counts
-## as the soil under it): the colour the layers fill the rock they leave out with
-## (layer_fills in common.gdshaderinc), as the GPU knows no cell's material.
-func _rock_round(at: Vector3i) -> int:
-	var counts := {}
-	for y in range(at.y - 2, at.y + 4):
-		for dz in range(-3, 4):
-			for dx in range(-3, 4):
-				var m: int = world.get_cell(at.x + dx, y, at.z + dz)
-				if Mat.is_solid(m):
-					m = Mat.DIRT if m == Mat.GRASS else m
-					counts[m] = counts.get(m, 0) + 1
-	var best := Mat.STONE
-	var most := 0
-	for m: int in counts:
-		if counts[m] > most:
-			best = m
-			most = counts[m]
-	return best
 
 
 ## The level the caps of the cut lie on, -1 for none.

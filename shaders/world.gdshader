@@ -46,6 +46,9 @@ uniform int corner_shapes[63];
 // by main.gd: reading past the end draws garbage on some GPUs.
 uniform int material_bits[63];
 
+// The colour of the rock's section the layers fill in (see the end of fragment()).
+const vec3 SECTION = vec3(0.075, 0.07, 0.068);
+
 // How many texels into a top the grass beside it frays under snow (see the transitions).
 const float GRASS_FRAY = 5.0;
 
@@ -499,14 +502,11 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
-	// The rock's section the layers fill in, in dots of the colour of the rock round the
-	// player (its side's texels where they show on screen), a little darker, unlit.
+	// The rock's section the layers fill in: one plain dark colour, whatever the rock,
+	// unlit; a little lighter than the background (Sky), so open space behind still shows.
 	if (fill) {
-		vec2 st = floor(screen_plane(world_pos) * TEXELS);
-		int rock = int(layer_rock + 0.5);
-		col = tile_texel(rock * 3 + 1, ivec2(mod(st, TEXELS))) * biome_tint(rock, world_pos.xz);
 		ALBEDO = vec3(0.0);
-		EMISSION = col * (bayer4(st) < 0.5 ? 0.62 : 0.3);
+		EMISSION = SECTION;
 		clouds = 0.0;
 	}
 }
