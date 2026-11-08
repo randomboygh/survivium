@@ -76,8 +76,8 @@
 в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
 (присел, в воздухе; летающий без `hop` — бабочка, `Wildlife.sits_still` — по земле не ходит и не толкается:
-либо летит, либо сидит на месте и медленно хлопает крыльями, `SIT_FLAP_RATE`), за ними `attack` — нападение (пока не показываются: звери не нападают), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
-воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`, волка — `tools/make_wolf.py`, дикую кошку — `tools/make_cat.py`). `creatures.gd` выбирает сторону по движению на экране
+либо летит, либо сидит на месте со сложенными крыльями и изредка, каждая в своё время, хлопает ими (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), за ними `attack` — нападение (пока не показываются: звери не нападают), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
+воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`, волка — `tools/make_wolf.py`, дикую кошку — `tools/make_cat.py`, ежа — `tools/make_hedgehog.py`). `creatures.gd` выбирает сторону по движению на экране
 (`TURN_BIAS`), шаг — по пройденному
 пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
 Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.

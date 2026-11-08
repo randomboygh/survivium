@@ -26,8 +26,12 @@ const SpriteShader := preload("res://shaders/sprite.gdshader")
 
 ## Frames of a wing beat a second.
 const FLAP_RATE := 12.0
-## Frames a second of the slow wing beat of a flyer sitting still (see Wildlife.sits_still).
-const SIT_FLAP_RATE := 2.5
+## Frames a second of the wing beat of a flyer sitting still (see Wildlife.sits_still),
+## seconds it sits with its wings still between two flutters, and how long a flutter lasts:
+## each on its own clock, so they do not all flap at once.
+const SIT_FLAP_RATE := 4.0
+const SIT_GAP := Vector2(3.0, 9.0)
+const SIT_FLUTTER := Vector2(0.5, 1.2)
 ## World units round a sprite's culling box for what the shaders move a little (the
 ## half pixel snap); the box is also widened by half the sprite's width, where the
 ## shadow pass turns the quad to face the light.
@@ -63,6 +67,8 @@ class Look:
 	var walked := 0.0
 	var idle := 0
 	var change_at := 0.0
+	## Till when a flyer sitting still flutters its wings (0 while they are still).
+	var flutter_end := 0.0
 	## The sprite's scale.x last put (0 before the first): set only when it changes.
 	var flip := 0.0
 
@@ -200,10 +206,19 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		return 1 if a.hop > 0.2 and a.hop < 0.8 else 2
 	var hop: int = looks[a.kind][6]
 	if spec.flies and spec.get("hop", 0) <= 0 and walk > 0:
-		# A flyer that does not hop (a butterfly) sits still and slowly opens and shuts
-		# its wings: at rest, then the first beat.
+		# A flyer that does not hop (a butterfly) sits still with its wings still, and now
+		# and then opens and shuts them a few times (at rest, then the first beat).
 		look.idle = 0
-		return 0 if (int(now * SIT_FLAP_RATE) + a.get_instance_id()) % 2 == 0 else 1
+		if look.flutter_end == 0.0:
+			if now < look.change_at:
+				return 0
+			look.flutter_end = now + _rng.randf_range(SIT_FLUTTER.x, SIT_FLUTTER.y)
+		if now < look.flutter_end:
+			look.change_at = now + 1.0 / SIT_FLAP_RATE
+			return 1 if posmod(int(now * SIT_FLAP_RATE), 2) == 0 else 0
+		look.flutter_end = 0.0
+		look.change_at = now + _rng.randf_range(SIT_GAP.x, SIT_GAP.y)
+		return 0
 	var attack: int = looks[a.kind][7]
 	if a.moving and hop > 0 and spec.flies:
 		# Hopping about on the ground: crouched, up (the last frames), sitting.
