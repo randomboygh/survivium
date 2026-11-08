@@ -9,6 +9,8 @@ extends Node
 
 ## The bands of freezes the window shows apart, by the tabs' keys (SettingsMenu.PAGES):
 ## from, to ms (a freeze is over PerfPanel.FREEZE_MS).
+const Lang := preload("res://src/shared/content/lang.gd")
+
 const BANDS := {"all": [0.0, INF], "critical": [200.0, INF], "big": [100.0, 200.0], "small": [0.0, 100.0]}
 ## The parts of an ordinary frame, in the order of PerfPanel.usual after the frame itself.
 const PARTS := ["игра", "движок", "отрисовка", "ввод", "браузер", "конец кадра"]
@@ -99,9 +101,9 @@ func usual_line() -> String:
 		# The three parts of the rest are told where the browser gives them (see PerfPanel._parts).
 		if i < 3 or u[i + 1] >= 0.05:
 			told.append("%s %.1f" % [PARTS[i], u[i + 1]])
-	var line := "Обычный кадр %.1f мс: %s" % [u[0], ", ".join(told)]
+	var line := Lang.f("Обычный кадр %.1f мс: %s", [u[0], ", ".join(told)])
 	if OS.has_feature("web"):
-		line += " · полных сборок мусора %d" % perf.collections
+		line += Lang.f(" · полных сборок мусора %d", [perf.collections])
 	return line
 
 
@@ -119,11 +121,11 @@ func lines(key: String) -> Array:
 		for p: Array in f[2]:
 			if roundi(p[1]) > 0:
 				parts.append("%s %d" % [p[0], roundi(p[1])])
-		var line := "%d:%02d  %d мс: %s" % [at / 60, at % 60, roundi(f[1]), ", ".join(parts)]
+		var line := Lang.f("%d:%02d  %d мс: %s", [at / 60, at % 60, roundi(f[1]), ", ".join(parts)])
 		if not f[3].is_empty():
 			line += " · " + ", ".join(f[3])
 		if f.size() > 4:
-			line += " · вызовов %d" % f[4]
+			line += Lang.f(" · вызовов %d", [f[4]])
 		out.append([f[1], line])
 	return out
 

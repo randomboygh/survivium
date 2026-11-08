@@ -15,6 +15,7 @@ extends RefCounted
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The server's modes (Rules.pvp).
 const MODES := ["off", "land", "all"]
@@ -89,11 +90,11 @@ func why_not(who, other) -> Dictionary:
 	if m == "off":
 		return {"why": "На этом сервере PvP выключен", "no": true}
 	if protection_left(b) > 0.0:
-		return {"why": "Игрок под защитой новичка ещё %d мин" % ceili(protection_left(b) / 60.0), "no": true}
+		return {"why": Lang.line("Игрок под защитой новичка ещё %d мин", [ceili(protection_left(b) / 60.0)]), "no": true}
 	if m == "land" and territory != null:
 		var claim: Dictionary = territory.claim_at(_cell(other.position))
 		if not territory.allowed(claim, a, "hit_players"):
-			return {"why": "Территория «%s»: здесь нельзя — бить игроков" % territory.title_of(claim), "no": true}
+			return {"why": Lang.line("Территория «%s»: здесь нельзя — бить игроков", [territory.title_of(claim)]), "no": true}
 	return {}
 
 
@@ -142,11 +143,11 @@ func strike(who, other, power: int, from: Vector3) -> bool:
 	var away := Vector2(other.position.x - from.x, other.position.z - from.z)
 	if away.length() > 0.01:
 		other.body.knock(away, KNOCK, HOP)
-	other.nag("pvp_hit", "Вас ударил%s" % (" " + name if name != "" else "и"))
+	other.nag("pvp_hit", Lang.line("Вас ударил игрок %s", [name]) if name != "" else "Вас ударили")
 	for id in [a, b]:
 		if tag_left(id) <= 0.0:
 			var p = who if id == a else other
-			p.nag("pvp_tag", "Бой: %d с нельзя уйти на землю, где не дерутся" % ceili(_tag_time()))
+			p.nag("pvp_tag", Lang.line("Бой: %d с нельзя уйти на землю, где не дерутся", [ceili(_tag_time())]))
 		tags[id] = _tag_time()
 	hit.emit(who, other, damage)
 	return true
@@ -179,7 +180,7 @@ func step(delta: float, players: Array) -> void:
 		var back: Variant = _out.get(id)
 		if back != null and not closed(territory.claim_at(_cell(back))):
 			p.teleport(back)
-			p.nag("pvp_flee", "Бой ещё %d с: на землю «%s» сейчас нельзя" % [ceili(tags[id]), territory.title_of(claim)])
+			p.nag("pvp_flee", Lang.line("Бой ещё %d с: на землю «%s» сейчас нельзя", [ceili(tags[id]), territory.title_of(claim)]))
 
 
 ## Whether claim `claim` is closed to fights: its owner lets the others not hit players.

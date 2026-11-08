@@ -14,6 +14,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const CELL := WorldData.CELL
 ## How far from the body a thing on the ground or a placed thing is taken or used, in
 ## world units (ten cells, as Tools.PLACE_REACH; Gathering.REACH), and what the rules

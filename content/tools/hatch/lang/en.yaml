@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hatch/bundle.yaml
+"Люк": "Hatch"
+
+# content/tools/hatch/data/items.yaml
+"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "A plank lid for a hole in a floor or ceiling. A tap opens and closes it."
+"Люк 2×2": "Hatch 2×2"
+"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "A wide plank lid for a hole in the floor, two cells wide and two deep."

@@ -22,6 +22,7 @@ const Starts := preload("res://src/shared/content/starts.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Eras := preload("res://src/shared/content/eras.gd")
 const Skills := preload("res://src/shared/content/skills.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Mods of older saves and settings that live on as bundles of another mod (the old sounds
 ## mod held the notes too).
@@ -208,5 +209,11 @@ static func summary(bundles: Array) -> String:
 		var on := mine.filter(func(b: String) -> bool: return b in bundles).size()
 		if on == 0:
 			continue
-		parts.append(mod_title(mod) if on == mine.size() else "%s (%d из %d)" % [mod_title(mod), on, mine.size()])
-	return ", ".join(parts) if not parts.is_empty() else "только основа"
+		parts.append(mod_title(mod) if on == mine.size() else Lang.line("%s (%d из %d)", [mod_title(mod), on, mine.size()]))
+	if parts.is_empty():
+		return "только основа"
+	# Each part a phrase of its own, so a list of lines (Lang.line) is a line too.
+	var out: String = parts[0]
+	for i in range(1, parts.size()):
+		out = Lang.line("%s, %s", [out, parts[i]])
+	return out

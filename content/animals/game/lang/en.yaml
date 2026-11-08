@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"Добыча": "Game"
+
+# content/animals/game/data/items.yaml
+"Тушка": "Small carcass"
+"Мелкий зверь или птица. Разделывается руками.": "A small animal or bird. Butchered by hand."
+"Туша": "Carcass"
+"Крупный зверь. Разделать её можно только ножом.": "A big animal. It can be butchered only with a knife."
+"Сырое мясо": "Raw meat"
+"Есть можно, но жареное сытнее.": "Edible, but roasted is more filling."
+"Жареное мясо": "Roast meat"
+"Мясо, зажаренное на костре. Очень сытное.": "Meat roasted on a campfire. Very filling."
+"Шкура": "Hide"
+"Сырая шкура зверя.": "An animal's raw hide."
+"Кость": "Bone"
+"Жир": "Fat"
+"Вяленое мясо": "Jerky"
+"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Meat dried on a drying rack. Light and filling, no fire needed."
+
+# content/animals/game/data/recipes.yaml
+"Разделать тушку": "Butcher a small carcass"
+"Разделать тушу": "Butcher a carcass"

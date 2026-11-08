@@ -11,6 +11,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
@@ -20,6 +21,9 @@ const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 
 const PATH := "user://settings.cfg"
+## The language the tools and the scene tests play in, whatever the settings say ("" none):
+## the tests read the Russian they are written in, the screenshots ask for one.
+static var language_override := ""
 ## Where the settings are read and saved: PATH, but the scene tests keep theirs apart
 ## (a tool that saves settings, shot.gd, would change what they play).
 static var path := PATH
@@ -33,6 +37,9 @@ const PIXEL_SIZES := [0.75, 0.875, 1.0, 1.25, 1.5]
 const FPS_LIMITS := [0, 30, 60]
 ## The settings that are saved, with their defaults.
 const DEFAULTS := {
+	# The language of the game (Lang.LANGS); "" until the first launch puts the
+	# device's there (Lang.of_device).
+	"language": "",
 	"time_speed": 1,
 	# The time of day follows the device's clock (Clock.real_time).
 	"real_time": false,
@@ -282,6 +289,26 @@ func set_value(key: String, v: Variant) -> void:
 	save()
 
 
+## Puts the game into the language of the settings; on the first launch the device's,
+## kept from then on.
+func use_language() -> void:
+	if language_override != "":
+		Lang.use(language_override)
+		return
+	if not Lang.known(values.language):
+		values.language = Lang.of_device()
+		save()
+	Lang.use(values.language)
+
+
+## Switches the language: what is on the screen now changes at once where it is a
+## phrase as written, the rest as it is built again.
+func set_language(lang_code: String) -> void:
+	values.language = lang_code
+	save()
+	Lang.use(lang_code)
+
+
 ## The graphics quality preset the settings match (an index into QUALITIES), or -1
 ## when they were set by hand to a mix of their own.
 func quality() -> int:
@@ -352,7 +379,7 @@ func reload_mods() -> void:
 	if game.session != null:
 		game.session.placed.read_footprints()
 	if game.hud != null:
-		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else "Ошибок в данных: %d (см. консоль)" % problems.size())
+		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else Lang.f("Ошибок в данных: %d (см. консоль)", [problems.size()]))
 
 
 func time_speed() -> float:
@@ -467,7 +494,7 @@ func apply() -> void:
 ## Puts every setting back as it comes, all but the world the setup screen makes.
 func reset() -> void:
 	for k in DEFAULTS:
-		if not k.begins_with("world_"):
+		if not k.begins_with("world_") and k != "language":
 			values[k] = DEFAULTS[k]
 	apply()
 	save()
@@ -713,7 +740,7 @@ func clear_land() -> void:
 		game.character.say("Очистить территорию можно только в своём мире")
 		return
 	var n: int = game.session.territory.clear_painted()
-	game.hud.toast("Разметка убрана: %d участков" % n if n > 0 else "Разметки нет")
+	game.hud.toast(Lang.f("Разметка убрана: %d участков", [n]) if n > 0 else "Разметки нет")
 
 
 func give_tools() -> void:

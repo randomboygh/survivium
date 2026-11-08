@@ -14,6 +14,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
@@ -113,43 +114,43 @@ func _screen_distance(p: Vector3, vp_pos: Vector2) -> float:
 func describe(target: Dictionary) -> String:
 	if target.has("prop"):
 		var e: Dictionary = target.prop
-		var title := Items.title(e.item)
+		var title := Lang.t(Items.title(e.item))
 		if game.build.on and Items.is_interior(e.item):
-			return "%s\nЛКМ забрать" % title
+			return Lang.f("%s\nЛКМ забрать", [title])
 		if Placed.is_light(e):
-			return "%s\nЛКМ забрать" % title
+			return Lang.f("%s\nЛКМ забрать", [title])
 		if Placed.is_sign(e):
-			return "%s\nЛКМ прочитать" % title
+			return Lang.f("%s\nЛКМ прочитать", [title])
 		if Placed.is_part(e):
-			return "%s\nзабрать — в режиме строительства" % title
+			return Lang.f("%s\nзабрать — в режиме строительства", [title])
 		if Placed.is_door(e):
-			return "%s\nЛКМ %s" % [title, "закрыть" if e.get("open", false) else "открыть"]
+			return Lang.f("%s\nЛКМ %s", [title, "закрыть" if e.get("open", false) else "открыть"])
 		if e.items != null:
-			return "%s\nЛКМ открыть" % title
+			return Lang.f("%s\nЛКМ открыть", [title])
 		if Placed.is_bed(e):
 			var v = game.character.vitals
-			return "%s\nЛКМ %s" % [title, "лечь спать" if v.asleep or v.sleepy() else "спать не хочется"]
-		return "%s\nЛКМ крафт" % title
+			return Lang.f("%s\nЛКМ %s", [title, "лечь спать" if v.asleep or v.sleepy() else "спать не хочется"])
+		return Lang.f("%s\nЛКМ крафт", [title])
 	if target.has("vessel"):
-		return "%s\nЛКМ поднять в сумку" % Items.title(game.boats.vessels[target.vessel].item)
+		return Lang.f("%s\nЛКМ поднять в сумку", [Lang.t(Items.title(game.boats.vessels[target.vessel].item))])
 	if target.has("drop"):
 		var d: Array = game.world.drops[target.drop[0]][target.drop[1]]
 		if d[0] == Items.SACK:
 			return "Мешок с вещами\nЛКМ забрать"
 		var n: int = WorldActions.count(d)
-		return "%s%s\nЛКМ подобрать" % [Items.title(d[0]), " ×%d" % n if n > 1 else ""]
+		return Lang.f("%s%s\nЛКМ подобрать", [Lang.t(Items.title(d[0])), " ×%d" % n if n > 1 else ""])
 	var cell: Vector3i = target.bush
 	var b: Dictionary = Bushes.TYPES[game.world.bushes[cell]]
 	var tool: String = game.controls.tool_record().tool
 	if tool == "shovel":
-		return "%s\nЛКМ выкопать" % b.title
+		return Lang.f("%s\nЛКМ выкопать", [b.title])
 	if tool == "axe":
-		return "%s\nЛКМ срубить" % b.title
+		return Lang.f("%s\nЛКМ срубить", [b.title])
 	if game.actions.ripe(cell, b):
-		return "%s, ягоды\nЛКМ %s" % [b.title, "сбить" if tool == "sword" else "собрать"]
+		return Lang.f("%s, ягоды\nЛКМ %s", [b.title, "сбить" if tool == "sword" else "собрать"])
 	if game.actions.twigs_left(cell, b) > 0 and tool == "hand":
-		return "%s\nЛКМ наломать веток" % b.title
-	return "%s\nпусто до весны" % b.title
+		return Lang.f("%s\nЛКМ наломать веток", [b.title])
+	return Lang.f("%s\nпусто до весны", [b.title])
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing

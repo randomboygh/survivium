@@ -133,7 +133,7 @@ func _describe_world(b: Button) -> void:
 		return
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
 	var kind: String = "площадки" if test else load(WORLD_LIST)._kind(game.world_options)
-	b.text += "\n%s · %s" % ["тестовый мир" if test else "зерно %d" % game.world_seed, kind]
+	b.text += "\n%s · %s" % ["тестовый мир" if test else Lang.f("зерно %d", [game.world_seed]), kind]
 	b.custom_minimum_size.y = PLAY_H
 	b.add_theme_constant_override("line_spacing", 4)
 	var day := -1
@@ -144,7 +144,7 @@ func _describe_world(b: Button) -> void:
 		day = int(sky.day)
 	if day < 0:
 		return
-	var l := UiStyle.label("день %d" % day, UiStyle.DARK_INK)
+	var l := UiStyle.label(Lang.f("день %d", [day]), UiStyle.DARK_INK)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	l.offset_left = -80
@@ -206,7 +206,7 @@ func open() -> void:
 	_want_play = false
 	_show_loading(false)
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
-	_map_seed.text = "тестовый мир" if test else "зерно %d" % game.world_seed
+	_map_seed.text = "тестовый мир" if test else Lang.f("зерно %d", [game.world_seed])
 	if game.join_url != "":
 		_map_seed.text = load(JOIN_SCREEN)._short(game.join_url)
 	game.hud.visible = false

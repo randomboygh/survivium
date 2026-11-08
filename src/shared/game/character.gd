@@ -19,6 +19,7 @@ const Warmth := preload("res://src/shared/game/warmth.gd")
 const SkillSet := preload("res://src/shared/game/skill_set.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -98,11 +99,11 @@ func _burn_light(delta: float) -> void:
 		var was: float = lit[k]
 		lit[k] = was + delta
 		if was < lasts - BURN_WARN and lit[k] >= lasts - BURN_WARN and inventory.count(id) == 1 + k:
-			say("%s догорает" % Items.title(id))
+			say(Lang.line("%s догорает", [Items.title(id)]))
 		if lit[k] >= lasts:
 			lit.remove_at(k)
 			if inventory.remove(id, 1) > 0:
-				say("Догорело: %s" % Items.title(id))
+				say(Lang.line("Догорело: %s", [Items.title(id)]))
 			told = true
 		elif floori(lit[k] / BURN_TELL) != floori(was / BURN_TELL):
 			told = true
@@ -356,7 +357,7 @@ func _fall(p: Vector3, delta: float, leapt := false) -> void:
 	var hurt: float = vitals.fall(levels, water == 1)
 	if hurt > 0.0:
 		note("falls")
-		say("Падение с высоты: −%d здоровья" % roundi(hurt))
+		say(Lang.line("Падение с высоты: −%d здоровья", [roundi(hurt)]))
 
 
 ## The sacks whose SACK_DAYS have passed are no longer marked on the maps (the world
@@ -462,7 +463,7 @@ func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
 	if got > 0:
 		say("+%d %s" % [got, Items.title(id)])
 		if inventory.overloaded():
-			nag("heavy", "Перегруз: %.1f из %d кг" % [inventory.weight(), inventory.weight_limit])
+			nag("heavy", Lang.line("Перегруз: %.1f из %d кг", [inventory.weight(), inventory.weight_limit]))
 	if got < n:
 		nag("full", "Сумка полна")
 	return got
@@ -487,7 +488,7 @@ func eat(i: int) -> bool:
 			return false
 		inventory.take_slot(i, 1)
 		note("healed")
-		say("+%d здоровья за %d с" % [roundi(heal), roundi(Items.heal_time(s[0]))])
+		say(Lang.line("+%d здоровья за %d с", [roundi(heal), roundi(Items.heal_time(s[0]))]))
 		return true
 	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		if not vitals.heal(heal):
@@ -495,7 +496,7 @@ func eat(i: int) -> bool:
 			return false
 		inventory.take_slot(i, 1)
 		note("healed")
-		say("+%d здоровья" % roundi(heal))
+		say(Lang.line("+%d здоровья", [roundi(heal)]))
 		return true
 	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		if not vitals.drink(Items.drink(s[0]) * k):
@@ -693,7 +694,7 @@ func find_respawns(camp, teams) -> bool:
 		if by != id and (teams == null or not teams.together(by, id)):
 			continue
 		seen[by] = true
-		var title := "У своего костра" if by == id else "У костра «%s»" % str(teams.names.get(by, "?"))
+		var title := "У своего костра" if by == id else Lang.line("У костра «%s»", [str(teams.names.get(by, "?"))])
 		var at: Vector3 = camp.stand_by(e)
 		if by == id:
 			out.push_front([title, at])
@@ -759,7 +760,7 @@ func _came_back(_at: Vector3) -> void:
 static func cause_text(cause: String) -> Array:
 	if cause.begins_with("player:"):
 		var by := cause.substr(7)
-		return ["Вас убили", "игрок «%s»" % by if by != "" else "другой игрок"]
+		return ["Вас убили", Lang.line("игрок «%s»", [by]) if by != "" else "другой игрок"]
 	if cause.begins_with("animal:"):
 		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
 		return ["Вас загрыз зверь", str(spec.get("title", "")).to_lower()]

@@ -125,6 +125,7 @@ func _make(at: Vector3) -> Dictionary:
 
 func _label() -> Label3D:
 	var label := Label3D.new()
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	label.font = UiStyle.font()
 	label.font_size = NAME_SIZE
 	label.outline_size = 4

@@ -12,6 +12,7 @@ extends Control
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const WIDTH := 240
 const FIELD_H := 26
@@ -55,7 +56,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_panel.add_child(box)
-	var title := UiStyle.label(Items.title(item), UiStyle.ACCENT)
+	var title := UiStyle.label(Lang.t(Items.title(item)), UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.custom_minimum_size = Vector2(WIDTH, 0)
@@ -65,7 +66,7 @@ func _ready() -> void:
 		for i in int(rec.get("sign_lines", 0)):
 			var f := LineEdit.new()
 			f.max_length = int(rec.get("sign_width", 20))
-			f.placeholder_text = "Строка %d" % (i + 1)
+			f.placeholder_text = Lang.f("Строка %d", [(i + 1)])
 			f.custom_minimum_size = Vector2(WIDTH, FIELD_H)
 			f.select_all_on_focus = false
 			f.text = lines[i] if i < lines.size() else ""
@@ -75,6 +76,8 @@ func _ready() -> void:
 	else:
 		var read := UiStyle.label(text if text != "" else "Здесь ничего не написано", UiStyle.INK if text != "" else UiStyle.MUTED)
 		read.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if text != "":
+			read.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		read.custom_minimum_size = Vector2(WIDTH, 0)
 		box.add_child(read)
 	_note = UiStyle.label("" if writes else "Писать может тот, кто строит на этой земле", UiStyle.MUTED)

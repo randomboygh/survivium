@@ -21,6 +21,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const WIDTH := 300
 const NAME_WIDTH := 80
@@ -232,10 +233,10 @@ func _button(text: String, action: Callable, accent := false) -> Button:
 
 func _show_world() -> void:
 	if _worlds.is_empty():
-		_world_label.text = "%d · новый" % game.settings.values.world_seed
+		_world_label.text = Lang.f("%d · новый", [game.settings.values.world_seed])
 		return
 	var w: Dictionary = _worlds[_world]
-	_world_label.text = "%d · день %d" % [w.seed, w.day]
+	_world_label.text = Lang.f("%d · день %d", [w.seed, w.day])
 
 
 func _step_players(step: int) -> void:
@@ -379,8 +380,8 @@ func _refresh() -> void:
 	if node == null or node.server == null:
 		return
 	var net = node.server
-	_state.text = "порт %d · игроков %d из %d%s" % [node.config.port, net.online(), node.config.max_players,
-		" · пароль" if node.config.password != "" else ""]
+	_state.text = Lang.f("порт %d · игроков %d из %d%s", [node.config.port, net.online(), node.config.max_players,
+		" · пароль" if node.config.password != "" else ""])
 	if _tunnel_label != null:
 		var t = node.tunnel
 		var said: String = t.url if t.url != "" else ("ещё запускается…" if t.failed == "" else t.failed)

@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bow/bundle.yaml
+"Лук": "Bow"
+
+# content/tools/bow/data/items.yaml
+"Деревянный лук": "Wooden bow"
+"Стреляет стрелами дальше всего.": "Shoots arrows farthest of all."
+"Стрела": "Arrow"
+"Древко с кремнёвым наконечником. После выстрела её можно подобрать.": "A shaft with a flint head. After a shot it can be picked up."
+
+# content/tools/bow/data/recipes.yaml
+"Стрелы": "Arrows"

@@ -38,6 +38,8 @@ func _on_added(e: Dictionary) -> void:
 		return
 	_on_removed(e)
 	var label := Label3D.new()
+	# The sign's words as written.
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	label.font = UiStyle.font()
 	label.font_size = TEXT_SIZE
 	label.outline_size = 4

@@ -171,8 +171,8 @@ func _test_mods() -> void:
 		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s" % [ears])
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
-	_check(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants")) == "Животные (1 из 19), Растения" and Mods.summary(["core"]) == "только основа"
-		and Mods.summary(["core", "plants/oak"]) == "Растения (1 из 41)", "a set is summed up by mods")
+	_check(Lang.t(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants"))) == "Животные (1 из 19), Растения" and Mods.summary(["core"]) == "только основа"
+		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Растения (1 из 41)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -675,16 +675,16 @@ func _test_crafting() -> void:
 	inv.add("resources:fiber", 7)
 	knows.look_at(inv)
 	_check(knows.knows(cord) and "materials:cord" in heard and heard.size() == 2, "a recipe is learned when its materials have been in the bag")
-	_check(Workshop.learned_line(PackedStringArray(["materials:cord"])) == "Новый рецепт: Верёвка"
-		and Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"])).begins_with("Новые рецепты: Верёвка, ")
-		and Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"])).ends_with(" и ещё 2"),
+	_check(Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord"]))) == "Новый рецепт: Верёвка"
+		and Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"]))).begins_with("Новые рецепты: Верёвка, ")
+		and Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"]))).ends_with(" и ещё 2"),
 		"what one look teaches is told in one line, two names and how many more")
 	var copy := Knowledge.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
 	_check(copy.knows(cord) and copy.seen.has("resources:fiber"), "knowledge survives a save")
-	_check(Crafting.why_not(cord, inv, {}) == "" and Crafting.why_not(axe, inv, {}).begins_with("Нужен станок"),
+	_check(Crafting.why_not(cord, inv, {}) == "" and Lang.t(Crafting.why_not(axe, inv, {})).begins_with("Нужен станок"),
 		"by hand anywhere, at a station only near it")
-	_check(Crafting.why_not(planks, inv, {"tools:workbench": true}).begins_with("Нужен инструмент"), "planks need an axe in the bag")
+	_check(Lang.t(Crafting.why_not(planks, inv, {"tools:workbench": true})).begins_with("Нужен инструмент"), "planks need an axe in the bag")
 	var q := CraftQueue.new()
 	_check(q.add(cord, inv) and q.add(cord, inv) and not q.add(cord, inv), "the queue takes the materials of each job")
 	_check(inv.count("resources:fiber") == 1, "materials are gone while queued")

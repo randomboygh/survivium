@@ -24,7 +24,7 @@ src/client/              картинка, ввод и звук этого ус�
   audio/                 шины, ухо, природа, шаги, голоса, музыка
   ui/                    HUD, меню, окна сумки и крафта, настройки, карты, смерть, журнал фризов, стиль
 shaders/                 3D-шейдеры (общий common.gdshaderinc), цветокор, карта, интерфейс
-content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/; common/ общие ассеты
+content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (переводы); common/ общие ассеты
 assets/                  шрифт, заставка, значки интерфейса (ui/), иконки web-страницы (web/, без импорта)
 tests/                   headless-тесты (run_tests + unit/, save, progress, frame, server), проверка в браузере, run_all.sh (все проверки)
 tools/                   линт (lint.py), компиляция всех скриптов (parse_check.gd), хук pre-commit (hooks/), валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/

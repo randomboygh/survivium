@@ -35,6 +35,7 @@ const Biomes := preload("res://src/shared/content/biomes.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Every this many seconds the chunks made since get their animals (_populate_chunk) and
 ## those whose ground is forgotten go (_leave); every RESPAWN_EVERY the eaten are
@@ -1396,7 +1397,7 @@ func _fights(a: Animal, spec: Dictionary, fire: Variant) -> bool:
 			a.warn = WARN
 			a.idle = 0.0
 			if near_who.has_method("nag"):
-				near_who.nag("beast_warn", "%s угрожает: отойдите" % spec.title)
+				near_who.nag("beast_warn", Lang.line("%s угрожает: отойдите", [spec.title]))
 		a.target = a.pos
 		a.facing = signf(near_who.position.x - a.pos.x) if absf(near_who.position.x - a.pos.x) > 0.01 else a.facing
 		return true
@@ -1532,7 +1533,7 @@ func _land_bite(a: Animal, spec: Dictionary, who) -> void:
 	if away.length() > 0.01 and "body" in who and who.body != null:
 		who.body.knock(away, KNOCK, KNOCK_HOP)
 	if who.has_method("nag"):
-		who.nag("beast_bite", "%s нападает!" % spec.title)
+		who.nag("beast_bite", Lang.line("%s нападает!", [spec.title]))
 	a.bites += 1
 	bit.emit(a, who)
 	if a.hunting:

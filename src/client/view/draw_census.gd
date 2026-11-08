@@ -7,6 +7,7 @@ extends Node
 ## picture blinks while it counts.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Frames a group stays hidden; the calls are read in the last of them.
 const HIDDEN_FRAMES := 4
@@ -67,9 +68,9 @@ func start() -> void:
 		var dark := await _count()
 		for l in lights:
 			l.visible = true
-		rows.append(["свет огней (%d)" % lights.size(), all.x - dark.x, 0])
+		rows.append([Lang.f("свет огней (%d)", [lights.size()]), all.x - dark.x, 0])
 	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
-	var lines := ["Вызовы %d · объекты %d" % [all.x, all.y]]
+	var lines := [Lang.f("Вызовы %d · объекты %d", [all.x, all.y])]
 	for r in rows.slice(0, LINES):
 		if r[1] >= 1 or r[2] >= 10:
 			lines.append("%s: %d · %d" % [r[0], r[1], r[2]])

@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/carrot/bundle.yaml
+"Морковь": "Carrot"
+
+# content/plants/carrot/data/items.yaml
+"Семена моркови": "Carrot seeds"
+"Мелкие ребристые семена. Посейте их на грядку весной.": "Small ribbed seeds. Sow them on a bed in spring."
+"Сладкий оранжевый корнеплод.": "A sweet orange root."

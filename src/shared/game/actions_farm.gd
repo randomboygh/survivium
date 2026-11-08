@@ -13,6 +13,7 @@ extends "res://src/shared/game/actions_build.gd"
 ## becomes its tree (Growth.place) where there is room for one.
 
 ## How long a bed stays wet after watering or rain, in days.
+
 const WET_DAYS := 1.0
 ## Rain at least this strong (Clock.WEATHERS `rain`) wets the beds under the open sky.
 const RAIN_WETS := 0.3
@@ -60,10 +61,10 @@ func farm_at(who, cell: Vector3i) -> Variant:
 				if Tools.can_reap(t, c):
 					return reap(who, farm_cells(who, cell, t, func(at: Vector3i) -> bool: return can_reap(at, t)))
 				if t.tool == "scythe":
-					who.nag("reap", "%s косой не срезать: соберите руками или серпом" % c.title)
+					who.nag("reap", Lang.line("%s косой не срезать: соберите руками или серпом", [c.title]))
 					return {}
 			elif t.tool in ["hand", "sickle", "scythe", "hoe"]:
-				who.nag("ripe", "Ещё не созрело: %s, %d%%" % [c.title, roundi(growth(cell) * 100.0)])
+				who.nag("ripe", Lang.line("Ещё не созрело: %s, %d%%", [c.title, roundi(growth(cell) * 100.0)]))
 				return {}
 		if Tools.can_till(t):
 			who.nag("tilled", "Здесь уже грядка")
@@ -181,7 +182,7 @@ func _wear(who, tool: Variant) -> void:
 		who.use_tool()
 	elif tool is String and tool != "" and rules.tool_wear \
 			and who.inventory.wear_tool(tool, Items.get_item(tool).get("durability", 0)):
-		who.say("Сломалось: %s" % Items.title(tool))
+		who.say(Lang.line("Сломалось: %s", [Items.title(tool)]))
 
 
 # --- Sowing -------------------------------------------------------------------------------
@@ -231,7 +232,7 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		if spot != null:
 			cell = spot
 	if who.inventory.count(item.id) == 0:
-		who.nag("no_seed", "В сумке нет: %s" % Items.title(id))
+		who.nag("no_seed", Lang.line("В сумке нет: %s", [Items.title(id)]))
 		return false
 	if clock.season == WINTER:
 		who.nag("winter", "Зимой не сеют: дождитесь весны")

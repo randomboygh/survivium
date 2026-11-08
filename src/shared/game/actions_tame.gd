@@ -117,9 +117,9 @@ func tend(who) -> Dictionary:
 					a.owner = owner_id(who)
 					a.stay = Vector3.INF
 					a.shorn_at = clock.now()
-					who.say("%s теперь ваш и ходит за вами" % spec.title)
+					who.say(Lang.line("%s теперь ваш и ходит за вами", [spec.title]))
 				else:
-					who.say("%s ест с руки (%d из %d)" % [spec.title, a.fed, spec.tame_feeds])
+					who.say(Lang.line("%s ест с руки (%d из %d)", [spec.title, a.fed, spec.tame_feeds]))
 		"shear":
 			if not who.act("gather", "hunt"):
 				return {}
@@ -132,10 +132,10 @@ func tend(who) -> Dictionary:
 			who.use_tool()
 		"stay":
 			a.stay = a.pos
-			who.say("%s остаётся здесь" % spec.title)
+			who.say(Lang.line("%s остаётся здесь", [spec.title]))
 		"follow":
 			a.stay = Vector3.INF
-			who.say("%s идёт за вами" % spec.title)
+			who.say(Lang.line("%s идёт за вами", [spec.title]))
 	return _work(TEND_SWING, "", a.pos + Vector3(0.0, 0.2, 0.0))
 
 
@@ -200,7 +200,7 @@ func release(who) -> Dictionary:
 	if who.inventory.remove(item, 1) < 1:
 		return {}
 	var a = wildlife.release(kind, at, owner_id(who))
-	who.say("%s теперь ваш и ходит за вами" % AiRules.SPECIES[kind].title)
+	who.say(Lang.line("%s теперь ваш и ходит за вами", [AiRules.SPECIES[kind].title]))
 	return _work(TEND_SWING, "", a.pos + Vector3(0.0, 0.2, 0.0))
 
 

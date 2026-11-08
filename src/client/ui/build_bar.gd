@@ -15,6 +15,7 @@ const TabRow := preload("res://src/client/ui/tab_row.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The hotbar's cells, gaps and arrows (Hud.SLOT, Hud.GAP).
 const SLOT := 40
@@ -276,17 +277,17 @@ func _show_panel() -> void:
 	var b = game.build
 	var shape: Array = SHAPES.get(b.shape, SHAPES["line"])
 	_shape.icon = UiStyle.centred(UiStyle.icon(shape[0]))
-	_shape.tooltip_text = shape[1] + " (нажать — следующая фигура)"
+	_shape.tooltip_text = Lang.f("%s (нажать — следующая фигура)", [shape[1]])
 	TabRow.light(_shape, b.kind != "flatten")
 	TabRow.light(_flatten, b.kind == "flatten")
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form][0]))
-	_form.tooltip_text = FORMS[b.form][1] + " (нажать — следующая форма)"
+	_form.tooltip_text = Lang.f("%s (нажать — следующая форма)", [FORMS[b.form][1]])
 	_turn.disabled = b.form == 0
 	# A plane is as many levels as its height and has no walls to thicken.
 	_number(_height, b.height, b.kind == "flatten")
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])
-	_height.tooltip_text = "Высота: пол %s, стены %s, куб %s (с полом и потолком)" % [
-		b.heights.plane, b.heights.line, b.heights.cube]
+	_height.tooltip_text = Lang.f("Высота: пол %s, стены %s, куб %s (с полом и потолком)", [
+		b.heights.plane, b.heights.line, b.heights.cube])
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
 	_mode.tooltip_text = "Стирать чертёж (нажать — рисовать)" if b.erasing else "Рисовать чертёж (нажать — стирать)"
 	TabRow.light(_mode, b.erasing, b.erasing)
@@ -321,7 +322,7 @@ func _show_palette() -> void:
 		var count: int = inv.count(id) if id != "" else 0
 		s.number = "×%d" % count if count > 1 else ""
 		s.selected = id != "" and id == held
-		s.tooltip_text = Items.title(id) if id != "" else ""
+		s.tooltip_text = Lang.t(Items.title(id)) if id != "" else ""
 	var scrolls := _items.size() > shown
 	_prev.visible = scrolls
 	_next.visible = scrolls

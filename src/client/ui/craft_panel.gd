@@ -27,6 +27,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const COLUMNS := 8
 ## The most cells of recipes made in one refresh (see refresh_now).
@@ -358,7 +359,7 @@ func refresh_now() -> void:
 			var cell = HotbarSlot.new(slot)
 			cell.texture = ItemIcons.of_item(r.makes)
 			cell.number = "×%d" % r.count if r.count > 1 else ""
-			cell.tooltip_text = r.title
+			cell.tooltip_text = Lang.t(r.title)
 			# Picked as the finger lifts: a finger dragged over the cells scrolls them.
 			cell.on_release = true
 			cell.pressed.connect(func() -> void:
@@ -455,7 +456,7 @@ func _show_head() -> void:
 	# A fireplace put out is taken up whole; a campfire put out is only taken apart.
 	var hearth := Placed.is_hearth(_station)
 	_take_up.visible = not fire or hearth and not _station.lit
-	_take_up.tooltip_text = "Забрать в сумку: %s" % Items.title(_station.item)
+	_take_up.tooltip_text = Lang.f("Забрать в сумку: %s", [Lang.t(Items.title(_station.item))])
 	_fire.visible = fire
 	_destroy.visible = fire and not _station.lit and not hearth
 	var burns: bool = fire and Items.get_item(_station.item).fuel_max > 0.0
@@ -465,7 +466,7 @@ func _show_head() -> void:
 		var room: bool = Items.get_item(_station.item).fuel_max - float(_station.get("fuel", 0.0)) >= Placed.FUEL_ROOM
 		var has := Items.fuel_in(game.character.inventory) != ""
 		_feed.disabled = not _station.lit or not room or not has
-		_feed.tooltip_text = ("Подкинуть топливо (горит ещё %d:%02d)" % [left / 60, left % 60] if _station.lit else "Огонь не горит") \
+		_feed.tooltip_text = (Lang.f("Подкинуть топливо (горит ещё %d:%02d)", [left / 60, left % 60]) if _station.lit else "Огонь не горит") \
 			+ ("" if room or not _station.lit else ": полон") + ("" if has or not _station.lit else ": в сумке нет топлива")
 		_fuel_bar.queue_redraw()
 	if fire:
@@ -514,7 +515,7 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 			continue
 		var id: String = ids[i]
 		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id))
-		chip.tooltip_text = "Руками" if id == "" else "%s%s" % [Items.title(id), "" if near.has(id) else ": далеко"]
+		chip.tooltip_text = "Руками" if id == "" else "%s%s" % [Lang.t(Items.title(id)), "" if near.has(id) else ": далеко"]
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
 
 
@@ -529,20 +530,20 @@ func _show_details(near: Dictionary) -> void:
 		return
 	var inv = game.character.inventory
 	_icon.texture = ItemIcons.of_item(r.makes)
-	_title.text = "%s%s" % [r.title, " ×%d" % r.count if r.count > 1 else ""]
+	_title.text = "%s%s" % [Lang.t(r.title), " ×%d" % r.count if r.count > 1 else ""]
 	_get.visible = _free()
 	_fit_title()
 	var needs := []
 	for id in r.needs:
 		var have: int = inv.count(id)
-		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Items.title(id)])
+		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Lang.t(Items.title(id))])
 	var keeps := []
 	for id in r.keeps:
 		var have: int = inv.count(id)
-		keeps.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], "%s: не расходуется" % Items.title(id)])
+		keeps.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], Lang.f("%s: не расходуется", [Lang.t(Items.title(id))])])
 	var at := []
 	if r.at != "":
-		at.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Items.title(r.at)])
+		at.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Lang.t(Items.title(r.at))])
 	else:
 		at.append([ItemIcons.picture("hand"), "", false, "Руками, без станка"])
 	var tools := []
@@ -550,16 +551,16 @@ func _show_details(near: Dictionary) -> void:
 		var has := Tools.holds(inv, kind)
 		var name := Items.tool_title(kind)
 		tools.append([ItemIcons.of_tool(kind), "" if has else "нет", not has,
-			name.left(1).to_upper() + name.substr(1) + (": износ %d за изделие" % r.wear if r.wear > 0 else "")])
+			name.left(1).to_upper() + name.substr(1) + (Lang.f(": износ %d за изделие", [r.wear]) if r.wear > 0 else "")])
 	# The time of the recipe at the character's skill of its work.
 	var secs: float = game.workshop.time_of(r)
-	var time := [[UiStyle.icon("clock"), "%d с" % roundi(secs), false, "Время изготовления" +
-		(" (без навыка %d с)" % roundi(r.time) if roundi(secs) < roundi(r.time) else "")]]
+	var time := [[UiStyle.icon("clock"), Lang.f("%d с", [roundi(secs)]), false, tr("Время изготовления") +
+		(Lang.f(" (без навыка %d с)", [roundi(r.time)]) if roundi(secs) < roundi(r.time) else "")]]
 	var also := []
 	for e: Dictionary in r.also:
 		var share := roundi(e.chance * 100.0)
 		also.append([ItemIcons.of_item(e.item), "+%d" % e.count if share >= 100 else "%d%%" % share, false,
-			"Побочно: %s ×%d%s" % [Items.title(e.item), e.count, "" if share >= 100 else ", шанс %d%%" % share]])
+			Lang.f("Побочно: %s ×%d%s", [Lang.t(Items.title(e.item)), e.count, "" if share >= 100 else Lang.f(", шанс %d%%", [share])])])
 	var made := []
 	for g: Array in FactChips.item_groups(r.makes, r.count):
 		made.append_array(g[1])
@@ -629,14 +630,14 @@ func _show_queue() -> void:
 	var name := r.get("title", jobs[_job].recipe) as String
 	var text := ""
 	if _job > 0:
-		text = "%d-я" % (_job + 1)
+		text = Lang.f("%d-я", [(_job + 1)])
 	elif shop.paused:
 		text = "пауза"
 	elif shop.waiting():
 		text = "ждёт"
-		name += ", ждёт: %s" % _where(r)
+		name += Lang.f(", ждёт: %s", [_where(r)])
 	else:
-		text = "%d с" % ceili(jobs[0].left * game.workshop.time_of(r) / maxf(0.001, float(r.get("time", 1.0))))
+		text = Lang.f("%d с", [ceili(jobs[0].left * game.workshop.time_of(r) / maxf(0.001, float(r.get("time", 1.0))))])
 	_job_label.text = text
 	_job_label.tooltip_text = name
 	for i in n:

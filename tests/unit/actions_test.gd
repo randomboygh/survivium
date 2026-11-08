@@ -560,9 +560,9 @@ func _test_station_flags() -> void:
 	for i in who.inventory.slots.size():
 		if who.inventory.slots[i] != null and who.inventory.slots[i][0] == "tools:stone_axe":
 			slot = i
-	var by_rack := shop.why_not_repair(slot)
+	var by_rack := Lang.t(shop.why_not_repair(slot))
 	who.position = Vector3(40.5, 2.0, 40.5) * WorldData.CELL
-	_check(by_rack.begins_with("Не хватает") and shop.why_not_repair(slot) == "Чинят у станка: Верстак",
+	_check(by_rack.begins_with("Не хватает") and Lang.t(shop.why_not_repair(slot)) == "Чинят у станка: Верстак",
 		"tools are mended at a station that repairs (the workbench), or one that stands in for it: %s" % by_rack)
 	Mods.activate(before)
 	for f in ["data/items.yaml", "data/recipes.yaml", "mod.yaml"]:
@@ -601,9 +601,9 @@ func _test_recipe_fields() -> void:
 	placed.world = WorldData.new(4, Vector2i(16, 16))
 	var shop := Workshop.new(who, placed, Rules.of({"tool_wear": true, "instant_craft": true}))
 	who.inventory.add("resources:branch", 5)
-	_check(shop.why_not(cup) == "Нужен инструмент: нож", "a cup needs a knife in the bag: %s" % shop.why_not(cup))
+	_check(Lang.t(shop.why_not(cup)) == "Нужен инструмент: нож", "a cup needs a knife in the bag: %s" % Lang.t(shop.why_not(cup)))
 	who.inventory.add("_r:knife", 1)
-	_check(shop.why_not(cup) == "Не хватает: 1 Форма", "and a mould: %s" % shop.why_not(cup))
+	_check(Lang.t(shop.why_not(cup)) == "Не хватает: 1 Форма", "and a mould: %s" % Lang.t(shop.why_not(cup)))
 	who.inventory.add("_r:mould", 1)
 	_check(shop.why_not(cup) == "" and shop.start(cup, 3) == 3 and who.inventory.count("resources:branch") == 2
 		and who.inventory.count("_r:mould") == 1, "three cups are queued: a branch each is used up, the mould is kept")

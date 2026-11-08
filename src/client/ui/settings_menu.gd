@@ -23,6 +23,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
@@ -257,7 +258,7 @@ func _fill() -> void:
 	_focus = -1
 	var which := page
 	var info := build_info()
-	_version.text = "Версия %s · %s · %s" % [info.version, info.commit, info.date]
+	_version.text = Lang.f("Версия %s · %s · %s", [info.version, info.commit, info.date])
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
@@ -477,7 +478,12 @@ func _section_rows(key: String) -> Array:
 			]
 		"game":
 			return [
-				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return "%d мин" % roundi(clock.DAY_LENGTH / v / 60.0)),
+				["Язык", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
+					func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(s.values.language)),
+					func(i: int) -> void:
+						s.set_language(Lang.LANGS[i][0])
+						_fill.call_deferred()],
+				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return Lang.f("%d мин", [roundi(clock.DAY_LENGTH / v / 60.0)])),
 					func() -> int: return s.values.time_speed,
 					func(i: int) -> void: s.set_value("time_speed", i), "", game_time],
 				["Время суток", ["игровое", "как в жизни"],
@@ -844,29 +850,29 @@ func report_text() -> String:
 	var minutes := int(clock.time_of_day * 24.0 * 60.0)
 	var lines := [
 		"Survivium %s · %s · %s" % [info.version, info.commit, info.date],
-		"Мир: %s, настройки %s" % ["тестовый" if s.in_test_world() else "зерно %d" % game.world_seed,
-			JSON.stringify(game.world_options)],
-		"Игрок: x %d, y %d, уровень %d, срез %d" % [cell.x, cell.z, cell.y, game.chunks.cut_level],
-		"Камера: поворот %d°, наклон %d" % [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps],
-		"Время: день %d, %s, %02d:%02d, ход ×%s%s%s" % [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
+		Lang.f("Мир: %s, настройки %s", ["тестовый" if s.in_test_world() else Lang.f("зерно %d", [game.world_seed]),
+			JSON.stringify(game.world_options)]),
+		Lang.f("Игрок: x %d, y %d, уровень %d, срез %d", [cell.x, cell.z, cell.y, game.chunks.cut_level]),
+		Lang.f("Камера: поворот %d°, наклон %d", [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps]),
+		Lang.f("Время: день %d, %s, %02d:%02d, ход ×%s%s%s", [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
 			str(clock.time_speed * s.time_boost), ", как в жизни" if clock.real_time else "",
-			", сезон как в жизни" if clock.real_season else ""],
-		"Погода: %s%s, облака %.2f, дождь %.2f, снег %.2f, туман %.2f, ветер %.2f к %d°, снег лежит %.2f, лужи %.2f" % [
+			", сезон как в жизни" if clock.real_season else ""]),
+		Lang.f("Погода: %s%s, облака %.2f, дождь %.2f, снег %.2f, туман %.2f, ветер %.2f к %d°, снег лежит %.2f, лужи %.2f", [
 			clock.WEATHERS[clock.weather].name, "" if clock.weather_auto else " (выбрана)", clock.clouds, clock.rain,
-			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles],
-		"Свет: день %.2f, луна %.2f%s" % [sky.daylight, sky.moon, " (выбрана)" if sky.moon_override >= 0.0 else ""],
-		"Настройки: %s" % JSON.stringify(s.values),
-		"Устройство: %s, экран %dx%d, окно %dx%d, %s" % [OS.get_name(), DisplayServer.screen_get_size().x,
+			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles]),
+		Lang.f("Свет: день %.2f, луна %.2f%s", [sky.daylight, sky.moon, " (выбрана)" if sky.moon_override >= 0.0 else ""]),
+		Lang.f("Настройки: %s", [JSON.stringify(s.values)]),
+		Lang.f("Устройство: %s, экран %dx%d, окно %dx%d, %s", [OS.get_name(), DisplayServer.screen_get_size().x,
 			DisplayServer.screen_get_size().y, get_viewport().get_visible_rect().size.x,
-			get_viewport().get_visible_rect().size.y, RenderingServer.get_video_adapter_name()],
-		"Кадр: обычный %.1f мс, фризов в журнале %d" % [game.hud.perf.usual[0], game.hud.perf.freeze_log.size()],
+			get_viewport().get_visible_rect().size.y, RenderingServer.get_video_adapter_name()]),
+		Lang.f("Кадр: обычный %.1f мс, фризов в журнале %d", [game.hud.perf.usual[0], game.hud.perf.freeze_log.size()]),
 		StartTimes.line(),
-		"Прошлые запуски: %s" % ("; ".join(StartTimes.past().slice(0, 3)) if not StartTimes.past().is_empty() else "нет"),
+		Lang.f("Прошлые запуски: %s", [("; ".join(StartTimes.past().slice(0, 3)) if not StartTimes.past().is_empty() else "нет")]),
 	]
 	if game.net != null:
-		lines.append("Сервер: %s, запросов %d, байт туда %d, обратно %d, кодирование %.1f мс, ждут %d" % [
-			"по сети " + game.join_url if game.socket != null else "в игре (петля)",
-			game.net.requests, game.net.sent_bytes, game.net.received_bytes, game.net.coding_us / 1000.0, game.net.pending()])
+		lines.append(Lang.f("Сервер: %s, запросов %d, байт туда %d, обратно %d, кодирование %.1f мс, ждут %d", [
+			Lang.f("по сети %s", [game.join_url]) if game.socket != null else "в игре (петля)",
+			game.net.requests, game.net.sent_bytes, game.net.received_bytes, game.net.coding_us / 1000.0, game.net.pending()]))
 	return "\n".join(lines)
 
 

@@ -18,6 +18,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const CELL := WorldData.CELL
 ## Cells one shape may have at most, and the ghost cells in the world at most.
@@ -500,7 +501,7 @@ func build(actions, who) -> Dictionary:
 		done.placed = 1
 		return done
 	if missing != "":
-		who.nag("no_block", "В сумке нет: %s" % Items.title(missing))
+		who.nag("no_block", Lang.line("В сумке нет: %s", [Items.title(missing)]))
 	else:
 		who.nag("plan_wait", "Чертёж: сначала то, на чём стоять")
 	return {"swing": actions.IDLE_SWING}
@@ -773,7 +774,7 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 		_drop([c])
 		return null
 	if who.inventory.count(v) == 0:
-		return "В сумке нет: %s" % Items.title(v)
+		return Lang.line("В сумке нет: %s", [Items.title(v)])
 	if Plants.is_crop(Items.get_item(v).get("crop", "")):
 		if actions.clock.season == actions.WINTER:
 			return "Зимой не сеют: дождитесь весны"

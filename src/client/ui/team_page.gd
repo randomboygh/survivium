@@ -11,6 +11,7 @@ extends ScrollContainer
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The least width of its buttons.
 const WIDTH := 200
@@ -53,7 +54,7 @@ func refresh() -> void:
 	var team = game.team
 	var me := int(game.welcome.get("id", -1))
 	for e: Array in team.invites:
-		_box.add_child(UiStyle.label("%s зовёт вас в команду" % e[1]))
+		_box.add_child(UiStyle.label(Lang.f("%s зовёт вас в команду", [e[1]])))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		_box.add_child(row)
@@ -82,7 +83,7 @@ func refresh() -> void:
 	_box.add_child(hint)
 	_box.add_child(UiStyle.label("PvP: %s" % PVP_TITLES.get(team.pvp, team.pvp), UiStyle.MUTED))
 	if team.protected > 0 and team.pvp != "off":
-		_box.add_child(UiStyle.label("Защита новичка: ещё %d мин" % team.protected, UiStyle.MUTED))
+		_box.add_child(UiStyle.label(Lang.f("Защита новичка: ещё %d мин", [team.protected]), UiStyle.MUTED))
 		_button(_box, "Снять защиту", team.give_up_protection)
 	if on_layout.is_valid():
 		on_layout.call_deferred()

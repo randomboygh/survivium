@@ -55,7 +55,7 @@ func toast(text: String) -> void:
 ## A notice in the list of toasts (see toast) that stands out: a gold star by `title`
 ## and a line `sub` under it, the panel warmed gold (a skill's new level, LevelUp).
 func notice(title: String, sub: String) -> void:
-	toast("★ " + title + "\n" + sub)
+	toast("★ " + Lang.t(title) + "\n" + Lang.t(sub))
 	var holder: Control = _toasts.get_child(_toasts.get_child_count() - 1)
 	if holder.get_child_count() > 0:
 		var p: Control = holder.get_child(0)

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Knife"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Flint knife"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "A sharp flint shard on a handle. Butchers carcasses and hits animals."
+"Медный нож": "Copper knife"
+"Бронзовый нож": "Bronze knife"
+"Железный нож": "Iron knife"
+"Стальной нож": "Steel knife"

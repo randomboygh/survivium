@@ -20,6 +20,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const Skills := preload("res://src/shared/content/skills.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 signal picked(slot: String)
 
@@ -131,7 +132,14 @@ func _draw_bar(bar: Control, sk: Dictionary) -> void:
 	var font := UiStyle.font()
 	var fs := UiStyle.FONT_SIZE
 	var y := floorf((r.size.y - font.get_height(fs)) * 0.5) + font.get_ascent(fs)
-	bar.draw_string(font, Vector2(4, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.INK)
+	# A name longer than the bar (some languages) is cut with a dot.
+	var shown := Lang.t(title)
+	var room := r.size.x - 6.0
+	if font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > room:
+		while shown.length() > 1 and font.get_string_size(shown + ".", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > room:
+			shown = shown.left(-1)
+		shown += "."
+	bar.draw_string(font, Vector2(4, y), shown, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.INK)
 
 
 ## Lays the figure out for slots `side` UI pixels large.
@@ -197,9 +205,9 @@ func refresh() -> void:
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	back.tooltip_text = "Сумка: %d ячеек%s; занято %d из %d, %.1f из %d кг" % [inv.base,
-		(", %s: ещё %d" % [Items.title(inv.gear.back), Items.bag_slots(inv.gear.back)]) if inv.gear.has("back") else "",
-		taken, inv.slots.size(), inv.weight(), inv.weight_limit]
+	back.tooltip_text = Lang.f("Сумка: %d ячеек%s; занято %d из %d, %.1f из %d кг", [inv.base,
+		(Lang.f(", %s: ещё %d", [Lang.t(Items.title(inv.gear.back)), Items.bag_slots(inv.gear.back)])) if inv.gear.has("back") else "",
+		taken, inv.slots.size(), inv.weight(), inv.weight_limit])
 	_show_skills(inv)
 
 
@@ -224,31 +232,31 @@ func _show_skills(inv) -> void:
 	for i in mini(_bars.size(), Skills.ALL.size()):
 		var sk: Dictionary = Skills.ALL[i]
 		var level: int = skills.level(sk.id)
-		var text := "%s: уровень %d из %d" % [sk.title, level, sk.levels]
+		var text := Lang.f("%s: уровень %d из %d", [sk.title, level, sk.levels])
 		if level < sk.levels:
-			text += ", до следующего %d%%" % floori(skills.progress(sk.id) * 100.0)
+			text += Lang.f(", до следующего %d%%", [floori(skills.progress(sk.id) * 100.0)])
 		var faster := roundi((skills.boost(sk.role) - 1.0) * 100.0)
 		if faster > 0:
-			text += "\n%s на %d%%" % ["Плывёт быстрее" if sk.role == "swim" else "Работа быстрее", faster]
+			text += Lang.f("\n%s на %d%%", ["Плывёт быстрее" if sk.role == "swim" else "Работа быстрее", faster])
 		var cheaper := roundi((1.0 - skills.effort(sk.role)) * 100.0)
 		if cheaper > 0:
-			text += "\nСил на взмах меньше на %d%%" % cheaper
+			text += Lang.f("\nСил на взмах меньше на %d%%", [cheaper])
 		var more := roundi(skills.extra_chance(sk.role) * 100.0)
 		if more > 0:
-			text += "\nЕщё одна штука: шанс %d%%" % more
+			text += Lang.f("\nЕщё одна штука: шанс %d%%", [more])
 		var harder := roundi(sk.might * level * 100.0 / sk.levels)
 		if harder > 0:
-			text += "\nУдар сильнее на %d%%" % harder
+			text += Lang.f("\nУдар сильнее на %d%%", [harder])
 		var better := roundi(skills.quality_most(sk.role) * skills.share_of(sk.role))
 		if sk.role in Quality.GETS and better > 0:
-			text += "\nКачество добытого +%d" % better
+			text += Lang.f("\nКачество добытого +%d", [better])
 		elif sk.role in Quality.MAKES:
-			text += "\nКачество сделанного до %d" % Quality.skill_cap(skills.share_of(sk.role), skills.quality_most(sk.role))
+			text += Lang.f("\nКачество сделанного до %d", [Quality.skill_cap(skills.share_of(sk.role), skills.quality_most(sk.role))])
 		var spared := roundi(skills.care_chance(sk.role) * 100.0)
 		if spared > 0:
-			text += "\nИнструмент не изнашивается: шанс %d%%" % spared
+			text += Lang.f("\nИнструмент не изнашивается: шанс %d%%", [spared])
 		if _tool.has(sk.role):
-			text += "\nВ руке: «%s»" % Items.title(_tool[sk.role])
+			text += Lang.f("\nВ руке: «%s»", [Lang.t(Items.title(_tool[sk.role]))])
 		if sk.get("description", "") != "":
 			text += "\n" + sk.description
 		_bars[i].tooltip_text = text

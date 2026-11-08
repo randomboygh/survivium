@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/flax/bundle.yaml
+"Лён": "Flax"
+
+# content/plants/flax/data/items.yaml
+"Семена льна": "Flax seeds"
+"Гладкие блестящие семена. Посейте их на грядку весной.": "Smooth shiny seeds. Sow them on a bed in spring."
+"Стебли льна": "Flax stems"
+"Срезанный дикий лён. Из него прядут льняную нить.": "Cut wild flax. Linen thread is spun from it."
+"Льняная нить": "Linen thread"
+"Тонкая прочная нить. На ткацком станке из неё ткут ткань.": "A thin strong thread. Cloth is woven from it on a loom."
+
+# content/plants/flax/data/recipes.yaml
+"Льняная ткань": "Linen cloth"

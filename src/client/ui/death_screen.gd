@@ -11,12 +11,17 @@ extends Control
 ## game's interface is hidden meanwhile; the screen takes the interface's scale and
 ## safe rect, as the main menu does, and leaves the place of death in sight. `game` is the Main node.
 
+## The languages whose nouns go with numbers in three forms, as Russian's do.
+const SLAVIC := ["ru", "uk", "pl"]
+## The languages that write a decimal comma.
+const COMMA := ["ru", "uk", "pl", "de", "fr", "es", "pt", "it", "tr"]
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const WIDTH := 252
 const BUTTON_H := 30
@@ -194,7 +199,7 @@ func update() -> void:
 ## «2 суток», «1 сутки», «5 суток» for `days` game days.
 static func _days_text(days: float) -> String:
 	var n := maxi(1, roundi(days))
-	return "%d %s" % [n, "сутки" if n % 10 == 1 and n % 100 != 11 else "суток"]
+	return "%d %s" % [n, _plural(n, ["сутки", "суток", "суток"])]
 
 
 ## Puts the death of the character on the screen.
@@ -206,7 +211,7 @@ func _fill() -> void:
 	_cause.text = cause[1]
 	_cause.visible = cause[1] != ""
 	var t := float(death.get("time", 0.0)) * 24.0
-	_when.text = "день %d · %02d:%02d" % [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))]
+	_when.text = Lang.f("день %d · %02d:%02d", [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))])
 	# Out of the grid at once: the panel is measured below, before the frame ends.
 	for c in _lost.get_children():
 		c.queue_free()
@@ -216,7 +221,7 @@ func _fill() -> void:
 		var s := HotbarSlot.new(SLOT)
 		s.texture = ItemIcons.of_item(st[0])
 		s.number = str(st[1]) if int(st[1]) > 1 else ""
-		s.tooltip_text = Items.title(st[0])
+		s.tooltip_text = Lang.t(Items.title(st[0]))
 		_lost.add_child(s)
 	_lost.visible = not lost.is_empty()
 	var points: Array = character.respawn_points()
@@ -224,9 +229,9 @@ func _fill() -> void:
 	if lost.is_empty():
 		_note.text = "Ничего: сумка была пуста"
 	else:
-		_sack.text = "Мешок с вещами %s" % _where(death.get("sack"), points[0])
+		_sack.text = Lang.f("Мешок с вещами %s", [_where(death.get("sack"), points[0])])
 		var days := float(death.get("sack_days", CharacterScript.SACK_DAYS))
-		_note.text = "Он светится и ждёт там, где вы упали, %s, потом пропадёт" % _days_text(days)
+		_note.text = Lang.f("Он светится и ждёт там, где вы упали, %s, потом пропадёт", [_days_text(days)])
 	for c in _respawn.get_children():
 		c.queue_free()
 		_respawn.remove_child(c)
@@ -236,8 +241,8 @@ func _fill() -> void:
 		choices.append(["На месте смерти", Vector3(fell[0], fell[1], fell[2]) if fell.size() == 3 else points[0][1]])
 	for p: Array in choices:
 		var at: Vector3 = p[1]
-		var title: String = p[0]
-		var b := _button(_respawn, "Возродиться " + title.left(1).to_lower() + title.substr(1), func() -> void: _revive(at))
+		var title := Lang.t(p[0])
+		var b := _button(_respawn, Lang.f("Возродиться %s", [title.left(1).to_lower() + title.substr(1)]), func() -> void: _revive(at))
 		UiStyle.accent(b)
 		b.add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
 	var has_menu: bool = game.menu != null
@@ -274,9 +279,9 @@ func _fill_stats(death: Dictionary) -> void:
 	if n <= 1:
 		_record.text = "Первая смерть в этом мире"
 	elif days > best:
-		_record.text = "Смерть №%d в этом мире\nНовый рекорд жизни!" % n
+		_record.text = Lang.f("Смерть №%d в этом мире\nНовый рекорд жизни!", [n])
 	else:
-		_record.text = "Смерть №%d в этом мире\nРекорд жизни: %s" % [n, _days(best)]
+		_record.text = Lang.f("Смерть №%d в этом мире\nРекорд жизни: %s", [n, _days(best)])
 	_record.add_theme_color_override("font_color", UiStyle.ACCENT if n > 1 and days > best else UiStyle.MUTED)
 
 
@@ -287,42 +292,48 @@ static func _value(name: String, v: float, forms: Array) -> String:
 		"days":
 			return _days(v)
 		"walked":
-			return ("%.1f км" % (v / 1000.0)).replace(".", ",") if v >= 1000.0 else "%d м" % roundi(v)
+			var km := Lang.f("%.1f км", [v / 1000.0])
+			return (km.replace(".", ",") if Lang.code in COMMA else km) if v >= 1000.0 else Lang.f("%d м", [roundi(v)])
 	var n := roundi(v)
 	return "%d %s" % [n, _plural(n, forms)]
 
 
-## The form of a noun in `forms` (one, two, five) that goes with the number `n`.
+## The form of a noun in `forms` (one, two, five, written in Russian) that goes with the
+## number `n`, in the language in use: three forms as in Russian where the language
+## counts that way (SLAVIC), else one and many (the first and the last).
 static func _plural(n: int, forms: Array) -> String:
+	if not Lang.code in SLAVIC and Lang.code != "":
+		return Lang.t(forms[0] if n == 1 else forms[2])
 	if n % 10 == 1 and n % 100 != 11:
-		return forms[0]
+		return Lang.t(forms[0])
 	if n % 10 >= 2 and n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
-		return forms[1]
-	return forms[2]
+		return Lang.t(forms[1])
+	return Lang.t(forms[2])
 
 
 ## `d` game days as "2 дн 5 ч", "5 ч 20 мин" or "40 мин".
 static func _days(d: float) -> String:
 	var minutes := roundi(d * 24.0 * 60.0)
 	if minutes >= 24 * 60:
-		return "%d дн %d ч" % [minutes / (24 * 60), (minutes / 60) % 24]
+		return Lang.f("%d дн %d ч", [minutes / (24 * 60), (minutes / 60) % 24])
 	if minutes >= 60:
-		return "%d ч %d мин" % [minutes / 60, minutes % 60]
-	return "%d мин" % minutes
+		return Lang.f("%d ч %d мин", [minutes / 60, minutes % 60])
+	return Lang.f("%d мин", [minutes])
 
 
-## "в 40 м к северо-востоку от костра старта", from respawn point `point` ([title,
+## "в 40 м к северо-востоку от точки «У своего костра»", from respawn point `point` ([title,
 ## position]) to the sack at `sack` ([x, y, z] or null).
 static func _where(sack: Variant, point: Array) -> String:
 	if not (sack is Array) or sack.size() != 3:
 		return "там, где вы упали"
 	var from: Vector3 = point[1]
 	var d := Vector2(float(sack[0]) - from.x, float(sack[2]) - from.z)
-	var title := (point[0] as String).trim_prefix("У ").trim_prefix("у ")
+	# The point by its own name, so a language need not decline it.
+	var title: String = point[0]
 	if d.length() < 3.0:
-		return "у самого %s" % title
+		return Lang.f("у самой точки «%s»", [title])
 	var sector := posmod(roundi(atan2(d.x, -d.y) / (TAU / 8.0)), 8)
-	return "в %d м %s от %s" % [roundi(d.length()), DIRECTIONS[sector], title]
+	return Lang.f("в %d м %s от точки «%s»", [roundi(d.length()), DIRECTIONS[sector], title])
 
 
 func _revive(at: Vector3) -> void:

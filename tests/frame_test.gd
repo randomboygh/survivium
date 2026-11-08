@@ -76,6 +76,7 @@ func _initialize() -> void:
 	OS.low_processor_usage_mode_sleep_usec = 0
 	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
 	SettingsFile.path = "user://test_settings.cfg"
+	SettingsFile.language_override = "ru"
 	DirAccess.remove_absolute(SettingsFile.path)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
@@ -532,7 +533,7 @@ func _run() -> void:
 	var first: String = menu._rows[0].name.text
 	menu.show_section("game")
 	await process_frame
-	_check(first == "Качество" and menu._rows[0].name.text == "Длина суток"
+	_check(first == "Качество" and menu._rows[0].name.text == "Язык"
 		and is_equal_approx(menu.get_combined_minimum_size().y, tall),
 		"settings sections by tabs, the window as tall on each")
 	var wide: float = menu.size.x

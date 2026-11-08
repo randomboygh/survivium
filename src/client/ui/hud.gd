@@ -332,8 +332,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func clock_text() -> String:
 	var hours := int(game.clock.time_of_day * 24.0)
 	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
-	return "%s · %d° · д. %d · %02d:%02d" % [game.clock.SEASONS[game.clock.season], roundi(air()), game.clock.day,
-		hours, minutes]
+	return Lang.f("%s · %d° · д. %d · %02d:%02d", [game.clock.SEASONS[game.clock.season], roundi(air()), game.clock.day,
+		hours, minutes])
 
 
 ## The air where the player stands, degrees (Warmth.air: biome, season, time, weather;
@@ -437,7 +437,7 @@ func update_state() -> void:
 	_level_up.disabled = game.chunks.cut_base() + 1 > reach.y
 	_level_down.disabled = game.chunks.cut_base() - 1 < reach.x
 	# On two lines, so the column is one button wide.
-	_level_text.text = "Срез\n%d" % game.chunks.cut_level if cut else "Ур.\n%d" % game.player.level()
+	_level_text.text = Lang.f("Срез\n%d", [game.chunks.cut_level]) if cut else Lang.f("Ур.\n%d", [game.player.level()])
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
 	# A colour set anew tells the label its theme changed, which lays it out again.
 	if _level_ink != ink:

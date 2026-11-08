@@ -9,6 +9,7 @@ extends RefCounted
 ## engine's line «OpenGL API» caught by the page (export_presets.cfg, `svStart`).
 
 const Content := preload("res://src/shared/content/content.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The last starts kept, the newest first, a line each.
 const FILE := "user://starts.txt"
@@ -92,11 +93,11 @@ static func _s(ms: float) -> String:
 static func _download(what: String, d: Array) -> String:
 	if float(d[1]) <= 0.0:
 		# Kept by the page itself (tools/web_cache.py): found there at this moment.
-		return "%s из памяти к %s" % [what, _s(float(d[0]))]
+		return Lang.f("%s из памяти к %s", [what, _s(float(d[0]))])
 	var mb := float(d[1]) / 1048576.0
 	# A file from the cache moves no bytes, or a few hundred for asking it is still fresh.
 	var net := "по сети" if float(d[2]) > 4096.0 else "из кэша"
-	return "%s %.1f МБ %s к %s" % [what, mb, net, _s(float(d[0]))]
+	return Lang.f("%s %.1f МБ %s к %s", [what, mb, net, _s(float(d[0]))])
 
 
 ## The page's own wait: "(воркер 0.1, запрос 0.2, ответ 0.3)", the moments it began.
@@ -106,9 +107,9 @@ static func _nav(p: Dictionary) -> String:
 		return ""
 	var out := []
 	if float(n[0]) > 0.0:
-		out.append("воркер %s" % _s(float(n[0])))
-	out.append("запрос %s" % _s(float(n[1])))
-	out.append("ответ %s" % _s(float(n[2])))
+		out.append(Lang.f("воркер %s", [_s(float(n[0]))]))
+	out.append(Lang.f("запрос %s", [_s(float(n[1]))]))
+	out.append(Lang.f("ответ %s", [_s(float(n[2]))]))
 	return " (%s)" % ", ".join(out)
 
 
@@ -120,7 +121,7 @@ static func _steps(full := true) -> Array:
 	var p := page()
 	if p.has("gl") and not again:
 		var gl: float = float(p.gl) - float(p.engine)
-		out.append("графика %s" % _s(gl))
+		out.append(Lang.f("графика %s", [_s(gl)]))
 		at = gl
 	if compiled_ms >= 0 and not again:
 		# The mods' data is read and loaded while the scripts compile (Materials' static
@@ -129,15 +130,15 @@ static func _steps(full := true) -> Array:
 		out.append("%s %s" % ["скрипты" if at > 0.0 else "движок и скрипты", _s(maxf(0.0, compiled_ms - at - mods))])
 		if full:
 			# Files from Content.PARSED (parsed when the game was built) of all read.
-			out.append("данные модов %s (записей %d: чтение %d мс, набор %d мс, готовых файлов %d из %d)" % [_s(mods),
+			out.append(Lang.f("данные модов %s (записей %d: чтение %d мс, набор %d мс, готовых файлов %d из %d)", [_s(mods),
 				Content.record_count(), roundi(Content.read_ms), roundi(Content.load_ms), Content.cached_files,
-				Content.cached_files + Content.parsed_files])
+				Content.cached_files + Content.parsed_files]))
 		else:
-			out.append("моды %s" % _s(mods))
+			out.append(Lang.f("моды %s", [_s(mods)]))
 		at = compiled_ms
 	var scene: float = marks.get("scene", at)
 	if not again:
-		out.append("сцена %s" % _s(scene - at))
+		out.append(Lang.f("сцена %s", [_s(scene - at)]))
 	at = scene
 	for step: Array in [["modules", "модули"], ["menu", "меню"]]:
 		if marks.has(step[0]):
@@ -152,26 +153,26 @@ static func line() -> String:
 	var parts := []
 	var p := page()
 	if not p.is_empty() and not again:
-		parts.append("страница %s%s" % [_s(float(p.get("html", 0.0))), _nav(p)])
+		parts.append(Lang.f("страница %s%s", [_s(float(p.get("html", 0.0))), _nav(p)]))
 		for k: String in ["wasm", "pck"]:
 			if p.has(k):
 				parts.append(_download(k, p[k]))
-		parts.append("движок с %s" % _s(float(p.engine)))
+		parts.append(Lang.f("движок с %s", [_s(float(p.engine))]))
 	elif again:
 		parts.append("сцена заново")
 	parts.append_array(_steps())
 	if marks.has("world"):
 		# From the moment the world was asked for (the menu's choice), not the scene's start.
 		var from: float = marks.get("load", marks.get("modules", marks.scene))
-		var w := "мир %s (место %s, чанки %s, сетки %s" % [_s(marks.world - from), _s(spawn_ms), _s(chunks_ms), _s(mesh_ms)]
+		var w := Lang.f("мир %s (место %s, чанки %s, сетки %s", [_s(marks.world - from), _s(spawn_ms), _s(chunks_ms), _s(mesh_ms)])
 		if marks.has("ready"):
 			# The shaders built ahead and the first frames, until the world showed.
-			w += ", первые кадры %s" % _s(maxf(0.0, marks.ready - marks.world))
+			w += Lang.f(", первые кадры %s", [_s(maxf(0.0, marks.ready - marks.world))])
 		parts.append(w + ")")
 	var total := ""
 	if marks.has("menu"):
-		total = ", до меню %s с" % _s(_on_page(marks.menu))
-	return "Загрузка, с: %s%s%s" % [", ".join(parts), total, (", ядер %d" % int(p.cores)) if p.has("cores") else ""]
+		total = Lang.f(", до меню %s с", [_s(_on_page(marks.menu))])
+	return Lang.f("Загрузка, с: %s%s%s", [", ".join(parts), total, (Lang.f(", ядер %d", [int(p.cores)])) if p.has("cores") else ""])
 
 
 ## Msec `ms` of the engine's clock on the page's (the same off the web).
@@ -185,9 +186,9 @@ static func keep() -> void:
 	if _kept or again or not marks.has("world"):
 		return
 	_kept = true
-	var short := "%s: до меню %s с (%s), мир %s с" % [Time.get_datetime_string_from_system().replace("T", " ").left(16),
+	var short := Lang.f("%s: до меню %s с (%s), мир %s с", [Time.get_datetime_string_from_system().replace("T", " ").left(16),
 		_s(_on_page(marks.get("menu", marks.world))), ", ".join(_steps(false)),
-		_s(marks.world - marks.get("load", marks.get("modules", marks.scene)))]
+		_s(marks.world - marks.get("load", marks.get("modules", marks.scene)))])
 	var lines := past()
 	lines.push_front(short)
 	var f := FileAccess.open(FILE, FileAccess.WRITE)

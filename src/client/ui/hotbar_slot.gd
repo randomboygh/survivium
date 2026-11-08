@@ -8,6 +8,7 @@ extends Control
 ## the picture faint when the thing cannot be used now (`inactive`).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 signal pressed
 
@@ -163,7 +164,7 @@ func _draw() -> void:
 		draw_rect(r.grow(1.0), UiStyle.EDGE)
 		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), fill_color if fill_color.a > 0.0 else (UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT))
 	if tag != "":
-		_text(font, tag, Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
+		_text(font, Lang.t(tag), Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":
 		# The slot's number is a quiet mark: dim and without the outline.
 		var kw := font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x

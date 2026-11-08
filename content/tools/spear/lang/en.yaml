@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/spear/bundle.yaml
+"Копьё": "Spear"
+
+# content/tools/spear/data/items.yaml
+"Кремнёвое копьё": "Flint spear"
+"Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова.": "A long spear with a flint head. It's thrown at an animal and picked up again."
+"Бронзовое копьё": "Bronze spear"
+"Железное копьё": "Iron spear"

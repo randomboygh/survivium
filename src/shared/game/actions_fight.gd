@@ -127,7 +127,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 		return {}
 	var ammo: String = item.ammo if item.ammo != "" else item.id
 	if who.inventory.count(ammo) == 0:
-		who.nag("ammo", "Нечем стрелять: нужно «%s»" % Items.title(ammo))
+		who.nag("ammo", Lang.line("Нечем стрелять: нужно «%s»", [Items.title(ammo)]))
 		return {"swing": IDLE_SWING}
 	if not who.act("swing", "hunt"):
 		return {}

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/signs/bundle.yaml
+"Таблички": "Signs"
+
+# content/tools/signs/data/items.yaml
+"Табличка": "Sign"
+"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "A board on a peg. Three lines of text, seen by everyone who comes near."
+"Указатель": "Signpost"
+"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "An arrow on a post. Two lines of text; the arrow can be turned any way."
+"Доска на стену": "Wall board"
+"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "A big board hung on a wall. Six lines of text — for rules, notices and notes."

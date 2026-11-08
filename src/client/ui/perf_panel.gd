@@ -8,6 +8,7 @@ extends PanelContainer
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Frames kept for the graph and the 1% low; the graph shows as many of the newest as
 ## it is pixels wide.
@@ -207,7 +208,7 @@ func _engine_marks(ms := 0.0) -> void:
 	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
 	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
-		mark("видео", "%+d КБ" % roundi((video - _video) / 1024.0))
+		mark("видео", Lang.f("%+d КБ", [roundi((video - _video) / 1024.0)]))
 	if _objects > 0.0 and absf(objects - _objects) >= OBJECTS_JUMP:
 		mark("объекты", "%+d" % roundi(objects - _objects))
 	_video = video
@@ -216,11 +217,11 @@ func _engine_marks(ms := 0.0) -> void:
 	if not gl.is_empty():
 		if gl.programs > 0.0 or gl.build_ms >= 1.0:
 			var what: String = "" if gl.late.is_empty() else ": " + "; ".join(gl.late)
-			mark("шейдеры", "%d за %d мс%s" % [roundi(gl.programs), roundi(gl.build_ms), what])
+			mark("шейдеры", Lang.f("%d за %d мс%s", [roundi(gl.programs), roundi(gl.build_ms), what]))
 		if gl.send_ms >= SEND_MS:
-			mark("загрузка", "%d КБ за %d мс" % [roundi(gl.sent), roundi(gl.send_ms)])
+			mark("загрузка", Lang.f("%d КБ за %d мс", [roundi(gl.sent), roundi(gl.send_ms)]))
 		if gl.collections > 0:
-			var heap := "" if gl.heap_after <= 0.0 else "%d → %d МБ" % [roundi(gl.heap_peak), roundi(gl.heap_after)]
+			var heap := "" if gl.heap_after <= 0.0 else Lang.f("%d → %d МБ", [roundi(gl.heap_peak), roundi(gl.heap_after)])
 			mark(GARBAGE, heap)
 			collections += gl.collections
 			if ms <= FREEZE_MS:
@@ -267,7 +268,7 @@ func _attach_long_frames() -> void:
 				best_overlap = overlap
 				best = i
 		if best >= 0:
-			freeze_log[best][3].append("страница %d мс: %s" % [roundi(f[1]), f[2]])
+			freeze_log[best][3].append(Lang.f("страница %d мс: %s", [roundi(f[1]), f[2]]))
 		elif freeze_log.is_empty() or end > freeze_log.back()[0] * 1000.0:
 			if Time.get_ticks_msec() - end < 2000.0:
 				left.append(f)
@@ -392,7 +393,7 @@ static func freeze_text(f: Array, parts_shown := FREEZE_PARTS) -> String:
 	var parts := []
 	for p: Array in f[1].slice(0, parts_shown):
 		parts.append("%s %d" % [p[0], roundi(p[1])])
-	var text := "%d мс: %s" % [roundi(f[0]), ", ".join(parts)]
+	var text := Lang.f("%d мс: %s", [roundi(f[0]), ", ".join(parts)])
 	if f.size() > 2:
 		# As many marks as fit the panel's line after "Фриз ".
 		for i in f[2].size():
@@ -462,35 +463,35 @@ func summary(full := false, colored := false) -> String:
 	# Few short lines, so the panel is low and fits across a phone held upright
 	# (WIDTH): 45 letters of the pixel font at most.
 	var lines := [
-		"FPS %s · ср. %s · 1%% %s · кадр %s мс" % [c.call(str(now), fps_color(now)),
+		Lang.f("FPS %s · ср. %s · 1%% %s · кадр %s мс", [c.call(str(now), fps_color(now)),
 			c.call(str(roundi(avg)), fps_color(avg)), c.call(str(low), fps_color(low)),
-			c.call("%.1f" % last, frame_color(last))],
-		"Макс %s мс · фризы %s / %s · <30 FPS %s" % [c.call("%.0f" % worst, frame_color(worst)),
+			c.call("%.1f" % last, frame_color(last))]),
+		Lang.f("Макс %s мс · фризы %s / %s · <30 FPS %s", [c.call("%.0f" % worst, frame_color(worst)),
 			c.call(str(_freezes), UiStyle.GOOD if _freezes == 0 else UiStyle.ACCENT),
 			c.call(str(_big_freezes), UiStyle.GOOD if _big_freezes == 0 else UiStyle.DANGER),
-			c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER)],
+			c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER)]),
 	]
 	var parts := PANEL_FREEZE_PARTS if colored else FREEZE_PARTS
 	if not last_freeze.is_empty():
 		# With marks the panel shows the biggest part alone, so the line fits.
 		var marked: bool = last_freeze.size() > 2 and not last_freeze[2].is_empty()
-		lines.append("Фриз %s" % freeze_text(last_freeze, 1 if full and marked else parts))
-		lines.append(marks_text() if full else "Худший %s" % freeze_text(worst_freeze, parts))
+		lines.append(Lang.f("Фриз %s", [freeze_text(last_freeze, 1 if full and marked else parts)]))
+		lines.append(marks_text() if full else Lang.f("Худший %s", [freeze_text(worst_freeze, parts)]))
 	if full:
 		var p := Performance
-		lines.append("Вызовы %d · объекты %d · треуг. %dк" % [
+		lines.append(Lang.f("Вызовы %d · объекты %d · треуг. %dк", [
 			p.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			p.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
-			roundi(p.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000.0)])
+			roundi(p.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000.0)]))
 		var video := p.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
-		var world := "Мир за %.1f с · чанков %d" % [world_ms / 1000.0, chunks]
+		var world := Lang.f("Мир за %.1f с · чанков %d", [world_ms / 1000.0, chunks])
 		# The memory is counted in debug builds alone (not in the browser's).
 		var memory := p.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
 		if memory > 0.0:
 			lines.append(world)
-			lines.append("Видео %d МБ · память %d МБ" % [roundi(video), roundi(memory)])
+			lines.append(Lang.f("Видео %d МБ · память %d МБ", [roundi(video), roundi(memory)]))
 		else:
-			lines.append(world + " · видео %d МБ" % roundi(video))
+			lines.append(world + Lang.f(" · видео %d МБ", [roundi(video)]))
 	return "\n".join(lines)
 
 

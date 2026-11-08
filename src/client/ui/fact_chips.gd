@@ -15,6 +15,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const GAP := 4
 ## The space between groups.
@@ -130,17 +131,17 @@ const NEW := -(1 << 30)
 static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1, q := -1) -> Array:
 	var it := Items.get_item(id)
 	var k := Quality.lasts(q) if q >= 0 else 1.0
-	var groups := [["Вес", [[ItemIcons.picture("weight"), "%.1f кг" % (weight if weight >= 0.0 else Items.weight(id) * count), false, "Вес"]]]]
+	var groups := [["Вес", [[ItemIcons.picture("weight"), Lang.f("%.1f кг", [(weight if weight >= 0.0 else Items.weight(id) * count)]), false, "Вес"]]]]
 	if q >= 0:
 		groups.append(["Качество", [[UiStyle.icon("star"), "%d" % q, q < Quality.GRADES[0][0],
-			"Качество: %s (%d из %d). Влияет на прочность и скорость инструмента, тепло одежды, сытость еды" % [Quality.grade_name(q), q, Quality.MAX]]]])
+			Lang.f("Качество: %s (%d из %d). Влияет на прочность и скорость инструмента, тепло одежды, сытость еды", [Quality.grade_name(q), q, Quality.MAX])]]])
 	if Items.food(id) > 0.0:
 		var food := [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id) * k), false, "Сытость"]]
 		var keeps := Items.spoils(id)
 		if keeps > 0.0:
-			var days := "%s сут." % str(snappedf(keeps, 0.1))
+			var days := Lang.f("%s сут.", [str(snappedf(keeps, 0.1))])
 			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
-				"Свежесть: испортится за %s, в холоде и под крышей дольше" % days])
+				Lang.f("Свежесть: испортится за %s, в холоде и под крышей дольше", [days])])
 		if Items.heal(id) > 0.0:
 			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id) * k), false, "Здоровье"])
 		groups.append(["Еда", food])
@@ -153,17 +154,17 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 		groups.append(["Сумка", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "Ячеек, надетая за спину"]]])
 	if it.get("tool", "none") != "none":
 		groups.append(["Инструмент", [[UiStyle.icon("power"), str(it.power), false, power_hint(it)],
-			[UiStyle.icon("hammer"), "%.1f с" % (it.swing / (Quality.faster(q) if q >= 0 else 1.0)), false, "Удар, секунд (навык ускоряет)"],
+			[UiStyle.icon("hammer"), Lang.f("%.1f с", [(it.swing / (Quality.faster(q) if q >= 0 else 1.0))]), false, "Удар, секунд (навык ускоряет)"],
 			[UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"]]])
 	var shoots: String = it.get("ammo", "")
 	if shoots != "" and it.get("tool", "") == "rod":
-		var tip := "Наживка: «%s», по одной на заброс; без неё клюёт редко" % Items.title(shoots)
+		var tip := Lang.f("Наживка: «%s», по одной на заброс; без неё клюёт редко", [Lang.t(Items.title(shoots))])
 		var left := "нет" if ammo == 0 else (str(ammo) if ammo > 0 else "")
 		groups.append(["Наживка", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
 	elif shoots != "":
-		var tip := "Стреляет: «%s», по одному на выстрел" % Items.title(shoots)
+		var tip := Lang.f("Стреляет: «%s», по одному на выстрел", [Lang.t(Items.title(shoots))])
 		if ammo == 0:
-			tip += "; в сумке нет — стрелять нечем"
+			tip += Lang.t("; в сумке нет — стрелять нечем")
 		var left := "нет" if ammo == 0 else (str(ammo) if ammo > 0 else "")
 		groups.append(["Заряды", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
 	if it.get("light", 0.0) > 0.0:
@@ -183,7 +184,7 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 			var left := maxi(0, d - worn)
 			var tip := "Ресурс: ударов до поломки"
 			if worn < 0:
-				tip += "; запас ударов умелой руки: %d" % -worn
+				tip += Lang.f("; запас ударов умелой руки: %d", [-worn])
 			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], float(left) / d < 0.25,
 				tip]]])
 	return groups
@@ -199,7 +200,7 @@ static func power_hint(it: Dictionary) -> String:
 		"axe":
 			if not Trees.SPECIES.is_empty():
 				var s: Dictionary = Trees.SPECIES[Trees.first(Trees.BROAD)]
-				return "Сила удара: столько прочности снимает удар. %s (прочность %d): %d ударов" % [s.title, s.hits, Tools.hits_to(s.hits, p)]
+				return Lang.f("Сила удара: столько прочности снимает удар. %s (прочность %d): %d ударов", [s.title, s.hits, Tools.hits_to(s.hits, p)])
 		"pickaxe", "shovel":
 			var m: int = Mat.STONE if it.tool == "pickaxe" else Mat.DIRT
 			var t := Tools.toughness(m)
@@ -207,8 +208,8 @@ static func power_hint(it: Dictionary) -> String:
 			for i in Mat.COUNT:
 				if Tools.can_dig(it, i) and Tools.toughness(i) > hardest:
 					hardest = Tools.toughness(i)
-			return "Сила: ячейка прочнее силы копается дольше. %s (прочность %d): удар %.1f с; самое твёрдое по силам — прочность %d" % [
-				Mat.NAMES[m], roundi(t), Tools.swing_time(it, m), roundi(hardest)]
+			return Lang.f("Сила: ячейка прочнее силы копается дольше. %s (прочность %d): удар %.1f с; самое твёрдое по силам — прочность %d", [
+				Mat.NAMES[m], roundi(t), Tools.swing_time(it, m), roundi(hardest)])
 		"sword", "knife", "spear", "sling", "bow":
 			var big := {}
 			for kind in AiRules.SPECIES:
@@ -216,8 +217,8 @@ static func power_hint(it: Dictionary) -> String:
 				if a.health > 0 and (big.is_empty() or a.health > big.health):
 					big = a
 			if not big.is_empty():
-				return "Сила удара: столько здоровья снимает удар по зверю. %s (здоровье %d): %d ударов; по игроку — столько же на единицу урона сервера" % [
-					big.title, big.health, Tools.hits_to(big.health, p)]
+				return Lang.f("Сила удара: столько здоровья снимает удар по зверю. %s (здоровье %d): %d ударов; по игроку — столько же на единицу урона сервера", [
+					big.title, big.health, Tools.hits_to(big.health, p)])
 	return "Сила удара"
 
 

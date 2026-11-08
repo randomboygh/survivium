@@ -7,6 +7,7 @@ extends PanelContainer
 ## is the Main node (game.team asks the server); the HUD holds it.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Seconds the card shows for a tap on a player, and for an invitation.
 const SHOW_TIME := 6.0
@@ -49,14 +50,14 @@ func show_person(id: int, name: String, screen_pos: Vector2) -> void:
 	else:
 		_button("Позвать в команду", func() -> void:
 			team.invite(id)
-			game.hud.toast("%s: приглашение отправлено" % name))
+			game.hud.toast(Lang.f("%s: приглашение отправлено", [name])))
 	_open(screen_pos, SHOW_TIME)
 
 
 ## An invitation from player `id` named `name`: the card at the top of the screen.
 func show_invite(id: int, name: String) -> void:
 	_clear()
-	_box.add_child(UiStyle.label("%s зовёт вас в команду" % name))
+	_box.add_child(UiStyle.label(Lang.f("%s зовёт вас в команду", [name])))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	_box.add_child(row)

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sickle/bundle.yaml
+"Серп": "Sickle"
+
+# content/tools/sickle/data/items.yaml
+"Каменный серп": "Stone sickle"
+"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Reaps ripe crops from beds, three cells per swing."
+"Медный серп": "Copper sickle"
+"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Reaps ripe crops from beds, four cells per swing."
+"Железный серп": "Iron sickle"
+"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Reaps ripe crops from beds, five cells per swing."

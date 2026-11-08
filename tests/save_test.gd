@@ -32,6 +32,7 @@ func _initialize() -> void:
 	OS.low_processor_usage_mode_sleep_usec = 0
 	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
 	SettingsFile.path = "user://test_settings.cfg"
+	SettingsFile.language_override = "ru"
 	DirAccess.remove_absolute(SettingsFile.path)
 	_run()
 

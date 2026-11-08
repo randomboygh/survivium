@@ -31,6 +31,7 @@ const BuildMode := preload("res://src/client/input/build_mode.gd")
 const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const CELL := WorldData.CELL
 ## In the view in layers, a cell drawn by less than this share is picked through.
@@ -356,7 +357,7 @@ func put_in_hand(id: String, hand := -1, say := true) -> void:
 	game.hud.refresh_hands()
 	game.hud.bag.refresh()
 	if say:
-		game.hud.toast("%s: %s" % ["Левая рука" if h == 0 else "Правая рука", Items.title(id) if id != "" else "пусто"])
+		game.hud.toast("%s: %s" % ["Левая рука" if h == 0 else "Правая рука", Lang.t(Items.title(id)) if id != "" else "пусто"])
 
 
 ## Takes item `id` from the bag into the hand in use (the bag's «В руку»).
@@ -530,7 +531,7 @@ func _eat_held() -> void:
 			_cooldown = _hasted(0.5)
 			game.player.work("", _cooldown)
 			return
-	game.character.nag("no_food", "В сумке нет: %s" % Items.title(held()))
+	game.character.nag("no_food", Lang.f("В сумке нет: %s", [Lang.t(Items.title(held()))]))
 
 
 ## Whether the jump key or the jump button is held.
@@ -985,12 +986,12 @@ func _tip_text(pos: Vector2) -> String:
 	elif not hit.is_empty():
 		var cell: Vector3i = hit.cell
 		var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
-		lines.append("%s · уровень %d" % [Mat.NAMES[m], cell.y])
+		lines.append(Lang.f("%s · уровень %d", [Mat.NAMES[m], cell.y]))
 		for h in 2:
 			lines.append("%s %s" % ["ЛКМ" if h == 0 else "ПКМ", _hint(h, cell, m)])
 	if game.settings.debug_tips:
 		if not target.is_empty():
-			lines.append("цель: %s" % ", ".join(target.keys()))
+			lines.append(Lang.f("цель: %s", [", ".join(target.keys())]))
 		if not hit.is_empty():
 			lines.append_array(_debug_lines(hit.cell, hit.normal))
 	return "\n".join(lines)
@@ -1004,22 +1005,22 @@ func _debug_lines(cell: Vector3i, normal: Vector3i) -> Array:
 	var who = game.character
 	var m: int = w.get_cell(cell.x, cell.y, cell.z)
 	var up: int = w.get_cell(cell.x, cell.y + 1, cell.z)
-	var out := ["%v грань %v" % [cell, normal], "%s, над ней %s" % [Mat.RECORDS[m].id, Mat.RECORDS[up].id]]
+	var out := [Lang.f("%v грань %v", [cell, normal]), Lang.f("%s, над ней %s", [Mat.RECORDS[m].id, Mat.RECORDS[up].id])]
 	var plants: Array = actions.Grass.plants_on(w, cell.x, cell.y, cell.z)
 	if not plants.is_empty():
-		out.append("растёт: %s" % ", ".join(plants))
+		out.append(Lang.f("растёт: %s", [", ".join(plants)]))
 	var turf: Variant = w.turf_at(cell)
 	if turf != null:
-		out.append("дёрн: %s" % ("скошен" if turf == "" else turf))
+		out.append(Lang.f("дёрн: %s", [("скошен" if turf == "" else turf)]))
 	var tree: Variant = actions.tree_of(cell)
 	if tree != null:
-		out.append("дерево %v" % tree)
+		out.append(Lang.f("дерево %v", [tree]))
 	var t := tool_record()
 	var mow: bool = Tools.mows(t) and actions.can_mow(cell, t)
-	out.append("%s: далеко %s · срезать %s (%d) · копать %s (%d)" % [t.id if t.has("id") else t.tool,
+	out.append(Lang.f("%s: далеко %s · срезать %s (%d) · копать %s (%d)", [t.id if t.has("id") else t.tool,
 		"да" if actions.too_far(who, cell, t.reach) else "нет", "да" if mow else "нет",
 		actions.mow_targets(who, [cell] as Array[Vector3i], t).size() if mow else 0,
-		"да" if Tools.can_dig(t, m) else "нет", actions.dig_targets(who, Tools.area_cells(cell, normal), t).size()])
+		"да" if Tools.can_dig(t, m) else "нет", actions.dig_targets(who, Tools.area_cells(cell, normal), t).size()]))
 	return out
 
 
@@ -1050,9 +1051,9 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 	if Tools.mows(t) and game.actions.can_mow(cell, t):
 		var picked: String = game.actions.picking(cell)
 		if t.tool == "hand" and picked != "":
-			return "собрать: %s" % picked.to_lower()
+			return Lang.f("собрать: %s", [picked.to_lower()])
 		return "косить" if t.tool == "scythe" else ("срезать траву" if t.tool == "sword" else "сорвать траву")
 	if Tools.can_dig(t, m):
 		var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
-		return "копать%s" % (" (руками медленно)" if slow else "")
+		return Lang.f("копать%s", [(" (руками медленно)" if slow else "")])
 	return Tools.why_not(t, m).to_lower()

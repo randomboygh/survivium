@@ -6,6 +6,7 @@ extends Control
 ## screen over a light shade, so a tap on it does not reach the world. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 
 ## The buttons' size and how far from the middle they stand, in interface pixels; the
@@ -34,7 +35,7 @@ func _ready() -> void:
 		b.icon = _twice(UiStyle.icon("g_" + g.name))
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.expand_icon = false
-		b.tooltip_text = "%s (%d)" % [g.title, i + 1]
+		b.tooltip_text = "%s (%d)" % [Lang.t(g.title), i + 1]
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 		b.size = Vector2(BUTTON, BUTTON)

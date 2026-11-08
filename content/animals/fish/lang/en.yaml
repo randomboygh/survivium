@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"Рыба": "Fish"
+
+# content/animals/fish/data/creatures.yaml
+"Плотва": "Roach"
+"Щука": "Pike"
+"Лосось": "Salmon"
+"Треска": "Cod"
+"Рыба-попугай": "Parrotfish"
+"Сом": "Catfish"
+
+# content/animals/fish/data/items.yaml
+"Мелкая речная рыба. Её жарят на костре.": "A small river fish. It's roasted on a campfire."
+"Хищница тихих заводей. Её жарят на костре.": "A predator of quiet backwaters. It's roasted on a campfire."
+"Рыба холодных северных рек. Её жарят на костре.": "A fish of cold northern rivers. It's roasted on a campfire."
+"Морская рыба холодного берега. Её жарят на костре.": "A sea fish of the cold coast. It's roasted on a campfire."
+"Пёстрая рыба тёплого моря. Её жарят на костре.": "A bright fish of the warm sea. It's roasted on a campfire."
+"Большая рыба тёплых болот и рек. Её жарят на костре.": "A big fish of warm swamps and rivers. It's roasted on a campfire."
+"Окунь": "Perch"
+"Полосатая рыба рек и озёр. Его жарят на костре.": "A striped fish of rivers and lakes. It's roasted on a campfire."
+"Жареная рыба": "Roast fish"
+"Рыба, зажаренная на костре. Сытная.": "Fish roasted on a campfire. Filling."

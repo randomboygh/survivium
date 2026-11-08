@@ -154,7 +154,7 @@ func _test_play(before: Array) -> void:
 	_check(who.inventory.count("_ex:knife") == 1 and shop.start(shuttle) == 1, "a knife is made by hand, and a shuttle with it")
 	shop.update(0.01)
 	var loom := Crafting.get_recipe("_ex:loom")
-	_check(who.inventory.count("_ex:shuttle") == 1 and shop.why_not(loom) == "Нужен станок: Верстак", "a loom wants a workbench")
+	_check(who.inventory.count("_ex:shuttle") == 1 and Lang.t(shop.why_not(loom)) == "Нужен станок: Верстак", "a loom wants a workbench")
 	var bench := placed.put("tools:workbench", Vector3i(12, 2, 12))
 	_check(shop.start(loom) == 1, "and is made at one")
 	shop.update(0.01)

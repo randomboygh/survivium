@@ -47,6 +47,7 @@ const Placed := preload("res://src/shared/game/placed.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
 const FarmMode := preload("res://src/client/input/farm_mode.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Room kept between the window and the edges of the screen, in UI pixels.
 const EDGE := 4
@@ -305,7 +306,7 @@ func _ready() -> void:
 	var by := []
 	for k in Inventory.SORTS:
 		var icon: Texture2D = ItemIcons.picture("weight") if k == "weight" else UiStyle.icon("sort_" + k)
-		by.append([icon, "Сортировать %s (без первого ряда)" % Inventory.SORTS[k], sort.bind(k)])
+		by.append([icon, Lang.f("Сортировать %s (без первого ряда)", [Inventory.SORTS[k]]), sort.bind(k)])
 	var sort_by := TabRow.split(by)
 	sorts.add_child(sort_by)
 	# As tall as the stack's picture by the name, so the row keeps its height.
@@ -808,7 +809,7 @@ func destroy_chosen() -> void:
 ## Stack `taken` (as Inventory.take_slot gave it) is gone: the bin's toast.
 func _destroyed(taken: Variant) -> void:
 	if taken is Array and taken.size() >= 2:
-		game.hud.toast("Уничтожено: %s ×%d" % [Items.title(taken[0]), taken[1]])
+		game.hud.toast(Lang.f("Уничтожено: %s ×%d", [Lang.t(Items.title(taken[0])), taken[1]]))
 	refresh()
 
 
@@ -876,7 +877,7 @@ func refresh() -> void:
 		_to_chest.disabled = _from == null
 		_to_chest.icon = UiStyle.centred(UiStyle.icon("from_chest" if out else "to_chest"))
 		_to_chest.tooltip_text = "Забрать из сундука" if out else "Переложить в сундук"
-		_into.get_child(1).tooltip_text = "Переложить всё в сундук" + (" (без первого ряда: замок)" if _lock else "")
+		_into.get_child(1).tooltip_text = Lang.t("Переложить всё в сундук") + (Lang.t(" (без первого ряда: замок)") if _lock else "")
 		_all_out.visible = not chest.is_empty()
 	TabRow.light(_lock_button, _lock)
 	_lock_button.tooltip_text = "Замок первого ряда: сортировка и «всё в сундук» его не трогают" if _lock \
@@ -884,7 +885,7 @@ func refresh() -> void:
 	for i in _chest_grids.size():
 		var g: Dictionary = _chest_grids[i]
 		_show_slots(_chests[i].items, g.cells)
-		g.grid.tooltip_text = "%s · %.1f кг" % [Items.title(_chests[i].item), _chests[i].items.weight()]
+		g.grid.tooltip_text = Lang.f("%s · %.1f кг", [Lang.t(Items.title(_chests[i].item)), _chests[i].items.weight()])
 	TabRow.light(_manual_button, _manual)
 	_show_info(inv)
 	# The wide button (with a light's «поставить» joined) narrower on a narrow window
@@ -945,7 +946,7 @@ func _show_info(inv) -> void:
 		var id: String = s[0]
 		# The count only for more than one.
 		# Where it lies the window shows by itself: no «в сундуке» after the name.
-		_info.text = "%s%s%s" % [Items.title(id), " ×%d" % s[1] if s[1] > 1 else "",
+		_info.text = "%s%s%s" % [Lang.t(Items.title(id)), " ×%d" % s[1] if s[1] > 1 else "",
 			" · с вещами" if _from.contents(_at) != null else ""]
 		var shoots: String = Items.get_item(id).get("ammo", "")
 		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
@@ -988,7 +989,7 @@ func _show_worn(inv) -> void:
 	var title: String = PersonPanel.TITLES[_worn]
 	if id != "":
 		# What it adds (slots, warmth) is in the facts under the name.
-		_info.text = "%s: %s" % [title, Items.title(id)]
+		_info.text = "%s: %s" % [title, Lang.t(Items.title(id))]
 		var h := int(_worn.right(1))
 		# A light in the second hand is the second one lit when the first holds one too.
 		var k := 1 if hand and h == 1 and game.controls.hands[0] == id and inv.count(id) > 1 else 0
@@ -996,10 +997,10 @@ func _show_worn(inv) -> void:
 		_facts.show_groups(FactChips.item_groups(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0,
 			-1.0, -1, q))
 	elif _worn == "back":
-		_info.text = "Сумка: %d ячеек, всегда с собой. Надень котомку, сумку или рюкзак — станет больше" % inv.base
+		_info.text = Lang.f("Сумка: %d ячеек, всегда с собой. Надень котомку, сумку или рюкзак — станет больше", [inv.base])
 		_facts.show_groups([])
 	else:
-		_info.text = "%s: пусто" % title
+		_info.text = Lang.f("%s: пусто", [title])
 		_facts.show_groups([])
 	_info.add_theme_color_override("font_color", UiStyle.INK if id != "" else UiStyle.MUTED)
 	_icon.texture = ItemIcons.of_item(id) if id != "" else null
@@ -1108,7 +1109,7 @@ func _chest_line(e: Dictionary) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.tooltip_text = Items.title(e.item)
+	row.tooltip_text = Lang.t(Items.title(e.item))
 	for k in 3:
 		if k == 1:
 			var icon := TextureRect.new()

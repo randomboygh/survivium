@@ -18,6 +18,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 ## How far from the character a station works, in world units (as far as a placed
 ## thing is used, see Gathering.REACH).
@@ -68,12 +69,12 @@ func _on_learned(ids: PackedStringArray) -> void:
 ## "Новый рецепт: X", or for more "Новые рецепты: X, Y и ещё N".
 static func learned_line(ids: PackedStringArray) -> String:
 	if ids.size() == 1:
-		return "Новый рецепт: %s" % Crafting.get_recipe(ids[0]).title
-	var names := []
-	for i in mini(ids.size(), 2):
-		names.append(Crafting.get_recipe(ids[i]).title)
-	var line := "Новые рецепты: %s" % ", ".join(names)
-	return line + (" и ещё %d" % (ids.size() - 2) if ids.size() > 2 else "")
+		return Lang.line("Новый рецепт: %s", [Crafting.get_recipe(ids[0]).title])
+	var a: String = Crafting.get_recipe(ids[0]).title
+	var b: String = Crafting.get_recipe(ids[1]).title
+	if ids.size() == 2:
+		return Lang.line("Новые рецепты: %s, %s", [a, b])
+	return Lang.line("Новые рецепты: %s, %s и ещё %d", [a, b, ids.size() - 2])
 
 
 func _on_queue_changed() -> void:
@@ -158,7 +159,7 @@ func update(delta: float) -> void:
 		who.note("crafted", r.count)
 		if sk != null:
 			sk.gain_recipe(role_of(r), r.id, r.time)
-		who.say("Готово: %s" % r.title)
+		who.say(Lang.line("Готово: %s", [r.title]))
 		made.emit(r)
 
 
@@ -260,7 +261,7 @@ func use_tool() -> void:
 	if sk != null and sk.spares(Tools.role_of(id)):
 		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
-		who.say("Сломалось: %s" % Items.title(id))
+		who.say(Lang.line("Сломалось: %s", [Items.title(id)]))
 
 
 ## Recipe `r` made wears a tool of each class it needs by its `wear` swings, when wear is
@@ -277,7 +278,7 @@ func _wear_tools(r: Dictionary) -> void:
 			if sk != null and sk.spares(role_of(r)):
 				continue
 			if who.inventory.wear_tool(id, Items.get_item(id).durability):
-				who.say("Сломалось: %s" % Items.title(id))
+				who.say(Lang.line("Сломалось: %s", [Items.title(id)]))
 				break
 
 
@@ -298,14 +299,14 @@ func why_not_repair(i: int) -> String:
 		return "Чинить негде: нет станка для починки"
 	var near := stations()
 	if not benches.any(func(id: String) -> bool: return near.has(id)):
-		return "Чинят у станка: %s" % Items.title(benches[0])
+		return Lang.line("Чинят у станка: %s", [Items.title(benches[0])])
 	var item := Items.get_item(s[0])
 	var short := {}
 	for id in item.repair:
 		if inv.count(id) < item.repair[id]:
 			short[id] = item.repair[id] - inv.count(id)
 	if not short.is_empty():
-		return "Не хватает: %s" % Crafting.amounts_text(short)
+		return Lang.line("Не хватает: %s", [Crafting.amounts_text(short)])
 	return ""
 
 
@@ -320,5 +321,5 @@ func repair(i: int) -> bool:
 	for id in item.repair:
 		inv.remove(id, item.repair[id])
 	inv.mend(i)
-	who.say("Починено: %s" % item.title)
+	who.say(Lang.line("Починено: %s", [item.title]))
 	return true
