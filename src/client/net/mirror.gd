@@ -198,6 +198,9 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.STEP:
 			if args is Array:
 				game.wildlife.take_step(args)
+		Protocol.MINDS:
+			if args is Array:
+				game.wildlife.take_minds(args)
 		Protocol.PEOPLE:
 			if args is Array:
 				game.others.take_people(args)

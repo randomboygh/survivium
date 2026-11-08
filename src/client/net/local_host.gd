@@ -78,6 +78,8 @@ func stop() -> void:
 ## The player joins the server; the client's connection to it.
 func join() -> Connection:
 	link = PlayerLink.new(session)
+	# The world is the player's own: they may see what the animals have in mind.
+	link.requests.may_debug = true
 	player = link.who
 	workshop = link.workshop
 	return Connection.new(deliver)

@@ -61,6 +61,7 @@ const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
+const ModReload := preload("res://src/client/mod_reload.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
@@ -70,6 +71,7 @@ const OthersScript := preload("res://src/client/view/others.gd")
 const SignLabelsScript := preload("res://src/client/view/sign_labels.gd")
 const BoatsScript := preload("res://src/client/view/boats.gd")
 const CreaturesScript := preload("res://src/client/game/creatures.gd")
+const AiDebugScript := preload("res://src/client/view/ai_debug.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
@@ -120,6 +122,8 @@ var world
 var gen: WorldGen
 var player
 var creatures
+## What the animals near have in mind, drawn over them while the playtest switch is on.
+var ai_debug
 ## The other players on the screen (С3.3).
 var others
 ## The text of the signs near, over them (SignLabels).
@@ -198,6 +202,8 @@ var wildlife: RemoteWildlife
 var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
+## The hot reload of the mods' data (the files watched on a computer, «Перечитать данные модов»).
+var mod_reload: ModReload
 ## The buses, the ear, one-off sounds and the loops of nature.
 var sound: SoundScript
 var save: SaveGame
@@ -308,6 +314,7 @@ func _ready() -> void:
 	build = BuildMode.new(self)
 	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
+	mod_reload = ModReload.new(self)
 	settings.load()
 	settings.use_language()
 	sound = SoundScript.new(self)
@@ -947,6 +954,7 @@ func _process(delta: float) -> void:
 		_leave_footprints()
 		t = perf.note("ветер и следы", t)
 		save.update(delta)
+		mod_reload.update()
 		t = perf.note("сохранение", t)
 	chunks.update_cut(delta)
 	# Behind the death screen the world is made ready where the character comes back.
@@ -1201,6 +1209,9 @@ func _build_scene() -> void:
 	creatures.tracks = tracks
 	creatures.perf = hud.perf
 	world_root.add_child(creatures)
+	ai_debug = AiDebugScript.new()
+	ai_debug.game = self
+	world_root.add_child(ai_debug)
 	others = OthersScript.new()
 	others.game = self
 	others.perf = hud.perf

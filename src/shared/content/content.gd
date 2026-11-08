@@ -62,6 +62,11 @@ static var _loaded := false
 ## Counts the loads (load_all): the registries (Mods) know from it whether they hold the
 ## arrays of the last one.
 static var generation := 0
+## Set by a hot reload (Mods.rescan with `live`): pictures and sounds are read from their
+## files (picture, sound), not from what the editor imported when the game started, so
+## what was drawn since shows. Only where the files are there (the game run from the
+## project's folder); an exported game has only the imports and reads those.
+static var live := false
 
 
 ## Records of `kind` from every bundle, checked and with defaults filled in.
@@ -111,6 +116,29 @@ static func asset(rec: Dictionary, rel: String) -> String:
 	if ResourceLoader.exists(common) or FileAccess.file_exists(common):
 		return common
 	return own
+
+
+## The image of picture `path` (an `asset`), null when there is none: read from the file
+## itself after a hot reload (`live`), else from its import.
+static func picture(path: String) -> Image:
+	if live and FileAccess.file_exists(path):
+		var img := Image.load_from_file(path)
+		if img != null and not img.is_empty():
+			return img
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	return tex.get_image() if tex != null else null
+
+
+## The sound of file `path` (an `asset`, `.wav`), null when there is none: read from the
+## file itself after a hot reload (`live`), else from its import.
+static func sound(path: String) -> AudioStream:
+	if live and path.ends_with(".wav") and FileAccess.file_exists(path):
+		var s := AudioStreamWAV.load_from_file(path)
+		if s != null:
+			return s
+	return load(path) if ResourceLoader.exists(path) else null
 
 
 ## The files of sound record `rec` (see the `sounds` kind): one, or one per variant.

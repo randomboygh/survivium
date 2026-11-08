@@ -366,7 +366,10 @@ func _cast_all(l: Dictionary, n: int) -> int:
 			continue
 		# The body is as long as its picture is wide, along the picture (an animal is drawn
 		# from the side, facing the view), and ANIMAL_DEPTH of that across.
-		var size: Vector2 = game.creatures.looks[c.kind][2]
+		var look: Variant = game.creatures.looks.get(c.kind)
+		if look == null:
+			continue
+		var size: Vector2 = look[2]
 		n = _cast(l, c.pos, size.y, size.x, n, c, size.x * ANIMAL_DEPTH)
 	n = _cast_campfires(l, n)
 	if l.torch:

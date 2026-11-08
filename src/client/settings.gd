@@ -11,9 +11,9 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
-const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Music := preload("res://src/client/audio/music.gd")
@@ -205,6 +205,9 @@ var tool_wear := true
 ## seconds) tells what the cell is and why the hand in use does or does not work it. Not
 ## saved.
 var debug_tips := false
+## Playtest switch: what the animals near have in mind, drawn over them (AiDebug; F4). Only
+## in a single game and for a host of a server (Protocol.AI_DEBUG). Not saved.
+var ai_debug := false
 ## Playtest switch: the level buttons look at any level, not only a few around the
 ## player (see ChunkStreamer.view_range). Not saved.
 var free_view := false
@@ -370,16 +373,27 @@ func set_world_mod(id: String, on: bool) -> void:
 	save()
 
 
-## Reads the data of the world's mods again (Mods.rescan) and tells how it went.
+## Turns the AI's debug on or off: the server is asked to tell the minds of the animals
+## near (Protocol.AI_DEBUG); on a server far away only a host is told them.
+func set_ai_debug(on: bool) -> void:
+	ai_debug = on
+	if game.wildlife != null:
+		game.wildlife.minds = {}
+	if game.net == null:
+		return
+	game.net.request(Protocol.AI_DEBUG, [on]).then(_ai_debug_told.bind(on))
+
+
+func _ai_debug_told(v: Variant, on: bool) -> void:
+	if on and v != true:
+		ai_debug = false
+		if game.hud != null:
+			game.hud.toast("Отладка ИИ — только в своём мире или хозяину сервера")
+
+
+## Reads the data of the world's mods again and puts it into the game (ModReload).
 func reload_mods() -> void:
-	var problems := Mods.rescan()
-	VoxelProps.forget()
-	if game.placed != null:
-		game.placed.read_footprints()
-	if game.session != null:
-		game.session.placed.read_footprints()
-	if game.hud != null:
-		game.hud.toast("Данные модов перечитаны" if problems.is_empty() else Lang.f("Ошибок в данных: %d (см. консоль)", [problems.size()]))
+	game.mod_reload.reload()
 
 
 func time_speed() -> float:

@@ -40,6 +40,26 @@ signal stepped(a: Animal, at: Vector3, dir: Vector2, left: bool, size: float)
 
 var animals: Array[Animal] = []
 var _by_id := {}
+## What the animals near have in mind (Protocol.MINDS, the AI's debug; AiDebug draws it):
+## id -> the entry Wildlife.mind made; empty while the debug is off.
+var minds := {}
+
+
+## The animal of number `id`, null for none.
+func by_id(id: int) -> Animal:
+	return _by_id.get(id)
+
+
+## What the animals near have in mind (Protocol.MINDS): the entries of Wildlife.mind.
+func take_minds(list: Array) -> void:
+	minds = {}
+	for m in list:
+		if m is Array and m.size() == MIND_SIZE and m[0] is int and m[1] is String and m[2] is String:
+			minds[m[0]] = m
+
+
+## How many fields an entry of Protocol.MINDS has (Wildlife.mind).
+const MIND_SIZE := 18
 
 
 ## An animal came into the world: [id, kind, tint, position]. One with a number known

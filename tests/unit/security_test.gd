@@ -153,6 +153,15 @@ func _test_requests() -> void:
 	a.is_moving = true
 	_check(Gestures.now_of(a, now) == "", "moving ends a gesture")
 	a.is_moving = false
+	req.may_debug = false
+	_check(req._rule(Protocol.AI_DEBUG, [true]) == false and not req.ai_debug, "a player of a server does not see the animals' minds")
+	_check(req._rule(Protocol.AI_DEBUG, ["yes"]) == null, "nor asks with no bool")
+	req.may_debug = true
+	_check(req._rule(Protocol.AI_DEBUG, [true]) == true and req.ai_debug, "one who may (a single game, a host) does")
+	var minds := Array(host.link.flush()).map(func(b: PackedByteArray) -> Array: return Protocol.decode(b)) \
+		.filter(func(e: Array) -> bool: return e[0] == Protocol.MINDS)
+	_check(minds.size() == 1 and minds[0][1] is Array, "and is told them")
+	req._rule(Protocol.AI_DEBUG, [false])
 
 
 ## A bag counted from its end is the same bag, not twice the things.
@@ -249,6 +258,7 @@ func _test_commands() -> void:
 	_check(net.command("who", Server.ROLE_PLAYER).contains("владельца") and net.command("who", Server.ROLE_HOST).begins_with("Игроков"),
 		"a player gives none; a host gives theirs")
 	_check(net.command("nothing at all").begins_with("неизвестная"), "an unknown command is named as such")
+	_check(net.command("reload", Server.ROLE_PLAYER).contains("владельца"), "a player may not read the mods' data again")
 	net.access.hosts["k"] = "Аня"
 	net.access.owners["o"] = "Боря"
 	_check(net.role_of("k") == Server.ROLE_HOST and net.role_of("o") == Server.ROLE_OWNER and net.role_of("x") == Server.ROLE_PLAYER,

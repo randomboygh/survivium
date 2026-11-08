@@ -199,8 +199,8 @@ func read_footprints() -> void:
 			continue
 		var name: String = rec.get("model", "")
 		var path := Content.asset(rec, "models/%s.png" % name) if name != "" else ""
-		if path != "" and ResourceLoader.exists(path):
-			var img: Image = load(path).get_image()
+		var img: Image = Content.picture(path) if path != "" else null
+		if img != null:
 			var n := maxi(1, ceili(img.get_height() / 8.0))
 			var voxels := voxels_of_image(img)
 			sizes[kind] = n

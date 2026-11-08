@@ -115,6 +115,22 @@ func place() -> void:
 	_heat_later()
 
 
+## The mods read anew (a hot reload, ModReload): every thing placed, light set down and
+## thing on the ground drawn again from its model as its file has it now.
+func remodel() -> void:
+	_models = {}
+	_standing = {}
+	drop_meshes = {}
+	_drop_arrays = {}
+	for list: Array in [game.placed.things, game.placed.lights]:
+		for e: Dictionary in list:
+			_on_removed(e)
+			if not Items.get_item(e.item).is_empty():
+				_on_added(e)
+	for key: Vector2i in drop_nodes.keys():
+		show_drops(key)
+
+
 ## The player places item `id` from the bag (see Placed.put_from_bag) below the level
 ## cut, through the server; true if it was placed (over the loop the reply is in at once).
 func put_from_bag(id: String, slot := -1) -> bool:

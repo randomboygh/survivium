@@ -69,6 +69,11 @@ var _opened := {}
 ## Whether the hands' work is paced (over a socket, see above), the seconds of it owed
 ## and when they were last counted.
 var paced := false
+## Whether the player may see what the animals have in mind (Protocol.AI_DEBUG): in a
+## single game always (LocalHost), on a server only a host (Server.role_of, looked at
+## with each message); and whether they asked to (PlayerLink sends Protocol.MINDS).
+var may_debug := false
+var ai_debug := false
 var _owed := 0.0
 var _owed_at := -1.0
 
@@ -336,6 +341,10 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.LAND_COLOR:
 			if _fit(args, [TYPE_INT]):
 				return session.territory.set_color(who.id, args[0])
+		Protocol.AI_DEBUG:
+			if _fit(args, [TYPE_BOOL]):
+				ai_debug = args[0] and may_debug
+				return ai_debug
 		Protocol.FIGHT_BRAVE:
 			if _fit(args, []):
 				return session.fights.give_up(who.id)

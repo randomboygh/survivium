@@ -99,6 +99,36 @@ var _rng := RandomNumberGenerator.new()
 
 ## Draws the animals of `w` (RemoteWildlife) from now on, those there already and those to come.
 func watch(w) -> void:
+	_build_looks()
+	wildlife = w
+	for a in w.animals:
+		_on_born(a)
+	w.born.connect(_on_born)
+	w.gone.connect(_on_gone)
+	w.stepped.connect(_on_stepped)
+
+
+## The species read anew (a hot reload, ModReload): their pictures, frames and tints
+## again, and every animal drawn with them.
+func relook() -> void:
+	_build_looks()
+	if wildlife == null:
+		return
+	for look in _shown.duplicate():
+		var a = look.animal
+		if not looks.has(a.kind):
+			# Its species is gone from the data: the server takes it out too (Wildlife.reread).
+			_on_gone(a)
+			continue
+		look.sprite.mesh = looks[a.kind][0]
+		look.view = SIDE
+		a.frame = 0
+		look.sprite.material_override = _mats(a)[0]
+		_fit(a, look.sprite)
+
+
+func _build_looks() -> void:
+	looks = {}
 	for kind in AiRules.SPECIES:
 		if kind == AiRules.HUMAN:
 			continue
@@ -126,12 +156,6 @@ func watch(w) -> void:
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height() / views), variants,
 			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), frames - 1 - walk_frames(spec)),
 			mini(spec.get("attack", 0), frames - 1 - walk_frames(spec))]
-	wildlife = w
-	for a in w.animals:
-		_on_born(a)
-	w.born.connect(_on_born)
-	w.gone.connect(_on_gone)
-	w.stepped.connect(_on_stepped)
 
 
 ## How many frames of species `spec`'s picture are its walk (or wing beat).
@@ -151,8 +175,8 @@ func _process(delta: float) -> void:
 		# The camera turns: every box again, for the views it may show.
 		_views = PixelView.box_views
 		_fitted.clear()
-		for a in wildlife.animals:
-			_fit(a, _sprites[a])
+		for look in _shown:
+			_fit(look.animal, look.sprite)
 	for look in _shown:
 		var a = look.animal
 		if a.fresh:
@@ -301,8 +325,13 @@ static func body_size(tex: Texture2D, frames: int, views := 1) -> Vector2:
 	return Vector2(hi - lo + Vector2i.ONE) / PixelView.PIXELS_PER_UNIT
 
 
-## The picture of species `spec` (a record of AiRules.SPECIES).
+## The picture of species `spec` (a record of AiRules.SPECIES); after a hot reload read
+## from its file (Content.live).
 static func picture(spec: Dictionary) -> Texture2D:
+	if Content.live:
+		var img := Content.picture(picture_path(spec))
+		if img != null:
+			return ImageTexture.create_from_image(img)
 	return load(picture_path(spec))
 
 
@@ -316,6 +345,9 @@ func sprite_of(a) -> MeshInstance3D:
 
 
 func _on_born(a) -> void:
+	if not looks.has(a.kind):
+		# A species the client's data does not have (a server with other data).
+		return
 	var sprite := MeshInstance3D.new()
 	sprite.mesh = looks[a.kind][0]
 	sprite.material_override = _mats(a)[0]
@@ -338,6 +370,8 @@ func _on_born(a) -> void:
 
 
 func _on_gone(a) -> void:
+	if not _sprites.has(a):
+		return
 	_fitted.erase(_sprites[a])
 	_sprites[a].queue_free()
 	_sprites.erase(a)
