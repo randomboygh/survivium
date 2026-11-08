@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fence/bundle.yaml
+"Забор": "Çit"
+
+# content/tools/fence/data/items.yaml
+"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Sırıklardan bir çit parçası. İnşa kipinde duvar gibi çizgi hâlinde kurulur ve komşularına kendiliğinden bağlanır."
+"Калитка": "Bahçe kapısı"
+"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Çit hattında sırıklardan tek hücrelik bir kanat. Bir dokunuş açar ve kapar."
+"Ворота": "Çit kapısı"
+"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Çit hattında sırıklardan iki kanat, iki hücre genişliğinde. Bir dokunuş ikisini de açar."

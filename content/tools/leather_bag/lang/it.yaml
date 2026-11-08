@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/leather_bag/bundle.yaml
+"Кожаная сумка": "Borsa di cuoio"
+
+# content/tools/leather_bag/data/items.yaml
+"Сшитая из кожи сумка с ремнём через плечо. Надетая за спину, даёт ещё 16 ячеек.": "Una borsa cucita di cuoio con tracolla. Portata sulla schiena, dà 16 caselle in più."

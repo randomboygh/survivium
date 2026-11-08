@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/scythe/bundle.yaml
+"Коса": "Falce fienaia"
+
+# content/tools/scythe/data/items.yaml
+"Каменная коса": "Falce fienaia di pietra"
+"Деревянная коса": "Falce fienaia di legno"
+"Медная коса": "Falce fienaia di rame"
+"Бронзовая коса": "Falce fienaia di bronzo"
+"Железная коса": "Falce fienaia di ferro"
+"Стальная коса": "Falce fienaia d'acciaio"
+
+# content/tools/scythe/data/sounds.yaml
+"Покос": "Falciatura"

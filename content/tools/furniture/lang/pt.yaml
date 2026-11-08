@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/furniture/bundle.yaml
+"Мебель": "Móveis"
+
+# content/tools/furniture/data/items.yaml
+"Стол": "Mesa"
+"Дощатый стол на четырёх ножках, на две клетки.": "Uma mesa de tábuas de quatro pernas, com duas células de comprimento."
+"Табурет": "Banquinho"
+"Посиди рядом — силы возвращаются вдвое быстрее.": "Sente-se ao lado: as forças voltam duas vezes mais rápido."
+"Кровать": "Cama"
+"Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки.": "Uma cama de madeira com colchão de lona. Dormir nela restaura mais que qualquer leito."
+"Шкаф": "Armário"
+"Высокий шкаф из досок, хранит больше сундука.": "Um armário alto de tábuas; guarda mais que um baú."
+"Широкий шкаф": "Armário largo"
+"Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука.": "Um armário com duas células de largura e duas de altura, com quatro portas. Guarda mais que um baú grande."
+"Бочка": "Barril"
+"Бочка в обручах. Еда в ней портится вдвое медленнее.": "Um barril com aros. A comida nele estraga duas vezes mais devagar."
+"Половик": "Tapete"
+"Тканый половик для пола, на две клетки.": "Um tapete tecido para o chão, com duas células de comprimento."

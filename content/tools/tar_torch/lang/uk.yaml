@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/tar_torch/bundle.yaml
+"Смоляной факел": "Смоляний смолоскип"
+
+# content/tools/tar_torch/data/items.yaml
+"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Гілка, обмотана просмоленою тканиною. Горить утричі довше за простий смолоскип і світить далі."

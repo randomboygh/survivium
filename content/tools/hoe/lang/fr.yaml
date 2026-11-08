@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"Тяпка": "Houe"
+
+# content/tools/hoe/data/items.yaml
+"Каменная тяпка": "Houe de pierre"
+"Вскапывает траву и землю в грядку, на которую сеют.": "Bêche l'herbe et la terre en une plate-bande pour semer."
+"Медная тяпка": "Houe de cuivre"
+"Вскапывает две клетки за взмах.": "Bêche deux cases par coup."
+"Железная тяпка": "Houe de fer"
+"Вскапывает три клетки за взмах.": "Bêche trois cases par coup."

@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"Рыба": "Fisch"
+
+# content/animals/fish/data/creatures.yaml
+"Плотва": "Rotauge"
+"Щука": "Hecht"
+"Лосось": "Lachs"
+"Треска": "Kabeljau"
+"Рыба-попугай": "Papageifisch"
+"Сом": "Wels"
+
+# content/animals/fish/data/items.yaml
+"Мелкая речная рыба. Её жарят на костре.": "Ein kleiner Flussfisch. Er wird am Lagerfeuer gebraten."
+"Хищница тихих заводей. Её жарят на костре.": "Ein Räuber stiller Buchten. Er wird am Lagerfeuer gebraten."
+"Рыба холодных северных рек. Её жарят на костре.": "Ein Fisch kalter nördlicher Flüsse. Er wird am Lagerfeuer gebraten."
+"Морская рыба холодного берега. Её жарят на костре.": "Ein Meeresfisch der kalten Küste. Er wird am Lagerfeuer gebraten."
+"Пёстрая рыба тёплого моря. Её жарят на костре.": "Ein bunter Fisch des warmen Meeres. Er wird am Lagerfeuer gebraten."
+"Большая рыба тёплых болот и рек. Её жарят на костре.": "Ein großer Fisch warmer Sümpfe und Flüsse. Er wird am Lagerfeuer gebraten."
+"Окунь": "Barsch"
+"Полосатая рыба рек и озёр. Его жарят на костре.": "Ein gestreifter Fisch aus Flüssen und Seen. Er wird am Lagerfeuer gebraten."
+"Жареная рыба": "Gebratener Fisch"
+"Рыба, зажаренная на костре. Сытная.": "Am Lagerfeuer gebratener Fisch. Sättigend."

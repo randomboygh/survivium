@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/bronze/bundle.yaml
+"Бронза": "Bronzo"
+
+# content/materials/bronze/data/items.yaml
+"Сырой тигель": "Crogiolo crudo"
+"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Una ciotola dalle pareti spesse di argilla e sabbia. Va ancora cotta nella fornace."
+"Тигель": "Crogiolo"
+"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Una ciotola cotta per fondere. Vi si legano rame e stagno; non si consuma."
+"Бронзовый слиток": "Lingotto di bronzo"
+"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Rame con stagno: più duro del rame. Col bronzo si fanno attrezzi che estraggono il ferro."

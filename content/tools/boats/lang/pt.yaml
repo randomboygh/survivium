@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/boats/bundle.yaml
+"Плот и лодка": "Jangada e barco"
+
+# content/tools/boats/data/items.yaml
+"Плот": "Jangada"
+"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Troncos amarrados com corda. Pegue-a na mão e use a ação junto à água para lançá-la e subir."
+"Лодка": "Barco"
+"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Um barco leve de tábuas alcatroado. Mais rápido que a jangada, mas só se rema com remos na bolsa."
+"Вёсла": "Remos"
+"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Um par de remos. Enquanto estiverem na bolsa, o barco anda rápido."

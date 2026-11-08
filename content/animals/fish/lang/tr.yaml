@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"Рыба": "Balık"
+
+# content/animals/fish/data/creatures.yaml
+"Плотва": "Kızılgöz"
+"Щука": "Turna balığı"
+"Лосось": "Somon"
+"Треска": "Morina"
+"Рыба-попугай": "Papağan balığı"
+"Сом": "Yayın balığı"
+
+# content/animals/fish/data/items.yaml
+"Мелкая речная рыба. Её жарят на костре.": "Küçük bir nehir balığı. Kamp ateşinde kızartılır."
+"Хищница тихих заводей. Её жарят на костре.": "Durgun suların avcısı. Kamp ateşinde kızartılır."
+"Рыба холодных северных рек. Её жарят на костре.": "Soğuk kuzey nehirlerinin balığı. Kamp ateşinde kızartılır."
+"Морская рыба холодного берега. Её жарят на костре.": "Soğuk kıyının deniz balığı. Kamp ateşinde kızartılır."
+"Пёстрая рыба тёплого моря. Её жарят на костре.": "Ilık denizin rengârenk balığı. Kamp ateşinde kızartılır."
+"Большая рыба тёплых болот и рек. Её жарят на костре.": "Ilık bataklık ve nehirlerin iri balığı. Kamp ateşinde kızartılır."
+"Окунь": "Tatlı su levreği"
+"Полосатая рыба рек и озёр. Его жарят на костре.": "Nehir ve göllerin çizgili balığı. Kamp ateşinde kızartılır."
+"Жареная рыба": "Kızarmış balık"
+"Рыба, зажаренная на костре. Сытная.": "Kamp ateşinde kızartılmış balık. Doyurucu."

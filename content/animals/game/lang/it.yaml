@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"Добыча": "Selvaggina"
+
+# content/animals/game/data/items.yaml
+"Тушка": "Carcassa piccola"
+"Мелкий зверь или птица. Разделывается руками.": "Un piccolo animale o un uccello. Si macella a mano."
+"Туша": "Carcassa"
+"Крупный зверь. Разделать её можно только ножом.": "Un grosso animale. Si macella solo con un coltello."
+"Сырое мясо": "Carne cruda"
+"Есть можно, но жареное сытнее.": "Si può mangiare, ma arrosto sazia di più."
+"Жареное мясо": "Carne arrosto"
+"Мясо, зажаренное на костре. Очень сытное.": "Carne arrostita sul fuoco. Sazia molto."
+"Шкура": "Pelle"
+"Сырая шкура зверя.": "La pelle grezza di un animale."
+"Кость": "Osso"
+"Жир": "Grasso"
+"Вяленое мясо": "Carne secca"
+"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Carne essiccata sull'essiccatoio. Leggera e saziante, senza bisogno di fuoco."
+
+# content/animals/game/data/recipes.yaml
+"Разделать тушку": "Macellare una carcassa piccola"
+"Разделать тушу": "Macellare una carcassa"

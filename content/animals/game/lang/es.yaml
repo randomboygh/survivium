@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"Добыча": "Caza"
+
+# content/animals/game/data/items.yaml
+"Тушка": "Presa pequeña"
+"Мелкий зверь или птица. Разделывается руками.": "Un animal pequeño o un ave. Se despieza a mano."
+"Туша": "Res"
+"Крупный зверь. Разделать её можно только ножом.": "Un animal grande. Solo se despieza con cuchillo."
+"Сырое мясо": "Carne cruda"
+"Есть можно, но жареное сытнее.": "Se puede comer, pero asada sacia más."
+"Жареное мясо": "Carne asada"
+"Мясо, зажаренное на костре. Очень сытное.": "Carne asada en una hoguera. Sacia mucho."
+"Шкура": "Piel"
+"Сырая шкура зверя.": "Piel cruda de un animal."
+"Кость": "Hueso"
+"Жир": "Grasa"
+"Вяленое мясо": "Cecina"
+"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Carne secada en un secadero. Ligera y nutritiva, sin necesidad de fuego."
+
+# content/animals/game/data/recipes.yaml
+"Разделать тушку": "Despiezar una presa pequeña"
+"Разделать тушу": "Despiezar una res"

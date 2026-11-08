@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/leather_sling/bundle.yaml
+"Кожаная праща": "Funda de couro"
+
+# content/tools/leather_sling/data/items.yaml
+"Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной.": "Tiras e bolsinha de couro. Lança pedrinhas mais longe e mais forte que a de corda."

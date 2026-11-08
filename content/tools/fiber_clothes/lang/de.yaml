@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fiber_clothes/bundle.yaml
+"Одежда из волокна": "Faserkleidung"
+
+# content/tools/fiber_clothes/data/items.yaml
+"Плетёная шапка": "Geflochtener Hut"
+"Шапка из сухой травы. Немного греет голову.": "Ein Hut aus trockenem Gras. Wärmt den Kopf ein wenig."
+"Травяная накидка": "Grasumhang"
+"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Ein Umhang aus fest geflochtener Faser an einer Schnur. Das wärmste Stück der Graskleidung."
+"Обмотки": "Beinwickel"
+"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Faserstreifen, um die Beine gewickelt und mit Schnur gebunden."
+"Лапти": "Bastschuhe"
+"Плетёная обувь из волокна на верёвочных завязках.": "Geflochtene Faserschuhe mit Schnurbändern."

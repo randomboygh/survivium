@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sword/bundle.yaml
+"Меч": "Espada"
+
+# content/tools/sword/data/items.yaml
+"Деревянный меч": "Espada de madera"
+"Каменный меч": "Espada de piedra"
+"Медный меч": "Espada de cobre"
+"Бронзовый меч": "Espada de bronce"
+"Железный меч": "Espada de hierro"
+"Стальной меч": "Espada de acero"
+
+# content/tools/sword/data/sounds.yaml
+"Взмах": "Tajo"

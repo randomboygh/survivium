@@ -1,0 +1,17 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/resources/soil/bundle.yaml
+"Грунт": "Grunt"
+
+# content/resources/soil/data/items.yaml
+"Земля": "Ziemia"
+"Песок": "Piasek"
+"Глина": "Glina"
+
+# content/resources/soil/data/materials.yaml
+"Грядка": "Grządka"
+"Мокрая грядка": "Mokra grządka"
+
+# content/resources/soil/data/sounds.yaml
+"Шаг по песку": "Krok po piasku"

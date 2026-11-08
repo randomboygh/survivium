@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/flax/bundle.yaml
+"Лён": "Lino"
+
+# content/plants/flax/data/items.yaml
+"Семена льна": "Semillas de lino"
+"Гладкие блестящие семена. Посейте их на грядку весной.": "Semillas lisas y brillantes. Siémbralas en un bancal en primavera."
+"Стебли льна": "Tallos de lino"
+"Срезанный дикий лён. Из него прядут льняную нить.": "Lino silvestre cortado. Con él se hila hilo de lino."
+"Льняная нить": "Hilo de lino"
+"Тонкая прочная нить. На ткацком станке из неё ткут ткань.": "Un hilo fino y resistente. En el telar se teje tela con él."
+
+# content/plants/flax/data/recipes.yaml
+"Льняная ткань": "Tela de lino"

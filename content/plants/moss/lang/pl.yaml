@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/moss/bundle.yaml
+"Мох": "Mech"
+
+# content/plants/moss/data/items.yaml
+"Бинт": "Bandaż"
+"Припарка": "Okład"
+"Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему.": "Ciepły mech w bandażu. Leczy nie od razu, a po trochu, ale dwa razy więcej niż bandaż, nawet głodnego i zmarzniętego."

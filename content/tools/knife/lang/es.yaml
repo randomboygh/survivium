@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Cuchillo"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Cuchillo de sílex"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Una lasca afilada de sílex con mango. Despieza reses y golpea animales."
+"Медный нож": "Cuchillo de cobre"
+"Бронзовый нож": "Cuchillo de bronce"
+"Железный нож": "Cuchillo de hierro"
+"Стальной нож": "Cuchillo de acero"

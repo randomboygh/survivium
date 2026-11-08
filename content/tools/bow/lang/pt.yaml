@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bow/bundle.yaml
+"Лук": "Arco"
+
+# content/tools/bow/data/items.yaml
+"Деревянный лук": "Arco de madeira"
+"Стреляет стрелами дальше всего.": "Atira flechas mais longe que tudo."
+"Стрела": "Flecha"
+"Древко с кремнёвым наконечником. После выстрела её можно подобрать.": "Uma haste com ponta de sílex. Depois do disparo, pode ser recolhida."
+
+# content/tools/bow/data/recipes.yaml
+"Стрелы": "Flechas"

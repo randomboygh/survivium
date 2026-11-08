@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ladder/bundle.yaml
+"Приставная лестница": "Escalera de mano"
+
+# content/tools/ladder/data/items.yaml
+"Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз.": "Un tramo de escalera de una celda de alto. Se apoya en la pared, tramo sobre tramo; por ella se sube y se baja."

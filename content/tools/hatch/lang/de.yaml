@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hatch/bundle.yaml
+"Люк": "Falltür"
+
+# content/tools/hatch/data/items.yaml
+"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Ein Bretterdeckel für ein Loch im Boden oder in der Decke. Ein Tippen öffnet und schließt ihn."
+"Люк 2×2": "Falltür 2×2"
+"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Ein breiter Bretterdeckel für ein Loch im Boden, zwei Felder breit und zwei tief."

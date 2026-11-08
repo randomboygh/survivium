@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/silver/bundle.yaml
+"Серебро": "Gümüş"
+
+# content/materials/silver/data/items.yaml
+"Серебряная руда": "Gümüş cevheri"
+"Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.": "Doğal gümüşün beyaz pulları olan gri bir kaya. Bronz kazma kazar."
+"Серебряный слиток": "Gümüş külçe"
+"Мягкий белый металл. Из слитков складывают серебряные блоки.": "Yumuşak beyaz bir metal. Külçelerden gümüş bloklar yapılır."
+"Серебряный блок": "Gümüş blok"
+"Гладкий светлый металлический блок для построек.": "Yapılar için pürüzsüz, açık renkli bir metal blok."

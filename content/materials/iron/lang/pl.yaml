@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/iron/bundle.yaml
+"Железо": "Żelazo"
+
+# content/materials/iron/data/items.yaml
+"Железная руда": "Ruda żelaza"
+"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Ciężka rdzawobrązowa ruda. Wydobywa ją brązowy kilof."
+"Крица": "Łupka"
+"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Porowata bryła żelaza z żużlem z dymarki. W kuźni wychodzą z niej dwie sztabki."
+"Железный слиток": "Sztabka żelaza"
+"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Ciemny mocny metal. Z niego kowadło i żelazne narzędzia."

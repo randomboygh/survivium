@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sword/bundle.yaml
+"Меч": "Kılıç"
+
+# content/tools/sword/data/items.yaml
+"Деревянный меч": "Ahşap kılıç"
+"Каменный меч": "Taş kılıç"
+"Медный меч": "Bakır kılıç"
+"Бронзовый меч": "Bronz kılıç"
+"Железный меч": "Demir kılıç"
+"Стальной меч": "Çelik kılıç"
+
+# content/tools/sword/data/sounds.yaml
+"Взмах": "Savuruş"

@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/composite_bow/bundle.yaml
+"Составной лук": "Складений лук"
+
+# content/tools/composite_bow/data/items.yaml
+"Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее.": "Дерев'яний лук, укріплений кісткою й обмотаний шкірою. Стріляє далі й сильніше."
+
+# content/tools/composite_bow/data/recipes.yaml
+"Стрелы с костяным наконечником": "Стріли з кістяним наконечником"

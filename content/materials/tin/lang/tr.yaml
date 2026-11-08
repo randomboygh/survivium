@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/tin/bundle.yaml
+"Олово": "Kalay"
+
+# content/materials/tin/data/items.yaml
+"Оловянная руда": "Kalay cevheri"
+"Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.": "Açık taneli koyu, ağır bir cevher. Bakır kazma kazar."
+"Слиток олова": "Kalay külçe"
+"Мягкий серебристый металл. С медью даёт бронзу.": "Yumuşak gümüşi bir metal. Bakırla bronz verir."

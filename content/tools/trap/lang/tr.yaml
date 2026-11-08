@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/trap/bundle.yaml
+"Живоловка": "Canlı tuzak"
+
+# content/tools/trap/data/items.yaml
+"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Tetikli kapısı olan dallardan bir kafes. İçine bir havuç ya da şalgam koy, tavşan kendiliğinden girer."
+"Пойманный заяц": "Yakalanmış tavşan"
+"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Tuzaktan canlı bir tavşan. Eline al ve salmak için eyleme bas: zaten evcil ve seni izler."

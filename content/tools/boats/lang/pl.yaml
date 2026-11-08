@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/boats/bundle.yaml
+"Плот и лодка": "Tratwa i łódź"
+
+# content/tools/boats/data/items.yaml
+"Плот": "Tratwa"
+"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Kłody związane sznurkiem. Weź ją do ręki i naciśnij akcję przy wodzie, by ją zwodować i wejść."
+"Лодка": "Łódź"
+"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Lekka smołowana łódź z desek. Szybsza od tratwy, ale wiosłuje się nią tylko z wiosłami w torbie."
+"Вёсла": "Wiosła"
+"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Para wioseł. Dopóki są w torbie, łódź płynie szybko."

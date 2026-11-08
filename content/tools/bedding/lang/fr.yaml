@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bedding/bundle.yaml
+"Постель": "Couche"
+
+# content/tools/bedding/data/items.yaml
+"Травяная подстилка": "Couche d'herbe"
+"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "Une brassée d'herbe sèche liée par une corde. On y dort mieux que sur la terre nue."
+"Меховой спальник": "Sac de couchage en fourrure"
+"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Des peaux cousues en sac. On s'y repose deux fois plus vite."

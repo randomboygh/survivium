@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/canvas_backpack/bundle.yaml
+"Холщовый рюкзак": "Kanvas sırt çantası"
+
+# content/tools/canvas_backpack/data/items.yaml
+"Рюкзак из ткани с кожаными лямками и клапаном. Надетый за спину, даёт ещё 24 ячейки.": "Deri kayışlı ve kapaklı bir kumaş sırt çantası. Sırtta taşınınca 24 yuva daha verir."

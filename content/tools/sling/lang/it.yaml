@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sling/bundle.yaml
+"Праща": "Fionda"
+
+# content/tools/sling/data/items.yaml
+"Ремень из верёвки: мечет камешки дальше, чем рука.": "Una cinghia di corda: lancia sassolini più lontano della mano."
+"Камешки": "Sassolini"
+"Круглые камешки для пращи.": "Sassolini rotondi per la fionda."

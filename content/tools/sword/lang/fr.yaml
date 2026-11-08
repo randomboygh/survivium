@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sword/bundle.yaml
+"Меч": "Épée"
+
+# content/tools/sword/data/items.yaml
+"Деревянный меч": "Épée en bois"
+"Каменный меч": "Épée de pierre"
+"Медный меч": "Épée de cuivre"
+"Бронзовый меч": "Épée de bronze"
+"Железный меч": "Épée de fer"
+"Стальной меч": "Épée d'acier"
+
+# content/tools/sword/data/sounds.yaml
+"Взмах": "Taille"

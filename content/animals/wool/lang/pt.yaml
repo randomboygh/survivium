@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/wool/bundle.yaml
+"Пух": "Penugem"
+
+# content/animals/wool/data/items.yaml
+"Заячий пух": "Penugem de lebre"
+"Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу.": "Penugem macia de uma lebre mansa. Corta-se com faca e fia-se."
+"Пушистая пряжа": "Fio felpudo"
+"Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань.": "Fio quente de penugem de lebre. No tear tece-se pano com ele."
+
+# content/animals/wool/data/recipes.yaml
+"Ткань из пряжи": "Pano de fio"

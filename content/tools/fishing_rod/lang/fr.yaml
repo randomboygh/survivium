@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fishing_rod/bundle.yaml
+"Удочка": "Canne à pêche"
+
+# content/tools/fishing_rod/data/items.yaml
+"Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.": "Une perche souple avec une ligne et un hameçon en silex. On la lance à l'eau et on attend une touche."
+"Наживка": "Appât"
+"Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.": "Des vers tirés de la terre. On les met sur l'hameçon, et les poissons mordent bien plus souvent."

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/iron/bundle.yaml
+"Железо": "Demir"
+
+# content/materials/iron/data/items.yaml
+"Железная руда": "Demir cevheri"
+"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Ağır, pas kahvesi bir cevher. Bronz kazma kazar."
+"Крица": "Süngerimsi demir"
+"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "İlkel ocaktan çıkan gözenekli demir ve cüruf topağı. Ocak ondan iki külçe çıkarır."
+"Железный слиток": "Demir külçe"
+"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Koyu, sağlam bir metal. Ondan örs ve demir aletler yapılır."

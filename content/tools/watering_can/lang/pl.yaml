@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/watering_can/bundle.yaml
+"Лейка": "Konewka"
+
+# content/tools/watering_can/data/items.yaml
+"Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Pusta. Weź ją do ręki i dotknij słodkiej wody, by ją napełnić."
+"Лейка с водой": "Konewka z wodą"
+"Поливает грядки. Воды хватает на десять клеток.": "Podlewa grządki. Wody starcza na dziesięć pól."

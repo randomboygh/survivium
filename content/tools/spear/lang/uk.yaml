@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/spear/bundle.yaml
+"Копьё": "Спис"
+
+# content/tools/spear/data/items.yaml
+"Кремнёвое копьё": "Кремінний спис"
+"Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова.": "Довгий спис із кремінним наконечником. Його кидають у звіра й підбирають знову."
+"Бронзовое копьё": "Бронзовий спис"
+"Железное копьё": "Залізний спис"

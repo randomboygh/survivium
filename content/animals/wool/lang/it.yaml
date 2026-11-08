@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/wool/bundle.yaml
+"Пух": "Peluria"
+
+# content/animals/wool/data/items.yaml
+"Заячий пух": "Peluria di lepre"
+"Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу.": "Morbida peluria di una lepre domestica. Si taglia col coltello e si fila."
+"Пушистая пряжа": "Filato soffice"
+"Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань.": "Filato caldo di peluria di lepre. Al telaio se ne tesse stoffa."
+
+# content/animals/wool/data/recipes.yaml
+"Ткань из пряжи": "Stoffa di filato"

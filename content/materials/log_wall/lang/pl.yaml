@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/log_wall/bundle.yaml
+"Сруб": "Zrąb"
+
+# content/materials/log_wall/data/items.yaml
+"Отёсанные брёвна для стен и пола. Ставится блоком.": "Ociosane kłody na ściany i podłogi. Stawia się jak blok."

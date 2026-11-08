@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/iron/bundle.yaml
+"Железо": "Hierro"
+
+# content/materials/iron/data/items.yaml
+"Железная руда": "Mineral de hierro"
+"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Un mineral pesado pardo herrumbre. Lo extrae un pico de bronce."
+"Крица": "Lupa"
+"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Un terrón poroso de hierro y escoria del horno de lupa. La fragua lo convierte en dos lingotes."
+"Железный слиток": "Lingote de hierro"
+"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Un metal oscuro y resistente. Con él se hacen el yunque y las herramientas de hierro."

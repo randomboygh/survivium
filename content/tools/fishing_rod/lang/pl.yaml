@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fishing_rod/bundle.yaml
+"Удочка": "Wędka"
+
+# content/tools/fishing_rod/data/items.yaml
+"Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.": "Giętki pręt z żyłką i krzemiennym haczykiem. Zarzuca się go do wody i czeka na branie."
+"Наживка": "Przynęta"
+"Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.": "Robaki wykopane z ziemi. Zakłada się je na haczyk, a ryby biorą o wiele częściej."

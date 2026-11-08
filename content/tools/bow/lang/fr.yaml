@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/bow/bundle.yaml
+"Лук": "Arc"
+
+# content/tools/bow/data/items.yaml
+"Деревянный лук": "Arc en bois"
+"Стреляет стрелами дальше всего.": "Tire les flèches plus loin que tout."
+"Стрела": "Flèche"
+"Древко с кремнёвым наконечником. После выстрела её можно подобрать.": "Une hampe à pointe de silex. Après le tir, on peut la ramasser."
+
+# content/tools/bow/data/recipes.yaml
+"Стрелы": "Flèches"

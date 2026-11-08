@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"Тяпка": "Zappa"
+
+# content/tools/hoe/data/items.yaml
+"Каменная тяпка": "Zappa di pietra"
+"Вскапывает траву и землю в грядку, на которую сеют.": "Zappa erba e terra in un'aiuola dove seminare."
+"Медная тяпка": "Zappa di rame"
+"Вскапывает две клетки за взмах.": "Zappa due celle per colpo."
+"Железная тяпка": "Zappa di ferro"
+"Вскапывает три клетки за взмах.": "Zappa tre celle per colpo."

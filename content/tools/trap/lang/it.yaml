@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/trap/bundle.yaml
+"Живоловка": "Trappola viva"
+
+# content/tools/trap/data/items.yaml
+"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Una gabbia di rami con porta a scatto. Mettici dentro una carota o una rapa, e una lepre ci entrerà da sola."
+"Пойманный заяц": "Lepre catturata"
+"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Una lepre viva da una trappola. Prendila in mano e premi l'azione per liberarla: è già mansueta e ti seguirà."

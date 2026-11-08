@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/signs/bundle.yaml
+"Таблички": "Cartelli"
+
+# content/tools/signs/data/items.yaml
+"Табличка": "Cartello"
+"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Una tavoletta su un paletto. Tre righe di testo, visibili a chiunque si avvicini."
+"Указатель": "Palo segnaletico"
+"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Una freccia su un palo. Due righe di testo; la freccia si può girare in qualsiasi direzione."
+"Доска на стену": "Bacheca"
+"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Una grande tavola appesa al muro. Sei righe di testo, per regole, avvisi e appunti."

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Coltello"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Coltello di selce"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Una scheggia affilata di selce con manico. Macella le carcasse e colpisce gli animali."
+"Медный нож": "Coltello di rame"
+"Бронзовый нож": "Coltello di bronzo"
+"Железный нож": "Coltello di ferro"
+"Стальной нож": "Coltello d'acciaio"

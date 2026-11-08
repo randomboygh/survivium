@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"Добыча": "Zwierzyna"
+
+# content/animals/game/data/items.yaml
+"Тушка": "Mała tusza"
+"Мелкий зверь или птица. Разделывается руками.": "Małe zwierzę lub ptak. Ćwiartuje się rękami."
+"Туша": "Tusza"
+"Крупный зверь. Разделать её можно только ножом.": "Duże zwierzę. Da się je oprawić tylko nożem."
+"Сырое мясо": "Surowe mięso"
+"Есть можно, но жареное сытнее.": "Jadalne, ale pieczone bardziej syci."
+"Жареное мясо": "Pieczone mięso"
+"Мясо, зажаренное на костре. Очень сытное.": "Mięso upieczone na ognisku. Bardzo syci."
+"Шкура": "Skóra"
+"Сырая шкура зверя.": "Surowa skóra zwierzęcia."
+"Кость": "Kość"
+"Жир": "Tłuszcz"
+"Вяленое мясо": "Suszone mięso"
+"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Mięso wysuszone na suszarni. Lekkie i sycące, bez ognia."
+
+# content/animals/game/data/recipes.yaml
+"Разделать тушку": "Oprawić małą tuszę"
+"Разделать тушу": "Oprawić tuszę"

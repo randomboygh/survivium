@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fishing_rod/bundle.yaml
+"Удочка": "Caña de pescar"
+
+# content/tools/fishing_rod/data/items.yaml
+"Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.": "Una vara flexible con sedal y anzuelo de sílex. Se lanza al agua y se espera a que piquen."
+"Наживка": "Cebo"
+"Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.": "Gusanos sacados de la tierra. Se ponen en el anzuelo y los peces pican mucho más."

@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fishing_rod/bundle.yaml
+"Удочка": "Vara de pescar"
+
+# content/tools/fishing_rod/data/items.yaml
+"Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.": "Uma vara flexível com linha e anzol de sílex. Lança-se na água e espera-se a mordida."
+"Наживка": "Isca"
+"Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.": "Minhocas tiradas da terra. Vão no anzol, e os peixes mordem muito mais."

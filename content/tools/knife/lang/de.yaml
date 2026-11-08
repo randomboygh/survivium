@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/knife/bundle.yaml
+"Нож": "Messer"
+
+# content/tools/knife/data/items.yaml
+"Кремнёвый нож": "Feuersteinmesser"
+"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Ein scharfer Feuersteinsplitter mit Griff. Zerlegt Kadaver und schlägt Tiere."
+"Медный нож": "Kupfermesser"
+"Бронзовый нож": "Bronzemesser"
+"Железный нож": "Eisenmesser"
+"Стальной нож": "Stahlmesser"

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sickle/bundle.yaml
+"Серп": "Orak"
+
+# content/tools/sickle/data/items.yaml
+"Каменный серп": "Taş orak"
+"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Tarhlardaki olgun ürünü biçer, vuruş başına üç hücre."
+"Медный серп": "Bakır orak"
+"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Tarhlardaki olgun ürünü biçer, vuruş başına dört hücre."
+"Железный серп": "Demir orak"
+"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Tarhlardaki olgun ürünü biçer, vuruş başına beş hücre."

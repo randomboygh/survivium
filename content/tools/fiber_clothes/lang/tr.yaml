@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fiber_clothes/bundle.yaml
+"Одежда из волокна": "Lif giysiler"
+
+# content/tools/fiber_clothes/data/items.yaml
+"Плетёная шапка": "Örgü şapka"
+"Шапка из сухой травы. Немного греет голову.": "Kuru ottan bir şapka. Başı biraz ısıtır."
+"Травяная накидка": "Ot pelerin"
+"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Sıkı örülmüş liften, ipe bağlı bir pelerin. Ot giysilerin en sıcağı."
+"Обмотки": "Bacak sargıları"
+"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Bacaklara sarılıp iple bağlanmış lif şeritleri."
+"Лапти": "Örgü çarık"
+"Плетёная обувь из волокна на верёвочных завязках.": "İp bağcıklı, liften örülmüş ayakkabı."

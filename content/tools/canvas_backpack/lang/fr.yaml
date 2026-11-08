@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/canvas_backpack/bundle.yaml
+"Холщовый рюкзак": "Sac à dos en toile"
+
+# content/tools/canvas_backpack/data/items.yaml
+"Рюкзак из ткани с кожаными лямками и клапаном. Надетый за спину, даёт ещё 24 ячейки.": "Un sac à dos en tissu avec des sangles de cuir et un rabat. Porté au dos, il donne 24 emplacements de plus."

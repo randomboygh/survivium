@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/signs/bundle.yaml
+"Таблички": "Tabelalar"
+
+# content/tools/signs/data/items.yaml
+"Табличка": "Tabela"
+"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Kazığa çakılı bir tahtacık. Üç satır yazı, yaklaşan herkes görür."
+"Указатель": "Yön tabelası"
+"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Direkte bir ok. İki satır yazı; ok her yöne çevrilebilir."
+"Доска на стену": "Duvar panosu"
+"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Duvara asılan büyük bir pano. Altı satır yazı: kurallar, duyurular ve notlar için."

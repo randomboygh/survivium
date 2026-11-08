@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/window/bundle.yaml
+"Окно": "Okno"
+
+# content/tools/window/data/items.yaml
+"Рама со стеклом для проёма в стене.": "Rama z szybą do otworu w ścianie."
+"Окно 1×2": "Okno 1×2"
+"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "Wysokie okno z szybą, szerokie na jedno pole i wysokie na dwa."
+"Окно 2×1": "Okno 2×1"
+"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "Szerokie okno z szybą, szerokie na dwa pola i wysokie na jedno."
+"Окно 2×2": "Okno 2×2"
+"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "Duże okno z szybą, szerokie na dwa pola i wysokie na dwa."
+"Окно 3×2": "Okno 3×2"
+"Окно во всю стену, на три клетки в ширину и две в высоту.": "Okno na całą ścianę, szerokie na trzy pola i wysokie na dwa."

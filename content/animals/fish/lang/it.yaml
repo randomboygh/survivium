@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"Рыба": "Pesce"
+
+# content/animals/fish/data/creatures.yaml
+"Плотва": "Triotto"
+"Щука": "Luccio"
+"Лосось": "Salmone"
+"Треска": "Merluzzo"
+"Рыба-попугай": "Pesce pappagallo"
+"Сом": "Siluro"
+
+# content/animals/fish/data/items.yaml
+"Мелкая речная рыба. Её жарят на костре.": "Un piccolo pesce di fiume. Si arrostisce sul fuoco."
+"Хищница тихих заводей. Её жарят на костре.": "Un predatore delle acque quiete. Si arrostisce sul fuoco."
+"Рыба холодных северных рек. Её жарят на костре.": "Un pesce dei freddi fiumi del nord. Si arrostisce sul fuoco."
+"Морская рыба холодного берега. Её жарят на костре.": "Un pesce marino della costa fredda. Si arrostisce sul fuoco."
+"Пёстрая рыба тёплого моря. Её жарят на костре.": "Un pesce colorato del mare caldo. Si arrostisce sul fuoco."
+"Большая рыба тёплых болот и рек. Её жарят на костре.": "Un grosso pesce di paludi e fiumi caldi. Si arrostisce sul fuoco."
+"Окунь": "Persico"
+"Полосатая рыба рек и озёр. Его жарят на костре.": "Un pesce striato di fiumi e laghi. Si arrostisce sul fuoco."
+"Жареная рыба": "Pesce arrosto"
+"Рыба, зажаренная на костре. Сытная.": "Pesce arrostito sul fuoco. Sazia."

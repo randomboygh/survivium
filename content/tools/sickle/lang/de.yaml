@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sickle/bundle.yaml
+"Серп": "Sichel"
+
+# content/tools/sickle/data/items.yaml
+"Каменный серп": "Steinsichel"
+"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Erntet reife Frucht von den Beeten, drei Felder pro Schlag."
+"Медный серп": "Kupfersichel"
+"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Erntet reife Frucht von den Beeten, vier Felder pro Schlag."
+"Железный серп": "Eisensichel"
+"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Erntet reife Frucht von den Beeten, fünf Felder pro Schlag."

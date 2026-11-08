@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/shovel/bundle.yaml
+"Лопата": "Pala"
+
+# content/tools/shovel/data/items.yaml
+"Деревянная лопата": "Pala di legno"
+"Медная лопата": "Pala di rame"
+"Бронзовая лопата": "Pala di bronzo"
+"Железная лопата": "Pala di ferro"
+"Стальная лопата": "Pala d'acciaio"

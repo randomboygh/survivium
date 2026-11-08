@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/boats/bundle.yaml
+"Плот и лодка": "Sal ve kayık"
+
+# content/tools/boats/data/items.yaml
+"Плот": "Sal"
+"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "İple bağlanmış kütükler. Eline al ve suyun yanında eyleme bas: suya indirip üstüne binersin."
+"Лодка": "Kayık"
+"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Tahtadan, katranlı hafif bir kayık. Saldan hızlı, ama ancak çantada kürek varken çekilir."
+"Вёсла": "Kürekler"
+"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Bir çift kürek. Çantada durdukça kayık hızlı gider."

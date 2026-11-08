@@ -1,0 +1,24 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/sounds/player/bundle.yaml
+"Игрок": "Spieler"
+
+# content/sounds/player/data/sounds.yaml
+"Шаг по траве": "Schritt auf Gras"
+"Шаг по земле": "Schritt auf Erde"
+"Шаг по камню": "Schritt auf Stein"
+"Шаг по снегу": "Schritt im Schnee"
+"Шаг по воде": "Schritt im Wasser"
+"Гребок": "Ruderschlag"
+"Прыжок": "Springen"
+"Приземление": "Landung"
+"Приземление в снег": "Landung im Schnee"
+"Всплеск": "Platschen"
+"Копание": "Graben"
+"Удар по камню": "Schlag auf Stein"
+"Блок поставлен": "Block gesetzt"
+"Подбор": "Aufheben"
+"Сделано": "Fertig"
+"Еда": "Essen"
+"Огонь зажжён": "Feuer entzündet"

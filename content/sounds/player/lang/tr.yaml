@@ -1,0 +1,24 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/sounds/player/bundle.yaml
+"Игрок": "Oyuncu"
+
+# content/sounds/player/data/sounds.yaml
+"Шаг по траве": "Çimende adım"
+"Шаг по земле": "Toprakta adım"
+"Шаг по камню": "Taşta adım"
+"Шаг по снегу": "Karda adım"
+"Шаг по воде": "Suda adım"
+"Гребок": "Kürek çekme"
+"Прыжок": "Zıpla"
+"Приземление": "İniş"
+"Приземление в снег": "Kara iniş"
+"Всплеск": "Şıpırtı"
+"Копание": "Kazı"
+"Удар по камню": "Taşa vuruş"
+"Блок поставлен": "Blok kondu"
+"Подбор": "Toplama"
+"Сделано": "Bitti"
+"Еда": "Yiyecek"
+"Огонь зажжён": "Ateş yandı"

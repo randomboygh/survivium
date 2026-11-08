@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/turnip/bundle.yaml
+"Репа": "Rübe"
+
+# content/plants/turnip/data/items.yaml
+"Семена репы": "Rübensamen"
+"Мелкие тёмные семена. Посейте их на грядку весной.": "Kleine dunkle Samen. Säe sie im Frühling auf ein Beet."
+"Круглый сладковатый корнеплод. Лежит долго.": "Eine runde, süßliche Wurzel. Hält sich lange."

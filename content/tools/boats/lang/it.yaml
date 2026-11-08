@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/boats/bundle.yaml
+"Плот и лодка": "Zattera e barca"
+
+# content/tools/boats/data/items.yaml
+"Плот": "Zattera"
+"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Tronchi legati con una corda. Prendila in mano e premi l'azione vicino all'acqua per vararla e salirci."
+"Лодка": "Barca"
+"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Una barca leggera di assi incatramate. Più veloce della zattera, ma si rema solo con i remi nella borsa."
+"Вёсла": "Remi"
+"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Un paio di remi. Finché sono nella borsa, la barca va veloce."

@@ -22,6 +22,14 @@ const Content := preload("res://src/shared/content/content.gd")
 const LANGS := [
 	["en", "English"],
 	["ru", "Русский"],
+	["es", "Español"],
+	["pt", "Português"],
+	["fr", "Français"],
+	["de", "Deutsch"],
+	["it", "Italiano"],
+	["pl", "Polski"],
+	["tr", "Türkçe"],
+	["uk", "Українська"],
 ]
 ## The language the keys are written in.
 const SOURCE := "ru"

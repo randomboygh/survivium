@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/turnip/bundle.yaml
+"Репа": "Navet"
+
+# content/plants/turnip/data/items.yaml
+"Семена репы": "Graines de navet"
+"Мелкие тёмные семена. Посейте их на грядку весной.": "Petites graines sombres. Semez-les sur une plate-bande au printemps."
+"Круглый сладковатый корнеплод. Лежит долго.": "Une racine ronde un peu sucrée. Se garde longtemps."

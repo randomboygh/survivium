@@ -1151,6 +1151,7 @@
 
 # src/shared/content/lang.gd
 "Русский": "Русский"
+"Українська": "Українська"
 
 # src/shared/content/mods.gd
 "%s (%d из %d)": "%s (%d of %d)"

@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"Тяпка": "Hacke"
+
+# content/tools/hoe/data/items.yaml
+"Каменная тяпка": "Steinhacke"
+"Вскапывает траву и землю в грядку, на которую сеют.": "Hackt Gras und Erde zu einem Beet für die Aussaat."
+"Медная тяпка": "Kupferhacke"
+"Вскапывает две клетки за взмах.": "Hackt zwei Felder pro Schlag."
+"Железная тяпка": "Eisenhacke"
+"Вскапывает три клетки за взмах.": "Hackt drei Felder pro Schlag."

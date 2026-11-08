@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ladder/bundle.yaml
+"Приставная лестница": "Drabina"
+
+# content/tools/ladder/data/items.yaml
+"Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз.": "Odcinek drabiny wysoki na jedno pole. Opiera się go o ścianę, odcinek na odcinku; wchodzi się po nim i schodzi."

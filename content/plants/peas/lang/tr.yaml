@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/peas/bundle.yaml
+"Горох": "Bezelye"
+
+# content/plants/peas/data/items.yaml
+"Сухие горошины. Их едят или сеют на грядку весной.": "Kuru bezelye. Yenir ya da ilkbaharda bir tarha ekilir."

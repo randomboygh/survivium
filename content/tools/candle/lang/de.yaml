@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/candle/bundle.yaml
+"Сальная свеча": "Talglicht"
+
+# content/tools/candle/data/items.yaml
+"Фитиль в жиру. Светит слабее факела, но горит дольше.": "Ein Docht in Fett. Leuchtet schwächer als eine Fackel, brennt aber länger."
