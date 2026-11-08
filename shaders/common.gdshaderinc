@@ -106,6 +106,9 @@ const vec4 LIGHT_RING_LEVELS = vec4(1.0, 0.55, 0.3, 0.14);
 // The edges between the rings are dithered over this share of the range on either
 // side, so the light falls off smoothly in whole texels.
 const float LIGHT_RING_DITHER = 0.05;
+// Below this cosine between a face and the way to a torch or a fire the light falls so
+// flat that its rings close in on it (see toon_light).
+const float LIGHT_GRAZE = 0.05;
 // The least a face gets of the sun or the moon: what level ground gets in a shadow.
 const float SHADOW_FLOOR = 0.14;
 
@@ -677,13 +680,20 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 	if (attenuation <= 0.0) {
 		return vec3(0.0);
 	}
-	float d = light_share(attenuation) * stretch;
+	// Faces turned away from the light get none, grazing ones a little less; ground
+	// the light hardly stands over (a torch held just over the rim of a pit, a lantern
+	// over a step) gets it as from farther the flatter it falls, so its rings close in
+	// and fade out dithered like the rest instead of lighting a flat disc as far as the
+	// angle lets it, cut off sharp.
+	if (ndl <= 0.0) {
+		return vec3(0.0);
+	}
+	float d = light_share(attenuation) * stretch * max(LIGHT_GRAZE / ndl, 1.0);
 	if (d >= 1.0) {
 		return vec3(0.0);
 	}
 	float lit = light_ring(d, texel);
-	// Faces turned away from the light get none, grazing ones a little less.
-	float face = ndl > 0.2 ? 1.0 : (ndl > 0.02 ? 0.7 : 0.0);
+	float face = ndl > 0.2 ? 1.0 : 0.7;
 	return light_color * lit * face / PI;
 }
 

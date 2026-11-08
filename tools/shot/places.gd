@@ -834,6 +834,21 @@ func unwall(w, at: Vector3i) -> void:
 	main.roof.build(w)
 
 
+## Raises stone `depth` cells high all round `at` but for a pit of 7 by 5 cells it stands
+## in (kept in wall_cells), as if the player had dug it out.
+func pit_round(w, at: Vector3i, depth: int) -> void:
+	for x in range(at.x - 14, at.x + 15):
+		for z in range(at.z - 14, at.z + 15):
+			if absi(x - at.x) <= 3 and absi(z - at.z) <= 2:
+				continue
+			for y in range(at.y, at.y + depth):
+				wall_cells.append([Vector3i(x, y, z), w.get_cell(x, y, z), w.is_natural(x, y, z)])
+				w.set_cell(x, y, z, Mat.STONE)
+	for x in range(at.x - 16, at.x + 17, 8):
+		for z in range(at.z - 16, at.z + 17, 8):
+			main.chunks.on_cell_changed(Vector3i(x, at.y, z))
+
+
 ## Digs a trench three cells wide and four deep running north to south through `at`
 ## (kept in wall_cells to be filled again) and returns the spot on its floor.
 func trench(w, at: Vector3i) -> Vector3:

@@ -339,6 +339,10 @@ func _run() -> void:
 					who.burning[held] = [Items.burns(held) * float(shot.burnt)]
 		if shot.has("cast"):
 			await _cast(shot.cast == "bite")
+		if shot.has("pit"):
+			places.pit_round(main.world, Vector3i((main.player.position / CELL).floor()), int(shot.pit))
+			for i in 30:
+				await process_frame
 		if shot.get("wall", "") is String and shot.get("wall", "") == "north":
 			# Right behind the player where they stand now.
 			places.wall(main.world, Vector3i((main.player.position / CELL).floor()), true)
