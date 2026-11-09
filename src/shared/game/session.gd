@@ -177,6 +177,14 @@ func start_wildlife(seed_value: int) -> void:
 	_wild = true
 
 
+## The mods' data read anew (a hot reload, Mods.rescan): what the rules worked out of it
+## once is worked out again.
+func reread() -> void:
+	placed.read_footprints()
+	if wildlife != null:
+		wildlife.reread()
+
+
 ## One tick of the world, `delta` seconds, every step in order.
 func tick(delta: float) -> void:
 	step_clock(delta)

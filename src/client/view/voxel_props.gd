@@ -37,7 +37,8 @@ static func of_item(item: Dictionary, centred: bool) -> VoxelModel:
 	# A model centred on the origin (a drop) and one at its corner (placed) are two.
 	var key := path + ("|centred" if centred else "|corner")
 	if not _read.has(key):
-		_read[key] = VoxelModel.from_image(load(path).get_image(), centred) if ResourceLoader.exists(path) else null
+		var img := Content.picture(path)
+		_read[key] = VoxelModel.from_image(img, centred) if img != null else null
 	return _read[key]
 
 

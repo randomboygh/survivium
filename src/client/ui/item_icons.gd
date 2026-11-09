@@ -47,6 +47,14 @@ static func ui_path(name: String) -> String:
 	return "res://assets/ui/%s.png" % name
 
 
+## Forgets the pictures read, for a hot reload of the mods (ModReload): the items'
+## icons are read again, from their files (Content.picture).
+static func forget() -> void:
+	_cache = {}
+	_paths = {}
+	_images = {}
+
+
 ## The interface's picture `name` (see UI), null for none.
 static func picture(name: String) -> Texture2D:
 	return _read(ui_path(name))
@@ -63,8 +71,8 @@ static func _read(path: String) -> Texture2D:
 	if _cache.has(path):
 		return _cache[path]
 	var tex: Texture2D = null
-	if ResourceLoader.exists(path):
-		var img: Image = load(path).get_image()
+	var img := Content.picture(path)
+	if img != null:
 		tex = ImageTexture.create_from_image(img)
 		_images[path] = img
 		UiStyle.remember(tex, img)

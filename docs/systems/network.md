@@ -28,7 +28,9 @@
 кому дал `op`, и игрок, создавший сервер в игре — `Main._on_welcome` → `make_host`), ответ ей приходит
 в чат одному ему. Команды (Т1, [territory.md](territory.md)): запросы `team_*`, события `team`, `invites`,
 строка команде (`team_chat`) — всем её членам в мире; в `heard` четвёртое поле — «сказано команде», в `people`
-последнее — «в моей команде». Земля (Т2, Т3): запросы `land_paint`, `land_rights`, `land_color`, события `claims`, `squares`, `land`. PvP (Т5): запрос `fight_brave`, событие `fight`. Не чаще `Requests.CHAT_LINES` 5 строк за `CHAT_WINDOW` 8 с, длина до `CHAT_MAX` 160.
+последнее — «в моей команде». Земля (Т2, Т3): запросы `land_paint`, `land_rights`, `land_color`, события `claims`, `squares`, `land`. PvP (Т5): запрос `fight_brave`, событие `fight`. Отладка ИИ (решение 184): запрос `ai_debug` [вкл] — только при
+`Requests.may_debug` (одиночная игра — `LocalHost.join`; на сервере хозяин, `Server` ставит перед каждым сообщением
+по `is_host`, снятый хозяин теряет и включённую отладку), событие `minds` (`Wildlife.mind`) раз в 0,25 с. Не чаще `Requests.CHAT_LINES` 5 строк за `CHAT_WINDOW` 8 с, длина до `CHAT_MAX` 160.
 
 **Файлы**
 - `src/shared/net/protocol.gd` — версия протокола, виды запросов с их аргументами (копать, ставить,
@@ -133,7 +135,9 @@
   клиенту), `ban <кто или имя>` (ключ и имя, игрок выгнан), `unban <имя>`, `bans`, `whitelist
   on|off|add <имя>|remove <имя>` (включение вносит в список тех, кто на сервере); С6: `op <кто>`,
   `deop <имя>`, `hosts` — кто может давать команды в чате; `security [вид или имя]` — журнал
-  безопасности (`flag`, `security_log`, [../security/ANTI_CHEAT.md](../security/ANTI_CHEAT.md)). Права —
+  безопасности (`flag`, `security_log`, [../security/ANTI_CHEAT.md](../security/ANTI_CHEAT.md)); `reload` —
+  перечитать данные модов с диска (`reload_mods`, горячая перезагрузка, решение 184: `Mods.rescan(true)` и
+  `Session.reread`, игрокам строка «Сервер перечитал данные модов»). Права —
   одна таблица `COMMANDS` с ролями (`role_of` по ключу: хозяин по `op`, владелец — создавший сервер в игре,
   терминал): `op`, `deop`, `stop` — владельцу и терминалу ([../security/COMMAND_PERMISSIONS.md](../security/COMMAND_PERMISSIONS.md)).
   Кто может войти — `access` (`banned_keys` ключ → имя, `banned_names`, `listed_only`, `listed`,

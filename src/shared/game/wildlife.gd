@@ -144,6 +144,10 @@ class Animal:
 	var pos := Vector3.ZERO
 	var target := Vector3.ZERO
 	var state := "wander"
+	## Why it does what `state` says, for the AI's debug (mind): what it flees ("person",
+	## "fire", "hurt", "alarm" — one of its flock fleeing — or the kind of the animal), what
+	## it hunts (the kind), "graze", "lead", "owner"; "" for nothing in particular.
+	var cause := ""
 	var hunger := 0.0
 	var think := 0.0
 	var prey: Animal = null
@@ -508,6 +512,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	if a.bait.is_finite():
 		# Lured by a float: nothing else matters to it until it has bitten or let go.
 		a.state = "bait"
+		a.cause = ""
 		a.idle = 0.0
 		a.target = Vector3(a.bait.x, a.pos.y, a.bait.z)
 		return
@@ -517,6 +522,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	var sight: float = spec.sight
 	var threat_pos: Variant = null
 	var threat_d := INF
+	var threat_what := ""
 	if a.owner < 0 and AiRules.is_threat(a.kind, AiRules.HUMAN):
 		# A person within 0.6 of its sight startles it; once fleeing it stays wary until
 		# they are out of sight, so it does not wander back at the edge of its fear. One
@@ -530,16 +536,19 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if d < wary and d < threat_d:
 				threat_pos = at
 				threat_d = d
+				threat_what = "person"
 	var fire: Variant = _fire_near(a, spec)
 	if _fights(a, spec, fire):
 		return
 	if fire != null and a.pos.distance_to(fire) < threat_d:
 		threat_pos = fire
 		threat_d = a.pos.distance_to(fire)
+		threat_what = "fire"
 	if a.hurt > 0.0:
 		# A hit one flees from where it was hit, whether it fears people or not.
 		threat_pos = a.hurt_from
 		threat_d = a.pos.distance_to(a.hurt_from)
+		threat_what = "hurt"
 	var prey: Animal = null
 	var prey_d := INF
 	var lead := _lead(a)
@@ -563,6 +572,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if d < threat_d and what == THREAT:
 				threat_pos = o.pos
 				threat_d = d
+				threat_what = o.kind
 			elif d < prey_d and what == FOOD and (spec.flies or not o.aloft()):
 				prey = o
 				prey_d = d
@@ -571,8 +581,10 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	# One of the flock fleeing frightens the rest.
 	if threat_pos == null and alarm != null:
 		threat_pos = alarm
+		threat_what = "alarm"
 	if threat_pos != null:
 		a.state = "flee"
+		a.cause = threat_what
 		a.idle = 0.0
 		a.fear = threat_pos
 		var away: Vector3 = a.pos - threat_pos
@@ -609,6 +621,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		# that found none sleeps where it is.
 		var was_resting := a.state == "rest"
 		a.state = "rest"
+		a.cause = ""
 		if a.climb:
 			return
 		if spec.roost == "trees" and not a.aloft() and not was_resting:
@@ -631,6 +644,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		a.target = a.pos
 	if prey != null and a.hunger > 0.5:
 		a.state = "hunt"
+		a.cause = prey.kind
 		a.prey = prey
 		a.target = prey.pos
 		if spec.flies:
@@ -640,9 +654,12 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		a.hunger = maxf(0.0, a.hunger - 0.04)
 	var was := a.state
 	a.state = "wander"
+	if was != "wander":
+		a.cause = ""
 	if a.flying:
 		return
 	if lead != null and lead != a:
+		a.cause = "lead"
 		_follow(a, spec, lead)
 		return
 	if spec.flies:
@@ -674,6 +691,7 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		# walker's thinking), else it wanders.
 		var to: Variant = null if spec.likes.is_empty() or rng.randf() > GRAZE_CHANCE else _place(spec, a.pos, 6.0, false, 4)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
+		a.cause = "graze" if to != null else ""
 		if _fire_near(a, spec, a.target) != null:
 			# It does not wander up to a fire: it stays where it is a while instead.
 			a.target = a.pos
@@ -694,6 +712,7 @@ const TAME_ROAM := 2.5
 ## here it stays where it is.
 func _keep_by_owner(a: Animal) -> void:
 	a.state = "wander"
+	a.cause = "owner"
 	if a.idle > 0.0:
 		return
 	if a.stay.is_finite():
@@ -1545,6 +1564,61 @@ func _land_bite(a: Animal, spec: Dictionary, who) -> void:
 ## Height of the ground at a world point, in world units; below 0 over open water.
 func ground(x: float, z: float) -> float:
 	return world.ground_height(x / CELL, z / CELL) * CELL
+
+
+# --- The AI's debug ----------------------------------------------------------------
+
+
+## What animal `a` has in mind, for the AI's debug (Protocol.MINDS, decision 184):
+## [id, state, cause (see Animal.cause; "hunt_person" or "defend" in a fight with a
+## person), hunger 0..1, health, its species' health, where it goes (target), what it
+## runs from or goes for (INF for nothing), the id of its flock's lead (-1 none, its own
+## for the lead), its owner (-1 wild), seconds of rage, calm, idle and hurt left, its
+## sight, how near a person frightens it (0: people do not), how near one makes it growl
+## (0: it does not), whether someone sees it (`near`: it thinks every tick, else in
+## FAR_STEP steps)]. Plain values, for the wire.
+func mind(a: Animal) -> Array:
+	var spec: Dictionary = AiRules.SPECIES.get(a.kind, {})
+	var sight: float = spec.get("sight", 0.0)
+	var cause := a.cause
+	var toward := Vector3.INF
+	if a.foe != null and a.state in ["warn", "charge", "bite"]:
+		cause = "hunt_person" if a.hunting else "defend"
+		toward = a.foe.position
+	elif a.state == "flee":
+		toward = a.fear
+	elif a.state == "hunt" and a.prey != null and not a.prey.gone:
+		toward = a.prey.pos
+	elif a.state == "bait":
+		toward = a.bait
+	var lead := _lead(a)
+	var wary := 0.0
+	if a.owner < 0 and AiRules.is_threat(a.kind, AiRules.HUMAN):
+		wary = sight if a.state == "flee" else sight * 0.6
+	var close := sight * CLOSE if _fighter(a, spec) and spec.get("human_wariness", 1.0) < 0.5 else 0.0
+	return [a.id, a.state, cause, a.hunger, a.health, int(spec.get("health", 0)), a.target, toward,
+		lead.id if lead != null else -1, a.owner, a.rage, a.calm, a.idle, a.hurt, sight, wary, close, a.near]
+
+
+## The minds (see mind) of the animals within `reach` world units of `at`, across the ground.
+func minds_near(at: Vector3, reach: float) -> Array:
+	var out := []
+	var r2 := reach * reach
+	for a in animals:
+		if not a.gone and Vector2(a.pos.x - at.x, a.pos.z - at.z).length_squared() <= r2:
+			out.append(mind(a))
+	return out
+
+
+## The species read anew (a hot reload, Session.reread): what each kind looks for is
+## worked out again, and the animals of a kind no longer loaded leave the world.
+func reread() -> void:
+	_caring = {}
+	_seen = {}
+	for a in animals.duplicate():
+		if not AiRules.SPECIES.has(a.kind):
+			_remove(a)
+	_kin_of = -1
 
 
 ## Takes animal `a` out of the world (a fish pulled out on a line, Fishing).

@@ -80,15 +80,31 @@ static func activate(bundles: Array) -> PackedStringArray:
 ## Reads everything under content/ again and refreshes the registries; returns a copy of the
 ## problems found (a copy: the loader makes a new list with every set, and a method called on
 ## the list a static func returns crashes the engine). Not `reload`: Script.reload shadows it.
-static func rescan() -> PackedStringArray:
+## `live`: a hot reload in a world being played (ModReload, the server's `reload`): its
+## pictures and sounds are read from their files from now on (Content.live), and when the
+## materials of the cells are not the ones they were (another id, or another order) the
+## registry of materials keeps the old ones, so the cells made keep their meaning
+## (`cells_kept`); a new world takes the new ones.
+static func rescan(live := false) -> PackedStringArray:
 	Content.refresh()
-	_refresh_registries()
+	if live:
+		Content.live = true
+	var ids: Array = []
+	for r: Dictionary in Content.records("materials"):
+		ids.append(r.id)
+	cells_kept = live and Mat.IDS.size() > 0 and ids != Array(Mat.IDS)
+	_refresh_registries(cells_kept)
 	return Content.problems.duplicate()
 
 
-static func _refresh_registries() -> void:
+## The last `rescan(true)` found the materials of the cells changed and kept the old ones.
+static var cells_kept := false
+
+
+static func _refresh_registries(keep_cells := false) -> void:
 	_built = Content.generation
-	Mat.refresh()
+	if not keep_cells:
+		Mat.refresh()
 	Items.refresh()
 	Trees.refresh()
 	Bushes.refresh()

@@ -1,5 +1,8 @@
 extends "res://tests/unit/test_case.gd"
-## The data: yaml, the schemas, mods and patches, items, tools, recipes, and the layer rule.
+## The data: yaml, the schemas, mods and patches, items, tools, recipes, the layer rule
+## and the hot reload.
+
+const ContentWatch := preload("res://src/shared/content/content_watch.gd")
 
 
 func run() -> void:
@@ -17,6 +20,7 @@ func run() -> void:
 	_test_crafting()
 	_test_recipe_mistakes()
 	_test_layers()
+	_test_hot_reload()
 
 
 func _test_yaml() -> void:
@@ -810,3 +814,46 @@ func _scripts(dir: String) -> Array:
 	for d: String in DirAccess.get_directories_at(dir):
 		out.append_array(_scripts(dir.path_join(d)))
 	return out
+
+
+## The hot reload (ModReload): the watch over the files sees one added and one taken
+## away, and a reload in a world being played keeps its cells' materials.
+func _test_hot_reload() -> void:
+	var dir := "user://watch_test"
+	DirAccess.make_dir_recursive_absolute(dir + "/a")
+	for f in DirAccess.get_files_at(dir + "/a"):
+		DirAccess.remove_absolute("%s/a/%s" % [dir, f])
+	var write := func(path: String) -> void:
+		var f := FileAccess.open(path, FileAccess.WRITE)
+		f.store_string("id: x\n")
+		f.close()
+	write.call(dir + "/a/one.yaml")
+	write.call(dir + "/a/skip.txt")
+	var watch := ContentWatch.new(dir)
+	var found := []
+	for i in 4:
+		while true:
+			var passes := watch.passes
+			var changed := watch.step(1)
+			if watch.passes > passes:
+				found.append(changed)
+				break
+		if i == 1:
+			write.call(dir + "/a/two.png")
+		elif i == 2:
+			DirAccess.remove_absolute(dir + "/a/two.png")
+	_check(found == [false, false, true, true], "the watch over the mods' files sees a file added and one removed, a pass at a time: %s" % [found])
+	write.call(dir + "/a/skip2.txt")
+	var quiet := true
+	for i in 20:
+		quiet = quiet and not watch.step()
+	_check(quiet, "and not files of other kinds")
+	var ids := Mat.IDS.duplicate()
+	var problems := Mods.rescan(true)
+	_check(problems.is_empty() and not Mods.cells_kept and Mat.IDS == ids and Content.live,
+		"a hot reload of the same data keeps the materials and reads pictures from their files: %s" % [problems])
+	var spec: Dictionary = AiRules.SPECIES.values()[0]
+	_check(Content.picture(Content.asset(spec, "sprites/creatures/%s.png" % spec.get("sprite", ""))) != null or spec.get("sprite", "") == "",
+		"a picture is read from its file after a hot reload")
+	Content.live = false
+	Mods.rescan()

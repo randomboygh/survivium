@@ -173,6 +173,10 @@ const LAND_COLOR := "land_color"
 ## The player gives up their protection as a newcomer (Fights.give_up) []; true when
 ## they had it.
 const FIGHT_BRAVE := "fight_brave"
+## Shows the player what the animals near have in mind, or stops (the AI's debug,
+## decision 184): [on]; true when it is on now. Only in a single game and for a host of a
+## server (Requests.may_debug), never for a player.
+const AI_DEBUG := "ai_debug"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -253,6 +257,9 @@ const ANIMAL_GONE := "animal_gone"
 ## Where the animals that moved are, every tick: [[id, position, lift, facing, flying,
 ## perched, moving, hop, left, near, state], …] (the fields of Wildlife.Animal).
 const SNAP := "snap"
+## What the animals near have in mind, a few times a second while the player asked for it
+## (AI_DEBUG): [entry, …], each as Wildlife.mind gives it.
+const MINDS := "minds"
 ## A paw of an animal came down: [id, at, dir, left, size] (Wildlife.stepped).
 const STEP := "step"
 ## The other players in the zone, those that changed since last told (С3.3; 20 a second

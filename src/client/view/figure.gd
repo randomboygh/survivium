@@ -251,7 +251,7 @@ static func opposite(dir: String) -> String:
 
 
 static func _picture(path: String) -> Image:
-	var img: Image = load(path).get_image()
+	var img: Image = Content.picture(path)
 	if img.get_format() != Image.FORMAT_RGBA8:
 		img.convert(Image.FORMAT_RGBA8)
 	return img

@@ -217,6 +217,11 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		if not person.is_empty():
 			game.hud.person.show_person(person[0], person[1], pos)
 			return
+	if game.settings.ai_debug and game.ai_debug != null:
+		# The AI's debug: a tap on an animal chooses it (AiDebug.pick), the hands do nothing.
+		var through := _ray(pos)
+		if game.ai_debug.pick(through[0] * CELL, through[1]):
+			return
 	if game.land.painting:
 		_start_paint(button, pos)
 		return

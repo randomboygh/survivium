@@ -22,6 +22,7 @@ const ServerStore := preload("res://src/server/server_store.gd")
 const Config := preload("res://src/server/config.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 
 ## Seconds a character stays in the world after its connection is lost or a goodbye,
 ## out of their land (see linger_of).
@@ -62,7 +63,7 @@ const RESERVED_NAMES := ["сервер", "server", "admin", "админ", "си�
 enum { ROLE_PLAYER, ROLE_HOST, ROLE_OWNER, ROLE_CONSOLE }
 const COMMANDS := {"who": ROLE_HOST, "say": ROLE_HOST, "kick": ROLE_HOST, "give": ROLE_HOST,
 	"tp": ROLE_HOST, "ban": ROLE_HOST, "unban": ROLE_HOST, "bans": ROLE_HOST, "whitelist": ROLE_HOST,
-	"hosts": ROLE_HOST, "help": ROLE_HOST, "?": ROLE_HOST, "security": ROLE_HOST,
+	"hosts": ROLE_HOST, "help": ROLE_HOST, "?": ROLE_HOST, "security": ROLE_HOST, "reload": ROLE_HOST,
 	"op": ROLE_OWNER, "deop": ROLE_OWNER, "stop": ROLE_OWNER}
 ## Lines the security log keeps (security), and seconds between two lines of one kind
 ## about one player (the others are counted into the next).
@@ -325,14 +326,35 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			for e: Dictionary in shown:
 				out.append("  %s" % _security_line(e))
 			return "\n".join(out)
+		"reload":
+			return reload_mods()
 		"help", "?":
 			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
 				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
 				"ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих",
 				"op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)",
 				"security [вид или имя] — что выглядело подозрительно",
+				"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)",
 				"<кто> — имя или номер игрока (who)"])
 	return ""
+
+
+## Reads the mods' data under content/ again (the command `reload`, a hot reload): the
+## rules play with it at once (Session.reread); the materials of the cells stay those the
+## world was made with (Mods.cells_kept). The players are told; their own games read
+## their own files (a game on the same computer by itself, ModReload). The words to print.
+func reload_mods() -> String:
+	var problems := Mods.rescan(true)
+	if session != null:
+		session.reread()
+	for key in accounts:
+		accounts[key].link.hear(0, "", "Сервер перечитал данные модов")
+	var out: Array[String] = ["данные модов перечитаны" if problems.is_empty() else "данные модов перечитаны, ошибок: %d" % problems.size()]
+	for p in problems.slice(0, 10):
+		out.append("  " + p)
+	if Mods.cells_kept:
+		out.append("материалы клеток изменились: мир играет прежними, новые — в новом мире")
+	return "\n".join(out)
 
 
 ## Loads who may come in from the world's save (the server's scene, at start).
@@ -591,6 +613,10 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 		if open:
 			peer.close_after(1000, "пока")
 		return
+	# What the animals have in mind only a host may see (Protocol.AI_DEBUG): a role taken
+	# away stops it.
+	link.requests.may_debug = is_host(peer.account.key)
+	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
 	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:
 		for b in link.flush():

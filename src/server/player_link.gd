@@ -33,6 +33,10 @@ const CHUNKS_PER_FLUSH := 2
 ## The points of the skills, growing with each swing, are told no more often than this
 ## (seconds), and at once when a level rose.
 const SKILLS_EVERY := 1.0
+## Seconds between the minds of the animals near (Protocol.MINDS) while the player asked
+## for them, and how far round the body they are told (world units).
+const MINDS_EVERY := 0.25
+const MINDS_REACH := 30.0
 var session
 var who: Player
 var workshop: Workshop
@@ -85,6 +89,7 @@ var _vitals: Array = []
 ## On joining, every thing placed and every animal there is goes in one flush.
 var _all := true
 var _clock_sent := -1.0
+var _minds_sent := -1.0
 ## The last SNAP entry sent of each animal, by its id: one that did not move is not sent again.
 var _snapped := {}
 ## The next snapshot looks at every animal (on joining), else at those that stepped and
@@ -312,6 +317,9 @@ func flush() -> Array[PackedByteArray]:
 	if people_every <= 0.0 or _people_sent < 0.0 or now - _people_sent >= people_every:
 		_people_sent = now
 		_people_events(out)
+	if requests.ai_debug and (_minds_sent < 0.0 or now - _minds_sent >= MINDS_EVERY):
+		_minds_sent = now
+		out.append(_event(Protocol.MINDS, session.wildlife.minds_near(who.position, MINDS_REACH)))
 	var push: Vector3 = session.push_on(who)
 	if push != Vector3.ZERO:
 		out.append(_event(Protocol.PUSH, [push]))

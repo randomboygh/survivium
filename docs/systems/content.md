@@ -22,7 +22,19 @@
     `entries`), предупреждения об именах, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
 - `src/shared/content/yaml.gd` — свой разбор той части YAML, что нужна данным (ключи с `:` внутри,
   `{core:fiber: 1}`).
-- `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan`, `expand` (старые списки),
+- Горячая перезагрузка (решение 184): `src/shared/content/content_watch.gd` (`ContentWatch`) смотрит файлы
+  `content/` (YAML, PNG, WAV) по `BUDGET` файлов и папок за шаг и в конце прохода говорит, изменился ли, появился
+  или пропал файл (первый проход только запоминает время); работает, где файлы лежат сами по себе — игра запущена
+  движком редактора из папки проекта (`can_watch`), не в экспорте и не в браузере. `src/client/mod_reload.gd`
+  (`ModReload`, модуль Main `mod_reload`) шагает слежку каждый кадр (кроме headless: тесты и инструменты
+  перечитывают сами) и перечитывает: `Mods.rescan(true)`, переводы (`Lang.reread`), модели (`VoxelProps.forget`),
+  иконки (`ItemIcons.forget`), правила сеанса (`Session.reread`: следы вещей, `Wildlife.reread`), звуки
+  (`Sound.read_records`), картинки зверей (`Creatures.relook`), вещи на земле и на клетках (`Props.remodel`),
+  сумку и крафт. Кнопка «Перечитать данные модов» в «Отладке» делает то же сразу; сервер — командой `reload`
+  (`Server.reload_mods`). После неё `Content.live`: картинки и звуки читаются из файлов (`Content.picture`,
+  `Content.sound`), а не из импорта, сделанного при запуске. Материалы клеток, если их список изменился,
+  остаются прежними (`Mods.cells_kept`): новые — в новом мире; биомы и рельеф — для новых чанков.
+- `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan` (`live` — горячая перезагрузка), `expand` (старые списки),
   `RENAMED`; набор сохранённого мира `of_world` (моды, выделенные из базы, `SPLITS`; дополняющие бандлы,
   `additive`, `OLD_ADDITIVE`); `why` (почему бандл выпал, вся цепочка); названия для экрана «Моды».
 - `src/shared/content/content_graph.gd` — граф контента (`ContentGraph`): пути, которыми вещи появляются

@@ -209,6 +209,11 @@
 "камера": "camera"
 "интерфейс": "interface"
 
+# src/client/mod_reload.gd
+"Ошибок в данных модов: %d (см. консоль)": "Errors in the mod data: %d (see the console)"
+"Данные модов перечитаны; новые материалы клеток — только в новом мире": "Mod data reloaded; new block materials only in a new world"
+"Данные модов перечитаны": "Mod data reloaded"
+
 # src/client/net/server_list.gd
 "Введите адрес сервера": "Enter the server address"
 "Из браузера — только wss:// (сервер через туннель)": "From a browser — only wss:// (a server through a tunnel)"
@@ -218,8 +223,7 @@
 "запись": "record"
 
 # src/client/settings.gd
-"Данные модов перечитаны": "Mod data reloaded"
-"Ошибок в данных: %d (см. консоль)": "Errors in the data: %d (see the console)"
+"Отладка ИИ — только в своём мире или хозяину сервера": "AI debug — only in your own world or for the server host"
 "Браузер не дал игре весь экран: откройте её в Chrome": "The browser didn't give the game the full screen: open it in Chrome"
 "В этом мире вы ещё не умирали": "You haven't died in this world yet"
 "Очистить территорию можно только в своём мире": "Territory can be cleared only in your own world"
@@ -832,6 +836,7 @@
 "Маркеров нет: поставьте их на карте (M).": "No markers: put them on the map (M)."
 "Карта теней": "Shadow map"
 "Отладочные подсказки": "Debug hints"
+"Отладка ИИ зверей": "Animal AI debug"
 "Обзор уровней": "Level overview"
 "все": "all"
 "Разобрать вызовы отрисовки": "Break down draw calls"
@@ -1002,6 +1007,32 @@
 "Выбрать моды нового мира": "Choose the mods of the new world"
 "Что входит": "What's included"
 
+# src/client/view/ai_debug.gd
+"голод %d%% · здоровье %d/%d": "hunger %d%% · health %d/%d"
+"ярость %d с · покой %d с": "rage %d s · calm %d s"
+"бежит после удара ещё %d с": "flees after a hit for %d s more"
+"стоит ещё %d с": "stands for %d s more"
+"зрение %d · боится людей ближе %d · рычит ближе %d": "sight %d · fears people closer than %d · growls closer than %d"
+"ручной, хозяин %d": "tame, owner %d"
+"думает каждый шаг: его видят": "thinks every step: someone sees it"
+"думает реже: его никто не видит": "thinks less often: nobody sees it"
+"бежит от человека": "flees from a person"
+"бежит от огня": "flees from fire"
+"бежит от места удара": "flees from where it was hit"
+"бежит: стая в тревоге": "flees: the flock is alarmed"
+"бежит от: %s": "flees from: %s"
+"охотится на: %s": "hunts: %s"
+"спит: не его время": "sleeps: not its hours"
+"рычит на человека": "growls at a person"
+"охотится на человека": "hunts a person"
+"отгоняет человека": "drives a person off"
+"кусает": "bites"
+"плывёт к поплавку": "swims to the float"
+"идёт пастись": "goes to graze"
+"идёт за вожаком": "follows the lead"
+"с хозяином": "with its owner"
+"бродит": "wanders"
+
 # src/client/view/draw_census.gd
 "тень солнца и луны": "sun and moon shadow"
 "свет огней (%d)": "fire lights (%d)"
@@ -1089,7 +1120,12 @@
 "ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих": "ban <who or name>, unban <name>, bans — banning; whitelist on|off|add <name>|remove <name> — let in only your own"
 "op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)": "op <who>, deop <name>, hosts — who may give chat commands with “/” (op, deop, stop — owner)"
 "security [вид или имя] — что выглядело подозрительно": "security [kind or name] — what looked suspicious"
+"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)": "reload — read the mod data from disk again (hot reload: numbers, animals, recipes; the world's blocks stay)"
 "<кто> — имя или номер игрока (who)": "<who> — a player's name or number (who)"
+"Сервер перечитал данные модов": "The server reloaded the mod data"
+"данные модов перечитаны": "mod data reloaded"
+"данные модов перечитаны, ошибок: %d": "mod data reloaded, errors: %d"
+"материалы клеток изменились: мир играет прежними, новые — в новом мире": "block materials changed: the world keeps the old ones, the new ones come in a new world"
 "команда без прав: ": "command without rights:"
 "Команды через «/» — только для хозяина сервера": "Commands with “/” are for the server host only"
 "%s (%d) команде: %s": "%s (%d) to the team: %s"

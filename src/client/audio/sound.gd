@@ -91,6 +91,16 @@ func _init(g) -> void:
 	name = "Sound"
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	make_buses()
+	read_records()
+
+
+## Takes the sound records of the mods loaded (again after a hot reload, ModReload): the
+## streams are loaded anew when next asked for. The loops playing play on.
+func read_records() -> void:
+	records = {}
+	_by_name = {}
+	_streams = {}
+	_to_load = []
 	for rec: Dictionary in Content.records("sounds"):
 		records[rec.id] = rec
 		_by_name[rec.id.get_slice(":", 1)] = rec.id
@@ -199,7 +209,7 @@ func streams(id: String) -> Array:
 	if game != null and game.hud != null:
 		game.hud.perf.mark("звук")
 	for path in Content.sound_files(rec):
-		var s: AudioStream = load(path)
+		var s: AudioStream = Content.sound(path)
 		if s == null:
 			continue
 		if rec.loop and s is AudioStreamWAV:

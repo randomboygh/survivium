@@ -124,6 +124,13 @@ static func title(lang_code: String) -> String:
 	return lang_code
 
 
+## Reads the phrases again in the language in use (a hot reload of the mods, ModReload).
+static func reread() -> void:
+	_read = {}
+	if code != "":
+		use(code)
+
+
 static func _phrases_once(lang_code: String) -> Dictionary:
 	if not _read.has(lang_code):
 		_read[lang_code] = phrases(lang_code)

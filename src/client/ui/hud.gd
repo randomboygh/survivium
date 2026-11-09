@@ -315,6 +315,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				toggle_stats()
 				game.print_debug()
 				get_viewport().set_input_as_handled()
+			KEY_F4:
+				game.settings.set_ai_debug(not game.settings.ai_debug)
+				get_viewport().set_input_as_handled()
 			KEY_C:
 				if _gesture_button.visible and not bag.visible:
 					toggle_gestures()
