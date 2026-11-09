@@ -301,6 +301,7 @@ func _update_strip(delta: float) -> void:
 			phase = game.loading_phase()
 	if phase != _phase_shown and (_phase_clock >= PHASE_HOLD or _phase_shown == "" or settled):
 		_phase_shown = phase
+		Lang.seen(phase)
 		_phase_clock = 0.0
 	if shown_progress >= 0.0:
 		_progress = shown_progress
@@ -363,6 +364,7 @@ func _next_tip() -> void:
 		_tips_left.shuffle()
 	if not _tips_left.is_empty():
 		_tip.text = TIPS[_tips_left.pop_back()]
+		Lang.seen(_tip.text)
 
 
 ## The cancel button (or Escape) on the loading screen: the scene starts again without a world

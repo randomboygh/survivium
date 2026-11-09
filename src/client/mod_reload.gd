@@ -66,7 +66,7 @@ func reload() -> void:
 	if game.hud == null:
 		return
 	if not problems.is_empty():
-		game.hud.toast(Lang.f("Ошибок в данных модов: %d (см. консоль)", [problems.size()]))
+		game.hud.toast(Lang.line("Ошибок в данных модов: %d (см. консоль)", [problems.size()]))
 	elif Mods.cells_kept:
 		game.hud.toast("Данные модов перечитаны; новые материалы клеток — только в новом мире")
 	else:

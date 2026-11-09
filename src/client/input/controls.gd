@@ -362,7 +362,7 @@ func put_in_hand(id: String, hand := -1, say := true) -> void:
 	game.hud.refresh_hands()
 	game.hud.bag.refresh()
 	if say:
-		game.hud.toast("%s: %s" % ["Левая рука" if h == 0 else "Правая рука", Lang.t(Items.title(id)) if id != "" else "пусто"])
+		game.hud.toast(Lang.line("%s: %s", ["Левая рука" if h == 0 else "Правая рука", Items.title(id) if id != "" else "пусто"]))
 
 
 ## Takes item `id` from the bag into the hand in use (the bag's «В руку»).
@@ -536,7 +536,7 @@ func _eat_held() -> void:
 			_cooldown = _hasted(0.5)
 			game.player.work("", _cooldown)
 			return
-	game.character.nag("no_food", Lang.f("В сумке нет: %s", [Lang.t(Items.title(held()))]))
+	game.character.nag("no_food", Lang.line("В сумке нет: %s", [Items.title(held())]))
 
 
 ## Whether the jump key or the jump button is held.
@@ -1056,9 +1056,9 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 	if Tools.mows(t) and game.actions.can_mow(cell, t):
 		var picked: String = game.actions.picking(cell)
 		if t.tool == "hand" and picked != "":
-			return Lang.f("собрать: %s", [picked.to_lower()])
+			return Lang.f("собрать: %s", [Lang.t(picked).to_lower()])
 		return "косить" if t.tool == "scythe" else ("срезать траву" if t.tool == "sword" else "сорвать траву")
 	if Tools.can_dig(t, m):
 		var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
 		return Lang.f("копать%s", [(" (руками медленно)" if slow else "")])
-	return Tools.why_not(t, m).to_lower()
+	return Lang.t(Tools.why_not(t, m)).to_lower()

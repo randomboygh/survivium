@@ -7,6 +7,7 @@ extends SceneTree
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -33,6 +34,8 @@ func _initialize() -> void:
 	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
 	SettingsFile.path = "user://test_settings.cfg"
 	SettingsFile.language_override = "ru"
+	# Every text shown to the player must have its English (Lang.seen).
+	Lang.watching = true
 	DirAccess.remove_absolute(SettingsFile.path)
 	_run()
 
@@ -253,5 +256,6 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()
+	_check(Lang.missed.is_empty(), "every text shown has its English: %s" % [Lang.missed])
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)

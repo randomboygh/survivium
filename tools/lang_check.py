@@ -7,6 +7,7 @@ phrase a language translates. The code's go to content/core/lang/<code>.yaml, a 
 manifest's to content/<mod>/lang/, a bundle's data and manifest's to <bundle>/lang/.
 
     python3 tools/lang_check.py                 what every language lacks, exit 1 on a broken file
+                                                or a phrase glued to values (glued)
     python3 tools/lang_check.py --write en      adds the phrases en lacks, empty, to its files,
                                                 and drops those no longer used
     python3 tools/lang_check.py --missing en    the phrases en lacks, as JSON {key: file}
@@ -30,6 +31,11 @@ FORMAT = re.compile(r"%[-+ 0#]*\d*(?:\.\d+)?[sdifxXc%]")
 CONSOLE = {"src/server/server_main.gd", "src/server/real_weather.gd", "src/server/tunnel.gd",
            "src/shared/content/content_graph.gd"}
 LOG_CALLS = ("print(", "printerr(", "push_error(", "push_warning(", "assert(", "print_debug(")
+# Files where a phrase may be glued to values with `%` or `+` (see glued): the server's
+# replies to commands (its console, an op's chat), the draw census of the stats panel,
+# and a new team's name, which the players then edit as plain text.
+GLUE_OK = {"src/server/server.gd", "src/server/requests.gd", "src/client/view/draw_census.gd",
+           "src/shared/game/teams.gd"}
 
 
 def unescape(s):
@@ -79,9 +85,8 @@ def code_part(line):
 RUN = re.compile(r'"((?:[^"\\\n]|\\.)*)"((?:\s*\+\s*"(?:[^"\\\n]|\\.)*")*)')
 
 
-def code_phrases():
-    """{phrase: first file:line} of src/; literals joined by `+` are one phrase."""
-    out = {}
+def code_texts():
+    """(relative path, the code with comments, logs and doc lines blanked) of src/."""
     for base, _dirs, files in os.walk(os.path.join(ROOT, "src")):
         for f in sorted(files):
             if not f.endswith(".gd"):
@@ -97,7 +102,13 @@ def code_phrases():
                 line = code_part(raw)
                 st = line.strip()
                 kept.append("" if st.startswith(LOG_CALLS) or st.startswith("##") else line)
-            text = "\n".join(kept)
+            yield rel, "\n".join(kept)
+
+
+def code_phrases():
+    """{phrase: first file:line} of src/; literals joined by `+` are one phrase."""
+    out = {}
+    for rel, text in code_texts():
             for m in RUN.finditer(text):
                 parts = [m.group(1)] + re.findall(r'"((?:[^"\\\n]|\\.)*)"', m.group(2) or "")
                 s = "".join(unescape(x) for x in parts)
@@ -118,6 +129,26 @@ def yaml_scalar(v):
     # A plain scalar: cut a comment.
     m = re.search(r"\s#", v)
     return v[:m.start()].strip() if m else v
+
+
+def glued():
+    """["file:line: text"] of phrases put together with values by `%` or `+` instead of
+    Lang.line / Lang.f: the table has the template, not the text made of it, so it
+    stays Russian on the screen."""
+    out = []
+    for rel, text in code_texts():
+        if rel in GLUE_OK:
+            continue
+        for m in RUN.finditer(text):
+            parts = [m.group(1)] + re.findall(r'"((?:[^"\\\n]|\\.)*)"', m.group(2) or "")
+            if not RUSSIAN.search("".join(parts)):
+                continue
+            after = text[m.end():].lstrip(" \t")
+            before = text[:m.start()].rstrip(" \t\n\\")
+            if after.startswith("%") or after.startswith("+") or before.endswith("+"):
+                n = text.count("\n", 0, m.start()) + 1
+                out.append("%s:%d: %s" % (rel, n, text.split("\n")[n - 1].strip()))
+    return out
 
 
 def content_phrases():
@@ -225,6 +256,9 @@ def main(argv):
         return 0
     strict = argv[argv.index("--strict") + 1] if "--strict" in argv else None
     bad = 0
+    for g in glued():
+        print("glued, not a line: " + g)
+        bad += 1
     total = sum(len(p) for p in want.values())
     for code in LANGS:
         if code == SOURCE:

@@ -54,7 +54,7 @@
   эпохи одного порядка), `skills.gd` (навыки: `Skills.ALL` по порядку, `of_role`, `need`, `level_at`,
   `progress`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
   данных; руки `HAND` собирает из полей `hand_*` старта в `refresh`): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`),
-  работа в мире шести классов `WORLD_KINDS` (с удочкой `rod`) (любой другой класс там — руки), `holds(inv, класс)`,
+  работа в мире девяти классов `WORLD_KINDS` (с удочкой `rod`, тяпкой `hoe`, серпом `sickle`, лейкой `can`) (любой другой класс там — руки), `holds(inv, класс)`,
   `held_of(inv, класс)`.
 
 **Интерфейс**

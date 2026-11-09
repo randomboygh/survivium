@@ -461,7 +461,7 @@ func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
 	var got := inventory.add(id, n, worn, null, q)
 	note("got", got)
 	if got > 0:
-		say("+%d %s" % [got, Items.title(id)])
+		say(Lang.line("+%d %s", [got, Items.title(id)]))
 		if inventory.overloaded():
 			nag("heavy", Lang.line("Перегруз: %.1f из %d кг", [inventory.weight(), inventory.weight_limit]))
 	if got < n:

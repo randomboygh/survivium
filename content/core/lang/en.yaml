@@ -187,11 +187,11 @@
 "Связь с сервером потеряна": "Connection to the server lost"
 "Сервер: %s": "Server: %s"
 "Сервер закрыл связь": "The server closed the connection"
-"Материки и реки…": "Continents and rivers…"
-"Карта и материалы…": "Map and materials…"
-"Игрок и вещи…": "Player and belongings…"
-"Игрок и небо…": "Player and sky…"
-"Связь с сервером…": "Connecting to the server…"
+"Материки и реки": "Continents and rivers"
+"Карта и материалы": "Map and materials"
+"Игрок и вещи": "Player and belongings"
+"Игрок и небо": "Player and sky"
+"Связь с сервером": "Connecting to the server"
 "Прогрев шейдеров": "Warming up shaders"
 "Первые кадры мира": "First frames of the world"
 "Строим окрестности": "Building the surroundings"
@@ -514,10 +514,10 @@
 "Разметка закончена": "Marking finished"
 "Ничейная земля": "No one's land"
 "Своя территория": "Your own territory"
-"Территория «%s»%s: %s": "Territory “%s”%s: %s"
-" заброшена": " abandoned"
 "можно %s": "allowed: %s"
 "ничего нельзя": "nothing allowed"
+"Территория «%s» заброшена: %s": "Territory “%s” abandoned: %s"
+"Территория «%s»: %s": "Territory “%s”: %s"
 "Настройки": "Settings"
 "Сезон": "Season"
 
@@ -606,7 +606,7 @@
 
 # src/client/ui/level_up.gd
 "Уровень %d из %d": "Level %d of %d"
-", %s на %d%%": ", %s by %d%%"
+"Уровень %d из %d, %s на %d%%": "Level %d of %d, %s by %d%%"
 "плывёт быстрее": "swims faster"
 "работа быстрее": "works faster"
 "%s: новый уровень": "%s: a new level"
@@ -1071,8 +1071,10 @@
 "прогрев": "warm-up"
 
 # src/client/view/sky.gd
-"Наступила %s": "%s has come"
+"Наступила весна": "Spring has come"
 "Наступило лето": "Summer has come"
+"Наступила осень": "Autumn has come"
+"Наступила зима": "Winter has come"
 
 # src/client/view/sun_rays.gd
 "лучи": "rays"

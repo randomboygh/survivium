@@ -1,6 +1,6 @@
 # Зависимости
 
-Статус: ACTIVE, сверено с кодом 2026-11-05 (PR #372). Две карты: **что какой скрипт грузит** (`preload` / `extends`; таблица по
+Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Две карты: **что какой скрипт грузит** (`preload` / `extends`; таблица по
 папкам генерируется в [generated/code-index.md](generated/code-index.md), по файлу —
 `python3 tools/doc_index.py uses <путь>`) и **кто кому передан во время игры** (Main раздаёт объекты,
 правила шлют сигналы; это ниже, вручную).
@@ -45,9 +45,9 @@ graph LR
 ## Узлы, от которых зависит больше всего
 
 Больше 40 файлов грузят `src/shared/world/world_data.gd`, `src/shared/content/materials.gd`,
-`src/shared/content/items.gd`; больше 15 — `src/client/ui/ui_style.gd`, `src/client/view/pixel_view.gd`,
+`src/shared/content/items.gd`, `src/shared/content/lang.gd`, `src/client/ui/ui_style.gd`; больше 20 — `src/client/view/pixel_view.gd`,
 `src/shared/content/content.gd`, `src/shared/content/trees.gd`, `src/shared/world/world_gen.gd`
-(2026-11-05; точные списки даёт `uses`).
+(2026-11-09; точные списки даёт `uses`).
 Правка их интерфейса затрагивает генератор, меши, правила, UI и тесты: перед правкой
 `python3 tools/doc_index.py uses <путь>`.
 
@@ -55,11 +55,11 @@ graph LR
 
 | Скрипт | Грузит |
 |---|---|
-| `game/world_actions.gd` | `world_data`, `materials`, `items`, `tools`, `trees`, `bushes`, `plants`, `grass`, `biomes`, `ai_rules`, `growth`, `felling` |
-| `game/wildlife.gd` | `world_data`, `body`, `ai_rules`, `materials`, `grass`, `biomes` |
-| `game/placed.gd` | `world_data`, `materials`, `items`, `inventory`, `body`, `tools`, `starts`, `content` |
-| `game/character.gd` | `inventory`, `vitals`, `warmth`, `skill_set`, `items`, `starts`, `world_data` |
-| `game/workshop.gd` | `crafting`, `craft_queue`, `knowledge`, `items`, `tools`, `ai_rules` |
+| `game/world_actions.gd` ← цепочка `actions_base` … `actions_boat` | `world_data`, `materials`, `items`, `tools`, `trees`, `bushes`, `plants`, `grass`, `biomes`, `ai_rules`, `growth`, `felling`, `inventory`, `placed`, `plans`, `clock`, `quality`, `vessels`, `body`, `lang` |
+| `game/wildlife.gd` | `world_data`, `body`, `ai_rules`, `materials`, `grass`, `biomes`, `items`, `tools`, `placed`, `lang` |
+| `game/placed.gd` | `world_data`, `materials`, `items`, `inventory`, `body`, `tools`, `starts`, `content`, `lang`, `net/protocol` |
+| `game/character.gd` | `inventory`, `vitals`, `warmth`, `skill_set`, `items`, `starts`, `world_data`, `ai_rules`, `quality`, `lang` |
+| `game/workshop.gd` | `crafting`, `craft_queue`, `knowledge`, `items`, `tools`, `ai_rules`, `inventory`, `quality`, `lang` |
 | `game/clock.gd` | `world_gen`, `biomes`, `world_data` |
 | `world/world_gen.gd` → `world/land_layout.gd` | `trees`, `bushes`, `growth`; база — `materials`, `biomes`, `world_data` |
 | `world/world_data.gd` → `world/world_cells.gd` | `materials`, `trees`, `items`, `content`, `growth` |

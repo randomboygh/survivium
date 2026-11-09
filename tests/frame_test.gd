@@ -14,6 +14,7 @@ extends SceneTree
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
@@ -77,6 +78,8 @@ func _initialize() -> void:
 	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
 	SettingsFile.path = "user://test_settings.cfg"
 	SettingsFile.language_override = "ru"
+	# Every text shown to the player must have its English (Lang.seen).
+	Lang.watching = true
 	DirAccess.remove_absolute(SettingsFile.path)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
@@ -98,6 +101,7 @@ func _run() -> void:
 	while not main.ready_to_play:
 		if main.chunks != null:
 			told[main.loading_phase()] = true
+			Lang.seen(main.loading_phase())
 		await process_frame
 	_check(main.loading_stage == "" and told.size() >= 3 and told.keys().all(func(t: String) -> bool: return t.strip_edges() != ""),
 		"the loading screen tells what is being built: %s" % [told.keys()])
@@ -582,7 +586,8 @@ func _run() -> void:
 	var clock_under: bool = hud._clock_panel.position.y >= hud._bar.position.y + hud._bar.size.y - 2 \
 		and is_equal_approx(hud._clock_panel.position.x + hud._clock_panel.size.x, hud._bar.position.x + hud._bar.size.x)
 	var vitals_tall: bool = is_equal_approx(hud.vitals.get_combined_minimum_size().y, button)
-	# A long toast wraps before the buttons on the right.
+	# A long toast wraps before the buttons on the right (made-up texts: not watched).
+	Lang.watching = false
 	hud.toast("Длинная подсказка, которая никак не помещается в одну строку до кнопок справа")
 	await process_frame
 	await process_frame
@@ -609,6 +614,7 @@ func _run() -> void:
 		left = hud._toasts.get_children().filter(func(h: Node) -> bool: return not h.is_queued_for_deletion())
 		if left.all(func(h: Node) -> bool: return h.get_child(0).get_child(0).text.begins_with("Подсказка")):
 			break
+	Lang.watching = true
 	_check(left.size() == 3 and left[0].get_child(0).get_child(0).text == "Подсказка 1" and hud._toasts.position.y == 0.0
 		and left.all(func(h: Control) -> bool: return h.modulate.a == 1.0),
 		"a fourth toast pushes the oldest out: %s, the list at %.1f" % [left.map(func(h: Node) -> String: return h.get_child(0).get_child(0).text), hud._toasts.position.y])
@@ -843,6 +849,7 @@ func _run() -> void:
 		var stalls := 1 + frames.size() / STALLS_PER_FRAMES
 		_check(over_step <= stalls, "%s keeps the budgeted loops under %.1f ms" % [r[0], step_limit])
 		_check(over_free <= stalls, "%s keeps the rest of a frame under %.1f ms" % [r[0], free_limit])
+	_check(Lang.missed.is_empty(), "every text shown has its English: %s" % [Lang.missed])
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
