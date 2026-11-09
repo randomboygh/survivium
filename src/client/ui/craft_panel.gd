@@ -115,6 +115,10 @@ var _chosen := ""
 var _job := 0
 var _left_shown := -1
 var _dirty := true
+## The frame of the last refresh: a refresh asked for again in that frame (the window's
+## and the HUD's both look each frame) waits for the next, so the cells of many recipes
+## learnt at once (NEW_CELLS a refresh) cost one refresh a frame, not two.
+var _refreshed_at := -1
 
 
 func _init(g) -> void:
@@ -326,6 +330,7 @@ func refresh() -> void:
 ## Refreshes at once (when the window opens).
 func refresh_now() -> void:
 	_dirty = false
+	_refreshed_at = Engine.get_process_frames()
 	if not is_visible_in_tree():
 		return
 	var shop = game.workshop
@@ -684,7 +689,7 @@ func _fit_list() -> bool:
 func refresh_progress() -> void:
 	if not is_visible_in_tree():
 		return
-	if _dirty or str(game.workshop.stations().keys()) != _stations_seen:
+	if (_dirty and _refreshed_at != Engine.get_process_frames()) or str(game.workshop.stations().keys()) != _stations_seen:
 		refresh_now()
 		return
 	var jobs: Array = game.workshop.queue.jobs
