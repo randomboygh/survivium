@@ -7,12 +7,15 @@ extends Control
 ## wall a quarter (SIGN_TURN), «Закрыть» or Escape closes it. It covers the whole screen
 ## over a shade of the world behind; when the keyboard leaves the screen too short, the
 ## panel goes to its top. `game` is the Main node. While a field has the keys, they do
-## not walk the player (Controls._typing).
+## not walk the player (Controls._typing). On a phone's browser the lines are typed
+## through the page's own text box (WebText): the engine's stopped taking letters after
+## the browser's tab was switched and back.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const WebText := preload("res://src/client/ui/web_text.gd")
 
 const WIDTH := 240
 const FIELD_H := 26
@@ -30,6 +33,10 @@ var item: String
 var _panel: PanelContainer
 var _fields: Array[LineEdit] = []
 var _note: Label
+## The page's text box for the lines (WebText), and where the lines were when it was
+## last told.
+var _web: WebText = null
+var _armed := []
 
 
 func _init(g, e: Dictionary) -> void:
@@ -63,6 +70,11 @@ func _ready() -> void:
 	box.add_child(title)
 	var writes := may_write()
 	if writes:
+		_web = WebText.new()
+		_web.focused.connect(_web_focused)
+		_web.typed.connect(_web_typed)
+		_web.entered.connect(func(i: int) -> void: _next_after(_fields[i]))
+		_web.left.connect(_web_left)
 		for i in int(rec.get("sign_lines", 0)):
 			var f := LineEdit.new()
 			f.max_length = int(rec.get("sign_width", 20))
@@ -74,6 +86,7 @@ func _ready() -> void:
 			# The caret goes after the text written: a phone's keyboard is shown it as the
 			# field takes the keys, before the tap's own place.
 			f.focus_entered.connect(func() -> void: f.caret_column = f.text.length())
+			f.virtual_keyboard_enabled = not _web.on
 			box.add_child(f)
 			_fields.append(f)
 	else:
@@ -115,6 +128,8 @@ func _next_after(f: LineEdit) -> void:
 	var i := _fields.find(f)
 	if i < _fields.size() - 1:
 		_fields[i + 1].grab_focus()
+		if _web.on:
+			_web.focus(i + 1)
 	else:
 		f.release_focus()
 		save()
@@ -143,6 +158,8 @@ func turn() -> void:
 
 
 func close() -> void:
+	if _web != null:
+		_web.disarm()
 	closed.emit()
 	queue_free()
 
@@ -151,6 +168,35 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		close()
+
+
+func _process(_delta: float) -> void:
+	# The page's box is told where the lines are once they are laid out and whenever they
+	# move (the keyboard shrinks the screen and the panel goes to its top).
+	if _web == null or not _web.on:
+		return
+	var now := []
+	for f in _fields:
+		now.append(f.get_global_rect())
+	if now != _armed:
+		_armed = now
+		_web.arm(_fields)
+
+
+func _web_focused(i: int) -> void:
+	if i < _fields.size() and not _fields[i].has_focus():
+		_fields[i].grab_focus()
+
+
+func _web_typed(i: int, text: String, caret: int) -> void:
+	if i < _fields.size():
+		_fields[i].text = text
+		_fields[i].caret_column = caret
+
+
+func _web_left(i: int) -> void:
+	if i < _fields.size() and _fields[i].has_focus():
+		_fields[i].release_focus()
 
 
 ## The panel in the middle; at the top when it is taller than the screen (the keyboard

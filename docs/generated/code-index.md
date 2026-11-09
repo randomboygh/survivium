@@ -120,6 +120,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/ui/ui_style.gd`: Pixel-art look of the interface (see plan/design/ui.md): dark wooden panels with a two-pixel outline, square corners, a pixel font and icons drawn from text.
 - `src/client/ui/vibration.gd`: The phone's vibration, when the setting «Вибрация» is on: a buzz the longer the bigger a hurt (BodyFeedback), and a short tick when a swing strikes something (Controls._did).
 - `src/client/ui/vitals_panel.gd`: The character's state in the top left corner, as tall as a button: health, satiety and stamina as short bars (the load is on the bag button), and beside them the body's warmth as a standing bar under…
+- `src/client/ui/web_text.gd`: Typing into fields on a phone's browser with the page's own text box instead of the engine's (the sign window's lines, SignWindow).
 - `src/client/ui/world_list.gd`: The saved worlds (see WorldStore.list_worlds), the one saved last first: a row each with its seed, kind and day (and when it was saved, in the tooltip).
 - `src/client/ui/world_setup.gd`: The first screen: the world to make.
 
