@@ -71,6 +71,9 @@ func _ready() -> void:
 			f.select_all_on_focus = false
 			f.text = lines[i] if i < lines.size() else ""
 			f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
+			# The caret goes after the text written: a phone's keyboard is shown it as the
+			# field takes the keys, before the tap's own place.
+			f.focus_entered.connect(func() -> void: f.caret_column = f.text.length())
 			box.add_child(f)
 			_fields.append(f)
 	else:
