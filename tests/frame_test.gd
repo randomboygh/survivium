@@ -42,9 +42,12 @@ const NIGHT_SHARE := 16.0
 ## ...but never less than this, in ms: GitHub's runners come in two speeds (a chunk
 ## 14-17 ms or 21-25 ms) while an idle frame costs about the same on both (0.9-1.0 ms
 ## on 2026-11-04), so a share of a fast runner's chunk failed main half the time. The
-## floors are the slow runner's shares, a third above the frames measured then.
+## floors are the slow runner's shares, a third above the frames measured then. The night
+## floor was raised on 2026-11-09: the night frame had grown with what came since (the
+## packs that hunt at night, fire fear, boats: on CI 1.26-1.76 ms, the night animals 0.4-0.5
+## of it against 0.2 by day) and failed main on 1.59 and 1.76 of 1.55.
 const IDLE_FLOOR := 1.25
-const NIGHT_FLOOR := 1.55
+const NIGHT_FLOOR := 2.0
 const NIGHT := "idle at night by the campfire"
 const IDLE := "idle"
 
