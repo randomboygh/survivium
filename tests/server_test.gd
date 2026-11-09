@@ -12,6 +12,7 @@ extends SceneTree
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Socket := preload("res://src/client/net/socket.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -62,6 +63,8 @@ func _initialize() -> void:
 	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
 	SettingsFile.path = "user://test_settings.cfg"
 	SettingsFile.language_override = "ru"
+	# Every text shown to the player must have its English (Lang.seen).
+	Lang.watching = true
 	DirAccess.remove_absolute(SettingsFile.path)
 	Config.file = "user://test_server.cfg"
 	_run()
@@ -381,6 +384,7 @@ func _run() -> void:
 	server.free()
 	await _restart(w, ground, dug_at, things, dir)
 	await _hosted()
+	_check(Lang.missed.is_empty(), "every text shown has its English: %s" % [Lang.missed])
 	print("server_test: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 

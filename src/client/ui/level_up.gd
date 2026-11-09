@@ -31,11 +31,12 @@ func _on_leveled(id: String, level: int) -> void:
 	var s: Dictionary = Skills.BY_ID.get(id, {})
 	if s.is_empty():
 		return
-	var line := Lang.f("Уровень %d из %d", [level, s.levels])
+	var line := Lang.line("Уровень %d из %d", [level, s.levels])
 	var faster := roundi(s.speed * level * 100.0 / s.levels)
 	if faster > 0:
-		line += Lang.f(", %s на %d%%", ["плывёт быстрее" if s.role == "swim" else "работа быстрее", faster])
-	game.hud.notice(Lang.f("%s: новый уровень", [s.title]), line)
+		line = Lang.line("Уровень %d из %d, %s на %d%%", [level, s.levels,
+			"плывёт быстрее" if s.role == "swim" else "работа быстрее", faster])
+	game.hud.notice(Lang.line("%s: новый уровень", [s.title]), line)
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _last < AGAIN:
 		return

@@ -187,11 +187,11 @@
 "Связь с сервером потеряна": "Verbindung zum Server verloren"
 "Сервер: %s": "Server: %s"
 "Сервер закрыл связь": "Der Server hat die Verbindung geschlossen"
-"Материки и реки…": "Kontinente und Flüsse…"
-"Карта и материалы…": "Karte und Materialien…"
-"Игрок и вещи…": "Spieler und Habe…"
-"Игрок и небо…": "Spieler und Himmel…"
-"Связь с сервером…": "Verbinde mit dem Server…"
+"Материки и реки": "Kontinente und Flüsse"
+"Карта и материалы": "Karte und Materialien"
+"Игрок и вещи": "Spieler und Habe"
+"Игрок и небо": "Spieler und Himmel"
+"Связь с сервером": "Verbinde mit dem Server"
 "Прогрев шейдеров": "Shader werden vorgewärmt"
 "Первые кадры мира": "Erste Bilder der Welt"
 "Строим окрестности": "Die Umgebung wird gebaut"
@@ -209,6 +209,11 @@
 "камера": "Kamera"
 "интерфейс": "Oberfläche"
 
+# src/client/mod_reload.gd
+"Ошибок в данных модов: %d (см. консоль)": "Fehler in den Moddaten: %d (siehe Konsole)"
+"Данные модов перечитаны; новые материалы клеток — только в новом мире": "Moddaten neu gelesen; neue Blockmaterialien nur in einer neuen Welt"
+"Данные модов перечитаны": "Mod-Daten neu geladen"
+
 # src/client/net/server_list.gd
 "Введите адрес сервера": "Gib die Serveradresse ein"
 "Из браузера — только wss:// (сервер через туннель)": "Aus dem Browser nur wss:// (ein Server durch einen Tunnel)"
@@ -218,8 +223,7 @@
 "запись": "Eintrag"
 
 # src/client/settings.gd
-"Данные модов перечитаны": "Mod-Daten neu geladen"
-"Ошибок в данных: %d (см. консоль)": "Fehler in den Daten: %d (siehe Konsole)"
+"Отладка ИИ — только в своём мире или хозяину сервера": "KI-Debug — nur in der eigenen Welt oder für den Serverhost"
 "Браузер не дал игре весь экран: откройте её в Chrome": "Der Browser hat dem Spiel keinen Vollbildmodus gegeben: öffne es in Chrome"
 "В этом мире вы ещё не умирали": "In dieser Welt bist du noch nicht gestorben"
 "Очистить территорию можно только в своём мире": "Gebiet lässt sich nur in deiner eigenen Welt räumen"
@@ -510,10 +514,10 @@
 "Разметка закончена": "Markierung fertig"
 "Ничейная земля": "Niemandsland"
 "Своя территория": "Dein eigenes Gebiet"
-"Территория «%s»%s: %s": "Gebiet „%s“%s: %s"
-" заброшена": " aufgegeben"
 "можно %s": "erlaubt: %s"
 "ничего нельзя": "nichts erlaubt"
+"Территория «%s» заброшена: %s": "Gebiet „%s“ aufgegeben: %s"
+"Территория «%s»: %s": "Gebiet „%s“: %s"
 "Настройки": "Einstellungen"
 "Сезон": "Jahreszeit"
 
@@ -602,7 +606,7 @@
 
 # src/client/ui/level_up.gd
 "Уровень %d из %d": "Stufe %d von %d"
-", %s на %d%%": ", %s um %d%%"
+"Уровень %d из %d, %s на %d%%": "Stufe %d von %d, %s um %d%%"
 "плывёт быстрее": "schwimmt schneller"
 "работа быстрее": "arbeitet schneller"
 "%s: новый уровень": "%s: neue Stufe"
@@ -832,6 +836,7 @@
 "Маркеров нет: поставьте их на карте (M).": "Keine Markierungen: setze sie auf der Karte (M)."
 "Карта теней": "Schattenkarte"
 "Отладочные подсказки": "Debug-Hinweise"
+"Отладка ИИ зверей": "KI-Debug der Tiere"
 "Обзор уровней": "Ebenenübersicht"
 "все": "alle"
 "Разобрать вызовы отрисовки": "Draw Calls aufschlüsseln"
@@ -1002,6 +1007,32 @@
 "Выбрать моды нового мира": "Mods der neuen Welt wählen"
 "Что входит": "Was dazugehört"
 
+# src/client/view/ai_debug.gd
+"голод %d%% · здоровье %d/%d": "Hunger %d%% · Gesundheit %d/%d"
+"ярость %d с · покой %d с": "Wut %d s · Ruhe %d s"
+"бежит после удара ещё %d с": "flieht nach dem Schlag noch %d s"
+"стоит ещё %d с": "steht noch %d s"
+"зрение %d · боится людей ближе %d · рычит ближе %d": "Sicht %d · fürchtet Menschen näher als %d · knurrt näher als %d"
+"ручной, хозяин %d": "zahm, Besitzer %d"
+"думает каждый шаг: его видят": "denkt jeden Schritt: jemand sieht es"
+"думает реже: его никто не видит": "denkt seltener: niemand sieht es"
+"бежит от человека": "flieht vor einem Menschen"
+"бежит от огня": "flieht vor dem Feuer"
+"бежит от места удара": "flieht vom Ort des Schlags"
+"бежит: стая в тревоге": "flieht: das Rudel ist alarmiert"
+"бежит от: %s": "flieht vor: %s"
+"охотится на: %s": "jagt: %s"
+"спит: не его время": "schläft: nicht seine Zeit"
+"рычит на человека": "knurrt einen Menschen an"
+"охотится на человека": "jagt einen Menschen"
+"отгоняет человека": "vertreibt einen Menschen"
+"кусает": "beißt"
+"плывёт к поплавку": "schwimmt zum Schwimmer"
+"идёт пастись": "geht grasen"
+"идёт за вожаком": "folgt dem Leittier"
+"с хозяином": "beim Besitzer"
+"бродит": "streift umher"
+
 # src/client/view/draw_census.gd
 "тень солнца и луны": "Sonnen- und Mondschatten"
 "свет огней (%d)": "Feuerlichter (%d)"
@@ -1040,8 +1071,10 @@
 "прогрев": "Vorwärmen"
 
 # src/client/view/sky.gd
-"Наступила %s": "Es ist so weit: %s"
+"Наступила весна": "Der Frühling ist da"
 "Наступило лето": "Der Sommer ist da"
+"Наступила осень": "Der Herbst ist da"
+"Наступила зима": "Der Winter ist da"
 
 # src/client/view/sun_rays.gd
 "лучи": "Strahlen"
@@ -1089,7 +1122,12 @@
 "ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих": "ban <wer oder Name>, unban <Name>, bans — Sperren; whitelist on|off|add <Name>|remove <Name> — nur eigene hereinlassen"
 "op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)": "op <wer>, deop <Name>, hosts — wer Chatbefehle mit „/“ geben darf (op, deop, stop — der Besitzer)"
 "security [вид или имя] — что выглядело подозрительно": "security [Art oder Name] — was verdächtig aussah"
+"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)": "reload — die Moddaten neu von der Festplatte lesen (Hot Reload: Zahlen, Tiere, Rezepte; die Blöcke der Welt bleiben)"
 "<кто> — имя или номер игрока (who)": "<wer> — Name oder Nummer eines Spielers (who)"
+"Сервер перечитал данные модов": "Der Server hat die Moddaten neu gelesen"
+"данные модов перечитаны": "Moddaten neu gelesen"
+"данные модов перечитаны, ошибок: %d": "Moddaten neu gelesen, Fehler: %d"
+"материалы клеток изменились: мир играет прежними, новые — в новом мире": "Blockmaterialien geändert: die Welt behält die alten, die neuen kommen in einer neuen Welt"
 "команда без прав: ": "Befehl ohne Rechte: "
 "Команды через «/» — только для хозяина сервера": "Befehle mit „/“ sind nur für den Gastgeber des Servers"
 "%s (%d) команде: %s": "%s (%d) ans Team: %s"

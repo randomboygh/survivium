@@ -809,7 +809,7 @@ func destroy_chosen() -> void:
 ## Stack `taken` (as Inventory.take_slot gave it) is gone: the bin's toast.
 func _destroyed(taken: Variant) -> void:
 	if taken is Array and taken.size() >= 2:
-		game.hud.toast(Lang.f("Уничтожено: %s ×%d", [Lang.t(Items.title(taken[0])), taken[1]]))
+		game.hud.toast(Lang.line("Уничтожено: %s ×%d", [Items.title(taken[0]), taken[1]]))
 	refresh()
 
 

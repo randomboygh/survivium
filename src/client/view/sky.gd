@@ -10,7 +10,6 @@ const Clock := preload("res://src/shared/game/clock.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
-const Lang := preload("res://src/shared/content/lang.gd")
 
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
@@ -370,7 +369,7 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 ## rule of the season (bushes, twigs, grass) is the session's (Session._init).
 func on_season(season: int) -> void:
 	print("season: %s" % Clock.SEASONS[season])
-	game.hud.toast(Lang.f("Наступила %s", [Clock.SEASONS[season].to_lower()]) if season != 1 else "Наступило лето")
+	game.hud.toast(["Наступила весна", "Наступило лето", "Наступила осень", "Наступила зима"][season])
 
 
 ## Name of the HUD icon for the sky now: the weather, or the moon by its phase at

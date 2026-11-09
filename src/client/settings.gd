@@ -754,7 +754,7 @@ func clear_land() -> void:
 		game.character.say("Очистить территорию можно только в своём мире")
 		return
 	var n: int = game.session.territory.clear_painted()
-	game.hud.toast(Lang.f("Разметка убрана: %d участков", [n]) if n > 0 else "Разметки нет")
+	game.hud.toast(Lang.line("Разметка убрана: %d участков", [n]) if n > 0 else "Разметки нет")
 
 
 func give_tools() -> void:

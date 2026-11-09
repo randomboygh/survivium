@@ -102,7 +102,7 @@ func tap_post(e: Dictionary) -> void:
 	var land = game.land
 	if not land.tap_post(e):
 		var claim: Dictionary = land.copy.claim_at(e.cell)
-		toast(Lang.f("Межевой столб «%s»", [claim.get("name", "")]) if not claim.is_empty() \
+		toast(Lang.line("Межевой столб «%s»", [claim.get("name", "")]) if not claim.is_empty() \
 			else "Межевой столб без земли: её забросили. Заберите столб и поставьте снова")
 		return
 
@@ -131,8 +131,9 @@ func _on_land_entered(claim: Dictionary, own: bool) -> void:
 		toast("Своя территория")
 	else:
 		var may: Array = game.land.may_here(claim)
-		toast(Lang.f("Территория «%s»%s: %s", [claim.get("name", ""), " заброшена" if int(claim.get("weak", 0)) > 0 else "",
-			Lang.f("можно %s", [", ".join(may.map(Lang.t))]) if not may.is_empty() else "ничего нельзя"]))
+		var rights: String = Lang.f("можно %s", [", ".join(may.map(Lang.t))]) if not may.is_empty() else Lang.t("ничего нельзя")
+		toast(Lang.line("Территория «%s» заброшена: %s" if int(claim.get("weak", 0)) > 0 else "Территория «%s»: %s",
+			[claim.get("name", ""), rights]))
 
 
 ## Opens the inventory window on the tab «Команда» (on a server).

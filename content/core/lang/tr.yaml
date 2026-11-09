@@ -187,11 +187,11 @@
 "Связь с сервером потеряна": "Sunucuyla bağlantı koptu"
 "Сервер: %s": "Sunucu: %s"
 "Сервер закрыл связь": "Sunucu bağlantıyı kapattı"
-"Материки и реки…": "Kıtalar ve nehirler…"
-"Карта и материалы…": "Harita ve malzemeler…"
-"Игрок и вещи…": "Oyuncu ve eşyalar…"
-"Игрок и небо…": "Oyuncu ve gökyüzü…"
-"Связь с сервером…": "Sunucuya bağlanılıyor…"
+"Материки и реки": "Kıtalar ve nehirler"
+"Карта и материалы": "Harita ve malzemeler"
+"Игрок и вещи": "Oyuncu ve eşyalar"
+"Игрок и небо": "Oyuncu ve gökyüzü"
+"Связь с сервером": "Sunucuya bağlanılıyor"
 "Прогрев шейдеров": "Gölgelendiriciler ısınıyor"
 "Первые кадры мира": "Dünyanın ilk kareleri"
 "Строим окрестности": "Çevre kuruluyor"
@@ -209,6 +209,11 @@
 "камера": "kamera"
 "интерфейс": "arayüz"
 
+# src/client/mod_reload.gd
+"Ошибок в данных модов: %d (см. консоль)": "Mod verilerinde hata: %d (konsola bakın)"
+"Данные модов перечитаны; новые материалы клеток — только в новом мире": "Mod verileri yeniden okundu; yeni blok malzemeleri yalnızca yeni bir dünyada"
+"Данные модов перечитаны": "Mod verileri yeniden yüklendi"
+
 # src/client/net/server_list.gd
 "Введите адрес сервера": "Sunucu adresini gir"
 "Из браузера — только wss:// (сервер через туннель)": "Tarayıcıdan yalnızca wss:// (tünel üzerinden bir sunucu)"
@@ -218,8 +223,7 @@
 "запись": "kayıt"
 
 # src/client/settings.gd
-"Данные модов перечитаны": "Mod verileri yeniden yüklendi"
-"Ошибок в данных: %d (см. консоль)": "Verilerde hata: %d (konsola bak)"
+"Отладка ИИ — только в своём мире или хозяину сервера": "Yapay zekâ hata ayıklama — yalnızca kendi dünyanızda ya da sunucu sahibine"
 "Браузер не дал игре весь экран: откройте её в Chrome": "Tarayıcı oyuna tam ekran vermedi: oyunu Chrome'da aç"
 "В этом мире вы ещё не умирали": "Bu dünyada henüz ölmedin"
 "Очистить территорию можно только в своём мире": "Bölge yalnızca kendi dünyanda temizlenebilir"
@@ -510,10 +514,10 @@
 "Разметка закончена": "İşaretleme bitti"
 "Ничейная земля": "Sahipsiz toprak"
 "Своя территория": "Kendi bölgen"
-"Территория «%s»%s: %s": "Bölge “%s”%s: %s"
-" заброшена": " terk edilmiş"
 "можно %s": "izinli: %s"
 "ничего нельзя": "hiçbir şeye izin yok"
+"Территория «%s» заброшена: %s": "Bölge “%s” terk edilmiş: %s"
+"Территория «%s»: %s": "Bölge “%s”: %s"
 "Настройки": "Ayarlar"
 "Сезон": "Mevsim"
 
@@ -602,7 +606,7 @@
 
 # src/client/ui/level_up.gd
 "Уровень %d из %d": "Seviye %d / %d"
-", %s на %d%%": ", %s %%%d"
+"Уровень %d из %d, %s на %d%%": "Seviye %d / %d, %s %%%d"
 "плывёт быстрее": "daha hızlı yüzer"
 "работа быстрее": "daha hızlı çalışır"
 "%s: новый уровень": "%s: yeni seviye"
@@ -832,6 +836,7 @@
 "Маркеров нет: поставьте их на карте (M).": "İşaret yok: onları haritaya koy (M)."
 "Карта теней": "Gölge haritası"
 "Отладочные подсказки": "Hata ayıklama ipuçları"
+"Отладка ИИ зверей": "Hayvanların yapay zekâ hata ayıklaması"
 "Обзор уровней": "Kat genel görünümü"
 "все": "tümü"
 "Разобрать вызовы отрисовки": "Çizim çağrılarını ayrıştır"
@@ -1002,6 +1007,32 @@
 "Выбрать моды нового мира": "Yeni dünyanın modlarını seç"
 "Что входит": "Neler dahil"
 
+# src/client/view/ai_debug.gd
+"голод %d%% · здоровье %d/%d": "açlık %d%% · sağlık %d/%d"
+"ярость %d с · покой %d с": "öfke %d sn · sakinlik %d sn"
+"бежит после удара ещё %d с": "darbeden sonra %d sn daha kaçar"
+"стоит ещё %d с": "%d sn daha durur"
+"зрение %d · боится людей ближе %d · рычит ближе %d": "görüş %d · %d yakındaki insanlardan korkar · %d yakında hırlar"
+"ручной, хозяин %d": "evcil, sahibi %d"
+"думает каждый шаг: его видят": "her adımda düşünür: biri onu görüyor"
+"думает реже: его никто не видит": "daha seyrek düşünür: kimse onu görmüyor"
+"бежит от человека": "bir insandan kaçar"
+"бежит от огня": "ateşten kaçar"
+"бежит от места удара": "darbe yerinden kaçar"
+"бежит: стая в тревоге": "kaçar: sürü tedirgin"
+"бежит от: %s": "kaçar: %s"
+"охотится на: %s": "avlar: %s"
+"спит: не его время": "uyur: onun saati değil"
+"рычит на человека": "bir insana hırlar"
+"охотится на человека": "bir insanı avlar"
+"отгоняет человека": "bir insanı kovar"
+"кусает": "ısırır"
+"плывёт к поплавку": "şamandıraya yüzer"
+"идёт пастись": "otlamaya gider"
+"идёт за вожаком": "lideri izler"
+"с хозяином": "sahibiyle"
+"бродит": "dolaşır"
+
 # src/client/view/draw_census.gd
 "тень солнца и луны": "güneş ve ay gölgesi"
 "свет огней (%d)": "ateş ışıkları (%d)"
@@ -1040,8 +1071,10 @@
 "прогрев": "ısınma"
 
 # src/client/view/sky.gd
-"Наступила %s": "Geldi: %s"
+"Наступила весна": "İlkbahar geldi"
 "Наступило лето": "Yaz geldi"
+"Наступила осень": "Sonbahar geldi"
+"Наступила зима": "Kış geldi"
 
 # src/client/view/sun_rays.gd
 "лучи": "ışınlar"
@@ -1089,7 +1122,12 @@
 "ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих": "ban <kim ya da ad>, unban <ad>, bans — yasaklama; whitelist on|off|add <ad>|remove <ad> — yalnızca kendi oyuncularını al"
 "op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)": "op <kim>, deop <ad>, hosts — sohbette “/” ile kim komut verebilir (op, deop, stop — sahip)"
 "security [вид или имя] — что выглядело подозрительно": "security [tür ya da ad] — şüpheli görünenler"
+"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)": "reload — mod verilerini diskten yeniden oku (anında yeniden yükleme: sayılar, hayvanlar, tarifler; dünyanın blokları aynı kalır)"
 "<кто> — имя или номер игрока (who)": "<kim> — bir oyuncunun adı ya da numarası (who)"
+"Сервер перечитал данные модов": "Sunucu mod verilerini yeniden okudu"
+"данные модов перечитаны": "mod verileri yeniden okundu"
+"данные модов перечитаны, ошибок: %d": "mod verileri yeniden okundu, hata: %d"
+"материалы клеток изменились: мир играет прежними, новые — в новом мире": "blok malzemeleri değişti: dünya eskileriyle sürer, yeniler yeni bir dünyada gelir"
 "команда без прав: ": "yetkisiz komut: "
 "Команды через «/» — только для хозяина сервера": "“/” ile komutlar yalnızca sunucunun ev sahibi için"
 "%s (%d) команде: %s": "%s (%d) takıma: %s"

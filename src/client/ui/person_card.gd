@@ -50,7 +50,7 @@ func show_person(id: int, name: String, screen_pos: Vector2) -> void:
 	else:
 		_button("Позвать в команду", func() -> void:
 			team.invite(id)
-			game.hud.toast(Lang.f("%s: приглашение отправлено", [name])))
+			game.hud.toast(Lang.line("%s: приглашение отправлено", [name])))
 	_open(screen_pos, SHOW_TIME)
 
 
