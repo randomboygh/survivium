@@ -110,7 +110,7 @@
 | Замыслы, ещё не сделанные: редактор, сборки и хостинг (кроме Pages и ПК) | `plan/architecture/editor.md` (PROPOSED), `deployment.md` (PROPOSED); ранний замысел сети `networking.md` — DEPRECATED, заменён `server.md` |
 | История закрытых тем (варианты, раунды, старые замеры, выполненные планы) | `plan/history/*.md` |
 | Скриншоты по темам (оглавление в README) | `survivium-builds/` |
-| ТЗ этапов: 0 (аудит), система бандлов, 4 (рефакторинг), 5 (тесты и CI), 6 (документация) | `audition.md`, `bundles.md`, `refactoring.md`, `testing_ci.md`, `documentation_audit.md` (корень библиотеки) |
+| ТЗ этапов: 0 (аудит), система бандлов, 4 (рефакторинг), 5 (тесты и CI), 6 (документация), 7 (безопасность), баланс | `audition.md`, `bundles.md`, `refactoring.md`, `testing_ci.md`, `documentation_audit.md`, `security_audit.md`, `game_balance.md` (ARCHIVED, `plan/history/tasks/` библиотеки) |
 | План системы бандлов: анализ ТЗ, аудит данных, этапы с файлами и рисками | `plan/architecture/bundle-system.md` |
 
 Статусы документов библиотеки (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) стоят строкой

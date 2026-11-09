@@ -5,8 +5,9 @@ the browser and on PC (Windows, Linux; Android later), with multiplayer through 
 server that is the same executable (decision 153; single player runs it in the same process).
 Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are loaded
 with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.
-User-facing text, the README and the docs in `docs/` are in Russian; code, comments, commits and PRs
-are in English.
+The game speaks ten languages (English by default) and its source phrases are Russian, each its own
+translation key (`docs/systems/lang.md`); the README and the docs in `docs/` are in Russian; code,
+comments, commits and PRs are in English.
 
 ## Where things are
 
@@ -93,8 +94,8 @@ tests/ tools/      headless tests and the browser smoke test; lint, validator, s
 ## Bundles
 
 A bundle is a switchable part of a mod (`content/animals/wolf/`, id `animals/wolf`); its mechanics are
-in `docs/DATA_MODEL.md` and `docs/systems/content.md`. The bundle system of the user's spec `bundles.md`
-(decision 152) keeps that meaning: what the spec calls a bundle is a record (`mod:name`). No
+in `docs/DATA_MODEL.md` and `docs/systems/content.md`. The bundle system of the user's spec
+`plan/history/tasks/bundles.md` (decision 152) keeps that meaning: what the spec calls a bundle is a record (`mod:name`). No
 technologies: eras are labels the content graph checks. It is built (stages 1–8); its rules are in
 `docs/specifications/BUNDLE_SYSTEM.md`, read it before changing content kinds, recipes, stations or tools, and
 `tests/unit/bundle_system_test.gd` is a mod written by the mods' READMEs that must keep loading and playing.
