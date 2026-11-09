@@ -8,6 +8,12 @@ extends Control
 ## over a shade of the world behind; when the keyboard leaves the screen too short, the
 ## panel goes to its top. `game` is the Main node. While a field has the keys, they do
 ## not walk the player (Controls._typing).
+## On the web, while the window is open, the browser's tab hidden or shown again takes the
+## keys from the field and closes the keyboard, so the next tap opens it as the first time
+## did (on Android a tab switched and back left the keyboard up with no letter reaching
+## the field, 2026-11-09). For now the window also shows, under its buttons, what the page
+## did with the keys (KEYS_LOG): which element has them, the last keys, input and focus
+## changes, so a phone that still fails tells why.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -19,6 +25,69 @@ const FIELD_H := 26
 const ROW_H := 30
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 const MARGIN := 8
+## What the page does with the keys, kept once per page (strict, no `arguments`: CLAUDE.md).
+const KEYS_LOG := """
+(function () {
+	'use strict';
+	if (window.survivium_keys) {
+		return;
+	}
+	var me = { gen: 0, log: [] };
+	function tag(t) {
+		if (!t || !t.tagName) {
+			return String(t);
+		}
+		var s = t.tagName.toLowerCase();
+		if (t.id) {
+			s += '#' + t.id;
+		}
+		if (t.disabled) {
+			s += '-off';
+		}
+		if (t.style && t.style.display === 'none') {
+			s += '-hid';
+		}
+		return s;
+	}
+	function add(s) {
+		me.log.push(s);
+		if (me.log.length > 6) {
+			me.log.shift();
+		}
+	}
+	document.addEventListener('keydown', function (e) {
+		add('key ' + e.key + '/' + e.keyCode + ' ' + tag(e.target));
+	}, true);
+	document.addEventListener('input', function (e) {
+		var v = e.target.value;
+		add('in ' + (v === undefined ? '?' : v.length) + ' ' + tag(e.target));
+	}, true);
+	document.addEventListener('focusin', function (e) {
+		add('fin ' + tag(e.target));
+	}, true);
+	document.addEventListener('focusout', function (e) {
+		add('fout ' + tag(e.target));
+	}, true);
+	document.addEventListener('visibilitychange', function () {
+		me.gen += 1;
+		add('vis ' + document.visibilityState);
+	});
+	window.addEventListener('focus', function () {
+		add('win focus');
+	});
+	window.addEventListener('blur', function () {
+		add('win blur');
+	});
+	me.text = function () {
+		return 'act ' + tag(document.activeElement) + ' tab ' + me.gen + '\\n' + me.log.join('\\n');
+	};
+	window.survivium_keys = me;
+})();
+"""
+## How often the keys' log under the buttons is read again, in seconds.
+const KEYS_EVERY := 0.25
+## The lines the keys' log takes under the buttons.
+const KEYS_LINES := 9
 
 signal closed
 
@@ -30,6 +99,12 @@ var item: String
 var _panel: PanelContainer
 var _fields: Array[LineEdit] = []
 var _note: Label
+## The page's keys log (KEYS_LOG) on the web, the label under the buttons that shows it,
+## how many times the tab was hidden or shown when last read, and the time to the next read.
+var _keys = null
+var _keys_label: Label
+var _tab := 0
+var _keys_in := 0.0
 
 
 func _init(g, e: Dictionary) -> void:
@@ -93,6 +168,18 @@ func _ready() -> void:
 		if not rec.get("wall", false):
 			box.add_child(_button("Повернуть", turn))
 	box.add_child(_button("Закрыть", close))
+	if writes and OS.has_feature("web"):
+		JavaScriptBridge.eval(KEYS_LOG, true)
+		_keys = JavaScriptBridge.get_interface("survivium_keys")
+		if _keys != null:
+			_tab = int(_keys.gen)
+			_keys_label = UiStyle.label("", UiStyle.MUTED)
+			_keys_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+			_keys_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+			# A fixed height, so the panel stays where it is as the lines change.
+			_keys_label.custom_minimum_size = Vector2(WIDTH, KEYS_LINES * 12)
+			_keys_label.max_lines_visible = KEYS_LINES
+			box.add_child(_keys_label)
 	get_parent().resized.connect(_fit)
 	_fit()
 	if not _fields.is_empty() and not game.controls.touch:
@@ -151,6 +238,28 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		close()
+
+
+func _process(delta: float) -> void:
+	if _keys == null:
+		return
+	_keys_in -= delta
+	if _keys_in > 0.0:
+		return
+	_keys_in = KEYS_EVERY
+	var tab := int(_keys.gen)
+	if tab != _tab:
+		# The tab was hidden or shown: the field lets go of the keys and the keyboard
+		# closes, so a tap gives them anew.
+		_tab = tab
+		for f in _fields:
+			if f.has_focus():
+				f.release_focus()
+		DisplayServer.virtual_keyboard_hide()
+	var fields := ""
+	for f in _fields:
+		fields += ("E" if f.is_editing() else "-") + ("F" if f.has_focus() else "-") + " "
+	_keys_label.text = "%s\nwin %s fields %s" % [str(_keys.text()), "Y" if get_window().has_focus() else "N", fields]
 
 
 ## The panel in the middle; at the top when it is taller than the screen (the keyboard
