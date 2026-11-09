@@ -379,7 +379,7 @@ func refresh_now() -> void:
 		if cell.get_index() != at:
 			_grid.move_child(cell, at)
 		cell.visible = _tabs.chosen == "" or Items.category(r.makes) == _tabs.chosen
-		cell.modulate = Color.WHITE if Crafting.why_not(r, inv, stations) == "" else Color(1, 1, 1, 0.45)
+		cell.modulate = Color.WHITE if Crafting.can_make(r, inv, stations) else Color(1, 1, 1, 0.45)
 		if cell.visible:
 			shown.append(r.id)
 	# Cells of recipes no longer listed (the playtest's free items turned off) hide.
@@ -571,7 +571,7 @@ func _show_details(near: Dictionary) -> void:
 		made.append_array(g[1])
 	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["На чём", at],
 		["Чем", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
-	var can := Crafting.why_not(r, inv, near) == ""
+	var can := Crafting.can_make(r, inv, near)
 	var times := _times(r, inv) if can else 0
 	_make_one.disabled = not can
 	_make_five.visible = times >= 5

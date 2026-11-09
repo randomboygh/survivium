@@ -1056,9 +1056,9 @@ func _hint(hand: int, cell: Vector3i, m: int) -> String:
 	if Tools.mows(t) and game.actions.can_mow(cell, t):
 		var picked: String = game.actions.picking(cell)
 		if t.tool == "hand" and picked != "":
-			return Lang.f("собрать: %s", [picked.to_lower()])
+			return Lang.f("собрать: %s", [Lang.t(picked).to_lower()])
 		return "косить" if t.tool == "scythe" else ("срезать траву" if t.tool == "sword" else "сорвать траву")
 	if Tools.can_dig(t, m):
 		var slow: bool = t.tool == "hand" and Mat.RECORDS[m].dig == "shovel"
 		return Lang.f("копать%s", [(" (руками медленно)" if slow else "")])
-	return Tools.why_not(t, m).to_lower()
+	return Lang.t(Tools.why_not(t, m)).to_lower()
