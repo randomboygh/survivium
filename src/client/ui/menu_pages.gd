@@ -133,7 +133,7 @@ func _describe_world(b: Button) -> void:
 		return
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
 	var kind: String = "площадки" if test else load(WORLD_LIST)._kind(game.world_options)
-	b.text += "\n%s · %s" % ["тестовый мир" if test else Lang.f("зерно %d", [game.world_seed]), kind]
+	b.text = Lang.f("%s\n%s · %s", [b.text, "тестовый мир" if test else Lang.f("зерно %d", [game.world_seed]), kind])
 	b.custom_minimum_size.y = PLAY_H
 	b.add_theme_constant_override("line_spacing", 4)
 	var day := -1
