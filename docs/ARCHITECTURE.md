@@ -1,6 +1,6 @@
 # Архитектура
 
-Статус: ACTIVE, сверено с кодом `main` 2026-11-05 (PR #372). Здесь только то, что есть; замыслы
+Статус: ACTIVE, сверено с кодом `main` 2026-11-09 (PR #457). Здесь только то, что есть; замыслы
 (редактор, скрипты модов, Android) — в библиотеке, `plan/architecture/`.
 
 ## Слои
@@ -23,6 +23,7 @@ graph TD
   server --> game
   net --> content
   game --> world
+  game -. protocol.gd .-> net
   game --> content
   world --> content
   content -. читает .-> data
@@ -31,7 +32,8 @@ graph TD
 - `src/shared/` — то, что крутит сервер. Он не загружает ничего из `src/client/` и `src/server/`: это
   проверяет `_test_layers` в `tests/unit/content_test.gd`, нарушение валит CI.
 - Внутри `src/shared/`: `content/` не грузит других папок `src/`, `world/` грузит только `content/`,
-  `net/` — только `content/`, `game/` — `content/` и `world/`. Это проверяет тот же `_test_layers`.
+  `net/` — только `content/`, `game/` — `content/`, `world/` и `net/protocol.gd` (табличка чистит текст
+  `Protocol.clean_text`, PR #452). Это проверяет тот же `_test_layers` (запрета для `game/` в нём нет).
 - `src/server/` грузит только `src/shared/`; клиент грузит `src/server/` только из
   `src/client/net/local_host.gd` — сервера внутри игры для одиночной (решение 153). Что клиент просит
   у правил, идёт запросами протокола через `game.net`; персонаж и мастерская игрока живут на сервере,
@@ -129,6 +131,11 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 (`Mat.GRASS`, `Placed.CAMPFIRE`). Реестры заполняют свои статические переменные при загрузке класса
 и пересобираются `Mods.activate` / `refresh`. Подробно: [DATA_MODEL.md](DATA_MODEL.md).
 
+Текст игры: язык исходников русский, фраза — ключ; переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
+шлёт фразу или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang.md)). При
+запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
+перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content.md)).
+
 ## Сохранение
 
 Каждая общая система сама отдаёт и принимает своё состояние (`to_dict` / `from_dict`, `to_list`);
@@ -143,9 +150,10 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 3. Новые числа контента — поле схемы в `src/shared/content/content_schema.gd` и YAML мода, не константа.
 4. Новый станок или класс инструмента — только данные: `items.prop` и `items.tool` — открытые классы,
    что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
-   работа в мире есть только у шести классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
+   работа в мире есть только у девяти классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
    `materials.role`, `biomes.where`, `biomes.zone`) новым значением требуют кода.
 5. Работа размером с чанк — задание по частям в бюджете `chunk_streamer.gd`.
-6. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
+6. Новая фраза интерфейса или запись — её английский в `lang/en.yaml` рядом (`tools/lang_check.py --write en`).
+7. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
 
 Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS.md).
