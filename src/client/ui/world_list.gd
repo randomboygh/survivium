@@ -156,13 +156,14 @@ func _arm(button: Button) -> bool:
 	return false
 
 
-## The name of the kind of world the settings match (see WorldSetup.KINDS).
+## The name of the kind of world the settings match (see WorldSetup.KINDS), in the
+## language in use, small.
 static func _kind(settings: Dictionary) -> String:
 	var now: Array = WorldSetup.OPTIONS.map(func(o: String) -> int: return settings.get(o, 1))
 	for k: Array in WorldSetup.KINDS:
 		if k[1] == now:
-			return (k[0] as String).to_lower()
-	return "свой"
+			return Lang.t(k[0]).to_lower()
+	return Lang.t("свой")
 
 
 func _fit() -> void:
