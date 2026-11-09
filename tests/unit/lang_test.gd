@@ -60,7 +60,7 @@ func _test_seen() -> void:
 	_check(Lang.missed.is_empty(), "phrases and lines of phrases have their English: %s" % [Lang.missed])
 	Lang.seen("+2 Каменный топор")
 	Lang.seen("Материки и реки…")
-	_check(Lang.missed == ["+2 Каменный топор", "Материки и реки…"] as Array[String],
+	_check(Array(Lang.missed) == ["+2 Каменный топор", "Материки и реки…"],
 		"a phrase glued to its values or cut is caught: %s" % [Lang.missed])
 	Lang.missed.clear()
 	Lang.watching = was
