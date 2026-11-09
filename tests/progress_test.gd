@@ -19,6 +19,7 @@ extends SceneTree
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -82,6 +83,8 @@ func _initialize() -> void:
 	# The settings of this test, apart from the game's and the tools' (shot.gd saves some).
 	SettingsFile.path = "user://test_settings.cfg"
 	SettingsFile.language_override = "ru"
+	# Every text shown to the player must have its English (Lang.seen).
+	Lang.watching = true
 	DirAccess.remove_absolute(SettingsFile.path)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
@@ -137,6 +140,7 @@ func _run() -> void:
 	for id in props:
 		_check(set_down.has(id), "set down: %s" % Items.title(id))
 	print("%d swings, %d trips out, %.1f s" % [swings, trips, (Time.get_ticks_msec() - t0) / 1000.0])
+	_check(Lang.missed.is_empty(), "every text shown has its English: %s" % [Lang.missed])
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 

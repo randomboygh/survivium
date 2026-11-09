@@ -187,11 +187,11 @@
 "Связь с сервером потеряна": "Utracono połączenie z serwerem"
 "Сервер: %s": "Serwer: %s"
 "Сервер закрыл связь": "Serwer zamknął połączenie"
-"Материки и реки…": "Kontynenty i rzeki…"
-"Карта и материалы…": "Mapa i materiały…"
-"Игрок и вещи…": "Gracz i rzeczy…"
-"Игрок и небо…": "Gracz i niebo…"
-"Связь с сервером…": "Łączenie z serwerem…"
+"Материки и реки": "Kontynenty i rzeki"
+"Карта и материалы": "Mapa i materiały"
+"Игрок и вещи": "Gracz i rzeczy"
+"Игрок и небо": "Gracz i niebo"
+"Связь с сервером": "Łączenie z serwerem"
 "Прогрев шейдеров": "Rozgrzewanie shaderów"
 "Первые кадры мира": "Pierwsze klatki świata"
 "Строим окрестности": "Budowanie okolicy"
@@ -209,6 +209,11 @@
 "камера": "kamera"
 "интерфейс": "interfejs"
 
+# src/client/mod_reload.gd
+"Ошибок в данных модов: %d (см. консоль)": "Błędów w danych modów: %d (patrz konsola)"
+"Данные модов перечитаны; новые материалы клеток — только в новом мире": "Dane modów wczytane ponownie; nowe materiały bloków tylko w nowym świecie"
+"Данные модов перечитаны": "Dane modów wczytane ponownie"
+
 # src/client/net/server_list.gd
 "Введите адрес сервера": "Wpisz adres serwera"
 "Из браузера — только wss:// (сервер через туннель)": "Z przeglądarki tylko wss:// (serwer przez tunel)"
@@ -218,8 +223,7 @@
 "запись": "wpis"
 
 # src/client/settings.gd
-"Данные модов перечитаны": "Dane modów wczytane ponownie"
-"Ошибок в данных: %d (см. консоль)": "Błędów w danych: %d (zobacz konsolę)"
+"Отладка ИИ — только в своём мире или хозяину сервера": "Debugowanie SI — tylko we własnym świecie lub dla gospodarza serwera"
 "Браузер не дал игре весь экран: откройте её в Chrome": "Przeglądarka nie dała grze pełnego ekranu: otwórz ją w Chrome"
 "В этом мире вы ещё не умирали": "W tym świecie jeszcze nie umarłeś"
 "Очистить территорию можно только в своём мире": "Teren można wyczyścić tylko we własnym świecie"
@@ -510,10 +514,10 @@
 "Разметка закончена": "Oznaczanie skończone"
 "Ничейная земля": "Ziemia niczyja"
 "Своя территория": "Twój własny teren"
-"Территория «%s»%s: %s": "Teren „%s”%s: %s"
-" заброшена": " porzucony"
 "можно %s": "wolno: %s"
 "ничего нельзя": "nic nie wolno"
+"Территория «%s» заброшена: %s": "Teren „%s” porzucony: %s"
+"Территория «%s»: %s": "Teren „%s”: %s"
 "Настройки": "Ustawienia"
 "Сезон": "Pora roku"
 
@@ -602,7 +606,7 @@
 
 # src/client/ui/level_up.gd
 "Уровень %d из %d": "Poziom %d z %d"
-", %s на %d%%": ", %s o %d%%"
+"Уровень %d из %d, %s на %d%%": "Poziom %d z %d, %s o %d%%"
 "плывёт быстрее": "pływa szybciej"
 "работа быстрее": "pracuje szybciej"
 "%s: новый уровень": "%s: nowy poziom"
@@ -832,6 +836,7 @@
 "Маркеров нет: поставьте их на карте (M).": "Brak znaczników: postaw je na mapie (M)."
 "Карта теней": "Mapa cieni"
 "Отладочные подсказки": "Podpowiedzi debugowania"
+"Отладка ИИ зверей": "Debugowanie SI zwierząt"
 "Обзор уровней": "Przegląd poziomów"
 "все": "wszystkie"
 "Разобрать вызовы отрисовки": "Rozbij wywołania rysowania"
@@ -1002,6 +1007,32 @@
 "Выбрать моды нового мира": "Wybierz mody nowego świata"
 "Что входит": "Co wchodzi"
 
+# src/client/view/ai_debug.gd
+"голод %d%% · здоровье %d/%d": "głód %d%% · zdrowie %d/%d"
+"ярость %d с · покой %d с": "furia %d s · spokój %d s"
+"бежит после удара ещё %d с": "ucieka po ciosie jeszcze %d s"
+"стоит ещё %d с": "stoi jeszcze %d s"
+"зрение %d · боится людей ближе %d · рычит ближе %d": "wzrok %d · boi się ludzi bliżej niż %d · warczy bliżej niż %d"
+"ручной, хозяин %d": "oswojony, właściciel %d"
+"думает каждый шаг: его видят": "myśli co krok: ktoś go widzi"
+"думает реже: его никто не видит": "myśli rzadziej: nikt go nie widzi"
+"бежит от человека": "ucieka przed człowiekiem"
+"бежит от огня": "ucieka przed ogniem"
+"бежит от места удара": "ucieka z miejsca ciosu"
+"бежит: стая в тревоге": "ucieka: stado jest zaniepokojone"
+"бежит от: %s": "ucieka przed: %s"
+"охотится на: %s": "poluje na: %s"
+"спит: не его время": "śpi: nie jego pora"
+"рычит на человека": "warczy na człowieka"
+"охотится на человека": "poluje na człowieka"
+"отгоняет человека": "odpędza człowieka"
+"кусает": "gryzie"
+"плывёт к поплавку": "płynie do spławika"
+"идёт пастись": "idzie się paść"
+"идёт за вожаком": "idzie za przewodnikiem"
+"с хозяином": "z właścicielem"
+"бродит": "włóczy się"
+
 # src/client/view/draw_census.gd
 "тень солнца и луны": "cień słońca i księżyca"
 "свет огней (%d)": "światła ognia (%d)"
@@ -1040,8 +1071,10 @@
 "прогрев": "rozgrzewanie"
 
 # src/client/view/sky.gd
-"Наступила %s": "Nadeszła pora: %s"
+"Наступила весна": "Nadeszła wiosna"
 "Наступило лето": "Nadeszło lato"
+"Наступила осень": "Nadeszła jesień"
+"Наступила зима": "Nadeszła zima"
 
 # src/client/view/sun_rays.gd
 "лучи": "promienie"
@@ -1089,7 +1122,12 @@
 "ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих": "ban <kto lub nazwa>, unban <nazwa>, bans — bany; whitelist on|off|add <nazwa>|remove <nazwa> — wpuszczaj tylko swoich"
 "op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)": "op <kto>, deop <nazwa>, hosts — kto może wydawać polecenia w czacie przez „/” (op, deop, stop — właściciel)"
 "security [вид или имя] — что выглядело подозрительно": "security [rodzaj lub nazwa] — co wyglądało podejrzanie"
+"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)": "reload — wczytać dane modów z dysku ponownie (gorące przeładowanie: liczby, zwierzęta, przepisy; bloki świata zostają)"
 "<кто> — имя или номер игрока (who)": "<kto> — nazwa lub numer gracza (who)"
+"Сервер перечитал данные модов": "Serwer ponownie wczytał dane modów"
+"данные модов перечитаны": "dane modów wczytane ponownie"
+"данные модов перечитаны, ошибок: %d": "dane modów wczytane ponownie, błędów: %d"
+"материалы клеток изменились: мир играет прежними, новые — в новом мире": "materiały bloków się zmieniły: świat zostaje przy starych, nowe będą w nowym świecie"
 "команда без прав: ": "polecenie bez uprawnień: "
 "Команды через «/» — только для хозяина сервера": "Polecenia przez „/” są tylko dla gospodarza serwera"
 "%s (%d) команде: %s": "%s (%d) do drużyny: %s"

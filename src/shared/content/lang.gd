@@ -43,6 +43,13 @@ static var code := ""
 static var _table: Translation = null
 ## The phrases read, by language: a new scene (the menu, a world) uses them again.
 static var _read := {}
+## While on (the scene tests), every text the screen is given to show (`seen`) is put
+## into English, and the ones that stay Russian are kept in `missed`: a phrase glued from
+## pieces, built with `%` instead of `line`, or missing from the language files.
+static var watching := false
+static var missed: Array[String] = []
+static var _english: Table = null
+static var _russian: RegEx = null
 
 
 ## The table of one language: the phrases it has (`words`), the rest from English
@@ -201,6 +208,19 @@ static func t(s: String) -> String:
 	if s.begins_with(LINE):
 		return Table.new().text_of(s)
 	return s
+
+
+## Text `s` (a phrase or a line, as given to a Label) goes on the screen: while
+## `watching`, kept in `missed` when English would still show it in Russian.
+static func seen(s: String) -> void:
+	if not watching or s == "":
+		return
+	if _english == null:
+		_english = Table.new()
+		_english.words = phrases("en")
+		_russian = RegEx.create_from_string("[\\x{0400}-\\x{04FF}]")
+	if _russian.search(_english.text_of(s)) != null and not s in missed:
+		missed.append(s)
 
 
 ## Takes the table out of the TranslationServer: called as the game ends (Main leaving

@@ -540,9 +540,9 @@ func _on_socket_closed(code: int, reason: String) -> void:
 		return
 	if join_error == "" and welcome.is_empty():
 		# A browser says nothing of a server that is not there but a code without words.
-		join_error = "Сервер не отвечает" if code < 0 or reason == "" else Lang.f("Сервер закрыл вход: %s", [reason])
+		join_error = "Сервер не отвечает" if code < 0 or reason == "" else Lang.line("Сервер закрыл вход: %s", [reason])
 	elif join_error == "":
-		join_error = "Связь с сервером потеряна" if code < 0 else (Lang.f("Сервер: %s", [reason]) if reason != "" else "Сервер закрыл связь")
+		join_error = "Связь с сервером потеряна" if code < 0 else (Lang.line("Сервер: %s", [reason]) if reason != "" else "Сервер закрыл связь")
 		if hud != null:
 			hud.set_loading(join_error)
 		if menu != null:
@@ -559,7 +559,7 @@ func start_world() -> void:
 		return
 	# Each heavy part says what it does and lets it show first; `world` is set only once
 	# they are done, so nothing runs on a world half made.
-	await _loading_stage("Материки и реки…")
+	await _loading_stage("Материки и реки")
 	var t0 := Time.get_ticks_msec()
 	# The test world is laid out by hand (see TestGround), every other one from noise.
 	var maker: GDScript = load(TEST_GROUND) if world_seed == WorldStore.TEST_SEED else WorldGen
@@ -570,7 +570,7 @@ func start_world() -> void:
 		gen.material_map = Mat.remap(save.saved_materials)
 	StartTimes.spawn_ms = Time.get_ticks_msec() - t0
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, StartTimes.spawn_ms])
-	await _loading_stage("Карта и материалы…")
+	await _loading_stage("Карта и материалы")
 	# The atlas first: the biome tints and the map take the materials' colours from it.
 	_build_materials()
 	roof = RoofMap.new()
@@ -578,7 +578,7 @@ func start_world() -> void:
 	hud.minimap.setup(gen)
 	if save.has_save:
 		hud.minimap.load_regions(save.store.read_maps())
-	await _loading_stage("Игрок и вещи…" if save.has_save else "Игрок и небо…")
+	await _loading_stage("Игрок и вещи" if save.has_save else "Игрок и небо")
 	world = gen.world
 	# The server's clock and things placed; the save goes to them, and the real weather
 	# of the server inside the game (LocalHost.real_weather).
@@ -622,7 +622,7 @@ func start_world() -> void:
 ## it plays with other bundles, lays the land out from its seed (RemoteGen) and builds
 ## the scene where the server put the character; the chunks come from the server.
 func _join_world() -> void:
-	await _loading_stage("Связь с сервером…")
+	await _loading_stage("Связь с сервером")
 	var since := Time.get_ticks_msec()
 	while welcome.is_empty() and join_error == "":
 		if Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
@@ -645,19 +645,19 @@ func _join_world() -> void:
 		pending_mods = Array(welcome.mods)
 		restart()
 		return
-	await _loading_stage("Материки и реки…")
+	await _loading_stage("Материки и реки")
 	var t0 := Time.get_ticks_msec()
 	gen = RemoteGen.new(world_seed, 48, world_options)
 	if Array(welcome.materials) != Array(Mat.IDS):
 		# The server numbered its materials in its own order: translate.
 		gen.material_map = Mat.remap(PackedStringArray(welcome.materials))
 	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, join_url, Time.get_ticks_msec() - t0])
-	await _loading_stage("Карта и материалы…")
+	await _loading_stage("Карта и материалы")
 	_build_materials()
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
-	await _loading_stage("Игрок и небо…")
+	await _loading_stage("Игрок и небо")
 	world = gen.world
 	world_maker = gen
 	_attach_world()
@@ -703,7 +703,7 @@ func loading_phase() -> String:
 	if ready_to_play:
 		return "Прогрев шейдеров" if warmup != null else "Первые кадры мира"
 	if loading_stage != "":
-		return loading_stage.trim_suffix("…")
+		return loading_stage
 	var now := Time.get_ticks_msec()
 	if _work_shown == "" or now - _work_since >= LOADING_HOLD:
 		var work := _next_work(chunks.take_work())
@@ -783,7 +783,7 @@ func _loading_stage(text: String) -> void:
 	if loading_stage != "":
 		_stages_done += 1
 	loading_stage = text
-	hud.set_loading(text)
+	hud.set_loading(Lang.line("%s…", [text]))
 	await get_tree().process_frame
 	await get_tree().process_frame
 
@@ -911,7 +911,7 @@ func _process(delta: float) -> void:
 			print("near chunks generated in %d ms, meshed in %d ms" % [world_maker.gen_us / 1000, chunks.mesh_us / 1000])
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
-			hud.set_loading("%s… %d%%" % [loading_phase(), roundi(100.0 * loading_progress())])
+			hud.set_loading(Lang.line("%s… %d%%", [loading_phase(), roundi(100.0 * loading_progress())]))
 		t = perf.note("чанки", t)
 	clock.advance(delta)
 	sky.update(delta)
@@ -983,7 +983,7 @@ func _process(delta: float) -> void:
 			hud.set_loading("")
 		elif menu == null:
 			# Only without a menu (tests, tools): the loading screen says it itself.
-			hud.set_loading("%s…" % loading_phase())
+			hud.set_loading(Lang.line("%s…", [loading_phase()]))
 	elif shaders != null:
 		# Not while the warm-up ahead runs: with the menu open it did, drew its kinds a
 		# mix at a time in the same view and left it drawn once, so in the browser only

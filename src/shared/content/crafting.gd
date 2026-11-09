@@ -102,12 +102,15 @@ static func why_not(r: Dictionary, inv, stations: Dictionary) -> String:
 	return ""
 
 
-## "2 Ветка, 1 Верёвка" for a mapping of item ids to how many.
+## "2 Ветка, 1 Верёвка" for a mapping of item ids to how many, as a line (Lang.line), so
+## the reader sees the titles in their language.
 static func amounts_text(amounts: Dictionary) -> String:
 	var parts: PackedStringArray = []
+	var values := []
 	for id in amounts:
-		parts.append("%d %s" % [amounts[id], Items.title(id)])
-	return ", ".join(parts)
+		parts.append("%d %s")
+		values.append_array([amounts[id], Items.title(id)])
+	return Lang.line(", ".join(parts), values)
 
 
 ## Takes the materials of recipe `r` out of bag `inv` (what it keeps stays); false (and

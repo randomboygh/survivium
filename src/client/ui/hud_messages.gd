@@ -15,6 +15,7 @@ const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — 
 
 
 func set_loading(text: String) -> void:
+	Lang.seen(text)
 	_loading.visible = text != ""
 	_loading_label.text = text
 	_loading.reset_size()
@@ -25,6 +26,11 @@ func set_loading(text: String) -> void:
 ## end of the list out of nothing, rising a little; after TOAST_TIME, or when a newer one
 ## would make the list too long, the oldest fades up and away and the rest move up.
 func toast(text: String) -> void:
+	Lang.seen(text)
+	_toast(text)
+
+
+func _toast(text: String) -> void:
 	# Each in a holder of its size, inside which it rises into place.
 	var holder := Control.new()
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -55,7 +61,9 @@ func toast(text: String) -> void:
 ## A notice in the list of toasts (see toast) that stands out: a gold star by `title`
 ## and a line `sub` under it, the panel warmed gold (a skill's new level, LevelUp).
 func notice(title: String, sub: String) -> void:
-	toast("★ " + Lang.t(title) + "\n" + Lang.t(sub))
+	Lang.seen(title)
+	Lang.seen(sub)
+	_toast("★ " + Lang.t(title) + "\n" + Lang.t(sub))
 	var holder: Control = _toasts.get_child(_toasts.get_child_count() - 1)
 	if holder.get_child_count() > 0:
 		var p: Control = holder.get_child(0)

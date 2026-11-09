@@ -6,6 +6,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_lines()
 	_test_english()
+	_test_seen()
 
 
 ## A line keeps its template and values apart and is put together where it is shown.
@@ -44,3 +45,22 @@ func _test_english() -> void:
 	_check(tr("Настройки") == "Настройки" and Lang.t(Lang.line("Сломалось: %s", ["Нож"])) == "Сломалось: Нож", "Russian as written")
 	Lang.drop()
 	_check(Lang.of_device() in Lang.LANGS.map(func(l: Array) -> String: return l[0]), "a new player gets a language of the list")
+
+
+## The scene tests' watch (Lang.seen): a text given to the screen that English would
+## still show in Russian is kept, a phrase or a line of phrases is not.
+func _test_seen() -> void:
+	var was: bool = Lang.watching
+	Lang.watching = true
+	Lang.missed.clear()
+	Lang.seen("Сумка полна")
+	Lang.seen(Lang.line("Сломалось: %s", ["Каменный топор"]))
+	Lang.seen(Lang.line("+%d %s", [2, "Каменный топор"]))
+	Lang.seen(Crafting.amounts_text({"tools:stone_axe": 1}))
+	_check(Lang.missed.is_empty(), "phrases and lines of phrases have their English: %s" % [Lang.missed])
+	Lang.seen("+2 Каменный топор")
+	Lang.seen("Материки и реки…")
+	_check(Lang.missed == ["+2 Каменный топор", "Материки и реки…"] as Array[String],
+		"a phrase glued to its values or cut is caught: %s" % [Lang.missed])
+	Lang.missed.clear()
+	Lang.watching = was
