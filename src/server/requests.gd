@@ -77,6 +77,9 @@ var may_debug := false
 ## Whether the player's playtest switches are taken (Protocol.CHEATS): on a playtest
 ## server only (Config.playtest), never elsewhere.
 var may_cheat := false
+## The clock's own pace on this server (Config.day_speed): the playtest's «Ход времени»
+## multiplies it.
+var day_speed := 1.0
 var ai_debug := false
 var _owed := 0.0
 var _owed_at := -1.0
@@ -351,7 +354,7 @@ func _rule(kind: String, args: Array) -> Variant:
 				return ai_debug
 		Protocol.CHEATS:
 			if may_cheat and _fit(args, [TYPE_DICTIONARY]):
-				return Cheats.apply(session, who, args[0])
+				return Cheats.apply(session, who, args[0], day_speed)
 			return false
 		Protocol.FIGHT_BRAVE:
 			if _fit(args, []):

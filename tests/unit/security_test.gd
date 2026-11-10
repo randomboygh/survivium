@@ -296,6 +296,13 @@ func _test_cheats() -> void:
 		"on a playtest one the player's own switches are taken, clamped: %s %s" % [a.haste, a.skills.rate])
 	_check(not a.vitals.hunger and s.rules.free_items and s.clock.season == 3 and s.clock.weather_auto
 		and s.clock.moon_pin == 0.5 and s.clock.time_speed == 1.0, "and the world's, a value of a wrong type left")
+	req.day_speed = 0.1
+	req.handle(["cheats", 3, [{"boost": 10.0}]])
+	_check(is_equal_approx(s.clock.time_speed, 1.0), "the pace of time multiplies the server's own")
+	var cfg := Config.new()
+	_check(is_equal_approx(cfg.day_speed(), 0.1), "a server's day lasts 40 minutes, as the game's own by default")
+	cfg.take_args(PackedStringArray(["--day-minutes", "1"]))
+	_check(cfg.day_minutes == 4.0, "and never less than 4")
 	var ins := _input(a.at, a.feet_cell, ["", ""], true)
 	a.take_input(ins)
 	_check(a.body.air_jumps, "jumps in the air are allowed then")

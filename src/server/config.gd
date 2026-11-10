@@ -5,13 +5,14 @@ extends RefCounted
 ## the command line over it: `godot --headless -- --server [--config <file>] [--port N]
 ## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]
 ## [--autosave <seconds>] [--no-save] [--pvp off|land|all] [--tunnel [--cloudflared <file>]]
-## [--real-weather] [--playtest [--minutes N] [--bots N] [--bot-logs <folder>]]`. The
+## [--real-weather] [--day-minutes N] [--playtest [--minutes N] [--bots N] [--bot-logs <folder>]]`. The
 ## world is a folder of the game's own saves (WorldStore.root: a name under it, or a
 ## path), or the world of `seed_value` and `settings` (a new one when it has no save).
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 
 const FILE := "user://server.cfg"
 ## Where read and write go when given no path: FILE, but server_test keeps its own.
@@ -46,6 +47,9 @@ var save := true
 ## cloudflared to run ("" to look for it beside the game and on the PATH).
 var tunnel := false
 var cloudflared := ""
+## Minutes a day of the world lasts (the game's own «Длина суток» is 40 by default):
+## the clock's pace is Clock.DAY_LENGTH over it (day_speed).
+var day_minutes := 40.0
 ## The weather is the real one where the server is (RealWeather).
 var real_weather := false
 ## A playtest server (.github/workflows/playtest.yml, PlaytestHost): every player may
@@ -84,6 +88,7 @@ func read(path := "") -> void:
 	tunnel = bool(cfg.get_value("server", "tunnel", tunnel))
 	cloudflared = str(cfg.get_value("server", "cloudflared", cloudflared))
 	real_weather = bool(cfg.get_value("server", "real_weather", real_weather))
+	day_minutes = _day(float(cfg.get_value("server", "day_minutes", day_minutes)))
 	world = str(cfg.get_value("world", "folder", world))
 	seed_value = int(cfg.get_value("world", "seed", seed_value))
 	for k: String in settings:
@@ -110,6 +115,7 @@ func write(path := "") -> bool:
 	cfg.set_value("server", "tunnel", tunnel)
 	cfg.set_value("server", "cloudflared", cloudflared)
 	cfg.set_value("server", "real_weather", real_weather)
+	cfg.set_value("server", "day_minutes", day_minutes)
 	cfg.set_value("world", "folder", world)
 	cfg.set_value("world", "seed", seed_value)
 	for k: String in settings:
@@ -168,6 +174,9 @@ func take_args(args: PackedStringArray) -> void:
 				real_weather = true
 			"--no-real-weather":
 				real_weather = false
+			"--day-minutes":
+				day_minutes = _day(float(next))
+				j += 1
 			"--playtest":
 				playtest = true
 			"--minutes":
@@ -199,3 +208,13 @@ func world_path() -> String:
 ## `m` if it is one of the modes of fighting (Rules.pvp), else "land".
 static func _pvp(m: String) -> String:
 	return m if m in ["off", "land", "all"] else "land"
+
+
+## The clock's pace for a day of `day_minutes` (Clock.time_speed).
+func day_speed() -> float:
+	return Clock.DAY_LENGTH / (day_minutes * 60.0)
+
+
+## Minutes of a day, kept between 4 (the clock's own pace) and a real day.
+static func _day(m: float) -> float:
+	return clampf(m, 4.0, 1440.0) if is_finite(m) else 40.0

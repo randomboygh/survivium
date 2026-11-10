@@ -183,7 +183,8 @@
   `Rules.to_dict` поверх значений по умолчанию, `Rules.of(config.rules)`, например `territory_decay`), поверх — аргументы
   (`--autosave <секунды>`, `--no-save` — мир не сохранять; С7: `tunnel`, `cloudflared` — `--tunnel`,
   `--no-tunnel`, `--cloudflared <файл>`; `real_weather` — `--real-weather`, `--no-real-weather`: погода с
-  улицы там, где сервер, `src/server/real_weather.gd`, [time-weather.md](time-weather.md))
+  улицы там, где сервер, `src/server/real_weather.gd`, [time-weather.md](time-weather.md)); `day_minutes` — `--day-minutes N`: длина суток в минутах, 40 как в игре по умолчанию (`Config.day_speed` →
+  `Clock.time_speed` при открытии мира; «Создать сервер» берёт «Длину суток» хозяина; «Ход времени» читов — множитель к ней)
   командной строки (`take_args`; `--config` читается первым); `world_path()` — папка сохранения:
   имя под `WorldStore.root`, путь или папка сида и настроек (`WorldStore.world_dir`). Окно «Создать
   сервер» (С5) пишет тот же файл.

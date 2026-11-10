@@ -478,6 +478,9 @@ func _start_hosting() -> void:
 	show_host = true
 	var player := str(values.get("player", "Хозяин"))
 	values.erase("player")
+	# The day lasts on the server made here as in the host's own game («Длина суток»).
+	if settings != null:
+		values["day_minutes"] = Clock.DAY_LENGTH / settings.time_speed() / 60.0
 	var node := LocalHost.host(values, get_tree().root)
 	if node.failed != "":
 		host_error = node.failed
