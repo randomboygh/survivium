@@ -64,7 +64,9 @@ enum { ROLE_PLAYER, ROLE_HOST, ROLE_OWNER, ROLE_CONSOLE }
 const COMMANDS := {"who": ROLE_HOST, "say": ROLE_HOST, "kick": ROLE_HOST, "give": ROLE_HOST,
 	"tp": ROLE_HOST, "ban": ROLE_HOST, "unban": ROLE_HOST, "bans": ROLE_HOST, "whitelist": ROLE_HOST,
 	"hosts": ROLE_HOST, "help": ROLE_HOST, "?": ROLE_HOST, "security": ROLE_HOST, "reload": ROLE_HOST,
-	"op": ROLE_OWNER, "deop": ROLE_OWNER, "stop": ROLE_OWNER}
+	"op": ROLE_OWNER, "deop": ROLE_OWNER, "stop": ROLE_OWNER,
+	# Any player, on a playtest server only (Config.playtest, PlaytestHost).
+	"test": ROLE_PLAYER}
 ## Lines the security log keeps (security), and seconds between two lines of one kind
 ## about one player (the others are counted into the next).
 const SECURITY_KEPT := 500
@@ -153,6 +155,8 @@ var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "lis
 ## What looked wrong, newest last ({"at", "id", "name", "what", "detail", "level"}), and
 ## when each kind about each player was last written (SECURITY_EVERY) with how many since.
 var security_log: Array = []
+## Does «/test <rest>» on a playtest server (PlaytestHost.command), its answer.
+var test_command: Callable
 var _flag_at := {}
 ## Wrong passwords by address: the times of the last ones; the times new players came.
 var _wrong := {}
@@ -328,6 +332,10 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			return "\n".join(out)
 		"reload":
 			return reload_mods()
+		"test":
+			if not config.playtest or not test_command.is_valid():
+				return "«test» — только на тестовом сервере"
+			return test_command.call(rest)
 		"help", "?":
 			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
 				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
@@ -399,7 +407,7 @@ func _on_chat(text: String, key: String) -> void:
 	if a == null:
 		return
 	if text.begins_with("/"):
-		if not is_host(key):
+		if not is_host(key) and not (config.playtest and text.get_slice(" ", 0) == "/test"):
 			flag(a, "command", "команда без прав: " + text.left(40), 1)
 			a.link.hear(0, "", "Команды через «/» — только для хозяина сервера")
 			return
@@ -570,8 +578,8 @@ func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
 	_forget(a)
 
 
-## Closes every connection; the characters leave the world.
-func stop() -> void:
+## Closes every connection, telling the players `why`; the characters leave the world.
+func stop(why := "сервер остановлен") -> void:
 	if store != null and not stopping:
 		if store.save(self):
 			_say("мир сохранён")
@@ -580,7 +588,7 @@ func stop() -> void:
 	stopping = true
 	for peer in peers:
 		if peer.ws.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
-			peer.ws.close(CLOSE_STOP, "сервер остановлен")
+			peer.ws.close(CLOSE_STOP, why)
 	for key in accounts.keys():
 		_forget(accounts[key])
 	if listening:
@@ -613,9 +621,11 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 		if open:
 			peer.close_after(1000, "пока")
 		return
-	# What the animals have in mind only a host may see (Protocol.AI_DEBUG): a role taken
-	# away stops it.
-	link.requests.may_debug = is_host(peer.account.key)
+	# What the animals have in mind only a host may see (Protocol.AI_DEBUG), anyone on a
+	# playtest server, who may also send the playtest switches (Protocol.CHEATS): a role
+	# taken away stops it.
+	link.requests.may_debug = is_host(peer.account.key) or config.playtest
+	link.requests.may_cheat = config.playtest
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
 	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:

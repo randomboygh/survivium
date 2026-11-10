@@ -24,6 +24,7 @@ func run() -> void:
 	_test_plans()
 	_test_door()
 	_test_commands()
+	_test_cheats()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -259,9 +260,42 @@ func _test_commands() -> void:
 		"a player gives none; a host gives theirs")
 	_check(net.command("nothing at all").begins_with("неизвестная"), "an unknown command is named as such")
 	_check(net.command("reload", Server.ROLE_PLAYER).contains("владельца"), "a player may not read the mods' data again")
+	var asked: Array = []
+	net.test_command = func(rest: String) -> String:
+		asked.append(rest)
+		return "ок"
+	_check(net.command("test bot+", Server.ROLE_PLAYER).contains("тестовом") and asked.is_empty(),
+		"«test» does nothing on a server that is not a playtest one")
+	cfg.playtest = true
+	_check(net.command("test bot+", Server.ROLE_PLAYER) == "ок" and asked == ["bot+"], "on a playtest one any player gives it")
+	cfg.playtest = false
+	cfg.take_args(PackedStringArray(["--playtest", "--minutes", "-5", "--bots", "-2"]))
+	_check(cfg.playtest and cfg.minutes == 0 and cfg.bots == 0, "a playtest server's numbers from the command line are never below 0")
 	net.access.hosts["k"] = "Аня"
 	net.access.owners["o"] = "Боря"
 	_check(net.role_of("k") == Server.ROLE_HOST and net.role_of("o") == Server.ROLE_OWNER and net.role_of("x") == Server.ROLE_PLAYER,
 		"the roles come from the server's lists")
 	net.access.hosts.erase("k")
 	_check(net.role_of("k") == Server.ROLE_PLAYER, "and a role taken away is gone at once")
+
+
+## The playtest page's switches (Protocol.CHEATS) are taken on a playtest server only,
+## each checked and clamped.
+func _test_cheats() -> void:
+	var p := _socket_player()
+	var s: Session = p[0]
+	var host: LocalHost = p[1]
+	var a = p[2]
+	var req: Requests = host.link.requests
+	_check(req.handle(["cheats", 1, [{"speed": 8.0, "hunger": false, "free_items": true}]]) == [1, false]
+		and a.haste == 1.0 and a.vitals.hunger and not s.rules.free_items, "a server that is not a playtest one takes none")
+	req.may_cheat = true
+	req.handle(["cheats", 2, [{"speed": 1000.0, "air": true, "skill": -5, "hunger": false, "free_items": true,
+		"boost": "много", "season": 9, "weather": -7, "moon": 0.5, "hour": NAN, "nothing": 1}]])
+	_check(a.haste == 8.0 and a.body.speed_scale == 8.0 and a.cheat_air and a.skills.rate == 0.0,
+		"on a playtest one the player's own switches are taken, clamped: %s %s" % [a.haste, a.skills.rate])
+	_check(not a.vitals.hunger and s.rules.free_items and s.clock.season == 3 and s.clock.weather_auto
+		and s.clock.moon_pin == 0.5 and s.clock.time_speed == 1.0, "and the world's, a value of a wrong type left")
+	var ins := _input(a.at, a.feet_cell, ["", ""], true)
+	a.take_input(ins)
+	_check(a.body.air_jumps, "jumps in the air are allowed then")

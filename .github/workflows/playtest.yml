@@ -3,7 +3,8 @@
 # GitHub's machine, behind a Cloudflare quick tunnel (src/server/tunnel.gd), for the
 # minutes asked, with bots as extra players (src/client/input/bot.gd: they walk about the
 # spawn, talk, make gestures, throw things out, set signs and campfires, fell trees and
-# hunt), so the server runs with «Бесплатные предметы» (free_items) when there are any.
+# hunt; more are added and taken away in the game, PlaytestHost), so the server runs with
+# «Бесплатные предметы» (free_items).
 # The link to open on the phone (the web build with `?server=wss://…`) is shown on the
 # run's page as a notice, in the summary and as the commit status «playtest-link», about
 # two minutes after the start; the game's «Тестирование» → «Подключиться к тестовому
@@ -59,7 +60,7 @@ jobs:
           curl -fsSL --retry 3 -o ~/cloudflared \
             "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64"
           chmod +x ~/cloudflared && ~/cloudflared --version
-      # The server and the bots run on in the background after this step, which ends once
+      # The server (and the bots it starts) run on in the background after this step, which ends once
       # the link is there: its log, the notice and the summary show the link during the play.
       - name: Start the server
         env:
@@ -72,14 +73,11 @@ jobs:
           seed_args=()
           if [[ "$SEED" =~ ^-?[0-9]+$ ]]; then seed_args=(--seed "$SEED"); fi
           mkdir -p logs link
-          config_args=()
-          if [ "$bots" -gt 0 ]; then
-            # The bots get what they work with by the recipes, for nothing.
-            printf '[rules]\nfree_items=true\n' > logs/playtest.cfg
-            config_args=(--config "$PWD/logs/playtest.cfg")
-          fi
-          nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" "${config_args[@]}" \
-            --tunnel --cloudflared ~/cloudflared </dev/null > logs/server.log 2>&1 &
+          # The bots get what they work with by the recipes, for nothing (bots may also be
+          # added in the game, «/test bot+»).
+          printf '[rules]\nfree_items=true\n' > logs/playtest.cfg
+          nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" --config "$PWD/logs/playtest.cfg" \
+            --playtest --minutes "$minutes" --bots "$bots" --bot-logs "$PWD/logs" --tunnel --cloudflared ~/cloudflared </dev/null > logs/server.log 2>&1 &
           server=$!
           link=""
           for _ in $(seq 240); do
@@ -96,15 +94,8 @@ jobs:
             echo
             echo "Открыть на телефоне: $link"
           } >> "$GITHUB_STEP_SUMMARY"
-          for i in $(seq "$bots"); do
-            # Each bot with its own user:// (else they share one key and put each other
-            # out), below the server's priority.
-            XDG_DATA_HOME="$RUNNER_TEMP/bot$i" nohup nice -n 10 ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" --bot \
-              </dev/null > "logs/bot$i.log" 2>&1 &
-          done
           echo "$link" > link/link.txt
           echo "$server" > logs/server.pid
-          echo "$(( $(date +%s) + minutes * 60 ))" > logs/end
       # The link as a commit status of the run's commit too («playtest-link»): the API gives
       # it while the run goes on, the job logs only after.
       - name: Publish the link
@@ -115,13 +106,12 @@ jobs:
           jq -n --arg url "$link" '{state: "success", context: "playtest-link", target_url: $url, description: "Ссылка для телефона"}' \
             | curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @- >/dev/null
+      # The server ends itself when its minutes are over (PlaytestHost; «/test hour» in the
+      # game gives it more, «/test stop» stops it) and takes its bots with it.
       - name: Play
         run: |
           server=$(cat logs/server.pid)
-          end=$(cat logs/end)
-          while [ "$(date +%s)" -lt "$end" ] && kill -0 "$server" 2>/dev/null; do sleep 15; done
-          # Nothing to save (--no-save): the server and the bots just end.
-          kill $server 2>/dev/null || true
+          while kill -0 "$server" 2>/dev/null; do sleep 15; done
           pkill -f -- '--join ws://localhost:7777' || true
           cat logs/server.log
       - name: Keep the logs

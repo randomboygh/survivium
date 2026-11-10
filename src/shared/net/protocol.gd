@@ -177,6 +177,11 @@ const FIGHT_BRAVE := "fight_brave"
 ## decision 184): [on]; true when it is on now. Only in a single game and for a host of a
 ## server (Requests.may_debug), never for a player.
 const AI_DEBUG := "ai_debug"
+## The playtest page's switches, on a playtest server only (src/server/cheats.gd,
+## Requests.may_cheat): [{speed, air, skill, heavy, hunger, thirst, fatigue, cold,
+## free_build, tool_wear, instant_craft, free_items, animal_attacks, boost, and once:
+## season, weather, moon, hour}]; true when taken.
+const CHEATS := "cheats"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the

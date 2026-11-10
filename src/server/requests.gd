@@ -26,6 +26,7 @@ const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Cheats := preload("res://src/server/cheats.gd")
 
 ## The longest text a sign is sent to be written (Placed.sign_text cuts it to the sign's).
 const SIGN_MAX := 600
@@ -73,6 +74,9 @@ var paced := false
 ## single game always (LocalHost), on a server only a host (Server.role_of, looked at
 ## with each message); and whether they asked to (PlayerLink sends Protocol.MINDS).
 var may_debug := false
+## Whether the player's playtest switches are taken (Protocol.CHEATS): on a playtest
+## server only (Config.playtest), never elsewhere.
+var may_cheat := false
 var ai_debug := false
 var _owed := 0.0
 var _owed_at := -1.0
@@ -345,6 +349,10 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_BOOL]):
 				ai_debug = args[0] and may_debug
 				return ai_debug
+		Protocol.CHEATS:
+			if may_cheat and _fit(args, [TYPE_DICTIONARY]):
+				return Cheats.apply(session, who, args[0])
+			return false
 		Protocol.FIGHT_BRAVE:
 			if _fit(args, []):
 				return session.fights.give_up(who.id)
