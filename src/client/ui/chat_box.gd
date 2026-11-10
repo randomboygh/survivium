@@ -61,6 +61,9 @@ func _ready() -> void:
 	_row.add_child(h)
 	_whom = Button.new()
 	_whom.focus_mode = Control.FOCUS_NONE
+	# Both buttons act as the finger lands: the keyboard closing as it does moves them
+	# away before the finger lifts.
+	_whom.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	_whom.custom_minimum_size = Vector2(0, 26)
 	_whom.tooltip_text = "Кому сказать: тем, кто рядом, или своей команде"
 	_whom.pressed.connect(func() -> void:
@@ -80,6 +83,7 @@ func _ready() -> void:
 	send.text = "›"
 	send.tooltip_text = "Сказать"
 	send.focus_mode = Control.FOCUS_NONE
+	send.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	send.custom_minimum_size = Vector2(26, 26)
 	send.pressed.connect(submit)
 	h.add_child(send)
