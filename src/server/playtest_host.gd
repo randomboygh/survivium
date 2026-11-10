@@ -5,8 +5,11 @@ extends Node
 ## beside the server, below its priority, stops the server when its minutes are over,
 ## and does «/test …», which any player may send there (the buttons of «Тестирование»
 ## send it): `bot+` and `bot-` add a bot and take the last one away, `hour` gives the
-## server an hour more (at most MOST_MINUTES from its start), `stop` stops it, and
-## nothing says how it stands.
+## server an hour more (at most MOST_MINUTES from its start), `stop` stops it, `new`
+## plays a new world of a random seed (`new test` the test world anew; server_main.renew:
+## everyone comes in again, the bots too), and nothing says how it stands.
+
+const WorldStore := preload("res://src/shared/world/world_store.gd")
 
 ## Bots at most, and minutes a server lives at most (the workflow's job ends at 320).
 const MOST_BOTS := 5
@@ -23,6 +26,8 @@ var _start := 0.0
 var _end := 0.0
 var _warned := false
 var _clock := 0.0
+## Bots to start again once a new world is up.
+var _respawn := 0
 
 
 func _init(m: Node) -> void:
@@ -33,6 +38,7 @@ func _ready() -> void:
 	_start = Time.get_unix_time_from_system()
 	_end = _start + main.config.minutes * 60.0 if main.config.minutes > 0 else 0.0
 	main.server.test_command = command
+	main.renewed.connect(_on_renewed)
 	for i in mini(main.config.bots, MOST_BOTS):
 		add_bot()
 	main.say("тестовый сервер: %s, ботов %d; «/test» — для всех" % [_left_text(), bots.size()])
@@ -87,9 +93,25 @@ func command(rest: String) -> String:
 			main.say("тестовый сервер остановлен игроком")
 			main.server.stop()
 			return "Сервер останавливается"
+		"new", "new test":
+			var seed_value := WorldStore.TEST_SEED if rest == "new test" else randi_range(1, 99999999)
+			_respawn = bots.size()
+			_exit_tree()
+			if not main.renew(seed_value):
+				return "Новый мир здесь не сделать"
+			return "Новый мир %d: зайдите снова через минуту" % seed_value
 		"":
 			return "Ботов %d, %s" % [bots.size(), _left_text()]
-	return "test bot+ | bot- | hour | stop"
+	return "test bot+ | bot- | hour | stop | new | new test"
+
+
+## The new world is up (server_main.renew): the new server takes «/test», and the bots
+## come again.
+func _on_renewed() -> void:
+	main.server.test_command = command
+	for i in _respawn:
+		add_bot()
+	_respawn = 0
 
 
 ## Starts a bot with the first number no bot running has; its number, 0 when it did not

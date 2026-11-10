@@ -24,6 +24,7 @@ func run() -> void:
 	_test_plans()
 	_test_door()
 	_test_commands()
+	_test_cheats()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -276,3 +277,25 @@ func _test_commands() -> void:
 		"the roles come from the server's lists")
 	net.access.hosts.erase("k")
 	_check(net.role_of("k") == Server.ROLE_PLAYER, "and a role taken away is gone at once")
+
+
+## The playtest page's switches (Protocol.CHEATS) are taken on a playtest server only,
+## each checked and clamped.
+func _test_cheats() -> void:
+	var p := _socket_player()
+	var s: Session = p[0]
+	var host: LocalHost = p[1]
+	var a = p[2]
+	var req: Requests = host.link.requests
+	_check(req.handle(["cheats", 1, [{"speed": 8.0, "hunger": false, "free_items": true}]]) == [1, false]
+		and a.haste == 1.0 and a.vitals.hunger and not s.rules.free_items, "a server that is not a playtest one takes none")
+	req.may_cheat = true
+	req.handle(["cheats", 2, [{"speed": 1000.0, "air": true, "skill": -5, "hunger": false, "free_items": true,
+		"boost": "много", "season": 9, "weather": -7, "moon": 0.5, "hour": NAN, "nothing": 1}]])
+	_check(a.haste == 8.0 and a.body.speed_scale == 8.0 and a.cheat_air and a.skills.rate == 0.0,
+		"on a playtest one the player's own switches are taken, clamped: %s %s" % [a.haste, a.skills.rate])
+	_check(not a.vitals.hunger and s.rules.free_items and s.clock.season == 3 and s.clock.weather_auto
+		and s.clock.moon_pin == 0.5 and s.clock.time_speed == 1.0, "and the world's, a value of a wrong type left")
+	var ins := _input(a.at, a.feet_cell, ["", ""], true)
+	a.take_input(ins)
+	_check(a.body.air_jumps, "jumps in the air are allowed then")

@@ -56,6 +56,8 @@ const LOG_LINES := 60
 
 ## The server has stopped (the connections closed, the world saved).
 signal stopped
+## A new world is played in place of the old one (renew), `server` a new one.
+signal renewed
 
 ## The settings; a test sets them before adding the node to the tree.
 var config := Config.new()
@@ -93,6 +95,8 @@ var _load_clock := 0.0
 var _load_frames := 0
 var _load_worst := 0.0
 var _meta := {}
+## The seed of the world renew asked for, while the players are put out; null otherwise.
+var _renew_seed: Variant = null
 
 
 func _ready() -> void:
@@ -113,8 +117,7 @@ func start() -> bool:
 	if not _open_world():
 		failed = "Мир не открыть: " + (str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else "")
 		return false
-	server = Server.new(session, config, {"seed": seed_value, "settings": settings, "mods": mods,
-		"materials": Array(Mat.IDS), "spawn": spawn})
+	_make_server()
 	if config.save:
 		saves = ServerStore.new(store, session, {"seed": seed_value, "settings": settings, "mods": mods}, _meta)
 		saves.every = config.autosave
@@ -149,6 +152,48 @@ func start() -> bool:
 	if config.playtest and not hosted:
 		add_child(PlaytestHost.new(self))
 	return true
+
+
+func _make_server() -> void:
+	server = Server.new(session, config, {"seed": seed_value, "settings": settings, "mods": mods,
+		"materials": Array(Mat.IDS), "spawn": spawn})
+
+
+## Plays a new world of `new_seed` in place of this one, on an unsaved server (a
+## playtest one, PlaytestHost): the players are put out to come in again, the port and
+## the tunnel stay. False on a server that saves.
+func renew(new_seed: int) -> bool:
+	if config.save or server == null or server.stopping:
+		return false
+	say("новый мир %d: все выходят, заходите снова" % new_seed)
+	_renew_seed = new_seed
+	server.stop("Новый мир на сервере: зайдите снова")
+	return true
+
+
+## The players are out: the old world goes, the new one is made, and the server listens
+## again (renew); stops when the new world cannot be made or the port listened on.
+func _swap_world() -> void:
+	config.seed_value = int(_renew_seed)
+	config.world = ""
+	_renew_seed = null
+	_stop_at = -1.0
+	remove_child(runner)
+	runner.queue_free()
+	had_save = false
+	_meta = {}
+	if not _open_world():
+		_quit()
+		return
+	if real_weather != null:
+		real_weather.clock = session.clock
+	_make_server()
+	if server.listen() != OK:
+		say("не могу слушать порт %d снова" % config.port)
+		_quit()
+		return
+	say("слушаю порт %d снова, мир %d" % [config.port, seed_value])
+	renewed.emit()
 
 
 ## Starts the tunnel from the internet (Tunnel); its address comes a few seconds later.
@@ -268,7 +313,10 @@ func _process(delta: float) -> void:
 		if _stop_at < 0.0:
 			_stop_at = now + STOP_WAIT
 		if server.done() or now >= _stop_at:
-			_quit()
+			if _renew_seed != null:
+				_swap_world()
+			else:
+				_quit()
 
 
 ## The world is saved when the window closes (a server made from the game's menu, which

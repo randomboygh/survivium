@@ -48,6 +48,8 @@ var player_name := ""
 ## the body faces (one of 8 steps) and the playtest's air jumps (none); over the loop it
 ## is all taken as is (one process: the player is the server's own).
 var check_moves := false
+## Jumps in the air allowed all the same (Cheats, a playtest server's switch).
+var cheat_air := false
 ## Where the body is, in world units, and the cell its feet are in.
 var at := Vector3.ZERO
 var feet_cell := Vector3i.ZERO
@@ -114,8 +116,8 @@ func take_input(args: Array) -> void:
 	is_moving = bool(args[6])
 	body.swimming = bool(args[7])
 	body.jumped = bool(args[8])
-	# The playtest's jumps in the air are the server's own player's only.
-	body.air_jumps = bool(args[9]) and not check_moves
+	# The playtest's jumps in the air are the server's own player's only, or with Cheats.
+	body.air_jumps = bool(args[9]) and (not check_moves or cheat_air)
 	body.bumped = args[10] if args[10] is Vector3 and args[10].is_finite() else Vector3.INF
 	view_right = args[11].normalized() if args[11].length_squared() > 0.5 else Vector2(1.0, 0.0)
 	view_half = args[12].abs().min(Vector2(VIEW_MAX, VIEW_MAX)) if check_moves else args[12].abs()

@@ -235,6 +235,9 @@ var no_fatigue := false
 var no_thirst := false
 ## Playtest switch: the body feels no cold or heat (Vitals.cold off). Not saved.
 var no_cold := false
+## Playtest switch: on a playtest server the switches of this page go to the server
+## (send_cheats, src/server/cheats.gd), as they work in one's own world. Not saved.
+var cheats := false
 ## Playtest switch: the death screen also offers to come back where the character
 ## fell. Not saved.
 var revive_at_death := false
@@ -432,6 +435,7 @@ func cut_depth() -> float:
 ## Pushes every setting into the modules. Safe to call before the world is built: what
 ## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
+	send_cheats()
 	if game.rules != null:
 		game.rules.free_build = free_build
 		game.rules.tool_wear = tool_wear
@@ -617,7 +621,7 @@ func _check_fullscreen() -> void:
 # --- Playtest switches --------------------------------------------------------------
 
 func set_season(s: int) -> void:
-	if game.session == null:
+	if game.session == null or send_cheats({"season": posmod(s, 4)}):
 		return
 	var clock = game.session.clock
 	clock.season = posmod(s, 4)
@@ -633,7 +637,7 @@ func set_raining(on: bool) -> void:
 
 ## Pins the weather to Clock.WEATHERS[`index`]; -1 lets it change by itself again.
 func set_weather(index: int) -> void:
-	if game.session == null:
+	if game.session == null or send_cheats({"weather": index}):
 		return
 	if index < 0:
 		game.session.clock.weather_auto = true
@@ -644,14 +648,14 @@ func set_weather(index: int) -> void:
 ## Pins the moonlight (0 new moon .. 1 full moon); -1 follows the phase of the moon. On
 ## the server's clock (Clock.moon_pin), so the players on it see the same moon.
 func set_moon(light: float) -> void:
-	if game.session == null:
+	if game.session == null or send_cheats({"moon": light}):
 		return
 	game.session.clock.moon_pin = light
 
 
 ## Moves the clock to `hour` (0-24) of the current day.
 func set_hour(hour: float) -> void:
-	if game.session == null:
+	if game.session == null or send_cheats({"hour": hour}):
 		return
 	game.session.clock.time_of_day = fposmod(hour / 24.0, 1.0)
 
@@ -697,6 +701,38 @@ func set_tool_wear(on: bool) -> void:
 func set_instant_craft(on: bool) -> void:
 	instant_craft = on
 	apply()
+
+
+## Turns the playtest switches on a playtest server on or off: on sends them all, off
+## sends the game's own values back.
+func set_cheats(on: bool) -> void:
+	if game.socket == null or game.net == null:
+		return
+	cheats = on
+	if on:
+		send_cheats()
+	else:
+		game.net.request(Protocol.CHEATS, [{"speed": 1.0, "air": false, "skill": 1.0, "heavy": true,
+			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "free_build": false, "tool_wear": true,
+			"instant_craft": false, "free_items": false, "animal_attacks": true, "boost": 1.0}])
+		_note("Читы выключены")
+
+
+## Over a socket with «Читы на тестовом сервере» on: sends this page's switches and
+## `once` (the clock's: season, weather, moon, hour) to the server (Protocol.CHEATS);
+## false when not (alone, or the switch off), so the caller does it here.
+func send_cheats(once := {}) -> bool:
+	if not cheats or game.socket == null or game.net == null:
+		return false
+	var d := {"speed": player_speed, "air": air_jumps, "skill": skill_rate, "heavy": not no_overload,
+		"hunger": not no_hunger, "thirst": not no_thirst, "fatigue": not no_fatigue, "cold": not no_cold,
+		"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
+		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost}
+	d.merge(once, true)
+	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:
+		if taken != true:
+			_note("Сервер не принимает читы: это не тестовый сервер"))
+	return true
 
 
 func set_animal_attacks(on: bool) -> void:

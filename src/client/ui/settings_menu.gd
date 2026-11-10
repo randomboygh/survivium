@@ -366,7 +366,12 @@ func _section_rows(key: String) -> Array:
 				{"action": "Добавить бота", "do": func() -> void: s.test_server("bot+")},
 				{"action": "Убрать бота", "do": func() -> void: s.test_server("bot-")},
 				{"action": "Продлить сервер на час", "do": func() -> void: s.test_server("hour")},
-				{"action": "Остановить тестовый сервер", "do": func() -> void: s.test_server("stop")},
+				{"action": "Остановить тестовый сервер", "do": func() -> void: s.test_server("stop"), "confirm": true},
+				{"action": "Новый мир на сервере", "do": func() -> void: s.test_server("new"), "confirm": true},
+				{"action": "Тестовый мир на сервере заново", "do": func() -> void: s.test_server("new test"), "confirm": true},
+				["Читы на тестовом сервере", ["выкл", "вкл"],
+					func() -> int: return int(s.cheats),
+					func(i: int) -> void: s.set_cheats(i == 1)],
 			] if game.join_url != "" else [])
 		"player":
 			return [

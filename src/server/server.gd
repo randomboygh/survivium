@@ -578,8 +578,8 @@ func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
 	_forget(a)
 
 
-## Closes every connection; the characters leave the world.
-func stop() -> void:
+## Closes every connection, telling the players `why`; the characters leave the world.
+func stop(why := "сервер остановлен") -> void:
 	if store != null and not stopping:
 		if store.save(self):
 			_say("мир сохранён")
@@ -588,7 +588,7 @@ func stop() -> void:
 	stopping = true
 	for peer in peers:
 		if peer.ws.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
-			peer.ws.close(CLOSE_STOP, "сервер остановлен")
+			peer.ws.close(CLOSE_STOP, why)
 	for key in accounts.keys():
 		_forget(accounts[key])
 	if listening:
@@ -621,9 +621,11 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 		if open:
 			peer.close_after(1000, "пока")
 		return
-	# What the animals have in mind only a host may see (Protocol.AI_DEBUG): a role taken
-	# away stops it.
-	link.requests.may_debug = is_host(peer.account.key)
+	# What the animals have in mind only a host may see (Protocol.AI_DEBUG), anyone on a
+	# playtest server, who may also send the playtest switches (Protocol.CHEATS): a role
+	# taken away stops it.
+	link.requests.may_debug = is_host(peer.account.key) or config.playtest
+	link.requests.may_cheat = config.playtest
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
 	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:
