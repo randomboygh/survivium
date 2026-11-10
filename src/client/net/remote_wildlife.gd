@@ -5,8 +5,17 @@ extends RefCounted
 ## leaps, its tint, its state for its voice), and the same signals (born, gone,
 ## stepped), so what draws them (Creatures), their shadows (FireShadows) and their
 ## voices (Voices) sees no difference. The animals think and move only on the server.
+## Over a socket (`smooth`) their snapshots come about 10 times a second, unevenly: each animal
+## glides from where it is drawn to where the last one put it, over the time since the
+## one before (glide, called by Creatures each frame), so it walks smoothly.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+
+## A snapshot farther than this (world units) from where the animal is drawn puts it
+## there at once; a glide takes the time between two snapshots, within these bounds.
+const GLIDE_MOST := 3.0
+const GLIDE_SHORTEST := 0.05
+const GLIDE_LONGEST := 0.3
 
 ## An animal as the client knows it (see Wildlife.Animal for what each field means).
 class Animal:
@@ -28,6 +37,15 @@ class Animal:
 	var frame := 0
 	## The server moved it since it was last drawn (Creatures puts its picture again).
 	var fresh := true
+	## The glide (see the top): from where, to where, when it began (seconds) and how
+	## long it takes; the lift too.
+	var from := Vector3.ZERO
+	var to := Vector3.ZERO
+	var lift_from := 0.0
+	var lift_to := 0.0
+	var since := 0.0
+	var span := 0.0
+	var gliding := false
 
 	## Off the ground, out of reach of those that walk.
 	func aloft() -> bool:
@@ -40,6 +58,9 @@ signal stepped(a: Animal, at: Vector3, dir: Vector2, left: bool, size: float)
 
 var animals: Array[Animal] = []
 var _by_id := {}
+## The snapshots come over a socket (Main sets it): the animals glide between them. Over
+## the loop of one's own world one comes every frame, and each is taken as it is.
+var smooth := false
 ## What the animals near have in mind (Protocol.MINDS, the AI's debug; AiDebug draws it):
 ## id -> the entry Wildlife.mind made; empty while the debug is off.
 var minds := {}
@@ -68,6 +89,7 @@ func take_born(args: Array) -> void:
 	a.kind = args[1]
 	a.tint = args[2]
 	a.pos = args[3]
+	a.since = Time.get_ticks_msec() * 0.001
 	animals.append(a)
 	_by_id[a.id] = a
 	born.emit(a)
@@ -91,8 +113,21 @@ func take_snap(list: Array) -> void:
 				or not (s[10] is String):
 			continue
 		var a: Animal = _by_id[s[0]]
-		a.pos = s[1]
-		a.lift = float(s[2])
+		var now := Time.get_ticks_msec() * 0.001
+		var to: Vector3 = s[1]
+		if not smooth or to.distance_to(a.pos) > GLIDE_MOST:
+			# Too far to walk (a leap of the server's, a teleport): there at once.
+			a.pos = to
+			a.lift = float(s[2])
+			a.gliding = false
+		else:
+			a.from = a.pos
+			a.lift_from = a.lift
+			a.to = to
+			a.lift_to = float(s[2])
+			a.span = clampf(now - a.since, GLIDE_SHORTEST, GLIDE_LONGEST)
+			a.since = now
+			a.gliding = true
 		a.facing = float(s[3])
 		a.flying = bool(s[4])
 		a.perched = bool(s[5])
@@ -102,6 +137,19 @@ func take_snap(list: Array) -> void:
 		a.near = bool(s[9])
 		a.state = s[10]
 		a.fresh = true
+
+
+## Moves each gliding animal to where it is now on its way (see the top).
+func glide() -> void:
+	var now := Time.get_ticks_msec() * 0.001
+	for a: Animal in _by_id.values():
+		if not a.gliding:
+			continue
+		var k := clampf((now - a.since) / a.span, 0.0, 1.0)
+		a.pos = a.from.lerp(a.to, k)
+		a.lift = lerpf(a.lift_from, a.lift_to, k)
+		a.fresh = true
+		a.gliding = k < 1.0
 
 
 ## A paw came down: [id, at, dir, left, size].

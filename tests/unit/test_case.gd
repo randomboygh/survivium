@@ -155,9 +155,14 @@ class Survivor extends "res://src/shared/game/character.gd":
 	var back_at := Vector3.ZERO
 	## What the hands hold; the first is the hand in use.
 	var hands := ["", ""]
+	## What the character was told (say), in order.
+	var said: Array[String] = []
 
 	func _where() -> Vector3:
 		return at
+
+	func say(text: String) -> void:
+		said.append(text)
 
 	func in_hands() -> Array:
 		return hands

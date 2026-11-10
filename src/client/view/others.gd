@@ -33,6 +33,12 @@ const PICK_REACH := 0.4
 ## Seconds a line said shows over the head, and how wide its balloon wraps (UI px).
 const SAY_TIME := 6.0
 const SAY_WIDTH := 150
+## The balloon is a light paper with dark words and a tail to the speaker, unlike the
+## dark panels of the notices and the signs.
+const BALLOON := Color("#f3e7cc")
+const BALLOON_INK := Color("#2a1d12")
+const TAIL := 5.0
+static var _balloon_box: StyleBoxFlat
 
 var game
 ## The performance statistics (PerfPanel), told how long the figures take a frame.
@@ -138,14 +144,21 @@ func _make(at: Vector3) -> Dictionary:
 	_layer_made().add_child(label)
 	var line := PanelContainer.new()
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_theme_stylebox_override("panel", _balloon())
+	# The tail under the balloon, pointing at the name (placed in _place_labels).
+	var tail := Polygon2D.new()
+	tail.polygon = PackedVector2Array([Vector2(-TAIL, -2.0), Vector2(TAIL, -2.0), Vector2(0.0, TAIL)])
+	tail.color = BALLOON
+	line.add_child(tail)
 	var said := UiStyle.label()
+	said.add_theme_color_override("font_color", BALLOON_INK)
 	said.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.add_child(said)
 	line.visible = false
 	_layer_made().add_child(line)
-	return {"figure": f, "label": label, "line": line, "said": said, "until": 0.0, "head": at,
+	return {"figure": f, "label": label, "line": line, "said": said, "tail": tail, "until": 0.0, "head": at,
 		"snaps": [], "work_n": -1, "hands": "", "gear": ""}
 
 
@@ -160,6 +173,21 @@ func _layer_made() -> Control:
 		else:
 			add_child(_layer)
 	return _layer
+
+
+## The balloon's box, made once: light, rounded, a dark edge.
+static func _balloon() -> StyleBoxFlat:
+	if _balloon_box == null:
+		_balloon_box = StyleBoxFlat.new()
+		_balloon_box.bg_color = BALLOON
+		_balloon_box.border_color = UiStyle.EDGE
+		_balloon_box.set_border_width_all(1)
+		_balloon_box.set_corner_radius_all(6)
+		_balloon_box.content_margin_left = 6.0
+		_balloon_box.content_margin_right = 6.0
+		_balloon_box.content_margin_top = 2.0
+		_balloon_box.content_margin_bottom = 3.0
+	return _balloon_box
 
 
 ## Puts the names and the balloons at the heads' places on the screen.
@@ -178,7 +206,8 @@ func _place_labels() -> void:
 		if line.visible:
 			line.visible = now < one.until
 			line.reset_size()
-			line.position = (Vector2(at.x - line.size.x * 0.5, label.position.y - line.size.y - 1.0)).floor()
+			line.position = (Vector2(at.x - line.size.x * 0.5, label.position.y - line.size.y - TAIL - 1.0)).floor()
+			one.tail.position = Vector2(floorf(line.size.x * 0.5), line.size.y)
 
 
 func _process(delta: float) -> void:
