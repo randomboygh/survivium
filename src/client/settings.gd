@@ -802,6 +802,15 @@ func join_test_server() -> void:
 		game.join_server(url, name if name != "" else "Игрок", ""))
 
 
+## Asks the playtest server joined for `what` («/test`what`», PlaytestHost.command):
+## its answer comes back in the chat.
+func test_server(what: String) -> void:
+	if game.join_url == "" or game.net == null:
+		return
+	game.net.request(Protocol.CHAT, ["/test " + what])
+	_note("Отправлено тестовому серверу, ответ — в чате")
+
+
 func _note(text: String) -> void:
 	if game.hud != null:
 		game.hud.toast(text)

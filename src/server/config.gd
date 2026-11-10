@@ -5,7 +5,7 @@ extends RefCounted
 ## the command line over it: `godot --headless -- --server [--config <file>] [--port N]
 ## [--world <folder>] [--seed N] [--players N] [--password <word>] [--name <title>]
 ## [--autosave <seconds>] [--no-save] [--pvp off|land|all] [--tunnel [--cloudflared <file>]]
-## [--real-weather]`. The
+## [--real-weather] [--playtest [--minutes N] [--bots N] [--bot-logs <folder>]]`. The
 ## world is a folder of the game's own saves (WorldStore.root: a name under it, or a
 ## path), or the world of `seed_value` and `settings` (a new one when it has no save).
 
@@ -48,6 +48,13 @@ var tunnel := false
 var cloudflared := ""
 ## The weather is the real one where the server is (RealWeather).
 var real_weather := false
+## A playtest server (.github/workflows/playtest.yml, PlaytestHost): every player may
+## use «/test» (bots, an hour more, stop), it ends after `minutes` (0 never), and starts
+## `bots` bots, their logs in `bot_logs` ("" for user://). Only from the command line.
+var playtest := false
+var minutes := 0
+var bots := 0
+var bot_logs := ""
 ## The rules of play over their defaults (the section [rules]: keys of Rules.to_dict,
 ## such as territory_decay = "rights").
 var rules := {}
@@ -161,6 +168,17 @@ func take_args(args: PackedStringArray) -> void:
 				real_weather = true
 			"--no-real-weather":
 				real_weather = false
+			"--playtest":
+				playtest = true
+			"--minutes":
+				minutes = maxi(0, int(next))
+				j += 1
+			"--bots":
+				bots = maxi(0, int(next))
+				j += 1
+			"--bot-logs":
+				bot_logs = next
+				j += 1
 			"--cloudflared":
 				cloudflared = next
 				tunnel = true

@@ -361,7 +361,13 @@ func _section_rows(key: String) -> Array:
 					"do": func() -> void: s.switch_test_world()},
 				{"action": "Запустить тестовый сервер", "do": func() -> void: s.start_test_server()},
 				{"action": "Подключиться к тестовому серверу", "do": func() -> void: s.join_test_server()},
-			]
+			] + ([
+				# On a server: the playtest server's own commands (PlaytestHost).
+				{"action": "Добавить бота", "do": func() -> void: s.test_server("bot+")},
+				{"action": "Убрать бота", "do": func() -> void: s.test_server("bot-")},
+				{"action": "Продлить сервер на час", "do": func() -> void: s.test_server("hour")},
+				{"action": "Остановить тестовый сервер", "do": func() -> void: s.test_server("stop")},
+			] if game.join_url != "" else [])
 		"player":
 			return [
 				["Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),

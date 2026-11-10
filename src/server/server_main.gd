@@ -3,8 +3,8 @@ extends Node
 ## scenes/server.tscn, which main.gd changes to on `--server` before building anything
 ## of the client (`godot --headless --path . -- --server [--port N] [--world <folder>]
 ## [--seed N] [--players N] [--password <word>] [--config <file>] [--tunnel]
-## [--real-weather]`, see Config; with `--tunnel` it runs cloudflared beside it and logs
-## the address friends join from the internet, Tunnel, С7; with `--real-weather` the
+## [--real-weather] [--playtest …]`, see Config; a playtest server: PlaytestHost; with
+## `--tunnel` it runs cloudflared beside it and logs the address friends join from the internet, Tunnel, С7; with `--real-weather` the
 ## world's weather is the real one where the server is, RealWeather). It opens
 ## the world the way the game does (a save under user://saves: the bundles it was made
 ## with, its materials, clock and things; else a new world of the seed and settings),
@@ -27,6 +27,7 @@ const Runner := preload("res://src/server/runner.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
 const Tunnel := preload("res://src/server/tunnel.gd")
 const RealWeather := preload("res://src/server/real_weather.gd")
+const PlaytestHost := preload("res://src/server/playtest_host.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
@@ -145,6 +146,8 @@ func start() -> bool:
 		real_weather.enabled = true
 		add_child(real_weather)
 		say("погода с улицы: узнаю, где сервер…")
+	if config.playtest and not hosted:
+		add_child(PlaytestHost.new(self))
 	return true
 
 

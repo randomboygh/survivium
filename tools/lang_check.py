@@ -32,9 +32,9 @@ CONSOLE = {"src/server/server_main.gd", "src/server/real_weather.gd", "src/serve
            "src/shared/content/content_graph.gd"}
 LOG_CALLS = ("print(", "printerr(", "push_error(", "push_warning(", "assert(", "print_debug(")
 # Files where a phrase may be glued to values with `%` or `+` (see glued): the server's
-# replies to commands (its console, an op's chat), the draw census of the stats panel,
+# replies to commands (its console, an op's chat, «/test» on a playtest server), the draw census of the stats panel,
 # and a new team's name, which the players then edit as plain text.
-GLUE_OK = {"src/server/server.gd", "src/server/requests.gd", "src/client/view/draw_census.gd",
+GLUE_OK = {"src/server/server.gd", "src/server/requests.gd", "src/server/playtest_host.gd", "src/client/view/draw_census.gd",
            "src/shared/game/teams.gd"}
 
 

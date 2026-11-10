@@ -259,6 +259,17 @@ func _test_commands() -> void:
 		"a player gives none; a host gives theirs")
 	_check(net.command("nothing at all").begins_with("неизвестная"), "an unknown command is named as such")
 	_check(net.command("reload", Server.ROLE_PLAYER).contains("владельца"), "a player may not read the mods' data again")
+	var asked: Array = []
+	net.test_command = func(rest: String) -> String:
+		asked.append(rest)
+		return "ок"
+	_check(net.command("test bot+", Server.ROLE_PLAYER).contains("тестовом") and asked.is_empty(),
+		"«test» does nothing on a server that is not a playtest one")
+	cfg.playtest = true
+	_check(net.command("test bot+", Server.ROLE_PLAYER) == "ок" and asked == ["bot+"], "on a playtest one any player gives it")
+	cfg.playtest = false
+	cfg.take_args(PackedStringArray(["--playtest", "--minutes", "-5", "--bots", "-2"]))
+	_check(cfg.playtest and cfg.minutes == 0 and cfg.bots == 0, "a playtest server's numbers from the command line are never below 0")
 	net.access.hosts["k"] = "Аня"
 	net.access.owners["o"] = "Боря"
 	_check(net.role_of("k") == Server.ROLE_HOST and net.role_of("o") == Server.ROLE_OWNER and net.role_of("x") == Server.ROLE_PLAYER,
