@@ -34,11 +34,12 @@ hash of its bytes, without making a string.
 
 A touch on the page gave the canvas the page's focus, and so took it from the hidden input
 the phone's keyboard types into: a tap on the field being edited closed the keyboard, and
-the field, taking the tap, opened it again at once (2026-11-10). And each time the keyboard
-was asked for, the input was hidden and shown again, though it was the one already typed
-in. The patch leaves the focus with the keyboard's input while it has it (the game lets the
-field go when a tap lands off it: src/client/ui/text_field.gd) and leaves the input alone
-when it is asked for again.
+the field, taking the tap, opened it again at once (2026-11-10). The patch leaves the focus
+with the keyboard's input while it has it (the game lets the field go when a tap lands off
+it: src/client/ui/text_field.gd). The keyboard asked for again still hides its input and
+focuses it anew in the same moment: that is what opens the keyboard again once the phone
+has put it away (the back button) while the input kept the focus; a focus it already has
+opens nothing, and the keyboard never came back (2026-11-10).
 
 It fails when the files are not the ones it knows, so an engine upgrade is noticed.
 
@@ -118,10 +119,6 @@ PITCH_KEPT = PITCH.replace("GodotRuntime.parseString(", "_keptName(")
 TOUCH = "function touch_cb(type,evt){if(type===0){GodotConfig.canvas.focus()}"
 TOUCH_KEPT = ("function touch_cb(type,evt){if(type===0&&document.activeElement!==GodotDisplayVK.textinput"
     "&&document.activeElement!==GodotDisplayVK.textarea){GodotConfig.canvas.focus()}")
-# The keyboard asked for hid its input first, also the one with the page's focus.
-VK_SHOW = 'if(GodotDisplayVK.textinput.style.display!==""||GodotDisplayVK.textarea.style.display!==""){GodotDisplayVK.hide()}'
-VK_SHOW_KEPT = ("if(document.activeElement!==GodotDisplayVK.textinput&&document.activeElement!==GodotDisplayVK.textarea"
-    '&&(GodotDisplayVK.textinput.style.display!==""||GodotDisplayVK.textarea.style.display!=="")){GodotDisplayVK.hide()}')
 
 
 def patch(path: Path, old: str, new: str, what: str, count: int = 1) -> None:
@@ -145,7 +142,6 @@ def main() -> None:
     patch(out / "index.js", VOLUMES, VOLUMES_KEPT, "the names of the voices whose volumes change kept")
     patch(out / "index.js", PITCH, PITCH_KEPT, "the names of the voices whose pitch changes kept")
     patch(out / "index.js", TOUCH, TOUCH_KEPT, "a touch leaves the page's focus with the keyboard's input")
-    patch(out / "index.js", VK_SHOW, VK_SHOW_KEPT, "the keyboard asked for again keeps its input")
 
 
 if __name__ == "__main__":
